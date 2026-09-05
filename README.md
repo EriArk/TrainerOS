@@ -1,36 +1,72 @@
 # TrainerOS
 
-TrainerOS is a controller-first Android frontend for a Pokémon-focused handheld.
+TrainerOS is a controller-first **Linux handheld shell/session** for a Pokémon-focused portable system.
 
-The initial hardware target is the **Retroid Flip / Retroid Flip-class clamshell handheld**, but the product is intentionally software-only: no physical modification of the console is required. TrainerOS should make the device feel like a dedicated trainer terminal rather than an Android handheld running a generic emulator launcher.
+The initial target is a **Retroid Flip-class device running ArmadaOS**. TrainerOS is software-only: no physical modification of the handheld is required.
 
-> Status: product definition / pre-implementation.
+> Status: platform pivot / pre-implementation. The earlier Android/Kotlin direction has been retired.
 
 ## Product idea
 
-TrainerOS is not a ROM list with a Pokémon skin. It is a cohesive, full-screen interface organized around **adventures, regions, a Pokédex, the trainer profile, and the history of completed journeys**.
+TrainerOS is not a ROM list with a Pokémon skin and it is not a launcher opened from another desktop. It is the **primary user interface of the device**: a cohesive full-screen trainer terminal organized around Adventures, Worlds, a Pokédex, the Trainer profile, and the history of completed journeys.
 
-TrainerOS is intended to be the **primary interface of the handheld**, not an app that the user manually opens from another launcher. Android and individual emulators stay underneath the experience. The normal user flow should be:
+Normal lifecycle:
 
-**Power on / wake → TrainerOS → choose or continue an adventure → game → return to TrainerOS**
+**Power on / wake → TrainerOS → choose or continue an Adventure → emulator/application → return to TrainerOS**
 
-The user should only need to see Android when deliberately opening system settings, maintenance tools, or an explicit exit-to-Android action.
+The underlying Linux desktop should not appear during normal use.
 
-Where the target firmware permits it, TrainerOS should register and operate as the device's default Android Home/Launcher. If a firmware limitation prevents reliable Home replacement, the fallback must still preserve the dedicated-device experience through full-screen operation and deliberate recovery back into TrainerOS.
+## Platform model
+
+TrainerOS uses **ArmadaOS as the system base** instead of rebuilding the low-level handheld Linux stack.
+
+ArmadaOS provides the operating-system foundation, device support, graphics/audio/input stack, packages, and emulator environment. TrainerOS replaces the normal everyday graphical experience with its own dedicated session.
+
+The intended user-facing stack is:
+
+```text
+Retroid hardware
+└─ ArmadaOS / Linux
+   ├─ TrainerOS session  ← normal/default experience
+   │  ├─ Home
+   │  ├─ Worlds
+   │  ├─ Pokédex
+   │  ├─ Trainer
+   │  ├─ Hall of Fame
+   │  └─ System / Pokémon Center services
+   │
+   ├─ Adventure integrations
+   │  ├─ RetroArch
+   │  ├─ melonDS
+   │  ├─ Azahar
+   │  ├─ Dolphin
+   │  └─ future adapters
+   │
+   └─ KDE Plasma Desktop  ← explicit maintenance mode only
+```
+
+KDE Plasma is **not removed**. It remains a powerful maintenance/desktop mode for Wi-Fi troubleshooting, files, terminal work, package management, and recovery. TrainerOS should make entering that mode deliberate rather than part of everyday navigation.
+
+TrainerOS is not currently intended to become a Linux distribution of its own. If the project matures, a later deliverable may be a reproducible/custom ArmadaOS image with TrainerOS preconfigured as the default session.
+
+See [`docs/ARMADA_PLATFORM.md`](docs/ARMADA_PLATFORM.md).
 
 ## Core principles
 
-- **Primary device interface.** TrainerOS is the normal shell the user lives in. Android's stock launcher is an escape hatch, not part of the everyday flow.
-- **Software-only.** No case, button, screen, or other hardware modification is part of this project.
-- **Controller-first.** Every normal action must be usable without touch.
-- **Console-like.** Fast startup, predictable focus, large readable targets, minimal text entry, no desktop-style chrome.
-- **Pokémon-native information architecture.** The frontend talks about *Worlds*, *Adventures*, *Trainer*, *Pokédex*, and *Hall of Fame* — not ROM folders, cores, emulator packages, or platforms.
-- **Worlds, not Games.** The library is organized by Pokémon regions first.
-- **Full-screen sections.** Home is one screen among several; it is not a permanent dashboard behind the rest of the UI.
-- **L1/R1 are sacred navigation controls.** They switch between the primary full-screen sections and are not reused for local actions.
-- **Fast resume.** Recent save states are surfaced as compact visual cards rather than one giant “Continue” hero tile.
-- **Progress becomes history.** TrainerOS should gradually build a personal archive of regions visited, Pokédex progress, completed adventures, teams, and Hall of Fame entries.
-- **No bundled copyrighted game content.** The repository must not ship ROMs, BIOS files, ripped game assets, or proprietary emulator data.
+- **Primary device shell.** TrainerOS is where the user lives after boot/wake and where supported Adventures return after exit.
+- **ArmadaOS underneath, TrainerOS on top.** Reuse the proven Linux/device stack instead of imitating an OS from inside Android.
+- **Keep Plasma.** KDE Plasma is an intentional maintenance/recovery mode, not the normal interface.
+- **Controller-first.** Every normal action must work without touch, mouse, or keyboard.
+- **Console-like.** Fast startup, predictable focus, minimal text entry, no desktop chrome in normal use.
+- **Pokémon-native information architecture.** The UI talks about *Worlds*, *Adventures*, *Trainer*, *Pokédex*, and *Hall of Fame* — not ROM folders, cores, emulator binaries, or platforms.
+- **Worlds, not Games.** The playable library is organized by Pokémon regions first.
+- **Full-screen sections.** Home is one page among peers; it is not permanently visible behind everything.
+- **L1/R1 are sacred navigation controls.** They switch primary full-screen sections and are not reused by local features.
+- **Fast resume.** Recent resumable points appear as compact visual cards, not one giant Continue hero screen.
+- **Progress becomes history.** TrainerOS should grow into a personal archive of regions visited, Pokédex progress, completed Adventures, teams, and Hall of Fame entries.
+- **Modular integrations.** Emulator/process/filesystem quirks stay behind adapters.
+- **Mock visuals are disposable.** Product behavior matters more than preserving early compositions; visual redesign is expected throughout development.
+- **No bundled copyrighted game content.** No ROMs, BIOS files, keys, ripped art/audio, or commercial saves in the repository.
 
 ## Primary navigation
 
@@ -44,49 +80,46 @@ The top-level UI is a horizontal set of full-screen sections:
 - `B`: back / close
 - `Start`: system menu
 
-Exact secondary shortcuts can evolve, but **L1/R1 must remain dedicated to top-level section switching**.
+Exact secondary shortcuts can evolve, but **L1/R1 remain globally reserved**.
 
 See [`docs/UX_NAVIGATION.md`](docs/UX_NAVIGATION.md).
 
-## Screens
+## Home
 
-### Home
+Home is a living trainer overview, not a game launcher and not a permanent shell layer.
 
-Home is a living trainer overview, not a game launcher.
+It may show a restrained mix of:
 
-It can show a restrained mix of:
-
-- active world / current adventure
-- region progress
-- badge progress
+- active World / current Adventure
+- region and badge progress
 - Pokédex progress
-- recently caught / recently discovered Pokémon when data is available
-- latest achievement or Hall of Fame activity
-- time, battery, network and backup status
-- a themed visual tied to the active world, trainer, or selected Pokémon
+- recently discovered/caught Pokémon when available
+- latest milestone / Hall of Fame activity
+- time, battery, network, storage, sync/backup state
+- a themed visual tied to the active World, Trainer, or featured Pokémon
 
-#### Continue Adventure drawer
+### Continue Adventure drawer
 
-Home contains a **slide-out Continue Adventure panel** with compact save-state cards.
+Home contains a compact **slide-out Continue Adventure panel** with recent resumable points.
 
-Each card should be able to contain:
+A card may contain:
 
-- save-state screenshot
-- adventure title
-- world / region
+- save-state/session screenshot
+- Adventure title
+- World / region
 - location when known
-- save-state timestamp
-- small progress metadata (for example badges or playtime)
+- timestamp
+- tiny progress metadata such as badges or playtime
 
-Selecting a card resumes that specific state through the configured emulator adapter. If an adventure has no compatible save state, TrainerOS can fall back to launching the normal in-game save.
+Selecting a card asks the configured Adventure adapter to resume that exact state when supported. If exact resume is unavailable, the adapter can fall back to normal launch.
 
-The panel is deliberately compact and secondary: **Home itself is not the Continue screen**.
+The panel is secondary: **Home itself is not the Continue screen**.
 
-### Worlds
+## Worlds
 
-Worlds is the main adventure library, organized by region rather than hardware platform.
+Worlds is the Adventure library, organized by region rather than emulator/platform.
 
-Initial world set:
+Initial set:
 
 - Kanto
 - Johto
@@ -98,176 +131,138 @@ Initial world set:
 - Galar
 - Paldea
 
-A world can contain multiple adventures / game versions. For example, Kanto can contain original adventures, remakes, and other Kanto-focused titles. Platform and emulator details are implementation metadata, not the user-facing hierarchy.
+A World can contain multiple Adventures and expose status such as Not Visited, In Progress, Completed, Champion, Pokédex completion, total time, and last visit. Emulator/process details remain hidden implementation metadata.
 
-A world can expose status such as:
+## Pokédex
 
-- Not visited
-- In progress
-- Completed
-- Champion
-- Pokédex completion
-- total time
-- last visit
+The Pokédex combines reference information with the Trainer's personal history. Long-term data may include Seen/Caught, first encounter, Worlds encountered, party appearances, favorite status, shiny history, and notes/tags.
 
-### Pokédex
+The implementation should support offline/local data and provider adapters. It must not require proprietary artwork committed to this repository.
 
-The Pokédex is both an encyclopedia and a record of the trainer's own history.
+## Trainer
 
-Long-term, entries may combine canonical Pokémon data with local progress such as:
+Trainer is the persistent profile and progression view: trainer identity, featured Pokémon, active Adventure, total playtime, Worlds visited/completed, badges, Pokédex totals, championships, and milestones.
 
-- seen / caught
-- first adventure where encountered
-- worlds in which the trainer has owned the Pokémon
-- party appearances
-- favorite status
-- shiny history
-- notes / tags
+It should feel like an in-universe trainer device, not account settings.
 
-The implementation must allow offline caching and must not require copyrighted artwork to be committed to this repository.
+## Hall of Fame
 
-### Trainer
-
-Trainer is the personal profile and progression screen.
-
-Possible data:
-
-- trainer name
-- avatar
-- favorite Pokémon
-- current adventure
-- total playtime
-- worlds visited
-- worlds completed
-- badges earned
-- Pokédex completion
-- milestones / achievements
-
-The visual language should resemble a polished in-universe trainer device, not an Android settings profile.
-
-### Hall of Fame
-
-Hall of Fame is a permanent archive of completed adventures.
-
-An entry can store:
-
-- world / region
-- adventure
-- completion date
-- final playtime
-- final team of six
-- optional screenshot
-- optional notes
-
-Automatic extraction from save files is a later enhancement; manual confirmation must remain a valid fallback.
+Hall of Fame is a permanent archive of completed Adventures. Entries may store World, Adventure, completion date, final playtime, final team of six, screenshot, notes, and whether the data was imported or manually confirmed.
 
 ## Pokémon Center / system services
 
-“Pokémon Center” is a good user-facing metaphor for maintenance tasks, but it is **not required to be a primary L1/R1 page**.
-
-It can live in the system menu or as a Home utility and eventually provide:
+“Pokémon Center” is an optional user-facing metaphor for maintenance services such as:
 
 - save backup / restore
-- save-state management
-- cloud sync status
+- save-state/session management
+- sync status
 - storage health
-- emulator integration status
+- Adventure integration status
+- missing-content relinking
 
-`Start` should open a system menu that can also expose TrainerOS settings, controller mapping, Android settings, and an **explicit exit-to-Android action**. Android access must be intentional; it should never be the expected destination after closing an Adventure.
+It does not need to occupy a primary L1/R1 page.
+
+`Start` opens the system menu. That menu may expose TrainerOS settings, controller mapping, Pokémon Center, Adventure management, restart/power actions, and an explicit **Desktop / Maintenance Mode** that leaves TrainerOS for KDE Plasma.
 
 ## Device-shell behavior
 
-TrainerOS owns the normal handheld experience.
+TrainerOS owns the normal handheld lifecycle:
 
-Expected behavior:
+- boot/login/session startup should enter TrainerOS by default once integration is stable
+- wake should restore TrainerOS or the active Adventure appropriately
+- exiting a supported Adventure should return to TrainerOS
+- TrainerOS should restore prior page/focus quickly after external applications close
+- desktop panels/window chrome should never appear in the normal shell
+- Plasma remains reachable through an explicit maintenance action
+- a TrainerOS crash should recover to a safe session/maintenance path rather than leave the user with a dead black screen
 
-- launching or waking the device should land in TrainerOS whenever the platform permits it
-- exiting a supported emulator/adventure should return to TrainerOS
-- Android status/navigation chrome should be hidden during normal use where platform APIs allow
-- crashes/restarts should recover back into TrainerOS cleanly rather than strand the user in a desktop-like launcher
-- system settings and stock Android remain reachable for maintenance through an explicit path
-- TrainerOS must not require replacing the Android ROM or physically modifying the device
-
-## Visual direction
-
-The target is **modern trainer hardware**, not “Android with Pokémon wallpaper.”
-
-Preferred characteristics:
-
-- clean in-universe device UI
-- strong typography and clear focus state
-- restrained use of Pokémon type colors
-- pixel / retro details only where they add character
-- world-specific accents and atmosphere without rebuilding the entire layout for every region
-- motion that feels like panels/pages of a handheld terminal
-- excellent readability on a small landscape display
-- no mouse-like interaction patterns
-
-Avoid:
-
-- huge launcher tiles everywhere
-- Material Design defaults showing through unchanged
-- permanent desktop-style navigation bars
-- emulator/core/platform terminology in the normal UI
-- overloading the screen with Pokémon art
-- forcing touch for normal navigation
-
-See [`docs/DESIGN_LANGUAGE.md`](docs/DESIGN_LANGUAGE.md) for composition, focus, motion, and visual anti-patterns.
+Exact ArmadaOS session/compositor integration must be validated on the target device instead of assuming one desktop/session implementation.
 
 ## Technical direction
 
-Recommended implementation:
+Recommended application stack:
 
-- Kotlin
-- Android
-- Jetpack Compose
-- controller/focus navigation as a first-class input system
-- local database for library and history
-- adapter layer for emulator launching, save states, screenshots, and optional save parsing
-- Android Home/Launcher integration as the intended production mode where supported by the target firmware
-- robust full-screen frontend fallback where Home replacement is restricted
+- C++20 (or later where justified)
+- Qt 6
+- QML / Qt Quick for the shell UI
+- CMake
+- controller/input service as first-class infrastructure
+- SQLite-backed local persistence behind repository interfaces
+- Linux process/service/filesystem boundaries for system behavior
+- capability-based Adventure adapters for emulator launch, resume points, screenshots, saves, and metadata
+- a dedicated TrainerOS session entry for production use on ArmadaOS
 
-The architecture should keep the UI independent from any single emulator. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+QML is preferred because TrainerOS is a GPU-accelerated, controller-driven embedded-style shell with frequent visual iteration. UI code must remain independent from emulator-specific implementation details.
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+## Development model
+
+The first build is a **full controller-navigable mock** of the product structure. It proves navigation, information architecture, focus behavior, motion, and overall feel.
+
+The mock is **not a final visual design**.
+
+After the mock, development proceeds modularly **top-down in vertical slices**:
+
+**visible feature → domain/use-case layer → repository/service boundary → real adapter/integration → persistence/device behavior → handheld test → refactor/redesign**
+
+Worlds should become real end-to-end before deep work spreads everywhere; then Home/Continue, Trainer/Hall of Fame, Pokédex, Pokémon Center, and additional integrations follow. Visuals may be aggressively reworked at every stage.
+
+See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Repository map
 
-- [`AGENTS.md`](AGENTS.md) — rules and context for Codex/agents
-- [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) — detailed product behavior
-- [`docs/UX_NAVIGATION.md`](docs/UX_NAVIGATION.md) — controller and screen navigation rules
-- [`docs/DESIGN_LANGUAGE.md`](docs/DESIGN_LANGUAGE.md) — visual direction and layout principles
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — proposed Android architecture
-- [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) — core domain model
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — implementation stages and acceptance criteria
-- [`docs/CODEX_START.md`](docs/CODEX_START.md) — suggested first implementation task for Codex
+- [`AGENTS.md`](AGENTS.md) — working contract for Codex/agents
+- [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) — product behavior
+- [`docs/UX_NAVIGATION.md`](docs/UX_NAVIGATION.md) — controller/navigation rules
+- [`docs/DESIGN_LANGUAGE.md`](docs/DESIGN_LANGUAGE.md) — visual direction and anti-patterns
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Qt/Linux architecture
+- [`docs/ARMADA_PLATFORM.md`](docs/ARMADA_PLATFORM.md) — ArmadaOS/session integration plan
+- [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) — domain model
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — vertical-slice implementation plan
+- [`docs/CODEX_START.md`](docs/CODEX_START.md) — first implementation brief
 
 ## First milestone
 
-The first useful build should prove the feel of TrainerOS before deep emulator integration:
+The first useful build should:
 
-1. launch as a landscape full-screen Android app
-2. controller navigation works without touch
-3. `L1/R1` switches Home, Worlds, Pokédex, Trainer, and Hall of Fame
-4. Home has a working compact Continue Adventure drawer using mock save-state data
-5. Worlds shows region-first navigation
-6. Start opens a system menu
-7. UI state survives app restart
-8. the codebase already uses emulator adapter interfaces, even if the first adapter is a mock
+1. compile as a native Linux/Qt application
+2. run full-screen in a normal development desktop session and on the target ArmadaOS device
+3. be fully controller-navigable
+4. use `L1/R1` to switch Home, Worlds, Pokédex, Trainer, and Hall of Fame
+5. provide a working compact Continue Adventure drawer using mock resume data
+6. show region-first Worlds navigation
+7. open a TrainerOS system menu with a stubbed Maintenance/Desktop action
+8. preserve useful UI state across restart
+9. route mock launching/resume through `MockAdventureAdapter`
 
-Only after that should the project spend time on emulator-specific save-state integration and save parsing. Primary-Home/Launcher integration becomes a production requirement once the core controller shell is stable enough to test safely on the target device.
+Do **not** begin by replacing the ArmadaOS session or integrating real emulators. Prove the shell safely as a normal application first; then add a dedicated TrainerOS session once crash/recovery behavior is understood.
 
-## Legal / content policy for the repository
+## Deliverables
 
-TrainerOS is a frontend. Keep the repository clean:
+The final project is **not an APK**.
+
+Expected mature outputs are:
+
+- native ARM64 Linux TrainerOS executable and resources
+- installable package for the ArmadaOS base (packaging format chosen after validating the current base system)
+- TrainerOS session/launcher configuration
+- optional installer/setup tooling
+- later, potentially a reproducible/custom ArmadaOS image with TrainerOS preconfigured
+
+## Legal / content policy
+
+Keep the repository clean:
 
 - no ROMs
-- no BIOS files
-- no keys or firmware dumps
-- no copyrighted game dumps
+- no BIOS/firmware dumps
+- no encryption keys
+- no commercial game dumps
 - no ripped proprietary UI/audio assets
-- no bundled saves copied from commercial games
+- no bundled commercial-game save files
 
-Use placeholders, original UI assets, user-provided files, and data providers with appropriate licenses.
+Use original placeholders, user-provided content, and appropriately licensed data/assets.
 
 ---
 
-The goal is simple: when the Flip opens, it should feel like **a personal Pokémon trainer terminal with years of adventures inside it**, not like a generic Android emulation handheld.
+The goal is simple: opening the Flip should feel like powering on **a personal Pokémon trainer terminal with years of Adventures inside it**, while Linux, Plasma, emulator binaries, and filesystem details quietly do their jobs underneath.
