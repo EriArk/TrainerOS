@@ -19,6 +19,12 @@ If a task conflicts with those documents, do not silently invent a new product d
 
 TrainerOS is a **software-only, controller-first Android frontend for a Pokémon-focused handheld**, initially targeting Retroid Flip / Retroid Flip-class devices.
 
+TrainerOS is intended to be the **primary device interface**, not a secondary launcher app. The desired normal lifecycle is:
+
+**Power on / wake → TrainerOS → Adventure → TrainerOS**
+
+Android's stock launcher and system UI are maintenance/escape paths, not part of ordinary use.
+
 It is not:
 
 - a custom Android ROM
@@ -33,6 +39,10 @@ The intended illusion is a dedicated trainer terminal. Android and emulator deta
 
 These decisions are explicit and should be treated as requirements:
 
+- **TrainerOS is the primary handheld interface.** Production builds should support being selected as the Android Home/Launcher where the target firmware permits it.
+- Exiting a supported Adventure/emulator should return the user to TrainerOS rather than a stock Android launcher.
+- Access to stock Android/system settings must remain possible, but through a deliberate maintenance/system action.
+- If reliable Android Home replacement is restricted by firmware, preserve the same dedicated-device flow through a robust full-screen fallback rather than redesigning TrainerOS as a secondary app.
 - The user-facing library section is called **Worlds**, never “Games”.
 - Worlds are organized by Pokémon **region first**, not emulator/platform first.
 - Top-level sections are full-screen pages.
@@ -68,6 +78,7 @@ Secondary shortcuts are allowed only if they do not conflict with the above. Kee
 - Prefer Kotlin + Jetpack Compose.
 - Keep feature UI independent of emulator implementations.
 - Put emulator-specific behavior behind adapter interfaces.
+- Keep Android Home/Launcher integration, immersive/full-screen behavior, and return-to-TrainerOS lifecycle concerns behind dedicated platform/service boundaries rather than mixing them into feature UI.
 - Model Worlds, Adventures, Save States, Trainer progress, Pokédex progress, and Hall of Fame as domain objects rather than UI-only state.
 - Persist user/product state locally.
 - Use mock/fake adapters before coupling the first UI milestone to real emulator quirks.
@@ -98,6 +109,18 @@ A healthy post-mock slice should leave behind a reusable module boundary rather 
 - Scrolling must retain a focused item.
 - Modal/drawer focus must be trapped correctly and restored on close.
 - L1/R1 switching should preserve sensible per-page focus/state.
+
+### Device-shell behavior
+
+Treat dedicated-device behavior as a product requirement, not optional polish:
+
+- production mode should support Android Home/Launcher role where possible
+- start/wake/relaunch paths should converge on TrainerOS
+- returning from Adventures should restore TrainerOS state and focus cleanly
+- system bars/navigation chrome should be hidden during normal use where platform APIs allow
+- app/process recovery must avoid stranding the user in an unrelated launcher when practical
+- provide an explicit, discoverable maintenance path to Android settings / stock environment
+- never require rooting, a custom ROM, or physical modification solely to make TrainerOS usable
 
 ### Emulator integration
 
