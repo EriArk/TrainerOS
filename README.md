@@ -10,14 +10,17 @@ The initial hardware target is the **Retroid Flip / Retroid Flip-class clamshell
 
 TrainerOS is not a ROM list with a Pokémon skin. It is a cohesive, full-screen interface organized around **adventures, regions, a Pokédex, the trainer profile, and the history of completed journeys**.
 
-Android and individual emulators stay underneath the experience. The normal user flow should be:
+TrainerOS is intended to be the **primary interface of the handheld**, not an app that the user manually opens from another launcher. Android and individual emulators stay underneath the experience. The normal user flow should be:
 
-**Power on → TrainerOS → choose/continue an adventure → game**
+**Power on / wake → TrainerOS → choose or continue an adventure → game → return to TrainerOS**
 
-The user should only need to see Android when deliberately opening system settings or maintenance tools.
+The user should only need to see Android when deliberately opening system settings, maintenance tools, or an explicit exit-to-Android action.
+
+Where the target firmware permits it, TrainerOS should register and operate as the device's default Android Home/Launcher. If a firmware limitation prevents reliable Home replacement, the fallback must still preserve the dedicated-device experience through full-screen operation and deliberate recovery back into TrainerOS.
 
 ## Core principles
 
+- **Primary device interface.** TrainerOS is the normal shell the user lives in. Android's stock launcher is an escape hatch, not part of the everyday flow.
 - **Software-only.** No case, button, screen, or other hardware modification is part of this project.
 - **Controller-first.** Every normal action must be usable without touch.
 - **Console-like.** Fast startup, predictable focus, large readable targets, minimal text entry, no desktop-style chrome.
@@ -170,7 +173,20 @@ It can live in the system menu or as a Home utility and eventually provide:
 - storage health
 - emulator integration status
 
-`Start` should open a system menu that can also expose TrainerOS settings, controller mapping, Android settings, and an explicit exit path.
+`Start` should open a system menu that can also expose TrainerOS settings, controller mapping, Android settings, and an **explicit exit-to-Android action**. Android access must be intentional; it should never be the expected destination after closing an Adventure.
+
+## Device-shell behavior
+
+TrainerOS owns the normal handheld experience.
+
+Expected behavior:
+
+- launching or waking the device should land in TrainerOS whenever the platform permits it
+- exiting a supported emulator/adventure should return to TrainerOS
+- Android status/navigation chrome should be hidden during normal use where platform APIs allow
+- crashes/restarts should recover back into TrainerOS cleanly rather than strand the user in a desktop-like launcher
+- system settings and stock Android remain reachable for maintenance through an explicit path
+- TrainerOS must not require replacing the Android ROM or physically modifying the device
 
 ## Visual direction
 
@@ -208,7 +224,8 @@ Recommended implementation:
 - controller/focus navigation as a first-class input system
 - local database for library and history
 - adapter layer for emulator launching, save states, screenshots, and optional save parsing
-- default-launcher mode where the Retroid firmware allows it, with full-screen frontend mode as a fallback
+- Android Home/Launcher integration as the intended production mode where supported by the target firmware
+- robust full-screen frontend fallback where Home replacement is restricted
 
 The architecture should keep the UI independent from any single emulator. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
@@ -236,7 +253,7 @@ The first useful build should prove the feel of TrainerOS before deep emulator i
 7. UI state survives app restart
 8. the codebase already uses emulator adapter interfaces, even if the first adapter is a mock
 
-Only after that should the project spend time on emulator-specific save-state integration and save parsing.
+Only after that should the project spend time on emulator-specific save-state integration and save parsing. Primary-Home/Launcher integration becomes a production requirement once the core controller shell is stable enough to test safely on the target device.
 
 ## Legal / content policy for the repository
 
