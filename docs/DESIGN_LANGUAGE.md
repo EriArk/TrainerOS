@@ -6,14 +6,14 @@ TrainerOS should look like a **real trainer terminal from the Pokémon world**, 
 
 The UI needs enough original identity to stay coherent across Kanto through Paldea and across very different game generations.
 
-Think: modern dedicated handheld system with region-aware atmosphere, not Android with themed wallpaper.
+Think: modern dedicated handheld system with region-aware atmosphere, not Linux/KDE/Steam with a Pokémon theme.
 
 ## Overall composition
 
 - landscape-first
 - strong central content area
 - minimal permanent chrome
-- no desktop window frames
+- no desktop window frames, taskbars, panels, or title bars in normal mode
 - no phone-style bottom navigation bar
 - no giant grid of identical launcher tiles
 - page-to-page movement is primarily horizontal and driven by `L1/R1`
@@ -49,7 +49,7 @@ The exact arrangement can change. Important constraints:
 
 - Continue is visible/discoverable but not dominant
 - the page has breathing room
-- a selected World/featured Pokémon can influence atmosphere
+- selected World/featured Pokémon can influence atmosphere
 - system status remains compact
 
 ### Continue drawer
@@ -84,13 +84,13 @@ Region cards can use:
 - short atmospheric labels
 - subtle map-like motifs created for TrainerOS
 
-Do not require official region map artwork.
+Do not require official region-map artwork.
 
-Opening a World should feel like entering that destination, with its Adventures listed inside.
+Opening a World should feel like entering that destination, with Adventures listed inside.
 
 ### Pokédex — dense but elegant instrument
 
-Pokédex can be the most data-dense page, but should still retain strong focus and whitespace.
+Pokédex can be the most data-dense page while retaining strong focus and whitespace.
 
 Suggested structure:
 
@@ -114,7 +114,7 @@ Prioritize:
 - milestones
 - current Adventure/World
 
-Do not make it an account profile form.
+Do not make it an account-profile form.
 
 ### Hall of Fame — archive
 
@@ -139,7 +139,7 @@ Possible pattern:
 L1   HOME · WORLDS · DEX · TRAINER · HALL OF FAME   R1
 ```
 
-Only the current page needs strong emphasis. The indicator can fade/reduce prominence after input if desired.
+Only the current page needs strong emphasis. The indicator may fade/reduce prominence after input if desired.
 
 This is navigation feedback, not an app dock.
 
@@ -154,9 +154,9 @@ Recommended direction:
 - small directional marker/cursor
 - quick 80–140 ms response
 
-Avoid the default Android TV rectangle glow.
+Avoid default Qt desktop focus rectangles, KDE selection visuals, or generic TV-interface glows.
 
-The same focus treatment should work on cards, list rows, buttons, and menu items.
+The same focus treatment should work on cards, rows, buttons, and menu items.
 
 ## Color
 
@@ -208,14 +208,25 @@ Motion explains structure:
 - opening World/Pokédex/Hall entry: depth/panel transition
 - Continue: slide-out drawer
 - system menu: overlay
+- Adventure launch: quick clean handoff without desktop minimize/window animations
 
-Animations should be short and interruptible. Rapid navigation must remain pleasant.
+Animations should be short, interruptible, and pleasant during rapid navigation.
 
 ## System status
 
-Time, battery, network, and backup state belong in the interface but should remain quiet.
+Time, battery, network, storage/backup state belong in the interface but remain quiet.
 
-Avoid recreating the full Android status bar. Build a TrainerOS system-status treatment that visually belongs to the product.
+Do not expose the normal Plasma panel/system tray as the shell status treatment. TrainerOS owns its own compact status language.
+
+Complex system configuration can intentionally hand off to Desktop / Maintenance Mode instead of reproducing an entire desktop control center inside TrainerOS.
+
+## Desktop / Maintenance Mode visual boundary
+
+TrainerOS and Plasma should feel intentionally separate.
+
+TrainerOS does not need to visually imitate KDE or hide the fact that Desktop Mode is a different environment. The transition should simply be deliberate and clearly labeled.
+
+Normal TrainerOS screenshots/mockups should never include Plasma panels, desktop wallpaper, window decorations, or taskbars.
 
 ## Rotom-style notifications — later
 
@@ -238,15 +249,32 @@ Until final assets exist:
 
 Do not commit copied official UI screens, official character art, or game audio as placeholders.
 
+## Visual iteration policy
+
+The first complete mock is a **conversation with the real device**, not a style contract.
+
+At any vertical-slice milestone, it is acceptable to replace:
+
+- whole page composition
+- component shapes
+- spacing/density
+- typography hierarchy
+- motion
+- focus treatment
+- World atmosphere treatment
+
+Do not keep weak visuals merely to preserve already-written QML. Domain/adapters should make visual replacement cheap.
+
 ## Anti-pattern check
 
 If a mockup resembles any of these, reconsider it:
 
-- Android launcher with Pokémon wallpaper
+- KDE Plasma with a Pokémon theme
+- Steam/EmulationStation library organized by platform
 - Netflix-style endless cover rows
-- Steam library organized by platform
-- Material 3 demo app
+- Qt Widgets desktop application
 - PC dashboard full of tiny statistic widgets
 - mobile app stretched sideways
+- generic console launcher with Pokémon wallpaper
 
-TrainerOS should read as a **purpose-built handheld interface**.
+TrainerOS should read as a **purpose-built trainer handheld interface**.
