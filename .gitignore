@@ -1,42 +1,83 @@
-# Gradle
-.gradle/
+# CMake / build outputs
 build/
-**/build/
-!gradle/wrapper/gradle-wrapper.jar
+build-*/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+Makefile
+compile_commands.json
+install_manifest.txt
 
-# Local Android SDK path
-local.properties
+# Ninja
+.ninja_deps
+.ninja_log
+build.ninja
 
-# Android Studio / IntelliJ
-.idea/
-*.iml
+# Qt generated files
+*.qmlc
+*.jsc
+qmlcache/
+.qtc_clangd/
+CMakeLists.txt.user*
+*.pro.user*
+
+# Binaries / objects
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dll
+*.dylib
+*.exe
+
+# Packaging outputs
+*.AppImage
+*.deb
+*.rpm
+*.pkg.tar.*
+*.tar.gz
+*.tar.zst
+*.zip
 out/
+dist/
+package/
 
-# Android build outputs
-*.apk
-*.aab
-*.ap_
-*.dex
-*.class
+# IDE/editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
 
-# Native build outputs
-.externalNativeBuild/
-.cxx/
-
-# Signing / secrets
-*.jks
-*.keystore
-keystore.properties
-
-# OS / editor
+# OS metadata
 .DS_Store
 Thumbs.db
-.vscode/
 
-# Logs / temp
+# Logs / temp / runtime state
 *.log
 *.tmp
-*.swp
+*.pid
+*.core
+core
+runtime/
+cache/
 
-# Generated captures
-captures/
+# Local device/developer overrides
+.env
+.env.*
+!.env.example
+local.cmake
+local.conf
+config.local.*
+
+# User content / emulator data must never be committed
+roms/
+bios/
+firmware/
+saves/
+states/
+user-data/
+private-assets/
