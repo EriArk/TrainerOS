@@ -196,6 +196,8 @@ Avoid:
 - overloading the screen with Pokémon art
 - forcing touch for normal navigation
 
+See [`docs/DESIGN_LANGUAGE.md`](docs/DESIGN_LANGUAGE.md) for composition, focus, motion, and visual anti-patterns.
+
 ## Technical direction
 
 Recommended implementation:
@@ -215,6 +217,7 @@ The architecture should keep the UI independent from any single emulator. See [`
 - [`AGENTS.md`](AGENTS.md) — rules and context for Codex/agents
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) — detailed product behavior
 - [`docs/UX_NAVIGATION.md`](docs/UX_NAVIGATION.md) — controller and screen navigation rules
+- [`docs/DESIGN_LANGUAGE.md`](docs/DESIGN_LANGUAGE.md) — visual direction and layout principles
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — proposed Android architecture
 - [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) — core domain model
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — implementation stages and acceptance criteria
