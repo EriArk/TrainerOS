@@ -9,50 +9,68 @@ Before implementing or changing product behavior, read:
 1. `README.md`
 2. `docs/PRODUCT_SPEC.md`
 3. `docs/UX_NAVIGATION.md`
-4. `docs/ARCHITECTURE.md`
-5. `docs/DATA_MODEL.md`
-6. `docs/ROADMAP.md`
+4. `docs/DESIGN_LANGUAGE.md`
+5. `docs/ARCHITECTURE.md`
+6. `docs/ARMADA_PLATFORM.md`
+7. `docs/DATA_MODEL.md`
+8. `docs/ROADMAP.md`
 
-If a task conflicts with those documents, do not silently invent a new product direction. Preserve confirmed decisions and document any intentional change.
+If a task conflicts with these documents, do not silently invent a new direction. Preserve confirmed decisions and document intentional changes.
 
 ## Product identity
 
-TrainerOS is a **software-only, controller-first Android frontend for a Pokémon-focused handheld**, initially targeting Retroid Flip / Retroid Flip-class devices.
+TrainerOS is a **software-only, controller-first Linux shell/session** for a Pokémon-focused handheld, initially targeting a Retroid Flip-class device running ArmadaOS.
 
-TrainerOS is intended to be the **primary device interface**, not a secondary launcher app. The desired normal lifecycle is:
+TrainerOS is the **primary user interface of the handheld**, not a secondary desktop app.
+
+Desired lifecycle:
 
 **Power on / wake → TrainerOS → Adventure → TrainerOS**
 
-Android's stock launcher and system UI are maintenance/escape paths, not part of ordinary use.
+The underlying KDE Plasma desktop exists as explicit **Desktop / Maintenance Mode** for configuration, recovery, files, package management, and development. It is not part of ordinary use.
 
-It is not:
+TrainerOS is not:
 
-- a custom Android ROM
-- a hardware mod
-- a generic emulator launcher with a Pokémon theme
-- a touch-first mobile app
+- an Android app
+- an APK
+- a custom Android launcher
+- a custom Linux distribution at this stage
+- a replacement for ArmadaOS low-level device support
+- a hardware modification
+- a generic emulator frontend with a Pokémon skin
+- a touch-first or mouse-first desktop app
 - a ROM manager organized by console/platform
 
-The intended illusion is a dedicated trainer terminal. Android and emulator details should normally stay hidden behind the experience.
+## Confirmed platform decision — do not regress
+
+The former Android/Kotlin/Jetpack Compose plan is retired.
+
+Current platform direction:
+
+- **ArmadaOS is the system base.**
+- **TrainerOS is a native Linux graphical shell/session on top of ArmadaOS.**
+- **KDE Plasma remains installed and available as maintenance/recovery desktop mode.**
+- The first prototype must run safely as a normal full-screen application before TrainerOS is made the default session.
+- Once crash/recovery behavior is proven, production mode should boot/login into the TrainerOS session by default.
+- Exiting supported Adventures should return to TrainerOS.
+- Do not remove Plasma merely to create the illusion of a dedicated device.
+- Do not fork/rebuild ArmadaOS or create a custom image until the normal-package/session approach has been proven insufficient.
+
+If current ArmadaOS internals differ from assumptions in these docs, adapt the platform integration layer and update the docs. Do not leak distro/session-specific quirks upward into feature code.
 
 ## Confirmed product decisions — do not regress
 
-These decisions are explicit and should be treated as requirements:
-
-- **TrainerOS is the primary handheld interface.** Production builds should support being selected as the Android Home/Launcher where the target firmware permits it.
-- Exiting a supported Adventure/emulator should return the user to TrainerOS rather than a stock Android launcher.
-- Access to stock Android/system settings must remain possible, but through a deliberate maintenance/system action.
-- If reliable Android Home replacement is restricted by firmware, preserve the same dedicated-device flow through a robust full-screen fallback rather than redesigning TrainerOS as a secondary app.
-- The user-facing library section is called **Worlds**, never “Games”.
+- The user-facing library section is **Worlds**, never “Games”.
 - Worlds are organized by Pokémon **region first**, not emulator/platform first.
-- Top-level sections are full-screen pages.
-- **Home is only one top-level page. It is not permanently visible behind other pages.**
-- `L1` and `R1` switch top-level pages and must not be repurposed for local screen actions.
-- Home is a special trainer dashboard / living overview, not a giant Continue screen.
-- Continue Adventure is a **compact slide-out panel/drawer** on Home.
-- Continue uses **small save-state cards**, ideally with live screenshots and metadata.
-- Normal navigation must work entirely with physical controls.
-- Settings are a service/system function and should not consume one of the main L1/R1 pages unless the product spec is intentionally changed.
+- Top-level sections are full-screen peers.
+- **Home is one top-level page, not a permanent background shell.**
+- `L1/R1` switch top-level pages and must not be repurposed for local features.
+- Home is a living trainer overview, not a giant Continue page or tile launcher.
+- Continue Adventure is a compact slide-out panel/drawer on Home.
+- Continue uses small recent session/save-state cards, ideally with screenshots and metadata.
+- Normal use must work entirely with physical controls.
+- Settings/service features should not consume a primary L1/R1 page without an intentional product change.
+- Desktop/maintenance access must be explicit.
 - No physical modification of Retroid hardware belongs in scope.
 
 ## UX invariants
@@ -63,73 +81,98 @@ Always preserve:
 - D-pad / left stick = focus navigation
 - `A` = confirm/open
 - `B` = back/close
-- `Start` = system menu
-- visible, deterministic focus at all times
-- no required touch interaction for normal use
-- no desktop mouse metaphors
-- no exposed emulator jargon in primary UI
+- `Start` = TrainerOS system menu
+- visible deterministic focus whenever interactive content exists
+- no required touch/mouse/keyboard for normal use
+- no desktop-window metaphors in the normal shell
+- no exposed emulator/core/platform jargon in primary UI
 
 Secondary shortcuts are allowed only if they do not conflict with the above. Keep them remappable where practical.
 
-## Engineering rules
+## Engineering baseline
+
+Preferred baseline:
+
+- C++20
+- Qt 6
+- QML / Qt Quick
+- CMake
+- Qt Test and/or lightweight C++ tests where appropriate
+- SQLite-backed persistence behind repositories
+- Linux process/service/filesystem integration behind explicit platform abstractions
+
+Do not introduce Kotlin, Jetpack Compose, AndroidX, Gradle, Android intents, Room, DataStore, or APK packaging unless a future task explicitly reverses the platform decision.
 
 ### Architecture
 
-- Prefer Kotlin + Jetpack Compose.
-- Keep feature UI independent of emulator implementations.
-- Put emulator-specific behavior behind adapter interfaces.
-- Keep Android Home/Launcher integration, immersive/full-screen behavior, and return-to-TrainerOS lifecycle concerns behind dedicated platform/service boundaries rather than mixing them into feature UI.
-- Model Worlds, Adventures, Save States, Trainer progress, Pokédex progress, and Hall of Fame as domain objects rather than UI-only state.
-- Persist user/product state locally.
+- Keep feature UI independent from emulator implementations.
+- Put emulator-specific behavior behind capability-based Adventure adapters.
+- Keep ArmadaOS/session/process/power/network/storage integration behind platform services.
+- Model Worlds, Adventures, Resume Points, Trainer progress, Pokédex progress, and Hall of Fame as domain objects rather than QML-only state.
+- Persist TrainerOS-owned state locally.
+- External game saves/states remain external source data; reference/manage them safely rather than making TrainerOS metadata the sole source of truth.
 - Use mock/fake adapters before coupling the first UI milestone to real emulator quirks.
+- Avoid embedding distro paths, emulator paths, or shell commands directly in QML.
 
-### Post-mock development strategy
+## Post-mock development strategy
 
-The mock is a **prototype and UX probe**, not a frozen design or throwaway toy.
+The mock is a **prototype and UX probe**, not a frozen design and not disposable architecture.
 
-After the first controller-navigable mock works:
+After the full controller-navigable mock works:
 
-- Develop **modularly and top-down**.
-- Take one user-visible feature at a time from UI/interaction → domain/use-case layer → repository/service boundary → adapter/integration → persistence/device behavior.
-- Prefer complete vertical slices over building every UI first, then every backend, then every integration.
-- Keep module boundaries explicit so individual integrations, data providers, and visual components can be replaced independently.
-- Do not couple a screen directly to emulator packages, filesystem quirks, or save formats.
-- Revisit and refactor abstractions when real device/integration behavior proves the mock assumptions wrong.
-- **Visual design is intentionally not frozen after the mock.** Layout, hierarchy, component shapes, motion, density, and even whole screen compositions may be redesigned repeatedly while the product matures.
-- Preserve product invariants and controller behavior while allowing aggressive visual iteration.
-- Do not protect mock code or mock visuals merely because they already exist. Replace them when a better implementation is clear.
+- develop **modularly and top-down**
+- take one user-visible feature at a time through UI/interaction → domain/use case → repository/service boundary → adapter/integration → persistence/device behavior
+- prefer complete vertical slices over “all UI first, backend later”
+- keep module boundaries explicit so integrations, providers, and visual components can be replaced independently
+- refactor abstractions when real device/integration behavior disproves mock assumptions
+- **visual design remains intentionally fluid**: layout, hierarchy, component shapes, motion, density, and whole compositions may be redesigned repeatedly
+- preserve product invariants and controller behavior while allowing aggressive visual iteration
+- do not protect mock code or visuals merely because they exist
 
-A healthy post-mock slice should leave behind a reusable module boundary rather than another special case.
+A healthy vertical slice leaves behind reusable boundaries instead of another special case.
 
-### Controller-first implementation
+## Controller-first implementation
 
-- Test every screen with keyboard/gamepad key events, not only touch/mouse preview.
+- Test every screen with actual controller/gamepad events, not only mouse/keyboard.
 - Focus order must be intentional and stable.
 - Never rely on hover.
 - Scrolling must retain a focused item.
-- Modal/drawer focus must be trapped correctly and restored on close.
-- L1/R1 switching should preserve sensible per-page focus/state.
+- Modal/drawer focus must be trapped and restored correctly.
+- `L1/R1` page switching should preserve useful per-page focus/state.
+- Input repeat/dead zones should be normalized centrally, not reinvented per feature.
 
-### Device-shell behavior
+## Session / device-shell behavior
 
-Treat dedicated-device behavior as a product requirement, not optional polish:
+Treat dedicated-device behavior as a product requirement, but add it safely:
 
-- production mode should support Android Home/Launcher role where possible
-- start/wake/relaunch paths should converge on TrainerOS
-- returning from Adventures should restore TrainerOS state and focus cleanly
-- system bars/navigation chrome should be hidden during normal use where platform APIs allow
-- app/process recovery must avoid stranding the user in an unrelated launcher when practical
-- provide an explicit, discoverable maintenance path to Android settings / stock environment
-- never require rooting, a custom ROM, or physical modification solely to make TrainerOS usable
+1. First run TrainerOS as a normal full-screen Qt app in a development/Plasma session.
+2. Prove controller navigation, process launch/return, persistence, crash behavior, and recovery.
+3. Add a dedicated TrainerOS session entry.
+4. Only then make that session the normal/default device experience.
 
-### Emulator integration
+Production expectations:
 
-- Do not hard-code the entire app around one emulator package.
-- An emulator adapter may support capabilities independently: launch, resume state, enumerate states, state screenshot, save backup, save parsing.
-- UI must degrade gracefully when an adapter lacks a capability.
-- Never delete or overwrite a user's save/state without an explicit safe operation and backup strategy.
+- startup/login converges on TrainerOS
+- returning from Adventures restores TrainerOS state and focus cleanly
+- Plasma panels/window chrome do not appear during normal TrainerOS use
+- explicit system-menu action can enter Desktop / Maintenance Mode
+- crash/restart paths must leave the user with a recoverable session rather than a black screen
+- do not require removing Plasma
 
-### Content / IP hygiene
+Do not assume a specific display manager, compositor, Gamescope arrangement, systemd unit, or ArmadaOS session layout without validating it on the target/current ArmadaOS build.
+
+## Adventure integration
+
+- Do not hard-code the entire application around one emulator.
+- An adapter may support capabilities independently, such as launch, enumerate resume points, direct resume, state screenshot, save backup, save metadata, process lifecycle, and progress parsing.
+- The UI must degrade gracefully when an adapter lacks a capability.
+- Process invocation and emulator-specific CLI/environment details belong in adapters, not feature UI.
+- Never delete or overwrite a user's save/state silently.
+- Prefer backup/copy/verify workflows for destructive operations.
+
+Initial likely adapter targets may include RetroArch, melonDS, Azahar, and Dolphin, but support must be implemented one adapter at a time and validated on the actual ArmadaOS device.
+
+## Content / IP hygiene
 
 Do not commit:
 
@@ -138,41 +181,44 @@ Do not commit:
 - encryption keys
 - ripped game assets
 - proprietary emulator files
-- copyrighted Pokémon artwork/audio copied from games or official media without an appropriate license
+- copyrighted Pokémon artwork/audio copied from official media without an appropriate license
+- commercial-game save files used as fixtures without permission
 
 Use original placeholders and clearly separated user-provided asset/data paths.
 
 ## Implementation style
 
-- Keep the visual system custom and cohesive; avoid exposing default Material components unchanged.
-- Prefer a small number of strong components over many one-off widgets.
-- Build responsive landscape layouts; do not hard-code a single pixel resolution unless a hardware-specific layer requires it.
-- Keep animation short and functional. Top-level page transitions should communicate horizontal section movement, not delay input.
-- Avoid visual clutter. Pokémon flavor should come from hierarchy, type/world accents, data, and motion — not wallpaper overload.
-- Treat visual components as replaceable until they have survived real-device testing; implementation cleanliness must not become an excuse to freeze weak UX.
+- Keep the visual system custom and cohesive; do not ship Qt default widgets as the product aesthetic.
+- Prefer QML/Qt Quick visual components over desktop QWidget-style UI for the shell.
+- Prefer a small number of strong reusable components over many one-off widgets.
+- Build responsive landscape layouts; do not hard-code a single pixel resolution except inside a device-profile layer when genuinely needed.
+- Keep animation short, interruptible, and functional.
+- Avoid visual clutter; Pokémon flavor should come from hierarchy, accents, data, motion, and world atmosphere rather than wallpaper overload.
+- Treat visual components as replaceable until they survive real-device testing.
 
 ## Documentation discipline
 
-When a task introduces a meaningful product or architecture decision:
+When a task introduces a meaningful product/platform/architecture decision:
 
 - update the relevant doc in the same change
-- add or update acceptance criteria
-- keep README high-level; put implementation detail under `docs/`
+- add/update acceptance criteria
+- keep README high-level; implementation details belong under `docs/`
 
 ## First implementation target
 
 Unless a newer issue/task says otherwise, follow `docs/CODEX_START.md` and `docs/ROADMAP.md`.
 
-The first milestone is a **real controller-navigable UI prototype with mock data**, not deep save-file reverse engineering.
+The first milestone is a **native Qt/QML controller-navigable full product mock**, not session replacement, distro modification, or deep save-file reverse engineering.
 
 ## Definition of done for UI work
 
 A UI task is not done until:
 
-- it is usable without touch
+- it works without touch/mouse
 - focus behavior is deterministic
 - `L1/R1` top-level navigation still works
-- back behavior is correct
+- Back behavior is correct
 - empty/loading/error states are considered
-- no platform/emulator jargon leaks into normal user-facing copy
-- the screen still reads clearly on a small landscape handheld
+- emulator/platform jargon does not leak into normal user-facing copy
+- the screen reads clearly on the target landscape handheld
+- the implementation does not couple QML directly to emulator or ArmadaOS internals
