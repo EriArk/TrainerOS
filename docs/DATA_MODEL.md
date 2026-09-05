@@ -1,6 +1,6 @@
 # TrainerOS Domain Model
 
-The domain model should use TrainerOS language first and integration terminology second.
+The domain model should use TrainerOS language first and integration terminology second. Linux/ArmadaOS/emulator details belong behind integration and platform boundaries rather than shaping the user-facing model.
 
 ## World
 
@@ -239,7 +239,7 @@ Treat this as derived/cacheable data unless a real use case requires independent
 
 ## IntegrationProfile
 
-Stores configuration for one external game/emulator integration without exposing it throughout the app.
+Stores configuration for one external emulator/application integration without exposing it throughout the shell.
 
 Suggested fields:
 
@@ -247,13 +247,17 @@ Suggested fields:
 id
 adapterId
 displayName
-packageName
+installationRef
 config
 lastValidatedAt
 status
 ```
 
+`installationRef` is an adapter/platform-owned reference to the installed integration and must not be interpreted by feature UI. It may resolve to an executable, package, launcher entry, runtime profile, or another Linux-specific mechanism.
+
 `config` is adapter-owned serialized data. Prefer typed adapter config internally where practical.
+
+Do not encode distro-specific executable paths directly into World/Adventure presentation models.
 
 ## AdventureCapability
 
@@ -261,6 +265,7 @@ Capability flags let the UI adapt to each integration:
 
 ```text
 LAUNCH
+PROCESS_LIFECYCLE
 ENUMERATE_RESUME_POINTS
 DIRECT_RESUME
 STATE_SCREENSHOT
@@ -268,6 +273,7 @@ SAVE_BACKUP
 SAVE_METADATA
 PARTY_METADATA
 POKEDEX_METADATA
+PROGRESS_METADATA
 ```
 
 The absence of a capability is normal, not an error.
@@ -303,9 +309,10 @@ Examples:
 
 - TrainerOS-owned entities use stable local IDs.
 - External integration identifiers are stored separately.
-- Never use a file path as the only identity for an Adventure; paths can change.
-- Prefer content URIs / persisted references where Android supports them.
-- Keep source-provider IDs for Pokédex reference records so data can be refreshed or replaced.
+- Never use a mutable filesystem path as the sole identity for an Adventure; installs/content can move.
+- Keep content/install references adapter-owned and relocatable where practical.
+- Store source-provider IDs for Pokédex reference records so data can be refreshed or replaced.
+- Linux/ArmadaOS-specific paths, package identifiers, desktop entries, and launch arguments belong in adapter/platform configuration, not general feature models.
 
 ## Unknown data is valid
 
