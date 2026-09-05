@@ -72,6 +72,24 @@ Secondary shortcuts are allowed only if they do not conflict with the above. Kee
 - Persist user/product state locally.
 - Use mock/fake adapters before coupling the first UI milestone to real emulator quirks.
 
+### Post-mock development strategy
+
+The mock is a **prototype and UX probe**, not a frozen design or throwaway toy.
+
+After the first controller-navigable mock works:
+
+- Develop **modularly and top-down**.
+- Take one user-visible feature at a time from UI/interaction → domain/use-case layer → repository/service boundary → adapter/integration → persistence/device behavior.
+- Prefer complete vertical slices over building every UI first, then every backend, then every integration.
+- Keep module boundaries explicit so individual integrations, data providers, and visual components can be replaced independently.
+- Do not couple a screen directly to emulator packages, filesystem quirks, or save formats.
+- Revisit and refactor abstractions when real device/integration behavior proves the mock assumptions wrong.
+- **Visual design is intentionally not frozen after the mock.** Layout, hierarchy, component shapes, motion, density, and even whole screen compositions may be redesigned repeatedly while the product matures.
+- Preserve product invariants and controller behavior while allowing aggressive visual iteration.
+- Do not protect mock code or mock visuals merely because they already exist. Replace them when a better implementation is clear.
+
+A healthy post-mock slice should leave behind a reusable module boundary rather than another special case.
+
 ### Controller-first implementation
 
 - Test every screen with keyboard/gamepad key events, not only touch/mouse preview.
@@ -108,6 +126,7 @@ Use original placeholders and clearly separated user-provided asset/data paths.
 - Build responsive landscape layouts; do not hard-code a single pixel resolution unless a hardware-specific layer requires it.
 - Keep animation short and functional. Top-level page transitions should communicate horizontal section movement, not delay input.
 - Avoid visual clutter. Pokémon flavor should come from hierarchy, type/world accents, data, and motion — not wallpaper overload.
+- Treat visual components as replaceable until they have survived real-device testing; implementation cleanliness must not become an excuse to freeze weak UX.
 
 ## Documentation discipline
 
