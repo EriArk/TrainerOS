@@ -206,9 +206,22 @@ Use original placeholders and clearly separated user-provided asset/data paths.
 - Avoid visual clutter; Pokémon flavor should come from hierarchy, accents, data, motion, and world atmosphere rather than wallpaper overload.
 - Treat visual components as replaceable until they survive real-device testing.
 
-## Documentation discipline
+## Development workflow — required
 
-Commit each completed, validated implementation increment locally with a concise message. Keep generated build/runtime artifacts and downloaded research material out of commits.
+The user has authorized routine commits and pushes for this project. A completed implementation increment must be checked, committed, pushed to GitHub and verified there; do not leave finished work only in the working tree or local commits. Do not ask for repeated approval for this routine workflow.
+
+1. Start by inspecting the current branch, status, upstream and relevant issue/docs. Identify pre-existing changes and preserve work belonging to the user or another task.
+2. Work in small, coherent increments in the confirmed dependency order. Finish the current slice before spreading changes across later modules. Keep ArmadaOS/device assumptions explicit.
+3. Review the actual diff and run checks appropriate to the change. For native behavior, build and run affected tests; shared input/storage/lifecycle changes warrant the broader suite. For QML, exercise SDL controller events and inspect rendered layouts/focus. Documentation-only changes need content/link/diff checks, not unrelated test reruns.
+4. Stage reviewed files explicitly. Inspect the staged diff, including new files, and run `git diff --cached --check`. Keep builds, reports, machine-specific helpers, research downloads, credentials and user game data out of Git. Never use an indiscriminate add to bypass review.
+5. Commit every completed, validated increment with a concise message explaining the change. Update relevant documentation and acceptance criteria in that increment. Do not accumulate multiple finished stages waiting for a reminder.
+6. Fetch before pushing and inspect divergence. Push the intended branch/upstream normally. Preserve remote work; never force-push, rewrite shared history or bypass branch protections as a routine fix. If the repository requires a PR, use its supported branch/PR workflow.
+7. Verify the remote branch contains the intended commit, then inspect CI for that commit. Fix failures caused by the change, commit and push the fix, and verify again. An earlier green run, queued run or successful local Windows build does not prove that the current Linux CI passed.
+8. Before reporting completion, inspect status and upstream once more. Report the commit/push result, relevant checks and real limitations. State plainly if CI, credentials, network or hardware blocks verification; never imply that an unverified step succeeded.
+
+See `docs/DEVELOPMENT_WORKFLOW.md` for concrete commands and verification boundaries. Task-specific user instructions can override the normal workflow, such as a request to keep a change local or hold a push.
+
+## Documentation discipline
 
 When a task introduces a meaningful product/platform/architecture decision:
 
