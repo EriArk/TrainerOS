@@ -1,0 +1,23 @@
+name: Native Linux build
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install development dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build qt6-base-dev qt6-declarative-dev libqt6sql6-sqlite libsdl2-dev \
+            qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtquick-shapes \
+            qml6-module-qtqml-workerscript qml6-module-qtqml-models
+      - name: Configure
+        run: cmake -S . -B build/native -G Ninja -DCMAKE_BUILD_TYPE=Debug
+      - name: Build
+        run: cmake --build build/native --parallel 2
+      - name: Test
+        run: ctest --test-dir build/native --output-on-failure

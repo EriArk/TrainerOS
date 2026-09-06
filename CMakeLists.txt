@@ -1,0 +1,170 @@
+cmake_minimum_required(VERSION 3.24)
+project(TrainerOS VERSION 0.1.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_AUTOMOC ON)
+include(CTest)
+
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
+find_package(SDL2 2.0.14 REQUIRED CONFIG)
+
+add_library(trainer_core STATIC
+    src/platform/diagnostics/DiagnosticsService.cpp
+    src/platform/diagnostics/DiagnosticsService.h
+    src/features/diagnostics/DiagnosticsController.cpp
+    src/features/diagnostics/DiagnosticsController.h
+    src/platform/process/ProcessService.cpp
+    src/platform/process/ProcessService.h
+    src/core/navigation/AdventureLaunchController.cpp
+    src/core/navigation/AdventureLaunchController.h
+    src/platform/storage/FileCatalog.cpp
+    src/platform/storage/FileCatalog.h
+    src/features/library/FilePickerController.cpp
+    src/features/library/FilePickerController.h
+    src/features/library/LibraryManagementController.cpp
+    src/features/library/LibraryManagementController.h
+    src/features/settings/SettingsController.cpp
+    src/features/settings/SettingsController.h
+    src/core/storage/SqliteLibrary.cpp
+    src/core/storage/SqliteLibrary.h
+    src/core/repository/PreferencesRepository.h
+    src/core/storage/LocalStateStore.cpp
+    src/core/storage/LocalStateStore.h
+    src/core/storage/SessionState.cpp
+    src/core/storage/SessionState.h
+    src/core/input/ControllerInput.cpp
+    src/core/input/ControllerInput.h
+    src/core/input/Action.h
+    src/core/input/TextEntryController.cpp
+    src/core/input/TextEntryController.h
+    src/core/navigation/ShellController.cpp
+    src/core/navigation/ShellController.h
+    src/core/model/Models.h
+    src/core/repository/HallOfFameRepository.h
+    src/core/repository/MockHallOfFameRepository.cpp
+    src/integrations/achievements/AchievementProvider.h
+    src/integrations/achievements/MockAchievementProvider.cpp
+    src/features/halloffame/HallOfFameController.h
+    src/features/halloffame/HallOfFameController.cpp
+    src/core/repository/MockLibraryRepository.cpp
+    src/core/repository/LibraryRepository.h
+    src/core/repository/TrainerRepository.h
+    src/core/repository/MockTrainerRepository.cpp
+    src/core/repository/PokedexRepository.h
+    src/core/repository/MockPokedexRepository.cpp
+    src/features/pokedex/PokedexController.h
+    src/features/pokedex/PokedexController.cpp
+    src/features/trainer/TrainerController.cpp
+    src/features/trainer/TrainerController.h
+    src/features/worlds/WorldsController.cpp
+    src/features/worlds/WorldsController.h
+    src/integrations/adventure/AdventureAdapter.h
+    src/integrations/adventure/mock/MockAdventureAdapter.cpp
+    src/integrations/adventure/mock/MockAdventureAdapter.h
+    src/platform/PlatformService.h
+)
+target_include_directories(trainer_core PUBLIC src)
+target_link_libraries(trainer_core PUBLIC Qt6::Core Qt6::Gui Qt6::Sql SDL2::SDL2)
+target_compile_definitions(trainer_core PUBLIC SDL_MAIN_HANDLED)
+if(MSVC)
+    target_compile_options(trainer_core PRIVATE /W4 PUBLIC /utf-8)
+else()
+    target_compile_options(trainer_core PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+qt_add_executable(traineros src/app/Main.cpp)
+target_link_libraries(traineros PRIVATE trainer_core Qt6::Quick)
+set_source_files_properties(src/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+file(GLOB trainer_qml_sources CONFIGURE_DEPENDS src/qml/*.qml)
+foreach(qml_file IN LISTS trainer_qml_sources)
+    get_filename_component(qml_name "${qml_file}" NAME)
+    set_source_files_properties("${qml_file}" PROPERTIES QT_RESOURCE_ALIAS "${qml_name}")
+endforeach()
+qt_add_qml_module(traineros
+    URI TrainerOS
+    VERSION 1.0
+    RESOURCE_PREFIX /
+    QML_FILES
+        src/qml/Main.qml
+        src/qml/Theme.qml
+        src/qml/Panel.qml
+        src/qml/CapButton.qml
+        src/qml/Hint.qml
+        src/qml/HomePage.qml
+        src/qml/HallOfFamePage.qml
+        src/qml/ControllerList.qml
+        src/qml/ContinueDrawer.qml
+        src/qml/SystemPanel.qml
+        src/qml/StoragePanel.qml
+        src/qml/LibraryPanel.qml
+        src/qml/SettingsPanel.qml
+        src/qml/DiagnosticsPanel.qml
+        src/qml/KeyboardPanel.qml
+        src/qml/TrainerPage.qml
+        src/qml/TrainerEmblem.qml
+        src/qml/WorldsPage.qml
+        src/qml/PokedexPage.qml
+)
+
+if(BUILD_TESTING)
+    qt_add_executable(trainer_process_probe tests/ProcessProbe.cpp)
+    target_link_libraries(trainer_process_probe PRIVATE Qt6::Core)
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+    target_sources(traineros PRIVATE tests/ui/WorldsSmokeScenario.cpp tests/ui/WorldsSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/PokedexSmokeScenario.cpp tests/ui/PokedexSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/HallSmokeScenario.cpp tests/ui/HallSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/PersistenceSmokeScenario.cpp tests/ui/PersistenceSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/LibrarySmokeScenario.cpp tests/ui/LibrarySmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/LaunchSmokeScenario.cpp tests/ui/LaunchSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/DiagnosticsSmokeScenario.cpp tests/ui/DiagnosticsSmokeScenario.h)
+    add_dependencies(traineros trainer_process_probe)
+    target_include_directories(traineros PRIVATE tests/ui)
+    target_compile_definitions(traineros PRIVATE TRAINEROS_UI_TESTS)
+    qt_add_executable(trainer_core_tests tests/CoreTests.cpp)
+    target_link_libraries(trainer_core_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME core COMMAND trainer_core_tests)
+    qt_add_executable(trainer_interaction_tests tests/InteractionTests.cpp)
+    target_link_libraries(trainer_interaction_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME interactions COMMAND trainer_interaction_tests)
+    qt_add_executable(trainer_worlds_tests tests/WorldsTests.cpp)
+    target_link_libraries(trainer_worlds_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME worlds COMMAND trainer_worlds_tests)
+    qt_add_executable(trainer_pokedex_tests tests/PokedexTests.cpp)
+    target_link_libraries(trainer_pokedex_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME pokedex COMMAND trainer_pokedex_tests)
+    qt_add_executable(trainer_hall_tests tests/HallOfFameTests.cpp)
+    target_link_libraries(trainer_hall_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME hall COMMAND trainer_hall_tests)
+    qt_add_executable(trainer_storage_tests tests/StorageTests.cpp)
+    target_link_libraries(trainer_storage_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME storage COMMAND trainer_storage_tests)
+    qt_add_executable(trainer_library_tests tests/LibraryTests.cpp)
+    target_link_libraries(trainer_library_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME library COMMAND trainer_library_tests)
+    qt_add_executable(trainer_process_tests tests/ProcessTests.cpp)
+    target_link_libraries(trainer_process_tests PRIVATE trainer_core Qt6::Test)
+    add_dependencies(trainer_process_tests trainer_process_probe)
+    add_test(NAME process COMMAND trainer_process_tests)
+    qt_add_executable(trainer_diagnostics_tests tests/DiagnosticsTests.cpp)
+    target_link_libraries(trainer_diagnostics_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME diagnostics COMMAND trainer_diagnostics_tests)
+    qt_add_executable(trainer_persistence_process_tests tests/PersistenceProcessTests.cpp)
+    target_link_libraries(trainer_persistence_process_tests PRIVATE Qt6::Test)
+    add_dependencies(trainer_persistence_process_tests traineros)
+    add_test(NAME persistence_process COMMAND trainer_persistence_process_tests)
+    add_test(NAME qml_smoke COMMAND traineros --smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots")
+    add_test(NAME worlds_qml_smoke COMMAND traineros --worlds-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/worlds")
+    add_test(NAME pokedex_qml_smoke COMMAND traineros --pokedex-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/pokedex")
+    add_test(NAME hall_qml_smoke COMMAND traineros --hall-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/hall")
+    add_test(NAME diagnostics_qml_smoke COMMAND traineros --diagnostics-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/diagnostics")
+    set_tests_properties(core interactions worlds pokedex hall storage library process diagnostics persistence_process qml_smoke worlds_qml_smoke pokedex_qml_smoke hall_qml_smoke diagnostics_qml_smoke PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software"
+        TIMEOUT 30
+    )
+endif()
+
+include(GNUInstallDirs)
+install(TARGETS traineros RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+# Session installation intentionally waits for validation on the ArmadaOS device.

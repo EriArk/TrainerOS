@@ -1,0 +1,266 @@
+#include "WorldsController.h"
+#include <algorithm>
+
+namespace trainer {
+namespace {
+QString statusLabel(const std::optional<JourneyStatus>& status) {
+    if (!status) return "Not recorded";
+    switch (*status) {
+    case JourneyStatus::NotStarted: return "Not started";
+    case JourneyStatus::InProgress: return "In progress";
+    case JourneyStatus::Completed: return "Completed";
+    }
+    return "Not recorded";
+}
+QString kindLabel(AdventureKind kind) {
+    switch (kind) {
+    case AdventureKind::Original: return "Original";
+    case AdventureKind::Remake: return "Remake";
+    case AdventureKind::RomHack: return "ROM hack";
+    }
+    return "Adventure";
+}
+QString countLabel(const std::optional<int>& number) { return number ? QString::number(*number) : "—"; }
+}
+WorldsController::WorldsController(LibraryRepository& repository, AdventureAdapter& adapter, QObject* parent)
+    : QObject(parent), repository_(repository), adapter_(adapter) { refresh(); }
+QString WorldsController::route() const {
+    switch (route_) {
+    case Route::Regions: return "regions";
+    case Route::Adventures: return "adventures";
+    case Route::Detail: return "detail";
+    }
+    return "regions";
+}
+int WorldsController::regionIndex() const {
+    for (int i = 0; i < worlds_.size(); ++i) if (worlds_[i].id == worldId_) return i;
+    return 0;
+}
+QList<Adventure> WorldsController::currentAdventures() const {
+    QList<Adventure> result;
+    for (const auto& adventure : adventures_) if (adventure.worldId == worldId_ || adventure.additionalWorldIds.contains(worldId_)) result.append(adventure);
+    return result;
+}
+int WorldsController::adventureIndex() const {
+    const auto entries = currentAdventures();
+    const auto remembered = rememberedAdventures_.value(worldId_);
+    for (int i = 0; i < entries.size(); ++i) if (entries[i].id == remembered) return i;
+    return 0;
+}
+int WorldsController::focusIndex() const {
+    if (route_ == Route::Regions) return regionIndex();
+    if (route_ == Route::Detail) return actionFocus_;
+    return backFocused_ ? currentAdventures().size() : adventureIndex();
+}
+QVariantList WorldsController::regions() const {
+    QVariantList result;
+    for (const auto& world : worlds_) {
+        const auto count = std::count_if(adventures_.begin(), adventures_.end(), [&](const auto& a) { return a.worldId == world.id || a.additionalWorldIds.contains(world.id); });
+        result.append(QVariantMap{{"id", world.id}, {"name", world.name}, {"count", int(count)},
+                                  {"status", statusLabel(world.status)}});
+    }
+    return result;
+}
+QVariantList WorldsController::adventures() const {
+    QVariantList result;
+    for (const auto& adventure : currentAdventures()) {
+        result.append(QVariantMap{{"id", adventure.id}, {"title", adventure.title},
+            {"kind", kindLabel(adventure.kind)}, {"status", statusLabel(adventure.status)}});
+    }
+    return result;
+}
+QVariantMap WorldsController::region() const {
+    if (worlds_.isEmpty()) return {{"name", "Worlds"}, {"count", 0}};
+    const auto& world = worlds_.at(regionIndex());
+    return {{"id", world.id}, {"name", world.name}, {"count", int(currentAdventures().size())},
+            {"status", statusLabel(world.status)}};
+}
+std::optional<Adventure> WorldsController::currentAdventure() const {
+    const auto entries = currentAdventures();
+    if (entries.isEmpty()) return {};
+    return entries.at(adventureIndex());
+}
+std::optional<ResumePoint> WorldsController::latestResume(const Adventure& adventure) const {
+    std::optional<ResumePoint> result;
+    for (const auto& point : repository_.resumePoints()) {
+        if (point.adventureId != adventure.id || point.id.isEmpty()) continue;
+        if (!result || (point.savedAt.isValid() && (!result->savedAt.isValid() || point.savedAt > result->savedAt))) result = point;
+    }
+    return result;
+}
+QVariantMap WorldsController::detail() const {
+    const auto adventure = currentAdventure();
+    if (!adventure) return {{"title", "No Adventures here yet"}, {"kind", ""},
+        {"status", ""}, {"description", "Your Adventures for this World will appear here."},
+        {"badges", "—"}, {"caught", "—"}, {"availability", "Choose another World to keep exploring."},
+        {"resume", "No recent trail recorded"}};
+    const auto caps = adapter_.capabilities(*adventure);
+    const auto point = latestResume(*adventure);
+    const bool canResume = caps.directResume && point.has_value();
+    QString availability = "Open the Adventure and choose your save there.";
+    if (canResume) availability = "A recent trail is ready to continue.";
+    else if (!caps.launch) availability = "Setup is needed before this Adventure can open.";
+    return {{"id", adventure->id}, {"title", adventure->title}, {"kind", kindLabel(adventure->kind)},
+        {"status", statusLabel(adventure->status)}, {"description", adventure->description},
+        {"badges", countLabel(adventure->badges)}, {"caught", countLabel(adventure->caught)},
+        {"availability", availability},
+        {"resume", point ? (point->location.isEmpty() ? "Recent trail" : point->location) : "No recent trail recorded"}};
+}
+QList<WorldsController::DetailAction> WorldsController::detailActions() const {
+    QList<DetailAction> result;
+    if (const auto adventure = currentAdventure()) {
+        const auto caps = adapter_.capabilities(*adventure);
+        if (caps.directResume && latestResume(*adventure)) result.append({"resume", "Continue Adventure", true});
+        result.append({"launch", caps.launch ? "Start Adventure" : "Needs setup", caps.launch});
+    }
+    result.append({"back", "Back to Adventures", true});
+    return result;
+}
+QVariantList WorldsController::actions() const {
+    QVariantList result;
+    for (const auto& action : detailActions())
+        result.append(QVariantMap{{"id", action.id}, {"label", action.label}, {"enabled", action.enabled}});
+    return result;
+}
+void WorldsController::normalizeActionFocus() {
+    const auto available = detailActions();
+    if (actionFocus_ >= 0 && actionFocus_ < available.size() && available[actionFocus_].enabled) return;
+    for (int i = 0; i < available.size(); ++i) if (available[i].enabled) { actionFocus_ = i; return; }
+}
+void WorldsController::refresh() {
+    const auto oldWorld = worldId_;
+    const auto oldAdventure = rememberedAdventures_.value(worldId_);
+    worlds_ = repository_.worlds();
+    adventures_ = repository_.adventures();
+    const bool worldExists = std::any_of(worlds_.begin(), worlds_.end(), [&](const auto& w) { return w.id == worldId_; });
+    if (!worldExists) {
+        worldId_ = worlds_.isEmpty() ? QString() : worlds_.first().id;
+        route_ = Route::Regions;
+    }
+    const auto entries = currentAdventures();
+    const bool adventureExists = std::any_of(entries.begin(), entries.end(), [&](const auto& a) { return a.id == oldAdventure; });
+    if (!adventureExists) {
+        rememberedAdventures_[worldId_] = entries.isEmpty() ? QString() : entries.first().id;
+        if (route_ == Route::Detail) route_ = Route::Adventures;
+    }
+    if (oldWorld != worldId_) backFocused_ = false;
+    if (entries.isEmpty()) backFocused_ = true;
+    normalizeActionFocus();
+    emit contentChanged();
+    emit changed();
+}
+QJsonObject WorldsController::navigationState() const {
+    QJsonObject remembered;
+    for (auto i = rememberedAdventures_.cbegin(); i != rememberedAdventures_.cend(); ++i) remembered.insert(i.key(), i.value());
+    const auto available = detailActions();
+    return {{"world", worldId_}, {"adventures", remembered}, {"route", route()}, {"back", backFocused_},
+            {"action", actionFocus_ >= 0 && actionFocus_ < available.size() ? available[actionFocus_].id : QString()}};
+}
+void WorldsController::restoreNavigation(const QJsonObject& state) {
+    worldId_ = state["world"].toString();
+    rememberedAdventures_.clear();
+    const auto remembered = state["adventures"].toObject();
+    // Accept only existing relationships, not arbitrary stale IDs or row offsets.
+    for (const auto& adventure : repository_.adventures()) {
+        const auto relationships = QStringList{adventure.worldId} + adventure.additionalWorldIds;
+        for (const auto& world : relationships) if (remembered[world].toString() == adventure.id) rememberedAdventures_[world] = adventure.id;
+    }
+    const auto route = state["route"].toString();
+    route_ = route == "detail" ? Route::Detail : route == "adventures" ? Route::Adventures : Route::Regions;
+    backFocused_ = state["back"].toBool(); actionFocus_ = 0;
+    refresh();
+    const auto available = detailActions();
+    for (int i = 0; i < available.size(); ++i) if (available[i].id == state["action"].toString()) actionFocus_ = i;
+    normalizeActionFocus();
+    emit changed();
+}
+void WorldsController::chooseAdventure(int index) {
+    const auto entries = currentAdventures();
+    if (index < 0 || index >= entries.size()) return;
+    rememberedAdventures_[worldId_] = entries[index].id;
+    backFocused_ = false;
+}
+void WorldsController::openRegion() {
+    if (worlds_.isEmpty()) { emit homeRequested(); return; }
+    route_ = Route::Adventures;
+    chooseAdventure(adventureIndex());
+    backFocused_ = currentAdventures().isEmpty();
+    emit contentChanged();
+}
+void WorldsController::openDetail() {
+    if (!currentAdventure()) return;
+    route_ = Route::Detail;
+    actionFocus_ = 0;
+    normalizeActionFocus();
+}
+void WorldsController::back() {
+    if (route_ == Route::Detail) { route_ = Route::Adventures; backFocused_ = false; }
+    else if (route_ == Route::Adventures) { route_ = Route::Regions; backFocused_ = false; }
+}
+void WorldsController::executeAction(int index) {
+    const auto available = detailActions();
+    if (index < 0 || index >= available.size() || !available[index].enabled) return;
+    actionFocus_ = index;
+    if (available[index].id == "back") { back(); return; }
+    // Re-read before acting: a cached row must not launch a removed/moved record.
+    const auto id = rememberedAdventures_.value(worldId_);
+    const auto current = repository_.adventures();
+    const auto found = std::find_if(current.begin(), current.end(), [&](const auto& a) { return a.id == id && (a.worldId == worldId_ || a.additionalWorldIds.contains(worldId_)); });
+    if (found == current.end()) {
+        refresh();
+        emit messageRequested("This Adventure is no longer available in this World. Choose another trail.");
+        return;
+    }
+    const auto caps = adapter_.capabilities(*found);
+    AdventureResult result{false, "This action is no longer available. Your Adventure record has been kept."};
+    if (available[index].id == "launch" && caps.launch) result = adapter_.launch(*found);
+    else if (available[index].id == "resume" && caps.directResume) {
+        if (const auto point = latestResume(*found)) result = adapter_.resume(*found, *point);
+    }
+    emit messageRequested(result.message.isEmpty() ? (result.success ? "Adventure request complete." : "Couldn't open this Adventure. Try again.") : result.message);
+}
+void WorldsController::activate(int index) {
+    if (route_ == Route::Regions) {
+        if (!worlds_.isEmpty()) {
+            if (index < 0 || index >= worlds_.size()) return;
+            worldId_ = worlds_[index].id;
+        }
+        openRegion();
+    } else if (route_ == Route::Adventures) {
+        const auto count = currentAdventures().size();
+        if (index == count) back();
+        else if (index >= 0 && index < count) { chooseAdventure(index); openDetail(); }
+    } else executeAction(index);
+    emit changed();
+}
+void WorldsController::dispatch(Action action) {
+    if (action == Action::Confirm) { activate(focusIndex()); return; }
+    if (action == Action::Back) { back(); emit changed(); return; }
+    if (route_ == Route::Regions && !worlds_.isEmpty()) {
+        int index = regionIndex();
+        if (action == Action::Left && index % 3 > 0) --index;
+        if (action == Action::Right && index % 3 < 2 && index + 1 < worlds_.size()) ++index;
+        if (action == Action::Up && index >= 3) index -= 3;
+        if (action == Action::Down && index + 3 < worlds_.size()) index += 3;
+        worldId_ = worlds_[index].id;
+    } else if (route_ == Route::Adventures) {
+        const auto count = currentAdventures().size();
+        const int index = adventureIndex();
+        if (action == Action::Up && count > 0) {
+            if (backFocused_) backFocused_ = false;
+            else chooseAdventure(std::max(0, index - 1));
+        }
+        if (action == Action::Down && !backFocused_) {
+            if (index + 1 >= count) backFocused_ = true;
+            else chooseAdventure(index + 1);
+        }
+    } else if (route_ == Route::Detail) {
+        normalizeActionFocus();
+        const auto available = detailActions();
+        const int delta = action == Action::Left ? -1 : action == Action::Right ? 1 : 0;
+        for (int i = actionFocus_ + delta; delta != 0 && i >= 0 && i < available.size(); i += delta)
+            if (available[i].enabled) { actionFocus_ = i; break; }
+    }
+    emit changed();
+}
+}

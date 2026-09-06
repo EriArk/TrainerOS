@@ -1,0 +1,394 @@
+#include "core/input/ControllerInput.h"
+#include "core/navigation/ShellController.h"
+#include "core/storage/SessionState.h"
+#include "integrations/adventure/mock/MockAdventureAdapter.h"
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include <QQuickWindow>
+#include <QQuickItem>
+#include <QCommandLineParser>
+#include <QImage>
+#include <QTimer>
+#include <QDir>
+#include <QDebug>
+#include <QFile>
+#include <QFontInfo>
+#include <QFontDatabase>
+#include <QStandardPaths>
+#include <memory>
+#ifdef TRAINEROS_UI_TESTS
+#include "WorldsSmokeScenario.h"
+#include "PokedexSmokeScenario.h"
+#include "HallSmokeScenario.h"
+#include "PersistenceSmokeScenario.h"
+#include "LibrarySmokeScenario.h"
+#include "LaunchSmokeScenario.h"
+#include "DiagnosticsSmokeScenario.h"
+#endif
+
+using namespace trainer;
+
+int main(int argc, char* argv[]) {
+    SDL_SetMainReady();
+    QGuiApplication app(argc, argv);
+    // Qt's generic "Sans Serif" can resolve to a decorative face with tiny
+    // numerals. Prefer an installed UI font consistently across all QML text.
+    app.setFont(QFontDatabase::systemFont(QFontDatabase::GeneralFont));
+    const auto installedFonts = QFontDatabase::families();
+    for (const auto& family : {QString("Noto Sans"), QString("DejaVu Sans"), QString("Segoe UI")}) {
+        if (installedFonts.contains(family)) { app.setFont(QFont(family)); break; }
+    }
+    app.setApplicationName("TrainerOS");
+    app.setOrganizationName("TrainerOS");
+    app.setApplicationVersion("0.1.0");
+    QCommandLineParser parser;
+    parser.setApplicationDescription("TrainerOS native shell prototype. Safe application mode.");
+    parser.addHelpOption();
+    parser.addVersionOption();
+    parser.addOption({"windowed", "Run in a development window instead of full-screen."});
+    parser.addOption({"data-dir", "Use an explicit local data folder (development / isolated validation).", "directory"});
+    parser.addOption({"ephemeral", "Use isolated in-memory sample data; do not open a persistent store."});
+    parser.addOption({"smoke-test", "Verify the QML shell with an isolated SDL virtual controller, then exit."});
+#ifdef TRAINEROS_UI_TESTS
+    parser.addOption({"worlds-smoke-test", "Verify Worlds browsing and mock actions through SDL input, then exit."});
+    parser.addOption({"pokedex-smoke-test", "Verify Pokédex filters, search and records through SDL input, then exit."});
+    parser.addOption({"hall-smoke-test", "Verify Hall of Fame archive and achievement states through SDL input, then exit."});
+    parser.addOption({"diagnostics-smoke-test", "Verify controller/display checks and a local report through SDL input, then exit."});
+    parser.addOption({"persistence-smoke-test", "Verify persistent controller flows in a test data directory.", "phase"});
+#endif
+    parser.addOption({"screenshot-dir", "Save smoke-test screenshots to this directory.", "directory"});
+    parser.process(app);
+    bool worldsSmoke = false;
+    bool pokedexSmoke = false;
+    bool hallSmoke = false;
+    bool diagnosticsSmoke = false;
+    QString persistencePhase;
+#ifdef TRAINEROS_UI_TESTS
+    worldsSmoke = parser.isSet("worlds-smoke-test");
+    pokedexSmoke = parser.isSet("pokedex-smoke-test");
+    hallSmoke = parser.isSet("hall-smoke-test");
+    diagnosticsSmoke = parser.isSet("diagnostics-smoke-test");
+    persistencePhase = parser.value("persistence-smoke-test");
+    if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch"}.contains(persistencePhase)
+            || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
+#endif
+    const bool smoke = parser.isSet("smoke-test") || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+
+    // This virtual device exercises exactly the same polling/mapping path as hardware.
+    int virtualIndex = -1;
+    SDL_Joystick* joystick = nullptr;
+    SDL_JoystickID preferred = -1;
+    if (smoke) {
+        if (SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) != 0) return 2;
+        virtualIndex = SDL_JoystickAttachVirtual(SDL_JOYSTICK_TYPE_GAMECONTROLLER,
+                                               SDL_CONTROLLER_AXIS_MAX, SDL_CONTROLLER_BUTTON_MAX, 0);
+        if (virtualIndex < 0 || !(joystick = SDL_JoystickOpen(virtualIndex))) {
+            qCritical() << "Cannot create the smoke-test controller:" << SDL_GetError();
+            SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
+            return 2;
+        }
+        preferred = SDL_JoystickInstanceID(joystick);
+    }
+    int result = 0;
+    bool smokeCompleted = false;
+    {
+        MockLibraryRepository repository;
+        MockTrainerRepository profiles;
+        MockAdventureAdapter adapter;
+        UnconfiguredAdventureAdapter unconfiguredAdapter;
+        LocalFileCatalog files;
+        DevelopmentPlatformService platform;
+        MockPokedexRepository dex;
+        if (pokedexSmoke) dex.failNextLoad();
+        MockHallOfFameRepository shellArchive;
+        MockAchievementProvider shellAchievements;
+        std::unique_ptr<LocalStateStore> store;
+        if ((!smoke && !parser.isSet("ephemeral")) || !persistencePhase.isEmpty()) {
+            const auto directory = parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()
+                : QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+            store = std::make_unique<LocalStateStore>(directory, nullptr, smoke && !persistencePhase.startsWith("library-") ? "prototype-library-v1" : "user-library-v1");
+        }
+        const bool personalLibrary = store && (!smoke || persistencePhase.startsWith("library-"));
+        AdventureAdapter* selectedAdapter = personalLibrary ? static_cast<AdventureAdapter*>(&unconfiguredAdapter) : &adapter;
+#ifdef TRAINEROS_UI_TESTS
+        ProbeAdventureAdapter probeAdapter;
+        if (persistencePhase == "library-launch") selectedAdapter = &probeAdapter;
+#endif
+        ShellController shell(personalLibrary ? static_cast<LibraryRepository&>(*store) : repository,
+                              store ? static_cast<TrainerRepository&>(*store) : profiles,
+                              *selectedAdapter, platform,
+                              dex, store ? static_cast<PokedexProgressRepository&>(*store) : dex, shellArchive, shellAchievements);
+        shell.configureServices(&files, store.get());
+        if (store) QObject::connect(store.get(), &LocalStateStore::libraryChanged, &shell, &ShellController::refreshLibrary);
+        SessionState session(shell, store.get());
+        ControllerInput input(nullptr, preferred);
+        const auto reportBase = parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()
+            : QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+        DiagnosticsService deviceReports(diagnosticsSmoke ? QDir(parser.value("screenshot-dir")).absoluteFilePath("reports")
+                                                         : QDir(reportBase).filePath("diagnostics"));
+        shell.diagnostics()->configure(&input, &deviceReports);
+        QObject::connect(&input, &ControllerInput::action, &session, &SessionState::dispatch);
+        QObject::connect(&session, &SessionState::exitReady, &app, [&app] { app.exit(); });
+        app.installEventFilter(&input);
+        if (!smoke) {
+            input.setEnabled(app.applicationState() == Qt::ApplicationActive);
+            QObject::connect(&app, &QGuiApplication::applicationStateChanged, &input,
+                             [&input](Qt::ApplicationState state) { input.setEnabled(state == Qt::ApplicationActive); });
+        }
+        QQmlApplicationEngine engine;
+        int qmlWarnings = 0;
+        QStringList diagnostics;
+        QObject::connect(&engine, &QQmlEngine::warnings, &engine,
+                         [&](const QList<QQmlError>& errors) {
+            qmlWarnings += errors.size();
+            for (const auto& error : errors) diagnostics.append(error.toString());
+        });
+        engine.rootContext()->setContextProperty("shellController", &shell);
+        engine.rootContext()->setContextProperty("controllerInput", &input);
+        engine.rootContext()->setContextProperty("sessionState", &session);
+        engine.load(QUrl("qrc:/TrainerOS/Main.qml"));
+        if (engine.rootObjects().isEmpty()) result = 2;
+        else {
+            auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
+            if (!window) return 2;
+            deviceReports.setWindow(window);
+            session.start();
+            if (!parser.isSet("windowed") && !smoke) window->showFullScreen();
+            if (smoke) {
+                const QString screenshotDir = parser.value("screenshot-dir");
+                if (!screenshotDir.isEmpty() && !QDir().mkpath(screenshotDir)) return 2;
+#ifdef TRAINEROS_UI_TESTS
+                if (diagnosticsSmoke) {
+                    startDiagnosticsSmoke(window, shell, session, input, deviceReports, joystick, screenshotDir,
+                                          smokeCompleted, qmlWarnings, diagnostics);
+                } else if (persistencePhase == "library-launch") {
+                    startLaunchSmoke(window, shell, session, *store, input, probeAdapter, joystick, screenshotDir,
+                                     smokeCompleted, qmlWarnings, diagnostics);
+                } else if (persistencePhase.startsWith("library-")) {
+                    startLibrarySmoke(window, shell, session, *store, input, joystick, persistencePhase,
+                                      QDir(parser.value("data-dir")).filePath("content"), screenshotDir, smokeCompleted, qmlWarnings, diagnostics);
+                } else if (!persistencePhase.isEmpty()) {
+                    startPersistenceSmoke(window, shell, session, input, joystick, persistencePhase, screenshotDir,
+                                          smokeCompleted, qmlWarnings, diagnostics);
+                } else if (hallSmoke) {
+                    startHallSmoke(window, shell, input, shellArchive, shellAchievements, joystick, screenshotDir,
+                                   smokeCompleted, qmlWarnings, diagnostics);
+                } else if (pokedexSmoke) {
+                    startPokedexSmoke(window, shell, input, dex, joystick, screenshotDir,
+                                      smokeCompleted, qmlWarnings, diagnostics);
+                } else if (worldsSmoke) {
+                    startWorldsSmoke(window, shell, input, adapter, joystick, screenshotDir,
+                                     smokeCompleted, qmlWarnings, diagnostics);
+                } else
+#endif
+                {
+                auto step = std::make_shared<int>(0);
+                auto failed = std::make_shared<bool>(false);
+                auto savedId = std::make_shared<QString>();
+                auto timer = new QTimer(&app);
+                timer->setInterval(400);
+                QObject::connect(timer, &QTimer::timeout, &app, [&, window, step, failed, savedId, timer, screenshotDir] {
+                    const auto press = [&](SDL_GameControllerButton button) {
+                        SDL_JoystickSetVirtualButton(joystick, button, 1); input.poll();
+                        SDL_JoystickSetVirtualButton(joystick, button, 0); input.poll();
+                    };
+                    const auto check = [&](bool condition, const char* reason) {
+                        if (!condition) {
+                            *failed = true;
+                            diagnostics.append(QString("Step %1: %2").arg(*step - 1).arg(reason));
+                            qCritical() << "Smoke test:" << reason;
+                        }
+                    };
+                    const auto focusIs = [&](const QString& name) {
+                        return window->activeFocusItem() && window->activeFocusItem()->objectName() == name;
+                    };
+                    const auto capture = [&](const QString& name) {
+                        const QImage frame = window->grabWindow();
+                        check(!frame.isNull(), "rendered frame is empty");
+                        if (!screenshotDir.isEmpty()) check(frame.save(screenshotDir + "/" + name + ".png"), "cannot save screenshot");
+                    };
+                    const auto taps = [&](SDL_GameControllerButton button, int count = 1) {
+                        for (int i = 0; i < count; ++i) press(button);
+                    };
+                    constexpr auto up = SDL_CONTROLLER_BUTTON_DPAD_UP;
+                    constexpr auto down = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
+                    constexpr auto left = SDL_CONTROLLER_BUTTON_DPAD_LEFT;
+                    constexpr auto right = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
+                    constexpr auto a = SDL_CONTROLLER_BUTTON_A;
+                    constexpr auto b = SDL_CONTROLLER_BUTTON_B;
+                    switch ((*step)++) {
+                    case 0:
+                        check(input.connected(), "virtual controller not connected");
+                        check(shell.page() == 0 && focusIs("continue-toggle"), "initial Home focus");
+                        capture("home"); press(SDL_CONTROLLER_BUTTON_Y); break;
+                    case 1:
+                        check(shell.drawerOpen() && focusIs("resume-0"), "Y opens drawer and focuses first card");
+                        capture("continue"); press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT); press(SDL_CONTROLLER_BUTTON_A); break;
+                    case 2:
+                        check(!shell.notice().isEmpty() && focusIs("notice-close"), "resume response traps focus");
+                        capture("resume-result");
+                        press(SDL_CONTROLLER_BUTTON_B); break;
+                    case 3:
+                        check(shell.focusIndex() == 1 && focusIs("resume-1"), "Back restores resume card");
+                        press(SDL_CONTROLLER_BUTTON_START); break;
+                    case 4:
+                        check(shell.menuOpen() && focusIs("menu-0"), "Start traps system-menu focus");
+                        capture("system"); press(SDL_CONTROLLER_BUTTON_B); break;
+                    case 5:
+                        check(shell.drawerOpen() && focusIs("resume-1"), "Back restores drawer from system menu");
+                        press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
+                    case 6:
+                        check(shell.page() == 1 && !shell.drawerOpen() && focusIs("world-0"), "R1 changes page and closes transient layers");
+                        press(SDL_CONTROLLER_BUTTON_DPAD_DOWN); press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT); break;
+                    case 7:
+                        check(shell.focusIndex() == 4 && focusIs("world-4"), "spatial World focus");
+                        capture("worlds"); press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
+                    case 8:
+                        check(shell.page() == 2 && focusIs("dex-entry-bulbasaur"), "Pokedex list focus");
+                        capture("pokedex"); press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER); break;
+                    case 9:
+                        check(shell.page() == 1 && focusIs("world-4"), "per-page focus restored");
+                        press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
+                        press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
+                    case 10:
+                        check(shell.page() == 3 && focusIs("trainer-open"), "empty Trainer focus");
+                        capture("trainer-empty"); press(a); break;
+                    case 11:
+                        check(shell.trainer()->editing() && focusIs("trainer-field-0"), "create Trainer starts at Name");
+                        capture("trainer-create");
+                        taps(down, 3); press(a);
+                        check(!shell.trainer()->error().isEmpty() && focusIs("trainer-field-0"), "empty name restores editable field");
+                        capture("trainer-validation"); press(a); break;
+                    case 12:
+                        check(shell.keyboard()->isOpen() && focusIs("key-A"), "keyboard starts at A");
+                        capture("keyboard-empty");
+                        // Enter ERI 2 using physical-style button events only.
+                        taps(right, 4); press(a); // E
+                        press(down); taps(right, 3); press(a); // R
+                        press(up); press(right); press(a); // I
+                        taps(down, 3); press(left); press(a); // Space
+                        taps(right, 2); taps(up, 3); press(a); // 2
+                        break;
+                    case 13:
+                        check(shell.keyboard()->text() == "ERI 2" && focusIs("key-2"), "mixed controller text entry");
+                        if (auto* key = window->activeFocusItem()) {
+                            for (auto* item : key->findChildren<QQuickItem*>()) {
+                                if (item->property("text").toString() != "2") continue;
+                                const auto font = item->property("font").value<QFont>();
+                                const QFontInfo info(font);
+                                diagnostics.append(QString("Numeric key font: %1; resolved %2 %3; %4px")
+                                    .arg(font.toString(), info.family(), info.styleName()).arg(info.pixelSize()));
+                            }
+                        }
+                        check(shell.trainer()->draftName().isEmpty(), "keyboard buffer must not modify the form before Apply");
+                        capture("keyboard-name"); press(SDL_CONTROLLER_BUTTON_START); break;
+                    case 14:
+                        check(shell.menuOpen() && focusIs("menu-0"), "Start traps focus above keyboard");
+                        press(SDL_CONTROLLER_BUTTON_Y);
+                        check(shell.keyboard()->text() == "ERI 2", "Y must not change text under menu");
+                        press(down); press(down); press(a); break; // The unavailable Center service overlays the keyboard.
+                    case 15:
+                        check(focusIs("notice-close"), "notice traps focus above menu and keyboard");
+                        press(b); break;
+                    case 16:
+                        check(focusIs("menu-2"), "Back restores system-menu opener");
+                        press(b);
+                        check(focusIs("key-2") && shell.keyboard()->text() == "ERI 2", "Back restores exact key and draft");
+                        taps(down, 3); press(left); press(a); // Apply
+                        break;
+                    case 17:
+                        check(!shell.keyboard()->isOpen() && focusIs("trainer-field-0"), "Apply restores Name control");
+                        check(shell.trainer()->draftName() == "ERI 2" && !profiles.load(), "Apply changes draft only");
+                        press(down); press(a); // leaf
+                        press(down); press(a); // Treecko
+                        capture("trainer-edit");
+                        press(down); press(a); // Save
+                        break;
+                    case 18:
+                        check(shell.trainer()->exists() && focusIs("trainer-open"), "Save creates Trainer and restores opener");
+                        check(shell.trainer()->profile()["name"] == "ERI 2", "saved name");
+                        check(shell.trainer()->profile()["emblem"] == "leaf", "saved emblem");
+                        check(shell.trainer()->profile()["favorite"] == "Treecko", "saved favorite");
+                        *savedId = shell.trainer()->profile()["id"].toString();
+                        check(!savedId->isEmpty() && shell.home()["trainer"] == "ERI 2", "stable identity and Home projection");
+                        capture("trainer-profile"); press(a); break;
+                    case 19:
+                        press(a); press(a); // Edit Name, append A.
+                        check(shell.keyboard()->text() == "ERI 2A", "editing starts from saved name");
+                        press(b);
+                        check(shell.trainer()->draftName() == "ERI 2" && focusIs("trainer-field-0"), "B discards only keyboard buffer");
+                        press(down); press(a); // Unsaved emblem.
+                        press(b);
+                        check(shell.trainer()->profile()["emblem"] == "leaf", "B discards form changes");
+                        press(a); press(a); // Reopen name for numeric tour.
+                        break;
+                    case 20:
+                        // Reach and enter all ten numeric keys through the separate block.
+                        taps(right, 10); press(a); press(right); press(a); press(right); press(a);
+                        press(down); press(a); press(left); press(a); press(left); press(a);
+                        press(down); press(a); press(right); press(a); press(right); press(a);
+                        press(down); press(a);
+                        check(shell.keyboard()->text() == "ERI 21236547890" && focusIs("key-0"), "all numeric keys reachable");
+                        press(left); press(up); press(left); press(a); // Delete
+                        check(shell.keyboard()->text() == "ERI 2123654789", "Delete removes last character");
+                        press(right); press(a); // Clear
+                        check(shell.keyboard()->text().isEmpty(), "Clear empties buffer");
+                        press(left); press(down); press(left); press(a); // Space
+                        check(shell.keyboard()->text() == " ", "Space reachable from numeric block");
+                        press(b); press(b); // Discard buffer and form.
+                        check(shell.trainer()->profile()["name"] == "ERI 2", "cancel numeric tour preserves profile");
+                        press(a); press(a); press(a);
+                        press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); // Global page switch cancels both drafts.
+                        break;
+                    case 21:
+                        check(shell.page() == 4 && focusIs("hall-row-crystal-champion"), "R1 escapes keyboard to Hall of Fame");
+                        check(!shell.keyboard()->isOpen() && !shell.trainer()->editing(), "page switch closes both drafts");
+                        check(shell.trainer()->profile()["id"] == *savedId && shell.trainer()->profile()["name"] == "ERI 2", "switch preserves saved identity and name");
+                        press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER); break;
+                    case 22:
+                        check(focusIs("trainer-open"), "L1 restores Trainer opener");
+                        // Save another edit and ensure identity survives.
+                        press(a); press(down); press(a); taps(down, 2); press(a);
+                        check(shell.trainer()->profile()["id"] == *savedId && shell.trainer()->profile()["emblem"] == "spark", "editing preserves identity");
+                        window->resize(1920, 1080); break;
+                    case 23:
+                        capture("trainer-profile-1080p"); press(a); press(a); break;
+                    case 24:
+                        capture("keyboard-1080p");
+                        window->resize(1024, 768); break;
+                    case 25:
+                        capture("keyboard-letterbox"); press(b); press(b);
+                        press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
+                    case 26:
+                        check(shell.page() == 4 && focusIs("hall-row-crystal-champion"), "Hall of Fame focus");
+                        press(b);
+                        check(shell.page() == 4, "Back must not leave primary page");
+                        capture("landscape-letterbox");
+                        window->resize(1920, 1080); break;
+                    default:
+                        capture("hall-of-fame-1080p");
+                        check(qmlWarnings == 0, "QML warnings were emitted");
+                        timer->stop();
+                        smokeCompleted = true;
+                        if (!screenshotDir.isEmpty()) {
+                            QFile report(screenshotDir + "/verification.txt");
+                            if (report.open(QIODevice::WriteOnly | QIODevice::Truncate))
+                                report.write(((*failed ? QString("FAILED\n") : QString("PASSED\n")) + diagnostics.join('\n')).toUtf8());
+                        }
+                        qInfo() << (*failed ? "QML smoke test FAILED" : "QML smoke test passed: SDL input, focus, overlays and rendering.");
+                        app.exit(*failed ? 1 : 0);
+                    }
+                });
+                timer->start();
+                }
+            }
+            result = app.exec();
+            if (smoke && !smokeCompleted) result = 2; // Early window/app exit is not a passing smoke test.
+        }
+    }
+    if (joystick) SDL_JoystickClose(joystick);
+    if (virtualIndex >= 0) SDL_JoystickDetachVirtual(virtualIndex);
+    if (smoke) SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
+    return result;
+}

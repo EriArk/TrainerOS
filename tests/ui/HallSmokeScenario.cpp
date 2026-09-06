@@ -1,0 +1,136 @@
+#include "HallSmokeScenario.h"
+#include <QGuiApplication>
+#include <QQuickItem>
+#include <QFile>
+#include <QImage>
+#include <QTimer>
+#include <memory>
+
+using namespace trainer;
+void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInput& input,
+                    MockHallOfFameRepository& archive, MockAchievementProvider& provider, SDL_Joystick* joystick,
+                    const QString& screenshotDir, bool& completed, int& warnings, QStringList& diagnostics) {
+    auto stage = std::make_shared<int>(0);
+    auto failed = std::make_shared<bool>(false);
+    auto timer = new QTimer(window);
+    timer->setInterval(350);
+    QObject::connect(timer, &QTimer::timeout, window,
+        [window, &shell, &input, &archive, &provider, joystick, screenshotDir, &completed, &warnings, &diagnostics, stage, failed, timer] {
+        const auto check = [&](bool condition, const QString& reason) {
+            if (!condition) { *failed = true; diagnostics.append(QString("Stage %1: %2").arg(*stage).arg(reason)); }
+        };
+        const auto press = [&](SDL_GameControllerButton button, int count = 1) {
+            for (int i = 0; i < count; ++i) {
+                SDL_JoystickSetVirtualButton(joystick, button, 1); input.poll();
+                SDL_JoystickSetVirtualButton(joystick, button, 0); input.poll();
+            }
+        };
+        const auto focusIs = [&](const QString& id) { return window->activeFocusItem() && window->activeFocusItem()->objectName() == id; };
+        const auto capture = [&](const QString& name) {
+            const auto frame = window->grabWindow();
+            check(!frame.isNull(), "Empty rendered frame");
+            if (!screenshotDir.isEmpty()) check(frame.save(screenshotDir + "/" + name + ".png"), "Cannot save screenshot");
+        };
+        auto* focused = window->activeFocusItem();
+        check(focused && focused->isVisible() && focused->isEnabled(), "Focus must be visible and enabled");
+        if (focused) for (auto* ancestor = focused->parentItem(); ancestor; ancestor = ancestor->parentItem())
+            if (ancestor->clip()) check(QRectF(-1, -1, ancestor->width() + 2, ancestor->height() + 2).contains(
+                ancestor->mapRectFromItem(focused, QRectF(-4, -4, focused->width() + 8, focused->height() + 8))), "Clipped focus: " + focused->objectName());
+        constexpr auto a = SDL_CONTROLLER_BUTTON_A, b = SDL_CONTROLLER_BUTTON_B;
+        constexpr auto up = SDL_CONTROLLER_BUTTON_DPAD_UP, down = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
+        constexpr auto left = SDL_CONTROLLER_BUTTON_DPAD_LEFT, right = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
+        constexpr auto l1 = SDL_CONTROLLER_BUTTON_LEFTSHOULDER, r1 = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER;
+        constexpr auto start = SDL_CONTROLLER_BUTTON_START;
+        auto* hall = shell.hall();
+        switch ((*stage)++) {
+        case 0: check(input.connected(), "Controller unavailable"); press(r1, 4); break;
+        case 1: check(focusIs("hall-row-crystal-champion"), "Initial archive focus"); capture("archive"); press(down, 3); break;
+        case 2: {
+            check(focusIs("hall-row-crystal-undated"), "Last archive record focus");
+            auto* list = window->findChild<QQuickItem*>("hall-list");
+            check(list && list->property("contentY").toDouble() > 0, "Controller scrolls archive viewport");
+            capture("archive-scrolled"); press(a); break;
+        }
+        case 3: check(focusIs("hall-action-0"), "Unknown record has Back"); capture("unknown-record"); press(b); press(up, 3); press(a); break;
+        case 4: capture("team-detail"); press(start); break;
+        case 5: check(focusIs("menu-0"), "System menu above archive detail"); press(b); press(l1); break;
+        case 6: check(shell.page() == 3, "L1 remains global"); press(r1); break;
+        case 7:
+            check(hall->route() == "archive-detail" && focusIs("hall-action-0"), "Archive detail preserved across sections");
+            press(b); press(up); press(right); press(a); break;
+        case 8: check(focusIs("hall-row-emerald-sample"), "RA opens Adventure sets"); capture("achievement-sets"); press(a); break;
+        case 9: check(focusIs("hall-row-first-trail"), "Achievement list focus"); capture("achievements"); press(down, 4); break;
+        case 10: check(focusIs("hall-row-lasting-memory"), "Achievements scroll to last goal"); capture("achievements-scrolled"); press(a); break;
+        case 11: capture("unknown-unlock-date"); press(b); press(up, 3); press(a); break;
+        case 12:
+            check(hall->detail()["summary"] == "Unlocked · Hardcore", "Unlock mode is preserved");
+            capture("achievement-detail"); provider.holdRequests(true); provider.setNextResult(AchievementState::Offline);
+            press(right); press(a); break;
+        case 13:
+            check(hall->status().contains("Refreshing") && focusIs("hall-action-0"), "Loading skips disabled Refresh");
+            capture("loading-cached"); press(start); break;
+        case 14: press(b); check(focusIs("hall-action-0"), "Menu restores loading action"); press(l1); break;
+        case 15: provider.finishRefresh("emerald-sample"); press(r1); break;
+        case 16:
+            check(hall->status().contains("Offline") && hall->rowIndex() == 1, "Offline result preserves detail identity");
+            capture("offline-cached"); provider.setNextResult(AchievementState::Error); press(right); press(a); break;
+        case 17: provider.finishRefresh("emerald-sample"); break;
+        case 18: check(hall->status().contains("Refresh failed"), "Error retains cache"); capture("error-cached"); press(right); press(a); break;
+        case 19: provider.finishRefresh("emerald-sample"); break;
+        case 20:
+            check(hall->status().contains("sample records"), "Retry succeeds");
+            press(b, 2); press(down, 2); press(a); break;
+        case 21:
+            check(hall->rows().isEmpty() && focusIs("hall-action-0"), "Unsupported set keeps Back");
+            capture("unsupported"); press(right); check(focusIs("hall-action-0"), "Unsupported Refresh skipped"); press(a); break;
+        case 22:
+            check(focusIs("hall-row-hack-sample"), "Back restores unsupported Adventure");
+            press(up, 2); provider.setAccount({}); press(a); break;
+        case 23:
+            check(hall->rows().isEmpty() && hall->detail()["summary"] == "Unlocks unavailable", "Disconnected is not zero earned");
+            capture("disconnected"); press(a); break;
+        case 24: provider.setAccount("other-sample"); provider.refresh("emerald-sample"); press(a); break;
+        case 25:
+            check(hall->rows().isEmpty() && hall->status().contains("Loading"), "Loading without cache");
+            capture("loading-empty"); provider.finishRefresh("emerald-sample"); press(up); break;
+        case 26:
+            check(focusIs("hall-row-first-trail"), "Loaded rows accessible with Up");
+            for (const auto& row : hall->rows()) check(row.toMap()["subtitle"] == "Not recorded", "Previous account unlock leaked");
+            capture("other-account"); press(a); break;
+        case 27:
+            capture("unknown-account-record"); press(b, 2); provider.setAccount("sample-trainer");
+            provider.setNextResult(AchievementState::Error); provider.refresh("emerald-sample"); press(a); break;
+        case 28: provider.finishRefresh("emerald-sample"); break;
+        case 29:
+            check(hall->rows().isEmpty() && focusIs("hall-action-0"), "Error without cache keeps recovery focus");
+            capture("error-empty"); press(right); press(a); break;
+        case 30: provider.finishRefresh("emerald-sample"); break;
+        case 31: press(up); press(a); break;
+        case 32:
+            check(hall->detail()["summary"] == "Unlocked · Standard", "Correct account records restored after fresh load");
+            press(b); press(up); press(left); press(a); break;
+        case 33: check(focusIs("hall-row-crystal-champion"), "Local archive unaffected by provider changes"); press(a); window->resize(1920, 1080); break;
+        case 34: capture("team-1080p"); window->resize(1024, 768); break;
+        case 35: capture("team-letterbox"); window->resize(960, 540); press(b); break;
+        case 36: archive.setEmpty(true); hall->refreshArchive(); break;
+        case 37:
+            check(focusIs("hall-action-0"), "Empty local archive has recovery action");
+            capture("archive-empty"); archive.setEmpty(false); press(a); break;
+        case 38:
+            check(focusIs("hall-row-crystal-champion"), "Archive retry restores list focus");
+            archive.failNextLoad(); press(down, 4); press(a); break;
+        case 39: check(focusIs("notice-close"), "Failed archive refresh reports error"); capture("archive-error"); press(b); break;
+        default:
+            check(hall->rows().size() == 4 && focusIs("hall-row-crystal-undated"), "Failed archive refresh keeps data and selection");
+            check(warnings == 0, "QML warnings emitted");
+            completed = true; timer->stop();
+            if (!screenshotDir.isEmpty()) {
+                QFile report(screenshotDir + "/verification.txt");
+                if (report.open(QIODevice::WriteOnly | QIODevice::Truncate))
+                    report.write(((*failed ? QString("FAILED\n") : QString("PASSED\n")) + diagnostics.join('\n')).toUtf8());
+            }
+            QGuiApplication::exit(*failed ? 1 : 0);
+        }
+    });
+    timer->start();
+}
