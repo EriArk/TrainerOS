@@ -1,6 +1,6 @@
 # TrainerOS on ArmadaOS
 
-Preparation for the first physical visit is in [FIRST_DEVICE_RUN.md](FIRST_DEVICE_RUN.md), with a read-only baseline report script. No target findings have been filled in from desktop assumptions. The current Windows-validated application includes local persistence but makes no session changes.
+Preparation for the first physical visit is in [FIRST_DEVICE_RUN.md](FIRST_DEVICE_RUN.md), with a read-only baseline report script. No target findings have been filled in from desktop assumptions. The current application passes Windows checks and Ubuntu Linux CI, includes local persistence and makes no session changes. CI uses offscreen/software rendering; the actual ArmadaOS device/session gate remains open.
 
 The native [controller/display diagnostic service](DEVICE_DIAGNOSTICS.md) is ready for that visit. It records Qt/SDL observations locally on request. Display coordinates, backend names and detected input signals must be checked against the real screen, control labels and session setup; they are not substituted for physical acceptance.
 

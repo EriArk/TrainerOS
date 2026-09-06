@@ -194,7 +194,9 @@ $env:QT_QUICK_BACKEND = 'software'
 Remove-Item Env:QT_QPA_PLATFORM, Env:QT_QUICK_BACKEND
 ```
 
-The Linux CI workflow runs the same build and tests when invoked on GitHub. Local Windows results do not establish ARM64 support, real GPU performance, physical controller mapping, or safe ArmadaOS session behavior. Those acceptance gates remain open until tested in their actual environments.
+The first GitHub Linux CI run on 2026-09-06 built commit `6f94bd0832970589051417467199c4a0254718ba` and passed all 15 CTest entries on Ubuntu 24.04: [run and logs](https://github.com/EriArk/TrainerOS/actions/runs/34031993427). Rendering used the offscreen/software test configuration. Windows and Linux CI results do not establish ARM64 support, real GPU performance, physical controller mapping, or safe ArmadaOS session behavior. Those acceptance gates remain open until tested in their actual environments.
+
+The required commit/push/current-CI delivery process is in [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md). The workflow uses a pinned checkout action, read-only repository permissions and a bounded job timeout; it does not need persisted checkout credentials for the build/tests.
 
 ## Next increments
 

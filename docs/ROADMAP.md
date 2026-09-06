@@ -25,7 +25,7 @@ Visual design remains deliberately fluid. Layouts, hierarchy, component styling,
 
 ## Milestone 0 — Native project skeleton
 
-2026-09-06 increment: the native project, shared visual primitives, domain/fake-repository boundaries and mock adapter are implemented. A Windows development build (MSYS2 UCRT64, Qt 6.11.1) passes the native and rendered-QML checks. Linux/Plasma and ARM64/ArmadaOS execution are still pending; the milestone's Linux acceptance gate is not marked complete. Build instructions and a Linux CI workflow are present, but that workflow has not been run from this local checkout.
+2026-09-06: the native project, shared visual primitives, domain/fake-repository boundaries and mock adapter are implemented. The Windows development build (MSYS2 UCRT64, Qt 6.11.1) passes the native and rendered-QML checks. The [first GitHub Linux CI run](https://github.com/EriArk/TrainerOS/actions/runs/34031993427) also built the project and passed all 15 CTest entries on Ubuntu 24.04, using offscreen/software rendering. Normal Linux/Plasma use and ARM64/ArmadaOS execution remain pending; the milestone's physical-session acceptance gate is not marked complete.
 
 Deliverables:
 
@@ -94,7 +94,7 @@ Done when the whole top-level product can be navigated comfortably on a controll
 
 2026-09-06 first backend increment: asynchronous SQLite storage for the real local Trainer profile, Pokédex favorite marks and versioned shell navigation. Startup restores committed projections and stable record selections; failed writes preserve saved values, and normal exit drains pending writes. The original all-sample mode remains available with `--ephemeral`. Corrupt/foreign/newer stores are preserved and get controller-accessible recovery. Tests reopen an actual database and restart the rendered application in separate processes using SDL virtual controls. See `LOCAL_PERSISTENCE.md`.
 
-The following increment adds persistent user-library/configuration storage, atomic region relationships, revision-checked editing, controller file selection, custom Worlds and persisted color/motion preferences. The shared backend code foundation is now in place. A content-free child process exercises checkpoint/start/return/crash behavior, including QML focus restoration; it does not establish real adapter or ArmadaOS session support. No sample game progress, archive or achievement data is migrated into personal history. Device instructions remain in `FIRST_DEVICE_RUN.md`; Linux/ARM64 and physical-device acceptance are pending.
+The following increment adds persistent user-library/configuration storage, atomic region relationships, revision-checked editing, controller file selection, custom Worlds and persisted color/motion preferences. The shared backend code foundation is now in place. A content-free child process exercises checkpoint/start/return/crash behavior, including QML focus restoration; it does not establish real adapter or ArmadaOS session support. No sample game progress, archive or achievement data is migrated into personal history. Windows and Linux CI checks pass; ARM64 and physical-device acceptance remain pending. Device instructions are in `FIRST_DEVICE_RUN.md`.
 
 Deliverables:
 
