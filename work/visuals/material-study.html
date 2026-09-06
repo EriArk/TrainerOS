@@ -1,0 +1,270 @@
+<div id="trainer-material-study" aria-label="TrainerOS — материалы и механика панелей">
+  <style>
+    #trainer-material-study {
+      color-scheme: light;
+      --tos-body-top: #287f7b;
+      --tos-body-mid: #175a59;
+      --tos-body-low: #0e3f43;
+      --tos-ink: #eef8f5;
+      --tos-muted: #bad6d2;
+      --tos-edge: #74c8bd;
+      --tos-shadow: #062f33;
+      --tos-accent: #63d8c6;
+      --tos-glass: #f7f9f6;
+      --tos-depth: 1;
+      --tos-wear: .2;
+      --tos-x: 0px;
+      --tos-y: 0px;
+      color: var(--tos-ink);
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+      background: transparent;
+      padding: 8px 5px 16px;
+    }
+    #trainer-material-study * { box-sizing: border-box; }
+    #trainer-material-study button { font: inherit; cursor: pointer; }
+    #trainer-material-study .tos-chassis {
+      position: relative; isolation: isolate; overflow: hidden;
+      padding: 20px; border-radius: 23px;
+      border: 1px solid var(--tos-shadow);
+      background: linear-gradient(145deg, var(--tos-body-top) 0%, var(--tos-body-mid) 46%, var(--tos-body-low) 100%);
+      box-shadow: inset 0 2px 1px #9be5d6, inset 2px 0 2px var(--tos-edge), inset -2px 0 1px #65cbb259, inset 0 -3px 2px var(--tos-shadow), 0 calc(6px * var(--tos-depth)) 0 var(--tos-shadow), 0 11px 14px -10px #0009;
+    }
+    #trainer-material-study .tos-chassis::before {
+      content: ""; position: absolute; z-index: -1; inset: 0; pointer-events: none;
+      opacity: .1; background: repeating-linear-gradient(2deg, #fff0 0 2px, #ffffff38 2px 3px, #00000017 3px 4px);
+    }
+    #trainer-material-study .tos-wear { position: absolute; inset: 0; pointer-events: none; z-index: 6; opacity: var(--tos-wear); }
+    #trainer-material-study .tos-wear::before {
+      content: ""; position: absolute; top: 1px; left: 35px; width: 38px; height: 3px; background: #fff8; transform: rotate(-2deg);
+      box-shadow: 5px 2px 0 -1px #0a393a, 10px 3px 0 -1px #fff9, 3px 6px 0 -1px #84a49a;
+    }
+    #trainer-material-study .tos-wear::after {
+      content: ""; position: absolute; right: 14px; bottom: 11px; width: 25px; height: 1px; background: #b9f6e8; transform: rotate(-35deg);
+      box-shadow: 0 2px 0 #122d2d, -5px -3px 0 #dcf4ed6b, 5px 4px 0 #dcf4ed56;
+    }
+    #trainer-material-study .tos-rail { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 1px 15px; }
+    #trainer-material-study .tos-nameplate { display: flex; align-items: center; gap: 9px; }
+    #trainer-material-study .tos-mark { width: 24px; height: 24px; border: 2px solid var(--tos-ink); border-radius: 6px; display: grid; place-items: center; opacity: .85; }
+    #trainer-material-study .tos-mark::after { content: ""; width: 8px; height: 8px; border: 2px solid var(--tos-ink); border-radius: 50%; }
+    #trainer-material-study .tos-wordmark { font-size: 15px; letter-spacing: .08em; font-weight: 700; text-shadow: 0 -1px 1px #073638; }
+    #trainer-material-study .tos-small { font-size: 11px; letter-spacing: .08em; color: var(--tos-muted); }
+    #trainer-material-study .tos-status { display: flex; align-items: center; gap: 8px; font-size: 12px; font-variant-numeric: tabular-nums; }
+    #trainer-material-study .tos-led { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #9cffe2; box-shadow: 0 0 0 2px #0e4446, inset 0 -1px 2px #3baf9c, 0 0 7px #8ff7d773; }
+    #trainer-material-study .tos-screen-rim { border-radius: 14px; padding: 7px; background: linear-gradient(150deg, #173b3e, #386b6b 70%, #6fa79c); box-shadow: inset 0 calc(3px * var(--tos-depth)) 3px #05262c, 0 1px 0 var(--tos-edge); }
+    #trainer-material-study .tos-screen { position: relative; overflow: hidden; border-radius: 8px; min-height: 281px; border: 1px solid #456b66; color: #1b4543; background: var(--tos-glass); box-shadow: inset 0 calc(5px * var(--tos-depth)) 10px #273e3438; }
+    #trainer-material-study .tos-screen::after {
+      content: ""; position: absolute; pointer-events: none; z-index: 4; inset: 0;
+      background: linear-gradient(120deg, #fff0 0%, #fff0 43%, #ffffff38 43.2%, #ffffff00 61%);
+      box-shadow: inset 0 1px 0 #fff8, inset 0 calc(4px * var(--tos-depth)) 10px #24484026;
+      transform: translateX(calc(var(--tos-x) * .2));
+    }
+    #trainer-material-study .tos-landscape { position: absolute; inset: -20px; overflow: hidden; background: radial-gradient(ellipse at 90% 36%, #d3e9df 0, #edf4ef 42%, #fbfcfa 80%); transform: translate(calc(var(--tos-x) * -.65), calc(var(--tos-y) * -.65)); transition: transform 200ms ease-out; }
+    #trainer-material-study .tos-island { position: absolute; width: 47%; height: 100%; right: -6%; top: 10%; border-radius: 55% 70% 20% 80%; transform: rotate(-25deg); background: #b3d2c2; box-shadow: 0 0 0 15px #cce1d4, 0 0 0 17px #edf8ed, 0 0 0 32px #dcebe2, 0 0 0 35px #f8fffa, 0 0 0 62px #e6f0e8, 0 0 0 64px #fff; opacity: .7; }
+    #trainer-material-study .tos-island::after { content: ""; position: absolute; inset: 20%; border-radius: 70% 55% 30% 70%; box-shadow: 0 0 0 1px #8eb6a9, 0 0 0 22px #cce1d4, 0 0 0 23px #f1faf2, 0 0 0 45px #bcd7c855, 0 0 0 46px #ffffffaa; }
+    #trainer-material-study .tos-chart-grid { position: absolute; inset: 0; background-image: linear-gradient(#32695f09 1px, transparent 1px), linear-gradient(90deg, #32695f09 1px, transparent 1px); background-size: 37px 37px; transform: translate(var(--tos-x), var(--tos-y)); transition: transform 220ms ease-out; }
+    #trainer-material-study .tos-display-content { position: relative; z-index: 2; padding: 20px 22px; background: linear-gradient(90deg, #fcfdfaee, #fcfdfa99 50%, #fcfdfa00); min-height: 281px; }
+    #trainer-material-study .tos-display-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 21px; }
+    #trainer-material-study .tos-page { font-size: 11px; letter-spacing: .2em; font-weight: 600; color: #3d625b; }
+    #trainer-material-study .tos-live { font-size: 11px; color: #486d63; letter-spacing: .04em; display: flex; align-items: center; gap: 6px; }
+    #trainer-material-study .tos-live::before { content: ""; width: 4px; height: 4px; background: #24735e; border-radius: 50%; }
+    #trainer-material-study .tos-region { margin: 0; font-size: clamp(35px, 7vw, 58px); line-height: 1; font-weight: 650; letter-spacing: -.045em; color: #183f3b; text-shadow: 0 1px 0 #fff; }
+    #trainer-material-study .tos-adventure { margin-top: 8px; font-size: 16px; color: #295c53; }
+    #trainer-material-study .tos-location { margin-top: 6px; font-size: 12px; color: #4c6f62; }
+    #trainer-material-study .tos-progress { display: flex; align-items: center; gap: 12px; margin-top: 21px; font-size: 11px; letter-spacing: .07em; }
+    #trainer-material-study .tos-badges { display: flex; gap: 5px; }
+    #trainer-material-study .tos-badge { width: 9px; height: 13px; border-radius: 3px 3px 5px 5px; background: #297b68; box-shadow: inset 0 1px 0 #79bba2; }
+    #trainer-material-study .tos-badge.tos-empty { background: #dbe3d8; box-shadow: inset 0 1px 2px #647b693b; }
+    #trainer-material-study .tos-lower-deck { display: grid; grid-template-columns: 1fr 1fr; margin-top: 14px; border-radius: 9px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--tos-shadow) 65%, transparent); background: linear-gradient(180deg, var(--tos-body-mid), var(--tos-body-top)); box-shadow: inset 0 1px 2px var(--tos-shadow), 0 1px 0 var(--tos-edge); }
+    #trainer-material-study .tos-deck-cell { padding: 11px 15px; }
+    #trainer-material-study .tos-deck-cell + .tos-deck-cell { border-left: 1px solid color-mix(in srgb, var(--tos-shadow) 65%, transparent); box-shadow: inset 1px 0 0 var(--tos-edge); }
+    #trainer-material-study .tos-deck-label { font-size: 11px; letter-spacing: .11em; color: var(--tos-muted); }
+    #trainer-material-study .tos-deck-value { margin-top: 3px; font-size: 13px; font-weight: 600; }
+    #trainer-material-study .tos-drawer-frame { margin-top: 17px; border: 1px solid var(--tos-shadow); border-radius: 10px; padding: 4px; background: #123b3d; box-shadow: inset 0 3px 3px #001d2499, 0 1px 0 var(--tos-edge); }
+    #trainer-material-study .tos-bay { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 300ms cubic-bezier(.2,.7,.25,1); overflow: hidden; background: repeating-linear-gradient(90deg, #255251 0 3px, #0b2e34 3px 5px, #2d5956 5px 8px); border-radius: 5px 5px 0 0; }
+    #trainer-material-study .tos-bay-content { min-height: 0; overflow: hidden; }
+    #trainer-material-study .tos-drawer { padding: 13px 12px 15px; margin: 0 8px; border-left: 2px solid #8ac7b9; border-right: 2px solid #366a64; color: var(--tos-ink); background: linear-gradient(145deg, var(--tos-body-mid), var(--tos-body-low)); transform: translateY(-101%); transition: transform 300ms cubic-bezier(.2,.7,.25,1); box-shadow: inset 0 9px 8px -8px #071d23; }
+    #trainer-material-study.tos-open .tos-bay { grid-template-rows: 1fr; }
+    #trainer-material-study.tos-open .tos-drawer { transform: translateY(0); }
+    #trainer-material-study .tos-drawer-title { font-size: 11px; letter-spacing: .12em; margin: 0 0 10px; color: var(--tos-ink); }
+    #trainer-material-study .tos-recent { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 9px; }
+    #trainer-material-study .tos-resume { position: relative; min-width: 0; text-align: left; padding: 5px 5px 9px; color: #254c45; border: 1px solid #71998c; border-radius: 6px; background: linear-gradient(155deg, #fffefa, #dfeae2); box-shadow: inset 0 1px 0 #fff, 0 calc(2px * var(--tos-depth)) 0 #0d2e31; transition: box-shadow 100ms, transform 100ms; }
+    #trainer-material-study .tos-resume:active { transform: translateY(1px); box-shadow: inset 0 1px 3px var(--tos-shadow); }
+    #trainer-material-study .tos-resume:focus-visible { outline: 2px solid #86f4db; outline-offset: 1px; }
+    #trainer-material-study .tos-preview { position: relative; height: 65px; display: block; overflow: hidden; border-radius: 3px; background: linear-gradient(150deg, #567456, #16392c); box-shadow: inset 0 2px 4px #0006; }
+    #trainer-material-study .tos-preview::after { content: ""; position: absolute; width: 95px; height: 90px; border-radius: 55% 80% 45% 40%; right: -22px; top: 10px; border: 1px solid #c5e18f55; box-shadow: 0 0 0 10px #38534355, 0 0 0 11px #c5e18f44, 0 0 0 21px #44664855, 0 0 0 22px #c5e18f33; transform: rotate(-25deg); }
+    #trainer-material-study .tos-preview.tos-sinnoh { background: linear-gradient(155deg, #768895, #283641); }
+    #trainer-material-study .tos-preview.tos-johto { background: linear-gradient(155deg, #a79568, #4e4733); }
+    #trainer-material-study .tos-card-title { display: block; font-weight: 600; font-size: 12px; margin: 7px 4px 2px; }
+    #trainer-material-study .tos-card-meta { display: block; font-size: 11px; margin: 0 4px; color: #4f6b5d; }
+    #trainer-material-study .tos-handle { position: relative; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 51px; padding: 10px 15px; border: 1px solid #14252a; border-radius: 6px; color: #edf7f1; background: linear-gradient(180deg, #485658 0%, #344449 45%, #25373b 100%); box-shadow: inset 0 1px 0 #8c9f9b, inset 0 -2px 1px #162b30, 0 calc(2px * var(--tos-depth)) 1px #041d21; text-shadow: 0 1px 1px #0a2024; }
+    #trainer-material-study .tos-handle:active { box-shadow: inset 0 2px 4px #0d2228; }
+    #trainer-material-study .tos-handle:focus-visible { outline: 2px solid #86f4db; outline-offset: 2px; }
+    #trainer-material-study .tos-handle-label { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
+    #trainer-material-study .tos-grip { width: 20px; height: 19px; background: repeating-linear-gradient(0deg, #889f99 0 1px, #1b3438 1px 3px, transparent 3px 6px); opacity: .7; border-radius: 1px; }
+    #trainer-material-study .tos-handle-hint { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #d8e9df; }
+    #trainer-material-study .tos-key { width: 20px; height: 20px; display: inline-grid; place-items: center; border-radius: 50%; background: #172c30; border: 1px solid #6c9b8e; color: #ecf7ef; font-size: 11px; box-shadow: inset 0 1px 2px #092025; }
+    #trainer-material-study .tos-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 16px 2px 0; }
+    #trainer-material-study .tos-vents { display: flex; gap: 4px; }
+    #trainer-material-study .tos-vents span { width: 18px; height: 3px; border-radius: 2px; background: var(--tos-shadow); box-shadow: 0 1px 0 var(--tos-edge), inset 0 1px 0 #0003; }
+    #trainer-material-study .tos-serial { font-size: 11px; color: var(--tos-muted); letter-spacing: .09em; }
+    #trainer-material-study .tos-return { position: absolute; inset: 0; padding: 24px; display: none; flex-direction: column; justify-content: center; gap: 9px; color: #194d46; background: #f6faf5; z-index: 5; }
+    #trainer-material-study .tos-return strong { font-size: 25px; font-weight: 600; }
+    #trainer-material-study .tos-return span { color: #4c7266; font-size: 13px; }
+    #trainer-material-study.tos-resuming .tos-return { display: flex; }
+    @media (max-width: 450px) {
+      #trainer-material-study .tos-chassis { padding: 13px; border-radius: 17px; }
+      #trainer-material-study .tos-display-content { padding: 16px; }
+      #trainer-material-study .tos-status { gap: 5px; font-size: 11px; }
+      #trainer-material-study .tos-small { display: none; }
+      #trainer-material-study .tos-live { font-size: 11px; letter-spacing: 0; }
+      #trainer-material-study .tos-recent { grid-template-columns: 1fr; gap: 8px; }
+      #trainer-material-study .tos-resume { display: grid; grid-template-columns: 70px 1fr; grid-template-rows: auto auto; column-gap: 8px; padding: 5px; align-items: center; }
+      #trainer-material-study .tos-preview { grid-row: 1 / 3; height: 52px; }
+      #trainer-material-study .tos-card-title { margin: 3px 0 0; align-self: end; }
+      #trainer-material-study .tos-card-meta { margin: 0; align-self: start; }
+      #trainer-material-study .tos-deck-cell { padding: 10px; }
+      #trainer-material-study .tos-handle { padding: 10px; }
+      #trainer-material-study .tos-handle-hint { gap: 4px; }
+      #trainer-material-study .tos-grip { width: 14px; }
+      #trainer-material-study .tos-footer { padding-top: 13px; }
+      #trainer-material-study .tos-vents span { width: 9px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #trainer-material-study .tos-bay, #trainer-material-study .tos-drawer, #trainer-material-study .tos-chart-grid, #trainer-material-study .tos-landscape, #trainer-material-study .tos-resume { transition: none; }
+      #trainer-material-study .tos-landscape, #trainer-material-study .tos-chart-grid, #trainer-material-study .tos-screen::after { transform: none; }
+    }
+  </style>
+  <section class="tos-chassis" aria-label="Home — материальный этюд">
+    <div class="tos-wear" aria-hidden="true"></div>
+    <header class="tos-rail">
+      <div class="tos-nameplate"><span class="tos-mark" aria-hidden="true"></span><div><div class="tos-wordmark">TRAINER OS</div><div class="tos-small">PERSONAL FIELD TERMINAL</div></div></div>
+      <div class="tos-status"><span class="tos-led" aria-hidden="true"></span> 78% <span aria-hidden="true">·</span> 16:42</div>
+    </header>
+    <div class="tos-screen-rim">
+      <div class="tos-screen" aria-label="Hoenn, Pokémon Emerald. Route 119. 5 из 8 значков">
+        <div class="tos-landscape" aria-hidden="true"><div class="tos-island"></div></div>
+        <div class="tos-chart-grid" aria-hidden="true"></div>
+        <div class="tos-display-content">
+          <div class="tos-display-heading"><span class="tos-page">HOME</span><span class="tos-live">ADVENTURE IN PROGRESS</span></div>
+          <h2 class="tos-region">Hoenn</h2>
+          <div class="tos-adventure">Pokémon Emerald</div>
+          <div class="tos-location">Route 119 · Last visited 2 hours ago</div>
+          <div class="tos-progress"><div class="tos-badges" aria-hidden="true"><span class="tos-badge"></span><span class="tos-badge"></span><span class="tos-badge"></span><span class="tos-badge"></span><span class="tos-badge"></span><span class="tos-badge tos-empty"></span><span class="tos-badge tos-empty"></span><span class="tos-badge tos-empty"></span></div><span>5 / 8 BADGES</span></div>
+        </div>
+        <div class="tos-return" aria-live="polite"><div class="tos-page">CONTINUE ADVENTURE</div><strong class="tos-selected-name">Emerald</strong><span>Preview · returning to Home…</span></div>
+      </div>
+    </div>
+    <div class="tos-lower-deck">
+      <div class="tos-deck-cell"><div class="tos-deck-label">POKÉDEX</div><div class="tos-deck-value">84 caught / 202</div></div>
+      <div class="tos-deck-cell"><div class="tos-deck-label">LATEST MILESTONE</div><div class="tos-deck-value">Balance Badge earned</div></div>
+    </div>
+    <div class="tos-drawer-frame">
+      <div class="tos-bay" id="tos-continue-bay" aria-hidden="true" inert>
+        <div class="tos-bay-content"><section class="tos-drawer" aria-label="Recent adventures">
+          <div class="tos-drawer-title">RECENT MOMENTS · 03</div>
+          <div class="tos-recent">
+            <button type="button" class="tos-resume" data-adventure="Emerald"><span class="tos-preview" aria-hidden="true"></span><span class="tos-card-title">Emerald</span><span class="tos-card-meta">Hoenn · 2 hours ago</span></button>
+            <button type="button" class="tos-resume" data-adventure="Platinum"><span class="tos-preview tos-sinnoh" aria-hidden="true"></span><span class="tos-card-title">Platinum</span><span class="tos-card-meta">Sinnoh · Yesterday</span></button>
+            <button type="button" class="tos-resume" data-adventure="SoulSilver"><span class="tos-preview tos-johto" aria-hidden="true"></span><span class="tos-card-title">SoulSilver</span><span class="tos-card-meta">Johto · 3 days ago</span></button>
+          </div>
+        </section></div>
+      </div>
+      <button class="tos-handle" type="button" aria-expanded="false" aria-controls="tos-continue-bay"><span class="tos-handle-label"><span class="tos-grip" aria-hidden="true"></span>Continue Adventure</span><span class="tos-handle-hint"><span class="tos-key" aria-hidden="true">A</span><span class="tos-open-label">Open</span></span></button>
+    </div>
+    <footer class="tos-footer"><span class="tos-serial">TRAINER ID · 00482 / HOENN</span><span class="tos-vents" aria-hidden="true"><span></span><span></span><span></span><span></span></span></footer>
+  </section>
+  <script>
+    (() => {
+      const root = document.getElementById('trainer-material-study');
+      const chassis = root.querySelector('.tos-chassis');
+      const screen = root.querySelector('.tos-screen');
+      const bay = root.querySelector('.tos-bay');
+      const handle = root.querySelector('.tos-handle');
+      const openLabel = root.querySelector('.tos-open-label');
+      const keyLabel = root.querySelector('.tos-key');
+      const cards = Array.from(root.querySelectorAll('.tos-resume'));
+      const selectedName = root.querySelector('.tos-selected-name');
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const state = { material: 'resin', depth: 1, wear: 20, parallax: true };
+      let opened = false;
+      let previewTimer;
+      let focusTimer;
+      const palettes = {
+        resin: ['#287f7b', '#175a59', '#0e3f43'],
+        satin: ['#376f70', '#285658', '#173e43'],
+        enamel: ['#359e94', '#1d746e', '#145254']
+      };
+      function render() {
+        const colors = palettes[state.material];
+        ['--tos-body-top','--tos-body-mid','--tos-body-low'].forEach((name, index) => root.style.setProperty(name, colors[index]));
+        root.style.setProperty('--tos-depth', state.depth);
+        root.style.setProperty('--tos-wear', state.wear / 100);
+        if (!state.parallax) resetParallax();
+      }
+      function resetParallax() {
+        root.style.setProperty('--tos-x', '0px');
+        root.style.setProperty('--tos-y', '0px');
+      }
+      function setOpen(value) {
+        clearTimeout(focusTimer);
+        opened = value;
+        root.classList.toggle('tos-open', opened);
+        bay.inert = !opened;
+        bay.setAttribute('aria-hidden', String(!opened));
+        handle.setAttribute('aria-expanded', String(opened));
+        openLabel.textContent = opened ? 'Close' : 'Open';
+        keyLabel.textContent = opened ? 'B' : 'A';
+        if (opened) focusTimer = setTimeout(() => { if (opened) cards[0].focus({preventScroll: true}); }, reduced.matches ? 0 : 300);
+        else handle.focus({preventScroll: true});
+      }
+      handle.addEventListener('click', () => setOpen(!opened));
+      cards.forEach(card => card.addEventListener('click', () => {
+        clearTimeout(previewTimer);
+        selectedName.textContent = card.dataset.adventure;
+        setOpen(false);
+        root.classList.add('tos-resuming');
+        previewTimer = setTimeout(() => { root.classList.remove('tos-resuming'); handle.focus({preventScroll: true}); }, 1300);
+      }));
+      root.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          clearTimeout(previewTimer);
+          root.classList.remove('tos-resuming');
+          setOpen(false);
+          return;
+        }
+        if (!opened) return;
+        const items = [...cards, handle];
+        const index = items.indexOf(document.activeElement);
+        if (event.key === 'Tab') {
+          if (event.shiftKey && index <= 0) { event.preventDefault(); handle.focus({preventScroll: true}); }
+          else if (!event.shiftKey && index === items.length - 1) { event.preventDefault(); cards[0].focus({preventScroll: true}); }
+        }
+        if (['ArrowRight','ArrowDown','ArrowLeft','ArrowUp'].includes(event.key)) {
+          event.preventDefault();
+          const step = ['ArrowRight','ArrowDown'].includes(event.key) ? 1 : -1;
+          items[(Math.max(index, 0) + step + items.length) % items.length].focus({preventScroll: true});
+        }
+      });
+      chassis.addEventListener('pointermove', event => {
+        if (!state.parallax || reduced.matches || event.pointerType === 'touch') return;
+        const bounds = screen.getBoundingClientRect();
+        const x = Math.max(-1, Math.min(1, (event.clientX - bounds.left) / bounds.width * 2 - 1));
+        const y = Math.max(-1, Math.min(1, (event.clientY - bounds.top) / bounds.height * 2 - 1));
+        root.style.setProperty('--tos-x', (x * 5).toFixed(2) + 'px');
+        root.style.setProperty('--tos-y', (y * 3).toFixed(2) + 'px');
+      });
+      chassis.addEventListener('pointerleave', resetParallax);
+      render();
+      if (globalThis.Tweak) {
+        const tweak = new Tweak({ container: root, onChange: render });
+        tweak.addSelect(state, 'material', { label: 'Материал панелей', options: [{ label: 'Бирюзовый полимер', value: 'resin' }, { label: 'Матовый графит с бирюзой', value: 'satin' }, { label: 'Светлая бирюзовая эмаль', value: 'enamel' }] });
+        tweak.addSlider(state, 'depth', { label: 'Глубина рельефа', min: 0, max: 1.6, step: .1 });
+        tweak.addSlider(state, 'wear', { label: 'Потёртости', min: 0, max: 65, step: 1, unit: '%' });
+        tweak.addToggle(state, 'parallax', { label: 'Параллакс под стеклом' });
+      }
+    })();
+  </script>
+</div>
