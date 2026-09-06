@@ -9,6 +9,8 @@ CTestTestfile.cmake
 Makefile
 compile_commands.json
 install_manifest.txt
+/CMakeUserPresets.json
+/.cache/
 
 # Ninja
 .ninja_deps
@@ -61,7 +63,7 @@ Thumbs.db
 *.tmp
 *.pid
 *.core
-core
+/core
 runtime/
 cache/
 
@@ -81,3 +83,11 @@ saves/
 states/
 user-data/
 private-assets/
+traineros.sqlite3*
+/device-baseline*.txt
+device-check-*.json
+
+# Local research downloads and generated design captures/helpers
+/work/research/
+/work/visuals/*.png
+/work/visuals/check-*.cjs

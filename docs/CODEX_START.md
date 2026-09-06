@@ -25,7 +25,7 @@ Use mock domain data and a `MockAdventureAdapter`.
 - QML / Qt Quick
 - CMake
 
-Keep persistence lightweight for the first visible milestone. SQLite/repositories may be introduced immediately if they do not slow the controller/UI proof.
+Follow the bottom-up roadmap: first establish the project and shared interface/controller skeleton with fake repositories, then implement the shared backend and durable SQLite persistence before individual real integrations. The interface proof must not depend on an external account, emulator or save parser.
 
 ## Required project behavior
 
@@ -63,6 +63,7 @@ At minimum normalize:
 - SystemMenu
 - PreviousPage
 - NextPage
+- ToggleContinue (`Y` on Home)
 
 Allow a development keyboard mapping in addition to real gamepad input, but controller behavior is the product requirement.
 
@@ -111,7 +112,8 @@ Requirements:
 - opening/closing works without touch/mouse
 - focus is trapped inside while open and restored after close
 - selecting a card calls `MockAdventureAdapter::resume(...)` or equivalent and shows a temporary mock/debug result instead of launching a real emulator
-- permanent drawer shortcut remains TBD; use a clearly documented temporary Home affordance and do not consume `L1/R1`
+- `Y` opens/closes Continue on Home; `A` selects a resume point and `B` closes the drawer; do not consume `L1/R1`
+- the compact bottom-left frame extension has a diagonally cut right edge, expands horizontally, then rises inside the fixed display viewport
 
 ### Worlds
 
@@ -130,12 +132,16 @@ For the first build only prove the shell:
 - small local mock list/model
 - focused-item treatment
 - basic entry detail
+- World/regional-collection, type, and personal-status filters that combine
+- name/number search with a controller-operated on-screen keyboard
+- number/name sorting and a reachable empty-result reset
+- separate personal favorite state from reference metadata
 
 Do not integrate external APIs yet.
 
 ### Trainer
 
-Mock profile showing:
+Profile overview showing mock progress:
 
 - Trainer name
 - favorite Pokémon placeholder
@@ -143,9 +149,13 @@ Mock profile showing:
 - Worlds visited/completed
 - badge/Pokédex summary
 
+Implement the profile interaction first with a fake repository: create when missing, edit name/avatar-or-emblem/favorite later, validate the name, Save and Cancel. Name entry must work on the controller. In the following shared-backend milestone, connect durable storage and prove restoration after restart. The profile's stable ID and existing progress must survive edits. Prototype aggregate progress may remain mock data; persistent profile creation/editing remains required before real feature integrations.
+
 ### Hall of Fame
 
 Mock archive with at least one completed Adventure and a six-slot team layout using neutral placeholders/text.
+
+Include the structural place for RetroAchievements within Hall of Fame, with mock achievement list/detail and unavailable-provider states. Do not add a primary page or connect the real API during skeleton work. Its provider integration belongs to the later Hall of Fame module.
 
 ### System menu
 
@@ -254,6 +264,10 @@ At minimum cover:
 - Continue ordering by recency
 - mock adapter capability/response behavior
 - shell state restoration basics
+- `Y` Continue binding and nested keyboard/picker/system/drawer Back precedence
+- combined Pokédex filters/search, empty results, and controller focus restoration
+- profile creation/edit/save/cancel and validation against the fake repository; add durable save/reload checks in the shared-backend milestone
+- Hall of Fame archive/achievement focus and Back behavior with fake/unavailable provider data
 
 ## Deliverable
 

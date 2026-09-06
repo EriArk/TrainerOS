@@ -2,6 +2,8 @@
 
 The domain model should use TrainerOS language first and integration terminology second. Linux/ArmadaOS/emulator details belong behind integration and platform boundaries rather than shaping the user-facing model.
 
+The persistent implementation covers personal Worlds/Adventures, the single local Trainer profile, Pokédex favorite marks, shell color/motion preferences and versioned browsing state. SQLite schema, ownership, recovery and migration constraints are documented in [LOCAL_PERSISTENCE.md](LOCAL_PERSISTENCE.md). Only reference region names are seeded; sample Adventures/progress/archive/provider records are not copied into the personal store.
+
 ## World
 
 Represents a Pokémon region.
@@ -68,6 +70,10 @@ COMPLETED
 
 Platform/system information belongs in integration metadata and should not drive the main UI hierarchy.
 
+The native implementation uses stable `id`, primary `worldId`, `additionalWorldIds`, `title`, `adapterId`, `description` and `AdventureKind` (`Original`, `Remake`, `RomHack`). Kind describes an edition; it is not a replacement for region-first grouping. `AdventureRegistration` adds an external `contentPath`, opaque `integrationConfig`, an optimistic `revision` and an optional new World committed atomically with the record. Editing or relocating a file preserves the Adventure ID. Additional World relationships make the same Adventure discoverable under multiple regions; they do not duplicate it. A named custom World supports ROM hacks outside the reference regions.
+
+Worlds and Adventures use an optional `JourneyStatus` (`NotStarted`, `InProgress`, `Completed`) for the initial presentation. Adventures also have optional `badges` and `caught` counts. Unknown status displays as Not recorded; unknown counts display as a dash, while a known zero remains zero. Personal records leave these values unknown; explicit sample progress belongs only to the preview. These fields do not establish save parsing, provenance tracking or aggregate World progress; the later provider model must preserve those distinctions.
+
 ## ResumePoint
 
 Represents one item in Continue Adventure.
@@ -109,6 +115,8 @@ totalPlaytime
 
 Aggregate metrics should preferably be derived from repositories when cheap/reliable rather than duplicated everywhere.
 
+The initial native profile contains `id`, `name`, `emblemId`, `favoritePokemonId` and `createdAt`. Emblems are original local geometry; favorites currently use a limited text-only sample list. Creation assigns an ID and UTC creation time, while edits preserve both. Profile storage is separate from sample Adventure/progress data. Form and keyboard drafts are transient and must not update the saved profile before Save; in-memory repository lifetime does not satisfy restart persistence.
+
 ## PokedexReference
 
 Reference/canonical data, separate from the user's progress.
@@ -127,6 +135,8 @@ referenceProviderId
 ```
 
 Reference data can be replaced/refreshed independently from user history.
+
+The native mock's `PokedexEntry` contains stable `id`, `number`, `name`, `types` and `collectionIds`. `PokedexCatalog` contains reference entries, named collections and an explicit load result. Its small sample collections demonstrate World filtering; they are not a complete regional availability dataset and do not describe where the Trainer encountered a Pokémon.
 
 ## PokedexProgress
 
@@ -147,6 +157,8 @@ notes
 ```
 
 Additional encounter/history tables may be added later rather than turning this row into an unbounded JSON blob.
+
+The initial `PokedexProgress` has optional Seen/Caught booleans and a TrainerOS-owned favorite mark. Missing records preserve unknown Seen/Caught values. Not caught/Not seen filters require known negative values, while Not recorded explicitly selects unknown progress. A favorite edit changes only that mark and does not mutate the reference entry, Trainer profile identity choice or Seen/Caught. The fake repository keeps successful edits for the current application run and preserves the old mark on failure; durable profile-scoped storage follows in the backend milestone.
 
 ## PokemonHistoryEvent
 
@@ -218,6 +230,22 @@ extraMetadata
 
 Allow unknown fields. Manual entry must not require data that only a parser could know.
 
+The native mock expands `HallOfFameEntry` with an Adventure ID, title/World display snapshots, optional completion date/playtime, notes, Manual/Imported source and up to six `HallOfFameMember` samples. Missing member/level fields remain Not recorded rather than a fabricated team. Archive entries describe particular past journeys and do not overwrite the current Adventure's progress. The initial archive repository is read-only; creation/editing and durable profile-scoped relationships follow later.
+
+## External achievements in Hall of Fame
+
+Hall of Fame displays external achievements alongside completion records, but these remain different domain objects. Suggested records:
+
+- `AchievementDefinition`: provider ID, external game/set/achievement IDs, title, description, and supported display metadata.
+- `AchievementUnlock`: provider account ID, external achievement ID, mode, earned time when available, and last successful retrieval time.
+- `AdventureAchievementLink`: explicit association between a configured Adventure/content version and an external game/set; not proof of progress in a particular run.
+
+Cache identity must include the provider/account and applicable external IDs. Preserve unknown dates and unavailable data instead of inventing defaults. Manual HallOfFameEntry editing must not alter provider-owned unlocks, and external account achievements must not populate current-save badges or Seen/Caught by inference. Fake records are sufficient until the Hall of Fame integration milestone.
+
+Implemented mock shapes: `AchievementSet` links a namespaced set/game ID to an Adventure; `AchievementDefinition` contains original sample title/description; `AchievementUnlock` contains an achievement ID, optional unlocked flag, optional Standard/Hardcore mode and optional earned date. `AchievementSnapshot` scopes both lists under `AchievementContext` (provider/account), set ID, availability state and retrieval time. Missing unlock records are unknown, while explicit false is Locked. A known unlock can still have an unknown date/mode.
+
+The snapshot boundary permits cached rows during loading/offline/error and rejects foreign account/set snapshots. The mock clears cache/pending work on account changes. All IDs and goals are fixtures, not real external identifiers or copied set definitions; persistent provider/game/set/account keys and full per-mode history remain backend/integration work.
+
 ## WorldProgress
 
 World progress may eventually be derived from Adventures, but a dedicated projection/read model is useful for UI:
@@ -277,6 +305,8 @@ PROGRESS_METADATA
 ```
 
 The absence of a capability is normal, not an error.
+
+In the native mock, `AdventureCapabilities` contains launch, direct-resume and screenshot flags and is queried for a specific Adventure. A matching resume point is also required to expose Continue. A sample can support launch without direct resume, or have neither action until setup is available. Capability absence does not erase its library record or imply anything about its progress.
 
 ## Activity / milestone model
 

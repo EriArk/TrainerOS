@@ -2,27 +2,30 @@
 
 TrainerOS now targets a native Qt/QML Linux shell on top of ArmadaOS rather than Android.
 
-The roadmap prioritizes controller feel and information architecture first, then develops real features **top-down in modular vertical slices**.
+The roadmap follows the user's confirmed **bottom-up dependency order**: project skeleton, interface/controller skeleton, shared backend, individual modules, then deeper integrations.
 
 ## Development model
 
 The first mock exists to prove feel, navigation, focus, motion, information architecture, and screen relationships. It is **not the final visual design**.
 
-After the mock is usable, each major feature proceeds through:
+The 2026-09-06 clarification intentionally replaces the former top-down sequence:
 
-1. define/refine the user-visible screen and interaction
-2. implement feature domain/use-case behavior
-3. define repository/service interfaces
-4. connect real adapter/platform integration
-5. add persistence/device-specific behavior
-6. test on the actual ArmadaOS handheld
-7. refactor weak code boundaries and redesign weak visuals
+1. Establish the native build and module structure.
+2. Prove the shared interface and controller skeleton using mock data.
+3. Establish the shared domain, repository/service and persistence foundation.
+4. Implement individual modules in dependency order, connecting each to the working foundation.
+5. Add real integrations one at a time and validate each on the handheld.
+6. Add optional automatic data enrichment only when the relevant modules are stable.
 
-Do not build the entire presentation layer first and postpone real behavior until later. Each major feature should become independently useful end-to-end before the next receives deep integration work.
+The interface skeleton is not a requirement to finish every visual detail before backend work. The backend foundation is not a speculative framework for every possible emulator. Keep both sufficient for the planned modules; then complete those modules end-to-end.
+
+Research findings do not change execution priority. In particular, the save-reading feasibility review does not make Emerald parsing the next implementation task. Only implement capabilities that can be validated; unsupported data remains unknown or is omitted without blocking normal use.
 
 Visual design remains deliberately fluid. Layouts, hierarchy, component styling, animation, density, and whole compositions can be replaced at any milestone. Product invariants matter more than preserving mock visuals.
 
 ## Milestone 0 — Native project skeleton
+
+2026-09-06 increment: the native project, shared visual primitives, domain/fake-repository boundaries and mock adapter are implemented. A Windows development build (MSYS2 UCRT64, Qt 6.11.1) passes the native and rendered-QML checks. Linux/Plasma and ARM64/ArmadaOS execution are still pending; the milestone's Linux acceptance gate is not marked complete. Build instructions and a Linux CI workflow are present, but that workflow has not been run from this local checkout.
 
 Deliverables:
 
@@ -40,6 +43,8 @@ Done when a clean checkout builds and launches to Home in a normal Linux/Plasma 
 
 ## Milestone 1 — Controller shell
 
+Initial implementation: SDL2 semantic input, five routes, per-page focus, transient-layer Back handling, foreground gating, dead zone/repeat and custom focus visuals. Tests use real SDL virtual-controller events and inspect QML's active focus. Physical Flip 2 mapping, device rendering and controller feel remain unverified.
+
 Deliverables:
 
 - real gamepad/D-pad and left-stick navigation
@@ -47,7 +52,7 @@ Deliverables:
 - `B` back
 - `Start` system menu
 - `L1/R1` switch Home, Worlds, Pokédex, Trainer, Hall of Fame
-- persistent active page
+- active page and per-page focus/state in memory; durable restoration follows in the backend milestone
 - clear custom focus treatment
 - short horizontal page transitions
 - centralized input normalization/repeat/dead-zone handling
@@ -56,15 +61,25 @@ Done when every primary page is usable without touch/mouse and `L1/R1` remain gl
 
 ## Milestone 2 — Full mock experience
 
+Implemented shared-shell examples: sample Home, three-card Continue drawer, nine region buttons, and system/service placeholders. The second increment adds the shared controller keyboard and Trainer create/edit interaction through an in-memory repository: name, original emblem, limited sample favorite choices, validation, Save/Cancel and retryable failed writes.
+
+The third increment adds region → Adventure list → detail navigation through `WorldsController`. Hoenn contains originals, a remake and a fictional ROM-hack record. The bounded list follows controller focus, retains selection across Back/page changes, and exposes empty-region recovery. Per-Adventure mock capabilities drive launch/resume/setup states; simulated launch failures allow retry and unknown progress stays distinct from zero. Five Windows test suites pass, including two rendered-QML scenarios driven by SDL virtual controllers. Physical-device and Linux execution remain unverified.
+
+The fourth increment adds the Pokédex mock: a 14-entry reference fixture, bounded list/detail, combined collection/type/record filters, exact-number/name search through the shared controller keyboard, sorting and editable in-memory favorites. Separate reference/progress boundaries cover retryable load/write errors, retaining a last-good reference snapshot and recovery when filtering removes every row.
+
+The fifth increment adds Hall of Fame archive/detail and an internal RetroAchievements area: Adventure sets → achievement list → detail, sample unlock modes/dates, unknown records and asynchronous mock refresh. Disconnected, unsupported, loading, offline and error states preserve archive access; cached records retain their context and freshness. Account changes invalidate pending responses and old unlocks. All five primary pages now have mock interactions. Physical-device comfort, Linux/ArmadaOS execution and production integration acceptance remain unverified; this is not completion of the real modules or persistence milestones.
+
+The shared backend foundation is now in progress, while device validation remains an open gate. Read-only archive samples do not fulfill later manual archive creation/editing, and the fake achievement provider does not establish real RetroAchievements support.
+
 Deliverables:
 
 - living Home with mock Trainer/World/progress data
 - compact slide-out Continue Adventure drawer
 - several mock ResumePoint cards
-- World browser from Kanto through Paldea
-- simple Pokédex browsing/detail mock
-- Trainer mock profile
-- Hall of Fame mock archive/detail
+- World browser from Kanto through Paldea with bounded Adventure lists, detail, capability-based actions and retained local selection
+- Pokédex browsing/detail mock with combined World/type/status filters, name/number search, sorting, and controller text entry
+- Trainer profile creation/editing interaction with a fake repository; durable storage follows in the backend milestone
+- Hall of Fame mock archive/detail and an internal achievements area with representative external-provider states
 - screenshot placeholders and metadata
 - resume routed through `MockAdventureAdapter`
 - empty/loading/error examples
@@ -75,9 +90,29 @@ Done when the whole top-level product can be navigated comfortably on a controll
 
 **Checkpoint:** after this milestone, assume any visual composition may be redesigned. Implementation completeness is not design approval.
 
-## Milestone 3 — ArmadaOS device baseline
+## Milestone 3 — Shared backend foundation
+
+2026-09-06 first backend increment: asynchronous SQLite storage for the real local Trainer profile, Pokédex favorite marks and versioned shell navigation. Startup restores committed projections and stable record selections; failed writes preserve saved values, and normal exit drains pending writes. The original all-sample mode remains available with `--ephemeral`. Corrupt/foreign/newer stores are preserved and get controller-accessible recovery. Tests reopen an actual database and restart the rendered application in separate processes using SDL virtual controls. See `LOCAL_PERSISTENCE.md`.
+
+The following increment adds persistent user-library/configuration storage, atomic region relationships, revision-checked editing, controller file selection, custom Worlds and persisted color/motion preferences. The shared backend code foundation is now in place. A content-free child process exercises checkpoint/start/return/crash behavior, including QML focus restoration; it does not establish real adapter or ArmadaOS session support. No sample game progress, archive or achievement data is migrated into personal history. Device instructions remain in `FIRST_DEVICE_RUN.md`; Linux/ARM64 and physical-device acceptance are pending.
+
+Deliverables:
+
+- stable domain identities and models for Worlds, Adventures, Resume Points, Trainer and archive/progress records
+- typed repository and service contracts consumed by the interface through feature models
+- SQLite-backed local persistence and initial schema/migration handling
+- persistent profile create/edit/save/cancel behavior and shell page/focus restoration
+- foundational library storage and explicit unknown/unavailable values
+- fake Adventure/progress/achievement providers behind replaceable interfaces
+- asynchronous work and error boundaries that keep storage/provider failures off the UI thread
+
+Done when profile and shell state survive restart, failed writes preserve saved data, and feature models can use fake or persistent repositories without embedding storage or platform details in QML. No real emulator, RetroAchievements account, or game save parser is required for this milestone.
+
+## Milestone 4 — ArmadaOS device baseline
 
 Before deep emulator integration, validate the current real target environment.
+
+Prepared locally: Start → Controller now shows mapped button/axis signals, observed controller actions, foreground/neutral gating and Qt runtime/display readings. It exports a local diagnostic JSON on request, with no personal-library content or session changes. SDL virtual-controller and rendered-panel tests cover the preparation; the actual handheld baseline remains open. See `DEVICE_DIAGNOSTICS.md` for the first-device sequence and the boundary of software observations.
 
 Deliverables:
 
@@ -93,7 +128,9 @@ Deliverables:
 
 Done when `docs/ARMADA_PLATFORM.md` reflects actual target findings and a development build runs reliably on the handheld as a normal full-screen application.
 
-## Milestone 4 — Worlds / Adventure vertical slice
+## Milestone 5 — Worlds / Adventure module
+
+Prepared before the device arrives: real personal library browsing and controller add/edit/file selection work on the common backend. The launch lifecycle is tested with an original child program. The real adapter and device launch/return gate remain open; this milestone is not marked complete. Details and acceptance criteria: `LIBRARY_AND_LAUNCH.md`.
 
 Take Worlds from mock to the first real end-to-end feature.
 
@@ -114,7 +151,7 @@ Done when at least one configured Pokémon Adventure can be found through its Wo
 
 Visual redesign of Worlds is explicitly allowed and expected if real data suggests a better composition.
 
-## Milestone 5 — Home + Continue vertical slice
+## Milestone 6 — Home + Continue module
 
 Deliverables:
 
@@ -132,20 +169,24 @@ Done when Continue is genuinely useful for at least one supported integration an
 
 Home and Continue visuals may be redesigned around actual screenshots/save-state behavior.
 
-## Milestone 6 — Trainer + Hall of Fame vertical slice
+## Milestone 7 — Trainer + Hall of Fame module
 
 Deliverables:
 
-- persistent Trainer profile
+- extend the persisted, editable Trainer profile introduced in the first prototype with real aggregate progress
 - favorite/featured Pokémon placeholder/provider support
 - aggregate progress through stable interfaces
 - Hall of Fame archive/detail
 - manual Hall of Fame entry creation/editing
+- RetroAchievements achievements inside Hall of Fame through an external provider and local cache
+- achievement detail and game/Adventure association for supported content
+- separate external account unlocks from current-playthrough progress and local completion records
+- disconnected, unsupported, cached/offline, loading and error states that leave the archive usable
 - optional automatic suggestions behind provider interfaces
 
-Done when Trainer and Hall of Fame are useful independently of game-specific save parsers.
+Done when Trainer and Hall of Fame are useful independently of game-specific save parsers, supported RA achievements can be browsed entirely with the controller, unavailable achievement data is handled honestly, and no new primary page or local L1/R1 binding has been introduced.
 
-## Milestone 7 — Pokédex vertical slice
+## Milestone 8 — Pokédex module
 
 Deliverables:
 
@@ -161,7 +202,7 @@ Deliverables:
 
 Done when Pokédex is smooth, offline-capable, controller-driven, and not coupled to one data source or game format.
 
-## Milestone 8 — Pokémon Center / save services vertical slice
+## Milestone 9 — Pokémon Center / save services module
 
 Deliverables:
 
@@ -175,7 +216,7 @@ Deliverables:
 
 Done when maintenance is safe, clear, modular, and separated from ordinary Adventure browsing.
 
-## Milestone 9 — Dedicated TrainerOS session prototype
+## Milestone 10 — Dedicated TrainerOS session prototype
 
 Only after normal application mode is stable.
 
@@ -195,7 +236,7 @@ Done when the dedicated session can fail without making the device difficult to 
 
 Plasma should still remain the known-good recovery option during this milestone.
 
-## Milestone 10 — TrainerOS as default device experience
+## Milestone 11 — TrainerOS as default device experience
 
 Deliverables:
 
@@ -213,7 +254,7 @@ Done when ordinary use follows:
 
 and the user does not need the Plasma desktop for normal play/management.
 
-## Milestone 11 — Additional Adventure integrations
+## Milestone 12 — Additional Adventure integrations
 
 For each new emulator/application integration:
 
@@ -227,7 +268,7 @@ Likely candidates include RetroArch, melonDS, Azahar, and Dolphin, but order sho
 
 Done when adding another integration does not require redesigning core TrainerOS domain/UI APIs.
 
-## Milestone 12 — Automatic progress enrichment
+## Milestone 13 — Automatic progress enrichment
 
 Potential modules:
 
@@ -239,9 +280,9 @@ Potential modules:
 - Hall of Fame suggestions
 - playtime/history enrichment
 
-Automatic metadata enriches the experience but must never become required for launching an Adventure.
+Automatic metadata enriches the experience but must never become required for launching an Adventure. Validate providers per game/build and field; do not promise universal ROM-hack support, historical event reconstruction, or automatic story guidance. The feasibility review informs this later milestone, not the initial skeleton/backend work.
 
-## Milestone 13 — Packaging and dedicated-device polish
+## Milestone 14 — Packaging and dedicated-device polish
 
 Deliverables/potential work:
 

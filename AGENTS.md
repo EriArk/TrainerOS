@@ -50,6 +50,7 @@ Current platform direction:
 - **ArmadaOS is the system base.**
 - **TrainerOS is a native Linux graphical shell/session on top of ArmadaOS.**
 - **KDE Plasma remains installed and available as maintenance/recovery desktop mode.**
+- **Steam Gaming Mode remains available alongside TrainerOS and KDE Plasma.** TrainerOS is intended to become the main/default choice after device validation, not to remove either existing mode.
 - The first prototype must run safely as a normal full-screen application before TrainerOS is made the default session.
 - Once crash/recovery behavior is proven, production mode should boot/login into the TrainerOS session by default.
 - Exiting supported Adventures should return to TrainerOS.
@@ -68,6 +69,7 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 - Home is a living trainer overview, not a giant Continue page or tile launcher.
 - Continue Adventure is a compact slide-out panel/drawer on Home.
 - Continue uses small recent session/save-state cards, ideally with screenshots and metadata.
+- RetroAchievements achievements belong inside Hall of Fame, alongside the completed-Adventure archive, not on a separate primary page.
 - Normal use must work entirely with physical controls.
 - Settings/service features should not consume a primary L1/R1 page without an intentional product change.
 - Desktop/maintenance access must be explicit.
@@ -82,6 +84,7 @@ Always preserve:
 - `A` = confirm/open
 - `B` = back/close
 - `Start` = TrainerOS system menu
+- `Y` = open/close Continue Adventure on Home
 - visible deterministic focus whenever interactive content exists
 - no required touch/mouse/keyboard for normal use
 - no desktop-window metaphors in the normal shell
@@ -114,22 +117,29 @@ Do not introduce Kotlin, Jetpack Compose, AndroidX, Gradle, Android intents, Roo
 - Use mock/fake adapters before coupling the first UI milestone to real emulator quirks.
 - Avoid embedding distro paths, emulator paths, or shell commands directly in QML.
 
-## Post-mock development strategy
+## Development order — foundations before integrations
 
 The mock is a **prototype and UX probe**, not a frozen design and not disposable architecture.
 
-After the full controller-navigable mock works:
+The user's 2026-09-06 clarification supersedes the earlier top-down sequence. Develop **bottom-up in dependency order**:
 
-- develop **modularly and top-down**
-- take one user-visible feature at a time through UI/interaction → domain/use case → repository/service boundary → adapter/integration → persistence/device behavior
-- prefer complete vertical slices over “all UI first, backend later”
+1. Native project/build skeleton and module boundaries.
+2. Shared interface/controller skeleton: peer pages, reusable panels, focus, drawers, text entry, theme tokens, and mock data.
+3. Shared backend foundation: domain models, repository/service contracts, local persistence, and fake providers.
+4. Individual functional modules on those foundations, with real integrations added one at a time after their prerequisites work.
+5. Optional automatic progress providers only after the library, launch/return, persistence, and relevant feature modules are stable.
+
+Across all stages:
+
+- keep the shared backend pragmatic; build the foundations required by the planned modules, not speculative infrastructure
+- complete each module end-to-end when its turn arrives, rather than spreading unfinished integrations across every feature
 - keep module boundaries explicit so integrations, providers, and visual components can be replaced independently
 - refactor abstractions when real device/integration behavior disproves mock assumptions
 - **visual design remains intentionally fluid**: layout, hierarchy, component shapes, motion, density, and whole compositions may be redesigned repeatedly
 - preserve product invariants and controller behavior while allowing aggressive visual iteration
 - do not protect mock code or visuals merely because they exist
 
-A healthy vertical slice leaves behind reusable boundaries instead of another special case.
+Feasibility research does not authorize jumping ahead in the roadmap. Implement only verified capabilities; represent unavailable data honestly and do not promise universal save parsing or achievement coverage.
 
 ## Controller-first implementation
 
@@ -197,6 +207,8 @@ Use original placeholders and clearly separated user-provided asset/data paths.
 - Treat visual components as replaceable until they survive real-device testing.
 
 ## Documentation discipline
+
+Commit each completed, validated implementation increment locally with a concise message. Keep generated build/runtime artifacts and downloaded research material out of commits.
 
 When a task introduces a meaningful product/platform/architecture decision:
 

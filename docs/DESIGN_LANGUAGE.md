@@ -10,6 +10,76 @@ Think: modern dedicated handheld system with region-aware atmosphere, not Linux/
 
 ## Overall composition
 
+### Material and contrast direction — September 2026
+
+The target device is the turquoise Retroid Flip 2 with Snapdragon 865. The owner's device reference establishes this visual direction:
+
+- Dark turquoise/teal structural panels, approximately matching the device's shell color.
+- A white or near-white main content surface, with clearly darker text and strong contrast against the surrounding panels.
+- Tangible depth through panel thickness, inset surfaces, bevels, contact shadows, and restrained reflections. Tinted polymer is a useful material reference.
+- Every control has a visible supporting surface. Buttons belong to panels, trays, or rails; avoid detached controls floating above an arbitrary background.
+- Panels slide from visible slots or behind supporting surfaces. Their movement preserves a readable connection to the surrounding structure.
+- Small chips and wear may appear sparingly on edges and contact points. Keep text and main content clear; do not apply a uniform distressed texture everywhere.
+- Subtle parallax is an option to explore inside recessed visual areas. Keep text, controls, and their supporting panels stable, and respect reduced motion.
+- Focus should remain attached to its control through an edge treatment or inset indicator. Pressed feedback may depress the control into its panel.
+
+The exact palette, material finish, amount of wear, depth, and page composition remain exploratory. A material study does not approve a final Home layout. These are software visuals, with no physical modifications to the handheld.
+
+Acceptance checks for this direction:
+
+- Primary content remains light and readable against the darker teal panel structure.
+- Every actionable control has an identifiable supporting surface in both resting and animated states.
+- Drawer motion shows where the panel comes from and where it returns.
+- Decorative wear and parallax do not interfere with text, controller focus, or reduced-motion operation.
+
+### Flip 2 screen and controller composition
+
+Design against the actual horizontal handheld display: **Retroid Flip 2, 5.5-inch AMOLED, 1920×1080 (16:9), 60 Hz**. Manufacturer reference: https://www.goretroid.com/products/retroid-flip-2-handheld.
+
+- Home and ordinary overview/service surfaces should fit inside one screen without whole-page scrolling.
+- Drawers and overlays stay inside that fixed viewport. Continue must not extend the page downward or require a finger swipe to reach its cards.
+- Worlds, Pokédex, and growing archives may scroll inside clearly bounded content areas. Controller focus drives that scrolling and remains visible; touch gestures are never required.
+- Keep page controls and useful navigation hints stationary while a list moves. `L1/R1` remain reserved for primary pages.
+- Fit content by prioritizing it, using horizontal space, and moving secondary details into another controller-accessible view. Do not solve overflow by shrinking text excessively.
+- A 960×540 logical composition at 2× is a useful initial design study for the 1080p display. Validate final type sizes, margins, and density on the physical 5.5-inch screen; native pixel count alone does not determine readability.
+- In conversational previews, preserve the 16:9 device geometry when the preview is scaled. Do not reinterpret a narrow conversation window as a portrait version of the handheld UI.
+
+Acceptance: opening Continue or a system panel must not change the outer screen dimensions; moving past the last visible list item must reveal the next item using controller input alone. No essential actions may sit below the device viewport.
+
+### Friendly character and interchangeable color themes
+
+The material interface should have a friendly Pokémon adventure character. Use softer shapes, expressive progress badges, warm details, and the sense of a personal field companion. Avoid excessive industrial labels, serial numbers, stern monochrome styling, or a corporate/instrument dashboard mood. Decorative details still need a visible attachment or supporting surface.
+
+Turquoise matching the owner's device is the default shell theme. The native shell also provides **red, green, blue, and orange** through Start → Settings, using the same interface:
+
+- Centralize panel, edge, shadow, focus, and text colors as semantic theme tokens.
+- A theme changes the palette/material finish, not layout, navigation, focus order, or interaction behavior.
+- Keep the white/near-white main content surface and strong readable contrast across themes.
+- Separate the chosen shell theme from World atmosphere and Pokémon type/status colors. Entering another World must not silently replace the user's shell theme.
+- Use original geometric placeholders until suitable original or licensed assets exist.
+
+Color and reduced-motion preferences persist locally. Chassis/bevel colors consume shared tokens; button accents and recessed screens retain their distinct roles. Reduced motion removes drawer, keyboard and tab transition durations without changing final geometry or focus behavior.
+
+Acceptance: the same screen and controller path must work in every theme without content shifting or color becoming the only state indicator. The current mock's compositions remain exploratory.
+
+### Organizer tabs, angled modules, and recessed screens
+
+The owner's next design refinement adds diagonals and circles to soften the rectilinear composition:
+
+- Primary page names sit on differently colored organizer-like tabs emerging from the upper frame. The active tab extends farther into the interface; color is supplemented by depth/position/focus.
+- Continue rests as a small bottom-left frame module with a diagonal cut on its right side. It protrudes into the white workspace, expands horizontally on `Y`, then rises to reveal resume cards. Closing reverses those stages.
+- Light screens sit visibly inside the casing. Use sloping bevels from the surrounding frame down to the content surface, as on older handheld instruments.
+- Buttons and list rows have tangible thickness, contact shadows, and distinct colors. Their palette is separate from the shell theme so controls remain readable against both panels and white screens.
+- Panels supporting controls must connect to a frame edge, extend a main panel, or visibly mount on an existing frame module. Do not suspend a control panel in the middle of the white workspace.
+- Side modules attach to the side/top/bottom frame; filter rails attach to the upper frame; keyboards and action trays attach to the lower frame.
+- The keyboard has a letter/editing block on the left and a distinct three-column numeric block on the right, with a wide zero below `1–9`. Both sit in the same lower-frame tray; numeric keys use a contrasting cap color.
+- Use circles for recessed lenses, avatar wells, indices, and button caps; diagonal cuts for module joins. These details must not reduce readable content or controller target clarity.
+- Controller hints belong to the casing: embossed/debossed legends and raised colored button caps, with quiet shadows and a clear physical relationship to the bottom frame.
+
+Acceptance: check Home, Continue, filter/search panels, profile editing, and keyboard states at the same 16:9 dimensions. Every control-supporting panel has a visible connection to the frame; no layout depends on touch, floating panels, or whole-screen scrolling.
+
+### General layout rules
+
 - landscape-first
 - strong central content area
 - minimal permanent chrome
@@ -125,6 +195,7 @@ Use:
 - timeline/archive composition
 - date and World hierarchy
 - team-of-six presentation
+- an internal RetroAchievements area using the same frame-mounted controls and visual language
 - subtle trophy/champion motifs designed for TrainerOS
 
 Avoid fake gold everywhere; restraint makes completed entries feel more special.
@@ -150,7 +221,7 @@ Controller focus is one of the most important visual elements.
 Recommended direction:
 
 - thin luminous/bracket outline
-- slight scale or lift
+- an attached edge/inset treatment; any depth change must preserve contact with the supporting panel
 - small directional marker/cursor
 - quick 80–140 ms response
 

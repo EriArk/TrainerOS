@@ -33,12 +33,23 @@ Whether the page list wraps from Hall of Fame back to Home should be decided dur
 - `B`: back/close/cancel
 - `Start`: TrainerOS system menu
 - `L1/R1`: global primary-page navigation
+- `Y`: open/close Continue Adventure on Home
 
 Other buttons remain available for later shortcuts but should not become mandatory until documented/remappable.
 
 Development keyboard bindings may mirror these actions, but controller semantics remain authoritative.
 
 ## Focus rules
+
+### Fixed handheld viewport and scrolling
+
+Target the Flip 2 landscape display. Home and normal overview surfaces fit in one screen. Drawers and system panels open within that screen without extending the outer page. Touch swipes must never be required.
+
+Long World/Adventure lists, Pokédex entries, and archives may scroll in bounded areas. D-pad/left-stick focus movement automatically reveals the selected item; scrolling must not move the entire shell or its primary navigation. Use a detail view for additional information instead of pushing essential actions below the screen or shrinking text to fit.
+
+For the current design study, `L1/R1` closes transient panels and switches the primary page; it never scrolls a local list. Closing the system menu with `B` restores the previous drawer/detail/page focus. Page wrapping remains deferred to physical-device testing.
+
+### Focus behavior
 
 1. A visible focus target must always exist when interactive content exists.
 2. Focus order is deterministic.
@@ -70,7 +81,9 @@ Confirmed behavior:
 - opening/closing is possible without touch/mouse
 - when open, focus stays inside until the drawer closes or an Adventure launches
 
-The final shortcut to open the drawer is intentionally **TBD**. During mock work, use a clearly isolated temporary mapping or a focused Home control; do not silently make a permanent mapping decision.
+`Y` is the confirmed Home shortcut for opening/closing Continue. `A` selects a resume point and `B` closes the drawer, restoring its opener. Higher-priority text-entry, selection, and system panels handle Back first. `Y` does not steal input from those panels. Keep the physical binding configurable and leave `L1/R1` globally reserved.
+
+The visible closed control is attached to the bottom-left frame, with a diagonally cut right edge. Opening expands its width before the panel rises; closing retracts it before narrowing. Its motion stays entirely within the 16:9 screen.
 
 ### Continue card hierarchy
 
@@ -88,15 +101,18 @@ Avoid turning every card into a dense statistics panel.
 
 Worlds should feel like choosing destinations rather than browsing files/emulators.
 
-Opening a World moves into a detail layer for that region.
+The native mock has three local levels: **regions → Adventure list → Adventure detail**. A region may contain originals, remakes and ROM hacks together.
 
-In World detail:
+- The region grid uses D-pad/left-stick spatial navigation; `A` opens the selected region.
+- In the Adventure list, Up/Down moves focus and reveals the selected row inside a fixed three-row viewport. The shell, primary tabs and lower action panel remain stationary. Down beyond the final row focuses Back to Worlds; Up restores that row.
+- `A` opens Adventure detail. Left/Right moves between enabled launch/resume/Back actions; unavailable actions look disabled and are skipped. Exact Continue requires both a direct-resume capability and a matching resume point. Otherwise normal launch is offered when supported.
+- `B` returns detail → Adventure list → regions, preserving the selected Adventure and region. On regions, `B` stays on Worlds.
+- `L1/R1` still switch the top-level primary page. Returning to Worlds restores its route, selected Adventure and focused action. Start/menu/notice layers also restore the underlying focus when closed.
+- An empty region keeps Back to Worlds focused. An entirely empty World library exposes Return Home. Failed mock launches keep the detail context available for retry after dismissing the response.
 
-- `B` returns to the World list
-- `L1/R1` still switch the top-level primary page, not local tabs
-- local subsections use D-pad/focus or another documented secondary control
+Emulator/path configuration belongs in an advanced/service layer. Sample progress is labeled as such; unknown values are not silently replaced with zero or a completion state.
 
-Adventure selection exposes a simple launch/resume action first. Emulator/path configuration belongs in an advanced/service layer.
+Acceptance: traverse a list longer than its viewport using controller events, keep the full focus outline visible, open a remake and ROM-hack example within their region, return to the exact row after detail/page/menu changes, skip a disabled launch, retry a failed launch, and recover from an empty region without touch. These checks currently exercise mock adapters; no external Adventure is launched.
 
 ## Pokédex
 
@@ -110,6 +126,24 @@ Design for:
 - entry detail browsable with D-pad
 - obvious Seen/Caught/Favorite state
 
+Provide controller-accessible World/regional-collection, type, Seen/Caught/Favorite filters, name/number search, and sorting. Filters combine; empty results retain a reset/recovery action. The filter rail is mounted to the top frame, and action strips join a frame edge. Search opens a keyboard panel mounted to the lower frame, with D-pad/left-stick key selection, `A` to enter, an explicit Apply key, and `B` to cancel. `L1/R1` never becomes local filter navigation.
+
+The shared search/profile keyboard places letters on the left and a separate numeric block on the right: `1–3`, `4–6`, `7–9`, then a wide `0`. Space, Delete, Clear, and Apply remain visible beside the letters. D-pad/left-stick movement follows the displayed rows, crosses between both blocks, and stops at outer edges. Vertical movement preserves the intended column through wide keys. All editing and submission work with the gamepad; `B` discards the text buffer and restores focus to its opener.
+
+Acceptance: using gamepad events alone, enter mixed letters and digits, reach every numeric key, cross both ways between blocks, use Space/Delete/Clear/Apply, and cancel without changing the previous value. Focus remains visible and inside the keyboard throughout entry.
+
+The native keyboard now implements this shared interaction for Trainer names and Pokédex search. The initial layout offers uppercase Latin letters and digits; additional languages/case layouts are deferred. Start places the system menu above the keyboard and Back restores the same key and buffer. Y does nothing inside text entry. L1/R1 cancels transient input and any containing profile draft, then changes the top-level section. The previously applied search query remains intact. Neither changing sections nor Apply silently saves a profile.
+
+Current Pokédex mock navigation:
+
+- Up/Down follows the entry list inside a fixed three-row area. Up from its first row enters the frame-mounted filter rail. Down from that rail restores the remembered row, or the recovery control when results are empty.
+- Left/Right on the rail selects Search, World, Type, Records, Order and Reset. A opens the corresponding text/choice panel. The five-column choice grid uses spatial D-pad navigation; A applies, while B or Cancel preserves the old value. L1/R1 dismisses an unconfirmed picker and remains global.
+- Filters intersect. Status choices include Seen, Caught, Not caught, Favorites, Not seen and Not recorded; unknown records are not treated as explicit negatives. Search matches a name substring or an exact national number. Sorting preserves the selected entry by ID when it still matches.
+- Entry detail opens with A; Left/Right selects Favorite or Back. B returns to the same row. Removing a favorite while filtering Favorites returns to a remaining row, or focuses Reset filters if none remain. A failed write preserves the old mark and allows retry from the same detail action.
+- Start/B restores picker, keyboard or entry focus. Section changes preserve applied filters, query, sort, detail route and useful focus. Empty reference data/load errors offer Retry; unmatched filters offer Reset. Failed reference refreshes keep the last successful snapshot available.
+
+Acceptance: browse beyond the visible rows, combine three filters with a query, select the last type choice with the controller, cancel search without changing results, preserve detail through page switching, and remove the last filtered favorite without losing focus. Test name entry and numeric entry through the shared keyboard without updating the Trainer profile.
+
 Do not rely on color alone for types/progress.
 
 ## Trainer
@@ -118,14 +152,32 @@ Trainer is primarily informational. Keep focus targets limited to meaningful act
 
 Avoid making every static statistic focusable.
 
+Create Trainer is available when no local profile exists. Edit Trainer opens a draft of the saved name, avatar/emblem, and favorite Pokémon. All fields, Save, and Cancel are controller-accessible; the name field can open the same on-screen keyboard used by search. Back closes the keyboard before cancelling the profile draft. Saving updates the profile without changing its identity or progress, and cancelling preserves the existing profile.
+
+Current prototype: Up/Down moves among Name, Emblem, Favorite and Save; Left/Right moves between Save and Cancel. A on Emblem/Favorite cycles the visible sample choice. A on Name opens the shared keyboard. Apply changes the form draft; Save writes to the fake repository. A blank/invalid name returns focus to Name; a failed write leaves Save focused with the draft available for retry. The UI states that this prototype keeps profiles only until the application closes.
+
+Acceptance: create a Trainer from the empty state, cancel a keyboard edit, cancel the whole form, save a later edit without changing ID/creation time, recover from a failed save, and switch sections from an open keyboard without committing drafts. Editing identity does not change sample Adventure progress.
+
 ## Hall of Fame
 
-Hall of Fame behaves like an archive/timeline.
+Hall of Fame contains the completed-Adventure archive and RetroAchievements achievements within the same primary page.
 
 - entries are controller-browsable
 - opening an entry shows team/completion details/screenshots/notes when present
 - `B` returns to the archive
 - editing/manual correction is secondary
+- achievements have controller-browsable lists/details with their game and source identified
+- internal archive/achievement selection uses focused controls and A/B; L1/R1 still switch primary pages
+- missing connection, unsupported content or refresh errors leave local archive navigation available
+- show cached external data as cached and unknown availability honestly, without presenting it as zero unlocks
+
+The native mock has two frame-mounted local selectors: Archive and RetroAchievements. Up above the first list row enters their rail; Left/Right selects and A opens an area. L1/R1 continues to switch primary pages. Lists reveal the selected item in a three-row viewport. Down after the last row enters the lower action panel, and Up restores the selected row. In an empty list, the action panel remains usable and Up returns to the rail.
+
+Archive A opens a team/memory detail; B restores its list row. RetroAchievements uses Adventure sets → goals → achievement detail, with B unwinding one level and remembered per-set selection. Detail actions use Left/Right; Up reaches the local rail. A refresh disables its repeated activation while keeping Back focused and available. Completion can update the data while another primary page is visible without changing that page.
+
+Start/B restores the underlying action, while L1/R1 preserves local routes and useful focus. Disconnected/unsupported data is not an empty earned-achievement total. Cached results are labeled offline or failed-refresh, and account changes remove the previous account's records. Local archive browsing remains available in every external-provider state.
+
+Acceptance: browse a team with six members and a partially recorded team, scroll beyond visible archive/goals, visit a locked and unknown goal, preserve unlock mode/unknown date, retry a failed refresh, return to archive during loading, reject prior-account records and retain focus after an empty archive is reloaded. All current cases use original fixtures, not real provider data.
 
 ## System menu
 
@@ -191,7 +243,7 @@ Focus must be obvious at a glance without resembling desktop or TV-framework def
 
 Possible ingredients:
 
-- slight scale/lift
+- attached relief or a pressed/inset response that preserves contact with the supporting panel
 - bright outline/bracket treatment
 - animated marker/cursor
 - subtle surface contrast shift
@@ -230,7 +282,29 @@ Before switching, TrainerOS may show a short confirmation such as “Open Deskto
 
 The system should preserve a straightforward path back into TrainerOS. Detailed Plasma UX is outside TrainerOS scope.
 
+## Library and settings services
+
+Start → Manage Adventures opens a controller-operated service panel. A edits the selected record; its action rail offers Add Adventure and Back. The editor keeps six fields in a two-column grid above Save/Cancel. Text fields use the shared keyboard, World pickers keep a focused row in a bounded list, and additional World selections require Apply. Creating a World remains part of the unsaved Adventure draft until Save commits both.
+
+The file picker keeps directory scrolling inside a bounded list, with Locations, Parent folder, Previous/Next batch, Refresh/Retry and Cancel on an attached action rail. B retraces entered folders or cancels at the starting point; B during loading cancels and ignores late results. Empty/error states keep a recovery or Cancel action focused. Choosing a file returns to the editor without saving it.
+
+Start overlays service drafts without changing them. Closing the service returns to the system menu's remembered selection. Opening another service or using L1/R1 cancels unsubmitted edits. Submitted writes continue; a failure is shown even if the form has been left. Save errors retain the draft for correction/retry.
+
+Start → Settings changes shell color and reduced motion. Changes apply after successful persistence, without altering layout or focus order. Settings is a service, not an L1/R1 page.
+
+Start → Controller opens a fixed diagnostic panel with Refresh display, Save report, Reset checks and Back on its lower rail. Left/Right selects an action; A activates and B returns to the remembered menu entry. Start and L1/R1 retain their normal priority. Button/range observations survive leaving and reopening the panel within the same run, allowing those global controls to be tested. Keyboard input is not counted as a controller observation. See `DEVICE_DIAGNOSTICS.md`.
+
+Worlds includes each Adventure under its primary and additional regions. Custom Worlds extend the region grid; the focused row scrolls into view inside that grid while the rest of the page stays fixed. See `LIBRARY_AND_LAUNCH.md` for detailed acceptance.
+
 ## Controller testing checklist
+
+### Persistent application restart
+
+Normal startup restores the last primary page, stable content selections, local routes and applied Pokédex filters after local storage opens. Keyboard/form drafts, unconfirmed picker choices, notices, the system menu and open Continue drawer do not reopen; the drawer's selected card is retained. Save displays a pending state and remains submitted if the user leaves with B or L1/R1. Before Save, Back discards the draft as usual.
+
+Startup storage failure traps focus on Retry / Exit (B exits); feature pages are unavailable until loaded. During normal use, a browsing-state write failure offers Retry / Keep browsing, while L1/R1 may still change pages. Exit waits for submitted writes, and offers an explicit option to skip only optional browsing state if its final write fails. See `LOCAL_PERSISTENCE.md` for failure and recovery behavior.
+
+### Per-screen checks
 
 For every screen:
 

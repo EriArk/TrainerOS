@@ -1,5 +1,9 @@
 # TrainerOS on ArmadaOS
 
+Preparation for the first physical visit is in [FIRST_DEVICE_RUN.md](FIRST_DEVICE_RUN.md), with a read-only baseline report script. No target findings have been filled in from desktop assumptions. The current Windows-validated application includes local persistence but makes no session changes.
+
+The native [controller/display diagnostic service](DEVICE_DIAGNOSTICS.md) is ready for that visit. It records Qt/SDL observations locally on request. Display coordinates, backend names and detected input signals must be checked against the real screen, control labels and session setup; they are not substituted for physical acceptance.
+
 ## Decision
 
 TrainerOS targets **ArmadaOS as its system base** on the Retroid Flip-class handheld.
@@ -26,7 +30,7 @@ Those capabilities still require careful implementation, but they can live behin
 
 ## Session philosophy
 
-The machine should have two intentionally different graphical experiences.
+The machine should retain three deliberate graphical modes: TrainerOS as the intended main/default experience, Steam Gaming Mode as an alternative, and KDE Plasma as Desktop / Maintenance Mode. This is a product requirement, not an assumption that the current system exposes three display-manager entries.
 
 ### TrainerOS session — default everyday mode
 
@@ -39,6 +43,10 @@ Purpose:
 - access normal handheld/system actions without desktop UI
 
 No Plasma panels, taskbars, desktop windows, or unrelated app-launcher UI should appear during normal use.
+
+### Steam Gaming Mode — retained alternative
+
+Keep ArmadaOS's Steam experience available. TrainerOS does not replace Steam's files, controller configuration or startup scripts during development. The eventual mode-selection/return path must follow the actual ArmadaOS session arrangement and remain recoverable.
 
 ### KDE Plasma — Desktop / Maintenance Mode
 
@@ -76,7 +84,7 @@ Validate:
 
 ### Phase B — isolated session prototype
 
-Create a dedicated TrainerOS session entry, but keep Plasma as the known-good default/recovery option while testing.
+Create an isolated TrainerOS session option, but preserve the existing Steam/Plasma startup and recovery paths while testing. Do not change the default until this phase passes.
 
 Validate:
 
@@ -91,7 +99,11 @@ Validate:
 
 Once reliable, configure TrainerOS as the normal/default session for this dedicated handheld.
 
-Plasma remains installed as a secondary maintenance session.
+Steam Gaming Mode and Plasma remain available as alternative modes.
+
+### Current implementation boundary
+
+The first native skeleton runs only in safe application mode. `DevelopmentPlatformService` reports session switching as unavailable. System-menu entries for Desktop / Maintenance Mode and Steam Gaming Mode explain this state; neither runs commands or changes session configuration. There are no session installers or default-session changes in this milestone.
 
 ## Do not assume ArmadaOS internals
 

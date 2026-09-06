@@ -12,6 +12,8 @@ Normal flow:
 
 KDE Plasma exists as explicit Desktop / Maintenance Mode and should not appear during ordinary use.
 
+TrainerOS is intended to become the main launch mode on ArmadaOS alongside the retained Steam Gaming Mode and KDE Plasma. Installing TrainerOS must preserve both existing modes and their recovery paths.
+
 ## Vocabulary
 
 - **World**: a Pokémon region such as Hoenn or Sinnoh.
@@ -19,7 +21,7 @@ KDE Plasma exists as explicit Desktop / Maintenance Mode and should not appear d
 - **Continue Adventure**: recent resumable session/save-state cards.
 - **Trainer**: persistent personal profile and long-term progress.
 - **Pokédex**: reference data plus personal Seen/Caught/history data.
-- **Hall of Fame**: archive of completed Adventures.
+- **Hall of Fame**: completed-Adventure archive and RetroAchievements achievements.
 - **Pokémon Center**: optional user-facing name for backup and maintenance services.
 - **Desktop / Maintenance Mode**: deliberate transition from TrainerOS into KDE Plasma for advanced system tasks and recovery.
 
@@ -64,11 +66,17 @@ Each mini card can include:
 
 Selecting a card should resume that exact state when the configured adapter supports it. Otherwise it may launch the Adventure normally.
 
-The exact dedicated drawer shortcut is still open; do not reuse `L1/R1`.
+`Y` opens/closes Continue Adventure on Home. `A` activates the selected resume point and `B` closes the drawer. `L1/R1` remain primary-page navigation.
+
+The closed affordance is a compact left-hand extension of the bottom frame, protruding into the main screen with a diagonal right edge. Opening it first expands its working width, then raises the recent cards inside the fixed viewport. Closing reverses that motion. It never makes Home taller than the screen.
 
 ## Worlds
 
 Worlds is the Adventure library organized by region first, not by hardware platform or emulator.
+
+Normal application mode starts with reference regions and an empty personal library. Start → Manage Adventures provides controller add/edit, a local file picker, primary/additional World relationships and custom Worlds for ROM hacks. Saving stores TrainerOS metadata while the selected file remains external and unchanged. Records retain their identity when edited or relocated. See `LIBRARY_AND_LAUNCH.md` for the implemented flow and acceptance criteria.
+
+Registration does not imply launch or progress support. Until a real adapter is configured and validated, detail offers a clear setup-needed state; Home/Continue does not invent play history or resume points. The ephemeral preview keeps sample Adventures separate from personal data.
 
 Initial set:
 
@@ -91,6 +99,10 @@ The model should support one primary World plus additional World relationships f
 ## Pokédex
 
 The Pokédex combines reference information with the Trainer's own history.
+
+Required browsing controls include combined World/regional-collection, Pokémon type, and personal-status filters (Seen, Caught, Not caught, Favorites), name/national-number search, and number/name sorting. Every control is reachable with the controller. Search offers a controller-operated on-screen keyboard and is optional for browsing. Empty results provide a controller-accessible way to clear filters.
+
+Regional Pokédex membership and personal encounter Worlds are different concepts: reference providers supply regional membership; Trainer history supplies encounter locations. The mock may use a small explicitly partial local dataset.
 
 Possible reference data:
 
@@ -128,9 +140,22 @@ Trainer is the persistent personal profile. It may show:
 
 It should feel like an in-universe trainer card/profile rather than account settings.
 
+### Create and edit Trainer — required functionality
+
+The product must support creating the local Trainer profile when none exists and editing it later from Trainer. This is a functional requirement, not a decorative mock profile.
+
+- Create a name, choose an original/user-provided avatar or emblem, and optionally choose a favorite Pokémon.
+- Allow name entry entirely with the controller through an on-screen keyboard.
+- Validate a non-empty display name; preserve input on validation failure.
+- Edit existing profile fields with explicit Save and Cancel behavior. Back cancels the draft without altering the saved profile.
+- Persist the profile through the repository layer and restore it after restart. Renaming must preserve the profile ID and its progress/history relationships.
+- Refresh Home and Trainer after a successful save; a failed write must preserve the previously saved profile and leave a retry/cancel route.
+
+Acceptance: create using physical controls, restart and recover the same profile, edit and save, cancel a second edit without changing saved data, and retain all existing progress. Multiple independent Trainer profiles remain a later feature.
+
 ## Hall of Fame
 
-Hall of Fame is a long-term archive of completed Adventures. An entry may contain:
+Hall of Fame contains the long-term archive of completed Adventures and the Trainer's RetroAchievements achievements. A completed-Adventure entry may contain:
 
 - World and Adventure
 - completion date
@@ -140,6 +165,12 @@ Hall of Fame is a long-term archive of completed Adventures. An entry may contai
 - source: automatically derived or manually entered/confirmed
 
 Manual correction remains valid even if automatic extraction exists later.
+
+RetroAchievements belongs within this existing primary section, with controller-browsable achievement lists/details associated with supported games/Adventures. Keep provider-supplied unlock state and dates separate from local completion records and the current playthrough's badges, party or Pokédex. Manual archive edits must not create external RA unlocks.
+
+The archive remains useful without an RA connection. Disconnected, unsupported, loading, cached/offline and failed-refresh states must be represented honestly; an unavailable provider is not zero earned achievements. Integrate only supported content and verified provider capabilities, when the Hall of Fame module is reached in the roadmap.
+
+Acceptance: browse archive and achievements without touch, open/close details with A/B, retain global L1/R1 navigation, keep local history available when the provider is absent or fails, and never infer current-save completion solely from an external account unlock.
 
 ## Pokémon Center / maintenance services
 
@@ -245,9 +276,11 @@ The UI must not expose process management details.
 
 The first milestone is a complete controller-navigable mock of the product structure.
 
-After that, implementation proceeds modularly and top-down in vertical slices:
+The confirmed development sequence is bottom-up in dependency order:
 
-**UI/interaction → domain/use case → repository/service → adapter/integration → persistence/device behavior → real-device validation**
+**native project skeleton → shared interface/controller skeleton → shared backend and persistence → individual modules → real integrations → optional supported-game enrichment**
+
+This replaces the former top-down plan. Establish the shared foundation before deep feature integration, then complete modules one at a time. Automatic save parsing and RA integration follow their roadmap prerequisites. Only verified capabilities may be presented as working product features; unknown data must remain unknown.
 
 Visual design is explicitly not frozen by the mock. Whole compositions may be replaced as real data and physical-device testing reveal better solutions.
 

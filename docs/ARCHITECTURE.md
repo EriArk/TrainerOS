@@ -17,7 +17,15 @@ Recommended stack:
 
 The first prototype must run as an ordinary full-screen Qt application. Do not make it the default session until controller behavior, external process launch/return, persistence, crash handling, and recovery are understood on the actual device.
 
+## Construction order
+
+Build bottom-up: native project structure, shared interface/controller components, shared backend and persistence, then functional modules and real integrations in dependency order. The interface proof uses mock data and fake boundaries; the next backend milestone makes core profile/shell state durable. It does not depend on emulator integration, external accounts or save parsing. Keep the foundation small enough to serve actual upcoming modules.
+
+See `ROADMAP.md` for execution order. Feasibility research is input to later modules, not a reason to skip the foundations.
+
 ## Deployment modes
+
+TrainerOS's eventual main/default session coexists with the retained Steam Gaming Mode and KDE Plasma. The initial application build performs no session mutation. A platform service owns future mode availability and transitions.
 
 ### 1. Development / safe app mode
 
@@ -164,6 +172,10 @@ HALL_OF_FAME
 
 Nested routes remain owned by their feature page. `B` unwinds local detail before any higher-level behavior.
 
+The native `WorldsController` owns region/list/detail routes, the selected World ID, a remembered Adventure ID per World and detail-action focus. It projects `LibraryRepository` domain records into QML-facing rows/details and asks the injected Adventure adapter for each record's capabilities. `WorldsPage.qml` owns layout and revealing the focused row inside its bounded list; it does not select integrations or launch processes. The shell handles global actions and overlays before forwarding local input. Worlds navigation remains in memory when switching primary pages.
+
+Library controllers read committed UI-thread snapshots after asynchronous store startup. Refresh preserves identities across reordering and falls back when records disappear. Before a launch/resume request, the controller rechecks the record's primary/additional World relationships. The ephemeral preview supplies a synchronous fake snapshot; normal composition uses `LocalStateStore` and an unconfigured adapter that advertises no launch capabilities. Browsing state is durable, while save-file support remains future integration work.
+
 ## Input architecture
 
 Controller input is infrastructure.
@@ -189,12 +201,25 @@ enum class TrainerInput {
     Confirm,
     Back,
     SystemMenu,
+    ToggleContinue, // Y, scoped to Home
     PreviousPage,
     NextPage
 };
 ```
 
 The concrete source may evolve if Qt's high-level gamepad support is insufficient for the target device. That substitution must not change feature APIs.
+
+The initial native source is SDL2 GameController, polled from the Qt event loop. It translates inputs into the semantic `Action` enum and centralizes dead zones, edge detection, directional repeat, hotplug and foreground gating. SDL handles controller mappings; the physical Flip 2 mapping outside Steam still needs device testing. SDL virtual controllers exercise the same source in automated tests. Keyboard shortcuts are development conveniences. See `DEVELOPMENT.md` for current mappings and limits.
+
+`ToggleContinue` is separate from `Confirm`: Y opens/closes the Home drawer; A activates a resume point. Map semantic actions to the physical device's labeled controls through the input/device profile. The browser design study uses the standard Gamepad API's A/B/Y convention as a provisional input source; that does not validate the Retroid's physical button mapping.
+
+Controller text entry is shared shell infrastructure for Pokédex search and profile editing. It owns its draft text, key focus, Apply/Cancel behavior, and restoration to the requesting control. Keep text-entry and filter-picker focus above the underlying screen in Back precedence.
+
+Profile creation/editing must use a repository/use-case boundary with stable identity, validated drafts, explicit save/cancel, and recoverable write failures. A conversational design preview's in-memory state does not satisfy the native application's persistence requirement.
+
+The native prototype now uses `TextEntryController` for the reusable buffer, key geometry, spatial focus and Apply/Cancel lifecycle. It emits accepted text without knowing its consumer. `TrainerController` owns the profile form draft and validation, backed by `TrainerRepository` / `MockTrainerRepository`; profile identity is no longer supplied by the sample library repository. The shell coordinates layer precedence and records an explicit text consumer (Trainer name or Pokédex search), routing Apply only to that consumer and clearing it on global navigation. `KeyboardPanel.qml` and feature pages present these controllers without storage logic.
+
+Transient layer priority is notice → system menu → keyboard → active service / profile form / Continue → primary page. Start preserves the lower layer. Global page changes cancel transient edits. The shell routes text to its explicit consumer, including library title/notes/custom World name, and restores the requesting control. The Trainer controller assigns a stable profile identity on creation. Fake repositories support isolated failure tests; normal profile and library writes use asynchronous SQLite storage.
 
 ## Persistence
 
@@ -208,6 +233,7 @@ Persist data such as:
 - Trainer profile
 - Pokédex personal progress
 - Hall of Fame entries
+- cached external achievement definitions/unlocks, separate from local completion and current-save progress
 - integration configuration
 - shell/settings/controller preferences
 
@@ -225,7 +251,7 @@ public:
     virtual ~AdventureAdapter() = default;
 
     virtual QString id() const = 0;
-    virtual AdventureCapabilities capabilities() const = 0;
+    virtual AdventureCapabilities capabilities(const Adventure& adventure) const = 0;
 
     virtual IntegrationStatus validate(const Adventure& adventure) = 0;
     virtual LaunchResult launch(const Adventure& adventure) = 0;
@@ -236,6 +262,8 @@ public:
 ```
 
 Actual async APIs may use `QFuture`, signals, coroutines, worker services, or another well-contained pattern. Do not block the UI thread on filesystem scans/process waits.
+
+Capabilities describe the configured Adventure, not just the adapter type: two records using the same adapter may differ in launch/resume availability. The prototype implements only ID, per-Adventure capabilities and simulated launch/resume results. A missing capability remains an ordinary UI state; registry/validation/enumeration and async lifecycle APIs are later integration work.
 
 Possible capabilities:
 
@@ -275,11 +303,13 @@ Launch flow:
 
 The platform layer should decide whether the shell stays resident, is hidden, pauses rendering, or participates in a compositor/session-specific handoff. Feature UI must not depend on that choice.
 
+The current device-independent implementation separates `AdventureLaunchController` (checkpoint, lifecycle state and exactly-once context restoration) from `ProcessService` (one owned asynchronous QProcess, literal arguments, exit/error/stop handling). A test-only adapter connects these to the actual QML window and input foreground gate. Normal user records remain unconfigured until a real adapter and its target environment are validated. See [LIBRARY_AND_LAUNCH.md](LIBRARY_AND_LAUNCH.md) for limits and acceptance.
+
 ## First adapter
 
 Build `MockAdventureAdapter` first.
 
-It provides fake Adventures/resume points/screenshots and simulates launch/resume success/failure so the entire controller UX can be proven without depending on emulator setup.
+The current mock adapter simulates launch/resume responses without starting any process. `MockLibraryRepository` supplies the sample Adventures and resume points; screenshots remain original geometric placeholders and the adapter declares screenshot support unavailable. Per-record capability overrides cover direct resume, launch-only and setup-needed states. Launch failure can be injected for retry checks. This proves controller interaction without depending on emulator setup.
 
 After the full mock, implement real adapters one at a time. Likely early candidates are RetroArch, melonDS, Azahar, and Dolphin, but the actual order should follow the friend's desired Pokémon library and what is reliable on the target ArmadaOS build.
 
@@ -313,6 +343,22 @@ Suggested split:
 
 Reference providers may use appropriately licensed bundled data, local imports, or cached network data. The UI is not hard-wired to one API.
 
+The native mock implements `PokedexReferenceProvider::load()` and `PokedexProgressRepository::progress()/setFavorite()` as separate injected boundaries. A single fixture supplies their independent reference/progress data in memory. `PokedexController` owns the applied query/filters/order, stable selected entry ID, list/detail/rail/choice focus and recovery behavior. QML owns layout and revealing the focused row, not filtering or storage. Collection membership is reference data; personal encounter history is not inferred from it.
+
+Filtering intersects all active dimensions. Favorite changes rebuild the result set without altering Seen/Caught or reference records. Removing the selected result returns to a valid list row or recovery state. Failed writes retain the old mark; failed reference refreshes retain the last successful snapshot. The synchronous fixture establishes interaction only: async loading, provider/version provenance, full regional catalogs, persistence and game-progress enrichment remain later work.
+
+## Hall of Fame achievements provider
+
+Hall of Fame combines local completion archives with RetroAchievements data through a separate achievement-provider/repository boundary. Introduce the contract/fake at the foundation stage; implement the real provider when the Hall of Fame module is reached.
+
+Keep external account/game/achievement identities and unlock modes/dates distinct from local Adventure runs and HallOfFameEntry records. A provider refresh updates a cache asynchronously and must not block local archive browsing. Disconnected, unsupported, cached/offline, loading and failed-refresh states are explicit. Manual archive changes do not award RA achievements, and imported unlocks do not imply that the current save has corresponding progress.
+
+The native mock now injects `HallOfFameRepository` and `AchievementProvider` into `HallOfFameController`. The controller owns Archive/list/detail and achievement set/list/detail routes, stable selected IDs and per-set cursor memory. `HallOfFamePage.qml` presents those projections; the reusable `ControllerList.qml` bounds scrolling and reasserts actual Qt focus after delegates are rebuilt. Shell-level navigation and overlays retain priority.
+
+Archive loading is currently a synchronous fake read with last-good-data recovery. The achievement provider is a QObject boundary that exposes context, linked sets, snapshots and asynchronous refresh notifications. Snapshots scope definitions/unlocks to a provider/account/set; the controller rejects mismatched identities. The mock completes refresh on the Qt event loop, supports held requests for tests and invalidates pending work/cache when the account changes. Disconnected/unsupported results hide old records, while same-context loading/offline/error results may retain a clearly labeled snapshot. QML never handles account credentials, cache keys or network calls.
+
+The provider/repository contracts implement only this mock's needs. Real authentication, API coverage, persistent caches, archive editing and game-progress enrichment follow after the shared backend and device baseline. None of these sample achievement states establish production integration support.
+
 ## Platform services
 
 Use interfaces for system-level behavior such as:
@@ -332,6 +378,8 @@ DeviceProfileService
 The `armada` implementation may call system services/commands/APIs as appropriate, but those details stay out of feature code.
 
 For shell-critical actions such as session switching and power management, prefer established system mechanisms over ad-hoc shell scripts once the mechanism is known.
+
+`ControllerInput` also exposes SDL-mapped snapshots before dead zones/foreground gating and a controller-versus-keyboard origin for observed semantic actions. `DiagnosticsController` consumes these without intercepting input or changing its mapping; observations stay in memory and do not trigger shell navigation persistence. `DiagnosticsService` reads selected QWindow/QScreen/QSysInfo fields on the GUI thread and writes requested snapshots atomically on its worker. QML presents the data and controller action rail, with no OS commands, filesystem scanning or SQL. See `DEVICE_DIAGNOSTICS.md` for report ownership and interpretation limits.
 
 ## Desktop mode boundary
 
@@ -356,6 +404,14 @@ Suggested tokens:
 - motion durations
 
 World themes should primarily override atmosphere/accent data rather than require duplicated page implementations.
+
+## Current local persistence boundary
+
+`LocalStateStore` implements Trainer, Pokédex progress, Library and Preferences repositories with UI-thread committed projections and a dedicated SQLite worker. Asynchronous write callbacks run on the caller's UI thread while its QObject context exists. Feature controllers manage pending/error/draft state; QML has no SQL or filesystem operations. The app chooses normal persistent or explicit ephemeral composition.
+
+`SessionState` coordinates asynchronous startup, versioned navigation restore, a 300 ms browsing debounce and draining writes on normal exit. Stable record IDs and applied filters are restored; transient overlays and unsubmitted drafts are excluded. Startup failures have controller-accessible recovery. L1/R1 remains available during writes and browsing-state errors after startup. Full schema/ownership, failure semantics and acceptance criteria are in [LOCAL_PERSISTENCE.md](LOCAL_PERSISTENCE.md); this supersedes earlier descriptions of profile/favorites/navigation as memory-only.
+
+`LibraryManagementController` owns an unsaved registration draft and optimistic revision; one commit writes the Adventure, optional custom World and all World relationships. `FilePickerController` consumes the asynchronous `FileCatalog` boundary; `LocalFileCatalog` enumerates/sorts directories on its own worker and returns bounded batches. Stale/cancelled results are ignored. `SettingsController` applies theme/motion changes only after the preferences repository commits. These are services opened from Start, not additional primary pages.
 
 ## Visual iteration rule
 

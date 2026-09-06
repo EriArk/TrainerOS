@@ -4,7 +4,9 @@ TrainerOS is a controller-first **Linux handheld shell/session** for a Pokémon-
 
 The initial target is a **Retroid Flip-class device running ArmadaOS**. TrainerOS is software-only: no physical modification of the handheld is required.
 
-> Status: platform pivot / pre-implementation. The earlier Android/Kotlin direction has been retired.
+> Status: native C++20 / Qt Quick shell with a persistent personal Worlds library, controller-operated Adventure editing/file selection, Trainer profile, favorites and color/motion settings. Normal runs start with an empty library; `--ephemeral` retains the full sample experience. Launch/return is exercised with an original test process; real emulator integrations, game progress and physical-device validation remain ahead. See [development instructions](docs/DEVELOPMENT.md) and the [first device run](docs/FIRST_DEVICE_RUN.md).
+
+Start → Controller provides live input/display checks and a local diagnostic report for the first handheld run. These software observations help validate the actual device; they do not certify its physical mapping or ArmadaOS session behavior. See [device diagnostics](docs/DEVICE_DIAGNOSTICS.md).
 
 ## Product idea
 
@@ -20,7 +22,7 @@ The underlying Linux desktop should not appear during normal use.
 
 TrainerOS uses **ArmadaOS as the system base** instead of rebuilding the low-level handheld Linux stack.
 
-ArmadaOS provides the operating-system foundation, device support, graphics/audio/input stack, packages, and emulator environment. TrainerOS replaces the normal everyday graphical experience with its own dedicated session.
+ArmadaOS provides the operating-system foundation, device support, graphics/audio/input stack, packages, and emulator environment. TrainerOS will be the main everyday graphical mode, available alongside Steam Gaming Mode and KDE Plasma. Its exact session integration must be validated on the current ArmadaOS device.
 
 The intended user-facing stack is:
 
@@ -42,10 +44,11 @@ Retroid hardware
    │  ├─ Dolphin
    │  └─ future adapters
    │
-   └─ KDE Plasma Desktop  ← explicit maintenance mode only
+   ├─ Steam Gaming Mode  ← retained alternative
+   └─ KDE Plasma Desktop  ← explicit desktop / maintenance mode
 ```
 
-KDE Plasma is **not removed**. It remains a powerful maintenance/desktop mode for Wi-Fi troubleshooting, files, terminal work, package management, and recovery. TrainerOS should make entering that mode deliberate rather than part of everyday navigation.
+Steam Gaming Mode and KDE Plasma are **not removed**. Plasma remains a maintenance/desktop mode for Wi-Fi troubleshooting, files, terminal work, package management, and recovery. TrainerOS should make changing mode deliberate rather than part of everyday navigation.
 
 TrainerOS is not currently intended to become a Linux distribution of its own. If the project matures, a later deliverable may be a reproducible/custom ArmadaOS image with TrainerOS preconfigured as the default session.
 
@@ -79,6 +82,7 @@ The top-level UI is a horizontal set of full-screen sections:
 - `A`: confirm / open
 - `B`: back / close
 - `Start`: system menu
+- `Y`: open/close Continue Adventure on Home
 
 Exact secondary shortcuts can evolve, but **L1/R1 remain globally reserved**.
 
@@ -133,11 +137,15 @@ Initial set:
 
 A World can contain multiple Adventures and expose status such as Not Visited, In Progress, Completed, Champion, Pokédex completion, total time, and last visit. Emulator/process details remain hidden implementation metadata.
 
+The native shell supports region → Adventure list → Adventure detail, with personal records managed through Start → Manage Adventures. An Adventure can belong to several regions or a custom World. Controller focus reveals rows inside bounded lists; Back, page switching and restart preserve useful selections. Unconfigured records show Needs setup and unknown progress. The explicit sample preview demonstrates richer adapter capabilities without running an emulator.
+
 ## Pokédex
 
 The Pokédex combines reference information with the Trainer's personal history. Long-term data may include Seen/Caught, first encounter, Worlds encountered, party appearances, favorite status, shiny history, and notes/tags.
 
 The implementation should support offline/local data and provider adapters. It must not require proprietary artwork committed to this repository.
+
+The native mock contains a small text-only field guide with combined World/type/status filters, name or exact-number search, number/name sorting, entry detail and editable favorites. Search uses the same controller keyboard as Trainer editing. Reference collections and sample personal records are separate; missing progress remains unknown. These examples are not a complete regional Pokédex or imported game history.
 
 ## Trainer
 
@@ -145,9 +153,13 @@ Trainer is the persistent profile and progression view: trainer identity, featur
 
 It should feel like an in-universe trainer device, not account settings.
 
+The Trainer can be created locally and edited later, including name, avatar/emblem, and favorite Pokémon. Controller-operated text entry and persisted Save/Cancel behavior are part of the functional scope.
+
 ## Hall of Fame
 
-Hall of Fame is a permanent archive of completed Adventures. Entries may store World, Adventure, completion date, final playtime, final team of six, screenshot, notes, and whether the data was imported or manually confirmed.
+Hall of Fame combines a permanent archive of completed Adventures with RetroAchievements achievements. Archive entries may store World, Adventure, completion date, final playtime, final team of six, screenshot, notes, and whether the data was imported or manually confirmed. External achievement unlocks retain their own source and remain separate from current-save progress.
+
+The native mock supports archive/detail browsing and an internal RetroAchievements area organized by Adventure, with separate achievement lists/details. Original sample goals demonstrate locked, unlocked and unknown records, modes/dates, loading, disconnected, unsupported, offline and failed-refresh states. Local memories remain available independently. No real RetroAchievements account, set or unlock is fetched; archive editing and durable storage follow in later milestones.
 
 ## Pokémon Center / system services
 
@@ -202,16 +214,18 @@ The first build is a **full controller-navigable mock** of the product structure
 
 The mock is **not a final visual design**.
 
-After the mock, development proceeds modularly **top-down in vertical slices**:
+Development proceeds **bottom-up in dependency order**:
 
-**visible feature → domain/use-case layer → repository/service boundary → real adapter/integration → persistence/device behavior → handheld test → refactor/redesign**
+**native project skeleton → shared interface/controller skeleton → shared backend and persistence → individual functional modules → validated integrations and optional progress enrichment**
 
-Worlds should become real end-to-end before deep work spreads everywhere; then Home/Continue, Trainer/Hall of Fame, Pokédex, Pokémon Center, and additional integrations follow. Visuals may be aggressively reworked at every stage.
+Once the foundations work, modules proceed in order: Worlds/launch/return, Home/Continue, Trainer/Hall of Fame (including RetroAchievements), Pokédex, and Pokémon Center. Additional adapters and game-specific progress parsing follow when their prerequisites are ready. Only verified capabilities become product promises. Visuals may be redesigned at every stage.
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Repository map
 
+- [`CMakeLists.txt`](CMakeLists.txt), `src/`, `tests/` — native application and automated checks
+- [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — build, run, input mappings and verification limits
 - [`AGENTS.md`](AGENTS.md) — working contract for Codex/agents
 - [`docs/PRODUCT_SPEC.md`](docs/PRODUCT_SPEC.md) — product behavior
 - [`docs/UX_NAVIGATION.md`](docs/UX_NAVIGATION.md) — controller/navigation rules
@@ -219,7 +233,7 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Qt/Linux architecture
 - [`docs/ARMADA_PLATFORM.md`](docs/ARMADA_PLATFORM.md) — ArmadaOS/session integration plan
 - [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) — domain model
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) — vertical-slice implementation plan
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — foundation and module implementation order
 - [`docs/CODEX_START.md`](docs/CODEX_START.md) — first implementation brief
 
 ## First milestone
@@ -233,7 +247,7 @@ The first useful build should:
 5. provide a working compact Continue Adventure drawer using mock resume data
 6. show region-first Worlds navigation
 7. open a TrainerOS system menu with a stubbed Maintenance/Desktop action
-8. preserve useful UI state across restart
+8. preserve useful UI state across restart once the shared backend milestone is complete
 9. route mock launching/resume through `MockAdventureAdapter`
 
 Do **not** begin by replacing the ArmadaOS session or integrating real emulators. Prove the shell safely as a normal application first; then add a dedicated TrainerOS session once crash/recovery behavior is understood.
