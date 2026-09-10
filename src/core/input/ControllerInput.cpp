@@ -8,6 +8,9 @@ namespace trainer {
 ControllerInput::ControllerInput(QObject* parent, SDL_JoystickID preferredDevice)
     : QObject(parent), preferredDevice_(preferredDevice) {
     SDL_SetMainReady(); // Qt owns the application entry point, including on Windows.
+    // SDL's default handlers convert SIGTERM/SIGINT into SDL_QUIT, but Qt owns
+    // our event loop. Preserve OS termination instead of swallowing service stop.
+    SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
     initialized_ = SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) == 0;
     if (!initialized_) qWarning() << "Controller input unavailable:" << SDL_GetError();

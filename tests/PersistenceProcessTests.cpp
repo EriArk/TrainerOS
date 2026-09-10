@@ -7,6 +7,24 @@
 class PersistenceProcessTests final : public QObject {
     Q_OBJECT
 private slots:
+    void operatingSystemCanTerminateTheShell() {
+#ifdef Q_OS_UNIX
+        QTemporaryDir dir; QVERIFY(dir.isValid());
+        QProcess process; process.setProcessChannelMode(QProcess::MergedChannels);
+        const auto executable = QDir(QCoreApplication::applicationDirPath()).filePath("traineros");
+        process.start(executable, {"--windowed", "--data-dir", dir.path()});
+        QVERIFY(process.waitForStarted());
+        // The database opens after controller initialization and QML construction.
+        QTRY_VERIFY(QFile::exists(dir.filePath("traineros.sqlite3")));
+        QTest::qWait(100);
+        process.terminate();
+        const bool stopped = process.waitForFinished(2000);
+        if (!stopped) { process.kill(); process.waitForFinished(); }
+        QVERIFY2(stopped, "SDL must not swallow SIGTERM and force systemd to kill the shell after its stop timeout.");
+#else
+        QSKIP("POSIX service termination check");
+#endif
+    }
     void controllerLibraryAndSettingsAcrossRestart() {
         QTemporaryDir dir; QVERIFY(dir.isValid());
         const auto content = dir.path() + "/content"; QVERIFY(QDir().mkpath(content + "/empty"));

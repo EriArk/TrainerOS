@@ -1,6 +1,6 @@
 # Personal library and launch preparation
 
-This increment completes the device-independent library foundation and its controller management flow. Normal application mode uses personal metadata, not sample Adventures. It still needs a validated real adapter and the ArmadaOS baseline before it can launch a user's game.
+Normal application mode uses persistent personal metadata, not sample Adventures. The library foundation and its controller management flow now connect to the [first real RetroArch adapter](RETROARCH_ADAPTER.md), verified for launch/return on the Flip 2. Physical control validation and additional integrations remain open.
 
 ## Library ownership
 

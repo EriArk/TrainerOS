@@ -54,6 +54,7 @@ public:
     bool sampleLibrary() const { return !repository_.editable(); }
     void configureServices(FileCatalog* files, PreferencesRepository* preferences);
     void refreshLibrary();
+    void showNotice(const QString& message) { notice_ = message; emit changed(); }
     int page() const { return page_; }
     int focusIndex() const;
     bool drawerOpen() const { return drawerOpen_; }

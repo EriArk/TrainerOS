@@ -17,7 +17,7 @@ Implemented:
 - Trainer create/edit with durable SQLite storage: name, three original emblems, limited featured-Pokémon choices, Save/Cancel, stable identity, validation and asynchronous write/retry behavior. `--ephemeral` uses the original empty in-memory repository.
 - Home's compact lower-left Continue extension expands sideways, then upward. Y toggles it and B restores focus. Normal mode has an honest empty state; the ephemeral preview has three sample cards.
 - System menu with working Settings, Manage Adventures and Controller diagnostic services, informational session stubs and an explicit Exit Development App action. Steam and Plasma integration remains unavailable.
-- Domain/repository, input/navigation, Adventure adapter and platform boundaries. SQL and file listing run on workers. A test-only child exercises checkpoint → launch → return, including failures and visible focus restoration; no real emulator or network integration is enabled. See [local persistence](LOCAL_PERSISTENCE.md) and [library and launch preparation](LIBRARY_AND_LAUNCH.md).
+- Domain/repository, input/navigation, Adventure adapter and platform boundaries. SQL and file listing run on workers. A test-only child exercises checkpoint → launch → return, including failures and visible focus restoration. Configured personal records can use the [RetroArch adapter](RETROARCH_ADAPTER.md); other adapters and network integrations remain pending. See [local persistence](LOCAL_PERSISTENCE.md) and [library and launch](LIBRARY_AND_LAUNCH.md).
 
 ## Dependencies
 
@@ -176,7 +176,7 @@ All achievement definitions, game/set identifiers and unlocks are fictional fixt
 
 `diagnostics` checks live SDL signals versus keyboard/semantic actions, foreground/neutral gating, unmapped devices, disconnection, report contents, duplicate suppression and write failure/retry/teardown. `diagnostics_qml_smoke` operates the real diagnostic service through SDL input and checks active focus, global navigation, observed marks, stick/trigger display, report export, reset and three viewport sizes. Captures and reports are under `screenshots/diagnostics/`. The normal app contains the diagnostic service; only this automated scenario is gated by `BUILD_TESTING`.
 
-The suite contains fifteen CTest entries; the Windows build passes all fifteen. A `-o report.txt,txt` option on a Qt Test executable saves detailed diagnostics if its Windows console output is unavailable.
+The suite contains sixteen CTest entries, including the RetroArch adapter's content-free process tests. The current ARM64 build passes all sixteen; earlier Windows results covered the preceding fifteen-entry suite. A `-o report.txt,txt` option on a Qt Test executable saves detailed diagnostics if its Windows console output is unavailable.
 
 CTest sets `QT_QPA_PLATFORM=offscreen` and `QT_QUICK_BACKEND=software`; it does not need a desktop. It saves rendered images in the build directory's `screenshots/` folder. To choose a different output directory manually:
 

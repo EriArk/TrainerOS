@@ -10,6 +10,7 @@ struct AdventureCapabilities {
 struct AdventureResult {
     bool success;
     QString message;
+    bool inProgress = false;
 };
 class AdventureAdapter {
 public:

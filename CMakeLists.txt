@@ -11,6 +11,8 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/integrations/adventure/retroarch/RetroArchAdapter.cpp
+    src/integrations/adventure/retroarch/RetroArchAdapter.h
     src/platform/diagnostics/DiagnosticsService.cpp
     src/platform/diagnostics/DiagnosticsService.h
     src/features/diagnostics/DiagnosticsController.cpp
@@ -112,6 +114,10 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_process_probe tests/ProcessProbe.cpp)
     target_link_libraries(trainer_process_probe PRIVATE Qt6::Core)
     find_package(Qt6 REQUIRED COMPONENTS Test)
+    qt_add_executable(trainer_retroarch_tests tests/RetroArchTests.cpp)
+    target_link_libraries(trainer_retroarch_tests PRIVATE trainer_core Qt6::Test)
+    add_dependencies(trainer_retroarch_tests trainer_process_probe)
+    add_test(NAME retroarch COMMAND trainer_retroarch_tests)
     target_sources(traineros PRIVATE tests/ui/WorldsSmokeScenario.cpp tests/ui/WorldsSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/PokedexSmokeScenario.cpp tests/ui/PokedexSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/HallSmokeScenario.cpp tests/ui/HallSmokeScenario.h)
@@ -159,7 +165,7 @@ if(BUILD_TESTING)
     add_test(NAME pokedex_qml_smoke COMMAND traineros --pokedex-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/pokedex")
     add_test(NAME hall_qml_smoke COMMAND traineros --hall-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/hall")
     add_test(NAME diagnostics_qml_smoke COMMAND traineros --diagnostics-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/diagnostics")
-    set_tests_properties(core interactions worlds pokedex hall storage library process diagnostics persistence_process qml_smoke worlds_qml_smoke pokedex_qml_smoke hall_qml_smoke diagnostics_qml_smoke PROPERTIES
+    set_tests_properties(retroarch core interactions worlds pokedex hall storage library process diagnostics persistence_process qml_smoke worlds_qml_smoke pokedex_qml_smoke hall_qml_smoke diagnostics_qml_smoke PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software"
         TIMEOUT 30
     )

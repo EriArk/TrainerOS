@@ -70,6 +70,9 @@ void SessionState::flush() {
     });
 }
 void SessionState::requestExit() {
+    // Closing the shell must not destroy an owned emulator process and its save
+    // operation. Finish the Adventure in its own interface, then exit the shell.
+    if (adventureActive_) return;
     if (!store_) { emit exitReady(); return; }
     closing_ = true; paused_ = false; focus_ = 0;
     // Preserve a visible failed flush until the user chooses Retry or an explicit skip.
@@ -98,6 +101,7 @@ void SessionState::activate(int index) {
     emit changed();
 }
 void SessionState::dispatch(Action action) {
+    if (adventureActive_) return;
     if (!blocked()) { shell_.dispatch(action); return; }
     if (restored_ && (action == Action::PreviousPage || action == Action::NextPage)) {
         closing_ = false;

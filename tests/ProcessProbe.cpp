@@ -1,6 +1,8 @@
 #include <QCoreApplication>
 #include <QTimer>
 #include <QFile>
+#include <QJsonDocument>
+#include <QJsonArray>
 #include <cstdlib>
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -17,6 +19,11 @@ int main(int argc, char** argv) {
 #endif
     QCoreApplication app(argc, argv);
     const auto args = app.arguments();
+    if (args.size() >= 3 && args[1] == "arguments") {
+        QFile file(args[2]); if (!file.open(QIODevice::WriteOnly)) return 3;
+        file.write(QJsonDocument(QJsonArray::fromStringList(args.mid(3))).toJson());
+        return 0;
+    }
     if (args.size() >= 4 && args[1] == "echo") {
         QFile file(args[2]); if (!file.open(QIODevice::WriteOnly)) return 3;
         file.write(args[3].toUtf8()); return 0;

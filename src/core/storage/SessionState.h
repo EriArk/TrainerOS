@@ -23,6 +23,7 @@ public:
     int focusIndex() const { return focus_; }
     void start();
     void dispatch(Action);
+    void setAdventureActive(bool active) { adventureActive_ = active; }
     Q_INVOKABLE void activate(int index);
     Q_INVOKABLE void requestExit();
 signals:
@@ -38,6 +39,7 @@ private:
     QJsonObject desired_, committed_;
     QString error_;
     bool restored_ = false, closing_ = false, writing_ = false, paused_ = false;
+    bool adventureActive_ = false;
     int focus_ = 0;
 };
 }

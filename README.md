@@ -4,7 +4,7 @@ TrainerOS is a controller-first **Linux handheld shell/session** for a Pokémon-
 
 The initial target is a **Retroid Flip-class device running ArmadaOS**. TrainerOS is software-only: no physical modification of the handheld is required.
 
-> Status: native C++20 / Qt Quick shell with a persistent personal Worlds library, controller-operated Adventure editing/file selection, Trainer profile, favorites and color/motion settings. Normal runs start with an empty library; `--ephemeral` retains the full sample experience. Launch/return is exercised with an original test process; real emulator integrations, game progress and physical-device validation remain ahead. See [development instructions](docs/DEVELOPMENT.md) and the [first device run](docs/FIRST_DEVICE_RUN.md).
+> Status: native C++20 / Qt Quick shell with a persistent personal Worlds library, controller-operated Adventure editing/file selection, Trainer profile, favorites and color/motion settings. The first [RetroArch adapter](docs/RETROARCH_ADAPTER.md) launches configured Adventures and restores the shell on return, verified on the Flip 2 in normal Plasma application mode. Fresh installations start with an empty library; `--ephemeral` retains the sample experience. Physical button validation, game progress and dedicated-session recovery remain ahead. See [development instructions](docs/DEVELOPMENT.md).
 
 Start → Controller provides live input/display checks and a local diagnostic report for the first handheld run. These software observations help validate the actual device; they do not certify its physical mapping or ArmadaOS session behavior. See [device diagnostics](docs/DEVICE_DIAGNOSTICS.md).
 

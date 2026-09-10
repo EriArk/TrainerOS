@@ -217,7 +217,8 @@ void WorldsController::executeAction(int index) {
     else if (available[index].id == "resume" && caps.directResume) {
         if (const auto point = latestResume(*found)) result = adapter_.resume(*found, *point);
     }
-    emit messageRequested(result.message.isEmpty() ? (result.success ? "Adventure request complete." : "Couldn't open this Adventure. Try again.") : result.message);
+    if (!result.success || !result.inProgress)
+        emit messageRequested(result.message.isEmpty() ? (result.success ? "Adventure request complete." : "Couldn't open this Adventure. Try again.") : result.message);
 }
 void WorldsController::activate(int index) {
     if (route_ == Route::Regions) {

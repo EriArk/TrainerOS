@@ -35,6 +35,8 @@ The desktop launcher's ID is `org.traineros.TrainerOS`, also declared by the Qt 
 
 First verification: all 15 CTest entries passed on the ARM64 Fedora container (75.35 seconds). The same executable passed shell and diagnostic SDL scenarios against ArmadaOS host libraries, then the Worlds rendered scenario in the actual KDE Wayland session with the software-renderer override removed. Captured layouts were inspected. A separate `BUILD_TESTING=OFF` configuration built and staged the executable/launcher successfully. These checks exercise synthetic controller events; physical controls and long play sessions remain unverified.
 
+Follow-up: the [RetroArch adapter](RETROARCH_ADAPTER.md) passed the expanded 16-test suite and a real Ruby launch/menu/quit/return flow on the host. The personal library contains the user's imported metadata; ROMs and BIOS remain on the separate card. Plasma display dimming/idle-off was disabled in addition to the previously disabled suspend policy, at the user's request. A screenshot taken while DPMS is off can show a stale compositor frame; restore the display before judging rendered validation. No suspend/resume test was performed.
+
 ## Removable content layout
 
 The dedicated microSD uses one ext4 partition, label `TRAINERDATA`, mounted by UUID at `/var/mnt/games`. The mount is optional at boot and uses systemd automount; a missing card must not prevent recovery into the existing OS. `~/Emulation` points to this mount. The mountpoint itself is not user-writable when the card is absent.

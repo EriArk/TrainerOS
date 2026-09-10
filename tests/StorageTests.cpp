@@ -38,6 +38,18 @@ QByteArray bytes(const QString& path) { QFile file(path); if (!file.open(QIODevi
 class StorageTests final : public QObject {
     Q_OBJECT
 private slots:
+    void shellCannotExitOrNavigateWhileAdventureOwnsPresentation() {
+        QTemporaryDir dir; Fixture f(dir.path()); f.session.start(); QTRY_VERIFY(!f.session.blocked());
+        QSignalSpy exited(&f.session, &SessionState::exitReady);
+        const auto page = f.shell.page();
+        f.session.setAdventureActive(true);
+        f.session.dispatch(Action::NextPage); QCOMPARE(f.shell.page(), page);
+        f.session.requestExit(); QTest::qWait(30); QVERIFY(exited.isEmpty());
+        QVERIFY(!f.session.blocked());
+        f.session.setAdventureActive(false);
+        f.session.dispatch(Action::NextPage); QCOMPARE(f.shell.page(), page + 1);
+        f.session.requestExit(); QTRY_VERIFY(!exited.isEmpty());
+    }
     void durableProfileFavoritesAndRoutes() {
         QTemporaryDir dir; QVERIFY(dir.isValid());
         QString identity; QDateTime created; QJsonObject navigation;

@@ -132,7 +132,7 @@ Done when `docs/ARMADA_PLATFORM.md` reflects actual target findings and a develo
 
 ## Milestone 5 — Worlds / Adventure module
 
-Prepared before the device arrives: real personal library browsing and controller add/edit/file selection work on the common backend. The launch lifecycle is tested with an original child program. The real adapter and device launch/return gate remain open; this milestone is not marked complete. Details and acceptance criteria: `LIBRARY_AND_LAUNCH.md`.
+Personal library browsing and controller add/edit/file selection work on the common backend. The [first RetroArch adapter](RETROARCH_ADAPTER.md) now launches configured records through the persisted checkpoint/process boundary. Ruby was opened from Hoenn on the Flip 2 and returned to the same detail/focus using injected OS gamepad chords. All sixteen ARM64 tests pass. Hands-on physical control validation remains open, so this milestone is not marked complete. Details and acceptance criteria: `LIBRARY_AND_LAUNCH.md`.
 
 Take Worlds from mock to the first real end-to-end feature.
 

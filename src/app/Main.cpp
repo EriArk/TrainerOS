@@ -2,6 +2,8 @@
 #include "core/navigation/ShellController.h"
 #include "core/storage/SessionState.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
+#include "integrations/adventure/retroarch/RetroArchAdapter.h"
+#include "core/navigation/AdventureLaunchController.h"
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -31,6 +33,7 @@ using namespace trainer;
 
 int main(int argc, char* argv[]) {
     SDL_SetMainReady();
+    SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
     QGuiApplication app(argc, argv);
     // Qt's generic "Sans Serif" can resolve to a decorative face with tiny
     // numerals. Prefer an installed UI font consistently across all QML text.
@@ -105,13 +108,19 @@ int main(int argc, char* argv[]) {
         MockHallOfFameRepository shellArchive;
         MockAchievementProvider shellAchievements;
         std::unique_ptr<LocalStateStore> store;
+        QString stateDirectory;
         if ((!smoke && !parser.isSet("ephemeral")) || !persistencePhase.isEmpty()) {
             const auto directory = parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()
                 : QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+            stateDirectory = directory;
             store = std::make_unique<LocalStateStore>(directory, nullptr, smoke && !persistencePhase.startsWith("library-") ? "prototype-library-v1" : "user-library-v1");
         }
         const bool personalLibrary = store && (!smoke || persistencePhase.startsWith("library-"));
         AdventureAdapter* selectedAdapter = personalLibrary ? static_cast<AdventureAdapter*>(&unconfiguredAdapter) : &adapter;
+        RetroArchAdapter retroarch(personalLibrary ? static_cast<LibraryRepository&>(*store) : repository,
+            personalLibrary && !smoke ? RetroArchInstallation::load(QDir(stateDirectory).filePath("integrations/retroarch.json"))
+                                      : RetroArchInstallation{});
+        if (personalLibrary && !smoke) selectedAdapter = &retroarch;
 #ifdef TRAINEROS_UI_TESTS
         ProbeAdventureAdapter probeAdapter;
         if (persistencePhase == "library-launch") selectedAdapter = &probeAdapter;
@@ -123,6 +132,8 @@ int main(int argc, char* argv[]) {
         shell.configureServices(&files, store.get());
         if (store) QObject::connect(store.get(), &LocalStateStore::libraryChanged, &shell, &ShellController::refreshLibrary);
         SessionState session(shell, store.get());
+        ProcessService adventureProcess;
+        AdventureLaunchController adventureLaunch(adventureProcess);
         ControllerInput input(nullptr, preferred);
         const auto reportBase = parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()
             : QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
@@ -135,7 +146,9 @@ int main(int argc, char* argv[]) {
         if (!smoke) {
             input.setEnabled(app.applicationState() == Qt::ApplicationActive);
             QObject::connect(&app, &QGuiApplication::applicationStateChanged, &input,
-                             [&input](Qt::ApplicationState state) { input.setEnabled(state == Qt::ApplicationActive); });
+                             [&input, &adventureLaunch](Qt::ApplicationState state) {
+                input.setEnabled(state == Qt::ApplicationActive && !adventureLaunch.active());
+            });
         }
         QQmlApplicationEngine engine;
         int qmlWarnings = 0;
@@ -156,6 +169,33 @@ int main(int argc, char* argv[]) {
             deviceReports.setWindow(window);
             session.start();
             if (!parser.isSet("windowed") && !smoke) window->showFullScreen();
+            if (personalLibrary && !smoke) {
+                auto returnFullscreen = std::make_shared<bool>(false);
+                retroarch.requestLaunch = [&, window, returnFullscreen](const ProcessCommand& command) {
+                    if (session.blocked() || adventureLaunch.active()) return false;
+                    *returnFullscreen = window->visibility() == QWindow::FullScreen;
+                    return adventureLaunch.launch(command, shell.navigationState());
+                };
+                QObject::connect(&adventureLaunch, &AdventureLaunchController::changed, &session, [&] {
+                    session.setAdventureActive(adventureLaunch.active());
+                    if (adventureLaunch.active()) input.setEnabled(false);
+                });
+                QObject::connect(&adventureLaunch, &AdventureLaunchController::checkpointRequested, store.get(),
+                                 [&](quint64 token, const QJsonObject& state) {
+                    store->saveNavigation(state, &adventureLaunch, [&, token](const QString& error) {
+                        adventureLaunch.checkpointCompleted(token, error);
+                    });
+                });
+                QObject::connect(&adventureLaunch, &AdventureLaunchController::suspendRequested, window, [window] { window->hide(); });
+                QObject::connect(&adventureLaunch, &AdventureLaunchController::restoreRequested, window,
+                                 [&, window, returnFullscreen](const QJsonObject& state) {
+                    shell.restoreNavigation(state);
+                    if (!adventureLaunch.error().isEmpty()) shell.showNotice(adventureLaunch.error());
+                    if (*returnFullscreen) window->showFullScreen(); else window->show();
+                    window->requestActivate();
+                    input.setEnabled(app.applicationState() == Qt::ApplicationActive);
+                });
+            }
             if (smoke) {
                 const QString screenshotDir = parser.value("screenshot-dir");
                 if (!screenshotDir.isEmpty() && !QDir().mkpath(screenshotDir)) return 2;
