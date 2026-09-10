@@ -2,6 +2,8 @@
 
 This procedure uses a normal application in the existing desktop session. It does not install a TrainerOS session, change the default login, or remove Steam Gaming Mode or KDE Plasma. A Windows executable cannot run on the ARM64 handheld.
 
+Observed target details and the native container/install approach are in [ARMADA_DEVICE_BASELINE.md](ARMADA_DEVICE_BASELINE.md). Sleep/hinge tests are currently deferred by the owner: leave the no-sleep configuration in place.
+
 ## Before building
 
 1. Enter the existing Desktop / Maintenance Mode and identify how to return to the current gaming mode.

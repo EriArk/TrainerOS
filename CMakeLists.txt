@@ -167,4 +167,10 @@ endif()
 
 include(GNUInstallDirs)
 install(TARGETS traineros RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+if(UNIX AND NOT APPLE)
+    configure_file(packaging/linux/org.traineros.TrainerOS.desktop.in
+                   org.traineros.TrainerOS.desktop @ONLY)
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/org.traineros.TrainerOS.desktop"
+            DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")
+endif()
 # Session installation intentionally waits for validation on the ArmadaOS device.

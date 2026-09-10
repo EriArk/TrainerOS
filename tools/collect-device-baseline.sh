@@ -22,7 +22,7 @@ for entry in /usr/share/wayland-sessions/*.desktop /usr/share/xsessions/*.deskto
     [ -f "$entry" ] && basename "$entry"
 done
 section 'Known compositor / display-manager processes'
-ps -eo comm= | sort -u | awk '/^(kwin_wayland|kwin_x11|gamescope|sddm|gdm|lightdm|greetd|weston|Xorg|Xwayland)$/ { print }'
+ps -eo comm= | sort -u | awk '/^(kwin_wayland|kwin_x11|gamescope|gamescope-wl|gamescope-sessi|sddm|gdm|lightdm|greetd|weston|Xorg|Xwayland)$/ { print }'
 section 'Display connectors and advertised modes (not measured active geometry)'
 for status_file in /sys/class/drm/*/status; do
     [ -r "$status_file" ] || continue
@@ -31,9 +31,11 @@ for status_file in /sys/class/drm/*/status; do
     cat "$status_file"
     if [ "$(cat "$status_file")" = 'connected' ] && [ -r "$connector/modes" ]; then cat "$connector/modes"; fi
 done
-if command -v kscreen-doctor >/dev/null 2>&1; then
+if command -v kscreen-doctor >/dev/null 2>&1 && { [ -n "${WAYLAND_DISPLAY:-}" ] || [ -n "${DISPLAY:-}" ]; }; then
     section 'KScreen output report (may be unavailable outside Plasma)'
     kscreen-doctor -o 2>&1
+else
+    section 'KScreen output skipped: no graphical connection in this shell or tool unavailable'
 fi
 section 'Input device names (no unique device identifiers)'
 for input_name in /sys/class/input/event*/device/name; do

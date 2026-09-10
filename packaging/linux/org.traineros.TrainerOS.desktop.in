@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=TrainerOS
+Comment=Your personal trainer terminal
+Exec="@CMAKE_INSTALL_FULL_BINDIR@/traineros"
+TryExec=@CMAKE_INSTALL_FULL_BINDIR@/traineros
+Icon=applications-games
+Terminal=false
+Categories=Game;
+StartupNotify=true

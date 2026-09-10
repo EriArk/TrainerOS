@@ -41,6 +41,7 @@ int main(int argc, char* argv[]) {
     }
     app.setApplicationName("TrainerOS");
     app.setOrganizationName("TrainerOS");
+    app.setDesktopFileName("org.traineros.TrainerOS");
     app.setApplicationVersion("0.1.0");
     QCommandLineParser parser;
     parser.setApplicationDescription("TrainerOS native shell prototype. Safe application mode.");
