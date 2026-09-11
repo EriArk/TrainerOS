@@ -1,5 +1,7 @@
 # TrainerOS Architecture
 
+The read-only `CollectionRepository` composition overlays bundled catalogue editions and World references on the personal library. It creates no personal ownership or progress until file attachment is committed. Emulator installation discovery remains outside this composition; the selected adapter prepares supported registrations through a callback, keeping paths/commands outside feature UI. See [collection catalogue](COLLECTION_CATALOGUE.md).
+
 ## Recommended baseline
 
 TrainerOS is a native Linux shell application/session running on top of ArmadaOS.

@@ -14,7 +14,7 @@
 
 namespace trainer {
 namespace {
-constexpr int SchemaVersion = 2;
+constexpr int SchemaVersion = 3;
 QString failedWrite() { return "Couldn't save changes. Check free space or storage access, then try again."; }
 struct LoadedState {
     QString error;
@@ -84,6 +84,20 @@ public:
                     else {
                         openError = migrateLibrary(db);
                         if (openError.isEmpty() && !query.exec("PRAGMA user_version=2")) openError = failedWrite();
+                        if (openError.isEmpty() && !db.commit()) openError = failedWrite();
+                        if (!openError.isEmpty()) db.rollback();
+                    }
+                }
+                if (openError.isEmpty() && version < 3) {
+                    if (!db.transaction()) openError = failedWrite();
+                    else {
+                        for (const auto& sql : QStringList{
+                            "ALTER TABLE adventures ADD COLUMN platform_id TEXT NOT NULL DEFAULT ''",
+                            "ALTER TABLE adventures ADD COLUMN catalogue_id TEXT NOT NULL DEFAULT ''",
+                            "ALTER TABLE adventures ADD COLUMN variant TEXT NOT NULL DEFAULT ''",
+                            "CREATE INDEX adventures_catalogue ON adventures(catalogue_id)",
+                            "PRAGMA user_version=3"})
+                            if (!query.exec(sql)) { openError = failedWrite(); break; }
                         if (openError.isEmpty() && !db.commit()) openError = failedWrite();
                         if (!openError.isEmpty()) db.rollback();
                     }
@@ -250,6 +264,9 @@ void LocalStateStore::saveAdventureAsync(const AdventureRegistration& candidate,
           [this, record, result, guard = QPointer<QObject>(context), completed](const QString& error) mutable {
         if (error.isEmpty()) {
             if (record.newWorld) worlds_.append(*record.newWorld);
+            for (const auto& world : record.additionalNewWorlds)
+                if (std::none_of(worlds_.begin(), worlds_.end(), [&](const auto& w) { return w.id == world.id; })) worlds_.append(world);
+            record.additionalNewWorlds.clear();
             record.newWorld.reset(); record.revision = result->revision;
             bool replaced = false;
             for (auto& existing : registrations_) if (existing.adventure.id == record.adventure.id) { existing = record; replaced = true; break; }

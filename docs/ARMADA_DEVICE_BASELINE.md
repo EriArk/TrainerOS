@@ -1,5 +1,7 @@
 # Flip 2 application baseline — 2026-09-11
 
+The user confirmed comfortable physical controller navigation, profile creation and a real Adventure launch on 2026-09-11. Waydroid 1.6.3 and Armada's controller helpers are present but the Android image is not initialized; no Android game compatibility is claimed. Collection scope and reference limitations are recorded in [collection catalogue](COLLECTION_CATALOGUE.md).
+
 These findings come from the owner's Snapdragon 865 Retroid Pocket Flip 2. They describe this installation, not every ArmadaOS release or Retroid model. Private device reports, addresses, keys and game inventories stay outside Git.
 
 ## System and display

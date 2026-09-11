@@ -1,5 +1,7 @@
 # Local persistence foundation
 
+Schema 3 adds Adventure platform/catalogue/variant metadata through a transactional 2→3 migration; existing IDs, profile, favorites, configuration and file references are preserved. The bundled collection checklist is not persisted as owned data. See [collection catalogue](COLLECTION_CATALOGUE.md) for attachment and migration acceptance.
+
 Normal runs use SQLite for the personal Worlds library, one local Trainer profile, Pokédex favorites, browsing state and shell preferences. `--ephemeral` and the original four UI smoke scenarios use in-memory fixtures. Process scenarios require isolated test directories. No emulator launch, ROM/save parsing, account connection or session mutation is introduced.
 
 ## Ownership and schema

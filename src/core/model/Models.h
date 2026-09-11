@@ -25,6 +25,11 @@ struct Adventure {
     std::optional<int> badges;
     std::optional<int> caught;
     QStringList additionalWorldIds = {};
+    QString platformId = {};
+    QString catalogueId = {};
+    QString variant = {};
+    bool collectionOnly = false; // Reference entry, never an installed Adventure.
+    QString limitation = {};
 };
 // Installation metadata belongs to the library/adapter boundary, never primary UI.
 struct AdventureRegistration {
@@ -33,6 +38,7 @@ struct AdventureRegistration {
     QJsonObject integrationConfig;
     int revision = 0; // 0 creates; edits compare the previously read revision.
     std::optional<World> newWorld;
+    QList<World> additionalNewWorlds = {};
 };
 struct LibraryWriteResult { bool success; QString error; int revision = 0; };
 struct ShellPreferences {

@@ -22,6 +22,21 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void fileAttachmentPreparesOnlyAnInstalledMatchingCore() {
+        MockLibraryRepository repository;
+        RetroArchAdapter adapter(repository, {probe(), {}, "settings.cfg", {{"mgba", "mgba_libretro.so"}, {"gambatte", "gambatte_libretro.so"}, {"pokemini", "pokemini_libretro.so"}}});
+        AdventureRegistration record; record.adventure.adapterId = "unconfigured"; record.contentPath = "/games/test.gba";
+        adapter.prepareInstallation(record);
+        QCOMPARE(record.adventure.platformId, "gba"); QCOMPARE(record.adventure.adapterId, "retroarch"); QCOMPARE(record.integrationConfig["core"].toString(), "mgba");
+        record.contentPath = "/games/wrong.nds"; adapter.prepareInstallation(record);
+        QCOMPARE(record.adventure.adapterId, "unconfigured"); QVERIFY(!record.integrationConfig.contains("core"));
+        record.adventure.platformId = "pokemini"; record.contentPath = "/games/party.min"; adapter.prepareInstallation(record);
+        QCOMPARE(record.adventure.adapterId, "retroarch"); QCOMPARE(record.integrationConfig["core"].toString(), "pokemini");
+        record.adventure.platformId = "n64"; record.contentPath = "/games/stadium.z64"; adapter.prepareInstallation(record);
+        QCOMPARE(record.adventure.adapterId, "unconfigured"); // Core not installed.
+        record.adventure.adapterId = "another-adapter"; record.integrationConfig = {{"preserve", true}};
+        adapter.prepareInstallation(record); QCOMPARE(record.adventure.adapterId, "another-adapter"); QVERIFY(record.integrationConfig["preserve"].toBool());
+    }
     void launchUsesCommittedMetadataAndLiteralArguments() {
         QTemporaryDir dir;
         const auto content = dir.filePath("original ; $(unsafe) ' quoted adventure.gba"); touch(content);

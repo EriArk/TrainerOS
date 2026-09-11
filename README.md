@@ -4,7 +4,7 @@ TrainerOS is a controller-first **Linux handheld shell/session** for a Pokémon-
 
 The initial target is a **Retroid Flip-class device running ArmadaOS**. TrainerOS is software-only: no physical modification of the handheld is required.
 
-> Status: native C++20 / Qt Quick shell with a persistent personal Worlds library, controller-operated Adventure editing/file selection, Trainer profile, favorites and color/motion settings. The first [RetroArch adapter](docs/RETROARCH_ADAPTER.md) launches configured Adventures and restores the shell on return, verified on the Flip 2 in normal Plasma application mode. Fresh installations start with an empty library; `--ephemeral` retains the sample experience. Physical button validation, game progress and dedicated-session recovery remain ahead. See [development instructions](docs/DEVELOPMENT.md).
+> Status: native C++20 / Qt Quick shell with a persistent personal library, a [Worlds collection checklist](docs/COLLECTION_CATALOGUE.md), platform badges and controller file attachment. The owner has confirmed controller navigation, profile creation and real Adventure launch on Flip 2. The [RetroArch adapter](docs/RETROARCH_ADAPTER.md) prepares supported files and restores the shell on return. Fresh installations show missing catalogue editions without inventing ownership or progress; `--ephemeral` retains the sample experience. Additional integrations, game progress and dedicated-session recovery remain ahead. See [development instructions](docs/DEVELOPMENT.md).
 
 Start → Controller provides live input/display checks and a local diagnostic report for the first handheld run. These software observations help validate the actual device; they do not certify its physical mapping or ArmadaOS session behavior. See [device diagnostics](docs/DEVICE_DIAGNOSTICS.md).
 
@@ -61,7 +61,7 @@ See [`docs/ARMADA_PLATFORM.md`](docs/ARMADA_PLATFORM.md).
 - **Keep Plasma.** KDE Plasma is an intentional maintenance/recovery mode, not the normal interface.
 - **Controller-first.** Every normal action must work without touch, mouse, or keyboard.
 - **Console-like.** Fast startup, predictable focus, minimal text entry, no desktop chrome in normal use.
-- **Pokémon-native information architecture.** The UI talks about *Worlds*, *Adventures*, *Trainer*, *Pokédex*, and *Hall of Fame* — not ROM folders, cores, emulator binaries, or platforms.
+- **Pokémon-native information architecture.** The UI talks about *Worlds*, *Adventures*, *Trainer*, *Pokédex*, and *Hall of Fame*. Small platform badges identify editions; ROM folders, cores and emulator commands stay in maintenance/integration layers.
 - **Worlds, not Games.** The playable library is organized by Pokémon regions first.
 - **Full-screen sections.** Home is one page among peers; it is not permanently visible behind everything.
 - **L1/R1 are sacred navigation controls.** They switch primary full-screen sections and are not reused by local features.

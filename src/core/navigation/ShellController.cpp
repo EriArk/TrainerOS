@@ -16,7 +16,10 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&libraryManager_, &LibraryManagementController::changed, this, &ShellController::changed);
     connect(&libraryManager_, &LibraryManagementController::saved, this, &ShellController::refreshLibrary);
     connect(&libraryManager_, &LibraryManagementController::messageRequested, this, [this](const QString& text) { notice_ = text; emit changed(); });
-    connect(&libraryManager_, &LibraryManagementController::closeRequested, this, [this] { service_.clear(); menuOpen_ = true; emit changed(); });
+    connect(&libraryManager_, &LibraryManagementController::closeRequested, this, [this] { service_.clear(); menuOpen_ = !libraryFromWorlds_; libraryFromWorlds_ = false; emit changed(); });
+    connect(&worlds_, &WorldsController::setupRequested, this, [this](const QString& id) {
+        libraryFromWorlds_ = true; service_ = "library"; libraryManager_.beginEdit(id); emit changed();
+    });
     connect(&libraryManager_, &LibraryManagementController::textRequested, this, [this](const QString& title, const QString& initial, int limit) {
         textTarget_ = TextTarget::Library; keyboard_.begin(title, initial, limit);
     });
@@ -183,7 +186,7 @@ void ShellController::confirm() {
             service_ = menuFocus_ == 0 ? "settings" : menuFocus_ == 1 ? "diagnostics" : "library";
             if (service_ == "settings") settings_.begin();
             else if (service_ == "diagnostics") diagnostics_.begin();
-            else libraryManager_.begin(worlds_.region()["id"].toString());
+            else { libraryFromWorlds_ = false; libraryManager_.begin(worlds_.region()["id"].toString()); }
             return;
         }
         notice_ = menuFocus_ >= 4 ? platform_.sessionStatus()

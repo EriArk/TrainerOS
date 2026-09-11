@@ -1,6 +1,6 @@
 # Personal library and launch preparation
 
-Normal application mode uses persistent personal metadata, not sample Adventures. The library foundation and its controller management flow now connect to the [first real RetroArch adapter](RETROARCH_ADAPTER.md), verified for launch/return on the Flip 2. Physical control validation and additional integrations remain open.
+Normal application mode combines persistent personal metadata with the [read-only collection catalogue](COLLECTION_CATALOGUE.md). The controller management flow connects to the [first real RetroArch adapter](RETROARCH_ADAPTER.md). The owner has confirmed navigation, profile creation and real launch on Flip 2; additional integrations remain open.
 
 ## Library ownership
 

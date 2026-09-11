@@ -1,4 +1,5 @@
 #include "WorldsController.h"
+#include "core/repository/CollectionRepository.h"
 #include <algorithm>
 
 namespace trainer {
@@ -57,6 +58,7 @@ QVariantList WorldsController::regions() const {
     for (const auto& world : worlds_) {
         const auto count = std::count_if(adventures_.begin(), adventures_.end(), [&](const auto& a) { return a.worldId == world.id || a.additionalWorldIds.contains(world.id); });
         result.append(QVariantMap{{"id", world.id}, {"name", world.name}, {"count", int(count)},
+                                  {"owned", int(std::count_if(adventures_.begin(), adventures_.end(), [&](const auto& a) { return !a.collectionOnly && (a.worldId == world.id || a.additionalWorldIds.contains(world.id)); }))},
                                   {"status", statusLabel(world.status)}});
     }
     return result;
@@ -65,7 +67,9 @@ QVariantList WorldsController::adventures() const {
     QVariantList result;
     for (const auto& adventure : currentAdventures()) {
         result.append(QVariantMap{{"id", adventure.id}, {"title", adventure.title},
-            {"kind", kindLabel(adventure.kind)}, {"status", statusLabel(adventure.status)}});
+            {"kind", kindLabel(adventure.kind)}, {"status", adventure.collectionOnly ? "Missing from collection" : statusLabel(adventure.status)},
+            {"missing", adventure.collectionOnly}, {"platform", platformLabel(adventure.platformId).badge},
+            {"platformShape", platformLabel(adventure.platformId).shape}, {"variant", adventure.variant}});
     }
     return result;
 }
@@ -99,9 +103,11 @@ QVariantMap WorldsController::detail() const {
     const bool canResume = caps.directResume && point.has_value();
     QString availability = "Open the Adventure and choose your save there.";
     if (canResume) availability = "A recent trail is ready to continue.";
-    else if (!caps.launch) availability = "Setup is needed before this Adventure can open.";
+    else if (!caps.launch) availability = "The file is linked. Play setup is still needed.";
+    if (adventure->collectionOnly) availability = "Missing from your collection. Link a local file to add this edition.";
     return {{"id", adventure->id}, {"title", adventure->title}, {"kind", kindLabel(adventure->kind)},
         {"status", statusLabel(adventure->status)}, {"description", adventure->description},
+        {"platform", platformLabel(adventure->platformId).name}, {"limitation", adventure->limitation}, {"variant", adventure->variant},
         {"badges", countLabel(adventure->badges)}, {"caught", countLabel(adventure->caught)},
         {"availability", availability},
         {"resume", point ? (point->location.isEmpty() ? "Recent trail" : point->location) : "No recent trail recorded"}};
@@ -111,7 +117,8 @@ QList<WorldsController::DetailAction> WorldsController::detailActions() const {
     if (const auto adventure = currentAdventure()) {
         const auto caps = adapter_.capabilities(*adventure);
         if (caps.directResume && latestResume(*adventure)) result.append({"resume", "Continue Adventure", true});
-        result.append({"launch", caps.launch ? "Start Adventure" : "Needs setup", caps.launch});
+        if (!adventure->collectionOnly) result.append({"launch", caps.launch ? "Start Adventure" : "Needs setup", caps.launch});
+        if (repository_.editable()) result.append({"setup", adventure->collectionOnly ? "Link a file" : "Edit / change file", true});
     }
     result.append({"back", "Back to Adventures", true});
     return result;
@@ -212,6 +219,7 @@ void WorldsController::executeAction(int index) {
         return;
     }
     const auto caps = adapter_.capabilities(*found);
+    if (available[index].id == "setup") { emit setupRequested(found->id); return; }
     AdventureResult result{false, "This action is no longer available. Your Adventure record has been kept."};
     if (available[index].id == "launch" && caps.launch) result = adapter_.launch(*found);
     else if (available[index].id == "resume" && caps.directResume) {

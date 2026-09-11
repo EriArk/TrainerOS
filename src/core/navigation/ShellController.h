@@ -94,6 +94,7 @@ private:
     int menuFocus_ = 0;
     bool drawerOpen_ = false;
     bool menuOpen_ = false;
+    bool libraryFromWorlds_ = false;
     QString notice_;
 };
 }

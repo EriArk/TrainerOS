@@ -1,5 +1,7 @@
 # First real Adventure adapter
 
+Controller file attachment now prepares an installed matching core automatically for GB/GBC (Gambatte), GBA (mGBA), N64 (ParaLLEl N64) and Pokémon mini. A mismatched file or missing core leaves the Adventure unconfigured. Other adapters' configuration is preserved. Catalogue entries alone never enable launch; see [collection flow](COLLECTION_CATALOGUE.md).
+
 Personal library records can now launch a configured RetroArch installation. The first Flip 2 verification used the ARM64 Flatpak and mGBA to open Pokémon Ruby from Worlds → Hoenn, enter the emulator menu with a controller chord, quit, and return to the same Adventure detail and focused action. This remains normal full-screen application mode in Plasma; Steam and Plasma are retained.
 
 ## Installation configuration

@@ -6,6 +6,8 @@ The persistent implementation covers personal Worlds/Adventures, the single loca
 
 ## World
 
+Collection browsing also supports named spin-off settings and explicit thematic groups for titles without a known region; see [collection catalogue](COLLECTION_CATALOGUE.md). These groups do not assert fictional geography.
+
 Represents a Pokémon region.
 
 Suggested fields:
@@ -38,6 +40,8 @@ CHAMPION
 Do not assume all metrics are available automatically; nullable/unknown values are valid.
 
 ## Adventure
+
+The current model additionally carries `platformId`, `catalogueId` and a separate human-readable `variant`. A reference projection can have `collectionOnly=true`; it cannot be persisted or launched until a file is linked. Owned records do not acquire inferred game progress when linked. The read-only collection reference and personal records have separate ownership.
 
 Represents one configured playable Pokémon journey/title.
 

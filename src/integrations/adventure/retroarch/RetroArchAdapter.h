@@ -23,6 +23,7 @@ public:
     AdventureCapabilities capabilities(const Adventure&) const override;
     AdventureResult launch(const Adventure&) override;
     AdventureResult resume(const Adventure&, const ResumePoint&) override;
+    void prepareInstallation(AdventureRegistration&) const;
     // The application supplies checkpoint/window/lifecycle coordination.
     std::function<bool(const ProcessCommand&)> requestLaunch;
 private:

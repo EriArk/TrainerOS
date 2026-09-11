@@ -11,6 +11,8 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/core/repository/CollectionRepository.cpp
+    src/core/repository/CollectionRepository.h
     src/integrations/adventure/retroarch/RetroArchAdapter.cpp
     src/integrations/adventure/retroarch/RetroArchAdapter.h
     src/platform/diagnostics/DiagnosticsService.cpp
@@ -68,6 +70,7 @@ add_library(trainer_core STATIC
     src/platform/PlatformService.h
 )
 target_include_directories(trainer_core PUBLIC src)
+qt_add_resources(trainer_core collection PREFIX "/collection" BASE data FILES data/catalogue.json)
 target_link_libraries(trainer_core PUBLIC Qt6::Core Qt6::Gui Qt6::Sql SDL2::SDL2)
 target_compile_definitions(trainer_core PUBLIC SDL_MAIN_HANDLED)
 if(MSVC)
@@ -93,6 +96,7 @@ qt_add_qml_module(traineros
         src/qml/Theme.qml
         src/qml/Panel.qml
         src/qml/CapButton.qml
+        src/qml/PlatformBadge.qml
         src/qml/Hint.qml
         src/qml/HomePage.qml
         src/qml/HallOfFamePage.qml
@@ -114,6 +118,9 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_process_probe tests/ProcessProbe.cpp)
     target_link_libraries(trainer_process_probe PRIVATE Qt6::Core)
     find_package(Qt6 REQUIRED COMPONENTS Test)
+    qt_add_executable(trainer_collection_tests tests/CollectionTests.cpp)
+    target_link_libraries(trainer_collection_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME collection COMMAND trainer_collection_tests)
     qt_add_executable(trainer_retroarch_tests tests/RetroArchTests.cpp)
     target_link_libraries(trainer_retroarch_tests PRIVATE trainer_core Qt6::Test)
     add_dependencies(trainer_retroarch_tests trainer_process_probe)

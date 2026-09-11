@@ -42,7 +42,7 @@ Item {
                         objectName: "world-" + index
                         width: 272; height: 68
                         label: modelData.name
-                        detail: modelData.count === 0 ? "No Adventures yet" : modelData.count + (modelData.count === 1 ? " Adventure · " : " Adventures · ") + modelData.status
+                        detail: modelData.count === 0 ? "No Adventures yet" : root.shell.sampleLibrary ? modelData.count + " Adventures · " + modelData.status : modelData.owned + " linked / " + modelData.count + " Adventures"
                         tint: Theme.tabColors[index % Theme.tabColors.length]
                         selected: root.regionsOpen && root.takesFocus && root.worlds.focusIndex === index
                         onActivated: root.shell.activate(index)
@@ -94,8 +94,10 @@ Item {
                         objectName: "adventure-" + modelData.id
                         x: 5; y: 5; width: parent.width - 10; height: 58
                         label: modelData.title
-                        detail: modelData.kind + " · " + modelData.status
-                        tint: modelData.kind === "ROM hack" ? Theme.pink : modelData.kind === "Remake" ? Theme.blue : Theme.green
+                        detail: modelData.missing ? "Missing · A to link a file" : modelData.variant || modelData.kind + " · " + modelData.status
+                        platform: root.shell.sampleLibrary ? "" : modelData.platform
+                        platformShape: modelData.platformShape
+                        tint: modelData.missing ? "#c4cdc7" : modelData.kind === "ROM hack" ? Theme.pink : modelData.kind === "Remake" ? Theme.blue : Theme.green
                         selected: root.listOpen && root.takesFocus && root.worlds.focusIndex === index
                         onActivated: root.shell.activate(index)
                     }
@@ -144,10 +146,10 @@ Item {
         anchors.fill: parent; visible: root.detailOpen
         Text { x: 30; y: 17; width: parent.width - 60; elide: Text.ElideRight; textFormat: Text.PlainText; text: "WORLDS / " + root.worlds.region.name.toUpperCase(); color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1.3 }
         Text { x: 29; y: 42; width: parent.width - 58; text: root.worlds.detail.title; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: 32; font.weight: Font.DemiBold }
-        Text { x: 31; y: 89; text: root.worlds.detail.kind + " · " + root.worlds.detail.status + (root.shell.sampleLibrary ? " · sample data" : ""); color: Theme.muted; font.pixelSize: 15 }
+        Text { x: 31; y: 89; width: parent.width - 62; elide: Text.ElideRight; text: root.worlds.detail.kind + " · " + (root.shell.sampleLibrary ? root.worlds.detail.status + " · sample data" : root.worlds.detail.platform + (root.worlds.detail.variant ? " · " + root.worlds.detail.variant : "")); color: Theme.muted; font.pixelSize: 15 }
         Text {
             x: 31; y: 133; width: 491; height: 82
-            text: root.worlds.detail.description; textFormat: Text.PlainText; wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight
+            text: root.worlds.detail.limitation || root.worlds.detail.description || "Your own journey, ready to become part of the collection."; textFormat: Text.PlainText; wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight
             color: Theme.ink; font.pixelSize: 17
         }
         Row {
@@ -179,7 +181,7 @@ Item {
                         required property int index
                         required property var modelData
                         objectName: "world-action-" + modelData.id
-                        width: 270; height: 42; label: modelData.label; textSize: 16
+                        width: Math.min(270, (root.width - 60 - 16 * (root.worlds.actions.length - 1)) / root.worlds.actions.length); height: 42; label: modelData.label; textSize: 16
                         enabled: modelData.enabled; opacity: enabled ? 1 : 0.5
                         tint: modelData.id === "resume" ? Theme.yellow : modelData.id === "launch" ? Theme.green : Theme.blue
                         selected: root.detailOpen && root.takesFocus && enabled && root.worlds.focusIndex === index

@@ -19,6 +19,8 @@ class LibraryManagementController final : public QObject {
 public:
     LibraryManagementController(LibraryRepository&, FileCatalog*, QObject* parent = nullptr);
     void begin(const QString& worldId = {});
+    void beginEdit(const QString& adventureId);
+    std::function<void(AdventureRegistration&)> prepareInstallation;
     void close();
     void refresh();
     void applyText(const QString&);
@@ -57,6 +59,6 @@ private:
     QString route_ = "list", zone_ = "actions";
     QStringList extraDraft_;
     int focus_ = 0, textField_ = -1;
-    bool open_ = false, saving_ = false;
+    bool open_ = false, saving_ = false, direct_ = false;
 };
 }

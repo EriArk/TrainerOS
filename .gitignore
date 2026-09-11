@@ -76,6 +76,7 @@ local.conf
 config.local.*
 
 # User content / emulator data must never be committed
+/games/
 roms/
 bios/
 firmware/

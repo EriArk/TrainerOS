@@ -1,5 +1,7 @@
 # TrainerOS Design Language
 
+Collection cards include an original hardware silhouette and short platform label seated in a recessed badge within the raised card. Missing editions use neutral grey material and retain a full-contrast focus outline; greying does not disable focus or the file-link action. This is the user's 2026-09-11 extension; see [collection catalogue](COLLECTION_CATALOGUE.md).
+
 ## Design thesis
 
 TrainerOS should look like a **real trainer terminal from the Pokémon world**, but not imitate one specific game's Pokédex pixel-for-pixel.

@@ -67,7 +67,7 @@ The matching UCRT64 `bin` directory must be on PATH for the Qt/SDL runtime DLLs.
 
 ## Data modes and first device run
 
-Normal runs persist the personal library, profile, favorites, color/motion preferences and browsing state under Qt's platform application-data location. The library starts empty. For isolated development, use `--data-dir /path/to/test-data`; use `--ephemeral` to run the original sample fixture without opening SQLite. Feature smoke scenarios use that fixture; persistence scenarios use temporary stores. Do not use a personal data directory for automated tests.
+Normal runs persist the personal library, profile, favorites, color/motion preferences and browsing state under Qt's platform application-data location. Personal ownership starts empty; Worlds also shows the bundled [collection checklist](COLLECTION_CATALOGUE.md). For isolated development, use `--data-dir /path/to/test-data`; use `--ephemeral` to run the original sample fixture without opening SQLite. Feature smoke scenarios use that fixture; persistence scenarios use temporary stores. Do not use a personal data directory for automated tests.
 
 Storage startup/recovery, write/exit semantics and schema details are in [LOCAL_PERSISTENCE.md](LOCAL_PERSISTENCE.md). Use [FIRST_DEVICE_RUN.md](FIRST_DEVICE_RUN.md) and `tools/collect-device-baseline.sh` when the handheld arrives. The report script has been syntax-checked on the development host; its Linux output and the actual target environment remain unverified.
 

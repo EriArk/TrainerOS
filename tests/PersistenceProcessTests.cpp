@@ -7,6 +7,22 @@
 class PersistenceProcessTests final : public QObject {
     Q_OBJECT
 private slots:
+    void controllerCollectionAttachment() {
+        QTemporaryDir dir; QVERIFY(dir.isValid()); QVERIFY(QDir().mkpath(dir.filePath("content")));
+        { QFile f(dir.filePath("content/test.gba")); QVERIFY(f.open(QIODevice::WriteOnly)); f.write("Content-free collection fixture"); }
+        const auto app = QDir(QCoreApplication::applicationDirPath()).filePath(
+#ifdef Q_OS_WIN
+            "traineros.exe"
+#else
+            "traineros"
+#endif
+        );
+        QProcess p; p.setProcessChannelMode(QProcess::MergedChannels);
+        p.start(app, {"--persistence-smoke-test", "collection", "--data-dir", dir.path(), "--screenshot-dir", QCoreApplication::applicationDirPath() + "/screenshots/collection"});
+        QVERIFY(p.waitForStarted());
+        if (!p.waitForFinished(15000)) { p.kill(); p.waitForFinished(); QFAIL(qPrintable(p.readAll())); }
+        const auto output = p.readAll(); QVERIFY2(p.exitCode() == 0 && p.exitStatus() == QProcess::NormalExit, output.constData());
+    }
     void operatingSystemCanTerminateTheShell() {
 #ifdef Q_OS_UNIX
         QTemporaryDir dir; QVERIFY(dir.isValid());

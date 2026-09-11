@@ -50,7 +50,42 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
         constexpr auto up = SDL_CONTROLLER_BUTTON_DPAD_UP, down = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
         constexpr auto left = SDL_CONTROLLER_BUTTON_DPAD_LEFT, right = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
         constexpr auto start = SDL_CONTROLLER_BUTTON_START, next = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, previous = SDL_CONTROLLER_BUTTON_LEFTSHOULDER;
-        if (phase == "library-seed") {
+        if (phase == "collection") {
+            switch ((*stage)++) {
+            case 0:
+                check(store.adventures().isEmpty(), "Reference cards do not create personal records");
+                press(next); press(right, 2); press(a); break;
+            case 1: {
+                capture("collection-missing");
+                int ruby = -1; const auto rows = shell.worlds()->adventures();
+                for (int i = 0; i < rows.size(); ++i) if (rows[i].toMap()["id"] == "catalogue:ruby-gba") ruby = i;
+                check(ruby >= 0, "Ruby catalogue edition is listed"); press(down, std::max(0, ruby)); press(a); break;
+            }
+            case 2:
+                check(focusIs("world-action-setup") && shell.worlds()->detail()["platform"] == "Game Boy Advance", "Missing edition opens a focusable Link a file action");
+                capture("collection-detail"); press(a); break;
+            case 3:
+                check(focusIs("adventure-field-4") && manager->fields()[0].toMap()["value"] == "Pokémon Ruby", "Catalogue details are prefilled with file field focused");
+                press(a); break;
+            case 4:
+                check(manager->files()->rows().size() == 1 && manager->files()->zone() == "list", "Controller file picker contains the test file"); press(a); break;
+            case 5:
+                check(focusIs("adventure-field-4"), "File selection restores its field"); press(down); press(a); break;
+            case 6:
+                check(store.adventures().size() == 1 && !shell.serviceOpen() && !shell.menuOpen(), "Save returns directly to Worlds, without a system menu");
+                check(store.registration("catalogue:ruby-gba").has_value(), "Stable reference identity linked");
+                check(focusIs("world-action-setup"), "Unconfigured attachment remains honestly unavailable for launch"); press(b); break;
+            case 7:
+                check(shell.worlds()->adventureIndex() == 0 && focusIs("adventure-catalogue:ruby-gba"), "Owned card moves first and retains focus by identity");
+                capture("collection-linked"); press(next); press(previous); window->resize(1920, 1080); break;
+            case 8:
+                check(focusIs("adventure-catalogue:ruby-gba"), "Shoulders preserve collection selection"); capture("collection-linked-1080p");
+                press(a); press(a); press(b); break; // Edit then discard: return to the exact card action.
+            default:
+                check(!shell.serviceOpen() && !shell.menuOpen() && focusIs("world-action-setup"), "Cancel returns to the Worlds action");
+                if (finish()) window->close(); break;
+            }
+        } else if (phase == "library-seed") {
             switch ((*stage)++) {
             case 0:
                 check(store.adventures().isEmpty() && !shell.sampleLibrary(), "Personal library must start empty");
@@ -75,7 +110,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 press(up, 2); press(a); press(a); press(down, 3); press(right); press(a); // Append A to suggested title.
                 press(right); press(a); press(down, 2); press(a); // Primary Hoenn.
                 press(down); press(left); press(a); press(a); press(down, 8); press(a); // Additional Kanto, Apply.
-                press(right); press(a, 2); break; // ROM hack.
+                press(right); press(a); press(a, 2); press(b); break; // ROM hack, back from edition chooser.
             case 6:
                 check(manager->fields()[0].toMap()["value"] == "journeyA" && manager->fields()[1].toMap()["value"] == "Hoenn"
                       && manager->fields()[2].toMap()["value"] == "Kanto", "Controller title and World relationships");
@@ -84,7 +119,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 check(store.adventures().size() == 1 && !shell.serviceOpen(), "Save completes after global page switch");
                 press(previous); press(a); press(a); break; // Kanto secondary listing / detail.
             case 8:
-                check(shell.worlds()->detail()["title"] == "journeyA" && focusIs("world-action-back"), "Personal Adventure is visible and honestly unconfigured");
+                check(shell.worlds()->detail()["title"] == "journeyA" && focusIs("world-action-setup"), "Personal Adventure offers setup without claiming it can launch");
                 capture("personal-adventure"); press(start); press(up, 3); press(a); press(a); break;
             case 9:
                 check(shell.settings()->theme() == "red" && focusIs("settings-0"), "Persisted red theme"); capture("theme-red"); press(a); break;
@@ -129,7 +164,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 check(focusIs("world-9"), "Custom World is reachable in a bounded region grid"); capture("custom-world-grid");
                 press(a); press(a); window->resize(1024, 768); break;
             case 9:
-                check(shell.worlds()->region()["name"] == "A" && focusIs("world-action-back"), "Custom World detail focus"); capture("custom-world-letterbox");
+                check(shell.worlds()->region()["name"] == "A" && focusIs("world-action-setup"), "Custom World detail focus"); capture("custom-world-letterbox");
                 if (finish()) window->close(); break;
             }
         } else {

@@ -39,7 +39,7 @@ LibrarySnapshot readLibrary(QSqlDatabase& db) {
     const auto fail = [&] { result.error = "Your library couldn't be read. The existing data has been kept."; return result; };
     if (!q.exec("SELECT id,name FROM worlds ORDER BY sort_order,id")) return fail();
     while (q.next()) result.worlds.append({q.value(0).toString(), q.value(1).toString(), {}});
-    if (!q.exec("SELECT id,world_id,title,kind,description,content_path,adapter_id,config,revision FROM adventures ORDER BY title COLLATE NOCASE,id")) return fail();
+    if (!q.exec("SELECT id,world_id,title,kind,description,content_path,adapter_id,config,revision,platform_id,catalogue_id,variant FROM adventures ORDER BY title COLLATE NOCASE,id")) return fail();
     while (q.next()) {
         AdventureRegistration record;
         record.adventure.id = q.value(0).toString(); record.adventure.worldId = q.value(1).toString();
@@ -50,6 +50,8 @@ LibrarySnapshot readLibrary(QSqlDatabase& db) {
         const auto config = QJsonDocument::fromJson(q.value(7).toByteArray(), &error);
         if (error.error != QJsonParseError::NoError || !config.isObject()) return fail();
         record.integrationConfig = config.object(); record.revision = q.value(8).toInt();
+        record.adventure.platformId = q.value(9).toString(); record.adventure.catalogueId = q.value(10).toString();
+        record.adventure.variant = q.value(11).toString();
         result.registrations.append(record);
     }
     if (!q.exec("SELECT adventure_id,world_id FROM adventure_worlds ORDER BY world_id")) return fail();
@@ -63,7 +65,8 @@ LibrarySnapshot readLibrary(QSqlDatabase& db) {
 }
 LibraryWriteResult writeAdventure(QSqlDatabase& db, const AdventureRegistration& record) {
     const auto& a = record.adventure;
-    if (a.id.isEmpty() || !validText(a.title, 64) || (!a.description.isEmpty() && !validText(a.description, 160))
+    if (a.id.isEmpty() || a.collectionOnly || !validText(a.title, 96) || (!a.description.isEmpty() && !validText(a.description, 160))
+        || (!a.variant.isEmpty() && !validText(a.variant, 96))
         || int(a.kind) < 0 || int(a.kind) > 2 || record.revision < 0)
         return {false, "Give this Adventure a valid title and edition before saving."};
     // No ROM parsing or execution: validate only a readable regular file reference.
@@ -84,6 +87,13 @@ LibraryWriteResult writeAdventure(QSqlDatabase& db, const AdventureRegistration&
                 if (!q.exec()) error = "This World couldn't be created. Retry from the library.";
             }
         }
+        for (const auto& world : record.additionalNewWorlds) {
+            if (!error.isEmpty()) break;
+            if (!a.additionalWorldIds.contains(world.id) || !validText(world.name, 32)) { error = "Choose valid additional Worlds."; break; }
+            q.prepare("INSERT OR IGNORE INTO worlds(id,name,sort_order) SELECT ?,?,COALESCE(MAX(sort_order),-1)+1 FROM worlds");
+            q.addBindValue(world.id); q.addBindValue(world.name);
+            if (!q.exec()) error = sqlFailure();
+        }
         if (error.isEmpty()) {
             q.prepare("SELECT revision FROM adventures WHERE id=?"); q.addBindValue(a.id);
             if (!q.exec()) error = sqlFailure();
@@ -93,13 +103,17 @@ LibraryWriteResult writeAdventure(QSqlDatabase& db, const AdventureRegistration&
         }
         if (error.isEmpty()) {
             q.prepare(record.revision == 0
-                ? "INSERT INTO adventures(world_id,title,kind,description,content_path,adapter_id,config,revision,id) VALUES(?,?,?,?,?,?,?,?,?)"
-                : "UPDATE adventures SET world_id=?,title=?,kind=?,description=?,content_path=?,adapter_id=?,config=?,revision=? WHERE id=?");
+                ? "INSERT INTO adventures(world_id,title,kind,description,content_path,adapter_id,config,revision,platform_id,catalogue_id,variant,id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
+                : "UPDATE adventures SET world_id=?,title=?,kind=?,description=?,content_path=?,adapter_id=?,config=?,revision=?,platform_id=?,catalogue_id=?,variant=? WHERE id=?");
             q.addBindValue(a.worldId); q.addBindValue(a.title.trimmed()); q.addBindValue(int(a.kind));
             q.addBindValue(a.description.isNull() ? QString("") : a.description.trimmed());
             q.addBindValue(record.contentPath); q.addBindValue(a.adapterId);
             q.addBindValue(QJsonDocument(record.integrationConfig).toJson(QJsonDocument::Compact));
-            q.addBindValue(record.revision + 1); q.addBindValue(a.id);
+            q.addBindValue(record.revision + 1);
+            q.addBindValue(a.platformId.isNull() ? QString("") : a.platformId);
+            q.addBindValue(a.catalogueId.isNull() ? QString("") : a.catalogueId);
+            q.addBindValue(a.variant.isNull() ? QString("") : a.variant);
+            q.addBindValue(a.id);
             if (!q.exec()) error = sqlFailure();
         }
         if (error.isEmpty()) {

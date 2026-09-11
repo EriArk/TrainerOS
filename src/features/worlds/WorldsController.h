@@ -40,6 +40,7 @@ signals:
     void contentChanged();
     void messageRequested(const QString& message);
     void homeRequested();
+    void setupRequested(const QString& adventureId);
 private:
     enum class Route { Regions, Adventures, Detail };
     struct DetailAction { QString id; QString label; bool enabled; };

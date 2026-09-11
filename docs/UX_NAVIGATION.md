@@ -1,5 +1,7 @@
 # TrainerOS UX & Navigation
 
+Worlds includes the [collection checklist and controller attachment flow](COLLECTION_CATALOGUE.md). Grey missing cards remain focusable; A → Link a file opens the shared picker, while Save/Cancel returns to the original Worlds detail. Platform badges identify the edition without changing region-first navigation.
+
 ## Goal
 
 TrainerOS must feel native to a handheld controller. Touch may exist as a convenience and mouse/keyboard may exist in development or maintenance mode, but **every normal TrainerOS flow must be fully usable with physical controls**.

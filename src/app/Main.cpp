@@ -4,6 +4,7 @@
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "core/navigation/AdventureLaunchController.h"
+#include "core/repository/CollectionRepository.h"
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -74,7 +75,7 @@ int main(int argc, char* argv[]) {
     hallSmoke = parser.isSet("hall-smoke-test");
     diagnosticsSmoke = parser.isSet("diagnostics-smoke-test");
     persistencePhase = parser.value("persistence-smoke-test");
-    if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch"}.contains(persistencePhase)
+    if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "collection"}.contains(persistencePhase)
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
     const bool smoke = parser.isSet("smoke-test") || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
@@ -115,9 +116,11 @@ int main(int argc, char* argv[]) {
             stateDirectory = directory;
             store = std::make_unique<LocalStateStore>(directory, nullptr, smoke && !persistencePhase.startsWith("library-") ? "prototype-library-v1" : "user-library-v1");
         }
-        const bool personalLibrary = store && (!smoke || persistencePhase.startsWith("library-"));
+        const bool personalLibrary = store && (!smoke || persistencePhase.startsWith("library-") || persistencePhase == "collection");
+        CollectionRepository collection(personalLibrary ? static_cast<LibraryRepository&>(*store) : repository);
+        LibraryRepository& activeLibrary = personalLibrary ? (!smoke || persistencePhase == "collection" ? static_cast<LibraryRepository&>(collection) : *store) : repository;
         AdventureAdapter* selectedAdapter = personalLibrary ? static_cast<AdventureAdapter*>(&unconfiguredAdapter) : &adapter;
-        RetroArchAdapter retroarch(personalLibrary ? static_cast<LibraryRepository&>(*store) : repository,
+        RetroArchAdapter retroarch(activeLibrary,
             personalLibrary && !smoke ? RetroArchInstallation::load(QDir(stateDirectory).filePath("integrations/retroarch.json"))
                                       : RetroArchInstallation{});
         if (personalLibrary && !smoke) selectedAdapter = &retroarch;
@@ -125,11 +128,15 @@ int main(int argc, char* argv[]) {
         ProbeAdventureAdapter probeAdapter;
         if (persistencePhase == "library-launch") selectedAdapter = &probeAdapter;
 #endif
-        ShellController shell(personalLibrary ? static_cast<LibraryRepository&>(*store) : repository,
+        ShellController shell(activeLibrary,
                               store ? static_cast<TrainerRepository&>(*store) : profiles,
                               *selectedAdapter, platform,
                               dex, store ? static_cast<PokedexProgressRepository&>(*store) : dex, shellArchive, shellAchievements);
         shell.configureServices(&files, store.get());
+        if (personalLibrary && !smoke) {
+            shell.libraryManager()->prepareInstallation = [&retroarch](AdventureRegistration& record) { retroarch.prepareInstallation(record); };
+            shell.libraryManager()->setInitialFolder(QDir::home().filePath("Emulation/roms"));
+        }
         if (store) QObject::connect(store.get(), &LocalStateStore::libraryChanged, &shell, &ShellController::refreshLibrary);
         SessionState session(shell, store.get());
         ProcessService adventureProcess;
@@ -206,7 +213,7 @@ int main(int argc, char* argv[]) {
                 } else if (persistencePhase == "library-launch") {
                     startLaunchSmoke(window, shell, session, *store, input, probeAdapter, joystick, screenshotDir,
                                      smokeCompleted, qmlWarnings, diagnostics);
-                } else if (persistencePhase.startsWith("library-")) {
+                } else if (persistencePhase.startsWith("library-") || persistencePhase == "collection") {
                     startLibrarySmoke(window, shell, session, *store, input, joystick, persistencePhase,
                                       QDir(parser.value("data-dir")).filePath("content"), screenshotDir, smokeCompleted, qmlWarnings, diagnostics);
                 } else if (!persistencePhase.isEmpty()) {

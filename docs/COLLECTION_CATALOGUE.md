@@ -1,0 +1,44 @@
+# Worlds collection catalogue
+
+The 2026-09-11 user decision extends Worlds from an installed library to a collection checklist. Platform badges are explicitly requested on Adventure cards; region-first navigation and controller invariants remain unchanged. The user has also confirmed comfortable physical navigation, successful Adventure launch and profile creation on Flip 2.
+
+## Reference data and ownership
+
+`data/catalogue.json` is a bundled, offline, versioned reference dataset. It contains title/platform editions and World relationships, not copyrighted game assets, ROMs, installation paths, saves or personal progress. `CollectionRepository` combines this reference with the personal repository; it does not seed hundreds of fictitious owned records into SQLite. The original sample preview remains isolated.
+
+- A missing edition is grey but focusable. A opens its details; Link a file opens the existing controller file picker with title, edition, platform and Worlds prefilled.
+- Save returns directly to the Adventure's detail. B discards the form and restores that action. L1/R1 retains its global meaning, including inside the picker and keyboard.
+- A linked edition keeps a stable `catalogueId`. Multiple personal revisions can refer to it; the missing reference card disappears while all owned variants remain visible.
+- Names are presentation metadata. Linking or renaming never moves or modifies external game/save files.
+- A linked file and a working launch setup are separate facts. Unsupported setups remain disabled; they never become successful mock launches.
+- Reference limitations are shown on details. No progress, badges, story completion or save location is invented.
+- New custom Adventures and ROM hacks still use Manage Adventures. Platform and edition can be chosen there; a catalogue edition cannot silently change platform or become a different ROM hack.
+
+The file picker accepts plausible platform file formats, while the persistence worker verifies a readable regular file. An archive or installable package can be registered without promising that an adapter can execute it. Catalogue format checks are not ROM identity verification; users remain responsible for choosing the correct edition.
+
+## Coverage and device feasibility
+
+The initial catalogue contains 216 title/platform editions: main-series releases, local spin-offs, Pokémon mini, selected substantial crossovers, educational PC/Pico titles, official Virtual Console packages and Android titles. Versions/regions/revisions of the same release remain variants, except genuinely distinct original Japanese Red/Green/Blue editions. Subscription emulation collections do not create a separate title for every subscription service. Expansions are part of their parent game, not independent launch targets.
+
+This is a maintained checklist, not a claim that every historical promotional browser mini-game, language dump or community ROM hack has been exhaustively identified. Add omissions with a source and a plausible runtime route. The user explicitly excludes closed online games and prioritizes titles that can plausibly run on Flip 2. Do not add Switch 2 exclusives, arcade hardware without a suitable emulator, unreleased games, distribution-only packages, BIOS/keys, or unsupported historical online clients simply to increase the count.
+
+ArmadaOS on the device provides Waydroid 1.6.3 and dedicated controller integration helpers, but its Android image is not initialized. Android cards therefore describe a runtime route, not verified app/account/sensor/controller compatibility. Online requirements, cameras and location services can prevent individual titles from working. Switch, PC and Pico entries also retain explicit device-validation limitations; none gets an enabled launch from its platform label alone. No user Android app is installed or executed by linking a package.
+
+Worlds with known settings use those settings: Orre, Fiore, Almia, Oblivia, Ransei, Hisui, Lental, Ferrum, Pasio and Aeos alongside the nine main regions. Hisui also belongs under Sinnoh; Johto's paired adventures also appear in Kanto. PokéPark, Mystery Dungeon and Toy Pokémon get their own groups. Puzzle Corner, Pokémon Playroom, Card Club and Crossover Arena are organizational groups rather than invented canonical regions.
+
+## Sources and review
+
+Names are factual references, descriptions and hardware silhouettes are original. Cross-check title/platform editions against:
+
+- [Official Japanese release index](https://www.pokemon.co.jp/game/) and [Nintendo's Pokémon Friends listing](https://www.nintendo.com/en-ca/store/products/pokemon-friends-switch/).
+- [Pokémon game-series index](https://en.wikipedia.org/wiki/List_of_Pok%C3%A9mon_video_games) for international naming and series coverage; verify unusual editions against their individual sources.
+- [Pokémon mini catalogue](https://bulbapedia.bulbagarden.net/wiki/Pok%C3%A9mon_mini), [PokéROM disc editions](https://bulbapedia.bulbagarden.net/wiki/Pok%C3%A9ROM), and [Sega Pico releases](https://bulbapedia.bulbagarden.net/wiki/Sega_Pico).
+- [HarmoKnight's official description](https://www.nintendo.com/en-gb/Games/Nintendo-3DS-download-software/HarmoKnight-727424.html), [Blue Rescue Team's Wii U edition](https://www.nintendo.com/en-gb/Games/Nintendo-DS/Pokemon-Mystery-Dungeon-Blue-Rescue-Team-272387.html), and [Rumble U](https://www.pokemon.com/uk/pokemon-video-games/pokemon-rumble-u).
+- [Official mobile index](https://www.pokemon.com/us/app), [TCG Live platforms](https://www.pokemon.com/uk/pokemon-video-games/pokemon-trading-card-game-live), [Magikarp Jump support](https://support.pokemon.com/hc/en-us/articles/18769981645076-Pok%C3%A9mon-Magikarp-Jump-Frequently-Asked-Questions), and [TCG Online closure](https://support.pokemon.com/hc/en-us/articles/4406895467668-Pok%C3%A9mon-TCG-Online-Sunset-Information).
+- Runtime routes: [ArmadaOS](https://github.com/armada-os/armada), [Waydroid](https://github.com/waydroid/waydroid), [PicoDrive's ARM/Pico support](https://docs.libretro.com/library/picodrive/). These establish infrastructure, not per-game performance.
+
+## Persistence and acceptance
+
+Schema 3 adds non-null `platform_id`, `catalogue_id`, `variant` columns with empty defaults and a catalogue lookup index. Migration preserves profile identity, favorites, existing Adventure IDs/file paths/configuration and navigation. New reference Worlds are persisted only when a personal registration uses them. Catalogue updates never rewrite personal names or file references.
+
+Acceptance checks cover reference ID/relationship integrity, absent-card actions, attaching and reopening, multiple variants without false duplicates, wrong-platform rejection, extra reference Worlds, missing external content and unchanged file bytes. A rendered SDL-controller scenario covers grey cards, platform silhouettes, file linking, Save/Cancel focus, scrolling and shoulder navigation at landscape handheld resolutions. Actual installation requires a fresh personal-database backup and hardware validation.

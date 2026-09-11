@@ -9,6 +9,8 @@ Item {
     property int textSize: 17
     property bool centered: false
     property color focusColor: Theme.focus
+    property string platform: ""
+    property string platformShape: "console"
     signal activated()
     implicitWidth: 200
     implicitHeight: 56
@@ -42,6 +44,7 @@ Item {
     }
     Column {
         anchors { left: parent.left; right: parent.right; margins: 13; verticalCenter: parent.verticalCenter }
+        anchors.rightMargin: root.platform.length ? 95 : 13
         spacing: 3
         Text {
             width: parent.width; text: root.label
@@ -55,6 +58,10 @@ Item {
             textFormat: Text.PlainText
             color: Theme.muted; font.pixelSize: 12; elide: Text.ElideRight
         }
+    }
+    PlatformBadge {
+        anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+        visible: root.platform.length > 0; label: root.platform; shape: root.platformShape
     }
     MouseArea { anchors.fill: parent; onClicked: root.activated() }
 }

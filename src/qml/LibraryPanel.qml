@@ -12,7 +12,7 @@ Item {
         Text { x: 28; y: 18; text: root.manager.route === "files" ? "Choose an Adventure file" : root.manager.title; color: Theme.ink; font.pixelSize: 29; font.weight: Font.DemiBold }
         Text {
             x: 29; y: 59; width: parent.width - 58; font.pixelSize: 14; color: Theme.muted; elide: Text.ElideMiddle; textFormat: Text.PlainText
-            text: root.manager.route === "files" ? root.files.path : root.manager.saving ? "Saving… You can leave; the submitted save will finish." : "Your files stay where they are. Play setup follows device validation."
+            text: root.manager.route === "files" ? root.files.path : root.manager.saving ? "Saving… You can leave; the submitted save will finish." : "Link your own file. Supported play setups are applied automatically."
         }
         Rectangle { x: 0; y: 91; width: parent.width; height: parent.height - y; color: "#d4e2d6" }
         Item {
@@ -77,7 +77,7 @@ Item {
         }
         ControllerList {
             x: 24; y: 101; width: parent.width - 48; height: 204
-            visible: root.manager.route === "world" || root.manager.route === "extras"
+            visible: root.manager.route === "world" || root.manager.route === "extras" || root.manager.route === "edition"
             model: root.manager.choices.map(function(choice) { return {id: choice.id, title: (choice.selected ? "●  " : "") + choice.title, subtitle: choice.selected ? "Selected" : "A to choose"} })
             currentIndex: root.manager.focusIndex; namePrefix: "manage-choice-"; tint: Theme.blue
             takesFocus: root.takesFocus && visible
