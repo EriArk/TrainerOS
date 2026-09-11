@@ -66,7 +66,7 @@ Each mini card can include:
 - state/session timestamp
 - concise progress such as playtime or badges
 
-The 2026-09-11 clarification makes a card a selection for Home: it changes the displayed Adventure, World and available per-Adventure data, closes the drawer and focuses Home's large physical-style action button. Selecting a card never starts a process. The action button resumes a selected exact state when supported, otherwise it starts the Adventure normally. It offers setup for an unconfigured Adventure and Worlds exploration when no Adventure is selected.
+The 2026-09-11 clarification makes a card a selection for Home: it changes the displayed Adventure, World and available per-Adventure data and closes the drawer. Selecting a card never starts a process. Outside panels, A immediately presses Home's large physical-style button, with no preliminary focus movement. Y independently opens the selector; directional navigation is confined to its list. The action button resumes a selected exact state when supported, otherwise it starts the Adventure normally. It offers setup for an unconfigured Adventure and Worlds exploration when no Adventure is selected.
 
 `Y` opens/closes Continue Adventure on Home. In the drawer, `A` chooses the Adventure for Home; on Home's main button it launches. `B` cancels the drawer without changing Home. `L1/R1` remain primary-page navigation. Home defaults to the latest actual launch until the Trainer explicitly chooses a different Adventure; that choice is persisted separately from launch history. Recorded process duration belongs to this Adventure, not aggregate Trainer progress. See [Home and play history](HOME_AND_HISTORY.md).
 

@@ -90,12 +90,17 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(*starts == 1 && *returns == 1 && focusIs("home-launch"), "Main button alone launches and restores Home");
             check(store.recentSessions().first().adventureId == "home-0" && store.recentSessions().size() == 5, "History replaces the latest card without duplicates");
             check(history->error().isEmpty(), "History writes succeeded");
-            press(SDL_CONTROLLER_BUTTON_DPAD_LEFT); check(focusIs("continue-toggle"), "D-pad reaches the selector button");
+            for (auto button : {SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_DOWN, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_LEFT}) press(button);
+            check(focusIs("home-launch") && !shell.drawerOpen(), "D-pad cannot redirect Home's fixed A action");
             press(SDL_CONTROLLER_BUTTON_A); break;
         case 8:
-            check(shell.drawerOpen(), "A on the selector button opens it"); press(SDL_CONTROLLER_BUTTON_B);
-            check(focusIs("continue-toggle"), "Cancel restores selector opener");
-            press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
+            check(*starts == 2 && *returns == 2 && !shell.drawerOpen(), "A launches immediately after arbitrary D-pad input");
+            press(SDL_CONTROLLER_BUTTON_Y); check(shell.drawerOpen(), "Y opens the selector independently"); press(SDL_CONTROLLER_BUTTON_B);
+            check(focusIs("home-launch"), "Cancel restores the fixed page action");
+            press(SDL_CONTROLLER_BUTTON_START); press(SDL_CONTROLLER_BUTTON_DPAD_DOWN); press(SDL_CONTROLLER_BUTTON_DPAD_DOWN); press(SDL_CONTROLLER_BUTTON_A);
+            check(!shell.notice().isEmpty() && *starts == 2, "A in the system menu cannot launch Home's Adventure");
+            press(SDL_CONTROLLER_BUTTON_B); press(SDL_CONTROLLER_BUTTON_B);
+            press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
             check(focusIs("home-launch") && shell.home()["adventureId"] == "home-0", "Shoulders retain the selected Home Adventure");
             break;
         case 9:

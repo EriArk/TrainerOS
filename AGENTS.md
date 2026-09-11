@@ -86,6 +86,8 @@ Always preserve:
 - `B` = back/close
 - `Start` = TrainerOS system menu
 - `Y` = open/close Continue Adventure on Home
+- On unobstructed Home, `A` immediately invokes the large Adventure button, regardless of prior D-pad/stick input. `Y` opens the selector; `A` inside it selects for Home without launching.
+- Prefer visible page-specific physical-button actions over moving focus between static modules. Directional focus belongs to lists, grids and open selection/editing panels; modal actions take priority over page shortcuts.
 - visible deterministic focus whenever interactive content exists
 - no required touch/mouse/keyboard for normal use
 - no desktop-window metaphors in the normal shell

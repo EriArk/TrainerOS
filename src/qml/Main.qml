@@ -95,7 +95,7 @@ Window {
                 anchors { right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
                 spacing: 20
                 Hint { button: "L1 R1"; label: "Sections"; tint: Theme.blue }
-                Hint { button: "A"; label: shell.keyboard.open && !shell.menuOpen ? "Type" : "Select" }
+                Hint { button: "A"; label: shell.keyboard.open && !shell.menuOpen ? "Type" : shell.page === 0 && !shell.drawerOpen && !shell.menuOpen && !shell.serviceOpen && shell.notice.length === 0 ? shell.home.actionHint : "Select" }
                 Hint { button: "B"; label: shell.keyboard.open && !shell.menuOpen ? "Cancel input" : "Back"; tint: Theme.pink }
                 Hint { button: "Start"; label: "System"; tint: Theme.yellow }
             }

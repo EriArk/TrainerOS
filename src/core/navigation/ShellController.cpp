@@ -103,7 +103,7 @@ int ShellController::focusIndex() const {
     if (page_ == 1) return worlds_.focusIndex();
     if (page_ == 2) return pokedex_.focusIndex();
     if (page_ == 4) return hall_.focusIndex();
-    return drawerOpen_ ? drawerFocus_ : pageFocus_[page_];
+    return drawerOpen_ ? drawerFocus_ : 0;
 }
 QJsonObject ShellController::navigationState() const {
     const QStringList pages{"home", "worlds", "pokedex", "trainer", "hall"};
@@ -139,7 +139,7 @@ QVariantMap ShellController::home() const {
     const auto snapshot = repository_.home();
     QString title = "Choose a journey in Worlds", world = "Your journey";
     const auto adventure = homeAdventure();
-    QString action = "Explore Worlds", milestone = snapshot.milestone;
+    QString action = "Explore Worlds", actionHint = "Worlds", milestone = snapshot.milestone;
     std::optional<int> badges, caught;
     std::optional<qint64> seconds;
     if (adventure) {
@@ -153,6 +153,7 @@ QVariantMap ShellController::home() const {
         seconds = repository_.recordedSeconds(adventure->id);
         const auto caps = adapter_.capabilities(*adventure);
         action = homeResumePoint(adventure->id) && caps.directResume ? "Resume Adventure" : caps.launch ? "Start Adventure" : "Set up Adventure";
+        actionHint = homeResumePoint(adventure->id) && caps.directResume ? "Resume" : caps.launch ? "Play" : "Set up";
         if (repository_.editable()) {
             milestone = "Your selected Adventure · Y to choose another";
             for (const auto& recent : repository_.recentSessions()) if (recent.adventureId == adventure->id) {
@@ -164,7 +165,7 @@ QVariantMap ShellController::home() const {
     }
     return {{"trainer", trainer_.exists() ? trainer_.profile()["name"] : "TRAINER"},
             {"hasTrainer", trainer_.exists()}, {"adventure", title}, {"world", world},
-            {"adventureId", adventure ? adventure->id : QString()}, {"action", action},
+            {"adventureId", adventure ? adventure->id : QString()}, {"action", action}, {"actionHint", actionHint},
             {"badges", badges ? QString::number(*badges) : "—"}, {"caught", caught ? QString::number(*caught) : "—"},
             {"recordedTime", seconds ? recordedDuration(*seconds) : "—"}, {"milestone", milestone}};
 }
@@ -230,7 +231,6 @@ void ShellController::activate(int index, const QString& area) {
         return;
     }
     else if (drawerOpen_) drawerFocus_ = std::clamp(index, 0, std::max(0, int(points_.size()) - 1));
-    else pageFocus_[page_] = page_ == 0 ? std::clamp(index, 0, 1) : 0;
     confirm();
     emit changed();
 }
@@ -256,12 +256,11 @@ void ShellController::confirm() {
         const auto& point = points_.at(drawerFocus_);
         for (const auto& adventure : repository_.adventures()) if (adventure.id == point.adventureId) {
             homeAdventureId_ = adventure.id; homeResumeId_ = point.resumePoint ? point.id : QString();
-            drawerOpen_ = false; pageFocus_[0] = 0;
+            drawerOpen_ = false;
             return;
         }
         notice_ = "This Adventure is unavailable. Its history has been kept.";
     } else if (page_ == 0) {
-        if (pageFocus_[0] == 1) { drawerOpen_ = true; return; }
         const auto adventure = homeAdventure();
         if (!adventure) { goToPage(1); return; }
         const auto caps = adapter_.capabilities(*adventure);
@@ -313,13 +312,13 @@ void ShellController::dispatch(Action action) {
     } else if (action == Action::ToggleContinue) {
         if (page_ == 0 && !menuOpen_ && notice_.isEmpty()) drawerOpen_ = !drawerOpen_;
     } else if (action == Action::Confirm) confirm();
-    else if (notice_.isEmpty()) {
-        int* focus = menuOpen_ ? &menuFocus_ : drawerOpen_ ? &drawerFocus_ : &pageFocus_[page_];
-        const int count = menuOpen_ ? menuItems().size() : drawerOpen_ ? std::max(1, int(points_.size())) : page_ == 0 ? 2 : 1;
+    else if (notice_.isEmpty() && (menuOpen_ || drawerOpen_)) {
+        // Page actions use fixed physical buttons. Only an open list moves focus.
+        int* focus = menuOpen_ ? &menuFocus_ : &drawerFocus_;
+        const int count = menuOpen_ ? menuItems().size() : std::max(1, int(points_.size()));
         int delta = 0;
         if (menuOpen_) delta = action == Action::Up ? -1 : action == Action::Down ? 1 : 0;
         else if (drawerOpen_) delta = action == Action::Left ? -1 : action == Action::Right ? 1 : 0;
-        else if (page_ == 0) delta = action == Action::Left || action == Action::Down ? 1 : action == Action::Right || action == Action::Up ? -1 : 0;
         *focus = std::clamp(*focus + delta, 0, std::max(0, count - 1));
     }
     emit changed();

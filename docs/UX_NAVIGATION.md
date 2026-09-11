@@ -68,7 +68,7 @@ For the current design study, `L1/R1` closes transient panels and switches the p
 
 Home is a living overview with several compact information areas. It is not a tile grid by default.
 
-The selected Home module should have a strong but restrained focus treatment. Movement should follow the actual spatial layout rather than an invisible arbitrary sequence where practical.
+Home uses fixed physical-button actions: A invokes the large Adventure button immediately and Y opens the selector. D-pad/stick movement does not move between its static modules or change what A does. Keep a visible ready state on the main button. Across pages, prefer labeled button actions for permanent commands and reserve directional focus for choosing items in lists, grids and open panels.
 
 ### Continue Adventure drawer
 
@@ -83,7 +83,7 @@ Confirmed behavior:
 - opening/closing is possible without touch/mouse
 - when open, focus stays inside until the drawer closes or a primary-page switch dismisses it
 
-`Y` is the confirmed Home shortcut for opening/closing Continue. `A` chooses a card for Home without launching; it closes the drawer and focuses the large Home action button. `B` cancels, preserving Home and restoring its opener. On Home, A on the main button starts/resumes the chosen Adventure; Left/Down reaches the bottom-left Continue affordance, and Right/Up returns to the main button. Higher-priority text-entry, selection, and system panels handle Back first. `Y` does not steal input from those panels. Keep the physical binding configurable and leave `L1/R1` globally reserved.
+`Y` is the confirmed Home shortcut for opening/closing Continue. `A` chooses a card for Home without launching; it closes the drawer and restores the large Home action button. `B` cancels, preserving Home. Outside panels, A immediately starts/resumes the chosen Adventure; no focus movement is required or available on Home. Higher-priority text-entry, selection and system panels own their confirmation and Back actions. `A` cannot launch Home's Adventure through an open panel, and `Y` does not steal input from those panels. Keep the physical binding configurable and leave `L1/R1` globally reserved.
 
 The visible closed control is attached to the bottom-left frame, with a diagonally cut right edge. Opening expands its width before the panel rises; closing retracts it before narrowing. Its motion stays entirely within the 16:9 screen.
 

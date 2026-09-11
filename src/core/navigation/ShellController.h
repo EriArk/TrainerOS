@@ -13,7 +13,6 @@
 #include "platform/PlatformService.h"
 #include <QObject>
 #include <QVariantList>
-#include <array>
 
 namespace trainer {
 class ShellController final : public QObject {
@@ -94,7 +93,6 @@ private:
     QList<ContinueEntry> points_;
     QString homeAdventureId_, homeResumeId_;
     int page_ = 0;
-    std::array<int, 5> pageFocus_{};
     int drawerFocus_ = 0;
     int menuFocus_ = 0;
     bool drawerOpen_ = false;

@@ -37,7 +37,7 @@ Item {
         objectName: "continue-toggle"
         x: 12; y: 8; width: 284; height: 36
         label: "Y   Continue Adventure"; textSize: 17
-        selected: !root.expanded && root.shell.focusIndex === 1 && !root.shell.menuOpen && root.shell.notice.length === 0
+        selected: false // Y is a fixed page action, never an A-selectable stop.
         onActivated: root.shell.activate(1, "continue")
     }
     Text {

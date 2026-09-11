@@ -8,7 +8,7 @@ The user's 2026-09-11 clarification separates choosing an Adventure from launchi
 - A card selection stores `homeAdventure` and optional `homeResume` in versioned browsing state. The explicit choice remains until another card is selected, including after restart or launching something else from Worlds.
 - Selecting a real state may make the Home action Resume Adventure. A recent-process card offers normal launch; it never claims to be an emulator state. Actual state enumeration/direct resume remains future adapter work.
 - Missing capabilities offer Set up Adventure; an empty Home offers Explore Worlds. Missing selected identities fall back to the latest available Adventure or the empty Home.
-- Left/Down on Home reaches the Continue affordance, Right/Up reaches the main button. Y works from either. B/Y cancellation preserves the prior selection and opener focus. A confirmed selection focuses the main button.
+- A is a fixed Home action: it immediately presses the large button, even after arbitrary D-pad/stick input. There is no directional traversal of Home's static modules. Y opens/closes the selector; B/Y cancellation preserves the prior selection and returns to the fixed main action. Open lists, text entry and system panels take priority over Home shortcuts.
 - The drawer scrolls horizontally under controller focus, preserving the full selected-card outline. It stays inside the fixed landscape viewport. Start traps focus above it; B restores the card. L1/R1 retain primary-page behavior.
 
 ## Recording and storage
@@ -25,4 +25,4 @@ The UI snapshot contains the latest session for each of up to 100 Adventures, or
 
 Native tests use actual child processes and SQLite close/reopen: failed start/checkpoint, normal return, child crash, rejected parallel launch, monotonic duration, idempotence rejection, foreign identity rejection, interrupted recovery, schema 3 migration and preservation of external bytes.
 
-Rendered SDL scenarios exercise five recent cards, scrolling, menu/Back/shoulders, selection without a process, main-button launch/return, retained Home focus and restart persistence at 960×540 and 1920×1080. Original mock flows remain isolated. New hardware acceptance and deployment require the Flip 2 connection; passing host tests does not close that gate.
+Rendered SDL scenarios exercise five recent cards, scrolling, menu/Back/shoulders, selection without a process, immediate A launch after directional input, modal confirmation without launching, launch/return and restart persistence at 960×540 and 1920×1080. Original mock flows remain isolated. Hardware acceptance checks the same Home actions on Flip 2; passing host tests does not close that gate.

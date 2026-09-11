@@ -4,7 +4,7 @@ Item {
     id: root
     required property var shell
     objectName: "home-launch"
-    property bool selected: shell.page === 0 && shell.focusIndex === 0 && !shell.drawerOpen && !shell.menuOpen && !shell.serviceOpen && shell.notice.length === 0
+    property bool selected: shell.page === 0 && !shell.drawerOpen && !shell.menuOpen && !shell.serviceOpen && shell.notice.length === 0
     property bool depressed: false
     onSelectedChanged: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
     onVisibleChanged: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
