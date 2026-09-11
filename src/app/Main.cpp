@@ -4,6 +4,7 @@
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "core/navigation/AdventureLaunchController.h"
+#include "features/home/PlayHistoryController.h"
 #include "core/repository/CollectionRepository.h"
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -27,6 +28,7 @@
 #include "PersistenceSmokeScenario.h"
 #include "LibrarySmokeScenario.h"
 #include "LaunchSmokeScenario.h"
+#include "HomeSmokeScenario.h"
 #include "DiagnosticsSmokeScenario.h"
 #endif
 
@@ -75,7 +77,7 @@ int main(int argc, char* argv[]) {
     hallSmoke = parser.isSet("hall-smoke-test");
     diagnosticsSmoke = parser.isSet("diagnostics-smoke-test");
     persistencePhase = parser.value("persistence-smoke-test");
-    if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "collection"}.contains(persistencePhase)
+    if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "collection"}.contains(persistencePhase)
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
     const bool smoke = parser.isSet("smoke-test") || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
@@ -126,7 +128,7 @@ int main(int argc, char* argv[]) {
         if (personalLibrary && !smoke) selectedAdapter = &retroarch;
 #ifdef TRAINEROS_UI_TESTS
         ProbeAdventureAdapter probeAdapter;
-        if (persistencePhase == "library-launch") selectedAdapter = &probeAdapter;
+        if (persistencePhase == "library-launch" || persistencePhase.startsWith("library-home")) selectedAdapter = &probeAdapter;
 #endif
         ShellController shell(activeLibrary,
                               store ? static_cast<TrainerRepository&>(*store) : profiles,
@@ -141,6 +143,8 @@ int main(int argc, char* argv[]) {
         SessionState session(shell, store.get());
         ProcessService adventureProcess;
         AdventureLaunchController adventureLaunch(adventureProcess);
+        std::unique_ptr<PlayHistoryController> playHistory;
+        if (personalLibrary) playHistory = std::make_unique<PlayHistoryController>(adventureLaunch, *store);
         ControllerInput input(nullptr, preferred);
         const auto reportBase = parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()
             : QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
@@ -178,10 +182,10 @@ int main(int argc, char* argv[]) {
             if (!parser.isSet("windowed") && !smoke) window->showFullScreen();
             if (personalLibrary && !smoke) {
                 auto returnFullscreen = std::make_shared<bool>(false);
-                retroarch.requestLaunch = [&, window, returnFullscreen](const ProcessCommand& command) {
+                retroarch.requestLaunch = [&, window, returnFullscreen](const ProcessCommand& command, const QString& id) {
                     if (session.blocked() || adventureLaunch.active()) return false;
                     *returnFullscreen = window->visibility() == QWindow::FullScreen;
-                    return adventureLaunch.launch(command, shell.navigationState());
+                    return adventureLaunch.launch(command, shell.navigationState(), id);
                 };
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::changed, &session, [&] {
                     session.setAdventureActive(adventureLaunch.active());
@@ -198,9 +202,13 @@ int main(int argc, char* argv[]) {
                                  [&, window, returnFullscreen](const QJsonObject& state) {
                     shell.restoreNavigation(state);
                     if (!adventureLaunch.error().isEmpty()) shell.showNotice(adventureLaunch.error());
+                    else if (playHistory && !playHistory->error().isEmpty()) shell.showNotice(playHistory->error());
                     if (*returnFullscreen) window->showFullScreen(); else window->show();
                     window->requestActivate();
                     input.setEnabled(app.applicationState() == Qt::ApplicationActive);
+                });
+                QObject::connect(playHistory.get(), &PlayHistoryController::writeFailed, &shell, [&](const QString& error) {
+                    if (!adventureLaunch.active()) shell.showNotice(error);
                 });
             }
             if (smoke) {
@@ -210,6 +218,9 @@ int main(int argc, char* argv[]) {
                 if (diagnosticsSmoke) {
                     startDiagnosticsSmoke(window, shell, session, input, deviceReports, joystick, screenshotDir,
                                           smokeCompleted, qmlWarnings, diagnostics);
+                } else if (persistencePhase.startsWith("library-home")) {
+                    startHomeSmoke(window, shell, session, *store, input, probeAdapter, joystick, persistencePhase.endsWith("reopen"),
+                                   screenshotDir, smokeCompleted, qmlWarnings, diagnostics);
                 } else if (persistencePhase == "library-launch") {
                     startLaunchSmoke(window, shell, session, *store, input, probeAdapter, joystick, screenshotDir,
                                      smokeCompleted, qmlWarnings, diagnostics);
@@ -268,15 +279,16 @@ int main(int argc, char* argv[]) {
                     switch ((*step)++) {
                     case 0:
                         check(input.connected(), "virtual controller not connected");
-                        check(shell.page() == 0 && focusIs("continue-toggle"), "initial Home focus");
+                        check(shell.page() == 0 && focusIs("home-launch"), "initial Home focus");
                         capture("home"); press(SDL_CONTROLLER_BUTTON_Y); break;
                     case 1:
                         check(shell.drawerOpen() && focusIs("resume-0"), "Y opens drawer and focuses first card");
                         capture("continue"); press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT); press(SDL_CONTROLLER_BUTTON_A); break;
                     case 2:
-                        check(!shell.notice().isEmpty() && focusIs("notice-close"), "resume response traps focus");
-                        capture("resume-result");
-                        press(SDL_CONTROLLER_BUTTON_B); break;
+                        check(shell.notice().isEmpty() && !shell.drawerOpen() && focusIs("home-launch"), "Selection returns to Home without launch");
+                        check(shell.home()["adventureId"] == "crystal-demo", "Selected Adventure rebuilds Home");
+                        capture("home-selected");
+                        press(SDL_CONTROLLER_BUTTON_Y); break;
                     case 3:
                         check(shell.focusIndex() == 1 && focusIs("resume-1"), "Back restores resume card");
                         press(SDL_CONTROLLER_BUTTON_START); break;

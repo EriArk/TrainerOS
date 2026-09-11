@@ -46,4 +46,4 @@ The emulator owns content loading and saving. A missing content file in the test
 - Separate startup checks rendered Ruby and Stadium in RetroArch, Diamond in melonDS, Colosseum in Dolphin and Rumble U in Cemu. The latter three are installed device applications, **not additional TrainerOS adapters**.
 - InputPlumber's current `SendEvent` method panics in its async runtime; `SendButtonChord` works. These checks use the actual OS/SDL input path with injected events. Physical button labels, analog comfort, long gameplay and dedicated-session recovery still need hands-on validation. No sleep tests were performed.
 
-Resume-point enumeration, Home history, save parsing, achievements and additional adapters remain subsequent module work. No game content, BIOS, device credentials or personal library manifest belongs in the repository.
+Identified launch events now feed [Home history](HOME_AND_HISTORY.md), independently of save files. Resume-point enumeration, save parsing, achievements and additional adapters remain subsequent module work. No game content, BIOS, device credentials or personal library manifest belongs in the repository.

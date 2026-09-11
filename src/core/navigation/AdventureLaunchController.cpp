@@ -3,16 +3,21 @@
 namespace trainer {
 AdventureLaunchController::AdventureLaunchController(ProcessService& process, QObject* parent) : QObject(parent), process_(process) {
     connect(&process_, &ProcessService::started, this, [this] {
+        started_ = true;
+        if (!adventureId_.isEmpty()) emit adventureStarted(adventureId_);
         if (state_ == "stopping") { process_.stop(); return; }
         state_ = "running"; emit changed(); emit suspendRequested();
     });
-    connect(&process_, &ProcessService::finished, this, [this](int code, bool, const QString& error) {
+    connect(&process_, &ProcessService::finished, this, [this](int code, bool crashed, const QString& error) {
         if (!active()) return;
+        if (started_ && !adventureId_.isEmpty()) emit adventureFinished(state_ != "stopping" && (crashed || code != 0 || !error.isEmpty()));
+        started_ = false;
         restore(state_ == "stopping" ? QString() : !error.isEmpty() ? error : code != 0 ? "The Adventure ended with an error. You can try again." : QString());
     });
 }
-bool AdventureLaunchController::launch(const ProcessCommand& command, const QJsonObject& context) {
+bool AdventureLaunchController::launch(const ProcessCommand& command, const QJsonObject& context, const QString& adventureId) {
     if (active() || process_.active()) return false;
+    adventureId_ = adventureId; started_ = false;
     command_ = command; context_ = context; error_.clear(); state_ = "preparing";
     const auto token = ++request_; emit changed(); emit checkpointRequested(token, context_); return true;
 }

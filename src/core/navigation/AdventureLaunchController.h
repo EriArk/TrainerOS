@@ -12,7 +12,7 @@ public:
     QString state() const { return state_; }
     QString error() const { return error_; }
     bool active() const { return state_ == "preparing" || state_ == "starting" || state_ == "running" || state_ == "stopping"; }
-    bool launch(const ProcessCommand&, const QJsonObject& returnContext);
+    bool launch(const ProcessCommand&, const QJsonObject& returnContext, const QString& adventureId = {});
     void checkpointCompleted(quint64 request, const QString& error);
     void cancel();
 signals:
@@ -20,12 +20,16 @@ signals:
     void checkpointRequested(quint64 request, const QJsonObject& context);
     void suspendRequested();
     void restoreRequested(const QJsonObject& context);
+    void adventureStarted(const QString& id);
+    void adventureFinished(bool failed);
 private:
     void restore(const QString& error);
     ProcessService& process_;
     ProcessCommand command_;
     QJsonObject context_;
     QString state_ = "idle", error_;
+    QString adventureId_;
+    bool started_ = false;
     quint64 request_ = 0;
 };
 }

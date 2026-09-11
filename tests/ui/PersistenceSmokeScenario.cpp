@@ -61,7 +61,7 @@ void startPersistenceSmoke(QQuickWindow* window, ShellController& shell, Session
         if (phase == "seed") {
             switch ((*stage)++) {
             case 0:
-                check(!shell.trainer()->exists() && focusIs("continue-toggle"), "Fresh startup");
+                check(!shell.trainer()->exists() && focusIs("home-launch"), "Fresh startup");
                 press(next, 3); press(a); press(a); press(a); // Trainer name A.
                 press(down, 3); press(right); press(a); // Apply.
                 check(shell.trainer()->draftName() == "A", "Controller text entry");

@@ -10,6 +10,8 @@ public:
     virtual QList<World> worlds() const = 0;
     virtual QList<Adventure> adventures() const = 0;
     virtual QList<ResumePoint> resumePoints() const = 0;
+    virtual QList<PlaySession> recentSessions() const { return {}; }
+    virtual std::optional<qint64> recordedSeconds(const QString&) const { return {}; }
     virtual HomeSnapshot home() const = 0;
     virtual bool editable() const { return false; }
     virtual std::optional<AdventureRegistration> registration(const QString&) const { return {}; }

@@ -115,7 +115,7 @@ A card may contain:
 - timestamp
 - tiny progress metadata such as badges or playtime
 
-Selecting a card asks the configured Adventure adapter to resume that exact state when supported. If exact resume is unavailable, the adapter can fall back to normal launch.
+Selecting a card rebuilds Home around that Adventure without launching it. A large frame-mounted button on Home starts the chosen Adventure, or resumes its selected state when supported. The explicit Home choice and real launch history survive restart; without an explicit choice, Home uses the most recently launched Adventure.
 
 The panel is secondary: **Home itself is not the Continue screen**.
 

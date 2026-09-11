@@ -14,7 +14,7 @@
 
 namespace trainer {
 namespace {
-constexpr int SchemaVersion = 3;
+constexpr int SchemaVersion = 4;
 QString failedWrite() { return "Couldn't save changes. Check free space or storage access, then try again."; }
 struct LoadedState {
     QString error;
@@ -22,6 +22,7 @@ struct LoadedState {
     QSet<QString> favorites;
     QJsonObject navigation;
     LibrarySnapshot library;
+    PlayHistorySnapshot history;
 };
 }
 class SqliteWorker final : public QObject {
@@ -103,6 +104,17 @@ public:
                     }
                 }
             }
+            if (openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next())) openError = failedWrite();
+            if (openError.isEmpty() && query.value(0).toInt() < 4) {
+                query.finish();
+                if (!db.transaction()) openError = failedWrite();
+                else {
+                    openError = migratePlayHistory(db);
+                    if (openError.isEmpty() && !query.exec("PRAGMA user_version=4")) openError = failedWrite();
+                    if (openError.isEmpty() && !db.commit()) openError = failedWrite();
+                    if (!openError.isEmpty()) db.rollback();
+                }
+            }
             if (openError.isEmpty() && (!query.exec("PRAGMA quick_check") || !query.next() || query.value(0).toString() != "ok"))
                 openError = "Your data needs recovery. The existing file has been kept.";
             if (openError.isEmpty() && !query.exec("PRAGMA synchronous=FULL")) openError = failedWrite();
@@ -137,6 +149,9 @@ public:
             state.library = readLibrary(db);
             openError = state.library.error;
         }
+        if (!openError.isEmpty()) return fail(openError);
+        openError = interruptOpenSessions(db);
+        if (openError.isEmpty()) { state.history = readPlayHistory(db); openError = state.history.error; }
         if (!openError.isEmpty()) return fail(openError);
         return state;
     }
@@ -175,6 +190,14 @@ public:
     }
     LibraryWriteResult adventure(const AdventureRegistration& record) { return writeAdventure(db, record); }
     QString preferences(const ShellPreferences& value) { return writePreferences(db, value); }
+    QString playSession(const PlaySession& value, PlayHistorySnapshot& snapshot) {
+        if (!db.transaction()) return failedWrite();
+        auto error = writePlaySession(db, value);
+        if (error.isEmpty()) { snapshot = readPlayHistory(db); error = snapshot.error; }
+        if (error.isEmpty() && !db.commit()) error = failedWrite();
+        if (!error.isEmpty()) db.rollback();
+        return error;
+    }
 private:
     QSqlDatabase db;
     QString scope_;
@@ -201,6 +224,7 @@ void LocalStateStore::open() {
             if (ready_) {
                 profile_ = state.profile; favorites_ = state.favorites; navigation_ = state.navigation;
                 worlds_ = state.library.worlds; registrations_ = state.library.registrations; preferences_ = state.library.preferences;
+                history_ = state.history;
             }
             emit opened(ready_);
         }, Qt::QueuedConnection);
@@ -278,6 +302,24 @@ void LocalStateStore::saveAdventureAsync(const AdventureRegistration& candidate,
             emit libraryChanged();
         } else emit userWriteFailed();
         if (guard) completed({error.isEmpty(), error, result->revision});
+    });
+}
+HomeSnapshot LocalStateStore::home() const {
+    if (history_.recent.isEmpty()) return {{}, {}, {}, "Your next journey starts in Worlds."};
+    const auto& last = history_.recent.front();
+    return {last.adventureId, {}, {}, "Choose an Adventure with Y. Press A on Home to play."};
+}
+std::optional<qint64> LocalStateStore::recordedSeconds(const QString& id) const {
+    if (!history_.totals.contains(id)) return {};
+    return history_.totals.value(id);
+}
+void LocalStateStore::saveSessionAsync(const PlaySession& value, QObject* context, std::function<void(QString)> completed) {
+    auto snapshot = std::make_shared<PlayHistorySnapshot>();
+    write([value, snapshot](SqliteWorker& worker) { return worker.playSession(value, *snapshot); },
+          [this, snapshot, guard = QPointer<QObject>(context), completed](const QString& error) {
+        if (error.isEmpty()) { history_ = *snapshot; emit libraryChanged(); }
+        else emit userWriteFailed();
+        if (guard) completed(error);
     });
 }
 void LocalStateStore::savePreferences(const ShellPreferences& value, QObject* context, std::function<void(QString)> completed) {

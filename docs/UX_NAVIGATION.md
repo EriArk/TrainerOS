@@ -81,9 +81,9 @@ Confirmed behavior:
 - it uses compact cards
 - `L1/R1` continue to mean primary-page navigation while the drawer is closed
 - opening/closing is possible without touch/mouse
-- when open, focus stays inside until the drawer closes or an Adventure launches
+- when open, focus stays inside until the drawer closes or a primary-page switch dismisses it
 
-`Y` is the confirmed Home shortcut for opening/closing Continue. `A` selects a resume point and `B` closes the drawer, restoring its opener. Higher-priority text-entry, selection, and system panels handle Back first. `Y` does not steal input from those panels. Keep the physical binding configurable and leave `L1/R1` globally reserved.
+`Y` is the confirmed Home shortcut for opening/closing Continue. `A` chooses a card for Home without launching; it closes the drawer and focuses the large Home action button. `B` cancels, preserving Home and restoring its opener. On Home, A on the main button starts/resumes the chosen Adventure; Left/Down reaches the bottom-left Continue affordance, and Right/Up returns to the main button. Higher-priority text-entry, selection, and system panels handle Back first. `Y` does not steal input from those panels. Keep the physical binding configurable and leave `L1/R1` globally reserved.
 
 The visible closed control is attached to the bottom-left frame, with a diagonally cut right edge. Opening expands its width before the panel rises; closing retracts it before narrowing. Its motion stays entirely within the 16:9 screen.
 

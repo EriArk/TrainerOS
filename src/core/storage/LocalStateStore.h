@@ -3,6 +3,8 @@
 #include "core/repository/PokedexRepository.h"
 #include "core/repository/LibraryRepository.h"
 #include "core/repository/PreferencesRepository.h"
+#include "core/repository/PlayHistoryRepository.h"
+#include "SqlitePlayHistory.h"
 #include <QJsonObject>
 #include <QSet>
 #include <QThread>
@@ -12,7 +14,7 @@ class SqliteWorker;
 // The UI thread owns committed projections; the worker exclusively owns SQLite.
 // No sample library, Seen/Caught values or achievement unlocks enter this store.
 class LocalStateStore final : public QObject, public TrainerRepository, public PokedexProgressRepository,
-                              public LibraryRepository, public PreferencesRepository {
+                              public LibraryRepository, public PreferencesRepository, public PlayHistoryRepository {
     Q_OBJECT
 public:
     explicit LocalStateStore(QString directory, QObject* parent = nullptr, QString scope = "user-library-v1");
@@ -32,7 +34,10 @@ public:
     QList<World> worlds() const override { return worlds_; }
     QList<Adventure> adventures() const override;
     QList<ResumePoint> resumePoints() const override { return {}; }
-    HomeSnapshot home() const override { return {{}, {}, {}, "Your next journey starts in Worlds."}; }
+    HomeSnapshot home() const override;
+    QList<PlaySession> recentSessions() const override { return history_.recent; }
+    std::optional<qint64> recordedSeconds(const QString&) const override;
+    void saveSessionAsync(const PlaySession&, QObject*, std::function<void(QString)>) override;
     std::optional<AdventureRegistration> registration(const QString&) const override;
     void saveAdventureAsync(const AdventureRegistration&, QObject*, std::function<void(LibraryWriteResult)>) override;
     ShellPreferences preferences() const override { return preferences_; }
@@ -56,5 +61,6 @@ private:
     QList<World> worlds_;
     QList<AdventureRegistration> registrations_;
     ShellPreferences preferences_;
+    PlayHistorySnapshot history_;
 };
 }

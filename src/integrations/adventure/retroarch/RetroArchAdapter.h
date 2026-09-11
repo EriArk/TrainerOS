@@ -25,7 +25,7 @@ public:
     AdventureResult resume(const Adventure&, const ResumePoint&) override;
     void prepareInstallation(AdventureRegistration&) const;
     // The application supplies checkpoint/window/lifecycle coordination.
-    std::function<bool(const ProcessCommand&)> requestLaunch;
+    std::function<bool(const ProcessCommand&, const QString& adventureId)> requestLaunch;
 private:
     std::optional<ProcessCommand> command(const Adventure&) const;
     LibraryRepository& repository_;

@@ -7,6 +7,24 @@
 class PersistenceProcessTests final : public QObject {
     Q_OBJECT
 private slots:
+    void homeSelectionAndHistoryAcrossRestart() {
+        QTemporaryDir dir; QVERIFY(dir.isValid());
+        const auto executable = QDir(QCoreApplication::applicationDirPath()).filePath(
+#ifdef Q_OS_WIN
+            "traineros.exe"
+#else
+            "traineros"
+#endif
+        );
+        const auto screenshots = QCoreApplication::applicationDirPath() + "/screenshots/home";
+        for (const auto& phase : {QString("library-home"), QString("library-home-reopen")}) {
+            QProcess p; p.setProcessChannelMode(QProcess::MergedChannels);
+            p.start(executable, {"--persistence-smoke-test", phase, "--data-dir", dir.path(), "--screenshot-dir", screenshots});
+            QVERIFY(p.waitForStarted());
+            if (!p.waitForFinished(18000)) { p.kill(); p.waitForFinished(); QFAIL(qPrintable(p.readAll())); }
+            const auto output = p.readAll(); QVERIFY2(p.exitCode() == 0 && p.exitStatus() == QProcess::NormalExit, qPrintable(phase + " exit " + QString::number(p.exitCode()) + ": " + output));
+        }
+    }
     void controllerCollectionAttachment() {
         QTemporaryDir dir; QVERIFY(dir.isValid()); QVERIFY(QDir().mkpath(dir.filePath("content")));
         { QFile f(dir.filePath("content/test.gba")); QVERIFY(f.open(QIODevice::WriteOnly)); f.write("Content-free collection fixture"); }

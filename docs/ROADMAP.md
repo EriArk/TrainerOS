@@ -157,6 +157,8 @@ Visual redesign of Worlds is explicitly allowed and expected if real data sugges
 
 ## Milestone 6 — Home + Continue module
 
+The [Home/history increment](HOME_AND_HISTORY.md) adds observed launch sessions, honest recorded duration, durable explicit Home selection and a separate physical-style launch button. Y selects Home's Adventure without launching. Real save-state enumeration/screenshots/direct resume and physical acceptance of this new composition remain open.
+
 Deliverables:
 
 - real recent-Adventure history

@@ -37,26 +37,44 @@ Item {
         objectName: "continue-toggle"
         x: 12; y: 8; width: 284; height: 36
         label: "Y   Continue Adventure"; textSize: 17
-        selected: !root.expanded && !root.shell.menuOpen && root.shell.notice.length === 0
-        onActivated: root.shell.activate(0)
+        selected: !root.expanded && root.shell.focusIndex === 1 && !root.shell.menuOpen && root.shell.notice.length === 0
+        onActivated: root.shell.activate(1, "continue")
     }
     Text {
-        x: 330; y: 18; text: root.shell.sampleLibrary ? "RECENT TRAILS · SAMPLE DATA" : "RECENT TRAILS"; color: "#d2e8d9"; font.pixelSize: 12
+        x: 330; y: 18; text: root.shell.sampleLibrary ? "CHOOSE FOR HOME · SAMPLE DATA" : "CHOOSE FOR HOME · START FROM THE BIG BUTTON"; color: "#d2e8d9"; font.pixelSize: 12
         visible: root.expanded && root.width > 700
     }
     Item {
         x: 14; y: 58; width: root.width - 28; height: Math.max(0, root.height - 64); clip: true
         visible: root.expanded || root.height > 60
-        Row {
-            x: 5; y: 5
+        ListView {
+            id: cards
+            x: 5; y: 5; width: parent.width - 10; height: 158
+            orientation: ListView.Horizontal
+            interactive: false
+            clip: true
+            leftMargin: 4; rightMargin: 4
             spacing: 14
-            Repeater {
-                model: root.shell.resumePoints
+            model: root.shell.resumePoints
+            currentIndex: root.expanded ? root.shell.focusIndex : 0
+            function reveal() {
+                positionViewAtIndex(currentIndex, ListView.Contain)
+                const card = itemAtIndex(currentIndex)
+                if (card) {
+                    if (card.x - 4 < contentX) contentX = card.x - 4
+                    else if (card.x + card.width + 4 > contentX + width) contentX = card.x + card.width + 4 - width
+                }
+            }
+            onCurrentIndexChanged: Qt.callLater(reveal)
+            onWidthChanged: Qt.callLater(reveal)
+            onCountChanged: Qt.callLater(reveal)
+            Connections { target: root; function onExpandedChanged() { Qt.callLater(cards.reveal) } }
                 delegate: CapButton {
                     required property int index
                     required property var modelData
                     objectName: "resume-" + index
                     width: (root.expandedWidth - 72) / 3; height: 150
+                    y: 4
                     tint: [Theme.green, Theme.blue, Theme.pink][index % 3]
                     selected: root.expanded && !root.shell.menuOpen && root.shell.notice.length === 0 && root.shell.focusIndex === index
                     onActivated: root.shell.activate(index)
@@ -71,17 +89,16 @@ Item {
                                 radius: 25; rotation: 45; color: "#60e4edd5"
                             }
                         }
-                        Text { x: 12; y: 10; text: modelData.world; color: "#fffef9"; font.pixelSize: 18; font.bold: true }
-                        Text { x: 12; y: 35; text: "Preview placeholder"; color: "#f4f5ec"; font.pixelSize: 11 }
+                        Text { x: 12; y: 10; width: parent.width - 24; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.world; color: "#fffef9"; font.pixelSize: 18; font.bold: true }
+                        Text { x: 12; y: 35; text: modelData.previewLabel; color: "#f4f5ec"; font.pixelSize: 11 }
                     }
                     Column {
                         x: 12; y: 75; width: parent.width - 24; spacing: 4
-                        Text { text: modelData.title; color: Theme.ink; font.pixelSize: 17; font.bold: true }
-                        Text { text: modelData.location + " · " + modelData.time; color: Theme.ink; font.pixelSize: 11 }
-                        Text { text: modelData.summary; color: Theme.muted; font.pixelSize: 12 }
+                        Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.title; color: Theme.ink; font.pixelSize: 17; font.bold: true }
+                        Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: (modelData.location.length ? modelData.location + " · " : "") + modelData.time; color: Theme.ink; font.pixelSize: 11 }
+                        Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.summary; color: Theme.muted; font.pixelSize: 12 }
                     }
                 }
-            }
         }
         CapButton {
             objectName: "resume-empty"

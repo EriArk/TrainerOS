@@ -99,6 +99,8 @@ The five primary pages should have distinct personalities while sharing componen
 
 Home is intentionally asymmetric and editorial rather than a menu grid.
 
+The 2026-09-11 refinement gives the right frame-mounted module a large circular Adventure button: recessed mounting ring, warm contrasting cap, thick lower edge, bevel and short pressed travel. It starts the Adventure selected on Home. The Y drawer chooses which Adventure Home describes without starting it. The button replaces the earlier companion placeholder in this composition; see [Home and play history](HOME_AND_HISTORY.md).
+
 A good first composition:
 
 ```text

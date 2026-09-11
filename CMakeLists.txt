@@ -11,6 +11,11 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/core/repository/PlayHistoryRepository.h
+    src/core/storage/SqlitePlayHistory.cpp
+    src/core/storage/SqlitePlayHistory.h
+    src/features/home/PlayHistoryController.cpp
+    src/features/home/PlayHistoryController.h
     src/core/repository/CollectionRepository.cpp
     src/core/repository/CollectionRepository.h
     src/integrations/adventure/retroarch/RetroArchAdapter.cpp
@@ -99,6 +104,7 @@ qt_add_qml_module(traineros
         src/qml/PlatformBadge.qml
         src/qml/Hint.qml
         src/qml/HomePage.qml
+        src/qml/AdventureButton.qml
         src/qml/HallOfFamePage.qml
         src/qml/ControllerList.qml
         src/qml/ContinueDrawer.qml
@@ -118,6 +124,10 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_process_probe tests/ProcessProbe.cpp)
     target_link_libraries(trainer_process_probe PRIVATE Qt6::Core)
     find_package(Qt6 REQUIRED COMPONENTS Test)
+    qt_add_executable(trainer_history_tests tests/PlayHistoryTests.cpp)
+    target_link_libraries(trainer_history_tests PRIVATE trainer_core Qt6::Test)
+    add_dependencies(trainer_history_tests trainer_process_probe)
+    add_test(NAME history COMMAND trainer_history_tests)
     qt_add_executable(trainer_collection_tests tests/CollectionTests.cpp)
     target_link_libraries(trainer_collection_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME collection COMMAND trainer_collection_tests)
@@ -131,6 +141,7 @@ if(BUILD_TESTING)
     target_sources(traineros PRIVATE tests/ui/PersistenceSmokeScenario.cpp tests/ui/PersistenceSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/LibrarySmokeScenario.cpp tests/ui/LibrarySmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/LaunchSmokeScenario.cpp tests/ui/LaunchSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/HomeSmokeScenario.cpp tests/ui/HomeSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/DiagnosticsSmokeScenario.cpp tests/ui/DiagnosticsSmokeScenario.h)
     add_dependencies(traineros trainer_process_probe)
     target_include_directories(traineros PRIVATE tests/ui)

@@ -15,6 +15,8 @@ public:
     QList<World> worlds() const override;
     QList<Adventure> adventures() const override;
     QList<ResumePoint> resumePoints() const override { return personal_.resumePoints(); }
+    QList<PlaySession> recentSessions() const override { return personal_.recentSessions(); }
+    std::optional<qint64> recordedSeconds(const QString& id) const override { return personal_.recordedSeconds(id); }
     HomeSnapshot home() const override { return personal_.home(); }
     bool editable() const override { return personal_.editable(); }
     std::optional<AdventureRegistration> registration(const QString& id) const override { return personal_.registration(id); }

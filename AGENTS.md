@@ -69,6 +69,7 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 - Home is a living trainer overview, not a giant Continue page or tile launcher.
 - Continue Adventure is a compact slide-out panel/drawer on Home.
 - Continue uses small recent session/save-state cards, ideally with screenshots and metadata.
+- Selecting a Continue card with A chooses the Adventure shown on Home; it never launches. Home has a large physical-style action button that launches/resumes the selected Adventure. The explicit Home choice persists; latest launch is the default before a choice is made (2026-09-11 clarification).
 - RetroAchievements achievements belong inside Hall of Fame, alongside the completed-Adventure archive, not on a separate primary page.
 - Normal use must work entirely with physical controls.
 - Settings/service features should not consume a primary L1/R1 page without an intentional product change.

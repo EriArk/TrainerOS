@@ -1,4 +1,6 @@
 #include "ShellController.h"
+#include "features/home/PlayHistoryController.h"
+#include <QSet>
 #include <algorithm>
 
 namespace trainer {
@@ -8,7 +10,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     : QObject(parent), repository_(repo), adapter_(adapter), platform_(platform),
       keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this),
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
-      libraryManager_(repo, nullptr, this), settings_(this), diagnostics_(this), points_(repo.resumePoints()) {
+      libraryManager_(repo, nullptr, this), settings_(this), diagnostics_(this) {
     connect(&diagnostics_, &DiagnosticsController::closeRequested, this, [this] { service_.clear(); menuOpen_ = true; emit changed(); });
     connect(&diagnostics_, &DiagnosticsController::messageRequested, this, [this](const QString& text) {
         if (service_ != "diagnostics" || menuOpen_) { notice_ = text; emit changed(); }
@@ -62,9 +64,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::PokedexSearch) pokedex_.applySearch(text);
         else if (target == TextTarget::Library) libraryManager_.applyText(text);
     });
-    std::stable_sort(points_.begin(), points_.end(), [](const auto& a, const auto& b) {
-        return a.savedAt > b.savedAt;
-    });
+    refreshContinue();
 }
 void ShellController::configureServices(FileCatalog* files, PreferencesRepository* preferences) {
     libraryManager_.files()->setCatalog(files); settings_.setRepository(preferences);
@@ -72,11 +72,25 @@ void ShellController::configureServices(FileCatalog* files, PreferencesRepositor
 void ShellController::refreshLibrary() {
     worlds_.refresh(); libraryManager_.refresh();
     const QString selected = drawerFocus_ < points_.size() ? points_[drawerFocus_].id : QString();
-    points_ = repository_.resumePoints();
-    std::stable_sort(points_.begin(), points_.end(), [](const auto& a, const auto& b) { return a.savedAt > b.savedAt; });
+    refreshContinue();
     drawerFocus_ = 0;
     for (int i = 0; i < points_.size(); ++i) if (points_[i].id == selected) drawerFocus_ = i;
     emit changed();
+}
+void ShellController::refreshContinue() {
+    points_.clear();
+    auto states = repository_.resumePoints();
+    std::stable_sort(states.begin(), states.end(), [](const auto& a, const auto& b) { return a.savedAt > b.savedAt; });
+    QSet<QString> represented;
+    for (const auto& point : states) {
+        points_.append({point.id, point.adventureId, point.savedAt, point, {}});
+        represented.insert(point.adventureId);
+    }
+    for (const auto& session : repository_.recentSessions()) {
+        if (represented.contains(session.adventureId)) continue;
+        represented.insert(session.adventureId);
+        points_.append({"recent:" + session.adventureId, session.adventureId, session.startedAt, {}, session});
+    }
 }
 int ShellController::focusIndex() const {
     if (!notice_.isEmpty()) return 0;
@@ -94,6 +108,7 @@ int ShellController::focusIndex() const {
 QJsonObject ShellController::navigationState() const {
     const QStringList pages{"home", "worlds", "pokedex", "trainer", "hall"};
     return {{"version", 1}, {"page", pages[page_]},
+            {"homeAdventure", homeAdventureId_}, {"homeResume", homeResumeId_},
             {"resume", drawerFocus_ < points_.size() ? points_[drawerFocus_].id : QString()},
             {"worlds", worlds_.navigationState()}, {"pokedex", pokedex_.navigationState()}, {"hall", hall_.navigationState()}};
 }
@@ -101,6 +116,7 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     if (state["version"].toInt() != 1) return;
     const QStringList pages{"home", "worlds", "pokedex", "trainer", "hall"};
     goToPage(std::max(0, int(pages.indexOf(state["page"].toString()))));
+    homeAdventureId_ = state["homeAdventure"].toString(); homeResumeId_ = state["homeResume"].toString();
     worlds_.restoreNavigation(state["worlds"].toObject());
     pokedex_.restoreNavigation(state["pokedex"].toObject());
     hall_.restoreNavigation(state["hall"].toObject());
@@ -108,31 +124,72 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     for (int i = 0; i < points_.size(); ++i) if (points_[i].id == state["resume"].toString()) drawerFocus_ = i;
     emit changed();
 }
+std::optional<Adventure> ShellController::homeAdventure() const {
+    const auto adventures = repository_.adventures();
+    for (const auto& a : adventures) if (a.id == homeAdventureId_ && !a.collectionOnly) return a;
+    const auto latest = repository_.home().activeAdventureId;
+    for (const auto& a : adventures) if (a.id == latest && !a.collectionOnly) return a;
+    return {};
+}
+std::optional<ResumePoint> ShellController::homeResumePoint(const QString& adventureId) const {
+    for (const auto& point : points_) if (point.id == homeResumeId_ && point.adventureId == adventureId) return point.resumePoint;
+    return {};
+}
 QVariantMap ShellController::home() const {
     const auto snapshot = repository_.home();
     QString title = "Choose a journey in Worlds", world = "Your journey";
-    for (const auto& a : repository_.adventures()) if (a.id == snapshot.activeAdventureId) {
-        title = a.title;
-        for (const auto& w : repository_.worlds()) if (w.id == a.worldId) world = w.name;
+    const auto adventure = homeAdventure();
+    QString action = "Explore Worlds", milestone = snapshot.milestone;
+    std::optional<int> badges, caught;
+    std::optional<qint64> seconds;
+    if (adventure) {
+        title = adventure->title;
+        for (const auto& w : repository_.worlds()) if (w.id == adventure->worldId) world = w.name;
+        badges = adventure->badges; caught = adventure->caught;
+        if (adventure->id == snapshot.activeAdventureId) {
+            if (!badges) badges = snapshot.badges;
+            if (!caught) caught = snapshot.caught;
+        }
+        seconds = repository_.recordedSeconds(adventure->id);
+        const auto caps = adapter_.capabilities(*adventure);
+        action = homeResumePoint(adventure->id) && caps.directResume ? "Resume Adventure" : caps.launch ? "Start Adventure" : "Set up Adventure";
+        if (repository_.editable()) {
+            milestone = "Your selected Adventure · Y to choose another";
+            for (const auto& recent : repository_.recentSessions()) if (recent.adventureId == adventure->id) {
+                milestone = "Last opened " + recent.startedAt.toLocalTime().toString("dd MMM · HH:mm");
+                if (recent.outcome == PlaySessionOutcome::Interrupted) milestone += " · Session interrupted";
+                break;
+            }
+        }
     }
     return {{"trainer", trainer_.exists() ? trainer_.profile()["name"] : "TRAINER"},
             {"hasTrainer", trainer_.exists()}, {"adventure", title}, {"world", world},
-            {"badges", snapshot.badges ? QString::number(*snapshot.badges) : "—"},
-            {"caught", snapshot.caught ? QString::number(*snapshot.caught) : "—"},
-            {"milestone", snapshot.milestone}};
+            {"adventureId", adventure ? adventure->id : QString()}, {"action", action},
+            {"badges", badges ? QString::number(*badges) : "—"}, {"caught", caught ? QString::number(*caught) : "—"},
+            {"recordedTime", seconds ? recordedDuration(*seconds) : "—"}, {"milestone", milestone}};
 }
 QVariantList ShellController::resumePoints() const {
     QVariantList result;
+    const auto adventures = repository_.adventures();
+    const auto worlds = repository_.worlds();
     for (const auto& point : points_) {
         QString title = "Unavailable Adventure";
         QString world = "Unknown World";
-        for (const auto& a : repository_.adventures()) if (a.id == point.adventureId) {
+        for (const auto& a : adventures) if (a.id == point.adventureId) {
             title = a.title;
-            for (const auto& w : repository_.worlds()) if (w.id == a.worldId) world = w.name;
+            for (const auto& w : worlds) if (w.id == a.worldId) world = w.name;
+        }
+        QString summary = "Select for Home · Start there to play";
+        QString location;
+        if (point.resumePoint) { location = point.resumePoint->location; summary = point.resumePoint->summary; }
+        if (point.session) {
+            if (point.session->outcome == PlaySessionOutcome::Interrupted) summary = "Interrupted · duration not recorded";
+            else if (point.session->outcome == PlaySessionOutcome::Failed) summary = "Ended with an error · you can retry";
+            else if (point.session->elapsedSeconds) summary = recordedDuration(*point.session->elapsedSeconds) + " · Last session";
         }
         result.append(QVariantMap{{"id", point.id}, {"title", title}, {"world", world},
-            {"location", point.location}, {"summary", point.summary},
-            {"time", point.savedAt.toUTC().toString("dd MMM · HH:mm 'UTC'")}});
+            {"location", location}, {"summary", summary}, {"previewLabel", point.resumePoint ? "Saved moment" : "Recent Adventure"},
+            {"time", point.recordedAt.toLocalTime().toString("dd MMM · HH:mm")}});
     }
     return result;
 }
@@ -153,6 +210,7 @@ void ShellController::goToPage(int page) {
     emit changed();
 }
 void ShellController::activate(int index, const QString& area) {
+    if (area == "continue" && page_ == 0) { dispatch(Action::ToggleContinue); return; }
     if (!notice_.isEmpty()) { notice_.clear(); emit changed(); return; }
     if (menuOpen_) menuFocus_ = std::clamp(index, 0, int(menuItems().size()) - 1);
     else if (keyboard_.isOpen()) { keyboard_.activate(index); return; }
@@ -172,7 +230,7 @@ void ShellController::activate(int index, const QString& area) {
         return;
     }
     else if (drawerOpen_) drawerFocus_ = std::clamp(index, 0, std::max(0, int(points_.size()) - 1));
-    else pageFocus_[page_] = 0;
+    else pageFocus_[page_] = page_ == 0 ? std::clamp(index, 0, 1) : 0;
     confirm();
     emit changed();
 }
@@ -197,12 +255,29 @@ void ShellController::confirm() {
         if (points_.isEmpty()) { drawerOpen_ = false; return; }
         const auto& point = points_.at(drawerFocus_);
         for (const auto& adventure : repository_.adventures()) if (adventure.id == point.adventureId) {
-            notice_ = adapter_.capabilities(adventure).directResume
-                ? adapter_.resume(adventure, point).message : "Direct resume is unavailable for this Adventure.";
+            homeAdventureId_ = adventure.id; homeResumeId_ = point.resumePoint ? point.id : QString();
+            drawerOpen_ = false; pageFocus_[0] = 0;
             return;
         }
-        notice_ = "This Adventure is unavailable. Your resume point has been kept.";
-    } else if (page_ == 0) drawerOpen_ = true;
+        notice_ = "This Adventure is unavailable. Its history has been kept.";
+    } else if (page_ == 0) {
+        if (pageFocus_[0] == 1) { drawerOpen_ = true; return; }
+        const auto adventure = homeAdventure();
+        if (!adventure) { goToPage(1); return; }
+        const auto caps = adapter_.capabilities(*adventure);
+        const auto point = homeResumePoint(adventure->id);
+        if (point && caps.directResume) {
+            emit homeLaunchPressed();
+            const auto result = adapter_.resume(*adventure, *point);
+            if (!result.inProgress) notice_ = result.message;
+        } else if (caps.launch) {
+            emit homeLaunchPressed();
+            const auto result = adapter_.launch(*adventure);
+            if (!result.inProgress) notice_ = result.message;
+        } else if (repository_.editable()) {
+            libraryFromWorlds_ = true; service_ = "library"; libraryManager_.beginEdit(adventure->id);
+        } else notice_ = "This Adventure needs play setup.";
+    }
     else if (page_ == 3) {
         trainer_.beginEdit();
     } else {
@@ -240,10 +315,11 @@ void ShellController::dispatch(Action action) {
     } else if (action == Action::Confirm) confirm();
     else if (notice_.isEmpty()) {
         int* focus = menuOpen_ ? &menuFocus_ : drawerOpen_ ? &drawerFocus_ : &pageFocus_[page_];
-        const int count = menuOpen_ ? menuItems().size() : drawerOpen_ ? std::max(1, int(points_.size())) : 1;
+        const int count = menuOpen_ ? menuItems().size() : drawerOpen_ ? std::max(1, int(points_.size())) : page_ == 0 ? 2 : 1;
         int delta = 0;
         if (menuOpen_) delta = action == Action::Up ? -1 : action == Action::Down ? 1 : 0;
         else if (drawerOpen_) delta = action == Action::Left ? -1 : action == Action::Right ? 1 : 0;
+        else if (page_ == 0) delta = action == Action::Left || action == Action::Down ? 1 : action == Action::Right || action == Action::Up ? -1 : 0;
         *focus = std::clamp(*focus + delta, 0, std::max(0, count - 1));
     }
     emit changed();

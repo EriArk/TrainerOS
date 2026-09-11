@@ -52,6 +52,23 @@ struct ResumePoint {
     QString location;
     QString summary;
 };
+enum class PlaySessionOutcome { Running, Returned, Failed, Interrupted };
+// Observed child-process time, independent of game-save progress/playtime.
+struct PlaySession {
+    QString id;
+    QString adventureId;
+    QDateTime startedAt;
+    QDateTime endedAt;
+    std::optional<qint64> elapsedSeconds;
+    PlaySessionOutcome outcome = PlaySessionOutcome::Running;
+};
+struct ContinueEntry {
+    QString id;
+    QString adventureId;
+    QDateTime recordedAt;
+    std::optional<ResumePoint> resumePoint;
+    std::optional<PlaySession> session;
+};
 struct TrainerProfile {
     QString id;
     QString name;

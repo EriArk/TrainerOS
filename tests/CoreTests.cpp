@@ -81,6 +81,9 @@ private slots:
         QVERIFY(!adapter.resume(adventure, point).success);
         shell.dispatch(Action::ToggleContinue);
         shell.dispatch(Action::Confirm);
+        QVERIFY(!shell.drawerOpen()); QVERIFY(shell.notice().isEmpty());
+        QCOMPARE(shell.home()["adventureId"].toString(), "emerald-demo");
+        shell.dispatch(Action::Confirm);
         QVERIFY(shell.notice().contains("No Adventure was launched"));
     }
     void virtualController() {

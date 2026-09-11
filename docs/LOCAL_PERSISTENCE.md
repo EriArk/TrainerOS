@@ -2,13 +2,15 @@
 
 Schema 3 adds Adventure platform/catalogue/variant metadata through a transactional 2→3 migration; existing IDs, profile, favorites, configuration and file references are preserved. The bundled collection checklist is not persisted as owned data. See [collection catalogue](COLLECTION_CATALOGUE.md) for attachment and migration acceptance.
 
-Normal runs use SQLite for the personal Worlds library, one local Trainer profile, Pokédex favorites, browsing state and shell preferences. `--ephemeral` and the original four UI smoke scenarios use in-memory fixtures. Process scenarios require isolated test directories. No emulator launch, ROM/save parsing, account connection or session mutation is introduced.
+Schema 4 adds observed play sessions through a transactional 3→4 migration without seeding historical launches. Interrupted sessions keep unknown end time/duration. `SqlitePlayHistory` owns SQL mapping and the existing worker owns scheduling. See [Home and play history](HOME_AND_HISTORY.md).
+
+Normal runs use SQLite for the personal Worlds library, one local Trainer profile, Pokédex favorites, browsing state, shell preferences and observed launch history. `--ephemeral` uses in-memory fixtures. Process scenarios require isolated test directories. No ROM/save parsing, account connection or system-session mutation is introduced by this storage layer.
 
 ## Ownership and schema
 
 `LocalStateStore` implements the Library, Trainer, Pokédex progress and Preferences repositories. Getters read committed projections on the UI thread without I/O. One worker exclusively owns its Qt SQL connection; startup, schema checks, migrations, reads and writes run there. `SqliteLibrary` keeps library/schema mapping separate from worker scheduling.
 
-SQLite `user_version` is currently 2:
+SQLite `user_version` is currently 4:
 
 | Table | Data |
 | --- | --- |
@@ -19,6 +21,7 @@ SQLite `user_version` is currently 2:
 | `adventures` | Stable ID, primary World, edition/title/notes, external file reference, opaque adapter configuration, edit revision |
 | `adventure_worlds` | Additional region relationships with foreign-key integrity |
 | `preferences` | Color theme and reduced-motion flag |
+| `play_sessions` | Identified Adventure process launches, UTC timestamps, optional monotonic duration and outcome |
 
 Migrations 0→1 and 1→2 run in transactions. The latter preserves profile/favorites and existing browsing scopes while adding an empty personal library and region reference names. Nonempty unversioned foreign databases, unsupported versions, unreadable schemas, broken foreign keys and failed integrity checks are rejected without replacing the file. Malformed optional navigation falls back to defaults; newer versions of the active browsing scope require a newer application and are preserved.
 
@@ -44,7 +47,7 @@ A navigation-write error offers Retry or Keep browsing and pauses automatic retr
 
 ## Navigation
 
-Version 1 stores a named page, Resume Point selection, World/Adventure routes and IDs, applied Pokédex query/filters/order/entry, and Hall of Fame routes/record selections. Local focus is bounded and normalized against available content. Missing records fall back to a reachable row or recovery action.
+Version 1 stores a named page, Continue card selection, explicit Home Adventure/optional state selection, World/Adventure routes and IDs, applied Pokédex query/filters/order/entry, and Hall of Fame routes/record selections. Local focus is bounded and normalized against available content. Missing records fall back to a reachable row or recovery action. New optional Home keys retain the version-1 fallback behavior for older browsing snapshots.
 
 Keyboard buffers, Trainer/Adventure drafts, unconfirmed picker choices, service panels, notices, system menus and the open Continue drawer are excluded. The drawer's selected card is retained. Normal runs use `user-library-v1`; the older `prototype-library-v1` scope is preserved separately and used only by sample-library persistence tests. Achievement cursors confer no unlock/progress state and populate no provider cache.
 

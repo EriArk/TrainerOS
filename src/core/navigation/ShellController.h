@@ -71,8 +71,12 @@ public:
 signals:
     void changed();
     void exitRequested();
+    void homeLaunchPressed();
 private:
     void confirm();
+    void refreshContinue();
+    std::optional<Adventure> homeAdventure() const;
+    std::optional<ResumePoint> homeResumePoint(const QString& adventureId) const;
     LibraryRepository& repository_;
     AdventureAdapter& adapter_;
     PlatformService& platform_;
@@ -87,7 +91,8 @@ private:
     QString service_;
     enum class TextTarget { None, TrainerName, PokedexSearch, Library };
     TextTarget textTarget_ = TextTarget::None;
-    QList<ResumePoint> points_;
+    QList<ContinueEntry> points_;
+    QString homeAdventureId_, homeResumeId_;
     int page_ = 0;
     std::array<int, 5> pageFocus_{};
     int drawerFocus_ = 0;

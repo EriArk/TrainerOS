@@ -80,7 +80,7 @@ AdventureCapabilities RetroArchAdapter::capabilities(const Adventure& adventure)
 AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
     const auto invocation = command(adventure);
     if (!invocation) return {false, "This Adventure needs play setup. Its library record has been kept."};
-    if (!requestLaunch || !requestLaunch(*invocation)) return {false, "An Adventure is already opening. Try again after returning."};
+    if (!requestLaunch || !requestLaunch(*invocation, adventure.id)) return {false, "An Adventure is already opening. Try again after returning."};
     return {true, {}, true};
 }
 AdventureResult RetroArchAdapter::resume(const Adventure&, const ResumePoint&) {

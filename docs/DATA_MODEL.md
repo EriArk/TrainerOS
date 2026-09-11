@@ -80,7 +80,7 @@ Worlds and Adventures use an optional `JourneyStatus` (`NotStarted`, `InProgress
 
 ## ResumePoint
 
-Represents one item in Continue Adventure.
+Represents an adapter-backed resumable moment. `ContinueEntry` may instead carry a recent `PlaySession`; a launch record is never represented as an emulator state. Selecting either kind chooses Home's Adventure, and only Home's action button launches/resumes.
 
 Suggested fields:
 
@@ -101,6 +101,10 @@ directResumeAvailable
 `adapterPayload` is opaque to feature UI. Only the matching adapter should interpret it.
 
 A ResumePoint can represent an emulator save state, a session snapshot, or another adapter-specific resumable point.
+
+## PlaySession
+
+`id`, `adventureId`, `startedAt`, optional `endedAt`/`elapsedSeconds`, and `outcome` record a process that actually started through TrainerOS. Outcomes are Running, Returned, Failed and Interrupted. Duration uses a monotonic timer; timestamps use UTC. An interrupted shell has no known final duration. `LibraryRepository::recentSessions()` returns the latest session per Adventure in observed launch order, with a bounded UI snapshot. Recorded totals sum known process durations, independently of game-save playtime and progress. Explicit Home selection is browsing state, not a fabricated session or completion flag.
 
 ## TrainerProfile
 

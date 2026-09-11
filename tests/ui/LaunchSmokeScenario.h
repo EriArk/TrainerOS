@@ -10,7 +10,7 @@ public:
     trainer::AdventureCapabilities capabilities(const trainer::Adventure&) const override { return {true, false, false}; }
     trainer::AdventureResult launch(const trainer::Adventure&) override {
         const bool accepted = request && request();
-        return {accepted, accepted ? "Preparing the test Adventure…" : "A test Adventure is already running."};
+        return {accepted, accepted ? QString() : "A test Adventure is already running.", accepted};
     }
     trainer::AdventureResult resume(const trainer::Adventure&, const trainer::ResumePoint&) override { return {false, "Probe has no save states."}; }
 };

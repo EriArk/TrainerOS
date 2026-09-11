@@ -60,7 +60,7 @@ private slots:
                 [&](quint64 token, const QJsonObject& state) {
             store.saveNavigation(state, &lifecycle, [&, token](const QString& error) { lifecycle.checkpointCompleted(token, error); });
         });
-        adapter.requestLaunch = [&](const ProcessCommand& command) { return lifecycle.launch(command, context); };
+        adapter.requestLaunch = [&](const ProcessCommand& command, const QString& id) { return lifecycle.launch(command, context, id); };
         QSignalSpy restored(&lifecycle, &AdventureLaunchController::restoreRequested);
         const auto accepted = adapter.launch(record.adventure); QVERIFY(accepted.success && accepted.inProgress);
         QVERIFY(!adapter.launch(record.adventure).success); // No second child while checkpointing.
