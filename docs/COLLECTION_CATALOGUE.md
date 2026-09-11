@@ -20,6 +20,22 @@ The file picker accepts plausible platform file formats, while the persistence w
 
 ## Coverage and device feasibility
 
+### Browsing a large personal collection
+
+Inside a World, X opens the shared controller keyboard to search titles, version labels and platform names/badges. Search is case- and accent-insensitive, and every space-separated term must match. Y cycles All → Linked → Missing; ownership filtering does not imply that a linked file is playable. Left/right jumps eight rows, clamped to the list ends; up/down remains single-row navigation. L1/R1 still switches primary sections.
+
+The query, filter and selected Adventure are retained separately for each World and restored on restart. Cancelling the keyboard keeps the previous search; switching sections discards an unfinished draft. Empty results keep X/Y available and focus the mounted Back control. Filtering and searching never launch, edit, rename or remove an Adventure. Search/filter buttons are mounted in the bottom panel and use fixed physical-button actions rather than adding more stops to list focus.
+
+Acceptance covers a 700-record library, additional World relationships, version/platform/accent matching, linked/missing intersections, clamped jumps, stale selection recovery and restart restoration. The rendered SDL scenario types a query using controller events, cancels drafts, exercises empty results and menu priority, switches sections and checks visible focus after jumps.
+
+### Importing personal archives
+
+On-device collection preparation keeps a private manifest with source names, checksums, file sizes, paths and separately editable presentation metadata. Exact duplicate files are omitted; N64 byte-order variants can be identified without modifying their bytes. Official reference matches and unverified/modified files remain distinguishable. Different releases of a ROM hack retain their own identities and version labels. Unknown settings stay in Fan Worlds until verified; the original game's region is insufficient evidence for a hack's setting.
+
+The 2026-09-11 archive pass installed and verified 641 additional files on the existing microSD, bringing the personal library to 686 records before the separate crossover transfer. This is a file/release count, not 686 distinct games or a claim of universal compatibility. Patch-only releases, explicitly bad dumps, accessory tests and promotional material remain outside the playable library. User archives, manifests, ROMs, patches, BIOS and saves stay outside Git.
+
+Region checks include [RainbowDevs](https://rainbowdevs.com/games/) for Brown/Prism, [Crystal Clear's documentation](https://github.com/ShockSlayer/ccdocs/blob/master/docs/Documentation.md), and [Gaia's guide and creator attribution](https://romhackguides.com/hacks/gaia/). Version-specific secondary regions require separate review; later releases do not establish the contents of an older beta.
+
 The initial catalogue contains 216 title/platform editions: main-series releases, local spin-offs, Pokémon mini, selected substantial crossovers, educational PC/Pico titles, official Virtual Console packages and Android titles. Versions/regions/revisions of the same release remain variants, except genuinely distinct original Japanese Red/Green/Blue editions. Subscription emulation collections do not create a separate title for every subscription service. Expansions are part of their parent game, not independent launch targets.
 
 This is a maintained checklist, not a claim that every historical promotional browser mini-game, language dump or community ROM hack has been exhaustively identified. Add omissions with a source and a plausible runtime route. The user explicitly excludes closed online games and prioritizes titles that can plausibly run on Flip 2. Do not add Switch 2 exclusives, arcade hardware without a suitable emulator, unreleased games, distribution-only packages, BIOS/keys, or unsupported historical online clients simply to increase the count.

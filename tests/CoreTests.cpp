@@ -108,7 +108,7 @@ private slots:
                 {SDL_CONTROLLER_BUTTON_LEFTSHOULDER, Action::PreviousPage},
                 {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, Action::NextPage},
                 {SDL_CONTROLLER_BUTTON_A, Action::Confirm}, {SDL_CONTROLLER_BUTTON_B, Action::Back},
-                {SDL_CONTROLLER_BUTTON_Y, Action::ToggleContinue}, {SDL_CONTROLLER_BUTTON_START, Action::SystemMenu},
+                {SDL_CONTROLLER_BUTTON_Y, Action::ToggleContinue}, {SDL_CONTROLLER_BUTTON_X, Action::Secondary}, {SDL_CONTROLLER_BUTTON_START, Action::SystemMenu},
                 {SDL_CONTROLLER_BUTTON_DPAD_UP, Action::Up}, {SDL_CONTROLLER_BUTTON_DPAD_DOWN, Action::Down},
                 {SDL_CONTROLLER_BUTTON_DPAD_LEFT, Action::Left}, {SDL_CONTROLLER_BUTTON_DPAD_RIGHT, Action::Right}
             };

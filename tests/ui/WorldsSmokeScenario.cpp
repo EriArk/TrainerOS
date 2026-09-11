@@ -143,6 +143,44 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
         case 28:
             check(shell.page() == 2 && !shell.menuOpen(), "R1 from system menu changes primary page");
             press(l1); break;
+        case 29:
+            check(focusIs("world-action-launch") && shell.worlds()->detail()["id"] == "emerald-trails-demo", "Detail survives global menu/page transitions");
+            press(b); press(SDL_CONTROLLER_BUTTON_X); break;
+        case 30:
+            check(shell.keyboard()->isOpen(), "X opens the shared controller keyboard");
+            press(right, 7); press(down); press(a); // R
+            press(left, 7); press(down); press(a); // U
+            press(up, 2); press(right); press(a); // B
+            press(down, 2); press(right, 3); press(a); // Y
+            break;
+        case 31:
+            check(shell.keyboard()->text() == "RUBY", "Search entered entirely with SDL gamepad events");
+            capture("worlds-search-keyboard"); press(down); press(right); press(a); break;
+        case 32:
+            check(!shell.keyboard()->isOpen() && shell.worlds()->adventures().size() == 1 && focusIs("adventure-ruby-demo"), "Applying search focuses its result");
+            capture("worlds-search-results");
+            press(SDL_CONTROLLER_BUTTON_Y, 2); break;
+        case 33:
+            check(shell.worlds()->filterLabel() == "Missing" && shell.worlds()->adventures().isEmpty() && focusIs("world-list-back"), "Empty search/filter combination has visible recovery");
+            capture("worlds-filter-empty"); press(start); press(SDL_CONTROLLER_BUTTON_X);
+            check(!shell.keyboard()->isOpen(), "Search does not bypass the system menu");
+            press(b); press(SDL_CONTROLLER_BUTTON_Y); break;
+        case 34:
+            check(focusIs("adventure-ruby-demo"), "Filter restores a matching row");
+            press(SDL_CONTROLLER_BUTTON_X); press(a); press(b);
+            check(shell.worlds()->query() == "RUBY" && focusIs("adventure-ruby-demo"), "Cancelled draft restores the original search and focus");
+            press(SDL_CONTROLLER_BUTTON_X); press(a); press(r1); break;
+        case 35:
+            check(shell.page() == 2 && !shell.keyboard()->isOpen(), "R1 cancels search draft and switches section");
+            press(l1); check(shell.worlds()->query() == "RUBY", "Committed search survives page changes");
+            press(SDL_CONTROLLER_BUTTON_X); press(down, 2); press(right, 7); press(a); // Clear
+            press(down); press(a); break; // Apply
+        case 36:
+            check(shell.worlds()->query().isEmpty() && shell.worlds()->adventures().size() == 5, "Controller Clear restores the complete list");
+            press(right); break;
+        case 37:
+            check(focusIs("adventure-emerald-trails-demo"), "Fast jump clamps at the final row and reveals it");
+            capture("worlds-jump"); press(a); break;
         default:
             check(focusIs("world-action-launch") && shell.worlds()->detail()["id"] == "emerald-trails-demo", "Detail survives global menu/page transitions");
             check(qmlWarnings == 0, "QML warnings emitted");

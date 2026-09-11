@@ -19,6 +19,8 @@ class WorldsController final : public QObject {
     Q_PROPERTY(QVariantMap region READ region NOTIFY changed)
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY changed)
     Q_PROPERTY(QVariantList actions READ actions NOTIFY changed)
+    Q_PROPERTY(QString query READ query NOTIFY changed)
+    Q_PROPERTY(QString filterLabel READ filterLabel NOTIFY changed)
 public:
     WorldsController(LibraryRepository&, AdventureAdapter&, QObject* parent = nullptr);
     QString route() const;
@@ -30,6 +32,9 @@ public:
     QVariantMap region() const;
     QVariantMap detail() const;
     QVariantList actions() const;
+    QString query() const { return queries_.value(worldId_); }
+    QString filterLabel() const;
+    void applySearch(const QString& text);
     void dispatch(Action);
     void activate(int index);
     void refresh();
@@ -41,6 +46,7 @@ signals:
     void messageRequested(const QString& message);
     void homeRequested();
     void setupRequested(const QString& adventureId);
+    void searchRequested(const QString& initial);
 private:
     enum class Route { Regions, Adventures, Detail };
     struct DetailAction { QString id; QString label; bool enabled; };
@@ -54,12 +60,15 @@ private:
     void executeAction(int index);
     void chooseAdventure(int index);
     void normalizeActionFocus();
+    void updateFilter();
     LibraryRepository& repository_;
     AdventureAdapter& adapter_;
     QList<World> worlds_;
     QList<Adventure> adventures_;
     QString worldId_;
     QHash<QString, QString> rememberedAdventures_;
+    QHash<QString, QString> queries_, searchText_;
+    QHash<QString, int> filters_;
     Route route_ = Route::Regions;
     bool backFocused_ = false;
     int actionFocus_ = 0;

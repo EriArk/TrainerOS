@@ -4,7 +4,7 @@ Item {
     id: root
     required property var shell
     readonly property var worlds: shell.worlds
-    readonly property bool takesFocus: visible && !shell.menuOpen && shell.notice.length === 0
+    readonly property bool takesFocus: visible && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     readonly property bool regionsOpen: worlds.route === "regions"
     readonly property bool listOpen: worlds.route === "adventures"
     readonly property bool detailOpen: worlds.route === "detail"
@@ -64,8 +64,8 @@ Item {
 
     Item {
         anchors.fill: parent; visible: root.listOpen
-        Text { x: 29; y: 23; width: parent.width - 58; elide: Text.ElideRight; textFormat: Text.PlainText; text: root.worlds.region.name; color: Theme.ink; font.pixelSize: 35; font.weight: Font.DemiBold }
-        Text { x: 31; y: 73; text: root.worlds.region.count + (root.shell.sampleLibrary ? " Adventures · sample library" : " Adventures · your library"); color: Theme.muted; font.pixelSize: 16 }
+        Text { x: 29; y: 23; width: 495; elide: Text.ElideRight; textFormat: Text.PlainText; text: root.worlds.region.name; color: Theme.ink; font.pixelSize: 35; font.weight: Font.DemiBold }
+        Text { x: 31; y: 73; width: 493; elide: Text.ElideRight; textFormat: Text.PlainText; text: root.worlds.query ? "Search: " + root.worlds.query : "Titles, versions and stories from this World"; color: Theme.muted; font.pixelSize: 16 }
         Rectangle {
             x: 0; y: 104; width: 550; height: 228
             color: "#d4e2d6"
@@ -82,15 +82,24 @@ Item {
                 cacheBuffer: 216
                 function revealCurrent() {
                     if (count > 0 && root.listOpen) positionViewAtIndex(currentIndex, ListView.Contain);
+                    if (root.takesFocus && root.listOpen && root.worlds.focusIndex < count && currentItem)
+                        currentItem.control.forceActiveFocus(Qt.OtherFocusReason);
                 }
                 onCurrentIndexChanged: Qt.callLater(revealCurrent)
+                onCurrentItemChanged: Qt.callLater(revealCurrent)
                 onModelChanged: Qt.callLater(revealCurrent)
-                Connections { target: root; function onListOpenChanged() { Qt.callLater(adventureList.revealCurrent); } }
+                Connections {
+                    target: root
+                    function onListOpenChanged() { Qt.callLater(adventureList.revealCurrent); }
+                    function onTakesFocusChanged() { Qt.callLater(adventureList.revealCurrent); }
+                }
                 delegate: Item {
                     required property int index
                     required property var modelData
                     width: adventureList.width; height: 72
+                    property alias control: adventureButton
                     CapButton {
+                        id: adventureButton
                         objectName: "adventure-" + modelData.id
                         x: 5; y: 5; width: parent.width - 10; height: 58
                         label: modelData.title
@@ -106,7 +115,7 @@ Item {
             Text {
                 x: 30; y: 43; width: 474; wrapMode: Text.WordWrap
                 visible: root.worlds.adventures.length === 0
-                text: "No Adventures here yet.\nChoose another World to keep exploring."
+                text: "No matching Adventures.\nChange the search or filter below."
                 color: Theme.muted; font.pixelSize: 21; lineHeight: 1.3
             }
             Rectangle {
@@ -131,13 +140,23 @@ Item {
             height: 78; color: "#c6dcca"
             CapButton {
                 objectName: "world-list-back"
-                x: 30; y: 18; width: 255; height: 42; label: "Back to Worlds"; tint: Theme.blue
+                x: 30; y: 31; width: 225; height: 35; label: "B  Back to Worlds"; tint: Theme.blue; textSize: 16
                 selected: root.listOpen && root.takesFocus && root.worlds.focusIndex === root.worlds.adventures.length
                 onActivated: root.shell.activate(root.worlds.adventures.length)
             }
             Text {
-                x: 310; y: 30; text: root.worlds.adventures.length > 0 ? (root.worlds.adventureIndex + 1) + " / " + root.worlds.adventures.length + "  ·  ↑ ↓ Adventures   A Open   B Back" : "B · Back to Worlds"
-                color: Theme.muted; font.pixelSize: 14
+                x: 31; y: 8; text: root.worlds.adventures.length > 0 ? (root.worlds.adventureIndex + 1) + " / " + root.worlds.adventures.length + "  ·  ↑ ↓ Choose   ← → Jump 8   A Open" : "0 results · X Search   Y Filter   B Worlds"
+                color: Theme.muted; font.pixelSize: 13
+            }
+            CapButton {
+                objectName: "worlds-search"
+                x: 275; y: 31; width: 295; height: 35; label: root.worlds.query ? "X  Change search" : "X  Search this World"; tint: "#e9b47b"; textSize: 16
+                onActivated: root.shell.activate(0, "worlds-search")
+            }
+            CapButton {
+                objectName: "worlds-filter"
+                x: 590; y: 31; width: 295; height: 35; label: "Y  Show: " + root.worlds.filterLabel; tint: Theme.yellow; textSize: 16
+                onActivated: root.shell.activate(0, "worlds-filter")
             }
         }
     }

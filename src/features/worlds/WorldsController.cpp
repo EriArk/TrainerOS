@@ -22,6 +22,12 @@ QString kindLabel(AdventureKind kind) {
     return "Adventure";
 }
 QString countLabel(const std::optional<int>& number) { return number ? QString::number(*number) : "—"; }
+QString searchKey(const QString& text) {
+    QString result;
+    for (const auto c : text.normalized(QString::NormalizationForm_D).toCaseFolded())
+        if (c.category() != QChar::Mark_NonSpacing && c.category() != QChar::Mark_SpacingCombining && c.category() != QChar::Mark_Enclosing) result += c;
+    return result.simplified();
+}
 }
 WorldsController::WorldsController(LibraryRepository& repository, AdventureAdapter& adapter, QObject* parent)
     : QObject(parent), repository_(repository), adapter_(adapter) { refresh(); }
@@ -39,8 +45,32 @@ int WorldsController::regionIndex() const {
 }
 QList<Adventure> WorldsController::currentAdventures() const {
     QList<Adventure> result;
-    for (const auto& adventure : adventures_) if (adventure.worldId == worldId_ || adventure.additionalWorldIds.contains(worldId_)) result.append(adventure);
+    const auto words = searchKey(query()).split(' ', Qt::SkipEmptyParts);
+    const int filter = filters_.value(worldId_);
+    for (const auto& adventure : adventures_) {
+        if (adventure.worldId != worldId_ && !adventure.additionalWorldIds.contains(worldId_)) continue;
+        if ((filter == 1 && adventure.collectionOnly) || (filter == 2 && !adventure.collectionOnly)) continue;
+        const auto text = searchText_.value(adventure.id);
+        if (std::all_of(words.cbegin(), words.cend(), [&](const auto& word) { return text.contains(word); })) result.append(adventure);
+    }
     return result;
+}
+QString WorldsController::filterLabel() const {
+    return QStringList{"All", "Linked", "Missing"}.value(filters_.value(worldId_), "All");
+}
+void WorldsController::updateFilter() {
+    const auto entries = currentAdventures();
+    const auto selected = rememberedAdventures_.value(worldId_);
+    if (std::none_of(entries.cbegin(), entries.cend(), [&](const auto& a) { return a.id == selected; }))
+        rememberedAdventures_[worldId_] = entries.isEmpty() ? QString() : entries.first().id;
+    backFocused_ = entries.isEmpty();
+    emit contentChanged();
+    emit changed();
+}
+void WorldsController::applySearch(const QString& text) {
+    if (route_ != Route::Adventures) return;
+    queries_[worldId_] = text.left(48).simplified();
+    updateFilter();
 }
 int WorldsController::adventureIndex() const {
     const auto entries = currentAdventures();
@@ -94,9 +124,9 @@ std::optional<ResumePoint> WorldsController::latestResume(const Adventure& adven
 }
 QVariantMap WorldsController::detail() const {
     const auto adventure = currentAdventure();
-    if (!adventure) return {{"title", "No Adventures here yet"}, {"kind", ""},
+    if (!adventure) return {{"title", "No matching Adventures"}, {"kind", ""},
         {"status", ""}, {"description", "Your Adventures for this World will appear here."},
-        {"badges", "—"}, {"caught", "—"}, {"availability", "Choose another World to keep exploring."},
+        {"badges", "—"}, {"caught", "—"}, {"availability", "X to change the search, Y to change the filter, or B to choose another World."},
         {"resume", "No recent trail recorded"}};
     const auto caps = adapter_.capabilities(*adventure);
     const auto point = latestResume(*adventure);
@@ -139,6 +169,11 @@ void WorldsController::refresh() {
     const auto oldAdventure = rememberedAdventures_.value(worldId_);
     worlds_ = repository_.worlds();
     adventures_ = repository_.adventures();
+    searchText_.clear();
+    for (const auto& a : adventures_) {
+        const auto platform = platformLabel(a.platformId);
+        searchText_.insert(a.id, searchKey(a.title + ' ' + a.variant + ' ' + platform.name + ' ' + platform.badge));
+    }
     const bool worldExists = std::any_of(worlds_.begin(), worlds_.end(), [&](const auto& w) { return w.id == worldId_; });
     if (!worldExists) {
         worldId_ = worlds_.isEmpty() ? QString() : worlds_.first().id;
@@ -159,12 +194,22 @@ void WorldsController::refresh() {
 QJsonObject WorldsController::navigationState() const {
     QJsonObject remembered;
     for (auto i = rememberedAdventures_.cbegin(); i != rememberedAdventures_.cend(); ++i) remembered.insert(i.key(), i.value());
+    QJsonObject browsing;
+    for (const auto& world : worlds_) if (!queries_.value(world.id).isEmpty() || filters_.value(world.id) != 0)
+        browsing.insert(world.id, QJsonObject{{"query", queries_.value(world.id)}, {"filter", filters_.value(world.id)}});
     const auto available = detailActions();
-    return {{"world", worldId_}, {"adventures", remembered}, {"route", route()}, {"back", backFocused_},
+    return {{"world", worldId_}, {"adventures", remembered}, {"browsing", browsing}, {"route", route()}, {"back", backFocused_},
             {"action", actionFocus_ >= 0 && actionFocus_ < available.size() ? available[actionFocus_].id : QString()}};
 }
 void WorldsController::restoreNavigation(const QJsonObject& state) {
     worldId_ = state["world"].toString();
+    queries_.clear(); filters_.clear();
+    const auto browsing = state["browsing"].toObject();
+    for (const auto& world : repository_.worlds()) {
+        const auto value = browsing[world.id].toObject();
+        queries_[world.id] = value["query"].toString().left(48).simplified();
+        filters_[world.id] = std::clamp(value["filter"].toInt(), 0, 2);
+    }
     rememberedAdventures_.clear();
     const auto remembered = state["adventures"].toObject();
     // Accept only existing relationships, not arbitrary stale IDs or row offsets.
@@ -243,6 +288,11 @@ void WorldsController::activate(int index) {
     emit changed();
 }
 void WorldsController::dispatch(Action action) {
+    if (route_ == Route::Adventures && action == Action::Secondary) { emit searchRequested(query()); return; }
+    if (route_ == Route::Adventures && action == Action::ToggleContinue) {
+        filters_[worldId_] = (filters_.value(worldId_) + 1) % 3;
+        updateFilter(); return;
+    }
     if (action == Action::Confirm) { activate(focusIndex()); return; }
     if (action == Action::Back) { back(); emit changed(); return; }
     if (route_ == Route::Regions && !worlds_.isEmpty()) {
@@ -255,6 +305,8 @@ void WorldsController::dispatch(Action action) {
     } else if (route_ == Route::Adventures) {
         const auto count = currentAdventures().size();
         const int index = adventureIndex();
+        if ((action == Action::Left || action == Action::Right) && count > 0)
+            chooseAdventure(std::clamp(index + (action == Action::Right ? 8 : -8), 0, int(count) - 1));
         if (action == Action::Up && count > 0) {
             if (backFocused_) backFocused_ = false;
             else chooseAdventure(std::max(0, index - 1));

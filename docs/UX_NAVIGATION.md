@@ -2,6 +2,8 @@
 
 Worlds includes the [collection checklist and controller attachment flow](COLLECTION_CATALOGUE.md). Grey missing cards remain focusable; A → Link a file opens the shared picker, while Save/Cancel returns to the original Worlds detail. Platform badges identify the edition without changing region-first navigation.
 
+In a World's Adventure list, X searches title/version/platform through the controller keyboard, Y cycles All/Linked/Missing, and left/right jumps eight rows. Up/down chooses adjacent rows. Search and filter are remembered per World; empty results retain the fixed X/Y controls and a focused Back action. These shortcuts yield to open keyboards, menus and service panels; L1/R1 remains global.
+
 ## Goal
 
 TrainerOS must feel native to a handheld controller. Touch may exist as a convenience and mouse/keyboard may exist in development or maintenance mode, but **every normal TrainerOS flow must be fully usable with physical controls**.

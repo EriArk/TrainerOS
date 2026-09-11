@@ -107,6 +107,7 @@ void ControllerInput::poll() {
         {SDL_CONTROLLER_BUTTON_START, Action::SystemMenu},
         {SDL_CONTROLLER_BUTTON_B, Action::Back},
         {SDL_CONTROLLER_BUTTON_Y, Action::ToggleContinue},
+        {SDL_CONTROLLER_BUTTON_X, Action::Secondary},
         {SDL_CONTROLLER_BUTTON_A, Action::Confirm}
     };
     for (const auto& [button, semantic] : bindings)
@@ -138,6 +139,7 @@ bool ControllerInput::eventFilter(QObject*, QEvent* event) {
     case Qt::Key_Q: semantic = Action::PreviousPage; break;
     case Qt::Key_E: semantic = Action::NextPage; break;
     case Qt::Key_Y: semantic = Action::ToggleContinue; break;
+    case Qt::Key_X: semantic = Action::Secondary; break;
     default: return false;
     }
     const bool directional = *semantic <= Action::Right;

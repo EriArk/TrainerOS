@@ -35,6 +35,49 @@ void tap(WorldsController& worlds, Action action, int count = 1) {
 class WorldsTests : public QObject {
     Q_OBJECT
 private slots:
+    void collectionSearchFiltersAndIdentity() {
+        MutableLibrary library;
+        library.adventureData.clear();
+        for (int i = 0; i < 700; ++i) {
+            Adventure a; a.id = QString::number(i); a.worldId = "hoenn";
+            a.title = QString::fromUtf8("Pokémon Trail %1").arg(i); a.platformId = "gba";
+            a.variant = i % 2 ? "Beta 2" : "English"; a.collectionOnly = i >= 650;
+            library.adventureData.append(a);
+        }
+        library.adventureData[42].additionalWorldIds.append("kanto");
+        RecordingAdapter adapter; WorldsController worlds(library, adapter);
+        worlds.activate(2);
+        tap(worlds, Action::Right, 90); QCOMPARE(worlds.adventureIndex(), 699);
+        tap(worlds, Action::Left); QCOMPARE(worlds.adventureIndex(), 691);
+        worlds.applySearch("  POKEMON  42 GBA ");
+        QCOMPARE(worlds.query(), "POKEMON 42 GBA");
+        QCOMPARE(worlds.adventures().size(), 17);
+        QCOMPARE(worlds.detail()["id"].toString(), "42");
+        tap(worlds, Action::ToggleContinue); QCOMPARE(worlds.filterLabel(), "Linked");
+        for (const auto& row : worlds.adventures()) QVERIFY(!row.toMap()["missing"].toBool());
+        // Search matches text tokens and variant metadata, not inferred ownership.
+        worlds.applySearch("beta 2 649"); QCOMPARE(worlds.adventures().size(), 1);
+        QCOMPARE(worlds.detail()["id"].toString(), "649");
+        tap(worlds, Action::ToggleContinue); QCOMPARE(worlds.filterLabel(), "Missing");
+        QVERIFY(worlds.adventures().isEmpty()); QCOMPARE(worlds.focusIndex(), 0);
+        tap(worlds, Action::Confirm); QCOMPARE(worlds.route(), "regions");
+        worlds.activate(2); worlds.applySearch("699");
+        QCOMPARE(worlds.adventures().size(), 1); worlds.activate(0);
+        const auto state = worlds.navigationState();
+        WorldsController restored(library, adapter); restored.restoreNavigation(state);
+        QCOMPARE(restored.route(), "detail"); QCOMPARE(restored.detail()["id"].toString(), "699");
+        QCOMPARE(restored.filterLabel(), "Missing"); QCOMPARE(restored.query(), "699");
+        tap(restored, Action::Back, 2); restored.activate(0);
+        QCOMPARE(restored.query(), ""); QCOMPARE(restored.filterLabel(), "All");
+        QCOMPARE(restored.detail()["id"].toString(), "42"); // Additional region relationship.
+        tap(restored, Action::Back); restored.activate(2); restored.applySearch("");
+        QCOMPARE(restored.adventures().size(), 50);
+        tap(restored, Action::ToggleContinue); QCOMPARE(restored.adventures().size(), 700);
+        QCOMPARE(restored.detail()["id"].toString(), "699");
+        library.adventureData.removeLast(); restored.refresh();
+        QCOMPARE(restored.detail()["id"].toString(), "0");
+        QCOMPARE(adapter.launches, 0); QCOMPARE(adapter.resumes, 0);
+    }
     void regionGroupingAndUnknownProgress() {
         MutableLibrary library;
         RecordingAdapter adapter;

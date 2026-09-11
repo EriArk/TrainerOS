@@ -43,6 +43,10 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         keyboard_.begin("Pokédex · name or number", initial, 32);
     });
     connect(&worlds_, &WorldsController::changed, this, &ShellController::changed);
+    connect(&worlds_, &WorldsController::searchRequested, this, [this](const QString& initial) {
+        textTarget_ = TextTarget::WorldsSearch;
+        keyboard_.begin("Worlds · title, version or platform", initial, 48);
+    });
     connect(&worlds_, &WorldsController::messageRequested, this, [this](const QString& message) {
         notice_ = message;
         emit changed();
@@ -62,6 +66,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         textTarget_ = TextTarget::None;
         if (target == TextTarget::TrainerName) trainer_.setDraftName(text);
         else if (target == TextTarget::PokedexSearch) pokedex_.applySearch(text);
+        else if (target == TextTarget::WorldsSearch) worlds_.applySearch(text);
         else if (target == TextTarget::Library) libraryManager_.applyText(text);
     });
     refreshContinue();
@@ -219,7 +224,12 @@ void ShellController::activate(int index, const QString& area) {
     else if (service_ == "settings") { settings_.activate(index); return; }
     else if (service_ == "diagnostics") { diagnostics_.activate(index); return; }
     else if (trainer_.editing()) { trainer_.activate(index); return; }
-    else if (page_ == 1) { worlds_.activate(index); return; }
+    else if (page_ == 1) {
+        if (area == "worlds-search") worlds_.dispatch(Action::Secondary);
+        else if (area == "worlds-filter") worlds_.dispatch(Action::ToggleContinue);
+        else worlds_.activate(index);
+        return;
+    }
     else if (page_ == 2) {
         if (area.isEmpty()) pokedex_.activate(index);
         else pokedex_.activateControl(area, index);
