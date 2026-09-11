@@ -4,6 +4,12 @@
   "scope": "Released local games and editions with a runtime route to investigate on Flip 2, including Android through ArmadaOS Waydroid. Excludes closed online games, Switch 2 exclusives, arcade-only hardware, DLC, demos and distribution-only utilities. ROM hacks remain user entries. Inclusion is not a device playability claim.",
   "platforms": [
     {
+      "id": "nes",
+      "name": "Nintendo Entertainment System",
+      "badge": "NES",
+      "shape": "console"
+    },
+    {
       "id": "gb",
       "name": "Game Boy",
       "badge": "GB",

@@ -82,12 +82,26 @@ private slots:
         QTemporaryDir dir; const auto path = dir.filePath("installation.json");
         const auto config = dir.filePath("retroarch.cfg"); touch(config);
         touch(dir.filePath("mgba_libretro.so"));
+        touch(dir.filePath("fceumm_libretro.so"));
         QJsonObject settings{{"version", 1}, {"program", probe()}, {"prefixArguments", QJsonArray{"run", "a literal argument"}},
             {"configFile", config}, {"coresDirectory", dir.path()}};
         const auto write = [&] { QFile f(path); QVERIFY(f.open(QIODevice::WriteOnly)); f.write(QJsonDocument(settings).toJson()); };
         write(); auto installation = RetroArchInstallation::load(path);
-        QCOMPARE(installation.program, probe()); QCOMPARE(installation.cores.size(), 1);
+        QCOMPARE(installation.program, probe()); QCOMPARE(installation.cores.size(), 2);
         QVERIFY(installation.cores.contains("mgba"));
+        // A user-provided NES hack gets a real launch route only when its core
+        // was discovered. An extension from a different platform cannot use it.
+        MockLibraryRepository repository; RetroArchAdapter adapter(repository, installation);
+        AdventureRegistration record; record.adventure.adapterId = "unconfigured";
+        record.contentPath = dir.filePath("custom.NES"); adapter.prepareInstallation(record);
+        QCOMPARE(record.adventure.platformId, "nes"); QCOMPARE(record.adventure.adapterId, "retroarch");
+        QCOMPARE(record.integrationConfig["core"].toString(), "fceumm");
+        record.contentPath = dir.filePath("wrong.gba"); adapter.prepareInstallation(record);
+        QCOMPARE(record.adventure.adapterId, "unconfigured"); QVERIFY(!record.integrationConfig.contains("core"));
+        record.contentPath = dir.filePath("custom.nes");
+        auto missing = installation; missing.cores.remove("fceumm");
+        RetroArchAdapter unavailable(repository, missing); unavailable.prepareInstallation(record);
+        QCOMPARE(record.adventure.adapterId, "unconfigured");
         settings["prefixArguments"] = QJsonArray{42}; write(); QVERIFY(RetroArchInstallation::load(path).program.isEmpty());
         settings["prefixArguments"] = QJsonArray{};
         settings["program"] = "relative-path"; write(); QVERIFY(RetroArchInstallation::load(path).program.isEmpty());

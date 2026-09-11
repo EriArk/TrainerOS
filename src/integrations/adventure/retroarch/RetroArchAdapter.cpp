@@ -9,7 +9,8 @@ namespace trainer {
 namespace {
 const QHash<QString, QStringList> extensions{
     {"mgba", {"gba"}}, {"gambatte", {"gb", "gbc"}},
-    {"parallel_n64", {"z64", "n64", "v64"}}, {"pokemini", {"min"}}
+    {"parallel_n64", {"z64", "n64", "v64"}}, {"pokemini", {"min"}},
+    {"fceumm", {"nes"}}
 };
 }
 RetroArchInstallation RetroArchInstallation::load(const QString& filename) {
@@ -52,8 +53,9 @@ void RetroArchAdapter::prepareInstallation(AdventureRegistration& record) const 
         if (extension == "gb" || extension == "gbc" || extension == "gba") a.platformId = extension;
         else if (QStringList{"z64", "n64", "v64"}.contains(extension)) a.platformId = "n64";
         else if (extension == "min") a.platformId = "pokemini";
+        else if (extension == "nes") a.platformId = "nes";
     }
-    const QHash<QString, QString> coreForPlatform{{"gb", "gambatte"}, {"gbc", "gambatte"}, {"gba", "mgba"}, {"n64", "parallel_n64"}, {"pokemini", "pokemini"}};
+    const QHash<QString, QString> coreForPlatform{{"gb", "gambatte"}, {"gbc", "gambatte"}, {"gba", "mgba"}, {"n64", "parallel_n64"}, {"pokemini", "pokemini"}, {"nes", "fceumm"}};
     const auto core = coreForPlatform.value(a.platformId);
     if (!installation_.program.isEmpty() && installation_.cores.contains(core) && extensions.value(core).contains(extension)) {
         a.adapterId = id(); record.integrationConfig.insert("core", core);

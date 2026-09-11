@@ -1,6 +1,6 @@
 # First real Adventure adapter
 
-Controller file attachment now prepares an installed matching core automatically for GB/GBC (Gambatte), GBA (mGBA), N64 (ParaLLEl N64) and Pokémon mini. A mismatched file or missing core leaves the Adventure unconfigured. Other adapters' configuration is preserved. Catalogue entries alone never enable launch; see [collection flow](COLLECTION_CATALOGUE.md).
+Controller file attachment prepares an installed matching core automatically for GB/GBC (Gambatte), GBA (mGBA), N64 (ParaLLEl N64), Pokémon mini and user-provided NES releases (FCEUmm). A mismatched file or missing core leaves the Adventure unconfigured. Other adapters' configuration is preserved. Catalogue entries alone never enable launch; see [collection flow](COLLECTION_CATALOGUE.md).
 
 Personal library records can now launch a configured RetroArch installation. The first Flip 2 verification used the ARM64 Flatpak and mGBA to open Pokémon Ruby from Worlds → Hoenn, enter the emulator menu with a controller chord, quit, and return to the same Adventure detail and focused action. This remains normal full-screen application mode in Plasma; Steam and Plasma are retained.
 
@@ -27,8 +27,10 @@ A registered Adventure needs adapter ID `retroarch` and an integration object su
 | `mgba` | `.gba` |
 | `gambatte` | `.gb`, `.gbc` |
 | `parallel_n64` | `.z64`, `.n64`, `.v64` |
+| `pokemini` | `.min` |
+| `fceumm` | `.nes` |
 
-Only available core files enable launch. Format support is not a claim that every title, ROM hack or accessory works. Missing/invalid setup keeps the library record visible with Needs setup. New entries added through Manage Adventures still start unconfigured; this increment does not add a controller setup wizard or guess core assignments.
+Only available core files enable launch. Format support is not a claim that every title, ROM hack or accessory works. Missing/invalid setup keeps the library record visible with Needs setup. Manage Adventures prepares supported files through the same adapter boundary. NES support is for user-provided unofficial games/hacks; it does not add invented official NES editions to the collection checklist. The adapter accepts `.nes` as documented by [FCEUmm](https://docs.libretro.com/library/fceumm/); individual mapper and game behavior still require validation.
 
 ## Launch and return
 
@@ -40,6 +42,7 @@ The emulator owns content loading and saving. A missing content file in the test
 
 ## Verification and limits
 
+- NES acceptance: discovering an installed FCEUmm prepares a user `.nes` Adventure; removing that core or selecting a mismatched extension keeps it unconfigured. Windows adapter, collection and rendered controller checks cover this extension. Game-specific mapper compatibility remains a device check.
 - All 16 CTest entries pass on the ARM64 Fedora build environment, including actual child argv preservation, SQLite checkpointing, duplicate-launch rejection, missing setup, retained metadata with removed content, and POSIX shell termination.
 - Existing rendered SDL scenarios cover success, launch failure, crash, focus restoration and neutral-input handoff with an original content-free child.
 - On the ArmadaOS host, Ruby launched twice through the personal Worlds library. The second run opened the RetroArch menu and exited with gamepad chords; the same detail/action reappeared, Back worked, and stopping the shell completed promptly. Captures were inspected at 1920×1080.
