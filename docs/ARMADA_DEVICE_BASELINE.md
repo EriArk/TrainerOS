@@ -2,6 +2,12 @@
 
 The user confirmed comfortable physical controller navigation, profile creation and a real Adventure launch on 2026-09-11. Waydroid 1.6.3 and Armada's controller helpers are present but the Android image is not initialized; no Android game compatibility is claimed. Collection scope and reference limitations are recorded in [collection catalogue](COLLECTION_CATALOGUE.md).
 
+The collection/search increment `e76b9badc9072075ab7d9a8022d172b87cbbba8f` passed all 18 checks on Windows (91.00 s), independent Ubuntu 24.04 (84.74 s), and ARM64 Fedora on the Flip (88.70 s). Its production build, with test entry points disabled, was installed and launched in Steam Gaming Mode. GitHub Actions [34601156001](https://github.com/EriArk/TrainerOS/actions/runs/34601156001) did not start its job because of account billing/spending limits; the independent Linux run is not GitHub CI success.
+
+Before that update, the expanded personal library was browsed with InputPlumber controller chords. Pocket Monster (an unofficial NES release) reached a playable level through FCEUmm, and Gaia reached its title screen through mGBA; Start+Select returned both to TrainerOS. These are specific boot/input/return checks, not full-game compatibility claims.
+
+After the new production build launched, live search validation was interrupted by a system-wide I/O stall during the remaining large-file transfer. SFTP could still read cached files and `/proc`, while ordinary SSH commands hung. Memory remained available, but I/O pressure approached 100%; both internal UFS and microSD had outstanding operations whose completion counters stopped advancing across repeated samples. Blocked tasks included filesystem workers, the journal, audio and shells. Stopping the sender did not clear the stall. This does not establish a root cause or a sleep diagnosis. Suspend tests remain deferred; post-update on-screen search acceptance and the final crossover imports remain open until device recovery.
+
 These findings come from the owner's Snapdragon 865 Retroid Pocket Flip 2. They describe this installation, not every ArmadaOS release or Retroid model. Private device reports, addresses, keys and game inventories stay outside Git.
 
 ## System and display
