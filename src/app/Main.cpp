@@ -426,8 +426,26 @@ int main(int argc, char* argv[]) {
                         check(shell.page() == 4, "Back must not leave primary page");
                         capture("landscape-letterbox");
                         window->resize(1920, 1080); break;
-                    default:
+                    case 27:
                         capture("hall-of-fame-1080p");
+                        taps(SDL_CONTROLLER_BUTTON_LEFTSHOULDER, 4);
+                        adapter.setSource("crystal-1", ""); shell.refreshLibrary();
+                        press(SDL_CONTROLLER_BUTTON_Y); break;
+                    case 28:
+                        check(focusIs("resume-1"), "Refresh keeps Continue focus by identity");
+                        check(shell.resumePoints()[1].toMap()["previewLabel"] == "Saved moment unavailable", "Missing source is labelled");
+                        capture("continue-missing-1080p"); press(a); break;
+                    case 29:
+                        check(focusIs("home-launch") && shell.notice().isEmpty(), "Unavailable selection still chooses Home without launching");
+                        check(shell.home()["milestone"] == "Saved moment unavailable", "Home explains unavailable selection");
+                        capture("home-missing-1080p"); press(a); break;
+                    case 30:
+                        check(!shell.notice().isEmpty() && !shell.notice().contains("Demo launch"), "Unavailable resume cannot silently become a launch");
+                        capture("resume-fallback-1080p"); press(b); press(left); press(a); break;
+                    case 31:
+                        check(shell.notice().contains("Demo launch ready"), "Explicit Home action opens normal Adventure after fallback");
+                        press(b); check(focusIs("home-launch"), "Back restores fixed Home action"); break;
+                    default:
                         check(qmlWarnings == 0, "QML warnings were emitted");
                         timer->stop();
                         smokeCompleted = true;

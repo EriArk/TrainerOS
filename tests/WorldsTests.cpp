@@ -23,6 +23,7 @@ public:
     QString adventureId, pointId;
     QString id() const override { return mock.id(); }
     AdventureCapabilities capabilities(const Adventure& a) const override { return mock.capabilities(a); }
+    ResumeAvailability resumeAvailability(const Adventure& a, const ResumePoint& p) const override { return mock.resumeAvailability(a, p); }
     AdventureResult launch(const Adventure& a) override { ++launches; adventureId = a.id; return mock.launch(a); }
     AdventureResult resume(const Adventure& a, const ResumePoint& point) override {
         ++resumes; adventureId = a.id; pointId = point.id; return mock.resume(a, point);
@@ -125,7 +126,11 @@ private slots:
     }
     void capabilitiesAndLatestResume() {
         MutableLibrary library;
-        library.points.prepend({"emerald-newer", "emerald-demo", QDateTime::fromString("2026-09-07T01:00:00Z", Qt::ISODate), "New trail", ""});
+        auto newer = library.points.at(1);
+        newer.id = "emerald-newer"; newer.source.sourceId = newer.id;
+        newer.savedAt = QDateTime::fromString("2026-09-07T01:00:00Z", Qt::ISODate);
+        newer.location = "New trail";
+        library.points.prepend(newer);
         RecordingAdapter adapter;
         WorldsController worlds(library, adapter);
         QSignalSpy messages(&worlds, &WorldsController::messageRequested);

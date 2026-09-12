@@ -9,6 +9,8 @@ public:
     virtual ~LibraryRepository() = default;
     virtual QList<World> worlds() const = 0;
     virtual QList<Adventure> adventures() const = 0;
+    // Cached snapshot only: external scanning/validation must publish updates
+    // asynchronously. IDs are unique/stable; source revisions track replacement.
     virtual QList<ResumePoint> resumePoints() const = 0;
     virtual QList<PlaySession> recentSessions() const { return {}; }
     virtual std::optional<qint64> recordedSeconds(const QString&) const { return {}; }

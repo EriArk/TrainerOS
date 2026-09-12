@@ -1,5 +1,6 @@
 #include "WorldsController.h"
 #include "core/repository/CollectionRepository.h"
+#include "core/navigation/ResumePresentation.h"
 #include <algorithm>
 
 namespace trainer {
@@ -116,7 +117,7 @@ std::optional<Adventure> WorldsController::currentAdventure() const {
 }
 std::optional<ResumePoint> WorldsController::latestResume(const Adventure& adventure) const {
     std::optional<ResumePoint> result;
-    for (const auto& point : repository_.resumePoints()) {
+    for (const auto& point : resumePoints_) {
         if (point.adventureId != adventure.id || point.id.isEmpty()) continue;
         if (!result || (point.savedAt.isValid() && (!result->savedAt.isValid() || point.savedAt > result->savedAt))) result = point;
     }
@@ -130,7 +131,7 @@ QVariantMap WorldsController::detail() const {
         {"resume", "No recent trail recorded"}};
     const auto caps = adapter_.capabilities(*adventure);
     const auto point = latestResume(*adventure);
-    const bool canResume = caps.directResume && point.has_value();
+    const bool canResume = point && adapter_.resumeAvailability(*adventure, *point) == ResumeAvailability::Exact;
     QString availability = "Open the Adventure and choose your save there.";
     if (canResume) availability = "A recent trail is ready to continue.";
     else if (!caps.launch) availability = "The file is linked. Play setup is still needed.";
@@ -140,13 +141,14 @@ QVariantMap WorldsController::detail() const {
         {"platform", platformLabel(adventure->platformId).name}, {"limitation", adventure->limitation}, {"variant", adventure->variant},
         {"badges", countLabel(adventure->badges)}, {"caught", countLabel(adventure->caught)},
         {"availability", availability},
-        {"resume", point ? (point->location.isEmpty() ? "Recent trail" : point->location) : "No recent trail recorded"}};
+        {"resume", point ? (canResume ? (point->location.isEmpty() ? "Recent trail" : point->location) : resumeLabel(adapter_.resumeAvailability(*adventure, *point))) : "No recent trail recorded"}};
 }
 QList<WorldsController::DetailAction> WorldsController::detailActions() const {
     QList<DetailAction> result;
     if (const auto adventure = currentAdventure()) {
         const auto caps = adapter_.capabilities(*adventure);
-        if (caps.directResume && latestResume(*adventure)) result.append({"resume", "Continue Adventure", true});
+        if (const auto point = latestResume(*adventure); point && caps.directResume)
+            result.append({"resume", "Continue Adventure", adapter_.resumeAvailability(*adventure, *point) == ResumeAvailability::Exact});
         if (!adventure->collectionOnly) result.append({"launch", caps.launch ? "Start Adventure" : "Needs setup", caps.launch});
         if (repository_.editable()) result.append({"setup", adventure->collectionOnly ? "Link a file" : "Edit / change file", true});
     }
@@ -169,6 +171,7 @@ void WorldsController::refresh() {
     const auto oldAdventure = rememberedAdventures_.value(worldId_);
     worlds_ = repository_.worlds();
     adventures_ = repository_.adventures();
+    resumePoints_ = repository_.resumePoints();
     searchText_.clear();
     for (const auto& a : adventures_) {
         const auto platform = platformLabel(a.platformId);
@@ -268,7 +271,18 @@ void WorldsController::executeAction(int index) {
     AdventureResult result{false, "This action is no longer available. Your Adventure record has been kept."};
     if (available[index].id == "launch" && caps.launch) result = adapter_.launch(*found);
     else if (available[index].id == "resume" && caps.directResume) {
-        if (const auto point = latestResume(*found)) result = adapter_.resume(*found, *point);
+        if (const auto selected = latestResume(*found)) {
+            const auto currentPoints = repository_.resumePoints();
+            const auto point = std::find_if(currentPoints.cbegin(), currentPoints.cend(), [&](const auto& p) {
+                return p.id == selected->id && p.adventureId == found->id && p.source == selected->source
+                    && adapter_.resumeAvailability(*found, p) == ResumeAvailability::Exact;
+            });
+            if (point != currentPoints.cend()) result = adapter_.resume(*found, *point);
+            else {
+                refresh();
+                result.message = "That saved moment changed. Review the updated Adventure before continuing.";
+            }
+        }
     }
     if (!result.success || !result.inProgress)
         emit messageRequested(result.message.isEmpty() ? (result.success ? "Adventure request complete." : "Couldn't open this Adventure. Try again.") : result.message);

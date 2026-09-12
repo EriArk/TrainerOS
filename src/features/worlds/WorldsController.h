@@ -65,6 +65,7 @@ private:
     AdventureAdapter& adapter_;
     QList<World> worlds_;
     QList<Adventure> adventures_;
+    QList<ResumePoint> resumePoints_;
     QString worldId_;
     QHash<QString, QString> rememberedAdventures_;
     QHash<QString, QString> queries_, searchText_;

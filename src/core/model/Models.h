@@ -45,12 +45,31 @@ struct ShellPreferences {
     QString theme = "turquoise";
     bool reducedMotion = false;
 };
+enum class ResumeAvailability { Exact, LaunchOnly, Stale, Missing, Incompatible };
+// Adapter-owned identity of one source revision, never a path interpreted by UI.
+struct ResumeSource {
+    QString adapterId, sourceId, revision, integrationRevision;
+    bool complete() const {
+        return !adapterId.isEmpty() && !sourceId.isEmpty() && !revision.isEmpty() && !integrationRevision.isEmpty();
+    }
+    bool operator==(const ResumeSource&) const = default;
+    QJsonObject toJson() const {
+        return {{"adapter", adapterId}, {"source", sourceId}, {"revision", revision}, {"integration", integrationRevision}};
+    }
+    static ResumeSource fromJson(const QJsonObject& value) {
+        return {value["adapter"].toString(), value["source"].toString(), value["revision"].toString(), value["integration"].toString()};
+    }
+};
 struct ResumePoint {
     QString id;
     QString adventureId;
     QDateTime savedAt;
     QString location;
     QString summary;
+    ResumeSource source = {};
+    QDateTime observedAt = {};
+    ResumeAvailability availability = ResumeAvailability::Stale;
+    QJsonObject adapterPayload = {}; // Never projected into QML or browsing state.
 };
 enum class PlaySessionOutcome { Running, Returned, Failed, Interrupted };
 // Observed child-process time, independent of game-save progress/playtime.

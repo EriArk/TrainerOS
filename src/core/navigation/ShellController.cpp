@@ -1,5 +1,6 @@
 #include "ShellController.h"
 #include "features/home/PlayHistoryController.h"
+#include "ResumePresentation.h"
 #include <QSet>
 #include <algorithm>
 
@@ -85,9 +86,14 @@ void ShellController::refreshLibrary() {
 void ShellController::refreshContinue() {
     points_.clear();
     auto states = repository_.resumePoints();
-    std::stable_sort(states.begin(), states.end(), [](const auto& a, const auto& b) { return a.savedAt > b.savedAt; });
+    // Repeated observations replace a card, not its identity. Recency remains
+    // the source's save time, never the time a background scan rediscovered it.
+    std::stable_sort(states.begin(), states.end(), [](const auto& a, const auto& b) { return a.observedAt > b.observedAt; });
+    QSet<QString> ids;
     QSet<QString> represented;
     for (const auto& point : states) {
+        if (point.id.isEmpty() || ids.contains(point.id)) continue;
+        ids.insert(point.id);
         points_.append({point.id, point.adventureId, point.savedAt, point, {}});
         represented.insert(point.adventureId);
     }
@@ -96,6 +102,7 @@ void ShellController::refreshContinue() {
         represented.insert(session.adventureId);
         points_.append({"recent:" + session.adventureId, session.adventureId, session.startedAt, {}, session});
     }
+    std::stable_sort(points_.begin(), points_.end(), [](const auto& a, const auto& b) { return a.recordedAt > b.recordedAt; });
 }
 int ShellController::focusIndex() const {
     if (!notice_.isEmpty()) return 0;
@@ -114,6 +121,7 @@ QJsonObject ShellController::navigationState() const {
     const QStringList pages{"home", "worlds", "pokedex", "trainer", "hall"};
     return {{"version", 1}, {"page", pages[page_]},
             {"homeAdventure", homeAdventureId_}, {"homeResume", homeResumeId_},
+            {"homeResumeSource", homeResumeSource_.toJson()},
             {"resume", drawerFocus_ < points_.size() ? points_[drawerFocus_].id : QString()},
             {"worlds", worlds_.navigationState()}, {"pokedex", pokedex_.navigationState()}, {"hall", hall_.navigationState()}};
 }
@@ -122,6 +130,7 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     const QStringList pages{"home", "worlds", "pokedex", "trainer", "hall"};
     goToPage(std::max(0, int(pages.indexOf(state["page"].toString()))));
     homeAdventureId_ = state["homeAdventure"].toString(); homeResumeId_ = state["homeResume"].toString();
+    homeResumeSource_ = ResumeSource::fromJson(state["homeResumeSource"].toObject());
     worlds_.restoreNavigation(state["worlds"].toObject());
     pokedex_.restoreNavigation(state["pokedex"].toObject());
     hall_.restoreNavigation(state["hall"].toObject());
@@ -140,6 +149,12 @@ std::optional<ResumePoint> ShellController::homeResumePoint(const QString& adven
     for (const auto& point : points_) if (point.id == homeResumeId_ && point.adventureId == adventureId) return point.resumePoint;
     return {};
 }
+ResumeAvailability ShellController::homeResumeAvailability(const Adventure& adventure) const {
+    const auto point = homeResumePoint(adventure.id);
+    if (!point) return ResumeAvailability::Missing;
+    if (!homeResumeSource_.complete() || point->source != homeResumeSource_) return ResumeAvailability::Stale;
+    return adapter_.resumeAvailability(adventure, *point);
+}
 QVariantMap ShellController::home() const {
     const auto snapshot = repository_.home();
     QString title = "Choose a journey in Worlds", world = "Your journey";
@@ -157,8 +172,9 @@ QVariantMap ShellController::home() const {
         }
         seconds = repository_.recordedSeconds(adventure->id);
         const auto caps = adapter_.capabilities(*adventure);
-        action = homeResumePoint(adventure->id) && caps.directResume ? "Resume Adventure" : caps.launch ? "Start Adventure" : "Set up Adventure";
-        actionHint = homeResumePoint(adventure->id) && caps.directResume ? "Resume" : caps.launch ? "Play" : "Set up";
+        const auto resumeStatus = homeResumeAvailability(*adventure);
+        action = resumeStatus == ResumeAvailability::Exact ? "Resume Adventure" : caps.launch ? "Start Adventure" : "Set up Adventure";
+        actionHint = resumeStatus == ResumeAvailability::Exact ? "Resume" : caps.launch ? "Play" : "Set up";
         if (repository_.editable()) {
             milestone = "Your selected Adventure · Y to choose another";
             for (const auto& recent : repository_.recentSessions()) if (recent.adventureId == adventure->id) {
@@ -167,6 +183,8 @@ QVariantMap ShellController::home() const {
                 break;
             }
         }
+        if (!homeResumeId_.isEmpty() && adventure->id == homeAdventureId_)
+            milestone = resumeLabel(resumeStatus);
     }
     return {{"trainer", trainer_.exists() ? trainer_.profile()["name"] : "TRAINER"},
             {"hasTrainer", trainer_.exists()}, {"adventure", title}, {"world", world},
@@ -181,20 +199,25 @@ QVariantList ShellController::resumePoints() const {
     for (const auto& point : points_) {
         QString title = "Unavailable Adventure";
         QString world = "Unknown World";
+        auto status = ResumeAvailability::Incompatible;
         for (const auto& a : adventures) if (a.id == point.adventureId) {
             title = a.title;
+            if (point.resumePoint) status = adapter_.resumeAvailability(a, *point.resumePoint);
             for (const auto& w : worlds) if (w.id == a.worldId) world = w.name;
         }
         QString summary = "Select for Home · Start there to play";
         QString location;
-        if (point.resumePoint) { location = point.resumePoint->location; summary = point.resumePoint->summary; }
+        if (point.resumePoint) {
+            if (status == ResumeAvailability::Exact) { location = point.resumePoint->location; summary = point.resumePoint->summary; }
+            else summary = "Select for Home · choose a save in Adventure";
+        }
         if (point.session) {
             if (point.session->outcome == PlaySessionOutcome::Interrupted) summary = "Interrupted · duration not recorded";
             else if (point.session->outcome == PlaySessionOutcome::Failed) summary = "Ended with an error · you can retry";
             else if (point.session->elapsedSeconds) summary = recordedDuration(*point.session->elapsedSeconds) + " · Last session";
         }
         result.append(QVariantMap{{"id", point.id}, {"title", title}, {"world", world},
-            {"location", location}, {"summary", summary}, {"previewLabel", point.resumePoint ? "Saved moment" : "Recent Adventure"},
+            {"location", location}, {"summary", summary}, {"previewLabel", point.resumePoint ? resumeLabel(status) : "Recent Adventure"},
             {"time", point.recordedAt.toLocalTime().toString("dd MMM · HH:mm")}});
     }
     return result;
@@ -266,6 +289,7 @@ void ShellController::confirm() {
         const auto& point = points_.at(drawerFocus_);
         for (const auto& adventure : repository_.adventures()) if (adventure.id == point.adventureId) {
             homeAdventureId_ = adventure.id; homeResumeId_ = point.resumePoint ? point.id : QString();
+            homeResumeSource_ = point.resumePoint ? point.resumePoint->source : ResumeSource{};
             drawerOpen_ = false;
             return;
         }
@@ -275,9 +299,25 @@ void ShellController::confirm() {
         if (!adventure) { goToPage(1); return; }
         const auto caps = adapter_.capabilities(*adventure);
         const auto point = homeResumePoint(adventure->id);
-        if (point && caps.directResume) {
+        const auto status = homeResumeAvailability(*adventure);
+        if (!homeResumeId_.isEmpty() && adventure->id == homeAdventureId_ && status != ResumeAvailability::Exact && status != ResumeAvailability::LaunchOnly) {
+            homeResumeId_.clear(); homeResumeSource_ = {};
+            notice_ = "That saved moment is no longer ready to resume. Home now opens the Adventure so you can choose a save there.";
+        } else if (point && status == ResumeAvailability::Exact) {
+            // A cached display is not authorization to load a replacement.
+            const auto current = repository_.resumePoints();
+            const auto found = std::find_if(current.cbegin(), current.cend(), [&](const auto& p) {
+                return p.id == point->id && p.adventureId == adventure->id && p.source == homeResumeSource_
+                    && adapter_.resumeAvailability(*adventure, p) == ResumeAvailability::Exact;
+            });
+            if (found == current.cend()) {
+                refreshLibrary();
+                homeResumeId_.clear(); homeResumeSource_ = {};
+                notice_ = "That saved moment changed. Home now opens the Adventure so you can choose a save there.";
+                return;
+            }
             emit homeLaunchPressed();
-            const auto result = adapter_.resume(*adventure, *point);
+            const auto result = adapter_.resume(*adventure, *found);
             if (!result.inProgress) notice_ = result.message;
         } else if (caps.launch) {
             emit homeLaunchPressed();

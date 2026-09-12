@@ -17,6 +17,15 @@ public:
     virtual ~AdventureAdapter() = default;
     virtual QString id() const = 0;
     virtual AdventureCapabilities capabilities(const Adventure&) const = 0;
+    // Cached, nonblocking assessment only. resume() must revalidate the exact
+    // source before starting a process; an unavailable state must never launch.
+    virtual ResumeAvailability resumeAvailability(const Adventure& adventure, const ResumePoint& point) const {
+        if (adventure.collectionOnly || point.adventureId != adventure.id || point.source.adapterId != adventure.adapterId)
+            return ResumeAvailability::Incompatible;
+        if (!point.source.complete() || point.id.isEmpty() || !point.observedAt.isValid()) return ResumeAvailability::Stale;
+        if (point.availability != ResumeAvailability::Exact) return point.availability;
+        return capabilities(adventure).directResume ? ResumeAvailability::Exact : ResumeAvailability::LaunchOnly;
+    }
     virtual AdventureResult launch(const Adventure&) = 0;
     virtual AdventureResult resume(const Adventure&, const ResumePoint&) = 0;
 };

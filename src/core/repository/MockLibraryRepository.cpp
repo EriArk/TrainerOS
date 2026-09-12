@@ -25,12 +25,18 @@ QList<Adventure> MockLibraryRepository::adventures() const {
 }
 QList<ResumePoint> MockLibraryRepository::resumePoints() const {
     // Deliberately unsorted: the use-case owns recency ordering.
-    return {{"crystal-1", "crystal-demo", QDateTime::fromString("2026-09-04T19:10:00Z", Qt::ISODate),
+    QList<ResumePoint> points{{"crystal-1", "crystal-demo", QDateTime::fromString("2026-09-04T19:10:00Z", Qt::ISODate),
              "Goldenrod City", "A new road ahead"},
             {"emerald-1", "emerald-demo", QDateTime::fromString("2026-09-06T18:42:00Z", Qt::ISODate),
              "Route 119", "4 badges · 42 caught"},
             {"firered-1", "firered-demo", QDateTime::fromString("2026-09-03T16:20:00Z", Qt::ISODate),
              "Pallet Town", "First steps"}};
+    for (auto& point : points) {
+        point.source = {"mock", point.id, "sample-1", "mock-v1"};
+        point.observedAt = point.savedAt;
+        point.availability = ResumeAvailability::Exact;
+    }
+    return points;
 }
 HomeSnapshot MockLibraryRepository::home() const {
     return {"emerald-demo", 4, 42, "The next trail is waiting."};

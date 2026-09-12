@@ -80,6 +80,8 @@ Worlds and Adventures use an optional `JourneyStatus` (`NotStarted`, `InProgress
 
 ## ResumePoint
 
+Implemented provenance, availability and selection rules are in [Resume points](RESUME_POINTS.md). Exact resume requires a complete `ResumeSource`, a valid observation and matching adapter capability. The default is unverified; normal launch history remains separate.
+
 Represents an adapter-backed resumable moment. `ContinueEntry` may instead carry a recent `PlaySession`; a launch record is never represented as an emulator state. Selecting either kind chooses Home's Adventure, and only Home's action button launches/resumes.
 
 Suggested fields:

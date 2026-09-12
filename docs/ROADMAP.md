@@ -157,6 +157,8 @@ Visual redesign of Worlds is explicitly allowed and expected if real data sugges
 
 ## Milestone 6 — Home + Continue module
 
+The [resume provenance prerequisite](RESUME_POINTS.md) pins Home selection to one source revision, distinguishes unavailable moments and prevents implicit replacement at launch. Fixture/controller acceptance is implemented; the asynchronous filesystem provider and real direct resume are still pending.
+
 The [Home/history increment](HOME_AND_HISTORY.md) adds observed launch sessions, honest recorded duration, durable explicit Home selection and a separate physical-style launch button. Y selects Home's Adventure without launching. Real save-state enumeration/screenshots/direct resume and physical acceptance of this new composition remain open.
 
 Deliverables:

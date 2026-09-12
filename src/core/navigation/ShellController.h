@@ -76,6 +76,7 @@ private:
     void refreshContinue();
     std::optional<Adventure> homeAdventure() const;
     std::optional<ResumePoint> homeResumePoint(const QString& adventureId) const;
+    ResumeAvailability homeResumeAvailability(const Adventure&) const;
     LibraryRepository& repository_;
     AdventureAdapter& adapter_;
     PlatformService& platform_;
@@ -92,6 +93,7 @@ private:
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QString homeAdventureId_, homeResumeId_;
+    ResumeSource homeResumeSource_;
     int page_ = 0;
     int drawerFocus_ = 0;
     int menuFocus_ = 0;

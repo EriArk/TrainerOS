@@ -16,6 +16,7 @@ add_library(trainer_core STATIC
     src/core/storage/SqlitePlayHistory.h
     src/features/home/PlayHistoryController.cpp
     src/features/home/PlayHistoryController.h
+    src/core/navigation/ResumePresentation.h
     src/core/repository/CollectionRepository.cpp
     src/core/repository/CollectionRepository.h
     src/integrations/adventure/retroarch/RetroArchAdapter.cpp
@@ -124,6 +125,9 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_process_probe tests/ProcessProbe.cpp)
     target_link_libraries(trainer_process_probe PRIVATE Qt6::Core)
     find_package(Qt6 REQUIRED COMPONENTS Test)
+    qt_add_executable(trainer_resume_tests tests/ResumeTests.cpp)
+    target_link_libraries(trainer_resume_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME resume COMMAND trainer_resume_tests)
     qt_add_executable(trainer_history_tests tests/PlayHistoryTests.cpp)
     target_link_libraries(trainer_history_tests PRIVATE trainer_core Qt6::Test)
     add_dependencies(trainer_history_tests trainer_process_probe)

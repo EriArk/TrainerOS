@@ -20,8 +20,19 @@ AdventureResult MockAdventureAdapter::launch(const Adventure& adventure) {
     }
     return {true, QStringLiteral("Demo launch ready: %1. No Adventure was launched.").arg(adventure.title)};
 }
+ResumeAvailability MockAdventureAdapter::resumeAvailability(const Adventure& adventure, const ResumePoint& point) const {
+    const auto status = AdventureAdapter::resumeAvailability(adventure, point);
+    if (status != ResumeAvailability::Exact) return status;
+    if (point.source.integrationRevision != integrationRevision_) return ResumeAvailability::Incompatible;
+    if (sources_.contains(point.source.sourceId)) {
+        const auto revision = sources_.value(point.source.sourceId);
+        if (revision.isEmpty()) return ResumeAvailability::Missing;
+        if (revision != point.source.revision) return ResumeAvailability::Stale;
+    }
+    return ResumeAvailability::Exact;
+}
 AdventureResult MockAdventureAdapter::resume(const Adventure& adventure, const ResumePoint& point) {
-    if (!capabilities(adventure).directResume || point.adventureId != adventure.id || point.id.isEmpty())
+    if (resumeAvailability(adventure, point) != ResumeAvailability::Exact)
         return {false, "This resume point is unavailable."};
     return {true, QStringLiteral("Demo resume ready: %1 — %2. No Adventure was launched.")
                       .arg(adventure.title, point.location)};
