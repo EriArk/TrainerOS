@@ -45,6 +45,14 @@ Idle acceptance must record the actual power source and observation interval, ch
 
 If a black screen recurs, distinguish the active paths before changing more settings: Steam's `logs/systemmanager.txt`, logind/suspend journals, `/run/armada/fake-suspend.active`, the session cgroups' frozen state, backlight state, and `/proc/pressure/io` plus disk completion counters. SSH/SFTP reachability alone does not prove the kernel or graphical session is healthy. The previous simultaneous UFS/microSD stall remains unresolved.
 
+### Production installation recovered after reboot
+
+The reboot check found the earlier `4d8ec48` application still installed, matching that release's saved checksum. The reported `e76b9ba` installation had not survived the prior stall/reboot; its production artifact and installed marker were absent. A successful write/read through the page cache had not established durable installation.
+
+The committed source archive was matched to Git, and all 147 source files were checked against it. The preserved ARM64 test log still recorded all 18 checks passing. Completing the production build with `BUILD_TESTING=OFF` reproduced the previously recorded SHA-256. Installation now flushed the temporary executable before atomic replacement, flushed its parent directory, synchronized the filesystem, and re-read the file after advising eviction of its cached pages. The installed digest matched. These steps verify this recovery; the private installer has not become a shipped update mechanism.
+
+SQLite's read-only integrity check passed and the personal library remained intact. The restored application launched through Steam. On-screen InputPlumber validation opened Kanto, opened search with X, entered RED using only controller chords and applied it: 14 matching entries appeared with deterministic list focus. This closes the previously interrupted live search-entry check, without claiming physical button-label, whole-library or suspend/resume acceptance.
+
 ## Native build and installation
 
 Use a rootless Fedora 44 Podman container on the ARM64 handheld, with only the source/build directory mounted. Build tools belong in the container; the executable uses the existing host Qt/SDL runtime. Do not use `dnf` to mutate the bootc host for this development build.
