@@ -6,7 +6,7 @@ The collection/search increment `e76b9badc9072075ab7d9a8022d172b87cbbba8f` passe
 
 Before that update, the expanded personal library was browsed with InputPlumber controller chords. Pocket Monster (an unofficial NES release) reached a playable level through FCEUmm, and Gaia reached its title screen through mGBA; Start+Select returned both to TrainerOS. These are specific boot/input/return checks, not full-game compatibility claims.
 
-After the new production build launched, live search validation was interrupted by a system-wide I/O stall during the remaining large-file transfer. SFTP could still read cached files and `/proc`, while ordinary SSH commands hung. Memory remained available, but I/O pressure approached 100%; both internal UFS and microSD had outstanding operations whose completion counters stopped advancing across repeated samples. Blocked tasks included filesystem workers, the journal, audio and shells. Stopping the sender did not clear the stall. This does not establish a root cause or a sleep diagnosis. Suspend tests remain deferred; post-update on-screen search acceptance and the final crossover imports remain open until device recovery.
+After the new production build launched, live search validation was interrupted by a system-wide I/O stall during the remaining large-file transfer. SFTP could still read cached files and `/proc`, while ordinary SSH commands hung. Memory remained available, but I/O pressure approached 100%; both internal UFS and microSD had outstanding operations whose completion counters stopped advancing across repeated samples. Blocked tasks included filesystem workers, the journal, audio and shells. Stopping the sender did not clear the stall. This does not establish a root cause or a sleep diagnosis. At that point, suspend tests were deferred and post-update on-screen search acceptance and the final crossover imports remained open. The owner reopened the idle black-screen investigation on 2026-09-12; see the findings below.
 
 These findings come from the owner's Snapdragon 865 Retroid Pocket Flip 2. They describe this installation, not every ArmadaOS release or Retroid model. Private device reports, addresses, keys and game inventories stay outside Git.
 
@@ -18,7 +18,32 @@ These findings come from the owner's Snapdragon 865 Retroid Pocket Flip 2. They 
 - KDE reports DSI-1 at native 1080×1920/60 Hz, rotated to landscape. Scale 1.5 produces a 1280×720 logical desktop over the 1920×1080 physical display. Advertised DRM modes alone would misleadingly suggest a portrait application viewport.
 - The runtime contains Qt 6.11.2, QSQLITE, Qt Quick/Shapes/Wayland and SDL2 compatibility 2.32.72 over SDL3 3.4.16. Build tools and development headers are absent from the host.
 - InputPlumber exposes a mapped Xbox controller. Physical button-label agreement, comfort, latency and hinge behavior need the owner at the device; synthetic input does not establish these results.
-- Sleep is deliberately disabled at the owner's request. Do not perform the first-run guide's suspend/hinge checks until that request changes. No sleep reliability claim is made.
+- The owner reopened power/idle diagnostics on 2026-09-12. Everyday operation still uses the no-sleep configuration. Native suspend, fake suspend and physical hinge/wake reliability have not been established.
+
+## Idle black-screen investigation — 2026-09-12
+
+After a physical reboot, SSH, the graphical session and storage were responsive. Kernel and system journals from the current and four previous boots were preserved privately. The preceding boot's Steam log contains `Issuing Suspend Command` about 15 minutes after Steam started. Its system journal contains no matching native/fake-suspend entry. The system sleep targets were masked, logind's idle/power/lid actions were ignored, and the user `armada-powerbuttond.service` was masked. KDE's separate dim/display-off/autosuspend settings were already disabled.
+
+Steam Gaming Mode still had its own active idle policies. Disabling Linux suspend alone had left Steam able to start its sleep flow. This is a confirmed configuration gap and a plausible explanation for an idle black screen; it does not establish the cause of the earlier system-wide I/O stall.
+
+The following Steam settings were changed through the running client's settings API, after preserving the previous configuration. Values are seconds; zero disables the timer.
+
+| Persisted Steam setting | Before | After |
+| --- | ---: | ---: |
+| `IdleSuspendBatterySeconds` | 900 | 0 |
+| `IdleSuspendACSeconds` | 3600 | 0 |
+| `IdleBacklightDimBatterySeconds` | 300 | 0 |
+| `IdleBacklightDimACSeconds` | 0 | 0 |
+| `IdleScreensaverBatterySeconds` | 0 | 0 |
+| `IdleScreensaverACSeconds` | 300 | 0 |
+
+All six values were read back from the running client and its persisted `config.vdf`. Brightness recovered from the idle-dimmed value to the configured level. The Linux/KDE no-sleep settings remain in place. No firmware, kernel, GPU/UFS runtime-power policy, fan control or TrainerOS feature code was changed. Private helpers and configuration backups are device maintenance artifacts, not shipped application code.
+
+Observed acceptance: more than six minutes without injected controller input after the change, on AC, passed the previous five-minute screensaver threshold. A fresh Gamescope capture showed the live Steam page and updated clock; an InputPlumber Guide chord opened its menu and a second chord closed it. Backlight stayed on, no session cgroup was frozen, no new Steam suspend request appeared, and no blocked tasks or kernel suspend/I/O-error entries were observed. Separate 64 KiB temporary-file write/fsync/read probes passed on internal storage and the correctly identified microSD, without touching game/save files. TrainerOS then launched through its existing Steam shortcut. No reboot or session restart was needed to apply the timer changes.
+
+Idle acceptance must record the actual power source and observation interval, check the screen and controller response after that interval, and verify that no new Steam suspend request or kernel I/O failure appeared. A short AC check does not validate a full hour of idle, battery operation, physical lid events or suspend/resume. Re-enabling sleep requires a separate bounded wake/recovery check on the installed ArmadaOS version; the former blanket deferral no longer prohibits investigating it.
+
+If a black screen recurs, distinguish the active paths before changing more settings: Steam's `logs/systemmanager.txt`, logind/suspend journals, `/run/armada/fake-suspend.active`, the session cgroups' frozen state, backlight state, and `/proc/pressure/io` plus disk completion counters. SSH/SFTP reachability alone does not prove the kernel or graphical session is healthy. The previous simultaneous UFS/microSD stall remains unresolved.
 
 ## Native build and installation
 

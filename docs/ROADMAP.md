@@ -110,7 +110,7 @@ Done when profile and shell state survive restart, failed writes preserve saved 
 
 ## Milestone 4 — ArmadaOS device baseline
 
-The first native ARM64 build and actual system/display/package findings are now recorded in [ARMADA_DEVICE_BASELINE.md](ARMADA_DEVICE_BASELINE.md). CMake installs a normal desktop launcher, without installing or selecting a dedicated session. Physical controller/readability acceptance remains open; sleep tests are explicitly deferred.
+The first native ARM64 build and actual system/display/package findings are now recorded in [ARMADA_DEVICE_BASELINE.md](ARMADA_DEVICE_BASELINE.md). CMake installs a normal desktop launcher, without installing or selecting a dedicated session. Physical controller/readability acceptance remains open. The owner reopened idle/power diagnostics on 2026-09-12; everyday operation remains configured without sleep, and suspend/wake acceptance is still open.
 
 Before deep emulator integration, validate the current real target environment.
 

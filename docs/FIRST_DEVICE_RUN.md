@@ -2,7 +2,7 @@
 
 This procedure uses a normal application in the existing desktop session. It does not install a TrainerOS session, change the default login, or remove Steam Gaming Mode or KDE Plasma. A Windows executable cannot run on the ARM64 handheld.
 
-Observed target details and the native container/install approach are in [ARMADA_DEVICE_BASELINE.md](ARMADA_DEVICE_BASELINE.md). Sleep/hinge tests are currently deferred by the owner: leave the no-sleep configuration in place.
+Observed target details and the native container/install approach are in [ARMADA_DEVICE_BASELINE.md](ARMADA_DEVICE_BASELINE.md). The owner reopened idle/power diagnostics on 2026-09-12. Everyday operation still uses the no-sleep configuration; follow that report before a bounded suspend/hinge recovery test. Steam's own idle policies must be checked alongside Linux and KDE settings.
 
 ## Before building
 
