@@ -53,7 +53,6 @@ Item {
             orientation: ListView.Horizontal
             interactive: false
             clip: true
-            leftMargin: 4; rightMargin: 4
             spacing: 14
             model: root.shell.resumePoints
             currentIndex: root.expanded ? root.shell.focusIndex : 0
@@ -69,34 +68,36 @@ Item {
             onWidthChanged: Qt.callLater(reveal)
             onCountChanged: Qt.callLater(reveal)
             Connections { target: root; function onExpandedChanged() { Qt.callLater(cards.reveal) } }
-                delegate: CapButton {
+                delegate: Item {
                     required property int index
                     required property var modelData
-                    objectName: "resume-" + index
-                    width: (root.expandedWidth - 72) / 3; height: 150
-                    y: 4
-                    tint: [Theme.green, Theme.blue, Theme.pink][index % 3]
-                    selected: root.expanded && !root.shell.menuOpen && root.shell.notice.length === 0 && root.shell.focusIndex === index
-                    onActivated: root.shell.activate(index)
-                    Rectangle {
-                        x: 8; y: 7; width: parent.width - 16; height: 60; radius: 6
-                        color: Qt.darker(parent.tint, 1.5); clip: true
-                        Repeater {
-                            model: 4
-                            delegate: Rectangle {
-                                required property int index
-                                x: 110 + index * 34; y: 16 + index * 8; width: 85; height: 85
-                                radius: 25; rotation: 45; color: "#60e4edd5"
+                    width: (root.expandedWidth - 72) / 3; height: 158
+                    CapButton {
+                        objectName: "resume-" + index
+                        x: 4; y: 4; width: parent.width - 8; height: 150
+                        tint: [Theme.green, Theme.blue, Theme.pink][index % 3]
+                        selected: root.expanded && !root.shell.menuOpen && root.shell.notice.length === 0 && root.shell.focusIndex === index
+                        onActivated: root.shell.activate(index)
+                        Rectangle {
+                            x: 8; y: 7; width: parent.width - 16; height: 60; radius: 6
+                            color: Qt.darker(parent.tint, 1.5); clip: true
+                            Repeater {
+                                model: 4
+                                delegate: Rectangle {
+                                    required property int index
+                                    x: 110 + index * 34; y: 16 + index * 8; width: 85; height: 85
+                                    radius: 25; rotation: 45; color: "#60e4edd5"
+                                }
                             }
+                            Text { x: 12; y: 10; width: parent.width - 24; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.world; color: "#fffef9"; font.pixelSize: 18; font.bold: true }
+                            Text { x: 12; y: 35; text: modelData.previewLabel; color: "#f4f5ec"; font.pixelSize: 11 }
                         }
-                        Text { x: 12; y: 10; width: parent.width - 24; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.world; color: "#fffef9"; font.pixelSize: 18; font.bold: true }
-                        Text { x: 12; y: 35; text: modelData.previewLabel; color: "#f4f5ec"; font.pixelSize: 11 }
-                    }
-                    Column {
-                        x: 12; y: 75; width: parent.width - 24; spacing: 4
-                        Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.title; color: Theme.ink; font.pixelSize: 17; font.bold: true }
-                        Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: (modelData.location.length ? modelData.location + " · " : "") + modelData.time; color: Theme.ink; font.pixelSize: 11 }
-                        Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.summary; color: Theme.muted; font.pixelSize: 12 }
+                        Column {
+                            x: 12; y: 75; width: parent.width - 24; spacing: 4
+                            Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.title; color: Theme.ink; font.pixelSize: 17; font.bold: true }
+                            Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: (modelData.location.length ? modelData.location + " · " : "") + modelData.time; color: Theme.ink; font.pixelSize: 11 }
+                            Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.summary; color: Theme.muted; font.pixelSize: 12 }
+                        }
                     }
                 }
         }

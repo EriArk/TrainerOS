@@ -43,7 +43,7 @@ No filesystem scanner is added here. The next provider increment must publish bo
 - [x] Save and observation time remain separate; absent screenshots do not block exact mock resume.
 - [x] Home and Worlds reject replacement between presentation and activation.
 - [x] Adapter-side invalidation after presentation checks cannot implicitly launch.
-- [x] SDL/QML smoke exercises unavailable cards, fallback, notice dismissal and fixed Home A at 1920×1080.
+- [x] SDL/QML smoke waits for the drawer to open, checks complete focus outlines, and exercises unavailable cards, fallback, notice dismissal and fixed Home A at 1920×1080. Card padding keeps outlines inside the list on both Qt 6.4 and 6.11.
 - [ ] Bounded asynchronous filesystem provider, exact fingerprint and real direct resume on Flip.
 
 `resume` tests mutable snapshots, queued refresh, revision pinning and adapter invalidation. `qml_smoke` renders the fallback flow through SDL virtual-controller events. Existing history/process/persistence scenarios cover ordinary launch and return independently of these fixtures.

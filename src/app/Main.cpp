@@ -245,9 +245,10 @@ int main(int argc, char* argv[]) {
                 auto step = std::make_shared<int>(0);
                 auto failed = std::make_shared<bool>(false);
                 auto savedId = std::make_shared<QString>();
+                auto drawerWait = std::make_shared<int>(0);
                 auto timer = new QTimer(&app);
                 timer->setInterval(400);
-                QObject::connect(timer, &QTimer::timeout, &app, [&, window, step, failed, savedId, timer, screenshotDir] {
+                QObject::connect(timer, &QTimer::timeout, &app, [&, window, step, failed, savedId, drawerWait, timer, screenshotDir] {
                     const auto press = [&](SDL_GameControllerButton button) {
                         SDL_JoystickSetVirtualButton(joystick, button, 1); input.poll();
                         SDL_JoystickSetVirtualButton(joystick, button, 0); input.poll();
@@ -276,6 +277,26 @@ int main(int argc, char* argv[]) {
                     constexpr auto right = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
                     constexpr auto a = SDL_CONTROLLER_BUTTON_A;
                     constexpr auto b = SDL_CONTROLLER_BUTTON_B;
+                    if (*step == 1 || *step == 28) {
+                        // On ARM/software rendering a timer tick can arrive
+                        // before the drawer's final animation frame is drawn.
+                        auto* card = window->activeFocusItem();
+                        bool exposed = card && card->isVisible() && card->objectName().startsWith("resume-");
+                        if (exposed) {
+                            const QRectF bounds(-4, -4, card->width() + 8, card->height() + 8);
+                            for (auto* ancestor = card->parentItem(); ancestor; ancestor = ancestor->parentItem()) {
+                                const auto mapped = ancestor->mapRectFromItem(card, bounds);
+                                if (ancestor->clip() && !QRectF(-1, -1, ancestor->width() + 2, ancestor->height() + 2).contains(mapped)) {
+                                    exposed = false;
+                                    if (*drawerWait == 8) diagnostics.append(QString("Continue bounds %1,%2 %3x%4 exceed %5x%6")
+                                        .arg(mapped.x()).arg(mapped.y()).arg(mapped.width()).arg(mapped.height()).arg(ancestor->width()).arg(ancestor->height()));
+                                }
+                            }
+                        }
+                        if (!exposed && ++*drawerWait <= 8) return;
+                        check(exposed, "Continue card and focus outline must fit after animation");
+                        *drawerWait = 0;
+                    }
                     switch ((*step)++) {
                     case 0:
                         check(input.connected(), "virtual controller not connected");
