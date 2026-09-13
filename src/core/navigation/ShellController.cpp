@@ -13,6 +13,9 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
       libraryManager_(repo, nullptr, this), settings_(this), diagnostics_(this) {
     hall_.editor()->setLibrary(&repo);
+    connect(pokedex_.journal(), &PokedexJournalEditor::noteRequested, this, [this](const QString& initial) {
+        textTarget_=TextTarget::PokedexNote;keyboard_.begin("Your field note · optional",initial,160);
+    });
     connect(hall_.editor(), &ArchiveEditor::textRequested, this, [this](const QString& title, const QString& initial, int limit) {
         textTarget_ = TextTarget::Archive; keyboard_.begin(title, initial, limit);
     });
@@ -74,6 +77,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::WorldsSearch) worlds_.applySearch(text);
         else if (target == TextTarget::Library) libraryManager_.applyText(text);
         else if (target == TextTarget::Archive) hall_.editor()->applyText(text);
+        else if (target == TextTarget::PokedexNote) pokedex_.journal()->applyNote(text);
     });
     refreshContinue();
 }

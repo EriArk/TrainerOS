@@ -6,6 +6,7 @@
 #include "core/repository/PlayHistoryRepository.h"
 #include "SqlitePlayHistory.h"
 #include "SqliteHallOfFame.h"
+#include "SqlitePokedexJournal.h"
 #include <QJsonObject>
 #include <QSet>
 #include <QThread>
@@ -13,7 +14,7 @@
 namespace trainer {
 class SqliteWorker;
 // The UI thread owns committed projections; the worker exclusively owns SQLite.
-// No sample library, Seen/Caught values or achievement unlocks enter this store.
+// No sample records, inferred game progress or achievement unlocks enter this store.
 class LocalStateStore final : public QObject, public TrainerRepository, public PokedexProgressRepository,
                               public LibraryRepository, public PreferencesRepository, public PlayHistoryRepository, public HallOfFameRepository {
     Q_OBJECT
@@ -26,7 +27,9 @@ public:
     int pending() const { return pending_; }
     QString error() const { return error_; }
     std::optional<TrainerProfile> load() const override { return profile_; }
-    PokedexProgress progress(const QString& id) const override { return {{}, {}, favorites_.contains(id)}; }
+    PokedexProgress progress(const QString& id) const override { auto record=journal_.value(id);record.favorite=favorites_.contains(id);return record; }
+    bool recordsEditable() const override { return true; }
+    void saveRecordAsync(const QString&, const PokedexProgress&, QObject*, std::function<void(PokedexWriteResult)>) override;
     QJsonObject navigation() const { return navigation_; }
     void saveAsync(const TrainerProfile&, QObject*, std::function<void(ProfileWriteResult)>) override;
     void setFavoriteAsync(const QString&, bool, QObject*, std::function<void(QString)>) override;
@@ -67,5 +70,6 @@ private:
     ShellPreferences preferences_;
     PlayHistorySnapshot history_;
     QList<HallOfFameEntry> archive_;
+    QHash<QString,PokedexProgress> journal_;
 };
 }

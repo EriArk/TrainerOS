@@ -17,6 +17,8 @@ add_library(trainer_core STATIC
     src/core/repository/PlayHistoryRepository.h
     src/core/storage/SqliteHallOfFame.cpp
     src/core/storage/SqliteHallOfFame.h
+    src/core/storage/SqlitePokedexJournal.cpp
+    src/core/storage/SqlitePokedexJournal.h
     src/core/repository/HallOfFameRepository.cpp
     src/core/storage/SqlitePlayHistory.cpp
     src/core/storage/SqlitePlayHistory.h
@@ -71,9 +73,14 @@ add_library(trainer_core STATIC
     src/core/repository/TrainerRepository.h
     src/core/repository/MockTrainerRepository.cpp
     src/core/repository/PokedexRepository.h
+    src/core/repository/PokedexRepository.cpp
+    src/core/repository/OfflinePokedex.h
+    src/core/repository/OfflinePokedex.cpp
     src/core/repository/MockPokedexRepository.cpp
     src/features/pokedex/PokedexController.h
     src/features/pokedex/PokedexController.cpp
+    src/features/pokedex/PokedexJournalEditor.h
+    src/features/pokedex/PokedexJournalEditor.cpp
     src/features/trainer/TrainerController.cpp
     src/features/trainer/TrainerController.h
     src/features/worlds/WorldsController.cpp
@@ -85,6 +92,7 @@ add_library(trainer_core STATIC
 )
 target_include_directories(trainer_core PUBLIC src)
 qt_add_resources(trainer_core collection PREFIX "/collection" BASE data FILES data/catalogue.json)
+qt_add_resources(trainer_core pokedex_reference PREFIX "/pokedex" BASE data FILES data/pokedex.json)
 target_link_libraries(trainer_core PUBLIC Qt6::Core Qt6::Gui Qt6::Sql SDL2::SDL2)
 target_compile_definitions(trainer_core PUBLIC SDL_MAIN_HANDLED)
 if(MSVC)
@@ -129,9 +137,13 @@ qt_add_qml_module(traineros
         src/qml/TrainerEmblem.qml
         src/qml/WorldsPage.qml
         src/qml/PokedexPage.qml
+        src/qml/PokedexJournalPanel.qml
 )
 
 if(BUILD_TESTING)
+    qt_add_executable(trainer_offline_pokedex_tests tests/OfflinePokedexTests.cpp)
+    target_link_libraries(trainer_offline_pokedex_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME offline_pokedex COMMAND trainer_offline_pokedex_tests)
     qt_add_executable(trainer_archive_tests tests/ArchiveTests.cpp)
     target_link_libraries(trainer_archive_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME archive COMMAND trainer_archive_tests)
@@ -212,6 +224,7 @@ endif()
 
 include(GNUInstallDirs)
 install(TARGETS traineros RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES data/licenses/PokeAPI.txt DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/traineros/licenses)
 if(UNIX AND NOT APPLE)
     configure_file(packaging/linux/org.traineros.TrainerOS.desktop.in
                    org.traineros.TrainerOS.desktop @ONLY)

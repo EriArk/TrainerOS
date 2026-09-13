@@ -12,7 +12,9 @@ Normal runs use SQLite for the personal Worlds library, one local Trainer profil
 
 Schema 5 adds the [local Hall of Fame archive](HALL_OF_FAME.md), with explicit manual memories and revision-checked editing. Sample archive entries are never migrated.
 
-SQLite `user_version` is currently 5:
+Schema 6 adds the [manual Pokédex field journal](POKEDEX.md), preserving all existing favorites and leaving Seen/Caught unknown until the trainer records them.
+
+SQLite `user_version` is currently 6:
 
 | Table | Data |
 | --- | --- |
@@ -25,10 +27,11 @@ SQLite `user_version` is currently 5:
 | `preferences` | Color theme and reduced-motion flag |
 | `play_sessions` | Identified Adventure process launches, UTC timestamps, optional monotonic duration and outcome |
 | `hall_of_fame` | Manual/imported historical memories, optional date/time/team, notes, source and edit revision |
+| `pokedex_records` | Nullable manual Seen/Caught, a field note and revision, keyed by stable species identity |
 
 Migrations 0→1 and 1→2 run in transactions. The latter preserves profile/favorites and existing browsing scopes while adding an empty personal library and region reference names. Nonempty unversioned foreign databases, unsupported versions, unreadable schemas, broken foreign keys and failed integrity checks are rejected without replacing the file. Malformed optional navigation falls back to defaults; newer versions of the active browsing scope require a newer application and are preserved.
 
-Favorites belong to the single local installation even before profile creation, separately from its one featured Pokémon. Multiple profiles are later work. No sample favorites, Seen/Caught, Home progress, World statuses, archive records, achievement unlocks or external game data are seeded. Persistent Pokédex Seen/Caught remains unknown. Reference and other sample providers are still replaceable.
+Favorites belong to the single local installation even before profile creation, separately from its one featured Pokémon. Multiple profiles are later work. No sample favorites, Seen/Caught, Home progress, World statuses, archive records, achievement unlocks or external game data are seeded. Pokédex Seen/Caught remains unknown until a manual journal record is saved. The offline reference and personal progress providers remain separate and replaceable.
 
 ## Storage and recovery
 

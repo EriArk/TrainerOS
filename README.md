@@ -145,7 +145,7 @@ The Pokédex combines reference information with the Trainer's personal history.
 
 The implementation should support offline/local data and provider adapters. It must not require proprietary artwork committed to this repository.
 
-The native mock contains a small text-only field guide with combined World/type/status filters, name or exact-number search, number/name sorting, entry detail and editable favorites. Search uses the same controller keyboard as Trainer editing. Reference collections and sample personal records are separate; missing progress remains unknown. These examples are not a complete regional Pokédex or imported game history.
+The offline field guide contains 1025 species and 1579 named forms, with regional lists, type/status filters, name/number search and form-specific reference facts. Favorites, manual Seen/Caught marks and field notes persist locally. Controller input covers browsing and editing; the reference remains separate from personal records and game saves. See [Pokédex](docs/POKEDEX.md).
 
 ## Trainer
 
@@ -159,7 +159,7 @@ The Trainer can be created locally and edited later, including name, avatar/embl
 
 Hall of Fame combines a permanent archive of completed Adventures with RetroAchievements achievements. Archive entries may store World, Adventure, completion date, final playtime, final team of six, screenshot, notes, and whether the data was imported or manually confirmed. External achievement unlocks retain their own source and remain separate from current-save progress.
 
-The native mock supports archive/detail browsing and an internal RetroAchievements area organized by Adventure, with separate achievement lists/details. Original sample goals demonstrate locked, unlocked and unknown records, modes/dates, loading, disconnected, unsupported, offline and failed-refresh states. Local memories remain available independently. No real RetroAchievements account, set or unlock is fetched; archive editing and durable storage follow in later milestones.
+The local archive supports controller-operated creation and editing of completed-Adventure memories, including team, date, manual time and notes. Records survive restart and remain independent of current saves. RetroAchievements stays in this section; real account connection is still pending and normal runs never show fictional unlocks. See [Hall of Fame](docs/HALL_OF_FAME.md).
 
 ## Pokémon Center / system services
 

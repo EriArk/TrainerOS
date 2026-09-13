@@ -1,0 +1,19 @@
+{
+  "revision": "4b82c204ddd19ecb8eda2ea044ccb59e222b721c",
+  "sha256": {
+    "pokemon_species.csv": "9878f19c0637095cdd9a4134b4aac8fb2b64776d3bdc599aa68f15c3a011b87c",
+    "pokemon_species_names.csv": "820cde17074cdb1c2b0595c997fb8f998e773bd5da3bb525dec85703c86c5fd9",
+    "pokemon.csv": "16c81c33188b0eac403aa2f759fcbe9e42c611f722d263f5b5a6a5bff9f8ce6b",
+    "pokemon_types.csv": "f1fc4bfd657a034ea3bf6972423b10276424aa068577b304a78a08996425ba05",
+    "types.csv": "37f039c8d722f47d51ba1c5c5ecf9b7007235b1a9a1af2827645c777b70307c8",
+    "type_names.csv": "685230c51074cf2f723debcf827a4df4c36ab0ec7e929c806ad65a3e40958705",
+    "pokemon_stats.csv": "fa2c44263a3706468682fefc3e0b3c4f5487fe9febed7d4ebcd6939c34b16aa8",
+    "stats.csv": "ee8c541b45b64f40f0eb2545c767294b5801ce8a1410e19d8c33a54e6f1c3b9c",
+    "pokedexes.csv": "aa6570e15092f80750431a59a8712410cc114d74ffffb75b3334df64b33b3d07",
+    "pokemon_dex_numbers.csv": "b8fe3353eec2b0ba4fc37e07e94ffa9f33ce96a7f9856c643a18b3ad518cd393",
+    "regions.csv": "dbd1ecc3f014b67c1a9452611fca5d13542ebc3524f3a4188b5a6cb1ca911d79",
+    "pokemon_forms.csv": "99bf8f7ad4dc1f2e291357a090cef6a575623ec3cbf9030d0e33656e6e608ae2",
+    "pokemon_form_names.csv": "f496066d02fab12c18d10cce0af2f748d09cb7e296ecc784cc8682f8c4da8625",
+    "LICENSE.md": "1c04595dc662981c20956ae4251dfa7b62b475c345eddf98bc9b904cb2373f2c"
+  }
+}

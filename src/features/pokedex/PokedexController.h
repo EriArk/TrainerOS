@@ -1,6 +1,7 @@
 #pragma once
 #include "core/input/Action.h"
 #include "core/repository/PokedexRepository.h"
+#include "PokedexJournalEditor.h"
 #include <QObject>
 #include <QVariantList>
 #include <QJsonObject>
@@ -20,6 +21,8 @@ class PokedexController final : public QObject {
     Q_PROPERTY(QString query READ query NOTIFY changed)
     Q_PROPERTY(QString emptyMessage READ emptyMessage NOTIFY changed)
     Q_PROPERTY(QString recoveryLabel READ recoveryLabel NOTIFY changed)
+    Q_PROPERTY(trainer::PokedexJournalEditor* journal READ journal CONSTANT)
+    Q_PROPERTY(QString source READ source NOTIFY changed)
 public:
     PokedexController(PokedexReferenceProvider&, PokedexProgressRepository&, QObject* parent = nullptr);
     QString zone() const { return zone_; }
@@ -34,6 +37,10 @@ public:
     QString query() const { return query_; }
     QString emptyMessage() const;
     QString recoveryLabel() const;
+    PokedexJournalEditor* journal() { return &journal_; }
+    QString source() const { return catalog_.source; }
+    Q_INVOKABLE void cycleForm();
+    Q_INVOKABLE void editJournal();
     void dispatch(Action);
     void activate(int index);
     void activateControl(const QString& zone, int index);
@@ -51,7 +58,8 @@ signals:
 private:
     struct Choice { QString id; QString label; };
     QList<Choice> options() const;
-    QVariantMap present(const PokedexEntry&) const;
+    QVariantMap present(const PokedexEntry&, bool detailed=false) const;
+    PokedexForm selectedForm(const PokedexEntry&) const;
     void rebuild();
     void reset();
     void openPicker(int railIndex);
@@ -59,9 +67,12 @@ private:
     QString selectionLabel(int railIndex) const;
     PokedexReferenceProvider& reference_;
     PokedexProgressRepository& progress_;
+    PokedexJournalEditor journal_;
     PokedexCatalog catalog_;
+    QHash<QString,QString> names_;
     QList<PokedexEntry> filtered_;
     QString selectedId_;
+    QString formId_;
     QString query_, world_, type_, status_, sort_ = "number";
     QString zone_ = "list";
     QString error_;

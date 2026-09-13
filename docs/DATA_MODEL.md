@@ -356,6 +356,8 @@ Examples:
 
 ## Unknown data is valid
 
+`PokedexEntry` carries named `PokedexForm` reference facts and evolution-family identities. `PokedexProgress` adds an optional manual Seen/Caught pair, note and edit revision; favorites remain independent. Records apply to the species across the local library, with explicit unknown values and no implied game-save parsing. See [Pokédex](POKEDEX.md).
+
 `HallOfFameEntry` now persists manual archive memories with a revision for conflict detection; see [Hall of Fame](HALL_OF_FAME.md). Its historical title/World and optional manually recorded date/time/team remain independent of current save progress and observed play sessions.
 
 Many values will be unavailable before save parsing exists. UI/domain code must handle `unknown` cleanly rather than inventing zero values.

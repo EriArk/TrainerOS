@@ -198,6 +198,8 @@ Done when Trainer and Hall of Fame are useful independently of game-specific sav
 
 ## Milestone 8 — Pokédex module
 
+The [offline Pokédex and field journal](POKEDEX.md) now replace the normal-mode reference fixture with 1025 species and 1579 named forms, regional lists, form-specific facts, searchable browsing and manual Seen/Caught/notes. SQLite schema 6 keeps personal records separate from favorites and external game progress. Account-dependent RetroAchievements work in milestone 7 remains an explicit integration gate; it does not block this independent local module.
+
 Deliverables:
 
 - reference-provider abstraction

@@ -6,6 +6,7 @@
 #include "core/navigation/AdventureLaunchController.h"
 #include "features/home/PlayHistoryController.h"
 #include "core/repository/CollectionRepository.h"
+#include "core/repository/OfflinePokedex.h"
 #include "core/repository/ResumeLibraryRepository.h"
 #include "integrations/adventure/retroarch/RetroArchResume.h"
 #include <QQuickImageProvider>
@@ -122,6 +123,7 @@ int main(int argc, char* argv[]) {
         LocalFileCatalog files;
         DevelopmentPlatformService platform;
         MockPokedexRepository dex;
+        OfflinePokedex offlineDex;
         if (pokedexSmoke) dex.failNextLoad();
         MockHallOfFameRepository shellArchive;
         MockAchievementProvider shellAchievements;
@@ -154,7 +156,8 @@ int main(int argc, char* argv[]) {
         ShellController shell(activeLibrary,
                               store ? static_cast<TrainerRepository&>(*store) : profiles,
                               *selectedAdapter, platform,
-                              dex, store ? static_cast<PokedexProgressRepository&>(*store) : dex,
+                              personalLibrary && !smoke ? static_cast<PokedexReferenceProvider&>(offlineDex) : dex,
+                              store ? static_cast<PokedexProgressRepository&>(*store) : dex,
                               personalLibrary && !smoke ? static_cast<HallOfFameRepository&>(*store) : shellArchive,
                               personalLibrary && !smoke ? static_cast<AchievementProvider&>(disconnectedAchievements) : shellAchievements);
         shell.configureServices(&files, store.get());

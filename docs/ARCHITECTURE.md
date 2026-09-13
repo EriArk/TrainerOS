@@ -335,6 +335,8 @@ When exact resume is unavailable, the card may still launch the Adventure normal
 
 ## Pokédex providers
 
+The normal composition now injects `OfflinePokedex` for bundled, validated species/form facts and `LocalStateStore` for personal marks. `PokedexJournalEditor` owns transient manual Seen/Caught/note drafts; `SqlitePokedexJournal` owns schema/transaction mapping on the existing storage worker. Feature UI never reads ROMs or interprets the reference as current game progress. See [Pokédex](POKEDEX.md).
+
 Keep reference/canonical Pokédex data separate from personal progress.
 
 Suggested split:
