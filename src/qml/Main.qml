@@ -124,12 +124,16 @@ Window {
                     }
                     Rectangle { x: 2; y: 1; width: parent.width - 4; height: 2; color: "#90ffffff" }
                     Rectangle { x: 2; y: 3; width: 1; height: parent.height - 17; color: "#55ffffff" }
-                    Text { anchors.centerIn: parent; text: modelData; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 19; font.weight: Font.DemiBold }
+                    Text {
+                        anchors.centerIn: parent; anchors.verticalCenterOffset: Theme.topRimHeight / 2
+                        text: modelData; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 19; font.weight: Font.DemiBold
+                    }
                     Rectangle { x: 18; y: parent.height - 8; width: parent.width - 36; height: 3; radius: 1.5; color: "#7a4a24"; visible: shell.page === index }
                     MouseArea { anchors.fill: parent; onClicked: shell.goToPage(index) }
                 }
             }
         }
+        ChassisTopRim { z: 1.5 }
         Item {
             id: screen
             objectName: "primary-screen"

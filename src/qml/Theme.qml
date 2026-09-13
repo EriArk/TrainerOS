@@ -40,6 +40,7 @@ QtObject {
     readonly property int brandBevel: 18
     readonly property int tabSpacing: 4
     readonly property int screenBevel: 11
+    readonly property int topRimHeight: viewportWidth - screenBounds.x - screenBounds.width
     readonly property real tabWidth: (screenBounds.x + screenBounds.width - screenBevel - brandWidth - 4 * tabSpacing) / 5
     readonly property int panelInset: 12
     readonly property int contentTopInset: tabBevel + activeTabOverlap + panelInset
