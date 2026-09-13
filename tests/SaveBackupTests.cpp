@@ -68,7 +68,7 @@ private slots:
         QVERIFY2(restored.success, qPrintable(restored.message)); QCOMPARE(read(target.savePath), "DS SAVE ONE");
         QCOMPARE(restored.snapshot.copies.size(), 2);
 #ifdef Q_OS_LINUX
-        const auto executable = dir.filePath("melonDS"); QVERIFY(QFile::copy("/bin/sleep", executable));
+        const auto executable = dir.filePath("melonDS.AppImage"); QVERIFY(QFile::copy("/bin/sleep", executable));
         QProcess process; process.start(executable, {"30"}); QVERIFY(process.waitForStarted());
         const auto running = resolve(record); process.kill(); process.waitForFinished();
         QVERIFY(!running.supported); QVERIFY(running.error.contains("Close the running"));

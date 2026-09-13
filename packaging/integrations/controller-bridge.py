@@ -14,7 +14,7 @@ env=dict(os.environ);env['QT_QPA_PLATFORM']='xcb';env['GDK_BACKEND']='x11'
 env.pop('WAYLAND_DISPLAY',None)
 child=None
 try:
- s=c.CDLL('libSDL2-2.0.so.0');x=c.CDLL('libX11.so.6');xt=c.CDLL('libXtst.so.6')
+ s=c.CDLL('libSDL2-2.0.so.0');x=c.CDLL('libX11.so.6');xt=c.CDLL('libXtst.so.6');xr=c.CDLL('libXRes.so.1')
  s.SDL_SetHint.argtypes=[c.c_char_p,c.c_char_p];s.SDL_SetHint(b'SDL_NO_SIGNAL_HANDLERS',b'1');s.SDL_SetHint(b'SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS',b'1')
  s.SDL_InitSubSystem.argtypes=[c.c_uint]
  if s.SDL_InitSubSystem(0x2000)!=0:raise RuntimeError('Controller subsystem unavailable')
@@ -30,17 +30,39 @@ try:
  error_type=c.CFUNCTYPE(c.c_int,c.c_void_p,c.c_void_p)
  error_handler=error_type(lambda display,event:0)
  x.XSetErrorHandler.argtypes=[error_type];x.XSetErrorHandler(error_handler)
+ class ClientSpec(c.Structure):_fields_=[('client',c.c_ulong),('mask',c.c_uint)]
+ class ClientValue(c.Structure):_fields_=[('spec',ClientSpec),('length',c.c_long),('value',c.c_void_p)]
+ xr.XResQueryExtension.argtypes=[c.c_void_p,c.POINTER(c.c_int),c.POINTER(c.c_int)]
+ xr.XResQueryVersion.argtypes=[c.c_void_p,c.POINTER(c.c_int),c.POINTER(c.c_int)]
+ first=c.c_int();second=c.c_int()
+ if not xr.XResQueryExtension(display,c.byref(first),c.byref(second)):raise RuntimeError('X11 client identity unavailable')
+ if not xr.XResQueryVersion(display,c.byref(first),c.byref(second)) or (first.value,second.value)<(1,2):raise RuntimeError('X11 client identity version unavailable')
+ xr.XResQueryClientIds.argtypes=[c.c_void_p,c.c_long,c.POINTER(ClientSpec),c.POINTER(c.c_long),c.POINTER(c.POINTER(ClientValue))]
+ xr.XResGetClientPid.argtypes=[c.POINTER(ClientValue)];xr.XResGetClientPid.restype=c.c_int
+ xr.XResClientIdsDestroy.argtypes=[c.c_long,c.POINTER(ClientValue)]
+ def client_pid(window):
+  # Server-observed host PID also identifies Flatpak clients. _NET_WM_PID
+  # contains their namespace-local PID and cannot establish our ownership.
+  spec=ClientSpec(window,2);count=c.c_long();values=c.POINTER(ClientValue)()
+  if xr.XResQueryClientIds(display,1,c.byref(spec),c.byref(count),c.byref(values))!=0:return 0
+  try:
+   for i in range(count.value):
+    pid=xr.XResGetClientPid(c.byref(values[i]))
+    if pid>0:return pid
+   return 0
+  finally:xr.XResClientIdsDestroy(count,values)
  x.XDefaultRootWindow.argtypes=[c.c_void_p];x.XDefaultRootWindow.restype=c.c_ulong;root=x.XDefaultRootWindow(display)
  x.XInternAtom.argtypes=[c.c_void_p,c.c_char_p,c.c_int];x.XInternAtom.restype=c.c_ulong
  def atom(name):return x.XInternAtom(display,name.encode(),False)
  x.XGetWindowProperty.argtypes=[c.c_void_p,c.c_ulong,c.c_ulong,c.c_long,c.c_long,c.c_int,c.c_ulong,c.POINTER(c.c_ulong),c.POINTER(c.c_int),c.POINTER(c.c_ulong),c.POINTER(c.c_ulong),c.POINTER(c.c_void_p)]
  x.XFree.argtypes=[c.c_void_p];x.XFlush.argtypes=[c.c_void_p]
- def prop(window,name):
+ def properties(window,name,limit=64):
   actual=c.c_ulong();fmt=c.c_int();count=c.c_ulong();left=c.c_ulong();data=c.c_void_p()
-  status=x.XGetWindowProperty(display,window,atom(name),0,1,False,0,c.byref(actual),c.byref(fmt),c.byref(count),c.byref(left),c.byref(data))
-  try:return c.cast(data,c.POINTER(c.c_ulong))[0] if status==0 and count.value and fmt.value==32 else 0
+  status=x.XGetWindowProperty(display,window,atom(name),0,limit,False,0,c.byref(actual),c.byref(fmt),c.byref(count),c.byref(left),c.byref(data))
+  try:return list(c.cast(data,c.POINTER(c.c_ulong))[:min(count.value,limit)]) if status==0 and count.value and fmt.value==32 else []
   finally:
    if data:x.XFree(data)
+ def prop(window,name):return next(iter(properties(window,name,1)),0)
  def owns(pid):
   for _ in range(20):
    if pid==child.pid:return True
@@ -54,9 +76,18 @@ try:
  class Event(c.Union):_fields_=[('client',Message),('pad',c.c_long*24)]
  x.XSendEvent.argtypes=[c.c_void_p,c.c_ulong,c.c_int,c.c_long,c.POINTER(Event)]
  def close(window):
-  event=Event();event.client=Message(33,0,True,display,window,atom('_NET_CLOSE_WINDOW'),32,Data())
-  event.client.data.l[0]=0;event.client.data.l[1]=2
-  x.XSendEvent(display,root,False,(1<<20)|(1<<19),c.byref(event));x.XFlush(display)
+  event=Event()
+  if atom('WM_DELETE_WINDOW') in properties(window,'WM_PROTOCOLS'):
+   # Gamescope advertises no _NET_CLOSE_WINDOW support. Ask the owned Qt
+   # client to close itself through ICCCM, preserving its normal save path.
+   event.client=Message(33,0,True,display,window,atom('WM_PROTOCOLS'),32,Data())
+   event.client.data.l[0]=atom('WM_DELETE_WINDOW');event.client.data.l[1]=0
+   x.XSendEvent(display,window,False,0,c.byref(event))
+  elif atom('_NET_CLOSE_WINDOW') in properties(root,'_NET_SUPPORTED'):
+   event.client=Message(33,0,True,display,window,atom('_NET_CLOSE_WINDOW'),32,Data())
+   event.client.data.l[0]=0;event.client.data.l[1]=2
+   x.XSendEvent(display,root,False,(1<<20)|(1<<19),c.byref(event))
+  x.XFlush(display)
  xt.XTestFakeRelativeMotionEvent.argtypes=[c.c_void_p,c.c_int,c.c_int,c.c_ulong]
  xt.XTestFakeButtonEvent.argtypes=[c.c_void_p,c.c_uint,c.c_int,c.c_ulong]
  # Initialize the required bridge before starting the game, so a missing
@@ -70,7 +101,7 @@ try:
    lastDiscovery=time.monotonic()
    for i in range(s.SDL_NumJoysticks()):
     if s.SDL_IsGameController(i):controller=s.SDL_GameControllerOpen(i);break
-  active=prop(root,'_NET_ACTIVE_WINDOW');owned=active and owns(prop(active,'_NET_WM_PID'))
+  active=prop(root,'_NET_ACTIVE_WINDOW');owned=active and owns(client_pid(active))
   chord=bool(controller and s.SDL_GameControllerGetButton(controller,4) and s.SDL_GameControllerGetButton(controller,6))
   if owned and chord and not previousChord:close(active)
   previousChord=chord

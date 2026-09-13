@@ -65,7 +65,12 @@ SaveTarget resolveMelonDsSave(const AdventureRegistration& record, const Standal
     while (processes.hasNext()) {
         processes.next(); bool number = false; processes.fileName().toUInt(&number); if (!number) continue;
         QFile comm(QDir(processes.filePath()).filePath("comm"));
-        if (comm.open(QIODevice::ReadOnly) && comm.read(128).trimmed().toLower() == "melonds") {
+        QFile stat(QDir(processes.filePath()).filePath("stat"));
+        if (!stat.open(QIODevice::ReadOnly)) continue;
+        const auto state = stat.read(4096); const auto end = state.lastIndexOf(')');
+        if (end < 0 || state.mid(end + 2, 1) == "Z") continue;
+        // AppImage preserves its launcher name (truncated to 15 bytes in comm).
+        if (comm.open(QIODevice::ReadOnly) && comm.read(128).trimmed().toLower().startsWith("melonds")) {
             target.error = "Close the running Adventure before checking or changing saves."; return target;
         }
     }
