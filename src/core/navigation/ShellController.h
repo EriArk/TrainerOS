@@ -23,6 +23,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(bool drawerOpen READ drawerOpen NOTIFY changed)
     Q_PROPERTY(bool menuOpen READ menuOpen NOTIFY changed)
     Q_PROPERTY(QString notice READ notice NOTIFY changed)
+    Q_PROPERTY(bool modeConfirmation READ modeConfirmation NOTIFY changed)
     Q_PROPERTY(QVariantMap home READ home NOTIFY changed)
     Q_PROPERTY(trainer::TextEntryController* keyboard READ keyboard CONSTANT)
     Q_PROPERTY(trainer::TrainerController* trainer READ trainer CONSTANT)
@@ -56,7 +57,8 @@ public:
     bool sampleLibrary() const { return !repository_.editable(); }
     void configureServices(FileCatalog* files, PreferencesRepository* preferences);
     void refreshLibrary();
-    void showNotice(const QString& message) { notice_ = message; emit changed(); }
+    void showNotice(const QString& message) { mode_.clear(); notice_ = message; emit changed(); }
+    bool modeConfirmation() const { return !mode_.isEmpty(); }
     int page() const { return page_; }
     int focusIndex() const;
     bool drawerOpen() const { return drawerOpen_; }
@@ -73,6 +75,7 @@ public:
 signals:
     void changed();
     void exitRequested();
+    void modeRequested(const QString& mode);
     void homeLaunchPressed();
 private:
     void confirm();
@@ -105,5 +108,6 @@ private:
     bool menuOpen_ = false;
     bool libraryFromWorlds_ = false;
     QString notice_;
+    QString mode_;
 };
 }

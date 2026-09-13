@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=TrainerOS
+Comment=Controller-first TrainerOS session
+Exec=/var/opt/traineros/session/start-session.sh
+TryExec=/var/opt/traineros/session/start-session.sh
+Type=Application
+DesktopNames=TrainerOS

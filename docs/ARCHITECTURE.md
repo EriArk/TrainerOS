@@ -27,6 +27,8 @@ See `ROADMAP.md` for execution order. Feasibility research is input to later mod
 
 ## Deployment modes
 
+The implemented Armada boundary is documented in [dedicated session integration](SESSION_PROTOTYPE.md). A separate systemd/Gamescope lifecycle owns the compositor, a Linux supervisor preserves orphaned Adventures, and confirmed mode requests drain local persistence before invoking the fixed platform helper. Normal app mode remains available for development and recovery.
+
 TrainerOS's eventual main/default session coexists with the retained Steam Gaming Mode and KDE Plasma. The initial application build performs no session mutation. A platform service owns future mode availability and transitions.
 
 ### 1. Development / safe app mode

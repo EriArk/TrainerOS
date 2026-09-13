@@ -250,7 +250,8 @@ QVariantList ShellController::resumePoints() const {
 }
 QStringList ShellController::menuItems() const {
     return {"Settings", "Controller", "Pokémon Center", "Manage Adventures",
-            "Desktop / Maintenance Mode", "Steam Gaming Mode", "Exit Development App"};
+            "Desktop / Maintenance Mode", "Steam Gaming Mode", platform_.dedicatedSession() ? "Leave TrainerOS"
+                : platform_.canSwitchSession() ? "Enter TrainerOS Mode" : "Exit Development App"};
 }
 void ShellController::goToPage(int page) {
     keyboard_.cancel();
@@ -265,11 +266,12 @@ void ShellController::goToPage(int page) {
     drawerOpen_ = false;
     menuOpen_ = false;
     notice_.clear();
+    mode_.clear();
     emit changed();
 }
 void ShellController::activate(int index, const QString& area) {
     if (area == "continue" && page_ == 0) { dispatch(Action::ToggleContinue); return; }
-    if (!notice_.isEmpty()) { notice_.clear(); emit changed(); return; }
+    if (!notice_.isEmpty()) { confirm(); emit changed(); return; }
     if (menuOpen_) menuFocus_ = std::clamp(index, 0, int(menuItems().size()) - 1);
     else if (keyboard_.isOpen()) { keyboard_.activate(index); return; }
     else if (service_ == "library") { libraryManager_.activate(index, area); return; }
@@ -298,8 +300,19 @@ void ShellController::activate(int index, const QString& area) {
     emit changed();
 }
 void ShellController::confirm() {
-    if (!notice_.isEmpty()) { notice_.clear(); return; }
+    if (!notice_.isEmpty()) {
+        const auto requested = mode_; mode_.clear(); notice_.clear();
+        if (!requested.isEmpty()) emit modeRequested(requested);
+        return;
+    }
     if (menuOpen_) {
+        if (menuFocus_ >= 4 && platform_.canSwitchSession()) {
+            mode_ = menuFocus_ == 5 ? "steam" : menuFocus_ == 6 && !platform_.dedicatedSession() ? "traineros" : "desktop";
+            notice_ = mode_ == "steam" ? "Open Steam Gaming Mode? Your Trainer journal will be saved first."
+                : mode_ == "traineros" ? "Enter the dedicated TrainerOS session? Your Trainer journal will be saved first."
+                                      : "Open Desktop / Maintenance Mode? Your Trainer journal will be saved first.";
+            return;
+        }
         if (menuFocus_ == 6) { emit exitRequested(); return; }
         if(menuFocus_==2 && center_.configured()) {
             keyboard_.cancel();textTarget_=TextTarget::None;trainer_.cancel();pokedex_.cancelTransient();hall_.editor()->cancel();libraryManager_.close();
@@ -393,7 +406,7 @@ void ShellController::dispatch(Action action) {
         if (page_ == 4) { hall_.dispatch(action); return; }
     }
     if (action == Action::Back) {
-        if (!notice_.isEmpty()) notice_.clear();
+        if (!notice_.isEmpty()) { notice_.clear(); mode_.clear(); }
         else if (menuOpen_) menuOpen_ = false;
         else if (drawerOpen_) drawerOpen_ = false;
     } else if (action == Action::ToggleContinue) {

@@ -236,7 +236,7 @@ Done when maintenance is safe, clear, modular, and separated from ordinary Adven
 
 Only after normal application mode is stable.
 
-The [installed ArmadaOS session boundary](SESSION_PROTOTYPE.md) has been inspected read-only. Its existing Gamescope client mechanism is a candidate for the prototype; crash recovery, standalone focus/input and official mode-selector coexistence still need implementation and device checks. No TrainerOS session/default-login change has been installed.
+The [dedicated session package](SESSION_PROTOTYPE.md) provides its own Gamescope/systemd lifecycle, confirmed mode changes and bounded recovery. Device trials verified landscape/controller operation, an Adventure surviving a shell crash, automatic Plasma fallback after failed startup, and the controller round trip through Steam. TrainerOS is selected as the persistent session; physical reboot validation accompanies system controls and sleep remains deferred.
 
 Deliverables:
 

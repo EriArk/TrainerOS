@@ -7,6 +7,7 @@ public:
     virtual ~PlatformService() = default;
     virtual bool canSwitchSession() const = 0;
     virtual QString sessionStatus() const = 0;
+    virtual bool dedicatedSession() const { return false; }
 };
 // Safe application mode. No compositor/session assumptions or system mutations.
 class DevelopmentPlatformService final : public PlatformService {

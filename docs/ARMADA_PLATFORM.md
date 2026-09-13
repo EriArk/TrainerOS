@@ -1,6 +1,6 @@
 # TrainerOS on ArmadaOS
 
-Preparation and acceptance steps are in [FIRST_DEVICE_RUN.md](FIRST_DEVICE_RUN.md). The first actual ARM64 build, runtime, display, storage and package findings are recorded in [ARMADA_DEVICE_BASELINE.md](ARMADA_DEVICE_BASELINE.md). Physical controller/readability acceptance and dedicated-session readiness remain open; offscreen CI does not close those gates.
+Preparation and acceptance steps are in [FIRST_DEVICE_RUN.md](FIRST_DEVICE_RUN.md). The first actual ARM64 build, runtime, display, storage and package findings are recorded in [ARMADA_DEVICE_BASELINE.md](ARMADA_DEVICE_BASELINE.md). The [dedicated session](SESSION_PROTOTYPE.md) records the later device checks: standalone controller/rendering, Adventure preservation across a shell crash, failed-start recovery and Steam/Plasma transitions. Offscreen CI does not replace those checks; sleep/wake remains deferred.
 
 The native [controller/display diagnostic service](DEVICE_DIAGNOSTICS.md) is ready for that visit. It records Qt/SDL observations locally on request. Display coordinates, backend names and detected input signals must be checked against the real screen, control labels and session setup; they are not substituted for physical acceptance.
 

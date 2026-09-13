@@ -12,7 +12,7 @@ Item {
         Panel {
             anchors.fill: parent; anchors.margins: 8
             Text {
-                x: 25; y: 21; text: root.shell.notice.length > 0 ? "TrainerOS prototype" : "System menu"
+                x: 25; y: 21; text: root.shell.modeConfirmation ? "Change mode" : root.shell.notice.length > 0 ? "TrainerOS" : "System menu"
                 color: Theme.ink; font.pixelSize: 26; font.weight: Font.DemiBold
             }
             Column {
@@ -40,10 +40,11 @@ Item {
                 height: 74; color: "#ccdcd0"; visible: root.shell.notice.length > 0
                 CapButton {
                     objectName: "notice-close"
-                    x: 20; y: 15; width: 180; height: 42; label: "A   Got it"
+                    x: 20; y: 15; width: 180; height: 42; label: root.shell.modeConfirmation ? "A   Continue" : "A   Got it"
                     selected: root.shell.notice.length > 0
                     onActivated: root.shell.activate(0)
                 }
+                Text { x: 222; y: 27; text: "B   Cancel"; visible: root.shell.modeConfirmation; color: Theme.ink; font.pixelSize: 17 }
             }
         }
     }

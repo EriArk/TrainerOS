@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Return to TrainerOS
+Comment=Save desktop work before entering the TrainerOS session
+Exec=/usr/bin/sudo -n /var/opt/traineros/session/control.py traineros
+Type=Application
+Terminal=false
+Categories=Game;
+Icon=applications-games

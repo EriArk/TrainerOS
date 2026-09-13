@@ -11,6 +11,8 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/platform/ArmadaPlatformService.h
+    src/platform/ArmadaPlatformService.cpp
     src/platform/power/PowerStatus.h
     src/platform/power/PowerStatus.cpp
     src/core/model/SaveBackup.h
@@ -155,6 +157,11 @@ qt_add_qml_module(traineros
 )
 
 if(BUILD_TESTING)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        find_package(Python3 REQUIRED COMPONENTS Interpreter)
+        add_test(NAME session_supervisor COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SessionSupervisorTests.py)
+        set_tests_properties(session_supervisor PROPERTIES TIMEOUT 40)
+    endif()
     qt_add_executable(trainer_power_tests tests/PowerStatusTests.cpp)
     target_link_libraries(trainer_power_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME power COMMAND trainer_power_tests)

@@ -11,6 +11,7 @@
 #include "integrations/adventure/retroarch/RetroArchResume.h"
 #include "platform/storage/SaveBackupStorage.h"
 #include "platform/power/PowerStatus.h"
+#include "platform/ArmadaPlatformService.h"
 #include <QCryptographicHash>
 #include <QQuickImageProvider>
 #include <QGuiApplication>
@@ -135,7 +136,7 @@ int main(int argc, char* argv[]) {
         MockAdventureAdapter adapter;
         UnconfiguredAdventureAdapter unconfiguredAdapter;
         LocalFileCatalog files;
-        DevelopmentPlatformService platform;
+        ArmadaPlatformService platform(!smoke && !parser.isSet("ephemeral"));
         MockPokedexRepository dex;
         OfflinePokedex offlineDex;
         if (pokedexSmoke) dex.failNextLoad();
@@ -226,7 +227,26 @@ int main(int argc, char* argv[]) {
             }
             session.dispatch(action);
         });
-        QObject::connect(&session, &SessionState::exitReady, &app, [&app] { app.exit(); });
+        QString pendingMode;
+        bool transitionStarted = false;
+        QObject::connect(&shell, &ShellController::modeRequested, &session, [&](const QString& mode) {
+            if (adventureLaunch.active()) return;
+            pendingMode = mode; session.requestExit();
+        });
+        QObject::connect(&session, &SessionState::changed, &session, [&] {
+            if (!session.blocked() && !transitionStarted) pendingMode.clear();
+        });
+        QObject::connect(&session, &SessionState::exitReady, &app, [&] {
+            if (pendingMode.isEmpty()) { app.exit(); return; }
+            if (transitionStarted) return;
+            transitionStarted = true;
+            platform.switchMode(pendingMode);
+        });
+        QObject::connect(&platform, &ArmadaPlatformService::transitionFinished, &session, [&](bool success) {
+            if (success) { app.exit(); return; }
+            transitionStarted = false; pendingMode.clear(); session.cancelPendingExit();
+            shell.showNotice("The mode could not be changed. Your journal is saved; TrainerOS remains open.");
+        });
         app.installEventFilter(&input);
         if (!smoke) {
             input.setEnabled(app.applicationState() == Qt::ApplicationActive);
@@ -254,6 +274,21 @@ int main(int argc, char* argv[]) {
         else {
             auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
             if (!window) return 2;
+#ifdef Q_OS_LINUX
+            bool readyDescriptorValid = false;
+            const int readyDescriptor = qEnvironmentVariableIntValue("TRAINEROS_READY_FD", &readyDescriptorValid);
+            if (platform.dedicatedSession() && readyDescriptorValid && readyDescriptor >= 3) {
+                auto notified = std::make_shared<bool>(false);
+                QObject::connect(window, &QQuickWindow::frameSwapped, &app, [readyDescriptor, notified] {
+                    if (*notified) return;
+                    *notified = true;
+                    QFile ready;
+                    if (ready.open(readyDescriptor, QIODevice::WriteOnly, QFileDevice::AutoCloseHandle)) {
+                        ready.write("R", 1); ready.flush();
+                    }
+                }, Qt::QueuedConnection);
+            }
+#endif
             deviceReports.setWindow(window);
             session.start();
             if (!parser.isSet("windowed") && !smoke) window->showFullScreen();

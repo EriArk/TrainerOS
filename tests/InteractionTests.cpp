@@ -21,6 +21,43 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void sessionChoicesRequireConfirmationAndCancelCleanly() {
+        class Platform final : public PlatformService {
+        public:
+            bool canSwitchSession() const override { return true; }
+            bool dedicatedSession() const override { return true; }
+            QString sessionStatus() const override { return {}; }
+        } platform;
+        MockLibraryRepository library;
+        MockTrainerRepository profiles;
+        MockAdventureAdapter adapter;
+        MockPokedexRepository dex;
+        MockHallOfFameRepository archive;
+        MockAchievementProvider achievements;
+        ShellController shell(library, profiles, adapter, platform, dex, dex, archive, achievements);
+        QSignalSpy requested(&shell, &ShellController::modeRequested);
+        QSignalSpy exited(&shell, &ShellController::exitRequested);
+        shell.dispatch(Action::SystemMenu);
+        shell.activate(4);
+        QVERIFY(shell.modeConfirmation());
+        QVERIFY(requested.isEmpty());
+        shell.dispatch(Action::Back);
+        QVERIFY(!shell.modeConfirmation());
+        shell.activate(5);
+        shell.dispatch(Action::NextPage);
+        QVERIFY(!shell.modeConfirmation());
+        QVERIFY(requested.isEmpty());
+        shell.dispatch(Action::SystemMenu);
+        shell.activate(5);
+        shell.dispatch(Action::Confirm);
+        QCOMPARE(requested.size(), 1);
+        QCOMPARE(requested.first().first().toString(), "steam");
+        shell.activate(6);
+        QVERIFY(shell.modeConfirmation());
+        shell.dispatch(Action::Confirm);
+        QCOMPARE(requested.last().first().toString(), "desktop");
+        QVERIFY(exited.isEmpty());
+    }
     void everyLetterAndNumber() {
         TextEntryController keyboard;
         keyboard.begin("Search", "", 80);

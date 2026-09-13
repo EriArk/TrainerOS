@@ -1,0 +1,14 @@
+[Unit]
+Description=TrainerOS graphical session
+BindsTo=graphical-session.target
+Before=graphical-session.target
+Wants=graphical-session-pre.target
+After=graphical-session-pre.target
+
+[Service]
+ExecStart=/var/opt/traineros/session/compositor.sh
+KillMode=mixed
+TimeoutStopSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=traineros-session
