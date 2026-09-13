@@ -22,7 +22,7 @@ Create/edit and reading the resulting projection share one transaction. Updates 
 
 ## Achievement boundary
 
-RetroAchievements stays inside Hall of Fame. The normal composition currently shows an honest disconnected state. Real account authentication, verified game/set association and cached network refresh are the next integration increment. Local memories work offline without that integration.
+RetroAchievements stays inside Hall of Fame. The normal composition uses a real provider with controller account entry, verified cartridge-file matching and account-scoped offline records. X opens Account and Y refreshes recently played supported Adventures. Unlocks are external account history, separate from local memories and current saves. Unsupported hash formats remain unavailable. See [RetroAchievements](RETROACHIEVEMENTS.md) for the implemented protocol, privacy, cache and earning boundaries.
 
 ## Acceptance
 

@@ -7,10 +7,16 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_AUTOMOC ON)
 include(CTest)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/features/halloffame/AchievementAccountController.h
+    src/features/halloffame/AchievementAccountController.cpp
+    src/integrations/achievements/RetroAchievementsApi.h
+    src/integrations/achievements/RetroAchievementsApi.cpp
+    src/integrations/achievements/RetroAchievementsProvider.h
+    src/integrations/achievements/RetroAchievementsProvider.cpp
     src/integrations/adventure/standalone/MelonDsSave.h
     src/integrations/adventure/standalone/MelonDsSave.cpp
     src/integrations/adventure/AdapterRouter.h
@@ -115,7 +121,7 @@ add_library(trainer_core STATIC
 target_include_directories(trainer_core PUBLIC src)
 qt_add_resources(trainer_core collection PREFIX "/collection" BASE data FILES data/catalogue.json)
 qt_add_resources(trainer_core pokedex_reference PREFIX "/pokedex" BASE data FILES data/pokedex.json)
-target_link_libraries(trainer_core PUBLIC Qt6::Core Qt6::Gui Qt6::Sql SDL2::SDL2)
+target_link_libraries(trainer_core PUBLIC Qt6::Core Qt6::Gui Qt6::Sql Qt6::Network SDL2::SDL2)
 target_compile_definitions(trainer_core PUBLIC SDL_MAIN_HANDLED)
 if(MSVC)
     target_compile_options(trainer_core PRIVATE /W4 PUBLIC /utf-8)
@@ -146,6 +152,7 @@ qt_add_qml_module(traineros
         src/qml/AdventureButton.qml
         src/qml/HallOfFamePage.qml
         src/qml/ArchiveEditorPanel.qml
+        src/qml/AchievementAccountPanel.qml
         src/qml/ControllerList.qml
         src/qml/ContinueDrawer.qml
         src/qml/SystemPanel.qml
@@ -167,6 +174,9 @@ qt_add_qml_module(traineros
 )
 
 if(BUILD_TESTING)
+    qt_add_executable(trainer_achievement_tests tests/RetroAchievementsTests.cpp)
+    target_link_libraries(trainer_achievement_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME achievements COMMAND trainer_achievement_tests)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         find_package(Python3 REQUIRED COMPONENTS Interpreter)
         add_test(NAME session_supervisor COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SessionSupervisorTests.py)

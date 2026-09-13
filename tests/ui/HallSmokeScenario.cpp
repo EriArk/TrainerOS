@@ -153,8 +153,30 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         case 51:
             check(hall->rows().size()==5 && focusIs("hall-action-0"), "Archive detail restores focus after leaving editor");
             press(x);press(down,2);press(a);press(a);press(b);press(b);break;
-        default:
+        case 52:
             check(!hall->editor()->isOpen() && hall->detail()["description"]=="A", "Cancelling keyboard and draft preserves committed note");
+            provider.setAccount({}); hall->activateControl("rail", 1); press(x); break;
+        case 53:
+            check(hall->account()->isOpen() && focusIs("achievement-account-0"), "X opens controller account form");
+            capture("account-form"); press(down); press(a); break;
+        case 54:
+            check(shell.keyboard()->isOpen(), "Password opens shared controller keyboard");
+            press(a); check(shell.keyboard()->displayText() == QString(QChar(0x2022)), "Password draft is masked");
+            capture("account-password"); press(down,3); press(right); press(a); break;
+        case 55:
+            check(!shell.keyboard()->isOpen() && hall->account()->rows()[1].toMap()["detail"] == QString(QChar(0x2022)), "Applied password stays masked");
+            press(start); break;
+        case 56:
+            check(focusIs("menu-0"), "Start overlays account form"); press(b); window->resize(1920,1080); break;
+        case 57:
+            check(focusIs("achievement-account-1"), "Account focus returns after Start"); capture("account-1080p"); press(l1); break;
+        case 58:
+            check(shell.page()==3 && !hall->account()->isOpen(), "Global page navigation clears account draft"); press(r1); press(x); break;
+        case 59:
+            check(hall->account()->rows()[1].toMap()["detail"] == "A · Enter password", "Password not retained after leaving page");
+            press(b); window->resize(960,540); break;
+        default:
+            check(!hall->account()->isOpen(), "Back returns to achievement browser");
             check(warnings == 0, "QML warnings emitted");
             completed = true; timer->stop();
             if (!screenshotDir.isEmpty()) {

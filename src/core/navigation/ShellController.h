@@ -100,7 +100,7 @@ private:
     DiagnosticsController diagnostics_;
     SaveCenterController center_;
     QString service_;
-    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, Library, Archive, PokedexNote, TrainerFavorite, CenterSearch };
+    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, Library, Archive, PokedexNote, TrainerFavorite, CenterSearch, AchievementAccount };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QString homeAdventureId_, homeResumeId_;

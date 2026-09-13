@@ -363,7 +363,7 @@ The native mock now injects `HallOfFameRepository` and `AchievementProvider` int
 
 Archive loading is currently a synchronous fake read with last-good-data recovery. The achievement provider is a QObject boundary that exposes context, linked sets, snapshots and asynchronous refresh notifications. Snapshots scope definitions/unlocks to a provider/account/set; the controller rejects mismatched identities. The mock completes refresh on the Qt event loop, supports held requests for tests and invalidates pending work/cache when the account changes. Disconnected/unsupported results hide old records, while same-context loading/offline/error results may retain a clearly labeled snapshot. QML never handles account credentials, cache keys or network calls.
 
-The provider/repository contracts implement only this mock's needs. Real authentication, API coverage, persistent caches, archive editing and game-progress enrichment follow after the shared backend and device baseline. None of these sample achievement states establish production integration support.
+The normal composition now injects `RetroAchievementsProvider`; the fake remains isolated to sample/test runs. `AchievementAccountController` owns controller form drafts, while the provider owns authentication, verified file association, request validation and account-scoped caches. A dedicated worker handles hashing, bounded HTTPS requests and cache I/O. UI projections contain masked password text and account status, never tokens or network commands. Real support is deliberately limited to verified hash formats and core definitions; timestamps absent from the read API remain unknown. See [RetroAchievements](RETROACHIEVEMENTS.md) for protocol and earning boundaries.
 
 ## Platform services
 

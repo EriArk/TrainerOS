@@ -3,6 +3,7 @@
 #include "integrations/adventure/AdapterRouter.h"
 #include "integrations/adventure/standalone/StandaloneAdapter.h"
 #include "integrations/adventure/standalone/MelonDsSave.h"
+#include "integrations/achievements/RetroAchievementsProvider.h"
 #include "core/storage/SessionState.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
@@ -145,7 +146,7 @@ int main(int argc, char* argv[]) {
         if (pokedexSmoke) dex.failNextLoad();
         MockHallOfFameRepository shellArchive;
         MockAchievementProvider shellAchievements;
-        DisconnectedAchievementProvider disconnectedAchievements;
+        if (hallSmoke) shellAchievements.enableAccountPreview();
         std::unique_ptr<LocalStateStore> store;
         QString stateDirectory;
         if ((!smoke && !parser.isSet("ephemeral")) || !persistencePhase.isEmpty()) {
@@ -159,6 +160,8 @@ int main(int argc, char* argv[]) {
         LibraryRepository& baseLibrary = personalLibrary ? (!smoke || persistencePhase == "collection" ? static_cast<LibraryRepository&>(collection) : *store) : repository;
         ResumeLibraryRepository moments(baseLibrary);
         LibraryRepository& activeLibrary = personalLibrary && !smoke ? static_cast<LibraryRepository&>(moments) : baseLibrary;
+        std::unique_ptr<RetroAchievementsProvider> realAchievements;
+        if (personalLibrary && !smoke) realAchievements = std::make_unique<RetroAchievementsProvider>(activeLibrary, stateDirectory);
         AdventureAdapter* selectedAdapter = personalLibrary ? static_cast<AdventureAdapter*>(&unconfiguredAdapter) : &adapter;
         const auto retroarchInstallation = personalLibrary && !smoke
             ? RetroArchInstallation::load(QDir(stateDirectory).filePath("integrations/retroarch.json")) : RetroArchInstallation{};
@@ -185,13 +188,16 @@ int main(int argc, char* argv[]) {
                               personalLibrary && !smoke ? static_cast<PokedexReferenceProvider&>(offlineDex) : dex,
                               store ? static_cast<PokedexProgressRepository&>(*store) : dex,
                               personalLibrary && !smoke ? static_cast<HallOfFameRepository&>(*store) : shellArchive,
-                              personalLibrary && !smoke ? static_cast<AchievementProvider&>(disconnectedAchievements) : shellAchievements);
+                              realAchievements ? static_cast<AchievementProvider&>(*realAchievements) : shellAchievements);
         shell.configureServices(&files, store.get());
         if (personalLibrary && !smoke) {
             shell.libraryManager()->prepareInstallation = [&adapters](AdventureRegistration& record) { adapters.prepareInstallation(record); };
             shell.libraryManager()->setInitialFolder(QDir::home().filePath("Emulation/roms"));
         }
         if (store) QObject::connect(store.get(), &LocalStateStore::libraryChanged, &shell, &ShellController::refreshLibrary);
+        if (realAchievements) QObject::connect(store.get(), &LocalStateStore::opened, realAchievements.get(), [&](bool success) {
+            if (success) realAchievements->refreshAll();
+        });
         QObject::connect(&moments, &ResumeLibraryRepository::changed, &shell, &ShellController::refreshLibrary);
         if (store && !smoke) QObject::connect(store.get(), &LocalStateStore::libraryChanged, &resumeProvider, [&] {
             resumeProvider.refresh(shell.navigationState()["homeAdventure"].toString());
@@ -351,6 +357,7 @@ int main(int argc, char* argv[]) {
                     if (*returnFullscreen) window->showFullScreen(); else window->show();
                     window->requestActivate();
                     input.setEnabled(app.applicationState() == Qt::ApplicationActive);
+                    realAchievements->refreshAll();
                 });
                 QObject::connect(playHistory.get(), &PlayHistoryController::writeFailed, &shell, [&](const QString& error) {
                     if (!adventureLaunch.active()) shell.showNotice(error);

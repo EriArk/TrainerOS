@@ -163,7 +163,7 @@ The Trainer can be created locally and edited later, including name, avatar/embl
 
 Hall of Fame combines a permanent archive of completed Adventures with RetroAchievements achievements. Archive entries may store World, Adventure, completion date, final playtime, final team of six, screenshot, notes, and whether the data was imported or manually confirmed. External achievement unlocks retain their own source and remain separate from current-save progress.
 
-The local archive supports controller-operated creation and editing of completed-Adventure memories, including team, date, manual time and notes. Records survive restart and remain independent of current saves. RetroAchievements stays in this section; real account connection is still pending and normal runs never show fictional unlocks. See [Hall of Fame](docs/HALL_OF_FAME.md).
+The local archive supports controller-operated creation and editing of completed-Adventure memories, including team, date, manual time and notes. Records survive restart and remain independent of current saves. RetroAchievements stays in this section, with controller account entry, verified cartridge-file matching and private offline records. Normal runs never show fictional unlocks. See [Hall of Fame](docs/HALL_OF_FAME.md) and [achievement integration boundaries](docs/RETROACHIEVEMENTS.md).
 
 ## Pokémon Center / system services
 

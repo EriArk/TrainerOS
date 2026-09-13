@@ -4,6 +4,7 @@
 #include "core/repository/HallOfFameRepository.h"
 #include "integrations/achievements/AchievementProvider.h"
 #include "ArchiveEditor.h"
+#include "AchievementAccountController.h"
 #include <QVariantList>
 
 namespace trainer {
@@ -21,6 +22,7 @@ class HallOfFameController final : public QObject {
     Q_PROPERTY(QString status READ status NOTIFY changed)
     Q_PROPERTY(QString emptyMessage READ emptyMessage NOTIFY changed)
     Q_PROPERTY(trainer::ArchiveEditor* editor READ editor CONSTANT)
+    Q_PROPERTY(trainer::AchievementAccountController* account READ account CONSTANT)
     Q_PROPERTY(bool editable READ editable CONSTANT)
 public:
     HallOfFameController(HallOfFameRepository&, AchievementProvider&, QObject* parent = nullptr);
@@ -36,6 +38,7 @@ public:
     QString status() const;
     QString emptyMessage() const;
     ArchiveEditor* editor() { return &editor_; }
+    AchievementAccountController* account() { return &account_; }
     bool editable() const { return repository_.archiveEditable(); }
     void beginMemory(bool edit);
     void dispatch(Action);
@@ -63,6 +66,7 @@ private:
     HallOfFameRepository& repository_;
     AchievementProvider& provider_;
     ArchiveEditor editor_;
+    AchievementAccountController account_;
     QList<HallOfFameEntry> archive_;
     QString archiveError_;
     QString archiveId_, setId_;

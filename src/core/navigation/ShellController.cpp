@@ -31,6 +31,10 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         emit changed();
     });
     hall_.editor()->setLibrary(&repo);
+    connect(hall_.account(), &AchievementAccountController::textRequested, this,
+        [this](const QString& title, const QString& initial, int limit, bool secret) {
+            textTarget_ = TextTarget::AchievementAccount; keyboard_.begin(title, initial, limit, secret);
+        });
     trainer_.configure(&repo, &dexReference, &dexProgress, &archive);
     connect(trainer_.picker(), &SpeciesPicker::searchRequested, this, [this](const QString& initial) {
         textTarget_ = TextTarget::TrainerFavorite; keyboard_.begin("Find your favorite · name / number", initial, 48);
@@ -102,6 +106,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::PokedexNote) pokedex_.journal()->applyNote(text);
         else if (target == TextTarget::TrainerFavorite) trainer_.picker()->applySearch(text);
         else if (target == TextTarget::CenterSearch) center_.applySearch(text);
+        else if (target == TextTarget::AchievementAccount) hall_.account()->applyText(text);
     });
     refreshContinue();
 }
@@ -269,6 +274,7 @@ void ShellController::goToPage(int page) {
     textTarget_ = TextTarget::None;
     pokedex_.cancelTransient();
     hall_.editor()->cancel();
+    hall_.account()->close();
     trainer_.cancel();
     center_.close();
     libraryManager_.close(); service_.clear();
@@ -327,11 +333,13 @@ void ShellController::confirm() {
         }
         if (menuFocus_ == 6) { emit exitRequested(); return; }
         if(menuFocus_==2 && center_.configured()) {
+            hall_.account()->close();
             keyboard_.cancel();textTarget_=TextTarget::None;trainer_.cancel();pokedex_.cancelTransient();hall_.editor()->cancel();libraryManager_.close();
             menuOpen_=false;drawerOpen_=false;service_="center";
             const auto adventure=homeAdventure();center_.begin(adventure?adventure->id:QString());return;
         }
         if (menuFocus_ == 0 || menuFocus_ == 1 || menuFocus_ == 3) {
+            hall_.account()->close();
             keyboard_.cancel(); textTarget_ = TextTarget::None; trainer_.cancel();
             libraryManager_.close(); menuOpen_ = false;
             center_.close();

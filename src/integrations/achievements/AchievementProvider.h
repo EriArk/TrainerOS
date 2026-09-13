@@ -48,6 +48,12 @@ public:
     virtual QList<AchievementSet> sets() const = 0;
     virtual AchievementSnapshot snapshot(const QString& setId) const = 0;
     virtual void refresh(const QString& setId) = 0;
+    virtual void refreshAll() { for (const auto& set : sets()) refresh(set.id); }
+    virtual bool canManageAccount() const { return false; }
+    virtual bool accountBusy() const { return false; }
+    virtual QString accountMessage() const { return {}; }
+    virtual void login(const QString&, const QString&) {}
+    virtual void disconnectAccount() {}
 signals:
     void snapshotChanged(const QString& setId);
 };
@@ -63,6 +69,9 @@ public:
     void setNextResult(AchievementState state) { nextResult_ = state; }
     void holdRequests(bool hold) { hold_ = hold; }
     void finishRefresh(const QString& setId);
+    void enableAccountPreview() { accountPreview_ = true; }
+    bool canManageAccount() const override { return accountPreview_; }
+    QString accountMessage() const override { return "Sample account controls. Credentials are never submitted in this preview."; }
 private:
     AchievementSnapshot sample(const QString& setId) const;
     AchievementContext context_{"retroAchievements-mock", "sample-trainer"};
@@ -71,6 +80,7 @@ private:
     AchievementState nextResult_ = AchievementState::Ready;
     int generation_ = 0;
     bool hold_ = false;
+    bool accountPreview_ = false;
 };
 // Normal application startup must never claim sample achievements or an account.
 class DisconnectedAchievementProvider final : public AchievementProvider {
