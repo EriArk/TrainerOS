@@ -151,6 +151,10 @@ qt_add_qml_module(traineros
         src/qml/Main.qml
         src/qml/Theme.qml
         src/qml/Panel.qml
+        src/qml/ChassisFrame.qml
+        src/qml/PageHeader.qml
+        src/qml/ShellBackgroundPattern.qml
+        src/qml/MountedPanel.qml
         src/qml/CapButton.qml
         src/qml/PlatformBadge.qml
         src/qml/Hint.qml

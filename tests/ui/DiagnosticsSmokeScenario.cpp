@@ -63,7 +63,10 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(start); press(a); break; // Remembered Controller menu entry.
         case 6:
             check(checks->buttons()[9].toMap()["seen"].toBool(), "R1 history survives reopening");
-            window->resize(1920,1080); press(a); break;
+            window->resize(1920,1080); press(a);
+            check(window->activeFocusItem() && window->activeFocusItem()->property("depressed").toBool(),
+                  "SDL Confirm immediately depresses the active mounted cap without delaying its action");
+            break;
         case 7:
             capture("display-1080p");
             input.setEnabled(false); SDL_JoystickSetVirtualButton(joystick, SDL_CONTROLLER_BUTTON_Y, 1); input.poll();

@@ -6,12 +6,11 @@ Item {
     readonly property var hall: shell.hall
     readonly property bool takesFocus: visible && !hall.editor.open && !hall.account.open && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     readonly property bool detailOpen: hall.route === "archive-detail" || hall.route === "achievement-detail"
-    Text { x: 28; y: 9; text: "Hall of Fame"; color: Theme.ink; font.pixelSize: 32; font.weight: Font.DemiBold }
-    Text { x: 265; y: 26; text: "Every journey leaves a story"; color: Theme.muted; font.pixelSize: 15 }
-    Rectangle {
-        x: 0; y: 55; width: parent.width; height: 68; color: "#d2dcd6"
-        Rectangle { x: 0; y: -55; width: 6; height: 55; color: parent.color }
-        Rectangle { anchors.right: parent.right; y: -55; width: 6; height: 55; color: parent.color }
+    PageHeader { id: hallHeader; title: "Hall of Fame"; trailing: "Every journey leaves a story" }
+    MountedPanel {
+        x: 0; y: hallHeader.height; width: parent.width; height: 68; color: "#d2dcd6"
+        Rectangle { x: 0; y: -parent.y; width: 6; height: parent.y; color: parent.color }
+        Rectangle { anchors.right: parent.right; y: -parent.y; width: 6; height: parent.y; color: parent.color }
         Row {
             x: 24; y: 12; spacing: 14
             Repeater {
@@ -34,7 +33,7 @@ Item {
     Item {
         anchors.fill: parent; visible: !root.detailOpen
         Rectangle {
-            x: 0; y: 123; width: 520; height: 216; color: "#e2e7de"
+            x: 0; y: hallHeader.height + 68; width: 520; height: 339 - y; color: "#e2e7de"
             // Three rows, with their entire raised focus outline inside the viewport.
             ControllerList {
                 objectName: "hall-list"
@@ -51,7 +50,7 @@ Item {
             }
         }
         Rectangle {
-            x: 538; y: 123; width: parent.width - x; height: 216; color: "#edf0df"
+            x: 538; y: hallHeader.height + 68; width: parent.width - x; height: 339 - y; color: "#edf0df"
             TrainerEmblem { x: 23; y: 19; width: 97; height: 97; emblem: "compass" }
             Text { x: 136; y: 39; width: parent.width - 154; text: root.hall.archive ? "A JOURNEY\nREMEMBERED" : "ACHIEVEMENT\nRECORDS"; color: Theme.muted; font.pixelSize: 13; font.letterSpacing: 1.3 }
             Text { x: 23; y: 123; width: parent.width - 46; text: root.hall.detail.title; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 22; font.weight: Font.DemiBold; elide: Text.ElideRight }
@@ -95,7 +94,7 @@ Item {
             Text { width: parent.width; text: root.hall.detail.source; color: Theme.muted; font.pixelSize: 12; elide: Text.ElideRight }
         }
     }
-    Rectangle {
+    MountedPanel {
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
         height: 71; color: "#ccdcd1"
         Row {

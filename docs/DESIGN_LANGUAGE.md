@@ -4,15 +4,30 @@ Collection cards include an original hardware silhouette and short platform labe
 
 ## Shared chassis geometry — delivered 2026-09-13
 
-Issue [#21](https://github.com/EriArk/TrainerOS/issues/21): the panel now starts at the inactive-tab baseline, with the original active-tab silhouette overlapping its lip and a narrow contact shadow. Shared Theme geometry owns the panel bounds, tab overlap, content insets and footer. Primary pages and frame-mounted services use the same safe top inset; keyboard/system overlays stay attached to the frame and render above the tabs. Page contents and controller actions are unchanged.
+Issue [#21](https://github.com/EriArk/TrainerOS/issues/21) established one panel/tab geometry and a narrow contact shadow. Shared Theme geometry owns the panel bounds, tab overlap, content insets and footer. Primary pages and frame-mounted services use the same safe top inset; keyboard/system overlays stay attached to the frame and render above the tabs. The later lip adjustment below preserves the original tab silhouette and controller actions.
 
-At 960×540 logical size the panel top moves from 68 to 49, the active tab ends at 63, and safe page content begins at 73. The footer and bottom-mounted keyboard/Continue remain fixed. Scaling and letterboxing still belong to the viewport; palette and reduced-motion changes do not alter these dimensions.
+At 960×540 logical size the first increment moved the panel top from 68 to 49. The owner's follow-up raises it again to **36**, the beginning of the inactive tabs' 13-unit bevels. Inactive tabs still end at 49; the active tab keeps its full height and ends at 63. Both cast a contact shadow, with stronger depth on the active tab. Safe content still begins at 73, clear of the overhang. Footer, bottom-mounted keyboard and Continue remain fixed; palette and reduced motion do not change geometry.
+
+The further owner refinement enlarges the TRAINER / OS title from 17 to 22 units on a 206-unit-wide **extension of the upper chassis**, ending at the same 63-unit line as the active tab with an 18-unit diagonal right cut. The owner explicitly rejected a separate plaque. `ChassisFrame` supplies one continuous body around a single closed, beveled screen aperture that follows this extension into the left side. Upper, side and lower edges share one material gradient; the lower hints sit directly on the body without a transverse seam. Continue uses that same spatial gradient and an open lower edge. Primary pages and full-screen services share the aperture instead of stacking independent frames. No controller subtitle occupies the title area; only exceptional controller loss appears in the footer. Start/keyboard scrims extend across the full upper chassis so their dimming never cuts through the enlarged title; their mounted tray geometry stays fixed.
 
 Verification: the six existing rendered SDL/persistence scenarios passed on Windows/UCRT64 and native ARM64 on Flip (6/6 each), covering 960×540, 1920×1080, letterboxing, focus, menus/text entry, themes and restart. The production build was installed with a previous-binary/database backup and byte verification. InputPlumber controller events exercised all five pages, Start/Back and Continue on the running Flip; Gamescope captures were inspected. This does not close the separate header/pattern/status/content-polish work or U12's performance/calibration tasks.
 
-## Accepted shared-system refinement — remaining work
+## Shared visual pass — 2026-09-13
 
-Issues #22–23/#27/#33 build on the delivered geometry: share compact title variants and one subtle cached ornament. Healthy battery/controller status becomes quiet; important faults/provenance stay clear. Mounted Start controls and Power caps use the same recess/bevel/focus family. Special Home/onboarding/banner compositions remain intentional exceptions to the general heading template.
+The owner requested the available visual work together, including the deeper tab overhang above. Issues #22/#23/#33 now share these primitives:
+
+- `PageHeader` owns title/breadcrumb/subtitle/trailing-context geometry, elision and optional two-line service status. Worlds, Pokédex, Trainer, Hall and service/editing screens reuse it. Home stays distinct. Headers take 48 units without a subtitle or 64 with one; eyebrows and two-line status add only their required space.
+- Worlds uses the reclaimed height for 90-unit region caps and four complete 64-unit Adventure rows, including focus outlines. Missing Adventures remain grey and focusable for file attachment.
+- `ShellBackgroundPattern` draws curved field lines once per size/palette change. Primary pages share the panel's cached texture; service overlays reuse the component. It has no input/domain dependency or frame timer. Future media must sit below the ornament, using the panel surface or an explicit Home pattern with the underlying one disabled.
+- The compact accessible battery gauge retains percentage, charging bolt, critical exclamation and unknown dash. Only controller loss shows a lower-chassis warning. Detailed diagnostics, provenance and errors remain available.
+- `MountedPanel` supplies shared molded tray lips. `CapButton` supplies sockets, highlights, contact depth, static focus rings, grey disabled material and optional warning marks. An observational Confirm cue depresses the focused cap before navigation without delaying actions; foreground/neutral gating stays centralized. Reduced motion removes interpolation, not the visible state.
+- Start groups field tools separately from device/session exits. Settings adds a mounted palette preview. Service/account/save trays, printed controller keycaps and tab highlights share the physical treatment.
+
+This covers **existing** #27 chrome and #34 feature surfaces. Future Power, Multiverse, onboarding, media and earned-state work keep their own acceptance gates. No account, save or launch ownership changes are implied. See the [visual review](VISUAL_REVIEW.md).
+
+### Future background motion — owner request, 2026-09-13
+
+In a later increment, probe whether Flip 2 exposes a usable gyroscope through the current ArmadaOS input/sensor stack. If verified, map gently filtered, bounded tilt to background-only parallax. If absent or inaccessible, design a calm autonomous background movement instead. Keep text, controls, focus and mounting panels stationary. Reduced Motion disables both variants; pause motion while hidden or an Adventure is active. Validate comfort, frame pacing and power cost on Flip before enabling it by default. Presence, calibration and API are unverified; this visual pass deliberately keeps its ornament static. Track this work in P5 alongside physical feedback capabilities, not as a prerequisite for today's polish.
 
 Issue #32 adds a **scoped exception** to the light-workspace rule: Multiverse Home may use a dark cosmic/portal inner field, with the same chassis geometry, physical controls and strong contrast. Pokémon Home and ordinary content retain their light recessed surfaces. Shell color themes stay user-selected; a context switch does not globally change them. New media/pattern layers cannot obscure focus or detach controls from the frame.
 
@@ -46,6 +61,7 @@ The exact palette, material finish, amount of wear, depth, and page composition 
 Acceptance checks for this direction:
 
 - Primary content remains light and readable against the darker teal panel structure.
+- The outer chassis remains a continuous loop on every primary page and full-screen service, including beneath the title extension and around the lower corners. No footer seam cuts across the sidewalls; Continue joins the lower body in both states.
 - Every actionable control has an identifiable supporting surface in both resting and animated states.
 - Drawer motion shows where the panel comes from and where it returns.
 - Decorative wear and parallax do not interfere with text, controller focus, or reduced-motion operation.

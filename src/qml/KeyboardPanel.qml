@@ -7,7 +7,13 @@ Item {
     readonly property var keyboard: shell.keyboard
     readonly property bool takesFocus: keyboard.open && !shell.menuOpen && shell.notice.length === 0
     visible: keyboard.open
-    Rectangle { anchors.fill: parent; color: "#65102927" }
+    Rectangle {
+        anchors.fill: parent
+        anchors.topMargin: -Theme.screenBounds.y
+        anchors.leftMargin: -Theme.screenBounds.x
+        anchors.rightMargin: -Theme.screenBounds.x
+        color: "#65102927"
+    }
     MouseArea { anchors.fill: parent }
     Item {
         id: tray

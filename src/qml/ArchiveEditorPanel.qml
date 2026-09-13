@@ -5,13 +5,13 @@ Item {
     required property var shell
     readonly property var editor: shell.hall.editor
     readonly property bool takesFocus: visible && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
-    Rectangle { anchors.fill: parent; color: "#f2f3e8" }
-    Rectangle {
-        x: 0; y: 0; width: parent.width; height: 78; color: "#d5c6e1"
-        Text { x: 27; y: 12; text: root.editor.route === "team" ? "Your champion team" : root.editor.route === "adventures" ? "Choose an Adventure" : "A journey to remember"; color: Theme.ink; font.pixelSize: 28; font.weight: Font.DemiBold }
-        Text { x: 29; y: 49; width: parent.width - 58; text: root.editor.route === "adventures" ? (root.editor.query.length ? "Search: " + root.editor.query : "Your library · X to search · ← / → jump 8") : "Your own record · optional details can stay unknown"; textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 14; elide: Text.ElideRight }
+    Rectangle { anchors.fill: parent; color: Theme.paper; ShellBackgroundPattern { anchors.fill: parent } }
+    PageHeader {
+        id: editorHeader; compact: true
+        title: root.editor.route === "team" ? "Your champion team" : root.editor.route === "adventures" ? "Choose an Adventure" : "A journey to remember"
+        subtitle: root.editor.route === "adventures" ? (root.editor.query.length ? "Search: " + root.editor.query : "Your library · X to search · ← / → jump 8") : "Your own record · optional details can stay unknown"
     }
-    Rectangle { x: 0; y: 78; width: parent.width; height: parent.height - y; color: "#dce4d8" }
+    MountedPanel { x: 0; y: editorHeader.height; width: parent.width; height: parent.height - y; color: "#dce4d8" }
     Item {
         anchors.fill: parent; visible: root.editor.route !== "adventures"
         Repeater {
@@ -48,7 +48,7 @@ Item {
         text: root.editor.query.length ? "No matches. Press X to change your search." : "Add an Adventure in Worlds first. Press B to return."
         color: Theme.ink; font.pixelSize: 22; wrapMode: Text.WordWrap
     }
-    Rectangle {
+    MountedPanel {
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
         height: 102; color: "#b8cbbc"
         Text {

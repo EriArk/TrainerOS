@@ -32,6 +32,7 @@ void ControllerInput::setEnabled(bool enabled) {
     emit sampled();
 }
 void ControllerInput::deliver(Action semantic, bool fromController) {
+    if (semantic == Action::Confirm) emit confirmPressed();
     emit observedAction(semantic, fromController);
     emit action(semantic);
 }

@@ -13,7 +13,7 @@ Item {
             text: root.stateController.message; textFormat: Text.PlainText
             wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 21
         }
-        Rectangle {
+        MountedPanel {
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
             height: 220; color: "#c6dcca"
             Column {

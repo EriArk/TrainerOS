@@ -33,6 +33,8 @@ public:
     void poll();
     bool eventFilter(QObject*, QEvent*) override;
 signals:
+    // Presentation-only cue, emitted before Confirm changes the focused page.
+    void confirmPressed();
     void action(trainer::Action action);
     void connectionChanged();
     void sampled();

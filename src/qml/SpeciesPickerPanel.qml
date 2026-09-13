@@ -5,11 +5,10 @@ Rectangle {
     required property var picker
     required property bool takesFocus
     color: Theme.paper
-    Rectangle { width: parent.width; height: 94; color: "#c6dcca" }
-    Text { x: 30; y: 19; text: "Choose your favorite Pokémon"; color: Theme.ink; font.pixelSize: 29; font.weight: Font.DemiBold }
-    Text { x: 31; y: 62; width: parent.width - 62; text: root.picker.query ? "Search · " + root.picker.query : "One companion for your Trainer card"; textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 15; elide: Text.ElideRight }
-    Rectangle {
-        x: 0; y: 94; width: parent.width; height: 232; color: "#d8e5d8"
+    ShellBackgroundPattern { anchors.fill: parent }
+    PageHeader { id: pickerHeader; compact: true; title: "Choose your favorite Pokémon"; subtitle: root.picker.query ? "Search · " + root.picker.query : "One companion for your Trainer card" }
+    MountedPanel {
+        x: 0; y: pickerHeader.height; width: parent.width; height: 326 - y; color: "#d8e5d8"
         ListView {
             id: list
             x: 25; y: 8; width: parent.width - 50; height: 216
@@ -44,7 +43,7 @@ Rectangle {
             color: Theme.muted; font.pixelSize: 20; wrapMode: Text.WordWrap
         }
     }
-    Rectangle {
+    MountedPanel {
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
         height: 86; color: "#c6dcca"
         Text { x: 31; y: 6; text: list.count + " entries · ↑ / ↓ Browse · ← / → Jump 8 · A Choose"; color: Theme.muted; font.pixelSize: 12 }

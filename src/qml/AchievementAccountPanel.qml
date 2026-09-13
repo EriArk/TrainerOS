@@ -8,13 +8,8 @@ Item {
     Panel { anchors.fill: parent }
     Item {
         anchors.fill: parent; anchors.margins: 10
-        Text { x: 28; y: 14; text: "RetroAchievements"; color: Theme.ink; font.pixelSize: 30; font.weight: Font.DemiBold }
-        Text {
-            x: 29; y: 59; width: parent.width - 58; height: 65
-            text: root.account.status; textFormat: Text.PlainText; wrapMode: Text.WordWrap
-            color: Theme.muted; font.pixelSize: 16; maximumLineCount: 3; elide: Text.ElideRight
-        }
-        Rectangle {
+        PageHeader { y: 6; compact: true; title: "RetroAchievements"; subtitle: root.account.status; multilineStatus: true }
+        MountedPanel {
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
             height: 266; color: "#d4e2d6"
             Column {

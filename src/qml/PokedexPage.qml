@@ -10,10 +10,9 @@ Item {
 
     Item {
         anchors.fill: parent; visible: !root.detailOpen
-        Text { x: 28; y: 9; text: "Pokédex"; color: Theme.ink; font.pixelSize: 32; font.weight: Font.DemiBold }
-        Text { x: 230; y: 24; text: "A field guide for your discoveries"; color: Theme.muted; font.pixelSize: 15 }
-        Rectangle {
-            x: 0; y: 55; width: parent.width; height: 72; color: "#c4dcd5"
+        PageHeader { id: dexHeader; title: "Pokédex"; trailing: "A field guide for your discoveries" }
+        MountedPanel {
+            x: 0; y: dexHeader.height; width: parent.width; height: 72; color: "#c4dcd5"
             Row {
                 x: 20; y: 10; spacing: 12
                 Repeater {
@@ -30,11 +29,11 @@ Item {
                 }
             }
             // Rail is physically joined to the top frame by the side uprights.
-            Rectangle { x: 0; y: -55; width: 6; height: 55; color: "#c4dcd5" }
-            Rectangle { anchors.right: parent.right; y: -55; width: 6; height: 55; color: "#c4dcd5" }
+            Rectangle { x: 0; y: -parent.y; width: 6; height: parent.y; color: "#c4dcd5" }
+            Rectangle { anchors.right: parent.right; y: -parent.y; width: 6; height: parent.y; color: "#c4dcd5" }
         }
         Rectangle {
-            x: 0; y: 127; width: 512; height: 238; color: "#dbe8dd"
+            x: 0; y: dexHeader.height + 72; width: 512; height: 365 - y; color: "#dbe8dd"
             ListView {
                 id: entries
                 objectName: "dex-list"
@@ -85,7 +84,7 @@ Item {
             }
         }
         Rectangle {
-            x: 530; y: 127; width: parent.width - x; height: 238; color: "#e6edde"
+            x: 530; y: dexHeader.height + 72; width: parent.width - x; height: 365 - y; color: "#e6edde"
             Rectangle {
                 x: 24; y: 20; width: 117; height: 117; radius: 59; color: "#f6f5e5"; border.color: "#abc9b0"; border.width: 2
                 TrainerEmblem { x: 12; y: 12; width: 93; height: 93; emblem: "spark" }
@@ -95,7 +94,7 @@ Item {
             Text { x: 24; y: 145; width: parent.width - 48; text: root.dex.detail.name; color: Theme.ink; font.pixelSize: 26; font.weight: Font.DemiBold; elide: Text.ElideRight }
             Text { x: 24; y: 186; width: parent.width - 48; text: root.dex.entries.length ? root.dex.detail.types + " · " + root.dex.detail.status : "Try another trail through the guide."; color: Theme.muted; font.pixelSize: 15; wrapMode: Text.WordWrap }
         }
-        Rectangle {
+        MountedPanel {
             anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
             height: 45; color: "#c4dcd5"
             Text { x: 27; y: 13; text: root.dex.entries.length + " entries · " + root.dex.source; color: Theme.muted; font.pixelSize: 14 }
@@ -105,9 +104,10 @@ Item {
 
     Item {
         anchors.fill: parent; visible: root.detailOpen
-        Text { x: 28; y: 16; text: "POKÉDEX / " + root.dex.detail.number; color: Theme.muted; font.pixelSize: 13; font.letterSpacing: 1.2 }
-        Text { x: 28; y: 42; width: 560; text: root.dex.detail.name; color: Theme.ink; font.pixelSize: 36; font.weight: Font.DemiBold; elide: Text.ElideRight }
-        Text { x: 598; y: 43; width: parent.width - 626; text: root.dex.detail.form; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 18; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight; horizontalAlignment: Text.AlignRight }
+        PageHeader {
+            eyebrow: "POKÉDEX / " + root.dex.detail.number
+            title: root.dex.detail.name; trailing: root.dex.detail.form
+        }
         Text { x: 29; y: 95; text: root.dex.detail.types; color: Theme.muted; font.pixelSize: 19 }
         Text { x: 420; y: 98; width: parent.width - 448; text: "Height " + root.dex.detail.height + "   ·   Weight " + root.dex.detail.weight; color: Theme.muted; font.pixelSize: 16; horizontalAlignment: Text.AlignRight }
         Rectangle {
@@ -136,7 +136,7 @@ Item {
             Text { width: parent.width; text: "Regional lists: " + (root.dex.detail.worlds.length ? root.dex.detail.worlds : "National guide only"); color: Theme.muted; font.pixelSize: 13; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
             Text { width: parent.width; text: "Family: " + (root.dex.detail.family.length ? root.dex.detail.family : "Not available in this reference"); color: Theme.muted; font.pixelSize: 13; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
         }
-        Rectangle {
+        MountedPanel {
             anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
             height: 78; color: "#c4dcd5"
             CapButton {

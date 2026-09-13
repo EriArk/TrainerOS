@@ -8,9 +8,9 @@ The important changes are personal-data ownership, two library contexts and cura
 
 Issues: [#21 geometry](https://github.com/EriArk/TrainerOS/issues/21), [#22 status](https://github.com/EriArk/TrainerOS/issues/22), [#23 pattern](https://github.com/EriArk/TrainerOS/issues/23), [#27 physical chrome](https://github.com/EriArk/TrainerOS/issues/27), [#33 headings](https://github.com/EriArk/TrainerOS/issues/33). Phase P1; later features reuse the result.
 
-**Delivered 2026-09-13:** #21's shared geometry, safe inset and active-tab overlap are implemented and installed on Flip; [verification](DESIGN_LANGUAGE.md#shared-chassis-geometry--delivered-2026-09-13). Items 2–5 remain open; the next bounded visual increment is #33's common heading family.
+**Delivered 2026-09-13:** shared #21 geometry plus the owner's follow-up lip height; #22 quiet status, #23 cached ornament and #33 compact headings are implemented. The combined visual pass also covers existing Start/services/confirmations from #27 and existing feature content from #34. [Visual review and validation boundary](VISUAL_REVIEW.md). Future Power, Multiverse, onboarding and media surfaces must reuse these primitives and still receive their own #27/#34 review.
 
-1. Establish one content rectangle: the main panel rises to the inactive-tab baseline; the active organizer tab still overlaps it. Centralize insets, title baselines, tab height and content bounds instead of per-page Y corrections.
+1. Establish one content rectangle: the panel rises to the start of the inactive tabs' bevels (owner follow-up, 2026-09-13). Their tips overhang slightly; the unchanged active tab overlaps further. The enlarged title grows from a continuous upper/side/lower body around one beveled aperture, shared by pages and services; no footer seam splits the sidewalls. Centralize insets, title baselines, tab height and content bounds instead of per-page Y corrections.
 2. Share a compact heading family: standard, contextual and service variants, with optional eyebrow/subtitle/trailing actions, consistent elision and no dead gap when optional text is absent. Home, onboarding, notifications and compact confirmations have deliberate compositions. Reclaimed height serves larger World cards and the four-visible-game-row target, not smaller type.
 3. Reuse one subtle, theme-aware, cached background pattern across all five pages and service screens. Layer base → context-appropriate screenshot → ornament → content. Avoid per-page Canvas copies, per-frame texture work or texture that competes with focus.
 4. Remove healthy-state prose such as controller-connected/on-battery labels. Keep compact battery/charging indicators and actionable faults; unknown is not zero. Preserve diagnostics, accessibility labels and source/account/save-error information.
@@ -121,6 +121,8 @@ For lighting, use Armada's existing capability/backend: advertised modes, color,
 The referenced [armada-packages UART change](https://github.com/armada-os/armada-packages/pull/73) and [Pocket S2 integration](https://github.com/armada-os/armada/pull/419) describe a reusable route, **not Flip 2 support**. Check installed version/tool/service/config and actual hardware; record unavailable capability honestly if needed. Do not install experimental device code merely to make a setting appear complete.
 
 **Done when:** fake backends cover absent/limited capabilities, rejected values and noisy power events; supported controls round-trip on physical Flip without affecting input/rumble. Unsupported hardware remains a recorded conditional gate, with no fake active settings.
+
+**Future motion addition (owner, 2026-09-13; P5):** the shared ornament may later gain gyro-driven parallax after a successful ArmadaOS sensor probe, or calm autonomous movement if no usable gyro exists. [Background-motion acceptance](DESIGN_LANGUAGE.md#future-background-motion--owner-request-2026-09-13) covers stationary controls, reduced motion and physical performance checks. This does not delay the static visual pass or replace another backlog item.
 
 ## Optional Steam management
 

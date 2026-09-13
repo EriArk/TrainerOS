@@ -54,9 +54,28 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
         case 0:
             check(input.connected(), "Virtual controller unavailable");
             press(r1); press(right, 2); press(a); break;
-        case 1:
+        case 1: {
             check(shell.worlds()->route() == "adventures" && focusIs("adventure-emerald-demo"), "Opening Hoenn focuses Emerald");
+            auto* list = window->findChild<QQuickItem*>("adventure-list");
+            const auto rows = shell.worlds()->adventures();
+            check(list && rows.size() >= 4, "Four-row fixture is available");
+            if (list && rows.size() >= 4) for (int row = 0; row < 4; ++row) {
+                // ListView delegates belong to the visual tree, not necessarily
+                // to the window's QObject tree (incubation differs by renderer).
+                const auto name = "adventure-" + rows[row].toMap()["id"].toString();
+                QQuickItem* card = nullptr;
+                QList<QQuickItem*> pending{list};
+                while (!pending.isEmpty()) {
+                    auto* candidate = pending.takeLast();
+                    if (candidate->objectName() == name) { card = candidate; break; }
+                    pending.append(candidate->childItems());
+                }
+                check(card && QRectF(0, 0, list->width(), list->height()).contains(
+                    list->mapRectFromItem(card, QRectF(-4, -4, card->width() + 8, card->height() + 8))),
+                    "First four Adventure controls and focus rings must fit without scrolling");
+            }
             capture("hoenn-list"); press(down, 4); break;
+        }
         case 2: {
             check(focusIs("adventure-emerald-trails-demo"), "Final ROM hack row is focused");
             auto* list = window->findChild<QQuickItem*>("adventure-list");

@@ -5,15 +5,10 @@ Item {
     required property var shell
     readonly property var trainer: shell.trainer
     readonly property bool takesFocus: visible && !shell.menuOpen && shell.notice.length === 0 && !shell.keyboard.open && !trainer.picker.open
-    Text {
-        x: 29; y: 20
-        text: root.trainer.editing ? (root.trainer.exists ? "Edit Trainer" : "Create Trainer") : "Trainer"
-        color: Theme.ink; font.pixelSize: 32; font.weight: Font.DemiBold
-    }
-    Text {
-        x: 31; y: 66
-        text: "Make this journey yours."
-        color: Theme.muted; font.pixelSize: 16
+    PageHeader {
+        id: trainerHeader; width: 586
+        title: root.trainer.editing ? (root.trainer.exists ? "Edit Trainer" : "Create Trainer") : "Trainer"
+        subtitle: "Make this journey yours."
     }
     Rectangle {
         x: 586; y: 0; width: parent.width - x; height: parent.height
@@ -36,7 +31,7 @@ Item {
         }
     }
     Column {
-        x: 31; y: 106; spacing: 9
+        x: 29; y: trainerHeader.height + 13; spacing: 9
         visible: !root.trainer.editing
         Text { text: root.trainer.exists ? root.trainer.profile.name : "Ready to begin?"; color: Theme.ink; font.pixelSize: 31; font.weight: Font.DemiBold; width: 510; elide: Text.ElideRight; textFormat: Text.PlainText }
         Text {
@@ -44,8 +39,8 @@ Item {
             text: root.trainer.exists ? "Favorite Pokémon · " + root.trainer.profile.favorite : "Choose a name, an emblem and a favorite Pokémon for your Trainer."
         }
     }
-    Rectangle {
-        x: 0; y: 200; width: 586; height: 125; color: "#d8e5d8"
+    MountedPanel {
+        x: 0; y: 186; width: 586; height: 139; color: "#d8e5d8"
         visible: !root.trainer.editing
         Grid {
             x: 30; y: 9; columns: 3; columnSpacing: 10; rowSpacing: 8
@@ -53,15 +48,15 @@ Item {
                 model: root.trainer.overview
                 delegate: Rectangle {
                     required property var modelData
-                    width: 168; height: 48; radius: 7; color: "#edf2e7"; border.color: "#b7cbbb"
+                    width: 168; height: 54; radius: 7; color: "#edf2e7"; border.color: "#b7cbbb"
                     Text { x: 10; y: 3; width: 148; text: modelData.value; color: Theme.ink; font.pixelSize: 20; font.bold: true; elide: Text.ElideRight }
-                    Text { x: 10; y: 29; text: modelData.label; color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 0.5 }
+                    Text { x: 10; y: 32; width: 148; elide: Text.ElideRight; text: modelData.label; color: Theme.muted; font.pixelSize: 11 }
                 }
             }
         }
     }
-    Rectangle {
-        x: 0; y: 99; width: 586; height: 226
+    MountedPanel {
+        x: 0; y: trainerHeader.height + 12; width: 586; height: 325 - y
         color: "#d8e5d8"; visible: root.trainer.editing
         Column {
             x: 30; y: 11; spacing: 11
@@ -84,7 +79,7 @@ Item {
             }
         }
     }
-    Rectangle {
+    MountedPanel {
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
         height: 87; color: "#c6dcca"
         Text {

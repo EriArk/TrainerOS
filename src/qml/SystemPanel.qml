@@ -4,27 +4,38 @@ Item {
     id: root
     required property var shell
     visible: shell.menuOpen || shell.notice.length > 0
-    Rectangle { anchors.fill: parent; color: "#70102927" }
+    Rectangle {
+        anchors.fill: parent
+        anchors.topMargin: -Theme.screenBounds.y
+        anchors.leftMargin: -Theme.screenBounds.x
+        color: "#70102927"
+    }
     // This module grows directly out of the right chassis edge.
     Rectangle {
         anchors { top: parent.top; right: parent.right; bottom: parent.bottom }
         width: 480; color: Theme.chassis
         Panel {
             anchors.fill: parent; anchors.margins: 8
-            Text {
-                x: 25; y: 21; text: root.shell.modeConfirmation ? "Before you go" : root.shell.notice.length > 0 ? "TrainerOS" : "System menu"
-                color: Theme.ink; font.pixelSize: 26; font.weight: Font.DemiBold
+            PageHeader {
+                y: 10; compact: true
+                title: root.shell.modeConfirmation ? "Before you go" : root.shell.notice.length > 0 ? "TrainerOS" : "System menu"
             }
-            Column {
-                x: 27; y: 70; spacing: 8
+            MountedPanel {
+                x: 9; y: 65; width: parent.width - 18; height: parent.height - y - 9
+                color: "#d1e0d6"
                 visible: root.shell.notice.length === 0
+                Text { x: 19; y: 10; text: "YOUR FIELD GEAR"; color: Theme.muted; font.pixelSize: 10; font.bold: true; font.letterSpacing: 1 }
+                Rectangle { x: 18; y: 205; width: parent.width - 36; height: 1; color: "#a6bcae" }
+                Text { x: 19; y: 214; text: "DEVICE & SESSION"; color: Theme.muted; font.pixelSize: 10; font.bold: true; font.letterSpacing: 1 }
                 Repeater {
                     model: root.shell.menuItems
                     delegate: CapButton {
                         required property int index
                         required property string modelData
                         objectName: "menu-" + index
-                        width: 408; height: 40; textSize: 16; label: modelData
+                        x: 18; y: index < 4 ? 29 + index * 43 : 236 + (index - 4) * 43
+                        width: parent.width - 36; height: index === 6 ? 42 : 38; textSize: 16; label: modelData
+                        warning: index === 6
                         tint: index === 6 ? Theme.pink : index >= 4 ? Theme.blue : Theme.green
                         selected: root.shell.menuOpen && root.shell.notice.length === 0 && root.shell.focusIndex === index
                         onActivated: root.shell.activate(index)
@@ -35,7 +46,7 @@ Item {
                 x: 28; y: 88; width: 390; visible: root.shell.notice.length > 0
                 text: root.shell.notice; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 21; lineHeight: 1.25
             }
-            Rectangle {
+            MountedPanel {
                 anchors { bottom: parent.bottom; left: parent.left; right: parent.right; margins: 9 }
                 height: 74; color: "#ccdcd0"; visible: root.shell.notice.length > 0
                 CapButton {

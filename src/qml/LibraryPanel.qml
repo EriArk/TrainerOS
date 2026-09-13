@@ -6,26 +6,26 @@ Item {
     readonly property var manager: shell.libraryManager
     readonly property var files: manager.files
     readonly property bool takesFocus: visible && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
-    Panel { anchors.fill: parent }
+    // The main chassis owns the recessed surface for pages and services alike.
     Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset
         anchors.topMargin: Theme.contentTopInset; clip: true
-        Text { x: 28; y: 18; text: root.manager.route === "files" ? "Choose an Adventure file" : root.manager.title; color: Theme.ink; font.pixelSize: 29; font.weight: Font.DemiBold }
-        Text {
-            x: 29; y: 59; width: parent.width - 58; font.pixelSize: 14; color: Theme.muted; elide: Text.ElideMiddle; textFormat: Text.PlainText
-            text: root.manager.route === "files" ? root.files.path : root.manager.saving ? "Saving… You can leave; the submitted save will finish." : "Link your own file. Supported play setups are applied automatically."
+        PageHeader {
+            id: libraryHeader; compact: true; subtitleElide: Text.ElideMiddle
+            title: root.manager.route === "files" ? "Choose an Adventure file" : root.manager.title
+            subtitle: root.manager.route === "files" ? root.files.path : root.manager.saving ? "Saving… You can leave; the submitted save will finish." : "Link your own file. Supported play setups are applied automatically."
         }
-        Rectangle { x: 0; y: 91; width: parent.width; height: parent.height - y; color: "#d4e2d6" }
+        MountedPanel { x: 0; y: libraryHeader.height; width: parent.width; height: parent.height - y; color: "#d4e2d6" }
         Item {
             anchors.fill: parent; visible: root.manager.route === "list"
             ControllerList {
-                x: 24; y: 102; width: parent.width - 48; height: 204
+                x: 24; y: libraryHeader.height + 11; width: parent.width - 48; height: 216
                 model: root.manager.rows; currentIndex: root.manager.rowIndex; namePrefix: "manage-row-"
                 takesFocus: root.takesFocus && parent.visible && root.manager.zone === "list"
                 onActivated: function(row) { root.shell.activate(row, "list") }
             }
             Text { x: 30; y: 128; visible: root.manager.rows.length === 0; text: "A new library, ready for your Adventures."; font.pixelSize: 24; color: Theme.ink }
-            Rectangle {
+            MountedPanel {
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
                 height: 72; color: "#bfd6c8"
                 Row {
@@ -46,7 +46,7 @@ Item {
         Item {
             anchors.fill: parent; visible: root.manager.route === "edit"
             Grid {
-                x: 30; y: 108; columns: 2; columnSpacing: 18; rowSpacing: 13
+                x: 30; y: libraryHeader.height + 17; columns: 2; columnSpacing: 18; rowSpacing: 13
                 Repeater {
                     model: root.manager.fields
                     delegate: CapButton {
@@ -59,7 +59,7 @@ Item {
                     }
                 }
             }
-            Rectangle {
+            MountedPanel {
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
                 height: 72; color: "#bfd6c8"
                 CapButton {
@@ -77,7 +77,7 @@ Item {
             }
         }
         ControllerList {
-            x: 24; y: 101; width: parent.width - 48; height: 204
+            x: 24; y: libraryHeader.height + 11; width: parent.width - 48; height: 216
             visible: root.manager.route === "world" || root.manager.route === "extras" || root.manager.route === "edition"
             model: root.manager.choices.map(function(choice) { return {id: choice.id, title: (choice.selected ? "●  " : "") + choice.title, subtitle: choice.selected ? "Selected" : "A to choose"} })
             currentIndex: root.manager.focusIndex; namePrefix: "manage-choice-"; tint: Theme.blue
@@ -87,7 +87,7 @@ Item {
         Item {
             anchors.fill: parent; visible: root.manager.route === "files"
             ControllerList {
-                x: 24; y: 101; width: parent.width - 48; height: 204
+                x: 24; y: libraryHeader.height + 11; width: parent.width - 48; height: 216
                 model: root.files.rows; currentIndex: root.files.rowIndex; namePrefix: "file-row-"; tint: Theme.blue
                 takesFocus: root.takesFocus && parent.visible && root.files.zone === "list"
                 onActivated: function(row) { root.shell.activate(row, "list") }
@@ -96,7 +96,7 @@ Item {
                 x: 30; y: 314; width: parent.width - 60; elide: Text.ElideRight; font.pixelSize: 14; color: Theme.muted
                 text: root.files.busy ? "Reading folder… B cancels." : root.files.error || (root.files.rows.length === 0 ? "This folder is empty." : "Folders and files · use the arrows to browse")
             }
-            Rectangle {
+            MountedPanel {
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
                 height: 72; color: "#bfd6c8"
                 Row {

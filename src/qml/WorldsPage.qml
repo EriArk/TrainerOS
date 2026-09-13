@@ -11,16 +11,15 @@ Item {
 
     Item {
         anchors.fill: parent; visible: root.regionsOpen
-        Text { x: 29; y: 26; text: "Worlds"; color: Theme.ink; font.pixelSize: 35; font.weight: Font.DemiBold }
-        Text { x: 31; y: 77; text: "Choose a region. Every World has its own stories."; color: Theme.muted; font.pixelSize: 16 }
-        Rectangle {
-            x: 0; y: 119; width: parent.width; height: parent.height - y
+        PageHeader { id: regionsHeader; title: "Worlds"; subtitle: "Choose a region. Find your next story." }
+        MountedPanel {
+            x: 0; y: regionsHeader.height; width: parent.width; height: parent.height - y
             color: "#d4e2d6"
             Rectangle { width: parent.width; height: 2; color: "#b6cbbb" }
             GridView {
                 id: regionGrid
-                x: 26; y: 18; width: 864; height: 252
-                cellWidth: 288; cellHeight: 84; clip: true; interactive: false; keyNavigationEnabled: false
+                x: 26; y: 12; width: 864; height: 318
+                cellWidth: 288; cellHeight: 106; clip: true; interactive: false; keyNavigationEnabled: false
                 currentIndex: root.worlds.regionIndex
                 function revealCurrent() {
                     if (count && visible) positionViewAtIndex(currentIndex, GridView.Contain)
@@ -40,7 +39,7 @@ Item {
                         CapButton {
                         id: regionButton; x: 4; y: 4
                         objectName: "world-" + index
-                        width: 272; height: 68
+                        width: 272; height: 90; textSize: 21
                         label: modelData.name
                         detail: modelData.count === 0 ? "No Adventures yet" : root.shell.sampleLibrary ? modelData.count + " Adventures · " + modelData.status : modelData.owned + " linked / " + modelData.count + " Adventures"
                         tint: Theme.tabColors[index % Theme.tabColors.length]
@@ -64,16 +63,19 @@ Item {
 
     Item {
         anchors.fill: parent; visible: root.listOpen
-        Text { x: 29; y: 23; width: 495; elide: Text.ElideRight; textFormat: Text.PlainText; text: root.worlds.region.name; color: Theme.ink; font.pixelSize: 35; font.weight: Font.DemiBold }
-        Text { x: 31; y: 73; width: 493; elide: Text.ElideRight; textFormat: Text.PlainText; text: root.worlds.query ? "Search: " + root.worlds.query : "Titles, versions and stories from this World"; color: Theme.muted; font.pixelSize: 16 }
-        Rectangle {
-            x: 0; y: 104; width: 550; height: 228
+        PageHeader {
+            id: adventuresHeader; width: 550
+            title: root.worlds.region.name
+            subtitle: root.worlds.query ? "Search: " + root.worlds.query : "Choose an Adventure"
+        }
+        MountedPanel {
+            x: 0; y: adventuresHeader.height; width: 550; height: 332 - y
             color: "#d4e2d6"
             Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: "#b6cbbb" }
             ListView {
                 id: adventureList
                 objectName: "adventure-list"
-                x: 24; y: 6; width: 500; height: 216
+                x: 24; y: 6; width: 500; height: 256
                 model: root.worlds.adventures
                 currentIndex: root.worlds.adventureIndex
                 clip: true; interactive: false; keyNavigationEnabled: false
@@ -96,12 +98,12 @@ Item {
                 delegate: Item {
                     required property int index
                     required property var modelData
-                    width: adventureList.width; height: 72
+                    width: adventureList.width; height: 64
                     property alias control: adventureButton
                     CapButton {
                         id: adventureButton
                         objectName: "adventure-" + modelData.id
-                        x: 5; y: 5; width: parent.width - 10; height: 58
+                        x: 5; y: 5; width: parent.width - 10; height: 50
                         label: modelData.title
                         detail: modelData.missing ? "Missing · A to link a file" : modelData.variant || modelData.kind + " · " + modelData.status
                         platform: root.shell.sampleLibrary ? "" : modelData.platform
@@ -128,14 +130,14 @@ Item {
                 }
             }
         }
-        Rectangle {
+        MountedPanel {
             x: 568; y: 0; width: parent.width - x; height: 332; color: "#e1ecde"
-            Text { x: 24; y: 26; text: "ADVENTURE RECORD"; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1.3 }
-            TrainerEmblem { x: 111; y: 65; width: 126; height: 126; emblem: root.worlds.detail.kind === "ROM hack" ? "spark" : "compass" }
+            Text { x: 24; y: 18; text: "ADVENTURE RECORD"; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1.3 }
+            TrainerEmblem { anchors.horizontalCenter: parent.horizontalCenter; y: 55; width: 140; height: 140; emblem: root.worlds.detail.kind === "ROM hack" ? "spark" : "compass" }
             Text { x: 24; y: 209; width: parent.width - 48; text: root.worlds.detail.title; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 23; font.weight: Font.DemiBold }
             Text { x: 24; y: 275; width: parent.width - 48; text: root.worlds.detail.availability; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 14 }
         }
-        Rectangle {
+        MountedPanel {
             anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
             height: 78; color: "#c6dcca"
             CapButton {
@@ -163,16 +165,18 @@ Item {
 
     Item {
         anchors.fill: parent; visible: root.detailOpen
-        Text { x: 30; y: 17; width: parent.width - 60; elide: Text.ElideRight; textFormat: Text.PlainText; text: "WORLDS / " + root.worlds.region.name.toUpperCase(); color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1.3 }
-        Text { x: 29; y: 42; width: parent.width - 58; text: root.worlds.detail.title; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: 32; font.weight: Font.DemiBold }
-        Text { x: 31; y: 89; width: parent.width - 62; elide: Text.ElideRight; text: root.worlds.detail.kind + " · " + (root.shell.sampleLibrary ? root.worlds.detail.status + " · sample data" : root.worlds.detail.platform + (root.worlds.detail.variant ? " · " + root.worlds.detail.variant : "")); color: Theme.muted; font.pixelSize: 15 }
+        PageHeader {
+            eyebrow: "WORLDS / " + root.worlds.region.name.toUpperCase()
+            title: root.worlds.detail.title
+            subtitle: root.worlds.detail.kind + " · " + (root.shell.sampleLibrary ? root.worlds.detail.status + " · sample data" : root.worlds.detail.platform + (root.worlds.detail.variant ? " · " + root.worlds.detail.variant : ""))
+        }
         Text {
-            x: 31; y: 133; width: 491; height: 82
+            x: 29; y: 107; width: 491; height: 102
             text: root.worlds.detail.limitation || root.worlds.detail.description || "Your own journey, ready to become part of the collection."; textFormat: Text.PlainText; wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight
             color: Theme.ink; font.pixelSize: 17
         }
         Row {
-            x: 31; y: 239; spacing: 14
+            x: 29; y: 231; spacing: 14
             Repeater {
                 model: [{value: root.worlds.detail.badges, label: "BADGES"}, {value: root.worlds.detail.caught, label: "CAUGHT"}]
                 delegate: Rectangle {
@@ -183,13 +187,13 @@ Item {
                 }
             }
         }
-        Rectangle {
+        MountedPanel {
             x: 568; y: 119; width: parent.width - x; height: 213; color: "#e1ecde"
             Text { x: 23; y: 21; text: "YOUR NEXT STEP"; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1 }
             Text { x: 23; y: 54; width: parent.width - 46; text: root.worlds.detail.availability; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 22; font.weight: Font.DemiBold }
             Text { x: 23; y: 151; width: parent.width - 46; text: root.worlds.detail.resume; elide: Text.ElideRight; textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 15 }
         }
-        Rectangle {
+        MountedPanel {
             anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
             height: 78; color: "#c6dcca"
             Row {

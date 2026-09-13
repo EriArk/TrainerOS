@@ -124,7 +124,7 @@ Worlds should feel like choosing destinations rather than browsing files/emulato
 The native mock has three local levels: **regions → Adventure list → Adventure detail**. A region may contain originals, remakes and ROM hacks together.
 
 - The region grid uses D-pad/left-stick spatial navigation; `A` opens the selected region.
-- In the Adventure list, Up/Down moves focus and reveals the selected row inside a fixed three-row viewport. The shell, primary tabs and lower action panel remain stationary. Down beyond the final row focuses Back to Worlds; Up restores that row.
+- In the Adventure list, Up/Down moves focus and reveals the selected row inside a fixed four-row viewport (shared header pass, 2026-09-13). The shell, primary tabs and lower action panel remain stationary. Down beyond the final row focuses Back to Worlds; Up restores that row.
 - `A` opens Adventure detail. Left/Right moves between enabled launch/resume/Back actions; unavailable actions look disabled and are skipped. Exact Continue requires both a direct-resume capability and a matching resume point. Otherwise normal launch is offered when supported.
 - `B` returns detail → Adventure list → regions, preserving the selected Adventure and region. On regions, `B` stays on Worlds.
 - `L1/R1` still switch the top-level primary page. Returning to Worlds restores its route, selected Adventure and focused action. Start/menu/notice layers also restore the underlying focus when closed.

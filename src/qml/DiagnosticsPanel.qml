@@ -5,14 +5,13 @@ Item {
     required property var shell
     readonly property var checks: shell.diagnostics
     readonly property bool takesFocus: visible && !shell.menuOpen && shell.notice.length === 0
-    Panel { anchors.fill: parent }
+    // The main chassis owns the recessed surface for pages and services alike.
     Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset
         anchors.topMargin: Theme.contentTopInset; clip: true
-        Text { x: 30; y: 18; text: "Check your field gear"; color: Theme.ink; font.pixelSize: 31; font.weight: Font.DemiBold }
-        Text { x: 31; y: 60; width: 850; text: root.checks.connection; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 15 }
-        Rectangle {
-            x: 0; y: 90; width: parent.width; height: parent.height - y; color: "#d4e2d6"
+        PageHeader { id: diagnosticsHeader; compact: true; title: "Check your field gear"; subtitle: root.checks.connection }
+        MountedPanel {
+            x: 0; y: diagnosticsHeader.height; width: parent.width; height: parent.height - y; color: "#d4e2d6"
             Rectangle { x: 522; width: parent.width - x; height: parent.height; color: "#e1ecde" }
             Text { x: 30; y: 10; text: "LIVE INPUT  ·  DOT = SIGNAL OBSERVED"; color: Theme.muted; font.pixelSize: 10; font.letterSpacing: 0.5 }
             Grid {
@@ -83,7 +82,7 @@ Item {
             text: root.checks.status || "Compare these labels with your buttons. B returns; L1/R1 change sections. Reopen this panel to review observed signals."
             textFormat: Text.PlainText
         }
-        Rectangle {
+        MountedPanel {
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
             height: 65; color: "#bfd6c8"
             Row {

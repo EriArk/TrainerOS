@@ -10,6 +10,10 @@ This is a dependency replan, not a reset. The [pre-expansion plan](https://githu
 
 ## Working baseline
 
+The **2026-09-13 combined visual pass** implements #22 quiet status, #23 shared pattern and #33 headings, four visible World game rows and larger region cards. Follow-up #21 raises the lip to the inactive bevels without shortening the active tab; the enlarged title grows from a continuous upper/side/lower chassis around one beveled screen aperture. Existing #27 chrome/#34 content receive mounted controls, grouped Start and consistent service trays. [Visual review](VISUAL_REVIEW.md). Future #26 Power, #24 earned states, Multiverse/onboarding/media and their final #27/#34 review remain in their original phases; all U gates are preserved.
+
+**Added for a future P5 increment (owner, 2026-09-13):** probe Flip gyroscope availability under ArmadaOS; if usable, build gentle tilt-driven background parallax, otherwise a calm autonomous motion alternative. Keep controls/text stationary, honor Reduced Motion, pause hidden/in-game, and verify frame pacing/power/comfort on the device. [Acceptance](DESIGN_LANGUAGE.md#future-background-motion--owner-request-2026-09-13). No sensor support is claimed yet.
+
 The native skeleton, shared controller/UI components and SQLite foundation already exist. Extend them in the confirmed order: **required boundary → persistence/provider → complete feature → device verification**. Do not restart the mock or build speculative frameworks. Visuals remain replaceable; product/input invariants stay fixed.
 
 | Area | Implemented / evidence | Remaining boundary |

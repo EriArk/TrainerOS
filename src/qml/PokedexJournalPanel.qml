@@ -5,14 +5,13 @@ Item {
     required property var shell
     readonly property var journal: shell.pokedex.journal
     readonly property bool takesFocus: visible && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
-    Rectangle { anchors.fill: parent; color: "#e6eddf" }
+    Rectangle { anchors.fill: parent; color: Theme.paper; ShellBackgroundPattern { anchors.fill: parent } }
     MouseArea { anchors.fill: parent }
-    Rectangle {
-        x: 0; y: 0; width: parent.width; height: 81; color: "#bfd8c5"
-        Text { x: 28; y: 15; width: parent.width - 56; text: "Field journal · " + root.journal.name; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 29; font.weight: Font.DemiBold; elide: Text.ElideRight }
-        Text { x: 29; y: 54; text: "Your own marks · shared across your library · no game-save changes"; color: Theme.muted; font.pixelSize: 14 }
+    PageHeader {
+        id: journalHeader; compact: true; title: "Field journal · " + root.journal.name
+        subtitle: "Your own marks · shared across your library · no game-save changes"
     }
-    Rectangle { x: 0; y: 81; width: parent.width; height: parent.height - y; color: "#d7e2d6" }
+    MountedPanel { x: 0; y: journalHeader.height; width: parent.width; height: parent.height - y; color: "#d7e2d6" }
     Repeater {
         model: root.journal.fields
         delegate: CapButton {
@@ -29,7 +28,7 @@ Item {
             onActivated: root.journal.activate(index)
         }
     }
-    Rectangle {
+    MountedPanel {
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
         height: 106; color: "#b7cfbf"
         Text { x: 28; y: 9; width: parent.width - 56; height: 37; text: root.journal.error.length ? root.journal.error : root.journal.saving ? "Saving your field journal…" : "A · Change field     Y · Save journal     B · Discard draft"; color: root.journal.error.length ? "#873c32" : Theme.ink; textFormat: Text.PlainText; font.pixelSize: 15; wrapMode: Text.WordWrap }

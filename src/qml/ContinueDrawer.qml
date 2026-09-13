@@ -24,7 +24,13 @@ Item {
     Shape {
         anchors.fill: parent
         ShapePath {
-            strokeColor: Theme.rim; strokeWidth: 2; fillColor: Theme.chassis
+            // The bottom is open; the drawer grows from the same body material.
+            strokeColor: Theme.rim; strokeWidth: 2
+            fillGradient: LinearGradient {
+                x1: 0; y1: -root.y; x2: 0; y2: Theme.viewportHeight - root.y
+                GradientStop { position: 0; color: Theme.chassisTop }
+                GradientStop { position: 1; color: Theme.chassis }
+            }
             startX: 0; startY: root.height
             PathLine { x: 0; y: 9 }
             PathQuad { x: 9; y: 0; controlX: 0; controlY: 0 }

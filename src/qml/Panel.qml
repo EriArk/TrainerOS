@@ -3,6 +3,7 @@ import QtQuick
 Rectangle {
     id: root
     property color surface: Theme.paper
+    property bool patterned: true
     radius: 15
     color: Theme.chassisDark
     border.color: Theme.rim
@@ -24,6 +25,11 @@ Rectangle {
         color: root.surface
         border.color: "#aabfb3"
         border.width: 1
+        ShellBackgroundPattern { anchors.fill: parent; anchors.margins: 2; visible: root.patterned }
+        Rectangle {
+            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 1 }
+            height: 2; color: "#b3ffffff"
+        }
         Rectangle {
             anchors { top: parent.top; left: parent.left; right: parent.right; margins: 1 }
             height: 6

@@ -676,9 +676,15 @@ int main(int argc, char* argv[]) {
                         capture("battery-low"); smokeBattery->store(1100); powerStatus.refresh(); break;
                     case 34:
                         check(powerStatus.percent() == 100 && powerStatus.charging(), "Charging/full-width gauge");
+                        if (const auto bolt = window->findChild<QQuickItem*>("power-charging")) check(bolt->isVisible(), "Charging bolt is visible");
+                        else check(false, "Charging indicator exists");
                         capture("battery-charging"); smokeBattery->store(-1); powerStatus.refresh(); break;
                     case 35:
                         check(!powerStatus.available() && !powerStatus.charging() && focusIs("home-launch"), "Unavailable charge clears old value without changing focus");
+                        if (const auto bolt = window->findChild<QQuickItem*>("power-charging")) check(!bolt->isVisible(), "Unknown charge clears the charging bolt");
+                        else check(false, "Charging indicator exists");
+                        if (const auto warning = window->findChild<QQuickItem*>("controller-warning")) check(!warning->isVisible(), "Healthy controller does not display technical status text");
+                        else check(false, "Controller warning exists");
                         capture("battery-unavailable"); break;
                     case 36:
                         shell.keyboard()->begin("Password preview", "", 64, true);

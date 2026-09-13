@@ -13,6 +13,13 @@ Window {
     Binding { target: Theme; property: "themeId"; value: shell.settings.theme }
     Binding { target: Theme; property: "reducedMotion"; value: shell.settings.reducedMotion }
     onClosing: function(close) { close.accepted = false; sessionState.requestExit() }
+    Connections {
+        target: controllerInput
+        function onConfirmPressed() {
+            const control = window.activeFocusItem;
+            if (control && typeof control.pressFeedback === "function") control.pressFeedback();
+        }
+    }
     Item {
         id: viewport
         objectName: "viewport"
@@ -24,18 +31,19 @@ Window {
         anchors.fill: parent
         visible: !sessionState.blocked
         enabled: !adventureLaunch.active
-        Rectangle {
+        ChassisFrame {
             anchors.fill: parent
-            gradient: Gradient {
-                GradientStop { position: 0; color: Theme.chassisTop }
-                GradientStop { position: 1; color: Theme.chassisDark }
-            }
-            border.color: Theme.rim
         }
-        Text { x: 19; y: 13; text: "TRAINER / OS"; color: "#e5eee1"; font.pixelSize: 17; font.bold: true; font.letterSpacing: 1.5 }
-        Text {
-            x: 20; y: 36; text: controllerInput.connected ? "CONTROLLER CONNECTED" : "CONNECT A CONTROLLER"
-            color: "#c8dfd1"; font.pixelSize: 9; font.letterSpacing: 0.6
+        Item {
+            id: brand
+            objectName: "brand-extension"
+            width: Theme.brandWidth; height: Theme.tabBaseline + Theme.activeTabOverlap
+            z: 1
+            Text {
+                x: 16; width: parent.width - 32; anchors.verticalCenter: parent.verticalCenter
+                text: "TRAINER / OS"; color: "#edf5e9"; font.pixelSize: 22; font.bold: true
+                font.letterSpacing: 0.8
+            }
         }
         Row {
             objectName: "primary-tabs"
@@ -56,7 +64,7 @@ Window {
                         // A narrow contact shadow follows the original lower silhouette.
                         ShapePath {
                             strokeColor: "transparent"
-                            fillColor: shell.page === index ? "#38102e2c" : "transparent"
+                            fillColor: shell.page === index ? "#50102e2c" : "#30102e2c"
                             startX: 0; startY: tab.height - 10
                             PathLine { x: 10; y: tab.height + 3 }
                             PathLine { x: tab.width - 13; y: tab.height + 3 }
@@ -77,13 +85,15 @@ Window {
                             PathLine { x: 0; y: 0 }
                         }
                     }
+                    Rectangle { x: 2; y: 1; width: parent.width - 4; height: 2; color: "#90ffffff" }
+                    Rectangle { x: 2; y: 3; width: 1; height: parent.height - 17; color: "#55ffffff" }
                     Text { anchors.centerIn: parent; text: modelData; color: Theme.ink; font.pixelSize: 16; font.weight: Font.DemiBold }
                     Rectangle { x: 18; y: parent.height - 8; width: parent.width - 36; height: 2; color: "#7a4a24"; visible: shell.page === index }
                     MouseArea { anchors.fill: parent; onClicked: shell.goToPage(index) }
                 }
             }
         }
-        Panel {
+        Item {
             id: screen
             objectName: "primary-screen"
             x: Theme.screenBounds.x; y: Theme.screenBounds.y
@@ -105,12 +115,16 @@ Window {
             x: 14; anchors.bottom: footer.top; shell: shellController
             visible: !shell.serviceOpen && shell.page === 0
         }
-        Rectangle {
+        Item {
             id: footer
             x: 0; y: Theme.footerTop; width: parent.width; height: Theme.footerHeight
-            color: Theme.chassisDark
-            Rectangle { width: parent.width; height: 1; color: "#578f83" }
             BatteryGauge { x: 18; y: 5; status: powerStatus }
+            Text {
+                objectName: "controller-warning"
+                x: 132; y: 10; visible: !controllerInput.connected; text: "!  Connect a controller"
+                color: "#ffe29c"; font.pixelSize: 11
+                Accessible.role: Accessible.AlertMessage; Accessible.name: text
+            }
             Row {
                 anchors { right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
                 spacing: 20

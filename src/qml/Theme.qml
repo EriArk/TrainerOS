@@ -25,13 +25,17 @@ QtObject {
     // Logical design space, separate from the physical display's pixel count.
     readonly property int viewportWidth: 960
     readonly property int viewportHeight: 540
+    readonly property int pageMargin: 28
     // One chassis geometry for primary pages and frame-mounted services.
     readonly property int tabBaseline: 49
+    readonly property int tabBevel: 13
     readonly property int activeTabOverlap: 14
+    readonly property int brandWidth: 206
+    readonly property int brandBevel: 18
     readonly property int panelInset: 10
-    readonly property int contentTopInset: activeTabOverlap + panelInset
+    readonly property int contentTopInset: tabBevel + activeTabOverlap + panelInset
     readonly property int footerHeight: 37
     readonly property int footerTop: viewportHeight - footerHeight
-    readonly property rect screenBounds: Qt.rect(12, tabBaseline, viewportWidth - 24,
-                                                 footerTop - 5 - tabBaseline)
+    readonly property rect screenBounds: Qt.rect(12, tabBaseline - tabBevel, viewportWidth - 24,
+                                                 footerTop - 5 - tabBaseline + tabBevel)
 }

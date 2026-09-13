@@ -5,23 +5,6 @@ Item {
     required property var shell
     readonly property var currentAdventure: shell.home
     clip: true
-    Canvas {
-        anchors.fill: parent
-        onPaint: {
-            const ctx = getContext("2d");
-            ctx.reset();
-            ctx.strokeStyle = "#e1eadd";
-            ctx.lineWidth = 2;
-            for (let i = 0; i < 6; i++) {
-                ctx.beginPath();
-                ctx.ellipse(360 - i * 25, 35 - i * 24, 280 + i * 50, 280 + i * 48);
-                ctx.stroke();
-            }
-            ctx.setLineDash([4, 7]);
-            ctx.strokeStyle = "#a7c3b4";
-            ctx.beginPath(); ctx.moveTo(280, 365); ctx.bezierCurveTo(480, 340, 365, 200, 650, 80); ctx.stroke();
-        }
-    }
     Column {
         x: 32; y: 27; spacing: 9
         Text { text: (root.currentAdventure.hasTrainer ? "WELCOME BACK, " : "WELCOME, ") + root.currentAdventure.trainer; color: Theme.muted; font.pixelSize: 13; font.bold: true; font.letterSpacing: 2; width: 620; elide: Text.ElideRight; textFormat: Text.PlainText }

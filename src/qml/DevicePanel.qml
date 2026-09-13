@@ -5,14 +5,13 @@ Item {
     required property var shell
     readonly property var device: shell.device
     readonly property bool takesFocus: visible && !shell.menuOpen && shell.notice.length === 0
-    Panel { anchors.fill: parent }
+    // The main chassis owns the recessed surface for pages and services alike.
     Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset
         anchors.topMargin: Theme.contentTopInset
-        Text { x: 28; y: 20; text: "Your handheld"; color: Theme.ink; font.pixelSize: 31; font.weight: Font.DemiBold }
-        Text { x: 29; y: 60; text: "D-pad adjusts volume and brightness in steps of 5%."; color: Theme.muted; font.pixelSize: 15 }
-        Rectangle {
-            x: 0; y: 92; width: parent.width; height: parent.height - y; color: "#d4e2d6"
+        PageHeader { id: deviceHeader; compact: true; title: "Your handheld"; subtitle: "D-pad adjusts volume and brightness in steps of 5%." }
+        MountedPanel {
+            x: 0; y: deviceHeader.height; width: parent.width; height: parent.height - y; color: "#d4e2d6"
             Column {
                 x: 24; y: 12; spacing: 7
                 Repeater {
