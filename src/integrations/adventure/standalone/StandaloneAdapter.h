@@ -7,6 +7,8 @@ namespace trainer {
 struct StandaloneInstallation {
     QString program, runtimeFile;
     QStringList prefixArguments, platforms;
+    QString configFile;
+    bool melonDsSaveBackups = false;
     static StandaloneInstallation load(const QString& filename, const QString& adapterId);
 };
 class StandaloneAdapter final : public AdventureAdapter {

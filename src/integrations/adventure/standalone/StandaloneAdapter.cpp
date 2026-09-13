@@ -47,6 +47,9 @@ StandaloneInstallation StandaloneInstallation::load(const QString& filename, con
         result.platforms.append(value.toString());
     }
     result.platforms.removeDuplicates();
+    result.configFile = object["configFile"].toString();
+    result.melonDsSaveBackups = adapterId == "melonds" && object["backupProtocol"].toString() == "melonds-sav-v1"
+        && QFileInfo(result.configFile).isAbsolute() && QFileInfo(result.configFile).isFile();
     return result;
 }
 StandaloneAdapter::StandaloneAdapter(QString id, LibraryRepository& library, StandaloneInstallation installation)

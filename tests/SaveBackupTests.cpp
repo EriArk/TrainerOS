@@ -1,5 +1,6 @@
 #include "platform/storage/SaveBackupStorage.h"
 #include "integrations/adventure/retroarch/RetroArchResume.h"
+#include "integrations/adventure/standalone/MelonDsSave.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include "core/storage/SessionState.h"
 #include <QtTest>
@@ -31,6 +32,48 @@ struct Fixture {
 class SaveBackupTests final : public QObject {
     Q_OBJECT
 private slots:
+    void melonDsSaveRequiresVerifiedSingleInstanceLayout() {
+        QTemporaryDir dir; AdventureRegistration record;
+        record.adventure.id = "ds-fixture"; record.adventure.adapterId = "melonds"; record.adventure.platformId = "nds";
+        record.contentPath = dir.filePath("roms/original.v2.nds"); write(record.contentPath, "ORIGINAL DS FIXTURE");
+        StandaloneInstallation installation;
+        installation.program = QCoreApplication::applicationFilePath(); installation.runtimeFile = dir.filePath("runtime");
+        installation.configFile = dir.filePath("melonDS.toml"); installation.platforms = {"nds"}; installation.melonDsSaveBackups = true;
+        write(installation.runtimeFile, "runtime fixture");
+        const QByteArray config = "[Instance0]\nSaveFilePath = \"" + dir.filePath("saves").toUtf8()
+            + "\"\n[Savestate]\nRelocSRAM = false\n[Emu]\nConsoleType = 0\n";
+        write(installation.configFile, config);
+        const auto target = resolveMelonDsSave(record, installation);
+        QVERIFY2(target.supported, qPrintable(target.error));
+        QCOMPARE(target.savePath, dir.filePath("saves/original.v2.sav"));
+        QCOMPARE(target.contentRevision, sha("ORIGINAL DS FIXTURE"));
+        const QList<QByteArray> invalid{
+            QByteArray(config).replace("RelocSRAM = false", "RelocSRAM = true"),
+            QByteArray(config).replace("ConsoleType = 0", "ConsoleType = 1"),
+            QByteArray(config).replace("RelocSRAM = false", "RelocSRAM = false\nRelocSRAM = true"),
+            QByteArray(config).replace("RelocSRAM = false", ""),
+            QByteArray(config).replace(dir.filePath("saves").toUtf8(), "relative"),
+            config + "[Instance1]\nSaveFilePath = \"/somewhere\"\n",
+            config + "[Savestate]\nRelocSRAM = false\n"};
+        for (const auto& bytes : invalid) { write(installation.configFile, bytes); QVERIFY(!resolveMelonDsSave(record, installation).supported); }
+        write(installation.configFile, config); installation.melonDsSaveBackups = false;
+        QVERIFY(!resolveMelonDsSave(record, installation).supported); installation.melonDsSaveBackups = true;
+        record.adventure.platformId = "dsi"; QVERIFY(!resolveMelonDsSave(record, installation).supported); record.adventure.platformId = "nds";
+        const auto resolve = [&](const AdventureRegistration& r) { return resolveMelonDsSave(r, installation); };
+        const auto root = dir.filePath("backups"); write(target.savePath, "DS SAVE ONE");
+        auto snapshot = inspectSaveBackups(root, resolve(record));
+        const auto backup = createSaveBackup(root, record, snapshot.token, resolve); QVERIFY(backup.success);
+        write(target.savePath, "DS SAVE TWO"); snapshot = inspectSaveBackups(root, resolve(record));
+        const auto restored = restoreSaveBackup(root, record, backup.snapshot.copies.first(), snapshot.token, resolve);
+        QVERIFY2(restored.success, qPrintable(restored.message)); QCOMPARE(read(target.savePath), "DS SAVE ONE");
+        QCOMPARE(restored.snapshot.copies.size(), 2);
+#ifdef Q_OS_LINUX
+        const auto executable = dir.filePath("melonDS"); QVERIFY(QFile::copy("/bin/sleep", executable));
+        QProcess process; process.start(executable, {"30"}); QVERIFY(process.waitForStarted());
+        const auto running = resolve(record); process.kill(); process.waitForFinished();
+        QVERIFY(!running.supported); QVERIFY(running.error.contains("Close the running"));
+#endif
+    }
     void restoreProtectsCurrentBytesAndAllowsUndo() {
         Fixture f; const auto first=f.backup(); QVERIFY(first.valid); QCOMPARE(read(f.path),QByteArray("FIRST SAVE"));
         write(f.path,"SECOND SAVE");const auto second=f.inspect();

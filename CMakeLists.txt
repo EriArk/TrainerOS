@@ -11,6 +11,8 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/integrations/adventure/standalone/MelonDsSave.h
+    src/integrations/adventure/standalone/MelonDsSave.cpp
     src/integrations/adventure/AdapterRouter.h
     src/integrations/adventure/standalone/StandaloneAdapter.h
     src/integrations/adventure/standalone/StandaloneAdapter.cpp

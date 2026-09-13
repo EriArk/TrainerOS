@@ -2,6 +2,7 @@
 #include "core/navigation/ShellController.h"
 #include "integrations/adventure/AdapterRouter.h"
 #include "integrations/adventure/standalone/StandaloneAdapter.h"
+#include "integrations/adventure/standalone/MelonDsSave.h"
 #include "core/storage/SessionState.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
@@ -166,7 +167,8 @@ int main(int argc, char* argv[]) {
             return personalLibrary && !smoke
                 ? StandaloneInstallation::load(QDir(stateDirectory).filePath("integrations/" + id + ".json"), id) : StandaloneInstallation{};
         };
-        StandaloneAdapter melonDs("melonds", activeLibrary, standaloneInstallation("melonds"));
+        const auto melonDsInstallation = standaloneInstallation("melonds");
+        StandaloneAdapter melonDs("melonds", activeLibrary, melonDsInstallation);
         StandaloneAdapter dolphin("dolphin", activeLibrary, standaloneInstallation("dolphin"));
         AdapterRouter adapters({&retroarch, &melonDs, &dolphin});
         RetroArchResumeProvider resumeProvider(activeLibrary, retroarchInstallation);
@@ -214,8 +216,10 @@ int main(int argc, char* argv[]) {
         std::unique_ptr<LocalSaveBackupService> saveBackups;
         if (personalLibrary && !smoke) {
             saveBackups=std::make_unique<LocalSaveBackupService>(QDir(stateDirectory).filePath("backups"),
-                [retroarchInstallation](const AdventureRegistration& record){return resolveRetroArchSave(record,retroarchInstallation);},
-                [retroarchInstallation](const AdventureRegistration& record){return retroarchInstallation.saveBackups && record.adventure.adapterId=="retroarch" && record.integrationConfig["core"].toString()=="mgba";});
+                [retroarchInstallation, melonDsInstallation](const AdventureRegistration& record){return record.adventure.adapterId == "melonds"
+                    ? resolveMelonDsSave(record, melonDsInstallation) : resolveRetroArchSave(record,retroarchInstallation);},
+                [retroarchInstallation, melonDsInstallation](const AdventureRegistration& record){return supportsMelonDsSave(record, melonDsInstallation)
+                    || (retroarchInstallation.saveBackups && record.adventure.adapterId=="retroarch" && record.integrationConfig["core"].toString()=="mgba");});
         }
 #ifdef TRAINEROS_UI_TESTS
         if(persistencePhase=="library-center") {

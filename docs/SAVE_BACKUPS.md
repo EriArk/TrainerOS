@@ -1,6 +1,6 @@
 # Pokémon Center save backups
 
-Pokémon Center is a service inside Start, not another primary page. Its first real integration backs up **GBA in-game save RAM through the verified RetroArch/mGBA setup**. Continue Adventure saved moments remain a separate feature. Other adapters, emulator states, BIOS, ROMs and game-specific progress interpretation are outside this increment.
+Pokémon Center is a service inside Start, not another primary page. It backs up **GBA in-game save RAM through the verified RetroArch/mGBA setup**, with an additional opt-in resolver for DS cartridge saves through melonDS. Continue Adventure saved moments remain a separate feature. Emulator states, BIOS, ROMs and game-specific progress interpretation are outside these backup formats.
 
 ## Controller flow
 
@@ -29,6 +29,16 @@ Installation data explicitly opts in with `backupProtocol: "mgba-sram-v1"`, alon
 The directory calculation follows [RetroArch 1.22.2's save redirection](https://github.com/libretro/RetroArch/blob/v1.22.2/runloop.c): content-folder grouping precedes core-name grouping, with the content basename and `.srm` extension. The first supported GBA path uses mGBA's save RAM; its [libretro memory interface](https://github.com/mgba-emu/mgba/blob/0.10.5/src/platform/libretro/libretro.c) distinguishes the separate GB RTC path, which is not enabled here. Replacement uses [Qt's atomic save mechanism](https://doc.qt.io/qt-6/qsavefile.html) without its unsafe direct-write fallback. Filesystem synchronization is implemented at the Linux platform layer; Windows is a development/test host.
 
 ## Acceptance
+
+### DS cartridge saves
+
+The melonDS profile uses `backupProtocol: "melonds-sav-v1"` and an absolute `configFile` pointing to the installed melonDS 1.1 configuration. This is independent of exact Continue support. The resolver requires an explicit absolute `Instance0.SaveFilePath`, `Savestate.RelocSRAM = false`, DS mode (`Emu.ConsoleType = 0`) and a single configured instance. It rejects ambiguous/duplicate tables or keys, unsupported TOML spellings and multiline values. It never infers a NAND save or an archive member. A running melonDS process blocks inspection/replacement.
+
+The file is the cartridge filename without its last extension, followed by `.sav`, inside the configured directory. This follows the installed version's [asset path and cartridge save handling](https://github.com/melonDS-emu/melonDS/blob/1.1/src/frontend/qt_sdl/EmuInstance.cpp). Relocated SRAM needs separate handling because loading a state can change its filename. ROMs are hashed up to 512 MiB; runtime/configuration identity binds each operation. The existing 512 KiB save limit and protection-before-replacement workflow also apply to DS; larger saves remain unsupported.
+
+Native fixtures verify the exact dotted filename, configuration rejection, disabled opt-in, an externally running emulator and copy/restore with protection. Device profile activation and real cartridge save-path confirmation remain pending for this increment.
+
+### Shared backup workflow
 
 - Copy/restore/undo preserve exact bytes and create independent protection copies.
 - Changed source tokens, modified/corrupt copies, different ROM content, failed protection and concurrent operations cannot replace a save.
