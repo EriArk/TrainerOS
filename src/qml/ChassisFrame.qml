@@ -16,9 +16,8 @@ Rectangle {
 
     function perimeter(inset) {
         const l = inset, r = width - inset, t = inset, b = height - inset;
-        return "M " + (l + 3) + " " + t + " H " + (r - 3)
-            + " Q " + r + " " + t + " " + r + " " + (t + 3)
-            + " V " + (b - 3) + " Q " + r + " " + b + " " + (r - 3) + " " + b
+        // The outer right edge meets the physical screen corners squarely.
+        return "M " + (l + 3) + " " + t + " H " + r + " V " + b
             + " H " + (l + 3) + " Q " + l + " " + b + " " + l + " " + (b - 3)
             + " V " + (t + 3) + " Q " + l + " " + t + " " + (l + 3) + " " + t + " Z";
     }
@@ -50,7 +49,7 @@ Rectangle {
 
     Shape {
         anchors.fill: parent
-        // A single rounded perimeter catches light above/left and rolls into
+        // A single perimeter catches light above/left and rolls into
         // shade below/right. The screen aperture remains a separate recess.
         ShapePath {
             strokeColor: "transparent"; fillRule: ShapePath.OddEvenFill

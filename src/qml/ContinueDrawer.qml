@@ -5,9 +5,20 @@ import QtQuick.Effects
 Item {
     id: root
     required property var shell
-    property real expandedWidth: Theme.viewportWidth - Theme.screenBounds.x
+    property real expandedWidth: Theme.screenBounds.x + Theme.screenBounds.width - Theme.screenBevel
     readonly property real closedWidth: 292
     readonly property bool expanded: shell.drawerOpen
+    readonly property real leftJoin: Theme.screenBounds.x + Theme.screenBevel
+    readonly property real lowerJoin: 53 - (Theme.footerTop - Theme.screenBounds.y - Theme.screenBounds.height + Theme.screenBevel)
+    function shoulder() {
+        // Both shoulders meet the screen lip, leaving the main sidewall clear.
+        // The left cut is shallow; the right diagonal ends directly at the lip.
+        return "M " + leftJoin + " " + lowerJoin + " L " + (leftJoin + 6) + " 6"
+            + " Q " + (leftJoin + 7) + " 0 " + (leftJoin + 11) + " 0"
+            + " H " + (width - 45)
+            + " Q " + (width - 42) + " 0 " + (width - 38) + " 3"
+            + " L " + width + " " + lowerJoin;
+    }
     width: closedWidth; height: 53
     onExpandedChanged: {
         opening.stop(); closing.stop();
@@ -23,8 +34,68 @@ Item {
         NumberAnimation { target: root; property: "height"; to: 53; duration: Theme.motion(170); easing.type: Easing.InOutCubic }
         NumberAnimation { target: root; property: "width"; to: root.closedWidth; duration: Theme.motion(160); easing.type: Easing.OutCubic }
     }
+    // Fade the existing bevel into the contact shadow at each mounting point.
+    // These strips stay on the bevel itself, before the drawer's face is drawn.
+    Rectangle {
+        x: Theme.screenBounds.x; y: root.lowerJoin - 20; width: Theme.screenBevel; height: 20
+        opacity: 1 - Math.max(0, Math.min(1, (root.height - 53) / 18))
+        gradient: Gradient {
+            GradientStop { position: 0; color: "#00101e1d" }
+            GradientStop { position: 1; color: "#60101e1d" }
+        }
+    }
+    Rectangle {
+        x: root.width; y: root.lowerJoin
+        width: Math.min(20, Math.max(0, root.expandedWidth - root.width)); height: Theme.screenBevel
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop { position: 0; color: "#50101e1d" }
+            GradientStop { position: 1; color: "#00101e1d" }
+        }
+    }
+    Repeater {
+        model: 2
+        delegate: Item {
+            id: sideContact
+            required property int index
+            x: index === 0 ? Theme.screenBounds.x : root.expandedWidth; y: root.lowerJoin - 18
+            width: Theme.screenBevel
+            height: Math.max(18, root.height - (53 - root.lowerJoin) - y)
+            opacity: Math.max(0, Math.min(1, (root.height - 53) / 18))
+            Repeater {
+                model: 3
+                delegate: Rectangle {
+                    required property int index
+                    x: index * sideContact.width / 3; width: sideContact.width / 3; height: sideContact.height
+                    opacity: sideContact.index === 0 ? [0.2, 0.55, 1][index] : [1, 0.55, 0.2][index]
+                    gradient: Gradient {
+                        GradientStop { position: 0; color: "#00101e1d" }
+                        GradientStop { position: Math.min(1, 18 / sideContact.height); color: "#50101e1d" }
+                        GradientStop { position: 1; color: "#50101e1d" }
+                    }
+                }
+            }
+        }
+    }
     Shape {
         anchors.fill: parent
+        // A short, feathered contact shadow follows the top and both cuts.
+        // The filled body covers the inner halves; there is no lower seam.
+        ShapePath {
+            strokeColor: "#08101e1d"; strokeWidth: 10; fillColor: "transparent"
+            capStyle: ShapePath.RoundCap; joinStyle: ShapePath.RoundJoin
+            PathSvg { path: root.shoulder() }
+        }
+        ShapePath {
+            strokeColor: "#12101e1d"; strokeWidth: 6; fillColor: "transparent"
+            capStyle: ShapePath.RoundCap; joinStyle: ShapePath.RoundJoin
+            PathSvg { path: root.shoulder() }
+        }
+        ShapePath {
+            strokeColor: "#28101e1d"; strokeWidth: 3; fillColor: "transparent"
+            capStyle: ShapePath.RoundCap; joinStyle: ShapePath.RoundJoin
+            PathSvg { path: root.shoulder() }
+        }
         ShapePath {
             // Fill joins both the sidewall and footer; neither gets a seam.
             strokeColor: "transparent"
@@ -37,25 +108,13 @@ Item {
                 GradientStop { position: 0.94; color: Theme.chassis }
                 GradientStop { position: 1; color: Theme.chassisFoot }
             }
-            startX: 4; startY: root.height
-            PathLine { x: 4; y: -6 }
-            PathLine { x: Theme.screenBounds.x; y: -6 }
-            PathQuad { x: Theme.screenBounds.x + 6; y: 0; controlX: Theme.screenBounds.x; controlY: 0 }
-            PathLine { x: root.width - 39; y: 0 }
-            PathQuad { x: root.width - 32; y: 3; controlX: root.width - 36; controlY: 0 }
-            PathLine { x: root.width - 3; y: 32 }
-            PathQuad { x: root.width; y: 39; controlX: root.width; controlY: 35 }
-            PathLine { x: root.width; y: root.height }
+            PathSvg {
+                path: root.shoulder() + " V " + root.height + " H " + root.leftJoin + " Z"
+            }
         }
         ShapePath {
             strokeColor: Theme.edgeLight; strokeWidth: 2; fillColor: "transparent"
-            startX: Theme.screenBounds.x; startY: -6
-            PathQuad { x: Theme.screenBounds.x + 6; y: 0; controlX: Theme.screenBounds.x; controlY: 0 }
-            PathLine { x: root.width - 39; y: 0 }
-            PathQuad { x: root.width - 32; y: 3; controlX: root.width - 36; controlY: 0 }
-            PathLine { x: root.width - 3; y: 32 }
-            PathQuad { x: root.width; y: 39; controlX: root.width; controlY: 35 }
-            PathLine { x: root.width; y: root.height - 5 }
+            PathSvg { path: root.shoulder() }
         }
     }
     Item {
@@ -74,28 +133,28 @@ Item {
                     GradientStop { position: 0; color: Qt.lighter(Theme.yellow, 1.2) }
                     GradientStop { position: 1; color: Theme.yellow }
                 }
-                startX: 18; startY: 8
+                startX: root.leftJoin + 20; startY: 8
                 PathLine { x: toggle.width - 44; y: 8 }
                 PathQuad { x: toggle.width - 37; y: 11; controlX: toggle.width - 40; controlY: 8 }
                 PathLine { x: toggle.width - 14; y: 34 }
                 PathQuad { x: toggle.width - 11; y: 41; controlX: toggle.width - 11; controlY: 37 }
                 PathQuad { x: toggle.width - 16; y: 46; controlX: toggle.width - 11; controlY: 46 }
-                PathLine { x: 18; y: 46 }
-                PathQuad { x: 12; y: 40; controlX: 12; controlY: 46 }
-                PathLine { x: 12; y: 14 }
-                PathQuad { x: 18; y: 8; controlX: 12; controlY: 8 }
+                PathLine { x: root.leftJoin + 13; y: 46 }
+                PathQuad { x: root.leftJoin + 7; y: 40; controlX: root.leftJoin + 7; controlY: 46 }
+                PathLine { x: root.leftJoin + 13; y: 14 }
+                PathQuad { x: root.leftJoin + 20; y: 8; controlX: root.leftJoin + 14; controlY: 8 }
             }
             ShapePath {
                 strokeColor: "#fff0b5"; strokeWidth: 1; fillColor: "transparent"
-                startX: 16; startY: 37
-                PathLine { x: 16; y: 16 }
-                PathQuad { x: 20; y: 12; controlX: 16; controlY: 12 }
+                startX: root.leftJoin + 11; startY: 37
+                PathLine { x: root.leftJoin + 16; y: 16 }
+                PathQuad { x: root.leftJoin + 21; y: 12; controlX: root.leftJoin + 17; controlY: 12 }
                 PathLine { x: toggle.width - 45; y: 12 }
             }
         }
-        Text { x: 24; y: 12; text: "Y"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 21; font.weight: Font.DemiBold }
-        Text { x: 58; y: 16; text: "Continue Adventure"; color: "#fff0b5"; font.pixelSize: 17; font.weight: Font.DemiBold }
-        Text { x: 58; y: 15; text: "Continue Adventure"; color: Theme.ink; font.pixelSize: 17; font.weight: Font.DemiBold }
+        Text { x: 44; y: 12; text: "Y"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 21; font.weight: Font.DemiBold }
+        Text { x: 66; y: 16; text: "Continue Adventure"; color: "#fff0b5"; font.pixelSize: 17; font.weight: Font.DemiBold }
+        Text { x: 66; y: 15; text: "Continue Adventure"; color: Theme.ink; font.pixelSize: 17; font.weight: Font.DemiBold }
         Item {
             x: 306; y: 18; width: Math.max(0, toggle.width - x - 44); height: 20; clip: true
             // The legend is printed at its final position on the yellow inset.
