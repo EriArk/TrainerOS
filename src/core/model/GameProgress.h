@@ -10,7 +10,7 @@ enum class ProgressAvailability { Unsupported, Checking, Available, Missing, Unr
 struct GameProgress {
     ProgressAvailability availability = ProgressAvailability::Unsupported;
     std::optional<int> badgeMask, caught;
-    QString provider, contentRevision, saveRevision, message;
+    QString provider, contentRevision, saveRevision, message, badgeSet;
     QDateTime observedAt;
 };
 }

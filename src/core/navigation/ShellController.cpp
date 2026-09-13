@@ -210,7 +210,7 @@ QVariantMap ShellController::home() const {
     QString action = "Explore Worlds", actionHint = "Worlds", milestone = snapshot.milestone;
     std::optional<int> badges, caught;
     QVariantList badgeSlots;
-    QString progressNote;
+    QString progressNote, badgeSet;
     std::optional<qint64> seconds;
     if (adventure) {
         title = adventure->title;
@@ -226,6 +226,7 @@ QVariantMap ShellController::home() const {
                 const auto observed = progress_->snapshot();
                 progressNote = observed.message;
                 if (observed.availability == ProgressAvailability::Available) {
+                    badgeSet = observed.badgeSet;
                     caught = observed.caught;
                     if (observed.badgeMask) {
                         badges = std::popcount(static_cast<unsigned>(*observed.badgeMask) & 255u);
@@ -254,7 +255,7 @@ QVariantMap ShellController::home() const {
             {"hasTrainer", trainer_.exists()}, {"adventure", title}, {"world", world},
             {"adventureId", adventure ? adventure->id : QString()}, {"action", action}, {"actionHint", actionHint},
             {"badges", badges ? QString::number(*badges) : "—"}, {"caught", caught ? QString::number(*caught) : "—"},
-            {"badgeSlots", badgeSlots}, {"progressNote", progressNote},
+            {"badgeSlots", badgeSlots}, {"progressNote", progressNote}, {"badgeSet", badgeSet},
             {"recordedTime", seconds ? recordedDuration(*seconds) : "—"}, {"milestone", milestone}};
 }
 QVariantList ShellController::resumePoints() const {

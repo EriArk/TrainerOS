@@ -155,6 +155,7 @@ qt_add_qml_module(traineros
         src/qml/PlatformBadge.qml
         src/qml/Hint.qml
         src/qml/HomePage.qml
+        src/qml/BadgeCrystal.qml
         src/qml/AdventureButton.qml
         src/qml/HallOfFamePage.qml
         src/qml/ArchiveEditorPanel.qml

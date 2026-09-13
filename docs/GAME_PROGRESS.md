@@ -12,6 +12,8 @@ The local trainer journal, manual Pokédex, Hall of Fame and RetroAchievements r
 
 ## Boundaries and refresh
 
+Badge presentation uses an explicit verified `badgeSet` (Kanto or Hoenn), independent of emulator/provider identifiers and display-name matching. Eight original vector crystal cuts have individual colors and beveled facets. They sit in shaped recesses in a wider tray; unearned badges expose the empty recess. Unknown data does not render eight unearned badges. No ripped badge sprites are packaged. The larger crystals are decorative, so Home retains its fixed A action and Y selector without adding focus stops.
+
 `GameProgressProvider` exposes one identified observation to the shell. `GameProgressService` performs worker-thread I/O through an injected save resolver. `Gen3Progress` only interprets immutable bytes after content identification. QML sees normalized values and a source/availability message; it never opens files or knows binary offsets.
 
 Reads run on startup, when Home's selected registration changes, when entering Home, after library changes, after Adventure launch/return, and after save-service activity. In-flight results are discarded after selection changes, save operations or launch. Shell actions and launch remain usable while a read runs.
@@ -44,6 +46,8 @@ The local full-file SHA-256 values below were paired with the matching SHA-1 ref
 
 The production build was installed on Flip 2. Controller selection displayed **8/8 badges and 386 caught** on Home for both English FireRed Rev 1 and Emerald. Emerald was opened normally from Worlds, loaded from its in-game Continue menu, returned to TrainerOS, selected for Home with Y/A, then resumed with Home's fixed A action. Home refreshed to the same verified values after return. Unsupported Ruby displayed the explicit availability message. The six imported save targets retained their original checksums throughout this validation; the existing FireRed backup was verified again.
 
-The current source passed all 29 Windows tests and all 30 tests on both the Ubuntu/Qt 6.4.2 build server and the ARM64 Flip. Windows and ARM64 production builds with testing disabled also passed. Rendered SDL scenarios were inspected at handheld and full display sizes. Reports, device captures, downloaded examples and installation/database backups remain private and excluded from Git.
+The initial progress increment passed all 29 Windows tests and all 30 tests on both the Ubuntu/Qt 6.4.2 build server and the ARM64 Flip. Windows and ARM64 production builds with testing disabled also passed. Rendered SDL scenarios were inspected at handheld and full display sizes. Reports, device captures, downloaded examples and installation/database backups remain private and excluded from Git.
+
+The subsequent crystal presentation update passed seven affected checks on each of Windows, the Ubuntu server and ARM64: game progress, persistence/process scenarios, and five rendered QML/controller scenarios. Visual inspection covered both complete badge sets, mixed earned/unearned badges and an empty tray at 960×540 and 1920×1080. The production ARM64 build was installed and both FireRed and Emerald sets were inspected on Flip, including Y/A selection and shoulder navigation.
 
 Party, map labels, per-species journal import, automatic historical events, DS/GameCube readers and ROM-hack profiles remain separate validated increments.

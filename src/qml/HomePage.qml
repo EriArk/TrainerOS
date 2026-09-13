@@ -31,28 +31,38 @@ Item {
     }
     Text { x: 34; y: 219; width: 580; elide: Text.ElideRight; textFormat: Text.PlainText; text: root.currentAdventure.progressNote; color: Theme.muted; font.pixelSize: 12 }
     Row {
-        x: 33; y: 250; spacing: 12
-        Repeater {
-            model: [{number: root.currentAdventure.badges, label: "BADGES", badges: true}, {number: root.currentAdventure.caught, label: "CAUGHT", badges: false}, {number: root.currentAdventure.recordedTime, label: "RECORDED TIME", badges: false}]
-            delegate: Rectangle {
-                required property var modelData
-                width: 142; height: 92; radius: 13; color: "#edf2e7"; border.color: "#c9d8c7"
-                Text { x: 15; y: 5; width: parent.width - 30; height: 38; verticalAlignment: Text.AlignVCenter; text: modelData.number + (modelData.badges && root.currentAdventure.badgeSlots.length ? " / 8" : ""); color: Theme.ink; font.pixelSize: text.length > 4 ? 22 : 34; font.bold: true; elide: Text.ElideRight }
-                Row {
-                    x: 18; y: 47; spacing: 6
-                    visible: modelData.badges
-                    Repeater {
-                        model: modelData.badges ? root.currentAdventure.badgeSlots : []
-                        delegate: Rectangle {
-                            required property bool modelData
-                            width: 8; height: 8; rotation: 45; radius: 1
-                            color: modelData ? "#dfad46" : "#d9e0d4"
-                            border.color: modelData ? "#906429" : "#aebcab"
-                            Rectangle { x: 1; y: 1; width: 5; height: 2; color: modelData ? "#ffdc83" : "#ebeee7" }
-                        }
+        x: 33; y: 250; spacing: 12; width: root.width - 244 - 66
+        Rectangle {
+            id: badgeTray
+            objectName: "home-badge-tray"
+            width: parent.width - 256; height: 92; radius: 13
+            color: "#e3ebda"; border.color: "#b6c7b2"
+            Rectangle { x: 2; y: 3; width: parent.width - 4; height: 86; radius: 11; color: "transparent"; border.color: "#f9fcf4" }
+            Text { x: 13; y: 8; text: "BADGES"; color: Theme.muted; font.pixelSize: 11; font.bold: true; font.letterSpacing: 1.5 }
+            Text { x: 85; y: 2; width: parent.width - 99; horizontalAlignment: Text.AlignRight; text: root.currentAdventure.badges + (root.currentAdventure.badgeSlots.length ? " / 8" : ""); color: Theme.ink; font.pixelSize: 23; font.bold: true }
+            Row {
+                x: 10; y: 33; spacing: 3
+                Repeater {
+                    model: root.currentAdventure.badgeSlots
+                    delegate: BadgeCrystal {
+                        required property int index
+                        required property bool modelData
+                        objectName: "home-badge-" + index
+                        badgeIndex: index; earned: modelData
+                        badgeSet: root.currentAdventure.badgeSet
+                        width: (badgeTray.width - 41) / 8; height: 50
                     }
                 }
-                Text { x: 16; y: 65; text: modelData.label; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1 }
+            }
+            Text { x: 13; y: 49; visible: root.currentAdventure.badgeSlots.length === 0; text: "No badge data yet"; color: Theme.muted; font.pixelSize: 12 }
+        }
+        Repeater {
+            model: [{number: root.currentAdventure.caught, label: "CAUGHT"}, {number: root.currentAdventure.recordedTime, label: "RECORDED TIME"}]
+            delegate: Rectangle {
+                required property var modelData
+                width: 116; height: 92; radius: 13; color: "#edf2e7"; border.color: "#c9d8c7"
+                Text { x: 13; y: 12; width: parent.width - 26; height: 38; verticalAlignment: Text.AlignVCenter; text: modelData.number; color: Theme.ink; font.pixelSize: text.length > 4 ? 22 : 34; font.bold: true; elide: Text.ElideRight }
+                Text { x: 13; y: 65; text: modelData.label; color: Theme.muted; font.pixelSize: 10; font.letterSpacing: .4 }
             }
         }
     }

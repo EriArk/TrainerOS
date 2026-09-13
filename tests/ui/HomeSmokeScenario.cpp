@@ -97,12 +97,13 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(shell.home()["recordedTime"] == "12 min" && shell.home()["badges"] == "—", "Real duration and unknown progress remain separate");
             progress->value.availability = ProgressAvailability::Available;
             progress->value.badgeMask = 0xa5; progress->value.caught = 241;
+            progress->value.badgeSet = "kanto";
             progress->value.message = "Last in-game save · National Pokédex";
             shell.configureProgress(progress);
             window->resize(1920, 1080); break;
         case 6:
             check(shell.home()["badges"] == "4" && shell.home()["caught"] == "241"
-                && shell.home()["badgeSlots"].toList().size() == 8, "Verified save fields reach Home independently of recorded time");
+                && shell.home()["badgeSlots"].toList().size() == 8 && shell.home()["badgeSet"] == "kanto", "Verified save fields reach Home independently of recorded time");
             capture("home-selected-1080p"); press(SDL_CONTROLLER_BUTTON_A); break;
         case 7:
             check(*starts == 1 && *returns == 1 && focusIs("home-launch"), "Main button alone launches and restores Home");
@@ -130,7 +131,36 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(shell.navigationState()["homeAdventure"] == "home-0" && shell.home()["adventureId"] == "home-0", "Explicit Home choice survives restart");
             check(store.recentSessions().size() == 5 && store.recordedSeconds("home-0").has_value(), "History survives restart");
             check(!reopen || *starts == 0, "Reopening the journal does not launch anything");
-            capture(reopen ? "home-reopened" : "home-return"); break;
+            capture(reopen ? "home-reopened" : "home-return");
+            if (reopen) { *stage = 13; break; }
+            progress->value.availability = ProgressAvailability::Available;
+            progress->value.badgeMask = 255; progress->value.caught = 386; progress->value.badgeSet = "kanto";
+            progress->value.message = "Last in-game save · National Pokédex"; progress->publish();
+            window->resize(960, 540); break;
+        case 10:
+            for (int i = 0; i < 8; ++i) {
+                QQuickItem* badge = nullptr;
+                QList<QQuickItem*> pending{window->contentItem()};
+                while (!pending.isEmpty()) {
+                    auto* item = pending.takeLast();
+                    if (item->objectName() == "home-badge-" + QString::number(i)) { badge = item; break; }
+                    pending.append(item->childItems());
+                }
+                check(badge && badge->width() >= 26 && badge->height() >= 40, "Large badge remains readable at handheld size");
+                if (badge) {
+                    const auto bounds = badge->mapRectToScene(badge->boundingRect());
+                    check(bounds.left() >= 0 && bounds.right() <= window->width() && bounds.bottom() <= window->height(), "Badge stays inside the viewport");
+                }
+            }
+            check(focusIs("home-launch"), "Decorative badges add no directional focus stops");
+            capture("home-badges-kanto-960");
+            progress->value.badgeSet = "hoenn"; progress->publish(); break;
+        case 11:
+            capture("home-badges-hoenn-960");
+            progress->value.badgeMask = 0; progress->publish(); break;
+        case 12:
+            check(shell.home()["badges"] == "0", "An empty badge tray represents verified zero, not unknown");
+            capture("home-badges-empty-960"); break;
         default:
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (*failed) { qCritical().noquote() << diagnostics.join('\n'); QCoreApplication::exit(1); }

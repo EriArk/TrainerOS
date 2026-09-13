@@ -56,6 +56,7 @@ private slots:
             const auto bytes = save(edition); const auto result = readGen3Progress(bytes, edition);
             QCOMPARE(result.availability, ProgressAvailability::Available);
             QCOMPARE(result.badgeMask.value(), 0xa5); QCOMPARE(result.caught.value(), 241);
+            QCOMPARE(result.badgeSet, edition == Gen3Edition::Emerald ? QString("hoenn") : QString("kanto"));
             auto zero = slot(edition, 5, 0, 0, 0) + QByteArray(18 * 0x1000, char(0xff));
             const auto empty = readGen3Progress(zero, edition);
             QCOMPARE(empty.availability, ProgressAvailability::Available);

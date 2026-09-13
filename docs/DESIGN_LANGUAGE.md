@@ -314,6 +314,10 @@ A small Rotom-inspired personality layer may eventually make system events charm
 
 This should remain **small, optional, and non-chatty**. Do not turn TrainerOS into a chatbot or let a mascot obscure navigation.
 
+## Home badge collection — 2026-09-13
+
+Badges are individual colored, faceted crystals in a molded collection tray, with distinct silhouettes and separate Kanto/Hoenn sets. Use visible bevels, highlights and contact shadows; an unearned badge leaves a shaped recess. Keep the crystals large enough to distinguish on the handheld (about three times the first tiny diamond indicators), with all eight visible together. Unknown progress remains unknown rather than appearing as eight missing badges. These are original vector interpretations, not copied game sprites. The collection is informational and adds no controller focus stops.
+
 ## Placeholder asset policy
 
 Until final assets exist:

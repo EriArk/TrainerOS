@@ -69,6 +69,7 @@ GameProgress readGen3Progress(const QByteArray& save, Gen3Edition edition) {
     for (int i = 0; i < 386; ++i) if (bit(latest->blocks[0], 0x28, i)) ++caught;
     result.availability = ProgressAvailability::Available;
     result.badgeMask = mask; result.caught = caught;
+    result.badgeSet = edition == Gen3Edition::Emerald ? "hoenn" : "kanto";
     result.provider = edition == Gen3Edition::Emerald ? "gen3-emerald-v1" : "gen3-firered-v1";
     result.message = "Last in-game save · National Pokédex";
     return result;
