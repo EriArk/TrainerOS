@@ -626,6 +626,26 @@ int main(int argc, char* argv[]) {
                     case 35:
                         check(!powerStatus.available() && !powerStatus.charging() && focusIs("home-launch"), "Unavailable charge clears old value without changing focus");
                         capture("battery-unavailable"); break;
+                    case 36:
+                        shell.keyboard()->begin("Password preview", "", 64, true);
+                        press(a); press(SDL_CONTROLLER_BUTTON_X); press(a);
+                        press(SDL_CONTROLLER_BUTTON_Y); press(a);
+                        check(shell.keyboard()->text() == "aA!", "Controller case and symbol entry");
+                        break;
+                    case 37:
+                        check(focusIs("key-A"), "Changing key layout preserves visible focus");
+                        if (auto* field = window->findChild<QObject*>("keyboard-text"))
+                            check(field->property("text").toString() == QString(3, QChar(0x2022)) + QChar(0x2502), "Rendered password contains only bullets and cursor");
+                        else check(false, "Password display exists");
+                        capture("keyboard-secret-symbols");
+                        press(SDL_CONTROLLER_BUTTON_Y); break;
+                    case 38:
+                        capture("keyboard-symbols-second-page");
+                        taps(right, 6); press(a);
+                        check(shell.keyboard()->text() == "aA!1", "Numeric block remains reachable past hidden symbol slots");
+                        press(b);
+                        check(!shell.keyboard()->isOpen() && shell.keyboard()->text().isEmpty(), "Back discards secret input");
+                        break;
                     default:
                         check(qmlWarnings == 0, "QML warnings were emitted");
                         timer->stop();

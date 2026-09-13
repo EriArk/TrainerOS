@@ -44,8 +44,8 @@ Item {
             Text {
                 objectName: "keyboard-text"
                 anchors { left: parent.left; right: parent.right; margins: 21; verticalCenter: parent.verticalCenter }
-                text: root.keyboard.text.length ? root.keyboard.text + "│" : "Choose letters and numbers…"
-                color: root.keyboard.text.length ? Theme.ink : Theme.muted
+                text: root.keyboard.displayText.length ? root.keyboard.displayText + "│" : "Choose characters…"
+                color: root.keyboard.displayText.length ? Theme.ink : Theme.muted
                 font.pixelSize: 24; elide: Text.ElideLeft; textFormat: Text.PlainText
             }
         }
@@ -57,6 +57,7 @@ Item {
                 required property int index
                 required property var modelData
                 objectName: "key-" + modelData.id
+                visible: modelData.visible
                 x: modelData.numeric ? 677 + (modelData.column - 11) * 79 : 24 + modelData.column * 61
                 y: 117 + modelData.row * 49
                 width: modelData.span * (modelData.numeric ? 79 : 61) - 10
@@ -73,7 +74,7 @@ Item {
         }
         Text {
             x: 25; y: 307; width: 865
-            text: root.keyboard.hint.length ? root.keyboard.hint : "A · Type / choose     B · Cancel input     Apply · Use this text"
+            text: root.keyboard.hint.length ? root.keyboard.hint : "A · Type    B · Cancel    " + root.keyboard.layoutHint + "    Apply · Use text"
             color: root.keyboard.hint.length ? "#ffe08c" : "#d4e4d8"
             font.pixelSize: 11; elide: Text.ElideRight
         }

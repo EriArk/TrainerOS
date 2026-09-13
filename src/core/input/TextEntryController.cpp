@@ -27,15 +27,27 @@ int TextEntryController::characterCount(const QString& text) {
     return count;
 }
 int TextEntryController::count() const { return characterCount(text_); }
+QString TextEntryController::label(const Key& key) const {
+    if (key.kind != KeyKind::Character || key.column >= 11) return key.label;
+    if (!symbolPage_) return lowercase_ ? key.label.toLower() : key.label;
+    QString symbols;
+    for (int value = 33; value <= 126; ++value) if (!QChar(value).isLetterOrNumber()) symbols.append(QChar(value));
+    const int index = (symbolPage_ - 1) * 26 + key.row * 10 + key.column;
+    return index < symbols.size() ? QString(symbols[index]) : QString();
+}
+QString TextEntryController::layoutHint() const {
+    return QString("X · %1    Y · %2").arg(lowercase_ ? "UPPERCASE" : "lowercase",
+        symbolPage_ == 0 ? "Symbols 1/2" : symbolPage_ == 1 ? "Symbols 2/2" : "Letters");
+}
 QVariantList TextEntryController::keys() const {
     QVariantList result;
     for (const auto& key : keys_) {
-        result.append(QVariantMap{{"id", key.id}, {"label", key.label}, {"row", key.row},
+        result.append(QVariantMap{{"id", key.id}, {"label", label(key)}, {"visible", !label(key).isEmpty()}, {"row", key.row},
             {"column", key.column}, {"span", key.span}, {"numeric", key.column >= 11}});
     }
     return result;
 }
-void TextEntryController::begin(const QString& title, const QString& initial, int maximumLength) {
+void TextEntryController::begin(const QString& title, const QString& initial, int maximumLength, bool secret) {
     title_ = title;
     text_ = initial; // Do not silently truncate an existing value.
     maximumLength_ = std::clamp(maximumLength, 1, 256);
@@ -43,6 +55,8 @@ void TextEntryController::begin(const QString& title, const QString& initial, in
     focus_ = 0;
     preferredColumn_ = 0;
     open_ = true;
+    secret_ = secret; lowercase_ = secret; symbolPage_ = 0;
+    emit layoutChanged();
     emit changed();
 }
 void TextEntryController::cancel() {
@@ -59,6 +73,7 @@ void TextEntryController::move(Action action) {
         int distance = std::numeric_limits<int>::max();
         for (int i = 0; i < keys_.size(); ++i) {
             const auto& candidate = keys_.at(i);
+            if (label(candidate).isEmpty()) continue;
             if (candidate.row != current.row) continue;
             const int delta = (candidate.column - current.column) * (action == Action::Right ? 1 : -1);
             if (delta > 0 && delta < distance) { distance = delta; target = i; }
@@ -69,6 +84,7 @@ void TextEntryController::move(Action action) {
         int distance = std::numeric_limits<int>::max();
         for (int i = 0; i < keys_.size(); ++i) {
             const auto& candidate = keys_.at(i);
+            if (label(candidate).isEmpty()) continue;
             if (candidate.row != row) continue;
             const int nearest = std::clamp(preferredColumn_, candidate.column,
                                            candidate.column + candidate.span - 1);
@@ -80,7 +96,7 @@ void TextEntryController::move(Action action) {
     focus_ = target;
 }
 void TextEntryController::activate(int index) {
-    if (!open_ || index < 0 || index >= keys_.size()) return;
+    if (!open_ || index < 0 || index >= keys_.size() || label(keys_[index]).isEmpty()) return;
     if (focus_ != index) {
         focus_ = index;
         preferredColumn_ = keys_[index].column + keys_[index].span / 2;
@@ -107,7 +123,7 @@ void TextEntryController::activate(int index) {
     } else if (count() >= maximumLength_) {
         hint_ = QString("Maximum %1 characters reached.").arg(maximumLength_);
     } else {
-        text_.append(key.kind == KeyKind::Space ? " " : key.label);
+        text_.append(key.kind == KeyKind::Space ? " " : label(key));
     }
     emit changed();
 }
@@ -115,7 +131,13 @@ void TextEntryController::dispatch(Action action) {
     if (!open_) return;
     if (action == Action::Back) cancel();
     else if (action == Action::Confirm) activate(focus_);
+    else if (action == Action::Secondary || action == Action::ToggleContinue) {
+        if (action == Action::Secondary) { lowercase_ = !lowercase_; symbolPage_ = 0; }
+        else symbolPage_ = (symbolPage_ + 1) % 3;
+        if (label(keys_[focus_]).isEmpty()) { focus_ = 0; preferredColumn_ = 0; }
+        hint_.clear(); emit layoutChanged(); emit changed();
+    }
     else if (action <= Action::Right) { move(action); emit changed(); }
-    // The shell owns Start and L1/R1. Y has no text-entry meaning.
+    // The shell owns Start and L1/R1; X/Y only affect this open keyboard.
 }
 }

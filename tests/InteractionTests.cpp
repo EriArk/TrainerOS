@@ -21,6 +21,75 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void caseSymbolsAndSecretEntry() {
+        TextEntryController keyboard;
+        QSignalSpy accepted(&keyboard, &TextEntryController::accepted);
+        keyboard.begin("Password", "", 128, true);
+        tap(keyboard, Action::Confirm);
+        tap(keyboard, Action::Secondary); tap(keyboard, Action::Confirm);
+        QCOMPARE(keyboard.text(), "aA");
+        QCOMPARE(keyboard.displayText(), QString(2, QChar(0x2022)));
+        // All printable ASCII punctuation is available, including quote/backslash.
+        QString entered;
+        for (int page = 0; page < 2; ++page) {
+            tap(keyboard, Action::ToggleContinue);
+            const auto keys = keyboard.keys();
+            for (int i = 0; i < 26; ++i) {
+                if (!keys[i].toMap()["visible"].toBool()) continue;
+                entered += keys[i].toMap()["label"].toString();
+                keyboard.activate(i);
+            }
+        }
+        QString expected;
+        for (int code = 33; code <= 126; ++code)
+            if (!QChar(code).isLetterOrNumber()) expected += QChar(code);
+        QCOMPARE(entered, expected);
+        keyboard.activate(keyIndex(keyboard, "9"));
+        QCOMPARE(keyboard.text(), "aA" + expected + "9");
+        QCOMPARE(keyboard.displayText(), QString(keyboard.count(), QChar(0x2022)));
+        const QString result = keyboard.text();
+        keyboard.activate(keyIndex(keyboard, "apply"));
+        QCOMPARE(accepted.size(), 1);
+        QCOMPARE(accepted.first().first().toString(), result);
+        QVERIFY(keyboard.text().isEmpty()); QVERIFY(keyboard.displayText().isEmpty());
+        keyboard.begin("Password", "synthetic secret", 64, true);
+        keyboard.cancel();
+        QVERIFY(keyboard.text().isEmpty()); QVERIFY(keyboard.displayText().isEmpty());
+        keyboard.begin("Name", "", 24);
+        tap(keyboard, Action::Confirm);
+        QCOMPARE(keyboard.displayText(), "A"); // Other forms retain the existing default.
+        QVERIFY(keyboard.metaObject()->indexOfProperty("text") < 0);
+    }
+    void symbolsKeepEveryVisibleKeyReachable() {
+        TextEntryController keyboard;
+        for (int page = 1; page <= 2; ++page) {
+            keyboard.begin("Search", "", 128);
+            tap(keyboard, Action::ToggleContinue, page);
+            const auto keys = keyboard.keys();
+            QSet<int> visited{0}; QList<QList<Action>> pending{{}};
+            while (!pending.isEmpty()) {
+                const auto path = pending.takeFirst();
+                for (const auto direction : {Action::Up, Action::Down, Action::Left, Action::Right}) {
+                    keyboard.begin("Search", "", 128);
+                    tap(keyboard, Action::ToggleContinue, page);
+                    for (const auto step : path) tap(keyboard, step);
+                    tap(keyboard, direction);
+                    const int next = keyboard.focusIndex();
+                    QVERIFY(keys[next].toMap()["visible"].toBool());
+                    if (!visited.contains(next)) { visited.insert(next); auto nextPath = path; nextPath.append(direction); pending.append(nextPath); }
+                }
+            }
+            for (int i = 0; i < keys.size(); ++i)
+                if (keys[i].toMap()["visible"].toBool()) QVERIFY2(visited.contains(i), qPrintable(keys[i].toMap()["id"].toString()));
+        }
+        keyboard.begin("Search", "", 128);
+        keyboard.activate(keyIndex(keyboard, "Z"));
+        tap(keyboard, Action::ToggleContinue, 2);
+        QCOMPARE(focusedKey(keyboard), "A");
+        const QString before = keyboard.text();
+        keyboard.activate(keyIndex(keyboard, "Z")); // Hidden slots cannot insert characters.
+        QCOMPARE(keyboard.text(), before);
+    }
     void sessionChoicesRequireConfirmationAndCancelCleanly() {
         class Platform final : public PlatformService {
         public:

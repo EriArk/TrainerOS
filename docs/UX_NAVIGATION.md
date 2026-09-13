@@ -266,6 +266,12 @@ Preferred hierarchy:
 
 Avoid elaborate transitions that delay rapid controller input.
 
+## Shared text entry
+
+Letters and punctuation occupy the left keyboard module; the separate numeric block stays on the right. X switches letter case and returns to letters. Y cycles two punctuation pages and letters. All printable ASCII characters are reachable with the controller, including spaces through Space. Empty punctuation slots are hidden and skipped by directional focus. Apply submits; B discards the buffer. Password entry starts lowercase and exposes only masked display text to the QML field. Applying or cancelling clears the controller's draft. Start preserves the draft beneath its menu, and L1/R1 still close text entry and change the primary page.
+
+Acceptance: native checks cover punctuation, hidden-key navigation, limits, masking and draft clearing. The SDL smoke path enters mixed case, punctuation and a digit, checks rendered bullets, captures both symbol pages and verifies Back clears the draft.
+
 ## Touch/mouse behavior
 
 Touch support is optional convenience. Mouse/keyboard support is useful for development but is not part of the normal product UX.
