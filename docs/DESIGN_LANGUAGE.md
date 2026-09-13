@@ -22,6 +22,12 @@ The owner's further material correction deepens all chassis palettes slightly wh
 
 Start's right-mounted body narrows from 480 to 376 units. Notice text and confirmation controls adapt to that width; menu order, modal focus and Back remain unchanged. Acceptance: inspect both active/inactive Home-to-title joins, every tab label, the rightmost edge, both Continue states and intermediate/reversed motion, ribbons and lower metadata with/without previews, GPU blur and software fallback, the continuous shaded body, long menu labels and confirmations, battery states, palettes and handheld scaling. All changes preserve the continuous frame and fixed A/Y/L1/R1 behavior.
 
+## Tab seams without a backing rail — 2026-09-13
+
+The owner's next clarification preserves the tabs' existing faces: equal width, rounded diagonal outline, colors, Fredoka labels, active indicator and full active overhang. Only their mounting treatment changes, with old music-center keys as the depth reference. The screen aperture continues above the visible viewport behind the tab bank, removing the common horizontal chassis rail that previously appeared between/beneath the tabs. This supersedes the visible upper-lip treatment above; the content bounds and 73-unit safe content start do not move.
+
+Each tab casts a short contour-following contact shadow and a lighter outer shadow. Narrow shaded seams sit between the tabs, at Home's direct join with the TRAINER OS extension and where Hall of Fame meets the right sidewall. The owner's further correction requires actual edge-to-edge contacts: every aperture contour uses the same upper boundary at x=206 on the left and x=948 on the right, so the frame's inner bevel cannot creep beneath a tab face. The title bevel turns below the left contact; the right bevel turns inward below the key's lower diagonal, tracking its 49/63-unit height with the same 130 ms motion (immediate with Reduced Motion). The side/title/footer bevels remain connected; no separate backing plate or floating control rail is introduced. Acceptance: inspect both end joins with their tab active and inactive, the spaces below the lower bevels, all labels and unchanged faces, and Start/keyboard overlay priority. L1/R1 and all page actions retain their behavior.
+
 ## Shared visual pass — 2026-09-13
 
 The owner requested the available visual work together, including the deeper tab overhang above. Issues #22/#23/#33 now share these primitives:

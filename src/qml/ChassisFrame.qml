@@ -4,6 +4,8 @@ import QtQuick.Shapes
 Rectangle {
     id: root
     objectName: "chassis-frame"
+    property real rightKeyHeight: Theme.tabBaseline
+    Behavior on rightKeyHeight { NumberAnimation { duration: Theme.motion(130); easing.type: Easing.OutCubic } }
     gradient: Gradient {
         GradientStop { position: 0; color: Theme.chassisCrown }
         GradientStop { position: 0.035; color: Theme.chassisTop }
@@ -23,20 +25,25 @@ Rectangle {
             + " V " + (t + 3) + " Q " + l + " " + t + " " + (l + 3) + " " + t + " Z";
     }
 
-    // One closed screen aperture, including the diagonal under the title.
-    // Its inset contours form a bevel in the body, not four separate rails.
+    // The aperture continues offscreen behind the key bank: no horizontal
+    // chassis rail shows through beneath it. Side/title/footer bevels stay joined.
     function aperture(inset) {
         const s = Theme.screenBounds;
-        const left = s.x + inset, right = s.x + s.width - inset;
-        const top = s.y + inset, bottom = s.y + s.height - inset;
+        const outerRight = s.x + s.width;
+        const left = s.x + inset, right = outerRight - inset;
+        const top = -12, bottom = s.y + s.height - inset;
         const radius = Math.max(5, 15 - inset);
         const brandBottom = Theme.tabBaseline + Theme.activeTabOverlap + inset;
-        const brandRight = Theme.brandWidth + inset;
+        // All contours meet the same vertical key edges. Their bevels turn
+        // inward only below those contacts, never underneath a tab face.
+        const brandRight = Theme.brandWidth;
+        const rightJoinBottom = root.rightKeyHeight;
         const diagonalOffset = inset * (Math.SQRT2 - 1);
-        const diagonalTop = Theme.tabBaseline + Theme.activeTabOverlap - Theme.brandBevel + diagonalOffset;
+        const diagonalTop = Theme.tabBaseline + Theme.activeTabOverlap - Theme.brandBevel + inset * Math.SQRT2;
         const diagonalLeft = Theme.brandWidth - Theme.brandBevel + diagonalOffset;
         return "M " + brandRight + " " + top
-            + " H " + (right - radius) + " Q " + right + " " + top + " " + right + " " + (top + radius)
+            + " H " + outerRight + " V " + (rightJoinBottom - inset)
+            + " Q " + outerRight + " " + rightJoinBottom + " " + right + " " + rightJoinBottom
             + " V " + (bottom - radius) + " Q " + right + " " + bottom + " " + (right - radius) + " " + bottom
             + " H " + (left + radius) + " Q " + left + " " + bottom + " " + left + " " + (bottom - radius)
             + " V " + (brandBottom + radius) + " Q " + left + " " + brandBottom + " " + (left + radius) + " " + brandBottom

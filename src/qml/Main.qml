@@ -33,6 +33,7 @@ Window {
         enabled: !adventureLaunch.active
         ChassisFrame {
             anchors.fill: parent
+            rightKeyHeight: Theme.tabBaseline + (shell.page === 4 ? Theme.activeTabOverlap : 0)
         }
         Item {
             id: brand
@@ -48,7 +49,7 @@ Window {
         Row {
             objectName: "primary-tabs"
             x: Theme.brandWidth; y: 0; spacing: Theme.tabSpacing
-            z: 1 // Tabs sit over the panel lip; modal surfaces remain above them.
+            z: 1 // Individual chassis-mounted keys; modal surfaces stay above them.
             Repeater {
                 model: ["Home", "Worlds", "Pokédex", "Trainer", "Hall of Fame"]
                 delegate: Item {
@@ -59,30 +60,56 @@ Window {
                     width: Theme.tabWidth
                     height: Theme.tabBaseline + (shell.page === index ? Theme.activeTabOverlap : 0)
                     Behavior on height { NumberAnimation { duration: Theme.motion(130); easing.type: Easing.OutCubic } }
-                    function outline(offset) {
-                        const w = width, h = height + offset;
+                    function outline(offset, spread) {
+                        const l = -spread, w = width + spread, h = height + offset;
                         // The first tab meets the title side directly. Other
-                        // lower corners keep a softened organizer-tab bevel.
-                        const left = index === 0 ? " H 4 Q 0 " + h + " 0 " + (h - 4) + " V " + offset
-                            : " H 14 Q 10 " + h + " 7 " + (h - 3)
-                              + " L 3 " + (h - 7) + " Q 0 " + (h - 10) + " 0 " + (h - 14);
-                        return "M 0 " + offset + " H " + w + " V " + (h - 17)
+                        // lower corners keep a softened diagonal key profile.
+                        const left = index === 0 ? " H " + (l + 4) + " Q " + l + " " + h + " " + l + " " + (h - 4) + " V " + offset
+                            : " H " + (l + 14) + " Q " + (l + 10) + " " + h + " " + (l + 7) + " " + (h - 3)
+                              + " L " + (l + 3) + " " + (h - 7) + " Q " + l + " " + (h - 10) + " " + l + " " + (h - 14);
+                        return "M " + l + " " + offset + " H " + w + " V " + (h - 17)
                             + " Q " + w + " " + (h - 13) + " " + (w - 3) + " " + (h - 10)
                             + " L " + (w - 10) + " " + (h - 3)
                             + " Q " + (w - 13) + " " + h + " " + (w - 17) + " " + h + left + " Z";
                     }
                     Shape {
                         anchors.fill: parent
-                        // A narrow contact shadow follows the original lower silhouette.
+                        // Local penumbra and contact shadow. Nothing spans the
+                        // whole bank underneath the unchanged tab faces.
                         ShapePath {
                             strokeColor: "transparent"
-                            fillColor: shell.page === index ? "#50102e2c" : "#30102e2c"
-                            PathSvg { path: tab.outline(3) }
+                            fillColor: shell.page === index ? "#24101e1d" : "#18101e1d"
+                            PathSvg { path: tab.outline(6, 2) }
+                        }
+                        ShapePath {
+                            strokeColor: "transparent"; fillColor: "#50101e1d"
+                            PathSvg { path: tab.outline(4, 1) }
                         }
                         ShapePath {
                             strokeColor: Qt.darker(Theme.tabColors[index], 1.65); strokeWidth: 1
                             fillColor: shell.page === index ? Theme.tabColors[index] : Qt.darker(Theme.tabColors[index], 1.18)
-                            PathSvg { path: tab.outline(0) }
+                            PathSvg { path: tab.outline(0, 0) }
+                        }
+                    }
+                    Rectangle {
+                        visible: index === 0
+                        x: -2; y: 0; width: 2; height: parent.height
+                        gradient: Gradient {
+                            GradientStop { position: 0; color: "#90101e1d" }
+                            GradientStop { position: 0.7; color: "#70101e1d" }
+                            GradientStop { position: 1; color: "#00101e1d" }
+                        }
+                    }
+                    Rectangle {
+                        // Deep seams between adjacent keys, and a small contact
+                        // seam where the final key meets the right sidewall.
+                        x: parent.width; y: 0
+                        width: index === 4 ? 2 : Theme.tabSpacing
+                        height: index === 4 ? parent.height : Theme.tabBaseline
+                        gradient: Gradient {
+                            GradientStop { position: 0; color: "#a0101e1d" }
+                            GradientStop { position: 0.6; color: "#90101e1d" }
+                            GradientStop { position: 1; color: "#00101e1d" }
                         }
                     }
                     Rectangle { x: 2; y: 1; width: parent.width - 4; height: 2; color: "#90ffffff" }
