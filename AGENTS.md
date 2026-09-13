@@ -205,6 +205,12 @@ Do not commit:
 
 Use original placeholders and clearly separated user-provided asset/data paths.
 
+### Authorized ROM source for testing — 2026-09-13
+
+The owner explicitly permits freely selecting, copying and using ROMs from **their ROM disk attached to the server** for TrainerOS development and testing, including non-Pokémon titles and ROM hacks. Do not ask again for permission for each test title/copy/launch from that source. Locate the actual mounted source using the existing private operational notes or a read-only inventory; do not guess a mount path.
+
+Preserve source originals. Stage test copies and test saves/configuration separately from personal playthroughs; keep content and private path/hash manifests outside Git. The owner also requested a later small selection of iconic games for each system; its scope and delivery slot are recorded in [ROADMAP.md](docs/ROADMAP.md#later-collection-deliverable--representative-classics).
+
 ## Implementation style
 
 - Keep the visual system custom and cohesive; do not ship Qt default widgets as the product aesthetic.
