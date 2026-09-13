@@ -9,10 +9,8 @@ Item {
     width: 100; height: 27
     Accessible.role: Accessible.StaticText
     Accessible.name: status.available ? "Battery " + status.percent + " percent, " + status.state : "Battery unavailable"
-    Rectangle { x: 0; y: 2; width: parent.width; height: 25; radius: 5; color: "#092d31" }
-    Rectangle {
-        x: 0; y: 0; width: parent.width; height: 25; radius: 5
-        color: Qt.lighter(Theme.chassisDark, 1.16); border.color: Theme.rim
+    Item {
+        width: parent.width; height: 25
         Rectangle { x: 9; y: 5; width: 28; height: 14; radius: 2; color: "#102f32"; border.color: "#c4dace" }
         Rectangle { x: 37; y: 9; width: 3; height: 6; radius: 1; color: "#c4dace" }
         Rectangle { x: 12; y: 8; width: root.status.available ? 22 * root.status.percent / 100 : 0; height: 8; radius: 1; color: root.chargeColor }

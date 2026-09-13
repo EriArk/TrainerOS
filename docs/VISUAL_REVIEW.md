@@ -31,3 +31,13 @@ Captures, binaries, source manifests, private data and reports stay outside Git.
 ## Remaining acceptance
 
 This does not close the whole of #27/#34: their future Power, Multiverse Home/library, onboarding, media, Caught and achievement-earned surfaces still require their own review. No new art, game-save parsing or account semantics are claimed. Device frames can be inspected remotely, but owner comfort at handheld viewing distance and quantitative frame pacing/power profiling remain physical follow-ups. No sleep test is part of this increment.
+
+## Follow-up: rounded tabs and integrated Continue
+
+The owner's next review asks for softer corners, equal-width tabs meeting the title and right edge, larger playful lettering, a narrower Start menu, a compact unfolding Continue with a fitted diagonal yellow inset, card-wide translucent screenshots and no outer battery plate. [Geometry and motion](DESIGN_LANGUAGE.md#rounded-chassis-refinements--2026-09-13) and [font provenance/license](../assets/fonts/README.md) record the final treatment.
+
+Validation: Windows native build and six rendered SDL/persistence scenarios passed (98.45 s). Subsequent card/battery/keyboard changes passed both persistence-process and general rendered scenarios (41.89 s); the final inset/Home corner passed the general rendered SDL scenario again (17.64 s). ARM64 production was rebuilt and installed with source/byte verification and a previous-binary/SQLite backup; schema 6 and 686 Adventure rows were preserved. This follow-up did not rerun the earlier full ARM suite. Font bytes were verified against the recorded upstream SHA-256; the license is embedded alongside the font.
+
+On Flip, InputPlumber events exercised every primary page, text entry, service panels, Start and mode confirmation/Back. Final frames were visually reviewed for the title/Home join in both tab states, the rightmost label, the fitted yellow inset, screenshot-backed cards and battery. Independent timed Y cycles captured partial width expansion, initial upward movement and the fully opened state; interrupting close with Y reopened correctly and B returned to closed Home. Reduced Motion was off, as changed by the owner; existing host scenarios retain its immediate-geometry check.
+
+Visual assessment: the equal tabs and rounded display face give a softer, more consistent upper hierarchy; all tab and long menu labels fit. The yellow insert follows the drawer contour with a visible body margin, and the 18% screenshot layer leaves World/title/save text legible on the inspected real saves. These are inspected frames and interaction checks, not a frame-pacing benchmark or a guarantee for every possible user screenshot. Captures and operational reports remain private and outside Git.

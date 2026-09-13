@@ -105,6 +105,8 @@ Confirmed behavior:
 
 The visible closed control is attached to the bottom-left frame, with a diagonally cut right edge. Opening expands its width before the panel rises; closing retracts it before narrowing. Its motion stays entirely within the 16:9 screen.
 
+The 2026-09-13 refinement seats a yellow Y / Continue inset, with a matching diagonal, inside a compact continuation of the chassis. Saved-moment screenshots fill their card faces as faint backgrounds beneath the World, title and save metadata; they add no new focus target. A still selects for Home without launching. Reduced Motion completes the same geometry immediately; normal unfolding can be interrupted or reversed.
+
 ### Continue card hierarchy
 
 Preferred compact card hierarchy:

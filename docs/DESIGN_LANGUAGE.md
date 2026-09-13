@@ -12,6 +12,14 @@ The further owner refinement enlarges the TRAINER / OS title from 17 to 22 units
 
 Verification: the six existing rendered SDL/persistence scenarios passed on Windows/UCRT64 and native ARM64 on Flip (6/6 each), covering 960×540, 1920×1080, letterboxing, focus, menus/text entry, themes and restart. The production build was installed with a previous-binary/database backup and byte verification. InputPlumber controller events exercised all five pages, Start/Back and Continue on the running Flip; Gamescope captures were inspected. This does not close the separate header/pattern/status/content-polish work or U12's performance/calibration tasks.
 
+## Rounded chassis refinements — 2026-09-13
+
+The next owner review softens the exposed diagonal corners while retaining the organizer silhouette and the active tab's extra overhang. Five equal 147.4-unit tabs, spaced by 4 units, fill the upper edge from the 206-unit title extension to the right perimeter. Home meets the title side directly, closing the former notch. The title reads **TRAINER OS**, without a slash. Bundled [Fredoka](../assets/fonts/README.md) provides rounded display lettering: 24 units for the title and 19 for tabs; ordinary content keeps the UI font.
+
+Continue's closed body is 292 units wide and reaches the left sidewall. Its yellow label inset follows the outer diagonal, with softened corners and a molded Y hint, seated inside the chassis rather than mounted as a separate rectangular button. Its lower edge joins the footer; its upper diagonal has softened transitions, as does the keyboard tray. Normal opening expands width for 180 ms and then rises for 220 ms; closing lowers then narrows, with interruptible animation. Reduced Motion still completes geometry immediately. The owner has switched Reduced Motion off on Flip to see this behavior. Each saved-moment card uses its screenshot as a cropped, 18%-opacity background across the card face beneath readable text; missing previews retain quiet original geometry. Battery icon/percentage/charging and critical cues sit directly on the lower body, without an outer gauge plate.
+
+Start's right-mounted body narrows from 480 to 376 units. Notice text and confirmation controls adapt to that width; menu order, modal focus and Back remain unchanged. Acceptance: inspect both active/inactive Home-to-title joins, every tab label, the rightmost edge, both Continue states and intermediate/reversed motion, long menu labels and confirmations, battery states, palettes and handheld scaling. All changes preserve the continuous frame and fixed A/Y/L1/R1 behavior.
+
 ## Shared visual pass — 2026-09-13
 
 The owner requested the available visual work together, including the deeper tab overhang above. Issues #22/#23/#33 now share these primitives:

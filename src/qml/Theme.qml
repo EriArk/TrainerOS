@@ -4,6 +4,8 @@ import QtQuick
 QtObject {
     property string themeId: "turquoise"
     property bool reducedMotion: false
+    readonly property FontLoader displayTypeface: FontLoader { source: "qrc:/fonts/Fredoka.ttf" }
+    readonly property string displayFamily: displayTypeface.name
     readonly property var palettes: ({turquoise: ["#297e79", "#175755", "#103e43", "#76b3a4"],
         red: ["#984b51", "#713b45", "#432a37", "#cb9293"], green: ["#497c52", "#345b40", "#203d32", "#92b287"],
         blue: ["#3d739d", "#305477", "#233b53", "#87b2ca"], orange: ["#976038", "#72472d", "#49372b", "#c9a375"]})
@@ -32,6 +34,8 @@ QtObject {
     readonly property int activeTabOverlap: 14
     readonly property int brandWidth: 206
     readonly property int brandBevel: 18
+    readonly property int tabSpacing: 4
+    readonly property real tabWidth: (viewportWidth - brandWidth - 1 - 4 * tabSpacing) / 5
     readonly property int panelInset: 10
     readonly property int contentTopInset: tabBevel + activeTabOverlap + panelInset
     readonly property int footerHeight: 37

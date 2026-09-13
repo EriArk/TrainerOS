@@ -13,7 +13,7 @@ Item {
     // This module grows directly out of the right chassis edge.
     Rectangle {
         anchors { top: parent.top; right: parent.right; bottom: parent.bottom }
-        width: 480; color: Theme.chassis
+        width: 376; color: Theme.chassis
         Panel {
             anchors.fill: parent; anchors.margins: 8
             PageHeader {
@@ -43,19 +43,20 @@ Item {
                 }
             }
             Text {
-                x: 28; y: 88; width: 390; visible: root.shell.notice.length > 0
-                text: root.shell.notice; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 21; lineHeight: 1.25
+                x: 28; y: 88; width: parent.width - 56; visible: root.shell.notice.length > 0
+                height: parent.height - y - 95
+                text: root.shell.notice; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 19; lineHeight: 1.2
             }
             MountedPanel {
                 anchors { bottom: parent.bottom; left: parent.left; right: parent.right; margins: 9 }
                 height: 74; color: "#ccdcd0"; visible: root.shell.notice.length > 0
                 CapButton {
                     objectName: "notice-close"
-                    x: 20; y: 15; width: 180; height: 42; label: root.shell.modeConfirmation ? "A   Continue" : "A   Got it"
+                    x: 18; y: 15; width: 160; height: 42; label: root.shell.modeConfirmation ? "A   Continue" : "A   Got it"
                     selected: root.shell.notice.length > 0
                     onActivated: root.shell.activate(0)
                 }
-                Text { x: 222; y: 27; text: "B   Cancel"; visible: root.shell.modeConfirmation; color: Theme.ink; font.pixelSize: 17 }
+                Text { x: 197; y: 27; text: "B   Cancel"; visible: root.shell.modeConfirmation; color: Theme.ink; font.pixelSize: 17 }
             }
         }
     }

@@ -4,51 +4,99 @@ import QtQuick.Shapes
 Item {
     id: root
     required property var shell
-    property real expandedWidth: 932
+    property real expandedWidth: Theme.viewportWidth - Theme.screenBounds.x
+    readonly property real closedWidth: 292
     readonly property bool expanded: shell.drawerOpen
-    width: 338; height: 53
+    width: closedWidth; height: 53
     onExpandedChanged: {
         opening.stop(); closing.stop();
         if (expanded) opening.start(); else closing.start();
     }
     SequentialAnimation {
         id: opening
-        NumberAnimation { target: root; property: "width"; to: root.expandedWidth; duration: Theme.motion(130); easing.type: Easing.OutCubic }
-        NumberAnimation { target: root; property: "height"; to: 229; duration: Theme.motion(180); easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "width"; to: root.expandedWidth; duration: Theme.motion(180); easing.type: Easing.InOutCubic }
+        NumberAnimation { target: root; property: "height"; to: 229; duration: Theme.motion(220); easing.type: Easing.OutCubic }
     }
     SequentialAnimation {
         id: closing
-        NumberAnimation { target: root; property: "height"; to: 53; duration: Theme.motion(140); easing.type: Easing.InCubic }
-        NumberAnimation { target: root; property: "width"; to: 338; duration: Theme.motion(130); easing.type: Easing.OutCubic }
+        NumberAnimation { target: root; property: "height"; to: 53; duration: Theme.motion(170); easing.type: Easing.InOutCubic }
+        NumberAnimation { target: root; property: "width"; to: root.closedWidth; duration: Theme.motion(160); easing.type: Easing.OutCubic }
     }
     Shape {
         anchors.fill: parent
         ShapePath {
-            // The bottom is open; the drawer grows from the same body material.
-            strokeColor: Theme.rim; strokeWidth: 2
+            // Fill joins both the sidewall and footer; neither gets a seam.
+            strokeColor: "transparent"
             fillGradient: LinearGradient {
                 x1: 0; y1: -root.y; x2: 0; y2: Theme.viewportHeight - root.y
                 GradientStop { position: 0; color: Theme.chassisTop }
                 GradientStop { position: 1; color: Theme.chassis }
             }
-            startX: 0; startY: root.height
-            PathLine { x: 0; y: 9 }
-            PathQuad { x: 9; y: 0; controlX: 0; controlY: 0 }
-            PathLine { x: root.width - 36; y: 0 }
-            PathLine { x: root.width; y: 37 }
+            startX: 1; startY: root.height
+            PathLine { x: 1; y: -6 }
+            PathLine { x: Theme.screenBounds.x; y: -6 }
+            PathQuad { x: Theme.screenBounds.x + 6; y: 0; controlX: Theme.screenBounds.x; controlY: 0 }
+            PathLine { x: root.width - 39; y: 0 }
+            PathQuad { x: root.width - 32; y: 3; controlX: root.width - 36; controlY: 0 }
+            PathLine { x: root.width - 3; y: 32 }
+            PathQuad { x: root.width; y: 39; controlX: root.width; controlY: 35 }
             PathLine { x: root.width; y: root.height }
         }
+        ShapePath {
+            strokeColor: Theme.rim; strokeWidth: 2; fillColor: "transparent"
+            startX: Theme.screenBounds.x; startY: -6
+            PathQuad { x: Theme.screenBounds.x + 6; y: 0; controlX: Theme.screenBounds.x; controlY: 0 }
+            PathLine { x: root.width - 39; y: 0 }
+            PathQuad { x: root.width - 32; y: 3; controlX: root.width - 36; controlY: 0 }
+            PathLine { x: root.width - 3; y: 32 }
+            PathQuad { x: root.width; y: 39; controlX: root.width; controlY: 35 }
+            PathLine { x: root.width; y: root.height - 5 }
+        }
     }
-    CapButton {
+    Item {
+        id: toggle
         objectName: "continue-toggle"
-        x: 12; y: 8; width: 284; height: 36
-        label: "Y   Continue Adventure"; textSize: 17
-        selected: false // Y is a fixed page action, never an A-selectable stop.
-        onActivated: root.shell.activate(1, "continue")
+        width: root.closedWidth; height: 53
+        Accessible.role: Accessible.Button; Accessible.name: "Y Continue Adventure"
+        // An inset follows the outer slope instead of a rectangular cap
+        // floating on top of it. It stays seated while the body unfolds.
+        Shape {
+            anchors.fill: parent
+            ShapePath {
+                strokeColor: "#966c28"; strokeWidth: 1
+                fillGradient: LinearGradient {
+                    x1: 0; y1: 8; x2: 0; y2: 46
+                    GradientStop { position: 0; color: Qt.lighter(Theme.yellow, 1.2) }
+                    GradientStop { position: 1; color: Theme.yellow }
+                }
+                startX: 18; startY: 8
+                PathLine { x: toggle.width - 44; y: 8 }
+                PathQuad { x: toggle.width - 37; y: 11; controlX: toggle.width - 40; controlY: 8 }
+                PathLine { x: toggle.width - 14; y: 34 }
+                PathQuad { x: toggle.width - 11; y: 41; controlX: toggle.width - 11; controlY: 37 }
+                PathQuad { x: toggle.width - 16; y: 46; controlX: toggle.width - 11; controlY: 46 }
+                PathLine { x: 18; y: 46 }
+                PathQuad { x: 12; y: 40; controlX: 12; controlY: 46 }
+                PathLine { x: 12; y: 14 }
+                PathQuad { x: 18; y: 8; controlX: 12; controlY: 8 }
+            }
+            ShapePath {
+                strokeColor: "#fff0b5"; strokeWidth: 1; fillColor: "transparent"
+                startX: 16; startY: 37
+                PathLine { x: 16; y: 16 }
+                PathQuad { x: 20; y: 12; controlX: 16; controlY: 12 }
+                PathLine { x: toggle.width - 45; y: 12 }
+            }
+        }
+        Hint { x: 23; y: 15; button: "Y"; label: ""; tint: Qt.lighter(Theme.yellow, 1.2) }
+        Text { x: 58; y: 16; text: "Continue Adventure"; color: "#fff0b5"; font.pixelSize: 17; font.weight: Font.DemiBold }
+        Text { x: 58; y: 15; text: "Continue Adventure"; color: Theme.ink; font.pixelSize: 17; font.weight: Font.DemiBold }
+        MouseArea { anchors.fill: parent; onClicked: root.shell.activate(1, "continue") }
     }
     Text {
-        x: 330; y: 18; text: root.shell.sampleLibrary ? "CHOOSE FOR HOME · SAMPLE DATA" : "CHOOSE FOR HOME · START FROM THE BIG BUTTON"; color: "#d2e8d9"; font.pixelSize: 12
-        visible: root.expanded && root.width > 700
+        x: 306; y: 18; text: root.shell.sampleLibrary ? "CHOOSE FOR HOME · SAMPLE DATA" : "CHOOSE FOR HOME · START FROM THE BIG BUTTON"; color: "#d2e8d9"; font.pixelSize: 12
+        opacity: root.expanded && root.width > 700 ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: Theme.motion(100) } }
     }
     Item {
         x: 14; y: 58; width: root.width - 28; height: Math.max(0, root.height - 64); clip: true
@@ -84,21 +132,26 @@ Item {
                         tint: [Theme.green, Theme.blue, Theme.pink][index % 3]
                         selected: root.expanded && !root.shell.menuOpen && root.shell.notice.length === 0 && root.shell.focusIndex === index
                         onActivated: root.shell.activate(index)
-                        Rectangle {
-                            x: 8; y: 7; width: parent.width - 16; height: 60; radius: 6
-                            color: Qt.darker(parent.tint, 1.5); clip: true
+                        Item {
+                            x: 5; y: 5; width: parent.width - 10; height: parent.height - 10; clip: true
+                            Image {
+                                objectName: "resume-background-" + index
+                                anchors.fill: parent; source: modelData.preview
+                                fillMode: Image.PreserveAspectCrop; opacity: 0.18
+                                sourceSize: Qt.size(640, 400)
+                            }
                             Repeater {
                                 model: modelData.preview.length ? 0 : 4
                                 delegate: Rectangle {
                                     required property int index
                                     x: 110 + index * 34; y: 16 + index * 8; width: 85; height: 85
-                                    radius: 25; rotation: 45; color: "#60e4edd5"
+                                    radius: 25; rotation: 45; color: "#35fffef9"
                                 }
                             }
-                            Image { x: parent.width - 96; width: 96; height: parent.height; source: modelData.preview; fillMode: Image.PreserveAspectFit }
-                            Text { x: 12; y: 10; width: parent.width - (modelData.preview.length ? 120 : 24); elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.world; color: "#fffef9"; font.pixelSize: 18; font.bold: true }
-                            Text { x: 12; y: 35; text: modelData.previewLabel; color: "#f4f5ec"; font.pixelSize: 11 }
                         }
+                        Text { x: 12; y: 13; width: parent.width - 24; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.world; color: Theme.ink; font.pixelSize: 18; font.bold: true }
+                        Text { x: 12; y: 38; text: modelData.previewLabel; color: Theme.muted; font.pixelSize: 11 }
+                        Rectangle { x: 12; y: 62; width: parent.width - 24; height: 1; color: "#40718b79" }
                         Column {
                             x: 12; y: 75; width: parent.width - 24; spacing: 4
                             Text { width: parent.width; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.title; color: Theme.ink; font.pixelSize: 17; font.bold: true }

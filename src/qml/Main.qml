@@ -41,13 +41,13 @@ Window {
             z: 1
             Text {
                 x: 16; width: parent.width - 32; anchors.verticalCenter: parent.verticalCenter
-                text: "TRAINER / OS"; color: "#edf5e9"; font.pixelSize: 22; font.bold: true
-                font.letterSpacing: 0.8
+                text: "TRAINER OS"; color: "#edf5e9"; font.pixelSize: 24; font.weight: Font.DemiBold
+                font.family: Theme.displayFamily; font.letterSpacing: 0.6
             }
         }
         Row {
             objectName: "primary-tabs"
-            x: 212; y: 0; spacing: 6
+            x: Theme.brandWidth; y: 0; spacing: Theme.tabSpacing
             z: 1 // Tabs sit over the panel lip; modal surfaces remain above them.
             Repeater {
                 model: ["Home", "Worlds", "Pokédex", "Trainer", "Hall of Fame"]
@@ -56,39 +56,39 @@ Window {
                     required property int index
                     required property string modelData
                     objectName: "primary-tab-" + index
-                    width: index === 4 ? 156 : 123
+                    width: Theme.tabWidth
                     height: Theme.tabBaseline + (shell.page === index ? Theme.activeTabOverlap : 0)
                     Behavior on height { NumberAnimation { duration: Theme.motion(130); easing.type: Easing.OutCubic } }
+                    function outline(offset) {
+                        const w = width, h = height + offset;
+                        // The first tab meets the title side directly. Other
+                        // lower corners keep a softened organizer-tab bevel.
+                        const left = index === 0 ? " H 4 Q 0 " + h + " 0 " + (h - 4) + " V " + offset
+                            : " H 14 Q 10 " + h + " 7 " + (h - 3)
+                              + " L 3 " + (h - 7) + " Q 0 " + (h - 10) + " 0 " + (h - 14);
+                        return "M 0 " + offset + " H " + w + " V " + (h - 17)
+                            + " Q " + w + " " + (h - 13) + " " + (w - 3) + " " + (h - 10)
+                            + " L " + (w - 10) + " " + (h - 3)
+                            + " Q " + (w - 13) + " " + h + " " + (w - 17) + " " + h + left + " Z";
+                    }
                     Shape {
                         anchors.fill: parent
                         // A narrow contact shadow follows the original lower silhouette.
                         ShapePath {
                             strokeColor: "transparent"
                             fillColor: shell.page === index ? "#50102e2c" : "#30102e2c"
-                            startX: 0; startY: tab.height - 10
-                            PathLine { x: 10; y: tab.height + 3 }
-                            PathLine { x: tab.width - 13; y: tab.height + 3 }
-                            PathLine { x: tab.width; y: tab.height - 10 }
-                            PathLine { x: tab.width; y: tab.height - 13 }
-                            PathLine { x: 0; y: tab.height - 13 }
-                            PathLine { x: 0; y: tab.height - 10 }
+                            PathSvg { path: tab.outline(3) }
                         }
                         ShapePath {
                             strokeColor: Qt.darker(Theme.tabColors[index], 1.65); strokeWidth: 1
                             fillColor: shell.page === index ? Theme.tabColors[index] : Qt.darker(Theme.tabColors[index], 1.18)
-                            startX: 0; startY: 0
-                            PathLine { x: tab.width; y: 0 }
-                            PathLine { x: tab.width; y: tab.height - 13 }
-                            PathLine { x: tab.width - 13; y: tab.height }
-                            PathLine { x: 10; y: tab.height }
-                            PathLine { x: 0; y: tab.height - 10 }
-                            PathLine { x: 0; y: 0 }
+                            PathSvg { path: tab.outline(0) }
                         }
                     }
                     Rectangle { x: 2; y: 1; width: parent.width - 4; height: 2; color: "#90ffffff" }
                     Rectangle { x: 2; y: 3; width: 1; height: parent.height - 17; color: "#55ffffff" }
-                    Text { anchors.centerIn: parent; text: modelData; color: Theme.ink; font.pixelSize: 16; font.weight: Font.DemiBold }
-                    Rectangle { x: 18; y: parent.height - 8; width: parent.width - 36; height: 2; color: "#7a4a24"; visible: shell.page === index }
+                    Text { anchors.centerIn: parent; text: modelData; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 19; font.weight: Font.DemiBold }
+                    Rectangle { x: 18; y: parent.height - 8; width: parent.width - 36; height: 3; radius: 1.5; color: "#7a4a24"; visible: shell.page === index }
                     MouseArea { anchors.fill: parent; onClicked: shell.goToPage(index) }
                 }
             }
@@ -112,7 +112,7 @@ Window {
         ContinueDrawer {
             id: drawer
             objectName: "continue-drawer"
-            x: 14; anchors.bottom: footer.top; shell: shellController
+            x: 0; anchors.bottom: footer.top; shell: shellController
             visible: !shell.serviceOpen && shell.page === 0
         }
         Item {

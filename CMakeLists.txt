@@ -136,6 +136,8 @@ else()
 endif()
 
 qt_add_executable(traineros src/app/Main.cpp)
+qt_add_resources(traineros display_fonts PREFIX "/fonts" BASE assets/fonts
+    FILES assets/fonts/Fredoka.ttf assets/fonts/OFL.txt)
 target_link_libraries(traineros PRIVATE trainer_core Qt6::Quick)
 set_source_files_properties(src/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 file(GLOB trainer_qml_sources CONFIGURE_DEPENDS src/qml/*.qml)

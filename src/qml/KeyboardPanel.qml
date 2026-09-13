@@ -30,8 +30,10 @@ Item {
                 startX: 0; startY: tray.height
                 PathLine { x: 0; y: 12 }
                 PathQuad { x: 12; y: 0; controlX: 0; controlY: 0 }
-                PathLine { x: tray.width - 36; y: 0 }
-                PathLine { x: tray.width; y: 34 }
+                PathLine { x: tray.width - 39; y: 0 }
+                PathQuad { x: tray.width - 32; y: 3; controlX: tray.width - 36; controlY: 0 }
+                PathLine { x: tray.width - 3; y: 29 }
+                PathQuad { x: tray.width; y: 36; controlX: tray.width; controlY: 32 }
                 PathLine { x: tray.width; y: tray.height }
             }
         }

@@ -27,7 +27,9 @@ Rectangle {
             + " V " + (bottom - radius) + " Q " + right + " " + bottom + " " + (right - radius) + " " + bottom
             + " H " + (left + radius) + " Q " + left + " " + bottom + " " + left + " " + (bottom - radius)
             + " V " + (brandBottom + radius) + " Q " + left + " " + brandBottom + " " + (left + radius) + " " + brandBottom
-            + " H " + diagonalLeft + " L " + brandRight + " " + diagonalTop + " Z";
+            + " H " + (diagonalLeft - 3) + " Q " + diagonalLeft + " " + brandBottom + " " + (diagonalLeft + 2) + " " + (brandBottom - 2)
+            + " L " + (brandRight - 2) + " " + (diagonalTop + 2)
+            + " Q " + brandRight + " " + diagonalTop + " " + brandRight + " " + (diagonalTop - 3) + " Z";
     }
 
     Shape {
