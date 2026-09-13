@@ -65,7 +65,15 @@ void startPersistenceSmoke(QQuickWindow* window, ShellController& shell, Session
                 press(next, 3); press(a); press(a); press(a); // Trainer name A.
                 press(down, 3); press(right); press(a); // Apply.
                 check(shell.trainer()->draftName() == "A", "Controller text entry");
-                press(down, 3); press(a); press(previous, 2); // Save, leave while pending to Worlds.
+                press(down, 2); press(a); // Favorite picker.
+                check(shell.trainer()->picker()->entries().size() == 14, "Reference-backed favorite choices");
+                press(down, 6); *stage = 3; break;
+            case 3:
+                check(focusIs("species-eevee"), "Favorite list retains actual controller focus");
+                capture("trainer-favorite-picker"); press(a);
+                check(shell.trainer()->draftFavorite() == "Eevee", "Choice updates only the profile draft");
+                press(down); press(a); press(previous, 2); // Save, leave while pending to Worlds.
+                *stage = 1;
                 break;
             case 1:
                 check(shell.trainer()->profile()["name"].toString() == "A", "Committed Trainer after leaving page");
@@ -87,6 +95,7 @@ void startPersistenceSmoke(QQuickWindow* window, ShellController& shell, Session
             switch ((*stage)++) {
             case 0:
                 check(shell.trainer()->profile()["name"].toString() == "A", "Profile survived process restart");
+                check(shell.trainer()->profile()["favorite"].toString() == "Eevee", "Chosen favorite survived process restart");
                 check(shell.page() == 2 && shell.pokedex()->query() == "A" && focusIs("dex-rail-0"), "Page/search/focus survived restart");
                 check(!shell.menuOpen() && !shell.keyboard()->isOpen(), "No restored transient layers");
                 press(down); press(a);
@@ -101,6 +110,21 @@ void startPersistenceSmoke(QQuickWindow* window, ShellController& shell, Session
                 window->resize(1024, 768); break;
             case 2:
                 capture("restored-world-letterbox");
+                press(next, 2); window->resize(960, 540); break;
+            case 3:
+                check(focusIs("trainer-open"), "Trainer keeps its fixed A action");
+                capture("trainer-overview"); press(a); press(down, 2); press(a);
+                press(SDL_CONTROLLER_BUTTON_X); // Shared keyboard above picker.
+                press(a); press(down, 3); press(right); press(a); // Search A.
+                break;
+            case 4:
+                check(shell.trainer()->picker()->query() == "A", "Controller search returns to picker");
+                capture("trainer-favorite-search"); press(b);
+                check(shell.trainer()->editing() && !shell.trainer()->picker()->isOpen(), "Back returns to profile draft");
+                press(a); press(SDL_CONTROLLER_BUTTON_Y); // Clear only draft favorite.
+                check(shell.trainer()->draftFavorite() == "Not chosen", "Y clears draft choice");
+                press(previous); press(next); // Global page action discards the draft.
+                check(shell.trainer()->profile()["favorite"].toString() == "Eevee" && !shell.trainer()->editing(), "Page change discards unsubmitted favorite");
                 if (finish()) window->close(); // Native window closing also drains browsing state.
                 break;
             }

@@ -4,7 +4,7 @@ Item {
     id: root
     required property var shell
     readonly property var trainer: shell.trainer
-    readonly property bool takesFocus: visible && !shell.menuOpen && shell.notice.length === 0 && !shell.keyboard.open
+    readonly property bool takesFocus: visible && !shell.menuOpen && shell.notice.length === 0 && !shell.keyboard.open && !trainer.picker.open
     Text {
         x: 29; y: 20
         text: root.trainer.editing ? (root.trainer.exists ? "Edit Trainer" : "Create Trainer") : "Trainer"
@@ -31,21 +31,33 @@ Item {
         }
         Text {
             x: 15; y: 296; width: parent.width - 30
-            text: "PROFILE PREVIEW"; horizontalAlignment: Text.AlignHCenter
+            text: root.trainer.editing ? "PROFILE PREVIEW" : "TRAINER CARD"; horizontalAlignment: Text.AlignHCenter
             color: Theme.muted; font.pixelSize: 11; font.letterSpacing: 1
         }
     }
     Column {
-        x: 31; y: 119; spacing: 17
+        x: 31; y: 106; spacing: 9
         visible: !root.trainer.editing
         Text { text: root.trainer.exists ? root.trainer.profile.name : "Ready to begin?"; color: Theme.ink; font.pixelSize: 31; font.weight: Font.DemiBold; width: 510; elide: Text.ElideRight; textFormat: Text.PlainText }
         Text {
             width: 490; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 17
             text: root.trainer.exists ? "Favorite Pokémon · " + root.trainer.profile.favorite : "Choose a name, an emblem and a favorite Pokémon for your Trainer."
         }
-        Text {
-            width: 490; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 14
-            text: sessionState.persistent ? "Local profile · kept on this device." : "Sample profile · kept until you close this preview."
+    }
+    Rectangle {
+        x: 0; y: 200; width: 586; height: 125; color: "#d8e5d8"
+        visible: !root.trainer.editing
+        Grid {
+            x: 30; y: 9; columns: 3; columnSpacing: 10; rowSpacing: 8
+            Repeater {
+                model: root.trainer.overview
+                delegate: Rectangle {
+                    required property var modelData
+                    width: 168; height: 48; radius: 7; color: "#edf2e7"; border.color: "#b7cbbb"
+                    Text { x: 10; y: 3; width: 148; text: modelData.value; color: Theme.ink; font.pixelSize: 20; font.bold: true; elide: Text.ElideRight }
+                    Text { x: 10; y: 29; text: modelData.label; color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 0.5 }
+                }
+            }
         }
     }
     Rectangle {
@@ -57,7 +69,7 @@ Item {
                 model: [
                     {title: "Name", value: root.trainer.draftName || "Choose your name", hint: "A · Open keyboard"},
                     {title: "Emblem", value: root.trainer.draftEmblem, hint: "A · Next emblem"},
-                    {title: "Favorite", value: root.trainer.draftFavorite, hint: "A · Next sample Pokémon"}
+                    {title: "Favorite", value: root.trainer.draftFavorite, hint: "A · Choose from the field guide"}
                 ]
                 delegate: CapButton {
                     required property int index
@@ -77,7 +89,7 @@ Item {
         height: 87; color: "#c6dcca"
         Text {
             x: 31; y: 7; width: parent.width - 62
-            text: root.trainer.saving ? "Saving… You can leave this page; your save will finish." : root.trainer.error.length ? root.trainer.error : root.trainer.editing ? "Save keeps your profile. B discards changes before Save." : "Your identity, your next Adventure."
+            text: root.trainer.saving ? "Saving… You can leave this page; your save will finish." : root.trainer.error.length ? root.trainer.error : root.trainer.editing ? "Save keeps your profile. B discards changes before Save." : "Local library · manual journal · time recorded by TrainerOS"
             color: root.trainer.error.length ? "#853b24" : Theme.muted
             font.pixelSize: 12; elide: Text.ElideRight
         }
@@ -95,5 +107,10 @@ Item {
             selected: root.trainer.editing && root.takesFocus && root.trainer.focusIndex === 4
             onActivated: root.shell.activate(4)
         }
+    }
+    SpeciesPickerPanel {
+        anchors.fill: parent; visible: root.trainer.picker.open
+        picker: root.trainer.picker
+        takesFocus: visible && !root.shell.menuOpen && !root.shell.keyboard.open && root.shell.notice.length === 0
     }
 }

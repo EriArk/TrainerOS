@@ -123,10 +123,13 @@ private slots:
     void profileCreateEditAndCancel() {
         MockTrainerRepository repository;
         TrainerController trainer(repository);
+        MockPokedexRepository guide;
+        trainer.picker()->setReference(&guide);
         QVERIFY(!trainer.exists());
         trainer.beginEdit();
         trainer.setDraftName("  ERI 2  ");
         trainer.activate(1); trainer.activate(2);
+        trainer.picker()->applySearch("Treecko"); trainer.dispatch(Action::Confirm);
         QVERIFY(!repository.load());
         trainer.activate(3);
         QVERIFY(trainer.exists());
@@ -138,7 +141,8 @@ private slots:
         QVERIFY(!saved.id.isEmpty());
         QVERIFY(saved.createdAt.isValid());
         trainer.beginEdit();
-        trainer.setDraftName("DISCARD"); trainer.activate(1); trainer.activate(2); trainer.activate(4);
+        trainer.setDraftName("DISCARD"); trainer.activate(1); trainer.activate(2);
+        trainer.dispatch(Action::Back); trainer.activate(4);
         QCOMPARE(repository.load()->name, saved.name);
         QCOMPARE(repository.load()->emblemId, saved.emblemId);
         QCOMPARE(repository.load()->favoritePokemonId, saved.favoritePokemonId);

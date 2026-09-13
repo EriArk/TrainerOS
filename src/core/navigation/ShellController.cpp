@@ -13,6 +13,10 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
       libraryManager_(repo, nullptr, this), settings_(this), diagnostics_(this) {
     hall_.editor()->setLibrary(&repo);
+    trainer_.configure(&repo, &dexReference, &dexProgress, &archive);
+    connect(trainer_.picker(), &SpeciesPicker::searchRequested, this, [this](const QString& initial) {
+        textTarget_ = TextTarget::TrainerFavorite; keyboard_.begin("Find your favorite · name / number", initial, 48);
+    });
     connect(pokedex_.journal(), &PokedexJournalEditor::noteRequested, this, [this](const QString& initial) {
         textTarget_=TextTarget::PokedexNote;keyboard_.begin("Your field note · optional",initial,160);
     });
@@ -78,6 +82,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::Library) libraryManager_.applyText(text);
         else if (target == TextTarget::Archive) hall_.editor()->applyText(text);
         else if (target == TextTarget::PokedexNote) pokedex_.journal()->applyNote(text);
+        else if (target == TextTarget::TrainerFavorite) trainer_.picker()->applySearch(text);
     });
     refreshContinue();
 }
@@ -86,6 +91,7 @@ void ShellController::configureServices(FileCatalog* files, PreferencesRepositor
 }
 void ShellController::refreshLibrary() {
     worlds_.refresh(); libraryManager_.refresh();
+    if (page_ == 3) trainer_.refreshOverview();
     const QString selected = drawerFocus_ < points_.size() ? points_[drawerFocus_].id : QString();
     refreshContinue();
     drawerFocus_ = 0;
@@ -244,6 +250,7 @@ void ShellController::goToPage(int page) {
     trainer_.cancel();
     libraryManager_.close(); service_.clear();
     page_ = std::clamp(page, 0, 4); // No wrapping until physical-device testing.
+    if (page_ == 3) trainer_.refreshOverview();
     drawerOpen_ = false;
     menuOpen_ = false;
     notice_.clear();

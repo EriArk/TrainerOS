@@ -423,7 +423,8 @@ int main(int argc, char* argv[]) {
                         check(!shell.keyboard()->isOpen() && focusIs("trainer-field-0"), "Apply restores Name control");
                         check(shell.trainer()->draftName() == "ERI 2" && !profiles.load(), "Apply changes draft only");
                         press(down); press(a); // leaf
-                        press(down); press(a); // Treecko
+                        press(down); press(a); // Open favorite picker.
+                        press(right); taps(down, 2); press(a); // Treecko in the reference list.
                         capture("trainer-edit");
                         press(down); press(a); // Save
                         break;

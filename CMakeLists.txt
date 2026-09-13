@@ -81,6 +81,10 @@ add_library(trainer_core STATIC
     src/features/pokedex/PokedexController.cpp
     src/features/pokedex/PokedexJournalEditor.h
     src/features/pokedex/PokedexJournalEditor.cpp
+    src/features/pokedex/SpeciesPicker.h
+    src/features/pokedex/SpeciesPicker.cpp
+    src/features/trainer/TrainerOverview.h
+    src/features/trainer/TrainerOverview.cpp
     src/features/trainer/TrainerController.cpp
     src/features/trainer/TrainerController.h
     src/features/worlds/WorldsController.cpp
@@ -138,9 +142,13 @@ qt_add_qml_module(traineros
         src/qml/WorldsPage.qml
         src/qml/PokedexPage.qml
         src/qml/PokedexJournalPanel.qml
+        src/qml/SpeciesPickerPanel.qml
 )
 
 if(BUILD_TESTING)
+    qt_add_executable(trainer_overview_tests tests/TrainerOverviewTests.cpp)
+    target_link_libraries(trainer_overview_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME trainer_overview COMMAND trainer_overview_tests)
     qt_add_executable(trainer_offline_pokedex_tests tests/OfflinePokedexTests.cpp)
     target_link_libraries(trainer_offline_pokedex_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME offline_pokedex COMMAND trainer_offline_pokedex_tests)

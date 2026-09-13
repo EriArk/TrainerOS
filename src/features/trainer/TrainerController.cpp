@@ -6,14 +6,46 @@
 namespace trainer {
 namespace {
 const QStringList emblems{"compass", "leaf", "spark"};
-// Text-only sample choices. A replaceable reference source follows with Pokédex.
-const QStringList favorites{"", "treecko", "eevee", "pikachu"};
 }
 TrainerController::TrainerController(TrainerRepository& repository, QObject* parent)
-    : QObject(parent), repository_(repository), profile_(repository.load()) {}
-QString TrainerController::favoriteLabel(const QString& id) {
+    : QObject(parent), repository_(repository), picker_(this), profile_(repository.load()) {
+    connect(&picker_, &SpeciesPicker::changed, this, &TrainerController::changed);
+    connect(&picker_, &SpeciesPicker::selected, this, [this](const QString& id) {
+        if (!editing_ || saving_) return;
+        draft_.favoritePokemonId = id; error_.clear(); emit changed();
+    });
+}
+void TrainerController::configure(LibraryRepository* library, PokedexReferenceProvider* reference,
+        PokedexProgressRepository* journal, HallOfFameRepository* archive) {
+    library_ = library; reference_ = reference; journal_ = journal; archive_ = archive;
+    picker_.setReference(reference);
+}
+void TrainerController::refreshOverview() {
+    if (!library_ || !reference_ || !journal_ || !archive_) return;
+    const auto reference = reference_->load();
+    if (reference.success) {
+        names_.clear();
+        for (const auto& entry : reference.entries) names_.insert(entry.id, entry.name);
+    }
+    overview_ = trainerOverview(*library_, reference, *journal_, *archive_);
+    emit changed();
+}
+QVariantList TrainerController::overview() const {
+    const auto count = [](const std::optional<int>& value) { return value ? QString::number(*value) : QString("—"); };
+    const auto seconds = overview_.recordedSeconds;
+    const QString time = !seconds ? "—" : *seconds < 60 ? "< 1 min"
+        : *seconds < 3600 ? QString::number(*seconds / 60) + " min"
+        : QString("%1 h %2 m").arg(*seconds / 3600).arg((*seconds % 3600) / 60);
+    return {QVariantMap{{"label", "ADVENTURES"}, {"value", QString::number(overview_.adventures)}},
+        QVariantMap{{"label", "WORLDS"}, {"value", QString::number(overview_.worlds)}},
+        QVariantMap{{"label", "SEEN / CAUGHT"}, {"value", count(overview_.seen) + " / " + count(overview_.caught)}},
+        QVariantMap{{"label", "FAVORITE MARKS"}, {"value", count(overview_.favorites)}},
+        QVariantMap{{"label", "MEMORIES"}, {"value", count(overview_.memories)}},
+        QVariantMap{{"label", "RECORDED TIME"}, {"value", time}}};
+}
+QString TrainerController::favoriteLabel(const QString& id) const {
     if (id.isEmpty()) return "Not chosen";
-    return id.left(1).toUpper() + id.mid(1);
+    return names_.value(id, id.left(1).toUpper() + id.mid(1));
 }
 QVariantMap TrainerController::profile() const {
     const TrainerProfile current = profile_.value_or(TrainerProfile{});
@@ -33,6 +65,7 @@ void TrainerController::beginEdit() {
     emit changed();
 }
 void TrainerController::cancel() {
+    picker_.cancel();
     if (!editing_) return;
     editing_ = false;
     draft_ = {};
@@ -78,13 +111,14 @@ void TrainerController::reload() {
     emit changed();
 }
 void TrainerController::activate(int index) {
+    if (picker_.isOpen()) { picker_.activate(index); return; }
     if (editing_ && index == 4) { cancel(); return; }
     if (!editing_ || saving_ || index < 0 || index > 4) return;
     focus_ = index;
     switch (index) {
     case 0: emit nameRequested(draft_.name); break;
     case 1: draft_.emblemId = emblems[(emblems.indexOf(draft_.emblemId) + 1) % emblems.size()]; break;
-    case 2: draft_.favoritePokemonId = favorites[(favorites.indexOf(draft_.favoritePokemonId) + 1) % favorites.size()]; break;
+    case 2: picker_.begin(draft_.favoritePokemonId); break;
     case 3: save(); break;
     case 4: cancel(); return;
     }
@@ -92,6 +126,7 @@ void TrainerController::activate(int index) {
 }
 void TrainerController::dispatch(Action action) {
     if (!editing_) return;
+    if (picker_.isOpen()) { picker_.dispatch(action); return; }
     if (action == Action::Back) { cancel(); return; }
     if (action == Action::Confirm) { activate(focus_); return; }
     if (action == Action::Up) focus_ = focus_ >= 3 ? 2 : std::max(0, focus_ - 1);
