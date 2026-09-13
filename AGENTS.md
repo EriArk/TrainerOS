@@ -50,11 +50,12 @@ Current platform direction:
 - **ArmadaOS is the system base.**
 - **TrainerOS is a native Linux graphical shell/session on top of ArmadaOS.**
 - **KDE Plasma remains installed and available as maintenance/recovery desktop mode.**
-- **Steam Gaming Mode remains available alongside TrainerOS and KDE Plasma.** TrainerOS is intended to become the main/default choice after device validation, not to remove either existing mode.
+- **Preserve a verified Plasma maintenance/recovery environment.** The owner's 2026-09-13 clarification prefers Plasma Mobile only, if it can replace ordinary Plasma Desktop on Flip. Validate Mobile and rollback first; preserve shared KDE dependencies.
+- **Steam retention is transitional.** Accepted issue [#11](https://github.com/EriArk/TrainerOS/issues/11) changes the target to reversible Steam Gaming Mode removal. Keep current working sessions until the reviewed migration and physical restore gates in [ARMADA_PLATFORM.md](docs/ARMADA_PLATFORM.md#planned-session-consolidation--2026-09-13) pass. This supersedes the earlier permanent three-mode requirement; it does not authorize blind package deletion.
 - The first prototype must run safely as a normal full-screen application before TrainerOS is made the default session.
 - Once crash/recovery behavior is proven, production mode should boot/login into the TrainerOS session by default.
 - Exiting supported Adventures should return to TrainerOS.
-- Do not remove Plasma merely to create the illusion of a dedicated device.
+- Never remove the last verified Plasma maintenance/recovery path merely to create the illusion of a dedicated device. Ordinary Desktop may be retired only after the accepted Mobile replacement is proven.
 - Do not fork/rebuild ArmadaOS or create a custom image until the normal-package/session approach has been proven insufficient.
 
 If current ArmadaOS internals differ from assumptions in these docs, adapt the platform integration layer and update the docs. Do not leak distro/session-specific quirks upward into feature code.
@@ -71,6 +72,7 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 - Continue uses small recent session/save-state cards, ideally with screenshots and metadata.
 - Selecting a Continue card with A chooses the Adventure shown on Home; it never launches. Home has a large physical-style action button that launches/resumes the selected Adventure. The explicit Home choice persists; latest launch is the default before a choice is made (2026-09-11 clarification).
 - RetroAchievements achievements belong inside Hall of Fame, alongside the completed-Adventure archive, not on a separate primary page.
+- The accepted next-module plan is in [ROADMAP.md](docs/ROADMAP.md): global RA account ownership belongs in Settings, Adventure media and Pokédex art have separate identities, and manual Caught marks must not fabricate individual Pokémon. These are planned extensions, not claims that they are already implemented.
 - Normal use must work entirely with physical controls.
 - Settings/service features should not consume a primary L1/R1 page without an intentional product change.
 - Desktop/maintenance access must be explicit.

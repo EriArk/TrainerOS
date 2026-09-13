@@ -4,11 +4,11 @@ TrainerOS is a controller-first **Linux handheld shell/session** for a Pokémon-
 
 The initial target is a **Retroid Flip-class device running ArmadaOS**. TrainerOS is software-only: no physical modification of the handheld is required.
 
-> Status: native C++20 / Qt Quick shell with a persistent personal library, a [Worlds collection checklist](docs/COLLECTION_CATALOGUE.md), platform badges and controller file attachment. The owner has confirmed controller navigation, profile creation and real Adventure launch on Flip 2. The [RetroArch adapter](docs/RETROARCH_ADAPTER.md) prepares supported files and restores the shell on return. Fresh installations show missing catalogue editions without inventing ownership or progress; `--ephemeral` retains the sample experience. A [dedicated ArmadaOS session](docs/SESSION_PROTOTYPE.md) now provides controller mode changes and verified crash recovery while retaining Steam and Plasma. Additional integrations and automatic game progress remain ahead. See [development instructions](docs/DEVELOPMENT.md).
+> Status: native C++20 / Qt Quick shell installed as the main Flip 2 session, with a persistent [Worlds collection](docs/COLLECTION_CATALOGUE.md), controller file attachment and verified launch/return through RetroArch and selected [standalone adapters](docs/STANDALONE_ADAPTERS.md). The owner has confirmed physical navigation, profile creation and Adventure launch. Fresh installations show missing catalogue editions without invented ownership/progress; `--ephemeral` retains the sample experience. [Session recovery](docs/SESSION_PROTOTYPE.md) is exercised; sleep remains disabled. The [current roadmap](docs/ROADMAP.md) separates delivered features from the next modules and platform changes.
 
 Start → Controller provides live input/display checks and a local diagnostic report for the first handheld run. These software observations help validate the actual device; they do not certify its physical mapping or ArmadaOS session behavior. See [device diagnostics](docs/DEVICE_DIAGNOSTICS.md).
 
-The current build also includes verified [GBA saved-moment resume](docs/RETROARCH_RESUME.md), a personal [Hall of Fame archive](docs/HALL_OF_FAME.md), the [offline Pokédex and manual field journal](docs/POKEDEX.md), a [local Trainer overview](docs/TRAINER_OVERVIEW.md), and [Pokémon Center save backups](docs/SAVE_BACKUPS.md). These have been exercised with controller input on Flip 2. Live RetroAchievements account data and additional save adapters remain separate integration steps.
+The current build also includes verified [GBA saved-moment resume](docs/RETROARCH_RESUME.md), a personal [Hall of Fame archive](docs/HALL_OF_FAME.md), the [offline Pokédex and manual field journal](docs/POKEDEX.md), a [local Trainer overview](docs/TRAINER_OVERVIEW.md), and [Pokémon Center save backups](docs/SAVE_BACKUPS.md). These have been exercised with controller input on Flip 2. [English FireRed/Emerald save progress](docs/GAME_PROGRESS.md) now supplies Home's badge crystals and National Dex counts. A real [RetroAchievements account/read provider](docs/RETROACHIEVEMENTS.md) exists; global account management and verified emulator earning are the next integration step, not proof of current-save progress.
 
 A read-only [battery gauge](docs/POWER_STATUS.md) shows the handheld's charge in the fixed lower panel.
 
@@ -26,9 +26,9 @@ The underlying Linux desktop should not appear during normal use.
 
 TrainerOS uses **ArmadaOS as the system base** instead of rebuilding the low-level handheld Linux stack.
 
-ArmadaOS provides the operating-system foundation, device support, graphics/audio/input stack, packages, and emulator environment. TrainerOS will be the main everyday graphical mode, available alongside Steam Gaming Mode and KDE Plasma. Its exact session integration must be validated on the current ArmadaOS device.
+ArmadaOS provides the operating-system foundation, device support, graphics/audio/input stack, packages, and emulator environment. TrainerOS is the main everyday graphical mode. The accepted target is TrainerOS plus **Plasma Mobile for maintenance**, if validated on Flip; Steam Gaming Mode should be removable with a proven restore path. Current Steam and Plasma Desktop sessions remain available until that migration is verified.
 
-The intended user-facing stack is:
+The current stack is:
 
 ```text
 Retroid hardware
@@ -44,15 +44,16 @@ Retroid hardware
    ├─ Adventure integrations
    │  ├─ RetroArch
    │  ├─ melonDS
-   │  ├─ Azahar
+   │  ├─ Azahar  ← installed runtime; TrainerOS adapter planned
    │  ├─ Dolphin
    │  └─ future adapters
    │
-   ├─ Steam Gaming Mode  ← retained alternative
-   └─ KDE Plasma Desktop  ← explicit desktop / maintenance mode
+   ├─ Steam Gaming Mode  ← retained until reversible removal is proven
+   ├─ KDE Plasma Desktop  ← verified maintenance / recovery
+   └─ KDE Plasma Mobile  ← installed; replacement trial planned
 ```
 
-Steam Gaming Mode and KDE Plasma are **not removed**. Plasma remains a maintenance/desktop mode for Wi-Fi troubleshooting, files, terminal work, package management, and recovery. TrainerOS should make changing mode deliberate rather than part of everyday navigation.
+The 2026-09-13 plan intentionally replaces the former permanent three-mode requirement. Plasma Mobile must prove networking, files, terminal/package tools and recovery before ordinary Desktop is retired. Steam removal must preserve personal data and include a tested restore launcher/CLI. Shared KDE components remain where required. These are planned system changes, not changes made by updating this document. See [session consolidation](docs/ARMADA_PLATFORM.md#planned-session-consolidation--2026-09-13).
 
 TrainerOS is not currently intended to become a Linux distribution of its own. If the project matures, a later deliverable may be a reproducible/custom ArmadaOS image with TrainerOS preconfigured as the default session.
 
@@ -214,7 +215,7 @@ See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Development model
 
-The first build is a **full controller-navigable mock** of the product structure. It proves navigation, information architecture, focus behavior, motion, and overall feel.
+The original first build was a **full controller-navigable mock**. Its foundations now support the real modules above; the mock remains available for isolated UX/testing work.
 
 The mock is **not a final visual design**.
 
@@ -222,7 +223,7 @@ Development proceeds **bottom-up in dependency order**:
 
 **native project skeleton → shared interface/controller skeleton → shared backend and persistence → individual functional modules → validated integrations and optional progress enrichment**
 
-Once the foundations work, modules proceed in order: Worlds/launch/return, Home/Continue, Trainer/Hall of Fame (including RetroAchievements), Pokédex, and Pokémon Center. Additional adapters and game-specific progress parsing follow when their prerequisites are ready. Only verified capabilities become product promises. Visuals may be redesigned at every stage.
+The next queue is collection audit/verified cleanup, shared Adventure media for Worlds/Home, global RA accounts/earning, Pokédex artwork/Caught, verified healing, recoverable session consolidation and careful removal of unnecessary software/background work. Each extends the existing foundation; independent work need not wait on an unrelated blocked device gate. Only verified capabilities become product promises. Visuals may be redesigned at every stage.
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
@@ -240,9 +241,9 @@ See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — foundation and module implementation order
 - [`docs/CODEX_START.md`](docs/CODEX_START.md) — first implementation brief
 
-## First milestone
+## Original first milestone — historical
 
-The first useful build should:
+The bootstrap acceptance below is retained for context; use the roadmap's working baseline and next queue for current work:
 
 1. compile as a native Linux/Qt application
 2. run full-screen in a normal development desktop session and on the target ArmadaOS device

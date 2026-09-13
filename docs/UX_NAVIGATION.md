@@ -4,6 +4,10 @@ Worlds includes the [collection checklist and controller attachment flow](COLLEC
 
 In a World's Adventure list, X searches title/version/platform through the controller keyboard, Y cycles All/Linked/Missing, and left/right jumps eight rows. Up/down chooses adjacent rows. Search and filter are remembered per World; empty results retain the fixed X/Y controls and a focused Back action. These shortcuts yield to open keyboards, menus and service panels; L1/R1 remains global.
 
+The [2026-09-13 roadmap](ROADMAP.md) preserves these page-specific controls and Home's selection-without-launch behavior. Older issue #9's direct-launch rule is superseded by the owner's later clarification; global Continue access remains deferred until its Home-selection semantics and replacement local Y shortcuts are specified. Planned Caught local sections and account/artwork/service screens must fit the current mapping, yield to modal priority and never consume L1/R1. Exact new local shortcuts are selected and controller-tested in their increment, not copied uncritically from conceptual issue mockups.
+
+Planned account entry is shared through Settings → Accounts → RetroAchievements, with Hall opening the same account surface. Pokédex All/Caught/Favorites/Journal are local collections; Caught initially shows manual species-wide assertions. Plasma Mobile is the preferred future Maintenance destination only after its recovery/input trial; see [platform consolidation](ARMADA_PLATFORM.md#planned-session-consolidation--2026-09-13).
+
 ## Goal
 
 TrainerOS must feel native to a handheld controller. Touch may exist as a convenience and mouse/keyboard may exist in development or maintenance mode, but **every normal TrainerOS flow must be fully usable with physical controls**.

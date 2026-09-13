@@ -320,6 +320,8 @@ Badges are individual colored, faceted crystals in a molded collection tray, wit
 
 ## Placeholder asset policy
 
+The accepted [media/artwork queue](ROADMAP.md) adds optional images without replacing this material language. Worlds' selected Adventure panel uses fitted wheel/marquee/boxart with a persistent text title and ownership state. Home's return screenshot is a faint layer beneath the existing ornaments/patterns, light workspace and controls. Neither adds focus stops. Pokédex species/form art uses a separate provider and deliberate missing-art treatment. Check wide/portrait assets, bright/dark screenshots and all themes at both logical/device resolutions; asset presence must not imply progress or playability.
+
 Until final assets exist:
 
 - use original gradients, geometric motifs, generated silhouettes, and text

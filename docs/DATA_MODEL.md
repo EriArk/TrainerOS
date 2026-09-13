@@ -2,7 +2,25 @@
 
 The domain model should use TrainerOS language first and integration terminology second. Linux/ArmadaOS/emulator details belong behind integration and platform boundaries rather than shaping the user-facing model.
 
-The persistent implementation covers personal Worlds/Adventures, the single local Trainer profile, Pokédex favorite marks, shell color/motion preferences and versioned browsing state. SQLite schema, ownership, recovery and migration constraints are documented in [LOCAL_PERSISTENCE.md](LOCAL_PERSISTENCE.md). Only reference region names are seeded; sample Adventures/progress/archive/provider records are not copied into the personal store.
+The persistent implementation covers personal Worlds/Adventures, the local Trainer profile, favorites/manual Pokédex journal, observed play history, manual Hall memories, preferences and versioned browsing state. SQLite schema, recovery and migration constraints are documented in [LOCAL_PERSISTENCE.md](LOCAL_PERSISTENCE.md) and module documents. Reference catalogue data is composed separately; sample personal progress/archive/provider records are not seeded into the personal store.
+
+## Ownership contract — 2026-09-13
+
+This clarification addresses [issue #2](https://github.com/EriArk/TrainerOS/issues/2) before the [next modules](ROADMAP.md). It defines target ownership; the remaining code/storage audit is planned, and no integration-profile schema migration is claimed here. Older suggested fields below are conceptual UI data unless explicitly described as persisted.
+
+| Data | Single owner / composition rule |
+| --- | --- |
+| World identity | Reference/personal World IDs, naming, ordering and relationships. Dynamic badge/Dex/time/completion totals belong in derived WorldProgress, never a second independently writable aggregate on World. |
+| Adventure identity | Personal library record, catalogue/variant link, content reference and World relationships. A new filename or equal ROM hash does not establish a new/same playthrough. |
+| Installation configuration | Adapter installation profile owns executable/runtime, global config and validation. Current registrations select an adapter and hold per-Adventure overrides such as a core; they must not copy device-wide installation config. An explicit integrationProfileId is a possible future reference, not a field already migrated into SQLite. |
+| Trainer identity / totals | Profile owns identity/favorite choice. Recorded time is derived from observed PlaySessions; journal/archive/World totals are read models with source labels. No independently editable copies of the same totals. |
+| Ordinary save progress | External save is the source; GameProgress is a provider/revision-bound observation. Current badges/caught totals do not write manual journal, historical captures or RA unlocks. |
+| Manual Caught | Today's species-wide nullable journal assertion. A Caught collection is its projection; it proves neither a form nor a specific Pokémon, origin or date. |
+| Future individual Pokémon | Separately sourced record with provider/artifact revision and Adventure/save lineage where available. Re-reading/rolling back a save is not a new capture event; observed-at is not caught-at. Manual/provider sources remain distinguishable. |
+| Account achievements | External account-scoped definitions/unlocks and private cache, independent of saves and manual Hall memories. Global account ownership is planned in #12. |
+| Media | Adventure/catalogue/variant artwork and owned return/ResumePoint images use semantic handles; species/form artwork has a separate provider. Neither is content ownership, progress or compatibility evidence. |
+
+Unknown values remain unknown; known zero stays zero. Use explicit repositories/read-model composition, not a generic event-sourcing framework. A ROM cleanup may relink proven content but must not merge PlaySessions, Hall memories, save lineages or ResumePoints merely because files hash identically.
 
 ## World
 
@@ -17,13 +35,8 @@ id
 slug
 name
 sortOrder
-status
 accent/theme key
-lastVisitedAt
-aggregatePlaytime
-badgeProgress
-pokedexSeen
-pokedexCaught
+optional relationships/metadata
 ```
 
 Initial IDs should cover Kanto, Johto, Hoenn, Sinnoh, Unova, Kalos, Alola, Galar, and Paldea.
@@ -37,7 +50,7 @@ COMPLETED
 CHAMPION
 ```
 
-Do not assume all metrics are available automatically; nullable/unknown values are valid.
+Status/metrics are presentation projections; do not persist a second copy beside WorldProgress. The initial C++ World still exposes optional sample status for presentation; the ownership audit must preserve unknown semantics while separating real source data.
 
 ## Adventure
 
@@ -55,13 +68,7 @@ displayName
 editionName
 contentReference
 adapterId
-integrationConfig
-lastPlayedAt
-playtime
-status
-badgeCount
-badgeTotal
-coverOrHeroAsset
+integration profile reference / genuinely Adventure-specific overrides
 ```
 
 `AdventureStatus` can begin as:
@@ -72,7 +79,7 @@ IN_PROGRESS
 COMPLETED
 ```
 
-Platform/system information belongs in integration metadata and should not drive the main UI hierarchy.
+Last-played/time/status/badges and media may be composed into the Adventure view, but their source owners are PlaySession, verified progress/archive providers and the media layer. Platform/system information does not drive the main UI hierarchy. The suggested profile reference above is not an assertion that an explicit integrationProfileId already exists in the implementation.
 
 The native implementation uses stable `id`, primary `worldId`, `additionalWorldIds`, `title`, `adapterId`, `description` and `AdventureKind` (`Original`, `Remake`, `RomHack`). Kind describes an edition; it is not a replacement for region-first grouping. `AdventureRegistration` adds an external `contentPath`, opaque `integrationConfig`, an optimistic `revision` and an optional new World committed atomically with the record. Editing or relocating a file preserves the Adventure ID. Additional World relationships make the same Adventure discoverable under multiple regions; they do not duplicate it. A named custom World supports ROM hacks outside the reference regions.
 
@@ -120,10 +127,9 @@ favoritePokemonId
 featuredPokemonId
 currentAdventureId
 createdAt
-totalPlaytime
 ```
 
-Aggregate metrics should preferably be derived from repositories when cheap/reliable rather than duplicated everywhere.
+Current Adventure is selected navigation/history context; aggregate metrics such as totalPlaytime are derived from their repositories rather than independently writable profile fields.
 
 The initial native profile contains `id`, `name`, `emblemId`, `favoritePokemonId` and `createdAt`. Emblems are original local geometry; favorites currently use a limited text-only sample list. Creation assigns an ID and UTC creation time, while edits preserve both. Profile storage is separate from sample Adventure/progress data. Form and keyboard drafts are transient and must not update the saved profile before Save; in-memory repository lifetime does not satisfy restart persistence.
 

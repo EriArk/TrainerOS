@@ -31,7 +31,7 @@ See `ROADMAP.md` for execution order. Feasibility research is input to later mod
 
 The implemented Armada boundary is documented in [dedicated session integration](SESSION_PROTOTYPE.md). A separate systemd/Gamescope lifecycle owns the compositor, a Linux supervisor preserves orphaned Adventures, and confirmed mode requests drain local persistence before invoking the fixed platform helper. Normal app mode remains available for development and recovery.
 
-TrainerOS's eventual main/default session coexists with the retained Steam Gaming Mode and KDE Plasma. The initial application build performs no session mutation. A platform service owns future mode availability and transitions.
+The installed main/default session currently coexists with Steam and Plasma. The accepted target now prefers Plasma Mobile maintenance and reversible Steam removal; the platform service owns capability changes only after the [migration/recovery gates](ARMADA_PLATFORM.md#planned-session-consolidation--2026-09-13) pass. Ordinary development app mode remains non-mutating.
 
 ### 1. Development / safe app mode
 
@@ -131,6 +131,19 @@ src/
 ```
 
 A single executable is acceptable initially. Separate libraries/modules only when they improve replacement/testing boundaries; avoid architecture ceremony before the UI proof exists.
+
+## Accepted next-module boundaries — planned
+
+The [roadmap](ROADMAP.md) sequences these extensions to the existing modules:
+
+- Adventure media resolves catalogue/edition and personal Adventure identities into revision-bound local handles. Worlds/Home consume it; Continue may share presentation without losing exact ResumePoint provenance. Worker/cache/import mechanics do not belong in QML.
+- Pokédex artwork resolves species/form identities separately from factual reference and Adventure media. Cache utilities may be shared without merging source/identity rules.
+- Caught first composes the manual journal into a personal collection. Later individual observations require provider/source revision and save-lineage semantics; they cannot be inferred from a species boolean or aggregate count.
+- A global RA account service will own identity/token/authentication; the current read provider becomes its consumer. Emulator earning configuration is an adapter capability, separate from fetching account history.
+- Paid healing requires its own verified semantic party/money capability and guarded save transaction; the existing read-only badge provider never becomes an implicit universal save editor.
+- Collection cleanup uses explicit identity/relink/protection rules. Matching ROM bytes do not authorize merging personal histories, saves, states or media ownership.
+
+These are accepted design constraints, not assertions that new services, schemas or migration helpers already exist. Keep the [ownership contract](DATA_MODEL.md#ownership-contract--2026-09-13) authoritative and implement only the boundary required by the active increment.
 
 ## QML / C++ boundary
 
@@ -288,7 +301,7 @@ Capability detection allows graceful degradation:
 
 - `LAUNCH` only → Adventure remains playable
 - resumable point enumeration → Continue drawer becomes richer
-- direct resume → selecting a card loads the exact point
+- direct resume → Home's action button loads the selected exact point; selecting a card alone never launches
 - screenshot support → visual cards
 - metadata support → Home/Trainer/Pokédex enrichment
 
@@ -335,7 +348,7 @@ A resume point can carry:
 - direct-resume availability
 - external source reference
 
-When exact resume is unavailable, the card may still launch the Adventure normally.
+When exact resume is unavailable, selecting the card still chooses Home's Adventure; Home's action button may offer normal launch with explicit fallback semantics.
 
 ## Pokédex providers
 

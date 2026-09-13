@@ -14,7 +14,19 @@ Normal flow:
 
 KDE Plasma exists as explicit Desktop / Maintenance Mode and should not appear during ordinary use.
 
-TrainerOS is intended to become the main launch mode on ArmadaOS alongside the retained Steam Gaming Mode and KDE Plasma. Installing TrainerOS must preserve both existing modes and their recovery paths.
+TrainerOS is the intended main/default mode. The accepted 2026-09-13 issue [#11](https://github.com/EriArk/TrainerOS/issues/11) replaces permanent Steam retention with reversible removal. The owner's subsequent clarification prefers Plasma Mobile as the only maintenance shell if viable on Flip. Existing Steam/Plasma Desktop remain until replacement and recovery are proven; shared KDE dependencies and personal data remain protected. See [session consolidation](ARMADA_PLATFORM.md#planned-session-consolidation--2026-09-13).
+
+## Accepted next modules — planned, not implemented
+
+The [roadmap](ROADMAP.md) integrates issues #10–18 with dependencies and acceptance gates:
+
+- A private English-first collection audit precedes verified relinking/quarantine; the broad missing/owned catalogue remains intact.
+- Shared Adventure media supplies recognizable Worlds wheel/marquee/cover artwork and Home's subtle return-screenshot background. Existing patterns, contrast, controller behavior and screenshot provenance remain intact.
+- RetroAchievements account ownership moves to Settings → Accounts; achievement browsing stays in Hall of Fame. Emulator earning is verified separately from account-history reading.
+- External Pokédex art packs use species/form identities and remain useful offline. Caught becomes a dedicated personal collection, first from manual species-wide journal marks; forms, individual Pokémon and catch dates are not invented.
+- Pokémon Center may offer paid party healing only through a verified save-writing capability, with an exact fee, balance, explicit confirmation and protection backup.
+- Plasma Mobile replacement and reversible Steam removal are platform migrations, not prerequisites for ordinary Adventures or UI work. Sleep stays disabled pending separate validation.
+- The owner's additional system-cleanup request covers unnecessary apps, autostarts and background services after a dependency audit. Preserve user data, required emulator/platform components and rollback; report measured disk-space and idle-load changes separately from ROM cleanup.
 
 ## Vocabulary
 
