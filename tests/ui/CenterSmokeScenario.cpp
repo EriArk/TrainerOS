@@ -16,7 +16,7 @@ void startCenterSmoke(QQuickWindow* window,ShellController& shell,SessionState& 
     QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&session,&store,&input,&completed,&warnings,&diagnostics]{
         const auto check=[&](bool ok,const QString& message){if(!ok){*failed=true;diagnostics.append(QString("Center stage %1: %2").arg(*stage).arg(message));}};
         const auto write=[&](const QString& path,const QByteArray& bytes){QDir().mkpath(QFileInfo(path).absolutePath());QFile f(path);check(f.open(QIODevice::WriteOnly),"Fixture open");check(f.write(bytes)==bytes.size(),"Fixture write");};
-        const auto read=[&]{QFile f(save);f.open(QIODevice::ReadOnly);return f.readAll();};
+        const auto read=[&]{QFile f(save);if(!f.open(QIODevice::ReadOnly)){check(false,"Fixture read");return QByteArray{};}return f.readAll();};
         const auto press=[&](SDL_GameControllerButton button,int count=1){for(int i=0;i<count;++i){SDL_JoystickSetVirtualButton(joystick,button,1);input.poll();SDL_JoystickSetVirtualButton(joystick,button,0);input.poll();}};
         const auto focus=[&](const QString& name){return window->activeFocusItem()&&window->activeFocusItem()->objectName()==name;};
         const auto capture=[&](const QString& name){

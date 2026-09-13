@@ -193,6 +193,8 @@ After return, restore UI first and refresh external metadata asynchronously.
 
 ## System UI ownership
 
+The initial read-only [battery status service](POWER_STATUS.md) supplies a permanent chassis gauge from the current Linux power-supply interface. Power policy and session transitions remain separate device-validation steps.
+
 TrainerOS should expose normal handheld actions itself through its system menu and service surfaces where practical:
 
 - audio

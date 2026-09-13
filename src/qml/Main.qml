@@ -91,7 +91,7 @@ Window {
             x: 0; y: 503; width: parent.width; height: 37
             color: Theme.chassisDark
             Rectangle { width: parent.width; height: 1; color: "#578f83" }
-            Text { x: 20; y: 12; text: "NATIVE PROTOTYPE  /  01"; color: "#b9d7c9"; font.pixelSize: 10; font.letterSpacing: 1 }
+            BatteryGauge { x: 18; y: 5; status: powerStatus }
             Row {
                 anchors { right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
                 spacing: 20

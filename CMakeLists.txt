@@ -11,6 +11,8 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/platform/power/PowerStatus.h
+    src/platform/power/PowerStatus.cpp
     src/core/model/SaveBackup.h
     src/platform/storage/SaveBackupStorage.h
     src/platform/storage/SaveBackupStorage.cpp
@@ -149,9 +151,13 @@ qt_add_qml_module(traineros
         src/qml/PokedexJournalPanel.qml
         src/qml/SpeciesPickerPanel.qml
         src/qml/SaveCenterPanel.qml
+        src/qml/BatteryGauge.qml
 )
 
 if(BUILD_TESTING)
+    qt_add_executable(trainer_power_tests tests/PowerStatusTests.cpp)
+    target_link_libraries(trainer_power_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME power COMMAND trainer_power_tests)
     qt_add_executable(trainer_save_backup_tests tests/SaveBackupTests.cpp)
     target_link_libraries(trainer_save_backup_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME save_backups COMMAND trainer_save_backup_tests)

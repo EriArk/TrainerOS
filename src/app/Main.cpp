@@ -10,6 +10,7 @@
 #include "core/repository/ResumeLibraryRepository.h"
 #include "integrations/adventure/retroarch/RetroArchResume.h"
 #include "platform/storage/SaveBackupStorage.h"
+#include "platform/power/PowerStatus.h"
 #include <QCryptographicHash>
 #include <QQuickImageProvider>
 #include <QGuiApplication>
@@ -100,6 +101,16 @@ int main(int argc, char* argv[]) {
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
     const bool smoke = parser.isSet("smoke-test") || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+    auto smokeBattery = std::make_shared<std::atomic_int>(65);
+    PowerStatus powerStatus([smoke, smokeBattery] {
+        if (!smoke) return systemBatteryStatus();
+        const int value = smokeBattery->load();
+        return value < 0 ? BatterySnapshot{} : BatterySnapshot{value % 1000, value >= 1000 ? "Charging" : "Discharging"};
+    });
+    powerStatus.start();
+    QObject::connect(&app, &QGuiApplication::applicationStateChanged, &powerStatus, [&powerStatus](Qt::ApplicationState state) {
+        if (state == Qt::ApplicationActive) powerStatus.refresh();
+    });
 
     // This virtual device exercises exactly the same polling/mapping path as hardware.
     int virtualIndex = -1;
@@ -237,6 +248,7 @@ int main(int argc, char* argv[]) {
         engine.rootContext()->setContextProperty("controllerInput", &input);
         engine.rootContext()->setContextProperty("sessionState", &session);
         engine.rootContext()->setContextProperty("adventureLaunch", &adventureLaunch);
+        engine.rootContext()->setContextProperty("powerStatus", &powerStatus);
         engine.load(QUrl("qrc:/TrainerOS/Main.qml"));
         if (engine.rootObjects().isEmpty()) result = 2;
         else {
@@ -316,6 +328,7 @@ int main(int argc, char* argv[]) {
                 auto timer = new QTimer(&app);
                 timer->setInterval(400);
                 QObject::connect(timer, &QTimer::timeout, &app, [&, window, step, failed, savedId, drawerWait, timer, screenshotDir] {
+                    if (powerStatus.busy()) return;
                     const auto press = [&](SDL_GameControllerButton button) {
                         SDL_JoystickSetVirtualButton(joystick, button, 1); input.poll();
                         SDL_JoystickSetVirtualButton(joystick, button, 0); input.poll();
@@ -533,7 +546,22 @@ int main(int argc, char* argv[]) {
                         capture("resume-fallback-1080p"); press(b); press(left); press(a); break;
                     case 31:
                         check(shell.notice().contains("Demo launch ready"), "Explicit Home action opens normal Adventure after fallback");
-                        press(b); check(focusIs("home-launch"), "Back restores fixed Home action"); break;
+                        press(b); check(focusIs("home-launch"), "Back restores fixed Home action");
+                        smokeBattery->store(0); powerStatus.refresh(); break;
+                    case 32:
+                        check(powerStatus.available() && powerStatus.percent() == 0 && focusIs("home-launch"), "Zero battery is valid and never steals focus");
+                        if (const auto label = window->findChild<QObject*>("power-percent")) check(label->property("text").toString() == "0%", "Zero charge is rendered");
+                        else check(false, "Battery label exists");
+                        capture("battery-zero"); smokeBattery->store(15); powerStatus.refresh(); break;
+                    case 33:
+                        check(powerStatus.percent() == 15 && !powerStatus.charging(), "Low charge remains a reported percentage");
+                        capture("battery-low"); smokeBattery->store(1100); powerStatus.refresh(); break;
+                    case 34:
+                        check(powerStatus.percent() == 100 && powerStatus.charging(), "Charging/full-width gauge");
+                        capture("battery-charging"); smokeBattery->store(-1); powerStatus.refresh(); break;
+                    case 35:
+                        check(!powerStatus.available() && !powerStatus.charging() && focusIs("home-launch"), "Unavailable charge clears old value without changing focus");
+                        capture("battery-unavailable"); break;
                     default:
                         check(qmlWarnings == 0, "QML warnings were emitted");
                         timer->stop();
