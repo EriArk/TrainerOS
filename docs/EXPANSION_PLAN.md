@@ -1,12 +1,14 @@
 # TrainerOS expansion acceptance — issues 19–41
 
-Reviewed in full on **2026-09-13**, then integrated with all earlier commitments in [ROADMAP.md](ROADMAP.md). This is the detailed acceptance register for the new batch, **not a second execution queue**. Roadmap phases P0–P12 choose the order; existing steps 1–10 and U1–U13 retain their identities and acceptance. No new feature, migration or hardware capability is certified by this document.
+Reviewed in full on **2026-09-13**, then integrated with all earlier commitments in [ROADMAP.md](ROADMAP.md). This is the detailed acceptance register for the new batch, **not a second execution queue**. Roadmap phases P0–P12 choose the order; existing steps 1–10 and U1–U13 retain their identities and acceptance. Planning alone does not certify implementation; dated delivery notes below link actual verification.
 
 The important changes are personal-data ownership, two library contexts and curated catalogue eligibility. Shared visual improvements can ship before those migrations; expensive media, save writes and platform customization retain independent gates. Each slice includes the relevant Help article as that viewer becomes available.
 
 ## Shared chassis and headings
 
 Issues: [#21 geometry](https://github.com/EriArk/TrainerOS/issues/21), [#22 status](https://github.com/EriArk/TrainerOS/issues/22), [#23 pattern](https://github.com/EriArk/TrainerOS/issues/23), [#27 physical chrome](https://github.com/EriArk/TrainerOS/issues/27), [#33 headings](https://github.com/EriArk/TrainerOS/issues/33). Phase P1; later features reuse the result.
+
+**Delivered 2026-09-13:** #21's shared geometry, safe inset and active-tab overlap are implemented and installed on Flip; [verification](DESIGN_LANGUAGE.md#shared-chassis-geometry--delivered-2026-09-13). Items 2–5 remain open; the next bounded visual increment is #33's common heading family.
 
 1. Establish one content rectangle: the main panel rises to the inactive-tab baseline; the active organizer tab still overlaps it. Centralize insets, title baselines, tab height and content bounds instead of per-page Y corrections.
 2. Share a compact heading family: standard, contextual and service variants, with optional eyebrow/subtitle/trailing actions, consistent elision and no dead gap when optional text is absent. Home, onboarding, notifications and compact confirmations have deliberate compositions. Reclaimed height serves larger World cards and the four-visible-game-row target, not smaller type.

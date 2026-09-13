@@ -38,18 +38,33 @@ Window {
             color: "#c8dfd1"; font.pixelSize: 9; font.letterSpacing: 0.6
         }
         Row {
+            objectName: "primary-tabs"
             x: 212; y: 0; spacing: 6
+            z: 1 // Tabs sit over the panel lip; modal surfaces remain above them.
             Repeater {
                 model: ["Home", "Worlds", "Pokédex", "Trainer", "Hall of Fame"]
                 delegate: Item {
                     id: tab
                     required property int index
                     required property string modelData
+                    objectName: "primary-tab-" + index
                     width: index === 4 ? 156 : 123
-                    height: shell.page === index ? 63 : 49
+                    height: Theme.tabBaseline + (shell.page === index ? Theme.activeTabOverlap : 0)
                     Behavior on height { NumberAnimation { duration: Theme.motion(130); easing.type: Easing.OutCubic } }
                     Shape {
                         anchors.fill: parent
+                        // A narrow contact shadow follows the original lower silhouette.
+                        ShapePath {
+                            strokeColor: "transparent"
+                            fillColor: shell.page === index ? "#38102e2c" : "transparent"
+                            startX: 0; startY: tab.height - 10
+                            PathLine { x: 10; y: tab.height + 3 }
+                            PathLine { x: tab.width - 13; y: tab.height + 3 }
+                            PathLine { x: tab.width; y: tab.height - 10 }
+                            PathLine { x: tab.width; y: tab.height - 13 }
+                            PathLine { x: 0; y: tab.height - 13 }
+                            PathLine { x: 0; y: tab.height - 10 }
+                        }
                         ShapePath {
                             strokeColor: Qt.darker(Theme.tabColors[index], 1.65); strokeWidth: 1
                             fillColor: shell.page === index ? Theme.tabColors[index] : Qt.darker(Theme.tabColors[index], 1.18)
@@ -70,9 +85,13 @@ Window {
         }
         Panel {
             id: screen
-            x: 12; y: 68; width: 936; height: 430
+            objectName: "primary-screen"
+            x: Theme.screenBounds.x; y: Theme.screenBounds.y
+            width: Theme.screenBounds.width; height: Theme.screenBounds.height
             Item {
-                anchors.fill: parent; anchors.margins: 10; clip: true
+                objectName: "page-viewport"
+                anchors.fill: parent; anchors.margins: Theme.panelInset
+                anchors.topMargin: Theme.contentTopInset; clip: true
                 HomePage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 0 }
                 HallOfFamePage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 4 }
                 TrainerPage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 3 }
@@ -88,7 +107,7 @@ Window {
         }
         Rectangle {
             id: footer
-            x: 0; y: 503; width: parent.width; height: 37
+            x: 0; y: Theme.footerTop; width: parent.width; height: Theme.footerHeight
             color: Theme.chassisDark
             Rectangle { width: parent.width; height: 1; color: "#578f83" }
             BatteryGauge { x: 18; y: 5; status: powerStatus }
@@ -101,13 +120,19 @@ Window {
                 Hint { button: "Start"; label: "System"; tint: Theme.yellow }
             }
         }
-        LibraryPanel { x: 12; y: 68; width: 936; height: 430; shell: shellController; visible: shell.service === "library" }
-        SettingsPanel { x: 12; y: 68; width: 936; height: 430; shell: shellController; visible: shell.service === "settings" }
-        DevicePanel { x: 12; y: 68; width: 936; height: 430; shell: shellController; visible: shell.service === "device" }
-        DiagnosticsPanel { x: 12; y: 68; width: 936; height: 430; shell: shellController; visible: shell.service === "diagnostics" }
-        SaveCenterPanel { x: 12; y: 68; width: 936; height: 430; shell: shellController; visible: shell.service === "center" }
-        KeyboardPanel { x: 12; y: 68; width: 936; height: 435; shell: shellController }
-        SystemPanel { x: 12; y: 68; width: 948; height: 435; shell: shellController }
+        LibraryPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "library" }
+        SettingsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "settings" }
+        DevicePanel { anchors.fill: screen; shell: shellController; visible: shell.service === "device" }
+        DiagnosticsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "diagnostics" }
+        SaveCenterPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "center" }
+        KeyboardPanel {
+            anchors { left: screen.left; right: screen.right; top: screen.top; bottom: footer.top }
+            z: 2; shell: shellController
+        }
+        SystemPanel {
+            anchors { left: screen.left; right: parent.right; top: screen.top; bottom: footer.top }
+            z: 3; shell: shellController
+        }
         }
         StoragePanel { anchors.fill: parent; visible: sessionState.blocked; stateController: sessionState }
         LaunchPanel { anchors.fill: parent; visible: adventureLaunch.preparing; launch: adventureLaunch }

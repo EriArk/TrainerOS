@@ -7,7 +7,8 @@ Item {
     readonly property bool takesFocus: visible && !shell.menuOpen && shell.notice.length === 0
     Panel { anchors.fill: parent }
     Item {
-        anchors.fill: parent; anchors.margins: 10; clip: true
+        anchors.fill: parent; anchors.margins: Theme.panelInset
+        anchors.topMargin: Theme.contentTopInset; clip: true
         Text { x: 30; y: 18; text: "Check your field gear"; color: Theme.ink; font.pixelSize: 31; font.weight: Font.DemiBold }
         Text { x: 31; y: 60; width: 850; text: root.checks.connection; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 15 }
         Rectangle {

@@ -7,7 +7,8 @@ Item {
     readonly property bool takesFocus: visible && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     Panel { anchors.fill: parent }
     Item {
-        anchors.fill: parent; anchors.margins: 10; clip: true
+        anchors.fill: parent; anchors.margins: Theme.panelInset
+        anchors.topMargin: Theme.contentTopInset; clip: true
         Rectangle { width: parent.width; height: 107; color: "#c6dcca" }
         Text { x: 30; y: 17; width: parent.width - 60; text: root.center.title; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: 30; font.weight: Font.DemiBold }
         Text { x: 31; y: 60; width: parent.width - 62; height: 42; text: root.center.message; textFormat: Text.PlainText; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 13 }

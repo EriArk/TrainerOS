@@ -2,9 +2,17 @@
 
 Collection cards include an original hardware silhouette and short platform label seated in a recessed badge within the raised card. Missing editions use neutral grey material and retain a full-contrast focus outline; greying does not disable focus or the file-link action. This is the user's 2026-09-11 extension; see [collection catalogue](COLLECTION_CATALOGUE.md).
 
-## Accepted shared-system refinement — planned
+## Shared chassis geometry — delivered 2026-09-13
 
-Issues #21–23/#27/#33 consolidate the existing material language: raise the common panel to the inactive-tab baseline, preserve the active tab overhang, derive one content rectangle, share compact title variants and one subtle cached ornament. Healthy battery/controller status becomes quiet; important faults/provenance stay clear. Mounted Start controls and Power caps use the same recess/bevel/focus family. Special Home/onboarding/banner compositions remain intentional exceptions to the general heading template.
+Issue [#21](https://github.com/EriArk/TrainerOS/issues/21): the panel now starts at the inactive-tab baseline, with the original active-tab silhouette overlapping its lip and a narrow contact shadow. Shared Theme geometry owns the panel bounds, tab overlap, content insets and footer. Primary pages and frame-mounted services use the same safe top inset; keyboard/system overlays stay attached to the frame and render above the tabs. Page contents and controller actions are unchanged.
+
+At 960×540 logical size the panel top moves from 68 to 49, the active tab ends at 63, and safe page content begins at 73. The footer and bottom-mounted keyboard/Continue remain fixed. Scaling and letterboxing still belong to the viewport; palette and reduced-motion changes do not alter these dimensions.
+
+Verification: the six existing rendered SDL/persistence scenarios passed on Windows/UCRT64 and native ARM64 on Flip (6/6 each), covering 960×540, 1920×1080, letterboxing, focus, menus/text entry, themes and restart. The production build was installed with a previous-binary/database backup and byte verification. InputPlumber controller events exercised all five pages, Start/Back and Continue on the running Flip; Gamescope captures were inspected. This does not close the separate header/pattern/status/content-polish work or U12's performance/calibration tasks.
+
+## Accepted shared-system refinement — remaining work
+
+Issues #22–23/#27/#33 build on the delivered geometry: share compact title variants and one subtle cached ornament. Healthy battery/controller status becomes quiet; important faults/provenance stay clear. Mounted Start controls and Power caps use the same recess/bevel/focus family. Special Home/onboarding/banner compositions remain intentional exceptions to the general heading template.
 
 Issue #32 adds a **scoped exception** to the light-workspace rule: Multiverse Home may use a dark cosmic/portal inner field, with the same chassis geometry, physical controls and strong contrast. Pokémon Home and ordinary content retain their light recessed surfaces. Shell color themes stay user-selected; a context switch does not globally change them. New media/pattern layers cannot obscure focus or detach controls from the frame.
 

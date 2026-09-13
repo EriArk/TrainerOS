@@ -7,7 +7,8 @@ Item {
     readonly property bool takesFocus: visible && !shell.menuOpen && shell.notice.length === 0
     Panel { anchors.fill: parent }
     Item {
-        anchors.fill: parent; anchors.margins: 10
+        anchors.fill: parent; anchors.margins: Theme.panelInset
+        anchors.topMargin: Theme.contentTopInset
         Text { x: 30; y: 24; text: "Make it yours"; color: Theme.ink; font.pixelSize: 34; font.weight: Font.DemiBold }
         Text { x: 31; y: 74; text: "Same familiar controls, your favorite color."; color: Theme.muted; font.pixelSize: 17 }
         Rectangle {

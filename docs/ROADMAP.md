@@ -4,6 +4,10 @@ Rebuilt on **2026-09-13** after reading all issues **#1–41**, including the ne
 
 This is a dependency replan, not a reset. The [pre-expansion plan](https://github.com/EriArk/TrainerOS/blob/252f04e0772bd05966fb212ca736d303cab366ea/docs/ROADMAP.md) and the preservation map below make previous commitments traceable. Read the phase table for what comes next, then the referenced acceptance; do not execute the old numbered register as a competing queue.
 
+## Delivered increments under this plan
+
+- **2026-09-13 — #21:** shared panel/tab geometry and safe content inset completed; active tabs overlap the raised panel with contact depth. Windows and native ARM64 rendered SDL/persistence checks passed (6/6 each); production installed and controller-driven Gamescope captures inspected on Flip. [Details](DESIGN_LANGUAGE.md#shared-chassis-geometry--delivered-2026-09-13). P1's remaining items and all P0/U investigations retain their own gates.
+
 ## Working baseline
 
 The native skeleton, shared controller/UI components and SQLite foundation already exist. Extend them in the confirmed order: **required boundary → persistence/provider → complete feature → device verification**. Do not restart the mock or build speculative frameworks. Visuals remain replaceable; product/input invariants stay fixed.
@@ -54,7 +58,7 @@ This table **replaces the previous execution queue**. It includes current gaps, 
 | **P11 — complete offline guide** | #40 full current-feature, game/BIOS/media, account/save and maintenance/recovery coverage | Viewer starts in P1 and articles evolve with features; now audit every topic, runtime path/capability slot, internal link and controller recovery route. Ship version-matched facts, not documentation for unimplemented capabilities. |
 | **P12 — startup and whole-product acceptance** | #41 userspace/session boot identity; #34 every feature screen/state; U12 measured performance/remapping/calibration and final U11 release/recovery verification | Profile routes and installer/session recovery must already work. Boot branding cannot delay readiness or hide failure. Physical startup/rollback, readable full-screen controller flows, themes/reduced motion and performance evidence close delivery. Artwork preparation and per-feature visual checks happen earlier. |
 
-**Next concrete work:** P0's bounded evidence/inventory checks, then P1's shared content rectangle and headings. The earlier collection dry run is still an immediate read-only task; it is no longer permission to jump directly into mutation before Trainer/domain ownership is reconciled. System audits and minimal recovery repairs may proceed when needed, without waiting for unrelated artwork/healing. Sleep U13 remains explicitly deferred; optional future ideas remain separate.
+**Next concrete work:** the remaining bounded P0 evidence/inventory checks and P1's #33 common heading family; #21's shared content rectangle is delivered. The earlier collection dry run is still an immediate read-only task; it is no longer permission to jump directly into mutation before Trainer/domain ownership is reconciled. System audits and minimal recovery repairs may proceed when needed, without waiting for unrelated artwork/healing. Sleep U13 remains explicitly deferred; optional future ideas remain separate. The owner requests small complete increments because of limited remaining usage; finish verification, commit/push and delivery before starting another slice.
 
 ## Preservation map — earlier work still has a destination
 
@@ -325,7 +329,7 @@ This review changes the plan, not GitHub issue states. Close/split only after ch
 | [#18](https://github.com/EriArk/TrainerOS/issues/18) | P0 audit + P3 steps 1–2; source reconciliation, relink/quarantine and measured cleanup. |
 | [#19](https://github.com/EriArk/TrainerOS/issues/19) | P2; first-run controller registration after owner migration; shared creation transaction. |
 | [#20](https://github.com/EriArk/TrainerOS/issues/20) | P2; multi-Trainer migration, chooser/PIN, scoped history/accounts/save lineage. |
-| [#21](https://github.com/EriArk/TrainerOS/issues/21) | P1; shared tab/panel/content geometry. |
+| [#21](https://github.com/EriArk/TrainerOS/issues/21) | P1 delivered 2026-09-13; shared tab/panel/content geometry, verified and installed on Flip. |
 | [#22](https://github.com/EriArk/TrainerOS/issues/22) | P1; quiet healthy status, preserved useful faults and diagnostics. |
 | [#23](https://github.com/EriArk/TrainerOS/issues/23) | P1; shared cached pattern; later screenshots remain beneath it. |
 | [#24](https://github.com/EriArk/TrainerOS/issues/24) | P6, or earlier after ownership/read proof; distinguish earned/locked/unknown states. |

@@ -8,7 +8,8 @@ Item {
     readonly property bool takesFocus: visible && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     Panel { anchors.fill: parent }
     Item {
-        anchors.fill: parent; anchors.margins: 10; clip: true
+        anchors.fill: parent; anchors.margins: Theme.panelInset
+        anchors.topMargin: Theme.contentTopInset; clip: true
         Text { x: 28; y: 18; text: root.manager.route === "files" ? "Choose an Adventure file" : root.manager.title; color: Theme.ink; font.pixelSize: 29; font.weight: Font.DemiBold }
         Text {
             x: 29; y: 59; width: parent.width - 58; font.pixelSize: 14; color: Theme.muted; elide: Text.ElideMiddle; textFormat: Text.PlainText

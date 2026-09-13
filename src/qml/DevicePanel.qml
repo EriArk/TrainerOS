@@ -7,7 +7,8 @@ Item {
     readonly property bool takesFocus: visible && !shell.menuOpen && shell.notice.length === 0
     Panel { anchors.fill: parent }
     Item {
-        anchors.fill: parent; anchors.margins: 10
+        anchors.fill: parent; anchors.margins: Theme.panelInset
+        anchors.topMargin: Theme.contentTopInset
         Text { x: 28; y: 20; text: "Your handheld"; color: Theme.ink; font.pixelSize: 31; font.weight: Font.DemiBold }
         Text { x: 29; y: 60; text: "D-pad adjusts volume and brightness in steps of 5%."; color: Theme.muted; font.pixelSize: 15 }
         Rectangle {
