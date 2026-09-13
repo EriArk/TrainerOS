@@ -12,7 +12,7 @@ Item {
         Panel {
             anchors.fill: parent; anchors.margins: 8
             Text {
-                x: 25; y: 21; text: root.shell.modeConfirmation ? "Change mode" : root.shell.notice.length > 0 ? "TrainerOS" : "System menu"
+                x: 25; y: 21; text: root.shell.modeConfirmation ? "Before you go" : root.shell.notice.length > 0 ? "TrainerOS" : "System menu"
                 color: Theme.ink; font.pixelSize: 26; font.weight: Font.DemiBold
             }
             Column {

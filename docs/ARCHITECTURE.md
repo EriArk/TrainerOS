@@ -483,3 +483,5 @@ Keep device-specific quirks behind `DeviceProfile` / platform code:
 - power/session quirks
 
 Do not scatter Retroid-specific constants through QML.
+
+`DeviceService` owns asynchronous sound, backlight, network and storage operations behind an injectable backend. `DeviceController` exposes bounded rows and actions to the shared service panel. Power requests use the same confirmed, journal-draining platform transition as session changes; device and backup work jointly hold that exit gate. See `DEVICE_CONTROLS.md`.

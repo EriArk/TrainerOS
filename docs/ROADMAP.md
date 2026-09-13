@@ -4,7 +4,7 @@ TrainerOS now targets a native Qt/QML Linux shell on top of ArmadaOS rather than
 
 The roadmap follows the user's confirmed **bottom-up dependency order**: project skeleton, interface/controller skeleton, shared backend, individual modules, then deeper integrations.
 
-Current application checkpoint (2026-09-13): the installed Flip build has verified GBA saved-moment resume, a manual Hall of Fame archive, the offline Pokédex/journal, a local Trainer overview, GBA save backup/restore and live battery status. Module documents contain the latest acceptance results; the initial milestone notes below record earlier checkpoints. Live RetroAchievements account integration remains open. The next device-shell step is building and independently validating the session prototype described in [session preparation](SESSION_PROTOTYPE.md), before changing the default experience.
+Current application checkpoint (2026-09-13): the Flip has verified GBA saved-moment resume, a manual Hall of Fame archive, the offline Pokédex/journal, a local Trainer overview, GBA save backup/restore and live battery status. The dedicated TrainerOS session is installed and selected, with verified game launch/return, crash survival, startup-failure recovery and Steam/Plasma transitions; see [session validation](SESSION_PROTOTYPE.md). [Handheld controls](DEVICE_CONTROLS.md) add volume, brightness, network/storage readings and confirmed power actions. Module documents contain current acceptance evidence; the milestone notes below also preserve earlier checkpoints. Additional adapters, broader resume/backup coverage and live RetroAchievements integration remain open.
 
 ## Development model
 

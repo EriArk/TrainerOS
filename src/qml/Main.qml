@@ -103,6 +103,7 @@ Window {
         }
         LibraryPanel { x: 12; y: 68; width: 936; height: 430; shell: shellController; visible: shell.service === "library" }
         SettingsPanel { x: 12; y: 68; width: 936; height: 430; shell: shellController; visible: shell.service === "settings" }
+        DevicePanel { x: 12; y: 68; width: 936; height: 430; shell: shellController; visible: shell.service === "device" }
         DiagnosticsPanel { x: 12; y: 68; width: 936; height: 430; shell: shellController; visible: shell.service === "diagnostics" }
         SaveCenterPanel { x: 12; y: 68; width: 936; height: 430; shell: shellController; visible: shell.service === "center" }
         KeyboardPanel { x: 12; y: 68; width: 936; height: 435; shell: shellController }

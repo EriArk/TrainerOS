@@ -189,6 +189,19 @@ int main(int argc, char* argv[]) {
             if (success) resumeProvider.refresh(store->navigation()["homeAdventure"].toString());
         });
         SessionState session(shell, store.get());
+        DeviceSnapshot deviceFixture;
+        deviceFixture.volume = 35; deviceFixture.brightness = 60; deviceFixture.network = "Connected";
+        deviceFixture.internalFree = 32LL << 30; deviceFixture.internalTotal = 100LL << 30;
+        deviceFixture.libraryFree = 200LL << 30; deviceFixture.libraryTotal = 400LL << 30;
+        DeviceService deviceService(!smoke && !parser.isSet("ephemeral")
+            ? systemDeviceBackend(stateDirectory, QDir::home().filePath("Emulation"))
+            : DeviceBackend{[&deviceFixture] { return deviceFixture; }, [&deviceFixture](const QString& control, int value) {
+                if (control == "volume") deviceFixture.volume = value;
+                else if (control == "brightness") deviceFixture.brightness = value;
+                else if (control == "mute") deviceFixture.muted = value != 0;
+                return QString();
+            }});
+        shell.device()->configure(&deviceService, platform.canSwitchSession());
         std::unique_ptr<LocalSaveBackupService> saveBackups;
         if (personalLibrary && !smoke) {
             saveBackups=std::make_unique<LocalSaveBackupService>(QDir(stateDirectory).filePath("backups"),
@@ -207,9 +220,13 @@ int main(int argc, char* argv[]) {
 #endif
         if(saveBackups) {
             shell.center()->configure(saveBackups.get());
-            QObject::connect(saveBackups.get(),&SaveBackupService::busyChanged,&session,[&]{session.setServiceActive(saveBackups->busy());});
             QObject::connect(saveBackups.get(),&SaveBackupService::operationFailed,&session,&SessionState::cancelPendingExit);
         }
+        const auto updateServiceActivity = [&] {
+            session.setServiceActive(deviceService.busy() || (saveBackups && saveBackups->busy()));
+        };
+        QObject::connect(&deviceService, &DeviceService::changed, &session, updateServiceActivity);
+        if (saveBackups) QObject::connect(saveBackups.get(), &SaveBackupService::busyChanged, &session, updateServiceActivity);
         ProcessService adventureProcess;
         AdventureLaunchController adventureLaunch(adventureProcess);
         std::unique_ptr<PlayHistoryController> playHistory;

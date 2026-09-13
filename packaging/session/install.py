@@ -1,7 +1,7 @@
 #!/usr/bin/python3 -I
 """Install additive session files on the validated immutable ArmadaOS layout.
 
-Run from a reviewed checkout as root. This installs a choice, never selects it.
+Run from a reviewed checkout as root. Only --default changes the boot preference.
 An existing file's first version is retained in /var/lib/traineros/session-backup.
 """
 import argparse
@@ -18,6 +18,7 @@ import tempfile
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--user", required=True)
+    parser.add_argument("--default", action="store_true", help="Boot into the validated TrainerOS session")
     args = parser.parse_args()
     if os.geteuid() != 0 or not re.fullmatch(r"[a-z_][a-z0-9_-]*", args.user):
         parser.error("Use root and an existing local login name")
@@ -30,6 +31,10 @@ def main():
             parser.error("Missing platform prerequisite: " + binary)
     if not os.access(Path(account.pw_dir) / ".local/bin/traineros", os.X_OK):
         parser.error("Install and validate the normal TrainerOS application first")
+    if args.default:
+        boot_service = Path("/usr/lib/systemd/system/armada-session-default.service")
+        if not boot_service.is_file() or "ExecStart=/usr/libexec/armada/session-control default-gamemode" not in boot_service.read_text():
+            parser.error("Revalidate the current ArmadaOS boot session mechanism before selecting a default")
     # Preserve the currently configured search directories, not just our own.
     directories = ["/usr/local/share/wayland-sessions", "/usr/share/wayland-sessions"]
     config = configparser.ConfigParser(interpolation=None, strict=False)
@@ -92,7 +97,14 @@ def main():
     override = Path("/etc/sddm.conf.d/zz-steamos-autologin.conf")
     if not original.exists() and override.is_file():
         shutil.copy2(override, original)
-    print("TrainerOS session choice installed. Current autologin is unchanged.")
+    if args.default:
+        install("/etc/systemd/system/armada-session-default.service.d/traineros.conf",
+                (source / "armada-session-default.conf").read_bytes(), 0o644)
+        subprocess.run(["/usr/bin/systemctl", "daemon-reload"], check=True)
+        subprocess.run([helper, "default-traineros"], check=True)
+        print("TrainerOS is the boot default. Steam and Desktop choices remain available.")
+    else:
+        print("TrainerOS session choice installed. Current autologin is unchanged.")
 
 
 if __name__ == "__main__":

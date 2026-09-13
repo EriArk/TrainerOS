@@ -6,10 +6,12 @@ void SettingsController::reload() { if (repository_ && !saving_) { value_ = repo
 QVariantList SettingsController::rows() const {
     return {QVariantMap{{"title", "Shell color"}, {"value", value_.theme}},
         QVariantMap{{"title", "Reduced motion"}, {"value", value_.reducedMotion ? "On" : "Off"}},
+        QVariantMap{{"title", "Your handheld"}, {"value", "Sound, screen, connection, storage and power"}},
         QVariantMap{{"title", "Back to system menu"}, {"value", "Your preferences are saved when changed"}}};
 }
 void SettingsController::activate(int index) {
-    if (index == 2) { emit closeRequested(); return; }
+    if (index == 3) { emit closeRequested(); return; }
+    if (index == 2) { focus_ = index; emit deviceRequested(); return; }
     if (index < 0 || index > 1 || saving_) return;
     focus_ = index;
     auto candidate = value_;
@@ -30,7 +32,7 @@ void SettingsController::dispatch(Action action) {
     if (action == Action::Back) { emit closeRequested(); return; }
     if (action == Action::Confirm) { activate(focus_); return; }
     if (action == Action::Up) focus_ = std::max(0, focus_ - 1);
-    if (action == Action::Down) focus_ = std::min(2, focus_ + 1);
+    if (action == Action::Down) focus_ = std::min(3, focus_ + 1);
     emit changed();
 }
 }

@@ -44,7 +44,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
             if (*failed) { qCritical().noquote() << diagnostics.join('\n'); QCoreApplication::exit(1); return false; }
             return true;
         };
-        if (session.blocked() || shell.libraryManager()->saving() || shell.libraryManager()->files()->busy() || shell.settings()->saving()) return;
+        if (session.blocked() || shell.libraryManager()->saving() || shell.libraryManager()->files()->busy() || shell.settings()->saving() || shell.device()->busy()) return;
         auto* manager = shell.libraryManager();
         constexpr auto a = SDL_CONTROLLER_BUTTON_A, b = SDL_CONTROLLER_BUTTON_B;
         constexpr auto up = SDL_CONTROLLER_BUTTON_DPAD_UP, down = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
@@ -128,6 +128,24 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
             case 12: check(shell.settings()->theme() == "orange", "Orange theme"); capture("theme-orange"); press(down); press(a); break;
             case 13:
                 check(shell.settings()->reducedMotion(), "Reduced motion saved"); capture("motion-settings");
+                press(down); press(a); break;
+            case 14:
+                check(shell.service() == "device" && focusIs("device-0"), "Handheld controls receive controller focus");
+                capture("device-controls"); press(right); break;
+            case 15:
+                check(shell.device()->rows()[0].toMap()["value"].toString().startsWith("40%"), "D-pad changes volume through the device service");
+                press(a); break;
+            case 16:
+                check(shell.device()->rows()[0].toMap()["value"].toString().contains("Muted"), "A toggles mute");
+                press(down); press(left); break;
+            case 17:
+                check(shell.device()->rows()[1].toMap()["value"].toString().startsWith("55%"), "D-pad changes brightness");
+                press(down, 4); break;
+            case 18:
+                check(focusIs("device-5"), "Last device action is visible and reachable"); capture("device-controls-back");
+                press(b); break;
+            case 19:
+                check(shell.service() == "settings" && focusIs("settings-2"), "B restores the Settings entry");
                 press(b); press(down, 6); if (finish()) press(a); break;
             }
         } else if (phase == "library-verify") {

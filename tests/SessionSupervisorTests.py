@@ -63,6 +63,18 @@ else:
 
 
 class TransitionTests(unittest.TestCase):
+    def test_boot_default_does_not_restart_display_manager(self):
+        spec = importlib.util.spec_from_file_location("control", ROOT / "packaging/session/control.py")
+        control = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(control)
+        with tempfile.TemporaryDirectory() as temporary:
+            control.OVERRIDE = Path(temporary) / "autologin.conf"
+            control.OVERRIDE.write_text("[Autologin]\nSession=gamescope-session-steam.desktop\n")
+            with patch.object(control.os, "geteuid", return_value=0), patch.object(control.sys, "argv", ["control.py", "default-traineros"]), patch.object(control.Path, "is_file", return_value=True), patch.dict(os.environ), patch.object(control.subprocess, "call") as execute:
+                self.assertEqual(control.main(), 0)
+                execute.assert_not_called()
+            self.assertEqual(control.OVERRIDE.read_text(), "[Autologin]\nSession=traineros.desktop\n")
+
     def test_marker_belongs_only_to_old_session(self):
         spec = importlib.util.spec_from_file_location("control", ROOT / "packaging/session/control.py")
         control = importlib.util.module_from_spec(spec)

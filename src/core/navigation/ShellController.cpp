@@ -11,7 +11,17 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     : QObject(parent), repository_(repo), adapter_(adapter), platform_(platform),
       keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this),
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
-      libraryManager_(repo, nullptr, this), settings_(this), diagnostics_(this), center_(repo,this) {
+      libraryManager_(repo, nullptr, this), settings_(this), device_(this), diagnostics_(this), center_(repo,this) {
+    connect(&settings_, &SettingsController::deviceRequested, this, [this] { service_ = "device"; device_.begin(); emit changed(); });
+    connect(&device_, &DeviceController::changed, this, &ShellController::changed);
+    connect(&device_, &DeviceController::closeRequested, this, [this] { service_ = "settings"; emit changed(); });
+    connect(&device_, &DeviceController::messageRequested, this, &ShellController::showNotice);
+    connect(&device_, &DeviceController::powerRequested, this, [this](const QString& mode) {
+        mode_ = mode;
+        notice_ = mode == "reboot" ? "Restart your handheld? Your Trainer journal will be saved first."
+                                   : "Turn off your handheld? Your Trainer journal will be saved first.";
+        emit changed();
+    });
     connect(&center_, &SaveCenterController::changed, this, &ShellController::changed);
     connect(&center_, &SaveCenterController::closeRequested, this, [this]{service_.clear();menuOpen_=true;menuFocus_=2;emit changed();});
     connect(&center_, &SaveCenterController::searchRequested, this, [this](const QString& initial){textTarget_=TextTarget::CenterSearch;keyboard_.begin("Find an Adventure",initial,64);});
@@ -134,6 +144,7 @@ int ShellController::focusIndex() const {
     if (keyboard_.isOpen()) return keyboard_.focusIndex();
     if (service_ == "library") return libraryManager_.files()->isOpen() ? libraryManager_.files()->focusIndex() : libraryManager_.focusIndex();
     if (service_ == "settings") return settings_.focusIndex();
+    if (service_ == "device") return device_.focusIndex();
     if (service_ == "diagnostics") return diagnostics_.focusIndex();
     if (service_ == "center") return center_.focusIndex();
     if (trainer_.editing()) return trainer_.focusIndex();
@@ -276,6 +287,7 @@ void ShellController::activate(int index, const QString& area) {
     else if (keyboard_.isOpen()) { keyboard_.activate(index); return; }
     else if (service_ == "library") { libraryManager_.activate(index, area); return; }
     else if (service_ == "settings") { settings_.activate(index); return; }
+    else if (service_ == "device") { device_.activate(index); return; }
     else if (service_ == "diagnostics") { diagnostics_.activate(index); return; }
     else if (service_ == "center") { center_.activate(index); return; }
     else if (trainer_.editing()) { trainer_.activate(index); return; }
@@ -398,6 +410,7 @@ void ShellController::dispatch(Action action) {
         if (keyboard_.isOpen()) { keyboard_.dispatch(action); return; }
         if (service_ == "library") { libraryManager_.dispatch(action); return; }
         if (service_ == "settings") { settings_.dispatch(action); return; }
+        if (service_ == "device") { device_.dispatch(action); return; }
         if (service_ == "diagnostics") { diagnostics_.dispatch(action); return; }
         if (service_ == "center") { center_.dispatch(action); return; }
         if (trainer_.editing()) { trainer_.dispatch(action); return; }

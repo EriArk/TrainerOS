@@ -8,6 +8,7 @@
 #include "features/halloffame/HallOfFameController.h"
 #include "features/library/LibraryManagementController.h"
 #include "features/settings/SettingsController.h"
+#include "features/device/DeviceController.h"
 #include "features/diagnostics/DiagnosticsController.h"
 #include "features/center/SaveCenterController.h"
 #include "integrations/adventure/AdventureAdapter.h"
@@ -32,6 +33,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(trainer::HallOfFameController* hall READ hall CONSTANT)
     Q_PROPERTY(trainer::LibraryManagementController* libraryManager READ libraryManager CONSTANT)
     Q_PROPERTY(trainer::SettingsController* settings READ settings CONSTANT)
+    Q_PROPERTY(trainer::DeviceController* device READ device CONSTANT)
     Q_PROPERTY(trainer::DiagnosticsController* diagnostics READ diagnostics CONSTANT)
     Q_PROPERTY(trainer::SaveCenterController* center READ center CONSTANT)
     Q_PROPERTY(QString service READ service NOTIFY changed)
@@ -50,6 +52,7 @@ public:
     HallOfFameController* hall() { return &hall_; }
     LibraryManagementController* libraryManager() { return &libraryManager_; }
     SettingsController* settings() { return &settings_; }
+    DeviceController* device() { return &device_; }
     DiagnosticsController* diagnostics() { return &diagnostics_; }
     SaveCenterController* center() { return &center_; }
     QString service() const { return service_; }
@@ -93,6 +96,7 @@ private:
     HallOfFameController hall_;
     LibraryManagementController libraryManager_;
     SettingsController settings_;
+    DeviceController device_;
     DiagnosticsController diagnostics_;
     SaveCenterController center_;
     QString service_;

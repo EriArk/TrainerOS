@@ -11,6 +11,10 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/platform/device/DeviceService.h
+    src/platform/device/DeviceService.cpp
+    src/features/device/DeviceController.h
+    src/features/device/DeviceController.cpp
     src/platform/ArmadaPlatformService.h
     src/platform/ArmadaPlatformService.cpp
     src/platform/power/PowerStatus.h
@@ -144,6 +148,7 @@ qt_add_qml_module(traineros
         src/qml/LaunchPanel.qml
         src/qml/LibraryPanel.qml
         src/qml/SettingsPanel.qml
+        src/qml/DevicePanel.qml
         src/qml/DiagnosticsPanel.qml
         src/qml/KeyboardPanel.qml
         src/qml/TrainerPage.qml
@@ -163,6 +168,9 @@ if(BUILD_TESTING)
         set_tests_properties(session_supervisor PROPERTIES TIMEOUT 40)
     endif()
     qt_add_executable(trainer_power_tests tests/PowerStatusTests.cpp)
+    qt_add_executable(trainer_device_tests tests/DeviceTests.cpp)
+    target_link_libraries(trainer_device_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME device COMMAND trainer_device_tests)
     target_link_libraries(trainer_power_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME power COMMAND trainer_power_tests)
     qt_add_executable(trainer_save_backup_tests tests/SaveBackupTests.cpp)

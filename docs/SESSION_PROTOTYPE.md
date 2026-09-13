@@ -18,6 +18,14 @@ The account is an explicit installer argument. Root-owned launchers live in `/va
 
 The existing Armada selector owns Desktop and Steam transitions. On this build its Desktop choice is Armada Plasma Mobile; the other installed Plasma entries remain available. TrainerOS writes the same autologin override when selected, so subsequent official mode choices remain authoritative.
 
+After validating the session, select TrainerOS as the boot default explicitly:
+
+```sh
+sudo python3 -I packaging/session/install.py --user armada --default
+```
+
+Armada's `armada-session-default.service` otherwise resets autologin to Steam at every boot. The optional root-owned drop-in under `/etc/systemd/system/armada-session-default.service.d/traineros.conf` replaces only its fixed default-selection command, retaining the distro's ordering before the display manager. Steam/Desktop transitions still work during the current boot; the next boot returns to TrainerOS. The installer checks the observed Armada service before enabling this integration.
+
 ## Graphics and process ownership
 
 SDDM's wrapper starts and waits for a dedicated systemd user service. That service owns Gamescope and binds to `graphical-session.target`, following the installed Armada convention. Existing Plasma workspace targets are stopped first: stopping SDDM alone can leave a compositor and its sockets alive. The shared graphical target must be started through a dependent service, not directly.
@@ -43,13 +51,15 @@ sudo systemd-run --unit=traineros-trial-recovery --on-active=3min \
 sudo /var/opt/traineros/session/control.py traineros
 ```
 
-Use a new unit name for another trial. Cancel the timer after validation; do not leave it armed during ordinary Adventures. Session choices persist. Desktop's **Return to TrainerOS** entry selects the dedicated session again.
+Use a new unit name for another trial. Cancel the timer after validation; do not leave it armed during ordinary Adventures. Desktop's **Return to TrainerOS** entry selects the dedicated session again. Cross-boot behavior requires the explicit default integration above.
 
 ## Rollback
 
 From SSH or a terminal, `sudo /var/opt/traineros/session/control.py desktop` selects the known-good desktop. Armada's own `sudo /usr/libexec/armada/session-control switch-desktop` works independently of TrainerOS; `switch-gamemode` selects Steam.
 
 For removal, first switch to Desktop. Restore installed files from the backup directory, or remove only files marked originally absent there. Remove the dedicated user desktop entry and reload the systemd user manager. Preserve Armada's original entries and review any later user changes before restoring old configuration.
+
+To restore Armada's original Steam boot preference, remove only the optional `traineros.conf` drop-in described above (or restore its recorded predecessor), reload the system manager with `sudo systemctl daemon-reload`, then use Armada's `default-gamemode` command. Merely selecting Desktop for the current session does not remove TrainerOS's boot preference.
 
 ## Acceptance
 
@@ -59,8 +69,9 @@ For removal, first switch to Desktop. Restore installed files from the backup di
 - [x] Three deliberately failing starts returned to Plasma; the production binary was restored and verified.
 - [x] Controller confirmation and transition into Plasma from normal app mode.
 - [x] Final production first-frame acknowledgement and controller round trip through Steam.
-- [x] TrainerOS selected as the persistent session after those checks; trial recovery timers cancelled.
+- [x] TrainerOS selected after those checks; trial recovery timers cancelled.
+- [x] Physical restart from the handheld panel boots directly into TrainerOS and restores browsing state, after integrating Armada's boot-default service.
 
-The 2026-09-13 native suites passed on Windows (25 tests), Ubuntu/Qt 6.4 (26) and the Flip ARM64 build (26). Six Linux subprocess checks also passed after the final supervisor update. The installed release build disables test-only flows. Physical reboot validation accompanies the next system-control increment; sleep/wake remains deferred.
+The initial 2026-09-13 session suites passed on Windows (25 tests), Ubuntu/Qt 6.4 (26) and the Flip ARM64 build (26). The following handheld-control increment passes 26/27/27 respectively; seven Linux subprocess checks cover the supervisor and default selection. The installed release build disables test-only flows. Sleep/wake remains deferred.
 
 Native suites cover controller confirmation, persistence and lifecycle. Linux subprocess tests cover crash limits, orphan preservation, first-frame deadlines and transition ownership. They do not replace the device gates above. See [platform model](ARMADA_PLATFORM.md), [device baseline](ARMADA_DEVICE_BASELINE.md) and [roadmap](ROADMAP.md).

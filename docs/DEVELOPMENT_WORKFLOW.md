@@ -1,6 +1,6 @@
 # Engineering workflow
 
-TrainerOS uses a complete delivery loop: inspect → implement → review → verify → commit → push → check CI. The user has authorized this routine for project work. A local commit alone is not a delivered increment.
+TrainerOS uses a complete delivery loop: inspect → implement → review → verify → commit → push → verify the remote commit. The user has authorized this routine for project work. A local commit alone is not a delivered increment. Since the user's 2026-09-13 instruction, GitHub Actions is not a delivery gate; verification runs on the Windows host, Linux build server and Flip as appropriate.
 
 ## Before changing code
 
@@ -59,15 +59,7 @@ git status --short --branch
 
 Resolve divergence without discarding remote work. If the remote destination or ownership of conflicting edits is ambiguous, establish it before changing shared history. A rejected push is not a successful delivery.
 
-Use GitHub Actions or `gh` to find the run for the pushed commit and inspect its jobs/result. For example:
-
-```sh
-gh run list --repo EriArk/TrainerOS --branch main --limit 5
-gh run view RUN_ID --repo EriArk/TrainerOS
-gh run view RUN_ID --repo EriArk/TrainerOS --log-failed
-```
-
-Match the run's head SHA to the delivered commit. Wait for a conclusive result with sensible polling intervals. If a new failure is caused by the work, fix it, validate appropriately, commit/push and verify the new run. Do not present an older green check or a queued run as success for the current commit. Report unavailable CI/access/network honestly instead of inventing evidence.
+Do not poll or wait for GitHub Actions, or spend project time on its billing. This does not waive native builds, relevant tests, controller/rendered checks or device verification. Record the source revision and toolchain for those checks, and verify the pushed SHA independently with Git. Existing workflow files are not evidence that Actions ran or passed.
 
 ## Completion report and device boundary
 
@@ -78,7 +70,7 @@ Keep these evidence levels separate:
 | Evidence | What it establishes |
 | --- | --- |
 | Windows build/tests and rendered SDL scenarios | Behavior on the development host and exercised fixtures |
-| GitHub Linux CI for the current commit | Build/test behavior on that runner's Linux/Qt/SDL environment |
+| Linux build server with the current source | Build/test behavior on that server's Linux/Qt/SDL environment |
 | Flip 2 running the actual ArmadaOS build | Physical mapping, display readability/performance, emulator environment and observed device/session behavior |
 
-Linux CI does not close the ARM64/handheld gate. Follow `FIRST_DEVICE_RUN.md` and `DEVICE_DIAGNOSTICS.md` before real ArmadaOS integration or changing the normal session. If progress in the agreed sequence needs the handheld, state the exact dependency and the prepared next step.
+Linux server checks do not close the ARM64/handheld gate. Follow `FIRST_DEVICE_RUN.md` and `DEVICE_DIAGNOSTICS.md` before real ArmadaOS integration or changing the normal session. If progress in the agreed sequence needs the handheld, state the exact dependency and the prepared next step.
