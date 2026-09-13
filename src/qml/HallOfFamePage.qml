@@ -4,7 +4,7 @@ Item {
     id: root
     required property var shell
     readonly property var hall: shell.hall
-    readonly property bool takesFocus: visible && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
+    readonly property bool takesFocus: visible && !hall.editor.open && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     readonly property bool detailOpen: hall.route === "archive-detail" || hall.route === "achievement-detail"
     Text { x: 28; y: 9; text: "Hall of Fame"; color: Theme.ink; font.pixelSize: 32; font.weight: Font.DemiBold }
     Text { x: 265; y: 26; text: "Every journey leaves a story"; color: Theme.muted; font.pixelSize: 15 }
@@ -27,7 +27,8 @@ Item {
                 }
             }
         }
-        Text { x: 532; y: 17; width: parent.width - 554; text: root.hall.status; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 14 }
+        Text { x: 532; y: 11; width: parent.width - 554; text: root.hall.status; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 14 }
+        Text { x: 532; y: 39; width: parent.width - 554; visible: root.hall.archive && root.hall.editable; text: "Y · New memory     X · Edit selected"; color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
     }
     Item {
         anchors.fill: parent; visible: !root.detailOpen
@@ -116,9 +117,10 @@ Item {
             anchors { right: parent.right; rightMargin: 25 }
             y: 19; width: 270
             text: root.detailOpen ? "B · Return to previous list"
-                : root.hall.rows.length > 0 ? root.hall.rows.length + " sample records\n↑ Sections above the first row"
+                : root.hall.rows.length > 0 ? root.hall.rows.length + " records\n↑ Sections above the first row"
                 : "No records to display\n↑ Choose a section"
             color: Theme.muted; font.pixelSize: 13; horizontalAlignment: Text.AlignRight
         }
     }
+    ArchiveEditorPanel { anchors.fill: parent; shell: root.shell; visible: root.hall.editor.open }
 }

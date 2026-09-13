@@ -99,7 +99,7 @@ private slots:
         { LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready()); addAdventure(store, path); }
         {
             auto db = QSqlDatabase::addDatabase("QSQLITE", "history-migration"); db.setDatabaseName(dir.filePath("traineros.sqlite3")); QVERIFY(db.open());
-            { QSqlQuery q(db); QVERIFY(q.exec("DROP TABLE play_sessions")); QVERIFY(q.exec("PRAGMA user_version=3")); }
+            { QSqlQuery q(db); QVERIFY(q.exec("DROP TABLE play_sessions")); QVERIFY(q.exec("DROP TABLE hall_of_fame")); QVERIFY(q.exec("PRAGMA user_version=3")); }
             db.close();
         }
         QSqlDatabase::removeDatabase("history-migration");

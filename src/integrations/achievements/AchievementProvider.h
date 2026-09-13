@@ -72,4 +72,13 @@ private:
     int generation_ = 0;
     bool hold_ = false;
 };
+// Normal application startup must never claim sample achievements or an account.
+class DisconnectedAchievementProvider final : public AchievementProvider {
+public:
+    using AchievementProvider::AchievementProvider;
+    AchievementContext context() const override { return {"retroAchievements", {}}; }
+    QList<AchievementSet> sets() const override { return {}; }
+    AchievementSnapshot snapshot(const QString& id) const override { return {context(), id, AchievementState::Disconnected, {}, {}, {}}; }
+    void refresh(const QString&) override {}
+};
 }

@@ -356,6 +356,8 @@ Examples:
 
 ## Unknown data is valid
 
+`HallOfFameEntry` now persists manual archive memories with a revision for conflict detection; see [Hall of Fame](HALL_OF_FAME.md). Its historical title/World and optional manually recorded date/time/team remain independent of current save progress and observed play sessions.
+
 Many values will be unavailable before save parsing exists. UI/domain code must handle `unknown` cleanly rather than inventing zero values.
 
 Examples:

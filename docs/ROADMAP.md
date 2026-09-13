@@ -179,6 +179,8 @@ Home and Continue visuals may be redesigned around actual screenshots/save-state
 
 ## Milestone 7 — Trainer + Hall of Fame module
 
+The first [persistent Hall of Fame increment](HALL_OF_FAME.md) adds manual memory creation/editing, owned-Adventure selection/search, date/time/team/notes entry and revision-checked SQLite storage. Personal runs no longer show fixture archive entries or fake unlocks. Real RetroAchievements account/cache integration and Trainer aggregates remain follow-up work; this does not close the entire milestone.
+
 Deliverables:
 
 - extend the persisted, editable Trainer profile introduced in the first prototype with real aggregate progress

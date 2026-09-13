@@ -111,6 +111,7 @@ struct HallOfFameEntry {
     QList<HallOfFameMember> team;
     QString notes;
     ArchiveSource source = ArchiveSource::Manual;
+    int revision = 0;
 };
 // Unknown progress stays optional. These samples are not read from a game.
 struct HomeSnapshot {

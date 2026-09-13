@@ -125,6 +125,7 @@ int main(int argc, char* argv[]) {
         if (pokedexSmoke) dex.failNextLoad();
         MockHallOfFameRepository shellArchive;
         MockAchievementProvider shellAchievements;
+        DisconnectedAchievementProvider disconnectedAchievements;
         std::unique_ptr<LocalStateStore> store;
         QString stateDirectory;
         if ((!smoke && !parser.isSet("ephemeral")) || !persistencePhase.isEmpty()) {
@@ -153,7 +154,9 @@ int main(int argc, char* argv[]) {
         ShellController shell(activeLibrary,
                               store ? static_cast<TrainerRepository&>(*store) : profiles,
                               *selectedAdapter, platform,
-                              dex, store ? static_cast<PokedexProgressRepository&>(*store) : dex, shellArchive, shellAchievements);
+                              dex, store ? static_cast<PokedexProgressRepository&>(*store) : dex,
+                              personalLibrary && !smoke ? static_cast<HallOfFameRepository&>(*store) : shellArchive,
+                              personalLibrary && !smoke ? static_cast<AchievementProvider&>(disconnectedAchievements) : shellAchievements);
         shell.configureServices(&files, store.get());
         if (personalLibrary && !smoke) {
             shell.libraryManager()->prepareInstallation = [&retroarch](AdventureRegistration& record) { retroarch.prepareInstallation(record); };

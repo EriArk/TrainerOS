@@ -4,6 +4,7 @@
 namespace trainer {
 namespace {
 QString dateLabel(const QDateTime& date) { return date.isValid() ? date.toUTC().toString("dd MMM yyyy · HH:mm 'UTC'") : "Date not recorded"; }
+QString memoryDate(const QDateTime& date) { return date.isValid() ? date.toUTC().toString("dd MMM yyyy") : "Date not recorded"; }
 QString modeLabel(const std::optional<AchievementMode>& mode) {
     if (!mode) return "Mode not recorded";
     return *mode == AchievementMode::Hardcore ? "Hardcore" : "Standard";
@@ -30,7 +31,12 @@ QString snapshotStatus(const AchievementSnapshot& snapshot) {
 }
 }
 HallOfFameController::HallOfFameController(HallOfFameRepository& repository, AchievementProvider& provider, QObject* parent)
-    : QObject(parent), repository_(repository), provider_(provider) {
+    : QObject(parent), repository_(repository), provider_(provider), editor_(repository, this) {
+    connect(&editor_, &ArchiveEditor::changed, this, &HallOfFameController::changed);
+    connect(&editor_, &ArchiveEditor::messageRequested, this, &HallOfFameController::messageRequested);
+    connect(&editor_, &ArchiveEditor::saved, this, [this](const QString& id) {
+        archiveId_ = id; route_ = "archive-detail"; zone_ = "actions"; actionFocus_ = 0; refreshArchive();
+    });
     const auto sets = provider_.sets();
     if (!sets.isEmpty()) setId_ = sets.first().id;
     connect(&provider_, &AchievementProvider::snapshotChanged, this, [this] { reconcile(); });
@@ -70,7 +76,7 @@ void HallOfFameController::selectRow(const QString& id) {
 QList<HallOfFameController::Row> HallOfFameController::currentRows() const {
     QList<Row> result;
     if (isArchive()) {
-        for (const auto& entry : archive_) result.append({entry.id, entry.adventureTitle, entry.world + " · " + dateLabel(entry.completedAt)});
+        for (const auto& entry : archive_) result.append({entry.id, entry.adventureTitle, entry.world + " · " + memoryDate(entry.completedAt)});
     } else if (route_ == "sets") {
         for (const auto& set : provider_.sets()) result.append({set.id, set.title, set.world + " · " + snapshotStatus(checkedSnapshot(set))});
     } else {
@@ -95,8 +101,8 @@ QVariantMap HallOfFameController::detail() const {
     if (isArchive()) {
         for (const auto& entry : archive_) if (entry.id == archiveId_) {
             const auto time = entry.playtimeMinutes ? QString("%1h %2m").arg(*entry.playtimeMinutes / 60).arg(*entry.playtimeMinutes % 60) : "Time not recorded";
-            return {{"title", entry.adventureTitle}, {"world", entry.world}, {"date", dateLabel(entry.completedAt)},
-                {"time", time}, {"description", entry.notes}, {"source", entry.source == ArchiveSource::Manual ? "Manual · sample record" : "Imported · sample record"},
+            return {{"title", entry.adventureTitle}, {"world", entry.world}, {"date", memoryDate(entry.completedAt)},
+                {"time", time}, {"description", entry.notes}, {"source", entry.source == ArchiveSource::Manual ? "Manually recorded" : "Imported record"},
                 {"summary", entry.world + " · " + time}};
         }
         return {{"title", "Your journeys belong here"}, {"world", ""}, {"date", "Date not recorded"},
@@ -111,10 +117,11 @@ QVariantMap HallOfFameController::detail() const {
         if (!record.unlocked) ++unknown;
         else if (*record.unlocked) ++unlocked;
     }
-    QVariantMap result{{"title", set.title}, {"world", set.world}, {"source", "RetroAchievements · fictional sample"},
+    const bool sample = provider_.context().providerId.endsWith("-mock");
+    QVariantMap result{{"title", set.title.isEmpty() ? "RetroAchievements" : set.title}, {"world", set.world}, {"source", sample ? "RetroAchievements · fictional sample" : "RetroAchievements"},
         {"summary", snapshot.definitions.isEmpty() ? "Unlocks unavailable" : unknown == snapshot.definitions.size()
             ? "Unlock status not recorded" : QString("%1 unlocked · %2 not recorded").arg(unlocked).arg(unknown)},
-        {"description", "Sample achievement sets demonstrate browsing. No real account or game coverage is claimed."},
+        {"description", sample ? "Sample achievement sets demonstrate browsing. No real account or game coverage is claimed." : "Connect your own account to bring supported achievements into Hall of Fame. Your local memories stay independent."},
         {"date", "Saved: " + dateLabel(snapshot.fetchedAt)}, {"time", ""}};
     if (route_ != "sets") for (const auto& definition : snapshot.definitions) if (definition.id == achievementIds_.value(setId_)) {
         const auto unlock = unlockFor(snapshot, definition.id);
@@ -138,11 +145,12 @@ QVariantList HallOfFameController::team() const {
     return result;
 }
 QString HallOfFameController::status() const {
-    if (isArchive()) return archiveError_.isEmpty() ? "Local archive · sample memories" : "Archive refresh failed · saved records kept";
+    if (isArchive()) return archiveError_.isEmpty() ? QString("Local archive · %1 memories").arg(archive_.size()) : "Archive refresh failed · saved records kept";
+    if (provider_.context().accountId.isEmpty()) return "No account connected";
     return snapshotStatus(currentSnapshot());
 }
 QString HallOfFameController::emptyMessage() const {
-    if (isArchive()) return archiveError_.isEmpty() ? "No completed Adventures recorded yet. Your archive is ready for future memories." : archiveError_;
+    if (isArchive()) return archiveError_.isEmpty() ? "Your first memory starts here. Press Y to record a completed Adventure." : archiveError_;
     if (route_ == "sets") return "No Adventures are linked to achievement sets. Your local archive remains available.";
     switch (currentSnapshot().state) {
     case AchievementState::Disconnected: return "No account is connected. Your local Hall of Fame remains available.";
@@ -185,7 +193,7 @@ void HallOfFameController::reconcile() {
     emit rowsChanged(); emit changed();
 }
 void HallOfFameController::refreshArchive() {
-    const auto result = repository_.load();
+    const auto result = repository_.loadArchive();
     archiveError_ = result.success ? QString() : result.error;
     if (!result.success && archiveError_.isEmpty()) archiveError_ = "Your archive couldn't be loaded. Try again.";
     if (result.success) {
@@ -256,10 +264,15 @@ void HallOfFameController::activate(int index) {
     emit changed();
 }
 void HallOfFameController::activateControl(const QString& zone, int index) {
+    if (editor_.isOpen()) { editor_.activate(index); return; }
+    if (zone == "memory-new" || zone == "memory-edit") { beginMemory(zone == "memory-edit"); return; }
     if (zone != "rail" && zone != "actions" && (zone != "list" || isDetail() || currentRows().isEmpty())) return;
     zone_ = zone; activate(index);
 }
 void HallOfFameController::dispatch(Action action) {
+    if (editor_.isOpen()) { editor_.dispatch(action); return; }
+    if (isArchive() && action == Action::ToggleContinue) { beginMemory(false); return; }
+    if (isArchive() && action == Action::Secondary) { beginMemory(true); return; }
     if (action == Action::Confirm) { activate(focusIndex()); return; }
     if (action == Action::Back) { back(); emit changed(); return; }
     if (zone_ == "rail") {
@@ -286,5 +299,10 @@ void HallOfFameController::dispatch(Action action) {
         if (action == Action::Right && actions().size() > 1 && actions()[1].toMap()["enabled"].toBool()) actionFocus_ = 1;
     }
     emit changed();
+}
+void HallOfFameController::beginMemory(bool edit) {
+    if (!isArchive() || !editable()) return;
+    if (!edit) { editor_.begin(); return; }
+    for (const auto& entry : archive_) if (entry.id == archiveId_) { editor_.begin(entry); return; }
 }
 }

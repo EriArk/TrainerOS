@@ -89,7 +89,7 @@ private:
     SettingsController settings_;
     DiagnosticsController diagnostics_;
     QString service_;
-    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, Library };
+    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, Library, Archive };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QString homeAdventureId_, homeResumeId_;

@@ -10,7 +10,9 @@ Normal runs use SQLite for the personal Worlds library, one local Trainer profil
 
 `LocalStateStore` implements the Library, Trainer, Pokédex progress and Preferences repositories. Getters read committed projections on the UI thread without I/O. One worker exclusively owns its Qt SQL connection; startup, schema checks, migrations, reads and writes run there. `SqliteLibrary` keeps library/schema mapping separate from worker scheduling.
 
-SQLite `user_version` is currently 4:
+Schema 5 adds the [local Hall of Fame archive](HALL_OF_FAME.md), with explicit manual memories and revision-checked editing. Sample archive entries are never migrated.
+
+SQLite `user_version` is currently 5:
 
 | Table | Data |
 | --- | --- |
@@ -22,6 +24,7 @@ SQLite `user_version` is currently 4:
 | `adventure_worlds` | Additional region relationships with foreign-key integrity |
 | `preferences` | Color theme and reduced-motion flag |
 | `play_sessions` | Identified Adventure process launches, UTC timestamps, optional monotonic duration and outcome |
+| `hall_of_fame` | Manual/imported historical memories, optional date/time/team, notes, source and edit revision |
 
 Migrations 0→1 and 1→2 run in transactions. The latter preserves profile/favorites and existing browsing scopes while adding an empty personal library and region reference names. Nonempty unversioned foreign databases, unsupported versions, unreadable schemas, broken foreign keys and failed integrity checks are rejected without replacing the file. Malformed optional navigation falls back to defaults; newer versions of the active browsing scope require a newer application and are preserved.
 

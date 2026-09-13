@@ -15,6 +15,9 @@ add_library(trainer_core STATIC
     src/integrations/adventure/retroarch/RetroArchResume.cpp
     src/integrations/adventure/retroarch/RetroArchResume.h
     src/core/repository/PlayHistoryRepository.h
+    src/core/storage/SqliteHallOfFame.cpp
+    src/core/storage/SqliteHallOfFame.h
+    src/core/repository/HallOfFameRepository.cpp
     src/core/storage/SqlitePlayHistory.cpp
     src/core/storage/SqlitePlayHistory.h
     src/features/home/PlayHistoryController.cpp
@@ -60,6 +63,8 @@ add_library(trainer_core STATIC
     src/integrations/achievements/AchievementProvider.h
     src/integrations/achievements/MockAchievementProvider.cpp
     src/features/halloffame/HallOfFameController.h
+    src/features/halloffame/ArchiveEditor.h
+    src/features/halloffame/ArchiveEditor.cpp
     src/features/halloffame/HallOfFameController.cpp
     src/core/repository/MockLibraryRepository.cpp
     src/core/repository/LibraryRepository.h
@@ -110,6 +115,7 @@ qt_add_qml_module(traineros
         src/qml/HomePage.qml
         src/qml/AdventureButton.qml
         src/qml/HallOfFamePage.qml
+        src/qml/ArchiveEditorPanel.qml
         src/qml/ControllerList.qml
         src/qml/ContinueDrawer.qml
         src/qml/SystemPanel.qml
@@ -126,6 +132,9 @@ qt_add_qml_module(traineros
 )
 
 if(BUILD_TESTING)
+    qt_add_executable(trainer_archive_tests tests/ArchiveTests.cpp)
+    target_link_libraries(trainer_archive_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME archive COMMAND trainer_archive_tests)
     qt_add_executable(trainer_retroarch_resume_tests tests/RetroArchResumeTests.cpp)
     target_link_libraries(trainer_retroarch_resume_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME retroarch_resume COMMAND trainer_retroarch_resume_tests)

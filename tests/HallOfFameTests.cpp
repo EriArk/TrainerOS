@@ -7,8 +7,8 @@ namespace {
 class MutableArchive : public HallOfFameRepository {
 public:
     MockHallOfFameRepository sample;
-    ArchiveResult value = sample.load();
-    ArchiveResult load() override { return value; }
+    ArchiveResult value = sample.loadArchive();
+    ArchiveResult loadArchive() const override { return value; }
 };
 class StaleProvider : public AchievementProvider {
 public:
@@ -42,7 +42,7 @@ private slots:
         QCOMPARE(hall.team().first().toMap()["name"].toString(), "Typhlosion");
         hall.dispatch(Action::Back); hall.dispatch(Action::Down); hall.activate(1);
         QVERIFY(!hall.team().last().toMap()["level"].toString().contains("0"));
-        QCOMPARE(hall.detail()["source"].toString(), "Imported · sample record");
+        QCOMPARE(hall.detail()["source"].toString(), "Imported record");
         archive.value.entries[1].completedAt = QDateTime::fromString("2026-09-04T12:00:00Z", Qt::ISODate);
         hall.refreshArchive();
         QCOMPARE(hall.rowIndex(), 0);
@@ -64,7 +64,7 @@ private slots:
         QCOMPARE(messages.size(), 1);
         archive.value = {}; hall.refreshArchive();
         QCOMPARE(hall.zone(), "actions");
-        archive.value = archive.sample.load(); hall.activate(0);
+        archive.value = archive.sample.loadArchive(); hall.activate(0);
         QCOMPARE(hall.zone(), "list"); QCOMPARE(hall.rows().size(), 4);
         provider.setAccount({}); achievements(hall);
         QVERIFY(hall.rows().isEmpty());
@@ -158,7 +158,7 @@ private slots:
         QVERIFY(shell.hall()->status().contains("Refreshing"));
         QTRY_VERIFY(shell.hall()->status().contains("sample records"));
         QCOMPARE(shell.home(), home);
-        QCOMPARE(archive.load().entries.size(), 4);
+        QCOMPARE(archive.loadArchive().entries.size(), 4);
         shell.dispatch(Action::Back); shell.dispatch(Action::Back); shell.dispatch(Action::Back);
         QCOMPARE(shell.page(), 4); QCOMPARE(shell.hall()->route(), "sets");
     }

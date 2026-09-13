@@ -13,6 +13,7 @@ SessionState::SessionState(ShellController& shell, LocalStateStore* store, QObje
         if (success) {
             shell_.trainer()->reload();
             shell_.pokedex()->refresh();
+            shell_.hall()->refreshArchive();
             shell_.refreshLibrary(); shell_.settings()->reload();
             shell_.restoreNavigation(store_->navigation());
             committed_ = store_->navigation();

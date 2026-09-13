@@ -14,7 +14,7 @@
 
 namespace trainer {
 namespace {
-constexpr int SchemaVersion = 4;
+constexpr int SchemaVersion = 5;
 QString failedWrite() { return "Couldn't save changes. Check free space or storage access, then try again."; }
 struct LoadedState {
     QString error;
@@ -23,6 +23,7 @@ struct LoadedState {
     QJsonObject navigation;
     LibrarySnapshot library;
     PlayHistorySnapshot history;
+    QList<HallOfFameEntry> archive;
 };
 }
 class SqliteWorker final : public QObject {
@@ -115,6 +116,17 @@ public:
                     if (!openError.isEmpty()) db.rollback();
                 }
             }
+            if (openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next())) openError = failedWrite();
+            if (openError.isEmpty() && query.value(0).toInt() < 5) {
+                query.finish();
+                if (!db.transaction()) openError = failedWrite();
+                else {
+                    openError = migrateHallOfFame(db);
+                    if (openError.isEmpty() && !query.exec("PRAGMA user_version=5")) openError = failedWrite();
+                    if (openError.isEmpty() && !db.commit()) openError = failedWrite();
+                    if (!openError.isEmpty()) db.rollback();
+                }
+            }
             if (openError.isEmpty() && (!query.exec("PRAGMA quick_check") || !query.next() || query.value(0).toString() != "ok"))
                 openError = "Your data needs recovery. The existing file has been kept.";
             if (openError.isEmpty() && !query.exec("PRAGMA synchronous=FULL")) openError = failedWrite();
@@ -153,7 +165,13 @@ public:
         openError = interruptOpenSessions(db);
         if (openError.isEmpty()) { state.history = readPlayHistory(db); openError = state.history.error; }
         if (!openError.isEmpty()) return fail(openError);
+        const auto archive = readHallOfFame(db);
+        if (!archive.success) return fail(archive.error);
+        state.archive = archive.entries;
         return state;
+    }
+    ArchiveWriteResult memory(const HallOfFameEntry& entry, ArchiveResult& snapshot) {
+        return writeHallOfFame(db, entry, snapshot);
     }
     QString profile(const TrainerProfile& profile) {
         if (!db.transaction()) return failedWrite();
@@ -224,7 +242,7 @@ void LocalStateStore::open() {
             if (ready_) {
                 profile_ = state.profile; favorites_ = state.favorites; navigation_ = state.navigation;
                 worlds_ = state.library.worlds; registrations_ = state.library.registrations; preferences_ = state.library.preferences;
-                history_ = state.history;
+                history_ = state.history; archive_ = state.archive;
             }
             emit opened(ready_);
         }, Qt::QueuedConnection);
@@ -320,6 +338,16 @@ void LocalStateStore::saveSessionAsync(const PlaySession& value, QObject* contex
         if (error.isEmpty()) { history_ = *snapshot; emit libraryChanged(); }
         else emit userWriteFailed();
         if (guard) completed(error);
+    });
+}
+void LocalStateStore::saveArchiveAsync(const HallOfFameEntry& entry, QObject* context, std::function<void(ArchiveWriteResult)> completed) {
+    auto result = std::make_shared<ArchiveWriteResult>();
+    auto snapshot = std::make_shared<ArchiveResult>();
+    write([entry, result, snapshot](SqliteWorker& worker) { *result = worker.memory(entry, *snapshot); return result->error; },
+          [this, result, snapshot, guard = QPointer<QObject>(context), completed](const QString& error) {
+        if (error.isEmpty()) archive_ = snapshot->entries;
+        else emit userWriteFailed();
+        if (guard) completed({error.isEmpty(), error, result->revision});
     });
 }
 void LocalStateStore::savePreferences(const ShellPreferences& value, QObject* context, std::function<void(QString)> completed) {

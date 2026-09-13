@@ -5,6 +5,7 @@
 #include "core/repository/PreferencesRepository.h"
 #include "core/repository/PlayHistoryRepository.h"
 #include "SqlitePlayHistory.h"
+#include "SqliteHallOfFame.h"
 #include <QJsonObject>
 #include <QSet>
 #include <QThread>
@@ -14,7 +15,7 @@ class SqliteWorker;
 // The UI thread owns committed projections; the worker exclusively owns SQLite.
 // No sample library, Seen/Caught values or achievement unlocks enter this store.
 class LocalStateStore final : public QObject, public TrainerRepository, public PokedexProgressRepository,
-                              public LibraryRepository, public PreferencesRepository, public PlayHistoryRepository {
+                              public LibraryRepository, public PreferencesRepository, public PlayHistoryRepository, public HallOfFameRepository {
     Q_OBJECT
 public:
     explicit LocalStateStore(QString directory, QObject* parent = nullptr, QString scope = "user-library-v1");
@@ -41,6 +42,9 @@ public:
     std::optional<AdventureRegistration> registration(const QString&) const override;
     void saveAdventureAsync(const AdventureRegistration&, QObject*, std::function<void(LibraryWriteResult)>) override;
     ShellPreferences preferences() const override { return preferences_; }
+    ArchiveResult loadArchive() const override { return {ready_, archive_, ready_ ? QString() : error_}; }
+    bool archiveEditable() const override { return true; }
+    void saveArchiveAsync(const HallOfFameEntry&, QObject*, std::function<void(ArchiveWriteResult)>) override;
     void savePreferences(const ShellPreferences&, QObject*, std::function<void(QString)>) override;
 signals:
     void opened(bool success);
@@ -62,5 +66,6 @@ private:
     QList<AdventureRegistration> registrations_;
     ShellPreferences preferences_;
     PlayHistorySnapshot history_;
+    QList<HallOfFameEntry> archive_;
 };
 }

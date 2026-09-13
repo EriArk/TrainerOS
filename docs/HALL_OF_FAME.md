@@ -1,0 +1,36 @@
+# Hall of Fame
+
+The local archive is a journal of completed Adventures. Entries are explicit trainer memories, independent of the current game save and of RetroAchievements. Normal runs start with an empty personal archive; sample memories and unlocks are limited to the ephemeral/test composition.
+
+## Controller flow
+
+In Archive, **Y creates a memory** and **X edits the selected memory**, from either list or detail. The attached editor contains Adventure, completion date, playtime, note and champion team. A edits the focused field; Y saves the main form; B discards an unsubmitted draft. L1/R1 retain global page navigation and discard the transient editor. A submitted write finishes even if the page changes.
+
+The Adventure picker contains owned library entries, including ROM hacks, with World and edition labels. X opens shared-keyboard search; left/right jump eight items; up/down move one item. Catalogue entries without an attached file cannot be archived as owned Adventures. An empty picker retains a visible Back action.
+
+The team panel has six controller cells. A edits a name; X edits its level; B returns to the main form. Names allow 24 characters, levels 1–100. Clearing a name clears its optional level. Nicknames and fan-game creatures are allowed; they do not assert Pokédex ownership.
+
+Completion date input uses eight numeric digits, YYYYMMDD, so it works with the existing number block. Display uses YYYY-MM-DD. Blank means unknown; today's date is not assumed. Playtime is optional manual minutes, 0–999999. Notes allow one line of 160 characters. This time is separate from observed process duration on Home.
+
+## Persistence and ownership
+
+`ArchiveEditor` owns transient drafts and consumes repository/library contracts. `HallOfFameController` owns archive presentation; QML has no SQLite or emulator commands. `LocalStateStore` implements `HallOfFameRepository` with an asynchronous worker and committed projections. `loadArchive()` keeps its API distinct from Trainer profile loading.
+
+Schema 5 adds `hall_of_fame` transactionally, without creating memories. Entries store a stable ID, Adventure ID, historical title/World, optional UTC date and manual duration, six optional members, note, source and revision. New memories resolve title/World from the actual library. Editing the same Adventure preserves historical labels; explicitly choosing a different Adventure resolves its labels. Archive records have no cascading deletion relationship to library entries.
+
+Create/edit and reading the resulting projection share one transaction. Updates compare the read revision. Stale writes fail visibly; storage errors preserve the draft for retry. Saves, states and game progress are untouched. Memories do not mark a current Adventure complete or infer badges, seen/caught totals or unlocks.
+
+## Achievement boundary
+
+RetroAchievements stays inside Hall of Fame. The normal composition currently shows an honest disconnected state. Real account authentication, verified game/set association and cached network refresh are the next integration increment. Local memories work offline without that integration.
+
+## Acceptance
+
+- Database migration/reopen preserves memory identity, unknown fields, team and edits.
+- Stale revisions, absent Adventures, invalid members and locked writes preserve committed memories.
+- Renaming an Adventure does not rewrite existing historical labels.
+- Controller events exercise create, picker/search, text entry, numeric input, team editing, Save, Cancel, global page changes and focus restoration.
+- Empty/loading/error states retain usable controls; saved values appear only after successful storage completion.
+- Rendered checks cover the landscape composition; device verification and platform test results accompany delivery.
+
+2026-09-13 delivery checks: Windows 21/21 (102.20 s), Ubuntu 21/21 (92.65 s), ARM64 21/21 (99.40 s), followed by affected checks for the final date-only presentation. On Flip, injected OS controller chords created a memory from the real library, entered name/level/note, saved it, reopened the app and edited the persisted record. The test memory was backed up and removed, restoring the previously empty personal archive. The production binary and pre-migration database were backed up before installation; all 686 library records survived migration. Physical comfort feedback remains with the owner. GitHub Actions currently cannot start jobs because of account billing, independently of these successful builds.

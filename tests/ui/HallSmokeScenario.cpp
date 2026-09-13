@@ -41,6 +41,7 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         constexpr auto left = SDL_CONTROLLER_BUTTON_DPAD_LEFT, right = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
         constexpr auto l1 = SDL_CONTROLLER_BUTTON_LEFTSHOULDER, r1 = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER;
         constexpr auto start = SDL_CONTROLLER_BUTTON_START;
+        constexpr auto x = SDL_CONTROLLER_BUTTON_X, y = SDL_CONTROLLER_BUTTON_Y;
         auto* hall = shell.hall();
         switch ((*stage)++) {
         case 0: check(input.connected(), "Controller unavailable"); press(r1, 4); break;
@@ -120,8 +121,40 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
             check(focusIs("hall-row-crystal-champion"), "Archive retry restores list focus");
             archive.failNextLoad(); press(down, 4); press(a); break;
         case 39: check(focusIs("notice-close"), "Failed archive refresh reports error"); capture("archive-error"); press(b); break;
-        default:
+        case 40:
             check(hall->rows().size() == 4 && focusIs("hall-row-crystal-undated"), "Failed archive refresh keeps data and selection");
+            press(y); break;
+        case 41:
+            check(focusIs("memory-field-0") && hall->editor()->isOpen(), "Y opens a new memory with deterministic focus");
+            capture("new-memory");press(a);break;
+        case 42:
+            check(hall->editor()->route()=="adventures", "Adventure picker opens");capture("memory-adventures");press(a);press(down,2);press(right);press(a);break;
+        case 43:
+            check(hall->editor()->route()=="team" && focusIs("memory-field-0"), "Team is a controller grid");capture("memory-team");
+            press(a);press(a);press(down,3);press(right);press(a);break;
+        case 44:
+            check(hall->editor()->fields().first().toMap()["value"]=="A", "Team name entered using controller keyboard");
+            press(x);capture("memory-level-keyboard");press(right,10);press(a);press(left);press(down,3);press(a);break;
+        case 45:
+            check(hall->editor()->fields().first().toMap()["subtitle"]=="Lv 1", "Numeric block entered team level");
+            capture("memory-team-entered");press(b);press(left);press(a);press(a);press(down,3);press(right);press(a);press(y);break;
+        case 46:
+            check(!hall->editor()->isOpen() && hall->rows().size()==5, "Y commits memory and closes editor");
+            check(hall->detail()["description"]=="A" && hall->team().first().toMap()["name"]=="A", "Saved note and team displayed");
+            capture("manual-memory");press(x);break;
+        case 47:
+            check(hall->editor()->isOpen(), "X edits selected memory");capture("edit-memory");press(a);press(x);break;
+        case 48:
+            check(shell.keyboard()->isOpen(), "Picker search uses shared keyboard");press(a);press(down,3);press(right);press(a);break;
+        case 49:
+            check(hall->editor()->query()=="A", "Search applied through controller");capture("memory-search");press(b);press(l1);break;
+        case 50:
+            check(shell.page()==3 && !hall->editor()->isOpen(), "L1 closes transient editor and remains global");press(r1);break;
+        case 51:
+            check(hall->rows().size()==5 && focusIs("hall-action-0"), "Archive detail restores focus after leaving editor");
+            press(x);press(down,2);press(a);press(a);press(b);press(b);break;
+        default:
+            check(!hall->editor()->isOpen() && hall->detail()["description"]=="A", "Cancelling keyboard and draft preserves committed note");
             check(warnings == 0, "QML warnings emitted");
             completed = true; timer->stop();
             if (!screenshotDir.isEmpty()) {

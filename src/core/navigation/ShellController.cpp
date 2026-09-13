@@ -12,6 +12,10 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this),
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
       libraryManager_(repo, nullptr, this), settings_(this), diagnostics_(this) {
+    hall_.editor()->setLibrary(&repo);
+    connect(hall_.editor(), &ArchiveEditor::textRequested, this, [this](const QString& title, const QString& initial, int limit) {
+        textTarget_ = TextTarget::Archive; keyboard_.begin(title, initial, limit);
+    });
     connect(&diagnostics_, &DiagnosticsController::closeRequested, this, [this] { service_.clear(); menuOpen_ = true; emit changed(); });
     connect(&diagnostics_, &DiagnosticsController::messageRequested, this, [this](const QString& text) {
         if (service_ != "diagnostics" || menuOpen_) { notice_ = text; emit changed(); }
@@ -69,6 +73,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::PokedexSearch) pokedex_.applySearch(text);
         else if (target == TextTarget::WorldsSearch) worlds_.applySearch(text);
         else if (target == TextTarget::Library) libraryManager_.applyText(text);
+        else if (target == TextTarget::Archive) hall_.editor()->applyText(text);
     });
     refreshContinue();
 }
@@ -231,6 +236,7 @@ void ShellController::goToPage(int page) {
     keyboard_.cancel();
     textTarget_ = TextTarget::None;
     pokedex_.cancelTransient();
+    hall_.editor()->cancel();
     trainer_.cancel();
     libraryManager_.close(); service_.clear();
     page_ = std::clamp(page, 0, 4); // No wrapping until physical-device testing.
