@@ -29,9 +29,26 @@ Module documents contain dated evidence and exact limits. Existing Windows/Linux
 - **Sleep is outside this queue.** Do not enable suspend or reopen wake trials as a session-migration side effect. A new black screen remains a fault to diagnose, not proof of sleep.
 - **System cleanup is separate from ROM cleanup:** remove verified unnecessary software/background work to reclaim space and reduce idle load, using a dependency audit and reversible batches. Do not confuse fewer session entries with fewer installed bytes or processes.
 
-## Next execution queue
+## Unified execution order — existing work and new issues
 
-Numbers express default priority, not artificial dependencies between independent modules. Finish and deliver each bounded increment. If a card/device/account interaction is unavailable, prepare fixtures/contracts and advance an independent ready step, recording the outstanding gate.
+The first replan compressed prior unfinished work into six broad bullets. This follow-up restores explicit acceptance and execution slots. **New issues extend the existing backlog; they do not replace it.** The U identifiers refer to the carried-forward register below; steps 1–10 retain their detailed new-issue descriptions and existing links.
+
+| Order | Work to finish together | Dependency / exit condition |
+| --- | --- | --- |
+| First | Existing-device gaps U1–U3: reliability evidence, melonDS backup activation and RA production read/cache checks | Reconcile delivered evidence first; perform only missing checks. Diagnose an active freeze before large transfers or destructive work. These are bounded checks, not a restart of completed modules. |
+| Collection | Steps 1–2 plus U4: private archive inventory, missing transfers, names/Worlds, exact variants and cleanup | Audit source/destination manifests before changing content; preserve personal/save identity and the broad reference catalogue. |
+| Existing play paths | U5: DS pointer comfort, Wii failure and actual controller launch/return coverage | Finish or document the specific unsupported title/configuration; an unrelated blocked title need not stop independent UI work. |
+| Adventure presentation | Steps 3–4 plus U6's existing thumbnail/provenance checks | Shared media → Worlds → Home. Finish controller moment/backup maintenance as its own subsequent increment, never implicit ROM/cache pruning. |
+| Achievements | Step 5 plus U3/U7 | Existing account/read evidence → global ownership/migration → real earning → additional verified matching formats. No repeated login just to satisfy an old pending note. |
+| Personal collection | Steps 6–7 plus U9's derived journal/Trainer/Home views | Species artwork and useful manual Caught first; save-derived observations require the appropriate reader and provenance. |
+| Save enrichment and services | U8–U9, then step 8 for the first proven title | Verify ordinary-save access/backups → read party/money/progress → expose honest Home data → optional guarded healing. New DS/GameCube readers proceed separately; healing does not wait for every platform. |
+| More playable Adventures | U10, one runtime/adapter at a time | Launch/input/return first; save backup, exact resume and progress are independent later capabilities. |
+| System delivery | U11's install/update/rollback foundation, then steps 9–10 | Preserve a recoverable installed build and manifests before Mobile/Desktop/Steam changes or software cleanup. Final clean-install acceptance follows the selected supported session setup. |
+| Release polish | U12 and final U11 acceptance | Measure startup/idle/frame pacing, finish controller configuration and verify install/update/recovery on Flip. Already delivered themes/reduced motion are preserved. |
+
+This is the default order, not an artificial dependency between unrelated features. Finish and deliver each bounded increment. If a required device/card interaction is unavailable, prepare its fixture/contract work, record the exact gate and advance an independent ready item. U13 sleep remains explicitly deferred, not a silent release claim or a blocker for all development. Optional ideas below do not become prerequisites.
+
+## Detailed new-issue increments
 
 ### 1. Audit the personal collection and identity ownership
 
@@ -127,7 +144,7 @@ The writer must refuse a live/uncertain emulator writer; validate stable source;
 
 Issue: [#11](https://github.com/EriArk/TrainerOS/issues/11), extended by **Plasma Mobile only if viable**. Independent platform work; it does not require healing/artwork. Reinspect the actual Armada build and recovery access before implementation.
 
-1. **Mobile trial:** packages/session entries already exist on Flip (read-only check 2026-09-13). Validate landscape/scale, usable input/text entry, network/files/terminal/package tools, privileged recovery launcher, return to TrainerOS, reboot and shell-failure recovery. Keep working Desktop during the trial; package presence is not acceptance.
+1. **Mobile acceptance:** packages/session entries exist on Flip; [session evidence](SESSION_PROTOTYPE.md) already records Armada's Desktop choice as Mobile. Reuse proven transitions and verify the missing landscape/scale, input/text entry, network/files/terminal/package tools and privileged recovery-launcher gates. Preserve the working recovery route while checking reboot/failure behavior for the final consolidated setup. Package presence alone is not acceptance; neither should an existing successful Mobile transition be reset to “never tested”.
 2. **Maintenance replacement:** after success, choose Mobile as maintenance and retire ordinary Desktop session/components only as supported by Armada's image/update model. Preserve shared KDE/KWin/Qt dependencies and SSH rollback. If Desktop-only packages cannot be removed safely from the immutable base, record the limit; hiding a session does not reclaim package space.
 3. **Steam removal/restore:** inspect a bounded versioned manifest of managed package refs, session entries, services and configuration. Build a narrow root-owned restore helper, visible **Restore Steam Gaming Mode** application entry in the selected Plasma environment, and CLI recovery. Prove idempotence, interrupted recovery and refusal of distro drift in fixtures. Preserve personal Steam libraries, compatdata and saves.
 4. **Physical round trip:** remove Steam → reboot/use TrainerOS and maintenance → restore Steam → boot Steam → remove again. Verify direct RetroArch/melonDS/Dolphin launch/return and fallback throughout. Change mode UI/supervisor assumptions only with the corresponding platform capability.
@@ -146,14 +163,101 @@ Source: the owner's follow-up request on 2026-09-13. The read-only audit can sta
 
 **Done when:** each removed/disabled item has recorded rationale and a working rollback; reboot, TrainerOS, the chosen Plasma maintenance shell, SSH recovery, networking/audio/controller input and representative emulator launch/return still work. Report measured space/load changes and unresolved candidates. This is targeted maintenance, not a distro rebuild, blanket service shutdown or sleep-policy change.
 
-## Remaining work outside the new issue queue
+## Existing work carried forward
 
-- **Adapter coverage:** validate desired titles, DS pointer comfort and the unresolved Wii title; extend 3DS/Wii U/Switch only with a supported runtime. Add backup/exact resume one adapter/format at a time. Installed software does not establish compatibility.
-- **Further progress:** separate verified DS/GameCube/other readers; party/location, per-species observations and individual Caught history only with source evidence. No universal ROM-hack parser, reconstructed story history or fake automatic Hall entries.
-- **Install/update delivery:** reproducible ARM64 package, dependency/version policy, installer/migrations, durable atomic update and rollback across reboot. Development deployment is not a finished end-user installer; step 9 manifests must survive supported Armada updates.
-- **Device polish:** measure startup/idle/frame pacing and long-list/media behavior on the actual 5.5-inch landscape screen; preserve themes/reduced motion and add controller remapping on the shared input foundation. Sleep/hinge/wake remains separate and unverified.
-- **Later optional ideas:** multiple Trainer profiles, richer timeline/shiny history, local milestones, optional cloud sync, atmosphere/theme packs and restrained notifications. None becomes a normal-play prerequisite.
-- **Custom Armada image:** consider only when mature package/session installation proves insufficient. Hardware modification remains out of scope.
+This register reconciles the former milestones 4–14 with current module documents. **Open** means a specific implementation or acceptance remains; **evidence review** means an old pending statement must be checked against the delivered build before repeating work. No item is declared complete merely because its first adapter/provider exists. The unified order above gives each commitment a place alongside the new issues.
+
+### U1. Device reliability and durable installation — open investigation
+
+Source: [device baseline](ARMADA_DEVICE_BASELINE.md), [session recovery](SESSION_PROTOTYPE.md), former milestones 4/10/11/14.
+
+The earlier simultaneous internal-storage/microSD I/O stall has no proven root cause. Existing boot, crash survival and fallback tests remain valid evidence; they do not diagnose that stall. Before heavy transfer/cleanup, check the current installation's storage/journal health and preserve relevant fault evidence. If the failure recurs, distinguish I/O blockage, compositor failure, display-off and sleep without forcing a reproduction that risks user saves. Fix and verify a demonstrated cause, or record the remaining unknown and the conditions observed; do not mark an intermittent fault solved after a successful reboot. Durable installation and readable recovery must be retained through every update. Sleep work is U13, not an explanation by default.
+
+### U2. Finish the existing DS save-backup increment — device gate open
+
+Source: [DS cartridge saves](SAVE_BACKUPS.md#ds-cartridge-saves), former milestone 9.
+
+The melonDS resolver and fixtures exist, but the module explicitly leaves real profile activation/save-path confirmation pending. Inspect the actual melonDS configuration, opt in only when supported, and prove the cartridge's ordinary save is the file selected by the service. Create a copy, restore with a verified protection copy, undo, and independently check bytes and in-game load; include externally running-emulator refusal and Home's selected-moment reset. Preserve the original save throughout. This closes a partly implemented module before expanding backup coverage; it is not DS exact-state resume.
+
+### U3. Reconcile RetroAchievements production read/cache acceptance — evidence review
+
+Source: [RA acceptance](RETROACHIEVEMENTS.md#acceptance), former milestone 7.
+
+The provider, sign-in and account cache are implemented, while that document retains an earlier deployment/read-rendering gate. Match the installed revision to the evidence and run only missing checks: recognized owned Adventure → real set/unlocks in Hall → refresh → offline/restart cache, with correct account/source labels. Preserve the existing valid login and local memories. Record the result in the module document. Earning remains step 5's separate real-game check; an account login or downloaded complete save does not close it.
+
+### U4. Complete archive/catalogue reconciliation and presentation metadata — open audit
+
+Source: [collection catalogue](COLLECTION_CATALOGUE.md), [transfer incident](ARMADA_DEVICE_BASELINE.md), former milestone 5 and the owner's collection/archive requests.
+
+Reconcile all previously selected source archives, the separate crossover transfer and the current destination/private manifests. A historic 686-record count is not proof that every requested file or later archive arrived. Record verified present, missing, duplicate, intentionally excluded and needs-review entries; finish only the missing authorized imports when storage is healthy. Verify hashes, not just copied filenames.
+
+Review display titles, edition/revision/language labels, catalogue matches, primary/additional Worlds and ROM-hack versions without changing identity by name. Unknown hack geography stays unknown/Fan Worlds. Add sourced catalogue omissions only with a plausible Flip runtime, preserving grey linkable records and excluding closed online-only content. Pair this with steps 1–2 so cleanup does not reimport removed duplicates or silently omit meaningful versions. Acceptance includes a coherent private source/destination report and controller search/link/launch checks for affected records.
+
+### U5. Complete current launch/controller compatibility checks — open per title
+
+Source: [standalone adapters](STANDALONE_ADAPTERS.md#acceptance-and-current-boundaries), former milestones 5/12.
+
+Diamond/Colosseum and PokéPark launch checks do not prove long-play or all-input compatibility. Check DS right-stick pointer/R2 comfort and required touch interactions on Flip. Investigate PokéPark 2's recorded initial black screen and validate the actual Wii controller profile, or preserve a specific unsupported-state explanation. Maintain a small title/runtime/configuration result matrix covering launch, usable input, save creation and clean controller return. Retain tested behavior for existing RetroArch/melonDS/Dolphin paths; no full-collection compatibility claim from one successful title.
+
+### U6. Continue and saved-moment maintenance — open extension
+
+Source: [Home/history](HOME_AND_HISTORY.md), [resume limits](RETROARCH_RESUME.md), [backup shelf limits](SAVE_BACKUPS.md), former milestones 6/9/12.
+
+Preserve current GBA exact resume, source/revision-bound thumbnails, cancellation and explicit normal-launch fallback. First add useful controller maintenance for growing moment/backup shelves: inspect identity/size, handle missing or stale references, and explicitly archive/remove selected TrainerOS-managed artifacts with a recovery path. Full shelves and failed-preparation leftovers must not require guessing which directories are disposable. Distinguish metadata removal, generated cache and external save/state deletion; retain ordinary saves and unrelated history. ROM cleanup and generic software cleanup cannot perform this work implicitly.
+
+Add another core/adapter's saved-moment or backup capability only after its format, ownership, screenshot association and launch-time validation are proven. The installed melonDS CLI does not currently establish an exact-resume entry path; do not promise one. A one-off removal of empty test-history cards is not a shipped global filter hiding playable Adventures without states. Global Continue access from #9 remains deferred until its local shortcuts and select-for-Home behavior are redesigned.
+
+### U7. Broader RetroAchievements content matching — open capability work
+
+Source: [verified matching](RETROACHIEVEMENTS.md#verified-matching-boundary), former milestone 7.
+
+Current whole-file cartridge matching covers GB/GBC/GBA/Pokémon Mini; DS, disc/container and other schemes are not equivalent MD5 cases. After account ownership is unified, choose the next desired format that RA actually supports, verify its authoritative hash rules and test recognized/unrecognized/changed content before publishing a link. Already-patched hacks and soft patches need explicit treatment; titles or artwork are not match evidence. Keep unknown dates/modes honest and cache identities isolated. Unsupported platforms remain unavailable without blocking local Hall history.
+
+### U8. Expand ordinary-save access and progress readers — open per provider
+
+Source: [save services](SAVE_BACKUPS.md), [game progress](GAME_PROGRESS.md), former milestones 9/12/13.
+
+For DS, finish U2 before building on that resolver; independent Gen III reading need not wait on a blocked DS device check. Expand protected ordinary-save access one format at a time, including other desired RetroArch cores (with RTC distinctions where relevant) and Dolphin memory-card/per-game formats only after independent verification. No catch-all copy of guessed save directories.
+
+The first automatic reader supports only exact English FireRed/Emerald builds. Continue the read-only Gen III module with verified party/HP/PP/status and currency before step 8 healing; expose supported party data on Home rather than making it useful only inside a paid service. Add location or other desired progress fields only where their meaning is established. Diamond/DS and Colosseum/GameCube reading are separate next providers after reliable save resolution and format proof; an imported save is not evidence that its parser exists. ROM hacks need exact tested profiles and retain unknown fields otherwise. Validate zero/unknown, save rollback/replacement, checksum failure and refresh after return against in-game values, without modifying source bytes.
+
+### U9. Connect proven progress to personal views — open after source prerequisites
+
+Source: [Trainer overview](TRAINER_OVERVIEW.md), [Pokédex journal](POKEDEX.md), [Hall archive](HALL_OF_FAME.md), [ownership contract](DATA_MODEL.md#ownership-contract--2026-09-13), former milestones 7/8/13.
+
+Finish useful manual Caught in step 7 before save-derived collection history. Then import only actual species/form observations supplied by U8's verified reader, with source/save-lineage/revision and rollback/dedup semantics. Current badge/caught totals are insufficient to identify an individual Pokémon or its catch event. Derived Home/Trainer/World summaries must distinguish manual collection, current-save progress, actual observed visits/playtime and explicit completion memories; represented library Worlds are not visited regions.
+
+Recently observed/caught activity, teams, game-save playtime and Hall-of-Fame suggestions can follow when the source proves their fields. Keep observation time distinct from catch/victory time; a suggestion does not automatically complete an Adventure or award an RA achievement. Reuse reference/artwork and existing journal/archive editing, preserving manual records through import, rollback and restart. Richer individual/shiny timelines remain conditional on provenance rather than a prerequisite for useful manual views.
+
+### U10. Additional Adventure adapters — open, one complete runtime path at a time
+
+Source: [standalone adapters](STANDALONE_ADAPTERS.md), [catalogue runtime limits](COLLECTION_CATALOGUE.md), former milestone 12.
+
+After current launch gaps, the default next adapter is the installed Azahar/3DS path, then Cemu/Wii U, subject to actual supported titles and runtime checks. Verify installed version, launch arguments, content requirements, physical controls, display, process exit/recovery and return before enabling any capability. Switch, PC/Pico and Android/Waydroid catalogue entries need an independently viable runtime/input route; do not enable them merely because the reference includes them. Do not initialize every runtime or build every adapter at once. For each supported integration, ordinary launch can ship before separately proven save backup, exact resume, achievements or progress.
+
+### U11. Reproducible installation, updates and recovery — open deliverable
+
+Source: [device build/installation](ARMADA_DEVICE_BASELINE.md#native-build-and-installation), [session install/rollback](SESSION_PROTOTYPE.md), former milestones 10/11/14.
+
+Turn the development deployment into a repeatable ARM64 application/session install with a documented runtime/version policy and no dependency on private workstation scripts. Implement versioned migration, durable atomic installation, interrupted-update recovery, previous-release rollback and preservation of the personal database/external content. Verify installed bytes after reboot; a write/read through cache alone previously failed to prove durability. Prepare the minimal rollback foundation before steps 9–10 and preserve their managed manifests across supported Armada updates.
+
+Final acceptance is clean install/reinstall, upgrade, interrupted upgrade, rollback, reboot into TrainerOS and maintenance recovery without development tools or losing personal records/saves. Retain normal app mode for diagnosis. Native ARM compilation and a session launcher already exist; they do not close the complete installation/update deliverable.
+
+### U12. Controller configuration and measured handheld polish — open extension
+
+Source: [controller/navigation](UX_NAVIGATION.md), [design](DESIGN_LANGUAGE.md), [device diagnostics](DEVICE_DIAGNOSTICS.md), former milestones 4/11/14.
+
+Measure cold start/first frame, normal idle CPU/RAM, launch/return latency and frame pacing under realistic library/artwork load. Finish a controller-remapping/calibration surface on the central input service, preserving reserved global actions and deterministic focus; test repeat/dead zones and hotplug/foreground recovery with physical input. Check font size, viewport, filter/keyboard/modal usability and all themes on the actual 5.5-inch landscape screen. Decide optional page wrapping through explicit UX validation rather than silently changing it. The existing palette themes and reduced-motion option are delivered and get regression checks, not rebuilt. Startup appearance and atmosphere polish follow measured functional needs; no unsupported claim of improved battery life from a short idle test.
+
+### U13. Sleep/hinge/wake — explicitly deferred
+
+Source: [device investigation](ARMADA_DEVICE_BASELINE.md), [play-session time semantics](HOME_AND_HISTORY.md#recording-and-storage), former milestones 4/11/14.
+
+Keep the current no-sleep policy. When the owner resumes this work, validate the actual native/fake suspend and lid/power paths on the installed Armada build, input/display recovery, active Adventure return, battery/AC behavior and sleep-aware recorded-duration semantics. This task has not been removed or completed; it is deliberately outside the active execution order. Session/software cleanup must preserve that boundary.
+
+## Optional later ideas — retained, not current delivery requirements
+
+Multiple Trainer profiles, richer timeline/shiny history, local milestones, optional cloud sync, additional theme/World-atmosphere packs and restrained notifications remain on the product backlog. Reference-provider alternatives/custom species remain replaceable extensions rather than fabricated official data. Consider a custom Armada image only after mature package/session installation proves insufficient. Hardware modification remains out of scope.
 
 ## Issue reconciliation
 
@@ -183,13 +287,13 @@ Older module notes use milestones **0–14** from the [previous plan](https://gi
 | Former milestone | Current location / status |
 | --- | --- |
 | 0–3: skeleton/controller/mock/backend | Working baseline; extend only what the active feature needs. |
-| 4: device baseline | ARMADA_DEVICE_BASELINE and later session/device checks supersede early “unverified” notes. |
-| 5–6: Worlds/Home/Continue | Baseline; cleanup/media/per-adapter follow-ups above. |
-| 7: Trainer/Hall | Local modules and real RA reader exist; account/earning is step 5. |
-| 8–9: Pokédex/Center | Offline/manual Dex and GBA backups exist; steps 6–8 extend them. |
-| 10–11: dedicated/default session | Installed/selected; consolidation is step 9, wake remains open. |
-| 12–13: adapters/progress | First additional launch adapters and bounded Gen III reader exist; expand by proven capability. |
-| 14: packaging/polish | Open; themes/reduced motion and initial ARM build already delivered. |
+| 4: device baseline | U1/U12 remaining evidence/performance; U13 deferred wake. Later checks supersede early “unverified” notes. |
+| 5–6: Worlds/Home/Continue | U4–U6 plus steps 1–4; identity, archive completeness, actual launch and moment maintenance remain explicit. |
+| 7: Trainer/Hall | U3/U7/U9 plus step 5; production reads, matching/earning and derived personal views. |
+| 8–9: Pokédex/Center | U2/U6/U8/U9 plus steps 6–8; finish DS backup, add verified formats and source-aware collection/services. |
+| 10–11: dedicated/default session | U1/U11 plus step 9; preserve tested session and finish installation/update recovery. U13 wake is deferred. |
+| 12–13: adapters/progress | U5/U7–U10; concrete per-title launch, content matching, save readers and feature projections. |
+| 14: packaging/polish | U11/U12; themes/reduced motion and initial ARM build already delivered. U13 remains explicitly deferred. |
 
 ## Delivery gate for each increment
 

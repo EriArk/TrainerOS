@@ -49,8 +49,8 @@ Retroid hardware
    │  └─ future adapters
    │
    ├─ Steam Gaming Mode  ← retained until reversible removal is proven
-   ├─ KDE Plasma Desktop  ← verified maintenance / recovery
-   └─ KDE Plasma Mobile  ← installed; replacement trial planned
+   ├─ KDE Plasma Desktop  ← installed maintenance option
+   └─ KDE Plasma Mobile  ← Armada maintenance choice; consolidation planned
 ```
 
 The 2026-09-13 plan intentionally replaces the former permanent three-mode requirement. Plasma Mobile must prove networking, files, terminal/package tools and recovery before ordinary Desktop is retired. Steam removal must preserve personal data and include a tested restore launcher/CLI. Shared KDE components remain where required. These are planned system changes, not changes made by updating this document. See [session consolidation](docs/ARMADA_PLATFORM.md#planned-session-consolidation--2026-09-13).
@@ -223,7 +223,7 @@ Development proceeds **bottom-up in dependency order**:
 
 **native project skeleton → shared interface/controller skeleton → shared backend and persistence → individual functional modules → validated integrations and optional progress enrichment**
 
-The next queue is collection audit/verified cleanup, shared Adventure media for Worlds/Home, global RA accounts/earning, Pokédex artwork/Caught, verified healing, recoverable session consolidation and careful removal of unnecessary software/background work. Each extends the existing foundation; independent work need not wait on an unrelated blocked device gate. Only verified capabilities become product promises. Visuals may be redesigned at every stage.
+The [unified queue](docs/ROADMAP.md#unified-execution-order--existing-work-and-new-issues) combines existing unfinished work with the new issues. First reconcile device, DS backup and RA acceptance gaps; retain archive completeness, current launch fixes, broader adapters/save readers, moment maintenance, derived progress, install/update rollback and controller polish. Add collection cleanup, Adventure media, global accounts, Pokédex artwork/Caught, healing and reversible system cleanup at their dependency points. The [carried-forward register](docs/ROADMAP.md#existing-work-carried-forward) records each remaining result and its evidence; new issues do not reset or displace it. Sleep remains explicitly deferred. Only verified capabilities become product promises, and independent work can proceed around a blocked device gate.
 
 See [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
