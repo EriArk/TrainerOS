@@ -32,18 +32,22 @@ Rectangle {
         const outerRight = s.x + s.width;
         const left = s.x + inset, right = outerRight - inset;
         const top = -12, bottom = s.y + s.height - inset;
-        const radius = Math.max(5, 15 - inset);
+        const radius = Math.max(1, 15 - inset);
         const brandBottom = Theme.tabBaseline + Theme.activeTabOverlap + inset;
         // All contours meet the same vertical key edges. Their bevels turn
         // inward only below those contacts, never underneath a tab face.
         const brandRight = Theme.brandWidth;
-        const rightJoinBottom = root.rightKeyHeight;
+        // An S return has vertical tangents at both ends. The former quarter
+        // arc ended horizontally before a vertical line, making a hooked lip.
+        const rightJoinStart = root.rightKeyHeight - 10;
+        const rightJoinEnd = root.rightKeyHeight + 8;
         const diagonalOffset = inset * (Math.SQRT2 - 1);
         const diagonalTop = Theme.tabBaseline + Theme.activeTabOverlap - Theme.brandBevel + inset * Math.SQRT2;
         const diagonalLeft = Theme.brandWidth - Theme.brandBevel + diagonalOffset;
         return "M " + brandRight + " " + top
-            + " H " + outerRight + " V " + (rightJoinBottom - inset)
-            + " Q " + outerRight + " " + rightJoinBottom + " " + right + " " + rightJoinBottom
+            + " H " + outerRight + " V " + rightJoinStart
+            + " C " + outerRight + " " + (rightJoinStart + 6)
+            + " " + right + " " + (rightJoinEnd - 6) + " " + right + " " + rightJoinEnd
             + " V " + (bottom - radius) + " Q " + right + " " + bottom + " " + (right - radius) + " " + bottom
             + " H " + (left + radius) + " Q " + left + " " + bottom + " " + left + " " + (bottom - radius)
             + " V " + (brandBottom + radius) + " Q " + left + " " + brandBottom + " " + (left + radius) + " " + brandBottom
@@ -79,8 +83,8 @@ Rectangle {
                 y2: Theme.screenBounds.y + Theme.screenBounds.height
                 GradientStop { position: 0; color: Theme.edgeShadow }
                 GradientStop { position: 0.25; color: Theme.chassisDark }
-                GradientStop { position: 0.65; color: Qt.lighter(Theme.chassis, 1.3) }
-                GradientStop { position: 1; color: Theme.edgeLight }
+                GradientStop { position: 0.65; color: Qt.lighter(Theme.chassis, 1.1) }
+                GradientStop { position: 1; color: Theme.chassisTop }
             }
             PathSvg { path: root.aperture(2) }
         }

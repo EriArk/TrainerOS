@@ -7,7 +7,7 @@ Item {
     readonly property bool takesFocus: visible && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     Panel { anchors.fill: parent }
     Item {
-        anchors.fill: parent; anchors.margins: 10
+        anchors.fill: parent; anchors.margins: Theme.panelInset
         PageHeader { y: 6; compact: true; title: "RetroAchievements"; subtitle: root.account.status; multilineStatus: true }
         MountedPanel {
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }

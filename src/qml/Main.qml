@@ -61,12 +61,12 @@ Window {
                     height: Theme.tabBaseline + (shell.page === index ? Theme.activeTabOverlap : 0)
                     Behavior on height { NumberAnimation { duration: Theme.motion(130); easing.type: Easing.OutCubic } }
                     function outline(offset, spread) {
-                        const l = -spread, w = width + spread, h = height + offset;
-                        // The first tab meets the title side directly. Other
-                        // lower corners keep a softened diagonal key profile.
-                        const left = index === 0 ? " H " + (l + 4) + " Q " + l + " " + h + " " + l + " " + (h - 4) + " V " + offset
-                            : " H " + (l + 14) + " Q " + (l + 10) + " " + h + " " + (l + 7) + " " + (h - 3)
-                              + " L " + (l + 3) + " " + (h - 7) + " Q " + l + " " + (h - 10) + " " + l + " " + (h - 14);
+                        // The last key's shadow stops at its joint with the
+                        // sidewall, keeping the chassis edge highlight intact.
+                        const l = -spread, w = width + (index === 4 ? 0 : spread), h = height + offset;
+                        // Home keeps the same softened left diagonal as its peers.
+                        const left = " H " + (l + 14) + " Q " + (l + 10) + " " + h + " " + (l + 7) + " " + (h - 3)
+                            + " L " + (l + 3) + " " + (h - 7) + " Q " + l + " " + (h - 10) + " " + l + " " + (h - 14);
                         return "M " + l + " " + offset + " H " + w + " V " + (h - 17)
                             + " Q " + w + " " + (h - 13) + " " + (w - 3) + " " + (h - 10)
                             + " L " + (w - 10) + " " + (h - 3)
@@ -93,7 +93,7 @@ Window {
                     }
                     Rectangle {
                         visible: index === 0
-                        x: -2; y: 0; width: 2; height: parent.height
+                        x: -2; y: 0; width: 2; height: parent.height - Theme.tabBevel
                         gradient: Gradient {
                             GradientStop { position: 0; color: "#90101e1d" }
                             GradientStop { position: 0.7; color: "#70101e1d" }
@@ -105,7 +105,7 @@ Window {
                         // seam where the final key meets the right sidewall.
                         x: parent.width; y: 0
                         width: index === 4 ? 2 : Theme.tabSpacing
-                        height: index === 4 ? parent.height : Theme.tabBaseline
+                        height: index === 4 ? parent.height - Theme.tabBevel : Theme.tabBaseline
                         gradient: Gradient {
                             GradientStop { position: 0; color: "#a0101e1d" }
                             GradientStop { position: 0.6; color: "#90101e1d" }

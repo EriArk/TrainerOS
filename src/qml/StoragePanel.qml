@@ -14,10 +14,10 @@ Item {
             wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 21
         }
         MountedPanel {
-            anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-            height: 220; color: "#c6dcca"
+            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 9 }
+            height: 211; color: "#c6dcca"
             Column {
-                x: 32; y: 18; spacing: 14
+                x: 23; y: 18; spacing: 14
                 Repeater {
                     model: root.stateController.choices
                     delegate: CapButton {
@@ -32,7 +32,7 @@ Item {
                 }
             }
             Text {
-                x: 32; y: 30; visible: root.stateController.choices.length === 0
+                x: 23; y: 30; visible: root.stateController.choices.length === 0
                 text: "One moment…"; color: Theme.muted; font.pixelSize: 20
             }
         }
