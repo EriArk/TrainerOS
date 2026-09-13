@@ -4,6 +4,8 @@ TrainerOS now targets a native Qt/QML Linux shell on top of ArmadaOS rather than
 
 The roadmap follows the user's confirmed **bottom-up dependency order**: project skeleton, interface/controller skeleton, shared backend, individual modules, then deeper integrations.
 
+Current application checkpoint (2026-09-13): the installed Flip build has verified GBA saved-moment resume, a manual Hall of Fame archive, the offline Pokédex/journal, a local Trainer overview, GBA save backup/restore and live battery status. Module documents contain the latest acceptance results; the initial milestone notes below record earlier checkpoints. Live RetroAchievements account integration remains open. The next device-shell step is building and independently validating the session prototype described in [session preparation](SESSION_PROTOTYPE.md), before changing the default experience.
+
 ## Development model
 
 The first mock exists to prove feel, navigation, focus, motion, information architecture, and screen relationships. It is **not the final visual design**.
@@ -233,6 +235,8 @@ Done when maintenance is safe, clear, modular, and separated from ordinary Adven
 ## Milestone 10 — Dedicated TrainerOS session prototype
 
 Only after normal application mode is stable.
+
+The [installed ArmadaOS session boundary](SESSION_PROTOTYPE.md) has been inspected read-only. Its existing Gamescope client mechanism is a candidate for the prototype; crash recovery, standalone focus/input and official mode-selector coexistence still need implementation and device checks. No TrainerOS session/default-login change has been installed.
 
 Deliverables:
 

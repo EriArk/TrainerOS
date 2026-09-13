@@ -38,6 +38,6 @@ Record observed results, not assumptions:
 - **Performance:** record visible motion stutter, input delays, startup and resume behavior. Desktop/offscreen tests do not establish handheld performance.
 - **Exit:** both the explicit system action and a desktop-window close must return to the existing environment after pending writes finish.
 
-Normal Worlds uses the personal library; Home/Continue and game progress remain empty or unknown until real history/providers exist. Archive records and achievement sets still use labeled samples. Real launch/resume remains unavailable; the original child-process probe is automated test infrastructure only. This visit establishes the platform baseline for the first real Adventure adapter, not emulator or RetroAchievements support.
+This procedure originated with the first mock-only device baseline. The current normal build uses the personal library and real launch history, verified GBA saved moments, a personal archive, the offline Pokédex journal and save backups; unavailable game progress remains unknown. Samples belong to explicit ephemeral/test runs, and live RetroAchievements account integration remains open. See the current [roadmap checkpoint](ROADMAP.md) and module acceptance records when validating a newer build.
 
 If something fails, retain the report, exact command, console output and reproduction steps. Do not change the default session to work around an application problem. Update `ARMADA_PLATFORM.md` only with findings actually observed on the device.
