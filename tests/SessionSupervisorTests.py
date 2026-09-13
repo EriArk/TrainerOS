@@ -90,5 +90,17 @@ class TransitionTests(unittest.TestCase):
                 self.assertFalse(control.consume_transition(42))
 
 
+class ControllerBridgeTests(unittest.TestCase):
+    def test_missing_display_does_not_launch_an_uncontrollable_game(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            marker = Path(temporary) / "started"
+            environment = dict(os.environ, DISPLAY="invalid-display-for-traineros-test")
+            result = subprocess.run([sys.executable, str(ROOT / "packaging/integrations/controller-bridge.py"), "--", sys.executable,
+                                     "-c", "from pathlib import Path;Path(" + repr(str(marker)) + ").write_text('started')"],
+                                    env=environment, capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 2, result.stderr)
+            self.assertFalse(marker.exists())
+
+
 if __name__ == "__main__":
     unittest.main()

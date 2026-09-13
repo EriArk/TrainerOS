@@ -1,5 +1,7 @@
 #include "core/input/ControllerInput.h"
 #include "core/navigation/ShellController.h"
+#include "integrations/adventure/AdapterRouter.h"
+#include "integrations/adventure/standalone/StandaloneAdapter.h"
 #include "core/storage/SessionState.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
@@ -160,10 +162,17 @@ int main(int argc, char* argv[]) {
         const auto retroarchInstallation = personalLibrary && !smoke
             ? RetroArchInstallation::load(QDir(stateDirectory).filePath("integrations/retroarch.json")) : RetroArchInstallation{};
         RetroArchAdapter retroarch(activeLibrary, retroarchInstallation);
+        const auto standaloneInstallation = [&](const QString& id) {
+            return personalLibrary && !smoke
+                ? StandaloneInstallation::load(QDir(stateDirectory).filePath("integrations/" + id + ".json"), id) : StandaloneInstallation{};
+        };
+        StandaloneAdapter melonDs("melonds", activeLibrary, standaloneInstallation("melonds"));
+        StandaloneAdapter dolphin("dolphin", activeLibrary, standaloneInstallation("dolphin"));
+        AdapterRouter adapters({&retroarch, &melonDs, &dolphin});
         RetroArchResumeProvider resumeProvider(activeLibrary, retroarchInstallation);
         QObject::connect(&moments, &ResumeLibraryRepository::scanRequested, &resumeProvider, &RetroArchResumeProvider::refresh);
         QObject::connect(&resumeProvider, &RetroArchResumeProvider::updated, &moments, &ResumeLibraryRepository::publish);
-        if (personalLibrary && !smoke) selectedAdapter = &retroarch;
+        if (personalLibrary && !smoke) selectedAdapter = &adapters;
 #ifdef TRAINEROS_UI_TESTS
         ProbeAdventureAdapter probeAdapter;
         if (persistencePhase == "library-launch" || persistencePhase.startsWith("library-home")) selectedAdapter = &probeAdapter;
@@ -177,7 +186,7 @@ int main(int argc, char* argv[]) {
                               personalLibrary && !smoke ? static_cast<AchievementProvider&>(disconnectedAchievements) : shellAchievements);
         shell.configureServices(&files, store.get());
         if (personalLibrary && !smoke) {
-            shell.libraryManager()->prepareInstallation = [&retroarch](AdventureRegistration& record) { retroarch.prepareInstallation(record); };
+            shell.libraryManager()->prepareInstallation = [&adapters](AdventureRegistration& record) { adapters.prepareInstallation(record); };
             shell.libraryManager()->setInitialFolder(QDir::home().filePath("Emulation/roms"));
         }
         if (store) QObject::connect(store.get(), &LocalStateStore::libraryChanged, &shell, &ShellController::refreshLibrary);
@@ -311,11 +320,14 @@ int main(int argc, char* argv[]) {
             if (!parser.isSet("windowed") && !smoke) window->showFullScreen();
             if (personalLibrary && !smoke) {
                 auto returnFullscreen = std::make_shared<bool>(false);
-                retroarch.requestLaunch = [&, window, returnFullscreen](const ProcessCommand& command, const QString& id) {
+                const auto requestAdventure = [&, window, returnFullscreen](const ProcessCommand& command, const QString& id) {
                     if (session.blocked() || adventureLaunch.active() || (saveBackups && saveBackups->busy())) return false;
                     *returnFullscreen = window->visibility() == QWindow::FullScreen;
                     return adventureLaunch.launch(command, shell.navigationState(), id);
                 };
+                retroarch.requestLaunch = requestAdventure;
+                melonDs.requestLaunch = requestAdventure;
+                dolphin.requestLaunch = requestAdventure;
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::changed, &session, [&] {
                     session.setAdventureActive(adventureLaunch.active());
                     input.setEnabled(app.applicationState() == Qt::ApplicationActive && (!adventureLaunch.active() || adventureLaunch.preparing()));

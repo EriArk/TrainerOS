@@ -11,6 +11,9 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/integrations/adventure/AdapterRouter.h
+    src/integrations/adventure/standalone/StandaloneAdapter.h
+    src/integrations/adventure/standalone/StandaloneAdapter.cpp
     src/platform/device/DeviceService.h
     src/platform/device/DeviceService.cpp
     src/features/device/DeviceController.h
@@ -169,6 +172,10 @@ if(BUILD_TESTING)
     endif()
     qt_add_executable(trainer_power_tests tests/PowerStatusTests.cpp)
     qt_add_executable(trainer_device_tests tests/DeviceTests.cpp)
+    qt_add_executable(trainer_standalone_tests tests/StandaloneTests.cpp)
+    target_link_libraries(trainer_standalone_tests PRIVATE trainer_core Qt6::Test)
+    add_dependencies(trainer_standalone_tests trainer_process_probe)
+    add_test(NAME standalone COMMAND trainer_standalone_tests)
     target_link_libraries(trainer_device_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME device COMMAND trainer_device_tests)
     target_link_libraries(trainer_power_tests PRIVATE trainer_core Qt6::Test)
@@ -265,6 +272,7 @@ include(GNUInstallDirs)
 install(TARGETS traineros RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES data/licenses/PokeAPI.txt DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/traineros/licenses)
 if(UNIX AND NOT APPLE)
+    install(PROGRAMS packaging/integrations/controller-bridge.py DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/traineros)
     configure_file(packaging/linux/org.traineros.TrainerOS.desktop.in
                    org.traineros.TrainerOS.desktop @ONLY)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/org.traineros.TrainerOS.desktop"

@@ -28,6 +28,7 @@ public:
     }
     virtual AdventureResult launch(const Adventure&) = 0;
     virtual AdventureResult resume(const Adventure&, const ResumePoint&) = 0;
+    virtual void prepareInstallation(AdventureRegistration&) const {}
 };
 class UnconfiguredAdventureAdapter final : public AdventureAdapter {
 public:
