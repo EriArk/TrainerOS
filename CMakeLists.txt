@@ -11,6 +11,9 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/core/repository/ResumeLibraryRepository.h
+    src/integrations/adventure/retroarch/RetroArchResume.cpp
+    src/integrations/adventure/retroarch/RetroArchResume.h
     src/core/repository/PlayHistoryRepository.h
     src/core/storage/SqlitePlayHistory.cpp
     src/core/storage/SqlitePlayHistory.h
@@ -111,6 +114,7 @@ qt_add_qml_module(traineros
         src/qml/ContinueDrawer.qml
         src/qml/SystemPanel.qml
         src/qml/StoragePanel.qml
+        src/qml/LaunchPanel.qml
         src/qml/LibraryPanel.qml
         src/qml/SettingsPanel.qml
         src/qml/DiagnosticsPanel.qml
@@ -122,8 +126,12 @@ qt_add_qml_module(traineros
 )
 
 if(BUILD_TESTING)
+    qt_add_executable(trainer_retroarch_resume_tests tests/RetroArchResumeTests.cpp)
+    target_link_libraries(trainer_retroarch_resume_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME retroarch_resume COMMAND trainer_retroarch_resume_tests)
     qt_add_executable(trainer_process_probe tests/ProcessProbe.cpp)
     target_link_libraries(trainer_process_probe PRIVATE Qt6::Core)
+    add_dependencies(trainer_retroarch_resume_tests trainer_process_probe)
     find_package(Qt6 REQUIRED COMPONENTS Test)
     qt_add_executable(trainer_resume_tests tests/ResumeTests.cpp)
     target_link_libraries(trainer_resume_tests PRIVATE trainer_core Qt6::Test)

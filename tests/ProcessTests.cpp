@@ -18,6 +18,42 @@ class ProcessTests final : public QObject {
         );
     }
 private slots:
+    void preparationIsAsyncCancellableAndCannotStartLate() {
+        ProcessService process;
+        QSignalSpy started(&process, &ProcessService::started), done(&process, &ProcessService::finished);
+        auto entered = std::make_shared<std::atomic_bool>(false);
+        ProcessCommand command{probe(), {}, {}};
+        command.prepare = [entered](ProcessCommand&, const std::atomic_bool& cancelled) {
+            *entered = true;
+            while (!cancelled) QThread::msleep(5);
+            return QString();
+        };
+        QVERIFY(process.start(command));
+        QTRY_VERIFY(*entered); QVERIFY(started.isEmpty());
+        process.stop(); QCOMPARE(done.size(), 1);
+        QVERIFY(process.start({probe(), {}, {}})); QTRY_COMPARE(done.size(), 2);
+        QCOMPARE(started.size(), 1); QCOMPARE(done.last()[0].toInt(), 0);
+        QTest::qWait(50); QCOMPARE(started.size(), 1);
+    }
+    void preparationFailureNeverStartsAChild() {
+        ProcessService process;
+        QSignalSpy started(&process, &ProcessService::started), done(&process, &ProcessService::finished);
+        ProcessCommand command{probe(), {}, {}};
+        command.prepare = [](ProcessCommand&, const std::atomic_bool&) { return QString("Selected state changed"); };
+        QVERIFY(process.start(command)); QTRY_COMPARE(done.size(), 1);
+        QVERIFY(started.isEmpty()); QCOMPARE(done.first()[2].toString(), "Selected state changed");
+    }
+    void adapterOutputFailureStopsOnlyItsOwnedChild() {
+        ProcessService process;
+        QSignalSpy done(&process, &ProcessService::finished);
+        ProcessCommand command{probe(), {"output"}, {}};
+        command.inspectOutput = [](const QByteArray& output) {
+            return output.contains("original failure fixture") ? QString("Couldn't restore this moment") : QString();
+        };
+        QVERIFY(process.start(command)); QTRY_COMPARE(done.size(), 1);
+        QCOMPARE(done.first()[2].toString(), "Couldn't restore this moment");
+        QVERIFY(!process.active());
+    }
     void checkpointsBeforeStartingAndRestores() {
         QTemporaryDir dir; LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready());
         ProcessService process; AdventureLaunchController launch(process);

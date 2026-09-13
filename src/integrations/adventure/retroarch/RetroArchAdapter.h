@@ -13,6 +13,9 @@ struct RetroArchInstallation {
     QStringList prefixArguments;
     QString configFile;
     QHash<QString, QString> cores;
+    // Opt-in only after verifying this runtime's entry-state protocol.
+    QString resumeDirectory;
+    QString runtimeFile;
     static RetroArchInstallation load(const QString& filename);
 };
 

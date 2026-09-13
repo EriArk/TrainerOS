@@ -82,14 +82,15 @@ Item {
                             x: 8; y: 7; width: parent.width - 16; height: 60; radius: 6
                             color: Qt.darker(parent.tint, 1.5); clip: true
                             Repeater {
-                                model: 4
+                                model: modelData.preview.length ? 0 : 4
                                 delegate: Rectangle {
                                     required property int index
                                     x: 110 + index * 34; y: 16 + index * 8; width: 85; height: 85
                                     radius: 25; rotation: 45; color: "#60e4edd5"
                                 }
                             }
-                            Text { x: 12; y: 10; width: parent.width - 24; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.world; color: "#fffef9"; font.pixelSize: 18; font.bold: true }
+                            Image { x: parent.width - 96; width: 96; height: parent.height; source: modelData.preview; fillMode: Image.PreserveAspectFit }
+                            Text { x: 12; y: 10; width: parent.width - (modelData.preview.length ? 120 : 24); elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.world; color: "#fffef9"; font.pixelSize: 18; font.bold: true }
                             Text { x: 12; y: 35; text: modelData.previewLabel; color: "#f4f5ec"; font.pixelSize: 11 }
                         }
                         Column {

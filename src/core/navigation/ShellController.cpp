@@ -218,7 +218,8 @@ QVariantList ShellController::resumePoints() const {
         }
         result.append(QVariantMap{{"id", point.id}, {"title", title}, {"world", world},
             {"location", location}, {"summary", summary}, {"previewLabel", point.resumePoint ? resumeLabel(status) : "Recent Adventure"},
-            {"time", point.recordedAt.toLocalTime().toString("dd MMM · HH:mm")}});
+            {"time", point.recordedAt.toLocalTime().toString("dd MMM · HH:mm")},
+            {"preview", point.resumePoint && !point.resumePoint->previewKey.isEmpty() ? "image://moments/" + point.resumePoint->previewKey : QString()}});
     }
     return result;
 }

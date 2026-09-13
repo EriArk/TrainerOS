@@ -70,6 +70,7 @@ struct ResumePoint {
     QDateTime observedAt = {};
     ResumeAvailability availability = ResumeAvailability::Stale;
     QJsonObject adapterPayload = {}; // Never projected into QML or browsing state.
+    QString previewKey = {}; // Opaque key for a cached, revision-bound image.
 };
 enum class PlaySessionOutcome { Running, Returned, Failed, Interrupted };
 // Observed child-process time, independent of game-save progress/playtime.

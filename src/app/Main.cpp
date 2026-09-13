@@ -6,6 +6,9 @@
 #include "core/navigation/AdventureLaunchController.h"
 #include "features/home/PlayHistoryController.h"
 #include "core/repository/CollectionRepository.h"
+#include "core/repository/ResumeLibraryRepository.h"
+#include "integrations/adventure/retroarch/RetroArchResume.h"
+#include <QQuickImageProvider>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -33,6 +36,18 @@
 #endif
 
 using namespace trainer;
+
+class MomentImages final : public QQuickImageProvider {
+public:
+    explicit MomentImages(RetroArchResumeProvider& provider) : QQuickImageProvider(Image), provider_(provider) {}
+    QImage requestImage(const QString& id, QSize* size, const QSize&) override {
+        const auto image = provider_.preview(id);
+        if (size) *size = image.size();
+        return image;
+    }
+private:
+    RetroArchResumeProvider& provider_;
+};
 
 int main(int argc, char* argv[]) {
     SDL_SetMainReady();
@@ -120,11 +135,16 @@ int main(int argc, char* argv[]) {
         }
         const bool personalLibrary = store && (!smoke || persistencePhase.startsWith("library-") || persistencePhase == "collection");
         CollectionRepository collection(personalLibrary ? static_cast<LibraryRepository&>(*store) : repository);
-        LibraryRepository& activeLibrary = personalLibrary ? (!smoke || persistencePhase == "collection" ? static_cast<LibraryRepository&>(collection) : *store) : repository;
+        LibraryRepository& baseLibrary = personalLibrary ? (!smoke || persistencePhase == "collection" ? static_cast<LibraryRepository&>(collection) : *store) : repository;
+        ResumeLibraryRepository moments(baseLibrary);
+        LibraryRepository& activeLibrary = personalLibrary && !smoke ? static_cast<LibraryRepository&>(moments) : baseLibrary;
         AdventureAdapter* selectedAdapter = personalLibrary ? static_cast<AdventureAdapter*>(&unconfiguredAdapter) : &adapter;
-        RetroArchAdapter retroarch(activeLibrary,
-            personalLibrary && !smoke ? RetroArchInstallation::load(QDir(stateDirectory).filePath("integrations/retroarch.json"))
-                                      : RetroArchInstallation{});
+        const auto retroarchInstallation = personalLibrary && !smoke
+            ? RetroArchInstallation::load(QDir(stateDirectory).filePath("integrations/retroarch.json")) : RetroArchInstallation{};
+        RetroArchAdapter retroarch(activeLibrary, retroarchInstallation);
+        RetroArchResumeProvider resumeProvider(activeLibrary, retroarchInstallation);
+        QObject::connect(&moments, &ResumeLibraryRepository::scanRequested, &resumeProvider, &RetroArchResumeProvider::refresh);
+        QObject::connect(&resumeProvider, &RetroArchResumeProvider::updated, &moments, &ResumeLibraryRepository::publish);
         if (personalLibrary && !smoke) selectedAdapter = &retroarch;
 #ifdef TRAINEROS_UI_TESTS
         ProbeAdventureAdapter probeAdapter;
@@ -140,6 +160,13 @@ int main(int argc, char* argv[]) {
             shell.libraryManager()->setInitialFolder(QDir::home().filePath("Emulation/roms"));
         }
         if (store) QObject::connect(store.get(), &LocalStateStore::libraryChanged, &shell, &ShellController::refreshLibrary);
+        QObject::connect(&moments, &ResumeLibraryRepository::changed, &shell, &ShellController::refreshLibrary);
+        if (store && !smoke) QObject::connect(store.get(), &LocalStateStore::libraryChanged, &resumeProvider, [&] {
+            resumeProvider.refresh(shell.navigationState()["homeAdventure"].toString());
+        });
+        if (store && !smoke) QObject::connect(store.get(), &LocalStateStore::opened, &resumeProvider, [&](bool success) {
+            if (success) resumeProvider.refresh(store->navigation()["homeAdventure"].toString());
+        });
         SessionState session(shell, store.get());
         ProcessService adventureProcess;
         AdventureLaunchController adventureLaunch(adventureProcess);
@@ -151,17 +178,24 @@ int main(int argc, char* argv[]) {
         DiagnosticsService deviceReports(diagnosticsSmoke ? QDir(parser.value("screenshot-dir")).absoluteFilePath("reports")
                                                          : QDir(reportBase).filePath("diagnostics"));
         shell.diagnostics()->configure(&input, &deviceReports);
-        QObject::connect(&input, &ControllerInput::action, &session, &SessionState::dispatch);
+        QObject::connect(&input, &ControllerInput::action, &session, [&](Action action) {
+            if (adventureLaunch.active()) {
+                if (adventureLaunch.preparing() && action == Action::Back) adventureLaunch.cancel();
+                return;
+            }
+            session.dispatch(action);
+        });
         QObject::connect(&session, &SessionState::exitReady, &app, [&app] { app.exit(); });
         app.installEventFilter(&input);
         if (!smoke) {
             input.setEnabled(app.applicationState() == Qt::ApplicationActive);
             QObject::connect(&app, &QGuiApplication::applicationStateChanged, &input,
                              [&input, &adventureLaunch](Qt::ApplicationState state) {
-                input.setEnabled(state == Qt::ApplicationActive && !adventureLaunch.active());
+                input.setEnabled(state == Qt::ApplicationActive && (!adventureLaunch.active() || adventureLaunch.preparing()));
             });
         }
         QQmlApplicationEngine engine;
+        engine.addImageProvider("moments", new MomentImages(resumeProvider));
         int qmlWarnings = 0;
         QStringList diagnostics;
         QObject::connect(&engine, &QQmlEngine::warnings, &engine,
@@ -172,6 +206,7 @@ int main(int argc, char* argv[]) {
         engine.rootContext()->setContextProperty("shellController", &shell);
         engine.rootContext()->setContextProperty("controllerInput", &input);
         engine.rootContext()->setContextProperty("sessionState", &session);
+        engine.rootContext()->setContextProperty("adventureLaunch", &adventureLaunch);
         engine.load(QUrl("qrc:/TrainerOS/Main.qml"));
         if (engine.rootObjects().isEmpty()) result = 2;
         else {
@@ -189,7 +224,7 @@ int main(int argc, char* argv[]) {
                 };
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::changed, &session, [&] {
                     session.setAdventureActive(adventureLaunch.active());
-                    if (adventureLaunch.active()) input.setEnabled(false);
+                    input.setEnabled(app.applicationState() == Qt::ApplicationActive && (!adventureLaunch.active() || adventureLaunch.preparing()));
                 });
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::checkpointRequested, store.get(),
                                  [&](quint64 token, const QJsonObject& state) {

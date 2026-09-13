@@ -23,6 +23,7 @@ Window {
         Item {
         anchors.fill: parent
         visible: !sessionState.blocked
+        enabled: !adventureLaunch.active
         Rectangle {
             anchors.fill: parent
             gradient: Gradient {
@@ -107,6 +108,7 @@ Window {
         SystemPanel { x: 12; y: 68; width: 948; height: 435; shell: shellController }
         }
         StoragePanel { anchors.fill: parent; visible: sessionState.blocked; stateController: sessionState }
+        LaunchPanel { anchors.fill: parent; visible: adventureLaunch.preparing; launch: adventureLaunch }
     }
     readonly property var shell: shellController
 }

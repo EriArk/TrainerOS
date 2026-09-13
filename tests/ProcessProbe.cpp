@@ -29,6 +29,12 @@ int main(int argc, char** argv) {
         file.write(args[3].toUtf8()); return 0;
     }
     const auto mode = args.value(1);
+    if (mode == "output") {
+        QFile output; if (!output.open(stdout, QIODevice::WriteOnly)) return 3;
+        output.write("original failure fixture\n"); output.flush();
+        QTimer::singleShot(10000, &app, &QCoreApplication::quit);
+        return app.exec();
+    }
     QTimer::singleShot(mode == "wait" ? 10000 : 100, &app, [&] {
         if (mode == "crash") std::abort();
         app.exit(mode == "error" ? 7 : 0);

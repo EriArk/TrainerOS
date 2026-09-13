@@ -1,6 +1,6 @@
 # Trustworthy Continue cards
 
-This is the prerequisite for filesystem-backed Continue in milestone 6 and issue #6. The domain and controller behavior are implemented with fixtures. Normal mode still shows real launch history; RetroArch still supports ordinary launch only. No state enumeration, screenshot extraction or save parsing is claimed by this increment.
+This contract underlies filesystem-backed Continue in milestone 6 and issue #6. Domain/controller behavior is covered by fixtures; the first opt-in [RetroArch/mGBA provider](RETROARCH_RESUME.md) adds asynchronous discovery, revision-bound thumbnails and guarded direct resume. Unsupported integrations keep ordinary launch and real history. No game-save parsing is claimed.
 
 ## Identity and ownership
 
@@ -32,7 +32,7 @@ If the selected moment disappears or becomes invalid, Home shows the reason. Its
 
 Continue consumes repository snapshots only. Repeated IDs collapse to the latest observation; focus follows identity through reordering. Save cards and recent-session cards are ordered by meaningful save/start timestamps, not scan time. A recent session is not a save state. An Adventure with state cards does not acquire a duplicate recent-session card.
 
-No filesystem scanner is added here. The next provider increment must publish bounded asynchronous snapshots, retain last-known points with explicit availability on validation failure, discard outdated responses and avoid deep startup scans. It must define scan limits and fingerprints for the first verified emulator/core. Synchronous directory walks in QML getters, capabilities queries or input handlers are forbidden.
+Providers publish bounded asynchronous snapshots, retain last-known points with explicit availability on validation failure, discard outdated responses and avoid deep startup scans. The first provider's limits and fingerprints are specified in [RetroArch saved moments](RETROARCH_RESUME.md). Synchronous directory walks in QML getters, capabilities queries or input handlers are forbidden.
 
 ## Acceptance and verification
 
@@ -44,6 +44,6 @@ No filesystem scanner is added here. The next provider increment must publish bo
 - [x] Home and Worlds reject replacement between presentation and activation.
 - [x] Adapter-side invalidation after presentation checks cannot implicitly launch.
 - [x] SDL/QML smoke waits for the drawer to open, checks complete focus outlines, and exercises unavailable cards, fallback, notice dismissal and fixed Home A at 1920×1080. Card padding keeps outlines inside the list on both Qt 6.4 and 6.11.
-- [ ] Bounded asynchronous filesystem provider, exact fingerprint and real direct resume on Flip.
+- [x] Bounded asynchronous filesystem provider, exact fingerprint and real direct resume on Flip (mGBA/GBA; see provider limits).
 
 `resume` tests mutable snapshots, queued refresh, revision pinning and adapter invalidation. `qml_smoke` renders the fallback flow through SDL virtual-controller events. Existing history/process/persistence scenarios cover ordinary launch and return independently of these fixtures.

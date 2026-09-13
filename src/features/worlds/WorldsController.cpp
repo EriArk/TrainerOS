@@ -244,6 +244,7 @@ void WorldsController::openRegion() {
 }
 void WorldsController::openDetail() {
     if (!currentAdventure()) return;
+    repository_.refreshResumePoints(currentAdventure()->id);
     route_ = Route::Detail;
     actionFocus_ = 0;
     normalizeActionFocus();

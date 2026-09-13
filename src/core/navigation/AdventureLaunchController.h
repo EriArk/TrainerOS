@@ -7,14 +7,17 @@ namespace trainer {
 // application owns checkpoint persistence and platform-specific window handoff.
 class AdventureLaunchController final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool active READ active NOTIFY changed)
+    Q_PROPERTY(bool preparing READ preparing NOTIFY changed)
 public:
     explicit AdventureLaunchController(ProcessService&, QObject* parent = nullptr);
     QString state() const { return state_; }
     QString error() const { return error_; }
     bool active() const { return state_ == "preparing" || state_ == "starting" || state_ == "running" || state_ == "stopping"; }
+    bool preparing() const { return state_ == "preparing" || state_ == "starting"; }
     bool launch(const ProcessCommand&, const QJsonObject& returnContext, const QString& adventureId = {});
     void checkpointCompleted(quint64 request, const QString& error);
-    void cancel();
+    Q_INVOKABLE void cancel();
 signals:
     void changed();
     void checkpointRequested(quint64 request, const QJsonObject& context);

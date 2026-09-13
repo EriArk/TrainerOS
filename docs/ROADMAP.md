@@ -157,9 +157,9 @@ Visual redesign of Worlds is explicitly allowed and expected if real data sugges
 
 ## Milestone 6 — Home + Continue module
 
-The [resume provenance prerequisite](RESUME_POINTS.md) pins Home selection to one source revision, distinguishes unavailable moments and prevents implicit replacement at launch. Fixture/controller acceptance is implemented; the asynchronous filesystem provider and real direct resume are still pending.
+The [resume provenance contract](RESUME_POINTS.md) pins Home selection to one source revision, distinguishes unavailable moments and prevents implicit replacement at launch. The first [RetroArch/mGBA moments provider](RETROARCH_RESUME.md) adds asynchronous discovery, optional thumbnails, separate exit-state destinations and guarded entry-state restoration. Its device/delivery acceptance is tracked in that document; other cores retain normal launch.
 
-The [Home/history increment](HOME_AND_HISTORY.md) adds observed launch sessions, honest recorded duration, durable explicit Home selection and a separate physical-style launch button. Y selects Home's Adventure without launching. Real save-state enumeration/screenshots/direct resume and physical acceptance of this new composition remain open.
+The [Home/history increment](HOME_AND_HISTORY.md) adds observed launch sessions, honest recorded duration, durable explicit Home selection and a separate physical-style launch button. Y selects Home's Adventure without launching. On 2026-09-13, real FireRed/mGBA exit states, thumbnails, selection, direct resume, cancellation, corruption rejection and restart were checked through the Flip's OS controller path. The user has already confirmed ordinary physical navigation and launch; hands-on feedback on the new state cards remains welcome.
 
 Deliverables:
 
