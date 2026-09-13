@@ -278,6 +278,18 @@ Keep those dependencies concentrated in:
 
 A system update should not require rewriting Home, Worlds, Pokédex, Trainer, or Hall of Fame.
 
+## Planned device controls, Help and startup extension
+
+The [#19–41 acceptance register](EXPANSION_PLAN.md) adds capabilities to the same Armada boundary, not an alternative system stack:
+
+- #35 Start quick controls reuse actual volume/brightness services and safe minimums. #37 power-cable feedback requires a real supported haptic path and debounced external-power edges; charging/full updates and startup must not replay pulses. No gameplay rumble reconfiguration or resumption of sleep testing.
+- #38 probes installed Armada RGB/tool/config and the actual Flip hardware, then exposes only supported modes. The [generic UART proposal](https://github.com/armada-os/armada-packages/pull/73) and [Pocket S2 integration](https://github.com/armada-os/armada/pull/419) are references for the backend direction, not proof of Flip compatibility. No duplicated low-level protocol, experimental firmware change or continuous setting reassertion.
+- #39 Settings uses #11's same fixed-operation Steam helper/manifest; a fresh install without a restore manifest requires a reviewed version-compatible recipe. Preserve maintenance launcher/CLI access and personal Steam content; optional installation never makes Steam the default or a TrainerOS runtime dependency.
+- #40 Help obtains active library/backup/BIOS locations and capabilities through semantic non-secret facts. Verify BIOS requirements against actual adapters/official documentation, never hard-code guessed universal locations or proprietary download sources.
+- #41 audits firmware/vendor, bootloader/initramfs/kernel, any userspace splash, display manager, Gamescope/supervisor and first frame separately. Brand only supported userspace/session layers with managed versioned settings, drift protection and rollback. Profile creation/chooser/Home determine the final destination; show real coarse readiness, no fake checks or cinematic delay. Preserve logs, failure fallback and explicit diagnostic access. Record unavoidable earlier branding instead of patching unknown immutable assets.
+
+U11 installation/update/rollback and the selected maintenance arrangement precede physical boot-branding acceptance. Measure complete startup and verify failed-start recovery plus customization removal on Flip. These are planned capabilities; this documentation change does not install/remove software, enable sleep, modify RGB or replace boot assets.
+
 ## Long-term option: TrainerOS image
 
 Only after the package/session approach is mature should the project consider producing a reproducible image based on ArmadaOS.

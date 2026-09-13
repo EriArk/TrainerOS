@@ -139,11 +139,20 @@ The [roadmap](ROADMAP.md) sequences these extensions to the existing modules:
 - Adventure media resolves catalogue/edition and personal Adventure identities into revision-bound local handles. Worlds/Home consume it; Continue may share presentation without losing exact ResumePoint provenance. Worker/cache/import mechanics do not belong in QML.
 - Pokédex artwork resolves species/form identities separately from factual reference and Adventure media. Cache utilities may be shared without merging source/identity rules.
 - Caught first composes the manual journal into a personal collection. Later individual observations require provider/source revision and save-lineage semantics; they cannot be inferred from a species boolean or aggregate count.
-- A global RA account service will own identity/token/authentication; the current read provider becomes its consumer. Emulator earning configuration is an adapter capability, separate from fetching account history.
+- A global RA account service will own the active Trainer's identity/token/authentication with owner-scoped storage/cache/response identities; the current read provider becomes its consumer. Emulator earning configuration is an adapter capability, separate from fetching account history.
 - Paid healing requires its own verified semantic party/money capability and guarded save transaction; the existing read-only badge provider never becomes an implicit universal save editor.
 - Collection cleanup uses explicit identity/relink/protection rules. Matching ROM bytes do not authorize merging personal histories, saves, states or media ownership.
 
-These are accepted design constraints, not assertions that new services, schemas or migration helpers already exist. Keep the [ownership contract](DATA_MODEL.md#ownership-contract--2026-09-13) authoritative and implement only the boundary required by the active increment.
+The #19–41 expansion adds small boundaries in dependency order:
+
+- Owner-scoped repository operations and an active-Trainer transition coordinate creation/chooser/PIN, draining/invalidation and safe external-save lineage. Device library/installations stay shared. Reuse the existing store/worker and migrate only the ownership required by the actual features.
+- An explicit playable-library domain composes Pokémon World and Multiverse system browsing, Home context and filtered history without duplicating the adapter/lifecycle pipeline. System classification is not a new emulator implementation.
+- Shared chassis/content rectangles, headings, pattern and mounted controls own geometry; features own wording/content. A single bounded local media player consumes #17 handles after idle selection, with lifecycle cancellation and static fallback.
+- A small audio-theme owner maps semantic events to original/licensed assets and arbitrates ambience, preview, jingle, mute and launch/return. A bounded verified-unlock presenter is separate from account truth; no general notification framework is needed.
+- Device services expose actual volume/brightness plus supported power-edge haptics and Armada RGB capabilities. Fixed semantic Steam/boot customization operations reuse reviewed versioned platform helpers/manifests, with no free-form privileged commands in QML.
+- A lightweight offline Help viewer composes versioned structured articles with allowlisted non-secret runtime facts from services. No browser engine or duplicate configuration source; capability changes update the matching guide.
+
+See [EXPANSION_PLAN.md](EXPANSION_PLAN.md) for each consumer, fallback and physical gate. These are accepted design constraints, not assertions that new services, schemas or migration helpers already exist. Keep the [ownership contract](DATA_MODEL.md#ownership-contract--2026-09-13) authoritative and implement only the boundary required by the active increment.
 
 ## QML / C++ boundary
 

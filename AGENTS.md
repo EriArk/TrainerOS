@@ -39,7 +39,7 @@ TrainerOS is not:
 - a hardware modification
 - a generic emulator frontend with a Pokémon skin
 - a touch-first or mouse-first desktop app
-- a ROM manager organized by console/platform
+- a Pokémon library organized by console/platform; the accepted non-Pokémon Multiverse extension is a separate system-organized context inside Worlds
 
 ## Confirmed platform decision — do not regress
 
@@ -63,7 +63,7 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 ## Confirmed product decisions — do not regress
 
 - The user-facing library section is **Worlds**, never “Games”.
-- Worlds are organized by Pokémon **region first**, not emulator/platform first.
+- Pokémon Worlds are organized by **region first**, not emulator/platform first. Accepted #28 adds a separate **Multiverse** system browser within Worlds for non-Pokémon titles; it does not add a primary page or fake Pokémon regions. This extension is planned, not already delivered.
 - Top-level sections are full-screen peers.
 - **Home is one top-level page, not a permanent background shell.**
 - `L1/R1` switch top-level pages and must not be repurposed for local features.
@@ -72,7 +72,10 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 - Continue uses small recent session/save-state cards, ideally with screenshots and metadata.
 - Selecting a Continue card with A chooses the Adventure shown on Home; it never launches. Home has a large physical-style action button that launches/resumes the selected Adventure. The explicit Home choice persists; latest launch is the default before a choice is made (2026-09-11 clarification).
 - RetroAchievements achievements belong inside Hall of Fame, alongside the completed-Adventure archive, not on a separate primary page.
-- The accepted next-module plan is in [ROADMAP.md](docs/ROADMAP.md): global RA account ownership belongs in Settings, Adventure media and Pokédex art have separate identities, and manual Caught marks must not fabricate individual Pokémon. These are planned extensions, not claims that they are already implemented.
+- The accepted plan is [ROADMAP.md](docs/ROADMAP.md), with [new-issue acceptance](docs/EXPANSION_PLAN.md). Preserve its earlier steps 1–10, U1–U13 and optional/deferred commitments when replanning. Phases P0–P12 control execution; acceptance registers are not competing queues.
+- Planned #19–20 introduce separate Trainers/PIN/onboarding: library/installations/shared media are device-wide; personal journal/history/Hall/Home and RA identities are Trainer-scoped. Global RA management belongs in Settings and serves the active Trainer. Shared external saves do not imply separate owned playthroughs.
+- Planned #30 explicitly narrows the reference checklist to substantial playable Pokémon titles with credible Flip/controller routes. Preserve the complete eligible collection, missing/linkable editions and meaningful hacks/variants. Catalogue curation never deletes private content/history and remains separate from #18 duplicate-file cleanup.
+- Adventure media and Pokédex art have separate identities; manual Caught marks must not fabricate individual Pokémon. New media/audio/haptics/RGB/Steam/boot features require their roadmap capability and recovery gates. Planned capabilities must not be described as already implemented.
 - Normal use must work entirely with physical controls.
 - Settings/service features should not consume a primary L1/R1 page without an intentional product change.
 - Desktop/maintenance access must be explicit.
@@ -88,12 +91,13 @@ Always preserve:
 - `B` = back/close
 - `Start` = TrainerOS system menu
 - `Y` = open/close Continue Adventure on Home
+- Planned #31: unobstructed Home `X` toggles Pokémon/Multiverse; choices and Continue are scoped per Trainer/context, while A/Y retain selection-versus-launch behavior.
 - On unobstructed Home, `A` immediately invokes the large Adventure button, regardless of prior D-pad/stick input. `Y` opens the selector; `A` inside it selects for Home without launching.
 - Prefer visible page-specific physical-button actions over moving focus between static modules. Directional focus belongs to lists, grids and open selection/editing panels; modal actions take priority over page shortcuts.
 - visible deterministic focus whenever interactive content exists
 - no required touch/mouse/keyboard for normal use
 - no desktop-window metaphors in the normal shell
-- no exposed emulator/core/platform jargon in primary UI
+- no exposed emulator/core commands or configuration jargon in primary UI; requested edition platform badges and Multiverse system names are intentional exceptions
 
 Secondary shortcuts are allowed only if they do not conflict with the above. Keep them remappable where practical.
 
@@ -231,6 +235,7 @@ See `docs/DEVELOPMENT_WORKFLOW.md` for concrete commands and verification bounda
 When a task introduces a meaningful product/platform/architecture decision:
 
 - update the relevant doc in the same change
+- update the matching offline Help article/runtime-capability facts as #40 is delivered; do not document planned behavior as currently available
 - add/update acceptance criteria
 - keep README high-level; implementation details belong under `docs/`
 

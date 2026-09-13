@@ -2,6 +2,10 @@
 
 The user's 2026-09-11 clarification separates choosing an Adventure from launching it. Y opens the compact Continue drawer. A on a card selects the Adventure shown on Home and closes the drawer without invoking an adapter. Home displays the selected Adventure's World, title and available data. A large molded circular button, mounted in the right chassis module, starts that Adventure. Its pressed motion does not delay controller input or launch.
 
+## Accepted two-context extension — planned
+
+Issues #20/#31/#32 add per-Trainer Pokémon/Multiverse contexts without replacing this launch/history pipeline. Home X will switch contexts; each remembers its own selected Adventure/moment, Continue and same-context latest-launch default. Y/card A still selects, and the fixed Home A action launches. Multiverse exposes observed general play statistics rather than Pokémon badges/Dex; #15 image fallback is owner/context scoped. A Home launch returns to that context; a Worlds launch preserves its originating route and does not overwrite an explicit Home selection. These migrations and the distinct Multiverse Home are not yet delivered; see [acceptance](EXPANSION_PLAN.md#two-home-contexts).
+
 ## Selection and navigation
 
 - Without an explicit selection, Home follows the latest process launched through TrainerOS.

@@ -8,6 +8,18 @@ The [2026-09-13 roadmap](ROADMAP.md) preserves these page-specific controls and 
 
 Planned account entry is shared through Settings → Accounts → RetroAchievements, with Hall opening the same account surface. Pokédex All/Caught/Favorites/Journal are local collections; Caught initially shows manual species-wide assertions. Plasma Mobile is the preferred future Maintenance destination only after its recovery/input trial; see [platform consolidation](ARMADA_PLATFORM.md#planned-session-consolidation--2026-09-13).
 
+## Accepted expansion routes — planned
+
+The [expanded plan](EXPANSION_PLAN.md) preserves the five peer pages and existing A/Y behavior while adding:
+
+- **Unobstructed Home X:** Pokémon ⇄ Multiverse, preserving separate selections, Continue/history and backgrounds for the active Trainer/context. A in Continue still selects; the large fixed Home A action launches. Modal actions take precedence over X/Y. Home-launched play returns to the same Home context; Worlds-launched play keeps its originating route.
+- **Worlds local contexts:** Pokémon regions versus Multiverse systems, then game list/detail. No sixth primary page or L1/R1 local tab use. Preserve search/focus/Back per context; exact local mode-selector controls are chosen and physically tested during #28. Four visible readable game rows replace the older mock's three-row target after shared geometry/header work, not through tiny type.
+- **Entry routing:** no usable Trainer → registration; multiple or PIN-protected Trainers → chooser/unlock; one unprotected default Trainer may open Home. Wizard drafts use the shared controller keyboard; PIN uses a compact numeric keypad. Before unlock, Start has only safe entry/recovery actions and primary pages cannot expose personal data.
+- **Start:** mounted quick volume/brightness controls, Power → off/restart/switch/cancel, and Help. Left/right adjusts a selected quick slider; up/down traverses its list. Switching waits for safe write/Adventure boundaries. System values come from the platform. Power requires a fresh confirmation; B cancels.
+- **Offline Help:** category/article hierarchy, controller-driven bounded scrolling and internal links/Back; no touch or online browser dependency. Settings adds accounts, audio/feedback, supported lighting and optional Steam through existing service navigation, never new primary pages.
+
+**Shoulder precedence is explicit:** despite ambiguous #26/#35 wording, the established post-login rule remains: L1/R1 cancels transient menus/confirmations/drafts and switches primary pages, without applying a slider value, confirming Power or committing a draft. A held confirm cannot activate a newly opened destructive confirmation. Changing this rule would need a separate intentional UX decision. Entry/locked states cannot use shoulders to bypass profile selection. See [expanded acceptance](EXPANSION_PLAN.md#trainer-ownership-onboarding-and-power).
+
 ## Goal
 
 TrainerOS must feel native to a handheld controller. Touch may exist as a convenience and mouse/keyboard may exist in development or maintenance mode, but **every normal TrainerOS flow must be fully usable with physical controls**.

@@ -2,6 +2,14 @@
 
 Collection cards include an original hardware silhouette and short platform label seated in a recessed badge within the raised card. Missing editions use neutral grey material and retain a full-contrast focus outline; greying does not disable focus or the file-link action. This is the user's 2026-09-11 extension; see [collection catalogue](COLLECTION_CATALOGUE.md).
 
+## Accepted shared-system refinement — planned
+
+Issues #21–23/#27/#33 consolidate the existing material language: raise the common panel to the inactive-tab baseline, preserve the active tab overhang, derive one content rectangle, share compact title variants and one subtle cached ornament. Healthy battery/controller status becomes quiet; important faults/provenance stay clear. Mounted Start controls and Power caps use the same recess/bevel/focus family. Special Home/onboarding/banner compositions remain intentional exceptions to the general heading template.
+
+Issue #32 adds a **scoped exception** to the light-workspace rule: Multiverse Home may use a dark cosmic/portal inner field, with the same chassis geometry, physical controls and strong contrast. Pokémon Home and ordinary content retain their light recessed surfaces. Shell color themes stay user-selected; a context switch does not globally change them. New media/pattern layers cannot obscure focus or detach controls from the frame.
+
+Issue #34 audits feature interiors after these shared foundations: meaningful larger cards/media, four readable game rows where targeted, balanced typography and deliberate empty/error states. Check each delivered screen at handheld scale and on physical Flip; do not redesign the chassis a second time or alter navigation/data ownership during polish. Original startup/audio assets reuse this identity without copying commercial logos, music or jingles. Detailed gates: [expansion acceptance](EXPANSION_PLAN.md).
+
 ## Design thesis
 
 TrainerOS should look like a **real trainer terminal from the Pokémon world**, but not imitate one specific game's Pokédex pixel-for-pixel.

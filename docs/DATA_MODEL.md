@@ -17,10 +17,26 @@ This clarification addresses [issue #2](https://github.com/EriArk/TrainerOS/issu
 | Ordinary save progress | External save is the source; GameProgress is a provider/revision-bound observation. Current badges/caught totals do not write manual journal, historical captures or RA unlocks. |
 | Manual Caught | Today's species-wide nullable journal assertion. A Caught collection is its projection; it proves neither a form nor a specific Pokémon, origin or date. |
 | Future individual Pokémon | Separately sourced record with provider/artifact revision and Adventure/save lineage where available. Re-reading/rolling back a save is not a new capture event; observed-at is not caught-at. Manual/provider sources remain distinguishable. |
-| Account achievements | External account-scoped definitions/unlocks and private cache, independent of saves and manual Hall memories. Global account ownership is planned in #12. |
+| Account achievements | External account-scoped definitions/unlocks and private cache, independent of saves and manual Hall memories. #12 central ownership is scoped to the active Trainer by #20; no credential/cache is implicitly shared across people. |
 | Media | Adventure/catalogue/variant artwork and owned return/ResumePoint images use semantic handles; species/form artwork has a separate provider. Neither is content ownership, progress or compatibility evidence. |
 
 Unknown values remain unknown; known zero stays zero. Use explicit repositories/read-model composition, not a generic event-sourcing framework. A ROM cleanup may relink proven content but must not merge PlaySessions, Hall memories, save lineages or ResumePoints merely because files hash identically.
+
+## Accepted owner and library-context extension — planned
+
+Issues #19–20/#28/#31 require the following target contract before new screens; these fields/migrations are **not yet delivered**. [Expansion acceptance](EXPANSION_PLAN.md) and [roadmap P2–P4](ROADMAP.md#unified-execution-order--existing-work-and-new-issues) define the gates.
+
+| Scope | Ownership and migration rule |
+| --- | --- |
+| Device | Shared library/content registrations, catalogue facts, installations, shared art packs and hardware configuration. Audio preferences are device-wide by #36. Do not clone game rows/files when creating a Trainer. |
+| Trainer | Stable profile/PIN verifier; manual journal/favorites, Hall memories, play sessions/derived totals, navigation/Home selections and canonical external account identity/cache. Migrate existing personal rows to the same legacy Trainer ID, preserving counts and references. |
+| Playable record | Stable identity/variant/content/runtime/media, explicit Pokémon or Multiverse domain, optional Pokémon World relations and Multiverse system category. Presentation names do not determine identity/domain; personal classification and legacy ambiguity require review. |
+| Navigation | Active context plus independent Pokémon/Multiverse Home selections/moments per Trainer; useful local World/system focus/search. No second play-history store. Explicit Home choices are not overwritten by unrelated launches. |
+| Save lineage | Shared legacy external save remains identified as shared/legacy, not silently assigned to every Trainer. Independently private namespaces require verified adapter support and protected migration. Progress assertions include source/lineage/revision; no per-Trainer separation claim from a new database owner column alone. |
+| In-flight work | Capture initiating Trainer/account/revision for writes, launches and provider requests. Drain or invalidate at switch; late results cannot enter the next owner's views. Refuse account switching with an active game or unsafe external writer. |
+| Unlock presentation | Persistent acknowledged complete-snapshot/delta identity includes Trainer/account/game/set/achievement/verified mode. Initial import is not a new unlock; notification state is not the source of RA truth. |
+
+Lossless migration, empty/two-owner isolation, deleted-account protection, interrupted writes and restart need explicit acceptance. PIN is optional local shell access protection, not encryption of ROMs/saves or protection from root/maintenance access. Catalogue curation (#30) changes eligibility/navigation only; excluded owned records keep identity/history and maintenance access. No save bytes or unrelated library content change merely because classification changes.
 
 ## World
 
@@ -56,7 +72,7 @@ Status/metrics are presentation projections; do not persist a second copy beside
 
 The current model additionally carries `platformId`, `catalogueId` and a separate human-readable `variant`. A reference projection can have `collectionOnly=true`; it cannot be persisted or launched until a file is linked. Owned records do not acquire inferred game progress when linked. The read-only collection reference and personal records have separate ownership.
 
-Represents one configured playable Pokémon journey/title.
+Represents one configured playable Pokémon journey/title in the current implementation. The accepted Multiverse extension reuses this playable identity for non-Pokémon titles without requiring a fictional World.
 
 Suggested fields:
 
@@ -79,7 +95,7 @@ IN_PROGRESS
 COMPLETED
 ```
 
-Last-played/time/status/badges and media may be composed into the Adventure view, but their source owners are PlaySession, verified progress/archive providers and the media layer. Platform/system information does not drive the main UI hierarchy. The suggested profile reference above is not an assertion that an explicit integrationProfileId already exists in the implementation.
+Last-played/time/status/badges and media may be composed into the Adventure view, but their source owners are PlaySession, verified progress/archive providers and the media layer. Platform/system information does not drive Pokémon World hierarchy; the planned Multiverse context intentionally uses systems. The suggested profile reference above is not an assertion that an explicit integrationProfileId already exists in the implementation.
 
 The native implementation uses stable `id`, primary `worldId`, `additionalWorldIds`, `title`, `adapterId`, `description` and `AdventureKind` (`Original`, `Remake`, `RomHack`). Kind describes an edition; it is not a replacement for region-first grouping. `AdventureRegistration` adds an external `contentPath`, opaque `integrationConfig`, an optimistic `revision` and an optional new World committed atomically with the record. Editing or relocating a file preserves the Adventure ID. Additional World relationships make the same Adventure discoverable under multiple regions; they do not duplicate it. A named custom World supports ROM hacks outside the reference regions.
 

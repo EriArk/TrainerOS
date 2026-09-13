@@ -12,6 +12,8 @@ The current build also includes verified [GBA saved-moment resume](docs/RETROARC
 
 A read-only [battery gauge](docs/POWER_STATUS.md) shows the handheld's charge in the fixed lower panel.
 
+The expanded [plan for issues #19–41](docs/EXPANSION_PLAN.md) adds separate Trainer profiles, a non-Pokémon **Multiverse** inside Worlds and a second Home context, alongside shared visual, media, feedback and Help work. These are planned extensions; [the roadmap](docs/ROADMAP.md) retains all earlier unfinished and future commitments and records changed catalogue/session decisions.
+
 ## Product idea
 
 TrainerOS is not a ROM list with a Pokémon skin and it is not a launcher opened from another desktop. It is the **primary user interface of the device**: a cohesive full-screen trainer terminal organized around Adventures, Worlds, a Pokédex, the Trainer profile, and the history of completed journeys.
@@ -67,7 +69,7 @@ See [`docs/ARMADA_PLATFORM.md`](docs/ARMADA_PLATFORM.md).
 - **Controller-first.** Every normal action must work without touch, mouse, or keyboard.
 - **Console-like.** Fast startup, predictable focus, minimal text entry, no desktop chrome in normal use.
 - **Pokémon-native information architecture.** The UI talks about *Worlds*, *Adventures*, *Trainer*, *Pokédex*, and *Hall of Fame*. Small platform badges identify editions; ROM folders, cores and emulator commands stay in maintenance/integration layers.
-- **Worlds, not Games.** The playable library is organized by Pokémon regions first.
+- **Worlds, not Games.** Pokémon Adventures are organized by region first; the planned Multiverse context groups non-Pokémon titles by system within the same primary page.
 - **Full-screen sections.** Home is one page among peers; it is not permanently visible behind everything.
 - **L1/R1 are sacred navigation controls.** They switch primary full-screen sections and are not reused by local features.
 - **Fast resume.** Recent resumable points appear as compact visual cards, not one giant Continue hero screen.

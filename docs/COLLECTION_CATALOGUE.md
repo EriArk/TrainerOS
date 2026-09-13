@@ -4,6 +4,14 @@ NES has a platform badge for user-provided unofficial releases and ROM hacks. It
 
 The 2026-09-11 user decision extends Worlds from an installed library to a collection checklist. Platform badges are explicitly requested on Adventure cards; region-first navigation and controller invariants remain unchanged. The user has also confirmed comfortable physical navigation, successful Adventure launch and profile creation on Flip 2.
 
+## Accepted catalogue revision — planned 2026-09-13
+
+Issues [#28](https://github.com/EriArk/TrainerOS/issues/28)/[#30](https://github.com/EriArk/TrainerOS/issues/30) intentionally revise the broad historical checklist described below. The target is a complete collection of **substantial Pokémon games with credible Flip/controller routes**, plus a separate **Multiverse** system browser for appropriate non-Pokémon/general crossover content. Pokémon remains region-first; eligible missing editions remain grey/linkable. Preserve useful spin-offs, translations, meaningful revisions and ROM hacks rather than treating their groups as a blacklist.
+
+Review each candidate's role and runtime evidence before retaining, moving, hiding or excluding it. Promotional/browser fragments, distribution/accessory/test material, trivial utilities and unsupported/closed service clients do not belong in ordinary Pokémon Worlds merely to increase the catalogue count. Empty/weak groups can disappear only after their contents are reconciled. Unknown hack geography is not evidence that the hack belongs in Multiverse.
+
+This changes reference eligibility/navigation, **not private data ownership**: keep excluded owned records, file links, saves/states/media/history and maintenance access. #18 separately removes only verified redundant personal files through its manifest/relink/protection workflow. U4 still audits every requested archive, later transfer and meaningful variant, including reasons for intentional exclusions. Existing edition counts and broad groups below describe the delivered baseline; no catalogue JSON or installed collection was changed by this replan. See [P3/P4 and preservation map](ROADMAP.md#unified-execution-order--existing-work-and-new-issues) and [detailed curation acceptance](EXPANSION_PLAN.md#library-domains-multiverse-and-catalogue-curation).
+
 ## Reference data and ownership
 
 `data/catalogue.json` is a bundled, offline, versioned reference dataset. It contains title/platform editions and World relationships, not copyrighted game assets, ROMs, installation paths, saves or personal progress. `CollectionRepository` combines this reference with the personal repository; it does not seed hundreds of fictitious owned records into SQLite. The original sample preview remains isolated.

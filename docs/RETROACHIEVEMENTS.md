@@ -2,6 +2,10 @@
 
 Hall of Fame keeps account achievements separate from local completion memories and current-save progress. The production provider supports account sign-in, verified content matching, core achievement definitions, Standard/Hardcore unlock flags and an account-scoped offline cache. TrainerOS never awards achievements itself.
 
+## Accepted account and presentation extension — planned
+
+#12 centralizes account management in Settings while Hall remains the achievement consumer. #20 scopes that global service's identity/token/cache and in-flight responses to the **active Trainer**; it does not share one account across people. Migrate the existing valid account into its legacy Trainer without needless sign-in. #24 adds clear locked/Standard/Hardcore/unknown presentation based on complete confirmed/cached account snapshots. #25 presents deduplicated verified new unlocks after return first; initial sign-in/cache rebuild is not a new-unlock event. Live in-game presentation remains conditional, and original jingle playback shares #36's audio priorities. None of these planned extensions establishes current emulator earning; see [roadmap](ROADMAP.md) and [acceptance](EXPANSION_PLAN.md#achievement-state-and-notification).
+
 ## Controller flow
 
 Inside Hall of Fame's RetroAchievements section, **X opens Account** and **Y refreshes recent Adventures**. Account name and masked password use the shared controller keyboard, including case, punctuation and a separate numeric block. A activates the focused field/action; B cancels an input or returns to Hall of Fame. Start overlays the form. L1/R1 remain global section navigation and clear unsubmitted account drafts. Busy operations leave a visible Back action. Signing out requires a second A; B cancels that confirmation.

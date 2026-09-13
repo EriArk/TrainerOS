@@ -18,22 +18,32 @@ TrainerOS is the intended main/default mode. The accepted 2026-09-13 issue [#11]
 
 ## Accepted next modules — planned, not implemented
 
-The [roadmap](ROADMAP.md) integrates issues #10–18 with dependencies and acceptance gates:
+The [roadmap](ROADMAP.md) integrates issues #1–41, all earlier unfinished work and deferred/future ideas. Detailed new-batch acceptance is in [EXPANSION_PLAN.md](EXPANSION_PLAN.md). These extensions have dependencies and separate device gates:
 
-- A private English-first collection audit precedes verified relinking/quarantine; the broad missing/owned catalogue remains intact.
+- A private English-first collection audit precedes verified relinking/quarantine. #30 intentionally narrows the former broad historical catalogue to substantial Pokémon titles with credible Flip/controller routes; the full eligible missing/owned checklist, meaningful variants and ROM hacks remain. Removing a reference card never deletes personal files/history.
 - Shared Adventure media supplies recognizable Worlds wheel/marquee/cover artwork and Home's subtle return-screenshot background. Existing patterns, contrast, controller behavior and screenshot provenance remain intact.
-- RetroAchievements account ownership moves to Settings → Accounts; achievement browsing stays in Hall of Fame. Emulator earning is verified separately from account-history reading.
+- RetroAchievements account ownership moves to Settings → Accounts through one global service serving the active Trainer's identity/cache; achievement browsing stays in Hall of Fame. Emulator earning, earned-state display and deduplicated unlock notification have separate acceptance; return-time notification precedes any proven live overlay.
 - External Pokédex art packs use species/form identities and remain useful offline. Caught becomes a dedicated personal collection, first from manual species-wide journal marks; forms, individual Pokémon and catch dates are not invented.
 - Pokémon Center may offer paid party healing only through a verified save-writing capability, with an exact fee, balance, explicit confirmation and protection backup.
 - Plasma Mobile replacement and reversible Steam removal are platform migrations, not prerequisites for ordinary Adventures or UI work. Sleep stays disabled pending separate validation.
 - The owner's additional system-cleanup request covers unnecessary apps, autostarts and background services after a dependency audit. Preserve user data, required emulator/platform components and rollback; report measured disk-space and idle-load changes separately from ROM cleanup.
 
+### Expanded device experience — accepted 2026-09-13
+
+- First-run registration, multiple switchable Trainers and optional local PIN protection build on owner-scoped persistence. Shared library/installations/media remain device-wide; journal/history/Hall/Home/external accounts belong to a Trainer. Per-Trainer external saves require explicit adapter capability; a new Trainer cannot silently claim an existing shared save's progress.
+- Worlds keeps Pokémon region navigation and gains a separate non-Pokémon **Multiverse** system browser. It reuses existing playable identities/adapters and stays inside the same primary page. Known system names and requested platform badges are intentional normal-UI information, while emulator commands remain hidden.
+- Home gains X to switch Pokémon/Multiverse, separate remembered selections and scoped Continue. A remains the immediate mounted launch action; Y/card A selects without launching. Multiverse Home shows honest general play statistics and a distinct inner atmosphere, retaining the common chassis. Pokémon progress remains in its own context.
+- Shared panel/tab geometry, headings, patterns and mounted controls come before the complete feature-content visual pass. Healthy status is quiet; actionable errors and provenance remain visible. Start provides quick volume/brightness, Power and offline Help; these are services, not extra primary pages.
+- Local selected-game videos, selectable original/licensed music/UI sound packs, optional debounced charger haptics and capability-driven Armada RGB follow their media/lifecycle/device gates. No unavailable hardware or codec is represented by a pretend working setting.
+- Optional Steam install/restore in Settings reuses #11's reviewed mechanism. A version-aware offline guide covers setup, personal games/BIOS/media, saves/accounts and recovery. Branded startup uses safe supported stock-Armada layers, ends at readiness and preserves maintenance recovery; no custom image is required.
+
 ## Vocabulary
 
 - **World**: a Pokémon region such as Hoenn or Sinnoh.
-- **Adventure**: one configured playable title/profile associated with a World.
+- **Adventure**: one configured playable title/profile; Pokémon entries have World relationships. Planned Multiverse entries use a separate system context without invented Pokémon geography.
 - **Continue Adventure**: recent resumable session/save-state cards.
-- **Trainer**: persistent personal profile and long-term progress.
+- **Trainer**: persistent personal profile and long-term progress; planned multiple Trainers own separate personal records while sharing device library/installations.
+- **Multiverse**: planned non-Pokémon library context within Worlds, browsed by system, with its own Home presentation.
 - **Pokédex**: reference data plus personal Seen/Caught/history data.
 - **Hall of Fame**: completed-Adventure archive and RetroAchievements achievements.
 - **Pokémon Center**: optional user-facing name for backup and maintenance services.
@@ -86,7 +96,7 @@ The closed affordance is a compact left-hand extension of the bottom frame, prot
 
 ## Worlds
 
-Worlds is the Adventure library organized by region first, not by hardware platform or emulator.
+Pokémon Worlds is the Adventure library organized by region first, not by hardware platform or emulator. The accepted Multiverse extension is a distinct local system-browser mode for non-Pokémon games; it does not turn those systems into Pokémon Worlds.
 
 Normal application mode starts with reference regions and an empty personal library. Start → Manage Adventures provides controller add/edit, a local file picker, primary/additional World relationships and custom Worlds for ROM hacks. Saving stores TrainerOS metadata while the selected file remains external and unchanged. Records retain their identity when edited or relocated. See `LIBRARY_AND_LAUNCH.md` for the implemented flow and acceptance criteria.
 
@@ -165,7 +175,7 @@ The product must support creating the local Trainer profile when none exists and
 - Persist the profile through the repository layer and restore it after restart. Renaming must preserve the profile ID and its progress/history relationships.
 - Refresh Home and Trainer after a successful save; a failed write must preserve the previously saved profile and leave a retry/cancel route.
 
-Acceptance: create using physical controls, restart and recover the same profile, edit and save, cancel a second edit without changing saved data, and retain all existing progress. Multiple independent Trainer profiles remain a later feature.
+Acceptance: create using physical controls, restart and recover the same profile, edit and save, cancel a second edit without changing saved data, and retain all existing progress. Multiple independent Trainers are now an accepted next stage in #19–20, after the lossless ownership migration; see [Trainer acceptance](EXPANSION_PLAN.md#trainer-ownership-onboarding-and-power). The existing single-profile implementation remains the baseline; chooser/PIN isolation is not yet delivered.
 
 ## Hall of Fame
 
