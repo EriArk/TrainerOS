@@ -258,6 +258,8 @@ The snapshot boundary permits cached rows during loading/offline/error and rejec
 
 ## WorldProgress
 
+The first implemented `GameProgress` observation is scoped to Home's selected Adventure and carries availability, an optional badge mask/caught count, provider version, content/save revisions and observation time. It is derived from a verified ordinary save, rebuilt after restart, and never written into the manual journal or account achievements. See [game progress](GAME_PROGRESS.md).
+
 World progress may eventually be derived from Adventures, but a dedicated projection/read model is useful for UI:
 
 ```text

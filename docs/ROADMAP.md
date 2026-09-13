@@ -288,6 +288,8 @@ Done when adding another integration does not require redesigning core TrainerOS
 
 ## Milestone 13 — Automatic progress enrichment
 
+The user's 2026-09-13 imported-save/Home trial advances the first bounded [game-progress increment](GAME_PROGRESS.md): verified English FireRed/Emerald badge flags and National Pokédex counts on Home. It builds on the installed library, lifecycle and save resolver. This does not close the milestone or claim DS/GameCube, party, location, historical events or ROM-hack parsing.
+
 Potential modules:
 
 - game-progress metadata providers

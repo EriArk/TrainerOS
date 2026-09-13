@@ -3,6 +3,8 @@
 #include "integrations/adventure/AdapterRouter.h"
 #include "integrations/adventure/standalone/StandaloneAdapter.h"
 #include "integrations/adventure/standalone/MelonDsSave.h"
+#include "integrations/progress/GameProgressService.h"
+#include <QJsonDocument>
 #include "integrations/achievements/RetroAchievementsProvider.h"
 #include "core/storage/SessionState.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
@@ -248,6 +250,47 @@ int main(int argc, char* argv[]) {
         if (saveBackups) QObject::connect(saveBackups.get(), &SaveBackupService::busyChanged, &session, updateServiceActivity);
         ProcessService adventureProcess;
         AdventureLaunchController adventureLaunch(adventureProcess);
+        std::unique_ptr<GameProgressService> gameProgress;
+        QByteArray progressSelection;
+        bool progressHomeVisible = false;
+        if (personalLibrary && !smoke) {
+            gameProgress = std::make_unique<GameProgressService>([retroarchInstallation](const AdventureRegistration& record) {
+                return resolveRetroArchSave(record, retroarchInstallation);
+            });
+            shell.configureProgress(gameProgress.get());
+            const auto refreshProgress = [&, provider = gameProgress.get()](bool force) {
+                if (adventureLaunch.active() || (saveBackups && saveBackups->busy())) return;
+                const auto id = shell.home()["adventureId"].toString();
+                const auto record = activeLibrary.registration(id);
+                if (!record) {
+                    if (!progressSelection.isEmpty()) { progressSelection.clear(); provider->invalidate(); }
+                    return;
+                }
+                const auto key = QJsonDocument(QJsonObject{{"id", id}, {"revision", record->revision},
+                    {"path", record->contentPath}, {"config", record->integrationConfig}}).toJson(QJsonDocument::Compact);
+                if (!force && key == progressSelection) return;
+                progressSelection = key;
+                provider->refresh(*record);
+            };
+            QObject::connect(&shell, &ShellController::changed, gameProgress.get(), [&, refreshProgress] {
+                const bool homeVisible = shell.page() == 0;
+                const bool enteredHome = homeVisible && !progressHomeVisible;
+                progressHomeVisible = homeVisible;
+                refreshProgress(enteredHome);
+            });
+            QObject::connect(store.get(), &LocalStateStore::opened, gameProgress.get(), [refreshProgress](bool success) {
+                if (success) refreshProgress(true);
+            });
+            QObject::connect(store.get(), &LocalStateStore::libraryChanged, gameProgress.get(), [refreshProgress] { refreshProgress(true); });
+            QObject::connect(&adventureLaunch, &AdventureLaunchController::changed, gameProgress.get(), [&, refreshProgress] {
+                if (adventureLaunch.active()) { progressSelection.clear(); gameProgress->invalidate(); }
+                else refreshProgress(true);
+            });
+            if (saveBackups) QObject::connect(saveBackups.get(), &SaveBackupService::busyChanged, gameProgress.get(), [&, refreshProgress] {
+                if (saveBackups->busy()) { progressSelection.clear(); gameProgress->invalidate(); }
+                else refreshProgress(true);
+            });
+        }
         std::unique_ptr<PlayHistoryController> playHistory;
         if (personalLibrary) playHistory = std::make_unique<PlayHistoryController>(adventureLaunch, *store);
         ControllerInput input(nullptr, preferred);

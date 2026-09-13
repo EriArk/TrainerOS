@@ -2,6 +2,8 @@
 #include "core/input/Action.h"
 #include "core/input/TextEntryController.h"
 #include "core/repository/LibraryRepository.h"
+#include "core/model/GameProgressProvider.h"
+#include <QPointer>
 #include "features/trainer/TrainerController.h"
 #include "features/worlds/WorldsController.h"
 #include "features/pokedex/PokedexController.h"
@@ -59,6 +61,7 @@ public:
     bool serviceOpen() const { return !service_.isEmpty(); }
     bool sampleLibrary() const { return !repository_.editable(); }
     void configureServices(FileCatalog* files, PreferencesRepository* preferences);
+    void configureProgress(GameProgressProvider* provider);
     void refreshLibrary();
     void showNotice(const QString& message) { mode_.clear(); notice_ = message; emit changed(); }
     bool modeConfirmation() const { return !mode_.isEmpty(); }
@@ -87,6 +90,7 @@ private:
     std::optional<ResumePoint> homeResumePoint(const QString& adventureId) const;
     ResumeAvailability homeResumeAvailability(const Adventure&) const;
     LibraryRepository& repository_;
+    QPointer<GameProgressProvider> progress_;
     AdventureAdapter& adapter_;
     PlatformService& platform_;
     TextEntryController keyboard_;

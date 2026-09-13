@@ -9,12 +9,24 @@
 #include <memory>
 
 using namespace trainer;
+namespace {
+class HomeProgressFixture final : public GameProgressProvider {
+public:
+    using GameProgressProvider::GameProgressProvider;
+    QString selected = "home-0";
+    GameProgress value;
+    QString adventureId() const override { return selected; }
+    GameProgress snapshot() const override { return value; }
+    void publish() { emit changed(); }
+};
+}
 void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& session, LocalStateStore& store,
         ControllerInput& input, ProbeAdventureAdapter& adapter, SDL_Joystick* joystick, bool reopen,
         const QString& screenshotDir, bool& completed, int& warnings, QStringList& diagnostics) {
     auto* process = new ProcessService(window);
     auto* launch = new AdventureLaunchController(*process, window);
     auto* history = new PlayHistoryController(*launch, store, window);
+    auto* progress = new HomeProgressFixture(window);
     auto stage = std::make_shared<int>(0), starts = std::make_shared<int>(0), returns = std::make_shared<int>(0);
     auto failed = std::make_shared<bool>(false);
     const auto program = QDir(QCoreApplication::applicationDirPath()).filePath(
@@ -83,8 +95,14 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(*starts == 0 && *returns == 0 && shell.notice().isEmpty(), "Selecting a card must never launch");
             check(!shell.drawerOpen() && focusIs("home-launch") && shell.home()["adventureId"] == "home-0", "Selection rebuilds Home and focuses main button");
             check(shell.home()["recordedTime"] == "12 min" && shell.home()["badges"] == "—", "Real duration and unknown progress remain separate");
+            progress->value.availability = ProgressAvailability::Available;
+            progress->value.badgeMask = 0xa5; progress->value.caught = 241;
+            progress->value.message = "Last in-game save · National Pokédex";
+            shell.configureProgress(progress);
             window->resize(1920, 1080); break;
         case 6:
+            check(shell.home()["badges"] == "4" && shell.home()["caught"] == "241"
+                && shell.home()["badgeSlots"].toList().size() == 8, "Verified save fields reach Home independently of recorded time");
             capture("home-selected-1080p"); press(SDL_CONTROLLER_BUTTON_A); break;
         case 7:
             check(*starts == 1 && *returns == 1 && focusIs("home-launch"), "Main button alone launches and restores Home");
@@ -102,6 +120,11 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             press(SDL_CONTROLLER_BUTTON_B); press(SDL_CONTROLLER_BUTTON_B);
             press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
             check(focusIs("home-launch") && shell.home()["adventureId"] == "home-0", "Shoulders retain the selected Home Adventure");
+            progress->selected = "another-adventure"; progress->publish();
+            check(shell.home()["badges"] == "—" && shell.home()["caught"] == "—", "An unrelated Adventure cannot populate Home");
+            progress->selected = "home-0"; progress->value = {};
+            progress->value.message = "Progress is not supported for this edition yet."; progress->publish();
+            check(shell.home()["badges"] == "—" && shell.home()["badgeSlots"].toList().isEmpty(), "Unsupported progress stays unknown");
             break;
         case 9:
             check(shell.navigationState()["homeAdventure"] == "home-0" && shell.home()["adventureId"] == "home-0", "Explicit Home choice survives restart");

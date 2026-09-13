@@ -21,6 +21,8 @@ The first prototype must run as an ordinary full-screen Qt application. Do not m
 
 ## Construction order
 
+The first [game-progress reader](GAME_PROGRESS.md) uses the verified save-resolution boundary to enrich Home. A worker validates an exact content build and stable ordinary-save bytes, then publishes a versioned observation through `GameProgressProvider`. This remains separate from emulator transport, the manual Pokédex and external achievements.
+
 Build bottom-up: native project structure, shared interface/controller components, shared backend and persistence, then functional modules and real integrations in dependency order. The interface proof uses mock data and fake boundaries; the next backend milestone makes core profile/shell state durable. It does not depend on emulator integration, external accounts or save parsing. Keep the foundation small enough to serve actual upcoming modules.
 
 See `ROADMAP.md` for execution order. Feasibility research is input to later modules, not a reason to skip the foundations.

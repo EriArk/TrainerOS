@@ -11,6 +11,12 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/core/model/GameProgress.h
+    src/core/model/GameProgressProvider.h
+    src/integrations/progress/Gen3Progress.h
+    src/integrations/progress/Gen3Progress.cpp
+    src/integrations/progress/GameProgressService.h
+    src/integrations/progress/GameProgressService.cpp
     src/features/halloffame/AchievementAccountController.h
     src/features/halloffame/AchievementAccountController.cpp
     src/integrations/achievements/RetroAchievementsApi.h
@@ -174,6 +180,9 @@ qt_add_qml_module(traineros
 )
 
 if(BUILD_TESTING)
+    qt_add_executable(trainer_progress_tests tests/GameProgressTests.cpp)
+    target_link_libraries(trainer_progress_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME game_progress COMMAND trainer_progress_tests)
     qt_add_executable(trainer_achievement_tests tests/RetroAchievementsTests.cpp)
     target_link_libraries(trainer_achievement_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME achievements COMMAND trainer_achievement_tests)

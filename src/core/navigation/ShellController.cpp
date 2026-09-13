@@ -3,8 +3,15 @@
 #include "ResumePresentation.h"
 #include <QSet>
 #include <algorithm>
+#include <bit>
 
 namespace trainer {
+void ShellController::configureProgress(GameProgressProvider* provider) {
+    if (progress_) disconnect(progress_, nullptr, this, nullptr);
+    progress_ = provider;
+    if (progress_) connect(progress_, &GameProgressProvider::changed, this, &ShellController::changed);
+    emit changed();
+}
 ShellController::ShellController(LibraryRepository& repo, TrainerRepository& profiles, AdventureAdapter& adapter,
         PlatformService& platform, PokedexReferenceProvider& dexReference, PokedexProgressRepository& dexProgress,
         HallOfFameRepository& archive, AchievementProvider& achievements, QObject* parent)
@@ -202,6 +209,8 @@ QVariantMap ShellController::home() const {
     const auto adventure = homeAdventure();
     QString action = "Explore Worlds", actionHint = "Worlds", milestone = snapshot.milestone;
     std::optional<int> badges, caught;
+    QVariantList badgeSlots;
+    QString progressNote;
     std::optional<qint64> seconds;
     if (adventure) {
         title = adventure->title;
@@ -210,6 +219,20 @@ QVariantMap ShellController::home() const {
         if (adventure->id == snapshot.activeAdventureId) {
             if (!badges) badges = snapshot.badges;
             if (!caught) caught = snapshot.caught;
+        }
+        if (progress_) {
+            badges.reset(); caught.reset();
+            if (progress_->adventureId() == adventure->id) {
+                const auto observed = progress_->snapshot();
+                progressNote = observed.message;
+                if (observed.availability == ProgressAvailability::Available) {
+                    caught = observed.caught;
+                    if (observed.badgeMask) {
+                        badges = std::popcount(static_cast<unsigned>(*observed.badgeMask) & 255u);
+                        for (int i = 0; i < 8; ++i) badgeSlots.append((*observed.badgeMask & (1 << i)) != 0);
+                    }
+                }
+            }
         }
         seconds = repository_.recordedSeconds(adventure->id);
         const auto caps = adapter_.capabilities(*adventure);
@@ -231,6 +254,7 @@ QVariantMap ShellController::home() const {
             {"hasTrainer", trainer_.exists()}, {"adventure", title}, {"world", world},
             {"adventureId", adventure ? adventure->id : QString()}, {"action", action}, {"actionHint", actionHint},
             {"badges", badges ? QString::number(*badges) : "—"}, {"caught", caught ? QString::number(*caught) : "—"},
+            {"badgeSlots", badgeSlots}, {"progressNote", progressNote},
             {"recordedTime", seconds ? recordedDuration(*seconds) : "—"}, {"milestone", milestone}};
 }
 QVariantList ShellController::resumePoints() const {

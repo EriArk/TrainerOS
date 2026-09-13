@@ -29,15 +29,30 @@ Item {
         Text { text: root.currentAdventure.adventure; width: 600; elide: Text.ElideRight; textFormat: Text.PlainText; color: "#347561"; font.pixelSize: 24 }
         Text { text: root.currentAdventure.adventureId.length ? "Your selected Adventure. Your next discovery." : "Your next adventure is waiting."; color: Theme.muted; font.pixelSize: 16 }
     }
+    Text { x: 34; y: 219; width: 580; elide: Text.ElideRight; textFormat: Text.PlainText; text: root.currentAdventure.progressNote; color: Theme.muted; font.pixelSize: 12 }
     Row {
         x: 33; y: 250; spacing: 12
         Repeater {
-            model: [{number: root.currentAdventure.badges, label: "BADGES"}, {number: root.currentAdventure.caught, label: "CAUGHT"}, {number: root.currentAdventure.recordedTime, label: "RECORDED TIME"}]
+            model: [{number: root.currentAdventure.badges, label: "BADGES", badges: true}, {number: root.currentAdventure.caught, label: "CAUGHT", badges: false}, {number: root.currentAdventure.recordedTime, label: "RECORDED TIME", badges: false}]
             delegate: Rectangle {
                 required property var modelData
-                width: 142; height: 82; radius: 13; color: "#edf2e7"; border.color: "#c9d8c7"
-                Text { x: 15; y: 7; width: parent.width - 30; height: 41; verticalAlignment: Text.AlignVCenter; text: modelData.number; color: Theme.ink; font.pixelSize: text.length > 4 ? 18 : 34; font.bold: true; elide: Text.ElideRight }
-                Text { x: 16; y: 53; text: modelData.label; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1 }
+                width: 142; height: 92; radius: 13; color: "#edf2e7"; border.color: "#c9d8c7"
+                Text { x: 15; y: 5; width: parent.width - 30; height: 38; verticalAlignment: Text.AlignVCenter; text: modelData.number + (modelData.badges && root.currentAdventure.badgeSlots.length ? " / 8" : ""); color: Theme.ink; font.pixelSize: text.length > 4 ? 22 : 34; font.bold: true; elide: Text.ElideRight }
+                Row {
+                    x: 18; y: 47; spacing: 6
+                    visible: modelData.badges
+                    Repeater {
+                        model: modelData.badges ? root.currentAdventure.badgeSlots : []
+                        delegate: Rectangle {
+                            required property bool modelData
+                            width: 8; height: 8; rotation: 45; radius: 1
+                            color: modelData ? "#dfad46" : "#d9e0d4"
+                            border.color: modelData ? "#906429" : "#aebcab"
+                            Rectangle { x: 1; y: 1; width: 5; height: 2; color: modelData ? "#ffdc83" : "#ebeee7" }
+                        }
+                    }
+                }
+                Text { x: 16; y: 65; text: modelData.label; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1 }
             }
         }
     }
