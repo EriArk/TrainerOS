@@ -4,8 +4,6 @@ import QtQuick.Shapes
 Rectangle {
     id: root
     objectName: "chassis-frame"
-    property real rightKeyHeight: Theme.tabBaseline
-    Behavior on rightKeyHeight { NumberAnimation { duration: Theme.motion(130); easing.type: Easing.OutCubic } }
     gradient: Gradient {
         GradientStop { position: 0; color: Theme.chassisCrown }
         GradientStop { position: 0.035; color: Theme.chassisTop }
@@ -34,20 +32,14 @@ Rectangle {
         const top = -12, bottom = s.y + s.height - inset;
         const radius = Math.max(1, 15 - inset);
         const brandBottom = Theme.tabBaseline + Theme.activeTabOverlap + inset;
-        // All contours meet the same vertical key edges. Their bevels turn
-        // inward only below those contacts, never underneath a tab face.
+        // Home meets the title directly; the right slope remains a fixed,
+        // uninterrupted part of the chassis beside the narrower key bank.
         const brandRight = Theme.brandWidth;
-        // An S return has vertical tangents at both ends. The former quarter
-        // arc ended horizontally before a vertical line, making a hooked lip.
-        const rightJoinStart = root.rightKeyHeight - 10;
-        const rightJoinEnd = root.rightKeyHeight + 8;
         const diagonalOffset = inset * (Math.SQRT2 - 1);
         const diagonalTop = Theme.tabBaseline + Theme.activeTabOverlap - Theme.brandBevel + inset * Math.SQRT2;
         const diagonalLeft = Theme.brandWidth - Theme.brandBevel + diagonalOffset;
         return "M " + brandRight + " " + top
-            + " H " + outerRight + " V " + rightJoinStart
-            + " C " + outerRight + " " + (rightJoinStart + 6)
-            + " " + right + " " + (rightJoinEnd - 6) + " " + right + " " + rightJoinEnd
+            + " H " + right
             + " V " + (bottom - radius) + " Q " + right + " " + bottom + " " + (right - radius) + " " + bottom
             + " H " + (left + radius) + " Q " + left + " " + bottom + " " + left + " " + (bottom - radius)
             + " V " + (brandBottom + radius) + " Q " + left + " " + brandBottom + " " + (left + radius) + " " + brandBottom
@@ -102,7 +94,7 @@ Rectangle {
         ShapePath {
             strokeColor: "transparent"
             fillColor: Theme.paper
-            PathSvg { path: root.aperture(11) }
+            PathSvg { path: root.aperture(Theme.screenBevel) }
         }
     }
     ShellBackgroundPattern {

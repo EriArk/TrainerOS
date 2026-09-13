@@ -31,10 +31,7 @@ Window {
         anchors.fill: parent
         visible: !sessionState.blocked
         enabled: !adventureLaunch.active
-        ChassisFrame {
-            anchors.fill: parent
-            rightKeyHeight: Theme.tabBaseline + (shell.page === 4 ? Theme.activeTabOverlap : 0)
-        }
+        ChassisFrame { anchors.fill: parent }
         Item {
             id: brand
             objectName: "brand-extension"
@@ -102,9 +99,9 @@ Window {
                     }
                     Rectangle {
                         // Deep seams between adjacent keys, and a small contact
-                        // seam where the final key meets the right sidewall.
-                        x: parent.width; y: 0
-                        width: index === 4 ? 2 : Theme.tabSpacing
+                        // seam inside the final key, clear of the chassis slope.
+                        x: parent.width - (index === 4 ? 1 : 0); y: 0
+                        width: index === 4 ? 1 : Theme.tabSpacing
                         height: index === 4 ? parent.height - Theme.tabBevel : Theme.tabBaseline
                         gradient: Gradient {
                             GradientStop { position: 0; color: "#a0101e1d" }
