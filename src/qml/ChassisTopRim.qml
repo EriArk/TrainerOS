@@ -8,9 +8,10 @@ Item {
     // Overlap the first key's outer shadow where this lip merges into the title.
     x: Theme.brandWidth - 3; y: 0
     width: Theme.viewportWidth - x; height: Theme.topRimHeight
+    readonly property real rightContact: Theme.screenBounds.x + Theme.screenBounds.width - x
     Rectangle {
         x: Theme.brandWidth - root.x; y: root.height
-        width: Theme.screenBounds.x + Theme.screenBounds.width - Theme.screenBevel - Theme.brandWidth
+        width: Theme.screenBounds.x + Theme.screenBounds.width - Theme.brandWidth
         height: 8
         gradient: Gradient {
             GradientStop { position: 0; color: "#b8101e1d" }
@@ -34,12 +35,7 @@ Item {
         }
         ShapePath {
             strokeColor: "transparent"
-            fillGradient: LinearGradient {
-                x1: -root.x; y1: 0; x2: Theme.viewportWidth - root.x; y2: Theme.viewportHeight
-                GradientStop { position: 0; color: Theme.edgeLight }
-                GradientStop { position: 0.35; color: Theme.chassisTop }
-                GradientStop { position: 1; color: Theme.edgeShadow }
-            }
+            fillColor: Theme.edgeShadow
             PathSvg {
                 path: "M 0 1 H " + (root.width - 1) + " V " + root.height
                     + " H " + (root.width - 4) + " V 4 H 0 Z"
@@ -49,7 +45,7 @@ Item {
             strokeColor: Theme.edgeShadow; strokeWidth: 1; fillColor: "transparent"
             PathSvg {
                 path: "M " + (Theme.brandWidth - root.x) + " " + root.height + " H "
-                    + (Theme.screenBounds.x + Theme.screenBounds.width - Theme.screenBevel - root.x)
+                    + root.rightContact
             }
         }
     }

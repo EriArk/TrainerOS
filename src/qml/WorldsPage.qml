@@ -130,8 +130,8 @@ Item {
                 }
             }
         }
-        MountedPanel {
-            x: 568; y: 0; width: parent.width - x; height: 332; color: "#e1ecde"
+        Item {
+            x: 568; y: 0; width: parent.width - x; height: 332
             Text { x: 24; y: 18; text: "ADVENTURE RECORD"; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1.3 }
             TrainerEmblem { anchors.horizontalCenter: parent.horizontalCenter; y: 55; width: 140; height: 140; emblem: root.worlds.detail.kind === "ROM hack" ? "spark" : "compass" }
             Text { x: 24; y: 209; width: parent.width - 48; text: root.worlds.detail.title; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 23; font.weight: Font.DemiBold }

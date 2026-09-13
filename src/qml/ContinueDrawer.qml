@@ -12,8 +12,8 @@ Item {
     readonly property real leftJoin: Theme.screenBounds.x + Theme.screenBevel
     readonly property real lowerJoin: 53 - (Theme.footerTop - Theme.screenBounds.y - Theme.screenBounds.height + Theme.screenBevel)
     function shoulder() {
-        // Both shoulders meet the screen lip, leaving the main sidewall clear.
-        // The left cut is shallow; the right diagonal ends directly at the lip.
+        // The shallow left cut seats against the body, over the screen bevel.
+        // The expanded right diagonal still ends directly at the screen lip.
         return "M " + leftJoin + " " + lowerJoin + " L " + (leftJoin + 6) + " 6"
             + " Q " + (leftJoin + 7) + " 0 " + (leftJoin + 11) + " 0"
             + " H " + (width - 45)
@@ -128,16 +128,12 @@ Item {
                 path: root.shoulder() + " V " + root.height + " H " + root.leftJoin + " Z"
             }
         }
-        ShapePath {
-            strokeColor: Theme.edgeLight; strokeWidth: 2; fillColor: "transparent"
-            PathSvg { path: root.shoulder() }
-        }
     }
     Item {
         id: toggle
         objectName: "continue-toggle"
         width: root.width; height: 53
-        Accessible.role: Accessible.Button; Accessible.name: "Y Continue Adventure"
+        Accessible.role: Accessible.Button; Accessible.name: "Y Choose Adventure"
         // An inset follows the outer slope instead of a rectangular cap
         // floating on top of it. Its width follows the unfolding body.
         Shape {
@@ -160,17 +156,9 @@ Item {
                 PathLine { x: root.leftJoin + 13; y: 14 }
                 PathQuad { x: root.leftJoin + 20; y: 8; controlX: root.leftJoin + 14; controlY: 8 }
             }
-            ShapePath {
-                strokeColor: "#fff0b5"; strokeWidth: 1; fillColor: "transparent"
-                startX: root.leftJoin + 11; startY: 37
-                PathLine { x: root.leftJoin + 16; y: 16 }
-                PathQuad { x: root.leftJoin + 21; y: 12; controlX: root.leftJoin + 17; controlY: 12 }
-                PathLine { x: toggle.width - 45; y: 12 }
-            }
         }
         Text { x: 44; y: 12; text: "Y"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 21; font.weight: Font.DemiBold }
-        Text { x: 66; y: 16; text: "Continue Adventure"; color: "#fff0b5"; font.pixelSize: 17; font.weight: Font.DemiBold }
-        Text { x: 66; y: 15; text: "Continue Adventure"; color: Theme.ink; font.pixelSize: 17; font.weight: Font.DemiBold }
+        Text { x: 66; y: 15; text: "Choose Adventure"; color: Theme.ink; font.pixelSize: 17; font.weight: Font.DemiBold }
         Item {
             x: 306; y: 18; width: Math.max(0, toggle.width - x - 44); height: 20; clip: true
             // The legend is printed at its final position on the yellow inset.

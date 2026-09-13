@@ -148,7 +148,7 @@ QList<WorldsController::DetailAction> WorldsController::detailActions() const {
     if (const auto adventure = currentAdventure()) {
         const auto caps = adapter_.capabilities(*adventure);
         if (const auto point = latestResume(*adventure); point && caps.directResume)
-            result.append({"resume", "Continue Adventure", adapter_.resumeAvailability(*adventure, *point) == ResumeAvailability::Exact});
+            result.append({"resume", "Resume Adventure", adapter_.resumeAvailability(*adventure, *point) == ResumeAvailability::Exact});
         if (!adventure->collectionOnly) result.append({"launch", caps.launch ? "Start Adventure" : "Needs setup", caps.launch});
         if (repository_.editable()) result.append({"setup", adventure->collectionOnly ? "Link a file" : "Edit / change file", true});
     }

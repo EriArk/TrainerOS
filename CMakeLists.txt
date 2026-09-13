@@ -84,6 +84,8 @@ add_library(trainer_core STATIC
     src/core/storage/SessionState.h
     src/core/input/ControllerInput.cpp
     src/core/input/ControllerInput.h
+    src/core/input/PointerVisibility.cpp
+    src/core/input/PointerVisibility.h
     src/core/input/Action.h
     src/core/input/TextEntryController.cpp
     src/core/input/TextEntryController.h
@@ -137,7 +139,8 @@ endif()
 
 qt_add_executable(traineros src/app/Main.cpp)
 qt_add_resources(traineros display_fonts PREFIX "/fonts" BASE assets/fonts
-    FILES assets/fonts/Fredoka.ttf assets/fonts/OFL.txt)
+    FILES assets/fonts/Fredoka.ttf assets/fonts/OFL.txt
+          assets/fonts/ChakraPetch-Bold.ttf assets/fonts/ChakraPetch-OFL.txt)
 target_link_libraries(traineros PRIVATE trainer_core Qt6::Quick)
 set_source_files_properties(src/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 file(GLOB trainer_qml_sources CONFIGURE_DEPENDS src/qml/*.qml)
@@ -188,6 +191,9 @@ qt_add_qml_module(traineros
 )
 
 if(BUILD_TESTING)
+    qt_add_executable(trainer_pointer_tests tests/PointerVisibilityTests.cpp)
+    target_link_libraries(trainer_pointer_tests PRIVATE trainer_core Qt6::Quick Qt6::Test)
+    add_test(NAME pointer_visibility COMMAND trainer_pointer_tests)
     qt_add_executable(trainer_progress_tests tests/GameProgressTests.cpp)
     target_link_libraries(trainer_progress_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME game_progress COMMAND trainer_progress_tests)

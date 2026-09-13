@@ -35,12 +35,13 @@ Window {
         Item {
             id: brand
             objectName: "brand-extension"
-            width: Theme.brandWidth; height: Theme.tabBaseline + Theme.activeTabOverlap
+            width: Theme.brandWidth; height: Theme.brandHeight
             z: 1
             Text {
-                x: 16; width: parent.width - 32; anchors.verticalCenter: parent.verticalCenter
-                text: "TRAINER OS"; color: "#edf5e9"; font.pixelSize: 24; font.weight: Font.DemiBold
-                font.family: Theme.displayFamily; font.letterSpacing: 0.6
+                anchors.centerIn: parent; width: parent.width - 24
+                horizontalAlignment: Text.AlignHCenter
+                text: "TRAINER OS"; color: "#edf5e9"; font.pixelSize: 25; font.weight: Font.Bold
+                font.family: Theme.brandFamily; font.letterSpacing: 0.6
             }
         }
         Row {
@@ -126,7 +127,7 @@ Window {
                     Rectangle { x: 2; y: 3; width: 1; height: parent.height - 17; color: "#55ffffff" }
                     Text {
                         anchors.centerIn: parent; anchors.verticalCenterOffset: Theme.topRimHeight / 2
-                        text: modelData; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 19; font.weight: Font.DemiBold
+                        text: modelData; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: shell.page === index ? 21 : 19; font.weight: Font.DemiBold
                     }
                     Rectangle { x: 18; y: parent.height - 8; width: parent.width - 36; height: 3; radius: 1.5; color: "#7a4a24"; visible: shell.page === index }
                     MouseArea { anchors.fill: parent; onClicked: shell.goToPage(index) }
@@ -153,7 +154,7 @@ Window {
         ContinueDrawer {
             id: drawer
             objectName: "continue-drawer"
-            x: -3; anchors.bottom: footer.top; shell: shellController
+            x: -Theme.screenBevel; anchors.bottom: footer.top; shell: shellController
             visible: !shell.serviceOpen && shell.page === 0
         }
         Item {

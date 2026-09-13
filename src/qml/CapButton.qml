@@ -28,13 +28,6 @@ Item {
     onVisibleChanged: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
     Component.onCompleted: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
     Rectangle {
-        x: -4; y: -4; width: parent.width + 8; height: parent.height + 8
-        radius: 13
-        color: "transparent"
-        border.width: root.selected ? 3 : 0
-        border.color: root.focusColor
-    }
-    Rectangle {
         x: -1; y: 2; width: parent.width + 2; height: parent.height + 3
         radius: 10; color: "#50324438"
     }
@@ -83,6 +76,34 @@ Item {
             x: 12; anchors.verticalCenter: parent.verticalCenter; width: 18; height: 18; radius: 9
             visible: root.warning; color: "#713e37"
             Text { anchors.centerIn: parent; text: "!"; color: "#fff0d8"; font.pixelSize: 13; font.bold: true }
+        }
+    }
+    // A bright core and broad inward bloom remain intact at clipped list edges.
+    // The outside footprint stays within the existing four-unit focus gutter.
+    Item {
+        anchors.fill: parent; z: 1; visible: root.selected
+        Repeater {
+            model: 12
+            delegate: Rectangle {
+                required property int index
+                readonly property real inset: index - 4
+                x: inset; y: inset
+                width: root.width - inset * 2; height: root.height - inset * 2
+                radius: Math.max(2, 9 - inset); color: "transparent"
+                border.width: 2
+                border.color: Theme.focusGlow
+                opacity: [0.16, 0.32, 0.56, 0.85, 0.92, 0.72, 0.52, 0.36, 0.24, 0.15, 0.08, 0.03][index]
+            }
+        }
+        Rectangle {
+            x: -1; y: -1; width: parent.width + 2; height: parent.height + 2
+            radius: 10; color: "transparent"
+            border.width: 3; border.color: root.focusColor
+        }
+        Rectangle {
+            x: 1; y: 1; width: parent.width - 2; height: parent.height - 2
+            radius: 8; color: "transparent"
+            border.width: 1; border.color: "#fff9d6"
         }
     }
     MouseArea { id: pointer; anchors.fill: parent; onClicked: { root.pressFeedback(); root.activated(); } }

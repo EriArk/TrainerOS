@@ -68,7 +68,7 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 - **Home is one top-level page, not a permanent background shell.**
 - `L1/R1` switch top-level pages and must not be repurposed for local features.
 - Home is a living trainer overview, not a giant Continue page or tile launcher.
-- Continue Adventure is a compact slide-out panel/drawer on Home.
+- Choose Adventure is a compact slide-out panel/drawer on Home.
 - Continue uses small recent session/save-state cards, ideally with screenshots and metadata.
 - Selecting a Continue card with A chooses the Adventure shown on Home; it never launches. Home has a large physical-style action button that launches/resumes the selected Adventure. The explicit Home choice persists; latest launch is the default before a choice is made (2026-09-11 clarification).
 - RetroAchievements achievements belong inside Hall of Fame, alongside the completed-Adventure archive, not on a separate primary page.
@@ -90,7 +90,7 @@ Always preserve:
 - `A` = confirm/open
 - `B` = back/close
 - `Start` = TrainerOS system menu
-- `Y` = open/close Continue Adventure on Home
+- `Y` = open/close Choose Adventure on Home
 - Planned #31: unobstructed Home `X` toggles Pokémon/Multiverse; choices and Continue are scoped per Trainer/context, while A/Y retain selection-versus-launch behavior.
 - On unobstructed Home, `A` immediately invokes the large Adventure button, regardless of prior D-pad/stick input. `Y` opens the selector; `A` inside it selects for Home without launching.
 - Prefer visible page-specific physical-button actions over moving focus between static modules. Directional focus belongs to lists, grids and open selection/editing panels; modal actions take priority over page shortcuts.

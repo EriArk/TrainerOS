@@ -33,7 +33,7 @@ Item {
             Rectangle { anchors.right: parent.right; y: -parent.y; width: 6; height: parent.y; color: "#c4dcd5" }
         }
         Rectangle {
-            x: 0; y: dexHeader.height + 72; width: 512; height: 365 - y; color: "#dbe8dd"
+            x: 0; y: dexHeader.height + 72; width: 530; height: 365 - y; color: "#dbe8dd"
             ListView {
                 id: entries
                 objectName: "dex-list"

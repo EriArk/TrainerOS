@@ -89,7 +89,7 @@ The top-level UI is a horizontal set of full-screen sections:
 - `A`: confirm / open
 - `B`: back / close
 - `Start`: system menu
-- `Y`: open/close Continue Adventure on Home
+- `Y`: open/close Choose Adventure on Home
 
 Exact secondary shortcuts can evolve, but **L1/R1 remain globally reserved**.
 
@@ -109,9 +109,9 @@ It may show a restrained mix of:
 - time, battery, network, storage, sync/backup state
 - a themed visual tied to the active World, Trainer, or featured Pokémon
 
-### Continue Adventure drawer
+### Choose Adventure drawer
 
-Home contains a compact **slide-out Continue Adventure panel** with recent resumable points.
+Home contains a compact **slide-out Choose Adventure panel** with recent resumable points.
 
 A card may contain:
 
@@ -251,7 +251,7 @@ The bootstrap acceptance below is retained for context; use the roadmap's workin
 2. run full-screen in a normal development desktop session and on the target ArmadaOS device
 3. be fully controller-navigable
 4. use `L1/R1` to switch Home, Worlds, Pokédex, Trainer, and Hall of Fame
-5. provide a working compact Continue Adventure drawer using mock resume data
+5. provide a working compact Choose Adventure drawer using mock resume data
 6. show region-first Worlds navigation
 7. open a TrainerOS system menu with a stubbed Maintenance/Desktop action
 8. preserve useful UI state across restart once the shared backend milestone is complete

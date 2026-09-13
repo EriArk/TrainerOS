@@ -28,7 +28,7 @@ Implemented:
 
 Use a consistent compiler/Qt ABI. On the current Windows development machine the working combination is MSYS2 UCRT64 GCC and UCRT64 Qt; do not combine it with the separate MSVC Qt installation.
 
-For consistent readable numerals, the application prefers an installed Noto Sans, DejaVu Sans or Segoe UI font, then falls back to the platform's general UI font. No font assets are bundled. Install Noto Sans or DejaVu Sans on a Linux target if neither is already present.
+For consistent readable numerals, the application prefers an installed Noto Sans, DejaVu Sans or Segoe UI font, then falls back to the platform's general UI font. Title/tab display faces are bundled with their OFL licenses; see [font provenance](../assets/fonts/README.md). Install Noto Sans or DejaVu Sans on a Linux target if neither is already present.
 
 ## Build and run on Linux
 

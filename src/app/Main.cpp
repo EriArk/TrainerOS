@@ -1,4 +1,5 @@
 #include "core/input/ControllerInput.h"
+#include "core/input/PointerVisibility.h"
 #include "core/navigation/ShellController.h"
 #include "integrations/adventure/AdapterRouter.h"
 #include "integrations/adventure/standalone/StandaloneAdapter.h"
@@ -353,6 +354,11 @@ int main(int argc, char* argv[]) {
         else {
             auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
             if (!window) return 2;
+            auto* pointerVisibility = new PointerVisibility(*window, platform.dedicatedSession());
+            QObject::connect(&input, &ControllerInput::observedAction, pointerVisibility,
+                             [pointerVisibility](Action, bool fromController) {
+                if (fromController) pointerVisibility->hide();
+            });
 #ifdef Q_OS_LINUX
             bool readyDescriptorValid = false;
             const int readyDescriptor = qEnvironmentVariableIntValue("TRAINEROS_READY_FD", &readyDescriptorValid);

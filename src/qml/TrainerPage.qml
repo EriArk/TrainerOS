@@ -10,10 +10,8 @@ Item {
         title: root.trainer.editing ? (root.trainer.exists ? "Edit Trainer" : "Create Trainer") : "Trainer"
         subtitle: "Make this journey yours."
     }
-    Rectangle {
+    Item {
         x: 586; y: 0; width: parent.width - x; height: parent.height
-        color: "#e1ecde"
-        Rectangle { width: 1; height: parent.height; color: "#b7cbbb" }
         TrainerEmblem {
             x: 83; y: 76; width: 164; height: 164
             emblem: root.trainer.editing ? root.trainer.draftEmblem : root.trainer.profile.emblem

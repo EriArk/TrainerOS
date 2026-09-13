@@ -53,7 +53,7 @@ Whether the page list wraps from Hall of Fame back to Home should be decided dur
 - `B`: back/close/cancel
 - `Start`: TrainerOS system menu
 - `L1/R1`: global primary-page navigation
-- `Y`: open/close Continue Adventure on Home
+- `Y`: open/close Choose Adventure on Home
 
 Other buttons remain available for later shortcuts but should not become mandatory until documented/remappable.
 
@@ -88,9 +88,9 @@ Home is a living overview with several compact information areas. It is not a ti
 
 Home uses fixed physical-button actions: A invokes the large Adventure button immediately and Y opens the selector. D-pad/stick movement does not move between its static modules or change what A does. Keep a visible ready state on the main button. Across pages, prefer labeled button actions for permanent commands and reserve directional focus for choosing items in lists, grids and open panels.
 
-### Continue Adventure drawer
+### Choose Adventure drawer
 
-Continue Adventure is a slide-out Home panel containing compact recent session/save-state cards.
+Choose Adventure is a slide-out Home panel containing compact recent session/save-state cards.
 
 Confirmed behavior:
 
@@ -348,3 +348,11 @@ For every screen:
 - Does focus survive scrolling/page return?
 - Can the user recover from empty/error states without touch?
 - Does returning from an Adventure restore a sensible context?
+
+## Pointer visibility and selector naming — 2026-09-14
+
+The Home selector is labeled **Choose Adventure**. Y opens/closes it, A on a card chooses for Home, and unobstructed Home A launches through the large button. Internal Continue identifiers retain compatibility with existing navigation data. L1/R1 keep their established global section actions.
+
+TrainerOS starts with a hidden cursor. Touch input hides it without consuming the touch or its synthesized mouse click. The dedicated handheld session keeps the shell window's cursor blank, including Gamescope's touch-to-mouse events and Qt Quick's later cursor resets. This policy belongs to TrainerOS's window and does not alter Adventure or maintenance-desktop cursors. In a normal desktop window, genuine mouse input restores the cursor; controller actions hide it again.
+
+Acceptance: Qt Quick touch and mouse events still activate controls; the handheld cursor stays hidden through press/release, while desktop mouse use restores it. Another window retains its own cursor. Verify the live Gamescope cursor as well as rendered controller navigation. Automated input does not substitute for physical finger calibration.

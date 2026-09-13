@@ -50,14 +50,9 @@ Item {
         }
     }
     Text { x: 34; y: 350; width: 610; elide: Text.ElideRight; textFormat: Text.PlainText; text: root.currentAdventure.milestone; color: Theme.muted; font.pixelSize: 15 }
-    Rectangle {
+    Item {
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
         width: 244
-        gradient: Gradient {
-            GradientStop { position: 0; color: "#dce9db" }
-            GradientStop { position: 1; color: "#ecf2e6" }
-        }
-        Rectangle { width: 1; height: parent.height; color: "#c0d1c0" }
         Text { x: 23; y: 28; text: "READY WHEN YOU ARE"; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1; font.bold: true }
         AdventureButton { x: 12; y: 57; width: 220; height: 220; shell: root.shell }
         Text { x: 22; y: 287; width: 200; text: root.currentAdventure.action; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 26; font.weight: Font.DemiBold; horizontalAlignment: Text.AlignHCenter }

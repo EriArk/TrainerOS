@@ -33,7 +33,7 @@ Item {
     Item {
         anchors.fill: parent; visible: !root.detailOpen
         Rectangle {
-            x: 0; y: hallHeader.height + 68; width: 520; height: 339 - y; color: "#e2e7de"
+            x: 0; y: hallHeader.height + 68; width: 538; height: 339 - y; color: "#e2e7de"
             // Three rows, with their entire raised focus outline inside the viewport.
             ControllerList {
                 objectName: "hall-list"

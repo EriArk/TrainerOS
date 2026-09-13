@@ -2,6 +2,18 @@
 
 Collection cards include an original hardware silhouette and short platform label seated in a recessed badge within the raised card. Missing editions use neutral grey material and retain a full-contrast focus outline; greying does not disable focus or the file-link action. This is the user's 2026-09-11 extension; see [collection catalogue](COLLECTION_CATALOGUE.md).
 
+## Chassis, selection and page cleanup — 2026-09-14
+
+This owner review supersedes the earlier tab heights, title typeface, directional rim lighting and Continue label below. The TRAINER OS body stays 63 units high. Inactive tabs end at 53; the active tab reaches the title bevel's inner line at 74, with 21-unit lettering versus 19 on other tabs. Spacing and silhouettes stay fixed. The owner's final alignment extends all five equal tabs to 145.2 units so Hall meets the right body at x=948, over the bevel, matching Home's direct title contact. The 12-unit upper rail meets the right side at a straight corner. After reviewing the installed build, the owner rejected the rounded upper-right transition and also squared the lower-left body and screen-bevel corner, giving Choose Adventure a straight mounting junction. Centered Chakra Petch Bold replaces Fredoka only in the TRAINER OS title; bundled font provenance and licenses are in [assets/fonts](../assets/fonts/README.md).
+
+A uniformly dark outer contour replaces the directional bright edge. One shared material and contact shade surround the recessed workspace and mounted panel wells, including beneath the title. Choose Adventure loses its bright upper/side strokes and yellow inset glint while keeping the contour shadows, shallow left cut and expanding yellow inset. The complete drawer moves eight more units left: its left foot meets the body at x=12 over the bevel, like the tab-to-body contact above. Its expanded right end remains at the inner screen lip. Its card titles retain the shortened top ribbons.
+
+Home's large circular action, the Worlds Adventure-list preview and Trainer's portrait/text sit directly in the main light workspace. Their extra rectangular backing and divider lines are removed. Pokédex and Hall list backdrops meet their detail backgrounds without the former pale vertical gap. Layouts, controls and data ownership are unchanged.
+
+**Internal focus** gets a bright gold edge with a warm-white core and a much stronger amber bloom: Worlds/Adventure cards, system-menu actions, Y-drawer cards, lists and editing controls use the shared CapButton treatment. The owner chose gold after the initial mint review and requested stronger illumination. The glow fades broadly into the control face; its outer extent stays within the existing four-unit focus allowance, including clipped list ends. It uses translucent contour bands without a blur shader, hover or looping animation. Keyboard/picker edge-color overrides remain supported. This is separate from the upper tab's active-section styling.
+
+Acceptance: inspect all five pages, World/Adventure selection, both drawer states and end cards, text entry and Start, active Hall's longer label, the right rail transition and consistent bevel tone on the actual 1920×1080 display. L1/R1 retain section switching; A/Y selection-versus-launch remains intact.
+
 ## Shared chassis geometry — delivered 2026-09-13
 
 Issue [#21](https://github.com/EriArk/TrainerOS/issues/21) established one panel/tab geometry and a narrow contact shadow. Shared Theme geometry owns the panel bounds, tab overlap, content insets and footer. Primary pages and frame-mounted services use the same safe top inset; keyboard/system overlays stay attached to the frame and render above the tabs. The later lip adjustment below preserves the original tab silhouette and controller actions.

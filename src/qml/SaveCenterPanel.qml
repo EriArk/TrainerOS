@@ -56,7 +56,7 @@ Item {
             Rectangle { width: parent.width; height: 104; color: "#e6cecb" }
             Text { x: 30; y: 29; text: "Restore this in-game save?"; color: Theme.ink; font.pixelSize: 30; font.weight: Font.DemiBold }
             Text { x: 31; y: 135; width: parent.width-62; text: root.center.title+"\n"+root.center.restoreLabel; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 23; wrapMode: Text.WordWrap }
-            Text { x: 31; y: 235; width: parent.width-62; text: "The current save will be copied first, then replaced.\nOlder Continue Adventure moments stay separate."; color: Theme.muted; font.pixelSize: 18; wrapMode: Text.WordWrap }
+            Text { x: 31; y: 235; width: parent.width-62; text: "The current save will be copied first, then replaced.\nOlder saved moments stay separate."; color: Theme.muted; font.pixelSize: 18; wrapMode: Text.WordWrap }
             MountedPanel {
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
                 height: 88;color:"#c6dcca"

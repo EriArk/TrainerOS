@@ -41,7 +41,7 @@ The [roadmap](ROADMAP.md) integrates issues #1–41, all earlier unfinished work
 
 - **World**: a Pokémon region such as Hoenn or Sinnoh.
 - **Adventure**: one configured playable title/profile; Pokémon entries have World relationships. Planned Multiverse entries use a separate system context without invented Pokémon geography.
-- **Continue Adventure**: recent resumable session/save-state cards.
+- **Choose Adventure**: recent resumable session/save-state cards.
 - **Trainer**: persistent personal profile and long-term progress; planned multiple Trainers own separate personal records while sharing device library/installations.
 - **Multiverse**: planned non-Pokémon library context within Worlds, browsed by system, with its own Home presentation.
 - **Pokédex**: reference data plus personal Seen/Caught/history data.
@@ -75,9 +75,9 @@ Useful Home modules may include:
 
 Keep the layout calm; not every module must be visible at once.
 
-### Continue Adventure drawer
+### Choose Adventure drawer
 
-Home contains a compact slide-out **Continue Adventure** panel.
+Home contains a compact slide-out **Choose Adventure** panel.
 
 Each mini card can include:
 
@@ -90,7 +90,7 @@ Each mini card can include:
 
 The 2026-09-11 clarification makes a card a selection for Home: it changes the displayed Adventure, World and available per-Adventure data and closes the drawer. Selecting a card never starts a process. Outside panels, A immediately presses Home's large physical-style button, with no preliminary focus movement. Y independently opens the selector; directional navigation is confined to its list. The action button resumes a selected exact state when supported, otherwise it starts the Adventure normally. It offers setup for an unconfigured Adventure and Worlds exploration when no Adventure is selected.
 
-`Y` opens/closes Continue Adventure on Home. In the drawer, `A` chooses the Adventure for Home; on Home's main button it launches. `B` cancels the drawer without changing Home. `L1/R1` remain primary-page navigation. Home defaults to the latest actual launch until the Trainer explicitly chooses a different Adventure; that choice is persisted separately from launch history. Recorded process duration belongs to this Adventure, not aggregate Trainer progress. See [Home and play history](HOME_AND_HISTORY.md).
+`Y` opens/closes Choose Adventure on Home. In the drawer, `A` chooses the Adventure for Home; on Home's main button it launches. `B` cancels the drawer without changing Home. `L1/R1` remain primary-page navigation. Home defaults to the latest actual launch until the Trainer explicitly chooses a different Adventure; that choice is persisted separately from launch history. Recorded process duration belongs to this Adventure, not aggregate Trainer progress. See [Home and play history](HOME_AND_HISTORY.md).
 
 The closed affordance is a compact left-hand extension of the bottom frame, protruding into the main screen with a diagonal right edge. Opening it first expands its working width, then raises the recent cards inside the fixed viewport. Closing reverses that motion. It never makes Home taller than the screen.
 

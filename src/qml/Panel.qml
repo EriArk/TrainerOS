@@ -7,29 +7,16 @@ Rectangle {
     property bool patterned: true
     radius: 15
     color: Theme.chassisDark
-    border.color: Theme.rim
+    border.color: Theme.edgeShadow
     border.width: 1
     Rectangle {
         anchors.fill: parent
         anchors.margins: 9
         radius: 6
         color: root.surface
-        border.color: "#aabfb3"
+        border.color: Theme.screenContact
         border.width: 1
         ShellBackgroundPattern { anchors.fill: parent; anchors.margins: 2; visible: root.patterned }
-        Rectangle {
-            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: 1 }
-            height: 2; color: "#b3ffffff"
-        }
-        Rectangle {
-            anchors { top: parent.top; left: parent.left; right: parent.right; margins: 1 }
-            height: 6
-            radius: 5
-            gradient: Gradient {
-                GradientStop { position: 0; color: "#243f3d38" }
-                GradientStop { position: 1; color: "#003f3d38" }
-            }
-        }
     }
     function contour(inset) {
         const l = inset, t = inset, r = width - inset, b = height - inset;
@@ -51,20 +38,15 @@ Rectangle {
         }
         ShapePath {
             strokeColor: "transparent"; fillRule: ShapePath.OddEvenFill
-            fillGradient: LinearGradient {
-                x1: 0; y1: 0; x2: 0; y2: root.height
-                GradientStop { position: 0; color: Theme.edgeShadow }
-                GradientStop { position: 0.5; color: Theme.chassis }
-                GradientStop { position: 1; color: Theme.chassisTop }
-            }
+            fillColor: Theme.screenSlope
             PathSvg { path: root.contour(2) + root.contour(9) }
         }
         ShapePath {
-            strokeColor: Theme.rim; strokeWidth: 1; fillColor: "transparent"
+            strokeColor: Theme.edgeShadow; strokeWidth: 1; fillColor: "transparent"
             PathSvg { path: root.contour(0.5) }
         }
         ShapePath {
-            strokeColor: "#aabfb3"; strokeWidth: 1; fillColor: "transparent"
+            strokeColor: Theme.screenContact; strokeWidth: 1; fillColor: "transparent"
             PathSvg { path: root.contour(9.5) }
         }
     }
