@@ -5,7 +5,8 @@ import QtQuick.Effects
 Item {
     id: root
     required property var shell
-    property real expandedWidth: Theme.screenBounds.x + Theme.screenBounds.width - Theme.screenBevel
+    // Translate the complete drawer; its expanded right end still meets the bevel.
+    property real expandedWidth: Theme.screenBounds.x + Theme.screenBounds.width - Theme.screenBevel - x
     readonly property real closedWidth: 292
     readonly property bool expanded: shell.drawerOpen
     readonly property real leftJoin: Theme.screenBounds.x + Theme.screenBevel
@@ -37,11 +38,11 @@ Item {
     // Fade the existing bevel into the contact shadow at each mounting point.
     // These strips stay on the bevel itself, before the drawer's face is drawn.
     Rectangle {
-        x: Theme.screenBounds.x; y: root.lowerJoin - 20; width: Theme.screenBevel; height: 20
+        x: Theme.screenBounds.x - root.x; y: root.lowerJoin - 24; width: Theme.screenBevel; height: 24
         opacity: 1 - Math.max(0, Math.min(1, (root.height - 53) / 18))
         gradient: Gradient {
             GradientStop { position: 0; color: "#00101e1d" }
-            GradientStop { position: 1; color: "#60101e1d" }
+            GradientStop { position: 1; color: "#98101e1d" }
         }
     }
     Rectangle {
@@ -49,7 +50,7 @@ Item {
         width: Math.min(20, Math.max(0, root.expandedWidth - root.width)); height: Theme.screenBevel
         gradient: Gradient {
             orientation: Gradient.Horizontal
-            GradientStop { position: 0; color: "#50101e1d" }
+            GradientStop { position: 0; color: "#88101e1d" }
             GradientStop { position: 1; color: "#00101e1d" }
         }
     }
@@ -58,7 +59,7 @@ Item {
         delegate: Item {
             id: sideContact
             required property int index
-            x: index === 0 ? Theme.screenBounds.x : root.expandedWidth; y: root.lowerJoin - 18
+            x: index === 0 ? Theme.screenBounds.x - root.x : root.expandedWidth; y: root.lowerJoin - 18
             width: Theme.screenBevel
             height: Math.max(18, root.height - (53 - root.lowerJoin) - y)
             opacity: Math.max(0, Math.min(1, (root.height - 53) / 18))
@@ -70,8 +71,8 @@ Item {
                     opacity: sideContact.index === 0 ? [0.2, 0.55, 1][index] : [1, 0.55, 0.2][index]
                     gradient: Gradient {
                         GradientStop { position: 0; color: "#00101e1d" }
-                        GradientStop { position: Math.min(1, 18 / sideContact.height); color: "#50101e1d" }
-                        GradientStop { position: 1; color: "#50101e1d" }
+                        GradientStop { position: Math.min(1, 18 / sideContact.height); color: "#88101e1d" }
+                        GradientStop { position: 1; color: "#88101e1d" }
                     }
                 }
             }
@@ -79,20 +80,35 @@ Item {
     }
     Shape {
         anchors.fill: parent
-        // A short, feathered contact shadow follows the top and both cuts.
+        // A dark contact fades through wider, lighter contour bands.
         // The filled body covers the inner halves; there is no lower seam.
         ShapePath {
-            strokeColor: "#08101e1d"; strokeWidth: 10; fillColor: "transparent"
+            strokeColor: "#08101e1d"; strokeWidth: 22; fillColor: "transparent"
             capStyle: ShapePath.RoundCap; joinStyle: ShapePath.RoundJoin
             PathSvg { path: root.shoulder() }
         }
         ShapePath {
-            strokeColor: "#12101e1d"; strokeWidth: 6; fillColor: "transparent"
+            strokeColor: "#0c101e1d"; strokeWidth: 18; fillColor: "transparent"
             capStyle: ShapePath.RoundCap; joinStyle: ShapePath.RoundJoin
             PathSvg { path: root.shoulder() }
         }
         ShapePath {
-            strokeColor: "#28101e1d"; strokeWidth: 3; fillColor: "transparent"
+            strokeColor: "#14101e1d"; strokeWidth: 14; fillColor: "transparent"
+            capStyle: ShapePath.RoundCap; joinStyle: ShapePath.RoundJoin
+            PathSvg { path: root.shoulder() }
+        }
+        ShapePath {
+            strokeColor: "#24101e1d"; strokeWidth: 10; fillColor: "transparent"
+            capStyle: ShapePath.RoundCap; joinStyle: ShapePath.RoundJoin
+            PathSvg { path: root.shoulder() }
+        }
+        ShapePath {
+            strokeColor: "#44101e1d"; strokeWidth: 6; fillColor: "transparent"
+            capStyle: ShapePath.RoundCap; joinStyle: ShapePath.RoundJoin
+            PathSvg { path: root.shoulder() }
+        }
+        ShapePath {
+            strokeColor: "#70101e1d"; strokeWidth: 3; fillColor: "transparent"
             capStyle: ShapePath.RoundCap; joinStyle: ShapePath.RoundJoin
             PathSvg { path: root.shoulder() }
         }

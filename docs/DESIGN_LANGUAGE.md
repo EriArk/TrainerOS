@@ -42,6 +42,10 @@ Acceptance: inspect the right joint active/inactive at native size and magnified
 
 The owner's subsequent correction keeps the entire right slope fixed: it belongs to the chassis and must not be cut back or follow the active tab. The five tabs now share a 143-unit width and end at x=937, the inner edge of the 11-unit screen bevel. Their rightmost seam and shadow stay inside that boundary. This supersedes the height-following return and x=948 tab endpoint above; the sidewall and its full bevel continue vertically to the upper edge. Home's left contact/cut and the existing tab faces/active overhang remain. Acceptance: inspect Hall active/inactive and its transition, checking unchanged slope width, readable labels and no tab/shadow covering the bevel.
 
+## Continue placement and stronger cast shadows — 2026-09-14
+
+The complete Continue assembly shifts left by 3 logical units (6 physical pixels on Flip), including its face, yellow inset, labels and cards. Its expanded width compensates for that offset so the approved right diagonal still reaches the side bevel. Mounting-point shadows remain aligned with the chassis. The top and both cuts now have a denser contact shadow fading through six contour bands over 11 units; the bevel contact gradients are stronger too. Tabs keep their faces, spacing and active overhang, with a darker near shadow and a five-band fade extending 10 units below the face instead of 6. The final tab shadow still stops before the right bevel. These are static contour layers that follow existing interruptible motion, without another blur or frame timer. Acceptance: inspect closed/open Continue, partial/reversed motion and first/last card focus, active/inactive end tabs, shared content clearance, intact bevels and the shadow fade at both logical and native size. Controller actions and Reduced Motion behavior remain unchanged.
+
 ## Shared visual pass — 2026-09-13
 
 The owner requested the available visual work together, including the deeper tab overhang above. Issues #22/#23/#33 now share these primitives:

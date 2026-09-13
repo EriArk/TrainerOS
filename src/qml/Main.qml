@@ -75,12 +75,25 @@ Window {
                         // whole bank underneath the unchanged tab faces.
                         ShapePath {
                             strokeColor: "transparent"
-                            fillColor: shell.page === index ? "#24101e1d" : "#18101e1d"
+                            fillColor: "#08101e1d"
+                            PathSvg { path: tab.outline(10, 3) }
+                        }
+                        ShapePath {
+                            strokeColor: "transparent"; fillColor: "#10101e1d"
+                            PathSvg { path: tab.outline(8, 2.5) }
+                        }
+                        ShapePath {
+                            strokeColor: "transparent"
+                            fillColor: shell.page === index ? "#28101e1d" : "#1c101e1d"
                             PathSvg { path: tab.outline(6, 2) }
                         }
                         ShapePath {
                             strokeColor: "transparent"; fillColor: "#50101e1d"
                             PathSvg { path: tab.outline(4, 1) }
+                        }
+                        ShapePath {
+                            strokeColor: "transparent"; fillColor: "#60101e1d"
+                            PathSvg { path: tab.outline(2, 0.5) }
                         }
                         ShapePath {
                             strokeColor: Qt.darker(Theme.tabColors[index], 1.65); strokeWidth: 1
@@ -136,7 +149,7 @@ Window {
         ContinueDrawer {
             id: drawer
             objectName: "continue-drawer"
-            x: 0; anchors.bottom: footer.top; shell: shellController
+            x: -3; anchors.bottom: footer.top; shell: shellController
             visible: !shell.serviceOpen && shell.page === 0
         }
         Item {
