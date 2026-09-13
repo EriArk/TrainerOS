@@ -238,11 +238,11 @@ Item {
                                 }
                             }
                         }
-                        Text { x: 12; y: 13; width: parent.width - 24; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.world; color: Theme.ink; font.pixelSize: 18; font.bold: true }
-                        Text { x: 12; y: 38; text: modelData.previewLabel; color: Theme.muted; font.pixelSize: 11 }
+                        Text { x: 12; y: 49; width: parent.width - 24; elide: Text.ElideRight; textFormat: Text.PlainText; text: modelData.world; color: Theme.ink; font.pixelSize: 18; font.bold: true }
+                        Text { x: 12; y: 76; text: modelData.previewLabel; color: Theme.muted; font.pixelSize: 11 }
                         Item {
                             id: ribbon
-                            x: 6; y: 63; width: parent.width - 12; height: 34
+                            x: 14; y: 8; width: parent.width - 28; height: 34
                             readonly property color tint: [Theme.yellow, Theme.pink, Theme.blue][index % 3]
                             Canvas {
                                 id: ribbonArt

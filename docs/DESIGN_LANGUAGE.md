@@ -50,6 +50,10 @@ The complete Continue assembly shifts left by 3 logical units (6 physical pixels
 
 The fixed upper lip now covers the tops of the existing tab buttons. It has the same 12-unit thickness as the right outer body, joins that sidewall and continues into the TRAINER OS extension with matching chassis gradients and edge lighting. An 8-unit downward fading shadow falls onto the buttons from beneath this lip. There is still no backing rail below the tabs. The buttons keep their original x/y, width, height, silhouettes and active overhang; only their labels shift down by half the lip height to center within the remaining visible face. The lip stays below keyboard/system overlays and introduces no input target. Acceptance: inspect continuous title/top/right joins, active and inactive end tabs, equal label clearances, the two separate shadows above/below each key, unchanged lower contacts and modal dimming/priority in all themes at handheld size.
 
+## Continue card title hierarchy — 2026-09-14
+
+Each Continue card starts with its Adventure title on the colored ribbon, 8 units below the card's top. The ribbon is 16 units shorter overall, inset 14 units on both sides, with the same type size and bounded title elision. World and resume-point kind follow below; the frosted timestamp/summary field stays at the bottom. Card dimensions, screenshot coverage and controller focus/selection remain unchanged. Acceptance: inspect titles with and without previews, long-title elision, World/kind/metadata separation and first/last card focus at handheld size.
+
 ## Shared visual pass — 2026-09-13
 
 The owner requested the available visual work together, including the deeper tab overhang above. Issues #22/#23/#33 now share these primitives:
