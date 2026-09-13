@@ -11,6 +11,11 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/core/model/SaveBackup.h
+    src/platform/storage/SaveBackupStorage.h
+    src/platform/storage/SaveBackupStorage.cpp
+    src/features/center/SaveCenterController.h
+    src/features/center/SaveCenterController.cpp
     src/core/repository/ResumeLibraryRepository.h
     src/integrations/adventure/retroarch/RetroArchResume.cpp
     src/integrations/adventure/retroarch/RetroArchResume.h
@@ -143,9 +148,13 @@ qt_add_qml_module(traineros
         src/qml/PokedexPage.qml
         src/qml/PokedexJournalPanel.qml
         src/qml/SpeciesPickerPanel.qml
+        src/qml/SaveCenterPanel.qml
 )
 
 if(BUILD_TESTING)
+    qt_add_executable(trainer_save_backup_tests tests/SaveBackupTests.cpp)
+    target_link_libraries(trainer_save_backup_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME save_backups COMMAND trainer_save_backup_tests)
     qt_add_executable(trainer_overview_tests tests/TrainerOverviewTests.cpp)
     target_link_libraries(trainer_overview_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME trainer_overview COMMAND trainer_overview_tests)
@@ -184,6 +193,7 @@ if(BUILD_TESTING)
     target_sources(traineros PRIVATE tests/ui/LaunchSmokeScenario.cpp tests/ui/LaunchSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/HomeSmokeScenario.cpp tests/ui/HomeSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/DiagnosticsSmokeScenario.cpp tests/ui/DiagnosticsSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/CenterSmokeScenario.cpp tests/ui/CenterSmokeScenario.h)
     add_dependencies(traineros trainer_process_probe)
     target_include_directories(traineros PRIVATE tests/ui)
     target_compile_definitions(traineros PRIVATE TRAINEROS_UI_TESTS)

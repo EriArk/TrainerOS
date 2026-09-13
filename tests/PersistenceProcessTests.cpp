@@ -7,6 +7,22 @@
 class PersistenceProcessTests final : public QObject {
     Q_OBJECT
 private slots:
+    void controllerBackupRestoreAndProtection() {
+        QTemporaryDir dir;QVERIFY(dir.isValid());
+        const auto executable=QDir(QCoreApplication::applicationDirPath()).filePath(
+#ifdef Q_OS_WIN
+            "traineros.exe"
+#else
+            "traineros"
+#endif
+        );
+        QProcess p;p.setProcessChannelMode(QProcess::MergedChannels);
+        p.start(executable,{"--persistence-smoke-test","library-center","--data-dir",dir.path(),"--screenshot-dir",QCoreApplication::applicationDirPath()+"/screenshots/center"});
+        QVERIFY(p.waitForStarted());
+        if(!p.waitForFinished(25000)){p.kill();p.waitForFinished();QFAIL(qPrintable(p.readAll()));}
+        const auto output=p.readAll();QVERIFY2(p.exitCode()==0&&p.exitStatus()==QProcess::NormalExit,output.constData());
+        QFile save(dir.filePath("content/center.gba.srm"));QVERIFY(save.open(QIODevice::ReadOnly));QCOMPARE(save.readAll(),QByteArray("SECOND SAVE"));
+    }
     void homeSelectionAndHistoryAcrossRestart() {
         QTemporaryDir dir; QVERIFY(dir.isValid());
         const auto executable = QDir(QCoreApplication::applicationDirPath()).filePath(

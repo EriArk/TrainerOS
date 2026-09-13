@@ -9,6 +9,7 @@
 #include "features/library/LibraryManagementController.h"
 #include "features/settings/SettingsController.h"
 #include "features/diagnostics/DiagnosticsController.h"
+#include "features/center/SaveCenterController.h"
 #include "integrations/adventure/AdventureAdapter.h"
 #include "platform/PlatformService.h"
 #include <QObject>
@@ -31,6 +32,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(trainer::LibraryManagementController* libraryManager READ libraryManager CONSTANT)
     Q_PROPERTY(trainer::SettingsController* settings READ settings CONSTANT)
     Q_PROPERTY(trainer::DiagnosticsController* diagnostics READ diagnostics CONSTANT)
+    Q_PROPERTY(trainer::SaveCenterController* center READ center CONSTANT)
     Q_PROPERTY(QString service READ service NOTIFY changed)
     Q_PROPERTY(bool serviceOpen READ serviceOpen NOTIFY changed)
     Q_PROPERTY(bool sampleLibrary READ sampleLibrary CONSTANT)
@@ -48,6 +50,7 @@ public:
     LibraryManagementController* libraryManager() { return &libraryManager_; }
     SettingsController* settings() { return &settings_; }
     DiagnosticsController* diagnostics() { return &diagnostics_; }
+    SaveCenterController* center() { return &center_; }
     QString service() const { return service_; }
     bool serviceOpen() const { return !service_.isEmpty(); }
     bool sampleLibrary() const { return !repository_.editable(); }
@@ -88,8 +91,9 @@ private:
     LibraryManagementController libraryManager_;
     SettingsController settings_;
     DiagnosticsController diagnostics_;
+    SaveCenterController center_;
     QString service_;
-    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, Library, Archive, PokedexNote, TrainerFavorite };
+    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, Library, Archive, PokedexNote, TrainerFavorite, CenterSearch };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QString homeAdventureId_, homeResumeId_;

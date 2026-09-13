@@ -39,7 +39,10 @@ Settings readSettings(const QString& path) {
         line = line.trimmed();
         if (line.startsWith("#include")) return {}; // Unverified config layering.
         const auto match = pattern.match(line);
-        if (match.hasMatch()) result.insert(match.captured(1), match.captured(2));
+        if (match.hasMatch()) {
+            if (result.contains(match.captured(1))) return {}; // Ambiguous duplicate precedence is unverified.
+            result.insert(match.captured(1), match.captured(2));
+        }
     }
     return result;
 }
@@ -139,6 +142,37 @@ QString prepareSession(ProcessCommand& command, const AdventureRegistration& r, 
     command.arguments << "--appendconfig" << config << r.contentPath;
     return {};
 }
+}
+
+SaveTarget resolveRetroArchSave(const AdventureRegistration& r, const RetroArchInstallation& installation) {
+    SaveTarget target; target.adventureId=r.adventure.id; target.title=r.adventure.title;
+    if (!installation.saveBackups || r.adventure.collectionOnly || r.adventure.adapterId!="retroarch"
+        || r.integrationConfig["core"].toString()!="mgba" || QFileInfo(r.contentPath).suffix().toLower()!="gba") return target;
+#ifdef Q_OS_LINUX
+    QDirIterator processes("/proc",QDir::Dirs|QDir::NoDotAndDotDot|QDir::NoSymLinks);
+    while(processes.hasNext()) {
+        processes.next(); bool number=false; processes.fileName().toUInt(&number); if(!number)continue;
+        QFile comm(QDir(processes.filePath()).filePath("comm"));
+        if(comm.open(QIODevice::ReadOnly) && comm.read(128).trimmed()=="retroarch") {
+            target.error="Close the running Adventure before checking or changing saves."; return target;
+        }
+    }
+#endif
+    const auto settings=readSettings(installation.configFile);
+    if(!supportedConfiguration(r,installation,settings)) { target.error="This save layout needs verification before backups can be used."; return target; }
+    for(const auto& key : {QString("savefiles_in_content_dir"),QString("sort_savefiles_enable"),QString("sort_savefiles_by_content_enable")})
+        if(settings.value(key)!="true" && settings.value(key)!="false") { target.error="This save layout needs verification before backups can be used."; return target; }
+    const QFileInfo content(r.contentPath);
+    QString directory=enabled(settings,"savefiles_in_content_dir")?content.absolutePath():configuredPath(settings,"savefile_directory");
+    if(!safePath(directory))return target;
+    if(enabled(settings,"sort_savefiles_by_content_enable"))directory=QDir(directory).filePath(content.dir().dirName());
+    if(enabled(settings,"sort_savefiles_enable"))directory=QDir(directory).filePath("mGBA");
+    const std::atomic_bool cancelled{false};
+    target.contentRevision=fileDigest(r.contentPath,64*1024*1024,cancelled);
+    target.contextRevision=integrationRevision(r,installation,settings,cancelled);
+    if(target.contentRevision.isEmpty() || target.contextRevision.isEmpty()) { target.error="Game content or play setup couldn't be verified. Check storage and try again."; return target; }
+    target.savePath=QDir(directory).filePath(content.completeBaseName()+".srm");
+    target.supported=true; return target;
 }
 
 RetroArchResumeSnapshot scanRetroArchMoments(const QList<AdventureRegistration>& records,

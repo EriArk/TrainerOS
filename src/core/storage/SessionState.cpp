@@ -74,7 +74,7 @@ void SessionState::requestExit() {
     // Closing the shell must not destroy an owned emulator process and its save
     // operation. Finish the Adventure in its own interface, then exit the shell.
     if (adventureActive_) return;
-    if (!store_) { emit exitReady(); return; }
+    if (!store_) { closing_=true;emit changed();finishExit();return; }
     closing_ = true; paused_ = false; focus_ = 0;
     // Preserve a visible failed flush until the user chooses Retry or an explicit skip.
     if (error_.isEmpty()) flush();
@@ -82,7 +82,7 @@ void SessionState::requestExit() {
     finishExit();
 }
 void SessionState::finishExit() {
-    if (!closing_ || !error_.isEmpty() || store_->opening() || store_->pending() || writing_) return;
+    if (!closing_ || serviceActive_ || !error_.isEmpty() || (store_ && (store_->opening() || store_->pending())) || writing_) return;
     if (restored_ && desired_ != committed_) { flush(); return; }
     emit exitReady();
 }

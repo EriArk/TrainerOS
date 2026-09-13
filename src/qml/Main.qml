@@ -104,6 +104,7 @@ Window {
         LibraryPanel { x: 12; y: 68; width: 936; height: 430; shell: shellController; visible: shell.service === "library" }
         SettingsPanel { x: 12; y: 68; width: 936; height: 430; shell: shellController; visible: shell.service === "settings" }
         DiagnosticsPanel { x: 12; y: 68; width: 936; height: 430; shell: shellController; visible: shell.service === "diagnostics" }
+        SaveCenterPanel { x: 12; y: 68; width: 936; height: 430; shell: shellController; visible: shell.service === "center" }
         KeyboardPanel { x: 12; y: 68; width: 936; height: 435; shell: shellController }
         SystemPanel { x: 12; y: 68; width: 948; height: 435; shell: shellController }
         }

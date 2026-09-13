@@ -9,6 +9,8 @@
 #include "core/repository/OfflinePokedex.h"
 #include "core/repository/ResumeLibraryRepository.h"
 #include "integrations/adventure/retroarch/RetroArchResume.h"
+#include "platform/storage/SaveBackupStorage.h"
+#include <QCryptographicHash>
 #include <QQuickImageProvider>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -34,6 +36,7 @@
 #include "LaunchSmokeScenario.h"
 #include "HomeSmokeScenario.h"
 #include "DiagnosticsSmokeScenario.h"
+#include "CenterSmokeScenario.h"
 #endif
 
 using namespace trainer;
@@ -93,7 +96,7 @@ int main(int argc, char* argv[]) {
     hallSmoke = parser.isSet("hall-smoke-test");
     diagnosticsSmoke = parser.isSet("diagnostics-smoke-test");
     persistencePhase = parser.value("persistence-smoke-test");
-    if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "collection"}.contains(persistencePhase)
+    if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "library-center", "collection"}.contains(persistencePhase)
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
     const bool smoke = parser.isSet("smoke-test") || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
@@ -174,6 +177,27 @@ int main(int argc, char* argv[]) {
             if (success) resumeProvider.refresh(store->navigation()["homeAdventure"].toString());
         });
         SessionState session(shell, store.get());
+        std::unique_ptr<LocalSaveBackupService> saveBackups;
+        if (personalLibrary && !smoke) {
+            saveBackups=std::make_unique<LocalSaveBackupService>(QDir(stateDirectory).filePath("backups"),
+                [retroarchInstallation](const AdventureRegistration& record){return resolveRetroArchSave(record,retroarchInstallation);},
+                [retroarchInstallation](const AdventureRegistration& record){return retroarchInstallation.saveBackups && record.adventure.adapterId=="retroarch" && record.integrationConfig["core"].toString()=="mgba";});
+        }
+#ifdef TRAINEROS_UI_TESTS
+        if(persistencePhase=="library-center") {
+            saveBackups=std::make_unique<LocalSaveBackupService>(QDir(stateDirectory).filePath("backups"),
+                [](const AdventureRegistration& record){
+                    QFile content(record.contentPath); if(!content.open(QIODevice::ReadOnly))return SaveTarget{};
+                    const auto revision=QString::fromLatin1(QCryptographicHash::hash(content.readAll(),QCryptographicHash::Sha256).toHex());
+                    return SaveTarget{record.adventure.id,record.adventure.title,record.contentPath+".srm",revision,record.contentPath,{},true};
+                },[](const AdventureRegistration& record){return record.adventure.adapterId=="backup-fixture";});
+        }
+#endif
+        if(saveBackups) {
+            shell.center()->configure(saveBackups.get());
+            QObject::connect(saveBackups.get(),&SaveBackupService::busyChanged,&session,[&]{session.setServiceActive(saveBackups->busy());});
+            QObject::connect(saveBackups.get(),&SaveBackupService::operationFailed,&session,&SessionState::cancelPendingExit);
+        }
         ProcessService adventureProcess;
         AdventureLaunchController adventureLaunch(adventureProcess);
         std::unique_ptr<PlayHistoryController> playHistory;
@@ -224,7 +248,7 @@ int main(int argc, char* argv[]) {
             if (personalLibrary && !smoke) {
                 auto returnFullscreen = std::make_shared<bool>(false);
                 retroarch.requestLaunch = [&, window, returnFullscreen](const ProcessCommand& command, const QString& id) {
-                    if (session.blocked() || adventureLaunch.active()) return false;
+                    if (session.blocked() || adventureLaunch.active() || (saveBackups && saveBackups->busy())) return false;
                     *returnFullscreen = window->visibility() == QWindow::FullScreen;
                     return adventureLaunch.launch(command, shell.navigationState(), id);
                 };
@@ -256,7 +280,9 @@ int main(int argc, char* argv[]) {
                 const QString screenshotDir = parser.value("screenshot-dir");
                 if (!screenshotDir.isEmpty() && !QDir().mkpath(screenshotDir)) return 2;
 #ifdef TRAINEROS_UI_TESTS
-                if (diagnosticsSmoke) {
+                if(persistencePhase=="library-center") {
+                    startCenterSmoke(window,shell,session,*store,input,joystick,stateDirectory,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
+                } else if (diagnosticsSmoke) {
                     startDiagnosticsSmoke(window, shell, session, input, deviceReports, joystick, screenshotDir,
                                           smokeCompleted, qmlWarnings, diagnostics);
                 } else if (persistencePhase.startsWith("library-home")) {

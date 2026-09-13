@@ -8,6 +8,8 @@ The initial target is a **Retroid Flip-class device running ArmadaOS**. TrainerO
 
 Start → Controller provides live input/display checks and a local diagnostic report for the first handheld run. These software observations help validate the actual device; they do not certify its physical mapping or ArmadaOS session behavior. See [device diagnostics](docs/DEVICE_DIAGNOSTICS.md).
 
+The current build also includes verified [GBA saved-moment resume](docs/RETROARCH_RESUME.md), a personal [Hall of Fame archive](docs/HALL_OF_FAME.md), the [offline Pokédex and manual field journal](docs/POKEDEX.md), a [local Trainer overview](docs/TRAINER_OVERVIEW.md), and [Pokémon Center save backups](docs/SAVE_BACKUPS.md). These have been exercised with controller input on Flip 2. Live RetroAchievements account data and additional save adapters remain separate integration steps.
+
 ## Product idea
 
 TrainerOS is not a ROM list with a Pokémon skin and it is not a launcher opened from another desktop. It is the **primary user interface of the device**: a cohesive full-screen trainer terminal organized around Adventures, Worlds, a Pokédex, the Trainer profile, and the history of completed journeys.

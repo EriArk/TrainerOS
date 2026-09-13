@@ -1,5 +1,6 @@
 #pragma once
 #include "RetroArchAdapter.h"
+#include "core/model/SaveBackup.h"
 #include <QThread>
 #include <QImage>
 
@@ -13,6 +14,8 @@ RetroArchResumeSnapshot scanRetroArchMoments(const QList<AdventureRegistration>&
     const RetroArchInstallation&, const QList<ResumePoint>& previous, const std::atomic_bool& cancelled);
 QString prepareRetroArchResume(ProcessCommand&, const AdventureRegistration&,
     const ResumePoint&, const RetroArchInstallation&, const std::atomic_bool& cancelled);
+// Verified GBA in-game SRAM layout; does not read/interpret progression.
+SaveTarget resolveRetroArchSave(const AdventureRegistration&, const RetroArchInstallation&);
 
 class RetroArchResumeProvider final : public QObject {
     Q_OBJECT

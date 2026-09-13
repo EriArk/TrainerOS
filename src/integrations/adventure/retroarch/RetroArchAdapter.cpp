@@ -49,6 +49,7 @@ RetroArchInstallation RetroArchInstallation::load(const QString& filename) {
             result.resumeDirectory = directory; result.runtimeFile = runtime;
         }
     }
+    result.saveBackups = object.value("backupProtocol").toString() == "mgba-sram-v1";
     return result;
 }
 RetroArchAdapter::RetroArchAdapter(LibraryRepository& repository, RetroArchInstallation installation)

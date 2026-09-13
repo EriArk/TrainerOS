@@ -16,6 +16,7 @@ struct RetroArchInstallation {
     // Opt-in only after verifying this runtime's entry-state protocol.
     QString resumeDirectory;
     QString runtimeFile;
+    bool saveBackups = false;
     static RetroArchInstallation load(const QString& filename);
 };
 

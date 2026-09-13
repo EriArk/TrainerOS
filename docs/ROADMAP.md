@@ -216,6 +216,8 @@ Done when Pokédex is smooth, offline-capable, controller-driven, and not couple
 
 ## Milestone 9 — Pokémon Center / save services module
 
+The first [Pokémon Center save service](SAVE_BACKUPS.md) provides worker-based, verified GBA/mGBA in-game save backups, a controller browser and explicit restore with a retained protection copy. It uses internal application storage on Flip and keeps Continue states separate. Additional adapters/state formats remain capability-specific follow-ups; existing relinking lives in Manage Adventures.
+
 Deliverables:
 
 - backup service boundary

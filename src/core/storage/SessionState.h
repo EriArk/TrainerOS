@@ -16,7 +16,7 @@ class SessionState final : public QObject {
 public:
     SessionState(ShellController&, LocalStateStore*, QObject* parent = nullptr);
     bool persistent() const { return store_ != nullptr; }
-    bool blocked() const { return store_ && (!restored_ || closing_ || !error_.isEmpty()); }
+    bool blocked() const { return closing_ || (store_ && (!restored_ || !error_.isEmpty())); }
     QString title() const;
     QString message() const;
     QStringList choices() const;
@@ -24,6 +24,8 @@ public:
     void start();
     void dispatch(Action);
     void setAdventureActive(bool active) { adventureActive_ = active; }
+    void setServiceActive(bool active) { serviceActive_=active; finishExit(); }
+    void cancelPendingExit() { closing_=false; emit changed(); }
     Q_INVOKABLE void activate(int index);
     Q_INVOKABLE void requestExit();
 signals:
@@ -40,6 +42,7 @@ private:
     QString error_;
     bool restored_ = false, closing_ = false, writing_ = false, paused_ = false;
     bool adventureActive_ = false;
+    bool serviceActive_ = false;
     int focus_ = 0;
 };
 }

@@ -11,7 +11,15 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     : QObject(parent), repository_(repo), adapter_(adapter), platform_(platform),
       keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this),
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
-      libraryManager_(repo, nullptr, this), settings_(this), diagnostics_(this) {
+      libraryManager_(repo, nullptr, this), settings_(this), diagnostics_(this), center_(repo,this) {
+    connect(&center_, &SaveCenterController::changed, this, &ShellController::changed);
+    connect(&center_, &SaveCenterController::closeRequested, this, [this]{service_.clear();menuOpen_=true;menuFocus_=2;emit changed();});
+    connect(&center_, &SaveCenterController::searchRequested, this, [this](const QString& initial){textTarget_=TextTarget::CenterSearch;keyboard_.begin("Find an Adventure",initial,64);});
+    connect(&center_, &SaveCenterController::messageRequested, this, &ShellController::showNotice);
+    connect(&center_, &SaveCenterController::restored, this, [this](const QString& id){
+        if(homeAdventureId_==id){homeResumeId_.clear();homeResumeSource_={};}
+        emit changed();
+    });
     hall_.editor()->setLibrary(&repo);
     trainer_.configure(&repo, &dexReference, &dexProgress, &archive);
     connect(trainer_.picker(), &SpeciesPicker::searchRequested, this, [this](const QString& initial) {
@@ -83,6 +91,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::Archive) hall_.editor()->applyText(text);
         else if (target == TextTarget::PokedexNote) pokedex_.journal()->applyNote(text);
         else if (target == TextTarget::TrainerFavorite) trainer_.picker()->applySearch(text);
+        else if (target == TextTarget::CenterSearch) center_.applySearch(text);
     });
     refreshContinue();
 }
@@ -126,6 +135,7 @@ int ShellController::focusIndex() const {
     if (service_ == "library") return libraryManager_.files()->isOpen() ? libraryManager_.files()->focusIndex() : libraryManager_.focusIndex();
     if (service_ == "settings") return settings_.focusIndex();
     if (service_ == "diagnostics") return diagnostics_.focusIndex();
+    if (service_ == "center") return center_.focusIndex();
     if (trainer_.editing()) return trainer_.focusIndex();
     if (page_ == 1) return worlds_.focusIndex();
     if (page_ == 2) return pokedex_.focusIndex();
@@ -248,6 +258,7 @@ void ShellController::goToPage(int page) {
     pokedex_.cancelTransient();
     hall_.editor()->cancel();
     trainer_.cancel();
+    center_.close();
     libraryManager_.close(); service_.clear();
     page_ = std::clamp(page, 0, 4); // No wrapping until physical-device testing.
     if (page_ == 3) trainer_.refreshOverview();
@@ -264,6 +275,7 @@ void ShellController::activate(int index, const QString& area) {
     else if (service_ == "library") { libraryManager_.activate(index, area); return; }
     else if (service_ == "settings") { settings_.activate(index); return; }
     else if (service_ == "diagnostics") { diagnostics_.activate(index); return; }
+    else if (service_ == "center") { center_.activate(index); return; }
     else if (trainer_.editing()) { trainer_.activate(index); return; }
     else if (page_ == 1) {
         if (area == "worlds-search") worlds_.dispatch(Action::Secondary);
@@ -289,9 +301,15 @@ void ShellController::confirm() {
     if (!notice_.isEmpty()) { notice_.clear(); return; }
     if (menuOpen_) {
         if (menuFocus_ == 6) { emit exitRequested(); return; }
+        if(menuFocus_==2 && center_.configured()) {
+            keyboard_.cancel();textTarget_=TextTarget::None;trainer_.cancel();pokedex_.cancelTransient();hall_.editor()->cancel();libraryManager_.close();
+            menuOpen_=false;drawerOpen_=false;service_="center";
+            const auto adventure=homeAdventure();center_.begin(adventure?adventure->id:QString());return;
+        }
         if (menuFocus_ == 0 || menuFocus_ == 1 || menuFocus_ == 3) {
             keyboard_.cancel(); textTarget_ = TextTarget::None; trainer_.cancel();
             libraryManager_.close(); menuOpen_ = false;
+            center_.close();
             service_ = menuFocus_ == 0 ? "settings" : menuFocus_ == 1 ? "diagnostics" : "library";
             if (service_ == "settings") settings_.begin();
             else if (service_ == "diagnostics") diagnostics_.begin();
@@ -368,6 +386,7 @@ void ShellController::dispatch(Action action) {
         if (service_ == "library") { libraryManager_.dispatch(action); return; }
         if (service_ == "settings") { settings_.dispatch(action); return; }
         if (service_ == "diagnostics") { diagnostics_.dispatch(action); return; }
+        if (service_ == "center") { center_.dispatch(action); return; }
         if (trainer_.editing()) { trainer_.dispatch(action); return; }
         if (page_ == 1) { worlds_.dispatch(action); return; }
         if (page_ == 2) { pokedex_.dispatch(action); return; }
