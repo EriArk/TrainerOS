@@ -5,10 +5,23 @@ Rectangle {
     id: root
     objectName: "chassis-frame"
     gradient: Gradient {
-        GradientStop { position: 0; color: Theme.chassisTop }
-        GradientStop { position: 1; color: Theme.chassis }
+        GradientStop { position: 0; color: Theme.chassisCrown }
+        GradientStop { position: 0.035; color: Theme.chassisTop }
+        GradientStop { position: 0.24; color: Theme.chassisTop }
+        GradientStop { position: 0.75; color: Theme.chassis }
+        GradientStop { position: 0.94; color: Theme.chassis }
+        GradientStop { position: 1; color: Theme.chassisFoot }
     }
-    border.color: Theme.rim
+    border.color: Theme.edgeShadow
+
+    function perimeter(inset) {
+        const l = inset, r = width - inset, t = inset, b = height - inset;
+        return "M " + (l + 3) + " " + t + " H " + (r - 3)
+            + " Q " + r + " " + t + " " + r + " " + (t + 3)
+            + " V " + (b - 3) + " Q " + r + " " + b + " " + (r - 3) + " " + b
+            + " H " + (l + 3) + " Q " + l + " " + b + " " + l + " " + (b - 3)
+            + " V " + (t + 3) + " Q " + l + " " + t + " " + (l + 3) + " " + t + " Z";
+    }
 
     // One closed screen aperture, including the diagonal under the title.
     // Its inset contours form a bevel in the body, not four separate rails.
@@ -34,6 +47,18 @@ Rectangle {
 
     Shape {
         anchors.fill: parent
+        // A single rounded perimeter catches light above/left and rolls into
+        // shade below/right. The screen aperture remains a separate recess.
+        ShapePath {
+            strokeColor: "transparent"; fillRule: ShapePath.OddEvenFill
+            fillGradient: LinearGradient {
+                x1: 0; y1: 0; x2: root.width; y2: root.height
+                GradientStop { position: 0; color: Theme.edgeLight }
+                GradientStop { position: 0.35; color: Theme.chassisTop }
+                GradientStop { position: 1; color: Theme.edgeShadow }
+            }
+            PathSvg { path: root.perimeter(1) + root.perimeter(4) }
+        }
         ShapePath {
             strokeColor: Theme.rim; strokeWidth: 1
             fillColor: Theme.chassisDark
@@ -42,18 +67,31 @@ Rectangle {
         ShapePath {
             strokeColor: "transparent"
             fillGradient: LinearGradient {
-                x1: 0; y1: Theme.screenBounds.y
-                x2: 0; y2: Theme.screenBounds.y + Theme.screenBounds.height
-                GradientStop { position: 0; color: Qt.darker(Theme.chassisDark, 1.12) }
-                GradientStop { position: 0.5; color: Qt.lighter(Theme.chassis, 1.2) }
-                GradientStop { position: 1; color: Qt.lighter(Theme.rim, 1.08) }
+                x1: Theme.screenBounds.x; y1: Theme.screenBounds.y
+                x2: Theme.screenBounds.x + Theme.screenBounds.width * 0.4
+                y2: Theme.screenBounds.y + Theme.screenBounds.height
+                GradientStop { position: 0; color: Theme.edgeShadow }
+                GradientStop { position: 0.25; color: Theme.chassisDark }
+                GradientStop { position: 0.65; color: Qt.lighter(Theme.chassis, 1.3) }
+                GradientStop { position: 1; color: Theme.edgeLight }
             }
             PathSvg { path: root.aperture(2) }
         }
         ShapePath {
-            strokeColor: "#aabfb3"; strokeWidth: 1
-            fillColor: Theme.paper
+            strokeColor: "transparent"
+            fillGradient: LinearGradient {
+                x1: 0; y1: Theme.screenBounds.y
+                x2: 0; y2: Theme.screenBounds.y + Theme.screenBounds.height
+                GradientStop { position: 0; color: "#9dafaa" }
+                GradientStop { position: 0.25; color: "#d1dcd3" }
+                GradientStop { position: 1; color: Theme.paper }
+            }
             PathSvg { path: root.aperture(9) }
+        }
+        ShapePath {
+            strokeColor: "transparent"
+            fillColor: Theme.paper
+            PathSvg { path: root.aperture(11) }
         }
     }
     ShellBackgroundPattern {

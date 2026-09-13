@@ -10,10 +10,14 @@ QtObject {
         red: ["#984b51", "#713b45", "#432a37", "#cb9293"], green: ["#497c52", "#345b40", "#203d32", "#92b287"],
         blue: ["#3d739d", "#305477", "#233b53", "#87b2ca"], orange: ["#976038", "#72472d", "#49372b", "#c9a375"]})
     readonly property var palette: palettes[themeId] || palettes.turquoise
-    readonly property color chassisTop: palette[0]
-    readonly property color chassis: palette[1]
-    readonly property color chassisDark: palette[2]
+    readonly property color chassisTop: Qt.darker(palette[0], 1.12)
+    readonly property color chassis: Qt.darker(palette[1], 1.12)
+    readonly property color chassisDark: Qt.darker(palette[2], 1.08)
     readonly property color rim: palette[3]
+    readonly property color chassisCrown: Qt.lighter(chassisTop, 1.16)
+    readonly property color chassisFoot: Qt.darker(chassis, 1.24)
+    readonly property color edgeLight: Qt.lighter(rim, 1.12)
+    readonly property color edgeShadow: Qt.darker(chassisDark, 1.35)
     function motion(milliseconds) { return reducedMotion ? 0 : milliseconds }
     readonly property color paper: "#fffef9"
     readonly property color ink: "#193f3b"
@@ -35,7 +39,7 @@ QtObject {
     readonly property int brandWidth: 206
     readonly property int brandBevel: 18
     readonly property int tabSpacing: 4
-    readonly property real tabWidth: (viewportWidth - brandWidth - 1 - 4 * tabSpacing) / 5
+    readonly property real tabWidth: (screenBounds.x + screenBounds.width - brandWidth - 4 * tabSpacing) / 5
     readonly property int panelInset: 10
     readonly property int contentTopInset: tabBevel + activeTabOverlap + panelInset
     readonly property int footerHeight: 37
