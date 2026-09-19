@@ -31,7 +31,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
                     check(parent->mapRectToScene(QRectF(0, 0, parent->width(), parent->height())).adjusted(-0.1,-0.1,0.1,0.1).contains(outline), "Clipped focus");
             }
         };
-        constexpr auto a = SDL_CONTROLLER_BUTTON_A, b = SDL_CONTROLLER_BUTTON_B, start = SDL_CONTROLLER_BUTTON_START;
+        constexpr auto a = SDL_CONTROLLER_BUTTON_B, b = SDL_CONTROLLER_BUTTON_A, start = SDL_CONTROLLER_BUTTON_START;
         constexpr auto down = SDL_CONTROLLER_BUTTON_DPAD_DOWN, left = SDL_CONTROLLER_BUTTON_DPAD_LEFT, right = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
         auto* checks = shell.diagnostics();
         if (session.blocked() || reports.saving()) return;

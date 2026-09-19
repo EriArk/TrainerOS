@@ -68,7 +68,7 @@ void DiagnosticsController::reset() {
 QVariantList DiagnosticsController::buttons() const {
     const std::pair<SDL_GameControllerButton, QString> shown[] = {
         {SDL_CONTROLLER_BUTTON_DPAD_UP,"Up"}, {SDL_CONTROLLER_BUTTON_DPAD_DOWN,"Down"}, {SDL_CONTROLLER_BUTTON_DPAD_LEFT,"Left"},
-        {SDL_CONTROLLER_BUTTON_DPAD_RIGHT,"Right"}, {SDL_CONTROLLER_BUTTON_A,"A"}, {SDL_CONTROLLER_BUTTON_B,"B"},
+        {SDL_CONTROLLER_BUTTON_DPAD_RIGHT,"Right"}, {ControllerInput::ConfirmButton,"A"}, {ControllerInput::BackButton,"B"},
         {SDL_CONTROLLER_BUTTON_X,"X"}, {SDL_CONTROLLER_BUTTON_Y,"Y"}, {SDL_CONTROLLER_BUTTON_LEFTSHOULDER,"L1"},
         {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,"R1"}, {SDL_CONTROLLER_BUTTON_START,"Start"}, {SDL_CONTROLLER_BUTTON_BACK,"Select"},
         {SDL_CONTROLLER_BUTTON_LEFTSTICK,"L3"}, {SDL_CONTROLLER_BUTTON_RIGHTSTICK,"R3"}, {SDL_CONTROLLER_BUTTON_GUIDE,"Guide"}};

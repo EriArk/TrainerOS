@@ -106,10 +106,10 @@ void ControllerInput::poll() {
         {SDL_CONTROLLER_BUTTON_LEFTSHOULDER, Action::PreviousPage},
         {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, Action::NextPage},
         {SDL_CONTROLLER_BUTTON_START, Action::SystemMenu},
-        {SDL_CONTROLLER_BUTTON_B, Action::Back},
+        {BackButton, Action::Back},
         {SDL_CONTROLLER_BUTTON_Y, Action::ToggleContinue},
         {SDL_CONTROLLER_BUTTON_X, Action::Secondary},
-        {SDL_CONTROLLER_BUTTON_A, Action::Confirm}
+        {ConfirmButton, Action::Confirm}
     };
     for (const auto& [button, semantic] : bindings)
         if (buttons[button] && !previous_[button]) deliver(semantic, true);

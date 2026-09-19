@@ -45,7 +45,7 @@ void startPersistenceSmoke(QQuickWindow* window, ShellController& shell, Session
             if (*failed) { qCritical().noquote() << diagnostics.join('\n'); QCoreApplication::exit(1); return false; }
             return true;
         };
-        constexpr auto a = SDL_CONTROLLER_BUTTON_A, b = SDL_CONTROLLER_BUTTON_B;
+        constexpr auto a = SDL_CONTROLLER_BUTTON_B, b = SDL_CONTROLLER_BUTTON_A;
         constexpr auto down = SDL_CONTROLLER_BUTTON_DPAD_DOWN, up = SDL_CONTROLLER_BUTTON_DPAD_UP;
         constexpr auto right = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
         constexpr auto next = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, previous = SDL_CONTROLLER_BUTTON_LEFTSHOULDER;

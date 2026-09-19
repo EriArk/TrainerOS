@@ -50,7 +50,7 @@ void startLaunchSmoke(QQuickWindow* window, ShellController& shell, SessionState
             check(shell.worlds()->route() == "detail", "Restored Adventure detail before launch");
             press(SDL_CONTROLLER_BUTTON_DPAD_LEFT); ++*stage; return;
         }
-        if (*stage % 2 == 1 && *stage < 7) { press(SDL_CONTROLLER_BUTTON_A); ++*stage; return; }
+        if (*stage % 2 == 1 && *stage < 7) { press(SDL_CONTROLLER_BUTTON_B); ++*stage; return; }
         if (*stage <= 6) {
             check(*returns == *attempt + 1, "Exactly one return signal per attempt");
             check(window->isVisible() && shell.navigationState() == *expected, "Window and navigation restored");

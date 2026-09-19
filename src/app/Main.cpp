@@ -479,8 +479,9 @@ int main(int argc, char* argv[]) {
                     constexpr auto down = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
                     constexpr auto left = SDL_CONTROLLER_BUTTON_DPAD_LEFT;
                     constexpr auto right = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
-                    constexpr auto a = SDL_CONTROLLER_BUTTON_A;
-                    constexpr auto b = SDL_CONTROLLER_BUTTON_B;
+                    // Raw SDL east/south positions model the printed Switch A/B.
+                    constexpr auto a = SDL_CONTROLLER_BUTTON_B;
+                    constexpr auto b = SDL_CONTROLLER_BUTTON_A;
                     if (*step == 1 || *step == 28) {
                         // On ARM/software rendering a timer tick can arrive
                         // before the drawer's final animation frame is drawn.
@@ -508,7 +509,7 @@ int main(int argc, char* argv[]) {
                         capture("home"); press(SDL_CONTROLLER_BUTTON_Y); break;
                     case 1:
                         check(shell.drawerOpen() && focusIs("resume-0"), "Y opens drawer and focuses first card");
-                        capture("continue"); press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT); press(SDL_CONTROLLER_BUTTON_A); break;
+                        capture("continue"); press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT); press(SDL_CONTROLLER_BUTTON_B); break;
                     case 2:
                         check(shell.notice().isEmpty() && !shell.drawerOpen() && focusIs("home-launch"), "Selection returns to Home without launch");
                         check(shell.home()["adventureId"] == "crystal-demo", "Selected Adventure rebuilds Home");
@@ -519,7 +520,7 @@ int main(int argc, char* argv[]) {
                         press(SDL_CONTROLLER_BUTTON_START); break;
                     case 4:
                         check(shell.menuOpen() && focusIs("menu-0"), "Start traps system-menu focus");
-                        capture("system"); press(SDL_CONTROLLER_BUTTON_B); break;
+                        capture("system"); press(SDL_CONTROLLER_BUTTON_A); break;
                     case 5:
                         check(shell.drawerOpen() && focusIs("resume-1"), "Back restores drawer from system menu");
                         press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;

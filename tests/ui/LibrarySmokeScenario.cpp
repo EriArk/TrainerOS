@@ -46,7 +46,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
         };
         if (session.blocked() || shell.libraryManager()->saving() || shell.libraryManager()->files()->busy() || shell.settings()->saving() || shell.device()->busy()) return;
         auto* manager = shell.libraryManager();
-        constexpr auto a = SDL_CONTROLLER_BUTTON_A, b = SDL_CONTROLLER_BUTTON_B;
+        constexpr auto a = SDL_CONTROLLER_BUTTON_B, b = SDL_CONTROLLER_BUTTON_A;
         constexpr auto up = SDL_CONTROLLER_BUTTON_DPAD_UP, down = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
         constexpr auto left = SDL_CONTROLLER_BUTTON_DPAD_LEFT, right = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
         constexpr auto start = SDL_CONTROLLER_BUTTON_START, next = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, previous = SDL_CONTROLLER_BUTTON_LEFTSHOULDER;

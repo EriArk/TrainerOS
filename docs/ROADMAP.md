@@ -6,6 +6,8 @@ This is a dependency replan, not a reset. The [pre-expansion plan](https://githu
 
 ## Delivered increments under this plan
 
+- **2026-09-19 — #49 foundation and Flip feasibility:** native exit protocol with real child-process tests; actual clean Emerald title capture, temporary overlay focus handoff, physically observed InputPlumber A/B isolation/cancellation and owned-window close. [Evidence and limits](ADVENTURE_EXIT.md#flip-feasibility-follow-up-2026-09-19). The owner requested Switch-style shell A/B (right confirm, bottom back), now centralized with matching diagnostics/SDL scenarios. Production Qt confirmation, crash-safe input release, media persistence and state retirement remain open; the probe does not deliver the full #49 feature.
+
 - **2026-09-19 — #62 documentation:** product/navigation/domain/architecture and all acceptance registers reconciled; legacy state semantics marked superseded, tests/device evidence retained. This is not delivery of #42–61 code.
 
 - **2026-09-13 — #21:** shared panel/tab geometry and safe content inset completed; active tabs overlap the raised panel with contact depth. Windows and native ARM64 rendered SDL/persistence checks passed (6/6 each); production installed and controller-driven Gamescope captures inspected on Flip. [Details](DESIGN_LANGUAGE.md#shared-chassis-geometry--delivered-2026-09-13). P1's remaining items and all P0/U investigations retain their own gates.

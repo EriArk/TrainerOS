@@ -25,7 +25,7 @@ void startCenterSmoke(QQuickWindow* window,ShellController& shell,SessionState& 
             if(item)check(QRectF(0,0,window->width(),window->height()).contains(item->mapRectToScene(item->boundingRect())),"Focused control inside screen");
         };
         if(session.blocked()||store.pending()||shell.center()->busy())return;
-        constexpr auto a=SDL_CONTROLLER_BUTTON_A,b=SDL_CONTROLLER_BUTTON_B,x=SDL_CONTROLLER_BUTTON_X,y=SDL_CONTROLLER_BUTTON_Y;
+        constexpr auto a=SDL_CONTROLLER_BUTTON_B,b=SDL_CONTROLLER_BUTTON_A,x=SDL_CONTROLLER_BUTTON_X,y=SDL_CONTROLLER_BUTTON_Y;
         constexpr auto down=SDL_CONTROLLER_BUTTON_DPAD_DOWN,start=SDL_CONTROLLER_BUTTON_START;
         switch((*stage)++) {
         case 0: {

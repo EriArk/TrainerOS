@@ -304,7 +304,7 @@ if(BUILD_TESTING)
     add_test(NAME pokedex_qml_smoke COMMAND traineros --pokedex-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/pokedex")
     add_test(NAME hall_qml_smoke COMMAND traineros --hall-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/hall")
     add_test(NAME diagnostics_qml_smoke COMMAND traineros --diagnostics-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/diagnostics")
-    set_tests_properties(retroarch core interactions worlds pokedex hall storage library process diagnostics persistence_process qml_smoke worlds_qml_smoke pokedex_qml_smoke hall_qml_smoke diagnostics_qml_smoke PROPERTIES
+    set_tests_properties(pointer_visibility retroarch core interactions worlds pokedex hall storage library process diagnostics persistence_process qml_smoke worlds_qml_smoke pokedex_qml_smoke hall_qml_smoke diagnostics_qml_smoke PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software"
         TIMEOUT 30
     )

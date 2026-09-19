@@ -98,6 +98,7 @@ Always preserve:
 - D-pad / left stick = focus navigation
 - `A` = confirm/open
 - `B` = back/close
+- A/B physical shell positions follow Switch: right A confirms, bottom B goes back (owner clarification 2026-09-19). SDL's Xbox positional names are B/east and A/south; translate centrally, not per feature. This does not remap emulator gameplay.
 - `Start` = TrainerOS system menu
 - Planned #9 `Y` = shared Choose Adventure on Pokémon Home, Pokédex, Center, Hall/RA and Adventure-aware Trainer; Worlds local Y and modal/keyboard/system/recovery priority remain. Multiverse Home has its independent game selector.
 - Planned #43 `L2/R2` = paired faces Worlds/Multiverse, Pokédex/Center, Hall/Journey/RA; preserve local routes/focus, never use L1/R1 for companions or steal emulator input.

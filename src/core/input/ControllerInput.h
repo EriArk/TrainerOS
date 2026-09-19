@@ -22,6 +22,10 @@ class ControllerInput final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool connected READ connected NOTIFY connectionChanged)
 public:
+    // Switch-style shell: printed A at the right confirms; printed B below
+    // goes back. SDL names these positions B/east and A/south respectively.
+    static constexpr auto ConfirmButton = SDL_CONTROLLER_BUTTON_B;
+    static constexpr auto BackButton = SDL_CONTROLLER_BUTTON_A;
     static constexpr float StickEngage = 0.55f, StickRelease = 0.35f;
     static constexpr int RepeatDelayMs = 350, RepeatIntervalMs = 100;
     explicit ControllerInput(QObject* parent = nullptr, SDL_JoystickID preferredDevice = -1);

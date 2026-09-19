@@ -1,5 +1,12 @@
 # TrainerOS UX & Navigation
 
+**Physical A/B convention — owner clarification, 2026-09-19:** use Switch-style
+positions in the shell: **A on the right confirms; B at the bottom goes back**.
+On Flip's current InputPlumber Xbox target these are SDL B/east and A/south.
+The controller layer and diagnostic labels share this mapping; feature actions
+and keyboard Enter/Escape remain unchanged. This changes shell controls only,
+not emulator gameplay mappings. L1/R1 and X/Y keep their existing behavior.
+
 **Implementation versus target:** shared Y, L2/R2 paired faces, Center/Playroom and save-confirmed exit are planned. Existing reference/manual-journal, keyboard, menu and pointer checks remain evidence for their delivered routes. [Full new acceptance](EXPANSION_42_62.md).
 
 Worlds includes the [collection checklist and controller attachment flow](COLLECTION_CATALOGUE.md). Grey missing cards remain focusable; A → Link a file opens the shared picker, while Save/Cancel returns to the original Worlds detail. Platform badges identify the edition without changing region-first navigation.

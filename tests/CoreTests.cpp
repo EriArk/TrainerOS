@@ -107,7 +107,8 @@ private slots:
             const std::pair<SDL_GameControllerButton, Action> bindings[] = {
                 {SDL_CONTROLLER_BUTTON_LEFTSHOULDER, Action::PreviousPage},
                 {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, Action::NextPage},
-                {SDL_CONTROLLER_BUTTON_A, Action::Confirm}, {SDL_CONTROLLER_BUTTON_B, Action::Back},
+                // Test positions independently from ControllerInput's constants.
+                {SDL_CONTROLLER_BUTTON_B, Action::Confirm}, {SDL_CONTROLLER_BUTTON_A, Action::Back},
                 {SDL_CONTROLLER_BUTTON_Y, Action::ToggleContinue}, {SDL_CONTROLLER_BUTTON_X, Action::Secondary}, {SDL_CONTROLLER_BUTTON_START, Action::SystemMenu},
                 {SDL_CONTROLLER_BUTTON_DPAD_UP, Action::Up}, {SDL_CONTROLLER_BUTTON_DPAD_DOWN, Action::Down},
                 {SDL_CONTROLLER_BUTTON_DPAD_LEFT, Action::Left}, {SDL_CONTROLLER_BUTTON_DPAD_RIGHT, Action::Right}
@@ -129,14 +130,14 @@ private slots:
             QTRY_VERIFY_WITH_TIMEOUT(events.size() >= 2, 500);
             SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_LEFTX, 0); input.poll();
             events.clear();
-            button(SDL_CONTROLLER_BUTTON_A, true);
+            button(SDL_CONTROLLER_BUTTON_B, true);
             QTest::qWait(470);
             QCOMPARE(events.size(), 1); // Confirm never repeats while held.
             input.setEnabled(false);
             button(SDL_CONTROLLER_BUTTON_Y, true);
             input.setEnabled(true); input.poll();
             QCOMPARE(events.size(), 1); // Returning while held cannot trigger a stale action.
-            button(SDL_CONTROLLER_BUTTON_A, false);
+            button(SDL_CONTROLLER_BUTTON_B, false);
             button(SDL_CONTROLLER_BUTTON_Y, false);
             button(SDL_CONTROLLER_BUTTON_Y, true);
             QCOMPARE(events.size(), 2);

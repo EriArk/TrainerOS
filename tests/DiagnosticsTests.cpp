@@ -31,19 +31,19 @@ private slots:
         DiagnosticsController checks; checks.configure(&input, nullptr); input.poll(); checks.begin(); checks.reset();
         QKeyEvent key(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier); input.eventFilter(nullptr, &key);
         QVERIFY(checks.observations()["recentControllerActions"].toArray().isEmpty());
-        QVERIFY(!checks.observations()["buttons"].toArray()[SDL_CONTROLLER_BUTTON_A].toObject()["observed"].toBool());
+        QVERIFY(!checks.observations()["buttons"].toArray()[SDL_CONTROLLER_BUTTON_B].toObject()["observed"].toBool());
         QSignalSpy actions(&input, &ControllerInput::action);
         QSignalSpy presses(&input, &ControllerInput::confirmPressed);
         input.setEnabled(false);
-        SDL_JoystickSetVirtualButton(pad.joystick, SDL_CONTROLLER_BUTTON_A, 1); input.poll();
-        QVERIFY(input.sample().buttons[SDL_CONTROLLER_BUTTON_A]); QVERIFY(actions.isEmpty()); QVERIFY(presses.isEmpty());
+        SDL_JoystickSetVirtualButton(pad.joystick, SDL_CONTROLLER_BUTTON_B, 1); input.poll();
+        QVERIFY(input.sample().buttons[SDL_CONTROLLER_BUTTON_B]); QVERIFY(actions.isEmpty()); QVERIFY(presses.isEmpty());
         QCOMPARE(checks.gate(), QString("Shell input paused while inactive"));
         input.setEnabled(true); input.poll(); QVERIFY(actions.isEmpty()); QVERIFY(presses.isEmpty()); QVERIFY(input.sample().awaitingNeutral);
-        SDL_JoystickSetVirtualButton(pad.joystick, SDL_CONTROLLER_BUTTON_A, 0); input.poll();
-        SDL_JoystickSetVirtualButton(pad.joystick, SDL_CONTROLLER_BUTTON_A, 1); input.poll();
+        SDL_JoystickSetVirtualButton(pad.joystick, SDL_CONTROLLER_BUTTON_B, 0); input.poll();
+        SDL_JoystickSetVirtualButton(pad.joystick, SDL_CONTROLLER_BUTTON_B, 1); input.poll();
         QCOMPARE(actions.size(), 1); QCOMPARE(checks.lastAction(), QString("Confirm (A)"));
         QCOMPARE(presses.size(), 1); // Feedback follows the same foreground/neutral gate as actions.
-        SDL_JoystickSetVirtualButton(pad.joystick, SDL_CONTROLLER_BUTTON_A, 0); input.poll();
+        SDL_JoystickSetVirtualButton(pad.joystick, SDL_CONTROLLER_BUTTON_B, 0); input.poll();
         SDL_JoystickSetVirtualAxis(pad.joystick, SDL_CONTROLLER_AXIS_RIGHTX, -30000); input.poll();
         SDL_JoystickSetVirtualAxis(pad.joystick, SDL_CONTROLLER_AXIS_RIGHTX, 26000); input.poll();
         const auto axis = checks.observations()["axes"].toArray()[SDL_CONTROLLER_AXIS_RIGHTX].toObject();
@@ -53,7 +53,7 @@ private slots:
         QCOMPARE(checks.observations()["guid"].toString(), guid);
         QCOMPARE(checks.observations()["disconnectionsObserved"].toInt(), 1);
         QVERIFY(checks.observations()["axes"].toArray()[0].toObject()["rawValue"].isNull());
-        QVERIFY(checks.observations()["buttons"].toArray()[SDL_CONTROLLER_BUTTON_A].toObject()["observed"].toBool());
+        QVERIFY(checks.observations()["buttons"].toArray()[SDL_CONTROLLER_BUTTON_B].toObject()["observed"].toBool());
     }
     void unmappedDeviceHasHonestRecoveryState() {
         SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);

@@ -89,8 +89,8 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         }
         case 4:
             check(shell.menuOpen(), "Start opens system menu above selector");
-            press(SDL_CONTROLLER_BUTTON_B); check(focusIs("resume-4"), "Back restores selected card");
-            press(SDL_CONTROLLER_BUTTON_A); break;
+            press(SDL_CONTROLLER_BUTTON_A); check(focusIs("resume-4"), "Back restores selected card");
+            press(SDL_CONTROLLER_BUTTON_B); break;
         case 5:
             check(*starts == 0 && *returns == 0 && shell.notice().isEmpty(), "Selecting a card must never launch");
             check(!shell.drawerOpen() && focusIs("home-launch") && shell.home()["adventureId"] == "home-0", "Selection rebuilds Home and focuses main button");
@@ -104,21 +104,21 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         case 6:
             check(shell.home()["badges"] == "4" && shell.home()["caught"] == "241"
                 && shell.home()["badgeSlots"].toList().size() == 8 && shell.home()["badgeSet"] == "kanto", "Verified save fields reach Home independently of recorded time");
-            capture("home-selected-1080p"); press(SDL_CONTROLLER_BUTTON_A); break;
+            capture("home-selected-1080p"); press(SDL_CONTROLLER_BUTTON_B); break;
         case 7:
             check(*starts == 1 && *returns == 1 && focusIs("home-launch"), "Main button alone launches and restores Home");
             check(store.recentSessions().first().adventureId == "home-0" && store.recentSessions().size() == 5, "History replaces the latest card without duplicates");
             check(history->error().isEmpty(), "History writes succeeded");
             for (auto button : {SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_DOWN, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_LEFT}) press(button);
             check(focusIs("home-launch") && !shell.drawerOpen(), "D-pad cannot redirect Home's fixed A action");
-            press(SDL_CONTROLLER_BUTTON_A); break;
+            press(SDL_CONTROLLER_BUTTON_B); break;
         case 8:
             check(*starts == 2 && *returns == 2 && !shell.drawerOpen(), "A launches immediately after arbitrary D-pad input");
-            press(SDL_CONTROLLER_BUTTON_Y); check(shell.drawerOpen(), "Y opens the selector independently"); press(SDL_CONTROLLER_BUTTON_B);
+            press(SDL_CONTROLLER_BUTTON_Y); check(shell.drawerOpen(), "Y opens the selector independently"); press(SDL_CONTROLLER_BUTTON_A);
             check(focusIs("home-launch"), "Cancel restores the fixed page action");
-            press(SDL_CONTROLLER_BUTTON_START); press(SDL_CONTROLLER_BUTTON_DPAD_DOWN); press(SDL_CONTROLLER_BUTTON_DPAD_DOWN); press(SDL_CONTROLLER_BUTTON_A);
+            press(SDL_CONTROLLER_BUTTON_START); press(SDL_CONTROLLER_BUTTON_DPAD_DOWN); press(SDL_CONTROLLER_BUTTON_DPAD_DOWN); press(SDL_CONTROLLER_BUTTON_B);
             check(!shell.notice().isEmpty() && *starts == 2, "A in the system menu cannot launch Home's Adventure");
-            press(SDL_CONTROLLER_BUTTON_B); press(SDL_CONTROLLER_BUTTON_B);
+            press(SDL_CONTROLLER_BUTTON_A); press(SDL_CONTROLLER_BUTTON_A);
             press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
             check(focusIs("home-launch") && shell.home()["adventureId"] == "home-0", "Shoulders retain the selected Home Adventure");
             progress->selected = "another-adventure"; progress->publish();
