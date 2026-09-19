@@ -142,3 +142,39 @@ style/attribution, discover additional missing illustration candidates, complete
 the raw corpus and classify genuine unavailable art honestly. Automated category
 pagination/discovery is not implemented by this explicit-plan downloader. #60
 has not started; no runtime UI, sprite provider or Flip installation changed.
+
+## Species identity review checkpoint — 2026-09-19
+
+The private corpus contains numbered illustration candidates for **all 1,025
+reference species**. This is not exact-form coverage: ten species still have no
+confirmed form association. Their candidate artwork remains available for
+review rather than being assigned to the first form. In particular, the seed's
+bare `Unown.png` depicts F, not A. Thirteen originals were individually inspected
+and assigned explicit form IDs in private review records, including visible
+flower/plumage colors, Maushold's four-member family and Unown F.
+
+Scoped naming equivalents for Shellos/Gastrodon Sea, Basculin stripes, Eiscue
+faces, Morpeko modes and Zacian/Zamazenta Hero labels add thirteen more exact
+label associations. Bare species names still do not establish defaults. Eight
+additional missing Mega illustrations were downloaded, individually inspected
+and selected using the existing missing-only workflow. No sprite substitution,
+recoloring or invented art was used.
+
+Current private corpus: **1,876 entries / 1,875 unique originals**, **1,248 / 1,579
+forms associated**, **331 unresolved**, **1,015 species with at least one exact
+association**, and **1,025 species with candidate images**. Fourteen downloaded
+illustrations now have explicit preferred-image selections. Invalid images and
+unresolved exact-candidate conflicts remain zero.
+
+`species-review.json` and the index's `speciesReview` distinguish species with
+unresolved candidate identity from those with no candidate in the corpus. Missing
+form records expose species candidate counts and exact candidate hashes; neither
+is proof that a form has no available artwork elsewhere. A review hash absent
+from the current inputs now fails instead of silently dropping a prior review;
+the previous valid index is retained.
+
+Twenty synthetic tests pass on Windows and Linux (15 importer + 5 downloader),
+including scoped labels, candidate-versus-form coverage, stale review rejection
+and retention of the previous index. All acquisition/mapping/review manifests
+and artwork remain private. Remaining #58 identity, discovery, style/attribution
+and maximum-coverage work is still open; #60 device bootstrap has not started.

@@ -177,6 +177,38 @@ class CorpusTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             art.run(self.seed, self.out, self.ref, 'fixture:seed', supplement=supplement)
 
+    def test_candidate_presence_is_not_exact_form_coverage(self):
+        (self.seed / '0001 Bulbasaur unknown.png').write_bytes(png('red'))
+        result = self.run_import()
+        self.assertEqual(result['speciesWithCandidates'], 1)
+        self.assertEqual(result['coveredSpecies'], 0)
+        rows = json.loads((self.out / 'species-review.json').read_text())
+        self.assertEqual(rows[0]['status'], 'candidate-identity-unresolved')
+        self.assertEqual(rows[1]['status'], 'no-candidate-in-corpus')
+        self.assertEqual(len(rows[0]['candidateHashes']), 1)
+
+    def test_absent_review_image_retains_previous_index(self):
+        (self.seed / '0001 Bulbasaur.png').write_bytes(png('red'))
+        self.run_import()
+        before = (self.out / 'corpus-index.json').read_bytes()
+        review = self.root / 'review.json'
+        review.write_text(json.dumps({art.digest(png('blue')): 'bulbasaur/1'}))
+        with self.assertRaises(ValueError):
+            self.run_import(review=review)
+        self.assertEqual(before, (self.out / 'corpus-index.json').read_bytes())
+
+    def test_scoped_short_labels_never_assume_default(self):
+        for species_id, label, expected in [
+            ('shellos', 'West Sea', 'west'), ('gastrodon', 'East Sea', 'east'),
+            ('basculin', 'White-Striped Form', 'white'), ('eiscue', 'Ice Face', 'ice'),
+            ('morpeko', 'Full Belly Mode', 'full'), ('zacian', 'Hero of Many Battles', 'hero')]:
+            with self.subTest(species=species_id):
+                self.assertEqual(art.short_form_label(label, species_id), expected)
+                species = {1: {'id': species_id, 'name': species_id,
+                              'forms': [{'id': 'form', 'name': label}]}}
+                self.assertEqual(art.candidates('1 ' + species_id + '.png', species)[0], [])
+        self.assertEqual(art.short_form_label('White-Striped Form', 'other'), 'whitestriped')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -42,6 +42,18 @@ def norm(value):
 
 def short_form_label(value, species_id):
     """Naming equivalents, never a default-form or shared-art fallback."""
+    # These shorten explicit source labels; none turns a bare species name into
+    # a presumed default form. Scope them so unrelated form names stay intact.
+    if species_id in ('shellos', 'gastrodon'):
+        value = value.replace(' Sea', '')
+    if species_id == 'basculin':
+        value = value.replace('-Striped', '')
+    if species_id == 'eiscue':
+        value = value.replace(' Face', '')
+    if species_id == 'morpeko':
+        value = {'Full Belly Mode': 'Full', 'Hangry Mode': 'Hangry'}.get(value, value)
+    if species_id in ('zacian', 'zamazenta') and value == 'Hero of Many Battles':
+        value = 'Hero'
     value = re.sub(r'\b(Alolan|Galarian|Hisuian|Paldean)\b',
                    lambda m: {'Alolan': 'Alola', 'Galarian': 'Galar',
                               'Hisuian': 'Hisui', 'Paldean': 'Paldea'}[m[0]], value)
@@ -275,6 +287,13 @@ def run(seed, output, reference_path, source, review_path=None, selection_path=N
                         'speciesId': species_id, 'candidates': matches, 'confidence': confidence})
     if not records:
         raise ValueError('No valid static images in seed; previous reports retained')
+    image_hashes = {record['sha256'] for record in records}
+    if set(review) - image_hashes:
+        raise ValueError('Review references images absent from this import; previous reports retained')
+    species_images = {}
+    for record in records:
+        if record['speciesId']:
+            species_images.setdefault(record['speciesId'], set()).add(record['sha256'])
     by_target = {key: {} for key in targets}
     for record in records:
         if len(record['candidates']) == 1:
@@ -286,28 +305,38 @@ def run(seed, output, reference_path, source, review_path=None, selection_path=N
         covered[target] = sha
     conflicts = [{'target': key, 'hashes': sorted(values)} for key, values in by_target.items()
                  if len(values) > 1 and key not in selections]
-    missing = [dict(target=key, **value, reason='multiple-images' if by_target[key] else 'no-exact-match')
+    missing = [dict(target=key, **value, reason='multiple-images' if by_target[key] else 'no-exact-match',
+                    speciesCandidateCount=len(species_images.get(value['speciesId'], set())),
+                    exactCandidateHashes=sorted(by_target[key]))
                for key, value in targets.items() if key not in covered]
     summary = {'images': len(records), 'uniqueImages': len({r['sha256'] for r in records}),
                'species': len(species), 'forms': len(targets), 'coveredForms': len(covered),
                'unresolvedForms': len(missing), 'conflictingTargets': len(conflicts), 'invalidImages': len(errors)}
     summary['coveredSpecies'] = len({targets[key]['speciesId'] for key in covered})
+    summary['speciesWithCandidates'] = len(species_images)
     summary['reviewedSelections'] = len(selections)
     # Index is written last and contains the entire authoritative report snapshot.
     # Separate convenience reports can be regenerated after interruption.
     ambiguous = {'conflicts': conflicts, 'unmapped': [r for r in records if len(r['candidates']) != 1]}
+    covered_species = {targets[key]['speciesId'] for key in covered}
+    species_review = [{'speciesId': entry['id'], 'name': entry['name'], 'number': number,
+                       'candidateHashes': sorted(species_images.get(entry['id'], set())),
+                       'status': 'candidate-identity-unresolved' if entry['id'] in species_images else 'no-candidate-in-corpus'}
+                      for number, entry in species.items() if entry['id'] not in covered_species]
     provenance = {'source': source, 'referenceSha256': digest(reference_bytes),
                   'reviewSha256': digest(Path(review_path).read_bytes()) if review_path else None,
                   'selectionSha256': digest(Path(selection_path).read_bytes()) if selection_path else None,
                   'supplementManifestSha256': digest((supplement / 'acquisition.json').read_bytes()) if supplement else None,
                   'purpose': 'private classic illustrations; not sprites, not a final pack',
                   'networkAcquisition': 'not performed by this offline import stage'}
-    for name, value in [('missing', missing), ('ambiguous', ambiguous), ('provenance', provenance)]:
+    for name, value in [('missing', missing), ('ambiguous', ambiguous), ('provenance', provenance),
+                        ('species-review', species_review)]:
         atomic_json(output / (name + '.json'), value)
     write_review(output, targets, records, covered)
     atomic_json(output / 'corpus-index.json', {'version': 1, 'provisional': True, 'summary': summary,
                 'provenance': provenance, 'images': records, 'associations': covered,
                 'missing': missing, 'ambiguous': ambiguous, 'errors': errors,
+                'speciesReview': species_review,
                 'reviewedSelections': selections})
     return summary
 
