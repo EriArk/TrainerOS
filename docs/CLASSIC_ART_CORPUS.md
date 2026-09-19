@@ -160,7 +160,7 @@ additional missing Mega illustrations were downloaded, individually inspected
 and selected using the existing missing-only workflow. No sprite substitution,
 recoloring or invented art was used.
 
-Current private corpus: **1,876 entries / 1,875 unique originals**, **1,248 / 1,579
+At this checkpoint: **1,876 entries / 1,875 unique originals**, **1,248 / 1,579
 forms associated**, **331 unresolved**, **1,015 species with at least one exact
 association**, and **1,025 species with candidate images**. Fourteen downloaded
 illustrations now have explicit preferred-image selections. Invalid images and
@@ -178,3 +178,99 @@ including scoped labels, candidate-versus-form coverage, stale review rejection
 and retention of the previous index. All acquisition/mapping/review manifests
 and artwork remain private. Remaining #58 identity, discovery, style/attribution
 and maximum-coverage work is still open; #60 device bootstrap has not started.
+
+## Whole remaining-form source pass — 2026-09-19–20
+
+`tools/discover-classic-art.py` now queries category metadata only for species
+that still have unresolved forms in an already imported corpus:
+
+```sh
+python tools/discover-classic-art.py --index /private/classic-corpus/corpus-index.json --output /private/classic-discovery
+```
+
+Discovery retains the source HTML and hashes, checkpoints each species, verifies
+cached pages on reruns and stops on source failures. It follows numeric filename
+continuations through the permitted `/wiki/Category:...?filefrom=...` route,
+respecting the same robots policy and request interval as the downloader. It
+does not traverse the remaining sprite/category namespace or claim an exhaustive
+internet search. Numbered candidates still require file-page and visual review;
+a filename alone is not evidence of illustration style.
+
+The explicit-plan downloader's optional `--allow-secondary` accepts source-tagged
+Dream World/Global Link static illustrations. This is a separately marked art
+class, not the #51 animation sprite provider. The default remains classic-source
+illustrations, and cached secondary candidates also require the opt-in. Exact
+same-origin category matches exclude similarly named categories, animated
+sprites and anniversary logos. Source-category classification is metadata,
+not a substitute for visually checking whether the original is drawn or rendered.
+
+After import and review, a bounded discovery report can be generated with:
+
+```sh
+python tools/audit-classic-art.py --index /private/classic-corpus/corpus-index.json --discovery /private/classic-discovery --output /private/classic-source-review
+```
+
+This verifies category-page hashes, including continuations, and records the
+remaining targets with their candidate pages. It does not change associations,
+certify acquisition/visual review of every candidate, or assert that an
+unresolved illustration does not exist. Acquisition receipts and explicit
+identity/style review remain separate private evidence.
+
+### Completed run and handoff
+
+The whole configured-source pass is complete, rather than another small download
+batch. Category metadata for the 99 species originally requiring review was
+inspected; numeric continuation pages were included where necessary. Thirty
+additional seed identities were visually resolved first. All **256 selected
+candidate pages** have a recorded outcome: **192 acquired**, **64 rejected** by
+the source gate. Every acquired image was visually inspected: 186 received an
+explicit identity, while six retained unresolved identity/pose notes. Alternative
+artwork for already associated forms does not artificially increase coverage.
+
+Current raw corpus:
+
+| Measure | Result |
+| --- | --- |
+| Image records / unique originals | 2,068 / 2,067 |
+| Exact form associations | 1,437 / 1,579 |
+| Remaining unresolved forms | 142 |
+| Species with an exact association | 1,020 / 1,025 |
+| Species with candidate images | 1,025 / 1,025 |
+| Explicit preferred-image selections | 177 |
+| Invalid images / conflicting selections | 0 / 0 |
+
+This improves the previous checkpoint by **189 form associations**, including
+the seed review. Coverage means a confirmed raw-image identity, not a guarantee
+of a particular illustration style: some source-category candidates are renders.
+Visual notes distinguish these, and drawn alternatives are preferred where
+reviewed. The source family remains separate from visual style and authorship.
+
+The pass includes Unown letters, Arceus/Silvally types, flower colors, Furfrou
+trims, Minior cores, new Mega forms and additional special forms. Alcremie sweet
+identity was checked visually rather than inferred from a cream-only filename;
+several proposed Strawberry identities were corrected to Flower, Ribbon, Clover,
+Star or Love. Identical/uncertain appearances, unsupported styles and unconfirmed
+pose identities remain explicit. For example, generic Xerneas images with active
+antlers do not fill Neutral Mode, and a wheeled Miraidon pose alone does not
+establish Drive versus Aquatic Mode.
+
+The private handoff includes the raw corpus/index, missing and ambiguous reports,
+source-discovery pages, acquisition/rejection receipts, explicit identity and
+preference decisions, visual-style notes and a whole-pass verification report.
+The actual final verification checked every planned outcome and acquired image's
+and source page's SHA-256, and required a visual-review record for every acquired
+candidate. The interrupted acquisition resumed successfully using verified
+cached work. All jobs exited; no downloader service was installed.
+
+**#58's PC corpus pass is ready for #60.** The 142 unresolved forms are a handoff
+artifact, not a claim that no suitable art exists anywhere or a reason to invent
+shared/default identities. Further per-asset attribution and exact/shared
+appearance decisions remain visible for bootstrap review. #60 must now prove
+real Flip import, mapping and measured list/detail/picker profiles before #57
+freezes a generic contract or #59 builds Studio. No runtime UI, animation sprite
+provider, final pack schema or Flip installation changed in this pass.
+
+All **29 synthetic tests** pass on Windows and Linux (15 importer, 7 downloader,
+7 discovery/audit). Coverage includes numeric pagination and cache corruption,
+blocked-job resume, incomplete discovery refusal, explicit secondary-art opt-in,
+strict category matching and preservation of source-family metadata.

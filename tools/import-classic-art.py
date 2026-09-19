@@ -282,7 +282,9 @@ def run(seed, output, reference_path, source, review_path=None, selection_path=N
         records.append({'sourceName': name, 'path': path.relative_to(output).as_posix(),
                         'sha256': sha, 'source': image_source, 'creator': None,
                         'proposedTarget': supplement_record['target'] if supplement_record else None,
-                        'notes': 'Seed attribution is not per-image authorship or a redistribution license.',
+                        'artworkClass': supplement_record.get('artworkClass', 'classic-illustration') if supplement_record else 'seed-illustration',
+                        'notes': ('Source category identifies an artwork family, not verified authorship or a redistribution license.'
+                                  if supplement_record else 'Seed attribution is not per-image authorship or a redistribution license.'),
                         'width': width, 'height': height, 'alpha': alpha,
                         'speciesId': species_id, 'candidates': matches, 'confidence': confidence})
     if not records:

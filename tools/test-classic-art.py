@@ -167,12 +167,15 @@ class CorpusTests(unittest.TestCase):
         (supplement / (sha + '.png')).write_bytes(data)
         (supplement / 'acquisition.json').write_text(json.dumps({'page': {
             'file': sha + '.png', 'sha256': sha, 'sourceName': '0003 Venusaur unknown.png',
-            'source': 'fixture:separate-source', 'target': 'venusaur/3'}}))
+            'source': 'fixture:separate-source', 'target': 'venusaur/3',
+            'artworkClass': 'secondary-illustration'}}))
         result = art.run(self.seed, self.out, self.ref, 'fixture:seed', supplement=supplement)
         self.assertEqual(result['coveredForms'], 1)
         report = json.loads((self.out / 'corpus-index.json').read_text())
         self.assertEqual(report['images'][-1]['source'], 'fixture:separate-source')
         self.assertEqual(report['images'][-1]['candidates'], [])
+        self.assertEqual(report['images'][-1]['artworkClass'], 'secondary-illustration')
+        self.assertEqual(report['images'][0]['artworkClass'], 'seed-illustration')
         (supplement / (sha + '.png')).unlink()
         with self.assertRaises(ValueError):
             art.run(self.seed, self.out, self.ref, 'fixture:seed', supplement=supplement)

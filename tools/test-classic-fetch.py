@@ -111,6 +111,36 @@ class FetchTests(unittest.TestCase):
             self.assertEqual(sleep.call_args_list[-1].args, (12,))
         self.assertEqual(client.opener.calls, 2)
 
+    def test_secondary_illustrations_are_explicit_not_sprites(self):
+        page = '<a href="/wiki/Category:Pok%C3%A9mon_Dream_World_artwork">art</a>'
+        strict = f.FilePage()
+        strict.feed(page)
+        self.assertFalse(strict.illustration)
+        allowed = f.FilePage(allow_secondary=True)
+        allowed.feed(page)
+        self.assertTrue(allowed.illustration)
+        self.assertEqual(allowed.artwork_class, 'secondary-illustration')
+        sprite = f.FilePage(allow_secondary=True)
+        sprite.feed('<a href="/wiki/Category:Animated_Pok%C3%A9mon_sprites">sprite</a>')
+        self.assertFalse(sprite.illustration)
+        for href in ('/wiki/Category:Pok%C3%A9mon_Dream_World_artwork_fake',
+                     'https://other.example/wiki/Category:Pok%C3%A9mon_Dream_World_artwork',
+                     '/wiki/Category:Pok%C3%A9mon_30th_Anniversary_logos'):
+            rejected = f.FilePage(allow_secondary=True)
+            rejected.feed('<a href="' + href + '">not eligible</a>')
+            self.assertFalse(rejected.illustration)
+
+    def test_secondary_cache_requires_opt_in(self):
+        class Dream(Fake):
+            def get(self, url, limit):
+                if url == PAGE:
+                    return HTML.replace(b'Ken_Sugimori_Pok%C3%A9mon_artwork', b'Pok%C3%A9mon_Dream_World_artwork')
+                return PNG
+        self.assertEqual(f.fetch(self.index, self.plan, self.output, Dream, allow_secondary=True)['downloaded'], 1)
+        with self.assertRaisesRegex(ValueError, 'explicit opt-in'):
+            self.fetch()
+        self.assertEqual(f.fetch(self.index, self.plan, self.output, Dream, allow_secondary=True)['reused'], 1)
+
 
 if __name__ == '__main__':
     unittest.main()

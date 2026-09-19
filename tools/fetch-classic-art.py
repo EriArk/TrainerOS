@@ -27,18 +27,27 @@ UA = 'TrainerOS-art-bootstrap/0.1 (https://github.com/EriArk/TrainerOS)'
 
 
 class FilePage(HTMLParser):
-    def __init__(self):
+    def __init__(self, allow_secondary=False):
         super().__init__()
         self.originals = set()
         self.illustration = False
+        self.artwork_class = None
+        self.allow_secondary = allow_secondary
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
         href = urllib.parse.urljoin(ORIGIN, a.get('href', ''))
         if tag == 'a' and 'internal' in a.get('class', '').split() and '/media/upload/' in href:
             self.originals.add(href)
-        if tag == 'a' and 'Category:Ken_Sugimori_Pokémon_artwork' in urllib.parse.unquote(href):
+        category = urllib.parse.unquote(urllib.parse.urlsplit(href).path).replace('_', ' ')
+        if tag == 'a' and allowed_url(href) and category == '/wiki/Category:Ken Sugimori Pokémon artwork':
             self.illustration = True
+            self.artwork_class = 'classic-illustration'
+        if tag == 'a' and allowed_url(href) and self.allow_secondary and self.artwork_class is None:
+            if any('/wiki/Category:' + name == category for name in (
+                    'Pokémon Dream World artwork', 'Pokémon Global Link artwork')):
+                self.illustration = True
+                self.artwork_class = 'secondary-illustration'
 
 
 def allowed_url(url):
@@ -82,7 +91,7 @@ class Client:
                 self.delay = max(self.delay, int(retry or 0), 5 * 2 ** (attempt + 1))
 
 
-def fetch(index_path, plan_path, output, client_factory=Client):
+def fetch(index_path, plan_path, output, client_factory=Client, allow_secondary=False):
     index_path, output = Path(index_path), Path(output)
     index = json.loads(index_path.read_text(encoding='utf8'))
     if not index.get('images') or not index.get('provenance', {}).get('referenceSha256'):
@@ -115,6 +124,8 @@ def fetch(index_path, plan_path, output, client_factory=Client):
         key = hashlib.sha256(url.encode()).hexdigest()
         if key in manifest:
             old = manifest[key]
+            if old.get('artworkClass') == 'secondary-illustration' and not allow_secondary:
+                raise ValueError('Secondary illustration cache requires explicit opt-in')
             art.safe_name(old['file'])
             path = output / old['file']
             if not path.is_file() or art.digest(path.read_bytes()) != old['sha256']:
@@ -131,7 +142,7 @@ def fetch(index_path, plan_path, output, client_factory=Client):
             client = client_factory()
             (output / 'robots.txt').write_bytes(client.policy)
         page = client.get(url, 4 * 1024 * 1024)
-        parser = FilePage()
+        parser = FilePage(allow_secondary=allow_secondary)
         parser.feed(page.decode('utf8'))
         if not parser.illustration or len(parser.originals) != 1:
             raise ValueError('Not an unambiguous classic illustration page: ' + url)
@@ -152,6 +163,7 @@ def fetch(index_path, plan_path, output, client_factory=Client):
         manifest[key] = {'file': filename, 'sha256': sha, 'sourceName': name,
                          'source': url, 'originalUrl': image_url, 'target': row['target'],
                          'creator': None, 'width': width, 'height': height,
+                         'artworkClass': parser.artwork_class,
                          'pageSha256': art.digest(page), 'pageFile': key + '.html',
                          'notes': 'Candidate only; page metadata retained for authorship and visual review.'}
         art.atomic_json(manifest_path, manifest)
@@ -164,8 +176,9 @@ def main():
     p.add_argument('--index', required=True, type=Path)
     p.add_argument('--plan', required=True, type=Path)
     p.add_argument('--output', required=True, type=Path)
+    p.add_argument('--allow-secondary', action='store_true', help='Also collect explicitly tagged Dream World/Global Link illustrations, never sprites')
     args = p.parse_args()
-    print(json.dumps(fetch(args.index, args.plan, args.output), indent=2))
+    print(json.dumps(fetch(args.index, args.plan, args.output, allow_secondary=args.allow_secondary), indent=2))
 
 
 if __name__ == '__main__':
