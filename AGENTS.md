@@ -234,6 +234,14 @@ Preserve source originals. Stage test copies and test saves/configuration separa
 
 ## Development workflow — required
 
+### Reasoning effort before each work increment — owner preference, 2026-09-19
+
+Before each new stage/increment, recommend a reasoning-effort level with one short task-specific reason. Prefer announcing the next increment and its level at the end of the current turn, so the owner can change the setting before saying continue. For an unannounced new task, limit initial assessment to what is needed to recommend a level before substantial work. Do not silently start a different major increment in the same run before giving that recommendation.
+
+Use the lowest adequate available level: Low/Light for clear text or small layout edits and routine operations; Medium for ordinary bounded implementation and tests; High for uncertain cross-module behavior, lifecycle, migrations or save integrity. Extra High/Max is exceptional for demonstrated difficult problems, not the default. These are project heuristics, not guaranteed quota savings. Raise or lower the recommendation as the actual uncertainty changes; required verification/data protection still applies at every level. Do not claim to change the owner's model/reasoning setting yourself or infer an exact remaining allowance.
+
+### Commit and verification loop
+
 The user has authorized routine commits and pushes for this project. A completed implementation increment must be checked, committed, pushed to GitHub and verified there; do not leave finished work only in the working tree or local commits. Do not ask for repeated approval for this routine workflow.
 
 1. Start by inspecting the current branch, status, upstream and relevant issue/docs. Identify pre-existing changes and preserve work belonging to the user or another task.
