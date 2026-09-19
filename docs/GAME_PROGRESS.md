@@ -1,5 +1,7 @@
 # Home progress from in-game saves
 
+**Accepted expansion, not delivered — #42/#50:** extend this exact-build read-only baseline with small semantic Party/Storage/Pokédex/Journey/Champion providers and independent guarded writers. No generation-wide support or editor capability follows from current badge/count reads. [Provider/research gates](EXPANSION_42_62.md#exact-save-providers-and-research). #9 will supply one shared context; #46/#47 projections follow proven fields. Old moment comparisons below explain legacy behavior superseded by #49.
+
 The user's 2026-09-13 save trial exposed a missing connection: imported saves loaded in the Adventures, while Home's badge/caught fields still had no real provider. This increment introduces the first bounded automatic-progress module on the existing library, launch/return and verified save-resolution foundations.
 
 ## Supported observations

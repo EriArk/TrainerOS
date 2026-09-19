@@ -1,5 +1,9 @@
 # TrainerOS Design Language
 
+**Target reconciliation — 2026-09-19:** dated refinements below preserve visual evidence; older Continue/saved-moment/resume-kind labels are historical and do not authorize state-resume behavior. Keep the approved chassis, golden internal focus and L1/R1 tabs. #9 reuses the drawer as shared **Choose Adventure**; cards use #49 clean exit images, title ribbons and honest ordinary-save/session metadata. No persistent Current Adventure capsule/chip.
+
+**Planned companion/content direction:** L2/R2 pairs Worlds/Multiverse, Dex/Center and Journey/RA with a compact indicator in existing chassis/header space. Practical Party/Storage stays stable; separate Playroom uses bounded actors and attached portrait panels. Classic illustrations are primary long-list Dex art; optional sprites animate detail/Home/Playroom. #56 enlarges World cards with cached low-contrast environmental linework and deliberate diagonal small-group pairs while preserving identity/golden focus. #47 Journey uses title-specific larger crystals, not a universal eight-badge assumption. [Acceptance and artwork order](EXPANSION_42_62.md).
+
 Collection cards include an original hardware silhouette and short platform label seated in a recessed badge within the raised card. Missing editions use neutral grey material and retain a full-contrast focus outline; greying does not disable focus or the file-link action. This is the user's 2026-09-11 extension; see [collection catalogue](COLLECTION_CATALOGUE.md).
 
 ## Chassis, selection and page cleanup — 2026-09-14
@@ -155,7 +159,7 @@ Acceptance: the same screen and controller path must work in every theme without
 The owner's next design refinement adds diagonals and circles to soften the rectilinear composition:
 
 - Primary page names sit on differently colored organizer-like tabs emerging from the upper frame. The active tab extends farther into the interface; color is supplemented by depth/position/focus.
-- Continue rests as a small bottom-left frame module with a diagonal cut on its right side. It protrudes into the white workspace, expands horizontally on `Y`, then rises to reveal resume cards. Closing reverses those stages.
+- Continue rests as a small bottom-left frame module with a diagonal cut on its right side. It protrudes into the white workspace, expands horizontally on `Y`, then rises to reveal recent Adventure cards. Closing reverses those stages.
 - Light screens sit visibly inside the casing. Use sloping bevels from the surrounding frame down to the content surface, as on older handheld instruments.
 - Buttons and list rows have tangible thickness, contact shadows, and distinct colors. Their palette is separate from the shell theme so controls remain readable against both panels and white screens.
 - Panels supporting controls must connect to a frame edge, extend a main panel, or visibly mount on an existing frame module. Do not suspend a control panel in the middle of the white workspace.
@@ -201,7 +205,7 @@ A good first composition:
 │                                                                  │
 │  small utility/status strip                                      │
 │                                                                  │
-│  [ Continue Adventure affordance ]                               │
+│  [ Choose Adventure affordance   ]                               │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -214,7 +218,7 @@ The exact arrangement can change. Important constraints:
 
 ### Continue drawer
 
-The drawer should feel like opening a quick layer of recent moments.
+The target drawer is a quick layer of recent Adventures; its clean exit image never represents a resumable RAM state.
 
 Example card rhythm:
 
@@ -276,16 +280,16 @@ Prioritize:
 
 Do not make it an account-profile form.
 
-### Hall of Fame — archive
+### Hall of Fame — Journey and archive
 
 Hall of Fame can be more ceremonial than other pages.
 
 Use:
 
-- timeline/archive composition
+- live Journey and preserved Champion/manual archive composition
 - date and World hierarchy
 - team-of-six presentation
-- an internal RetroAchievements area using the same frame-mounted controls and visual language
+- an L2/R2 RetroAchievements companion using the same frame-mounted controls and visual language
 - subtle trophy/champion motifs designed for TrainerOS
 
 Avoid fake gold everywhere; restraint makes completed entries feel more special.
@@ -310,7 +314,7 @@ Controller focus is one of the most important visual elements.
 
 Recommended direction:
 
-- thin luminous/bracket outline
+- strong golden outline and amber glow, with an attached readable edge (owner-approved internal selection treatment)
 - an attached edge/inset treatment; any depth change must preserve contact with the supporting panel
 - small directional marker/cursor
 - quick 80–140 ms response
@@ -402,7 +406,7 @@ This should remain **small, optional, and non-chatty**. Do not turn TrainerOS in
 
 ## Home badge collection — 2026-09-13
 
-Badges are individual colored, faceted crystals in a molded collection tray, with distinct silhouettes and separate Kanto/Hoenn sets. Use visible bevels, highlights and contact shadows; an unearned badge leaves a shaped recess. Keep the crystals large enough to distinguish on the handheld (about three times the first tiny diamond indicators), with all eight visible together. Unknown progress remains unknown rather than appearing as eight missing badges. These are original vector interpretations, not copied game sprites. The collection is informational and adds no controller focus stops.
+Badges are individual colored, faceted crystals in a molded collection tray, with distinct silhouettes and separate Kanto/Hoenn sets. Use visible bevels, highlights and contact shadows; an unearned badge leaves a shaped recess. Keep the crystals large enough to distinguish on the handheld (about three times the first tiny diamond indicators), with all eight visible together for the currently verified Kanto/Hoenn titles; future title-specific sets use their proven count. Unknown progress remains unknown rather than appearing as eight missing badges. These are original vector interpretations, not copied game sprites. The collection is informational and adds no controller focus stops.
 
 ## Placeholder asset policy
 

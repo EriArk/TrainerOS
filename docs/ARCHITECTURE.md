@@ -1,5 +1,9 @@
 # TrainerOS Architecture
 
+Sections describing the initial mock are implementation history; their memory-only or legacy state fields do not override the accepted targets or the Current local persistence boundary. Existing module/test evidence is retained without claiming planned APIs already exist.
+
+**Target reconciliation — 2026-09-19 (#62).** The accepted [#42–62 specification](EXPANSION_42_62.md) supersedes older product direction. Planned behavior below is not a claim that the deployed build has changed; see the [working baseline](ROADMAP.md#working-baseline) and dated module evidence.
+
 The read-only `CollectionRepository` composition overlays bundled catalogue editions and World references on the personal library. It creates no personal ownership or progress until file attachment is committed. Emulator installation discovery remains outside this composition; the selected adapter prepares supported registrations through a callback, keeping paths/commands outside feature UI. See [collection catalogue](COLLECTION_CATALOGUE.md).
 
 ## Recommended baseline
@@ -134,25 +138,20 @@ A single executable is acceptable initially. Separate libraries/modules only whe
 
 ## Accepted next-module boundaries — planned
 
-The [roadmap](ROADMAP.md) sequences these extensions to the existing modules:
+The following target boundaries extend existing repositories/workers; [#42–62 acceptance](EXPANSION_42_62.md) and the [roadmap](ROADMAP.md) define implementation order. Do not build a framework before its first consumer.
 
-- Adventure media resolves catalogue/edition and personal Adventure identities into revision-bound local handles. Worlds/Home consume it; Continue may share presentation without losing exact ResumePoint provenance. Worker/cache/import mechanics do not belong in QML.
-- Pokédex artwork resolves species/form identities separately from factual reference and Adventure media. Cache utilities may be shared without merging source/identity rules.
-- Caught first composes the manual journal into a personal collection. Later individual observations require provider/source revision and save-lineage semantics; they cannot be inferred from a species boolean or aggregate count.
-- A global RA account service will own the active Trainer's identity/token/authentication with owner-scoped storage/cache/response identities; the current read provider becomes its consumer. Emulator earning configuration is an adapter capability, separate from fetching account history.
-- Paid healing requires its own verified semantic party/money capability and guarded save transaction; the existing read-only badge provider never becomes an implicit universal save editor.
-- Collection cleanup uses explicit identity/relink/protection rules. Matching ROM bytes do not authorize merging personal histories, saves, states or media ownership.
+- A shell-owned `CurrentPokemonAdventureContext` publishes committed Trainer/Adventure/exact-build/ordinary-save identity and revision. Shared Y changes it; features never own a second current save. Multiverse selection remains independent. Capture initiating owner/context/revision on async work and reject stale results after selection or Trainer/account switches.
+- Navigation owns five primary pages and the L2/R2 paired faces, with per-face route/focus/filter state. Home X changes domain. Drawer/modal priorities and Worlds local Y are explicit; no duplicate persistent context capsule.
+- #49 replaces state-based launch with ordinary startup/save loading. The lifecycle service coordinates capture-before-prompt, still-running-game cancellation, verified save policy, graceful exit, interruption and provenance-bound media. Prove actual compositor/input handoff before generic overlay claims.
+- Adventure media owns title/build images and clean exit captures by Trainer/domain/Adventure/session/revision. #13 illustration art and #51 sprite/portrait providers use separate species/form identities and source/credit rules. They may share bounded cache utilities, never ownership or compatibility assumptions.
+- #42 exact-save resolution/providers extend the current reader/backup layer with independent read/write capabilities and immutable semantic snapshots. Reads feed Dex/Party/Storage/Journey; mutation is through a shared protected transaction, never QML offsets or a read provider implicitly promoted to editor.
+- Owner-scoped repositories serve #19–20 onboarding/chooser/PIN and one active-Trainer RA account service. Shared installations/library/media stay device-wide. Legacy shared saves retain explicit lineage; account creation cannot imply private playthroughs.
+- #46 current-save Pokédex and #47 Journey/Champion projections preserve #14 manual collection/history and existing Hall memories separately. #48 RA is an external account/set projection, not proof of current-save progress.
+- #44 practical Center, #53 Party and separate #54 Playroom consume the same semantic Party/Storage. #52 uses bounded native FSM/steering, one update tick and hidden/reduced-motion controls. #55 battle owns disposable copies behind an ARM64-verified engine adapter; no external-save write channel.
+- #45 Link Counter follows proven exact-pair import/export/money writers and durable two-endpoint transaction recovery. Discovery, transport and transaction coordination are separate; no raw save transfer or success on one-sided commit.
+- Existing media/audio/haptics/RGB/Steam/boot helpers and offline Help retain [#19–41 gates](EXPANSION_PLAN.md). Help consumes allowlisted non-secret runtime facts, never a second config store. Shared chassis/header primitives remain reusable.
 
-The #19–41 expansion adds small boundaries in dependency order:
-
-- Owner-scoped repository operations and an active-Trainer transition coordinate creation/chooser/PIN, draining/invalidation and safe external-save lineage. Device library/installations stay shared. Reuse the existing store/worker and migrate only the ownership required by the actual features.
-- An explicit playable-library domain composes Pokémon World and Multiverse system browsing, Home context and filtered history without duplicating the adapter/lifecycle pipeline. System classification is not a new emulator implementation.
-- Shared chassis/content rectangles, headings, pattern and mounted controls own geometry; features own wording/content. A single bounded local media player consumes #17 handles after idle selection, with lifecycle cancellation and static fallback.
-- A small audio-theme owner maps semantic events to original/licensed assets and arbitrates ambience, preview, jingle, mute and launch/return. A bounded verified-unlock presenter is separate from account truth; no general notification framework is needed.
-- Device services expose actual volume/brightness plus supported power-edge haptics and Armada RGB capabilities. Fixed semantic Steam/boot customization operations reuse reviewed versioned platform helpers/manifests, with no free-form privileged commands in QML.
-- A lightweight offline Help viewer composes versioned structured articles with allowlisted non-secret runtime facts from services. No browser engine or duplicate configuration source; capability changes update the matching guide.
-
-See [EXPANSION_PLAN.md](EXPANSION_PLAN.md) for each consumer, fallback and physical gate. These are accepted design constraints, not assertions that new services, schemas or migration helpers already exist. Keep the [ownership contract](DATA_MODEL.md#ownership-contract--2026-09-13) authoritative and implement only the boundary required by the active increment.
+The artwork track is specifically #58 one-shot raw corpus → #60 temporary Flip importer and measured canonical profiles → #57 contract/shared validator → #59 separate Qt desktop Pack Studio → polished Settings manager. No resident downloader, speculative plugin system or UI-specific filesystem logic.
 
 ## QML / C++ boundary
 
@@ -202,7 +201,7 @@ Nested routes remain owned by their feature page. `B` unwinds local detail befor
 
 The native `WorldsController` owns region/list/detail routes, the selected World ID, a remembered Adventure ID per World and detail-action focus. It projects `LibraryRepository` domain records into QML-facing rows/details and asks the injected Adventure adapter for each record's capabilities. `WorldsPage.qml` owns layout and revealing the focused row inside its bounded list; it does not select integrations or launch processes. The shell handles global actions and overlays before forwarding local input. Worlds navigation remains in memory when switching primary pages.
 
-Library controllers read committed UI-thread snapshots after asynchronous store startup. Refresh preserves identities across reordering and falls back when records disappear. Before a launch/resume request, the controller rechecks the record's primary/additional World relationships. The ephemeral preview supplies a synchronous fake snapshot; normal composition uses `LocalStateStore` and an unconfigured adapter that advertises no launch capabilities. Browsing state is durable, while save-file support remains future integration work.
+Library controllers read committed UI-thread snapshots after asynchronous store startup. Refresh preserves identities across reordering and falls back when records disappear. Before a normal launch request, the controller rechecks the record's primary/additional World relationships. The ephemeral preview supplies a synchronous fake snapshot; original unconfigured composition used `LocalStateStore` and an adapter with no launch capabilities; current configured adapters are documented in the module records. Browsing state is durable; ordinary-save support now has the per-build limits in GAME_PROGRESS and SAVE_BACKUPS.
 
 ## Input architecture
 
@@ -229,7 +228,9 @@ enum class TrainerInput {
     Confirm,
     Back,
     SystemMenu,
-    ToggleContinue, // Y, scoped to Home
+    ToggleContinue, // legacy enum name; target shared Choose Adventure with modal/Worlds rules
+    PreviousCompanion, // planned L2
+    NextCompanion, // planned R2
     PreviousPage,
     NextPage
 };
@@ -239,7 +240,7 @@ The concrete source may evolve if Qt's high-level gamepad support is insufficien
 
 The initial native source is SDL2 GameController, polled from the Qt event loop. It translates inputs into the semantic `Action` enum and centralizes dead zones, edge detection, directional repeat, hotplug and foreground gating. SDL handles controller mappings; the physical Flip 2 mapping outside Steam still needs device testing. SDL virtual controllers exercise the same source in automated tests. Keyboard shortcuts are development conveniences. See `DEVELOPMENT.md` for current mappings and limits.
 
-`ToggleContinue` is separate from `Confirm`: Y opens/closes the Home drawer; A in the drawer selects Home's Adventure without launching. A on Home's main button requests the adapter launch/resume. `PlayHistoryController` observes identified lifecycle start/end signals and writes sessions through a repository; it does not parse game saves. `ContinueEntry` distinguishes recent process sessions from actual `ResumePoint` records. See [Home and play history](HOME_AND_HISTORY.md). Map semantic actions to the physical device's labeled controls through the input/device profile.
+`ToggleContinue` is the legacy action name, separate from Confirm. Target Y selects the shared Adventure without launching; Home A requests normal launch. `PlayHistoryController` records actual process sessions without parsing saves. The existing `ContinueEntry`/`ResumePoint` composition is legacy code to migrate under #49, not an active design requirement. See [Home and play history](HOME_AND_HISTORY.md). Map semantic actions to the physical device's labeled controls through the input/device profile.
 
 Controller text entry is shared shell infrastructure for Pokédex search and profile editing. It owns its draft text, key focus, Apply/Cancel behavior, and restoration to the requesting control. Keep text-entry and filter-picker focus above the underlying screen in Back precedence.
 
@@ -257,7 +258,7 @@ Persist data such as:
 
 - World configuration/state
 - Adventure metadata and hidden adapter configuration
-- recent/resumable-point cache
+- recent play history, source-aware observations and exit-media cache
 - Trainer profile
 - Pokédex personal progress
 - Hall of Fame entries
@@ -265,99 +266,43 @@ Persist data such as:
 - integration configuration
 - shell/settings/controller preferences
 
-External emulator save/state data remains external source data. Store references, derived metadata, checksums, and backups where appropriate; never make the TrainerOS database the only copy of actual game progress.
+Ordinary saves remain external source data; legacy emulator-state references are retained only as required for safe migration. Store references, derived metadata, checksums, and backups where appropriate; never make the TrainerOS database the only copy of actual game progress.
 
 ## Adventure adapter layer
 
-The UI must not know how a specific emulator starts, exits, or stores states.
+Adapters own runtime validation, ordinary launch, actual process lifecycle, save resolution, clean gameplay capture and title-specific save policy where proven. The UI never interprets paths, runtime arguments or raw save bytes. Keep async I/O and process waits off the UI thread.
 
-Suggested interface shape:
+Target capabilities are independently advertised for the **exact configured Adventure/build**, not an entire emulator or generation. Launch and lifecycle can work without semantic save reading. `manualConfirm | autosave | unknown` is verified per title/integration, with unknown asking before exit.
 
-```cpp
-class AdventureAdapter {
-public:
-    virtual ~AdventureAdapter() = default;
+Save providers supply independent read flags for Trainer summary, money/playtime, badges, Pokédex, Party, Storage, Pokémon records, Journey and Champion. Separate write flags cover heal, reorder, moves/release, money and import/export. Common provenance includes ROM revision/hash, runtime/configuration, format/resolver and stable save fingerprint. See [domain contract](DATA_MODEL.md#exact-save-snapshots-and-transactions--planned).
 
-    virtual QString id() const = 0;
-    virtual AdventureCapabilities capabilities(const Adventure& adventure) const = 0;
+Protected writes require stable source/no active writer → verified protection backup → separate candidate → checksums and allowed semantic delta validation → source revision recheck → atomic replacement where supported → independent readback and retained recovery. Multi-file formats require their own recovery protocol. Refuse unsupported/corrupt/changed sources; preserve unknown format-specific bytes needed for round trips.
 
-    virtual IntegrationStatus validate(const Adventure& adventure) = 0;
-    virtual LaunchResult launch(const Adventure& adventure) = 0;
-    virtual QList<ResumePoint> listResumePoints(const Adventure& adventure) = 0;
-    virtual LaunchResult resume(const Adventure& adventure,
-                                const ResumePoint& resumePoint) = 0;
-};
-```
-
-Actual async APIs may use `QFuture`, signals, coroutines, worker services, or another well-contained pattern. Do not block the UI thread on filesystem scans/process waits.
-
-Capabilities describe the configured Adventure, not just the adapter type: two records using the same adapter may differ in launch/resume availability. The prototype implements only ID, per-Adventure capabilities and simulated launch/resume results. A missing capability remains an ordinary UI state; registry/validation/enumeration and async lifecycle APIs are later integration work.
-
-Possible capabilities:
-
-```text
-LAUNCH
-PROCESS_LIFECYCLE
-ENUMERATE_RESUME_POINTS
-DIRECT_RESUME
-STATE_SCREENSHOT
-SAVE_BACKUP
-SAVE_METADATA
-PROGRESS_METADATA
-```
-
-Capability detection allows graceful degradation:
-
-- `LAUNCH` only → Adventure remains playable
-- resumable point enumeration → Continue drawer becomes richer
-- direct resume → Home's action button loads the selected exact point; selecting a card alone never launches
-- screenshot support → visual cards
-- metadata support → Home/Trainer/Pokédex enrichment
+**Historical implementation:** the current C++ adapter still exposes enumeration/direct resume/state screenshot methods. These are migration inputs, not the target interface; [legacy resume evidence](RETROARCH_RESUME.md) is retained. No new adapter should expand them. #49 must decouple ordinary-save resolution from any legacy resume configuration before enabling safe writers.
 
 ## Process lifecycle
 
-External Adventures are first-class lifecycle transitions, not random subprocesses.
+**Accepted target #49, not yet implemented:** normal TrainerOS creates, manages and resumes no emulator savestates/ResumePoints, in either Pokémon or Multiverse. Ordinary game saves/autosaves are authoritative. Relaunch starts the game normally; the game loads its own save.
 
-Launch flow:
+On user-requested exit, capture a clean gameplay screenshot **before** the overlay. Resolve exact title/integration policy `manualConfirm | autosave | unknown`; do not infer it from platform. Manual/unknown asks “Have you saved?” while the game remains alive. B returns to the same process; A confirms graceful exit. Only verified autosave skips the question. Confirmation is a user assertion, not automatic proof of saving.
 
-1. persist current shell page/focus and relevant session state
-2. validate the adapter configuration
-3. hide/suspend shell presentation as appropriate
-4. launch external emulator/application through the adapter/process service
-5. monitor the child/application lifecycle where reliable
-6. when Adventure exits, foreground/restore TrainerOS
-7. restore the previous shell context immediately
-8. refresh metadata/resume points asynchronously
+Exit images feed Home/Y/history with Trainer/domain/Adventure/session provenance. Cancelled attempts and crash/kill/battery loss cannot fabricate a confirmed exit or replace valid history with a false capture. Preserve prior valid media where appropriate and mark interrupted outcomes honestly. Capture failure leaves a usable exit/cancel path, never a state-thumbnail substitute.
 
-The platform layer should decide whether the shell stays resident, is hidden, pauses rendering, or participates in a compositor/session-specific handoff. Feature UI must not depend on that choice.
+Checkpoint the launching page/paired face/route/focus, restore it promptly on return, and refresh ordinary-save observations asynchronously. First prove capture, overlay/input ownership and cancellation with the still-running emulator on Flip. Migration retires only verified TrainerOS-owned obsolete state artifacts safely, preserving ordinary saves, histories and independent images. [Full lifecycle/migration acceptance](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
 
-The current device-independent implementation separates `AdventureLaunchController` (checkpoint, lifecycle state and exactly-once context restoration) from `ProcessService` (one owned asynchronous QProcess, literal arguments, exit/error/stop handling). A test-only adapter connects these to the actual QML window and input foreground gate. Normal user records remain unconfigured until a real adapter and its target environment are validated. See [LIBRARY_AND_LAUNCH.md](LIBRARY_AND_LAUNCH.md) for limits and acceptance.
+The existing `AdventureLaunchController` owns checkpoints/exactly-once restoration; `ProcessService` owns asynchronous QProcess/literal arguments. Extend this boundary with an explicit pending-exit/capture/confirmation state machine. Today the shell hides on Adventure start; process stop does not prove that a still-running-game confirmation overlay exists. Preserve orphaned-Adventure recovery and platform-owned compositor handoff. [Implemented lifecycle](LIBRARY_AND_LAUNCH.md), [session evidence](SESSION_PROTOTYPE.md).
 
 ## First adapter
 
-Build `MockAdventureAdapter` first.
+The original mock demonstrated controller navigation with fake library/capability/failure records. Its state-resume samples are historical under #49. Reuse isolated fakes to exercise normal launch, capture/confirmation/cancellation and unavailable capabilities without coupling UI work to an emulator.
 
-The current mock adapter simulates launch/resume responses without starting any process. `MockLibraryRepository` supplies the sample Adventures and resume points; screenshots remain original geometric placeholders and the adapter declares screenshot support unavailable. Per-record capability overrides cover direct resume, launch-only and setup-needed states. Launch failure can be injected for retry checks. This proves controller interaction without depending on emulator setup.
-
-After the full mock, implement real adapters one at a time. Likely early candidates are RetroArch, melonDS, Azahar, and Dolphin, but the actual order should follow the friend's desired Pokémon library and what is reliable on the target ArmadaOS build.
+Real RetroArch, melonDS and Dolphin paths now exist with per-title limits. Additional adapters remain one complete verified runtime at a time; installed Azahar/Cemu alone is not integration proof. See [working baseline](ROADMAP.md#working-baseline).
 
 ## Continue model
 
-The Continue drawer consumes domain `ResumePoint` objects, never raw filesystem scans from QML.
+The target Choose Adventure drawer projects recent Adventure choices and clean exit media from repositories; it never scans files from QML. Stable Adventure IDs, Trainer/domain scope, session/media revision, optional ordinary-save observations and honest availability replace the legacy state-point model.
 
-A resume point can carry:
-
-- stable ID
-- Adventure ID
-- adapter ID
-- timestamp
-- screenshot reference
-- location text when known
-- playtime/progress summary
-- direct-resume availability
-- external source reference
-
-When exact resume is unavailable, selecting the card still chooses Home's Adventure; Home's action button may offer normal launch with explicit fallback semantics.
+Selection commits the shared Pokémon context (or independent Multiverse Home choice), closes and never starts a process. Home/Worlds normal launch is separate. Current selection may have no readable save or screenshot; do not invent progress or choose a different title to make a feature appear supported. Preserve useful legacy history and independently sourced images during #49 migration.
 
 ## Pokédex providers
 
@@ -369,7 +314,7 @@ Suggested split:
 
 - `PokedexReferenceProvider` — species/types/evolution/reference data
 - `PokedexProgressRepository` — Seen/Caught/Favorite/history owned by TrainerOS
-- optional `GameProgressProvider` implementations — enrich personal data from supported saves
+- exact-build `GameProgressProvider` implementations — planned primary current-save projections (#42/#46), independent from manual history
 
 Reference providers may use appropriately licensed bundled data, local imports, or cached network data. The UI is not hard-wired to one API.
 
@@ -385,7 +330,7 @@ Keep external account/game/achievement identities and unlock modes/dates distinc
 
 The native mock now injects `HallOfFameRepository` and `AchievementProvider` into `HallOfFameController`. The controller owns Archive/list/detail and achievement set/list/detail routes, stable selected IDs and per-set cursor memory. `HallOfFamePage.qml` presents those projections; the reusable `ControllerList.qml` bounds scrolling and reasserts actual Qt focus after delegates are rebuilt. Shell-level navigation and overlays retain priority.
 
-Archive loading is currently a synchronous fake read with last-good-data recovery. The achievement provider is a QObject boundary that exposes context, linked sets, snapshots and asynchronous refresh notifications. Snapshots scope definitions/unlocks to a provider/account/set; the controller rejects mismatched identities. The mock completes refresh on the Qt event loop, supports held requests for tests and invalidates pending work/cache when the account changes. Disconnected/unsupported results hide old records, while same-context loading/offline/error results may retain a clearly labeled snapshot. QML never handles account credentials, cache keys or network calls.
+The original mock used synchronous fake archive loading with last-good-data recovery; normal manual records now use the persistent repository. The achievement provider is a QObject boundary that exposes context, linked sets, snapshots and asynchronous refresh notifications. Snapshots scope definitions/unlocks to a provider/account/set; the controller rejects mismatched identities. The mock completes refresh on the Qt event loop, supports held requests for tests and invalidates pending work/cache when the account changes. Disconnected/unsupported results hide old records, while same-context loading/offline/error results may retain a clearly labeled snapshot. QML never handles account credentials, cache keys or network calls.
 
 The normal composition now injects `RetroAchievementsProvider`; the fake remains isolated to sample/test runs. `AchievementAccountController` owns controller form drafts, while the provider owns authentication, verified file association, request validation and account-scoped caches. A dedicated worker handles hashing, bounded HTTPS requests and cache I/O. UI projections contain masked password text and account status, never tokens or network commands. Real support is deliberately limited to verified hash formats and core definitions; timestamps absent from the read API remain unknown. See [RetroAchievements](RETROACHIEVEMENTS.md) for protocol and earning boundaries.
 
@@ -510,4 +455,4 @@ Do not scatter Retroid-specific constants through QML.
 
 `DeviceService` owns asynchronous sound, backlight, network and storage operations behind an injectable backend. `DeviceController` exposes bounded rows and actions to the shared service panel. Power requests use the same confirmed, journal-draining platform transition as session changes; device and backup work jointly hold that exit gate. See `DEVICE_CONTROLS.md`.
 
-`AdapterRouter` is the application composition boundary for installed Adventure integrations. It delegates file attachment and capability/launch/resume requests without exposing emulator-specific logic to QML. Standalone launch profiles share literal argument construction and worker preflight while retaining explicit per-installation platform validation; see `STANDALONE_ADAPTERS.md`.
+`AdapterRouter` is the application composition boundary for installed Adventure integrations. It delegates file attachment and capability/launch requests (and legacy resume dispatch pending #49) without exposing emulator-specific logic to QML. Standalone launch profiles share literal argument construction and worker preflight while retaining explicit per-installation platform validation; see `STANDALONE_ADAPTERS.md`.

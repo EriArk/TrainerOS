@@ -1,5 +1,7 @@
 # Native development
 
+**Implementation/test guide, not a replacement product specification.** Existing mock/state-resume commands and test descriptions below record legacy code still present pending #49. Do not extend it as a target capability. New work follows [ROADMAP.md](ROADMAP.md), [UX_NAVIGATION.md](UX_NAVIGATION.md) and [#42–62 acceptance](EXPANSION_42_62.md); shared Y, paired L2/R2, ordinary-save exit and Center/Playroom remain planned until separately verified. Retain old regression evidence while migrating safely.
+
 ## Current scope
 
 These increments cover the five-page native shell, shared persistence, personal library management and a tested process lifecycle foundation. Real emulator/provider integrations and device/session acceptance remain incomplete.

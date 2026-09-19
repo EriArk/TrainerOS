@@ -1,5 +1,9 @@
 # TrainerOS Product Specification
 
+The following feature sections describe the **accepted target** unless explicitly labeled implemented or historical. Exact reads/writes are per ROM/build; [provider and transaction acceptance](EXPANSION_42_62.md#exact-save-providers-and-research) forbids generation-wide claims from one title.
+
+**Target reconciliation — 2026-09-19 (#62).** The accepted [#42–62 specification](EXPANSION_42_62.md) supersedes older product direction. Planned behavior below is not a claim that the deployed build has changed; see the [working baseline](ROADMAP.md#working-baseline) and dated module evidence.
+
 The 2026-09-11 collection extension is specified in [Worlds collection catalogue](COLLECTION_CATALOGUE.md): region-first missing/owned editions, visible platform badges and controller file attachment. This intentionally extends the former installed-only library and exception to hiding all platform information; emulator commands and core details remain outside the normal UI.
 
 ## Purpose
@@ -18,46 +22,31 @@ TrainerOS is the intended main/default mode. The accepted 2026-09-13 issue [#11]
 
 ## Accepted next modules — planned, not implemented
 
-The [roadmap](ROADMAP.md) integrates issues #1–41, all earlier unfinished work and deferred/future ideas. Detailed new-batch acceptance is in [EXPANSION_PLAN.md](EXPANSION_PLAN.md). These extensions have dependencies and separate device gates:
+The [roadmap](ROADMAP.md) integrates issues #1–62. [Earlier expansion acceptance](EXPANSION_PLAN.md) retains ownership, onboarding/PIN, media/audio/feedback, Help, catalogue, session and cleanup gates. [New acceptance](EXPANSION_42_62.md) adds shared Adventure/navigation, ordinary-save lifecycle, exact providers, Center/Journey, living Party and the artwork pipeline. These are accepted targets, not delivered features.
 
-- A private English-first collection audit precedes verified relinking/quarantine. #30 intentionally narrows the former broad historical catalogue to substantial Pokémon titles with credible Flip/controller routes; the full eligible missing/owned checklist, meaningful variants and ROM hacks remain. Removing a reference card never deletes personal files/history.
-- Shared Adventure media supplies recognizable Worlds wheel/marquee/cover artwork and Home's subtle return-screenshot background. Existing patterns, contrast, controller behavior and screenshot provenance remain intact.
-- RetroAchievements account ownership moves to Settings → Accounts through one global service serving the active Trainer's identity/cache; achievement browsing stays in Hall of Fame. Emulator earning, earned-state display and deduplicated unlock notification have separate acceptance; return-time notification precedes any proven live overlay.
-- External Pokédex art packs use species/form identities and remain useful offline. Caught becomes a dedicated personal collection, first from manual species-wide journal marks; forms, individual Pokémon and catch dates are not invented.
-- Pokémon Center may offer paid party healing only through a verified save-writing capability, with an exact fee, balance, explicit confirmation and protection backup.
-- Plasma Mobile replacement and reversible Steam removal are platform migrations, not prerequisites for ordinary Adventures or UI work. Sleep stays disabled pending separate validation.
-- The owner's additional system-cleanup request covers unnecessary apps, autostarts and background services after a dependency audit. Preserve user data, required emulator/platform components and rollback; report measured disk-space and idle-load changes separately from ROM cleanup.
+Multiple Trainers share device library/installations/media but own journal/history/Hall/selections and RA identities. A shared external save does not become a separate playthrough because a Trainer is created. Collection stays English-first and complete for substantial playable titles with credible Flip/controller routes, including missing/linkable editions and meaningful hacks; closed online-only titles are excluded. Reference curation (#30) never deletes private files/history (#18).
 
-### Expanded device experience — accepted 2026-09-13
-
-- First-run registration, multiple switchable Trainers and optional local PIN protection build on owner-scoped persistence. Shared library/installations/media remain device-wide; journal/history/Hall/Home/external accounts belong to a Trainer. Per-Trainer external saves require explicit adapter capability; a new Trainer cannot silently claim an existing shared save's progress.
-- Worlds keeps Pokémon region navigation and gains a separate non-Pokémon **Multiverse** system browser. It reuses existing playable identities/adapters and stays inside the same primary page. Known system names and requested platform badges are intentional normal-UI information, while emulator commands remain hidden.
-- Home gains X to switch Pokémon/Multiverse, separate remembered selections and scoped Continue. A remains the immediate mounted launch action; Y/card A selects without launching. Multiverse Home shows honest general play statistics and a distinct inner atmosphere, retaining the common chassis. Pokémon progress remains in its own context.
-- Shared panel/tab geometry, headings, patterns and mounted controls come before the complete feature-content visual pass. Healthy status is quiet; actionable errors and provenance remain visible. Start provides quick volume/brightness, Power and offline Help; these are services, not extra primary pages.
-- Local selected-game videos, selectable original/licensed music/UI sound packs, optional debounced charger haptics and capability-driven Armada RGB follow their media/lifecycle/device gates. No unavailable hardware or codec is represented by a pretend working setting.
-- Optional Steam install/restore in Settings reuses #11's reviewed mechanism. A version-aware offline guide covers setup, personal games/BIOS/media, saves/accounts and recovery. Branded startup uses safe supported stock-Armada layers, ends at readiness and preserves maintenance recovery; no custom image is required.
+Adventure media, local selected-game video, original/licensed audio, hardware feedback/RGB, offline Help and supported boot branding retain their independent roadmap gates. Plasma Mobile replacement, reversible Steam removal and careful software/background cleanup preserve verified recovery and measured rollback. Sleep remains disabled/deferred.
 
 ## Vocabulary
 
-- **World**: a Pokémon region such as Hoenn or Sinnoh.
-- **Adventure**: one configured playable title/profile; Pokémon entries have World relationships. Planned Multiverse entries use a separate system context without invented Pokémon geography.
-- **Choose Adventure**: recent resumable session/save-state cards.
-- **Trainer**: persistent personal profile and long-term progress; planned multiple Trainers own separate personal records while sharing device library/installations.
-- **Multiverse**: planned non-Pokémon library context within Worlds, browsed by system, with its own Home presentation.
-- **Pokédex**: reference data plus personal Seen/Caught/history data.
-- **Hall of Fame**: completed-Adventure archive and RetroAchievements achievements.
-- **Pokémon Center**: optional user-facing name for backup and maintenance services.
-- **Desktop / Maintenance Mode**: deliberate transition from TrainerOS into KDE Plasma for advanced system tasks and recovery.
+- **World:** Pokémon region or explicit sourced spin-off grouping; region-first, not console-first.
+- **Adventure:** stable playable title/build/profile, distinct from installation, ordinary save, Trainer and playthrough.
+- **Choose Adventure:** shared recent selector; choosing changes context, never launches.
+- **Trainer:** personal identity/records; shared library ownership is separate.
+- **Multiverse:** non-Pokémon system browser paired with Worlds, with an independent Home context.
+- **Pokédex:** offline reference plus current-save progression and separately sourced manual history/art.
+- **Hall of Fame:** live Journey and preserved Champion/manual archive, paired with external RA.
+- **Pokémon Center:** Pokédex companion for practical Party/Storage and safe ordinary-save services.
+- **Desktop / Maintenance Mode:** deliberate KDE maintenance/recovery transition.
 
-Normal UI should avoid technical terms such as emulator binary, core, platform, process, file path, package name, and similar implementation details unless the user opens advanced/maintenance tooling.
+Platform badges and Multiverse system names are intentional normal information. Emulator commands, paths, cores and package details stay in advanced/integration surfaces.
 
 ## Primary sections
 
-Primary sections are full-screen peers:
+The five full-screen peer pages remain **Home ⇄ Worlds ⇄ Pokédex ⇄ Trainer ⇄ Hall of Fame**, selected with **L1/R1**. Home is not a permanent background shell.
 
-**Home ⇄ Worlds ⇄ Pokédex ⇄ Trainer ⇄ Hall of Fame**
-
-`L1/R1` switch these pages horizontally. Home is one page; it is not a permanent shell behind the others.
+**Planned #43:** L2/R2 switches paired faces within Worlds ⇄ Multiverse, Pokédex ⇄ Pokémon Center, and Hall/Journey ⇄ RetroAchievements. Preserve each face's route/focus/filter and the launch return route. B unwinds local detail; it does not flip the pair. Use a compact existing-header/chassis indicator, not a sixth page or large second tab row. Home retains its separate **X** Pokémon/Multiverse toggle (#31).
 
 ## Home
 
@@ -77,30 +66,21 @@ Keep the layout calm; not every module must be visible at once.
 
 ### Choose Adventure drawer
 
-Home contains a compact slide-out **Choose Adventure** panel.
+**Planned #9/#49:** one shell-owned **Y · Choose Adventure** drawer selects the active Trainer's shared `CurrentPokemonAdventureContext`: Adventure ID, resolved exact build and ordinary-save identity/revision when available. Pokémon Home, Pokédex, Center, Hall, RA and Adventure-aware Trainer consume this same context. Multiverse Home remembers its own independent game selection. Before an explicit choice, use the latest actual launch in that Trainer/domain; unrelated launches do not overwrite an explicit choice.
 
-Each mini card can include:
+A on a card commits the context and closes without launching; B cancels and restores the opener unchanged. L1/R1 closes the drawer without committing and switches primary page. Modal/keyboard/Start/recovery flows suppress shared Y. Worlds intentionally keeps its browser-local search/filter controls. Resolve existing local-Y conflicts explicitly when implementing the shared route. Unsupported save features never silently select another title.
 
-- screenshot preview
-- Adventure title
-- World
-- location when known
-- state/session timestamp
-- concise progress such as playtime or badges
+Cards show the latest clean TrainerOS exit image, title, World and honest session/progress metadata. They are recent Adventure choices, not emulator-state slots. No extra persistent Current Adventure capsule/chip or independent per-feature selector: headers/content may show identity naturally.
 
-The 2026-09-11 clarification makes a card a selection for Home: it changes the displayed Adventure, World and available per-Adventure data and closes the drawer. Selecting a card never starts a process. Outside panels, A immediately presses Home's large physical-style button, with no preliminary focus movement. Y independently opens the selector; directional navigation is confined to its list. The action button resumes a selected exact state when supported, otherwise it starts the Adventure normally. It offers setup for an unconfigured Adventure and Worlds exploration when no Adventure is selected.
-
-`Y` opens/closes Choose Adventure on Home. In the drawer, `A` chooses the Adventure for Home; on Home's main button it launches. `B` cancels the drawer without changing Home. `L1/R1` remain primary-page navigation. Home defaults to the latest actual launch until the Trainer explicitly chooses a different Adventure; that choice is persisted separately from launch history. Recorded process duration belongs to this Adventure, not aggregate Trainer progress. See [Home and play history](HOME_AND_HISTORY.md).
-
-The closed affordance is a compact left-hand extension of the bottom frame, protruding into the main screen with a diagonal right edge. Opening it first expands its working width, then raises the recent cards inside the fixed viewport. Closing reverses that motion. It never makes Home taller than the screen.
+Unobstructed Home A immediately invokes its large physical launch button regardless of prior directional input. Launch uses normal game startup and the game's ordinary save/autosave; Worlds also has an explicit launch action. Unconfigured/empty selections offer setup or Worlds exploration. The bottom-frame drawer remains compact, expands before rising inside the fixed viewport, and preserves controller focus. See [shared selection acceptance](EXPANSION_42_62.md#shared-adventure-and-paired-navigation).
 
 ## Worlds
 
-Pokémon Worlds is the Adventure library organized by region first, not by hardware platform or emulator. The accepted Multiverse extension is a distinct local system-browser mode for non-Pokémon games; it does not turn those systems into Pokémon Worlds.
+Pokémon Worlds is the Adventure library organized by region first, not by hardware platform or emulator. The accepted Multiverse extension is a distinct L2/R2 paired system-browser face for non-Pokémon games; it does not turn those systems into Pokémon Worlds.
 
 Normal application mode starts with reference regions and an empty personal library. Start → Manage Adventures provides controller add/edit, a local file picker, primary/additional World relationships and custom Worlds for ROM hacks. Saving stores TrainerOS metadata while the selected file remains external and unchanged. Records retain their identity when edited or relocated. See `LIBRARY_AND_LAUNCH.md` for the implemented flow and acceptance criteria.
 
-Registration does not imply launch or progress support. Until a real adapter is configured and validated, detail offers a clear setup-needed state; Home/Continue does not invent play history or resume points. The ephemeral preview keeps sample Adventures separate from personal data.
+Registration does not imply launch or progress support. Until a real adapter is configured and validated, detail offers a clear setup-needed state; Home/Choose Adventure does not invent play history or save observations. The ephemeral preview keeps sample Adventures separate from personal data.
 
 Initial set:
 
@@ -116,38 +96,27 @@ Initial set:
 
 A World can show status, Adventure count, total playtime, badges, Pokédex completion, and last visit. Opening it reveals configured Adventures in that region.
 
-An Adventure may contain user-facing title/progress data plus hidden integration metadata such as adapter ID, content reference, launch settings, save/state references, and parser/provider configuration.
+An Adventure may contain user-facing title/progress data plus hidden integration metadata such as adapter ID, content reference, launch settings, ordinary-save references, and parser/provider configuration.
 
 The model should support one primary World plus additional World relationships for titles spanning multiple regions.
 
+Planned #56 uses larger/taller World cards with original cached environmental linework and data-driven themes. Intentional diagonal pairs may combine semantically related small groups without merging their identities; a title-count threshold alone never merges Worlds. Preserve readable type and dominant golden focus.
+
 ## Pokédex
 
-The Pokédex combines reference information with the Trainer's own history.
+Pokédex remains useful offline and controller-operated: bounded lists/detail, combined regional-collection/type/status filters, name/number search, sorting and clear empty/reset states. Search uses the shared keyboard with digits in a separate right block. Reference regional membership is not proof of a personal encounter.
 
-Required browsing controls include combined World/regional-collection, Pokémon type, and personal-status filters (Seen, Caught, Not caught, Favorites), name/national-number search, and number/name sorting. Every control is reachable with the controller. Search offers a controller-operated on-screen keyboard and is optional for browsing. Empty results provide a controller-accessible way to clear filters.
+**Planned #46** separates five layers:
 
-Regional Pokédex membership and personal encounter Worlds are different concepts: reference providers supply regional membership; Trainer history supplies encounter locations. The mock may use a small explicitly partial local dataset.
+1. Offline species/form/reference facts.
+2. The selected Adventure's verified ordinary-save Seen/Caught as primary current progression, with only proven regional/National/form semantics.
+3. Preserved Trainer-owned manual journal, Caught collection (#14), favorites and history, explicitly sourced and secondary to the current-save view.
+4. Optional installed classic illustration artwork (#13) for the primary long list.
+5. Optional PMDCollab animated sprites/portraits (#51) for detail and living-party scenes, not the main list artwork.
 
-Possible reference data:
+Unknown is distinct from false/not-caught. Aggregate counts, species flags and individual Pokémon are separate evidence levels; none fabricates catch dates/forms. Failed reads retain a labeled complete last-good snapshot for the same source. Save rollback does not erase manual/history records. Shared Y refreshes the same Adventure across features; L2/R2 preserves each Dex/Center route.
 
-- national number and localized name
-- species/category
-- types
-- evolution relationships
-
-Possible personal data:
-
-- Seen/Caught
-- favorite
-- first encounter Adventure/date
-- Worlds encountered
-- party history
-- shiny history
-- notes/tags
-
-The Pokédex should remain useful offline after data has been cached or imported. Network/data providers are adapters, not UI dependencies.
-
-TrainerOS must not require proprietary artwork stored in the repository; the UI must work with original placeholders, user-supplied assets, appropriately licensed data, or no artwork.
+Art providers are separate from reference facts and game media. No official artwork is bundled; missing/partial packs use honest fallback. The artwork sequence is **#58 raw seed/completion → #60 real Flip mapping/profiles → #57 generic contract → #59 Pack Studio → Settings polish**, with no resident downloader. [Detailed acceptance](EXPANSION_42_62.md#artwork-sequence).
 
 ## Trainer
 
@@ -179,37 +148,25 @@ Acceptance: create using physical controls, restart and recover the same profile
 
 ## Hall of Fame
 
-Hall of Fame contains the long-term archive of completed Adventures and the Trainer's RetroAchievements achievements. A completed-Adventure entry may contain:
+**Planned #47/#48:** Hall's first face is a live save-backed **Journey Record**, useful before completion, plus preserved Champion/completed-run history. Show only proven title-specific badges, milestones, playtime and Dex totals, with larger original crystal badges; no universal eight-badge/percentage/date assumptions.
 
-- World and Adventure
-- completion date
-- playtime at completion
-- final party of up to six Pokémon
-- optional screenshot and notes
-- source: automatically derived or manually entered/confirmed
+Champion snapshots preserve exact build/playthrough/source revision and verified historical team/progress. Current Party is not the historical winning team; older saves do not erase the archive. Observation time is not victory time. Manual memories/editing remain valid and explicitly sourced.
 
-Manual correction remains valid even if automatic extraction exists later.
+RetroAchievements is Hall's **L2/R2 companion**, following the shared Adventure through verified content/set matching. It remains an external account source independent from current-save or manual completion truth. Settings owns the active Trainer's account; unsupported mapping never substitutes another game. Same-account complete offline caches retain earned/unknown distinctions. Earning, earned-state UI and verified notification have separate gates (#12/#24/#25/U7).
 
-RetroAchievements belongs within this existing primary section, with controller-browsable achievement lists/details associated with supported games/Adventures. Keep provider-supplied unlock state and dates separate from local completion records and the current playthrough's badges, party or Pokédex. Manual archive edits must not create external RA unlocks.
-
-The archive remains useful without an RA connection. Disconnected, unsupported, loading, cached/offline and failed-refresh states must be represented honestly; an unavailable provider is not zero earned achievements. Integrate only supported content and verified provider capabilities, when the Hall of Fame module is reached in the roadmap.
-
-Acceptance: browse archive and achievements without touch, open/close details with A/B, retain global L1/R1 navigation, keep local history available when the provider is absent or fails, and never infer current-save completion solely from an external account unlock.
+Acceptance includes controller list/detail/Back, paired-face restoration, Y changes, unsupported/corrupt/rollback states, preserved manual/Champion history, two-Trainer isolation and offline/wrong-account rejection. [Projection acceptance](EXPANSION_42_62.md#pokédex-journey-and-achievements).
 
 ## Pokémon Center / maintenance services
 
-Pokémon Center is optional branding for service features and is not required to be a primary L1/R1 page.
+**Planned #44/#53:** Pokémon Center is a first-class L2/R2 companion to Pokédex, using the shared Adventure context. It is not a new primary page or merely system-maintenance branding.
 
-Potential functions:
+- Practical Party cards/list and details expose verified slots, level, HP/status, moves/PP and held items.
+- Storage exposes the actual title's boxes/slots. Read browsing precedes separately proven reorder, Party/Storage moves and release; destructive actions require fresh explicit confirmation and the shared safe transaction.
+- Heal/Backup/Restore services retain ordinary-save protection. Paid healing requires proven party/money fields, exact fee/balance and in-game verification; backup-only fallback remains useful.
+- Link Counter trade/transfer/sale is later exact-pair, recoverable two-device work; sale means in-game currency only.
+- Party remains a stable management UI. A separate Party Playroom provides optional interactions; Practice Battle copies real Party data into a read-only sandbox and never mutates saves or grants rewards.
 
-- backup/restore
-- state/session management
-- sync status
-- storage and integration status
-- relinking missing Adventure content
-- integration diagnostics in an advanced layer
-
-Destructive actions must be explicit and safe.
+Device/account/integration settings remain in Start/Settings. No second Center save picker. [Center acceptance](EXPANSION_42_62.md#pokémon-center-and-practical-party), [Link Counter](EXPANSION_42_62.md#link-counter), [Playroom/battle](EXPANSION_42_62.md#sprites-living-party-playroom-and-practice-battle).
 
 ## System menu
 
@@ -270,22 +227,17 @@ Persist at minimum:
 - local Pokédex progress
 - settings and mappings
 
-External emulator save/state data remains external source data. TrainerOS references/manages it safely rather than assuming its own database is authoritative.
+Ordinary game saves remain external source data. TrainerOS stores source-aware observations and protected backup references, not the sole copy of gameplay. Legacy state metadata exists only for safe #49 migration, never as a new target capability.
 
 ## Adventure lifecycle
 
-Launching an Adventure should behave as one controlled transition:
+**Accepted target #49, not yet implemented:** normal TrainerOS creates, manages and resumes no emulator savestates/ResumePoints, in either Pokémon or Multiverse. Ordinary game saves/autosaves are authoritative. Relaunch starts the game normally; the game loads its own save.
 
-1. persist current TrainerOS context
-2. validate the configured adapter
-3. start the external emulator/application
-4. present the Adventure without desktop chrome
-5. detect/handle exit where reliable
-6. return to TrainerOS
-7. restore prior page/focus immediately
-8. refresh metadata/resume points asynchronously
+On user-requested exit, capture a clean gameplay screenshot **before** the overlay. Resolve exact title/integration policy `manualConfirm | autosave | unknown`; do not infer it from platform. Manual/unknown asks “Have you saved?” while the game remains alive. B returns to the same process; A confirms graceful exit. Only verified autosave skips the question. Confirmation is a user assertion, not automatic proof of saving.
 
-The UI must not expose process management details.
+Exit images feed Home/Y/history with Trainer/domain/Adventure/session provenance. Cancelled attempts and crash/kill/battery loss cannot fabricate a confirmed exit or replace valid history with a false capture. Preserve prior valid media where appropriate and mark interrupted outcomes honestly. Capture failure leaves a usable exit/cancel path, never a state-thumbnail substitute.
+
+Checkpoint the launching page/paired face/route/focus, restore it promptly on return, and refresh ordinary-save observations asynchronously. First prove capture, overlay/input ownership and cancellation with the still-running emulator on Flip. Migration retires only verified TrainerOS-owned obsolete state artifacts safely, preserving ordinary saves, histories and independent images. [Full lifecycle/migration acceptance](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
 
 ## Platform and session requirements
 
@@ -308,16 +260,16 @@ This replaces the former top-down plan. Establish the shared foundation before d
 
 Visual design is explicitly not frozen by the mock. Whole compositions may be replaced as real data and physical-device testing reveal better solutions.
 
-## Early non-goals
+## Original bootstrap non-goals — historical
 
 Do not block the first UI milestone on:
 
 - making TrainerOS the default OS session immediately
 - a custom ArmadaOS image
 - universal save parsing
-- universal exact state resume
+- emulator-state integration (now superseded entirely by #49)
 - cloud accounts
-- social/trading/battle features
+- social/trading/battle features (bounded Link Counter/Playroom/practice are now planned, with their own gates)
 - perfect Pokédex coverage
 - removing KDE Plasma
 - hardware modification

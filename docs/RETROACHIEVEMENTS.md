@@ -1,5 +1,7 @@
 # RetroAchievements in Hall of Fame
 
+**Accepted target, not delivered — #48/#9/#20:** RA becomes the L2/R2 Hall companion, following the shared Adventure via verified exact content/set mapping. Settings owns the active Trainer's account; caches remain isolated and independent from ordinary-save/Journey truth. Existing local browse/shortcut behavior below is the implementation record, to be reconciled explicitly with shared Y. #49 eliminates normal state resume in every achievement mode; old resume restrictions are historical compatibility evidence. [RA projection acceptance](EXPANSION_42_62.md#pokédex-journey-and-achievements).
+
 Hall of Fame keeps account achievements separate from local completion memories and current-save progress. The production provider supports account sign-in, verified content matching, core achievement definitions, Standard/Hardcore unlock flags and an account-scoped offline cache. TrainerOS never awards achievements itself.
 
 ## Accepted account and presentation extension — planned
@@ -26,7 +28,7 @@ Only core definitions (`Flags = 3`) are shown. Standard and Hardcore unlock resp
 
 Private cache files live in `achievements/<sha256(canonical-account)>/<game-id>.json`. Each bounded versioned file contains account/game/Adventure identity, the matched content hash, definitions, unlock flags and fetch time. Loading rejects mismatched account identities, invalid fields and impossible unlock modes. Cache files use atomic replacement and owner-only permissions. Loading/offline/error states retain clearly labelled, previously confirmed records. Network failure never turns unknown data into zero earned.
 
-Actual earning requires a compatible emulator/core signed into the same account and a recognized game. The current exact Continue integration requires **Standard mode**; Hardcore's state restrictions are incompatible with that path. RetroArch's isolated state preflight explicitly disables achievements. Enabling and validating emulator earning on the device is a separate acceptance check from reading Hall of Fame data.
+Actual earning requires a compatible emulator/core signed into the same account and a recognized game. **Legacy behavior pending #49:** exact Continue requires Standard mode and its isolated state preflight disables achievements; Hardcore is incompatible with that old path. Target #49 removes normal state resume in both modes. Enabling and validating emulator earning on the device remains a separate acceptance check from reading Hall of Fame data.
 
 ## Acceptance
 

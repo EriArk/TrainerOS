@@ -1,5 +1,7 @@
 # TrainerOS Domain Model
 
+**Target reconciliation — 2026-09-19 (#62).** The accepted [#42–62 specification](EXPANSION_42_62.md) supersedes older product direction. Planned behavior below is not a claim that the deployed build has changed; see the [working baseline](ROADMAP.md#working-baseline) and dated module evidence.
+
 The domain model should use TrainerOS language first and integration terminology second. Linux/ArmadaOS/emulator details belong behind integration and platform boundaries rather than shaping the user-facing model.
 
 The persistent implementation covers personal Worlds/Adventures, the local Trainer profile, favorites/manual Pokédex journal, observed play history, manual Hall memories, preferences and versioned browsing state. SQLite schema, recovery and migration constraints are documented in [LOCAL_PERSISTENCE.md](LOCAL_PERSISTENCE.md) and module documents. Reference catalogue data is composed separately; sample personal progress/archive/provider records are not seeded into the personal store.
@@ -18,9 +20,9 @@ This clarification addresses [issue #2](https://github.com/EriArk/TrainerOS/issu
 | Manual Caught | Today's species-wide nullable journal assertion. A Caught collection is its projection; it proves neither a form nor a specific Pokémon, origin or date. |
 | Future individual Pokémon | Separately sourced record with provider/artifact revision and Adventure/save lineage where available. Re-reading/rolling back a save is not a new capture event; observed-at is not caught-at. Manual/provider sources remain distinguishable. |
 | Account achievements | External account-scoped definitions/unlocks and private cache, independent of saves and manual Hall memories. #12 central ownership is scoped to the active Trainer by #20; no credential/cache is implicitly shared across people. |
-| Media | Adventure/catalogue/variant artwork and owned return/ResumePoint images use semantic handles; species/form artwork has a separate provider. Neither is content ownership, progress or compatibility evidence. |
+| Media | Adventure/catalogue/variant artwork and owned clean exit images (legacy ResumePoint images are migration-only) use semantic handles; species/form artwork has a separate provider. Neither is content ownership, progress or compatibility evidence. |
 
-Unknown values remain unknown; known zero stays zero. Use explicit repositories/read-model composition, not a generic event-sourcing framework. A ROM cleanup may relink proven content but must not merge PlaySessions, Hall memories, save lineages or ResumePoints merely because files hash identically.
+Unknown values remain unknown; known zero stays zero. Use explicit repositories/read-model composition, not a generic event-sourcing framework. A ROM cleanup may relink proven content but must not merge PlaySessions, Hall memories, save lineages or legacy artifacts merely because files hash identically.
 
 ## Accepted owner and library-context extension — planned
 
@@ -31,7 +33,7 @@ Issues #19–20/#28/#31 require the following target contract before new screens
 | Device | Shared library/content registrations, catalogue facts, installations, shared art packs and hardware configuration. Audio preferences are device-wide by #36. Do not clone game rows/files when creating a Trainer. |
 | Trainer | Stable profile/PIN verifier; manual journal/favorites, Hall memories, play sessions/derived totals, navigation/Home selections and canonical external account identity/cache. Migrate existing personal rows to the same legacy Trainer ID, preserving counts and references. |
 | Playable record | Stable identity/variant/content/runtime/media, explicit Pokémon or Multiverse domain, optional Pokémon World relations and Multiverse system category. Presentation names do not determine identity/domain; personal classification and legacy ambiguity require review. |
-| Navigation | Active context plus independent Pokémon/Multiverse Home selections/moments per Trainer; useful local World/system focus/search. No second play-history store. Explicit Home choices are not overwritten by unrelated launches. |
+| Navigation | Active context plus independent Pokémon/Multiverse Adventure selections per Trainer; useful local World/system focus/search. No second play-history store. Explicit Home choices are not overwritten by unrelated launches. |
 | Save lineage | Shared legacy external save remains identified as shared/legacy, not silently assigned to every Trainer. Independently private namespaces require verified adapter support and protected migration. Progress assertions include source/lineage/revision; no per-Trainer separation claim from a new database owner column alone. |
 | In-flight work | Capture initiating Trainer/account/revision for writes, launches and provider requests. Drain or invalidate at switch; late results cannot enter the next owner's views. Refuse account switching with an active game or unsafe external writer. |
 | Unlock presentation | Persistent acknowledged complete-snapshot/delta identity includes Trainer/account/game/set/achievement/verified mode. Initial import is not a new unlock; notification state is not the source of RA truth. |
@@ -103,29 +105,36 @@ Worlds and Adventures use an optional `JourneyStatus` (`NotStarted`, `InProgress
 
 ## ResumePoint
 
-Implemented provenance, availability and selection rules are in [Resume points](RESUME_POINTS.md). Exact resume requires a complete `ResumeSource`, a valid observation and matching adapter capability. The default is unverified; normal launch history remains separate.
+**Historical/superseded by #49; still present in code.** The former `ResumePoint`/`ResumeSource` and `ContinueEntry` state identities, revisions and opaque payloads are recorded in [RESUME_POINTS.md](RESUME_POINTS.md) and [RETROARCH_RESUME.md](RETROARCH_RESUME.md). Do not extend this into a target domain object or new direct-resume capability.
 
-Represents an adapter-backed resumable moment. `ContinueEntry` may instead carry a recent `PlaySession`; a launch record is never represented as an emulator state. Selecting either kind chooses Home's Adventure, and only Home's action button launches/resumes.
+Migration must identify legacy references/artifacts, stop exposing them as resumable user state, preserve ordinary saves/history/independent images and safely retire only verified TrainerOS-owned artifacts. A database migration must not delete external files merely because an old field disappears.
 
-Suggested fields:
+## Current Adventure and exit media — planned
 
-```text
-id
-adventureId
-adapterId
-createdAt
-lastUsedAt
-screenshotRef
-locationLabel
-playtime
-progressLabel
-adapterPayload
-directResumeAvailable
-```
+`CurrentPokemonAdventureContext` is Trainer-scoped: stable Adventure ID, resolved exact build and ordinary-save identity/revision when available. One committed source serves Home, Pokédex, Center, Trainer, Journey and RA. Unsupported fields remain unavailable without changing selection. A separate per-Trainer Multiverse choice and Home domain retain independence. Per-face routes/focus/filters belong to navigation, not extra current-save owners. No separate persistent capsule control.
 
-`adapterPayload` is opaque to feature UI. Only the matching adapter should interpret it.
+`savePolicy` is title/integration evidence: `manualConfirm | autosave | unknown`. Unknown asks. A pending exit records session/capture/confirmation outcome; user confirmation is not proof the save was written. Cancellation returns to the same game process. An interrupted session cannot fabricate confirmation.
 
-A ResumePoint can represent an emulator save state, a session snapshot, or another adapter-specific resumable point.
+Clean exit media carries Trainer/domain/Adventure/session/build identity, source revision, capture time, dimensions and availability. The image predates exit UI. It is a media artifact, not a gameplay restore point or proof of progress. Commit successful exit provenance; preserve previous valid media on failed/interrupted attempts as appropriate. Home/Y/history consume the same handle.
+
+## Exact save snapshots and transactions — planned
+
+#42/#50 extend existing resolution/read/backup contracts incrementally. A source identity includes ROM hash/revision, platform, runtime/configuration, save format/resolver, lineage and stable save fingerprint. Translations/hacks/revisions are independent until verified. Store provider/version, source revision, observation time, availability and nullable fields on immutable snapshots; reject stale owner/context responses.
+
+| Semantic object | Meaning / source boundary |
+| --- | --- |
+| TrainerSaveSummary | Verified save Trainer identity, time, money and title-specific summary; separate from TrainerOS profile and observed process time. |
+| PokedexSnapshot | Proven regional/National/species/form Seen/Caught; totals alone cannot enumerate species or individuals. |
+| PartySnapshot / StorageSnapshot | Actual occupied/empty slots, title-specific boxes, versioned individual record references; unknown is not empty. |
+| PokemonRecord | Proven species/form, level, HP/status, moves/PP, item, OT/origin and other known fields; preserve unknown raw format data for valid round trips. No fictional catches from journal flags. |
+| JourneySnapshot | Current title-specific badges/milestones/progression with known time/source; no universal completion formula. |
+| ChampionSnapshot | Preserved completion/run/build/source revision and verified historical team; optional actual victory time distinct from observed-at. |
+
+Reads and writes are independently advertised per exact build in a capability registry/evidence matrix. Read capabilities cover the snapshots and their proven fields; write capabilities include healing, reorder, Party/Storage moves, release, money and import/export. Unsupported combinations remain unavailable.
+
+A save mutation records operation identity, original revision, verified protection reference, candidate hash/allowed semantic delta, commit/readback result and recovery state. Require no active writer, stable read, separate candidate/checksum validation, last-moment source recheck, supported atomic replacement and independent verification. Do not report a post-replacement failure as an untouched original. Multi-file saves need a proven protocol.
+
+#45 adds exact-pair peer/transaction IDs, both prepared candidates/READY acknowledgments and durable commit/readback receipts; disconnect can leave an explicit in-doubt recovery state. Sale uses only verified in-game currency. #55 battle owns disposable copies and no save-write capability.
 
 ## PlaySession
 
@@ -145,7 +154,7 @@ currentAdventureId
 createdAt
 ```
 
-Current Adventure is selected navigation/history context; aggregate metrics such as totalPlaytime are derived from their repositories rather than independently writable profile fields.
+The conceptual currentAdventureId above projects the single CurrentPokemonAdventureContext, not a second independently persisted profile selection. Current Adventure is selected navigation/history context; aggregate metrics such as totalPlaytime are derived from their repositories rather than independently writable profile fields.
 
 The initial native profile contains `id`, `name`, `emblemId`, `favoritePokemonId` and `createdAt`. Emblems are original local geometry; favorites currently use a limited text-only sample list. Creation assigns an ID and UTC creation time, while edits preserve both. Profile storage is separate from sample Adventure/progress data. Form and keyboard drafts are transient and must not update the saved profile before Save; in-memory repository lifetime does not satisfy restart persistence.
 
@@ -171,6 +180,8 @@ Reference data can be replaced/refreshed independently from user history.
 The native mock's `PokedexEntry` contains stable `id`, `number`, `name`, `types` and `collectionIds`. `PokedexCatalog` contains reference entries, named collections and an explicit load result. Its small sample collections demonstrate World filtering; they are not a complete regional availability dataset and do not describe where the Trainer encountered a Pokémon.
 
 ## PokedexProgress
+
+**Source distinction:** the existing manual journal remains Trainer-owned secondary history. Target primary current progression is a separate selected-Adventure `PokedexSnapshot` (#46); rollback does not erase manual assertions, and unknown never becomes false.
 
 Trainer-owned state:
 
@@ -223,6 +234,8 @@ metadata
 This can power timeline-like Pokédex details without coupling them to save parsers.
 
 ## HallOfFameEntry
+
+**Target #47/#48:** retain manual entries alongside live Journey and preserved Champion snapshots, with explicit provenance/playthrough identity. RA remains an independent account/set source in the L2/R2 companion; it cannot complete the current save by inference.
 
 Suggested fields:
 
@@ -323,24 +336,18 @@ Do not encode distro-specific executable paths directly into World/Adventure pre
 
 ## AdventureCapability
 
-Capability flags let the UI adapt to each integration:
+Target capability flags describe the exact configured Adventure/build; absence is normal:
 
 ```text
-LAUNCH
-PROCESS_LIFECYCLE
-ENUMERATE_RESUME_POINTS
-DIRECT_RESUME
-STATE_SCREENSHOT
-SAVE_BACKUP
-SAVE_METADATA
-PARTY_METADATA
-POKEDEX_METADATA
-PROGRESS_METADATA
+LAUNCH / PROCESS_LIFECYCLE / CLEAN_EXIT_CAPTURE / VERIFIED_SAVE_POLICY
+ORDINARY_SAVE_BACKUP / ORDINARY_SAVE_RESTORE
+READ_TRAINER_SUMMARY / READ_MONEY / READ_POKEDEX / READ_PARTY / READ_STORAGE
+READ_POKEMON_RECORD / READ_JOURNEY / READ_CHAMPION
+WRITE_HEAL / WRITE_REORDER / WRITE_STORAGE_MOVE / WRITE_RELEASE
+WRITE_MONEY / IMPORT_POKEMON / EXPORT_POKEMON
 ```
 
-The absence of a capability is normal, not an error.
-
-In the native mock, `AdventureCapabilities` contains launch, direct-resume and screenshot flags and is queried for a specific Adventure. A matching resume point is also required to expose Continue. A sample can support launch without direct resume, or have neither action until setup is available. Capability absence does not erase its library record or imply anything about its progress.
+These are semantic target names, **not declarations that the current C++ enum or schema already implements them**. State-enumeration/direct-resume/state-screenshot flags in existing code are historical migration inputs only. A verified read never implies a writer, and one tested title never implies generation-wide support.
 
 ## Activity / milestone model
 
@@ -363,7 +370,7 @@ payload?
 
 Examples:
 
-- Adventure resumed
+- Adventure launched/returned
 - badge milestone
 - Pokémon caught
 - Hall of Fame entry
@@ -390,6 +397,6 @@ Examples:
 
 - unknown badge count ≠ zero badges
 - unknown playtime ≠ 0 hours
-- unsupported direct resume ≠ broken Adventure
+- unsupported save parsing ≠ unplayable Adventure
 
 Graceful partial data is a core design requirement.

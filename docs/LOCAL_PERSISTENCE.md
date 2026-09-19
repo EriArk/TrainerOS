@@ -1,5 +1,7 @@
 # Local persistence foundation
 
+**Target migrations pending — #9/#20/#42/#49:** schema/version evidence below remains current implementation history. Legacy stored resume selection is not the target model. Add shared per-Trainer Adventure/domain context, source-aware observations and safe state retirement through explicit lossless migrations; preserve ordinary saves, history, manual records and independent media. Do not claim these fields/migrations already shipped. [Domain contract](DATA_MODEL.md), [target acceptance](EXPANSION_42_62.md).
+
 Schema 3 adds Adventure platform/catalogue/variant metadata through a transactional 2→3 migration; existing IDs, profile, favorites, configuration and file references are preserved. The bundled collection checklist is not persisted as owned data. See [collection catalogue](COLLECTION_CATALOGUE.md) for attachment and migration acceptance.
 
 Schema 4 adds observed play sessions through a transactional 3→4 migration without seeding historical launches. Interrupted sessions keep unknown end time/duration. `SqlitePlayHistory` owns SQL mapping and the existing worker owns scheduling. See [Home and play history](HOME_AND_HISTORY.md).

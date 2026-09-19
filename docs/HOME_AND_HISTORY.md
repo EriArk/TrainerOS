@@ -1,16 +1,34 @@
 # Home selection and observed play history
 
+**2026-09-19 target:** the existing Home input/history baseline below is retained. Updated #9 shares its selector/context across Pokémon-aware pages; #49 replaces state selection/resume with normal saves and clean exit images. No code migration is claimed here.
+
 The user's 2026-09-11 clarification separates choosing an Adventure from launching it. Y opens the compact Continue drawer. A on a card selects the Adventure shown on Home and closes the drawer without invoking an adapter. Home displays the selected Adventure's World, title and available data. A large molded circular button, mounted in the right chassis module, starts that Adventure. Its pressed motion does not delay controller input or launch.
 
 ## Accepted two-context extension — planned
 
-Issues #20/#31/#32 add per-Trainer Pokémon/Multiverse contexts without replacing this launch/history pipeline. Home X will switch contexts; each remembers its own selected Adventure/moment, Continue and same-context latest-launch default. Y/card A still selects, and the fixed Home A action launches. Multiverse exposes observed general play statistics rather than Pokémon badges/Dex; #15 image fallback is owner/context scoped. A Home launch returns to that context; a Worlds launch preserves its originating route and does not overwrite an explicit Home selection. These migrations and the distinct Multiverse Home are not yet delivered; see [acceptance](EXPANSION_PLAN.md#two-home-contexts).
+Home X toggles Pokémon/Multiverse (#31), preserving independent choices/history per Trainer. Home-launched games return to that context; Worlds-launched games retain their originating paired face and route. Multiverse shows observed general play statistics, not Pokémon progress. Its distinct inner atmosphere (#32) keeps the shared chassis and fixed A/Y controls.
+
+**Planned #9/#49:** one shell-owned **Y · Choose Adventure** drawer selects the active Trainer's shared `CurrentPokemonAdventureContext`: Adventure ID, resolved exact build and ordinary-save identity/revision when available. Pokémon Home, Pokédex, Center, Hall, RA and Adventure-aware Trainer consume this same context. Multiverse Home remembers its own independent game selection. Before an explicit choice, use the latest actual launch in that Trainer/domain; unrelated launches do not overwrite an explicit choice.
+
+A on a card commits the context and closes without launching; B cancels and restores the opener unchanged. L1/R1 closes the drawer without committing and switches primary page. Modal/keyboard/Start/recovery flows suppress shared Y. Worlds intentionally keeps its browser-local search/filter controls. Resolve existing local-Y conflicts explicitly when implementing the shared route. Unsupported save features never silently select another title.
+
+Cards show the latest clean TrainerOS exit image, title, World and honest session/progress metadata. They are recent Adventure choices, not emulator-state slots. No extra persistent Current Adventure capsule/chip or independent per-feature selector: headers/content may show identity naturally.
+
+Unobstructed Home A immediately invokes its large physical launch button regardless of prior directional input. Launch uses normal game startup and the game's ordinary save/autosave; Worlds also has an explicit launch action. Unconfigured/empty selections offer setup or Worlds exploration. The bottom-frame drawer remains compact, expands before rising inside the fixed viewport, and preserves controller focus. See [shared selection acceptance](EXPANSION_42_62.md#shared-adventure-and-paired-navigation).
+
+**Accepted target #49, not yet implemented:** normal TrainerOS creates, manages and resumes no emulator savestates/ResumePoints, in either Pokémon or Multiverse. Ordinary game saves/autosaves are authoritative. Relaunch starts the game normally; the game loads its own save.
+
+On user-requested exit, capture a clean gameplay screenshot **before** the overlay. Resolve exact title/integration policy `manualConfirm | autosave | unknown`; do not infer it from platform. Manual/unknown asks “Have you saved?” while the game remains alive. B returns to the same process; A confirms graceful exit. Only verified autosave skips the question. Confirmation is a user assertion, not automatic proof of saving.
+
+Exit images feed Home/Y/history with Trainer/domain/Adventure/session provenance. Cancelled attempts and crash/kill/battery loss cannot fabricate a confirmed exit or replace valid history with a false capture. Preserve prior valid media where appropriate and mark interrupted outcomes honestly. Capture failure leaves a usable exit/cancel path, never a state-thumbnail substitute.
+
+Checkpoint the launching page/paired face/route/focus, restore it promptly on return, and refresh ordinary-save observations asynchronously. First prove capture, overlay/input ownership and cancellation with the still-running emulator on Flip. Migration retires only verified TrainerOS-owned obsolete state artifacts safely, preserving ordinary saves, histories and independent images. [Full lifecycle/migration acceptance](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
 
 ## Selection and navigation
 
 - Without an explicit selection, Home follows the latest process launched through TrainerOS.
-- A card selection stores `homeAdventure` and optional `homeResume` in versioned browsing state. The explicit choice remains until another card is selected, including after restart or launching something else from Worlds.
-- Selecting a real state may make the Home action Resume Adventure. A recent-process card offers normal launch; it never claims to be an emulator state. Actual state enumeration/direct resume remains future adapter work.
+- **Legacy implemented storage pending #49:** a card selection stores `homeAdventure` and optional `homeResume` in versioned browsing state. The explicit choice remains until another card is selected, including after restart or launching something else from Worlds.
+- **Historical state behavior:** a state selection could change Home to Resume Adventure; the GBA provider later implemented it. #49 supersedes this path and cancels further state expansion. Target cards select Adventures only; normal game startup loads ordinary saves.
 - Missing capabilities offer Set up Adventure; an empty Home offers Explore Worlds. Missing selected identities fall back to the latest available Adventure or the empty Home.
 - A is a fixed Home action: it immediately presses the large button, even after arbitrary D-pad/stick input. There is no directional traversal of Home's static modules. Y opens/closes the selector; B/Y cancellation preserves the prior selection and returns to the fixed main action. Open lists, text entry and system panels take priority over Home shortcuts.
 - The drawer scrolls horizontally under controller focus, preserving the full selected-card outline. It stays inside the fixed landscape viewport. Start traps focus above it; B restores the card. L1/R1 retain primary-page behavior.

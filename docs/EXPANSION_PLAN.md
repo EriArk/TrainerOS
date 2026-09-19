@@ -1,5 +1,7 @@
 # TrainerOS expansion acceptance — issues 19–41
 
+**2026-09-19 reconciliation:** this register remains active for unchanged #19–41 acceptance. Updated #9/#28/#31 and [#42–62](EXPANSION_42_62.md) explicitly amend navigation, save lifecycle, current progression and artwork ordering below. Planned features are not delivered by this docs change.
+
 Reviewed in full on **2026-09-13**, then integrated with all earlier commitments in [ROADMAP.md](ROADMAP.md). This is the detailed acceptance register for the new batch, **not a second execution queue**. Roadmap phases P0–P12 choose the order; existing steps 1–10 and U1–U13 retain their identities and acceptance. Planning alone does not certify implementation; dated delivery notes below link actual verification.
 
 The important changes are personal-data ownership, two library contexts and curated catalogue eligibility. Shared visual improvements can ship before those migrations; expensive media, save writes and platform customization retain independent gates. Each slice includes the relevant Help article as that viewer becomes available.
@@ -36,7 +38,7 @@ Then deliver end-to-end profile creation/selection:
 
 **Input reconciliation:** #26/#35 wording must not silently overturn global shoulders. In the established post-login shell, L1/R1 cancels transient menus/confirmations and switches primary pages; it never adjusts a slider, submits a destructive action or commits a draft. Repeated/held A cannot cross into a fresh confirmation. Before a Trainer is unlocked, there is no accessible primary-page destination. Any future change to this precedence requires an explicit UX decision and tests, not an incidental menu implementation.
 
-**Done when:** empty/existing/multiple/PIN startup paths, failed writes, interrupted migration, restart, two-Trainer read/write/cache isolation, switching/deletion and all controller cancellation paths pass. Verify on Flip that no game, journal, achievement, selected moment or personal aggregate is misattributed. External saves and shared ROMs remain unchanged by account creation/switching.
+**Done when:** empty/existing/multiple/PIN startup paths, failed writes, interrupted migration, restart, two-Trainer read/write/cache isolation, switching/deletion and all controller cancellation paths pass. Verify on Flip that no game, journal, achievement, selected Adventure or personal aggregate is misattributed. External saves and shared ROMs remain unchanged by account creation/switching.
 
 ## Library domains, Multiverse and catalogue curation
 
@@ -50,7 +52,7 @@ Audit reference titles individually with eligibility and runtime evidence: verif
 
 This deliberately narrows the old broad historical checklist. **The full-collection objective remains for eligible games:** missing editions stay grey/linkable, and U4 still reconciles every requested archive and meaningful variant. General/crossover games may move to Multiverse where appropriate. Ineligible owned entries retain stable IDs and a maintenance access route; catalogue pruning never deletes their files, saves, states, media or history. Do not merge histories or confuse #30 reference curation with #18 duplicate-file cleanup. Audit retained/moved/hidden/excluded/needs-review decisions in a private manifest, then verify links and owner/domain aggregates.
 
-Build the controller browser on that model: local mode/system/game hierarchy, original hardware cards, sensible system order, persistent per-context focus/search and Back hierarchy. PS2/GameCube/Dreamcast/Xbox are design examples, not proof of installed adapters or Flip compatibility. Show curated titles, optional trustworthy year/creator/genre data and a mounted selected-game panel consuming #17 media; missing art has an original placeholder. Runtime validation still controls launch availability. No general ROM downloading or automatic original-file renaming is implied.
+Build the controller browser on that model: L2/R2 paired Worlds/Multiverse faces and system/game hierarchy (#43), original hardware cards, sensible system order, persistent per-context focus/search and Back hierarchy. PS2/GameCube/Dreamcast/Xbox are design examples, not proof of installed adapters or Flip compatibility. Show curated titles, optional trustworthy year/creator/genre data and a mounted selected-game panel consuming #17 media; missing art has an original placeholder. Runtime validation still controls launch availability. No general ROM downloading or automatic original-file renaming is implied.
 
 **Done when:** Pokémon and general libraries do not contaminate each other's Worlds/progress; classification/relink migrations preserve shared files and every Trainer's references; eligible missing editions remain attachable; existing region navigation and hacks survive; Multiverse browse/link/launch/return works through a verified adapter, with unsupported systems honest and no extra primary page. #28 remains open until its media-backed browser is complete, not merely after adding a domain field.
 
@@ -58,15 +60,15 @@ Build the controller browser on that model: local mode/system/game hierarchy, or
 
 Issues: [#31 scoped Home and Continue](https://github.com/EriArk/TrainerOS/issues/31), [#32 Multiverse Home](https://github.com/EriArk/TrainerOS/issues/32). P4, after Trainer/domain persistence and the shared #17 media boundary.
 
-On unobstructed Home, **X toggles Pokémon / Multiverse**, Y opens that context's Continue selector, A on a card selects without launching, and Home's fixed large A button launches/resumes. Higher-priority panels own input. Persist active context and independent selected game/moment for each context **per Trainer**. Before an explicit choice, use that Trainer's most recent actual launch in the same domain; no title guessing or cross-domain latest-game fallback. Keep both choices when toggling X.
+On unobstructed Home, **X toggles Pokémon / Multiverse**, Y opens that context's Continue selector, A on a card selects without launching, and Home's fixed large A button launches normally. Higher-priority panels own input. Persist active context and independent selected game for each context **per Trainer**. Before an explicit choice, use that Trainer's most recent actual launch in the same domain; no title guessing or cross-domain latest-game fallback. Keep both choices when toggling X.
 
 Reuse one observed play history and adapter lifecycle, filtered by owner and library domain. Recorded time, distinct games actually launched and systems actually used are valid general metrics; linked-file totals are not played totals, and unknown completion is not zero/completed. Multiverse games cannot add Pokémon badges, Dex observations or visited Pokémon Worlds. Existing unsupported-progress fallbacks remain.
 
 Multiverse Home gets a deliberate inner composition: game/media identity, general play statistics, a dark cosmic/portal atmosphere where readable, and the same chassis, main action position, status and physical controls. This is a scoped exception to the light Pokémon workspace, not a dark theme imposed on all pages. Avoid a second full system browser or Steam-style launcher grid. No-data/missing-art states offer useful browsing rather than sample personal activity.
 
-Scope #15 background selection to the active Trainer/context and selected Adventure. Its latest-image fallback must never pull an unrelated game from the other domain. Keep exact moment/return-image provenance. A Home-launched game returns to its same Home context; a game launched from Worlds preserves the established originating page/route and its domain. Do not force every exit to Home or overwrite an explicit Home choice just because another game launched.
+Scope #15 background selection to the active Trainer/context and selected Adventure. Its latest-image fallback must never pull an unrelated game from the other domain. Use #49 clean exit-image provenance; no state-thumbnail fallback. A Home-launched game returns to its same Home context; a game launched from Worlds preserves the established originating page/route and its domain. Do not force every exit to Home or overwrite an explicit Home choice just because another game launched.
 
-**Done when:** repeated X/Y/A sequences, empty contexts, two Trainers, restart, selected exact/ordinary launch, missing content and launch/return retain separate choices/history/images; toggling uses cached projections without deep I/O; both compositions are readable on Flip. Home autoplay video is optional later, not a dependency of #32. Global Continue #9 stays deferred and must respect these scopes if revisited.
+**Done when:** repeated X/Y/A sequences, empty contexts, two Trainers, restart, normal launch and ordinary-save loading, missing content and launch/return retain separate choices/history/images; toggling uses cached projections without deep I/O; both compositions are readable on Flip. Home autoplay video is optional later, not a dependency of #32. Updated #9 shared Choose Adventure is now planned for Pokémon-aware pages with Worlds/modal exceptions, independent domain selections and no duplicate context capsule; see [shared selection](EXPANSION_42_62.md#shared-adventure-and-paired-navigation).
 
 ## Local video previews
 
@@ -142,18 +144,19 @@ Provide Start → Help (and an optional Settings alias), a controller category i
 
 Required coverage:
 
-1. What TrainerOS/Armada is; first Trainer, chooser/PIN and A/X/Y/L1/R1/Start.
+1. What TrainerOS/Armada is; first Trainer, chooser/PIN and A/X/Y/L1/R1/L2/R2/Start.
 2. Pokémon Worlds, linking/missing games, hacks and honest progress support.
 3. Multiverse systems, titles, media and scoped Continue.
 4. Personal game files: configured library roots, removable storage, verified adapter formats, linking versus moving, cleanup boundaries.
 5. BIOS/firmware per genuinely supported runtime: required/optional/not used, **verified** active directory/configuration, known filename/hash only with official or validated evidence, diagnosis and rescan.
-6. Ordinary saves versus states, protected backups/restore, managed artifacts versus originals and Trainer/save lineage.
+6. #49 normal saves/autosaves, capture-before-exit question/cancellation and interrupted outcomes; protected backups/restore, managed artifacts versus originals and Trainer/save lineage. Explain legacy migration only where applicable, never offer normal state resume.
 7. Active Trainer's centrally managed RA account, Standard/Hardcore, earned states, notifications, offline cache and why imported saves do not award achievements.
-8. Adventure/Pokédex art and local ScreenScraper media/video; generated cache versus originals.
+8. Adventure exit media, classic illustration packs/credits/coverage, optional detail sprites and local ScreenScraper media/video; generated cache versus originals. #61 tooling order is developer workflow, not a handheld user requirement.
 9. Audio themes, quick controls, supported charger feedback/RGB.
 10. Optional Steam install/restore/removal and preserved data.
 11. Selected Plasma maintenance, diagnostics, failed launch/start/update recovery and return to TrainerOS.
-12. Short actionable troubleshooting paths for launch/input/BIOS/save/Continue/media/account/storage/audio/brightness/RGB/Steam failures, plus asset Credits.
+12. Shared Y/current Adventure and paired navigation; current-save Dex, Journey/Champion, practical Center/Party/Storage/services, separate Playroom and read-only practice, Link Counter when verified. No duplicate Current Adventure capsule.
+13. Short actionable troubleshooting paths for launch/input/BIOS/save/Continue/media/account/storage/audio/brightness/RGB/Steam failures, plus asset Credits.
 
 Small semantic runtime slots show current version/device, configured roots, backup location and adapter/capability-specific facts. Missing data renders unavailable; never expose tokens/PINs or guess universal paths. No ROM/BIOS/key download indexes; explain authorized personal files and link official project documentation where useful. Recovery instructions stay bounded and version-aware.
 
@@ -173,7 +176,7 @@ Use the shared technical/material language, matching backgrounds and a calm ligh
 
 Issue: [#34](https://github.com/EriArk/TrainerOS/issues/34). Review each feature when delivered; P12 closes a complete screen/state matrix after shared #21/#27/#33 geometry and the new screens exist.
 
-Audit Pokémon/Multiverse Home, World and system cards/lists/details, Pokédex list/forms/detail/Caught/Favorites/Journal, Trainer reports, local Hall/RA and all service/account/onboarding/Center/media/device/power/Help content. Check title baselines, optical icon alignment, proportions, spacing, density, long names, accessible state distinctions and art/pattern contrast. Inspect normal/focus/pressed/disabled/empty/loading/error/offline/missing states. Target four readable game rows and stronger meaningful media, not arbitrary whitespace or tiny text.
+Audit Pokémon/Multiverse Home, World and system cards/lists/details, Pokédex list/forms/detail/Caught/Favorites/Journal, Trainer reports, Journey/Champion/RA, practical Party/Storage, separate Playroom/practice, Link Counter when delivered, and all service/account/onboarding/Center/media/device/power/Help content. Check title baselines, optical icon alignment, proportions, spacing, density, long names, accessible state distinctions and art/pattern contrast. Inspect normal/focus/pressed/disabled/empty/loading/error/offline/missing states. Target four readable game rows and stronger meaningful media, not arbitrary whitespace or tiny text.
 
 Fix recurring flaws in the shared primitive; remove redundant copy before adding decoration. Preserve data provenance, owner isolation, launch/return/save behavior and all controller decisions. Use private screenshots/notes outside Git; only synthetic/original fixtures may be committed.
 

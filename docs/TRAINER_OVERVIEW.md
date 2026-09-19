@@ -1,5 +1,7 @@
 # Trainer card and local overview
 
+**Accepted target, not delivered — #9/#20/#42:** counters below describe the existing single-Trainer/manual baseline. Future owner-scoped, source-aware projections follow the shared Adventure where relevant, with Y as the common selector and no duplicate context capsule. Do not relabel manual totals as verified current-save data. [Ownership and provider acceptance](EXPANSION_42_62.md).
+
 The Trainer page combines the persistent identity with a cached summary of local records. It remains one peer section: A opens profile editing, L1/R1 switch sections, Start opens the system menu. Static counters do not acquire directional focus.
 
 ## What the counters mean

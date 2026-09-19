@@ -1,5 +1,7 @@
 # Hall of Fame
 
+**Accepted target, not delivered — #47/#48:** the manual archive below is preserved alongside planned live Journey and verified Champion snapshots. L2/R2 pairs Journey/Hall with RA; shared Y changes the same Adventure used by Home/Dex/Center. Legacy local Y-create controls below must be explicitly rebound when #9 lands, not silently conflict. Historical team/victory facts require provenance; RA is independent account truth. [Projection acceptance](EXPANSION_42_62.md#pokédex-journey-and-achievements).
+
 The local archive is a journal of completed Adventures. Entries are explicit trainer memories, independent of the current game save and of RetroAchievements. Normal runs start with an empty personal archive; sample memories and unlocks are limited to the ephemeral/test composition.
 
 ## Controller flow

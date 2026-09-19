@@ -1,5 +1,7 @@
 # Offline Pokédex and field journal
 
+**Accepted target, not delivered — #46/#13/#51:** this document records the existing offline reference and manual journal. Primary current progression will use the shared Adventure's verified ordinary-save Seen/Caught; manual history/favorites remain separately sourced and survive rollback. Unknown is not false. L2/R2 pairs Dex with Center, shared Y changes Adventure. Classic illustrations remain primary long-list art; optional animated sprites/portraits serve detail. Follow [projection acceptance](EXPANSION_42_62.md#pokédex-journey-and-achievements) and the strict [#61 artwork sequence](EXPANSION_42_62.md#artwork-sequence), not a generic downloader-first plan.
+
 Normal runs use a bundled factual reference containing **1025 species, 1579 named forms and ten regional collections** from a pinned [PokéAPI snapshot](https://github.com/PokeAPI/pokeapi/tree/4b82c204ddd19ecb8eda2ea044ccb59e222b721c/data/v2/csv). The application performs no network requests to browse it. Ephemeral and existing scenario fixtures remain separate.
 
 ## Reference scope

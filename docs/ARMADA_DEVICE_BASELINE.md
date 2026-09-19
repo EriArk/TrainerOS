@@ -1,5 +1,7 @@
 # Flip 2 application baseline — 2026-09-11
 
+**Dated device evidence.** Observations below are preserved, including old state-resume and sleep investigations; they do not authorize new state integration or renewed sleep work. The active [roadmap](ROADMAP.md) keeps sleep deferred and #49 supersedes emulator-state behavior. New lifecycle/input/capture capabilities require fresh per-adapter evidence without rewriting these historical results.
+
 The user confirmed comfortable physical controller navigation, profile creation and a real Adventure launch on 2026-09-11. Waydroid 1.6.3 and Armada's controller helpers are present but the Android image is not initialized; no Android game compatibility is claimed. Collection scope and reference limitations are recorded in [collection catalogue](COLLECTION_CATALOGUE.md).
 
 The collection/search increment `e76b9badc9072075ab7d9a8022d172b87cbbba8f` passed all 18 checks on Windows (91.00 s), independent Ubuntu 24.04 (84.74 s), and ARM64 Fedora on the Flip (88.70 s). Its production build, with test entry points disabled, was installed and launched in Steam Gaming Mode. GitHub Actions [34601156001](https://github.com/EriArk/TrainerOS/actions/runs/34601156001) did not start its job because of account billing/spending limits; the independent Linux run is not GitHub CI success.

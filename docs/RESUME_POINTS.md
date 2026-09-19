@@ -1,5 +1,7 @@
 # Trustworthy Continue cards
 
+> **Historical / superseded product semantics — #49, accepted 2026-09-19.** This entire document preserves the legacy implementation contract and its dated tests/device evidence. The code still exists, but none of the state creation, enumeration, thumbnail or direct-resume behavior below is an active target or an invitation to add providers. [Ordinary-save lifecycle and migration](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit) replaces it with normal startup, clean exit capture and save confirmation. Preserve ordinary saves, histories and independent images; retire only verified TrainerOS-owned obsolete artifacts safely. This documentation change removes no code or user files.
+
 This contract underlies filesystem-backed Continue in milestone 6 and issue #6. Domain/controller behavior is covered by fixtures; the first opt-in [RetroArch/mGBA provider](RETROARCH_RESUME.md) adds asynchronous discovery, revision-bound thumbnails and guarded direct resume. Unsupported integrations keep ordinary launch and real history. No game-save parsing is claimed.
 
 ## Identity and ownership

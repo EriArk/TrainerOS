@@ -1,5 +1,7 @@
 # Shared visual review — 2026-09-13
 
+**Dated visual evidence.** Continue/resume-kind wording and screenshots below describe the tested revisions, not the new #49 product semantics. Preserve geometry/focus validation while migrating to shared Choose Adventure and clean exit-image cards. Planned paired faces, Center/Playroom and new art receive separate checks under [#42–62 acceptance](EXPANSION_42_62.md).
+
 Scope: the owner's combined visual pass, #22/#23/#33, existing surfaces from #27/#34, and the follow-up #21 tab overhang. [Design decisions](DESIGN_LANGUAGE.md#shared-visual-pass--2026-09-13) and [execution order](ROADMAP.md) remain authoritative. Future motion is recorded separately; the current background is static.
 
 ## Review matrix

@@ -1,6 +1,8 @@
 # Pokémon Center save backups
 
-Pokémon Center is a service inside Start, not another primary page. It backs up **GBA in-game save RAM through the verified RetroArch/mGBA setup**, with an additional opt-in resolver for DS cartridge saves through melonDS. Continue Adventure saved moments remain a separate feature. Emulator states, BIOS, ROMs and game-specific progress interpretation are outside these backup formats.
+Target services and transaction rules: [Center](EXPANSION_42_62.md#pokémon-center-and-practical-party), [exact-save providers](EXPANSION_42_62.md#exact-save-providers-and-research), [lifecycle/migration](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit). The GBA tests and pending DS gates below remain valid for their tested versions.
+
+**Implemented backup entry:** Pokémon Center is currently a service inside Start, not another primary page. **Planned #43/#44:** Center becomes the first-class L2/R2 Pokédex companion, with practical Party/Storage and these protected ordinary-save services. The legacy entry/controls below remain evidence until migration. Normal Center Y will select the Adventure; map backup actions explicitly while preserving modal input priority. It backs up **GBA in-game save RAM through the verified RetroArch/mGBA setup**, with an additional opt-in resolver for DS cartridge saves through melonDS. The existing saved-moment feature is historical and superseded by #49; it is not part of the target backup service. Emulator states, BIOS, ROMs and game-specific progress interpretation are outside these backup formats.
 
 ## Controller flow
 
@@ -8,7 +10,7 @@ Start → Pokémon Center opens linked Adventures, initially selecting the Adven
 
 On the shelf, Y creates a manual copy, X checks the current save and copies again, and A opens the selected copy's restore confirmation. B returns to the list. The restore panel names the Adventure and copy date: A explicitly accepts replacement, B cancels. Start may overlay it; L1/R1 discard the confirmation and keep their global section-switching role. Missing, empty, unreadable and damaged records retain reachable focus/actions.
 
-A successful restore clears a pinned Home moment for that Adventure, so Home opens it normally to use the restored in-game save. Existing Continue moments are retained; deliberately selecting an older moment remains a separate action.
+**Legacy restore behavior pending #49:** a restore clears a pinned Home moment but retains older state artifacts. The target has no state selection; restore refreshes ordinary-save revision and shared Dex/Center/Journey projections while preserving historical records. Removing legacy state dependencies must not weaken restore protection.
 
 ## Storage and safety
 
@@ -24,7 +26,7 @@ The current target is checked again immediately before atomic replacement. The r
 
 ## Verified adapter boundary
 
-Installation data explicitly opts in with `backupProtocol: "mgba-sram-v1"`, alongside the already verified `mgba-entry-v1` resume setup. The source resolver uses the current GBA registration, configured save directory and explicit sorting flags. It rejects duplicate/include-based configuration, active unverified overrides, unavailable content/runtime/core context and unsupported game/core combinations.
+Installation data explicitly opts in with `backupProtocol: "mgba-sram-v1"`, alongside the legacy `mgba-entry-v1` resume setup. This current coupling must be removed under #49 while retaining exact ordinary-save resolution; it is not the target prerequisite for backups. The source resolver uses the current GBA registration, configured save directory and explicit sorting flags. It rejects duplicate/include-based configuration, active unverified overrides, unavailable content/runtime/core context and unsupported game/core combinations.
 
 The directory calculation follows [RetroArch 1.22.2's save redirection](https://github.com/libretro/RetroArch/blob/v1.22.2/runloop.c): content-folder grouping precedes core-name grouping, with the content basename and `.srm` extension. The first supported GBA path uses mGBA's save RAM; its [libretro memory interface](https://github.com/mgba-emu/mgba/blob/0.10.5/src/platform/libretro/libretro.c) distinguishes the separate GB RTC path, which is not enabled here. Replacement uses [Qt's atomic save mechanism](https://doc.qt.io/qt-6/qsavefile.html) without its unsafe direct-write fallback. Filesystem synchronization is implemented at the Linux platform layer; Windows is a development/test host.
 
@@ -51,4 +53,4 @@ Device validation on 2026-09-13 used the production ARM build on Flip 2 with rea
 
 The full suite passed 24/24 on Windows, Ubuntu 24.04 and the Flip's ARM64 build environment; rendered scenarios cover 960×540, 1920×1080 and a letterboxed landscape viewport. GitHub Actions did not execute its jobs because the account billing gate rejected them; this is distinct from the completed local/server/device checks.
 
-Additional adapter support and save-state backup formats require their own device validation. Existing Adventure relinking and integration setup remain in Manage Adventures.
+Additional ordinary-save formats require their own device validation. State-backup/resume expansion is superseded by #49. Existing Adventure relinking and integration setup remain in Manage Adventures.

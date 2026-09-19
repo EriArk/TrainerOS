@@ -1,24 +1,24 @@
 # TrainerOS UX & Navigation
 
+**Implementation versus target:** shared Y, L2/R2 paired faces, Center/Playroom and save-confirmed exit are planned. Existing reference/manual-journal, keyboard, menu and pointer checks remain evidence for their delivered routes. [Full new acceptance](EXPANSION_42_62.md).
+
 Worlds includes the [collection checklist and controller attachment flow](COLLECTION_CATALOGUE.md). Grey missing cards remain focusable; A → Link a file opens the shared picker, while Save/Cancel returns to the original Worlds detail. Platform badges identify the edition without changing region-first navigation.
 
 In a World's Adventure list, X searches title/version/platform through the controller keyboard, Y cycles All/Linked/Missing, and left/right jumps eight rows. Up/down chooses adjacent rows. Search and filter are remembered per World; empty results retain the fixed X/Y controls and a focused Back action. These shortcuts yield to open keyboards, menus and service panels; L1/R1 remains global.
 
-The [2026-09-13 roadmap](ROADMAP.md) preserves these page-specific controls and Home's selection-without-launch behavior. Older issue #9's direct-launch rule is superseded by the owner's later clarification; global Continue access remains deferred until its Home-selection semantics and replacement local Y shortcuts are specified. Planned Caught local sections and account/artwork/service screens must fit the current mapping, yield to modal priority and never consume L1/R1. Exact new local shortcuts are selected and controller-tested in their increment, not copied uncritically from conceptual issue mockups.
-
-Planned account entry is shared through Settings → Accounts → RetroAchievements, with Hall opening the same account surface. Pokédex All/Caught/Favorites/Journal are local collections; Caught initially shows manual species-wide assertions. Plasma Mobile is the preferred future Maintenance destination only after its recovery/input trial; see [platform consolidation](ARMADA_PLATFORM.md#planned-session-consolidation--2026-09-13).
+**Target reconciliation — 2026-09-19 (#62).** The accepted [#42–62 specification](EXPANSION_42_62.md) supersedes older product direction. Planned behavior below is not a claim that the deployed build has changed; see the [working baseline](ROADMAP.md#working-baseline) and dated module evidence.
 
 ## Accepted expansion routes — planned
 
-The [expanded plan](EXPANSION_PLAN.md) preserves the five peer pages and existing A/Y behavior while adding:
+The five full-screen peer pages remain **Home ⇄ Worlds ⇄ Pokédex ⇄ Trainer ⇄ Hall of Fame**, selected with **L1/R1**. Home is not a permanent background shell.
 
-- **Unobstructed Home X:** Pokémon ⇄ Multiverse, preserving separate selections, Continue/history and backgrounds for the active Trainer/context. A in Continue still selects; the large fixed Home A action launches. Modal actions take precedence over X/Y. Home-launched play returns to the same Home context; Worlds-launched play keeps its originating route.
-- **Worlds local contexts:** Pokémon regions versus Multiverse systems, then game list/detail. No sixth primary page or L1/R1 local tab use. Preserve search/focus/Back per context; exact local mode-selector controls are chosen and physically tested during #28. Four visible readable game rows replace the older mock's three-row target after shared geometry/header work, not through tiny type.
-- **Entry routing:** no usable Trainer → registration; multiple or PIN-protected Trainers → chooser/unlock; one unprotected default Trainer may open Home. Wizard drafts use the shared controller keyboard; PIN uses a compact numeric keypad. Before unlock, Start has only safe entry/recovery actions and primary pages cannot expose personal data.
-- **Start:** mounted quick volume/brightness controls, Power → off/restart/switch/cancel, and Help. Left/right adjusts a selected quick slider; up/down traverses its list. Switching waits for safe write/Adventure boundaries. System values come from the platform. Power requires a fresh confirmation; B cancels.
-- **Offline Help:** category/article hierarchy, controller-driven bounded scrolling and internal links/Back; no touch or online browser dependency. Settings adds accounts, audio/feedback, supported lighting and optional Steam through existing service navigation, never new primary pages.
+**Planned #43:** L2/R2 switches paired faces within Worlds ⇄ Multiverse, Pokédex ⇄ Pokémon Center, and Hall/Journey ⇄ RetroAchievements. Preserve each face's route/focus/filter and the launch return route. B unwinds local detail; it does not flip the pair. Use a compact existing-header/chassis indicator, not a sixth page or large second tab row. Home retains its separate **X** Pokémon/Multiverse toggle (#31).
 
-**Shoulder precedence is explicit:** despite ambiguous #26/#35 wording, the established post-login rule remains: L1/R1 cancels transient menus/confirmations/drafts and switches primary pages, without applying a slider value, confirming Power or committing a draft. A held confirm cannot activate a newly opened destructive confirmation. Changing this rule would need a separate intentional UX decision. Entry/locked states cannot use shoulders to bypass profile selection. See [expanded acceptance](EXPANSION_PLAN.md#trainer-ownership-onboarding-and-power).
+Updated #9 shares one Trainer-scoped Adventure selection across supported Pokémon-aware pages, with independent Multiverse Home choice. The [Choose Adventure drawer](#choose-adventure-drawer) below defines A/B/Y, Worlds/modal exceptions and persistence; selection never launches.
+
+First-run/chooser/PIN and Power/quick controls retain [earlier acceptance](EXPANSION_PLAN.md#trainer-ownership-onboarding-and-power). Before unlock, pages cannot expose personal data. After login L1/R1 cancels transient unsubmitted drafts/confirmations and switches primary pages; it never confirms Power or a save write. Submitted safety-critical work retains its service gate. Held A cannot cross a fresh destructive confirmation. L2/R2 never switches faces through a modal or intercepts gameplay input.
+
+Start/Settings owns account, device, audio, lighting, Steam and Help services. Existing feature-local Y commands need explicit rebinding when #9 lands; keyboard Y symbols and Worlds Y filtering retain priority. No silent shortcut collision.
 
 ## Goal
 
@@ -53,9 +53,9 @@ Whether the page list wraps from Hall of Fame back to Home should be decided dur
 - `B`: back/close/cancel
 - `Start`: TrainerOS system menu
 - `L1/R1`: global primary-page navigation
-- `Y`: open/close Choose Adventure on Home
+- `Y`: shared Choose Adventure on supported pages (planned #9; deployed Home-only baseline)
 
-Other buttons remain available for later shortcuts but should not become mandatory until documented/remappable.
+`L2/R2` are reserved for the planned paired faces; Home X for domain switching. Other buttons remain available for later shortcuts but should not become mandatory until documented/remappable.
 
 Development keyboard bindings may mirror these actions, but controller semantics remain authoritative.
 
@@ -90,22 +90,13 @@ Home uses fixed physical-button actions: A invokes the large Adventure button im
 
 ### Choose Adventure drawer
 
-Choose Adventure is a slide-out Home panel containing compact recent session/save-state cards.
+**Planned #9/#49:** one shell-owned **Y · Choose Adventure** drawer selects the active Trainer's shared `CurrentPokemonAdventureContext`: Adventure ID, resolved exact build and ordinary-save identity/revision when available. Pokémon Home, Pokédex, Center, Hall, RA and Adventure-aware Trainer consume this same context. Multiverse Home remembers its own independent game selection. Before an explicit choice, use the latest actual launch in that Trainer/domain; unrelated launches do not overwrite an explicit choice.
 
-Confirmed behavior:
+A on a card commits the context and closes without launching; B cancels and restores the opener unchanged. L1/R1 closes the drawer without committing and switches primary page. Modal/keyboard/Start/recovery flows suppress shared Y. Worlds intentionally keeps its browser-local search/filter controls. Resolve existing local-Y conflicts explicitly when implementing the shared route. Unsupported save features never silently select another title.
 
-- it is not permanently expanded
-- it does not replace Home
-- it uses compact cards
-- `L1/R1` continue to mean primary-page navigation while the drawer is closed
-- opening/closing is possible without touch/mouse
-- when open, focus stays inside until the drawer closes or a primary-page switch dismisses it
+Cards show the latest clean TrainerOS exit image, title, World and honest session/progress metadata. They are recent Adventure choices, not emulator-state slots. No extra persistent Current Adventure capsule/chip or independent per-feature selector: headers/content may show identity naturally.
 
-`Y` is the confirmed Home shortcut for opening/closing Continue. `A` chooses a card for Home without launching; it closes the drawer and restores the large Home action button. `B` cancels, preserving Home. Outside panels, A immediately starts/resumes the chosen Adventure; no focus movement is required or available on Home. Higher-priority text-entry, selection and system panels own their confirmation and Back actions. `A` cannot launch Home's Adventure through an open panel, and `Y` does not steal input from those panels. Keep the physical binding configurable and leave `L1/R1` globally reserved.
-
-The visible closed control is attached to the bottom-left frame, with a diagonally cut right edge. Opening expands its width before the panel rises; closing retracts it before narrowing. Its motion stays entirely within the 16:9 screen.
-
-The 2026-09-13 refinement seats a yellow Y / Continue inset, with a matching diagonal, inside a compact continuation of the chassis. Saved-moment screenshots fill their card faces as faint backgrounds beneath the World, title and save metadata; they add no new focus target. A still selects for Home without launching. Reduced Motion completes the same geometry immediately; normal unfolding can be interrupted or reversed.
+Unobstructed Home A immediately invokes its large physical launch button regardless of prior directional input. Launch uses normal game startup and the game's ordinary save/autosave; Worlds also has an explicit launch action. Unconfigured/empty selections offer setup or Worlds exploration. The bottom-frame drawer remains compact, expands before rising inside the fixed viewport, and preserves controller focus. See [shared selection acceptance](EXPANSION_42_62.md#shared-adventure-and-paired-navigation).
 
 ### Continue card hierarchy
 
@@ -127,7 +118,7 @@ The native mock has three local levels: **regions → Adventure list → Adventu
 
 - The region grid uses D-pad/left-stick spatial navigation; `A` opens the selected region.
 - In the Adventure list, Up/Down moves focus and reveals the selected row inside a fixed four-row viewport (shared header pass, 2026-09-13). The shell, primary tabs and lower action panel remain stationary. Down beyond the final row focuses Back to Worlds; Up restores that row.
-- `A` opens Adventure detail. Left/Right moves between enabled launch/resume/Back actions; unavailable actions look disabled and are skipped. Exact Continue requires both a direct-resume capability and a matching resume point. Otherwise normal launch is offered when supported.
+- `A` opens Adventure detail. Left/Right moves between enabled launch/Back actions; unavailable actions look disabled and are skipped. Target #49 uses normal launch/save loading only; the existing state-resume detail action is legacy and scheduled for removal.
 - `B` returns detail → Adventure list → regions, preserving the selected Adventure and region. On regions, `B` stays on Worlds.
 - `L1/R1` still switch the top-level primary page. Returning to Worlds restores its route, selected Adventure and focused action. Start/menu/notice layers also restore the underlying focus when closed.
 - An empty region keeps Back to Worlds focused. An entirely empty World library exposes Return Home. Failed mock launches keep the detail context available for retry after dismissing the response.
@@ -154,9 +145,9 @@ The shared search/profile keyboard places letters on the left and a separate num
 
 Acceptance: using gamepad events alone, enter mixed letters and digits, reach every numeric key, cross both ways between blocks, use Space/Delete/Clear/Apply, and cancel without changing the previous value. Focus remains visible and inside the keyboard throughout entry.
 
-The native keyboard now implements this shared interaction for Trainer names and Pokédex search. The initial layout offers uppercase Latin letters and digits; additional languages/case layouts are deferred. Start places the system menu above the keyboard and Back restores the same key and buffer. Y does nothing inside text entry. L1/R1 cancels transient input and any containing profile draft, then changes the top-level section. The previously applied search query remains intact. Neither changing sections nor Apply silently saves a profile.
+The native keyboard now implements this shared interaction for Trainer names and Pokédex search. The current layout supports printable ASCII, case and symbol pages as described under Shared text entry; additional languages remain future work. Start places the system menu above the keyboard and Back restores the same key and buffer. Keyboard Y cycles symbol pages; shared Choose Adventure must not intercept it. L1/R1 cancels transient input and any containing profile draft, then changes the top-level section. The previously applied search query remains intact. Neither changing sections nor Apply silently saves a profile.
 
-Current Pokédex mock navigation:
+Implemented reference/manual-journal navigation (the current-save projection below is planned):
 
 - Up/Down follows the entry list inside a fixed three-row area. Up from its first row enters the frame-mounted filter rail. Down from that rail restores the remembered row, or the recovery control when results are empty.
 - Left/Right on the rail selects Search, World, Type, Records, Order and Reset. A opens the corresponding text/choice panel. The five-column choice grid uses spatial D-pad navigation; A applies, while B or Cancel preserves the old value. L1/R1 dismisses an unconfirmed picker and remains global.
@@ -168,6 +159,32 @@ Acceptance: browse beyond the visible rows, combine three filters with a query, 
 
 Do not rely on color alone for types/progress.
 
+## Planned Pokédex and Center projection routes
+
+Pokédex remains useful offline and controller-operated: bounded lists/detail, combined regional-collection/type/status filters, name/number search, sorting and clear empty/reset states. Search uses the shared keyboard with digits in a separate right block. Reference regional membership is not proof of a personal encounter.
+
+**Planned #46** separates five layers:
+
+1. Offline species/form/reference facts.
+2. The selected Adventure's verified ordinary-save Seen/Caught as primary current progression, with only proven regional/National/form semantics.
+3. Preserved Trainer-owned manual journal, Caught collection (#14), favorites and history, explicitly sourced and secondary to the current-save view.
+4. Optional installed classic illustration artwork (#13) for the primary long list.
+5. Optional PMDCollab animated sprites/portraits (#51) for detail and living-party scenes, not the main list artwork.
+
+Unknown is distinct from false/not-caught. Aggregate counts, species flags and individual Pokémon are separate evidence levels; none fabricates catch dates/forms. Failed reads retain a labeled complete last-good snapshot for the same source. Save rollback does not erase manual/history records. Shared Y refreshes the same Adventure across features; L2/R2 preserves each Dex/Center route.
+
+Art providers are separate from reference facts and game media. No official artwork is bundled; missing/partial packs use honest fallback. The artwork sequence is **#58 raw seed/completion → #60 real Flip mapping/profiles → #57 generic contract → #59 Pack Studio → Settings polish**, with no resident downloader. [Detailed acceptance](EXPANSION_42_62.md#artwork-sequence).
+
+**Planned #44/#53:** Pokémon Center is a first-class L2/R2 companion to Pokédex, using the shared Adventure context. It is not a new primary page or merely system-maintenance branding.
+
+- Practical Party cards/list and details expose verified slots, level, HP/status, moves/PP and held items.
+- Storage exposes the actual title's boxes/slots. Read browsing precedes separately proven reorder, Party/Storage moves and release; destructive actions require fresh explicit confirmation and the shared safe transaction.
+- Heal/Backup/Restore services retain ordinary-save protection. Paid healing requires proven party/money fields, exact fee/balance and in-game verification; backup-only fallback remains useful.
+- Link Counter trade/transfer/sale is later exact-pair, recoverable two-device work; sale means in-game currency only.
+- Party remains a stable management UI. A separate Party Playroom provides optional interactions; Practice Battle copies real Party data into a read-only sandbox and never mutates saves or grants rewards.
+
+Device/account/integration settings remain in Start/Settings. No second Center save picker. [Center acceptance](EXPANSION_42_62.md#pokémon-center-and-practical-party), [Link Counter](EXPANSION_42_62.md#link-counter), [Playroom/battle](EXPANSION_42_62.md#sprites-living-party-playroom-and-practice-battle).
+
 ## Trainer
 
 Trainer is primarily informational. Keep focus targets limited to meaningful actions such as editing the profile, opening a metric/history, or changing the featured Pokémon.
@@ -176,30 +193,19 @@ Avoid making every static statistic focusable.
 
 Create Trainer is available when no local profile exists. Edit Trainer opens a draft of the saved name, avatar/emblem, and favorite Pokémon. All fields, Save, and Cancel are controller-accessible; the name field can open the same on-screen keyboard used by search. Back closes the keyboard before cancelling the profile draft. Saving updates the profile without changing its identity or progress, and cancelling preserves the existing profile.
 
-Current prototype: Up/Down moves among Name, Emblem, Favorite and Save; Left/Right moves between Save and Cancel. A on Emblem/Favorite cycles the visible sample choice. A on Name opens the shared keyboard. Apply changes the form draft; Save writes to the fake repository. A blank/invalid name returns focus to Name; a failed write leaves Save focused with the draft available for retry. The UI states that this prototype keeps profiles only until the application closes.
+Current prototype: Up/Down moves among Name, Emblem, Favorite and Save; Left/Right moves between Save and Cancel. A on Emblem/Favorite cycles the visible sample choice. A on Name opens the shared keyboard. Apply changes the form draft; Save writes through the profile repository (SQLite normally; fake in ephemeral tests). A blank/invalid name returns focus to Name; a failed write leaves Save focused with the draft available for retry. Normal profiles persist across restart; memory-only storage is an isolated historical mock behavior.
 
 Acceptance: create a Trainer from the empty state, cancel a keyboard edit, cancel the whole form, save a later edit without changing ID/creation time, recover from a failed save, and switch sections from an open keyboard without committing drafts. Editing identity does not change sample Adventure progress.
 
 ## Hall of Fame
 
-Hall of Fame contains the completed-Adventure archive and RetroAchievements achievements within the same primary page.
+**Planned #47/#48:** Hall's first face is a live save-backed **Journey Record**, useful before completion, plus preserved Champion/completed-run history. Show only proven title-specific badges, milestones, playtime and Dex totals, with larger original crystal badges; no universal eight-badge/percentage/date assumptions.
 
-- entries are controller-browsable
-- opening an entry shows team/completion details/screenshots/notes when present
-- `B` returns to the archive
-- editing/manual correction is secondary
-- achievements have controller-browsable lists/details with their game and source identified
-- internal archive/achievement selection uses focused controls and A/B; L1/R1 still switch primary pages
-- missing connection, unsupported content or refresh errors leave local archive navigation available
-- show cached external data as cached and unknown availability honestly, without presenting it as zero unlocks
+Champion snapshots preserve exact build/playthrough/source revision and verified historical team/progress. Current Party is not the historical winning team; older saves do not erase the archive. Observation time is not victory time. Manual memories/editing remain valid and explicitly sourced.
 
-The native mock has two frame-mounted local selectors: Archive and RetroAchievements. Up above the first list row enters their rail; Left/Right selects and A opens an area. L1/R1 continues to switch primary pages. Lists reveal the selected item in a three-row viewport. Down after the last row enters the lower action panel, and Up restores the selected row. In an empty list, the action panel remains usable and Up returns to the rail.
+RetroAchievements is Hall's **L2/R2 companion**, following the shared Adventure through verified content/set matching. It remains an external account source independent from current-save or manual completion truth. Settings owns the active Trainer's account; unsupported mapping never substitutes another game. Same-account complete offline caches retain earned/unknown distinctions. Earning, earned-state UI and verified notification have separate gates (#12/#24/#25/U7).
 
-Archive A opens a team/memory detail; B restores its list row. RetroAchievements uses Adventure sets → goals → achievement detail, with B unwinding one level and remembered per-set selection. Detail actions use Left/Right; Up reaches the local rail. A refresh disables its repeated activation while keeping Back focused and available. Completion can update the data while another primary page is visible without changing that page.
-
-Start/B restores the underlying action, while L1/R1 preserves local routes and useful focus. Disconnected/unsupported data is not an empty earned-achievement total. Cached results are labeled offline or failed-refresh, and account changes remove the previous account's records. Local archive browsing remains available in every external-provider state.
-
-Acceptance: browse a team with six members and a partially recorded team, scroll beyond visible archive/goals, visit a locked and unknown goal, preserve unlock mode/unknown date, retry a failed refresh, return to archive during loading, reject prior-account records and retain focus after an empty archive is reloaded. All current cases use original fixtures, not real provider data.
+Acceptance includes controller list/detail/Back, paired-face restoration, Y changes, unsupported/corrupt/rollback states, preserved manual/Champion history, two-Trainer isolation and offline/wrong-account rejection. [Projection acceptance](EXPANSION_42_62.md#pokédex-journey-and-achievements).
 
 ## System menu
 
@@ -235,18 +241,13 @@ Back always performs the smallest sensible reversal:
 
 ## Adventure launch / return
 
-Launching is a deliberate temporary exit from the shell presentation.
+**Accepted target #49, not yet implemented:** normal TrainerOS creates, manages and resumes no emulator savestates/ResumePoints, in either Pokémon or Multiverse. Ordinary game saves/autosaves are authoritative. Relaunch starts the game normally; the game loads its own save.
 
-Expected interaction:
+On user-requested exit, capture a clean gameplay screenshot **before** the overlay. Resolve exact title/integration policy `manualConfirm | autosave | unknown`; do not infer it from platform. Manual/unknown asks “Have you saved?” while the game remains alive. B returns to the same process; A confirms graceful exit. Only verified autosave skips the question. Confirmation is a user assertion, not automatic proof of saving.
 
-- user activates an Adventure/resume point
-- TrainerOS records the current context
-- external application takes over presentation
-- when it exits, TrainerOS returns promptly
-- previous primary page/detail/focus is restored where sensible
-- external metadata refresh happens after the UI is already usable
+Exit images feed Home/Y/history with Trainer/domain/Adventure/session provenance. Cancelled attempts and crash/kill/battery loss cannot fabricate a confirmed exit or replace valid history with a false capture. Preserve prior valid media where appropriate and mark interrupted outcomes honestly. Capture failure leaves a usable exit/cancel path, never a state-thumbnail substitute.
 
-The user should not see a desktop/taskbar between TrainerOS and a supported Adventure in production session mode.
+Checkpoint the launching page/paired face/route/focus, restore it promptly on return, and refresh ordinary-save observations asynchronously. First prove capture, overlay/input ownership and cancellation with the still-running emulator on Flip. Migration retires only verified TrainerOS-owned obsolete state artifacts safely, preserving ordinary saves, histories and independent images. [Full lifecycle/migration acceptance](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
 
 ## Input repeat
 
@@ -330,7 +331,7 @@ Worlds includes each Adventure under its primary and additional regions. Custom 
 
 ### Persistent application restart
 
-Normal startup restores the last primary page, stable content selections, local routes and applied Pokédex filters after local storage opens. Keyboard/form drafts, unconfirmed picker choices, notices, the system menu and open Continue drawer do not reopen; the drawer's selected card is retained. Save displays a pending state and remains submitted if the user leaves with B or L1/R1. Before Save, Back discards the draft as usual.
+Normal startup restores the last primary page, stable content selections, local routes and applied Pokédex filters after local storage opens. Keyboard/form drafts, unconfirmed picker choices, notices, the system menu and open Continue drawer do not reopen; the committed Adventure choice is retained (legacy stored state selection is migrated by #49). Save displays a pending state and remains submitted if the user leaves with B or L1/R1. Before Save, Back discards the draft as usual.
 
 Startup storage failure traps focus on Retry / Exit (B exits); feature pages are unavailable until loaded. During normal use, a browsing-state write failure offers Retry / Keep browsing, while L1/R1 may still change pages. Exit waits for submitted writes, and offers an explicit option to skip only optional browsing state if its final write fails. See `LOCAL_PERSISTENCE.md` for failure and recovery behavior.
 

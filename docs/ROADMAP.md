@@ -1,10 +1,12 @@
 # TrainerOS Roadmap
 
-Rebuilt on **2026-09-13** after reading all issues **#1–41**, including the new batch **#19–41**, and the owner's requests to preserve the entire backlog, prefer Plasma Mobile and carefully clean unnecessary software. **Phases P0–P12 are the execution order.** Stable steps 1–10 and U1–U13 below preserve the earlier acceptance register; [EXPANSION_PLAN.md](EXPANSION_PLAN.md) supplies detailed acceptance for the new batch. Planning does not close issues, implement features or certify untested capabilities.
+Reconciled on **2026-09-19** for **#1–62**, including the updated #9/#13/#15/#17/#28/#31/#40 and #49's explicit supersession of state-based resume. **Phases P0–P12 own the dependency queue**, not a serial list of 62 issues. Stable steps 1–10 and U1–U13 preserve prior commitments with explicit amendments. [Earlier acceptance](EXPANSION_PLAN.md) and [#42–62 acceptance](EXPANSION_42_62.md) specify each slice. #62 changes documentation only, not feature availability or GitHub issue states.
 
 This is a dependency replan, not a reset. The [pre-expansion plan](https://github.com/EriArk/TrainerOS/blob/252f04e0772bd05966fb212ca736d303cab366ea/docs/ROADMAP.md) and the preservation map below make previous commitments traceable. Read the phase table for what comes next, then the referenced acceptance; do not execute the old numbered register as a competing queue.
 
 ## Delivered increments under this plan
+
+- **2026-09-19 — #62 documentation:** product/navigation/domain/architecture and all acceptance registers reconciled; legacy state semantics marked superseded, tests/device evidence retained. This is not delivery of #42–61 code.
 
 - **2026-09-13 — #21:** shared panel/tab geometry and safe content inset completed; active tabs overlap the raised panel with contact depth. Windows and native ARM64 rendered SDL/persistence checks passed (6/6 each); production installed and controller-driven Gamescope captures inspected on Flip. [Details](DESIGN_LANGUAGE.md#shared-chassis-geometry--delivered-2026-09-13). P1's remaining items and all P0/U investigations retain their own gates.
 
@@ -21,7 +23,7 @@ The native skeleton, shared controller/UI components and SQLite foundation alrea
 | Shell and storage | C++20, Qt Quick, SDL; five peer pages, keyboard, themes/reduced motion, profile and SQLite state. Physical navigation/profile/launch confirmed by the owner. [Persistence](LOCAL_PERSISTENCE.md), [device baseline](ARMADA_DEVICE_BASELINE.md). | New routes/migrations need their own checks; earlier mock checkpoints are historical. |
 | Worlds | Region-first catalogue, missing editions, platform badges, file attachment, custom/multiple Worlds and stable personal IDs. [Catalogue](COLLECTION_CATALOGUE.md). | Personal duplicate/language audit; catalogue presence is not ownership or compatibility. |
 | Adventures | RetroArch and standalone melonDS/Dolphin launch/return; selected DS/GameCube/Wii titles exercised on Flip. [RetroArch](RETROARCH_ADAPTER.md), [standalone adapters](STANDALONE_ADAPTERS.md). | Per-title coverage; PokéPark 2's initial black screen unresolved. Installed emulators do not prove 3DS/Wii U/Switch integration. |
-| Home / Continue | Persistent Home selection, fixed A launch, Y selector, observed history; verified mGBA GBA moments, thumbnails and exact resume. [Home/history](HOME_AND_HISTORY.md), [resume](RETROARCH_RESUME.md). | Broader state formats and media presentation; no universal exact resume. |
+| Home / Continue | Persistent Home selection, fixed A launch, Y selector, observed history; verified mGBA GBA moments, thumbnails and exact resume. [Home/history](HOME_AND_HISTORY.md), [resume](RETROARCH_RESUME.md). | **Legacy behavior superseded by #49:** migrate to normal saves and clean exit media; shared #9 selector/context is planned. No further state-format expansion. |
 | Progress | English FireRed original/Rev 1 and Emerald ordinary saves supply badges/National Dex counts; colored crystals checked on Flip. [Game progress](GAME_PROGRESS.md). | No party/money reader, save editor, individual capture history, DS/GameCube or ROM-hack progress claim. |
 | Trainer / Hall | Persistent profile, derived overview, manual memories; real RA sign-in/read provider and account cache implemented. [Trainer](TRAINER_OVERVIEW.md), [Hall](HALL_OF_FAME.md), [RA](RETROACHIEVEMENTS.md). | Central account management and same-account emulator earning are #12, now scoped to the active Trainer by #20. Login/read support does not prove an earned unlock. |
 | Pokédex | Offline 1025 species / 1579 forms, search/filter, favorites and persistent manual species-wide Seen/Caught/notes. [Pokédex](POKEDEX.md). | External art, dedicated Caught collection; today's journal does not identify caught forms or individuals. |
@@ -32,7 +34,11 @@ Module documents contain dated evidence and exact limits. Existing Windows/Linux
 
 ## Decisions and precedence
 
-- **Home input stays as shipped:** Y opens/closes the Home selector; A in it selects without launching; unobstructed Home A immediately invokes its large action button. The direct-launch behavior in older [#9](https://github.com/EriArk/TrainerOS/issues/9) is superseded by the owner's later clarification. Global access remains deferred: it needs revised select-for-Home semantics and conflict-free replacements for current local Y actions, not a rollout of the old issue as written.
+- **Latest #9 supersedes deferred shared Y:** one per-Trainer current Pokémon Adventure serves Home/Dex/Center/Hall/RA and relevant Trainer projections. Shared drawer A selects without launching; fixed Home A launches normally. Worlds keeps local Y, modals retain priority, no duplicate persistent context capsule. Resolve legacy local shortcuts during implementation.
+- **#49 replaces state-resume development:** ordinary saves/autosaves only; capture gameplay before save confirmation while the process is alive, cancel back to it or exit gracefully, verified autosave may skip. #6/#8 state milestones are historical, not a reason to expand legacy code. Preserve user saves/history and retire only owned obsolete artifacts safely.
+- **#43 pairs existing pages:** L1/R1 remains five primaries; L2/R2 is Worlds/Multiverse, Pokédex/Center, Hall/Journey/RA. Home X remains #31; preserve per-face routes and launch return.
+- **#42/#50 exact builds before projections/writes:** evidence-bound reads first, independent guarded writes later. #46 current-save Dex and #47 Journey/Champion retain manual #14/Hall history; #48 RA remains external. Center Party is practical; Playroom/practice are separate, with no save mutation by play.
+- **#61 artwork sequence is mandatory:** #58 raw seed/missing completion → #60 actual Flip importer/mapping/profiles → #57 contract → #59 Studio → polished Settings. Independent from save writers; no daemon. #13 classic illustrations remain primary Dex-list art; #51 sprites serve detail/living-party scenes.
 - **Sessions change deliberately:** [#11](https://github.com/EriArk/TrainerOS/issues/11) replaces permanent Steam retention with reversible removal. The later request prefers **TrainerOS + Plasma Mobile only**, if Mobile can replace maintenance/recovery Desktop. Retain current working sessions until replacement/restore gates pass. Preserve shared KDE dependencies and personal Steam data. See [platform migration](ARMADA_PLATFORM.md#planned-session-consolidation--2026-09-13).
 - **Collection remains English-first; eligibility is intentionally revised by [#30](https://github.com/EriArk/TrainerOS/issues/30):** a complete collection of substantial playable Pokémon titles with credible Flip/controller routes replaces the broad historical/promotional checklist. Missing eligible editions stay grey/linkable; meaningful revisions, translations and ROM hacks remain. Per-title review must not erase substantial spin-offs. #18 still concerns redundant personal files; #30 concerns reference/navigation eligibility and never deletes personal data. All previously requested sources are reconciled in U4, including intentionally excluded items.
 - **Multiverse is an explicit product extension:** [#28](https://github.com/EriArk/TrainerOS/issues/28) adds non-Pokémon system browsing inside Worlds; Pokémon Worlds stays region-first. [#31](https://github.com/EriArk/TrainerOS/issues/31) reserves Home X for Pokémon/Multiverse, with separate Home selections and Continue per Trainer/context. [#32](https://github.com/EriArk/TrainerOS/issues/32) permits a distinct dark inner Multiverse Home while preserving the shared chassis and fixed A/Y behavior. No sixth primary page or second launch/history engine.
@@ -48,30 +54,30 @@ This table **replaces the previous execution queue**. It includes current gaps, 
 
 | Phase | Work and source | Dependency / exit condition |
 | --- | --- | --- |
-| **P0 — reconcile and inspect** | U1–U3 evidence/reliability/DS backup/RA read gates; step 1 + U4 read-only archive/identity inventory; U5 current title failures; read-only haptics/RGB support probe | Reuse delivered evidence and run missing checks only. Preserve fault logs and source manifests. Investigate active storage failure before heavy I/O/mutations; no sleep tests. Record unsupported/blocked paths rather than pretending they passed. |
-| **P1 — shared interface** | #21 tab/panel geometry → #23 shared pattern + #33 compact headers → #22 quiet status / #27 physical chrome; #35 quick controls and #26 Power off/restart; #40 Help viewer/current-feature articles | Existing input/device services already work. Finish shared components and their current consumers; preserve fixed A/Y/shoulders, themes/reduced motion and actual brightness/volume results. Do not expose Switch Player before P2. No schema or new emulator dependency. |
-| **P2 — Trainer ownership** | #2 audit; #20 device/Trainer ownership migration and account/save-lineage boundaries → #19 first-run creation + #20 chooser/PIN → #26 Switch Player; step 5's #12 central account management | Lossless single-owner migration first, then controller flows. Shared library is not copied per Trainer. Stop old-owner callbacks/credentials and refuse unsafe switching during active games/writes. #12 earning remains P6; no premature new-achievement claim. |
-| **P3 — library identity and collection** | #28 domain/system model → #30 per-title curation; U4 complete archive/title/hack reconciliation; step 1 manifest refresh → step 2 / #18 relink/quarantine | Separate Pokémon/Multiverse membership from runtime and owner history. Preserve all private files and references during catalogue changes. Verified duplicate cleanup uses refreshed references for every Trainer; eligible missing editions remain. Full collection concerns playable eligible titles, not museum filler. |
-| **P4 — library and Home experiences** | Step 3 / #17 shared media → #16 Worlds and complete #28 Multiverse browser; #31 context-scoped Home/Continue → step 4 / #15 backgrounds and #32 Multiverse Home; U6 controller moment/backup maintenance | Trainer/domain identities precede projections; static media precedes video. One launch/history pipeline, per-context selections, correct return route, honest metrics and media provenance. Deliver saved-artifact maintenance separately, never as implicit ROM/cache pruning. |
-| **P5 — media and feedback** | #29 delayed local video; #36 selectable music/UI sound packs; #37 charger haptics and #38 Armada RGB as separate capabilities | Video needs #17/selected-game panel and real codec/performance proof. Audio arbitration precedes #25 jingle. Hardware controls need actual support, debounce/state round-trip and no gameplay/input interference. A blocked RGB path cannot hold back audio or later features. |
-| **P6 — achievements** | U3 read/cache reconciliation → #24 earned-state UI; remaining step 5 / #12 one real emulator earning path; U7 next verified matching formats; #25 deduplicated banner/jingle | Active-Trainer account isolation from P2; current complete/cached/unknown states distinguished. Verify actual earning under that account. Return-time notification first; live overlay conditional. #24 may ship earlier after read/ownership proof; broader hashes are separate increments. |
-| **P7 — personal Pokédex** | Step 6 / #13 species artwork → step 7 / #14 manual Caught; U9 manual journal/Trainer/Home projections | Species/form identity is separate from game media; useful manual Caught does not wait on artwork/network or individual-save parsing. Two-Trainer assertions stay isolated; species marks do not become fictional forms/individuals. |
-| **P8 — save enrichment and Center** | U8 verified ordinary-save formats/readers → U9 source-aware Home/Trainer/World/collection views → step 8 / #10 protected paid healing for one proven build | U2 gates DS save access, not independent Gen III reading. Read party/money and expose honest Home data before writing. Individual/catch history requires evidence beyond totals; protected writes need checksum/race/rollback and in-game validation. DS/GameCube/hacks remain separate providers. |
-| **P9 — additional playable paths** | U5 unresolved title/input coverage; U10 Azahar/3DS then Cemu/Wii U by actual viability; incremental U6/U7/U8 resume/matching/save capabilities; later representative classics selection per system | Finish each runtime launch/input/save/return path independently. Multiverse examples do not mandate unsupported systems. Switch/PC/Pico/Android remain conditional; no universal coverage claim. A proven high-priority runtime may move earlier after its actual prerequisites. Assemble each system's small classics selection as its playable route is validated, using the owner's authorized ROM disk. |
+| **P0 — reconcile and inspect** | #62 docs alignment; U1–U3 health/evidence/DS backup/RA read; step 1 + U4 archive inventory; U5 title failures; haptics/RGB probe | Retain dated evidence, inspect current storage before heavy I/O, preserve logs/manifests. No sleep tests. Only missing checks, not automatic reruns of completed milestones. |
+| **P1 — shared interface and lifecycle** | Retain #21/#22/#23/#27/#33 shared UI baseline; #35 quick controls/#26 Power; #40 Help foundation; #43 paired routing + updated #9 shared-context skeleton; #49 capture/exit migration; minimal #42 source/capability contracts with first consumer | Reuse existing input/storage/process boundaries. Prove still-running-game capture/modal/cancel on Flip before exit-media consumers and safe writes. #49 has its own migration; no speculative all-games framework. Persistent multi-owner activation needs P2; completed UI primitives are not rebuilt. |
+| **P2 — Trainer ownership** | #2 audit; #20 lossless owner/context/account/save-lineage migration → #19 onboarding + chooser/PIN → #26 Switch Player; #12 canonical active-Trainer account | Shared library stays device-wide; shared external saves are not private playthroughs. Capture/invalidate owner-context revisions on async work. Refuse unsafe switching during games/writes. Integrate #9 selection persistence; earning remains P6. |
+| **P3 — library identity and collection** | #28 Pokémon/Multiverse domain/system model; #30 curation; U4 all archive/title/hack reconciliation; steps 1–2 / #18 relink/quarantine | P2 ownership before mutations. Preserve files/history and meaningful variants, maintain eligible missing editions, resolve legacy domain ambiguity. Content equality never merges playthroughs. |
+| **P4 — Worlds and Home** | Step 3 / #17 media → #16 Worlds + #28 paired Multiverse browser; #56 environmental cards; #31 per-context Home → step 4 / #15 exit backgrounds + #32 Multiverse Home; U6 ordinary-backup maintenance | P1 paired/context/lifecycle + P2/P3 identity first. Clean exit images from #49 replace state thumbnails. Static media before video. Preserve normal launch/return, fixed Home A and selection-only Y. World card visuals may proceed independently of semantic save reads. |
+| **P5 — media and feedback** | #29 local video; #36 audio packs; #37 charger haptics/#38 RGB; gyro/background motion probe; #51 optional sprites/portraits and cache | Retain codec/hardware/ownership/credits gates, pause hidden/in-game and honor Reduced Motion. #51 is separate from #13 primary list art. Prepare bounded #52 animation with fixtures; real Party consumers need P8 reads. No unsupported hardware setting. |
+| **P6 — achievements** | U3 read/cache → #24 earned UI; #48 shared-Adventure RA paired view; #12 verified earning; U7 matching; #25 deduplicated unlock banner/jingle | P1 context/paired routes and P2 account isolation; exact set matching, complete/offline/unknown states. Verify a real earned unlock separately. Return-time notification first; live overlay conditional. RA does not wait for every save parser. |
+| **P7 — Pokédex and independent artwork track** | Step 6 / #13 with #61: #58 → #60 → #57 → #59 → Settings; step 7 / #14 manual Caught/history; #46 current-save Dex when corresponding P8 read is proven; U9 projections | Art can start from existing reference/desktop tooling without P8 or Link Counter. Real Flip is mandatory before canonical profiles/Studio. Manual collection remains useful separately; current-save primary status requires exact Seen/Caught evidence, never totals-as-individuals. |
+| **P8 — exact saves and Center** | #50 research + #42 exact-title reads/U8 → #46/#47 Dex/Journey/Champion + U9; #44/#53 practical Party/Storage/backup → protected writes and #10 healing; #51 + proven Party → #52 living party → #54 Playroom → #55 read-only battle; later #45 Link Counter | Use first complete consumer before expanding provider scope. U2 gates DS resolver only; Gen III can proceed independently. #49 precedes writers. Each read/write field/build needs fixtures and physical proof. Battle requires ARM64/rules spike but no save writer. Link Counter requires compatible writers + durable two-device recovery and physical second device; never blocks ordinary Center. |
+| **P9 — additional playable paths** | U5 input/title gaps; U10 Azahar then Cemu by viability; U6 ordinary-backup/U7 matching/U8 exact readers; representative classics per system | Complete normal launch/input/save/exit/return per runtime, with #49 policy/capture proof. No new exact-state capability. Switch/PC/Pico/Android and other Multiverse systems remain conditional. Authorized ROM disk selections preserve source originals and private test data. |
 | **P10 — system delivery and cleanup** | U11 reproducible install/update/rollback foundation → step 9 / #11 verified Mobile/Steam consolidation → #39 Settings restore front end → step 10 software/background cleanup; complete U11 packaging acceptance | Minimal durable rollback is maintained from P0 onward, not deferred until this phase. Preserve shared KDE/planned emulator dependencies, personal content, maintenance launcher/SSH recovery and versioned manifests. Prove physical remove/restore/reboot, then measure real space/load changes. |
 | **P11 — complete offline guide** | #40 full current-feature, game/BIOS/media, account/save and maintenance/recovery coverage | Viewer starts in P1 and articles evolve with features; now audit every topic, runtime path/capability slot, internal link and controller recovery route. Ship version-matched facts, not documentation for unimplemented capabilities. |
 | **P12 — startup and whole-product acceptance** | #41 userspace/session boot identity; #34 every feature screen/state; U12 measured performance/remapping/calibration and final U11 release/recovery verification | Profile routes and installer/session recovery must already work. Boot branding cannot delay readiness or hide failure. Physical startup/rollback, readable full-screen controller flows, themes/reduced motion and performance evidence close delivery. Artwork preparation and per-feature visual checks happen earlier. |
 
-**Next concrete work:** the remaining bounded P0 evidence/inventory checks and P1's #33 common heading family; #21's shared content rectangle is delivered. The earlier collection dry run is still an immediate read-only task; it is no longer permission to jump directly into mutation before Trainer/domain ownership is reconciled. System audits and minimal recovery repairs may proceed when needed, without waiting for unrelated artwork/healing. Sleep U13 remains explicitly deferred; optional future ideas remain separate. The owner requests small complete increments because of limited remaining usage; finish verification, commit/push and delivery before starting another slice.
+**Next coherent implementation slices after #62:** first the bounded #49 exit/input/capture feasibility and migration slice, then shared #9/#43 context/navigation on those foundations. In parallel as an independent *work track*, #58 may prepare the raw art corpus from the existing reference; #60 needs the actual Flip before schema/Studio. This does not authorize simultaneous half-finished features: finish and verify each chosen slice before starting another. Retain missing P0 health/evidence/inventory checks; a demonstrated storage fault blocks heavy device writes, not unrelated local documentation/tooling. No need to rebuild delivered #21/#22/#23/#33. Account/domain persistence precedes their multi-Trainer consumers; all earlier platform/cleanup/Help obligations remain. Sleep stays U13, deferred.
 
 ## Preservation map — earlier work still has a destination
 
 | Previous register | New execution location; retained obligation |
 | --- | --- |
 | Steps 1–2, U4 | P0 inventory → P2 ownership → P3 classification/source reconciliation/relink/quarantine; all archive, version, hash and protected-data gates retained. #30 changes reference eligibility explicitly, not file ownership. |
-| Steps 3–4, U6 | P4 shared media/Worlds/Home and controller moment/backup maintenance; P5 optional local video. Exact-resume provenance and future adapter capabilities stay intact. |
+| Steps 3–4, U6 | P1 #49 migration and #9 context → P4 exit media/Worlds/Home and ordinary-backup maintenance; P5 video. State expansion is explicitly superseded, historical provenance/data protected. |
 | Step 5, U3/U7 | P0 read/cache evidence → P2 central active-Trainer account → P6 earning/state/notification/matching. No login-as-earning shortcut. |
-| Steps 6–7, U9 | P7 artwork/manual Caught → P8 proven observations and derived views; individual/form/timeline uncertainty remains. |
+| Steps 6–7, U9 | P7 independent #58→#60→#57→#59 art track/manual history; P8 exact reads feed primary #46 Dex/#47 Journey. Manual-first gating is superseded; records and uncertainty remain. |
 | Step 8, U2/U8 | P0 DS backup gate → P8 independent verified readers/protected healing; other formats remain per-provider work. |
 | Steps 9–10, U1/U11 | P0 health/durability; P10 reproducible update/Mobile/Steam/software cleanup; P12 final startup/recovery. Manifests, data protection and measurements retained. |
 | U5/U10 | P0 existing input/title triage → P9 complete next adapters, with earlier execution allowed for a ready dependency. PokéPark 2/DS pointer gaps remain explicit. |
@@ -79,7 +85,7 @@ This table **replaces the previous execution queue**. It includes current gaps, 
 | U13 | Deferred sleep/hinge/wake and sleep-aware duration accounting; no active-phase substitution. |
 | Former optional ideas | Retained below; multiple Trainers and verified RA notifications are promoted, not deleted. Richer history/cloud/themes/custom reference/image options keep their own conditions. |
 
-The detailed old register follows with stable headings for existing links. Explicit amendments for #20/#30/#31 are marked at their point of use; all other carried-forward U acceptance remains unchanged. The issue reconciliation table covers **every issue #1–41** and owner follow-ups.
+The detailed old register follows with stable headings for existing links. Explicit amendments for #9/#42–62 are marked where old acceptance is superseded; identifiers and unaffected obligations are preserved. The issue reconciliation tables cover **every issue #1–62** and owner follow-ups.
 
 ## Detailed new-issue increments
 
@@ -92,7 +98,7 @@ Issues: [#18 audit](https://github.com/EriArk/TrainerOS/issues/18), remaining [#
 **P0 read-only increment: inventory and private dry-run manifest.** Change no ROM, save, database record or catalogue row. Refresh the manifest after P2 ownership and P3 domain/eligibility decisions before authorizing its mutation phase.
 
 - Record path, size, SHA-256, platform, release/language/revision evidence, Adventure/catalogue links, classification, reason and retained equivalent. Classify exact duplicate, proven redundant release, non-English, or needs review.
-- Inspect Home/history, ResumePoint, save-backup, RA and media references before proposing relinks. Hash equality is content evidence, not proof of one playthrough/history identity.
+- Inspect Home/history, legacy ResumePoint migration references, save-backup, RA and media references before proposing relinks. Hash equality is content evidence, not proof of one playthrough/history identity.
 - Audit types/storage against the ownership contract: installation-wide configuration versus genuine per-Adventure overrides; composed progress versus writable identity. Change only a boundary actually needed by the next feature.
 - Prefer metadata/header/database evidence over filename tags. Preserve ambiguous languages, translations, distinct hacks/revisions and language-neutral titles. No content conversion in this audit.
 
@@ -103,7 +109,7 @@ Issues: [#18 audit](https://github.com/EriArk/TrainerOS/issues/18), remaining [#
 Issue: [#18 cleanup](https://github.com/EriArk/TrainerOS/issues/18). Requires step 1's consistent manifest and proven identity/relink rules.
 
 - Revalidate source identity before action. Keep a canonical exact copy; relink safely before moving redundant files to same-storage quarantine. Preserve distinct Adventure identities with different histories; never merge histories merely to remove duplicate ROM files.
-- Never delete saves, states, screenshots, backups, play history or Hall memories. Save relinking needs adapter-specific proof. Do not break a working saved moment just to normalize a ROM path.
+- Never delete saves, states, screenshots, backups, play history or Hall memories. Save relinking needs adapter-specific proof. Do not delete or invalidate legacy artifacts through ROM cleanup; retire them only through #49's reviewed migration.
 - Re-scan Worlds/search/counts, Home, RA/media links; exercise representative launches on affected platforms and Continue/backup for relinked Adventures.
 - Report before/after active files, categories, exemptions, relinked/unresolved records and bytes. Distinguish quarantined bytes from actual free space: same-disk quarantine reclaims none. Permanent deletion follows verification and never includes ambiguous candidates.
 
@@ -123,13 +129,13 @@ Then replace Worlds' selected Adventure Record emblem: **exact wheel → exact m
 
 ### 4. Home's faint Adventure background
 
-Issue: [#15](https://github.com/EriArk/TrainerOS/issues/15). Requires #17's media boundary and existing history/ResumePoint ownership.
+Issue: [#15](https://github.com/EriArk/TrainerOS/issues/15). Requires #17's media boundary and history/clean exit-image ownership after #49.
 
-Resolve newest valid return image for Home's selected Adventure, then its selected moment image when that moment is active, then newest valid return image in the active context, then the ordinary background. Test the active-moment precedence explicitly. **#20/#31 amendment:** image selection and fallback are scoped to the active Trainer and Pokémon/Multiverse context; no cross-owner or cross-domain global fallback.
+Resolve the newest valid #49 clean exit image for the selected Adventure, then the newest eligible clean exit image in the active Trainer/domain context, then the ordinary background. Preserve provenance; no selected-state image priority, state thumbnails or cross-owner/domain fallback. An explicit Adventure choice is not overwritten by image fallback.
 
 Layer the scaled/subdued screenshot **under existing ornaments/patterns and all content/focus**. Preserve the light recessed workspace, theme, crystal tray and fixed A/Y controls. Tune opacity/softening on Flip. Reuse screenshot ownership: no parallel database, independent persisted wallpaper choice, uploads or default diagnostic inclusion. Revision changes invalidate cache.
 
-**Done when:** selection/restart/source replacement chooses deterministically; bright/dark/corrupt/missing fixtures remain readable; original decoration stays visible and page switching is smooth. Continue may share the semantic media result only while retaining exact-state provenance.
+**Done when:** selection/restart/source replacement chooses deterministically; bright/dark/corrupt/missing fixtures remain readable; original decoration stays visible and page switching is smooth. Choose Adventure shares the same exit-media handle and provenance; an image is not a restore point.
 
 ### 5. One RetroAchievements account, then verified earning
 
@@ -138,24 +144,21 @@ Issue: [#12](https://github.com/EriArk/TrainerOS/issues/12). Depends on the curr
 Deliver two increments:
 
 1. Global service owns the active Trainer's canonical account identity/token, login/logout/validation and mode; storage/cache/response identities include the Trainer owner. Add **Settings → Accounts → RetroAchievements**; Hall shows status and opens that same surface. Migrate the owner-only account file without unnecessary login; preserve malformed originals. All consumers use one source. Reject previous-account responses and clear secret drafts on submission/cancel/page change/failure/exit.
-2. One supported emulator gets configure/verify/clear-managed-account integration. Separate history reading from earning and show unavailable/mismatched-account states. Make Standard/Hardcore explicit before launch; disable exact state resume when forbidden. Never silently change mode to make Continue work.
+2. One supported emulator gets configure/verify/clear-managed-account integration. Separate history reading from earning and show unavailable/mismatched-account states. Make Standard/Hardcore explicit before launch and never silently change mode. #49 removes normal state resume in both modes; its exit flow must not undermine verified earning rules.
 
 **Done when:** migration, failed login, sign-out, A/B cache isolation and controller flows pass; a real new achievement is earned on Flip under the same account and read back in Hall. That final gate needs suitable gameplay; login/cache alone is not closure. Local Hall memories remain intact. No plaintext password persistence or credentials in QML/logs.
 
 ### 6. Pokédex artwork packs
 
-Issue: [#13](https://github.com/EriArk/TrainerOS/issues/13). Uses stable species/form IDs. Reuse useful cache mechanics from #17, but retain a **separate PokedexArtworkProvider**: species and game editions have different identities.
+Updated #13 and #57–61 intentionally replace the earlier generic-downloader-first proposal. Keep a separate species/form `PokedexArtworkProvider`; classic illustrations are primary list art and #51 sprites serve detail/living scenes.
 
-- Verify source terms/endpoints before enabling remote packs; user-installed PokéAPI-hosted artwork is the first candidate, not a redistribution promise. A code/data license is not artwork redistribution permission. Keep downloaded/user art outside Git and ROM/save directories, with source metadata.
-- Controller install/update/verify/remove lives in Settings. Use bounded versioned HTTPS manifests, image validation, cancellation and atomic activation; partial/corrupt updates keep the old working pack.
-- Exact form → known species fallback → configured compatible representation → original placeholder. Make fallback honest; unknown/custom species remain usable.
-- Use sized images in Pokédex browsing/detail and Trainer's favorite picker, without decoding every full-resolution offscreen image.
+Execute **#58 owner Drive seed + one-shot missing-art completion → #60 real Flip bootstrap and canonical target map/profiles → #57 versioned generic contract/shared validation → #59 Qt desktop Pack Studio → controller Settings polish**. Full [artwork acceptance](EXPANSION_42_62.md#artwork-sequence) preserves offline use, partial packs, explicit exact-form fallback, malformed/oversized-source protection, cancellation/atomic activation, authorship and original-file safety. No daemon, no early Studio or final filenames before the Flip trial.
 
-**Done when:** form mapping/fallback, malformed/oversized data, failed update, cancellation/restart and removal pass; art survives reboot/offline use and full-dataset scrolling remains smooth on Flip.
+**Done when:** all stage artifacts and physical list/detail/picker profiles are verified; Studio consumes those same targets, exported packs reimport, controller install/update/verify/remove and credits work offline with honest coverage. Raw copyrighted art/private manifests stay outside Git. A blocked Flip gate cannot be bypassed by inventing profiles.
 
 ### 7. Caught as a personal collection
 
-Issue: [#14](https://github.com/EriArk/TrainerOS/issues/14). V1 depends on the persistent journal. #13 enriches it; missing art is never a blocker.
+Issue: [#14](https://github.com/EriArk/TrainerOS/issues/14). V1 depends on the persistent journal. #46 now makes verified current-save Seen/Caught the primary progression view; this manual collection remains a separately sourced secondary view, not a prerequisite blocking save-derived browsing. #13 enriches it; missing art is never a blocker.
 
 Add reachable local **All / Caught / Favorites / Journal** navigation with page-specific controls, preserving L1/R1, filters/detail focus and existing records. V1 projects manual **species-wide** Caught marks into one row per marked species with name/number/types, manual source, notes and unknown origin/date.
 
@@ -169,7 +172,7 @@ Before automatic ingestion, document a small individual-record boundary: stable 
 
 Issue: [#10](https://github.com/EriArk/TrainerOS/issues/10). Requires exact-build save resolution, protection backups and a **new independently verified party/money reader and writer**. The shipped badge reader is not a healing capability.
 
-Start with one verified Gen III title/build. First prove immutable party condition, allowed HP/PP/status fields and currency representation. Define a deterministic fee outside QML; show exact work, fee and before/after balance in **Start → Pokémon Center → Services → Heal party**. This is a TrainerOS service, not canonical in-game Center behavior.
+Start with one verified Gen III title/build. First prove immutable party condition, allowed HP/PP/status fields and currency representation. Define a deterministic fee outside QML; show exact work, fee and before/after balance in **Pokédex ⇄ Pokémon Center → Services → Heal party** (planned #43/#44 route; Start is the legacy backup entry). This is a TrainerOS service, not canonical in-game Center behavior.
 
 The writer must refuse a live/uncertain emulator writer; validate stable source; create/verify a protection backup; prepare and independently validate modified bytes/checksums; prove only allowed fields changed; recheck source revision immediately before atomic replacement; verify committed bytes and retain recovery. Unsupported/corrupt/changed sources, insufficient money and backup failures leave the original unchanged. No changes to membership, training stats, items, moves, story or Dex beyond verified healing fields.
 
@@ -212,7 +215,7 @@ The earlier simultaneous internal-storage/microSD I/O stall has no proven root c
 
 Source: [DS cartridge saves](SAVE_BACKUPS.md#ds-cartridge-saves), former milestone 9.
 
-The melonDS resolver and fixtures exist, but the module explicitly leaves real profile activation/save-path confirmation pending. Inspect the actual melonDS configuration, opt in only when supported, and prove the cartridge's ordinary save is the file selected by the service. Create a copy, restore with a verified protection copy, undo, and independently check bytes and in-game load; include externally running-emulator refusal and Home's selected-moment reset. Preserve the original save throughout. This closes a partly implemented module before expanding backup coverage; it is not DS exact-state resume.
+The melonDS resolver and fixtures exist, but the module explicitly leaves real profile activation/save-path confirmation pending. Inspect the actual melonDS configuration, opt in only when supported, and prove the cartridge's ordinary save is the file selected by the service. Create a copy, restore with a verified protection copy, undo, and independently check bytes and in-game load; include externally running-emulator refusal and refreshed ordinary-save context/projections. Preserve the original save throughout. This closes a partly implemented ordinary-backup module. The selected-moment-reset check is historical and replaced by #49 migration plus refreshed ordinary-save context/projections; no DS state-resume work remains planned.
 
 ### U3. Reconcile RetroAchievements production read/cache acceptance — evidence review
 
@@ -236,11 +239,11 @@ Diamond/Colosseum and PokéPark launch checks do not prove long-play or all-inpu
 
 ### U6. Continue and saved-moment maintenance — open extension
 
-Source: [Home/history](HOME_AND_HISTORY.md), [resume limits](RETROARCH_RESUME.md), [backup shelf limits](SAVE_BACKUPS.md), former milestones 6/9/12.
+**Explicitly amended by #49/#9:** the ID/heading remains for historical links; preserving/expanding exact-state resume is superseded, not an open delivery gate. [GBA validation](RETROARCH_RESUME.md) and [old provenance](RESUME_POINTS.md) remain evidence of legacy code only.
 
-Preserve current GBA exact resume, source/revision-bound thumbnails, cancellation and explicit normal-launch fallback. First add useful controller maintenance for growing moment/backup shelves: inspect identity/size, handle missing or stale references, and explicitly archive/remove selected TrainerOS-managed artifacts with a recovery path. Full shelves and failed-preparation leftovers must not require guessing which directories are disposable. Distinguish metadata removal, generated cache and external save/state deletion; retain ordinary saves and unrelated history. ROM cleanup and generic software cleanup cannot perform this work implicitly.
+P1 now delivers normal-launch/save-confirmed exit, clean capture, legacy dependency removal and safe retirement of demonstrably TrainerOS-owned state artifacts. Preserve ordinary saves, independent screenshots, all valid play history and recovery; distinguish metadata/cache deletion from external files. ROM/software cleanup cannot perform this migration implicitly. New core/adapter state providers are cancelled as target work, while ordinary-save backup/resolver expansion remains U8/P9.
 
-Add another core/adapter's saved-moment or backup capability only after its format, ownership, screenshot association and launch-time validation are proven. The installed melonDS CLI does not currently establish an exact-resume entry path; do not promise one. A one-off removal of empty test-history cards is not a shipped global filter hiding playable Adventures without states. Global Continue access from #9 remains deferred until its local shortcuts and select-for-Home behavior are redesigned.
+P4 retains useful controller maintenance for growing ordinary-backup shelves: inspect identity/size, detect missing/stale references, explicitly archive/remove managed copies with recovery and handle full shelves/failed-operation leftovers. No blind directory pruning. Updated #9 shared Y/context is active planned work in P1/P2/P4, not deferred; Worlds/modal exceptions and independent Trainer/domain selections are mandatory. Choosing never launches; games without state artifacts are not hidden for that reason.
 
 ### U7. Broader RetroAchievements content matching — open capability work
 
@@ -260,7 +263,7 @@ The first automatic reader supports only exact English FireRed/Emerald builds. C
 
 Source: [Trainer overview](TRAINER_OVERVIEW.md), [Pokédex journal](POKEDEX.md), [Hall archive](HALL_OF_FAME.md), [ownership contract](DATA_MODEL.md#ownership-contract--2026-09-13), former milestones 7/8/13.
 
-Finish useful manual Caught in step 7 before save-derived collection history. Then import only actual species/form observations supplied by U8's verified reader, with source/save-lineage/revision and rollback/dedup semantics. Current badge/caught totals are insufficient to identify an individual Pokémon or its catch event. Derived Home/Trainer/World summaries must distinguish manual collection, current-save progress, actual observed visits/playtime and explicit completion memories; represented library Worlds are not visited regions.
+**#46 amendment:** current-save Dex can follow an exact verified reader independently of step 7; retain manual Caught/journal as secondary history. Import only actual species/form observations supplied by U8's verified reader, with source/save-lineage/revision and rollback/dedup semantics. Current badge/caught totals are insufficient to identify an individual Pokémon or its catch event. Derived Home/Trainer/World summaries must distinguish manual collection, current-save progress, actual observed visits/playtime and explicit completion memories; represented library Worlds are not visited regions.
 
 Recently observed/caught activity, teams, game-save playtime and Hall-of-Fame suggestions can follow when the source proves their fields. Keep observation time distinct from catch/victory time; a suggestion does not automatically complete an Adventure or award an RA achievement. Reuse reference/artwork and existing journal/archive editing, preserving manual records through import, rollback and restart. Richer individual/shiny timelines remain conditional on provenance rather than a prerequisite for useful manual views.
 
@@ -268,7 +271,7 @@ Recently observed/caught activity, teams, game-save playtime and Hall-of-Fame su
 
 Source: [standalone adapters](STANDALONE_ADAPTERS.md), [catalogue runtime limits](COLLECTION_CATALOGUE.md), former milestone 12.
 
-After current launch gaps, the default next adapter is the installed Azahar/3DS path, then Cemu/Wii U, subject to actual supported titles and runtime checks. Verify installed version, launch arguments, content requirements, physical controls, display, process exit/recovery and return before enabling any capability. Switch, PC/Pico and Android/Waydroid catalogue entries need an independently viable runtime/input route; do not enable them merely because the reference includes them. Do not initialize every runtime or build every adapter at once. For each supported integration, ordinary launch can ship before separately proven save backup, exact resume, achievements or progress.
+After current launch gaps, the default next adapter is the installed Azahar/3DS path, then Cemu/Wii U, subject to actual supported titles and runtime checks. Verify installed version, launch arguments, content requirements, physical controls, display, process exit/recovery and return before enabling any capability. Switch, PC/Pico and Android/Waydroid catalogue entries need an independently viable runtime/input route; do not enable them merely because the reference includes them. Do not initialize every runtime or build every adapter at once. For each supported integration, ordinary launch can ship before separately proven ordinary-save backup, exit capture/policy, achievements or progress.
 
 ### U11. Reproducible installation, updates and recovery — open deliverable
 
@@ -304,7 +307,7 @@ After P4 establishes the library contexts, assemble the selections incrementally
 - **Retained personal-history ideas:** richer individual/shiny timelines, teams, local milestones and observation-derived activity; only trustworthy fields can be shown. U8/U9 remain their source/provenance gates.
 - **Retained optional services/content:** cloud sync, additional theme/World-atmosphere packs, reference-provider alternatives/custom species. None blocks current offline delivery or fabricates official data.
 - **Retained platform option:** a reproducible custom/preconfigured Armada image only after mature package/session installation proves insufficient. #41 first uses supported stock-Armada layers; earlier boot ownership is a possible later benefit, not a new fork requirement. Hardware modification remains out of scope.
-- **Still deferred from earlier work:** #9 global Continue with revised select-for-Home/context rules; U13 sleep/hinge/wake; optional page wrapping decided during U12 physical UX testing.
+- **Promoted from deferral:** updated #9 shared Y/context is now P1/P2/P4. **Still deferred:** U13 sleep/hinge/wake and optional page wrapping decided during U12 physical UX testing. #49 cancels state-resume expansion rather than postponing it.
 - **New conditional extensions preserved:** live in-game RA overlay only after an actual safe event/presentation path; Home video only after separate UX/performance acceptance; per-Trainer save namespaces adapter by adapter; simple context audio moods/optional boot sound; later controller color picker, reactive RGB or measured battery-saver policy only as separately chosen features. These are not prerequisites for the initial issues.
 
 ## Issue reconciliation
@@ -318,15 +321,15 @@ This review changes the plan, not GitHub issue states. Close/split only after ch
 | [#3](https://github.com/EriArk/TrainerOS/issues/3) early device smoke | Dated hardware evidence exists; performance/wake limits remain explicit. |
 | [#4](https://github.com/EriArk/TrainerOS/issues/4) extensible Worlds | Stable IDs/custom/multiple Worlds implemented; preserve through cleanup. |
 | [#5](https://github.com/EriArk/TrainerOS/issues/5) lifecycle | Checkpoint/process/recovery boundary exists; new adapters still need proof. |
-| [#6](https://github.com/EriArk/TrainerOS/issues/6) ResumePoint | Provenance contract and first GBA provider exist; preserve through media/relinking. |
+| [#6](https://github.com/EriArk/TrainerOS/issues/6) ResumePoint | Closed/superseded by #49; retain historical provenance/device evidence, migrate legacy data safely, no expansion. |
 | [#7](https://github.com/EriArk/TrainerOS/issues/7) GitHub CI | Superseded by no-Actions instruction; native/Linux/ARM verification and commit/push stay required. |
-| [#8](https://github.com/EriArk/TrainerOS/issues/8) original tracker | Historical foundation tracker; this roadmap is the current queue. |
-| [#9](https://github.com/EriArk/TrainerOS/issues/9) global Continue | Direct launch superseded; global access deferred pending select-for-Home semantics and local shortcut remapping. |
+| [#8](https://github.com/EriArk/TrainerOS/issues/8) original tracker | Historical foundation tracker; old Phase D state work superseded by #49; this roadmap is current. |
+| [#9](https://github.com/EriArk/TrainerOS/issues/9) global Continue | P1/P2/P4 shared context/Y, Worlds/modal exceptions, selection without launch; updated issue resolves the earlier deferral. |
 | [#10](https://github.com/EriArk/TrainerOS/issues/10) | P8 / step 8; verified party/money, guarded healing, protection and in-game validation. |
 | [#11](https://github.com/EriArk/TrainerOS/issues/11) | P10 / step 9; Mobile maintenance trial and reversible Steam removal/restore. |
 | [#12](https://github.com/EriArk/TrainerOS/issues/12) | P2 management + P6 earning / step 5; canonical active-Trainer account, not one shared credential. |
-| [#13](https://github.com/EriArk/TrainerOS/issues/13) | P7 / step 6; separate species/form art packs, offline/corrupt-source handling. |
-| [#14](https://github.com/EriArk/TrainerOS/issues/14) | P7 / step 7 + P8/U9; manual species-wide Caught first, proven enrichment later. |
+| [#13](https://github.com/EriArk/TrainerOS/issues/13) | P7 / step 6; classic illustration packs with #61 ordered bootstrap/device/contract/Studio/Settings gates. |
+| [#14](https://github.com/EriArk/TrainerOS/issues/14) | P7 / step 7 + P8/U9; manual species-wide collection preserved as secondary; #46 current-save primary follows exact reads independently. |
 | [#15](https://github.com/EriArk/TrainerOS/issues/15) | P4 / step 4; shared-media Home background now owner/context scoped. |
 | [#16](https://github.com/EriArk/TrainerOS/issues/16) | P4 / step 3; recognizable Worlds game media. |
 | [#17](https://github.com/EriArk/TrainerOS/issues/17) | P4 / step 3; semantic media identity/provider before consumers; P5 video extension. |
@@ -354,6 +357,27 @@ This review changes the plan, not GitHub issue states. Close/split only after ch
 | [#39](https://github.com/EriArk/TrainerOS/issues/39) | P10 Settings front end to #11 helper; optional Steam restore/install, no second installer. |
 | [#40](https://github.com/EriArk/TrainerOS/issues/40) | P1 viewer/current guide → incremental articles → P11 complete offline/runtime-fact audit. |
 | [#41](https://github.com/EriArk/TrainerOS/issues/41) | P12 supported-layer startup branding with profile routing, update safety and recovery. |
+| [#42](https://github.com/EriArk/TrainerOS/issues/42) | P1 minimal exact-save contracts → P8 evidenced reads then independent guarded writes; #50 research. |
+| [#43](https://github.com/EriArk/TrainerOS/issues/43) | P1 shared L2/R2 routing → each P4/P6/P7/P8 companion consumer; keep five primaries. |
+| [#44](https://github.com/EriArk/TrainerOS/issues/44) | P8 first-class Center after context/exact reads; practical Party/Storage then services/writers. |
+| [#45](https://github.com/EriArk/TrainerOS/issues/45) | Later P8 Link Counter; exact-pair writers, durable two-device transaction/recovery before real exchange. |
+| [#46](https://github.com/EriArk/TrainerOS/issues/46) | P7/P8 selected-save primary Dex; source-aware manual history retained separately. |
+| [#47](https://github.com/EriArk/TrainerOS/issues/47) | P8 live Journey, title-specific crystals and preserved verified Champion snapshots. |
+| [#48](https://github.com/EriArk/TrainerOS/issues/48) | P6 shared-Adventure RA companion; external truth, active-Trainer account and verified matching. |
+| [#49](https://github.com/EriArk/TrainerOS/issues/49) | P1 screenshot-first save-confirmed exit and safe legacy-state migration; supersedes #6/U6 state expansion. |
+| [#50](https://github.com/EriArk/TrainerOS/issues/50) | Alongside each P8 provider: private exact-ROM ready/fresh/intermediate save research and controlled diffs. |
+| [#51](https://github.com/EriArk/TrainerOS/issues/51) | P5 optional sprite/portrait provider and per-asset credits; P8 living Party/detail consumers, not primary Dex list. |
+| [#52](https://github.com/EriArk/TrainerOS/issues/52) | P5 bounded animation primitive → P8 actual-Party Home/Playroom; hidden pause and device performance. |
+| [#53](https://github.com/EriArk/TrainerOS/issues/53) | P8 stable practical Party management; separate Playroom entry, verified write capabilities only. |
+| [#54](https://github.com/EriArk/TrainerOS/issues/54) | P8 Playroom after #51/#52/exact Party; controller interaction/portraits, no save mutation. |
+| [#55](https://github.com/EriArk/TrainerOS/issues/55) | P8 read-only 1v1 practice after Party/scene boundaries and ARM64 exact-rules engine spike; no save rewards. |
+| [#56](https://github.com/EriArk/TrainerOS/issues/56) | P4 large environmental World cards; intentional semantic diagonal pairs and strong golden focus. |
+| [#57](https://github.com/EriArk/TrainerOS/issues/57) | P7 artwork contract/shared validator only after #60; production Settings polish follows #59. |
+| [#58](https://github.com/EriArk/TrainerOS/issues/58) | First P7 art stage: one-shot PC Drive-seed/missing completion, provisional mapping and private raw corpus. |
+| [#59](https://github.com/EriArk/TrainerOS/issues/59) | P7 Qt desktop Pack Studio after #60/#57; shared maps/profiles/validator, no invented target dimensions. |
+| [#60](https://github.com/EriArk/TrainerOS/issues/60) | Second P7 art stage: real Flip importer, canonical species/form map and measured slot profiles. |
+| [#61](https://github.com/EriArk/TrainerOS/issues/61) | P7 orchestration: #58 → #60 → #57 → #59 → Settings; independent from save integrations. |
+| [#62](https://github.com/EriArk/TrainerOS/issues/62) | P0 documentation reconciliation delivered in this increment; not feature implementation or issue closure. |
 | Owner follow-ups, 2026-09-13 | P10 / steps 9–10: Mobile-only maintenance if viable; careful software/background cleanup with measured results. Preserve all old work and future ideas through this replan. No new GitHub issue is implied. |
 | Owner test-content and classics follow-up, 2026-09-13 | Standing permission to use the server's ROM disk for tests; small iconic-games selection per system after P4, alongside P9's validated adapters. Source files and personal saves remain protected. |
 
@@ -365,7 +389,7 @@ Older module notes use milestones **0–14** from the [previous plan](https://gi
 | --- | --- |
 | 0–3: skeleton/controller/mock/backend | Working baseline; extend only what the active feature needs. |
 | 4: device baseline | U1/U12 remaining evidence/performance; U13 deferred wake. Later checks supersede early “unverified” notes. |
-| 5–6: Worlds/Home/Continue | U4–U6 plus steps 1–4; identity, archive completeness, actual launch and moment maintenance remain explicit. |
+| 5–6: Worlds/Home/Continue | U4–U6 plus steps 1–4; identity, archive completeness, normal launch, #49 legacy migration and ordinary-backup maintenance remain explicit. |
 | 7: Trainer/Hall | U3/U7/U9 plus step 5; production reads, matching/earning and derived personal views. |
 | 8–9: Pokédex/Center | U2/U6/U8/U9 plus steps 6–8; finish DS backup, add verified formats and source-aware collection/services. |
 | 10–11: dedicated/default session | U1/U11 plus step 9; preserve tested session and finish installation/update recovery. U13 wake is deferred. |

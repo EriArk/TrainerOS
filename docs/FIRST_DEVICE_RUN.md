@@ -1,5 +1,7 @@
 # First ArmadaOS device run
 
+**Historical bootstrap plus current device checks:** the initial mock procedure and later state-resume checks below apply to their recorded implementation revisions. #49 supersedes normal saved-moment behavior; new acceptance must verify normal launch/save loading, capture-before-prompt, B returning to the same live process, confirmed exit and honest interruption. Shared Y/L2/R2 and other planned routes need their own physical checks. [Target acceptance](EXPANSION_42_62.md).
+
 This procedure uses a normal application in the existing desktop session. It does not install a TrainerOS session, change the default login, or remove Steam Gaming Mode or KDE Plasma. A Windows executable cannot run on the ARM64 handheld.
 
 Observed target details and the native container/install approach are in [ARMADA_DEVICE_BASELINE.md](ARMADA_DEVICE_BASELINE.md). The owner reopened idle/power diagnostics on 2026-09-12. Everyday operation still uses the no-sleep configuration; follow that report before a bounded suspend/hinge recovery test. Steam's own idle policies must be checked alongside Linux and KDE settings.
@@ -38,6 +40,6 @@ Record observed results, not assumptions:
 - **Performance:** record visible motion stutter, input delays, startup and resume behavior. Desktop/offscreen tests do not establish handheld performance.
 - **Exit:** both the explicit system action and a desktop-window close must return to the existing environment after pending writes finish.
 
-This procedure originated with the first mock-only device baseline. The current normal build uses the personal library and real launch history, verified GBA saved moments, a personal archive, the offline Pokédex journal and save backups; unavailable game progress remains unknown. Samples belong to explicit ephemeral/test runs, and live RetroAchievements account integration remains open. See the current [roadmap checkpoint](ROADMAP.md) and module acceptance records when validating a newer build.
+This procedure originated with the first mock-only device baseline. The current normal build uses the personal library and real launch history, verified GBA saved moments, a personal archive, the offline Pokédex journal and save backups; unavailable game progress remains unknown. Samples belong to explicit ephemeral/test runs, and RA read/cache and emulator earning have separate current acceptance gates. See the current [roadmap checkpoint](ROADMAP.md) and module acceptance records when validating a newer build.
 
 If something fails, retain the report, exact command, console output and reproduction steps. Do not change the default session to work around an application problem. Update `ARMADA_PLATFORM.md` only with findings actually observed on the device.

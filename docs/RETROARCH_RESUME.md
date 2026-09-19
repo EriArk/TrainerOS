@@ -1,5 +1,7 @@
 # RetroArch saved moments
 
+> **Historical / superseded product semantics — #49, accepted 2026-09-19.** This entire document preserves the legacy implementation contract and its dated tests/device evidence. The code still exists, but none of the state creation, enumeration, thumbnail or direct-resume behavior below is an active target or an invitation to add providers. [Ordinary-save lifecycle and migration](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit) replaces it with normal startup, clean exit capture and save confirmation. Preserve ordinary saves, histories and independent images; retire only verified TrainerOS-owned obsolete artifacts safely. This documentation change removes no code or user files.
+
 The first filesystem provider supports GBA content through mGBA and the verified RetroArch entry-state protocol. Other integrations retain normal launch. This is state discovery and restoration, not game-save parsing: TrainerOS does not infer badges, party, location or completion from these files.
 
 ## Ownership and storage

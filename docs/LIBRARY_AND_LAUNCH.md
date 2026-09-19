@@ -1,5 +1,7 @@
 # Personal library and launch preparation
 
+**Target change — #9/#43/#49:** preserve stable library/process/return foundations below. Planned launches use ordinary game startup/save loading; user exit captures before save confirmation while the game is alive. Shared Adventure selection never launches, paired-face return context is restored, and state-resume paths are legacy migration inputs only. [Accepted lifecycle and selection](EXPANSION_42_62.md).
+
 Normal application mode combines persistent personal metadata with the [read-only collection catalogue](COLLECTION_CATALOGUE.md). The controller management flow connects to the [first real RetroArch adapter](RETROARCH_ADAPTER.md). The owner has confirmed navigation, profile creation and real launch on Flip 2; additional integrations remain open.
 
 ## Library ownership

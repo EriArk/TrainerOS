@@ -1,5 +1,7 @@
 # Codex Start Brief
 
+> **Historical bootstrap instructions.** This document records the original mock milestone, not the current implementation queue. Its mock ResumePoint/direct-launch wording is superseded by the owner's select-without-launch rule and updated #9/#49. Do not build or expand those obsolete behaviors. Follow [ROADMAP.md](ROADMAP.md), [PRODUCT_SPEC.md](PRODUCT_SPEC.md) and [#42–62 acceptance](EXPANSION_42_62.md); retain the original text below only as design/history evidence.
+
 Use this as the first implementation task after reading `README.md`, `AGENTS.md`, and all files under `docs/`.
 
 ## Objective

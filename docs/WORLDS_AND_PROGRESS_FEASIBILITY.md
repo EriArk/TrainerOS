@@ -1,5 +1,7 @@
 # Worlds and progress data: feasibility review
 
+**Research record reconciled 2026-09-19:** external links and technical observations below are dated feasibility evidence, not current integration promises. Updated [#42–62 acceptance](EXPANSION_42_62.md) governs exact-build providers, ordinary-save lifecycle and projections. Revalidate version/source details during each implementation.
+
 Reviewed: 2026-09-06.
 
 Status: research and proposed model refinements for discussion. This is not a claim that native integrations have been implemented or tested on the Flip 2. The current interactive design study uses demonstration progress data. No user ROM or game save was supplied or parsed during this review.
@@ -14,7 +16,7 @@ The reliable baseline is a local library, configured launches, session records, 
 
 ## Worlds: interpretation and proposed refinements
 
-Preserve `World → Adventure`, with platforms hidden in integration settings. For example, Kanto can group Red/Blue/Yellow, FireRed/LeafGreen, and Let's Go; Hoenn can group Ruby/Sapphire/Emerald and Omega Ruby/Alpha Sapphire. Each Adventure retains its own content version, launch adapter, save source, progress, and resume points. Grouping them never implies that their saves or states are interchangeable.
+Preserve `World → Adventure`, with requested edition platform badges; emulator configuration remains in settings. For example, Kanto can group Red/Blue/Yellow, FireRed/LeafGreen, and Let's Go; Hoenn can group Ruby/Sapphire/Emerald and Omega Ruby/Alpha Sapphire. Each Adventure retains its own content version, launch adapter, ordinary-save source, progress and exit media. Grouping them never implies that their saves are interchangeable.
 
 The existing nine regions are starter catalog entries, not an exhaustive enum. The catalog needs additional official settings, historical settings, and custom regions. A hack that takes place in a new region belongs there even if its engine comes from FireRed or Emerald. A hack set in an existing region appears beside that region's other Adventures, with its own title and version. Unknown imports need a reachable unassigned state and controller-accessible assignment, rather than disappearing from Worlds.
 
@@ -50,7 +52,7 @@ The distinction between region, Pokédex, and game version is also represented b
 | Champion / completed / Worlds visited | Explicit game-specific conditions or manual confirmation | Starting a game does not prove visiting every region. Achievement mastery, story completion, and postgame completion are separate concepts. |
 | Hall of Fame team | A game's Hall of Fame record, captured event, or manual entry | Some supported games retain such records. Historical date/playtime/screenshot may be absent, and old records may have been overwritten. Never substitute today's party without saying so. |
 | First encounter, first catch, team changes, shiny history | Provider-supplied event metadata or observations made over time | Cannot reconstruct an entire past from one save. Date met, date imported, and date observed are not interchangeable; trades further complicate identity/history. |
-| Resume thumbnail and exact resume | Emulator adapter + a matching state/session artifact | Different cores/emulator versions can have incompatible states. A recent screenshot is not automatically the image of a particular older state. Exact resume is conditional. |
+| Clean exit image | Verified capture before exit UI, bound to Adventure/session | Target #49: an image is presentation/history, never a gameplay restore point. Legacy state-based resume is superseded. |
 | Battery, time, network, storage, backup state | Linux platform services and TrainerOS backup records | Independent of game formats; device service wiring still needs on-device validation. |
 
 ## Source-code evidence
@@ -88,7 +90,7 @@ The [Web API](https://api-docs.retroachievements.org/v1/get-game-info-and-user-p
 
 Account-level unlocks must remain separate from run-level state. An unlock obtained in an earlier playthrough or on another device does not mean a new local save has that badge. Lack of an RA unlock likewise does not prove the save lacks progress.
 
-The [RA Hardcore rules](https://docs.retroachievements.org/general/faq.html#what-is-hardcore-mode) prohibit loading emulator save states. Continue must therefore adapt: in Hardcore, launch the Adventure and use its normal in-game save; do not silently load the selected state or switch achievement modes. This limitation does not affect reading an ordinary save for display.
+The [RA Hardcore rules](https://docs.retroachievements.org/general/faq.html#what-is-hardcore-mode) prohibit loading emulator save states. Target #49 uses normal game startup/ordinary saves in every mode; never silently switch achievement modes. This limitation does not affect reading an ordinary save for display.
 
 ## Proposed integration boundary
 
@@ -107,7 +109,7 @@ An emulator adapter locates/extracts files and handles launch/return. A save pro
 
 Read a stable copy, not a file being rewritten. Prefer an initial scan and a refresh after a clean return from an Adventure; add monitored refresh only where flush behavior is known. Keep originals untouched. Validate format/checksums where supported, retain the last known valid snapshot after a failed read, and report stale/unknown fields honestly.
 
-Game saves and emulator save states are different artifacts. The disk save can lag behind the running game until it is flushed. Parsing an ordinary save does not reveal all unsaved progress in an arbitrary state. State-specific metadata needs a matching snapshot/telemetry record; otherwise present it as last-saved information.
+Game saves and emulator save states are different artifacts. The disk save can lag behind the running game until it is flushed. Parsing an ordinary save does not reveal all unsaved progress in an arbitrary state. The target reads ordinary saves only and labels observations as last-saved; no state-specific provider is planned under #49.
 
 Each observation should carry the Adventure/run, content version, source, parser version, artifact fingerprint, observation time, optional actual event time, and availability status. Reimporting the same artifact must not duplicate achievements or Hall of Fame entries. Loading an older state must not be interpreted as a sequence of new catches or a new victory.
 
@@ -127,6 +129,6 @@ Only after the skeleton, backend, library, launch/return and relevant feature mo
 6. Check coexistence with the Hall of Fame RA provider and Hardcore-aware Continue, where those capabilities have already been implemented.
 7. Reuse the boundaries for one DS title, then one explicitly selected hack; validate 3DS/Switch files separately from device playability.
 
-Acceptance should include unknown/corrupt saves, unsupported hack builds, file replacement during reading, a second playthrough, rollback, duplicate imports, missing screenshots, mixed partial data, suspend/crash time accounting and Hardcore resume behavior. Verify semantic values against the in-game screens before declaring a format supported.
+Acceptance should include unknown/corrupt saves, unsupported hack builds, file replacement during reading, a second playthrough, rollback, duplicate imports, missing screenshots, mixed partial data, suspend/crash time accounting and ordinary-launch/Hardcore behavior and #49 exit confirmation. Verify semantic values against the in-game screens before declaring a format supported.
 
 Until this slice is tested with actual saves and the device, the interface's progress numbers remain mock data and the findings above remain an evidence-based implementation assessment.

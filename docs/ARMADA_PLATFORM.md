@@ -1,5 +1,7 @@
 # TrainerOS on ArmadaOS
 
+**Planned lifecycle amendment #49:** ordinary saves/autosaves replace normal state-based resume. Prove capture-before-prompt, controller focus and cancellation without terminating the game through this platform/session boundary, not QML commands. Preserve current crash/recovery behavior and no-sleep policy. [Exit and migration contract](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
+
 Preparation and acceptance steps are in [FIRST_DEVICE_RUN.md](FIRST_DEVICE_RUN.md). The first actual ARM64 build, runtime, display, storage and package findings are recorded in [ARMADA_DEVICE_BASELINE.md](ARMADA_DEVICE_BASELINE.md). The [dedicated session](SESSION_PROTOTYPE.md) records the later device checks: standalone controller/rendering, Adventure preservation across a shell crash, failed-start recovery and Steam/Plasma transitions. Offscreen CI does not replace those checks; sleep/wake remains deferred.
 
 The native [controller/display diagnostic service](DEVICE_DIAGNOSTICS.md) is ready for that visit. It records Qt/SDL observations locally on request. Display coordinates, backend names and detected input signals must be checked against the real screen, control labels and session setup; they are not substituted for physical acceptance.
@@ -18,7 +20,7 @@ TrainerOS wants to behave like the device's operating interface rather than like
 
 - process launch/termination
 - emulator command lines and environment
-- filesystem-backed save/state discovery
+- filesystem-backed ordinary-save resolution
 - screenshots/thumbnails
 - process lifecycle and return-to-shell behavior
 - local backups
@@ -38,7 +40,7 @@ Purpose:
 
 - boot/wake into the Pokémon-focused shell
 - browse Home, Worlds, Pokédex, Trainer, Hall of Fame
-- launch/resume Adventures
+- launch Adventures through normal game startup/save loading
 - return to TrainerOS after Adventure exit
 - access normal handheld/system actions without desktop UI
 
@@ -205,10 +207,9 @@ Each adapter discovers/declares its own capabilities and owns:
 - validation
 - launch arguments/environment
 - process lifecycle where possible
-- resume-state discovery
-- direct resume when supported
-- state screenshots when available
-- save/state paths
+- clean gameplay capture before user-exit UI where verified
+- title/integration save policy and still-running-game exit/cancel coordination
+- ordinary-save paths
 - metadata parsing
 - backup rules
 

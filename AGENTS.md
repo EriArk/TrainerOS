@@ -68,11 +68,11 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 - **Home is one top-level page, not a permanent background shell.**
 - `L1/R1` switch top-level pages and must not be repurposed for local features.
 - Home is a living trainer overview, not a giant Continue page or tile launcher.
-- Choose Adventure is a compact slide-out panel/drawer on Home.
-- Continue uses small recent session/save-state cards, ideally with screenshots and metadata.
-- Selecting a Continue card with A chooses the Adventure shown on Home; it never launches. Home has a large physical-style action button that launches/resumes the selected Adventure. The explicit Home choice persists; latest launch is the default before a choice is made (2026-09-11 clarification).
+- Planned updated #9: one shell-owned Choose Adventure drawer selects a shared per-Trainer `CurrentPokemonAdventureContext` across Pokémon-aware screens; Worlds retains local search/filter controls. No duplicate persistent Current Adventure capsule/chip. The deployed Home-only selector is a baseline, not the final target.
+- Planned #49 supersedes all normal emulator savestate/ResumePoint creation, management and resume. Use ordinary saves/autosaves and recent Adventure cards with clean exit screenshots. Preserve legacy implementation evidence and migrate user data safely; no new state-resume expansion.
+- Selecting a Continue card with A chooses the Adventure shown on Home; it never launches. Home has a large physical-style action button that launches the selected Adventure normally; the game loads its ordinary save/autosave. The explicit Home choice persists; latest launch is the default before a choice is made (2026-09-11 clarification).
 - RetroAchievements achievements belong inside Hall of Fame, alongside the completed-Adventure archive, not on a separate primary page.
-- The accepted plan is [ROADMAP.md](docs/ROADMAP.md), with [new-issue acceptance](docs/EXPANSION_PLAN.md). Preserve its earlier steps 1–10, U1–U13 and optional/deferred commitments when replanning. Phases P0–P12 control execution; acceptance registers are not competing queues.
+- The accepted plan is [ROADMAP.md](docs/ROADMAP.md), with [earlier acceptance](docs/EXPANSION_PLAN.md) and [#42–62 target acceptance](docs/EXPANSION_42_62.md). Preserve its earlier steps 1–10, U1–U13 and optional/deferred commitments when replanning. Phases P0–P12 control execution; acceptance registers are not competing queues.
 - Planned #19–20 introduce separate Trainers/PIN/onboarding: library/installations/shared media are device-wide; personal journal/history/Hall/Home and RA identities are Trainer-scoped. Global RA management belongs in Settings and serves the active Trainer. Shared external saves do not imply separate owned playthroughs.
 - Planned #30 explicitly narrows the reference checklist to substantial playable Pokémon titles with credible Flip/controller routes. Preserve the complete eligible collection, missing/linkable editions and meaningful hacks/variants. Catalogue curation never deletes private content/history and remains separate from #18 duplicate-file cleanup.
 - Adventure media and Pokédex art have separate identities; manual Caught marks must not fabricate individual Pokémon. New media/audio/haptics/RGB/Steam/boot features require their roadmap capability and recovery gates. Planned capabilities must not be described as already implemented.
@@ -80,6 +80,15 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 - Settings/service features should not consume a primary L1/R1 page without an intentional product change.
 - Desktop/maintenance access must be explicit.
 - No physical modification of Retroid hardware belongs in scope.
+
+## Accepted target extension — 2026-09-19
+
+- #44/#53 Center is a first-class Pokédex companion: practical Party/Storage, safe Heal/Backup/Restore, later #45 durable exact-pair Link Counter. Separate #54 Playroom and #55 read-only practice use proven Party data; no invented individuals or save rewards.
+- #46 primary current Pokédex progression follows the selected ordinary save; preserve manual #14 journal/history separately. #47 live Journey and preserved Champion snapshots coexist with manual Hall; #48 RA remains external account truth.
+- #51 sprites/portraits and #52 bounded native living-party animation are optional presentation. Classic #13 illustration art remains primary in long Pokédex lists. Keep per-asset attribution/source and no unlicensed redistribution.
+- #61 artwork order is mandatory: #58 Drive seed/missing completion → #60 real Flip bootstrap/canonical map and measured profiles → #57 generic pack contract → #59 Qt desktop Pack Studio → Settings polish. No daemon/resident downloader; artwork can proceed independently of save writers.
+- #56 larger environmental World cards use original data-driven motifs and intentional small-group diagonal pairs without merging unrelated identities.
+- These are accepted/planned changes, not a claim the installed build has implemented them. #62 reconciles docs only. Keep earlier unfinished/deferred tasks and mark explicit supersessions instead of silently dropping them.
 
 ## UX invariants
 
@@ -90,7 +99,8 @@ Always preserve:
 - `A` = confirm/open
 - `B` = back/close
 - `Start` = TrainerOS system menu
-- `Y` = open/close Choose Adventure on Home
+- Planned #9 `Y` = shared Choose Adventure on Pokémon Home, Pokédex, Center, Hall/RA and Adventure-aware Trainer; Worlds local Y and modal/keyboard/system/recovery priority remain. Multiverse Home has its independent game selector.
+- Planned #43 `L2/R2` = paired faces Worlds/Multiverse, Pokédex/Center, Hall/Journey/RA; preserve local routes/focus, never use L1/R1 for companions or steal emulator input.
 - Planned #31: unobstructed Home `X` toggles Pokémon/Multiverse; choices and Continue are scoped per Trainer/context, while A/Y retain selection-versus-launch behavior.
 - On unobstructed Home, `A` immediately invokes the large Adventure button, regardless of prior D-pad/stick input. `Y` opens the selector; `A` inside it selects for Home without launching.
 - Prefer visible page-specific physical-button actions over moving focus between static modules. Directional focus belongs to lists, grids and open selection/editing panels; modal actions take priority over page shortcuts.
@@ -120,7 +130,7 @@ Do not introduce Kotlin, Jetpack Compose, AndroidX, Gradle, Android intents, Roo
 - Keep feature UI independent from emulator implementations.
 - Put emulator-specific behavior behind capability-based Adventure adapters.
 - Keep ArmadaOS/session/process/power/network/storage integration behind platform services.
-- Model Worlds, Adventures, Resume Points, Trainer progress, Pokédex progress, and Hall of Fame as domain objects rather than QML-only state.
+- Model Worlds, Adventures, shared current context, ordinary-save observations, exit media, Trainer progress, Pokédex and Journey/Champion history as domain objects rather than QML-only state. Legacy Resume Points are migration inputs only under #49.
 - Persist TrainerOS-owned state locally.
 - External game saves/states remain external source data; reference/manage them safely rather than making TrainerOS metadata the sole source of truth.
 - Use mock/fake adapters before coupling the first UI milestone to real emulator quirks.
@@ -183,7 +193,8 @@ Do not assume a specific display manager, compositor, Gamescope arrangement, sys
 ## Adventure integration
 
 - Do not hard-code the entire application around one emulator.
-- An adapter may support capabilities independently, such as launch, enumerate resume points, direct resume, state screenshot, save backup, save metadata, process lifecycle, and progress parsing.
+- Target adapter capabilities include normal launch, process lifecycle, clean exit capture, verified title save policy and ordinary-save resolution/backup. Exact-build providers independently advertise semantic reads and protected writes (#42/#50); reading Party/money does not prove editing support.
+- Planned #49 exit captures gameplay before its overlay, asks manual/unknown titles while the game stays alive, cancels back to that same process or confirms graceful exit; only verified autosave skips the question. Crashes never fabricate save confirmation. Prove compositor/input handoff on Flip before claiming support.
 - The UI must degrade gracefully when an adapter lacks a capability.
 - Process invocation and emulator-specific CLI/environment details belong in adapters, not feature UI.
 - Never delete or overwrite a user's save/state silently.
@@ -245,9 +256,9 @@ When a task introduces a meaningful product/platform/architecture decision:
 - add/update acceptance criteria
 - keep README high-level; implementation details belong under `docs/`
 
-## First implementation target
+## Original first implementation target — historical
 
-Unless a newer issue/task says otherwise, follow `docs/CODEX_START.md` and `docs/ROADMAP.md`.
+The original bootstrap is recorded in `docs/CODEX_START.md`; current work follows `docs/ROADMAP.md` and its accepted #42–62 amendments. Do not repeat the completed foundation or revive its superseded state-resume behavior.
 
 The first milestone is a **native Qt/QML controller-navigable full product mock**, not session replacement, distro modification, or deep save-file reverse engineering.
 

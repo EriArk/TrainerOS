@@ -1,8 +1,10 @@
 # Standalone Adventure launch adapters
 
+**2026-09-19 target amendment:** the installed adapters and dated CLI observations below are evidence, not a future state-resume plan. #49 replaces all normal savestate paths with ordinary startup/save loading and capture-before-exit confirmation; prove each adapter's still-running-game input/capture/return behavior. [Lifecycle acceptance](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
+
 `AdapterRouter` dispatches capabilities, launch, resume and file attachment to the Adventure's adapter. It preserves unknown custom adapters and the existing RetroArch saved-moment path. Home, Worlds, play history and process return use the same interfaces for each integration.
 
-The standalone module currently provides melonDS (DS) and Dolphin (GameCube/Wii) launch profiles. It does not imply universal game compatibility or direct resume. The installed melonDS 1.1 CLI exposes fullscreen launch but no initial save-state argument; the installed Dolphin 2606a CLI exposes batch launch and an initial save-state option. Only launch is enabled in this increment. State discovery, provenance and safe exact resume require a separate provider.
+The standalone module currently provides melonDS (DS) and Dolphin (GameCube/Wii) launch profiles. It does not imply universal game compatibility or direct resume. The installed melonDS 1.1 CLI exposes fullscreen launch but no initial save-state argument; the installed Dolphin 2606a CLI exposes batch launch and an initial save-state option. Only launch is enabled in this increment. These state observations are historical; #49 cancels new state providers. Ordinary-save resolution/backup and clean exit capture/policy require separate proof.
 
 ## Explicit installation profiles
 
@@ -31,4 +33,4 @@ The controller bridge is installed under `libexec/traineros` by CMake. It suppli
 - A Linux subprocess test verifies that missing controller-bridge display/dependencies prevent an uncontrolled game launch.
 - The 2026-09-13 Flip session check enabled explicit profiles for 36 existing DS/GameCube/Wii records. Diamond and Colosseum launched from Worlds, rendered their introduction/title screens and responded to controller input. PokéPark Wii reached its save-slot menu using the installed sideways controller profile. Normal controller exit returned to TrainerOS. These checks prove launch/input/return, not complete gameplay compatibility. PokéPark 2 produced a black screen in the initial check; a successful process start alone is not a playable-game claim.
 - The DS save resolver recognizes both native `melonDS` and the truncated `melonDS.AppImage` process name, preventing backup/restore while either is live. Defunct AppImage helpers do not block a closed Adventure. Save support still requires the separate explicit profile described in the backup documentation.
-- 3DS and Wii U adapters, additional exact-resume providers and expanded backup coverage remain separate follow-up work.
+- 3DS and Wii U adapters, verified exit capture/save policy and expanded ordinary-backup coverage remain separate follow-up work.
