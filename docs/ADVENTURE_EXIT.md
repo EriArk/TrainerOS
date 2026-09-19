@@ -207,3 +207,66 @@ window was inspected and the original installed shell remained running. This
 was an isolated original process fixture, not a real game or physical-input
 lease test. The installed production executable was not replaced.
 The ARM64 `BUILD_TESTING=OFF` production target also built successfully.
+
+## Home transport increment, 2026-09-19
+
+`AdventureOverlayService` now connects the native presenter to an opt-in
+Flip/Gamescope helper. A private configuration enables it only for real
+dedicated-session launches. It owns no game termination path: XRes must identify
+the active window as a descendant of the launched process, whose start identity
+must still match, and that window must advertise WM_DELETE_WINDOW.
+This increment enables the question for RetroArch windows only. Standalone
+emulators retain their existing exit route until their own close prompts are
+verified; a generic window-close protocol alone does not prove that behavior.
+
+The helper leases InputPlumber mode 1 only from mode 0. Physical Guide changes
+it to mode 2 before the request. Read-only evdev snapshots include all buttons,
+sticks and triggers; they are not inferred from the muted SDL target. Observed
+physical codes are Home 316, right A 305 and bottom B 304. The Qt question waits
+for its own focus and a fresh neutral generation. B keeps the same process;
+input returns only after full neutral remains stable for 80 ms.
+
+A separate watchdog holds the lease lock and a separate physical input/D-Bus
+connection. GUI heartbeats, not merely helper activity, keep it alive. EOF or
+a two-second heartbeat stall hides only the owned exit window and restores
+input after release. A surviving helper also restores if its watchdog dies.
+Service-owner replacement never mutates the replacement service. Lost close
+transport clears the question without killing the game or publishing media.
+
+Captures use the current user's single Gamescope compositor and a private
+temporary directory. Stale capture results cannot confirm a different attempt;
+capture failure still allows cancellation or confirmed exit. These frames are
+not yet persisted as Adventure media. No saves, states or history are migrated.
+
+Physical Home outside gameplay now returns to the Home page; Start and L1/R1
+retain their existing roles. Home respects the shell's storage/service gate.
+
+Device probes verified physical Home routing, a clean Emerald capture, same-PID
+cancellation, normal owned-window close, and input restoration after helper
+SIGKILL, watchdog SIGKILL and GUI-heartbeat stall. The recovery tests explicitly
+set intercept mode; they do not pretend that injected Guide is a physical press.
+The root hook was also checked by restoring read access from the hidden pad's
+mode 000. Its service-start drop-in still needs a real reboot check.
+
+The first installed run exposed a device-selection regression: granting raw
+read access made SDL choose the grabbed Retroid source instead of InputPlumber's
+Xbox target. The session now excludes physical USB `2020:3001` using SDL's
+ignore list, inherited by child emulators. Rechecking the SDL inventory showed
+only the virtual controller; installed Start, R1 and Home navigation then worked.
+The initial lack of response was not a stranded mode-2 lease (mode was zero).
+
+Installation/rollback and exact prerequisites are in the
+[transport packaging notes](../packaging/integrations/README.md). Broader
+adapter/title coverage, durable scoped media and legacy-state migration remain
+open #49 gates; installed legacy exit bindings remain available during this
+integration check.
+
+Windows passed **33/33** tests, ARM64 **36/36**, including the real-process
+stdio transport test. The non-testing ARM executable was installed with binary
+and database backup; read-back SHA-256 is
+`86fae040ab914483108293871db54651792048a11fafc50e72e0bbbad0e1bc1d`.
+Database integrity, schema 6 and 686 Adventures were unchanged. Installed SDL
+events exercised Start, R1, Home from Worlds and Home from the menu. The owner
+confirmed that the physical in-game exit question worked, then requested a
+compact panel over gameplay instead of the current full-screen presentation.
+That visual follow-up is separate from the delivered transport.

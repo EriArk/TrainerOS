@@ -12,6 +12,7 @@
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "core/navigation/AdventureLaunchController.h"
 #include "features/adventure/AdventureExitPresentation.h"
+#include "platform/input/AdventureOverlayService.h"
 #include "features/home/PlayHistoryController.h"
 #include "core/repository/CollectionRepository.h"
 #include "core/repository/OfflinePokedex.h"
@@ -257,6 +258,18 @@ int main(int argc, char* argv[]) {
         ProcessService adventureProcess;
         AdventureLaunchController adventureLaunch(adventureProcess);
         AdventureExitPresentation exitPresentation(adventureLaunch.exitController());
+        std::unique_ptr<AdventureOverlayService> adventureOverlay;
+#ifdef Q_OS_LINUX
+        if (personalLibrary && !smoke && platform.dedicatedSession()) {
+            QFile configuration(QDir(stateDirectory).filePath("integrations/overlay.json"));
+            if (configuration.open(QIODevice::ReadOnly) && configuration.size() <= 8192) {
+                const auto object = QJsonDocument::fromJson(configuration.readAll()).object();
+                if (object["version"].toInt() == 1 && object["enabled"].toBool())
+                    adventureOverlay = std::make_unique<AdventureOverlayService>(adventureProcess, adventureLaunch,
+                        exitPresentation, object["helper"].toString());
+            }
+        }
+#endif
         std::unique_ptr<GameProgressService> gameProgress;
         QByteArray progressSelection;
         bool progressHomeVisible = false;
@@ -307,8 +320,8 @@ int main(int argc, char* argv[]) {
                                                          : QDir(reportBase).filePath("diagnostics"));
         shell.diagnostics()->configure(&input, &deviceReports);
         QObject::connect(&input, &ControllerInput::action, &session, [&](Action action) {
-            // An exit prompt must never navigate the hidden shell. The future
-            // exclusive input provider feeds its own snapshots to the presenter.
+            // An exit prompt must never navigate the hidden shell. The platform
+            // input provider feeds its own isolated snapshots to the presenter.
             if (adventureLaunch.exitController().phase() != AdventureExitController::Phase::Idle) return;
             if (adventureLaunch.active()) {
                 if (adventureLaunch.preparing() && action == Action::Back) adventureLaunch.cancel();

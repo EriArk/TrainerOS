@@ -428,6 +428,7 @@ void ShellController::confirm() {
     }
 }
 void ShellController::dispatch(Action action) {
+    if (action == Action::Home) { goToPage(0); return; }
     if (action == Action::PreviousPage || action == Action::NextPage) {
         goToPage(page_ + (action == Action::NextPage ? 1 : -1));
         return;

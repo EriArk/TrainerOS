@@ -7,6 +7,14 @@ The controller layer and diagnostic labels share this mapping; feature actions
 and keyboard Enter/Escape remain unchanged. This changes shell controls only,
 not emulator gameplay mappings. L1/R1 and X/Y keep their existing behavior.
 
+**Home button — owner clarification, 2026-09-19:** when no Adventure is running,
+physical Home/Guide returns from any peer page to Home and closes transient
+menus/drafts using normal page-switch semantics. It does not launch anything.
+Active storage/service gates retain priority. Start still opens the system menu.
+During a supported Adventure, Home requests the guarded exit question instead;
+right A confirms, bottom B returns to the same game. See the device-specific
+[integration boundary](ADVENTURE_EXIT.md#home-transport-increment-2026-09-19).
+
 **Implementation versus target:** shared Y, L2/R2 paired faces, Center/Playroom and save-confirmed exit are planned. Existing reference/manual-journal, keyboard, menu and pointer checks remain evidence for their delivered routes. [Full new acceptance](EXPANSION_42_62.md).
 
 Worlds includes the [collection checklist and controller attachment flow](COLLECTION_CATALOGUE.md). Grey missing cards remain focusable; A → Link a file opens the shared picker, while Save/Cancel returns to the original Worlds detail. Platform badges identify the edition without changing region-first navigation.

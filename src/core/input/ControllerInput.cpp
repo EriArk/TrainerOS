@@ -106,6 +106,7 @@ void ControllerInput::poll() {
         {SDL_CONTROLLER_BUTTON_LEFTSHOULDER, Action::PreviousPage},
         {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, Action::NextPage},
         {SDL_CONTROLLER_BUTTON_START, Action::SystemMenu},
+        {SDL_CONTROLLER_BUTTON_GUIDE, Action::Home},
         {BackButton, Action::Back},
         {SDL_CONTROLLER_BUTTON_Y, Action::ToggleContinue},
         {SDL_CONTROLLER_BUTTON_X, Action::Secondary},
@@ -137,6 +138,7 @@ bool ControllerInput::eventFilter(QObject*, QEvent* event) {
     case Qt::Key_Return: case Qt::Key_Enter: semantic = Action::Confirm; break;
     case Qt::Key_Escape: case Qt::Key_Backspace: semantic = Action::Back; break;
     case Qt::Key_F1: semantic = Action::SystemMenu; break;
+    case Qt::Key_Home: semantic = Action::Home; break;
     case Qt::Key_Q: semantic = Action::PreviousPage; break;
     case Qt::Key_E: semantic = Action::NextPage; break;
     case Qt::Key_Y: semantic = Action::ToggleContinue; break;

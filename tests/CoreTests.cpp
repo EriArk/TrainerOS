@@ -61,6 +61,11 @@ private slots:
         shell.goToPage(4);
         shell.dispatch(Action::NextPage);
         QCOMPARE(shell.page(), 4);
+        shell.dispatch(Action::Home);
+        QCOMPARE(shell.page(), 0);
+        shell.goToPage(1); shell.dispatch(Action::SystemMenu);
+        shell.dispatch(Action::Home);
+        QCOMPARE(shell.page(), 0); QVERIFY(!shell.menuOpen());
     }
     void repositoryAndAdapter() {
         MockLibraryRepository repo;
@@ -107,6 +112,7 @@ private slots:
             const std::pair<SDL_GameControllerButton, Action> bindings[] = {
                 {SDL_CONTROLLER_BUTTON_LEFTSHOULDER, Action::PreviousPage},
                 {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, Action::NextPage},
+                {SDL_CONTROLLER_BUTTON_GUIDE, Action::Home},
                 // Test positions independently from ControllerInput's constants.
                 {SDL_CONTROLLER_BUTTON_B, Action::Confirm}, {SDL_CONTROLLER_BUTTON_A, Action::Back},
                 {SDL_CONTROLLER_BUTTON_Y, Action::ToggleContinue}, {SDL_CONTROLLER_BUTTON_X, Action::Secondary}, {SDL_CONTROLLER_BUTTON_START, Action::SystemMenu},

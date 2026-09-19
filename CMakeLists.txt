@@ -11,6 +11,8 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/platform/input/AdventureOverlayService.h
+    src/platform/input/AdventureOverlayService.cpp
     src/features/adventure/AdventureExitPresentation.h
     src/features/adventure/AdventureExitPresentation.cpp
     src/core/model/GameProgress.h
@@ -208,6 +210,8 @@ if(BUILD_TESTING)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         find_package(Python3 REQUIRED COMPONENTS Interpreter)
         add_test(NAME session_supervisor COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SessionSupervisorTests.py)
+        add_test(NAME overlay_helper COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/OverlayHelperTests.py)
+        set_tests_properties(overlay_helper PROPERTIES TIMEOUT 15)
         set_tests_properties(session_supervisor PROPERTIES TIMEOUT 40)
     endif()
     qt_add_executable(trainer_power_tests tests/PowerStatusTests.cpp)
@@ -298,6 +302,13 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_exit_presentation_tests tests/AdventureExitPresentationTests.cpp)
     target_link_libraries(trainer_exit_presentation_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME adventure_exit_presentation COMMAND trainer_exit_presentation_tests)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        qt_add_executable(trainer_overlay_tests tests/AdventureOverlayServiceTests.cpp)
+        target_link_libraries(trainer_overlay_tests PRIVATE trainer_core Qt6::Test)
+        add_dependencies(trainer_overlay_tests trainer_process_probe)
+        add_test(NAME adventure_overlay_transport COMMAND trainer_overlay_tests)
+        set_tests_properties(adventure_overlay_transport PROPERTIES TIMEOUT 20)
+    endif()
     set_tests_properties(adventure_exit PROPERTIES TIMEOUT 30)
     qt_add_executable(trainer_diagnostics_tests tests/DiagnosticsTests.cpp)
     target_link_libraries(trainer_diagnostics_tests PRIVATE trainer_core Qt6::Test)

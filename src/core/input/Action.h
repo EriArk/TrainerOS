@@ -4,7 +4,7 @@
 namespace trainer {
 enum class Action {
     Up, Down, Left, Right, Confirm, Back, SystemMenu,
-    PreviousPage, NextPage, ToggleContinue, Secondary
+    PreviousPage, NextPage, ToggleContinue, Secondary, Home
 };
 }
 Q_DECLARE_METATYPE(trainer::Action)
