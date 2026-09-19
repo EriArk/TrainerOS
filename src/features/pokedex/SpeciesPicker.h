@@ -1,6 +1,7 @@
 #pragma once
 #include "core/input/Action.h"
 #include "core/repository/PokedexRepository.h"
+#include "ClassicArt.h"
 #include <QVariantList>
 
 namespace trainer {
@@ -15,6 +16,7 @@ class SpeciesPicker final : public QObject {
 public:
     explicit SpeciesPicker(QObject* parent = nullptr) : QObject(parent) {}
     void setReference(PokedexReferenceProvider* reference) { reference_ = reference; }
+    void setArtwork(ClassicArt* art) { art_ = art; }
     bool isOpen() const { return open_; }
     int focusIndex() const { return focus_; }
     QVariantList entries() const;
@@ -35,6 +37,7 @@ signals:
 private:
     void rebuild();
     PokedexReferenceProvider* reference_ = nullptr;
+    ClassicArt* art_ = nullptr;
     QList<PokedexEntry> catalog_, filtered_;
     bool open_ = false;
     int focus_ = 0;

@@ -14,7 +14,8 @@ QVariantList SpeciesPicker::entries() const {
     QVariantList rows;
     for (const auto& e : filtered_)
         rows.append(QVariantMap{{"id", e.id}, {"name", e.name},
-            {"number", QString("#%1").arg(e.number, 3, 10, QChar('0'))}});
+            {"number", QString("#%1").arg(e.number, 3, 10, QChar('0'))},
+            {"art", art_ && !e.forms.isEmpty() ? art_->image(e.id + '/' + e.forms.first().id, "speciesPickerArt") : QVariantMap{}}});
     return rows;
 }
 void SpeciesPicker::begin(const QString& selected) {

@@ -2,6 +2,7 @@
 #include "core/input/Action.h"
 #include "core/repository/PokedexRepository.h"
 #include "PokedexJournalEditor.h"
+#include "ClassicArt.h"
 #include <QObject>
 #include <QVariantList>
 #include <QJsonObject>
@@ -23,6 +24,8 @@ class PokedexController final : public QObject {
     Q_PROPERTY(QString recoveryLabel READ recoveryLabel NOTIFY changed)
     Q_PROPERTY(trainer::PokedexJournalEditor* journal READ journal CONSTANT)
     Q_PROPERTY(QString source READ source NOTIFY changed)
+    Q_PROPERTY(QString artCoverage READ artCoverage NOTIFY changed)
+    Q_PROPERTY(QVariantList artChoices READ artChoices NOTIFY changed)
 public:
     PokedexController(PokedexReferenceProvider&, PokedexProgressRepository&, QObject* parent = nullptr);
     QString zone() const { return zone_; }
@@ -41,8 +44,12 @@ public:
     QString source() const { return catalog_.source; }
     Q_INVOKABLE void cycleForm();
     Q_INVOKABLE void editJournal();
+    void configureArtwork(ClassicArt* art);
+    QString artCoverage() const;
+    QVariantList artChoices() const;
+    Q_INVOKABLE void openArtwork();
     void dispatch(Action);
-    void activate(int index);
+    Q_INVOKABLE void activate(int index);
     void activateControl(const QString& zone, int index);
     void applySearch(const QString& text);
     void cancelTransient();
@@ -78,5 +85,8 @@ private:
     QString error_;
     bool saving_ = false;
     int railFocus_ = 0, detailFocus_ = 0, pickerFocus_ = 0, pickerKind_ = 1;
+    ClassicArt* art_ = nullptr;
+    int artFocus_ = 0;
+    QString artTarget() const;
 };
 }

@@ -32,6 +32,8 @@ Rectangle {
                     objectName: "species-" + modelData.id
                     x: 5; y: 5; width: parent.width - 10; height: 42
                     label: modelData.number + "  " + modelData.name; tint: Theme.pink
+                    contentInset: 65
+                    ClassicIllustration { x: 15; y: 3; width: 36; height: 36; art: modelData.art || ({}) }
                     selected: root.takesFocus && root.picker.focusIndex === index
                     onActivated: root.picker.activate(index)
                 }

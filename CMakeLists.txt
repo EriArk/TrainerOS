@@ -11,6 +11,8 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/features/pokedex/ClassicArt.h
+    src/features/pokedex/ClassicArt.cpp
     src/core/model/ExitMedia.h
     src/features/home/ExitImage.h
     src/features/home/ExitImage.cpp
@@ -206,6 +208,8 @@ qt_add_qml_module(traineros
         src/qml/PokedexPage.qml
         src/qml/PokedexJournalPanel.qml
         src/qml/SpeciesPickerPanel.qml
+        src/qml/ClassicIllustration.qml
+        src/qml/ArtworkPanel.qml
         src/qml/SaveCenterPanel.qml
         src/qml/BatteryGauge.qml
 )
@@ -247,6 +251,9 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_offline_pokedex_tests tests/OfflinePokedexTests.cpp)
     target_link_libraries(trainer_offline_pokedex_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME offline_pokedex COMMAND trainer_offline_pokedex_tests)
+    qt_add_executable(trainer_classic_art_tests tests/ClassicArtTests.cpp)
+    target_link_libraries(trainer_classic_art_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME classic_art COMMAND trainer_classic_art_tests)
     qt_add_executable(trainer_archive_tests tests/ArchiveTests.cpp)
     target_link_libraries(trainer_archive_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME archive COMMAND trainer_archive_tests)
@@ -274,6 +281,7 @@ if(BUILD_TESTING)
     add_test(NAME retroarch COMMAND trainer_retroarch_tests)
     target_sources(traineros PRIVATE tests/ui/WorldsSmokeScenario.cpp tests/ui/WorldsSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/PokedexSmokeScenario.cpp tests/ui/PokedexSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/ArtworkSmokeScenario.cpp tests/ui/ArtworkSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/HallSmokeScenario.cpp tests/ui/HallSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/PersistenceSmokeScenario.cpp tests/ui/PersistenceSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/LibrarySmokeScenario.cpp tests/ui/LibrarySmokeScenario.h)
@@ -335,6 +343,7 @@ if(BUILD_TESTING)
     add_test(NAME qml_smoke COMMAND traineros --smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots")
     add_test(NAME worlds_qml_smoke COMMAND traineros --worlds-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/worlds")
     add_test(NAME pokedex_qml_smoke COMMAND traineros --pokedex-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/pokedex")
+    add_test(NAME artwork_qml_smoke COMMAND traineros --art-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/artwork")
     add_test(NAME hall_qml_smoke COMMAND traineros --hall-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/hall")
     add_test(NAME diagnostics_qml_smoke COMMAND traineros --diagnostics-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/diagnostics")
     add_test(NAME exit_qml_smoke COMMAND traineros --exit-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/exit")
@@ -345,6 +354,7 @@ if(BUILD_TESTING)
     # This aggregates multiple complete application launches, including the
     # paired Center/controller/restore scenario. Individual child deadlines stay.
     set_tests_properties(persistence_process PROPERTIES TIMEOUT 60)
+    set_tests_properties(artwork_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 60)
 endif()
 
 include(GNUInstallDirs)

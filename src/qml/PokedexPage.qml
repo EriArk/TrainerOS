@@ -6,7 +6,8 @@ Item {
     readonly property var dex: shell.pokedex
     enabled: !shell.drawerOpen
     readonly property bool takesFocus: visible && !shell.drawerOpen && !dex.journal.open && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
-    readonly property bool detailOpen: dex.zone === "detail"
+    readonly property bool detailOpen: dex.zone === "detail" || dex.zone === "art"
+    readonly property bool artOpen: dex.zone === "art"
     readonly property bool pickerOpen: dex.zone === "picker"
 
     Item {
@@ -34,11 +35,11 @@ Item {
             Rectangle { anchors.right: parent.right; y: -parent.y; width: 6; height: parent.y; color: "#c4dcd5" }
         }
         Rectangle {
-            x: 0; y: dexHeader.height + 72; width: 530; height: 365 - y; color: "#dbe8dd"
+            x: 0; y: dexHeader.height + 72; width: 530; height: root.height - 45 - y; color: "#dbe8dd"
             ListView {
                 id: entries
                 objectName: "dex-list"
-                x: 19; y: 10; width: 476; height: 216
+                x: 19; y: 10; width: 476; height: parent.height - 20
                 model: root.dex.entries; currentIndex: root.dex.entryIndex
                 interactive: false; keyNavigationEnabled: false; clip: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -58,16 +59,18 @@ Item {
                     required property int index
                     required property var modelData
                     property alias focusControl: entryButton
-                    width: entries.width; height: 72
+                    width: entries.width; height: 65
                     CapButton {
                         id: entryButton
                         objectName: "dex-entry-" + modelData.id
-                        x: 5; y: 5; width: parent.width - 10; height: 58
+                        x: 5; y: 5; width: parent.width - 10; height: 52
                         label: modelData.number + "   " + modelData.name + (modelData.favorite ? "  ★" : "")
                         detail: modelData.types + "  ·  " + modelData.status
+                        contentInset: 73
                         tint: modelData.favorite ? Theme.yellow : Theme.green
                         selected: root.takesFocus && root.dex.zone === "list" && root.dex.entryIndex === index
                         onActivated: root.shell.activate(index, "list")
+                        ClassicIllustration { x: 13; y: 2; width: 48; height: 48; art: modelData.art || ({}) }
                     }
                 }
             }
@@ -85,21 +88,19 @@ Item {
             }
         }
         Rectangle {
-            x: 530; y: dexHeader.height + 72; width: parent.width - x; height: 365 - y; color: "#e6edde"
-            Rectangle {
-                x: 24; y: 20; width: 117; height: 117; radius: 59; color: "#f6f5e5"; border.color: "#abc9b0"; border.width: 2
-                TrainerEmblem { x: 12; y: 12; width: 93; height: 93; emblem: "spark" }
-            }
-            Text { x: 160; y: 31; text: root.dex.detail.number; color: Theme.muted; font.pixelSize: 24 }
-            Text { x: 160; y: 77; text: "FIELD NOTES"; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1.4 }
-            Text { x: 24; y: 145; width: parent.width - 48; text: root.dex.detail.name; color: Theme.ink; font.pixelSize: 26; font.weight: Font.DemiBold; elide: Text.ElideRight }
-            Text { x: 24; y: 186; width: parent.width - 48; text: root.dex.entries.length ? root.dex.detail.types + " · " + root.dex.detail.status : "Try another trail through the guide."; color: Theme.muted; font.pixelSize: 15; wrapMode: Text.WordWrap }
+            x: 530; y: dexHeader.height + 72; width: parent.width - x; height: root.height - 45 - y; color: "#e6edde"
+            ClassicIllustration { x: 20; y: 2; width: 202; height: 146; art: root.dex.detail.art || ({}); showLabel: true }
+            Text { x: 233; y: 29; text: root.dex.detail.number; color: Theme.muted; font.pixelSize: 23 }
+            Text { x: 233; y: 68; width: parent.width - x - 12; text: root.dex.detail.form; color: Theme.muted; font.pixelSize: 13; wrapMode: Text.WordWrap }
+            Text { x: 24; y: 151; width: parent.width - 48; text: root.dex.detail.name; color: Theme.ink; font.pixelSize: 24; font.weight: Font.DemiBold; elide: Text.ElideRight }
+            Text { x: 24; y: 190; width: parent.width - 48; text: root.dex.entries.length ? root.dex.detail.types + " · " + root.dex.detail.status : "Try another trail through the guide."; color: Theme.muted; font.pixelSize: 13; elide: Text.ElideRight }
         }
         MountedPanel {
             anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
             height: 45; color: "#c4dcd5"
-            Text { x: 27; y: 13; text: root.dex.entries.length + " entries · " + root.dex.source; color: Theme.muted; font.pixelSize: 14 }
-            Text { x: 390; y: 13; text: "X Search   ·   ← / → Jump 8   ·   ↑ Filters"; color: Theme.muted; font.pixelSize: 14 }
+            Text { x: 27; y: 12; text: root.dex.entries.length + " entries · " + root.dex.source; color: Theme.muted; font.pixelSize: 12 }
+            Text { x: 295; y: 12; text: root.dex.artCoverage; color: Theme.muted; font.pixelSize: 12 }
+            Text { x: 569; y: 12; text: "X Search  ·  ← / → Jump 8  ·  ↑ Filters"; color: Theme.muted; font.pixelSize: 12 }
         }
     }
 
@@ -111,8 +112,10 @@ Item {
         }
         Text { x: 29; y: 95; text: root.dex.detail.types; color: Theme.muted; font.pixelSize: 19 }
         Text { x: 420; y: 98; width: parent.width - 448; text: "Height " + root.dex.detail.height + "   ·   Weight " + root.dex.detail.weight; color: Theme.muted; font.pixelSize: 16; horizontalAlignment: Text.AlignRight }
+        ClassicIllustration { objectName: "dex-detail-art"; x: 20; y: 119; width: 240; height: 164; art: root.dex.detail.art || ({}); showLabel: true }
+        Text { x: 37; y: 286; text: "↑  Illustrations & sources"; color: Theme.muted; font.pixelSize: 12 }
         Rectangle {
-            x: 0; y: 135; width: 291; height: 166; color: "#d6e4d8"
+            x: 274; y: 126; width: 280; height: 166; color: "#d6e4d8"
             Text { x: 25; y: 8; text: "BASE STATS · REFERENCE"; color: Theme.muted; font.pixelSize: 11; font.letterSpacing: 1 }
             Repeater {
                 model: root.dex.detail.stats
@@ -130,12 +133,12 @@ Item {
             }
         }
         Column {
-            x: 316; y: 146; width: parent.width - 344; spacing: 9
+            x: 577; y: 120; width: parent.width - 602; spacing: 6
             Text { text: sessionState.persistent ? "YOUR JOURNAL · MANUALLY RECORDED" : "YOUR JOURNAL · SAMPLE DATA"; color: Theme.muted; font.pixelSize: 11; font.letterSpacing: 1 }
-            Text { width: parent.width; text: "Seen: " + root.dex.detail.seen + "   ·   Caught: " + root.dex.detail.caught; color: Theme.ink; font.pixelSize: 19; elide: Text.ElideRight }
+            Text { width: parent.width; text: "Seen: " + root.dex.detail.seen + "\nCaught: " + root.dex.detail.caught; color: Theme.ink; font.pixelSize: 16 }
             Text { width: parent.width; text: root.dex.detail.notes.length ? root.dex.detail.notes : "Select opens your field journal. Unknown records stay unknown."; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 15; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
             Text { width: parent.width; text: "Regional lists: " + (root.dex.detail.worlds.length ? root.dex.detail.worlds : "National guide only"); color: Theme.muted; font.pixelSize: 13; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
-            Text { width: parent.width; text: "Family: " + (root.dex.detail.family.length ? root.dex.detail.family : "Not available in this reference"); color: Theme.muted; font.pixelSize: 13; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
+            Text { width: parent.width; text: "Family: " + (root.dex.detail.family.length ? root.dex.detail.family : "Not available in this reference"); color: Theme.muted; font.pixelSize: 13; elide: Text.ElideRight }
         }
         MountedPanel {
             anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
@@ -144,7 +147,7 @@ Item {
                 objectName: "dex-favorite"
                 x: 28; y: 17; width: 231; height: 46; tint: Theme.yellow
                 label: root.dex.saving ? "Saving…" : root.dex.detail.favorite ? "A   Remove favorite" : "A   Add favorite"
-                selected: root.takesFocus && root.detailOpen && root.dex.focusIndex === 0
+                selected: root.takesFocus && !root.artOpen && root.detailOpen && root.dex.focusIndex === 0
                 onActivated: root.shell.activate(0)
             }
             CapButton { x: 277; y: 17; width: 215; height: 46; tint: Theme.green; label: "Select  Journal"; enabled: root.dex.detail.editable; onActivated: root.dex.editJournal() }
@@ -152,7 +155,7 @@ Item {
             CapButton {
                 objectName: "dex-back"
                 x: 704; y: 17; width: 184; height: 46; tint: Theme.blue; label: "B   Back to entries"
-                selected: root.takesFocus && root.detailOpen && root.dex.focusIndex === 1
+                selected: root.takesFocus && !root.artOpen && root.detailOpen && root.dex.focusIndex === 1
                 onActivated: root.shell.activate(1)
             }
         }
@@ -187,4 +190,5 @@ Item {
         }
     }
     PokedexJournalPanel { anchors.fill: parent; shell: root.shell; visible: root.dex.journal.open }
+    ArtworkPanel { anchors.fill: parent; dex: root.dex; visible: root.artOpen; takesFocus: root.takesFocus && root.artOpen }
 }

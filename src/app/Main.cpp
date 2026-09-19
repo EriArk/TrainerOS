@@ -15,6 +15,7 @@
 #include "platform/input/AdventureOverlayService.h"
 #include "features/home/PlayHistoryController.h"
 #include "features/home/ExitImage.h"
+#include "features/pokedex/ClassicArt.h"
 #include "core/repository/CollectionRepository.h"
 #include "core/repository/OfflinePokedex.h"
 #include "integrations/adventure/retroarch/RetroArchSave.h"
@@ -41,6 +42,7 @@
 #ifdef TRAINEROS_UI_TESTS
 #include "WorldsSmokeScenario.h"
 #include "PokedexSmokeScenario.h"
+#include "ArtworkSmokeScenario.h"
 #include "HallSmokeScenario.h"
 #include "PersistenceSmokeScenario.h"
 #include "LibrarySmokeScenario.h"
@@ -98,11 +100,13 @@ int main(int argc, char* argv[]) {
     parser.addOption({"windowed", "Run in a development window instead of full-screen."});
     parser.addOption({"data-dir", "Use an explicit local data folder (development / isolated validation).", "directory"});
     parser.addOption({"ephemeral", "Use isolated in-memory sample data; do not open a persistent store."});
+    parser.addOption({"art-dir", "Use a private development artwork bootstrap directory.", "directory"});
     parser.addOption({"smoke-test", "Verify the QML shell with an isolated SDL virtual controller, then exit."});
 #ifdef TRAINEROS_UI_TESTS
     parser.addOption({"exit-smoke-test", "Verify the isolated Adventure exit window through SDL input, then exit."});
     parser.addOption({"worlds-smoke-test", "Verify Worlds browsing and mock actions through SDL input, then exit."});
     parser.addOption({"pokedex-smoke-test", "Verify Pokédex filters, search and records through SDL input, then exit."});
+    parser.addOption({"art-smoke-test", "Exercise private artwork bootstrap on the complete offline reference, then exit."});
     parser.addOption({"hall-smoke-test", "Verify Hall of Fame archive and achievement states through SDL input, then exit."});
     parser.addOption({"diagnostics-smoke-test", "Verify controller/display checks and a local report through SDL input, then exit."});
     parser.addOption({"persistence-smoke-test", "Verify persistent controller flows in a test data directory.", "phase"});
@@ -111,6 +115,7 @@ int main(int argc, char* argv[]) {
     parser.process(app);
     bool worldsSmoke = false;
     bool pokedexSmoke = false;
+    bool artSmoke = false;
     bool hallSmoke = false;
     bool diagnosticsSmoke = false;
     bool exitSmoke = false;
@@ -119,13 +124,14 @@ int main(int argc, char* argv[]) {
     exitSmoke = parser.isSet("exit-smoke-test");
     worldsSmoke = parser.isSet("worlds-smoke-test");
     pokedexSmoke = parser.isSet("pokedex-smoke-test");
+    artSmoke = parser.isSet("art-smoke-test");
     hallSmoke = parser.isSet("hall-smoke-test");
     diagnosticsSmoke = parser.isSet("diagnostics-smoke-test");
     persistencePhase = parser.value("persistence-smoke-test");
     if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "library-center", "collection"}.contains(persistencePhase)
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
-    const bool smoke = parser.isSet("smoke-test") || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+    const bool smoke = parser.isSet("smoke-test") || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
     auto smokeBattery = std::make_shared<std::atomic_int>(65);
     PowerStatus powerStatus([smoke, smokeBattery] {
         if (!smoke) return systemBatteryStatus();
@@ -204,7 +210,7 @@ int main(int argc, char* argv[]) {
         ShellController shell(activeLibrary,
                               store ? static_cast<TrainerRepository&>(*store) : profiles,
                               *selectedAdapter, platform,
-                              personalLibrary && !smoke ? static_cast<PokedexReferenceProvider&>(offlineDex) : dex,
+                              (personalLibrary && !smoke) || artSmoke ? static_cast<PokedexReferenceProvider&>(offlineDex) : dex,
                               store ? static_cast<PokedexProgressRepository&>(*store) : dex,
                               personalLibrary && !smoke ? static_cast<HallOfFameRepository&>(*store) : shellArchive,
                               realAchievements ? static_cast<AchievementProvider&>(*realAchievements) : shellAchievements);
@@ -325,6 +331,10 @@ int main(int argc, char* argv[]) {
         ControllerInput input(nullptr, preferred);
         const auto reportBase = parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()
             : QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+        ClassicArt classicArt(parser.isSet("art-dir") ? parser.value("art-dir") : smoke || parser.isSet("ephemeral")
+            ? QString() : QDir(reportBase).filePath("artwork/bootstrap"));
+        shell.pokedex()->configureArtwork(&classicArt);
+        shell.trainer()->picker()->setArtwork(&classicArt);
         DiagnosticsService deviceReports(diagnosticsSmoke ? QDir(parser.value("screenshot-dir")).absoluteFilePath("reports")
                                                          : QDir(reportBase).filePath("diagnostics"));
         shell.diagnostics()->configure(&input, &deviceReports);
@@ -474,6 +484,8 @@ int main(int argc, char* argv[]) {
                 } else if (hallSmoke) {
                     startHallSmoke(window, shell, input, shellArchive, shellAchievements, joystick, screenshotDir,
                                    smokeCompleted, qmlWarnings, diagnostics);
+                } else if (artSmoke) {
+                    startArtworkSmoke(window, shell, input, joystick, screenshotDir, smokeCompleted, qmlWarnings, diagnostics);
                 } else if (pokedexSmoke) {
                     startPokedexSmoke(window, shell, input, dex, joystick, screenshotDir,
                                       smokeCompleted, qmlWarnings, diagnostics);

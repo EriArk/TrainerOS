@@ -16,6 +16,11 @@ Legacy [GBA state-resume code](docs/RETROARCH_RESUME.md) is isolated to its hist
 
 A read-only [battery gauge](docs/POWER_STATUS.md) shows the handheld's charge in the fixed lower panel.
 
+Optional private [Pokédex illustrations](docs/ARTWORK_BOOTSTRAP.md) now appear in
+the list, detail and favorite-species picker. Up on detail opens exact-form
+alternatives and source credits; missing art stays explicit. The real Flip
+bootstrap supplies the measured profiles for the later generic pack contract.
+
 The [preserved plan for issues #19–41](docs/EXPANSION_PLAN.md) and [accepted #42–62 extensions](docs/EXPANSION_42_62.md) add separate Trainer profiles, a non-Pokémon **Multiverse** inside Worlds and a second Home context, alongside shared visual, media, feedback and Help work. These are planned extensions; [the roadmap](docs/ROADMAP.md) retains all earlier unfinished and future commitments and records changed catalogue/session decisions.
 
 ## Product idea

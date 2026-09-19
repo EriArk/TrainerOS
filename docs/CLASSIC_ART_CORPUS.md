@@ -270,6 +270,11 @@ real Flip import, mapping and measured list/detail/picker profiles before #57
 freezes a generic contract or #59 builds Studio. No runtime UI, animation sprite
 provider, final pack schema or Flip installation changed in this pass.
 
+**2026-09-20 follow-up:** the [#60 native bootstrap](ARTWORK_BOOTSTRAP.md) now
+uses this complete corpus on Flip, with bounded list/detail/picker derivatives,
+exact-form alternatives and private canonical/provenance exports. This does not
+change the unresolved #58 identities or turn static illustrations into sprites.
+
 All **29 synthetic tests** pass on Windows and Linux (15 importer, 7 downloader,
 7 discovery/audit). Coverage includes numeric pagination and cache corruption,
 blocked-job resume, incomplete discovery refusal, explicit secondary-art opt-in,

@@ -16,6 +16,25 @@ QString stateLabel(const PokedexProgress& p) {
     return "Not recorded";
 }
 }
+void PokedexController::configureArtwork(ClassicArt* art) {
+    art_ = art;
+    if (art_) connect(art_, &ClassicArt::changed, this, [this] { emit rowsChanged(); emit changed(); });
+    emit rowsChanged(); emit changed();
+}
+QString PokedexController::artTarget() const {
+    if (filtered_.isEmpty()) return {};
+    const auto& entry = filtered_[entryIndex()];
+    return entry.id + '/' + selectedForm(entry).id;
+}
+QString PokedexController::artCoverage() const { return art_ ? art_->coverage() : "Illustrations not installed"; }
+QVariantList PokedexController::artChoices() const { return art_ ? art_->choices(artTarget()) : QVariantList{}; }
+void PokedexController::openArtwork() {
+    if (zone_ != "detail" || journal_.isOpen() || saving_) return;
+    artFocus_ = 0;
+    const auto choices = artChoices();
+    for (int i = 0; i < choices.size(); ++i) if (choices[i].toMap()["current"].toBool()) artFocus_ = i;
+    zone_ = "art"; emit changed();
+}
 PokedexController::PokedexController(PokedexReferenceProvider& reference, PokedexProgressRepository& progress, QObject* parent)
     : QObject(parent), reference_(reference), progress_(progress), journal_(progress,this) {
     connect(&journal_, &PokedexJournalEditor::changed, this, &PokedexController::changed);
@@ -28,6 +47,7 @@ int PokedexController::entryIndex() const {
     return 0;
 }
 int PokedexController::focusIndex() const {
+    if (zone_ == "art") return artFocus_;
     if (zone_ == "picker") return pickerFocus_;
     if (zone_ == "rail") return railFocus_;
     if (zone_ == "detail") return detailFocus_;
@@ -50,6 +70,9 @@ QVariantMap PokedexController::present(const PokedexEntry& entry, bool detailed)
         {"name", entry.name}, {"types", form.types.join(" / ")}, {"worlds", worlds.join(" · ")},
         {"status", stateLabel(p)}, {"seen", recorded(p.seen)}, {"caught", recorded(p.caught)},
         {"favorite", p.favorite}};
+    const auto target = entry.id + '/' + form.id;
+    result["formId"] = form.id;
+    result["art"] = art_ ? art_->image(target, detailed ? "pokedexDetailArt" : "pokedexListArt") : QVariantMap{};
     if(detailed) {
         result["form"]=form.name;result["formCount"]=int(entry.forms.size());result["notes"]=p.notes;
         result["height"]=form.heightDm?QString::number(form.heightDm/10.0,'f',1)+" m":"—";
@@ -224,6 +247,7 @@ void PokedexController::openPicker(int index) {
 }
 void PokedexController::cancelTransient() {
     journal_.cancel();
+    if (zone_ == "art") { zone_ = "detail"; emit changed(); }
     if (zone_ == "picker") { zone_ = "rail"; emit changed(); }
 }
 void PokedexController::applySearch(const QString& text) {
@@ -233,6 +257,14 @@ void PokedexController::applySearch(const QString& text) {
 }
 void PokedexController::activate(int index) {
     if(journal_.isOpen()){journal_.activate(index);return;}
+    if (zone_ == "art") {
+        const auto choices = artChoices();
+        if (!choices.isEmpty() && index >= 0 && index < choices.size()) {
+            const auto error = art_->select(artTarget(), choices[index].toMap()["id"].toString());
+            if (!error.isEmpty()) { emit messageRequested(error); return; }
+        }
+        zone_ = "detail"; emit changed(); return;
+    }
     if (zone_ == "picker") {
         const auto values = options();
         if (index < 0 || index > values.size()) return;
@@ -282,6 +314,14 @@ void PokedexController::activateControl(const QString& zone, int index) {
 }
 void PokedexController::dispatch(Action action) {
     if(journal_.isOpen()){journal_.dispatch(action);return;}
+    if (zone_ == "art") {
+        if (action == Action::Back) zone_ = "detail";
+        else if (action == Action::Confirm) { activate(artFocus_); return; }
+        else if (action == Action::Left || action == Action::Up) artFocus_ = std::max(0, artFocus_ - 1);
+        else if (action == Action::Right || action == Action::Down) artFocus_ = std::min(std::max(0, int(artChoices().size()) - 1), artFocus_ + 1);
+        emit changed(); return;
+    }
+    if (zone_ == "detail" && action == Action::Up) { openArtwork(); return; }
     if(zone_=="detail" && action==Action::Secondary){cycleForm();return;}
     if(zone_=="detail" && action==Action::ToggleContinue){editJournal();return;}
     if((zone_=="list"||zone_=="rail"||zone_=="recovery") && action==Action::Secondary){railFocus_=0;zone_="rail";emit searchRequested(query_);emit changed();return;}

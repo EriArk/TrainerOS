@@ -8,6 +8,7 @@ Item {
     property bool selected: false
     property int textSize: 17
     property bool centered: false
+    property real contentInset: 13
     property color focusColor: Theme.focus
     property string platform: ""
     property string platformShape: "console"
@@ -52,7 +53,7 @@ Item {
         }
         Column {
             anchors { left: parent.left; right: parent.right; margins: 13; verticalCenter: parent.verticalCenter }
-            anchors.leftMargin: root.warning ? 39 : 13
+            anchors.leftMargin: root.warning ? 39 : root.contentInset
             anchors.rightMargin: root.platform.length ? 95 : 13
             spacing: 3
             Text {

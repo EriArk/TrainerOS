@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "stage": "flip-bootstrap",
+  "contractFrozen": false,
+  "logicalViewport": [960, 540],
+  "physicalViewport": [1920, 1080],
+  "profiles": {
+    "pokedexListArt": {"size": [96, 96], "logicalSize": [48, 48], "decodedBytes": 36864},
+    "pokedexDetailArt": {"size": [480, 400], "logicalSize": [240, 200], "entrySlot": [240, 164], "decodedBytes": 768000},
+    "speciesPickerArt": {"size": [72, 72], "logicalSize": [36, 36], "decodedBytes": 20736}
+  },
+  "framing": {
+    "fit": "contain",
+    "safeContentRect": [0.04, 0.04, 0.92, 0.92],
+    "anchor": [0.5, 0.5],
+    "alphaBounds": "nonzero-alpha; opaque images retain the entire canvas",
+    "background": "transparent; preserve existing opaque backgrounds",
+    "bleed": 0,
+    "crop": "transparent margins only",
+    "upscale": "allowed with an explicit low-resolution warning",
+    "resampling": "Lanczos",
+    "encoding": "RGBA PNG",
+    "runtime": "asynchronous bounded derivatives only; no master decoding",
+    "decodedCache": "QML Image cache disabled; hidden slots release their sources; bounded ListView prefetch",
+    "minimumResolutionRule": "warn when containing the nonzero-alpha bounds in the profile safe rectangle requires scale > 1"
+  }
+}
