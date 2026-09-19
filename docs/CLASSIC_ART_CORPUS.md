@@ -31,6 +31,9 @@ The authoritative `corpus-index.json` contains the complete report snapshot:
 original source names, provenance, original SHA-256 paths, dimensions/alpha,
 provisional candidates/associations, errors, missing targets and ambiguity.
 `missing.json`, `ambiguous.json` and `provenance.json` are convenience exports.
+`review.html` is a private, read-only local contact sheet for species with
+unresolved forms; it shows names, IDs, original filenames and full hashes.
+Images load locally and lazily. This is an audit aid, not Pack Studio.
 Original bytes are retained under content hashes. Existing originals are verified
 and reused; interrupted reports regenerate on rerun. Removed seed entries cease
 to be indexed but old originals are never deleted automatically.
@@ -46,8 +49,9 @@ visual review must resolve such cases before the #60 handoff.
 
 `--review private-review.json` accepts an explicit object mapping image SHA-256
 to an existing `speciesId/formId`. This records a reviewed association, not a
-license or final pack path. It does not silently resolve competing images for the
-same target; candidate selection/review remains a subsequent #58 task. Creator
+license or final pack path. Use `--selection private-selection.json` to explicitly
+choose a target's image from its unambiguous candidates (object: `speciesId/formId`
+to SHA-256). Missing/mismatched choices fail; competing originals remain intact. Creator
 is null unless actually established elsewhere; a collection named “Sugimori” is
 not per-file attribution. Static PNG/JPEG/WebP only; animated inputs are rejected.
 
@@ -71,11 +75,70 @@ folder/ZIP import, missing forms, duplicate hashes, conservative mapping/review,
 conflicts, rerun/interruption recovery, invalid bytes/cache corruption, bounded
 imports, cross-platform paths and Git guard. No copyrighted test fixtures are used.
 
-**#58 remains open.** The Bulbagarden category is readable through web search,
+At the initial checkpoint, the Bulbagarden category was readable through web search,
 but direct Archives robots/API probes returned HTTP 403 during this increment.
 No missing-art batch fetch was attempted. Access/policy/rate-limit verification,
 missing-only acquisition with pagination/backoff/cache tests, ambiguous image
 review and maximum-coverage corpus completion remain required. Do not label 470
 as proven absent illustrations, bypass access restrictions, or start #60 with a
 claim of completed corpus coverage. No Flip installation or native UI changes
-were made by this seed-audit increment.
+were made by this seed-audit increment. The following checkpoint supersedes the
+network blocker, not the remaining completion gates.
+
+## Missing-only acquisition and review checkpoint — 2026-09-19
+
+`tools/fetch-classic-art.py` now accepts an explicitly reviewed list of missing
+targets and specific Bulbagarden File-page URLs. It requires an imported seed
+index, skips already associated targets before making network requests, rejects
+unknown IDs and writes a separate private supplement. It does not crawl the site
+or assume that all illustrations have a predictable filename.
+
+```sh
+python tools/fetch-classic-art.py \
+  --index /private/classic-corpus/corpus-index.json \
+  --plan /private/missing-candidates.json --output /private/classic-supplement
+```
+
+Plan entries contain `target` (`speciesId/formId`) and `page` (a specific
+`https://archives.bulbagarden.net/wiki/File:...` URL). Batches are bounded to 200
+candidates. HTTP requests identify TrainerOS. The source now responds, but its
+[robots policy](https://archives.bulbagarden.net/robots.txt) disallows `/w/`,
+including the API. This implementation uses allowed File pages, respects the
+five-second crawl delay and checks policy for image URLs too. It rejects redirects
+for manual review, uses bounded responses/timeouts and limited 429/503 backoff;
+long cooldowns stop the job. A changed or unavailable policy stops new downloads.
+
+Only pages tagged in the classic illustration category with one original-image
+link are accepted. Static PNG validation is a second gate. That category can
+include 3D renders, so visual review still chooses the intended illustration
+style. Per-image source pages, original names/URLs, hashes and page bytes are
+retained; attribution stays unknown until actually verified. Successful items
+are checkpointed separately. Reruns verify cached images and source-page hashes,
+reuse completed work and resume subsequent candidates without redownloading.
+
+Import the supplement with `--supplement /private/classic-supplement` alongside
+the original seed. Each image retains its own source; a fetch plan's proposed
+target does not force a form association. Explicit `--review` and `--selection`
+record reviewed identity and preferred candidate separately. Unknown suffixes,
+duplicate form labels and punctuation identities (Unown !/? and Arceus ???) stay
+distinct. Regional adjectives and descriptive label suffixes now have bounded
+naming equivalents; there is still no implicit first/default-form fallback.
+
+Actual run: 99 additional seed associations; ten new files for six missing Mega
+forms fetched and individually inspected. Six drawn versions were selected;
+four 3D versions remain as alternatives. Combined coverage is **1,214 / 1,579
+forms**, with **365 unresolved**, across **995 / 1,025 species**. The corpus has
+**1,868 entries / 1,867 unique originals**, zero invalid images and zero unresolved
+exact-candidate conflicts after the six explicit selections.
+
+Seventeen synthetic tests pass on Windows and Linux (12 importer + 5 downloader),
+including missing-only selection, seed prerequisite, source/category rejection,
+policy/backoff, cache corruption, interrupted-job resume, supplement provenance,
+explicit candidate selection and escaped local review HTML. Actual download
+reruns reused the first six completed items while obtaining four alternatives.
+
+**#58 remains open:** inspect remaining seed identities/default appearances and
+style/attribution, discover additional missing illustration candidates, complete
+the raw corpus and classify genuine unavailable art honestly. Automated category
+pagination/discovery is not implemented by this explicit-plan downloader. #60
+has not started; no runtime UI, sprite provider or Flip installation changed.

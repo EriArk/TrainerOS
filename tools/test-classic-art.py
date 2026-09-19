@@ -121,6 +121,62 @@ class CorpusTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.run_import()
 
+    def test_explicit_selection_preserves_other_candidates(self):
+        (self.seed / '0001 Bulbasaur.png').write_bytes(png('red'))
+        (self.seed / '1Bulbasaur.png').write_bytes(png('blue'))
+        selection = self.root / 'selection.json'
+        selection.write_text(json.dumps({'bulbasaur/1': art.digest(png('blue'))}))
+        result = art.run(self.seed, self.out, self.ref, 'fixture', selection_path=selection)
+        self.assertEqual(result['coveredForms'], 1)
+        self.assertEqual(result['images'], 2)
+        selection.write_text(json.dumps({'venusaur/3': art.digest(png('blue'))}))
+        with self.assertRaises(ValueError):
+            art.run(self.seed, self.out, self.ref, 'fixture', selection_path=selection)
+
+    def test_regional_names_and_punctuation_are_identity(self):
+        species, _ = art.inventory({'entries': [
+            {'id': 'unown', 'number': 201, 'name': 'Unown', 'forms': [
+                {'id': 'q', 'name': '?'}, {'id': 'e', 'name': '!'}]},
+            {'id': 'tauros', 'number': 128, 'name': 'Tauros', 'forms': [
+                {'id': 'aqua', 'name': 'Paldean Form (Aqua Breed)'},
+                {'id': 'blaze', 'name': 'Paldean Form (Blaze Breed)'}]},
+            {'id': 'darmanitan', 'number': 555, 'name': 'Darmanitan', 'forms': [
+                {'id': 'zen1', 'name': 'Zen Mode'}, {'id': 'zen2', 'name': 'Zen Mode'}]}
+        ]})
+        self.assertEqual(art.candidates('0201 Unown.png', species)[0], [])
+        self.assertEqual(art.candidates('0201 Unown!.png', species)[0], ['unown/e'])
+        self.assertEqual(art.candidates('0128 Tauros Paldea Aqua.png', species)[0], ['tauros/aqua'])
+        self.assertEqual(len(art.candidates('0555 Darmanitan Zen Mode.png', species)[0]), 2)
+
+    def test_review_html_escapes_source_names(self):
+        (self.seed / '0001 Bulbasaur.png').write_bytes(png('red'))
+        self.run_import()
+        _, targets = art.inventory(json.loads(self.ref.read_text()))
+        art.write_review(self.out, targets, [{'speciesId': 'venusaur', 'sourceName': '<script>bad</script>',
+                         'path': 'originals/x.png', 'sha256': 'a' * 64, 'candidates': []}], {})
+        html = (self.out / 'review.html').read_text(encoding='utf8')
+        self.assertNotIn('<script>', html)
+        self.assertIn('&lt;script&gt;', html)
+
+    def test_supplement_provenance_does_not_force_proposed_target(self):
+        (self.seed / '0001 Bulbasaur.png').write_bytes(png('red'))
+        supplement = self.root / 'supplement'
+        supplement.mkdir()
+        data = png('blue')
+        sha = art.digest(data)
+        (supplement / (sha + '.png')).write_bytes(data)
+        (supplement / 'acquisition.json').write_text(json.dumps({'page': {
+            'file': sha + '.png', 'sha256': sha, 'sourceName': '0003 Venusaur unknown.png',
+            'source': 'fixture:separate-source', 'target': 'venusaur/3'}}))
+        result = art.run(self.seed, self.out, self.ref, 'fixture:seed', supplement=supplement)
+        self.assertEqual(result['coveredForms'], 1)
+        report = json.loads((self.out / 'corpus-index.json').read_text())
+        self.assertEqual(report['images'][-1]['source'], 'fixture:separate-source')
+        self.assertEqual(report['images'][-1]['candidates'], [])
+        (supplement / (sha + '.png')).unlink()
+        with self.assertRaises(ValueError):
+            art.run(self.seed, self.out, self.ref, 'fixture:seed', supplement=supplement)
+
 
 if __name__ == '__main__':
     unittest.main()
