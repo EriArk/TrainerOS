@@ -35,7 +35,7 @@ User-requested exit must:
 
 1. Capture the clean gameplay frame **before** any TrainerOS exit overlay.
 2. Resolve the exact title/integration policy: `manualConfirm`, verified `autosave`, or `unknown`. Platform alone never establishes autosave.
-3. For manual/unknown, ask “Have you saved your game?” while the process remains alive. B (“Not yet”) removes the overlay and returns to that same process. A confirms graceful exit. Verified autosave can skip this question.
+3. For manual/unknown, ask “Have you saved your game?” while the process remains alive. B (“Not yet”) removes the overlay and returns to that same process. A confirms graceful exit. Owner clarification (2026-09-19) supersedes the former skip: verified autosave asks "Close this game?" and also requires A. Use physical Home/Guide for the request after validating device interception; Start+Select is the legacy route, not the target.
 4. Commit exit media/history with its actual outcome, restore the launching route, and refresh ordinary-save observations asynchronously.
 
 The prompt records the user's confirmation, not proof a save occurred. Pending captures from cancelled/failed attempts cannot masquerade as completed exits. A capture failure must remain honest, preserve the prior valid image and leave a usable cancel/exit route; no substitute state thumbnail. Crash, forced termination or battery loss cannot fabricate confirmation, a safe exit or a new verified screenshot. Preserve valid previous media/history where appropriate and report interruption.
@@ -48,7 +48,7 @@ The clean exit image is the canonical source for Home/Y/recent history. #15/#17 
 
 **Migration:** stop exposing old state slots and launch dependencies; preserve ordinary saves, histories and independently sourced images. Inventory legacy references and retire only demonstrably TrainerOS-owned obsolete artifacts with a reviewed recovery path. Do not delete user/emulator files by extension or drop unrelated metadata. Existing resolver coupling to a resume profile must be removed without losing ordinary-save identity safeguards. Keep legacy tests/evidence labeled historical until the replacement is proven.
 
-**Acceptance:** manual title capture-before-prompt, B same-process continuation, A graceful return, unknown asks, verified autosave skips, no overlay in image, Home/Y provenance, normal relaunch, migration/restart/rollback and interrupted outcomes. Physically verify a manual Pokémon title and a verified autosave title when available; absence leaves that specific gate open. Sleep work remains deferred.
+**Acceptance:** manual title capture-before-prompt, B same-process continuation, A graceful return, unknown asks, verified autosave asks exit permission, no overlay in image, Home/Y provenance, normal relaunch, migration/restart/rollback and interrupted outcomes. Physically verify a manual Pokémon title and a verified autosave title when available; absence leaves that specific gate open. Sleep work remains deferred.
 
 ## Exact save providers and research
 

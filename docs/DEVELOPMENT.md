@@ -23,6 +23,13 @@ Implemented:
 
 ## Dependencies
 
+The #49 presenter has an isolated `--exit-smoke-test` scenario in testing builds.
+It uses an original child process and an SDL virtual controller, never a ROM or
+personal save. Run `ctest --test-dir build/native -R 'adventure_exit|exit_qml' --output-on-failure`
+for the protocol, input gate and rendered window checks; screenshots go under
+`build/native/screenshots/exit`. It does not establish an actual platform input
+lease or enable the overlay for normal launches. See [exit boundaries](ADVENTURE_EXIT.md).
+
 - CMake 3.24 or newer; Ninja is recommended.
 - C++20 compiler.
 - Qt 6.4 or newer: Core, Gui, Qml, Quick, Sql, the QSQLITE driver, QtQuick / QtQuick.Window / QtQuick.Shapes QML modules, and Test when `BUILD_TESTING=ON`.

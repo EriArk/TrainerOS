@@ -11,6 +11,8 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/features/adventure/AdventureExitPresentation.h
+    src/features/adventure/AdventureExitPresentation.cpp
     src/core/model/GameProgress.h
     src/core/model/GameProgressProvider.h
     src/integrations/progress/Gen3Progress.h
@@ -156,6 +158,7 @@ qt_add_qml_module(traineros
     RESOURCE_PREFIX /
     QML_FILES
         src/qml/Main.qml
+        src/qml/AdventureExitWindow.qml
         src/qml/Theme.qml
         src/qml/Panel.qml
         src/qml/ChassisFrame.qml
@@ -259,6 +262,7 @@ if(BUILD_TESTING)
     target_sources(traineros PRIVATE tests/ui/HomeSmokeScenario.cpp tests/ui/HomeSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/DiagnosticsSmokeScenario.cpp tests/ui/DiagnosticsSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/CenterSmokeScenario.cpp tests/ui/CenterSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/ExitSmokeScenario.cpp tests/ui/ExitSmokeScenario.h)
     add_dependencies(traineros trainer_process_probe)
     target_include_directories(traineros PRIVATE tests/ui)
     target_compile_definitions(traineros PRIVATE TRAINEROS_UI_TESTS)
@@ -291,6 +295,9 @@ if(BUILD_TESTING)
     target_link_libraries(trainer_exit_tests PRIVATE trainer_core Qt6::Test)
     add_dependencies(trainer_exit_tests trainer_process_probe)
     add_test(NAME adventure_exit COMMAND trainer_exit_tests)
+    qt_add_executable(trainer_exit_presentation_tests tests/AdventureExitPresentationTests.cpp)
+    target_link_libraries(trainer_exit_presentation_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME adventure_exit_presentation COMMAND trainer_exit_presentation_tests)
     set_tests_properties(adventure_exit PROPERTIES TIMEOUT 30)
     qt_add_executable(trainer_diagnostics_tests tests/DiagnosticsTests.cpp)
     target_link_libraries(trainer_diagnostics_tests PRIVATE trainer_core Qt6::Test)
@@ -304,7 +311,8 @@ if(BUILD_TESTING)
     add_test(NAME pokedex_qml_smoke COMMAND traineros --pokedex-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/pokedex")
     add_test(NAME hall_qml_smoke COMMAND traineros --hall-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/hall")
     add_test(NAME diagnostics_qml_smoke COMMAND traineros --diagnostics-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/diagnostics")
-    set_tests_properties(pointer_visibility retroarch core interactions worlds pokedex hall storage library process diagnostics persistence_process qml_smoke worlds_qml_smoke pokedex_qml_smoke hall_qml_smoke diagnostics_qml_smoke PROPERTIES
+    add_test(NAME exit_qml_smoke COMMAND traineros --exit-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/exit")
+    set_tests_properties(exit_qml_smoke pointer_visibility retroarch core interactions worlds pokedex hall storage library process diagnostics persistence_process qml_smoke worlds_qml_smoke pokedex_qml_smoke hall_qml_smoke diagnostics_qml_smoke PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software"
         TIMEOUT 30
     )

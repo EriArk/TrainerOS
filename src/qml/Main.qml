@@ -10,6 +10,11 @@ Window {
     visible: true
     title: "TrainerOS — native prototype"
     color: Theme.chassisDark
+    AdventureExitWindow {
+        presentation: adventureExitPresentation
+        width: window.width; height: window.height
+        x: window.x; y: window.y
+    }
     Binding { target: Theme; property: "themeId"; value: shell.settings.theme }
     Binding { target: Theme; property: "reducedMotion"; value: shell.settings.reducedMotion }
     onClosing: function(close) { close.accepted = false; sessionState.requestExit() }

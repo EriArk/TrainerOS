@@ -11,6 +11,7 @@
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "core/navigation/AdventureLaunchController.h"
+#include "features/adventure/AdventureExitPresentation.h"
 #include "features/home/PlayHistoryController.h"
 #include "core/repository/CollectionRepository.h"
 #include "core/repository/OfflinePokedex.h"
@@ -46,6 +47,7 @@
 #include "HomeSmokeScenario.h"
 #include "DiagnosticsSmokeScenario.h"
 #include "CenterSmokeScenario.h"
+#include "ExitSmokeScenario.h"
 #endif
 
 using namespace trainer;
@@ -86,6 +88,7 @@ int main(int argc, char* argv[]) {
     parser.addOption({"ephemeral", "Use isolated in-memory sample data; do not open a persistent store."});
     parser.addOption({"smoke-test", "Verify the QML shell with an isolated SDL virtual controller, then exit."});
 #ifdef TRAINEROS_UI_TESTS
+    parser.addOption({"exit-smoke-test", "Verify the isolated Adventure exit window through SDL input, then exit."});
     parser.addOption({"worlds-smoke-test", "Verify Worlds browsing and mock actions through SDL input, then exit."});
     parser.addOption({"pokedex-smoke-test", "Verify Pokédex filters, search and records through SDL input, then exit."});
     parser.addOption({"hall-smoke-test", "Verify Hall of Fame archive and achievement states through SDL input, then exit."});
@@ -98,8 +101,10 @@ int main(int argc, char* argv[]) {
     bool pokedexSmoke = false;
     bool hallSmoke = false;
     bool diagnosticsSmoke = false;
+    bool exitSmoke = false;
     QString persistencePhase;
 #ifdef TRAINEROS_UI_TESTS
+    exitSmoke = parser.isSet("exit-smoke-test");
     worldsSmoke = parser.isSet("worlds-smoke-test");
     pokedexSmoke = parser.isSet("pokedex-smoke-test");
     hallSmoke = parser.isSet("hall-smoke-test");
@@ -108,7 +113,7 @@ int main(int argc, char* argv[]) {
     if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "library-center", "collection"}.contains(persistencePhase)
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
-    const bool smoke = parser.isSet("smoke-test") || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+    const bool smoke = parser.isSet("smoke-test") || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
     auto smokeBattery = std::make_shared<std::atomic_int>(65);
     PowerStatus powerStatus([smoke, smokeBattery] {
         if (!smoke) return systemBatteryStatus();
@@ -251,6 +256,7 @@ int main(int argc, char* argv[]) {
         if (saveBackups) QObject::connect(saveBackups.get(), &SaveBackupService::busyChanged, &session, updateServiceActivity);
         ProcessService adventureProcess;
         AdventureLaunchController adventureLaunch(adventureProcess);
+        AdventureExitPresentation exitPresentation(adventureLaunch.exitController());
         std::unique_ptr<GameProgressService> gameProgress;
         QByteArray progressSelection;
         bool progressHomeVisible = false;
@@ -301,6 +307,9 @@ int main(int argc, char* argv[]) {
                                                          : QDir(reportBase).filePath("diagnostics"));
         shell.diagnostics()->configure(&input, &deviceReports);
         QObject::connect(&input, &ControllerInput::action, &session, [&](Action action) {
+            // An exit prompt must never navigate the hidden shell. The future
+            // exclusive input provider feeds its own snapshots to the presenter.
+            if (adventureLaunch.exitController().phase() != AdventureExitController::Phase::Idle) return;
             if (adventureLaunch.active()) {
                 if (adventureLaunch.preparing() && action == Action::Back) adventureLaunch.cancel();
                 return;
@@ -348,6 +357,7 @@ int main(int argc, char* argv[]) {
         engine.rootContext()->setContextProperty("controllerInput", &input);
         engine.rootContext()->setContextProperty("sessionState", &session);
         engine.rootContext()->setContextProperty("adventureLaunch", &adventureLaunch);
+        engine.rootContext()->setContextProperty("adventureExitPresentation", &exitPresentation);
         engine.rootContext()->setContextProperty("powerStatus", &powerStatus);
         engine.load(QUrl("qrc:/TrainerOS/Main.qml"));
         if (engine.rootObjects().isEmpty()) result = 2;
@@ -355,6 +365,8 @@ int main(int argc, char* argv[]) {
             auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
             if (!window) return 2;
             auto* pointerVisibility = new PointerVisibility(*window, platform.dedicatedSession());
+            if (auto* exitWindow = window->findChild<QQuickWindow*>("adventure-exit-window"))
+                new PointerVisibility(*exitWindow, platform.dedicatedSession());
             QObject::connect(&input, &ControllerInput::observedAction, pointerVisibility,
                              [pointerVisibility](Action, bool fromController) {
                 if (fromController) pointerVisibility->hide();
@@ -416,7 +428,10 @@ int main(int argc, char* argv[]) {
                 const QString screenshotDir = parser.value("screenshot-dir");
                 if (!screenshotDir.isEmpty() && !QDir().mkpath(screenshotDir)) return 2;
 #ifdef TRAINEROS_UI_TESTS
-                if(persistencePhase=="library-center") {
+                if (exitSmoke) {
+                    startExitSmoke(window, shell, adventureLaunch, exitPresentation, input, joystick,
+                                   screenshotDir, smokeCompleted, qmlWarnings, diagnostics);
+                } else if(persistencePhase=="library-center") {
                     startCenterSmoke(window,shell,session,*store,input,joystick,stateDirectory,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
                 } else if (diagnosticsSmoke) {
                     startDiagnosticsSmoke(window, shell, session, input, deviceReports, joystick, screenshotDir,

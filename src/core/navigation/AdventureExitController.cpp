@@ -40,7 +40,7 @@ void AdventureExitController::captureCompleted(quint64 attempt, const QImage& fr
     pendingFrame_ = valid ? frame.copy() : QImage();
     captureError_ = !pendingFrame_.isNull() ? QString()
         : !error.isEmpty() ? error : "Couldn't capture this moment. Your previous image will be kept.";
-    if (policy_ == AdventureSavePolicy::VerifiedAutosave) { close(); return; }
+    // Even verified autosave requires explicit permission to leave the game.
     phase_ = Phase::Confirming;
     emit changed();
     if (phase_ == Phase::Confirming && attempt == attempt_) emit confirmationRequested();

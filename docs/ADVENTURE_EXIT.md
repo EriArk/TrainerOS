@@ -4,7 +4,8 @@
 
 `AdventureLaunchController` now owns an `AdventureExitController` for its running
 child. This is the native protocol foundation, **not a deployed game overlay**.
-Production composition does not yet connect capture, controller interception or
+A separate Qt/QML presenter is now composed but remains gated off. Production
+composition does not yet connect capture, controller interception or
 graceful-close providers. Availability starts disabled and resets for each game;
 the existing Flip launch/exit controls remain in place until its platform gate.
 
@@ -19,12 +20,13 @@ The sequence is:
 2. The capture provider returns that token and a clean gameplay image, or an
    error. A 2.5-second deadline treats a missing response as capture failure.
    Images are copied into temporary memory, capped at 64 MiB. No files are written.
-3. Manual/unknown policy enters `Confirming`; the presenter can now ask whether
-   the user saved. The future A/B routing calls `confirm()`/`cancel()` here.
+3. Every policy enters `Confirming`; manual/unknown asks whether the user
+   saved, while verified autosave asks whether to close the game. The presenter
+   routes exclusive A/B input to `confirm()`/`cancel()` here.
    Cancellation discards the pending image and requests return to the **same
    live process**, without restoring the shell's launch navigation or relaunching.
    Cancellation is also allowed during capture.
-4. Confirmation, or verified autosave after capture, enters `Closing` and asks
+4. Explicit confirmation enters `Closing` and asks
    the platform to close its owned game gracefully. Generic terminate/kill is
    explicitly not this provider. Once a close request has been sent, cancellation
    is no longer offered: it cannot retract an asynchronous emulator close.
@@ -148,3 +150,60 @@ Gamescope captures show the installed shell's Start menu, east/A opening
 Settings, and south/B returning to the menu. These final installed-UI
 checks used InputPlumber gamepad-event injection; physical A/B events were
 observed in the preceding probe. The ordinary #49 exit overlay remains disabled.
+
+## Qt presentation increment, 2026-09-19
+
+Owner clarifications supersede the earlier autosave shortcut: **every exit asks**.
+Manual/unknown uses "Have you saved your game?"; verified autosave uses
+"Close this game?" and reminds the player to wait for any saving indicator.
+A grants permission to close, never proof that a save finished. B returns to
+the same process in both policies. The native protocol no longer auto-closes
+verified-autosave sessions. Home/Guide is the target physical request instead
+of Start+Select; Start keeps its shell-menu role.
+
+`AdventureExitPresentation` presents the protocol without owning input devices,
+capture, processes or files. `AdventureExitWindow.qml` is a separate, initially
+hidden Qt window sharing the shell's theme, molded panel and mounted action caps.
+It has no transient-window dependency on the hidden shell. It appears only after
+capture has resolved, has fixed A/B actions without directional selection, and
+shows a waiting state after close dispatch. After eight seconds it explains
+that the game has not closed; it never escalates to a kill. Window-close requests
+can cancel an armed question but cannot cancel an already dispatched close.
+
+Input remains disabled until the provider establishes exclusive ownership,
+the window has focus, and a **fresh complete neutral snapshot** arrives. That
+snapshot must come from the intercepted physical stream, not a muted SDL virtual
+pad. Buttons, both sticks and triggers participate. Focus/lease loss, disconnect
+and phase changes invalidate the generation of queued input; each new attempt
+requires a new proven lease. Simultaneous A+B selects Back. The provider must
+separately keep its lease until controls are released when returning to gameplay;
+this presenter gate is not a replacement for that platform release/watchdog.
+
+The production composition includes the hidden presenter and suppresses shell
+navigation during exit. It does **not** enable exit availability or install a
+Home handler. Flip's current InputPlumber advertises `Gamepad:Button:Guide` on
+the Retroid Pocket Flip 2 device, with intercept mode still zero. This inventory
+does not prove the physical Home mapping or freedom from competing handlers.
+The owner pressed physical Home during this increment and reported that no menu
+opened; the actual event and request routing still require observation.
+Existing emulator exit bindings and installed binary remain unchanged in this
+increment. No ordinary saves, savestates or personal history are migrated.
+
+Tests use an original live child and SDL gamepad events. They cover capture
+failure, held-opening A, focus/lease revocation, stale events, disconnect,
+same-PID cancellation, retry, A-before-actual-exit, waiting, both question texts
+and restored shell page navigation. A synthetic autosave policy is a fixture,
+not validation of an actual autosave title. Real Home routing, capture and
+crash-safe input release are the next integration gate; durable media and safe
+legacy-state retirement follow it.
+
+Verification for this increment: Windows **33/33** and native ARM64 **34/34**
+CTest targets passed. Rendered controller scenarios were inspected at 960x540
+and 1920x1080. The first rendered run exposed the hidden transient-parent
+problem; removing that dependency fixed it, followed by both full-suite runs.
+The same final test binary also passed its SDL scenario on Flip's actual
+Gamescope X11 display using Qt Quick's software renderer; its rendered 1080p
+window was inspected and the original installed shell remained running. This
+was an isolated original process fixture, not a real game or physical-input
+lease test. The installed production executable was not replaced.
+The ARM64 `BUILD_TESTING=OFF` production target also built successfully.

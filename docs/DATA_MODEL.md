@@ -113,7 +113,7 @@ Migration must identify legacy references/artifacts, stop exposing them as resum
 
 `CurrentPokemonAdventureContext` is Trainer-scoped: stable Adventure ID, resolved exact build and ordinary-save identity/revision when available. One committed source serves Home, Pokédex, Center, Trainer, Journey and RA. Unsupported fields remain unavailable without changing selection. A separate per-Trainer Multiverse choice and Home domain retain independence. Per-face routes/focus/filters belong to navigation, not extra current-save owners. No separate persistent capsule control.
 
-`savePolicy` is title/integration evidence: `manualConfirm | autosave | unknown`. Unknown asks. A pending exit records session/capture/confirmation outcome; user confirmation is not proof the save was written. Cancellation returns to the same game process. An interrupted session cannot fabricate confirmation.
+`savePolicy` is title/integration evidence: `manualConfirm | autosave | unknown`. Manual/unknown asks about saving; verified autosave asks for exit permission too (owner clarification, 2026-09-19). A pending exit records session/capture/confirmation outcome; user confirmation means permission to exit, not proof a manual save or autosave was written. Cancellation returns to the same game process. An interrupted session cannot fabricate confirmation.
 
 Clean exit media carries Trainer/domain/Adventure/session/build identity, source revision, capture time, dimensions and availability. The image predates exit UI. It is a media artifact, not a gameplay restore point or proof of progress. Commit successful exit provenance; preserve previous valid media on failed/interrupted attempts as appropriate. Home/Y/history consume the same handle.
 

@@ -195,7 +195,7 @@ Do not assume a specific display manager, compositor, Gamescope arrangement, sys
 
 - Do not hard-code the entire application around one emulator.
 - Target adapter capabilities include normal launch, process lifecycle, clean exit capture, verified title save policy and ordinary-save resolution/backup. Exact-build providers independently advertise semantic reads and protected writes (#42/#50); reading Party/money does not prove editing support.
-- Planned #49 exit captures gameplay before its overlay, asks manual/unknown titles while the game stays alive, cancels back to that same process or confirms graceful exit; only verified autosave skips the question. Crashes never fabricate save confirmation. Prove compositor/input handoff on Flip before claiming support.
+- Planned #49 exit captures gameplay before its overlay, asks manual/unknown titles while the game stays alive, cancels back to that same process or confirms graceful exit; verified autosave also asks "Close this game?" (owner clarification, 2026-09-19). Target physical Home/Guide as the request instead of Start+Select after verifying platform interception. Start retains the shell system menu. Crashes never fabricate save confirmation. Prove compositor/input handoff on Flip before claiming support.
 - The UI must degrade gracefully when an adapter lacks a capability.
 - Process invocation and emulator-specific CLI/environment details belong in adapters, not feature UI.
 - Never delete or overwrite a user's save/state silently.

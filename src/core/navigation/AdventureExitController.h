@@ -18,6 +18,7 @@ public:
     static constexpr int CaptureTimeoutMs = 2500;
     explicit AdventureExitController(QObject* parent = nullptr);
     Phase phase() const { return phase_; }
+    bool verifiedAutosave() const { return policy_ == AdventureSavePolicy::VerifiedAutosave; }
     QString captureError() const { return captureError_; }
     bool available() const { return available_; }
     void setAvailable(bool available);
@@ -37,8 +38,8 @@ signals:
     void failed(const QString& error);
     // Emitted only after the owned process actually exits cleanly. This is not
     // proof of an in-game save or a durable media write. Null frame means no new
-    // image: consumers must retain previous valid media. Confirmation is an
-    // assertion by the user, and is false for verified-autosave policy.
+    // image: consumers must retain previous valid media. userConfirmed records
+    // permission to exit, not proof of a completed manual save or autosave.
     void completed(quint64 attempt, const QImage& frame, bool userConfirmed);
 private:
     void close();
