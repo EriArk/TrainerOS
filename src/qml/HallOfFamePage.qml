@@ -7,38 +7,24 @@ Item {
     enabled: !shell.drawerOpen
     readonly property bool takesFocus: visible && !shell.drawerOpen && !hall.editor.open && !hall.account.open && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     readonly property bool detailOpen: hall.route === "archive-detail" || hall.route === "achievement-detail"
-    PageHeader { id: hallHeader; title: "Hall of Fame"; trailing: "Every journey leaves a story" }
+    PageHeader { id: hallHeader; title: root.hall.archive ? "Hall of Fame" : "RetroAchievements"; trailing: root.hall.archive ? "Every journey leaves a story" : "Your account's achievements" }
     MountedPanel {
         x: 0; y: hallHeader.height; width: parent.width; height: 68; color: "#d2dcd6"
         Rectangle { x: 0; y: -parent.y; width: 6; height: parent.y; color: parent.color }
         Rectangle { anchors.right: parent.right; y: -parent.y; width: 6; height: parent.y; color: parent.color }
-        Row {
-            x: 24; y: 12; spacing: 14
-            Repeater {
-                model: ["Archive", "RetroAchievements"]
-                delegate: CapButton {
-                    required property int index
-                    required property string modelData
-                    objectName: "hall-tab-" + index
-                    width: 238; height: 42; label: ((root.hall.archive ? 0 : 1) === index ? "• " : "") + modelData
-                    tint: index === 0 ? Theme.tabColors[4] : Theme.blue
-                    selected: root.takesFocus && root.hall.zone === "rail" && root.hall.focusIndex === index
-                    onActivated: root.shell.activate(index, "rail")
-                }
-            }
-        }
-        Text { x: 532; y: 11; width: parent.width - 554; text: root.hall.status; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 14 }
-        Text { x: 532; y: 39; width: parent.width - 554; visible: root.hall.archive && root.hall.editable; text: "Select · New memory     X · Edit"; color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
-        Text { x: 532; y: 39; width: parent.width - 554; visible: !root.hall.archive && root.hall.account.available; text: "Select · Refresh     X · Account"; color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
+        Text { x: 24; y: 11; text: root.hall.archive ? "Adventure memories" : "Achievement collection"; color: Theme.ink; font.pixelSize: 21; font.weight: Font.DemiBold }
+        Text { x: 24; y: 39; width: 495; text: root.hall.status; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 14 }
+        Text { x: 548; y: 25; width: parent.width - 570; visible: root.hall.archive && root.hall.editable; text: "Select · New memory     X · Edit"; color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
+        Text { x: 548; y: 25; width: parent.width - 570; visible: !root.hall.archive; text: "Select · Refresh" + (root.hall.account.available ? "     X · Account" : ""); color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
     }
     Item {
         anchors.fill: parent; visible: !root.detailOpen
         Rectangle {
-            x: 0; y: hallHeader.height + 68; width: 538; height: 339 - y; color: "#e2e7de"
-            // Three rows, with their entire raised focus outline inside the viewport.
+            x: 0; y: hallHeader.height + 68; width: 538; height: Math.max(0, root.height - 71 - y); color: "#e2e7de"
+            // Reveal the complete focused row above the attached action panel.
             ControllerList {
                 objectName: "hall-list"
-                x: 19; y: 0; width: 482; height: 216
+                x: 19; y: 0; width: 482; height: parent.height
                 model: root.hall.rows; currentIndex: root.hall.rowIndex
                 namePrefix: "hall-row-"; tint: root.hall.archive ? "#c6b4df" : Theme.green
                 takesFocus: root.takesFocus && !root.detailOpen && root.hall.zone === "list"
@@ -51,7 +37,7 @@ Item {
             }
         }
         Rectangle {
-            x: 538; y: hallHeader.height + 68; width: parent.width - x; height: 339 - y; color: "#edf0df"
+            x: 538; y: hallHeader.height + 68; width: parent.width - x; height: Math.max(0, root.height - 71 - y); color: "#edf0df"
             TrainerEmblem { x: 23; y: 19; width: 97; height: 97; emblem: "compass" }
             Text { x: 136; y: 39; width: parent.width - 154; text: root.hall.archive ? "A JOURNEY\nREMEMBERED" : "ACHIEVEMENT\nRECORDS"; color: Theme.muted; font.pixelSize: 13; font.letterSpacing: 1.3 }
             Text { x: 23; y: 123; width: parent.width - 46; text: root.hall.detail.title; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 22; font.weight: Font.DemiBold; elide: Text.ElideRight }
@@ -118,8 +104,8 @@ Item {
             anchors { right: parent.right; rightMargin: 25 }
             y: 19; width: 270
             text: root.detailOpen ? "B · Return to previous list"
-                : root.hall.rows.length > 0 ? root.hall.rows.length + " records\n↑ Sections above the first row"
-                : "No records to display\n↑ Choose a section"
+                : root.hall.rows.length > 0 ? root.hall.rows.length + " records"
+                : "No records to display"
             color: Theme.muted; font.pixelSize: 13; horizontalAlignment: Text.AlignRight
         }
     }

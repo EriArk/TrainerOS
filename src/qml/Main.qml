@@ -178,7 +178,7 @@ Window {
             Row {
                 anchors { right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
                 spacing: 14
-                Hint { visible: shell.pairedNavigationAvailable; button: "L2 R2"; label: shell.centerFace ? "Pokédex" : "Center"; tint: Theme.green }
+                Hint { visible: shell.pairedNavigationAvailable; button: "L2 R2"; label: shell.page === 4 ? (shell.hall.archive ? "Achievements" : "Hall of Fame") : (shell.centerFace ? "Pokédex" : "Center"); tint: Theme.green }
                 Hint { button: "L1 R1"; label: "Sections"; tint: Theme.blue }
                 Hint { button: "A"; label: shell.keyboard.open && !shell.menuOpen ? "Type" : shell.page === 0 && !shell.drawerOpen && !shell.menuOpen && !shell.serviceOpen && shell.notice.length === 0 ? shell.home.actionHint : "Select" }
                 Hint { button: "B"; label: shell.keyboard.open && !shell.menuOpen ? "Cancel input" : "Back"; tint: Theme.pink }

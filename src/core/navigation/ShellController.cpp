@@ -145,7 +145,7 @@ bool ShellController::chooseAdventureAvailable() {
         && !keyboard_.isOpen() && !localModalOpen();
 }
 bool ShellController::pairedNavigationAvailable() {
-    return page_ == 2 && center_.configured() && chooseAdventureAvailable() && !drawerOpen_;
+    return (page_ == 4 || (page_ == 2 && center_.configured())) && chooseAdventureAvailable() && !drawerOpen_;
 }
 void ShellController::openCenter() {
     centerFace_ = true;
@@ -476,7 +476,8 @@ void ShellController::dispatch(Action action) {
     }
     if (action == Action::PreviousFace || action == Action::NextFace) {
         if (pairedNavigationAvailable()) {
-            if (centerFace_) { center_.close(); centerFace_ = false; }
+            if (page_ == 4) hall_.switchFace();
+            else if (centerFace_) { center_.close(); centerFace_ = false; }
             else openCenter();
             emit changed();
         }

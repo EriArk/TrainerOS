@@ -45,6 +45,7 @@ public:
     void activate(int index);
     void activateControl(const QString& zone, int index);
     void refreshArchive();
+    void switchFace();
     QJsonObject navigationState() const;
     void restoreNavigation(const QJsonObject&);
 signals:
@@ -63,6 +64,9 @@ private:
     void normalizeActions();
     void back();
     bool isDetail() const { return route_.endsWith("detail"); }
+    struct FaceView { QString route, zone; int action = 0; };
+    FaceView archiveView_{"archive-list", "list"};
+    FaceView achievementView_{"sets", "list"};
     HallOfFameRepository& repository_;
     AchievementProvider& provider_;
     ArchiveEditor editor_;
@@ -72,6 +76,6 @@ private:
     QString archiveId_, setId_;
     QHash<QString, QString> achievementIds_;
     QString route_ = "archive-list", zone_ = "list";
-    int railFocus_ = 0, actionFocus_ = 0;
+    int actionFocus_ = 0;
 };
 }

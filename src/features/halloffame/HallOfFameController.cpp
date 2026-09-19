@@ -36,7 +36,9 @@ HallOfFameController::HallOfFameController(HallOfFameRepository& repository, Ach
     connect(&editor_, &ArchiveEditor::changed, this, &HallOfFameController::changed);
     connect(&editor_, &ArchiveEditor::messageRequested, this, &HallOfFameController::messageRequested);
     connect(&editor_, &ArchiveEditor::saved, this, [this](const QString& id) {
-        archiveId_ = id; route_ = "archive-detail"; zone_ = "actions"; actionFocus_ = 0; refreshArchive();
+        archiveId_ = id; archiveView_ = {"archive-detail", "actions"};
+        if (isArchive()) { route_ = "archive-detail"; zone_ = "actions"; actionFocus_ = 0; }
+        refreshArchive();
     });
     const auto sets = provider_.sets();
     if (!sets.isEmpty()) setId_ = sets.first().id;
@@ -97,7 +99,7 @@ int HallOfFameController::rowIndex() const {
     for (int i = 0; i < rows.size(); ++i) if (rows[i].id == selectedRowId()) return i;
     return 0;
 }
-int HallOfFameController::focusIndex() const { return account_.isOpen() ? account_.focusIndex() : zone_ == "rail" ? railFocus_ : zone_ == "actions" ? actionFocus_ : rowIndex(); }
+int HallOfFameController::focusIndex() const { return account_.isOpen() ? account_.focusIndex() : zone_ == "actions" ? actionFocus_ : rowIndex(); }
 QVariantMap HallOfFameController::detail() const {
     if (isArchive()) {
         for (const auto& entry : archive_) if (entry.id == archiveId_) {
@@ -152,10 +154,10 @@ QString HallOfFameController::status() const {
     return snapshotStatus(currentSnapshot());
 }
 QString HallOfFameController::emptyMessage() const {
-    if (isArchive()) return archiveError_.isEmpty() ? "Your first memory starts here. Press Y to record a completed Adventure." : archiveError_;
+    if (isArchive()) return archiveError_.isEmpty() ? "Your first memory starts here. Press Select to record a completed Adventure." : archiveError_;
     if (route_ == "sets") return provider_.context().accountId.isEmpty()
         ? "X · Connect your RetroAchievements account. Your local archive remains available."
-        : "Play a supported Adventure, then press Y to check its achievements. Your local archive remains available.";
+        : "Play a supported Adventure, then press Select to check its achievements. Your local archive remains available.";
     switch (currentSnapshot().state) {
     case AchievementState::Disconnected: return "No account is connected. Your local Hall of Fame remains available.";
     case AchievementState::Unsupported: return "No supported achievement set has been confirmed. This Adventure can still have its own archive memories.";
@@ -169,7 +171,7 @@ QString HallOfFameController::emptyMessage() const {
 QVariantList HallOfFameController::actions() const {
     if (route_ == "archive-list") return {QVariantMap{{"label", "Refresh archive"}, {"enabled", true}}};
     if (route_ == "archive-detail") return {QVariantMap{{"label", "Back to archive"}, {"enabled", true}}};
-    if (route_ == "sets") return {QVariantMap{{"label", "Open local archive"}, {"enabled", true}}};
+    if (route_ == "sets") return {QVariantMap{{"label", "Refresh records"}, {"enabled", true}}};
     const auto state = currentSnapshot().state;
     const bool refresh = !setId_.isEmpty() && selectedSet().supported && !provider_.context().accountId.isEmpty() && state != AchievementState::Loading;
     return {QVariantMap{{"label", route_ == "achievement-detail" ? "Back to achievements" : "Back to Adventures"}, {"enabled", true}},
@@ -184,7 +186,8 @@ void HallOfFameController::reconcile() {
     const bool exists = std::any_of(sets.begin(), sets.end(), [&](const auto& set) { return set.id == setId_; });
     if (!exists) {
         setId_ = sets.isEmpty() ? QString() : sets.first().id;
-        if (!isArchive()) route_ = "sets";
+        achievementView_ = {"sets", "list"};
+        if (!isArchive()) { route_ = "sets"; zone_ = "list"; actionFocus_ = 0; }
     }
     const auto rows = currentRows();
     const bool selected = std::any_of(rows.begin(), rows.end(), [&](const auto& row) { return row.id == selectedRowId(); });
@@ -210,11 +213,25 @@ void HallOfFameController::refreshArchive() {
     reconcile();
     if (!result.success && !archive_.isEmpty()) emit messageRequested(archiveError_);
 }
+void HallOfFameController::switchFace() {
+    if (editor_.isOpen() || account_.isOpen()) return;
+    const bool fromArchive = isArchive();
+    (fromArchive ? archiveView_ : achievementView_) = {route_, zone_, actionFocus_};
+    const auto view = fromArchive ? achievementView_ : archiveView_;
+    route_ = view.route; zone_ = view.zone; actionFocus_ = view.action;
+    reconcile(); // Missing rows and changed account data must never leave hidden focus.
+}
 QJsonObject HallOfFameController::navigationState() const {
     QJsonObject selected;
     for (auto i = achievementIds_.cbegin(); i != achievementIds_.cend(); ++i) selected.insert(i.key(), i.value());
+    const auto encode = [](const FaceView& view) {
+        return QJsonObject{{"route", view.route}, {"zone", view.zone}, {"action", view.action}};
+    };
+    const FaceView current{route_, zone_, actionFocus_};
     return {{"archive", archiveId_}, {"set", setId_}, {"achievements", selected}, {"route", route_},
-            {"zone", zone_}, {"rail", railFocus_}, {"action", actionFocus_}};
+            {"zone", zone_}, {"action", actionFocus_},
+            {"archiveView", encode(isArchive() ? current : archiveView_)},
+            {"achievementView", encode(isArchive() ? achievementView_ : current)}};
 }
 void HallOfFameController::restoreNavigation(const QJsonObject& state) {
     archiveId_ = state["archive"].toString(); setId_ = state["set"].toString();
@@ -223,14 +240,23 @@ void HallOfFameController::restoreNavigation(const QJsonObject& state) {
     for (const auto& set : provider_.sets())
         for (const auto& entry : checkedSnapshot(set).definitions)
             if (selected[set.id].toString() == entry.id) achievementIds_[set.id] = entry.id;
-    const auto route = state["route"].toString();
-    route_ = QStringList{"archive-list", "archive-detail", "sets", "achievements", "achievement-detail"}.contains(route) ? route : "archive-list";
-    const auto zone = state["zone"].toString();
-    zone_ = QStringList{"rail", "list", "actions"}.contains(zone) ? zone : "list";
-    // Details only expose their action rail; a stale list focus cannot point at hidden rows.
-    if (isDetail()) zone_ = "actions";
-    railFocus_ = std::clamp(state["rail"].toInt(), 0, 1);
-    actionFocus_ = std::max(0, state["action"].toInt());
+    const auto decode = [](const QJsonObject& value, bool archive) {
+        const QStringList routes = archive ? QStringList{"archive-list", "archive-detail"}
+            : QStringList{"sets", "achievements", "achievement-detail"};
+        FaceView view{value["route"].toString(), value["zone"].toString(), std::max(0, value["action"].toInt())};
+        if (!routes.contains(view.route)) view.route = routes.first();
+        // Old rail focus migrates to the visible list; details only expose actions.
+        if (view.zone != "actions") view.zone = "list";
+        if (view.route.endsWith("detail")) view.zone = "actions";
+        return view;
+    };
+    const bool archive = !QStringList{"sets", "achievements", "achievement-detail"}.contains(state["route"].toString());
+    archiveView_ = decode(state["archiveView"].toObject(), true);
+    achievementView_ = decode(state["achievementView"].toObject(), false);
+    // Keep the old active-route fields readable without a database migration.
+    const auto active = decode(state, archive);
+    (archive ? archiveView_ : achievementView_) = active;
+    route_ = active.route; zone_ = active.zone; actionFocus_ = active.action;
     reconcile();
 }
 void HallOfFameController::back() {
@@ -244,12 +270,7 @@ void HallOfFameController::back() {
 }
 void HallOfFameController::activate(int index) {
     if (account_.isOpen()) { account_.activate(index); return; }
-    if (zone_ == "rail") {
-        if (index < 0 || index > 1) return;
-        railFocus_ = index;
-        route_ = index == 0 ? "archive-list" : "sets";
-        zone_ = "list"; actionFocus_ = 0; reconcile();
-    } else if (zone_ == "list") {
+    if (zone_ == "list") {
         const auto rows = currentRows();
         if (index < 0 || index >= rows.size()) return;
         selectRow(rows[index].id);
@@ -262,7 +283,7 @@ void HallOfFameController::activate(int index) {
         if (index < 0 || index >= available.size() || !available[index].toMap()["enabled"].toBool()) return;
         actionFocus_ = index;
         if (route_ == "archive-list") { zone_ = "list"; refreshArchive(); }
-        else if (route_ == "sets") { route_ = "archive-list"; zone_ = "list"; railFocus_ = 0; reconcile(); }
+        else if (route_ == "sets") provider_.refreshAll();
         else if (index == 0) back();
         else { provider_.refresh(setId_); normalizeActions(); }
     }
@@ -273,7 +294,7 @@ void HallOfFameController::activateControl(const QString& zone, int index) {
     if (zone == "achievement-account") { account_.begin(); return; }
     if (editor_.isOpen()) { editor_.activate(index); return; }
     if (zone == "memory-new" || zone == "memory-edit") { beginMemory(zone == "memory-edit"); return; }
-    if (zone != "rail" && zone != "actions" && (zone != "list" || isDetail() || currentRows().isEmpty())) return;
+    if (zone != "actions" && (zone != "list" || isDetail() || currentRows().isEmpty())) return;
     zone_ = zone; activate(index);
 }
 void HallOfFameController::dispatch(Action action) {
@@ -285,16 +306,11 @@ void HallOfFameController::dispatch(Action action) {
     if (isArchive() && action == Action::Secondary) { beginMemory(true); return; }
     if (action == Action::Confirm) { activate(focusIndex()); return; }
     if (action == Action::Back) { back(); emit changed(); return; }
-    if (zone_ == "rail") {
-        if (action == Action::Left) railFocus_ = 0;
-        if (action == Action::Right) railFocus_ = 1;
-        if (action == Action::Down) zone_ = isDetail() || currentRows().isEmpty() ? "actions" : "list";
-    } else if (zone_ == "list") {
+    if (zone_ == "list") {
         const auto rows = currentRows();
         const int index = rowIndex();
         if (action == Action::Up) {
-            if (index == 0) { zone_ = "rail"; railFocus_ = isArchive() ? 0 : 1; }
-            else selectRow(rows[index - 1].id);
+            if (index > 0) selectRow(rows[index - 1].id);
         }
         if (action == Action::Down) {
             if (index + 1 >= rows.size()) { zone_ = "actions"; actionFocus_ = 0; }
@@ -302,8 +318,7 @@ void HallOfFameController::dispatch(Action action) {
         }
     } else if (zone_ == "actions") {
         if (action == Action::Up) {
-            zone_ = isDetail() || currentRows().isEmpty() ? "rail" : "list";
-            railFocus_ = isArchive() ? 0 : 1;
+            if (!isDetail() && !currentRows().isEmpty()) zone_ = "list";
         }
         if (action == Action::Left) actionFocus_ = 0;
         if (action == Action::Right && actions().size() > 1 && actions()[1].toMap()["enabled"].toBool()) actionFocus_ = 1;

@@ -25,13 +25,151 @@ public:
     void refresh(const QString&) override {}
 };
 void achievements(HallOfFameController& hall, int index = 0) {
-    hall.activateControl("rail", 1);
+    hall.switchFace();
     hall.activate(index);
 }
 }
 class HallOfFameTests : public QObject {
     Q_OBJECT
 private slots:
+    void independentFacesPersistAndReconcileBackgroundChanges() {
+        MutableArchive archive;
+        MockAchievementProvider provider;
+        provider.holdRequests(true);
+        HallOfFameController hall(archive, provider);
+        hall.activate(1);
+        const auto memory = hall.detail()["title"];
+        hall.switchFace();
+        QCOMPARE(hall.route(), "sets");
+        hall.dispatch(Action::Back);
+        QCOMPARE(hall.route(), "sets"); // B never flips the pair.
+        hall.dispatch(Action::Up);
+        QCOMPARE(hall.zone(), "list"); // No invisible legacy rail.
+        hall.activate(0); hall.activate(1); hall.dispatch(Action::Right);
+        QCOMPARE(hall.focusIndex(), 1);
+        hall.switchFace();
+        QCOMPARE(hall.route(), "archive-detail");
+        QCOMPARE(hall.detail()["title"], memory);
+        provider.setNextResult(AchievementState::Offline);
+        provider.refresh("emerald-sample"); // Finishes while the other face is visible.
+        QCOMPARE(hall.detail()["title"], memory);
+        const auto navigation = hall.navigationState();
+        HallOfFameController restored(archive, provider);
+        restored.restoreNavigation(navigation);
+        QCOMPARE(restored.route(), "archive-detail");
+        QCOMPARE(restored.detail()["title"], memory);
+        restored.switchFace();
+        QCOMPARE(restored.route(), "achievement-detail");
+        QCOMPARE(restored.rowIndex(), 1);
+        QCOMPARE(restored.focusIndex(), 0); // Persisted Refresh is disabled while loading.
+        restored.switchFace();
+        provider.finishRefresh("emerald-sample");
+        QCOMPARE(restored.detail()["title"], memory);
+        restored.switchFace();
+        QVERIFY(restored.status().contains("Offline"));
+        QCOMPARE(restored.rowIndex(), 1);
+        archive.value.entries.clear(); restored.refreshArchive(); // Archive disappears off-screen.
+        restored.switchFace();
+        QCOMPARE(restored.route(), "archive-list");
+        QCOMPARE(restored.zone(), "actions");
+        provider.setAccount({});
+        restored.switchFace();
+        QCOMPARE(restored.route(), "achievements");
+        QVERIFY(restored.rows().isEmpty());
+        QCOMPARE(restored.zone(), "actions");
+        QCOMPARE(restored.detail()["summary"].toString(), "Unlocks unavailable");
+        restored.dispatch(Action::Back); restored.dispatch(Action::Back);
+        QCOMPARE(restored.route(), "sets");
+        restored.activateControl("actions", 0);
+        QCOMPARE(restored.route(), "sets"); // Refresh cannot change faces either.
+    }
+    void legacyNavigationAndInvalidFaceState() {
+        MutableArchive archive;
+        MockAchievementProvider provider;
+        HallOfFameController hall(archive, provider);
+        hall.restoreNavigation({{"route", "sets"}, {"zone", "rail"}, {"rail", 1},
+            {"archiveView", QJsonObject{{"route", "achievement-detail"}, {"zone", "rail"}, {"action", 999}}}});
+        QCOMPARE(hall.route(), "sets"); QCOMPARE(hall.zone(), "list");
+        hall.switchFace();
+        QCOMPARE(hall.route(), "archive-list"); QCOMPARE(hall.zone(), "list");
+        hall.activate(2); hall.switchFace();
+        HallOfFameController restored(archive, provider);
+        restored.restoreNavigation(hall.navigationState());
+        QCOMPARE(restored.route(), "sets");
+        restored.switchFace();
+        QCOMPARE(restored.route(), "archive-detail"); QCOMPARE(restored.rowIndex(), 2);
+    }
+    void shellPairsRespectOverlaysAndKeepTheSharedChoice() {
+        MockLibraryRepository library;
+        MockTrainerRepository profiles;
+        MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;
+        MockPokedexRepository dex;
+        MockHallOfFameRepository archive;
+        MockAchievementProvider provider;
+        provider.enableAccountPreview();
+        ShellController shell(library, profiles, adapter, platform, dex, dex, archive, provider);
+        shell.goToPage(4); shell.activate(1);
+        const auto choice = shell.currentAdventureId();
+        QVERIFY(shell.pairedNavigationAvailable());
+        shell.dispatch(Action::NextFace);
+        QCOMPARE(shell.hall()->route(), "sets");
+        shell.activate(0); shell.activate(1);
+        shell.dispatch(Action::ToggleContinue);
+        QVERIFY(shell.drawerOpen()); QVERIFY(!shell.pairedNavigationAvailable());
+        shell.dispatch(Action::PreviousFace);
+        QCOMPARE(shell.hall()->route(), "achievement-detail");
+        shell.dispatch(Action::Back);
+        QCOMPARE(shell.currentAdventureId(), choice);
+        shell.dispatch(Action::SystemMenu); shell.dispatch(Action::NextFace);
+        QCOMPARE(shell.hall()->route(), "achievement-detail");
+        shell.dispatch(Action::Back); shell.dispatch(Action::Secondary);
+        QVERIFY(shell.hall()->account()->isOpen());
+        shell.dispatch(Action::NextFace); QVERIFY(!shell.hall()->isArchive());
+        shell.dispatch(Action::Back); shell.dispatch(Action::PreviousFace);
+        QCOMPARE(shell.hall()->route(), "archive-detail");
+        QCOMPARE(shell.hall()->rowIndex(), 1);
+        shell.dispatch(Action::LocalAction);
+        QVERIFY(shell.hall()->editor()->isOpen());
+        shell.dispatch(Action::NextFace); QVERIFY(shell.hall()->isArchive());
+        shell.dispatch(Action::Back);
+        shell.dispatch(Action::PreviousPage); shell.dispatch(Action::NextPage);
+        QCOMPARE(shell.hall()->route(), "archive-detail");
+        const auto saved = shell.navigationState();
+        ShellController restored(library, profiles, adapter, platform, dex, dex, archive, provider);
+        restored.restoreNavigation(saved);
+        QCOMPARE(restored.page(), 4);
+        QCOMPARE(restored.hall()->route(), "archive-detail");
+        restored.dispatch(Action::NextFace);
+        QCOMPARE(restored.hall()->route(), "achievement-detail");
+        QCOMPARE(restored.hall()->rowIndex(), 1);
+        QCOMPARE(restored.currentAdventureId(), choice);
+    }
+    void submittedMemoryDoesNotStealTheOtherFace() {
+        MockLibraryRepository library;
+        MockTrainerRepository profiles;
+        MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;
+        MockPokedexRepository dex;
+        MockHallOfFameRepository archive;
+        MockAchievementProvider provider;
+        ShellController shell(library, profiles, adapter, platform, dex, dex, archive, provider);
+        shell.goToPage(4);
+        shell.dispatch(Action::LocalAction);
+        auto* editor = shell.hall()->editor();
+        editor->activate(0); editor->activate(0); editor->submit();
+        QVERIFY(editor->saving());
+        shell.dispatch(Action::PreviousPage); shell.dispatch(Action::NextPage);
+        shell.dispatch(Action::NextFace);
+        shell.activate(0); shell.activate(1);
+        const auto achievement = shell.hall()->detail()["title"];
+        QTRY_VERIFY(!editor->saving());
+        QCOMPARE(shell.hall()->route(), "achievement-detail");
+        QCOMPARE(shell.hall()->detail()["title"], achievement);
+        shell.dispatch(Action::PreviousFace);
+        QCOMPARE(shell.hall()->route(), "archive-detail");
+        QCOMPARE(shell.hall()->rows().size(), 5);
+    }
     void archiveDetailUnknownsAndStableRefresh() {
         MutableArchive archive;
         MockAchievementProvider provider;
@@ -69,7 +207,7 @@ private slots:
         provider.setAccount({}); achievements(hall);
         QVERIFY(hall.rows().isEmpty());
         QVERIFY(hall.detail()["summary"].toString().contains("unavailable"));
-        hall.activateControl("rail", 0);
+        hall.switchFace();
         QCOMPARE(hall.rows().size(), 4);
     }
     void separateUnlockStatesModesAndDates() {

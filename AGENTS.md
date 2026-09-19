@@ -95,6 +95,7 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 Always preserve:
 
 - `L1/R1` = previous/next top-level section
+- `L2/R2` = switch the delivered Pokedex/Center and Hall/RetroAchievements pairs; preserve per-face routes and modal priority. Worlds/Multiverse remains planned. B never flips a pair.
 - D-pad / left stick = focus navigation
 - `A` = confirm/open
 - `B` = back/close

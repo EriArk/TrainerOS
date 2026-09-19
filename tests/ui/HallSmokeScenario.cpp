@@ -25,12 +25,19 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
                 SDL_JoystickSetVirtualButton(joystick, button, 0); input.poll();
             }
         };
+        const auto flip = [&](SDL_GameControllerAxis axis = SDL_CONTROLLER_AXIS_TRIGGERRIGHT) {
+            SDL_JoystickSetVirtualAxis(joystick, axis, 32767); input.poll();
+            SDL_JoystickSetVirtualAxis(joystick, axis, -32768); input.poll();
+        };
         const auto focusIs = [&](const QString& id) { return window->activeFocusItem() && window->activeFocusItem()->objectName() == id; };
         const auto capture = [&](const QString& name) {
             const auto frame = window->grabWindow();
             check(!frame.isNull(), "Empty rendered frame");
             if (!screenshotDir.isEmpty()) check(frame.save(screenshotDir + "/" + name + ".png"), "Cannot save screenshot");
         };
+        const auto drawer = window->findChild<QQuickItem*>("continue-drawer");
+        if (drawer && ((shell.drawerOpen() && drawer->height() < 228)
+            || (!shell.drawerOpen() && drawer->height() > 53))) return;
         auto* focused = window->activeFocusItem();
         check(focused && focused->isVisible() && focused->isEnabled(), "Focus must be visible and enabled");
         if (focused) for (auto* ancestor = focused->parentItem(); ancestor; ancestor = ancestor->parentItem())
@@ -58,7 +65,7 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         case 6: check(shell.page() == 3, "L1 remains global"); press(r1); break;
         case 7:
             check(hall->route() == "archive-detail" && focusIs("hall-action-0"), "Archive detail preserved across sections");
-            press(b); press(up); press(right); press(a); break;
+            flip(); break;
         case 8: check(focusIs("hall-row-emerald-sample"), "RA opens Adventure sets"); capture("achievement-sets"); press(a); break;
         case 9: check(focusIs("hall-row-first-trail"), "Achievement list focus"); capture("achievements"); press(down, 4); break;
         case 10: check(focusIs("hall-row-lasting-memory"), "Achievements scroll to last goal"); capture("achievements-scrolled"); press(a); break;
@@ -109,8 +116,8 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         case 31: press(up); press(a); break;
         case 32:
             check(hall->detail()["summary"] == "Unlocked · Standard", "Correct account records restored after fresh load");
-            press(b); press(up); press(left); press(a); break;
-        case 33: check(focusIs("hall-row-crystal-champion"), "Local archive unaffected by provider changes"); press(a); window->resize(1920, 1080); break;
+            flip(SDL_CONTROLLER_AXIS_TRIGGERLEFT); break;
+        case 33: check(hall->route() == "archive-detail" && focusIs("hall-action-0"), "Paired archive detail survives provider changes"); window->resize(1920, 1080); break;
         case 34: capture("team-1080p"); window->resize(1024, 768); break;
         case 35: capture("team-letterbox"); window->resize(960, 540); press(b); break;
         case 36: archive.setEmpty(true); hall->refreshArchive(); break;
@@ -126,6 +133,7 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
             press(SDL_CONTROLLER_BUTTON_BACK); break;
         case 41:
             check(focusIs("memory-field-0") && hall->editor()->isOpen(), "Select opens a new memory with deterministic focus");
+            flip(); check(hall->isArchive() && hall->editor()->isOpen(), "Pair cannot bypass archive editor");
             capture("new-memory");press(a);break;
         case 42:
             check(hall->editor()->route()=="adventures", "Adventure picker opens");capture("memory-adventures");press(a);press(down,2);press(right);press(a);break;
@@ -155,9 +163,10 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
             press(x);press(down,2);press(a);press(a);press(b);press(b);break;
         case 52:
             check(!hall->editor()->isOpen() && hall->detail()["description"]=="A", "Cancelling keyboard and draft preserves committed note");
-            provider.setAccount({}); hall->activateControl("rail", 1); press(x); break;
+            provider.setAccount({}); flip(); press(x); break;
         case 53:
             check(hall->account()->isOpen() && focusIs("achievement-account-0"), "X opens controller account form");
+            flip(); check(!hall->isArchive() && hall->account()->isOpen(), "Pair cannot bypass account form");
             capture("account-form"); press(down); press(a); break;
         case 54:
             check(shell.keyboard()->isOpen(), "Password opens shared controller keyboard");
@@ -175,6 +184,24 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         case 59:
             check(hall->account()->rows()[1].toMap()["detail"] == "A · Enter password", "Password not retained after leaving page");
             press(b); window->resize(960,540); break;
+        case 60:
+            check(!hall->isArchive(), "RA remains active after closing account form");
+            press(y); break;
+        case 61: {
+            check(drawer, "Shared selector is present in the rendered chassis");
+            check(shell.drawerOpen(), "Y opens shared Adventure selector from RA");
+            flip(); check(!hall->isArchive(), "Pair cannot bypass shared selector");
+            capture("achievement-adventure-selector"); press(b); break;
+        }
+        case 62:
+            check(!shell.drawerOpen() && !hall->isArchive(), "B returns to the same RA face");
+            flip(); break;
+        case 63:
+            check(hall->isArchive() && hall->route() == "archive-detail" && focusIs("hall-action-0"), "Archive detail restored after account and drawer");
+            capture("paired-archive-return"); flip(SDL_CONTROLLER_AXIS_TRIGGERLEFT); break;
+        case 64:
+            check(!hall->isArchive() && focused->objectName().startsWith("hall-"), "RA restores visible deterministic focus");
+            capture("paired-achievement-return"); break;
         default:
             check(!hall->account()->isOpen(), "Back returns to achievement browser");
             check(warnings == 0, "QML warnings emitted");
