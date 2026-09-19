@@ -20,6 +20,8 @@ add_library(trainer_core STATIC
     src/platform/input/AdventureOverlayService.cpp
     src/features/adventure/AdventureExitPresentation.h
     src/features/adventure/AdventureExitPresentation.cpp
+    src/features/home/BadgeAssets.h
+    src/features/home/BadgeAssets.cpp
     src/core/model/GameProgress.h
     src/core/model/GameProgressProvider.h
     src/integrations/progress/Gen3Progress.h
@@ -140,6 +142,9 @@ add_library(trainer_core STATIC
     src/platform/PlatformService.h
 )
 target_include_directories(trainer_core PUBLIC src)
+file(GLOB badge_images CONFIGURE_DEPENDS assets/badges/*.png)
+qt_add_resources(trainer_core badge_assets PREFIX "/badges" BASE assets/badges
+    FILES assets/badges/manifest.json ${badge_images})
 qt_add_resources(trainer_core collection PREFIX "/collection" BASE data FILES data/catalogue.json)
 qt_add_resources(trainer_core pokedex_reference PREFIX "/pokedex" BASE data FILES data/pokedex.json)
 target_link_libraries(trainer_core PUBLIC Qt6::Core Qt6::Gui Qt6::Sql Qt6::Network SDL2::SDL2)
@@ -179,7 +184,8 @@ qt_add_qml_module(traineros
         src/qml/PlatformBadge.qml
         src/qml/Hint.qml
         src/qml/HomePage.qml
-        src/qml/BadgeCrystal.qml
+        src/qml/LeagueBadge.qml
+        src/qml/BadgeTray.qml
         src/qml/AdventureButton.qml
         src/qml/HallOfFamePage.qml
         src/qml/ArchiveEditorPanel.qml
@@ -343,6 +349,7 @@ endif()
 
 include(GNUInstallDirs)
 install(TARGETS traineros RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES assets/badges/README.md assets/badges/manifest.json DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/traineros/badges)
 install(FILES data/licenses/PokeAPI.txt DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/traineros/licenses)
 if(UNIX AND NOT APPLE)
     install(PROGRAMS packaging/integrations/controller-bridge.py DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/traineros)

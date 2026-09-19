@@ -7,6 +7,9 @@
 #include <QImage>
 #include <QPainter>
 #include <QTimer>
+#include <QQmlComponent>
+#include <QQmlEngine>
+#include "features/home/BadgeAssets.h"
 #include <memory>
 
 using namespace trainer;
@@ -108,13 +111,13 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(shell.home()["recordedTime"] == "12 min" && shell.home()["badges"] == "—", "Real duration and unknown progress remain separate");
             progress->value.availability = ProgressAvailability::Available;
             progress->value.badgeMask = 0xa5; progress->value.caught = 241;
-            progress->value.badgeSet = "kanto";
+            progress->value.badgeSet = "kanto-frlg";
             progress->value.message = "Last in-game save · National Pokédex";
             shell.configureProgress(progress);
             window->resize(1920, 1080); break;
         case 6:
             check(shell.home()["badges"] == "4" && shell.home()["caught"] == "241"
-                && shell.home()["badgeSlots"].toList().size() == 8 && shell.home()["badgeSet"] == "kanto", "Verified save fields reach Home independently of recorded time");
+                && shell.home()["badgeSlots"].toList().size() == 8 && shell.home()["badgeSet"] == "kanto-frlg", "Verified save fields reach Home independently of recorded time");
             capture("home-selected-1080p"); press(SDL_CONTROLLER_BUTTON_B); break;
         case 7:
             check(*starts == 1 && *returns == 1 && focusIs("home-launch"), "Main button alone launches and restores Home");
@@ -151,9 +154,9 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(store.recentSessions().size() == 5 && store.recordedSeconds("home-0").has_value(), "History survives restart");
             check(!reopen || *starts == 0, "Reopening the journal does not launch anything");
             capture(reopen ? "home-reopened" : "home-return");
-            if (reopen) { *stage = 13; break; }
+            if (reopen) { *stage = 16; break; }
             progress->value.availability = ProgressAvailability::Available;
-            progress->value.badgeMask = 255; progress->value.caught = 386; progress->value.badgeSet = "kanto";
+            progress->value.badgeMask = 255; progress->value.caught = 386; progress->value.badgeSet = "kanto-frlg";
             progress->value.message = "Last in-game save · National Pokédex"; progress->publish();
             window->resize(960, 540); break;
         case 10:
@@ -167,19 +170,43 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
                 }
                 check(badge && badge->width() >= 26 && badge->height() >= 40, "Large badge remains readable at handheld size");
                 if (badge) {
+                    check(badge->property("imageReady").toBool(), "Real badge asset loads in the rendered app");
                     const auto bounds = badge->mapRectToScene(badge->boundingRect());
                     check(bounds.left() >= 0 && bounds.right() <= window->width() && bounds.bottom() <= window->height(), "Badge stays inside the viewport");
                 }
             }
             check(focusIs("home-launch"), "Decorative badges add no directional focus stops");
             capture("home-badges-kanto-960");
-            progress->value.badgeSet = "hoenn"; progress->publish(); break;
+            progress->value.badgeSet = "hoenn-rse"; progress->publish(); break;
         case 11:
             capture("home-badges-hoenn-960");
             progress->value.badgeMask = 0; progress->publish(); break;
         case 12:
             check(shell.home()["badges"] == "0", "An empty badge tray represents verified zero, not unknown");
-            capture("home-badges-empty-960"); break;
+            capture("home-badges-empty-960");
+            progress->value.badgeSet = "paldea"; progress->publish(); break;
+        case 13:
+            check(shell.home()["badgeSlots"].toList().isEmpty() && shell.home()["badges"] == "0", "Unsupported art keeps a truthful count without substituting another set");
+            capture("home-badges-unmapped-960");
+            progress->value.badgeSet = "kanto-frlg"; progress->value.badgeMask.reset(); progress->publish(); break;
+        case 14: {
+            check(shell.home()["badges"] == "—", "Unavailable exact bits do not become zero");
+            for (const auto& slot : shell.home()["badgeSlots"].toList())
+                check(slot.toMap()["state"] == "unknown" && slot.toMap()["image"].toString().isEmpty(), "Unknown identities use neutral mounts");
+            capture("home-badges-unknown-960");
+            QQmlComponent component(qmlEngine(window), QUrl("qrc:/TrainerOS/BadgeTray.qml"));
+            auto* tray = qobject_cast<QQuickItem*>(component.create());
+            check(tray != nullptr, "Reusable large badge case can be instantiated");
+            if (tray) {
+                tray->setParent(window); tray->setParentItem(window->contentItem());
+                tray->setObjectName("badge-case-fixture"); tray->setX(50); tray->setY(180); tray->setWidth(860); tray->setHeight(165); tray->setZ(100);
+                tray->setProperty("slots", BadgeAssets::entries("hoenn-rse", 255)); tray->setProperty("count", "8");
+            }
+            break;
+        }
+        case 15:
+            capture("badges-large-case-fixture");
+            delete window->findChild<QQuickItem*>("badge-case-fixture"); break;
         default:
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (*failed) { qCritical().noquote() << diagnostics.join('\n'); QCoreApplication::exit(1); }

@@ -406,9 +406,9 @@ This should remain **small, optional, and non-chatty**. Do not turn TrainerOS in
 
 ## Home badge collection — 2026-09-13
 
-**Current renderer, superseded as the final target by #64:** original faceted Kanto/Hoenn crystals have been checked on Flip. Keep that implementation until replacement/fallback coverage works; it is not the final game-backed badge style.
+**Historical renderer:** original faceted Kanto/Hoenn crystals were checked on Flip. The 2026-09-19 #64 increment replaces normal Home use with credited game-set SVG derivatives and neutral mounts. The original component remains only as unbundled implementation history. [Scope and remaining visual comparison](EXPANSION_63_64.md#first-badge-delivery---2026-09-19).
 
-**Early UI target:** use the selected exact game's verified badge set, with recognizable silhouettes/colors, restrained mounts/recesses and contact shadows. Home stays compact; Journey's larger case uses the same ordered semantic IDs. Preserve SVG aspect and intentional padding. Unknown, count-only and missing-art states use neutral mounts without invented earned badges; verified zero remains distinct from unknown. Do not assume eight slots outside proven sets. Attribution accompanies asset delivery. The tray stays informational, with no extra controller focus stops. See [mapping, source and coverage gates](EXPANSION_63_64.md#accurate-league-badges-and-neutral-fallback).
+**Shared badge presentation:** use the selected exact game's verified badge set, with recognizable silhouettes/colors, restrained mounts/recesses and contact shadows. Home stays compact; Journey's larger case uses the same ordered semantic IDs. Preserve SVG aspect and intentional padding. Unknown, count-only and missing-art states use neutral mounts without invented earned badges; verified zero remains distinct from unknown. Do not assume eight slots outside proven sets. Attribution accompanies asset delivery. The tray stays informational, with no extra controller focus stops. See [mapping, source and coverage gates](EXPANSION_63_64.md#accurate-league-badges-and-neutral-fallback).
 
 ## Placeholder asset policy
 

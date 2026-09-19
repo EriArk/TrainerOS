@@ -1,5 +1,7 @@
 #include "integrations/progress/Gen3Progress.h"
 #include "integrations/progress/GameProgressService.h"
+#include "features/home/BadgeAssets.h"
+#include <QImage>
 #include <QtTest>
 #include <QtEndian>
 #include <QFile>
@@ -51,12 +53,46 @@ AdventureRegistration record(const QString& id = "test") {
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void badgeArtwork() {
+        const auto kanto = BadgeAssets::entries("kanto-frlg", 0x21);
+        QCOMPARE(kanto.size(), 8);
+        QStringList ids;
+        for (const auto& row : kanto) ids.append(row.toMap()["id"].toString());
+        QCOMPARE(ids, QStringList({"boulder", "cascade", "thunder", "rainbow", "soul", "marsh", "volcano", "earth"}));
+        QCOMPARE(kanto[0].toMap()["state"], "earned");
+        QCOMPARE(kanto[4].toMap()["state"], "unearned");
+        QCOMPARE(kanto[5].toMap()["state"], "earned");
+        for (const auto& set : {QString("kanto-frlg"), QString("hoenn-rse")}) {
+            for (const auto& row : BadgeAssets::entries(set, 255)) {
+                const auto url = row.toMap()["image"].toString();
+                QVERIFY(url.startsWith("qrc:/badges/"));
+                QImage image(url.mid(3));
+                QCOMPARE(image.size(), QSize(192, 192));
+                QVERIFY(image.hasAlphaChannel());
+                QVERIFY(image.pixelColor(0, 0).alpha() == 0);
+                int pixels = 0;
+                for (int y = 0; y < image.height(); ++y)
+                    for (int x = 0; x < image.width(); ++x) pixels += image.pixelColor(x, y).alpha() > 128;
+                QVERIFY(pixels > 2500 && pixels < 31000); // Not an empty image, clipped sheet or opaque square.
+            }
+        }
+        const auto zero = BadgeAssets::entries("hoenn-rse", 0);
+        QCOMPARE(zero.first().toMap()["id"], "stone");
+        QCOMPARE(zero.last().toMap()["id"], "rain");
+        for (const auto& row : zero) QCOMPARE(row.toMap()["state"], "unearned");
+        for (const auto& row : BadgeAssets::entries("kanto-frlg", std::nullopt)) {
+            QCOMPARE(row.toMap()["state"], "unknown");
+            QVERIFY(row.toMap()["image"].toString().isEmpty());
+        }
+        for (const auto& unsupported : {"kanto", "hoenn", "unova-b2w2", "paldea", ""})
+            QVERIFY(BadgeAssets::entries(unsupported, 255).isEmpty());
+    }
     void readsBothEditions() {
         for (auto edition : {Gen3Edition::Emerald, Gen3Edition::FireRed}) {
             const auto bytes = save(edition); const auto result = readGen3Progress(bytes, edition);
             QCOMPARE(result.availability, ProgressAvailability::Available);
             QCOMPARE(result.badgeMask.value(), 0xa5); QCOMPARE(result.caught.value(), 241);
-            QCOMPARE(result.badgeSet, edition == Gen3Edition::Emerald ? QString("hoenn") : QString("kanto"));
+            QCOMPARE(result.badgeSet, edition == Gen3Edition::Emerald ? QString("hoenn-rse") : QString("kanto-frlg"));
             auto zero = slot(edition, 5, 0, 0, 0) + QByteArray(18 * 0x1000, char(0xff));
             const auto empty = readGen3Progress(zero, edition);
             QCOMPARE(empty.availability, ProgressAvailability::Available);

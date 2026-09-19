@@ -116,3 +116,19 @@ The seven native application shortcuts (TrainerOS, ES-DE and the five emulators)
 The expanded 16-test suite also passed against Ubuntu 24.04's Qt/SDL dependencies in an isolated x86_64 server container (71.88 seconds), using source commit `f9de1dbdd34200b15f050087af18ccda00f1b475`. The corresponding GitHub Actions run did not start: GitHub reported failed account payments or a spending-limit restriction. This independent run is useful verification, not a successful GitHub CI run. Resolve account billing before relying on Actions again.
 
 Flatpak access must be tested from inside each sandbox, not inferred from host permissions. Dolphin initially exposed the custom card mount through `host:ro`, so Wii could not create SYSCONF. Explicit per-application write grants to `saves/<emulator>`, `states/<emulator>` and `screenshots/<emulator>` resolved it; ROM and BIOS paths are read-only. All six temporary create/read/remove probes passed in the RetroArch and Dolphin sandboxes. Dolphin subsequently created its Wii system data on the card and rendered PokePark's title screen. Its SDL Stop shortcut belongs to `General/Stop`, not `Keys/Stop`; Start+Select now exits batch emulation normally. Per-game INIs belong under the Dolphin **data** directory's `GameSettings`, while named controller profiles belong under its **config** directory's `Profiles/Wiimote`.
+
+## Owner OTA reboot check - 2026-09-19
+
+After the owner installed Armada `20260919.17edccf` and rebooted, kernel `7.2.3`
+reported the existing TrainerOS session active automatically. The installed binary
+still hashed to `073c124c221679a762e191ebea7aa2f1287e1aed0ac8f6f0a01f345364cba659`.
+A Gamescope capture showed the existing Trainer profile, selected FireRed, exit
+background, eight badges and 386 caught; injected InputPlumber R1/L1 switched
+Worlds/Home and both rendered correctly. The owner confirmed use of Armada's
+standard SSH authentication; key-only rejection was not a network/session failure.
+Official authentication details are in [Armada's documentation](https://armadaos.dev/).
+
+This proves startup, retained displayed state and the exercised navigation after
+this update. It is not a new emulator launch/exit, suspend/wake, Mobile replacement
+or rollback test. The existing no-sleep policy was not changed. The later badge
+build has its own [delivery checkpoint](EXPANSION_63_64.md#first-badge-delivery---2026-09-19).

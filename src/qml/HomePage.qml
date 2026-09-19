@@ -40,29 +40,12 @@ Item {
     Text { x: 34; y: 219; width: 580; elide: Text.ElideRight; textFormat: Text.PlainText; text: root.currentAdventure.progressNote; color: Theme.muted; font.pixelSize: 12 }
     Row {
         x: 33; y: 250; spacing: 12; width: root.width - 244 - 66
-        Rectangle {
-            id: badgeTray
+        BadgeTray {
             objectName: "home-badge-tray"
-            width: parent.width - 256; height: 92; radius: 13
-            color: "#e3ebda"; border.color: "#b6c7b2"
-            Rectangle { x: 2; y: 3; width: parent.width - 4; height: 86; radius: 11; color: "transparent"; border.color: "#f9fcf4" }
-            Text { x: 13; y: 8; text: "BADGES"; color: Theme.muted; font.pixelSize: 11; font.bold: true; font.letterSpacing: 1.5 }
-            Text { x: 85; y: 2; width: parent.width - 99; horizontalAlignment: Text.AlignRight; text: root.currentAdventure.badges + (root.currentAdventure.badgeSlots.length ? " / 8" : ""); color: Theme.ink; font.pixelSize: 23; font.bold: true }
-            Row {
-                x: 10; y: 33; spacing: 3
-                Repeater {
-                    model: root.currentAdventure.badgeSlots
-                    delegate: BadgeCrystal {
-                        required property int index
-                        required property bool modelData
-                        objectName: "home-badge-" + index
-                        badgeIndex: index; earned: modelData
-                        badgeSet: root.currentAdventure.badgeSet
-                        width: (badgeTray.width - 41) / 8; height: 50
-                    }
-                }
-            }
-            Text { x: 13; y: 49; visible: root.currentAdventure.badgeSlots.length === 0; text: "No badge data yet"; color: Theme.muted; font.pixelSize: 12 }
+            badgePrefix: "home-badge-"
+            width: parent.width - 256; height: 92
+            slots: root.currentAdventure.badgeSlots
+            count: root.currentAdventure.badges
         }
         Repeater {
             model: [{number: root.currentAdventure.caught, label: "CAUGHT"}, {number: root.currentAdventure.recordedTime, label: "RECORDED TIME"}]

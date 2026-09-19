@@ -1,6 +1,7 @@
 #include "ShellController.h"
 #include "features/home/PlayHistoryController.h"
 #include "ResumePresentation.h"
+#include "features/home/BadgeAssets.h"
 #include <QSet>
 #include <algorithm>
 #include <bit>
@@ -259,9 +260,10 @@ QVariantMap ShellController::home() const {
                 if (observed.availability == ProgressAvailability::Available) {
                     badgeSet = observed.badgeSet;
                     caught = observed.caught;
+                    badgeSlots = BadgeAssets::entries(badgeSet, observed.badgeMask);
                     if (observed.badgeMask) {
                         badges = std::popcount(static_cast<unsigned>(*observed.badgeMask) & 255u);
-                        for (int i = 0; i < 8; ++i) badgeSlots.append((*observed.badgeMask & (1 << i)) != 0);
+
                     }
                 }
             }

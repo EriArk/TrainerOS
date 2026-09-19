@@ -14,7 +14,7 @@ The local trainer journal, manual Pokédex, Hall of Fame and RetroAchievements r
 
 ## Boundaries and refresh
 
-Badge presentation uses an explicit verified `badgeSet` (Kanto or Hoenn), independent of emulator/provider identifiers and display-name matching. Eight original vector crystal cuts have individual colors and beveled facets. They sit in shaped recesses in a wider tray; unearned badges expose the empty recess. Unknown data does not render eight unearned badges. No ripped badge sprites are packaged. The larger crystals are decorative, so Home retains its fixed A action and Y selector without adding focus stops.
+Badge presentation uses an exact semantic `badgeSet` (`kanto-frlg` or `hoenn-rse`) emitted only by the matching verified build provider. A separate asset layer maps ordered badge identities to credited vector-derived artwork, independently of display names or emulator IDs. Unearned badges are subdued; unknown identities and missing sets use neutral mounts rather than another game's badges. The informational tray adds no focus stops. [Artwork provenance and later in-game comparison](../assets/badges/README.md).
 
 `GameProgressProvider` exposes one identified observation to the shell. `GameProgressService` performs worker-thread I/O through an injected save resolver. `Gen3Progress` only interprets immutable bytes after content identification. QML sees normalized values and a source/availability message; it never opens files or knows binary offsets.
 
@@ -53,3 +53,7 @@ The initial progress increment passed all 29 Windows tests and all 30 tests on b
 The subsequent crystal presentation update passed seven affected checks on each of Windows, the Ubuntu server and ARM64: game progress, persistence/process scenarios, and five rendered QML/controller scenarios. Visual inspection covered both complete badge sets, mixed earned/unearned badges and an empty tray at 960×540 and 1920×1080. The production ARM64 build was installed and both FireRed and Emerald sets were inspected on Flip, including Y/A selection and shoulder navigation.
 
 Party, map labels, per-species journal import, automatic historical events, DS/GameCube readers and ROM-hack profiles remain separate validated increments.
+
+### Badge asset presentation - 2026-09-19
+
+The existing exact-build readers now identify `kanto-frlg` or `hoenn-rse`; their verified flag offsets/order and supported ROM fingerprints are unchanged. The independent `BadgeAssets` layer resolves ordered identities and credited art; Home uses recognizable vector-derived badges instead of original crystals. Unsupported sets/count-only/unknown values never choose another game's artwork. No new save support or schema migration is implied. See [delivery and remaining in-game comparison](EXPANSION_63_64.md#first-badge-delivery---2026-09-19) and [asset provenance](../assets/badges/README.md).
