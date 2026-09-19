@@ -21,6 +21,8 @@ public:
     bool verifiedAutosave() const { return policy_ == AdventureSavePolicy::VerifiedAutosave; }
     QString captureError() const { return captureError_; }
     bool available() const { return available_; }
+    QImage capturedFrame() const { return pendingFrame_; }
+    quint64 attempt() const { return attempt_; }
     void setAvailable(bool available);
     void beginSession(AdventureSavePolicy policy);
     void endSession(bool cleanExit);

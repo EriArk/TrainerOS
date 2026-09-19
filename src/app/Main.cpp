@@ -53,6 +53,18 @@
 
 using namespace trainer;
 
+class ExitFrameImages final : public QQuickImageProvider {
+public:
+    explicit ExitFrameImages(AdventureExitController& controller) : QQuickImageProvider(Image), controller_(controller) {}
+    QImage requestImage(const QString&, QSize* size, const QSize&) override {
+        const auto frame = controller_.capturedFrame();
+        if (size) *size = frame.size();
+        return frame;
+    }
+private:
+    AdventureExitController& controller_;
+};
+
 class MomentImages final : public QQuickImageProvider {
 public:
     explicit MomentImages(RetroArchResumeProvider& provider) : QQuickImageProvider(Image), provider_(provider) {}
@@ -359,6 +371,7 @@ int main(int argc, char* argv[]) {
         }
         QQmlApplicationEngine engine;
         engine.addImageProvider("moments", new MomentImages(resumeProvider));
+        engine.addImageProvider("exit-frame", new ExitFrameImages(adventureLaunch.exitController()));
         int qmlWarnings = 0;
         QStringList diagnostics;
         QObject::connect(&engine, &QQmlEngine::warnings, &engine,

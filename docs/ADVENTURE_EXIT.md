@@ -270,3 +270,28 @@ events exercised Start, R1, Home from Worlds and Home from the menu. The owner
 confirmed that the physical in-game exit question worked, then requested a
 compact panel over gameplay instead of the current full-screen presentation.
 That visual follow-up is separate from the delivered transport.
+
+### Compact overlay follow-up
+
+The owner requested a small, quiet panel over the game. The question now occupies
+540×236 logical pixels on the 960×540 canvas, with the current capture lightly
+dimmed behind it, a molded rim and two mounted A/B caps. Manual wording is
+"Saved your progress?"; autosave asks "Leave this Adventure?". Release gating
+and the slower-close message remain, without a large brand heading or technical
+capture/status paragraphs. A failed capture falls back to the theme background.
+
+The backdrop is a **still captured before the question**, not a claim that the
+emulator has paused. It is served directly from the current attempt's bounded
+in-memory frame through a synchronous Qt image provider, without disk media or
+new save writes. Gamescope still receives a full-screen focus surface so input
+isolation and the validated separate-window behavior remain intact. B returns
+to the same running game. Exit completion keeps the original browsing route.
+
+The affected Windows checks passed **3/3**, ARM64 **5/5**. Rendered SDL scenarios
+check a visible capture outside the compact card, mounted action bounds at
+960×540/1920×1080, release gating, capture failure, A/B and autosave wording.
+The final copy-only waiting-label adjustment passed the Windows render test
+again and was rebuilt into the non-testing ARM target. Installed SHA-256:
+`5e0cc692f8aae388e0430db1de3b57d88192be51de16a62e43d4c7e0fca3f161`.
+Binary/database backup and post-install integrity/schema/count checks passed.
+The owner inspected the compact question on Flip and approved the result.

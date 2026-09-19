@@ -20,6 +20,7 @@ class AdventureExitPresentation final : public QObject {
     Q_PROPERTY(bool captureFailed READ captureFailed NOTIFY changed)
     Q_PROPERTY(bool slowClose READ slowClose NOTIFY changed)
     Q_PROPERTY(bool autosave READ autosave NOTIFY changed)
+    Q_PROPERTY(QString frameKey READ frameKey NOTIFY changed)
 public:
     explicit AdventureExitPresentation(AdventureExitController&, QObject* parent = nullptr);
     bool visible() const;
@@ -28,6 +29,7 @@ public:
     bool captureFailed() const { return !exit_.captureError().isEmpty(); }
     bool slowClose() const { return slowClose_; }
     bool autosave() const { return exit_.verifiedAutosave(); }
+    QString frameKey() const { return QString::number(exit_.attempt()); }
     // A provider must tag asynchronous snapshots with the current generation.
     // Focus/lease loss and each phase change invalidate previous snapshots.
     quint64 inputGeneration() const { return generation_; }

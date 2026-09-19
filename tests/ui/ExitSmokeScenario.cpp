@@ -61,6 +61,13 @@ void startExitSmoke(QQuickWindow* shellWindow, ShellController& shell, Adventure
         };
         const auto capture = [&](const QString& name) {
             const auto image = window->grabWindow(); check(!image.isNull(), "Exit window rendered");
+            auto* card = window->findChild<QQuickItem*>("exit-card");
+            check(card && card->mapRectToScene(QRectF(0,0,card->width(),card->height())).width() < window->width() * .6,
+                  "Exit card leaves gameplay visible around it");
+            if (name == "confirmation-1080p") {
+                const auto pixel = image.pixelColor(10,10);
+                check(pixel.green() > 150 && pixel.red() < 40, "Captured gameplay remains visible behind the card");
+            }
             if (!output.isEmpty()) check(image.save(output + "/" + name + ".png"), "Screenshot saved");
             for (const auto* name : {"exit-back", "exit-confirm"}) {
                 auto* item = window->findChild<QQuickItem*>(name);
@@ -153,7 +160,7 @@ void startExitSmoke(QQuickWindow* shellWindow, ShellController& shell, Adventure
             view.setInputIsolated(true); break;
         case 9:
             check(view.ready() && view.autosave() && view.confirming() && state->closes == 1, "Autosave does not bypass confirmation");
-            check(window->findChild<QObject*>("exit-heading")->property("text").toString() == "Close this game?", "Autosave wording asks exit, not manual save");
+            check(window->findChild<QObject*>("exit-heading")->property("text").toString() == "Leave this Adventure?", "Autosave wording asks exit, not manual save");
             capture("autosave-confirmation"); press(SDL_CONTROLLER_BUTTON_A);
             check(launch.state() == "running" && readPid() == state->pid && state->returned == 1, "Autosave B returns to same process");
             check(exit.requestExit(), "Autosave retry"); exit.captureCompleted(state->capture, {}, "Fixture failure");
