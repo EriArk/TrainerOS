@@ -14,10 +14,10 @@
 #include "features/adventure/AdventureExitPresentation.h"
 #include "platform/input/AdventureOverlayService.h"
 #include "features/home/PlayHistoryController.h"
+#include "features/home/ExitImage.h"
 #include "core/repository/CollectionRepository.h"
 #include "core/repository/OfflinePokedex.h"
-#include "core/repository/ResumeLibraryRepository.h"
-#include "integrations/adventure/retroarch/RetroArchResume.h"
+#include "integrations/adventure/retroarch/RetroArchSave.h"
 #include "platform/storage/SaveBackupStorage.h"
 #include "platform/power/PowerStatus.h"
 #include "platform/ArmadaPlatformService.h"
@@ -57,7 +57,7 @@ class SavedExitImages final : public QQuickImageProvider {
 public:
     explicit SavedExitImages(LocalStateStore* store) : QQuickImageProvider(Image), store_(store) {}
     QImage requestImage(const QString& id, QSize* size, const QSize&) override {
-        const auto frame = store_ ? store_->exitImage(id) : QImage{};
+        const auto frame = frameExitImage(store_ ? store_->exitImage(id) : QImage{});
         if (size) *size = frame.size();
         return frame;
     }
@@ -74,18 +74,6 @@ public:
     }
 private:
     AdventureExitController& controller_;
-};
-
-class MomentImages final : public QQuickImageProvider {
-public:
-    explicit MomentImages(RetroArchResumeProvider& provider) : QQuickImageProvider(Image), provider_(provider) {}
-    QImage requestImage(const QString& id, QSize* size, const QSize&) override {
-        const auto image = provider_.preview(id);
-        if (size) *size = image.size();
-        return image;
-    }
-private:
-    RetroArchResumeProvider& provider_;
 };
 
 int main(int argc, char* argv[]) {
@@ -190,7 +178,6 @@ int main(int argc, char* argv[]) {
         const bool personalLibrary = store && (!smoke || persistencePhase.startsWith("library-") || persistencePhase == "collection");
         CollectionRepository collection(personalLibrary ? static_cast<LibraryRepository&>(*store) : repository);
         LibraryRepository& baseLibrary = personalLibrary ? (!smoke || persistencePhase == "collection" ? static_cast<LibraryRepository&>(collection) : *store) : repository;
-        ResumeLibraryRepository moments(baseLibrary);
         // State thumbnails are migration evidence, not normal launch targets.
         LibraryRepository& activeLibrary = baseLibrary;
         std::unique_ptr<RetroAchievementsProvider> realAchievements;
@@ -207,9 +194,6 @@ int main(int argc, char* argv[]) {
         StandaloneAdapter melonDs("melonds", activeLibrary, melonDsInstallation);
         StandaloneAdapter dolphin("dolphin", activeLibrary, standaloneInstallation("dolphin"));
         AdapterRouter adapters({&retroarch, &melonDs, &dolphin});
-        RetroArchResumeProvider resumeProvider(activeLibrary, retroarchInstallation);
-        QObject::connect(&moments, &ResumeLibraryRepository::scanRequested, &resumeProvider, &RetroArchResumeProvider::refresh);
-        QObject::connect(&resumeProvider, &RetroArchResumeProvider::updated, &moments, &ResumeLibraryRepository::publish);
         if (personalLibrary && !smoke) selectedAdapter = &adapters;
 #ifdef TRAINEROS_UI_TESTS
         ProbeAdventureAdapter probeAdapter;
@@ -231,7 +215,6 @@ int main(int argc, char* argv[]) {
         if (realAchievements) QObject::connect(store.get(), &LocalStateStore::opened, realAchievements.get(), [&](bool success) {
             if (success) realAchievements->refreshAll();
         });
-        QObject::connect(&moments, &ResumeLibraryRepository::changed, &shell, &ShellController::refreshLibrary);
         SessionState session(shell, store.get());
         DeviceSnapshot deviceFixture;
         deviceFixture.volume = 35; deviceFixture.brightness = 60; deviceFixture.network = "Connected";
@@ -382,7 +365,6 @@ int main(int argc, char* argv[]) {
             });
         }
         QQmlApplicationEngine engine;
-        engine.addImageProvider("moments", new MomentImages(resumeProvider));
         engine.addImageProvider("exit-frame", new ExitFrameImages(adventureLaunch.exitController()));
         engine.addImageProvider("exit-media", new SavedExitImages(store.get()));
         int qmlWarnings = 0;

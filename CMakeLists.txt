@@ -12,6 +12,8 @@ find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
     src/core/model/ExitMedia.h
+    src/features/home/ExitImage.h
+    src/features/home/ExitImage.cpp
     src/core/storage/SqliteExitMedia.h
     src/core/storage/SqliteExitMedia.cpp
     src/platform/input/AdventureOverlayService.h
@@ -49,8 +51,10 @@ add_library(trainer_core STATIC
     src/features/center/SaveCenterController.h
     src/features/center/SaveCenterController.cpp
     src/core/repository/ResumeLibraryRepository.h
-    src/integrations/adventure/retroarch/RetroArchResume.cpp
-    src/integrations/adventure/retroarch/RetroArchResume.h
+    src/integrations/adventure/retroarch/RetroArchConfiguration.h
+    src/integrations/adventure/retroarch/RetroArchConfiguration.cpp
+    src/integrations/adventure/retroarch/RetroArchSave.h
+    src/integrations/adventure/retroarch/RetroArchSave.cpp
     src/core/repository/PlayHistoryRepository.h
     src/core/storage/SqliteHallOfFame.cpp
     src/core/storage/SqliteHallOfFame.h
@@ -214,6 +218,7 @@ if(BUILD_TESTING)
         find_package(Python3 REQUIRED COMPONENTS Interpreter)
         add_test(NAME session_supervisor COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SessionSupervisorTests.py)
         add_test(NAME overlay_helper COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/OverlayHelperTests.py)
+        add_test(NAME legacy_retirement COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/LegacyRetirementTests.py)
         set_tests_properties(overlay_helper PROPERTIES TIMEOUT 15)
         set_tests_properties(session_supervisor PROPERTIES TIMEOUT 40)
     endif()
@@ -240,6 +245,7 @@ if(BUILD_TESTING)
     target_link_libraries(trainer_archive_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME archive COMMAND trainer_archive_tests)
     qt_add_executable(trainer_retroarch_resume_tests tests/RetroArchResumeTests.cpp)
+    target_sources(trainer_retroarch_resume_tests PRIVATE src/integrations/adventure/retroarch/RetroArchResume.cpp src/integrations/adventure/retroarch/RetroArchResume.h)
     target_link_libraries(trainer_retroarch_resume_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME retroarch_resume COMMAND trainer_retroarch_resume_tests)
     qt_add_executable(trainer_process_probe tests/ProcessProbe.cpp)

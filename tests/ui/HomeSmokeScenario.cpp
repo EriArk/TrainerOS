@@ -77,7 +77,8 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
                         QPainter paint(&image);
                         paint.fillRect(0, 210, 640, 150, QColor("#497643"));
                         paint.fillRect(240, 220, 115, 140, QColor("#ddb467"));
-                        paint.setBrush(QColor("#fff2b1")); paint.setPen(Qt::NoPen); paint.drawEllipse(470, 45, 65, 65); paint.end();
+                        paint.setBrush(QColor("#fff2b1")); paint.setPen(Qt::NoPen); paint.drawEllipse(470, 45, 65, 65);
+                        paint.fillRect(0, 0, 50, 360, Qt::black); paint.fillRect(590, 0, 50, 360, Qt::black); paint.end();
                         store.saveSessionMediaAsync(value, source, ExitCapture{image, value.endedAt}, window,
                             [failed](const QString& e) { if (!e.isEmpty()) *failed = true; });
                     });

@@ -50,3 +50,7 @@ The first [game-progress provider](GAME_PROGRESS.md) supplies Home's badge flags
 Native tests use actual child processes and SQLite close/reopen: failed start/checkpoint, normal return, child crash, rejected parallel launch, monotonic duration, idempotence rejection, foreign identity rejection, interrupted recovery, schema 3 migration and preservation of external bytes.
 
 Rendered SDL scenarios exercise five recent cards, scrolling, menu/Back/shoulders, selection without a process, immediate A launch after directional input, modal confirmation without launching, launch/return and restart persistence at 960×540 and 1920×1080. Original mock flows remain isolated. Hardware acceptance checks the same Home actions on Flip 2; passing host tests does not close that gate.
+
+## Exit-picture framing
+
+Home and Choose Adventure use the same presentation image provider. Paired near-black edge bars embedded in a capture are trimmed for display, then each background uses aspect-preserving fill. Existing stored captures receive the same correction after restart; original JPEG bytes and their integrity/provenance remain unchanged. Detection tolerates JPEG ringing, keeps full-frame/black/asymmetric-dark images intact and adds no controller focus stops.

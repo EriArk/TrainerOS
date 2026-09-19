@@ -17,7 +17,7 @@ QString SaveCenterController::message() const {
     if(!message_.isEmpty())return message_;
     if(route_=="adventures")return "In-game save backups · choose an Adventure · unsupported setups stay unavailable";
     if(!snapshot_.error.isEmpty())return snapshot_.error;
-    return snapshot_.hasSave?"In-game save found. Copies stay separate from saved moments."
+    return snapshot_.hasSave?"In-game save found. Keep a backup before your next Adventure."
         :"No in-game save found. Save inside the Adventure first, or restore an existing copy.";
 }
 QVariantList SaveCenterController::rows() const {

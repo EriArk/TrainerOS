@@ -1,5 +1,8 @@
 #include "core/storage/LocalStateStore.h"
 #include "features/home/PlayHistoryController.h"
+#include "features/home/ExitImage.h"
+#include <QPainter>
+#include <QBuffer>
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
@@ -43,6 +46,26 @@ class PlayHistoryTests final : public QObject {
         QTRY_VERIFY(done); QVERIFY(ok);
     }
 private slots:
+    void exitPicturesFillFromContentWithoutDestroyingCapture() {
+        QImage frame(960, 540, QImage::Format_RGB32); frame.fill(Qt::black);
+        QPainter painter(&frame); painter.fillRect(75, 0, 810, 540, QColor("#54ada6")); painter.end();
+        QCOMPARE(frameExitImage(frame).size(), QSize(810, 540));
+        QCOMPARE(frame.size(), QSize(960, 540));
+        QCOMPARE(frame.pixelColor(0, 200), QColor(Qt::black));
+        QByteArray bytes; QBuffer buffer(&bytes); buffer.open(QIODevice::WriteOnly);
+        QVERIFY(frame.save(&buffer, "JPEG", 85));
+        const auto cropped = frameExitImage(QImage::fromData(bytes));
+        QVERIFY(cropped.width() >= 810 && cropped.width() <= 814);
+        QVERIFY(cropped.pixelColor(0, 200).value() > 24);
+        // A dark scene, asymmetric shadows and full-frame media must not zoom.
+        frame.fill(Qt::black); QCOMPARE(frameExitImage(frame), frame);
+        frame.fill(QColor("#54ada6")); QCOMPARE(frameExitImage(frame), frame);
+        painter.begin(&frame); painter.fillRect(0, 0, 75, 540, Qt::black); painter.end();
+        QCOMPARE(frameExitImage(frame), frame);
+        frame.fill(Qt::black); painter.begin(&frame);
+        painter.fillRect(0, 60, 960, 420, QColor("#ddb467")); painter.end();
+        QCOMPARE(frameExitImage(frame).size(), QSize(960, 420));
+    }
     void exitPictureSurvivesRestartAndRejectsForeignOrChangedSources() {
         QTemporaryDir dir; const auto path = content(dir);
         QImage frame(64, 36, QImage::Format_RGB32); frame.fill(qRgb(20, 110, 80));

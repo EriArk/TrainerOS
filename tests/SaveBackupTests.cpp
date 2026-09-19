@@ -1,5 +1,5 @@
 #include "platform/storage/SaveBackupStorage.h"
-#include "integrations/adventure/retroarch/RetroArchResume.h"
+#include "integrations/adventure/retroarch/RetroArchSave.h"
 #include "integrations/adventure/standalone/MelonDsSave.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include "core/storage/SessionState.h"
@@ -147,6 +147,31 @@ private slots:
         write(record.contentPath,"ROM");write(installation.cores["mgba"],"core");write(installation.runtimeFile,"runtime");
         const auto config="savefile_directory = \""+dir.filePath("saves").toUtf8()+"\"\nsavefiles_in_content_dir = \"false\"\nsort_savefiles_enable = \"true\"\nsort_savefiles_by_content_enable = \"true\"\nauto_overrides_enable = \"false\"\n";
         write(installation.configFile,config);const auto target=resolveRetroArchSave(record,installation);QVERIFY2(target.supported,qPrintable(target.error));QCOMPARE(target.savePath,dir.filePath("saves/content/mGBA/original.srm"));QCOMPARE(target.contentRevision,sha("ROM"));
+        // Retiring the legacy state directory leaves ordinary-save identity stable.
+        installation.resumeDirectory.clear();
+        const auto independent = resolveRetroArchSave(record, installation);
+        QVERIFY(independent.supported); QCOMPARE(independent.savePath, target.savePath);
+        QCOMPARE(independent.contextRevision, target.contextRevision);
+        write(target.savePath, "ORDINARY SAVE");
+        const auto shelf = dir.filePath("backups");
+        auto oldTarget = target; oldTarget.contextRevision = sha("old entry-state setup");
+        const auto oldResolver = [&](const AdventureRegistration&) { return oldTarget; };
+        auto oldSnapshot = inspectSaveBackups(shelf, oldTarget);
+        const auto oldBackup = createSaveBackup(shelf, record, oldSnapshot.token, oldResolver);
+        QVERIFY(oldBackup.success);
+        const auto resolver = [&](const AdventureRegistration& r) { return resolveRetroArchSave(r, installation); };
+        auto newSnapshot = inspectSaveBackups(shelf, resolver(record));
+        QVERIFY(newSnapshot.copies.first().valid); // Existing bundles bind to content, not the ephemeral context token.
+        QVERIFY(!createSaveBackup(shelf, record, oldSnapshot.token, resolver).success);
+        write(target.savePath, "NEWER SAVE");
+        newSnapshot = inspectSaveBackups(shelf, resolver(record));
+        QVERIFY(restoreSaveBackup(shelf, record, oldBackup.snapshot.copies.first(), newSnapshot.token, resolver).success);
+        QCOMPARE(read(target.savePath), QByteArray("ORDINARY SAVE"));
+        write(installation.runtimeFile, "changed runtime");
+        QVERIFY(resolveRetroArchSave(record, installation).contextRevision != independent.contextRevision);
+        QVERIFY(QFile::remove(installation.runtimeFile));
+        QVERIFY(!resolveRetroArchSave(record, installation).supported);
+        write(installation.runtimeFile, "runtime");
         installation.saveBackups=false;QVERIFY(!resolveRetroArchSave(record,installation).supported);installation.saveBackups=true;
         write(installation.configFile,config+"sort_savefiles_enable = \"false\"\n");QVERIFY(!resolveRetroArchSave(record,installation).supported);
         write(installation.configFile,config);record.integrationConfig={{"core","gambatte"}};QVERIFY(!resolveRetroArchSave(record,installation).supported);

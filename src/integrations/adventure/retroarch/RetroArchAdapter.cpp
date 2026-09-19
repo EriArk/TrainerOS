@@ -1,5 +1,5 @@
 #include "RetroArchAdapter.h"
-#include "RetroArchResume.h"
+#include "RetroArchSave.h"
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -42,6 +42,8 @@ RetroArchInstallation RetroArchInstallation::load(const QString& filename) {
         const QFileInfo core(path);
         if (core.isFile() && core.isReadable()) result.cores.insert(it.key(), path);
     }
+    if (QFileInfo(object.value("runtimeFile").toString()).isAbsolute())
+        result.runtimeFile = object.value("runtimeFile").toString();
     if (object.value("resumeProtocol").toString() == "mgba-entry-v1") {
         const auto directory = object.value("resumeDirectory").toString();
         const auto runtime = object.value("runtimeFile").toString();
@@ -86,34 +88,24 @@ std::optional<ProcessCommand> RetroArchAdapter::command(const Adventure& adventu
     return ProcessCommand{installation_.program, arguments, {}};
 }
 AdventureCapabilities RetroArchAdapter::capabilities(const Adventure& adventure) const {
-    const auto record = repository_.registration(adventure.id);
-    const bool resume = !installation_.resumeDirectory.isEmpty() && record && record->integrationConfig["core"].toString() == "mgba";
-    return {command(adventure).has_value(), resume, resume};
+    return {command(adventure).has_value(), false, false};
 }
 AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
     auto invocation = command(adventure);
     if (!invocation) return {false, "This Adventure needs play setup. Its library record has been kept."};
-    if (capabilities(adventure).directResume) {
+    const auto registration = repository_.registration(adventure.id);
+    if (registration && registration->integrationConfig["core"].toString() == "mgba"
+        && (installation_.saveBackups || !installation_.resumeDirectory.isEmpty())) {
         const auto record = *repository_.registration(adventure.id);
         invocation->prepare = [record, installation = installation_](ProcessCommand& cmd, const std::atomic_bool& cancel) {
-            return prepareRetroArchResume(cmd, record, {}, installation, cancel);
+            return prepareRetroArchLaunch(cmd, record, installation, cancel);
         };
     }
     if (!requestLaunch || !requestLaunch(*invocation, adventure.id)) return {false, "An Adventure is already opening. Try again after returning."};
     return {true, {}, true};
 }
 AdventureResult RetroArchAdapter::resume(const Adventure& adventure, const ResumePoint& point) {
-    auto invocation = command(adventure);
-    if (!invocation || resumeAvailability(adventure, point) != ResumeAvailability::Exact)
-        return {false, "That saved moment isn't available for direct resume. Select another moment or open the Adventure normally."};
-    const auto current = repository_.resumePoints();
-    const auto found = std::find_if(current.cbegin(), current.cend(), [&](const auto& p) {
-        return p.id == point.id && p.adventureId == adventure.id && p.source == point.source && p.availability == ResumeAvailability::Exact;
-    });
-    if (found == current.cend()) return {false, "That saved moment changed. Select it again after checking."};
-    invocation->prepare = [record = *repository_.registration(adventure.id), selected = *found, installation = installation_]
-        (ProcessCommand& cmd, const std::atomic_bool& cancel) { return prepareRetroArchResume(cmd, record, selected, installation, cancel); };
-    if (!requestLaunch || !requestLaunch(*invocation, adventure.id)) return {false, "An Adventure is already opening. Try again after returning."};
-    return {true, {}, true};
+    Q_UNUSED(adventure); Q_UNUSED(point);
+    return {false, "Open this Adventure normally to use its in-game save."};
 }
 }

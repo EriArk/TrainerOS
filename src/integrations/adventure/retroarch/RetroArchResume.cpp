@@ -1,4 +1,5 @@
 #include "RetroArchResume.h"
+#include "RetroArchConfiguration.h"
 #include <QCryptographicHash>
 #include <QDirIterator>
 #include <QElapsedTimer>
@@ -12,70 +13,11 @@
 #include <algorithm>
 
 namespace trainer {
+using namespace retroarch;
 namespace {
 constexpr qint64 StateLimit = 16 * 1024 * 1024;
 QString digest(const QByteArray& bytes) {
     return QString::fromLatin1(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex());
-}
-QString fileDigest(const QString& path, qint64 limit, const std::atomic_bool& cancelled) {
-    QFile f(path);
-    if (cancelled || !f.open(QIODevice::ReadOnly) || f.size() <= 0 || f.size() > limit) return {};
-    QCryptographicHash hash(QCryptographicHash::Sha256);
-    qint64 total = 0;
-    while (!f.atEnd() && !cancelled) {
-        const auto bytes = f.read(65536);
-        if (bytes.isEmpty() || (total += bytes.size()) > limit) return {};
-        hash.addData(bytes);
-    }
-    return !cancelled && f.error() == QFile::NoError ? QString::fromLatin1(hash.result().toHex()) : QString();
-}
-using Settings = QHash<QString, QString>;
-Settings readSettings(const QString& path) {
-    QFile f(path); Settings result;
-    if (!f.open(QIODevice::ReadOnly) || f.size() > 1024 * 1024) return {};
-    const auto lines = QString::fromUtf8(f.readAll()).split('\n');
-    const QRegularExpression pattern("^([a-zA-Z0-9_]+)\\s*=\\s*\"([^\"]*)\"\\s*(?:#.*)?$");
-    for (auto line : lines) {
-        line = line.trimmed();
-        if (line.startsWith("#include")) return {}; // Unverified config layering.
-        const auto match = pattern.match(line);
-        if (match.hasMatch()) {
-            if (result.contains(match.captured(1))) return {}; // Ambiguous duplicate precedence is unverified.
-            result.insert(match.captured(1), match.captured(2));
-        }
-    }
-    return result;
-}
-bool safePath(const QString& path) {
-    return QDir::isAbsolutePath(path) && !path.contains('"') && !path.contains('|')
-        && !path.contains('\n') && !path.contains('\r') && !path.contains(QChar::Null);
-}
-bool enabled(const Settings& s, const QString& key, bool fallback = false) {
-    return s.value(key, fallback ? "true" : "false") == "true";
-}
-QString configuredPath(const Settings& s, const QString& key, const QString& fallback = {}) {
-    auto path = s.value(key);
-    if (path.isEmpty() || path == "default") path = fallback;
-    if (path.startsWith("~/")) path = QDir::home().filePath(path.mid(2));
-    return path;
-}
-QString configDirectory(const Settings& settings, const RetroArchInstallation& i) {
-    const auto path = configuredPath(settings, "rgui_config_directory");
-    return safePath(path) ? path : QFileInfo(i.configFile).dir().filePath("config");
-}
-QStringList contextFiles(const AdventureRegistration& r, const RetroArchInstallation& i, const Settings& s) {
-    const auto config = configDirectory(s, i);
-    const QFileInfo content(r.contentPath);
-    QStringList paths{i.configFile, i.cores.value("mgba"), i.runtimeFile, r.contentPath};
-    paths << configuredPath(s, "core_options_path", QFileInfo(i.configFile).dir().filePath("retroarch-core-options.cfg"));
-    for (const auto& name : {QString("mGBA"), content.dir().dirName(), content.completeBaseName()})
-        for (const auto& extension : {QString(".cfg"), QString(".opt")})
-            paths << QDir(config).filePath("mGBA/" + name + extension);
-    const auto system = configuredPath(s, "system_directory");
-    if (safePath(system)) paths << QDir(system).filePath("gba_bios.bin");
-    for (const auto& extension : {QString(".ips"), QString(".bps"), QString(".ups")})
-        paths << content.dir().filePath(content.completeBaseName() + extension);
-    return paths;
 }
 QString integrationRevision(const AdventureRegistration& r, const RetroArchInstallation& i,
                             const Settings& s, const std::atomic_bool& cancel) {
@@ -93,16 +35,6 @@ QString integrationRevision(const AdventureRegistration& r, const RetroArchInsta
         parts.append(path); parts.append(hash);
     }
     return digest(QJsonDocument(parts).toJson(QJsonDocument::Compact));
-}
-bool supportedConfiguration(const AdventureRegistration& r, const RetroArchInstallation& i, const Settings& s) {
-    if (s.isEmpty() || (enabled(s, "cheevos_enable") && enabled(s, "cheevos_hardcore_mode_enable", true))
-        || enabled(s, "netplay_start_as_server") || enabled(s, "netplay_start_as_client")) return false;
-    if (enabled(s, "auto_overrides_enable", true)) {
-        const auto files = contextFiles(r, i, s);
-        for (int n = 5; n < files.size(); ++n)
-            if (files[n].endsWith(".cfg") && QFileInfo::exists(files[n])) return false;
-    }
-    return true;
 }
 QString ownedRoot(const AdventureRegistration& r, const RetroArchInstallation& i) {
     return QDir(i.resumeDirectory).filePath(digest(r.adventure.id.toUtf8()));
@@ -142,37 +74,6 @@ QString prepareSession(ProcessCommand& command, const AdventureRegistration& r, 
     command.arguments << "--appendconfig" << config << r.contentPath;
     return {};
 }
-}
-
-SaveTarget resolveRetroArchSave(const AdventureRegistration& r, const RetroArchInstallation& installation) {
-    SaveTarget target; target.adventureId=r.adventure.id; target.title=r.adventure.title;
-    if (!installation.saveBackups || r.adventure.collectionOnly || r.adventure.adapterId!="retroarch"
-        || r.integrationConfig["core"].toString()!="mgba" || QFileInfo(r.contentPath).suffix().toLower()!="gba") return target;
-#ifdef Q_OS_LINUX
-    QDirIterator processes("/proc",QDir::Dirs|QDir::NoDotAndDotDot|QDir::NoSymLinks);
-    while(processes.hasNext()) {
-        processes.next(); bool number=false; processes.fileName().toUInt(&number); if(!number)continue;
-        QFile comm(QDir(processes.filePath()).filePath("comm"));
-        if(comm.open(QIODevice::ReadOnly) && comm.read(128).trimmed()=="retroarch") {
-            target.error="Close the running Adventure before checking or changing saves."; return target;
-        }
-    }
-#endif
-    const auto settings=readSettings(installation.configFile);
-    if(!supportedConfiguration(r,installation,settings)) { target.error="This save layout needs verification before backups can be used."; return target; }
-    for(const auto& key : {QString("savefiles_in_content_dir"),QString("sort_savefiles_enable"),QString("sort_savefiles_by_content_enable")})
-        if(settings.value(key)!="true" && settings.value(key)!="false") { target.error="This save layout needs verification before backups can be used."; return target; }
-    const QFileInfo content(r.contentPath);
-    QString directory=enabled(settings,"savefiles_in_content_dir")?content.absolutePath():configuredPath(settings,"savefile_directory");
-    if(!safePath(directory))return target;
-    if(enabled(settings,"sort_savefiles_by_content_enable"))directory=QDir(directory).filePath(content.dir().dirName());
-    if(enabled(settings,"sort_savefiles_enable"))directory=QDir(directory).filePath("mGBA");
-    const std::atomic_bool cancelled{false};
-    target.contentRevision=fileDigest(r.contentPath,64*1024*1024,cancelled);
-    target.contextRevision=integrationRevision(r,installation,settings,cancelled);
-    if(target.contentRevision.isEmpty() || target.contextRevision.isEmpty()) { target.error="Game content or play setup couldn't be verified. Check storage and try again."; return target; }
-    target.savePath=QDir(directory).filePath(content.completeBaseName()+".srm");
-    target.supported=true; return target;
 }
 
 RetroArchResumeSnapshot scanRetroArchMoments(const QList<AdventureRegistration>& records,

@@ -337,10 +337,7 @@ save paths and disables state auto-save, auto-load and state thumbnails. The
 old files, independent images and source saves are untouched. Historical state
 code/tests remain migration evidence; this is not authorization to delete them.
 
-Remaining #49 gates: inventory/recoverably retire only proven obsolete owned
-artifacts, decouple the ordinary-save resolver from the old integration profile,
-remove remaining state-only implementation safely, prove other adapters and
-physical reboot/input-access persistence. Multiple Trainers/shared current-save
+The subsequent increment below removes the ordinary-save/profile coupling and provides bounded legacy retirement. Remaining #49 gates are other adapter routes and physical reboot/input-access persistence. The owner separately authorized deletion of this device's test savestates; ordinary saves and unrelated files remain protected. Multiple Trainers/shared current-save
 context and the richer #15/#17 media cache keep their roadmap dependencies.
 
 Acceptance includes real controlled-process cancel/confirm/return, no premature
@@ -378,3 +375,34 @@ schema-6 installation and the subsequent visual-only update.
 Final non-testing installed SHA-256:
 `4e27d6199c0a7b965633abf95e94db50c6f07b8f65a558c9e1f1aeb18e0e9e3e`.
 Screenshots and private content/path manifests remain outside Git.
+
+## Ordinary-save decoupling and legacy retirement
+
+Verified RetroArch/mGBA normal launch now uses one fixed adapter-owned `traineros-ordinary-v1.cfg` beside the main configuration. It disables state auto-save/load/thumbnails and config rewriting without redirecting ordinary saves. Existing differing/symlinked helper files cause an explicit error, never replacement. The main configuration and SRAM location are unchanged. Ambiguous configuration layering fails before launch. Other adapter/core routes retain their own verification gates.
+
+`RetroArchSave` and shared configuration checks replace the production state dependency. `runtimeFile` loads independently of the legacy resume protocol; backup identity no longer contains the state directory. Existing backup bundles remain readable/restorable after a fresh shelf inspection. The old scanner, preparation code and worker compile only into their historical test executable. Production advertises no direct-state-resume capability and starts no obsolete scanner thread.
+
+`packaging/maintenance/retire-legacy-states.py` is an offline maintenance tool, never a background cleanup job. Inventory checks schema 7, the exact legacy profile, known Adventure hash/UUID folder layout, byte-exact generated launch configuration and an allowlist of state artifacts. Any ordinary save, subdirectory, symlink, changed setting or unknown filename keeps the entire session in place. Apply moves verified sessions into a sibling archive on the same filesystem, after synchronizing a private hash/size manifest. It never deletes files or changes the database/profile. Drift/conflicts stop without overwrite; interrupted moves can be restored idempotently. CLI mutations require no running TrainerOS/RetroArch and an exclusive maintenance lock.
+
+Maintenance commands (substitute the real local data directory; manifests contain private paths):
+
+```sh
+python3 packaging/maintenance/retire-legacy-states.py --data-dir /actual/data > /private/inventory.json
+# Stop TrainerOS and RetroArch through the verified maintenance path first.
+python3 packaging/maintenance/retire-legacy-states.py --data-dir /actual/data --apply
+python3 packaging/maintenance/retire-legacy-states.py --restore /actual/archive/manifest.json
+```
+
+Retain the original integration JSON and installed binary/database backup. After installing this version and verifying normal launch/backups, remove only `resumeProtocol` and `resumeDirectory` from the active profile, preserving `backupProtocol`, `runtimeFile`, core paths and arguments. Restoring a previous binary requires restoring that profile and the archived folders together. The general tool retains archives intentionally and claims no freed disk space. For this Flip only, the owner subsequently requested permanent deletion of all old test savestates instead; that narrower operation uses a reviewed private file/hash inventory and does not archive the deleted test states.
+
+Home/Y framing removes paired embedded black bars at presentation time and then crops proportionally to fill each surface; the stored capture is unchanged. Synthetic controller/rendering fixtures cover a pillarboxed frame as well as restart and select-without-launch.
+
+### Verification of the ordinary-save increment
+
+Windows: 33/33 CTest checks, plus four Python retirement scenarios. ARM64: 37/37 checks (36 parallel checks, then persistence alone in 29.86 seconds with the existing 30-second limit). The final change only simplifies two Center messages; affected Windows backup/controller-persistence checks passed again and the non-testing ARM application was rebuilt and installed.
+
+On Flip, controller-injected Home/Y selection was inspected at 1920x1080: existing FireRed media fills both surfaces without pillarbox bars. The real Center shelf still recognizes the ordinary save and its 13 September backup after removing the two resume-profile keys. FireRed then launched with the fixed ordinary config, no entry slot and no new legacy folder. A later confirmed clean return recorded a new exit picture and restored mode zero; this return occurred before the automated exit probe, so no new automated cancel/confirm or physical-button certification is claimed.
+
+Per the owner's explicit test-data instruction, 26 state/preview artifacts and 13 obsolete launch configs were deleted without archival (1,043,413 bytes). Dolphin/melonDS state folders were empty. Seven ordinary SRAM files, the existing backup and all 29 remaining legacy validation files (including nine isolated SRAM files) retained their hashes. Library/profile rows remained unchanged, schema stayed 7 and all 686 Adventures remained. New media survived the final shell restart. No reboot or sleep test was performed.
+
+Final installed non-testing SHA-256: `82f4d02b401eb617043936e773620e2ac161891aa684f99f3298d8eb3ae32941`. Private inventories, content images and binary/database/profile backups remain outside Git; deleted test states were deliberately not backed up.

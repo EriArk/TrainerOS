@@ -13,8 +13,9 @@ struct RetroArchInstallation {
     QStringList prefixArguments;
     QString configFile;
     QHash<QString, QString> cores;
-    // Opt-in only after verifying this runtime's entry-state protocol.
+    // Legacy migration/test evidence only; normal launch never resumes states.
     QString resumeDirectory;
+    // Verified runtime identity is also required by ordinary-save backups.
     QString runtimeFile;
     bool saveBackups = false;
     static RetroArchInstallation load(const QString& filename);

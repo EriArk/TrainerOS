@@ -1,4 +1,5 @@
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
+#include "integrations/adventure/retroarch/RetroArchSave.h"
 #include "core/navigation/AdventureLaunchController.h"
 #include "core/storage/LocalStateStore.h"
 #include <QtTest>
@@ -22,6 +23,34 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void ordinaryLaunchDoesNotNeedOrCreateStateFolders() {
+        QTemporaryDir dir;
+        RetroArchInstallation installation;
+        installation.configFile = dir.filePath("retroarch.cfg");
+        QFile config(installation.configFile); QVERIFY(config.open(QIODevice::WriteOnly));
+        config.write("auto_overrides_enable = \"false\"\nsavestate_auto_save = \"true\"\n"); config.close();
+        AdventureRegistration record; record.adventure.id = "ordinary";
+        record.contentPath = dir.filePath("original.gba");
+        std::atomic_bool cancelled{false};
+        ProcessCommand command{probe(), {"--config", installation.configFile, record.contentPath}, {}};
+        QVERIFY(prepareRetroArchLaunch(command, record, installation, cancelled).isEmpty());
+        QCOMPARE(command.arguments.last(), record.contentPath);
+        const auto overridePath = command.arguments[command.arguments.size() - 2];
+        QFile overrideFile(overridePath); QVERIFY(overrideFile.open(QIODevice::ReadOnly));
+        const auto bytes = overrideFile.readAll(); overrideFile.close();
+        QVERIFY(bytes.contains("savestate_auto_save = \"false\""));
+        QVERIFY(bytes.contains("savestate_auto_load = \"false\""));
+        QVERIFY(!bytes.contains("savestate_directory")); QVERIFY(!bytes.contains("savefile_directory"));
+        QCOMPARE(QDir(dir.path()).entryList(QDir::Dirs | QDir::NoDotAndDotDot).size(), 0);
+        auto next = ProcessCommand{probe(), {record.contentPath}, {}};
+        QVERIFY(prepareRetroArchLaunch(next, record, installation, cancelled).isEmpty());
+        // A different file is a conflict, never permission to overwrite it.
+        QVERIFY(overrideFile.open(QIODevice::WriteOnly)); overrideFile.write("USER SETTINGS"); overrideFile.close();
+        next.arguments = {record.contentPath};
+        QVERIFY(!prepareRetroArchLaunch(next, record, installation, cancelled).isEmpty());
+        QVERIFY(overrideFile.open(QIODevice::ReadOnly)); QCOMPARE(overrideFile.readAll(), QByteArray("USER SETTINGS"));
+        cancelled = true; QVERIFY(!prepareRetroArchLaunch(next, record, installation, cancelled).isEmpty());
+    }
     void fileAttachmentPreparesOnlyAnInstalledMatchingCore() {
         MockLibraryRepository repository;
         RetroArchAdapter adapter(repository, {probe(), {}, "settings.cfg", {{"mgba", "mgba_libretro.so"}, {"gambatte", "gambatte_libretro.so"}, {"pokemini", "pokemini_libretro.so"}}});
@@ -89,6 +118,9 @@ private slots:
         write(); auto installation = RetroArchInstallation::load(path);
         QCOMPARE(installation.program, probe()); QCOMPARE(installation.cores.size(), 2);
         QVERIFY(installation.cores.contains("mgba"));
+        settings["backupProtocol"] = "mgba-sram-v1"; settings["runtimeFile"] = probe(); write();
+        const auto ordinary = RetroArchInstallation::load(path);
+        QVERIFY(ordinary.saveBackups); QCOMPARE(ordinary.runtimeFile, probe()); QVERIFY(ordinary.resumeDirectory.isEmpty());
         // A user-provided NES hack gets a real launch route only when its core
         // was discovered. An extension from a different platform cannot use it.
         MockLibraryRepository repository; RetroArchAdapter adapter(repository, installation);

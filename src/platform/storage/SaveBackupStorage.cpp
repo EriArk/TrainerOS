@@ -164,7 +164,7 @@ SaveBackupResult restoreSaveBackup(const QString& root, const AdventureRegistrat
     const bool synced=syncDirectory(save.parent);
     const auto after=current(target);
     if(!synced || !after.success || after.data!=copy.data)return {false,true,"The save was replaced, but storage verification failed. Keep the protection copy and check the storage device."};
-    return {true,true,"Save restored. Open the Adventure normally to use it; older saved moments stay separate.",inspectSaveBackups(root,resolve(record))};
+    return {true,true,"Save restored. Open the Adventure normally to use it.",inspectSaveBackups(root,resolve(record))};
 }
 LocalSaveBackupService::LocalSaveBackupService(QString root, SaveTargetResolver resolve,
         std::function<bool(const AdventureRegistration&)> supports, QObject* parent)

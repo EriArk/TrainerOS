@@ -464,3 +464,7 @@ Do not scatter Retroid-specific constants through QML.
 `DeviceService` owns asynchronous sound, backlight, network and storage operations behind an injectable backend. `DeviceController` exposes bounded rows and actions to the shared service panel. Power requests use the same confirmed, journal-draining platform transition as session changes; device and backup work jointly hold that exit gate. See `DEVICE_CONTROLS.md`.
 
 `AdapterRouter` is the application composition boundary for installed Adventure integrations. It delegates file attachment and capability/launch requests (and legacy resume dispatch pending #49) without exposing emulator-specific logic to QML. Standalone launch profiles share literal argument construction and worker preflight while retaining explicit per-installation platform validation; see `STANDALONE_ADAPTERS.md`.
+
+## Ordinary-save integration boundary ? 2026-09-19
+
+The deployed RetroArch/mGBA launch and save resolver now share configuration verification independently of legacy state preparation. Production composes the personal/collection repository directly and starts no state-scanning thread. State scan/entry preparation remains linked only to the historical regression executable. Existing ordinary-backup bundles retain their content identity; a refreshed operation token accounts for the new SRAM context fingerprint. Home/Y crop the same decoded exit image for presentation without altering stored media provenance. [Current behavior and retirement evidence](ADVENTURE_EXIT.md#ordinary-save-decoupling-and-legacy-retirement).
