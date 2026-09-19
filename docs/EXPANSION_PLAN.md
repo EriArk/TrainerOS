@@ -138,7 +138,7 @@ Show real phases and verified completion; expose reboot through #26's Power flow
 
 ## Complete offline Help
 
-Issue: [#40](https://github.com/EriArk/TrainerOS/issues/40). P1 establishes a bounded viewer/current-feature guide; every delivered feature updates its article; P11 completes the coverage audit.
+Issue: [#40](https://github.com/EriArk/TrainerOS/issues/40). Per the owner's 2026-09-19 clarification, P11 delivers the viewer, product articles and coverage audit together after the main flows stabilize. Earlier increments keep engineering docs, capability evidence and recovery notes current. All coverage below remains accepted; Help implementation is not a prerequisite for feature development.
 
 Provide Start → Help (and an optional Settings alias), a controller category index/article viewer, predictable bounded scrolling, internal links/Back and useful contextual deep links. A lightweight local structured/Markdown renderer is sufficient; no Chromium or online page dependency. Optional local search may follow. Help is version-matched product content, not a copied developer README or a promise that planned features are installed.
 

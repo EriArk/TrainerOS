@@ -272,7 +272,7 @@ See `docs/DEVELOPMENT_WORKFLOW.md` for concrete commands and verification bounda
 When a task introduces a meaningful product/platform/architecture decision:
 
 - update the relevant doc in the same change
-- update the matching offline Help article/runtime-capability facts as #40 is delivered; do not document planned behavior as currently available
+- #40 in-app Help (viewer and product articles) is deferred to P11 until the main flows stabilize, per the owner's 2026-09-19 clarification. Keep engineering docs, runtime-capability facts and recovery notes current now; update matching Help articles once Help exists. Do not document planned behavior as currently available
 - add/update acceptance criteria
 - keep README high-level; implementation details belong under `docs/`
 
