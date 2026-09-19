@@ -67,6 +67,8 @@ add_library(trainer_core STATIC
     src/platform/process/ProcessService.h
     src/core/navigation/AdventureLaunchController.cpp
     src/core/navigation/AdventureLaunchController.h
+    src/core/navigation/AdventureExitController.cpp
+    src/core/navigation/AdventureExitController.h
     src/platform/storage/FileCatalog.cpp
     src/platform/storage/FileCatalog.h
     src/features/library/FilePickerController.cpp
@@ -285,6 +287,11 @@ if(BUILD_TESTING)
     target_link_libraries(trainer_process_tests PRIVATE trainer_core Qt6::Test)
     add_dependencies(trainer_process_tests trainer_process_probe)
     add_test(NAME process COMMAND trainer_process_tests)
+    qt_add_executable(trainer_exit_tests tests/AdventureExitTests.cpp)
+    target_link_libraries(trainer_exit_tests PRIVATE trainer_core Qt6::Test)
+    add_dependencies(trainer_exit_tests trainer_process_probe)
+    add_test(NAME adventure_exit COMMAND trainer_exit_tests)
+    set_tests_properties(adventure_exit PROPERTIES TIMEOUT 30)
     qt_add_executable(trainer_diagnostics_tests tests/DiagnosticsTests.cpp)
     target_link_libraries(trainer_diagnostics_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME diagnostics COMMAND trainer_diagnostics_tests)

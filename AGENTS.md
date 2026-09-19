@@ -240,6 +240,8 @@ Before each new stage/increment, recommend a reasoning-effort level with one sho
 
 Use the lowest adequate available level: Low/Light for clear text or small layout edits and routine operations; Medium for ordinary bounded implementation and tests; High for uncertain cross-module behavior, lifecycle, migrations or save integrity. Extra High/Max is exceptional for demonstrated difficult problems, not the default. These are project heuristics, not guaranteed quota savings. Raise or lower the recommendation as the actual uncertainty changes; required verification/data protection still applies at every level. Do not claim to change the owner's model/reasoning setting yourself or infer an exact remaining allowance.
 
+Use the owner's six-position UI labels explicitly: **1/6 Низкое (Low), 2/6 Среднее (Medium), 3/6 Высокое (High), 4/6 Очень высокое (Extra High/xhigh), 5/6 Максимум (Max), 6/6 Ультра (Ultra)**. Recommend the ordinal and Russian label together; High is the third option, not the fourth.
+
 ### Commit and verification loop
 
 The user has authorized routine commits and pushes for this project. A completed implementation increment must be checked, committed, pushed to GitHub and verified there; do not leave finished work only in the working tree or local commits. Do not ask for repeated approval for this routine workflow.

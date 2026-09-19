@@ -22,6 +22,7 @@ public:
     explicit ProcessService(QObject* parent = nullptr);
     ~ProcessService() override;
     bool active() const { return active_; }
+    bool stopRequested() const { return stopRequested_; }
     bool start(const ProcessCommand&);
     void stop();
 signals:
@@ -41,5 +42,6 @@ private:
     quint64 request_ = 0;
     bool preparing_ = false;
     bool active_ = false;
+    bool stopRequested_ = false;
 };
 }

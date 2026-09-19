@@ -44,6 +44,8 @@ The clean exit image is the canonical source for Home/Y/recent history. #15/#17 
 
 **First implementation gate:** prove an exit request, capture and modal/controller-focus round trip while the emulator is still alive in the actual Gamescope/supervisor arrangement. Today's hidden shell/process-stop path is not proof of a working overlay. Cancellation must not terminate/relaunch the game; do not claim universal overlay support from one adapter.
 
+**Implementation checkpoint, 2026-09-19:** the native [exit protocol](ADVENTURE_EXIT.md) now covers capture/confirmation/cancel/actual-exit ordering with real child-process tests. It remains unavailable in production until platform opt-in for each running integration. Hardware input/capture/overlay, media persistence and migration gates below remain open.
+
 **Migration:** stop exposing old state slots and launch dependencies; preserve ordinary saves, histories and independently sourced images. Inventory legacy references and retire only demonstrably TrainerOS-owned obsolete artifacts with a reviewed recovery path. Do not delete user/emulator files by extension or drop unrelated metadata. Existing resolver coupling to a resume profile must be removed without losing ordinary-save identity safeguards. Keep legacy tests/evidence labeled historical until the replacement is proven.
 
 **Acceptance:** manual title capture-before-prompt, B same-process continuation, A graceful return, unknown asks, verified autosave skips, no overlay in image, Home/Y provenance, normal relaunch, migration/restart/rollback and interrupted outcomes. Physically verify a manual Pokémon title and a verified autosave title when available; absence leaves that specific gate open. Sleep work remains deferred.

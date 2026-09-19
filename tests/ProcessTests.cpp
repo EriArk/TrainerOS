@@ -43,6 +43,24 @@ private slots:
         QVERIFY(process.start(command)); QTRY_COMPARE(done.size(), 1);
         QVERIFY(started.isEmpty()); QCOMPARE(done.first()[2].toString(), "Selected state changed");
     }
+    void cancellingAdapterPreparationIsNotAFailedGame() {
+        ProcessService process; AdventureLaunchController launch(process);
+        QSignalSpy started(&process, &ProcessService::started);
+        QSignalSpy returned(&launch, &AdventureLaunchController::restoreRequested);
+        QSignalSpy history(&launch, &AdventureLaunchController::adventureFinished);
+        connect(&launch, &AdventureLaunchController::checkpointRequested, &launch,
+                [&](quint64 token, const QJsonObject&) { launch.checkpointCompleted(token, {}); });
+        auto entered = std::make_shared<std::atomic_bool>(false);
+        ProcessCommand command{probe(), {}, {}};
+        command.prepare = [entered](ProcessCommand&, const std::atomic_bool& cancelled) {
+            *entered = true;
+            while (!cancelled) QThread::msleep(5);
+            return QString();
+        };
+        QVERIFY(launch.launch(command, {}, "fixture")); QTRY_VERIFY(*entered);
+        launch.cancel(); QCOMPARE(returned.size(), 1); QCOMPARE(launch.state(), "returned");
+        QVERIFY(launch.error().isEmpty()); QVERIFY(started.isEmpty()); QVERIFY(history.isEmpty());
+    }
     void adapterOutputFailureStopsOnlyItsOwnedChild() {
         ProcessService process;
         QSignalSpy done(&process, &ProcessService::finished);
@@ -86,7 +104,7 @@ private slots:
         QVERIFY(launch.launch({probe(), {"crash"}, {}}, {})); QTRY_COMPARE_WITH_TIMEOUT(restored.size(), 1, 6000);
         QCOMPARE(launch.state(), "failed"); QVERIFY(!process.active());
         QVERIFY(launch.launch({probe(), {"wait"}, {}}, {})); QTRY_COMPARE(launch.state(), "running");
-        launch.cancel(); QTRY_COMPARE_WITH_TIMEOUT(restored.size(), 2, 4000); QCOMPARE(launch.state(), "returned");
+        launch.cancel(); QTRY_COMPARE_WITH_TIMEOUT(restored.size(), 2, 4000); QCOMPARE(launch.state(), "failed");
         QTest::qWait(50); QCOMPARE(restored.size(), 2);
     }
     void argumentsAreLiteralWithoutShellInterpretation() {

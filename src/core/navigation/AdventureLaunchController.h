@@ -1,5 +1,6 @@
 #pragma once
 #include "platform/process/ProcessService.h"
+#include "AdventureExitController.h"
 #include <QJsonObject>
 
 namespace trainer {
@@ -15,7 +16,9 @@ public:
     QString error() const { return error_; }
     bool active() const { return state_ == "preparing" || state_ == "starting" || state_ == "running" || state_ == "stopping"; }
     bool preparing() const { return state_ == "preparing" || state_ == "starting"; }
-    bool launch(const ProcessCommand&, const QJsonObject& returnContext, const QString& adventureId = {});
+    bool launch(const ProcessCommand&, const QJsonObject& returnContext, const QString& adventureId = {},
+                AdventureSavePolicy savePolicy = AdventureSavePolicy::Unknown);
+    AdventureExitController& exitController() { return exit_; }
     void checkpointCompleted(quint64 request, const QString& error);
     Q_INVOKABLE void cancel();
 signals:
@@ -28,6 +31,8 @@ signals:
 private:
     void restore(const QString& error);
     ProcessService& process_;
+    AdventureExitController exit_;
+    AdventureSavePolicy savePolicy_ = AdventureSavePolicy::Unknown;
     ProcessCommand command_;
     QJsonObject context_;
     QString state_ = "idle", error_;

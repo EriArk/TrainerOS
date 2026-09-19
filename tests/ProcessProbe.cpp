@@ -29,6 +29,21 @@ int main(int argc, char** argv) {
         file.write(args[3].toUtf8()); return 0;
     }
     const auto mode = args.value(1);
+    if (mode == "controlled" && args.size() == 4) {
+        QFile identity(args[3]); if (!identity.open(QIODevice::WriteOnly)) return 3;
+        identity.write(QByteArray::number(QCoreApplication::applicationPid())); identity.close();
+        QTimer commands;
+        QObject::connect(&commands, &QTimer::timeout, &app, [&] {
+            QFile control(args[2]); if (!control.open(QIODevice::ReadOnly)) return;
+            const auto command = control.readAll();
+            if (command == "crash") std::abort();
+            if (command == "exit") app.quit();
+            if (command == "error") app.exit(7);
+        });
+        commands.start(10);
+        QTimer::singleShot(15000, &app, [&] { app.exit(8); });
+        return app.exec();
+    }
     if (mode == "output") {
         QFile output; if (!output.open(stdout, QIODevice::WriteOnly)) return 3;
         output.write("original failure fixture\n"); output.flush();

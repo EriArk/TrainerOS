@@ -26,6 +26,7 @@ ProcessService::~ProcessService() {
 bool ProcessService::start(const ProcessCommand& command) {
     if (active_ || !QDir::isAbsolutePath(command.program)) return false;
     active_ = true;
+    stopRequested_ = false;
     validationError_.clear(); inspectOutput_ = {};
     const auto token = ++request_;
     if (command.prepare) {
@@ -64,6 +65,7 @@ void ProcessService::drainOutput() {
 }
 void ProcessService::stop() {
     if (!active_) return;
+    stopRequested_ = true;
     if (preparing_) {
         *cancelled_ = true; ++request_; preparing_ = false;
         complete(0, false, {}); return;

@@ -4,20 +4,26 @@ namespace trainer {
 AdventureLaunchController::AdventureLaunchController(ProcessService& process, QObject* parent) : QObject(parent), process_(process) {
     connect(&process_, &ProcessService::started, this, [this] {
         started_ = true;
+        exit_.beginSession(savePolicy_);
         if (!adventureId_.isEmpty()) emit adventureStarted(adventureId_);
         if (state_ == "stopping") { process_.stop(); return; }
         state_ = "running"; emit changed(); emit suspendRequested();
     });
     connect(&process_, &ProcessService::finished, this, [this](int code, bool crashed, const QString& error) {
         if (!active()) return;
-        if (started_ && !adventureId_.isEmpty()) emit adventureFinished(state_ != "stopping" && (crashed || code != 0 || !error.isEmpty()));
+        const bool failed = (started_ && process_.stopRequested()) || crashed || code != 0 || !error.isEmpty();
+        // A stop/kill is never evidence of a confirmed, graceful game exit.
+        exit_.endSession(!failed && state_ != "stopping");
+        if (started_ && !adventureId_.isEmpty()) emit adventureFinished(failed);
         started_ = false;
-        restore(state_ == "stopping" ? QString() : !error.isEmpty() ? error : code != 0 ? "The Adventure ended with an error. You can try again." : QString());
+        restore(!error.isEmpty() ? error : failed ? "The Adventure ended with an error. You can try again." : QString());
     });
 }
-bool AdventureLaunchController::launch(const ProcessCommand& command, const QJsonObject& context, const QString& adventureId) {
+bool AdventureLaunchController::launch(const ProcessCommand& command, const QJsonObject& context, const QString& adventureId,
+                                       AdventureSavePolicy savePolicy) {
     if (active() || process_.active()) return false;
     adventureId_ = adventureId; started_ = false;
+    savePolicy_ = savePolicy;
     command_ = command; context_ = context; error_.clear(); state_ = "preparing";
     const auto token = ++request_; emit changed(); emit checkpointRequested(token, context_); return true;
 }

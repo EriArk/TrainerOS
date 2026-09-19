@@ -84,7 +84,7 @@ private slots:
         QVERIFY(!launch.launch({probe, {}, {}}, {}, "other"));
         QTest::qWait(1100); launch.cancel(); QTRY_COMPARE(returned.size(), 3); QTRY_COMPARE(store.pending(), 0);
         QCOMPARE(store.recentSessions().first().adventureId, "journey");
-        QCOMPARE(store.recentSessions().first().outcome, PlaySessionOutcome::Returned);
+        QCOMPARE(store.recentSessions().first().outcome, PlaySessionOutcome::Failed);
         QVERIFY(store.recentSessions().first().elapsedSeconds && *store.recentSessions().first().elapsedSeconds >= 1);
         const auto oldId = store.recentSessions().first().id;
         QVERIFY(launch.launch({probe, {}, {}}, {}, "journey")); QTRY_COMPARE(returned.size(), 4); QTRY_COMPARE(store.pending(), 0);
