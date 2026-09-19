@@ -2,7 +2,9 @@
 
 Accepted **2026-09-19** after reviewing issues #42–62 and the updated #6/#8/#9/#13/#15/#17/#28/#31/#40. This is a specification register, not another execution queue. [ROADMAP.md](ROADMAP.md) owns phases P0–P12 and preserves steps 1–10, U1–U13 and deferred commitments. This documentation increment implements **#62 only**; none of the features below becomes available merely because it is specified.
 
-The deployed baseline still has a Home-only selector, emulator-state integration, manual Pokédex/Hall records and a backup service reached through Start. Those are implementation facts, not the new target. Dated device evidence remains valid for its tested revision. The closed #6 and old #8 Phase D are historical; #49 replaces further state-resume development.
+The baseline at the original reconciliation was Home-only selection with emulator states and Start-accessed backups. Subsequent increments delivered shared Y, Pokedex/Center and Hall/RA pairs, ordinary-save launch, clean exit media and legacy-state retirement. See the current [working baseline](ROADMAP.md#working-baseline), not this historical checkpoint, for implemented behavior. Current-save Party/Journey and multiple-owner activation remain planned. The closed #6 and old #8 Phase D stay historical.
+
+**Later precedence:** [#63/#64 acceptance](EXPANSION_63_64.md) adds World chronology and supersedes generic crystal badges. The owner's UI-first clarification moves all handheld screen/controller flows and artwork earlier, with new save research/writers and battle/link investigations late. Where an acceptance below requires real data or transaction proof, that gates production functionality, not a clearly labelled fixture UI. P1 screens do not close those functional criteria.
 
 ## Shared Adventure and paired navigation
 
@@ -52,7 +54,7 @@ The clean exit image is the canonical source for Home/Y/recent history. #15/#17 
 
 ## Exact save providers and research
 
-Sources: [#42](https://github.com/EriArk/TrainerOS/issues/42), [#50](https://github.com/EriArk/TrainerOS/issues/50). P1 minimal contracts, P8 incremental providers; research accompanies each provider rather than blocking all work.
+Sources: [#42](https://github.com/EriArk/TrainerOS/issues/42), [#50](https://github.com/EriArk/TrainerOS/issues/50). P1 minimal presentation contracts, late P8 incremental real providers; research accompanies each provider rather than blocking all work.
 
 Extend existing `GameProgressProvider`, save resolution and backup boundaries. Introduce only the shared contracts needed by the first exact-title consumer; no speculative universal save editor. Identity includes ROM hash/revision, platform, runtime/configuration, save container/format, resolver provenance and stable save fingerprint. Hacks, translations and revisions are separate builds until verified. “Gen III supported” cannot follow from one Emerald fixture.
 
@@ -91,7 +93,7 @@ Sources: [#46](https://github.com/EriArk/TrainerOS/issues/46), [#47](https://git
 
 Pokédex layers offline reference facts, selected-Adventure verified Seen/Caught, the preserved manual journal/history, classic illustration art, and optional animated detail sprites/portraits. Save-derived status is the **primary current progression view**. Regional/National/form semantics require evidence; unknown is not false. Counts, species flags and individual records remain different evidence levels. Manual Caught (#14), favorites and notes remain a clearly sourced secondary collection, not silently merged truth. Save rollback never erases journal/history. Failed refresh retains a labeled last complete verified snapshot for the same identity, not zeroed or partly mixed data.
 
-Hall's first face is a live **Journey Record** before completion: actual badges, milestones, save playtime and Dex totals with title-specific goals. Use a larger original crystal Badge Case; no universal eight badges, invented completion percentage or acquisition date inferred from a boolean. Preserve verified Champion/completion snapshots, exact build and playthrough lineage, with known historical team/progress separate from today's Party. Older saves do not erase the archive; distinct runs stay distinct, and observation time is not victory time. Manual Hall entries remain explicitly sourced.
+Hall's first face is a live **Journey Record** before completion: actual badges, milestones, save playtime and Dex totals with title-specific goals. Use a larger Badge Case with the exact game-appropriate assets or neutral mounts required by #64; no universal eight badges, invented completion percentage or acquisition date inferred from a boolean. Preserve verified Champion/completion snapshots, exact build and playthrough lineage, with known historical team/progress separate from today's Party. Older saves do not erase the archive; distinct runs stay distinct, and observation time is not victory time. Manual Hall entries remain explicitly sourced.
 
 RA is Hall's L2/R2 companion, following the shared Adventure through exact content/set matching. It remains an external account truth independent of save/Journey/manual completion. Account management is Settings → Accounts for the active Trainer. Preserve complete same-account offline caches; failed refresh must not turn earned into locked. #12 earning, #24 earned-state display, U7 matching and #25 verified notifications remain separate gates. Unsupported mapping must not quietly select another game's set.
 
@@ -117,7 +119,7 @@ Source: [#45](https://github.com/EriArk/TrainerOS/issues/45). Later P8 extension
 
 Bluetooth trade/transfer/sale is between explicitly selected, paired and confirmed devices. Sale uses **in-game currency only**. Discover minimal non-secret identity; exchange validated semantic Pokémon records, never raw save chunks. An explicit exact-build pair matrix governs supported transfer fields, moves/forms/items and OT/origin preservation. Reject incompatible or lossy conversions; cross-generation compatibility and trade evolution require their own later provider proof.
 
-Before UI completion, prove durable transaction IDs, protection copies, prepared candidates, source revisions, both sides' READY state, commit/readback receipts and recovery from disconnect, replay or one-sided commit. An unreachable peer can leave an explicit in-doubt transaction; never announce success after only one save changed or promise unconditional remote rollback. Sale additionally needs verified money/import/export/removal capabilities and bounded balances. No active game writer on either side.
+Before enabling real transfers or declaring the functional feature complete, prove durable transaction IDs, protection copies, prepared candidates, source revisions, both sides' READY state, commit/readback receipts and recovery from disconnect, replay or one-sided commit. An unreachable peer can leave an explicit in-doubt transaction; never announce success after only one save changed or promise unconditional remote rollback. Sale additionally needs verified money/import/export/removal capabilities and bounded balances. No active game writer on either side.
 
 **Acceptance:** two fake endpoints cover every interrupted stage, retries and idempotence; then two physical devices and in-game verification prove each supported pair. Lacking a second device leaves that gate open. Same-device transfer and broader evolution rules remain later extensions.
 
@@ -133,7 +135,7 @@ Small groups with roughly fewer than three or four substantial titles may share 
 
 ## Artwork sequence
 
-Sources: updated [#13](https://github.com/EriArk/TrainerOS/issues/13), [#57](https://github.com/EriArk/TrainerOS/issues/57), [#58](https://github.com/EriArk/TrainerOS/issues/58), [#59](https://github.com/EriArk/TrainerOS/issues/59), [#60](https://github.com/EriArk/TrainerOS/issues/60), [#61](https://github.com/EriArk/TrainerOS/issues/61). Independent P7 art track; does not wait for save writers or Link Counter.
+Sources: updated [#13](https://github.com/EriArk/TrainerOS/issues/13), [#57](https://github.com/EriArk/TrainerOS/issues/57), [#58](https://github.com/EriArk/TrainerOS/issues/58), [#59](https://github.com/EriArk/TrainerOS/issues/59), [#60](https://github.com/EriArk/TrainerOS/issues/60), [#61](https://github.com/EriArk/TrainerOS/issues/61). Early P7 art track alongside the relevant P1 UI; does not wait for ownership migration, save writers or Link Counter. #51 sprite/portrait asset preparation is early UI work too; real Party animation still requires observed records.
 
 **Required order: #58 → #60 → #57 → #59 → production Settings polish.** No daemon/resident downloader. Do not build Studio or freeze final filenames before actual Flip layout validation.
 

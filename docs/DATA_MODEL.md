@@ -6,6 +6,8 @@ The domain model should use TrainerOS language first and integration terminology
 
 The persistent implementation covers personal Worlds/Adventures, the local Trainer profile, favorites/manual Pokédex journal, observed play history, manual Hall memories, preferences and versioned browsing state. SQLite schema, recovery and migration constraints are documented in [LOCAL_PERSISTENCE.md](LOCAL_PERSISTENCE.md) and module documents. Reference catalogue data is composed separately; sample personal progress/archive/provider records are not seeded into the personal store.
 
+**Planned #63/#64 additions:** shared platform metadata supplies explicit chronology, with release/catalogue/stable-ID ties for World Adventure lists. A verified exact-build progress snapshot identifies the ordered semantic badge set and earned states; a separate asset provider supplies SVGs and provenance. Count-only and unknown observations never invent earned IDs. These are target contracts, not a claim that new schema fields exist. See [acceptance](EXPANSION_63_64.md); UI fixtures may exercise them before functional migration/new parsers.
+
 ## Ownership contract — 2026-09-13
 
 This clarification addresses [issue #2](https://github.com/EriArk/TrainerOS/issues/2) before the [next modules](ROADMAP.md). It defines target ownership; the remaining code/storage audit is planned, and no integration-profile schema migration is claimed here. Older suggested fields below are conceptual UI data unless explicitly described as persisted.

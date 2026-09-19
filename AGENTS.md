@@ -68,11 +68,11 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 - **Home is one top-level page, not a permanent background shell.**
 - `L1/R1` switch top-level pages and must not be repurposed for local features.
 - Home is a living trainer overview, not a giant Continue page or tile launcher.
-- Planned updated #9: one shell-owned Choose Adventure drawer selects a shared per-Trainer `CurrentPokemonAdventureContext` across Pokémon-aware screens; Worlds retains local search/filter controls. No duplicate persistent Current Adventure capsule/chip. The deployed Home-only selector is a baseline, not the final target.
+- Planned updated #9: one shell-owned Choose Adventure drawer selects a shared per-Trainer `CurrentPokemonAdventureContext` across Pokémon-aware screens; Worlds retains local search/filter controls. No duplicate persistent Current Adventure capsule/chip. Shared Y and the Pokedex/Center and Hall/RA pairs are delivered over single-Trainer modules; P2 owner isolation and additional consumers remain planned.
 - Planned #49 supersedes all normal emulator savestate/ResumePoint creation, management and resume. Use ordinary saves/autosaves and recent Adventure cards with clean exit screenshots. Preserve legacy implementation evidence and migrate user data safely; no new state-resume expansion.
 - Selecting a Continue card with A chooses the Adventure shown on Home; it never launches. Home has a large physical-style action button that launches the selected Adventure normally; the game loads its ordinary save/autosave. The explicit Home choice persists; latest launch is the default before a choice is made (2026-09-11 clarification).
 - RetroAchievements achievements belong inside Hall of Fame, alongside the completed-Adventure archive, not on a separate primary page.
-- The accepted plan is [ROADMAP.md](docs/ROADMAP.md), with [earlier acceptance](docs/EXPANSION_PLAN.md) and [#42–62 target acceptance](docs/EXPANSION_42_62.md). Preserve its earlier steps 1–10, U1–U13 and optional/deferred commitments when replanning. Phases P0–P12 control execution; acceptance registers are not competing queues.
+- The accepted plan is [ROADMAP.md](docs/ROADMAP.md), with [earlier acceptance](docs/EXPANSION_PLAN.md), [#42–62 target acceptance](docs/EXPANSION_42_62.md) and [#63–64 acceptance](docs/EXPANSION_63_64.md). Preserve its earlier steps 1–10, U1–U13 and optional/deferred commitments when replanning. The ROADMAP table controls execution order; P0-P12 are stable work-area IDs, not a numerical schedule; acceptance registers are not competing queues.
 - Planned #19–20 introduce separate Trainers/PIN/onboarding: library/installations/shared media are device-wide; personal journal/history/Hall/Home and RA identities are Trainer-scoped. Global RA management belongs in Settings and serves the active Trainer. Shared external saves do not imply separate owned playthroughs.
 - Planned #30 explicitly narrows the reference checklist to substantial playable Pokémon titles with credible Flip/controller routes. Preserve the complete eligible collection, missing/linkable editions and meaningful hacks/variants. Catalogue curation never deletes private content/history and remains separate from #18 duplicate-file cleanup.
 - Adventure media and Pokédex art have separate identities; manual Caught marks must not fabricate individual Pokémon. New media/audio/haptics/RGB/Steam/boot features require their roadmap capability and recovery gates. Planned capabilities must not be described as already implemented.
@@ -103,7 +103,7 @@ Always preserve:
 - `Start` = TrainerOS system menu
 - Physical `Home/Guide` returns to the Home page when no Adventure is running; during a supported Adventure it requests the guarded exit question. It never bypasses an active storage/service gate or directly kills a game.
 - P1 #9 `Y` = shared Choose Adventure on Pokémon Home, Pokédex, Center, Hall/RA and Trainer; Worlds local Y and modal/keyboard/system/recovery priority remain. Multi-Trainer/domain consumers remain planned. [Delivered boundary](docs/SHARED_ADVENTURE.md).
-- `L2/R2` switches the delivered Pokédex/Center pair; other pairs remain planned. `Select` owns labelled local journal/new-memory/achievement-refresh/save-backup shortcuts.
+- `Select` owns labelled local journal/new-memory/achievement-refresh/save-backup shortcuts.
 - Planned #43 `L2/R2` = paired faces Worlds/Multiverse, Pokédex/Center, Hall/Journey/RA; preserve local routes/focus, never use L1/R1 for companions or steal emulator input.
 - Planned #31: unobstructed Home `X` toggles Pokémon/Multiverse; choices and Continue are scoped per Trainer/context, while A/Y retain selection-versus-launch behavior.
 - On unobstructed Home, `A` immediately invokes the large Adventure button, regardless of prior D-pad/stick input. `Y` opens the selector; `A` inside it selects for Home without launching.
@@ -151,6 +151,8 @@ The user's 2026-09-06 clarification supersedes the earlier top-down sequence. De
 3. Shared backend foundation: domain models, repository/service contracts, local persistence, and fake providers.
 4. Individual functional modules on those foundations, with real integrations added one at a time after their prerequisites work.
 5. Optional automatic progress providers only after the library, launch/return, persistence, and relevant feature modules are stable.
+
+**Owner clarification, 2026-09-19:** finish the whole handheld UI/controller skeleton before new save integrations and heavy research. Build future screens on small presentation contracts and explicitly labelled development fixtures, while retaining existing real features and backups. Pokedex illustrations/sprites and #64 game-accurate badge assets belong early with UI; preserve #61's actual Flip/bootstrap/schema gates and asset source/credit requirements. New parsers, save editing/healing, battle-engine research and two-device transactions belong late P8. UI completion does not imply functional feature completion: no fictional progress or enabled unverified writes in production. Full #40 Help stays late P11. The ROADMAP table owns the detailed sequence.
 
 Across all stages:
 
@@ -245,6 +247,8 @@ Before each new stage/increment, recommend a reasoning-effort level with one sho
 Use the lowest adequate available level: Low/Light for clear text or small layout edits and routine operations; Medium for ordinary bounded implementation and tests; High for uncertain cross-module behavior, lifecycle, migrations or save integrity. Extra High/Max is exceptional for demonstrated difficult problems, not the default. These are project heuristics, not guaranteed quota savings. Raise or lower the recommendation as the actual uncertainty changes; required verification/data protection still applies at every level. Do not claim to change the owner's model/reasoning setting yourself or infer an exact remaining allowance.
 
 Use the owner's six-position UI labels explicitly: **1/6 Низкое (Low), 2/6 Среднее (Medium), 3/6 Высокое (High), 4/6 Очень высокое (Extra High/xhigh), 5/6 Максимум (Max), 6/6 Ультра (Ultra)**. Recommend the ordinal and Russian label together; High is the third option, not the fourth.
+
+**Pause on a level change - owner correction, 2026-09-19:** if the recommended effort differs from the previously agreed/recommended level, state the new ordinal/label and reason, then stop before substantive work. Wait for the owner to change the setting and explicitly continue; announcing a change is not permission to proceed. Same-level authorized continuation needs no repeated approval. Treat questions as questions: answering a question does not authorize implementation, document edits, commits or deployment. Do not claim to have changed the UI setting yourself.
 
 ### Commit and verification loop
 

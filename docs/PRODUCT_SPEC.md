@@ -6,6 +6,8 @@ The following feature sections describe the **accepted target** unless explicitl
 
 The 2026-09-11 collection extension is specified in [Worlds collection catalogue](COLLECTION_CATALOGUE.md): region-first missing/owned editions, visible platform badges and controller file attachment. This intentionally extends the former installed-only library and exception to hiding all platform information; emulator commands and core details remain outside the normal UI.
 
+**Execution clarification - owner, 2026-09-19:** complete handheld UI/controller flows and early Pokedex art/sprites/badge presentation before new save integrations and heavy research. Existing real features remain usable; future screens use explicit development fixtures and honest production availability. [ROADMAP](ROADMAP.md) owns scheduling, with full Help near the end. [#63/#64 acceptance](EXPANSION_63_64.md) adds data-driven oldest-platform-first ordering inside Pokemon Worlds and exact game badge art; it changes neither World membership nor source-of-truth rules.
+
 ## Purpose
 
 TrainerOS is a software-only, controller-first **Linux handheld shell/session** for a Pokémon-focused Retroid Flip-class device running ArmadaOS.
@@ -150,7 +152,7 @@ Acceptance: create using physical controls, restart and recover the same profile
 
 ## Hall of Fame
 
-**Planned #47/#48:** Hall's first face is a live save-backed **Journey Record**, useful before completion, plus preserved Champion/completed-run history. Show only proven title-specific badges, milestones, playtime and Dex totals, with larger original crystal badges; no universal eight-badge/percentage/date assumptions.
+**Planned #47/#48/#64:** Hall's first face is a live save-backed **Journey Record**, useful before completion, plus preserved Champion/completed-run history. Show only proven title-specific badges, milestones, playtime and Dex totals, with larger game-accurate badge assets or deliberate neutral mounts; no universal eight-badge/percentage/date assumptions. See [exact badge identity and artwork acceptance](EXPANSION_63_64.md#accurate-league-badges-and-neutral-fallback).
 
 Champion snapshots preserve exact build/playthrough/source revision and verified historical team/progress. Current Party is not the historical winning team; older saves do not erase the archive. Observation time is not victory time. Manual memories/editing remain valid and explicitly sourced.
 

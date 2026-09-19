@@ -106,7 +106,7 @@ Home uses fixed physical-button actions: A invokes the large Adventure button im
 
 ### Choose Adventure drawer
 
-**P1 delivered:** the shared selector and Pokedex/Center pair now work on the single-Trainer baseline. [Implementation and remaining boundaries](SHARED_ADVENTURE.md). The full ownership/provider contract below remains the target.
+**P1 delivered:** the shared selector and Pokedex/Center and Hall/RA pairs now work on the single-Trainer baseline. [Implementation and remaining boundaries](SHARED_ADVENTURE.md). The full ownership/provider contract below remains the target.
 
 **Planned #9/#49:** one shell-owned **Y · Choose Adventure** drawer selects the active Trainer's shared `CurrentPokemonAdventureContext`: Adventure ID, resolved exact build and ordinary-save identity/revision when available. Pokémon Home, Pokédex, Center, Hall, RA and Adventure-aware Trainer consume this same context. Multiverse Home remembers its own independent game selection. Before an explicit choice, use the latest actual launch in that Trainer/domain; unrelated launches do not overwrite an explicit choice.
 
@@ -217,7 +217,7 @@ Acceptance: create a Trainer from the empty state, cancel a keyboard edit, cance
 
 ## Hall of Fame
 
-**Planned #47/#48:** Hall's first face is a live save-backed **Journey Record**, useful before completion, plus preserved Champion/completed-run history. Show only proven title-specific badges, milestones, playtime and Dex totals, with larger original crystal badges; no universal eight-badge/percentage/date assumptions.
+**Planned #47/#48/#64:** Hall's first face is a live save-backed **Journey Record**, useful before completion, plus preserved Champion/completed-run history. Show only proven title-specific badges, milestones, playtime and Dex totals, with larger game-accurate badge assets or deliberate neutral mounts; no universal eight-badge/percentage/date assumptions. See [exact badge identity and artwork acceptance](EXPANSION_63_64.md#accurate-league-badges-and-neutral-fallback).
 
 Champion snapshots preserve exact build/playthrough/source revision and verified historical team/progress. Current Party is not the historical winning team; older saves do not erase the archive. Observation time is not victory time. Manual memories/editing remain valid and explicitly sourced.
 

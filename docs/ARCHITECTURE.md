@@ -29,6 +29,10 @@ The first [game-progress reader](GAME_PROGRESS.md) uses the verified save-resolu
 
 Build bottom-up: native project structure, shared interface/controller components, shared backend and persistence, then functional modules and real integrations in dependency order. The interface proof uses mock data and fake boundaries; the next backend milestone makes core profile/shell state durable. It does not depend on emulator integration, external accounts or save parsing. Keep the foundation small enough to serve actual upcoming modules.
 
+**Current extension order - owner, 2026-09-19:** the native/shared persistence foundation already exists. Finish the handheld screen and controller flows on minimal presentation contracts; preserve real consumers and use labelled development fixtures for future ones. Early art/sprite/badge providers need no new save reader. Bind owner-scoped storage and other real feature services afterwards; defer new exact-save/battle/link research. No universal all-games model or speculative save writer is needed to validate UI.
+
+Planned [#63/#64 boundaries](EXPANSION_63_64.md): platform chronology lives in shared catalogue metadata; exact badge-set/earned identities come from verified progress evidence and resolve through a separate credited asset provider. Neither save offsets nor SVG paths belong in feature QML. Existing schema/provider support is not implied by these planned contracts.
+
 See `ROADMAP.md` for execution order. Feasibility research is input to later modules, not a reason to skip the foundations.
 
 ## Deployment modes
