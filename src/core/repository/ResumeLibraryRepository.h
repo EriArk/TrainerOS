@@ -12,6 +12,7 @@ public:
     QList<Adventure> adventures() const override { return base_.adventures(); }
     QList<ResumePoint> resumePoints() const override { return points_; }
     QList<PlaySession> recentSessions() const override { return base_.recentSessions(); }
+    std::optional<ExitMedia> exitMedia(const QString& id) const override { return base_.exitMedia(id); }
     std::optional<qint64> recordedSeconds(const QString& id) const override { return base_.recordedSeconds(id); }
     HomeSnapshot home() const override { return base_.home(); }
     bool editable() const override { return base_.editable(); }

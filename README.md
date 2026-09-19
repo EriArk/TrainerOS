@@ -4,7 +4,7 @@ TrainerOS is a controller-first **Linux handheld shell/session** for a Pokémon-
 
 The initial target is a **Retroid Flip-class device running ArmadaOS**. TrainerOS is software-only: no physical modification of the handheld is required.
 
-**Accepted lifecycle target — not yet implemented:** clean gameplay screenshot → save question for manual/unknown titles while the game stays alive → cancel back to that process or confirm graceful exit. Verified autosave may skip the question. Crashes never count as save confirmation. Exit images supply Home/Y/history; no normal savestate flow. [Exit and migration contract](docs/EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
+**Adventure exit:** the verified RetroArch route captures gameplay before a compact Home-button question, keeps the game alive on B and closes gracefully on A. All save policies ask for permission. A confirmed clean exit supplies a durable, owner/build-bound picture for Home and Choose Adventure; crashes never count as save confirmation. [Implementation and remaining migration gates](docs/ADVENTURE_EXIT.md#durable-exit-media-and-ordinary-home-selection).
 
 **Target reconciliation — 2026-09-19 (#62).** The accepted [#42–62 specification](docs/EXPANSION_42_62.md) supersedes older product direction. Planned behavior below is not a claim that the deployed build has changed; see the [working baseline](docs/ROADMAP.md#working-baseline) and dated module evidence.
 
@@ -12,7 +12,7 @@ The initial target is a **Retroid Flip-class device running ArmadaOS**. TrainerO
 
 Start → Controller provides live input/display checks and a local diagnostic report for the first handheld run. These software observations help validate the actual device; they do not certify its physical mapping or ArmadaOS session behavior. See [device diagnostics](docs/DEVICE_DIAGNOSTICS.md).
 
-The current build also includes [GBA state-resume integration](docs/RETROARCH_RESUME.md) (**legacy implementation, superseded as a product direction by #49**), a personal [Hall of Fame archive](docs/HALL_OF_FAME.md), the [offline Pokédex and manual field journal](docs/POKEDEX.md), a [local Trainer overview](docs/TRAINER_OVERVIEW.md), and [Pokémon Center save backups](docs/SAVE_BACKUPS.md). These have been exercised with controller input on Flip 2. [English FireRed/Emerald save progress](docs/GAME_PROGRESS.md) now supplies Home's badge crystals and National Dex counts. A real [RetroAchievements account/read provider](docs/RETROACHIEVEMENTS.md) exists; global account management and verified emulator earning are the next integration step, not proof of current-save progress.
+Legacy [GBA state-resume code](docs/RETROARCH_RESUME.md) remains for migration/testing, but production Home/Y no longer exposes state slots. The current build includes a personal [Hall of Fame archive](docs/HALL_OF_FAME.md), the [offline Pokédex and manual field journal](docs/POKEDEX.md), a [local Trainer overview](docs/TRAINER_OVERVIEW.md), and [Pokémon Center save backups](docs/SAVE_BACKUPS.md). These have been exercised with controller input on Flip 2. [English FireRed/Emerald save progress](docs/GAME_PROGRESS.md) now supplies Home's badge crystals and National Dex counts. A real [RetroAchievements account/read provider](docs/RETROACHIEVEMENTS.md) exists; global account management and verified emulator earning are the next integration step, not proof of current-save progress.
 
 A read-only [battery gauge](docs/POWER_STATUS.md) shows the handheld's charge in the fixed lower panel.
 

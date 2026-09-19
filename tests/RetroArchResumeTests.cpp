@@ -108,7 +108,7 @@ private slots:
         QVERIFY(!prepareRetroArchResume(cmd, f.record, point, f.installation, f.cancelled).isEmpty());
         QCOMPARE(cmd.arguments, args);
     }
-    void eachNormalLaunchHasIndependentStatesAndPreservesNativeSavePaths() {
+    void normalLaunchDisablesStateAutosavesAndPreservesNativeSavePaths() {
         Fixture f;
         auto command = [&] {
             ProcessCommand result{f.installation.program, {"--config", f.installation.configFile, f.record.contentPath}, {}};
@@ -120,7 +120,9 @@ private slots:
         QVERIFY(first.arguments.contains("--appendconfig")); QVERIFY(first.arguments != second.arguments);
         const auto config = first.arguments[first.arguments.indexOf("--appendconfig") + 1];
         QFile file(config); QVERIFY(file.open(QIODevice::ReadOnly)); const auto bytes = file.readAll();
-        QVERIFY(!bytes.contains("savefile_directory")); QVERIFY(bytes.contains("savestate_auto_save = \"true\""));
+        QVERIFY(!bytes.contains("savefile_directory")); QVERIFY(bytes.contains("savestate_auto_save = \"false\""));
+        QVERIFY(bytes.contains("savestate_auto_load = \"false\"")); QVERIFY(bytes.contains("savestate_thumbnail_enable = \"false\""));
+        QVERIFY(!first.arguments.contains("--entryslot"));
         QFile original(f.state); QVERIFY(original.open(QIODevice::ReadOnly)); QCOMPARE(original.readAll(), QByteArray("original state fixture"));
     }
     void discoveryIsBoundedAndDoesNotTreatEntryCopiesAsNewStates() {

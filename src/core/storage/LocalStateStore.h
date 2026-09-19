@@ -42,6 +42,10 @@ public:
     QList<PlaySession> recentSessions() const override { return history_.recent; }
     std::optional<qint64> recordedSeconds(const QString&) const override;
     void saveSessionAsync(const PlaySession&, QObject*, std::function<void(QString)>) override;
+    void saveSessionMediaAsync(const PlaySession&, const std::optional<ExitMediaSource>&,
+                              const std::optional<ExitCapture>&, QObject*, std::function<void(QString)>) override;
+    std::optional<ExitMedia> exitMedia(const QString&) const override;
+    QImage exitImage(const QString& sessionId) const;
     std::optional<AdventureRegistration> registration(const QString&) const override;
     void saveAdventureAsync(const AdventureRegistration&, QObject*, std::function<void(LibraryWriteResult)>) override;
     ShellPreferences preferences() const override { return preferences_; }
@@ -69,6 +73,7 @@ private:
     QList<AdventureRegistration> registrations_;
     ShellPreferences preferences_;
     PlayHistorySnapshot history_;
+    QList<ExitMedia> exitMedia_;
     QList<HallOfFameEntry> archive_;
     QHash<QString,PokedexProgress> journal_;
 };

@@ -28,7 +28,146 @@ class PlayHistoryTests final : public QObject {
         if (!f.open(QIODevice::WriteOnly)) return {};
         f.write("Content-free history fixture"); return path;
     }
+    QString saveMedia(LocalStateStore& store, const PlaySession& value, const std::optional<ExitMediaSource>& source,
+                      const std::optional<ExitCapture>& capture = {}) {
+        bool done = false; QString error;
+        store.saveSessionMediaAsync(value, source, capture, this, [&](const QString& e) { error = e; done = true; });
+        QElapsedTimer wait; wait.start();
+        while (!done && wait.elapsed() < 3000) QTest::qWait(10);
+        return done ? error : "Timed out";
+    }
+    void profile(LocalStateStore& store) {
+        bool done = false; bool ok = false;
+        store.saveAsync({"owner", "Fixture", "compass", {}, QDateTime::currentDateTimeUtc()}, this,
+            [&](ProfileWriteResult result) { ok = result.success; done = true; });
+        QTRY_VERIFY(done); QVERIFY(ok);
+    }
 private slots:
+    void exitPictureSurvivesRestartAndRejectsForeignOrChangedSources() {
+        QTemporaryDir dir; const auto path = content(dir);
+        QImage frame(64, 36, QImage::Format_RGB32); frame.fill(qRgb(20, 110, 80));
+        const auto now = QDateTime::currentDateTimeUtc();
+        {
+            LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready());
+            addAdventure(store, path); profile(store);
+            ExitMediaSource source{"owner", "pokemon", *store.registration("journey")};
+            PlaySession value{"clean", "journey", now, {}, {}, PlaySessionOutcome::Running};
+            QVERIFY(saveMedia(store, value, source).isEmpty()); QVERIFY(!store.exitMedia("journey"));
+            value.outcome = PlaySessionOutcome::Returned; value.endedAt = now.addSecs(5); value.elapsedSeconds = 5;
+            QVERIFY(saveMedia(store, value, source, ExitCapture{frame, now}).isEmpty());
+            QVERIFY(store.exitMedia("journey")); QCOMPARE(store.exitMedia("journey")->sessionId, "clean");
+            QCOMPARE(store.exitMedia("journey")->buildSha256.size(), 64);
+            QVERIFY(!store.exitImage("clean").isNull()); QVERIFY(store.exitImage("foreign").isNull());
+            // Uncaptured/crashed newer sessions cannot replace the good image.
+            value = {"crashed", "journey", now, {}, {}, PlaySessionOutcome::Running};
+            QVERIFY(saveMedia(store, value, source).isEmpty());
+            value.outcome = PlaySessionOutcome::Failed; value.endedAt = now; value.elapsedSeconds = 1;
+            QVERIFY(!saveMedia(store, value, source, ExitCapture{frame, now}).isEmpty());
+            QCOMPARE(store.exitMedia("journey")->sessionId, "clean");
+            QCOMPARE(store.recentSessions().first().outcome, PlaySessionOutcome::Failed);
+            auto foreign = source; foreign.trainerId = "another-owner";
+            value = {"foreign", "journey", now, {}, {}, PlaySessionOutcome::Running};
+            QVERIFY(saveMedia(store, value, foreign).isEmpty());
+            value.outcome = PlaySessionOutcome::Returned; value.endedAt = now; value.elapsedSeconds = 1;
+            QVERIFY(!saveMedia(store, value, foreign, ExitCapture{frame, now}).isEmpty());
+            QCOMPARE(store.exitMedia("journey")->sessionId, "clean");
+        }
+        {
+            LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready());
+            QVERIFY(store.exitMedia("journey")); QCOMPARE(store.exitMedia("journey")->sessionId, "clean");
+            QVERIFY(!store.exitImage("clean").isNull());
+            auto record = *store.registration("journey"); record.adventure.title = "Changed edition";
+            bool done = false;
+            store.saveAdventureAsync(record, this, [&](LibraryWriteResult result) { done = result.success; });
+            QTRY_VERIFY(done); QVERIFY(!store.exitMedia("journey")); QVERIFY(store.exitImage("clean").isNull());
+        }
+        LocalStateStore reopened(dir.path()); reopened.open(); QTRY_VERIFY(reopened.ready());
+        QVERIFY(!reopened.exitMedia("journey")); QCOMPARE(*reopened.recordedSeconds("journey"), 7);
+    }
+    void mediaWriteFailureKeepsPriorImageAndCommitsRealReturn() {
+        QTemporaryDir dir; const auto path = content(dir);
+        LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready()); addAdventure(store, path); profile(store);
+        ExitMediaSource source{"owner", "pokemon", *store.registration("journey")};
+        const auto now = QDateTime::currentDateTimeUtc();
+        QImage frame(16, 16, QImage::Format_RGB32); frame.fill(Qt::green);
+        auto round = [&](const QString& id) {
+            PlaySession value{id, "journey", now, {}, {}, PlaySessionOutcome::Running};
+            auto error = saveMedia(store, value, source);
+            if (!error.isEmpty()) return error;
+            value.outcome = PlaySessionOutcome::Returned; value.endedAt = now; value.elapsedSeconds = 4;
+            return saveMedia(store, value, source, ExitCapture{frame, now});
+        };
+        QVERIFY(round("first").isEmpty());
+        {
+            auto db = QSqlDatabase::addDatabase("QSQLITE", "media-failure"); db.setDatabaseName(dir.filePath("traineros.sqlite3")); QVERIFY(db.open());
+            { QSqlQuery q(db); QVERIFY(q.exec("CREATE TRIGGER refuse_media BEFORE UPDATE ON exit_media BEGIN SELECT RAISE(ABORT,'fixture'); END")); }
+            db.close();
+        }
+        QSqlDatabase::removeDatabase("media-failure");
+        QVERIFY(!round("second").isEmpty());
+        QCOMPARE(store.recentSessions().first().id, "second"); QCOMPARE(store.recentSessions().first().outcome, PlaySessionOutcome::Returned);
+        QCOMPARE(*store.recordedSeconds("journey"), 8); QCOMPARE(store.exitMedia("journey")->sessionId, "first");
+    }
+    void controllerPublishesOnlyConfirmedCleanProcessExit() {
+        QTemporaryDir dir; const auto path = content(dir);
+        LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready()); addAdventure(store, path); profile(store);
+        ProcessService process; AdventureLaunchController launch(process); PlayHistoryController history(launch, store);
+        history.setMediaSource([&](const QString& id) -> std::optional<ExitMediaSource> { return ExitMediaSource{"owner", "pokemon", *store.registration(id)}; });
+        connect(&launch, &AdventureLaunchController::checkpointRequested, this, [&](quint64 token, const QJsonObject&) { launch.checkpointCompleted(token, {}); });
+        const auto probe = QDir(QCoreApplication::applicationDirPath()).filePath(
+#ifdef Q_OS_WIN
+            "trainer_process_probe.exe"
+#else
+            "trainer_process_probe"
+#endif
+        );
+        QVERIFY(launch.launch({probe, {"controlled", dir.filePath("command"), dir.filePath("pid")}, {}}, {}, "journey"));
+        QTRY_COMPARE(launch.state(), "running"); QTRY_COMPARE(store.pending(), 0);
+        auto& exit = launch.exitController(); exit.setAvailable(true);
+        QImage frame(48, 32, QImage::Format_RGB32); frame.fill(Qt::yellow);
+        QVERIFY(exit.requestExit()); exit.captureCompleted(exit.attempt(), frame); QVERIFY(exit.cancel());
+        QVERIFY(process.active()); QVERIFY(!store.exitMedia("journey"));
+        QVERIFY(exit.requestExit()); exit.captureCompleted(exit.attempt(), frame); QVERIFY(exit.confirm());
+        QVERIFY(!store.exitMedia("journey"));
+        QFile command(dir.filePath("command")); QVERIFY(command.open(QIODevice::WriteOnly)); command.write("exit"); command.close();
+        QTRY_VERIFY(!launch.active()); QTRY_COMPARE(store.pending(), 0);
+        QVERIFY(store.exitMedia("journey")); QCOMPARE(store.exitMedia("journey")->sessionId, store.recentSessions().first().id);
+        QVERIFY(history.error().isEmpty());
+    }
+    void damagedImageOrReplacedBuildNeverAppearsAfterRestart_data() {
+        QTest::addColumn<bool>("replaceContent");
+        QTest::newRow("corrupt-image") << false;
+        QTest::newRow("same-size-and-time-different-build") << true;
+    }
+    void damagedImageOrReplacedBuildNeverAppearsAfterRestart() {
+        QFETCH(bool, replaceContent);
+        QTemporaryDir dir; const auto path = content(dir);
+        const auto now = QDateTime::currentDateTimeUtc();
+        {
+            LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready()); addAdventure(store, path); profile(store);
+            const ExitMediaSource source{"owner", "pokemon", *store.registration("journey")};
+            PlaySession value{"clean", "journey", now, {}, {}, PlaySessionOutcome::Running};
+            QVERIFY(saveMedia(store, value, source).isEmpty());
+            value.outcome = PlaySessionOutcome::Returned; value.endedAt = now; value.elapsedSeconds = 1;
+            QImage frame(24, 24, QImage::Format_RGB32); frame.fill(Qt::red);
+            QVERIFY(saveMedia(store, value, source, ExitCapture{frame, now}).isEmpty()); QVERIFY(store.exitMedia("journey"));
+        }
+        if (replaceContent) {
+            const QFileInfo original(path); const auto size = original.size(); const auto modified = original.lastModified();
+            QFile file(path); QVERIFY(file.open(QIODevice::ReadWrite)); QCOMPARE(file.write(QByteArray(size, 'x')), size);
+            QVERIFY(file.flush()); QVERIFY(file.setFileTime(modified, QFileDevice::FileModificationTime)); file.close();
+            QCOMPARE(QFileInfo(path).size(), size); QCOMPARE(QFileInfo(path).lastModified(), modified);
+        } else {
+            {
+                auto db = QSqlDatabase::addDatabase("QSQLITE", "media-damage"); db.setDatabaseName(dir.filePath("traineros.sqlite3")); QVERIFY(db.open());
+                { QSqlQuery q(db); QVERIFY(q.exec("UPDATE exit_media SET jpeg=X'0001'")); } db.close();
+            }
+            QSqlDatabase::removeDatabase("media-damage");
+        }
+        LocalStateStore reopened(dir.path()); reopened.open(); QTRY_VERIFY(reopened.ready());
+        QVERIFY(!reopened.exitMedia("journey")); QCOMPARE(reopened.recentSessions().first().outcome, PlaySessionOutcome::Returned);
+        QCOMPARE(*reopened.recordedSeconds("journey"), 1); QVERIFY(reopened.registration("journey"));
+    }
     void durableIdentityTotalsAndInterruptedRecovery() {
         QTemporaryDir dir; const auto path = content(dir);
         const auto time = QDateTime::fromString("2026-09-01T10:00:00.000Z", Qt::ISODateWithMs);
@@ -99,7 +238,7 @@ private slots:
         { LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready()); addAdventure(store, path); }
         {
             auto db = QSqlDatabase::addDatabase("QSQLITE", "history-migration"); db.setDatabaseName(dir.filePath("traineros.sqlite3")); QVERIFY(db.open());
-            { QSqlQuery q(db); QVERIFY(q.exec("DROP TABLE play_sessions")); QVERIFY(q.exec("DROP TABLE hall_of_fame")); QVERIFY(q.exec("DROP TABLE pokedex_records")); QVERIFY(q.exec("PRAGMA user_version=3")); }
+            { QSqlQuery q(db); QVERIFY(q.exec("DROP TABLE exit_media")); QVERIFY(q.exec("DROP TABLE play_sessions")); QVERIFY(q.exec("DROP TABLE hall_of_fame")); QVERIFY(q.exec("DROP TABLE pokedex_records")); QVERIFY(q.exec("PRAGMA user_version=3")); }
             db.close();
         }
         QSqlDatabase::removeDatabase("history-migration");

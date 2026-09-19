@@ -1,6 +1,6 @@
 # Home selection and observed play history
 
-**2026-09-19 target:** the existing Home input/history baseline below is retained. Updated #9 shares its selector/context across Pokémon-aware pages; #49 replaces state selection/resume with normal saves and clean exit images. No code migration is claimed here.
+**2026-09-19 delivered:** production Home/Y now selects recent Adventures for ordinary launch and uses the same durable clean exit image. An old stored state selection retains its Adventure choice but loses its launch target. The image is a quiet Home backdrop and a card background labeled with capture time; a later crash or uncaptured return retains the earlier valid picture. Updated #9 shared selection and #20 multiple owners are still planned. [Storage, provenance and migration limits](ADVENTURE_EXIT.md#durable-exit-media-and-ordinary-home-selection).
 
 The user's 2026-09-11 clarification separates choosing an Adventure from launching it. Y opens the compact Continue drawer. A on a card selects the Adventure shown on Home and closes the drawer without invoking an adapter. Home displays the selected Adventure's World, title and available data. A large molded circular button, mounted in the right chassis module, starts that Adventure. Its pressed motion does not delay controller input or launch.
 
@@ -27,7 +27,7 @@ Checkpoint the launching page/paired face/route/focus, restore it promptly on re
 ## Selection and navigation
 
 - Without an explicit selection, Home follows the latest process launched through TrainerOS.
-- **Legacy implemented storage pending #49:** a card selection stores `homeAdventure` and optional `homeResume` in versioned browsing state. The explicit choice remains until another card is selected, including after restart or launching something else from Worlds.
+- Production selection stores `homeAdventure` in versioned browsing state. Legacy `homeResume`/source values are ignored when opening the personal library and subsequently checkpointed empty, without changing the Adventure choice. Mock/historical state-provider tests remain separate from production selection.
 - **Historical state behavior:** a state selection could change Home to Resume Adventure; the GBA provider later implemented it. #49 supersedes this path and cancels further state expansion. Target cards select Adventures only; normal game startup loads ordinary saves.
 - Missing capabilities offer Set up Adventure; an empty Home offers Explore Worlds. Missing selected identities fall back to the latest available Adventure or the empty Home.
 - A is a fixed Home action: it immediately presses the large button, even after arbitrary D-pad/stick input. There is no directional traversal of Home's static modules. Y opens/closes the selector; B/Y cancellation preserves the prior selection and returns to the fixed main action. Open lists, text entry and system panels take priority over Home shortcuts.

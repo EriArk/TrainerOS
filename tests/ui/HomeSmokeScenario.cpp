@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QFile>
 #include <QImage>
+#include <QPainter>
 #include <QTimer>
 #include <memory>
 
@@ -58,6 +59,8 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         switch ((*stage)++) {
         case 0:
             if (reopen) { *stage = 9; break; }
+            store.saveAsync({"home-owner", "Fixture", "compass", {}, QDateTime::currentDateTimeUtc()}, window,
+                [failed](ProfileWriteResult result) { if (!result.success) *failed = true; });
             for (int i = 0; i < 5; ++i) {
                 AdventureRegistration record; record.adventure.id = "home-" + QString::number(i);
                 record.adventure.title = "Original Adventure " + QString::number(i + 1);
@@ -66,10 +69,17 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
                 store.saveAdventureAsync(record, window, [&, window, i, failed](LibraryWriteResult result) {
                     if (!result.success) { *failed = true; return; }
                     PlaySession value{"seed-" + QString::number(i), "home-" + QString::number(i), QDateTime::fromString("2026-09-01T10:00:00.000Z", Qt::ISODateWithMs).addSecs(i * 1000), {}, {}, PlaySessionOutcome::Running};
-                    store.saveSessionAsync(value, window, [&, window, value, failed](const QString& error) mutable {
+                    const ExitMediaSource source{"home-owner", "pokemon", *store.registration(value.adventureId)};
+                    store.saveSessionMediaAsync(value, source, {}, window, [&, window, value, source, failed](const QString& error) mutable {
                         if (!error.isEmpty()) { *failed = true; return; }
                         value.endedAt = value.startedAt.addSecs(720); value.elapsedSeconds = 720; value.outcome = PlaySessionOutcome::Returned;
-                        store.saveSessionAsync(value, window, [failed](const QString& e) { if (!e.isEmpty()) *failed = true; });
+                        QImage image(640, 360, QImage::Format_RGB32); image.fill(QColor("#638eca"));
+                        QPainter paint(&image);
+                        paint.fillRect(0, 210, 640, 150, QColor("#497643"));
+                        paint.fillRect(240, 220, 115, 140, QColor("#ddb467"));
+                        paint.setBrush(QColor("#fff2b1")); paint.setPen(Qt::NoPen); paint.drawEllipse(470, 45, 65, 65); paint.end();
+                        store.saveSessionMediaAsync(value, source, ExitCapture{image, value.endedAt}, window,
+                            [failed](const QString& e) { if (!e.isEmpty()) *failed = true; });
                     });
                 });
             }
@@ -128,6 +138,14 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(shell.home()["badges"] == "—" && shell.home()["badgeSlots"].toList().isEmpty(), "Unsupported progress stays unknown");
             break;
         case 9:
+            check(shell.home()["exitPreview"] == "image://exit-media/seed-0", "Canonical clean exit image survives newer uncaptured sessions and restart");
+            {
+                bool found = false;
+                for (const auto& row : shell.resumePoints()) if (row.toMap()["id"] == "recent:home-0") {
+                    found = row.toMap()["preview"] == shell.home()["exitPreview"];
+                }
+                check(found, "Home and Choose Adventure share the same media handle");
+            }
             check(shell.navigationState()["homeAdventure"] == "home-0" && shell.home()["adventureId"] == "home-0", "Explicit Home choice survives restart");
             check(store.recentSessions().size() == 5 && store.recordedSeconds("home-0").has_value(), "History survives restart");
             check(!reopen || *starts == 0, "Reopening the journal does not launch anything");

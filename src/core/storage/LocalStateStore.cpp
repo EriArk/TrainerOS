@@ -1,5 +1,6 @@
 #include "LocalStateStore.h"
 #include "SqliteLibrary.h"
+#include "SqliteExitMedia.h"
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonDocument>
@@ -14,7 +15,7 @@
 
 namespace trainer {
 namespace {
-constexpr int SchemaVersion = 6;
+constexpr int SchemaVersion = 7;
 QString failedWrite() { return "Couldn't save changes. Check free space or storage access, then try again."; }
 struct LoadedState {
     QString error;
@@ -23,6 +24,7 @@ struct LoadedState {
     QJsonObject navigation;
     LibrarySnapshot library;
     PlayHistorySnapshot history;
+    QList<ExitMedia> exitMedia;
     QList<HallOfFameEntry> archive;
     QHash<QString,PokedexProgress> journal;
 };
@@ -31,6 +33,7 @@ class SqliteWorker final : public QObject {
 public:
     ~SqliteWorker() override { close(); }
     void close() {
+        pendingMedia.clear();
         const QString name = db.connectionName();
         db.close(); db = {};
         if (!name.isEmpty()) QSqlDatabase::removeDatabase(name);
@@ -139,6 +142,17 @@ public:
                     if (!openError.isEmpty()) db.rollback();
                 }
             }
+            if (openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next())) openError = failedWrite();
+            if (openError.isEmpty() && query.value(0).toInt() < 7) {
+                query.finish();
+                if (!db.transaction()) openError = failedWrite();
+                else {
+                    openError = migrateExitMedia(db);
+                    if (openError.isEmpty() && !query.exec("PRAGMA user_version=7")) openError = failedWrite();
+                    if (openError.isEmpty() && !db.commit()) openError = failedWrite();
+                    if (!openError.isEmpty()) db.rollback();
+                }
+            }
             if (openError.isEmpty() && (!query.exec("PRAGMA quick_check") || !query.next() || query.value(0).toString() != "ok"))
                 openError = "Your data needs recovery. The existing file has been kept.";
             if (openError.isEmpty() && !query.exec("PRAGMA synchronous=FULL")) openError = failedWrite();
@@ -183,6 +197,7 @@ public:
         const auto journal = readPokedexJournal(db);
         if (!journal.error.isEmpty()) return fail(journal.error);
         state.journal = journal.records;
+        state.exitMedia = readExitMedia(db);
         return state;
     }
     ArchiveWriteResult memory(const HallOfFameEntry& entry, ArchiveResult& snapshot) {
@@ -226,15 +241,38 @@ public:
     }
     LibraryWriteResult adventure(const AdventureRegistration& record) { return writeAdventure(db, record); }
     QString preferences(const ShellPreferences& value) { return writePreferences(db, value); }
-    QString playSession(const PlaySession& value, PlayHistorySnapshot& snapshot) {
+    QString playSession(const PlaySession& value, const std::optional<ExitMediaSource>& source,
+                        const std::optional<ExitCapture>& capture, PlayHistorySnapshot& snapshot,
+                        QList<ExitMedia>& media, QString& warning) {
+        // Source is fixed at process start, never resolved from current Home at
+        // completion. Hashing/encoding and all SQLite work stay off the UI thread.
+        std::optional<PreparedExitMedia> prepared;
+        if (value.outcome == PlaySessionOutcome::Running && source && source->registration.adventure.id == value.adventureId)
+            prepared = prepareExitMedia(db, *source);
         if (!db.transaction()) return failedWrite();
         auto error = writePlaySession(db, value);
+        if (error.isEmpty() && value.outcome != PlaySessionOutcome::Running && capture) {
+            QSqlQuery savepoint(db);
+            if (!savepoint.exec("SAVEPOINT optional_exit_media")) error = failedWrite();
+            else {
+                if (pendingMedia.contains(value.id)) warning = writeExitMedia(db, value, pendingMedia.value(value.id), *capture);
+                else warning = "The exit picture isn't available for this game build. Your previous picture has been kept.";
+                if (!warning.isEmpty() && !savepoint.exec("ROLLBACK TO optional_exit_media")) error = failedWrite();
+                if (!savepoint.exec("RELEASE optional_exit_media")) error = failedWrite();
+            }
+        }
         if (error.isEmpty()) { snapshot = readPlayHistory(db); error = snapshot.error; }
         if (error.isEmpty() && !db.commit()) error = failedWrite();
         if (!error.isEmpty()) db.rollback();
+        else {
+            if (prepared) pendingMedia.insert(value.id, *prepared);
+            if (value.outcome != PlaySessionOutcome::Running) pendingMedia.remove(value.id);
+            media = readExitMedia(db);
+        }
         return error;
     }
 private:
+    QHash<QString, PreparedExitMedia> pendingMedia;
     QSqlDatabase db;
     QString scope_;
     std::unique_ptr<QLockFile> lock;
@@ -260,7 +298,7 @@ void LocalStateStore::open() {
             if (ready_) {
                 profile_ = state.profile; favorites_ = state.favorites; navigation_ = state.navigation;
                 worlds_ = state.library.worlds; registrations_ = state.library.registrations; preferences_ = state.library.preferences;
-                history_ = state.history; archive_ = state.archive; journal_ = state.journal;
+                history_ = state.history; archive_ = state.archive; journal_ = state.journal; exitMedia_ = state.exitMedia;
             }
             emit opened(ready_);
         }, Qt::QueuedConnection);
@@ -350,13 +388,33 @@ std::optional<qint64> LocalStateStore::recordedSeconds(const QString& id) const 
     return history_.totals.value(id);
 }
 void LocalStateStore::saveSessionAsync(const PlaySession& value, QObject* context, std::function<void(QString)> completed) {
+    saveSessionMediaAsync(value, {}, {}, context, std::move(completed));
+}
+void LocalStateStore::saveSessionMediaAsync(const PlaySession& value, const std::optional<ExitMediaSource>& source,
+                                           const std::optional<ExitCapture>& capture, QObject* context, std::function<void(QString)> completed) {
     auto snapshot = std::make_shared<PlayHistorySnapshot>();
-    write([value, snapshot](SqliteWorker& worker) { return worker.playSession(value, *snapshot); },
-          [this, snapshot, guard = QPointer<QObject>(context), completed](const QString& error) {
-        if (error.isEmpty()) { history_ = *snapshot; emit libraryChanged(); }
+    auto media = std::make_shared<QList<ExitMedia>>();
+    auto warning = std::make_shared<QString>();
+    write([value, source, capture, snapshot, media, warning](SqliteWorker& worker) { return worker.playSession(value, source, capture, *snapshot, *media, *warning); },
+          [this, snapshot, media, warning, guard = QPointer<QObject>(context), completed](const QString& error) {
+        if (error.isEmpty()) { history_ = *snapshot; exitMedia_ = *media; emit libraryChanged(); }
         else emit userWriteFailed();
-        if (guard) completed(error);
+        if (guard) completed(error.isEmpty() ? *warning : error);
     });
+}
+std::optional<ExitMedia> LocalStateStore::exitMedia(const QString& adventureId) const {
+    const auto record = registration(adventureId);
+    if (!profile_ || !record) return {};
+    for (const auto& media : exitMedia_) if (media.trainerId == profile_->id && media.domain == "pokemon"
+        && media.adventureId == adventureId && media.registrationRevision == record->revision) return media;
+    return {};
+}
+QImage LocalStateStore::exitImage(const QString& sessionId) const {
+    for (const auto& media : exitMedia_) if (media.sessionId == sessionId) {
+        const auto current = exitMedia(media.adventureId);
+        if (current && current->sessionId == sessionId) return QImage::fromData(current->jpeg, "JPEG");
+    }
+    return {};
 }
 void LocalStateStore::saveRecordAsync(const QString& id, const PokedexProgress& record, QObject* context, std::function<void(PokedexWriteResult)> completed) {
     auto result = std::make_shared<PokedexWriteResult>();

@@ -11,6 +11,9 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/core/model/ExitMedia.h
+    src/core/storage/SqliteExitMedia.h
+    src/core/storage/SqliteExitMedia.cpp
     src/platform/input/AdventureOverlayService.h
     src/platform/input/AdventureOverlayService.cpp
     src/features/adventure/AdventureExitPresentation.h

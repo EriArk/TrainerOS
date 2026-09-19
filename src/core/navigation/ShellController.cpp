@@ -179,6 +179,8 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     goToPage(std::max(0, int(pages.indexOf(state["page"].toString()))));
     homeAdventureId_ = state["homeAdventure"].toString(); homeResumeId_ = state["homeResume"].toString();
     homeResumeSource_ = ResumeSource::fromJson(state["homeResumeSource"].toObject());
+    // Preserve the Adventure choice, but never restore a retired state target.
+    if (repository_.editable()) { homeResumeId_.clear(); homeResumeSource_ = {}; }
     worlds_.restoreNavigation(state["worlds"].toObject());
     pokedex_.restoreNavigation(state["pokedex"].toObject());
     hall_.restoreNavigation(state["hall"].toObject());
@@ -207,6 +209,7 @@ QVariantMap ShellController::home() const {
     const auto snapshot = repository_.home();
     QString title = "Choose a journey in Worlds", world = "Your journey";
     const auto adventure = homeAdventure();
+    const auto media = adventure ? repository_.exitMedia(adventure->id) : std::nullopt;
     QString action = "Explore Worlds", actionHint = "Worlds", milestone = snapshot.milestone;
     std::optional<int> badges, caught;
     QVariantList badgeSlots;
@@ -256,6 +259,8 @@ QVariantMap ShellController::home() const {
             {"adventureId", adventure ? adventure->id : QString()}, {"action", action}, {"actionHint", actionHint},
             {"badges", badges ? QString::number(*badges) : "—"}, {"caught", caught ? QString::number(*caught) : "—"},
             {"badgeSlots", badgeSlots}, {"progressNote", progressNote}, {"badgeSet", badgeSet},
+            {"exitPreview", media ? "image://exit-media/" + media->sessionId : QString()},
+            {"exitPreviewLabel", media ? "Last exit · " + media->capturedAt.toLocalTime().toString("dd MMM · HH:mm") : QString()},
             {"recordedTime", seconds ? recordedDuration(*seconds) : "—"}, {"milestone", milestone}};
 }
 QVariantList ShellController::resumePoints() const {
@@ -263,6 +268,7 @@ QVariantList ShellController::resumePoints() const {
     const auto adventures = repository_.adventures();
     const auto worlds = repository_.worlds();
     for (const auto& point : points_) {
+        const auto media = repository_.exitMedia(point.adventureId);
         QString title = "Unavailable Adventure";
         QString world = "Unknown World";
         auto status = ResumeAvailability::Incompatible;
@@ -283,9 +289,9 @@ QVariantList ShellController::resumePoints() const {
             else if (point.session->elapsedSeconds) summary = recordedDuration(*point.session->elapsedSeconds) + " · Last session";
         }
         result.append(QVariantMap{{"id", point.id}, {"title", title}, {"world", world},
-            {"location", location}, {"summary", summary}, {"previewLabel", point.resumePoint ? resumeLabel(status) : "Recent Adventure"},
+            {"location", location}, {"summary", summary}, {"previewLabel", media ? "Last exit · " + media->capturedAt.toLocalTime().toString("dd MMM · HH:mm") : point.resumePoint ? resumeLabel(status) : "Recent Adventure"},
             {"time", point.recordedAt.toLocalTime().toString("dd MMM · HH:mm")},
-            {"preview", point.resumePoint && !point.resumePoint->previewKey.isEmpty() ? "image://moments/" + point.resumePoint->previewKey : QString()}});
+            {"preview", media ? "image://exit-media/" + media->sessionId : point.resumePoint && !point.resumePoint->previewKey.isEmpty() ? "image://moments/" + point.resumePoint->previewKey : QString()}});
     }
     return result;
 }

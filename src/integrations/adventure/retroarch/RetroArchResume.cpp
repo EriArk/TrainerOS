@@ -134,9 +134,9 @@ QByteArray launchSettings(const QString& session, bool saveOnExit = true) {
         + setting("savestate_thumbnail_enable", saveOnExit ? "true" : "false") + setting("config_save_on_exit", "false")
         + setting("auto_overrides_enable", "false");
 }
-QString prepareSession(ProcessCommand& command, const AdventureRegistration& r, const QString& session) {
+QString prepareSession(ProcessCommand& command, const AdventureRegistration& r, const QString& session, bool saveOnExit = true) {
     const auto config = QDir(session).filePath("launch.cfg");
-    if (!writeNew(config, launchSettings(session))) return "Couldn't prepare a saved moment. Your existing saves are unchanged.";
+    if (!writeNew(config, launchSettings(session, saveOnExit))) return "Couldn't prepare the Adventure. Your existing saves are unchanged.";
     // Insert before the literal content argument, never concatenate shell text.
     command.arguments.removeLast();
     command.arguments << "--appendconfig" << config << r.contentPath;
@@ -267,7 +267,7 @@ QString prepareRetroArchResume(ProcessCommand& command, const AdventureRegistrat
         return "The saved moment's play setup changed. Select it again after checking.";
     const auto session = makeSession(r, installation);
     if (session.isEmpty()) return "The save storage isn't available. Check the card and try again.";
-    if (point.id.isEmpty()) return prepareSession(command, r, session);
+    if (point.id.isEmpty()) return prepareSession(command, r, session, false);
     const auto source = point.adapterPayload["path"].toString();
     QFile sourceFile(source);
     if (!sourceFile.open(QIODevice::ReadOnly) || sourceFile.size() <= 0 || sourceFile.size() > StateLimit)

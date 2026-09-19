@@ -295,3 +295,86 @@ again and was rebuilt into the non-testing ARM target. Installed SHA-256:
 `5e0cc692f8aae388e0430db1de3b57d88192be51de16a62e43d4c7e0fca3f161`.
 Binary/database backup and post-install integrity/schema/count checks passed.
 The owner inspected the compact question on Flip and approved the result.
+
+## Durable exit media and ordinary Home selection
+
+The next complete #49 consumer binds the active Trainer, explicit Pokemon domain,
+Adventure registration and newly created PlaySession before an exit request.
+On the existing store worker, a stable ROM read records SHA-256 at process start.
+Only the exit controller's confirmed, clean owned-process completion supplies a
+frame; cancellation, capture failure, unguarded exit and crash provide no new
+media. The timestamp is the start of the pre-overlay capture attempt, not proof
+of an in-game save or a victory.
+
+Schema 7 adds `exit_media` without changing external saves, historical sessions
+or legacy state files. A successful frame and the actual Returned session are
+committed in one SQLite transaction with full synchronization. The bounded JPEG
+is inside that transaction, avoiding separate file/database publish windows.
+An optional-media savepoint lets a failed image write retain the previous image
+while still committing the truthful process outcome; the user receives a notice.
+No new good image is published before the database commit.
+
+The worker checks current Trainer/registration identity, hashes the ROM again,
+encodes at most 960×540/512 KiB and records dimensions plus image SHA-256. Reopen
+and refresh validate source bytes, image digest/decodability and Returned session
+provenance. Corrupt/unavailable media falls back without blocking the library.
+This first cartridge consumer limits a ROM to 128 MiB and each snapshot to 100
+images, 16 MiB of compressed media and 256 MiB of source hashing, newest session
+first. Over-budget sources remain placeholders; they are not deleted. Larger
+disc titles and a lazy scalable media cache remain later adapter/media work.
+No UI getter scans storage or hashes content.
+
+Home shows a low-opacity background; Choose Adventure keeps the approved title
+ribbon and uses the exact same session-derived image handle. The capture date
+labels an older valid image honestly after a newer failed/uncaptured session.
+Pictures remain scoped to the initiating owner/domain/Adventure/build, never
+whichever Home selection happens to be active at asynchronous completion.
+
+Production no longer composes the old state provider into its library. Cards
+select Adventures, and legacy stored Home state references are ignored while
+preserving `homeAdventure`. The verified normal mGBA launch keeps its ordinary
+save paths and disables state auto-save, auto-load and state thumbnails. The
+old files, independent images and source saves are untouched. Historical state
+code/tests remain migration evidence; this is not authorization to delete them.
+
+Remaining #49 gates: inventory/recoverably retire only proven obsolete owned
+artifacts, decouple the ordinary-save resolver from the old integration profile,
+remove remaining state-only implementation safely, prove other adapters and
+physical reboot/input-access persistence. Multiple Trainers/shared current-save
+context and the richer #15/#17 media cache keep their roadmap dependencies.
+
+Acceptance includes real controlled-process cancel/confirm/return, no premature
+image, owner/revision rejection, prior-frame retention, failed-image-write with
+truthful history, database reopen, corrupt media and ROM replacement preserving
+size/mtime. Rendered SDL Home/Y checks use original synthetic frames at 960×540
+and 1920×1080, verify selection versus launch and restart persistence.
+
+### Verification and installed build
+
+Windows passed **33/33**; ARM64 passed **36/36**. The long multi-process
+persistence scenario exceeded its existing 30-second aggregate limit when run
+beside other render tests on Flip; it passed separately with the same timeout
+and assertions. The final Home-only top-edge fade passed the Windows rendered
+restart scenario again, was rebuilt into the production ARM target and inspected
+on the real display.
+
+On the installed Flip, FireRed launched normally. The guarded question was
+opened through the already verified transport's intercept mode; automated
+pointer actions exercised B/cancel and A/confirm on that actual question. Cancel
+kept the same process and published no media. Confirm produced a clean 960×540
+JPEG without the question, visible on Home and the selected Y card. A shell
+restart retained the same image/session/hash. Injected controller events checked
+Home/Y selection without launch and restored normal mode zero. This is automated
+device evidence; the owner's physical Home/A/B approval belongs to the preceding
+transport increment, not a new claimed hands-on test.
+
+The ordinary-save SHA-256 stayed unchanged; all 43 existing files in that
+Adventure's legacy owned directory were byte-preserved and no new state files
+appeared. All original library, profile, journal, archive and history rows were
+compared with the pre-migration backup and preserved. Schema is 7; the library
+still has 686 Adventures. Binary/database backups cover both the original
+schema-6 installation and the subsequent visual-only update.
+
+Final non-testing installed SHA-256:
+`4e27d6199c0a7b965633abf95e94db50c6f07b8f65a558c9e1f1aeb18e0e9e3e`.
+Screenshots and private content/path manifests remain outside Git.

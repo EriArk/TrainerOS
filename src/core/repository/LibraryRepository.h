@@ -1,5 +1,6 @@
 #pragma once
 #include "core/model/Models.h"
+#include "core/model/ExitMedia.h"
 #include <QObject>
 #include <functional>
 
@@ -14,6 +15,7 @@ public:
     virtual QList<ResumePoint> resumePoints() const = 0;
     virtual void refreshResumePoints(const QString& = {}) {}
     virtual QList<PlaySession> recentSessions() const { return {}; }
+    virtual std::optional<ExitMedia> exitMedia(const QString&) const { return {}; }
     virtual std::optional<qint64> recordedSeconds(const QString&) const { return {}; }
     virtual HomeSnapshot home() const = 0;
     virtual bool editable() const { return false; }

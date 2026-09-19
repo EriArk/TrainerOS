@@ -109,7 +109,9 @@ Worlds and Adventures use an optional `JourneyStatus` (`NotStarted`, `InProgress
 
 Migration must identify legacy references/artifacts, stop exposing them as resumable user state, preserve ordinary saves/history/independent images and safely retire only verified TrainerOS-owned artifacts. A database migration must not delete external files merely because an old field disappears.
 
-## Current Adventure and exit media — planned
+## Current Adventure and exit media
+
+**First exit-media consumer delivered, 2026-09-19:** `ExitMediaSource` snapshots the existing Trainer, explicit Pokemon domain and Adventure registration at process start. The worker verifies content SHA-256; `ExitCapture` is eligible only after confirmed clean process exit. Schema 7 stores one latest successful `ExitMedia` per owner/domain/Adventure with session reference, registration revision, build hash, capture time and bounded JPEG. Home and Choose Adventure share its session-derived semantic handle. This does not activate multiple Trainers, Multiverse or the shared current-save context below; history ownership migration remains #20. [Limits and migration](ADVENTURE_EXIT.md#durable-exit-media-and-ordinary-home-selection).
 
 `CurrentPokemonAdventureContext` is Trainer-scoped: stable Adventure ID, resolved exact build and ordinary-save identity/revision when available. One committed source serves Home, Pokédex, Center, Trainer, Journey and RA. Unsupported fields remain unavailable without changing selection. A separate per-Trainer Multiverse choice and Home domain retain independence. Per-face routes/focus/filters belong to navigation, not extra current-save owners. No separate persistent capsule control.
 

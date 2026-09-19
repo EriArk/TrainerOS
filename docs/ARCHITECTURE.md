@@ -138,6 +138,14 @@ A single executable is acceptable initially. Separate libraries/modules only whe
 
 ## Accepted next-module boundaries — planned
 
+The first #49 media consumer is now concrete: `PlayHistoryController` binds a
+launch-time `ExitMediaSource`; the store worker verifies the content and commits
+the bounded JPEG and successful session in one transaction. `LibraryRepository`
+projects the latest scoped `ExitMedia` to Home/Y through an opaque image handle.
+It is independent of the legacy ResumePoint provider. This uses the existing
+single Trainer/Pokemon context and does not preempt #20 multi-owner migration or
+the later scalable media cache. [Storage and limits](ADVENTURE_EXIT.md#durable-exit-media-and-ordinary-home-selection).
+
 The following target boundaries extend existing repositories/workers; [#42–62 acceptance](EXPANSION_42_62.md) and the [roadmap](ROADMAP.md) define implementation order. Do not build a framework before its first consumer.
 
 - A shell-owned `CurrentPokemonAdventureContext` publishes committed Trainer/Adventure/exact-build/ordinary-save identity and revision. Shared Y changes it; features never own a second current save. Multiverse selection remains independent. Capture initiating owner/context/revision on async work and reject stale results after selection or Trainer/account switches.

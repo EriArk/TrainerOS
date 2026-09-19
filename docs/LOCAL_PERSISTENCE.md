@@ -16,7 +16,9 @@ Schema 5 adds the [local Hall of Fame archive](HALL_OF_FAME.md), with explicit m
 
 Schema 6 adds the [manual Pokédex field journal](POKEDEX.md), preserving all existing favorites and leaving Seen/Caught unknown until the trainer records them.
 
-SQLite `user_version` is currently 6:
+Schema 7 adds optional [clean exit media](ADVENTURE_EXIT.md#durable-exit-media-and-ordinary-home-selection) in a transactional 6→7 migration. Existing library, ordinary saves, profile, history and legacy files are preserved. Returning to a schema-6 binary requires restoring the paired pre-upgrade database backup while the shell is closed; do not discard newer personal writes or just lower `user_version`.
+
+SQLite `user_version` is currently 7:
 
 | Table | Data |
 | --- | --- |
@@ -28,6 +30,7 @@ SQLite `user_version` is currently 6:
 | `adventure_worlds` | Additional region relationships with foreign-key integrity |
 | `preferences` | Color theme and reduced-motion flag |
 | `play_sessions` | Identified Adventure process launches, UTC timestamps, optional monotonic duration and outcome |
+| `exit_media` | Latest clean exit JPEG per Trainer/domain/Adventure, session FK, registration revision, exact ROM SHA-256, capture time/dimensions and image integrity hash |
 | `hall_of_fame` | Manual/imported historical memories, optional date/time/team, notes, source and edit revision |
 | `pokedex_records` | Nullable manual Seen/Caught, a field note and revision, keyed by stable species identity |
 

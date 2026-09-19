@@ -5,6 +5,31 @@ Item {
     required property var shell
     readonly property var currentAdventure: shell.home
     clip: true
+    Image {
+        id: exitBackdrop
+        objectName: "home-exit-picture"
+        anchors.fill: parent
+        source: root.currentAdventure.exitPreview
+        asynchronous: false; cache: false
+        fillMode: Image.PreserveAspectCrop
+        opacity: 0.13
+        sourceSize.width: 960; sourceSize.height: 540
+    }
+    Rectangle {
+        anchors { left: parent.left; right: parent.right; top: parent.top }
+        height: 44
+        visible: exitBackdrop.status === Image.Ready
+        gradient: Gradient {
+            GradientStop { position: 0; color: Theme.paper }
+            GradientStop { position: 1; color: Qt.rgba(Theme.paper.r, Theme.paper.g, Theme.paper.b, 0) }
+        }
+    }
+    Text {
+        anchors { right: parent.right; bottom: parent.bottom; rightMargin: 20; bottomMargin: 9 }
+        text: root.currentAdventure.exitPreviewLabel
+        visible: exitBackdrop.status === Image.Ready
+        color: Theme.muted; font.pixelSize: 10
+    }
     Column {
         x: 32; y: 27; spacing: 9
         Text { text: (root.currentAdventure.hasTrainer ? "WELCOME BACK, " : "WELCOME, ") + root.currentAdventure.trainer; color: Theme.muted; font.pixelSize: 13; font.bold: true; font.letterSpacing: 2; width: 620; elide: Text.ElideRight; textFormat: Text.PlainText }

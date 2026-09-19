@@ -246,6 +246,12 @@ Use the owner's six-position UI labels explicitly: **1/6 Низкое (Low), 2/6
 
 ### Commit and verification loop
 
+**Increment size — owner clarification, 2026-09-19:** prefer a complete visible
+feature chain in one work session (backend, UI consumer, checks, device delivery,
+commit/push), rather than ending after each small internal mechanism. Keep the
+work coherent and dependency-ordered; do not expand into unrelated unfinished
+modules. Announce the larger slice and its reasoning level before starting.
+
 The user has authorized routine commits and pushes for this project. A completed implementation increment must be checked, committed, pushed to GitHub and verified there; do not leave finished work only in the working tree or local commits. Do not ask for repeated approval for this routine workflow.
 
 1. Start by inspecting the current branch, status, upstream and relevant issue/docs. Identify pre-existing changes and preserve work belonging to the user or another task.

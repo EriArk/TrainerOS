@@ -53,6 +53,17 @@
 
 using namespace trainer;
 
+class SavedExitImages final : public QQuickImageProvider {
+public:
+    explicit SavedExitImages(LocalStateStore* store) : QQuickImageProvider(Image), store_(store) {}
+    QImage requestImage(const QString& id, QSize* size, const QSize&) override {
+        const auto frame = store_ ? store_->exitImage(id) : QImage{};
+        if (size) *size = frame.size();
+        return frame;
+    }
+private:
+    LocalStateStore* store_;
+};
 class ExitFrameImages final : public QQuickImageProvider {
 public:
     explicit ExitFrameImages(AdventureExitController& controller) : QQuickImageProvider(Image), controller_(controller) {}
@@ -180,7 +191,8 @@ int main(int argc, char* argv[]) {
         CollectionRepository collection(personalLibrary ? static_cast<LibraryRepository&>(*store) : repository);
         LibraryRepository& baseLibrary = personalLibrary ? (!smoke || persistencePhase == "collection" ? static_cast<LibraryRepository&>(collection) : *store) : repository;
         ResumeLibraryRepository moments(baseLibrary);
-        LibraryRepository& activeLibrary = personalLibrary && !smoke ? static_cast<LibraryRepository&>(moments) : baseLibrary;
+        // State thumbnails are migration evidence, not normal launch targets.
+        LibraryRepository& activeLibrary = baseLibrary;
         std::unique_ptr<RetroAchievementsProvider> realAchievements;
         if (personalLibrary && !smoke) realAchievements = std::make_unique<RetroAchievementsProvider>(activeLibrary, stateDirectory);
         AdventureAdapter* selectedAdapter = personalLibrary ? static_cast<AdventureAdapter*>(&unconfiguredAdapter) : &adapter;
@@ -220,12 +232,6 @@ int main(int argc, char* argv[]) {
             if (success) realAchievements->refreshAll();
         });
         QObject::connect(&moments, &ResumeLibraryRepository::changed, &shell, &ShellController::refreshLibrary);
-        if (store && !smoke) QObject::connect(store.get(), &LocalStateStore::libraryChanged, &resumeProvider, [&] {
-            resumeProvider.refresh(shell.navigationState()["homeAdventure"].toString());
-        });
-        if (store && !smoke) QObject::connect(store.get(), &LocalStateStore::opened, &resumeProvider, [&](bool success) {
-            if (success) resumeProvider.refresh(store->navigation()["homeAdventure"].toString());
-        });
         SessionState session(shell, store.get());
         DeviceSnapshot deviceFixture;
         deviceFixture.volume = 35; deviceFixture.brightness = 60; deviceFixture.network = "Connected";
@@ -325,6 +331,12 @@ int main(int argc, char* argv[]) {
         }
         std::unique_ptr<PlayHistoryController> playHistory;
         if (personalLibrary) playHistory = std::make_unique<PlayHistoryController>(adventureLaunch, *store);
+        if (playHistory) playHistory->setMediaSource([&](const QString& id) -> std::optional<ExitMediaSource> {
+            const auto profile = store->load();
+            const auto record = activeLibrary.registration(id);
+            if (!profile || !record) return {};
+            return ExitMediaSource{profile->id, "pokemon", *record};
+        });
         ControllerInput input(nullptr, preferred);
         const auto reportBase = parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()
             : QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
@@ -372,6 +384,7 @@ int main(int argc, char* argv[]) {
         QQmlApplicationEngine engine;
         engine.addImageProvider("moments", new MomentImages(resumeProvider));
         engine.addImageProvider("exit-frame", new ExitFrameImages(adventureLaunch.exitController()));
+        engine.addImageProvider("exit-media", new SavedExitImages(store.get()));
         int qmlWarnings = 0;
         QStringList diagnostics;
         QObject::connect(&engine, &QQmlEngine::warnings, &engine,

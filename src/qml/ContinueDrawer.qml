@@ -214,6 +214,7 @@ Item {
                                 id: cardImage
                                 objectName: "resume-background-" + index
                                 anchors.fill: parent; source: modelData.preview
+                                asynchronous: false; cache: false
                                 fillMode: Image.PreserveAspectCrop; opacity: 0.18
                                 sourceSize: Qt.size(640, 400)
                             }
