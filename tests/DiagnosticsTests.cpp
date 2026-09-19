@@ -15,6 +15,10 @@ public:
         SDL_SetMainReady(); SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
         index = SDL_JoystickAttachVirtual(SDL_JOYSTICK_TYPE_GAMECONTROLLER, SDL_CONTROLLER_AXIS_MAX, SDL_CONTROLLER_BUTTON_MAX, 0);
         if (index >= 0) joystick = SDL_JoystickOpen(index);
+        if (joystick) {
+            SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_TRIGGERLEFT, -32768);
+            SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, -32768);
+        }
     }
     void detach() {
         if (joystick) { SDL_JoystickClose(joystick); joystick = nullptr; }

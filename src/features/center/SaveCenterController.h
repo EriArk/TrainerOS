@@ -16,12 +16,14 @@ class SaveCenterController final : public QObject {
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(bool canCreate READ canCreate NOTIFY changed)
     Q_PROPERTY(bool confirming READ confirming NOTIFY changed)
+    Q_PROPERTY(bool companion READ companion NOTIFY changed)
     Q_PROPERTY(QString restoreLabel READ restoreLabel NOTIFY changed)
 public:
     explicit SaveCenterController(LibraryRepository&,QObject* parent=nullptr);
     void configure(SaveBackupService*);
     bool configured() const { return service_ != nullptr; }
     void begin(const QString& preferred={});
+    void beginSelected(const QString& adventureId);
     void close();
     void applySearch(const QString&);
     void dispatch(Action);
@@ -39,6 +41,7 @@ public:
     bool busy() const { return service_ && service_->busy(); }
     bool canCreate() const { return route_=="copies" && snapshot_.hasSave && !snapshot_.token.isEmpty() && !busy(); }
     bool confirming() const { return confirming_; }
+    bool companion() const { return companion_; }
     QString restoreLabel() const;
 signals:
     void changed();
@@ -59,6 +62,7 @@ private:
     SaveBackup confirmation_;
     QString route_="adventures", query_, message_;
     bool open_=false, confirming_=false;
+    bool companion_=false, refreshPending_=false;
     int focus_=0;
     quint64 generation_=0;
 };

@@ -9,9 +9,15 @@ SaveCenterController::SaveCenterController(LibraryRepository& library,QObject* p
 void SaveCenterController::configure(SaveBackupService* service) {
     if(service_)disconnect(service_,nullptr,this,nullptr);
     service_=service;
-    if(service_)connect(service_,&SaveBackupService::busyChanged,this,&SaveCenterController::changed);
+    if(service_)connect(service_,&SaveBackupService::busyChanged,this,[this]{
+        emit changed();
+        if(open_ && refreshPending_ && !busy()) {
+            refreshPending_=false;
+            QMetaObject::invokeMethod(this,[this]{if(open_)refresh();},Qt::QueuedConnection);
+        }
+    });
 }
-QString SaveCenterController::title() const { return route_=="adventures"?"Pokémon Center":selected_.adventure.title; }
+QString SaveCenterController::title() const { return route_=="adventures" || selected_.adventure.id.isEmpty()?"Pokémon Center":selected_.adventure.title; }
 QString SaveCenterController::message() const {
     if(busy())return "Checking saves and keeping copies… You can leave this page; the operation will finish.";
     if(!message_.isEmpty())return message_;
@@ -47,13 +53,34 @@ void SaveCenterController::rebuild() {
     focus_=std::clamp(focus_,0,std::max(0,int(adventures_.size())-1));emit rowsChanged();emit changed();
 }
 void SaveCenterController::begin(const QString& preferred) {
+    companion_=false;refreshPending_=false;
     ++generation_;open_=true;confirming_=false;query_.clear();message_.clear();route_="adventures";focus_=0;rebuild();
     for(int i=0;i<adventures_.size();++i)if(adventures_[i].id==preferred)focus_=i;
     emit changed();
 }
-void SaveCenterController::close(){++generation_;open_=false;confirming_=false;emit changed();}
+void SaveCenterController::beginSelected(const QString& id) {
+    const auto record=library_.registration(id);
+    const bool same=companion_ && selected_.adventure.id==id && record && selected_.revision==record->revision;
+    ++generation_;open_=true;companion_=true;confirming_=false;route_="copies";message_.clear();
+    if(!same){snapshot_={};focus_=0;}
+    selected_=record.value_or(AdventureRegistration{});
+    refreshPending_=false;
+    if(!record) {
+        snapshot_={};
+        message_=id.isEmpty()?"Y chooses an Adventure. Its in-game save backups will appear here.":"The selected Adventure is no longer linked. Y chooses another; your history is kept.";
+    } else if(!service_) {
+        snapshot_={};message_="Save services aren't configured in this preview.";
+    } else if(busy()) {
+        // A previous Adventure's operation may finish after a new choice. Its
+        // generation cannot populate this shelf; inspect the new choice afterward.
+        snapshot_={};refreshPending_=true;
+    } else refresh();
+    emit rowsChanged();emit changed();
+}
+void SaveCenterController::close(){++generation_;open_=false;confirming_=false;refreshPending_=false;emit changed();}
 void SaveCenterController::back() {
     if(confirming_){confirming_=false;emit changed();return;}
+    if(companion_)return; // B unwinds confirmation; L2/R2 changes the paired face.
     if(route_=="copies"&&!busy()){++generation_;route_="adventures";message_.clear();focus_=0;rebuild();return;}
     close();emit closeRequested();
 }
@@ -62,7 +89,7 @@ void SaveCenterController::applySearch(const QString& text){if(open_&&route_=="a
 void SaveCenterController::refresh() {
     if(!open_ || busy() || !service_ || route_!="copies")return;
     const auto latest=library_.registration(selected_.adventure.id);
-    if(!latest){message_="This Adventure is no longer linked. Return to the list.";emit changed();return;}
+    if(!latest){snapshot_={};message_="This Adventure is no longer linked. Choose another Adventure.";emit rowsChanged();emit changed();return;}
     selected_=*latest;message_.clear();confirming_=false;const auto generation=++generation_;
     service_->inspect(selected_,this,[this,generation](const SaveBackupSnapshot& result){
         if(!open_||generation!=generation_)return;
@@ -112,7 +139,7 @@ void SaveCenterController::dispatch(Action action) {
     if(confirming_){if(action==Action::Confirm)restore();return;}
     if(action==Action::Confirm){activate(focus_);return;}
     if(action==Action::Secondary){if(route_=="adventures")search();else refresh();return;}
-    if(action==Action::ToggleContinue){create();return;}
+    if(action==Action::LocalAction || (!companion_ && action==Action::ToggleContinue)){create();return;}
     const int count=route_=="adventures"?adventures_.size():snapshot_.copies.size();
     const int step=action==Action::Up?-1:action==Action::Down?1:action==Action::Left?-8:action==Action::Right?8:0;
     focus_=std::clamp(focus_+step,0,std::max(0,count-1));emit changed();

@@ -147,20 +147,23 @@ Window {
             width: Theme.screenBounds.width; height: Theme.screenBounds.height
             Item {
                 objectName: "page-viewport"
+                enabled: !shell.drawerOpen
                 anchors.fill: parent; anchors.margins: Theme.panelInset
                 anchors.topMargin: Theme.contentTopInset; clip: true
+                anchors.bottomMargin: shell.page === 0 || shell.page === 1 ? Theme.panelInset : Theme.panelInset + 30
                 HomePage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 0 }
                 HallOfFamePage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 4 }
                 TrainerPage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 3 }
                 WorldsPage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 1 }
-                PokedexPage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 2 }
+                PokedexPage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 2 && !shell.centerFace }
             }
         }
         ContinueDrawer {
             id: drawer
             objectName: "continue-drawer"
             x: -Theme.screenBevel; anchors.bottom: footer.top; shell: shellController
-            visible: !shell.serviceOpen && shell.page === 0
+            z: 1
+            visible: shell.chooseAdventureAvailable || shell.drawerOpen
         }
         Item {
             id: footer
@@ -174,7 +177,8 @@ Window {
             }
             Row {
                 anchors { right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
-                spacing: 20
+                spacing: 14
+                Hint { visible: shell.pairedNavigationAvailable; button: "L2 R2"; label: shell.centerFace ? "Pokédex" : "Center"; tint: Theme.green }
                 Hint { button: "L1 R1"; label: "Sections"; tint: Theme.blue }
                 Hint { button: "A"; label: shell.keyboard.open && !shell.menuOpen ? "Type" : shell.page === 0 && !shell.drawerOpen && !shell.menuOpen && !shell.serviceOpen && shell.notice.length === 0 ? shell.home.actionHint : "Select" }
                 Hint { button: "B"; label: shell.keyboard.open && !shell.menuOpen ? "Cancel input" : "Back"; tint: Theme.pink }
@@ -185,7 +189,7 @@ Window {
         SettingsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "settings" }
         DevicePanel { anchors.fill: screen; shell: shellController; visible: shell.service === "device" }
         DiagnosticsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "diagnostics" }
-        SaveCenterPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "center" }
+        SaveCenterPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace }
         KeyboardPanel {
             anchors { left: screen.left; right: screen.right; top: screen.top; bottom: footer.top }
             z: 2; shell: shellController

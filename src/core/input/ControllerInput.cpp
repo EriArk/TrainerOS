@@ -28,6 +28,7 @@ void ControllerInput::setEnabled(bool enabled) {
     awaitingNeutral_ = true;
     heldDirection_.reset();
     previous_.fill(false);
+    triggers_.fill(false);
     sample_.enabled = enabled_; sample_.awaitingNeutral = true;
     emit sampled();
 }
@@ -57,6 +58,7 @@ void ControllerInput::poll() {
         awaitingNeutral_ = true;
         heldDirection_.reset();
         previous_.fill(false);
+        triggers_.fill(false);
         sample_.name.clear(); sample_.guid.clear(); sample_.mapping.clear();
         emit connectionChanged();
     }
@@ -96,9 +98,13 @@ void ControllerInput::poll() {
         buttons[i] = SDL_GameControllerGetButton(controller_, static_cast<SDL_GameControllerButton>(i));
     const float x = SDL_GameControllerGetAxis(controller_, SDL_CONTROLLER_AXIS_LEFTX) / 32768.0f;
     const float y = SDL_GameControllerGetAxis(controller_, SDL_CONTROLLER_AXIS_LEFTY) / 32768.0f;
+    const std::array<float, 2> triggers{
+        sample_.axes[SDL_CONTROLLER_AXIS_TRIGGERLEFT] / 32768.0f,
+        sample_.axes[SDL_CONTROLLER_AXIS_TRIGGERRIGHT] / 32768.0f};
     if (awaitingNeutral_) {
         const bool anyButton = std::any_of(buttons.begin(), buttons.end(), [](bool b) { return b; });
-        if (anyButton || std::abs(x) >= StickRelease || std::abs(y) >= StickRelease) { emit sampled(); return; }
+        if (anyButton || std::abs(x) >= StickRelease || std::abs(y) >= StickRelease
+                || triggers[0] >= StickRelease || triggers[1] >= StickRelease) { emit sampled(); return; }
         awaitingNeutral_ = false;
     }
     sample_.awaitingNeutral = awaitingNeutral_; emit sampled();
@@ -107,6 +113,7 @@ void ControllerInput::poll() {
         {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, Action::NextPage},
         {SDL_CONTROLLER_BUTTON_START, Action::SystemMenu},
         {SDL_CONTROLLER_BUTTON_GUIDE, Action::Home},
+        {SDL_CONTROLLER_BUTTON_BACK, Action::LocalAction},
         {BackButton, Action::Back},
         {SDL_CONTROLLER_BUTTON_Y, Action::ToggleContinue},
         {SDL_CONTROLLER_BUTTON_X, Action::Secondary},
@@ -114,6 +121,13 @@ void ControllerInput::poll() {
     };
     for (const auto& [button, semantic] : bindings)
         if (buttons[button] && !previous_[button]) deliver(semantic, true);
+    // Triggers are analog axes. Hysteresis and edges avoid repeated page flips
+    // while held, and the shared neutral gate protects return from an Adventure.
+    for (int i = 0; i < 2; ++i) {
+        const bool pressed = triggers[i] >= (triggers_[i] ? StickRelease : StickEngage);
+        if (pressed && !triggers_[i]) deliver(i == 0 ? Action::PreviousFace : Action::NextFace, true);
+        triggers_[i] = pressed;
+    }
     const auto current = direction(x, y, buttons);
     const auto now = clock_.elapsed();
     if (current != heldDirection_) {
@@ -141,6 +155,9 @@ bool ControllerInput::eventFilter(QObject*, QEvent* event) {
     case Qt::Key_Home: semantic = Action::Home; break;
     case Qt::Key_Q: semantic = Action::PreviousPage; break;
     case Qt::Key_E: semantic = Action::NextPage; break;
+    case Qt::Key_Z: semantic = Action::PreviousFace; break;
+    case Qt::Key_C: semantic = Action::NextFace; break;
+    case Qt::Key_Tab: semantic = Action::LocalAction; break;
     case Qt::Key_Y: semantic = Action::ToggleContinue; break;
     case Qt::Key_X: semantic = Action::Secondary; break;
     default: return false;

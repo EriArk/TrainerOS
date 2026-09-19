@@ -4,7 +4,8 @@ Item {
     id: root
     required property var shell
     readonly property var dex: shell.pokedex
-    readonly property bool takesFocus: visible && !dex.journal.open && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
+    enabled: !shell.drawerOpen
+    readonly property bool takesFocus: visible && !shell.drawerOpen && !dex.journal.open && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     readonly property bool detailOpen: dex.zone === "detail"
     readonly property bool pickerOpen: dex.zone === "picker"
 
@@ -111,14 +112,14 @@ Item {
         Text { x: 29; y: 95; text: root.dex.detail.types; color: Theme.muted; font.pixelSize: 19 }
         Text { x: 420; y: 98; width: parent.width - 448; text: "Height " + root.dex.detail.height + "   ·   Weight " + root.dex.detail.weight; color: Theme.muted; font.pixelSize: 16; horizontalAlignment: Text.AlignRight }
         Rectangle {
-            x: 0; y: 135; width: 291; height: 197; color: "#d6e4d8"
+            x: 0; y: 135; width: 291; height: 166; color: "#d6e4d8"
             Text { x: 25; y: 8; text: "BASE STATS · REFERENCE"; color: Theme.muted; font.pixelSize: 11; font.letterSpacing: 1 }
             Repeater {
                 model: root.dex.detail.stats
                 delegate: Item {
                     required property int index
                     required property var modelData
-                    x: 25; y: 31 + index * 25; width: 242; height: 19
+                    x: 25; y: 27 + index * 22; width: 242; height: 19
                     Text { x: 0; y: 1; width: 64; text: modelData.label; color: Theme.ink; font.pixelSize: 13 }
                     Rectangle {
                         x: 67; y: 4; width: 134; height: 12; radius: 5; color: "#b8cabc"
@@ -132,7 +133,7 @@ Item {
             x: 316; y: 146; width: parent.width - 344; spacing: 9
             Text { text: sessionState.persistent ? "YOUR JOURNAL · MANUALLY RECORDED" : "YOUR JOURNAL · SAMPLE DATA"; color: Theme.muted; font.pixelSize: 11; font.letterSpacing: 1 }
             Text { width: parent.width; text: "Seen: " + root.dex.detail.seen + "   ·   Caught: " + root.dex.detail.caught; color: Theme.ink; font.pixelSize: 19; elide: Text.ElideRight }
-            Text { width: parent.width; text: root.dex.detail.notes.length ? root.dex.detail.notes : "Y opens your field journal. Unknown records stay unknown."; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 15; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
+            Text { width: parent.width; text: root.dex.detail.notes.length ? root.dex.detail.notes : "Select opens your field journal. Unknown records stay unknown."; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 15; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
             Text { width: parent.width; text: "Regional lists: " + (root.dex.detail.worlds.length ? root.dex.detail.worlds : "National guide only"); color: Theme.muted; font.pixelSize: 13; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
             Text { width: parent.width; text: "Family: " + (root.dex.detail.family.length ? root.dex.detail.family : "Not available in this reference"); color: Theme.muted; font.pixelSize: 13; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
         }
@@ -146,7 +147,7 @@ Item {
                 selected: root.takesFocus && root.detailOpen && root.dex.focusIndex === 0
                 onActivated: root.shell.activate(0)
             }
-            CapButton { x: 277; y: 17; width: 215; height: 46; tint: Theme.green; label: "Y   Field journal"; enabled: root.dex.detail.editable; onActivated: root.dex.editJournal() }
+            CapButton { x: 277; y: 17; width: 215; height: 46; tint: Theme.green; label: "Select  Journal"; enabled: root.dex.detail.editable; onActivated: root.dex.editJournal() }
             CapButton { x: 510; y: 17; width: 176; height: 46; tint: Theme.pink; label: "X   Form"; enabled: root.dex.detail.formCount > 1; opacity: enabled ? 1 : 0.5; onActivated: root.dex.cycleForm() }
             CapButton {
                 objectName: "dex-back"

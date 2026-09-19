@@ -4,7 +4,8 @@ Item {
     id: root
     required property var shell
     readonly property var trainer: shell.trainer
-    readonly property bool takesFocus: visible && !shell.menuOpen && shell.notice.length === 0 && !shell.keyboard.open && !trainer.picker.open
+    enabled: !shell.drawerOpen
+    readonly property bool takesFocus: visible && !shell.drawerOpen && !shell.menuOpen && shell.notice.length === 0 && !shell.keyboard.open && !trainer.picker.open
     PageHeader {
         id: trainerHeader; width: 586
         title: root.trainer.editing ? (root.trainer.exists ? "Edit Trainer" : "Create Trainer") : "Trainer"
@@ -13,17 +14,17 @@ Item {
     Item {
         x: 586; y: 0; width: parent.width - x; height: parent.height
         TrainerEmblem {
-            x: 83; y: 76; width: 164; height: 164
+            x: 83; y: 56; width: 164; height: 164
             emblem: root.trainer.editing ? root.trainer.draftEmblem : root.trainer.profile.emblem
         }
         Text {
-            x: 22; y: 259; width: parent.width - 44
+            x: 22; y: 239; width: parent.width - 44
             text: root.trainer.editing ? (root.trainer.draftName || "Your name") : (root.trainer.profile.name || "Your story starts here")
             textFormat: Text.PlainText; elide: Text.ElideRight
             horizontalAlignment: Text.AlignHCenter; color: Theme.ink; font.pixelSize: 24; font.weight: Font.DemiBold
         }
         Text {
-            x: 15; y: 296; width: parent.width - 30
+            x: 15; y: 276; width: parent.width - 30
             text: root.trainer.editing ? "PROFILE PREVIEW" : "TRAINER CARD"; horizontalAlignment: Text.AlignHCenter
             color: Theme.muted; font.pixelSize: 11; font.letterSpacing: 1
         }
@@ -38,7 +39,7 @@ Item {
         }
     }
     MountedPanel {
-        x: 0; y: 186; width: 586; height: 139; color: "#d8e5d8"
+        x: 0; y: 176; width: 586; height: 118; color: "#d8e5d8"
         visible: !root.trainer.editing
         Grid {
             x: 30; y: 9; columns: 3; columnSpacing: 10; rowSpacing: 8
@@ -46,7 +47,7 @@ Item {
                 model: root.trainer.overview
                 delegate: Rectangle {
                     required property var modelData
-                    width: 168; height: 54; radius: 7; color: "#edf2e7"; border.color: "#b7cbbb"
+                    width: 168; height: 46; radius: 7; color: "#edf2e7"; border.color: "#b7cbbb"
                     Text { x: 10; y: 3; width: 148; text: modelData.value; color: Theme.ink; font.pixelSize: 20; font.bold: true; elide: Text.ElideRight }
                     Text { x: 10; y: 32; width: 148; elide: Text.ElideRight; text: modelData.label; color: Theme.muted; font.pixelSize: 11 }
                 }

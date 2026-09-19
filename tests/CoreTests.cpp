@@ -99,6 +99,8 @@ private slots:
         QVERIFY2(index >= 0, SDL_GetError());
         SDL_Joystick* joystick = SDL_JoystickOpen(index);
         QVERIFY(joystick);
+        SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_TRIGGERLEFT, -32768);
+        SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, -32768);
         {
             ControllerInput input(nullptr, SDL_JoystickInstanceID(joystick));
             QSignalSpy events(&input, &ControllerInput::action);
@@ -113,6 +115,7 @@ private slots:
                 {SDL_CONTROLLER_BUTTON_LEFTSHOULDER, Action::PreviousPage},
                 {SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, Action::NextPage},
                 {SDL_CONTROLLER_BUTTON_GUIDE, Action::Home},
+                {SDL_CONTROLLER_BUTTON_BACK, Action::LocalAction},
                 // Test positions independently from ControllerInput's constants.
                 {SDL_CONTROLLER_BUTTON_B, Action::Confirm}, {SDL_CONTROLLER_BUTTON_A, Action::Back},
                 {SDL_CONTROLLER_BUTTON_Y, Action::ToggleContinue}, {SDL_CONTROLLER_BUTTON_X, Action::Secondary}, {SDL_CONTROLLER_BUTTON_START, Action::SystemMenu},
@@ -148,6 +151,21 @@ private slots:
             button(SDL_CONTROLLER_BUTTON_Y, true);
             QCOMPARE(events.size(), 2);
             button(SDL_CONTROLLER_BUTTON_Y, false);
+            for (const auto axis : {SDL_CONTROLLER_AXIS_TRIGGERLEFT, SDL_CONTROLLER_AXIS_TRIGGERRIGHT}) {
+                const auto set = [&](int value) { SDL_JoystickSetVirtualAxis(joystick, axis, value); input.poll(); };
+                events.clear(); set(32767);
+                QCOMPARE(events.size(), 1);
+                QCOMPARE(qvariant_cast<Action>(events.first().first()), axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT ? Action::PreviousFace : Action::NextFace);
+                QTest::qWait(400); QCOMPARE(events.size(), 1); // No trigger repeat.
+                set(-3000); set(8000); QCOMPARE(events.size(), 1); // Hysteresis across the engage threshold.
+                set(-32768); set(32767); QCOMPARE(events.size(), 2);
+                input.setEnabled(false); input.setEnabled(true); input.poll();
+                QVERIFY(input.sample().awaitingNeutral);
+                button(SDL_CONTROLLER_BUTTON_B, true); button(SDL_CONTROLLER_BUTTON_B, false);
+                QCOMPARE(events.size(), 2); // A held trigger also blocks a returning Confirm.
+                set(-32768); QVERIFY(!input.sample().awaitingNeutral);
+                set(32767); QCOMPARE(events.size(), 3); set(-32768);
+            }
             SDL_JoystickClose(joystick);
             joystick = nullptr;
             QCOMPARE(SDL_JoystickDetachVirtual(index), 0);

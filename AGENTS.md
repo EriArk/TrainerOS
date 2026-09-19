@@ -101,7 +101,8 @@ Always preserve:
 - A/B physical shell positions follow Switch: right A confirms, bottom B goes back (owner clarification 2026-09-19). SDL's Xbox positional names are B/east and A/south; translate centrally, not per feature. This does not remap emulator gameplay.
 - `Start` = TrainerOS system menu
 - Physical `Home/Guide` returns to the Home page when no Adventure is running; during a supported Adventure it requests the guarded exit question. It never bypasses an active storage/service gate or directly kills a game.
-- Planned #9 `Y` = shared Choose Adventure on Pokémon Home, Pokédex, Center, Hall/RA and Adventure-aware Trainer; Worlds local Y and modal/keyboard/system/recovery priority remain. Multiverse Home has its independent game selector.
+- P1 #9 `Y` = shared Choose Adventure on Pokémon Home, Pokédex, Center, Hall/RA and Trainer; Worlds local Y and modal/keyboard/system/recovery priority remain. Multi-Trainer/domain consumers remain planned. [Delivered boundary](docs/SHARED_ADVENTURE.md).
+- `L2/R2` switches the delivered Pokédex/Center pair; other pairs remain planned. `Select` owns labelled local journal/new-memory/achievement-refresh/save-backup shortcuts.
 - Planned #43 `L2/R2` = paired faces Worlds/Multiverse, Pokédex/Center, Hall/Journey/RA; preserve local routes/focus, never use L1/R1 for companions or steal emulator input.
 - Planned #31: unobstructed Home `X` toggles Pokémon/Multiverse; choices and Continue are scoped per Trainer/context, while A/Y retain selection-versus-launch behavior.
 - On unobstructed Home, `A` immediately invokes the large Adventure button, regardless of prior D-pad/stick input. `Y` opens the selector; `A` inside it selects for Home without launching.

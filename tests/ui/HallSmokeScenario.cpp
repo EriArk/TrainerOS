@@ -123,9 +123,9 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         case 39: check(focusIs("notice-close"), "Failed archive refresh reports error"); capture("archive-error"); press(b); break;
         case 40:
             check(hall->rows().size() == 4 && focusIs("hall-row-crystal-undated"), "Failed archive refresh keeps data and selection");
-            press(y); break;
+            press(SDL_CONTROLLER_BUTTON_BACK); break;
         case 41:
-            check(focusIs("memory-field-0") && hall->editor()->isOpen(), "Y opens a new memory with deterministic focus");
+            check(focusIs("memory-field-0") && hall->editor()->isOpen(), "Select opens a new memory with deterministic focus");
             capture("new-memory");press(a);break;
         case 42:
             check(hall->editor()->route()=="adventures", "Adventure picker opens");capture("memory-adventures");press(a);press(down,2);press(right);press(a);break;

@@ -468,3 +468,7 @@ Do not scatter Retroid-specific constants through QML.
 ## Ordinary-save integration boundary ? 2026-09-19
 
 The deployed RetroArch/mGBA launch and save resolver now share configuration verification independently of legacy state preparation. Production composes the personal/collection repository directly and starts no state-scanning thread. State scan/entry preparation remains linked only to the historical regression executable. Existing ordinary-backup bundles retain their content identity; a refreshed operation token accounts for the new SRAM context fingerprint. Home/Y crop the same decoded exit image for presentation without altering stored media provenance. [Current behavior and retirement evidence](ADVENTURE_EXIT.md#ordinary-save-decoupling-and-legacy-retirement).
+
+## Shared Adventure routing increment
+
+P1 publishes one committed `currentAdventureId` and gives the protected-save Center its first shared-selection consumer. Global/modal routing, paired triggers, asynchronous generation protection and the single-Trainer boundary are documented in [Shared Adventure](SHARED_ADVENTURE.md). P2 ownership and later exact-build/save projections retain separate gates.

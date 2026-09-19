@@ -15,7 +15,7 @@ During a supported Adventure, Home requests the guarded exit question instead;
 right A confirms, bottom B returns to the same game. See the device-specific
 [integration boundary](ADVENTURE_EXIT.md#home-transport-increment-2026-09-19).
 
-**Implementation versus target:** shared Y, L2/R2 paired faces, Center/Playroom and save-confirmed exit are planned. Existing reference/manual-journal, keyboard, menu and pointer checks remain evidence for their delivered routes. [Full new acceptance](EXPANSION_42_62.md).
+**Implementation versus target:** shared Y, the Pokedex/Center L2/R2 pair and opt-in confirmed RetroArch exit are delivered. Other pairs, full Center/Playroom and additional exit adapters remain planned. Existing reference/manual-journal, keyboard, menu and pointer checks remain evidence for their delivered routes. [Full new acceptance](EXPANSION_42_62.md).
 
 Worlds includes the [collection checklist and controller attachment flow](COLLECTION_CATALOGUE.md). Grey missing cards remain focusable; A → Link a file opens the shared picker, while Save/Cancel returns to the original Worlds detail. Platform badges identify the edition without changing region-first navigation.
 
@@ -68,9 +68,10 @@ Whether the page list wraps from Hall of Fame back to Home should be decided dur
 - `B`: back/close/cancel
 - `Start`: TrainerOS system menu
 - `L1/R1`: global primary-page navigation
-- `Y`: shared Choose Adventure on supported pages (planned #9; deployed Home-only baseline)
+- `Y`: shared Choose Adventure on Home/Pokédex/Center/Trainer/Hall/RA; Worlds keeps its filter and modal editors keep local Y actions
+- `Select`: labelled local journal/new-memory/achievement-refresh/save-backup shortcut
 
-`L2/R2` are reserved for the planned paired faces; Home X for domain switching. Other buttons remain available for later shortcuts but should not become mandatory until documented/remappable.
+`L2/R2` switches the delivered Pokédex/Center pair. Other pairs and Home X domain switching remain planned. [Shared routing and remaining boundaries](SHARED_ADVENTURE.md).
 
 Development keyboard bindings may mirror these actions, but controller semantics remain authoritative.
 
@@ -104,6 +105,8 @@ Home is a living overview with several compact information areas. It is not a ti
 Home uses fixed physical-button actions: A invokes the large Adventure button immediately and Y opens the selector. D-pad/stick movement does not move between its static modules or change what A does. Keep a visible ready state on the main button. Across pages, prefer labeled button actions for permanent commands and reserve directional focus for choosing items in lists, grids and open panels.
 
 ### Choose Adventure drawer
+
+**P1 delivered:** the shared selector and Pokedex/Center pair now work on the single-Trainer baseline. [Implementation and remaining boundaries](SHARED_ADVENTURE.md). The full ownership/provider contract below remains the target.
 
 **Planned #9/#49:** one shell-owned **Y · Choose Adventure** drawer selects the active Trainer's shared `CurrentPokemonAdventureContext`: Adventure ID, resolved exact build and ordinary-save identity/revision when available. Pokémon Home, Pokédex, Center, Hall, RA and Adventure-aware Trainer consume this same context. Multiverse Home remembers its own independent game selection. Before an explicit choice, use the latest actual launch in that Trainer/domain; unrelated launches do not overwrite an explicit choice.
 

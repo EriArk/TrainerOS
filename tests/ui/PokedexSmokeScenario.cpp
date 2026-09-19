@@ -144,9 +144,9 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             capture("refresh-error"); press(b); break;
         case 42:
             check(focusIs("dex-favorite") && dex->detail()["id"] == "eevee", "Refresh notice restores detail");
-            press(SDL_CONTROLLER_BUTTON_Y);break;
+            press(SDL_CONTROLLER_BUTTON_BACK);break;
         case 43:
-            check(focusIs("journal-field-0") && dex->journal()->isOpen(), "Y opens journal with controller focus");
+            check(focusIs("journal-field-0") && dex->journal()->isOpen(), "Select opens journal with controller focus");
             capture("journal");press(right);press(a,2);press(down);press(a);break;
         case 44:
             check(focusIs("key-A"), "Journal note uses shared controller keyboard");press(a);press(down,3);press(right);press(a);break;
@@ -155,10 +155,10 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
         case 46:
             check(!dex->journal()->isOpen() && dex->detail()["notes"]=="A", "Journal Save commits note");
             check(dex->detail()["caught"]=="Yes" && dex->detail()["seen"]=="Yes", "Caught includes Seen");
-            capture("journal-recorded");press(SDL_CONTROLLER_BUTTON_Y);press(down);press(a);press(a);press(b);press(b);break;
+            capture("journal-recorded");press(SDL_CONTROLLER_BUTTON_BACK);press(down);press(a);press(a);press(b);press(b);break;
         case 47:
             check(!dex->journal()->isOpen() && dex->detail()["notes"]=="A", "Cancelled journal leaves committed note");
-            press(SDL_CONTROLLER_BUTTON_Y);press(r1);break;
+            press(SDL_CONTROLLER_BUTTON_BACK);press(r1);break;
         case 48:
             check(shell.page()==3 && !dex->journal()->isOpen(), "Global page change discards journal draft");press(l1);break;
         default:

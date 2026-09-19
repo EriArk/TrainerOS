@@ -151,6 +151,8 @@ int main(int argc, char* argv[]) {
             return 2;
         }
         preferred = SDL_JoystickInstanceID(joystick);
+        SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_TRIGGERLEFT, -32768);
+        SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, -32768);
     }
     int result = 0;
     bool smokeCompleted = false;

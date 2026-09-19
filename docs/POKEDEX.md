@@ -19,7 +19,7 @@ Types and stats describe the selected form in this snapshot. They do not adapt t
 - X opens search from the list; exact National numbers, names and form labels are supported. Search ignores case, accents and punctuation.
 - Up/down move through the bounded list, left/right jump eight entries. A opens the selected entry. Filters retain the existing controller rail and attached picker.
 - Type filtering includes named forms. Detail initially selects a matching form where applicable; X cycles the entry's forms. The chosen form survives a section change/restart without affecting saved journal data.
-- A toggles the favorite mark from its action button; B returns to the list. Y opens the attached field journal. L1/R1 and Start keep their global roles.
+- A toggles the favorite mark from its action button; B returns to the list. Select opens the attached field journal; Y opens the shared Adventure selector. L1/R1 and Start keep their global roles.
 - In the journal, A cycles Seen/Caught through unknown, Yes and No, or opens the shared note keyboard. Y saves; B discards the draft. L1/R1 discard an unsubmitted journal and switch sections.
 
 ## Personal records

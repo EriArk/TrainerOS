@@ -4,7 +4,8 @@ Item {
     id: root
     required property var shell
     readonly property var hall: shell.hall
-    readonly property bool takesFocus: visible && !hall.editor.open && !hall.account.open && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
+    enabled: !shell.drawerOpen
+    readonly property bool takesFocus: visible && !shell.drawerOpen && !hall.editor.open && !hall.account.open && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     readonly property bool detailOpen: hall.route === "archive-detail" || hall.route === "achievement-detail"
     PageHeader { id: hallHeader; title: "Hall of Fame"; trailing: "Every journey leaves a story" }
     MountedPanel {
@@ -27,8 +28,8 @@ Item {
             }
         }
         Text { x: 532; y: 11; width: parent.width - 554; text: root.hall.status; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 14 }
-        Text { x: 532; y: 39; width: parent.width - 554; visible: root.hall.archive && root.hall.editable; text: "Y · New memory     X · Edit selected"; color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
-        Text { x: 532; y: 39; width: parent.width - 554; visible: !root.hall.archive && root.hall.account.available; text: "Y · Refresh     X · Account"; color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
+        Text { x: 532; y: 39; width: parent.width - 554; visible: root.hall.archive && root.hall.editable; text: "Select · New memory     X · Edit"; color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
+        Text { x: 532; y: 39; width: parent.width - 554; visible: !root.hall.archive && root.hall.account.available; text: "Select · Refresh     X · Account"; color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
     }
     Item {
         anchors.fill: parent; visible: !root.detailOpen
@@ -61,15 +62,15 @@ Item {
         anchors.fill: parent; visible: root.detailOpen
         Text { x: 28; y: 135; width: parent.width - 56; text: root.hall.detail.title; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 27; font.weight: Font.DemiBold; elide: Text.ElideRight }
         Rectangle {
-            x: 0; y: 179; width: 493; height: 160; color: "#e2e7de"
+            x: 0; y: 172; width: 493; height: 138; color: "#e2e7de"
             Grid {
-                x: 25; y: 12; columns: 3; spacing: 11; visible: root.hall.archive
+                x: 25; y: 12; columns: 3; spacing: 9; visible: root.hall.archive
                 Repeater {
                     model: root.hall.team
                     delegate: Rectangle {
                         required property int index
                         required property var modelData
-                        width: 141; height: 57; radius: 12; color: "#f5f4e9"; border.color: "#bacbbd"
+                        width: 141; height: 51; radius: 12; color: "#f5f4e9"; border.color: "#bacbbd"
                         Rectangle {
                             x: 8; y: 8; width: 22; height: 22; radius: 11; color: modelData.known ? Theme.yellow : "#d6dfd5"
                             Text { anchors.centerIn: parent; text: index + 1; color: Theme.ink; font.pixelSize: 12; font.bold: true }

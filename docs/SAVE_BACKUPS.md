@@ -2,15 +2,15 @@
 
 Target services and transaction rules: [Center](EXPANSION_42_62.md#pokémon-center-and-practical-party), [exact-save providers](EXPANSION_42_62.md#exact-save-providers-and-research), [lifecycle/migration](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit). The GBA tests and pending DS gates below remain valid for their tested versions.
 
-**Implemented backup entry:** Pokémon Center is currently a service inside Start, not another primary page. **Planned #43/#44:** Center becomes the first-class L2/R2 Pokédex companion, with practical Party/Storage and these protected ordinary-save services. The legacy entry/controls below remain evidence until migration. Normal Center Y will select the Adventure; map backup actions explicitly while preserving modal input priority. It backs up **GBA in-game save RAM through the verified RetroArch/mGBA setup**, with an additional opt-in resolver for DS cartridge saves through melonDS. The existing saved-moment feature is historical and superseded by #49; it is not part of the target backup service. Emulator states, BIOS, ROMs and game-specific progress interpretation are outside these backup formats.
+**Implemented entry (2026-09-19):** Center is the L2/R2 companion of Pokedex. Start opens this same face at the shared selected Adventure. [Shared selection and remaining scope](SHARED_ADVENTURE.md). Protected GBA/mGBA backups and the opt-in melonDS resolver retain their existing format boundaries. Party, Storage and healing remain planned; emulator states are not ordinary-save backups.
 
 ## Controller flow
 
-Start → Pokémon Center opens linked Adventures, initially selecting the Adventure on Home where possible. X searches names without requiring accents/punctuation; arrows browse and left/right jump eight entries. A opens the selected Adventure's save shelf. Unsupported setups are visible and explain their limitation.
+Y chooses the Adventure using the shared drawer. A commits the choice without launching or leaving Center; B cancels. The shelf follows that registration, including honest unavailable/unsupported states. It never substitutes another game's save. There is no independent Adventure picker in the normal Center route.
 
-On the shelf, Y creates a manual copy, X checks the current save and copies again, and A opens the selected copy's restore confirmation. B returns to the list. The restore panel names the Adventure and copy date: A explicitly accepts replacement, B cancels. Start may overlay it; L1/R1 discard the confirmation and keep their global section-switching role. Missing, empty, unreadable and damaged records retain reachable focus/actions.
+Select creates a manual copy, X refreshes, and A opens restore confirmation. B cancels confirmation; L2/R2 switches between Center and Pokedex. The confirmation names the Adventure and copy date: A accepts replacement, B cancels. Y and L2/R2 cannot bypass it. Start may overlay it; L1/R1 discards it and keeps global navigation. A background operation retains its original target even if the shared choice changes; its result cannot populate the new shelf.
 
-**Legacy restore behavior pending #49:** a restore clears a pinned Home moment but retains older state artifacts. The target has no state selection; restore refreshes ordinary-save revision and shared Dex/Center/Journey projections while preserving historical records. Removing legacy state dependencies must not weaken restore protection.
+Restoration still protects current bytes first. Production state-resume selection is retired; shared choice and history survive restore. Current-save Dex/Journey projections await provider phases.
 
 ## Storage and safety
 

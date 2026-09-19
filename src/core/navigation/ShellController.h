@@ -24,6 +24,10 @@ class ShellController final : public QObject {
     Q_PROPERTY(int page READ page NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(bool drawerOpen READ drawerOpen NOTIFY changed)
+    Q_PROPERTY(bool chooseAdventureAvailable READ chooseAdventureAvailable NOTIFY changed)
+    Q_PROPERTY(bool pairedNavigationAvailable READ pairedNavigationAvailable NOTIFY changed)
+    Q_PROPERTY(bool centerFace READ centerFace NOTIFY changed)
+    Q_PROPERTY(QString currentAdventureId READ currentAdventureId NOTIFY changed)
     Q_PROPERTY(bool menuOpen READ menuOpen NOTIFY changed)
     Q_PROPERTY(QString notice READ notice NOTIFY changed)
     Q_PROPERTY(bool modeConfirmation READ modeConfirmation NOTIFY changed)
@@ -68,6 +72,10 @@ public:
     int page() const { return page_; }
     int focusIndex() const;
     bool drawerOpen() const { return drawerOpen_; }
+    bool chooseAdventureAvailable();
+    bool pairedNavigationAvailable();
+    bool centerFace() const { return page_ == 2 && centerFace_; }
+    QString currentAdventureId() const;
     bool menuOpen() const { return menuOpen_; }
     QString notice() const { return notice_; }
     QVariantMap home() const;
@@ -86,6 +94,8 @@ signals:
 private:
     void confirm();
     void refreshContinue();
+    bool localModalOpen();
+    void openCenter();
     std::optional<Adventure> homeAdventure() const;
     std::optional<ResumePoint> homeResumePoint(const QString& adventureId) const;
     ResumeAvailability homeResumeAvailability(const Adventure&) const;
@@ -113,6 +123,7 @@ private:
     int drawerFocus_ = 0;
     int menuFocus_ = 0;
     bool drawerOpen_ = false;
+    bool centerFace_ = false;
     bool menuOpen_ = false;
     bool libraryFromWorlds_ = false;
     QString notice_;

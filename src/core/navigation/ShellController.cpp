@@ -52,14 +52,14 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(hall_.editor(), &ArchiveEditor::textRequested, this, [this](const QString& title, const QString& initial, int limit) {
         textTarget_ = TextTarget::Archive; keyboard_.begin(title, initial, limit);
     });
-    connect(&diagnostics_, &DiagnosticsController::closeRequested, this, [this] { service_.clear(); menuOpen_ = true; emit changed(); });
+    connect(&diagnostics_, &DiagnosticsController::closeRequested, this, [this] { service_.clear(); if(centerFace())openCenter(); menuOpen_ = true; emit changed(); });
     connect(&diagnostics_, &DiagnosticsController::messageRequested, this, [this](const QString& text) {
         if (service_ != "diagnostics" || menuOpen_) { notice_ = text; emit changed(); }
     });
     connect(&libraryManager_, &LibraryManagementController::changed, this, &ShellController::changed);
     connect(&libraryManager_, &LibraryManagementController::saved, this, &ShellController::refreshLibrary);
     connect(&libraryManager_, &LibraryManagementController::messageRequested, this, [this](const QString& text) { notice_ = text; emit changed(); });
-    connect(&libraryManager_, &LibraryManagementController::closeRequested, this, [this] { service_.clear(); menuOpen_ = !libraryFromWorlds_; libraryFromWorlds_ = false; emit changed(); });
+    connect(&libraryManager_, &LibraryManagementController::closeRequested, this, [this] { service_.clear(); if(centerFace())openCenter(); menuOpen_ = !libraryFromWorlds_; libraryFromWorlds_ = false; emit changed(); });
     connect(&worlds_, &WorldsController::setupRequested, this, [this](const QString& id) {
         libraryFromWorlds_ = true; service_ = "library"; libraryManager_.beginEdit(id); emit changed();
     });
@@ -70,7 +70,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&settings_, &SettingsController::messageRequested, this, [this](const QString& message) {
         if (service_ != "settings" || menuOpen_) { notice_ = message; emit changed(); }
     });
-    connect(&settings_, &SettingsController::closeRequested, this, [this] { service_.clear(); menuOpen_ = true; emit changed(); });
+    connect(&settings_, &SettingsController::closeRequested, this, [this] { service_.clear(); if(centerFace())openCenter(); menuOpen_ = true; emit changed(); });
     connect(&hall_, &HallOfFameController::changed, this, &ShellController::changed);
     connect(&hall_, &HallOfFameController::messageRequested, this, [this](const QString& message) {
         notice_ = message; emit changed();
@@ -127,7 +127,29 @@ void ShellController::refreshLibrary() {
     refreshContinue();
     drawerFocus_ = 0;
     for (int i = 0; i < points_.size(); ++i) if (points_[i].id == selected) drawerFocus_ = i;
+    if (centerFace() && !serviceOpen()) center_.beginSelected(currentAdventureId());
     emit changed();
+}
+QString ShellController::currentAdventureId() const {
+    // An explicit choice remains authoritative even if its installation vanishes.
+    // Never silently replace it with a different game's latest launch/save.
+    return homeAdventureId_.isEmpty() ? repository_.home().activeAdventureId : homeAdventureId_;
+}
+bool ShellController::localModalOpen() {
+    return trainer_.editing() || (page_ == 2 && (centerFace_ ? center_.confirming()
+        : pokedex_.zone() == "picker" || pokedex_.journal()->isOpen() || pokedex_.saving()))
+        || (page_ == 4 && (hall_.editor()->isOpen() || hall_.account()->isOpen()));
+}
+bool ShellController::chooseAdventureAvailable() {
+    return page_ != 1 && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
+        && !keyboard_.isOpen() && !localModalOpen();
+}
+bool ShellController::pairedNavigationAvailable() {
+    return page_ == 2 && center_.configured() && chooseAdventureAvailable() && !drawerOpen_;
+}
+void ShellController::openCenter() {
+    centerFace_ = true;
+    center_.beginSelected(currentAdventureId());
 }
 void ShellController::refreshContinue() {
     points_.clear();
@@ -154,6 +176,7 @@ int ShellController::focusIndex() const {
     if (!notice_.isEmpty()) return 0;
     if (menuOpen_) return menuFocus_;
     if (keyboard_.isOpen()) return keyboard_.focusIndex();
+    if (drawerOpen_) return drawerFocus_;
     if (service_ == "library") return libraryManager_.files()->isOpen() ? libraryManager_.files()->focusIndex() : libraryManager_.focusIndex();
     if (service_ == "settings") return settings_.focusIndex();
     if (service_ == "device") return device_.focusIndex();
@@ -161,14 +184,14 @@ int ShellController::focusIndex() const {
     if (service_ == "center") return center_.focusIndex();
     if (trainer_.editing()) return trainer_.focusIndex();
     if (page_ == 1) return worlds_.focusIndex();
-    if (page_ == 2) return pokedex_.focusIndex();
+    if (page_ == 2) return centerFace_ ? center_.focusIndex() : pokedex_.focusIndex();
     if (page_ == 4) return hall_.focusIndex();
     return drawerOpen_ ? drawerFocus_ : 0;
 }
 QJsonObject ShellController::navigationState() const {
     const QStringList pages{"home", "worlds", "pokedex", "trainer", "hall"};
     return {{"version", 1}, {"page", pages[page_]},
-            {"homeAdventure", homeAdventureId_}, {"homeResume", homeResumeId_},
+            {"homeAdventure", homeAdventureId_}, {"homeResume", homeResumeId_}, {"pokedexFace", centerFace_ ? "center" : "pokedex"},
             {"homeResumeSource", homeResumeSource_.toJson()},
             {"resume", drawerFocus_ < points_.size() ? points_[drawerFocus_].id : QString()},
             {"worlds", worlds_.navigationState()}, {"pokedex", pokedex_.navigationState()}, {"hall", hall_.navigationState()}};
@@ -176,6 +199,7 @@ QJsonObject ShellController::navigationState() const {
 void ShellController::restoreNavigation(const QJsonObject& state) {
     if (state["version"].toInt() != 1) return;
     const QStringList pages{"home", "worlds", "pokedex", "trainer", "hall"};
+    centerFace_ = false;
     goToPage(std::max(0, int(pages.indexOf(state["page"].toString()))));
     homeAdventureId_ = state["homeAdventure"].toString(); homeResumeId_ = state["homeResume"].toString();
     homeResumeSource_ = ResumeSource::fromJson(state["homeResumeSource"].toObject());
@@ -186,13 +210,13 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     hall_.restoreNavigation(state["hall"].toObject());
     drawerFocus_ = 0;
     for (int i = 0; i < points_.size(); ++i) if (points_[i].id == state["resume"].toString()) drawerFocus_ = i;
+    centerFace_ = center_.configured() && state["pokedexFace"].toString() == "center";
+    if (centerFace()) openCenter();
     emit changed();
 }
 std::optional<Adventure> ShellController::homeAdventure() const {
     const auto adventures = repository_.adventures();
-    for (const auto& a : adventures) if (a.id == homeAdventureId_ && !a.collectionOnly) return a;
-    const auto latest = repository_.home().activeAdventureId;
-    for (const auto& a : adventures) if (a.id == latest && !a.collectionOnly) return a;
+    for (const auto& a : adventures) if (a.id == currentAdventureId() && !a.collectionOnly) return a;
     return {};
 }
 std::optional<ResumePoint> ShellController::homeResumePoint(const QString& adventureId) const {
@@ -211,6 +235,10 @@ QVariantMap ShellController::home() const {
     const auto adventure = homeAdventure();
     const auto media = adventure ? repository_.exitMedia(adventure->id) : std::nullopt;
     QString action = "Explore Worlds", actionHint = "Worlds", milestone = snapshot.milestone;
+    if (!adventure && !homeAdventureId_.isEmpty()) {
+        title = "Selected Adventure is unavailable";
+        milestone = "Your choice is kept · Y to choose another";
+    }
     std::optional<int> badges, caught;
     QVariantList badgeSlots;
     QString progressNote, badgeSet;
@@ -310,6 +338,7 @@ void ShellController::goToPage(int page) {
     center_.close();
     libraryManager_.close(); service_.clear();
     page_ = std::clamp(page, 0, 4); // No wrapping until physical-device testing.
+    if (centerFace()) openCenter();
     if (page_ == 3) trainer_.refreshOverview();
     drawerOpen_ = false;
     menuOpen_ = false;
@@ -318,10 +347,11 @@ void ShellController::goToPage(int page) {
     emit changed();
 }
 void ShellController::activate(int index, const QString& area) {
-    if (area == "continue" && page_ == 0) { dispatch(Action::ToggleContinue); return; }
+    if (area == "continue") { dispatch(Action::ToggleContinue); return; }
     if (!notice_.isEmpty()) { confirm(); emit changed(); return; }
     if (menuOpen_) menuFocus_ = std::clamp(index, 0, int(menuItems().size()) - 1);
     else if (keyboard_.isOpen()) { keyboard_.activate(index); return; }
+    else if (drawerOpen_) drawerFocus_ = std::clamp(index, 0, std::max(0, int(points_.size()) - 1));
     else if (service_ == "library") { libraryManager_.activate(index, area); return; }
     else if (service_ == "settings") { settings_.activate(index); return; }
     else if (service_ == "device") { device_.activate(index); return; }
@@ -335,6 +365,7 @@ void ShellController::activate(int index, const QString& area) {
         return;
     }
     else if (page_ == 2) {
+        if (centerFace_) { center_.activate(index); return; }
         if (area.isEmpty()) pokedex_.activate(index);
         else pokedex_.activateControl(area, index);
         return;
@@ -344,7 +375,6 @@ void ShellController::activate(int index, const QString& area) {
         else hall_.activateControl(area, index);
         return;
     }
-    else if (drawerOpen_) drawerFocus_ = std::clamp(index, 0, std::max(0, int(points_.size()) - 1));
     confirm();
     emit changed();
 }
@@ -364,15 +394,12 @@ void ShellController::confirm() {
         }
         if (menuFocus_ == 6) { emit exitRequested(); return; }
         if(menuFocus_==2 && center_.configured()) {
-            hall_.account()->close();
-            keyboard_.cancel();textTarget_=TextTarget::None;trainer_.cancel();pokedex_.cancelTransient();hall_.editor()->cancel();libraryManager_.close();
-            menuOpen_=false;drawerOpen_=false;service_="center";
-            const auto adventure=homeAdventure();center_.begin(adventure?adventure->id:QString());return;
+            centerFace_ = false; goToPage(2); openCenter(); return;
         }
         if (menuFocus_ == 0 || menuFocus_ == 1 || menuFocus_ == 3) {
             hall_.account()->close();
             keyboard_.cancel(); textTarget_ = TextTarget::None; trainer_.cancel();
-            libraryManager_.close(); menuOpen_ = false;
+            libraryManager_.close(); menuOpen_ = false; drawerOpen_ = false;
             center_.close();
             service_ = menuFocus_ == 0 ? "settings" : menuFocus_ == 1 ? "diagnostics" : "library";
             if (service_ == "settings") settings_.begin();
@@ -391,6 +418,7 @@ void ShellController::confirm() {
             homeAdventureId_ = adventure.id; homeResumeId_ = point.resumePoint ? point.id : QString();
             homeResumeSource_ = point.resumePoint ? point.resumePoint->source : ResumeSource{};
             drawerOpen_ = false;
+            if (centerFace()) center_.beginSelected(currentAdventureId());
             return;
         }
         notice_ = "This Adventure is unavailable. Its history has been kept.";
@@ -446,8 +474,26 @@ void ShellController::dispatch(Action action) {
         emit changed();
         return;
     }
+    if (action == Action::PreviousFace || action == Action::NextFace) {
+        if (pairedNavigationAvailable()) {
+            if (centerFace_) { center_.close(); centerFace_ = false; }
+            else openCenter();
+            emit changed();
+        }
+        return;
+    }
+    if (action == Action::ToggleContinue && chooseAdventureAvailable()) {
+        drawerOpen_ = !drawerOpen_; emit changed(); return;
+    }
     if (notice_.isEmpty() && !menuOpen_) {
         if (keyboard_.isOpen()) { keyboard_.dispatch(action); return; }
+        if (drawerOpen_) {
+            if (action == Action::Back) drawerOpen_ = false;
+            else if (action == Action::Confirm) confirm();
+            else if (action == Action::Left || action == Action::Right)
+                drawerFocus_ = std::clamp(drawerFocus_ + (action == Action::Right ? 1 : -1), 0, std::max(0, int(points_.size()) - 1));
+            emit changed(); return;
+        }
         if (service_ == "library") { libraryManager_.dispatch(action); return; }
         if (service_ == "settings") { settings_.dispatch(action); return; }
         if (service_ == "device") { device_.dispatch(action); return; }
@@ -455,8 +501,12 @@ void ShellController::dispatch(Action action) {
         if (service_ == "center") { center_.dispatch(action); return; }
         if (trainer_.editing()) { trainer_.dispatch(action); return; }
         if (page_ == 1) { worlds_.dispatch(action); return; }
-        if (page_ == 2) { pokedex_.dispatch(action); return; }
-        if (page_ == 4) { hall_.dispatch(action); return; }
+        if (page_ == 2) {
+            if (centerFace_) center_.dispatch(action);
+            else pokedex_.dispatch(action == Action::LocalAction && !localModalOpen() ? Action::ToggleContinue : action);
+            return;
+        }
+        if (page_ == 4) { hall_.dispatch(action == Action::LocalAction && !localModalOpen() ? Action::ToggleContinue : action); return; }
     }
     if (action == Action::Back) {
         if (!notice_.isEmpty()) { notice_.clear(); mode_.clear(); }

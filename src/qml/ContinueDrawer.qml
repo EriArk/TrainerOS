@@ -166,7 +166,7 @@ Item {
             Text {
                 width: Math.max(0, root.expandedWidth - parent.x - 44)
                 horizontalAlignment: Text.AlignRight
-                text: root.shell.sampleLibrary ? "CHOOSE FOR HOME · SAMPLE DATA" : "CHOOSE FOR HOME · START FROM THE BIG BUTTON"
+                text: root.shell.sampleLibrary ? "CHOOSE ADVENTURE · SAMPLE DATA" : "CHOOSE ADVENTURE · PLAY FROM HOME"
                 color: Theme.ink; font.pixelSize: 12
             }
         }

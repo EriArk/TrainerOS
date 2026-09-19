@@ -4,7 +4,7 @@
 namespace trainer {
 namespace {
 QString actionName(Action action) {
-    const QStringList names{"Up", "Down", "Left", "Right", "Confirm (A)", "Back (B)", "System (Start)", "Previous section (L1)", "Next section (R1)", "Continue / filter (Y)", "Secondary (X)", "Home"};
+    const QStringList names{"Up", "Down", "Left", "Right", "Confirm (A)", "Back (B)", "System (Start)", "Previous section (L1)", "Next section (R1)", "Choose Adventure / filter (Y)", "Secondary (X)", "Home", "Previous paired face (L2)", "Next paired face (R2)", "Local action (Select)"};
     return names.value(int(action), "Unknown action");
 }
 }

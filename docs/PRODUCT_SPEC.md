@@ -66,6 +66,8 @@ Keep the layout calm; not every module must be visible at once.
 
 ### Choose Adventure drawer
 
+**P1 delivered:** the shared selector and Pokedex/Center pair now work on the single-Trainer baseline. [Implementation and remaining boundaries](SHARED_ADVENTURE.md). The full ownership/provider contract below remains the target.
+
 **Planned #9/#49:** one shell-owned **Y · Choose Adventure** drawer selects the active Trainer's shared `CurrentPokemonAdventureContext`: Adventure ID, resolved exact build and ordinary-save identity/revision when available. Pokémon Home, Pokédex, Center, Hall, RA and Adventure-aware Trainer consume this same context. Multiverse Home remembers its own independent game selection. Before an explicit choice, use the latest actual launch in that Trainer/domain; unrelated launches do not overwrite an explicit choice.
 
 A on a card commits the context and closes without launching; B cancels and restores the opener unchanged. L1/R1 closes the drawer without committing and switches primary page. Modal/keyboard/Start/recovery flows suppress shared Y. Worlds intentionally keeps its browser-local search/filter controls. Resolve existing local-Y conflicts explicitly when implementing the shared route. Unsupported save features never silently select another title.

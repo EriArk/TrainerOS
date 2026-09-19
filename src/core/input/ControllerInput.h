@@ -54,6 +54,7 @@ private:
     QTimer timer_;
     QElapsedTimer clock_;
     std::array<bool, SDL_CONTROLLER_BUTTON_MAX> previous_{};
+    std::array<bool, 2> triggers_{};
     std::optional<Action> heldDirection_;
     qint64 nextRepeat_ = 0;
     ControllerSample sample_;

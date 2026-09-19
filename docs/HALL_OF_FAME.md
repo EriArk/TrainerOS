@@ -1,12 +1,12 @@
 # Hall of Fame
 
-**Accepted target, not delivered — #47/#48:** the manual archive below is preserved alongside planned live Journey and verified Champion snapshots. L2/R2 pairs Journey/Hall with RA; shared Y changes the same Adventure used by Home/Dex/Center. Legacy local Y-create controls below must be explicitly rebound when #9 lands, not silently conflict. Historical team/victory facts require provenance; RA is independent account truth. [Projection acceptance](EXPANSION_42_62.md#pokédex-journey-and-achievements).
+**Accepted target, not delivered — #47/#48:** the manual archive below is preserved alongside planned live Journey and verified Champion snapshots. L2/R2 pairs Journey/Hall with RA; shared Y changes the same Adventure used by Home/Dex/Center. The shared Y selector is delivered; Select now owns the local new-memory/refresh shortcuts. The paired Hall/RA route remains pending. Historical team/victory facts require provenance; RA is independent account truth. [Projection acceptance](EXPANSION_42_62.md#pokédex-journey-and-achievements).
 
 The local archive is a journal of completed Adventures. Entries are explicit trainer memories, independent of the current game save and of RetroAchievements. Normal runs start with an empty personal archive; sample memories and unlocks are limited to the ephemeral/test composition.
 
 ## Controller flow
 
-In Archive, **Y creates a memory** and **X edits the selected memory**, from either list or detail. The attached editor contains Adventure, completion date, playtime, note and champion team. A edits the focused field; Y saves the main form; B discards an unsubmitted draft. L1/R1 retain global page navigation and discard the transient editor. A submitted write finishes even if the page changes.
+In Archive, **Select creates a memory** and **X edits the selected memory**, from either list or detail. The attached editor contains Adventure, completion date, playtime, note and champion team. A edits the focused field; Y saves the main form; B discards an unsubmitted draft. L1/R1 retain global page navigation and discard the transient editor. A submitted write finishes even if the page changes.
 
 The Adventure picker contains owned library entries, including ROM hacks, with World and edition labels. X opens shared-keyboard search; left/right jump eight items; up/down move one item. Catalogue entries without an attached file cannot be archived as owned Adventures. An empty picker retains a visible Back action.
 

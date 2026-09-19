@@ -336,6 +336,9 @@ if(BUILD_TESTING)
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software"
         TIMEOUT 30
     )
+    # This aggregates multiple complete application launches, including the
+    # paired Center/controller/restore scenario. Individual child deadlines stay.
+    set_tests_properties(persistence_process PROPERTIES TIMEOUT 60)
 endif()
 
 include(GNUInstallDirs)

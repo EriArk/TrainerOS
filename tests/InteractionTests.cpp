@@ -21,6 +21,96 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void sharedAdventureSelectionAndPairedCenter() {
+        class Library final : public LibraryRepository {
+        public:
+            MockLibraryRepository sample;
+            QString missing, latest = "crystal-demo";
+            QList<World> worlds() const override { return sample.worlds(); }
+            QList<Adventure> adventures() const override {
+                auto rows=sample.adventures(); rows.removeIf([&](const auto& a){return a.id==missing;}); return rows;
+            }
+            QList<ResumePoint> resumePoints() const override { return sample.resumePoints(); }
+            HomeSnapshot home() const override { auto h=sample.home();h.activeAdventureId=latest;return h; }
+            std::optional<AdventureRegistration> registration(const QString& id) const override {
+                for(const auto& a:adventures())if(a.id==id){AdventureRegistration r;r.adventure=a;r.revision=1;return r;}return {};
+            }
+        } library;
+        class Service final : public SaveBackupService {
+        public:
+            bool working=false;
+            QString inspected;
+            std::function<void(SaveBackupSnapshot)> pending;
+            bool busy() const override { return working; }
+            bool supports(const AdventureRegistration&) const override { return true; }
+            void inspect(const AdventureRegistration& r,QObject*,std::function<void(SaveBackupSnapshot)> done) override {
+                inspected=r.adventure.id;pending=std::move(done);working=true;emit busyChanged();
+            }
+            void finish() {
+                auto done=std::move(pending);working=false;
+                done({true,true,"token",{},{{inspected,"revision",QDateTime::currentDateTimeUtc(),32,true,true,false}}});
+                emit busyChanged();
+            }
+            void create(const AdventureRegistration&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override {}
+            void restore(const AdventureRegistration&,const SaveBackup&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override {}
+        } service;
+        MockTrainerRepository profiles; MockAdventureAdapter adapter; DevelopmentPlatformService platform;
+        MockPokedexRepository dex; MockHallOfFameRepository archive; MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        shell.center()->configure(&service);
+        QSignalSpy launched(&shell,&ShellController::homeLaunchPressed);
+        shell.goToPage(2); shell.dispatch(Action::Down);
+        const auto dexState=shell.pokedex()->navigationState();
+        shell.dispatch(Action::ToggleContinue); QVERIFY(shell.drawerOpen());
+        shell.dispatch(Action::Right); QCOMPARE(shell.focusIndex(),1);
+        shell.dispatch(Action::Back); QCOMPARE(shell.pokedex()->navigationState(),dexState);
+        QCOMPARE(shell.currentAdventureId(),library.latest);
+        shell.dispatch(Action::ToggleContinue); shell.activate(0);
+        QCOMPARE(shell.currentAdventureId(),QString("emerald-demo")); QVERIFY(launched.isEmpty());
+        QVERIFY(!shell.drawerOpen()); QCOMPARE(shell.page(),2);
+        shell.dispatch(Action::NextFace); QVERIFY(shell.centerFace());
+        QCOMPARE(service.inspected,shell.currentAdventureId());
+        // A different choice while the previous game's read is in flight must
+        // never show the old shelf under the new game's name.
+        shell.dispatch(Action::ToggleContinue); shell.activate(1);
+        const auto chosen=shell.currentAdventureId(); QVERIFY(chosen!="emerald-demo");
+        service.finish(); QTRY_VERIFY(service.busy()); QCOMPARE(service.inspected,chosen);
+        QVERIFY(shell.center()->rows().isEmpty()); service.finish();
+        QCOMPARE(shell.center()->rows().first().toMap()["id"].toString(),chosen);
+        shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::SystemMenu); shell.activate(0);
+        QCOMPARE(shell.service(),QString("settings")); QVERIFY(!shell.drawerOpen());
+        shell.dispatch(Action::Back); QVERIFY(shell.menuOpen()); shell.dispatch(Action::Back);
+        QVERIFY(shell.centerFace()); QVERIFY(service.busy()); service.finish();
+        shell.dispatch(Action::Confirm); QVERIFY(shell.center()->confirming());
+        shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::NextFace);
+        QVERIFY(!shell.drawerOpen()); QVERIFY(shell.centerFace()); QVERIFY(shell.center()->confirming());
+        shell.dispatch(Action::Back); QVERIFY(!shell.center()->confirming());
+        shell.dispatch(Action::Back); QVERIFY(shell.centerFace()); // B never flips a pair.
+        shell.dispatch(Action::PreviousFace); QVERIFY(!shell.centerFace());
+        QCOMPARE(shell.pokedex()->navigationState(),dexState);
+        shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::NextPage);
+        QVERIFY(!shell.drawerOpen()); QCOMPARE(shell.currentAdventureId(),chosen);
+        shell.dispatch(Action::ToggleContinue); QVERIFY(shell.drawerOpen()); shell.dispatch(Action::Back);
+        shell.goToPage(4); shell.dispatch(Action::ToggleContinue); QVERIFY(shell.drawerOpen());
+        shell.dispatch(Action::SystemMenu); shell.dispatch(Action::ToggleContinue); QVERIFY(shell.menuOpen());
+        shell.dispatch(Action::Back); shell.dispatch(Action::Back);
+        shell.goToPage(2); shell.pokedex()->activateControl("rail",1);
+        shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::NextFace);
+        QVERIFY(!shell.drawerOpen()); QVERIFY(!shell.centerFace());
+        shell.dispatch(Action::Back); shell.dispatch(Action::Secondary);
+        QVERIFY(shell.keyboard()->isOpen()); shell.dispatch(Action::NextFace);
+        QVERIFY(!shell.centerFace()); shell.dispatch(Action::Back);
+        const auto state=shell.navigationState();
+        library.missing=chosen; library.latest="emerald-demo"; shell.refreshLibrary();
+        QCOMPARE(shell.currentAdventureId(),chosen); QVERIFY(shell.home()["adventureId"].toString().isEmpty());
+        shell.restoreNavigation(state); QCOMPARE(shell.currentAdventureId(),chosen);
+        shell.dispatch(Action::NextFace); QVERIFY(shell.centerFace()); QVERIFY(shell.center()->rows().isEmpty());
+        QVERIFY(shell.center()->message().contains("no longer linked")); QVERIFY(launched.isEmpty());
+        const auto pairedState=shell.navigationState();
+        shell.goToPage(0); shell.restoreNavigation(pairedState);
+        QVERIFY(shell.centerFace()); QCOMPARE(shell.currentAdventureId(),chosen);
+        QVERIFY(shell.center()->rows().isEmpty()); // Restart state does not invent a fallback shelf.
+    }
     void caseSymbolsAndSecretEntry() {
         TextEntryController keyboard;
         QSignalSpy accepted(&keyboard, &TextEntryController::accepted);
