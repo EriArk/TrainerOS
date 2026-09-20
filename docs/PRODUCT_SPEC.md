@@ -120,7 +120,7 @@ Pokédex remains useful offline and controller-operated: bounded lists/detail, c
 
 Unknown is distinct from false/not-caught. Aggregate counts, species flags and individual Pokémon are separate evidence levels; none fabricates catch dates/forms. Failed reads retain a labeled complete last-good snapshot for the same source. Save rollback does not erase manual/history records. Shared Y refreshes the same Adventure across features; L2/R2 preserves each Dex/Center route.
 
-Art providers are separate from reference facts and game media. No official artwork is bundled; missing/partial packs use honest fallback. The artwork sequence is **#58 raw seed/completion → #60 real Flip mapping/profiles → #57 generic contract → #59 Pack Studio → Settings polish**, with no resident downloader. [Detailed acceptance](EXPANSION_42_62.md#artwork-sequence).
+Art providers are separate from reference facts and game media. No official artwork is bundled; missing/partial packs use honest fallback. The runtime artwork prerequisites are **#58 raw corpus -> #60 real Flip profiles -> #57 required contract/validation**. Per the owner's 2026-09-20 clarification, **#59 Pack Studio comes last**, after UI and asset structure stabilize; Settings does not wait for Studio. No resident downloader. [Detailed acceptance](EXPANSION_42_62.md#artwork-sequence).
 
 ## Trainer
 

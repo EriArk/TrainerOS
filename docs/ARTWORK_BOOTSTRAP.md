@@ -157,6 +157,8 @@ it is not an isolated GPU-upload benchmark or a guaranteed frame-rate figure.
 
 The generic pack contract, desktop Pack Studio, production Settings import,
 additional authorship/style research, animated sprites and living Party remain
-separate roadmap work. The 142 unresolved raw forms remain visible work rather
+separate roadmap work. Owner clarification, 2026-09-20: Studio is the final
+delivery stage after UI and asset structure stabilize; runtime validation and
+Settings do not wait for it. The 142 unresolved raw forms remain visible work rather
 than fictional completed coverage. Physical comfort/readability can be reviewed
 by the owner after the automated native display/controller checks.

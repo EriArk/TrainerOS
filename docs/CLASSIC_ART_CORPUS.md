@@ -2,8 +2,10 @@
 
 This is PC development tooling, not an installed TrainerOS feature, artwork pack
 contract, or sprite/animation provider. #51 sprites remain a separate workstream.
-The execution order remains #58 → #60 physical Flip layout proof → #57 contract
-→ #59 Studio → Settings polish.
+The runtime prerequisites remain #58 -> #60 physical Flip proof -> #57 required
+contract/validation. Owner clarification, 2026-09-20: #59 Studio comes last, after
+UI and asset structure stabilize; Settings does not wait for it.
+See [ROADMAP.md](ROADMAP.md) for execution order.
 
 ## Import and inspect
 

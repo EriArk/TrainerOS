@@ -163,7 +163,7 @@ The following target boundaries extend existing repositories/workers; [#42–62 
 - #45 Link Counter follows proven exact-pair import/export/money writers and durable two-endpoint transaction recovery. Discovery, transport and transaction coordination are separate; no raw save transfer or success on one-sided commit.
 - Existing media/audio/haptics/RGB/Steam/boot helpers and offline Help retain [#19–41 gates](EXPANSION_PLAN.md). Help consumes allowlisted non-secret runtime facts, never a second config store. Shared chassis/header primitives remain reusable.
 
-The artwork track is specifically #58 one-shot raw corpus → #60 temporary Flip importer and measured canonical profiles → #57 contract/shared validator → #59 separate Qt desktop Pack Studio → polished Settings manager. No resident downloader, speculative plugin system or UI-specific filesystem logic.
+The runtime artwork track is #58 raw corpus -> #60 real Flip bootstrap/measured profiles -> #57 required contract/shared validator and controller Settings. Owner clarification, 2026-09-20: #59 separate Qt desktop Pack Studio comes last, after handheld UI and asset structure stabilize; it does not block Settings. Keep the runtime format versioned and evolvable until the final authoring contract is justified. No resident downloader, speculative plugin system or UI-specific filesystem logic.
 
 ## QML / C++ boundary
 
