@@ -196,6 +196,37 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERLEFT,-32768); input.poll(); break;
         case 44:
             check(!shell.centerFace(), "Trigger returns to Pokedex");
+            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767); input.poll();
+            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768); input.poll();
+            press(down); press(down); press(a); break;
+        case 45:
+            check(shell.party()->section()=="activities" && focus("activity-menu-0"), "Center activities has stable menu focus");
+            capture("center-activities"); press(a); break;
+        case 46:
+            check(focus("playroom-actor-0"), "Playroom uses a fixed actor control");
+            capture("playroom"); press(right); press(a); break;
+        case 47:
+            check(focus("playroom-actor-1") && shell.party()->activities()->reaction().contains("called"), "Calling preserves the selected actor control");
+            press(SDL_CONTROLLER_BUTTON_X); break;
+        case 48:
+            capture("playroom-greeting"); press(b); press(down); press(a); break;
+        case 49:
+            check(shell.party()->activities()->route()=="practice" && focus("activity-primary"), "Practice setup is controller accessible");
+            capture("practice-setup"); press(a); break;
+        case 50:
+            check(shell.party()->activities()->stage()=="preview", "Practice preview does not run a battle");
+            capture("practice-preview"); press(b); press(b); press(down); press(a); break;
+        case 51:
+            check(shell.party()->activities()->route()=="link", "Link Counter is a separate route");
+            capture("link-peer"); press(a); break;
+        case 52:
+            check(shell.party()->activities()->stage()=="review", "Sample proposal review");
+            capture("link-review"); press(a); break;
+        case 53:
+            check(shell.party()->activities()->stage()=="interrupted", "Interrupted rehearsal never reports transfer success");
+            capture("link-interrupted"); press(b); press(b); press(b); press(SDL_CONTROLLER_BUTTON_DPAD_UP); break;
+        case 54:
+            check(shell.party()->section()=="storage" && focus("party-slot-9"), "Activities returns to the prior management slot");
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!output.isEmpty()) {
                 QFile report(output + "/verification.txt");

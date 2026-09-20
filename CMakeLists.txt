@@ -141,6 +141,7 @@ add_library(trainer_core STATIC
     src/features/worlds/WorldsController.cpp
     src/features/worlds/MultiversePresentation.cpp
     src/features/center/PartyPresentation.cpp
+    src/features/center/CenterActivities.cpp
     src/features/worlds/WorldsController.h
     src/integrations/adventure/AdventureAdapter.h
     src/integrations/adventure/mock/MockAdventureAdapter.cpp
@@ -222,6 +223,7 @@ qt_add_qml_module(traineros
         src/qml/ArtworkPanel.qml
         src/qml/SaveCenterPanel.qml
         src/qml/PartyPanel.qml
+        src/qml/CenterActivitiesPanel.qml
         src/qml/BatteryGauge.qml
 )
 

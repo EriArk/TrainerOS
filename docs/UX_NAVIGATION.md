@@ -395,3 +395,7 @@ Acceptance: Qt Quick touch and mouse events still activate controls; the handhel
 ## Center Party/Storage presentation - 2026-09-20
 
 Center now opens Party initially; X switches Party/Storage, A opens a read-only slot detail, A/B returns to its grid. Select opens ordinary-save backups; inside that shelf existing Select backup and X refresh remain, while idle B returns to the prior grid. L1/R1 and L2/R2 keep global/paired ownership. Shared Y changes the same Pokemon context and clears obsolete detail on a different choice. Production shows reader-unavailable states, not sample individuals. [Exact P1 boundary and remaining integration](CENTER_PARTY_UI.md).
+
+## Center activities - 2026-09-20
+
+Down from the final Party/Storage slot row selects Activities on the attached lower panel. Its separate Playroom, Practice and Link Counter routes preserve management focus and existing shared Y/global shoulders. Real library mode shows unavailable capability states; explicit development mode rehearses actor reactions, practice layout and interrupted-link UI without game or transport operations. [Exact controls](CENTER_ACTIVITIES_UI.md).

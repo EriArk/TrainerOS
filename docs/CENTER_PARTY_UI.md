@@ -5,6 +5,7 @@ P1 #44/#53 extends the existing Pokédex companion with practical Party/Storage 
 ## Controls
 
 - L2/R2 switches Pokédex/Center even when the save service is unavailable. L1/R1 remains primary-page navigation.
+- Down from the last slot row selects the attached Activities control; A opens its separate menu, B returns and Up restores the remembered management slot.
 - Center opens Party initially. X switches Party/Storage. D-pad selects fixed slots; A opens a read-only detail. A/B closes detail; B on the grid never flips the companion face.
 - In the sample Storage grid, left/right at the outer column changes between two explicitly sample boxes and remembers each box's selection. Box counts and slot counts are presentation fixtures, not a universal Pokémon storage format.
 - Select on a grid opens the existing ordinary-save shelf. Inside that shelf Select still creates a backup and X checks again. B first cancels restore confirmation; when idle it returns to the prior Party/Storage grid. While a backup operation is busy, the existing service gate owns those local actions.
@@ -17,7 +18,7 @@ P1 #44/#53 extends the existing Pokédex companion with practical Party/Storage 
 
 The real library shows no individuals or invented box counts. No selection, unsupported reading and an unlinked Adventure are distinct messages. The empty action opens ordinary-save backups, whose actual capability/loading/error/confirmation behavior remains in `SaveCenterController`. This synchronous presentation has no pending reader and does not fabricate loading or a successful observation. A future P8 snapshot must carry exact source/build/revision and field availability before populating real cards.
 
-Heal, reorder, transfer, release and related save modifications are unavailable. Viewing a card or changing a box cannot rewrite a save. Playroom, Practice and Link Counter remain separate later P1 presentations and P8 integrations.
+Heal, reorder, transfer, release and related save modifications are unavailable. Viewing a card or changing a box cannot rewrite a save. Separate [Playroom, Practice and Link Counter presentations](CENTER_ACTIVITIES_UI.md) are delivered; their real integrations remain P5/P8.
 
 ## Acceptance
 

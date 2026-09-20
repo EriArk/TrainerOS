@@ -497,3 +497,7 @@ Hall paired routing keeps view state in `HallOfFameController`, with independent
 ## Journey P1 boundary
 
 JourneyPanel consumes the existing ShellController current-Adventure/Home projection for badge identities/count and Caught, retaining its provider identity/availability checks. HallOfFameController adds overview/Champion presentation routes to the archive face without changing repository writes or the database schema. Its optional Champion fixture is enabled only by the non-editable development library composition, never by navigation JSON. Historical snapshots still require the later P8 domain/provider contract. Achievement row states derive from checked account/set snapshots; the shared list accepts optional per-row tints without changing other feature lists. [Scope](JOURNEY_UI.md).
+
+## Center activities P1 boundary
+
+PartyPresentation owns a separate CenterActivities presentation object and remembers the management section/focus while visiting it. Context changes reset its actor and preview state. It has no save, transport or battle provider; production cannot enter sample flows. [Controls and remaining gates](CENTER_ACTIVITIES_UI.md).

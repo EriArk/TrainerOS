@@ -44,7 +44,7 @@ Item {
                     x: 28; y: 61; width: parent.width - 56; spacing: 18; visible: !root.party.sample
                     Text { width: parent.width; text: "No verified Pokémon records yet"; color: Theme.ink; font.pixelSize: 25; font.bold: true }
                     Text { width: parent.width; text: "Your saved game stays untouched.\nOrdinary save backups remain available where supported."; color: Theme.muted; font.pixelSize: 18; wrapMode: Text.WordWrap }
-                    CapButton { objectName: "party-unavailable"; width: 360; height: 54; label: "A · Open save backups"; selected: root.takesFocus && !root.party.detailOpen && !root.party.sample; onActivated: root.shell.activate(0) }
+                    CapButton { objectName: "party-unavailable"; width: 360; height: 54; label: "A · Open save backups"; selected: root.takesFocus && !root.party.detailOpen && !root.party.sample && !root.party.activitiesFocused; onActivated: root.shell.activate(0) }
                 }
             }
             Item {
@@ -57,6 +57,13 @@ Item {
                 Text { x: 530; y: 50; width: parent.width - 556; text: "Moves\n" + (root.party.detail.moves || "Unknown"); color: Theme.ink; font.pixelSize: 17; lineHeight: 1.5; wrapMode: Text.WordWrap; textFormat: Text.PlainText }
                 CapButton { objectName: "party-detail-back"; x: 24; y: 226; width: 260; height: 44; label: "A / B · Back to slots"; selected: root.takesFocus && root.party.detailOpen; onActivated: root.shell.activate(0) }
                 Text { x: 312; y: 229; width: parent.width - 340; text: "Read-only preview · healing, moving and release unavailable"; color: Theme.muted; font.pixelSize: 14; wrapMode: Text.WordWrap }
+            }
+            CapButton {
+                objectName: "party-activities"; anchors.right: parent.right; anchors.rightMargin: 24
+                anchors.bottom: parent.bottom; anchors.bottomMargin: 8; width: 248; height: 38
+                label: "Activities"; tint: Theme.blue; visible: !root.party.detailOpen
+                selected: root.takesFocus && root.party.activitiesFocused
+                onActivated: root.shell.activate(0, "party-activities")
             }
             Row {
                 x: 24; anchors.bottom: parent.bottom; anchors.bottomMargin: 12; spacing: 24

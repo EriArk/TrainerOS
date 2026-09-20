@@ -2,6 +2,17 @@
 #include <algorithm>
 
 namespace trainer {
+PartyPresentation::PartyPresentation(bool sample, QObject* parent) : QObject(parent), sample_(sample), activities_(sample, this) {
+    connect(&activities_, &CenterActivities::changed, this, &PartyPresentation::changed);
+    connect(&activities_, &CenterActivities::closeRequested, this, [this] {
+        section_ = managementSection_; activitiesFocus_ = true; emit changed();
+    });
+}
+void PartyPresentation::openActivities() {
+    if (section_ != "party" && section_ != "storage") return;
+    managementSection_ = section_; section_ = "activities"; detail_ = false;
+    activities_.reset(); emit changed();
+}
 QString PartyPresentation::status() const {
     if (sample_) return "Development sample · not your save · all records are read-only";
     if (!id_.isEmpty() && title_.isEmpty()) return "The selected Adventure is no longer linked. Y chooses another.";
@@ -11,6 +22,7 @@ QString PartyPresentation::status() const {
 void PartyPresentation::setAdventure(const QString& id, const QString& title) {
     if (id_ != id) {
         id_ = id; detail_ = false; partyFocus_ = 0; storageFocus_[0] = storageFocus_[1] = 0; box_ = 0;
+        activitiesFocus_ = false; activities_.reset();
     }
     title_ = title; emit changed();
 }
@@ -35,14 +47,16 @@ QVariantMap PartyPresentation::slot(int index) const {
 }
 QVariantList PartyPresentation::entries() const {
     QVariantList result;
-    if (!sample_ || section_ == "saves") return result;
+    if (!sample_ || section_ == "saves" || section_ == "activities") return result;
     for (int i = 0; i < (section_ == "party" ? 6 : 12); ++i) result.append(slot(i));
     return result;
 }
 QVariantMap PartyPresentation::detail() const {
-    return sample_ && section_ != "saves" ? slot(focusIndex()) : QVariantMap{};
+    return sample_ && (section_ == "party" || section_ == "storage") && !activitiesFocus_ ? slot(focusIndex()) : QVariantMap{};
 }
 void PartyPresentation::activate(int index) {
+    if (section_ == "activities") { activities_.activate(index); return; }
+    if (activitiesFocus_) { openActivities(); return; }
     if (detail_) { detail_ = false; emit changed(); return; }
     if (!sample_) { openSaves(); return; }
     const int count = section_ == "party" ? 6 : 12;
@@ -56,6 +70,7 @@ void PartyPresentation::openSaves() {
 }
 void PartyPresentation::returnFromSaves() { section_ = previousSection_; emit changed(); }
 void PartyPresentation::dispatch(Action action) {
+    if (section_ == "activities") { activities_.dispatch(action); return; }
     if (detail_) {
         if (action == Action::Back || action == Action::Confirm) { detail_ = false; emit changed(); }
         return;
@@ -63,6 +78,12 @@ void PartyPresentation::dispatch(Action action) {
     if (action == Action::LocalAction) { openSaves(); return; }
     if (action == Action::Secondary) { section_ = section_ == "party" ? "storage" : "party"; emit changed(); return; }
     if (action == Action::Confirm) { activate(focusIndex()); return; }
+    if (activitiesFocus_) {
+        if (action == Action::Up || action == Action::Back) { activitiesFocus_ = false; emit changed(); }
+        return;
+    }
+    const int lastRow = section_ == "party" ? 4 : 8;
+    if (action == Action::Down && (!sample_ || focusIndex() >= lastRow)) { activitiesFocus_ = true; emit changed(); return; }
     if (!sample_ || action == Action::Back) return;
     auto& focus = section_ == "party" ? partyFocus_ : storageFocus_[box_];
     const int columns = section_ == "party" ? 2 : 4;

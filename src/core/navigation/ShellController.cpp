@@ -414,7 +414,8 @@ void ShellController::activate(int index, const QString& area) {
     }
     else if (page_ == 2) {
         if (centerFace_) {
-            if (party_.section() == "saves") center_.activate(index); else party_.activate(index);
+            if (area == "party-activities") party_.openActivities();
+            else if (party_.section() == "saves") center_.activate(index); else party_.activate(index);
             return;
         }
         if (area.isEmpty()) pokedex_.activate(index);

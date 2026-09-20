@@ -20,6 +20,8 @@ A read-only [battery gauge](docs/POWER_STATUS.md) shows the handheld's charge in
 
 Hall now includes a [Journey overview](docs/JOURNEY_UI.md) with a larger badge case using existing verified progress, alongside manual memories and distinct earned/locked/unknown RetroAchievements states. New save fields and automatic Champion records remain planned.
 
+Center's attached [Activities menu](docs/CENTER_ACTIVITIES_UI.md) provides the Playroom, Practice and Link Counter screen framework. Only development mode rehearses those flows; real Party scenes, battles and transfers remain unavailable pending their provider and device gates.
+
 Settings → [Trainer & accounts](docs/TRAINER_SETUP_UI.md) links the existing profile
 editor and RA account service. Registration/chooser/PIN screens can be rehearsed
 in the isolated sample mode; real multiple-Trainer ownership and PIN locking are

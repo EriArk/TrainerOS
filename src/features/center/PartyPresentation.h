@@ -2,6 +2,7 @@
 #include "core/input/Action.h"
 #include <QObject>
 #include <QVariantList>
+#include "CenterActivities.h"
 
 namespace trainer {
 // Read-only P1 presentation. Never resolves or writes an external save.
@@ -16,8 +17,10 @@ class PartyPresentation final : public QObject {
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(int box READ box NOTIFY changed)
+    Q_PROPERTY(bool activitiesFocused READ activitiesFocused NOTIFY changed)
+    Q_PROPERTY(trainer::CenterActivities* activities READ activities CONSTANT)
 public:
-    explicit PartyPresentation(bool sample, QObject* parent = nullptr) : QObject(parent), sample_(sample) {}
+    explicit PartyPresentation(bool sample, QObject* parent = nullptr);
     QString section() const { return section_; }
     bool detailOpen() const { return detail_; }
     bool sample() const { return sample_; }
@@ -25,7 +28,10 @@ public:
     QString status() const;
     QVariantList entries() const;
     QVariantMap detail() const;
-    int focusIndex() const { return section_ == "party" ? partyFocus_ : storageFocus_[box_]; }
+    int focusIndex() const { return section_ == "activities" ? activities_.focusIndex() : activitiesFocus_ ? -1 : section_ == "party" ? partyFocus_ : storageFocus_[box_]; }
+    bool activitiesFocused() const { return activitiesFocus_; }
+    CenterActivities* activities() { return &activities_; }
+    void openActivities();
     int box() const { return box_; }
     void setAdventure(const QString& id, const QString& title);
     void dispatch(Action);
@@ -39,5 +45,8 @@ private:
     bool sample_, detail_ = false;
     QString section_ = "party", previousSection_ = "party", id_, title_;
     int partyFocus_ = 0, storageFocus_[2] = {0,0}, box_ = 0;
+    CenterActivities activities_;
+    bool activitiesFocus_ = false;
+    QString managementSection_ = "party";
 };
 }

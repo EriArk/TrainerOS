@@ -21,6 +21,39 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void centerActivitiesAreAnIsolatedRehearsal() {
+        PartyPresentation party(true);
+        party.setAdventure("one", "First");
+        party.dispatch(Action::Down); party.dispatch(Action::Down); party.dispatch(Action::Down);
+        QVERIFY(party.activitiesFocused());
+        party.dispatch(Action::Confirm); QCOMPARE(party.section(), "activities");
+        auto* activities = party.activities();
+        activities->activate(0); activities->dispatch(Action::Right); activities->dispatch(Action::Confirm);
+        QCOMPARE(activities->focusIndex(), 1); QVERIFY(!activities->reaction().isEmpty());
+        activities->dispatch(Action::Secondary); QVERIFY(activities->reaction().contains("unchanged"));
+        party.setAdventure("one", "Renamed"); QCOMPARE(activities->route(), "playroom");
+        party.setAdventure("two", "Other"); QCOMPARE(activities->route(), "menu"); QVERIFY(activities->reaction().isEmpty());
+        activities->activate(1); activities->dispatch(Action::Confirm); QCOMPARE(activities->stage(), "preview");
+        activities->dispatch(Action::Back); QCOMPARE(activities->stage(), "setup");
+        activities->dispatch(Action::Back); activities->activate(2);
+        activities->dispatch(Action::Confirm); QCOMPARE(activities->stage(), "review");
+        activities->dispatch(Action::Confirm); QCOMPARE(activities->stage(), "interrupted");
+        activities->dispatch(Action::Back); activities->dispatch(Action::Back); activities->dispatch(Action::Back);
+        QCOMPARE(party.section(), "party"); QVERIFY(party.activitiesFocused());
+        party.dispatch(Action::Up); QCOMPARE(party.focusIndex(), 0);
+        PartyPresentation personal(false);
+        personal.dispatch(Action::Down); QVERIFY(personal.activitiesFocused());
+        personal.dispatch(Action::Confirm);
+        for (int i = 0; i < 3; ++i) {
+            personal.activities()->activate(i);
+            personal.activities()->dispatch(Action::Secondary);
+            QVERIFY(personal.activities()->reaction().isEmpty());
+            QCOMPARE(personal.activities()->stage(), "setup");
+            personal.activities()->dispatch(Action::Confirm);
+            QCOMPARE(personal.activities()->route(), "menu");
+        }
+        QVERIFY(personal.entries().isEmpty());
+    }
     void partyPresentationStaysReadOnlyAndContextBound() {
         PartyPresentation sample(true);
         sample.setAdventure("one", "First Adventure");
