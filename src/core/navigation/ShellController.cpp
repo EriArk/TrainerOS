@@ -43,7 +43,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     });
     connect(&settings_, &SettingsController::deviceRequested, this, [this] { service_ = "device"; device_.begin(); emit changed(); });
     connect(&device_, &DeviceController::changed, this, &ShellController::changed);
-    connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(menuOpen_ || service_ == "device"); });
+    connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(menuOpen_ || service_ == "device" || service_ == "settings"); });
     connect(&device_, &DeviceController::closeRequested, this, [this] { service_ = "settings"; emit changed(); });
     connect(&device_, &DeviceController::messageRequested, this, &ShellController::showNotice);
     connect(&device_, &DeviceController::powerRequested, this, [this](const QString& mode) {
@@ -92,6 +92,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         textTarget_ = TextTarget::Library; keyboard_.begin(title, initial, limit);
     });
     connect(&settings_, &SettingsController::changed, this, &ShellController::changed);
+    connect(&settings_, &SettingsController::quickAdjustment, &device_, &DeviceController::adjustQuick);
     connect(&settings_, &SettingsController::messageRequested, this, [this](const QString& message) {
         if (service_ != "settings" || menuOpen_) { notice_ = message; emit changed(); }
     });
@@ -365,7 +366,7 @@ QStringList ShellController::menuItems() const {
         return items;
     }
     return {"Settings", "Controller", "Pokémon Center", "Manage Adventures",
-            "Desktop / Maintenance Mode", "Steam Gaming Mode", "Power", "Volume", "Screen brightness"};
+            "Desktop / Maintenance Mode", "Steam Gaming Mode", "Power", "Volume", "Screen brightness", "Shell color"};
 }
 void ShellController::goToPage(int page) {
     keyboard_.cancel();
@@ -400,7 +401,7 @@ void ShellController::activate(int index, const QString& area) {
     else if (service_ == "library") { libraryManager_.activate(index, area); return; }
     else if (service_ == "trainer-settings") { trainerSettingsAction(index); return; }
     else if (service_ == "trainer-setup") { trainerSetup_.activate(index); return; }
-    else if (service_ == "settings") { settings_.activate(index); return; }
+    else if (service_ == "settings") { if(settings_.controlsFocused()) settings_.activateRow(index); else settings_.selectCategory(index,true); return; }
     else if (service_ == "device") { device_.activate(index); return; }
     else if (service_ == "diagnostics") { diagnostics_.activate(index); return; }
     else if (service_ == "center") { center_.activate(index); return; }
@@ -463,6 +464,7 @@ void ShellController::confirm() {
             device_.requestPower(menuFocus_ == 1);
             return;
         }
+        if (menuFocus_ == 9) { settings_.cycleTheme(); return; }
         if (menuFocus_ >= 7) { device_.adjustQuick(menuFocus_ - 7, Action::Confirm); return; }
         if (menuFocus_ == 6) { powerMenu_ = true; menuFocus_ = 3; return; }
         if (menuFocus_ >= 4 && platform_.canSwitchSession()) {
@@ -628,7 +630,8 @@ void ShellController::dispatch(Action action) {
     }
     if (menuOpen_ && !powerMenu_ && notice_.isEmpty() && menuFocus_ >= 7
             && (action == Action::Left || action == Action::Right)) {
-        device_.adjustQuick(menuFocus_ - 7, action); emit changed(); return;
+        if(menuFocus_ == 9) settings_.cycleTheme(action == Action::Left ? -1 : 1);
+        else device_.adjustQuick(menuFocus_ - 7, action); emit changed(); return;
     }
     if (action == Action::Back) {
         if (!notice_.isEmpty()) { notice_.clear(); mode_.clear(); }
@@ -645,7 +648,10 @@ void ShellController::dispatch(Action action) {
         int delta = 0;
         if (menuOpen_) delta = action == Action::Up ? -1 : action == Action::Down ? 1 : 0;
         else if (drawerOpen_) delta = action == Action::Left ? -1 : action == Action::Right ? 1 : 0;
-        *focus = std::clamp(*focus + delta, 0, std::max(0, count - 1));
+        if(menuOpen_ && !powerMenu_) {
+            const QList<int> order{7,8,9,0,1,2,3,4,5,6};
+            *focus=order[std::clamp(int(order.indexOf(*focus))+delta,0,9)];
+        } else *focus = std::clamp(*focus + delta, 0, std::max(0, count - 1));
     }
     emit changed();
 }

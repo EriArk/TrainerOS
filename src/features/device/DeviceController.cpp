@@ -26,13 +26,19 @@ void DeviceController::adjustQuick(int index, Action action) {
     else if (action == Action::Left || action == Action::Right)
         service_->adjust(index == 0 ? "volume" : "brightness", action == Action::Right ? 5 : -5);
 }
+void DeviceController::setQuickLevel(int index, int value) {
+    if(!service_ || index<0 || index>1) return;
+    const auto current=service_->snapshot();
+    if((index==0 ? current.volume : current.brightness)<0) return;
+    service_->setValue(index==0 ? "volume" : "brightness",std::clamp(value,index==0 ? 0 : 5,100));
+}
 void DeviceController::begin() { focus_ = 0; if (service_) service_->refresh(); emit changed(); }
 QVariantList DeviceController::rows() const {
     const auto value = service_ ? service_->snapshot() : DeviceSnapshot{};
     const QString volume = value.volume < 0 ? "Unavailable" : QString::number(value.volume) + "%" + (value.muted ? " · Muted" : "");
     return {
-        QVariantMap{{"title", "Volume"}, {"value", volume + "   ·   Left / Right adjust · A mute"}},
-        QVariantMap{{"title", "Screen brightness"}, {"value", (value.brightness < 0 ? QString("Unavailable") : QString::number(value.brightness) + "%") + "   ·   Left / Right adjust"}},
+        QVariantMap{{"title", "Volume"}, {"level", value.volume}, {"muted", value.muted}, {"value", volume + "   ·   Left / Right adjust · A mute"}},
+        QVariantMap{{"title", "Screen brightness"}, {"level", value.brightness}, {"muted", false}, {"value", (value.brightness < 0 ? QString("Unavailable") : QString::number(value.brightness) + "%") + "   ·   Left / Right adjust"}},
         QVariantMap{{"title", "Refresh status"}, {"value", "Y also refreshes these readings"}},
         QVariantMap{{"title", "Restart device"}, {"value", powerAvailable_ ? "Save your place, then restart" : "Available in the ArmadaOS installation"}},
         QVariantMap{{"title", "Power off"}, {"value", powerAvailable_ ? "Save your place, then turn off" : "Available in the ArmadaOS installation"}},

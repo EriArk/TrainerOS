@@ -18,6 +18,7 @@ public:
     void begin();
     void setMonitoring(bool enabled);
     void adjustQuick(int index, Action action);
+    Q_INVOKABLE void setQuickLevel(int index, int value);
     void requestPower(bool restart);
     QVariantList rows() const;
     QVariantList status() const;

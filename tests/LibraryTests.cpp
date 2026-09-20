@@ -126,16 +126,14 @@ private slots:
             Connection connection(dir.path()); QSqlQuery q(connection.db); QVERIFY(q.exec("BEGIN IMMEDIATE"));
             settings.activate(1); QTRY_VERIFY(!settings.saving()); QVERIFY(!settings.error().isEmpty()); QVERIFY(!settings.reducedMotion());
             QVERIFY(q.exec("ROLLBACK")); settings.activate(1); QTRY_VERIFY(!settings.saving()); QVERIFY(settings.reducedMotion());
-            settings.activate(5); QVERIFY(settings.mediaOpen());
-            for (int i = 0; i < 4; ++i) {
-                settings.activate(i); QVERIFY(settings.mediaDetailOpen());
-                QVERIFY(!settings.mediaDescription().isEmpty());
-                settings.dispatch(Action::Back); QVERIFY(!settings.mediaDetailOpen());
-                QCOMPARE(settings.focusIndex(), i);
-            }
-            settings.activate(4); QTRY_VERIFY(!settings.saving()); QVERIFY(!settings.reducedMotion());
-            QCOMPARE(settings.focusIndex(), 4);
-            settings.dispatch(Action::Back); QVERIFY(!settings.mediaOpen()); QCOMPARE(settings.focusIndex(), 5);
+            settings.selectCategory(0,true);
+            settings.dispatch(Action::Down); settings.dispatch(Action::Confirm);
+            QTRY_VERIFY(!settings.saving()); QVERIFY(!settings.reducedMotion());
+            QCOMPARE(settings.rowFocus(),1);
+            settings.dispatch(Action::Back); QVERIFY(!settings.controlsFocused());
+            settings.selectCategory(3,true); settings.activateRow(0);
+            QCOMPARE(settings.category(),3); QVERIFY(settings.controlsFocused());
+            settings.dispatch(Action::Back); QCOMPARE(settings.category(),3);
             settings.activate(1); QTRY_VERIFY(!settings.saving()); QVERIFY(settings.reducedMotion());
         }
         LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready());

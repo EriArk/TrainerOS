@@ -1,46 +1,51 @@
-# Media and feedback settings — P1
+# Two-pane Settings and Start controls - P1
 
-Start → Settings → Media & feedback contains five controller-selected categories:
-pictures/video, music/interface sounds, charger vibration, device lighting and
-Reduced Motion. Up/Down selects a row. A opens availability details for the first
-four; A/B closes details with selection preserved. B from the category list
-restores the Media & feedback entry in Settings. L1/R1 remains global navigation.
+The owner's 2026-09-20 correction supersedes the first media-description layout.
+Settings uses a persistent category rail on the left and settings on the right,
+inspired by tablet Android. Appearance, Sound, Media, Feedback, Trainer, System
+and Credits remain inside Settings; no primary section is added.
 
-Reduced Motion uses the existing device-wide preferences repository, including
-its pending/error/retry behavior. It is the same setting on both screens, not a
-new preference. Theme, Credits, Trainer/accounts and device controls retain their
-existing routes. Seven root settings fit within the handheld content rectangle.
+Up/Down selects a category and updates its right panel. A or Right enters its
+controls; B returns to the same category, then to Start. Inside controls, Up/Down
+selects a row and Left/Right adjusts a slider/theme/switch. A cycles themes,
+toggles Reduced Motion, mutes volume, or opens an existing account/device service.
+Unavailable rows remain readable and cannot open fake previews. Credits remain
+available with controller Back. Global L1/R1 and Start retain priority.
 
-The other categories describe actual implementation boundaries. No audio player,
-video decoder, pack installer, vibration sender, RGB writer or sensor polling is
-introduced. Missing runtime support cannot be mistaken for an enabled toggle or
-a successful preview. Static exit pictures and optional Pokédex illustrations
-remain separate media identities; this screen does not claim an illustration
-pack is installed. Existing per-asset source/credit screens remain authoritative.
+Start has one full-width quick-control block above a single action list: volume,
+brightness and theme. X toggles between controls and the remembered service.
+Directional order follows the visual arrangement. Both surfaces reuse one custom
+slider/setting row, real device readback and the existing coalesced platform
+writer. Theme and Reduced Motion use the same durable device-wide preferences.
+Brightness retains the verified safe minimum; absent hardware is not shown as 0.
+The graphical sliders also support pointer adjustment, without requiring it.
 
-P5 retains audio packs/licensing/category levels and playback arbitration,
-bounded video, power-edge haptics, verified Armada lighting and gyro/parallax
-capabilities. Loading/error/cancellation and reversible hardware previews belong
-to those real services when implemented. Pack validation/atomic installation and
-the final Pack Studio remain at their existing roadmap gates. This synchronous
-availability screen does not invent loading, hardware detection or downloads.
+This replaces the former oversized quick-control second column and media detail
+pages. Media and feedback now use compact unavailable/status rows. No audio
+player, video decoder, pack installer, vibration sender, RGB writer or sensor
+polling is introduced. P5/P7 licensing, provider, preview/recovery and installation
+gates remain unchanged. Pictures and optional Pok?dex illustrations retain
+separate identities and their existing source credits.
 
-Acceptance: controller list/detail/Back focus, global shoulders, persisted shared
-Reduced Motion and failed-write recovery; rendered root/category/detail screens
-at handheld dimensions; no hardware or external save changes from browsing.
+Acceptance: category/control focus, service return, global navigation, real
+slider readback/mute, durable theme/motion preferences and write failure, pointer
+bounds, unavailable rows, and inspected 960?540/native Flip layouts. Existing
+account, Credits, device and Power routes must remain usable.
 
 ## Verification — 2026-09-20
 
-Windows passed all 35 tests; ARM64 passed 38 plus the separate persistence-process
-test. The extended SDL scenario visits all media categories, details, the shared
-motion setting, Back restoration and global shoulders. It also passed in native
-Gamescope on Flip without QML warnings. Root, category and detail layouts were
-inspected at 960×540 and native 1920×1080. Follow-up spacing changes passed a
-focused rendered check; this evidence does not certify the deferred media or
-hardware providers.
+The 35 Windows and 39 ARM checks passed after updating their controller routes
+for the new visual order. Center's unchanged backup/restore assertions were
+rerun with its corrected Start route; source bytes and protection copies passed.
+Persistence checks cover theme/motion restart and service/Credits return.
+Native Gamescope SDL checks passed focus, sliders, theme forward/reverse, category
+entry/Back and unavailable rows, with no QML warnings. Start and Settings were
+visually inspected at 960×540 and native 1920×1080. Device bounds retain a 5%
+brightness floor and slider graphics clamp boosted volume to the track length.
 
-The final non-testing build was installed with a binary/database rollback copy.
-InputPlumber-injected controller events verified production entry, detail and
-Back; final spacing was inspected on Flip. Database integrity, Trainer profile,
-686 Adventure registrations and the installed binary hash were checked. This
-does not substitute for an owner's physical-button test.
+The non-testing build was installed with a binary/database rollback copy. On the
+real profile, injected controller input moved volume 36 → 41 → 36%, preserving
+mute; independent platform readback confirmed the restored value. Settings
+category/control entry and Back were inspected on the installed build. Database
+integrity, the Trainer profile, 686 Adventure registrations and binary hash were
+verified. Injected events do not replace the owner's physical-button check.

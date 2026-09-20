@@ -62,6 +62,8 @@ private slots:
             }});
         DeviceController device; device.configure(&service, true); device.begin();
         QTRY_VERIFY(!service.busy()); QVERIFY(thread != QThread::currentThread());
+        device.setQuickLevel(1,0); QTRY_VERIFY(!service.busy()); QCOMPARE(service.snapshot().brightness,5);
+        device.setQuickLevel(1,50); QTRY_VERIFY(!service.busy()); QCOMPARE(service.snapshot().brightness,50);
         device.dispatch(Action::Right); QTRY_VERIFY(!service.busy()); QCOMPARE(service.snapshot().volume, 40);
         device.dispatch(Action::Confirm); QTRY_VERIFY(!service.busy()); QVERIFY(service.snapshot().muted);
         fail = true;
@@ -148,7 +150,7 @@ private slots:
         connect(&service, &DeviceService::changed, &session, [&] { session.setServiceActive(service.busy()); });
         QSignalSpy requested(&shell, &ShellController::modeRequested), ready(&session, &SessionState::exitReady);
         connect(&shell, &ShellController::modeRequested, &session, [&](const QString&) { session.requestExit(); });
-        shell.dispatch(Action::SystemMenu); shell.activate(0); shell.activate(2);
+        shell.dispatch(Action::SystemMenu); shell.activate(0); shell.activate(5); shell.activate(0);
         QCOMPARE(shell.service(), "device"); QVERIFY(service.busy());
         shell.activate(4); QVERIFY(shell.modeConfirmation()); shell.dispatch(Action::Back);
         QVERIFY(!shell.modeConfirmation()); QVERIFY(requested.isEmpty()); QCOMPARE(shell.focusIndex(), 4);
@@ -156,7 +158,7 @@ private slots:
         QCOMPARE(requested.first().first().toString(), "reboot"); QVERIFY(ready.isEmpty());
         release.release(); QTRY_VERIFY(!ready.isEmpty());
         session.cancelPendingExit(); shell.dispatch(Action::Back);
-        QCOMPARE(shell.service(), "settings"); QCOMPARE(shell.focusIndex(), 2);
+        QCOMPARE(shell.service(), "settings"); QCOMPARE(shell.settings()->category(),5); QCOMPARE(shell.focusIndex(),0);
         shell.dispatch(Action::Confirm); shell.dispatch(Action::NextPage);
         QVERIFY(!shell.serviceOpen()); QCOMPARE(shell.page(), 1);
         release.release();

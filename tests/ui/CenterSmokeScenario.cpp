@@ -62,7 +62,7 @@ void startCenterSmoke(QQuickWindow* window,ShellController& shell,SessionState& 
         case 8:
             check(read()=="SECOND SAVE"&&shell.center()->rows().size()==3,"Protection copy can undo the restore");
             press(a);press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);check(shell.service().isEmpty()&&!shell.center()->confirming(),"Global section action discards confirmation");
-            press(start);press(SDL_CONTROLLER_BUTTON_DPAD_UP,6);press(down,2);press(a);window->resize(1920,1080);break;
+            press(start);press(SDL_CONTROLLER_BUTTON_DPAD_UP,10);press(down,5);press(a);window->resize(1920,1080);break;
         case 9:
             capture("copies-1080p");press(select);press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);break;
         case 10:

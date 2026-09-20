@@ -206,6 +206,7 @@ qt_add_qml_module(traineros
         src/qml/LibraryPanel.qml
         src/qml/TrainerSettingsPanel.qml
         src/qml/TrainerSetupPanel.qml
+        src/qml/SettingControl.qml
         src/qml/SettingsPanel.qml
         src/qml/DevicePanel.qml
         src/qml/DiagnosticsPanel.qml

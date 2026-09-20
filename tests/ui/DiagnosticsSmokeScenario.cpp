@@ -105,7 +105,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
         case 14:
             check(focus("menu-8"), "Quick brightness focus");
             check(shell.device()->rows()[1].toMap()["value"].toString().startsWith("55%"), "Quick brightness adjusted");
-            capture("start-brightness"); press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(a); break;
+            capture("start-brightness"); press(SDL_CONTROLLER_BUTTON_X); for(int i=0;i<5;++i) press(down); press(a); break;
         case 15:
             check(shell.powerMenu() && focus("menu-3"), "Power opens on safe Cancel");
             capture("power-menu"); press(a); break;
@@ -117,8 +117,8 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(b); press(b); press(b); break;
         case 18:
             check(!shell.menuOpen() && !shell.powerMenu(), "Back unwinds Power and Start");
-            press(start); for (int i=0;i<8;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(a);
-            for (int i=0;i<4;++i) press(down); press(a); break;
+            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); for(int i=0;i<3;++i) press(down); press(a);
+            for (int i=0;i<4;++i) press(down); press(a); press(a); break;
         case 19:
             check(shell.service()=="trainer-settings" && focus("trainer-settings-0"), "Trainer settings entry");
             capture("trainer-settings"); press(down); press(a); break;
@@ -227,29 +227,37 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             capture("link-interrupted"); press(b); press(b); press(b); press(SDL_CONTROLLER_BUTTON_DPAD_UP); break;
         case 54:
             check(shell.party()->section()=="storage" && focus("party-slot-9"), "Activities returns to the prior management slot");
-            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(a); break;
+            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); for(int i=0;i<3;++i) press(down); press(a); break;
         case 55:
-            check(shell.service()=="settings" && focus("settings-0"), "Settings root focus");
-            capture("settings-root"); for(int i=0;i<5;++i) press(down); press(a); break;
+            check(shell.service()=="settings" && focus("settings-category-0"), "Settings categories focus");
+            capture("settings-root"); press(a); break;
         case 56:
-            check(shell.settings()->mediaOpen() && focus("settings-0"), "Media settings entry");
-            capture("media-settings"); press(a); break;
+            check(focus("settings-control-0"), "Appearance controls receive focus");
+            capture("settings-appearance"); press(down); press(a); break;
         case 57:
-            check(focus("media-back"), "Media detail has fixed Back focus"); capture("media-pictures");
-            press(b); press(down); press(a); break;
+            check(focus("settings-control-1"), "Motion switch retains focus"); capture("settings-motion");
+            press(a); press(b); press(down); press(a); break;
         case 58:
-            capture("media-audio"); press(b); press(down); press(a); break;
+            check(focus("settings-control-0"), "Sound slider receives focus");
+            capture("settings-sound"); press(b); press(down); press(a); break;
         case 59:
-            capture("media-haptics"); press(b); press(down); press(a); break;
+            capture("settings-media"); press(b); press(down); press(a); break;
         case 60:
-            capture("media-lighting"); press(b); press(down); press(a); break;
+            capture("settings-feedback"); press(a); break;
         case 61:
-            check(focus("settings-4"), "Motion toggle preserves focus"); capture("media-motion"); press(a); press(b); break;
+            check(shell.settings()->category()==3 && shell.settings()->controlsFocused(), "Unavailable feedback cannot open a fake action");
+            press(b); break;
         case 62:
-            check(!shell.settings()->mediaOpen() && focus("settings-5"), "Back restores Media entry");
+            check(focus("settings-category-3"), "Back restores category");
             press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
         case 63:
-            check(!shell.serviceOpen(), "Global shoulder leaves media settings");
+            check(!shell.serviceOpen(), "Global shoulder leaves settings");
+            press(start); press(SDL_CONTROLLER_BUTTON_X); press(down); press(down); press(right); break;
+        case 64:
+            check(focus("menu-9") && shell.settings()->theme()=="red", "Start theme shares the saved preference");
+            capture("start-theme"); press(left); break;
+        case 65:
+            check(shell.settings()->theme()=="turquoise", "Reverse theme adjustment"); press(b);
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!output.isEmpty()) {
                 QFile report(output + "/verification.txt");

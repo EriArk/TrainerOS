@@ -120,15 +120,15 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 press(previous); press(a); press(a); break; // Kanto secondary listing / detail.
             case 8:
                 check(shell.worlds()->detail()["title"] == "journeyA" && focusIs("world-action-setup"), "Personal Adventure offers setup without claiming it can launch");
-                capture("personal-adventure"); press(start); press(up, 3); press(a); press(a); break;
+                capture("personal-adventure"); press(start); press(up, 3); press(a); press(a); press(a); break;
             case 9:
-                check(shell.settings()->theme() == "red" && focusIs("settings-0"), "Persisted red theme"); capture("theme-red"); press(a); break;
+                check(shell.settings()->theme() == "red" && focusIs("settings-control-0"), "Persisted red theme"); capture("theme-red"); press(a); break;
             case 10: check(shell.settings()->theme() == "green", "Green theme"); capture("theme-green"); press(a); break;
             case 11: check(shell.settings()->theme() == "blue", "Blue theme"); capture("theme-blue"); press(a); break;
             case 12: check(shell.settings()->theme() == "orange", "Orange theme"); capture("theme-orange"); press(down); press(a); break;
             case 13:
                 check(shell.settings()->reducedMotion(), "Reduced motion saved"); capture("motion-settings");
-                press(down); press(a); break;
+                press(b); press(down,5); press(a); press(a); break;
             case 14:
                 check(shell.service() == "device" && focusIs("device-0"), "Handheld controls receive controller focus");
                 capture("device-controls"); press(right); break;
@@ -145,8 +145,8 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 check(focusIs("device-5"), "Last device action is visible and reachable"); capture("device-controls-back");
                 press(b); break;
             case 19:
-                check(shell.service() == "settings" && focusIs("settings-2"), "B restores the Settings entry");
-                press(down); press(a); break;
+                check(shell.service() == "settings" && focusIs("settings-control-0"), "B restores the Settings entry");
+                press(b); press(down); press(a); break;
             case 20:
                 check(shell.settings()->creditsOpen() && focusIs("credits-back"), "Credits reachable with controller");
                 capture("badge-credits"); press(start); press(b); break;
@@ -154,7 +154,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 check(shell.settings()->creditsOpen() && focusIs("credits-back"), "Start and Back restore Credits");
                 press(b); break;
             case 22:
-                check(!shell.settings()->creditsOpen() && focusIs("settings-3"), "Back returns to the Credits entry");
+                check(!shell.settings()->creditsOpen() && focusIs("settings-category-6"), "Back returns to the Credits entry");
                 press(b); press(down, 6); press(a); press(down); press(a);
                 check(shell.modeConfirmation(), "Development exit requires a fresh confirmation from Power");
                 if (finish()) press(a); break;

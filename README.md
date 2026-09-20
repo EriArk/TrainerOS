@@ -18,9 +18,9 @@ Start provides [quick volume/brightness controls and a confirmed Power menu](doc
 
 A read-only [battery gauge](docs/POWER_STATUS.md) shows the handheld's charge in the fixed lower panel.
 
-Settings → [Media & feedback](docs/MEDIA_SETTINGS_UI.md) explains current picture,
-sound, vibration and lighting availability and shares the saved Reduced Motion
-control. Playback packs and hardware effects remain planned.
+[Settings](docs/MEDIA_SETTINGS_UI.md) has categories on the left and controls on
+the right. Start has a top block for volume, brightness and theme; unavailable
+media and hardware effects remain explicit.
 
 Hall now includes a [Journey overview](docs/JOURNEY_UI.md) with a larger badge case using existing verified progress, alongside manual memories and distinct earned/locked/unknown RetroAchievements states. New save fields and automatic Champion records remain planned.
 
