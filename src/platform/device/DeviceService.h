@@ -1,6 +1,7 @@
 #pragma once
 #include <QObject>
 #include <QThread>
+#include <QMap>
 #include <QString>
 #include <functional>
 
@@ -32,6 +33,9 @@ public:
     QString error() const { return error_; }
     void refresh();
     void setValue(const QString& control, int value);
+    void adjust(const QString& control, int delta);
+    void toggleMute();
+    void hardwareVolume(int delta);
 signals:
     void changed();
 private:
@@ -42,5 +46,9 @@ private:
     QThread thread_;
     QObject* worker_;
     bool busy_ = false;
+    QMap<QString, int> pending_;
+    QString activeControl_;
+    int activeValue_ = 0;
+    int desired(const QString& control) const;
 };
 }

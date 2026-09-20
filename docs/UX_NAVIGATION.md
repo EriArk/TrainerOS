@@ -229,6 +229,14 @@ Acceptance includes controller list/detail/Back, paired-face restoration, Y chan
 
 `Start` opens the TrainerOS system menu from any page.
 
+**Delivered 2026-09-20:** Start X jumps to Volume and returns to the remembered
+service entry. Up/Down selects; Left/Right adjusts volume or brightness; A on
+Volume toggles mute. Values refresh from the device while controls are visible.
+Power opens on Cancel; Power off/Restart require a separate confirmation, B
+unwinds one layer, and L1/R1 cancels then switches pages. Switch Player remains
+explicitly unavailable until P2. [Device controls](DEVICE_CONTROLS.md).
+
+
 The menu overlays the current page rather than becoming another L1/R1 section.
 
 Initial categories may include:

@@ -43,6 +43,7 @@ add_library(trainer_core STATIC
     src/integrations/adventure/standalone/StandaloneAdapter.cpp
     src/platform/device/DeviceService.h
     src/platform/device/DeviceService.cpp
+    src/platform/device/VolumeKeys.cpp
     src/features/device/DeviceController.h
     src/features/device/DeviceController.cpp
     src/platform/ArmadaPlatformService.h

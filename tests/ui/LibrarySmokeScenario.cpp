@@ -155,7 +155,9 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 press(b); break;
             case 22:
                 check(!shell.settings()->creditsOpen() && focusIs("settings-3"), "Back returns to the Credits entry");
-                press(b); press(down, 6); if (finish()) press(a); break;
+                press(b); press(down, 6); press(a); press(down); press(a);
+                check(shell.modeConfirmation(), "Development exit requires a fresh confirmation from Power");
+                if (finish()) press(a); break;
             }
         } else if (phase == "library-verify") {
             switch ((*stage)++) {

@@ -1,3 +1,4 @@
+#include "platform/device/VolumeKeys.h"
 #include "features/device/DeviceController.h"
 #include "core/navigation/ShellController.h"
 #include "core/storage/SessionState.h"
@@ -72,6 +73,69 @@ private slots:
         QCOMPARE(service.snapshot().brightness, 45);
         QSignalSpy closed(&device, &DeviceController::closeRequested);
         device.dispatch(Action::Back); QCOMPARE(closed.size(), 1);
+    }
+    void coalescedControlsAndExternalVolume() {
+        DeviceSnapshot value; value.volume = 35; value.brightness = 50;
+        int writes = 0; bool fail = false;
+        DeviceService service({[&] { return value; }, [&](const QString& control, int setting) {
+            ++writes; QThread::msleep(20);
+            if (fail) return QString("Rejected");
+            if (control == "volume") value.volume = setting;
+            if (control == "brightness") value.brightness = setting;
+            if (control == "mute") value.muted = setting;
+            return QString();
+        }});
+        service.refresh(); QTRY_VERIFY(!service.busy());
+        for (int i = 0; i < 8; ++i) service.adjust("volume", 5);
+        service.adjust("brightness", -5); service.toggleMute();
+        QTRY_VERIFY(!service.busy());
+        QCOMPARE(service.snapshot().volume, 75); QCOMPARE(service.snapshot().brightness, 45);
+        QVERIFY(service.snapshot().muted); QVERIFY(writes <= 4);
+        value.volume = 20; // An external hardware/desktop change, absent from our snapshot.
+        service.hardwareVolume(5); QTRY_VERIFY(!service.busy()); QCOMPARE(service.snapshot().volume, 25);
+        fail = true; service.adjust("volume", 5); service.adjust("volume", 5);
+        QTRY_VERIFY(!service.busy()); QCOMPARE(service.snapshot().volume, 25); QCOMPARE(service.error(), "Rejected");
+        service.refresh(); QTRY_VERIFY(!service.busy()); QCOMPARE(service.error(), "Rejected");
+        fail = false; service.adjust("volume", -100); QTRY_VERIFY(!service.busy());
+        QCOMPARE(service.snapshot().volume, 0); QVERIFY(service.error().isEmpty());
+        service.adjust("brightness", -100); QTRY_VERIFY(!service.busy()); QCOMPARE(service.snapshot().brightness, 5);
+        service.adjust("volume", 200); service.adjust("brightness", 200);
+        QTRY_VERIFY(!service.busy()); QCOMPARE(service.snapshot().volume, 100); QCOMPARE(service.snapshot().brightness, 100);
+    }
+    void volumeKeyEdgesAndRelease() {
+        VolumeKeys keys(false); QSignalSpy changes(&keys, &VolumeKeys::adjustmentRequested);
+        keys.keyEvent(116, 1); QVERIFY(changes.isEmpty()); // Never power.
+        keys.keyEvent(115, 1); keys.keyEvent(115, 2); keys.keyEvent(115, 1);
+        QCOMPARE(changes.size(), 1); QCOMPARE(changes.first().first().toInt(), 5);
+        keys.keyEvent(115, 0); QTest::qWait(480); QCOMPARE(changes.size(), 1);
+        keys.keyEvent(114, 1); QTRY_VERIFY_WITH_TIMEOUT(changes.size() >= 3, 700);
+        keys.keyEvent(114, 0); const auto count = changes.size(); QTest::qWait(150); QCOMPARE(changes.size(), count);
+    }
+    void startPowerAndQuickControls() {
+        MockLibraryRepository library; MockTrainerRepository profiles; MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform; MockPokedexRepository dex; MockHallOfFameRepository archive; MockAchievementProvider achievements;
+        ShellController shell(library, profiles, adapter, platform, dex, dex, archive, achievements);
+        DeviceSnapshot value; value.volume = 35; value.brightness = 60;
+        DeviceService service({[&] { return value; }, [&](const QString& control, int setting) {
+            if (control == "volume") value.volume = setting;
+            if (control == "brightness") value.brightness = setting;
+            if (control == "mute") value.muted = setting;
+            return QString();
+        }});
+        shell.device()->configure(&service, true);
+        QSignalSpy requested(&shell, &ShellController::modeRequested);
+        shell.dispatch(Action::SystemMenu); QTRY_VERIFY(!service.busy());
+        shell.activate(7); QTRY_VERIFY(!service.busy()); QVERIFY(service.snapshot().muted);
+        shell.dispatch(Action::Right); QTRY_VERIFY(!service.busy()); QCOMPARE(service.snapshot().volume, 40);
+        shell.activate(6); QVERIFY(shell.powerMenu()); QCOMPARE(shell.focusIndex(), 3);
+        shell.dispatch(Action::Confirm); QVERIFY(!shell.powerMenu()); QCOMPARE(shell.focusIndex(), 6);
+        shell.dispatch(Action::Confirm); shell.activate(0); QVERIFY(shell.modeConfirmation()); QVERIFY(requested.isEmpty());
+        shell.dispatch(Action::Back); QVERIFY(shell.powerMenu()); QVERIFY(requested.isEmpty());
+        QCOMPARE(shell.device()->focusIndex(), 0); // Overlay must not move the underlying service focus.
+        shell.activate(1); shell.dispatch(Action::NextPage); QVERIFY(!shell.modeConfirmation()); QVERIFY(!shell.powerMenu());
+        shell.dispatch(Action::SystemMenu); shell.activate(6); shell.activate(1); shell.dispatch(Action::Confirm);
+        QCOMPARE(requested.size(), 1); QCOMPARE(requested.first().first().toString(), "reboot");
+        shell.dispatch(Action::Back); shell.dispatch(Action::Back); QVERIFY(!shell.menuOpen());
     }
     void powerRequiresConfirmationAndWaitsForWork() {
         MockLibraryRepository library; MockTrainerRepository profiles; MockAdventureAdapter adapter;

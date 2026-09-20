@@ -12,6 +12,19 @@ QString capacity(qint64 free, qint64 total) {
 void DeviceController::configure(DeviceService* service, bool powerAvailable) {
     service_ = service; powerAvailable_ = powerAvailable;
     if (service_) connect(service_, &DeviceService::changed, this, &DeviceController::changed);
+    monitor_.setInterval(1500);
+    connect(&monitor_, &QTimer::timeout, this, [this] { if (service_ && !busy()) service_->refresh(); });
+}
+void DeviceController::setMonitoring(bool enabled) {
+    if (enabled == monitor_.isActive()) return;
+    if (enabled) { monitor_.start(); if (service_) service_->refresh(); }
+    else monitor_.stop();
+}
+void DeviceController::adjustQuick(int index, Action action) {
+    if (!service_ || index < 0 || index > 1) return;
+    if (action == Action::Confirm && index == 0) service_->toggleMute();
+    else if (action == Action::Left || action == Action::Right)
+        service_->adjust(index == 0 ? "volume" : "brightness", action == Action::Right ? 5 : -5);
 }
 void DeviceController::begin() { focus_ = 0; if (service_) service_->refresh(); emit changed(); }
 QVariantList DeviceController::rows() const {
@@ -32,16 +45,19 @@ QVariantList DeviceController::status() const {
             QVariantMap{{"title", "Trainer storage"}, {"value", capacity(value.internalFree, value.internalTotal)}},
             QVariantMap{{"title", "Adventure storage"}, {"value", capacity(value.libraryFree, value.libraryTotal)}}};
 }
+void DeviceController::requestPower(bool restart) {
+    if (powerAvailable_) emit powerRequested(restart ? "reboot" : "poweroff");
+    else emit messageRequested("Power controls are available in the ArmadaOS installation.");
+}
 void DeviceController::activate(int index) {
     if (index < 0 || index > 5) return;
     focus_ = index;
     if (index == 5) { emit closeRequested(); return; }
     if (index >= 3) {
-        if (powerAvailable_) emit powerRequested(index == 3 ? "reboot" : "poweroff");
-        else emit messageRequested("Power controls are available in the ArmadaOS installation.");
-    } else if (service_ && !busy()) {
+        requestPower(index == 3);
+    } else if (service_) {
         if (index == 2) service_->refresh();
-        else if (index == 0 && service_->snapshot().volume >= 0) service_->setValue("mute", !service_->snapshot().muted);
+        else if (index == 0) service_->toggleMute();
     }
     emit changed();
 }
@@ -51,11 +67,7 @@ void DeviceController::dispatch(Action action) {
     if (action == Action::ToggleContinue) { if (service_) service_->refresh(); return; }
     if (action == Action::Up) focus_ = std::max(0, focus_ - 1);
     if (action == Action::Down) focus_ = std::min(5, focus_ + 1);
-    if ((action == Action::Left || action == Action::Right) && service_ && !busy() && focus_ < 2) {
-        const int current = focus_ == 0 ? service_->snapshot().volume : service_->snapshot().brightness;
-        if (current >= 0) service_->setValue(focus_ == 0 ? "volume" : "brightness",
-            std::clamp(current + (action == Action::Right ? 5 : -5), focus_ == 0 ? 0 : 5, 100));
-    }
+    if (focus_ < 2) adjustQuick(focus_, action);
     emit changed();
 }
 }

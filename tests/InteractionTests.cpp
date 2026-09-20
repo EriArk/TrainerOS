@@ -212,8 +212,12 @@ private slots:
         QCOMPARE(requested.size(), 1);
         QCOMPARE(requested.first().first().toString(), "steam");
         shell.activate(6);
-        QVERIFY(shell.modeConfirmation());
+        QVERIFY(shell.powerMenu()); QVERIFY(!shell.modeConfirmation());
+        QCOMPARE(shell.focusIndex(), 3); // Fresh Power menu defaults to Cancel.
         shell.dispatch(Action::Confirm);
+        QVERIFY(!shell.powerMenu()); QCOMPARE(requested.size(), 1);
+        shell.activate(4); // Maintenance remains explicit, never a Power default.
+        QVERIFY(shell.modeConfirmation()); shell.dispatch(Action::Confirm);
         QCOMPARE(requested.last().first().toString(), "desktop");
         QVERIFY(exited.isEmpty());
     }

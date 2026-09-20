@@ -22,6 +22,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       libraryManager_(repo, nullptr, this), settings_(this), device_(this), diagnostics_(this), center_(repo,this) {
     connect(&settings_, &SettingsController::deviceRequested, this, [this] { service_ = "device"; device_.begin(); emit changed(); });
     connect(&device_, &DeviceController::changed, this, &ShellController::changed);
+    connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(menuOpen_ || service_ == "device"); });
     connect(&device_, &DeviceController::closeRequested, this, [this] { service_ = "settings"; emit changed(); });
     connect(&device_, &DeviceController::messageRequested, this, &ShellController::showNotice);
     connect(&device_, &DeviceController::powerRequested, this, [this](const QString& mode) {
@@ -326,9 +327,13 @@ QVariantList ShellController::resumePoints() const {
     return result;
 }
 QStringList ShellController::menuItems() const {
+    if (powerMenu_) {
+        QStringList items{"Power off", "Restart", "Switch Player (coming later)", "Cancel"};
+        if (!platform_.dedicatedSession()) items.append(platform_.canSwitchSession() ? "Enter TrainerOS Mode" : "Exit Development App");
+        return items;
+    }
     return {"Settings", "Controller", "Pokémon Center", "Manage Adventures",
-            "Desktop / Maintenance Mode", "Steam Gaming Mode", platform_.dedicatedSession() ? "Leave TrainerOS"
-                : platform_.canSwitchSession() ? "Enter TrainerOS Mode" : "Exit Development App"};
+            "Desktop / Maintenance Mode", "Steam Gaming Mode", "Power", "Volume", "Screen brightness"};
 }
 void ShellController::goToPage(int page) {
     keyboard_.cancel();
@@ -344,6 +349,8 @@ void ShellController::goToPage(int page) {
     if (page_ == 3) trainer_.refreshOverview();
     drawerOpen_ = false;
     menuOpen_ = false;
+    if (powerMenu_) menuFocus_ = 6;
+    powerMenu_ = false;
     notice_.clear();
     mode_.clear();
     emit changed();
@@ -383,18 +390,32 @@ void ShellController::activate(int index, const QString& area) {
 void ShellController::confirm() {
     if (!notice_.isEmpty()) {
         const auto requested = mode_; mode_.clear(); notice_.clear();
-        if (!requested.isEmpty()) emit modeRequested(requested);
+        if (requested == "development-exit") emit exitRequested();
+        else if (!requested.isEmpty()) emit modeRequested(requested);
         return;
     }
     if (menuOpen_) {
+        if (powerMenu_) {
+            if (menuFocus_ == 3) { powerMenu_ = false; menuFocus_ = 6; return; }
+            if (menuFocus_ == 2) { notice_ = "Switch Player will be available when separate Trainer profiles are ready."; return; }
+            if (menuFocus_ == 4) {
+                if (platform_.canSwitchSession()) { mode_ = "traineros"; notice_ = "Enter the TrainerOS session?"; }
+                else { mode_ = "development-exit"; notice_ = "Close the development app?"; }
+                return;
+            }
+            device_.requestPower(menuFocus_ == 1);
+            return;
+        }
+        if (menuFocus_ >= 7) { device_.adjustQuick(menuFocus_ - 7, Action::Confirm); return; }
+        if (menuFocus_ == 6) { powerMenu_ = true; menuFocus_ = 3; return; }
         if (menuFocus_ >= 4 && platform_.canSwitchSession()) {
-            mode_ = menuFocus_ == 5 ? "steam" : menuFocus_ == 6 && !platform_.dedicatedSession() ? "traineros" : "desktop";
+            mode_ = menuFocus_ == 5 ? "steam" : "desktop";
             notice_ = mode_ == "steam" ? "Open Steam Gaming Mode? Your Trainer journal will be saved first."
                 : mode_ == "traineros" ? "Enter the dedicated TrainerOS session? Your Trainer journal will be saved first."
                                       : "Open Desktop / Maintenance Mode? Your Trainer journal will be saved first.";
             return;
         }
-        if (menuFocus_ == 6) { emit exitRequested(); return; }
+
         if(menuFocus_==2 && center_.configured()) {
             centerFace_ = false; goToPage(2); openCenter(); return;
         }
@@ -472,7 +493,7 @@ void ShellController::dispatch(Action action) {
     // Global section/system actions outrank the active local layer. Start overlays
     // the keyboard without changing its draft or key focus; Back unwinds it first.
     if (action == Action::SystemMenu) {
-        if (notice_.isEmpty()) menuOpen_ = !menuOpen_;
+        if (notice_.isEmpty()) { menuOpen_ = !menuOpen_; if (!menuOpen_ && powerMenu_) { powerMenu_ = false; menuFocus_ = 6; } }
         emit changed();
         return;
     }
@@ -511,8 +532,18 @@ void ShellController::dispatch(Action action) {
         }
         if (page_ == 4) { hall_.dispatch(action == Action::LocalAction && !localModalOpen() ? Action::ToggleContinue : action); return; }
     }
+    if (menuOpen_ && !powerMenu_ && notice_.isEmpty() && action == Action::Secondary) {
+        if (menuFocus_ >= 7) menuFocus_ = menuServiceFocus_;
+        else { menuServiceFocus_ = menuFocus_; menuFocus_ = 7; }
+        emit changed(); return;
+    }
+    if (menuOpen_ && !powerMenu_ && notice_.isEmpty() && menuFocus_ >= 7
+            && (action == Action::Left || action == Action::Right)) {
+        device_.adjustQuick(menuFocus_ - 7, action); emit changed(); return;
+    }
     if (action == Action::Back) {
         if (!notice_.isEmpty()) { notice_.clear(); mode_.clear(); }
+        else if (menuOpen_ && powerMenu_) { powerMenu_ = false; menuFocus_ = 6; }
         else if (menuOpen_) menuOpen_ = false;
         else if (drawerOpen_) drawerOpen_ = false;
     } else if (action == Action::ToggleContinue) {

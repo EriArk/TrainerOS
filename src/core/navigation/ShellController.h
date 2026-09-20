@@ -46,7 +46,8 @@ class ShellController final : public QObject {
     Q_PROPERTY(bool serviceOpen READ serviceOpen NOTIFY changed)
     Q_PROPERTY(bool sampleLibrary READ sampleLibrary CONSTANT)
     Q_PROPERTY(QVariantList resumePoints READ resumePoints NOTIFY changed)
-    Q_PROPERTY(QStringList menuItems READ menuItems CONSTANT)
+    Q_PROPERTY(QStringList menuItems READ menuItems NOTIFY changed)
+    Q_PROPERTY(bool powerMenu READ powerMenu NOTIFY changed)
 public:
     ShellController(LibraryRepository&, TrainerRepository&, AdventureAdapter&, PlatformService&,
                     PokedexReferenceProvider&, PokedexProgressRepository&, HallOfFameRepository&,
@@ -77,6 +78,7 @@ public:
     bool centerFace() const { return page_ == 2 && centerFace_; }
     QString currentAdventureId() const;
     bool menuOpen() const { return menuOpen_; }
+    bool powerMenu() const { return powerMenu_; }
     QString notice() const { return notice_; }
     QVariantMap home() const;
     QVariantList resumePoints() const;
@@ -122,9 +124,11 @@ private:
     int page_ = 0;
     int drawerFocus_ = 0;
     int menuFocus_ = 0;
+    int menuServiceFocus_ = 0;
     bool drawerOpen_ = false;
     bool centerFace_ = false;
     bool menuOpen_ = false;
+    bool powerMenu_ = false;
     bool libraryFromWorlds_ = false;
     QString notice_;
     QString mode_;

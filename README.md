@@ -14,6 +14,8 @@ Start → Controller provides live input/display checks and a local diagnostic r
 
 Legacy [GBA state-resume code](docs/RETROARCH_RESUME.md) is isolated to its historical tests. Production uses ordinary startup and state-independent save backups; Home/Y show the clean exit picture with embedded black bars trimmed for display. The current build includes a personal [Hall of Fame archive](docs/HALL_OF_FAME.md), the [offline Pokédex and manual field journal](docs/POKEDEX.md), a [local Trainer overview](docs/TRAINER_OVERVIEW.md), and [Pokémon Center save backups](docs/SAVE_BACKUPS.md). These have been exercised with controller input on Flip 2. [English FireRed/Emerald save progress](docs/GAME_PROGRESS.md) now supplies Home's credited, game-set badge artwork and National Dex counts. A real [RetroAchievements account/read provider](docs/RETROACHIEVEMENTS.md) exists; global account management and verified emulator earning are the next integration step, not proof of current-save progress.
 
+Start provides [quick volume/brightness controls and a confirmed Power menu](docs/DEVICE_CONTROLS.md#start-quick-controls-and-power---2026-09-20). Physical volume-key handling belongs to the dedicated session and remains active during Adventures; Switch Player still awaits separate Trainer ownership.
+
 A read-only [battery gauge](docs/POWER_STATUS.md) shows the handheld's charge in the fixed lower panel.
 
 Optional private [Pokédex illustrations](docs/ARTWORK_BOOTSTRAP.md) now appear in

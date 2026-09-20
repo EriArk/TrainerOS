@@ -465,7 +465,7 @@ Keep device-specific quirks behind `DeviceProfile` / platform code:
 
 Do not scatter Retroid-specific constants through QML.
 
-`DeviceService` owns asynchronous sound, backlight, network and storage operations behind an injectable backend. `DeviceController` exposes bounded rows and actions to the shared service panel. Power requests use the same confirmed, journal-draining platform transition as session changes; device and backup work jointly hold that exit gate. See `DEVICE_CONTROLS.md`.
+`DeviceService` owns asynchronous sound, backlight, network and storage operations behind an injectable backend. Its bounded pending controls drain without an idle gap; actual snapshots remain authoritative. The dedicated-session `VolumeKeys` platform reader observes physical evdev volume keys without grabbing input and forwards adjustments through that same service, independently of Adventure foreground focus. `DeviceController` exposes bounded rows and actions to the shared service panel. Power requests use the same confirmed, journal-draining platform transition as session changes; device and backup work jointly hold that exit gate. See `DEVICE_CONTROLS.md`.
 
 `AdapterRouter` is the application composition boundary for installed Adventure integrations. It delegates file attachment and capability/launch requests (and legacy resume dispatch pending #49) without exposing emulator-specific logic to QML. Standalone launch profiles share literal argument construction and worker preflight while retaining explicit per-installation platform validation; see `STANDALONE_ADAPTERS.md`.
 

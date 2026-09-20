@@ -1,3 +1,4 @@
+#include "platform/device/VolumeKeys.h"
 #include "core/input/ControllerInput.h"
 #include "core/input/PointerVisibility.h"
 #include "core/navigation/ShellController.h"
@@ -237,6 +238,10 @@ int main(int argc, char* argv[]) {
                 return QString();
             }});
         shell.device()->configure(&deviceService, platform.canSwitchSession());
+        VolumeKeys volumeKeys(!smoke && !parser.isSet("ephemeral") && platform.dedicatedSession());
+        QObject::connect(&volumeKeys, &VolumeKeys::adjustmentRequested, &deviceService,
+            [&deviceService](int delta) { deviceService.hardwareVolume(delta); });
+
         std::unique_ptr<LocalSaveBackupService> saveBackups;
         if (personalLibrary && !smoke) {
             saveBackups=std::make_unique<LocalSaveBackupService>(QDir(stateDirectory).filePath("backups"),

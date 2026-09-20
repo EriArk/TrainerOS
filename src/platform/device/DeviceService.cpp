@@ -125,15 +125,55 @@ DeviceService::DeviceService(DeviceBackend backend, QObject* parent)
 }
 DeviceService::~DeviceService() { thread_.quit(); thread_.wait(); }
 void DeviceService::refresh() { execute({}, 0); }
-void DeviceService::setValue(const QString& control, int value) { execute(control, value); }
+int DeviceService::desired(const QString& control) const {
+    if (pending_.contains(control)) return pending_.value(control);
+    if (activeControl_ == control) return activeValue_;
+    if (control == "volume") return snapshot_.volume;
+    if (control == "brightness") return snapshot_.brightness;
+    return snapshot_.volume < 0 ? -1 : int(snapshot_.muted);
+}
+void DeviceService::adjust(const QString& control, int delta) {
+    if (control != "volume" && control != "brightness") return;
+    const int current = desired(control);
+    if (current >= 0) setValue(control, std::clamp(current + delta, control == "brightness" ? 5 : 0, 100));
+}
+void DeviceService::hardwareVolume(int delta) {
+    if (!delta) return;
+    delta = std::clamp(delta, -100, 100);
+    if (busy_) { pending_["volume-step"] = std::clamp(pending_.value("volume-step") + delta, -100, 100); return; }
+    execute("volume-step", delta);
+}
+void DeviceService::toggleMute() {
+    const int current = desired("mute");
+    if (current >= 0) setValue("mute", !current);
+}
+void DeviceService::setValue(const QString& control, int value) {
+    if ((control != "volume" && control != "brightness" && control != "mute")
+        || value < (control == "brightness" ? 5 : 0) || value > (control == "mute" ? 1 : 100)) return;
+    if (busy_) { pending_[control] = value; return; }
+    execute(control, value);
+}
 void DeviceService::execute(const QString& control, int value) {
     if (busy_) return;
-    busy_ = true; error_.clear(); emit changed();
+    busy_ = true; activeControl_ = control; activeValue_ = value;
+    if (!control.isEmpty()) error_.clear();
+    emit changed();
     QMetaObject::invokeMethod(worker_, [this, control, value] {
-        const auto error = control.isEmpty() ? QString() : backend_.write(control, value);
+        QString error;
+        if (control == "volume-step") {
+            const auto before = backend_.read();
+            error = before.volume < 0 ? "The audio control is unavailable."
+                : backend_.write("volume", std::clamp(before.volume + value, 0, 100));
+        } else if (!control.isEmpty()) error = backend_.write(control, value);
         const auto result = backend_.read();
         QMetaObject::invokeMethod(this, [this, error, result] {
-            snapshot_ = result; error_ = error; busy_ = false; emit changed();
+            snapshot_ = result;
+            if (!error.isEmpty()) { error_ = error; pending_.clear(); }
+            activeControl_.clear();
+            if (!pending_.isEmpty()) {
+                const auto control = pending_.firstKey(); const auto value = pending_.take(control);
+                busy_ = false; execute(control, value); // No idle signal between queued writes.
+            } else { busy_ = false; emit changed(); }
         }, Qt::QueuedConnection);
     }, Qt::QueuedConnection);
 }

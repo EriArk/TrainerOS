@@ -94,6 +94,8 @@ Then implement a small shared shell banner presenter with bounded queue, duratio
 
 ## Quick device controls
 
+**Delivered 2026-09-20:** Start X, volume/brightness/mute, coalesced requests and external refresh; see [implementation and verification](DEVICE_CONTROLS.md). The full Trainer/PIN work remains P2.
+
 Issue: [#35](https://github.com/EriArk/TrainerOS/issues/35). P1, reusing verified volume/brightness services; #27 supplies mounted control styling.
 
 Start gains compact volume and primary-display brightness controls. Up/down selects, left/right adjusts in bounded useful steps, without pointer dragging or requiring A for every change. Coalesce held input, display the actual platform result, refresh external hardware-key changes and reflect mute. Detailed Settings remains available. Use the known safe brightness minimum, not an arbitrary raw zero; unavailable capability disables honestly. System values remain authoritative rather than a duplicate persisted shell setting. Follow the explicit shoulder/confirmation rule above.

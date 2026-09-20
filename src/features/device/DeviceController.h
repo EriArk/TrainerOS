@@ -2,6 +2,7 @@
 #include "core/input/Action.h"
 #include "platform/device/DeviceService.h"
 #include <QVariantList>
+#include <QTimer>
 
 namespace trainer {
 class DeviceController final : public QObject {
@@ -15,6 +16,9 @@ public:
     using QObject::QObject;
     void configure(DeviceService* service, bool powerAvailable);
     void begin();
+    void setMonitoring(bool enabled);
+    void adjustQuick(int index, Action action);
+    void requestPower(bool restart);
     QVariantList rows() const;
     QVariantList status() const;
     int focusIndex() const { return focus_; }
@@ -31,5 +35,6 @@ private:
     DeviceService* service_ = nullptr;
     bool powerAvailable_ = false;
     int focus_ = 0;
+    QTimer monitor_;
 };
 }

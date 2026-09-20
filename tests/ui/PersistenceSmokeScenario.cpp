@@ -86,7 +86,8 @@ void startPersistenceSmoke(QQuickWindow* window, ShellController& shell, Session
                 press(up); press(a); press(a); press(down, 3); press(right); press(a); // Search A, Apply.
                 check(shell.pokedex()->query() == "A" && focusIs("dex-rail-0"), "Applied search and restored focus");
                 capture("saved-search");
-                press(SDL_CONTROLLER_BUTTON_START); press(down, 6);
+                press(SDL_CONTROLLER_BUTTON_START); press(down, 6); press(a); press(down); press(a);
+                check(shell.modeConfirmation(), "Power routes development exit through confirmation");
                 // Completion precedes asynchronous exit; the process harness reopens only after exit.
                 if (finish()) press(a);
                 break;

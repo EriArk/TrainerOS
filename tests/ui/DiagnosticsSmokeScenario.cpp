@@ -10,6 +10,7 @@
 using namespace trainer;
 void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, SessionState& session, ControllerInput& input,
         DiagnosticsService& reports, SDL_Joystick* joystick, const QString& output, bool& completed, int& warnings, QStringList& diagnostics) {
+    const bool fixedDisplay = qEnvironmentVariableIsSet("GAMESCOPE_WAYLAND_DISPLAY");
     auto stage = std::make_shared<int>(0); auto failed = std::make_shared<bool>(false);
     auto timer = new QTimer(window); timer->setInterval(200);
     QObject::connect(timer, &QTimer::timeout, window, [=, &shell, &session, &input, &reports, &completed, &warnings, &diagnostics] {
@@ -34,7 +35,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
         constexpr auto a = SDL_CONTROLLER_BUTTON_B, b = SDL_CONTROLLER_BUTTON_A, start = SDL_CONTROLLER_BUTTON_START;
         constexpr auto down = SDL_CONTROLLER_BUTTON_DPAD_DOWN, left = SDL_CONTROLLER_BUTTON_DPAD_LEFT, right = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
         auto* checks = shell.diagnostics();
-        if (session.blocked() || reports.saving()) return;
+        if (session.blocked() || reports.saving() || shell.device()->busy()) return;
         switch ((*stage)++) {
         case 0: press(start); press(down); press(a); break;
         case 1:
@@ -63,7 +64,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(start); press(a); break; // Remembered Controller menu entry.
         case 6:
             check(checks->buttons()[9].toMap()["seen"].toBool(), "R1 history survives reopening");
-            window->resize(1920,1080); press(a);
+            if (!fixedDisplay) window->resize(1920,1080); press(a);
             check(window->activeFocusItem() && window->activeFocusItem()->property("depressed").toBool(),
                   "SDL Confirm immediately depresses the active mounted cap without delaying its action");
             break;
@@ -81,15 +82,41 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             QFile report(reports.lastReportPath()); check(report.open(QIODevice::ReadOnly), "Report readable");
             const auto json = QJsonDocument::fromJson(report.readAll()).object();
             check(json["input"].toObject()["buttons"].toArray()[SDL_CONTROLLER_BUTTON_X].toObject()["observed"].toBool(), "Report contains observed X");
-            capture("report-saved"); press(right); press(a); window->resize(1024,768); break;
+            capture("report-saved"); press(right); press(a); if (!fixedDisplay) window->resize(1024,768); break;
         }
         case 10:
             check(!checks->buttons()[6].toMap()["seen"].toBool(), "Reset clears earlier checks");
-            check(checks->runtimeLines().join(' ').contains("1024 × 768"), "Display follows window changes without a manual refresh");
+            check(checks->runtimeLines().join(' ').contains(QString("%1 × %2").arg(window->width()).arg(window->height())), "Display follows window changes without a manual refresh");
             capture("letterboxed"); press(b); break;
         case 11:
             check(shell.menuOpen() && focus("menu-1"), "B restores original system-menu entry");
             press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER); check(shell.page() == 0, "L1 remains global");
+            if (!fixedDisplay) window->resize(960,540); press(start);
+            press(SDL_CONTROLLER_BUTTON_X); // Direct shortcut to Volume.
+            break;
+        case 12:
+            check(focus("menu-7"), "Start Volume has deterministic focus"); capture("start-quick-controls");
+            press(SDL_CONTROLLER_BUTTON_X); check(shell.focusIndex() == 1, "X restores previous service entry");
+            press(SDL_CONTROLLER_BUTTON_X); press(right); press(a); break;
+        case 13:
+            check(shell.device()->rows()[0].toMap()["value"].toString().startsWith("40%"), "Quick volume adjusted");
+            check(shell.device()->rows()[0].toMap()["value"].toString().contains("Muted"), "Quick mute");
+            press(down); press(left); break;
+        case 14:
+            check(focus("menu-8"), "Quick brightness focus");
+            check(shell.device()->rows()[1].toMap()["value"].toString().startsWith("55%"), "Quick brightness adjusted");
+            capture("start-brightness"); press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(a); break;
+        case 15:
+            check(shell.powerMenu() && focus("menu-3"), "Power opens on safe Cancel");
+            capture("power-menu"); press(a); break;
+        case 16:
+            check(!shell.powerMenu() && focus("menu-6"), "Cancel restores Power entry");
+            press(a); press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(a); break;
+        case 17:
+            check(!shell.modeConfirmation() && shell.notice().contains("Switch Player"), "Unavailable switching is honest");
+            press(b); press(b); press(b); break;
+        case 18:
+            check(!shell.menuOpen() && !shell.powerMenu(), "Back unwinds Power and Start");
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!output.isEmpty()) {
                 QFile report(output + "/verification.txt");
