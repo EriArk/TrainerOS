@@ -18,6 +18,10 @@ Start provides [quick volume/brightness controls and a confirmed Power menu](doc
 
 A read-only [battery gauge](docs/POWER_STATUS.md) shows the handheld's charge in the fixed lower panel.
 
+Settings → [Media & feedback](docs/MEDIA_SETTINGS_UI.md) explains current picture,
+sound, vibration and lighting availability and shares the saved Reduced Motion
+control. Playback packs and hardware effects remain planned.
+
 Hall now includes a [Journey overview](docs/JOURNEY_UI.md) with a larger badge case using existing verified progress, alongside manual memories and distinct earned/locked/unknown RetroAchievements states. New save fields and automatic Champion records remain planned.
 
 Center's attached [Activities menu](docs/CENTER_ACTIVITIES_UI.md) provides the Playroom, Practice and Link Counter screen framework. Only development mode rehearses those flows; real Party scenes, battles and transfers remain unavailable pending their provider and device gates.

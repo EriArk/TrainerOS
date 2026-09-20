@@ -13,12 +13,18 @@ class SettingsController final : public QObject {
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
     Q_PROPERTY(bool creditsOpen READ creditsOpen NOTIFY changed)
+    Q_PROPERTY(bool mediaOpen READ mediaOpen NOTIFY changed)
+    Q_PROPERTY(bool mediaDetailOpen READ mediaDetailOpen NOTIFY changed)
+    Q_PROPERTY(QString mediaDescription READ mediaDescription NOTIFY changed)
 public:
     using QObject::QObject;
     void setRepository(PreferencesRepository* repository) { repository_ = repository; reload(); }
     void reload();
-    void begin() { focus_ = 0; credits_ = false; emit changed(); }
+    void begin() { focus_ = 0; credits_ = false; media_ = false; mediaDetail_ = false; emit changed(); }
     bool creditsOpen() const { return credits_; }
+    bool mediaOpen() const { return media_; }
+    bool mediaDetailOpen() const { return mediaDetail_; }
+    QString mediaDescription() const;
     QString theme() const { return value_.theme; }
     bool reducedMotion() const { return value_.reducedMotion; }
     bool saving() const { return saving_; }
@@ -39,6 +45,7 @@ private:
     int focus_ = 0;
     bool saving_ = false;
     bool credits_ = false;
+    bool media_ = false, mediaDetail_ = false;
     QString error_;
 };
 }

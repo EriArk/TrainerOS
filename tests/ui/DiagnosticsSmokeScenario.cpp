@@ -227,6 +227,29 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             capture("link-interrupted"); press(b); press(b); press(b); press(SDL_CONTROLLER_BUTTON_DPAD_UP); break;
         case 54:
             check(shell.party()->section()=="storage" && focus("party-slot-9"), "Activities returns to the prior management slot");
+            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(a); break;
+        case 55:
+            check(shell.service()=="settings" && focus("settings-0"), "Settings root focus");
+            capture("settings-root"); for(int i=0;i<5;++i) press(down); press(a); break;
+        case 56:
+            check(shell.settings()->mediaOpen() && focus("settings-0"), "Media settings entry");
+            capture("media-settings"); press(a); break;
+        case 57:
+            check(focus("media-back"), "Media detail has fixed Back focus"); capture("media-pictures");
+            press(b); press(down); press(a); break;
+        case 58:
+            capture("media-audio"); press(b); press(down); press(a); break;
+        case 59:
+            capture("media-haptics"); press(b); press(down); press(a); break;
+        case 60:
+            capture("media-lighting"); press(b); press(down); press(a); break;
+        case 61:
+            check(focus("settings-4"), "Motion toggle preserves focus"); capture("media-motion"); press(a); press(b); break;
+        case 62:
+            check(!shell.settings()->mediaOpen() && focus("settings-5"), "Back restores Media entry");
+            press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
+        case 63:
+            check(!shell.serviceOpen(), "Global shoulder leaves media settings");
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!output.isEmpty()) {
                 QFile report(output + "/verification.txt");

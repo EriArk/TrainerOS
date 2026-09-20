@@ -399,3 +399,7 @@ Center now opens Party initially; X switches Party/Storage, A opens a read-only 
 ## Center activities - 2026-09-20
 
 Down from the final Party/Storage slot row selects Activities on the attached lower panel. Its separate Playroom, Practice and Link Counter routes preserve management focus and existing shared Y/global shoulders. Real library mode shows unavailable capability states; explicit development mode rehearses actor reactions, practice layout and interrupted-link UI without game or transport operations. [Exact controls](CENTER_ACTIVITIES_UI.md).
+
+## Media and feedback settings ? 2026-09-20
+
+Settings has a separate Media & feedback list. A opens availability details or toggles the shared Reduced Motion preference; B restores the prior row/Settings entry. Global shoulders and Start retain priority. No unsupported audio/haptic/lighting control is presented as active. [Boundary](MEDIA_SETTINGS_UI.md).
