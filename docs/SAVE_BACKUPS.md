@@ -2,13 +2,13 @@
 
 Target services and transaction rules: [Center](EXPANSION_42_62.md#pokémon-center-and-practical-party), [exact-save providers](EXPANSION_42_62.md#exact-save-providers-and-research), [lifecycle/migration](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit). The GBA tests and pending DS gates below remain valid for their tested versions.
 
-**Implemented entry (2026-09-19):** Center is the L2/R2 companion of Pokedex. Start opens this same face at the shared selected Adventure. [Shared selection and remaining scope](SHARED_ADVENTURE.md). Protected GBA/mGBA backups and the opt-in melonDS resolver retain their existing format boundaries. Party, Storage and healing remain planned; emulator states are not ordinary-save backups.
+**Implemented entry (2026-09-19):** Center is the L2/R2 companion of Pokedex. Start opens this same face at the shared selected Adventure. [Shared selection and remaining scope](SHARED_ADVENTURE.md). Protected GBA/mGBA backups and the opt-in melonDS resolver retain their existing format boundaries. Party/Storage and read-only detail now have a [P1 presentation](CENTER_PARTY_UI.md); real individual records and healing remain P8. Emulator states are not ordinary-save backups.
 
 ## Controller flow
 
 Y chooses the Adventure using the shared drawer. A commits the choice without launching or leaving Center; B cancels. The shelf follows that registration, including honest unavailable/unsupported states. It never substitutes another game's save. There is no independent Adventure picker in the normal Center route.
 
-Select creates a manual copy, X refreshes, and A opens restore confirmation. B cancels confirmation; L2/R2 switches between Center and Pokedex. The confirmation names the Adventure and copy date: A accepts replacement, B cancels. Y and L2/R2 cannot bypass it. Start may overlay it; L1/R1 discards it and keeps global navigation. A background operation retains its original target even if the shared choice changes; its result cannot populate the new shelf.
+Center initially shows Party. X switches Party/Storage; Select opens this save shelf. Inside the shelf, Select creates a manual copy, X refreshes, and A opens restore confirmation. B on the idle shelf returns to Party/Storage. B cancels confirmation; L2/R2 switches between Center and Pokedex. The confirmation names the Adventure and copy date: A accepts replacement, B cancels. Y and L2/R2 cannot bypass it. Start may overlay it; L1/R1 discards it and keeps global navigation. A background operation retains its original target even if the shared choice changes; its result cannot populate the new shelf.
 
 Restoration still protects current bytes first. Production state-resume selection is retired; shared choice and history survive restore. Current-save Dex/Journey projections await provider phases.
 

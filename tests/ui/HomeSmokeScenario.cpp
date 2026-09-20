@@ -130,7 +130,9 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(*starts == 2 && *returns == 2 && !shell.drawerOpen(), "A launches immediately after arbitrary D-pad input");
             press(SDL_CONTROLLER_BUTTON_Y); check(shell.drawerOpen(), "Y opens the selector independently"); press(SDL_CONTROLLER_BUTTON_A);
             check(focusIs("home-launch"), "Cancel restores the fixed page action");
-            press(SDL_CONTROLLER_BUTTON_START); press(SDL_CONTROLLER_BUTTON_DPAD_DOWN); press(SDL_CONTROLLER_BUTTON_DPAD_DOWN); press(SDL_CONTROLLER_BUTTON_B);
+            press(SDL_CONTROLLER_BUTTON_START);
+            for (int i = 0; i < 4; ++i) press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+            press(SDL_CONTROLLER_BUTTON_B);
             check(!shell.notice().isEmpty() && *starts == 2, "A in the system menu cannot launch Home's Adventure");
             press(SDL_CONTROLLER_BUTTON_A); press(SDL_CONTROLLER_BUTTON_A);
             press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);

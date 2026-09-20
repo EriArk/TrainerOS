@@ -21,6 +21,29 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void partyPresentationStaysReadOnlyAndContextBound() {
+        PartyPresentation sample(true);
+        sample.setAdventure("one", "First Adventure");
+        QCOMPARE(sample.entries().size(),6);
+        sample.activate(1); QCOMPARE(sample.detail()["hp"],"0 / 38");
+        sample.dispatch(Action::Secondary); QCOMPARE(sample.section(),"party"); // Detail owns local input.
+        sample.dispatch(Action::Back); QCOMPARE(sample.focusIndex(),1);
+        sample.dispatch(Action::Secondary); QCOMPARE(sample.entries().size(),12);
+        sample.dispatch(Action::Right); sample.dispatch(Action::Right); sample.dispatch(Action::Right);
+        sample.dispatch(Action::Right); QCOMPARE(sample.box(),1);
+        sample.dispatch(Action::Down); sample.dispatch(Action::Right); sample.activate(5);
+        QCOMPARE(sample.detail()["kind"],"unreadable");
+        sample.dispatch(Action::Back); sample.openSaves(); sample.returnFromSaves();
+        QCOMPARE(sample.section(),"storage"); QCOMPARE(sample.focusIndex(),5);
+        sample.setAdventure("one", "Same Adventure"); QCOMPARE(sample.focusIndex(),5);
+        sample.setAdventure("two", "Other Adventure"); QCOMPARE(sample.focusIndex(),0); QCOMPARE(sample.box(),0); QVERIFY(!sample.detailOpen());
+        PartyPresentation personal(false); personal.setAdventure("one", "Real Adventure");
+        QVERIFY(personal.entries().isEmpty()); QVERIFY(personal.detail().isEmpty());
+        personal.activate(0); QCOMPARE(personal.section(),"saves");
+        personal.returnFromSaves(); personal.dispatch(Action::Secondary);
+        QVERIFY(personal.entries().isEmpty()); QVERIFY(!personal.sample());
+        personal.setAdventure("missing", {}); QVERIFY(personal.status().contains("no longer linked"));
+    }
     void multiverseIsolationAndModalPriority() {
         MockLibraryRepository library; MockTrainerRepository profiles;
         MockAdventureAdapter adapter; DevelopmentPlatformService platform;
@@ -212,6 +235,7 @@ private slots:
         QCOMPARE(shell.service(),QString("settings")); QVERIFY(!shell.drawerOpen());
         shell.dispatch(Action::Back); QVERIFY(shell.menuOpen()); shell.dispatch(Action::Back);
         QVERIFY(shell.centerFace()); QVERIFY(service.busy()); service.finish();
+        shell.dispatch(Action::LocalAction); // Party/Storage opens the existing save shelf.
         shell.dispatch(Action::Confirm); QVERIFY(shell.center()->confirming());
         shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::NextFace);
         QVERIFY(!shell.drawerOpen()); QVERIFY(shell.centerFace()); QVERIFY(shell.center()->confirming());
@@ -527,7 +551,9 @@ private slots:
         shell.goToPage(3); shell.dispatch(Action::Confirm); shell.dispatch(Action::Confirm);
         auto* keyboard = shell.keyboard();
         keyboard->activate(keyIndex(*keyboard, "E"));
-        shell.dispatch(Action::SystemMenu); shell.dispatch(Action::Down); shell.dispatch(Action::Down); shell.dispatch(Action::Confirm);
+        shell.dispatch(Action::SystemMenu);
+        for (int i = 0; i < 4; ++i) shell.dispatch(Action::Down);
+        shell.dispatch(Action::Confirm); // Unavailable Desktop mode overlays the keyboard; Center is now usable.
         shell.dispatch(Action::Back); // Notice -> menu.
         QVERIFY(shell.menuOpen());
         shell.dispatch(Action::Back); // Menu -> keyboard.

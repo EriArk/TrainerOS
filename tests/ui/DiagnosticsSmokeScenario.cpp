@@ -167,6 +167,35 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
         case 35:
             check(!shell.serviceOpen() && shell.trainerSetup()->name().isEmpty(), "R1 cancels preview and clears draft");
+            press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
+            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767); input.poll();
+            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768); input.poll(); break;
+        case 36:
+            check(shell.centerFace() && focus("party-slot-0"), "Center starts on sample Party grid"); capture("center-party");
+            press(right); press(a); break;
+        case 37:
+            check(shell.party()->detailOpen() && shell.party()->detail()["hp"]=="0 / 38" && focus("party-detail-back"), "Known zero HP and detail focus"); capture("center-party-detail");
+            press(b); press(SDL_CONTROLLER_BUTTON_X); break;
+        case 38:
+            check(shell.party()->section()=="storage" && focus("party-slot-0"), "X opens bounded Storage grid"); capture("center-storage");
+            press(right); press(right); press(right); press(right); break;
+        case 39:
+            check(shell.party()->box()==1, "Storage edge changes sample box without shoulders");
+            press(down); press(right); press(a); break;
+        case 40:
+            check(shell.party()->detail()["kind"]=="unreadable", "Unreadable is distinct from empty"); capture("center-unreadable");
+            press(b); press(SDL_CONTROLLER_BUTTON_BACK); break;
+        case 41:
+            check(shell.party()->section()=="saves" && focus("center-check"), "Select reaches ordinary save service"); capture("center-sample-saves"); press(b); break;
+        case 42:
+            check(shell.party()->section()=="storage" && focus("party-slot-5"), "Back restores original box slot");
+            press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER); press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
+        case 43:
+            check(shell.centerFace() && focus("party-slot-5"), "Global pages preserve Center route");
+            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERLEFT,32767); input.poll();
+            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERLEFT,-32768); input.poll(); break;
+        case 44:
+            check(!shell.centerFace(), "Trigger returns to Pokedex");
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!output.isEmpty()) {
                 QFile report(output + "/verification.txt");

@@ -19,7 +19,11 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     : QObject(parent), repository_(repo), adapter_(adapter), platform_(platform),
       keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this), multiverse_(!repo.editable(), this),
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
-      libraryManager_(repo, nullptr, this), settings_(this), device_(this), diagnostics_(this), center_(repo,this) {
+      libraryManager_(repo, nullptr, this), settings_(this), device_(this), diagnostics_(this), center_(repo,this), party_(!repo.editable(),this) {
+    connect(&party_, &PartyPresentation::changed, this, &ShellController::changed);
+    connect(&center_, &SaveCenterController::changed, this, [this] {
+        if (center_.confirming()) party_.openSaves();
+    });
     connect(&multiverse_, &MultiversePresentation::changed, this, &ShellController::changed);
     connect(&multiverse_, &MultiversePresentation::searchRequested, this, [this](const QString& text) {
         textTarget_ = TextTarget::MultiverseSearch; keyboard_.begin("Multiverse · find a title", text, 48);
@@ -148,7 +152,7 @@ void ShellController::refreshLibrary() {
     refreshContinue();
     drawerFocus_ = 0;
     for (int i = 0; i < points_.size(); ++i) if (points_[i].id == selected) drawerFocus_ = i;
-    if (centerFace() && !serviceOpen()) center_.beginSelected(currentAdventureId());
+    if (centerFace() && !serviceOpen()) openCenter();
     emit changed();
 }
 QString ShellController::currentAdventureId() const {
@@ -168,11 +172,13 @@ bool ShellController::chooseAdventureAvailable() {
 bool ShellController::pairedNavigationAvailable() {
     if (page_ == 1) return !serviceOpen() && !menuOpen_ && notice_.isEmpty()
         && !keyboard_.isOpen() && !localModalOpen() && !drawerOpen_;
-    return (page_ == 4 || (page_ == 2 && center_.configured())) && chooseAdventureAvailable() && !drawerOpen_;
+    return (page_ == 4 || page_ == 2) && chooseAdventureAvailable() && !drawerOpen_;
 }
 void ShellController::openCenter() {
     centerFace_ = true;
     center_.beginSelected(currentAdventureId());
+    const auto adventure = homeAdventure();
+    party_.setAdventure(currentAdventureId(), adventure ? adventure->title : QString());
 }
 void ShellController::refreshContinue() {
     points_.clear();
@@ -209,7 +215,7 @@ int ShellController::focusIndex() const {
     if (service_ == "center") return center_.focusIndex();
     if (trainer_.editing()) return trainer_.focusIndex();
     if (page_ == 1) return multiverseFace_ ? multiverse_.focusIndex() : worlds_.focusIndex();
-    if (page_ == 2) return centerFace_ ? center_.focusIndex() : pokedex_.focusIndex();
+    if (page_ == 2) return centerFace_ ? (party_.section() == "saves" ? center_.focusIndex() : party_.focusIndex()) : pokedex_.focusIndex();
     if (page_ == 4) return hall_.focusIndex();
     return drawerOpen_ ? drawerFocus_ : 0;
 }
@@ -235,7 +241,7 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     hall_.restoreNavigation(state["hall"].toObject());
     drawerFocus_ = 0;
     for (int i = 0; i < points_.size(); ++i) if (points_[i].id == state["resume"].toString()) drawerFocus_ = i;
-    centerFace_ = center_.configured() && state["pokedexFace"].toString() == "center";
+    centerFace_ = state["pokedexFace"].toString() == "center";
     if (centerFace()) openCenter();
     emit changed();
 }
@@ -405,7 +411,10 @@ void ShellController::activate(int index, const QString& area) {
         return;
     }
     else if (page_ == 2) {
-        if (centerFace_) { center_.activate(index); return; }
+        if (centerFace_) {
+            if (party_.section() == "saves") center_.activate(index); else party_.activate(index);
+            return;
+        }
         if (area.isEmpty()) pokedex_.activate(index);
         else pokedex_.activateControl(area, index);
         return;
@@ -461,7 +470,7 @@ void ShellController::confirm() {
             return;
         }
 
-        if(menuFocus_==2 && center_.configured()) {
+        if(menuFocus_==2) {
             centerFace_ = false; goToPage(2); openCenter(); return;
         }
         if (menuFocus_ == 0 || menuFocus_ == 1 || menuFocus_ == 3) {
@@ -493,7 +502,7 @@ void ShellController::confirm() {
             homeAdventureId_ = adventure.id; homeResumeId_ = point.resumePoint ? point.id : QString();
             homeResumeSource_ = point.resumePoint ? point.resumePoint->source : ResumeSource{};
             drawerOpen_ = false;
-            if (centerFace()) center_.beginSelected(currentAdventureId());
+            if (centerFace()) openCenter();
             return;
         }
         notice_ = "This Adventure is unavailable. Its history has been kept.";
@@ -599,7 +608,11 @@ void ShellController::dispatch(Action action) {
             return;
         }
         if (page_ == 2) {
-            if (centerFace_) center_.dispatch(action);
+            if (centerFace_) {
+                if (party_.section() != "saves") party_.dispatch(action);
+                else if (action == Action::Back && !center_.confirming() && !center_.busy()) party_.returnFromSaves();
+                else center_.dispatch(action);
+            }
             else pokedex_.dispatch(action == Action::LocalAction && !localModalOpen() ? Action::ToggleContinue : action);
             return;
         }

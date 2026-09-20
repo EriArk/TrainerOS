@@ -45,7 +45,7 @@ void startCenterSmoke(QQuickWindow* window,ShellController& shell,SessionState& 
             shell.restoreNavigation({{"version",1},{"page","home"},{"homeAdventure","center-fixture"},{"homeResume","old-moment"}});
             press(start);press(down,2);press(a);break;
         case 2:
-            check(shell.centerFace()&&shell.service().isEmpty()&&focus("center-check"),"System-menu Center opens the shared Adventure's shelf directly");capture("selected-adventure");break;
+            check(shell.centerFace()&&shell.service().isEmpty()&&focus("party-unavailable"),"System-menu Center opens honest Party availability");capture("selected-adventure");press(select);break;
         case 3:
             check(shell.center()->canCreate()&&focus("center-check"),"Empty shelf keeps focus and offers backup");capture("empty");press(select);break;
         case 4:

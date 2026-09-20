@@ -628,12 +628,12 @@ int main(int argc, char* argv[]) {
                         check(shell.menuOpen() && focusIs("menu-0"), "Start traps focus above keyboard");
                         press(SDL_CONTROLLER_BUTTON_Y);
                         check(shell.keyboard()->text() == "ERI 2", "Y must not change text under menu");
-                        press(down); press(down); press(a); break; // The unavailable Center service overlays the keyboard.
+                        taps(down, 4); press(a); break; // Unavailable Desktop mode overlays the keyboard; Center is now usable.
                     case 15:
                         check(focusIs("notice-close"), "notice traps focus above menu and keyboard");
                         press(b); break;
                     case 16:
-                        check(focusIs("menu-2"), "Back restores system-menu opener");
+                        check(focusIs("menu-4"), "Back restores system-menu opener");
                         press(b);
                         check(focusIs("key-2") && shell.keyboard()->text() == "ERI 2", "Back restores exact key and draft");
                         taps(down, 3); press(left); press(a); // Apply

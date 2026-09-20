@@ -389,3 +389,7 @@ The Home selector is labeled **Choose Adventure**. Y opens/closes it, A on a car
 TrainerOS starts with a hidden cursor. Touch input hides it without consuming the touch or its synthesized mouse click. The dedicated handheld session keeps the shell window's cursor blank, including Gamescope's touch-to-mouse events and Qt Quick's later cursor resets. This policy belongs to TrainerOS's window and does not alter Adventure or maintenance-desktop cursors. In a normal desktop window, genuine mouse input restores the cursor; controller actions hide it again.
 
 Acceptance: Qt Quick touch and mouse events still activate controls; the handheld cursor stays hidden through press/release, while desktop mouse use restores it. Another window retains its own cursor. Verify the live Gamescope cursor as well as rendered controller navigation. Automated input does not substitute for physical finger calibration.
+
+## Center Party/Storage presentation - 2026-09-20
+
+Center now opens Party initially; X switches Party/Storage, A opens a read-only slot detail, A/B returns to its grid. Select opens ordinary-save backups; inside that shelf existing Select backup and X refresh remain, while idle B returns to the prior grid. L1/R1 and L2/R2 keep global/paired ownership. Shared Y changes the same Pokemon context and clears obsolete detail on a different choice. Production shows reader-unavailable states, not sample individuals. [Exact P1 boundary and remaining integration](CENTER_PARTY_UI.md).

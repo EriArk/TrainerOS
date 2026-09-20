@@ -47,7 +47,7 @@ Item {
         MountedPanel {
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
             height: 88; color: "#c6dcca"
-            Text { x: 31; y: 7; width: parent.width-62; text: root.center.route==="adventures"?(root.center.query?"Search · "+root.center.query:"↑ / ↓ Browse · ← / → Jump 8 · A Open save shelf"):"A Restore selected copy · your current save is protected first"; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 12 }
+            Text { x: 31; y: 7; width: parent.width-62; text: root.center.route==="adventures"?(root.center.query?"Search · "+root.center.query:"↑ / ↓ Browse · ← / → Jump 8 · A Open save shelf"):"A Restore selected copy · your current save is protected first · B Party / Storage"; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 12 }
             CapButton { objectName: "center-check"; x: 30; y: 34; width: 270; height: 40; label: root.center.busy?"Checking saves…":"X Check again"; tint: Theme.blue; selected: root.takesFocus && !root.center.confirming && (root.center.busy || list.count===0); onActivated: root.center.refresh() }
             CapButton { x: 324; y: 34; width: 270; height: 40; visible: root.center.route==="copies"; label: root.center.canCreate?"Select New backup":"No save to copy"; tint: root.center.canCreate?Theme.yellow:"#c4cdc7"; onActivated: root.center.create() }
         }

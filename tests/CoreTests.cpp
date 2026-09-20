@@ -35,7 +35,7 @@ private slots:
         shell.dispatch(Action::SystemMenu);
         shell.dispatch(Action::ToggleContinue);
         QVERIFY(shell.drawerOpen());
-        shell.dispatch(Action::Down); shell.dispatch(Action::Down); // Center remains an informational notice.
+        for (int i = 0; i < 4; ++i) shell.dispatch(Action::Down); // Unavailable Desktop mode remains an informational notice.
         shell.dispatch(Action::Confirm);
         QVERIFY(!shell.notice().isEmpty());
         shell.dispatch(Action::Back);
@@ -66,6 +66,9 @@ private slots:
         shell.goToPage(1); shell.dispatch(Action::SystemMenu);
         shell.dispatch(Action::Home);
         QCOMPARE(shell.page(), 0); QVERIFY(!shell.menuOpen());
+        shell.goToPage(2); shell.dispatch(Action::NextFace);
+        QVERIFY(shell.centerFace()); QVERIFY(!shell.center()->configured());
+        QCOMPARE(shell.party()->section(), "party"); QVERIFY(shell.notice().isEmpty());
     }
     void repositoryAndAdapter() {
         MockLibraryRepository repo;

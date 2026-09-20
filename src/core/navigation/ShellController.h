@@ -15,6 +15,7 @@
 #include "features/device/DeviceController.h"
 #include "features/diagnostics/DiagnosticsController.h"
 #include "features/center/SaveCenterController.h"
+#include "features/center/PartyPresentation.h"
 #include "integrations/adventure/AdventureAdapter.h"
 #include "platform/PlatformService.h"
 #include <QObject>
@@ -47,6 +48,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(trainer::DeviceController* device READ device CONSTANT)
     Q_PROPERTY(trainer::DiagnosticsController* diagnostics READ diagnostics CONSTANT)
     Q_PROPERTY(trainer::SaveCenterController* center READ center CONSTANT)
+    Q_PROPERTY(trainer::PartyPresentation* party READ party CONSTANT)
     Q_PROPERTY(QString service READ service NOTIFY changed)
     Q_PROPERTY(bool serviceOpen READ serviceOpen NOTIFY changed)
     Q_PROPERTY(bool sampleLibrary READ sampleLibrary CONSTANT)
@@ -72,6 +74,7 @@ public:
     DeviceController* device() { return &device_; }
     DiagnosticsController* diagnostics() { return &diagnostics_; }
     SaveCenterController* center() { return &center_; }
+    PartyPresentation* party() { return &party_; }
     QString service() const { return service_; }
     bool serviceOpen() const { return !service_.isEmpty(); }
     bool sampleLibrary() const { return !repository_.editable(); }
@@ -129,6 +132,7 @@ private:
     DeviceController device_;
     DiagnosticsController diagnostics_;
     SaveCenterController center_;
+    PartyPresentation party_;
     QString service_;
     enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, Archive, PokedexNote, TrainerFavorite, CenterSearch, AchievementAccount, SetupName };
     TextTarget textTarget_ = TextTarget::None;
