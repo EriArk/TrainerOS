@@ -48,7 +48,7 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         constexpr auto left = SDL_CONTROLLER_BUTTON_DPAD_LEFT, right = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
         constexpr auto l1 = SDL_CONTROLLER_BUTTON_LEFTSHOULDER, r1 = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER;
         constexpr auto start = SDL_CONTROLLER_BUTTON_START;
-        constexpr auto x = SDL_CONTROLLER_BUTTON_X, y = SDL_CONTROLLER_BUTTON_Y;
+        constexpr auto x = SDL_CONTROLLER_BUTTON_Y, y = SDL_CONTROLLER_BUTTON_X;
         auto* hall = shell.hall();
         switch ((*stage)++) {
         case -6: check(input.connected(), "Controller unavailable"); press(r1, 4); break;

@@ -151,7 +151,7 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
         case 44:
             check(focusIs("key-A"), "Journal note uses shared controller keyboard");press(a);press(down,3);press(right);press(a);break;
         case 45:
-            check(focusIs("journal-field-2"), "Keyboard returns to note field");capture("journal-filled");press(SDL_CONTROLLER_BUTTON_Y);break;
+            check(focusIs("journal-field-2"), "Keyboard returns to note field");capture("journal-filled");press(SDL_CONTROLLER_BUTTON_X);break;
         case 46:
             check(!dex->journal()->isOpen() && dex->detail()["notes"]=="A", "Journal Save commits note");
             check(dex->detail()["caught"]=="Yes" && dex->detail()["seen"]=="Yes", "Caught includes Seen");

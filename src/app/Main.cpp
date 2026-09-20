@@ -561,7 +561,7 @@ int main(int argc, char* argv[]) {
                     case 0:
                         check(input.connected(), "virtual controller not connected");
                         check(shell.page() == 0 && focusIs("home-launch"), "initial Home focus");
-                        capture("home"); press(SDL_CONTROLLER_BUTTON_Y); break;
+                        capture("home"); press(SDL_CONTROLLER_BUTTON_X); break;
                     case 1:
                         check(shell.drawerOpen() && focusIs("resume-0"), "Y opens drawer and focuses first card");
                         capture("continue"); press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT); press(SDL_CONTROLLER_BUTTON_B); break;
@@ -569,7 +569,7 @@ int main(int argc, char* argv[]) {
                         check(shell.notice().isEmpty() && !shell.drawerOpen() && focusIs("home-launch"), "Selection returns to Home without launch");
                         check(shell.home()["adventureId"] == "crystal-demo", "Selected Adventure rebuilds Home");
                         capture("home-selected");
-                        press(SDL_CONTROLLER_BUTTON_Y); break;
+                        press(SDL_CONTROLLER_BUTTON_X); break;
                     case 3:
                         check(shell.focusIndex() == 1 && focusIs("resume-1"), "Back restores resume card");
                         press(SDL_CONTROLLER_BUTTON_START); break;
@@ -626,9 +626,9 @@ int main(int argc, char* argv[]) {
                         capture("keyboard-name"); press(SDL_CONTROLLER_BUTTON_START); break;
                     case 14:
                         check(shell.menuOpen() && focusIs("menu-0"), "Start traps focus above keyboard");
-                        press(SDL_CONTROLLER_BUTTON_Y);
+                        press(SDL_CONTROLLER_BUTTON_X);
                         check(shell.keyboard()->text() == "ERI 2", "Y must not change text under menu");
-                        taps(down, 4); press(a); break; // Unavailable Desktop mode overlays the keyboard; Center is now usable.
+                        taps(down, 3); press(a); break; // Unavailable Desktop mode overlays the keyboard; Center is now usable.
                     case 15:
                         check(focusIs("notice-close"), "notice traps focus above menu and keyboard");
                         press(b); break;
@@ -712,7 +712,7 @@ int main(int argc, char* argv[]) {
                         capture("hall-of-fame-1080p");
                         taps(SDL_CONTROLLER_BUTTON_LEFTSHOULDER, 4);
                         adapter.setSource("crystal-1", ""); shell.refreshLibrary();
-                        press(SDL_CONTROLLER_BUTTON_Y); break;
+                        press(SDL_CONTROLLER_BUTTON_X); break;
                     case 28:
                         check(focusIs("resume-1"), "Refresh keeps Continue focus by identity");
                         check(shell.resumePoints()[1].toMap()["previewLabel"] == "Saved moment unavailable", "Missing source is labelled");
@@ -750,8 +750,8 @@ int main(int argc, char* argv[]) {
                         capture("battery-unavailable"); break;
                     case 36:
                         shell.keyboard()->begin("Password preview", "", 64, true);
-                        press(a); press(SDL_CONTROLLER_BUTTON_X); press(a);
-                        press(SDL_CONTROLLER_BUTTON_Y); press(a);
+                        press(a); press(SDL_CONTROLLER_BUTTON_Y); press(a);
+                        press(SDL_CONTROLLER_BUTTON_X); press(a);
                         check(shell.keyboard()->text() == "aA!", "Controller case and symbol entry");
                         break;
                     case 37:
@@ -760,7 +760,7 @@ int main(int argc, char* argv[]) {
                             check(field->property("text").toString() == QString(3, QChar(0x2022)) + QChar(0x2502), "Rendered password contains only bullets and cursor");
                         else check(false, "Password display exists");
                         capture("keyboard-secret-symbols");
-                        press(SDL_CONTROLLER_BUTTON_Y); break;
+                        press(SDL_CONTROLLER_BUTTON_X); break;
                     case 38:
                         capture("keyboard-symbols-second-page");
                         taps(right, 6); press(a);

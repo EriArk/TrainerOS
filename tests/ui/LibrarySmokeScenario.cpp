@@ -89,7 +89,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
             switch ((*stage)++) {
             case 0:
                 check(store.adventures().isEmpty() && !shell.sampleLibrary(), "Personal library must start empty");
-                capture("empty-home"); press(next); press(start); press(down, 3); press(a); break;
+                capture("empty-home"); press(next); press(start); press(down, 2); press(a); break;
             case 1:
                 check(shell.service() == "library" && focusIs("manage-action-0"), "Library entry focus"); capture("empty-library");
                 press(a); press(down, 2); press(a); break;
@@ -120,7 +120,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 press(previous); press(a); press(a); break; // Kanto secondary listing / detail.
             case 8:
                 check(shell.worlds()->detail()["title"] == "journeyA" && focusIs("world-action-setup"), "Personal Adventure offers setup without claiming it can launch");
-                capture("personal-adventure"); press(start); press(up, 3); press(a); press(a); press(a); break;
+                capture("personal-adventure"); press(start); press(up, 2); press(a); press(a); press(a); break;
             case 9:
                 check(shell.settings()->theme() == "red" && focusIs("settings-control-0"), "Persisted red theme"); capture("theme-red"); press(a); break;
             case 10: check(shell.settings()->theme() == "green", "Green theme"); capture("theme-green"); press(a); break;
@@ -128,25 +128,25 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
             case 12: check(shell.settings()->theme() == "orange", "Orange theme"); capture("theme-orange"); press(down); press(a); break;
             case 13:
                 check(shell.settings()->reducedMotion(), "Reduced motion saved"); capture("motion-settings");
-                press(b); press(down,5); press(a); press(a); break;
+                press(b); press(down); press(a); break;
             case 14:
-                check(shell.service() == "device" && focusIs("device-0"), "Handheld controls receive controller focus");
+                check(shell.service() == "settings" && focusIs("settings-control-0"), "Handheld controls receive controller focus");
                 capture("device-controls"); press(right); break;
             case 15:
                 check(shell.device()->rows()[0].toMap()["value"].toString().startsWith("40%"), "D-pad changes volume through the device service");
                 press(a); break;
             case 16:
                 check(shell.device()->rows()[0].toMap()["value"].toString().contains("Muted"), "A toggles mute");
-                press(down); press(left); break;
+                press(b); press(up); press(a); press(down,2); press(left); break;
             case 17:
                 check(shell.device()->rows()[1].toMap()["value"].toString().startsWith("55%"), "D-pad changes brightness");
-                press(down, 4); break;
+                press(b); press(down,5); press(a); press(down,2); break;
             case 18:
-                check(focusIs("device-5"), "Last device action is visible and reachable"); capture("device-controls-back");
+                check(focusIs("settings-control-2"), "Last device action is visible and reachable"); capture("device-controls-back");
                 press(b); break;
             case 19:
-                check(shell.service() == "settings" && focusIs("settings-control-0"), "B restores the Settings entry");
-                press(b); press(down); press(a); break;
+                check(shell.service() == "settings" && focusIs("settings-category-5"), "B restores the Settings category");
+                press(down); press(a); break;
             case 20:
                 check(shell.settings()->creditsOpen() && focusIs("credits-back"), "Credits reachable with controller");
                 capture("badge-credits"); press(start); press(b); break;
@@ -167,7 +167,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 check(shell.settings()->theme() == "orange" && shell.settings()->reducedMotion(), "Settings survived restart");
                 window->resize(1920, 1080); break;
             case 1:
-                capture("personal-adventure-1080p"); press(start); press(down, 3); press(a); press(a); break;
+                capture("personal-adventure-1080p"); press(start); press(down, 2); press(a); press(a); break;
             case 2:
                 check(manager->fields()[0].toMap()["value"] == "journeyA", "Edit reads committed metadata");
                 press(a); press(a); press(b); press(b); // Discard keyboard then form.
@@ -201,7 +201,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
             case 0:
                 check(store.worlds().size() == 10 && shell.worlds()->region()["name"] == "A", "Custom World survived second restart");
                 check(shell.worlds()->detail()["title"] == "journeyA", "Adventure survived second restart");
-                press(previous); press(SDL_CONTROLLER_BUTTON_Y); break;
+                press(previous); press(SDL_CONTROLLER_BUTTON_X); break;
             case 1:
                 check(shell.page() == 0 && shell.drawerOpen() && focusIs("resume-empty"), "Empty Continue focus");
                 if (auto* drawer = window->findChild<QQuickItem*>("continue-drawer")) check(drawer->height() == 229, "Reduced motion completes drawer geometry");

@@ -176,7 +176,7 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             press(l1); break;
         case 29:
             check(focusIs("world-action-launch") && shell.worlds()->detail()["id"] == "emerald-trails-demo", "Detail survives global menu/page transitions");
-            press(b); press(SDL_CONTROLLER_BUTTON_X); break;
+            press(b); press(SDL_CONTROLLER_BUTTON_Y); break;
         case 30:
             check(shell.keyboard()->isOpen(), "X opens the shared controller keyboard");
             press(right, 7); press(down); press(a); // R
@@ -190,21 +190,21 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
         case 32:
             check(!shell.keyboard()->isOpen() && shell.worlds()->adventures().size() == 1 && focusIs("adventure-ruby-demo"), "Applying search focuses its result");
             capture("worlds-search-results");
-            press(SDL_CONTROLLER_BUTTON_Y, 2); break;
+            press(SDL_CONTROLLER_BUTTON_X, 2); break;
         case 33:
             check(shell.worlds()->filterLabel() == "Missing" && shell.worlds()->adventures().isEmpty() && focusIs("world-list-back"), "Empty search/filter combination has visible recovery");
-            capture("worlds-filter-empty"); press(start); press(SDL_CONTROLLER_BUTTON_X);
+            capture("worlds-filter-empty"); press(start); press(SDL_CONTROLLER_BUTTON_Y);
             check(!shell.keyboard()->isOpen(), "Search does not bypass the system menu");
-            press(b); press(SDL_CONTROLLER_BUTTON_Y); break;
+            press(b); press(SDL_CONTROLLER_BUTTON_X); break;
         case 34:
             check(focusIs("adventure-ruby-demo"), "Filter restores a matching row");
-            press(SDL_CONTROLLER_BUTTON_X); press(a); press(b);
+            press(SDL_CONTROLLER_BUTTON_Y); press(a); press(b);
             check(shell.worlds()->query() == "RUBY" && focusIs("adventure-ruby-demo"), "Cancelled draft restores the original search and focus");
-            press(SDL_CONTROLLER_BUTTON_X); press(a); press(r1); break;
+            press(SDL_CONTROLLER_BUTTON_Y); press(a); press(r1); break;
         case 35:
             check(shell.page() == 2 && !shell.keyboard()->isOpen(), "R1 cancels search draft and switches section");
             press(l1); check(shell.worlds()->query() == "RUBY", "Committed search survives page changes");
-            press(SDL_CONTROLLER_BUTTON_X); press(down, 2); press(right, 7); press(a); // Clear
+            press(SDL_CONTROLLER_BUTTON_Y); press(down, 2); press(right, 7); press(a); // Clear
             press(down); press(a); break; // Apply
         case 36:
             check(shell.worlds()->query().isEmpty() && shell.worlds()->adventures().size() == 5, "Controller Clear restores the complete list");
@@ -229,13 +229,13 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             press(a); break;
         case 43:
             check(shell.page() == 0 && shell.multiverseHome() && focusIs("multiverse-launch"), "Selection opens independent Multiverse Home");
-            capture("multiverse-home"); press(SDL_CONTROLLER_BUTTON_Y); break;
+            capture("multiverse-home"); press(SDL_CONTROLLER_BUTTON_X); break;
         case 44:
             check(shell.drawerOpen() && shell.resumePoints().size() == 3, "Multiverse-only drawer"); capture("multiverse-choose");
             press(right); press(a); press(a); break;
         case 45:
             check(shell.notice().contains("No game was launched"), "Sample Home does not launch"); press(b);
-            press(SDL_CONTROLLER_BUTTON_X); break;
+            press(SDL_CONTROLLER_BUTTON_Y); break;
         case 46:
             check(!shell.multiverseHome() && focusIs("home-launch"), "X returns to Pokemon Home");
             capture("pokemon-home-context"); press(r1); break;
@@ -244,7 +244,7 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             flipFace(); break;
         case 48:
             check(focusIs("world-action-launch") && shell.worlds()->detail()["id"] == "emerald-trails-demo", "Pokemon detail survives paired browser");
-            flipFace(); press(b); press(SDL_CONTROLLER_BUTTON_X); break;
+            flipFace(); press(b); press(SDL_CONTROLLER_BUTTON_Y); break;
         case 49:
             check(shell.keyboard()->isOpen(), "Multiverse uses controller keyboard"); capture("multiverse-search");
             flipFace(); check(shell.multiverseFace(), "Keyboard traps face switching"); press(b); press(b); press(down); press(a); break;

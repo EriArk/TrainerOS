@@ -435,3 +435,12 @@ Older module notes use milestones **0–14** from the [previous plan](https://gi
 Review actual changes and acceptance; run affected native checks, broader tests for shared input/storage/lifecycle, and rendered SDL controller scenarios for QML. Inspect 960×540/1920×1080 and Flip layouts. Preserve L1/R1, A/Y selection-versus-launch, planned Home X context switching, Back/modal priority; cover offline/unknown/empty/corrupt states. Fixtures are not device proof. Update engineering docs and capability facts with each delivered feature; update the matching product Help article once P11 exists; complete the #34 screen/state matrix as screens land.
 
 Keep credentials, private reports/manifests, ROMs, BIOS, saves and unlicensed artwork out of Git. Documentation-only planning needs content/link/diff checks, not an unrelated rebuild. Stage reviewed paths, commit, fetch/integrate remote work, push normally and verify remote SHA/final status. Do not run/poll GitHub Actions. See [workflow](DEVELOPMENT_WORKFLOW.md).
+
+### Settings refinement - owner follow-up, 2026-09-20
+
+The current P1 slice embeds Trainer/profile editing and System readings/actions
+in the Android-style category/detail layout. Controller moves from Start into
+Settings; Start retains only volume/brightness quick controls, with theme in
+Appearance. X/Y join A/B in the complete Switch shell layout. This does not
+advance P2 ownership, PIN enforcement, save research or device capabilities;
+all remaining roadmap commitments and the P1 audit keep their order.

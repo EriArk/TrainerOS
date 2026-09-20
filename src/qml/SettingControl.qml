@@ -21,13 +21,13 @@ Item {
     Component.onCompleted: if(selected && visible) forceActiveFocus(Qt.OtherFocusReason)
     Rectangle { anchors.fill: parent; radius: 10; color: root.selected ? "#fff4ce" : "#eaf0e6"; border.color: root.selected ? Theme.focus : "#bdcdbd"; border.width: root.selected ? 3 : 1 }
     Rectangle { anchors.fill: parent; anchors.margins: -3; radius: 13; color: "transparent"; visible: root.selected; border.width: 3; border.color: Theme.focusGlow; opacity: 0.45 }
-    Text { x: 13; y: root.compact ? 4 : 12; text: root.title; color: root.kind === "unavailable" ? Theme.muted : Theme.ink; font.pixelSize: root.compact ? 13 : 19; font.bold: !root.compact }
+    Text { x: 13; y: root.compact ? 4 : root.height<60 ? 6 : 12; text: root.title; textFormat: Text.PlainText; color: root.kind === "unavailable" ? Theme.muted : Theme.ink; font.pixelSize: root.compact ? 13 : root.height<60 ? 16 : 19; font.bold: !root.compact }
     Text {
         anchors.right: parent.right; anchors.rightMargin: 14; y: root.compact ? 4 : 12
         text: root.slider ? root.level < 0 ? "Unavailable" : (root.muted ? "Muted · " : "") + root.level + "%" : root.kind === "theme" ? Theme.themeId : ""
         color: Theme.muted; font.pixelSize: root.compact ? 12 : 15
     }
-    Text { x: 13; y: 42; width: parent.width-85; text: root.detail; visible: !root.compact && !root.slider && root.kind !== "theme"; font.pixelSize: 14; color: Theme.muted; elide: Text.ElideRight }
+    Text { x: 13; y: root.height<60 ? 30 : 42; width: parent.width-85; text: root.detail; textFormat: Text.PlainText; visible: !root.compact && !root.slider && root.kind !== "theme"; font.pixelSize: 14; color: Theme.muted; elide: Text.ElideRight }
     Rectangle {
         id: track; x: 14; y: root.compact ? 27 : 51; width: parent.width-28; height: root.compact ? 7 : 9; radius: height/2
         visible: root.slider; color: "#b2c4b8"

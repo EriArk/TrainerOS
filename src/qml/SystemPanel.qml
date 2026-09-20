@@ -26,7 +26,7 @@ Item {
                 visible: root.shell.notice.length === 0
                 Column {
                     x: 14; y: 8; width: parent.width-28; spacing: 4; visible: !root.shell.powerMenu
-                    Repeater { model: 3
+                    Repeater { model: 2
                         SettingControl {
                             required property int index
                             objectName: "menu-"+(index+7); width: parent.width; height: 40; compact: true
@@ -41,15 +41,16 @@ Item {
                     }
                 }
                 Repeater {
-                    model: root.shell.powerMenu ? root.shell.menuItems : root.shell.menuItems.slice(0,7)
+                    model: root.shell.powerMenu ? root.shell.menuItems : [0,2,3,4,5,6].map(i => root.shell.menuItems[i])
                     CapButton {
                         required property int index; required property string modelData
-                        objectName: "menu-"+index; x: 14; y: root.shell.powerMenu ? 32+index*45 : 142+index*32
-                        width: parent.width-28; height: root.shell.powerMenu ? 39 : 29; textSize: root.shell.powerMenu ? 15 : 15
+                        readonly property int actionIndex: root.shell.powerMenu ? index : [0,2,3,4,5,6][index]
+                        objectName: "menu-"+actionIndex; x: 14; y: root.shell.powerMenu ? 32+index*45 : 104+index*39
+                        width: parent.width-28; height: 34; textSize: root.shell.powerMenu ? 15 : 15
                         label: modelData; warning: root.shell.powerMenu && index<2
                         tint: root.shell.powerMenu && index<2 ? Theme.pink : Theme.green
-                        selected: root.shell.menuOpen && !root.shell.notice.length && root.shell.focusIndex===index
-                        onActivated: root.shell.activate(index)
+                        selected: root.shell.menuOpen && !root.shell.notice.length && root.shell.focusIndex===actionIndex
+                        onActivated: root.shell.activate(actionIndex)
                     }
                 }
                 Text { x: 18; anchors.bottom: parent.bottom; anchors.bottomMargin: 3; text: "X  Quick controls    Left / Right adjust"; visible: !root.shell.powerMenu && !root.shell.device.error.length && !root.shell.settings.error.length; color: Theme.muted; font.pixelSize: 11 }

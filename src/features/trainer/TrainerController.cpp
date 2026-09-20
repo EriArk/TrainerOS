@@ -124,11 +124,15 @@ void TrainerController::activate(int index) {
     }
     emit changed();
 }
-void TrainerController::dispatch(Action action) {
+void TrainerController::dispatch(Action action, bool vertical) {
     if (!editing_) return;
     if (picker_.isOpen()) { picker_.dispatch(action); return; }
     if (action == Action::Back) { cancel(); return; }
     if (action == Action::Confirm) { activate(focus_); return; }
+    if (vertical && (action == Action::Up || action == Action::Down)) {
+        focus_ = std::clamp(focus_ + (action == Action::Down ? 1 : -1), 0, 4);
+        emit changed(); return;
+    }
     if (action == Action::Up) focus_ = focus_ >= 3 ? 2 : std::max(0, focus_ - 1);
     if (action == Action::Down) focus_ = focus_ < 3 ? focus_ + 1 : focus_;
     if (action == Action::Right && focus_ == 3) focus_ = 4;

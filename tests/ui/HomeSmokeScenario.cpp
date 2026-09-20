@@ -91,7 +91,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         case 1:
             check(store.recentSessions().size() == 5 && shell.home()["adventureId"] == "home-4", "Latest launch is the default Home");
             check(focusIs("home-launch"), "Main button has initial focus");
-            press(SDL_CONTROLLER_BUTTON_Y); break;
+            press(SDL_CONTROLLER_BUTTON_X); break;
         case 2:
             for (int i = 0; i < 4; ++i) press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
             break;
@@ -128,7 +128,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             press(SDL_CONTROLLER_BUTTON_B); break;
         case 8:
             check(*starts == 2 && *returns == 2 && !shell.drawerOpen(), "A launches immediately after arbitrary D-pad input");
-            press(SDL_CONTROLLER_BUTTON_Y); check(shell.drawerOpen(), "Y opens the selector independently"); press(SDL_CONTROLLER_BUTTON_A);
+            press(SDL_CONTROLLER_BUTTON_X); check(shell.drawerOpen(), "Y opens the selector independently"); press(SDL_CONTROLLER_BUTTON_A);
             check(focusIs("home-launch"), "Cancel restores the fixed page action");
             press(SDL_CONTROLLER_BUTTON_START);
             for (int i = 0; i < 4; ++i) press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);

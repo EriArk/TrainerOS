@@ -28,13 +28,14 @@ QVariantList SettingsController::controls() const {
     case 1: return {row("Volume","volume",""),row("Interface sounds","unavailable","Sound packs are not available yet"),row("Background music","unavailable","Music playback is not available yet")};
     case 2: return {row("Adventure pictures","status","Clean exit pictures appear on Home and in your selector"),row("Pokedex illustrations","status","Optional artwork has separate source credits"),row("Video previews","unavailable","Playback is not available yet")};
     case 3: return {row("Charger vibration","unavailable","Patterns have not been verified on this handheld"),row("Device lighting","unavailable","Lighting support has not been verified")};
-    case 4: return {row("Trainer & accounts","action","Profile and RetroAchievements")};
-    case 5: return {row("Your handheld","action","Connection, storage and power")};
+    case 4: return {row("Trainer profile","action","Name, emblem and favorite"),row("RetroAchievements","action","Manage your account"),row("Separate Trainers & PIN","unavailable","Not available yet")};
+    case 5: return {row("Refresh status","action",""),row("Restart","action",""),row("Power off","action","")};
+    case 7: return {row("Check controller","action","Test buttons, sticks and triggers"),row("Button layout","status","Right A confirms; bottom B goes back"),row("Page navigation","status","L1 / R1 pages; L2 / R2 paired views")};
     default: return {};
     }
 }
 void SettingsController::selectCategory(int index, bool enter) {
-    category_ = std::clamp(index,0,6); row_=0; pane_=enter;
+    category_ = std::clamp(index,0,7); row_=0; pane_=enter;
     emit changed();
 }
 void SettingsController::activateRow(int index) {
@@ -42,8 +43,9 @@ void SettingsController::activateRow(int index) {
     if(category_==0 && row_<2) activate(row_);
     else if(category_==0 && row_==2) emit quickAdjustment(1,Action::Confirm);
     else if(category_==1 && row_==0) emit quickAdjustment(0,Action::Confirm);
-    else if(category_==4) emit trainerRequested();
-    else if(category_==5) emit deviceRequested();
+    else if(category_==4) emit trainerRequested(row_);
+    else if(category_==5) emit deviceRequested(row_);
+    else if(category_==7 && row_==0) emit controllerRequested();
     emit changed();
 }
 void SettingsController::cycleTheme(int direction) {

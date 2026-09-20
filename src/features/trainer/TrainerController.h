@@ -41,7 +41,7 @@ public:
     void beginEdit();
     void cancel();
     void setDraftName(const QString& name);
-    void dispatch(Action);
+    void dispatch(Action, bool vertical = false);
     Q_INVOKABLE void activate(int index);
 signals:
     void changed();

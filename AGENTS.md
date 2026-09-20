@@ -99,7 +99,7 @@ Always preserve:
 - D-pad / left stick = focus navigation
 - `A` = confirm/open
 - `B` = back/close
-- A/B physical shell positions follow Switch: right A confirms, bottom B goes back (owner clarification 2026-09-19). SDL's Xbox positional names are B/east and A/south; translate centrally, not per feature. This does not remap emulator gameplay.
+- A/B physical shell positions follow Switch: right A confirms, bottom B goes back (owner clarification 2026-09-19). SDL's Xbox positional names are B/east and A/south; translate centrally, not per feature. North X is SDL Y and west Y is SDL X; translate those centrally too. This does not remap emulator gameplay.
 - `Start` = TrainerOS system menu
 - Physical `Home/Guide` returns to the Home page when no Adventure is running; during a supported Adventure it requests the guarded exit question. It never bypasses an active storage/service gate or directly kills a game.
 - P1 #9 `Y` = shared Choose Adventure on Pokémon Home, Pokédex, Center, Hall/RA and Trainer; Worlds local Y and modal/keyboard/system/recovery priority remain. Multi-Trainer/domain consumers remain planned. [Delivered boundary](docs/SHARED_ADVENTURE.md).

@@ -88,7 +88,7 @@ Item {
             Row {
                 x: 30; y: 12; spacing: 12
                 Repeater {
-                    model: ["Refresh display", root.checks.saving ? "Saving report…" : "Save report", "Reset checks", "Back to system menu"]
+                    model: ["Refresh display", root.checks.saving ? "Saving report…" : "Save report", "Reset checks", "Back to settings"]
                     delegate: CapButton {
                         required property int index; required property string modelData
                         objectName: "diagnostic-action-" + index

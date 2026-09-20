@@ -115,8 +115,8 @@ void ControllerInput::poll() {
         {SDL_CONTROLLER_BUTTON_GUIDE, Action::Home},
         {SDL_CONTROLLER_BUTTON_BACK, Action::LocalAction},
         {BackButton, Action::Back},
-        {SDL_CONTROLLER_BUTTON_Y, Action::ToggleContinue},
-        {SDL_CONTROLLER_BUTTON_X, Action::Secondary},
+        {SDL_CONTROLLER_BUTTON_X, Action::ToggleContinue},
+        {SDL_CONTROLLER_BUTTON_Y, Action::Secondary},
         {ConfirmButton, Action::Confirm}
     };
     for (const auto& [button, semantic] : bindings)

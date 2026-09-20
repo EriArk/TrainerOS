@@ -37,10 +37,10 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
         auto* checks = shell.diagnostics();
         if (session.blocked() || reports.saving() || shell.device()->busy()) return;
         switch ((*stage)++) {
-        case 0: press(start); press(down); press(a); break;
+        case 0: press(start); press(a); for(int i=0;i<7;++i) press(down); press(a); press(a); break;
         case 1:
             check(shell.service() == "diagnostics" && focus("diagnostic-action-0"), "Controller service opened with deterministic focus");
-            SDL_JoystickSetVirtualButton(joystick, SDL_CONTROLLER_BUTTON_X, 1);
+            SDL_JoystickSetVirtualButton(joystick, SDL_CONTROLLER_BUTTON_Y, 1);
             SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_RIGHTX, 23000);
             SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_RIGHTY, -16000);
             SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_TRIGGERLEFT, 18000); input.poll(); break;
@@ -48,7 +48,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             check(checks->buttons()[6].toMap()["held"].toBool(), "X live indicator");
             check(checks->axes()[2].toMap()["value"].toDouble() > 0.6, "Right stick moved");
             capture("live-controls");
-            SDL_JoystickSetVirtualButton(joystick, SDL_CONTROLLER_BUTTON_X, 0);
+            SDL_JoystickSetVirtualButton(joystick, SDL_CONTROLLER_BUTTON_Y, 0);
             SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_RIGHTX, 0);
             SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_RIGHTY, 0);
             SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_TRIGGERLEFT, -32768); input.poll();
@@ -61,7 +61,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
         case 5:
             check(shell.page() == 1 && !shell.serviceOpen(), "R1 switches primary section");
-            press(start); press(a); break; // Remembered Controller menu entry.
+            press(start); press(a); for(int i=0;i<7;++i) press(down); press(a); press(a); break;
         case 6:
             check(checks->buttons()[9].toMap()["seen"].toBool(), "R1 history survives reopening");
             if (!fixedDisplay) window->resize(1920,1080); press(a);
@@ -70,18 +70,18 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             break;
         case 7:
             capture("display-1080p");
-            input.setEnabled(false); SDL_JoystickSetVirtualButton(joystick, SDL_CONTROLLER_BUTTON_Y, 1); input.poll();
+            input.setEnabled(false); SDL_JoystickSetVirtualButton(joystick, SDL_CONTROLLER_BUTTON_X, 1); input.poll();
             input.setEnabled(true); input.poll(); break;
         case 8:
             check(input.sample().awaitingNeutral, "Held input waits for neutral");
             check(shell.service() == "diagnostics", "Held Y does not activate another layer"); capture("neutral-gate");
-            SDL_JoystickSetVirtualButton(joystick, SDL_CONTROLLER_BUTTON_Y, 0); input.poll();
+            SDL_JoystickSetVirtualButton(joystick, SDL_CONTROLLER_BUTTON_X, 0); input.poll();
             press(right); press(a); break;
         case 9: {
             check(checks->status().contains("saved locally"), "Report saved through controller action");
             QFile report(reports.lastReportPath()); check(report.open(QIODevice::ReadOnly), "Report readable");
             const auto json = QJsonDocument::fromJson(report.readAll()).object();
-            check(json["input"].toObject()["buttons"].toArray()[SDL_CONTROLLER_BUTTON_X].toObject()["observed"].toBool(), "Report contains observed X");
+            check(json["input"].toObject()["buttons"].toArray()[SDL_CONTROLLER_BUTTON_Y].toObject()["observed"].toBool(), "Report contains observed X");
             capture("report-saved"); press(right); press(a); if (!fixedDisplay) window->resize(1024,768); break;
         }
         case 10:
@@ -89,15 +89,15 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             check(checks->runtimeLines().join(' ').contains(QString("%1 × %2").arg(window->width()).arg(window->height())), "Display follows window changes without a manual refresh");
             capture("letterboxed"); press(b); break;
         case 11:
-            check(shell.menuOpen() && focus("menu-1"), "B restores original system-menu entry");
+            check(shell.service()=="settings" && focus("settings-control-0"), "B restores original system-menu entry");
             press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER); check(shell.page() == 0, "L1 remains global");
             if (!fixedDisplay) window->resize(960,540); press(start);
-            press(SDL_CONTROLLER_BUTTON_X); // Direct shortcut to Volume.
+            press(SDL_CONTROLLER_BUTTON_Y); // Direct shortcut to Volume.
             break;
         case 12:
             check(focus("menu-7"), "Start Volume has deterministic focus"); capture("start-quick-controls");
-            press(SDL_CONTROLLER_BUTTON_X); check(shell.focusIndex() == 1, "X restores previous service entry");
-            press(SDL_CONTROLLER_BUTTON_X); press(right); press(a); break;
+            press(SDL_CONTROLLER_BUTTON_Y); check(shell.focusIndex() == 0, "X restores previous service entry");
+            press(SDL_CONTROLLER_BUTTON_Y); press(right); press(a); break;
         case 13:
             check(shell.device()->rows()[0].toMap()["value"].toString().startsWith("40%"), "Quick volume adjusted");
             check(shell.device()->rows()[0].toMap()["value"].toString().contains("Muted"), "Quick mute");
@@ -105,7 +105,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
         case 14:
             check(focus("menu-8"), "Quick brightness focus");
             check(shell.device()->rows()[1].toMap()["value"].toString().startsWith("55%"), "Quick brightness adjusted");
-            capture("start-brightness"); press(SDL_CONTROLLER_BUTTON_X); for(int i=0;i<5;++i) press(down); press(a); break;
+            capture("start-brightness"); press(SDL_CONTROLLER_BUTTON_Y); for(int i=0;i<5;++i) press(down); press(a); break;
         case 15:
             check(shell.powerMenu() && focus("menu-3"), "Power opens on safe Cancel");
             capture("power-menu"); press(a); break;
@@ -117,10 +117,10 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(b); press(b); press(b); break;
         case 18:
             check(!shell.menuOpen() && !shell.powerMenu(), "Back unwinds Power and Start");
-            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); for(int i=0;i<3;++i) press(down); press(a);
-            for (int i=0;i<4;++i) press(down); press(a); press(a); break;
+            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); for(int i=0;i<2;++i) press(down); press(a);
+            for (int i=0;i<4;++i) press(down); press(a); break;
         case 19:
-            check(shell.service()=="trainer-settings" && focus("trainer-settings-0"), "Trainer settings entry");
+            check(shell.service()=="settings" && focus("settings-control-0"), "Trainer settings entry");
             capture("trainer-settings"); press(down); press(a); break;
         case 20:
             check(shell.hall()->account()->isOpen(), "Settings opens the shared RA controller");
@@ -175,7 +175,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(right); press(a); break;
         case 37:
             check(shell.party()->detailOpen() && shell.party()->detail()["hp"]=="0 / 38" && focus("party-detail-back"), "Known zero HP and detail focus"); capture("center-party-detail");
-            press(b); press(SDL_CONTROLLER_BUTTON_X); break;
+            press(b); press(SDL_CONTROLLER_BUTTON_Y); break;
         case 38:
             check(shell.party()->section()=="storage" && focus("party-slot-0"), "X opens bounded Storage grid"); capture("center-storage");
             press(right); press(right); press(right); press(right); break;
@@ -207,7 +207,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             capture("playroom"); press(right); press(a); break;
         case 47:
             check(focus("playroom-actor-1") && shell.party()->activities()->reaction().contains("called"), "Calling preserves the selected actor control");
-            press(SDL_CONTROLLER_BUTTON_X); break;
+            press(SDL_CONTROLLER_BUTTON_Y); break;
         case 48:
             capture("playroom-greeting"); press(b); press(down); press(a); break;
         case 49:
@@ -227,7 +227,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             capture("link-interrupted"); press(b); press(b); press(b); press(SDL_CONTROLLER_BUTTON_DPAD_UP); break;
         case 54:
             check(shell.party()->section()=="storage" && focus("party-slot-9"), "Activities returns to the prior management slot");
-            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); for(int i=0;i<3;++i) press(down); press(a); break;
+            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); for(int i=0;i<2;++i) press(down); press(a); break;
         case 55:
             check(shell.service()=="settings" && focus("settings-category-0"), "Settings categories focus");
             capture("settings-root"); press(a); break;
@@ -252,12 +252,41 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
         case 63:
             check(!shell.serviceOpen(), "Global shoulder leaves settings");
-            press(start); press(SDL_CONTROLLER_BUTTON_X); press(down); press(down); press(right); break;
+            press(start); press(SDL_CONTROLLER_BUTTON_Y); press(down); press(down); break;
         case 64:
-            check(focus("menu-9") && shell.settings()->theme()=="red", "Start theme shares the saved preference");
-            capture("start-theme"); press(left); break;
+            check(focus("menu-0") && shell.settings()->theme()=="turquoise", "Start has only two quick controls");
+            capture("start-two-controls"); break;
         case 65:
             check(shell.settings()->theme()=="turquoise", "Reverse theme adjustment"); press(b);
+            press(start); for(int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP);
+            press(down); press(down); press(a); for(int i=0;i<4;++i) press(down); press(a); break;
+        case 66:
+            check(focus("settings-control-0") && shell.settings()->category()==4, "Inline Trainer category");
+            capture("settings-trainer"); press(a); break;
+        case 67:
+            check(shell.trainer()->editing() && shell.service()=="settings", "Profile edits inside Settings");
+            capture("settings-profile-edit"); for(int i=0;i<4;++i) press(down); break;
+        case 68:
+            check(shell.focusIndex()==4 && focus("settings-control-4"), "Vertical Cancel focus");
+            capture("settings-profile-cancel"); press(a); break;
+        case 69:
+            check(!shell.trainer()->editing() && focus("settings-control-0"), "Cancel restores profile row");
+            press(b); press(down); press(a); break;
+        case 70:
+            check(shell.settings()->category()==5 && focus("settings-control-0"), "Inline System category");
+            capture("settings-system"); press(down); press(down); press(a); break;
+        case 71:
+            check(!shell.modeConfirmation() && shell.notice().contains("ArmadaOS"), "Isolated preview cannot perform real power actions"); press(b); break;
+        case 72:
+            check(focus("settings-control-2"), "Cancelled power restores its row");
+            press(b); press(down); press(down); press(a); break;
+        case 73:
+            check(shell.settings()->category()==7 && focus("settings-control-0"), "Controller category");
+            capture("settings-controller"); press(a); break;
+        case 74:
+            check(shell.service()=="diagnostics", "Controller test from Settings"); press(b); break;
+        case 75:
+            check(shell.service()=="settings" && focus("settings-control-0"), "Controller test returns to its row");
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!output.isEmpty()) {
                 QFile report(output + "/verification.txt");

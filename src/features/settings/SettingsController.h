@@ -25,7 +25,7 @@ public:
     int category() const { return category_; }
     int rowFocus() const { return row_; }
     bool controlsFocused() const { return pane_; }
-    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits"}; }
+    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller"}; }
     QVariantList controls() const;
     Q_INVOKABLE void selectCategory(int index, bool enter = true);
     Q_INVOKABLE void activateRow(int index);
@@ -41,8 +41,9 @@ public:
 signals:
     void changed();
     void closeRequested();
-    void deviceRequested();
-    void trainerRequested();
+    void deviceRequested(int index);
+    void controllerRequested();
+    void trainerRequested(int index);
     void messageRequested(const QString& message);
     void quickAdjustment(int index, trainer::Action action);
 private:

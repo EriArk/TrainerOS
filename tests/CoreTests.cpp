@@ -121,7 +121,7 @@ private slots:
                 {SDL_CONTROLLER_BUTTON_BACK, Action::LocalAction},
                 // Test positions independently from ControllerInput's constants.
                 {SDL_CONTROLLER_BUTTON_B, Action::Confirm}, {SDL_CONTROLLER_BUTTON_A, Action::Back},
-                {SDL_CONTROLLER_BUTTON_Y, Action::ToggleContinue}, {SDL_CONTROLLER_BUTTON_X, Action::Secondary}, {SDL_CONTROLLER_BUTTON_START, Action::SystemMenu},
+                {SDL_CONTROLLER_BUTTON_X, Action::ToggleContinue}, {SDL_CONTROLLER_BUTTON_Y, Action::Secondary}, {SDL_CONTROLLER_BUTTON_START, Action::SystemMenu},
                 {SDL_CONTROLLER_BUTTON_DPAD_UP, Action::Up}, {SDL_CONTROLLER_BUTTON_DPAD_DOWN, Action::Down},
                 {SDL_CONTROLLER_BUTTON_DPAD_LEFT, Action::Left}, {SDL_CONTROLLER_BUTTON_DPAD_RIGHT, Action::Right}
             };
@@ -146,14 +146,14 @@ private slots:
             QTest::qWait(470);
             QCOMPARE(events.size(), 1); // Confirm never repeats while held.
             input.setEnabled(false);
-            button(SDL_CONTROLLER_BUTTON_Y, true);
+            button(SDL_CONTROLLER_BUTTON_X, true);
             input.setEnabled(true); input.poll();
             QCOMPARE(events.size(), 1); // Returning while held cannot trigger a stale action.
             button(SDL_CONTROLLER_BUTTON_B, false);
-            button(SDL_CONTROLLER_BUTTON_Y, false);
-            button(SDL_CONTROLLER_BUTTON_Y, true);
+            button(SDL_CONTROLLER_BUTTON_X, false);
+            button(SDL_CONTROLLER_BUTTON_X, true);
             QCOMPARE(events.size(), 2);
-            button(SDL_CONTROLLER_BUTTON_Y, false);
+            button(SDL_CONTROLLER_BUTTON_X, false);
             for (const auto axis : {SDL_CONTROLLER_AXIS_TRIGGERLEFT, SDL_CONTROLLER_AXIS_TRIGGERRIGHT}) {
                 const auto set = [&](int value) { SDL_JoystickSetVirtualAxis(joystick, axis, value); input.poll(); };
                 events.clear(); set(32767);

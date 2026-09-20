@@ -151,14 +151,24 @@ private slots:
         shell.dispatch(Action::Home); shell.dispatch(Action::Secondary); QVERIFY(!shell.multiverseHome());
         shell.dispatch(Action::Confirm); QCOMPARE(shell.page(), 1); QVERIFY(!shell.multiverseFace());
         shell.dispatch(Action::Home);
-        shell.dispatch(Action::SystemMenu); shell.activate(0); shell.activate(4); shell.activate(0);
-        shell.activate(2); QCOMPARE(shell.service(),"trainer-settings"); QVERIFY(!shell.notice().isEmpty());
+        shell.dispatch(Action::SystemMenu); shell.activate(0); shell.activate(4);
+        shell.activate(2); QCOMPARE(shell.service(),"settings"); QVERIFY(!shell.notice().isEmpty());
         shell.dispatch(Action::Back); shell.activate(1); QVERIFY(shell.hall()->account()->isOpen());
         shell.dispatch(Action::Back); QVERIFY(!shell.hall()->account()->isOpen());
-        QCOMPARE(shell.service(),"trainer-settings"); QCOMPARE(shell.focusIndex(),1);
-        shell.dispatch(Action::Back); QCOMPARE(shell.service(),"settings"); QCOMPARE(shell.settings()->category(),4); QCOMPARE(shell.focusIndex(),0);
+        QCOMPARE(shell.service(),"settings"); QCOMPARE(shell.focusIndex(),1);
+        shell.dispatch(Action::Back); QCOMPARE(shell.service(),"settings"); QCOMPARE(shell.settings()->category(),4); QCOMPARE(shell.focusIndex(),4);
+        // Editing stays inside Settings, with vertical Save / Cancel navigation.
+        shell.activate(4); shell.activate(0);
+        QVERIFY(shell.trainer()->editing()); QCOMPARE(shell.service(), "settings");
+        const auto before = shell.trainer()->profile();
+        shell.trainer()->setDraftName("Discard this draft");
+        for(int i=0;i<4;++i) shell.dispatch(Action::Down);
+        QCOMPARE(shell.focusIndex(),4); shell.dispatch(Action::Confirm);
+        QVERIFY(!shell.trainer()->editing()); QCOMPARE(shell.trainer()->profile(),before);
+        QCOMPARE(shell.settings()->rowFocus(),0);
+        shell.dispatch(Action::Back);
         achievements.setAccount({});
-        shell.activate(0); shell.activate(1); shell.activate(0); QVERIFY(shell.keyboard()->isOpen());
+        shell.activate(4); shell.activate(1); shell.activate(0); QVERIFY(shell.keyboard()->isOpen());
         shell.dispatch(Action::NextPage); QVERIFY(!shell.keyboard()->isOpen());
         QVERIFY(!shell.hall()->account()->isOpen()); QVERIFY(!shell.serviceOpen());
     }
@@ -168,8 +178,8 @@ private slots:
         MockPokedexRepository dex; MockHallOfFameRepository archive; MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
         const auto original = shell.trainer()->profile();
-        shell.dispatch(Action::SystemMenu); shell.activate(0); shell.activate(4); shell.activate(0);
-        QCOMPARE(shell.service(), "trainer-settings"); shell.activate(2);
+        shell.dispatch(Action::SystemMenu); shell.activate(0); shell.activate(4);
+        QCOMPARE(shell.service(), "settings"); shell.activate(2);
         QCOMPARE(shell.service(), "trainer-setup");
         auto* flow = shell.trainerSetup();
         flow->activate(0); flow->activate(0); flow->activate(3);

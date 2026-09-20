@@ -115,14 +115,14 @@ void startPersistenceSmoke(QQuickWindow* window, ShellController& shell, Session
             case 3:
                 check(focusIs("trainer-open"), "Trainer keeps its fixed A action");
                 capture("trainer-overview"); press(a); press(down, 2); press(a);
-                press(SDL_CONTROLLER_BUTTON_X); // Shared keyboard above picker.
+                press(SDL_CONTROLLER_BUTTON_Y); // Shared keyboard above picker.
                 press(a); press(down, 3); press(right); press(a); // Search A.
                 break;
             case 4:
                 check(shell.trainer()->picker()->query() == "A", "Controller search returns to picker");
                 capture("trainer-favorite-search"); press(b);
                 check(shell.trainer()->editing() && !shell.trainer()->picker()->isOpen(), "Back returns to profile draft");
-                press(a); press(SDL_CONTROLLER_BUTTON_Y); // Clear only draft favorite.
+                press(a); press(SDL_CONTROLLER_BUTTON_X); // Clear only draft favorite.
                 check(shell.trainer()->draftFavorite() == "Not chosen", "Y clears draft choice");
                 press(previous); press(next); // Global page action discards the draft.
                 check(shell.trainer()->profile()["favorite"].toString() == "Eevee" && !shell.trainer()->editing(), "Page change discards unsubmitted favorite");

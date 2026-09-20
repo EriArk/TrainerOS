@@ -406,4 +406,10 @@ Settings has a separate Media & feedback list. A opens availability details or t
 
 ## Settings layout correction - 2026-09-20
 
-The owner supersedes the prior media detail pages and Start second column: Start uses a top quick-control block with volume/brightness sliders and theme, above one services list. Settings keeps categories left and controls right; A/Right enters, B returns to categories, Left/Right adjusts values. [Current contract](MEDIA_SETTINGS_UI.md).
+The owner supersedes the prior media detail pages and Start second column: Start uses a top quick-control block with volume/brightness sliders; theme stays in Appearance, above one services list. Settings keeps categories left and controls right; A/Right enters, B returns to categories, Left/Right adjusts values. [Current contract](MEDIA_SETTINGS_UI.md).
+
+Trainer and System now expose their setting rows directly in the right pane.
+Trainer editing stays in that pane with vertical Save/Cancel. Controller lives
+in Settings, not Start; its test view returns to the selected Controller row.
+The shell maps north X to secondary actions and west Y to Choose Adventure,
+completing the existing east-A/south-B Switch layout. Emulator input is unchanged.

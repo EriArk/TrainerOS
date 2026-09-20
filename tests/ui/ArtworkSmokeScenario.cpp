@@ -59,7 +59,7 @@ void startArtworkSmoke(QQuickWindow* window, ShellController& shell, ControllerI
         }
         if (state->stage == 3) {
             check(dex->zone()=="art","Up opens artwork panel"); capture("artwork-source");
-            press(SDL_CONTROLLER_BUTTON_Y); check(!shell.drawerOpen(),"Shared Y leaked through artwork panel");
+            press(SDL_CONTROLLER_BUTTON_X); check(!shell.drawerOpen(),"Shared Y leaked through artwork panel");
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767); input.poll();
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768); input.poll();
             check(!shell.centerFace(),"Paired face leaked through artwork panel");
@@ -72,7 +72,7 @@ void startArtworkSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             if (state->specimen < specimens.size()) {
                 const auto specimen = specimens[state->specimen];
                 dex->applySearch(specimen.first); dex->activateControl("list",0);
-                for (int i=0;i<80 && dex->detail()["formId"].toString()!=specimen.second;++i) press(SDL_CONTROLLER_BUTTON_X);
+                for (int i=0;i<80 && dex->detail()["formId"].toString()!=specimen.second;++i) press(SDL_CONTROLLER_BUTTON_Y);
                 check(dex->detail()["formId"].toString()==specimen.second,"Form unreachable: "+specimen.second);
                 state->imageWaits = 0;
                 state->stage = 5; return;

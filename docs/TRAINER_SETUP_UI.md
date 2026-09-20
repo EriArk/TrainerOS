@@ -4,12 +4,12 @@ This is the P1 presentation increment for #19/#20, not P2 ownership or security.
 
 ## Normal app
 
-Start → Settings → Trainer & accounts provides the existing persistent profile
-editor and the existing RetroAchievements account controller. It opens over the
-current page; Back from account management returns to this service, and Back from
-the service restores the Settings row. The Hall account shortcut remains a route
-to the same controller/provider, not a second credential store. Account errors,
-busy state and explicit sign-out confirmation retain their existing behavior.
+Start -> Settings -> Trainer provides profile editing directly in the right
+pane and the shared RetroAchievements account action. Back from account
+management restores that row; Save/Cancel in the inline editor restores the
+profile row. B then returns to the category rail. The Hall account shortcut
+uses the same controller/provider, not a second credential store. Existing
+account errors, busy state and explicit sign-out confirmation are preserved.
 
 Separate Trainers & PIN remains unavailable with an explanation. The installed
 profile, journal, saves and RA identity are neither migrated nor replaced.
@@ -17,7 +17,7 @@ Switch Player in Power remains unavailable. No automatic startup gate is added.
 
 ## Isolated UI rehearsal
 
-Run `traineros --ephemeral`, then Settings → Trainer & accounts → Preview
+Run `traineros --ephemeral`, then Settings → Trainer → Preview
 registration & PIN. The preview is available only with the sample library; normal
 personal-library mode cannot enter it. Every screen labels itself a development
 preview. It has no repository/provider dependency, persistence or authorization

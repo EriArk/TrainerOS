@@ -31,17 +31,18 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&multiverse_, &MultiversePresentation::homeRequested, this, [this] {
         multiverseHome_ = true; goToPage(0);
     });
-    connect(&settings_, &SettingsController::trainerRequested, this, [this] {
-        service_ = "trainer-settings"; trainerSettingsFocus_ = 0; emit changed();
+    connect(&settings_, &SettingsController::trainerRequested, this, [this](int index) {
+        trainerSettingsAction(index);
     });
     connect(&trainerSetup_, &TrainerSetupPresentation::changed, this, &ShellController::changed);
     connect(&trainerSetup_, &TrainerSetupPresentation::closeRequested, this, [this] {
-        service_ = "trainer-settings"; emit changed();
+        service_ = "settings"; emit changed();
     });
     connect(&trainerSetup_, &TrainerSetupPresentation::nameRequested, this, [this](const QString& initial) {
         textTarget_ = TextTarget::SetupName; keyboard_.begin("Sample Trainer name", initial, 24);
     });
-    connect(&settings_, &SettingsController::deviceRequested, this, [this] { service_ = "device"; device_.begin(); emit changed(); });
+    connect(&settings_, &SettingsController::deviceRequested, this, [this](int index) { device_.activate(index + 2); emit changed(); });
+    connect(&settings_, &SettingsController::controllerRequested, this, [this] { service_ = "diagnostics"; diagnostics_.begin(); emit changed(); });
     connect(&device_, &DeviceController::changed, this, &ShellController::changed);
     connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(menuOpen_ || service_ == "device" || service_ == "settings"); });
     connect(&device_, &DeviceController::closeRequested, this, [this] { service_ = "settings"; emit changed(); });
@@ -77,7 +78,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(hall_.editor(), &ArchiveEditor::textRequested, this, [this](const QString& title, const QString& initial, int limit) {
         textTarget_ = TextTarget::Archive; keyboard_.begin(title, initial, limit);
     });
-    connect(&diagnostics_, &DiagnosticsController::closeRequested, this, [this] { service_.clear(); if(centerFace())openCenter(); menuOpen_ = true; emit changed(); });
+    connect(&diagnostics_, &DiagnosticsController::closeRequested, this, [this] { service_ = "settings"; emit changed(); });
     connect(&diagnostics_, &DiagnosticsController::messageRequested, this, [this](const QString& text) {
         if (service_ != "diagnostics" || menuOpen_) { notice_ = text; emit changed(); }
     });
@@ -212,7 +213,7 @@ int ShellController::focusIndex() const {
     if (service_ == "library") return libraryManager_.files()->isOpen() ? libraryManager_.files()->focusIndex() : libraryManager_.focusIndex();
     if (service_ == "trainer-settings") return hall_.account()->isOpen() ? hall_.account()->focusIndex() : trainerSettingsFocus_;
     if (service_ == "trainer-setup") return trainerSetup_.focusIndex();
-    if (service_ == "settings") return settings_.focusIndex();
+    if (service_ == "settings") return hall_.account()->isOpen() ? hall_.account()->focusIndex() : trainer_.editing() ? trainer_.focusIndex() : settings_.focusIndex();
     if (service_ == "device") return device_.focusIndex();
     if (service_ == "diagnostics") return diagnostics_.focusIndex();
     if (service_ == "center") return center_.focusIndex();
@@ -365,8 +366,9 @@ QStringList ShellController::menuItems() const {
         if (!platform_.dedicatedSession()) items.append(platform_.canSwitchSession() ? "Enter TrainerOS Mode" : "Exit Development App");
         return items;
     }
-    return {"Settings", "Controller", "Pokémon Center", "Manage Adventures",
-            "Desktop / Maintenance Mode", "Steam Gaming Mode", "Power", "Volume", "Screen brightness", "Shell color"};
+    // Stable action IDs: slot 1 retired when Controller moved into Settings.
+    return {"Settings", "", "Pokémon Center", "Manage Adventures",
+            "Desktop / Maintenance Mode", "Steam Gaming Mode", "Power", "Volume", "Screen brightness"};
 }
 void ShellController::goToPage(int page) {
     keyboard_.cancel();
@@ -401,7 +403,7 @@ void ShellController::activate(int index, const QString& area) {
     else if (service_ == "library") { libraryManager_.activate(index, area); return; }
     else if (service_ == "trainer-settings") { trainerSettingsAction(index); return; }
     else if (service_ == "trainer-setup") { trainerSetup_.activate(index); return; }
-    else if (service_ == "settings") { if(settings_.controlsFocused()) settings_.activateRow(index); else settings_.selectCategory(index,true); return; }
+    else if (service_ == "settings") { if(hall_.account()->isOpen()) { hall_.account()->activate(index); return; } if(trainer_.editing()) { trainer_.activate(index); return; } if(settings_.controlsFocused()) settings_.activateRow(index); else settings_.selectCategory(index,true); return; }
     else if (service_ == "device") { device_.activate(index); return; }
     else if (service_ == "diagnostics") { diagnostics_.activate(index); return; }
     else if (service_ == "center") { center_.activate(index); return; }
@@ -435,7 +437,7 @@ void ShellController::trainerSettingsAction(int index) {
     if (hall_.account()->isOpen()) { hall_.account()->activate(index); return; }
     if (index < 0 || index > 3) return;
     trainerSettingsFocus_ = index;
-    if (index == 0) { goToPage(3); trainer_.beginEdit(); }
+    if (index == 0) { trainer_.beginEdit(); }
     else if (index == 1) {
         if (hall_.account()->available()) hall_.account()->begin();
         else showNotice("RetroAchievements account management is unavailable right now.");
@@ -464,7 +466,6 @@ void ShellController::confirm() {
             device_.requestPower(menuFocus_ == 1);
             return;
         }
-        if (menuFocus_ == 9) { settings_.cycleTheme(); return; }
         if (menuFocus_ >= 7) { device_.adjustQuick(menuFocus_ - 7, Action::Confirm); return; }
         if (menuFocus_ == 6) { powerMenu_ = true; menuFocus_ = 3; return; }
         if (menuFocus_ >= 4 && platform_.canSwitchSession()) {
@@ -478,15 +479,14 @@ void ShellController::confirm() {
         if(menuFocus_==2) {
             centerFace_ = false; goToPage(2); openCenter(); return;
         }
-        if (menuFocus_ == 0 || menuFocus_ == 1 || menuFocus_ == 3) {
+        if (menuFocus_ == 0 || menuFocus_ == 3) {
             hall_.account()->close();
             trainerSetup_.close();
             keyboard_.cancel(); textTarget_ = TextTarget::None; trainer_.cancel();
             libraryManager_.close(); menuOpen_ = false; drawerOpen_ = false;
             center_.close();
-            service_ = menuFocus_ == 0 ? "settings" : menuFocus_ == 1 ? "diagnostics" : "library";
+            service_ = menuFocus_ == 0 ? "settings" : "library";
             if (service_ == "settings") settings_.begin();
-            else if (service_ == "diagnostics") diagnostics_.begin();
             else { libraryFromWorlds_ = false; libraryManager_.begin(worlds_.region()["id"].toString()); }
             return;
         }
@@ -602,7 +602,7 @@ void ShellController::dispatch(Action action) {
             else if (action == Action::Down) trainerSettingsFocus_ = std::min(3, trainerSettingsFocus_ + 1);
             emit changed(); return;
         }
-        if (service_ == "settings") { settings_.dispatch(action); return; }
+        if (service_ == "settings") { if(hall_.account()->isOpen()) hall_.account()->dispatch(action); else if(trainer_.editing()) trainer_.dispatch(action,true); else settings_.dispatch(action); return; }
         if (service_ == "device") { device_.dispatch(action); return; }
         if (service_ == "diagnostics") { diagnostics_.dispatch(action); return; }
         if (service_ == "center") { center_.dispatch(action); return; }
@@ -630,8 +630,7 @@ void ShellController::dispatch(Action action) {
     }
     if (menuOpen_ && !powerMenu_ && notice_.isEmpty() && menuFocus_ >= 7
             && (action == Action::Left || action == Action::Right)) {
-        if(menuFocus_ == 9) settings_.cycleTheme(action == Action::Left ? -1 : 1);
-        else device_.adjustQuick(menuFocus_ - 7, action); emit changed(); return;
+        device_.adjustQuick(menuFocus_ - 7, action); emit changed(); return;
     }
     if (action == Action::Back) {
         if (!notice_.isEmpty()) { notice_.clear(); mode_.clear(); }
@@ -649,8 +648,8 @@ void ShellController::dispatch(Action action) {
         if (menuOpen_) delta = action == Action::Up ? -1 : action == Action::Down ? 1 : 0;
         else if (drawerOpen_) delta = action == Action::Left ? -1 : action == Action::Right ? 1 : 0;
         if(menuOpen_ && !powerMenu_) {
-            const QList<int> order{7,8,9,0,1,2,3,4,5,6};
-            *focus=order[std::clamp(int(order.indexOf(*focus))+delta,0,9)];
+            const QList<int> order{7,8,0,2,3,4,5,6};
+            *focus=order[std::clamp(int(order.indexOf(*focus))+delta,0,int(order.size())-1)];
         } else *focus = std::clamp(*focus + delta, 0, std::max(0, count - 1));
     }
     emit changed();

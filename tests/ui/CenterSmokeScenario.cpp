@@ -28,7 +28,7 @@ void startCenterSmoke(QQuickWindow* window,ShellController& shell,SessionState& 
         if(session.blocked()||store.pending()||shell.center()->busy())return;
         const auto drawer=window->findChild<QQuickItem*>("continue-drawer");
         if(drawer && ((shell.drawerOpen() && drawer->height()<228) || (!shell.drawerOpen() && drawer->height()>53)))return;
-        constexpr auto a=SDL_CONTROLLER_BUTTON_B,b=SDL_CONTROLLER_BUTTON_A,x=SDL_CONTROLLER_BUTTON_X,y=SDL_CONTROLLER_BUTTON_Y;
+        constexpr auto a=SDL_CONTROLLER_BUTTON_B,b=SDL_CONTROLLER_BUTTON_A,x=SDL_CONTROLLER_BUTTON_Y,y=SDL_CONTROLLER_BUTTON_X;
         constexpr auto down=SDL_CONTROLLER_BUTTON_DPAD_DOWN,start=SDL_CONTROLLER_BUTTON_START;
         constexpr auto select=SDL_CONTROLLER_BUTTON_BACK;
         switch((*stage)++) {
@@ -43,7 +43,7 @@ void startCenterSmoke(QQuickWindow* window,ShellController& shell,SessionState& 
         }
         case 1:
             shell.restoreNavigation({{"version",1},{"page","home"},{"homeAdventure","center-fixture"},{"homeResume","old-moment"}});
-            press(start);press(down,2);press(a);break;
+            press(start);press(down);press(a);break;
         case 2:
             check(shell.centerFace()&&shell.service().isEmpty()&&focus("party-unavailable"),"System-menu Center opens honest Party availability");capture("selected-adventure");press(select);break;
         case 3:
@@ -62,7 +62,7 @@ void startCenterSmoke(QQuickWindow* window,ShellController& shell,SessionState& 
         case 8:
             check(read()=="SECOND SAVE"&&shell.center()->rows().size()==3,"Protection copy can undo the restore");
             press(a);press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);check(shell.service().isEmpty()&&!shell.center()->confirming(),"Global section action discards confirmation");
-            press(start);press(SDL_CONTROLLER_BUTTON_DPAD_UP,10);press(down,5);press(a);window->resize(1920,1080);break;
+            press(start);press(SDL_CONTROLLER_BUTTON_DPAD_UP,10);press(down,3);press(a);window->resize(1920,1080);break;
         case 9:
             capture("copies-1080p");press(select);press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);break;
         case 10:
