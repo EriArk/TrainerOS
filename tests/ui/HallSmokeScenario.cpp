@@ -10,7 +10,7 @@ using namespace trainer;
 void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInput& input,
                     MockHallOfFameRepository& archive, MockAchievementProvider& provider, SDL_Joystick* joystick,
                     const QString& screenshotDir, bool& completed, int& warnings, QStringList& diagnostics) {
-    auto stage = std::make_shared<int>(0);
+    auto stage = std::make_shared<int>(-6);
     auto failed = std::make_shared<bool>(false);
     auto timer = new QTimer(window);
     timer->setInterval(350);
@@ -51,7 +51,23 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         constexpr auto x = SDL_CONTROLLER_BUTTON_X, y = SDL_CONTROLLER_BUTTON_Y;
         auto* hall = shell.hall();
         switch ((*stage)++) {
-        case 0: check(input.connected(), "Controller unavailable"); press(r1, 4); break;
+        case -6: check(input.connected(), "Controller unavailable"); press(r1, 4); break;
+        case -5:
+            check(hall->overview() && focusIs("journey-primary"), "Journey has a fixed visible action");
+            capture("journey"); press(x); break;
+        case -4:
+            check(hall->route()=="archive-champions" && focusIs("journey-primary"), "Champion availability stays explicit");
+            capture("champion-sample"); press(a); break;
+        case -3:
+            check(hall->route()=="archive-champion-detail" && focusIs("journey-primary"), "Historical sample detail has a fixed Back action");
+            capture("champion-sample-detail"); press(b); break;
+        case -2:
+            check(hall->route()=="archive-champions", "B first returns to records"); press(b); flip(); break;
+        case -1:
+            check(!hall->isArchive(), "Journey pairs with RA"); flip(); break;
+        case 0:
+            check(hall->route()=="archive-journey" && focusIs("journey-primary"), "RA returns to Journey");
+            press(a); break;
         case 1: check(focusIs("hall-row-crystal-champion"), "Initial archive focus"); capture("archive"); press(down, 3); break;
         case 2: {
             check(focusIs("hall-row-crystal-undated"), "Last archive record focus");

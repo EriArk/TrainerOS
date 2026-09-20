@@ -194,6 +194,7 @@ qt_add_qml_module(traineros
         src/qml/BadgeTray.qml
         src/qml/AdventureButton.qml
         src/qml/HallOfFamePage.qml
+        src/qml/JourneyPanel.qml
         src/qml/ArchiveEditorPanel.qml
         src/qml/AchievementAccountPanel.qml
         src/qml/ControllerList.qml

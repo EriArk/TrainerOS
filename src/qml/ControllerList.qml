@@ -6,6 +6,7 @@ ListView {
     id: root
     property bool takesFocus: false
     property color tint: Theme.green
+    property bool rowTints: false
     property string namePrefix: "row-"
     signal activated(int row)
     interactive: false; keyNavigationEnabled: false; clip: true
@@ -29,7 +30,7 @@ ListView {
             id: button
             objectName: root.namePrefix + modelData.id
             x: 5; y: 5; width: parent.width - 10; height: 58
-            label: modelData.title; detail: modelData.subtitle; tint: root.tint
+            label: modelData.title; detail: modelData.subtitle; tint: root.rowTints && modelData.tint ? modelData.tint : root.tint
             selected: root.takesFocus && root.currentIndex === index
             onActivated: root.activated(index)
         }

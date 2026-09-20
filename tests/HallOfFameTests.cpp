@@ -32,6 +32,50 @@ void achievements(HallOfFameController& hall, int index = 0) {
 class HallOfFameTests : public QObject {
     Q_OBJECT
 private slots:
+    void journeyRoutesKeepManualHistoryAndIndependentRa() {
+        MutableArchive archive;
+        MockAchievementProvider provider;
+        HallOfFameController hall(archive, provider);
+        hall.showJourney();
+        QVERIFY(hall.championPreview().isEmpty());
+        QVERIFY(hall.overview());
+        hall.dispatch(Action::Down); hall.dispatch(Action::Right);
+        QCOMPARE(hall.focusIndex(), 0);
+        hall.dispatch(Action::Secondary);
+        QCOMPARE(hall.route(), "archive-champions");
+        hall.switchFace(); hall.activate(0); hall.activate(1);
+        const auto achievement = hall.detail()["title"];
+        hall.switchFace();
+        QCOMPARE(hall.route(), "archive-champions");
+        HallOfFameController reopened(archive, provider);
+        reopened.restoreNavigation(hall.navigationState());
+        QCOMPARE(reopened.route(), "archive-champions");
+        reopened.dispatch(Action::Back);
+        QCOMPARE(reopened.route(), "archive-journey");
+        reopened.dispatch(Action::Confirm);
+        QCOMPARE(reopened.route(), "archive-list");
+        QCOMPARE(reopened.rows().size(), 4);
+        reopened.activate(2); reopened.dispatch(Action::Back);
+        QCOMPARE(reopened.rowIndex(), 2);
+        reopened.dispatch(Action::Back);
+        QCOMPARE(reopened.route(), "archive-journey");
+        reopened.dispatch(Action::Confirm); QCOMPARE(reopened.rowIndex(), 2);
+        reopened.switchFace(); QCOMPARE(reopened.detail()["title"], achievement);
+        const auto rows = reopened.rows();
+        QVERIFY(!rows.isEmpty());
+        for (const auto& row : rows) {
+            const auto state = row.toMap()["earnedState"].toString();
+            QVERIFY(QStringList({"earned", "locked", "unknown"}).contains(state));
+        }
+        QCOMPARE(archive.value.entries.size(), 4); // Presentation created no Champion or memory.
+        HallOfFameController sample(archive, provider);
+        sample.enableSampleJourney(); sample.showJourney(); sample.dispatch(Action::Secondary); sample.dispatch(Action::Confirm);
+        QCOMPARE(sample.route(), "archive-champion-detail");
+        QVERIFY(!sample.championPreview().isEmpty());
+        reopened.restoreNavigation(sample.navigationState());
+        QCOMPARE(reopened.route(), "archive-champions");
+        QVERIFY(reopened.championPreview().isEmpty()); // Sample navigation never enables a production fixture.
+    }
     void independentFacesPersistAndReconcileBackgroundChanges() {
         MutableArchive archive;
         MockAchievementProvider provider;
@@ -91,8 +135,8 @@ private slots:
             {"archiveView", QJsonObject{{"route", "achievement-detail"}, {"zone", "rail"}, {"action", 999}}}});
         QCOMPARE(hall.route(), "sets"); QCOMPARE(hall.zone(), "list");
         hall.switchFace();
-        QCOMPARE(hall.route(), "archive-list"); QCOMPARE(hall.zone(), "list");
-        hall.activate(2); hall.switchFace();
+        QCOMPARE(hall.route(), "archive-journey"); QCOMPARE(hall.zone(), "actions");
+        hall.activate(0); hall.activate(2); hall.switchFace();
         HallOfFameController restored(archive, provider);
         restored.restoreNavigation(hall.navigationState());
         QCOMPARE(restored.route(), "sets");
@@ -109,7 +153,7 @@ private slots:
         MockAchievementProvider provider;
         provider.enableAccountPreview();
         ShellController shell(library, profiles, adapter, platform, dex, dex, archive, provider);
-        shell.goToPage(4); shell.activate(1);
+        shell.goToPage(4); shell.activate(0); shell.activate(1);
         const auto choice = shell.currentAdventureId();
         QVERIFY(shell.pairedNavigationAvailable());
         shell.dispatch(Action::NextFace);

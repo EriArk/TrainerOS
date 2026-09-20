@@ -684,7 +684,7 @@ int main(int argc, char* argv[]) {
                         press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); // Global page switch cancels both drafts.
                         break;
                     case 21:
-                        check(shell.page() == 4 && focusIs("hall-row-crystal-champion"), "R1 escapes keyboard to Hall of Fame");
+                        check(shell.page() == 4 && focusIs("journey-primary"), "R1 escapes keyboard to Hall of Fame");
                         check(!shell.keyboard()->isOpen() && !shell.trainer()->editing(), "page switch closes both drafts");
                         check(shell.trainer()->profile()["id"] == *savedId && shell.trainer()->profile()["name"] == "ERI 2", "switch preserves saved identity and name");
                         press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER); break;
@@ -703,7 +703,7 @@ int main(int argc, char* argv[]) {
                         capture("keyboard-letterbox"); press(b); press(b);
                         press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
                     case 26:
-                        check(shell.page() == 4 && focusIs("hall-row-crystal-champion"), "Hall of Fame focus");
+                        check(shell.page() == 4 && focusIs("journey-primary"), "Hall of Fame focus");
                         press(b);
                         check(shell.page() == 4, "Back must not leave primary page");
                         capture("landscape-letterbox");

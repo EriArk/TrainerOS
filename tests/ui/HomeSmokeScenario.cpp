@@ -156,7 +156,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(store.recentSessions().size() == 5 && store.recordedSeconds("home-0").has_value(), "History survives restart");
             check(!reopen || *starts == 0, "Reopening the journal does not launch anything");
             capture(reopen ? "home-reopened" : "home-return");
-            if (reopen) { *stage = 16; break; }
+            if (reopen) { *stage = 19; break; }
             progress->value.availability = ProgressAvailability::Available;
             progress->value.badgeMask = 255; progress->value.caught = 386; progress->value.badgeSet = "kanto-frlg";
             progress->value.message = "Last in-game save · National Pokédex"; progress->publish();
@@ -208,7 +208,19 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         }
         case 15:
             capture("badges-large-case-fixture");
-            delete window->findChild<QQuickItem*>("badge-case-fixture"); break;
+            delete window->findChild<QQuickItem*>("badge-case-fixture");
+            progress->value.badgeMask = 255; progress->publish();
+            shell.goToPage(4); shell.hall()->showJourney(); break;
+        case 16:
+            check(focusIs("journey-primary") && shell.home()["badgeSlots"].toList().size() == 8, "Journey keeps a fixed action beside verified badge data");
+            capture("journey-badges-960");
+            progress->value.badgeMask = 0; progress->publish(); break;
+        case 17:
+            check(shell.home()["badges"] == "0", "Journey keeps verified zero distinct from unknown");
+            capture("journey-zero-960"); progress->selected = "another-adventure"; progress->publish(); break;
+        case 18:
+            check(shell.home()["badgeSlots"].toList().isEmpty(), "Unrelated save data cannot populate Journey");
+            capture("journey-unknown-960"); shell.goToPage(0); break;
         default:
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (*failed) { qCritical().noquote() << diagnostics.join('\n'); QCoreApplication::exit(1); }

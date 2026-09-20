@@ -10,7 +10,7 @@ Hall of Fame keeps account achievements separate from local completion memories 
 
 ## Controller flow
 
-Inside Hall of Fame's RetroAchievements section, **X opens Account** and **Y refreshes recent Adventures**. Account name and masked password use the shared controller keyboard, including case, punctuation and a separate numeric block. A activates the focused field/action; B cancels an input or returns to Hall of Fame. Start overlays the form. L1/R1 remain global section navigation and clear unsubmitted account drafts. Busy operations leave a visible Back action. Signing out requires a second A; B cancels that confirmation.
+Inside Hall of Fame's RetroAchievements section, **X opens Account** and **Select refreshes recent Adventures**. Account name and masked password use the shared controller keyboard, including case, punctuation and a separate numeric block. A activates the focused field/action; B cancels an input or returns to Hall of Fame. Start overlays the form. L1/R1 remain global section navigation and clear unsubmitted account drafts. Busy operations leave a visible Back action. Signing out requires a second A; B cancels that confirmation.
 
 Sign-in exchanges the password for a client access token. Only the canonical username and token are saved, under `integrations/retroachievements-account.json`, with owner-only permissions on Linux and atomic replacement. Password drafts are cleared on submission, Back and global section changes. A failed sign-in keeps an existing account intact. Sign-out clears the Hall of Fame token and its visible records; it does not delete local memories or another account's private cache. Emulator sign-in is a separate integration setting.
 
@@ -38,3 +38,7 @@ Actual earning requires a compatible emulator/core signed into the same account 
 - SDL/QML checks cover Account, masked entry, Start/Back, global page changes, draft clearing and landscape focus/layout.
 - The 2026-09-13 source passed the complete Windows suite (28/28) and the Ubuntu 24.04 / Qt 6.4.2 suite (29/29), including the controller-rendered account scenarios. Handheld deployment was deferred while investigating a separate freeze of the previously installed build.
 - Device sign-in succeeded for the owner's account on 2026-09-13. Production provider rendering, refresh/cache and emulator-earned unlock validation must be recorded separately after deployment; a successful login alone does not prove them.
+
+## Earned presentation - 2026-09-20
+
+Achievement rows now distinguish earned (gold), locked (muted grey) and unrecorded (lilac) using the existing checked account/set snapshot. Text still states unlock mode or unknown status; detail adds a matching symbol. Offline/error snapshots retain their confirmed cached states. The heading explicitly describes the account collection across matched Adventures: shared Y does not claim to filter it by the current save. No provider, matching, cache, earning or notification protocol changed. [Journey/RA boundary](JOURNEY_UI.md).

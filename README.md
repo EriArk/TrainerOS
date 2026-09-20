@@ -18,6 +18,8 @@ Start provides [quick volume/brightness controls and a confirmed Power menu](doc
 
 A read-only [battery gauge](docs/POWER_STATUS.md) shows the handheld's charge in the fixed lower panel.
 
+Hall now includes a [Journey overview](docs/JOURNEY_UI.md) with a larger badge case using existing verified progress, alongside manual memories and distinct earned/locked/unknown RetroAchievements states. New save fields and automatic Champion records remain planned.
+
 Settings → [Trainer & accounts](docs/TRAINER_SETUP_UI.md) links the existing profile
 editor and RA account service. Registration/chooser/PIN screens can be rehearsed
 in the isolated sample mode; real multiple-Trainer ownership and PIN locking are

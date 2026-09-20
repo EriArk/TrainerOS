@@ -493,3 +493,7 @@ Hall paired routing keeps view state in `HallOfFameController`, with independent
 ## Center Party/Storage P1 boundary
 
 `PartyPresentation` owns only transient read-only slot/detail/box routes. ShellController binds the current Pokemon Adventure identity and routes Select to the existing SaveCenterController, which retains all backup/restore guards and async source-generation protection. Production supplies no invented individuals. The new views do not read saves, infer individuals from Dex totals or expose a writer. [Availability and controls](CENTER_PARTY_UI.md).
+
+## Journey P1 boundary
+
+JourneyPanel consumes the existing ShellController current-Adventure/Home projection for badge identities/count and Caught, retaining its provider identity/availability checks. HallOfFameController adds overview/Champion presentation routes to the archive face without changing repository writes or the database schema. Its optional Champion fixture is enabled only by the non-editable development library composition, never by navigation JSON. Historical snapshots still require the later P8 domain/provider contract. Achievement row states derive from checked account/set snapshots; the shared list accepts optional per-row tints without changing other feature lists. [Scope](JOURNEY_UI.md).

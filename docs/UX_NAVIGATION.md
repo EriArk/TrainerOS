@@ -217,6 +217,8 @@ Acceptance: create a Trainer from the empty state, cancel a keyboard edit, cance
 
 ## Hall of Fame
 
+**P1 entry delivered, 2026-09-20:** new Hall navigation opens Journey, reusing existing Home badge/Caught observations. A opens manual memories; X opens Champion availability/sample records; Select creates a manual memory. B from the archive list returns to Journey. Existing persisted archive/RA routes are preserved. Large badge presentation does not establish new save support or completion. [Controller and data boundary](JOURNEY_UI.md).
+
 **Planned #47/#48/#64:** Hall's first face is a live save-backed **Journey Record**, useful before completion, plus preserved Champion/completed-run history. Show only proven title-specific badges, milestones, playtime and Dex totals, with larger game-accurate badge assets or deliberate neutral mounts; no universal eight-badge/percentage/date assumptions. See [exact badge identity and artwork acceptance](EXPANSION_63_64.md#accurate-league-badges-and-neutral-fallback).
 
 Champion snapshots preserve exact build/playthrough/source revision and verified historical team/progress. Current Party is not the historical winning team; older saves do not erase the archive. Observation time is not victory time. Manual memories/editing remain valid and explicitly sourced.

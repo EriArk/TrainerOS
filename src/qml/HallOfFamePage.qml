@@ -7,12 +7,14 @@ Item {
     enabled: !shell.drawerOpen
     readonly property bool takesFocus: visible && !shell.drawerOpen && !hall.editor.open && !hall.account.open && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     readonly property bool detailOpen: hall.route === "archive-detail" || hall.route === "achievement-detail"
+    Item {
+    anchors.fill: parent; visible: !root.hall.overview
     PageHeader { id: hallHeader; title: root.hall.archive ? "Hall of Fame" : "RetroAchievements"; trailing: root.hall.archive ? "Every journey leaves a story" : "Your account's achievements" }
     MountedPanel {
         x: 0; y: hallHeader.height; width: parent.width; height: 68; color: "#d2dcd6"
         Rectangle { x: 0; y: -parent.y; width: 6; height: parent.y; color: parent.color }
         Rectangle { anchors.right: parent.right; y: -parent.y; width: 6; height: parent.y; color: parent.color }
-        Text { x: 24; y: 11; text: root.hall.archive ? "Adventure memories" : "Achievement collection"; color: Theme.ink; font.pixelSize: 21; font.weight: Font.DemiBold }
+        Text { x: 24; y: 11; text: root.hall.archive ? "Adventure memories" : "Account collection · All matched Adventures"; color: Theme.ink; font.pixelSize: 21; font.weight: Font.DemiBold }
         Text { x: 24; y: 39; width: 495; text: root.hall.status; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 14 }
         Text { x: 548; y: 25; width: parent.width - 570; visible: root.hall.archive && root.hall.editable; text: "Select · New memory     X · Edit"; color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
         Text { x: 548; y: 25; width: parent.width - 570; visible: !root.hall.archive; text: "Select · Refresh" + (root.hall.account.available ? "     X · Account" : ""); color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
@@ -26,8 +28,9 @@ Item {
                 objectName: "hall-list"
                 x: 19; y: 0; width: 482; height: parent.height
                 model: root.hall.rows; currentIndex: root.hall.rowIndex
+                rowTints: !root.hall.archive
                 namePrefix: "hall-row-"; tint: root.hall.archive ? "#c6b4df" : Theme.green
-                takesFocus: root.takesFocus && !root.detailOpen && root.hall.zone === "list"
+                takesFocus: root.takesFocus && !root.hall.overview && !root.detailOpen && root.hall.zone === "list"
                 onActivated: row => root.shell.activate(row, "list")
             }
             Text {
@@ -68,7 +71,12 @@ Item {
             }
             Item {
                 anchors.fill: parent; visible: !root.hall.archive
-                TrainerEmblem { x: 26; y: 12; width: 122; height: 122; emblem: "spark" }
+                Rectangle {
+                    x: 26; y: 12; width: 122; height: 122; radius: 61
+                    color: root.hall.detail.earnedState === "earned" ? Theme.yellow : root.hall.detail.earnedState === "locked" ? "#c8d3d0" : "#d9cfdf"
+                    border.width: 3; border.color: "#829687"
+                    Text { anchors.centerIn: parent; text: root.hall.detail.earnedState === "earned" ? "✓" : root.hall.detail.earnedState === "locked" ? "—" : "?"; font.pixelSize: 54; font.bold: true; color: Theme.ink }
+                }
                 Text { x: 170; y: 22; width: 297; text: root.hall.detail.summary; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 23; font.weight: Font.DemiBold }
                 Text { x: 170; y: 91; width: 297; text: root.hall.detail.time; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 14 }
             }
@@ -95,7 +103,7 @@ Item {
                     width: 274; height: 42; label: modelData.label
                     tint: index === 0 ? Theme.blue : Theme.yellow
                     enabled: modelData.enabled; opacity: enabled ? 1 : 0.5
-                    selected: root.takesFocus && root.hall.zone === "actions" && root.hall.focusIndex === index && enabled
+                    selected: root.takesFocus && !root.hall.overview && root.hall.zone === "actions" && root.hall.focusIndex === index && enabled
                     onActivated: root.shell.activate(index, "actions")
                 }
             }
@@ -109,6 +117,8 @@ Item {
             color: Theme.muted; font.pixelSize: 13; horizontalAlignment: Text.AlignRight
         }
     }
+    }
+    JourneyPanel { anchors.fill: parent; shell: root.shell; visible: root.hall.overview; takesFocus: root.takesFocus && root.hall.overview }
     ArchiveEditorPanel { anchors.fill: parent; shell: root.shell; visible: root.hall.editor.open }
     AchievementAccountPanel { anchors.fill: parent; shell: root.shell; visible: root.hall.account.open }
 }

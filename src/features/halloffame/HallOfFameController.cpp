@@ -2,6 +2,14 @@
 #include <algorithm>
 
 namespace trainer {
+QVariantMap HallOfFameController::championPreview() const {
+    if (!sampleJourney_) return {};
+    return {{"title", "Sample Hoenn run"}, {"build", "Development fixture · independent historical snapshot"},
+        {"victory", "Victory date unknown"}, {"observed", "Observed 20 Sep 2026 · not the victory date"},
+        {"team", QVariantList{QVariantMap{{"name", "Sceptile"}, {"level", "Lv. 52"}},
+            QVariantMap{{"name", "Gardevoir"}, {"level", "Level unknown"}},
+            QVariantMap{{"name", "Not recorded"}, {"level", "—"}}}}};
+}
 namespace {
 QString dateLabel(const QDateTime& date) { return date.isValid() ? date.toUTC().toString("dd MMM yyyy · HH:mm 'UTC'") : "Date not recorded"; }
 QString memoryDate(const QDateTime& date) { return date.isValid() ? date.toUTC().toString("dd MMM yyyy") : "Date not recorded"; }
@@ -91,7 +99,15 @@ QList<HallOfFameController::Row> HallOfFameController::currentRows() const {
 }
 QVariantList HallOfFameController::rows() const {
     QVariantList result;
-    for (const auto& row : currentRows()) result.append(QVariantMap{{"id", row.id}, {"title", row.title}, {"subtitle", row.subtitle}});
+    for (const auto& row : currentRows()) {
+        QVariantMap item{{"id", row.id}, {"title", row.title}, {"subtitle", row.subtitle}};
+        if (!isArchive() && route_ != "sets") {
+            const auto unlock = unlockFor(currentSnapshot(), row.id);
+            item["tint"] = !unlock.unlocked ? "#d9cfdf" : *unlock.unlocked ? "#f5d886" : "#c8d3d0";
+            item["earnedState"] = !unlock.unlocked ? "unknown" : *unlock.unlocked ? "earned" : "locked";
+        }
+        result.append(item);
+    }
     return result;
 }
 int HallOfFameController::rowIndex() const {
@@ -133,6 +149,7 @@ QVariantMap HallOfFameController::detail() const {
         result["world"] = set.title;
         result["description"] = definition.description;
         result["summary"] = unlockLabel(unlock);
+        result["earnedState"] = !unlock.unlocked ? "unknown" : *unlock.unlocked ? "earned" : "locked";
         result["time"] = unlock.unlocked.value_or(false) ? "Earned: " + dateLabel(unlock.earnedAt) : "Unlock date unavailable";
     }
     return result;
@@ -169,6 +186,7 @@ QString HallOfFameController::emptyMessage() const {
     return {};
 }
 QVariantList HallOfFameController::actions() const {
+    if (overview()) return {QVariantMap{{"label", route_ == "archive-journey" ? "A · Adventure memories" : "A / B · Journey Record"}, {"enabled", true}}};
     if (route_ == "archive-list") return {QVariantMap{{"label", "Refresh archive"}, {"enabled", true}}};
     if (route_ == "archive-detail") return {QVariantMap{{"label", "Back to archive"}, {"enabled", true}}};
     if (route_ == "sets") return {QVariantMap{{"label", "Refresh records"}, {"enabled", true}}};
@@ -240,14 +258,15 @@ void HallOfFameController::restoreNavigation(const QJsonObject& state) {
     for (const auto& set : provider_.sets())
         for (const auto& entry : checkedSnapshot(set).definitions)
             if (selected[set.id].toString() == entry.id) achievementIds_[set.id] = entry.id;
-    const auto decode = [](const QJsonObject& value, bool archive) {
-        const QStringList routes = archive ? QStringList{"archive-list", "archive-detail"}
+    const auto decode = [this](const QJsonObject& value, bool archive) {
+        const QStringList routes = archive ? QStringList{"archive-journey", "archive-list", "archive-detail", "archive-champions", "archive-champion-detail"}
             : QStringList{"sets", "achievements", "achievement-detail"};
         FaceView view{value["route"].toString(), value["zone"].toString(), std::max(0, value["action"].toInt())};
         if (!routes.contains(view.route)) view.route = routes.first();
+        if (view.route == "archive-champion-detail" && !sampleJourney_) view.route = "archive-champions";
         // Old rail focus migrates to the visible list; details only expose actions.
         if (view.zone != "actions") view.zone = "list";
-        if (view.route.endsWith("detail")) view.zone = "actions";
+        if (view.route.endsWith("detail") || view.route == "archive-journey" || view.route == "archive-champions") view.zone = "actions";
         return view;
     };
     const bool archive = !QStringList{"sets", "achievements", "achievement-detail"}.contains(state["route"].toString());
@@ -257,9 +276,16 @@ void HallOfFameController::restoreNavigation(const QJsonObject& state) {
     const auto active = decode(state, archive);
     (archive ? archiveView_ : achievementView_) = active;
     route_ = active.route; zone_ = active.zone; actionFocus_ = active.action;
+    if (route_ == "archive-champion-detail" && !sampleJourney_) route_ = "archive-champions";
     reconcile();
 }
+void HallOfFameController::showJourney() {
+    route_ = "archive-journey"; zone_ = "actions"; actionFocus_ = 0;
+    emit rowsChanged(); emit changed();
+}
 void HallOfFameController::back() {
+    if (route_ == "archive-champion-detail") { route_ = "archive-champions"; emit changed(); return; }
+    if (route_ == "archive-list" || route_ == "archive-champions") { showJourney(); return; }
     if (route_ == "archive-detail") route_ = "archive-list";
     else if (route_ == "achievement-detail") route_ = "achievements";
     else if (route_ == "achievements") route_ = "sets";
@@ -270,6 +296,13 @@ void HallOfFameController::back() {
 }
 void HallOfFameController::activate(int index) {
     if (account_.isOpen()) { account_.activate(index); return; }
+    if (overview()) {
+        if (route_ == "archive-champion-detail") { back(); emit changed(); }
+        else if (route_ == "archive-champions" && sampleJourney_) { route_ = "archive-champion-detail"; emit changed(); }
+        else if (route_ == "archive-champions") showJourney();
+        else { route_ = "archive-list"; zone_ = currentRows().isEmpty() ? "actions" : "list"; reconcile(); }
+        return;
+    }
     if (zone_ == "list") {
         const auto rows = currentRows();
         if (index < 0 || index >= rows.size()) return;
@@ -291,6 +324,7 @@ void HallOfFameController::activate(int index) {
 }
 void HallOfFameController::activateControl(const QString& zone, int index) {
     if (account_.isOpen()) { account_.activate(index); return; }
+    if (zone == "journey-champions" && overview()) { route_ = "archive-champions"; emit changed(); return; }
     if (zone == "achievement-account") { account_.begin(); return; }
     if (editor_.isOpen()) { editor_.activate(index); return; }
     if (zone == "memory-new" || zone == "memory-edit") { beginMemory(zone == "memory-edit"); return; }
@@ -300,6 +334,13 @@ void HallOfFameController::activateControl(const QString& zone, int index) {
 void HallOfFameController::dispatch(Action action) {
     if (account_.isOpen()) { account_.dispatch(action); return; }
     if (editor_.isOpen()) { editor_.dispatch(action); return; }
+    if (overview()) {
+        if (action == Action::Secondary) { route_ = route_ == "archive-journey" ? "archive-champions" : "archive-journey"; emit changed(); }
+        else if (action == Action::Confirm) activate(0);
+        else if (action == Action::Back) { back(); emit changed(); }
+        else if (action == Action::ToggleContinue) beginMemory(false);
+        return;
+    }
     if (!isArchive() && action == Action::Secondary) { account_.begin(); return; }
     if (!isArchive() && action == Action::ToggleContinue) { provider_.refreshAll(); return; }
     if (isArchive() && action == Action::ToggleContinue) { beginMemory(false); return; }

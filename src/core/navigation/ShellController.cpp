@@ -61,6 +61,8 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         emit changed();
     });
     hall_.editor()->setLibrary(&repo);
+    if (!repo.editable()) hall_.enableSampleJourney();
+    hall_.showJourney();
     connect(hall_.account(), &AchievementAccountController::textRequested, this,
         [this](const QString& title, const QString& initial, int limit, bool secret) {
             textTarget_ = TextTarget::AchievementAccount; keyboard_.begin(title, initial, limit, secret);

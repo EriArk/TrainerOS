@@ -11,6 +11,8 @@ namespace trainer {
 class HallOfFameController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString route READ route NOTIFY changed)
+    Q_PROPERTY(bool overview READ overview NOTIFY changed)
+    Q_PROPERTY(QVariantMap championPreview READ championPreview CONSTANT)
     Q_PROPERTY(QString zone READ zone NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(int rowIndex READ rowIndex NOTIFY changed)
@@ -27,6 +29,10 @@ class HallOfFameController final : public QObject {
 public:
     HallOfFameController(HallOfFameRepository&, AchievementProvider&, QObject* parent = nullptr);
     QString route() const { return route_; }
+    bool overview() const { return route_ == "archive-journey" || route_ == "archive-champions" || route_ == "archive-champion-detail"; }
+    void showJourney();
+    void enableSampleJourney() { sampleJourney_ = true; }
+    QVariantMap championPreview() const;
     QString zone() const { return zone_; }
     bool isArchive() const { return route_.startsWith("archive"); }
     int focusIndex() const;
@@ -64,7 +70,8 @@ private:
     void reconcile();
     void normalizeActions();
     void back();
-    bool isDetail() const { return route_.endsWith("detail"); }
+    bool isDetail() const { return !overview() && route_.endsWith("detail"); }
+    bool sampleJourney_ = false;
     struct FaceView { QString route, zone; int action = 0; };
     FaceView archiveView_{"archive-list", "list"};
     FaceView achievementView_{"sets", "list"};
