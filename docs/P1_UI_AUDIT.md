@@ -40,7 +40,8 @@ were verified. No save migration was required.
 
 ## Remaining P1 audit
 
-- Remaining Pokedex/Center and Hall/RA real-content edge states and action hints.
+- Final P1 acceptance reconciliation across the recorded screen/state matrix;
+  retain real-provider and physical-device gates separately from fixture coverage.
 - Carry the Worlds/Multiverse audit below forward when real Multiverse binding
   replaces presentation samples; it does not certify that future provider.
 - Physical reconnect/foreground checks at the U12/platform boundary; injected
@@ -81,3 +82,43 @@ confirmed visible gold focus at the clipped list edge and a reachable empty-stat
 Back action. The filter was reset and the handheld returned to Home. Resolve
 regions from the displayed catalogue: its merged ordering differs from raw
 SQLite world order. Physical button/hotplug acceptance remains separate.
+
+## Center and Hall action hints - 2026-09-20
+
+The Center Adventure browser labels X as Search and its on-screen button opens
+the same search as the physical shortcut. Empty or unrestorable shelves no
+longer advertise restoring a selected copy; Back distinguishes the companion
+Party/Storage route from the standalone Adventure browser. The unavailable
+backup control is disabled without changing backend save guards. Empty Hall
+archives offer New memory without advertising Edit for a nonexistent record.
+
+SDL checks cover the empty Center shelf, empty Adventure search, X keyboard
+entry and cancellation restoring its opener, plus the empty Hall hint. Existing
+Pokedex and Hall scenarios retain combined filters, write/read error recovery,
+offline/loading/disconnected RA states, account isolation and paired navigation.
+These UI changes add no save parser, writer, ownership or RA provider capability.
+
+The three affected rendered SDL scenarios (Pokedex, Hall and diagnostics/Center)
+passed on Windows and ARM. The installed pre-change Emerald shelf confirmed the
+reported empty-copy hint problem against a real ordinary save; inspection did
+not create or restore a backup. Physical reconnect/foreground acceptance and
+future provider states still require their own verification.
+
+Real-content review also found that returning from Center could leave the
+selected Dex row partly below the viewport. Pokedex now reveals its current row
+again on visibility, focus-ownership and viewport-height changes. The SDL test
+perturbs the hidden list's scroll offset, returns through the paired trigger,
+and checks both species identity and the complete focus outline. This does not
+change journal data, filters or the selected species.
+
+Native Flip Gamescope runs passed for diagnostics/Center and the final Pokedex
+return regression. Installed-build InputPlumber checks confirmed that Machoke
+remains fully visible after a Center round trip in the real 1025-entry Dex.
+The Emerald empty-copy shelf has the corrected hint, and Hall/RA pairing retained
+the selected achievement in the 91-record account collection. These are injected
+controller checks, not a substitute for physical reconnect acceptance.
+
+The final production binary was installed with a binary/database rollback copy.
+Its hash, database integrity, unchanged Trainer profile, schema 7 and all 686
+Adventure records were verified. No game save was created or restored during
+the real-content audit; the device was returned to Home.

@@ -190,7 +190,23 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             check(shell.party()->detail()["kind"]=="unreadable", "Unreadable is distinct from empty"); capture("center-unreadable");
             press(b); press(SDL_CONTROLLER_BUTTON_BACK); break;
         case 41:
-            check(shell.party()->section()=="saves" && focus("center-check"), "Select reaches ordinary save service"); capture("center-sample-saves"); press(b); break;
+            check(shell.party()->section()=="saves" && focus("center-check"), "Select reaches ordinary save service");
+            {
+                auto* hint=window->findChild<QQuickItem*>("center-action-hint");
+                check(hint && !hint->property("text").toString().contains("Restore selected"), "Empty shelf must not advertise restore");
+            }
+            capture("center-sample-saves");
+            shell.center()->begin(); shell.center()->applySearch("No matching Adventure 987654321"); *stage=84; break;
+        case 84: {
+            auto* button=window->findChild<QQuickItem*>("center-check");
+            check(focus("center-check") && button && button->property("label").toString()=="X Search Adventures", "Empty Adventure browser labels its actual search action");
+            capture("center-search-empty"); press(SDL_CONTROLLER_BUTTON_Y); break;
+        }
+        case 85:
+            check(shell.keyboard()->isOpen(), "Advertised X opens Center search"); press(b); break;
+        case 86:
+            check(focus("center-check"), "Cancelled empty search restores its opener");
+            shell.center()->beginSelected(shell.home()["adventureId"].toString()); press(b); *stage=42; break;
         case 42:
             check(shell.party()->section()=="storage" && focus("party-slot-5"), "Back restores original box slot");
             press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER); press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;

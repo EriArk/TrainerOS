@@ -139,6 +139,10 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         case 36: archive.setEmpty(true); hall->refreshArchive(); break;
         case 37:
             check(focusIs("hall-action-0"), "Empty local archive has recovery action");
+            {
+                auto* hint=window->findChild<QQuickItem*>("hall-memory-hint");
+                check(hint && !hint->property("text").toString().contains("Edit"), "Empty archive must not advertise editing a missing memory");
+            }
             capture("archive-empty"); archive.setEmpty(false); press(a); break;
         case 38:
             check(focusIs("hall-row-crystal-champion"), "Archive retry restores list focus");

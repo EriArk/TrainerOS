@@ -16,7 +16,7 @@ Item {
         Rectangle { anchors.right: parent.right; y: -parent.y; width: 6; height: parent.y; color: parent.color }
         Text { x: 24; y: 11; text: root.hall.archive ? "Adventure memories" : "Account collection · All matched Adventures"; color: Theme.ink; font.pixelSize: 21; font.weight: Font.DemiBold }
         Text { x: 24; y: 39; width: 495; text: root.hall.status; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 14 }
-        Text { x: 548; y: 25; width: parent.width - 570; visible: root.hall.archive && root.hall.editable; text: "Select · New memory     X · Edit"; color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
+        Text { x: 548; y: 25; width: parent.width - 570; visible: root.hall.archive && root.hall.editable; objectName: "hall-memory-hint"; text: "Select · New memory" + (root.hall.rows.length ? "     X · Edit" : ""); color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
         Text { x: 548; y: 25; width: parent.width - 570; visible: !root.hall.archive; text: "Select · Refresh" + (root.hall.account.available ? "     X · Account" : ""); color: Theme.ink; font.pixelSize: 14; font.weight: Font.DemiBold }
     }
     Item {

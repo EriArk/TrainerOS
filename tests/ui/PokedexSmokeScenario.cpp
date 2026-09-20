@@ -161,8 +161,25 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             press(SDL_CONTROLLER_BUTTON_BACK);press(r1);break;
         case 48:
             check(shell.page()==3 && !dex->journal()->isOpen(), "Global page change discards journal draft");press(l1);break;
-        default:
+        case 49:
             check(focusIs("dex-favorite"), "Journal page return restores detail focus");
+            press(b);
+            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767); input.poll();
+            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768); input.poll(); break;
+        case 50: {
+            check(shell.centerFace(), "Trigger opens Center from the scrolled Dex list");
+            // Simulate a retained viewport offset while the list is hidden.
+            auto* list=window->findChild<QQuickItem*>("dex-list");
+            check(list, "Dex list remains available behind its peer");
+            if(list) list->setProperty("contentY",0);
+            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERLEFT,32767); input.poll();
+            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERLEFT,-32768); input.poll(); break;
+        }
+        case 51:
+            check(!shell.centerFace() && focusIs("dex-entry-eevee"), "Center return restores and reveals the selected species");
+            capture("center-return-scrolled"); break;
+        default:
+            check(focusIs("dex-entry-eevee"), "Peer return keeps list focus");
             check(qmlWarnings == 0, "QML warnings emitted");
             completed = true; timer->stop();
             if (!screenshotDir.isEmpty()) {

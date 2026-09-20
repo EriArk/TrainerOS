@@ -54,6 +54,9 @@ Item {
                 onCurrentIndexChanged: Qt.callLater(revealCurrent)
                 onCurrentItemChanged: Qt.callLater(revealCurrent)
                 onModelChanged: Qt.callLater(revealCurrent)
+                onVisibleChanged: Qt.callLater(revealCurrent)
+                onHeightChanged: Qt.callLater(revealCurrent)
+                Connections { target: root; function onTakesFocusChanged() { Qt.callLater(entries.revealCurrent); } }
                 Connections { target: root; function onDetailOpenChanged() { Qt.callLater(entries.revealCurrent); } }
                 delegate: Item {
                     required property int index

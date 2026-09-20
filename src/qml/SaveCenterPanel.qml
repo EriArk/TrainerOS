@@ -4,6 +4,10 @@ Item {
     id: root
     required property var shell
     readonly property var center: shell.center
+    readonly property string backHint: center.companion ? "B Party / Storage" : "B Adventures"
+    readonly property string shelfHint: center.busy ? "Checking saves..." : center.rows.length === 0
+        ? "X Check again" : center.rows[center.focusIndex] && center.rows[center.focusIndex].available
+        ? "A Restore selected copy - current save protected first" : "Selected copy cannot be restored"
     readonly property bool takesFocus: visible && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     enabled: !shell.drawerOpen
     // The main chassis owns the recessed surface for pages and services alike.
@@ -47,9 +51,9 @@ Item {
         MountedPanel {
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
             height: 88; color: "#c6dcca"
-            Text { x: 31; y: 7; width: parent.width-62; text: root.center.route==="adventures"?(root.center.query?"Search · "+root.center.query:"↑ / ↓ Browse · ← / → Jump 8 · A Open save shelf"):"A Restore selected copy · your current save is protected first · B Party / Storage"; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 12 }
-            CapButton { objectName: "center-check"; x: 30; y: 34; width: 270; height: 40; label: root.center.busy?"Checking saves…":"X Check again"; tint: Theme.blue; selected: root.takesFocus && !root.center.confirming && (root.center.busy || list.count===0); onActivated: root.center.refresh() }
-            CapButton { x: 324; y: 34; width: 270; height: 40; visible: root.center.route==="copies"; label: root.center.canCreate?"Select New backup":"No save to copy"; tint: root.center.canCreate?Theme.yellow:"#c4cdc7"; onActivated: root.center.create() }
+            Text { x: 31; y: 7; width: parent.width-62; objectName: "center-action-hint"; text: root.center.route==="adventures"?(root.center.query?"Search · "+root.center.query:"↑ / ↓ Browse · ← / → Jump 8 · A Open save shelf"):root.shelfHint + " · " + root.backHint; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 12 }
+            CapButton { objectName: "center-check"; x: 30; y: 34; width: 270; height: 40; label: root.center.busy?"Checking saves…":root.center.route==="adventures"?"X Search Adventures":"X Check again"; tint: Theme.blue; selected: root.takesFocus && !root.center.confirming && (root.center.busy || list.count===0); onActivated: root.center.route==="adventures" ? root.center.search() : root.center.refresh() }
+            CapButton { x: 324; y: 34; width: 270; height: 40; visible: root.center.route==="copies"; enabled: root.center.canCreate; label: root.center.canCreate?"Select New backup":"No save to copy"; tint: root.center.canCreate?Theme.yellow:"#c4cdc7"; onActivated: root.center.create() }
         }
         Rectangle {
             anchors.fill: parent; visible: root.center.confirming; color: Theme.paper
