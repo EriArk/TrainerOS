@@ -151,10 +151,12 @@ Window {
                 anchors.fill: parent; anchors.margins: Theme.panelInset
                 anchors.topMargin: Theme.contentTopInset; clip: true
                 anchors.bottomMargin: shell.page === 0 || shell.page === 1 ? Theme.panelInset : Theme.panelInset + 30
-                HomePage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 0 }
+                HomePage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 0 && !shell.multiverseHome }
+                MultiverseHome { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 0 && shell.multiverseHome }
                 HallOfFamePage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 4 }
                 TrainerPage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 3 }
-                WorldsPage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 1 }
+                WorldsPage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 1 && !shell.multiverseFace }
+                MultiversePage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 1 && shell.multiverseFace }
                 PokedexPage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 2 && !shell.centerFace }
             }
         }
@@ -178,9 +180,10 @@ Window {
             Row {
                 anchors { right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
                 spacing: 14
-                Hint { visible: shell.pairedNavigationAvailable; button: "L2 R2"; label: shell.page === 4 ? (shell.hall.archive ? "Achievements" : "Hall of Fame") : (shell.centerFace ? "Pokédex" : "Center"); tint: Theme.green }
+                Hint { visible: shell.pairedNavigationAvailable; button: "L2 R2"; label: shell.page === 1 ? (shell.multiverseFace ? "Worlds" : "Multiverse") : shell.page === 4 ? (shell.hall.archive ? "Achievements" : "Hall of Fame") : (shell.centerFace ? "Pokédex" : "Center"); tint: Theme.green }
+                Hint { visible: shell.page === 0 && shell.chooseAdventureAvailable && !shell.drawerOpen; button: "X"; label: shell.multiverseHome ? "Pokémon" : "Multiverse"; tint: Theme.blue }
                 Hint { button: "L1 R1"; label: "Sections"; tint: Theme.blue }
-                Hint { button: "A"; label: shell.keyboard.open && !shell.menuOpen ? "Type" : shell.page === 0 && !shell.drawerOpen && !shell.menuOpen && !shell.serviceOpen && shell.notice.length === 0 ? shell.home.actionHint : "Select" }
+                Hint { button: "A"; label: shell.keyboard.open && !shell.menuOpen ? "Type" : shell.page === 0 && !shell.drawerOpen && !shell.menuOpen && !shell.serviceOpen && shell.notice.length === 0 ? (shell.multiverseHome ? (shell.multiverse.selected.id ? "Preview" : "Explore") : shell.home.actionHint) : "Select" }
                 Hint { button: "B"; label: shell.keyboard.open && !shell.menuOpen ? "Cancel input" : "Back"; tint: Theme.pink }
                 Hint { button: "Start"; label: "System"; tint: Theme.yellow }
             }

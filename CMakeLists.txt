@@ -139,6 +139,7 @@ add_library(trainer_core STATIC
     src/features/trainer/TrainerController.cpp
     src/features/trainer/TrainerController.h
     src/features/worlds/WorldsController.cpp
+    src/features/worlds/MultiversePresentation.cpp
     src/features/worlds/WorldsController.h
     src/integrations/adventure/AdventureAdapter.h
     src/integrations/adventure/mock/MockAdventureAdapter.cpp
@@ -209,6 +210,9 @@ qt_add_qml_module(traineros
         src/qml/TrainerPage.qml
         src/qml/TrainerEmblem.qml
         src/qml/WorldsPage.qml
+        src/qml/MultiversePage.qml
+        src/qml/MultiverseHome.qml
+        src/qml/SystemGlyph.qml
         src/qml/PokedexPage.qml
         src/qml/PokedexJournalPanel.qml
         src/qml/SpeciesPickerPanel.qml

@@ -21,6 +21,58 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void multiverseIsolationAndModalPriority() {
+        MockLibraryRepository library; MockTrainerRepository profiles;
+        MockAdventureAdapter adapter; DevelopmentPlatformService platform;
+        MockPokedexRepository dex; MockHallOfFameRepository archive; MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        QSignalSpy launches(&shell, &ShellController::homeLaunchPressed);
+        const auto pokemon = shell.currentAdventureId();
+        shell.dispatch(Action::Secondary); QVERIFY(shell.multiverseHome());
+        shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::Right); shell.dispatch(Action::Confirm);
+        QCOMPARE(shell.multiverse()->selected()["id"], "sample-orbit");
+        QCOMPARE(shell.currentAdventureId(), pokemon); QCOMPARE(launches.size(), 0);
+        shell.dispatch(Action::Confirm); QVERIFY(shell.notice().contains("No game"));
+        shell.dispatch(Action::Secondary); QVERIFY(shell.multiverseHome()); // Notice traps X.
+        shell.dispatch(Action::Back); shell.dispatch(Action::Secondary); QVERIFY(!shell.multiverseHome());
+        QCOMPARE(shell.currentAdventureId(), pokemon);
+        shell.goToPage(1); const auto route = shell.worlds()->navigationState();
+        shell.dispatch(Action::NextFace); QVERIFY(shell.multiverseFace());
+        shell.dispatch(Action::Confirm); QCOMPARE(shell.multiverse()->route(), "games");
+        shell.dispatch(Action::Secondary); QVERIFY(shell.keyboard()->isOpen());
+        shell.dispatch(Action::NextFace); QVERIFY(shell.multiverseFace());
+        shell.dispatch(Action::Back); QVERIFY(!shell.keyboard()->isOpen());
+        shell.dispatch(Action::Down); shell.dispatch(Action::Confirm);
+        QCOMPARE(shell.multiverse()->focusIndex(), 1); // Missing file cannot be selected.
+        shell.dispatch(Action::Left); QCOMPARE(shell.multiverse()->focusIndex(), 1);
+        shell.dispatch(Action::Back); QCOMPARE(shell.multiverse()->route(), "games");
+        shell.dispatch(Action::PreviousFace); QVERIFY(!shell.multiverseFace());
+        QCOMPARE(shell.worlds()->navigationState(), route);
+        shell.dispatch(Action::NextFace); QCOMPARE(shell.multiverse()->focusIndex(), 1);
+        shell.dispatch(Action::Up); shell.dispatch(Action::Confirm); shell.dispatch(Action::Confirm);
+        QCOMPARE(shell.page(), 0); QVERIFY(shell.multiverseHome());
+        QCOMPARE(shell.multiverse()->selected()["id"], "sample-courier");
+        QCOMPARE(shell.currentAdventureId(), pokemon); QCOMPARE(launches.size(), 0);
+        shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::Secondary); QVERIFY(shell.multiverseHome());
+        shell.dispatch(Action::Back); shell.dispatch(Action::SystemMenu); shell.dispatch(Action::Secondary);
+        QVERIFY(shell.multiverseHome()); shell.dispatch(Action::Back);
+        shell.goToPage(2); QVERIFY(shell.resumePoints() != shell.multiverse()->choices());
+        shell.dispatch(Action::Home); QVERIFY(shell.multiverseHome());
+    }
+    void multiverseFilteringAndEmptyProduction() {
+        MultiversePresentation sample(true);
+        sample.activate(0); sample.applySearch("lantern"); QCOMPARE(sample.games().size(), 1);
+        sample.dispatch(Action::ToggleContinue); QVERIFY(sample.games().isEmpty());
+        sample.dispatch(Action::Confirm); QCOMPARE(sample.games().size(), 2); QVERIFY(sample.query().isEmpty());
+        sample.applySearch("courier"); sample.dispatch(Action::Back);
+        sample.activate(1); QVERIFY(sample.query().isEmpty());
+        sample.dispatch(Action::Back); sample.activate(0); QCOMPARE(sample.query(), "courier");
+        sample.select("sample-lantern"); QVERIFY(sample.selected().isEmpty());
+        MultiversePresentation personal(false);
+        QVERIFY(personal.choices().isEmpty()); personal.select("sample-courier"); QVERIFY(personal.selected().isEmpty());
+        personal.activate(0); QVERIFY(personal.games().isEmpty());
+        personal.dispatch(Action::Confirm); QCOMPARE(personal.route(), "systems");
+    }
     void personalLibraryCannotEnterSetupPreview() {
         class Library final : public LibraryRepository {
         public:
@@ -34,6 +86,15 @@ private slots:
         MockPokedexRepository dex; MockHallOfFameRepository archive; MockAchievementProvider achievements;
         achievements.enableAccountPreview();
         ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        QVERIFY(!shell.multiverse()->sample());
+        shell.dispatch(Action::Secondary); QVERIFY(shell.multiverseHome());
+        shell.dispatch(Action::ToggleContinue); QVERIFY(shell.resumePoints().isEmpty());
+        shell.dispatch(Action::Confirm); QVERIFY(!shell.drawerOpen());
+        shell.dispatch(Action::Confirm); QCOMPARE(shell.page(), 1); QVERIFY(shell.multiverseFace());
+        shell.dispatch(Action::Confirm); QVERIFY(shell.multiverse()->games().isEmpty());
+        shell.dispatch(Action::Home); shell.dispatch(Action::Secondary); QVERIFY(!shell.multiverseHome());
+        shell.dispatch(Action::Confirm); QCOMPARE(shell.page(), 1); QVERIFY(!shell.multiverseFace());
+        shell.dispatch(Action::Home);
         shell.dispatch(Action::SystemMenu); shell.activate(0); shell.activate(4);
         shell.activate(2); QCOMPARE(shell.service(),"trainer-settings"); QVERIFY(!shell.notice().isEmpty());
         shell.dispatch(Action::Back); shell.activate(1); QVERIFY(shell.hall()->account()->isOpen());

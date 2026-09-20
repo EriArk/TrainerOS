@@ -7,6 +7,7 @@
 #include "features/trainer/TrainerController.h"
 #include "features/trainer/TrainerSetupPresentation.h"
 #include "features/worlds/WorldsController.h"
+#include "features/worlds/MultiversePresentation.h"
 #include "features/pokedex/PokedexController.h"
 #include "features/halloffame/HallOfFameController.h"
 #include "features/library/LibraryManagementController.h"
@@ -28,6 +29,9 @@ class ShellController final : public QObject {
     Q_PROPERTY(bool chooseAdventureAvailable READ chooseAdventureAvailable NOTIFY changed)
     Q_PROPERTY(bool pairedNavigationAvailable READ pairedNavigationAvailable NOTIFY changed)
     Q_PROPERTY(bool centerFace READ centerFace NOTIFY changed)
+    Q_PROPERTY(bool multiverseFace READ multiverseFace NOTIFY changed)
+    Q_PROPERTY(bool multiverseHome READ multiverseHome NOTIFY changed)
+    Q_PROPERTY(trainer::MultiversePresentation* multiverse READ multiverse CONSTANT)
     Q_PROPERTY(QString currentAdventureId READ currentAdventureId NOTIFY changed)
     Q_PROPERTY(bool menuOpen READ menuOpen NOTIFY changed)
     Q_PROPERTY(QString notice READ notice NOTIFY changed)
@@ -58,6 +62,9 @@ public:
     TextEntryController* keyboard() { return &keyboard_; }
     TrainerController* trainer() { return &trainer_; }
     WorldsController* worlds() { return &worlds_; }
+    MultiversePresentation* multiverse() { return &multiverse_; }
+    bool multiverseFace() const { return multiverseFace_; }
+    bool multiverseHome() const { return multiverseHome_; }
     PokedexController* pokedex() { return &pokedex_; }
     HallOfFameController* hall() { return &hall_; }
     LibraryManagementController* libraryManager() { return &libraryManager_; }
@@ -114,6 +121,7 @@ private:
     TrainerSetupPresentation trainerSetup_;
     int trainerSettingsFocus_ = 0;
     WorldsController worlds_;
+    MultiversePresentation multiverse_;
     PokedexController pokedex_;
     HallOfFameController hall_;
     LibraryManagementController libraryManager_;
@@ -122,7 +130,7 @@ private:
     DiagnosticsController diagnostics_;
     SaveCenterController center_;
     QString service_;
-    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, Library, Archive, PokedexNote, TrainerFavorite, CenterSearch, AchievementAccount, SetupName };
+    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, Archive, PokedexNote, TrainerFavorite, CenterSearch, AchievementAccount, SetupName };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QString homeAdventureId_, homeResumeId_;
@@ -133,6 +141,8 @@ private:
     int menuServiceFocus_ = 0;
     bool drawerOpen_ = false;
     bool centerFace_ = false;
+    bool multiverseFace_ = false, multiverseHome_ = false;
+    int multiverseDrawerFocus_ = 0;
     bool menuOpen_ = false;
     bool powerMenu_ = false;
     bool libraryFromWorlds_ = false;

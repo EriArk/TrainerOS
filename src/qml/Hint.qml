@@ -5,6 +5,7 @@ Row {
     property string button: "A"
     property string label: "Select"
     property color tint: Theme.green
+    property color labelColor: "#e2eee6"
     spacing: 7
     Rectangle {
         width: parent.button.length > 1 ? 45 : 23; height: 23; radius: 7
@@ -19,5 +20,5 @@ Row {
             Text { anchors.centerIn: parent; text: parent.parent.parent.button; color: Theme.ink; font.pixelSize: 11; font.bold: true }
         }
     }
-    Text { text: parent.label; color: "#e2eee6"; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
+    Text { text: parent.label; color: root.labelColor; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
 }

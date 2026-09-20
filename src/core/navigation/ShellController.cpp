@@ -17,9 +17,16 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         PlatformService& platform, PokedexReferenceProvider& dexReference, PokedexProgressRepository& dexProgress,
         HallOfFameRepository& archive, AchievementProvider& achievements, QObject* parent)
     : QObject(parent), repository_(repo), adapter_(adapter), platform_(platform),
-      keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this),
+      keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this), multiverse_(!repo.editable(), this),
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
       libraryManager_(repo, nullptr, this), settings_(this), device_(this), diagnostics_(this), center_(repo,this) {
+    connect(&multiverse_, &MultiversePresentation::changed, this, &ShellController::changed);
+    connect(&multiverse_, &MultiversePresentation::searchRequested, this, [this](const QString& text) {
+        textTarget_ = TextTarget::MultiverseSearch; keyboard_.begin("Multiverse · find a title", text, 48);
+    });
+    connect(&multiverse_, &MultiversePresentation::homeRequested, this, [this] {
+        multiverseHome_ = true; goToPage(0);
+    });
     connect(&settings_, &SettingsController::trainerRequested, this, [this] {
         service_ = "trainer-settings"; trainerSettingsFocus_ = 0; emit changed();
     });
@@ -104,7 +111,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         notice_ = message;
         emit changed();
     });
-    connect(&worlds_, &WorldsController::homeRequested, this, [this] { goToPage(0); });
+    connect(&worlds_, &WorldsController::homeRequested, this, [this] { multiverseHome_ = false; goToPage(0); });
     connect(&keyboard_, &TextEntryController::changed, this, &ShellController::changed);
     connect(&trainer_, &TrainerController::changed, this, &ShellController::changed);
     connect(&trainer_, &TrainerController::messageRequested, this, [this](const QString& message) {
@@ -121,6 +128,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::TrainerName) trainer_.setDraftName(text);
         else if (target == TextTarget::PokedexSearch) pokedex_.applySearch(text);
         else if (target == TextTarget::WorldsSearch) worlds_.applySearch(text);
+        else if (target == TextTarget::MultiverseSearch) multiverse_.applySearch(text);
         else if (target == TextTarget::Library) libraryManager_.applyText(text);
         else if (target == TextTarget::Archive) hall_.editor()->applyText(text);
         else if (target == TextTarget::PokedexNote) pokedex_.journal()->applyNote(text);
@@ -158,6 +166,8 @@ bool ShellController::chooseAdventureAvailable() {
         && !keyboard_.isOpen() && !localModalOpen();
 }
 bool ShellController::pairedNavigationAvailable() {
+    if (page_ == 1) return !serviceOpen() && !menuOpen_ && notice_.isEmpty()
+        && !keyboard_.isOpen() && !localModalOpen() && !drawerOpen_;
     return (page_ == 4 || (page_ == 2 && center_.configured())) && chooseAdventureAvailable() && !drawerOpen_;
 }
 void ShellController::openCenter() {
@@ -189,7 +199,7 @@ int ShellController::focusIndex() const {
     if (!notice_.isEmpty()) return 0;
     if (menuOpen_) return menuFocus_;
     if (keyboard_.isOpen()) return keyboard_.focusIndex();
-    if (drawerOpen_) return drawerFocus_;
+    if (drawerOpen_) return page_ == 0 && multiverseHome_ ? multiverseDrawerFocus_ : drawerFocus_;
     if (service_ == "library") return libraryManager_.files()->isOpen() ? libraryManager_.files()->focusIndex() : libraryManager_.focusIndex();
     if (service_ == "trainer-settings") return hall_.account()->isOpen() ? hall_.account()->focusIndex() : trainerSettingsFocus_;
     if (service_ == "trainer-setup") return trainerSetup_.focusIndex();
@@ -198,7 +208,7 @@ int ShellController::focusIndex() const {
     if (service_ == "diagnostics") return diagnostics_.focusIndex();
     if (service_ == "center") return center_.focusIndex();
     if (trainer_.editing()) return trainer_.focusIndex();
-    if (page_ == 1) return worlds_.focusIndex();
+    if (page_ == 1) return multiverseFace_ ? multiverse_.focusIndex() : worlds_.focusIndex();
     if (page_ == 2) return centerFace_ ? center_.focusIndex() : pokedex_.focusIndex();
     if (page_ == 4) return hall_.focusIndex();
     return drawerOpen_ ? drawerFocus_ : 0;
@@ -308,6 +318,7 @@ QVariantMap ShellController::home() const {
             {"recordedTime", seconds ? recordedDuration(*seconds) : "—"}, {"milestone", milestone}};
 }
 QVariantList ShellController::resumePoints() const {
+    if (page_ == 0 && multiverseHome_) return multiverse_.choices();
     QVariantList result;
     const auto adventures = repository_.adventures();
     const auto worlds = repository_.worlds();
@@ -374,7 +385,10 @@ void ShellController::activate(int index, const QString& area) {
     if (!notice_.isEmpty()) { confirm(); emit changed(); return; }
     if (menuOpen_) menuFocus_ = std::clamp(index, 0, int(menuItems().size()) - 1);
     else if (keyboard_.isOpen()) { keyboard_.activate(index); return; }
-    else if (drawerOpen_) drawerFocus_ = std::clamp(index, 0, std::max(0, int(points_.size()) - 1));
+    else if (drawerOpen_) {
+        auto& focus = page_ == 0 && multiverseHome_ ? multiverseDrawerFocus_ : drawerFocus_;
+        focus = std::clamp(index, 0, std::max(0, int(resumePoints().size()) - 1));
+    }
     else if (service_ == "library") { libraryManager_.activate(index, area); return; }
     else if (service_ == "trainer-settings") { trainerSettingsAction(index); return; }
     else if (service_ == "trainer-setup") { trainerSetup_.activate(index); return; }
@@ -384,6 +398,7 @@ void ShellController::activate(int index, const QString& area) {
     else if (service_ == "center") { center_.activate(index); return; }
     else if (trainer_.editing()) { trainer_.activate(index); return; }
     else if (page_ == 1) {
+        if (multiverseFace_) { multiverse_.activate(index); return; }
         if (area == "worlds-search") worlds_.dispatch(Action::Secondary);
         else if (area == "worlds-filter") worlds_.dispatch(Action::ToggleContinue);
         else worlds_.activate(index);
@@ -466,6 +481,12 @@ void ShellController::confirm() {
         return;
     }
     if (drawerOpen_) {
+        if (page_ == 0 && multiverseHome_) {
+            const auto choices = multiverse_.choices();
+            if (multiverseDrawerFocus_ >= 0 && multiverseDrawerFocus_ < choices.size())
+                multiverse_.select(choices[multiverseDrawerFocus_].toMap()["id"].toString());
+            drawerOpen_ = false; return;
+        }
         if (points_.isEmpty()) { drawerOpen_ = false; return; }
         const auto& point = points_.at(drawerFocus_);
         for (const auto& adventure : repository_.adventures()) if (adventure.id == point.adventureId) {
@@ -477,8 +498,13 @@ void ShellController::confirm() {
         }
         notice_ = "This Adventure is unavailable. Its history has been kept.";
     } else if (page_ == 0) {
+        if (multiverseHome_) {
+            if (multiverse_.selected().isEmpty()) { multiverseFace_ = true; goToPage(1); }
+            else notice_ = "Development preview only. No game was launched.";
+            return;
+        }
         const auto adventure = homeAdventure();
-        if (!adventure) { goToPage(1); return; }
+        if (!adventure) { multiverseFace_ = false; goToPage(1); return; }
         const auto caps = adapter_.capabilities(*adventure);
         const auto point = homeResumePoint(adventure->id);
         const auto status = homeResumeAvailability(*adventure);
@@ -530,7 +556,8 @@ void ShellController::dispatch(Action action) {
     }
     if (action == Action::PreviousFace || action == Action::NextFace) {
         if (pairedNavigationAvailable()) {
-            if (page_ == 4) hall_.switchFace();
+            if (page_ == 1) multiverseFace_ = !multiverseFace_;
+            else if (page_ == 4) hall_.switchFace();
             else if (centerFace_) { center_.close(); centerFace_ = false; }
             else openCenter();
             emit changed();
@@ -545,8 +572,10 @@ void ShellController::dispatch(Action action) {
         if (drawerOpen_) {
             if (action == Action::Back) drawerOpen_ = false;
             else if (action == Action::Confirm) confirm();
-            else if (action == Action::Left || action == Action::Right)
-                drawerFocus_ = std::clamp(drawerFocus_ + (action == Action::Right ? 1 : -1), 0, std::max(0, int(points_.size()) - 1));
+            else if (action == Action::Left || action == Action::Right) {
+                auto& focus = page_ == 0 && multiverseHome_ ? multiverseDrawerFocus_ : drawerFocus_;
+                focus = std::clamp(focus + (action == Action::Right ? 1 : -1), 0, std::max(0, int(resumePoints().size()) - 1));
+            }
             emit changed(); return;
         }
         if (service_ == "library") { libraryManager_.dispatch(action); return; }
@@ -564,7 +593,11 @@ void ShellController::dispatch(Action action) {
         if (service_ == "diagnostics") { diagnostics_.dispatch(action); return; }
         if (service_ == "center") { center_.dispatch(action); return; }
         if (trainer_.editing()) { trainer_.dispatch(action); return; }
-        if (page_ == 1) { worlds_.dispatch(action); return; }
+        if (page_ == 0 && action == Action::Secondary) { multiverseHome_ = !multiverseHome_; emit changed(); return; }
+        if (page_ == 1) {
+            if (multiverseFace_) multiverse_.dispatch(action); else worlds_.dispatch(action);
+            return;
+        }
         if (page_ == 2) {
             if (centerFace_) center_.dispatch(action);
             else pokedex_.dispatch(action == Action::LocalAction && !localModalOpen() ? Action::ToggleContinue : action);

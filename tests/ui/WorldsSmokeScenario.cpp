@@ -12,10 +12,11 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
                      bool& completed, int& qmlWarnings, QStringList& diagnostics) {
     auto stage = std::make_shared<int>(0);
     auto failed = std::make_shared<bool>(false);
+    auto drawerWaits = std::make_shared<int>(0);
     auto timer = new QTimer(window);
-    timer->setInterval(350);
+    timer->setInterval(450); // The two-phase Choose drawer takes 400 ms to settle.
     QObject::connect(timer, &QTimer::timeout, window,
-                     [window, &shell, &input, &adapter, joystick, screenshotDir, &completed, &qmlWarnings, &diagnostics, stage, failed, timer] {
+                     [window, &shell, &input, &adapter, joystick, screenshotDir, &completed, &qmlWarnings, &diagnostics, stage, failed, drawerWaits, timer] {
         const auto check = [&](bool condition, const QString& message) {
             if (!condition) { *failed = true; diagnostics.append(QString("Stage %1: %2").arg(*stage - 1).arg(message)); }
         };
@@ -27,6 +28,10 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
         };
         const auto focusIs = [&](const QString& name) {
             return window->activeFocusItem() && window->activeFocusItem()->objectName() == name;
+        };
+        const auto flipFace = [&] {
+            SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, 32767); input.poll();
+            SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, -32768); input.poll();
         };
         const auto capture = [&](const QString& name) {
             const auto frame = window->grabWindow();
@@ -49,6 +54,13 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
         constexpr auto up = SDL_CONTROLLER_BUTTON_DPAD_UP, down = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
         constexpr auto l1 = SDL_CONTROLLER_BUTTON_LEFTSHOULDER, r1 = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER;
         constexpr auto start = SDL_CONTROLLER_BUTTON_START;
+        if (*stage == 44) {
+            auto* drawer = window->findChild<QQuickItem*>("continue-drawer");
+            // Software rendering on ARM can stretch wall-clock animation time.
+            // Inspect the actual settled geometry, with a bounded failure path.
+            if (drawer && drawer->height() < 228.99 && ++*drawerWaits < 20) return;
+            check(drawer && drawer->height() >= 228.99, "Choose drawer did not finish opening");
+        }
         visibleFocus(); // Check settled focus, including outlines inside scrolling lists.
         switch ((*stage)++) {
         case 0:
@@ -200,8 +212,51 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
         case 37:
             check(focusIs("adventure-emerald-trails-demo"), "Fast jump clamps at the final row and reveals it");
             capture("worlds-jump"); press(a); break;
-        default:
+        case 38:
             check(focusIs("world-action-launch") && shell.worlds()->detail()["id"] == "emerald-trails-demo", "Detail survives global menu/page transitions");
+            flipFace(); break;
+        case 39:
+            check(shell.multiverseFace() && focusIs("multiverse-system-0"), "Trigger opens Multiverse systems");
+            capture("multiverse-systems"); press(a); break;
+        case 40:
+            check(focusIs("multiverse-game-0"), "First sample game focus"); capture("multiverse-list");
+            press(down); press(a); break;
+        case 41:
+            check(focusIs("multiverse-back"), "Missing entry skips select action"); capture("multiverse-missing");
+            press(b); press(up); press(a); break;
+        case 42:
+            check(focusIs("multiverse-select"), "Linked sample can be selected for Home"); capture("multiverse-detail");
+            press(a); break;
+        case 43:
+            check(shell.page() == 0 && shell.multiverseHome() && focusIs("multiverse-launch"), "Selection opens independent Multiverse Home");
+            capture("multiverse-home"); press(SDL_CONTROLLER_BUTTON_Y); break;
+        case 44:
+            check(shell.drawerOpen() && shell.resumePoints().size() == 3, "Multiverse-only drawer"); capture("multiverse-choose");
+            press(right); press(a); press(a); break;
+        case 45:
+            check(shell.notice().contains("No game was launched"), "Sample Home does not launch"); press(b);
+            press(SDL_CONTROLLER_BUTTON_X); break;
+        case 46:
+            check(!shell.multiverseHome() && focusIs("home-launch"), "X returns to Pokemon Home");
+            capture("pokemon-home-context"); press(r1); break;
+        case 47:
+            check(shell.multiverseFace() && focusIs("multiverse-select"), "Page return keeps independent detail");
+            flipFace(); break;
+        case 48:
+            check(focusIs("world-action-launch") && shell.worlds()->detail()["id"] == "emerald-trails-demo", "Pokemon detail survives paired browser");
+            flipFace(); press(b); press(SDL_CONTROLLER_BUTTON_X); break;
+        case 49:
+            check(shell.keyboard()->isOpen(), "Multiverse uses controller keyboard"); capture("multiverse-search");
+            flipFace(); check(shell.multiverseFace(), "Keyboard traps face switching"); press(b); press(b); press(down); press(a); break;
+        case 50:
+            check(focusIs("multiverse-empty"), "Empty system has visible recovery"); capture("multiverse-empty");
+            press(a); break;
+        case 51:
+            check(focusIs("multiverse-system-3"), "Empty recovery restores system position");
+            window->resize(1920,1080); break;
+        case 52:
+            capture("multiverse-1080p"); window->resize(960,540); break;
+        default:
             check(qmlWarnings == 0, "QML warnings emitted");
             completed = true; timer->stop();
             if (!screenshotDir.isEmpty()) {

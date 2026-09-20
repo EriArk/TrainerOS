@@ -63,7 +63,7 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 ## Confirmed product decisions — do not regress
 
 - The user-facing library section is **Worlds**, never “Games”.
-- Pokémon Worlds are organized by **region first**, not emulator/platform first. Accepted #28 adds a separate **Multiverse** system browser within Worlds for non-Pokémon titles; it does not add a primary page or fake Pokémon regions. This extension is planned, not already delivered.
+- Pokémon Worlds are organized by **region first**, not emulator/platform first. Accepted #28 adds a separate **Multiverse** system browser within Worlds for non-Pokémon titles; it does not add a primary page or fake Pokémon regions. Its transient P1 UI is delivered; real library binding remains planned. [Boundary](docs/MULTIVERSE_UI.md).
 - Top-level sections are full-screen peers.
 - **Home is one top-level page, not a permanent background shell.**
 - `L1/R1` switch top-level pages and must not be repurposed for local features.
@@ -95,7 +95,7 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 Always preserve:
 
 - `L1/R1` = previous/next top-level section
-- `L2/R2` = switch the delivered Pokedex/Center and Hall/RetroAchievements pairs; preserve per-face routes and modal priority. Worlds/Multiverse remains planned. B never flips a pair.
+- `L2/R2` = switch the delivered Pokedex/Center, Hall/RetroAchievements and P1 Worlds/Multiverse presentation pairs; preserve per-face routes and modal priority. Real Multiverse library binding remains planned. B never flips a pair.
 - D-pad / left stick = focus navigation
 - `A` = confirm/open
 - `B` = back/close
@@ -105,7 +105,7 @@ Always preserve:
 - P1 #9 `Y` = shared Choose Adventure on Pokémon Home, Pokédex, Center, Hall/RA and Trainer; Worlds local Y and modal/keyboard/system/recovery priority remain. Multi-Trainer/domain consumers remain planned. [Delivered boundary](docs/SHARED_ADVENTURE.md).
 - `Select` owns labelled local journal/new-memory/achievement-refresh/save-backup shortcuts.
 - Planned #43 `L2/R2` = paired faces Worlds/Multiverse, Pokédex/Center, Hall/Journey/RA; preserve local routes/focus, never use L1/R1 for companions or steal emulator input.
-- Planned #31: unobstructed Home `X` toggles Pokémon/Multiverse; choices and Continue are scoped per Trainer/context, while A/Y retain selection-versus-launch behavior.
+- #31: unobstructed Home `X` toggles Pokémon/Multiverse in the delivered P1 presentation. Durable per-Trainer/domain choices and real Multiverse launch remain P2/P3/P4; A/Y retain selection-versus-launch behavior. Samples never launch or enter the personal library.
 - On unobstructed Home, `A` immediately invokes the large Adventure button, regardless of prior D-pad/stick input. `Y` opens the selector; `A` inside it selects for Home without launching.
 - Prefer visible page-specific physical-button actions over moving focus between static modules. Directional focus belongs to lists, grids and open selection/editing panels; modal actions take priority over page shortcuts.
 - visible deterministic focus whenever interactive content exists

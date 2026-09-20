@@ -26,7 +26,7 @@ SDL trigger axes use edges and engage/release hysteresis, with no held-trigger r
 
 This is the first useful #9/#43 consumer on the single-Trainer baseline, not completion of either issue. P2 owns per-Trainer/domain persistence and migration. Exact-build/save revision publication for all consumers belongs to provider phases. Pokédex remains its reference/manual journal; Trainer remains an aggregate overview; Hall and RA keep their existing records. Shared Y there changes the committed Adventure, not their data semantics.
 
-Hall/RA paired routing is delivered over the existing historical records. Live Journey/Champion and selected-Adventure RA projections remain pending, as does Worlds/Multiverse. No new parser, party editor, healing, save format or achievement match is implied. Drawer cards still represent recent Adventures; unplayed library browsing remains in Worlds until its planned catalogue/context work.
+Hall/RA paired routing is delivered over the existing historical records. Live Journey/Champion and selected-Adventure RA projections remain pending. Worlds/Multiverse and Home X have an isolated [P1 presentation](MULTIVERSE_UI.md); real Multiverse library binding and durable per-owner/domain choices remain pending. Its sample-only selector never modifies the Pokémon context. No new parser, party editor, healing, save format or achievement match is implied. Pokémon drawer cards still represent recent Adventures; unplayed library browsing remains in Worlds until its planned catalogue/context work.
 
 ## Acceptance
 

@@ -15,7 +15,7 @@ During a supported Adventure, Home requests the guarded exit question instead;
 right A confirms, bottom B returns to the same game. See the device-specific
 [integration boundary](ADVENTURE_EXIT.md#home-transport-increment-2026-09-19).
 
-**Implementation versus target:** shared Y, the Pokedex/Center and Hall/RetroAchievements L2/R2 pairs, and opt-in confirmed RetroArch exit are delivered. Worlds/Multiverse, full Center/Playroom and additional exit adapters remain planned. Existing reference/manual-journal, keyboard, menu and pointer checks remain evidence for their delivered routes. [Full new acceptance](EXPANSION_42_62.md).
+**Implementation versus target:** shared Y, the Pokedex/Center and Hall/RetroAchievements L2/R2 pairs, and opt-in confirmed RetroArch exit are delivered. Worlds/Multiverse and Home X now have a [P1 UI foundation](MULTIVERSE_UI.md); real library binding, full Center/Playroom and additional exit adapters remain planned. Existing reference/manual-journal, keyboard, menu and pointer checks remain evidence for their delivered routes. [Full new acceptance](EXPANSION_42_62.md).
 
 Worlds includes the [collection checklist and controller attachment flow](COLLECTION_CATALOGUE.md). Grey missing cards remain focusable; A → Link a file opens the shared picker, while Save/Cancel returns to the original Worlds detail. Platform badges identify the edition without changing region-first navigation.
 
@@ -71,7 +71,7 @@ Whether the page list wraps from Hall of Fame back to Home should be decided dur
 - `Y`: shared Choose Adventure on Home/Pokédex/Center/Trainer/Hall/RA; Worlds keeps its filter and modal editors keep local Y actions
 - `Select`: labelled local journal/new-memory/achievement-refresh/save-backup shortcut
 
-`L2/R2` switches the delivered Pokédex/Center pair. Hall/RetroAchievements is also delivered, with independent list/detail/action positions and restart restoration. Worlds/Multiverse and Home X domain switching remain planned. [Shared routing and remaining boundaries](SHARED_ADVENTURE.md).
+`L2/R2` switches the delivered Pokédex/Center pair. Hall/RetroAchievements is also delivered, with independent list/detail/action positions and restart restoration. Worlds/Multiverse L2/R2 and Home X switching now have a transient P1 presentation, with isolated sample selection and honest empty production lists. Real domain binding and persistence remain P2/P3/P4; see [Multiverse UI](MULTIVERSE_UI.md). [Shared routing and remaining boundaries](SHARED_ADVENTURE.md).
 
 Development keyboard bindings may mirror these actions, but controller semantics remain authoritative.
 

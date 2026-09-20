@@ -485,3 +485,7 @@ The deployed RetroArch/mGBA launch and save resolver now share configuration ver
 P1 publishes one committed `currentAdventureId` and gives the protected-save Center its first shared-selection consumer. Global/modal routing, paired triggers, asynchronous generation protection and the single-Trainer boundary are documented in [Shared Adventure](SHARED_ADVENTURE.md). P2 ownership and later exact-build/save projections retain separate gates.
 
 Hall paired routing keeps view state in `HallOfFameController`, with independent archive/achievement routes and action focus plus existing stable row identities. Shell owns modal precedence and dispatches L2/R2 without coupling QML to providers. Navigation JSON retains the old active-route fields and adds optional per-face snapshots; old rail focus normalizes to visible content. Provider changes reconcile unavailable content without selecting a different face. This is P1 navigation, not the later selected-save Journey/RA projection.
+
+## Multiverse P1 boundary
+
+`MultiversePresentation` provides transient system/list/detail/search/filter and isolated sample-choice state. ShellController routes paired Worlds and Home contexts while retaining the existing Pokemon repository/adapters. The presentation cannot mutate a library or launch a process; real editable libraries receive no fictional games. [Implemented scope and binding prerequisites](MULTIVERSE_UI.md).
