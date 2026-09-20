@@ -255,7 +255,41 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             check(focusIs("multiverse-system-3"), "Empty recovery restores system position");
             window->resize(1920,1080); break;
         case 52:
-            capture("multiverse-1080p"); window->resize(960,540); break;
+            capture("multiverse-1080p"); window->resize(960,540); flipFace(); break;
+        case 53: {
+            check(focusIs("world-action-launch"), "Pair return restores Pokemon detail action");
+            auto* header=window->findChild<QQuickItem*>("world-detail-header");
+            check(header, "Adventure heading available");
+            // Stress the production heading with a long edition name without
+            // changing library identities or the normal sample catalogue.
+            if (header) header->setProperty("title", "Pokemon: A Very Long Adventure Through Distant Regions - Expanded Anniversary Edition");
+            break;
+        }
+        case 54: {
+            auto* header=window->findChild<QQuickItem*>("world-detail-header");
+            auto* heading=header ? header->findChild<QQuickItem*>("page-heading") : nullptr;
+            check(heading && heading->property("lineCount").toInt()==2 && !heading->property("truncated").toBool(), "Long edition heading fits two lines");
+            capture("worlds-long-title"); press(b);
+            shell.worlds()->applySearch("No matching edition 987654321"); break;
+        }
+        case 55:
+            check(shell.worlds()->adventures().isEmpty() && focusIs("world-list-back"), "Empty long search retains recovery focus");
+            capture("worlds-long-search-empty"); flipFace(); break;
+        case 56:
+            check(shell.multiverseFace() && focusIs("multiverse-system-3"), "Empty Pokemon search leaves paired route intact");
+            press(up); press(a); shell.multiverse()->applySearch("No matching title"); break;
+        case 57:
+            check(focusIs("multiverse-empty"), "Multiverse empty filter has focused reset");
+            capture("multiverse-filter-empty"); flipFace(); break;
+        case 58:
+            check(!shell.multiverseFace() && shell.worlds()->query()=="No matching edition 987654321" && focusIs("world-list-back"), "Pair return retains empty search and Back focus");
+            flipFace(); press(start); press(b); break;
+        case 59:
+            check(focusIs("multiverse-empty") && shell.multiverse()->query()=="No matching title", "Start restores empty Multiverse filter");
+            press(a); break;
+        case 60:
+            check(shell.multiverse()->query().isEmpty() && focusIs("multiverse-game-0"), "Empty reset restores first real sample row");
+            capture("multiverse-filter-reset"); break;
         default:
             check(qmlWarnings == 0, "QML warnings emitted");
             completed = true; timer->stop();

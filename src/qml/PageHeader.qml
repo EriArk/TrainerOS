@@ -10,10 +10,11 @@ Item {
     property string trailing: ""
     property bool compact: false
     property bool multilineStatus: false
+    property bool multilineTitle: false
     property int subtitleElide: Text.ElideRight
     readonly property int titleTop: eyebrow.length ? 23 : 5
     readonly property int titleSize: compact ? 27 : 30
-    implicitHeight: titleTop + 36 + (subtitle.length ? (multilineStatus ? 42 : 23) : 7)
+    implicitHeight: titleTop + heading.height + (subtitle.length ? (multilineStatus ? 42 : 23) : 7)
     width: parent ? parent.width : 0
     height: implicitHeight
     Text {
@@ -24,9 +25,12 @@ Item {
     }
     Text {
         id: heading
+        objectName: "page-heading"
         x: Theme.pageMargin; y: root.titleTop
         width: parent.width - 2 * x - (root.trailing.length ? trailingLabel.width + 22 : 0)
-        height: 36; verticalAlignment: Text.AlignVCenter
+        height: root.multilineTitle ? implicitHeight : 36; verticalAlignment: Text.AlignVCenter
+        wrapMode: root.multilineTitle ? Text.WordWrap : Text.NoWrap
+        maximumLineCount: root.multilineTitle ? 2 : 1
         text: root.title; textFormat: Text.PlainText; elide: Text.ElideRight
         color: Theme.ink; font.pixelSize: root.titleSize; font.weight: Font.DemiBold
     }

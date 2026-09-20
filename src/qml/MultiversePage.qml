@@ -80,7 +80,7 @@ Item {
         Item {
             anchors.fill: parent; visible: root.model.route === "detail"
             Column { x: 26; y: 24; spacing: 16; width: parent.width - 52
-                Text { width: parent.width; text: root.model.detail.title || ""; color: Theme.ink; font.pixelSize: 32; font.bold: true; elide: Text.ElideRight }
+                Text { width: parent.width; text: root.model.detail.title || ""; textFormat: Text.PlainText; wrapMode: Text.WordWrap; maximumLineCount: 2; color: Theme.ink; font.pixelSize: 32; font.bold: true; elide: Text.ElideRight }
                 Text { text: root.model.detail.status || ""; color: Theme.muted; font.pixelSize: 19 }
                 Text { width: parent.width; text: "This is a layout sample. File linking and play will arrive with the real library."; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 18 }
             }

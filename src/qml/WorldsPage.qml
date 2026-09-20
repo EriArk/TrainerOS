@@ -166,12 +166,15 @@ Item {
     Item {
         anchors.fill: parent; visible: root.detailOpen
         PageHeader {
+            id: detailHeader
+            objectName: "world-detail-header"
+            multilineTitle: true
             eyebrow: "WORLDS / " + root.worlds.region.name.toUpperCase()
             title: root.worlds.detail.title
             subtitle: root.worlds.detail.kind + " · " + (root.shell.sampleLibrary ? root.worlds.detail.status + " · sample data" : root.worlds.detail.platform + (root.worlds.detail.variant ? " · " + root.worlds.detail.variant : ""))
         }
         Text {
-            x: 29; y: 107; width: 491; height: 102
+            x: 29; y: detailHeader.height + 14; width: 491; height: Math.min(102, 219-y)
             text: root.worlds.detail.limitation || root.worlds.detail.description || "Your own journey, ready to become part of the collection."; textFormat: Text.PlainText; wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight
             color: Theme.ink; font.pixelSize: 17
         }

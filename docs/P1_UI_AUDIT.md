@@ -40,10 +40,44 @@ were verified. No save migration was required.
 
 ## Remaining P1 audit
 
-- Long real-library titles/list ends and empty/error/filter combinations on Flip.
-- Consistent action hints and focus return across the remaining paired faces.
+- Remaining Pokedex/Center and Hall/RA real-content edge states and action hints.
+- Carry the Worlds/Multiverse audit below forward when real Multiverse binding
+  replaces presentation samples; it does not certify that future provider.
 - Physical reconnect/foreground checks at the U12/platform boundary; injected
   SDL/InputPlumber observations do not certify a physical press or hotplug.
 - Keep all provider-only limitations visible; no new save research or Pack Studio.
 
 This record does not close P1 wholesale or remove any earlier roadmap item.
+
+## Library list and paired-face pass - 2026-09-20
+
+Adventure detail headings now reserve two lines for long edition names in
+Worlds and the Multiverse presentation. Worlds keeps its description below the
+heading and its action strip fixed; list rows remain compact and elided.
+This does not change catalogue identities, ownership, launches or saved choices.
+
+The SDL Worlds scenario now also exercises independent empty searches on both
+faces, exact Back focus after a face round trip, Start/Back above the empty
+Multiverse result, and A resetting that search to the first result. A long-title
+render assertion checks actual line count and truncation. Existing scenarios
+retain detail/list return, unavailable launch, search cancellation, jump-to-end,
+global shoulder navigation and Pokedex/Center and Hall/RA coverage.
+
+All eight affected checks (seven QML scenarios and Worlds unit tests) passed on
+Windows and ARM. The heading uses the actual wrapped text height rather than a
+fixed two-line pixel estimate: platform font metrics differ. New sample searches
+are scenario inputs only; normal controller keyboard entry remains covered by
+the earlier SDL search steps.
+
+The expanded Worlds scenario passed under native Flip Gamescope with no QML
+warnings; the two-line heading was visually reviewed at 1920x1080. Production
+was installed after a binary/database backup, with installed hash, unchanged
+Trainer profile, schema 7 and all 686 Adventure records verified.
+
+Installed-build InputPlumber checks traversed the actual Fan Worlds list to
+506/506, opened detail without launching, restored the last row through Back
+and the list's Back control, and exercised the empty Missing filter. Captures
+confirmed visible gold focus at the clipped list edge and a reachable empty-state
+Back action. The filter was reset and the handheld returned to Home. Resolve
+regions from the displayed catalogue: its merged ordering differs from raw
+SQLite world order. Physical button/hotplug acceptance remains separate.
