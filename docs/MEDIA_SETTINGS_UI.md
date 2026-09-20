@@ -84,3 +84,12 @@ arrives as SDL Y and injected North as SDL X. Read the source mapping when
 interpreting remote events; these are not claims of physically pressing the
 handheld. SDL tests cover raw west X -> shell Y and raw north Y -> shell X;
 installed events were checked with the actual ret2 translation taken into account.
+
+## Form/status audit - 2026-09-20
+
+Settings reserves a bounded three-line status area below its controls. Profile,
+preference and device errors are scoped to their relevant category; editing
+validation is visibly styled as an error. Titles cannot overlap values or action
+indicators. The SDL audit covers inline validation, keyboard cancellation and
+Start restoration, account sign-out cancellation and row/status separation.
+[P1 audit and remaining work](P1_UI_AUDIT.md).

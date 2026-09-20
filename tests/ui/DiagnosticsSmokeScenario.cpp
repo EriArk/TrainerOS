@@ -25,6 +25,10 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             const auto frame = window->grabWindow(); check(!frame.isNull(), "No rendered frame");
             if (!output.isEmpty()) check(frame.save(output + "/" + name + ".png"), "Cannot save frame");
             auto* item = window->activeFocusItem(); check(item && item->isVisible(), "No visible active focus");
+            if (item && shell.service()=="settings" && (item->objectName().startsWith("settings-control-") || item->objectName().startsWith("achievement-account-"))) {
+                auto* status=window->findChild<QQuickItem*>("settings-status");
+                check(status && item->mapToScene(QPointF(0,item->height()+3)).y() <= status->mapToScene(QPointF(0,0)).y(), "Focused setting cannot overlap status text");
+            }
             if (item) {
                 const auto outline = item->mapRectToScene(QRectF(-4, -4, item->width() + 8, item->height() + 8));
                 check(QRectF(0, 0, window->width(), window->height()).contains(outline), "Focus outside viewport");
@@ -287,6 +291,37 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             check(shell.service()=="diagnostics", "Controller test from Settings"); press(b); break;
         case 75:
             check(shell.service()=="settings" && focus("settings-control-0"), "Controller test returns to its row");
+            press(b); for(int i=0;i<3;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(a); press(a);
+            for(int i=0;i<3;++i) press(down); press(a); break;
+        case 76: {
+            check(shell.trainer()->editing() && !shell.trainer()->error().isEmpty() && focus("settings-control-0"), "Invalid inline profile restores Name");
+            auto* status=window->findChild<QQuickItem*>("settings-status");
+            check(status && status->property("text").toString().contains("name"), "Profile validation is visible in Settings");
+            capture("settings-profile-validation"); press(a); break;
+        }
+        case 77:
+            check(shell.keyboard()->isOpen(), "Inline profile opens controller keyboard");
+            press(a); press(start); break;
+        case 78:
+            check(shell.menuOpen() && shell.keyboard()->isOpen(), "Start keeps keyboard draft alive");
+            press(b); check(shell.keyboard()->isOpen() && !shell.keyboard()->text().isEmpty(), "Back restores keyboard draft");
+            capture("settings-profile-keyboard"); press(b); break;
+        case 79:
+            check(!shell.keyboard()->isOpen() && focus("settings-control-0") && shell.trainer()->draftName().isEmpty(), "Keyboard cancel restores Name without applying draft");
+            press(b); press(b); for(int i=0;i<4;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(a); break;
+        case 80: {
+            auto* status=window->findChild<QQuickItem*>("settings-status");
+            check(status && !status->property("text").toString().contains("name before saving"), "Appearance does not inherit profile error");
+            press(b); for(int i=0;i<4;++i) press(down); press(a); press(down); press(a); press(down); press(a); break;
+        }
+        case 81:
+            check(shell.hall()->account()->isOpen() && shell.hall()->account()->status().contains("B cancels"), "Account sign-out asks before changing identity");
+            capture("settings-account-confirmation"); press(b); break;
+        case 82:
+            check(shell.hall()->account()->isOpen() && !shell.hall()->account()->status().contains("B cancels"), "Back cancels sign-out inside the account pane");
+            press(b); break;
+        case 83:
+            check(focus("settings-control-1"), "Account Back restores exact Trainer row");
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!output.isEmpty()) {
                 QFile report(output + "/verification.txt");

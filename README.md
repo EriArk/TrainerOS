@@ -10,7 +10,7 @@ The initial target is a **Retroid Flip-class device running ArmadaOS**. TrainerO
 
 > Status: native C++20 / Qt Quick shell installed as the main Flip 2 session, with a persistent [Worlds collection](docs/COLLECTION_CATALOGUE.md), controller file attachment and verified launch/return through RetroArch and selected [standalone adapters](docs/STANDALONE_ADAPTERS.md). The owner has confirmed physical navigation, profile creation and Adventure launch. Fresh installations show missing catalogue editions without invented ownership/progress; `--ephemeral` retains the sample experience. [Session recovery](docs/SESSION_PROTOTYPE.md) is exercised; sleep remains disabled. The [current roadmap](docs/ROADMAP.md) separates delivered features from the next modules and platform changes.
 
-Start → Controller provides live input/display checks and a local diagnostic report for the first handheld run. These software observations help validate the actual device; they do not certify its physical mapping or ArmadaOS session behavior. See [device diagnostics](docs/DEVICE_DIAGNOSTICS.md).
+Start → Settings → Controller provides live input/display checks and a local diagnostic report for the first handheld run. These software observations help validate the actual device; they do not certify its physical mapping or ArmadaOS session behavior. See [device diagnostics](docs/DEVICE_DIAGNOSTICS.md).
 
 Legacy [GBA state-resume code](docs/RETROARCH_RESUME.md) is isolated to its historical tests. Production uses ordinary startup and state-independent save backups; Home/Y show the clean exit picture with embedded black bars trimmed for display. The current build includes a personal [Hall of Fame archive](docs/HALL_OF_FAME.md), the [offline Pokédex and manual field journal](docs/POKEDEX.md), a [local Trainer overview](docs/TRAINER_OVERVIEW.md), and [Pokémon Center save backups](docs/SAVE_BACKUPS.md). These have been exercised with controller input on Flip 2. [English FireRed/Emerald save progress](docs/GAME_PROGRESS.md) now supplies Home's credited, game-set badge artwork and National Dex counts. A real [RetroAchievements account/read provider](docs/RETROACHIEVEMENTS.md) exists; global account management and verified emulator earning are the next integration step, not proof of current-save progress.
 
@@ -19,15 +19,15 @@ Start provides [quick volume/brightness controls and a confirmed Power menu](doc
 A read-only [battery gauge](docs/POWER_STATUS.md) shows the handheld's charge in the fixed lower panel.
 
 [Settings](docs/MEDIA_SETTINGS_UI.md) has categories on the left and controls on
-the right. Start has a top block for volume, brightness and theme; unavailable
-media and hardware effects remain explicit.
+the right. Start has a top block for volume and brightness; theme stays in
+Appearance. Unavailable media and hardware effects remain explicit.
 
 Hall now includes a [Journey overview](docs/JOURNEY_UI.md) with a larger badge case using existing verified progress, alongside manual memories and distinct earned/locked/unknown RetroAchievements states. New save fields and automatic Champion records remain planned.
 
 Center's attached [Activities menu](docs/CENTER_ACTIVITIES_UI.md) provides the Playroom, Practice and Link Counter screen framework. Only development mode rehearses those flows; real Party scenes, battles and transfers remain unavailable pending their provider and device gates.
 
-Settings → [Trainer & accounts](docs/TRAINER_SETUP_UI.md) links the existing profile
-editor and RA account service. Registration/chooser/PIN screens can be rehearsed
+Settings → [Trainer](docs/TRAINER_SETUP_UI.md) contains the profile
+editor and RA account controls in its right pane. Registration/chooser/PIN screens can be rehearsed
 in the isolated sample mode; real multiple-Trainer ownership and PIN locking are
 still planned.
 

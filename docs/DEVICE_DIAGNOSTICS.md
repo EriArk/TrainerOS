@@ -1,6 +1,6 @@
 # Controller and display checks
 
-Start → Controller opens **Check your field gear**, an attached service panel. It is preparation for the ArmadaOS baseline, not a calibration wizard or evidence that the device is supported.
+Start → Settings → Controller opens **Check your field gear**, an attached service panel. It is preparation for the ArmadaOS baseline, not a calibration wizard or evidence that the device is supported.
 
 ## Reading the panel
 
@@ -10,7 +10,7 @@ Start → Controller opens **Check your field gear**, an attached service panel.
 - The input gate distinguishes ready, inactive and waiting for neutral. After foreground return, held controls may light while the shell correctly waits for release and a centered left stick.
 - Device detection without an SDL controller mapping is a separate state from no device. The current source still uses one mapped controller; remapping and choosing among multiple controllers remain future work.
 
-The panel keeps the normal controls: Left/Right selects its lower action rail, A activates, B returns to the system menu, Start overlays it and L1/R1 switch primary pages. Up/Down can be tested without moving the rail selection. After a global action, reopen Start → Controller to inspect the observed marks. A on the initial Refresh display button is harmless. Observations continue in memory after first opening the panel, including while it is hidden. A different controller mapping resets button/range history; disconnect retains the last device descriptor and observations with an explicit disconnected state. Nothing is recorded to disk automatically.
+The panel keeps the normal controls: Left/Right selects its lower action rail, A activates, B returns to the system menu, Start overlays it and L1/R1 switch primary pages. Up/Down can be tested without moving the rail selection. After a global action, reopen Start → Settings → Controller to inspect the observed marks. A on the initial Refresh display button is harmless. Observations continue in memory after first opening the panel, including while it is hidden. A different controller mapping resets button/range history; disconnect retains the last device descriptor and observations with an explicit disconnected state. Nothing is recorded to disk automatically.
 
 ## Display readings
 
