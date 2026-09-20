@@ -135,6 +135,7 @@ add_library(trainer_core STATIC
     src/features/pokedex/SpeciesPicker.cpp
     src/features/trainer/TrainerOverview.h
     src/features/trainer/TrainerOverview.cpp
+    src/features/trainer/TrainerSetupPresentation.cpp
     src/features/trainer/TrainerController.cpp
     src/features/trainer/TrainerController.h
     src/features/worlds/WorldsController.cpp
@@ -199,6 +200,8 @@ qt_add_qml_module(traineros
         src/qml/StoragePanel.qml
         src/qml/LaunchPanel.qml
         src/qml/LibraryPanel.qml
+        src/qml/TrainerSettingsPanel.qml
+        src/qml/TrainerSetupPanel.qml
         src/qml/SettingsPanel.qml
         src/qml/DevicePanel.qml
         src/qml/DiagnosticsPanel.qml

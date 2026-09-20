@@ -14,13 +14,13 @@ Item {
             x: 0; y: settingsHeader.height; width: parent.width; height: parent.height - y; color: "#d4e2d6"
             Column {
                 visible: !root.settings.creditsOpen
-                x: 28; y: 18; spacing: 10
+                x: 28; y: 12; spacing: 7
                 Repeater {
                     model: root.settings.rows
                     delegate: CapButton {
                         required property int index; required property var modelData
                         objectName: "settings-" + index
-                        width: 566; height: 52; label: modelData.title; detail: modelData.value
+                        width: 566; height: 44; label: modelData.title; detail: modelData.value
                         tint: index === 0 ? Theme.yellow : index === 1 ? Theme.blue : Theme.pink
                         selected: root.takesFocus && root.settings.focusIndex === index
                         onActivated: root.shell.activate(index)

@@ -18,6 +18,11 @@ Start provides [quick volume/brightness controls and a confirmed Power menu](doc
 
 A read-only [battery gauge](docs/POWER_STATUS.md) shows the handheld's charge in the fixed lower panel.
 
+Settings → [Trainer & accounts](docs/TRAINER_SETUP_UI.md) links the existing profile
+editor and RA account service. Registration/chooser/PIN screens can be rehearsed
+in the isolated sample mode; real multiple-Trainer ownership and PIN locking are
+still planned.
+
 Optional private [Pokédex illustrations](docs/ARTWORK_BOOTSTRAP.md) now appear in
 the list, detail and favorite-species picker. Up on detail opens exact-form
 alternatives and source credits; missing art stays explicit. The real Flip

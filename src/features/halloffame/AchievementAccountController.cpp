@@ -18,12 +18,12 @@ QVariantList AchievementAccountController::rows() const {
     if (connected()) return {
         QVariantMap{{"label", "Refresh recent Adventures"}, {"detail", provider_.context().accountId}, {"enabled", !busy()}},
         QVariantMap{{"label", confirmSignOut_ ? "Confirm sign out" : "Sign out of Hall of Fame"}, {"detail", "Your local archive stays available"}, {"enabled", !busy()}},
-        QVariantMap{{"label", "Back to Hall of Fame"}, {"detail", ""}, {"enabled", true}}};
+        QVariantMap{{"label", "Back"}, {"detail", ""}, {"enabled", true}}};
     return {
         QVariantMap{{"label", "Account name"}, {"detail", username_.isEmpty() ? "A · Enter name" : username_}, {"enabled", !busy()}},
         QVariantMap{{"label", "Password"}, {"detail", password_.isEmpty() ? "A · Enter password" : QString(password_.size(), QChar(0x2022))}, {"enabled", !busy()}},
         QVariantMap{{"label", busy() ? "Connecting…" : "Connect account"}, {"detail", ""}, {"enabled", !busy()}},
-        QVariantMap{{"label", "Back to Hall of Fame"}, {"detail", ""}, {"enabled", true}}};
+        QVariantMap{{"label", "Back"}, {"detail", ""}, {"enabled", true}}};
 }
 void AchievementAccountController::begin() {
     if (!available()) return;

@@ -39,6 +39,7 @@ public:
     QString emptyMessage() const;
     ArchiveEditor* editor() { return &editor_; }
     AchievementAccountController* account() { return &account_; }
+    const AchievementAccountController* account() const { return &account_; }
     bool editable() const { return repository_.archiveEditable(); }
     void beginMemory(bool edit);
     void dispatch(Action);

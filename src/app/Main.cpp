@@ -175,7 +175,7 @@ int main(int argc, char* argv[]) {
         if (pokedexSmoke) dex.failNextLoad();
         MockHallOfFameRepository shellArchive;
         MockAchievementProvider shellAchievements;
-        if (hallSmoke) shellAchievements.enableAccountPreview();
+        if (hallSmoke || diagnosticsSmoke) shellAchievements.enableAccountPreview();
         std::unique_ptr<LocalStateStore> store;
         QString stateDirectory;
         if ((!smoke && !parser.isSet("ephemeral")) || !persistencePhase.isEmpty()) {

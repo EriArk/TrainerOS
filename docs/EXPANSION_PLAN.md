@@ -24,6 +24,12 @@ Issues: [#21 geometry](https://github.com/EriArk/TrainerOS/issues/21), [#22 stat
 
 Issues: [#19 registration](https://github.com/EriArk/TrainerOS/issues/19), [#20 multiple Trainers and PIN](https://github.com/EriArk/TrainerOS/issues/20), [#26 Power menu](https://github.com/EriArk/TrainerOS/issues/26). P2; Power off/restart presentation can ship in P1 using the existing device service.
 
+**P1 UI evidence, 2026-09-20:** Settings now links the existing Trainer editor and
+shared RA account controller. The sample mode has an isolated labelled
+registration/chooser/PIN rehearsal; it neither creates owners nor grants access.
+[Exact boundary and remaining P2 binding](TRAINER_SETUP_UI.md). All migration,
+startup, atomic creation, retry/security and isolation acceptance below remains.
+
 **Foundation first:** separate device-wide library/installations/shared media from Trainer-owned journal, favorites, Hall, play history, Home/navigation and external account identity/cache. One global RA service serves the **active Trainer's** account; #12 never means one credential shared among all Trainers. Preserve the existing Trainer ID and migrate all personal records into that owner without copying the library per account. Check interrupted migration, reopening and rollback; a pre-migration database backup must remain usable with its matching release.
 
 Do not attach another Trainer's progress to a shared external save. Document the existing save lineage as shared/legacy where appropriate. Per-Trainer save namespaces require one verified adapter at a time and protected migration; no blind save renaming/copying. Capture the initiating Trainer on play sessions and asynchronous writes. Refuse switching while an Adventure/external save writer is active or safety-critical work cannot drain. Late responses must not mutate the next Trainer's views.

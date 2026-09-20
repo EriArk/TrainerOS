@@ -20,6 +20,16 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this),
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
       libraryManager_(repo, nullptr, this), settings_(this), device_(this), diagnostics_(this), center_(repo,this) {
+    connect(&settings_, &SettingsController::trainerRequested, this, [this] {
+        service_ = "trainer-settings"; trainerSettingsFocus_ = 0; emit changed();
+    });
+    connect(&trainerSetup_, &TrainerSetupPresentation::changed, this, &ShellController::changed);
+    connect(&trainerSetup_, &TrainerSetupPresentation::closeRequested, this, [this] {
+        service_ = "trainer-settings"; emit changed();
+    });
+    connect(&trainerSetup_, &TrainerSetupPresentation::nameRequested, this, [this](const QString& initial) {
+        textTarget_ = TextTarget::SetupName; keyboard_.begin("Sample Trainer name", initial, 24);
+    });
     connect(&settings_, &SettingsController::deviceRequested, this, [this] { service_ = "device"; device_.begin(); emit changed(); });
     connect(&device_, &DeviceController::changed, this, &ShellController::changed);
     connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(menuOpen_ || service_ == "device"); });
@@ -107,7 +117,8 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&keyboard_, &TextEntryController::accepted, this, [this](const QString& text) {
         const auto target = textTarget_;
         textTarget_ = TextTarget::None;
-        if (target == TextTarget::TrainerName) trainer_.setDraftName(text);
+        if (target == TextTarget::SetupName) trainerSetup_.applyName(text);
+        else if (target == TextTarget::TrainerName) trainer_.setDraftName(text);
         else if (target == TextTarget::PokedexSearch) pokedex_.applySearch(text);
         else if (target == TextTarget::WorldsSearch) worlds_.applySearch(text);
         else if (target == TextTarget::Library) libraryManager_.applyText(text);
@@ -180,6 +191,8 @@ int ShellController::focusIndex() const {
     if (keyboard_.isOpen()) return keyboard_.focusIndex();
     if (drawerOpen_) return drawerFocus_;
     if (service_ == "library") return libraryManager_.files()->isOpen() ? libraryManager_.files()->focusIndex() : libraryManager_.focusIndex();
+    if (service_ == "trainer-settings") return hall_.account()->isOpen() ? hall_.account()->focusIndex() : trainerSettingsFocus_;
+    if (service_ == "trainer-setup") return trainerSetup_.focusIndex();
     if (service_ == "settings") return settings_.focusIndex();
     if (service_ == "device") return device_.focusIndex();
     if (service_ == "diagnostics") return diagnostics_.focusIndex();
@@ -342,6 +355,7 @@ void ShellController::goToPage(int page) {
     hall_.editor()->cancel();
     hall_.account()->close();
     trainer_.cancel();
+    trainerSetup_.close();
     center_.close();
     libraryManager_.close(); service_.clear();
     page_ = std::clamp(page, 0, 4); // No wrapping until physical-device testing.
@@ -362,6 +376,8 @@ void ShellController::activate(int index, const QString& area) {
     else if (keyboard_.isOpen()) { keyboard_.activate(index); return; }
     else if (drawerOpen_) drawerFocus_ = std::clamp(index, 0, std::max(0, int(points_.size()) - 1));
     else if (service_ == "library") { libraryManager_.activate(index, area); return; }
+    else if (service_ == "trainer-settings") { trainerSettingsAction(index); return; }
+    else if (service_ == "trainer-setup") { trainerSetup_.activate(index); return; }
     else if (service_ == "settings") { settings_.activate(index); return; }
     else if (service_ == "device") { device_.activate(index); return; }
     else if (service_ == "diagnostics") { diagnostics_.activate(index); return; }
@@ -385,6 +401,20 @@ void ShellController::activate(int index, const QString& area) {
         return;
     }
     confirm();
+    emit changed();
+}
+void ShellController::trainerSettingsAction(int index) {
+    if (hall_.account()->isOpen()) { hall_.account()->activate(index); return; }
+    if (index < 0 || index > 3) return;
+    trainerSettingsFocus_ = index;
+    if (index == 0) { goToPage(3); trainer_.beginEdit(); }
+    else if (index == 1) {
+        if (hall_.account()->available()) hall_.account()->begin();
+        else showNotice("RetroAchievements account management is unavailable right now.");
+    } else if (index == 2) {
+        if (sampleLibrary()) { trainerSetup_.begin(); service_ = "trainer-setup"; }
+        else showNotice("Separate Trainers and PIN protection are not ready yet. Your current profile remains available.");
+    } else service_ = "settings";
     emit changed();
 }
 void ShellController::confirm() {
@@ -421,6 +451,7 @@ void ShellController::confirm() {
         }
         if (menuFocus_ == 0 || menuFocus_ == 1 || menuFocus_ == 3) {
             hall_.account()->close();
+            trainerSetup_.close();
             keyboard_.cancel(); textTarget_ = TextTarget::None; trainer_.cancel();
             libraryManager_.close(); menuOpen_ = false; drawerOpen_ = false;
             center_.close();
@@ -519,6 +550,15 @@ void ShellController::dispatch(Action action) {
             emit changed(); return;
         }
         if (service_ == "library") { libraryManager_.dispatch(action); return; }
+        if (service_ == "trainer-setup") { trainerSetup_.dispatch(action); return; }
+        if (service_ == "trainer-settings") {
+            if (hall_.account()->isOpen()) hall_.account()->dispatch(action);
+            else if (action == Action::Back) service_ = "settings";
+            else if (action == Action::Confirm) { trainerSettingsAction(trainerSettingsFocus_); return; }
+            else if (action == Action::Up) trainerSettingsFocus_ = std::max(0, trainerSettingsFocus_ - 1);
+            else if (action == Action::Down) trainerSettingsFocus_ = std::min(3, trainerSettingsFocus_ + 1);
+            emit changed(); return;
+        }
         if (service_ == "settings") { settings_.dispatch(action); return; }
         if (service_ == "device") { device_.dispatch(action); return; }
         if (service_ == "diagnostics") { diagnostics_.dispatch(action); return; }

@@ -117,6 +117,56 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(b); press(b); press(b); break;
         case 18:
             check(!shell.menuOpen() && !shell.powerMenu(), "Back unwinds Power and Start");
+            press(start); for (int i=0;i<8;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(a);
+            for (int i=0;i<4;++i) press(down); press(a); break;
+        case 19:
+            check(shell.service()=="trainer-settings" && focus("trainer-settings-0"), "Trainer settings entry");
+            capture("trainer-settings"); press(down); press(a); break;
+        case 20:
+            check(shell.hall()->account()->isOpen(), "Settings opens the shared RA controller");
+            capture("trainer-account-service"); press(b); press(down); press(a); break;
+        case 21:
+            check(shell.service()=="trainer-setup" && focus("setup-action-0"), "Isolated setup preview");
+            press(a); break;
+        case 22:
+            capture("trainer-welcome"); press(a); break;
+        case 23:
+            capture("trainer-identity"); press(a); break;
+        case 24:
+            check(shell.keyboard()->isOpen(), "Controller name entry"); capture("trainer-name-keyboard");
+            press(a); press(down); press(down); press(down); press(right); press(a); break;
+        case 25:
+            check(!shell.keyboard()->isOpen() && shell.trainerSetup()->name()=="A", "Keyboard applies sample name");
+            press(down); press(a); press(down); press(a); press(down); press(a); break;
+        case 26:
+            check(shell.trainerSetup()->keypad() && focus("setup-key-0"), "Numeric PIN keypad focus"); capture("trainer-pin");
+            press(a); press(right); press(a); press(right); press(a); press(down); press(left); press(left); press(a);
+            press(down); press(down); press(down); press(a); break;
+        case 27:
+            check(shell.trainerSetup()->stage()=="repeat" && shell.trainerSetup()->pinMask().isEmpty(), "Fresh repeated PIN entry");
+            press(a); press(right); press(a); press(right); press(a); press(down); press(left); press(left); press(a);
+            press(down); press(down); press(down); press(a); break;
+        case 28:
+            check(shell.trainerSetup()->stage()=="review", "Matching PIN reaches review"); capture("trainer-review");
+            press(start); break;
+        case 29:
+            check(shell.menuOpen(), "Start overlays preview"); press(b); break;
+        case 30:
+            check(focus("setup-action-0"), "Start Back restores preview focus"); press(a); break;
+        case 31:
+            check(shell.trainerSetup()->stage()=="done", "Preview has no profile mutation"); capture("trainer-preview-finished");
+            press(a); press(down); press(a); break;
+        case 32:
+            check(shell.trainerSetup()->stage()=="chooser", "Chooser reached with controller"); capture("trainer-chooser");
+            press(down); press(a); break;
+        case 33:
+            check(shell.trainerSetup()->stage()=="unlock", "Sample locked Trainer keypad"); capture("trainer-unlock");
+            press(a); press(b); break;
+        case 34:
+            check(shell.trainerSetup()->stage()=="chooser" && shell.trainerSetup()->pinMask().isEmpty(), "Back clears secret draft and restores card");
+            press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
+        case 35:
+            check(!shell.serviceOpen() && shell.trainerSetup()->name().isEmpty(), "R1 cancels preview and clears draft");
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!output.isEmpty()) {
                 QFile report(output + "/verification.txt");

@@ -21,6 +21,76 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void personalLibraryCannotEnterSetupPreview() {
+        class Library final : public LibraryRepository {
+        public:
+            QList<World> worlds() const override { return {}; }
+            QList<Adventure> adventures() const override { return {}; }
+            QList<ResumePoint> resumePoints() const override { return {}; }
+            HomeSnapshot home() const override { return {}; }
+            bool editable() const override { return true; }
+        } library;
+        MockTrainerRepository profiles; MockAdventureAdapter adapter; DevelopmentPlatformService platform;
+        MockPokedexRepository dex; MockHallOfFameRepository archive; MockAchievementProvider achievements;
+        achievements.enableAccountPreview();
+        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        shell.dispatch(Action::SystemMenu); shell.activate(0); shell.activate(4);
+        shell.activate(2); QCOMPARE(shell.service(),"trainer-settings"); QVERIFY(!shell.notice().isEmpty());
+        shell.dispatch(Action::Back); shell.activate(1); QVERIFY(shell.hall()->account()->isOpen());
+        shell.dispatch(Action::Back); QVERIFY(!shell.hall()->account()->isOpen());
+        QCOMPARE(shell.service(),"trainer-settings"); QCOMPARE(shell.focusIndex(),1);
+        shell.dispatch(Action::Back); QCOMPARE(shell.service(),"settings"); QCOMPARE(shell.focusIndex(),4);
+        achievements.setAccount({});
+        shell.activate(4); shell.activate(1); shell.activate(0); QVERIFY(shell.keyboard()->isOpen());
+        shell.dispatch(Action::NextPage); QVERIFY(!shell.keyboard()->isOpen());
+        QVERIFY(!shell.hall()->account()->isOpen()); QVERIFY(!shell.serviceOpen());
+    }
+    void trainerSetupRehearsalNeverWritesProfiles() {
+        MockLibraryRepository library; MockTrainerRepository profiles;
+        MockAdventureAdapter adapter; DevelopmentPlatformService platform;
+        MockPokedexRepository dex; MockHallOfFameRepository archive; MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        const auto original = shell.trainer()->profile();
+        shell.dispatch(Action::SystemMenu); shell.activate(0); shell.activate(4);
+        QCOMPARE(shell.service(), "trainer-settings"); shell.activate(2);
+        QCOMPARE(shell.service(), "trainer-setup");
+        auto* flow = shell.trainerSetup();
+        flow->activate(0); flow->activate(0); flow->activate(3);
+        QVERIFY(!flow->error().isEmpty()); QCOMPARE(flow->stage(), "identity");
+        shell.activate(0); QVERIFY(shell.keyboard()->isOpen());
+        shell.keyboard()->activate(keyIndex(*shell.keyboard(), "R"));
+        shell.keyboard()->activate(keyIndex(*shell.keyboard(), "apply"));
+        // Direct text completion below also exercises validation independently of key geometry.
+        shell.keyboard()->cancel(); flow->applyName(" River ");
+        flow->activate(3); QCOMPARE(flow->stage(), "pin");
+        flow->activate(12); QVERIFY(!flow->error().isEmpty());
+        for (int i=0;i<4;++i) flow->activate(i);
+        QCOMPARE(flow->pinMask().size(),4); QVERIFY(!flow->pinMask().contains("1234"));
+        flow->activate(12); QCOMPARE(flow->stage(), "repeat");
+        for (int i=0;i<4;++i) flow->activate(0);
+        flow->activate(12); QVERIFY(!flow->error().isEmpty()); QVERIFY(flow->pinMask().isEmpty());
+        for (int i=0;i<4;++i) flow->activate(i);
+        flow->activate(12); QCOMPARE(flow->stage(), "review");
+        QCOMPARE(flow->pinChoice(), "PIN chosen for preview");
+        flow->activate(1); QCOMPARE(flow->name(), "River");
+        flow->activate(3); flow->activate(13); QCOMPARE(flow->pinChoice(), "No PIN chosen");
+        flow->activate(0); QCOMPARE(flow->stage(), "done");
+        QCOMPARE(shell.trainer()->profile(),original);
+        shell.dispatch(Action::NextPage); QVERIFY(!shell.serviceOpen());
+        QVERIFY(flow->name().isEmpty()); QVERIFY(flow->pinMask().isEmpty());
+    }
+    void trainerSetupUnlockAndGlobalCancellation() {
+        TrainerSetupPresentation flow; flow.begin(); flow.activate(1); flow.activate(1);
+        QCOMPARE(flow.stage(), "unlock");
+        for (int i=0;i<8;++i) flow.activate(0);
+        QCOMPARE(flow.pinMask().size(),6); flow.activate(12);
+        QVERIFY(!flow.error().isEmpty()); QVERIFY(flow.pinMask().isEmpty());
+        for (int i=0;i<4;++i) flow.activate(i);
+        flow.activate(12); QCOMPARE(flow.stage(),"done");
+        flow.close(); flow.activate(1); flow.activate(1); flow.activate(0);
+        flow.dispatch(Action::Back); QCOMPARE(flow.stage(),"chooser");
+        QVERIFY(flow.pinMask().isEmpty()); QCOMPARE(flow.focusIndex(),1);
+    }
     void sharedAdventureSelectionAndPairedCenter() {
         class Library final : public LibraryRepository {
         public:

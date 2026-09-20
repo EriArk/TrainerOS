@@ -31,6 +31,7 @@ signals:
     void changed();
     void closeRequested();
     void deviceRequested();
+    void trainerRequested();
     void messageRequested(const QString& message);
 private:
     PreferencesRepository* repository_ = nullptr;

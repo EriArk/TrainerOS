@@ -5,6 +5,7 @@
 #include "core/model/GameProgressProvider.h"
 #include <QPointer>
 #include "features/trainer/TrainerController.h"
+#include "features/trainer/TrainerSetupPresentation.h"
 #include "features/worlds/WorldsController.h"
 #include "features/pokedex/PokedexController.h"
 #include "features/halloffame/HallOfFameController.h"
@@ -47,11 +48,13 @@ class ShellController final : public QObject {
     Q_PROPERTY(bool sampleLibrary READ sampleLibrary CONSTANT)
     Q_PROPERTY(QVariantList resumePoints READ resumePoints NOTIFY changed)
     Q_PROPERTY(QStringList menuItems READ menuItems NOTIFY changed)
+    Q_PROPERTY(trainer::TrainerSetupPresentation* trainerSetup READ trainerSetup CONSTANT)
     Q_PROPERTY(bool powerMenu READ powerMenu NOTIFY changed)
 public:
     ShellController(LibraryRepository&, TrainerRepository&, AdventureAdapter&, PlatformService&,
                     PokedexReferenceProvider&, PokedexProgressRepository&, HallOfFameRepository&,
                     AchievementProvider&, QObject* parent = nullptr);
+    TrainerSetupPresentation* trainerSetup() { return &trainerSetup_; }
     TextEntryController* keyboard() { return &keyboard_; }
     TrainerController* trainer() { return &trainer_; }
     WorldsController* worlds() { return &worlds_; }
@@ -95,6 +98,7 @@ signals:
     void homeLaunchPressed();
 private:
     void confirm();
+    void trainerSettingsAction(int);
     void refreshContinue();
     bool localModalOpen();
     void openCenter();
@@ -107,6 +111,8 @@ private:
     PlatformService& platform_;
     TextEntryController keyboard_;
     TrainerController trainer_;
+    TrainerSetupPresentation trainerSetup_;
+    int trainerSettingsFocus_ = 0;
     WorldsController worlds_;
     PokedexController pokedex_;
     HallOfFameController hall_;
@@ -116,7 +122,7 @@ private:
     DiagnosticsController diagnostics_;
     SaveCenterController center_;
     QString service_;
-    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, Library, Archive, PokedexNote, TrainerFavorite, CenterSearch, AchievementAccount };
+    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, Library, Archive, PokedexNote, TrainerFavorite, CenterSearch, AchievementAccount, SetupName };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QString homeAdventureId_, homeResumeId_;

@@ -3,11 +3,13 @@ import QtQuick
 Item {
     id: root
     required property var shell
+    property bool serviceSurface: false
     readonly property var account: shell.hall.account
     readonly property bool takesFocus: visible && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
-    Panel { anchors.fill: parent }
+    Panel { anchors.fill: parent; visible: !root.serviceSurface }
     Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset
+        anchors.topMargin: root.serviceSurface ? Theme.contentTopInset : Theme.panelInset
         PageHeader { y: 6; compact: true; title: "RetroAchievements"; subtitle: root.account.status; multilineStatus: true }
         MountedPanel {
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }

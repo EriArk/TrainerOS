@@ -258,6 +258,13 @@ Controller text entry is shared shell infrastructure for Pokédex search and pro
 
 Profile creation/editing must use a repository/use-case boundary with stable identity, validated drafts, explicit save/cancel, and recoverable write failures. A conversational design preview's in-memory state does not satisfy the native application's persistence requirement.
 
+P1 `TrainerSetupPresentation` is an isolated registration/chooser/PIN rehearsal
+with no repository or authorization output, reachable only through the sample
+library's Settings entry. Personal mode instead links the existing profile and
+account controllers and explains unavailable multi-Trainer protection. P2 must
+replace fixtures and bind ownership/security before any real startup gate.
+[Presentation boundary](TRAINER_SETUP_UI.md).
+
 The native prototype now uses `TextEntryController` for the reusable buffer, key geometry, spatial focus and Apply/Cancel lifecycle. It emits accepted text without knowing its consumer. `TrainerController` owns the profile form draft and validation, backed by `TrainerRepository` / `MockTrainerRepository`; profile identity is no longer supplied by the sample library repository. The shell coordinates layer precedence and records an explicit text consumer (Trainer name or Pokédex search), routing Apply only to that consumer and clearing it on global navigation. `KeyboardPanel.qml` and feature pages present these controllers without storage logic.
 
 Transient layer priority is notice → system menu → keyboard → active service / profile form / Continue → primary page. Start preserves the lower layer. Global page changes cancel transient edits. The shell routes text to its explicit consumer, including library title/notes/custom World name, and restores the requesting control. The Trainer controller assigns a stable profile identity on creation. Fake repositories support isolated failure tests; normal profile and library writes use asynchronous SQLite storage.

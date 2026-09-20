@@ -347,6 +347,12 @@ Start overlays service drafts without changing them. Closing the service returns
 
 Start → Settings changes shell color and reduced motion. Changes apply after successful persistence, without altering layout or focus order. Settings is a service, not an L1/R1 page.
 
+Settings → Trainer & accounts opens the existing profile editor or the shared
+RetroAchievements account panel; B returns from the account to this service.
+Multiple Trainers/PIN remain unavailable in personal-library mode. The sample
+`--ephemeral` mode offers a labelled registration/chooser/keypad rehearsal with
+no persistence or unlocking. [Flow and P2 boundary](TRAINER_SETUP_UI.md).
+
 Settings → Your handheld contains sound, brightness, network/storage readings and power actions on one screen. Up/Down selects rows, Left/Right adjusts sound/brightness, A on sound toggles mute, and Y refreshes. Restart/Power off require confirmation and save the journal first. B returns to the remembered Settings row. See `DEVICE_CONTROLS.md`.
 
 Start → Controller opens a fixed diagnostic panel with Refresh display, Save report, Reset checks and Back on its lower rail. Left/Right selects an action; A activates and B returns to the remembered menu entry. Start and L1/R1 retain their normal priority. Button/range observations survive leaving and reopening the panel within the same run, allowing those global controls to be tested. Keyboard input is not counted as a controller observation. See `DEVICE_DIAGNOSTICS.md`.

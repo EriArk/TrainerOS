@@ -186,6 +186,8 @@ Window {
             }
         }
         LibraryPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "library" }
+        TrainerSettingsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "trainer-settings" }
+        TrainerSetupPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "trainer-setup" }
         SettingsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "settings" }
         DevicePanel { anchors.fill: screen; shell: shellController; visible: shell.service === "device" }
         DiagnosticsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "diagnostics" }
