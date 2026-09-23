@@ -210,3 +210,10 @@ Production delivery preserves all 826 Adventure rows and schema 11; database and
 foreign-key checks pass. The previous binary/database are backed up. Private
 captures and metadata remain outside Git. Final installed binary SHA-256:
 `f8d4d241075c69cc97310e04466a064a5d079c10f2cd20b4914042f217afb4c3`.
+
+### Wheel selection refinement — 2026-09-23
+
+Both wheels use an animated gold crystal pointer from the left rail edge instead
+of a rectangular selection plate. Controller hints now live in the shared bottom
+footer. Down clamps at the final edition; B returns to regions/systems without
+an extra Back focus stop in populated lists. Empty lists keep a recovery action.

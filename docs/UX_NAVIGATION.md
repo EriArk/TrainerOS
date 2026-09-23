@@ -428,10 +428,32 @@ completing the existing east-A/south-B Switch layout. Emulator input is unchange
 
 ## Pokédex sprite detail - 2026-09-23
 
-Illustrations remain in both list and detail. The optional header actor has no
-focus stop or separate inspector. Down stays on detail; B goes straight back to
-entries. Up retains the existing illustration choices. Start restoration,
+Illustrations remain in the list and selected-entry area. The optional header
+actor has no focus stop or separate inspector. The owner's subsequent combined
+browser replaces the separate detail route: A toggles favorite, B moves between
+entries and the rail; Form and Artwork are rail controls. Start restoration,
 global L1/R1 and modal priority remain unchanged. Author-entry tooling and
 consolidated Credits belong to the final pack/Pack Studio stage; underlying
 attribution records stay intact.
 [Source, movement and pause contract](POKEDEX_SPRITES.md).
+
+## Shared bottom legends and combined browsing — 2026-09-23
+
+Controller legends belong only on the bottom edge throughout TrainerOS, including
+Settings, Start, journals, keyboards and selectors. The shell footer changes with
+modal priority; independent startup/access, storage recovery and game-exit surfaces
+own their own bottom legends. Actual action buttons retain meaningful labels;
+the physical Home A button and chassis-mounted Choose Adventure Y control remain.
+Do not repeat button instructions inside cards, page headings or descriptions.
+
+Pokédex uses a narrower species list beside illustration, form facts and six
+colored numeric stat cells. Selection, filtering, forms, journal and favorites
+remain controller-accessible on the combined view; unavailable facts remain dashes.
+Worlds and Multiverse use a gold faceted arrow at the wheel's left edge rather
+than a selection plate. It slides out on selection, honoring Reduced Motion.
+Down clamps at the final game; B returns to regions/systems.
+
+Acceptance: SDL scenarios cover modal legends, footer bounds outside the battery,
+list/form/journal navigation, old detail-route restoration, favorite persistence,
+empty filters and section/Start restoration. Inspect installed Flip screenshots
+for combined Pokédex, both wheels and contextual bottom legends.

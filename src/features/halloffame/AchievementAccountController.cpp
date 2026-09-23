@@ -9,7 +9,7 @@ AchievementAccountController::AchievementAccountController(AchievementProvider& 
     });
 }
 QString AchievementAccountController::status() const {
-    if (confirmSignOut_) return "Sign out of Hall of Fame? Saved records remain private to this account. B cancels.";
+    if (confirmSignOut_) return "Sign out of Hall of Fame? Saved records remain private to this account.";
     if (!provider_.accountMessage().isEmpty()) return provider_.accountMessage();
     return connected() ? "Connected as " + provider_.context().accountId
                        : "Connect your RetroAchievements account. Only an access token is saved on this handheld.";
@@ -20,8 +20,8 @@ QVariantList AchievementAccountController::rows() const {
         QVariantMap{{"label", confirmSignOut_ ? "Confirm sign out" : "Sign out of Hall of Fame"}, {"detail", "Your local archive stays available"}, {"enabled", !busy()}},
         QVariantMap{{"label", "Back"}, {"detail", ""}, {"enabled", true}}};
     return {
-        QVariantMap{{"label", "Account name"}, {"detail", username_.isEmpty() ? "A · Enter name" : username_}, {"enabled", !busy()}},
-        QVariantMap{{"label", "Password"}, {"detail", password_.isEmpty() ? "A · Enter password" : QString(password_.size(), QChar(0x2022))}, {"enabled", !busy()}},
+        QVariantMap{{"label", "Account name"}, {"detail", username_.isEmpty() ? "Enter name" : username_}, {"enabled", !busy()}},
+        QVariantMap{{"label", "Password"}, {"detail", password_.isEmpty() ? "Enter password" : QString(password_.size(), QChar(0x2022))}, {"enabled", !busy()}},
         QVariantMap{{"label", busy() ? "Connecting…" : "Connect account"}, {"detail", ""}, {"enabled", !busy()}},
         QVariantMap{{"label", "Back"}, {"detail", ""}, {"enabled", true}}};
 }

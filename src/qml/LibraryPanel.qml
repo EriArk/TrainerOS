@@ -79,7 +79,7 @@ Item {
         ControllerList {
             x: 24; y: libraryHeader.height + 11; width: parent.width - 48; height: 216
             visible: root.manager.route === "world" || root.manager.route === "extras" || root.manager.route === "edition"
-            model: root.manager.choices.map(function(choice) { return {id: choice.id, title: (choice.selected ? "●  " : "") + choice.title, subtitle: choice.selected ? "Selected" : "A to choose"} })
+            model: root.manager.choices.map(function(choice) { return {id: choice.id, title: (choice.selected ? "●  " : "") + choice.title, subtitle: choice.selected ? "Selected" : ""} })
             currentIndex: root.manager.focusIndex; namePrefix: "manage-choice-"; tint: Theme.blue
             takesFocus: root.takesFocus && visible
             onActivated: function(row) { root.shell.activate(row) }
@@ -94,7 +94,7 @@ Item {
             }
             Text {
                 x: 30; y: 314; width: parent.width - 60; elide: Text.ElideRight; font.pixelSize: 14; color: Theme.muted
-                text: root.files.busy ? "Reading folder… B cancels." : root.files.error || (root.files.rows.length === 0 ? "This folder is empty." : "Folders and files · use the arrows to browse")
+                text: root.files.busy ? "Reading folder…" : root.files.error || (root.files.rows.length === 0 ? "This folder is empty." : "")
             }
             MountedPanel {
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom }

@@ -72,7 +72,7 @@ private slots:
             QTRY_VERIFY(favoriteDone);
             f.shell.worlds()->activate(2); f.shell.worlds()->activate(0);
             f.shell.pokedex()->applySearch("pika");
-            f.shell.pokedex()->dispatch(Action::Down); f.shell.pokedex()->dispatch(Action::Confirm);
+            f.shell.pokedex()->dispatch(Action::Down);
             f.shell.goToPage(2);
             navigation = f.shell.navigationState();
             f.shell.dispatch(Action::SystemMenu); // Transient menu must not be restored.
@@ -123,7 +123,7 @@ private slots:
     void failedFavoriteKeepsCommittedValue() {
         QTemporaryDir dir; Fixture f(dir.path()); f.session.start(); QTRY_VERIFY(f.store.ready());
         ExternalConnection external(dir.path()); QSqlQuery query(external.db); QVERIFY(query.exec("BEGIN IMMEDIATE"));
-        f.shell.pokedex()->activate(0); f.shell.pokedex()->activate(0);
+        f.shell.pokedex()->activate(0);
         QTRY_VERIFY(!f.shell.pokedex()->saving());
         QVERIFY(!f.store.progress("bulbasaur").favorite); QVERIFY(!f.shell.notice().isEmpty());
         QVERIFY(query.exec("ROLLBACK")); f.shell.dispatch(Action::Back);

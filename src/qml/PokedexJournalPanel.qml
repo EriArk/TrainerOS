@@ -31,9 +31,9 @@ Item {
     MountedPanel {
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
         height: 106; color: "#b7cfbf"
-        Text { x: 28; y: 9; width: parent.width - 56; height: 37; text: root.journal.error.length ? root.journal.error : root.journal.saving ? "Saving your field journal…" : "A · Change field     Y · Save journal     B · Discard draft"; color: root.journal.error.length ? "#873c32" : Theme.ink; textFormat: Text.PlainText; font.pixelSize: 15; wrapMode: Text.WordWrap }
-        CapButton { x: 27; y: 51; width: 338; height: 41; label: root.journal.saving ? "Saving…" : "Y   Save journal"; tint: Theme.yellow; onActivated: root.journal.submit() }
-        CapButton { x: 383; y: 51; width: 233; height: 41; label: "B   Discard draft"; tint: Theme.blue; onActivated: root.journal.back() }
+        Text { x: 28; y: 9; width: parent.width - 56; height: 37; text: root.journal.error.length ? root.journal.error : root.journal.saving ? "Saving your field journal…" : ""; color: root.journal.error.length ? "#873c32" : Theme.ink; textFormat: Text.PlainText; font.pixelSize: 15; wrapMode: Text.WordWrap }
+        CapButton { x: 27; y: 51; width: 338; height: 41; label: root.journal.saving ? "Saving…" : "Save journal"; tint: Theme.yellow; onActivated: root.journal.submit() }
+        CapButton { x: 383; y: 51; width: 233; height: 41; label: "Discard draft"; tint: Theme.blue; onActivated: root.journal.back() }
         Text { x: 641; y: 61; text: "MANUAL TRAINER RECORD"; color: Theme.muted; font.pixelSize: 11; font.letterSpacing: 1 }
     }
 }

@@ -13,9 +13,12 @@ Item {
             CapButton {
                 objectName: "launch-cancel"
                 x: 20; y: 10; width: 260; height: 45; tint: Theme.pink
-                label: "B   Cancel opening"; selected: parent.parent.parent.visible
+                label: "Cancel opening"; selected: parent.parent.parent.visible
                 onActivated: launch.cancel()
             }
         }
+    }
+    Row { anchors.right: parent.right; anchors.rightMargin: 24; anchors.bottom: parent.bottom; anchors.bottomMargin: 10
+        Hint { button: "B"; label: "Cancel opening"; tint: Theme.pink }
     }
 }

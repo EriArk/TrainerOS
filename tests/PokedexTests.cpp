@@ -31,6 +31,20 @@ public:
 class PokedexTests : public QObject {
     Q_OBJECT
 private slots:
+    void legacyDetailRestoresTheUnifiedBrowserWithoutChangingProgress() {
+        MockPokedexRepository repo; PokedexController dex(repo,repo);
+        const auto before=repo.progress("mudkip");
+        dex.restoreNavigation({{"entry","mudkip"},{"zone","detail"},{"form",""}});
+        QCOMPARE(dex.zone(),"list"); QCOMPARE(dex.detail()["id"],"mudkip");
+        QCOMPARE(dex.detail()["stats"].toList().size(),6);
+        QCOMPARE(repo.progress("mudkip").favorite,before.favorite);
+        dex.dispatch(Action::Confirm);
+        QCOMPARE(dex.zone(),"list"); QCOMPARE(repo.progress("mudkip").favorite,!before.favorite);
+        dex.dispatch(Action::Back); QCOMPARE(dex.zone(),"rail");
+        dex.dispatch(Action::Back); QCOMPARE(dex.zone(),"list");
+        dex.editJournal(); QVERIFY(dex.journal()->isOpen()); dex.cancelTransient();
+        QCOMPARE(dex.detail()["id"],"mudkip");
+    }
     void combinedFiltersAndSearch() {
         MockPokedexRepository repo;
         PokedexController dex(repo, repo);
@@ -82,7 +96,7 @@ private slots:
         for (const auto& e : dex.entries()) names.append(e.toMap()["name"].toString());
         QVERIFY(std::is_sorted(names.begin(), names.end()));
         dex.dispatch(Action::Down); dex.dispatch(Action::Confirm);
-        QCOMPARE(dex.zone(), "detail");
+        QCOMPARE(dex.zone(), "list");
         dex.dispatch(Action::Back);
         QCOMPARE(dex.detail()["id"].toString(), "mudkip");
         dex.activateControl("rail", 2);
@@ -94,11 +108,10 @@ private slots:
         MockPokedexRepository repo;
         PokedexController dex(repo, repo);
         QSignalSpy messages(&dex, &PokedexController::messageRequested);
-        dex.activate(0); // Bulbasaur detail.
         const auto before = repo.progress("bulbasaur");
         repo.failNextWrite(); dex.activate(0);
         QVERIFY(!repo.progress("bulbasaur").favorite);
-        QCOMPARE(dex.zone(), "detail");
+        QCOMPARE(dex.zone(), "list");
         QCOMPARE(messages.size(), 1);
         dex.activate(0);
         QVERIFY(repo.progress("bulbasaur").favorite);
@@ -106,7 +119,7 @@ private slots:
         QCOMPARE(repo.progress("bulbasaur").caught, before.caught);
         dex.dispatch(Action::Back);
         filter(dex, 3, "favorite");
-        dex.applySearch("Bulbasaur"); dex.dispatch(Action::Down); dex.dispatch(Action::Confirm);
+        dex.applySearch("Bulbasaur"); dex.dispatch(Action::Down);
         dex.activate(0); // Removing the sole matching favorite must leave a usable empty state.
         QVERIFY(dex.entries().isEmpty());
         QCOMPARE(dex.zone(), "recovery");

@@ -4,25 +4,25 @@
 
 namespace trainer {
 QVariantMap CenterActivities::page() const {
-    if (route_ == "menu") return {{"title", "Center activities"}, {"message", "Choose a place to visit"}, {"action", "A · Open"}};
+    if (route_ == "menu") return {{"title", "Center activities"}, {"message", "Choose a place to visit"}, {"action", "Open"}};
     const auto title = route_ == "playroom" ? "Party Playroom" : route_ == "practice" ? "Practice" : "Link Counter";
-    QString message, action = "A / B · Activities";
+    QString message, action = "Activities";
     if (!sample_) {
         message = route_ == "playroom" ? "A verified Party is needed before your Pokémon can visit."
             : route_ == "practice" ? "Practice needs verified Party records and supported battle rules."
             : "No supported transfer connection yet. Pairing and save changes are unavailable.";
     } else if (route_ == "playroom") {
         message = "Development actors · no sprite pack · no game data changes";
-        action = "A · Call    X · Pet    ← / → · Choose";
+        action = "Call";
     } else if (route_ == "practice") {
         message = stage_ == "setup" ? "Two sample partners · layout rehearsal only"
             : "Battle preview · no simulation, damage or rewards";
-        action = stage_ == "setup" ? "A · Preview layout" : "A / B · Back to setup";
+        action = stage_ == "setup" ? "Preview layout" : "Back to setup";
     } else {
         message = stage_ == "setup" ? "Sample peer · no discovery or connection is performed"
             : stage_ == "review" ? "Sample proposal · neither side can commit changes"
             : "Sample connection interrupted · no transaction was started";
-        action = stage_ == "setup" ? "A · Review sample" : stage_ == "review" ? "A · Preview interruption" : "A · Reset rehearsal";
+        action = stage_ == "setup" ? "Review sample" : stage_ == "review" ? "Preview interruption" : "Reset rehearsal";
     }
     return {{"title", title}, {"message", message}, {"action", action}};
 }

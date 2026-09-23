@@ -49,7 +49,7 @@ QString LibraryManagementController::worldName(const QString& id) const {
 }
 QVariantList LibraryManagementController::rows() const {
     QVariantList result;
-    for (const auto& a : records_) result.append(QVariantMap{{"id", a.id}, {"title", a.title}, {"subtitle", (a.domain=="multiverse"?platformLabel(a.platformId).name:worldName(a.worldId)) + " · A to edit"}});
+    for (const auto& a : records_) result.append(QVariantMap{{"id", a.id}, {"title", a.title}, {"subtitle", (a.domain=="multiverse"?platformLabel(a.platformId).name:worldName(a.worldId))}});
     return result;
 }
 QVariantList LibraryManagementController::fields() const {

@@ -9,9 +9,7 @@ Item {
         : [0,1,5].includes(settings.category) ? shell.device.error : ""
     readonly property string statusText: settings.category===4 && shell.trainer.saving || settings.category===0 && settings.saving ? "Saving..."
         : localError || (shell.hall.account.open ? shell.hall.account.status : "")
-        || (settings.controlsFocused ? shell.trainer.editing ? "A Edit / choose     B Cancel"
-            : settings.category===0 || settings.category===1 ? "Left / Right adjust     B Categories"
-            : "A Open / choose     B Categories" : "A Open category     B Back")
+
     Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset; anchors.topMargin: Theme.contentTopInset
         PageHeader { id: heading; compact: true; title: "Settings"; subtitle: "A little more you." }
@@ -78,7 +76,7 @@ Item {
                     Text { width: parent.width; text: "Adapted for TrainerOS: vector layers isolated, padded and rendered for the handheld. Badge shapes and colors preserved. Original source references: Bulbapedia.\nPokémon designs belong to their respective owners."; color: Theme.muted; font.pixelSize: 14; wrapMode: Text.WordWrap; lineHeight: 1.2 }
                 }
 
-                    CapButton { objectName: "credits-back"; x: 22; anchors.bottom: parent.bottom; anchors.bottomMargin: 48; width: 240; height: 38; label: "B  Categories"; selected: root.takesFocus && root.settings.controlsFocused && root.settings.category===6; onActivated: root.settings.selectCategory(6,false) }
+                    CapButton { objectName: "credits-back"; x: 22; anchors.bottom: parent.bottom; anchors.bottomMargin: 48; width: 240; height: 38; label: "Categories"; selected: root.takesFocus && root.settings.controlsFocused && root.settings.category===6; onActivated: root.settings.selectCategory(6,false) }
                 }
                 Text {
                     objectName: "settings-status"

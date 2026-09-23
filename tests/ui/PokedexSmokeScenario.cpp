@@ -46,6 +46,14 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
         constexpr auto l1 = SDL_CONTROLLER_BUTTON_LEFTSHOULDER, r1 = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER;
         constexpr auto start = SDL_CONTROLLER_BUTTON_START;
         auto* dex = shell.pokedex();
+        auto* hints = window->findChild<QQuickItem*>("shell-button-hints");
+        auto* viewport = window->findChild<QQuickItem*>("viewport");
+        check(hints && viewport && hints->isVisible(), "Context hints remain in the shell footer");
+        if (hints && viewport) {
+            const auto bounds = hints->mapRectToItem(viewport, hints->boundingRect());
+            check(bounds.top() >= 500 && bounds.left() >= 132 && bounds.right() <= 960,
+                  "Footer hints fit below content without covering the battery");
+        }
         switch ((*stage)++) {
         case 0: check(input.connected(), "Virtual controller unavailable"); press(r1, 2); break;
         case 1:
@@ -58,12 +66,16 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             check(focusIs("dex-entry-mudkip"), "Long list reaches Mudkip");
             auto* list = window->findChild<QQuickItem*>("dex-list");
             check(list && list->property("contentY").toDouble() > 0, "Controller scrolls only the entry list");
-            capture("scrolled-list"); press(a); break;
+            auto* art = window->findChild<QQuickItem*>("dex-detail-art");
+            auto* stats = window->findChild<QQuickItem*>("dex-stat-board");
+            check(art && art->isVisible() && stats && stats->isVisible(), "Art and stats are visible without opening another screen");
+            check(list && list->width() < 330, "Species list leaves room for the complete entry");
+            capture("scrolled-list"); break;
         }
-        case 4: check(focusIs("dex-favorite"), "Detail focus"); capture("detail"); press(start); break;
+        case 4: check(focusIs("dex-entry-" + dex->detail()["id"].toString()), "Unified list focus"); capture("detail"); press(start); break;
         case 5: check(focusIs("menu-0"), "Menu overlays entry"); press(b); press(r1); break;
         case 6: check(shell.page() == 3, "R1 remains global"); press(l1); break;
-        case 7: check(focusIs("dex-favorite") && dex->detail()["id"] == "mudkip", "Detail survives section return"); press(b); break;
+        case 7: check(focusIs("dex-entry-" + dex->detail()["id"].toString()) && dex->detail()["id"] == "mudkip", "Entry survives section return"); break;
         case 8:
             check(focusIs("dex-entry-mudkip"), "Back restores scrolled entry");
             press(up, 13); press(right); press(a); break;
@@ -111,12 +123,12 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
         case 22:
             check(!shell.keyboard()->isOpen() && dex->query() == "MUD", "Global page change discards only unsubmitted search");
             press(l1); break;
-        case 23: check(focusIs("dex-rail-0"), "Section return restores search opener"); press(down); press(a); break;
+        case 23: check(focusIs("dex-rail-0"), "Section return restores search opener"); press(down); break;
         case 24: repository.failNextWrite(); press(a); break;
         case 25:
             check(focusIs("notice-close") && dex->detail()["favorite"].toBool(), "Failed favorite write keeps saved mark");
             capture("favorite-error"); press(b); break;
-        case 26: check(focusIs("dex-favorite"), "Favorite retry focus"); press(a); break;
+        case 26: check(focusIs("dex-entry-" + dex->detail()["id"].toString()), "Favorite retry focus"); press(a); break;
         case 27:
             check(!dex->detail()["favorite"].toBool(), "Favorite retry succeeds");
             press(b); press(up); press(right, 5); press(a); break;
@@ -124,9 +136,9 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
         case 29: press(right, 3); press(a); break;
         case 30:
             check(dex->entries().size() == 2, "Favorites filter reflects persisted-in-memory marks");
-            capture("favorites"); press(down); press(a); break;
+            capture("favorites"); press(down); break;
         case 31: press(a); break; // Remove Pikachu; fallback to Eevee list row.
-        case 32: check(focusIs("dex-entry-eevee"), "Removing a filtered favorite restores remaining row"); press(a); break;
+        case 32: check(focusIs("dex-entry-eevee"), "Removing a filtered favorite restores remaining row"); break;
         case 33: press(a); break;
         case 34:
             check(focusIs("dex-recovery") && dex->entries().isEmpty(), "Removing final favorite keeps recovery focus");
@@ -135,7 +147,7 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
         case 36: press(right); press(a); break;
         case 37:
             check(dex->rail()[4].toMap()["value"] == "Name A–Z", "Sort applied");
-            capture("sorted"); press(down, 5); press(a); break;
+            capture("sorted"); press(down, 5); break;
         case 38: check(dex->detail()["id"] == "eevee", "Sorted browse opens correct identity"); window->resize(1920, 1080); break;
         case 39: capture("detail-1080p"); window->resize(1024, 768); break;
         case 40: capture("detail-letterbox"); window->resize(960, 540); repository.failNextLoad(); dex->refresh(); break;
@@ -143,7 +155,7 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             check(focusIs("notice-close") && dex->entries().size() == 14, "Failed refresh retains usable reference snapshot");
             capture("refresh-error"); press(b); break;
         case 42:
-            check(focusIs("dex-favorite") && dex->detail()["id"] == "eevee", "Refresh notice restores detail");
+            check(focusIs("dex-entry-" + dex->detail()["id"].toString()) && dex->detail()["id"] == "eevee", "Refresh notice restores detail");
             press(SDL_CONTROLLER_BUTTON_BACK);break;
         case 43:
             check(focusIs("journal-field-0") && dex->journal()->isOpen(), "Select opens journal with controller focus");
@@ -162,8 +174,7 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
         case 48:
             check(shell.page()==3 && !dex->journal()->isOpen(), "Global page change discards journal draft");press(l1);break;
         case 49:
-            check(focusIs("dex-favorite"), "Journal page return restores detail focus");
-            press(b);
+            check(focusIs("dex-entry-" + dex->detail()["id"].toString()), "Journal page return restores species focus");
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767); input.poll();
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768); input.poll(); break;
         case 50: {

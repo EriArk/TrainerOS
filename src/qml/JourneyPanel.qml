@@ -47,21 +47,19 @@ Item {
                     }
                 }
             }
-            Text { visible: !root.championDetail; width: parent.width; text: "A opens the historical team. B returns to Journey."; color: Theme.muted; font.pixelSize: 14 }
         }
         Row {
             x: 24; anchors.bottom: parent.bottom; anchors.bottomMargin: 13; spacing: 16
             CapButton {
                 objectName: "journey-primary"; width: 306; height: 45
-                label: root.championDetail ? "A / B · Champion records" : root.champions ? root.sampleChampion ? "A · View sample record" : "A / B · Journey Record" : "A · Adventure memories"
+                label: root.championDetail ? "Champion records" : root.champions ? root.sampleChampion ? "View sample record" : "Journey Record" : "Adventure memories"
                 tint: Theme.blue; selected: root.takesFocus
                 onActivated: root.shell.activate(0)
             }
             CapButton {
-                width: 258; height: 45; visible: !root.champions; label: "X · Champion records"; tint: Theme.yellow
+                width: 258; height: 45; visible: !root.champions; label: "Champion records"; tint: Theme.yellow
                 onActivated: root.shell.activate(0, "journey-champions")
             }
-            Text { y: 13; text: !root.champions && root.shell.hall.editable ? "Select · New memory" : ""; color: Theme.muted; font.pixelSize: 14 }
         }
     }
 }

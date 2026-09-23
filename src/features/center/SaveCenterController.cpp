@@ -67,7 +67,7 @@ void SaveCenterController::beginSelected(const QString& id) {
     refreshPending_=false;
     if(!record) {
         snapshot_={};
-        message_=id.isEmpty()?"Y chooses an Adventure. Its in-game save backups will appear here.":"The selected Adventure is no longer linked. Y chooses another; your history is kept.";
+        message_=id.isEmpty()?"Choose an Adventure to view its in-game save backups.":"The selected Adventure is no longer linked. Your history is kept.";
     } else if(!service_) {
         snapshot_={};message_="Save services aren't configured in this preview.";
     } else if(busy()) {

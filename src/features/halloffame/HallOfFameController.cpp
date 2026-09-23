@@ -171,10 +171,10 @@ QString HallOfFameController::status() const {
     return snapshotStatus(currentSnapshot());
 }
 QString HallOfFameController::emptyMessage() const {
-    if (isArchive()) return archiveError_.isEmpty() ? "Your first memory starts here. Press Select to record a completed Adventure." : archiveError_;
+    if (isArchive()) return archiveError_.isEmpty() ? "Your first memory starts here. Record a completed Adventure." : archiveError_;
     if (route_ == "sets") return provider_.context().accountId.isEmpty()
-        ? "X · Connect your RetroAchievements account. Your local archive remains available."
-        : "Play a supported Adventure, then press Select to check its achievements. Your local archive remains available.";
+        ? "Connect your RetroAchievements account. Your local archive remains available."
+        : "Play a supported Adventure to start your achievement collection. Your local archive remains available.";
     switch (currentSnapshot().state) {
     case AchievementState::Disconnected: return "No account is connected. Your local Hall of Fame remains available.";
     case AchievementState::Unsupported: return "No supported achievement set has been confirmed. This Adventure can still have its own archive memories.";
@@ -186,7 +186,7 @@ QString HallOfFameController::emptyMessage() const {
     return {};
 }
 QVariantList HallOfFameController::actions() const {
-    if (overview()) return {QVariantMap{{"label", route_ == "archive-journey" ? "A · Adventure memories" : "A / B · Journey Record"}, {"enabled", true}}};
+    if (overview()) return {QVariantMap{{"label", route_ == "archive-journey" ? "Adventure memories" : "Journey Record"}, {"enabled", true}}};
     if (route_ == "archive-list") return {QVariantMap{{"label", "Refresh archive"}, {"enabled", true}}};
     if (route_ == "archive-detail") return {QVariantMap{{"label", "Back to archive"}, {"enabled", true}}};
     if (route_ == "sets") return {QVariantMap{{"label", "Refresh records"}, {"enabled", true}}};

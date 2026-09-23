@@ -17,9 +17,9 @@ Types and stats describe the selected form in this snapshot. They do not adapt t
 ## Controller flow
 
 - X opens search from the list; exact National numbers, names and form labels are supported. Search ignores case, accents and punctuation.
-- Up/down move through the bounded list, left/right jump eight entries. A opens the selected entry. Filters retain the existing controller rail and attached picker.
-- Type filtering includes named forms. Detail initially selects a matching form where applicable; X cycles the entry's forms. The chosen form survives a section change/restart without affecting saved journal data.
-- A toggles the favorite mark from its action button; B returns to the list. Select opens the attached field journal; Y opens the shared Adventure selector. L1/R1 and Start keep their global roles.
+- Up/down move through the bounded list, left/right jump eight entries. Selection immediately updates the illustration, animated companion, facts and six colored numerical stat tiles beside the list; there is no second entry screen.
+- A toggles the selected species favorite. B switches between the list and filter rail. Form and Artwork are the final two rail controls; type filtering initially selects a matching form where applicable. The chosen form survives section changes/restart without changing journal data. Legacy detail routes restore the same entry in the combined browser. Touching a row selects it without changing progress.
+- Select opens the attached field journal; Y opens the shared Adventure selector. X remains search. L1/R1 and Start keep their global roles. All button legends live in the shell footer and follow the foremost active panel.
 - In the journal, A cycles Seen/Caught through unknown, Yes and No, or opens the shared note keyboard. Y saves; B discards the draft. L1/R1 discard an unsubmitted journal and switch sections.
 
 ## Personal records
@@ -40,3 +40,18 @@ SQLite schema 6 adds `pokedex_records` with nullable boolean marks, note and rev
 - Device checks cover the full reference, form switching, controller journal entry and persistence in the production composition.
 
 Verified on 2026-09-13: all 22 tests passed on Windows, Ubuntu Qt 6.4 and Flip ARM Qt 6.11. The production device displayed 1025 entries, switched Vulpix to its Alolan Ice form with the corresponding facts, and saved Seen/Caught plus a controller-entered note. The record survived restart; cancelling a changed draft preserved it. The temporary test record was backed up and removed, restoring the previously empty personal journal. All 686 registered Adventures and the existing archive survived migration.
+
+## Combined-browser delivery — 2026-09-23
+
+The installed Flip build shows four illustrated species rows beside Marshadow's
+primary illustration, optional animated companion, types, height/weight and six
+colored numerical stats. The footer changes for list, filters, journal, keyboard
+and other shell surfaces. Windows' full run passed 39 of 40 tests; the remaining
+Hall assertion still assumed the removed inline legend. It was updated to inspect
+the actual footer's visual children and passed in the 3/3 Pokédex/artwork/Hall
+rerun. Compact rail-label polish passed another Pokédex SDL scenario. No outstanding
+test failure remains. ARM64 production compilation and installed-session controller
+navigation were verified. Actual Flip captures also cover Pokémon/Multiverse
+crystal wheels, Start and Settings; these are device frames, not host renders.
+Installation preserves schema 11 and all 826 Adventure rows, with database and
+binary rollback copies. New save readers and artwork-pack authoring remain deferred.

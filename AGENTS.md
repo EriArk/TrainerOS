@@ -122,6 +122,13 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 
 ## UX invariants
 
+**Owner visual correction, 2026-09-23:** controller legends belong at the bottom
+throughout TrainerOS, including settings and modal surfaces, without duplicates
+inside content. Pokédex is one combined species-list/detail screen with primary
+illustrations, optional companion and colored numeric stats. Preserve journal,
+forms and favorites. Game wheels use an animated gold crystal pointer instead
+of a rectangular selected-game plate.
+
 Always preserve:
 
 - `L1/R1` = previous/next top-level section

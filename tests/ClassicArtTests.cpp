@@ -53,14 +53,14 @@ private slots:
         QTemporaryDir dir; fixture(dir.path()); ClassicArt art(dir.path());
         OfflinePokedex reference; MockPokedexRepository progress; PokedexController dex(reference,progress);
         dex.configureArtwork(&art); dex.applySearch("37"); dex.activateControl("list",0);
-        dex.dispatch(Action::Up); QCOMPARE(dex.zone(),"art");
+        dex.activateControl("rail",7); QCOMPARE(dex.zone(),"art");
         dex.dispatch(Action::Right); QCOMPARE(dex.focusIndex(),1);
-        dex.dispatch(Action::Back); QCOMPARE(dex.zone(),"detail");
+        dex.dispatch(Action::Back); QCOMPARE(dex.zone(),"list");
         QCOMPARE(art.image("vulpix/37","pokedexDetailArt")["id"].toString(),"first");
-        dex.dispatch(Action::Up); dex.dispatch(Action::Right); dex.dispatch(Action::Confirm);
-        QCOMPARE(dex.zone(),"detail"); QCOMPARE(art.image("vulpix/37","pokedexDetailArt")["id"].toString(),"second");
+        dex.activateControl("rail",7); dex.dispatch(Action::Right); dex.dispatch(Action::Confirm);
+        QCOMPARE(dex.zone(),"list"); QCOMPARE(art.image("vulpix/37","pokedexDetailArt")["id"].toString(),"second");
         dex.cycleForm(); QVERIFY(!dex.detail()["art"].toMap()["available"].toBool());
-        dex.openArtwork(); QCOMPARE(dex.artChoices().size(),0); dex.cancelTransient(); QCOMPARE(dex.zone(),"detail");
+        dex.openArtwork(); QCOMPARE(dex.artChoices().size(),0); dex.cancelTransient(); QCOMPARE(dex.zone(),"list");
     }
 };
 QTEST_GUILESS_MAIN(ClassicArtTests)

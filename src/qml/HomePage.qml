@@ -64,6 +64,5 @@ Item {
         Text { x: 23; y: 28; text: "READY WHEN YOU ARE"; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1; font.bold: true }
         AdventureButton { x: 12; y: 57; width: 220; height: 220; shell: root.shell }
         Text { x: 22; y: 287; width: 200; text: root.currentAdventure.action; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 26; font.weight: Font.DemiBold; horizontalAlignment: Text.AlignHCenter }
-        Text { x: 22; y: 360; width: 200; text: "Y · CHOOSE ADVENTURE"; color: Theme.muted; font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; font.letterSpacing: 0.6 }
     }
 }

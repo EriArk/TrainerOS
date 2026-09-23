@@ -53,7 +53,6 @@ Item {
                         onActivated: root.shell.activate(actionIndex)
                     }
                 }
-                Text { x: 18; anchors.bottom: parent.bottom; anchors.bottomMargin: 3; text: "X  Quick controls    Left / Right adjust"; visible: !root.shell.powerMenu && !root.shell.device.error.length && !root.shell.settings.error.length; color: Theme.muted; font.pixelSize: 11 }
                 Text {
                     x: 18; y: parent.height - 24; width: parent.width - 36; height: 33
                     text: root.shell.device.error || root.shell.settings.error; visible: !root.shell.powerMenu
@@ -71,11 +70,10 @@ Item {
                 height: 74; color: "#ccdcd0"; visible: root.shell.notice.length > 0
                 CapButton {
                     objectName: "notice-close"
-                    x: 18; y: 15; width: 160; height: 42; label: root.shell.modeConfirmation ? "A   Continue" : "A   Got it"
+                    x: 18; y: 15; width: 160; height: 42; label: root.shell.modeConfirmation ? "Continue" : "Got it"
                     selected: root.shell.notice.length > 0
                     onActivated: root.shell.activate(0)
                 }
-                Text { x: 197; y: 27; text: "B   Cancel"; visible: root.shell.modeConfirmation; color: Theme.ink; font.pixelSize: 17 }
             }
         }
     }

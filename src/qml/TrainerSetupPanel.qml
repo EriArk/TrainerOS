@@ -42,12 +42,11 @@ Item {
                 TrainerEmblem { anchors.horizontalCenter: parent.horizontalCenter; width: 118; height: 118; emblem: root.flow.emblem }
                 Text { y: 132; width: parent.width; text: root.flow.name || (root.flow.live ? "Your Trainer card" : "Your sample card"); textFormat: Text.PlainText; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter; color: Theme.ink; font.pixelSize: 23; font.bold: true }
                 Text { y: 172; width: parent.width; text: root.flow.favorite; horizontalAlignment: Text.AlignHCenter; color: Theme.muted; font.pixelSize: 16 }
-                Text { y: 202; width: parent.width; text: root.flow.stage === "review" ? root.flow.pinChoice : root.flow.canRemove ? "X  Remove this Trainer" : root.flow.live ? "Shared games \u00b7 Personal journal" : "Original Trainer emblem"; horizontalAlignment: Text.AlignHCenter; color: Theme.muted; font.pixelSize: 13 }
+                Text { y: 202; width: parent.width; text: root.flow.stage === "review" ? root.flow.pinChoice : root.flow.live ? "Shared games \u00b7 Personal journal" : "Original Trainer emblem"; horizontalAlignment: Text.AlignHCenter; color: Theme.muted; font.pixelSize: 13 }
             }
             Item {
                 visible: root.flow.keypad; x: 28; y: 65; width: parent.width - 56; height: 232
                 Text { x: 0; y: 16; width: 420; text: root.flow.pinMask || "○ ○ ○ ○"; color: Theme.ink; font.pixelSize: 43; font.letterSpacing: 8; horizontalAlignment: Text.AlignHCenter }
-                Text { x: 35; y: 100; width: 350; text: "D-pad · Choose a key\nA · Enter digit\nB · Previous screen"; color: Theme.muted; font.pixelSize: 18; lineHeight: 1.4 }
                 Grid {
                     x: 485; y: 0; columns: 3; columnSpacing: 10; rowSpacing: 10
                     Repeater {

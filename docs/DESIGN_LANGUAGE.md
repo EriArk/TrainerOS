@@ -468,3 +468,13 @@ If a mockup resembles any of these, reconsider it:
 - generic console launcher with Pokémon wallpaper
 
 TrainerOS should read as a **purpose-built trainer handheld interface**.
+
+## Bottom legends and compact reference — 2026-09-23
+
+Keep controller hints along the bottom chassis edge across the product, with
+contextual labels and no duplicate instructions inside content. The game wheel's
+selected logo has no rectangular plate: a small original gold faceted triangle
+slides from the left edge, stopping at its pointer position. Reduced Motion skips
+the transition. Pokédex preserves primary illustrations and the optional animated
+companion in a single list/detail composition, with pastel-colored numerical stat
+cells and darker legible numbers instead of long bars.

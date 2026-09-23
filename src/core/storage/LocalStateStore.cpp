@@ -663,7 +663,7 @@ HomeSnapshot LocalStateStore::home() const {
     for (const auto& last : history_.recent) {
         const auto record = registration(last.adventureId);
         if (record && record->adventure.domain == "pokemon")
-            return {last.adventureId, {}, {}, "Choose an Adventure with Y. Press A on Home to play."};
+            return {last.adventureId, {}, {}, "Choose an Adventure to make yourself at Home."};
     }
     return {{}, {}, {}, "Your next journey starts in Worlds."};
 }

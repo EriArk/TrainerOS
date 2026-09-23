@@ -177,14 +177,73 @@ Window {
                 color: "#ffe29c"; font.pixelSize: 11
                 Accessible.role: Accessible.AlertMessage; Accessible.name: text
             }
+            function hint(button, label) { return {button:button, label:label} }
+            readonly property var actions: {
+                const h = hint
+                if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
+                if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [h("X","Quick controls"),h("←→","Adjust"),h("A","Select"),h("B","Close")]
+                if (shell.keyboard.open) return [h("X","Case"),h("Y","Symbols"),h("A","Type"),h("B","Cancel")]
+                if (shell.drawerOpen) return [h("A","Choose"),h("B","Close")]
+                if (shell.trainer.picker.open) return [h("X","Search"),h("Y","Clear"),h("←→","Jump 8"),h("A","Choose"),h("B","Cancel")]
+                if (shell.hall.account.open) return [h("A","Select"),h("B","Back")]
+                if (shell.service === "trainer-setup") {
+                    let result = [h("A",shell.trainerSetup.keypad ? "Enter" : "Select"),h("B","Back")]
+                    if (shell.trainerSetup.canRemove) result.unshift(h("X","Remove Trainer"))
+                    return result
+                }
+                if (shell.service === "settings") return [h("←→","Adjust"),h("A",shell.settings.controlsFocused ? "Select" : "Open"),h("B",shell.settings.controlsFocused ? "Categories" : "Back")]
+                if (shell.service === "device") return [h("←→","Adjust"),h("Y","Refresh"),h("A","Select"),h("B","Back")]
+                if (shell.serviceOpen) return [h("A","Select"),h("B","Back")]
+                if (shell.page === 1) {
+                    const list = shell.multiverseFace ? shell.multiverse.route === "games" : shell.worlds.route === "adventures"
+                    return list ? [h("X","Search"),h("Y","Filter"),h("A",shell.multiverseFace ? "Home" : "Open"),h("B",shell.multiverseFace ? "Systems" : "Regions")] : [h("A","Open"),h("B","Back")]
+                }
+                if (shell.page === 2 && !shell.centerFace) {
+                    const dex = shell.pokedex
+                    if (dex.journal.open) return [h("Y","Save"),h("A","Edit"),h("B","Discard")]
+                    if (dex.zone === "art") return [h("←→","Browse"),h("A","Use image"),h("B","Cancel")]
+                    if (dex.zone === "picker") return [h("A","Apply"),h("B","Cancel")]
+                    let result = [h("X","Search")]
+                    if (dex.detail.id) result.push(h("Select","Journal"))
+                    if (dex.zone === "list") result.push(h("←→","Jump 8"))
+                    result.push(h("A",dex.zone === "list" ? (dex.detail.favorite ? "Unfavorite" : "Favorite") : "Select"),h("B",dex.zone === "rail" ? "Entries" : "Filters"))
+                    return result
+                }
+                if (shell.page === 2 && shell.centerFace) {
+                    const party = shell.party
+                    if (party.section === "saves") return shell.center.confirming ? [h("A","Restore"),h("B","Cancel")] : [h("X",shell.center.route === "adventures" ? "Search" : "Refresh"),h("Select","Backup"),h("A","Open"),h("B","Back")]
+                    if (party.section === "activities") return party.activities.route === "playroom" && party.activities.sample ? [h("←→","Partner"),h("X","Greet"),h("A","Call"),h("B","Back")] : [h("A","Select"),h("B","Back")]
+                    return [h("X",party.section === "party" ? "Storage" : "Party"),h("Select","Backups"),h("A","Open"),h("B","Back")]
+                }
+                if (shell.page === 4) {
+                    const hall = shell.hall
+                    if (hall.editor.open) return hall.editor.route === "form" ? [h("Y","Save"),h("A","Edit"),h("B","Discard")] : [h("X",hall.editor.route === "team" ? "Level" : "Search"),h("A",hall.editor.route === "team" ? "Name" : "Choose"),h("B","Back")]
+                    let result = []
+                    if (hall.archive && hall.editable) result.push(h("Select","New memory"))
+                    if (!hall.archive) result.push(h("Select","Refresh"))
+                    if (!hall.archive && hall.account.available) result.push(h("X","Account"))
+                    else if (hall.route === "archive-journey") result.push(h("X","Champions"))
+                    else if (hall.archive && hall.editable && hall.rows.length && !hall.overview) result.push(h("X","Edit"))
+                    result.push(h("A","Open"),h("B","Back")); return result
+                }
+                if (shell.page === 0) return [h("X",shell.multiverseHome ? "Pokémon" : "Multiverse"),h("A",shell.multiverseHome ? (shell.multiverse.selected.id ? (shell.multiverse.selected.playable ? "Play" : "Set up") : "Explore") : shell.home.actionHint),h("B","Back")]
+                return [h("A","Select"),h("B",shell.trainer.editing ? "Cancel" : "Back")]
+            }
             Row {
-                anchors { right: parent.right; rightMargin: 16; verticalCenter: parent.verticalCenter }
-                spacing: 14
+                objectName: "shell-button-hints"
+                anchors { right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
+                spacing: 9
+                transformOrigin: Item.Right
+                scale: Math.min(1, (footer.width - 136) / Math.max(1, implicitWidth))
                 Hint { visible: shell.pairedNavigationAvailable; button: "L2 R2"; label: shell.page === 1 ? (shell.multiverseFace ? "Worlds" : "Multiverse") : shell.page === 4 ? (shell.hall.archive ? "Achievements" : "Hall of Fame") : (shell.centerFace ? "Pokédex" : "Center"); tint: Theme.green }
-                Hint { visible: shell.page === 0 && shell.chooseAdventureAvailable && !shell.drawerOpen; button: "X"; label: shell.multiverseHome ? "Pokémon" : "Multiverse"; tint: Theme.blue }
                 Hint { button: "L1 R1"; label: "Sections"; tint: Theme.blue }
-                Hint { button: "A"; label: shell.keyboard.open && !shell.menuOpen ? "Type" : shell.page === 0 && !shell.drawerOpen && !shell.menuOpen && !shell.serviceOpen && shell.notice.length === 0 ? (shell.multiverseHome ? (shell.multiverse.selected.id ? (shell.multiverse.sample ? "Preview" : shell.multiverse.selected.playable ? "Play" : "Set up") : "Explore") : shell.home.actionHint) : "Select" }
-                Hint { button: "B"; label: shell.keyboard.open && !shell.menuOpen ? "Cancel input" : "Back"; tint: Theme.pink }
+                Repeater { model: footer.actions
+                    delegate: Hint {
+                        required property var modelData
+                        button: modelData.button; label: modelData.label
+                        tint: button === "B" ? Theme.pink : button === "X" || button === "←→" ? Theme.blue : button === "Y" ? Theme.yellow : Theme.green
+                    }
+                }
                 Hint { button: "Start"; label: "System"; tint: Theme.yellow }
             }
         }
@@ -212,6 +271,12 @@ Window {
             Text { x: 38; y: 23; text: "TRAINER OS"; color: "#f6e4b3"; font.pixelSize: 26; font.bold: true }
             TrainerSetupPanel { entry: true; x: 0; y: 43; width: parent.width; height: parent.height-63; shell: shellController }
             KeyboardPanel { x: Theme.screenBounds.x; y: Theme.screenBounds.y; width: Theme.screenBounds.width; height: Theme.screenBounds.height; shell: shellController }
+            Row { anchors.right: parent.right; anchors.rightMargin: 22; anchors.bottom: parent.bottom; anchors.bottomMargin: 9; spacing: 18
+                Hint { visible: shell.keyboard.open; button: "X"; label: "Case" }
+                Hint { visible: shell.keyboard.open; button: "Y"; label: "Symbols" }
+                Hint { button: "A"; label: shell.keyboard.open ? "Type" : "Select" }
+                Hint { button: "B"; label: "Back"; tint: Theme.pink }
+            }
         }
         StoragePanel { anchors.fill: parent; visible: sessionState.blocked && !sessionState.entryGate && !sessionState.access.active; stateController: sessionState }
         TrainerAccessPanel { anchors.fill: parent; access: sessionState.access; visible: sessionState.access.active }

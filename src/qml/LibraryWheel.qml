@@ -17,7 +17,7 @@ Item {
     property string actionLabel: "Choose for Home"
     property bool actionVisible: true
     property string emptyTitle: "No matching titles"
-    property string emptyDetail: "A · Reset search and filter"
+    property string emptyDetail: "Reset search and filter"
     signal activated(int index)
     signal emptyActivated()
     signal backActivated()
@@ -47,11 +47,31 @@ Item {
     Item {
         id: rail
         x: 0; y: 36; width: root.split; height: parent.height - 78; clip: true
-        Rectangle {
-            x: -8; y: parent.height / 2 - 43; width: parent.width - 6; height: 86; radius: 14
-            color: "#30ffd961"; border.color: "#b3ce992c"; border.width: 2
-            Rectangle { anchors.fill: parent; anchors.margins: 3; radius: 12; color: "transparent"; border.color: "#b8fff3bc"; border.width: 2 }
-            Rectangle { x: 8; y: 4; width: 5; height: parent.height - 8; radius: 2; color: Theme.focus }
+        Canvas {
+            id: crystal
+            objectName: "library-selection-crystal"
+            x: 0; y: parent.height / 2 - 25; width: 47; height: 54; z: 2
+            visible: root.entries.length > 0
+            opacity: root.wheelFocused ? 1 : 0.45
+            onPaint: {
+                const c = getContext("2d"); c.reset()
+                function facet(points, color) {
+                    c.beginPath(); c.moveTo(points[0][0], points[0][1])
+                    for (let i = 1; i < points.length; ++i) c.lineTo(points[i][0], points[i][1])
+                    c.closePath(); c.fillStyle = color; c.fill()
+                }
+                facet([[0,3],[43,28],[0,54]], "#653b273d")
+                facet([[0,0],[41,25],[0,50]], "#88521e")
+                facet([[0,2],[38,25],[8,23]], "#fff2af")
+                facet([[0,2],[8,23],[0,47]], "#edac2e")
+                facet([[8,23],[38,25],[0,47]], "#f1c142")
+                facet([[8,23],[38,25],[1,28]], "#ffe679")
+            }
+            NumberAnimation { id: crystalSlide; target: crystal; property: "x"; from: -24; to: 0; duration: Theme.motion(180); easing.type: Easing.OutCubic }
+            Connections { target: root
+                function onSelectionIndexChanged() { crystalSlide.restart() }
+                function onVisibleChanged() { if (root.visible) crystalSlide.restart() }
+            }
         }
         PathView {
             id: wheel
@@ -179,18 +199,5 @@ Item {
         detail: root.emptyDetail
         selected: visible && root.visible && root.takesFocus
         onActivated: root.emptyActivated()
-    }
-    CapButton {
-        objectName: "world-list-back"
-        x: 18; anchors.bottom: parent.bottom; anchors.bottomMargin: 8; width: root.split - 36; height: 32
-        visible: root.showBack && root.entries.length > 0
-        label: "B  Back to Worlds"; textSize: 14; tint: Theme.blue
-        selected: visible && root.takesFocus && !root.wheelFocused
-        onActivated: root.backActivated()
-    }
-    Row { x: root.split + 20; anchors.bottom: parent.bottom; anchors.bottomMargin: 12; spacing: 16
-        Hint { button: "A"; label: root.actionLabel; labelColor: Theme.ink; visible: root.actionVisible }
-        Hint { button: "X"; label: "Search"; labelColor: Theme.ink }
-        Hint { button: "Y"; label: "Filter"; labelColor: Theme.ink }
     }
 }

@@ -58,7 +58,7 @@ Item {
             filterText: root.model.filterLabel + (root.model.query ? " · " + root.model.query : "")
             actionVisible: entry.linked === true
             emptyTitle: root.model.query || root.model.filterLabel !== "All titles" ? "No matching titles" : "No titles connected yet"
-            emptyDetail: root.model.query || root.model.filterLabel !== "All titles" ? "A · Reset search and filter" : "A · Back to systems"
+            emptyDetail: root.model.query || root.model.filterLabel !== "All titles" ? "Reset search and filter" : "Back to systems"
             onActivated: index => root.shell.activate(index)
             onEmptyActivated: root.shell.activate(0)
         }

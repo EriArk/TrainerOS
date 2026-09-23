@@ -40,7 +40,7 @@ QString PokedexController::artTarget() const {
 QString PokedexController::artCoverage() const { return art_ ? art_->coverage() : "Illustrations not installed"; }
 QVariantList PokedexController::artChoices() const { return art_ ? art_->choices(artTarget()) : QVariantList{}; }
 void PokedexController::openArtwork() {
-    if (zone_ != "detail" || journal_.isOpen() || saving_) return;
+    if ((zone_ != "list" && zone_ != "rail") || filtered_.isEmpty() || journal_.isOpen() || saving_) return;
     artFocus_ = 0;
     const auto choices = artChoices();
     for (int i = 0; i < choices.size(); ++i) if (choices[i].toMap()["current"].toBool()) artFocus_ = i;
@@ -61,7 +61,6 @@ int PokedexController::focusIndex() const {
     if (zone_ == "art") return artFocus_;
     if (zone_ == "picker") return pickerFocus_;
     if (zone_ == "rail") return railFocus_;
-    if (zone_ == "detail") return detailFocus_;
     return zone_ == "list" ? entryIndex() : 0;
 }
 PokedexForm PokedexController::selectedForm(const PokedexEntry& entry) const {
@@ -149,10 +148,12 @@ QString PokedexController::selectionLabel(int index) const {
     return sort_ == "name" ? "Name A–Z" : "Number ↑";
 }
 QVariantList PokedexController::rail() const {
-    QVariantList result{QVariantMap{{"label", "Search"}, {"value", query_.isEmpty() ? "Name / number" : query_}}};
+    QVariantList result{QVariantMap{{"label", "Search"}, {"value", query_.isEmpty() ? "Name / #" : query_}}};
     const QStringList labels{"", "World", "Type", "Records", "Order"};
     for (int i = 1; i <= 4; ++i) result.append(QVariantMap{{"label", labels[i]}, {"value", selectionLabel(i)}});
     result.append(QVariantMap{{"label", "Reset"}, {"value", "Clear filters"}});
+    result.append(QVariantMap{{"label", "Form"}, {"value", filtered_.isEmpty() ? QString() : selectedForm(filtered_[entryIndex()]).name}});
+    result.append(QVariantMap{{"label", "Artwork"}, {"value", "Choose"}});
     return result;
 }
 QVariantList PokedexController::choices() const {
@@ -202,7 +203,6 @@ void PokedexController::rebuild() {
     const bool exists = std::any_of(filtered_.begin(), filtered_.end(), [&](const auto& e) { return e.id == selectedId_; });
     if (!exists) {
         selectedId_ = filtered_.isEmpty() ? QString() : filtered_.first().id;
-        if (zone_ == "detail") zone_ = filtered_.isEmpty() ? "recovery" : "list";
     }
     if (filtered_.isEmpty() && zone_ == "list") zone_ = "recovery";
     emit rowsChanged();
@@ -224,7 +224,7 @@ void PokedexController::reset() {
 }
 QJsonObject PokedexController::navigationState() const {
     return {{"entry", selectedId_}, {"query", query_}, {"world", world_}, {"type", type_}, {"status", status_},
-            {"sort", sort_}, {"zone", zone_ == "picker" ? "rail" : zone_}, {"rail", railFocus_}, {"detail", detailFocus_},{"form",formId_}};
+            {"sort", sort_}, {"zone", zone_ == "picker" ? "rail" : zone_}, {"rail", railFocus_}, {"form",formId_}};
 }
 void PokedexController::restoreNavigation(const QJsonObject& state) {
     selectedId_ = state["entry"].toString();
@@ -241,9 +241,8 @@ void PokedexController::restoreNavigation(const QJsonObject& state) {
     pickerKind_ = oldKind;
     sort_ = state["sort"].toString() == "name" ? "name" : "number";
     const auto zone = state["zone"].toString();
-    zone_ = QStringList{"list", "rail", "detail", "recovery"}.contains(zone) ? zone : "list";
-    railFocus_ = std::clamp(state["rail"].toInt(), 0, 5);
-    detailFocus_ = std::clamp(state["detail"].toInt(), 0, 1);
+    zone_ = QStringList{"list", "rail", "recovery"}.contains(zone) ? zone : "list";
+    railFocus_ = std::clamp(state["rail"].toInt(), 0, 7);
     rebuild();
     if (zone_ == "recovery" && !filtered_.isEmpty()) zone_ = "list";
     emit changed();
@@ -258,7 +257,7 @@ void PokedexController::openPicker(int index) {
 }
 void PokedexController::cancelTransient() {
     journal_.cancel();
-    if (zone_ == "art") { zone_ = "detail"; emit changed(); }
+    if (zone_ == "art") { zone_ = filtered_.isEmpty() ? "recovery" : "list"; emit changed(); }
     if (zone_ == "picker") { zone_ = "rail"; emit changed(); }
 }
 void PokedexController::applySearch(const QString& text) {
@@ -274,7 +273,7 @@ void PokedexController::activate(int index) {
             const auto error = art_->select(artTarget(), choices[index].toMap()["id"].toString());
             if (!error.isEmpty()) { emit messageRequested(error); return; }
         }
-        zone_ = "detail"; emit changed(); return;
+        zone_ = filtered_.isEmpty() ? "recovery" : "list"; emit changed(); return;
     }
     if (zone_ == "picker") {
         const auto values = options();
@@ -289,24 +288,23 @@ void PokedexController::activate(int index) {
         zone_ = "rail";
         rebuild();
     } else if (zone_ == "rail") {
-        if (index < 0 || index > 5) return;
+        if (index < 0 || index > 7) return;
         railFocus_ = index;
         if (index == 0) emit searchRequested(query_);
         else if (index == 5) reset();
+        else if (index == 6) cycleForm();
+        else if (index == 7) openArtwork();
         else openPicker(index);
     } else if (zone_ == "list") {
         if (index < 0 || index >= filtered_.size()) return;
         selectedId_ = filtered_[index].id;
-        zone_ = "detail"; detailFocus_ = 0;
-    } else if (zone_ == "detail") {
-        if (index == 1) zone_ = "list";
-        else if (index == 0 && !filtered_.isEmpty() && !saving_) {
+        if (!saving_) {
             saving_ = true;
             progress_.setFavoriteAsync(selectedId_, !progress_.progress(selectedId_).favorite, this,
                                       [this](const QString& error) {
                 saving_ = false;
                 if (!error.isEmpty()) emit messageRequested(error);
-                else rebuild(); // Reconcile against the current filter, even after leaving this detail.
+                else rebuild(); // Reconcile against the current filter, even after changing species.
                 emit changed();
             });
         }
@@ -321,25 +319,27 @@ void PokedexController::activateControl(const QString& zone, int index) {
     if (zone != zone_ && !(browsing && (zone == "rail" || (zone == "list" && !filtered_.isEmpty())
                                       || (zone == "recovery" && filtered_.isEmpty())))) return;
     zone_ = zone;
+    if (zone == "list" && index >= 0 && index < filtered_.size()) {
+        selectedId_ = filtered_[index].id; emit changed(); return;
+    }
     activate(index);
 }
 void PokedexController::dispatch(Action action) {
     if(journal_.isOpen()){journal_.dispatch(action);return;}
     if (zone_ == "art") {
-        if (action == Action::Back) zone_ = "detail";
+        if (action == Action::Back) zone_ = filtered_.isEmpty() ? "recovery" : "list";
         else if (action == Action::Confirm) { activate(artFocus_); return; }
         else if (action == Action::Left || action == Action::Up) artFocus_ = std::max(0, artFocus_ - 1);
         else if (action == Action::Right || action == Action::Down) artFocus_ = std::min(std::max(0, int(artChoices().size()) - 1), artFocus_ + 1);
         emit changed(); return;
     }
-    if (zone_ == "detail" && action == Action::Up) { openArtwork(); return; }
-    if(zone_=="detail" && action==Action::Secondary){cycleForm();return;}
-    if(zone_=="detail" && action==Action::ToggleContinue){editJournal();return;}
+    if((zone_=="list" || zone_=="rail") && action==Action::ToggleContinue){editJournal();return;}
     if((zone_=="list"||zone_=="rail"||zone_=="recovery") && action==Action::Secondary){railFocus_=0;zone_="rail";emit searchRequested(query_);emit changed();return;}
     if (action == Action::Confirm) { activate(focusIndex()); return; }
     if (action == Action::Back) {
         if (zone_ == "picker") zone_ = "rail";
-        else if (zone_ == "detail") zone_ = "list";
+        else if (zone_ == "list" || zone_ == "recovery") zone_ = "rail";
+        else if (zone_ == "rail") zone_ = filtered_.isEmpty() ? "recovery" : "list";
     } else if (zone_ == "picker") {
         const int count = options().size() + 1;
         if (action == Action::Left && pickerFocus_ % 5 > 0) --pickerFocus_;
@@ -348,7 +348,7 @@ void PokedexController::dispatch(Action action) {
         if (action == Action::Down && pickerFocus_ + 5 < count) pickerFocus_ += 5;
     } else if (zone_ == "rail") {
         if (action == Action::Left) railFocus_ = std::max(0, railFocus_ - 1);
-        if (action == Action::Right) railFocus_ = std::min(5, railFocus_ + 1);
+        if (action == Action::Right) railFocus_ = std::min(7, railFocus_ + 1);
         if (action == Action::Down) zone_ = filtered_.isEmpty() ? "recovery" : "list";
     } else if (zone_ == "list") {
         const int index = entryIndex();
@@ -359,21 +359,19 @@ void PokedexController::dispatch(Action action) {
         if (action == Action::Down && index + 1 < filtered_.size()) selectedId_ = filtered_[index + 1].id;
         if(action==Action::Left)selectedId_=filtered_[std::max(0,index-8)].id;
         if(action==Action::Right)selectedId_=filtered_[std::min(int(filtered_.size())-1,index+8)].id;
-    } else if (zone_ == "detail") {
-        if (action == Action::Left) detailFocus_ = 0;
-        if (action == Action::Right) detailFocus_ = 1;
+
     } else if (zone_ == "recovery" && action == Action::Up) zone_ = "rail";
     emit changed();
 }
 void PokedexController::cycleForm() {
-    if(zone_!="detail"||journal_.isOpen()||filtered_.isEmpty())return;
+    if((zone_!="list"&&zone_!="rail")||journal_.isOpen()||filtered_.isEmpty())return;
     const auto& entry=filtered_[entryIndex()];if(entry.forms.size()<2)return;
     const auto selected=selectedForm(entry);
     for(int i=0;i<entry.forms.size();++i)if(entry.forms[i].id==selected.id){formId_=entry.forms[(i+1)%entry.forms.size()].id;break;}
     emit changed();
 }
 void PokedexController::editJournal() {
-    if(zone_!="detail"||filtered_.isEmpty()||saving_)return;
+    if((zone_!="list"&&zone_!="rail")||filtered_.isEmpty()||saving_)return;
     const auto& entry=filtered_[entryIndex()];journal_.begin(entry.id,entry.name);
 }
 }

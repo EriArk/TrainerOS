@@ -82,7 +82,7 @@ Item {
         }
         Text {
             x: 25; y: 307; width: 865
-            text: root.keyboard.hint.length ? root.keyboard.hint : "A · Type    B · Cancel    " + root.keyboard.layoutHint + "    Apply · Use text"
+            text: root.keyboard.hint
             color: root.keyboard.hint.length ? "#ffe08c" : "#d4e4d8"
             font.pixelSize: 11; elide: Text.ElideRight
         }

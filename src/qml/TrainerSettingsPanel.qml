@@ -17,7 +17,7 @@ Item {
                         {label: root.shell.trainer.exists ? "Edit Trainer" : "Create Trainer", detail: root.shell.trainer.profile.name || "Give your journey a name"},
                         {label: "RetroAchievements", detail: "Manage the connected account"},
                         {label: root.shell.sampleLibrary ? "Preview registration & PIN" : "Trainers", detail: root.shell.sampleLibrary ? "Development only · no personal changes" : "Choose a player or create a Trainer"},
-                        {label: "Back to settings", detail: "B · Back"}
+                        {label: "Back to settings", detail: ""}
                     ]
                     delegate: CapButton {
                         required property int index; required property var modelData

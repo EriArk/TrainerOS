@@ -72,8 +72,8 @@ Item {
                 entries: root.worlds.adventures; entry: root.worlds.detail; selectionIndex: root.worlds.adventureIndex
                 takesFocus: root.takesFocus && root.listOpen
                 wheelFocused: root.worlds.focusIndex < entries.length
-                showBack: true; platformBadges: true; idsInNames: true; itemPrefix: "adventure-"
-                emptyName: "world-list-back"; emptyTitle: "No matching Adventures"; emptyDetail: "B · Back to Worlds"
+                showBack: false; platformBadges: true; idsInNames: true; itemPrefix: "adventure-"
+                emptyName: "world-list-back"; emptyTitle: "No matching Adventures"; emptyDetail: "Back to Worlds"
                 actionLabel: "Open"; filterText: root.worlds.filterLabel + (root.worlds.query ? " · " + root.worlds.query : "")
                 onActivated: index => root.shell.activate(index)
                 onEmptyActivated: root.shell.activate(entries.length)

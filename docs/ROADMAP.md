@@ -19,7 +19,10 @@ game launch/return and handheld screenshots. The shared Batocera-style game
 wheel is also delivered in Multiverse and Pokemon regions, with same-screen
 metadata, additional Pokemon media and reduced navigation stalls. The final
 device probe measured 189–449 ms for tab changes; longer-run freeze diagnosis
-remains open if stalls recur. **Next:** Settings-gated World
+remains open if stalls recur. The owner-requested follow-up combines the Dex
+list/facts/illustration and colored numerical stats, replaces wheel selection
+plates with a gold crystal pointer, and consolidates controller legends at the
+bottom throughout the shell. **Next:** Settings-gated World
 wrench/edit popup and long-A game management, preserving IDs, media and saves.
 
 **Owner scheduling amendment, 2026-09-23:** generic artwork-pack installation,

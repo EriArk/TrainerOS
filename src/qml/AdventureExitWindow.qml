@@ -82,20 +82,24 @@ Window {
                         CapButton {
                             objectName: "exit-back"
                             width: 232; height: 50; tint: Theme.blue; textSize: 20; centered: true
-                            label: "B   Keep playing"
+                            label: "Keep playing"
                             enabled: window.presentation.ready
                             onActivated: window.presentation.cancel()
                         }
                         CapButton {
                             objectName: "exit-confirm"
                             width: 232; height: 50; tint: Theme.yellow; textSize: 20; centered: true
-                            label: "A   Leave"
+                            label: "Leave"
                             enabled: window.presentation.ready
                             onActivated: window.presentation.confirm()
                         }
                     }
                 }
             }
+        }
+        Row { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 14; spacing: 26; visible: window.presentation.confirming
+            Hint { button: "B"; label: "Keep playing"; tint: Theme.blue }
+            Hint { button: "A"; label: "Leave"; tint: Theme.yellow }
         }
     }
 }

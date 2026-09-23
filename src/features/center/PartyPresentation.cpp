@@ -15,8 +15,8 @@ void PartyPresentation::openActivities() {
 }
 QString PartyPresentation::status() const {
     if (sample_) return "Development sample · not your save · all records are read-only";
-    if (!id_.isEmpty() && title_.isEmpty()) return "The selected Adventure is no longer linked. Y chooses another.";
-    return id_.isEmpty() ? "Y chooses an Adventure. Party and Storage need a supported save reader."
+    if (!id_.isEmpty() && title_.isEmpty()) return "The selected Adventure is no longer linked.";
+    return id_.isEmpty() ? "Choose an Adventure with a supported save to view its Party and Storage."
         : "Party and Storage reading is not available for this Adventure yet.";
 }
 void PartyPresentation::setAdventure(const QString& id, const QString& title) {

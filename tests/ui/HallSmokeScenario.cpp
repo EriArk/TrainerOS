@@ -140,8 +140,14 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         case 37:
             check(focusIs("hall-action-0"), "Empty local archive has recovery action");
             {
-                auto* hint=window->findChild<QQuickItem*>("hall-memory-hint");
-                check(hint && !hint->property("text").toString().contains("Edit"), "Empty archive must not advertise editing a missing memory");
+                auto* hints=window->findChild<QQuickItem*>("shell-button-hints");
+                QStringList labels;
+                const auto collect = [&](auto&& self, QQuickItem* item) -> void {
+                    labels.append(item->property("text").toString());
+                    for (auto* child : item->childItems()) self(self, child);
+                };
+                if (hints) collect(collect, hints);
+                check(hints && labels.contains("New memory") && !labels.contains("Edit"), "Bottom legends offer a new memory without editing a missing one");
             }
             capture("archive-empty"); archive.setEmpty(false); press(a); break;
         case 38:
@@ -202,7 +208,7 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         case 58:
             check(shell.page()==3 && !hall->account()->isOpen(), "Global page navigation clears account draft"); press(r1); press(x); break;
         case 59:
-            check(hall->account()->rows()[1].toMap()["detail"] == "A · Enter password", "Password not retained after leaving page");
+            check(hall->account()->rows()[1].toMap()["detail"] == "Enter password", "Password not retained after leaving page");
             press(b); window->resize(960,540); break;
         case 60:
             check(!hall->isArchive(), "RA remains active after closing account form");

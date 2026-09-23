@@ -11,7 +11,7 @@ Item {
         anchors.topMargin: Theme.contentTopInset; anchors.bottomMargin: Theme.panelInset + 30; clip: true
         PageHeader {
             id: heading; compact: true; title: root.activity.page.title; trailing: "Pokémon Center"
-            subtitle: root.activity.sample ? "Development rehearsal · no game, save or connection changes" : root.shell.party.title || "Choose an Adventure with Y"
+            subtitle: root.activity.sample ? "Development rehearsal · no game, save or connection changes" : root.shell.party.title || "Choose an Adventure"
         }
         MountedPanel {
             y: heading.height; width: parent.width; height: parent.height - y; color: "#dce6dc"
@@ -86,9 +86,9 @@ Item {
                 x: 32; y: 68; width: parent.width - 64; spacing: 20
                 visible: root.activity.sample && root.activity.route === "link"
                 Text { width: parent.width; text: root.activity.stage === "setup" ? "Sample partner device" : root.activity.stage === "review" ? "Your sample record  ↔  Partner's sample record" : "Connection needs attention"; color: Theme.ink; font.pixelSize: 26; font.bold: true; wrapMode: Text.WordWrap }
-                Text { width: parent.width; text: root.activity.stage === "setup" ? "Offline rehearsal · no Bluetooth scan\nChoose A to inspect the proposal layout."
+                Text { width: parent.width; text: root.activity.stage === "setup" ? "Offline rehearsal · no Bluetooth scan"
                     : root.activity.stage === "review" ? "Compatibility: unverified\nBoth confirmations and protected saves are required. No transfer is enabled."
-                    : "Neither save was changed. This preview started no transaction.\nA resets this rehearsal; B returns to partner selection."; color: Theme.muted; font.pixelSize: 19; wrapMode: Text.WordWrap }
+                    : "Neither save was changed. This preview started no transaction."; color: Theme.muted; font.pixelSize: 19; wrapMode: Text.WordWrap }
             }
             CapButton {
                 objectName: "activity-primary"; x: 24; anchors.bottom: parent.bottom; anchors.bottomMargin: 12; width: 395; height: 44
@@ -99,7 +99,7 @@ Item {
             Text {
                 x: 28; anchors.bottom: parent.bottom; anchors.bottomMargin: 23
                 visible: root.activity.route === "menu" || root.activity.sample && root.activity.route === "playroom"
-                text: root.activity.route === "menu" ? "B · Party / Storage" : root.activity.page.action + "    B · Activities"
+                text: ""
                 color: Theme.ink; font.pixelSize: 16
             }
         }

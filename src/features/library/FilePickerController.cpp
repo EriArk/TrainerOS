@@ -6,7 +6,7 @@ namespace trainer {
 QVariantList FilePickerController::rows() const {
     QVariantList rows;
     for (const auto& entry : current_.entries) rows.append(QVariantMap{{"id", entry.path}, {"title", entry.name},
-        {"subtitle", entry.directory ? "Folder · A to open" : "File reference · A to choose"}});
+        {"subtitle", entry.directory ? "Folder" : "File"}});
     return rows;
 }
 QVariantList FilePickerController::actions() const {

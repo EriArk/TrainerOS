@@ -61,9 +61,9 @@ Item {
             x: 30; y: 11; spacing: 11
             Repeater {
                 model: [
-                    {title: "Name", value: root.trainer.draftName || "Choose your name", hint: "A · Open keyboard"},
-                    {title: "Emblem", value: root.trainer.draftEmblem, hint: "A · Next emblem"},
-                    {title: "Favorite", value: root.trainer.draftFavorite, hint: "A · Choose from the field guide"}
+                    {title: "Name", value: root.trainer.draftName || "Choose your name", hint: ""},
+                    {title: "Emblem", value: root.trainer.draftEmblem, hint: ""},
+                    {title: "Favorite", value: root.trainer.draftFavorite, hint: ""}
                 ]
                 delegate: CapButton {
                     required property int index
@@ -83,7 +83,7 @@ Item {
         height: 87; color: "#c6dcca"
         Text {
             x: 31; y: 7; width: parent.width - 62
-            text: root.trainer.saving ? "Saving… You can leave this page; your save will finish." : root.trainer.error.length ? root.trainer.error : root.trainer.editing ? "Save keeps your profile. B discards changes before Save." : "Local library · manual journal · time recorded by TrainerOS"
+            text: root.trainer.saving ? "Saving… You can leave this page; your save will finish." : root.trainer.error.length ? root.trainer.error : root.trainer.editing ? "" : "Local library · manual journal · time recorded by TrainerOS"
             color: root.trainer.error.length ? "#853b24" : Theme.muted
             font.pixelSize: 12; elide: Text.ElideRight
         }

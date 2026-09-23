@@ -129,7 +129,7 @@ QVariantMap WorldsController::detail() const {
     const auto adventure = currentAdventure();
     if (!adventure) return {{"title", "No matching Adventures"}, {"kind", ""},
         {"status", ""}, {"description", "Your Adventures for this World will appear here."},
-        {"badges", "—"}, {"caught", "—"}, {"availability", "X to change the search, Y to change the filter, or B to choose another World."},
+        {"badges", "—"}, {"caught", "—"}, {"availability", "Try another search, filter or World."},
         {"resume", "No recent trail recorded"}};
     const auto caps = adapter_.capabilities(*adventure);
     const auto point = latestResume(*adventure);
@@ -344,8 +344,7 @@ void WorldsController::dispatch(Action action) {
             else chooseAdventure(std::max(0, index - 1));
         }
         if (action == Action::Down && !backFocused_) {
-            if (index + 1 >= count) backFocused_ = true;
-            else chooseAdventure(index + 1);
+            if (index + 1 < count) chooseAdventure(index + 1);
         }
     } else if (route_ == Route::Detail) {
         normalizeActionFocus();

@@ -79,7 +79,7 @@ Item {
         }
         Text {
             x: 30; y: 310; width: parent.width - 60; height: 28; font.pixelSize: 12; color: Theme.muted; wrapMode: Text.WordWrap
-            text: root.checks.status || "Compare these labels with your buttons. B returns; L1/R1 change sections. Reopen this panel to review observed signals."
+            text: root.checks.status || "Compare these labels with your physical buttons."
             textFormat: Text.PlainText
         }
         MountedPanel {

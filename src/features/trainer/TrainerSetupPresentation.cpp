@@ -37,7 +37,7 @@ QString TrainerSetupPresentation::description() const {
     if (stage_ == "welcome") return "Choose a name, an emblem and a favorite companion.";
     if (stage_ == "identity") return "Your name is required. A favorite is up to you.";
     if (stage_ == "pin") return "Try 4–6 digits, or skip. This preview does not lock anything.";
-    if (stage_ == "repeat") return "Enter the same digits again. B returns to the first entry.";
+    if (stage_ == "repeat") return "Enter the same digits again.";
     if (stage_ == "unlock") return "Sample PIN: 1234. No personal records are unlocked.";
     if (stage_ == "review") return "Review your sample card. Finish ends the preview without saving.";
     return "No profile was created or switched. No PIN was stored.";
@@ -57,7 +57,7 @@ QVariantList TrainerSetupPresentation::rows() const {
     else if (stage_ == "chooser") { add("River", "Sample Trainer · no PIN"); add("Sky", "Sample Trainer · PIN"); add("Add Trainer", "Rehearse registration"); add("Back"); }
     else if (stage_ == "welcome") { add("Let's begin"); add("Back"); }
     else if (stage_ == "identity") {
-        add("Name", name_.isEmpty() ? "A · Enter your name" : name_);
+        add("Name", name_.isEmpty() ? "Enter your name" : name_);
         add("Emblem", emblem_); add("Favorite", favorite_); add("Continue");
     } else if (stage_ == "review") { add("Finish preview"); add("Edit card"); add("Change PIN choice"); }
     else if (stage_ == "done") add("Back to preview menu");

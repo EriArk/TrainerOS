@@ -91,7 +91,7 @@ private:
     QString zone_ = "list";
     QString error_;
     bool saving_ = false;
-    int railFocus_ = 0, detailFocus_ = 0, pickerFocus_ = 0, pickerKind_ = 1;
+    int railFocus_ = 0, pickerFocus_ = 0, pickerKind_ = 1;
     ClassicArt* art_ = nullptr;
     int artFocus_ = 0;
     SpriteArt* sprites_ = nullptr;

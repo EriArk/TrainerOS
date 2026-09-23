@@ -37,12 +37,12 @@ QVariantList DeviceController::rows() const {
     const auto value = service_ ? service_->snapshot() : DeviceSnapshot{};
     const QString volume = value.volume < 0 ? "Unavailable" : QString::number(value.volume) + "%" + (value.muted ? " · Muted" : "");
     return {
-        QVariantMap{{"title", "Volume"}, {"level", value.volume}, {"muted", value.muted}, {"value", volume + "   ·   Left / Right adjust · A mute"}},
-        QVariantMap{{"title", "Screen brightness"}, {"level", value.brightness}, {"muted", false}, {"value", (value.brightness < 0 ? QString("Unavailable") : QString::number(value.brightness) + "%") + "   ·   Left / Right adjust"}},
-        QVariantMap{{"title", "Refresh status"}, {"value", "Y also refreshes these readings"}},
+        QVariantMap{{"title", "Volume"}, {"level", value.volume}, {"muted", value.muted}, {"value", volume}},
+        QVariantMap{{"title", "Screen brightness"}, {"level", value.brightness}, {"muted", false}, {"value", (value.brightness < 0 ? QString("Unavailable") : QString::number(value.brightness) + "%")}},
+        QVariantMap{{"title", "Refresh status"}, {"value", ""}},
         QVariantMap{{"title", "Restart device"}, {"value", powerAvailable_ ? "Save your place, then restart" : "Available in the ArmadaOS installation"}},
         QVariantMap{{"title", "Power off"}, {"value", powerAvailable_ ? "Save your place, then turn off" : "Available in the ArmadaOS installation"}},
-        QVariantMap{{"title", "Back to Settings"}, {"value", "B also returns to Settings"}}
+        QVariantMap{{"title", "Back to Settings"}, {"value", ""}}
     };
 }
 QVariantList DeviceController::status() const {

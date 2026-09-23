@@ -283,7 +283,7 @@ QVariantMap ShellController::home() const {
     QString action = "Explore Worlds", actionHint = "Worlds", milestone = snapshot.milestone;
     if (!adventure && !homeAdventureId_.isEmpty()) {
         title = "Selected Adventure is unavailable";
-        milestone = "Your choice is kept · Y to choose another";
+        milestone = "Your choice is kept";
     }
     std::optional<int> badges, caught;
     QVariantList badgeSlots;
@@ -319,7 +319,7 @@ QVariantMap ShellController::home() const {
         action = resumeStatus == ResumeAvailability::Exact ? "Resume Adventure" : caps.launch ? "Start Adventure" : "Set up Adventure";
         actionHint = resumeStatus == ResumeAvailability::Exact ? "Resume" : caps.launch ? "Play" : "Set up";
         if (repository_.editable()) {
-            milestone = "Your selected Adventure · Y to choose another";
+            milestone = "Your selected Adventure";
             for (const auto& recent : repository_.recentSessions()) if (recent.adventureId == adventure->id) {
                 milestone = "Last opened " + recent.startedAt.toLocalTime().toString("dd MMM · HH:mm");
                 if (recent.outcome == PlaySessionOutcome::Interrupted) milestone += " · Session interrupted";
@@ -540,7 +540,7 @@ void ShellController::confirm() {
             else if(multiverse_.sample()) notice_ = "Development preview only. No game was launched.";
             else {
                 const auto record=repository_.registration(multiverse_.selected()["id"].toString());
-                if(!record || record->adventure.domain!="multiverse")notice_="This Adventure is unavailable. Choose another with Y.";
+                if(!record || record->adventure.domain!="multiverse")notice_="This Adventure is unavailable. Choose another Adventure.";
                 else if(record->contentAvailable && adapter_.capabilities(record->adventure).launch) {
                     emit homeLaunchPressed();const auto result=adapter_.launch(record->adventure);
                     if(!result.inProgress)notice_=result.message;

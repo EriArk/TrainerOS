@@ -53,31 +53,31 @@ void startArtworkSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             check(dex->entries().size()==1025,"Complete offline reference not composed");
             state->stage++; return;
         }
-        if (state->stage == 1) { capture("list-1080p"); press(a); state->stage++; return; }
+        if (state->stage == 1) { capture("list-1080p"); state->stage++; return; }
         if (state->stage == 2) {
-            capture("detail-1080p"); press(up); state->stage++; return;
+            capture("detail-1080p"); press(b); for(int i=0;i<7;++i) press(right); press(a); state->stage++; return;
         }
         if (state->stage == 3) {
-            check(dex->zone()=="art","Up opens artwork panel"); capture("artwork-source");
+            check(dex->zone()=="art","Illustrations control opens artwork panel"); capture("artwork-source");
             press(SDL_CONTROLLER_BUTTON_X); check(!shell.drawerOpen(),"Shared Y leaked through artwork panel");
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767); input.poll();
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768); input.poll();
             check(!shell.centerFace(),"Paired face leaked through artwork panel");
             press(SDL_CONTROLLER_BUTTON_START); press(b);
             check(dex->zone()=="art","Start/Back must restore artwork panel");
-            press(r1); press(l1); check(dex->zone()=="detail","Primary navigation closes draft");
+            press(r1); press(l1); check(dex->zone()=="list","Primary navigation closes draft");
             state->stage++; return;
         }
         if (state->stage == 4) {
             if (state->specimen < specimens.size()) {
                 const auto specimen = specimens[state->specimen];
                 dex->applySearch(specimen.first); dex->activateControl("list",0);
-                for (int i=0;i<80 && dex->detail()["formId"].toString()!=specimen.second;++i) press(SDL_CONTROLLER_BUTTON_Y);
+                for (int i=0;i<80 && dex->detail()["formId"].toString()!=specimen.second;++i) dex->cycleForm();
                 check(dex->detail()["formId"].toString()==specimen.second,"Form unreachable: "+specimen.second);
                 state->imageWaits = 0;
                 state->stage = 5; return;
             }
-            dex->applySearch(""); dex->activateControl("list",0); press(b);
+            dex->applySearch(""); dex->activateControl("list",0);
             timer->setInterval(20); state->stage = 6; return;
         }
         if (state->stage == 5) {
@@ -103,7 +103,7 @@ void startArtworkSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             timer->setInterval(250); state->stage++; return;
         }
         if (state->stage == 7) {
-            capture("last-species"); dex->applySearch("716"); dex->activateControl("list",0); press(up);
+            capture("last-species"); dex->applySearch("716"); dex->activateControl("list",0); dex->openArtwork();
             press(right); state->stage++; return;
         }
         if (state->stage == 8) {
@@ -169,16 +169,16 @@ void startArtworkSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             press(down); state->imageWaits=0; state->stage=9; return;
         }
         if (state->stage == 9) {
-            check(dex->zone()=="detail","Down keeps the Pokemon detail; no sprite inspector");
+            check(dex->zone()=="list","Down remains in the unified list; no sprite inspector");
             auto* control=window->activeFocusItem();
-            check(control && control->objectName()=="dex-favorite","Detail retains its normal action focus");
+            check(control && control->objectName()=="dex-entry-"+dex->detail()["id"].toString(),"Detail retains its normal action focus");
             check(!window->findChild<QQuickItem*>("dex-sprite-back"),"No separate sprite viewer exists");
             capture("detail-without-inspector");
             press(SDL_CONTROLLER_BUTTON_START); press(b);
-            check(dex->zone()=="detail","Start returns to the Pokemon detail");
-            press(r1); press(l1); check(dex->zone()=="detail","Page navigation preserves detail");
-            press(b); check(dex->zone()=="list","Back goes straight to entries");
-            dex->applySearch("37"); dex->activateControl("list",0); press(SDL_CONTROLLER_BUTTON_Y);
+            check(dex->zone()=="list","Start returns to the Pokemon detail");
+            press(r1); press(l1); check(dex->zone()=="list","Page navigation preserves detail");
+            press(b); check(dex->zone()=="rail","Back reaches filters on the same screen");
+            dex->applySearch("37"); dex->activateControl("list",0); dex->cycleForm();
             if (QGuiApplication::platformName()=="offscreen") window->resize(960,540);
             state->stage=11; return;
         }

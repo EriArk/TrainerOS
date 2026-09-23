@@ -41,16 +41,16 @@ Rectangle {
         }
         Text {
             x: 31; y: 54; width: parent.width - 62; visible: list.count === 0
-            text: root.picker.error || "No Pokémon match this search. X changes the search; B keeps your current choice."
+            text: root.picker.error || "No Pokémon match this search."
             color: Theme.muted; font.pixelSize: 20; wrapMode: Text.WordWrap
         }
     }
     MountedPanel {
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
         height: 86; color: "#c6dcca"
-        Text { x: 31; y: 6; text: list.count + " entries · ↑ / ↓ Browse · ← / → Jump 8 · A Choose"; color: Theme.muted; font.pixelSize: 12 }
-        CapButton { objectName: "species-search"; x: 30; y: 32; width: 260; height: 40; label: "X Search"; selected: root.takesFocus && list.count === 0; onActivated: root.picker.requestSearch() }
-        CapButton { x: 316; y: 32; width: 260; height: 40; label: "Y No favorite"; tint: Theme.blue; onActivated: root.picker.clearChoice() }
-        CapButton { x: 601; y: 32; width: 285; height: 40; label: "B Keep current choice"; tint: Theme.green; onActivated: root.picker.cancel() }
+        Text { x: 31; y: 6; text: list.count + " entries"; color: Theme.muted; font.pixelSize: 12 }
+        CapButton { objectName: "species-search"; x: 30; y: 32; width: 260; height: 40; label: "Search"; selected: root.takesFocus && list.count === 0; onActivated: root.picker.requestSearch() }
+        CapButton { x: 316; y: 32; width: 260; height: 40; label: "No favorite"; tint: Theme.blue; onActivated: root.picker.clearChoice() }
+        CapButton { x: 601; y: 32; width: 285; height: 40; label: "Keep current choice"; tint: Theme.green; onActivated: root.picker.cancel() }
     }
 }

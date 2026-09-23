@@ -9,7 +9,7 @@ Item {
     PageHeader {
         id: editorHeader; compact: true
         title: root.editor.route === "team" ? "Your champion team" : root.editor.route === "adventures" ? "Choose an Adventure" : "A journey to remember"
-        subtitle: root.editor.route === "adventures" ? (root.editor.query.length ? "Search: " + root.editor.query : "Your library · X to search · ← / → jump 8") : "Your own record · optional details can stay unknown"
+        subtitle: root.editor.route === "adventures" ? (root.editor.query.length ? "Search: " + root.editor.query : "Your library") : "Your own record · optional details can stay unknown"
     }
     MountedPanel { x: 0; y: editorHeader.height; width: parent.width; height: parent.height - y; color: "#dce4d8" }
     Item {
@@ -45,7 +45,7 @@ Item {
     Text {
         x: 29; y: 142; width: parent.width - 58
         visible: root.editor.route === "adventures" && root.editor.rows.length === 0
-        text: root.editor.query.length ? "No matches. Press X to change your search." : "Add an Adventure in Worlds first. Press B to return."
+        text: root.editor.query.length ? "No matching Adventures." : "Add an Adventure in Worlds first."
         color: Theme.ink; font.pixelSize: 22; wrapMode: Text.WordWrap
     }
     MountedPanel {
@@ -53,12 +53,12 @@ Item {
         height: 102; color: "#b8cbbc"
         Text {
             x: 26; y: 7; width: parent.width - 52; height: 35; textFormat: Text.PlainText
-            text: root.editor.error.length ? root.editor.error : root.editor.saving ? "Saving your memory…" : root.editor.route === "team" ? "A · Name     X · Level     B · Back to your memory" : root.editor.route === "adventures" ? "A · Choose     X · Search     B · Back" : "A · Edit field     Y · Save memory     B · Discard draft"
+            text: root.editor.error.length ? root.editor.error : root.editor.saving ? "Saving your memory…" : ""
             color: root.editor.error.length ? "#873c32" : Theme.ink; font.pixelSize: 15; wrapMode: Text.WordWrap
         }
         CapButton {
             objectName: "memory-save"; x: 25; y: 48; width: 337; height: 40
-            label: root.editor.route === "form" ? (root.editor.saving ? "Saving…" : "Y   Save this memory") : "B   Back to your memory"
+            label: root.editor.route === "form" ? (root.editor.saving ? "Saving…" : "Save this memory") : "Back to your memory"
             tint: Theme.yellow
             selected: root.takesFocus && root.editor.route === "adventures" && root.editor.rows.length === 0
             onActivated: root.editor.route === "form" ? root.editor.submit() : root.editor.back()
@@ -66,7 +66,7 @@ Item {
         // Empty pickers still own a visible, deterministic recovery focus.
         CapButton {
             objectName: "memory-back"; x: 380; y: 48; width: 225; height: 40
-            label: root.editor.route === "form" ? "B   Discard draft" : "B   Back"
+            label: root.editor.route === "form" ? "Discard draft" : "Back"
             tint: Theme.blue
             visible: root.editor.route === "form"
             onActivated: root.editor.back()

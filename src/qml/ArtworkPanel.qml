@@ -28,11 +28,9 @@ Item {
         CapButton {
             objectName: "dex-art-choice"
             x: 312; y: 280; width: 322; height: 47
-            label: root.choices.length ? root.choice.current ? "A   Keep this illustration" : "A   Use this illustration" : "A   Back to entry"
+            label: root.choices.length ? root.choice.current ? "Keep this illustration" : "Use this illustration" : "Back to entry"
             selected: root.takesFocus; tint: Theme.yellow
             onActivated: root.dex.activate(root.dex.focusIndex)
         }
-        Text { x: 28; y: 313; text: "← / →  Browse"; visible: root.choices.length > 1; color: Theme.muted; font.pixelSize: 14 }
-        Text { x: 672; y: 296; text: "B   Cancel"; color: Theme.muted; font.pixelSize: 16 }
     }
 }
