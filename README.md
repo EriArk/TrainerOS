@@ -14,7 +14,7 @@ Start → Settings → Controller provides live input/display checks and a local
 
 Legacy [GBA state-resume code](docs/RETROARCH_RESUME.md) is isolated to its historical tests. Production uses ordinary startup and state-independent save backups; Home/Y show the clean exit picture with embedded black bars trimmed for display. The current build includes a personal [Hall of Fame archive](docs/HALL_OF_FAME.md), the [offline Pokédex and manual field journal](docs/POKEDEX.md), a [local Trainer overview](docs/TRAINER_OVERVIEW.md), and [Pokémon Center save backups](docs/SAVE_BACKUPS.md). These have been exercised with controller input on Flip 2. [English FireRed/Emerald save progress](docs/GAME_PROGRESS.md) now supplies Home's credited, game-set badge artwork and National Dex counts. A real [RetroAchievements account/read provider](docs/RETROACHIEVEMENTS.md) exists; global account management and verified emulator earning are the next integration step, not proof of current-save progress.
 
-Start provides [quick volume/brightness controls and a confirmed Power menu](docs/DEVICE_CONTROLS.md#start-quick-controls-and-power---2026-09-20). Physical volume-key handling belongs to the dedicated session and remains active during Adventures; Switch Player still awaits separate Trainer ownership.
+Start provides [quick volume/brightness controls and a confirmed Power menu](docs/DEVICE_CONTROLS.md#start-quick-controls-and-power---2026-09-20). Physical volume-key handling belongs to the dedicated session and remains active during Adventures; Switch Player opens the real Trainer chooser.
 
 A read-only [battery gauge](docs/POWER_STATUS.md) shows the handheld's charge in the fixed lower panel.
 
@@ -27,14 +27,14 @@ Hall now includes a [Journey overview](docs/JOURNEY_UI.md) with a larger badge c
 Center's attached [Activities menu](docs/CENTER_ACTIVITIES_UI.md) provides the Playroom, Practice and Link Counter screen framework. Only development mode rehearses those flows; real Party scenes, battles and transfers remain unavailable pending their provider and device gates.
 
 Settings → [Trainer](docs/TRAINER_SETUP_UI.md) contains the profile
-editor and RA account controls in its right pane. Registration/chooser/PIN screens can be rehearsed
-in the isolated sample mode; real multiple-Trainer ownership and PIN locking are
-still planned.
+editor, active-Trainer RA account controls and real registration/selection.
+Up to eight Trainers share games while keeping personal records separate.
+PIN locking and a protected startup chooser remain planned.
 
 The [P2 ownership foundation](docs/TRAINER_OWNERSHIP.md) now preserves the
 existing Trainer and scopes local journal, history, Hall and browsing state to
-that owner. Multiple-profile activation, PIN enforcement and account isolation
-remain the next binding work; the game library and external saves stay shared.
+explicit owners. Switching reconstructs all owner views and account providers;
+PIN enforcement remains planned. The game library and external saves stay shared.
 
 Optional private [Pokédex illustrations](docs/ARTWORK_BOOTSTRAP.md) now appear in
 the list, detail and favorite-species picker. Up on detail opens exact-form

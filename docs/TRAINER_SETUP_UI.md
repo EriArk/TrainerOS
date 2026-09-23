@@ -1,6 +1,7 @@
 # Trainer and account screens - 2026-09-20
 
-This is the P1 presentation increment for #19/#20, not P2 ownership or security.
+The original P1 screens now have real P2 registration/selection binding. PIN
+screens remain an isolated rehearsal; they do not provide security.
 
 ## Normal app
 
@@ -11,9 +12,14 @@ profile row. B then returns to the category rail. The Hall account shortcut
 uses the same controller/provider, not a second credential store. Existing
 account errors, busy state and explicit sign-out confirmation are preserved.
 
-Separate Trainers & PIN remains unavailable with an explanation. The installed
-profile, journal, saves and RA identity are neither migrated nor replaced.
-Switch Player in Power remains unavailable. No automatic startup gate is added.
+Trainers opens the real chooser; Power → Switch Player uses the same route.
+Add Trainer opens name/emblem/favorite registration and a final review, then
+creates and selects a separate personal context. The chooser supports up to eight
+profiles with controller scrolling. B cancels; L1/R1 leaves the flow. Submitted
+creation/switching is guarded until completion. Existing profiles and external
+saves survive the schema-9 migration. The active Trainer owns the account shown
+in Settings and Hall. Startup still reopens the last selected Trainer without a
+PIN gate. [Ownership and failure/recovery boundary](TRAINER_OWNERSHIP.md).
 
 ## Isolated UI rehearsal
 
@@ -41,14 +47,13 @@ PIN verifier, throttling mechanism or authenticated recovery implementation.
 
 ## Remaining P2 acceptance
 
-Bind these screens only after lossless Trainer ownership migration and async
-owner isolation. Replace sample cards/favorites with real identities/reference
-selection; bind atomic creation, loading/write-failure/retry states, real startup
-gating, memory-hard salted PIN verification and bounded retry/recovery. Preserve
-the existing one-profile editor until that path is proven. Shared saves do not
-become separate playthroughs. No #19/#20 completion claim follows from UI tests.
+Bind real optional PIN verification, startup gating, throttled retries and
+recovery. Expand favorite selection beyond the optional starter choices during
+registration (the existing profile editor already has its full picker). Preserve
+lossless owner switching and shared-save disclosure. No #19/#20 completion claim
+follows from the current profile chooser alone.
 
-## Verification
+## Original P1 verification
 
 Interaction tests cover validation, repeat mismatch, optional PIN, wrong unlock,
 masking, cancellation and absence of profile mutation. The SDL diagnostic render
@@ -63,3 +68,14 @@ The installed service routes were exercised through InputPlumber controller
 events, including cancelling the real profile editor without saving. The profile
 row and the count of 686 Adventures matched the pre-install backup; schema stayed 7.
 These checks do not certify physical PIN comfort or future multi-owner security.
+
+## Real profile binding — 2026-09-23
+
+The installed non-testing Flip build was exercised through InputPlumber: create
+ASH with the controller keyboard and review, open its empty Home/account, switch
+back to the original owner, and retain ASH across a separate shell restart. Power
+Back restores Switch Player; L1/R1 navigation remains available. Real device
+captures were inspected and delivered in chat. Full checks passed on Windows
+(38) and ARM64 (42); SDL scenarios include a full eight-profile chooser with
+unclipped focused rows. This does not certify PIN security or physical comfort.
+[Migration and recovery evidence](TRAINER_OWNERSHIP.md).

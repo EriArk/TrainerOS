@@ -7,33 +7,41 @@ Item {
     readonly property bool takesFocus: visible && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset; anchors.topMargin: Theme.contentTopInset
-        PageHeader { id: header; compact: true; title: root.flow.title; subtitle: "DEVELOPMENT PREVIEW · Nothing is saved or locked" }
+        PageHeader { id: header; compact: true; title: root.flow.title; subtitle: root.flow.live ? "Your Trainers" : "DEVELOPMENT PREVIEW · Nothing is saved or locked" }
         MountedPanel {
             x: 0; y: header.height; width: parent.width; height: parent.height - y; color: "#d4e2d6"
             Text {
                 x: 28; y: 14; width: parent.width - 56; height: 43; text: root.flow.description
                 color: Theme.muted; font.pixelSize: 16; wrapMode: Text.WordWrap
             }
-            Column {
-                visible: !root.flow.keypad; x: 28; y: 66; spacing: 10
-                Repeater {
-                    model: root.flow.rows
-                    delegate: CapButton {
+            ListView {
+                id: setupList
+                objectName: "setup-list"
+                visible: !root.flow.keypad; x: 28; y: 66; width: 526; height: parent.height - y - 30
+                spacing: 0; clip: true; interactive: false
+                model: root.flow.rows; currentIndex: root.flow.focusIndex
+                onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+                onCountChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+                delegate: FocusScope {
                         required property int index; required property var modelData
+                        width: setupList.width; height: 66
+                    CapButton {
+                        focus: true
                         objectName: "setup-action-" + index
-                        width: 510; height: 48; label: modelData.label; detail: modelData.detail
+                        x: 8; y: 9; width: 510; height: 48; label: modelData.label; detail: modelData.detail
                         tint: index % 2 ? Theme.blue : Theme.yellow
                         selected: root.takesFocus && !root.flow.keypad && root.flow.focusIndex === index
                         onActivated: root.shell.activate(index)
+                        enabled: !root.flow.busy
                     }
                 }
             }
             Item {
                 visible: !root.flow.keypad; x: 567; y: 60; width: parent.width - x - 20; height: 230
                 TrainerEmblem { anchors.horizontalCenter: parent.horizontalCenter; width: 118; height: 118; emblem: root.flow.emblem }
-                Text { y: 132; width: parent.width; text: root.flow.name || "Your sample card"; textFormat: Text.PlainText; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter; color: Theme.ink; font.pixelSize: 23; font.bold: true }
+                Text { y: 132; width: parent.width; text: root.flow.name || (root.flow.live ? "Your Trainer card" : "Your sample card"); textFormat: Text.PlainText; elide: Text.ElideRight; horizontalAlignment: Text.AlignHCenter; color: Theme.ink; font.pixelSize: 23; font.bold: true }
                 Text { y: 172; width: parent.width; text: root.flow.favorite; horizontalAlignment: Text.AlignHCenter; color: Theme.muted; font.pixelSize: 16 }
-                Text { y: 202; width: parent.width; text: root.flow.stage === "review" ? root.flow.pinChoice : "Original Trainer emblem"; horizontalAlignment: Text.AlignHCenter; color: Theme.muted; font.pixelSize: 13 }
+                Text { y: 202; width: parent.width; text: root.flow.live ? "Shared games · Personal journal" : root.flow.stage === "review" ? root.flow.pinChoice : "Original Trainer emblem"; horizontalAlignment: Text.AlignHCenter; color: Theme.muted; font.pixelSize: 13 }
             }
             Item {
                 visible: root.flow.keypad; x: 28; y: 65; width: parent.width - 56; height: 232

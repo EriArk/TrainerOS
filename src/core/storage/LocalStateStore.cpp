@@ -3,6 +3,7 @@
 #include "SqliteExitMedia.h"
 #include "SqliteOwnership.h"
 #include <QDir>
+#include <QCryptographicHash>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QLockFile>
@@ -16,11 +17,12 @@
 
 namespace trainer {
 namespace {
-constexpr int SchemaVersion = 8;
+constexpr int SchemaVersion = 9;
 QString failedWrite() { return "Couldn't save changes. Check free space or storage access, then try again."; }
 struct LoadedState {
     QString error;
-    QString ownerId;
+    QString ownerId, accountOwner;
+    QList<TrainerProfile> profiles;
     std::optional<TrainerProfile> profile;
     QSet<QString> favorites;
     QJsonObject navigation;
@@ -166,6 +168,17 @@ public:
                     if (!openError.isEmpty()) db.rollback();
                 }
             }
+            if (openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next())) openError = failedWrite();
+            if (openError.isEmpty() && query.value(0).toInt() < 9) {
+                query.finish();
+                if (!db.transaction()) openError = failedWrite();
+                else {
+                    openError = migrateProfiles(db);
+                    if (openError.isEmpty() && !query.exec("PRAGMA user_version=9")) openError = failedWrite();
+                    if (openError.isEmpty() && !db.commit()) openError = failedWrite();
+                    if (!openError.isEmpty()) db.rollback();
+                }
+            }
             if (openError.isEmpty()) {
                 ownerId_ = localOwner(db);
                 if (ownerId_.isEmpty()) openError = "Your Trainer ownership needs recovery. Existing data has been kept.";
@@ -175,16 +188,21 @@ public:
                 openError = "Your data needs recovery. The existing file has been kept.";
             if (openError.isEmpty() && !query.exec("PRAGMA synchronous=FULL")) openError = failedWrite();
             if (openError.isEmpty()) {
-                if (!query.exec("SELECT id,name,emblem,favorite,created_at FROM trainer_profile WHERE slot=1")) openError = "Your Trainer data couldn't be read. The existing file has been kept.";
-                else if (query.next()) {
+                if (!query.exec("SELECT id,name,emblem,favorite,created_at FROM trainer_profile ORDER BY created_at,id")) openError = "Your Trainer data couldn't be read. The existing file has been kept.";
+                else while (query.next()) {
                     TrainerProfile profile;
                     profile.id = query.value(0).toString(); profile.name = query.value(1).toString();
                     profile.emblemId = query.value(2).toString(); profile.favoritePokemonId = query.value(3).toString();
                     profile.createdAt = QDateTime::fromString(query.value(4).toString(), Qt::ISODateWithMs);
-                    if (profile.id.isEmpty() || profile.id != ownerId_ || profile.name.trimmed().isEmpty() || !profile.createdAt.isValid())
+                    if (profile.id.isEmpty() || profile.name.trimmed().isEmpty() || !profile.createdAt.isValid())
                         openError = "Your Trainer data needs recovery. The existing file has been kept.";
-                    else state.profile = profile;
+                    else { state.profiles.append(profile); if(profile.id==ownerId_)state.profile=profile; }
                 }
+            }
+            if (openError.isEmpty()) {
+                if (!state.profiles.isEmpty() && !state.profile) openError = "The selected Trainer is unavailable. Existing records have been kept.";
+                if (!query.exec("SELECT trainer_id FROM legacy_account_owner WHERE slot=1") || !query.next()) openError = failedWrite();
+                else state.accountOwner = query.value(0).toString();
             }
             if (openError.isEmpty()) {
                 query.prepare("SELECT entry_id FROM pokedex_favorites WHERE trainer_id=?"); query.addBindValue(ownerId_);
@@ -231,7 +249,8 @@ public:
         bool creating = false;
         {
             QSqlQuery query(db);
-            if (!query.exec("SELECT id,created_at FROM trainer_profile WHERE slot=1")) error = failedWrite();
+            query.prepare("SELECT id,created_at FROM trainer_profile WHERE id=?");query.addBindValue(ownerId_);
+            if (!query.exec()) error = failedWrite();
             else if (query.next()) {
                 if (query.value(0).toString() != profile.id || profile.id != ownerId_
                     || QDateTime::fromString(query.value(1).toString(), Qt::ISODateWithMs) != profile.createdAt)
@@ -240,7 +259,7 @@ public:
             query.finish();
             if (error.isEmpty() && creating) error = adoptInitialOwner(db, ownerId_, profile.id);
             if (error.isEmpty()) {
-                query.prepare("INSERT INTO trainer_profile VALUES(1,?,?,?,?,?) ON CONFLICT(slot) DO UPDATE SET name=excluded.name,emblem=excluded.emblem,favorite=excluded.favorite");
+                query.prepare("INSERT INTO trainer_profile VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,emblem=excluded.emblem,favorite=excluded.favorite");
                 query.addBindValue(profile.id); query.addBindValue(profile.name); query.addBindValue(profile.emblemId);
                 query.addBindValue(profile.favoritePokemonId.isNull() ? QString("") : profile.favoritePokemonId);
                 query.addBindValue(profile.createdAt.toUTC().toString(Qt::ISODateWithMs));
@@ -251,6 +270,32 @@ public:
         if (!error.isEmpty()) db.rollback();
         else if (creating) ownerId_ = profile.id;
         return error;
+    }
+    QString createTrainer(const TrainerProfile& profile) {
+        if(!db.transaction())return failedWrite();
+        QString error;
+        QSqlQuery q(db);
+        if(!q.exec("SELECT COUNT(*) FROM trainer_profile") || !q.next() || q.value(0).toInt()>=8) error="Up to eight Trainers can share this handheld.";
+        q.finish();
+        if(error.isEmpty()) {
+            q.prepare("INSERT INTO trainer_owners(id) VALUES(?)");q.addBindValue(profile.id);
+            if(!q.exec())error=failedWrite();
+        }
+        if(error.isEmpty()) {
+            q.prepare("INSERT INTO trainer_profile VALUES(?,?,?,?,?)");
+            for(const auto& value:QStringList{profile.id,profile.name,profile.emblemId,profile.favoritePokemonId.isNull()?QString(""):profile.favoritePokemonId,profile.createdAt.toUTC().toString(Qt::ISODateWithMs)})q.addBindValue(value);
+            if(!q.exec())error=failedWrite();
+        }
+        q.finish();
+        if(error.isEmpty()&&!db.commit())error=failedWrite();
+        if(!error.isEmpty())db.rollback();
+        return error;
+    }
+    QString stageTrainer(const QString& id) {
+        QSqlQuery q(db);
+        q.prepare("UPDATE local_owner SET trainer_id=? WHERE slot=1 AND trainer_id=? AND EXISTS(SELECT 1 FROM trainer_profile WHERE id=?)");
+        q.addBindValue(id);q.addBindValue(ownerId_);q.addBindValue(id);
+        return q.exec()&&q.numRowsAffected()==1 ? QString() : "This Trainer is unavailable. Choose again.";
     }
     QString favorite(const QString& id, bool favorite) {
         QSqlQuery query(db);
@@ -321,7 +366,7 @@ void LocalStateStore::open() {
         QMetaObject::invokeMethod(this, [this, state = std::move(state)] {
             opening_ = false; error_ = state.error; ready_ = error_.isEmpty();
             if (ready_) {
-                ownerId_ = state.ownerId; profile_ = state.profile; favorites_ = state.favorites; navigation_ = state.navigation;
+                ownerId_ = state.ownerId; accountOwner_ = state.accountOwner; profiles_ = state.profiles; profile_ = state.profile; favorites_ = state.favorites; navigation_ = state.navigation;
                 worlds_ = state.library.worlds; registrations_ = state.library.registrations; preferences_ = state.library.preferences;
                 history_ = state.history; archive_ = state.archive; journal_ = state.journal; exitMedia_ = state.exitMedia;
             }
@@ -330,7 +375,7 @@ void LocalStateStore::open() {
     }, Qt::QueuedConnection);
 }
 void LocalStateStore::write(std::function<QString(SqliteWorker&)> operation, std::function<void(QString)> completed) {
-    if (!ready_) { completed("Your data isn't open yet. Retry after reopening TrainerOS."); return; }
+    if (!ready_ || staged_) { completed("Your data isn't open yet. Retry after reopening TrainerOS."); return; }
     ++pending_; emit pendingChanged();
     QMetaObject::invokeMethod(worker_, [this, operation = std::move(operation), completed = std::move(completed)] {
         const auto error = operation(*worker_);
@@ -346,10 +391,38 @@ void LocalStateStore::saveAsync(const TrainerProfile& profile, QObject* context,
     }
     write([profile](SqliteWorker& worker) { return worker.profile(profile); },
           [this, profile, guard = QPointer<QObject>(context), completed](const QString& error) {
-        if (error.isEmpty()) { profile_ = profile; ownerId_ = profile.id; }
+        if (error.isEmpty()) {
+            if(accountOwner_==ownerId_)accountOwner_=profile.id;
+            profile_ = profile; ownerId_ = profile.id;
+            bool found=false;for(auto& item:profiles_)if(item.id==profile.id){item=profile;found=true;break;}
+            if(!found)profiles_.append(profile);
+            emit trainersChanged();
+        }
         else emit userWriteFailed();
         if (guard) completed({error.isEmpty(), error});
     });
+}
+QString LocalStateStore::accountDirectory() const {
+    if(!ready_)return {};
+    return ownerId_==accountOwner_ ? directory_ : QDir(directory_).filePath("trainers/"+QString::fromLatin1(QCryptographicHash::hash(ownerId_.toUtf8(),QCryptographicHash::Sha256).toHex()));
+}
+void LocalStateStore::createTrainerAsync(const TrainerProfile& profile, QObject* context, std::function<void(ProfileWriteResult)> completed) {
+    if(profile.id.isEmpty() || profile.name.trimmed().isEmpty() || profile.name.size()>96 || !profile.createdAt.isValid()) {completed({false,"Choose a valid Trainer name."});return;}
+    if(!profile_) {saveAsync(profile,context,std::move(completed));return;}
+    write([profile](SqliteWorker& worker){return worker.createTrainer(profile);},
+        [this,profile,guard=QPointer<QObject>(context),completed](const QString& error){
+            if(error.isEmpty()){profiles_.append(profile);emit trainersChanged();}else emit userWriteFailed();
+            if(guard)completed({error.isEmpty(),error});
+        });
+}
+void LocalStateStore::stageTrainerAsync(const QString& id, QObject* context, std::function<void(QString)> completed) {
+    if(!ready_ || pending_ || staged_){completed("Finish saving before switching Trainers.");return;}
+    write([id](SqliteWorker& worker){return worker.stageTrainer(id);},
+        [this,guard=QPointer<QObject>(context),completed](const QString& error){
+            staged_=error.isEmpty();
+            if(guard)completed(error);
+        });
+    staged_=true;
 }
 void LocalStateStore::setFavoriteAsync(const QString& id, bool favorite, QObject* context, std::function<void(QString)> completed) {
     if (id.isEmpty()) { completed("Choose a Pokédex entry first."); return; }

@@ -1,8 +1,8 @@
 # Local persistence foundation
 
-**Migration status — #9/#20/#42/#49:** schema 8 now assigns local personal data
-to the existing owner. Multiple-profile activation, independent domain choices
-and further source-aware observations remain planned. Legacy stored resume
+**Migration status — #9/#20/#42/#49:** schema 9 supports real Trainer creation
+and activation over owner-scoped personal data. PIN enforcement, independent domain
+choices and further source-aware observations remain planned. Legacy stored resume
 selection is not the target model. Preserve ordinary saves, history, manual
 records and independent media. [Domain contract](DATA_MODEL.md),
 [target acceptance](EXPANSION_42_62.md), [delivered ownership](TRAINER_OWNERSHIP.md).
@@ -11,7 +11,7 @@ Schema 3 adds Adventure platform/catalogue/variant metadata through a transactio
 
 Schema 4 adds observed play sessions through a transactional 3→4 migration without seeding historical launches. Interrupted sessions keep unknown end time/duration. `SqlitePlayHistory` owns SQL mapping and the existing worker owns scheduling. See [Home and play history](HOME_AND_HISTORY.md).
 
-Normal runs use SQLite for the personal Worlds library, one local Trainer profile, Pokédex favorites, browsing state, shell preferences and observed launch history. `--ephemeral` uses in-memory fixtures. Process scenarios require isolated test directories. No ROM/save parsing, account connection or system-session mutation is introduced by this storage layer.
+Normal runs use SQLite for the personal Worlds library, the selected local Trainer profile, Pokédex favorites, browsing state, shell preferences and observed launch history. `--ephemeral` uses in-memory fixtures. Process scenarios require isolated test directories. No ROM/save parsing, account connection or system-session mutation is introduced by this storage layer.
 
 ## Ownership and schema
 
@@ -23,15 +23,16 @@ Schema 6 adds the [manual Pokédex field journal](POKEDEX.md), preserving all ex
 
 Schema 7 adds optional [clean exit media](ADVENTURE_EXIT.md#durable-exit-media-and-ordinary-home-selection) in a transactional 6→7 migration. Existing library, ordinary saves, profile, history and legacy files are preserved. Returning to a schema-6 binary requires restoring the paired pre-upgrade database backup while the shell is closed; do not discard newer personal writes or just lower `user_version`.
 
-SQLite `user_version` is currently **8**. The transactional 7→8 migration adds
-[Trainer ownership](TRAINER_OWNERSHIP.md): existing personal records belong to
-the unchanged legacy Trainer; shared library/preferences stay device-wide.
-Profile selection/PIN/account switching is not enabled by this foundation.
+SQLite `user_version` is currently **9**. Transactional 7→8 ownership assignment
+and 8→9 keyed profile/account-owner migration preserve legacy identity and rows.
+Real profile creation/activation reconstructs the entire session; PIN enforcement
+and protected startup selection remain planned. [Details](TRAINER_OWNERSHIP.md).
 
 | Table | Data |
 | --- | --- |
-| `trainer_profile` | Single profile slot, stable ID, UTC creation time, name, emblem, featured Pokémon |
-| `trainer_owners`, `local_owner` | Durable owner identities and the sole currently supported owner; unnamed records are adopted by the first profile atomically |
+| `trainer_profile` | Profiles keyed by stable ID; UTC creation time, name, emblem, featured Pokémon |
+| `trainer_owners`, `local_owner` | Durable owner identities and the active owner; unnamed records are adopted by the first profile atomically |
+| `legacy_account_owner` | Original owner of existing private RA files; later profiles have separate directories |
 | `pokedex_favorites` | Favorite reference-entry IDs; absence means no mark |
 | `shell_state` | Versioned JSON navigation, scoped to the current library source |
 | `worlds` | Nine initial region names and user-created Worlds; no invented progress |
@@ -47,8 +48,7 @@ Migrations 0→1 and 1→2 run in transactions. The latter preserves profile/fav
 
 Favorites, journal records, browsing scopes, play sessions and Hall memories now
 belong to an explicit Trainer owner, including before profile creation. This is
-separate from the profile's featured Pokémon. Multiple active profiles remain
-later P2 work. No sample favorites, Seen/Caught, Home progress, World statuses,
+separate from the profile's featured Pokémon. One Trainer is active per application session; switching rebuilds all owner views. No sample favorites, Seen/Caught, Home progress, World statuses,
 archive records, achievement unlocks or external game data are seeded. Pokédex
 Seen/Caught remains unknown until manually recorded. Reference and personal
 progress providers remain separate and replaceable.
@@ -84,7 +84,7 @@ See [LIBRARY_AND_LAUNCH.md](LIBRARY_AND_LAUNCH.md) for controller flows and the 
 ## Acceptance evidence
 
 - Actual database close/reopen preserves profile identity, creation time, edits and favorites.
-- Cancel never writes; another identity cannot replace the local Trainer.
+- Cancel never writes; profile editing cannot replace its identity. Explicit chooser activation drains writes and reconstructs the selected owner.
 - Locked writes preserve old values/drafts and allow retry while the UI processes timer events.
 - Failed Save cannot close the app as if successful; navigation failure allows retry or explicit skip.
 - Second-instance locks, unavailable directories and corrupt/foreign/newer files expose recovery and preserve original content.

@@ -1,6 +1,6 @@
 # RetroAchievements in Hall of Fame
 
-**Accepted target, not delivered — #48/#9/#20:** RA becomes the L2/R2 Hall companion, following the shared Adventure via verified exact content/set mapping. Settings owns the active Trainer's account; caches remain isolated and independent from ordinary-save/Journey truth. The Hall/RA L2/R2 route and shared Y selector are delivered; exact selected-Adventure projection and per-Trainer account ownership remain pending. Select refreshes the existing collection; X opens Account. Each face keeps its own list/detail/focus. #49 eliminates normal state resume in every achievement mode; old resume restrictions are historical compatibility evidence. [RA projection acceptance](EXPANSION_42_62.md#pokédex-journey-and-achievements).
+**Accepted target, not delivered — #48/#9/#20:** RA becomes the L2/R2 Hall companion, following the shared Adventure via verified exact content/set mapping. Settings owns the active Trainer's account; caches remain isolated and independent from ordinary-save/Journey truth. The Hall/RA L2/R2 route and shared Y selector are delivered; per-Trainer login/read/cache ownership is now delivered by schema-9 session binding. Exact selected-Adventure projection remains pending. Select refreshes the existing collection; X opens Account. Each face keeps its own list/detail/focus. #49 eliminates normal state resume in every achievement mode; old resume restrictions are historical compatibility evidence. [RA projection acceptance](EXPANSION_42_62.md#pokédex-journey-and-achievements).
 
 Hall of Fame keeps account achievements separate from local completion memories and current-save progress. The production provider supports account sign-in, verified content matching, core achievement definitions, Standard/Hardcore unlock flags and an account-scoped offline cache. TrainerOS never awards achievements itself.
 
@@ -13,6 +13,20 @@ Hall of Fame keeps account achievements separate from local completion memories 
 Inside Hall of Fame's RetroAchievements section, **X opens Account** and **Select refreshes recent Adventures**. Account name and masked password use the shared controller keyboard, including case, punctuation and a separate numeric block. A activates the focused field/action; B cancels an input or returns to Hall of Fame. Start overlays the form. L1/R1 remain global section navigation and clear unsubmitted account drafts. Busy operations leave a visible Back action. Signing out requires a second A; B cancels that confirmation.
 
 Sign-in exchanges the password for a client access token. Only the canonical username and token are saved, under `integrations/retroachievements-account.json`, with owner-only permissions on Linux and atomic replacement. Password drafts are cleared on submission, Back and global section changes. A failed sign-in keeps an existing account intact. Sign-out clears the Hall of Fame token and its visible records; it does not delete local memories or another account's private cache. Emulator sign-in is a separate integration setting.
+
+## Trainer account binding — 2026-09-23
+
+The provider is created without an account, then binds once to the selected
+Trainer's directory after storage opens. The original root account/cache remains
+bound to the migrated legacy owner. Additional Trainers use their own private
+directory, with no fallback or copying from another owner. A switch waits for
+account activity to finish and destroys the entire old provider/session before
+opening the new one. Sign-out affects only that Trainer's saved account.
+[Storage and switching details](TRAINER_OWNERSHIP.md).
+
+This is TrainerOS account/read/cache isolation. Emulator achievement credentials
+and actual earning remain separate, unverified integration work. Shared ordinary
+saves do not establish separate RA unlocks or personal playthroughs.
 
 ## Verified matching boundary
 

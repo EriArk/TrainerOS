@@ -36,10 +36,13 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     });
     connect(&trainerSetup_, &TrainerSetupPresentation::changed, this, &ShellController::changed);
     connect(&trainerSetup_, &TrainerSetupPresentation::closeRequested, this, [this] {
-        service_ = "settings"; emit changed();
+        if (trainerChooserFromPower_) {
+            service_.clear(); menuOpen_ = true; powerMenu_ = true; menuFocus_ = 2;
+        } else service_ = "settings";
+        emit changed();
     });
     connect(&trainerSetup_, &TrainerSetupPresentation::nameRequested, this, [this](const QString& initial) {
-        textTarget_ = TextTarget::SetupName; keyboard_.begin("Sample Trainer name", initial, 24);
+        textTarget_ = TextTarget::SetupName; keyboard_.begin(trainerSetup_.live()?"Trainer name":"Sample Trainer name", initial, 24);
     });
     connect(&settings_, &SettingsController::deviceRequested, this, [this](int index) { device_.activate(index + 2); emit changed(); });
     connect(&settings_, &SettingsController::controllerRequested, this, [this] { service_ = "diagnostics"; diagnostics_.begin(); emit changed(); });
@@ -362,13 +365,17 @@ QVariantList ShellController::resumePoints() const {
 }
 QStringList ShellController::menuItems() const {
     if (powerMenu_) {
-        QStringList items{"Power off", "Restart", "Switch Player (coming later)", "Cancel"};
+        QStringList items{"Power off", "Restart", trainerSetup_.live()?"Switch Player":"Switch Player (coming later)", "Cancel"};
         if (!platform_.dedicatedSession()) items.append(platform_.canSwitchSession() ? "Enter TrainerOS Mode" : "Exit Development App");
         return items;
     }
     // Stable action IDs: slot 1 retired when Controller moved into Settings.
     return {"Settings", "", "Pokémon Center", "Manage Adventures",
             "Desktop / Maintenance Mode", "Steam Gaming Mode", "Power", "Volume", "Screen brightness"};
+}
+void ShellController::openTrainers() {
+    trainerChooserFromPower_ = powerMenu_;
+    goToPage(page_);trainerSetup_.begin();service_="trainer-setup";emit changed();
 }
 void ShellController::goToPage(int page) {
     keyboard_.cancel();
@@ -442,8 +449,9 @@ void ShellController::trainerSettingsAction(int index) {
         if (hall_.account()->available()) hall_.account()->begin();
         else showNotice("RetroAchievements account management is unavailable right now.");
     } else if (index == 2) {
-        if (sampleLibrary()) { trainerSetup_.begin(); service_ = "trainer-setup"; }
-        else showNotice("Separate Trainers and PIN protection are not ready yet. Your current profile remains available.");
+        if (sampleLibrary()) { trainerChooserFromPower_ = false; trainerSetup_.begin(); service_ = "trainer-setup"; }
+        else if (trainerSetup_.live()) emit trainersRequested();
+        else showNotice("Trainer selection is unavailable until your data is open.");
     } else service_ = "settings";
     emit changed();
 }
@@ -457,7 +465,7 @@ void ShellController::confirm() {
     if (menuOpen_) {
         if (powerMenu_) {
             if (menuFocus_ == 3) { powerMenu_ = false; menuFocus_ = 6; return; }
-            if (menuFocus_ == 2) { notice_ = "Switch Player will be available when separate Trainer profiles are ready."; return; }
+            if (menuFocus_ == 2) { if(trainerSetup_.live())emit trainersRequested();else notice_ = "Switch Player will be available when separate Trainer profiles are ready."; return; }
             if (menuFocus_ == 4) {
                 if (platform_.canSwitchSession()) { mode_ = "traineros"; notice_ = "Enter the TrainerOS session?"; }
                 else { mode_ = "development-exit"; notice_ = "Close the development app?"; }

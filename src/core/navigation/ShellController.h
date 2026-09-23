@@ -78,6 +78,7 @@ public:
     QString service() const { return service_; }
     bool serviceOpen() const { return !service_.isEmpty(); }
     bool sampleLibrary() const { return !repository_.editable(); }
+    void openTrainers();
     void configureServices(FileCatalog* files, PreferencesRepository* preferences);
     void configureProgress(GameProgressProvider* provider);
     void refreshLibrary();
@@ -104,6 +105,7 @@ public:
 signals:
     void changed();
     void exitRequested();
+    void trainersRequested();
     void modeRequested(const QString& mode);
     void homeLaunchPressed();
 private:
@@ -123,6 +125,7 @@ private:
     TrainerController trainer_;
     TrainerSetupPresentation trainerSetup_;
     int trainerSettingsFocus_ = 0;
+    bool trainerChooserFromPower_ = false;
     WorldsController worlds_;
     MultiversePresentation multiverse_;
     PokedexController pokedex_;

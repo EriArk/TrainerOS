@@ -65,4 +65,15 @@ QString adoptInitialOwner(QSqlDatabase& db, const QString& previous, const QStri
     q.addBindValue(profileId); q.addBindValue(previous);
     return q.exec() && q.numRowsAffected()==1 ? QString() : failure();
 }
+QString migrateProfiles(QSqlDatabase& db) {
+    QSqlQuery q(db);
+    for(const auto& sql : QStringList{
+        "CREATE TABLE profiles_next(id TEXT PRIMARY KEY NOT NULL REFERENCES trainer_owners(id) ON UPDATE CASCADE, name TEXT NOT NULL, emblem TEXT NOT NULL, favorite TEXT NOT NULL, created_at TEXT NOT NULL)",
+        "INSERT INTO profiles_next SELECT id,name,emblem,favorite,created_at FROM trainer_profile",
+        "DROP TABLE trainer_profile", "ALTER TABLE profiles_next RENAME TO trainer_profile",
+        "CREATE TABLE legacy_account_owner(slot INTEGER PRIMARY KEY CHECK(slot=1),trainer_id TEXT NOT NULL REFERENCES trainer_owners(id) ON UPDATE CASCADE)",
+        "INSERT INTO legacy_account_owner SELECT slot,trainer_id FROM local_owner"})
+        if(!q.exec(sql))return failure();
+    return {};
+}
 }

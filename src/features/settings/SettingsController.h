@@ -21,6 +21,7 @@ public:
     using QObject::QObject;
     void setRepository(PreferencesRepository* repository) { repository_ = repository; reload(); }
     void reload();
+    void setTrainersAvailable(bool value) { trainersAvailable_ = value; emit changed(); }
     void begin() { category_ = 0; row_ = 0; pane_ = false; emit changed(); }
     int category() const { return category_; }
     int rowFocus() const { return row_; }
@@ -50,6 +51,7 @@ private:
     PreferencesRepository* repository_ = nullptr;
     ShellPreferences value_;
     bool saving_ = false;
+    bool trainersAvailable_ = false;
     QString error_;
     int category_ = 0, row_ = 0;
     bool pane_ = false;

@@ -33,7 +33,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
                 const auto outline = item->mapRectToScene(QRectF(-4, -4, item->width() + 8, item->height() + 8));
                 check(QRectF(0, 0, window->width(), window->height()).contains(outline), "Focus outside viewport");
                 for (auto* parent = item->parentItem(); parent; parent = parent->parentItem()) if (parent->clip())
-                    check(parent->mapRectToScene(QRectF(0, 0, parent->width(), parent->height())).adjusted(-0.1,-0.1,0.1,0.1).contains(outline), "Clipped focus");
+                    check(parent->mapRectToScene(QRectF(0, 0, parent->width(), parent->height())).adjusted(-0.1,-0.1,0.1,0.1).contains(outline), "Clipped focus: " + item->objectName() + " within " + parent->objectName());
             }
         };
         constexpr auto a = SDL_CONTROLLER_BUTTON_B, b = SDL_CONTROLLER_BUTTON_A, start = SDL_CONTROLLER_BUTTON_START;
@@ -338,6 +338,22 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(b); break;
         case 83:
             check(focus("settings-control-1"), "Account Back restores exact Trainer row");
+            {
+                QList<TrainerProfile> profiles;
+                for (int i=0;i<8;++i) profiles.append({QString::number(i),QString("Player %1").arg(i+1),"leaf","bulbasaur",QDateTime::currentDateTimeUtc()});
+                shell.trainerSetup()->configure(profiles,"0");shell.openTrainers();
+                for(int i=0;i<8;++i)press(down);
+            }
+            *stage=200;
+            break;
+        case 200:
+            check(focus("setup-action-8"), "Full Trainer chooser scrolls to Back");capture("trainers-full-list");
+            press(SDL_CONTROLLER_BUTTON_DPAD_UP);break;
+        case 201:
+            check(focus("setup-action-7") && shell.trainerSetup()->name()=="Player 8", "Selected Trainer card follows scrolled focus");capture("trainers-selected-card");
+            press(b);break;
+        case 202:
+            check(shell.service()=="settings", "Back leaves real chooser for Settings");
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!output.isEmpty()) {
                 QFile report(output + "/verification.txt");

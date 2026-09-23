@@ -25,6 +25,11 @@ public:
     bool ready() const { return ready_; }
     bool opening() const { return opening_; }
     int pending() const { return pending_; }
+    QList<TrainerProfile> trainers() const { return profiles_; }
+    QString accountDirectory() const;
+    void createTrainerAsync(const TrainerProfile&, QObject*, std::function<void(ProfileWriteResult)>);
+    // Final drained operation before destroying this store and rebuilding the session.
+    void stageTrainerAsync(const QString&, QObject*, std::function<void(QString)>);
     QString ownerId() const { return ownerId_; }
     QString error() const { return error_; }
     std::optional<TrainerProfile> load() const override { return profile_; }
@@ -56,6 +61,7 @@ public:
     void savePreferences(const ShellPreferences&, QObject*, std::function<void(QString)>) override;
 signals:
     void opened(bool success);
+    void trainersChanged();
     void pendingChanged();
     void userWriteFailed();
     void libraryChanged();
@@ -64,7 +70,9 @@ private:
     void write(std::function<QString(SqliteWorker&)>, std::function<void(QString)>);
     QThread thread_;
     SqliteWorker* worker_;
-    QString directory_, scope_, error_, ownerId_;
+    QString directory_, scope_, error_, ownerId_, accountOwner_;
+    QList<TrainerProfile> profiles_;
+    bool staged_ = false;
     bool ready_ = false, opening_ = false;
     int pending_ = 0;
     std::optional<TrainerProfile> profile_;

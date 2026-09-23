@@ -16,14 +16,14 @@ Item {
                     model: [
                         {label: root.shell.trainer.exists ? "Edit Trainer" : "Create Trainer", detail: root.shell.trainer.profile.name || "Give your journey a name"},
                         {label: "RetroAchievements", detail: "Manage the connected account"},
-                        {label: root.shell.sampleLibrary ? "Preview registration & PIN" : "Separate Trainers & PIN", detail: root.shell.sampleLibrary ? "Development only · no personal changes" : "Not available yet"},
+                        {label: root.shell.sampleLibrary ? "Preview registration & PIN" : "Trainers", detail: root.shell.sampleLibrary ? "Development only · no personal changes" : "Choose a player or create a Trainer"},
                         {label: "Back to settings", detail: "B · Back"}
                     ]
                     delegate: CapButton {
                         required property int index; required property var modelData
                         objectName: "trainer-settings-" + index
                         width: 510; height: 54; label: modelData.label; detail: modelData.detail
-                        tint: index === 2 && !root.shell.sampleLibrary ? "#c4cdc7" : index === 1 ? Theme.blue : Theme.yellow
+                        tint: index === 1 ? Theme.blue : Theme.yellow
                         selected: root.takesFocus && root.shell.focusIndex === index
                         onActivated: root.shell.activate(index)
                     }

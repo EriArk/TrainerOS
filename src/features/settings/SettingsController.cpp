@@ -28,7 +28,7 @@ QVariantList SettingsController::controls() const {
     case 1: return {row("Volume","volume",""),row("Interface sounds","unavailable","Sound packs are not available yet"),row("Background music","unavailable","Music playback is not available yet")};
     case 2: return {row("Adventure pictures","status","Clean exit pictures appear on Home and in your selector"),row("Pokedex illustrations","status","Optional artwork has separate source credits"),row("Video previews","unavailable","Playback is not available yet")};
     case 3: return {row("Charger vibration","unavailable","Patterns have not been verified on this handheld"),row("Device lighting","unavailable","Lighting support has not been verified")};
-    case 4: return {row("Trainer profile","action","Name, emblem and favorite"),row("RetroAchievements","action","Manage your account"),row("Separate Trainers & PIN","unavailable","Not available yet")};
+    case 4: return {row("Trainer profile","action","Name, emblem and favorite"),row("RetroAchievements","action","Manage your account"), trainersAvailable_ ? row("Trainers","action","Choose a player or create a Trainer") : row("Separate Trainers & PIN","unavailable","Not available yet")};
     case 5: return {row("Refresh status","action",""),row("Restart","action",""),row("Power off","action","")};
     case 7: return {row("Check controller","action","Test buttons, sticks and triggers"),row("Button layout","status","Right A confirms; bottom B goes back"),row("Page navigation","status","L1 / R1 pages; L2 / R2 paired views")};
     default: return {};

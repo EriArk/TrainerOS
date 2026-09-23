@@ -30,8 +30,9 @@ Unknown values remain unknown; known zero stays zero. Use explicit repositories/
 
 Issues #19–20/#28/#31 require the following target contract. The first
 [P2 ownership foundation](TRAINER_OWNERSHIP.md) now scopes local journal,
-favorites, history, Hall and navigation to the preserved single owner in schema
-8. Multiple profiles/PIN, RA isolation and domain binding remain **planned**.
+favorites, history, Hall and navigation to explicit owners. Schema 9 binds real
+profiles, Switch Player and separate TrainerOS RA account/cache directories. PIN
+enforcement, protected startup and domain binding remain **planned**.
 [Expansion acceptance](EXPANSION_PLAN.md) and [roadmap P2–P4](ROADMAP.md#unified-execution-order--existing-work-and-new-issues) define the remaining gates.
 
 | Scope | Ownership and migration rule |

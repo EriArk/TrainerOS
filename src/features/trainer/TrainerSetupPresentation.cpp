@@ -1,12 +1,14 @@
 #include "TrainerSetupPresentation.h"
 #include "core/input/TextEntryController.h"
 #include <algorithm>
+#include <QUuid>
 
 namespace trainer {
 void TrainerSetupPresentation::moveTo(const QString& stage, int focus) {
     stage_ = stage; focus_ = focus; error_.clear(); emit changed();
 }
-void TrainerSetupPresentation::begin() { close(); moveTo("menu"); }
+void TrainerSetupPresentation::configure(const QList<TrainerProfile>& profiles,const QString& active) {live_=true;profiles_=profiles;active_=active;emit changed();}
+void TrainerSetupPresentation::begin() { close(); moveTo(live_?"chooser":"menu"); }
 void TrainerSetupPresentation::close() {
     name_.clear(); pin_.clear(); firstPin_.clear(); pinChosen_ = false;
     emblem_ = "compass"; favorite_ = "Not chosen"; moveTo("menu");
@@ -23,6 +25,11 @@ QString TrainerSetupPresentation::title() const {
     return "Rehearsal complete";
 }
 QString TrainerSetupPresentation::description() const {
+    if(live_) {
+        if(busy_)return "Saving your Trainer. Please wait…";
+        if(stage_=="chooser")return "Separate journals, history and accounts. Games and game saves are shared.";
+        if(stage_=="review")return "Create this Trainer and start a fresh journal. Game saves remain shared.";
+    }
     if (stage_ == "menu") return "Try the upcoming registration and player selection screens.";
     if (stage_ == "chooser") return "Sample Trainer cards. Your actual profile stays unchanged.";
     if (stage_ == "welcome") return "Choose a name, an emblem and a favorite companion.";
@@ -38,6 +45,12 @@ QVariantList TrainerSetupPresentation::rows() const {
     const auto add = [&](const QString& label, const QString& detail = QString()) {
         result.append(QVariantMap{{"label", label}, {"detail", detail}});
     };
+    if(live_ && stage_=="chooser") {
+        for(const auto& profile:profiles_)add(profile.name,profile.id==active_?"Current Trainer":"Personal journal and account");
+        if(profiles_.size()<8)add("Add Trainer","Create a personal journal");
+        add("Back");return result;
+    }
+    if(live_ && stage_=="review") {add("Create Trainer");add("Edit card");add("Cancel");return result;}
     if (stage_ == "menu") { add("Registration", "Welcome, identity, optional PIN and review"); add("Choose a Trainer", "Sample cards and PIN entry"); add("Back to settings"); }
     else if (stage_ == "chooser") { add("River", "Sample Trainer · no PIN"); add("Sky", "Sample Trainer · PIN"); add("Add Trainer", "Rehearse registration"); add("Back"); }
     else if (stage_ == "welcome") { add("Let's begin"); add("Back"); }
@@ -53,6 +66,9 @@ void TrainerSetupPresentation::applyName(const QString& value) {
     name_ = value.trimmed(); error_.clear(); emit changed();
 }
 void TrainerSetupPresentation::back() {
+    if(busy_)return;
+    if(live_ && (stage_=="chooser" || stage_=="welcome")) {close();emit closeRequested();return;}
+    if(live_ && stage_=="review") {moveTo("identity",3);return;}
     pin_.clear(); error_.clear();
     if (stage_ == "menu") { close(); emit closeRequested(); }
     else if (stage_ == "identity") moveTo("welcome");
@@ -63,6 +79,22 @@ void TrainerSetupPresentation::back() {
     else { close(); }
 }
 void TrainerSetupPresentation::activate(int index) {
+    if(busy_)return;
+    if(live_ && stage_=="chooser") {
+        if(index<0 || index>=rows().size())return;
+        focus_=index;
+        if(index<profiles_.size())emit selectRequested(profiles_[index].id);
+        else if(profiles_.size()<8 && index==profiles_.size()){close();moveTo("welcome");}
+        else back();
+        return;
+    }
+    if(live_ && stage_=="review") {
+        if(index==0) {
+            const auto favorite=favorite_=="Not chosen"?QString():favorite_.toLower();
+            emit createRequested({QUuid::createUuid().toString(QUuid::WithoutBraces),name_,emblem_,favorite,QDateTime::currentDateTimeUtc()});
+        } else if(index==1)moveTo("identity");else if(index==2){close();moveTo("chooser");}
+        return;
+    }
     if (keypad()) {
         if (index < 0 || index > (stage_ == "pin" ? 13 : 12)) return;
         focus_ = index; error_.clear();
@@ -96,13 +128,14 @@ void TrainerSetupPresentation::activate(int index) {
         else if (name_.isEmpty() || TextEntryController::characterCount(name_) > 24
             || std::any_of(name_.begin(), name_.end(), [](QChar c) { return !c.isPrint(); })) {
             error_ = "Choose a name of 1–24 characters."; focus_ = 0;
-        } else { pin_.clear(); firstPin_.clear(); moveTo("pin"); }
+        } else { pin_.clear(); firstPin_.clear(); moveTo(live_?"review":"pin"); }
         emit changed();
     } else if (stage_ == "review") {
         if (index == 0) moveTo("done"); else if (index == 1) moveTo("identity"); else moveTo("pin");
     } else close();
 }
 void TrainerSetupPresentation::dispatch(Action action) {
+    if(busy_)return;
     if (action == Action::Back) { back(); return; }
     if (action == Action::Confirm) { activate(focus_); return; }
     if (keypad()) {

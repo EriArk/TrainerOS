@@ -8,4 +8,5 @@ namespace trainer {
 QString migrateOwnership(QSqlDatabase&);
 QString localOwner(QSqlDatabase&);
 QString adoptInitialOwner(QSqlDatabase&, const QString& previous, const QString& profileId);
+QString migrateProfiles(QSqlDatabase&);
 }

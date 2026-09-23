@@ -1,3 +1,4 @@
+#include "integrations/achievements/TrainerAchievementProvider.h"
 #include "platform/device/VolumeKeys.h"
 #include "core/input/ControllerInput.h"
 #include "core/input/PointerVisibility.h"
@@ -163,9 +164,13 @@ int main(int argc, char* argv[]) {
         SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_TRIGGERLEFT, -32768);
         SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_TRIGGERRIGHT, -32768);
     }
+    app.setQuitOnLastWindowClosed(false);
+    bool restartTrainer = false;
+    bool sessionReadyNotified = false;
     int result = 0;
     bool smokeCompleted = false;
-    {
+    do {
+        restartTrainer = false;
         MockLibraryRepository repository;
         MockTrainerRepository profiles;
         MockAdventureAdapter adapter;
@@ -191,8 +196,8 @@ int main(int argc, char* argv[]) {
         LibraryRepository& baseLibrary = personalLibrary ? (!smoke || persistencePhase == "collection" ? static_cast<LibraryRepository&>(collection) : *store) : repository;
         // State thumbnails are migration evidence, not normal launch targets.
         LibraryRepository& activeLibrary = baseLibrary;
-        std::unique_ptr<RetroAchievementsProvider> realAchievements;
-        if (personalLibrary && !smoke) realAchievements = std::make_unique<RetroAchievementsProvider>(activeLibrary, stateDirectory);
+        std::unique_ptr<TrainerAchievementProvider> realAchievements;
+        if (personalLibrary && !smoke) realAchievements = std::make_unique<TrainerAchievementProvider>(activeLibrary);
         AdventureAdapter* selectedAdapter = personalLibrary ? static_cast<AdventureAdapter*>(&unconfiguredAdapter) : &adapter;
         const auto retroarchInstallation = personalLibrary && !smoke
             ? RetroArchInstallation::load(QDir(stateDirectory).filePath("integrations/retroarch.json")) : RetroArchInstallation{};
@@ -224,9 +229,11 @@ int main(int argc, char* argv[]) {
         }
         if (store) QObject::connect(store.get(), &LocalStateStore::libraryChanged, &shell, &ShellController::refreshLibrary);
         if (realAchievements) QObject::connect(store.get(), &LocalStateStore::opened, realAchievements.get(), [&](bool success) {
-            if (success) realAchievements->refreshAll();
+            if (success) realAchievements->bind(store->accountDirectory());
         });
         SessionState session(shell, store.get());
+        session.setTrainerSwitchGuard([&]{return !realAchievements || !realAchievements->accountBusy();});
+        QObject::connect(&session,&SessionState::trainerRestartReady,&app,[&]{restartTrainer=true;app.exit();});
         DeviceSnapshot deviceFixture;
         deviceFixture.volume = 35; deviceFixture.brightness = 60; deviceFixture.network = "Connected";
         deviceFixture.internalFree = 32LL << 30; deviceFixture.internalTotal = 100LL << 30;
@@ -418,11 +425,11 @@ int main(int argc, char* argv[]) {
 #ifdef Q_OS_LINUX
             bool readyDescriptorValid = false;
             const int readyDescriptor = qEnvironmentVariableIntValue("TRAINEROS_READY_FD", &readyDescriptorValid);
-            if (platform.dedicatedSession() && readyDescriptorValid && readyDescriptor >= 3) {
+            if (!sessionReadyNotified && platform.dedicatedSession() && readyDescriptorValid && readyDescriptor >= 3) {
                 auto notified = std::make_shared<bool>(false);
-                QObject::connect(window, &QQuickWindow::frameSwapped, &app, [readyDescriptor, notified] {
+                QObject::connect(window, &QQuickWindow::frameSwapped, window, [readyDescriptor, notified, &sessionReadyNotified] {
                     if (*notified) return;
-                    *notified = true;
+                    *notified = true; sessionReadyNotified = true;
                     QFile ready;
                     if (ready.open(readyDescriptor, QIODevice::WriteOnly, QFileDevice::AutoCloseHandle)) {
                         ready.write("R", 1); ready.flush();
@@ -793,7 +800,7 @@ int main(int argc, char* argv[]) {
             result = app.exec();
             if (smoke && !smokeCompleted) result = 2; // Early window/app exit is not a passing smoke test.
         }
-    }
+    } while (restartTrainer);
     if (joystick) SDL_JoystickClose(joystick);
     if (virtualIndex >= 0) SDL_JoystickDetachVirtual(virtualIndex);
     if (smoke) SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);

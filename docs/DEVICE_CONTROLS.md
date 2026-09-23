@@ -28,7 +28,9 @@ including external hardware/desktop changes. Closing both surfaces stops polling
 There is no duplicate persisted volume or brightness preference.
 
 Power replaces the old Leave TrainerOS action. It opens on Cancel, with Power off,
-Restart and an explicitly unavailable Switch Player entry until P2 exists.
+Restart and Switch Player. With real profile storage, Switch Player opens the
+[Trainer chooser](TRAINER_OWNERSHIP.md); B restores that Power row. Development
+samples retain the explicitly unavailable switching entry.
 Power off/Restart require a fresh A confirmation; B restores Power, another B
 restores its Start entry. L1/R1 and Home cancel pending confirmations. Existing
 input edge handling rejects held/repeating A. The shared journal/device/backup
