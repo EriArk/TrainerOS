@@ -16,10 +16,11 @@ QString migrateHallOfFame(QSqlDatabase& db) {
         if (!q.exec(sql)) return failure();
     return {};
 }
-ArchiveResult readHallOfFame(QSqlDatabase& db) {
+ArchiveResult readHallOfFame(QSqlDatabase& db, const QString& owner) {
     ArchiveResult result;
     QSqlQuery q(db);
-    if (!q.exec("SELECT id,adventure_id,title,world,completed_at,playtime_minutes,team,notes,source,revision FROM hall_of_fame ORDER BY completed_at DESC,id"))
+    q.prepare("SELECT id,adventure_id,title,world,completed_at,playtime_minutes,team,notes,source,revision FROM hall_of_fame WHERE trainer_id=? ORDER BY completed_at DESC,id");q.addBindValue(owner);
+    if (!q.exec())
         return {false, {}, "Your Hall of Fame couldn't be read. Existing memories have been kept."};
     while (q.next()) {
         HallOfFameEntry entry;
@@ -42,7 +43,8 @@ ArchiveResult readHallOfFame(QSqlDatabase& db) {
     }
     return result;
 }
-ArchiveWriteResult writeHallOfFame(QSqlDatabase& db, const HallOfFameEntry& candidate, ArchiveResult& snapshot) {
+ArchiveWriteResult writeHallOfFame(QSqlDatabase& db, const QString& owner, const HallOfFameEntry& candidate, ArchiveResult& snapshot) {
+    if(owner.isEmpty())return {false,failure()};
     const auto invalid=validateArchiveEntry(candidate);
     if (!invalid.isEmpty()) return {false,invalid};
     auto entry=candidate;
@@ -52,8 +54,8 @@ ArchiveWriteResult writeHallOfFame(QSqlDatabase& db, const HallOfFameEntry& cand
         QSqlQuery q(db);
         QString previousAdventure;
         if (entry.revision>0) {
-            q.prepare("SELECT adventure_id,title,world,source FROM hall_of_fame WHERE id=? AND revision=?");
-            q.addBindValue(entry.id);q.addBindValue(entry.revision);
+            q.prepare("SELECT adventure_id,title,world,source FROM hall_of_fame WHERE id=? AND trainer_id=? AND revision=?");
+            q.addBindValue(entry.id);q.addBindValue(owner);q.addBindValue(entry.revision);
             if (!q.exec()) error=failure();
             else if (!q.next()) error="This memory changed. Close the editor and reopen it before saving.";
             else {
@@ -75,18 +77,19 @@ ArchiveWriteResult writeHallOfFame(QSqlDatabase& db, const HallOfFameEntry& cand
                 team.append(value);
             }
             const bool creating=entry.revision==0;
-            q.prepare(creating ? "INSERT INTO hall_of_fame(adventure_id,title,world,completed_at,playtime_minutes,team,notes,source,revision,id) VALUES(?,?,?,?,?,?,?,?,?,?)"
-                : "UPDATE hall_of_fame SET adventure_id=?,title=?,world=?,completed_at=?,playtime_minutes=?,team=?,notes=?,source=?,revision=? WHERE id=? AND revision=?");
+            q.prepare(creating ? "INSERT INTO hall_of_fame(adventure_id,title,world,completed_at,playtime_minutes,team,notes,source,revision,id,trainer_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
+                : "UPDATE hall_of_fame SET adventure_id=?,title=?,world=?,completed_at=?,playtime_minutes=?,team=?,notes=?,source=?,revision=? WHERE id=? AND trainer_id=? AND revision=?");
             q.addBindValue(entry.adventureId);q.addBindValue(entry.adventureTitle);q.addBindValue(entry.world);
             q.addBindValue(text(entry.completedAt.isValid()?entry.completedAt.toUTC().toString(Qt::ISODateWithMs):QString()));
             q.addBindValue(entry.playtimeMinutes ? QVariant(*entry.playtimeMinutes) : QVariant());
             q.addBindValue(QJsonDocument(team).toJson(QJsonDocument::Compact));q.addBindValue(text(entry.notes.trimmed()));
             q.addBindValue(entry.source==ArchiveSource::Manual ? "manual" : "imported");q.addBindValue(entry.revision+1);q.addBindValue(entry.id);
+            q.addBindValue(owner);
             if (!creating) q.addBindValue(entry.revision);
             if (!q.exec() || q.numRowsAffected()!=1) error=failure();
         }
     }
-    if (error.isEmpty()) { snapshot=readHallOfFame(db);if(!snapshot.success)error=snapshot.error; }
+    if (error.isEmpty()) { snapshot=readHallOfFame(db, owner);if(!snapshot.success)error=snapshot.error; }
     if (error.isEmpty() && !db.commit()) error=failure();
     if (!error.isEmpty()) db.rollback();
     return {error.isEmpty(),error,error.isEmpty()?entry.revision+1:entry.revision};

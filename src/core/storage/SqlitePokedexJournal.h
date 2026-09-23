@@ -5,6 +5,6 @@
 namespace trainer {
 struct PokedexJournalSnapshot { QHash<QString,PokedexProgress> records; QString error; };
 QString migratePokedexJournal(QSqlDatabase&);
-PokedexJournalSnapshot readPokedexJournal(QSqlDatabase&);
-PokedexWriteResult writePokedexRecord(QSqlDatabase&, const QString&, const PokedexProgress&, PokedexJournalSnapshot&);
+PokedexJournalSnapshot readPokedexJournal(QSqlDatabase&, const QString& owner);
+PokedexWriteResult writePokedexRecord(QSqlDatabase&, const QString& owner, const QString&, const PokedexProgress&, PokedexJournalSnapshot&);
 }

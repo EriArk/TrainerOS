@@ -1,6 +1,11 @@
 # Local persistence foundation
 
-**Target migrations pending — #9/#20/#42/#49:** schema/version evidence below remains current implementation history. Legacy stored resume selection is not the target model. Add shared per-Trainer Adventure/domain context, source-aware observations and safe state retirement through explicit lossless migrations; preserve ordinary saves, history, manual records and independent media. Do not claim these fields/migrations already shipped. [Domain contract](DATA_MODEL.md), [target acceptance](EXPANSION_42_62.md).
+**Migration status — #9/#20/#42/#49:** schema 8 now assigns local personal data
+to the existing owner. Multiple-profile activation, independent domain choices
+and further source-aware observations remain planned. Legacy stored resume
+selection is not the target model. Preserve ordinary saves, history, manual
+records and independent media. [Domain contract](DATA_MODEL.md),
+[target acceptance](EXPANSION_42_62.md), [delivered ownership](TRAINER_OWNERSHIP.md).
 
 Schema 3 adds Adventure platform/catalogue/variant metadata through a transactional 2→3 migration; existing IDs, profile, favorites, configuration and file references are preserved. The bundled collection checklist is not persisted as owned data. See [collection catalogue](COLLECTION_CATALOGUE.md) for attachment and migration acceptance.
 
@@ -18,11 +23,15 @@ Schema 6 adds the [manual Pokédex field journal](POKEDEX.md), preserving all ex
 
 Schema 7 adds optional [clean exit media](ADVENTURE_EXIT.md#durable-exit-media-and-ordinary-home-selection) in a transactional 6→7 migration. Existing library, ordinary saves, profile, history and legacy files are preserved. Returning to a schema-6 binary requires restoring the paired pre-upgrade database backup while the shell is closed; do not discard newer personal writes or just lower `user_version`.
 
-SQLite `user_version` is currently 7:
+SQLite `user_version` is currently **8**. The transactional 7→8 migration adds
+[Trainer ownership](TRAINER_OWNERSHIP.md): existing personal records belong to
+the unchanged legacy Trainer; shared library/preferences stay device-wide.
+Profile selection/PIN/account switching is not enabled by this foundation.
 
 | Table | Data |
 | --- | --- |
 | `trainer_profile` | Single profile slot, stable ID, UTC creation time, name, emblem, featured Pokémon |
+| `trainer_owners`, `local_owner` | Durable owner identities and the sole currently supported owner; unnamed records are adopted by the first profile atomically |
 | `pokedex_favorites` | Favorite reference-entry IDs; absence means no mark |
 | `shell_state` | Versioned JSON navigation, scoped to the current library source |
 | `worlds` | Nine initial region names and user-created Worlds; no invented progress |
@@ -36,7 +45,13 @@ SQLite `user_version` is currently 7:
 
 Migrations 0→1 and 1→2 run in transactions. The latter preserves profile/favorites and existing browsing scopes while adding an empty personal library and region reference names. Nonempty unversioned foreign databases, unsupported versions, unreadable schemas, broken foreign keys and failed integrity checks are rejected without replacing the file. Malformed optional navigation falls back to defaults; newer versions of the active browsing scope require a newer application and are preserved.
 
-Favorites belong to the single local installation even before profile creation, separately from its one featured Pokémon. Multiple profiles are later work. No sample favorites, Seen/Caught, Home progress, World statuses, archive records, achievement unlocks or external game data are seeded. Pokédex Seen/Caught remains unknown until a manual journal record is saved. The offline reference and personal progress providers remain separate and replaceable.
+Favorites, journal records, browsing scopes, play sessions and Hall memories now
+belong to an explicit Trainer owner, including before profile creation. This is
+separate from the profile's featured Pokémon. Multiple active profiles remain
+later P2 work. No sample favorites, Seen/Caught, Home progress, World statuses,
+archive records, achievement unlocks or external game data are seeded. Pokédex
+Seen/Caught remains unknown until manually recorded. Reference and personal
+progress providers remain separate and replaceable.
 
 ## Storage and recovery
 

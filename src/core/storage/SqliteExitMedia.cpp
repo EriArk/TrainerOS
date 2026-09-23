@@ -72,12 +72,13 @@ QString writeExitMedia(QSqlDatabase& db, const PlaySession& session, const Prepa
              capture.capturedAt.toUTC().toString(Qt::ISODateWithMs), frame.width(), frame.height(), bytes, hash(bytes)}) q.addBindValue(value);
     return q.exec() ? QString() : failure();
 }
-QList<ExitMedia> readExitMedia(QSqlDatabase& db) {
+QList<ExitMedia> readExitMedia(QSqlDatabase& db, const QString& owner) {
     QList<ExitMedia> result;
     QSqlQuery q(db);
     // Exact owner and registration gates also apply after restart. Media is
     // optional: damage never prevents the library/history from opening.
-    if (!q.exec("SELECT m.session_id,m.trainer_id,m.domain,m.adventure_id,m.registration_revision,m.build_sha256,m.captured_at,m.jpeg,m.image_sha256,m.content_path,m.content_size,m.content_modified,m.width,m.height FROM exit_media m JOIN trainer_profile p ON p.id=m.trainer_id AND p.slot=1 JOIN adventures a ON a.id=m.adventure_id AND a.revision=m.registration_revision AND a.content_path=m.content_path JOIN play_sessions s ON s.id=m.session_id AND s.adventure_id=m.adventure_id AND s.outcome='returned' WHERE length(m.jpeg) BETWEEN 1 AND 524288 ORDER BY s.rowid DESC LIMIT 100")) return result;
+    q.prepare("SELECT m.session_id,m.trainer_id,m.domain,m.adventure_id,m.registration_revision,m.build_sha256,m.captured_at,m.jpeg,m.image_sha256,m.content_path,m.content_size,m.content_modified,m.width,m.height FROM exit_media m JOIN trainer_profile p ON p.id=m.trainer_id AND p.slot=1 JOIN adventures a ON a.id=m.adventure_id AND a.revision=m.registration_revision AND a.content_path=m.content_path JOIN play_sessions s ON s.id=m.session_id AND s.adventure_id=m.adventure_id AND s.outcome='returned' AND s.trainer_id=m.trainer_id WHERE m.trainer_id=? AND length(m.jpeg) BETWEEN 1 AND 524288 ORDER BY s.rowid DESC LIMIT 100"); q.addBindValue(owner);
+    if (!q.exec()) return result;
     qint64 budget = 16 * 1024 * 1024;
     qint64 contentBudget = 256 * 1024 * 1024;
     while (q.next()) {

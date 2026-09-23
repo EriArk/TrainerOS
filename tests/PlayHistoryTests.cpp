@@ -1,3 +1,4 @@
+#include "LegacyStoreFixture.h"
 #include "core/storage/LocalStateStore.h"
 #include "features/home/PlayHistoryController.h"
 #include "features/home/ExitImage.h"
@@ -258,10 +259,12 @@ private slots:
     }
     void schemaThreeMigrationPreservesLibrary() {
         QTemporaryDir dir; const auto path = content(dir);
-        { LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready()); addAdventure(store, path); }
         {
             auto db = QSqlDatabase::addDatabase("QSQLITE", "history-migration"); db.setDatabaseName(dir.filePath("traineros.sqlite3")); QVERIFY(db.open());
-            { QSqlQuery q(db); QVERIFY(q.exec("DROP TABLE exit_media")); QVERIFY(q.exec("DROP TABLE play_sessions")); QVERIFY(q.exec("DROP TABLE hall_of_fame")); QVERIFY(q.exec("DROP TABLE pokedex_records")); QVERIFY(q.exec("PRAGMA user_version=3")); }
+            QVERIFY(createLegacyStore(db,3));
+            AdventureRegistration r; r.adventure.id="journey"; r.adventure.title="History fixture";
+            r.adventure.worldId="hoenn"; r.adventure.adapterId="unconfigured"; r.contentPath=path;
+            QVERIFY(writeAdventure(db,r).success);
             db.close();
         }
         QSqlDatabase::removeDatabase("history-migration");

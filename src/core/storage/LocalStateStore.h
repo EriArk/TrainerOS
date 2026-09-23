@@ -25,6 +25,7 @@ public:
     bool ready() const { return ready_; }
     bool opening() const { return opening_; }
     int pending() const { return pending_; }
+    QString ownerId() const { return ownerId_; }
     QString error() const { return error_; }
     std::optional<TrainerProfile> load() const override { return profile_; }
     PokedexProgress progress(const QString& id) const override { auto record=journal_.value(id);record.favorite=favorites_.contains(id);return record; }
@@ -63,7 +64,7 @@ private:
     void write(std::function<QString(SqliteWorker&)>, std::function<void(QString)>);
     QThread thread_;
     SqliteWorker* worker_;
-    QString directory_, scope_, error_;
+    QString directory_, scope_, error_, ownerId_;
     bool ready_ = false, opening_ = false;
     int pending_ = 0;
     std::optional<TrainerProfile> profile_;

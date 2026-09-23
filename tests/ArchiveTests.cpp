@@ -1,3 +1,4 @@
+#include "LegacyStoreFixture.h"
 #include "core/storage/LocalStateStore.h"
 #include "features/halloffame/ArchiveEditor.h"
 #include <QtTest>
@@ -30,11 +31,9 @@ private slots:
     void migrationPersistenceUnknownsAndRevision() {
         QTemporaryDir dir;
         {
-            LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());
-            auto registration=adventure(dir.path());bool done=false;
-            store.saveAdventureAsync(registration,this,[&](auto r){QVERIFY(r.success);done=true;});QTRY_VERIFY(done);
+            Connection connection(dir.path()); QVERIFY(createLegacyStore(connection.db,4));
+            QVERIFY(writeAdventure(connection.db,adventure(dir.path())).success);
         }
-        { Connection connection(dir.path());QSqlQuery q(connection.db);QVERIFY(q.exec("DROP TABLE exit_media"));QVERIFY(q.exec("DROP TABLE hall_of_fame"));QVERIFY(q.exec("DROP TABLE pokedex_records"));QVERIFY(q.exec("PRAGMA user_version=4")); }
         HallOfFameEntry saved;
         {
             LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());

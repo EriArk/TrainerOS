@@ -19,6 +19,8 @@ add_library(trainer_core STATIC
     src/features/home/ExitImage.h
     src/features/home/ExitImage.cpp
     src/core/storage/SqliteExitMedia.h
+    src/core/storage/SqliteOwnership.h
+    src/core/storage/SqliteOwnership.cpp
     src/core/storage/SqliteExitMedia.cpp
     src/platform/input/AdventureOverlayService.h
     src/platform/input/AdventureOverlayService.cpp
@@ -332,6 +334,11 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_storage_tests tests/StorageTests.cpp)
     target_link_libraries(trainer_storage_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME storage COMMAND trainer_storage_tests)
+    qt_add_executable(trainer_ownership_tests tests/OwnershipTests.cpp)
+    target_link_libraries(trainer_ownership_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME ownership COMMAND trainer_ownership_tests)
+    qt_add_executable(trainer_store_migration_probe tests/StoreMigrationProbe.cpp)
+    target_link_libraries(trainer_store_migration_probe PRIVATE trainer_core)
     qt_add_executable(trainer_library_tests tests/LibraryTests.cpp)
     target_link_libraries(trainer_library_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME library COMMAND trainer_library_tests)

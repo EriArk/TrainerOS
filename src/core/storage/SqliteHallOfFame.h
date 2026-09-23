@@ -4,6 +4,6 @@
 
 namespace trainer {
 QString migrateHallOfFame(QSqlDatabase&);
-ArchiveResult readHallOfFame(QSqlDatabase&);
-ArchiveWriteResult writeHallOfFame(QSqlDatabase&, const HallOfFameEntry&, ArchiveResult& snapshot);
+ArchiveResult readHallOfFame(QSqlDatabase&, const QString& owner);
+ArchiveWriteResult writeHallOfFame(QSqlDatabase&, const QString& owner, const HallOfFameEntry&, ArchiveResult& snapshot);
 }

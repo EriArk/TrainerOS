@@ -11,5 +11,5 @@ struct PreparedExitMedia {
 QString migrateExitMedia(QSqlDatabase&);
 std::optional<PreparedExitMedia> prepareExitMedia(QSqlDatabase&, const ExitMediaSource&);
 QString writeExitMedia(QSqlDatabase&, const PlaySession&, const PreparedExitMedia&, const ExitCapture&);
-QList<ExitMedia> readExitMedia(QSqlDatabase&);
+QList<ExitMedia> readExitMedia(QSqlDatabase&, const QString& owner);
 }

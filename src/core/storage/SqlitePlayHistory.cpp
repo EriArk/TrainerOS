@@ -28,12 +28,13 @@ QString interruptOpenSessions(QSqlDatabase& db) {
     // An unclean exit provides no reliable end time or duration.
     return query.exec("UPDATE play_sessions SET outcome='interrupted' WHERE outcome='running'") ? QString() : failed();
 }
-PlayHistorySnapshot readPlayHistory(QSqlDatabase& db) {
+PlayHistorySnapshot readPlayHistory(QSqlDatabase& db, const QString& owner) {
     PlayHistorySnapshot result;
     QSqlQuery query(db);
     // Row order remains launch order across system-clock changes. One latest
     // session per Adventure prevents repeat launches crowding out other games.
-    if (!query.exec("SELECT id,adventure_id,started_at,ended_at,elapsed_seconds,outcome FROM play_sessions WHERE rowid IN (SELECT MAX(rowid) FROM play_sessions GROUP BY adventure_id) ORDER BY rowid DESC LIMIT 100")) {
+    query.prepare("SELECT id,adventure_id,started_at,ended_at,elapsed_seconds,outcome FROM play_sessions WHERE rowid IN (SELECT MAX(rowid) FROM play_sessions WHERE trainer_id=? GROUP BY adventure_id) ORDER BY rowid DESC LIMIT 100"); query.addBindValue(owner);
+    if (!query.exec()) {
         result.error = failed(); return result;
     }
     while (query.next()) {
@@ -47,30 +48,33 @@ PlayHistorySnapshot readPlayHistory(QSqlDatabase& db) {
             : outcome == "failed" ? PlaySessionOutcome::Failed : PlaySessionOutcome::Interrupted;
         result.recent.append(session);
     }
-    if (!query.exec("SELECT adventure_id,SUM(elapsed_seconds) FROM play_sessions WHERE elapsed_seconds IS NOT NULL GROUP BY adventure_id")) {
+    query.prepare("SELECT adventure_id,SUM(elapsed_seconds) FROM play_sessions WHERE trainer_id=? AND elapsed_seconds IS NOT NULL GROUP BY adventure_id"); query.addBindValue(owner);
+    if (!query.exec()) {
         result.error = failed(); return result;
     }
     while (query.next()) result.totals.insert(query.value(0).toString(), query.value(1).toLongLong());
     return result;
 }
-QString writePlaySession(QSqlDatabase& db, const PlaySession& session) {
-    if (session.id.isEmpty() || session.id.size() > 128 || session.adventureId.isEmpty() || !session.startedAt.isValid()) return failed();
+QString writePlaySession(QSqlDatabase& db, const QString& owner, const PlaySession& session) {
+    if (owner.isEmpty() || session.id.isEmpty() || session.id.size() > 128 || session.adventureId.isEmpty() || !session.startedAt.isValid()) return failed();
     const bool starting = session.outcome == PlaySessionOutcome::Running;
     if (starting ? session.endedAt.isValid() || session.elapsedSeconds.has_value()
                  : !session.endedAt.isValid() || !session.elapsedSeconds || *session.elapsedSeconds < 0
                     || session.outcome == PlaySessionOutcome::Interrupted) return failed();
     QSqlQuery query(db);
     if (starting) {
-        query.prepare("INSERT INTO play_sessions(id,adventure_id,started_at,outcome) VALUES(?,?,?,'running')");
+        query.prepare("INSERT INTO play_sessions(id,adventure_id,started_at,outcome,trainer_id) VALUES(?,?,?,'running',?)");
         query.addBindValue(session.id); query.addBindValue(session.adventureId);
         query.addBindValue(session.startedAt.toUTC().toString(Qt::ISODateWithMs));
+        query.addBindValue(owner);
     } else {
         // Complete only the same running identity; never rewrite another launch.
-        query.prepare("UPDATE play_sessions SET ended_at=?,elapsed_seconds=?,outcome=? WHERE id=? AND adventure_id=? AND started_at=? AND outcome='running'");
+        query.prepare("UPDATE play_sessions SET ended_at=?,elapsed_seconds=?,outcome=? WHERE id=? AND adventure_id=? AND started_at=? AND trainer_id=? AND outcome='running'");
         query.addBindValue(session.endedAt.toUTC().toString(Qt::ISODateWithMs));
         query.addBindValue(*session.elapsedSeconds); query.addBindValue(outcomeName(session.outcome));
         query.addBindValue(session.id); query.addBindValue(session.adventureId);
         query.addBindValue(session.startedAt.toUTC().toString(Qt::ISODateWithMs));
+        query.addBindValue(owner);
     }
     return query.exec() && query.numRowsAffected() == 1 ? QString() : failed();
 }

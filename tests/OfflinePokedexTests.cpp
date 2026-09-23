@@ -1,3 +1,4 @@
+#include "LegacyStoreFixture.h"
 #include "core/repository/OfflinePokedex.h"
 #include "core/storage/LocalStateStore.h"
 #include "features/pokedex/PokedexController.h"
@@ -57,9 +58,8 @@ private slots:
     }
     void journalMigrationReopenFavoritesAndStaleRevision() {
         QTemporaryDir dir;
-        {LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());bool done=false;
-            store.setFavoriteAsync("vulpix",true,this,[&](auto e){QVERIFY(e.isEmpty());done=true;});QTRY_VERIFY(done);}
-        {Connection connection(dir.path());QSqlQuery q(connection.db);QVERIFY(q.exec("DROP TABLE exit_media"));QVERIFY(q.exec("DROP TABLE pokedex_records"));QVERIFY(q.exec("PRAGMA user_version=5"));}
+        {Connection connection(dir.path());QVERIFY(createLegacyStore(connection.db,5));
+            QSqlQuery q(connection.db);QVERIFY(q.exec("INSERT INTO pokedex_favorites VALUES('vulpix')"));}
         PokedexProgress saved;
         {
             LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());QVERIFY(store.progress("vulpix").favorite);

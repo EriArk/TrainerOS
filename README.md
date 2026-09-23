@@ -31,6 +31,11 @@ editor and RA account controls in its right pane. Registration/chooser/PIN scree
 in the isolated sample mode; real multiple-Trainer ownership and PIN locking are
 still planned.
 
+The [P2 ownership foundation](docs/TRAINER_OWNERSHIP.md) now preserves the
+existing Trainer and scopes local journal, history, Hall and browsing state to
+that owner. Multiple-profile activation, PIN enforcement and account isolation
+remain the next binding work; the game library and external saves stay shared.
+
 Optional private [Pokédex illustrations](docs/ARTWORK_BOOTSTRAP.md) now appear in
 the list, detail and favorite-species picker. Up on detail opens exact-form
 alternatives and source credits; missing art stays explicit. The real Flip

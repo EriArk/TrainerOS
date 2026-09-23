@@ -11,6 +11,6 @@ struct PlayHistorySnapshot {
 };
 QString migratePlayHistory(QSqlDatabase&);
 QString interruptOpenSessions(QSqlDatabase&);
-PlayHistorySnapshot readPlayHistory(QSqlDatabase&);
-QString writePlaySession(QSqlDatabase&, const PlaySession&);
+PlayHistorySnapshot readPlayHistory(QSqlDatabase&, const QString& owner);
+QString writePlaySession(QSqlDatabase&, const QString& owner, const PlaySession&);
 }
