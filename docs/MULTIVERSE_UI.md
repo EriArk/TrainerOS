@@ -14,7 +14,24 @@ P1 adds a system-browser face within Worlds and a separate dark Home composition
 
 `MultiversePresentation` owns transient presentation state only. It has no filesystem, repository mutation, process, adapter or save access. Its sample entries are fictional and appear only with the existing non-editable development library. Missing sample entries remain inspectable but cannot be selected; Home A on a selected sample explicitly reports that no game was launched. No play time, achievements or Pokémon progress are invented.
 
-The real editable library gets empty Multiverse lists and an empty selector. Home A opens the system browser. The initial six system cards illustrate browsing layout; they are neither a complete system inventory nor a compatibility guarantee. Real installation enumeration, file linking, media and launch are P3/P4 work. No loading task or integration is running behind this synchronous presentation; the UI does not show pretend loading or success.
+The real editable library gets empty Multiverse lists and an empty selector. Home A opens the system browser. As of 2026-09-23, production hides all six fixture system cards and shows the real empty state. They remain only in development preview. Real installation enumeration, file linking, media and launch are P3/P4 work. No loading task or integration is running behind this synchronous presentation; the UI does not show pretend loading or success.
+
+**Owner clarification, 2026-09-23:** the P3/P4 registry must include every platform
+with a credible Flip/Armada runtime route, not a fixed shortlist. Show only systems
+with available ROM content; empty platforms stay hidden. Determine visibility from
+the full content inventory, never the current title search/filter. Missing media
+must not delete registrations, history or saves. Runtime readiness is separate
+from file presence. The requested emulator/BIOS/four-ROM-per-system preparation
+remains part of that connected delivery, not a claim that it already works.
+
+Inventory starting points checked on 2026-09-23:
+[Armada's supported emulators](https://armadaos.dev/emulation/emulators/) and
+[Libretro's core/system table](https://docs.libretro.com/guides/core-list/).
+Reconcile them with actual Linux ARM64 builds, controller routes and Flip results;
+an emulator listed for Armada's wider device family does not prove acceptable
+performance on this particular Flip. Keep incompatible/unverified routes separate
+from verified launch capability; do not limit the registry to currently installed
+cores or turn unavailable test ROMs into fictional installed games.
 
 New Multiverse routes, Home face and sample selection last for the current application session only. They are deliberately not written into legacy single-owner navigation. P2 ownership and P3 domain identities must precede P4 durable per-Trainer/context choices and real library binding. Existing Pokémon persistence remains intact.
 

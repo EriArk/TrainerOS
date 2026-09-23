@@ -16,6 +16,71 @@ using namespace trainer;
 class CollectionTests final : public QObject {
     Q_OBJECT
 private slots:
+    void chronologyUsesEditionAndRuntimePlatformNotAvailabilityOrTitle() {
+        const auto reference = collectionCatalogue();
+        auto edition = [&](const QString& id) {
+            return *std::find_if(reference.cbegin(), reference.cend(), [&](const auto& a) { return a.catalogueId == id; });
+        };
+        auto hack = edition("ruby-gba"); hack.id = "hack"; hack.kind = AdventureKind::RomHack;
+        hack.title = "1990 - A very early sounding hack"; hack.collectionOnly = false;
+        auto unknown = hack; unknown.id = "unknown"; unknown.platformId = "future-system";
+        auto mismatched = edition("red-gb"); mismatched.id = "mismatch"; mismatched.platformId = "gba";
+        auto ruby = edition("ruby-gba"); ruby.collectionOnly = false;
+        QList<Adventure> entries{unknown, edition("sword-switch"), hack, edition("x-n3ds"),
+            edition("diamond-nds"), edition("emerald-gba"), edition("leafgreen-gba"),
+            edition("firered-gba"), ruby, edition("gold-gbc"), edition("stadium-n64"), edition("red-gb"), mismatched};
+        const auto platforms = collectionPlatforms(); const auto chronology = collectionChronology();
+        sortWorldAdventures(entries, platforms, chronology);
+        QStringList ids; for (const auto& a : entries) ids.append(a.id);
+        QCOMPARE(ids, QStringList({"catalogue:red-gb", "catalogue:stadium-n64", "catalogue:gold-gbc",
+            "catalogue:ruby-gba", "catalogue:firered-gba", "catalogue:leafgreen-gba", "catalogue:emerald-gba",
+            "hack", "mismatch", "catalogue:diamond-nds", "catalogue:x-n3ds", "catalogue:sword-switch", "unknown"}));
+        auto expanded = platforms;
+        expanded.append({"future-system", "Renamed system", "F", "console", 65});
+        sortWorldAdventures(entries, expanded, chronology);
+        QCOMPARE(entries[9].id, "unknown"); // New metadata inserts between GBA and DS without UI code.
+        for (auto& a : entries) a.collectionOnly = !a.collectionOnly;
+        const auto expected = entries;
+        std::reverse(entries.begin(), entries.end());
+        sortWorldAdventures(entries, expanded, chronology);
+        for (int i = 0; i < entries.size(); ++i) QCOMPARE(entries[i].id, expected[i].id);
+    }
+    void chronologyHasDeterministicUnknownAndSameYearFallbacks() {
+        auto make = [](QString id, QString title, QString platform, QString catalogue) {
+            Adventure a; a.id=id; a.title=title; a.platformId=platform; a.catalogueId=catalogue; return a;
+        };
+        QList<Adventure> rows{make("z", "same", "new", ""), make("b", "Same", "new", ""),
+            make("date", "Z", "known", "dated"), make("order", "A", "known", "ordered"),
+            make("undated", "A", "known", "unknown-date"), make("unlisted", "B", "known", "")};
+        sortWorldAdventures(rows, {{"known", "Name", "K", "console", 10}},
+            {{"dated", "known", 2000, 1}, {"ordered", "known", 2000, 2}, {"unknown-date", "known", {}, 3}});
+        QStringList ids; for (const auto& a : rows) ids.append(a.id);
+        QCOMPARE(ids, QStringList({"date", "order", "undated", "unlisted", "b", "z"}));
+    }
+    void chronologicalControllerKeepsIdentityThroughFiltersRefreshAndRestore() {
+        QTemporaryDir dir; LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready());
+        CollectionRepository collection(store); UnconfiguredAdventureAdapter adapter;
+        WorldsController worlds(collection, adapter); worlds.activate(0);
+        const auto rows = worlds.adventures();
+        int chosen = -1;
+        for (int i = 0; i < rows.size(); ++i)
+            if (rows[i].toMap()["id"] == "catalogue:firered-gba") chosen = i;
+        QVERIFY(chosen >= 0); worlds.activate(chosen); worlds.dispatch(Action::Back);
+        const auto state = worlds.navigationState();
+        worlds.refresh(); QCOMPARE(worlds.detail()["id"].toString(), "catalogue:firered-gba");
+        WorldsController restored(collection, adapter); restored.restoreNavigation(state);
+        QCOMPARE(restored.detail()["id"].toString(), "catalogue:firered-gba");
+        restored.applySearch("fire"); QCOMPARE(restored.detail()["id"].toString(), "catalogue:firered-gba");
+        restored.dispatch(Action::ToggleContinue); QVERIFY(restored.adventures().isEmpty()); // Linked
+        restored.dispatch(Action::ToggleContinue); // Missing: preserves relative chronology.
+        auto filtered = restored.adventures(); int previous = -1;
+        for (const auto& item : filtered) {
+            const auto id = item.toMap()["id"].toString(); int position = -1;
+            for (int i = 0; i < rows.size(); ++i) if (rows[i].toMap()["id"] == id) position = i;
+            QVERIFY(position > previous); previous = position;
+        }
+        QVERIFY(store.adventures().isEmpty()); // Read-only projection, no catalogue migration into personal data.
+    }
     void versionTwoMigrationPreservesExistingIdentityAndConfiguration() {
         QTemporaryDir dir;
         {

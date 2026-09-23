@@ -5,6 +5,8 @@
 #include <QSet>
 #include <QFileInfo>
 #include <algorithm>
+#include <limits>
+#include <tuple>
 
 // Static-library resources must be explicitly linked by each consuming binary.
 static void initializeCollection() { Q_INIT_RESOURCE(collection); }
@@ -28,13 +30,47 @@ QList<PlatformLabel> collectionPlatforms() {
     QList<PlatformLabel> result;
     for (const auto& value : data()["platforms"].toArray()) {
         const auto p = value.toObject();
-        result.append({p["id"].toString(), p["name"].toString(), p["badge"].toString(), p["shape"].toString()});
+        result.append({p["id"].toString(), p["name"].toString(), p["badge"].toString(), p["shape"].toString(),
+            p["chronology"].isDouble() ? std::optional<int>(p["chronology"].toInt()) : std::nullopt});
     }
     return result;
 }
 PlatformLabel platformLabel(const QString& id) {
     for (const auto& p : collectionPlatforms()) if (p.id == id) return p;
     return {id, "Unspecified platform", "?", "console"};
+}
+QList<EditionChronology> collectionChronology() {
+    QList<EditionChronology> result;
+    for (const auto& value : data()["editions"].toArray()) {
+        const auto e = value.toObject();
+        result.append({e["id"].toString(), e["platform"].toString(),
+            e["releaseYear"].isDouble() ? std::optional<int>(e["releaseYear"].toInt()) : std::nullopt,
+            e["order"].isDouble() ? std::optional<int>(e["order"].toInt()) : std::nullopt});
+    }
+    return result;
+}
+void sortWorldAdventures(QList<Adventure>& adventures, const QList<PlatformLabel>& platforms,
+        const QList<EditionChronology>& editions) {
+    constexpr int unknown = std::numeric_limits<int>::max();
+    QHash<QString, int> eras;
+    QHash<QString, EditionChronology> releases;
+    for (const auto& p : platforms) eras.insert(p.id, p.chronology.value_or(unknown));
+    for (const auto& e : editions) releases.insert(e.id, e);
+    using Key = std::tuple<int, QString, int, int, QString, QString>;
+    QHash<QString, Key> keys;
+    for (const auto& a : adventures) {
+        int year = unknown, order = unknown;
+        const auto e = releases.constFind(a.catalogueId);
+        // A hack has its own release history, even if its record references a base edition.
+        if (a.kind != AdventureKind::RomHack && e != releases.cend() && e->platformId == a.platformId) {
+            year = e->releaseYear.value_or(unknown); order = e->order.value_or(unknown);
+        }
+        keys.insert(a.id, {eras.value(a.platformId, unknown), a.platformId, year, order,
+            a.title.toCaseFolded(), a.id});
+    }
+    std::sort(adventures.begin(), adventures.end(), [&](const auto& a, const auto& b) {
+        return keys.value(a.id) < keys.value(b.id);
+    });
 }
 QList<World> collectionWorlds() {
     QList<World> result;
@@ -79,14 +115,7 @@ QList<Adventure> CollectionRepository::adventures() const {
         }
     }
     for (const auto& a : collectionCatalogue()) if (!owned.contains(a.catalogueId)) result.append(a);
-    std::stable_sort(result.begin(), result.end(), [](const auto& a, const auto& b) {
-        // Available files first, then the remaining checklist. Names are stable
-        // across controller visits; a card never disappears merely for being absent.
-        if (a.collectionOnly != b.collectionOnly) return !a.collectionOnly;
-        const int order = QString::compare(a.title, b.title, Qt::CaseInsensitive);
-        if (order != 0) return order < 0;
-        return a.id < b.id;
-    });
+    sortWorldAdventures(result, collectionPlatforms(), collectionChronology());
     return result;
 }
 void CollectionRepository::saveAdventureAsync(const AdventureRegistration& value, QObject* context,

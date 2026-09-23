@@ -8,10 +8,16 @@ Item {
     PageHeader {
         id: header
         title: root.model.route === "systems" ? "Multiverse" : root.model.systemName
-        subtitle: root.model.sample ? "Development preview · fictional titles · no launch" : "Library setup is coming · your Pokémon Worlds are unchanged"
+        subtitle: root.model.sample ? "Development preview · fictional titles · no launch" : "Your worlds beyond Pokémon"
     }
     MountedPanel {
         y: header.height; width: parent.width; height: parent.height - y; color: "#d9deed"
+        Text {
+            anchors.centerIn: parent
+            visible: root.model.route === "systems" && root.model.systems.length === 0
+            text: "No Adventures yet"
+            color: Theme.muted; font.pixelSize: 26
+        }
         Grid {
             x: 22; y: 18; columns: 3; spacing: 16
             visible: root.model.route === "systems"

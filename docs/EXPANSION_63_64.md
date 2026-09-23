@@ -4,6 +4,9 @@ Reviewed against the GitHub issue bodies on **2026-09-19**. These are accepted t
 
 ## Chronological Adventures inside a World
 
+**2026-09-23:** the real collection projection and metadata are implemented.
+[Sources, unknown-date handling and verification](WORLD_CHRONOLOGY.md).
+
 Source: [#63](https://github.com/EriArk/TrainerOS/issues/63). P1 can exercise the list with fixtures; P3 delivers shared metadata and the real sorted-list consumer together. No save research or emulator expansion is required.
 
 Each Pokemon World keeps its region-first identity. Its Adventure list defaults to:

@@ -10,6 +10,9 @@ MultiversePresentation::MultiversePresentation(bool sample, QObject* parent) : Q
 }
 QVariantList MultiversePresentation::systems() const {
     QVariantList result;
+    // Production has no bound Multiverse ROMs yet. Never show the fixture systems
+    // as if they were installed. P3/P4 supplies the real platform/content projection.
+    if (!sample_) return result;
     const QList<QStringList> data{{"gb","Game Boy","handheld"},{"snes","Super Nintendo","cartridge"},
         {"ps","PlayStation","disc"},{"dc","Dreamcast","disc"},{"gc","GameCube","cube"},{"psp","PSP","handheld"}};
     for (const auto& system : data) result.append(QVariantMap{{"id",system[0]}, {"name",system[1]}, {"shape",system[2]}});
@@ -96,7 +99,7 @@ void MultiversePresentation::dispatch(Action action) {
     if (route_ == "games" && action == Action::ToggleContinue) { filters_[system_] = (filters_.value(system_) + 1) % 3; positions_[system_] = 0; }
     if (route_ == "systems") {
         const int delta = action == Action::Left ? -1 : action == Action::Right ? 1 : action == Action::Up ? -3 : action == Action::Down ? 3 : 0;
-        systemFocus_ = std::clamp(systemFocus_ + delta, 0, int(systems().size()) - 1);
+        systemFocus_ = std::clamp(systemFocus_ + delta, 0, std::max(0, int(systems().size()) - 1));
     } else if (route_ == "games") {
         const int delta = action == Action::Up ? -1 : action == Action::Down ? 1 : 0;
         positions_[system_] = std::clamp(focusIndex() + delta,0,std::max(0,int(filtered().size())-1));

@@ -1,5 +1,9 @@
 # Worlds collection catalogue
 
+**2026-09-23 — #63:** the real collection now uses data-driven platform/edition
+chronology instead of linked-first alphabetical order. Search and Linked/Missing
+preserve that order; unknown years remain unknown. [Sources and boundaries](WORLD_CHRONOLOGY.md).
+
 NES has a platform badge for user-provided unofficial releases and ROM hacks. It has no official Pokémon checklist editions. These records remain separate from official GB/GBC/GBA entries with similar names; local variants retain their own file and Adventure identities.
 
 The 2026-09-11 user decision extends Worlds from an installed library to a collection checklist. Platform badges are explicitly requested on Adventure cards; region-first navigation and controller invariants remain unchanged. The user has also confirmed comfortable physical navigation, successful Adventure launch and profile creation on Flip 2.

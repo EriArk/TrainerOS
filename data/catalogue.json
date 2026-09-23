@@ -7,73 +7,85 @@
       "id": "nes",
       "name": "Nintendo Entertainment System",
       "badge": "NES",
-      "shape": "console"
+      "shape": "console",
+      "chronology": 10
     },
     {
       "id": "gb",
       "name": "Game Boy",
       "badge": "GB",
-      "shape": "handheld"
+      "shape": "handheld",
+      "chronology": 20
     },
     {
       "id": "gbc",
       "name": "Game Boy Color",
       "badge": "GBC",
-      "shape": "handheld"
+      "shape": "handheld",
+      "chronology": 50
     },
     {
       "id": "gba",
       "name": "Game Boy Advance",
       "badge": "GBA",
-      "shape": "wide"
+      "shape": "wide",
+      "chronology": 60
     },
     {
       "id": "nds",
       "name": "Nintendo DS",
       "badge": "DS",
-      "shape": "dual"
+      "shape": "dual",
+      "chronology": 90
     },
     {
       "id": "n3ds",
       "name": "Nintendo 3DS",
       "badge": "3DS",
-      "shape": "dual"
+      "shape": "dual",
+      "chronology": 110
     },
     {
       "id": "n64",
       "name": "Nintendo 64",
       "badge": "N64",
-      "shape": "console"
+      "shape": "console",
+      "chronology": 40
     },
     {
       "id": "gc",
       "name": "Nintendo GameCube",
       "badge": "GC",
-      "shape": "cube"
+      "shape": "cube",
+      "chronology": 70
     },
     {
       "id": "wii",
       "name": "Nintendo Wii",
       "badge": "Wii",
-      "shape": "console"
+      "shape": "console",
+      "chronology": 100
     },
     {
       "id": "wiiu",
       "name": "Nintendo Wii U",
       "badge": "Wii U",
-      "shape": "wide"
+      "shape": "wide",
+      "chronology": 120
     },
     {
       "id": "switch",
       "name": "Nintendo Switch",
       "badge": "Switch",
-      "shape": "wide"
+      "shape": "wide",
+      "chronology": 130
     },
     {
       "id": "pokemini",
       "name": "Pokémon mini",
       "badge": "mini",
-      "shape": "handheld"
+      "shape": "handheld",
+      "chronology": 80
     },
     {
       "id": "pc",
@@ -85,7 +97,8 @@
       "id": "pico",
       "name": "Sega Pico",
       "badge": "Pico",
-      "shape": "computer"
+      "shape": "computer",
+      "chronology": 30
     },
     {
       "id": "android",
@@ -233,37 +246,55 @@
       "id": "red-gb",
       "title": "Pokémon Red",
       "platform": "gb",
-      "world": "kanto"
+      "world": "kanto",
+      "order": 10,
+      "releaseYear": 1998,
+      "releaseSource": "https://www.serebii.net/rb/"
     },
     {
       "id": "blue-gb",
       "title": "Pokémon Blue",
       "platform": "gb",
-      "world": "kanto"
+      "world": "kanto",
+      "order": 20,
+      "releaseYear": 1998,
+      "releaseSource": "https://www.serebii.net/rb/"
     },
     {
       "id": "green-gb",
       "title": "Pokémon Green (Japan)",
       "platform": "gb",
-      "world": "kanto"
+      "world": "kanto",
+      "order": 30,
+      "releaseYear": 1996,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "blue-jp-gb",
       "title": "Pokémon Blue (Japan)",
       "platform": "gb",
-      "world": "kanto"
+      "world": "kanto",
+      "order": 40,
+      "releaseYear": 1996,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "red-jp-gb",
       "title": "Pokémon Red (Japan)",
       "platform": "gb",
-      "world": "kanto"
+      "world": "kanto",
+      "order": 50,
+      "releaseYear": 1996,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "yellow-gb",
       "title": "Pokémon Yellow: Special Pikachu Edition",
       "platform": "gb",
-      "world": "kanto"
+      "world": "kanto",
+      "order": 60,
+      "releaseYear": 1998,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "gold-gbc",
@@ -272,7 +303,10 @@
       "world": "johto",
       "also": [
         "kanto"
-      ]
+      ],
+      "order": 70,
+      "releaseYear": 1999,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "silver-gbc",
@@ -281,7 +315,10 @@
       "world": "johto",
       "also": [
         "kanto"
-      ]
+      ],
+      "order": 80,
+      "releaseYear": 1999,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "crystal-gbc",
@@ -290,63 +327,93 @@
       "world": "johto",
       "also": [
         "kanto"
-      ]
+      ],
+      "order": 90,
+      "releaseYear": 2000,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "ruby-gba",
       "title": "Pokémon Ruby",
       "platform": "gba",
-      "world": "hoenn"
+      "world": "hoenn",
+      "order": 100,
+      "releaseYear": 2002,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "sapphire-gba",
       "title": "Pokémon Sapphire",
       "platform": "gba",
-      "world": "hoenn"
+      "world": "hoenn",
+      "order": 110,
+      "releaseYear": 2002,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "emerald-gba",
       "title": "Pokémon Emerald",
       "platform": "gba",
-      "world": "hoenn"
+      "world": "hoenn",
+      "order": 120,
+      "releaseYear": 2004,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "pinball-rs-gba",
       "title": "Pokémon Pinball: Ruby & Sapphire",
       "platform": "gba",
-      "world": "hoenn"
+      "world": "hoenn",
+      "order": 130,
+      "releaseYear": 2003,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "firered-gba",
       "title": "Pokémon FireRed",
       "platform": "gba",
       "world": "kanto",
-      "remake": true
+      "remake": true,
+      "order": 118,
+      "releaseYear": 2004,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "leafgreen-gba",
       "title": "Pokémon LeafGreen",
       "platform": "gba",
       "world": "kanto",
-      "remake": true
+      "remake": true,
+      "order": 119,
+      "releaseYear": 2004,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "diamond-nds",
       "title": "Pokémon Diamond",
       "platform": "nds",
-      "world": "sinnoh"
+      "world": "sinnoh",
+      "order": 160,
+      "releaseYear": 2006,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "pearl-nds",
       "title": "Pokémon Pearl",
       "platform": "nds",
-      "world": "sinnoh"
+      "world": "sinnoh",
+      "order": 170,
+      "releaseYear": 2006,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "platinum-nds",
       "title": "Pokémon Platinum",
       "platform": "nds",
-      "world": "sinnoh"
+      "world": "sinnoh",
+      "order": 180,
+      "releaseYear": 2008,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "heartgold-nds",
@@ -356,7 +423,10 @@
       "also": [
         "kanto"
       ],
-      "remake": true
+      "remake": true,
+      "order": 190,
+      "releaseYear": 2009,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "soulsilver-nds",
@@ -366,81 +436,120 @@
       "also": [
         "kanto"
       ],
-      "remake": true
+      "remake": true,
+      "order": 200,
+      "releaseYear": 2009,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "black-nds",
       "title": "Pokémon Black",
       "platform": "nds",
-      "world": "unova"
+      "world": "unova",
+      "order": 210,
+      "releaseYear": 2010,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "white-nds",
       "title": "Pokémon White",
       "platform": "nds",
-      "world": "unova"
+      "world": "unova",
+      "order": 220,
+      "releaseYear": 2010,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "black2-nds",
       "title": "Pokémon Black 2",
       "platform": "nds",
-      "world": "unova"
+      "world": "unova",
+      "order": 230,
+      "releaseYear": 2012,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "white2-nds",
       "title": "Pokémon White 2",
       "platform": "nds",
-      "world": "unova"
+      "world": "unova",
+      "order": 240,
+      "releaseYear": 2012,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "x-n3ds",
       "title": "Pokémon X",
       "platform": "n3ds",
-      "world": "kalos"
+      "world": "kalos",
+      "order": 250,
+      "releaseYear": 2013,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "y-n3ds",
       "title": "Pokémon Y",
       "platform": "n3ds",
-      "world": "kalos"
+      "world": "kalos",
+      "order": 260,
+      "releaseYear": 2013,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "omega-ruby-n3ds",
       "title": "Pokémon Omega Ruby",
       "platform": "n3ds",
       "world": "hoenn",
-      "remake": true
+      "remake": true,
+      "order": 270,
+      "releaseYear": 2014,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "alpha-sapphire-n3ds",
       "title": "Pokémon Alpha Sapphire",
       "platform": "n3ds",
       "world": "hoenn",
-      "remake": true
+      "remake": true,
+      "order": 280,
+      "releaseYear": 2014,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "sun-n3ds",
       "title": "Pokémon Sun",
       "platform": "n3ds",
-      "world": "alola"
+      "world": "alola",
+      "order": 290,
+      "releaseYear": 2016,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "moon-n3ds",
       "title": "Pokémon Moon",
       "platform": "n3ds",
-      "world": "alola"
+      "world": "alola",
+      "order": 300,
+      "releaseYear": 2016,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "ultra-sun-n3ds",
       "title": "Pokémon Ultra Sun",
       "platform": "n3ds",
-      "world": "alola"
+      "world": "alola",
+      "order": 310,
+      "releaseYear": 2017,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "ultra-moon-n3ds",
       "title": "Pokémon Ultra Moon",
       "platform": "n3ds",
-      "world": "alola"
+      "world": "alola",
+      "order": 320,
+      "releaseYear": 2017,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "lets-go-pikachu-switch",
@@ -448,7 +557,10 @@
       "platform": "switch",
       "world": "kanto",
       "remake": true,
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 330,
+      "releaseYear": 2018,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "lets-go-eevee-switch",
@@ -456,21 +568,30 @@
       "platform": "switch",
       "world": "kanto",
       "remake": true,
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 340,
+      "releaseYear": 2018,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "sword-switch",
       "title": "Pokémon Sword",
       "platform": "switch",
       "world": "galar",
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 350,
+      "releaseYear": 2019,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "shield-switch",
       "title": "Pokémon Shield",
       "platform": "switch",
       "world": "galar",
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 360,
+      "releaseYear": 2019,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "brilliant-diamond-switch",
@@ -478,7 +599,10 @@
       "platform": "switch",
       "world": "sinnoh",
       "remake": true,
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 370,
+      "releaseYear": 2021,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "shining-pearl-switch",
@@ -486,7 +610,10 @@
       "platform": "switch",
       "world": "sinnoh",
       "remake": true,
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 380,
+      "releaseYear": 2021,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "legends-arceus-switch",
@@ -496,28 +623,40 @@
       "also": [
         "sinnoh"
       ],
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 390,
+      "releaseYear": 2022,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "scarlet-switch",
       "title": "Pokémon Scarlet",
       "platform": "switch",
       "world": "paldea",
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 400,
+      "releaseYear": 2022,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "violet-switch",
       "title": "Pokémon Violet",
       "platform": "switch",
       "world": "paldea",
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 410,
+      "releaseYear": 2022,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "legends-za-switch",
       "title": "Pokémon Legends: Z-A",
       "platform": "switch",
       "world": "kalos",
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 420,
+      "releaseYear": 2025,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "firered-switch",
@@ -525,7 +664,10 @@
       "platform": "switch",
       "world": "kanto",
       "remake": true,
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 430,
+      "releaseYear": 2026,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "leafgreen-switch",
@@ -533,49 +675,71 @@
       "platform": "switch",
       "world": "kanto",
       "remake": true,
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 440,
+      "releaseYear": 2026,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "pinball-gbc",
       "title": "Pokémon Pinball",
       "platform": "gbc",
-      "world": "kanto"
+      "world": "kanto",
+      "order": 450,
+      "releaseYear": 1999,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "puzzle-challenge-gbc",
       "title": "Pokémon Puzzle Challenge",
       "platform": "gbc",
-      "world": "johto"
+      "world": "johto",
+      "order": 460,
+      "releaseYear": 2000,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "tcg-gbc",
       "title": "Pokémon Trading Card Game",
       "platform": "gbc",
-      "world": "tcg-islands"
+      "world": "tcg-islands",
+      "order": 470,
+      "releaseYear": 1998,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "tcg2-gbc",
       "title": "Pokémon Trading Card Game 2: The Invasion of Team GR!",
       "platform": "gbc",
-      "world": "tcg-islands"
+      "world": "tcg-islands",
+      "order": 480,
+      "releaseYear": 2001,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "stadium-jp-n64",
       "title": "Pokémon Stadium (Japan, 1998)",
       "platform": "n64",
-      "world": "kanto"
+      "world": "kanto",
+      "order": 490,
+      "releaseYear": 1998,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "stadium-n64",
       "title": "Pokémon Stadium",
       "platform": "n64",
-      "world": "kanto"
+      "world": "kanto",
+      "order": 500,
+      "releaseYear": 1999,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "puzzle-league-n64",
       "title": "Pokémon Puzzle League",
       "platform": "n64",
-      "world": "kanto"
+      "world": "kanto",
+      "order": 510
     },
     {
       "id": "stadium2-n64",
@@ -584,146 +748,215 @@
       "world": "johto",
       "also": [
         "kanto"
-      ]
+      ],
+      "order": 520,
+      "releaseYear": 2000,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "hey-you-pikachu-n64",
       "title": "Hey You, Pikachu!",
       "platform": "n64",
       "world": "kanto",
-      "limitation": "Needs voice input. Microphone support and controls still need validation."
+      "limitation": "Needs voice input. Microphone support and controls still need validation.",
+      "order": 530,
+      "releaseYear": 1998,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "snap-n64",
       "title": "Pokémon Snap",
       "platform": "n64",
-      "world": "pokemon-island"
+      "world": "pokemon-island",
+      "order": 540,
+      "releaseYear": 1999,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "colosseum-gc",
       "title": "Pokémon Colosseum",
       "platform": "gc",
-      "world": "orre"
+      "world": "orre",
+      "order": 550,
+      "releaseYear": 2003,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "xd-gc",
       "title": "Pokémon XD: Gale of Darkness",
       "platform": "gc",
-      "world": "orre"
+      "world": "orre",
+      "order": 560,
+      "releaseYear": 2005,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "box-gc",
       "title": "Pokémon Box: Ruby & Sapphire",
       "platform": "gc",
       "world": "hoenn",
-      "limitation": "A storage companion; some functions require a linked Game Boy Advance game."
+      "limitation": "A storage companion; some functions require a linked Game Boy Advance game.",
+      "order": 570,
+      "releaseYear": 2003,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "channel-gc",
       "title": "Pokémon Channel",
       "platform": "gc",
-      "world": "playroom"
+      "world": "playroom",
+      "order": 580,
+      "releaseYear": 2003,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "ranger-nds",
       "title": "Pokémon Ranger",
       "platform": "nds",
       "world": "fiore",
-      "limitation": "Uses pointer input for capture loops; controller pointer needs play testing."
+      "limitation": "Uses pointer input for capture loops; controller pointer needs play testing.",
+      "order": 590,
+      "releaseYear": 2006,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "ranger-shadows-nds",
       "title": "Pokémon Ranger: Shadows of Almia",
       "platform": "nds",
       "world": "almia",
-      "limitation": "Uses pointer input for capture loops; controller pointer needs play testing."
+      "limitation": "Uses pointer input for capture loops; controller pointer needs play testing.",
+      "order": 600,
+      "releaseYear": 2008,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "ranger-signs-nds",
       "title": "Pokémon Ranger: Guardian Signs",
       "platform": "nds",
       "world": "oblivia",
-      "limitation": "Uses pointer input for capture loops; controller pointer needs play testing."
+      "limitation": "Uses pointer input for capture loops; controller pointer needs play testing.",
+      "order": 610,
+      "releaseYear": 2010,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "conquest-nds",
       "title": "Pokémon Conquest",
       "platform": "nds",
-      "world": "ransei"
+      "world": "ransei",
+      "order": 620,
+      "releaseYear": 2012,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "dash-nds",
       "title": "Pokémon Dash",
       "platform": "nds",
       "world": "playroom",
-      "limitation": "Touch-heavy controls need a suitable controller mapping."
+      "limitation": "Touch-heavy controls need a suitable controller mapping.",
+      "order": 630,
+      "releaseYear": 2004,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "typing-nds",
       "title": "Learn with Pokémon: Typing Adventure",
       "platform": "nds",
       "world": "playroom",
-      "limitation": "Requires keyboard input. Controller text entry in TrainerOS does not replace the in-game keyboard."
+      "limitation": "Requires keyboard input. Controller text entry in TrainerOS does not replace the in-game keyboard.",
+      "order": 640,
+      "releaseYear": 2011,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "trozei-nds",
       "title": "Pokémon Trozei!",
       "platform": "nds",
-      "world": "puzzles"
+      "world": "puzzles",
+      "order": 650,
+      "releaseYear": 2005,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "dungeon-red-rescue-gba",
       "title": "Pokémon Mystery Dungeon: Red Rescue Team",
       "platform": "gba",
-      "world": "mystery-dungeon"
+      "world": "mystery-dungeon",
+      "order": 660,
+      "releaseYear": 2005,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "dungeon-blue-rescue-nds",
       "title": "Pokémon Mystery Dungeon: Blue Rescue Team",
       "platform": "nds",
-      "world": "mystery-dungeon"
+      "world": "mystery-dungeon",
+      "order": 670,
+      "releaseYear": 2005,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "dungeon-explorers-time-nds",
       "title": "Pokémon Mystery Dungeon: Explorers of Time",
       "platform": "nds",
-      "world": "mystery-dungeon"
+      "world": "mystery-dungeon",
+      "order": 680,
+      "releaseYear": 2007,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "dungeon-explorers-darkness-nds",
       "title": "Pokémon Mystery Dungeon: Explorers of Darkness",
       "platform": "nds",
-      "world": "mystery-dungeon"
+      "world": "mystery-dungeon",
+      "order": 690,
+      "releaseYear": 2007,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "dungeon-explorers-sky-nds",
       "title": "Pokémon Mystery Dungeon: Explorers of Sky",
       "platform": "nds",
-      "world": "mystery-dungeon"
+      "world": "mystery-dungeon",
+      "order": 700,
+      "releaseYear": 2009,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "dungeon-blazing-wii",
       "title": "Pokémon Mystery Dungeon: Blazing Adventure Squad",
       "platform": "wii",
-      "world": "mystery-dungeon"
+      "world": "mystery-dungeon",
+      "order": 710,
+      "releaseYear": 2009,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "dungeon-stormy-wii",
       "title": "Pokémon Mystery Dungeon: Stormy Adventure Squad",
       "platform": "wii",
-      "world": "mystery-dungeon"
+      "world": "mystery-dungeon",
+      "order": 720,
+      "releaseYear": 2009,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "dungeon-light-wii",
       "title": "Pokémon Mystery Dungeon: Light Adventure Squad",
       "platform": "wii",
-      "world": "mystery-dungeon"
+      "world": "mystery-dungeon",
+      "order": 730,
+      "releaseYear": 2009,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "dungeon-gates-n3ds",
       "title": "Pokémon Mystery Dungeon: Gates to Infinity",
       "platform": "n3ds",
-      "world": "mystery-dungeon"
+      "world": "mystery-dungeon",
+      "order": 740,
+      "releaseYear": 2012,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "dungeon-rescue-dx-switch",
@@ -731,860 +964,1033 @@
       "platform": "switch",
       "world": "mystery-dungeon",
       "remake": true,
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 750,
+      "releaseYear": 2020,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "super-dungeon-n3ds",
       "title": "Pokémon Super Mystery Dungeon",
       "platform": "n3ds",
-      "world": "mystery-dungeon"
+      "world": "mystery-dungeon",
+      "order": 760,
+      "releaseYear": 2015,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "battle-revolution-wii",
       "title": "Pokémon Battle Revolution",
       "platform": "wii",
-      "world": "poketopia"
+      "world": "poketopia",
+      "order": 770,
+      "releaseYear": 2006,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "pokepark-wii",
       "title": "PokéPark Wii: Pikachu's Adventure",
       "platform": "wii",
-      "world": "pokepark"
+      "world": "pokepark",
+      "order": 780,
+      "releaseYear": 2009,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "pokepark2-wii",
       "title": "PokéPark 2: Wonders Beyond",
       "platform": "wii",
-      "world": "pokepark"
+      "world": "pokepark",
+      "order": 790,
+      "releaseYear": 2011,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "ranch-wii",
       "title": "My Pokémon Ranch",
       "platform": "wii",
       "world": "sinnoh",
-      "limitation": "A companion for Diamond and Pearl; linking features need separate validation."
+      "limitation": "A companion for Diamond and Pearl; linking features need separate validation.",
+      "order": 800
     },
     {
       "id": "ranch-platinum-wii",
       "title": "My Pokémon Ranch: Platinum Update (Japan)",
       "platform": "wii",
       "world": "sinnoh",
-      "limitation": "Japan-only expanded edition. Linking features need separate validation."
+      "limitation": "Japan-only expanded edition. Linking features need separate validation.",
+      "order": 810,
+      "releaseYear": 2008,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "rumble-wii",
       "title": "Pokémon Rumble",
       "platform": "wii",
-      "world": "toy-world"
+      "world": "toy-world",
+      "order": 820,
+      "releaseYear": 2009,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "rumble-blast-n3ds",
       "title": "Pokémon Rumble Blast",
       "platform": "n3ds",
-      "world": "toy-world"
+      "world": "toy-world",
+      "order": 830,
+      "releaseYear": 2011,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "rumble-world-n3ds",
       "title": "Pokémon Rumble World",
       "platform": "n3ds",
-      "world": "toy-world"
+      "world": "toy-world",
+      "order": 840,
+      "releaseYear": 2015,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "rumble-u-wiiu",
       "title": "Pokémon Rumble U",
       "platform": "wiiu",
-      "world": "toy-world"
+      "world": "toy-world",
+      "order": 850,
+      "releaseYear": 2013,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "pokken-wiiu",
       "title": "Pokkén Tournament",
       "platform": "wiiu",
-      "world": "ferrum"
+      "world": "ferrum",
+      "order": 860,
+      "releaseYear": 2016,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "pokken-dx-switch",
       "title": "Pokkén Tournament DX",
       "platform": "switch",
       "world": "ferrum",
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 870,
+      "releaseYear": 2017,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "new-snap-switch",
       "title": "New Pokémon Snap",
       "platform": "switch",
       "world": "lental",
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 880,
+      "releaseYear": 2021,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "quest-switch",
       "title": "Pokémon Quest",
       "platform": "switch",
       "world": "tumblecube",
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 890,
+      "releaseYear": 2018,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "friends-switch",
       "title": "Pokémon Friends",
       "platform": "switch",
       "world": "think-town",
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 900
     },
     {
       "id": "detective-n3ds",
       "title": "Detective Pikachu",
       "platform": "n3ds",
-      "world": "ryme-city"
+      "world": "ryme-city",
+      "order": 910,
+      "releaseYear": 2018,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "detective-birth-n3ds",
       "title": "Detective Pikachu: Birth of a New Duo (Japan)",
       "platform": "n3ds",
-      "world": "ryme-city"
+      "world": "ryme-city",
+      "order": 920,
+      "releaseYear": 2016,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "detective-returns-switch",
       "title": "Detective Pikachu Returns",
       "platform": "switch",
       "world": "ryme-city",
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 930,
+      "releaseYear": 2023,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "battle-trozei-n3ds",
       "title": "Pokémon Battle Trozei",
       "platform": "n3ds",
-      "world": "puzzles"
+      "world": "puzzles",
+      "order": 940,
+      "releaseYear": 2014,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "shuffle-n3ds",
       "title": "Pokémon Shuffle",
       "platform": "n3ds",
-      "world": "puzzles"
+      "world": "puzzles",
+      "order": 950,
+      "releaseYear": 2015,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "picross-n3ds",
       "title": "Pokémon Picross",
       "platform": "n3ds",
-      "world": "puzzles"
+      "world": "puzzles",
+      "order": 960,
+      "releaseYear": 2015,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "art-academy-n3ds",
       "title": "Pokémon Art Academy",
       "platform": "n3ds",
       "world": "playroom",
-      "limitation": "Drawing requires pointer input; controller pointer precision needs validation."
+      "limitation": "Drawing requires pointer input; controller pointer precision needs validation.",
+      "order": 970,
+      "releaseYear": 2014,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "thieves-n3ds",
       "title": "The Thieves and the 1000 Pokémon",
       "platform": "n3ds",
       "world": "playroom",
-      "limitation": "StreetPass-dependent content may be unavailable; offline play needs validation."
+      "limitation": "StreetPass-dependent content may be unavailable; offline play needs validation.",
+      "order": 980,
+      "releaseYear": 2014,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "dream-radar-n3ds",
       "title": "Pokémon Dream Radar",
       "platform": "n3ds",
       "world": "unova",
-      "limitation": "Camera and motion features require separate validation."
+      "limitation": "Camera and motion features require separate validation.",
+      "order": 990,
+      "releaseYear": 2012,
+      "releaseSource": "https://www.pokemon.co.jp/game/"
     },
     {
       "id": "party-pokemini",
       "title": "Pokémon Party mini",
       "platform": "pokemini",
-      "world": "playroom"
+      "world": "playroom",
+      "order": 1000
     },
     {
       "id": "pinball-pokemini",
       "title": "Pokémon Pinball mini",
       "platform": "pokemini",
-      "world": "playroom"
+      "world": "playroom",
+      "order": 1010
     },
     {
       "id": "puzzle-pokemini",
       "title": "Pokémon Puzzle Collection",
       "platform": "pokemini",
-      "world": "playroom"
+      "world": "playroom",
+      "order": 1020
     },
     {
       "id": "puzzle2-pokemini",
       "title": "Pokémon Puzzle Collection Vol. 2",
       "platform": "pokemini",
-      "world": "playroom"
+      "world": "playroom",
+      "order": 1030
     },
     {
       "id": "tetris-pokemini",
       "title": "Pokémon Tetris",
       "platform": "pokemini",
-      "world": "playroom"
+      "world": "playroom",
+      "order": 1040
     },
     {
       "id": "race-pokemini",
       "title": "Pokémon Race mini",
       "platform": "pokemini",
-      "world": "playroom"
+      "world": "playroom",
+      "order": 1050
     },
     {
       "id": "pichu-pokemini",
       "title": "Pichu Bros. mini",
       "platform": "pokemini",
-      "world": "playroom"
+      "world": "playroom",
+      "order": 1060
     },
     {
       "id": "togepi-pokemini",
       "title": "Togepi's Great Adventure",
       "platform": "pokemini",
-      "world": "playroom"
+      "world": "playroom",
+      "order": 1070
     },
     {
       "id": "zany-pokemini",
       "title": "Pokémon Zany Cards",
       "platform": "pokemini",
-      "world": "playroom"
+      "world": "playroom",
+      "order": 1080
     },
     {
       "id": "breeder-pokemini",
       "title": "Pokémon Breeder mini",
       "platform": "pokemini",
-      "world": "playroom"
+      "world": "playroom",
+      "order": 1090
     },
     {
       "id": "play-it-pc",
       "title": "Pokémon Play It!",
       "platform": "pc",
       "world": "tcg-islands",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1100
     },
     {
       "id": "play-it2-pc",
       "title": "Pokémon Play It! Version 2",
       "platform": "pc",
       "world": "tcg-islands",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1110
     },
     {
       "id": "masters-arena-pc",
       "title": "Pokémon: Masters Arena",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1120
     },
     {
       "id": "team-turbo-pc",
       "title": "Pokémon: Team Turbo",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1130
     },
     {
       "id": "studio-red-pc",
       "title": "Pokémon Project Studio: Red Version",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1140
     },
     {
       "id": "studio-blue-pc",
       "title": "Pokémon Project Studio: Blue Version",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1150
     },
     {
       "id": "pokeball-launcher-pc",
       "title": "Pokémon Poké Ball Launcher",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1160
     },
     {
       "id": "rocket-blast-pc",
       "title": "Pokémon Team Rocket Blast Off",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1170
     },
     {
       "id": "seek-find-pc",
       "title": "Pokémon Seek & Find",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1180
     },
     {
       "id": "pc-master-pc",
       "title": "Pokémon PC Master",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1190
     },
     {
       "id": "pokerom-bulbasaur-pc",
       "title": "Pokémon PokéROM: Bulbasaur",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1200
     },
     {
       "id": "pokerom-charmander-pc",
       "title": "Pokémon PokéROM: Charmander",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1210
     },
     {
       "id": "pokerom-squirtle-pc",
       "title": "Pokémon PokéROM: Squirtle",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1220
     },
     {
       "id": "pokerom-pikachu-pc",
       "title": "Pokémon PokéROM: Pikachu",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1230
     },
     {
       "id": "pokerom-meowth-pc",
       "title": "Pokémon PokéROM: Meowth",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1240
     },
     {
       "id": "pokerom-psyduck-pc",
       "title": "Pokémon PokéROM: Psyduck",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1250
     },
     {
       "id": "pokerom-poliwhirl-pc",
       "title": "Pokémon PokéROM: Poliwhirl",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1260
     },
     {
       "id": "pokerom-gengar-pc",
       "title": "Pokémon PokéROM: Gengar",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1270
     },
     {
       "id": "pokerom-eevee-pc",
       "title": "Pokémon PokéROM: Eevee",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1280
     },
     {
       "id": "pokerom-mewtwo-pc",
       "title": "Pokémon PokéROM: Mewtwo",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1290
     },
     {
       "id": "pokerom-articuno-pc",
       "title": "Pokémon PokéROM: Articuno",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1300
     },
     {
       "id": "pokerom-zapdos-pc",
       "title": "Pokémon PokéROM: Zapdos",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1310
     },
     {
       "id": "pokerom-moltres-pc",
       "title": "Pokémon PokéROM: Moltres",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1320
     },
     {
       "id": "pokerom-hoothoot-pc",
       "title": "Pokémon PokéROM: Hoothoot",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1330
     },
     {
       "id": "pokerom-togepi-pc",
       "title": "Pokémon PokéROM: Togepi",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1340
     },
     {
       "id": "pokerom-marill-pc",
       "title": "Pokémon PokéROM: Marill",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1350
     },
     {
       "id": "pokerom-elekid-pc",
       "title": "Pokémon PokéROM: Elekid",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1360
     },
     {
       "id": "pokerom-ledyba-pc",
       "title": "Pokémon PokéROM: Ledyba",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1370
     },
     {
       "id": "pokerom-slowking-pc",
       "title": "Pokémon PokéROM: Slowking",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1380
     },
     {
       "id": "pokerom-lugia-pc",
       "title": "Pokémon PokéROM: Lugia",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1390
     },
     {
       "id": "pokerom-butterfree-pc",
       "title": "Pokémon PokéROM: Butterfree",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1400
     },
     {
       "id": "pokerom-arbok-pc",
       "title": "Pokémon PokéROM: Arbok",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1410
     },
     {
       "id": "pokerom-jigglypuff-pc",
       "title": "Pokémon PokéROM: Jigglypuff",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1420
     },
     {
       "id": "pokerom-venonat-pc",
       "title": "Pokémon PokéROM: Venonat",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1430
     },
     {
       "id": "pokerom-geodude-pc",
       "title": "Pokémon PokéROM: Geodude",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1440
     },
     {
       "id": "pokerom-mr. mime-pc",
       "title": "Pokémon PokéROM: Mr. Mime",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1450
     },
     {
       "id": "pokerom-lapras-pc",
       "title": "Pokémon PokéROM: Lapras",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1460
     },
     {
       "id": "pokerom-exeggutor-pc",
       "title": "Pokémon PokéROM: Exeggutor",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1470
     },
     {
       "id": "pokerom-jynx-pc",
       "title": "Pokémon PokéROM: Jynx",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1480
     },
     {
       "id": "pokerom-chikorita-pc",
       "title": "Pokémon PokéROM: Chikorita",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1490
     },
     {
       "id": "pokerom-cyndaquil-pc",
       "title": "Pokémon PokéROM: Cyndaquil",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1500
     },
     {
       "id": "pokerom-totodile-pc",
       "title": "Pokémon PokéROM: Totodile",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1510
     },
     {
       "id": "pokerom-spinarak-pc",
       "title": "Pokémon PokéROM: Spinarak",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1520
     },
     {
       "id": "pokerom-mareep-pc",
       "title": "Pokémon PokéROM: Mareep",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1530
     },
     {
       "id": "pokerom-bellossom-pc",
       "title": "Pokémon PokéROM: Bellossom",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1540
     },
     {
       "id": "pokerom-sunflora-pc",
       "title": "Pokémon PokéROM: Sunflora",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1550
     },
     {
       "id": "pokerom-quagsire-pc",
       "title": "Pokémon PokéROM: Quagsire",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1560
     },
     {
       "id": "pokerom-snubbull-pc",
       "title": "Pokémon PokéROM: Snubbull",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1570
     },
     {
       "id": "pokerom-scizor-pc",
       "title": "Pokémon PokéROM: Scizor",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1580
     },
     {
       "id": "pokerom-stantler-pc",
       "title": "Pokémon PokéROM: Stantler",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1590
     },
     {
       "id": "pokerom-charizard-pc",
       "title": "Pokémon PokéROM: Charizard",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1600
     },
     {
       "id": "pokerom-blastoise-pc",
       "title": "Pokémon PokéROM: Blastoise",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1610
     },
     {
       "id": "pokerom-gyarados-pc",
       "title": "Pokémon PokéROM: Gyarados",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1620
     },
     {
       "id": "pokerom-dragonite-pc",
       "title": "Pokémon PokéROM: Dragonite",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1630
     },
     {
       "id": "pokerom-sentret-pc",
       "title": "Pokémon PokéROM: Sentret",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1640
     },
     {
       "id": "pokerom-hoppip-pc",
       "title": "Pokémon PokéROM: Hoppip",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1650
     },
     {
       "id": "pokerom-gligar-pc",
       "title": "Pokémon PokéROM: Gligar",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1660
     },
     {
       "id": "pokerom-heracross-pc",
       "title": "Pokémon PokéROM: Heracross",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1670
     },
     {
       "id": "pokerom-donphan-pc",
       "title": "Pokémon PokéROM: Donphan",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1680
     },
     {
       "id": "pokerom-blissey-pc",
       "title": "Pokémon PokéROM: Blissey",
       "platform": "pc",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1690
     },
     {
       "id": "catch-pico",
       "title": "Pokémon: Catch the Numbers!",
       "platform": "pico",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1700
     },
     {
       "id": "loud-battle-pico",
       "title": "Pokémon Advanced Generation: Pico for Everyone Pokémon Loud Battle!",
       "platform": "pico",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1710
     },
     {
       "id": "hiragana-pico",
       "title": "Pokémon Advanced Generation: I've Begun Hiragana and Katakana!",
       "platform": "pico",
       "world": "playroom",
-      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device."
+      "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
+      "order": 1720
     },
     {
       "id": "smash-n64",
       "title": "Super Smash Bros.",
       "platform": "n64",
-      "world": "crossovers"
+      "world": "crossovers",
+      "order": 1730
     },
     {
       "id": "smash-melee-gc",
       "title": "Super Smash Bros. Melee",
       "platform": "gc",
-      "world": "crossovers"
+      "world": "crossovers",
+      "order": 1740
     },
     {
       "id": "smash-brawl-wii",
       "title": "Super Smash Bros. Brawl",
       "platform": "wii",
-      "world": "crossovers"
+      "world": "crossovers",
+      "order": 1750
     },
     {
       "id": "smash-3ds-n3ds",
       "title": "Super Smash Bros. for Nintendo 3DS",
       "platform": "n3ds",
-      "world": "crossovers"
+      "world": "crossovers",
+      "order": 1760
     },
     {
       "id": "smash-wiiu-wiiu",
       "title": "Super Smash Bros. for Wii U",
       "platform": "wiiu",
-      "world": "crossovers"
+      "world": "crossovers",
+      "order": 1770
     },
     {
       "id": "smash-ultimate-switch",
       "title": "Super Smash Bros. Ultimate",
       "platform": "switch",
       "world": "crossovers",
-      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play."
+      "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
+      "order": 1780
     },
     {
       "id": "harmoknight-n3ds",
       "title": "HarmoKnight",
       "platform": "n3ds",
       "world": "crossovers",
-      "description": "A rhythm-game crossover with Pokémon bonus stages."
+      "description": "A rhythm-game crossover with Pokémon bonus stages.",
+      "order": 1790
     },
     {
       "id": "fishing-nds",
       "title": "PokéPark Fishing Rally DS",
       "platform": "nds",
       "world": "pokepark",
-      "limitation": "A limited-distribution DS Download Play game. A compatible local image is required."
+      "limitation": "A limited-distribution DS Download Play game. A compatible local image is required.",
+      "order": 1800
     },
     {
       "id": "magikarp-android",
       "title": "Pokémon: Magikarp Jump",
       "platform": "android",
       "world": "playroom",
-      "limitation": "Android runtime and controller mapping need setup and game-level validation."
+      "limitation": "Android runtime and controller mapping need setup and game-level validation.",
+      "order": 1810
     },
     {
       "id": "quest-android",
       "title": "Pokémon Quest",
       "platform": "android",
       "world": "tumblecube",
-      "limitation": "Android runtime and controller mapping need setup and game-level validation."
+      "limitation": "Android runtime and controller mapping need setup and game-level validation.",
+      "order": 1820
     },
     {
       "id": "friends-android",
       "title": "Pokémon Friends",
       "platform": "android",
       "world": "think-town",
-      "limitation": "Android runtime and controller mapping need setup and game-level validation."
+      "limitation": "Android runtime and controller mapping need setup and game-level validation.",
+      "order": 1830
     },
     {
       "id": "shuffle-android",
       "title": "Pokémon Shuffle Mobile",
       "platform": "android",
       "world": "puzzles",
-      "limitation": "Android runtime and controller mapping need setup and game-level validation."
+      "limitation": "Android runtime and controller mapping need setup and game-level validation.",
+      "order": 1840
     },
     {
       "id": "camp-android",
       "title": "Camp Pokémon",
       "platform": "android",
       "world": "playroom",
-      "limitation": "Android runtime and controller mapping need setup and game-level validation."
+      "limitation": "Android runtime and controller mapping need setup and game-level validation.",
+      "order": 1850
     },
     {
       "id": "playhouse-android",
       "title": "Pokémon Playhouse",
       "platform": "android",
       "world": "playroom",
-      "limitation": "Android runtime and controller mapping need setup and game-level validation."
+      "limitation": "Android runtime and controller mapping need setup and game-level validation.",
+      "order": 1860
     },
     {
       "id": "smile-android",
       "title": "Pokémon Smile",
       "platform": "android",
       "world": "playroom",
-      "limitation": "Uses sensors or camera input. Android runtime and device feature compatibility need validation."
+      "limitation": "Uses sensors or camera input. Android runtime and device feature compatibility need validation.",
+      "order": 1870
     },
     {
       "id": "sleep-android",
       "title": "Pokémon Sleep",
       "platform": "android",
       "world": "playroom",
-      "limitation": "Uses sensors or camera input. Android runtime and device feature compatibility need validation."
+      "limitation": "Uses sensors or camera input. Android runtime and device feature compatibility need validation.",
+      "order": 1880
     },
     {
       "id": "masters-android",
       "title": "Pokémon Masters EX",
       "platform": "android",
       "world": "pasio",
-      "limitation": "Requires online access; Android runtime, account compatibility and controller input are not yet verified."
+      "limitation": "Requires online access; Android runtime, account compatibility and controller input are not yet verified.",
+      "order": 1890
     },
     {
       "id": "unite-android",
       "title": "Pokémon UNITE",
       "platform": "android",
       "world": "aeos",
-      "limitation": "Requires online access; Android runtime, account compatibility and controller input are not yet verified."
+      "limitation": "Requires online access; Android runtime, account compatibility and controller input are not yet verified.",
+      "order": 1900
     },
     {
       "id": "go-android",
       "title": "Pokémon GO",
       "platform": "android",
       "world": "our-world",
-      "limitation": "Requires location services and online access. Compatibility on this device has not been established."
+      "limitation": "Requires location services and online access. Compatibility on this device has not been established.",
+      "order": 1910
     },
     {
       "id": "cafe-android",
       "title": "Pokémon Café ReMix",
       "platform": "android",
       "world": "puzzles",
-      "limitation": "Requires online access; Android runtime, account compatibility and controller input are not yet verified."
+      "limitation": "Requires online access; Android runtime, account compatibility and controller input are not yet verified.",
+      "order": 1920
     },
     {
       "id": "tcg-live-android",
       "title": "Pokémon Trading Card Game Live",
       "platform": "android",
       "world": "card-club",
-      "limitation": "Requires online access; Android runtime, account compatibility and controller input are not yet verified."
+      "limitation": "Requires online access; Android runtime, account compatibility and controller input are not yet verified.",
+      "order": 1930
     },
     {
       "id": "tcg-pocket-android",
       "title": "Pokémon Trading Card Game Pocket",
       "platform": "android",
       "world": "card-club",
-      "limitation": "Requires online access; Android runtime, account compatibility and controller input are not yet verified."
+      "limitation": "Requires online access; Android runtime, account compatibility and controller input are not yet verified.",
+      "order": 1940
     },
     {
       "id": "tcg-live-pc",
       "title": "Pokémon Trading Card Game Live",
       "platform": "pc",
       "world": "card-club",
-      "limitation": "Requires online access and a compatible Windows runtime; account and controller input are not yet verified."
+      "limitation": "Requires online access and a compatible Windows runtime; account and controller input are not yet verified.",
+      "order": 1950
     },
     {
       "id": "red-gb-vc-n3ds",
       "title": "Pokémon Red · Virtual Console",
       "platform": "n3ds",
       "world": "kanto",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 1960
     },
     {
       "id": "blue-gb-vc-n3ds",
       "title": "Pokémon Blue · Virtual Console",
       "platform": "n3ds",
       "world": "kanto",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 1970
     },
     {
       "id": "green-gb-vc-n3ds",
       "title": "Pokémon Green (Japan) · Virtual Console",
       "platform": "n3ds",
       "world": "kanto",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 1980
     },
     {
       "id": "blue-jp-gb-vc-n3ds",
       "title": "Pokémon Blue (Japan) · Virtual Console",
       "platform": "n3ds",
       "world": "kanto",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 1990
     },
     {
       "id": "red-jp-gb-vc-n3ds",
       "title": "Pokémon Red (Japan) · Virtual Console",
       "platform": "n3ds",
       "world": "kanto",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2000
     },
     {
       "id": "yellow-gb-vc-n3ds",
       "title": "Pokémon Yellow: Special Pikachu Edition · Virtual Console",
       "platform": "n3ds",
       "world": "kanto",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2010
     },
     {
       "id": "gold-gbc-vc-n3ds",
@@ -1594,7 +2000,8 @@
       "also": [
         "kanto"
       ],
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2020
     },
     {
       "id": "silver-gbc-vc-n3ds",
@@ -1604,7 +2011,8 @@
       "also": [
         "kanto"
       ],
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2030
     },
     {
       "id": "crystal-gbc-vc-n3ds",
@@ -1614,91 +2022,105 @@
       "also": [
         "kanto"
       ],
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2040
     },
     {
       "id": "tcg-gbc-vc-n3ds",
       "title": "Pokémon Trading Card Game · Virtual Console",
       "platform": "n3ds",
       "world": "tcg-islands",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2050
     },
     {
       "id": "snap-n64-vc-wii",
       "title": "Pokémon Snap · Virtual Console",
       "platform": "wii",
       "world": "pokemon-island",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2060
     },
     {
       "id": "puzzle-league-n64-vc-wii",
       "title": "Pokémon Puzzle League · Virtual Console",
       "platform": "wii",
       "world": "kanto",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2070
     },
     {
       "id": "smash-n64-vc-wii",
       "title": "Super Smash Bros. · Virtual Console",
       "platform": "wii",
       "world": "crossovers",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2080
     },
     {
       "id": "snap-n64-vc-wiiu",
       "title": "Pokémon Snap · Virtual Console",
       "platform": "wiiu",
       "world": "pokemon-island",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2090
     },
     {
       "id": "pinball-rs-gba-vc-wiiu",
       "title": "Pokémon Pinball: Ruby & Sapphire · Virtual Console",
       "platform": "wiiu",
       "world": "hoenn",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2100
     },
     {
       "id": "dungeon-red-rescue-gba-vc-wiiu",
       "title": "Pokémon Mystery Dungeon: Red Rescue Team · Virtual Console",
       "platform": "wiiu",
       "world": "mystery-dungeon",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2110
     },
     {
       "id": "dungeon-blue-rescue-nds-vc-wiiu",
       "title": "Pokémon Mystery Dungeon: Blue Rescue Team · Virtual Console",
       "platform": "wiiu",
       "world": "mystery-dungeon",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2120
     },
     {
       "id": "dungeon-explorers-sky-nds-vc-wiiu",
       "title": "Pokémon Mystery Dungeon: Explorers of Sky · Virtual Console",
       "platform": "wiiu",
       "world": "mystery-dungeon",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2130
     },
     {
       "id": "ranger-nds-vc-wiiu",
       "title": "Pokémon Ranger · Virtual Console",
       "platform": "wiiu",
       "world": "fiore",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2140
     },
     {
       "id": "ranger-shadows-nds-vc-wiiu",
       "title": "Pokémon Ranger: Shadows of Almia · Virtual Console",
       "platform": "wiiu",
       "world": "almia",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2150
     },
     {
       "id": "ranger-signs-nds-vc-wiiu",
       "title": "Pokémon Ranger: Guardian Signs · Virtual Console",
       "platform": "wiiu",
       "world": "oblivia",
-      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image."
+      "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
+      "order": 2160
     }
-  ]
+  ],
+  "chronologyReviewed": "2026-09-23"
 }

@@ -2,8 +2,14 @@
 #include "LibraryRepository.h"
 
 namespace trainer {
-struct PlatformLabel { QString id, name, badge, shape; };
+struct PlatformLabel { QString id, name, badge, shape; std::optional<int> chronology = {}; };
+struct EditionChronology {
+    QString id, platformId;
+    std::optional<int> releaseYear, order;
+};
 QList<PlatformLabel> collectionPlatforms();
+QList<EditionChronology> collectionChronology();
+void sortWorldAdventures(QList<Adventure>&, const QList<PlatformLabel>&, const QList<EditionChronology>&);
 PlatformLabel platformLabel(const QString& id);
 QList<World> collectionWorlds();
 QList<Adventure> collectionCatalogue();

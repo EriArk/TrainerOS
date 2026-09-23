@@ -125,6 +125,9 @@ private slots:
         sample.dispatch(Action::Back); sample.activate(0); QCOMPARE(sample.query(), "courier");
         sample.select("sample-lantern"); QVERIFY(sample.selected().isEmpty());
         MultiversePresentation personal(false);
+        QVERIFY(personal.systems().isEmpty());
+        for (const auto action : {Action::Down, Action::Up, Action::Left, Action::Right}) personal.dispatch(action);
+        QCOMPARE(personal.focusIndex(), 0);
         QVERIFY(personal.choices().isEmpty()); personal.select("sample-courier"); QVERIFY(personal.selected().isEmpty());
         personal.activate(0); QVERIFY(personal.games().isEmpty());
         personal.dispatch(Action::Confirm); QCOMPARE(personal.route(), "systems");
