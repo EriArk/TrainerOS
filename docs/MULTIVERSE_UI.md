@@ -37,6 +37,8 @@ New Multiverse routes, Home face and sample selection last for the current appli
 
 P4 also includes missing viable emulators, their required BIOS and four ROMs per supported system from the owner's server disk, with launch/input/save/return verification. [Execution order and collection acceptance](ROADMAP.md#later-collection-deliverable--representative-classics) remain authoritative; unavailable runtime/content gaps remain explicit.
 
+The owner's 2026-09-23 follow-up advances the [actual collection file preparation](MULTIVERSE_COLLECTION.md): 133 selected games across 22 systems, with more small titles. Copying these files does not populate the transient presentation or complete real library binding. Keep this distinction in the engineering plan, without adding technical copy-status panels to normal screens.
+
 ## Verification
 
 Interaction tests cover context isolation, selection without launch, missing-file actions, search/filter reset, per-system search memory, modal precedence and honest editable-library emptiness. The rendered Worlds SDL scenario covers both paired faces, title detail, Home/selector, keyboard, empty system recovery and return to the untouched Pokémon route. Local resize checks cover handheld and 1080p layouts; native compositor verification is separate from physical-button testing.

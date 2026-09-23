@@ -14,7 +14,9 @@ This is a dependency replan, not a reset. The [pre-expansion plan](https://githu
 
 ## Delivered increments under this plan
 
-- **2026-09-23 ? P3/#63 chronology:** data-driven platform/edition ordering in the real collection, preserving filters and stable selection. 96 sourced edition years; unverified dates remain unknown. [Sources and limits](WORLD_CHRONOLOGY.md). Production Multiverse no longer shows six empty fixture systems; real binding remains next.
+- **2026-09-23 — P3/P4 collection file preparation:** copied 133 games across 22 systems plus available BIOS to Flip's microSD; all 189 files passed SHA-256 verification. Small systems receive 8–12 titles; source shortages and runtime gaps remain explicit. [Selection, layout and acceptance](MULTIVERSE_COLLECTION.md). Real Multiverse binding and emulator/controller setup remain next.
+
+- **2026-09-23 — P3/#63 chronology:** data-driven platform/edition ordering in the real collection, preserving filters and stable selection. 96 sourced edition years; unverified dates remain unknown. [Sources and limits](WORLD_CHRONOLOGY.md). Production Multiverse no longer shows six empty fixture systems; real binding remains next.
 
 - **2026-09-23 — P2 local ownership foundation:** schema 8 preserves the current Trainer and shared library, assigns existing journal/favorites/history/Hall/navigation to that owner, and scopes the live repositories. Atomic first-profile adoption preserves unnamed records. Switch Player/PIN and per-Trainer RA activation remain gated on the next binding increment. [Boundary, migration and acceptance](TRAINER_OWNERSHIP.md).
 
@@ -344,7 +346,16 @@ Keep the current no-sleep policy. When the owner resumes this work, validate the
 
 ## Later collection deliverable — representative classics
 
-The owner's **2026-09-13 follow-up** authorizes freely using the server-attached ROM disk for development tests and requests a later **small selection of iconic games for each system**. This is a planned collection task, not an immediate bulk transfer or a replacement for the complete eligible Pokémon collection. Test-content permission is recorded in [AGENTS.md](../AGENTS.md#authorized-rom-source-for-testing--2026-09-13).
+**Owner clarification, 2026-09-23:** prepare the actual server-disk copies now:
+approximately four games per system, with more for small titles. The initial
+[collection preparation](MULTIVERSE_COLLECTION.md) covers 133 games across 22
+systems, preserving source originals and existing Pokemon content. This advances
+file preparation only; P3/P4 domain binding, missing viable emulator setup and
+launch/input/save/return acceptance remain next. Small systems may receive 8–12
+titles; source shortages remain explicit rather than invented entries. All earlier
+collection, runtime and save-protection acceptance below remains in force.
+
+The owner's **2026-09-13 follow-up** authorizes freely using the server-attached ROM disk for development tests and requests a **small selection of iconic games for each system**. Its original later scheduling is superseded for file preparation by the 2026-09-23 request above; the selection does not replace the complete eligible Pokémon collection. Test-content permission is recorded in [AGENTS.md](../AGENTS.md#authorized-rom-source-for-testing--2026-09-13).
 
 **Owner clarification, 2026-09-20:** when P4 binds the real Multiverse library, deliver the playable setup in the same increment: inventory installed runtimes, install and configure all missing emulators with viable ArmadaOS/Flip routes, copy their required BIOS/firmware from the server ROM disk, and import **four ROMs per supported system** from that same disk. Prefer a small iconic selection. This supersedes the earlier 3–5-title target and postponement of the initial collection until P9; the current P1 presentation-only slice does not trigger bulk installation or copying. P9 retains unresolved runtime gaps and wider adapter coverage.
 
