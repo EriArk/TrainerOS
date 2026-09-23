@@ -140,7 +140,7 @@ QVariantMap WorldsController::detail() const {
         {"status", statusLabel(adventure->status)}, {"description", adventure->description},
         {"platform", platformLabel(adventure->platformId).name}, {"limitation", adventure->limitation}, {"variant", adventure->variant},
         {"badges", countLabel(adventure->badges)}, {"caught", countLabel(adventure->caught)},
-        {"availability", availability},
+        {"availability", availability}, {"artwork", repository_.artwork(adventure->id)},
         {"resume", point ? (canResume ? (point->location.isEmpty() ? "Recent trail" : point->location) : resumeLabel(adapter_.resumeAvailability(*adventure, *point))) : "No recent trail recorded"}};
 }
 QList<WorldsController::DetailAction> WorldsController::detailActions() const {

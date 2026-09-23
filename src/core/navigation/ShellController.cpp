@@ -333,7 +333,7 @@ QVariantMap ShellController::home() const {
             {"adventureId", adventure ? adventure->id : QString()}, {"action", action}, {"actionHint", actionHint},
             {"badges", badges ? QString::number(*badges) : "—"}, {"caught", caught ? QString::number(*caught) : "—"},
             {"badgeSlots", badgeSlots}, {"progressNote", progressNote}, {"badgeSet", badgeSet},
-            {"exitPreview", media ? "image://exit-media/" + media->sessionId : QString()},
+            {"exitPreview", media ? "image://exit-media/" + media->sessionId : adventure ? repository_.artwork(adventure->id).value("cover").toString() : QString()},
             {"exitPreviewLabel", media ? "Last exit · " + media->capturedAt.toLocalTime().toString("dd MMM · HH:mm") : QString()},
             {"recordedTime", seconds ? recordedDuration(*seconds) : "—"}, {"milestone", milestone}};
 }
@@ -366,7 +366,7 @@ QVariantList ShellController::resumePoints() const {
         result.append(QVariantMap{{"id", point.id}, {"title", title}, {"world", world},
             {"location", location}, {"summary", summary}, {"previewLabel", media ? "Last exit · " + media->capturedAt.toLocalTime().toString("dd MMM · HH:mm") : point.resumePoint ? resumeLabel(status) : "Recent Adventure"},
             {"time", point.recordedAt.toLocalTime().toString("dd MMM · HH:mm")},
-            {"preview", media ? "image://exit-media/" + media->sessionId : point.resumePoint && !point.resumePoint->previewKey.isEmpty() ? "image://moments/" + point.resumePoint->previewKey : QString()}});
+            {"preview", media ? "image://exit-media/" + media->sessionId : point.resumePoint && !point.resumePoint->previewKey.isEmpty() ? "image://moments/" + point.resumePoint->previewKey : repository_.artwork(point.adventureId).value("cover").toString()}});
     }
     return result;
 }
@@ -395,6 +395,7 @@ void ShellController::goToPage(int page) {
     center_.close();
     libraryManager_.close(); service_.clear();
     page_ = std::clamp(page, 0, 4); // No wrapping until physical-device testing.
+    if (page_ == 1) repository_.refreshContentAvailability();
     if (centerFace()) openCenter();
     if (page_ == 3) trainer_.refreshOverview();
     drawerOpen_ = false;

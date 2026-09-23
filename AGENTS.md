@@ -1,5 +1,13 @@
 # AGENTS.md — TrainerOS
 
+**Owner library correction, 2026-09-23:** stop expanding emulator compatibility
+for now. Prioritize Batocera-compatible folders and gamelist/media loading, then
+simple library management: Settings unlock for World wrench/edit popup; long A
+on games in Worlds for Rename / Move / Delete / Properties. Folder discovery and
+platform/filename catalogue matching replace mandatory manual registration.
+Keep Pokémon Worlds region-based; preserve hacks and existing IDs/history.
+The owner plans a later RomM fork separately. See docs/BATOCERA_LIBRARY.md.
+
 **Owner scheduling amendment, 2026-09-23:** generic artwork-pack installation,
 selection, verification/update/removal and Pack Studio all move to the final
 artwork delivery stage. Existing private illustrations remain in both the Dex

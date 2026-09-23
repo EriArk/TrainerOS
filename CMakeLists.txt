@@ -12,6 +12,8 @@ find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/core/repository/BatoceraLibrary.cpp
+    src/core/repository/BatoceraLibrary.h
     src/core/storage/TrainerPin.cpp
     src/features/trainer/TrainerAccessController.cpp
     src/features/pokedex/SpriteArt.h
@@ -188,6 +190,7 @@ qt_add_qml_module(traineros
     VERSION 1.0
     RESOURCE_PREFIX /
     QML_FILES
+        src/qml/AdventureArtwork.qml
         src/qml/TrainerAccessPanel.qml
         src/qml/Main.qml
         src/qml/AdventureExitWindow.qml
@@ -302,6 +305,11 @@ if(BUILD_TESTING)
     target_link_libraries(trainer_history_tests PRIVATE trainer_core Qt6::Test)
     add_dependencies(trainer_history_tests trainer_process_probe)
     add_test(NAME history COMMAND trainer_history_tests)
+    qt_add_executable(trainer_batocera_tests tests/BatoceraTests.cpp)
+    target_link_libraries(trainer_batocera_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME batocera COMMAND trainer_batocera_tests)
+    qt_add_executable(trainer_batocera_import tools/ImportBatocera.cpp)
+    target_link_libraries(trainer_batocera_import PRIVATE trainer_core)
     qt_add_executable(trainer_collection_tests tests/CollectionTests.cpp)
     target_link_libraries(trainer_collection_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME collection COMMAND trainer_collection_tests)

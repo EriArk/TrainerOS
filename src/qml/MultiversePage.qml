@@ -100,10 +100,11 @@ Item {
         }
         Item {
             anchors.fill: parent; visible: root.model.route === "detail"
-            Column { x: 26; y: 24; spacing: 16; width: parent.width - 52
+            AdventureArtwork { id: detailArtwork; x: parent.width * 0.62; y: 22; width: parent.width * 0.38 - 26; height: parent.height - 126; media: root.model.detail.artwork || ({}) }
+            Column { x: 26; y: 24; spacing: 16; width: detailArtwork.available ? parent.width * 0.60 - 26 : parent.width - 52
                 Text { width: parent.width; text: root.model.detail.title || ""; textFormat: Text.PlainText; wrapMode: Text.WordWrap; maximumLineCount: 2; color: Theme.ink; font.pixelSize: 32; font.bold: true; elide: Text.ElideRight }
                 Text { text: root.model.detail.status || ""; color: Theme.muted; font.pixelSize: 19 }
-                Text { width: parent.width; text: root.model.sample ? "This is a layout sample. File linking and play will arrive with the real library." : root.model.detail.description || ""; wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 18 }
+                Text { width: parent.width; text: root.model.sample ? "This is a layout sample. File linking and play will arrive with the real library." : root.model.detail.description || ""; textFormat: Text.PlainText; wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 18 }
             }
             Row { x: 26; anchors.bottom: parent.bottom; anchors.bottomMargin: 26; spacing: 22
                 CapButton { objectName: "multiverse-select"; width: 285; height: 62; label: "Choose for Home"; enabled: root.model.detail.linked === true; selected: parent.parent.visible && root.takesFocus && root.model.focusIndex === 0; onActivated: root.shell.activate(0) }

@@ -1,5 +1,11 @@
 # TrainerOS Architecture
 
+The real library now has a read-only Batocera discovery/media wrapper around
+`CollectionRepository`. Background filesystem scans register new files through
+the existing asynchronous store and adapter setup contracts; metadata snapshots
+do not modify installation revisions or personal progress. See
+[the folder/media contract](BATOCERA_LIBRARY.md).
+
 Sections describing the initial mock are implementation history; their memory-only or legacy state fields do not override the accepted targets or the Current local persistence boundary. Existing module/test evidence is retained without claiming planned APIs already exist.
 
 **Target reconciliation — 2026-09-19 (#62).** The accepted [#42–62 specification](EXPANSION_42_62.md) supersedes older product direction. Planned behavior below is not a claim that the deployed build has changed; see the [working baseline](ROADMAP.md#working-baseline) and dated module evidence.

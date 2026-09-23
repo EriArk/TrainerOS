@@ -133,7 +133,8 @@ Item {
         Item {
             x: 568; y: 0; width: parent.width - x; height: 332
             Text { x: 24; y: 18; text: "ADVENTURE RECORD"; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1.3 }
-            TrainerEmblem { anchors.horizontalCenter: parent.horizontalCenter; y: 55; width: 140; height: 140; emblem: root.worlds.detail.kind === "ROM hack" ? "spark" : "compass" }
+            AdventureArtwork { id: listArtwork; x: 24; y: 40; width: parent.width - 48; height: 160; media: root.worlds.detail.artwork || ({}) }
+            TrainerEmblem { visible: !listArtwork.available; anchors.horizontalCenter: parent.horizontalCenter; y: 55; width: 140; height: 140; emblem: root.worlds.detail.kind === "ROM hack" ? "spark" : "compass" }
             Text { x: 24; y: 209; width: parent.width - 48; text: root.worlds.detail.title; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 23; font.weight: Font.DemiBold }
             Text { x: 24; y: 275; width: parent.width - 48; text: root.worlds.detail.availability; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 14 }
         }
@@ -192,9 +193,10 @@ Item {
         }
         MountedPanel {
             x: 568; y: 119; width: parent.width - x; height: 213; color: "#e1ecde"
-            Text { x: 23; y: 21; text: "YOUR NEXT STEP"; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1 }
-            Text { x: 23; y: 54; width: parent.width - 46; text: root.worlds.detail.availability; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 22; font.weight: Font.DemiBold }
-            Text { x: 23; y: 151; width: parent.width - 46; text: root.worlds.detail.resume; elide: Text.ElideRight; textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 15 }
+            AdventureArtwork { id: detailArtwork; x: 20; y: 10; width: parent.width - 40; height: parent.height - 20; media: root.worlds.detail.artwork || ({}) }
+            Text { visible: !detailArtwork.available; x: 23; y: 21; text: "YOUR NEXT STEP"; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1 }
+            Text { visible: !detailArtwork.available; x: 23; y: 54; width: parent.width - 46; text: root.worlds.detail.availability; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 22; font.weight: Font.DemiBold }
+            Text { visible: !detailArtwork.available; x: 23; y: 151; width: parent.width - 46; text: root.worlds.detail.resume; elide: Text.ElideRight; textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 15 }
         }
         MountedPanel {
             anchors { bottom: parent.bottom; left: parent.left; right: parent.right }

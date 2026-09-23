@@ -1,4 +1,5 @@
 #include "integrations/achievements/TrainerAchievementProvider.h"
+#include "core/repository/BatoceraLibrary.h"
 #include "platform/device/VolumeKeys.h"
 #include "core/input/ControllerInput.h"
 #include "core/input/PointerVisibility.h"
@@ -102,6 +103,7 @@ int main(int argc, char* argv[]) {
     parser.addVersionOption();
     parser.addOption({"windowed", "Run in a development window instead of full-screen."});
     parser.addOption({"data-dir", "Use an explicit local data folder (development / isolated validation).", "directory"});
+    parser.addOption({"roms-dir", "Use a Batocera-compatible ROM folder (default: ~/Emulation/roms).", "directory"});
     parser.addOption({"ephemeral", "Use isolated in-memory sample data; do not open a persistent store."});
     parser.addOption({"sprite-dir", "Use optional private sprite detail assets.", "directory"});
     parser.addOption({"art-dir", "Use a private development artwork bootstrap directory.", "directory"});
@@ -200,7 +202,8 @@ int main(int argc, char* argv[]) {
         CollectionRepository collection(personalLibrary ? static_cast<LibraryRepository&>(*store) : repository);
         LibraryRepository& baseLibrary = personalLibrary ? (!smoke || persistencePhase == "collection" ? static_cast<LibraryRepository&>(collection) : *store) : repository;
         // State thumbnails are migration evidence, not normal launch targets.
-        LibraryRepository& activeLibrary = baseLibrary;
+        BatoceraLibrary folders(baseLibrary, parser.isSet("roms-dir") ? QDir(parser.value("roms-dir")).absolutePath() : QDir::home().filePath("Emulation/roms"));
+        LibraryRepository& activeLibrary = personalLibrary && !smoke ? static_cast<LibraryRepository&>(folders) : baseLibrary;
         std::unique_ptr<TrainerAchievementProvider> realAchievements;
         if (personalLibrary && !smoke) realAchievements = std::make_unique<TrainerAchievementProvider>(activeLibrary);
         AdventureAdapter* selectedAdapter = personalLibrary ? static_cast<AdventureAdapter*>(&unconfiguredAdapter) : &adapter;
@@ -236,6 +239,12 @@ int main(int argc, char* argv[]) {
                               realAchievements ? static_cast<AchievementProvider&>(*realAchievements) : shellAchievements);
         shell.configureServices(&files, store.get());
         if (personalLibrary && !smoke) {
+            folders.prepareInstallation = [&adapters](AdventureRegistration& record) { adapters.prepareInstallation(record); };
+            QObject::connect(store.get(), &LocalStateStore::opened, &folders, [&](bool ready) { if(ready)folders.refreshContentAvailability(); });
+            QObject::connect(&folders, &BatoceraLibrary::changed, &shell, &ShellController::refreshLibrary);
+            QObject::connect(&folders, &BatoceraLibrary::scanFinished, &shell, [](int added,const QStringList& warnings) {
+                qInfo() << "Library discovery:" << added << "added;" << warnings;
+            });
             shell.libraryManager()->prepareInstallation = [&adapters](AdventureRegistration& record) { adapters.prepareInstallation(record); };
             shell.libraryManager()->setInitialFolder(QDir::home().filePath("Emulation/roms"));
         }
@@ -290,8 +299,9 @@ int main(int argc, char* argv[]) {
             QObject::connect(saveBackups.get(),&SaveBackupService::operationFailed,&session,&SessionState::cancelPendingExit);
         }
         const auto updateServiceActivity = [&] {
-            session.setServiceActive(deviceService.busy() || (saveBackups && saveBackups->busy()));
+            session.setServiceActive(folders.busy() || deviceService.busy() || (saveBackups && saveBackups->busy()));
         };
+        QObject::connect(&folders, &BatoceraLibrary::busyChanged, &session, updateServiceActivity);
         QObject::connect(&deviceService, &DeviceService::changed, &session, updateServiceActivity);
         if (saveBackups) QObject::connect(saveBackups.get(), &SaveBackupService::busyChanged, &session, updateServiceActivity);
         ProcessService adventureProcess;

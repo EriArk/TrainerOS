@@ -1,5 +1,24 @@
 # TrainerOS Roadmap
 
+## Current execution override — owner library correction, 2026-09-23
+
+Pause further emulator groups and difficult ROM compatibility work. The next
+coherent chain is **Batocera folders + gamelist/media discovery → Settings-gated
+World wrench/edit popup → long-A game popover (rename/move/delete/properties)**.
+Adding games follows system folders; Pokémon Worlds remain region-based and
+filename/platform matching uses the existing catalogue. Preserve hacks and all
+prior acceptance. The owner's later RomM fork is separate. After this chain,
+resume the remaining handheld feature queue; emulator edge cases stay deferred.
+This supersedes dated “next runtime group” notes below, not their delivered
+evidence. Artwork packs/Pack Studio, save research and Help keep their late slots.
+See [folder contract and management acceptance](BATOCERA_LIBRARY.md).
+
+**Current slice:** folder discovery and gamelist artwork implemented and checked
+on Windows; Flip deployment/visual acceptance blocked by device disk-I/O stall
+during ARM compilation. Finish recovery, ARM checks, rehearsal and installed-build
+screenshots before starting the World/game editing slice. Existing production
+binary/database remain unchanged. This is pending delivery, not a completed phase.
+
 **Owner scheduling amendment, 2026-09-23:** generic artwork-pack installation,
 selection, verification/update/removal and Pack Studio all move to the final
 artwork delivery stage. Existing private illustrations remain in both the Dex

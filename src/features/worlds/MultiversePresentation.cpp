@@ -90,7 +90,8 @@ QVariantMap MultiversePresentation::present(const Game& game) const {
         for(const auto& session:repository_->recentSessions())if(session.adventureId==game.id){time="Last opened "+session.startedAt.toLocalTime().toString("dd MMM · HH:mm");break;}
     }
     return {{"id",game.id},{"title",game.title},{"system",system},{"linked",game.linked},{"playable",playable},
-        {"description",description},{"preview",preview},{"time",time},
+        {"description",description},{"preview",preview.isEmpty() && repository_ ? repository_->artwork(game.id).value("cover").toString() : preview},{"time",time},
+        {"artwork",repository_ ? repository_->artwork(game.id) : QVariantMap{}},
         {"action",playable?"Start Adventure":game.linked?"Set up Adventure":"File unavailable"},
         {"status",sample_ ? (game.linked?"Sample linked entry":"Sample missing file") : !game.linked?"File unavailable":playable?"Ready to play":"Needs setup"}};
 }
@@ -123,7 +124,7 @@ QVariantList MultiversePresentation::choices() const {
     QVariantList result;
     for (const auto& game : entries_) if (game.linked) {
         auto row = present(game);
-        row["world"] = row["system"]; row["previewLabel"] = sample_ ? "Development sample" : row["preview"].toString().isEmpty()?"Adventure":"Last exit";
+        row["world"] = row["system"]; row["previewLabel"] = sample_ ? "Development sample" : repository_ && repository_->exitMedia(game.id)?"Last exit":"Adventure";
         row["location"] = ""; row["summary"] = sample_ ? "Select for Home · no launch in preview" : "Choose for Home";
         result.append(row);
     }

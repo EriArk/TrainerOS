@@ -2,6 +2,7 @@
 #include "core/model/Models.h"
 #include "core/model/ExitMedia.h"
 #include <QObject>
+#include <QVariantMap>
 #include <functional>
 
 namespace trainer {
@@ -16,6 +17,7 @@ public:
     virtual void refreshResumePoints(const QString& = {}) {}
     virtual QList<PlaySession> recentSessions() const { return {}; }
     virtual std::optional<ExitMedia> exitMedia(const QString&) const { return {}; }
+    virtual QVariantMap artwork(const QString&) const { return {}; }
     virtual std::optional<qint64> recordedSeconds(const QString&) const { return {}; }
     virtual HomeSnapshot home() const = 0;
     virtual bool editable() const { return false; }
