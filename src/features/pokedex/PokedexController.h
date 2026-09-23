@@ -27,10 +27,8 @@ class PokedexController final : public QObject {
     Q_PROPERTY(QString source READ source NOTIFY changed)
     Q_PROPERTY(QString artCoverage READ artCoverage NOTIFY changed)
     Q_PROPERTY(QVariantList artChoices READ artChoices NOTIFY changed)
-    Q_PROPERTY(QVariantList spriteChoices READ spriteChoices NOTIFY changed)
     Q_PROPERTY(QVariantMap spriteClips READ spriteClips NOTIFY changed)
     Q_PROPERTY(QVariantMap spritePreview READ spritePreview NOTIFY changed)
-    Q_PROPERTY(QString spriteStatus READ spriteStatus NOTIFY changed)
 public:
     PokedexController(PokedexReferenceProvider&, PokedexProgressRepository&, QObject* parent = nullptr);
     QString zone() const { return zone_; }
@@ -52,10 +50,8 @@ public:
     void configureArtwork(ClassicArt* art);
     void configureSprites(SpriteArt* sprites);
     QVariantList spriteChoices() const;
-    QString spriteStatus() const;
     QVariantMap spritePreview() const;
     QVariantMap spriteClips() const;
-    Q_INVOKABLE void openSprites();
     QString artCoverage() const;
     QVariantList artChoices() const;
     Q_INVOKABLE void openArtwork();
@@ -97,7 +93,7 @@ private:
     bool saving_ = false;
     int railFocus_ = 0, detailFocus_ = 0, pickerFocus_ = 0, pickerKind_ = 1;
     ClassicArt* art_ = nullptr;
-    int artFocus_ = 0, spriteFocus_ = 0;
+    int artFocus_ = 0;
     SpriteArt* sprites_ = nullptr;
     QString artTarget() const;
 };

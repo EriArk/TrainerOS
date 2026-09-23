@@ -312,5 +312,5 @@ The goal is simple: opening the Flip should feel like powering on **a personal P
 
 Optional [sprites and portraits](docs/POKEDEX_SPRITES.md) add a small animated
 companion to the selected Pokédex entry without replacing either illustration.
-Down opens its source/portrait viewer; Up retains illustration choices.
+The companion needs no separate viewer; Up retains illustration choices.
 Generic art-pack management, like Pack Studio, is deferred to the final stage.

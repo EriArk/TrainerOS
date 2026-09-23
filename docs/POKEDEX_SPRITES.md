@@ -1,4 +1,18 @@
-# Optional Pokédex sprites and portraits
+# Optional Pokédex companion
+
+**Owner refinement, 2026-09-23:** the separate sprite/portrait viewer described
+in the initial delivery evidence below has been removed. Normal Pokédex use
+keeps the illustration and animated companion without asset-inspection controls.
+Author-entry tooling and consolidated Credits move to final pack/Pack Studio
+delivery; existing per-asset authors, sources and terms remain in private data.
+
+The removal passed the full Windows 36/36 and ARM64 40/40 checks. The populated
+native Flip scenario also passed: illustration/actor rendering, motion/pause,
+Down retaining normal detail focus, Start/page restoration and direct Back to
+entries. No provider, asset, save or personal-record migration accompanies it.
+The non-testing update was installed with rollback copies; hash, database
+integrity, unchanged Trainer and 686 Adventures were verified. Production
+Gamescope captures after Down and Back confirm the simplified detail/list.
 
 The existing illustration stays in both the species list and the selected entry.
 An optional small sprite lives in the upper-right detail margin, leaving the
@@ -7,11 +21,11 @@ reference-species presentation, not an observed Party member or save state.
 
 ## Controls and movement
 
-- Up on detail retains Illustrations & sources. Down opens Sprites & portraits;
-  Left/Right browses available motion strips and emotions with source/artist/terms.
-  A or B returns to the same detail. Missing exact forms have a usable Back action.
-- Start covers and restores the viewer; shared Y and paired triggers cannot leak
-  through it. L1/R1 retains primary navigation and closes the viewer normally.
+- Up on detail retains illustration choices. Down keeps the normal detail;
+  B returns directly to entries. No separate motion-strip/emotion browser,
+  asset URL, attribution tray or sprite-related focus stop is added.
+- Start covers and restores detail; L1/R1 retains primary navigation. Existing
+  shared Y, paired triggers and illustration-panel modal priority remain intact.
 - The detail sprite occasionally idles, sleeps for five seconds, or walks behind
   the right edge and immediately walks back. Each outward/inward leg takes 1.5
   seconds. A random choice occurs every 10–18 seconds; missing Sleep/Walk clips
@@ -76,8 +90,8 @@ Animation uses one frame timer per visible sprite plus finite movement/nap timer
 Synthetic tests cover exact-form/shiny isolation, missing/corrupt files, hashes,
 path rejection, pixel limits, per-action attribution, sheet direction/timing and
 controller return. The extended artwork SDL scenario checks that the illustration
-remains visible, the optional sprite loads, sleep/menu pause/walk return, viewer
-focus/modal priority and paired-form fallback. A run without private assets tests
+remains visible, the optional sprite loads, sleep/menu pause/walk return, normal
+detail focus/Back without an inspector and paired-form fallback. A run without private assets tests
 absence; it cannot certify animation. Native populated checks are recorded below.
 
 ### 2026-09-23 verification

@@ -6,9 +6,8 @@ Item {
     readonly property var dex: shell.pokedex
     enabled: !shell.drawerOpen
     readonly property bool takesFocus: visible && !shell.drawerOpen && !dex.journal.open && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
-    readonly property bool detailOpen: dex.zone === "detail" || dex.zone === "art" || dex.zone === "sprites"
+    readonly property bool detailOpen: dex.zone === "detail" || dex.zone === "art"
     readonly property bool artOpen: dex.zone === "art"
-    readonly property bool spritesOpen: dex.zone === "sprites"
     readonly property bool pickerOpen: dex.zone === "picker"
 
     Item {
@@ -124,7 +123,7 @@ Item {
         Text { x: 29; y: 95; text: root.dex.detail.types; color: Theme.muted; font.pixelSize: 19 }
         Text { x: 420; y: 98; width: parent.width - 448; text: "Height " + root.dex.detail.height + "   ·   Weight " + root.dex.detail.weight; color: Theme.muted; font.pixelSize: 16; horizontalAlignment: Text.AlignRight }
         ClassicIllustration { objectName: "dex-detail-art"; x: 20; y: 119; width: 240; height: 164; art: root.dex.detail.art || ({}); showLabel: true }
-        Text { x: 37; y: 286; text: "↑ Illustrations   ↓ Sprites & portraits"; color: Theme.muted; font.pixelSize: 12 }
+        Text { x: 37; y: 286; text: "↑ Illustrations"; color: Theme.muted; font.pixelSize: 12 }
         Rectangle {
             x: 274; y: 126; width: 280; height: 166; color: "#d6e4d8"
             Text { x: 25; y: 8; text: "BASE STATS · REFERENCE"; color: Theme.muted; font.pixelSize: 11; font.letterSpacing: 1 }
@@ -158,7 +157,7 @@ Item {
                 objectName: "dex-favorite"
                 x: 28; y: 17; width: 231; height: 46; tint: Theme.yellow
                 label: root.dex.saving ? "Saving…" : root.dex.detail.favorite ? "A   Remove favorite" : "A   Add favorite"
-                selected: root.takesFocus && !root.artOpen && !root.spritesOpen && root.detailOpen && root.dex.focusIndex === 0
+                selected: root.takesFocus && !root.artOpen && root.detailOpen && root.dex.focusIndex === 0
                 onActivated: root.shell.activate(0)
             }
             CapButton { x: 277; y: 17; width: 215; height: 46; tint: Theme.green; label: "Select  Journal"; enabled: root.dex.detail.editable; onActivated: root.dex.editJournal() }
@@ -166,7 +165,7 @@ Item {
             CapButton {
                 objectName: "dex-back"
                 x: 704; y: 17; width: 184; height: 46; tint: Theme.blue; label: "B   Back to entries"
-                selected: root.takesFocus && !root.artOpen && !root.spritesOpen && root.detailOpen && root.dex.focusIndex === 1
+                selected: root.takesFocus && !root.artOpen && root.detailOpen && root.dex.focusIndex === 1
                 onActivated: root.shell.activate(1)
             }
         }
@@ -201,6 +200,5 @@ Item {
         }
     }
     PokedexJournalPanel { anchors.fill: parent; shell: root.shell; visible: root.dex.journal.open }
-    SpritePanel { anchors.fill: parent; dex: root.dex; visible: root.spritesOpen; takesFocus: root.takesFocus && root.spritesOpen }
     ArtworkPanel { anchors.fill: parent; dex: root.dex; visible: root.artOpen; takesFocus: root.takesFocus && root.artOpen }
 }

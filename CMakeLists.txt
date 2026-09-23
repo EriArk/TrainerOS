@@ -224,7 +224,6 @@ qt_add_qml_module(traineros
         src/qml/SpeciesPickerPanel.qml
         src/qml/ClassicIllustration.qml
         src/qml/ArtworkPanel.qml
-        src/qml/SpritePanel.qml
         src/qml/SpritePreview.qml
         src/qml/SpriteActor.qml
         src/qml/SaveCenterPanel.qml

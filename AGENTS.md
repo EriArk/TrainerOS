@@ -8,6 +8,12 @@ read-only local provider; its necessary validation is not a generic pack manager
 The next order is sprites/portraits, P2 ownership, then P3/P4 library binding.
 All earlier acceptance remains; ROADMAP is the execution queue.
 
+**Owner interface clarification, 2026-09-23:** no separate sprite/portrait
+inspector in normal Pokédex use. Keep the illustration and animated companion.
+Defer author-entry tooling and consolidated Credits to the final pack/Pack Studio
+stage. Preserve per-asset authors, sources and terms in the underlying data now;
+do not add technical asset panels to ordinary screens.
+
 This file is the working contract for Codex and other coding agents in this repository.
 
 ## Read first

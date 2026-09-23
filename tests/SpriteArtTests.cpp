@@ -49,13 +49,12 @@ private slots:
         QTemporaryDir dir; fixture(dir.path()); SpriteArt sprites(dir.path());
         OfflinePokedex reference; MockPokedexRepository progress; PokedexController dex(reference,progress);
         dex.configureSprites(&sprites); dex.applySearch("37"); dex.activateControl("list",0);
-        const auto original=dex.detail(); dex.dispatch(Action::Down); QCOMPARE(dex.zone(),"sprites");
-        QCOMPARE(dex.spriteChoices().size(),1); dex.dispatch(Action::Right); QCOMPARE(dex.focusIndex(),0);
-        dex.dispatch(Action::Secondary); QCOMPARE(dex.detail()["formId"],original["formId"]);
-        dex.dispatch(Action::Back); QCOMPARE(dex.zone(),"detail"); QCOMPARE(dex.detail(),original);
+        const auto original=dex.detail(); dex.dispatch(Action::Down); QCOMPARE(dex.zone(),"detail");
+        QCOMPARE(dex.spriteChoices().size(),1); QCOMPARE(dex.detail(),original);
         dex.dispatch(Action::Up); QCOMPARE(dex.zone(),"art"); dex.dispatch(Action::Back);
-        dex.cycleForm(); dex.openSprites(); QVERIFY(dex.spriteChoices().isEmpty());
+        dex.cycleForm(); QVERIFY(dex.spriteChoices().isEmpty());
         dex.cancelTransient(); QCOMPARE(dex.zone(),"detail");
+        dex.dispatch(Action::Back); QCOMPARE(dex.zone(),"list");
     }
 };
 QTEST_GUILESS_MAIN(SpriteArtTests)

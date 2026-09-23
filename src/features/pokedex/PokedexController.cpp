@@ -32,11 +32,6 @@ QVariantMap PokedexController::spriteClips() const {
     for (const auto& row : spriteChoices()) if (row.toMap()["kind"] == "sprite") result[row.toMap()["action"].toString()] = row;
     return result;
 }
-QString PokedexController::spriteStatus() const { return sprites_ ? sprites_->status() : "Sprites not installed"; }
-void PokedexController::openSprites() {
-    if (zone_ != "detail" || journal_.isOpen() || saving_) return;
-    spriteFocus_ = 0; zone_ = "sprites"; emit changed();
-}
 QString PokedexController::artTarget() const {
     if (filtered_.isEmpty()) return {};
     const auto& entry = filtered_[entryIndex()];
@@ -63,7 +58,6 @@ int PokedexController::entryIndex() const {
     return 0;
 }
 int PokedexController::focusIndex() const {
-    if (zone_ == "sprites") return spriteFocus_;
     if (zone_ == "art") return artFocus_;
     if (zone_ == "picker") return pickerFocus_;
     if (zone_ == "rail") return railFocus_;
@@ -264,7 +258,7 @@ void PokedexController::openPicker(int index) {
 }
 void PokedexController::cancelTransient() {
     journal_.cancel();
-    if (zone_ == "art" || zone_ == "sprites") { zone_ = "detail"; emit changed(); }
+    if (zone_ == "art") { zone_ = "detail"; emit changed(); }
     if (zone_ == "picker") { zone_ = "rail"; emit changed(); }
 }
 void PokedexController::applySearch(const QString& text) {
@@ -274,7 +268,6 @@ void PokedexController::applySearch(const QString& text) {
 }
 void PokedexController::activate(int index) {
     if(journal_.isOpen()){journal_.activate(index);return;}
-    if (zone_ == "sprites") { zone_ = "detail"; emit changed(); return; }
     if (zone_ == "art") {
         const auto choices = artChoices();
         if (!choices.isEmpty() && index >= 0 && index < choices.size()) {
@@ -332,13 +325,6 @@ void PokedexController::activateControl(const QString& zone, int index) {
 }
 void PokedexController::dispatch(Action action) {
     if(journal_.isOpen()){journal_.dispatch(action);return;}
-    if (zone_ == "sprites") {
-        if (action == Action::Back || action == Action::Confirm) zone_ = "detail";
-        else if (action == Action::Left) spriteFocus_ = std::max(0, spriteFocus_ - 1);
-        else if (action == Action::Right) spriteFocus_ = std::min(std::max(0, int(spriteChoices().size()) - 1), spriteFocus_ + 1);
-        emit changed(); return;
-    }
-    if (zone_ == "detail" && action == Action::Down) { openSprites(); return; }
     if (zone_ == "art") {
         if (action == Action::Back) zone_ = "detail";
         else if (action == Action::Confirm) { activate(artFocus_); return; }

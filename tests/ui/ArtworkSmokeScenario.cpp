@@ -169,36 +169,18 @@ void startArtworkSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             press(down); state->imageWaits=0; state->stage=9; return;
         }
         if (state->stage == 9) {
-            check(dex->zone()=="sprites","Down opens separate sprite viewer");
+            check(dex->zone()=="detail","Down keeps the Pokemon detail; no sprite inspector");
             auto* control=window->activeFocusItem();
-            check(control && control->objectName()=="dex-sprite-back","Sprite viewer has fixed Back focus");
-            auto* image=window->findChild<QQuickItem*>("dex-sprite-image");
-            if (!dex->spriteChoices().isEmpty()) {
-                if (image && !image->property("ready").toBool() && state->imageWaits++<20) return;
-                check(image && image->property("ready").toBool(),"Optional sprite asset renders");
-            }
-            capture("sprite-body-1080p");
-            const auto choices=dex->spriteChoices();
-            for (int i=0;i<choices.size();++i) {
-                if (choices[i].toMap()["kind"]=="portrait") break;
-                press(right);
-            }
-            state->imageWaits=0; state->stage++; return;
-        }
-        if (state->stage == 10) {
-            auto* image=window->findChild<QQuickItem*>("dex-sprite-image");
-            if (!dex->spriteChoices().isEmpty() && image && !image->property("ready").toBool() && state->imageWaits++<20) return;
-            capture("sprite-portrait-1080p");
-            press(SDL_CONTROLLER_BUTTON_X); check(!shell.drawerOpen(),"Shared Y cannot leak through sprite viewer");
-            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767); input.poll();
-            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768); input.poll();
-            check(!shell.centerFace(),"Sprite viewer traps paired navigation");
-            press(SDL_CONTROLLER_BUTTON_START); press(b); check(dex->zone()=="sprites","Start restores sprite viewer");
-            press(b); check(dex->zone()=="detail","Sprite Back restores illustration detail");
-            press(down); press(r1); press(l1); check(dex->zone()=="detail","Page switch closes sprite viewer");
-            dex->applySearch("37"); dex->activateControl("list",0); press(SDL_CONTROLLER_BUTTON_Y); press(down);
+            check(control && control->objectName()=="dex-favorite","Detail retains its normal action focus");
+            check(!window->findChild<QQuickItem*>("dex-sprite-back"),"No separate sprite viewer exists");
+            capture("detail-without-inspector");
+            press(SDL_CONTROLLER_BUTTON_START); press(b);
+            check(dex->zone()=="detail","Start returns to the Pokemon detail");
+            press(r1); press(l1); check(dex->zone()=="detail","Page navigation preserves detail");
+            press(b); check(dex->zone()=="list","Back goes straight to entries");
+            dex->applySearch("37"); dex->activateControl("list",0); press(SDL_CONTROLLER_BUTTON_Y);
             if (QGuiApplication::platformName()=="offscreen") window->resize(960,540);
-            state->stage++; return;
+            state->stage=11; return;
         }
         if (state->stage == 11) {
             capture("sprite-form-960"); press(b);

@@ -416,8 +416,10 @@ completing the existing east-A/south-B Switch layout. Emulator input is unchange
 
 ## Pokédex sprite detail - 2026-09-23
 
-Illustrations remain in both list and detail. Down on detail opens the separate
-sprite/portrait viewer; Left/Right browses and A/B returns. Up retains the existing
-illustration-source panel. Start restoration, global L1/R1 and modal priority
-remain unchanged. The small optional header actor has no focus stop.
+Illustrations remain in both list and detail. The optional header actor has no
+focus stop or separate inspector. Down stays on detail; B goes straight back to
+entries. Up retains the existing illustration choices. Start restoration,
+global L1/R1 and modal priority remain unchanged. Author-entry tooling and
+consolidated Credits belong to the final pack/Pack Studio stage; underlying
+attribution records stay intact.
 [Source, movement and pause contract](POKEDEX_SPRITES.md).
