@@ -13,11 +13,10 @@ This supersedes dated “next runtime group” notes below, not their delivered
 evidence. Artwork packs/Pack Studio, save research and Help keep their late slots.
 See [folder contract and management acceptance](BATOCERA_LIBRARY.md).
 
-**Current slice:** folder discovery and gamelist artwork implemented and checked
-on Windows; Flip deployment/visual acceptance blocked by device disk-I/O stall
-during ARM compilation. Finish recovery, ARM checks, rehearsal and installed-build
-screenshots before starting the World/game editing slice. Existing production
-binary/database remain unchanged. This is pending delivery, not a completed phase.
+**Current slice delivered:** Batocera folder discovery and gamelist artwork are
+installed on Flip, with preservation rehearsal, ARM checks, real folder-added
+game launch/return and handheld screenshots. **Next:** Settings-gated World
+wrench/edit popup and long-A game management, preserving IDs, media and saves.
 
 **Owner scheduling amendment, 2026-09-23:** generic artwork-pack installation,
 selection, verification/update/removal and Pack Studio all move to the final
@@ -32,6 +31,8 @@ Reconciled on **2026-09-19** for **#1–64**, including the updated #9/#13/#15/#
 This is a dependency replan, not a reset. The [pre-expansion plan](https://github.com/EriArk/TrainerOS/blob/252f04e0772bd05966fb212ca736d303cab366ea/docs/ROADMAP.md) and the preservation map below make previous commitments traceable. Read the phase table for what comes next, then the referenced acceptance; do not execute the old numbered register as a competing queue.
 
 ## Delivered increments under this plan
+
+- **2026-09-23 — P3/P4 Batocera library and media:** startup/Worlds folder discovery, catalogue matching and gamelist artwork delivered without replacing existing owner metadata/history. All 819 previous Adventure rows preserved; six Smash editions and one real folder-added F-Zero bring the library to 826. Imported private graphics match 88 Multiverse titles. Windows checks, ARM 44/44 and final scanner regression checks passed; actual Flip launch/guarded return, controller navigation and screenshots verified. [Evidence and limits](BATOCERA_LIBRARY.md#delivery-status--2026-09-23). World/game editing remains next; further emulator compatibility work remains deferred.
 
 - **2026-09-23 - P4 Mega-CD/Neo Geo CD:** connected eight existing registrations through Genesis Plus GX and the installed NeoCD core, with reviewed BIOS identities rechecked before launch and bounded CUE companion/CHD preflight. Windows 39/39 and ARM64 43/43 passed; Sonic CD and Metal Slug reached playable levels on Flip with injected controller input and guarded return. The collection has 88 configured records and 45 remaining setup gaps. [Evidence and limits](MULTIVERSE_DISCS.md). Next: PlayStation with controller-accessible multidisc handling, then remaining viable runtime groups; full disc exit-media identity/pictures belongs to the pending P4 media slice. All later queue entries remain.
 
@@ -284,6 +285,13 @@ This register reconciles the former milestones 4–14 with current module docume
 ### U1. Device reliability and durable installation — open investigation
 
 Source: [device baseline](ARMADA_DEVICE_BASELINE.md), [session recovery](SESSION_PROTOTYPE.md), former milestones 4/10/11/14.
+
+**2026-09-23 observation:** after reboot and maintenance/session transitions, the
+physical pad's read ACL was absent despite a successful boot-hook log. Reapplying
+the existing grant helper restored guarded exit. Verify/reconcile permission
+lifetime across session changes and reboot; do not report the manual recovery as
+a durable fix. The later single-job ARM build completed with zero Btrfs device
+error counters; the earlier I/O stall remains unexplained.
 
 The earlier simultaneous internal-storage/microSD I/O stall has no proven root cause. Existing boot, crash survival and fallback tests remain valid evidence; they do not diagnose that stall. Before heavy transfer/cleanup, check the current installation's storage/journal health and preserve relevant fault evidence. If the failure recurs, distinguish I/O blockage, compositor failure, display-off and sleep without forcing a reproduction that risks user saves. Fix and verify a demonstrated cause, or record the remaining unknown and the conditions observed; do not mark an intermittent fault solved after a successful reboot. Durable installation and readable recovery must be retained through every update. Sleep work is U13, not an explanation by default.
 

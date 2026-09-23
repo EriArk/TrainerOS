@@ -45,7 +45,12 @@ Discovery currently covers the cartridge/disc/arcade extensions in
 `BatoceraLibrary.cpp`; existing registered files on other platforms still receive
 metadata. Recognized extensions are not a promise of an installed working emulator.
 Playlist member discs are not separately added; existing bindings remain intact.
-Common arcade BIOS archives and Neo Geo CD companion descriptors are excluded.
+Common arcade BIOS archives, NAOMI/Atomiswave companion CHDs and Neo Geo CD
+companion descriptors are excluded from new discovery. Explicitly labelled DLC
+and update files are not standalone Adventures; existing registrations remain
+intact. These dependency rules follow Batocera's [NAOMI layout](https://wiki.batocera.org/systems:naomi)
+and [FBNeo BIOS placement](https://wiki.batocera.org/systems:fbneo).
+Known catalogue matches retain dump annotations as their edition/variant label.
 
 ## Metadata and artwork
 
@@ -111,11 +116,33 @@ system folders, plus 300 private images from the owner's server matching 88
 Multiverse games. These private files are not in Git. Preparation does not change
 TrainerOS database rows or ROM/save bytes.
 
-**Handheld delivery is pending.** The ARM build stalled while the device's Btrfs
-writeback/transaction workers and build process waited on disk I/O. Memory pressure
-was zero, available memory about 5.3 GiB; full I/O pressure was about 96–99%.
-Cancelled this build and cleared its requested container freeze. Do not label the
-old installed binary as the new feature. ARM tests, database-copy rehearsal,
-GameCube folder alias migration, production install, actual controller inspection
-and handheld screenshots remain required after device recovery. No production
-binary or database was replaced in this attempt.
+**Installed and checked on Flip.** After the owner's reboot, Btrfs device error
+counters were zero and the single-job ARM build completed; all 44 ARM checks
+passed. This does not establish the cause of the earlier disk-I/O stall.
+Database-copy rehearsal exposed arcade dependencies/DLC being mistaken for games;
+the correction passed dedicated Windows and ARM regression tests before delivery.
+The second rehearsal scan added nothing. Production installation retained all
+819 original Adventure rows byte-for-byte and added six recognized Smash editions
+in Crossovers, preserving their distinct identities. `gamecube/` is now canonical,
+with `gc/` as a compatibility symlink for existing paths. The prior binary and
+database were backed up; schema remains 11, SQLite and foreign-key checks pass.
+
+A new F-Zero: Maximum Velocity ROM copied from the owner's server was discovered
+by the running shell without SQL/manual registration, selected for Home, launched
+through the existing mGBA route and returned through guarded exit. Final library:
+826 records (692 Pokémon, 134 Multiverse). Its SHA-256 matched the source.
+A first test source, Mario Kart: Super Circuit, contained only zero bytes; its
+new test copy was quarantined outside the library and its sole failed test record
+removed after backup. Server originals and pre-existing records were untouched.
+
+Injected controller input on the actual installed build exercised L1/R1, lists,
+A selection versus Home launch, Back and the Y drawer. Actual Gamescope captures
+were shown in chat: Sonic CD details with imported logo/image, the new game's
+launch and the drawer mixing real exit captures with imported-art fallback.
+Private media and captures remain outside Git. Installed binary SHA-256:
+`010fca3066753ab9644c436168ac8e8e4f390773c6f9b6f50bfc353602e97d15`.
+
+Device reliability follow-up: the raw-pad read ACL was absent after reboot and
+maintenance/session transitions, although the boot hook logged success. Running
+the existing grant helper restored guarded exit; its persistence across those
+transitions remains an explicit U1 investigation, not a claimed permanent fix.

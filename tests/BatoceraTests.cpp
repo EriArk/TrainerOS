@@ -16,6 +16,25 @@ void put(const QString& path,const QByteArray& bytes="Test fixture, not a ROM.")
 class BatoceraTests final : public QObject {
     Q_OBJECT
 private slots:
+    void gameVariantsExcludeDependenciesAndDlc() {
+        QTemporaryDir dir;
+        put(dir.filePath("naomi/ikaruga.zip"));put(dir.filePath("naomi/ikaruga/gdl-0010.chd"));
+        put(dir.filePath("naomi/hod2bios.zip"));put(dir.filePath("naomi/naomigd.7z"));
+        put(dir.filePath("fbneo/qsound.zip"));put(dir.filePath("fbneo/qsound_hle.7z"));
+        put(dir.filePath("wiiu/Super Smash Bros. for Wii U (USA) (DLC) (v304).wua"));
+        put(dir.filePath("switch/Fixture (Update).nsp"));
+        put(dir.filePath("n64/Super Smash Bros. (US) (LodgeNet).z64"));
+        put(dir.filePath("gamecube/Super Smash Bros. Melee (Player's Choice)(USA).iso"));
+        const auto scan=scanBatoceraLibrary(dir.path(),{});QCOMPARE(scan.entries.size(),3);
+        int crossovers=0;
+        for(const auto& entry:scan.entries)if(entry.record.adventure.worldId=="crossovers") {
+            ++crossovers;QCOMPARE(entry.record.adventure.domain,"pokemon");
+            QVERIFY(!entry.record.adventure.catalogueId.isEmpty());QVERIFY(!entry.record.adventure.variant.isEmpty());
+        }
+        QCOMPARE(crossovers,2);
+        AdventureRegistration existing;existing.contentPath=dir.filePath("naomi/ikaruga/gdl-0010.chd");existing.adventure.id="legacy-disc";
+        QCOMPARE(scanBatoceraLibrary(dir.path(),{existing}).entries.size(),4);
+    }
     void filesystemMetadataAndCatalogue() {
         QTemporaryDir dir;
         put(dir.filePath("gba/Family/Pokemon - Emerald Version (USA, Europe).gba"));

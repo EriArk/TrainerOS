@@ -30,7 +30,7 @@ const QHash<QString,QStringList>& formats() {
         {"ngp",{"ngp","zip","7z"}}, {"ngpc",{"ngc","ngp","zip","7z"}},
         {"neogeo",{"zip","7z"}}, {"neogeocd",{"chd","cue","ccd","m3u"}},
         {"fbneo",{"zip","7z"}}, {"mame",{"zip","7z"}},
-        {"naomi",{"zip","7z","chd"}}, {"atomiswave",{"zip","7z","chd"}}};
+        {"naomi",{"zip","7z"}}, {"atomiswave",{"zip","7z"}}};
     return value;
 }
 QString key(const QString& path) {
@@ -53,7 +53,7 @@ QString nameKey(QString value) {
     value.remove(QRegularExpression("\\p{M}"));
     value.remove(QRegularExpression("^\\d{4}\\s*[-.]\\s*"));
     // Strip only known dump annotations; hack/translation titles remain distinct.
-    value.remove(QRegularExpression("\\((?:usa|europe|world|australia|korea|japan|rev [0-9.]+|v[0-9.]+|[a-z]{2}(?:,[a-z]{2})+)(?:, (?:usa|europe|japan))*\\)"));
+    value.remove(QRegularExpression("\\((?:usa|us|au|u|e|j|europe|world|australia|korea|japan|player's choice|lodgenet|rev [0-9.]+|v[0-9.]+|[a-z]{2}(?:,[a-z]{2})+)(?:, (?:usa|europe|japan))*\\)"));
     value.remove(QRegularExpression("\\[!\\]"));
     value.remove(QRegularExpression("\\bversion\\b"));
     value.replace("pocket monsters","pokemon");
@@ -64,7 +64,7 @@ QString nameKey(QString value) {
 Adventure identify(const QString& filename,const QString& platform,bool hack) {
     const QString stem=QFileInfo(filename).completeBaseName();
     const auto normalized=nameKey(stem);
-    const bool japanese=stem.contains(QRegularExpression("\\(Japan(?:,|\\))",QRegularExpression::CaseInsensitiveOption));
+    const bool japanese=stem.contains(QRegularExpression("\\((?:Japan|J)(?:,|\\))",QRegularExpression::CaseInsensitiveOption));
     QList<Adventure> matches;
     for(const auto& a:collectionCatalogue()) {
         if(hack || a.platformId!=platform)continue;
@@ -74,7 +74,14 @@ Adventure identify(const QString& filename,const QString& platform,bool hack) {
         const bool yellow=a.catalogueId=="yellow-gb" && normalized=="pokemonyellow";
         if(title==normalized || yellow)matches.append(a);
     }
-    if(matches.size()==1) {auto a=matches.front();a.collectionOnly=false;return a;}
+    if(matches.size()==1) {
+        auto a=matches.front();a.collectionOnly=false;
+        QStringList edition;
+        auto annotations=QRegularExpression("\\(([^()]*)\\)").globalMatch(stem);
+        while(annotations.hasNext())edition.append(annotations.next().captured(1));
+        a.variant=plain(edition.join(" · "),96);
+        return a;
+    }
     Adventure a;
     a.title=plain(stem,96);a.platformId=platform;a.adapterId="unconfigured";
     // Unidentified Pokémon editions/hacks are never merged into a base game.
@@ -133,7 +140,15 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
             if(++visited>50000) {result.warnings.append(folder.fileName()+": folder scan limit reached");break;}
             if(!file.isFile() || !file.isReadable())continue;
             const auto path=key(file.absoluteFilePath());
-            if(QStringList{"neogeo.zip","neocdz.zip","awbios.zip","naomi.zip"}.contains(file.fileName().toLower()) && !known.contains(path))continue;
+            if(!known.contains(path)) {
+                // Batocera arcade sets keep dependencies next to their games.
+                // CHDs on NAOMI/Atomiswave are companions, not separate entries.
+                const bool arcade=QStringList{"fbneo","mame","neogeo","neogeocd","naomi","atomiswave"}.contains(platform);
+                const bool archive=QStringList{"zip","7z"}.contains(file.suffix().toLower());
+                if(arcade && archive && QStringList{"neogeo","neocdz","awbios","naomi","naomigd","naomi2",
+                    "hod2bios","f355bios","f355dlx","airlbios","qsound","qsound_hle","pgm","skns","midssio"}.contains(file.completeBaseName().toLower()))continue;
+                if(file.fileName().contains(QRegularExpression("[\\[(](?:DLC|Update|Update Data)[\\])]",QRegularExpression::CaseInsensitiveOption)))continue;
+            }
             if(file.suffix().compare("ccd",Qt::CaseInsensitive)==0 && !known.contains(path)
                 && QFileInfo::exists(file.absolutePath()+"/"+file.completeBaseName()+".cue"))continue;
             if(!formats().value(platform).contains(file.suffix().toLower()) && !known.contains(path))continue;
