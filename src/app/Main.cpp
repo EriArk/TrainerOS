@@ -204,8 +204,15 @@ int main(int argc, char* argv[]) {
         std::unique_ptr<TrainerAchievementProvider> realAchievements;
         if (personalLibrary && !smoke) realAchievements = std::make_unique<TrainerAchievementProvider>(activeLibrary);
         AdventureAdapter* selectedAdapter = personalLibrary ? static_cast<AdventureAdapter*>(&unconfiguredAdapter) : &adapter;
-        const auto retroarchInstallation = personalLibrary && !smoke
+        auto retroarchInstallation = personalLibrary && !smoke
             ? RetroArchInstallation::load(QDir(stateDirectory).filePath("integrations/retroarch.json")) : RetroArchInstallation{};
+        if(personalLibrary && !smoke) {
+            retroarchInstallation.saves=std::make_shared<RetroArchSaveSession>();
+            QObject::connect(store.get(), &LocalStateStore::opened, store.get(),
+                [&, saves=retroarchInstallation.saves](bool success) {
+                    if(success)saves->bind({store->ownerId(),stateDirectory,store->usesLegacyStorage()});
+                });
+        }
         RetroArchAdapter retroarch(activeLibrary, retroarchInstallation);
         const auto standaloneInstallation = [&](const QString& id) {
             return personalLibrary && !smoke

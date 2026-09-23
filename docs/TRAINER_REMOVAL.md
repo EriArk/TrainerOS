@@ -83,3 +83,11 @@ explanatory copy as a substitute. The repository contract records it in AGENTS.m
   return). Private captures, backups and verification manifests remain outside
   Git. Human button comfort and destructive power-loss testing were not claimed;
   existing session-transition recovery follow-up stays in P10/P12.
+
+## Per-Trainer save follow-up - 2026-09-23
+
+The first [GBA/mGBA per-Trainer ordinary-save route](TRAINER_SAVES.md) binds
+launch, existing progress observations and backup shelves to the active Trainer.
+Original legacy saves/backups remain in place; new Trainers start fresh. Other
+emulator save routes remain shared until verified separately. This supersedes
+earlier statements that all external saves are still shared.

@@ -34,7 +34,8 @@ favorites, history, Hall and navigation to explicit owners. Schema 9 binds real
 profiles, Switch Player and separate TrainerOS RA account/cache directories.
 Schema 10 adds [optional PIN entry and a device-wide family reset code](TRAINER_ACCESS.md).
 [Active-profile deletion](TRAINER_REMOVAL.md) is delivered on schema 10;
-per-Trainer ordinary-save routing and remaining domain binding are still **planned**.
+The first [GBA/mGBA per-Trainer save route](TRAINER_SAVES.md) is delivered;
+additional runtime namespaces and remaining domain binding are still **planned**.
 [Expansion acceptance](EXPANSION_PLAN.md) and [roadmap P2–P4](ROADMAP.md#unified-execution-order--existing-work-and-new-issues) define the remaining gates.
 
 | Scope | Ownership and migration rule |

@@ -105,7 +105,7 @@ QString SessionState::title() const {
     return closing_ ? "Finishing your session" : "Opening your Trainer journal";
 }
 QString SessionState::message() const {
-    if(creating_)return "Preparing a personal journal. Games and game saves stay shared.";
+    if(creating_)return "Preparing your Trainer.";
     if(switching_)return "Opening the selected Trainer. Please wait…";
     if (!error_.isEmpty()) return error_;
     return closing_ ? "Saving your place. Your Trainer and favorites stay on this device."

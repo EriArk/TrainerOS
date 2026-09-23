@@ -94,6 +94,8 @@ AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
     auto invocation = command(adventure);
     if (!invocation) return {false, "This Adventure needs play setup. Its library record has been kept."};
     const auto registration = repository_.registration(adventure.id);
+    if(registration && registration->integrationConfig["core"].toString()=="mgba" && installation_.saves && !installation_.saveBackups)
+        return {false,"This Adventure's save setup needs verification before opening."};
     if (registration && registration->integrationConfig["core"].toString() == "mgba"
         && (installation_.saveBackups || !installation_.resumeDirectory.isEmpty())) {
         const auto record = *repository_.registration(adventure.id);

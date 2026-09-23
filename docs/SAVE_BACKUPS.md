@@ -54,3 +54,11 @@ Device validation on 2026-09-13 used the production ARM build on Flip 2 with rea
 The full suite passed 24/24 on Windows, Ubuntu 24.04 and the Flip's ARM64 build environment; rendered scenarios cover 960×540, 1920×1080 and a letterboxed landscape viewport. GitHub Actions did not execute its jobs because the account billing gate rejected them; this is distinct from the completed local/server/device checks.
 
 Additional ordinary-save formats require their own device validation. State-backup/resume expansion is superseded by #49. Existing Adventure relinking and integration setup remain in Manage Adventures.
+
+## Per-Trainer save follow-up - 2026-09-23
+
+The first [GBA/mGBA per-Trainer ordinary-save route](TRAINER_SAVES.md) binds
+launch, existing progress observations and backup shelves to the active Trainer.
+Original legacy saves/backups remain in place; new Trainers start fresh. Other
+emulator save routes remain shared until verified separately. This supersedes
+earlier statements that all external saves are still shared.

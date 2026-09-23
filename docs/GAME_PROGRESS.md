@@ -57,3 +57,11 @@ Party, map labels, per-species journal import, automatic historical events, DS/G
 ### Badge asset presentation - 2026-09-19
 
 The existing exact-build readers now identify `kanto-frlg` or `hoenn-rse`; their verified flag offsets/order and supported ROM fingerprints are unchanged. The independent `BadgeAssets` layer resolves ordered identities and credited art; Home uses recognizable vector-derived badges instead of original crystals. Unsupported sets/count-only/unknown values never choose another game's artwork. No new save support or schema migration is implied. See [delivery and remaining in-game comparison](EXPANSION_63_64.md#first-badge-delivery---2026-09-19) and [asset provenance](../assets/badges/README.md).
+
+## Per-Trainer save follow-up - 2026-09-23
+
+The first [GBA/mGBA per-Trainer ordinary-save route](TRAINER_SAVES.md) binds
+launch, existing progress observations and backup shelves to the active Trainer.
+Original legacy saves/backups remain in place; new Trainers start fresh. Other
+emulator save routes remain shared until verified separately. This supersedes
+earlier statements that all external saves are still shared.

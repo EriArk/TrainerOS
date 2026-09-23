@@ -4,8 +4,25 @@
 #include "platform/process/ProcessService.h"
 #include <QHash>
 #include <functional>
+#include <memory>
+#include <mutex>
 
 namespace trainer {
+// Bound once after authenticated entry; worker snapshots never read UI-owned state.
+struct RetroArchSaveOwner { QString id, directory; bool legacy = false; };
+class RetroArchSaveSession final {
+public:
+    bool bind(const RetroArchSaveOwner& owner) {
+        std::lock_guard lock(mutex_);
+        if(owner.id.isEmpty() || owner.directory.isEmpty())return false;
+        if(owner_)return owner_->id==owner.id && owner_->directory==owner.directory && owner_->legacy==owner.legacy;
+        owner_=owner;return true;
+    }
+    std::optional<RetroArchSaveOwner> owner() const { std::lock_guard lock(mutex_);return owner_; }
+private:
+    mutable std::mutex mutex_;
+    std::optional<RetroArchSaveOwner> owner_;
+};
 // Machine-specific installation data belongs outside the personal Adventure's
 // display model. Loading this small local configuration performs no execution.
 struct RetroArchInstallation {
@@ -18,6 +35,7 @@ struct RetroArchInstallation {
     // Verified runtime identity is also required by ordinary-save backups.
     QString runtimeFile;
     bool saveBackups = false;
+    std::shared_ptr<RetroArchSaveSession> saves;
     static RetroArchInstallation load(const QString& filename);
 };
 

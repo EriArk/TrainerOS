@@ -132,7 +132,7 @@ hardware; human button comfort, power-loss and PIN/security proof remain open.
 ## Next P2 increment
 
 [Active-profile removal and the consumer audit](TRAINER_REMOVAL.md) are delivered.
-Next, implement the first verified per-Trainer RetroArch ordinary-save route,
-then continue P3/P4 real Multiverse library binding. Preserve the delivered
+The first [GBA/mGBA per-Trainer save route](TRAINER_SAVES.md) is delivered.
+Next, continue P3/P4 library/domain identities and real Multiverse binding. Preserve
 [PIN/startup/family recovery](TRAINER_ACCESS.md), controller cancellation,
 lossless owner data and shared external saves.

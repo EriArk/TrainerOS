@@ -40,6 +40,7 @@ public:
     int pending() const { return pending_; }
     QList<TrainerProfile> trainers() const { return profiles_; }
     QString accountDirectory() const;
+    bool usesLegacyStorage() const { return ready_ && ownerId_==accountOwner_; }
     void createTrainerAsync(const TrainerProfile&, QObject*, std::function<void(ProfileWriteResult)>);
     // Final drained operation before destroying this store and rebuilding the session.
     void stageTrainerAsync(const QString&, QObject*, std::function<void(QString)>);

@@ -28,9 +28,9 @@ QString TrainerSetupPresentation::title() const {
 QString TrainerSetupPresentation::description() const {
     if(live_) {
         if(busy_)return "Saving your Trainer. Please wait…";
-        if(stage_=="chooser")return "Separate journals, history and accounts. Games and game saves are shared.";
+        if(stage_=="chooser")return "Choose your Trainer.";
         if(stage_=="pin")return "Choose 4 to 6 digits, or skip. A parent can set a family reset code in Settings.";
-        if(stage_=="review")return "Create this Trainer and start a fresh journal. Game saves remain shared.";
+        if(stage_=="review")return "Create this Trainer and start your journey.";
     }
     if (stage_ == "menu") return "Try the upcoming registration and player selection screens.";
     if (stage_ == "chooser") return "Sample Trainer cards. Your actual profile stays unchanged.";

@@ -36,7 +36,9 @@ are available with a controller keypad. The unlocked Trainer can be
 The [P2 ownership foundation](docs/TRAINER_OWNERSHIP.md) now preserves the
 existing Trainer and scopes local journal, history, Hall and browsing state to
 explicit owners. Switching reconstructs all owner views and account providers.
-The game library and external saves stay shared.
+The game library stays shared. [GBA/mGBA ordinary saves](docs/TRAINER_SAVES.md)
+are separate for new Trainers; the original Trainer keeps existing saves.
+Other emulator save routes remain shared pending verification.
 
 Optional private [Pokédex illustrations](docs/ARTWORK_BOOTSTRAP.md) now appear in
 the list, detail and favorite-species picker. Up on detail opens exact-form

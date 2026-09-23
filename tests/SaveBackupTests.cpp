@@ -141,6 +141,57 @@ private slots:
         release.release();QTRY_VERIFY(completed);QTRY_COMPARE(exit.size(),1);QVERIFY(!service.busy());
         session.cancelPendingExit();session.setServiceActive(true);session.requestExit();session.cancelPendingExit();session.setServiceActive(false);QCOMPARE(exit.size(),1);
     }
+    void trainerSaveRoutesPreserveLegacyAndSeparateLaunchReadsAndBackups() {
+        QTemporaryDir dir;AdventureRegistration r;r.adventure.id="same-adventure";
+        r.adventure.adapterId="retroarch";r.integrationConfig={{"core","mgba"}};
+        r.contentPath=dir.filePath("roms/game.gba");write(r.contentPath,"ROM");
+        RetroArchInstallation i;i.program=QCoreApplication::applicationFilePath();i.saveBackups=true;
+        i.configFile=dir.filePath("retroarch.cfg");i.runtimeFile=dir.filePath("runtime");i.cores={{"mgba",dir.filePath("core")}};
+        write(i.runtimeFile,"RUNTIME");write(i.cores["mgba"],"CORE");
+        const QByteArray config="savefile_directory = \""+dir.filePath("legacy").toUtf8()+"\"\nsavefiles_in_content_dir = \"false\"\nsort_savefiles_enable = \"true\"\nsort_savefiles_by_content_enable = \"true\"\nauto_overrides_enable = \"false\"\n";
+        write(i.configFile,config);
+        const auto legacy=resolveRetroArchSave(r,i);QVERIFY(legacy.supported);write(legacy.savePath,"ORIGINAL PLAYER");
+        const auto root=dir.filePath("backups");const auto legacyResolve=[&](const auto& a){return resolveRetroArchSave(a,i);};
+        const auto saved=createSaveBackup(root,r,inspectSaveBackups(root,legacy).token,legacyResolve);QVERIFY(saved.success);
+        i.saves=std::make_shared<RetroArchSaveSession>();
+        QVERIFY(!resolveRetroArchSave(r,i).supported); // No pre-unlock fallback to the shared save.
+        const auto data=dir.filePath("data");QVERIFY(i.saves->bind({"original",data,true}));
+        const auto original=resolveRetroArchSave(r,i);QCOMPARE(original.savePath,legacy.savePath);
+        QCOMPARE(original.contextRevision,legacy.contextRevision);QCOMPARE(inspectSaveBackups(root,original).copies.size(),1);
+        QVERIFY(!i.saves->bind({"child",data,false})); // A worker session cannot be rebound across owners.
+        auto child=i;child.saves=std::make_shared<RetroArchSaveSession>();QVERIFY(child.saves->bind({"child",data,false}));
+        const auto target=resolveRetroArchSave(r,child);QVERIFY2(target.supported,qPrintable(target.error));
+        QVERIFY(target.savePath!=legacy.savePath);QVERIFY(!QFileInfo::exists(target.savePath));
+        QVERIFY(inspectSaveBackups(root,target).copies.isEmpty());QVERIFY(inspectSaveBackups(root,target).error.isEmpty());
+        ProcessCommand cmd{i.program,{r.contentPath},{}};std::atomic_bool cancelled{false};
+        QVERIFY2(prepareRetroArchLaunch(cmd,r,child,cancelled).isEmpty(),"owned launch");
+        const auto launchConfig=read(cmd.arguments[cmd.arguments.size()-2]);
+        QVERIFY(launchConfig.contains(QFileInfo(target.savePath).absolutePath().toUtf8()));
+        QVERIFY(launchConfig.contains("sort_savefiles_enable = \"false\""));
+        QVERIFY(launchConfig.contains("savefiles_in_content_dir = \"false\""));
+        QCOMPARE(read(legacy.savePath),QByteArray("ORIGINAL PLAYER"));QCOMPARE(read(i.configFile),config);
+        write(target.savePath,"CHILD SAVE");const auto childResolve=[&](const auto& a){return resolveRetroArchSave(a,child);};
+        auto snap=inspectSaveBackups(root,target);QVERIFY(snap.hasSave);QVERIFY(snap.copies.isEmpty());
+        QVERIFY(!restoreSaveBackup(root,r,saved.snapshot.copies.first(),snap.token,childResolve).success);
+        const auto copy=createSaveBackup(root,r,snap.token,childResolve);QVERIFY(copy.success);
+        write(target.savePath,"CHILD LATER");snap=inspectSaveBackups(root,target);
+        QVERIFY(restoreSaveBackup(root,r,copy.snapshot.copies.first(),snap.token,childResolve).success);
+        QCOMPARE(read(target.savePath),QByteArray("CHILD SAVE"));QCOMPARE(read(legacy.savePath),QByteArray("ORIGINAL PLAYER"));
+        auto second=child;second.saves=std::make_shared<RetroArchSaveSession>();QVERIFY(second.saves->bind({"second",data,false}));
+        const auto other=resolveRetroArchSave(r,second);QVERIFY(other.supported);QVERIFY(other.savePath!=target.savePath);
+        QVERIFY(inspectSaveBackups(root,other).copies.isEmpty());
+        auto another=r;another.adventure.id="different-record";QVERIFY(resolveRetroArchSave(another,child).savePath!=target.savePath);
+        write(r.contentPath,"DIFFERENT BUILD");QVERIFY(resolveRetroArchSave(r,child).savePath!=target.savePath);write(r.contentPath,"ROM");
+        for(const auto& flag:QStringList{"--save", "-s"+legacy.savePath, "--save="+legacy.savePath, "--appendconfig=other.cfg"}) { child.prefixArguments={flag};QVERIFY(!resolveRetroArchSave(r,child).supported); }
+        child.prefixArguments.clear();
+        write(QFileInfo(target.savePath).dir().filePath("traineros-owner-v1.cfg"),"OTHER CONFIG");
+        cmd.arguments={r.contentPath};QVERIFY(!prepareRetroArchLaunch(cmd,r,child,cancelled).isEmpty());
+        QCOMPARE(read(legacy.savePath),QByteArray("ORIGINAL PLAYER"));
+#ifdef Q_OS_UNIX
+        QVERIFY(QFile::remove(target.savePath));QVERIFY(QFile::link(legacy.savePath,target.savePath));
+        QVERIFY(!resolveRetroArchSave(r,child).supported); // Never follow another player's save.
+#endif
+    }
     void verifiedRetroArchLayoutIsExplicitAndRejectsAmbiguity() {
         QTemporaryDir dir;AdventureRegistration record;record.adventure.id="fixture";record.adventure.adapterId="retroarch";record.contentPath=dir.filePath("content/original.gba");record.integrationConfig={{"core","mgba"}};
         RetroArchInstallation installation;installation.program=QCoreApplication::applicationFilePath();installation.configFile=dir.filePath("retroarch.cfg");installation.cores={{"mgba",dir.filePath("mgba.so")}};installation.runtimeFile=dir.filePath("runtime");installation.resumeDirectory=dir.filePath("moments");installation.saveBackups=true;

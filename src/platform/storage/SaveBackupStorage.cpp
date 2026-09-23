@@ -45,12 +45,18 @@ bool syncDirectory(const QString& path) {
     Q_UNUSED(path); return true; // Development hosts; Linux is the delivery target.
 #endif
 }
-QString shelf(const QString& root, const QString& adventure) { return QDir(root).filePath(hash(adventure.toUtf8())); }
+QString shelf(const QString& root, const SaveTarget& target) {
+    const auto key=target.backupOwner.isEmpty()?target.adventureId.toUtf8():
+        QJsonDocument(QJsonObject{{"owner",target.backupOwner},{"adventure",target.adventureId}}).toJson(QJsonDocument::Compact);
+    return QDir(root).filePath(hash(key));
+}
 struct CurrentSave { bool success=false, exists=false; QByteArray data; QString revision, parent; };
 CurrentSave current(const SaveTarget& target) {
     if (!target.supported || target.adventureId.isEmpty() || !validHash(target.contentRevision)
         || target.contextRevision.isEmpty() || !QDir::isAbsolutePath(target.savePath)) return {};
     const QFileInfo info(target.savePath); const auto parent = info.dir().canonicalPath();
+    if (parent.isEmpty() && !info.exists() && !info.isSymLink() && !target.backupOwner.isEmpty())
+        return {true,false,{},hash((target.contextRevision+"\n"+target.savePath+"\nabsent").toUtf8()),{}};
     if (parent.isEmpty() || info.isSymLink() || (info.exists() && (!info.isFile() || !info.isReadable()))) return {};
     CurrentSave result; result.parent=parent; result.exists=info.exists();
     if (result.exists) {
@@ -63,7 +69,7 @@ CurrentSave current(const SaveTarget& target) {
         +(result.exists?hash(result.data):QString("absent"))).toUtf8());
     result.success=true; return result;
 }
-struct Bundle { SaveBackup entry; QString adventure, content; QByteArray data; };
+struct Bundle { SaveBackup entry; QString adventure, content, owner; QByteArray data; };
 Bundle readBundle(const QString& path) {
     Bundle result; result.entry.id=QFileInfo(path).completeBaseName();
     if (!validId(result.entry.id) || QFileInfo(path).isSymLink() || !QFileInfo(path).isFile()) return result;
@@ -73,6 +79,7 @@ Bundle readBundle(const QString& path) {
     result.entry.revision=hash(bytes);
     const auto json=QJsonDocument::fromJson(bytes).object();
     const auto encoded=json["data"].toString().toLatin1(); result.data=QByteArray::fromBase64(encoded);
+    result.owner=json["owner"].toString();
     result.adventure=json["adventure"].toString(); result.content=json["contentSha256"].toString();
     result.entry.createdAt=QDateTime::fromString(json["createdAt"].toString(),Qt::ISODateWithMs);
     result.entry.hasSave=json["hasSave"].toBool(); result.entry.protection=json["protection"].toBool();
@@ -92,13 +99,13 @@ bool safeShelf(const QString& root, const QString& directory) {
 }
 QString writeBundle(const QString& root, const SaveTarget& target, const CurrentSave& save, bool protection) {
     if (!QDir::isAbsolutePath(root) || QFileInfo(root).isSymLink() || !QDir().mkpath(root)) return {};
-    const auto directory=shelf(root,target.adventureId);
+    const auto directory=shelf(root,target);
     if (!QDir().mkpath(directory) || !safeShelf(root,directory)) return {};
     QDirIterator count(directory,{"*.tosbackup"},QDir::Files|QDir::NoSymLinks); int total=0;
     while(count.hasNext()) { count.next(); if(++total>=CopyLimit)return {}; }
     const auto id=QUuid::createUuid().toString(QUuid::WithoutBraces), path=QDir(directory).filePath(id+".tosbackup");
     const QJsonObject object{{"version",1},{"id",id},{"adventure",target.adventureId},{"title",target.title},
-        {"contentSha256",target.contentRevision},{"createdAt",QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)},
+        {"owner",target.backupOwner},{"contentSha256",target.contentRevision},{"createdAt",QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)},
         {"hasSave",save.exists},{"protection",protection},{"bytes",save.data.size()},
         {"sha256",hash(save.data)},{"data",QString::fromLatin1(save.data.toBase64())}};
     const auto bytes=QJsonDocument(object).toJson(QJsonDocument::Compact);
@@ -107,7 +114,7 @@ QString writeBundle(const QString& root, const SaveTarget& target, const Current
         || file.write(bytes)!=bytes.size() || !syncFile(file) || !safeShelf(root,directory) || !file.commit()
         || !syncDirectory(directory) || !syncDirectory(root) || !syncDirectory(QFileInfo(root).dir().absolutePath())) return {};
     const auto check=readBundle(path);
-    return check.entry.valid && check.data==save.data && check.adventure==target.adventureId ? id : QString();
+    return check.entry.valid && check.data==save.data && check.adventure==target.adventureId && check.owner==target.backupOwner ? id : QString();
 }
 QString problem(const SaveTarget& target) { return target.error.isEmpty()?"This Adventure has no verified save-backup setup yet.":target.error; }
 }
@@ -117,14 +124,14 @@ SaveBackupSnapshot inspectSaveBackups(const QString& root, const SaveTarget& tar
     const auto save=current(target);
     if (save.success) { result.hasSave=save.exists&&!save.data.isEmpty(); result.token=save.revision; }
     else result.error="The in-game save folder couldn't be read. Check storage and try again.";
-    const auto directory=shelf(root,target.adventureId);
+    const auto directory=shelf(root,target);
     if (!QFileInfo::exists(directory)) return result;
     if (!safeShelf(root,directory)) { result.error="Your backup folder needs attention. Existing copies have been kept."; return result; }
     QDirIterator files(directory,{"*.tosbackup"},QDir::Files|QDir::NoSymLinks); int count=0;
     while(files.hasNext()) {
         files.next(); if(++count>CopyLimit) { result.error="Your backup shelf is full. Use maintenance mode to archive older copies."; break; }
         auto copy=readBundle(files.filePath());
-        if(copy.adventure!=target.adventureId || copy.content!=target.contentRevision)copy.entry.valid=false;
+        if(copy.adventure!=target.adventureId || copy.owner!=target.backupOwner || copy.content!=target.contentRevision)copy.entry.valid=false;
         result.copies.append(copy.entry);
     }
     std::sort(result.copies.begin(),result.copies.end(),[](const auto& a,const auto& b){return a.createdAt==b.createdAt?a.id>b.id:a.createdAt>b.createdAt;});
@@ -146,10 +153,10 @@ SaveBackupResult restoreSaveBackup(const QString& root, const AdventureRegistrat
     if(!QDir::isAbsolutePath(root) || QFileInfo(root).isSymLink() || !validId(selected.id) || selected.revision.isEmpty())return {false,false,"Choose a saved copy again."};
     QLockFile lock(QDir(root).filePath("service.lock")); if(!lock.tryLock(0))return {false,false,"Another backup operation is running. Try again shortly."};
     const auto target=resolve(record); if(!target.supported)return {false,false,problem(target)};
-    const auto directory=shelf(root,target.adventureId);
+    const auto directory=shelf(root,target);
     if(!safeShelf(root,directory))return {false,false,"The backup folder changed. Existing saves have been kept."};
     const auto copy=readBundle(QDir(directory).filePath(selected.id+".tosbackup"));
-    if(!copy.entry.valid || !copy.entry.hasSave || copy.data.isEmpty() || copy.entry.revision!=selected.revision || copy.adventure!=target.adventureId || copy.content!=target.contentRevision)
+    if(!copy.entry.valid || !copy.entry.hasSave || copy.data.isEmpty() || copy.entry.revision!=selected.revision || copy.adventure!=target.adventureId || copy.owner!=target.backupOwner || copy.content!=target.contentRevision)
         return {false,false,"This copy changed, is damaged, or belongs to different game content. It wasn't restored."};
     const auto save=current(target);
     if(!save.success || token.isEmpty() || save.revision!=token)return {false,false,"The current save changed. Check it again before confirming a restore."};
