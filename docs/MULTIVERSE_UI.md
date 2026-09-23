@@ -1,5 +1,11 @@
 # Multiverse presentation boundary
 
+**2026-09-23 update:** the [real library binding](MULTIVERSE_BINDING.md) supersedes
+the production-empty P1 boundary below. Schema 11 registrations, populated-system
+visibility, per-Trainer/domain choices and existing adapter launch now bind this
+same presentation. The historical sample/controller evidence remains; missing
+runtime setup and full per-platform acceptance remain P4/P9 work.
+
 P1 adds a system-browser face within Worlds and a separate dark Home composition. This is the controller/UI foundation for #28/#31/#32/#43, not completion of the playable Multiverse library.
 
 ## Controls and isolation

@@ -171,6 +171,7 @@ void WorldsController::refresh() {
     const auto oldAdventure = rememberedAdventures_.value(worldId_);
     worlds_ = repository_.worlds();
     adventures_ = repository_.adventures();
+    adventures_.erase(std::remove_if(adventures_.begin(),adventures_.end(),[](const auto& a){return a.domain!="pokemon";}),adventures_.end());
     resumePoints_ = repository_.resumePoints();
     searchText_.clear();
     for (const auto& a : adventures_) {

@@ -1,6 +1,8 @@
 #include "core/navigation/ShellController.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include <QtTest>
+#include <QTemporaryDir>
+#include <QFile>
 
 using namespace trainer;
 
@@ -114,6 +116,41 @@ private slots:
         QVERIFY(shell.multiverseHome()); shell.dispatch(Action::Back);
         shell.goToPage(2); QVERIFY(shell.resumePoints() != shell.multiverse()->choices());
         shell.dispatch(Action::Home); QVERIFY(shell.multiverseHome());
+    }
+    void realMultiverseSelectionLaunchAndMissingContent() {
+        class Library final:public LibraryRepository {
+        public:
+            QList<AdventureRegistration> records;
+            QList<World> worlds()const override{return {{"hoenn","Hoenn",{}}};}
+            QList<Adventure> adventures()const override{QList<Adventure> r;for(const auto& x:records)r.append(x.adventure);return r;}
+            QList<ResumePoint> resumePoints()const override{return {};}
+            HomeSnapshot home()const override{return {"pokemon",{},{},{}};}
+            bool editable()const override{return true;}
+            std::optional<AdventureRegistration> registration(const QString& id)const override{for(const auto& r:records)if(r.adventure.id==id)return r;return {};}
+        } library;
+        class Adapter final:public AdventureAdapter {
+        public:
+            QString launched;
+            QString id()const override{return "fixture";}
+            AdventureCapabilities capabilities(const Adventure&)const override{return {true,false,false};}
+            AdventureResult launch(const Adventure& a)override{launched=a.id;return {true,{},true};}
+            AdventureResult resume(const Adventure&,const ResumePoint&)override{return {false,{}};}
+        } adapter;
+        QTemporaryDir dir;const auto path=dir.filePath("fixture.gba");QFile file(path);QVERIFY(file.open(QIODevice::WriteOnly));file.write("original fixture");file.close();
+        AdventureRegistration pokemon;pokemon.adventure.id="pokemon";pokemon.adventure.worldId="hoenn";pokemon.adventure.title="Pokemon fixture";pokemon.contentPath=path;library.records.append(pokemon);
+        for(int i=0;i<2;++i){auto r=pokemon;r.adventure.id="multi"+QString::number(i);r.adventure.title="General "+QString::number(i);r.adventure.domain="multiverse";r.adventure.worldId.clear();r.adventure.platformId=i?"snes":"gba";r.contentPath=i?dir.filePath("missing.sfc"):path;r.contentAvailable=!i;library.records.append(r);}
+        MockTrainerRepository profiles;DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        QCOMPARE(shell.multiverse()->systems().size(),1);shell.goToPage(1);shell.dispatch(Action::NextFace);shell.dispatch(Action::Confirm);
+        shell.multiverse()->applySearch("absent");QVERIFY(shell.multiverse()->games().isEmpty());QCOMPARE(shell.multiverse()->systems().size(),1);
+        shell.dispatch(Action::Confirm);shell.dispatch(Action::Confirm);shell.dispatch(Action::Confirm);
+        QCOMPARE(shell.page(),0);QVERIFY(shell.multiverseHome());QVERIFY(adapter.launched.isEmpty());QCOMPARE(shell.currentAdventureId(),"pokemon");
+        const auto state=shell.navigationState();shell.dispatch(Action::Confirm);QCOMPARE(adapter.launched,"multi0");
+        ShellController restored(library,profiles,adapter,platform,dex,dex,archive,achievements);restored.restoreNavigation(state);
+        QVERIFY(restored.multiverseHome());QCOMPARE(restored.multiverse()->selected()["id"],"multi0");QCOMPARE(restored.currentAdventureId(),"pokemon");
+        QVERIFY(QFile::remove(path));library.records[1].contentAvailable=false;restored.refreshLibrary();QVERIFY(restored.multiverse()->systems().isEmpty());
+        QCOMPARE(restored.multiverse()->selected()["id"],"multi0");QVERIFY(!restored.multiverse()->selected()["linked"].toBool());
+        restored.restoreNavigation(QJsonObject{{"version",1}});QVERIFY(restored.multiverse()->selected().isEmpty());QVERIFY(!restored.multiverseHome());
     }
     void multiverseFilteringAndEmptyProduction() {
         MultiversePresentation sample(true);

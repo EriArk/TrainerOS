@@ -490,6 +490,12 @@ Hall paired routing keeps view state in `HallOfFameController`, with independent
 
 `MultiversePresentation` provides transient system/list/detail/search/filter and isolated sample-choice state. ShellController routes paired Worlds and Home contexts while retaining the existing Pokemon repository/adapters. The presentation cannot mutate a library or launch a process; real editable libraries receive no fictional games. [Implemented scope and binding prerequisites](MULTIVERSE_UI.md).
 
+The 2026-09-23 [P3/P4 binding](MULTIVERSE_BINDING.md) supersedes the production-empty
+portion: the presentation consumes real shared registrations and owner history,
+while the shell routes launch through the existing adapter. File availability is
+observed on the store worker, not during rendering. Schema 11 and per-Trainer
+navigation preserve explicit domains, independent choices and exit-media identity.
+
 ## Center Party/Storage P1 boundary
 
 `PartyPresentation` owns only transient read-only slot/detail/box routes. ShellController binds the current Pokemon Adventure identity and routes Select to the existing SaveCenterController, which retains all backup/restore guards and async source-generation protection. Production supplies no invented individuals. The new views do not read saves, infer individuals from Dex totals or expose a writer. [Availability and controls](CENTER_PARTY_UI.md).

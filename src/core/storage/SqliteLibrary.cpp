@@ -33,13 +33,49 @@ QString migrateLibrary(QSqlDatabase& db) {
     }
     return {};
 }
+QString migrateLibraryDomains(QSqlDatabase& db) {
+    // SQLite's create/copy/drop/rename procedure. Disable FK enforcement before
+    // BEGIN, preserve IDs/rowids and dependent schema, check all FKs before COMMIT.
+    QSqlQuery q(db);
+    QStringList dependentSchema;
+    if (!q.exec("SELECT sql FROM sqlite_master WHERE tbl_name IN ('adventures','exit_media') AND type IN ('index','trigger') AND sql IS NOT NULL")) return sqlFailure();
+    while (q.next()) dependentSchema.append(q.value(0).toString());
+    if (!q.exec("SELECT sql FROM sqlite_master WHERE type='table' AND name='exit_media'") || !q.next()) return sqlFailure();
+    QString mediaSchema = q.value(0).toString(); q.finish();
+    if (!mediaSchema.contains("CHECK(domain='pokemon')")) return sqlFailure();
+    mediaSchema.replace("CREATE TABLE exit_media", "CREATE TABLE domain_exit_media");
+    mediaSchema.replace("CHECK(domain='pokemon')", "CHECK(domain IN ('pokemon','multiverse'))");
+    if (!q.exec("PRAGMA foreign_keys=OFF")) return sqlFailure();
+    QString error;
+    if (!db.transaction()) error = sqlFailure();
+    else {
+        QStringList statements{
+            "CREATE TABLE domain_adventures(id TEXT PRIMARY KEY NOT NULL, world_id TEXT REFERENCES worlds(id), title TEXT NOT NULL, kind INTEGER NOT NULL CHECK(kind BETWEEN 0 AND 2), description TEXT NOT NULL, content_path TEXT NOT NULL, adapter_id TEXT NOT NULL, config BLOB NOT NULL, revision INTEGER NOT NULL CHECK(revision>0), platform_id TEXT NOT NULL DEFAULT '', catalogue_id TEXT NOT NULL DEFAULT '', variant TEXT NOT NULL DEFAULT '', domain TEXT NOT NULL DEFAULT 'pokemon' CHECK(domain IN ('pokemon','multiverse')), CHECK((domain='pokemon' AND world_id IS NOT NULL) OR (domain='multiverse' AND world_id IS NULL AND platform_id<>'' AND catalogue_id='')))",
+            "INSERT INTO domain_adventures(rowid,id,world_id,title,kind,description,content_path,adapter_id,config,revision,platform_id,catalogue_id,variant) SELECT rowid,id,world_id,title,kind,description,content_path,adapter_id,config,revision,platform_id,catalogue_id,variant FROM adventures",
+            mediaSchema,
+            "INSERT INTO domain_exit_media SELECT * FROM exit_media",
+            "DROP TABLE exit_media", "DROP TABLE adventures",
+            "ALTER TABLE domain_adventures RENAME TO adventures",
+            "ALTER TABLE domain_exit_media RENAME TO exit_media"};
+        statements.append(dependentSchema);
+        statements.append("CREATE INDEX adventures_domain_platform ON adventures(domain,platform_id)");
+        statements.append("PRAGMA user_version=11");
+        for (const auto& sql : statements) if (!q.exec(sql)) { error = sqlFailure(); break; }
+        if (error.isEmpty() && (!q.exec("PRAGMA foreign_key_check") || q.next())) error = sqlFailure();
+        q.finish();
+        if (error.isEmpty() && !db.commit()) error = sqlFailure();
+        if (!error.isEmpty()) db.rollback();
+    }
+    if (!q.exec("PRAGMA foreign_keys=ON")) error = sqlFailure();
+    return error;
+}
 LibrarySnapshot readLibrary(QSqlDatabase& db) {
     LibrarySnapshot result;
     QSqlQuery q(db);
     const auto fail = [&] { result.error = "Your library couldn't be read. The existing data has been kept."; return result; };
     if (!q.exec("SELECT id,name FROM worlds ORDER BY sort_order,id")) return fail();
     while (q.next()) result.worlds.append({q.value(0).toString(), q.value(1).toString(), {}});
-    if (!q.exec("SELECT id,world_id,title,kind,description,content_path,adapter_id,config,revision,platform_id,catalogue_id,variant FROM adventures ORDER BY title COLLATE NOCASE,id")) return fail();
+    if (!q.exec("SELECT id,world_id,title,kind,description,content_path,adapter_id,config,revision,platform_id,catalogue_id,variant,domain FROM adventures ORDER BY title COLLATE NOCASE,id")) return fail();
     while (q.next()) {
         AdventureRegistration record;
         record.adventure.id = q.value(0).toString(); record.adventure.worldId = q.value(1).toString();
@@ -52,6 +88,9 @@ LibrarySnapshot readLibrary(QSqlDatabase& db) {
         record.integrationConfig = config.object(); record.revision = q.value(8).toInt();
         record.adventure.platformId = q.value(9).toString(); record.adventure.catalogueId = q.value(10).toString();
         record.adventure.variant = q.value(11).toString();
+        record.adventure.domain = q.value(12).toString();
+        const QFileInfo content(record.contentPath);
+        record.contentAvailable = content.isFile() && content.isReadable();
         result.registrations.append(record);
     }
     if (!q.exec("SELECT adventure_id,world_id FROM adventure_worlds ORDER BY world_id")) return fail();
@@ -65,6 +104,11 @@ LibrarySnapshot readLibrary(QSqlDatabase& db) {
 }
 LibraryWriteResult writeAdventure(QSqlDatabase& db, const AdventureRegistration& record) {
     const auto& a = record.adventure;
+    if ((a.domain != "pokemon" && a.domain != "multiverse")
+        || (a.domain == "pokemon" && a.worldId.isEmpty())
+        || (a.domain == "multiverse" && (!a.worldId.isEmpty() || !a.additionalWorldIds.isEmpty()
+            || !a.catalogueId.isEmpty() || a.platformId.isEmpty() || record.newWorld || !record.additionalNewWorlds.isEmpty())))
+        return {false, "Choose the matching library and platform for this Adventure."};
     if (a.id.isEmpty() || a.collectionOnly || !validText(a.title, 96) || (!a.description.isEmpty() && !validText(a.description, 160))
         || (!a.variant.isEmpty() && !validText(a.variant, 96))
         || int(a.kind) < 0 || int(a.kind) > 2 || record.revision < 0)
@@ -95,17 +139,17 @@ LibraryWriteResult writeAdventure(QSqlDatabase& db, const AdventureRegistration&
             if (!q.exec()) error = sqlFailure();
         }
         if (error.isEmpty()) {
-            q.prepare("SELECT revision FROM adventures WHERE id=?"); q.addBindValue(a.id);
+            q.prepare("SELECT revision,domain FROM adventures WHERE id=?"); q.addBindValue(a.id);
             if (!q.exec()) error = sqlFailure();
-            else if (q.next() ? q.value(0).toInt() != record.revision : record.revision != 0)
+            else if (q.next() ? q.value(0).toInt() != record.revision || q.value(1).toString() != a.domain : record.revision != 0)
                 error = "This Adventure changed since you opened it. Reopen its details before editing.";
             q.finish();
         }
         if (error.isEmpty()) {
             q.prepare(record.revision == 0
-                ? "INSERT INTO adventures(world_id,title,kind,description,content_path,adapter_id,config,revision,platform_id,catalogue_id,variant,id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
-                : "UPDATE adventures SET world_id=?,title=?,kind=?,description=?,content_path=?,adapter_id=?,config=?,revision=?,platform_id=?,catalogue_id=?,variant=? WHERE id=?");
-            q.addBindValue(a.worldId); q.addBindValue(a.title.trimmed()); q.addBindValue(int(a.kind));
+                ? "INSERT INTO adventures(world_id,title,kind,description,content_path,adapter_id,config,revision,platform_id,catalogue_id,variant,domain,id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)"
+                : "UPDATE adventures SET world_id=?,title=?,kind=?,description=?,content_path=?,adapter_id=?,config=?,revision=?,platform_id=?,catalogue_id=?,variant=?,domain=? WHERE id=?");
+            q.addBindValue(a.domain == "multiverse" ? QVariant() : QVariant(a.worldId)); q.addBindValue(a.title.trimmed()); q.addBindValue(int(a.kind));
             q.addBindValue(a.description.isNull() ? QString("") : a.description.trimmed());
             q.addBindValue(record.contentPath); q.addBindValue(a.adapterId);
             q.addBindValue(QJsonDocument(record.integrationConfig).toJson(QJsonDocument::Compact));
@@ -113,6 +157,7 @@ LibraryWriteResult writeAdventure(QSqlDatabase& db, const AdventureRegistration&
             q.addBindValue(a.platformId.isNull() ? QString("") : a.platformId);
             q.addBindValue(a.catalogueId.isNull() ? QString("") : a.catalogueId);
             q.addBindValue(a.variant.isNull() ? QString("") : a.variant);
+            q.addBindValue(a.domain);
             q.addBindValue(a.id);
             if (!q.exec()) error = sqlFailure();
         }

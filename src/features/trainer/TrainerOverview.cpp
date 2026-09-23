@@ -9,7 +9,7 @@ TrainerOverview trainerOverview(const LibraryRepository& library, const PokedexC
     TrainerOverview result;
     QSet<QString> adventures, worlds;
     for (const auto& adventure : library.adventures()) {
-        if (adventure.collectionOnly || adventures.contains(adventure.id)) continue;
+        if (adventure.domain != "pokemon" || adventure.collectionOnly || adventures.contains(adventure.id)) continue;
         adventures.insert(adventure.id); worlds.insert(adventure.worldId);
         for (const auto& world : adventure.additionalWorldIds) worlds.insert(world);
         const auto seconds = library.recordedSeconds(adventure.id);

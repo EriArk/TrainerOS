@@ -18,21 +18,36 @@ Item {
             text: "No Adventures yet"
             color: Theme.muted; font.pixelSize: 26
         }
-        Grid {
-            x: 22; y: 18; columns: 3; spacing: 16
+        GridView {
+            id: systemsGrid
+            x: 16; y: 12; width: parent.width - 32; height: parent.height - 24
+            cellWidth: width / 3; cellHeight: 110; clip: true
+            interactive: false; keyNavigationEnabled: false
             visible: root.model.route === "systems"
-            Repeater {
-                model: root.model.systems
+            model: root.model.systems; currentIndex: root.model.focusIndex
+            function reveal() {
+                if (!visible || !root.takesFocus || !currentItem) return
+                positionViewAtIndex(currentIndex, GridView.Contain)
+                currentItem.control.forceActiveFocus(Qt.OtherFocusReason)
+            }
+            onCurrentIndexChanged: Qt.callLater(reveal)
+            onCurrentItemChanged: Qt.callLater(reveal)
+            onVisibleChanged: Qt.callLater(reveal)
+            Connections { target: root; function onTakesFocusChanged() { Qt.callLater(systemsGrid.reveal) } }
+            delegate: Item {
+                required property int index
+                required property var modelData
+                width: systemsGrid.cellWidth; height: systemsGrid.cellHeight
+                property alias control: systemCard
                 CapButton {
-                    required property int index
-                    required property var modelData
+                    id: systemCard
                     objectName: "multiverse-system-" + index
-                    width: (root.width - 76) / 3; height: 120
-                    label: modelData.name; detail: "Browse titles"; contentInset: 74
+                    x: 8; y: 8; width: parent.width - 16; height: 94
+                    label: modelData.name; detail: modelData.count ? modelData.count + (modelData.count === 1 ? " Adventure" : " Adventures") : "Browse titles"; contentInset: 64
                     tint: Theme.tabColors[index % Theme.tabColors.length]
                     selected: root.takesFocus && parent.visible && root.model.focusIndex === index
                     onActivated: root.shell.activate(index)
-                    SystemGlyph { x: 12; y: 25; width: 50; height: 62; shape: modelData.shape }
+                    SystemGlyph { x: 10; y: 19; width: 42; height: 54; shape: modelData.shape }
                 }
             }
         }
@@ -88,7 +103,7 @@ Item {
             Column { x: 26; y: 24; spacing: 16; width: parent.width - 52
                 Text { width: parent.width; text: root.model.detail.title || ""; textFormat: Text.PlainText; wrapMode: Text.WordWrap; maximumLineCount: 2; color: Theme.ink; font.pixelSize: 32; font.bold: true; elide: Text.ElideRight }
                 Text { text: root.model.detail.status || ""; color: Theme.muted; font.pixelSize: 19 }
-                Text { width: parent.width; text: "This is a layout sample. File linking and play will arrive with the real library."; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 18 }
+                Text { width: parent.width; text: root.model.sample ? "This is a layout sample. File linking and play will arrive with the real library." : root.model.detail.description || ""; wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight; color: Theme.muted; font.pixelSize: 18 }
             }
             Row { x: 26; anchors.bottom: parent.bottom; anchors.bottomMargin: 26; spacing: 22
                 CapButton { objectName: "multiverse-select"; width: 285; height: 62; label: "Choose for Home"; enabled: root.model.detail.linked === true; selected: parent.parent.visible && root.takesFocus && root.model.focusIndex === 0; onActivated: root.shell.activate(0) }

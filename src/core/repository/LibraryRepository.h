@@ -19,6 +19,7 @@ public:
     virtual std::optional<qint64> recordedSeconds(const QString&) const { return {}; }
     virtual HomeSnapshot home() const = 0;
     virtual bool editable() const { return false; }
+    virtual void refreshContentAvailability() {}
     virtual std::optional<AdventureRegistration> registration(const QString&) const { return {}; }
     virtual void saveAdventureAsync(const AdventureRegistration&, QObject*, std::function<void(LibraryWriteResult)> completed) {
         completed({false, "Library editing isn't available in this sample preview."});

@@ -33,7 +33,7 @@ PlayHistorySnapshot readPlayHistory(QSqlDatabase& db, const QString& owner) {
     QSqlQuery query(db);
     // Row order remains launch order across system-clock changes. One latest
     // session per Adventure prevents repeat launches crowding out other games.
-    query.prepare("SELECT id,adventure_id,started_at,ended_at,elapsed_seconds,outcome FROM play_sessions WHERE rowid IN (SELECT MAX(rowid) FROM play_sessions WHERE trainer_id=? GROUP BY adventure_id) ORDER BY rowid DESC LIMIT 100"); query.addBindValue(owner);
+    query.prepare("SELECT id,adventure_id,started_at,ended_at,elapsed_seconds,outcome FROM (SELECT s.*,s.rowid AS launch_order,ROW_NUMBER() OVER(PARTITION BY a.domain ORDER BY s.rowid DESC) AS domain_rank FROM play_sessions s JOIN adventures a ON a.id=s.adventure_id WHERE s.rowid IN (SELECT MAX(rowid) FROM play_sessions WHERE trainer_id=? GROUP BY adventure_id)) WHERE domain_rank<=100 ORDER BY launch_order DESC"); query.addBindValue(owner);
     if (!query.exec()) {
         result.error = failed(); return result;
     }

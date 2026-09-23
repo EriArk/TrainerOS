@@ -1,8 +1,9 @@
 # Local persistence foundation
 
-**Migration status — #9/#20/#42/#49:** schema 10 supports real Trainer creation
+**Migration status — #9/#20/#42/#49:** schema 11 supports real Trainer creation
 and activation over owner-scoped personal data, optional PINs and family-code
-recovery. Independent domain choices and further source-aware observations remain planned. Legacy stored resume
+recovery, explicit library domains and independent per-Trainer Home choices.
+Further source-aware observations remain planned. Legacy stored resume
 selection is not the target model. Preserve ordinary saves, history, manual
 records and independent media. [Domain contract](DATA_MODEL.md),
 [target acceptance](EXPANSION_42_62.md), [delivered ownership](TRAINER_OWNERSHIP.md).
@@ -23,10 +24,15 @@ Schema 6 adds the [manual Pokédex field journal](POKEDEX.md), preserving all ex
 
 Schema 7 adds optional [clean exit media](ADVENTURE_EXIT.md#durable-exit-media-and-ordinary-home-selection) in a transactional 6→7 migration. Existing library, ordinary saves, profile, history and legacy files are preserved. Returning to a schema-6 binary requires restoring the paired pre-upgrade database backup while the shell is closed; do not discard newer personal writes or just lower `user_version`.
 
-SQLite `user_version` is currently **10**. Transactional ownership, keyed-profile
+SQLite `user_version` is currently **11**. Transactional ownership, keyed-profile
 and access migrations preserve legacy identity and rows. Protected startup loads
 the roster before personal data. [Ownership](TRAINER_OWNERSHIP.md),
 [PIN storage and recovery](TRAINER_ACCESS.md).
+
+Schema 11 preserves the existing rows while adding explicit Adventure domains,
+nullable World membership only for Multiverse and domain-aware exit images.
+See [migration and binding](MULTIVERSE_BINDING.md). Rollback requires the paired
+binary/database backup while the shell is stopped, never a lowered version number.
 
 | Table | Data |
 | --- | --- |
@@ -37,7 +43,7 @@ the roster before personal data. [Ownership](TRAINER_OWNERSHIP.md),
 | `pokedex_favorites` | Favorite reference-entry IDs; absence means no mark |
 | `shell_state` | Versioned JSON navigation, scoped to the current library source |
 | `worlds` | Nine initial region names and user-created Worlds; no invented progress |
-| `adventures` | Stable ID, primary World, edition/title/notes, external file reference, opaque adapter configuration, edit revision |
+| `adventures` | Stable ID/domain, Pokemon primary World or Multiverse platform, edition/title/notes, external file reference, opaque adapter configuration, edit revision |
 | `adventure_worlds` | Additional region relationships with foreign-key integrity |
 | `preferences` | Color theme and reduced-motion flag |
 | `play_sessions` | Identified Adventure process launches, UTC timestamps, optional monotonic duration and outcome |

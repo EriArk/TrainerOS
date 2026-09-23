@@ -5,6 +5,8 @@
 #include <QTemporaryDir>
 #include <QSqlQuery>
 #include <QUuid>
+#include "LegacyStoreFixture.h"
+#include "core/storage/SqliteOwnership.h"
 
 using namespace trainer;
 class TrainerProfilesTests final:public QObject {
@@ -19,18 +21,18 @@ class TrainerProfilesTests final:public QObject {
 private slots:
     void schemaEightMigrationRollsBackAndRetriesWithoutLosingProfile() {
         QTemporaryDir dir;
-        { LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());create(store,"legacy");
-          store.setFavoriteAsync("eevee",true,this,[](auto e){QVERIFY(e.isEmpty());});QTRY_COMPARE(store.pending(),0); }
         const auto name=QUuid::createUuid().toString();
         {
             auto db=QSqlDatabase::addDatabase("QSQLITE",name);db.setDatabaseName(dir.filePath("traineros.sqlite3"));QVERIFY(db.open());
             QSqlQuery q(db);
-            // Restore the actual schema-8 profile shape. The conflicting account
-            // table forces failure after profile replacement has begun.
-            for(const auto& sql:QStringList{
-                "CREATE TABLE legacy_profile(slot INTEGER PRIMARY KEY CHECK(slot=1),id TEXT NOT NULL UNIQUE,name TEXT NOT NULL,emblem TEXT NOT NULL,favorite TEXT NOT NULL,created_at TEXT NOT NULL)",
-                "INSERT INTO legacy_profile SELECT 1,id,name,emblem,favorite,created_at FROM trainer_profile",
-                "DROP TABLE trainer_profile","ALTER TABLE legacy_profile RENAME TO trainer_profile","DROP TRIGGER trainer_access_create","DROP TABLE trainer_access","DROP TABLE family_access","PRAGMA user_version=8"})QVERIFY(q.exec(sql));
+            // Build the actual schema 8, not a latest-schema database with a
+            // lowered version. Conflict forces failure after replacement begins.
+            QVERIFY(createLegacyStore(db,7));
+            QVERIFY(q.exec("INSERT INTO trainer_profile VALUES(1,'legacy','legacy','compass','eevee','2026-01-01T00:00:00.000Z')"));
+            QVERIFY(q.exec("INSERT INTO pokedex_favorites VALUES('eevee')"));
+            QVERIFY(db.transaction());QVERIFY(migrateOwnership(db).isEmpty());
+            QVERIFY(q.exec("PRAGMA user_version=8"));QVERIFY(db.commit());
+            QVERIFY(q.exec("CREATE TABLE legacy_account_owner(slot INTEGER,trainer_id TEXT)"));
         }
         QSqlDatabase::removeDatabase(name);
         { LocalStateStore store(dir.path());QSignalSpy opened(&store,&LocalStateStore::opened);store.open();QTRY_COMPARE(opened.size(),1);QVERIFY(!store.ready()); }

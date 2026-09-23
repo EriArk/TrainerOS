@@ -49,15 +49,15 @@ QString LibraryManagementController::worldName(const QString& id) const {
 }
 QVariantList LibraryManagementController::rows() const {
     QVariantList result;
-    for (const auto& a : records_) result.append(QVariantMap{{"id", a.id}, {"title", a.title}, {"subtitle", worldName(a.worldId) + " · A to edit"}});
+    for (const auto& a : records_) result.append(QVariantMap{{"id", a.id}, {"title", a.title}, {"subtitle", (a.domain=="multiverse"?platformLabel(a.platformId).name:worldName(a.worldId)) + " · A to edit"}});
     return result;
 }
 QVariantList LibraryManagementController::fields() const {
     QStringList extra;
     for (const auto& id : draft_.adventure.additionalWorldIds) extra.append(worldName(id));
     return {QVariantMap{{"title", "Title"}, {"value", draft_.adventure.title.isEmpty() ? "Name your Adventure" : draft_.adventure.title}},
-        QVariantMap{{"title", "Primary World"}, {"value", worldName(draft_.adventure.worldId)}},
-        QVariantMap{{"title", "Also in Worlds"}, {"value", extra.isEmpty() ? "None" : extra.join(" · ")}},
+        QVariantMap{{"title", draft_.adventure.domain=="multiverse"?"Library":"Primary World"}, {"value", draft_.adventure.domain=="multiverse"?"Multiverse":worldName(draft_.adventure.worldId)}},
+        QVariantMap{{"title", draft_.adventure.domain=="multiverse"?"System":"Also in Worlds"}, {"value", draft_.adventure.domain=="multiverse"?platformLabel(draft_.adventure.platformId).name:extra.isEmpty() ? "None" : extra.join(" · ")}},
         QVariantMap{{"title", "Edition / platform"}, {"value", QStringList{"Original", "Remake", "ROM hack"}.value(int(draft_.adventure.kind), "Original") + " · " + platformLabel(draft_.adventure.platformId).name}},
         QVariantMap{{"title", "Local file"}, {"value", draft_.contentPath.isEmpty() ? "Choose a file" : QFileInfo(draft_.contentPath).fileName()}},
         QVariantMap{{"title", "Notes"}, {"value", draft_.adventure.description.isEmpty() ? "Optional description" : draft_.adventure.description}}};
@@ -73,7 +73,7 @@ QVariantList LibraryManagementController::choices() const {
     QVariantList result;
     if (route_ == "edition") {
         result.append(QVariantMap{{"id", "kind"}, {"title", "Edition: " + QStringList{"Original", "Remake", "ROM hack"}.value(int(draft_.adventure.kind))}, {"selected", false}});
-        for (const auto& p : collectionPlatforms())
+        for (const auto& p : draft_.adventure.domain=="multiverse"?multiversePlatforms():collectionPlatforms())
             result.append(QVariantMap{{"id", p.id}, {"title", p.name}, {"selected", p.id == draft_.adventure.platformId}});
         result.append(QVariantMap{{"id", "cancel"}, {"title", "Back to Adventure"}, {"selected", false}});
         return result;
@@ -160,6 +160,7 @@ void LibraryManagementController::activate(int index, const QString& area) {
         if (index == 0 || index == 5) {
             textField_ = index; emit textRequested(index == 0 ? "Adventure title" : "Adventure notes", index == 0 ? draft_.adventure.title : draft_.adventure.description, index == 0 ? 96 : 160);
         } else if (index == 1 || index == 2) {
+            if(draft_.adventure.domain=="multiverse")return;
             route_ = index == 1 ? "world" : "extras"; extraDraft_ = draft_.adventure.additionalWorldIds; focus_ = 0;
         } else if (index == 3) { route_ = "edition"; focus_ = 0; }
         else if (index == 4) files_.begin(draft_.contentPath.isEmpty() ? initialFolder_ : QFileInfo(draft_.contentPath).absolutePath());

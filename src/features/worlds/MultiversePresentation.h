@@ -3,13 +3,16 @@
 #include <QObject>
 #include <QVariantList>
 #include <QHash>
+#include <QJsonObject>
+#include "core/repository/LibraryRepository.h"
+#include "integrations/adventure/AdventureAdapter.h"
 
 namespace trainer {
-// P1 view state only. No personal library, process, progress or storage access.
+// View model over shared registrations/history; launch stays with the shell adapter.
 class MultiversePresentation final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString route READ route NOTIFY changed)
-    Q_PROPERTY(QVariantList systems READ systems CONSTANT)
+    Q_PROPERTY(QVariantList systems READ systems NOTIFY changed)
     Q_PROPERTY(QVariantList games READ games NOTIFY changed)
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY changed)
     Q_PROPERTY(QVariantMap selected READ selected NOTIFY changed)
@@ -20,6 +23,10 @@ class MultiversePresentation final : public QObject {
     Q_PROPERTY(bool sample READ sample CONSTANT)
 public:
     explicit MultiversePresentation(bool sample, QObject* parent = nullptr);
+    MultiversePresentation(LibraryRepository&, AdventureAdapter&, QObject* parent = nullptr);
+    void refresh();
+    QJsonObject navigationState() const;
+    void restoreNavigation(const QJsonObject&);
     bool sample() const { return sample_; }
     QString route() const { return route_; }
     QVariantList systems() const;
@@ -41,6 +48,8 @@ signals:
     void homeRequested();
 private:
     struct Game { QString id, system, title; bool linked; };
+    LibraryRepository* repository_ = nullptr;
+    AdventureAdapter* adapter_ = nullptr;
     QVariantMap present(const Game&) const;
     QList<Game> filtered() const;
     bool sample_;

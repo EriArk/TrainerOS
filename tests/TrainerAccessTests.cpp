@@ -6,6 +6,8 @@
 #include <QTemporaryDir>
 #include <QSqlQuery>
 #include <QUuid>
+#include "LegacyStoreFixture.h"
+#include "core/storage/SqliteOwnership.h"
 
 using namespace trainer;
 namespace {
@@ -40,7 +42,7 @@ private slots:
             Db c(dir.path());
             QVERIFY(c.exec("INSERT INTO pokedex_favorites VALUES('two','pikachu')"));
             QVERIFY(c.exec("INSERT INTO shell_state VALUES('two','user-library-v1','{\"version\":1,\"homeAdventure\":\"other-choice\"}')"));
-            QVERIFY(c.exec("INSERT INTO adventures VALUES('game','kanto','A game',0,'','/untouched-rom','unconfigured','{}',1,'gba','','')"));
+            QVERIFY(c.exec("INSERT INTO adventures(id,world_id,title,kind,description,content_path,adapter_id,config,revision,platform_id,catalogue_id,variant) VALUES('game','kanto','A game',0,'','/untouched-rom','unconfigured','{}',1,'gba','','')"));
             for(const auto& owner:QStringList{"one","two"}) {
                 QVERIFY(c.exec("INSERT INTO play_sessions VALUES('session-"+owner+"','game','2026-01-01T00:00:00.000Z','2026-01-01T00:01:00.000Z',60,'returned','"+owner+"')"));
                 QVERIFY(c.exec("INSERT INTO hall_of_fame VALUES('memory-"+owner+"','game','A game','Kanto','',NULL,'[]','A memory','manual',1,'"+owner+"')"));
@@ -116,10 +118,12 @@ private slots:
     }
     void schemaNineMigrationFailureKeepsOldVersionAndCanRetry() {
         QTemporaryDir dir;
-        {LocalStateStore s(dir.path());s.open();QTRY_VERIFY(s.ready());create(s,"one");}
         {Db c(dir.path());
-            QVERIFY(c.exec("DROP TRIGGER trainer_access_create"));QVERIFY(c.exec("DROP TABLE trainer_access"));
-            QVERIFY(c.exec("DROP TABLE family_access"));QVERIFY(c.exec("PRAGMA user_version=9"));
+            QVERIFY(createLegacyStore(c.db,7));
+            QVERIFY(c.exec("INSERT INTO trainer_profile VALUES(1,'one','one','leaf','eevee','2026-01-01T00:00:00.000Z')"));
+            QVERIFY(c.db.transaction());QVERIFY(migrateOwnership(c.db).isEmpty());
+            QVERIFY(migrateProfiles(c.db).isEmpty());
+            QVERIFY(c.exec("PRAGMA user_version=9"));QVERIFY(c.db.commit());
             QVERIFY(c.exec("CREATE TABLE family_access(sentinel TEXT)"));}
         {LocalStateStore s(dir.path());s.open();QTRY_VERIFY(!s.opening());QVERIFY(!s.ready());}
         {Db c(dir.path());QSqlQuery q(c.db);QVERIFY(q.exec("PRAGMA user_version"));QVERIFY(q.next());QCOMPARE(q.value(0).toInt(),9);q.finish();

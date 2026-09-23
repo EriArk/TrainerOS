@@ -1,5 +1,11 @@
 # TrainerOS Domain Model
 
+**2026-09-23 domain binding:** schema 11 adds explicit Adventure domains and
+optional World relations for Multiverse, preserving every legacy Pokemon identity.
+Per-Trainer Home choices and history/media isolation now cover both contexts.
+See [the delivered binding contract](MULTIVERSE_BINDING.md); additional runtime
+save namespaces and semantic progress providers remain planned.
+
 **Target reconciliation — 2026-09-19 (#62).** The accepted [#42–62 specification](EXPANSION_42_62.md) supersedes older product direction. Planned behavior below is not a claim that the deployed build has changed; see the [working baseline](ROADMAP.md#working-baseline) and dated module evidence.
 
 The domain model should use TrainerOS language first and integration terminology second. Linux/ArmadaOS/emulator details belong behind integration and platform boundaries rather than shaping the user-facing model.

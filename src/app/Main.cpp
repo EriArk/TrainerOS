@@ -356,7 +356,7 @@ int main(int argc, char* argv[]) {
             const auto profile = store->load();
             const auto record = activeLibrary.registration(id);
             if (!profile || !record) return {};
-            return ExitMediaSource{profile->id, "pokemon", *record};
+            return ExitMediaSource{profile->id, record->adventure.domain, *record};
         });
         ControllerInput input(nullptr, preferred);
         const auto reportBase = parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()

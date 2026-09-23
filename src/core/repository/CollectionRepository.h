@@ -8,6 +8,7 @@ struct EditionChronology {
     std::optional<int> releaseYear, order;
 };
 QList<PlatformLabel> collectionPlatforms();
+QList<PlatformLabel> multiversePlatforms();
 QList<EditionChronology> collectionChronology();
 void sortWorldAdventures(QList<Adventure>&, const QList<PlatformLabel>&, const QList<EditionChronology>&);
 PlatformLabel platformLabel(const QString& id);
@@ -26,6 +27,7 @@ public:
     std::optional<qint64> recordedSeconds(const QString& id) const override { return personal_.recordedSeconds(id); }
     HomeSnapshot home() const override { return personal_.home(); }
     bool editable() const override { return personal_.editable(); }
+    void refreshContentAvailability() override { personal_.refreshContentAvailability(); }
     std::optional<AdventureRegistration> registration(const QString& id) const override { return personal_.registration(id); }
     void saveAdventureAsync(const AdventureRegistration&, QObject*, std::function<void(LibraryWriteResult)>) override;
 private:

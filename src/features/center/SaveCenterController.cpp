@@ -48,7 +48,7 @@ QString SaveCenterController::restoreLabel() const {
 }
 void SaveCenterController::rebuild() {
     adventures_.clear();
-    for(const auto& a:library_.adventures())if(!a.collectionOnly && (query_.isEmpty() || searchable(a.title).contains(searchable(query_))))adventures_.append(a);
+    for(const auto& a:library_.adventures())if(a.domain=="pokemon" && !a.collectionOnly && (query_.isEmpty() || searchable(a.title).contains(searchable(query_))))adventures_.append(a);
     std::sort(adventures_.begin(),adventures_.end(),[](const auto& a,const auto& b){return QString::compare(a.title,b.title,Qt::CaseInsensitive)<0;});
     focus_=std::clamp(focus_,0,std::max(0,int(adventures_.size())-1));emit rowsChanged();emit changed();
 }

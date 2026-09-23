@@ -17,7 +17,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         PlatformService& platform, PokedexReferenceProvider& dexReference, PokedexProgressRepository& dexProgress,
         HallOfFameRepository& archive, AchievementProvider& achievements, QObject* parent)
     : QObject(parent), repository_(repo), adapter_(adapter), platform_(platform),
-      keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this), multiverse_(!repo.editable(), this),
+      keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this), multiverse_(repo, adapter, this),
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
       libraryManager_(repo, nullptr, this), settings_(this), device_(this), diagnostics_(this), center_(repo,this), party_(!repo.editable(),this) {
     connect(&party_, &PartyPresentation::changed, this, &ShellController::changed);
@@ -153,7 +153,7 @@ void ShellController::configureServices(FileCatalog* files, PreferencesRepositor
     libraryManager_.files()->setCatalog(files); settings_.setRepository(preferences);
 }
 void ShellController::refreshLibrary() {
-    worlds_.refresh(); libraryManager_.refresh();
+    worlds_.refresh(); libraryManager_.refresh(); multiverse_.refresh();
     if (page_ == 3) trainer_.refreshOverview();
     const QString selected = drawerFocus_ < points_.size() ? points_[drawerFocus_].id : QString();
     refreshContinue();
@@ -202,6 +202,8 @@ void ShellController::refreshContinue() {
         represented.insert(point.adventureId);
     }
     for (const auto& session : repository_.recentSessions()) {
+        const auto registration = repository_.registration(session.adventureId);
+        if (registration && registration->adventure.domain != "pokemon") continue;
         if (represented.contains(session.adventureId)) continue;
         represented.insert(session.adventureId);
         points_.append({"recent:" + session.adventureId, session.adventureId, session.startedAt, {}, session});
@@ -231,6 +233,8 @@ QJsonObject ShellController::navigationState() const {
     return {{"version", 1}, {"page", pages[page_]},
             {"homeAdventure", homeAdventureId_}, {"homeResume", homeResumeId_}, {"pokedexFace", centerFace_ ? "center" : "pokedex"},
             {"homeResumeSource", homeResumeSource_.toJson()},
+            {"multiverse",multiverse_.navigationState()},{"homeDomain",multiverseHome_?"multiverse":"pokemon"},
+            {"worldsFace",multiverseFace_?"multiverse":"pokemon"},
             {"resume", drawerFocus_ < points_.size() ? points_[drawerFocus_].id : QString()},
             {"worlds", worlds_.navigationState()}, {"pokedex", pokedex_.navigationState()}, {"hall", hall_.navigationState()}};
 }
@@ -244,6 +248,9 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     // Preserve the Adventure choice, but never restore a retired state target.
     if (repository_.editable()) { homeResumeId_.clear(); homeResumeSource_ = {}; }
     worlds_.restoreNavigation(state["worlds"].toObject());
+    multiverse_.restoreNavigation(state["multiverse"].toObject());
+    multiverseHome_=state["homeDomain"].toString()=="multiverse";
+    multiverseFace_=state["worldsFace"].toString()=="multiverse";
     pokedex_.restoreNavigation(state["pokedex"].toObject());
     hall_.restoreNavigation(state["hall"].toObject());
     drawerFocus_ = 0;
@@ -254,7 +261,7 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
 }
 std::optional<Adventure> ShellController::homeAdventure() const {
     const auto adventures = repository_.adventures();
-    for (const auto& a : adventures) if (a.id == currentAdventureId() && !a.collectionOnly) return a;
+    for (const auto& a : adventures) if (a.id == currentAdventureId() && !a.collectionOnly && a.domain == "pokemon") return a;
     return {};
 }
 std::optional<ResumePoint> ShellController::homeResumePoint(const QString& adventureId) const {
@@ -523,7 +530,17 @@ void ShellController::confirm() {
     } else if (page_ == 0) {
         if (multiverseHome_) {
             if (multiverse_.selected().isEmpty()) { multiverseFace_ = true; goToPage(1); }
-            else notice_ = "Development preview only. No game was launched.";
+            else if(multiverse_.sample()) notice_ = "Development preview only. No game was launched.";
+            else {
+                const auto record=repository_.registration(multiverse_.selected()["id"].toString());
+                if(!record || record->adventure.domain!="multiverse")notice_="This Adventure is unavailable. Choose another with Y.";
+                else if(record->contentAvailable && adapter_.capabilities(record->adventure).launch) {
+                    emit homeLaunchPressed();const auto result=adapter_.launch(record->adventure);
+                    if(!result.inProgress)notice_=result.message;
+                } else {
+                    libraryFromWorlds_=true;service_="library";libraryManager_.beginEdit(record->adventure.id);
+                }
+            }
             return;
         }
         const auto adventure = homeAdventure();
@@ -579,7 +596,7 @@ void ShellController::dispatch(Action action) {
     }
     if (action == Action::PreviousFace || action == Action::NextFace) {
         if (pairedNavigationAvailable()) {
-            if (page_ == 1) multiverseFace_ = !multiverseFace_;
+            if (page_ == 1) { multiverseFace_ = !multiverseFace_; if(multiverseFace_)repository_.refreshContentAvailability(); }
             else if (page_ == 4) hall_.switchFace();
             else if (centerFace_) { center_.close(); centerFace_ = false; }
             else openCenter();
@@ -588,6 +605,7 @@ void ShellController::dispatch(Action action) {
         return;
     }
     if (action == Action::ToggleContinue && chooseAdventureAvailable()) {
+        if(!drawerOpen_ && page_==0 && multiverseHome_)repository_.refreshContentAvailability();
         drawerOpen_ = !drawerOpen_; emit changed(); return;
     }
     if (notice_.isEmpty() && !menuOpen_) {

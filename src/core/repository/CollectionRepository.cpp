@@ -37,7 +37,43 @@ QList<PlatformLabel> collectionPlatforms() {
 }
 PlatformLabel platformLabel(const QString& id) {
     for (const auto& p : collectionPlatforms()) if (p.id == id) return p;
+    for (const auto& p : multiversePlatforms()) if (p.id == id) return p;
     return {id, "Unspecified platform", "?", "console"};
+}
+QList<PlatformLabel> multiversePlatforms() {
+    // Registry membership describes a content category, not installed runtime
+    // readiness. Empty systems never become cards in the production browser.
+    QList<PlatformLabel> result;
+    for (const auto& p : collectionPlatforms()) if (p.id != "android" && p.id != "pc") result.append(p);
+    const QList<PlatformLabel> additional{
+        {"nes","Nintendo Entertainment System","NES","cartridge"},
+        {"snes","Super Nintendo","SNES","cartridge"},
+        {"virtualboy","Virtual Boy","VB","console"},
+        {"mastersystem","Master System","SMS","cartridge"},
+        {"megadrive","Mega Drive","MD","cartridge"},
+        {"gamegear","Game Gear","GG","handheld"},
+        {"segacd","Mega-CD","MCD","disc"},{"sega32x","32X","32X","cartridge"},
+        {"saturn","Saturn","SAT","disc"},{"dreamcast","Dreamcast","DC","disc"},
+        {"psx","PlayStation","PS","disc"},{"ps2","PlayStation 2","PS2","disc"},
+        {"psp","PSP","PSP","handheld"},{"vita","PS Vita","VITA","handheld"},
+        {"pcengine","PC Engine","PCE","cartridge"},{"pcenginecd","PC Engine CD","PCE CD","disc"},
+        {"supergrafx","SuperGrafx","SGX","cartridge"},
+        {"ngp","Neo Geo Pocket","NGP","handheld"},{"ngpc","Neo Geo Pocket Color","NGPC","handheld"},
+        {"neogeo","Neo Geo","NG","cartridge"},{"neogeocd","Neo Geo CD","NG CD","disc"},
+        {"fbneo","Arcade · FinalBurn Neo","ARCADE","console"},{"mame","Arcade · MAME","ARCADE","console"},
+        {"atomiswave","Atomiswave","AW","console"},{"naomi","NAOMI","NAOMI","console"},
+        {"atari2600","Atari 2600","2600","cartridge"},{"atari5200","Atari 5200","5200","cartridge"},
+        {"atari7800","Atari 7800","7800","cartridge"},{"lynx","Atari Lynx","LYNX","handheld"},
+        {"jaguar","Atari Jaguar","JAG","cartridge"},{"3do","3DO","3DO","disc"},
+        {"wonderswan","WonderSwan","WS","handheld"},{"wonderswancolor","WonderSwan Color","WSC","handheld"},
+        {"colecovision","ColecoVision","CV","cartridge"},{"intellivision","Intellivision","INTV","cartridge"},
+        {"vectrex","Vectrex","VEC","console"},{"c64","Commodore 64","C64","computer"},
+        {"amiga","Amiga","AMIGA","computer"},{"amstradcpc","Amstrad CPC","CPC","computer"},
+        {"zxspectrum","ZX Spectrum","ZX","computer"},{"msx","MSX","MSX","computer"},
+        {"msx2","MSX2","MSX2","computer"},{"dos","DOS","DOS","computer"},
+        {"scummvm","ScummVM","SCUMM","computer"}};
+    for (const auto& p : additional) if (std::none_of(result.begin(), result.end(), [&](const auto& r) { return r.id == p.id; })) result.append(p);
+    return result;
 }
 QList<EditionChronology> collectionChronology() {
     QList<EditionChronology> result;
@@ -106,7 +142,7 @@ QList<World> CollectionRepository::worlds() const {
 QList<Adventure> CollectionRepository::adventures() const {
     auto result = personal_.adventures(); QSet<QString> owned;
     const auto catalogue = collectionCatalogue();
-    for (auto& a : result) if (!a.catalogueId.isEmpty()) {
+    for (auto& a : result) if (a.domain == "pokemon" && !a.catalogueId.isEmpty()) {
         owned.insert(a.catalogueId);
         for (const auto& reference : catalogue) if (reference.catalogueId == a.catalogueId) {
             a.limitation = reference.limitation;

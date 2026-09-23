@@ -9,7 +9,7 @@ QList<Adventure> ArchiveEditor::adventures() const {
     QList<Adventure> values;
     if (!library_) return values;
     for (const auto& adventure : library_->adventures())
-        if (!adventure.collectionOnly && (adventure.title + " " + adventure.variant).contains(query_, Qt::CaseInsensitive)) values.append(adventure);
+        if (adventure.domain == "pokemon" && !adventure.collectionOnly && (adventure.title + " " + adventure.variant).contains(query_, Qt::CaseInsensitive)) values.append(adventure);
     std::sort(values.begin(), values.end(), [](const auto& a, const auto& b) {
         const auto compare=QString::compare(a.title,b.title,Qt::CaseInsensitive);
         return compare==0 ? a.id<b.id : compare<0;

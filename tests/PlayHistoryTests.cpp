@@ -47,6 +47,26 @@ class PlayHistoryTests final : public QObject {
         QTRY_VERIFY(done); QVERIFY(ok);
     }
 private slots:
+    void multiverseExitMediaKeepsItsDomainAcrossRestart() {
+        QTemporaryDir dir;const auto path=content(dir);const auto now=QDateTime::currentDateTimeUtc();
+        QImage frame(64,36,QImage::Format_RGB32);frame.fill(Qt::blue);
+        {
+            LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());profile(store);
+            AdventureRegistration r;r.adventure.id="general";r.adventure.title="General fixture";
+            r.adventure.domain="multiverse";r.adventure.platformId="gba";r.adventure.adapterId="unconfigured";r.contentPath=path;
+            bool done=false;store.saveAdventureAsync(r,this,[&](auto result){QVERIFY(result.success);done=true;});QTRY_VERIFY(done);
+            ExitMediaSource source{"owner","multiverse",*store.registration("general")};
+            PlaySession value{"general-exit","general",now,{},{},PlaySessionOutcome::Running};
+            QVERIFY(saveMedia(store,value,source).isEmpty());
+            value.outcome=PlaySessionOutcome::Returned;value.endedAt=now.addSecs(3);value.elapsedSeconds=3;
+            QVERIFY(saveMedia(store,value,source,ExitCapture{frame,now}).isEmpty());
+            QVERIFY(store.exitMedia("general"));QCOMPARE(store.exitMedia("general")->domain,"multiverse");
+            QVERIFY(store.home().activeAdventureId.isEmpty());
+        }
+        LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());
+        QVERIFY(store.exitMedia("general"));QCOMPARE(store.exitMedia("general")->domain,"multiverse");
+        QVERIFY(!store.exitImage("general-exit").isNull());QVERIFY(store.home().activeAdventureId.isEmpty());
+    }
     void exitPicturesFillFromContentWithoutDestroyingCapture() {
         QImage frame(960, 540, QImage::Format_RGB32); frame.fill(Qt::black);
         QPainter painter(&frame); painter.fillRect(75, 0, 810, 540, QColor("#54ada6")); painter.end();
@@ -262,9 +282,9 @@ private slots:
         {
             auto db = QSqlDatabase::addDatabase("QSQLITE", "history-migration"); db.setDatabaseName(dir.filePath("traineros.sqlite3")); QVERIFY(db.open());
             QVERIFY(createLegacyStore(db,3));
-            AdventureRegistration r; r.adventure.id="journey"; r.adventure.title="History fixture";
-            r.adventure.worldId="hoenn"; r.adventure.adapterId="unconfigured"; r.contentPath=path;
-            QVERIFY(writeAdventure(db,r).success);
+            QSqlQuery q(db);
+            q.prepare("INSERT INTO adventures(id,world_id,title,kind,description,content_path,adapter_id,config,revision) VALUES('journey','hoenn','History fixture',0,'',?,'unconfigured','{}',1)");
+            q.addBindValue(path);QVERIFY(q.exec());q.finish();
             db.close();
         }
         QSqlDatabase::removeDatabase("history-migration");

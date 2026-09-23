@@ -7,6 +7,9 @@
 #include <QFile>
 #include <QDir>
 #include <QUuid>
+#include <QProcess>
+#include <QJsonDocument>
+#include <QJsonArray>
 
 using namespace trainer;
 namespace {
@@ -32,6 +35,51 @@ public:
 class LibraryTests final : public QObject {
     Q_OBJECT
 private slots:
+    void maintenanceImportIsIdempotentAndRejectsIdentityCollisions() {
+        QTemporaryDir dir;const auto content=dir.filePath("fixture.gba");fixtureFile(content);
+        const auto manifest=dir.filePath("manifest.json"),data=dir.filePath("data");
+        const auto writeManifest=[&](const QString& id) {
+            QFile f(manifest);QVERIFY(f.open(QIODevice::WriteOnly));
+            f.write(QJsonDocument(QJsonObject{{"version",1},{"entries",QJsonArray{QJsonObject{{"id",id},{"title","General fixture"},{"platform","gba"},{"path",content}}}}}).toJson());
+        };
+        const auto run=[&] {
+            QProcess child;child.start(QCoreApplication::applicationDirPath()+"/trainer_library_import",{data,manifest});
+            if(!child.waitForFinished(30000))return -100;
+            return child.exitStatus()==QProcess::NormalExit?child.exitCode():-101;
+        };
+        writeManifest("shared-title");QCOMPARE(run(),0);QCOMPARE(run(),0);
+        writeManifest("duplicate-file");QVERIFY(run()!=0);
+        LocalStateStore store(data);store.open();QTRY_VERIFY(store.ready());
+        QCOMPARE(store.adventures().size(),1);QCOMPARE(store.adventures().front().domain,"multiverse");
+        QVERIFY(store.adventures().front().worldId.isEmpty());QCOMPARE(store.worlds().size(),9);
+        writeManifest("shared-title");QVERIFY(run()!=0); // Live shell/store lock is respected.
+        QFile original(content);QVERIFY(original.open(QIODevice::ReadOnly));QCOMPARE(original.readAll(),QByteArray("Original test data. Not a game or save.\n"));
+    }
+    void multiverseRegistrationPersistsWithoutInventingWorlds() {
+        QTemporaryDir dir; const auto path=dir.filePath("fixture.gba");fixtureFile(path);
+        QString id;
+        {
+            LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());
+            auto value=candidate(path);id=value.adventure.id;
+            value.adventure.domain="multiverse";value.adventure.worldId.clear();
+            value.adventure.additionalWorldIds.clear();value.adventure.platformId="gba";
+            bool done=false;QString error;
+            store.saveAdventureAsync(value,this,[&](auto r){error=r.error;done=true;});QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));
+            QCOMPARE(store.worlds().size(),9);QCOMPARE(store.registration(id)->adventure.domain,"multiverse");
+            UnconfiguredAdventureAdapter adapter;WorldsController worlds(store,adapter);
+            for(int i=0;i<9;++i){worlds.activate(i);QVERIFY(worlds.adventures().isEmpty());worlds.dispatch(Action::Back);}
+            auto changed=*store.registration(id);changed.adventure.domain="pokemon";changed.adventure.worldId="hoenn";
+            done=false;store.saveAdventureAsync(changed,this,[&](auto r){error=r.error;done=true;});QTRY_VERIFY(done);QVERIFY(!error.isEmpty());
+            const auto now=QDateTime::currentDateTimeUtc();done=false;
+            store.saveSessionAsync({"multiverse-session",id,now,{},{},PlaySessionOutcome::Running},this,[&](auto e){error=e;done=true;});
+            QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));done=false;
+            store.saveSessionAsync({"multiverse-session",id,now,now,1,PlaySessionOutcome::Returned},this,[&](auto e){error=e;done=true;});
+            QTRY_VERIFY(done);QVERIFY(error.isEmpty());QVERIFY(store.home().activeAdventureId.isEmpty());
+        }
+        LocalStateStore reopened(dir.path());reopened.open();QTRY_VERIFY(reopened.ready());
+        const auto record=reopened.registration(id);QVERIFY(record);QVERIFY(record->adventure.worldId.isEmpty());
+        QCOMPARE(record->adventure.domain,"multiverse");QCOMPARE(reopened.recordedSeconds(id),std::optional<qint64>(1));
+    }
     void libraryIdentityRelationshipsAndReopening() {
         QTemporaryDir dir; const auto file = dir.path() + "/original fixture.bin"; fixtureFile(file);
         auto value = candidate(file); value.integrationConfig = {{"future-adapter-field", "literal `name` $(value)"}};
@@ -98,7 +146,7 @@ private slots:
             QCOMPARE(store.worlds().size(), 9); QVERIFY(store.adventures().isEmpty()); QVERIFY(store.navigation().isEmpty());
         }
         Connection connection(dir.path()); QSqlQuery q(connection.db);
-        QVERIFY(q.exec("PRAGMA user_version")); QVERIFY(q.next()); QCOMPARE(q.value(0).toInt(), 10);
+        QVERIFY(q.exec("PRAGMA user_version")); QVERIFY(q.next()); QCOMPARE(q.value(0).toInt(), 11);
         QVERIFY(q.exec("SELECT payload FROM shell_state WHERE scope='prototype-library-v1'")); QVERIFY(q.next()); QVERIFY(!q.value(0).toString().isEmpty());
     }
     void filePagingCancellationAndUnavailableDirectory() {

@@ -32,7 +32,9 @@ private slots:
         QTemporaryDir dir;
         {
             Connection connection(dir.path()); QVERIFY(createLegacyStore(connection.db,4));
-            QVERIFY(writeAdventure(connection.db,adventure(dir.path())).success);
+            const auto record=adventure(dir.path());QSqlQuery q(connection.db);
+            q.prepare("INSERT INTO adventures(id,world_id,title,kind,description,content_path,adapter_id,config,revision) VALUES('owned-adventure','kanto','A personal journey',0,'',?,'unconfigured','{}',1)");
+            q.addBindValue(record.contentPath);QVERIFY(q.exec());
         }
         HallOfFameEntry saved;
         {

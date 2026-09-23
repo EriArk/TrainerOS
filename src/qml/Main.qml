@@ -183,7 +183,7 @@ Window {
                 Hint { visible: shell.pairedNavigationAvailable; button: "L2 R2"; label: shell.page === 1 ? (shell.multiverseFace ? "Worlds" : "Multiverse") : shell.page === 4 ? (shell.hall.archive ? "Achievements" : "Hall of Fame") : (shell.centerFace ? "Pokédex" : "Center"); tint: Theme.green }
                 Hint { visible: shell.page === 0 && shell.chooseAdventureAvailable && !shell.drawerOpen; button: "X"; label: shell.multiverseHome ? "Pokémon" : "Multiverse"; tint: Theme.blue }
                 Hint { button: "L1 R1"; label: "Sections"; tint: Theme.blue }
-                Hint { button: "A"; label: shell.keyboard.open && !shell.menuOpen ? "Type" : shell.page === 0 && !shell.drawerOpen && !shell.menuOpen && !shell.serviceOpen && shell.notice.length === 0 ? (shell.multiverseHome ? (shell.multiverse.selected.id ? "Preview" : "Explore") : shell.home.actionHint) : "Select" }
+                Hint { button: "A"; label: shell.keyboard.open && !shell.menuOpen ? "Type" : shell.page === 0 && !shell.drawerOpen && !shell.menuOpen && !shell.serviceOpen && shell.notice.length === 0 ? (shell.multiverseHome ? (shell.multiverse.selected.id ? (shell.multiverse.sample ? "Preview" : shell.multiverse.selected.playable ? "Play" : "Set up") : "Explore") : shell.home.actionHint) : "Select" }
                 Hint { button: "B"; label: shell.keyboard.open && !shell.menuOpen ? "Cancel input" : "Back"; tint: Theme.pink }
                 Hint { button: "Start"; label: "System"; tint: Theme.yellow }
             }

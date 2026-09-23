@@ -14,14 +14,16 @@ constexpr int MaximumImage = 512 * 1024;
 QString failure() { return "The exit picture couldn't be saved. Your previous picture has been kept."; }
 QString hash(const QByteArray& data) { return QString::fromLatin1(QCryptographicHash::hash(data, QCryptographicHash::Sha256).toHex()); }
 bool currentSource(QSqlDatabase& db, const ExitMediaSource& source) {
-    if (source.trainerId.isEmpty() || source.domain != "pokemon") return false;
+    if (source.trainerId.isEmpty() || (source.domain != "pokemon" && source.domain != "multiverse")
+        || source.domain != source.registration.adventure.domain) return false;
     const auto& r = source.registration;
     QSqlQuery q(db);
-    q.prepare("SELECT a.revision,a.content_path,a.adapter_id,a.config FROM adventures a,trainer_profile p WHERE a.id=? AND p.id=?");
+    q.prepare("SELECT a.revision,a.content_path,a.adapter_id,a.config,a.domain FROM adventures a,trainer_profile p WHERE a.id=? AND p.id=?");
     q.addBindValue(r.adventure.id); q.addBindValue(source.trainerId);
     return q.exec() && q.next() && q.value(0).toInt() == r.revision
         && q.value(1).toString() == r.contentPath && q.value(2).toString() == r.adventure.adapterId
-        && QJsonDocument::fromJson(q.value(3).toByteArray()).object() == r.integrationConfig;
+        && QJsonDocument::fromJson(q.value(3).toByteArray()).object() == r.integrationConfig
+        && q.value(4).toString() == source.domain;
 }
 QString contentHash(const QString& path, qint64 size, qint64 modified) {
     const QFileInfo before(path);

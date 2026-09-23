@@ -55,6 +55,7 @@ public:
     void setFavoriteAsync(const QString&, bool, QObject*, std::function<void(QString)>) override;
     void saveNavigation(const QJsonObject&, QObject*, std::function<void(QString)>);
     bool editable() const override { return true; }
+    void refreshContentAvailability() override;
     QList<World> worlds() const override { return worlds_; }
     QList<Adventure> adventures() const override;
     QList<ResumePoint> resumePoints() const override { return {}; }
@@ -94,6 +95,7 @@ private:
     QSet<QString> protected_;
     bool staged_ = false;
     bool ready_ = false, opening_ = false;
+    bool availabilityPending_ = false;
     int pending_ = 0;
     std::optional<TrainerProfile> profile_;
     QSet<QString> favorites_;

@@ -30,6 +30,7 @@ struct Adventure {
     QString variant = {};
     bool collectionOnly = false; // Reference entry, never an installed Adventure.
     QString limitation = {};
+    QString domain = "pokemon"; // Explicit library context; never inferred from title/path.
 };
 // Installation metadata belongs to the library/adapter boundary, never primary UI.
 struct AdventureRegistration {
@@ -39,6 +40,7 @@ struct AdventureRegistration {
     int revision = 0; // 0 creates; edits compare the previously read revision.
     std::optional<World> newWorld;
     QList<World> additionalNewWorlds = {};
+    bool contentAvailable = true; // Worker-observed availability; not persisted identity.
 };
 struct LibraryWriteResult { bool success; QString error; int revision = 0; };
 struct ShellPreferences {

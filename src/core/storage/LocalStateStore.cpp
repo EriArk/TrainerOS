@@ -19,7 +19,7 @@
 
 namespace trainer {
 namespace {
-constexpr int SchemaVersion = 10;
+constexpr int SchemaVersion = 11;
 QString failedWrite() { return "Couldn't save changes. Check free space or storage access, then try again."; }
 struct LoadedState {
     QString error;
@@ -193,6 +193,11 @@ public:
                     if (openError.isEmpty() && !db.commit()) openError = failedWrite();
                     if (!openError.isEmpty()) db.rollback();
                 }
+            }
+            if (openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next())) openError = failedWrite();
+            if (openError.isEmpty() && query.value(0).toInt() < 11) {
+                query.finish();
+                openError = migrateLibraryDomains(db);
             }
             if (openError.isEmpty()) {
                 ownerId_ = localOwner(db);
@@ -637,6 +642,7 @@ void LocalStateStore::saveAdventureAsync(const AdventureRegistration& candidate,
           [this, record, result, guard = QPointer<QObject>(context), completed](const QString& error) mutable {
         if (error.isEmpty()) {
             if (record.newWorld) worlds_.append(*record.newWorld);
+            record.contentAvailable = true; // The worker just validated this file before committing.
             for (const auto& world : record.additionalNewWorlds)
                 if (std::none_of(worlds_.begin(), worlds_.end(), [&](const auto& w) { return w.id == world.id; })) worlds_.append(world);
             record.additionalNewWorlds.clear();
@@ -654,9 +660,27 @@ void LocalStateStore::saveAdventureAsync(const AdventureRegistration& candidate,
     });
 }
 HomeSnapshot LocalStateStore::home() const {
-    if (history_.recent.isEmpty()) return {{}, {}, {}, "Your next journey starts in Worlds."};
-    const auto& last = history_.recent.front();
-    return {last.adventureId, {}, {}, "Choose an Adventure with Y. Press A on Home to play."};
+    for (const auto& last : history_.recent) {
+        const auto record = registration(last.adventureId);
+        if (record && record->adventure.domain == "pokemon")
+            return {last.adventureId, {}, {}, "Choose an Adventure with Y. Press A on Home to play."};
+    }
+    return {{}, {}, {}, "Your next journey starts in Worlds."};
+}
+void LocalStateStore::refreshContentAvailability() {
+    if(!ready_ || staged_ || availabilityPending_)return;
+    availabilityPending_=true;
+    auto snapshot=std::make_shared<QList<AdventureRegistration>>(registrations_);
+    write([snapshot](SqliteWorker&) {
+        for(auto& r:*snapshot) {const QFileInfo file(r.contentPath);r.contentAvailable=file.isFile() && file.isReadable();}
+        return QString();
+    },[this,snapshot](const QString& error) {
+        availabilityPending_=false;if(!error.isEmpty())return;
+        for(const auto& observed:*snapshot)for(auto& current:registrations_)
+            if(current.adventure.id==observed.adventure.id && current.revision==observed.revision && current.contentPath==observed.contentPath)
+                current.contentAvailable=observed.contentAvailable;
+        emit libraryChanged();
+    });
 }
 std::optional<qint64> LocalStateStore::recordedSeconds(const QString& id) const {
     if (!history_.totals.contains(id)) return {};
@@ -680,7 +704,7 @@ void LocalStateStore::saveSessionMediaAsync(const PlaySession& value, const std:
 std::optional<ExitMedia> LocalStateStore::exitMedia(const QString& adventureId) const {
     const auto record = registration(adventureId);
     if (!profile_ || !record) return {};
-    for (const auto& media : exitMedia_) if (media.trainerId == profile_->id && media.domain == "pokemon"
+    for (const auto& media : exitMedia_) if (media.trainerId == profile_->id && media.domain == record->adventure.domain
         && media.adventureId == adventureId && media.registrationRevision == record->revision) return media;
     return {};
 }

@@ -60,8 +60,9 @@ is claimed by this file-preparation increment.
 
 ## Remaining P3/P4 acceptance
 
-Bind actual files to stable Multiverse domain identities, independent per-Trainer
-Home choices and the shared launch/history services. Include every credible
+[Schema-11 binding](MULTIVERSE_BINDING.md) now registers these files with stable
+Multiverse identities, independent per-Trainer Home choices and shared
+launch/history services. Complete the remaining runtime routes and game media. Include every credible
 Flip/Armada system route, hiding platforms without content independently of the
 current search filter. Missing media must preserve existing identity/history.
 
