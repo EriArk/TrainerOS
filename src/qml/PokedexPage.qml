@@ -35,11 +35,11 @@ Item {
             Rectangle { anchors.right: parent.right; y: -parent.y; width: 6; height: parent.y; color: "#c4dcd5" }
         }
         Rectangle {
-            x: 0; y: dexHeader.height + 72; width: 530; height: root.height - 45 - y; color: "#dbe8dd"
+            x: 0; y: dexHeader.height + 72; width: 470; height: root.height - 45 - y; color: "#dbe8dd"
             ListView {
                 id: entries
                 objectName: "dex-list"
-                x: 19; y: 10; width: 476; height: parent.height - 20
+                x: 19; y: 10; width: parent.width - 54; height: parent.height - 20
                 model: root.dex.entries; currentIndex: root.dex.entryIndex
                 interactive: false; keyNavigationEnabled: false; clip: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -78,7 +78,7 @@ Item {
                 }
             }
             Text {
-                x: 28; y: 31; width: 452; wrapMode: Text.WordWrap
+                x: 28; y: 31; width: parent.width - 56; wrapMode: Text.WordWrap
                 visible: root.dex.entries.length === 0
                 text: root.dex.emptyMessage; color: Theme.ink; font.pixelSize: 20; textFormat: Text.PlainText
             }
@@ -91,12 +91,67 @@ Item {
             }
         }
         Rectangle {
-            x: 530; y: dexHeader.height + 72; width: parent.width - x; height: root.height - 45 - y; color: "#e6edde"
-            ClassicIllustration { x: 20; y: 2; width: 202; height: 146; art: root.dex.detail.art || ({}); showLabel: true }
-            Text { x: 233; y: 29; text: root.dex.detail.number; color: Theme.muted; font.pixelSize: 23 }
-            Text { x: 233; y: 68; width: parent.width - x - 12; text: root.dex.detail.form; color: Theme.muted; font.pixelSize: 13; wrapMode: Text.WordWrap }
-            Text { x: 24; y: 151; width: parent.width - 48; text: root.dex.detail.name; color: Theme.ink; font.pixelSize: 24; font.weight: Font.DemiBold; elide: Text.ElideRight }
-            Text { x: 24; y: 190; width: parent.width - 48; text: root.dex.entries.length ? root.dex.detail.types + " · " + root.dex.detail.status : "Try another trail through the guide."; color: Theme.muted; font.pixelSize: 13; elide: Text.ElideRight }
+            id: preview
+            objectName: "dex-list-preview"
+            x: 470; y: dexHeader.height + 72; width: parent.width - x; height: root.height - 45 - y; color: "#e6edde"
+            readonly property bool hasEntry: root.dex.entries.length > 0
+            readonly property var types: root.dex.detail.types ? root.dex.detail.types.split(" / ") : []
+            function typeTint(type) {
+                const colors = {Bug:"#cddd9c", Dark:"#c6b9b0", Dragon:"#bbbbe8", Electric:"#f5dc83",
+                    Fairy:"#efc3df", Fighting:"#e5b399", Fire:"#f1b18a", Flying:"#cad7ef", Ghost:"#c8bde0",
+                    Grass:"#b8d999", Ground:"#dec59e", Ice:"#b5e0e0", Normal:"#d7d4bc", Poison:"#dbb5dc",
+                    Psychic:"#edb2c6", Rock:"#d1c492", Steel:"#c3d2d8", Water:"#accfea"}
+                return colors[type] || "#d7dfd0"
+            }
+            Text {
+                x: 18; y: 8; width: parent.width - 108; height: 31
+                text: root.dex.detail.name; textFormat: Text.PlainText
+                color: Theme.ink; font.pixelSize: 25; font.weight: Font.DemiBold
+                fontSizeMode: Text.Fit; minimumPixelSize: 18; elide: Text.ElideRight
+            }
+            Text { x: parent.width - 82; y: 15; width: 64; text: root.dex.detail.number; color: Theme.muted; font.pixelSize: 18; horizontalAlignment: Text.AlignRight }
+            Text { x: 19; y: 38; width: parent.width - 156; text: root.dex.detail.form; color: Theme.muted; font.pixelSize: 11; elide: Text.ElideRight }
+            ClassicIllustration {
+                objectName: "dex-preview-art"
+                x: 8; y: 52; width: parent.width - 143; height: parent.height - 56
+                art: root.dex.detail.art || ({}); showLabel: true; visible: preview.hasEntry
+            }
+            Column {
+                x: parent.width - 124; y: 47; width: 106; spacing: 3
+                visible: preview.hasEntry
+                Column {
+                    width: parent.width; spacing: 4
+                    Repeater {
+                        model: preview.types
+                        delegate: Rectangle {
+                            required property string modelData
+                            width: 106; height: 20; radius: 5; color: preview.typeTint(modelData)
+                            border.color: Qt.darker(color, 1.18)
+                            Text { anchors.centerIn: parent; text: parent.modelData; color: Theme.ink; font.pixelSize: 12; font.weight: Font.DemiBold }
+                        }
+                    }
+                }
+                Column {
+                    spacing: 1
+                    Text { text: "HEIGHT"; color: Theme.muted; font.pixelSize: 10; font.letterSpacing: 1 }
+                    Text { text: root.dex.detail.height; color: Theme.ink; font.pixelSize: 17; font.weight: Font.DemiBold }
+                }
+                Column {
+                    spacing: 1
+                    Text { text: "WEIGHT"; color: Theme.muted; font.pixelSize: 10; font.letterSpacing: 1 }
+                    Text { text: root.dex.detail.weight; color: Theme.ink; font.pixelSize: 17; font.weight: Font.DemiBold }
+                }
+                Column {
+                    spacing: 1
+                    Text { text: "YOUR JOURNAL"; color: Theme.muted; font.pixelSize: 9; font.letterSpacing: 0.6 }
+                    Text { text: root.dex.detail.status; color: Theme.muted; font.pixelSize: 11 }
+                }
+            }
+            Text {
+                x: 20; y: 80; width: parent.width - 40; visible: !preview.hasEntry
+                text: "Try another trail through the guide."; wrapMode: Text.WordWrap
+                color: Theme.muted; font.pixelSize: 16
+            }
         }
         MountedPanel {
             anchors { bottom: parent.bottom; left: parent.left; right: parent.right }

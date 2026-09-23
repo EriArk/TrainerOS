@@ -6,6 +6,23 @@
 
 Collection cards include an original hardware silhouette and short platform label seated in a recessed badge within the raised card. Missing editions use neutral grey material and retain a full-contrast focus outline; greying does not disable focus or the file-link action. This is the user's 2026-09-11 extension; see [collection catalogue](COLLECTION_CATALOGUE.md).
 
+## Pokédex list preview — owner refinement, 2026-09-23
+
+The selected-entry preview uses one aligned identity header (name, number and
+form), an enlarged illustration, and a narrow fact column with colored type
+labels, height and weight. Manual journal status is separated from reference
+facts. The list gives the preview 60 additional logical units while retaining
+its three visible rows, original controller focus and bounded scrolling.
+Long names fit within the header; empty results hide the reference facts rather
+than showing a fictional entry. No extra focus targets or inspection panels are
+introduced. The full detail and its animated companion remain unchanged.
+
+Verified with both Pokédex/artwork QML smoke checks on Windows and ARM64,
+the native Flip render check, and the installed production build. Controller
+search, entry/back and peer navigation were exercised; device captures of
+Cetitan and Crabominable confirm larger art and an unclipped two-type fact
+column. The existing Trainer and 686 Adventure records survived deployment.
+
 ## Chassis, selection and page cleanup — 2026-09-14
 
 This owner review supersedes the earlier tab heights, title typeface, directional rim lighting and Continue label below. The TRAINER OS body stays 63 units high. Inactive tabs end at 53; the active tab reaches the title bevel's inner line at 74, with 21-unit lettering versus 19 on other tabs. Spacing and silhouettes stay fixed. The owner's final alignment extends all five equal tabs to 145.2 units so Hall meets the right body at x=948, over the bevel, matching Home's direct title contact. The 12-unit upper rail meets the right side at a straight corner. After reviewing the installed build, the owner rejected the rounded upper-right transition and also squared the lower-left body and screen-bevel corner, giving Choose Adventure a straight mounting junction. Centered Chakra Petch Bold replaces Fredoka only in the TRAINER OS title; bundled font provenance and licenses are in [assets/fonts](../assets/fonts/README.md).
