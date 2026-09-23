@@ -30,7 +30,7 @@ private slots:
             for(const auto& sql:QStringList{
                 "CREATE TABLE legacy_profile(slot INTEGER PRIMARY KEY CHECK(slot=1),id TEXT NOT NULL UNIQUE,name TEXT NOT NULL,emblem TEXT NOT NULL,favorite TEXT NOT NULL,created_at TEXT NOT NULL)",
                 "INSERT INTO legacy_profile SELECT 1,id,name,emblem,favorite,created_at FROM trainer_profile",
-                "DROP TABLE trainer_profile","ALTER TABLE legacy_profile RENAME TO trainer_profile","PRAGMA user_version=8"})QVERIFY(q.exec(sql));
+                "DROP TABLE trainer_profile","ALTER TABLE legacy_profile RENAME TO trainer_profile","DROP TRIGGER trainer_access_create","DROP TABLE trainer_access","DROP TABLE family_access","PRAGMA user_version=8"})QVERIFY(q.exec(sql));
         }
         QSqlDatabase::removeDatabase(name);
         { LocalStateStore store(dir.path());QSignalSpy opened(&store,&LocalStateStore::opened);store.open();QTRY_COMPARE(opened.size(),1);QVERIFY(!store.ready()); }
@@ -104,7 +104,8 @@ private slots:
         TrainerSetupPresentation flow;QList<TrainerProfile> profiles;for(int i=0;i<8;++i)profiles.append(profile(QString::number(i)));
         flow.configure(profiles,"0");flow.begin();QCOMPARE(flow.stage(),"chooser");QCOMPARE(flow.rows().size(),9);
         for(int i=0;i<20;++i)flow.dispatch(Action::Down);QCOMPARE(flow.focusIndex(),8);
-        flow.configure({profile("one")},"one");flow.begin();flow.activate(1);flow.activate(0);flow.applyName("River");flow.activate(3);
+        flow.configure({profile("one")},"one");flow.setFamilyReady(true);flow.begin();flow.activate(1);flow.activate(0);flow.applyName("River");flow.activate(3);
+        QCOMPARE(flow.stage(),"pin");QVERIFY(flow.keypad());flow.activate(13);
         QCOMPARE(flow.stage(),"review");QVERIFY(!flow.keypad());
         QSignalSpy created(&flow,&TrainerSetupPresentation::createRequested);flow.activate(0);QCOMPARE(created.size(),1);
         flow.setBusy(true);flow.activate(0);flow.dispatch(Action::Back);QCOMPARE(created.size(),1);QCOMPARE(flow.stage(),"review");

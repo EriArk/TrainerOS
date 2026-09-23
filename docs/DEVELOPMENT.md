@@ -33,6 +33,7 @@ lease or enable the overlay for normal launches. See [exit boundaries](ADVENTURE
 - CMake 3.24 or newer; Ninja is recommended.
 - C++20 compiler.
 - Qt 6.4 or newer: Core, Gui, Qml, Quick, Sql, the QSQLITE driver, QtQuick / QtQuick.Window / QtQuick.Shapes QML modules, and Test when `BUILD_TESTING=ON`.
+- OpenSSL 3 Crypto development headers/library (PIN verification); runtime libcrypto 3.
 - SDL2 2.0.14 or newer, including development headers and its CMake package.
 
 Use a consistent compiler/Qt ABI. On the current Windows development machine the working combination is MSYS2 UCRT64 GCC and UCRT64 Qt; do not combine it with the separate MSVC Qt installation.
@@ -56,7 +57,7 @@ The last command requests full-screen inside the existing graphical session. It 
 An Ubuntu development/CI example, **not an ArmadaOS installation prescription**:
 
 ```sh
-sudo apt-get install ninja-build qt6-base-dev qt6-declarative-dev libqt6sql6-sqlite libsdl2-dev \
+sudo apt-get install ninja-build qt6-base-dev qt6-declarative-dev libqt6sql6-sqlite libsdl2-dev libssl-dev \
   qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtquick-shapes \
   qml6-module-qtqml-workerscript qml6-module-qtqml-models
 ```

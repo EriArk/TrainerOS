@@ -59,7 +59,7 @@ SQLite's read-only integrity check passed and the personal library remained inta
 
 Use a rootless Fedora 44 Podman container on the ARM64 handheld, with only the source/build directory mounted. Build tools belong in the container; the executable uses the existing host Qt/SDL runtime. Do not use `dnf` to mutate the bootc host for this development build.
 
-The tested build environment uses GCC 16.2, CMake 4.3, Ninja, `qt6-qtbase-devel`, `qt6-qtdeclarative-devel` and `sdl2-compat-devel`. Include Qt's SQL plugin and Qt Test for verification. The initial Fedora container image ID was `sha256:cc520476538d32d3a570918d061b7627bcf49432163520dd6168298db51c4fa1`; repository packages can change independently.
+The tested build environment uses GCC 16.2, CMake 4.3, Ninja, `qt6-qtbase-devel`, `qt6-qtdeclarative-devel`, `sdl2-compat-devel` and `openssl-devel`. Include Qt's SQL plugin and Qt Test for verification. The initial Fedora container image ID was `sha256:cc520476538d32d3a570918d061b7627bcf49432163520dd6168298db51c4fa1`; repository packages can change independently.
 
 Configure with an explicit final prefix before building, for example:
 

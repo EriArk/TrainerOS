@@ -1,7 +1,8 @@
 # Trainer and account screens - 2026-09-20
 
-The original P1 screens now have real P2 registration/selection binding. PIN
-screens remain an isolated rehearsal; they do not provide security.
+The original P1 screens now have real P2 registration/selection binding and
+[optional PIN/startup/family-code recovery](TRAINER_ACCESS.md). The explicitly
+labelled sample mode below remains an isolated rehearsal.
 
 ## Normal app
 
@@ -18,8 +19,8 @@ creates and selects a separate personal context. The chooser supports up to eigh
 profiles with controller scrolling. B cancels; L1/R1 leaves the flow. Submitted
 creation/switching is guarded until completion. Existing profiles and external
 saves survive the schema-9 migration. The active Trainer owns the account shown
-in Settings and Hall. Startup still reopens the last selected Trainer without a
-PIN gate. [Ownership and failure/recovery boundary](TRAINER_OWNERSHIP.md).
+in Settings and Hall. Startup now chooses/unlocks the Trainer as described in
+[Trainer access](TRAINER_ACCESS.md). [Ownership and failure/recovery boundary](TRAINER_OWNERSHIP.md).
 
 ## Isolated UI rehearsal
 
@@ -47,8 +48,8 @@ PIN verifier, throttling mechanism or authenticated recovery implementation.
 
 ## Remaining P2 acceptance
 
-Bind real optional PIN verification, startup gating, throttled retries and
-recovery. Expand favorite selection beyond the optional starter choices during
+PIN verification, startup gating and family recovery are now bound; see
+[entry and recovery](TRAINER_ACCESS.md). Expand favorite selection beyond the optional starter choices during
 registration (the existing profile editor already has its full picker). Preserve
 lossless owner switching and shared-save disclosure. No #19/#20 completion claim
 follows from the current profile chooser alone.

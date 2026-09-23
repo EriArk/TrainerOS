@@ -8,9 +8,10 @@ void TrainerSetupPresentation::moveTo(const QString& stage, int focus) {
     stage_ = stage; focus_ = focus; error_.clear(); emit changed();
 }
 void TrainerSetupPresentation::configure(const QList<TrainerProfile>& profiles,const QString& active) {live_=true;profiles_=profiles;active_=active;emit changed();}
-void TrainerSetupPresentation::begin() { close(); moveTo(live_?"chooser":"menu"); }
+void TrainerSetupPresentation::begin() { startup_=false;close(); moveTo(live_?"chooser":"menu"); }
+void TrainerSetupPresentation::beginStartup() {begin();startup_=true;moveTo(profiles_.isEmpty()?"welcome":"chooser");}
 void TrainerSetupPresentation::close() {
-    name_.clear(); pin_.clear(); firstPin_.clear(); pinChosen_ = false;
+    name_.clear(); pin_=emptyPin(); firstPin_=emptyPin(); pinChosen_ = false;
     emblem_ = "compass"; favorite_ = "Not chosen"; moveTo("menu");
 }
 QString TrainerSetupPresentation::title() const {
@@ -28,6 +29,7 @@ QString TrainerSetupPresentation::description() const {
     if(live_) {
         if(busy_)return "Saving your Trainer. Please wait…";
         if(stage_=="chooser")return "Separate journals, history and accounts. Games and game saves are shared.";
+        if(stage_=="pin")return "Choose 4 to 6 digits, or skip. A parent can set a family reset code in Settings.";
         if(stage_=="review")return "Create this Trainer and start a fresh journal. Game saves remain shared.";
     }
     if (stage_ == "menu") return "Try the upcoming registration and player selection screens.";
@@ -48,9 +50,9 @@ QVariantList TrainerSetupPresentation::rows() const {
     if(live_ && stage_=="chooser") {
         for(const auto& profile:profiles_)add(profile.name,profile.id==active_?"Current Trainer":"Personal journal and account");
         if(profiles_.size()<8)add("Add Trainer","Create a personal journal");
-        add("Back");return result;
+        if(!startup_)add("Back");return result;
     }
-    if(live_ && stage_=="review") {add("Create Trainer");add("Edit card");add("Cancel");return result;}
+    if(live_ && stage_=="review") {add("Create Trainer");add("Edit card");add("Change PIN choice");add("Cancel");return result;}
     if (stage_ == "menu") { add("Registration", "Welcome, identity, optional PIN and review"); add("Choose a Trainer", "Sample cards and PIN entry"); add("Back to settings"); }
     else if (stage_ == "chooser") { add("River", "Sample Trainer · no PIN"); add("Sky", "Sample Trainer · PIN"); add("Add Trainer", "Rehearse registration"); add("Back"); }
     else if (stage_ == "welcome") { add("Let's begin"); add("Back"); }
@@ -67,15 +69,17 @@ void TrainerSetupPresentation::applyName(const QString& value) {
 }
 void TrainerSetupPresentation::back() {
     if(busy_)return;
+    if(startup_ && stage_=="chooser")return;
+    if(startup_ && stage_=="welcome"){if(!profiles_.isEmpty())moveTo("chooser");return;}
     if(live_ && (stage_=="chooser" || stage_=="welcome")) {close();emit closeRequested();return;}
     if(live_ && stage_=="review") {moveTo("identity",3);return;}
-    pin_.clear(); error_.clear();
+    pin_=emptyPin(); error_.clear();
     if (stage_ == "menu") { close(); emit closeRequested(); }
     else if (stage_ == "identity") moveTo("welcome");
-    else if (stage_ == "pin") { firstPin_.clear(); moveTo("identity", 3); }
-    else if (stage_ == "repeat") { firstPin_.clear(); moveTo("pin"); }
+    else if (stage_ == "pin") { firstPin_=emptyPin(); moveTo("identity", 3); }
+    else if (stage_ == "repeat") { firstPin_=emptyPin(); moveTo("pin"); }
     else if (stage_ == "unlock") moveTo("chooser", 1);
-    else if (stage_ == "review") { firstPin_.clear(); moveTo("pin"); }
+    else if (stage_ == "review") { firstPin_=emptyPin(); moveTo("pin"); }
     else { close(); }
 }
 void TrainerSetupPresentation::activate(int index) {
@@ -92,25 +96,25 @@ void TrainerSetupPresentation::activate(int index) {
         if(index==0) {
             const auto favorite=favorite_=="Not chosen"?QString():favorite_.toLower();
             emit createRequested({QUuid::createUuid().toString(QUuid::WithoutBraces),name_,emblem_,favorite,QDateTime::currentDateTimeUtc()});
-        } else if(index==1)moveTo("identity");else if(index==2){close();moveTo("chooser");}
+        } else if(index==1)moveTo("identity");else if(index==2){pin_=emptyPin();firstPin_=emptyPin();pinChosen_=false;if(familyReady_)moveTo("pin");else {error_="A parent can enable PINs by setting a family code in Settings.";emit changed();}}else if(index==3){close();moveTo(startup_ && profiles_.isEmpty()?"welcome":"chooser");}
         return;
     }
     if (keypad()) {
         if (index < 0 || index > (stage_ == "pin" ? 13 : 12)) return;
         focus_ = index; error_.clear();
-        if (index < 9 && pin_.size() < 6) pin_ += QChar('1' + index);
-        else if (index == 10 && pin_.size() < 6) pin_ += '0';
-        else if (index == 9) pin_.chop(1);
-        else if (index == 11) pin_.clear();
-        else if (index == 13) { pin_.clear(); firstPin_.clear(); pinChosen_ = false; moveTo("review"); return; }
+        if (index < 9 && pin_->size() < 6) pin_->digit(index+1);
+        else if (index == 10 && pin_->size() < 6) pin_->digit(0);
+        else if (index == 9) pin_->erase();
+        else if (index == 11) pin_=emptyPin();
+        else if (index == 13) { pin_=emptyPin(); firstPin_=emptyPin(); pinChosen_ = false; moveTo("review"); return; }
         else if (index == 12) {
-            if (pin_.size() < 4) error_ = "Use 4–6 digits, or go back.";
-            else if (stage_ == "pin") { firstPin_ = pin_; pin_.clear(); moveTo("repeat"); return; }
+            if (pin_->size() < 4) error_ = "Use 4–6 digits, or go back.";
+            else if (stage_ == "pin") { firstPin_ = pin_; pin_=emptyPin(); moveTo("repeat"); return; }
             else if (stage_ == "repeat") {
-                if (pin_ != firstPin_) { error_ = "Those digits didn't match. Try again."; pin_.clear(); focus_ = 0; }
-                else { pin_.clear(); firstPin_.clear(); pinChosen_ = true; moveTo("review"); return; }
-            } else if (pin_ == "1234") { pin_.clear(); moveTo("done"); return; }
-            else { pin_.clear(); error_ = "Try the sample PIN: 1234."; focus_ = 0; }
+                if (!pin_->matches(*firstPin_)) { error_ = "Those digits didn't match. Try again."; pin_=emptyPin(); focus_ = 0; }
+                else { pin_=emptyPin(); pinChosen_ = true; moveTo("review"); return; }
+            } else if (([](const SecretPin& p){auto sample=emptyPin();for(int n:{1,2,3,4})sample->digit(n);return p->matches(*sample);})(pin_)) { pin_=emptyPin(); moveTo("done"); return; }
+            else { pin_=emptyPin(); error_ = "Try the sample PIN: 1234."; focus_ = 0; }
         }
         emit changed(); return;
     }
@@ -118,7 +122,7 @@ void TrainerSetupPresentation::activate(int index) {
     focus_ = index;
     if (stage_ == "menu") { if (index == 2) back(); else moveTo(index == 0 ? "welcome" : "chooser"); }
     else if (stage_ == "chooser") {
-        if (index == 0) moveTo("done"); else if (index == 1) { pin_.clear(); moveTo("unlock"); }
+        if (index == 0) moveTo("done"); else if (index == 1) { pin_=emptyPin(); moveTo("unlock"); }
         else if (index == 2) { close(); moveTo("welcome"); } else back();
     } else if (stage_ == "welcome") { if (index == 0) moveTo("identity"); else back(); }
     else if (stage_ == "identity") {
@@ -128,7 +132,7 @@ void TrainerSetupPresentation::activate(int index) {
         else if (name_.isEmpty() || TextEntryController::characterCount(name_) > 24
             || std::any_of(name_.begin(), name_.end(), [](QChar c) { return !c.isPrint(); })) {
             error_ = "Choose a name of 1–24 characters."; focus_ = 0;
-        } else { pin_.clear(); firstPin_.clear(); moveTo(live_?"review":"pin"); }
+        } else { pin_=emptyPin(); firstPin_=emptyPin(); moveTo(live_ && !familyReady_?"review":"pin"); }
         emit changed();
     } else if (stage_ == "review") {
         if (index == 0) moveTo("done"); else if (index == 1) moveTo("identity"); else moveTo("pin");

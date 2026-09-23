@@ -8,9 +8,12 @@ set(CMAKE_AUTOMOC ON)
 include(CTest)
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network)
+find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/core/storage/TrainerPin.cpp
+    src/features/trainer/TrainerAccessController.cpp
     src/features/pokedex/SpriteArt.h
     src/features/pokedex/SpriteArt.cpp
     src/features/pokedex/ClassicArt.h
@@ -159,7 +162,7 @@ qt_add_resources(trainer_core badge_assets PREFIX "/badges" BASE assets/badges
     FILES assets/badges/manifest.json ${badge_images})
 qt_add_resources(trainer_core collection PREFIX "/collection" BASE data FILES data/catalogue.json)
 qt_add_resources(trainer_core pokedex_reference PREFIX "/pokedex" BASE data FILES data/pokedex.json)
-target_link_libraries(trainer_core PUBLIC Qt6::Core Qt6::Gui Qt6::Sql Qt6::Network SDL2::SDL2)
+target_link_libraries(trainer_core PUBLIC Qt6::Core Qt6::Gui Qt6::Sql Qt6::Network SDL2::SDL2 OpenSSL::Crypto)
 target_compile_definitions(trainer_core PUBLIC SDL_MAIN_HANDLED)
 if(MSVC)
     target_compile_options(trainer_core PRIVATE /W4 PUBLIC /utf-8)
@@ -183,6 +186,7 @@ qt_add_qml_module(traineros
     VERSION 1.0
     RESOURCE_PREFIX /
     QML_FILES
+        src/qml/TrainerAccessPanel.qml
         src/qml/Main.qml
         src/qml/AdventureExitWindow.qml
         src/qml/Theme.qml
@@ -338,6 +342,9 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_ownership_tests tests/OwnershipTests.cpp)
     target_link_libraries(trainer_ownership_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME ownership COMMAND trainer_ownership_tests)
+    qt_add_executable(trainer_access_tests tests/TrainerAccessTests.cpp)
+    target_link_libraries(trainer_access_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME trainer_access COMMAND trainer_access_tests)
     qt_add_executable(trainer_profiles_tests tests/TrainerProfilesTests.cpp)
     target_link_libraries(trainer_profiles_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME trainer_profiles COMMAND trainer_profiles_tests)

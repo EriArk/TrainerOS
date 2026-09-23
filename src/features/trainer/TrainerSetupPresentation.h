@@ -1,6 +1,7 @@
 #pragma once
 #include "core/input/Action.h"
 #include <QObject>
+#include "core/storage/TrainerPin.h"
 #include <QVariantList>
 #include "core/model/Models.h"
 
@@ -41,13 +42,16 @@ public:
         const auto id=p->favoritePokemonId;
         return id.isEmpty() ? QString("Not chosen") : id.left(1).toUpper()+id.mid(1);
     }
-    QString pinMask() const { return QString(pin_.size(), QChar(0x2022)); }
-    QString pinChoice() const { return pinChosen_ ? "PIN chosen for preview" : "No PIN chosen"; }
+    QString pinMask() const { return QString(pin_->size(), QChar(0x2022)); }
+    QString pinChoice() const { return pinChosen_ ? (live_ ? "PIN enabled" : "PIN chosen for preview") : "No PIN chosen"; }
     QString error() const { return error_; }
     bool keypad() const { return stage_ == "pin" || stage_ == "repeat" || stage_ == "unlock"; }
     int focusIndex() const { return focus_; }
     QVariantList rows() const;
     void begin();
+    void beginStartup();
+    void setFamilyReady(bool ready) { familyReady_=ready; }
+    SecretPin registrationPin() const { return firstPin_; }
     void close();
     void applyName(const QString&);
     void dispatch(Action);
@@ -65,7 +69,10 @@ private:
     void moveTo(const QString&, int focus = 0);
     void back();
     QString stage_ = "menu", name_, emblem_ = "compass", favorite_ = "Not chosen";
-    QString pin_, firstPin_, error_;
+    QString error_;
+    SecretPin pin_=emptyPin(), firstPin_=emptyPin();
+    bool startup_=false;
+    bool familyReady_=false;
     bool pinChosen_ = false;
     int focus_ = 0;
     bool live_ = false, busy_ = false;

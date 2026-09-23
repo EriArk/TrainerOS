@@ -206,7 +206,15 @@ Window {
             z: 3; shell: shellController
         }
         }
-        StoragePanel { anchors.fill: parent; visible: sessionState.blocked; stateController: sessionState }
+        Item {
+            anchors.fill: parent; visible: sessionState.entryGate && !sessionState.access.active
+            ChassisFrame { anchors.fill: parent }
+            Text { x: 38; y: 23; text: "TRAINER OS"; color: "#f6e4b3"; font.pixelSize: 26; font.bold: true }
+            TrainerSetupPanel { entry: true; x: 0; y: 43; width: parent.width; height: parent.height-63; shell: shellController }
+            KeyboardPanel { x: Theme.screenBounds.x; y: Theme.screenBounds.y; width: Theme.screenBounds.width; height: Theme.screenBounds.height; shell: shellController }
+        }
+        StoragePanel { anchors.fill: parent; visible: sessionState.blocked && !sessionState.entryGate && !sessionState.access.active; stateController: sessionState }
+        TrainerAccessPanel { anchors.fill: parent; access: sessionState.access; visible: sessionState.access.active }
         LaunchPanel { anchors.fill: parent; visible: adventureLaunch.preparing; launch: adventureLaunch }
     }
     readonly property var shell: shellController

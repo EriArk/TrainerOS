@@ -4,9 +4,9 @@ The P2 foundation introduced owner-filtered repositories in schema 8. Schema 9
 now binds real profile creation, selection and Switch Player to that foundation.
 Up to eight Trainers share the installed library; personal journals, history,
 Hall, navigation and TrainerOS RetroAchievements accounts remain separate.
-**PIN enforcement and the protected startup chooser are not delivered yet.**
-Startup reopens the last selected Trainer. These profiles are personal contexts,
-not authenticated security boundaries.
+Schema 10 adds [optional PINs, protected startup and family-code recovery](TRAINER_ACCESS.md).
+The implementation/evidence below records the earlier schema-8/9 increments;
+the access document supersedes their former unguarded-startup boundary.
 
 ## Delivered boundary
 
@@ -131,8 +131,7 @@ hardware; human button comfort, power-loss and PIN/security proof remain open.
 
 ## Next P2 increment
 
-Add the real optional PIN verifier, bounded retry/recovery, protected startup
-chooser and authenticated Switch Player using this storage/session boundary.
-Preserve controller cancellation rules outside the gate, lossless owner data and
-external saves. Rehearsal PIN screens confer no authentication. Then finish the
-shared-context/domain audit before P3/P4 real Multiverse library binding.
+Complete explicit profile deletion and the shared-context/domain ownership audit
+before P3/P4 real Multiverse library binding. Preserve the delivered
+[PIN/startup/family recovery](TRAINER_ACCESS.md), controller cancellation,
+lossless owner data and shared external saves.

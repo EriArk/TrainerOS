@@ -442,7 +442,7 @@ void ShellController::activate(int index, const QString& area) {
 }
 void ShellController::trainerSettingsAction(int index) {
     if (hall_.account()->isOpen()) { hall_.account()->activate(index); return; }
-    if (index < 0 || index > 3) return;
+    if (index < 0 || index > 4) return;
     trainerSettingsFocus_ = index;
     if (index == 0) { trainer_.beginEdit(); }
     else if (index == 1) {
@@ -452,7 +452,8 @@ void ShellController::trainerSettingsAction(int index) {
         if (sampleLibrary()) { trainerChooserFromPower_ = false; trainerSetup_.begin(); service_ = "trainer-setup"; }
         else if (trainerSetup_.live()) emit trainersRequested();
         else showNotice("Trainer selection is unavailable until your data is open.");
-    } else service_ = "settings";
+    } else if (index==3 && service_=="trainer-settings") service_="settings";
+    else if (index==3 || index==4) emit pinRequested(index==4);
     emit changed();
 }
 void ShellController::confirm() {

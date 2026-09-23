@@ -2,11 +2,14 @@
 #include "LocalStateStore.h"
 #include "core/navigation/ShellController.h"
 #include <QTimer>
+#include "features/trainer/TrainerAccessController.h"
 
 namespace trainer {
 // Application lifecycle coordinator. QML sees status/actions, never database paths.
 class SessionState final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool entryGate READ entryGate NOTIFY changed)
+    Q_PROPERTY(trainer::TrainerAccessController* access READ access CONSTANT)
     Q_PROPERTY(bool persistent READ persistent CONSTANT)
     Q_PROPERTY(bool blocked READ blocked NOTIFY changed)
     Q_PROPERTY(QString title READ title NOTIFY changed)
@@ -15,8 +18,11 @@ class SessionState final : public QObject {
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
 public:
     SessionState(ShellController&, LocalStateStore*, QObject* parent = nullptr);
+    TrainerAccessController* access() {return &access_;}
+    bool entryGate() const {return entryGate_;}
+    QString restartGrant() const {return nextTrainer_;}
     bool persistent() const { return store_ != nullptr; }
-    bool blocked() const { return creating_ || switching_ || closing_ || (store_ && (!restored_ || !error_.isEmpty())); }
+    bool blocked() const { return entryGate_ || access_.active() || creating_ || switching_ || closing_ || (store_ && (!restored_ || !error_.isEmpty())); }
     QString title() const;
     QString message() const;
     QStringList choices() const;
@@ -53,5 +59,8 @@ private:
     QString nextTrainer_;
     std::function<bool()> switchGuard_;
     bool canChangeTrainer() const;
+    TrainerAccessController access_;
+    bool entryGate_=false;
+    QString verifiedTrainer_;
 };
 }

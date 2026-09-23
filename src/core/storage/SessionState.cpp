@@ -3,19 +3,31 @@
 
 namespace trainer {
 SessionState::SessionState(ShellController& shell, LocalStateStore* store, QObject* parent)
-    : QObject(parent), shell_(shell), store_(store) {
+    : QObject(parent), shell_(shell), store_(store), access_(store,this) {
     connect(&shell_, &ShellController::exitRequested, this, &SessionState::requestExit);
     if (!store_) return;
+    connect(&access_,&TrainerAccessController::changed,this,&SessionState::changed);
+    connect(&access_,&TrainerAccessController::unlocked,this,[this](const QString& id){verifiedTrainer_=id;requestTrainerSwitch(id);});
+    connect(&shell_,&ShellController::pinRequested,this,[this](bool family){
+        if(canChangeTrainer())access_.beginManage(family);
+        else shell_.showNotice("Finish the current operation first.");
+    });
+    connect(store_,&LocalStateStore::accessNeeded,this,[this]{
+        entryGate_=true;error_.clear();shell_.trainerSetup()->configure(store_->trainers(),store_->ownerId());shell_.trainerSetup()->setFamilyReady(store_->familyProtected());
+        shell_.trainerSetup()->beginStartup();focus_=0;emit changed();
+    });
+    connect(shell_.trainerSetup(),&TrainerSetupPresentation::closeRequested,this,[this]{if(entryGate_)shell_.trainerSetup()->beginStartup();});
     connect(&shell_,&ShellController::trainersRequested,this,&SessionState::requestTrainers);
     connect(shell_.trainerSetup(),&TrainerSetupPresentation::selectRequested,this,&SessionState::requestTrainerSwitch);
     connect(shell_.trainerSetup(),&TrainerSetupPresentation::createRequested,this,&SessionState::createTrainer);
-    connect(store_,&LocalStateStore::trainersChanged,this,[this]{shell_.trainerSetup()->configure(store_->trainers(),store_->ownerId());});
+    connect(store_,&LocalStateStore::trainersChanged,this,[this]{shell_.trainerSetup()->configure(store_->trainers(),store_->ownerId());shell_.trainerSetup()->setFamilyReady(store_->familyProtected());});
     debounce_.setSingleShot(true); debounce_.setInterval(300);
     connect(&debounce_, &QTimer::timeout, this, &SessionState::flush);
     connect(&shell_, &ShellController::changed, this, &SessionState::stateChanged);
     connect(store_, &LocalStateStore::opened, this, [this](bool success) {
         if (success) {
-            shell_.trainerSetup()->configure(store_->trainers(),store_->ownerId());
+            entryGate_=false;verifiedTrainer_.clear();shell_.trainerSetup()->close();
+            shell_.trainerSetup()->configure(store_->trainers(),store_->ownerId());shell_.trainerSetup()->setFamilyReady(store_->familyProtected());
             shell_.settings()->setTrainersAvailable(true);
             shell_.trainer()->reload();
             shell_.pokedex()->refresh();
@@ -26,7 +38,7 @@ SessionState::SessionState(ShellController& shell, LocalStateStore* store, QObje
             desired_ = shell_.navigationState();
             restored_ = true;
             if (closing_) flush();
-        } else error_ = store_->error();
+        } else {entryGate_=false;error_ = store_->error();}
         focus_ = 0; emit changed();
         finishExit();
     });
@@ -37,7 +49,7 @@ SessionState::SessionState(ShellController& shell, LocalStateStore* store, QObje
     });
 }
 bool SessionState::canChangeTrainer() const {
-    return store_ && restored_ && !blocked() && !adventureActive_ && !serviceActive_
+    return store_ && (restored_ || entryGate_) && !(creating_ || switching_ || closing_ || access_.active() || !error_.isEmpty()) && !adventureActive_ && !serviceActive_
         && !store_->pending() && (!switchGuard_ || switchGuard_());
 }
 void SessionState::requestTrainers() {
@@ -47,17 +59,24 @@ void SessionState::requestTrainers() {
 void SessionState::createTrainer(const TrainerProfile& profile) {
     if(!canChangeTrainer()){shell_.trainerSetup()->failed("Finish the current operation and try again.");return;}
     creating_=true;shell_.trainerSetup()->setBusy(true);emit changed();
-    store_->createTrainerAsync(profile,this,[this,profile](const ProfileWriteResult& result){
+    store_->createProtectedTrainer(profile,shell_.trainerSetup()->registrationPin(),this,[this,profile](const ProfileWriteResult& result){
         creating_=false;shell_.trainerSetup()->setBusy(false);emit changed();
         if(!result.success){shell_.trainerSetup()->failed(result.error);return;}
         // Completion precedes the store pending counter update.
-        QTimer::singleShot(0,this,[this,profile]{requestTrainerSwitch(profile.id);});
+        QTimer::singleShot(0,this,[this,profile]{verifiedTrainer_=profile.id;requestTrainerSwitch(profile.id);});
     });
 }
 void SessionState::requestTrainerSwitch(const QString& id) {
     if(!canChangeTrainer()){shell_.trainerSetup()->failed("Finish the current operation and try again.");return;}
     bool found=false;for(const auto& profile:store_->trainers())if(profile.id==id)found=true;
     if(!found){shell_.trainerSetup()->failed("This Trainer is unavailable. Choose again.");return;}
+    if(store_->pinProtected(id) && verifiedTrainer_!=id && (entryGate_ || id!=store_->ownerId())){access_.beginUnlock(id);emit changed();return;}
+    if(entryGate_) {
+        switching_=true;emit changed();store_->unlock(id,this,[this](const QString& e){
+            switching_=false;if(!e.isEmpty())shell_.trainerSetup()->failed(e);emit changed();
+        });return;
+    }
+    verifiedTrainer_.clear();
     if(id==store_->ownerId()){shell_.goToPage(shell_.page());shell_.trainer()->reload();return;}
     nextTrainer_=id;requestExit();
 }
@@ -108,7 +127,7 @@ void SessionState::flush() {
 void SessionState::requestExit() {
     // Closing the shell must not destroy an owned emulator process and its save
     // operation. Finish the Adventure in its own interface, then exit the shell.
-    if (adventureActive_ || creating_ || switching_) return;
+    if (adventureActive_ || creating_ || switching_ || access_.active() || entryGate_) return;
     if (!store_) { closing_=true;emit changed();finishExit();return; }
     closing_ = true; paused_ = false; focus_ = 0;
     // Preserve a visible failed flush until the user chooses Retry or an explicit skip.
@@ -146,6 +165,20 @@ void SessionState::activate(int index) {
     emit changed();
 }
 void SessionState::dispatch(Action action) {
+    if(access_.active()){
+        if(!entryGate_ && !access_.busy() && (action==Action::PreviousPage || action==Action::NextPage || action==Action::Home)) {
+            access_.cancel();shell_.dispatch(action);emit changed();
+        } else access_.dispatch(action);
+        return;
+    }
+    if(entryGate_) {
+        if(creating_ || switching_ || store_->opening())return;
+        // No page, Home, Start or paired-face destination exists before entry.
+        if(action==Action::PreviousPage || action==Action::NextPage || action==Action::Home || action==Action::SystemMenu || action==Action::PreviousFace || action==Action::NextFace)return;
+        if(shell_.keyboard()->isOpen())shell_.keyboard()->dispatch(action);
+        else shell_.trainerSetup()->dispatch(action);
+        return;
+    }
     if(creating_ || switching_)return;
     if (adventureActive_) return;
     if (!blocked()) { shell_.dispatch(action); return; }

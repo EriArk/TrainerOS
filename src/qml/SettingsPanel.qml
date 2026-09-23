@@ -36,7 +36,7 @@ Item {
                 }
             }
             Item { x: 260; width: parent.width-x-16; height: parent.height
-                Column { x: 0; y: root.settings.category===5 ? 158 : 13; width: parent.width; spacing: root.settings.category===5 || root.shell.trainer.editing || root.shell.hall.account.open ? 5 : 12; visible: root.settings.category!==6
+                Column { x: 0; y: root.settings.category===5 ? 158 : 13; width: parent.width; spacing: root.settings.category===4 || root.settings.category===5 || root.shell.trainer.editing || root.shell.hall.account.open ? 5 : 12; visible: root.settings.category!==6
                     Repeater { model: root.shell.hall.account.open ? root.shell.hall.account.rows.map(r => ({title: r.label, detail: r.detail, kind: r.enabled ? "action" : "unavailable"})) : root.shell.trainer.editing ? [
                         {title: "Name", kind: "action", detail: root.shell.trainer.draftName || "Choose your name"},
                         {title: "Emblem", kind: "action", detail: root.shell.trainer.draftEmblem},
@@ -46,7 +46,7 @@ Item {
                     ] : root.settings.controls
                         SettingControl {
                             required property int index; required property var modelData
-                            objectName: (root.shell.hall.account.open ? "achievement-account-" : "settings-control-")+index; width: parent.width; height: root.shell.hall.account.open ? 62 : root.shell.trainer.editing ? 50 : root.settings.category===5 ? 36 : 78
+                            objectName: (root.shell.hall.account.open ? "achievement-account-" : "settings-control-")+index; width: parent.width; height: root.shell.hall.account.open ? 62 : root.shell.trainer.editing ? 50 : root.settings.category===5 ? 36 : root.settings.category===4 ? 48 : 78
                             title: root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===0 ? (root.shell.trainer.exists ? "Edit Trainer" : "Create Trainer") : root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "Preview registration & PIN" : modelData.title
                             detail: root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===0 ? (root.shell.trainer.profile.name || "Give your journey a name") : root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "Development preview only" : modelData.detail
                             kind: root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "action" : modelData.kind

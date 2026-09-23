@@ -106,6 +106,7 @@ signals:
     void changed();
     void exitRequested();
     void trainersRequested();
+    void pinRequested(bool family);
     void modeRequested(const QString& mode);
     void homeLaunchPressed();
 private:

@@ -1,8 +1,8 @@
 # Local persistence foundation
 
-**Migration status — #9/#20/#42/#49:** schema 9 supports real Trainer creation
-and activation over owner-scoped personal data. PIN enforcement, independent domain
-choices and further source-aware observations remain planned. Legacy stored resume
+**Migration status — #9/#20/#42/#49:** schema 10 supports real Trainer creation
+and activation over owner-scoped personal data, optional PINs and family-code
+recovery. Independent domain choices and further source-aware observations remain planned. Legacy stored resume
 selection is not the target model. Preserve ordinary saves, history, manual
 records and independent media. [Domain contract](DATA_MODEL.md),
 [target acceptance](EXPANSION_42_62.md), [delivered ownership](TRAINER_OWNERSHIP.md).
@@ -23,13 +23,14 @@ Schema 6 adds the [manual Pokédex field journal](POKEDEX.md), preserving all ex
 
 Schema 7 adds optional [clean exit media](ADVENTURE_EXIT.md#durable-exit-media-and-ordinary-home-selection) in a transactional 6→7 migration. Existing library, ordinary saves, profile, history and legacy files are preserved. Returning to a schema-6 binary requires restoring the paired pre-upgrade database backup while the shell is closed; do not discard newer personal writes or just lower `user_version`.
 
-SQLite `user_version` is currently **9**. Transactional 7→8 ownership assignment
-and 8→9 keyed profile/account-owner migration preserve legacy identity and rows.
-Real profile creation/activation reconstructs the entire session; PIN enforcement
-and protected startup selection remain planned. [Details](TRAINER_OWNERSHIP.md).
+SQLite `user_version` is currently **10**. Transactional ownership, keyed-profile
+and access migrations preserve legacy identity and rows. Protected startup loads
+the roster before personal data. [Ownership](TRAINER_OWNERSHIP.md),
+[PIN storage and recovery](TRAINER_ACCESS.md).
 
 | Table | Data |
 | --- | --- |
+| `trainer_access`, `family_access` | Versioned salted PIN/family-code verifiers and durable retry counters; never plaintext input |
 | `trainer_profile` | Profiles keyed by stable ID; UTC creation time, name, emblem, featured Pokémon |
 | `trainer_owners`, `local_owner` | Durable owner identities and the active owner; unnamed records are adopted by the first profile atomically |
 | `legacy_account_owner` | Original owner of existing private RA files; later profiles have separate directories |

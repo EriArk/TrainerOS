@@ -5,6 +5,7 @@
 #include "core/repository/PreferencesRepository.h"
 #include "core/repository/PlayHistoryRepository.h"
 #include "SqlitePlayHistory.h"
+#include "TrainerPin.h"
 #include "SqliteHallOfFame.h"
 #include "SqlitePokedexJournal.h"
 #include <QJsonObject>
@@ -22,6 +23,17 @@ public:
     explicit LocalStateStore(QString directory, QObject* parent = nullptr, QString scope = "user-library-v1");
     ~LocalStateStore() override;
     void open();
+    // A grant only survives an in-process, authenticated Trainer switch.
+    void enforceAccess(const QString& grant = {}) { enforceAccess_=true; grant_=grant; }
+    bool accessRequired() const { return accessRequired_; }
+    bool pinProtected(const QString& id) const { return protected_.contains(id); }
+    bool familyProtected() const { return familyProtected_; }
+    void verifyPin(const QString&, SecretPin, bool family, QObject*, std::function<void(QString)>);
+    void changePin(SecretPin previous, SecretPin next, bool family, QObject*, std::function<void(QString)>);
+    void resetPin(const QString&, SecretPin familyPin, QObject*, std::function<void(QString)>);
+    void unlock(const QString&, QObject*, std::function<void(QString)>);
+    void createProtectedTrainer(const TrainerProfile&, SecretPin, QObject*, std::function<void(ProfileWriteResult)>);
+
     bool ready() const { return ready_; }
     bool opening() const { return opening_; }
     int pending() const { return pending_; }
@@ -61,17 +73,22 @@ public:
     void savePreferences(const ShellPreferences&, QObject*, std::function<void(QString)>) override;
 signals:
     void opened(bool success);
+    void accessNeeded();
     void trainersChanged();
     void pendingChanged();
     void userWriteFailed();
     void libraryChanged();
     void preferencesChanged();
 private:
+    void accessWrite(std::function<QString(SqliteWorker&)>, std::function<void(QString)>);
     void write(std::function<QString(SqliteWorker&)>, std::function<void(QString)>);
     QThread thread_;
     SqliteWorker* worker_;
     QString directory_, scope_, error_, ownerId_, accountOwner_;
     QList<TrainerProfile> profiles_;
+    bool enforceAccess_=false, accessRequired_=false, familyProtected_=false;
+    QString grant_;
+    QSet<QString> protected_;
     bool staged_ = false;
     bool ready_ = false, opening_ = false;
     int pending_ = 0;

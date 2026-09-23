@@ -3,6 +3,7 @@
 #include "SqliteExitMedia.h"
 #include "SqliteOwnership.h"
 #include <QDir>
+#include <QTimer>
 #include <QCryptographicHash>
 #include <QFileInfo>
 #include <QJsonDocument>
@@ -17,11 +18,13 @@
 
 namespace trainer {
 namespace {
-constexpr int SchemaVersion = 9;
+constexpr int SchemaVersion = 10;
 QString failedWrite() { return "Couldn't save changes. Check free space or storage access, then try again."; }
 struct LoadedState {
     QString error;
     QString ownerId, accountOwner;
+    bool gated=false, familyProtected=false;
+    QSet<QString> protectedIds;
     QList<TrainerProfile> profiles;
     std::optional<TrainerProfile> profile;
     QSet<QString> favorites;
@@ -37,13 +40,13 @@ class SqliteWorker final : public QObject {
 public:
     ~SqliteWorker() override { close(); }
     void close() {
-        pendingMedia.clear();
+        pendingMedia.clear();verified_.clear();
         const QString name = db.connectionName();
         db.close(); db = {};
         if (!name.isEmpty()) QSqlDatabase::removeDatabase(name);
         lock.reset();
     }
-    LoadedState open(const QString& directory, const QString& scope) {
+    LoadedState open(const QString& directory, const QString& scope, bool enforce=false, const QString& grant={}) {
         close();
         scope_ = scope;
         LoadedState state;
@@ -179,6 +182,17 @@ public:
                     if (!openError.isEmpty()) db.rollback();
                 }
             }
+            if (openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next())) openError = failedWrite();
+            if (openError.isEmpty() && query.value(0).toInt() < 10) {
+                query.finish();
+                if (!db.transaction()) openError = failedWrite();
+                else {
+                    openError = migrateTrainerPins(db);
+                    if (openError.isEmpty() && !query.exec("PRAGMA user_version=10")) openError = failedWrite();
+                    if (openError.isEmpty() && !db.commit()) openError = failedWrite();
+                    if (!openError.isEmpty()) db.rollback();
+                }
+            }
             if (openError.isEmpty()) {
                 ownerId_ = localOwner(db);
                 if (ownerId_.isEmpty()) openError = "Your Trainer ownership needs recovery. Existing data has been kept.";
@@ -203,6 +217,25 @@ public:
                 if (!state.profiles.isEmpty() && !state.profile) openError = "The selected Trainer is unavailable. Existing records have been kept.";
                 if (!query.exec("SELECT trainer_id FROM legacy_account_owner WHERE slot=1") || !query.next()) openError = failedWrite();
                 else state.accountOwner = query.value(0).toString();
+            }
+            if(openError.isEmpty()) {
+                if(!query.exec("SELECT p.id,a.version,length(a.salt),length(a.verifier) FROM trainer_profile p LEFT JOIN trainer_access a ON a.trainer_id=p.id"))openError=failedWrite();
+                else while(query.next()) {
+                    const int v=query.value(1).toInt();
+                    if(query.value(1).isNull() || (v!=0 && v!=1) || query.value(2).toInt()!=(v?16:0) || query.value(3).toInt()!=(v?32:0))openError="Trainer PIN access needs recovery. Your records have been kept.";
+                    if(v)state.protectedIds.insert(query.value(0).toString());
+                }
+                if(!query.exec("SELECT version,length(salt),length(verifier) FROM family_access WHERE trainer_id='family'") || !query.next())openError=failedWrite();
+                else {
+                    const int v=query.value(0).toInt();
+                    if((v!=0 && v!=1) || query.value(1).toInt()!=(v?16:0) || query.value(2).toInt()!=(v?32:0))openError=failedWrite();
+                    state.familyProtected=v==1;
+                }
+                if(openError.isEmpty() && enforce && grant!=ownerId_
+                    && (state.profiles.size()!=1 || state.protectedIds.contains(ownerId_))) {
+                    state.gated=true;state.profile.reset();return state;
+                }
+                if(openError.isEmpty())verified_.insert(ownerId_);
             }
             if (openError.isEmpty()) {
                 query.prepare("SELECT entry_id FROM pokedex_favorites WHERE trainer_id=?"); query.addBindValue(ownerId_);
@@ -243,7 +276,9 @@ public:
     PokedexWriteResult journal(const QString& id, const PokedexProgress& record, PokedexJournalSnapshot& snapshot) {
         return writePokedexRecord(db, ownerId_, id, record, snapshot);
     }
-    QString profile(const TrainerProfile& profile) {
+    QString profile(const TrainerProfile& profile, const SecretPin& pin = {}) {
+        if(const auto e=requireFamilyCode(pin);!e.isEmpty())return e;
+        PinRecord record;auto pinError=makePinRecord(pin,record);if(!pinError.isEmpty())return pinError;
         if (!db.transaction()) return failedWrite();
         QString error;
         bool creating = false;
@@ -266,12 +301,15 @@ public:
                 if (!query.exec()) error = failedWrite();
             }
         }
+        if(error.isEmpty() && creating)error=writePinRecord(db,profile.id,record);
         if (error.isEmpty() && !db.commit()) error = failedWrite();
         if (!error.isEmpty()) db.rollback();
-        else if (creating) ownerId_ = profile.id;
+        else if (creating) { ownerId_ = profile.id;verified_.insert(profile.id); }
         return error;
     }
-    QString createTrainer(const TrainerProfile& profile) {
+    QString createTrainer(const TrainerProfile& profile, const SecretPin& pin = {}) {
+        if(const auto e=requireFamilyCode(pin);!e.isEmpty())return e;
+        PinRecord record;auto pinError=makePinRecord(pin,record);if(!pinError.isEmpty())return pinError;
         if(!db.transaction())return failedWrite();
         QString error;
         QSqlQuery q(db);
@@ -287,11 +325,40 @@ public:
             if(!q.exec())error=failedWrite();
         }
         q.finish();
+        if(error.isEmpty())error=writePinRecord(db,profile.id,record);
         if(error.isEmpty()&&!db.commit())error=failedWrite();
-        if(!error.isEmpty())db.rollback();
+        if(!error.isEmpty())db.rollback();else verified_.insert(profile.id);
+        return error;
+    }
+    QString authenticate(const QString& id, const SecretPin& pin, bool family) {
+        auto result=verifyTrainerPin(db,family?QString("family"):id,pin,QDateTime::currentSecsSinceEpoch(),family);
+        if(result.success() && !family)verified_.insert(id);
+        return result.error;
+    }
+    QString changePin(const QString& id,const SecretPin& old,const SecretPin& next,bool family) {
+        if(!family)if(const auto e=requireFamilyCode(next);!e.isEmpty())return e;
+        auto error=authenticate(id,old,family);
+        if(!error.isEmpty())return error;
+        if(family && (!next || next->size()!=6))return "Use six digits for the family code.";
+        PinRecord record;error=makePinRecord(next,record);
+        if(!error.isEmpty())return error;
+        return writePinRecord(db,family?QString("family"):id,record,family);
+    }
+    QString resetPin(const QString& id,const SecretPin& pin) {
+        QSqlQuery q(db);
+        if(!q.exec("SELECT version FROM family_access WHERE trainer_id='family'") || !q.next() || q.value(0).toInt()!=1)
+            return "Ask a parent to set a family code in Settings first.";
+        q.finish();
+        auto error=authenticate(id,pin,true);
+        if(error.isEmpty())error=writePinRecord(db,id,{});
+        if(error.isEmpty())verified_.insert(id);
         return error;
     }
     QString stageTrainer(const QString& id) {
+        if(!verified_.contains(id)) {
+            QSqlQuery access(db);access.prepare("SELECT version FROM trainer_access WHERE trainer_id=?");access.addBindValue(id);
+            if(!access.exec() || !access.next() || access.value(0).toInt()!=0)return "Enter this Trainer's PIN first.";
+        }
         QSqlQuery q(db);
         q.prepare("UPDATE local_owner SET trainer_id=? WHERE slot=1 AND trainer_id=? AND EXISTS(SELECT 1 FROM trainer_profile WHERE id=?)");
         q.addBindValue(id);q.addBindValue(ownerId_);q.addBindValue(id);
@@ -342,6 +409,13 @@ public:
         return error;
     }
 private:
+    QString requireFamilyCode(const SecretPin& pin) {
+        if(!pin || !pin->size())return {};
+        QSqlQuery q(db);
+        if(q.exec("SELECT version FROM family_access WHERE trainer_id='family'") && q.next() && q.value(0).toInt()==1)return {};
+        return "First ask a parent to set the family code in Settings > Trainer.";
+    }
+    QSet<QString> verified_;
     QHash<QString, PreparedExitMedia> pendingMedia;
     QSqlDatabase db;
     QString scope_, ownerId_;
@@ -362,9 +436,15 @@ void LocalStateStore::open() {
     if (opening_ || ready_ || pending_) return;
     opening_ = true; error_.clear();
     QMetaObject::invokeMethod(worker_, [this] {
-        auto state = worker_->open(directory_, scope_);
+        auto state = worker_->open(directory_, scope_, enforceAccess_, grant_);
         QMetaObject::invokeMethod(this, [this, state = std::move(state)] {
-            opening_ = false; error_ = state.error; ready_ = error_.isEmpty();
+            opening_ = false; error_ = state.error; ready_ = error_.isEmpty() && !state.gated;
+            accessRequired_=state.gated;
+            if(error_.isEmpty()) {
+                ownerId_=state.ownerId;profiles_=state.profiles;accountOwner_=state.accountOwner;
+                protected_=state.protectedIds;familyProtected_=state.familyProtected;
+            }
+            if(state.gated){emit accessNeeded();return;}
             if (ready_) {
                 ownerId_ = state.ownerId; accountOwner_ = state.accountOwner; profiles_ = state.profiles; profile_ = state.profile; favorites_ = state.favorites; navigation_ = state.navigation;
                 worlds_ = state.library.worlds; registrations_ = state.library.registrations; preferences_ = state.library.preferences;
@@ -376,6 +456,10 @@ void LocalStateStore::open() {
 }
 void LocalStateStore::write(std::function<QString(SqliteWorker&)> operation, std::function<void(QString)> completed) {
     if (!ready_ || staged_) { completed("Your data isn't open yet. Retry after reopening TrainerOS."); return; }
+    accessWrite(std::move(operation),std::move(completed));
+}
+void LocalStateStore::accessWrite(std::function<QString(SqliteWorker&)> operation,std::function<void(QString)> completed) {
+    if((!ready_ && !accessRequired_) || staged_) {completed("Your data isn't available. Try again.");return;}
     ++pending_; emit pendingChanged();
     QMetaObject::invokeMethod(worker_, [this, operation = std::move(operation), completed = std::move(completed)] {
         const auto error = operation(*worker_);
@@ -423,6 +507,43 @@ void LocalStateStore::stageTrainerAsync(const QString& id, QObject* context, std
             if(guard)completed(error);
         });
     staged_=true;
+}
+void LocalStateStore::verifyPin(const QString& id, SecretPin pin,bool family,QObject* context,std::function<void(QString)> done) {
+    accessWrite([id,pin,family](SqliteWorker& w){return w.authenticate(id,pin,family);},
+        [guard=QPointer<QObject>(context),done](const QString& e){if(guard)done(e);});
+}
+void LocalStateStore::changePin(SecretPin old,SecretPin next,bool family,QObject* context,std::function<void(QString)> done) {
+    if(!ready_ || accessRequired_){done("Open your Trainer first.");return;}
+    const auto id=ownerId_;const bool protectedPin=next && next->size();
+    accessWrite([id,old,next,family](SqliteWorker& w){return w.changePin(id,old,next,family);},
+        [this,id,family,protectedPin,guard=QPointer<QObject>(context),done](const QString& e){
+            if(e.isEmpty()){if(family)familyProtected_=protectedPin;else if(protectedPin)protected_.insert(id);else protected_.remove(id);emit trainersChanged();}
+            if(guard)done(e);
+        });
+}
+void LocalStateStore::resetPin(const QString& id,SecretPin pin,QObject* context,std::function<void(QString)> done) {
+    accessWrite([id,pin](SqliteWorker& w){return w.resetPin(id,pin);},
+        [this,id,guard=QPointer<QObject>(context),done](const QString& e){if(e.isEmpty()){protected_.remove(id);emit trainersChanged();}if(guard)done(e);});
+}
+void LocalStateStore::unlock(const QString& id,QObject* context,std::function<void(QString)> done) {
+    if(!accessRequired_ || pending_){done("Finish the current operation first.");return;}
+    accessWrite([id](SqliteWorker& w){return w.stageTrainer(id);},
+        [this,id,guard=QPointer<QObject>(context),done](const QString& e){
+            if(e.isEmpty()){grant_=id;QTimer::singleShot(0,this,[this]{open();});}
+            if(guard)done(e);
+        });
+}
+void LocalStateStore::createProtectedTrainer(const TrainerProfile& p,SecretPin pin,QObject* context,std::function<void(ProfileWriteResult)> done) {
+    if(p.id.isEmpty() || p.name.trimmed().isEmpty() || p.name.size()>96 || !p.createdAt.isValid()){done({false,"Choose a valid Trainer name."});return;}
+    const bool first=profiles_.isEmpty(), hasPin=pin && pin->size();
+    accessWrite([p,pin,first](SqliteWorker& w){return first?w.profile(p,pin):w.createTrainer(p,pin);},
+        [this,p,first,hasPin,guard=QPointer<QObject>(context),done](const QString& e){
+            if(e.isEmpty()){
+                if(first){if(accountOwner_==ownerId_)accountOwner_=p.id;ownerId_=p.id;if(ready_)profile_=p;}
+                profiles_.append(p);if(hasPin)protected_.insert(p.id);emit trainersChanged();
+            }
+            if(guard)done({e.isEmpty(),e});
+        });
 }
 void LocalStateStore::setFavoriteAsync(const QString& id, bool favorite, QObject* context, std::function<void(QString)> completed) {
     if (id.isEmpty()) { completed("Choose a Pokédex entry first."); return; }

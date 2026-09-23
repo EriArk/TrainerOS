@@ -29,12 +29,13 @@ Center's attached [Activities menu](docs/CENTER_ACTIVITIES_UI.md) provides the P
 Settings → [Trainer](docs/TRAINER_SETUP_UI.md) contains the profile
 editor, active-Trainer RA account controls and real registration/selection.
 Up to eight Trainers share games while keeping personal records separate.
-PIN locking and a protected startup chooser remain planned.
+[Optional PINs, protected entry and a parent's family reset code](docs/TRAINER_ACCESS.md)
+are available with a controller keypad.
 
 The [P2 ownership foundation](docs/TRAINER_OWNERSHIP.md) now preserves the
 existing Trainer and scopes local journal, history, Hall and browsing state to
-explicit owners. Switching reconstructs all owner views and account providers;
-PIN enforcement remains planned. The game library and external saves stay shared.
+explicit owners. Switching reconstructs all owner views and account providers.
+The game library and external saves stay shared.
 
 Optional private [Pokédex illustrations](docs/ARTWORK_BOOTSTRAP.md) now appear in
 the list, detail and favorite-species picker. Up on detail opens exact-form

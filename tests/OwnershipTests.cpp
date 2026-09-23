@@ -54,7 +54,7 @@ private slots:
         QCOMPARE(q.value(0).toByteArray(),QByteArray("opaque navigation bytes"));
         QVERIFY(q.exec("SELECT rowid,trainer_id FROM play_sessions"));QVERIFY(q.next());
         QCOMPARE(q.value(0).toInt(),1);QCOMPARE(q.value(1).toString(),"legacy-owner");
-        QVERIFY(q.exec("PRAGMA user_version"));QVERIFY(q.next());QCOMPARE(q.value(0).toInt(),9);
+        QVERIFY(q.exec("PRAGMA user_version"));QVERIFY(q.next());QCOMPARE(q.value(0).toInt(),10);
         QVERIFY(q.exec("PRAGMA foreign_key_check"));QVERIFY(!q.next());
     }
     void failedMigrationRollsBackAndCanRetry() {
