@@ -177,7 +177,8 @@ endif()
 qt_add_executable(traineros src/app/Main.cpp)
 qt_add_resources(traineros display_fonts PREFIX "/fonts" BASE assets/fonts
     FILES assets/fonts/Fredoka.ttf assets/fonts/OFL.txt
-          assets/fonts/ChakraPetch-Bold.ttf assets/fonts/ChakraPetch-OFL.txt)
+          assets/fonts/ChakraPetch-Bold.ttf assets/fonts/ChakraPetch-OFL.txt
+          assets/fonts/Bungee-Regular.ttf assets/fonts/Bungee-OFL.txt)
 target_link_libraries(traineros PRIVATE trainer_core Qt6::Quick)
 set_source_files_properties(src/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 file(GLOB trainer_qml_sources CONFIGURE_DEPENDS src/qml/*.qml)
@@ -409,6 +410,9 @@ if(BUILD_TESTING)
     # This aggregates multiple complete application launches, including the
     # paired Center/controller/restore scenario. Individual child deadlines stay.
     set_tests_properties(persistence_process PROPERTIES TIMEOUT 60)
+    # 61 controller stages already spend 28 seconds in deliberate settling waits,
+    # before image captures and software rendering; retain bounded headroom.
+    set_tests_properties(worlds_qml_smoke PROPERTIES TIMEOUT 60)
     set_tests_properties(artwork_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 60)
 endif()
 

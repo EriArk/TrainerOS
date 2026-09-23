@@ -103,6 +103,7 @@ QVariantMap MultiversePresentation::present(const Game& game) const {
     for(const auto& field:QStringList{"screenshot","image","titleshot","thumbnail","cover"})
         if(!artwork.value(field).toString().isEmpty()){screenshot=artwork.value(field).toString();break;}
     const QVariantMap result{{"id",game.id},{"title",game.title},{"system",system},{"linked",game.linked},{"playable",playable},
+        {"platformShort",platformLabel(game.system).badge},{"platformShape",platformLabel(game.system).shape},
         {"description",description},{"preview",preview.isEmpty() && repository_ ? repository_->artwork(game.id).value("cover").toString() : preview},{"time",time},
         {"artwork",artwork},{"logo",artwork.value("marquee",artwork.value("wheel"))},{"screenshot",screenshot},
         {"year",year},{"genre",artwork.value("genre")},{"players",artwork.value("players")},

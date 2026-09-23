@@ -217,3 +217,22 @@ Both wheels use an animated gold crystal pointer from the left rail edge instead
 of a rectangular selection plate. Controller hints now live in the shared bottom
 footer. Down clamps at the final edition; B returns to regions/systems without
 an extra Back focus stop in populated lists. Empty lists keep a recovery action.
+
+### Logo hierarchy refinement — 2026-09-24
+
+The shared wheel now uses a 27×30 logical-pixel crystal, a 104-pixel selected
+logo slot and platform badges in the right-hand detail header. Missing logos
+use bundled Bungee with an outlined, offset-shadow treatment and a stable
+single color derived from the Adventure identity. Long names fit two lines;
+file/media availability and IDs are unchanged.
+
+Windows Worlds/Pokédex/artwork controller-render scenarios passed 3/3. Worlds'
+existing 61-stage scenario received a 60-second deadline: its deliberate waits
+already take about 28 seconds, and the first run exceeded the old 30-second
+limit. Assertions remain intact; the rerun completed in 28.59 seconds.
+The ARM64 production build was installed with binary/SQLite rollback copies,
+schema 11 and all 826 Adventure rows preserved. Real-session injected gamepad
+navigation and Gamescope captures cover F-Zero X, Pokémon Platinum, a Diamond
+entry without a logo, paired browsing and return from the system menu.
+Installed binary SHA-256:
+`be106dd6e8839c51196fead016d8df3d9caf174ce1217ca41d01e4afb6fa7c5c`.

@@ -103,7 +103,8 @@ Item {
                 return colors[type] || "#d7dfd0"
             }
             Text {
-                x: 18; y: 8; width: parent.width - 125; height: 32
+                id: speciesName
+                x: 18; y: 8; width: parent.width - 185; height: 32
                 text: root.dex.detail.name; textFormat: Text.PlainText
                 color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 27; font.bold: true
                 fontSizeMode: Text.Fit; minimumPixelSize: 18; elide: Text.ElideRight
@@ -111,7 +112,8 @@ Item {
             Text { x: 19; y: 42; width: 237; text: root.dex.detail.number + "  ·  " + root.dex.detail.form; color: Theme.muted; font.pixelSize: 12; elide: Text.ElideRight }
             SpriteActor {
                 objectName: "dex-idle-sprite"
-                x: parent.width - 109; y: 0; width: 100; height: 64
+                x: speciesName.x + Math.min(speciesName.width, speciesName.contentWidth) + 12
+                y: 0; width: Math.max(86, parent.width - x - 9); height: 50
                 visible: preview.hasEntry && !!root.dex.spritePreview.url
                 clips: root.dex.spriteClips; playing: root.takesFocus && !root.pickerOpen && !root.artOpen
             }

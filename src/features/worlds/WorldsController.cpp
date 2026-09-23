@@ -151,6 +151,7 @@ QVariantMap WorldsController::detail() const {
         if(!art.value(field).toString().isEmpty()){screenshot=art.value(field).toString();break;}
     return {{"id", adventure->id}, {"title", adventure->title}, {"kind", kindLabel(adventure->kind)},
         {"system",platformLabel(adventure->platformId).name},{"year",year},{"screenshot",screenshot},
+        {"platformShort",platformLabel(adventure->platformId).badge},{"platformShape",platformLabel(adventure->platformId).shape},
         {"genre",art.value("genre")},{"players",art.value("players")},{"developer",art.value("developer")},{"publisher",art.value("publisher")},
         {"playable",caps.launch},{"status", adventure->collectionOnly ? "File unavailable" : statusLabel(adventure->status)},
         {"description",art.value("desc").toString().isEmpty()?adventure->description:art.value("desc").toString()},

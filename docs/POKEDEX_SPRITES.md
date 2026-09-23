@@ -133,3 +133,22 @@ acceptance, actual Party/Playroom consumers and their P8 data gates. Generic
 artwork-pack management and Pack Studio stay at the end per the owner's
 2026-09-23 clarification. The minimal detail actor does not complete #52's living
 Party scene or imply real individual records.
+
+### Header corridor refinement — 2026-09-24
+
+The combined Pokédex now starts the companion after the measured species name
+and gives it the remaining header width. Directional movement uses a consistent
+55 logical pixels/second; short random choices alternate idle, sleep, a round
+trip, a pause at the wall or an occasional immediate walk-out-and-return.
+This replaces the original tiny corner movement box. Missing motion clips
+remain unavailable, source-frame proportions remain intact, and menu/page,
+species/width changes and Reduced Motion reset movement safely.
+
+The populated Windows SDL artwork scenario passed after the final motion edit,
+with zero QML warnings. It checks the wider corridor, frame clipping, directional
+walking within the normal route, return, sleep and menu/Reduced Motion pause.
+Installed Flip Gamescope frames show Guzzlord at different header positions,
+with its illustration and stat cells unobstructed. Device input was injected
+through the existing gamepad event device; this is not a new hands-on user test.
+The production installation and preservation evidence are recorded in
+[the library delivery](BATOCERA_LIBRARY.md#logo-hierarchy-refinement--2026-09-24).

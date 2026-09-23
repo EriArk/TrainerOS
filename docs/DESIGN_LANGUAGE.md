@@ -478,3 +478,19 @@ slides from the left edge, stopping at its pointer position. Reduced Motion skip
 the transition. Pokédex preserves primary illustrations and the optional animated
 companion in a single list/detail composition, with pastel-colored numerical stat
 cells and darker legible numbers instead of long bars.
+
+### Wheel and companion refinement — 2026-09-24
+
+Keep the crystal compact (27 by 30 logical pixels). The selected logo receives
+a taller, full-width slot; platform silhouettes belong to the right-hand facts
+panel, never beside a wheel title. Missing logos use bundled Bungee lettering,
+a light outline and a short dark offset shadow. Pick one contrasting color for
+the whole title, deterministically from its identity, so browsing never changes
+its color. Long names fit within two lines; unavailable editions stay subdued.
+
+The Pokédex companion's corridor begins after the rendered species name and ends
+at the right wall. Preserve source-frame scale with a header height ceiling.
+Optional directional walking, idle and sleep alternate with short random rests;
+an occasional step behind the right edge immediately turns into a return trip.
+Menus, hidden pages and Reduced Motion stop it. Missing clips do not fabricate
+actions or substitute illustrations. The primary illustration remains still.

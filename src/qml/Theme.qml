@@ -8,6 +8,8 @@ QtObject {
     readonly property string displayFamily: displayTypeface.name
     readonly property FontLoader brandTypeface: FontLoader { source: "qrc:/fonts/ChakraPetch-Bold.ttf" }
     readonly property string brandFamily: brandTypeface.name
+    readonly property FontLoader gameTypeface: FontLoader { source: "qrc:/fonts/Bungee-Regular.ttf" }
+    readonly property string gameFamily: gameTypeface.name
     readonly property var palettes: ({turquoise: ["#297e79", "#175755", "#103e43", "#76b3a4"],
         red: ["#984b51", "#713b45", "#432a37", "#cb9293"], green: ["#497c52", "#345b40", "#203d32", "#92b287"],
         blue: ["#3d739d", "#305477", "#233b53", "#87b2ca"], orange: ["#976038", "#72472d", "#49372b", "#c9a375"]})

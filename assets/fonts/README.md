@@ -12,4 +12,10 @@ Unmodified static TrueType font from [Google Fonts](https://github.com/google/fo
 
 Licensed under the [SIL Open Font License 1.1](ChakraPetch-OFL.txt), included in the application's font resources. Used for the centered TRAINER OS chassis title.
 
-Ordinary UI text retains the system UI face. Both display fonts are bundled; no font download or system installation is required at runtime.
+Bungee by the Bungee Project Authors (David Jonathan Ross).
+
+Unmodified static TrueType font from [Google Fonts](https://github.com/google/fonts/tree/main/ofl/bungee), retrieved 2026-09-24. Filename: `Bungee-Regular.ttf`. SHA-256: `c4f5361ce120af3e6b9156d0bf379fa19cda2ea0cd18ac01fd99596c6bf66e3f`.
+
+Licensed under the [SIL Open Font License 1.1](Bungee-OFL.txt), included in the application's font resources. Used for large, single-color game titles when no local logo is available; the outline and offset shadow are drawn by QML.
+
+Ordinary UI text retains the system UI face. Display fonts are bundled; no font download or system installation is required at runtime.

@@ -22,7 +22,10 @@ device probe measured 189–449 ms for tab changes; longer-run freeze diagnosis
 remains open if stalls recur. The owner-requested follow-up combines the Dex
 list/facts/illustration and colored numerical stats, replaces wheel selection
 plates with a gold crystal pointer, and consolidates controller legends at the
-bottom throughout the shell. **Next:** Settings-gated World
+bottom throughout the shell. The 2026-09-24 refinement gives the wheel a smaller
+pointer, larger logos/decorative fallback titles and right-side platform badges;
+the Dex companion walks along the header instead of inside a small corner box.
+**Next:** Settings-gated World
 wrench/edit popup and long-A game management, preserving IDs, media and saves.
 
 **Owner scheduling amendment, 2026-09-23:** generic artwork-pack installation,

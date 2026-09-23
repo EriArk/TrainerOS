@@ -9,7 +9,6 @@ Item {
     required property bool takesFocus
     property bool wheelFocused: true
     property bool showBack: false
-    property bool platformBadges: false
     property bool idsInNames: false
     property string itemPrefix: "multiverse-game-"
     property string emptyName: "multiverse-empty"
@@ -22,6 +21,12 @@ Item {
     signal emptyActivated()
     signal backActivated()
     readonly property real split: Math.round(width * 0.38)
+    function titleColor(key) {
+        const colors = ["#963c55", "#35699c", "#67429b", "#a14d25", "#386c40", "#965522"]
+        let hash = 0
+        for (let i = 0; i < key.length; ++i) hash = (hash * 31 + key.charCodeAt(i)) | 0
+        return colors[(hash >>> 0) % colors.length]
+    }
     Rectangle {
         width: root.split; height: parent.height
         gradient: Gradient {
@@ -50,11 +55,12 @@ Item {
         Canvas {
             id: crystal
             objectName: "library-selection-crystal"
-            x: 0; y: parent.height / 2 - 25; width: 47; height: 54; z: 2
+            x: 0; y: parent.height / 2 - 15; width: 27; height: 30; z: 2
             visible: root.entries.length > 0
             opacity: root.wheelFocused ? 1 : 0.45
             onPaint: {
                 const c = getContext("2d"); c.reset()
+                c.scale(width / 47, height / 54)
                 function facet(points, color) {
                     c.beginPath(); c.moveTo(points[0][0], points[0][1])
                     for (let i = 1; i < points.length; ++i) c.lineTo(points[i][0], points[i][1])
@@ -102,14 +108,14 @@ Item {
                 function onWheelFocusedChanged() { Qt.callLater(wheel.reveal) } }
             Connections { target: root; function onVisibleChanged() { if (root.visible) Qt.callLater(wheel.alignModel) } }
             path: Path {
-                startX: wheel.width * 0.37; startY: 26
+                startX: wheel.width * 0.37; startY: 10
                 PathAttribute { name: "logoScale"; value: 0.57 }
                 PathAttribute { name: "logoOpacity"; value: 0.28 }
                 PathQuad { x: wheel.width * 0.51; y: wheel.height / 2; controlX: wheel.width * 0.51; controlY: wheel.height * 0.16 }
                 PathPercent { value: 0.5 }
                 PathAttribute { name: "logoScale"; value: 1.0 }
                 PathAttribute { name: "logoOpacity"; value: 1.0 }
-                PathQuad { x: wheel.width * 0.37; y: wheel.height - 26; controlX: wheel.width * 0.51; controlY: wheel.height * 0.84 }
+                PathQuad { x: wheel.width * 0.37; y: wheel.height - 10; controlX: wheel.width * 0.51; controlY: wheel.height * 0.84 }
                 PathAttribute { name: "logoScale"; value: 0.57 }
                 PathAttribute { name: "logoOpacity"; value: 0.28 }
             }
@@ -121,28 +127,38 @@ Item {
                 onSelectedChanged: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
                 onVisibleChanged: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
                 Component.onCompleted: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
-                width: rail.width - 42; height: index === root.selectionIndex ? 74 : 40
+                width: rail.width - 44; height: index === root.selectionIndex ? 104 : 42
                 Behavior on height { NumberAnimation { duration: Theme.motion(130) } }
                 scale: PathView.logoScale === undefined ? 1 : PathView.logoScale
                 opacity: (PathView.logoOpacity === undefined ? 1 : PathView.logoOpacity) * (modelData.missing ? 0.55 : 1)
                 Accessible.role: Accessible.ListItem; Accessible.name: modelData.title
                 Image {
-                    id: logo; anchors.fill: parent; anchors.margins: 3; anchors.rightMargin: root.platformBadges ? 82 : 3
+                    id: logo; anchors.fill: parent; anchors.margins: 3
                     source: root.visible ? (modelData.logo || "") : ""
-                    asynchronous: true; sourceSize.width: 560; sourceSize.height: 148
+                    asynchronous: true; sourceSize.width: 640; sourceSize.height: 220
                     fillMode: Image.PreserveAspectFit; mipmap: true
                 }
                 Text {
-                    anchors.fill: parent; anchors.margins: 3; anchors.rightMargin: root.platformBadges ? 82 : 3
-                    visible: logo.status !== Image.Ready
-                    text: modelData.title; textFormat: Text.PlainText
-                    color: Theme.ink; style: Text.Outline; styleColor: "#f8f1d5"
-                    font.family: Theme.displayFamily; font.pixelSize: 23; font.weight: Font.Bold
+                    x: fallback.x; y: fallback.y + 3; width: fallback.width; height: fallback.height
+                    visible: fallback.visible
+                    text: fallback.text; textFormat: Text.PlainText
+                    color: "#463d39"; style: Text.Outline; styleColor: "#463d39"
+                    font: fallback.font
+                    fontSizeMode: Text.Fit; minimumPixelSize: 15
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight
                 }
-                PlatformBadge { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-                    visible: root.platformBadges; label: modelData.platform || ""; shape: modelData.platformShape || "console" }
+                Text {
+                    id: fallback
+                    anchors.fill: parent; anchors.margins: 3
+                    visible: logo.status !== Image.Ready
+                    text: modelData.title; textFormat: Text.PlainText
+                    color: root.titleColor(modelData.id || modelData.title); style: Text.Outline; styleColor: "#fff6d9"
+                    font.family: Theme.gameFamily; font.pixelSize: index === root.selectionIndex ? 31 : 23
+                    fontSizeMode: Text.Fit; minimumPixelSize: 15
+                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                    wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight
+                }
                 MouseArea { anchors.fill: parent; onClicked: root.activated(index) }
             }
         }
@@ -158,10 +174,15 @@ Item {
         x: root.split + 20; y: 12; width: parent.width - x - 22; height: parent.height - 56
         visible: root.entries.length > 0
         Text {
-            id: title; width: parent.width; height: 47
+            id: title; width: parent.width - 84; height: 47
             text: root.entry.title || ""; color: Theme.ink; textFormat: Text.PlainText
             font.family: Theme.displayFamily; font.pixelSize: 23; font.bold: true
             wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight
+        }
+        PlatformBadge {
+            objectName: "library-detail-platform"
+            anchors.right: parent.right; y: 0
+            label: root.entry.platformShort || ""; shape: root.entry.platformShape || "console"
         }
         Rectangle {
             id: picture; x: 0; y: 54; width: parent.width * 0.54; height: Math.min(150, parent.height * 0.5)

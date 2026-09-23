@@ -120,6 +120,8 @@ void startArtworkSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             if (!dex->spritePreview().isEmpty() && actor) {
                 auto* frame=actor->findChild<QQuickItem*>("dex-sprite-actor-frame");
                 auto* viewport=actor->findChild<QQuickItem*>("sprite-frame-viewport");
+                check(actor->width()>140 && actor->property("travel").toReal()>50,
+                    "Companion has a walking corridor after the name");
                 check(frame && viewport && viewport->clip()
                     && qAbs(viewport->width()-frame->property("cellWidth").toReal()*frame->property("scaleFactor").toReal())<0.1,
                     "Atlas is clipped to exactly one scaled frame, not the larger preview area");
@@ -148,6 +150,8 @@ void startArtworkSmoke(QQuickWindow* window, ShellController& shell, ControllerI
         if (state->stage == 15) {
             auto* actor=window->findChild<QQuickItem*>("dex-idle-sprite");
             auto* frame=window->findChild<QQuickItem*>("dex-sprite-actor-frame");
+            if (actor && frame) check(frame->x()>=-0.1 && frame->x()+frame->width()<=actor->width()+0.1,
+                "Walking companion stays between the name and right wall");
             state->motionSamples.append(QJsonObject{{"elapsedMs",state->motionClock.elapsed()},
                 {"activity",actor ? actor->property("activity").toString() : QString()},
                 {"x",frame ? frame->x() : -1.0}});
@@ -156,7 +160,7 @@ void startArtworkSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             if (state->imageWaits==8) capture("detail-sprite-walk-back");
             // grabWindow can stall the render animation clock on the real compositor.
             // Await the completed transition, with a wall-clock deadline rather than a tick count.
-            if (actor && actor->property("activity").toString()!="Idle" && state->motionClock.elapsed()<6000) return;
+            if (actor && actor->property("activity").toString()!="Idle" && state->motionClock.elapsed()<14000) return;
             check(actor && actor->property("activity").toString()=="Idle","Walk immediately returns and finishes at Idle");
             if (state->motionExercised) check(state->returnExercised && frame && qAbs(frame->x())<0.1,"Directional return reaches the original position");
             shell.settings()->selectCategory(0); shell.settings()->activateRow(1);
