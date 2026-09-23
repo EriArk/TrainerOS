@@ -70,9 +70,10 @@ game and writes no ROM/save/BIOS bytes. Private manifests stay outside Git.
 
 The optional `--configure-existing` mode subsequently connects newly installed
 runtimes to matching unconfigured records while preserving owner edits and
-already configured routes. See [cartridge runtime delivery](MULTIVERSE_RUNTIMES.md).
+already configured routes. See [cartridge runtime delivery](MULTIVERSE_RUNTIMES.md)
+and the [Mega-CD/Neo Geo CD checks](MULTIVERSE_DISCS.md).
 
-Installed RetroArch cartridge routes, melonDS and Dolphin are selected only
+Installed RetroArch cartridge/disc routes, melonDS and Dolphin are selected only
 through their adapter setup checks. The initial binding included raw SNES
 SFC/SMC; the follow-up cartridge increment expands the routes listed below.
 Other copied platforms can be browsed/selected while their setup gaps remain explicit.
@@ -91,8 +92,10 @@ The initial collection import resolved 38 registrations to existing configuratio
 through Dolphin. At that point, 95 remained unconfigured, including SNES ZIPs;
 the first SNES route only supported raw SFC/SMC.
 The subsequent [cartridge runtime increment](MULTIVERSE_RUNTIMES.md)
-adds those ZIPs and four more platform routes: 80 records are now configured,
-53 remain unconfigured. Configuration counts are not individual-title launch acceptance.
+adds those ZIPs and four more platform routes, bringing the total to 80 configured
+records. The [Mega-CD/Neo Geo CD increment](MULTIVERSE_DISCS.md) adds eight more:
+88 configured and 45 still unconfigured. Configuration counts are not
+individual-title launch acceptance.
 
 Remaining P4 work: generic on-device creation of Multiverse registrations,
 missing viable runtimes/BIOS configuration, archive routes, runtime-by-runtime

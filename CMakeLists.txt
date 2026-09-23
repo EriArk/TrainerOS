@@ -66,6 +66,8 @@ add_library(trainer_core STATIC
     src/core/repository/ResumeLibraryRepository.h
     src/integrations/adventure/retroarch/RetroArchConfiguration.h
     src/integrations/adventure/retroarch/RetroArchConfiguration.cpp
+    src/integrations/adventure/retroarch/RetroArchDisc.h
+    src/integrations/adventure/retroarch/RetroArchDisc.cpp
     src/integrations/adventure/retroarch/RetroArchSave.h
     src/integrations/adventure/retroarch/RetroArchSave.cpp
     src/core/repository/PlayHistoryRepository.h

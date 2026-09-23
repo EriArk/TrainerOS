@@ -1,5 +1,7 @@
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "integrations/adventure/retroarch/RetroArchSave.h"
+#include "integrations/adventure/retroarch/RetroArchDisc.h"
+#include <QCryptographicHash>
 #include "core/navigation/AdventureLaunchController.h"
 #include "core/storage/LocalStateStore.h"
 #include <QtTest>
@@ -23,6 +25,58 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void discTracksStayTogether() {
+        QTemporaryDir dir; std::atomic_bool cancel{false};
+        const auto cue=dir.filePath("game.cue"),track=dir.filePath("track one.img"); touch(track);
+        const auto write=[&](const QByteArray& bytes){QFile f(cue);QVERIFY(f.open(QIODevice::WriteOnly));f.write(bytes);};
+        write("REM fixture\nFILE \"track one.img\" BINARY\n  TRACK 01 MODE1/2352\n INDEX 01 00:00:00\n");
+        QVERIFY(retroarch::validateDiscContent(cue,cancel).isEmpty());
+        QVERIFY(QFile::remove(track)); QVERIFY(!retroarch::validateDiscContent(cue,cancel).isEmpty()); touch(track);
+        write("FILE \"../outside.img\" BINARY\nTRACK 01 AUDIO\n"); QVERIFY(!retroarch::validateDiscContent(cue,cancel).isEmpty());
+        write("FILE \"track one.img\" BINARY\n"); QVERIFY(!retroarch::validateDiscContent(cue,cancel).isEmpty());
+        write("FILE \"track one.img\" BINARY\nTRACK 01 AUDIO\nFILE \"missing.wav\" WAVE\nTRACK 02 AUDIO\n");
+        QVERIFY(!retroarch::validateDiscContent(cue,cancel).isEmpty());
+        write(QByteArray(65537,' ')); QVERIFY(!retroarch::validateDiscContent(cue,cancel).isEmpty());
+        const auto chd=dir.filePath("game.chd"); QFile image(chd);QVERIFY(image.open(QIODevice::WriteOnly));image.write("MComprHDfixture");image.close();
+        QVERIFY(retroarch::validateDiscContent(chd,cancel).isEmpty());
+        touch(chd); QVERIFY(!retroarch::validateDiscContent(chd,cancel).isEmpty());
+        cancel=true;QVERIFY(!retroarch::validateDiscContent(chd,cancel).isEmpty());
+    }
+    void discFirmwareAndLaunchAreRechecked() {
+        QTemporaryDir dir; const auto root=dir.path(),config=dir.filePath("retroarch.cfg"),setup=dir.filePath("installation.json");
+        QVERIFY(QDir().mkpath(dir.filePath("neocd")));touch(dir.filePath("neocd/neocd.bin"));
+        touch(dir.filePath("neocd_libretro.so"));touch(dir.filePath("genesis_plus_gx_libretro.so"));
+        const auto digest=QString::fromLatin1(QCryptographicHash::hash("original test fixture",QCryptographicHash::Sha256).toHex());
+        QJsonObject sega;for(const auto& name:{"bios_CD_U.bin","bios_CD_E.bin","bios_CD_J.bin"}){touch(dir.filePath(name));sega.insert(name,digest);}
+        QFile cfg(config);QVERIFY(cfg.open(QIODevice::WriteOnly));
+        cfg.write(("system_directory = \""+root+"\"\nauto_overrides_enable = \"false\"\n").toUtf8());cfg.close();
+        QJsonObject settings{{"version",1},{"program",probe()},{"prefixArguments",QJsonArray{}},{"configFile",config},{"coresDirectory",root},
+            {"discFirmware",QJsonObject{{"segacd",sega},{"neogeocd",QJsonObject{{"neocd/neocd.bin",digest}}}}}};
+        QFile file(setup);QVERIFY(file.open(QIODevice::WriteOnly));file.write(QJsonDocument(settings).toJson());file.close();
+        auto installation=RetroArchInstallation::load(setup); QCOMPARE(installation.readyDiscPlatforms.size(),2);
+        LocalStateStore store(dir.filePath("data"));store.open();QTRY_VERIFY(store.ready());
+        RetroArchAdapter adapter(store,installation); AdventureRegistration r;
+        r.adventure.id="disc";r.adventure.title="Fixture";r.adventure.domain="multiverse";r.adventure.platformId="segacd";r.adventure.adapterId="unconfigured";
+        r.contentPath=dir.filePath("game.chd");QFile chd(r.contentPath);QVERIFY(chd.open(QIODevice::WriteOnly));chd.write("MComprHDfixture");chd.close();
+        adapter.prepareInstallation(r);QCOMPARE(r.adventure.adapterId,"retroarch");
+        auto wrong=r;wrong.adventure.platformId="megadrive";adapter.prepareInstallation(wrong);QCOMPARE(wrong.adventure.adapterId,"unconfigured");
+        wrong=r;wrong.contentPath=dir.filePath("cartridge.bin");adapter.prepareInstallation(wrong);QCOMPARE(wrong.adventure.adapterId,"unconfigured");
+        bool done=false;store.saveAdventureAsync(r,this,[&](auto result){QVERIFY(result.success);done=true;});QTRY_VERIFY(done);
+        std::optional<ProcessCommand> invocation;adapter.requestLaunch=[&](const auto& cmd,const auto&){invocation=cmd;return true;};
+        QVERIFY(adapter.launch(r.adventure).success);QVERIFY(invocation && invocation->prepare);
+        auto cmd=*invocation;std::atomic_bool cancel{false};QVERIFY(cmd.prepare(cmd,cancel).isEmpty());
+        QCOMPARE(cmd.arguments.last(),r.contentPath);QVERIFY(cmd.arguments.contains("--appendconfig"));
+        QFile bios(dir.filePath("bios_CD_U.bin"));QVERIFY(bios.open(QIODevice::WriteOnly));bios.write("changed");bios.close();
+        cmd=*invocation;QVERIFY(!cmd.prepare(cmd,cancel).isEmpty());
+        QVERIFY(adapter.capabilities(r.adventure).launch); // Cached browsing does not touch storage.
+        QVERIFY(!RetroArchInstallation::load(setup).readyDiscPlatforms.contains("segacd"));
+        installation.discFirmware["neogeocd"]={{"neocd/../bios_CD_E.bin",digest}};
+        QVERIFY(!retroarch::verifiedDiscFirmware(installation,"neogeocd",cancel));
+        installation.discFirmware["neogeocd"]={{"neocd/neocd.bin",QString(64,'0')}};
+        QVERIFY(!retroarch::verifiedDiscFirmware(installation,"neogeocd",cancel));
+        installation.discFirmware["neogeocd"]={{"neocd/neocd.bin",digest}};
+        cancel=true;QVERIFY(!retroarch::verifiedDiscFirmware(installation,"neogeocd",cancel));
+    }
     void cartridgeRoutes_data() {
         QTest::addColumn<QString>("platform"); QTest::addColumn<QString>("core"); QTest::addColumn<QString>("suffix"); QTest::addColumn<QString>("library");
         QTest::newRow("snes-zip") << "snes" << "snes9x" << "ZIP" << "Snes9x";

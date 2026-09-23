@@ -1,5 +1,6 @@
 #include "RetroArchAdapter.h"
 #include "RetroArchSave.h"
+#include "RetroArchDisc.h"
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -12,16 +13,22 @@ const QHash<QString, QStringList> extensions{
     {"mgba", {"gba"}}, {"gambatte", {"gb", "gbc"}},
     {"parallel_n64", {"z64", "n64", "v64"}}, {"pokemini", {"min"}},
     {"fceumm", {"nes"}}, {"snes9x", {"sfc", "smc", "zip"}},
-    {"genesis_plus_gx", {"md", "gen", "smd", "bin", "zip"}},
+    {"genesis_plus_gx", {"md", "gen", "smd", "bin", "zip", "chd", "cue"}},
     {"picodrive", {"32x"}}, {"mednafen_ngp", {"ngp", "ngc"}},
-    {"mednafen_pce_fast", {"pce"}}
+    {"mednafen_pce_fast", {"pce"}}, {"neocd", {"cue", "chd"}}
 };
 const QHash<QString, QString> coreForPlatform{
     {"gb", "gambatte"}, {"gbc", "gambatte"}, {"gba", "mgba"},
     {"n64", "parallel_n64"}, {"pokemini", "pokemini"}, {"nes", "fceumm"},
     {"snes", "snes9x"}, {"megadrive", "genesis_plus_gx"},
-    {"sega32x", "picodrive"}, {"ngpc", "mednafen_ngp"}, {"pcengine", "mednafen_pce_fast"}
+    {"sega32x", "picodrive"}, {"ngpc", "mednafen_ngp"}, {"pcengine", "mednafen_pce_fast"},
+    {"segacd", "genesis_plus_gx"}, {"neogeocd", "neocd"}
 };
+bool contentRoute(const QString& platform, const QString& core, const QString& extension) {
+    if (retroarch::discPlatform(platform)) return extension == "chd" || extension == "cue";
+    if (extension == "chd" || extension == "cue") return false;
+    return extensions.value(core).contains(extension);
+}
 bool cartridgeRoute(const QString& core) {
     return QStringList{"snes9x", "genesis_plus_gx", "picodrive", "mednafen_ngp", "mednafen_pce_fast"}.contains(core);
 }
@@ -64,6 +71,12 @@ RetroArchInstallation RetroArchInstallation::load(const QString& filename) {
         }
     }
     result.saveBackups = object.value("backupProtocol").toString() == "mgba-sram-v1";
+    const auto firmware = object.value("discFirmware").toObject();
+    for (const auto& platform : {QString("segacd"), QString("neogeocd")}) {
+        result.discFirmware.insert(platform, firmware.value(platform).toObject());
+        const std::atomic_bool cancel{false};
+        if (retroarch::verifiedDiscFirmware(result, platform, cancel)) result.readyDiscPlatforms.insert(platform);
+    }
     return result;
 }
 RetroArchAdapter::RetroArchAdapter(LibraryRepository& repository, RetroArchInstallation installation)
@@ -79,7 +92,8 @@ void RetroArchAdapter::prepareInstallation(AdventureRegistration& record) const 
         else if (extension == "nes") a.platformId = "nes";
     }
     const auto core = coreForPlatform.value(a.platformId);
-    if (!installation_.program.isEmpty() && installation_.cores.contains(core) && extensions.value(core).contains(extension)) {
+    if (!installation_.program.isEmpty() && installation_.cores.contains(core) && contentRoute(a.platformId, core, extension)
+        && (!retroarch::discPlatform(a.platformId) || installation_.readyDiscPlatforms.contains(a.platformId))) {
         a.adapterId = id(); record.integrationConfig.insert("core", core);
     } else if (a.adapterId == id()) { a.adapterId = "unconfigured"; record.integrationConfig.remove("core"); }
 }
@@ -93,7 +107,8 @@ std::optional<ProcessCommand> RetroArchAdapter::command(const Adventure& adventu
     const auto core = record->integrationConfig.value("core").toString();
     if (!installation_.cores.contains(core)
             || (!record->adventure.platformId.isEmpty() && coreForPlatform.value(record->adventure.platformId) != core)
-            || !extensions.value(core).contains(QFileInfo(record->contentPath).suffix().toLower())) return {};
+            || !contentRoute(record->adventure.platformId, core, QFileInfo(record->contentPath).suffix().toLower())
+            || (retroarch::discPlatform(record->adventure.platformId) && !installation_.readyDiscPlatforms.contains(record->adventure.platformId))) return {};
     auto arguments = installation_.prefixArguments;
     arguments << "--fullscreen" << "--config" << installation_.configFile
               << "--libretro" << installation_.cores.value(core) << record->contentPath;
@@ -114,12 +129,19 @@ AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
         invocation->prepare = [record, installation = installation_](ProcessCommand& cmd, const std::atomic_bool& cancel) {
             return prepareRetroArchLaunch(cmd, record, installation, cancel);
         };
-    } else if (registration && cartridgeRoute(registration->integrationConfig["core"].toString())) {
+    } else if (registration && (cartridgeRoute(registration->integrationConfig["core"].toString())
+        || retroarch::discPlatform(registration->adventure.platformId))) {
         // These cartridge routes retain the emulator's existing ordinary-save
         // directories. Only mGBA currently owns verified per-Trainer namespaces.
         auto installation = installation_;
         installation.saves.reset();
         invocation->prepare = [record = *registration, installation](ProcessCommand& cmd, const std::atomic_bool& cancel) {
+            if (retroarch::discPlatform(record.adventure.platformId)) {
+                if (!retroarch::verifiedDiscFirmware(installation, record.adventure.platformId, cancel))
+                    return QString("This system's BIOS files changed or are missing. Check play setup before opening.");
+                const auto error = retroarch::validateDiscContent(record.contentPath, cancel);
+                if (!error.isEmpty()) return error;
+            }
             return prepareRetroArchLaunch(cmd, record, installation, cancel);
         };
     }

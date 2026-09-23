@@ -57,7 +57,7 @@ QStringList contextFiles(const AdventureRegistration& r, const RetroArchInstalla
     const auto core = r.integrationConfig.value("core").toString("mgba");
     const QHash<QString, QString> names{{"mgba", "mGBA"}, {"snes9x", "Snes9x"},
         {"genesis_plus_gx", "Genesis Plus GX"}, {"picodrive", "PicoDrive"},
-        {"mednafen_ngp", "Beetle NeoPop"}, {"mednafen_pce_fast", "Beetle PCE Fast"}};
+        {"mednafen_ngp", "Beetle NeoPop"}, {"mednafen_pce_fast", "Beetle PCE Fast"}, {"neocd", "NeoCD"}};
     const auto name = names.value(core);
     QStringList paths{i.configFile, i.cores.value(core), i.runtimeFile, r.contentPath};
     paths << configuredPath(s, "core_options_path", QFileInfo(i.configFile).dir().filePath("retroarch-core-options.cfg"));

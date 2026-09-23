@@ -81,7 +81,8 @@ Primary route references:
 
 ## Remaining boundaries
 
-Disc systems, arcade sets, PSP/PS2/Wii U and C64 retain individual runtime/BIOS/
+[Mega-CD and Neo Geo CD](MULTIVERSE_DISCS.md) are delivered in the next bounded
+disc slice. Other disc systems, arcade sets, PSP/PS2/Wii U and C64 retain individual runtime/BIOS/
 controller gates. Preserve the pending on-device registration flow, static media
 and World presentation in [ROADMAP](ROADMAP.md). A representative boot/input/exit
 check does not close extended gameplay, ordinary-save reload or physical-button

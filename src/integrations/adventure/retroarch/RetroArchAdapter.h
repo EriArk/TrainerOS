@@ -3,6 +3,7 @@
 #include "core/repository/LibraryRepository.h"
 #include "platform/process/ProcessService.h"
 #include <QHash>
+#include <QSet>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -36,6 +37,9 @@ struct RetroArchInstallation {
     QString runtimeFile;
     bool saveBackups = false;
     std::shared_ptr<RetroArchSaveSession> saves;
+    // Locally reviewed firmware identities; readiness is a startup snapshot.
+    QHash<QString, QJsonObject> discFirmware;
+    QSet<QString> readyDiscPlatforms;
     static RetroArchInstallation load(const QString& filename);
 };
 
