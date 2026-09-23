@@ -23,6 +23,50 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void cartridgeRoutes_data() {
+        QTest::addColumn<QString>("platform"); QTest::addColumn<QString>("core"); QTest::addColumn<QString>("suffix"); QTest::addColumn<QString>("library");
+        QTest::newRow("snes-zip") << "snes" << "snes9x" << "ZIP" << "Snes9x";
+        QTest::newRow("megadrive-zip") << "megadrive" << "genesis_plus_gx" << "zip" << "Genesis Plus GX";
+        QTest::newRow("32x") << "sega32x" << "picodrive" << "32x" << "PicoDrive";
+        QTest::newRow("ngpc") << "ngpc" << "mednafen_ngp" << "ngc" << "Beetle NeoPop";
+        QTest::newRow("pce") << "pcengine" << "mednafen_pce_fast" << "pce" << "Beetle PCE Fast";
+    }
+    void cartridgeRoutes() {
+        QFETCH(QString, platform); QFETCH(QString, core); QFETCH(QString, suffix); QFETCH(QString, library);
+        QTemporaryDir dir; const auto content=dir.filePath("literal ; title."+suffix); touch(content);
+        const auto config=dir.filePath("retroarch.cfg");
+        QFile settings(config); QVERIFY(settings.open(QIODevice::WriteOnly));
+        settings.write("auto_overrides_enable = \"true\"\nsavestate_auto_load = \"true\"\n"); settings.close();
+        LocalStateStore store(dir.filePath("data")); store.open(); QTRY_VERIFY(store.ready());
+        RetroArchInstallation installation{probe(), {}, config, {{core, dir.filePath(core+".so")}}};
+        installation.saves=std::make_shared<RetroArchSaveSession>(); // No accidental mGBA ownership gate.
+        RetroArchAdapter adapter(store, installation);
+        AdventureRegistration r; r.adventure.id="cartridge"; r.adventure.domain="multiverse";
+        r.adventure.platformId=platform; r.adventure.title="Fixture"; r.adventure.adapterId="unconfigured"; r.contentPath=content;
+        adapter.prepareInstallation(r); QCOMPARE(r.adventure.adapterId,"retroarch"); QCOMPARE(r.integrationConfig["core"].toString(),core);
+        bool done=false; store.saveAdventureAsync(r,this,[&](auto result){QVERIFY(result.success);done=true;}); QTRY_VERIFY(done);
+        std::optional<ProcessCommand> invocation;
+        adapter.requestLaunch=[&](const auto& cmd,const auto&){invocation=cmd;return true;};
+        QVERIFY(adapter.launch(r.adventure).success); QVERIFY(invocation && invocation->prepare);
+        const auto original=*invocation; std::atomic_bool cancelled{false};
+        QVERIFY(invocation->prepare(*invocation,cancelled).isEmpty());
+        QCOMPARE(invocation->arguments.last(),content);
+        QFile overlay(invocation->arguments[invocation->arguments.size()-2]); QVERIFY(overlay.open(QIODevice::ReadOnly));
+        const auto bytes=overlay.readAll(); QVERIFY(bytes.contains("savestate_auto_load = \"false\""));
+        QVERIFY(!bytes.contains("savefile_directory"));
+        // An active core-specific override is not silently discarded.
+        const auto overrides=dir.filePath("config/"+library); QVERIFY(QDir().mkpath(overrides));
+        const auto overrideFile=overrides+"/"+library+".cfg"; touch(overrideFile);
+        auto retry=original; QVERIFY(!retry.prepare(retry,cancelled).isEmpty());
+        QVERIFY(QFile::remove(overrideFile)); cancelled=true; QVERIFY(!retry.prepare(retry,cancelled).isEmpty());
+        auto wrong=r; wrong.contentPath=dir.filePath("disc.chd"); adapter.prepareInstallation(wrong);
+        QCOMPARE(wrong.adventure.adapterId,"unconfigured");
+        wrong=r; wrong.adventure.adapterId="unconfigured"; wrong.adventure.platformId.clear();
+        adapter.prepareInstallation(wrong); QCOMPARE(wrong.adventure.adapterId,"unconfigured"); // Never infer a ZIP's platform.
+        r=*store.registration(r.adventure.id); r.adventure.platformId="psx"; done=false;
+        store.saveAdventureAsync(r,this,[&](auto result){QVERIFY(result.success);done=true;}); QTRY_VERIFY(done);
+        QVERIFY(!adapter.capabilities(r.adventure).launch); // Core metadata cannot bypass the platform route.
+    }
     void ordinaryLaunchDoesNotNeedOrCreateStateFolders() {
         QTemporaryDir dir;
         RetroArchInstallation installation;

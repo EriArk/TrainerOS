@@ -17,7 +17,8 @@
 int main(int argc,char** argv) {
     QCoreApplication app(argc,argv);
     const auto args=app.arguments();
-    if(args.size()!=3){qCritical()<<"Usage: trainer_library_import DATA_DIRECTORY MANIFEST.json";return 2;}
+    const bool configureExisting=args.size()==4 && args[3]=="--configure-existing";
+    if(args.size()!=3 && !configureExisting){qCritical()<<"Usage: trainer_library_import DATA_DIRECTORY MANIFEST.json [--configure-existing]";return 2;}
     QFile file(args[2]);if(!file.open(QIODevice::ReadOnly)||file.size()>4*1024*1024)return 2;
     QJsonParseError parse;const auto document=QJsonDocument::fromJson(file.readAll(),&parse);
     const auto root=document.object();const auto entries=root["entries"].toArray();
@@ -39,16 +40,26 @@ int main(int argc,char** argv) {
     trainer::StandaloneAdapter melonds("melonds",store,trainer::StandaloneInstallation::load(integrations+"melonds.json","melonds"));
     trainer::StandaloneAdapter dolphin("dolphin",store,trainer::StandaloneInstallation::load(integrations+"dolphin.json","dolphin"));
     trainer::AdapterRouter adapters({&retroarch,&melonds,&dolphin});
-    int index=0,added=0,skipped=0;
+    int index=0,added=0,configured=0,skipped=0;
     std::function<void()> next;
     next=[&] {
-        if(index==records.size()){qInfo()<<"Import complete. Added:"<<added<<"Preserved existing:"<<skipped;app.exit(0);return;}
+        if(index==records.size()){qInfo()<<"Import complete. Added:"<<added<<"Configured:"<<configured<<"Preserved existing:"<<skipped;app.exit(0);return;}
         auto r=records[index++];
-        if(store.registration(r.adventure.id)){++skipped;QTimer::singleShot(0,&app,next);return;}
+        const auto existing=store.registration(r.adventure.id);
+        if(existing) {
+            if(!configureExisting || existing->adventure.adapterId!="unconfigured") {
+                ++skipped;QTimer::singleShot(0,&app,next);return;
+            }
+            r=*existing; // Preserve owner edits, revision, media and identity.
+        }
         adapters.prepareInstallation(r);
-        store.saveAdventureAsync(r,&app,[&](auto result){
-            if(!result.success){qCritical()<<"Import stopped after"<<added<<"records:"<<result.error;app.exit(1);return;}
-            ++added;QTimer::singleShot(0,&app,next);
+        if(existing && r.adventure.adapterId=="unconfigured") {
+            ++skipped;QTimer::singleShot(0,&app,next);return;
+        }
+        store.saveAdventureAsync(r,&app,[&, updating=existing.has_value()](auto result){
+            if(!result.success){qCritical()<<"Import stopped. Added:"<<added<<"Configured:"<<configured<<"Error:"<<result.error;app.exit(1);return;}
+            if(updating)++configured;else ++added;
+            QTimer::singleShot(0,&app,next);
         });
     };
     QObject::connect(&store,&trainer::LocalStateStore::opened,&app,[&](bool ready) {

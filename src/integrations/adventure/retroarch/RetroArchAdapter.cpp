@@ -11,8 +11,20 @@ namespace {
 const QHash<QString, QStringList> extensions{
     {"mgba", {"gba"}}, {"gambatte", {"gb", "gbc"}},
     {"parallel_n64", {"z64", "n64", "v64"}}, {"pokemini", {"min"}},
-    {"fceumm", {"nes"}}, {"snes9x", {"sfc", "smc"}}
+    {"fceumm", {"nes"}}, {"snes9x", {"sfc", "smc", "zip"}},
+    {"genesis_plus_gx", {"md", "gen", "smd", "bin", "zip"}},
+    {"picodrive", {"32x"}}, {"mednafen_ngp", {"ngp", "ngc"}},
+    {"mednafen_pce_fast", {"pce"}}
 };
+const QHash<QString, QString> coreForPlatform{
+    {"gb", "gambatte"}, {"gbc", "gambatte"}, {"gba", "mgba"},
+    {"n64", "parallel_n64"}, {"pokemini", "pokemini"}, {"nes", "fceumm"},
+    {"snes", "snes9x"}, {"megadrive", "genesis_plus_gx"},
+    {"sega32x", "picodrive"}, {"ngpc", "mednafen_ngp"}, {"pcengine", "mednafen_pce_fast"}
+};
+bool cartridgeRoute(const QString& core) {
+    return QStringList{"snes9x", "genesis_plus_gx", "picodrive", "mednafen_ngp", "mednafen_pce_fast"}.contains(core);
+}
 }
 RetroArchInstallation RetroArchInstallation::load(const QString& filename) {
     QFile file(filename);
@@ -66,7 +78,6 @@ void RetroArchAdapter::prepareInstallation(AdventureRegistration& record) const 
         else if (extension == "min") a.platformId = "pokemini";
         else if (extension == "nes") a.platformId = "nes";
     }
-    const QHash<QString, QString> coreForPlatform{{"gb", "gambatte"}, {"gbc", "gambatte"}, {"gba", "mgba"}, {"n64", "parallel_n64"}, {"pokemini", "pokemini"}, {"nes", "fceumm"}, {"snes", "snes9x"}};
     const auto core = coreForPlatform.value(a.platformId);
     if (!installation_.program.isEmpty() && installation_.cores.contains(core) && extensions.value(core).contains(extension)) {
         a.adapterId = id(); record.integrationConfig.insert("core", core);
@@ -81,6 +92,7 @@ std::optional<ProcessCommand> RetroArchAdapter::command(const Adventure& adventu
     if (!record || record->adventure.adapterId != id() || !QDir::isAbsolutePath(record->contentPath)) return {};
     const auto core = record->integrationConfig.value("core").toString();
     if (!installation_.cores.contains(core)
+            || (!record->adventure.platformId.isEmpty() && coreForPlatform.value(record->adventure.platformId) != core)
             || !extensions.value(core).contains(QFileInfo(record->contentPath).suffix().toLower())) return {};
     auto arguments = installation_.prefixArguments;
     arguments << "--fullscreen" << "--config" << installation_.configFile
@@ -100,6 +112,14 @@ AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
         && (installation_.saveBackups || !installation_.resumeDirectory.isEmpty())) {
         const auto record = *repository_.registration(adventure.id);
         invocation->prepare = [record, installation = installation_](ProcessCommand& cmd, const std::atomic_bool& cancel) {
+            return prepareRetroArchLaunch(cmd, record, installation, cancel);
+        };
+    } else if (registration && cartridgeRoute(registration->integrationConfig["core"].toString())) {
+        // These cartridge routes retain the emulator's existing ordinary-save
+        // directories. Only mGBA currently owns verified per-Trainer namespaces.
+        auto installation = installation_;
+        installation.saves.reset();
+        invocation->prepare = [record = *registration, installation](ProcessCommand& cmd, const std::atomic_bool& cancel) {
             return prepareRetroArchLaunch(cmd, record, installation, cancel);
         };
     }

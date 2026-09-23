@@ -35,6 +35,49 @@ public:
 class LibraryTests final : public QObject {
     Q_OBJECT
 private slots:
+    void maintenanceConfiguresOnlyUnconfiguredExistingRecords() {
+        QTemporaryDir dir; const auto data=dir.filePath("data"), manifest=dir.filePath("manifest.json");
+        const auto content=dir.filePath("fixture.pce"); fixtureFile(content);
+        AdventureRegistration saved;
+        {
+            LocalStateStore store(data);store.open();QTRY_VERIFY(store.ready());
+            saved.adventure.id="cartridge";saved.adventure.title="Owner title";saved.adventure.description="Owner notes";
+            saved.adventure.domain="multiverse";saved.adventure.platformId="pcengine";saved.adventure.adapterId="unconfigured";
+            saved.contentPath=content;saved.integrationConfig={{"owner-field",true}};
+            bool done=false;store.saveAdventureAsync(saved,this,[&](auto r){QVERIFY(r.success);done=true;});QTRY_VERIFY(done);
+        }
+        const auto integrations=data+"/integrations";QVERIFY(QDir().mkpath(integrations));
+        fixtureFile(integrations+"/mednafen_pce_fast_libretro.so");fixtureFile(integrations+"/retroarch.cfg");
+        QFile config(integrations+"/retroarch.json");QVERIFY(config.open(QIODevice::WriteOnly));
+        config.write(QJsonDocument(QJsonObject{{"version",1},{"program",QCoreApplication::applicationFilePath()},
+            {"prefixArguments",QJsonArray{}},{"coresDirectory",integrations},{"configFile",integrations+"/retroarch.cfg"}}).toJson());config.close();
+        QFile file(manifest);QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(QJsonDocument(QJsonObject{{"version",1},{"entries",QJsonArray{QJsonObject{
+            {"id","cartridge"},{"title","Manifest title"},{"platform","pcengine"},{"path",content}}}}}).toJson());file.close();
+        const auto run=[&](bool setup) {
+            QStringList args{data,manifest};if(setup)args<<"--configure-existing";
+            QProcess child;child.start(QCoreApplication::applicationDirPath()+"/trainer_library_import",args);
+            return child.waitForFinished(30000) && child.exitStatus()==QProcess::NormalExit && child.exitCode()==0;
+        };
+        QVERIFY(run(false));
+        {
+            LocalStateStore store(data);store.open();QTRY_VERIFY(store.ready());
+            QCOMPARE(store.registration("cartridge")->adventure.adapterId,"unconfigured");
+        }
+        QVERIFY(run(true));QVERIFY(run(true));
+        {
+            LocalStateStore store(data);store.open();QTRY_VERIFY(store.ready());saved=*store.registration("cartridge");
+            QCOMPARE(saved.revision,2);QCOMPARE(saved.adventure.title,"Owner title");QCOMPARE(saved.adventure.description,"Owner notes");
+            QVERIFY(saved.integrationConfig["owner-field"].toBool());QCOMPARE(saved.integrationConfig["core"].toString(),"mednafen_pce_fast");
+            QCOMPARE(saved.adventure.adapterId,"retroarch");
+            saved.adventure.adapterId="owner-adapter";bool done=false;
+            store.saveAdventureAsync(saved,this,[&](auto r){QVERIFY(r.success);done=true;});QTRY_VERIFY(done);
+        }
+        QVERIFY(run(true));
+        LocalStateStore reopened(data);reopened.open();QTRY_VERIFY(reopened.ready());
+        QCOMPARE(reopened.registration("cartridge")->adventure.adapterId,"owner-adapter");
+        QCOMPARE(reopened.registration("cartridge")->revision,3);
+    }
     void maintenanceImportIsIdempotentAndRejectsIdentityCollisions() {
         QTemporaryDir dir;const auto content=dir.filePath("fixture.gba");fixtureFile(content);
         const auto manifest=dir.filePath("manifest.json"),data=dir.filePath("data");

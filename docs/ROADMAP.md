@@ -14,6 +14,8 @@ This is a dependency replan, not a reset. The [pre-expansion plan](https://githu
 
 ## Delivered increments under this plan
 
+- **2026-09-23 - P4 cartridge runtime group:** installed missing AArch64 cores and connected 42 existing SNES, Mega Drive, 32X, NGPC and PC Engine registrations without replacing owner metadata or history. The collection now has 80 configured records and 53 remaining setup gaps. Windows 39/39 and ARM64 43/43 passed; actual Flip launch/input/guarded return and clean exit pictures verified for one title per system. [Evidence, ordinary-save limits and remaining runtimes](MULTIVERSE_RUNTIMES.md). Disc/arcade routes remain next within P4, followed by media and World/Home presentation.
+
 - **2026-09-23 - P3/P4 persistent Multiverse binding:** schema 11 preserves existing Pokemon records and registers 133 real games across 22 populated systems. Independent per-Trainer Home choices, selection-only Y, fixed A, shared history and clean exit pictures now work with existing adapters. 38 registrations resolve to installed configurations; 95 retain setup gaps. Windows checks and ARM64 43/43 passed; actual Advance Wars launch/return and installed screenshots verified. [Evidence and remaining runtime/media work](MULTIVERSE_BINDING.md).
 
 - **2026-09-23 — P3/P4 collection file preparation:** copied 133 games across 22 systems plus available BIOS to Flip's microSD; all 189 files passed SHA-256 verification. Small systems receive 8–12 titles; source shortages and runtime gaps remain explicit. [Selection, layout and acceptance](MULTIVERSE_COLLECTION.md). Real Multiverse binding and emulator/controller setup remain next.

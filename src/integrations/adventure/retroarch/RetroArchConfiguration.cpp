@@ -54,13 +54,18 @@ QString configDirectory(const Settings& settings, const RetroArchInstallation& i
 QStringList contextFiles(const AdventureRegistration& r, const RetroArchInstallation& i, const Settings& s) {
     const auto config = configDirectory(s, i);
     const QFileInfo content(r.contentPath);
-    QStringList paths{i.configFile, i.cores.value("mgba"), i.runtimeFile, r.contentPath};
+    const auto core = r.integrationConfig.value("core").toString("mgba");
+    const QHash<QString, QString> names{{"mgba", "mGBA"}, {"snes9x", "Snes9x"},
+        {"genesis_plus_gx", "Genesis Plus GX"}, {"picodrive", "PicoDrive"},
+        {"mednafen_ngp", "Beetle NeoPop"}, {"mednafen_pce_fast", "Beetle PCE Fast"}};
+    const auto name = names.value(core);
+    QStringList paths{i.configFile, i.cores.value(core), i.runtimeFile, r.contentPath};
     paths << configuredPath(s, "core_options_path", QFileInfo(i.configFile).dir().filePath("retroarch-core-options.cfg"));
-    for (const auto& name : {QString("mGBA"), content.dir().dirName(), content.completeBaseName()})
+    for (const auto& scope : {name, content.dir().dirName(), content.completeBaseName()})
         for (const auto& extension : {QString(".cfg"), QString(".opt")})
-            paths << QDir(config).filePath("mGBA/" + name + extension);
+            paths << QDir(config).filePath(name + "/" + scope + extension);
     const auto system = configuredPath(s, "system_directory");
-    if (safePath(system)) paths << QDir(system).filePath("gba_bios.bin");
+    if (core == "mgba" && safePath(system)) paths << QDir(system).filePath("gba_bios.bin");
     for (const auto& extension : {QString(".ips"), QString(".bps"), QString(".ups")})
         paths << content.dir().filePath(content.completeBaseName() + extension);
     return paths;
