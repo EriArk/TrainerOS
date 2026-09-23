@@ -24,10 +24,12 @@ class TrainerSetupPresentation final : public QObject {
     Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
     Q_PROPERTY(bool live READ live NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
+    Q_PROPERTY(bool canRemove READ canRemove NOTIFY changed)
 public:
     using QObject::QObject;
     bool live() const {return live_;}
     bool busy() const {return busy_;}
+    bool canRemove() const {const auto p=selectedProfile();return !startup_ && !busy_ && p && p->id==active_;}
     void configure(const QList<TrainerProfile>& profiles, const QString& active);
     void setBusy(bool value) {busy_=value;emit changed();}
     void failed(const QString& error) {busy_=false;error_=error;emit changed();}
@@ -62,6 +64,7 @@ signals:
     void nameRequested(const QString&);
     void createRequested(const trainer::TrainerProfile&);
     void selectRequested(const QString&);
+    void removeRequested();
 private:
     const TrainerProfile* selectedProfile() const {
         return live_ && stage_=="chooser" && focus_>=0 && focus_<profiles_.size() ? &profiles_[focus_] : nullptr;

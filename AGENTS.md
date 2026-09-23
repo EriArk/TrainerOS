@@ -16,6 +16,14 @@ do not add technical asset panels to ordinary screens.
 
 This file is the working contract for Codex and other coding agents in this repository.
 
+**Owner delivery clarification, 2026-09-23:** implement real behavior instead of
+substituting labels, explanations or disclaimers for missing functionality.
+Keep ordinary screens free of unnecessary technical/ownership commentary.
+In particular, do not add a "shared save" label as the solution to Trainer save
+isolation: deliver the verified per-Trainer save route in the upcoming increment.
+Keep unfinished work in ROADMAP; necessary actionable errors and honest
+unavailable states must still reflect actual capabilities.
+
 ## Read first
 
 Before implementing or changing product behavior, read:
@@ -82,7 +90,7 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 - **Home is one top-level page, not a permanent background shell.**
 - `L1/R1` switch top-level pages and must not be repurposed for local features.
 - Home is a living trainer overview, not a giant Continue page or tile launcher.
-- Planned updated #9: one shell-owned Choose Adventure drawer selects a shared per-Trainer `CurrentPokemonAdventureContext` across Pokémon-aware screens; Worlds retains local search/filter controls. No duplicate persistent Current Adventure capsule/chip. Shared Y and the Pokedex/Center and Hall/RA pairs are delivered. Schema 10 binds owner-isolated personal repositories, real profile creation/selection, TrainerOS RA accounts and optional PIN/startup gating with a parent-defined family reset code. Profile deletion and additional domain consumers remain planned. See docs/TRAINER_ACCESS.md. No universal master password; the owner requested simple family use, not enterprise account controls.
+- Planned updated #9: one shell-owned Choose Adventure drawer selects a shared per-Trainer `CurrentPokemonAdventureContext` across Pokémon-aware screens; Worlds retains local search/filter controls. No duplicate persistent Current Adventure capsule/chip. Shared Y and the Pokedex/Center and Hall/RA pairs are delivered. Schema 10 binds owner-isolated personal repositories, real profile creation/selection, TrainerOS RA accounts and optional PIN/startup gating with a parent-defined family reset code. Active-profile removal is delivered; the first proven per-Trainer RetroArch save route is next. Additional domain consumers remain planned. See docs/TRAINER_ACCESS.md. No universal master password; the owner requested simple family use, not enterprise account controls.
 - Planned #49 supersedes all normal emulator savestate/ResumePoint creation, management and resume. Use ordinary saves/autosaves and recent Adventure cards with clean exit screenshots. Preserve legacy implementation evidence and migrate user data safely; no new state-resume expansion.
 - Selecting a Continue card with A chooses the Adventure shown on Home; it never launches. Home has a large physical-style action button that launches the selected Adventure normally; the game loads its ordinary save/autosave. The explicit Home choice persists; latest launch is the default before a choice is made (2026-09-11 clarification).
 - RetroAchievements achievements belong inside Hall of Fame, alongside the completed-Adventure archive, not on a separate primary page.

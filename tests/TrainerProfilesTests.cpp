@@ -142,6 +142,19 @@ private slots:
         }
         TrainerAchievementProvider provider(library);provider.bind(second);QVERIFY(provider.context().accountId.isEmpty());QVERIFY(provider.sets().isEmpty());
     }
+    void removalSignsOutOnlyTheSelectedAccountAndReportsFilesystemFailure() {
+        QTemporaryDir dir;MockLibraryRepository library;
+        const auto one=dir.path()+"/one",two=dir.path()+"/two";
+        QVERIFY(writeAchievementAccount(one+"/integrations/retroachievements-account.json",{"One","FixtureToken123456"}));
+        QVERIFY(writeAchievementAccount(two+"/integrations/retroachievements-account.json",{"Two","OtherFixtureToken123456"}));
+        RetroAchievementsProvider provider(library,one);QTRY_VERIFY(!provider.accountBusy());
+        QVERIFY(provider.disconnectForRemoval());QVERIFY(provider.context().accountId.isEmpty());
+        QVERIFY(!QFileInfo::exists(one+"/integrations/retroachievements-account.json"));
+        QVERIFY(QFileInfo::exists(two+"/integrations/retroachievements-account.json"));
+        // A directory at the credential path cannot be removed as a file.
+        QVERIFY(QDir().mkpath(one+"/integrations/retroachievements-account.json"));
+        QVERIFY(!provider.disconnectForRemoval());
+    }
 };
 QTEST_GUILESS_MAIN(TrainerProfilesTests)
 #include "TrainerProfilesTests.moc"

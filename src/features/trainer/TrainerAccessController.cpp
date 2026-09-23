@@ -4,8 +4,10 @@
 
 namespace trainer {
 TrainerAccessController::TrainerAccessController(LocalStateStore* store,QObject* parent):QObject(parent),store_(store) {}
-bool TrainerAccessController::keypad() const { return stage_=="unlock" || stage_=="old" || stage_=="new" || stage_=="repeat" || stage_=="parent"; }
+bool TrainerAccessController::keypad() const { return stage_=="unlock" || stage_=="old" || stage_=="new" || stage_=="repeat" || stage_=="parent" || stage_=="delete-code"; }
 QString TrainerAccessController::title() const {
+    if(stage_=="delete")return "Remove "+name_+"?";
+    if(stage_=="delete-code")return "Ask a parent";
     if(stage_=="unlock")return "Welcome back, "+name_;
     if(stage_=="parent")return "Ask a parent";
     if(stage_=="reset")return "Remove the PIN for "+name_+"?";
@@ -17,6 +19,8 @@ QString TrainerAccessController::title() const {
 }
 QString TrainerAccessController::description() const {
     if(busy_)return "One moment...";
+    if(stage_=="delete-code")return "Enter the family code to remove this Trainer.";
+    if(stage_=="delete")return "Their journal, history and memories will be removed. Games, game saves and other Trainers stay.";
     if(stage_=="unlock")return "Enter your PIN to open your journal.";
     if(stage_=="parent")return "Enter the family code to reset this Trainer's PIN.";
     if(stage_=="reset")return "Their Trainer, journal and progress will stay safe.";
@@ -27,6 +31,7 @@ QString TrainerAccessController::description() const {
     return family_?"One code for a parent to reset forgotten PINs. Keep it private.":"A little privacy for your Trainer on a shared handheld.";
 }
 QStringList TrainerAccessController::choices() const {
+    if(stage_=="delete")return {"Keep Trainer","Remove Trainer"};
     if(stage_=="menu")return store_->pinProtected(id_)?QStringList{"Change PIN","Remove PIN","Back"}:QStringList{"Set PIN","Back"};
     if(stage_=="reset")return {"Keep PIN","Remove PIN"};
     if(stage_=="done")return {"Done"};
@@ -44,6 +49,15 @@ void TrainerAccessController::beginManage(bool family) {
     if(!store_ || !store_->ready() || busy_)return;
     close();family_=family;id_=store_->ownerId();operation_="change";
     if(family)move(store_->familyProtected()?"old":"new");else move("menu");
+}
+void TrainerAccessController::beginRemoval() {
+    if(!store_ || !store_->ready() || busy_ || !store_->load())return;
+    close();id_=store_->ownerId();name_=store_->load()->name;
+    family_=store_->familyProtected();operation_="delete";
+    move(family_?"delete-code":"delete");
+}
+void TrainerAccessController::removalFailed(const QString& error) {
+    busy_=false;old_=emptyPin();move(family_?"delete-code":"delete");error_=error;emit changed();
 }
 void TrainerAccessController::recover() {
     if(!canRecover() || busy_)return;
@@ -75,7 +89,8 @@ void TrainerAccessController::submit() {
         if(!e.isEmpty()){error_=e;focus_=0;emit changed();return;}
         if(stage=="unlock") {
             const auto id=id_;close();QTimer::singleShot(0,this,[this,id]{emit unlocked(id);});
-        } else if(stage=="parent") {old_=attempt;move("reset");}
+        } else if(stage=="delete-code") {old_=attempt;move("delete");}
+        else if(stage=="parent") {old_=attempt;move("reset");}
         else {old_=attempt;if(operation_=="remove"){next_=emptyPin();save();}else move("new");}
     });
 }
@@ -86,6 +101,9 @@ void TrainerAccessController::activate(int index) {
         focus_=index;error_.clear();
         if(index<9)input_->digit(index+1);else if(index==9)input_->erase();else if(index==10)input_->digit(0);
         else if(index==11)input_->clear();else {submit();return;}
+    } else if(stage_=="delete") {
+        if(index==0)close();
+        else if(index==1){busy_=true;emit changed();emit removalRequested(old_);}
     } else if(stage_=="menu") {
         if(index<0 || index>=choices().size())return;
         if(index==choices().size()-1)close();

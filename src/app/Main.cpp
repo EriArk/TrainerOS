@@ -167,6 +167,7 @@ int main(int argc, char* argv[]) {
     app.setQuitOnLastWindowClosed(false);
     bool restartTrainer = false;
     QString trainerGrant;
+    bool chooseTrainer = false;
     bool sessionReadyNotified = false;
     int result = 0;
     bool smokeCompleted = false;
@@ -192,7 +193,8 @@ int main(int argc, char* argv[]) {
             stateDirectory = directory;
             store = std::make_unique<LocalStateStore>(directory, nullptr, smoke && !persistencePhase.startsWith("library-") ? "prototype-library-v1" : "user-library-v1");
         }
-        if(store && !smoke)store->enforceAccess(trainerGrant);
+        if(store && !smoke)store->enforceAccess(trainerGrant,chooseTrainer);
+        chooseTrainer=false;
         trainerGrant.clear();
         const bool personalLibrary = store && (!smoke || persistencePhase.startsWith("library-") || persistencePhase == "collection");
         CollectionRepository collection(personalLibrary ? static_cast<LibraryRepository&>(*store) : repository);
@@ -236,7 +238,11 @@ int main(int argc, char* argv[]) {
         });
         SessionState session(shell, store.get());
         session.setTrainerSwitchGuard([&]{return !realAchievements || !realAchievements->accountBusy();});
-        QObject::connect(&session,&SessionState::trainerRestartReady,&app,[&]{trainerGrant=session.restartGrant();restartTrainer=true;app.exit();});
+        session.setTrainerRemovalPreparation([&]() -> QString {
+            if(!realAchievements)return {};
+            return realAchievements->disconnectForRemoval()?QString():"Could not remove the saved sign-in. Try again.";
+        });
+        QObject::connect(&session,&SessionState::trainerRestartReady,&app,[&]{trainerGrant=session.restartGrant();chooseTrainer=trainerGrant.isEmpty();restartTrainer=true;app.exit();});
         DeviceSnapshot deviceFixture;
         deviceFixture.volume = 35; deviceFixture.brightness = 60; deviceFixture.network = "Connected";
         deviceFixture.internalFree = 32LL << 30; deviceFixture.internalTotal = 100LL << 30;

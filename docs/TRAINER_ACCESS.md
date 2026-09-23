@@ -68,8 +68,9 @@ Builds require OpenSSL 3 Crypto development files; deployments require libcrypto
 
 ## Remaining P2 acceptance
 
-Profile deletion and the remaining independent personal-domain consumers retain
-their roadmap slots. PINs do not create private emulator save namespaces or
+[Profile removal and the current consumer audit](TRAINER_REMOVAL.md) are delivered.
+Per-Trainer ordinary-save routing is next; independent Multiverse consumers retain
+their P3/P4 slots. PINs do not create private emulator save namespaces or
 prove per-Trainer RetroAchievements earning. Shared external saves remain shared.
 
 ## Verification — 2026-09-23

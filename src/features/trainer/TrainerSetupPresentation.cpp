@@ -140,6 +140,7 @@ void TrainerSetupPresentation::activate(int index) {
 }
 void TrainerSetupPresentation::dispatch(Action action) {
     if(busy_)return;
+    if(action==Action::Secondary && canRemove()){emit removeRequested();return;}
     if (action == Action::Back) { back(); return; }
     if (action == Action::Confirm) { activate(focus_); return; }
     if (keypad()) {

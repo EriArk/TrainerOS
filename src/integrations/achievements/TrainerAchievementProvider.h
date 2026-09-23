@@ -24,6 +24,7 @@ public:
     QString accountMessage() const override {return provider_?provider_->accountMessage():QString();}
     void login(const QString& name,const QString& secret) override {if(provider_)provider_->login(name,secret);}
     void disconnectAccount() override {if(provider_)provider_->disconnectAccount();}
+    bool disconnectForRemoval() {return !provider_ || provider_->disconnectForRemoval();}
 private:
     LibraryRepository& library_;
     std::unique_ptr<RetroAchievementsProvider> provider_;

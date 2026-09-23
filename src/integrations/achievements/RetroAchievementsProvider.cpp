@@ -83,6 +83,11 @@ void RetroAchievementsProvider::disconnectAccount() {
     account_ = {}; records_.clear(); pendingRefresh_ = false;
     message_ = "Signed out. Your local archive remains available."; emit snapshotChanged({});
 }
+bool RetroAchievementsProvider::disconnectForRemoval() {
+    if(busy_)return false;
+    disconnectAccount();
+    return !QFileInfo::exists(QDir(directory_).filePath("integrations/retroachievements-account.json"));
+}
 void RetroAchievementsProvider::refresh(const QString& id) { sync(id); }
 void RetroAchievementsProvider::refreshAll() { if (busy_) { pendingRefresh_ = true; return; } sync({}); }
 void RetroAchievementsProvider::publish(LinkedAchievementSet value) {

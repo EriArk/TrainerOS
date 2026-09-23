@@ -33,6 +33,8 @@ public:
     bool canRecover() const { return stage_=="unlock"; }
     void beginUnlock(const QString& id);
     void beginManage(bool family=false);
+    void beginRemoval();
+    void removalFailed(const QString&);
     void cancel() { if(!busy_)close(); }
     void dispatch(Action);
     Q_INVOKABLE void activate(int);
@@ -40,6 +42,7 @@ public:
 signals:
     void changed();
     void unlocked(const QString&);
+    void removalRequested(trainer::SecretPin familyCode);
 private:
     void move(const QString&);
     void close();

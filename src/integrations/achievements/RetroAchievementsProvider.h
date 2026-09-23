@@ -19,6 +19,7 @@ public:
     QString accountMessage() const override { return message_; }
     void login(const QString& username, const QString& password) override;
     void disconnectAccount() override;
+    bool disconnectForRemoval();
 private:
     void loadCache();
     void sync(const QString& setId);

@@ -29,9 +29,11 @@ public:
     int focusIndex() const { return focus_; }
     void start();
     void setTrainerSwitchGuard(std::function<bool()> guard) { switchGuard_=std::move(guard); }
+    void setTrainerRemovalPreparation(std::function<QString()> prepare) { prepareRemoval_=std::move(prepare); }
     void requestTrainers();
     void requestTrainerSwitch(const QString&);
     void createTrainer(const TrainerProfile&);
+    void requestTrainerRemoval();
     void dispatch(Action);
     void setAdventureActive(bool active) { adventureActive_ = active; }
     void setServiceActive(bool active) { serviceActive_=active; finishExit(); }
@@ -58,6 +60,7 @@ private:
     bool creating_ = false, switching_ = false;
     QString nextTrainer_;
     std::function<bool()> switchGuard_;
+    std::function<QString()> prepareRemoval_;
     bool canChangeTrainer() const;
     TrainerAccessController access_;
     bool entryGate_=false;

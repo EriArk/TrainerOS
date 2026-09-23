@@ -4,6 +4,7 @@
 #include "SqliteOwnership.h"
 #include <QDir>
 #include <QTimer>
+#include <QUuid>
 #include <QCryptographicHash>
 #include <QFileInfo>
 #include <QJsonDocument>
@@ -46,7 +47,7 @@ public:
         if (!name.isEmpty()) QSqlDatabase::removeDatabase(name);
         lock.reset();
     }
-    LoadedState open(const QString& directory, const QString& scope, bool enforce=false, const QString& grant={}) {
+    LoadedState open(const QString& directory, const QString& scope, bool enforce=false, const QString& grant={}, bool choose=false) {
         close();
         scope_ = scope;
         LoadedState state;
@@ -232,7 +233,7 @@ public:
                     state.familyProtected=v==1;
                 }
                 if(openError.isEmpty() && enforce && grant!=ownerId_
-                    && (state.profiles.size()!=1 || state.protectedIds.contains(ownerId_))) {
+                    && (choose || state.profiles.size()!=1 || state.protectedIds.contains(ownerId_))) {
                     state.gated=true;state.profile.reset();return state;
                 }
                 if(openError.isEmpty())verified_.insert(ownerId_);
@@ -364,6 +365,50 @@ public:
         q.addBindValue(id);q.addBindValue(ownerId_);q.addBindValue(id);
         return q.exec()&&q.numRowsAffected()==1 ? QString() : "This Trainer is unavailable. Choose again.";
     }
+    QString removeCurrentTrainer(const SecretPin& familyCode) {
+        QSqlQuery q(db);
+        if(!q.exec("SELECT version FROM family_access WHERE trainer_id='family'") || !q.next())return failedWrite();
+        const int familyVersion=q.value(0).toInt();q.finish();
+        if(familyVersion!=0 && familyVersion!=1)return failedWrite();
+        if(familyVersion==1)if(const auto e=authenticate(ownerId_,familyCode,true);!e.isEmpty())return e;
+        if(!q.exec("SELECT id FROM play_sessions WHERE outcome='running' LIMIT 1") || q.next())return "Close the current game first.";
+        q.finish();
+        if(!db.transaction())return failedWrite();
+        QString error;
+        q.prepare("SELECT id FROM trainer_profile WHERE id=?");q.addBindValue(ownerId_);
+        if(!q.exec() || !q.next())error="This Trainer is no longer available.";
+        q.finish();
+        // All personal rows disappear together. Shared library and save files
+        // never participate. Retired owner IDs remain reserved, including the
+        // legacy root-account association, so a new Trainer cannot inherit it.
+        for(const auto& table:QStringList{"exit_media","hall_of_fame","play_sessions","pokedex_records","pokedex_favorites","shell_state","trainer_access"}) {
+            if(!error.isEmpty())break;
+            q.prepare("DELETE FROM "+table+" WHERE trainer_id=?");q.addBindValue(ownerId_);
+            if(!q.exec())error=failedWrite();
+        }
+        if(error.isEmpty()) {
+            q.prepare("DELETE FROM trainer_profile WHERE id=?");q.addBindValue(ownerId_);
+            if(!q.exec() || q.numRowsAffected()!=1)error=failedWrite();
+        }
+        QString next;
+        if(error.isEmpty()) {
+            if(!q.exec("SELECT id FROM trainer_profile ORDER BY created_at,id LIMIT 1"))error=failedWrite();
+            else if(q.next())next=q.value(0).toString();
+            q.finish();
+            if(error.isEmpty() && next.isEmpty()) {
+                next=QUuid::createUuid().toString(QUuid::WithoutBraces);
+                q.prepare("INSERT INTO trainer_owners(id) VALUES(?)");q.addBindValue(next);
+                if(!q.exec())error=failedWrite();
+            }
+        }
+        if(error.isEmpty()) {
+            q.prepare("UPDATE local_owner SET trainer_id=? WHERE slot=1 AND trainer_id=?");q.addBindValue(next);q.addBindValue(ownerId_);
+            if(!q.exec() || q.numRowsAffected()!=1)error=failedWrite();
+        }
+        if(error.isEmpty() && !db.commit())error=failedWrite();
+        if(!error.isEmpty())db.rollback();else {verified_.clear();pendingMedia.clear();}
+        return error;
+    }
     QString favorite(const QString& id, bool favorite) {
         QSqlQuery query(db);
         query.prepare(favorite ? "INSERT OR IGNORE INTO pokedex_favorites(entry_id,trainer_id) VALUES(?,?)" : "DELETE FROM pokedex_favorites WHERE entry_id=? AND trainer_id=?");
@@ -436,7 +481,7 @@ void LocalStateStore::open() {
     if (opening_ || ready_ || pending_) return;
     opening_ = true; error_.clear();
     QMetaObject::invokeMethod(worker_, [this] {
-        auto state = worker_->open(directory_, scope_, enforceAccess_, grant_);
+        auto state = worker_->open(directory_, scope_, enforceAccess_, grant_, chooseOnOpen_);
         QMetaObject::invokeMethod(this, [this, state = std::move(state)] {
             opening_ = false; error_ = state.error; ready_ = error_.isEmpty() && !state.gated;
             accessRequired_=state.gated;
@@ -512,6 +557,17 @@ void LocalStateStore::verifyPin(const QString& id, SecretPin pin,bool family,QOb
     accessWrite([id,pin,family](SqliteWorker& w){return w.authenticate(id,pin,family);},
         [guard=QPointer<QObject>(context),done](const QString& e){if(guard)done(e);});
 }
+void LocalStateStore::removeCurrentTrainer(SecretPin familyCode,QObject* context,std::function<void(QString)> done) {
+    if(!ready_ || accessRequired_ || staged_ || pending_ || !profile_) {done("Finish the current operation first.");return;}
+    write([familyCode](SqliteWorker& w){return w.removeCurrentTrainer(familyCode);},
+        [this,guard=QPointer<QObject>(context),done](const QString& e){
+            if(!e.isEmpty())staged_=false;
+            // Success deliberately keeps all old repositories frozen until the
+            // composition is destroyed. No late callback can recreate rows.
+            if(guard)done(e);
+        });
+    staged_=true;
+}
 void LocalStateStore::changePin(SecretPin old,SecretPin next,bool family,QObject* context,std::function<void(QString)> done) {
     if(!ready_ || accessRequired_){done("Open your Trainer first.");return;}
     const auto id=ownerId_;const bool protectedPin=next && next->size();
@@ -529,7 +585,7 @@ void LocalStateStore::unlock(const QString& id,QObject* context,std::function<vo
     if(!accessRequired_ || pending_){done("Finish the current operation first.");return;}
     accessWrite([id](SqliteWorker& w){return w.stageTrainer(id);},
         [this,id,guard=QPointer<QObject>(context),done](const QString& e){
-            if(e.isEmpty()){grant_=id;QTimer::singleShot(0,this,[this]{open();});}
+            if(e.isEmpty()){grant_=id;chooseOnOpen_=false;QTimer::singleShot(0,this,[this]{open();});}
             if(guard)done(e);
         });
 }

@@ -30,7 +30,8 @@ Settings → [Trainer](docs/TRAINER_SETUP_UI.md) contains the profile
 editor, active-Trainer RA account controls and real registration/selection.
 Up to eight Trainers share games while keeping personal records separate.
 [Optional PINs, protected entry and a parent's family reset code](docs/TRAINER_ACCESS.md)
-are available with a controller keypad.
+are available with a controller keypad. The unlocked Trainer can be
+[removed from the chooser](docs/TRAINER_REMOVAL.md) without deleting games or other profiles.
 
 The [P2 ownership foundation](docs/TRAINER_OWNERSHIP.md) now preserves the
 existing Trainer and scopes local journal, history, Hall and browsing state to

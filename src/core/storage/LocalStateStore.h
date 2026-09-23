@@ -24,7 +24,8 @@ public:
     ~LocalStateStore() override;
     void open();
     // A grant only survives an in-process, authenticated Trainer switch.
-    void enforceAccess(const QString& grant = {}) { enforceAccess_=true; grant_=grant; }
+    void enforceAccess(const QString& grant = {}, bool choose = false) { enforceAccess_=true; grant_=grant; chooseOnOpen_=choose; }
+    void removeCurrentTrainer(SecretPin familyCode, QObject*, std::function<void(QString)>);
     bool accessRequired() const { return accessRequired_; }
     bool pinProtected(const QString& id) const { return protected_.contains(id); }
     bool familyProtected() const { return familyProtected_; }
@@ -87,6 +88,7 @@ private:
     QString directory_, scope_, error_, ownerId_, accountOwner_;
     QList<TrainerProfile> profiles_;
     bool enforceAccess_=false, accessRequired_=false, familyProtected_=false;
+    bool chooseOnOpen_=false;
     QString grant_;
     QSet<QString> protected_;
     bool staged_ = false;

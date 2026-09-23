@@ -7,6 +7,19 @@ SessionState::SessionState(ShellController& shell, LocalStateStore* store, QObje
     connect(&shell_, &ShellController::exitRequested, this, &SessionState::requestExit);
     if (!store_) return;
     connect(&access_,&TrainerAccessController::changed,this,&SessionState::changed);
+    connect(shell_.trainerSetup(),&TrainerSetupPresentation::removeRequested,this,&SessionState::requestTrainerRemoval);
+    connect(&access_,&TrainerAccessController::removalRequested,this,[this](SecretPin code){
+        if(entryGate_ || !restored_ || adventureActive_ || serviceActive_ || writing_ || store_->pending()
+            || closing_ || switching_ || creating_ || !error_.isEmpty() || (switchGuard_ && !switchGuard_())) {
+            access_.removalFailed("Finish the current operation first.");return;
+        }
+        if(prepareRemoval_)if(const auto e=prepareRemoval_();!e.isEmpty()){access_.removalFailed(e);return;}
+        debounce_.stop();switching_=true;emit changed();
+        store_->removeCurrentTrainer(code,this,[this](const QString& e){
+            if(!e.isEmpty()){switching_=false;access_.removalFailed(e);emit changed();return;}
+            nextTrainer_.clear();emit trainerRestartReady();
+        });
+    });
     connect(&access_,&TrainerAccessController::unlocked,this,[this](const QString& id){verifiedTrainer_=id;requestTrainerSwitch(id);});
     connect(&shell_,&ShellController::pinRequested,this,[this](bool family){
         if(canChangeTrainer())access_.beginManage(family);
@@ -55,6 +68,10 @@ bool SessionState::canChangeTrainer() const {
 void SessionState::requestTrainers() {
     if(!canChangeTrainer()){shell_.showNotice("Finish the current operation before choosing a Trainer.");return;}
     shell_.openTrainers();
+}
+void SessionState::requestTrainerRemoval() {
+    if(entryGate_ || !canChangeTrainer()){shell_.showNotice("Open your Trainer and finish the current operation first.");return;}
+    access_.beginRemoval();
 }
 void SessionState::createTrainer(const TrainerProfile& profile) {
     if(!canChangeTrainer()){shell_.trainerSetup()->failed("Finish the current operation and try again.");return;}
