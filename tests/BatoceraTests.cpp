@@ -85,11 +85,15 @@ private slots:
         const auto revision=store.registration(record.adventure.id)->revision;
         put(QDir(roms).filePath("gba/art.png"));
         put(QDir(roms).filePath("gba/gamelist.xml"),"<gameList><game><path>./Pokemon Emerald (USA).gba</path><name>Scraper title</name><image>./art.png</image></game></gameList>");
-        folders.refreshContentAvailability();QTRY_COMPARE(finished.size(),2);QCOMPARE(finished[1][0].toInt(),0);
+        folders.rescan();QTRY_COMPARE(finished.size(),2);QCOMPARE(finished[1][0].toInt(),0);
         const auto current=*store.registration(record.adventure.id);
         QCOMPARE(current.revision,revision);QCOMPARE(current.adventure.title,"Owner's edition");
         QCOMPARE(current.integrationConfig,record.integrationConfig);QVERIFY(!folders.artwork(current.adventure.id).value("cover").toString().isEmpty());
-        QVERIFY(QFile::remove(file));folders.refreshContentAvailability();QTRY_COMPARE(finished.size(),3);
+        QSignalSpy updates(&folders,&BatoceraLibrary::changed);
+        folders.rescan();QTRY_COMPARE(finished.size(),3);QCOMPARE(updates.size(),0);
+        for(int i=0;i<20;++i)folders.refreshContentAvailability();
+        QVERIFY(!folders.busy());QVERIFY(!folders.writing());QCOMPARE(finished.size(),3);
+        QVERIFY(QFile::remove(file));folders.rescan();QTRY_COMPARE(finished.size(),4);
         QCOMPARE(store.adventures().size(),1);QCOMPARE(store.registration(record.adventure.id)->revision,revision);
         QVERIFY(!store.registration(record.adventure.id)->contentAvailable);
     }

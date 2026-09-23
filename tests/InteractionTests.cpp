@@ -23,6 +23,18 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void pageTransitionPublishesOnlyItsCompletedState() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;
+        MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        shell.goToPage(1);shell.dispatch(Action::Confirm);shell.dispatch(Action::Secondary);
+        QVERIFY(shell.keyboard()->isOpen());
+        QSignalSpy updates(&shell,&ShellController::changed);
+        shell.goToPage(3);
+        QCOMPARE(updates.size(),1);QCOMPARE(shell.page(),3);QVERIFY(!shell.keyboard()->isOpen());
+        QVERIFY(!shell.menuOpen());QVERIFY(!shell.serviceOpen());
+    }
     void centerActivitiesAreAnIsolatedRehearsal() {
         PartyPresentation party(true);
         party.setAdventure("one", "First");
@@ -103,11 +115,12 @@ private slots:
         shell.dispatch(Action::Down); shell.dispatch(Action::Confirm);
         QCOMPARE(shell.multiverse()->focusIndex(), 1); // Missing file cannot be selected.
         shell.dispatch(Action::Left); QCOMPARE(shell.multiverse()->focusIndex(), 1);
-        shell.dispatch(Action::Back); QCOMPARE(shell.multiverse()->route(), "games");
+        shell.dispatch(Action::Back); QCOMPARE(shell.multiverse()->route(), "systems");
+        shell.dispatch(Action::Confirm); QCOMPARE(shell.multiverse()->route(), "games");
         shell.dispatch(Action::PreviousFace); QVERIFY(!shell.multiverseFace());
         QCOMPARE(shell.worlds()->navigationState(), route);
         shell.dispatch(Action::NextFace); QCOMPARE(shell.multiverse()->focusIndex(), 1);
-        shell.dispatch(Action::Up); shell.dispatch(Action::Confirm); shell.dispatch(Action::Confirm);
+        shell.dispatch(Action::Up); shell.dispatch(Action::Confirm);
         QCOMPARE(shell.page(), 0); QVERIFY(shell.multiverseHome());
         QCOMPARE(shell.multiverse()->selected()["id"], "sample-courier");
         QCOMPARE(shell.currentAdventureId(), pokemon); QCOMPARE(launches.size(), 0);
@@ -121,6 +134,12 @@ private slots:
         class Library final:public LibraryRepository {
         public:
             QList<AdventureRegistration> records;
+            mutable int mediaReads=0;
+            QVariantMap artwork(const QString&)const override {
+                ++mediaReads;
+                return {{"marquee","file:///logo.png"},{"image","file:///screenshot.png"},
+                    {"releasedate","20010321T000000"},{"desc","Full scraped description"},{"genre","Racing"}};
+            }
             QList<World> worlds()const override{return {{"hoenn","Hoenn",{}}};}
             QList<Adventure> adventures()const override{QList<Adventure> r;for(const auto& x:records)r.append(x.adventure);return r;}
             QList<ResumePoint> resumePoints()const override{return {};}
@@ -142,8 +161,18 @@ private slots:
         MockTrainerRepository profiles;DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
         QCOMPARE(shell.multiverse()->systems().size(),1);shell.goToPage(1);shell.dispatch(Action::NextFace);shell.dispatch(Action::Confirm);
+        const auto info=shell.multiverse()->detail();
+        QCOMPARE(info["year"],"2001");QCOMPARE(info["description"],"Full scraped description");
+        QCOMPARE(info["logo"],"file:///logo.png");QCOMPARE(info["screenshot"],"file:///screenshot.png");
+        shell.multiverse()->choices();
+        const auto reads=library.mediaReads;
+        QSignalSpy modelReset(shell.multiverse(),&MultiversePresentation::gamesChanged);
+        for(int i=0;i<20;++i) {
+            shell.multiverse()->dispatch(Action::Down);shell.multiverse()->games();shell.multiverse()->choices();
+        }
+        QCOMPARE(library.mediaReads,reads);QCOMPARE(modelReset.size(),0);
         shell.multiverse()->applySearch("absent");QVERIFY(shell.multiverse()->games().isEmpty());QCOMPARE(shell.multiverse()->systems().size(),1);
-        shell.dispatch(Action::Confirm);shell.dispatch(Action::Confirm);shell.dispatch(Action::Confirm);
+        shell.dispatch(Action::Confirm);shell.dispatch(Action::Confirm);
         QCOMPARE(shell.page(),0);QVERIFY(shell.multiverseHome());QVERIFY(adapter.launched.isEmpty());QCOMPARE(shell.currentAdventureId(),"pokemon");
         const auto state=shell.navigationState();shell.dispatch(Action::Confirm);QCOMPARE(adapter.launched,"multi0");
         ShellController restored(library,profiles,adapter,platform,dex,dex,archive,achievements);restored.restoreNavigation(state);

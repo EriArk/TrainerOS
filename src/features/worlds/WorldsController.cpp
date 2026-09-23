@@ -97,7 +97,9 @@ QVariantList WorldsController::regions() const {
 QVariantList WorldsController::adventures() const {
     QVariantList result;
     for (const auto& adventure : currentAdventures()) {
+        const auto art=repository_.artwork(adventure.id);
         result.append(QVariantMap{{"id", adventure.id}, {"title", adventure.title},
+            {"logo",art.value("marquee",art.value("wheel"))},
             {"kind", kindLabel(adventure.kind)}, {"status", adventure.collectionOnly ? "Missing from collection" : statusLabel(adventure.status)},
             {"missing", adventure.collectionOnly}, {"platform", platformLabel(adventure.platformId).badge},
             {"platformShape", platformLabel(adventure.platformId).shape}, {"variant", adventure.variant}});
@@ -136,11 +138,25 @@ QVariantMap WorldsController::detail() const {
     if (canResume) availability = "A recent trail is ready to continue.";
     else if (!caps.launch) availability = "The file is linked. Play setup is still needed.";
     if (adventure->collectionOnly) availability = "Missing from your collection. Link a local file to add this edition.";
+    const auto art=repository_.artwork(adventure->id);
+    auto year=art.value("releasedate").toString().left(4);
+    bool numeric=false;const auto number=year.toInt(&numeric);
+    if(!numeric || number<1970 || number>2100) {
+        year.clear();
+        static const auto years=[] { QHash<QString,int> result;for(const auto& e:collectionChronology())if(e.releaseYear)result.insert(e.id,*e.releaseYear);return result; }();
+        if(years.contains(adventure->catalogueId))year=QString::number(years.value(adventure->catalogueId));
+    }
+    QString screenshot;
+    for(const auto& field:QStringList{"screenshot","image","titleshot","thumbnail","cover"})
+        if(!art.value(field).toString().isEmpty()){screenshot=art.value(field).toString();break;}
     return {{"id", adventure->id}, {"title", adventure->title}, {"kind", kindLabel(adventure->kind)},
-        {"status", statusLabel(adventure->status)}, {"description", adventure->description},
+        {"system",platformLabel(adventure->platformId).name},{"year",year},{"screenshot",screenshot},
+        {"genre",art.value("genre")},{"players",art.value("players")},{"developer",art.value("developer")},{"publisher",art.value("publisher")},
+        {"playable",caps.launch},{"status", adventure->collectionOnly ? "File unavailable" : statusLabel(adventure->status)},
+        {"description",art.value("desc").toString().isEmpty()?adventure->description:art.value("desc").toString()},
         {"platform", platformLabel(adventure->platformId).name}, {"limitation", adventure->limitation}, {"variant", adventure->variant},
         {"badges", countLabel(adventure->badges)}, {"caught", countLabel(adventure->caught)},
-        {"availability", availability}, {"artwork", repository_.artwork(adventure->id)},
+        {"availability", availability}, {"artwork", art},
         {"resume", point ? (canResume ? (point->location.isEmpty() ? "Recent trail" : point->location) : resumeLabel(adapter_.resumeAvailability(*adventure, *point))) : "No recent trail recorded"}};
 }
 QList<WorldsController::DetailAction> WorldsController::detailActions() const {

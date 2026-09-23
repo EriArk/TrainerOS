@@ -11,6 +11,8 @@ public:
     QList<World> worldData = sample.worlds();
     QList<Adventure> adventureData = sample.adventures();
     QList<ResumePoint> points = sample.resumePoints();
+    QVariantMap media;
+    QVariantMap artwork(const QString&) const override { return media; }
     QList<World> worlds() const override { return worldData; }
     QList<Adventure> adventures() const override { return adventureData; }
     QList<ResumePoint> resumePoints() const override { return points; }
@@ -36,6 +38,18 @@ void tap(WorldsController& worlds, Action action, int count = 1) {
 class WorldsTests : public QObject {
     Q_OBJECT
 private slots:
+    void wheelUsesEditionMetadataWithoutInventingMissingFields() {
+        MutableLibrary library;
+        library.media={{"marquee","file:///edition-logo.png"},{"image","file:///edition-image.png"},
+            {"releasedate","20040916T000000"},{"desc","Full edition description"},{"players","1"}};
+        RecordingAdapter adapter;WorldsController worlds(library,adapter);worlds.activate(2);
+        QCOMPARE(worlds.adventures()[0].toMap()["logo"],"file:///edition-logo.png");
+        QCOMPARE(worlds.detail()["screenshot"],"file:///edition-image.png");
+        QCOMPARE(worlds.detail()["year"],"2004");QCOMPARE(worlds.detail()["description"],"Full edition description");
+        library.media.clear();worlds.refresh();
+        QVERIFY(worlds.detail()["screenshot"].toString().isEmpty());
+        QVERIFY(worlds.detail()["developer"].toString().isEmpty());
+    }
     void collectionSearchFiltersAndIdentity() {
         MutableLibrary library;
         library.adventureData.clear();

@@ -15,7 +15,11 @@ See [folder contract and management acceptance](BATOCERA_LIBRARY.md).
 
 **Current slice delivered:** Batocera folder discovery and gamelist artwork are
 installed on Flip, with preservation rehearsal, ARM checks, real folder-added
-game launch/return and handheld screenshots. **Next:** Settings-gated World
+game launch/return and handheld screenshots. The shared Batocera-style game
+wheel is also delivered in Multiverse and Pokemon regions, with same-screen
+metadata, additional Pokemon media and reduced navigation stalls. The final
+device probe measured 189–449 ms for tab changes; longer-run freeze diagnosis
+remains open if stalls recur. **Next:** Settings-gated World
 wrench/edit popup and long-A game management, preserving IDs, media and saves.
 
 **Owner scheduling amendment, 2026-09-23:** generic artwork-pack installation,

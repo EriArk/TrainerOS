@@ -191,6 +191,7 @@ qt_add_qml_module(traineros
     RESOURCE_PREFIX /
     QML_FILES
         src/qml/AdventureArtwork.qml
+        src/qml/LibraryWheel.qml
         src/qml/TrainerAccessPanel.qml
         src/qml/Main.qml
         src/qml/AdventureExitWindow.qml
@@ -330,7 +331,9 @@ if(BUILD_TESTING)
     target_sources(traineros PRIVATE tests/ui/ExitSmokeScenario.cpp tests/ui/ExitSmokeScenario.h)
     add_dependencies(traineros trainer_process_probe)
     target_include_directories(traineros PRIVATE tests/ui)
-    target_compile_definitions(traineros PRIVATE TRAINEROS_UI_TESTS)
+    # Only the entry point branches on this macro; keep test entry flags scoped
+    # to that file instead of defining them for every generated QML unit.
+    set_source_files_properties(src/app/Main.cpp PROPERTIES COMPILE_DEFINITIONS TRAINEROS_UI_TESTS)
     qt_add_executable(trainer_core_tests tests/CoreTests.cpp)
     target_link_libraries(trainer_core_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME core COMMAND trainer_core_tests)

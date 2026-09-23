@@ -299,9 +299,9 @@ int main(int argc, char* argv[]) {
             QObject::connect(saveBackups.get(),&SaveBackupService::operationFailed,&session,&SessionState::cancelPendingExit);
         }
         const auto updateServiceActivity = [&] {
-            session.setServiceActive(folders.busy() || deviceService.busy() || (saveBackups && saveBackups->busy()));
+            session.setServiceActive(folders.writing() || deviceService.busy() || (saveBackups && saveBackups->busy()));
         };
-        QObject::connect(&folders, &BatoceraLibrary::busyChanged, &session, updateServiceActivity);
+        QObject::connect(&folders, &BatoceraLibrary::writingChanged, &session, updateServiceActivity);
         QObject::connect(&deviceService, &DeviceService::changed, &session, updateServiceActivity);
         if (saveBackups) QObject::connect(saveBackups.get(), &SaveBackupService::busyChanged, &session, updateServiceActivity);
         ProcessService adventureProcess;

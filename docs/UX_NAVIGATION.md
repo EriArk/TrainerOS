@@ -19,6 +19,18 @@ right A confirms, bottom B returns to the same game. See the device-specific
 
 Worlds includes the [collection checklist and controller attachment flow](COLLECTION_CATALOGUE.md). Grey missing cards remain focusable; A → Link a file opens the shared picker, while Save/Cancel returns to the original Worlds detail. Platform badges identify the edition without changing region-first navigation.
 
+**Multiverse browser, 2026-09-23:** after the system grid, Up/Down moves a logo
+wheel on the left; the same screen shows selected-game imagery and metadata on
+the right. A chooses the linked game for Home without launching or opening a
+separate detail step. B returns to systems. X searches and local Y filters.
+Missing files remain readable but cannot replace Home's choice. L1/R1 and L2/R2
+preserve their page/face roles and the wheel's useful position.
+
+Pokemon region contents use that same wheel/details layout, retaining edition
+platform badges, grey missing editions, Left/Right jump-eight and the established
+A detail/actions/file-linking route. B returns to regions; Down after the last
+edition can still focus the visible Back control. Region organization is unchanged.
+
 In a World's Adventure list, X searches title/version/platform through the controller keyboard, Y cycles All/Linked/Missing, and left/right jumps eight rows. Up/down chooses adjacent rows. Search and filter are remembered per World; empty results retain the fixed X/Y controls and a focused Back action. These shortcuts yield to open keyboards, menus and service panels; L1/R1 remains global.
 
 **Target reconciliation — 2026-09-19 (#62).** The accepted [#42–62 specification](EXPANSION_42_62.md) supersedes older product direction. Planned behavior below is not a claim that the deployed build has changed; see the [working baseline](ROADMAP.md#working-baseline) and dated module evidence.

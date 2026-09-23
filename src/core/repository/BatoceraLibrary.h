@@ -2,6 +2,8 @@
 #include "LibraryRepository.h"
 #include <QHash>
 #include <QThread>
+#include <QElapsedTimer>
+#include <QTimer>
 
 namespace trainer {
 struct FolderEntry {
@@ -34,11 +36,14 @@ public:
     void saveAdventureAsync(const AdventureRegistration& r, QObject* c, std::function<void(LibraryWriteResult)> done) override { library_.saveAdventureAsync(r,c,std::move(done)); }
     QVariantMap artwork(const QString& id) const override { return media_.value(id); }
     void refreshContentAvailability() override;
+    void rescan();
     bool busy() const { return busy_; }
+    bool writing() const { return writing_; }
     std::function<void(AdventureRegistration&)> prepareInstallation;
 signals:
     void changed();
     void busyChanged();
+    void writingChanged();
     void scanFinished(int added, const QStringList& warnings);
 private:
     void importNext();
@@ -46,8 +51,12 @@ private:
     QString roms_;
     QThread* thread_ = nullptr;
     bool busy_ = false;
+    bool writing_ = false;
+    QElapsedTimer lastScan_;
+    QTimer deferredScan_;
     FolderScan scan_;
     int index_ = 0, added_ = 0;
     QHash<QString,QVariantMap> media_;
+    QHash<QString,QVariantMap> nextMedia_;
 };
 }

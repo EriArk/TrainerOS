@@ -12,7 +12,7 @@
 
 namespace trainer {
 namespace {
-const QStringList mediaTags{"image","thumbnail","marquee","fanart","titleshot","video","manual","magazine","map","bezel","cartridge","boxart","boxback","wheel","mix"};
+const QStringList mediaTags{"image","screenshot","thumbnail","marquee","fanart","titleshot","video","manual","magazine","map","bezel","cartridge","boxart","boxback","wheel","mix"};
 const QHash<QString,QStringList>& formats() {
     static const QHash<QString,QStringList> value{
         {"gb",{"gb","zip","7z"}}, {"gbc",{"gb","gbc","zip","7z"}}, {"gba",{"gba","zip","7z"}},
@@ -188,12 +188,26 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
     return result;
 }
 BatoceraLibrary::BatoceraLibrary(LibraryRepository& library,QString roms,QObject* parent)
-    :QObject(parent),library_(library),roms_(std::move(roms)) {}
+    :QObject(parent),library_(library),roms_(std::move(roms)) {
+    deferredScan_.setSingleShot(true);
+    connect(&deferredScan_,&QTimer::timeout,this,&BatoceraLibrary::rescan);
+}
 BatoceraLibrary::~BatoceraLibrary() {
     if(thread_) {thread_->requestInterruption();thread_->wait();delete thread_;}
 }
 void BatoceraLibrary::refreshContentAvailability() {
     if(busy_ || !library_.editable())return;
+    // Page/focus changes may request repeatedly. Keep navigation independent of
+    // storage work, while still observing files copied during the current run.
+    if(lastScan_.isValid() && lastScan_.elapsed()<10000) {
+        if(!deferredScan_.isActive())deferredScan_.start(int(10000-lastScan_.elapsed()));
+        return;
+    }
+    rescan();
+}
+void BatoceraLibrary::rescan() {
+    if(busy_ || !library_.editable())return;
+    deferredScan_.stop();lastScan_.start();
     library_.refreshContentAvailability();
     QList<AdventureRegistration> existing;
     for(const auto& a:library_.adventures())if(const auto r=library_.registration(a.id))existing.append(*r);
@@ -202,7 +216,7 @@ void BatoceraLibrary::refreshContentAvailability() {
     thread_=QThread::create([result,root=roms_,existing]{*result=scanBatoceraLibrary(root,existing);});
     connect(thread_,&QThread::finished,this,[this,result] {
         thread_->wait();delete thread_;thread_=nullptr;
-        scan_=std::move(*result);index_=0;added_=0;media_.clear();importNext();
+        scan_=std::move(*result);index_=0;added_=0;nextMedia_.clear();importNext();
     });
     thread_->start();
 }
@@ -212,7 +226,7 @@ void BatoceraLibrary::importNext() {
         // Recheck after asynchronous discovery: do not replace edits or bindings.
         const auto current=library_.registration(r.adventure.id);
         if(current) {
-            if(QDir::cleanPath(current->contentPath)==QDir::cleanPath(r.contentPath))media_.insert(r.adventure.id,entry.media);
+            if(QDir::cleanPath(current->contentPath)==QDir::cleanPath(r.contentPath))nextMedia_.insert(r.adventure.id,entry.media);
             continue;
         }
         if(entry.existing)continue;
@@ -222,14 +236,20 @@ void BatoceraLibrary::importNext() {
         if(duplicate)continue;
         if(r.newWorld)for(const auto& w:library_.worlds())if(w.id==r.newWorld->id){r.newWorld.reset();break;}
         if(prepareInstallation)prepareInstallation(r);
+        if(!writing_) {writing_=true;emit writingChanged();}
         library_.saveAdventureAsync(r,this,[this,id=r.adventure.id,media=entry.media](const auto& write) {
-            if(write.success){++added_;media_.insert(id,media);}
+            if(write.success){++added_;nextMedia_.insert(id,media);}
             else scan_.warnings.append(write.error);
             QTimer::singleShot(0,this,&BatoceraLibrary::importNext);
         });
         return;
     }
-    busy_=false;emit busyChanged();emit changed();emit scanFinished(added_,scan_.warnings);
+    const bool mediaChanged=media_!=nextMedia_;
+    media_=std::move(nextMedia_);
+    if(writing_) {writing_=false;emit writingChanged();}
+    busy_=false;emit busyChanged();
+    if(mediaChanged || added_)emit changed();
+    emit scanFinished(added_,scan_.warnings);
     scan_={};
 }
 }

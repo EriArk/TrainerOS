@@ -63,109 +63,38 @@ Item {
 
     Item {
         anchors.fill: parent; visible: root.listOpen
-        PageHeader {
-            id: adventuresHeader; width: 550
-            title: root.worlds.region.name
-            subtitle: root.worlds.query ? "Search: " + root.worlds.query : "Choose an Adventure"
-        }
+        PageHeader { id: adventuresHeader; title: root.worlds.region.name; subtitle: "Choose an Adventure" }
         MountedPanel {
-            x: 0; y: adventuresHeader.height; width: 550; height: 332 - y
-            color: "#d4e2d6"
-            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: "#b6cbbb" }
-            ListView {
-                id: adventureList
+            y: adventuresHeader.height; width: parent.width; height: parent.height - y; color: "#d4e2d6"
+            LibraryWheel {
                 objectName: "adventure-list"
-                x: 24; y: 6; width: 500; height: 256
-                model: root.worlds.adventures
-                currentIndex: root.worlds.adventureIndex
-                clip: true; interactive: false; keyNavigationEnabled: false
-                boundsBehavior: Flickable.StopAtBounds
-                highlightMoveDuration: 0; highlightResizeDuration: 0
-                cacheBuffer: 216
-                function revealCurrent() {
-                    if (count > 0 && root.listOpen) positionViewAtIndex(currentIndex, ListView.Contain);
-                    if (root.takesFocus && root.listOpen && root.worlds.focusIndex < count && currentItem)
-                        currentItem.control.forceActiveFocus(Qt.OtherFocusReason);
-                }
-                onCurrentIndexChanged: Qt.callLater(revealCurrent)
-                onCurrentItemChanged: Qt.callLater(revealCurrent)
-                onModelChanged: Qt.callLater(revealCurrent)
-                Connections {
-                    target: root
-                    function onListOpenChanged() { Qt.callLater(adventureList.revealCurrent); }
-                    function onTakesFocusChanged() { Qt.callLater(adventureList.revealCurrent); }
-                }
-                delegate: Item {
-                    required property int index
-                    required property var modelData
-                    width: adventureList.width; height: 64
-                    property alias control: adventureButton
-                    CapButton {
-                        id: adventureButton
-                        objectName: "adventure-" + modelData.id
-                        x: 5; y: 5; width: parent.width - 10; height: 50
-                        label: modelData.title
-                        detail: modelData.missing ? "Missing · A to link a file" : modelData.variant || modelData.kind + " · " + modelData.status
-                        platform: root.shell.sampleLibrary ? "" : modelData.platform
-                        platformShape: modelData.platformShape
-                        tint: modelData.missing ? "#c4cdc7" : modelData.kind === "ROM hack" ? Theme.pink : modelData.kind === "Remake" ? Theme.blue : Theme.green
-                        selected: root.listOpen && root.takesFocus && root.worlds.focusIndex === index
-                        onActivated: root.shell.activate(index)
-                    }
-                }
-            }
-            Text {
-                x: 30; y: 43; width: 474; wrapMode: Text.WordWrap
-                visible: root.worlds.adventures.length === 0
-                text: "No matching Adventures.\nChange the search or filter below."
-                color: Theme.muted; font.pixelSize: 21; lineHeight: 1.3
-            }
-            Rectangle {
-                x: 533; y: 12; width: 4; height: parent.height - 24; radius: 2; color: "#b0c6b6"
-                visible: adventureList.contentHeight > adventureList.height
-                Rectangle {
-                    width: 4; radius: 2; color: Theme.chassis
-                    height: parent.height * Math.min(1, adventureList.height / Math.max(1, adventureList.contentHeight))
-                    y: (parent.height - height) * Math.max(0, Math.min(1, adventureList.contentY / Math.max(1, adventureList.contentHeight - adventureList.height)))
-                }
-            }
-        }
-        Item {
-            x: 568; y: 0; width: parent.width - x; height: 332
-            Text { x: 24; y: 18; text: "ADVENTURE RECORD"; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1.3 }
-            AdventureArtwork { id: listArtwork; x: 24; y: 40; width: parent.width - 48; height: 160; media: root.worlds.detail.artwork || ({}) }
-            TrainerEmblem { visible: !listArtwork.available; anchors.horizontalCenter: parent.horizontalCenter; y: 55; width: 140; height: 140; emblem: root.worlds.detail.kind === "ROM hack" ? "spark" : "compass" }
-            Text { x: 24; y: 209; width: parent.width - 48; text: root.worlds.detail.title; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 23; font.weight: Font.DemiBold }
-            Text { x: 24; y: 275; width: parent.width - 48; text: root.worlds.detail.availability; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 14 }
-        }
-        MountedPanel {
-            anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
-            height: 78; color: "#c6dcca"
-            CapButton {
-                objectName: "world-list-back"
-                x: 30; y: 31; width: 225; height: 35; label: "B  Back to Worlds"; tint: Theme.blue; textSize: 16
-                selected: root.listOpen && root.takesFocus && root.worlds.focusIndex === root.worlds.adventures.length
-                onActivated: root.shell.activate(root.worlds.adventures.length)
-            }
-            Text {
-                x: 31; y: 8; text: root.worlds.adventures.length > 0 ? (root.worlds.adventureIndex + 1) + " / " + root.worlds.adventures.length + "  ·  ↑ ↓ Choose   ← → Jump 8   A Open" : "0 results · X Search   Y Filter   B Worlds"
-                color: Theme.muted; font.pixelSize: 13
-            }
-            CapButton {
-                objectName: "worlds-search"
-                x: 275; y: 31; width: 295; height: 35; label: root.worlds.query ? "X  Change search" : "X  Search this World"; tint: "#e9b47b"; textSize: 16
-                onActivated: root.shell.activate(0, "worlds-search")
-            }
-            CapButton {
-                objectName: "worlds-filter"
-                x: 590; y: 31; width: 295; height: 35; label: "Y  Show: " + root.worlds.filterLabel; tint: Theme.yellow; textSize: 16
-                onActivated: root.shell.activate(0, "worlds-filter")
+                anchors.fill: parent
+                entries: root.worlds.adventures; entry: root.worlds.detail; selectionIndex: root.worlds.adventureIndex
+                takesFocus: root.takesFocus && root.listOpen
+                wheelFocused: root.worlds.focusIndex < entries.length
+                showBack: true; platformBadges: true; idsInNames: true; itemPrefix: "adventure-"
+                emptyName: "world-list-back"; emptyTitle: "No matching Adventures"; emptyDetail: "B · Back to Worlds"
+                actionLabel: "Open"; filterText: root.worlds.filterLabel + (root.worlds.query ? " · " + root.worlds.query : "")
+                onActivated: index => root.shell.activate(index)
+                onEmptyActivated: root.shell.activate(entries.length)
+                onBackActivated: root.shell.activate(entries.length)
             }
         }
     }
 
     Item {
+        id: detailView
         anchors.fill: parent; visible: root.detailOpen
+        function revealAction() {
+            if (!root.detailOpen || !root.takesFocus) return
+            const control = detailActions.itemAt(root.worlds.focusIndex)
+            if (control && control.visible && control.enabled) control.forceActiveFocus(Qt.OtherFocusReason)
+        }
+        Connections {
+            target: root
+            function onDetailOpenChanged() { Qt.callLater(detailView.revealAction) }
+            function onTakesFocusChanged() { Qt.callLater(detailView.revealAction) }
+        }
         PageHeader {
             id: detailHeader
             objectName: "world-detail-header"
@@ -204,7 +133,9 @@ Item {
             Row {
                 x: 30; y: 18; spacing: 16
                 Repeater {
+                    id: detailActions
                     model: root.worlds.actions
+                    onItemAdded: Qt.callLater(detailView.revealAction)
                     delegate: CapButton {
                         required property int index
                         required property var modelData

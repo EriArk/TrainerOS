@@ -16,7 +16,12 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
     auto timer = new QTimer(window); timer->setInterval(220);
     QObject::connect(timer, &QTimer::timeout, window, [=, &shell, &session, &store, &input, &completed, &warnings, &diagnostics] {
         const auto check = [&](bool condition, const QString& message) {
-            if (!condition) { *failed = true; diagnostics.append(QString("%1 / %2: %3").arg(phase).arg(*stage).arg(message)); }
+            if (!condition) {
+                *failed = true;
+                const auto* focus=window->activeFocusItem();
+                diagnostics.append(QString("%1 / %2: %3 [focus=%4, visible=%5]").arg(phase).arg(*stage).arg(message)
+                    .arg(focus?focus->objectName():QString("none")).arg(focus && focus->isVisible()));
+            }
         };
         const auto press = [&](SDL_GameControllerButton button, int count = 1) {
             for (int i = 0; i < count; ++i) {

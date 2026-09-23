@@ -60,7 +60,7 @@ URLs are ignored. `<name>` supplies a new entry's display title; existing owner
 names are never overwritten. Descriptions and basic metadata remain available
 without importing external play counts, favorites or achievements as Trainer data.
 
-The loader recognizes `image`, `thumbnail`, `marquee`, `fanart`, `titleshot`,
+The loader recognizes `image`, `screenshot`, `thumbnail`, `marquee`, `fanart`, `titleshot`,
 `video`, `manual`, `magazine`, `map`, `bezel`, `cartridge`, `boxart`, `boxback`,
 `wheel` and `mix`. These names follow the
 [Batocera metadata declarations](https://github.com/batocera-linux/batocera-emulationstation/blob/master/es-app/src/MetaData.cpp)
@@ -72,6 +72,32 @@ selector can use imported art when no personal exit capture exists. Exit capture
 keep priority and their truthful labels; generic covers are not presented as
 gameplay captures. Pokédex illustration/sprite providers are unchanged.
 Video/document paths are recognized for later consumers, not played/opened now.
+
+### Shared game wheel and navigation cost
+
+Multiverse browsing keeps a scrolling logo wheel on the left and selected-game
+details on the right. It uses `marquee` (or `wheel`), readable typography when no
+logo exists, and `screenshot` / `image` / `titleshot` / thumbnail / cover fallback.
+The right side reads the full XML description, release year, platform, genre,
+developer/publisher and player count. Missing fields stay absent; another game's
+art or invented metadata must never fill them. A chooses for Home; B returns to
+systems. Search, filters and per-system position survive page/face changes.
+
+The same `LibraryWheel` component is used inside Pokemon's region Worlds.
+Edition platform badges remain visible and missing catalogue editions are grey.
+Metadata can fall back to the bundled catalogue's known release year; unknown
+years are omitted. Regions, hacks and owner identities remain distinct. Existing
+Pokemon detail actions, launch and missing-file linking remain available through
+A; the visual change does not replace those working routes with Multiverse's
+independent Home selection. Left/Right retains the eight-edition jump.
+
+Presentation maps and system counts are cached until library refresh. Focus
+movement does not reset the QML game model or re-read each game's media. Wheel
+images decode asynchronously at bounded sizes. Repeated discovery requests are
+coalesced within ten seconds; read-only scanning does not activate the shell's
+service input gate. Actual registration writes still activate that gate. Unchanged
+media/availability scans do not announce a library change. Explicit maintenance
+rescans remain immediate. This is bounded refresh, not a filesystem watcher.
 
 Metadata/media snapshots are read-only and separate from registration revisions,
 so refreshing graphics cannot invalidate exit pictures or save routing. Missing
@@ -146,3 +172,41 @@ Device reliability follow-up: the raw-pad read ACL was absent after reboot and
 maintenance/session transitions, although the boot hook logged success. Running
 the existing grant helper restored guarded exit; its persistence across those
 transitions remains an explicit U1 investigation, not a claimed permanent fix.
+
+### Shared game wheel and navigation follow-up — 2026-09-23
+
+Multiverse systems and Pokemon regions now share a logo wheel and a same-screen
+metadata preview. Region grouping, missing editions, file linking and existing
+Pokemon detail actions remain. Multiverse selection goes straight to Home without
+launching. Marquee/wheel assets retain their aspect ratios; absent logos fall back
+to styled titles. Only nearby delegates are instantiated, and images decode
+asynchronously at bounded display sizes. A regression check verifies that the
+selected edition actually occupies the highlighted slot after route/model changes.
+
+The owner's server supplied another 150 private images for 50 Pokemon entries
+across GameCube, N64, DS, Wii and Wii U. Exact platform/filename matches were used;
+source originals were preserved. Broken Pokemon accent encoding was corrected in
+the copied XML after backup. The source lacks matching artwork/metadata for some
+GBA titles, including the displayed Castlevania edition; those gaps remain.
+
+Navigation no longer gates controller input on a read-only folder scan. Repeated
+scan requests are coalesced, unchanged availability/media no longer rebuilds all
+views, and Multiverse caches its presentation records and system counts. Page
+transitions publish one completed shell update instead of each intermediate
+controller cleanup. Actual file writes retain the service gate.
+
+Windows 40/40 and ARM 44/44 passed for the wheel/scanner integration. The subsequent
+shell-notification batching passed the Windows 40/40 suite; final layout/alignment
+changes received focused persistence and QML controller checks plus actual Flip
+validation. ARM's full suite was not repeated for those final small adjustments.
+The initial tab probe observed stalls up to 1.56 seconds. After batching, a
+16-transition controller-to-tab-pixel probe measured 195–375 ms. Repeating it on
+the final installed binary measured 189–449 ms (15 of 16 at or below 302 ms), with
+Home reset/captures at its start/end. These are bounded UI observations, not long-run frame-time or
+whole-device freeze guarantees. Shorter synthetic button holds were unreliable and
+were replaced with the same 240 ms hold used by device interaction checks.
+
+Production delivery preserves all 826 Adventure rows and schema 11; database and
+foreign-key checks pass. The previous binary/database are backed up. Private
+captures and metadata remain outside Git. Final installed binary SHA-256:
+`f8d4d241075c69cc97310e04466a064a5d079c10f2cd20b4914042f217afb4c3`.

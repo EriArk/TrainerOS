@@ -30,11 +30,13 @@ face or selector; searches do not determine system visibility. A missing file
 keeps its registration, selection and history. Launch preflight checks the actual
 file again. Unknown imported system IDs remain visible by their ID if populated.
 
-The controller scrolls a bounded three-column system grid and bounded title
-lists. X searches, local Y filters and B unwinds detail/list/system routes.
+The controller scrolls a bounded three-column system grid, then a left-hand logo
+wheel with the selected title's image and metadata on the right. There is no
+separate Multiverse detail page. X searches, local Y filters and B returns from
+the wheel to systems. Old persisted detail routes reopen the same game in the wheel.
 L1/R1 and L2/R2 retain their established page/face meanings.
 
-Choosing a detail card or Y-drawer card selects for Home without launching.
+Pressing A on a linked wheel entry or Y-drawer card selects for Home without launching.
 Unobstructed Home A starts that selection through the existing adapter router;
 unconfigured records open the existing file/setup editor. Home X, independent
 Pokemon/Multiverse selections, paired-face choice and useful browser state are

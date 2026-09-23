@@ -12,8 +12,8 @@ namespace trainer {
 class MultiversePresentation final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString route READ route NOTIFY changed)
-    Q_PROPERTY(QVariantList systems READ systems NOTIFY changed)
-    Q_PROPERTY(QVariantList games READ games NOTIFY changed)
+    Q_PROPERTY(QVariantList systems READ systems NOTIFY libraryChanged)
+    Q_PROPERTY(QVariantList games READ games NOTIFY gamesChanged)
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY changed)
     Q_PROPERTY(QVariantMap selected READ selected NOTIFY changed)
     Q_PROPERTY(QString systemName READ systemName NOTIFY changed)
@@ -44,6 +44,8 @@ public:
     void activate(int);
 signals:
     void changed();
+    void gamesChanged();
+    void libraryChanged();
     void searchRequested(const QString&);
     void homeRequested();
 private:
@@ -54,9 +56,12 @@ private:
     QList<Game> filtered() const;
     bool sample_;
     QString route_ = "systems", system_ = "gb", selected_;
-    int systemFocus_ = 0, detailFocus_ = 0;
+    int systemFocus_ = 0;
     QHash<QString, QString> queries_;
     QHash<QString, int> filters_, positions_;
     QList<Game> entries_;
+    mutable QHash<QString,QVariantMap> presentations_;
+    mutable QVariantList systemsCache_;
+    mutable bool systemsCached_ = false;
 };
 }

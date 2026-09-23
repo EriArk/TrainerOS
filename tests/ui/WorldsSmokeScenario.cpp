@@ -44,6 +44,12 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             check(item->isVisible() && item->isEnabled(), "Focus must be visible and enabled: " + item->objectName());
             const QRectF focusBounds(-4, -4, item->width() + 8, item->height() + 8);
             for (auto* ancestor = item->parentItem(); ancestor; ancestor = ancestor->parentItem()) {
+                if (ancestor->property("itemPrefix").isValid()
+                    && item->objectName().startsWith(ancestor->property("itemPrefix").toString())) {
+                    const auto center = ancestor->mapFromItem(item, QPointF(item->width()/2, item->height()/2));
+                    check(qAbs(center.y() - (36 + (ancestor->height()-78)/2)) < 3,
+                        "Selected wheel edition must align with its highlighted slot: " + item->objectName());
+                }
                 if (!ancestor->clip()) continue;
                 check(QRectF(-1, -1, ancestor->width() + 2, ancestor->height() + 2)
                     .contains(ancestor->mapRectFromItem(item, focusBounds)), "Focused control clipped: " + item->objectName());
@@ -71,27 +77,14 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             auto* list = window->findChild<QQuickItem*>("adventure-list");
             const auto rows = shell.worlds()->adventures();
             check(list && rows.size() >= 4, "Four-row fixture is available");
-            if (list && rows.size() >= 4) for (int row = 0; row < 4; ++row) {
-                // ListView delegates belong to the visual tree, not necessarily
-                // to the window's QObject tree (incubation differs by renderer).
-                const auto name = "adventure-" + rows[row].toMap()["id"].toString();
-                QQuickItem* card = nullptr;
-                QList<QQuickItem*> pending{list};
-                while (!pending.isEmpty()) {
-                    auto* candidate = pending.takeLast();
-                    if (candidate->objectName() == name) { card = candidate; break; }
-                    pending.append(candidate->childItems());
-                }
-                check(card && QRectF(0, 0, list->width(), list->height()).contains(
-                    list->mapRectFromItem(card, QRectF(-4, -4, card->width() + 8, card->height() + 8))),
-                    "First four Adventure controls and focus rings must fit without scrolling");
-            }
+            check(list && list->property("selectionIndex").toInt()==0, "Wheel opens at the remembered edition");
+            check(shell.worlds()->detail()["id"]==rows[0].toMap()["id"], "Wheel details follow the focused edition");
             capture("hoenn-list"); press(down, 4); break;
         }
         case 2: {
             check(focusIs("adventure-emerald-trails-demo"), "Final ROM hack row is focused");
             auto* list = window->findChild<QQuickItem*>("adventure-list");
-            check(list && list->property("contentY").toDouble() > 0, "Controller navigation must scroll the bounded list");
+            check(list && list->property("selectionIndex").toInt() == 4, "Controller navigation must advance the wheel to the final edition");
             capture("hoenn-list-scrolled"); press(a); break;
         }
         case 3:
@@ -222,10 +215,10 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             check(focusIs("multiverse-game-0"), "First sample game focus"); capture("multiverse-list");
             press(down); press(a); break;
         case 41:
-            check(focusIs("multiverse-back"), "Missing entry skips select action"); capture("multiverse-missing");
-            press(b); press(up); press(a); break;
+            check(focusIs("multiverse-game-1") && shell.page()==1, "Missing entry stays in the wheel"); capture("multiverse-missing");
+            press(up); break;
         case 42:
-            check(focusIs("multiverse-select"), "Linked sample can be selected for Home"); capture("multiverse-detail");
+            check(focusIs("multiverse-game-0"), "Linked sample and details share the wheel"); capture("multiverse-detail");
             press(a); break;
         case 43:
             check(shell.page() == 0 && shell.multiverseHome() && focusIs("multiverse-launch"), "Selection opens independent Multiverse Home");
@@ -240,11 +233,11 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             check(!shell.multiverseHome() && focusIs("home-launch"), "X returns to Pokemon Home");
             capture("pokemon-home-context"); press(r1); break;
         case 47:
-            check(shell.multiverseFace() && focusIs("multiverse-select"), "Page return keeps independent detail");
+            check(shell.multiverseFace() && focusIs("multiverse-game-0"), "Page return keeps wheel position");
             flipFace(); break;
         case 48:
             check(focusIs("world-action-launch") && shell.worlds()->detail()["id"] == "emerald-trails-demo", "Pokemon detail survives paired browser");
-            flipFace(); press(b); press(SDL_CONTROLLER_BUTTON_Y); break;
+            flipFace(); press(SDL_CONTROLLER_BUTTON_Y); break;
         case 49:
             check(shell.keyboard()->isOpen(), "Multiverse uses controller keyboard"); capture("multiverse-search");
             flipFace(); check(shell.multiverseFace(), "Keyboard traps face switching"); press(b); press(b); press(down); press(a); break;

@@ -3,6 +3,7 @@
 #include "ResumePresentation.h"
 #include "features/home/BadgeAssets.h"
 #include <QSet>
+#include <QSignalBlocker>
 #include <algorithm>
 #include <bit>
 
@@ -385,6 +386,10 @@ void ShellController::openTrainers() {
     goToPage(page_);trainerSetup_.begin();service_="trainer-setup";emit changed();
 }
 void ShellController::goToPage(int page) {
+    // Closing transient controllers emits their local notifications. Publish
+    // only the completed shell transition, not every intermediate close, so
+    // hidden Home/drawer bindings do not rebuild the library repeatedly.
+    QSignalBlocker transition(this);
     keyboard_.cancel();
     textTarget_ = TextTarget::None;
     pokedex_.cancelTransient();
@@ -404,6 +409,7 @@ void ShellController::goToPage(int page) {
     powerMenu_ = false;
     notice_.clear();
     mode_.clear();
+    transition.unblock();
     emit changed();
 }
 void ShellController::activate(int index, const QString& area) {

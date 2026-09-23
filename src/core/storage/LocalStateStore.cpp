@@ -676,10 +676,17 @@ void LocalStateStore::refreshContentAvailability() {
         return QString();
     },[this,snapshot](const QString& error) {
         availabilityPending_=false;if(!error.isEmpty())return;
-        for(const auto& observed:*snapshot)for(auto& current:registrations_)
+        bool changed=false;
+        QHash<QString,AdventureRegistration> observations;
+        for(const auto& observed:*snapshot)observations.insert(observed.adventure.id,observed);
+        for(auto& current:registrations_) {
+            const auto it=observations.constFind(current.adventure.id);
+            if(it==observations.cend())continue;
+            const auto& observed=*it;
             if(current.adventure.id==observed.adventure.id && current.revision==observed.revision && current.contentPath==observed.contentPath)
-                current.contentAvailable=observed.contentAvailable;
-        emit libraryChanged();
+                if(current.contentAvailable!=observed.contentAvailable) {current.contentAvailable=observed.contentAvailable;changed=true;}
+        }
+        if(changed)emit libraryChanged();
     });
 }
 std::optional<qint64> LocalStateStore::recordedSeconds(const QString& id) const {
