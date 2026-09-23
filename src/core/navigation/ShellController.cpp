@@ -166,7 +166,7 @@ QString ShellController::currentAdventureId() const {
 }
 bool ShellController::localModalOpen() {
     return trainer_.editing() || (page_ == 2 && (centerFace_ ? center_.confirming()
-        : pokedex_.zone() == "picker" || pokedex_.zone() == "art" || pokedex_.journal()->isOpen() || pokedex_.saving()))
+        : pokedex_.zone() == "picker" || pokedex_.zone() == "art" || pokedex_.zone() == "sprites" || pokedex_.journal()->isOpen() || pokedex_.saving()))
         || (page_ == 4 && (hall_.editor()->isOpen() || hall_.account()->isOpen()));
 }
 bool ShellController::chooseAdventureAvailable() {

@@ -1,5 +1,13 @@
 # TrainerOS target acceptance — issues 42–62
 
+**Owner scheduling amendment, 2026-09-23:** generic artwork-pack installation,
+selection, verification/update/removal and Pack Studio all move to the final
+artwork delivery stage. Existing private illustrations remain in both the Dex
+list and selected entry. Early #51 sprites/portraits use a separate bounded,
+read-only local provider; its necessary validation is not a generic pack manager.
+The next order is sprites/portraits, P2 ownership, then P3/P4 library binding.
+All earlier acceptance remains; ROADMAP is the execution queue.
+
 Accepted **2026-09-19** after reviewing issues #42–62 and the updated #6/#8/#9/#13/#15/#17/#28/#31/#40. This is a specification register, not another execution queue. [ROADMAP.md](ROADMAP.md) owns phases P0–P12 and preserves steps 1–10, U1–U13 and deferred commitments. This documentation increment implements **#62 only**; none of the features below becomes available merely because it is specified.
 
 The baseline at the original reconciliation was Home-only selection with emulator states and Start-accessed backups. Subsequent increments delivered shared Y, Pokedex/Center and Hall/RA pairs, ordinary-save launch, clean exit media and legacy-state retirement. See the current [working baseline](ROADMAP.md#working-baseline), not this historical checkpoint, for implemented behavior. Current-save Party/Journey and multiple-owner activation remain planned. The closed #6 and old #8 Phase D stay historical.

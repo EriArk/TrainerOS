@@ -1,5 +1,13 @@
 # AGENTS.md — TrainerOS
 
+**Owner scheduling amendment, 2026-09-23:** generic artwork-pack installation,
+selection, verification/update/removal and Pack Studio all move to the final
+artwork delivery stage. Existing private illustrations remain in both the Dex
+list and selected entry. Early #51 sprites/portraits use a separate bounded,
+read-only local provider; its necessary validation is not a generic pack manager.
+The next order is sprites/portraits, P2 ownership, then P3/P4 library binding.
+All earlier acceptance remains; ROADMAP is the execution queue.
+
 This file is the working contract for Codex and other coding agents in this repository.
 
 ## Read first
@@ -287,6 +295,12 @@ The original bootstrap is recorded in `docs/CODEX_START.md`; current work follow
 The first milestone is a **native Qt/QML controller-navigable full product mock**, not session replacement, distro modification, or deep save-file reverse engineering.
 
 ## Definition of done for UI work
+
+**Owner clarification, 2026-09-23:** when a change is visual, capture the installed
+build on the actual handheld and show the relevant screenshots in the chat.
+Host renders and internal test previews remain useful verification but are not
+the requested delivery screenshots. If the device is unavailable, report that
+limit explicitly instead of presenting host captures as handheld evidence.
 
 A UI task is not done until:
 

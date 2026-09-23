@@ -309,3 +309,8 @@ Use original placeholders, user-provided content, and appropriately licensed dat
 ---
 
 The goal is simple: opening the Flip should feel like powering on **a personal Pokémon trainer terminal with years of Adventures inside it**, while Linux, Plasma, emulator binaries, and filesystem details quietly do their jobs underneath.
+
+Optional [sprites and portraits](docs/POKEDEX_SPRITES.md) add a small animated
+companion to the selected Pokédex entry without replacing either illustration.
+Down opens its source/portrait viewer; Up retains illustration choices.
+Generic art-pack management, like Pack Studio, is deferred to the final stage.

@@ -413,3 +413,11 @@ Trainer editing stays in that pane with vertical Save/Cancel. Controller lives
 in Settings, not Start; its test view returns to the selected Controller row.
 The shell maps north X to secondary actions and west Y to Choose Adventure,
 completing the existing east-A/south-B Switch layout. Emulator input is unchanged.
+
+## Pokédex sprite detail - 2026-09-23
+
+Illustrations remain in both list and detail. Down on detail opens the separate
+sprite/portrait viewer; Left/Right browses and A/B returns. Up retains the existing
+illustration-source panel. Start restoration, global L1/R1 and modal priority
+remain unchanged. The small optional header actor has no focus stop.
+[Source, movement and pause contract](POKEDEX_SPRITES.md).

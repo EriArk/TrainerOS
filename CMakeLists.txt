@@ -11,6 +11,8 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/features/pokedex/SpriteArt.h
+    src/features/pokedex/SpriteArt.cpp
     src/features/pokedex/ClassicArt.h
     src/features/pokedex/ClassicArt.cpp
     src/core/model/ExitMedia.h
@@ -222,6 +224,9 @@ qt_add_qml_module(traineros
         src/qml/SpeciesPickerPanel.qml
         src/qml/ClassicIllustration.qml
         src/qml/ArtworkPanel.qml
+        src/qml/SpritePanel.qml
+        src/qml/SpritePreview.qml
+        src/qml/SpriteActor.qml
         src/qml/SaveCenterPanel.qml
         src/qml/PartyPanel.qml
         src/qml/CenterActivitiesPanel.qml
@@ -265,6 +270,9 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_offline_pokedex_tests tests/OfflinePokedexTests.cpp)
     target_link_libraries(trainer_offline_pokedex_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME offline_pokedex COMMAND trainer_offline_pokedex_tests)
+    qt_add_executable(trainer_sprite_art_tests tests/SpriteArtTests.cpp)
+    target_link_libraries(trainer_sprite_art_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME sprite_art COMMAND trainer_sprite_art_tests)
     qt_add_executable(trainer_classic_art_tests tests/ClassicArtTests.cpp)
     target_link_libraries(trainer_classic_art_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME classic_art COMMAND trainer_classic_art_tests)

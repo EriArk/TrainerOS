@@ -17,6 +17,7 @@
 #include "features/home/PlayHistoryController.h"
 #include "features/home/ExitImage.h"
 #include "features/pokedex/ClassicArt.h"
+#include "features/pokedex/SpriteImages.h"
 #include "core/repository/CollectionRepository.h"
 #include "core/repository/OfflinePokedex.h"
 #include "integrations/adventure/retroarch/RetroArchSave.h"
@@ -101,6 +102,7 @@ int main(int argc, char* argv[]) {
     parser.addOption({"windowed", "Run in a development window instead of full-screen."});
     parser.addOption({"data-dir", "Use an explicit local data folder (development / isolated validation).", "directory"});
     parser.addOption({"ephemeral", "Use isolated in-memory sample data; do not open a persistent store."});
+    parser.addOption({"sprite-dir", "Use optional private sprite detail assets.", "directory"});
     parser.addOption({"art-dir", "Use a private development artwork bootstrap directory.", "directory"});
     parser.addOption({"smoke-test", "Verify the QML shell with an isolated SDL virtual controller, then exit."});
 #ifdef TRAINEROS_UI_TESTS
@@ -381,7 +383,11 @@ int main(int argc, char* argv[]) {
                 input.setEnabled(state == Qt::ApplicationActive && (!adventureLaunch.active() || adventureLaunch.preparing()));
             });
         }
+        SpriteArt sprites(parser.isSet("sprite-dir") ? parser.value("sprite-dir") : smoke || parser.isSet("ephemeral")
+            ? QString() : QDir(reportBase).filePath("artwork/sprites"));
         QQmlApplicationEngine engine;
+        engine.addImageProvider("sprite-detail", new SpriteImages(sprites));
+        shell.pokedex()->configureSprites(&sprites);
         engine.addImageProvider("exit-frame", new ExitFrameImages(adventureLaunch.exitController()));
         engine.addImageProvider("exit-media", new SavedExitImages(store.get()));
         int qmlWarnings = 0;

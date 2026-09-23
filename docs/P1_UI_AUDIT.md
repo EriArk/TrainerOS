@@ -154,3 +154,10 @@ The final production binary was installed with a binary/database rollback copy.
 Its hash, database integrity, unchanged Trainer profile, schema 7 and all 686
 Adventure records were verified. No game save was created or restored during
 the real-content audit; the device was returned to Home.
+
+## Owner scheduling correction - 2026-09-23
+
+Generic artwork-pack management joins Studio at the very end. The earlier P1
+reconciliation hands off to the separate #51 sprite/detail slice, then P2 owner
+binding; it no longer schedules the generic pack installer next. Keep all
+physical acceptance and future-provider gates above. [Sprite scope](POKEDEX_SPRITES.md).
