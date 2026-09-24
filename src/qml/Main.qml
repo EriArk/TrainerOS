@@ -204,11 +204,9 @@ Window {
                 }
                 if (shell.page === 2 && !shell.centerFace) {
                     const dex = shell.pokedex
-                    if (dex.journal.open) return [h("Y","Save"),h("A","Edit"),h("B","Discard")]
                     if (dex.zone === "art") return [h("←→","Browse"),h("A","Use image"),h("B","Cancel")]
                     if (dex.zone === "picker") return [h("A","Apply"),h("B","Cancel")]
                     let result = [h("X","Search")]
-                    if (dex.detail.id) result.push(h("Select","Journal"))
                     if (dex.zone === "list") result.push(h("←→","Jump 8"))
                     result.push(h("A",dex.zone === "list" ? (dex.detail.favorite ? "Unfavorite" : "Favorite") : "Select"),h("B",dex.zone === "rail" ? "Entries" : "Filters"))
                     return result
@@ -216,7 +214,7 @@ Window {
                 if (shell.page === 2 && shell.centerFace) {
                     const party = shell.party
                     if (party.section === "saves") return shell.center.confirming ? [h("A","Restore"),h("B","Cancel")] : [h("X",shell.center.route === "adventures" ? "Search" : "Refresh"),h("Select","Backup"),h("A","Open"),h("B","Back")]
-                    if (party.section === "activities") return party.activities.route === "playroom" && party.activities.sample ? [h("←→","Partner"),h("X","Greet"),h("A","Call"),h("B","Back")] : [h("A","Select"),h("B","Back")]
+                    if (party.section === "activities") return party.activities.route === "playroom" && party.activities.hasParty ? [h("←→","Partner"),h("X","Greet"),h("A","Call"),h("B","Back")] : [h("A","Select"),h("B","Back")]
                     if (party.detailOpen) return [h("A","Select"),h("B","Close")]
                     if (party.boxFocused) return [h("←→","Box"),h("↓","Slots"),h("X","Party"),h("B","Back")]
                     const actions = [h("X",party.section === "party" ? "Storage" : "Party"),h("Select","Backups"),h("A",party.available && !party.activitiesFocused ? "Actions" : "Open"),h("B","Back")]

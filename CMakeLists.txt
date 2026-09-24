@@ -148,8 +148,6 @@ add_library(trainer_core STATIC
     src/core/repository/MockPokedexRepository.cpp
     src/features/pokedex/PokedexController.h
     src/features/pokedex/PokedexController.cpp
-    src/features/pokedex/PokedexJournalEditor.h
-    src/features/pokedex/PokedexJournalEditor.cpp
     src/features/pokedex/SpeciesPicker.h
     src/features/pokedex/SpeciesPicker.cpp
     src/features/trainer/TrainerOverview.h
@@ -250,7 +248,6 @@ qt_add_qml_module(traineros
         src/qml/MultiverseHome.qml
         src/qml/SystemGlyph.qml
         src/qml/PokedexPage.qml
-        src/qml/PokedexJournalPanel.qml
         src/qml/SpeciesPickerPanel.qml
         src/qml/ClassicIllustration.qml
         src/qml/ArtworkPanel.qml
@@ -259,6 +256,8 @@ qt_add_qml_module(traineros
         src/qml/SaveCenterPanel.qml
         src/qml/PartyPanel.qml
         src/qml/CenterActivitiesPanel.qml
+        src/qml/PartyPlayroom.qml
+        src/qml/PlayroomActor.qml
         src/qml/BatteryGauge.qml
 )
 

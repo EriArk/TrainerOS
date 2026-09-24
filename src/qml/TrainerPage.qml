@@ -41,13 +41,14 @@ Item {
     MountedPanel {
         x: 0; y: 176; width: 586; height: 118; color: "#d8e5d8"
         visible: !root.trainer.editing
-        Grid {
-            x: 30; y: 9; columns: 3; columnSpacing: 10; rowSpacing: 8
+        Flow {
+            x: 30; y: 9; width: 526; spacing: 8
             Repeater {
                 model: root.trainer.overview
                 delegate: Rectangle {
                     required property var modelData
-                    width: 168; height: 46; radius: 7; color: "#edf2e7"; border.color: "#b7cbbb"
+                    required property int index
+                    width: index === 4 ? 344 : 168; height: 46; radius: 7; color: "#edf2e7"; border.color: "#b7cbbb"
                     Text { x: 10; y: 3; width: 148; text: modelData.value; color: Theme.ink; font.pixelSize: 20; font.bold: true; elide: Text.ElideRight }
                     Text { x: 10; y: 32; width: 148; elide: Text.ElideRight; text: modelData.label; color: Theme.muted; font.pixelSize: 11 }
                 }
@@ -83,7 +84,7 @@ Item {
         height: 87; color: "#c6dcca"
         Text {
             x: 31; y: 7; width: parent.width - 62
-            text: root.trainer.saving ? "Saving… You can leave this page; your save will finish." : root.trainer.error.length ? root.trainer.error : root.trainer.editing ? "" : "Local library · manual journal · time recorded by TrainerOS"
+            text: root.trainer.saving ? "Saving… You can leave this page; your save will finish." : root.trainer.error.length ? root.trainer.error : ""
             color: root.trainer.error.length ? "#853b24" : Theme.muted
             font.pixelSize: 12; elide: Text.ElideRight
         }

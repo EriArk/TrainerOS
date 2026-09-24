@@ -60,6 +60,7 @@ private:
     QVariantMap slot(int) const;
     QVariantMap present(const PokemonRecord&, int) const;
     QVariantMap withArt(QVariantMap) const;
+    void syncActors();
     bool sample_, detail_ = false;
     QString section_ = "party", previousSection_ = "party", id_, title_;
     int partyFocus_ = 0, storageFocus_[14] = {}, box_ = 0;

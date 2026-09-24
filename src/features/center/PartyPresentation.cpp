@@ -20,7 +20,20 @@ void PartyPresentation::setProgress(const QString& adventureId, const GameProgre
     }
     if (!initialBoxSet_ && snapshot_ && snapshot_->error.isEmpty()) { box_ = snapshot_->currentBox; initialBoxSet_ = true; }
     if (box_ >= boxCount()) box_ = 0;
+    syncActors();
     emit changed();
+}
+void PartyPresentation::syncActors() {
+    QVariantList actors;
+    if (sample_) {
+        // Explicit development fixture; never fills missing production records.
+        for (const auto& pair : {QPair<QString,QString>{"Bulbasaur","bulbasaur/1"}, {"Pikachu","pikachu/25"}})
+            actors.append(withArt({{"name",pair.first},{"target",pair.second},{"kind","known"},{"level","12"},{"condition","Healthy"}}));
+    } else if (available()) {
+        for (int i=0;i<snapshot_->party.size() && i<6;++i)
+            if (snapshot_->party[i].kind == PokemonSlotKind::Known) actors.append(present(snapshot_->party[i],i));
+    }
+    activities_.setParty(actors, id_ + observationKey_, status());
 }
 QVariantMap PartyPresentation::present(const PokemonRecord& p, int index) const {
     const auto kind = p.kind == PokemonSlotKind::Known ? "known" : p.kind == PokemonSlotKind::Egg ? "egg" : p.kind == PokemonSlotKind::Unreadable ? "unreadable" : "empty";
@@ -41,7 +54,8 @@ QVariantMap PartyPresentation::present(const PokemonRecord& p, int index) const 
 }
 void PartyPresentation::configureArtwork(ClassicArt* art, SpriteArt* sprites) {
     art_ = art; sprites_ = sprites;
-    if (art_) connect(art_, &ClassicArt::changed, this, &PartyPresentation::changed);
+    if (art_) connect(art_, &ClassicArt::changed, this, [this] { syncActors(); emit changed(); });
+    syncActors();
     emit changed();
 }
 void PartyPresentation::changeBox(int delta) {
@@ -53,6 +67,7 @@ PartyPresentation::PartyPresentation(bool sample, QObject* parent) : QObject(par
     connect(&activities_, &CenterActivities::closeRequested, this, [this] {
         section_ = managementSection_; activitiesFocus_ = true; emit changed();
     });
+    syncActors();
 }
 void PartyPresentation::openActivities() {
     if (section_ != "party" && section_ != "storage") return;
@@ -75,7 +90,7 @@ void PartyPresentation::setAdventure(const QString& id, const QString& title) {
         snapshot_.reset(); observationKey_.clear(); sourceContext_.clear(); initialBoxSet_ = false; availability_ = ProgressAvailability::Unsupported;
         activitiesFocus_ = false; boxFocus_ = false; activities_.reset();
     }
-    title_ = title; emit changed();
+    title_ = title; syncActors(); emit changed();
 }
 QVariantMap PartyPresentation::slot(int index) const {
     if (!sample_) {
@@ -109,8 +124,13 @@ QVariantMap PartyPresentation::withArt(QVariantMap row) const {
     if (row["kind"] == "known") {
         const auto target = row["target"].toString();
         row["art"] = art_ ? art_->image(target, "pokedexDetailArt") : QVariantMap{};
+        QVariantMap clips;
         if (sprites_) for (const auto& asset : sprites_->choices(target))
-            if (asset.toMap()["kind"] == "sprite" && asset.toMap()["action"] == "Idle") { row["sprite"] = asset; break; }
+            if (asset.toMap()["kind"] == "sprite") {
+                clips[asset.toMap()["action"].toString()] = asset;
+                if (asset.toMap()["action"] == "Idle") row["sprite"] = asset;
+            }
+        row["clips"] = clips;
     }
     return row;
 }

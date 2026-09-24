@@ -40,7 +40,7 @@ void PokedexController::setSaveProgress(const QString& selectedId, const QString
     rebuild();
 }
 QString PokedexController::saveCaption() const {
-    if (!saveMode_) return "Field journal";
+    if (!saveMode_) return "Field guide";
     const auto title = saveTitle_.isEmpty() ? QStringLiteral("Choose an Adventure") : saveTitle_;
     if (staleSave_) return title + " · Last verified save — refresh unavailable";
     if (saveDex_) return title + " · Last in-game save · Species records";
@@ -85,17 +85,14 @@ QString PokedexController::artTarget() const {
 QString PokedexController::artCoverage() const { return art_ ? art_->coverage() : "Illustrations not installed"; }
 QVariantList PokedexController::artChoices() const { return art_ ? art_->choices(artTarget()) : QVariantList{}; }
 void PokedexController::openArtwork() {
-    if ((zone_ != "list" && zone_ != "rail") || filtered_.isEmpty() || journal_.isOpen() || saving_) return;
+    if ((zone_ != "list" && zone_ != "rail") || filtered_.isEmpty() || saving_) return;
     artFocus_ = 0;
     const auto choices = artChoices();
     for (int i = 0; i < choices.size(); ++i) if (choices[i].toMap()["current"].toBool()) artFocus_ = i;
     zone_ = "art"; emit changed();
 }
 PokedexController::PokedexController(PokedexReferenceProvider& reference, PokedexProgressRepository& progress, QObject* parent)
-    : QObject(parent), reference_(reference), progress_(progress), journal_(progress,this) {
-    connect(&journal_, &PokedexJournalEditor::changed, this, &PokedexController::changed);
-    connect(&journal_, &PokedexJournalEditor::saved, this, &PokedexController::rebuild);
-    connect(&journal_, &PokedexJournalEditor::messageRequested, this, &PokedexController::messageRequested);
+    : QObject(parent), reference_(reference), progress_(progress) {
     refresh();
 }
 int PokedexController::entryIndex() const {
@@ -118,7 +115,6 @@ PokedexForm PokedexController::selectedForm(const PokedexEntry& entry) const {
 }
 QVariantMap PokedexController::present(const PokedexEntry& entry, bool detailed) const {
     const auto p = currentProgress(entry);
-    const auto journal = progress_.progress(entry.id);
     const auto form=selectedForm(entry);
     QStringList worlds;
     for (const auto& w : catalog_.collections) if (entry.collectionIds.contains(w.id)) worlds.append(w.name);
@@ -126,8 +122,7 @@ QVariantMap PokedexController::present(const PokedexEntry& entry, bool detailed)
         {"name", entry.name}, {"types", form.types.join(" / ")}, {"worlds", worlds.join(" · ")},
         {"status", stateLabel(p)}, {"seen", recorded(p.seen)}, {"caught", recorded(p.caught)},
         {"favorite", p.favorite}};
-    result["journalStatus"] = stateLabel(journal);
-    result["recordSource"] = saveMode_ ? (staleSave_ ? "Last verified save" : "Last save") : "Journal";
+    result["recordSource"] = saveMode_ ? (staleSave_ ? "Last verified save" : "Last save") : "Sample record";
     if (saveMode_ && !p.seen.has_value()) {
         result["status"] = saveDex_ && entry.number > saveDex_->speciesCount ? "Not in this game" : "Unknown";
         result["seen"] = "Unknown"; result["caught"] = "Unknown";
@@ -136,10 +131,9 @@ QVariantMap PokedexController::present(const PokedexEntry& entry, bool detailed)
     result["formId"] = form.id;
     result["art"] = art_ ? art_->image(target, detailed ? "pokedexDetailArt" : "pokedexListArt") : QVariantMap{};
     if(detailed) {
-        result["form"]=form.name;result["formCount"]=int(entry.forms.size());result["notes"]=p.notes;
+        result["form"]=form.name;result["formCount"]=int(entry.forms.size());
         result["height"]=form.heightDm?QString::number(form.heightDm/10.0,'f',1)+" m":"—";
         result["weight"]=form.weightHg?QString::number(form.weightHg/10.0,'f',1)+" kg":"—";
-        result["editable"]=progress_.recordsEditable();
         QStringList family;for(const auto& id:entry.familyIds)family.append(names_.value(id,id));result["family"]=family.join(" · ");
         const QStringList labels{"HP","Attack","Defense","Sp. Atk","Sp. Def","Speed"};QVariantList stats;
         for(int i=0;i<6;++i){const int value=i<form.stats.size()?form.stats[i]:0;stats.append(QVariantMap{{"label",labels[i]},{"value",value?QString::number(value):"—"},{"fraction",value/255.0}});}
@@ -309,7 +303,6 @@ void PokedexController::openPicker(int index) {
     emit pickerChanged();
 }
 void PokedexController::cancelTransient() {
-    journal_.cancel();
     if (zone_ == "art") { zone_ = filtered_.isEmpty() ? "recovery" : "list"; emit changed(); }
     if (zone_ == "picker") { zone_ = "rail"; emit changed(); }
 }
@@ -319,7 +312,6 @@ void PokedexController::applySearch(const QString& text) {
     rebuild();
 }
 void PokedexController::activate(int index) {
-    if(journal_.isOpen()){journal_.activate(index);return;}
     if (zone_ == "art") {
         const auto choices = artChoices();
         if (!choices.isEmpty() && index >= 0 && index < choices.size()) {
@@ -378,7 +370,6 @@ void PokedexController::activateControl(const QString& zone, int index) {
     activate(index);
 }
 void PokedexController::dispatch(Action action) {
-    if(journal_.isOpen()){journal_.dispatch(action);return;}
     if (zone_ == "art") {
         if (action == Action::Back) zone_ = filtered_.isEmpty() ? "recovery" : "list";
         else if (action == Action::Confirm) { activate(artFocus_); return; }
@@ -386,7 +377,6 @@ void PokedexController::dispatch(Action action) {
         else if (action == Action::Right || action == Action::Down) artFocus_ = std::min(std::max(0, int(artChoices().size()) - 1), artFocus_ + 1);
         emit changed(); return;
     }
-    if((zone_=="list" || zone_=="rail") && action==Action::ToggleContinue){editJournal();return;}
     if((zone_=="list"||zone_=="rail"||zone_=="recovery") && action==Action::Secondary){railFocus_=0;zone_="rail";emit searchRequested(query_);emit changed();return;}
     if (action == Action::Confirm) { activate(focusIndex()); return; }
     if (action == Action::Back) {
@@ -417,14 +407,10 @@ void PokedexController::dispatch(Action action) {
     emit changed();
 }
 void PokedexController::cycleForm() {
-    if((zone_!="list"&&zone_!="rail")||journal_.isOpen()||filtered_.isEmpty())return;
+    if((zone_!="list"&&zone_!="rail")||filtered_.isEmpty())return;
     const auto& entry=filtered_[entryIndex()];if(entry.forms.size()<2)return;
     const auto selected=selectedForm(entry);
     for(int i=0;i<entry.forms.size();++i)if(entry.forms[i].id==selected.id){formId_=entry.forms[(i+1)%entry.forms.size()].id;break;}
     emit changed();
-}
-void PokedexController::editJournal() {
-    if((zone_!="list"&&zone_!="rail")||filtered_.isEmpty()||saving_)return;
-    const auto& entry=filtered_[entryIndex()];journal_.begin(entry.id,entry.name);
 }
 }

@@ -20,10 +20,10 @@ QString TrainerAccessController::title() const {
 QString TrainerAccessController::description() const {
     if(busy_)return "One moment...";
     if(stage_=="delete-code")return "Enter the family code to remove this Trainer.";
-    if(stage_=="delete")return "Their journal, history and memories will be removed. Games, game saves and other Trainers stay.";
-    if(stage_=="unlock")return "Enter your PIN to open your journal.";
+    if(stage_=="delete")return "Their profile, history and memories will be removed. Games, game saves and other Trainers stay.";
+    if(stage_=="unlock")return "Enter your PIN.";
     if(stage_=="parent")return "Enter the family code to reset this Trainer's PIN.";
-    if(stage_=="reset")return "Their Trainer, journal and progress will stay safe.";
+    if(stage_=="reset")return "Their Trainer and progress will stay safe.";
     if(stage_=="repeat")return "Enter the same digits again.";
     if(stage_=="new")return family_?"Six digits, kept by a parent. This code resets forgotten Trainer PINs.":"Choose 4 to 6 digits you can remember.";
     if(stage_=="old")return "Enter the current code before changing it.";

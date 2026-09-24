@@ -78,7 +78,7 @@ See [Multiverse runtimes](docs/MULTIVERSE_RUNTIMES.md), [disc support](docs/MULT
 
 ### Pokédex
 
-The Pokédex is useful even without a running game: it has an offline reference database, search, combined filters, sorting, favorites, a manual journal, optional illustrations, and an animated companion layer. Current-save Seen/Caught data is only shown when TrainerOS has a verified provider for the exact game/build; unknown data stays unknown instead of being guessed.
+The Pokédex is useful even without a running game: it has an offline reference database, search, combined filters, sorting, favorites, optional illustrations, and an animated companion layer. Current-save Seen/Caught data is only shown when TrainerOS has a verified provider for the exact game/build; unknown data stays unknown instead of being guessed.
 
 ### Trainer and Hall of Fame
 

@@ -1,7 +1,6 @@
 #pragma once
 #include "core/input/Action.h"
 #include "core/repository/PokedexRepository.h"
-#include "PokedexJournalEditor.h"
 #include "ClassicArt.h"
 #include "SpriteArt.h"
 #include "core/model/GameProgress.h"
@@ -24,7 +23,6 @@ class PokedexController final : public QObject {
     Q_PROPERTY(QString query READ query NOTIFY changed)
     Q_PROPERTY(QString emptyMessage READ emptyMessage NOTIFY changed)
     Q_PROPERTY(QString recoveryLabel READ recoveryLabel NOTIFY changed)
-    Q_PROPERTY(trainer::PokedexJournalEditor* journal READ journal CONSTANT)
     Q_PROPERTY(QString source READ source NOTIFY changed)
     Q_PROPERTY(QString saveCaption READ saveCaption NOTIFY changed)
     Q_PROPERTY(QString saveTotals READ saveTotals NOTIFY changed)
@@ -46,13 +44,11 @@ public:
     QString query() const { return query_; }
     QString emptyMessage() const;
     QString recoveryLabel() const;
-    PokedexJournalEditor* journal() { return &journal_; }
     QString source() const { return catalog_.source; }
     void setSaveProgress(const QString& selectedId, const QString& title, const QString& observedId, const GameProgress&);
     QString saveCaption() const;
     QString saveTotals() const;
     Q_INVOKABLE void cycleForm();
-    Q_INVOKABLE void editJournal();
     void configureArtwork(ClassicArt* art);
     void configureSprites(SpriteArt* sprites);
     QVariantList spriteChoices() const;
@@ -88,7 +84,6 @@ private:
     QString selectionLabel(int railIndex) const;
     PokedexReferenceProvider& reference_;
     PokedexProgressRepository& progress_;
-    PokedexJournalEditor journal_;
     PokedexCatalog catalog_;
     QHash<QString,QString> names_;
     QList<PokedexEntry> filtered_;

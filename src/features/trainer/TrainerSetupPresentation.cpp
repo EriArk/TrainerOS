@@ -48,8 +48,8 @@ QVariantList TrainerSetupPresentation::rows() const {
         result.append(QVariantMap{{"label", label}, {"detail", detail}});
     };
     if(live_ && stage_=="chooser") {
-        for(const auto& profile:profiles_)add(profile.name,profile.id==active_?"Current Trainer":"Personal journal and account");
-        if(profiles_.size()<8)add("Add Trainer","Create a personal journal");
+        for(const auto& profile:profiles_)add(profile.name,profile.id==active_?"Current Trainer":"Personal profile");
+        if(profiles_.size()<8)add("Add Trainer","Create a profile");
         if(!startup_)add("Back");return result;
     }
     if(live_ && stage_=="review") {add("Create Trainer");add("Edit card");add("Change PIN choice");add("Cancel");return result;}

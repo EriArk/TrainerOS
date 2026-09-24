@@ -1,4 +1,10 @@
-# Offline Pokédex and field journal
+# Offline Pokédex
+
+**Owner amendment, 2026-09-24:** the manual journal, notes and Seen/Caught editor
+are removed, including their Select action and footer hint. Favorites remain;
+current progression uses the [verified save projection](SAVE_POKEDEX.md).
+Legacy database records remain inert and are never treated as current game facts.
+The journal implementation/acceptance below is retained only as historical evidence.
 
 **Accepted target, not delivered — #46/#13/#51:** this document records the existing offline reference and manual journal. Primary current progression will use the shared Adventure's verified ordinary-save Seen/Caught; manual history/favorites remain separately sourced and survive rollback. Unknown is not false. L2/R2 pairs Dex with Center, shared Y changes Adventure. Classic illustrations remain primary long-list art; optional animated sprites/portraits serve detail. Follow [projection acceptance](EXPANSION_42_62.md#pokédex-journey-and-achievements) and the strict [#61 artwork sequence](EXPANSION_42_62.md#artwork-sequence), not a generic downloader-first plan.
 
@@ -19,10 +25,9 @@ Types and stats describe the selected form in this snapshot. They do not adapt t
 - X opens search from the list; exact National numbers, names and form labels are supported. Search ignores case, accents and punctuation.
 - Up/down move through the bounded list, left/right jump eight entries. Selection immediately updates the illustration, animated companion, facts and six colored numerical stat tiles beside the list; there is no second entry screen.
 - A toggles the selected species favorite. B switches between the list and filter rail. Form and Artwork are the final two rail controls; type filtering initially selects a matching form where applicable. The chosen form survives section changes/restart without changing journal data. Legacy detail routes restore the same entry in the combined browser. Touching a row selects it without changing progress.
-- Select opens the attached field journal; Y opens the shared Adventure selector. X remains search. L1/R1 and Start keep their global roles. All button legends live in the shell footer and follow the foremost active panel.
-- In the journal, A cycles Seen/Caught through unknown, Yes and No, or opens the shared note keyboard. Y saves; B discards the draft. L1/R1 discard an unsubmitted journal and switch sections.
+- Select has no local action; Y opens the shared Adventure selector. X remains search. L1/R1 and Start keep their global roles. All button legends live in the shell footer and follow the foremost active panel.
 
-## Personal records
+## Retired manual records (historical)
 
 Seen/Caught and notes are explicitly **manual, species-wide trainer records**, shared across the local library. They do not represent a particular ROM, profile inside a game, form collection or automatic save parsing. Favorites remain an independent mark.
 
@@ -30,12 +35,12 @@ A caught mark requires Seen=Yes. Choosing Seen=No also makes Caught=No. Unknown 
 
 SQLite schema 6 adds `pokedex_records` with nullable boolean marks, note and revision, without seeding progress. Its transaction checks the previous revision and reads the committed projection before acknowledging Save. Favorites stay in their existing table and are merged only when presenting progress, so journal writes cannot overwrite concurrent favorite changes. Errors preserve the old record and retryable draft. Normal exit drains submitted writes. These operations never open, modify or reinterpret external game saves.
 
-## Acceptance
+## Original acceptance (historical)
 
 - The pinned guide loads all species/forms and validates identities, facts and family/region relationships.
 - Accent-insensitive search, alternate-form type filtering, numeric lookup and form restoration are checked against the actual bundled reference.
 - Schema 5→6 migration preserves favorites; marks/notes survive database reopen and remain separate from favorites.
-- Stale and inconsistent records are rejected; a locked writer preserves the editor draft while the event loop remains responsive.
+- Historical editor checks rejected stale/inconsistent records and kept the event loop responsive. The editor and its tests were removed with the feature; storage compatibility tests remain.
 - SDL controller scenarios exercise note entry, mark consistency, save/cancel, page switching and focus recovery when a changed mark removes a filtered entry.
 - Device checks cover the full reference, form switching, controller journal entry and persistence in the production composition.
 

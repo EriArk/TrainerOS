@@ -70,8 +70,8 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&device_, &DeviceController::messageRequested, this, &ShellController::showNotice);
     connect(&device_, &DeviceController::powerRequested, this, [this](const QString& mode) {
         mode_ = mode;
-        notice_ = mode == "reboot" ? "Restart your handheld? Your Trainer journal will be saved first."
-                                   : "Turn off your handheld? Your Trainer journal will be saved first.";
+        notice_ = mode == "reboot" ? "Restart your handheld? Your Trainer data will be saved first."
+                                   : "Turn off your handheld? Your Trainer data will be saved first.";
         emit changed();
     });
     connect(&center_, &SaveCenterController::changed, this, &ShellController::changed);
@@ -92,9 +92,6 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     trainer_.configure(&repo, &dexReference, &dexProgress, &archive);
     connect(trainer_.picker(), &SpeciesPicker::searchRequested, this, [this](const QString& initial) {
         textTarget_ = TextTarget::TrainerFavorite; keyboard_.begin("Find your favorite · name / number", initial, 48);
-    });
-    connect(pokedex_.journal(), &PokedexJournalEditor::noteRequested, this, [this](const QString& initial) {
-        textTarget_=TextTarget::PokedexNote;keyboard_.begin("Your field note · optional",initial,160);
     });
     connect(hall_.editor(), &ArchiveEditor::textRequested, this, [this](const QString& title, const QString& initial, int limit) {
         textTarget_ = TextTarget::Archive; keyboard_.begin(title, initial, limit);
@@ -161,7 +158,6 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::Library) libraryManager_.applyText(text);
         else if (target == TextTarget::LibraryTools) libraryTools_.applyText(text);
         else if (target == TextTarget::Archive) hall_.editor()->applyText(text);
-        else if (target == TextTarget::PokedexNote) pokedex_.journal()->applyNote(text);
         else if (target == TextTarget::TrainerFavorite) trainer_.picker()->applySearch(text);
         else if (target == TextTarget::CenterSearch) center_.applySearch(text);
         else if (target == TextTarget::AchievementAccount) hall_.account()->applyText(text);
@@ -205,7 +201,7 @@ bool ShellController::canEditWorld() const {
 }
 bool ShellController::localModalOpen() {
     return libraryTools_.isOpen() || trainer_.editing() || (page_ == 2 && (centerFace_ ? center_.confirming() || party_.detailOpen()
-        : pokedex_.zone() == "picker" || pokedex_.zone() == "art" || pokedex_.journal()->isOpen() || pokedex_.saving()))
+        : pokedex_.zone() == "picker" || pokedex_.zone() == "art" || pokedex_.saving()))
         || (page_ == 4 && (hall_.editor()->isOpen() || hall_.account()->isOpen()));
 }
 bool ShellController::chooseAdventureAvailable() {
@@ -536,9 +532,9 @@ void ShellController::confirm() {
         if (menuFocus_ == 6) { powerMenu_ = true; menuFocus_ = 3; return; }
         if (menuFocus_ >= 4 && platform_.canSwitchSession()) {
             mode_ = menuFocus_ == 5 ? "steam" : "desktop";
-            notice_ = mode_ == "steam" ? "Open Steam Gaming Mode? Your Trainer journal will be saved first."
-                : mode_ == "traineros" ? "Enter the dedicated TrainerOS session? Your Trainer journal will be saved first."
-                                      : "Open Desktop / Maintenance Mode? Your Trainer journal will be saved first.";
+            notice_ = mode_ == "steam" ? "Open Steam Gaming Mode? Your Trainer data will be saved first."
+                : mode_ == "traineros" ? "Enter the dedicated TrainerOS session? Your Trainer data will be saved first."
+                                      : "Open Desktop / Maintenance Mode? Your Trainer data will be saved first.";
             return;
         }
 
@@ -702,7 +698,7 @@ void ShellController::dispatch(Action action) {
                 else if (action == Action::Back && !center_.confirming() && !center_.busy()) party_.returnFromSaves();
                 else center_.dispatch(action);
             }
-            else pokedex_.dispatch(action == Action::LocalAction && !localModalOpen() ? Action::ToggleContinue : action);
+            else pokedex_.dispatch(action);
             return;
         }
         if (page_ == 4) { hall_.dispatch(action == Action::LocalAction && !localModalOpen() ? Action::ToggleContinue : action); return; }

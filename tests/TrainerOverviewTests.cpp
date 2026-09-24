@@ -48,7 +48,7 @@ private slots:
         const auto reference=journal.load();
         auto summary=trainerOverview(library,reference,journal,archive);
         QCOMPARE(summary.adventures,2); QCOMPARE(summary.worlds,2); QCOMPARE(summary.recordedSeconds.value(),120);
-        QCOMPARE(summary.seen.value(),7); QCOMPARE(summary.caught.value(),4); QCOMPARE(summary.favorites.value(),3); QCOMPARE(summary.memories.value(),0);
+        QVERIFY(!summary.seen); QVERIFY(!summary.caught); QCOMPARE(summary.favorites.value(),3); QCOMPARE(summary.memories.value(),0);
         archive.failNextLoad(); summary=trainerOverview(library,{false,{}, {},"Unavailable"},journal,archive);
         QVERIFY(!summary.seen); QVERIFY(!summary.caught); QVERIFY(!summary.favorites); QVERIFY(!summary.memories);
         library.seconds.clear(); QVERIFY(!trainerOverview(library,reference,journal,archive).recordedSeconds);
@@ -60,14 +60,15 @@ private slots:
         {
             LocalStateStore store(directory.path(),nullptr,"user-library-v1"); store.open(); QTRY_VERIFY(store.ready());
             TrainerController trainer(store); trainer.configure(&store,&guide,&store,&store); trainer.refreshOverview();
-            QCOMPARE(trainer.overview()[2].toMap()["value"].toString(),"0 / 0");
+            QCOMPARE(trainer.overview()[2].toMap()["label"].toString(),"FAVORITE MARKS");
+            QCOMPARE(trainer.overview()[2].toMap()["value"].toString(),"0");
             trainer.beginEdit(); trainer.setDraftName("ERI"); trainer.activate(2); trainer.picker()->applySearch("Flabebe"); trainer.dispatch(Action::Confirm);
             QCOMPARE(trainer.draftFavorite(),QString::fromUtf8("Flabébé")); QVERIFY(!store.load());
             trainer.activate(3); QTRY_VERIFY(!trainer.saving()); QVERIFY(trainer.exists());
             QVERIFY(!store.progress("flabebe").seen); QVERIFY(!store.progress("flabebe").favorite);
             PokedexProgress record; record.seen=true; record.caught=true; bool done=false;
             store.saveRecordAsync("flabebe",record,this,[&](PokedexWriteResult result){QVERIFY(result.success);done=true;}); QTRY_VERIFY(done);
-            trainer.refreshOverview(); QCOMPARE(trainer.overview()[2].toMap()["value"].toString(),"1 / 1");
+            trainer.refreshOverview(); QCOMPARE(trainer.overview()[2].toMap()["value"].toString(),"0");
             trainer.beginEdit(); trainer.activate(2); trainer.dispatch(Action::ToggleContinue); trainer.cancel();
             QCOMPARE(store.load()->favoritePokemonId,"flabebe");
         }

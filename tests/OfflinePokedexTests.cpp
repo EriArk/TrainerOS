@@ -80,28 +80,6 @@ private slots:
         const auto record=reopened.progress("vulpix");QCOMPARE(record.seen,std::optional<bool>(true));QCOMPARE(record.caught,std::optional<bool>(true));
         QCOMPARE(record.notes,"Another memory");QVERIFY(!record.favorite);QVERIFY(!reopened.progress("eevee").seen);
     }
-    void journalDraftConsistencyCancelFailedWriteAndFilterRecovery() {
-        MockPokedexRepository repository;PokedexController dex(repository,repository);
-        dex.applySearch("133");dex.activateControl("list",0);dex.editJournal();auto* editor=dex.journal();QVERIFY(editor->isOpen());
-        editor->activate(1);QCOMPARE(editor->fields()[1].toMap()["value"].toString(),"Not recorded"); // Existing No -> unknown.
-        editor->activate(1);QCOMPARE(editor->fields()[0].toMap()["value"].toString(),"Yes");
-        editor->activate(0);QCOMPARE(editor->fields()[1].toMap()["value"].toString(),"No");
-        editor->activate(2);editor->applyNote("Discarded");editor->cancel();QVERIFY(repository.progress("eevee").notes.isEmpty());
-        dex.editJournal();editor->activate(2);editor->applyNote("Keep my note");repository.failNextWrite();editor->submit();
-        QVERIFY(editor->isOpen());QVERIFY(!editor->error().isEmpty());QVERIFY(repository.progress("eevee").notes.isEmpty());
-        editor->submit();QVERIFY(!editor->isOpen());QCOMPARE(repository.progress("eevee").notes,"Keep my note");
-        dex.dispatch(Action::Back);filter(dex,3,"uncaught");dex.activateControl("list",0);dex.editJournal();
-        editor->activate(1);editor->activate(1);editor->submit();QVERIFY(dex.entries().isEmpty());QCOMPARE(dex.zone(),"recovery");
-    }
-    void lockedJournalSaveRetainsDraftAndDoesNotFreezeUi() {
-        QTemporaryDir dir;LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());
-        PokedexJournalEditor editor(store);editor.begin("pikachu","Pikachu");editor.applyNote("Keep me");
-        Connection connection(dir.path());QSqlQuery q(connection.db);QVERIFY(q.exec("BEGIN IMMEDIATE"));
-        int ticks=0;QTimer timer;timer.setInterval(10);connect(&timer,&QTimer::timeout,this,[&]{++ticks;});timer.start();
-        editor.submit();QVERIFY(editor.saving());QTRY_VERIFY(!editor.saving());QVERIFY(editor.isOpen());QVERIFY(ticks>2);
-        QVERIFY(!editor.error().isEmpty());QVERIFY(store.progress("pikachu").notes.isEmpty());
-        QVERIFY(q.exec("ROLLBACK"));editor.submit();QTRY_VERIFY(!editor.saving());QVERIFY(!editor.isOpen());QCOMPARE(store.progress("pikachu").notes,"Keep me");
-    }
 };
 QTEST_GUILESS_MAIN(OfflinePokedexTests)
 #include "OfflinePokedexTests.moc"

@@ -16,8 +16,10 @@ English Emerald ordinary save: six Party slots, fourteen boxes, stats, moves/PP
 and held items, bound to the selected Pokémon Adventure and Trainer. Storage
 omits current HP. [Evidence and scope](EMERALD_PARTY.md). The [selected-save
 Pokedex projection](SAVE_POKEDEX.md) now supplies English Emerald National
-Seen/Caught separately from the preserved manual journal. Next bind real Party
-scene consumers; additional
+Seen/Caught. The owner then retired the manual journal, notes and editing;
+favorites and verified save records remain. [Party Playroom](PARTY_PLAYROOM.md)
+now consumes the same real team, with bounded sprites and controller call/greet.
+Further social/portrait scenes, additional
 formats and independently guarded writers keep their existing acceptance.
 
 **Current owner order — 2026-09-24:** native [ScreenScraper #65](SCREENSCRAPER.md)

@@ -3,17 +3,22 @@
 #include <QStringList>
 
 namespace trainer {
+void CenterActivities::setParty(const QVariantList& actors, const QString& source, const QString& unavailable) {
+    if (actors_ == actors && source_ == source && unavailable_ == unavailable) return;
+    actors_ = actors; source_ = source; unavailable_ = unavailable;
+    actor_ = 0; reaction_.clear(); gesture_.clear(); ++reactionSerial_;
+    emit changed();
+}
 QVariantMap CenterActivities::page() const {
     if (route_ == "menu") return {{"title", "Center activities"}, {"message", "Choose a place to visit"}, {"action", "Open"}};
     const auto title = route_ == "playroom" ? "Party Playroom" : route_ == "practice" ? "Practice" : "Link Counter";
     QString message, action = "Activities";
-    if (!sample_) {
-        message = route_ == "playroom" ? "A verified Party is needed before your Pokémon can visit."
-            : route_ == "practice" ? "Practice needs verified Party records and supported battle rules."
+    if (route_ == "playroom") {
+        message = hasParty() ? QString() : unavailable_.isEmpty() ? QStringLiteral("Your Party has no visitors yet.") : unavailable_;
+        action = hasParty() ? "Call" : "Activities";
+    } else if (!sample_) {
+        message = route_ == "practice" ? "Practice needs verified Party records and supported battle rules."
             : "No supported transfer connection yet. Pairing and save changes are unavailable.";
-    } else if (route_ == "playroom") {
-        message = "Development actors · no sprite pack · no game data changes";
-        action = "Call";
     } else if (route_ == "practice") {
         message = stage_ == "setup" ? "Two sample partners · layout rehearsal only"
             : "Battle preview · no simulation, damage or rewards";
@@ -27,15 +32,19 @@ QVariantMap CenterActivities::page() const {
     return {{"title", title}, {"message", message}, {"action", action}};
 }
 void CenterActivities::reset() {
-    route_ = "menu"; stage_ = "setup"; reaction_.clear(); actor_ = 0; menu_ = 0; emit changed();
+    route_ = "menu"; stage_ = "setup"; reaction_.clear(); gesture_.clear(); actor_ = 0; menu_ = 0; emit changed();
 }
 void CenterActivities::activate(int index) {
     if (route_ == "menu") {
         menu_ = std::clamp(index, 0, 2);
         route_ = QStringList{"playroom", "practice", "link"}[menu_];
         stage_ = "setup"; reaction_.clear(); actor_ = 0;
-    } else if (!sample_) route_ = "menu";
-    else if (route_ == "playroom") { actor_ = std::clamp(index, 0, 1); reaction_ = "Sample partner called over"; }
+    } else if (route_ == "playroom" && hasParty()) {
+        actor_ = std::clamp(index, 0, int(actors_.size()) - 1);
+        gesture_ = "call"; ++reactionSerial_;
+        reaction_ = actors_[actor_].toMap()["name"].toString() + " called over";
+    }
+    else if (!sample_ || route_ == "playroom") route_ = "menu";
     else if (route_ == "practice") stage_ = stage_ == "setup" ? "preview" : "setup";
     else stage_ = stage_ == "setup" ? "review" : stage_ == "review" ? "interrupted" : "setup";
     emit changed();
@@ -50,9 +59,15 @@ void CenterActivities::dispatch(Action action) {
     else if (route_ == "menu") {
         if (action == Action::Up) menu_ = std::max(0, menu_ - 1);
         if (action == Action::Down) menu_ = std::min(2, menu_ + 1);
-    } else if (sample_ && route_ == "playroom") {
-        if (action == Action::Left || action == Action::Right) { actor_ = action == Action::Left ? 0 : 1; reaction_.clear(); }
-        if (action == Action::Secondary) reaction_ = "Sample partner greets you · friendship unchanged";
+    } else if (hasParty() && route_ == "playroom") {
+        if (action == Action::Left || action == Action::Right) {
+            actor_ = (actor_ + (action == Action::Left ? actors_.size()-1 : 1)) % actors_.size();
+            reaction_.clear();
+        }
+        if (action == Action::Secondary) {
+            gesture_ = "greet"; ++reactionSerial_;
+            reaction_ = actors_[actor_].toMap()["name"].toString() + " greets you";
+        }
     }
     emit changed();
 }

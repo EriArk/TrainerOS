@@ -158,23 +158,13 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             check(focusIs("dex-entry-" + dex->detail()["id"].toString()) && dex->detail()["id"] == "eevee", "Refresh notice restores detail");
             press(SDL_CONTROLLER_BUTTON_BACK);break;
         case 43:
-            check(focusIs("journal-field-0") && dex->journal()->isOpen(), "Select opens journal with controller focus");
-            capture("journal");press(right);press(a,2);press(down);press(a);break;
-        case 44:
-            check(focusIs("key-A"), "Journal note uses shared controller keyboard");press(a);press(down,3);press(right);press(a);break;
-        case 45:
-            check(focusIs("journal-field-2"), "Keyboard returns to note field");capture("journal-filled");press(SDL_CONTROLLER_BUTTON_X);break;
-        case 46:
-            check(!dex->journal()->isOpen() && dex->detail()["notes"]=="A", "Journal Save commits note");
-            check(dex->detail()["caught"]=="Yes" && dex->detail()["seen"]=="Yes", "Caught includes Seen");
-            capture("journal-recorded");press(SDL_CONTROLLER_BUTTON_BACK);press(down);press(a);press(a);press(b);press(b);break;
-        case 47:
-            check(!dex->journal()->isOpen() && dex->detail()["notes"]=="A", "Cancelled journal leaves committed note");
-            press(SDL_CONTROLLER_BUTTON_BACK);press(r1);break;
+            check(focusIs("dex-entry-eevee") && !shell.keyboard()->isOpen(), "Select leaves Dex browsing unchanged after journal removal");
+            check(!dex->detail().contains("journalStatus") && !dex->detail().contains("notes"), "No manual journal data is presented");
+            capture("save-only-dex"); press(r1); *stage=48; break;
         case 48:
-            check(shell.page()==3 && !dex->journal()->isOpen(), "Global page change discards journal draft");press(l1);break;
+            check(shell.page()==3, "Global page navigation remains available"); press(l1); break;
         case 49:
-            check(focusIs("dex-entry-" + dex->detail()["id"].toString()), "Journal page return restores species focus");
+            check(focusIs("dex-entry-" + dex->detail()["id"].toString()), "Page return restores species focus");
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767); input.poll();
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768); input.poll(); break;
         case 50: {

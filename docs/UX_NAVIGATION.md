@@ -1,5 +1,10 @@
 # TrainerOS UX & Navigation
 
+**2026-09-24 simplification:** Pokédex has no manual journal, note editor or
+Select shortcut. A still toggles a favorite; Y chooses Adventure. Center →
+Activities → Party Playroom uses the verified Party: Left/Right selects a stable
+member, A calls, X greets, B returns. All legends stay in the bottom chassis.
+
 **Library context actions — 2026-09-24:** hold physical A in a populated game
 wheel for Rename / Move / Delete / Properties; short A retains its prior action.
 Both wheels wrap vertically at either end. Settings → Library unlocks the World

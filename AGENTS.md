@@ -1,5 +1,11 @@
 # AGENTS.md — TrainerOS
 
+**Owner simplification, 2026-09-24:** remove the manual Pokédex journal entirely:
+no Seen/Caught editor, notes, separate journal screen or Select shortcut. Verified
+selected-save progression and personal favorites remain. This supersedes earlier
+#14/manual-journal UI acceptance; keep legacy stored rows inert for compatibility,
+without a destructive migration. Hall memories are a different feature and remain.
+
 **Owner pause, 2026-09-24:** defer live ScreenScraper integration until the owner
 reports account/developer access. Continue local video and game information
 presentation, then Pokedex/Party/Center. Keep #65's remaining acceptance intact.

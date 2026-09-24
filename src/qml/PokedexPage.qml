@@ -5,7 +5,7 @@ Item {
     required property var shell
     readonly property var dex: shell.pokedex
     enabled: !shell.drawerOpen
-    readonly property bool takesFocus: visible && !shell.drawerOpen && !dex.journal.open && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
+    readonly property bool takesFocus: visible && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     readonly property bool artOpen: dex.zone === "art"
     readonly property bool pickerOpen: dex.zone === "picker"
 
@@ -166,8 +166,7 @@ Item {
                         text: root.dex.detail.recordSource + ": " + root.dex.detail.status + (root.dex.detail.favorite ? "  ★" : "")
                         textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 12; font.bold: true; elide: Text.ElideRight }
                 }
-                Text { width: parent.width; text: "Journal: " + root.dex.detail.journalStatus; color: Theme.muted; font.pixelSize: 11; elide: Text.ElideRight }
-                Text { width: parent.width; text: root.dex.detail.notes || root.dex.detail.family; textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 11; elide: Text.ElideRight }
+                Text { width: parent.width; text: root.dex.detail.family; textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 11; elide: Text.ElideRight }
             }
             Text { x: 20; y: 95; width: parent.width - 40; visible: !preview.hasEntry; text: "Try another trail through the guide."; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 16 }
         }
@@ -200,6 +199,5 @@ Item {
             }
         }
     }
-    PokedexJournalPanel { anchors.fill: parent; shell: root.shell; visible: root.dex.journal.open }
     ArtworkPanel { anchors.fill: parent; dex: root.dex; visible: root.artOpen; takesFocus: root.takesFocus && root.artOpen }
 }

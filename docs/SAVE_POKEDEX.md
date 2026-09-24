@@ -1,5 +1,9 @@
 # Selected-save Pokédex progression
 
+**2026-09-24 follow-up:** the owner removed manual journal functionality.
+The earlier verification screenshots below precede that removal; current
+installed checks confirm no journal line, editor or Select legend remains.
+
 ## First delivered route — English Emerald, 2026-09-24
 
 The combined Pokédex now shows the shared current Pokémon Adventure's verified
@@ -9,20 +13,19 @@ and Caught totals. Per-species status has its own colored strip beside the
 reference stats. Species beyond the game's 386-entry range are outside its
 coverage, never automatically marked unseen or uncaught.
 
-Personal journal marks, favorites and notes remain Trainer-owned and separate.
-The smaller Journal line shows the manual status; Select opens the existing
-manual editor. A still toggles a personal favorite. Reading or replacing a save
-does not write journal rows, invent individuals, award achievements, or change
-history. Forms remain reference/art selections: these save flags prove species
-registration only, not ownership of every displayed form. Reference stats and
-modern type/form facts are not presented as this game's individual stats.
+The owner retired the manual journal on 2026-09-24: no manual Seen/Caught,
+notes, editor or Select shortcut remains. Personal favorites still use A.
+Legacy journal rows remain inert for database compatibility. Save observations
+never invent individuals or award achievements. Forms remain reference/art
+selections: flags prove species registration, not ownership of every form.
+Reference stats and modern type/form facts are not individual game stats.
 
 The existing exact English Emerald SHA-256 and mGBA ordinary-save route gate
 this capability. FireRed's established badge/count observations remain intact,
 but do not imply per-species or Party support. Unsupported/missing observations
-leave current progression unknown; manual marks remain visible separately.
+leave current progression unknown; favorites remain independent.
 Ephemeral development compositions without a save provider retain their
-explicit journal presentation.
+explicit sample presentation.
 
 ## Format evidence and refresh
 

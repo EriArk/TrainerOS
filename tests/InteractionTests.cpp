@@ -44,7 +44,7 @@ private slots:
         auto* activities = party.activities();
         activities->activate(0); activities->dispatch(Action::Right); activities->dispatch(Action::Confirm);
         QCOMPARE(activities->focusIndex(), 1); QVERIFY(!activities->reaction().isEmpty());
-        activities->dispatch(Action::Secondary); QVERIFY(activities->reaction().contains("unchanged"));
+        activities->dispatch(Action::Secondary); QCOMPARE(activities->gesture(),"greet");
         party.setAdventure("one", "Renamed"); QCOMPARE(activities->route(), "playroom");
         party.setAdventure("two", "Other"); QCOMPARE(activities->route(), "menu"); QVERIFY(activities->reaction().isEmpty());
         activities->activate(1); activities->dispatch(Action::Confirm); QCOMPARE(activities->stage(), "preview");
@@ -128,6 +128,11 @@ private slots:
         mon.level=5;mon.hp=0;mon.stats[0]=20;mon.condition="Fainted";
         data.currentBox=13;data.boxes[13].name="Last box";observation.party=data;
         party.setProgress("emerald",observation);QVERIFY(party.available());QVERIFY(!party.sample());
+        auto* room = party.activities();
+        QCOMPARE(room->actors().size(),1); QCOMPARE(room->actors()[0].toMap()["name"],"Pikachu");
+        room->activate(0);room->dispatch(Action::Confirm);QCOMPARE(room->gesture(),"call");
+        room->dispatch(Action::Secondary);QCOMPARE(room->gesture(),"greet");
+        QCOMPARE(observation.party->party[0].hp,std::optional<int>(0));
         QCOMPARE(party.entries().size(),6);QCOMPARE(party.detail()["hp"],"0 / 20");
         party.dispatch(Action::Secondary);QCOMPARE(party.boxCount(),14);QCOMPARE(party.box(),13);
         QCOMPARE(party.boxName(),"Last box");QCOMPARE(party.entries().size(),30);
@@ -136,12 +141,30 @@ private slots:
         party.setProgress("emerald",refresh);party.setProgress("emerald",observation);QCOMPARE(party.box(),0);
         observation.contextRevision="owner-two";party.setProgress("emerald",observation);QCOMPARE(party.box(),13);
         party.setAdventure("other","Other");QVERIFY(!party.available());QVERIFY(party.entries().isEmpty());
+        QVERIFY(room->actors().isEmpty());QVERIFY(room->reaction().isEmpty());
         party.setProgress("emerald",observation);QVERIFY(party.detail().isEmpty());
         party.setAdventure("emerald","Emerald");party.setProgress("emerald",observation);
         GameProgress checking;checking.availability=ProgressAvailability::Checking;
         party.setProgress("emerald",checking);QVERIFY(!party.available());QVERIFY(party.entries().isEmpty());
+        QVERIFY(room->actors().isEmpty());
         observation.party.reset();party.setProgress("emerald",observation);
         QVERIFY(!party.available());QVERIFY(party.entries().isEmpty()); // Supported badges do not imply Party support.
+    }
+    void playroomUsesOnlyKnownPartySlotsAndClearsOnSameGameOwnerChange() {
+        PartyPresentation party(false);party.setAdventure("emerald","Emerald");
+        GameProgress p;p.availability=ProgressAvailability::Available;p.contextRevision="owner-one";p.saveRevision="one";
+        PartySnapshot data;data.party=QList<PokemonRecord>(6);
+        for(int i=0;i<6;++i) {auto& mon=data.party[i];mon.kind=PokemonSlotKind::Known;mon.nickname=QString("Partner %1").arg(i);mon.speciesId="pikachu";mon.formId="25";}
+        data.party[1].kind=PokemonSlotKind::Egg;data.party[2].kind=PokemonSlotKind::Unreadable;data.party[3].kind=PokemonSlotKind::Empty;
+        p.party=data;party.setProgress("emerald",p);party.openActivities();auto* room=party.activities();room->activate(0);
+        QCOMPARE(room->actors().size(),3);QCOMPARE(room->actors()[1].toMap()["index"],4);
+        room->dispatch(Action::Left);QCOMPARE(room->focusIndex(),2);room->dispatch(Action::Right);QCOMPARE(room->focusIndex(),0);
+        room->dispatch(Action::Confirm);const auto serial=room->reactionSerial();room->dispatch(Action::Confirm);QVERIFY(room->reactionSerial()>serial);
+        p.contextRevision="owner-two";p.party->party[0].nickname="Other trainer";party.setProgress("emerald",p);
+        QCOMPARE(room->actors()[0].toMap()["name"],"Other trainer");QVERIFY(room->reaction().isEmpty());QCOMPARE(room->focusIndex(),0);
+        p.saveRevision="bad";p.party->error="Unreadable";party.setProgress("emerald",p);QVERIFY(room->actors().isEmpty());
+        room->dispatch(Action::Secondary);QVERIFY(room->reaction().isEmpty());room->dispatch(Action::Confirm);QCOMPARE(room->route(),"menu");
+        p.saveRevision="empty";p.party->error.clear();p.party->party.clear();party.setProgress("emerald",p);QVERIFY(room->actors().isEmpty());
     }
     void multiverseIsolationAndModalPriority() {
         MockLibraryRepository library; MockTrainerRepository profiles;

@@ -37,35 +37,13 @@ Item {
                 color: Theme.ink; font.pixelSize: 20; wrapMode: Text.WordWrap
             }
             Text {
-                x: 28; y: 95; width: parent.width - 56; visible: !root.activity.sample && root.activity.route !== "menu"
+                x: 28; y: 95; width: parent.width - 56; visible: !root.activity.sample && root.activity.route !== "menu" && root.activity.route !== "playroom"
                 text: "Not available for this Adventure yet.\nYou can return to Party or use ordinary save backups."; color: Theme.ink; font.pixelSize: 24; wrapMode: Text.WordWrap
             }
-            Item {
-                anchors.fill: parent; visible: root.activity.sample && root.activity.route === "playroom"
-                Repeater {
-                    model: 2
-                    Item {
-                        required property int index
-                        x: 40 + index * 262; y: 61; width: 234; height: 160
-                        Rectangle { x: 57; y: 103; width: 112; height: 18; radius: 9; color: "#35677e6b" }
-                        Rectangle {
-                            x: 56 + (root.activity.focusIndex === index && root.activity.reaction.indexOf("called") >= 0 ? 20 : 0)
-                            y: 0; width: 114; height: 114; radius: 57; color: index ? Theme.blue : Theme.green; border.color: "#728f80"; border.width: 3
-                            Behavior on x { NumberAnimation { duration: root.visible ? Theme.motion(160) : 0 } }
-                            Text { anchors.centerIn: parent; text: index + 1; color: Theme.ink; font.pixelSize: 38; font.bold: true }
-                        }
-                        CapButton {
-                            objectName: "playroom-actor-" + index; y: 134; width: parent.width; height: 42
-                            label: "Sample partner " + (index + 1); tint: Theme.green
-                            selected: root.takesFocus && root.activity.route === "playroom" && root.activity.sample && root.activity.focusIndex === index
-                            onActivated: root.shell.activate(index)
-                        }
-                    }
-                }
-                MountedPanel {
-                    anchors.right: parent.right; y: 60; width: 304; height: 174; color: "#c8d9cd"
-                    Text { x: 18; y: 15; width: parent.width - 36; text: "PORTRAIT\nNo sprite art installed\n\n" + (root.activity.reaction || "Select a partner, call it over or offer a greeting."); color: Theme.ink; font.pixelSize: 16; wrapMode: Text.WordWrap }
-                }
+            PartyPlayroom {
+                anchors.fill: parent; visible: root.activity.route === "playroom" && root.activity.hasParty
+                activity: root.activity; takesFocus: root.takesFocus && visible
+                playing: visible && root.takesFocus
             }
             Item {
                 anchors.fill: parent; visible: root.activity.sample && root.activity.route === "practice"
@@ -92,13 +70,13 @@ Item {
             }
             CapButton {
                 objectName: "activity-primary"; x: 24; anchors.bottom: parent.bottom; anchors.bottomMargin: 12; width: 395; height: 44
-                visible: root.activity.route !== "menu" && !(root.activity.sample && root.activity.route === "playroom")
+                visible: root.activity.route !== "menu" && !(root.activity.hasParty && root.activity.route === "playroom")
                 label: root.activity.page.action; tint: Theme.blue; selected: root.takesFocus && visible
                 onActivated: root.shell.activate(root.activity.focusIndex)
             }
             Text {
                 x: 28; anchors.bottom: parent.bottom; anchors.bottomMargin: 23
-                visible: root.activity.route === "menu" || root.activity.sample && root.activity.route === "playroom"
+                visible: root.activity.route === "menu" || root.activity.hasParty && root.activity.route === "playroom"
                 text: ""
                 color: Theme.ink; font.pixelSize: 16
             }

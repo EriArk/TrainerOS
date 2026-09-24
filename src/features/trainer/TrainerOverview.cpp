@@ -21,14 +21,12 @@ TrainerOverview trainerOverview(const LibraryRepository& library, const PokedexC
     worlds.remove({});
     result.adventures = adventures.size(); result.worlds = worlds.size();
     if (reference.success) {
-        result.seen = 0; result.caught = 0; result.favorites = 0;
+        result.favorites = 0;
         QSet<QString> counted;
         for (const auto& entry : reference.entries) {
             if (counted.contains(entry.id)) continue;
             counted.insert(entry.id);
             const auto record = journal.progress(entry.id);
-            if (record.seen.value_or(false)) ++*result.seen;
-            if (record.caught.value_or(false)) ++*result.caught;
             if (record.favorite) ++*result.favorites;
         }
     }

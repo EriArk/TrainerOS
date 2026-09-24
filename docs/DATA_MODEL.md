@@ -222,7 +222,10 @@ The native mock's `PokedexEntry` contains stable `id`, `number`, `name`, `types`
 
 ## PokedexProgress
 
-**Source distinction:** the existing manual journal remains Trainer-owned secondary history. Target primary current progression is a separate selected-Adventure `PokedexSnapshot` (#46); rollback does not erase manual assertions, and unknown never becomes false.
+**2026-09-24 owner amendment:** manual journal presentation and editing are retired.
+Legacy Seen/Caught/notes rows below remain inert for database compatibility;
+favorites remain active. Current progression comes only from the selected-save
+projection (#46), never legacy assertions. No destructive database migration is needed.
 
 Trainer-owned state:
 

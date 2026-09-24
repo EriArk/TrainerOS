@@ -111,6 +111,11 @@ RA is Hall's L2/R2 companion, following the shared Adventure through exact conte
 
 ## Sprites, living party, Playroom and Practice Battle
 
+**2026-09-24 owner amendment to #46/#14:** the manual Pokédex journal, notes and
+Seen/Caught editing are cancelled. Preserve favorites and save-derived progress;
+retain old rows only for non-destructive compatibility. Earlier manual-journal
+acceptance in this register is historical, not remaining work.
+
 Sources: [#51](https://github.com/EriArk/TrainerOS/issues/51), [#52](https://github.com/EriArk/TrainerOS/issues/52), [#53](https://github.com/EriArk/TrainerOS/issues/53), [#54](https://github.com/EriArk/TrainerOS/issues/54), [#55](https://github.com/EriArk/TrainerOS/issues/55). P5 assets, P8 exact Party consumers; each is separately deliverable.
 
 #51 adds an optional external PMDCollab full-body sprite/portrait provider and bounded cache, with per-asset source/artist credit. Verify applicable terms and distinguish original contributions from official assets; attribution is not blanket redistribution permission. Exact form/shiny fallback is explicit; do not fabricate recolors. Semantic positive/concern/hurt reactions select available frames with quiet fallback. Classic #13 illustrations remain primary in long Pokédex lists; animated assets serve detail, Home, Playroom and practice scenes.

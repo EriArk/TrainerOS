@@ -114,7 +114,7 @@ Pokédex remains useful offline and controller-operated: bounded lists/detail, c
 
 1. Offline species/form/reference facts.
 2. The selected Adventure's verified ordinary-save Seen/Caught as primary current progression, with only proven regional/National/form semantics.
-3. Preserved Trainer-owned manual journal, Caught collection (#14), favorites and history, explicitly sourced and secondary to the current-save view.
+3. Trainer-owned favorites and history. The owner retired manual Seen/Caught and notes on 2026-09-24; there is no separate manual journal screen. Legacy database rows remain inert for compatibility.
 4. Optional installed classic illustration artwork (#13) for the primary long list.
 5. Optional PMDCollab animated sprites/portraits (#51) for detail and living-party scenes, not the main list artwork.
 

@@ -38,7 +38,6 @@ QVariantList TrainerController::overview() const {
         : QString("%1 h %2 m").arg(*seconds / 3600).arg((*seconds % 3600) / 60);
     return {QVariantMap{{"label", "ADVENTURES"}, {"value", QString::number(overview_.adventures)}},
         QVariantMap{{"label", "WORLDS"}, {"value", QString::number(overview_.worlds)}},
-        QVariantMap{{"label", "SEEN / CAUGHT"}, {"value", count(overview_.seen) + " / " + count(overview_.caught)}},
         QVariantMap{{"label", "FAVORITE MARKS"}, {"value", count(overview_.favorites)}},
         QVariantMap{{"label", "MEMORIES"}, {"value", count(overview_.memories)}},
         QVariantMap{{"label", "RECORDED TIME"}, {"value", time}}};

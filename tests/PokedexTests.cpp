@@ -39,7 +39,6 @@ private slots:
         p.pokedex=SavePokedex{386,{1,4},{1},{}};
         dex.setSaveProgress("game","Emerald","game",p);
         dex.applySearch("mudkip"); QCOMPARE(dex.detail()["status"],"Not seen");
-        QCOMPARE(dex.detail()["journalStatus"],"Caught");
         QCOMPARE(repo.progress("mudkip").caught,manual.caught);
         dex.applySearch(""); filter(dex,3,"caught"); QCOMPARE(ids(dex),(QStringList{"bulbasaur"}));
         filter(dex,3,"seen"); QCOMPARE(ids(dex),(QStringList{"bulbasaur","charmander"}));
@@ -49,7 +48,6 @@ private slots:
         p.saveRevision="rollback";p.pokedex->seen.remove(280);p.pokedex->caught.remove(280);
         dex.setSaveProgress("game","Emerald","game",p); QCOMPARE(dex.detail()["status"],"Not seen");
         QCOMPARE(repo.progress("mudkip").caught,manual.caught);
-        dex.editJournal(); QVERIFY(dex.journal()->isOpen()); dex.cancelTransient();
     }
     void failedSaveRefreshRetainsOnlySameIdentityAndNeverInventsNewSpecies() {
         MockPokedexRepository repo; MutableReference reference;
@@ -85,7 +83,6 @@ private slots:
         QCOMPARE(dex.zone(),"list"); QCOMPARE(repo.progress("mudkip").favorite,!before.favorite);
         dex.dispatch(Action::Back); QCOMPARE(dex.zone(),"rail");
         dex.dispatch(Action::Back); QCOMPARE(dex.zone(),"list");
-        dex.editJournal(); QVERIFY(dex.journal()->isOpen()); dex.cancelTransient();
         QCOMPARE(dex.detail()["id"],"mudkip");
     }
     void combinedFiltersAndSearch() {
