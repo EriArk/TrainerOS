@@ -58,7 +58,6 @@ struct LibraryEdit {
     QString text;
     World world;
     QString previousName;
-    bool trashFile = true;
 };
 enum class ResumeAvailability { Exact, LaunchOnly, Stale, Missing, Incompatible };
 // Adapter-owned identity of one source revision, never a path interpreted by UI.

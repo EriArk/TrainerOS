@@ -3,7 +3,8 @@
 **Library context actions — 2026-09-24:** hold physical A in a populated game
 wheel for Rename / Move / Delete / Properties; short A retains its prior action.
 Both wheels wrap vertically at either end. Settings → Library unlocks the World
-wrench/Select editor and provides the game trash. Legends stay in the bottom
+wrench/Select editor. Delete now permanently removes the ROM after confirmation;
+only older recoverable trash remains in Settings while nonempty. Legends stay in the bottom
 footer, including context dialogs. B returns from a subdialog to its game menu
 and then to the same wheel selection; L1/R1 close transient menus and change page.
 
@@ -36,7 +37,8 @@ preserve their page/face roles and the wheel's useful position.
 Pokemon region contents use that same wheel/details layout, retaining edition
 platform badges, grey missing editions, Left/Right jump-eight and the established
 A detail/actions/file-linking route. B returns to regions; Down after the last
-edition can still focus the visible Back control. Region organization is unchanged.
+edition wraps to the first; Up from the first wraps to the last. B owns return.
+Region organization is unchanged.
 
 In a World's Adventure list, X searches title/version/platform through the controller keyboard, Y cycles All/Linked/Missing, and left/right jumps eight rows. Up/down chooses adjacent rows. Search and filter are remembered per World; empty results retain the fixed X/Y controls and a focused Back action. These shortcuts yield to open keyboards, menus and service panels; L1/R1 remains global.
 
@@ -154,7 +156,7 @@ Worlds should feel like choosing destinations rather than browsing files/emulato
 The native mock has three local levels: **regions → Adventure list → Adventure detail**. A region may contain originals, remakes and ROM hacks together.
 
 - The region grid uses D-pad/left-stick spatial navigation; `A` opens the selected region.
-- In the Adventure list, Up/Down moves focus and reveals the selected row inside a fixed four-row viewport (shared header pass, 2026-09-13). The shell, primary tabs and lower action panel remain stationary. Down beyond the final row focuses Back to Worlds; Up restores that row.
+- In the Adventure wheel, Up/Down moves selection cyclically. The shell, primary tabs and footer remain stationary; B returns to Worlds.
 - `A` opens Adventure detail. Left/Right moves between enabled launch/Back actions; unavailable actions look disabled and are skipped. Target #49 uses normal launch/save loading only; the existing state-resume detail action is legacy and scheduled for removal.
 - `B` returns detail → Adventure list → regions, preserving the selected Adventure and region. On regions, `B` stays on Worlds.
 - `L1/R1` still switch the top-level primary page. Returning to Worlds restores its route, selected Adventure and focused action. Start/menu/notice layers also restore the underlying focus when closed.

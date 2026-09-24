@@ -237,7 +237,30 @@ entry without a logo, paired browsing and return from the system menu.
 Installed binary SHA-256:
 `be106dd6e8839c51196fead016d8df3d9caf174ce1217ca41d01e4afb6fa7c5c`.
 
-### Contextual library editing — 2026-09-24
+### Permanent deletion — owner correction, 2026-09-24
+
+This supersedes the new-game trash behavior described in the earlier checkpoint
+below. The game menu and affirmative confirmation now say **Удалить**. The
+confirmation starts on Cancel and states that the ROM is permanently removed;
+saves, history and artwork stay. Successful deletion unlinks the actual single
+ROM file, with no trash copy. Its existing schema-12 removal row has an empty
+trash path and retains the Adventure identity/history references.
+
+Unavailable, symlinked, shared or playlist-referenced files are rejected. Multi-file
+entry points (CUE/M3U/GDI/CCD/RPX) require Desktop Mode for now: deleting only their
+launcher is not reported as deleting the full installation. No directory, sibling
+save, artwork or BIOS cleanup is implied. File removal failure rolls back metadata;
+if the final database commit fails after unlink, the error says the ROM was removed
+but library bookkeeping failed. A process/power loss at that point may leave a
+missing installation record; it cannot create a false recovery copy.
+
+Copying a ROM back into its original library path lets the next folder scan reuse
+the original Adventure ID and name. There is no restore operation without a real
+file. Legacy nonempty trash records retain explicit recovery in Settings, and that
+entry disappears when the old trash is empty. Existing trash files are never
+silently purged by this update.
+
+### Contextual library editing — initial 2026-09-24 checkpoint
 
 - Settings → Library → Edit Worlds is off by default. When enabled, the selected
   Pokémon World has a wrench and a bottom Select shortcut. Its popup renames the
@@ -290,3 +313,30 @@ Private evidence is under `work/research/library-edit-*` and the corresponding
 device task directory; ROMs, database copies and captures are not committed.
 Installed binary SHA-256:
 `188cb8c9d290113e3f78bb4bf53213cde7fa6174f37f6983960471474d61991a`.
+
+### World cards and permanent deletion verification — 2026-09-24
+
+The full Windows build and 40 tests passed. After correcting semantic pairing
+for reversed repository order, both the World unit tests and SDL/QML World
+scenario passed again. Coverage includes permanent unlink, preserved saves,
+unavailable/shared/playlist file rejection, legacy recovery collisions and
+rediscovery under the original identity after copying a ROM back. Sprite tests
+verify consistent all-frame alpha cropping without changing source assets.
+
+The ARM64 production build was installed with binary/database backups. Actual
+Flip controller events exercised grid scrolling, separate Fiore/Almia selection,
+opening each half and Back, L1/R1 peers, the Multiverse pair, enlarged Dex sprite
+walking, and deletion through long A. A synthetic ROM and neighboring synthetic
+save verified Cancel keeps both, then Delete unlinks only the ROM with no trash
+copy. The surviving synthetic save was checked byte-for-byte and cleaned up
+afterward. No existing game was deleted in this probe.
+
+All 826 original Adventure rows remain unchanged; one additional removed test
+record preserves the deletion evidence. SQLite quick/foreign-key checks passed,
+and one installed shell owns the database. Device compositor captures, including
+the cards, both pair routes, Dex walking and deletion confirmation, were reviewed
+and shown in chat. Physical thumb acceptance remains the owner's check. Private
+evidence is under `work/research/world-cards-*` and the corresponding device task.
+
+Installed binary SHA-256:
+`1bc6b642dcf3d504c0e9111eca67fb20d977666847c6f6766b05f485b559aa0b`.

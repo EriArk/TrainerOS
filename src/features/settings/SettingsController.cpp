@@ -32,7 +32,11 @@ QVariantList SettingsController::controls() const {
     case 4: return {row("Trainer profile","action","Name, emblem and favorite"),row("RetroAchievements","action","Manage your account"), trainersAvailable_ ? row("Trainers","action","Choose a player or create a Trainer") : row("Separate Trainers & PIN","unavailable","Not available yet"),row("Trainer PIN",trainersAvailable_?"action":"unavailable","Set, change or remove your PIN"),row("Family code",trainersAvailable_?"action":"unavailable","A parent can reset forgotten PINs")};
     case 5: return {row("Refresh status","action",""),row("Restart","action",""),row("Power off","action","")};
     case 7: return {row("Check controller","action","Test buttons, sticks and triggers"),row("Button layout","status","Right A confirms; bottom B goes back"),row("Page navigation","status","L1 / R1 pages; L2 / R2 paired views")};
-    case 8: return {row("Edit Worlds","toggle",worldEditing()?"On":"Off"),row("Game trash","action","Restore removed games")};
+    case 8: {
+        QVariantList result{row("Edit Worlds","toggle",worldEditing()?"On":"Off")};
+        if(legacyTrash_)result.append(row("Previous game trash","action","Restore games removed by an earlier version"));
+        return result;
+    }
     default: return {};
     }
 }

@@ -1,5 +1,29 @@
 # TrainerOS Design Language
 
+## Environmental World cards — 2026-09-24
+
+The region browser uses three columns and two tall rows within its bounded
+viewport, a compact heading, and original schematic scenery across each card.
+ID-based tokens keep region personality stable after renaming: fields, shrine/
+forest, currents/islands, mountains, skyline, radial gardens, tropical leaves,
+stadium trusses and open routes. Unknown/custom Worlds use the route motif.
+One shared Canvas component caches static geometry; no decorative timer or
+per-frame paint runs. Names/counts sit on the quieter lower material and the
+golden outline remains dominant across shell themes.
+
+Explicit small-group pairs are Fiore/Almia (Ranger), Lental/Pokémon Island
+(photography) and Ferrum/Pokétopia (battle arenas). Each must have at most four
+distinct titles; large regions/custom Worlds stay standalone. Paired cards split
+diagonally with independent palettes, names and focus outlines. Up/Down traverses
+each half, then the adjacent row; Left/Right changes column. A opens the exact
+World and B restores it. Grouping never merges World IDs or game membership.
+
+Pokédex companions fit a common visible height in the name/header row, regardless
+of species size. The provider trims transparent padding consistently across all
+frames of one clip, caches that derivative and retains the original source.
+Aspect ratio and directional animation remain intact; source files are unchanged.
+Relative species scale is deferred to the living-Party/Playroom scene.
+
 **Target reconciliation — 2026-09-19:** dated refinements below preserve visual evidence; older Continue/saved-moment/resume-kind labels are historical and do not authorize state-resume behavior. Keep the approved chassis, golden internal focus and L1/R1 tabs. #9 reuses the drawer as shared **Choose Adventure**; cards use #49 clean exit images, title ribbons and honest ordinary-save/session metadata. No persistent Current Adventure capsule/chip.
 
 **Planned companion/content direction:** L2/R2 pairs Worlds/Multiverse, Dex/Center and Journey/RA with a compact indicator in existing chassis/header space. Practical Party/Storage stays stable; separate Playroom uses bounded actors and attached portrait panels. Classic illustrations are primary long-list Dex art; optional sprites animate detail/Home/Playroom. #56 enlarges World cards with cached low-contrast environmental linework and deliberate diagonal small-group pairs while preserving identity/golden focus. #47/#64 Journey uses larger game-accurate badge assets or neutral mounts, not generic crystals or a universal eight-badge assumption. [Badge acceptance](EXPANSION_63_64.md#accurate-league-badges-and-neutral-fallback). [Acceptance and artwork order](EXPANSION_42_62.md).
@@ -489,7 +513,8 @@ the whole title, deterministically from its identity, so browsing never changes
 its color. Long names fit within two lines; unavailable editions stay subdued.
 
 The Pokédex companion's corridor begins after the rendered species name and ends
-at the right wall. Preserve source-frame scale with a header height ceiling.
+at the right wall. Fit trimmed clips to the full header height, preserving aspect
+ratio but not differences in species size; those belong to the later Party scene.
 Optional directional walking, idle and sleep alternate with short random rests;
 an occasional step behind the right edge immediately turns into a return trip.
 Menus, hidden pages and Reduced Motion stop it. Missing clips do not fabricate

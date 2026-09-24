@@ -8,10 +8,14 @@ exit media and not an installation revision.
 Schema 12 adds the device-wide `preferences.world_editing` flag (default false)
 and `library_removals(adventure_id, trash_path)`. Removed registrations remain
 available for restore, scan identity and personal-history references, but are
-excluded from normal browsing. The recoverable trash intent commits before the
-same-filesystem ROM rename. Display-name/World edits retain content paths and
+excluded from normal browsing. Following the owner's permanent-deletion correction,
+new removals unlink the ROM and retain an empty `trash_path` tombstone; nonempty
+paths are legacy recoverable trash only. File deletion and SQLite commit are not
+one atomic transaction: a failure after unlink leaves an explicit error/missing
+file, never a claimed backup. Rediscovery can reattach a newly copied file under
+the same identity. Display-name/World edits retain content paths and
 increment the registration and its already-matching exit-media revisions together.
-See [library editing](BATOCERA_LIBRARY.md#contextual-library-editing--2026-09-24).
+See [library editing](BATOCERA_LIBRARY.md#permanent-deletion--owner-correction-2026-09-24).
 See [folder/media identity rules](BATOCERA_LIBRARY.md).
 
 **2026-09-23 domain binding:** schema 11 adds explicit Adventure domains and

@@ -159,9 +159,13 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
 }
 void ShellController::configureServices(FileCatalog* files, PreferencesRepository* preferences) {
     libraryManager_.files()->setCatalog(files); settings_.setRepository(preferences);
+    const auto records=repository_.registrations();
+    settings_.setLegacyTrashAvailable(std::any_of(records.cbegin(),records.cend(),[](const auto& r){return r.removed && !r.trashPath.isEmpty();}));
 }
 void ShellController::refreshLibrary() {
     worlds_.refresh(); libraryManager_.refresh(); multiverse_.refresh();
+    const auto records=repository_.registrations();
+    settings_.setLegacyTrashAvailable(std::any_of(records.cbegin(),records.cend(),[](const auto& r){return r.removed && !r.trashPath.isEmpty();}));
     if (page_ == 3) trainer_.refreshOverview();
     const QString selected = drawerFocus_ < points_.size() ? points_[drawerFocus_].id : QString();
     refreshContinue();

@@ -64,7 +64,7 @@ private slots:
         shell.dispatch(Action::SystemMenu);shell.dispatch(Action::Confirm);
         QCOMPARE(shell.service(),"settings");QVERIFY(!shell.libraryTools()->isOpen());
     }
-    void contextualEditsPreserveIdentityAndRestoreTrash() {
+    void contextualEditsDeleteRomAndPreserveIdentity() {
         QTemporaryDir dir; const auto rom=dir.filePath("fixture.gba"),save=dir.filePath("fixture.sav");
         fixtureFile(rom);fixtureFile(save);
         LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());
@@ -96,10 +96,10 @@ private slots:
         for(const auto& a:collection.adventures())if(a.catalogueId=="emerald-gba")missingEdition=a.collectionOnly;
         QVERIFY(missingEdition); // The full reference collection still includes the missing edition.
         const auto trash=store.registration(id)->trashPath;
-        QVERIFY(QFileInfo::exists(trash));QVERIFY(!QFileInfo::exists(rom));QVERIFY(QFileInfo::exists(save));
-        fixtureFile(rom); // Restore must never overwrite a replacement ROM.
-        run({LibraryEditKind::RestoreGame,id,3});QTRY_VERIFY(done);QVERIFY(!error.isEmpty());QVERIFY(QFileInfo::exists(trash));
-        QVERIFY(QFile::remove(rom));
+        QVERIFY(trash.isEmpty());QVERIFY(!QFileInfo::exists(rom));QVERIFY(QFileInfo::exists(save));
+        QVERIFY(!QFileInfo::exists(dir.filePath(".traineros-trash")));
+        run({LibraryEditKind::RestoreGame,id,3});QTRY_VERIFY(done);QVERIFY(!error.isEmpty());
+        fixtureFile(rom); // A newly added ROM can reuse the same library identity.
         run({LibraryEditKind::RestoreGame,id,3});QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));
         QCOMPARE(store.adventures().size(),1);QCOMPARE(store.registration(id)->revision,3);
         QFile restored(rom);QVERIFY(restored.open(QIODevice::ReadOnly));QCOMPARE(restored.readAll(),QByteArray("Original test data. Not a game or save.\n"));restored.close();
@@ -107,6 +107,17 @@ private slots:
         {Connection connection(dir.path());QSqlQuery q(connection.db);q.prepare("INSERT INTO library_removals VALUES(?,?)");q.addBindValue(id);q.addBindValue(dir.filePath("missing-trash/fixture.gba"));QVERIFY(q.exec());}
         run({LibraryEditKind::RestoreGame,id,3});QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));
         QVERIFY(QFileInfo::exists(rom));QVERIFY(!store.registration(id)->removed);
+        // Legacy trash remains recoverable but never overwrites a newer file.
+        const auto oldTrash=dir.filePath("old-trash/fixture.gba");QVERIFY(QDir().mkpath(QFileInfo(oldTrash).absolutePath()));fixtureFile(oldTrash);
+        {Connection connection(dir.path());QSqlQuery q(connection.db);q.prepare("INSERT INTO library_removals VALUES(?,?)");q.addBindValue(id);q.addBindValue(oldTrash);QVERIFY(q.exec());}
+        run({LibraryEditKind::RestoreGame,id,3});QTRY_VERIFY(done);QVERIFY(!error.isEmpty());QVERIFY(QFileInfo::exists(oldTrash));
+        QVERIFY(QFile::remove(rom));
+        run({LibraryEditKind::RestoreGame,id,3});QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));
+        // Shared discs/aliases must not be removed as an independent game.
+        fixtureFile(dir.filePath("set.m3u"));
+        {QFile playlist(dir.filePath("set.m3u"));QVERIFY(playlist.open(QIODevice::WriteOnly));playlist.write("fixture.gba\n");}
+        run({LibraryEditKind::RemoveGame,id,3});QTRY_VERIFY(done);QVERIFY(!error.isEmpty());QVERIFY(QFileInfo::exists(rom));
+        QVERIFY(QFile::remove(dir.filePath("set.m3u")));
         QVERIFY(QFile::rename(rom,rom+".offline"));
         run({LibraryEditKind::RemoveGame,id,3});QTRY_VERIFY(done);QVERIFY(!error.isEmpty());
         QVERIFY(!store.registration(id)->removed);QVERIFY(QFile::rename(rom+".offline",rom));

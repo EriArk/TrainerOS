@@ -238,6 +238,16 @@ void BatoceraLibrary::importNext() {
         const auto current=library_.registration(r.adventure.id);
         if(current) {
             if(QDir::cleanPath(current->contentPath)==QDir::cleanPath(r.contentPath))nextMedia_.insert(r.adventure.id,entry.media);
+            // A newly copied ROM may reuse its old identity and history. Legacy
+            // trash is restored explicitly and never overwrites a replacement.
+            if(current->removed && current->trashPath.isEmpty() && QFileInfo(current->contentPath).isFile()) {
+                if(!writing_) {writing_=true;emit writingChanged();}
+                library_.editLibraryAsync({LibraryEditKind::RestoreGame,current->adventure.id,current->revision},this,[this](const QString& error){
+                    if(error.isEmpty())++added_;else scan_.warnings.append(error);
+                    QTimer::singleShot(0,this,&BatoceraLibrary::importNext);
+                });
+                return;
+            }
             continue;
         }
         if(entry.existing)continue;

@@ -2,6 +2,7 @@
 #include "core/repository/CollectionRepository.h"
 #include "core/navigation/ResumePresentation.h"
 #include <algorithm>
+#include <QSet>
 
 namespace trainer {
 namespace {
@@ -91,6 +92,43 @@ QVariantList WorldsController::regions() const {
         result.append(QVariantMap{{"id", world.id}, {"name", world.name}, {"count", int(count)},
                                   {"owned", int(std::count_if(adventures_.begin(), adventures_.end(), [&](const auto& a) { return !a.collectionOnly && (a.worldId == world.id || a.additionalWorldIds.contains(world.id)); }))},
                                   {"status", statusLabel(world.status)}});
+    }
+    return result;
+}
+QList<QList<int>> WorldsController::regionGroups() const {
+    // Explicit thematic pairs; major regions and custom Worlds stay independent.
+    static const QHash<QString,QString> pairs{
+        {"fiore","almia"},{"almia","fiore"},
+        {"lental","pokemon-island"},{"pokemon-island","lental"},
+        {"ferrum","poketopia"},{"poketopia","ferrum"}};
+    const auto small=[&](const QString& id){
+        QSet<QString> titles;
+        for(const auto& a:adventures_)if(a.worldId==id || a.additionalWorldIds.contains(id))
+            titles.insert(a.catalogueId.isEmpty()?a.id:a.catalogueId);
+        return titles.size()<=4;
+    };
+    QList<QList<int>> result;QSet<int> used;
+    for(int i=0;i<worlds_.size();++i) {
+        if(used.contains(i))continue;
+        QList<int> group{i};used.insert(i);
+        const auto partner=pairs.value(worlds_[i].id);
+        if(!partner.isEmpty() && small(worlds_[i].id) && small(partner))
+            for(int j=i+1;j<worlds_.size();++j)if(!used.contains(j) && worlds_[j].id==partner){group.append(j);used.insert(j);break;}
+        result.append(group);
+    }
+    return result;
+}
+int WorldsController::regionTileIndex() const {
+    const auto groups=regionGroups();
+    for(int i=0;i<groups.size();++i)if(groups[i].contains(regionIndex()))return i;
+    return 0;
+}
+QVariantList WorldsController::regionTiles() const {
+    const auto entries=regions();QVariantList result;
+    for(const auto& group:regionGroups()) {
+        QVariantList members;
+        for(const int index:group){auto item=entries[index].toMap();item["index"]=index;members.append(item);}
+        result.append(QVariantMap{{"members",members}});
     }
     return result;
 }
@@ -329,12 +367,12 @@ void WorldsController::dispatch(Action action) {
     if (action == Action::Confirm) { activate(focusIndex()); return; }
     if (action == Action::Back) { back(); emit changed(); return; }
     if (route_ == Route::Regions && !worlds_.isEmpty()) {
-        int index = regionIndex();
-        if (action == Action::Left && index % 3 > 0) --index;
-        if (action == Action::Right && index % 3 < 2 && index + 1 < worlds_.size()) ++index;
-        if (action == Action::Up && index >= 3) index -= 3;
-        if (action == Action::Down && index + 3 < worlds_.size()) index += 3;
-        worldId_ = worlds_[index].id;
+        const auto groups=regionGroups();int tile=regionTileIndex(),part=groups[tile].indexOf(regionIndex());
+        if(action==Action::Left && tile%3>0)--tile;
+        if(action==Action::Right && tile%3<2 && tile+1<groups.size())++tile;
+        if(action==Action::Up) {if(part>0)--part;else if(tile>=3){tile-=3;part=groups[tile].size()-1;}}
+        if(action==Action::Down) {if(part+1<groups[tile].size())++part;else if(tile+3<groups.size()){tile+=3;part=0;}}
+        worldId_ = worlds_[groups[tile][std::min(part,int(groups[tile].size())-1)]].id;
     } else if (route_ == Route::Adventures) {
         const auto count = currentAdventures().size();
         const int index = adventureIndex();

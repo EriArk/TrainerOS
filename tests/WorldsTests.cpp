@@ -38,6 +38,25 @@ void tap(WorldsController& worlds, Action action, int count = 1) {
 class WorldsTests : public QObject {
     Q_OBJECT
 private slots:
+    void diagonalPairsKeepIndependentWorldRoutes() {
+        MutableLibrary library;RecordingAdapter adapter;
+        library.worldData={{"kanto","Kanto",{}},{"fiore","Fiore",{}},{"almia","Almia",{}},{"other","Custom",{}}};
+        library.adventureData.clear();WorldsController worlds(library,adapter);
+        QCOMPARE(worlds.regionTiles().size(),3);
+        tap(worlds,Action::Right);QCOMPARE(worlds.region()["id"].toString(),"fiore");
+        tap(worlds,Action::Down);QCOMPARE(worlds.region()["id"].toString(),"almia");QCOMPARE(worlds.regionTileIndex(),1);
+        tap(worlds,Action::Confirm);QCOMPARE(worlds.route(),"adventures");QCOMPARE(worlds.region()["id"].toString(),"almia");
+        tap(worlds,Action::Back);tap(worlds,Action::Up);QCOMPARE(worlds.region()["id"].toString(),"fiore");
+        tap(worlds,Action::Right);QCOMPARE(worlds.region()["id"].toString(),"other");
+        for(int i=0;i<5;++i){Adventure a;a.id=QString::number(i);a.worldId="fiore";library.adventureData.append(a);}
+        worlds.refresh();QCOMPARE(worlds.regionTiles().size(),4); // Large/custom Worlds are never silently merged.
+        QCOMPARE(worlds.region()["id"].toString(),"other");
+        library.adventureData.clear();
+        std::reverse(library.worldData.begin(),library.worldData.end());
+        worlds.refresh();QCOMPARE(worlds.regionTiles().size(),3);
+        tap(worlds,Action::Right);QCOMPARE(worlds.region()["id"].toString(),"almia");
+        tap(worlds,Action::Down);QCOMPARE(worlds.region()["id"].toString(),"fiore");
+    }
     void wheelUsesEditionMetadataWithoutInventingMissingFields() {
         MutableLibrary library;
         library.media={{"marquee","file:///edition-logo.png"},{"image","file:///edition-image.png"},

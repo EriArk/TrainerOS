@@ -183,7 +183,7 @@ qt_add_resources(traineros display_fonts PREFIX "/fonts" BASE assets/fonts
           assets/fonts/Bungee-Regular.ttf assets/fonts/Bungee-OFL.txt)
 target_link_libraries(traineros PRIVATE trainer_core Qt6::Quick)
 set_source_files_properties(src/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-file(GLOB trainer_qml_sources CONFIGURE_DEPENDS src/qml/*.qml)
+file(GLOB trainer_qml_sources CONFIGURE_DEPENDS src/qml/*.qml src/qml/*.js)
 foreach(qml_file IN LISTS trainer_qml_sources)
     get_filename_component(qml_name "${qml_file}" NAME)
     set_source_files_properties("${qml_file}" PROPERTIES QT_RESOURCE_ALIAS "${qml_name}")
@@ -233,6 +233,8 @@ qt_add_qml_module(traineros
         src/qml/TrainerPage.qml
         src/qml/TrainerEmblem.qml
         src/qml/WorldsPage.qml
+        src/qml/WorldCard.qml
+        src/qml/WorldThemes.js
         src/qml/MultiversePage.qml
         src/qml/MultiverseHome.qml
         src/qml/SystemGlyph.qml

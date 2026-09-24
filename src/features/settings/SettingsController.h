@@ -23,6 +23,7 @@ public:
     void setRepository(PreferencesRepository* repository) { repository_ = repository; reload(); }
     void reload();
     void setTrainersAvailable(bool value) { trainersAvailable_ = value; emit changed(); }
+    void setLegacyTrashAvailable(bool value) { if(legacyTrash_==value)return;legacyTrash_=value;if(category_==8)row_=0;emit changed(); }
     void begin() { category_ = 0; row_ = 0; pane_ = false; emit changed(); }
     int category() const { return category_; }
     int rowFocus() const { return row_; }
@@ -55,6 +56,7 @@ private:
     ShellPreferences value_;
     bool saving_ = false;
     bool trainersAvailable_ = false;
+    bool legacyTrash_ = false;
     QString error_;
     int category_ = 0, row_ = 0;
     bool pane_ = false;

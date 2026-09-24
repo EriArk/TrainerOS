@@ -33,9 +33,12 @@ reference-species presentation, not an observed Party member or save state.
 - Only the bounded header margin hosts movement; no full-screen wandering,
   click target, focus stop, Party logic, physics or shared scene engine is added.
   Pause/reset when covered, hidden, inactive or Reduced Motion is enabled. The
-  main sprite uses at most 2 logical units per source pixel, with a fit ceiling
-  for oversized cells. Small and large source sprites are not all stretched to
-  the same rectangle. This preserves source pixel scale, not literal metre ratios.
+  Dex companion fills the header's available height, preserving aspect ratio.
+  Transparent margins are trimmed using the union of all frames in each clip,
+  so individual frames do not change size or jitter. This supersedes the initial
+  two-unit pixel scale: the owner's 2026-09-24 clarification explicitly asks for
+  equal visible height here. Species-relative sizes belong to the later living
+  Party/Playroom scene; original sprite assets remain unchanged for that use.
 
 ## Source and private import
 

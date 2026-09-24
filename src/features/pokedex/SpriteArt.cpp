@@ -57,10 +57,12 @@ QVariantList SpriteArt::choices(const QString& exactForm) const {
     }
     return result;
 }
-QImage SpriteArt::requestImage(const QString& id, QSize* size, const QSize&) {
+QImage SpriteArt::requestImage(const QString& requestedId, QSize* size, const QSize&) {
+    const bool trimmed=requestedId.endsWith("/trimmed");
+    const QString id=trimmed ? requestedId.chopped(8) : requestedId;
     QMutexLocker guard(&mutex_);
     QImage image;
-    if (const auto* cached = cache_.object(id)) image = *cached;
+    if (const auto* cached = cache_.object(requestedId)) image = *cached;
     else if (assets_.contains(id)) {
         const QFileInfo info(QDir(directory_).filePath(assets_[id].toObject()["file"].toString()));
         // Recheck canonical containment on each uncached read, including symlinks.
@@ -81,7 +83,20 @@ QImage SpriteArt::requestImage(const QString& id, QSize* size, const QSize&) {
                 }
             }
         }
-        if (!image.isNull()) cache_.insert(id,new QImage(image),int(image.sizeInBytes()));
+        if (!image.isNull() && trimmed) {
+            const int frames=assets_[id].toObject()["frames"].toInt(1), width=image.width()/frames;
+            QRect bounds;
+            for(int y=0;y<image.height();++y)for(int x=0;x<image.width();++x)
+                if(qAlpha(image.pixel(x,y))>0)bounds=bounds.united(QRect(x%width,y,1,1));
+            if(!bounds.isEmpty()) {
+                QImage cropped(bounds.width()*frames,bounds.height(),QImage::Format_ARGB32);
+                cropped.fill(Qt::transparent);
+                for(int frame=0;frame<frames;++frame)for(int y=0;y<bounds.height();++y)for(int x=0;x<bounds.width();++x)
+                    cropped.setPixel(frame*bounds.width()+x,y,image.pixel(frame*width+bounds.x()+x,bounds.y()+y));
+                image=cropped;
+            }
+        }
+        if (!image.isNull()) cache_.insert(requestedId,new QImage(image),int(image.sizeInBytes()));
     }
     if (size) *size = image.size();
     return image;

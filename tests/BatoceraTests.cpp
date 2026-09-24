@@ -16,6 +16,18 @@ void put(const QString& path,const QByteArray& bytes="Test fixture, not a ROM.")
 class BatoceraTests final : public QObject {
     Q_OBJECT
 private slots:
+    void copiedRomReusesPermanentlyRemovedIdentity() {
+        QTemporaryDir dir;const auto file=dir.filePath("gba/Fixture.gba");put(file);
+        LocalStateStore store(dir.filePath("state"));store.open();QTRY_VERIFY(store.ready());
+        BatoceraLibrary folders(store,dir.path());QSignalSpy finished(&folders,&BatoceraLibrary::scanFinished);
+        folders.rescan();QTRY_COMPARE(finished.size(),1);QCOMPARE(store.adventures().size(),1);
+        const auto original=*store.registration(store.adventures()[0].id);bool done=false;
+        store.editLibraryAsync({LibraryEditKind::RemoveGame,original.adventure.id,original.revision},this,[&](auto error){QVERIFY(error.isEmpty());done=true;});QTRY_VERIFY(done);
+        QVERIFY(!QFileInfo::exists(file));QVERIFY(store.adventures().isEmpty());
+        folders.rescan();QTRY_COMPARE(finished.size(),2);QVERIFY(store.adventures().isEmpty());
+        put(file);folders.rescan();QTRY_COMPARE(finished.size(),3);QCOMPARE(store.adventures().size(),1);
+        QCOMPARE(store.adventures()[0].id,original.adventure.id);QCOMPARE(store.registrations().size(),1);
+    }
     void trashPlaylistKeepsDiscDependenciesOutOfTheWheel() {
         QTemporaryDir dir;put(dir.filePath("psx/Disc 1.chd"));
         const auto path=dir.filePath("psx/Story.m3u"),trash=dir.filePath("psx/.traineros-trash/id/Story.m3u");

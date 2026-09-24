@@ -15,6 +15,8 @@ class WorldsController final : public QObject {
     Q_PROPERTY(int regionIndex READ regionIndex NOTIFY changed)
     Q_PROPERTY(int adventureIndex READ adventureIndex NOTIFY changed)
     Q_PROPERTY(QVariantList regions READ regions NOTIFY contentChanged)
+    Q_PROPERTY(QVariantList regionTiles READ regionTiles NOTIFY contentChanged)
+    Q_PROPERTY(int regionTileIndex READ regionTileIndex NOTIFY changed)
     Q_PROPERTY(QVariantList adventures READ adventures NOTIFY contentChanged)
     Q_PROPERTY(QVariantMap region READ region NOTIFY changed)
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY changed)
@@ -28,6 +30,8 @@ public:
     int regionIndex() const;
     int adventureIndex() const;
     QVariantList regions() const;
+    QVariantList regionTiles() const;
+    int regionTileIndex() const;
     QVariantList adventures() const;
     QVariantMap region() const;
     QVariantMap detail() const;
@@ -54,6 +58,7 @@ private:
     std::optional<Adventure> currentAdventure() const;
     std::optional<ResumePoint> latestResume(const Adventure&) const;
     QList<DetailAction> detailActions() const;
+    QList<QList<int>> regionGroups() const;
     void back();
     void openRegion();
     void openDetail();

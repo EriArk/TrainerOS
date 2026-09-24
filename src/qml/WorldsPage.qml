@@ -24,16 +24,16 @@ Item {
     }
     Item {
         anchors.fill: parent; visible: root.regionsOpen
-        PageHeader { id: regionsHeader; title: "Worlds"; subtitle: "Choose a region. Find your next story." }
+        PageHeader { id: regionsHeader; title: "Worlds"; compact: true; trailing: root.shell.canEditWorld ? "" : (root.worlds.regionTileIndex + 1) + " / " + root.worlds.regionTiles.length }
         MountedPanel {
             x: 0; y: regionsHeader.height; width: parent.width; height: parent.height - y
             color: "#d4e2d6"
             Rectangle { width: parent.width; height: 2; color: "#b6cbbb" }
             GridView {
                 id: regionGrid
-                x: 26; y: 12; width: 864; height: 318
-                cellWidth: 288; cellHeight: 106; clip: true; interactive: false; keyNavigationEnabled: false
-                currentIndex: root.worlds.regionIndex
+                x: 22; y: 10; width: parent.width-44; height: parent.height-20
+                cellWidth: width/3; cellHeight: height/2; clip: true; interactive: false; keyNavigationEnabled: false
+                currentIndex: root.worlds.regionTileIndex
                 function revealCurrent() {
                     if (count && visible) positionViewAtIndex(currentIndex, GridView.Contain)
                     if (root.takesFocus && root.regionsOpen && currentItem) currentItem.control.forceActiveFocus(Qt.OtherFocusReason)
@@ -43,24 +43,32 @@ Item {
                 onModelChanged: Qt.callLater(revealCurrent)
                 onVisibleChanged: Qt.callLater(revealCurrent)
                 Connections { target: root; function onTakesFocusChanged() { Qt.callLater(regionGrid.revealCurrent) } }
-                    model: root.worlds.regions
+                    model: root.worlds.regionTiles
                     delegate: Item {
                         required property int index
                         required property var modelData
                         width: regionGrid.cellWidth; height: regionGrid.cellHeight
-                        property alias control: regionButton
-                        CapButton {
-                        id: regionButton; x: 4; y: 4
-                        objectName: "world-" + index
-                        width: 272; height: 90; textSize: 21
-                        label: modelData.name
-                        detail: modelData.count === 0 ? "No Adventures yet" : root.shell.sampleLibrary ? modelData.count + " Adventures · " + modelData.status : modelData.owned + " linked / " + modelData.count + " Adventures"
-                        tint: Theme.tabColors[index % Theme.tabColors.length]
-                        selected: root.regionsOpen && root.takesFocus && root.worlds.focusIndex === index
-                        onActivated: root.shell.activate(index)
+                        readonly property bool paired: modelData.members.length===2
+                        property var control: paired && root.worlds.regionIndex===modelData.members[1].index ? second : first
+                        WorldCard {
+                            id: first; x: 6; y: 6; width: parent.width-12; height: parent.height-14
+                            objectName: "world-" + entry.index
+                            entry: modelData.members[0]; portion: parent.paired ? "upper" : "whole"
+                            selected: root.regionsOpen && root.takesFocus && root.worlds.focusIndex===entry.index
+                        }
+                        WorldCard {
+                            id: second; x: first.x; y: first.y; width: first.width; height: first.height
+                            visible: parent.paired; entry: parent.paired ? modelData.members[1] : ({})
+                            objectName: parent.paired ? "world-" + entry.index : ""
+                            portion: "lower"
+                            selected: visible && root.regionsOpen && root.takesFocus && root.worlds.focusIndex===entry.index
+                        }
+                        MouseArea {
+                            anchors.fill: first
+                            onClicked: event => root.shell.activate(parent.modelData.members[parent.paired && event.y > height*.60-event.x/width*height*.20 ? 1 : 0].index)
+                        }
                     }
                 }
-            }
             Column {
                 x: 30; y: 30; spacing: 24; visible: root.worlds.regions.length === 0
                 Text { text: "Your Worlds will appear here."; color: Theme.muted; font.pixelSize: 22 }

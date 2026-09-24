@@ -4,7 +4,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QUuid>
+#include <QDirIterator>
 #include <algorithm>
 
 namespace trainer {
@@ -71,33 +71,36 @@ QString editLibrary(QSqlDatabase& db, const LibraryEdit& edit) {
             q.addBindValue(edit.revision+1);q.addBindValue(edit.id);q.addBindValue(edit.revision);
             if(!q.exec())return fail(failure());
         } else if(edit.kind==LibraryEditKind::RemoveGame) {
-            QString destination;
-            q.prepare("SELECT 1 FROM adventures WHERE content_path=? AND id<>? LIMIT 1");
-            q.addBindValue(path);q.addBindValue(edit.id);
-            if(!q.exec())return fail(failure());
-            if(q.next())return fail("Another library entry uses this ROM. Keep its file until those entries are separated.");
-            q.finish();
             const QFileInfo file(path);
-            if(edit.trashFile && !file.exists())return fail("The ROM is unavailable. Reconnect its storage before moving it to trash.");
-            if(edit.trashFile && file.exists()) {
-                if(!file.isAbsolute() || !file.isFile() || file.isSymLink())return fail("This file can't be moved to the game trash.");
-                const auto folder=QDir(file.absolutePath()).filePath(".traineros-trash/"+QUuid::createUuid().toString(QUuid::WithoutBraces));
-                if(!QDir().mkpath(folder))return fail("Couldn't create the game trash on this storage.");
-                destination=QDir(folder).filePath(file.fileName());
-            }
-            q.prepare("INSERT INTO library_removals(adventure_id,trash_path) VALUES(?,?)");q.addBindValue(edit.id);q.addBindValue(destination.isNull()?QString(""):destination);
+            if(!file.isAbsolute() || !file.isFile() || file.isSymLink())
+                return fail("The ROM is unavailable. Reconnect its storage and retry.");
+            // Multi-file installs require a reviewed file set, not recursive
+            // deletion of a directory that may also contain saves or other games.
+            if(QStringList{"cue","m3u","gdi","ccd","rpx"}.contains(file.suffix().toLower()))
+                return fail("This game uses several files. Manage them in Desktop Mode.");
+            q.prepare("SELECT content_path FROM adventures WHERE id<>?");
+            q.addBindValue(edit.id);
             if(!q.exec())return fail(failure());
-            // Commit the recoverable intent before the atomic same-filesystem
-            // rename. A power loss leaves Restore with either the original or
-            // trash path; it never overwrites an existing file.
-            if(!db.commit())return fail(failure());
-            if(!destination.isEmpty() && !QFile::rename(path,destination)) {
-                q.prepare("DELETE FROM library_removals WHERE adventure_id=?");q.addBindValue(edit.id);
-                if(!q.exec())return "The file stayed in place. Restore this game from Settings → Library.";
-                return "Couldn't move the game to trash. Its file has been kept.";
+            while(q.next()) if(QFileInfo(q.value(0).toString()).canonicalFilePath()==file.canonicalFilePath())
+                return fail("Another library entry uses this ROM. Its file has been kept.");
+            q.finish();
+            // A sibling playlist may use this disc even without its own entry.
+            QDirIterator lists(file.absolutePath(), {"*.m3u","*.M3U","*.cue","*.CUE","*.gdi","*.GDI"}, QDir::Files);
+            while(lists.hasNext()) {
+                QFile list(lists.next());
+                if(list.size()>1024*1024 || !list.open(QIODevice::ReadOnly))return fail("Couldn't check this game's related files. Its ROM has been kept.");
+                if(QString::fromUtf8(list.readAll()).contains(file.fileName(),Qt::CaseInsensitive))
+                    return fail("A disc set uses this ROM. Its file has been kept.");
             }
+            // The retained row is an identity/history tombstone, not a backup.
+            q.prepare("INSERT INTO library_removals(adventure_id,trash_path) VALUES(?,'')");q.addBindValue(edit.id);
+            if(!q.exec())return fail(failure());
+            if(!QFile::remove(path))return fail("Couldn't delete the ROM. Its file has been kept.");
+            if(!db.commit())return fail("The ROM was deleted, but the library couldn't be updated. Reconnect storage and rescan.");
             return {};
         } else if(edit.kind==LibraryEditKind::RestoreGame) {
+            if(trash.isEmpty() && (!QFileInfo(path).isFile() || QFileInfo(path).isSymLink()))
+                return fail("This ROM was permanently deleted. Add its file again to play.");
             if(!trash.isEmpty()) {
                 if(QFileInfo::exists(trash)) {
                     if(QFileInfo::exists(path))return fail("A file already occupies the original location. Move it aside before restoring.");

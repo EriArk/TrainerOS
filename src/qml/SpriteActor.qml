@@ -33,9 +33,9 @@ Item {
     onWidthChanged: reset()
     SpritePreview {
         id: actor; objectName: "dex-sprite-actor-frame"
-        y: 0; width: Math.min(86, root.width); height: root.height
+        y: 0; width: Math.min(root.width, cellHeight > 0 ? root.height * cellWidth / cellHeight : 86); height: root.height
         asset: root.clips[root.activity] || root.clips.Idle || ({})
-        pixelScale: 2; playing: root.active
+        pixelScale: 100; trimTransparentMargins: true; playing: root.active
     }
     Timer {
         interval: 6000 + Math.floor(Math.random() * 5000)

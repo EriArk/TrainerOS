@@ -18,7 +18,7 @@ void LibraryToolsController::beginWorld(const QString& id,bool enabled) {
 }
 void LibraryToolsController::beginTrash() {
     if(busy_)return;
-    trash_.clear();for(const auto& r:repository_.registrations())if(r.removed)trash_.append(r);
+    trash_.clear();for(const auto& r:repository_.registrations())if(r.removed && !r.trashPath.isEmpty())trash_.append(r);
     route_="trash";focus_=0;error_.clear();emit changed();
 }
 void LibraryToolsController::close() {if(!busy_){route_.clear();error_.clear();emit changed();}}
@@ -26,12 +26,12 @@ QString LibraryToolsController::title() const {
     if(route_=="trash")return "Game trash";
     if(route_=="world")return world_.name;
     if(route_=="move")return "Move to a World";
-    if(route_=="remove")return "Move to trash?";
+    if(route_=="remove")return "Удалить игру?";
     if(route_=="restore")return "Restore this game?";
     return game_.adventure.title;
 }
 QString LibraryToolsController::detail() const {
-    if(route_=="remove")return game_.adventure.title+"\nSaves and history stay with your Trainer.";
+    if(route_=="remove")return game_.adventure.title+"\nROM будет удалён навсегда. Сохранения и история останутся.";
     if(route_=="restore")return game_.adventure.title;
     if(route_=="trash" && trash_.isEmpty())return "The trash is empty.";
     if(route_=="properties") {
@@ -48,9 +48,9 @@ QString LibraryToolsController::detail() const {
 }
 QVariantList LibraryToolsController::rows() const {
     const auto row=[](const QString& label,bool enabled=true){return QVariantMap{{"label",label},{"enabled",enabled}};};
-    if(route_=="game")return {row("Rename"),row("Move",game_.adventure.domain=="pokemon"),row("Delete"),row("Properties")};
+    if(route_=="game")return {row("Rename"),row("Move",game_.adventure.domain=="pokemon"),row("Удалить"),row("Properties")};
     if(route_=="world")return {row("Rename World"),row("Done")};
-    if(route_=="remove")return {row("Keep game"),row("Move ROM to trash")};
+    if(route_=="remove")return {row("Отмена"),row("Удалить")};
     if(route_=="restore")return {row("Cancel"),row("Restore game")};
     if(route_=="properties")return {row("Back")};
     QVariantList result;

@@ -6,6 +6,7 @@ Item {
     property bool playing: false
     property int frame: 0
     property real pixelScale: 4
+    property bool trimTransparentMargins: false
     readonly property int frames: Math.max(1, asset.frames || 1)
     readonly property bool ready: sheet.status === Image.Ready
     readonly property bool animating: visible && playing && ready && frames > 1 && !Theme.reducedMotion && Qt.application.state === Qt.ApplicationActive
@@ -23,7 +24,7 @@ Item {
         clip: true
         Image {
             id: sheet
-            source: root.visible ? root.asset.url || "" : ""
+            source: root.visible && root.asset.url ? root.asset.url + (root.trimTransparentMargins ? "/trimmed" : "") : ""
             asynchronous: true; cache: false; smooth: false
             width: sourceSize.width * root.scaleFactor; height: sourceSize.height * root.scaleFactor
             x: -root.frame * root.cellWidth * root.scaleFactor

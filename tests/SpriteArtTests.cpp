@@ -27,6 +27,22 @@ class SpriteArtTests final : public QObject {
         manifest.write(QJsonDocument(root).toJson()); return id;
     }
 private slots:
+    void fittedCompanionCropsPaddingAcrossAllFrames() {
+        QTemporaryDir dir;QDir(dir.path()).mkpath("images");
+        QImage sheet(40,20,QImage::Format_ARGB32);sheet.fill(Qt::transparent);
+        sheet.setPixelColor(3,4,Qt::red);sheet.setPixelColor(27,12,Qt::blue);
+        QByteArray bytes;QBuffer buffer(&bytes);buffer.open(QIODevice::WriteOnly);QVERIFY(sheet.save(&buffer,"PNG"));
+        const auto id=QString::fromLatin1(QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex());
+        QFile image(dir.filePath("images/"+id+".png"));QVERIFY(image.open(QIODevice::WriteOnly));image.write(bytes);image.close();
+        QJsonObject asset{{"file","images/"+id+".png"},{"frames",2},{"frameWidth",20},{"durations",QJsonArray{100,100}},
+            {"credit","Original fixture"},{"source","Test"},{"license","Test"}};
+        QFile manifest(dir.filePath("sprite-index.json"));QVERIFY(manifest.open(QIODevice::WriteOnly));
+        manifest.write(QJsonDocument(QJsonObject{{"version",1},{"kind","pmd-detail-preview"},{"targets",QJsonObject{}},{"assets",QJsonObject{{id,asset}}}}).toJson());manifest.close();
+        SpriteArt sprites(dir.path());const auto fitted=sprites.requestImage(id+"/trimmed",nullptr,{});
+        QCOMPARE(fitted.size(),QSize(10,9));QCOMPARE(fitted.pixelColor(0,0),QColor(Qt::red));QCOMPARE(fitted.pixelColor(9,8),QColor(Qt::blue));
+        QCOMPARE(sprites.requestImage(id,nullptr,{}),sheet); // Original/private source is unchanged.
+        QCOMPARE(sprites.requestImage(id+"/trimmed",nullptr,{}),fitted);
+    }
     void exactIdentityAndBoundedDecode() {
         QTemporaryDir dir; auto id=fixture(dir.path()); QVERIFY(!id.isEmpty()); SpriteArt sprites(dir.path());
         QCOMPARE(sprites.choices("vulpix/37").size(),1);
