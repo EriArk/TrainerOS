@@ -4,7 +4,10 @@
 merchants discovered in the selected save. A opens a merchant/item confirmation,
 Left/Right adjusts quantity in its stock list, a second A confirms payment.
 B unwinds without purchasing; shared Y and paired triggers cannot retarget a
-shop. L1/R1 and Start retain global behavior. [Scope](EMERALD_SHOPS.md).
+shop. Discovered Lilycove departments, Slateport Market and Fortree furniture
+counters open through a building list. B returns from stock to departments, then
+to that building's previous position in the main list. L1/R1 and Start retain
+global behavior. [Scope](EMERALD_SHOPS.md).
 
 **Emerald Center, 2026-09-24:** Party member actions include Visit Pokémon Center.
 The nurse's room accepts A to heal the team and B to leave; no write occurs on

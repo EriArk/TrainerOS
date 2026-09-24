@@ -10,7 +10,7 @@ Item {
     readonly property bool active: visible && !shell.menuOpen && !shell.drawerOpen && !shell.notice.length
     Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset; anchors.topMargin: Theme.contentTopInset
-        PageHeader { id: header; compact: true; title: "Shops & Traders"; subtitle: root.shop.title; trailing: root.shop.shopBalance < 0 ? "" : (root.choice.currency || "₽") + " " + root.shop.shopBalance }
+        PageHeader { id: header; compact: true; title: "Shops & Traders"; subtitle: root.shop.shopGroup || root.shop.title; trailing: root.shop.shopBalance < 0 ? "" : (root.choice.currency || "₽") + " " + root.shop.shopBalance }
         Rectangle {
             id: room; y: header.height; width: parent.width; height: parent.height-y; color: "#e7f1eb"; clip: true
             Canvas {
@@ -45,7 +45,7 @@ Item {
                 delegate: CapButton {
                     required property int index; required property var modelData
                     objectName: "shop-merchant-"+index; width: stores.width; height: 51; label: modelData.name.replace(" Poké Mart", ""); detail: modelData.detail
-                    textSize: 17; tint: modelData.discovered ? Theme.blue : "#c8cfce"
+                    textSize: root.browsing && !root.shop.shopGroup.length ? 15 : 17; tint: modelData.discovered ? Theme.blue : "#c8cfce"
                     selected: root.active && root.browsing && index===root.shop.merchantIndex
                     onActivated: if(root.browsing)root.shop.shopActivate(index)
                 }
@@ -71,7 +71,7 @@ Item {
                 x: stock.x+stock.width+15; y: 131; width: parent.width-x-15; height: parent.height-y-17
                 color: "#fff1d2"; visible: !root.browsing
                 Text { x: 14; y: 13; width: parent.width-28; text: root.choice.item || ""; font.family: Theme.displayFamily; font.pixelSize: 21; color: Theme.ink; wrapMode: Text.WordWrap }
-                Text { x: 14; y: 64; text: "In Bag  " + (root.choice.owned || 0); font.pixelSize: 14; color: Theme.muted }
+                Text { x: 14; y: 64; text: (root.choice.kind === "decoration" ? "Owned  " : "In Bag  ") + (root.choice.owned || 0); font.pixelSize: 14; color: Theme.muted }
                 Text { x: 14; y: 91; text: "× " + root.shop.quantity; font.family: Theme.displayFamily; font.pixelSize: 31; color: "#527a83" }
                 Text { x: 14; y: 134; text: "Total   " + (root.choice.currency || "₽") + " " + (root.choice.total || 0); font.pixelSize: 18; font.bold: true; color: Theme.ink }
                 Text { x: 14; y: 167; width: parent.width-28; text: root.shop.shopMessage || root.choice.pocket || ""; font.pixelSize: 13; color: Theme.muted; wrapMode: Text.WordWrap }

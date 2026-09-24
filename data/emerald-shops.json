@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "source": "pret/pokeemerald",
   "revision": "5eff78649e7170a877b961ef0b3da13b81a16038",
   "items": {
@@ -1448,6 +1448,296 @@
       "price": 0,
       "pocket": 2
     },
+    "289": {
+      "name": "TM01 · Focus Punch",
+      "price": 3000,
+      "pocket": 4
+    },
+    "290": {
+      "name": "TM02 · Dragon Claw",
+      "price": 3000,
+      "pocket": 4
+    },
+    "291": {
+      "name": "TM03 · Water Pulse",
+      "price": 3000,
+      "pocket": 4
+    },
+    "292": {
+      "name": "TM04 · Calm Mind",
+      "price": 3000,
+      "pocket": 4
+    },
+    "293": {
+      "name": "TM05 · Roar",
+      "price": 1000,
+      "pocket": 4
+    },
+    "294": {
+      "name": "TM06 · Toxic",
+      "price": 3000,
+      "pocket": 4
+    },
+    "295": {
+      "name": "TM07 · Hail",
+      "price": 3000,
+      "pocket": 4
+    },
+    "296": {
+      "name": "TM08 · Bulk Up",
+      "price": 3000,
+      "pocket": 4
+    },
+    "297": {
+      "name": "TM09 · Bullet Seed",
+      "price": 3000,
+      "pocket": 4
+    },
+    "298": {
+      "name": "TM10 · Hidden Power",
+      "price": 3000,
+      "pocket": 4
+    },
+    "299": {
+      "name": "TM11 · Sunny Day",
+      "price": 2000,
+      "pocket": 4
+    },
+    "300": {
+      "name": "TM12 · Taunt",
+      "price": 3000,
+      "pocket": 4
+    },
+    "301": {
+      "name": "TM13 · Ice Beam",
+      "price": 3000,
+      "pocket": 4
+    },
+    "302": {
+      "name": "TM14 · Blizzard",
+      "price": 5500,
+      "pocket": 4
+    },
+    "303": {
+      "name": "TM15 · Hyper Beam",
+      "price": 7500,
+      "pocket": 4
+    },
+    "304": {
+      "name": "TM16 · Light Screen",
+      "price": 3000,
+      "pocket": 4
+    },
+    "305": {
+      "name": "TM17 · Protect",
+      "price": 3000,
+      "pocket": 4
+    },
+    "306": {
+      "name": "TM18 · Rain Dance",
+      "price": 2000,
+      "pocket": 4
+    },
+    "307": {
+      "name": "TM19 · Giga Drain",
+      "price": 3000,
+      "pocket": 4
+    },
+    "308": {
+      "name": "TM20 · Safeguard",
+      "price": 3000,
+      "pocket": 4
+    },
+    "309": {
+      "name": "TM21 · Frustration",
+      "price": 1000,
+      "pocket": 4
+    },
+    "310": {
+      "name": "TM22 · Solar Beam",
+      "price": 3000,
+      "pocket": 4
+    },
+    "311": {
+      "name": "TM23 · Iron Tail",
+      "price": 3000,
+      "pocket": 4
+    },
+    "312": {
+      "name": "TM24 · Thunderbolt",
+      "price": 3000,
+      "pocket": 4
+    },
+    "313": {
+      "name": "TM25 · Thunder",
+      "price": 5500,
+      "pocket": 4
+    },
+    "314": {
+      "name": "TM26 · Earthquake",
+      "price": 3000,
+      "pocket": 4
+    },
+    "315": {
+      "name": "TM27 · Return",
+      "price": 1000,
+      "pocket": 4
+    },
+    "316": {
+      "name": "TM28 · Dig",
+      "price": 2000,
+      "pocket": 4
+    },
+    "317": {
+      "name": "TM29 · Psychic",
+      "price": 2000,
+      "pocket": 4
+    },
+    "318": {
+      "name": "TM30 · Shadow Ball",
+      "price": 3000,
+      "pocket": 4
+    },
+    "319": {
+      "name": "TM31 · Brick Break",
+      "price": 3000,
+      "pocket": 4
+    },
+    "320": {
+      "name": "TM32 · Double Team",
+      "price": 2000,
+      "pocket": 4
+    },
+    "321": {
+      "name": "TM33 · Reflect",
+      "price": 3000,
+      "pocket": 4
+    },
+    "322": {
+      "name": "TM34 · Shock Wave",
+      "price": 3000,
+      "pocket": 4
+    },
+    "323": {
+      "name": "TM35 · Flamethrower",
+      "price": 3000,
+      "pocket": 4
+    },
+    "324": {
+      "name": "TM36 · Sludge Bomb",
+      "price": 1000,
+      "pocket": 4
+    },
+    "325": {
+      "name": "TM37 · Sandstorm",
+      "price": 2000,
+      "pocket": 4
+    },
+    "326": {
+      "name": "TM38 · Fire Blast",
+      "price": 5500,
+      "pocket": 4
+    },
+    "327": {
+      "name": "TM39 · Rock Tomb",
+      "price": 3000,
+      "pocket": 4
+    },
+    "328": {
+      "name": "TM40 · Aerial Ace",
+      "price": 3000,
+      "pocket": 4
+    },
+    "329": {
+      "name": "TM41 · Torment",
+      "price": 3000,
+      "pocket": 4
+    },
+    "330": {
+      "name": "TM42 · Facade",
+      "price": 3000,
+      "pocket": 4
+    },
+    "331": {
+      "name": "TM43 · Secret Power",
+      "price": 3000,
+      "pocket": 4
+    },
+    "332": {
+      "name": "TM44 · Rest",
+      "price": 3000,
+      "pocket": 4
+    },
+    "333": {
+      "name": "TM45 · Attract",
+      "price": 3000,
+      "pocket": 4
+    },
+    "334": {
+      "name": "TM46 · Thief",
+      "price": 3000,
+      "pocket": 4
+    },
+    "335": {
+      "name": "TM47 · Steel Wing",
+      "price": 3000,
+      "pocket": 4
+    },
+    "336": {
+      "name": "TM48 · Skill Swap",
+      "price": 3000,
+      "pocket": 4
+    },
+    "337": {
+      "name": "TM49 · Snatch",
+      "price": 3000,
+      "pocket": 4
+    },
+    "338": {
+      "name": "TM50 · Overheat",
+      "price": 3000,
+      "pocket": 4
+    },
+    "339": {
+      "name": "HM01 · Cut",
+      "price": 0,
+      "pocket": 4
+    },
+    "340": {
+      "name": "HM02 · Fly",
+      "price": 0,
+      "pocket": 4
+    },
+    "341": {
+      "name": "HM03 · Surf",
+      "price": 0,
+      "pocket": 4
+    },
+    "342": {
+      "name": "HM04 · Strength",
+      "price": 0,
+      "pocket": 4
+    },
+    "343": {
+      "name": "HM05 · Flash",
+      "price": 0,
+      "pocket": 4
+    },
+    "344": {
+      "name": "HM06 · Rock Smash",
+      "price": 0,
+      "pocket": 4
+    },
+    "345": {
+      "name": "HM07 · Waterfall",
+      "price": 0,
+      "pocket": 4
+    },
+    "346": {
+      "name": "HM08 · Dive",
+      "price": 0,
+      "pocket": 4
+    },
     "347": {
       "name": "????????",
       "price": 0,
@@ -1534,7 +1824,7 @@
       "pocket": 2
     },
     "364": {
-      "name": "Tm Case",
+      "name": "TM CASE · Case",
       "price": 0,
       "pocket": 2
     },
@@ -1599,6 +1889,613 @@
       "pocket": 2
     }
   },
+  "decorations": {
+    "0": {
+      "name": "Small Desk",
+      "price": 0,
+      "category": 0
+    },
+    "1": {
+      "name": "Small Desk",
+      "price": 3000,
+      "category": 0
+    },
+    "2": {
+      "name": "Pokémon Desk",
+      "price": 3000,
+      "category": 0
+    },
+    "3": {
+      "name": "Heavy Desk",
+      "price": 6000,
+      "category": 0
+    },
+    "4": {
+      "name": "Ragged Desk",
+      "price": 6000,
+      "category": 0
+    },
+    "5": {
+      "name": "Comfort Desk",
+      "price": 6000,
+      "category": 0
+    },
+    "6": {
+      "name": "Pretty Desk",
+      "price": 9000,
+      "category": 0
+    },
+    "7": {
+      "name": "Brick Desk",
+      "price": 9000,
+      "category": 0
+    },
+    "8": {
+      "name": "Camp Desk",
+      "price": 9000,
+      "category": 0
+    },
+    "9": {
+      "name": "Hard Desk",
+      "price": 9000,
+      "category": 0
+    },
+    "10": {
+      "name": "Small Chair",
+      "price": 2000,
+      "category": 1
+    },
+    "11": {
+      "name": "Pokémon Chair",
+      "price": 2000,
+      "category": 1
+    },
+    "12": {
+      "name": "Heavy Chair",
+      "price": 2000,
+      "category": 1
+    },
+    "13": {
+      "name": "Pretty Chair",
+      "price": 2000,
+      "category": 1
+    },
+    "14": {
+      "name": "Comfort Chair",
+      "price": 2000,
+      "category": 1
+    },
+    "15": {
+      "name": "Ragged Chair",
+      "price": 2000,
+      "category": 1
+    },
+    "16": {
+      "name": "Brick Chair",
+      "price": 2000,
+      "category": 1
+    },
+    "17": {
+      "name": "Camp Chair",
+      "price": 2000,
+      "category": 1
+    },
+    "18": {
+      "name": "Hard Chair",
+      "price": 2000,
+      "category": 1
+    },
+    "19": {
+      "name": "Red Plant",
+      "price": 3000,
+      "category": 2
+    },
+    "20": {
+      "name": "Tropical Plant",
+      "price": 3000,
+      "category": 2
+    },
+    "21": {
+      "name": "Pretty Flowers",
+      "price": 3000,
+      "category": 2
+    },
+    "22": {
+      "name": "Colorful Plant",
+      "price": 5000,
+      "category": 2
+    },
+    "23": {
+      "name": "Big Plant",
+      "price": 5000,
+      "category": 2
+    },
+    "24": {
+      "name": "Gorgeous Plant",
+      "price": 5000,
+      "category": 2
+    },
+    "25": {
+      "name": "Red Brick",
+      "price": 500,
+      "category": 3
+    },
+    "26": {
+      "name": "Yellow Brick",
+      "price": 500,
+      "category": 3
+    },
+    "27": {
+      "name": "Blue Brick",
+      "price": 500,
+      "category": 3
+    },
+    "28": {
+      "name": "Red Balloon",
+      "price": 500,
+      "category": 3
+    },
+    "29": {
+      "name": "Blue Balloon",
+      "price": 500,
+      "category": 3
+    },
+    "30": {
+      "name": "Yellow Balloon",
+      "price": 500,
+      "category": 3
+    },
+    "31": {
+      "name": "Red Tent",
+      "price": 10000,
+      "category": 3
+    },
+    "32": {
+      "name": "Blue Tent",
+      "price": 10000,
+      "category": 3
+    },
+    "33": {
+      "name": "Solid Board",
+      "price": 3000,
+      "category": 3
+    },
+    "34": {
+      "name": "Slide",
+      "price": 8000,
+      "category": 3
+    },
+    "35": {
+      "name": "Fence Length",
+      "price": 500,
+      "category": 3
+    },
+    "36": {
+      "name": "Fence Width",
+      "price": 500,
+      "category": 3
+    },
+    "37": {
+      "name": "Tire",
+      "price": 800,
+      "category": 3
+    },
+    "38": {
+      "name": "Stand",
+      "price": 7000,
+      "category": 3
+    },
+    "39": {
+      "name": "Mud Ball",
+      "price": 200,
+      "category": 3
+    },
+    "40": {
+      "name": "Breakable Door",
+      "price": 3000,
+      "category": 3
+    },
+    "41": {
+      "name": "Sand Ornament",
+      "price": 3000,
+      "category": 3
+    },
+    "42": {
+      "name": "Silver Shield",
+      "price": 0,
+      "category": 3
+    },
+    "43": {
+      "name": "Gold Shield",
+      "price": 0,
+      "category": 3
+    },
+    "44": {
+      "name": "Glass Ornament",
+      "price": 0,
+      "category": 3
+    },
+    "45": {
+      "name": "Tv",
+      "price": 3000,
+      "category": 3
+    },
+    "46": {
+      "name": "Round Tv",
+      "price": 4000,
+      "category": 3
+    },
+    "47": {
+      "name": "Cute Tv",
+      "price": 4000,
+      "category": 3
+    },
+    "48": {
+      "name": "Glitter Mat",
+      "price": 2000,
+      "category": 4
+    },
+    "49": {
+      "name": "Jump Mat",
+      "price": 2000,
+      "category": 4
+    },
+    "50": {
+      "name": "Spin Mat",
+      "price": 2000,
+      "category": 4
+    },
+    "51": {
+      "name": "C Low Note Mat",
+      "price": 500,
+      "category": 4
+    },
+    "52": {
+      "name": "D Note Mat",
+      "price": 500,
+      "category": 4
+    },
+    "53": {
+      "name": "E Note Mat",
+      "price": 500,
+      "category": 4
+    },
+    "54": {
+      "name": "F Note Mat",
+      "price": 500,
+      "category": 4
+    },
+    "55": {
+      "name": "G Note Mat",
+      "price": 500,
+      "category": 4
+    },
+    "56": {
+      "name": "A Note Mat",
+      "price": 500,
+      "category": 4
+    },
+    "57": {
+      "name": "B Note Mat",
+      "price": 500,
+      "category": 4
+    },
+    "58": {
+      "name": "C High Note Mat",
+      "price": 500,
+      "category": 4
+    },
+    "59": {
+      "name": "Surf Mat",
+      "price": 4000,
+      "category": 4
+    },
+    "60": {
+      "name": "Thunder Mat",
+      "price": 4000,
+      "category": 4
+    },
+    "61": {
+      "name": "Fire Blast Mat",
+      "price": 4000,
+      "category": 4
+    },
+    "62": {
+      "name": "Powder Snow Mat",
+      "price": 4000,
+      "category": 4
+    },
+    "63": {
+      "name": "Attract Mat",
+      "price": 4000,
+      "category": 4
+    },
+    "64": {
+      "name": "Fissure Mat",
+      "price": 4000,
+      "category": 4
+    },
+    "65": {
+      "name": "Spikes Mat",
+      "price": 4000,
+      "category": 4
+    },
+    "66": {
+      "name": "Ball Poster",
+      "price": 1000,
+      "category": 5
+    },
+    "67": {
+      "name": "Green Poster",
+      "price": 1000,
+      "category": 5
+    },
+    "68": {
+      "name": "Red Poster",
+      "price": 1000,
+      "category": 5
+    },
+    "69": {
+      "name": "Blue Poster",
+      "price": 1000,
+      "category": 5
+    },
+    "70": {
+      "name": "Cute Poster",
+      "price": 1000,
+      "category": 5
+    },
+    "71": {
+      "name": "Pika Poster",
+      "price": 1500,
+      "category": 5
+    },
+    "72": {
+      "name": "Long Poster",
+      "price": 1500,
+      "category": 5
+    },
+    "73": {
+      "name": "Sea Poster",
+      "price": 1500,
+      "category": 5
+    },
+    "74": {
+      "name": "Sky Poster",
+      "price": 1500,
+      "category": 5
+    },
+    "75": {
+      "name": "Kiss Poster",
+      "price": 1500,
+      "category": 5
+    },
+    "76": {
+      "name": "Pichu Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "77": {
+      "name": "Pikachu Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "78": {
+      "name": "Marill Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "79": {
+      "name": "Togepi Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "80": {
+      "name": "Cyndaquil Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "81": {
+      "name": "Chikorita Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "82": {
+      "name": "Totodile Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "83": {
+      "name": "Jigglypuff Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "84": {
+      "name": "Meowth Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "85": {
+      "name": "Clefairy Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "86": {
+      "name": "Ditto Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "87": {
+      "name": "Smoochum Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "88": {
+      "name": "Treecko Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "89": {
+      "name": "Torchic Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "90": {
+      "name": "Mudkip Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "91": {
+      "name": "Duskull Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "92": {
+      "name": "Wynaut Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "93": {
+      "name": "Baltoy Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "94": {
+      "name": "Kecleon Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "95": {
+      "name": "Azurill Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "96": {
+      "name": "Skitty Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "97": {
+      "name": "Swablu Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "98": {
+      "name": "Gulpin Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "99": {
+      "name": "Lotad Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "100": {
+      "name": "Seedot Doll",
+      "price": 3000,
+      "category": 6
+    },
+    "101": {
+      "name": "Pika Cushion",
+      "price": 2000,
+      "category": 7
+    },
+    "102": {
+      "name": "Round Cushion",
+      "price": 2000,
+      "category": 7
+    },
+    "103": {
+      "name": "Kiss Cushion",
+      "price": 2000,
+      "category": 7
+    },
+    "104": {
+      "name": "Zigzag Cushion",
+      "price": 2000,
+      "category": 7
+    },
+    "105": {
+      "name": "Spin Cushion",
+      "price": 2000,
+      "category": 7
+    },
+    "106": {
+      "name": "Diamond Cushion",
+      "price": 2000,
+      "category": 7
+    },
+    "107": {
+      "name": "Ball Cushion",
+      "price": 2000,
+      "category": 7
+    },
+    "108": {
+      "name": "Grass Cushion",
+      "price": 2000,
+      "category": 7
+    },
+    "109": {
+      "name": "Fire Cushion",
+      "price": 2000,
+      "category": 7
+    },
+    "110": {
+      "name": "Water Cushion",
+      "price": 2000,
+      "category": 7
+    },
+    "111": {
+      "name": "Snorlax Doll",
+      "price": 10000,
+      "category": 6
+    },
+    "112": {
+      "name": "Rhydon Doll",
+      "price": 10000,
+      "category": 6
+    },
+    "113": {
+      "name": "Lapras Doll",
+      "price": 10000,
+      "category": 6
+    },
+    "114": {
+      "name": "Venusaur Doll",
+      "price": 10000,
+      "category": 6
+    },
+    "115": {
+      "name": "Charizard Doll",
+      "price": 10000,
+      "category": 6
+    },
+    "116": {
+      "name": "Blastoise Doll",
+      "price": 10000,
+      "category": 6
+    },
+    "117": {
+      "name": "Wailmer Doll",
+      "price": 10000,
+      "category": 6
+    },
+    "118": {
+      "name": "Regirock Doll",
+      "price": 10000,
+      "category": 6
+    },
+    "119": {
+      "name": "Regice Doll",
+      "price": 10000,
+      "category": 6
+    },
+    "120": {
+      "name": "Registeel Doll",
+      "price": 10000,
+      "category": 6
+    }
+  },
   "merchants": [
     {
       "id": "oldaletown-mart",
@@ -1611,6 +2508,7 @@
         18,
         17
       ],
+      "kind": "item",
       "expandedFlag": 116,
       "expandedStock": [
         4,
@@ -1638,6 +2536,7 @@
         76,
         121
       ],
+      "kind": "item",
       "expandedFlag": 296,
       "expandedStock": [
         4,
@@ -1672,6 +2571,7 @@
         75,
         76
       ],
+      "kind": "item",
       "expandedFlag": 287,
       "expandedStock": [
         4,
@@ -1703,7 +2603,8 @@
         85,
         86,
         122
-      ]
+      ],
+      "kind": "item"
     },
     {
       "id": "mauvillecity-mart",
@@ -1723,7 +2624,8 @@
         73,
         74,
         78
-      ]
+      ],
+      "kind": "item"
     },
     {
       "id": "verdanturftown-mart",
@@ -1742,7 +2644,8 @@
         86,
         79,
         81
-      ]
+      ],
+      "kind": "item"
     },
     {
       "id": "fallarbortown-mart",
@@ -1762,7 +2665,8 @@
         76,
         74,
         73
-      ]
+      ],
+      "kind": "item"
     },
     {
       "id": "lavaridgetown-mart",
@@ -1779,7 +2683,8 @@
         24,
         83,
         77
-      ]
+      ],
+      "kind": "item"
     },
     {
       "id": "fortreecity-mart",
@@ -1797,7 +2702,8 @@
         24,
         83,
         125
-      ]
+      ],
+      "kind": "item"
     },
     {
       "id": "mossdeepcity-mart",
@@ -1814,7 +2720,8 @@
         84,
         75,
         76
-      ]
+      ],
+      "kind": "item"
     },
     {
       "id": "sootopoliscity-mart",
@@ -1831,7 +2738,469 @@
         75,
         76,
         128
+      ],
+      "kind": "item"
+    },
+    {
+      "id": "lilycove-2f-0",
+      "name": "2F · Travel supplies",
+      "location": "Lilycove City",
+      "visitedFlag": 2171,
+      "stock": [
+        4,
+        3,
+        2,
+        85,
+        23,
+        14,
+        18,
+        15,
+        16,
+        17,
+        81
+      ],
+      "kind": "item",
+      "group": "Lilycove Department Store"
+    },
+    {
+      "id": "lilycove-2f-1",
+      "name": "2F · Medicine",
+      "location": "Lilycove City",
+      "visitedFlag": 2171,
+      "stock": [
+        13,
+        22,
+        21,
+        20,
+        24,
+        86,
+        83,
+        84,
+        126,
+        124
+      ],
+      "kind": "item",
+      "group": "Lilycove Department Store"
+    },
+    {
+      "id": "lilycove-3f-0",
+      "name": "3F · Vitamins",
+      "location": "Lilycove City",
+      "visitedFlag": 2171,
+      "stock": [
+        64,
+        67,
+        65,
+        70,
+        66,
+        63
+      ],
+      "kind": "item",
+      "group": "Lilycove Department Store"
+    },
+    {
+      "id": "lilycove-3f-1",
+      "name": "3F · Battle items",
+      "location": "Lilycove City",
+      "visitedFlag": 2171,
+      "stock": [
+        77,
+        79,
+        75,
+        76,
+        74,
+        73,
+        78
+      ],
+      "kind": "item",
+      "group": "Lilycove Department Store"
+    },
+    {
+      "id": "lilycove-4f-0",
+      "name": "4F · Attack TMs",
+      "location": "Lilycove City",
+      "visitedFlag": 2171,
+      "stock": [
+        326,
+        313,
+        302,
+        303
+      ],
+      "kind": "item",
+      "group": "Lilycove Department Store"
+    },
+    {
+      "id": "lilycove-4f-1",
+      "name": "4F · Defense TMs",
+      "location": "Lilycove City",
+      "visitedFlag": 2171,
+      "stock": [
+        305,
+        308,
+        321,
+        304
+      ],
+      "kind": "item",
+      "group": "Lilycove Department Store"
+    },
+    {
+      "id": "lilycove-5f-0",
+      "name": "5F · Dolls",
+      "location": "Lilycove City",
+      "visitedFlag": 2171,
+      "stock": [
+        76,
+        77,
+        78,
+        83,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98
+      ],
+      "kind": "decoration",
+      "group": "Lilycove Department Store"
+    },
+    {
+      "id": "lilycove-5f-1",
+      "name": "5F · Cushions",
+      "location": "Lilycove City",
+      "visitedFlag": 2171,
+      "stock": [
+        101,
+        102,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110
+      ],
+      "kind": "decoration",
+      "group": "Lilycove Department Store"
+    },
+    {
+      "id": "lilycove-5f-2",
+      "name": "5F · Posters",
+      "location": "Lilycove City",
+      "visitedFlag": 2171,
+      "stock": [
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74
+      ],
+      "kind": "decoration",
+      "group": "Lilycove Department Store"
+    },
+    {
+      "id": "lilycove-5f-3",
+      "name": "5F · Mats",
+      "location": "Lilycove City",
+      "visitedFlag": 2171,
+      "stock": [
+        59,
+        60,
+        61,
+        62,
+        63,
+        64,
+        65,
+        48,
+        49,
+        50
+      ],
+      "kind": "decoration",
+      "group": "Lilycove Department Store"
+    },
+    {
+      "id": "lilycove-rooftop-drinks",
+      "name": "Rooftop · Drinks",
+      "location": "Lilycove City",
+      "visitedFlag": 2171,
+      "stock": [
+        26,
+        27,
+        28
+      ],
+      "kind": "item",
+      "group": "Lilycove Department Store",
+      "roof": true,
+      "vending": true,
+      "limit": 1
+    },
+    {
+      "id": "lilycove-rooftop-sale",
+      "name": "Rooftop · Clear-out sale",
+      "location": "Lilycove City",
+      "visitedFlag": 2171,
+      "stock": [
+        39,
+        35,
+        36,
+        37,
+        40,
+        33,
+        41,
+        38,
+        34,
+        45,
+        46,
+        47,
+        117,
+        112
+      ],
+      "kind": "decoration",
+      "group": "Lilycove Department Store",
+      "roof": true,
+      "news": 3
+    },
+    {
+      "id": "lavaridgetown_herbshop-0",
+      "name": "Herb Shop",
+      "location": "Herb Shop",
+      "visitedFlag": 2162,
+      "stock": [
+        30,
+        31,
+        32,
+        33
+      ],
+      "kind": "item"
+    },
+    {
+      "id": "fortreecity_decorationshop-0",
+      "name": "Desks",
+      "location": "Fortree Decoration Shop",
+      "visitedFlag": 2170,
+      "stock": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        7,
+        8,
+        9
+      ],
+      "kind": "decoration",
+      "group": "Fortree Decoration Shop"
+    },
+    {
+      "id": "fortreecity_decorationshop-1",
+      "name": "Chairs",
+      "location": "Fortree Decoration Shop",
+      "visitedFlag": 2170,
+      "stock": [
+        10,
+        11,
+        12,
+        15,
+        14,
+        16,
+        17,
+        18
+      ],
+      "kind": "decoration",
+      "group": "Fortree Decoration Shop"
+    },
+    {
+      "id": "route104_prettypetalflowershop-0",
+      "name": "Pretty Petal Flower Shop",
+      "location": "Pretty Petal Flower Shop",
+      "visitedFlag": 2204,
+      "stock": [
+        19,
+        20,
+        21,
+        22,
+        23,
+        24
+      ],
+      "kind": "decoration",
+      "requiredFlags": [
+        127,
+        2153
       ]
+    },
+    {
+      "id": "battlefrontier_mart-0",
+      "name": "Battle Frontier Poké Mart",
+      "location": "Battle Frontier Poké Mart",
+      "visitedFlag": 2216,
+      "stock": [
+        2,
+        21,
+        20,
+        19,
+        23,
+        24,
+        84,
+        64,
+        67,
+        65,
+        70,
+        66,
+        63
+      ],
+      "kind": "item"
+    },
+    {
+      "id": "evergrandecity_pokemonleague_1f-0",
+      "name": "Pokémon League Poké Mart",
+      "location": "Pokémon League Poké Mart",
+      "visitedFlag": 2228,
+      "stock": [
+        2,
+        21,
+        20,
+        19,
+        23,
+        24,
+        84
+      ],
+      "kind": "item"
+    },
+    {
+      "id": "trainerhill_entrance-0",
+      "name": "Trainer Hill Poké Mart",
+      "location": "Trainer Hill Poké Mart",
+      "visitedFlag": 2274,
+      "stock": [
+        22,
+        14,
+        18,
+        17,
+        77,
+        79,
+        75,
+        76,
+        74,
+        73,
+        78
+      ],
+      "kind": "item",
+      "expandedFlag": 2148,
+      "expandedStock": [
+        21,
+        20,
+        19,
+        23,
+        24,
+        77,
+        79,
+        75,
+        76,
+        74,
+        73,
+        78
+      ]
+    },
+    {
+      "id": "slateport-market-0",
+      "name": "Energy Guru",
+      "location": "Slateport City",
+      "visitedFlag": 2167,
+      "stock": [
+        64,
+        65,
+        66,
+        70,
+        67,
+        63
+      ],
+      "kind": "item",
+      "group": "Slateport Market",
+      "discountNews": 1
+    },
+    {
+      "id": "slateport-market-1",
+      "name": "Dolls",
+      "location": "Slateport City",
+      "visitedFlag": 2167,
+      "stock": [
+        95,
+        78,
+        96
+      ],
+      "kind": "decoration",
+      "group": "Slateport Market"
+    },
+    {
+      "id": "slateport-market-2",
+      "name": "Decorations",
+      "location": "Slateport City",
+      "visitedFlag": 2167,
+      "stock": [
+        25,
+        27,
+        26,
+        28,
+        29,
+        30,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58
+      ],
+      "kind": "decoration",
+      "group": "Slateport Market",
+      "requiredFlags": [
+        96
+      ]
+    },
+    {
+      "id": "slateport-market-3",
+      "name": "Power TMs",
+      "location": "Slateport City",
+      "visitedFlag": 2167,
+      "stock": [
+        298,
+        331
+      ],
+      "kind": "item",
+      "group": "Slateport Market",
+      "hiddenFlag": 948
+    },
+    {
+      "id": "mt-chimney-cookies",
+      "name": "Lava Cookie stall",
+      "location": "Mt. Chimney",
+      "visitedFlag": 139,
+      "stock": [
+        38
+      ],
+      "kind": "item",
+      "hiddenFlag": 994,
+      "limit": 1
+    },
+    {
+      "id": "seashore-drinks",
+      "name": "Seashore House",
+      "location": "Route 109",
+      "visitedFlag": 2207,
+      "stock": [
+        27
+      ],
+      "kind": "item",
+      "requiredFlags": [
+        140
+      ],
+      "limit": 1
     }
   ]
 }

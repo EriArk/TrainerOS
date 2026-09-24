@@ -85,8 +85,9 @@ Playroom, and can restore Party HP, status and move PP for the verified English
 Emerald build. Treatment keeps a verified backup first and is loaded by the next
 normal game launch. [Healing scope and recovery](docs/EMERALD_HEALING.md).
 
-Center also offers eleven Emerald Poké Marts with save-based discovery and stock,
-quantity selection and protected purchases. Money and Bag contents change together;
+Center also offers 36 Emerald shop counters, grouped departments, TM and decoration
+purchases, with save-based discovery and stock,
+quantity selection and protected purchases. Money and owned contents change together;
 each purchase keeps a restorable backup. [Shop scope](docs/EMERALD_SHOPS.md).
 
 ### Trainer and Hall of Fame

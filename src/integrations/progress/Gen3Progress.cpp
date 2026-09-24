@@ -1,6 +1,7 @@
 #include "Gen3Progress.h"
 #include "EmeraldParty.h"
 #include "EmeraldShops.h"
+#include <QRandomGenerator>
 #include <QtEndian>
 #include <array>
 #include <algorithm>
@@ -115,7 +116,7 @@ MerchantSnapshot readEmeraldShops(const QByteArray& save,const QString& hash) {
 }
 MerchantWrite buyEmeraldItems(const QByteArray& save,const QString& hash,const MerchantPurchase& request) {
     const auto slot=shopSlot(save,hash);if(!slot)return {{},"This Emerald save could not be verified.",{}};
-    const auto purchase=buyEmeraldShopBlock(worldBlock(*slot),u32(slot->blocks[0],0xac),request);
+    const auto purchase=buyEmeraldShopBlock(worldBlock(*slot),u32(slot->blocks[0],0xac),request,QRandomGenerator::global()->bounded(4096u));
     if(purchase.data.isEmpty())return purchase;
     auto result=save;
     for(int id=1;id<=4;++id){

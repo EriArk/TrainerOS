@@ -25,6 +25,7 @@ class SaveCenterController final : public QObject {
     Q_PROPERTY(int partyCount READ partyCount NOTIFY changed)
     Q_PROPERTY(bool shopsOpen READ shopsOpen NOTIFY changed)
     Q_PROPERTY(QString shopRoute READ shopRoute NOTIFY changed)
+    Q_PROPERTY(QString shopGroup READ shopGroup NOTIFY changed)
     Q_PROPERTY(QVariantList merchants READ merchants NOTIFY changed)
     Q_PROPERTY(QVariantList shopStock READ shopStock NOTIFY changed)
     Q_PROPERTY(QVariantMap shopSelection READ shopSelection NOTIFY changed)
@@ -58,6 +59,7 @@ public:
     Q_INVOKABLE void shopActivate(int index);
     bool shopsOpen() const {return shopsOpen_;}
     QString shopRoute() const {return shopRoute_;}
+    QString shopGroup() const {return shopGroup_;}
     QVariantList merchants() const;
     QVariantList shopStock() const;
     QVariantMap shopSelection() const;
@@ -105,8 +107,11 @@ private:
     void dispatchShop(Action);
     void purchase();
     const Merchant* merchant() const;
+    QList<int> merchantRows() const;
     bool shopsOpen_=false;
     QString shopRoute_="merchants",shopMessage_;
+    QString shopGroup_;
+    int groupParentIndex_=0;
     int merchantIndex_=0,stockIndex_=0,quantity_=1;
 };
 }

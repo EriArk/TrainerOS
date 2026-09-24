@@ -1,3 +1,8 @@
+#include "integrations/progress/EmeraldShops.h"
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QFile>
 #include "integrations/progress/Gen3Progress.h"
 #include "integrations/progress/EmeraldParty.h"
 #include "integrations/progress/GameProgressService.h"
@@ -79,6 +84,60 @@ QByteArray pokemonFixture(quint32 personality = 0, int species = 25, bool egg = 
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void emeraldSpecialShopsRespectStockStorageAndConditions() {
+        constexpr quint32 key=0x1234abcd;
+        QByteArray world(0x3d88,0);
+        for(auto p:{std::pair{0x560,30},std::pair{0x650,16},std::pair{0x690,64}})
+            for(int i=0;i<p.second;++i)put16(world,p.first+4*i+2,quint16(key));
+        put32(world,0x490,999999^key);
+        QVERIFY(readEmeraldShopBlock(world,key).supported);
+        QFile file(":/progress/emerald-shops.json");QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto facts=QJsonDocument::fromJson(file.readAll()).object();
+        auto flag=[&](int id){if(id>0)world[0x1270+id/8]=char(quint8(world[0x1270+id/8])|(1<<(id%8)));};
+        for(const auto& value:facts["merchants"].toArray()){
+            const auto m=value.toObject();flag(m["visitedFlag"].toInt());flag(m["expandedFlag"].toInt());
+            for(auto f:m["requiredFlags"].toArray())flag(f.toInt());
+        }
+        world[0x2b50]=1;world[0x2b51]=2;world[0x2b54]=3;world[0x2b55]=2;
+        const auto state=readEmeraldShopBlock(world,key);QVERIFY(state.supported);QCOMPARE(state.merchants.size(),36);
+        int departments=0,offers=0;
+        for(const auto& m:state.merchants){
+            QVERIFY2(m.discovered&&m.available,qPrintable(m.id));if(m.group=="Lilycove Department Store")++departments;
+            for(const auto& item:m.stock){
+                const auto bought=buyEmeraldShopBlock(world,key,{m.id,item.itemId,1,item.kind});
+                QVERIFY2(bought.error.isEmpty(),qPrintable(m.id+": "+item.name+": "+bought.error));
+                QCOMPARE(readEmeraldShopBlock(bought.data,key).balance,999999-item.price);++offers;
+                for(int at=0;at<world.size();++at){
+                    if((at>=0x490&&at<0x494)||(at>=0x560&&at<0x5d8)||(at>=0x650&&at<0x790)||(at>=0x2734&&at<0x27ca))continue;
+                    QCOMPARE(bought.data[at],world[at]);
+                }
+            }
+        }
+        QCOMPARE(departments,12);QVERIFY(offers>180);
+        const auto get=[&](const QString& id){for(const auto& m:readEmeraldShopBlock(world,key).merchants)if(m.id==id)return m;return Merchant{};};
+        QCOMPARE(get("slateport-market-0").stock[0].price,4900);
+        QCOMPARE(get("lilycove-3f-0").stock[0].price,9800);
+        const auto tm=get("lilycove-4f-0").stock[0];
+        put16(world,0x690,tm.itemId);put16(world,0x692,98^quint16(key));
+        QVERIFY(!buyEmeraldShopBlock(world,key,{"lilycove-4f-0",tm.itemId,2}).error.isEmpty());
+        QVERIFY(buyEmeraldShopBlock(world,key,{"lilycove-4f-0",tm.itemId,1}).error.isEmpty());
+        // Decorations cannot be confused with same-numbered Bag items or exceed category capacity.
+        const auto doll=get("lilycove-5f-0").stock[0];
+        QVERIFY(!buyEmeraldShopBlock(world,key,{"lilycove-5f-0",doll.itemId,1,"item"}).error.isEmpty());
+        const auto bought=buyEmeraldShopBlock(world,key,{"lilycove-5f-0",doll.itemId,1,"decoration"});
+        QCOMPARE(quint8(bought.data[0x2798]),quint8(doll.itemId));
+        for(int i=0;i<40;++i)world[0x2798+i]=char(doll.itemId);
+        QVERIFY(!buyEmeraldShopBlock(world,key,{"lilycove-5f-0",doll.itemId,1,"decoration"}).error.isEmpty());
+        world[0x2798]=1;QVERIFY(!readEmeraldShopBlock(world,key).supported);world[0x2798]=char(doll.itemId);
+        // The roof remains known, but weather and the news event control availability.
+        put16(world,0x139c+2*0x5e,2);QVERIFY(!get("lilycove-rooftop-drinks").available);
+        put16(world,0x139c+2*0x5e,0);world[0x2b55]=0;QVERIFY(!get("lilycove-rooftop-sale").available);
+        const auto drink=get("lilycove-rooftop-drinks").stock[0];
+        const auto extra=buyEmeraldShopBlock(world,key,{"lilycove-rooftop-drinks",drink.itemId,1},0);
+        QVERIFY(extra.message.contains("2 extra drinks"));
+        QCOMPARE(qFromLittleEndian<quint16>(extra.data.constData()+0x562)^quint16(key),3);
+        QVERIFY(!buyEmeraldShopBlock(world,key,{"lilycove-rooftop-drinks",drink.itemId,2}).error.isEmpty());
+    }
     void emeraldShopsFollowFlagsAndProtectPurchases() {
         for(int rotation=0;rotation<14;++rotation)for(quint32 key:{0u,0x85ce1972u}) {
             auto bytes=slot(Gen3Edition::Emerald,0xffffffffu,3,0,0)+slot(Gen3Edition::Emerald,0,rotation,0,0)+QByteArray(0x4000,char(0xff));
@@ -86,8 +145,8 @@ private slots:
             auto seal=[&]{for(int id=0;id<14;++id){const int at=(14+(id+rotation)%14)*0x1000,n=id==0?0xf2c:id==4?0xf08:id==13?0x7d0:0xf80;quint32 sum=0;for(int p=0;p<n;p+=4)sum+=qFromLittleEndian<quint32>(bytes.constData()+at+p);put16(bytes,at+0xff6,quint16((sum>>16)+sum));}};
             auto flag=[&](int id){const int at=block2+0x1270-0xf80+id/8;bytes[at]=char(quint8(bytes[at])|(1<<(id%8)));};
             put32(bytes,block0+0xac,key);put32(bytes,block1+0x490,10000^key);
-            for(auto pocket: {std::pair{0x560,30},std::pair{0x650,16}})for(int i=0;i<pocket.second;++i)put16(bytes,block1+pocket.first+4*i+2,quint16(key));
-            seal();const auto hidden=readEmeraldShops(bytes,EmeraldHash);QVERIFY(hidden.supported);QCOMPARE(hidden.merchants.size(),11);
+            for(auto pocket: {std::pair{0x560,30},std::pair{0x650,16},std::pair{0x690,64}})for(int i=0;i<pocket.second;++i)put16(bytes,block1+pocket.first+4*i+2,quint16(key));
+            seal();const auto hidden=readEmeraldShops(bytes,EmeraldHash);QVERIFY(hidden.supported);QCOMPARE(hidden.merchants.size(),36);
             for(const auto& m:hidden.merchants){QCOMPARE(m.name,"???");QVERIFY(m.id.isEmpty());QVERIFY(m.location.isEmpty());QVERIFY(m.stock.isEmpty());QVERIFY(!m.discovered);}
             QVERIFY(buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",13,1}).data.isEmpty());
             flag(0x870);seal();auto state=readEmeraldShops(bytes,EmeraldHash);QVERIFY(state.merchants[0].discovered);QCOMPARE(state.merchants[0].stock.size(),4);
@@ -110,6 +169,15 @@ private slots:
             QCOMPARE(qFromLittleEndian<quint16>(purchase.data.constData()+block1+0x656)^quint16(key),2);
             for(int i=0;i<16;++i){put16(bytes,block1+0x650+4*i,4);put16(bytes,block1+0x652+4*i,99^quint16(key));}seal();
             QVERIFY(buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",4,1}).data.isEmpty());
+            // A decoration lives in another logical sector; preserve every unrelated byte.
+            flag(0x87b);seal();
+            Merchant store;for(const auto& m:readEmeraldShops(bytes,EmeraldHash).merchants)if(m.id=="lilycove-5f-0")store=m;
+            QVERIFY(!store.stock.isEmpty());const auto doll=store.stock[0];
+            const auto furnished=buyEmeraldItems(bytes,EmeraldHash,{store.id,doll.itemId,1,"decoration"});
+            QVERIFY2(furnished.error.isEmpty(),qPrintable(furnished.error));
+            const int block3=(14+(3+rotation)%14)*0x1000,decorAt=block3+0x2798-2*0xf80;
+            QCOMPARE(quint8(furnished.data[decorAt]),quint8(doll.itemId));
+            for(int p=0;p<bytes.size();++p){if((p>=block1+0x490&&p<block1+0x494)||p==decorAt||(p>=block1+0xff6&&p<block1+0xff8)||(p>=block3+0xff6&&p<block3+0xff8))continue;QCOMPARE(furnished.data[p],bytes[p]);}
             // Known locations can be unavailable while the separate Pyramid Bag is active.
             bytes[block1+4]=26;bytes[block1+5]=26;seal();state=readEmeraldShops(bytes,EmeraldHash);
             QVERIFY(state.merchants[0].discovered);QVERIFY(!state.merchants[0].available);

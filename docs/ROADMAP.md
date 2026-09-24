@@ -42,6 +42,13 @@ in-game item/money readback and exact backup restoration. Grouped department
 stores, special vendors, coins/BP and all remaining #68 acceptance stay queued in
 [the shop contract](EMERALD_SHOPS.md#remaining-68-acceptance--retained).
 
+**#68 money-trader batch — 2026-09-24:** the Emerald catalogue expands to 36
+counters in one coherent delivery: grouped Lilycove departments and Slateport/
+Fortree shops, TMs, decoration storage, herbs, plants, ordinary facility marts,
+single-item sellers and vending. Saved news/weather/story state gates sales and
+availability. Money-to-coins, coin/BP purchases, ash and Berry Powder remain next;
+all other accepted work is retained. [Scope and proof](EMERALD_SHOPS.md).
+
 **Current owner order — 2026-09-24:** native [ScreenScraper #65](SCREENSCRAPER.md)
 first; video previews plus complete game metadata/description/media presentation
 second; then Pokedex, Party/Storage, Center and their related accepted features.
