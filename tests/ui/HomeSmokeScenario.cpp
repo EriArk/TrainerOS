@@ -57,6 +57,15 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             SDL_JoystickSetVirtualButton(joystick, button, 1); input.poll(); SDL_JoystickSetVirtualButton(joystick, button, 0); input.poll();
         };
         const auto focusIs = [&](const QString& name) { return window->activeFocusItem() && window->activeFocusItem()->objectName() == name; };
+        const auto itemNamed = [&](const QString& name) -> QQuickItem* {
+            QList<QQuickItem*> pending{window->contentItem()};
+            while (!pending.isEmpty()) {
+                auto* item = pending.takeLast();
+                if (item->objectName() == name) return item;
+                pending.append(item->childItems());
+            }
+            return nullptr;
+        };
         const auto capture = [&](const QString& name) { if (!screenshotDir.isEmpty()) check(window->grabWindow().save(screenshotDir + "/" + name + ".png"), "Capture failed"); };
         if (session.blocked() || launch->active() || store.pending()) return;
         switch ((*stage)++) {
@@ -105,7 +114,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(shell.menuOpen(), "Start opens system menu above selector");
             press(SDL_CONTROLLER_BUTTON_A); check(focusIs("resume-4"), "Back restores selected card");
             press(SDL_CONTROLLER_BUTTON_B); break;
-        case 5:
+        case 5: {
             check(*starts == 0 && *returns == 0 && shell.notice().isEmpty(), "Selecting a card must never launch");
             check(!shell.drawerOpen() && focusIs("home-launch") && shell.home()["adventureId"] == "home-0", "Selection rebuilds Home and focuses main button");
             check(shell.home()["recordedTime"] == "12 min" && shell.home()["badges"] == "—", "Real duration and unknown progress remain separate");
@@ -113,9 +122,28 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             progress->value.badgeMask = 0xa5; progress->value.caught = 241;
             progress->value.badgeSet = "kanto-frlg";
             progress->value.message = "Last in-game save · National Pokédex";
+            PartySnapshot team;
+            for (int i = 0; i < 6; ++i) {
+                PokemonRecord member; member.kind = PokemonSlotKind::Known;
+                member.nickname = "Partner " + QString::number(i + 1);
+                member.speciesId = "pikachu"; member.formId = "25";
+                team.party.append(member);
+            }
+            progress->value.party = team;
             shell.configureProgress(progress);
             window->resize(1920, 1080); break;
+        }
         case 6:
+            {
+                auto* party = itemNamed("home-party");
+                check(party && party->isVisible() && itemNamed("home-party-5"), "Home renders the observed six-member Party without opening Center");
+                if (party) {
+                    const auto bounds = party->mapRectToScene(party->boundingRect());
+                    check(bounds.left() > window->width() * .29 && bounds.bottom() < window->height() * .91,
+                        "Living Party fits beside the Y tab and above chassis legends");
+                }
+                check(focusIs("home-launch"), "Living Party never steals Home A focus");
+            }
             check(shell.home()["badges"] == "4" && shell.home()["caught"] == "241"
                 && shell.home()["badgeSlots"].toList().size() == 8 && shell.home()["badgeSet"] == "kanto-frlg", "Verified save fields reach Home independently of recorded time");
             capture("home-selected-1080p"); press(SDL_CONTROLLER_BUTTON_B); break;
@@ -131,6 +159,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             press(SDL_CONTROLLER_BUTTON_X); check(shell.drawerOpen(), "Y opens the selector independently"); press(SDL_CONTROLLER_BUTTON_A);
             check(focusIs("home-launch"), "Cancel restores the fixed page action");
             press(SDL_CONTROLLER_BUTTON_START);
+            if (auto* party = itemNamed("home-party")) check(!party->property("playing").toBool(), "Home Party pauses behind the system menu");
             for (int i = 0; i < 2; ++i) press(SDL_CONTROLLER_BUTTON_DPAD_DOWN); // Desktop, skipping retired action IDs.
             press(SDL_CONTROLLER_BUTTON_B);
             check(!shell.notice().isEmpty() && *starts == 2, "A in the system menu cannot launch Home's Adventure");
@@ -138,6 +167,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
             check(focusIs("home-launch") && shell.home()["adventureId"] == "home-0", "Shoulders retain the selected Home Adventure");
             progress->selected = "another-adventure"; progress->publish();
+            if (auto* party = itemNamed("home-party")) check(!party->isVisible(), "Another Adventure's Party must disappear from Home");
             check(shell.home()["badges"] == "—" && shell.home()["caught"] == "—", "An unrelated Adventure cannot populate Home");
             progress->selected = "home-0"; progress->value = {};
             progress->value.message = "Progress is not supported for this edition yet."; progress->publish();

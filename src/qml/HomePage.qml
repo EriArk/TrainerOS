@@ -4,6 +4,8 @@ Item {
     id: root
     required property var shell
     readonly property var currentAdventure: shell.home
+    readonly property bool hasParty: shell.party.activities.hasParty
+    readonly property bool partyPlaying: visible && !shell.drawerOpen && !shell.menuOpen && !shell.serviceOpen && !shell.keyboard.open && !shell.notice.length
     clip: true
     Image {
         id: exitBackdrop
@@ -27,19 +29,19 @@ Item {
     Text {
         anchors { right: parent.right; bottom: parent.bottom; rightMargin: 20; bottomMargin: 9 }
         text: root.currentAdventure.exitPreviewLabel
-        visible: exitBackdrop.status === Image.Ready
+        visible: exitBackdrop.status === Image.Ready && !root.hasParty
         color: Theme.muted; font.pixelSize: 10
     }
     Column {
-        x: 32; y: 27; spacing: 9
+        x: 32; y: root.hasParty ? 14 : 27; spacing: root.hasParty ? 5 : 9
         Text { text: (root.currentAdventure.hasTrainer ? "WELCOME BACK, " : "WELCOME, ") + root.currentAdventure.trainer; color: Theme.muted; font.pixelSize: 13; font.bold: true; font.letterSpacing: 2; width: 620; elide: Text.ElideRight; textFormat: Text.PlainText }
-        Text { text: root.currentAdventure.world; width: 600; elide: Text.ElideRight; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: text.length > 14 ? 48 : 70; font.weight: Font.DemiBold }
+        Text { text: root.currentAdventure.world; width: 600; elide: Text.ElideRight; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: root.hasParty ? 54 : text.length > 14 ? 48 : 70; font.weight: Font.DemiBold }
         Text { text: root.currentAdventure.adventure; width: 600; elide: Text.ElideRight; textFormat: Text.PlainText; color: "#347561"; font.pixelSize: 24 }
-        Text { text: root.currentAdventure.adventureId.length ? "Your selected Adventure. Your next discovery." : "Your next adventure is waiting."; color: Theme.muted; font.pixelSize: 16 }
+        Text { visible: !root.hasParty; text: root.currentAdventure.adventureId.length ? "Your selected Adventure. Your next discovery." : "Your next adventure is waiting."; color: Theme.muted; font.pixelSize: 16 }
     }
-    Text { x: 34; y: 219; width: 580; elide: Text.ElideRight; textFormat: Text.PlainText; text: root.currentAdventure.progressNote; color: Theme.muted; font.pixelSize: 12 }
+    Text { x: 34; y: root.hasParty ? 160 : 219; width: 580; elide: Text.ElideRight; textFormat: Text.PlainText; text: root.currentAdventure.progressNote; color: Theme.muted; font.pixelSize: 12 }
     Row {
-        x: 33; y: 250; spacing: 12; width: root.width - 244 - 66
+        x: 33; y: root.hasParty ? 185 : 250; spacing: 12; width: root.width - 244 - 66
         BadgeTray {
             objectName: "home-badge-tray"
             badgePrefix: "home-badge-"
@@ -57,12 +59,20 @@ Item {
             }
         }
     }
-    Text { x: 34; y: 350; width: 610; elide: Text.ElideRight; textFormat: Text.PlainText; text: root.currentAdventure.milestone; color: Theme.muted; font.pixelSize: 15 }
+    Text { x: 34; y: root.hasParty ? 290 : 350; width: 610; elide: Text.ElideRight; textFormat: Text.PlainText; text: root.currentAdventure.milestone; color: Theme.muted; font.pixelSize: 15 }
     Item {
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
         width: 244
         Text { x: 23; y: 28; text: "READY WHEN YOU ARE"; color: Theme.muted; font.pixelSize: 12; font.letterSpacing: 1; font.bold: true }
         AdventureButton { x: 12; y: 57; width: 220; height: 220; shell: root.shell }
-        Text { x: 22; y: 287; width: 200; text: root.currentAdventure.action; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 26; font.weight: Font.DemiBold; horizontalAlignment: Text.AlignHCenter }
+        Text { x: 22; y: root.hasParty ? 278 : 287; width: 200; text: root.currentAdventure.action; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: root.hasParty ? 22 : 26; font.weight: Font.DemiBold; horizontalAlignment: Text.AlignHCenter }
     }
+    HomeParty {
+        objectName: "home-party"
+        x: Theme.adventureCutoutWidth + 6; anchors.bottom: parent.bottom
+        width: parent.width - x - 15; height: 88
+        activity: root.shell.party.activities
+        visible: root.hasParty; playing: root.partyPlaying
+    }
+
 }

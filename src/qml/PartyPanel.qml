@@ -10,7 +10,7 @@ Item {
     enabled: !shell.drawerOpen
     Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset
-        anchors.topMargin: Theme.contentTopInset; anchors.bottomMargin: Theme.panelInset + 30
+        anchors.topMargin: Theme.contentTopInset; anchors.bottomMargin: Theme.panelInset
         PageHeader {
             id: heading; compact: true
             title: root.storage ? "Storage" : "Party"
@@ -20,7 +20,8 @@ Item {
         Item {
             id: body; y: heading.height + 4; width: parent.width; height: parent.height - y
             Rectangle {
-                id: tray; width: parent.width * 0.46; height: parent.height
+                id: tray; readonly property real contentHeight: height - (root.shell.chooseAdventureAvailable ? Theme.adventureCutoutHeight : 0)
+                width: parent.width * 0.46; height: parent.height
                 color: root.storage ? "#ccdedf" : "#d3e2cc"; radius: 9
                 border.color: "#839d93"
                 CapButton {
@@ -41,7 +42,7 @@ Item {
                             required property var modelData
                             objectName: "party-slot-" + index
                             width: (slots.width - (slots.columns - 1) * slots.spacing) / slots.columns
-                            height: root.storage ? (tray.height - 108) / 5 - 7 : (tray.height - 78) / 3
+                            height: root.storage ? (tray.contentHeight - 108) / 5 - 7 : (tray.contentHeight - 78) / 3
                             label: ""; tint: modelData.kind === "empty" ? "#dce6dc" : modelData.kind === "unreadable" ? "#e8bdb1" : index % 2 ? "#b6d9ed" : "#c6df9c"
                             selected: root.takesFocus && !root.party.detailOpen && !root.party.boxFocused && !root.party.activitiesFocused && root.party.focusIndex === index
                             onActivated: root.shell.activate(index)
@@ -80,7 +81,7 @@ Item {
                     CapButton { objectName: "party-unavailable"; width: parent.width; height: 43; label: "Save backups"; tint: Theme.blue; selected: root.takesFocus && !root.party.activitiesFocused; onActivated: root.shell.activate(0) }
                 }
                 CapButton {
-                    objectName: "party-activities"; x: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 10; width: parent.width - 24; height: 33
+                    objectName: "party-activities"; x: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 10 + (root.shell.chooseAdventureAvailable ? Theme.adventureCutoutHeight : 0); width: parent.width - 24; height: 33
                     label: "Activities"; tint: Theme.blue; textSize: 14; centered: true
                     selected: root.takesFocus && root.party.activitiesFocused && !root.party.detailOpen
                     onActivated: root.shell.activate(0, "party-activities")

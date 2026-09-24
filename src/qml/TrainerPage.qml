@@ -90,14 +90,14 @@ Item {
         }
         CapButton {
             objectName: root.trainer.editing ? "trainer-save" : "trainer-open"
-            x: 30; y: 34; width: 270; height: 40
+            x: root.shell.chooseAdventureAvailable ? Theme.adventureCutoutWidth : 30; y: 34; width: 270; height: 40
             label: root.trainer.saving ? "Saving…" : root.trainer.editing ? "Save Trainer" : root.trainer.exists ? "Edit Trainer" : "Create Trainer"
             selected: root.takesFocus && (!root.trainer.editing || root.trainer.focusIndex === 3)
             onActivated: root.shell.activate(root.trainer.editing ? 3 : 0)
         }
         CapButton {
             objectName: "trainer-cancel"
-            x: 321; y: 34; width: 235; height: 40
+            x: (root.shell.chooseAdventureAvailable ? Theme.adventureCutoutWidth : 30) + 291; y: 34; width: 235; height: 40
             visible: root.trainer.editing; tint: Theme.pink; label: root.trainer.saving ? "Back to profile" : "Cancel"
             selected: root.trainer.editing && root.takesFocus && root.trainer.focusIndex === 4
             onActivated: root.shell.activate(4)

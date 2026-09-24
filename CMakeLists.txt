@@ -256,6 +256,7 @@ qt_add_qml_module(traineros
         src/qml/SaveCenterPanel.qml
         src/qml/PartyPanel.qml
         src/qml/CenterActivitiesPanel.qml
+        src/qml/HomeParty.qml
         src/qml/PartyPlayroom.qml
         src/qml/PlayroomMeadow.qml
         src/qml/PlayroomActor.qml

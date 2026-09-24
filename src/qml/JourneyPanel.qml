@@ -49,7 +49,7 @@ Item {
             }
         }
         Row {
-            x: 24; anchors.bottom: parent.bottom; anchors.bottomMargin: 13; spacing: 16
+            x: root.shell.chooseAdventureAvailable ? Theme.adventureCutoutWidth : 24; anchors.bottom: parent.bottom; anchors.bottomMargin: 13; spacing: 16
             CapButton {
                 objectName: "journey-primary"; width: 306; height: 45
                 label: root.championDetail ? "Champion records" : root.champions ? root.sampleChampion ? "View sample record" : "Journey Record" : "Adventure memories"

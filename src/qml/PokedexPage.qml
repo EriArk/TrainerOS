@@ -38,7 +38,7 @@ Item {
             ListView {
                 id: entries
                 objectName: "dex-list"
-                x: 19; y: 10; width: parent.width - 38; height: parent.height - 20
+                x: 19; y: 10; width: parent.width - 38; height: parent.height - 20 - (root.shell.chooseAdventureAvailable ? Theme.adventureCutoutHeight : 0)
                 model: root.dex.entries; currentIndex: root.dex.entryIndex
                 interactive: false; keyNavigationEnabled: false; clip: true
                 boundsBehavior: Flickable.StopAtBounds

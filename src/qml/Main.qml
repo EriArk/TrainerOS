@@ -150,7 +150,7 @@ Window {
                 enabled: !shell.drawerOpen
                 anchors.fill: parent; anchors.margins: Theme.panelInset
                 anchors.topMargin: Theme.contentTopInset; clip: true
-                anchors.bottomMargin: shell.page === 0 || shell.page === 1 ? Theme.panelInset : Theme.panelInset + 30
+                anchors.bottomMargin: Theme.panelInset
                 HomePage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 0 && !shell.multiverseHome }
                 MultiverseHome { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 0 && shell.multiverseHome }
                 HallOfFamePage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 4 }

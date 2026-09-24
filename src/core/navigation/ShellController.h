@@ -122,6 +122,7 @@ private:
     void refreshContinue();
     bool localModalOpen();
     void openCenter();
+    void refreshParty();
     std::optional<Adventure> homeAdventure() const;
     std::optional<ResumePoint> homeResumePoint(const QString& adventureId) const;
     ResumeAvailability homeResumeAvailability(const Adventure&) const;

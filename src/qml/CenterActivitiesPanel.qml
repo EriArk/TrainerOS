@@ -8,9 +8,11 @@ Item {
     enabled: !shell.drawerOpen
     Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset
-        anchors.topMargin: Theme.contentTopInset; anchors.bottomMargin: Theme.panelInset + 30; clip: true
+        anchors.topMargin: Theme.contentTopInset; anchors.bottomMargin: Theme.panelInset; clip: true
         PageHeader {
-            id: heading; compact: true; title: root.activity.page.title; trailing: "Pokémon Center"
+            id: heading; compact: true; title: root.activity.page.title
+            trailing: root.activity.route === "playroom" && root.activity.hasParty
+                ? (root.activity.actors[root.activity.focusIndex].name || "") : "Pokémon Center"
             subtitle: root.activity.sample ? "Development rehearsal · no game, save or connection changes" : root.shell.party.title || "Choose an Adventure"
         }
         MountedPanel {
@@ -69,7 +71,7 @@ Item {
                     : "Neither save was changed. This preview started no transaction."; color: Theme.muted; font.pixelSize: 19; wrapMode: Text.WordWrap }
             }
             CapButton {
-                objectName: "activity-primary"; x: 24; anchors.bottom: parent.bottom; anchors.bottomMargin: 12; width: 395; height: 44
+                objectName: "activity-primary"; x: root.shell.chooseAdventureAvailable ? Theme.adventureCutoutWidth : 24; anchors.bottom: parent.bottom; anchors.bottomMargin: 12; width: 395; height: 44
                 visible: root.activity.route !== "menu" && !(root.activity.hasParty && root.activity.route === "playroom")
                 label: root.activity.page.action; tint: Theme.blue; selected: root.takesFocus && visible
                 onActivated: root.shell.activate(root.activity.focusIndex)

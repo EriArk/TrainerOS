@@ -20,7 +20,9 @@ Seen/Caught. The owner then retired the manual journal, notes and editing;
 favorites and verified save records remain. [Party Playroom](PARTY_PLAYROOM.md)
 now consumes the same real team, with bounded sprites and controller call/greet.
 The delivered meadow refinement adds original pixel scenery, same-set emotion bubbles,
-neighbor greetings and controller ball play. Further scene refinements, additional
+neighbor greetings and controller ball play. Home now shares the verified living
+Party without extra controls. Compact side-by-side headers and a local Y-tab
+cutout give the scene and other page details more usable height. Further scene refinements, additional
 formats and independently guarded writers keep their existing acceptance.
 
 **Current owner order — 2026-09-24:** native [ScreenScraper #65](SCREENSCRAPER.md)

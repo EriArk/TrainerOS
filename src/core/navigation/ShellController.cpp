@@ -12,13 +12,14 @@ void ShellController::configureProgress(GameProgressProvider* provider) {
     if (progress_) disconnect(progress_, nullptr, this, nullptr);
     progress_ = provider;
     if (progress_) connect(progress_, &GameProgressProvider::changed, this, [this] {
-        party_.setProgress(progress_->adventureId(), progress_->snapshot());
+        refreshParty();
         const auto adventure = homeAdventure();
         pokedex_.setSaveProgress(currentAdventureId(), adventure ? adventure->title : QString(),
             progress_->adventureId(), progress_->snapshot());
         emit changed();
     });
     if (progress_) {
+        refreshParty();
         const auto adventure = homeAdventure();
         pokedex_.setSaveProgress(currentAdventureId(), adventure ? adventure->title : QString(),
             progress_->adventureId(), progress_->snapshot());
@@ -179,7 +180,7 @@ void ShellController::refreshLibrary() {
     refreshContinue();
     drawerFocus_ = 0;
     for (int i = 0; i < points_.size(); ++i) if (points_[i].id == selected) drawerFocus_ = i;
-    if (centerFace() && !serviceOpen()) openCenter();
+    if (centerFace() && !serviceOpen()) openCenter(); else refreshParty();
     emit changed();
 }
 QString ShellController::currentAdventureId() const {
@@ -216,9 +217,16 @@ bool ShellController::pairedNavigationAvailable() {
 void ShellController::openCenter() {
     centerFace_ = true;
     center_.beginSelected(currentAdventureId());
+    refreshParty();
+}
+void ShellController::refreshParty() {
     const auto adventure = homeAdventure();
-    party_.setAdventure(currentAdventureId(), adventure ? adventure->title : QString());
-    if (progress_) party_.setProgress(progress_->adventureId(), progress_->snapshot());
+    {
+        const QSignalBlocker batch(&party_);
+        party_.setAdventure(currentAdventureId(), adventure ? adventure->title : QString());
+        party_.setProgress(progress_ ? progress_->adventureId() : QString(), progress_ ? progress_->snapshot() : GameProgress{});
+    }
+    emit party_.changed();
 }
 void ShellController::refreshContinue() {
     points_.clear();
@@ -291,7 +299,7 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     drawerFocus_ = 0;
     for (int i = 0; i < points_.size(); ++i) if (points_[i].id == state["resume"].toString()) drawerFocus_ = i;
     centerFace_ = state["pokedexFace"].toString() == "center";
-    if (centerFace()) openCenter();
+    if (centerFace()) openCenter(); else refreshParty();
     emit changed();
 }
 std::optional<Adventure> ShellController::homeAdventure() const {
@@ -437,7 +445,7 @@ void ShellController::goToPage(int page) {
     libraryManager_.close(); service_.clear();
     page_ = std::clamp(page, 0, 4); // No wrapping until physical-device testing.
     if (page_ == 1) repository_.refreshContentAvailability();
-    if (centerFace()) openCenter();
+    if (centerFace()) openCenter(); else refreshParty();
     if (page_ == 3) trainer_.refreshOverview();
     drawerOpen_ = false;
     menuOpen_ = false;
@@ -569,7 +577,7 @@ void ShellController::confirm() {
             homeAdventureId_ = adventure.id; homeResumeId_ = point.resumePoint ? point.id : QString();
             homeResumeSource_ = point.resumePoint ? point.resumePoint->source : ResumeSource{};
             drawerOpen_ = false;
-            if (centerFace()) openCenter();
+            if (centerFace()) openCenter(); else refreshParty();
             return;
         }
         notice_ = "This Adventure is unavailable. Its history has been kept.";

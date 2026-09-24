@@ -6,6 +6,8 @@ Item {
     required property int slot
     property bool playing: false
     property bool selected: false
+    property real presentationScale: 1
+    property bool freeRoam: false
     readonly property var clips: member.clips || ({})
     readonly property var portraits: member.portraits || ({})
     readonly property bool resting: member.condition === "Fainted" || member.condition === "Sleep"
@@ -17,7 +19,9 @@ Item {
     property real destination: 0.5
     property real travelDuration: 1000
     property bool called: false
-    readonly property bool busy: travel.running || pause.running
+    property real targetX: x
+    property real targetY: y
+    readonly property bool busy: travel.running || crossing.running || pause.running
     readonly property real footX: x + body.x + body.width/2
     readonly property real footY: y + body.y + body.height
     readonly property var portrait: portraits[emotion] || portraits.Normal || ({})
@@ -25,7 +29,7 @@ Item {
     onVisibleChanged: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
     Component.onCompleted: { settle(); if (selected && visible) forceActiveFocus(Qt.OtherFocusReason) }
     function settle() {
-        travel.stop(); pause.stop(); called = false; emotion = ""; symbol = ""
+        travel.stop(); crossing.stop(); pause.stop(); called = false; emotion = ""; symbol = ""
         position = 0.5; action = resting && clips.Sleep ? "Sleep" : "Idle"
     }
     function walk(to) {
@@ -35,14 +39,28 @@ Item {
         if (!active || resting || !clips[direction]) { action = resting && clips.Sleep ? "Sleep" : "Idle"; pause.restart(); return }
         action = direction; travel.restart()
     }
+    function walkTo(toX, toY) {
+        travel.stop(); crossing.stop(); pause.stop()
+        if (!active || resting) return
+        const dx = toX-x, dy = toY-y
+        const horizontal = dx >= 0 ? "WalkRight" : "WalkLeft"
+        const direction = Math.abs(dy) > Math.abs(dx) ? (dy > 0 ? "WalkDown" : "WalkUp") : horizontal
+        const clip = clips[direction] ? direction : horizontal
+        if (!clips[clip]) return
+        emotion = ""; symbol = ""; called = false
+        targetX = toX; targetY = toY
+        travelDuration = Math.max(650, Math.sqrt(dx*dx+dy*dy)/34*1000)
+        action = clip; crossing.start()
+    }
     function respond(kind, toward) {
-        travel.stop(); pause.stop(); called = false
+        travel.stop(); crossing.stop(); pause.stop(); called = false
         if (resting || kind === "rest") {
             emotion = "Normal"; symbol = "z z"; action = clips.Sleep ? "Sleep" : "Idle"; pause.restart(); return
         }
         emotion = kind === "curious" ? "Normal" : "Happy"
         symbol = kind === "greet" ? "♥" : kind === "curious" ? "?" : "♪"
-        if (kind === "call") { called = true; walk(0.5) }
+        if (freeRoam) { action = "Idle"; pause.restart() }
+        else if (kind === "call") { called = true; walk(0.5) }
         else if (kind === "play" || kind === "chat") walk(toward)
         else { action = "Idle"; pause.restart() }
     }
@@ -64,14 +82,14 @@ Item {
         id: body
         x: (root.width - width) * root.position
         y: parent.height - height - 9 + (root.called ? 12 : 0)
-        width: 94; height: 76
+        width: 94 * root.presentationScale; height: 76 * root.presentationScale
         Behavior on y { NumberAnimation { duration: Theme.motion(250) } }
         SpritePreview {
             id: sprite; objectName: "playroom-sprite-" + root.slot
             anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom
-            width: parent.width; height: Math.min(parent.height, cellHeight > 0 ? cellHeight * 2 : parent.height)
+            width: parent.width; height: Math.min(parent.height, cellHeight > 0 ? cellHeight * 2 * root.presentationScale : parent.height)
             asset: root.clips[root.action] || root.clips.Idle || ({})
-            pixelScale: 2; trimTransparentMargins: true; playing: root.active
+            pixelScale: 2 * root.presentationScale; trimTransparentMargins: true; playing: root.active
         }
         Image {
             anchors.fill: parent; source: root.visible && !sprite.ready && root.member.art ? root.member.art.url || "" : ""
@@ -103,6 +121,12 @@ Item {
     Timer { id: pause; interval: 4200; onTriggered: { root.emotion = ""; root.symbol = ""; root.called = false; root.action = root.resting && root.clips.Sleep ? "Sleep" : "Idle" } }
     NumberAnimation {
         id: travel; target: root; property: "position"; to: root.destination; duration: root.travelDuration
+        onFinished: { root.action = "Idle"; pause.restart() }
+    }
+    ParallelAnimation {
+        id: crossing
+        NumberAnimation { target: root; property: "x"; to: root.targetX; duration: root.travelDuration }
+        NumberAnimation { target: root; property: "y"; to: root.targetY; duration: root.travelDuration }
         onFinished: { root.action = "Idle"; pause.restart() }
     }
 }

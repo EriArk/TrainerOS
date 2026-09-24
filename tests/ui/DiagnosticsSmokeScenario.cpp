@@ -12,6 +12,8 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
         DiagnosticsService& reports, SDL_Joystick* joystick, const QString& output, bool& completed, int& warnings, QStringList& diagnostics) {
     const bool fixedDisplay = qEnvironmentVariableIsSet("GAMESCOPE_WAYLAND_DISPLAY");
     auto stage = std::make_shared<int>(0); auto failed = std::make_shared<bool>(false);
+    auto actorOrigin = std::make_shared<QPointF>();
+    auto actorMember = std::make_shared<QVariantMap>();
     auto timer = new QTimer(window); timer->setInterval(200);
     QObject::connect(timer, &QTimer::timeout, window, [=, &shell, &session, &input, &reports, &completed, &warnings, &diagnostics] {
         const auto check = [&](bool result, const QString& message) {
@@ -225,15 +227,30 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
         case 46:
             check(focus("playroom-actor-0"), "Playroom uses a fixed actor control");
             capture("playroom"); press(right); press(a); break;
-        case 47:
+        case 47: {
             check(focus("playroom-actor-1") && shell.party()->activities()->reaction().contains("called"), "Calling preserves the selected actor control");
-            press(SDL_CONTROLLER_BUTTON_Y); break;
-        case 48:
+            press(SDL_CONTROLLER_BUTTON_Y);
+            auto* actor = window->activeFocusItem();
+            if (actor) {
+                *actorOrigin = actor->position(); *actorMember = actor->property("member").toMap();
+                auto member = *actorMember;
+                member["clips"] = QVariantMap{{"WalkRight", QVariantMap{}}, {"WalkDown", QVariantMap{}}};
+                actor->setProperty("member", member);
+                check(QMetaObject::invokeMethod(actor, "walkTo", Q_ARG(QVariant, actor->x()+30), Q_ARG(QVariant, actor->y()+30)), "Scene supports two-dimensional walking");
+            }
+            break;
+        }
+        case 48: {
+            auto* actor = window->activeFocusItem();
+            check(actor && actor->x() > actorOrigin->x() && actor->y() > actorOrigin->y(), "Walking changes both coordinates, not a fixed row");
+            if (actor) actor->setProperty("member", *actorMember);
+            press(SDL_CONTROLLER_BUTTON_Y);
             capture("playroom-greeting");
             press(SDL_CONTROLLER_BUTTON_BACK);
             check(shell.party()->activities()->gesture()=="play", "Select plays without opening backups");
             check(focus("playroom-actor-1"), "Play retains partner selection");
             press(b); press(down); press(a); break;
+        }
         case 49:
             check(shell.party()->activities()->route()=="practice" && focus("activity-primary"), "Practice setup is controller accessible");
             capture("practice-setup"); press(a); break;

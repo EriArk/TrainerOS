@@ -1,16 +1,33 @@
 # TrainerOS Design Language
 
+## Compact headers and the Adventure-tab cutout — 2026-09-24
+
+Page headers place the title and secondary context side by side in one compact
+row. Long status text may use two lines on the right; long game titles retain
+their bounded two-line option. Do not reserve a second full-width subtitle row.
+The closed Y tab occupies only the lower-left corner: backgrounds and right-hand
+details reach the bottom of the safe viewport. Only intersecting lists reserve
+the local cutout; low action buttons sit to its right. Keep controller legends
+in the chassis footer and preserve the tab's existing shape and animation.
+
 ## Party Playroom meadow — 2026-09-24
 
 The separate Playroom uses an original pixel meadow, an oblique top-down view,
 wooden enclosure, grass, trees and an open gate. It replaces the flat oval garden.
-Two depth rows leave walking room around six differently sized native sprites.
+Six differently sized native sprites roam the shared enclosure in two dimensions.
+No member owns a row or lane; depth follows its current floor position.
 Same-set emotional portraits sit in brief speech bubbles above the actors;
-gold ground markers retain selection while the creature moves. A cream dock
-attached below the scene carries identity; controller legends remain only in the
-chassis footer. Static tile scenery is cached, moving actors stay bounded and
+gold ground markers retain selection while the creature moves. The selected
+name shares the compact header; the meadow fills the scene without a lower
+information dock. Controller legends remain only in the chassis footer.
+Static tile scenery is cached, moving actors stay bounded and
 all ambient activity stops behind menus or on other pages. No save rewards or
 friendship changes are implied by these playful reactions.
+
+Home shows a quiet row of up to six observed Party members in the space to the
+right of the Y tab. It has no focus stops or extra controls. Badges and the large
+A launch button remain visible. Missing Party data leaves the ordinary Home
+composition intact; unsupported data never produces sample creatures.
 
 ## Environmental World cards — 2026-09-24
 

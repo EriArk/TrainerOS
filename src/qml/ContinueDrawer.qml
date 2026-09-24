@@ -7,10 +7,10 @@ Item {
     required property var shell
     // Translate the complete drawer; its expanded right end still meets the bevel.
     property real expandedWidth: Theme.screenBounds.x + Theme.screenBounds.width - Theme.screenBevel - x
-    readonly property real closedWidth: 292
+    readonly property real closedWidth: Theme.adventureTabWidth
     readonly property bool expanded: shell.drawerOpen
     readonly property real leftJoin: Theme.screenBounds.x + Theme.screenBevel
-    readonly property real lowerJoin: 53 - (Theme.footerTop - Theme.screenBounds.y - Theme.screenBounds.height + Theme.screenBevel)
+    readonly property real lowerJoin: Theme.adventureTabHeight - (Theme.footerTop - Theme.screenBounds.y - Theme.screenBounds.height + Theme.screenBevel)
     function shoulder() {
         // The shallow left cut seats against the body, over the screen bevel.
         // The expanded right diagonal still ends directly at the screen lip.
@@ -20,7 +20,7 @@ Item {
             + " Q " + (width - 42) + " 0 " + (width - 38) + " 3"
             + " L " + width + " " + lowerJoin;
     }
-    width: closedWidth; height: 53
+    width: closedWidth; height: Theme.adventureTabHeight
     onExpandedChanged: {
         opening.stop(); closing.stop();
         if (expanded) opening.start(); else closing.start();
@@ -32,7 +32,7 @@ Item {
     }
     SequentialAnimation {
         id: closing
-        NumberAnimation { target: root; property: "height"; to: 53; duration: Theme.motion(170); easing.type: Easing.InOutCubic }
+        NumberAnimation { target: root; property: "height"; to: Theme.adventureTabHeight; duration: Theme.motion(170); easing.type: Easing.InOutCubic }
         NumberAnimation { target: root; property: "width"; to: root.closedWidth; duration: Theme.motion(160); easing.type: Easing.OutCubic }
     }
     // Fade the existing bevel into the contact shadow at each mounting point.
@@ -132,7 +132,7 @@ Item {
     Item {
         id: toggle
         objectName: "continue-toggle"
-        width: root.width; height: 53
+        width: root.width; height: Theme.adventureTabHeight
         Accessible.role: Accessible.Button; Accessible.name: "Y Choose Adventure"
         // An inset follows the outer slope instead of a rectangular cap
         // floating on top of it. Its width follows the unfolding body.

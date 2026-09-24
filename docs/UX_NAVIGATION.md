@@ -7,6 +7,12 @@ member, A calls, X greets, Select plays catch, B returns. Play recruits the next
 awake member or stays solo; resting members stay resting. Emotion bubbles use
 the same exact-form portrait set. All legends stay in the bottom chassis.
 
+Playroom members roam the shared meadow in two dimensions; Left/Right keeps
+selecting the same stable Party order regardless of their screen positions.
+Home's quiet companions use that same observed Party without extra focus stops:
+A launches and Y chooses exactly as before. Page captions sit beside their
+titles, and content uses the space to the right of the closed Y tab.
+
 **Library context actions — 2026-09-24:** hold physical A in a populated game
 wheel for Rename / Move / Delete / Properties; short A retains its prior action.
 Both wheels wrap vertically at either end. Settings → Library unlocks the World

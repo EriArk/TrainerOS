@@ -91,7 +91,7 @@ Item {
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
         height: 71; color: "#ccdcd1"
         Row {
-            x: 24; y: 14; spacing: 14
+            x: root.shell.chooseAdventureAvailable ? Theme.adventureCutoutWidth : 24; y: 19; spacing: 14
             Repeater {
                 model: root.hall.actions
                 delegate: CapButton {
@@ -108,7 +108,7 @@ Item {
         }
         Text {
             anchors { right: parent.right; rightMargin: 25 }
-            y: 19; width: 270
+            y: 2; width: 270
             text: root.detailOpen ? ""
                 : root.hall.rows.length > 0 ? root.hall.rows.length + " records"
                 : "No records to display"

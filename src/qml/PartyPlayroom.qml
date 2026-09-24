@@ -8,6 +8,26 @@ Item {
     readonly property var selected: activity.actors[activity.focusIndex] || ({})
     readonly property bool motion: visible && playing && !Theme.reducedMotion && Qt.application.state === Qt.ApplicationActive
     clip: true
+    function boundedPoint(actor, x, y) {
+        return Qt.point(Math.max(63, Math.min(field.width-actor.width-77, x)),
+                        Math.max(22, Math.min(field.height-actor.height-48, y)))
+    }
+    function roam(actor) {
+        // Destinations span the meadow, not assigned lanes. Avoid occupied landings.
+        for (let attempt=0; attempt<12; ++attempt) {
+            const point = boundedPoint(actor, 63 + Math.random()*(field.width-actor.width-140),
+                                       22 + Math.random()*(field.height-actor.height-70))
+            let clear = true
+            for (let i=0; i<actors.count; ++i) {
+                const other = actors.itemAt(i)
+                if (!other || other === actor) continue
+                const dx = point.x - (other.busy ? other.targetX : other.x)
+                const dy = point.y - (other.busy ? other.targetY : other.y)
+                if (dx*dx+dy*dy < 85*85) { clear = false; break }
+            }
+            if (clear) { actor.walkTo(point.x, point.y); return }
+        }
+    }
     function interact(index, peer, kind) {
         if (!visible || !playing) return
         ballFlight.stop(); ball.visible = false
@@ -16,6 +36,10 @@ Item {
         if (!actor) return
         actor.respond(kind, partner && partner.x < actor.x ? 0.15 : 0.85)
         if (partner) partner.respond("play", partner.x < actor.x ? 0.85 : 0.15)
+        if (kind === "call" && motion && !actor.resting) {
+            const point = boundedPoint(actor, field.width/2-actor.width/2, field.height)
+            actor.walkTo(point.x, point.y)
+        }
         if (kind === "play" && motion) {
             ball.fromX = actor.footX; ball.fromY = actor.footY-10
             ball.toX = partner ? partner.footX : actor.footX+45
@@ -31,7 +55,7 @@ Item {
     onMotionChanged: if (!motion) { ballFlight.stop(); ball.visible = false }
     PlayroomMeadow { anchors.fill: field }
     Item {
-        id: field; x: 0; y: 0; width: parent.width; height: parent.height-dock.height
+        id: field; objectName: "playroom-field"; anchors.fill: parent
         Repeater {
             id: actors; model: root.activity.actors
             PlayroomActor {
@@ -39,16 +63,18 @@ Item {
                 required property var modelData
                 objectName: "playroom-actor-" + index
                 slot: index; member: modelData
-                width: (field.width-142)/3; height: 111
-                x: 65+(index%3)*width; y: index < 3 ? 23 : field.height-height-50
-                z: index < 3 ? 1 : 2
+                width: 120; height: 111; freeRoam: true
+                // Scattered starting positions; all members share the whole field.
+                x: 63 + [0.08,0.51,0.87,0.27,0.70,0.44][index] * (field.width-width-140)
+                y: 22 + [0.18,0.06,0.48,0.77,0.90,0.44][index] * Math.max(0,field.height-height-70)
+                z: y + height
                 playing: root.playing
                 selected: root.takesFocus && root.activity.focusIndex === index
                 TapHandler { onTapped: root.activity.activate(index) }
             }
         }
         Rectangle {
-            id: ball; visible: false; z: 5; width: 11; height: 11; radius: 5
+            id: ball; visible: false; z: field.height+1; width: 11; height: 11; radius: 5
             property real fromX: 0; property real fromY: 0
             property real toX: 0; property real toY: 0; property real progress: 0
             x: fromX+(toX-fromX)*progress-width/2
@@ -71,20 +97,18 @@ Item {
             const index = turn % actors.count; ++turn
             const actor = actors.itemAt(index)
             if (!actor || actor.busy || actor.resting) return
-            const neighbor = actors.itemAt((index+1)%actors.count)
-            if (turn%4 === 0 && neighbor && neighbor !== actor && !neighbor.busy && !neighbor.resting) {
+            let neighbor = null, nearest = 170*170
+            for (let i=0; i<actors.count; ++i) {
+                const other = actors.itemAt(i)
+                if (!other || other === actor || other.busy || other.resting) continue
+                const dx = other.x-actor.x, dy = other.y-actor.y, distance = dx*dx+dy*dy
+                if (distance < nearest) { nearest = distance; neighbor = other }
+            }
+            if (turn%4 === 0 && neighbor) {
                 actor.respond("chat", neighbor.x < actor.x ? 0.15 : 0.85)
                 neighbor.respond("curious", 0.5)
-            } else actor.wander(Math.floor(Math.random()*4), 0.12+Math.random()*0.76)
+            } else if (turn%5 === 0 && actor.clips.Sleep) actor.wander(0, 0.5)
+            else root.roam(actor)
         }
-    }
-    Rectangle {
-        id: dock; anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 54
-        color: "#fff0c6"; border.color: "#af8d56"; border.width: 2
-        Rectangle { x: 2; y: 2; width: parent.width-4; height: 3; color: "#fff8df" }
-        Text { x: 20; y: 6; width: parent.width*0.4; text: root.selected.name || ""; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 20 }
-        Text { x: 21; y: 28; text: root.selected.level ? "Lv. " + root.selected.level + (root.selected.types ? "  ·  " + root.selected.types : "") : ""; color: Theme.muted; font.pixelSize: 11 }
-        Text { anchors.right: parent.right; anchors.rightMargin: 18; y: 7; text: (root.activity.focusIndex+1) + " / " + root.activity.actors.length; color: Theme.muted; font.pixelSize: 12 }
-        Text { x: parent.width*0.4; y: 27; width: parent.width*0.6-18; horizontalAlignment: Text.AlignRight; text: root.activity.reaction; textFormat: Text.PlainText; elide: Text.ElideRight; color: Theme.ink; font.pixelSize: 12 }
     }
 }

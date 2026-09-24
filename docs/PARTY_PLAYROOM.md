@@ -17,7 +17,8 @@ The owner-requested follow-up uses an original tile-style meadow viewed from
 above at the sprite set's oblique angle: stepped tree crowns, wooden fence,
 grass tufts, flowers and an open gate/path. A small static Canvas is scaled
 without smoothing; it has no animation repaint timer. Actors retain the native
-relative pixel scale at a smaller size, with space between the two depth rows.
+relative pixel scale at a smaller size. The enlarged field adapts its fence,
+path and vegetation without stretching the pixel tiles.
 
 A calls the selected member forward; X greets it. Select starts a short ball
 game with the next awake member, or solo when there is no eligible partner.
@@ -38,12 +39,14 @@ Sources: [Qt Canvas](https://doc.qt.io/qt-6/qml-qtquick-canvas.html) informs the
 cached scenery boundary; private portrait provenance retains the pinned
 [SpriteCollab](https://github.com/PMDCollab/SpriteCollab) revision and credits.
 
-Optional local clips provide Idle, directional Walk and Sleep; missing actions
+Optional local clips provide Idle, horizontal/vertical Walk and Sleep; missing actions
 fall back to Idle, missing sprites to the existing illustration, then the actual
 member's name. Native cropped sprite dimensions use a common bounded pixel scale
 instead of making every species equally tall; this is artwork-relative sizing,
-not a physical-height simulation. Each actor stays in a bounded floor lane and
-clear of the attached name dock. One shared behavior timer chooses a visitor;
+not a physical-height simulation. Actors move freely across the shared floor in any direction, including diagonals,
+inside the fence and clear of the lower-left Adventure tab. Destinations avoid
+occupied landings and nearer actors draw in front. Neighbor greetings use
+proximity; the selected member can approach the front gate when called. One shared behavior timer chooses a visitor;
 native animation and finite pause timers implement walking/resting and greeting.
 Reduced Motion, hidden pages, application inactivity and modal UI stop motion.
 Fainted or sleeping members rest rather than implying healing. No HP, friendship,
@@ -55,9 +58,25 @@ and reactions. The scene never retains the previous team's members under a new
 source. The explicit development sample remains isolated from production.
 
 This is the first #52/#54 real consumer, not completion of all acceptance:
-additional portrait/social scenelets, the quieter Home consumer,
+additional portrait/social scenelets,
 additional exact editions and long-run performance measurements remain planned.
 Practice and Link Counter do not acquire capabilities from this read-only scene.
+
+## Home and compact scene layout — 2026-09-24
+
+Home now reuses the selected Adventure's observed actors without opening Center
+or adding a provider. Up to six bounded companions quietly idle, walk or rest
+beside the Y tab. The same cropped native scale keeps relative artwork sizes;
+missing clips retain the illustration/name fallback. Eggs and unreadable slots
+remain absent. A still launches immediately and Y still chooses an Adventure.
+Menus, hidden/inactive pages and Reduced Motion stop animation. Changing the
+Adventure or Trainer clears stale actors through the shared Party observation.
+
+The Playroom's lower information dock is removed. Its selected member name is
+in the compact header beside the Adventure; the field uses the full remaining
+height. Shared page headers place secondary context beside the title. Pages no
+longer reserve a full-width strip for Y; local lists/actions avoid its actual
+lower-left footprint while right-hand details and scenery extend downward.
 
 ## Initial delivery verification
 
@@ -104,3 +123,21 @@ two-member ball play. Start/Back, member navigation, A/X/Select and L1/R1 were
 exercised by controller injection; the preview log contained no QML warnings.
 After closing the isolated validation session, the personal shell remained
 running, database integrity passed and both original saves retained their hashes.
+
+## Free-roaming layout and Home verification
+
+The Windows build and all 42 tests passed. Home's rendered SDL scenario now
+checks the six-member consumer before visiting Center, clearing unrelated save
+observations, menu pausing and unchanged launch/focus behavior. The Playroom
+scenario verifies movement on both axes while controller selection stays stable;
+it passed again after the final uniform destination-selection adjustment.
+Existing long-title and shared-navigation scenarios cover the compact headers.
+
+Installed ARM production SHA-256:
+`6cc862c2b3ebdf520023ae133e537bd3b10b31a8bb356f13cbd60f05ebd328fd`.
+Actual Flip captures were inspected for Home, the expanded meadow and Pokédex,
+using an isolated copy of the Emerald ordinary save. Twelve private vertical
+walking clips from the same pinned SpriteCollab source preserve source/author
+records outside Git. The validation log contained no QML warnings. After closing
+validation, the personal shell remained running, its schema-13 database passed
+integrity checking and both original save hashes remained unchanged.
