@@ -1,0 +1,1837 @@
+{
+  "version": 1,
+  "source": "pret/pokeemerald",
+  "revision": "5eff78649e7170a877b961ef0b3da13b81a16038",
+  "items": {
+    "0": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "1": {
+      "name": "Master Ball",
+      "price": 0,
+      "pocket": 3
+    },
+    "2": {
+      "name": "Ultra Ball",
+      "price": 1200,
+      "pocket": 3
+    },
+    "3": {
+      "name": "Great Ball",
+      "price": 600,
+      "pocket": 3
+    },
+    "4": {
+      "name": "Poké Ball",
+      "price": 200,
+      "pocket": 3
+    },
+    "5": {
+      "name": "Safari Ball",
+      "price": 0,
+      "pocket": 3
+    },
+    "6": {
+      "name": "Net Ball",
+      "price": 1000,
+      "pocket": 3
+    },
+    "7": {
+      "name": "Dive Ball",
+      "price": 1000,
+      "pocket": 3
+    },
+    "8": {
+      "name": "Nest Ball",
+      "price": 1000,
+      "pocket": 3
+    },
+    "9": {
+      "name": "Repeat Ball",
+      "price": 1000,
+      "pocket": 3
+    },
+    "10": {
+      "name": "Timer Ball",
+      "price": 1000,
+      "pocket": 3
+    },
+    "11": {
+      "name": "Luxury Ball",
+      "price": 1000,
+      "pocket": 3
+    },
+    "12": {
+      "name": "Premier Ball",
+      "price": 200,
+      "pocket": 3
+    },
+    "13": {
+      "name": "Potion",
+      "price": 300,
+      "pocket": 1
+    },
+    "14": {
+      "name": "Antidote",
+      "price": 100,
+      "pocket": 1
+    },
+    "15": {
+      "name": "Burn Heal",
+      "price": 250,
+      "pocket": 1
+    },
+    "16": {
+      "name": "Ice Heal",
+      "price": 250,
+      "pocket": 1
+    },
+    "17": {
+      "name": "Awakening",
+      "price": 250,
+      "pocket": 1
+    },
+    "18": {
+      "name": "Parlyz Heal",
+      "price": 200,
+      "pocket": 1
+    },
+    "19": {
+      "name": "Full Restore",
+      "price": 3000,
+      "pocket": 1
+    },
+    "20": {
+      "name": "Max Potion",
+      "price": 2500,
+      "pocket": 1
+    },
+    "21": {
+      "name": "Hyper Potion",
+      "price": 1200,
+      "pocket": 1
+    },
+    "22": {
+      "name": "Super Potion",
+      "price": 700,
+      "pocket": 1
+    },
+    "23": {
+      "name": "Full Heal",
+      "price": 600,
+      "pocket": 1
+    },
+    "24": {
+      "name": "Revive",
+      "price": 1500,
+      "pocket": 1
+    },
+    "25": {
+      "name": "Max Revive",
+      "price": 4000,
+      "pocket": 1
+    },
+    "26": {
+      "name": "Fresh Water",
+      "price": 200,
+      "pocket": 1
+    },
+    "27": {
+      "name": "Soda Pop",
+      "price": 300,
+      "pocket": 1
+    },
+    "28": {
+      "name": "Lemonade",
+      "price": 350,
+      "pocket": 1
+    },
+    "29": {
+      "name": "Moomoo Milk",
+      "price": 500,
+      "pocket": 1
+    },
+    "30": {
+      "name": "Energypowder",
+      "price": 500,
+      "pocket": 1
+    },
+    "31": {
+      "name": "Energy Root",
+      "price": 800,
+      "pocket": 1
+    },
+    "32": {
+      "name": "Heal Powder",
+      "price": 450,
+      "pocket": 1
+    },
+    "33": {
+      "name": "Revival Herb",
+      "price": 2800,
+      "pocket": 1
+    },
+    "34": {
+      "name": "Ether",
+      "price": 1200,
+      "pocket": 1
+    },
+    "35": {
+      "name": "Max Ether",
+      "price": 2000,
+      "pocket": 1
+    },
+    "36": {
+      "name": "Elixir",
+      "price": 3000,
+      "pocket": 1
+    },
+    "37": {
+      "name": "Max Elixir",
+      "price": 4500,
+      "pocket": 1
+    },
+    "38": {
+      "name": "Lava Cookie",
+      "price": 200,
+      "pocket": 1
+    },
+    "39": {
+      "name": "Blue Flute",
+      "price": 100,
+      "pocket": 1
+    },
+    "40": {
+      "name": "Yellow Flute",
+      "price": 200,
+      "pocket": 1
+    },
+    "41": {
+      "name": "Red Flute",
+      "price": 300,
+      "pocket": 1
+    },
+    "42": {
+      "name": "Black Flute",
+      "price": 400,
+      "pocket": 1
+    },
+    "43": {
+      "name": "White Flute",
+      "price": 500,
+      "pocket": 1
+    },
+    "44": {
+      "name": "Berry Juice",
+      "price": 100,
+      "pocket": 1
+    },
+    "45": {
+      "name": "Sacred Ash",
+      "price": 200,
+      "pocket": 1
+    },
+    "46": {
+      "name": "Shoal Salt",
+      "price": 20,
+      "pocket": 1
+    },
+    "47": {
+      "name": "Shoal Shell",
+      "price": 20,
+      "pocket": 1
+    },
+    "48": {
+      "name": "Red Shard",
+      "price": 200,
+      "pocket": 1
+    },
+    "49": {
+      "name": "Blue Shard",
+      "price": 200,
+      "pocket": 1
+    },
+    "50": {
+      "name": "Yellow Shard",
+      "price": 200,
+      "pocket": 1
+    },
+    "51": {
+      "name": "Green Shard",
+      "price": 200,
+      "pocket": 1
+    },
+    "52": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "53": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "54": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "55": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "56": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "57": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "58": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "59": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "60": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "61": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "62": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "63": {
+      "name": "Hp Up",
+      "price": 9800,
+      "pocket": 1
+    },
+    "64": {
+      "name": "Protein",
+      "price": 9800,
+      "pocket": 1
+    },
+    "65": {
+      "name": "Iron",
+      "price": 9800,
+      "pocket": 1
+    },
+    "66": {
+      "name": "Carbos",
+      "price": 9800,
+      "pocket": 1
+    },
+    "67": {
+      "name": "Calcium",
+      "price": 9800,
+      "pocket": 1
+    },
+    "68": {
+      "name": "Rare Candy",
+      "price": 4800,
+      "pocket": 1
+    },
+    "69": {
+      "name": "Pp Up",
+      "price": 9800,
+      "pocket": 1
+    },
+    "70": {
+      "name": "Zinc",
+      "price": 9800,
+      "pocket": 1
+    },
+    "71": {
+      "name": "Pp Max",
+      "price": 9800,
+      "pocket": 1
+    },
+    "72": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "73": {
+      "name": "Guard Spec.",
+      "price": 700,
+      "pocket": 1
+    },
+    "74": {
+      "name": "Dire Hit",
+      "price": 650,
+      "pocket": 1
+    },
+    "75": {
+      "name": "X Attack",
+      "price": 500,
+      "pocket": 1
+    },
+    "76": {
+      "name": "X Defend",
+      "price": 550,
+      "pocket": 1
+    },
+    "77": {
+      "name": "X Speed",
+      "price": 350,
+      "pocket": 1
+    },
+    "78": {
+      "name": "X Accuracy",
+      "price": 950,
+      "pocket": 1
+    },
+    "79": {
+      "name": "X Special",
+      "price": 350,
+      "pocket": 1
+    },
+    "80": {
+      "name": "Poké Doll",
+      "price": 1000,
+      "pocket": 1
+    },
+    "81": {
+      "name": "Fluffy Tail",
+      "price": 1000,
+      "pocket": 1
+    },
+    "82": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "83": {
+      "name": "Super Repel",
+      "price": 500,
+      "pocket": 1
+    },
+    "84": {
+      "name": "Max Repel",
+      "price": 700,
+      "pocket": 1
+    },
+    "85": {
+      "name": "Escape Rope",
+      "price": 550,
+      "pocket": 1
+    },
+    "86": {
+      "name": "Repel",
+      "price": 350,
+      "pocket": 1
+    },
+    "87": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "88": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "89": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "90": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "91": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "92": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "93": {
+      "name": "Sun Stone",
+      "price": 2100,
+      "pocket": 1
+    },
+    "94": {
+      "name": "Moon Stone",
+      "price": 0,
+      "pocket": 1
+    },
+    "95": {
+      "name": "Fire Stone",
+      "price": 2100,
+      "pocket": 1
+    },
+    "96": {
+      "name": "Thunderstone",
+      "price": 2100,
+      "pocket": 1
+    },
+    "97": {
+      "name": "Water Stone",
+      "price": 2100,
+      "pocket": 1
+    },
+    "98": {
+      "name": "Leaf Stone",
+      "price": 2100,
+      "pocket": 1
+    },
+    "99": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "100": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "101": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "102": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "103": {
+      "name": "Tinymushroom",
+      "price": 500,
+      "pocket": 1
+    },
+    "104": {
+      "name": "Big Mushroom",
+      "price": 5000,
+      "pocket": 1
+    },
+    "105": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "106": {
+      "name": "Pearl",
+      "price": 1400,
+      "pocket": 1
+    },
+    "107": {
+      "name": "Big Pearl",
+      "price": 7500,
+      "pocket": 1
+    },
+    "108": {
+      "name": "Stardust",
+      "price": 2000,
+      "pocket": 1
+    },
+    "109": {
+      "name": "Star Piece",
+      "price": 9800,
+      "pocket": 1
+    },
+    "110": {
+      "name": "Nugget",
+      "price": 10000,
+      "pocket": 1
+    },
+    "111": {
+      "name": "Heart Scale",
+      "price": 100,
+      "pocket": 1
+    },
+    "112": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "113": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "114": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "115": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "116": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "117": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "118": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "119": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "120": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "121": {
+      "name": "Orange Mail",
+      "price": 50,
+      "pocket": 1
+    },
+    "122": {
+      "name": "Harbor Mail",
+      "price": 50,
+      "pocket": 1
+    },
+    "123": {
+      "name": "Glitter Mail",
+      "price": 50,
+      "pocket": 1
+    },
+    "124": {
+      "name": "Mech Mail",
+      "price": 50,
+      "pocket": 1
+    },
+    "125": {
+      "name": "Wood Mail",
+      "price": 50,
+      "pocket": 1
+    },
+    "126": {
+      "name": "Wave Mail",
+      "price": 50,
+      "pocket": 1
+    },
+    "127": {
+      "name": "Bead Mail",
+      "price": 50,
+      "pocket": 1
+    },
+    "128": {
+      "name": "Shadow Mail",
+      "price": 50,
+      "pocket": 1
+    },
+    "129": {
+      "name": "Tropic Mail",
+      "price": 50,
+      "pocket": 1
+    },
+    "130": {
+      "name": "Dream Mail",
+      "price": 50,
+      "pocket": 1
+    },
+    "131": {
+      "name": "Fab Mail",
+      "price": 50,
+      "pocket": 1
+    },
+    "132": {
+      "name": "Retro Mail",
+      "price": 0,
+      "pocket": 1
+    },
+    "133": {
+      "name": "Cheri Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "134": {
+      "name": "Chesto Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "135": {
+      "name": "Pecha Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "136": {
+      "name": "Rawst Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "137": {
+      "name": "Aspear Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "138": {
+      "name": "Leppa Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "139": {
+      "name": "Oran Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "140": {
+      "name": "Persim Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "141": {
+      "name": "Lum Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "142": {
+      "name": "Sitrus Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "143": {
+      "name": "Figy Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "144": {
+      "name": "Wiki Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "145": {
+      "name": "Mago Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "146": {
+      "name": "Aguav Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "147": {
+      "name": "Iapapa Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "148": {
+      "name": "Razz Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "149": {
+      "name": "Bluk Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "150": {
+      "name": "Nanab Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "151": {
+      "name": "Wepear Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "152": {
+      "name": "Pinap Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "153": {
+      "name": "Pomeg Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "154": {
+      "name": "Kelpsy Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "155": {
+      "name": "Qualot Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "156": {
+      "name": "Hondew Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "157": {
+      "name": "Grepa Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "158": {
+      "name": "Tamato Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "159": {
+      "name": "Cornn Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "160": {
+      "name": "Magost Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "161": {
+      "name": "Rabuta Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "162": {
+      "name": "Nomel Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "163": {
+      "name": "Spelon Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "164": {
+      "name": "Pamtre Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "165": {
+      "name": "Watmel Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "166": {
+      "name": "Durin Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "167": {
+      "name": "Belue Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "168": {
+      "name": "Liechi Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "169": {
+      "name": "Ganlon Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "170": {
+      "name": "Salac Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "171": {
+      "name": "Petaya Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "172": {
+      "name": "Apicot Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "173": {
+      "name": "Lansat Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "174": {
+      "name": "Starf Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "175": {
+      "name": "Enigma Berry",
+      "price": 20,
+      "pocket": 5
+    },
+    "176": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "177": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "178": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "179": {
+      "name": "Brightpowder",
+      "price": 10,
+      "pocket": 1
+    },
+    "180": {
+      "name": "White Herb",
+      "price": 100,
+      "pocket": 1
+    },
+    "181": {
+      "name": "Macho Brace",
+      "price": 3000,
+      "pocket": 1
+    },
+    "182": {
+      "name": "Exp. Share",
+      "price": 3000,
+      "pocket": 1
+    },
+    "183": {
+      "name": "Quick Claw",
+      "price": 100,
+      "pocket": 1
+    },
+    "184": {
+      "name": "Soothe Bell",
+      "price": 100,
+      "pocket": 1
+    },
+    "185": {
+      "name": "Mental Herb",
+      "price": 100,
+      "pocket": 1
+    },
+    "186": {
+      "name": "Choice Band",
+      "price": 100,
+      "pocket": 1
+    },
+    "187": {
+      "name": "King'S Rock",
+      "price": 100,
+      "pocket": 1
+    },
+    "188": {
+      "name": "Silverpowder",
+      "price": 100,
+      "pocket": 1
+    },
+    "189": {
+      "name": "Amulet Coin",
+      "price": 100,
+      "pocket": 1
+    },
+    "190": {
+      "name": "Cleanse Tag",
+      "price": 200,
+      "pocket": 1
+    },
+    "191": {
+      "name": "Soul Dew",
+      "price": 200,
+      "pocket": 1
+    },
+    "192": {
+      "name": "Deepseatooth",
+      "price": 200,
+      "pocket": 1
+    },
+    "193": {
+      "name": "Deepseascale",
+      "price": 200,
+      "pocket": 1
+    },
+    "194": {
+      "name": "Smoke Ball",
+      "price": 200,
+      "pocket": 1
+    },
+    "195": {
+      "name": "Everstone",
+      "price": 200,
+      "pocket": 1
+    },
+    "196": {
+      "name": "Focus Band",
+      "price": 200,
+      "pocket": 1
+    },
+    "197": {
+      "name": "Lucky Egg",
+      "price": 200,
+      "pocket": 1
+    },
+    "198": {
+      "name": "Scope Lens",
+      "price": 200,
+      "pocket": 1
+    },
+    "199": {
+      "name": "Metal Coat",
+      "price": 100,
+      "pocket": 1
+    },
+    "200": {
+      "name": "Leftovers",
+      "price": 200,
+      "pocket": 1
+    },
+    "201": {
+      "name": "Dragon Scale",
+      "price": 2100,
+      "pocket": 1
+    },
+    "202": {
+      "name": "Light Ball",
+      "price": 100,
+      "pocket": 1
+    },
+    "203": {
+      "name": "Soft Sand",
+      "price": 100,
+      "pocket": 1
+    },
+    "204": {
+      "name": "Hard Stone",
+      "price": 100,
+      "pocket": 1
+    },
+    "205": {
+      "name": "Miracle Seed",
+      "price": 100,
+      "pocket": 1
+    },
+    "206": {
+      "name": "Blackglasses",
+      "price": 100,
+      "pocket": 1
+    },
+    "207": {
+      "name": "Black Belt",
+      "price": 100,
+      "pocket": 1
+    },
+    "208": {
+      "name": "Magnet",
+      "price": 100,
+      "pocket": 1
+    },
+    "209": {
+      "name": "Mystic Water",
+      "price": 100,
+      "pocket": 1
+    },
+    "210": {
+      "name": "Sharp Beak",
+      "price": 100,
+      "pocket": 1
+    },
+    "211": {
+      "name": "Poison Barb",
+      "price": 100,
+      "pocket": 1
+    },
+    "212": {
+      "name": "Nevermeltice",
+      "price": 100,
+      "pocket": 1
+    },
+    "213": {
+      "name": "Spell Tag",
+      "price": 100,
+      "pocket": 1
+    },
+    "214": {
+      "name": "Twistedspoon",
+      "price": 100,
+      "pocket": 1
+    },
+    "215": {
+      "name": "Charcoal",
+      "price": 9800,
+      "pocket": 1
+    },
+    "216": {
+      "name": "Dragon Fang",
+      "price": 100,
+      "pocket": 1
+    },
+    "217": {
+      "name": "Silk Scarf",
+      "price": 100,
+      "pocket": 1
+    },
+    "218": {
+      "name": "Up-Grade",
+      "price": 2100,
+      "pocket": 1
+    },
+    "219": {
+      "name": "Shell Bell",
+      "price": 200,
+      "pocket": 1
+    },
+    "220": {
+      "name": "Sea Incense",
+      "price": 9600,
+      "pocket": 1
+    },
+    "221": {
+      "name": "Lax Incense",
+      "price": 9600,
+      "pocket": 1
+    },
+    "222": {
+      "name": "Lucky Punch",
+      "price": 10,
+      "pocket": 1
+    },
+    "223": {
+      "name": "Metal Powder",
+      "price": 10,
+      "pocket": 1
+    },
+    "224": {
+      "name": "Thick Club",
+      "price": 500,
+      "pocket": 1
+    },
+    "225": {
+      "name": "Stick",
+      "price": 200,
+      "pocket": 1
+    },
+    "226": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "227": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "228": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "229": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "230": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "231": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "232": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "233": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "234": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "235": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "236": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "237": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "238": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "239": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "240": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "241": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "242": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "243": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "244": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "245": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "246": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "247": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "248": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "249": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "250": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "251": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "252": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "253": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "254": {
+      "name": "Red Scarf",
+      "price": 100,
+      "pocket": 1
+    },
+    "255": {
+      "name": "Blue Scarf",
+      "price": 100,
+      "pocket": 1
+    },
+    "256": {
+      "name": "Pink Scarf",
+      "price": 100,
+      "pocket": 1
+    },
+    "257": {
+      "name": "Green Scarf",
+      "price": 100,
+      "pocket": 1
+    },
+    "258": {
+      "name": "Yellow Scarf",
+      "price": 100,
+      "pocket": 1
+    },
+    "259": {
+      "name": "Mach Bike",
+      "price": 0,
+      "pocket": 2
+    },
+    "260": {
+      "name": "Coin Case",
+      "price": 0,
+      "pocket": 2
+    },
+    "261": {
+      "name": "Itemfinder",
+      "price": 0,
+      "pocket": 2
+    },
+    "262": {
+      "name": "Old Rod",
+      "price": 0,
+      "pocket": 2
+    },
+    "263": {
+      "name": "Good Rod",
+      "price": 0,
+      "pocket": 2
+    },
+    "264": {
+      "name": "Super Rod",
+      "price": 0,
+      "pocket": 2
+    },
+    "265": {
+      "name": "S.S. Ticket",
+      "price": 0,
+      "pocket": 2
+    },
+    "266": {
+      "name": "Contest Pass",
+      "price": 0,
+      "pocket": 2
+    },
+    "267": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "268": {
+      "name": "Wailmer Pail",
+      "price": 0,
+      "pocket": 2
+    },
+    "269": {
+      "name": "Devon Goods",
+      "price": 0,
+      "pocket": 2
+    },
+    "270": {
+      "name": "Soot Sack",
+      "price": 0,
+      "pocket": 2
+    },
+    "271": {
+      "name": "Basement Key",
+      "price": 0,
+      "pocket": 2
+    },
+    "272": {
+      "name": "Acro Bike",
+      "price": 0,
+      "pocket": 2
+    },
+    "273": {
+      "name": "{Pokeblock} Case",
+      "price": 0,
+      "pocket": 2
+    },
+    "274": {
+      "name": "Letter",
+      "price": 0,
+      "pocket": 2
+    },
+    "275": {
+      "name": "Eon Ticket",
+      "price": 0,
+      "pocket": 2
+    },
+    "276": {
+      "name": "Red Orb",
+      "price": 0,
+      "pocket": 2
+    },
+    "277": {
+      "name": "Blue Orb",
+      "price": 0,
+      "pocket": 2
+    },
+    "278": {
+      "name": "Scanner",
+      "price": 0,
+      "pocket": 2
+    },
+    "279": {
+      "name": "Go-Goggles",
+      "price": 0,
+      "pocket": 2
+    },
+    "280": {
+      "name": "Meteorite",
+      "price": 0,
+      "pocket": 2
+    },
+    "281": {
+      "name": "Rm. 1 Key",
+      "price": 0,
+      "pocket": 2
+    },
+    "282": {
+      "name": "Rm. 2 Key",
+      "price": 0,
+      "pocket": 2
+    },
+    "283": {
+      "name": "Rm. 4 Key",
+      "price": 0,
+      "pocket": 2
+    },
+    "284": {
+      "name": "Rm. 6 Key",
+      "price": 0,
+      "pocket": 2
+    },
+    "285": {
+      "name": "Storage Key",
+      "price": 0,
+      "pocket": 2
+    },
+    "286": {
+      "name": "Root Fossil",
+      "price": 0,
+      "pocket": 2
+    },
+    "287": {
+      "name": "Claw Fossil",
+      "price": 0,
+      "pocket": 2
+    },
+    "288": {
+      "name": "Devon Scope",
+      "price": 0,
+      "pocket": 2
+    },
+    "347": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "348": {
+      "name": "????????",
+      "price": 0,
+      "pocket": 1
+    },
+    "349": {
+      "name": "Oak'S Parcel",
+      "price": 0,
+      "pocket": 2
+    },
+    "350": {
+      "name": "Poké Flute",
+      "price": 0,
+      "pocket": 2
+    },
+    "351": {
+      "name": "Secret Key",
+      "price": 0,
+      "pocket": 2
+    },
+    "352": {
+      "name": "Bike Voucher",
+      "price": 0,
+      "pocket": 2
+    },
+    "353": {
+      "name": "Gold Teeth",
+      "price": 0,
+      "pocket": 2
+    },
+    "354": {
+      "name": "Old Amber",
+      "price": 0,
+      "pocket": 2
+    },
+    "355": {
+      "name": "Card Key",
+      "price": 0,
+      "pocket": 2
+    },
+    "356": {
+      "name": "Lift Key",
+      "price": 0,
+      "pocket": 2
+    },
+    "357": {
+      "name": "Helix Fossil",
+      "price": 0,
+      "pocket": 2
+    },
+    "358": {
+      "name": "Dome Fossil",
+      "price": 0,
+      "pocket": 2
+    },
+    "359": {
+      "name": "Silph Scope",
+      "price": 0,
+      "pocket": 2
+    },
+    "360": {
+      "name": "Bicycle",
+      "price": 0,
+      "pocket": 2
+    },
+    "361": {
+      "name": "Town Map",
+      "price": 0,
+      "pocket": 2
+    },
+    "362": {
+      "name": "Vs Seeker",
+      "price": 0,
+      "pocket": 2
+    },
+    "363": {
+      "name": "Fame Checker",
+      "price": 0,
+      "pocket": 2
+    },
+    "364": {
+      "name": "Tm Case",
+      "price": 0,
+      "pocket": 2
+    },
+    "365": {
+      "name": "Berry Pouch",
+      "price": 0,
+      "pocket": 2
+    },
+    "366": {
+      "name": "Teachy Tv",
+      "price": 0,
+      "pocket": 2
+    },
+    "367": {
+      "name": "Tri-Pass",
+      "price": 0,
+      "pocket": 2
+    },
+    "368": {
+      "name": "Rainbow Pass",
+      "price": 0,
+      "pocket": 2
+    },
+    "369": {
+      "name": "Tea",
+      "price": 0,
+      "pocket": 2
+    },
+    "370": {
+      "name": "Mysticticket",
+      "price": 0,
+      "pocket": 2
+    },
+    "371": {
+      "name": "Auroraticket",
+      "price": 0,
+      "pocket": 2
+    },
+    "372": {
+      "name": "Powder Jar",
+      "price": 0,
+      "pocket": 2
+    },
+    "373": {
+      "name": "Ruby",
+      "price": 0,
+      "pocket": 2
+    },
+    "374": {
+      "name": "Sapphire",
+      "price": 0,
+      "pocket": 2
+    },
+    "375": {
+      "name": "Magma Emblem",
+      "price": 0,
+      "pocket": 2
+    },
+    "376": {
+      "name": "Old Sea Map",
+      "price": 0,
+      "pocket": 2
+    }
+  },
+  "merchants": [
+    {
+      "id": "oldaletown-mart",
+      "name": "Oldale Town Poké Mart",
+      "location": "Oldale Town",
+      "visitedFlag": 2160,
+      "stock": [
+        13,
+        14,
+        18,
+        17
+      ],
+      "expandedFlag": 116,
+      "expandedStock": [
+        4,
+        13,
+        14,
+        18,
+        17
+      ]
+    },
+    {
+      "id": "petalburgcity-mart",
+      "name": "Petalburg City Poké Mart",
+      "location": "Petalburg City",
+      "visitedFlag": 2166,
+      "stock": [
+        4,
+        13,
+        14,
+        18,
+        17,
+        85,
+        86,
+        77,
+        75,
+        76,
+        121
+      ],
+      "expandedFlag": 296,
+      "expandedStock": [
+        4,
+        3,
+        13,
+        22,
+        14,
+        18,
+        17,
+        85,
+        86,
+        77,
+        75,
+        76,
+        121
+      ]
+    },
+    {
+      "id": "rustborocity-mart",
+      "name": "Rustboro City Poké Mart",
+      "location": "Rustboro City",
+      "visitedFlag": 2169,
+      "stock": [
+        4,
+        13,
+        22,
+        14,
+        18,
+        85,
+        86,
+        77,
+        75,
+        76
+      ],
+      "expandedFlag": 287,
+      "expandedStock": [
+        4,
+        10,
+        9,
+        13,
+        22,
+        14,
+        18,
+        85,
+        86,
+        77,
+        75,
+        76
+      ]
+    },
+    {
+      "id": "slateportcity-mart",
+      "name": "Slateport City Poké Mart",
+      "location": "Slateport City",
+      "visitedFlag": 2167,
+      "stock": [
+        4,
+        3,
+        13,
+        22,
+        14,
+        18,
+        85,
+        86,
+        122
+      ]
+    },
+    {
+      "id": "mauvillecity-mart",
+      "name": "Mauville City Poké Mart",
+      "location": "Mauville City",
+      "visitedFlag": 2168,
+      "stock": [
+        4,
+        3,
+        22,
+        14,
+        18,
+        17,
+        77,
+        75,
+        76,
+        73,
+        74,
+        78
+      ]
+    },
+    {
+      "id": "verdanturftown-mart",
+      "name": "Verdanturf Town Poké Mart",
+      "location": "Verdanturf Town",
+      "visitedFlag": 2164,
+      "stock": [
+        3,
+        8,
+        22,
+        14,
+        18,
+        17,
+        15,
+        16,
+        86,
+        79,
+        81
+      ]
+    },
+    {
+      "id": "fallarbortown-mart",
+      "name": "Fallarbor Town Poké Mart",
+      "location": "Fallarbor Town",
+      "visitedFlag": 2163,
+      "stock": [
+        3,
+        22,
+        14,
+        18,
+        85,
+        83,
+        79,
+        77,
+        75,
+        76,
+        74,
+        73
+      ]
+    },
+    {
+      "id": "lavaridgetown-mart",
+      "name": "Lavaridge Town Poké Mart",
+      "location": "Lavaridge Town",
+      "visitedFlag": 2162,
+      "stock": [
+        3,
+        22,
+        14,
+        18,
+        17,
+        15,
+        24,
+        83,
+        77
+      ]
+    },
+    {
+      "id": "fortreecity-mart",
+      "name": "Fortree City Poké Mart",
+      "location": "Fortree City",
+      "visitedFlag": 2170,
+      "stock": [
+        3,
+        2,
+        22,
+        21,
+        14,
+        18,
+        17,
+        24,
+        83,
+        125
+      ]
+    },
+    {
+      "id": "mossdeepcity-mart",
+      "name": "Mossdeep City Poké Mart",
+      "location": "Mossdeep City",
+      "visitedFlag": 2172,
+      "stock": [
+        2,
+        6,
+        7,
+        21,
+        23,
+        24,
+        84,
+        75,
+        76
+      ]
+    },
+    {
+      "id": "sootopoliscity-mart",
+      "name": "Sootopolis City Poké Mart",
+      "location": "Sootopolis City",
+      "visitedFlag": 2173,
+      "stock": [
+        2,
+        21,
+        20,
+        23,
+        24,
+        84,
+        75,
+        76,
+        128
+      ]
+    }
+  ]
+}

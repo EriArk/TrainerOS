@@ -29,6 +29,19 @@ and a normal Emerald launch showing recovered HP and PP. Emerald remains the
 only verified healing target. Further scene refinements,
 additional formats, box management and two-device writers retain their acceptance.
 
+**#68 owner clarification — 2026-09-24:** [Shops & Traders](EMERALD_SHOPS.md)
+means real purchases, not only a catalogue. Extend row 7's Emerald Center with
+ordinary Poké Marts first: save-backed discovery/stock, money and Bag transaction,
+controller shop room and in-game proof. Then add grouped/special vendors, their
+currencies and reward writers. Preserve every other #68 and earlier acceptance.
+
+**#68 ordinary marts delivered — 2026-09-24:** eleven Emerald Poké Marts now
+provide visited/story-based stock, quantity/confirmation, atomic money/Bag
+purchases and automatic protection copies. Flip verification included normal
+in-game item/money readback and exact backup restoration. Grouped department
+stores, special vendors, coins/BP and all remaining #68 acceptance stay queued in
+[the shop contract](EMERALD_SHOPS.md#remaining-68-acceptance--retained).
+
 **Current owner order — 2026-09-24:** native [ScreenScraper #65](SCREENSCRAPER.md)
 first; video previews plus complete game metadata/description/media presentation
 second; then Pokedex, Party/Storage, Center and their related accepted features.

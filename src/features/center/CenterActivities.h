@@ -38,6 +38,7 @@ signals:
     void actorsChanged();
     void reactionRequested(int actor, int partner, const QString& gesture);
     void closeRequested();
+    void shopsRequested();
 private:
     void react(const QString& gesture);
     bool sample_;

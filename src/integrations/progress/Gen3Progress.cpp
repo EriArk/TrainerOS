@@ -1,5 +1,6 @@
 #include "Gen3Progress.h"
 #include "EmeraldParty.h"
+#include "EmeraldShops.h"
 #include <QtEndian>
 #include <array>
 #include <algorithm>
@@ -95,6 +96,38 @@ GameProgress readGen3Progress(const QByteArray& save, Gen3Edition edition) {
     return result;
 }
 
+namespace {
+std::optional<Slot> shopSlot(const QByteArray& save,const QString& hash) {
+    if(gen3Edition(hash)!=Gen3Edition::Emerald || save.size()!=0x20000)return {};
+    const auto a=readSlot(save,0,Gen3Edition::Emerald),b=readSlot(save,14*Sector,Gen3Edition::Emerald);
+    const quint32 distance=b.counter-a.counter;
+    if(!a.valid||!b.valid||!distance||distance==0x80000000u)return {};
+    return distance<0x80000000u?b:a;
+}
+QByteArray worldBlock(const Slot& slot){QByteArray out;for(int id=1;id<=4;++id)out+=slot.blocks[id];return out;}
+}
+MerchantSnapshot readEmeraldShops(const QByteArray& save,const QString& hash) {
+    const auto slot=shopSlot(save,hash);
+    if(!slot){MerchantSnapshot out;out.error="Save in the supported English Emerald edition, then visit again.";return out;}
+    auto out=readEmeraldShopBlock(worldBlock(*slot),u32(slot->blocks[0],0xac));
+    out.lineage=QString::fromLatin1(slot->blocks[0].left(14).toHex());
+    return out;
+}
+MerchantWrite buyEmeraldItems(const QByteArray& save,const QString& hash,const MerchantPurchase& request) {
+    const auto slot=shopSlot(save,hash);if(!slot)return {{},"This Emerald save could not be verified.",{}};
+    const auto purchase=buyEmeraldShopBlock(worldBlock(*slot),u32(slot->blocks[0],0xac),request);
+    if(purchase.data.isEmpty())return purchase;
+    auto result=save;
+    for(int id=1;id<=4;++id){
+        const auto block=purchase.data.mid((id-1)*Payload,slot->blocks[id].size());
+        if(block==slot->blocks[id])continue;
+        const int at=slot->offsets[id];result.replace(at,block.size(),block);
+        quint32 sum=0;for(int p=0;p<block.size();p+=4)sum+=u32(block,p);
+        qToLittleEndian(quint16((sum>>16)+sum),result.data()+at+0xff6);
+    }
+    if(!readEmeraldShops(result,hash).supported)return {{},"The updated save could not be verified.",{}};
+    return {result,{},purchase.message};
+}
 SaveHealing healEmeraldParty(const QByteArray& save, const QString& contentHash) {
     if (gen3Edition(contentHash) != Gen3Edition::Emerald)
         return {{},"Healing is currently available for the verified English Pokémon Emerald edition."};

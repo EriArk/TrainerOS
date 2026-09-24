@@ -1,5 +1,6 @@
 #pragma once
 #include "Models.h"
+#include "Merchant.h"
 #include <QObject>
 #include <functional>
 
@@ -23,6 +24,7 @@ struct SaveBackupSnapshot {
     bool canHeal = false, needsHealing = false;
     int partyCount = 0;
     QString healingError;
+    MerchantSnapshot shops;
 };
 struct SaveHealing {
     QByteArray data;
@@ -46,6 +48,9 @@ public:
     virtual void restore(const AdventureRegistration&, const SaveBackup&, const QString& token, QObject*, std::function<void(SaveBackupResult)>) = 0;
     virtual void heal(const AdventureRegistration&, const QString&, QObject*, std::function<void(SaveBackupResult)> done) {
         done({false,false,"Healing is not available for this Adventure."});
+    }
+    virtual void purchase(const AdventureRegistration&, const QString&, const MerchantPurchase&, QObject*, std::function<void(SaveBackupResult)> done) {
+        done({false,false,"Purchases are unavailable for this Adventure."});
     }
 signals:
     void busyChanged();

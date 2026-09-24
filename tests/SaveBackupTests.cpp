@@ -32,6 +32,20 @@ struct Fixture {
 class SaveBackupTests final : public QObject {
     Q_OBJECT
 private slots:
+    void shoppingWritesOneProtectedSaveAndDiscoveryIsScoped() {
+        Fixture f;bool unlocked=false;
+        const MerchantReader reader=[&](const QByteArray&,const QString&){MerchantSnapshot s;s.supported=true;s.lineage="trainer-id";if(unlocked){Merchant m;m.discovered=true;m.id="one";m.name="Oldale";s.merchants.append(m);}return s;};
+        const MerchantBuyer buyer=[](const QByteArray&,const QString&,const MerchantPurchase& r){return r.quantity==2?MerchantWrite{"PURCHASED",{},"Bought"}:MerchantWrite{{},"Invalid quantity",{}};};
+        auto before=inspectSaveBackups(f.root,f.target,{},reader);QVERIFY(before.shops.discoveryNotice.isEmpty());
+        unlocked=true;auto discovered=inspectSaveBackups(f.root,f.target,{},reader);QVERIFY(discovered.shops.discoveryNotice.contains("Oldale"));
+        QVERIFY(inspectSaveBackups(f.root,f.target,{},reader).shops.discoveryNotice.isEmpty());
+        auto other=f.target;other.backupOwner="other-owner";QVERIFY(inspectSaveBackups(f.root,other,{},reader).shops.discoveryNotice.isEmpty());
+        QVERIFY(!purchaseSaveItems(f.root,f.record,before.token,{"one",13,0},f.resolve,buyer,reader).success);QCOMPARE(read(f.path),"FIRST SAVE");
+        const auto bought=purchaseSaveItems(f.root,f.record,before.token,{"one",13,2},f.resolve,buyer,reader);
+        QVERIFY(bought.success);QCOMPARE(read(f.path),"PURCHASED");QCOMPARE(bought.snapshot.copies.size(),1);QCOMPARE(bought.snapshot.copies[0].reason,"purchase");
+        QVERIFY(!purchaseSaveItems(f.root,f.record,before.token,{"one",13,2},f.resolve,buyer,reader).success);
+        QVERIFY(restoreSaveBackup(f.root,f.record,bought.snapshot.copies[0],bought.snapshot.token,f.resolve).success);QCOMPARE(read(f.path),"FIRST SAVE");
+    }
     void healingIsProtectedAndUndoRestoresExactOriginal() {
         Fixture f;
         const SaveHealer healer=[](const QByteArray&,const QString&){return SaveHealing{"HEALED SAVE",{},3};};

@@ -1,5 +1,13 @@
 # AGENTS.md — TrainerOS
 
+**Owner merchant clarification, 2026-09-24:** #68 means actual game-inspired
+shops with purchases, analogous to real Center healing. This supersedes the
+issue's read-only purchase exclusion: browsing/discovery stays read-only;
+explicitly confirmed purchases debit the verified currency and add the reward
+through the protected save transaction. Emerald ordinary Poké Marts come first,
+then other traders/currencies. Preserve all #68 discovery, stock, grouping and
+non-spoiler acceptance, and every earlier roadmap commitment.
+
 **Owner Center scope, 2026-09-24:** complete the real healing cycle for verified
 English Emerald first, with a game-inspired Pokémon Center/nurse presentation.
 Adapt other games/platforms later; one platform does not imply one save format.

@@ -41,7 +41,8 @@ private slots:
             bool busy() const override{return working;}
             bool supports(const AdventureRegistration&) const override{return true;}
             void inspect(const AdventureRegistration&,QObject*,std::function<void(SaveBackupSnapshot)> done) override {
-                SaveBackupSnapshot s;s.hasSave=true;s.supported=true;s.token="token";s.canHeal=true;s.needsHealing=true;s.partyCount=6;done(s);
+                SaveBackupSnapshot s;s.hasSave=true;s.supported=true;s.token="token";s.canHeal=true;s.needsHealing=true;s.partyCount=6;
+                s.shops.supported=true;s.shops.balance=5000;Merchant m;m.id="oldale";m.name="Oldale";m.discovered=true;m.available=true;m.stock.append({13,300,0,16,"Potion","Items"});s.shops.merchants.append(m);done(s);
             }
             void create(const AdventureRegistration&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override{}
             void restore(const AdventureRegistration&,const SaveBackup&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override{}
@@ -49,6 +50,10 @@ private slots:
                 target=r.adventure.id;working=true;pending=std::move(done);emit busyChanged();
             }
             void finish(){working=false;auto done=std::move(pending);done({true,true,"Recovered"});emit busyChanged();}
+            MerchantPurchase request;
+            void purchase(const AdventureRegistration& r,const QString&,const MerchantPurchase& p,QObject*,std::function<void(SaveBackupResult)> done) override {
+                target=r.adventure.id;request=p;working=true;pending=std::move(done);emit busyChanged();
+            }
         } service;
         SaveCenterController center(library);center.configure(&service);center.beginSelected("one");
         center.visitClinic();QVERIFY(center.clinicOpen());QVERIFY(center.canHeal());
@@ -58,6 +63,12 @@ private slots:
         center.close();center.beginSelected("two");QVERIFY(!center.clinicOpen());service.finish();
         QCoreApplication::processEvents();QCOMPARE(center.title(),"two");QCOMPARE(center.treatment(),"ready");
         QVERIFY(!center.clinicMessage().contains("Recovered"));
+        center.visitShops();QVERIFY(center.shopsOpen());center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"stock");
+        center.dispatch(Action::Right);QCOMPARE(center.quantity(),2);center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"confirm");QVERIFY(!service.working);
+        center.dispatch(Action::Back);QCOMPARE(center.shopRoute(),"stock");center.dispatch(Action::Confirm);center.dispatch(Action::Confirm);
+        QVERIFY(service.working);QCOMPARE(service.request.quantity,2);QCOMPARE(service.request.itemId,13);QCOMPARE(service.target,"two");
+        center.dispatch(Action::Back);QCOMPARE(center.shopRoute(),"confirm");service.finish();QCOMPARE(center.shopRoute(),"receipt");
+        center.close();QVERIFY(!center.shopsOpen());
         PartyPresentation party(true);QSignalSpy requested(&party,&PartyPresentation::healingRequested);
         party.dispatch(Action::Confirm);party.dispatch(Action::Down);party.dispatch(Action::Confirm);
         QCOMPARE(requested.count(),1);QVERIFY(!party.detailOpen());

@@ -79,6 +79,43 @@ QByteArray pokemonFixture(quint32 personality = 0, int species = 25, bool egg = 
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void emeraldShopsFollowFlagsAndProtectPurchases() {
+        for(int rotation=0;rotation<14;++rotation)for(quint32 key:{0u,0x85ce1972u}) {
+            auto bytes=slot(Gen3Edition::Emerald,0xffffffffu,3,0,0)+slot(Gen3Edition::Emerald,0,rotation,0,0)+QByteArray(0x4000,char(0xff));
+            const int block0=(14+rotation)*0x1000,block1=(14+(1+rotation)%14)*0x1000,block2=(14+(2+rotation)%14)*0x1000;
+            auto seal=[&]{for(int id=0;id<14;++id){const int at=(14+(id+rotation)%14)*0x1000,n=id==0?0xf2c:id==4?0xf08:id==13?0x7d0:0xf80;quint32 sum=0;for(int p=0;p<n;p+=4)sum+=qFromLittleEndian<quint32>(bytes.constData()+at+p);put16(bytes,at+0xff6,quint16((sum>>16)+sum));}};
+            auto flag=[&](int id){const int at=block2+0x1270-0xf80+id/8;bytes[at]=char(quint8(bytes[at])|(1<<(id%8)));};
+            put32(bytes,block0+0xac,key);put32(bytes,block1+0x490,10000^key);
+            for(auto pocket: {std::pair{0x560,30},std::pair{0x650,16}})for(int i=0;i<pocket.second;++i)put16(bytes,block1+pocket.first+4*i+2,quint16(key));
+            seal();const auto hidden=readEmeraldShops(bytes,EmeraldHash);QVERIFY(hidden.supported);QCOMPARE(hidden.merchants.size(),11);
+            for(const auto& m:hidden.merchants){QCOMPARE(m.name,"???");QVERIFY(m.id.isEmpty());QVERIFY(m.location.isEmpty());QVERIFY(m.stock.isEmpty());QVERIFY(!m.discovered);}
+            QVERIFY(buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",13,1}).data.isEmpty());
+            flag(0x870);seal();auto state=readEmeraldShops(bytes,EmeraldHash);QVERIFY(state.merchants[0].discovered);QCOMPARE(state.merchants[0].stock.size(),4);
+            QVERIFY(buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",4,1}).data.isEmpty());
+            flag(0x74);seal();state=readEmeraldShops(bytes,EmeraldHash);QCOMPARE(state.merchants[0].stock.size(),5);
+            auto purchase=buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",4,10});QVERIFY2(purchase.error.isEmpty(),qPrintable(purchase.error));
+            const auto after=readEmeraldShops(purchase.data,EmeraldHash);QCOMPARE(after.balance,8000);QCOMPARE(after.merchants[0].stock[0].owned,10);
+            QCOMPARE(qFromLittleEndian<quint16>(purchase.data.constData()+block1+0x654),quint16(12));
+            QCOMPARE(qFromLittleEndian<quint16>(purchase.data.constData()+block1+0x656)^quint16(key),1);
+            for(int p=0;p<bytes.size();++p){if((p>=block1+0x490&&p<block1+0x494)||(p>=block1+0x650&&p<block1+0x658)||(p>=block1+0xff6&&p<block1+0xff8))continue;QCOMPARE(purchase.data[p],bytes[p]);}
+            QVERIFY(buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",4,0}).data.isEmpty());
+            QVERIFY(buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",4,100}).data.isEmpty());
+            QVERIFY(buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",4,99}).data.isEmpty());
+            QVERIFY(buyEmeraldItems(bytes,"wrong",{"oldaletown-mart",4,1}).data.isEmpty());
+            auto damaged=bytes;damaged[0]^=1;QVERIFY(!readEmeraldShops(damaged,EmeraldHash).supported);
+            // Existing stacks fill before an empty slot; a full pocket rejects atomically.
+            put16(bytes,block1+0x650,4);put16(bytes,block1+0x652,98^quint16(key));seal();
+            purchase=buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",4,3});QVERIFY(purchase.error.isEmpty());
+            QCOMPARE(qFromLittleEndian<quint16>(purchase.data.constData()+block1+0x652)^quint16(key),99);
+            QCOMPARE(qFromLittleEndian<quint16>(purchase.data.constData()+block1+0x656)^quint16(key),2);
+            for(int i=0;i<16;++i){put16(bytes,block1+0x650+4*i,4);put16(bytes,block1+0x652+4*i,99^quint16(key));}seal();
+            QVERIFY(buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",4,1}).data.isEmpty());
+            // Known locations can be unavailable while the separate Pyramid Bag is active.
+            bytes[block1+4]=26;bytes[block1+5]=26;seal();state=readEmeraldShops(bytes,EmeraldHash);
+            QVERIFY(state.merchants[0].discovered);QVERIFY(!state.merchants[0].available);
+            QVERIFY(buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",13,1}).data.isEmpty());
+        }
+    }
     void healingRestoresHealthAndPpWithoutChangingOtherSaveData() {
         for (int rotation=0;rotation<14;++rotation) for(int permutation=0;permutation<24;++permutation) {
             auto bytes=save(Gen3Edition::Emerald,0xffffffffu,0);

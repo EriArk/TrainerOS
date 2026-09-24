@@ -85,6 +85,10 @@ Playroom, and can restore Party HP, status and move PP for the verified English
 Emerald build. Treatment keeps a verified backup first and is loaded by the next
 normal game launch. [Healing scope and recovery](docs/EMERALD_HEALING.md).
 
+Center also offers eleven Emerald Poké Marts with save-based discovery and stock,
+quantity selection and protected purchases. Money and Bag contents change together;
+each purchase keeps a restorable backup. [Shop scope](docs/EMERALD_SHOPS.md).
+
 ### Trainer and Hall of Fame
 
 TrainerOS supports multiple local Trainer profiles with owner-scoped history and records. Optional controller-entered PINs and a family recovery code are available for shared handhelds. The first per-Trainer ordinary-save namespace is implemented for the verified GBA/mGBA route; other emulator save paths stay shared until they are individually validated.

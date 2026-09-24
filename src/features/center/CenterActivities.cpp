@@ -61,6 +61,7 @@ void CenterActivities::reset() {
 }
 void CenterActivities::activate(int index) {
     if (route_ == "menu") {
+        if(index==3){menu_=3;emit changed();emit shopsRequested();return;}
         menu_ = std::clamp(index, 0, 2);
         route_ = QStringList{"playroom", "practice", "link"}[menu_];
         stage_ = "setup"; reaction_.clear(); actor_ = 0;
@@ -82,7 +83,7 @@ void CenterActivities::dispatch(Action action) {
     } else if (action == Action::Confirm) { activate(focusIndex()); return; }
     else if (route_ == "menu") {
         if (action == Action::Up) menu_ = std::max(0, menu_ - 1);
-        if (action == Action::Down) menu_ = std::min(2, menu_ + 1);
+        if (action == Action::Down) menu_ = std::min(3, menu_ + 1);
     } else if (hasParty() && route_ == "playroom") {
         if (action == Action::Left || action == Action::Right) {
             actor_ = (actor_ + (action == Action::Left ? actors_.size()-1 : 1)) % actors_.size();

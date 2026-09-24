@@ -1,0 +1,21 @@
+{
+  "source": "https://github.com/pret/pokeemerald",
+  "revision": "5eff78649e7170a877b961ef0b3da13b81a16038",
+  "inputs": {
+    "data_maps_FallarborTown_Mart_scripts.inc": "da5064bbb16cea792c4479d5aeb77b85e391d894082e23ac5a060da1387791ec",
+    "data_maps_FortreeCity_Mart_scripts.inc": "44fc21c61a419750283d4cc3f6114c21d727e30154daa0521ad08fd119df71c1",
+    "data_maps_LavaridgeTown_Mart_scripts.inc": "2bef33473e5b6627715c4969648f303462a2d8eae0cc1bce8688b09d48ed6a73",
+    "data_maps_MauvilleCity_Mart_scripts.inc": "7f0ca6a6a416d866cafde0cd0a49ff544680996c96c7dc4672ef8476c970f325",
+    "data_maps_MossdeepCity_Mart_scripts.inc": "584cc363791141a012428b495c9702caef24899402362872347b7d34a0fa39c2",
+    "data_maps_OldaleTown_Mart_scripts.inc": "380c9a8c855eafe5fa18b7c6f803f410188258304f4cf85faa443126b611c6e3",
+    "data_maps_PetalburgCity_Mart_scripts.inc": "d3223295e68e50f40f3c6ede53b1abe892522762cde792185ff8fc25ace23fa0",
+    "data_maps_RustboroCity_Mart_scripts.inc": "821884d4fd1024013da9e1bf340d1ccb194bb715ef785776406879baec6e886a",
+    "data_maps_SlateportCity_Mart_scripts.inc": "cb5af242b94d9ae5e1d0a8691c5e66773522bc60c13027817be45793aa4f6227",
+    "data_maps_SootopolisCity_Mart_scripts.inc": "e91ff13976ccb67ac9b6399b4a4998b3f131c3ef1340eb552556bc0920cf0ba0",
+    "data_maps_VerdanturfTown_Mart_scripts.inc": "b4e48226f8c83a4de5919c441cf0dcdc459773b7cabcce8223b64b1528861a57",
+    "include_constants_flags.h": "98aa1c819f1155673d7826a45f9a0d244e2a15b8f603fdfa661be3cef1b4de41",
+    "include_constants_items.h": "6e3a9728b4d90cc23fee0aae9b9ffa9fbd71541e6b3cb2b966f334930b6ad6f8",
+    "src_data_items.h": "61bfc24ac42cd9ad2ad01ea4eb431ad478574baf2008c9662cb163d7f4d99dcc"
+  },
+  "scope": "Factual names, identifiers, prices, pockets, stock and flag conditions only. No dialogue, game implementation or art."
+}

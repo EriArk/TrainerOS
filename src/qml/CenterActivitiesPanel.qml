@@ -19,12 +19,12 @@ Item {
             y: heading.height; width: parent.width; height: parent.height - y; color: "#dce6dc"
             Text { x: 24; y: 15; width: parent.width - 48; text: root.activity.page.message; color: Theme.muted; font.pixelSize: 16; wrapMode: Text.WordWrap }
             Column {
-                x: 24; y: 52; spacing: 13; visible: root.activity.route === "menu"
+                x: 24; y: 52; spacing: 9; visible: root.activity.route === "menu"
                 Repeater {
-                    model: ["Party Playroom", "Practice", "Link Counter"]
+                    model: ["Party Playroom", "Practice", "Link Counter", "Shops & Traders"]
                     CapButton {
                         required property int index; required property string modelData
-                        objectName: "activity-menu-" + index; width: 384; height: 55; label: modelData
+                        objectName: "activity-menu-" + index; width: 384; height: 48; label: modelData
                         tint: index === 0 ? Theme.green : index === 1 ? Theme.blue : Theme.yellow
                         selected: root.takesFocus && root.activity.route === "menu" && root.activity.focusIndex === index
                         onActivated: root.shell.activate(index)
@@ -35,6 +35,7 @@ Item {
                 x: 449; y: 68; width: parent.width - 478; visible: root.activity.route === "menu"
                 text: root.activity.focusIndex === 0 ? "Spend a quiet moment with your Party.\n\nA separate space from Party management."
                     : root.activity.focusIndex === 1 ? "Prepare a read-only practice session.\n\nNo rewards or changes to the saved game."
+                    : root.activity.focusIndex === 3 ? "Visit the shops you have discovered and stock up for your next adventure."
                     : "Review a partner and proposal.\n\nTransfers require supported games on both devices."
                 color: Theme.ink; font.pixelSize: 20; wrapMode: Text.WordWrap
             }

@@ -213,6 +213,7 @@ Window {
                 }
                 if (shell.page === 2 && shell.centerFace) {
                     const party = shell.party
+                    if (shell.center.shopsOpen) return shell.center.busy ? [] : shell.center.shopRoute === "stock" ? [h("←→","Quantity"),h("A","Buy"),h("B","Shops")] : [h("A",shell.center.shopRoute === "confirm" ? "Confirm purchase" : "Select"),h("B","Back")]
                     if (shell.center.clinicOpen) return shell.center.busy ? [] : [h("A",shell.center.treatment === "ready" && shell.center.canHeal ? "Heal team" : "Back"),h("B","Back")]
                     if (party.section === "saves") return shell.center.confirming ? [h("A","Restore"),h("B","Cancel")] : [h("X",shell.center.route === "adventures" ? "Search" : "Refresh"),h("Select","Backup"),h("A","Open"),h("B","Back")]
                     if (party.section === "activities") return party.activities.route === "playroom" && party.activities.hasParty ? [h("←→","Partner"),h("Select","Play"),h("X","Greet"),h("A","Call"),h("B","Back")] : [h("A","Select"),h("B","Back")]
@@ -260,10 +261,20 @@ Window {
         SettingsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "settings" }
         DevicePanel { anchors.fill: screen; shell: shellController; visible: shell.service === "device" }
         DiagnosticsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "diagnostics" }
-        PartyPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && !shell.center.clinicOpen && shell.party.section !== "saves" && shell.party.section !== "activities" }
+        PartyPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && !shell.center.clinicOpen && !shell.center.shopsOpen && shell.party.section !== "saves" && shell.party.section !== "activities" }
+        PokemonShop { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && shell.center.shopsOpen }
         PokemonClinic { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && shell.center.clinicOpen }
-        CenterActivitiesPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && !shell.center.clinicOpen && shell.party.section === "activities" }
-        SaveCenterPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && !shell.center.clinicOpen && shell.party.section === "saves" }
+        CenterActivitiesPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && !shell.center.clinicOpen && !shell.center.shopsOpen && shell.party.section === "activities" }
+        SaveCenterPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && !shell.center.clinicOpen && !shell.center.shopsOpen && shell.party.section === "saves" }
+        Rectangle {
+            id: merchantToast; property string message: ""
+            anchors.right: screen.right; anchors.bottom: screen.bottom; anchors.margins: 12
+            width: Math.min(440, screen.width-24); height: 54; radius: 8; color: "#f8e5a9"; border.color: "#b28b42"; z: 1
+            visible: toastTimer.running && shell.centerFace && !shell.menuOpen && !shell.drawerOpen && !shell.serviceOpen
+            Text { anchors.fill: parent; anchors.margins: 10; text: merchantToast.message; font.pixelSize: 16; color: Theme.ink; wrapMode: Text.WordWrap; verticalAlignment: Text.AlignVCenter }
+            Timer { id: toastTimer; interval: 4500 }
+            Connections { target: shell.center; function onMerchantDiscovered(message) { merchantToast.message=message; toastTimer.restart() } }
+        }
         LibraryToolsPanel { anchors.fill: screen; shell: shellController; z: 1; visible: shell.libraryTools.open }
         KeyboardPanel {
             anchors { left: screen.left; right: screen.right; top: screen.top; bottom: footer.top }

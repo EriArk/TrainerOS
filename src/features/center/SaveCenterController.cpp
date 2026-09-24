@@ -39,7 +39,7 @@ QVariantList SaveCenterController::rows() const {
         const auto date=copy.createdAt.isValid()?copy.createdAt.toLocalTime().toString("dd MMM yyyy · HH:mm:ss"):QString("Unreadable copy");
         result.append(QVariantMap{{"id",copy.id},{"title",date},{"available",copy.valid&&copy.hasSave&&copy.bytes>0},
             {"detail",!copy.valid?"Damaged or different game content":!copy.hasSave?"Before restore · no previous save existed"
-                :copy.bytes==0?"Before restore · previous save was empty":QString(copy.reason=="healing"?"Before healing · %1 bytes":copy.protection?"Before restore · %1 bytes":"Manual copy · %1 bytes").arg(copy.bytes)}});
+                :copy.bytes==0?"Before restore · previous save was empty":QString(copy.reason=="purchase"?"Before purchase · %1 bytes":copy.reason=="healing"?"Before healing · %1 bytes":copy.protection?"Before restore · %1 bytes":"Manual copy · %1 bytes").arg(copy.bytes)}});
     }
     return result;
 }
@@ -53,14 +53,14 @@ void SaveCenterController::rebuild() {
     focus_=std::clamp(focus_,0,std::max(0,int(adventures_.size())-1));emit rowsChanged();emit changed();
 }
 void SaveCenterController::begin(const QString& preferred) {
-    clinicOpen_=false; treatment_="ready"; clinicMessage_.clear();
+    shopsOpen_=false; clinicOpen_=false; treatment_="ready"; clinicMessage_.clear();
     companion_=false;refreshPending_=false;
     ++generation_;open_=true;confirming_=false;query_.clear();message_.clear();route_="adventures";focus_=0;rebuild();
     for(int i=0;i<adventures_.size();++i)if(adventures_[i].id==preferred)focus_=i;
     emit changed();
 }
 void SaveCenterController::beginSelected(const QString& id) {
-    clinicOpen_=false; treatment_="ready"; clinicMessage_.clear();
+    shopsOpen_=false; clinicOpen_=false; treatment_="ready"; clinicMessage_.clear();
     const auto record=library_.registration(id);
     const bool same=companion_ && selected_.adventure.id==id && record && selected_.revision==record->revision;
     ++generation_;open_=true;companion_=true;confirming_=false;route_="copies";message_.clear();
@@ -79,8 +79,9 @@ void SaveCenterController::beginSelected(const QString& id) {
     } else refresh();
     emit rowsChanged();emit changed();
 }
-void SaveCenterController::close(){++generation_;open_=false;confirming_=false;clinicOpen_=false;refreshPending_=false;emit changed();}
+void SaveCenterController::close(){++generation_;open_=false;confirming_=false;clinicOpen_=false;shopsOpen_=false;refreshPending_=false;emit changed();}
 void SaveCenterController::back() {
+    if(shopsOpen_){dispatchShop(Action::Back);return;}
     if(clinicOpen_){if(!busy()){clinicOpen_=false;emit changed();}return;}
     if(confirming_){confirming_=false;emit changed();return;}
     if(companion_)return; // B unwinds confirmation; L2/R2 changes the paired face.
@@ -96,6 +97,7 @@ void SaveCenterController::refresh() {
     selected_=*latest;message_.clear();confirming_=false;const auto generation=++generation_;
     service_->inspect(selected_,this,[this,generation](const SaveBackupSnapshot& result){
         if(!open_||generation!=generation_)return;
+        if(!result.shops.discoveryNotice.isEmpty())emit merchantDiscovered(result.shops.discoveryNotice);
         snapshot_=result;focus_=std::clamp(focus_,0,std::max(0,int(snapshot_.copies.size())-1));emit rowsChanged();emit changed();
     });
 }
@@ -137,6 +139,7 @@ void SaveCenterController::restore() {
 }
 void SaveCenterController::dispatch(Action action) {
     if(!open_)return;
+    if(shopsOpen_){dispatchShop(action);return;}
     if(clinicOpen_) {
         if(action==Action::Back)back();
         else if(action==Action::Confirm && !busy()) {if(treatment_=="done" || treatment_=="error" || !canHeal())back();else heal();}

@@ -301,7 +301,10 @@ int main(int argc, char* argv[]) {
         }
 #endif
         if(saveBackups) {
-            if (!smoke) saveBackups->configureHealing(healEmeraldParty);
+            if (!smoke) {
+                saveBackups->configureHealing(healEmeraldParty);
+                saveBackups->configureShops(readEmeraldShops,buyEmeraldItems);
+            }
             shell.center()->configure(saveBackups.get());
             QObject::connect(saveBackups.get(),&SaveBackupService::operationFailed,&session,&SessionState::cancelPendingExit);
         }

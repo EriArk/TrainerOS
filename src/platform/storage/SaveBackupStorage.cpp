@@ -6,6 +6,7 @@
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QLockFile>
 #include <QPointer>
 #include <QRegularExpression>
@@ -118,8 +119,28 @@ QString writeBundle(const QString& root, const SaveTarget& target, const Current
     return check.entry.valid && check.data==save.data && check.adventure==target.adventureId && check.owner==target.backupOwner ? id : QString();
 }
 QString problem(const SaveTarget& target) { return target.error.isEmpty()?"This Adventure has no verified save-backup setup yet.":target.error; }
+void rememberMerchants(const QString& root,const SaveTarget& target,MerchantSnapshot& state) {
+    if(!state.supported||state.lineage.isEmpty()||!QDir::isAbsolutePath(root)||QFileInfo(root).isSymLink())return;
+    const auto directory=QDir(root).filePath("merchant-discovery");
+    if(QFileInfo(directory).isSymLink()||!QDir().mkpath(directory))return;
+    const auto identity=QJsonDocument(QJsonObject{{"owner",target.backupOwner},{"adventure",target.adventureId},
+        {"content",target.contentRevision},{"path",target.savePath},{"lineage",state.lineage}}).toJson(QJsonDocument::Compact);
+    const auto path=QDir(directory).filePath(hash(identity)+".json");if(QFileInfo(path).isSymLink())return;
+    QFile old(path);QJsonArray seen;bool baseline=false;
+    if(old.open(QIODevice::ReadOnly)&&old.size()<16384){const auto d=QJsonDocument::fromJson(old.readAll());baseline=d.isArray();seen=d.array();}
+    old.close();
+    QStringList fresh;
+    for(const auto& merchant:state.merchants)if(merchant.discovered&&!seen.contains(merchant.id)){
+        seen.append(merchant.id);if(baseline)fresh.append(merchant.name);
+    }
+    if(baseline&&fresh.isEmpty())return;
+    QSaveFile file(path);file.setDirectWriteFallback(false);
+    const auto bytes=QJsonDocument(seen).toJson(QJsonDocument::Compact);
+    if(!file.open(QIODevice::WriteOnly)||file.write(bytes)!=bytes.size()||!file.commit())return;
+    if(!fresh.isEmpty())state.discoveryNotice=fresh.size()==1?"New merchant discovered · "+fresh.first():QString("%1 new merchants discovered").arg(fresh.size());
 }
-SaveBackupSnapshot inspectSaveBackups(const QString& root, const SaveTarget& target, const SaveHealer& healer) {
+}
+SaveBackupSnapshot inspectSaveBackups(const QString& root, const SaveTarget& target, const SaveHealer& healer, const MerchantReader& shops) {
     SaveBackupSnapshot result; result.supported=target.supported;
     if (!target.supported) { result.error=problem(target); return result; }
     const auto save=current(target);
@@ -131,6 +152,7 @@ SaveBackupSnapshot inspectSaveBackups(const QString& root, const SaveTarget& tar
         result.needsHealing=result.canHeal && healing.data!=save.data;
         result.partyCount=healing.partyCount; result.healingError=healing.error;
     }
+    if (shops && result.hasSave) {result.shops=shops(save.data,target.contentRevision);rememberMerchants(root,target,result.shops);}
     const auto directory=shelf(root,target);
     if (!QFileInfo::exists(directory)) return result;
     if (!safeShelf(root,directory)) { result.error="Your backup folder needs attention. Existing copies have been kept."; return result; }
@@ -180,9 +202,10 @@ SaveBackupResult restoreSaveBackup(const QString& root, const AdventureRegistrat
     if(!synced || !after.success || after.data!=copy.data)return {false,true,"The save was replaced, but storage verification failed. Keep the protection copy and check the storage device."};
     return {true,true,"Save restored. Open the Adventure normally to use it.",inspectSaveBackups(root,resolve(record))};
 }
-SaveBackupResult healSaveParty(const QString& root, const AdventureRegistration& record, const QString& token,
-        const SaveTargetResolver& resolve, const SaveHealer& healer) {
-    if (!healer) return {false,false,"Healing is not available for this Adventure."};
+static SaveBackupResult applySaveEdit(const QString& root, const AdventureRegistration& record, const QString& token,
+        const SaveTargetResolver& resolve, const std::function<MerchantWrite(const QByteArray&,const QString&)>& edit,
+        const QString& reason, const SaveHealer& healer, const MerchantReader& shops) {
+    if (!edit) return {false,false,"This service is not available for this Adventure."};
     if (!QDir::isAbsolutePath(root) || QFileInfo(root).isSymLink() || !QDir().mkpath(root))
         return {false,false,"Couldn't open the backup folder. Your save is unchanged."};
     QLockFile lock(QDir(root).filePath("service.lock"));
@@ -190,27 +213,39 @@ SaveBackupResult healSaveParty(const QString& root, const AdventureRegistration&
     const auto target=resolve(record); if (!target.supported) return {false,false,problem(target)};
     const auto save=current(target);
     if (!save.success || !save.exists || token.isEmpty() || save.revision!=token)
-        return {false,false,"The save changed. Visit the Center again before healing."};
-    const auto treatment=healer(save.data,target.contentRevision);
+        return {false,false,"The save changed. Visit the Center again before confirming."};
+    const auto treatment=edit(save.data,target.contentRevision);
     if (!treatment.error.isEmpty() || treatment.data.isEmpty()) return {false,false,treatment.error};
-    if (treatment.data==save.data) return {true,false,"Your Pokémon are already feeling great!",inspectSaveBackups(root,target,healer)};
-    if (writeBundle(root,target,save,true,"healing").isEmpty())
-        return {false,false,"Couldn't protect your save. Treatment was cancelled."};
+    if (treatment.data==save.data) return {true,false,treatment.message,inspectSaveBackups(root,target,healer,shops)};
+    if (writeBundle(root,target,save,true,reason).isEmpty())
+        return {false,false,"Couldn't protect your save. The change was cancelled."};
     if (current(resolve(record)).revision!=token)
-        return {false,false,"The save changed. Treatment was cancelled; your backup was kept."};
+        return {false,false,"The save changed. The change was cancelled; your backup was kept."};
     QSaveFile file(target.savePath); file.setDirectWriteFallback(false);
     if (!file.open(QIODevice::WriteOnly) || !file.setPermissions(QFileInfo(target.savePath).permissions())
         || file.write(treatment.data)!=treatment.data.size() || !syncFile(file))
-        return {false,false,"Couldn't prepare treatment. Your save and backup were kept."};
+        return {false,false,"Couldn't prepare the change. Your save and backup were kept."};
     if (current(resolve(record)).revision!=token) {
-        file.cancelWriting(); return {false,false,"The save changed before treatment. Please try again."};
+        file.cancelWriting(); return {false,false,"The save changed before confirmation. Please try again."};
     }
     if (!file.commit()) return {false,false,"Couldn't replace the save. Your backup is available in Center."};
     const bool synced=syncDirectory(save.parent);
     const auto after=current(target);
     if (!synced || !after.success || after.data!=treatment.data)
-        return {false,true,"Treatment was written, but storage verification failed. Keep the backup and check storage."};
-    return {true,true,"Your Pokémon are back to full health!",inspectSaveBackups(root,target,healer)};
+        return {false,true,"The change was written, but storage verification failed. Keep the backup and check storage."};
+    return {true,true,treatment.message,inspectSaveBackups(root,target,healer,shops)};
+}
+SaveBackupResult healSaveParty(const QString& root,const AdventureRegistration& record,const QString& token,
+        const SaveTargetResolver& resolve,const SaveHealer& healer) {
+    if(!healer)return {false,false,"Healing is not available for this Adventure."};
+    return applySaveEdit(root,record,token,resolve,[healer](const QByteArray& bytes,const QString& hash){
+        const auto r=healer(bytes,hash);return MerchantWrite{r.data,r.error,r.data==bytes?"Your Pokémon are already feeling great!":"Your Pokémon are back to full health!"};
+    },"healing",healer,{});
+}
+SaveBackupResult purchaseSaveItems(const QString& root,const AdventureRegistration& record,const QString& token,
+        const MerchantPurchase& request,const SaveTargetResolver& resolve,const MerchantBuyer& buyer,const MerchantReader& shops) {
+    if(!buyer||!shops)return {false,false,"Purchases are unavailable for this Adventure."};
+    return applySaveEdit(root,record,token,resolve,[buyer,request](const QByteArray& bytes,const QString& hash){return buyer(bytes,hash,request);},"purchase",{},shops);
 }
 LocalSaveBackupService::LocalSaveBackupService(QString root, SaveTargetResolver resolve,
         std::function<bool(const AdventureRegistration&)> supports, QObject* parent)
@@ -227,7 +262,7 @@ void LocalSaveBackupService::run(std::function<SaveBackupResult()> work,QObject*
     },Qt::QueuedConnection);
 }
 void LocalSaveBackupService::inspect(const AdventureRegistration& r,QObject* context,std::function<void(SaveBackupSnapshot)> completed) {
-    run([this,r]{return SaveBackupResult{true,false,{},inspectSaveBackups(root_,resolve_(r),healer_)};},context,
+    run([this,r]{return SaveBackupResult{true,false,{},inspectSaveBackups(root_,resolve_(r),healer_,shops_)};},context,
         [completed](const SaveBackupResult& result){if(result.success)completed(result.snapshot);else {SaveBackupSnapshot error;error.error=result.message;completed(error);}});
 }
 void LocalSaveBackupService::create(const AdventureRegistration& r,const QString& token,QObject* context,std::function<void(SaveBackupResult)> completed) {
@@ -239,4 +274,8 @@ void LocalSaveBackupService::restore(const AdventureRegistration& r,const SaveBa
 void LocalSaveBackupService::heal(const AdventureRegistration& r,const QString& token,QObject* context,std::function<void(SaveBackupResult)> completed) {
     run([this,r,token]{return healSaveParty(root_,r,token,resolve_,healer_);},context,completed);
 }
+void LocalSaveBackupService::purchase(const AdventureRegistration& r,const QString& token,const MerchantPurchase& request,QObject* context,std::function<void(SaveBackupResult)> completed) {
+    run([this,r,token,request]{return purchaseSaveItems(root_,r,token,request,resolve_,buyer_,shops_);},context,completed);
+}
+
 }

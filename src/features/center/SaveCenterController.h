@@ -23,6 +23,16 @@ class SaveCenterController final : public QObject {
     Q_PROPERTY(QString clinicMessage READ clinicMessage NOTIFY changed)
     Q_PROPERTY(bool canHeal READ canHeal NOTIFY changed)
     Q_PROPERTY(int partyCount READ partyCount NOTIFY changed)
+    Q_PROPERTY(bool shopsOpen READ shopsOpen NOTIFY changed)
+    Q_PROPERTY(QString shopRoute READ shopRoute NOTIFY changed)
+    Q_PROPERTY(QVariantList merchants READ merchants NOTIFY changed)
+    Q_PROPERTY(QVariantList shopStock READ shopStock NOTIFY changed)
+    Q_PROPERTY(QVariantMap shopSelection READ shopSelection NOTIFY changed)
+    Q_PROPERTY(int merchantIndex READ merchantIndex NOTIFY changed)
+    Q_PROPERTY(int stockIndex READ stockIndex NOTIFY changed)
+    Q_PROPERTY(int quantity READ quantity NOTIFY changed)
+    Q_PROPERTY(int shopBalance READ shopBalance NOTIFY changed)
+    Q_PROPERTY(QString shopMessage READ shopMessage NOTIFY changed)
 public:
     explicit SaveCenterController(LibraryRepository&,QObject* parent=nullptr);
     void configure(SaveBackupService*);
@@ -44,6 +54,18 @@ public:
     QString clinicMessage() const;
     bool canHeal() const { return snapshot_.canHeal && !busy(); }
     int partyCount() const { return snapshot_.partyCount; }
+    Q_INVOKABLE void visitShops();
+    Q_INVOKABLE void shopActivate(int index);
+    bool shopsOpen() const {return shopsOpen_;}
+    QString shopRoute() const {return shopRoute_;}
+    QVariantList merchants() const;
+    QVariantList shopStock() const;
+    QVariantMap shopSelection() const;
+    int merchantIndex() const {return merchantIndex_;}
+    int stockIndex() const {return stockIndex_;}
+    int quantity() const {return quantity_;}
+    int shopBalance() const {return snapshot_.shops.supported?snapshot_.shops.balance:-1;}
+    QString shopMessage() const;
     QString route() const { return route_; }
     QString title() const;
     QString message() const;
@@ -62,6 +84,7 @@ signals:
     void searchRequested(const QString&);
     void restored(const QString& adventureId);
     void messageRequested(const QString&);
+    void merchantDiscovered(const QString&);
 private:
     void rebuild();
     void restore();
@@ -79,5 +102,11 @@ private:
     quint64 generation_=0;
     bool clinicOpen_=false;
     QString treatment_="ready", clinicMessage_;
+    void dispatchShop(Action);
+    void purchase();
+    const Merchant* merchant() const;
+    bool shopsOpen_=false;
+    QString shopRoute_="merchants",shopMessage_;
+    int merchantIndex_=0,stockIndex_=0,quantity_=1;
 };
 }

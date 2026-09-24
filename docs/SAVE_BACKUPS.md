@@ -62,6 +62,16 @@ Additional ordinary-save formats require their own device validation. State-back
 
 ## Per-Trainer save follow-up - 2026-09-23
 
+### Protected Emerald services — 2026-09-24
+
+Healing and ordinary Poké Mart purchases reuse the same storage worker and
+protected replacement path. Automatic copies are identified as **Before healing**
+or **Before purchase** and use the existing restore/undo controls. Browsing a shop
+does not write the game save. See [healing](EMERALD_HEALING.md) and
+[purchases](EMERALD_SHOPS.md) for the verified exact-build boundaries.
+
+### Owner-scoped save route
+
 The first [GBA/mGBA per-Trainer ordinary-save route](TRAINER_SAVES.md) binds
 launch, existing progress observations and backup shelves to the active Trainer.
 Original legacy saves/backups remain in place; new Trainers start fresh. Other

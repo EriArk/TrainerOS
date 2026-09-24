@@ -10,4 +10,6 @@ std::optional<Gen3Edition> gen3Edition(const QString& contentSha256);
 // choosing a layout. No title/header guessing and no writes to game data.
 GameProgress readGen3Progress(const QByteArray& save, Gen3Edition edition);
 SaveHealing healEmeraldParty(const QByteArray& save, const QString& contentHash);
+MerchantSnapshot readEmeraldShops(const QByteArray& save, const QString& contentHash);
+MerchantWrite buyEmeraldItems(const QByteArray& save, const QString& contentHash, const MerchantPurchase&);
 }

@@ -511,6 +511,13 @@ owns protected replacement and revalidation. `PartyPresentation` only requests
 the clinic and continues to display save observations. No QML format handling or
 second save-location resolver is introduced. [Contract](EMERALD_HEALING.md).
 
+**Emerald shop follow-up:** `MerchantSnapshot` projects discovered merchants,
+stock, prices and purchase limits. `EmeraldShops` owns factual stock/Bag rules;
+`Gen3Progress` supplies the exact-build logical-save boundary. `SaveCenterShops`
+owns selection and confirmation, while the same storage worker atomically commits
+currency and items with a verified protection copy. Discovery history is a small
+owner/save-lineage cache, never authority for unlocks. [Contract](EMERALD_SHOPS.md).
+
 `PartyPresentation` owns only transient read-only slot/detail/box routes. ShellController binds the current Pokemon Adventure identity and routes Select to the existing SaveCenterController, which retains all backup/restore guards and async source-generation protection. Production supplies no invented individuals. The new views do not read saves, infer individuals from Dex totals or expose a writer. [Availability and controls](CENTER_PARTY_UI.md).
 
 ## Journey P1 boundary

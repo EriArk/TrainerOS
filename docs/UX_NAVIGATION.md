@@ -1,5 +1,11 @@
 # TrainerOS UX & Navigation
 
+**Emerald shops, 2026-09-24:** Center → Activities → Shops & Traders opens
+merchants discovered in the selected save. A opens a merchant/item confirmation,
+Left/Right adjusts quantity in its stock list, a second A confirms payment.
+B unwinds without purchasing; shared Y and paired triggers cannot retarget a
+shop. L1/R1 and Start retain global behavior. [Scope](EMERALD_SHOPS.md).
+
 **Emerald Center, 2026-09-24:** Party member actions include Visit Pokémon Center.
 The nurse's room accepts A to heal the team and B to leave; no write occurs on
 entry. During treatment the existing service gate blocks unsafe interruption.
