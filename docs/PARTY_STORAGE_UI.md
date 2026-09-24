@@ -26,12 +26,14 @@ service, and B returns to the exact slot. Move and Heal are visibly disabled:
 this increment introduces no external-save writes. All key legends remain in
 the shared bottom chassis. Start and Choose Adventure retain shell priority.
 
-Production remains an honest unavailable view with working backup and Activity
-routes until an exact-title Party reader is connected. Sample individuals are
+Production now uses the [exact English Emerald reader](EMERALD_PARTY.md) for
+real Party and fourteen-box Storage. Other titles retain the unavailable view
+with working backup and Activity routes. Storage omits current HP, retaining
+maximum HP among the six stats. Sample individuals are
 only available through the isolated development composition (`--ephemeral` or
 rendered checks), never persisted or shown as the active Trainer's real team.
-The next provider must replace that boundary, retain unknown versus zero, and
-invalidate all individuals when its Adventure/Trainer/save source changes.
+Every provider must retain unknown versus zero and invalidate all individuals
+when its Adventure/Trainer/save source changes.
 
 ## Acceptance
 
@@ -41,8 +43,8 @@ invalidate all individuals when its Adventure/Trainer/save source changes.
 - Source/context changes reset stale selections; production exposes no samples.
 - Rendered checks and actual Flip captures cover the split layout and action
   panel. Populated development captures must be identified as test data.
-- Exact-build reads, mutations, living Party and two-device Link remain row 7
-  work in ROADMAP; this is UI delivery, not completed Center functionality.
+- The first exact Emerald read is delivered separately; more builds, mutations,
+  living Party and two-device Link remain row 7 work in ROADMAP.
 
 ## Verification — 2026-09-24
 

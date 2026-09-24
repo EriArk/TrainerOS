@@ -2,14 +2,51 @@
 #include <algorithm>
 
 namespace trainer {
+QString PartyPresentation::boxName() const {
+    return !sample_ && snapshot_ && box_ < snapshot_->boxes.size() ? snapshot_->boxes[box_].name : QString("Box %1").arg(box_+1);
+}
+void PartyPresentation::setProgress(const QString& adventureId, const GameProgress& progress) {
+    if (sample_) return;
+    const bool matches = adventureId == id_ && !id_.isEmpty();
+    const auto state = matches ? progress.availability : ProgressAvailability::Unsupported;
+    const QString key = matches ? adventureId + progress.contextRevision + progress.contentRevision + progress.saveRevision + QString::number(int(state)) : QString();
+    if (observationKey_ == key && availability_ == state) return;
+    observationKey_ = key; availability_ = state;
+    snapshot_ = matches && state == ProgressAvailability::Available ? progress.party : std::nullopt;
+    detail_ = false; activitiesFocus_ = false; boxFocus_ = false;
+    if (snapshot_ && sourceContext_ != progress.contextRevision) {
+        sourceContext_ = progress.contextRevision; initialBoxSet_ = false; partyFocus_ = 0;
+        std::fill(std::begin(storageFocus_),std::end(storageFocus_),0);
+    }
+    if (!initialBoxSet_ && snapshot_ && snapshot_->error.isEmpty()) { box_ = snapshot_->currentBox; initialBoxSet_ = true; }
+    if (box_ >= boxCount()) box_ = 0;
+    emit changed();
+}
+QVariantMap PartyPresentation::present(const PokemonRecord& p, int index) const {
+    const auto kind = p.kind == PokemonSlotKind::Known ? "known" : p.kind == PokemonSlotKind::Egg ? "egg" : p.kind == PokemonSlotKind::Unreadable ? "unreadable" : "empty";
+    QVariantMap row{{"index",index},{"kind",kind},{"name",p.kind == PokemonSlotKind::Egg ? "Egg" : p.kind == PokemonSlotKind::Empty ? "Empty slot" : "Unreadable slot"},
+        {"condition",p.condition},{"level","—"},{"hp","—"}};
+    if (p.kind != PokemonSlotKind::Known) return row;
+    row["name"] = p.nickname.isEmpty() ? p.speciesName : p.nickname;
+    row["species"] = p.speciesName; row["target"] = p.speciesId + '/' + p.formId;
+    row["level"] = QString::number(p.level); row["types"] = p.types.join(" / ");
+    row["ability"] = p.ability; row["nature"] = p.nature; row["item"] = p.item;
+    row["shiny"] = p.shiny;
+    if (p.hp) { row["hp"] = QString("%1 / %2").arg(*p.hp).arg(p.stats[0]); row["hpRatio"] = p.stats[0] ? double(*p.hp)/p.stats[0] : 0; }
+    QVariantList stats; for (auto value : p.stats) stats.append(value); row["stats"] = stats;
+    QStringList moves;
+    for (const auto& move : p.moves) moves.append(move.name.isEmpty() ? QStringLiteral("—") : QString("%1 · %2 / %3 PP").arg(move.name).arg(move.pp).arg(move.maxPp));
+    row["moves"] = moves.join('\n');
+    return withArt(row);
+}
 void PartyPresentation::configureArtwork(ClassicArt* art, SpriteArt* sprites) {
     art_ = art; sprites_ = sprites;
     if (art_) connect(art_, &ClassicArt::changed, this, &PartyPresentation::changed);
     emit changed();
 }
 void PartyPresentation::changeBox(int delta) {
-    if (!sample_ || section_ != "storage" || detail_) return;
-    box_ = (box_ + delta % 2 + 2) % 2; emit changed();
+    if (!available() || boxCount() == 0 || section_ != "storage" || detail_) return;
+    box_ = (box_ + delta % boxCount() + boxCount()) % boxCount(); emit changed();
 }
 PartyPresentation::PartyPresentation(bool sample, QObject* parent) : QObject(parent), sample_(sample), activities_(sample, this) {
     connect(&activities_, &CenterActivities::changed, this, &PartyPresentation::changed);
@@ -24,18 +61,28 @@ void PartyPresentation::openActivities() {
 }
 QString PartyPresentation::status() const {
     if (sample_) return "Development sample · not your save · all records are read-only";
+    if (availability_ == ProgressAvailability::Checking) return "Reading your team…";
+    if (availability_ == ProgressAvailability::Missing) return "Save in the Adventure, then return here.";
+    if (availability_ == ProgressAvailability::Unreadable) return "The save could not be read. Close the game and try again.";
+    if (snapshot_) return snapshot_->error;
     if (!id_.isEmpty() && title_.isEmpty()) return "The selected Adventure is no longer linked.";
     return id_.isEmpty() ? "Choose an Adventure with a supported save to view its Party and Storage."
         : "Party and Storage reading is not available for this Adventure yet.";
 }
 void PartyPresentation::setAdventure(const QString& id, const QString& title) {
     if (id_ != id) {
-        id_ = id; detail_ = false; partyFocus_ = 0; storageFocus_[0] = storageFocus_[1] = 0; box_ = 0;
+        id_ = id; detail_ = false; partyFocus_ = 0; std::fill(std::begin(storageFocus_),std::end(storageFocus_),0); box_ = 0;
+        snapshot_.reset(); observationKey_.clear(); sourceContext_.clear(); initialBoxSet_ = false; availability_ = ProgressAvailability::Unsupported;
         activitiesFocus_ = false; boxFocus_ = false; activities_.reset();
     }
     title_ = title; emit changed();
 }
 QVariantMap PartyPresentation::slot(int index) const {
+    if (!sample_) {
+        if (!available()) return {};
+        const auto& members = section_ == "party" ? snapshot_->party : snapshot_->boxes[box_].members;
+        return index >= 0 && index < members.size() ? present(members[index], index) : QVariantMap{};
+    }
     QVariantMap row{{"index",index},{"name","Empty slot"},{"species",""},{"summary","No Pokémon"},
         {"hp","—"},{"level","—"},{"condition","Empty"},{"item","—"},{"moves","—"},{"kind","empty"}};
     const int record = section_ == "party" ? index : box_ == 0 ? (index < 4 ? index : index % 5 == 0 ? index % 2 : 6) : (index == 7 ? 3 : 6);
@@ -56,6 +103,9 @@ QVariantMap PartyPresentation::slot(int index) const {
     } else if (record == 3) {
         row["name"]="Unreadable slot"; row["condition"]="Unavailable"; row["summary"]="Record could not be read"; row["kind"]="unreadable";
     }
+    return withArt(row);
+}
+QVariantMap PartyPresentation::withArt(QVariantMap row) const {
     if (row["kind"] == "known") {
         const auto target = row["target"].toString();
         row["art"] = art_ ? art_->image(target, "pokedexDetailArt") : QVariantMap{};
@@ -66,19 +116,19 @@ QVariantMap PartyPresentation::slot(int index) const {
 }
 QVariantList PartyPresentation::entries() const {
     QVariantList result;
-    if (!sample_ || section_ == "saves" || section_ == "activities") return result;
+    if (!available() || section_ == "saves" || section_ == "activities") return result;
     for (int i = 0; i < (section_ == "party" ? 6 : 30); ++i) result.append(slot(i));
     return result;
 }
 QVariantMap PartyPresentation::detail() const {
-    return sample_ && (section_ == "party" || section_ == "storage") ? slot(section_ == "party" ? partyFocus_ : storageFocus_[box_]) : QVariantMap{};
+    return available() && (section_ == "party" || section_ == "storage") ? slot(section_ == "party" ? partyFocus_ : storageFocus_[box_]) : QVariantMap{};
 }
 void PartyPresentation::activate(int index) {
     if (section_ == "activities") { activities_.activate(index); return; }
     if (activitiesFocus_) { openActivities(); return; }
     if (boxFocus_) { changeBox(1); return; }
     if (detail_) { if (index == 1) openSaves(); else { detail_ = false; emit changed(); } return; }
-    if (!sample_) { openSaves(); return; }
+    if (!available()) { openSaves(); return; }
     const int count = section_ == "party" ? 6 : 30;
     if (index < 0 || index >= count || section_ == "saves") return;
     (section_ == "party" ? partyFocus_ : storageFocus_[box_]) = index;
@@ -110,8 +160,8 @@ void PartyPresentation::dispatch(Action action) {
         return;
     }
     const int lastRow = section_ == "party" ? 4 : 24;
-    if (action == Action::Down && (!sample_ || focusIndex() >= lastRow)) { activitiesFocus_ = true; emit changed(); return; }
-    if (!sample_ || action == Action::Back) return;
+    if (action == Action::Down && (!available() || focusIndex() >= lastRow)) { activitiesFocus_ = true; emit changed(); return; }
+    if (!available() || action == Action::Back) return;
     auto& focus = section_ == "party" ? partyFocus_ : storageFocus_[box_];
     const int columns = section_ == "party" ? 2 : 6;
     const int count = section_ == "party" ? 6 : 30;

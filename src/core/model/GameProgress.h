@@ -2,6 +2,7 @@
 #include <QDateTime>
 #include <QString>
 #include <optional>
+#include "PartySnapshot.h"
 
 namespace trainer {
 enum class ProgressAvailability { Unsupported, Checking, Available, Missing, Unreadable };
@@ -10,7 +11,8 @@ enum class ProgressAvailability { Unsupported, Checking, Available, Missing, Unr
 struct GameProgress {
     ProgressAvailability availability = ProgressAvailability::Unsupported;
     std::optional<int> badgeMask, caught;
-    QString provider, contentRevision, saveRevision, message, badgeSet;
+    QString provider, contentRevision, saveRevision, message, badgeSet, contextRevision;
     QDateTime observedAt;
+    std::optional<PartySnapshot> party;
 };
 }

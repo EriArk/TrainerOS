@@ -1,4 +1,5 @@
 #include "Gen3Progress.h"
+#include "EmeraldParty.h"
 #include <QtEndian>
 #include <array>
 
@@ -72,6 +73,11 @@ GameProgress readGen3Progress(const QByteArray& save, Gen3Edition edition) {
     result.badgeSet = edition == Gen3Edition::Emerald ? "hoenn-rse" : "kanto-frlg";
     result.provider = edition == Gen3Edition::Emerald ? "gen3-emerald-v1" : "gen3-firered-v1";
     result.message = "Last in-game save · National Pokédex";
+    if (edition == Gen3Edition::Emerald) {
+        QByteArray storage;
+        for (int id = 5; id < SectorCount; ++id) storage += latest->blocks[id];
+        result.party = readEmeraldParty(world, storage);
+    }
     return result;
 }
 }

@@ -11,7 +11,10 @@ namespace trainer {
 void ShellController::configureProgress(GameProgressProvider* provider) {
     if (progress_) disconnect(progress_, nullptr, this, nullptr);
     progress_ = provider;
-    if (progress_) connect(progress_, &GameProgressProvider::changed, this, &ShellController::changed);
+    if (progress_) connect(progress_, &GameProgressProvider::changed, this, [this] {
+        party_.setProgress(progress_->adventureId(), progress_->snapshot());
+        emit changed();
+    });
     emit changed();
 }
 ShellController::ShellController(LibraryRepository& repo, TrainerRepository& profiles, AdventureAdapter& adapter,
@@ -193,7 +196,7 @@ bool ShellController::canEditWorld() const {
         && !drawerOpen_ && !libraryTools_.isOpen() && !worlds_.region().value("id").toString().isEmpty();
 }
 bool ShellController::localModalOpen() {
-    return libraryTools_.isOpen() || trainer_.editing() || (page_ == 2 && (centerFace_ ? center_.confirming()
+    return libraryTools_.isOpen() || trainer_.editing() || (page_ == 2 && (centerFace_ ? center_.confirming() || party_.detailOpen()
         : pokedex_.zone() == "picker" || pokedex_.zone() == "art" || pokedex_.journal()->isOpen() || pokedex_.saving()))
         || (page_ == 4 && (hall_.editor()->isOpen() || hall_.account()->isOpen()));
 }
@@ -211,6 +214,7 @@ void ShellController::openCenter() {
     center_.beginSelected(currentAdventureId());
     const auto adventure = homeAdventure();
     party_.setAdventure(currentAdventureId(), adventure ? adventure->title : QString());
+    if (progress_) party_.setProgress(progress_->adventureId(), progress_->snapshot());
 }
 void ShellController::refreshContinue() {
     points_.clear();

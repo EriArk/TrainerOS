@@ -43,6 +43,8 @@ add_library(trainer_core STATIC
     src/core/model/GameProgressProvider.h
     src/integrations/progress/Gen3Progress.h
     src/integrations/progress/Gen3Progress.cpp
+    src/integrations/progress/EmeraldParty.h
+    src/integrations/progress/EmeraldParty.cpp
     src/integrations/progress/GameProgressService.h
     src/integrations/progress/GameProgressService.cpp
     src/features/halloffame/AchievementAccountController.h
@@ -171,6 +173,7 @@ qt_add_resources(trainer_core badge_assets PREFIX "/badges" BASE assets/badges
     FILES assets/badges/manifest.json ${badge_images})
 qt_add_resources(trainer_core collection PREFIX "/collection" BASE data FILES data/catalogue.json)
 qt_add_resources(trainer_core pokedex_reference PREFIX "/pokedex" BASE data FILES data/pokedex.json)
+qt_add_resources(trainer_core emerald_reference PREFIX "/progress" BASE data FILES data/emerald-reference.json)
 target_link_libraries(trainer_core PUBLIC Qt6::Core Qt6::Gui Qt6::Sql Qt6::Network Qt6::Xml SDL2::SDL2 OpenSSL::Crypto)
 target_compile_definitions(trainer_core PUBLIC SDL_MAIN_HANDLED)
 if(MSVC)

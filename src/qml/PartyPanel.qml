@@ -25,8 +25,8 @@ Item {
                 border.color: "#839d93"
                 CapButton {
                     objectName: "party-box"; x: 12; y: 7; width: parent.width - 24; height: 33
-                    visible: root.storage && root.party.sample
-                    label: "‹     Box " + (root.party.box + 1) + " / 2     ›"; centered: true; textSize: 15; tint: Theme.blue
+                    visible: root.storage && root.party.available
+                    label: "‹     " + root.party.boxName + "  " + (root.party.box + 1) + " / " + root.party.boxCount + "     ›"; centered: true; textSize: 15; tint: Theme.blue
                     selected: root.takesFocus && root.party.boxFocused && !root.party.detailOpen
                     onActivated: root.party.changeBox(1)
                 }
@@ -59,12 +59,12 @@ Item {
                                     Rectangle { x: parent.width * .16; y: parent.height * .2; width: parent.width * .27; height: width; radius: width / 2; color: "#92b798" }
                                     Rectangle { x: parent.width * .55; y: parent.height * .55; width: parent.width * .27; height: width; radius: width / 2; color: "#92b798" }
                                 }
-                                Text { anchors.centerIn: parent; text: slot.modelData.kind === "unreadable" ? "?" : "·"; visible: slot.modelData.kind === "unreadable" || slot.modelData.kind === "empty"; font.pixelSize: 22; color: Theme.muted }
+                                Text { textFormat: Text.PlainText; anchors.centerIn: parent; text: slot.modelData.kind === "unreadable" ? "?" : "·"; visible: slot.modelData.kind === "unreadable" || slot.modelData.kind === "empty"; font.pixelSize: 22; color: Theme.muted }
                             }
                             Column {
                                 visible: !root.storage; x: 63; y: 8; width: parent.width - x - 7; spacing: 4
-                                Text { width: parent.width; text: slot.modelData.name; font.family: Theme.displayFamily; font.bold: true; font.pixelSize: 15; color: Theme.ink; elide: Text.ElideRight }
-                                Text { width: parent.width; text: slot.modelData.kind === "known" ? "Lv. " + slot.modelData.level + " · " + slot.modelData.hp : slot.modelData.condition; font.pixelSize: 11; color: Theme.ink; elide: Text.ElideRight }
+                                Text { textFormat: Text.PlainText; width: parent.width; text: slot.modelData.name; font.family: Theme.displayFamily; font.bold: true; font.pixelSize: 15; color: Theme.ink; elide: Text.ElideRight }
+                                Text { textFormat: Text.PlainText; width: parent.width; text: slot.modelData.kind === "known" ? "Lv. " + slot.modelData.level + " · " + slot.modelData.hp : slot.modelData.condition; font.pixelSize: 11; color: Theme.ink; elide: Text.ElideRight }
                                 Rectangle {
                                     width: parent.width; height: 5; radius: 2; color: "#819789"; visible: slot.modelData.kind === "known"
                                     Rectangle { width: parent.width * (slot.modelData.hpRatio || 0); height: 5; radius: 2; color: "#4b9670" }
@@ -74,9 +74,9 @@ Item {
                     }
                 }
                 Column {
-                    x: 22; y: 44; width: parent.width - 44; spacing: 16; visible: !root.party.sample
-                    Text { width: parent.width; text: root.storage ? "Your Pokémon boxes" : "Your team"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25 }
-                    Text { width: parent.width; text: root.party.status; color: Theme.muted; font.pixelSize: 16; wrapMode: Text.WordWrap }
+                    x: 22; y: 44; width: parent.width - 44; spacing: 16; visible: !root.party.available
+                    Text { textFormat: Text.PlainText; width: parent.width; text: root.storage ? "Your Pokémon boxes" : "Your team"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25 }
+                    Text { textFormat: Text.PlainText; width: parent.width; text: root.party.status; color: Theme.muted; font.pixelSize: 16; wrapMode: Text.WordWrap }
                     CapButton { objectName: "party-unavailable"; width: parent.width; height: 43; label: "Save backups"; tint: Theme.blue; selected: root.takesFocus && !root.party.activitiesFocused; onActivated: root.shell.activate(0) }
                 }
                 CapButton {
@@ -89,19 +89,23 @@ Item {
             Item {
                 id: summary; objectName: "party-summary"; x: tray.width + 18; width: parent.width - x; height: parent.height
                 readonly property bool known: root.selected.kind === "known"
-                Text { id: name; width: parent.width - 82; text: root.selected.name || "Pokémon Center"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25; font.bold: true; elide: Text.ElideRight }
-                Text { anchors.right: parent.right; y: 6; text: summary.known ? "Lv. " + root.selected.level : ""; color: Theme.ink; font.pixelSize: 19; font.bold: true }
-                Text { y: 33; text: root.selected.types || ""; color: Theme.muted; font.pixelSize: 14 }
+                Text { textFormat: Text.PlainText; id: name; width: parent.width - 82; text: root.selected.name || "Pokémon Center"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25; font.bold: true; elide: Text.ElideRight }
+                Text { textFormat: Text.PlainText; anchors.right: parent.right; y: 6; text: summary.known ? "Lv. " + root.selected.level : ""; color: Theme.ink; font.pixelSize: 19; font.bold: true }
+                Text { textFormat: Text.PlainText; y: 33; width: parent.width; text: (root.selected.types || "") + (summary.known && root.selected.condition && root.selected.condition !== "Healthy" ? " · " + root.selected.condition : ""); color: Theme.muted; font.pixelSize: 14; elide: Text.ElideRight }
                 ClassicIllustration { x: 0; y: 58; width: 131; height: 123; visible: summary.known; art: root.selected.art || ({}) }
                 Column {
                     x: 147; y: 56; width: parent.width - x; spacing: 6; visible: summary.known
                     Repeater {
-                        model: [ {label:"HP",value:root.selected.hp,tint:"#c3dfa7"}, {label:"Ability",value:root.selected.ability,tint:"#bfdbeb"}, {label:"Nature",value:root.selected.nature,tint:"#dbcae8"}, {label:"Item",value:root.selected.item,tint:"#f0d397"} ]
+                        model: (root.storage ? [] : [{label:"HP",value:root.selected.hp,tint:"#c3dfa7"}]).concat([
+                            {label:"Ability",value:root.selected.ability,tint:"#bfdbeb"},
+                            {label:"Nature",value:root.selected.nature,tint:"#dbcae8"},
+                            {label:"Item",value:root.selected.item,tint:"#f0d397"}
+                        ])
                         Rectangle {
                             required property var modelData
-                            width: parent.width; height: 25; radius: 5; color: modelData.tint
-                            Text { x: 8; anchors.verticalCenter: parent.verticalCenter; text: modelData.label; color: Theme.muted; font.pixelSize: 11 }
-                            Text { x: 60; width: parent.width - 68; anchors.verticalCenter: parent.verticalCenter; text: modelData.value || "—"; color: Theme.ink; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight }
+                            width: parent.width; height: root.storage ? 35 : 25; radius: 5; color: modelData.tint
+                            Text { textFormat: Text.PlainText; x: 8; anchors.verticalCenter: parent.verticalCenter; text: modelData.label; color: Theme.muted; font.pixelSize: 11 }
+                            Text { textFormat: Text.PlainText; x: 60; width: parent.width - 68; anchors.verticalCenter: parent.verticalCenter; text: modelData.value || "—"; color: Theme.ink; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight }
                         }
                     }
                 }
@@ -113,8 +117,8 @@ Item {
                             required property int index; required property string modelData
                             width: (summary.width - 25) / 6; height: 39; radius: 5
                             color: ["#f1d487","#d4e4ab","#b4d9e9","#ecbcc3","#d6bfe9","#f0c295"][index]
-                            Text { y: 3; width: parent.width; horizontalAlignment: Text.AlignHCenter; text: modelData; color: Theme.muted; font.pixelSize: 10 }
-                            Text { y: 16; width: parent.width; horizontalAlignment: Text.AlignHCenter; text: root.selected.stats ? root.selected.stats[index] : "—"; color: Theme.ink; font.pixelSize: 17; font.bold: true }
+                            Text { textFormat: Text.PlainText; y: 3; width: parent.width; horizontalAlignment: Text.AlignHCenter; text: modelData; color: Theme.muted; font.pixelSize: 10 }
+                            Text { textFormat: Text.PlainText; y: 16; width: parent.width; horizontalAlignment: Text.AlignHCenter; text: root.selected.stats ? root.selected.stats[index] : "—"; color: Theme.ink; font.pixelSize: 17; font.bold: true }
                         }
                     }
                 }
@@ -125,11 +129,11 @@ Item {
                         Rectangle {
                             required property int index
                             width: (summary.width - 6) / 2; height: 30; radius: 5; color: index % 2 ? "#d3e5d1" : "#d1e0ed"
-                            Text { x: 8; width: parent.width - 16; anchors.verticalCenter: parent.verticalCenter; text: root.selected.moves ? root.selected.moves.split("\n")[index] || "—" : "—"; color: Theme.ink; font.pixelSize: 11; elide: Text.ElideRight }
+                            Text { textFormat: Text.PlainText; x: 8; width: parent.width - 16; anchors.verticalCenter: parent.verticalCenter; text: root.selected.moves ? root.selected.moves.split("\n")[index] || "—" : "—"; color: Theme.ink; font.pixelSize: 11; elide: Text.ElideRight }
                         }
                     }
                 }
-                Text {
+                Text { textFormat: Text.PlainText;
                     x: 12; y: 112; width: parent.width - 24; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter
                     visible: !summary.known; font.pixelSize: 20; color: Theme.muted
                     text: root.selected.kind === "egg" ? "An Egg in your care" : root.selected.kind === "empty" ? "An empty slot" : root.selected.kind === "unreadable" ? "This Pokémon could not be read" : "No Pokémon to display yet."
@@ -142,7 +146,7 @@ Item {
         MouseArea { anchors.fill: parent }
         MountedPanel {
             anchors.centerIn: parent; width: 330; height: 232; color: "#e3e9dc"
-            Text { x: 22; y: 17; width: parent.width - 44; text: root.selected.name || "Pokémon"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 24; elide: Text.ElideRight }
+            Text { textFormat: Text.PlainText; x: 22; y: 17; width: parent.width - 44; text: root.selected.name || "Pokémon"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 24; elide: Text.ElideRight }
             Row {
                 x: 22; y: 56; spacing: 10
                 CapButton { width: 138; height: 38; label: "Move"; enabled: false }

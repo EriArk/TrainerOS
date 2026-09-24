@@ -39,6 +39,7 @@ GameProgress inspectGameProgress(const AdventureRegistration& record, const Prog
         || current.contextRevision != target.contextRevision)
         return unavailable(ProgressAvailability::Unreadable, "The Adventure changed while checking its save. Return here to refresh it.");
     result.contentRevision = target.contentRevision;
+    result.contextRevision = target.contextRevision;
     result.saveRevision = QString::fromLatin1(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex());
     result.observedAt = QDateTime::currentDateTimeUtc();
     return result;

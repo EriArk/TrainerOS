@@ -117,6 +117,32 @@ private slots:
         personal.dispatch(Action::Secondary); personal.changeBox(1);
         QCOMPARE(personal.box(), 0); QVERIFY(personal.entries().isEmpty());
     }
+    void realPartyClearsOnSourceChangeAndNeverFallsBackToSamples() {
+        PartyPresentation party(false); party.setAdventure("emerald", "Emerald");
+        GameProgress observation; observation.availability=ProgressAvailability::Available;
+        observation.contentRevision="exact-rom"; observation.saveRevision="save-one";
+        observation.contextRevision="owner-one";
+        PartySnapshot data; data.party=QList<PokemonRecord>(6); data.boxes=QList<PokemonBox>(14);
+        for(auto& box:data.boxes)box.members=QList<PokemonRecord>(30);
+        auto& mon=data.party[0];mon.kind=PokemonSlotKind::Known;mon.speciesName="Pikachu";mon.speciesId="pikachu";mon.formId="25";
+        mon.level=5;mon.hp=0;mon.stats[0]=20;mon.condition="Fainted";
+        data.currentBox=13;data.boxes[13].name="Last box";observation.party=data;
+        party.setProgress("emerald",observation);QVERIFY(party.available());QVERIFY(!party.sample());
+        QCOMPARE(party.entries().size(),6);QCOMPARE(party.detail()["hp"],"0 / 20");
+        party.dispatch(Action::Secondary);QCOMPARE(party.boxCount(),14);QCOMPARE(party.box(),13);
+        QCOMPARE(party.boxName(),"Last box");QCOMPARE(party.entries().size(),30);
+        party.changeBox(1);QCOMPARE(party.box(),0);
+        GameProgress refresh; refresh.availability=ProgressAvailability::Checking;
+        party.setProgress("emerald",refresh);party.setProgress("emerald",observation);QCOMPARE(party.box(),0);
+        observation.contextRevision="owner-two";party.setProgress("emerald",observation);QCOMPARE(party.box(),13);
+        party.setAdventure("other","Other");QVERIFY(!party.available());QVERIFY(party.entries().isEmpty());
+        party.setProgress("emerald",observation);QVERIFY(party.detail().isEmpty());
+        party.setAdventure("emerald","Emerald");party.setProgress("emerald",observation);
+        GameProgress checking;checking.availability=ProgressAvailability::Checking;
+        party.setProgress("emerald",checking);QVERIFY(!party.available());QVERIFY(party.entries().isEmpty());
+        observation.party.reset();party.setProgress("emerald",observation);
+        QVERIFY(!party.available());QVERIFY(party.entries().isEmpty()); // Supported badges do not imply Party support.
+    }
     void multiverseIsolationAndModalPriority() {
         MockLibraryRepository library; MockTrainerRepository profiles;
         MockAdventureAdapter adapter; DevelopmentPlatformService platform;

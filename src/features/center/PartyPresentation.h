@@ -5,6 +5,7 @@
 #include "CenterActivities.h"
 #include "features/pokedex/ClassicArt.h"
 #include "features/pokedex/SpriteArt.h"
+#include "core/model/GameProgress.h"
 
 namespace trainer {
 // Read-only P1 presentation. Never resolves or writes an external save.
@@ -13,6 +14,9 @@ class PartyPresentation final : public QObject {
     Q_PROPERTY(QString section READ section NOTIFY changed)
     Q_PROPERTY(bool detailOpen READ detailOpen NOTIFY changed)
     Q_PROPERTY(bool sample READ sample CONSTANT)
+    Q_PROPERTY(bool available READ available NOTIFY changed)
+    Q_PROPERTY(int boxCount READ boxCount NOTIFY changed)
+    Q_PROPERTY(QString boxName READ boxName NOTIFY changed)
     Q_PROPERTY(QString title READ title NOTIFY changed)
     Q_PROPERTY(QString status READ status NOTIFY changed)
     Q_PROPERTY(QVariantList entries READ entries NOTIFY changed)
@@ -28,6 +32,10 @@ public:
     QString section() const { return section_; }
     bool detailOpen() const { return detail_; }
     bool sample() const { return sample_; }
+    bool available() const { return sample_ || (snapshot_ && snapshot_->error.isEmpty()); }
+    int boxCount() const { return sample_ ? 2 : snapshot_ ? snapshot_->boxes.size() : 0; }
+    QString boxName() const;
+    void setProgress(const QString& adventureId, const GameProgress&);
     QString title() const { return title_; }
     QString status() const;
     QVariantList entries() const;
@@ -50,9 +58,16 @@ signals:
     void changed();
 private:
     QVariantMap slot(int) const;
+    QVariantMap present(const PokemonRecord&, int) const;
+    QVariantMap withArt(QVariantMap) const;
     bool sample_, detail_ = false;
     QString section_ = "party", previousSection_ = "party", id_, title_;
-    int partyFocus_ = 0, storageFocus_[2] = {0,0}, box_ = 0;
+    int partyFocus_ = 0, storageFocus_[14] = {}, box_ = 0;
+    std::optional<PartySnapshot> snapshot_;
+    QString observationKey_;
+    QString sourceContext_;
+    bool initialBoxSet_ = false;
+    ProgressAvailability availability_ = ProgressAvailability::Unsupported;
     CenterActivities activities_;
     bool activitiesFocus_ = false;
     bool boxFocus_ = false;

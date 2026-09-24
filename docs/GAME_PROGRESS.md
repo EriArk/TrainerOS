@@ -6,6 +6,10 @@ The user's 2026-09-13 save trial exposed a missing connection: imported saves lo
 
 ## Supported observations
 
+**2026-09-24 extension:** the exact English Emerald reader also supplies
+[real Party and fourteen-box Storage](EMERALD_PARTY.md) to Center. FireRed
+Party, selected-save species progression and all save writers remain separate.
+
 Home reads the eight badge flags and the count of registered National Pokédex species from **English Emerald and FireRed (original and Rev 1)** through the verified RetroArch/mGBA save resolver. A complete ROM SHA-256 match is required. Names, catalogue entries and original ROM headers do not establish compatibility. Other editions, languages, hacks, Diamond and Colosseum retain unknown progress with an explicit explanation; being launchable is a separate capability.
 
 Home displays the badge count, eight original geometric badge indicators and Caught. Its source caption says **Last in-game save · National Pokédex**. This describes the ordinary cartridge save, including when an older emulator moment is selected. It does not claim live RAM/state progress, regional-only counts, party size, completion, or achievement unlocks. Recorded time remains TrainerOS's observed process duration.
@@ -18,7 +22,7 @@ Badge presentation uses an exact semantic `badgeSet` (`kanto-frlg` or `hoenn-rse
 
 `GameProgressProvider` exposes one identified observation to the shell. `GameProgressService` performs worker-thread I/O through an injected save resolver. `Gen3Progress` only interprets immutable bytes after content identification. QML sees normalized values and a source/availability message; it never opens files or knows binary offsets.
 
-Reads run on startup, when Home's selected registration changes, when entering Home, after library changes, after Adventure launch/return, and after save-service activity. In-flight results are discarded after selection changes, save operations or launch. Shell actions and launch remain usable while a read runs.
+Reads run on startup, when the shared current Pokémon Adventure changes, when entering Home or Center, after library changes, after Adventure launch/return, and after save-service activity. Multiverse Home does not replace this Pokémon source. In-flight results are discarded after selection changes, save operations or launch. Shell actions and launch remain usable while a read runs.
 
 The source is reopened and compared after reading; ROM/integration identity is revalidated before publishing. Files must be ordinary 128 KiB raw saves. Additional containers and RTC trailers are not inferred. Both rotated fourteen-sector slots are checked for unique section IDs, consistent counters, signatures and edition-specific checksums. The newest complete slot wins, including counter wrap; if only one slot is intact it supplies the observation. Ambiguous equal counters with different payloads are rejected.
 

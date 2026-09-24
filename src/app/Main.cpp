@@ -333,20 +333,20 @@ int main(int argc, char* argv[]) {
             shell.configureProgress(gameProgress.get());
             const auto refreshProgress = [&, provider = gameProgress.get()](bool force) {
                 if (adventureLaunch.active() || (saveBackups && saveBackups->busy())) return;
-                const auto id = shell.home()["adventureId"].toString();
+                const auto id = shell.currentAdventureId();
                 const auto record = activeLibrary.registration(id);
                 if (!record) {
                     if (!progressSelection.isEmpty()) { progressSelection.clear(); provider->invalidate(); }
                     return;
                 }
-                const auto key = QJsonDocument(QJsonObject{{"id", id}, {"revision", record->revision},
+                const auto key = QJsonDocument(QJsonObject{{"id", id}, {"owner", store->ownerId()}, {"revision", record->revision},
                     {"path", record->contentPath}, {"config", record->integrationConfig}}).toJson(QJsonDocument::Compact);
                 if (!force && key == progressSelection) return;
                 progressSelection = key;
                 provider->refresh(*record);
             };
             QObject::connect(&shell, &ShellController::changed, gameProgress.get(), [&, refreshProgress] {
-                const bool homeVisible = shell.page() == 0;
+                const bool homeVisible = shell.page() == 0 || shell.centerFace();
                 const bool enteredHome = homeVisible && !progressHomeVisible;
                 progressHomeVisible = homeVisible;
                 refreshProgress(enteredHome);

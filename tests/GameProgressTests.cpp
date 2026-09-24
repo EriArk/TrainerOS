@@ -1,4 +1,5 @@
 #include "integrations/progress/Gen3Progress.h"
+#include "integrations/progress/EmeraldParty.h"
 #include "integrations/progress/GameProgressService.h"
 #include "features/home/BadgeAssets.h"
 #include <QImage>
@@ -9,6 +10,7 @@
 #include <QSemaphore>
 #include <QCryptographicHash>
 #include <atomic>
+#include <algorithm>
 
 using namespace trainer;
 namespace {
@@ -49,10 +51,71 @@ AdventureRegistration record(const QString& id = "test") {
     AdventureRegistration r; r.adventure.id = id; r.adventure.adapterId = "retroarch";
     r.integrationConfig = {{"core", "mgba"}}; return r;
 }
+QByteArray pokemonFixture(quint32 personality = 0, int species = 25, bool egg = false, bool party = true) {
+    QByteArray bytes(party ? 100 : 80, 0), growth(12,0), attacks(12,0), ev(12,0), misc(12,0);
+    put32(bytes,0,personality); put32(bytes,4,0x12345678);
+    bytes[8]=char(0xbb); bytes[9]=char(0xff); bytes[18]=2; bytes[19]=egg ? 6 : 2;
+    put16(growth,0,species); put16(growth,2,215); put32(growth,4,125); growth[8]=3; // Charcoal; Pikachu level 5, three PP Ups.
+    put16(attacks,0,33); attacks[8]=40; // Tackle, maximum 56 PP in Emerald.
+    put32(misc,4,0x3fffffffu | (egg ? 0x40000000u : 0));
+    std::array<QByteArray,4> logical{growth,attacks,ev,misc};
+    std::array<int,4> order{0,1,2,3};
+    for(quint32 i=0;i<personality%24;++i) std::next_permutation(order.begin(),order.end());
+    QByteArray clear;for(auto index:order) clear+=logical[index];
+    quint16 sum=0;for(int i=0;i<48;i+=2)sum=quint16(sum+qFromLittleEndian<quint16>(clear.constData()+i));
+    put16(bytes,28,sum);
+    for(int i=0;i<48;i+=4)put32(bytes,32+i,qFromLittleEndian<quint32>(clear.constData()+i)^personality^0x12345678u);
+    if(party) { bytes[84]=5; put16(bytes,86,0);for(int i=0;i<6;++i)put16(bytes,88+2*i,20+i); }
+    return bytes;
+}
 }
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void emeraldPartyDecryptsEveryPermutationAndPreservesBoxPositions() {
+        for(int permutation=0;permutation<24;++permutation) {
+            QByteArray world(0x3d88,0),boxes(0x83d0,0);world[0x234]=1;boxes[0]=13;
+            world.replace(0x238,100,pokemonFixture(permutation));
+            boxes.replace(4+(13*30+29)*80,80,pokemonFixture(permutation,25,false,false));
+            boxes[0x8344+13*9]=char(0xbb);boxes[0x8344+13*9+1]=char(0xff);
+            const auto result=readEmeraldParty(world,boxes);
+            QVERIFY(result.error.isEmpty());QCOMPARE(result.party.size(),6);QCOMPARE(result.boxes.size(),14);
+            QCOMPARE(result.currentBox,13);QCOMPARE(result.boxes[13].name,"A");
+            const auto p=result.party[0];QCOMPARE(p.kind,PokemonSlotKind::Known);QCOMPARE(p.speciesId,"pikachu");
+            QCOMPARE(p.level,5);QCOMPARE(p.hp,std::optional<int>(0));QCOMPARE(p.condition,"Fainted");
+            QCOMPARE(p.moves[0].pp,40);QCOMPARE(p.moves[0].maxPp,56);
+            QCOMPARE(p.item,"Charcoal");
+            QCOMPARE(p.stats[3],24);QCOMPARE(p.stats[5],23);
+            QCOMPARE(result.party[1].kind,PokemonSlotKind::Empty);
+            QCOMPARE(result.boxes[13].members[28].kind,PokemonSlotKind::Empty);
+            const auto boxed=result.boxes[13].members[29];QCOMPARE(boxed.kind,PokemonSlotKind::Known);
+            QVERIFY(!boxed.hp.has_value());QCOMPARE(boxed.condition,"Stored");
+            QCOMPARE(boxed.stats[0],20); // ((2*35+31)*5/100)+5+10.
+        }
+    }
+    void emeraldPartyContainsDamageAndHidesEggSpecies() {
+        QByteArray world(0x3d88,0),boxes(0x83d0,0);world[0x234]=3;
+        world.replace(0x238,100,pokemonFixture(2,25,true));
+        auto damaged=pokemonFixture();damaged[35]=char(quint8(damaged[35])^1);
+        world.replace(0x238+100,100,damaged);world.replace(0x238+200,100,pokemonFixture());
+        const auto result=readEmeraldParty(world,boxes);QVERIFY(result.error.isEmpty());
+        QCOMPARE(result.party[0].kind,PokemonSlotKind::Egg);QVERIFY(result.party[0].speciesId.isEmpty());
+        QCOMPARE(result.party[1].kind,PokemonSlotKind::Unreadable);QCOMPARE(result.party[2].kind,PokemonSlotKind::Known);
+        QVERIFY(!readEmeraldParty(world.left(0x3000),boxes).error.isEmpty());
+        QVERIFY(!readEmeraldParty(world,boxes+QByteArray(1,0)).error.isEmpty());
+        world[0x234]=7;QVERIFY(!readEmeraldParty(world,boxes).error.isEmpty());
+        world[0x234]=0;boxes[0]=14;QVERIFY(!readEmeraldParty(world,boxes).error.isEmpty());
+    }
+    void privateEmeraldPartyExample() {
+        const auto path=qEnvironmentVariable("TRAINEROS_EMERALD_SAMPLE");if(path.isEmpty())QSKIP("Private save is optional");
+        QFile f(path);QVERIFY(f.open(QIODevice::ReadOnly));const auto bytes=f.readAll();
+        const auto p=readGen3Progress(bytes,Gen3Edition::Emerald);
+        QCOMPARE(p.availability,ProgressAvailability::Available);QVERIFY(p.party.has_value());QVERIFY(p.party->error.isEmpty());
+        int known=0,bad=0;
+        for(const auto& mon:p.party->party) {known+=mon.kind==PokemonSlotKind::Known;bad+=mon.kind==PokemonSlotKind::Unreadable;qInfo()<<mon.speciesName<<mon.level<<mon.hp.value_or(-1);}
+        for(const auto& box:p.party->boxes)for(const auto& mon:box.members)bad+=mon.kind==PokemonSlotKind::Unreadable;
+        QVERIFY(known>0);QCOMPARE(bad,0);
+    }
     void badgeArtwork() {
         const auto kanto = BadgeAssets::entries("kanto-frlg", 0x21);
         QCOMPARE(kanto.size(), 8);
