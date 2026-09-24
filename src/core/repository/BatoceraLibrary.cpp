@@ -8,6 +8,7 @@
 #include <QUrl>
 #include <QXmlStreamReader>
 #include <QSet>
+#include <QPointer>
 #include <memory>
 
 namespace trainer {
@@ -153,7 +154,17 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
             }
             if(file.suffix().compare("ccd",Qt::CaseInsensitive)==0 && !known.contains(path)
                 && QFileInfo::exists(file.absolutePath()+"/"+file.completeBaseName()+".cue"))continue;
-            if(!formats().value(platform).contains(file.suffix().toLower()) && !known.contains(path))continue;
+            if(!formats().value(platform).contains(file.suffix().toLower()) && !known.contains(path)) {
+                if(QStringList{"naomi","atomiswave"}.contains(platform) && file.suffix().compare("chd",Qt::CaseInsensitive)==0)continue;
+                // A misplaced ROM must remain reachable so Move can correct its
+                // platform folder. Do not silently hide another known format.
+                bool recognized=false;
+                // Raw BINs can be BIOS or disc tracks. They remain visible only
+                // where the platform explicitly treats them as launch content.
+                if(file.suffix().compare("bin",Qt::CaseInsensitive)!=0)
+                    for(const auto& extensions:formats())if(extensions.contains(file.suffix().toLower())){recognized=true;break;}
+                if(!recognized)continue;
+            }
             paths.append(path);
             if(file.suffix().compare("m3u",Qt::CaseInsensitive)==0 && file.size()<1024*1024) {
                 QFile playlist(path);if(playlist.open(QIODevice::ReadOnly))for(const auto& line:QString::fromUtf8(playlist.readAll()).split('\n')) {
@@ -206,6 +217,49 @@ BatoceraLibrary::BatoceraLibrary(LibraryRepository& library,QString roms,QObject
 }
 BatoceraLibrary::~BatoceraLibrary() {
     if(thread_) {thread_->requestInterruption();thread_->wait();delete thread_;}
+}
+QString BatoceraLibrary::storageRootFor(const QString& id) const {
+    const auto record=library_.registration(id);if(!record)return {};
+    const auto file=QFileInfo(record->contentPath).canonicalFilePath();if(file.isEmpty())return {};
+    for(const auto& entry:QDir(roms_).entryInfoList(QDir::Dirs|QDir::NoDotAndDotDot)) {
+        auto platform=entry.fileName();if(platform=="gamecube")platform="gc";if(platform=="3ds")platform="n3ds";
+        if(!formats().contains(platform))continue;
+        const auto root=entry.canonicalFilePath();
+        if(!root.isEmpty() && file.startsWith(root+'/'))return QFileInfo(roms_).canonicalFilePath();
+    }
+    return {};
+}
+void BatoceraLibrary::editLibraryAsync(const LibraryEdit& edit,QObject* context,std::function<void(QString)> done) {
+    if(edit.kind!=LibraryEditKind::MoveFile){library_.editLibraryAsync(edit,context,std::move(done));return;}
+    if(busy_){done("The library is refreshing. Try the move again in a moment.");return;}
+    auto request=edit;request.storageRoot=storageRootFor(edit.id);
+    const auto record=library_.registration(edit.id);
+    if(!record || request.storageRoot.isEmpty()){done("Reconnect this game's library storage before moving it.");return;}
+    const auto relative=QDir(request.storageRoot).relativeFilePath(request.text);
+    const auto folder=relative.section('/',0,0);auto platform=folder;
+    if(platform=="gamecube")platform="gc";if(platform=="3ds")platform="n3ds";
+    if(!formats().contains(platform) || !formats().value(platform).contains(QFileInfo(record->contentPath).suffix().toLower())) {
+        done("Choose the correct platform folder for this file type.");return;
+    }
+    request.relocated=*record;
+    if(platform!=record->adventure.platformId) {
+        auto& moved=*request.relocated;moved.adventure.platformId=platform;
+        moved.adventure.adapterId="unconfigured";moved.integrationConfig={};
+        const auto identified=identify(record->contentPath,platform,record->adventure.kind==AdventureKind::RomHack);
+        moved.adventure.catalogueId=identified.catalogueId;
+        // Keep explicit World membership and personal identity/history.
+        moved.contentPath=QDir(request.text).filePath(QFileInfo(record->contentPath).fileName());
+        if(prepareInstallation)prepareInstallation(moved);
+    } else if(prepareFileMove) {
+        const auto error=prepareFileMove(*record,request);
+        if(!error.isEmpty()){done(error);return;}
+    }
+    deferredScan_.stop();busy_=true;writing_=true;emit busyChanged();emit writingChanged();
+    library_.editLibraryAsync(request,this,[this,guard=QPointer<QObject>(context),done=std::move(done)](const QString& error){
+        busy_=false;writing_=false;emit busyChanged();emit writingChanged();
+        if(guard)done(error);
+        if(error.isEmpty())rescan();
+    });
 }
 void BatoceraLibrary::refreshContentAvailability() {
     if(busy_ || !library_.editable())return;

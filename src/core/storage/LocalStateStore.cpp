@@ -1,5 +1,6 @@
 #include "LocalStateStore.h"
 #include "SqliteLibrary.h"
+#include "LibraryFileMove.h"
 #include "SqliteExitMedia.h"
 #include "SqliteOwnership.h"
 #include <QDir>
@@ -211,6 +212,8 @@ public:
             if (openError.isEmpty() && (!query.exec("PRAGMA quick_check") || !query.next() || query.value(0).toString() != "ok"))
                 openError = "Your data needs recovery. The existing file has been kept.";
             if (openError.isEmpty() && !query.exec("PRAGMA synchronous=FULL")) openError = failedWrite();
+            query.finish();
+            if (openError.isEmpty()) openError = recoverLibraryFileMove(db);
             if (openError.isEmpty()) {
                 if (!query.exec("SELECT id,name,emblem,favorite,created_at FROM trainer_profile ORDER BY created_at,id")) openError = "Your Trainer data couldn't be read. The existing file has been kept.";
                 else while (query.next()) {
@@ -673,13 +676,18 @@ void LocalStateStore::editLibraryAsync(const LibraryEdit& edit, QObject* context
     snapshot->error="Not loaded";
     auto media = std::make_shared<QList<ExitMedia>>();
     write([edit,snapshot,media](SqliteWorker& worker) { return worker.libraryEdit(edit,*snapshot,*media); },
-        [this,snapshot,media,guard=QPointer<QObject>(context),completed](const QString& error) {
+        [this,snapshot,media,edit,guard=QPointer<QObject>(context),completed](const QString& error) {
             // Publish durable trash intents even if the later file rename failed.
             if(snapshot->error.isEmpty()) {
                 worlds_=snapshot->worlds; registrations_=snapshot->registrations; exitMedia_=*media;
                 emit libraryChanged();
             }
             if(guard)completed(error);
+            if(edit.kind==LibraryEditKind::MoveFile && QFileInfo::exists(QDir(directory_).filePath("traineros.sqlite3.library-move.json"))) {
+                // Don't allow discovery to import a half-moved ROM under a new
+                // identity. Retry reopens the worker and reconciles the intent.
+                ready_=false;error_=error;emit opened(false);
+            }
         });
 }
 HomeSnapshot LocalStateStore::home() const {

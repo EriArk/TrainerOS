@@ -8,6 +8,13 @@ platform/filename catalogue matching replace mandatory manual registration.
 Keep Pokémon Worlds region-based; preserve hacks and existing IDs/history.
 The owner plans a later RomM fork separately. See docs/BATOCERA_LIBRARY.md.
 
+**Owner card/Move clarification, 2026-09-24:** World scenery is brighter with
+varied pastel elements. Small-World diagonal cards compose two independent
+randomly paired World cards, stable while browsing; no fixed pair artwork.
+Multiverse platform cards are vivid and high-contrast, not pastel. Move primarily
+corrects misplaced ROMs (for example a PS1 ROM in the GBA folder): choose the
+destination platform/folder, update its binding and keep identity/history/media.
+
 **Owner scheduling amendment, 2026-09-23:** generic artwork-pack installation,
 selection, verification/update/removal and Pack Studio all move to the final
 artwork delivery stage. Existing private illustrations remain in both the Dex

@@ -4,6 +4,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QRegularExpression>
+#include <QDirIterator>
 
 namespace trainer::retroarch {
 QString fileDigest(const QString& path, qint64 limit, const std::atomic_bool& cancelled) {
@@ -79,5 +80,32 @@ bool supportedConfiguration(const AdventureRegistration& r, const RetroArchInsta
             if (files[n].endsWith(".cfg") && QFileInfo::exists(files[n])) return false;
     }
     return true;
+}
+QString prepareFileMove(const AdventureRegistration& record,LibraryEdit& edit,const RetroArchInstallation& installation) {
+    if(record.adventure.adapterId!="retroarch")return {};
+    const auto settings=readSettings(installation.configFile);
+    if(!supportedConfiguration(record,installation,settings))return "This game's play settings need to be checked before moving it.";
+    for(const auto& key:QStringList{"savefiles_in_content_dir","sort_savefiles_enable","sort_savefiles_by_content_enable"})
+        if(settings.value(key)!="true" && settings.value(key)!="false")return "This save layout needs to be checked before moving the game.";
+    const auto oldFolder=QFileInfo(record.contentPath).dir().dirName(),newFolder=QFileInfo(edit.text).fileName();
+    // Core/title overrides can redirect saves too. Keep this first route bounded
+    // to the ordinary configuration used by TrainerOS, without changing it.
+    QDirIterator configs(configDirectory(settings,installation),{"*.cfg","*.opt","*.rmp"},QDir::Files,QDirIterator::Subdirectories);
+    while(configs.hasNext()) {
+        const QFileInfo file(configs.next());const auto name=file.completeBaseName();
+        if(file.suffix()=="cfg" || name==oldFolder || name==newFolder)
+            return "This game uses custom play settings. Move it in Desktop Mode.";
+    }
+    auto base=record.integrationConfig["librarySaveBase"].toString();
+    auto sortCore=record.integrationConfig["librarySaveSortCore"].toBool();
+    if(base.isEmpty()) {
+        base=enabled(settings,"savefiles_in_content_dir")?QFileInfo(record.contentPath).absolutePath():configuredPath(settings,"savefile_directory");
+        if(!safePath(base))return "The save folder needs to be configured before moving this game.";
+        if(enabled(settings,"sort_savefiles_by_content_enable"))base=QDir(base).filePath(oldFolder);
+        sortCore=enabled(settings,"sort_savefiles_enable");
+    }
+    if(!safePath(base))return "The saved game folder is unavailable.";
+    edit.retainedSaveBase=base;edit.retainedSaveSortCore=sortCore;
+    return {};
 }
 }

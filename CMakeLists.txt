@@ -7,12 +7,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_AUTOMOC ON)
 include(CTest)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network Xml)
 find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
     src/core/storage/SqliteLibraryEdits.cpp
+    src/core/storage/LibraryFileMove.cpp
     src/features/library/LibraryToolsController.cpp
     src/core/repository/BatoceraLibrary.cpp
     src/core/repository/BatoceraLibrary.h
@@ -168,7 +169,7 @@ qt_add_resources(trainer_core badge_assets PREFIX "/badges" BASE assets/badges
     FILES assets/badges/manifest.json ${badge_images})
 qt_add_resources(trainer_core collection PREFIX "/collection" BASE data FILES data/catalogue.json)
 qt_add_resources(trainer_core pokedex_reference PREFIX "/pokedex" BASE data FILES data/pokedex.json)
-target_link_libraries(trainer_core PUBLIC Qt6::Core Qt6::Gui Qt6::Sql Qt6::Network SDL2::SDL2 OpenSSL::Crypto)
+target_link_libraries(trainer_core PUBLIC Qt6::Core Qt6::Gui Qt6::Sql Qt6::Network Qt6::Xml SDL2::SDL2 OpenSSL::Crypto)
 target_compile_definitions(trainer_core PUBLIC SDL_MAIN_HANDLED)
 if(MSVC)
     target_compile_options(trainer_core PRIVATE /W4 PUBLIC /utf-8)
@@ -235,6 +236,8 @@ qt_add_qml_module(traineros
         src/qml/WorldsPage.qml
         src/qml/WorldCard.qml
         src/qml/WorldThemes.js
+        src/qml/PlatformCard.qml
+        src/qml/PlatformThemes.js
         src/qml/MultiversePage.qml
         src/qml/MultiverseHome.qml
         src/qml/SystemGlyph.qml

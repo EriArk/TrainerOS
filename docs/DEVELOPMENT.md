@@ -32,7 +32,7 @@ lease or enable the overlay for normal launches. See [exit boundaries](ADVENTURE
 
 - CMake 3.24 or newer; Ninja is recommended.
 - C++20 compiler.
-- Qt 6.4 or newer: Core, Gui, Qml, Quick, Sql, the QSQLITE driver, QtQuick / QtQuick.Window / QtQuick.Shapes QML modules, and Test when `BUILD_TESTING=ON`.
+- Qt 6.4 or newer: Core, Gui, Qml, Quick, Sql, Network, Xml, the QSQLITE driver, QtQuick / QtQuick.Window / QtQuick.Shapes QML modules, and Test when `BUILD_TESTING=ON`.
 - OpenSSL 3 Crypto development headers/library (PIN verification); runtime libcrypto 3.
 - SDL2 2.0.14 or newer, including development headers and its CMake package.
 

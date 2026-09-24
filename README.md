@@ -163,9 +163,9 @@ Initial set:
 
 A World can contain multiple Adventures and expose status such as Not Visited, In Progress, Completed, Champion, Pokédex completion, total time, and last visit. Emulator/process details remain hidden implementation metadata.
 
-The native shell supports region → Adventure list → Adventure detail, with personal records managed through Start → Manage Adventures. An Adventure can belong to several regions or a custom World. Controller focus reveals rows inside bounded lists; Back, page switching and restart preserve useful selections. Unconfigured records show Needs setup and unknown progress. The explicit sample preview demonstrates richer adapter capabilities without running an emulator.
+The native shell supports region-based Worlds and a separate Multiverse platform browser. ROM folders populate the library automatically; long A opens Rename / Move / Delete / Properties. Move can correct a misplaced ROM's platform folder while keeping its identity and available media. Missing Pokémon editions retain Link a file. An Adventure can belong to several regions or a custom World. Controller focus reveals rows inside bounded lists; Back, page switching and restart preserve useful selections. Unconfigured records show Needs setup and unknown progress. The explicit sample preview demonstrates richer adapter capabilities without running an emulator.
 
-Planned #56 gives larger World cards low-contrast schematic environmental motifs and intentional diagonal pairings for compatible small groups. Region identities and strong golden controller focus remain distinct; large important Worlds stay standalone.
+World cards use colorful pastel scenery and session-stable random diagonal pairings of small Worlds. Each half retains its identity and golden controller focus; major regions stay standalone. Multiverse has vivid platform cards with original hardware illustrations.
 
 ## Pokédex
 

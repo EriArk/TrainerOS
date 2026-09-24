@@ -3,6 +3,8 @@
 #include "core/navigation/ResumePresentation.h"
 #include <algorithm>
 #include <QSet>
+#include <QRandomGenerator>
+#include <random>
 
 namespace trainer {
 namespace {
@@ -32,7 +34,7 @@ QString searchKey(const QString& text) {
 }
 }
 WorldsController::WorldsController(LibraryRepository& repository, AdventureAdapter& adapter, QObject* parent)
-    : QObject(parent), repository_(repository), adapter_(adapter) { refresh(); }
+    : QObject(parent), repository_(repository), adapter_(adapter), pairingSeed_(QRandomGenerator::global()->generate()) { refresh(); }
 QString WorldsController::route() const {
     switch (route_) {
     case Route::Regions: return "regions";
@@ -96,17 +98,24 @@ QVariantList WorldsController::regions() const {
     return result;
 }
 QList<QList<int>> WorldsController::regionGroups() const {
-    // Explicit thematic pairs; major regions and custom Worlds stay independent.
-    static const QHash<QString,QString> pairs{
-        {"fiore","almia"},{"almia","fiore"},
-        {"lental","pokemon-island"},{"pokemon-island","lental"},
-        {"ferrum","poketopia"},{"poketopia","ferrum"}};
+    // Stable for this controller session, including refresh and page/face changes.
+    // Each half is a complete World presentation, never a pre-composed pair asset.
+    static const QSet<QString> major{"kanto","johto","hoenn","sinnoh","unova","kalos","alola","galar","paldea","hisui"};
+    QSet<QString> known;
+    for(const auto& world:collectionWorlds())known.insert(world.id);
     const auto small=[&](const QString& id){
         QSet<QString> titles;
         for(const auto& a:adventures_)if(a.worldId==id || a.additionalWorldIds.contains(id))
             titles.insert(a.catalogueId.isEmpty()?a.id:a.catalogueId);
         return titles.size()<=4;
     };
+    QStringList candidates;
+    for(const auto& world:worlds_)if(known.contains(world.id) && !major.contains(world.id) && small(world.id))candidates.append(world.id);
+    candidates.sort();
+    std::mt19937 random(pairingSeed_);
+    std::shuffle(candidates.begin(),candidates.end(),random);
+    QHash<QString,QString> pairs;
+    for(int i=0;i+1<candidates.size();i+=2){pairs.insert(candidates[i],candidates[i+1]);pairs.insert(candidates[i+1],candidates[i]);}
     QList<QList<int>> result;QSet<int> used;
     for(int i=0;i<worlds_.size();++i) {
         if(used.contains(i))continue;

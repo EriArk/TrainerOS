@@ -519,3 +519,16 @@ Optional directional walking, idle and sleep alternate with short random rests;
 an occasional step behind the right edge immediately turns into a return trip.
 Menus, hidden pages and Reduced Motion stop it. Missing clips do not fabricate
 actions or substitute illustrations. The primary illustration remains still.
+
+### World and platform cards — 2026-09-24
+
+World cards use richer background colors and several pastel scenery colors,
+instead of grey linework. Small known Worlds are randomly paired from independent
+cards for the current session. Refresh/focus changes keep that composition;
+major regions and custom Worlds stay whole. Each half keeps its own name,
+selection and route. No combined raster artwork or merged World identity exists.
+
+Multiverse uses separate, high-contrast platform cards with original native
+hardware illustrations, saturated gradients, angled light bands and a perspective
+grid. Names are white, focus is gold. The Canvas paints on change, without a
+resident animation loop. Only systems with installed library entries appear.

@@ -38,6 +38,22 @@ void tap(WorldsController& worlds, Action action, int count = 1) {
 class WorldsTests : public QObject {
     Q_OBJECT
 private slots:
+    void randomWorldPairsStayStableWhileBrowsing() {
+        MutableLibrary library;RecordingAdapter adapter;library.adventureData.clear();
+        library.worldData={{"kanto","Kanto",{}},{"fiore","Fiore",{}},{"almia","Almia",{}},
+            {"oblivia","Oblivia",{}},{"orre","Orre",{}},{"custom","Custom",{}}};
+        WorldsController worlds(library,adapter);const auto initial=worlds.regionTiles();QCOMPARE(initial.size(),4);
+        QSet<QString> ids;
+        for(const auto& tile:initial) {
+            const auto members=tile.toMap()["members"].toList();
+            for(const auto& member:members) {
+                const auto id=member.toMap()["id"].toString();QVERIFY(!ids.contains(id));ids.insert(id);
+                if(id=="kanto" || id=="custom")QCOMPARE(members.size(),1);
+            }
+        }
+        QCOMPARE(ids.size(),6);
+        for(int i=0;i<12;++i){tap(worlds,Action::Right);tap(worlds,Action::Down);worlds.refresh();QCOMPARE(worlds.regionTiles(),initial);}
+    }
     void diagonalPairsKeepIndependentWorldRoutes() {
         MutableLibrary library;RecordingAdapter adapter;
         library.worldData={{"kanto","Kanto",{}},{"fiore","Fiore",{}},{"almia","Almia",{}},{"other","Custom",{}}};

@@ -41,10 +41,10 @@ Item {
                     }
                 }
                 Repeater {
-                    model: root.shell.powerMenu ? root.shell.menuItems : [0,2,3,4,5,6].map(i => root.shell.menuItems[i])
+                    model: root.shell.powerMenu ? root.shell.menuItems : [0,2,4,5,6].map(i => root.shell.menuItems[i])
                     CapButton {
                         required property int index; required property string modelData
-                        readonly property int actionIndex: root.shell.powerMenu ? index : [0,2,3,4,5,6][index]
+                        readonly property int actionIndex: root.shell.powerMenu ? index : [0,2,4,5,6][index]
                         objectName: "menu-"+actionIndex; x: 14; y: root.shell.powerMenu ? 32+index*45 : 104+index*39
                         width: parent.width-28; height: 34; textSize: root.shell.powerMenu ? 15 : 15
                         label: modelData; warning: root.shell.powerMenu && index<2

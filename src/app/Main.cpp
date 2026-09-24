@@ -13,6 +13,7 @@
 #include "core/storage/SessionState.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
+#include "integrations/adventure/retroarch/RetroArchConfiguration.h"
 #include "core/navigation/AdventureLaunchController.h"
 #include "features/adventure/AdventureExitPresentation.h"
 #include "platform/input/AdventureOverlayService.h"
@@ -240,6 +241,9 @@ int main(int argc, char* argv[]) {
         shell.configureServices(&files, store.get());
         if (personalLibrary && !smoke) {
             folders.prepareInstallation = [&adapters](AdventureRegistration& record) { adapters.prepareInstallation(record); };
+            folders.prepareFileMove = [retroarchInstallation](const AdventureRegistration& record,LibraryEdit& edit)->QString {
+                return retroarch::prepareFileMove(record,edit,retroarchInstallation);
+            };
             QObject::connect(store.get(), &LocalStateStore::opened, &folders, [&](bool ready) { if(ready)folders.refreshContentAvailability(); });
             QObject::connect(&folders, &BatoceraLibrary::changed, &shell, &ShellController::refreshLibrary);
             QObject::connect(&folders, &BatoceraLibrary::scanFinished, &shell, [](int added,const QStringList& warnings) {
@@ -669,7 +673,7 @@ int main(int argc, char* argv[]) {
                         check(shell.menuOpen() && focusIs("menu-0"), "Start traps focus above keyboard");
                         press(SDL_CONTROLLER_BUTTON_X);
                         check(shell.keyboard()->text() == "ERI 2", "Y must not change text under menu");
-                        taps(down, 3); press(a); break; // Unavailable Desktop mode overlays the keyboard; Center is now usable.
+                        taps(down, 2); press(a); break; // Unavailable Desktop mode overlays the keyboard; retired actions are skipped.
                     case 15:
                         check(focusIs("notice-close"), "notice traps focus above menu and keyboard");
                         press(b); break;

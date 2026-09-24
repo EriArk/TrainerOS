@@ -1,4 +1,5 @@
 #include "SqliteLibrary.h"
+#include "LibraryFileMove.h"
 #include "core/input/TextEntryController.h"
 #include <QSqlQuery>
 #include <QDir>
@@ -26,6 +27,7 @@ QString migrateLibraryEditing(QSqlDatabase& db) {
     if(!db.commit()){db.rollback();return failure();}return {};
 }
 QString editLibrary(QSqlDatabase& db, const LibraryEdit& edit) {
+    if(edit.kind==LibraryEditKind::MoveFile)return moveLibraryFile(db,edit);
     if(edit.id.isEmpty())return "Choose an item first.";
     if(!db.transaction())return failure();
     const auto fail=[&](const QString& error){db.rollback();return error;};

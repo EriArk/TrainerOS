@@ -8,7 +8,8 @@ Item {
     PageHeader {
         id: header
         title: root.model.route === "systems" ? "Multiverse" : root.model.systemName
-        subtitle: root.model.sample ? "Development preview · fictional titles · no launch" : "Your worlds beyond Pokémon"
+        compact: root.model.route === "systems"
+        subtitle: root.model.route === "systems" ? "" : root.model.sample ? "Development preview · fictional titles · no launch" : "Your worlds beyond Pokémon"
     }
     MountedPanel {
         y: header.height; width: parent.width; height: parent.height - y; color: "#d9deed"
@@ -21,7 +22,7 @@ Item {
         GridView {
             id: systemsGrid
             x: 16; y: 12; width: parent.width - 32; height: parent.height - 24
-            cellWidth: width / 3; cellHeight: 110; clip: true
+            cellWidth: width / 3; cellHeight: height/2; clip: true
             interactive: false; keyNavigationEnabled: false
             visible: root.model.route === "systems"
             model: root.model.systems; currentIndex: root.model.focusIndex
@@ -39,15 +40,13 @@ Item {
                 required property var modelData
                 width: systemsGrid.cellWidth; height: systemsGrid.cellHeight
                 property alias control: systemCard
-                CapButton {
+                PlatformCard {
                     id: systemCard
                     objectName: "multiverse-system-" + index
-                    x: 8; y: 8; width: parent.width - 16; height: 94
-                    label: modelData.name; detail: modelData.count ? modelData.count + (modelData.count === 1 ? " Adventure" : " Adventures") : "Browse titles"; contentInset: 64
-                    tint: Theme.tabColors[index % Theme.tabColors.length]
+                    x: 8; y: 8; width: parent.width - 16; height: parent.height-16
+                    entry: modelData
                     selected: root.takesFocus && parent.visible && root.model.focusIndex === index
                     onActivated: root.shell.activate(index)
-                    SystemGlyph { x: 10; y: 19; width: 42; height: 54; shape: modelData.shape }
                 }
             }
         }

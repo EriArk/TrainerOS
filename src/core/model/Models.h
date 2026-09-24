@@ -50,7 +50,7 @@ struct ShellPreferences {
     bool reducedMotion = false;
     bool worldEditing = false;
 };
-enum class LibraryEditKind { RenameWorld, RenameGame, MoveGame, RemoveGame, RestoreGame };
+enum class LibraryEditKind { RenameWorld, RenameGame, MoveGame, RemoveGame, RestoreGame, MoveFile };
 struct LibraryEdit {
     LibraryEditKind kind;
     QString id;
@@ -58,6 +58,10 @@ struct LibraryEdit {
     QString text;
     World world;
     QString previousName;
+    QString storageRoot; // Supplied by the folder repository, not by QML.
+    QString retainedSaveBase; // Adapter-verified directory before a ROM move.
+    bool retainedSaveSortCore = false;
+    std::optional<AdventureRegistration> relocated;
 };
 enum class ResumeAvailability { Exact, LaunchOnly, Stale, Missing, Incompatible };
 // Adapter-owned identity of one source revision, never a path interpreted by UI.

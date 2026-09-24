@@ -21,6 +21,7 @@ public:
     virtual std::optional<qint64> recordedSeconds(const QString&) const { return {}; }
     virtual HomeSnapshot home() const = 0;
     virtual bool editable() const { return false; }
+    virtual QString storageRootFor(const QString&) const { return {}; }
     virtual void refreshContentAvailability() {}
     virtual std::optional<AdventureRegistration> registration(const QString&) const { return {}; }
     virtual QList<AdventureRegistration> registrations() const {

@@ -77,3 +77,21 @@ To restore Armada's original Steam boot preference, remove only the optional `tr
 The initial 2026-09-13 session suites passed on Windows (25 tests), Ubuntu/Qt 6.4 (26) and the Flip ARM64 build (26). The following handheld-control increment passes 26/27/27 respectively; seven Linux subprocess checks cover the supervisor and default selection. The installed release build disables test-only flows. Sleep/wake remains deferred.
 
 Native suites cover controller confirmation, persistence and lifecycle. Linux subprocess tests cover crash limits, orphan preservation, first-frame deadlines and transition ownership. They do not replace the device gates above. See [platform model](ARMADA_PLATFORM.md), [device baseline](ARMADA_DEVICE_BASELINE.md) and [roadmap](ROADMAP.md).
+
+## Observed Mobile handoff failure — 2026-09-24
+
+During a production update, switching from Plasma Mobile back to TrainerOS left
+an old Mobile login session in `closing` with `startplasmamobile` and
+`startplasma-wayland` still alive on tty1. SDDM repeatedly reported
+`Failed to take control of /dev/tty1` and session exit code 5 before TrainerOS's
+user service started. Repeating the session switch alone did not recover it.
+
+Recovery identified the stale session with `loginctl session-status`, requested
+its termination, then ended its two remaining processes after they failed to
+exit. Stopping the Plasma/graphical-session user targets and selecting TrainerOS
+again restored one running shell and its database lock. No packages, session
+definitions or personal data were removed. Do not copy recorded PID values into
+future recovery: identify the stale session and ensure no game is running first.
+
+P10 retains reproduction and graceful transition/recovery hardening as follow-up.
+This recovery does not prove the Mobile transition defect permanently fixed.

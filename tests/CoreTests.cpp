@@ -35,7 +35,9 @@ private slots:
         shell.dispatch(Action::SystemMenu);
         shell.dispatch(Action::ToggleContinue);
         QVERIFY(shell.drawerOpen());
-        for (int i = 0; i < 4; ++i) shell.dispatch(Action::Down); // Unavailable Desktop mode remains an informational notice.
+        QVERIFY(shell.menuItems()[3].isEmpty()); // No global manual-registration entry.
+        for (int i = 0; i < 2; ++i) shell.dispatch(Action::Down);
+        QCOMPARE(shell.focusIndex(),4); // Skip retired actions; Desktop remains an informational notice here.
         shell.dispatch(Action::Confirm);
         QVERIFY(!shell.notice().isEmpty());
         shell.dispatch(Action::Back);

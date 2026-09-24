@@ -158,6 +158,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     refreshContinue();
 }
 void ShellController::configureServices(FileCatalog* files, PreferencesRepository* preferences) {
+    libraryTools_.setCatalog(files);
     libraryManager_.files()->setCatalog(files); settings_.setRepository(preferences);
     const auto records=repository_.registrations();
     settings_.setLegacyTrashAvailable(std::any_of(records.cbegin(),records.cend(),[](const auto& r){return r.removed && !r.trashPath.isEmpty();}));
@@ -403,7 +404,7 @@ QStringList ShellController::menuItems() const {
         return items;
     }
     // Stable action IDs: slot 1 retired when Controller moved into Settings.
-    return {"Settings", "", "Pokémon Center", "Manage Adventures",
+    return {"Settings", "", "Pokémon Center", "",
             "Desktop / Maintenance Mode", "Steam Gaming Mode", "Power", "Volume", "Screen brightness"};
 }
 void ShellController::openTrainers() {
@@ -633,6 +634,7 @@ void ShellController::dispatch(Action action) {
     // the keyboard without changing its draft or key focus; Back unwinds it first.
     if (action == Action::SystemMenu) {
         if (notice_.isEmpty()) { menuOpen_ = !menuOpen_; if (!menuOpen_ && powerMenu_) { powerMenu_ = false; menuFocus_ = 6; } }
+        if(menuOpen_ && !powerMenu_ && menuItems().value(menuFocus_).isEmpty())menuFocus_=0;
         emit changed();
         return;
     }
@@ -718,7 +720,7 @@ void ShellController::dispatch(Action action) {
         if (menuOpen_) delta = action == Action::Up ? -1 : action == Action::Down ? 1 : 0;
         else if (drawerOpen_) delta = action == Action::Left ? -1 : action == Action::Right ? 1 : 0;
         if(menuOpen_ && !powerMenu_) {
-            const QList<int> order{7,8,0,2,3,4,5,6};
+            const QList<int> order{7,8,0,2,4,5,6};
             *focus=order[std::clamp(int(order.indexOf(*focus))+delta,0,int(order.size())-1)];
         } else *focus = std::clamp(*focus + delta, 0, std::max(0, count - 1));
     }

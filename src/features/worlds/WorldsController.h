@@ -78,5 +78,6 @@ private:
     Route route_ = Route::Regions;
     bool backFocused_ = false;
     int actionFocus_ = 0;
+    quint32 pairingSeed_ = 0;
 };
 }

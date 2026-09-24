@@ -4,8 +4,8 @@
 reference editions; duplicate/non-English/service variants removed from Worlds,
 including grey entries. Permanently deleted 198 device ROMs and updated eight
 gamelists, preserving saves/history/server originals. [Policy and verification](CATALOGUE_CURATION.md).
-Return next to the already-started brighter/random World cards, platform cards
-and physical Move increment; its remaining checks and deployment are still open.
+The brighter/random World cards, platform cards and physical Move follow-up is
+also delivered below. Continue with the remaining P5 presentation/media queue.
 
 
 ## Current execution override — owner library correction, 2026-09-23
@@ -47,11 +47,19 @@ new deletions never enter trash. Legacy trash still has recovery. Dex companions
 fill the header height without species-relative scaling; that requirement moves
 to living Party/Playroom. Windows 40/40 plus final World checks and installed Flip
 controller/capture verification passed. [Evidence](BATOCERA_LIBRARY.md#world-cards-and-permanent-deletion-verification--2026-09-24).
-**Next:** finish the library flow by retiring the older global manual-registration
-surface and addressing physical folder moves with preserved media/save bindings.
-Multi-file installation deletion remains an explicit follow-up. Then resume the
-remaining handheld presentation/motion queue; emulator edge cases, save research,
-Help and final artwork tooling retain their later slots.
+**2026-09-24 cards/physical Move delivered:** brighter World scenery, session-stable random diagonal
+pairs built from independent cards, vivid native Multiverse platform cards, and
+physical Move to correct platform folders with preserved identity/media. The
+older global manual-registration menu is retired; missing-edition Link a file
+remains. Windows 40/40 and final targeted checks passed; installed Flip controller
+tests covered cancellation, PS1 folder correction with XML/media, GBA new-folder
+creation and launch/guarded return. Original records and ROMs were preserved;
+temporary test copies were deleted. [Evidence](BATOCERA_LIBRARY.md#physical-move-and-card-refinement-verification--2026-09-24).
+**Next:** resume remaining handheld presentation/motion work. Multi-file
+installation moves/deletion remain explicit follow-ups. Emulator edge cases,
+save research, Help and final artwork tooling retain their later slots.
+An observed Plasma Mobile → TrainerOS session handoff failure was recovered;
+its recurrence/automated recovery check remains in P10, not silently marked fixed.
 
 **Owner scheduling amendment, 2026-09-23:** generic artwork-pack installation,
 selection, verification/update/removal and Pack Studio all move to the final
@@ -66,6 +74,12 @@ Reconciled on **2026-09-19** for **#1–64**, including the updated #9/#13/#15/#
 This is a dependency replan, not a reset. The [pre-expansion plan](https://github.com/EriArk/TrainerOS/blob/252f04e0772bd05966fb212ca736d303cab366ea/docs/ROADMAP.md) and the preservation map below make previous commitments traceable. Read the phase table for what comes next, then the referenced acceptance; do not execute the old numbered register as a competing queue.
 
 ## Delivered increments under this plan
+
+- **2026-09-24 — bright cards and physical Move:** independent randomly paired
+  small-World cards, vivid platform illustrations, platform/folder correction
+  with stable game identity, XML/media preservation and retained RetroArch save
+  routing. Native checks and installed Flip tests passed. All 827 pre-existing
+  Adventure rows remain; two removed test records retain test history.
 
 - **2026-09-24 — #56 cards and owner refinements:** original environmental motifs,
   semantic diagonal pairs with independent World selection, permanent single-ROM

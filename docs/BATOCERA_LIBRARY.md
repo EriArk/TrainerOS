@@ -31,8 +31,8 @@ New readable game files are persisted through the existing repository and adapte
 setup contracts. No ROM bytes are hashed, parsed or rewritten during discovery.
 Existing records retain their IDs, names, Worlds, adapter configuration, revisions
 and Trainer history. Repeated scans add nothing twice. Disconnected storage never
-deletes records. External file moves are not guessed as identity changes; the
-future management action will own deliberate moves and rebinding.
+deletes records. External file moves are not guessed as identity changes;
+the contextual Move action owns deliberate moves and rebinding.
 
 Filename matching uses platform plus a normalized catalogue title, ignoring known
 dump-region/revision annotations and punctuation. Matching is exact, not fuzzy.
@@ -106,6 +106,47 @@ a whole; scanning the actual games still works. XML is bounded to 32 MiB and
 20,000 entries, traversal to 50,000 entries per system. Unknown XML elements,
 emulator/core commands and external statistics are never executed/imported.
 TrainerOS does not rewrite external gamelists during scans.
+
+### Physical Move — 2026-09-24
+
+Long A → Move opens platform/folder selection and a confirmation with Cancel
+selected first. Pokémon retains an additional World reassignment choice. Move
+primarily corrects misplaced files, such as a PlayStation CHD in `gba/`: known
+misplaced formats remain discoverable, then choosing `psx/` updates the same
+Adventure's platform and prepares its adapter through the existing router.
+Unsupported runtime routes remain unavailable; moving a file does not install
+or certify an emulator. Raw BIN files are not guessed outside their recognized
+platforms, since they may be firmware or disc tracks.
+
+Moves stay within the configured ROM library and the same filesystem. Names,
+IDs, explicit World membership, Trainer history and current exit pictures are
+preserved. The destination must accept the file extension. Existing destinations,
+shared ROMs, referenced disc members and multi-file/arcade sets are rejected.
+The original basename stays unchanged. Ordinary adjacent saves and patches move
+with a single-file game; nothing is overwritten. Multi-file moves remain later.
+
+For same-platform RetroArch moves, the adapter pins the pre-move ordinary save
+base and core-sorting setting in the registration. Launch and the verified mGBA
+save reader use that base, so central and adjacent RetroArch saves stay put.
+Owned mGBA Trainer namespaces retain priority. Custom configuration layers are
+rejected instead of guessing. Cross-platform corrections reprepare the binding
+and retain unrelated old emulator saves. No save content is edited. Folder/core
+ordering follows RetroArch's [save redirection implementation](https://github.com/libretro/RetroArch/blob/master/runloop.c).
+
+Existing XML entries move between system gamelists, or get a new relative ROM
+path within their system. Relative media links are adjusted; artwork files remain
+in place. Other tags and entries are retained. Discovery still does **not** create
+XML entries for newly copied ROMs: XML is optional metadata, not the launch index.
+The source/destination gamelists use Qt's atomic [QSaveFile](https://doc.qt.io/qt-6/qsavefile.html)
+replacement. A durable intent beside SQLite restores an interrupted pre-commit
+move or recognizes its committed new location on startup. Recovery rejects
+collisions and changed metadata; it never overwrites an external replacement.
+This keeps schema 12; the intent is private runtime data, not a library manifest.
+
+The global Start → Manage Adventures entry is retired. Folder discovery and
+contextual editing are the ordinary path; missing Pokémon editions retain their
+Link a file editor. Earlier manual-manager and trash notes below are historical;
+new deletions remain permanent as documented in the later delivery entry.
 
 ## Management acceptance
 
@@ -340,3 +381,38 @@ evidence is under `work/research/world-cards-*` and the corresponding device tas
 
 Installed binary SHA-256:
 `1bc6b642dcf3d504c0e9111eca67fb20d977666847c6f6766b05f485b559aa0b`.
+
+### Physical Move and card refinement verification — 2026-09-24
+
+The full Windows build and 40-test suite passed. Final panel adjustments passed
+the persistence-process and two affected QML scenarios; the final platform-art
+adjustment passed the World QML scenario again. Coverage includes move recovery,
+collisions, playlist/shared-file rejection, XML/media paths, save routing and
+independent randomized World pairing. ARM64 production was rebuilt and installed
+with binary/database rollback copies.
+
+On the actual Flip, injected controller events exercised both diagonal halves,
+platform cards, long-A Move, Cancel, platform selection, and the new-folder
+keyboard. A separate PS1 test copy moved from GBA to PS1 with the same Adventure
+ID, description and a working relative image reference. Its unconfigured runtime
+remained unconfigured: this verifies file correction, not PS1 emulation. A GBA
+test copy moved into a new folder, retained its RetroArch save base, launched in
+mGBA and returned through the guarded exit overlay. Both test ROMs were then
+deleted through the normal Delete action; only their temporary saves/media/config
+and empty test folder were cleaned up afterward.
+
+Original ROM hashes, both original gamelists and all 827 pre-existing Adventure
+rows were preserved. The database now has two additional removed test records;
+active counts remain 494 Pokemon and 134 Multiverse. SQLite quick/foreign-key
+checks passed. The earlier 198 curated-out ROMs remain absent. Final installed
+captures of Worlds, Multiverse and Move were reviewed and shown in chat; the
+final session has no LibraryToolsPanel binding-loop warning. Physical thumb
+acceptance remains the owner's check.
+
+The final Desktop-to-TrainerOS handoff exposed a stale Plasma Mobile session
+holding tty1. After ending only that stale session and its desktop targets,
+TrainerOS started normally; this is recovery evidence, not a session-system fix.
+See [session follow-up](SESSION_PROTOTYPE.md#observed-mobile-handoff-failure--2026-09-24).
+Private evidence lives under `work/research/cards-move-*` and the matching device
+task directory. Installed binary SHA-256:
+`36468b77a422c3fe6f5ae7d9fac6ba125083d707e0ae6c575d04b8c65a0d9209`.

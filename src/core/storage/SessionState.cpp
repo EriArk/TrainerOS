@@ -51,7 +51,7 @@ SessionState::SessionState(ShellController& shell, LocalStateStore* store, QObje
             desired_ = shell_.navigationState();
             restored_ = true;
             if (closing_) flush();
-        } else {entryGate_=false;error_ = store_->error();}
+        } else {entryGate_=false;restored_=false;error_ = store_->error();}
         focus_ = 0; emit changed();
         finishExit();
     });

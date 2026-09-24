@@ -1,6 +1,7 @@
 #pragma once
 #include "core/input/Action.h"
 #include "core/repository/LibraryRepository.h"
+#include "platform/storage/FileCatalog.h"
 #include <QObject>
 #include <QVariantList>
 
@@ -34,12 +35,14 @@ public:
     void dispatch(Action);
     void activate(int);
     void applyText(const QString&);
+    void setCatalog(FileCatalog* catalog) {catalog_=catalog;}
 signals:
     void changed();
     void saved();
     void textRequested(const QString& title,const QString& initial,int limit);
 private:
     void submit(LibraryEdit);
+    void browse(const QString&,int page=0);
     LibraryRepository& repository_;
     QString route_,error_;
     AdventureRegistration game_;
@@ -48,5 +51,9 @@ private:
     QList<AdventureRegistration> trash_;
     int focus_=0;
     bool busy_=false;
+    FileCatalog* catalog_=nullptr;
+    DirectoryPage directory_;
+    QString root_,destination_;
+    quint64 browseGeneration_=0;
 };
 }

@@ -2,15 +2,15 @@
 
 // Original schematic scenery. Identity follows World ID, including renamed Worlds.
 var themes = {
-    kanto: ["#c5d99a", "#4a7154", "fields"],
-    johto: ["#cbd3a0", "#626c44", "shrine"],
-    hoenn: ["#a8d8d5", "#287b80", "waves"],
-    sinnoh: ["#bdcfe1", "#526789", "mountains"],
-    unova: ["#bfccd9", "#536579", "city"],
-    kalos: ["#d7c8df", "#82638b", "garden"],
-    alola: ["#b8dcc0", "#398368", "leaves"],
-    galar: ["#d5c9b2", "#7b6550", "stadium"],
-    paldea: ["#ecd197", "#9a743d", "routes"],
+    kanto: ["#bfe881", "#4a7154", "fields"],
+    johto: ["#d3e88d", "#626c44", "shrine"],
+    hoenn: ["#88dedb", "#287b80", "waves"],
+    sinnoh: ["#adcfee", "#526789", "mountains"],
+    unova: ["#b4c5ed", "#536579", "city"],
+    kalos: ["#e7bcec", "#82638b", "garden"],
+    alola: ["#a3e4ba", "#398368", "leaves"],
+    galar: ["#dfb8df", "#7b6550", "stadium"],
+    paldea: ["#f5d47c", "#9a743d", "routes"],
     hisui: ["#c6d5d1", "#4d7973", "mountains"],
     orre: ["#dfbd92", "#98704d", "dunes"],
     fiore: ["#b7d4ae", "#547d52", "forest"],
@@ -36,4 +36,21 @@ var themes = {
     "our-world": ["#bfd7c7", "#597e6a", "routes"],
     "card-club": ["#dbc5b4", "#8f705a", "garden"]
 }
-function theme(id) { return themes[id] || ["#c5d3bd", "#627a60", "routes"] }
+function theme(id) { return themes[id] || ["#b9ddb1", "#487456", "routes"] }
+// Material and scenery are separate: colored elements never become grey silhouettes.
+function scenery(motif) {
+    var colors = {
+        fields: ["#91c775", "#f7cf79", "#d9aeec", "#8cceb2"],
+        shrine: ["#85c69b", "#a6cf85", "#e79b8b", "#8ac3b6"],
+        forest: ["#6dbb9b", "#9dcf78", "#b3a3df", "#e7b87f"],
+        waves: ["#75b7e9", "#88d8cf", "#a8c984", "#d2a8dd"],
+        mountains: ["#a495cf", "#8cbfcf", "#d4a9ca", "#d5e9f1"],
+        city: ["#929dd7", "#dfa49a", "#87c9c5", "#e6c27c"],
+        garden: ["#c28ede", "#efa2ba", "#8bc6ad", "#e8c57b"],
+        leaves: ["#66c09a", "#a5cf6d", "#82c8c1", "#e7ac91"],
+        stadium: ["#a198d1", "#e0a088", "#84bccb", "#dfc578"],
+        dunes: ["#e4ac78", "#e39fa4", "#bd9ed6", "#ecc979"],
+        routes: ["#a3c97d", "#efb27d", "#af9cdd", "#8ebfcf"]
+    }
+    return colors[motif] || colors.routes
+}

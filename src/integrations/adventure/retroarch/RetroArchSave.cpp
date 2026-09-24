@@ -43,7 +43,7 @@ QString prepareRetroArchLaunch(ProcessCommand& command, const AdventureRegistrat
     }
     // One bounded adapter-owned config instead of a new state folder per run.
     // Never replace an existing file with different content (or a symlink).
-    const auto path = owner && !owner->legacy
+    auto path = owner && !owner->legacy
         ? QFileInfo(target.savePath).dir().filePath("traineros-owner-v1.cfg")
         : QFileInfo(installation.configFile).dir().filePath("traineros-ordinary-v1.cfg");
     if (!safePath(path)) return "Couldn't prepare the Adventure. Your saves are unchanged.";
@@ -55,6 +55,14 @@ QString prepareRetroArchLaunch(ProcessCommand& command, const AdventureRegistrat
         bytes += "savefile_directory = \"" + QFileInfo(target.savePath).absolutePath().toUtf8() + "\"\n"
             "savefiles_in_content_dir = \"false\"\nsort_savefiles_enable = \"false\"\n"
             "sort_savefiles_by_content_enable = \"false\"\n";
+    } else if(record.integrationConfig.contains("librarySaveBase")) {
+        const auto base=record.integrationConfig["librarySaveBase"].toString();
+        if(!safePath(base))return "The game's saved location needs to be checked.";
+        bytes += "savefile_directory = \""+base.toUtf8()+"\"\nsavefiles_in_content_dir = \"false\"\n"
+            "sort_savefiles_by_content_enable = \"false\"\nsort_savefiles_enable = \""
+            +QByteArray(record.integrationConfig["librarySaveSortCore"].toBool()?"true":"false")+"\"\n";
+        path=QFileInfo(installation.configFile).dir().filePath("traineros-move-"+digestId(record.adventure.id).left(16)+"-"
+            +QString::fromLatin1(QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex().left(16))+".cfg");
     }
     QFile config(path);
     if (!QFileInfo::exists(path) && !QFileInfo(path).isSymLink()) {
@@ -106,6 +114,11 @@ SaveTarget resolveRetroArchSave(const AdventureRegistration& r, const RetroArchI
     if(!safePath(directory))return target;
     if(enabled(settings,"sort_savefiles_by_content_enable"))directory=QDir(directory).filePath(content.dir().dirName());
     if(enabled(settings,"sort_savefiles_enable"))directory=QDir(directory).filePath("mGBA");
+    if(r.integrationConfig.contains("librarySaveBase")) {
+        directory=r.integrationConfig["librarySaveBase"].toString();
+        if(!safePath(directory))return target;
+        if(r.integrationConfig["librarySaveSortCore"].toBool())directory=QDir(directory).filePath("mGBA");
+    }
     const std::atomic_bool cancelled{false};
     target.contentRevision=fileDigest(r.contentPath,64*1024*1024,cancelled);
     QJsonArray parts{QString("mgba-sram-v1"), installation.program,

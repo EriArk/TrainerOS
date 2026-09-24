@@ -32,7 +32,8 @@ public:
     std::optional<qint64> recordedSeconds(const QString& id) const override { return library_.recordedSeconds(id); }
     HomeSnapshot home() const override { return library_.home(); }
     QList<AdventureRegistration> registrations() const override { return library_.registrations(); }
-    void editLibraryAsync(const LibraryEdit& e, QObject* c, std::function<void(QString)> done) override { library_.editLibraryAsync(e,c,std::move(done)); }
+    void editLibraryAsync(const LibraryEdit&, QObject*, std::function<void(QString)>) override;
+    QString storageRootFor(const QString&) const override;
     bool editable() const override { return library_.editable(); }
     std::optional<AdventureRegistration> registration(const QString& id) const override { return library_.registration(id); }
     void saveAdventureAsync(const AdventureRegistration& r, QObject* c, std::function<void(LibraryWriteResult)> done) override { library_.saveAdventureAsync(r,c,std::move(done)); }
@@ -42,6 +43,7 @@ public:
     bool busy() const { return busy_; }
     bool writing() const { return writing_; }
     std::function<void(AdventureRegistration&)> prepareInstallation;
+    std::function<QString(const AdventureRegistration&,LibraryEdit&)> prepareFileMove;
 signals:
     void changed();
     void busyChanged();

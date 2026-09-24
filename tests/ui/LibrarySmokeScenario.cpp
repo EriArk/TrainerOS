@@ -94,7 +94,9 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
             switch ((*stage)++) {
             case 0:
                 check(store.adventures().isEmpty() && !shell.sampleLibrary(), "Personal library must start empty");
-                capture("empty-home"); press(next); press(start); press(down, 2); press(a); break;
+                capture("empty-home"); press(next); press(start);
+                check(shell.menuItems()[3].isEmpty(), "Global manual manager is retired");
+                shell.activate(3); break; // Legacy editor fixture; production enters via missing-edition Link a file.
             case 1:
                 check(shell.service() == "library" && focusIs("manage-action-0"), "Library entry focus"); capture("empty-library");
                 press(a); press(down, 2); press(a); break;
@@ -125,7 +127,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 press(previous); press(a); press(a); break; // Kanto secondary listing / detail.
             case 8:
                 check(shell.worlds()->detail()["title"] == "journeyA" && focusIs("world-action-setup"), "Personal Adventure offers setup without claiming it can launch");
-                capture("personal-adventure"); press(start); press(up, 2); press(a); press(a); press(a); break;
+                capture("personal-adventure"); press(start); press(a); press(a); press(a); break;
             case 9:
                 check(shell.settings()->theme() == "red" && focusIs("settings-control-0"), "Persisted red theme"); capture("theme-red"); press(a); break;
             case 10: check(shell.settings()->theme() == "green", "Green theme"); capture("theme-green"); press(a); break;
@@ -172,7 +174,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 check(shell.settings()->theme() == "orange" && shell.settings()->reducedMotion(), "Settings survived restart");
                 window->resize(1920, 1080); break;
             case 1:
-                capture("personal-adventure-1080p"); press(start); press(down, 2); press(a); press(a); break;
+                capture("personal-adventure-1080p"); press(start); shell.activate(3); press(a); break;
             case 2:
                 check(manager->fields()[0].toMap()["value"] == "journeyA", "Edit reads committed metadata");
                 press(a); press(a); press(b); press(b); // Discard keyboard then form.

@@ -267,7 +267,6 @@ Initial categories may include:
 - Settings
 - Controller
 - Pokémon Center / backups
-- Manage Adventures
 - Audio / brightness / network shortcuts
 - Power
 - **Desktop / Maintenance Mode**
@@ -362,7 +361,7 @@ The system should preserve a straightforward path back into TrainerOS. Detailed 
 
 ## Library and settings services
 
-Start → Manage Adventures opens a controller-operated service panel. A edits the selected record; its action rail offers Add Adventure and Back. The editor keeps six fields in a two-column grid above Save/Cancel. Text fields use the shared keyboard, World pickers keep a focused row in a bounded list, and additional World selections require Apply. Creating a World remains part of the unsaved Adventure draft until Save commits both.
+Folders populate the library automatically. Long A in either Worlds game wheel opens Rename / Move / Удалить / Properties. Move offers the destination platform and its folders (including a new folder), then confirms with Cancel selected first. This corrects a ROM placed under the wrong platform. Pokémon also retains World reassignment. The former global Start → Manage Adventures entry is retired. Missing catalogue editions still open Link a file; its editor uses the existing shared keyboard and bounded file picker.
 
 The file picker keeps directory scrolling inside a bounded list, with Locations, Parent folder, Previous/Next batch, Refresh/Retry and Cancel on an attached action rail. B retraces entered folders or cancels at the starting point; B during loading cancels and ignores late results. Empty/error states keep a recovery or Cancel action focused. Choosing a file returns to the editor without saving it.
 

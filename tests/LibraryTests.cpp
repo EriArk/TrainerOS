@@ -11,6 +11,8 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include "core/repository/CollectionRepository.h"
+#include "core/repository/BatoceraLibrary.h"
+#include "core/storage/LibraryFileMove.h"
 
 using namespace trainer;
 namespace {
@@ -36,6 +38,96 @@ public:
 class LibraryTests final : public QObject {
     Q_OBJECT
 private slots:
+    void fileMovePreservesIdentityMetadataAndAdjacentSaves() {
+        QTemporaryDir dir;const auto root=dir.filePath("roms/gba");QVERIFY(QDir().mkpath(root));
+        const auto rom=root+"/fixture.gba",save=root+"/fixture.sav",xml=root+"/gamelist.xml";
+        fixtureFile(rom);fixtureFile(save);fixtureFile(root+"/fixture.ips");
+        const QByteArray metadata="<gameList><game id=\"17\"><path>./fixture.gba</path><name>Art name</name><desc>A &amp; B</desc><marquee>./images/logo.png</marquee><custom>keep</custom></game><game><path>./other.gba</path><name>Other</name></game></gameList>";
+        {QFile f(xml);QVERIFY(f.open(QIODevice::WriteOnly));f.write(metadata);}
+        LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());
+        auto record=candidate(rom);record.adventure.platformId="gba";record.adventure.domain="multiverse";
+        record.adventure.worldId.clear();record.adventure.additionalWorldIds.clear();
+        bool done=false;QString error;
+        store.saveAdventureAsync(record,this,[&](auto r){error=r.error;done=true;});QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));
+        const auto id=record.adventure.id;
+        BatoceraLibrary folders(store,dir.filePath("roms"));
+        LocalFileCatalog files;LibraryToolsController tools(folders);tools.setCatalog(&files);
+        tools.beginGame(id);tools.activate(1);QTRY_VERIFY(!tools.busy());QCOMPARE(tools.route(),"folder");
+        tools.activate(3);QTRY_VERIFY(!tools.busy()); // GBA platform folder.
+        tools.activate(1);tools.applyText("../outside");QVERIFY(!tools.error().isEmpty());QCOMPARE(tools.route(),"folder");
+        tools.applyText("Favorites");QCOMPARE(tools.route(),"move-file");
+        tools.dispatch(Action::Confirm);QTRY_VERIFY(!tools.busy());QCOMPARE(tools.route(),"folder"); // Cancel is default.
+        QVERIFY(QFileInfo::exists(rom));QVERIFY(!QFileInfo::exists(root+"/Favorites"));
+        tools.applyText("Favorites");tools.dispatch(Action::Down);tools.dispatch(Action::Confirm);
+        QTRY_VERIFY(!tools.busy());QVERIFY2(tools.error().isEmpty(),qPrintable(tools.error()));QVERIFY(!tools.isOpen());
+        QTRY_VERIFY(!folders.busy());
+        const auto moved=store.registration(id);QVERIFY(moved);QCOMPARE(moved->revision,2);
+        QCOMPARE(moved->contentPath,root+"/Favorites/fixture.gba");QCOMPARE(moved->adventure.title,record.adventure.title);
+        QVERIFY(!QFileInfo::exists(rom));QVERIFY(!QFileInfo::exists(save));
+        QVERIFY(QFileInfo::exists(root+"/Favorites/fixture.sav"));QVERIFY(QFileInfo::exists(root+"/Favorites/fixture.ips"));
+        QCOMPARE(store.registrations().size(),1); // Scanner recognizes the same ID.
+        {QFile f(xml);QVERIFY(f.open(QIODevice::ReadOnly));const auto data=f.readAll();QVERIFY(data.contains("./Favorites/fixture.gba"));QVERIFY(data.contains("<custom>keep</custom>"));QVERIFY(data.contains("./images/logo.png"));QVERIFY(data.contains("./other.gba"));}
+        const auto run=[&](LibraryEdit edit){done=false;store.editLibraryAsync(edit,this,[&](const QString& e){error=e;done=true;});};
+        LibraryEdit move{LibraryEditKind::MoveFile,id,2};move.storageRoot=root;move.text=root;
+        fixtureFile(rom);run(move);QTRY_VERIFY(done);QVERIFY(error.contains("already contains"));QCOMPARE(store.registration(id)->revision,2);
+        QFile::remove(rom);move.text=dir.path();run(move);QTRY_VERIFY(done);QVERIFY(!error.isEmpty());
+        move.text=root;move.revision=1;run(move);QTRY_VERIFY(done);QVERIFY(error.contains("changed"));
+        move.revision=2;run(move);QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));
+        QVERIFY(QFileInfo::exists(rom));QVERIFY(QFileInfo::exists(save));QCOMPARE(store.registration(id)->revision,3);
+        QVERIFY(!QFileInfo::exists(dir.filePath("traineros.sqlite3.library-move.json")));
+    }
+    void misplacedPlayStationRomMovesOutOfGba() {
+        QTemporaryDir dir;const auto root=dir.filePath("roms");QVERIFY(QDir().mkpath(root+"/gba/images"));QVERIFY(QDir().mkpath(root+"/psx"));
+        const auto from=root+"/gba/Crash.chd",to=root+"/psx/Crash.chd";fixtureFile(from);fixtureFile(root+"/gba/images/logo.png");
+        {QFile f(root+"/gba/gamelist.xml");QVERIFY(f.open(QIODevice::WriteOnly));f.write("<gameList><game><path>./Crash.chd</path><name>Crash</name><marquee>./images/logo.png</marquee><desc>Keep my description</desc></game></gameList>");}
+        auto scan=scanBatoceraLibrary(root,{});QCOMPARE(scan.entries.size(),1); // Wrong-platform ROM isn't hidden.
+        LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());
+        auto record=scan.entries.first().record;bool done=false;QString error;
+        store.saveAdventureAsync(record,this,[&](auto r){error=r.error;done=true;});QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));
+        BatoceraLibrary folders(store,root);bool prepared=false;
+        folders.prepareInstallation=[&](AdventureRegistration& r){prepared=true;QCOMPARE(r.adventure.platformId,"psx");QCOMPARE(r.contentPath,to);};
+        LibraryEdit edit{LibraryEditKind::MoveFile,record.adventure.id,1};edit.text=root+"/psx";
+        done=false;folders.editLibraryAsync(edit,this,[&](const QString& e){error=e;done=true;});QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));QTRY_VERIFY(!folders.busy());
+        QVERIFY(prepared);const auto moved=store.registration(record.adventure.id);QVERIFY(moved);
+        QCOMPARE(moved->adventure.platformId,"psx");QCOMPARE(moved->contentPath,to);QCOMPARE(moved->revision,2);
+        QCOMPARE(store.registrations().size(),1);QVERIFY(QFileInfo::exists(to));QVERIFY(!QFileInfo::exists(from));
+        QCOMPARE(folders.artwork(record.adventure.id)["desc"].toString(),"Keep my description");
+        QVERIFY(folders.artwork(record.adventure.id)["marquee"].toString().endsWith("gba/images/logo.png"));
+        {QFile f(root+"/gba/gamelist.xml");QVERIFY(f.open(QIODevice::ReadOnly));QVERIFY(!f.readAll().contains("Crash.chd"));}
+    }
+    void interruptedFileMoveRecoversBothSidesOfCommit() {
+        for(const bool committed:{false,true}) {
+            QTemporaryDir dir;const auto root=dir.filePath("gba");QVERIFY(QDir().mkpath(root+"/next"));
+            const auto from=root+"/fixture.gba",to=root+"/next/fixture.gba";
+            fixtureFile(from);auto record=candidate(from);record.adventure.platformId="gba";
+            {
+                LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());bool done=false;
+                store.saveAdventureAsync(record,this,[&](auto r){QVERIFY(r.success);done=true;});QTRY_VERIFY(done);
+            }
+            const QFileInfo file(from);
+            const QJsonObject item{{"from",from},{"to",to},{"size",file.size()},{"modified",file.lastModified().toMSecsSinceEpoch()}};
+            QJsonObject job{{"version",1},{"id",record.adventure.id},{"revision",1},{"root",QFileInfo(root).canonicalFilePath()},{"files",QJsonArray{item}}};
+            const auto xml=root+"/gamelist.xml",newXml=root+"/next/gamelist.xml";
+            const QByteArray before="<gameList><game><path>fixture.gba</path></game></gameList>",after="<gameList/>";
+            job["xmlFiles"]=QJsonArray{QJsonObject{{"path",xml},{"before",QString::fromLatin1(before.toBase64())},{"after",QString::fromLatin1(after.toBase64())}},
+                QJsonObject{{"path",newXml},{"before",""},{"after",QString::fromLatin1(before.toBase64())}}};
+            {QFile f(xml);QVERIFY(f.open(QIODevice::WriteOnly));f.write(after);}
+            {QFile f(newXml);QVERIFY(f.open(QIODevice::WriteOnly));f.write(before);}
+            const auto intent=dir.filePath("traineros.sqlite3.library-move.json");
+            {QFile f(intent);QVERIFY(f.open(QIODevice::WriteOnly));f.write(QJsonDocument(job).toJson());}
+            QVERIFY(QFile::rename(from,to));
+            if(committed){Connection c(dir.path());QSqlQuery q(c.db);q.prepare("UPDATE adventures SET content_path=?,revision=2 WHERE id=?");q.addBindValue(to);q.addBindValue(record.adventure.id);QVERIFY(q.exec());}
+            // A collision during recovery must preserve BOTH files and intent.
+            fixtureFile(from);
+            {Connection c(dir.path());QVERIFY(!recoverLibraryFileMove(c.db).isEmpty());}
+            QVERIFY(QFileInfo::exists(from));QVERIFY(QFileInfo::exists(to));QVERIFY(QFileInfo::exists(intent));QFile::remove(from);
+            LocalStateStore reopened(dir.path());reopened.open();QTRY_VERIFY(reopened.ready());
+            QCOMPARE(reopened.registration(record.adventure.id)->contentPath,committed?to:from);
+            QVERIFY(QFileInfo::exists(committed?to:from));QVERIFY(!QFileInfo::exists(committed?from:to));QVERIFY(!QFileInfo::exists(intent));
+            {QFile f(xml);QVERIFY(f.open(QIODevice::ReadOnly));QCOMPARE(f.readAll(),committed?after:before);}
+            QCOMPARE(QFileInfo::exists(newXml),committed);
+        }
+    }
     void contextualMenuUsesWheelSelectionAndTrapsInput() {
         QTemporaryDir dir;const auto rom=dir.filePath("fixture.gba");fixtureFile(rom);
         LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());

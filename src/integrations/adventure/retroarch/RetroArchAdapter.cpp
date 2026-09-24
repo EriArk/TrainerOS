@@ -130,7 +130,7 @@ AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
             return prepareRetroArchLaunch(cmd, record, installation, cancel);
         };
     } else if (registration && (cartridgeRoute(registration->integrationConfig["core"].toString())
-        || retroarch::discPlatform(registration->adventure.platformId))) {
+          || retroarch::discPlatform(registration->adventure.platformId) || registration->integrationConfig.contains("librarySaveBase"))) {
         // These cartridge routes retain the emulator's existing ordinary-save
         // directories. Only mGBA currently owns verified per-Trainer namespaces.
         auto installation = installation_;

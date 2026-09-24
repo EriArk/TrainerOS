@@ -1,6 +1,7 @@
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "integrations/adventure/retroarch/RetroArchSave.h"
 #include "integrations/adventure/retroarch/RetroArchDisc.h"
+#include "integrations/adventure/retroarch/RetroArchConfiguration.h"
 #include <QCryptographicHash>
 #include "core/navigation/AdventureLaunchController.h"
 #include "core/storage/LocalStateStore.h"
@@ -25,6 +26,31 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void movingRomRetainsOrdinarySaveDirectory() {
+        QTemporaryDir dir;QVERIFY(QDir().mkpath(dir.filePath("roms/gba/Favorites")));
+        const auto source=dir.filePath("roms/gba/game.gba");touch(source);
+        const auto cfg=dir.filePath("retroarch.cfg");
+        {QFile f(cfg);QVERIFY(f.open(QIODevice::WriteOnly));f.write(("auto_overrides_enable = \"true\"\n"
+            "savefiles_in_content_dir = \"false\"\nsort_savefiles_enable = \"true\"\n"
+            "sort_savefiles_by_content_enable = \"true\"\nsavefile_directory = \""+dir.filePath("saves")+"\"\n").toUtf8());}
+        RetroArchInstallation installation{probe(),{},cfg};
+        AdventureRegistration r;r.adventure.id="moved";r.adventure.adapterId="retroarch";r.contentPath=source;r.integrationConfig["core"]="mgba";
+        LibraryEdit edit{LibraryEditKind::MoveFile,r.adventure.id,1};edit.text=dir.filePath("roms/gba/Favorites");
+        QVERIFY(retroarch::prepareFileMove(r,edit,installation).isEmpty());
+        QCOMPARE(edit.retainedSaveBase,dir.filePath("saves/gba"));QVERIFY(edit.retainedSaveSortCore);
+        r.integrationConfig["librarySaveBase"]=edit.retainedSaveBase;r.integrationConfig["librarySaveSortCore"]=true;
+        r.contentPath=dir.filePath("roms/gba/Favorites/game.gba");QVERIFY(QFile::rename(source,r.contentPath));
+        LibraryEdit again=edit;again.text=dir.filePath("roms/gba");
+        QVERIFY(retroarch::prepareFileMove(r,again,installation).isEmpty());QCOMPARE(again.retainedSaveBase,edit.retainedSaveBase);
+        ProcessCommand cmd;cmd.arguments={r.contentPath};std::atomic_bool cancel{false};
+        QVERIFY(prepareRetroArchLaunch(cmd,r,installation,cancel).isEmpty());
+        QCOMPARE(cmd.arguments.last(),r.contentPath);QVERIFY(cmd.arguments.contains("--appendconfig"));
+        QFile extra(cmd.arguments[cmd.arguments.size()-2]);QVERIFY(extra.open(QIODevice::ReadOnly));const auto bytes=extra.readAll();
+        QVERIFY(bytes.contains(dir.filePath("saves/gba").toUtf8()));QVERIFY(bytes.contains("sort_savefiles_by_content_enable = \"false\""));
+        QVERIFY(bytes.contains("sort_savefiles_enable = \"true\""));
+        QVERIFY(QDir().mkpath(dir.filePath("config/mGBA")));touch(dir.filePath("config/mGBA/Favorites.cfg"));
+        QVERIFY(!retroarch::prepareFileMove(r,again,installation).isEmpty());
+    }
     void discTracksStayTogether() {
         QTemporaryDir dir; std::atomic_bool cancel{false};
         const auto cue=dir.filePath("game.cue"),track=dir.filePath("track one.img"); touch(track);
