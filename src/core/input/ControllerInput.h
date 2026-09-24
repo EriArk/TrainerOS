@@ -34,6 +34,7 @@ public:
     bool initialized() const { return initialized_; }
     const ControllerSample& sample() const { return sample_; }
     void setEnabled(bool enabled);
+    void setHoldConfirmEnabled(bool enabled);
     void poll();
     bool eventFilter(QObject*, QEvent*) override;
 signals:
@@ -46,6 +47,8 @@ signals:
 private:
     void deliver(Action action, bool fromController);
     std::optional<Action> direction(float x, float y, const std::array<bool, SDL_CONTROLLER_BUTTON_MAX>& buttons);
+    bool holdConfirmEnabled_ = false, confirmPending_ = false;
+    qint64 confirmStarted_ = 0;
     bool initialized_ = false;
     bool enabled_ = true;
     bool awaitingNeutral_ = true;

@@ -3,9 +3,9 @@ Item {
     id: root
     required property var shell
     readonly property var settings: shell.settings
-    readonly property bool takesFocus: visible && !shell.menuOpen && !shell.notice.length && !shell.keyboard.open && !shell.trainer.picker.open
+    readonly property bool takesFocus: visible && !shell.menuOpen && !shell.notice.length && !shell.keyboard.open && !shell.trainer.picker.open && !shell.libraryTools.open
     readonly property string localError: settings.category===4 && shell.trainer.editing ? shell.trainer.error
-        : settings.category===0 && settings.error.length ? settings.error
+        : (settings.category===0 || settings.category===8) && settings.error.length ? settings.error
         : [0,1,5].includes(settings.category) ? shell.device.error : ""
     readonly property string statusText: settings.category===4 && shell.trainer.saving || settings.category===0 && settings.saving ? "Saving..."
         : localError || (shell.hall.account.open ? shell.hall.account.status : "")
@@ -48,7 +48,7 @@ Item {
                             title: root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===0 ? (root.shell.trainer.exists ? "Edit Trainer" : "Create Trainer") : root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "Preview registration & PIN" : modelData.title
                             detail: root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===0 ? (root.shell.trainer.profile.name || "Give your journey a name") : root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "Development preview only" : modelData.detail
                             kind: root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "action" : modelData.kind
-                            checked: root.settings.reducedMotion
+                            checked: root.settings.category===8 ? root.settings.worldEditing : root.settings.reducedMotion
                             level: kind==="volume" ? root.shell.device.rows[0].level : kind==="brightness" ? root.shell.device.rows[1].level : -1
                             muted: kind==="volume" && root.shell.device.rows[0].muted
                             selected: root.takesFocus && root.settings.controlsFocused && (root.shell.hall.account.open ? root.shell.hall.account.focusIndex : root.shell.trainer.editing ? root.shell.trainer.focusIndex : root.settings.rowFocus)===index

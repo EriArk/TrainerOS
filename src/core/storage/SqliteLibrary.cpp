@@ -96,8 +96,10 @@ LibrarySnapshot readLibrary(QSqlDatabase& db) {
     if (!q.exec("SELECT adventure_id,world_id FROM adventure_worlds ORDER BY world_id")) return fail();
     while (q.next()) for (auto& r : result.registrations) if (r.adventure.id == q.value(0).toString())
         r.adventure.additionalWorldIds.append(q.value(1).toString());
-    if (!q.exec("SELECT theme,reduced_motion FROM preferences WHERE slot=1")) return fail();
-    if (q.next()) result.preferences = {q.value(0).toString(), q.value(1).toBool()};
+    if (!q.exec("SELECT adventure_id,trash_path FROM library_removals")) return fail();
+    while(q.next()) for(auto& r:result.registrations) if(r.adventure.id==q.value(0).toString()) {r.removed=true;r.trashPath=q.value(1).toString();}
+    if (!q.exec("SELECT theme,reduced_motion,world_editing FROM preferences WHERE slot=1")) return fail();
+    if (q.next()) result.preferences = {q.value(0).toString(), q.value(1).toBool(), q.value(2).toBool()};
     if (!QStringList{"turquoise", "red", "green", "blue", "orange"}.contains(result.preferences.theme)) result.preferences.theme = "turquoise";
     if (!q.exec("PRAGMA foreign_key_check") || q.next()) return fail();
     return result;
@@ -139,9 +141,9 @@ LibraryWriteResult writeAdventure(QSqlDatabase& db, const AdventureRegistration&
             if (!q.exec()) error = sqlFailure();
         }
         if (error.isEmpty()) {
-            q.prepare("SELECT revision,domain FROM adventures WHERE id=?"); q.addBindValue(a.id);
+            q.prepare("SELECT revision,domain,EXISTS(SELECT 1 FROM library_removals WHERE adventure_id=adventures.id) FROM adventures WHERE id=?"); q.addBindValue(a.id);
             if (!q.exec()) error = sqlFailure();
-            else if (q.next() ? q.value(0).toInt() != record.revision || q.value(1).toString() != a.domain : record.revision != 0)
+            else if (q.next() ? q.value(0).toInt() != record.revision || q.value(1).toString() != a.domain || q.value(2).toBool() : record.revision != 0)
                 error = "This Adventure changed since you opened it. Reopen its details before editing.";
             q.finish();
         }
@@ -180,8 +182,8 @@ LibraryWriteResult writeAdventure(QSqlDatabase& db, const AdventureRegistration&
 QString writePreferences(QSqlDatabase& db, const ShellPreferences& value) {
     if (!QStringList{"turquoise", "red", "green", "blue", "orange"}.contains(value.theme)) return "Choose an available color theme.";
     QSqlQuery q(db);
-    q.prepare("INSERT INTO preferences VALUES(1,?,?) ON CONFLICT(slot) DO UPDATE SET theme=excluded.theme,reduced_motion=excluded.reduced_motion");
-    q.addBindValue(value.theme); q.addBindValue(value.reducedMotion ? 1 : 0);
+    q.prepare("INSERT INTO preferences(slot,theme,reduced_motion,world_editing) VALUES(1,?,?,?) ON CONFLICT(slot) DO UPDATE SET theme=excluded.theme,reduced_motion=excluded.reduced_motion,world_editing=excluded.world_editing");
+    q.addBindValue(value.theme); q.addBindValue(value.reducedMotion ? 1 : 0); q.addBindValue(value.worldEditing ? 1 : 0);
     return q.exec() ? QString() : "Couldn't save preferences. Check storage access and retry.";
 }
 }

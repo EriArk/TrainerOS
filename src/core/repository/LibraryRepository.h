@@ -23,6 +23,14 @@ public:
     virtual bool editable() const { return false; }
     virtual void refreshContentAvailability() {}
     virtual std::optional<AdventureRegistration> registration(const QString&) const { return {}; }
+    virtual QList<AdventureRegistration> registrations() const {
+        QList<AdventureRegistration> result;
+        for (const auto& a : adventures()) if (const auto r = registration(a.id)) result.append(*r);
+        return result;
+    }
+    virtual void editLibraryAsync(const LibraryEdit&, QObject*, std::function<void(QString)> done) {
+        done("Library editing is unavailable here.");
+    }
     virtual void saveAdventureAsync(const AdventureRegistration&, QObject*, std::function<void(LibraryWriteResult)> completed) {
         completed({false, "Library editing isn't available in this sample preview."});
     }

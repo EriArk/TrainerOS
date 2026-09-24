@@ -25,8 +25,17 @@ plates with a gold crystal pointer, and consolidates controller legends at the
 bottom throughout the shell. The 2026-09-24 refinement gives the wheel a smaller
 pointer, larger logos/decorative fallback titles and right-side platform badges;
 the Dex companion walks along the header instead of inside a small corner box.
-**Next:** Settings-gated World
-wrench/edit popup and long-A game management, preserving IDs, media and saves.
+**2026-09-24 management delivered:** Settings-gated World wrench/rename popup,
+long-A game Rename / Move / Delete / Properties, actual ROM trash and restoration
+from Settings, and cyclic Up/Down game wheels. Move currently reassigns Pokemon
+World membership; physical folder moves remain a follow-up and are unavailable
+in Multiverse. IDs, saves, history and media are preserved. Schema 12 migration,
+Windows 40/40 checks, ARM64 production build and installed Flip controller/capture
+verification passed. See [management evidence](BATOCERA_LIBRARY.md#management-verification--2026-09-24).
+**Next:** resume the remaining handheld presentation queue, starting with #56
+environmental World cards. Retiring the older global manual-registration entry
+and physical folder moves remain explicit library follow-ups; emulator edge
+cases, save research, Help and final artwork tooling retain their later slots.
 
 **Owner scheduling amendment, 2026-09-23:** generic artwork-pack installation,
 selection, verification/update/removal and Pack Studio all move to the final
@@ -41,6 +50,8 @@ Reconciled on **2026-09-19** for **#1–64**, including the updated #9/#13/#15/#
 This is a dependency replan, not a reset. The [pre-expansion plan](https://github.com/EriArk/TrainerOS/blob/252f04e0772bd05966fb212ca736d303cab366ea/docs/ROADMAP.md) and the preservation map below make previous commitments traceable. Read the phase table for what comes next, then the referenced acceptance; do not execute the old numbered register as a competing queue.
 
 ## Delivered increments under this plan
+
+- **2026-09-24 — P3 contextual library editing:** settings unlock and World wrench, controller long-A game menu, metadata rename/World reassignment, recoverable ROM trash/restore and cyclic game wheels. Windows 40/40 passed; ARM64 build installed with program/database backup. Live Flip rename, trash, restore and World rename were exercised with controller events; the restored ROM checksum matches, 826 registrations remain, and original test names were restored. [Evidence and remaining boundaries](BATOCERA_LIBRARY.md#management-verification--2026-09-24).
 
 - **2026-09-23 — P3/P4 Batocera library and media:** startup/Worlds folder discovery, catalogue matching and gamelist artwork delivered without replacing existing owner metadata/history. All 819 previous Adventure rows preserved; six Smash editions and one real folder-added F-Zero bring the library to 826. Imported private graphics match 88 Multiverse titles. Windows checks, ARM 44/44 and final scanner regression checks passed; actual Flip launch/guarded return, controller navigation and screenshots verified. [Evidence and limits](BATOCERA_LIBRARY.md#delivery-status--2026-09-23). World/game editing remains next; further emulator compatibility work remains deferred.
 

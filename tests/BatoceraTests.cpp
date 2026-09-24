@@ -16,6 +16,18 @@ void put(const QString& path,const QByteArray& bytes="Test fixture, not a ROM.")
 class BatoceraTests final : public QObject {
     Q_OBJECT
 private slots:
+    void trashPlaylistKeepsDiscDependenciesOutOfTheWheel() {
+        QTemporaryDir dir;put(dir.filePath("psx/Disc 1.chd"));
+        const auto path=dir.filePath("psx/Story.m3u"),trash=dir.filePath("psx/.traineros-trash/id/Story.m3u");
+        put(trash,"Disc 1.chd\n");
+        AdventureRegistration record;record.adventure.id="story";record.adventure.platformId="psx";
+        record.contentPath=path;record.trashPath=trash;record.removed=true;
+        const auto scan=scanBatoceraLibrary(dir.path(),{record});
+        QVERIFY(scan.entries.isEmpty());
+        put(path,"Disc 1.chd\n"); // Interrupted trash intent: still known, never a new registration.
+        const auto interrupted=scanBatoceraLibrary(dir.path(),{record});
+        QCOMPARE(interrupted.entries.size(),1);QVERIFY(interrupted.entries[0].existing);QVERIFY(interrupted.entries[0].record.removed);
+    }
     void gameVariantsExcludeDependenciesAndDlc() {
         QTemporaryDir dir;
         put(dir.filePath("naomi/ikaruga.zip"));put(dir.filePath("naomi/ikaruga/gdl-0010.chd"));

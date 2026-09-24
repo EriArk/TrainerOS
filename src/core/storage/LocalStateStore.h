@@ -68,6 +68,8 @@ public:
     std::optional<ExitMedia> exitMedia(const QString&) const override;
     QImage exitImage(const QString& sessionId) const;
     std::optional<AdventureRegistration> registration(const QString&) const override;
+    QList<AdventureRegistration> registrations() const override { return registrations_; }
+    void editLibraryAsync(const LibraryEdit&, QObject*, std::function<void(QString)>) override;
     void saveAdventureAsync(const AdventureRegistration&, QObject*, std::function<void(LibraryWriteResult)>) override;
     ShellPreferences preferences() const override { return preferences_; }
     ArchiveResult loadArchive() const override { return {ready_, archive_, ready_ ? QString() : error_}; }

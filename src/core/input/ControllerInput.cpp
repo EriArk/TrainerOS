@@ -22,9 +22,14 @@ ControllerInput::~ControllerInput() {
     if (controller_) SDL_GameControllerClose(controller_);
     if (initialized_) SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
 }
+void ControllerInput::setHoldConfirmEnabled(bool enabled) {
+    if(holdConfirmEnabled_==enabled)return;
+    holdConfirmEnabled_=enabled;confirmPending_=false;
+}
 void ControllerInput::setEnabled(bool enabled) {
     if (enabled_ == enabled) return;
     enabled_ = enabled;
+    confirmPending_=false;
     awaitingNeutral_ = true;
     heldDirection_.reset();
     previous_.fill(false);
@@ -33,6 +38,7 @@ void ControllerInput::setEnabled(bool enabled) {
     emit sampled();
 }
 void ControllerInput::deliver(Action semantic, bool fromController) {
+    if(semantic!=Action::Confirm)confirmPending_=false;
     if (semantic == Action::Confirm) emit confirmPressed();
     emit observedAction(semantic, fromController);
     emit action(semantic);
@@ -55,6 +61,7 @@ void ControllerInput::poll() {
     if (controller_ && !SDL_GameControllerGetAttached(controller_)) {
         SDL_GameControllerClose(controller_);
         controller_ = nullptr;
+        confirmPending_=false;
         awaitingNeutral_ = true;
         heldDirection_.reset();
         previous_.fill(false);
@@ -119,8 +126,14 @@ void ControllerInput::poll() {
         {SDL_CONTROLLER_BUTTON_Y, Action::Secondary},
         {ConfirmButton, Action::Confirm}
     };
+    const bool wasHoldEnabled=holdConfirmEnabled_;
+    bool competing=false;
     for (const auto& [button, semantic] : bindings)
-        if (buttons[button] && !previous_[button]) deliver(semantic, true);
+        if (buttons[button] && !previous_[button]) {
+            if(semantic==Action::Confirm && wasHoldEnabled) {
+                if(!competing && holdConfirmEnabled_){confirmPending_=true;confirmStarted_=clock_.elapsed();}
+            } else {competing=true;deliver(semantic,true);}
+        }
     // Triggers are analog axes. Hysteresis and edges avoid repeated page flips
     // while held, and the shared neutral gate protects return from an Adventure.
     for (int i = 0; i < 2; ++i) {
@@ -137,6 +150,10 @@ void ControllerInput::poll() {
     } else if (current && now >= nextRepeat_) {
         deliver(*current, true);
         nextRepeat_ = now + RepeatIntervalMs;
+    }
+    if(confirmPending_ && holdConfirmEnabled_) {
+        if(!buttons[ConfirmButton]) {confirmPending_=false;deliver(Action::Confirm,true);}
+        else if(now-confirmStarted_>=600) {confirmPending_=false;deliver(Action::ContextMenu,true);}
     }
     previous_ = buttons;
 }
@@ -157,6 +174,7 @@ bool ControllerInput::eventFilter(QObject*, QEvent* event) {
     case Qt::Key_E: semantic = Action::NextPage; break;
     case Qt::Key_Z: semantic = Action::PreviousFace; break;
     case Qt::Key_C: semantic = Action::NextFace; break;
+    case Qt::Key_Menu: semantic = Action::ContextMenu; break;
     case Qt::Key_Tab: semantic = Action::LocalAction; break;
     case Qt::Key_Y: semantic = Action::ToggleContinue; break;
     case Qt::Key_X: semantic = Action::Secondary; break;

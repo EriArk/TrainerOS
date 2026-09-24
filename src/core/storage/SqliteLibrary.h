@@ -15,4 +15,6 @@ QString migrateLibraryDomains(QSqlDatabase&); // Owns its FK-safe transaction.
 LibrarySnapshot readLibrary(QSqlDatabase&);
 LibraryWriteResult writeAdventure(QSqlDatabase&, const AdventureRegistration&);
 QString writePreferences(QSqlDatabase&, const ShellPreferences&);
+QString migrateLibraryEditing(QSqlDatabase&);
+QString editLibrary(QSqlDatabase&, const LibraryEdit&);
 }

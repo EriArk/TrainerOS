@@ -7,6 +7,7 @@ namespace trainer {
 class SettingsController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString theme READ theme NOTIFY changed)
+    Q_PROPERTY(bool worldEditing READ worldEditing NOTIFY changed)
     Q_PROPERTY(bool reducedMotion READ reducedMotion NOTIFY changed)
     Q_PROPERTY(bool saving READ saving NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
@@ -26,13 +27,14 @@ public:
     int category() const { return category_; }
     int rowFocus() const { return row_; }
     bool controlsFocused() const { return pane_; }
-    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller"}; }
+    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller", "Library"}; }
     QVariantList controls() const;
     Q_INVOKABLE void selectCategory(int index, bool enter = true);
     Q_INVOKABLE void activateRow(int index);
     Q_INVOKABLE void cycleTheme(int direction = 1);
     bool creditsOpen() const { return category_==6 && pane_; }
     QString theme() const { return value_.theme; }
+    bool worldEditing() const { return value_.worldEditing; }
     bool reducedMotion() const { return value_.reducedMotion; }
     bool saving() const { return saving_; }
     QString error() const { return error_; }
@@ -44,6 +46,7 @@ signals:
     void closeRequested();
     void deviceRequested(int index);
     void controllerRequested();
+    void trashRequested();
     void trainerRequested(int index);
     void messageRequested(const QString& message);
     void quickAdjustment(int index, trainer::Action action);

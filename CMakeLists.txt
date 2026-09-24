@@ -12,6 +12,8 @@ find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/core/storage/SqliteLibraryEdits.cpp
+    src/features/library/LibraryToolsController.cpp
     src/core/repository/BatoceraLibrary.cpp
     src/core/repository/BatoceraLibrary.h
     src/core/storage/TrainerPin.cpp
@@ -219,6 +221,7 @@ qt_add_qml_module(traineros
         src/qml/SystemPanel.qml
         src/qml/StoragePanel.qml
         src/qml/LaunchPanel.qml
+        src/qml/LibraryToolsPanel.qml
         src/qml/LibraryPanel.qml
         src/qml/TrainerSettingsPanel.qml
         src/qml/TrainerSetupPanel.qml

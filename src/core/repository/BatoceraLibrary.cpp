@@ -137,6 +137,8 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
         while(files.hasNext()) {
             if(QThread::currentThread()->isInterruptionRequested())return {};
             files.next();const auto file=files.fileInfo();
+            // Dot directories are not automatically hidden on every filesystem.
+            if(QDir::fromNativeSeparators(file.absoluteFilePath()).contains("/.traineros-trash/"))continue;
             if(++visited>50000) {result.warnings.append(folder.fileName()+": folder scan limit reached");break;}
             if(!file.isFile() || !file.isReadable())continue;
             const auto path=key(file.absoluteFilePath());
@@ -158,6 +160,16 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
                     if(!line.trimmed().isEmpty() && !line.trimmed().startsWith('#'))parts.insert(key(resolve(file.absolutePath(),line)));
                 }
             }
+        }
+        // A trashed playlist still owns its disc entries; don't rediscover them
+        // as new games while its original path is intentionally absent.
+        for(const auto& record:known) if(record.removed && record.adventure.platformId==platform
+                && QFileInfo(record.contentPath).suffix().compare("m3u",Qt::CaseInsensitive)==0) {
+            QFile playlist(record.trashPath);
+            if(playlist.size()<1024*1024 && playlist.open(QIODevice::ReadOnly))
+                for(const auto& line:QString::fromUtf8(playlist.readAll()).split('\n'))
+                    if(!line.trimmed().isEmpty() && !line.trimmed().startsWith('#'))
+                        parts.insert(key(resolve(QFileInfo(record.contentPath).absolutePath(),line)));
         }
         paths.sort();
         for(const auto& path:paths) {
@@ -209,8 +221,7 @@ void BatoceraLibrary::rescan() {
     if(busy_ || !library_.editable())return;
     deferredScan_.stop();lastScan_.start();
     library_.refreshContentAvailability();
-    QList<AdventureRegistration> existing;
-    for(const auto& a:library_.adventures())if(const auto r=library_.registration(a.id))existing.append(*r);
+    const auto existing=library_.registrations();
     busy_=true;emit busyChanged();
     auto result=std::make_shared<FolderScan>();
     thread_=QThread::create([result,root=roms_,existing]{*result=scanBatoceraLibrary(root,existing);});
@@ -231,8 +242,8 @@ void BatoceraLibrary::importNext() {
         }
         if(entry.existing)continue;
         bool duplicate=false;
-        for(const auto& a:library_.adventures())if(const auto other=library_.registration(a.id))
-            if(QDir::cleanPath(other->contentPath)==QDir::cleanPath(r.contentPath)){duplicate=true;break;}
+        for(const auto& other:library_.registrations())
+            if(QDir::cleanPath(other.contentPath)==QDir::cleanPath(r.contentPath)){duplicate=true;break;}
         if(duplicate)continue;
         if(r.newWorld)for(const auto& w:library_.worlds())if(w.id==r.newWorld->id){r.newWorld.reset();break;}
         if(prepareInstallation)prepareInstallation(r);

@@ -20,7 +20,13 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     : QObject(parent), repository_(repo), adapter_(adapter), platform_(platform),
       keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this), multiverse_(repo, adapter, this),
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
-      libraryManager_(repo, nullptr, this), settings_(this), device_(this), diagnostics_(this), center_(repo,this), party_(!repo.editable(),this) {
+      libraryManager_(repo, nullptr, this), libraryTools_(repo,this), settings_(this), device_(this), diagnostics_(this), center_(repo,this), party_(!repo.editable(),this) {
+    connect(&libraryTools_, &LibraryToolsController::changed,this,&ShellController::changed);
+    connect(&libraryTools_, &LibraryToolsController::saved,this,&ShellController::refreshLibrary);
+    connect(&libraryTools_, &LibraryToolsController::textRequested,this,[this](const QString& title,const QString& initial,int limit){
+        textTarget_=TextTarget::LibraryTools;keyboard_.begin(title,initial,limit);
+    });
+    connect(&settings_, &SettingsController::trashRequested,this,[this]{libraryTools_.beginTrash();});
     connect(&party_, &PartyPresentation::changed, this, &ShellController::changed);
     connect(&center_, &SaveCenterController::changed, this, [this] {
         if (center_.confirming()) party_.openSaves();
@@ -142,6 +148,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::WorldsSearch) worlds_.applySearch(text);
         else if (target == TextTarget::MultiverseSearch) multiverse_.applySearch(text);
         else if (target == TextTarget::Library) libraryManager_.applyText(text);
+        else if (target == TextTarget::LibraryTools) libraryTools_.applyText(text);
         else if (target == TextTarget::Archive) hall_.editor()->applyText(text);
         else if (target == TextTarget::PokedexNote) pokedex_.journal()->applyNote(text);
         else if (target == TextTarget::TrainerFavorite) trainer_.picker()->applySearch(text);
@@ -168,8 +175,20 @@ QString ShellController::currentAdventureId() const {
     // Never silently replace it with a different game's latest launch/save.
     return homeAdventureId_.isEmpty() ? repository_.home().activeAdventureId : homeAdventureId_;
 }
+bool ShellController::canHoldConfirm() const {
+    if(page_!=1 || !repository_.editable() || menuOpen_ || !notice_.isEmpty() || !service_.isEmpty()
+        || keyboard_.isOpen() || drawerOpen_ || libraryTools_.isOpen())return false;
+    if(multiverseFace_ ? multiverse_.route()!="games" : worlds_.route()!="adventures")return false;
+    const auto id=(multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString();
+    const auto record=repository_.registration(id);return record && !record->removed;
+}
+bool ShellController::canEditWorld() const {
+    return page_==1 && !multiverseFace_ && repository_.editable() && settings_.worldEditing()
+        && service_.isEmpty() && !menuOpen_ && notice_.isEmpty() && !keyboard_.isOpen()
+        && !drawerOpen_ && !libraryTools_.isOpen() && !worlds_.region().value("id").toString().isEmpty();
+}
 bool ShellController::localModalOpen() {
-    return trainer_.editing() || (page_ == 2 && (centerFace_ ? center_.confirming()
+    return libraryTools_.isOpen() || trainer_.editing() || (page_ == 2 && (centerFace_ ? center_.confirming()
         : pokedex_.zone() == "picker" || pokedex_.zone() == "art" || pokedex_.journal()->isOpen() || pokedex_.saving()))
         || (page_ == 4 && (hall_.editor()->isOpen() || hall_.account()->isOpen()));
 }
@@ -197,6 +216,7 @@ void ShellController::refreshContinue() {
     QSet<QString> ids;
     QSet<QString> represented;
     for (const auto& point : states) {
+        if(const auto record=repository_.registration(point.adventureId);record && record->removed)continue;
         if (point.id.isEmpty() || ids.contains(point.id)) continue;
         ids.insert(point.id);
         points_.append({point.id, point.adventureId, point.savedAt, point, {}});
@@ -204,7 +224,7 @@ void ShellController::refreshContinue() {
     }
     for (const auto& session : repository_.recentSessions()) {
         const auto registration = repository_.registration(session.adventureId);
-        if (registration && registration->adventure.domain != "pokemon") continue;
+        if (registration && (registration->removed || registration->adventure.domain != "pokemon")) continue;
         if (represented.contains(session.adventureId)) continue;
         represented.insert(session.adventureId);
         points_.append({"recent:" + session.adventureId, session.adventureId, session.startedAt, {}, session});
@@ -215,6 +235,7 @@ int ShellController::focusIndex() const {
     if (!notice_.isEmpty()) return 0;
     if (menuOpen_) return menuFocus_;
     if (keyboard_.isOpen()) return keyboard_.focusIndex();
+    if (libraryTools_.isOpen()) return libraryTools_.focusIndex();
     if (drawerOpen_) return page_ == 0 && multiverseHome_ ? multiverseDrawerFocus_ : drawerFocus_;
     if (service_ == "library") return libraryManager_.files()->isOpen() ? libraryManager_.files()->focusIndex() : libraryManager_.focusIndex();
     if (service_ == "trainer-settings") return hall_.account()->isOpen() ? hall_.account()->focusIndex() : trainerSettingsFocus_;
@@ -386,10 +407,12 @@ void ShellController::openTrainers() {
     goToPage(page_);trainerSetup_.begin();service_="trainer-setup";emit changed();
 }
 void ShellController::goToPage(int page) {
+    if(libraryTools_.busy())return;
     // Closing transient controllers emits their local notifications. Publish
     // only the completed shell transition, not every intermediate close, so
     // hidden Home/drawer bindings do not rebuild the library repeatedly.
     QSignalBlocker transition(this);
+    libraryTools_.close();
     keyboard_.cancel();
     textTarget_ = TextTarget::None;
     pokedex_.cancelTransient();
@@ -413,10 +436,13 @@ void ShellController::goToPage(int page) {
     emit changed();
 }
 void ShellController::activate(int index, const QString& area) {
+    if(libraryTools_.busy())return;
+    if(area=="world-edit" && canEditWorld()){libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
     if (area == "continue") { dispatch(Action::ToggleContinue); return; }
     if (!notice_.isEmpty()) { confirm(); emit changed(); return; }
     if (menuOpen_) menuFocus_ = std::clamp(index, 0, int(menuItems().size()) - 1);
     else if (keyboard_.isOpen()) { keyboard_.activate(index); return; }
+    else if (libraryTools_.isOpen()) {libraryTools_.activate(index);return;}
     else if (drawerOpen_) {
         auto& focus = page_ == 0 && multiverseHome_ ? multiverseDrawerFocus_ : drawerFocus_;
         focus = std::clamp(index, 0, std::max(0, int(resumePoints().size()) - 1));
@@ -506,7 +532,7 @@ void ShellController::confirm() {
             hall_.account()->close();
             trainerSetup_.close();
             keyboard_.cancel(); textTarget_ = TextTarget::None; trainer_.cancel();
-            libraryManager_.close(); menuOpen_ = false; drawerOpen_ = false;
+            libraryManager_.close(); libraryTools_.close(); menuOpen_ = false; drawerOpen_ = false;
             center_.close();
             service_ = menuFocus_ == 0 ? "settings" : "library";
             if (service_ == "settings") settings_.begin();
@@ -589,6 +615,11 @@ void ShellController::confirm() {
     }
 }
 void ShellController::dispatch(Action action) {
+    if(libraryTools_.busy())return;
+    if(action==Action::ContextMenu && canHoldConfirm()) {
+        libraryTools_.beginGame((multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString());return;
+    }
+    if(action==Action::LocalAction && canEditWorld()) {libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
     if (action == Action::Home) { goToPage(0); return; }
     if (action == Action::PreviousPage || action == Action::NextPage) {
         goToPage(page_ + (action == Action::NextPage ? 1 : -1));
@@ -617,6 +648,7 @@ void ShellController::dispatch(Action action) {
     }
     if (notice_.isEmpty() && !menuOpen_) {
         if (keyboard_.isOpen()) { keyboard_.dispatch(action); return; }
+        if (libraryTools_.isOpen()) {libraryTools_.dispatch(action);return;}
         if (drawerOpen_) {
             if (action == Action::Back) drawerOpen_ = false;
             else if (action == Action::Confirm) confirm();

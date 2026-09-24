@@ -117,6 +117,11 @@ private slots:
         shell.dispatch(Action::Left); QCOMPARE(shell.multiverse()->focusIndex(), 1);
         shell.dispatch(Action::Back); QCOMPARE(shell.multiverse()->route(), "systems");
         shell.dispatch(Action::Confirm); QCOMPARE(shell.multiverse()->route(), "games");
+        const auto wheelStart=shell.multiverse()->focusIndex(),wheelCount=int(shell.multiverse()->games().size());
+        for(int i=0;i<wheelCount;++i)shell.dispatch(Action::Up);
+        QCOMPARE(shell.multiverse()->focusIndex(),wheelStart);
+        for(int i=0;i<wheelCount;++i)shell.dispatch(Action::Down);
+        QCOMPARE(shell.multiverse()->focusIndex(),wheelStart);
         shell.dispatch(Action::PreviousFace); QVERIFY(!shell.multiverseFace());
         QCOMPARE(shell.worlds()->navigationState(), route);
         shell.dispatch(Action::NextFace); QCOMPARE(shell.multiverse()->focusIndex(), 1);

@@ -41,11 +41,24 @@ struct AdventureRegistration {
     std::optional<World> newWorld;
     QList<World> additionalNewWorlds = {};
     bool contentAvailable = true; // Worker-observed availability; not persisted identity.
+    bool removed = false;
+    QString trashPath;
 };
 struct LibraryWriteResult { bool success; QString error; int revision = 0; };
 struct ShellPreferences {
     QString theme = "turquoise";
     bool reducedMotion = false;
+    bool worldEditing = false;
+};
+enum class LibraryEditKind { RenameWorld, RenameGame, MoveGame, RemoveGame, RestoreGame };
+struct LibraryEdit {
+    LibraryEditKind kind;
+    QString id;
+    int revision = 0;
+    QString text;
+    World world;
+    QString previousName;
+    bool trashFile = true;
 };
 enum class ResumeAvailability { Exact, LaunchOnly, Stale, Missing, Incompatible };
 // Adapter-owned identity of one source revision, never a path interpreted by UI.

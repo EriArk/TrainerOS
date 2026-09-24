@@ -10,6 +10,7 @@
 #include <QProcess>
 #include <QJsonDocument>
 #include <QJsonArray>
+#include "core/repository/CollectionRepository.h"
 
 using namespace trainer;
 namespace {
@@ -35,6 +36,84 @@ public:
 class LibraryTests final : public QObject {
     Q_OBJECT
 private slots:
+    void contextualMenuUsesWheelSelectionAndTrapsInput() {
+        QTemporaryDir dir;const auto rom=dir.filePath("fixture.gba");fixtureFile(rom);
+        LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());
+        auto record=candidate(rom);bool done=false;
+        store.saveAdventureAsync(record,this,[&](auto result){QVERIFY(result.success);done=true;});QTRY_VERIFY(done);
+        MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(store,profiles,adapter,platform,dex,dex,archive,achievements);
+        shell.configureServices(nullptr,&store);
+        shell.goToPage(1);shell.worlds()->activate(2);
+        QVERIFY(shell.canHoldConfirm());QVERIFY(!shell.canEditWorld());
+        shell.dispatch(Action::ContextMenu);QVERIFY(shell.libraryTools()->isOpen());QVERIFY(!shell.canHoldConfirm());
+        shell.dispatch(Action::NextFace);QVERIFY(!shell.multiverseFace());
+        shell.dispatch(Action::Confirm);QVERIFY(shell.keyboard()->isOpen());
+        shell.dispatch(Action::Back);QVERIFY(!shell.keyboard()->isOpen());QVERIFY(shell.libraryTools()->isOpen());
+        shell.dispatch(Action::Down);shell.dispatch(Action::Down);shell.dispatch(Action::Confirm);
+        QCOMPARE(shell.libraryTools()->route(),"remove");
+        shell.dispatch(Action::Confirm);QCOMPARE(shell.libraryTools()->route(),"game"); // Default is non-destructive.
+        shell.dispatch(Action::Back);QVERIFY(!shell.libraryTools()->isOpen());QVERIFY(shell.canHoldConfirm());
+        shell.dispatch(Action::Confirm);QCOMPARE(shell.worlds()->route(),"detail"); // Short A retains ordinary behavior.
+        shell.dispatch(Action::Back);
+        shell.settings()->activate(2);QTRY_VERIFY(!shell.settings()->saving());QVERIFY(shell.canEditWorld());
+        shell.dispatch(Action::LocalAction);QCOMPARE(shell.libraryTools()->route(),"world");
+        shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),2);QVERIFY(!shell.libraryTools()->isOpen());
+        shell.goToPage(1);shell.dispatch(Action::ContextMenu);QVERIFY(shell.libraryTools()->isOpen());
+        shell.dispatch(Action::SystemMenu);shell.dispatch(Action::Confirm);
+        QCOMPARE(shell.service(),"settings");QVERIFY(!shell.libraryTools()->isOpen());
+    }
+    void contextualEditsPreserveIdentityAndRestoreTrash() {
+        QTemporaryDir dir; const auto rom=dir.filePath("fixture.gba"),save=dir.filePath("fixture.sav");
+        fixtureFile(rom);fixtureFile(save);
+        LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());
+        auto record=candidate(rom);const auto id=record.adventure.id;
+        record.adventure.catalogueId="emerald-gba";record.adventure.platformId="gba";
+        bool done=false;QString error;
+        store.saveAdventureAsync(record,this,[&](auto result){error=result.error;done=true;});
+        QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));
+        const auto run=[&](LibraryEdit edit){
+            done=false;store.editLibraryAsync(edit,this,[&](const QString& result){error=result;done=true;});
+        };
+        run({LibraryEditKind::RenameGame,id,1,"My adventure"});QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));
+        QCOMPARE(store.registration(id)->adventure.title,"My adventure");QCOMPARE(store.registration(id)->contentPath,rom);
+        run({LibraryEditKind::RenameGame,id,1,"Stale"});QTRY_VERIFY(done);QVERIFY(!error.isEmpty());
+        LibraryEdit worldEdit{LibraryEditKind::RenameWorld,"hoenn"};worldEdit.text="Our Hoenn";worldEdit.previousName="Hoenn";
+        run(worldEdit);QTRY_VERIFY(done);QVERIFY(!error.isEmpty());
+        auto preferences=store.preferences();preferences.worldEditing=true;done=false;
+        store.savePreferences(preferences,this,[&](auto result){error=result;done=true;});QTRY_VERIFY(done);QVERIFY(error.isEmpty());
+        run(worldEdit);QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));
+        CollectionRepository collection(store);bool renamed=false;
+        for(const auto& w:collection.worlds())if(w.id=="hoenn")renamed=w.name=="Our Hoenn";
+        QVERIFY(renamed);
+        LibraryEdit move{LibraryEditKind::MoveGame,id,2};move.world={"kanto","Kanto",{}};
+        run(move);QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));
+        QCOMPARE(store.registration(id)->adventure.worldId,"kanto");QVERIFY(store.registration(id)->adventure.additionalWorldIds.isEmpty());
+        run({LibraryEditKind::RemoveGame,id,3});QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));
+        QVERIFY(store.adventures().isEmpty());QCOMPARE(store.registrations().size(),1);
+        bool missingEdition=false;
+        for(const auto& a:collection.adventures())if(a.catalogueId=="emerald-gba")missingEdition=a.collectionOnly;
+        QVERIFY(missingEdition); // The full reference collection still includes the missing edition.
+        const auto trash=store.registration(id)->trashPath;
+        QVERIFY(QFileInfo::exists(trash));QVERIFY(!QFileInfo::exists(rom));QVERIFY(QFileInfo::exists(save));
+        fixtureFile(rom); // Restore must never overwrite a replacement ROM.
+        run({LibraryEditKind::RestoreGame,id,3});QTRY_VERIFY(done);QVERIFY(!error.isEmpty());QVERIFY(QFileInfo::exists(trash));
+        QVERIFY(QFile::remove(rom));
+        run({LibraryEditKind::RestoreGame,id,3});QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));
+        QCOMPARE(store.adventures().size(),1);QCOMPARE(store.registration(id)->revision,3);
+        QFile restored(rom);QVERIFY(restored.open(QIODevice::ReadOnly));QCOMPARE(restored.readAll(),QByteArray("Original test data. Not a game or save.\n"));restored.close();
+        // Rehearse interruption after durable trash intent, before file rename.
+        {Connection connection(dir.path());QSqlQuery q(connection.db);q.prepare("INSERT INTO library_removals VALUES(?,?)");q.addBindValue(id);q.addBindValue(dir.filePath("missing-trash/fixture.gba"));QVERIFY(q.exec());}
+        run({LibraryEditKind::RestoreGame,id,3});QTRY_VERIFY(done);QVERIFY2(error.isEmpty(),qPrintable(error));
+        QVERIFY(QFileInfo::exists(rom));QVERIFY(!store.registration(id)->removed);
+        QVERIFY(QFile::rename(rom,rom+".offline"));
+        run({LibraryEditKind::RemoveGame,id,3});QTRY_VERIFY(done);QVERIFY(!error.isEmpty());
+        QVERIFY(!store.registration(id)->removed);QVERIFY(QFile::rename(rom+".offline",rom));
+        const auto now=QDateTime::currentDateTimeUtc();done=false;
+        store.saveSessionAsync({"active",id,now,{},{},PlaySessionOutcome::Running},this,[&](auto result){error=result;done=true;});QTRY_VERIFY(done);QVERIFY(error.isEmpty());
+        run({LibraryEditKind::RemoveGame,id,3});QTRY_VERIFY(done);QVERIFY(error.contains("running"));QVERIFY(QFileInfo::exists(rom));
+    }
     void maintenanceConfiguresOnlyUnconfiguredExistingRecords() {
         QTemporaryDir dir; const auto data=dir.filePath("data"), manifest=dir.filePath("manifest.json");
         const auto content=dir.filePath("fixture.pce"); fixtureFile(content);
@@ -189,7 +268,7 @@ private slots:
             QCOMPARE(store.worlds().size(), 9); QVERIFY(store.adventures().isEmpty()); QVERIFY(store.navigation().isEmpty());
         }
         Connection connection(dir.path()); QSqlQuery q(connection.db);
-        QVERIFY(q.exec("PRAGMA user_version")); QVERIFY(q.next()); QCOMPARE(q.value(0).toInt(), 11);
+        QVERIFY(q.exec("PRAGMA user_version")); QVERIFY(q.next()); QCOMPARE(q.value(0).toInt(), 12);
         QVERIFY(q.exec("SELECT payload FROM shell_state WHERE scope='prototype-library-v1'")); QVERIFY(q.next()); QVERIFY(!q.value(0).toString().isEmpty());
     }
     void filePagingCancellationAndUnavailableDirectory() {

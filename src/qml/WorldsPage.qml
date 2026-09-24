@@ -4,11 +4,24 @@ Item {
     id: root
     required property var shell
     readonly property var worlds: shell.worlds
-    readonly property bool takesFocus: visible && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
+    readonly property bool takesFocus: visible && !shell.libraryTools.open && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     readonly property bool regionsOpen: worlds.route === "regions"
     readonly property bool listOpen: worlds.route === "adventures"
     readonly property bool detailOpen: worlds.route === "detail"
 
+    CapButton {
+        objectName: "world-edit"; z: 2
+        anchors.right: parent.right; anchors.rightMargin: 20; y: 14; width: 48; height: 42
+        visible: root.shell.canEditWorld; label: ""; tint: Theme.blue
+        onActivated: root.shell.activate(0,"world-edit")
+        Canvas {anchors.centerIn: parent; width: 26; height: 26
+            onPaint: {
+                const c=getContext("2d");c.reset();c.strokeStyle=Theme.ink;c.lineWidth=5;c.lineCap="round";
+                c.beginPath();c.moveTo(5,21);c.lineTo(17,9);c.stroke();
+                c.lineWidth=4;c.beginPath();c.arc(19,7,5,0,Math.PI*1.5);c.stroke();
+            }
+        }
+    }
     Item {
         anchors.fill: parent; visible: root.regionsOpen
         PageHeader { id: regionsHeader; title: "Worlds"; subtitle: "Choose a region. Find your next story." }

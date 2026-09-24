@@ -15,6 +15,8 @@ public:
     std::optional<ExitMedia> exitMedia(const QString& id) const override { return base_.exitMedia(id); }
     std::optional<qint64> recordedSeconds(const QString& id) const override { return base_.recordedSeconds(id); }
     HomeSnapshot home() const override { return base_.home(); }
+    QList<AdventureRegistration> registrations() const override { return base_.registrations(); }
+    void editLibraryAsync(const LibraryEdit& e, QObject* c, std::function<void(QString)> done) override { base_.editLibraryAsync(e,c,std::move(done)); }
     bool editable() const override { return base_.editable(); }
     std::optional<AdventureRegistration> registration(const QString& id) const override { return base_.registration(id); }
     void saveAdventureAsync(const AdventureRegistration& r, QObject* c, std::function<void(LibraryWriteResult)> f) override {

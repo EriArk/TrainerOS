@@ -1,5 +1,12 @@
 # TrainerOS UX & Navigation
 
+**Library context actions — 2026-09-24:** hold physical A in a populated game
+wheel for Rename / Move / Delete / Properties; short A retains its prior action.
+Both wheels wrap vertically at either end. Settings → Library unlocks the World
+wrench/Select editor and provides the game trash. Legends stay in the bottom
+footer, including context dialogs. B returns from a subdialog to its game menu
+and then to the same wheel selection; L1/R1 close transient menus and change page.
+
 **Physical A/B convention — owner clarification, 2026-09-19:** use Switch-style
 positions in the shell: **A on the right confirms; B at the bottom goes back**.
 On Flip's current InputPlumber Xbox target these are SDL B/east and A/south.

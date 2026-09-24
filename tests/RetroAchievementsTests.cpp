@@ -113,7 +113,7 @@ private slots:
         controller.dispatch(Action::Down); controller.dispatch(Action::Confirm); QVERIFY(text.last().at(3).toBool());
         controller.applyText("original test password+%2B"); const auto rows = controller.rows();
         QVERIFY(!rows[1].toMap()["detail"].toString().contains("original"));
-        controller.close(); controller.begin(); QCOMPARE(controller.rows()[1].toMap()["detail"].toString(), "A · Enter password");
+        controller.close(); controller.begin(); QCOMPARE(controller.rows()[1].toMap()["detail"].toString(), "Enter password");
         controller.activate(0); controller.applyText("ExampleTrainer"); controller.activate(1); controller.applyText("original test password"); controller.activate(2);
         QTRY_VERIFY(!provider.accountBusy()); QCOMPARE(provider.context().accountId, account.username);
         QCOMPARE(controller.rows().size(), 3); controller.activate(1); QVERIFY(controller.status().contains("Sign out")); controller.dispatch(Action::Back);

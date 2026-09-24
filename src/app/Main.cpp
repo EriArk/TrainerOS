@@ -369,6 +369,8 @@ int main(int argc, char* argv[]) {
             return ExitMediaSource{profile->id, record->adventure.domain, *record};
         });
         ControllerInput input(nullptr, preferred);
+        QObject::connect(&shell,&ShellController::changed,&input,[&]{input.setHoldConfirmEnabled(shell.canHoldConfirm());});
+        input.setHoldConfirmEnabled(shell.canHoldConfirm());
         const auto reportBase = parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()
             : QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
         ClassicArt classicArt(parser.isSet("art-dir") ? parser.value("art-dir") : smoke || parser.isSet("ephemeral")

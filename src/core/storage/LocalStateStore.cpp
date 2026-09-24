@@ -19,7 +19,7 @@
 
 namespace trainer {
 namespace {
-constexpr int SchemaVersion = 11;
+constexpr int SchemaVersion = 12;
 QString failedWrite() { return "Couldn't save changes. Check free space or storage access, then try again."; }
 struct LoadedState {
     QString error;
@@ -198,6 +198,10 @@ public:
             if (openError.isEmpty() && query.value(0).toInt() < 11) {
                 query.finish();
                 openError = migrateLibraryDomains(db);
+            }
+            if (openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next())) openError = failedWrite();
+            if (openError.isEmpty() && query.value(0).toInt() < 12) {
+                query.finish(); openError = migrateLibraryEditing(db);
             }
             if (openError.isEmpty()) {
                 ownerId_ = localOwner(db);
@@ -427,6 +431,11 @@ public:
         return query.exec() ? QString() : failedWrite();
     }
     LibraryWriteResult adventure(const AdventureRegistration& record) { return writeAdventure(db, record); }
+    QString libraryEdit(const LibraryEdit& edit, LibrarySnapshot& snapshot, QList<ExitMedia>& media) {
+        const auto error = editLibrary(db, edit);
+        snapshot = readLibrary(db); media = readExitMedia(db, ownerId_);
+        return error.isEmpty() ? snapshot.error : error;
+    }
     QString preferences(const ShellPreferences& value) { return writePreferences(db, value); }
     QString playSession(const PlaySession& value, const std::optional<ExitMediaSource>& source,
                         const std::optional<ExitCapture>& capture, PlayHistorySnapshot& snapshot,
@@ -624,7 +633,7 @@ void LocalStateStore::saveNavigation(const QJsonObject& state, QObject* context,
 }
 QList<Adventure> LocalStateStore::adventures() const {
     QList<Adventure> result;
-    for (const auto& record : registrations_) result.append(record.adventure);
+    for (const auto& record : registrations_) if (!record.removed) result.append(record.adventure);
     return result;
 }
 std::optional<AdventureRegistration> LocalStateStore::registration(const QString& id) const {
@@ -659,10 +668,24 @@ void LocalStateStore::saveAdventureAsync(const AdventureRegistration& candidate,
         if (guard) completed({error.isEmpty(), error, result->revision});
     });
 }
+void LocalStateStore::editLibraryAsync(const LibraryEdit& edit, QObject* context, std::function<void(QString)> completed) {
+    auto snapshot = std::make_shared<LibrarySnapshot>();
+    snapshot->error="Not loaded";
+    auto media = std::make_shared<QList<ExitMedia>>();
+    write([edit,snapshot,media](SqliteWorker& worker) { return worker.libraryEdit(edit,*snapshot,*media); },
+        [this,snapshot,media,guard=QPointer<QObject>(context),completed](const QString& error) {
+            // Publish durable trash intents even if the later file rename failed.
+            if(snapshot->error.isEmpty()) {
+                worlds_=snapshot->worlds; registrations_=snapshot->registrations; exitMedia_=*media;
+                emit libraryChanged();
+            }
+            if(guard)completed(error);
+        });
+}
 HomeSnapshot LocalStateStore::home() const {
     for (const auto& last : history_.recent) {
         const auto record = registration(last.adventureId);
-        if (record && record->adventure.domain == "pokemon")
+        if (record && !record->removed && record->adventure.domain == "pokemon")
             return {last.adventureId, {}, {}, "Choose an Adventure to make yourself at Home."};
     }
     return {{}, {}, {}, "Your next journey starts in Worlds."};

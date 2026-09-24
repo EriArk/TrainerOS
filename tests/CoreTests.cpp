@@ -169,6 +169,25 @@ private slots:
                 set(-32768); QVERIFY(!input.sample().awaitingNeutral);
                 set(32767); QCOMPARE(events.size(), 3); set(-32768);
             }
+            input.setHoldConfirmEnabled(true);events.clear();
+            button(SDL_CONTROLLER_BUTTON_B,true);QCOMPARE(events.size(),0);
+            button(SDL_CONTROLLER_BUTTON_B,false);QCOMPARE(events.size(),1);
+            QCOMPARE(qvariant_cast<Action>(events.last().first()),Action::Confirm);
+            events.clear();button(SDL_CONTROLLER_BUTTON_B,true);
+            QTRY_COMPARE_WITH_TIMEOUT(events.size(),1,900);
+            QCOMPARE(qvariant_cast<Action>(events.last().first()),Action::ContextMenu);
+            button(SDL_CONTROLLER_BUTTON_B,false);QCOMPARE(events.size(),1);
+            events.clear();button(SDL_CONTROLLER_BUTTON_B,true);
+            button(SDL_CONTROLLER_BUTTON_DPAD_DOWN,true);button(SDL_CONTROLLER_BUTTON_DPAD_DOWN,false);
+            button(SDL_CONTROLLER_BUTTON_B,false);QCOMPARE(events.size(),1);
+            QCOMPARE(qvariant_cast<Action>(events.last().first()),Action::Down);
+            events.clear();button(SDL_CONTROLLER_BUTTON_B,true);input.setHoldConfirmEnabled(false);
+            button(SDL_CONTROLLER_BUTTON_B,false);QCOMPARE(events.size(),0);
+            button(SDL_CONTROLLER_BUTTON_B,true);QCOMPARE(events.size(),1); // Home still responds on press.
+            button(SDL_CONTROLLER_BUTTON_B,false);
+            input.setHoldConfirmEnabled(true);events.clear();button(SDL_CONTROLLER_BUTTON_B,true);
+            input.setEnabled(false);input.setEnabled(true);button(SDL_CONTROLLER_BUTTON_B,false);
+            QCOMPARE(events.size(),0);
             SDL_JoystickClose(joystick);
             joystick = nullptr;
             QCOMPARE(SDL_JoystickDetachVirtual(index), 0);

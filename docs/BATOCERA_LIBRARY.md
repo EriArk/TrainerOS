@@ -107,7 +107,7 @@ a whole; scanning the actual games still works. XML is bounded to 32 MiB and
 emulator/core commands and external statistics are never executed/imported.
 TrainerOS does not rewrite external gamelists during scans.
 
-## Following management increment
+## Management acceptance
 
 - Settings switch, off by default, unlocks World editing and its wrench popup.
 - Long A on an Adventure in Worlds opens Rename / Move / Delete / Properties;
@@ -215,7 +215,7 @@ captures and metadata remain outside Git. Final installed binary SHA-256:
 
 Both wheels use an animated gold crystal pointer from the left rail edge instead
 of a rectangular selection plate. Controller hints now live in the shared bottom
-footer. Down clamps at the final edition; B returns to regions/systems without
+footer. The initial Down clamp is superseded by the circular-wheel correction below; B returns to regions/systems without
 an extra Back focus stop in populated lists. Empty lists keep a recovery action.
 
 ### Logo hierarchy refinement — 2026-09-24
@@ -236,3 +236,57 @@ navigation and Gamescope captures cover F-Zero X, Pokémon Platinum, a Diamond
 entry without a logo, paired browsing and return from the system menu.
 Installed binary SHA-256:
 `be106dd6e8839c51196fead016d8df3d9caf174ce1217ca41d01e4afb6fa7c5c`.
+
+### Contextual library editing — 2026-09-24
+
+- Settings → Library → Edit Worlds is off by default. When enabled, the selected
+  Pokémon World has a wrench and a bottom Select shortcut. Its popup renames the
+  World without changing its ID or the catalogue's original region identities.
+- Hold physical A for 600 ms on an installed game in either wheel to open
+  Rename / Move / Delete / Properties. A short press retains the existing action;
+  releasing a long press never confirms a menu row. Navigation, input disable and
+  controller disconnect cancel a pending hold. Home A remains immediate.
+- Rename changes the displayed title, retaining filename, media and save routes.
+  Move changes a Pokémon game's World membership and clears additional memberships.
+  Multiverse remains system-based: Move is unavailable there, since changing the
+  console is not a valid move. Physical folder moves remain a separate follow-up.
+- Delete requires confirmation and moves the launch ROM to a hidden
+  `.traineros-trash/<unique-id>/` directory beside its original folder. Settings →
+  Library → Game trash restores it. Saves, artwork, XML and history are retained.
+  The full Pokémon reference catalogue keeps the now-missing edition; owned-game
+  lists and Choose Adventure omit the removed installation until it is restored.
+  Playlist disc dependencies stay in place and are not rediscovered as new games.
+  A ROM referenced by another registration is not moved. Restore never overwrites
+  a replacement file at the original path.
+- Both game wheels wrap first/last in either vertical direction, including filtered
+  lists. B remains the return action; empty lists retain their recovery action.
+
+Schema 12 adds a default-off preference and `library_removals`, retaining Adventure
+rows and references. A durable removal intent precedes the same-filesystem rename;
+Restore handles interruption on either side of that rename. Scanning includes
+removed registrations for identity matching. Display edits advance the registration
+revision and matching exit-media revisions together without relinking the ROM.
+These changes do not rewrite `gamelist.xml` or erase game history.
+
+### Management verification — 2026-09-24
+
+Windows native build and the full 40-test suite passed, including real SDL short/
+long-press and cancellation, filtered wheel wrapping, asynchronous edits,
+interrupted trash intents, restore collisions and scanner playlist suppression.
+A copied live schema-11 database migrated to schema 12 with all original values
+in 16 tables unchanged. The ARM64 production build was installed with binary and
+database rollback copies; all 826 Adventure rows survived installation.
+
+On the installed Flip session, injected gamepad events exercised F-Zero X rename
+and restoration of its original title, ROM trash, and Settings restoration. The
+ROM was absent from its original path during trash and restored byte-for-byte
+with the same SHA-256 and Adventure ID. Sinnoh was renamed and restored through
+the controller keyboard; its wrench/Select popup and both wheels' first/last
+wrapping were captured. Test names were restored and World editing returned to
+its original off setting. Captures shown to the owner came from the handheld
+compositor, not host renders. Physical thumb testing remains the owner's check.
+
+Private evidence is under `work/research/library-edit-*` and the corresponding
+device task directory; ROMs, database copies and captures are not committed.
+Installed binary SHA-256:
+`188cb8c9d290113e3f78bb4bf53213cde7fa6174f37f6983960471474d61991a`.

@@ -135,7 +135,8 @@ QList<Adventure> collectionCatalogue() {
 QList<World> CollectionRepository::worlds() const {
     auto result = collectionWorlds();
     for (const auto& w : personal_.worlds()) {
-        if (std::none_of(result.begin(), result.end(), [&](const auto& existing) { return existing.id == w.id; })) result.append(w);
+        auto it=std::find_if(result.begin(),result.end(),[&](const auto& existing){return existing.id==w.id;});
+        if(it==result.end())result.append(w); else it->name=w.name;
     }
     return result;
 }

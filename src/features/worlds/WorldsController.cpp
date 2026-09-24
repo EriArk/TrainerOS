@@ -342,10 +342,10 @@ void WorldsController::dispatch(Action action) {
             chooseAdventure(std::clamp(index + (action == Action::Right ? 8 : -8), 0, int(count) - 1));
         if (action == Action::Up && count > 0) {
             if (backFocused_) backFocused_ = false;
-            else chooseAdventure(std::max(0, index - 1));
+            else chooseAdventure((index + count - 1) % count);
         }
         if (action == Action::Down && !backFocused_) {
-            if (index + 1 < count) chooseAdventure(index + 1);
+            if (count > 0) chooseAdventure((index + 1) % count);
         }
     } else if (route_ == Route::Detail) {
         normalizeActionFocus();

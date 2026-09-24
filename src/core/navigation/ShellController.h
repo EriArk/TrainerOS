@@ -11,6 +11,7 @@
 #include "features/pokedex/PokedexController.h"
 #include "features/halloffame/HallOfFameController.h"
 #include "features/library/LibraryManagementController.h"
+#include "features/library/LibraryToolsController.h"
 #include "features/settings/SettingsController.h"
 #include "features/device/DeviceController.h"
 #include "features/diagnostics/DiagnosticsController.h"
@@ -24,6 +25,9 @@
 namespace trainer {
 class ShellController final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(trainer::LibraryToolsController* libraryTools READ libraryTools CONSTANT)
+    Q_PROPERTY(bool canHoldConfirm READ canHoldConfirm NOTIFY changed)
+    Q_PROPERTY(bool canEditWorld READ canEditWorld NOTIFY changed)
     Q_PROPERTY(int page READ page NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(bool drawerOpen READ drawerOpen NOTIFY changed)
@@ -70,6 +74,9 @@ public:
     PokedexController* pokedex() { return &pokedex_; }
     HallOfFameController* hall() { return &hall_; }
     LibraryManagementController* libraryManager() { return &libraryManager_; }
+    LibraryToolsController* libraryTools() {return &libraryTools_;}
+    bool canHoldConfirm() const;
+    bool canEditWorld() const;
     SettingsController* settings() { return &settings_; }
     DeviceController* device() { return &device_; }
     DiagnosticsController* diagnostics() { return &diagnostics_; }
@@ -132,13 +139,14 @@ private:
     PokedexController pokedex_;
     HallOfFameController hall_;
     LibraryManagementController libraryManager_;
+    LibraryToolsController libraryTools_;
     SettingsController settings_;
     DeviceController device_;
     DiagnosticsController diagnostics_;
     SaveCenterController center_;
     PartyPresentation party_;
     QString service_;
-    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, Archive, PokedexNote, TrainerFavorite, CenterSearch, AchievementAccount, SetupName };
+    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, LibraryTools, Archive, PokedexNote, TrainerFavorite, CenterSearch, AchievementAccount, SetupName };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QString homeAdventureId_, homeResumeId_;

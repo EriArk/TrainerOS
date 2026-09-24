@@ -26,6 +26,8 @@ public:
     std::optional<ExitMedia> exitMedia(const QString& id) const override { return personal_.exitMedia(id); }
     std::optional<qint64> recordedSeconds(const QString& id) const override { return personal_.recordedSeconds(id); }
     HomeSnapshot home() const override { return personal_.home(); }
+    QList<AdventureRegistration> registrations() const override { return personal_.registrations(); }
+    void editLibraryAsync(const LibraryEdit& e, QObject* c, std::function<void(QString)> done) override { personal_.editLibraryAsync(e,c,std::move(done)); }
     bool editable() const override { return personal_.editable(); }
     void refreshContentAvailability() override { personal_.refreshContentAvailability(); }
     std::optional<AdventureRegistration> registration(const QString& id) const override { return personal_.registration(id); }

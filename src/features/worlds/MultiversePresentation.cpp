@@ -189,7 +189,8 @@ void MultiversePresentation::dispatch(Action action) {
         systemFocus_ = std::clamp(systemFocus_ + delta, 0, std::max(0, int(systems().size()) - 1));
     } else if (route_ == "games") {
         const int delta = action == Action::Up ? -1 : action == Action::Down ? 1 : 0;
-        positions_[system_] = std::clamp(focusIndex() + delta,0,std::max(0,int(filtered().size())-1));
+        const int count=filtered().size();
+        positions_[system_] = count ? (focusIndex() + delta + count) % count : 0;
     }
     emit changed();
 }

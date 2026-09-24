@@ -3,7 +3,15 @@
 Batocera discovery assigns explicit domains and catalogue/World bindings when
 creating a record. Existing records keep their identities and user edits.
 Shared `gamelist.xml` artwork is a separate read-only projection, not personal
-exit media and not an installation revision. Schema 11 remains unchanged.
+exit media and not an installation revision.
+
+Schema 12 adds the device-wide `preferences.world_editing` flag (default false)
+and `library_removals(adventure_id, trash_path)`. Removed registrations remain
+available for restore, scan identity and personal-history references, but are
+excluded from normal browsing. The recoverable trash intent commits before the
+same-filesystem ROM rename. Display-name/World edits retain content paths and
+increment the registration and its already-matching exit-media revisions together.
+See [library editing](BATOCERA_LIBRARY.md#contextual-library-editing--2026-09-24).
 See [folder/media identity rules](BATOCERA_LIBRARY.md).
 
 **2026-09-23 domain binding:** schema 11 adds explicit Adventure domains and

@@ -159,7 +159,8 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             capture("adventure-letterbox"); window->resize(960, 540); press(b); break;
         case 26:
             check(focusIs("adventure-emerald-trails-demo"), "Restored last row after resizing");
-            press(down); check(focusIs("adventure-emerald-trails-demo"), "Down clamps to final game; B owns return");
+            press(down); check(shell.worlds()->adventureIndex()==0, "Wheel wraps from last to first");
+            press(up); check(focusIs("adventure-emerald-trails-demo"), "Wheel wraps from first to last");
             press(a); press(r1); break;
         case 27:
             press(l1); press(start); press(r1); break;

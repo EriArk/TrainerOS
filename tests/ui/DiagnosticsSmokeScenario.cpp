@@ -199,7 +199,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             shell.center()->begin(); shell.center()->applySearch("No matching Adventure 987654321"); *stage=84; break;
         case 84: {
             auto* button=window->findChild<QQuickItem*>("center-check");
-            check(focus("center-check") && button && button->property("label").toString()=="X Search Adventures", "Empty Adventure browser labels its actual search action");
+            check(focus("center-check") && button && button->property("label").toString()=="Search Adventures", "Empty Adventure browser labels its search action without duplicating the footer key");
             capture("center-search-empty"); press(SDL_CONTROLLER_BUTTON_Y); break;
         }
         case 85:
@@ -331,10 +331,10 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(b); for(int i=0;i<4;++i) press(down); press(a); press(down); press(a); press(down); press(a); break;
         }
         case 81:
-            check(shell.hall()->account()->isOpen() && shell.hall()->account()->status().contains("B cancels"), "Account sign-out asks before changing identity");
+            check(shell.hall()->account()->isOpen() && shell.hall()->account()->rows()[1].toMap()["label"]=="Confirm sign out", "Account sign-out asks before changing identity");
             capture("settings-account-confirmation"); press(b); break;
         case 82:
-            check(shell.hall()->account()->isOpen() && !shell.hall()->account()->status().contains("B cancels"), "Back cancels sign-out inside the account pane");
+            check(shell.hall()->account()->isOpen() && shell.hall()->account()->rows()[1].toMap()["label"]=="Sign out of Hall of Fame", "Back cancels sign-out inside the account pane");
             press(b); break;
         case 83:
             check(focus("settings-control-1"), "Account Back restores exact Trainer row");

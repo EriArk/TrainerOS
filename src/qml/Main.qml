@@ -183,6 +183,7 @@ Window {
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
                 if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [h("X","Quick controls"),h("←→","Adjust"),h("A","Select"),h("B","Close")]
                 if (shell.keyboard.open) return [h("X","Case"),h("Y","Symbols"),h("A","Type"),h("B","Cancel")]
+                if (shell.libraryTools.open) return [h("A","Select"),h("B","Back")]
                 if (shell.drawerOpen) return [h("A","Choose"),h("B","Close")]
                 if (shell.trainer.picker.open) return [h("X","Search"),h("Y","Clear"),h("←→","Jump 8"),h("A","Choose"),h("B","Cancel")]
                 if (shell.hall.account.open) return [h("A","Select"),h("B","Back")]
@@ -196,7 +197,10 @@ Window {
                 if (shell.serviceOpen) return [h("A","Select"),h("B","Back")]
                 if (shell.page === 1) {
                     const list = shell.multiverseFace ? shell.multiverse.route === "games" : shell.worlds.route === "adventures"
-                    return list ? [h("X","Search"),h("Y","Filter"),h("A",shell.multiverseFace ? "Home" : "Open"),h("B",shell.multiverseFace ? "Systems" : "Regions")] : [h("A","Open"),h("B","Back")]
+                    let result = list ? [h("X","Search"),h("Y","Filter"),h("A",shell.multiverseFace ? "Home" : "Open"),h("B",shell.multiverseFace ? "Systems" : "Regions")] : [h("A","Open"),h("B","Back")]
+                    if(shell.canHoldConfirm) result.push(h("Hold A","Options"))
+                    if(shell.canEditWorld) result.push(h("Select","Edit World"))
+                    return result
                 }
                 if (shell.page === 2 && !shell.centerFace) {
                     const dex = shell.pokedex
@@ -256,6 +260,7 @@ Window {
         PartyPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && shell.party.section !== "saves" && shell.party.section !== "activities" }
         CenterActivitiesPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && shell.party.section === "activities" }
         SaveCenterPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && shell.party.section === "saves" }
+        LibraryToolsPanel { anchors.fill: screen; shell: shellController; z: 1; visible: shell.libraryTools.open }
         KeyboardPanel {
             anchors { left: screen.left; right: screen.right; top: screen.top; bottom: footer.top }
             z: 2; shell: shellController

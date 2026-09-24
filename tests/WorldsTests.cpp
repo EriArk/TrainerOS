@@ -123,7 +123,8 @@ private slots:
         tap(worlds, Action::Confirm); tap(worlds, Action::Down, 4);
         QCOMPARE(worlds.adventureIndex(), 4);
         tap(worlds, Action::Down);
-        QCOMPARE(worlds.focusIndex(), 4); // Final edition stays selected; B returns to regions.
+        QCOMPARE(worlds.focusIndex(), 0);
+        tap(worlds, Action::Up); // Circular in both directions; B returns to regions.
         QCOMPARE(worlds.focusIndex(), 4);
         tap(worlds, Action::Confirm);
         QCOMPARE(worlds.route(), "detail");
