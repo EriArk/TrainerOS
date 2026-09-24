@@ -28,7 +28,6 @@ GameProgress inspectGameProgress(const AdventureRegistration& record, const Prog
     if (!QFileInfo::exists(target.savePath)) return unavailable(ProgressAvailability::Missing, "Save in the Adventure, then return here to see your progress.");
     const auto bytes = readSave(target.savePath);
     auto result = readGen3Progress(bytes, *edition);
-    if (result.availability != ProgressAvailability::Available) return result;
     // Reopen the current path so an atomic replacement during the first read is
     // detected too. Only immutable in-memory bytes reach the parser.
     if (readSave(target.savePath) != bytes)

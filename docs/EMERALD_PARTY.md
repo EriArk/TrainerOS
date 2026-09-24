@@ -78,6 +78,7 @@ migration or new resident service is needed.
   without current HP. The final game-progress/private-save and rendered SDL
   diagnostics checks passed 2/2 after the full 42/42 run.
 
-Broader exact-build support, selected-save species progression, real Party
+Selected-save species progression now has its [first Emerald route](SAVE_POKEDEX.md).
+Broader exact-build support, real Party
 Playroom and independently guarded writers remain in ROADMAP row 7. This reader
 does not certify save authenticity, individual legality, history or achievements.

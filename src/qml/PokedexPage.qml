@@ -11,7 +11,7 @@ Item {
 
     Item {
         anchors.fill: parent
-        PageHeader { id: dexHeader; compact: true; title: "Pokédex"; trailing: root.dex.entries.length + " Pokémon" }
+        PageHeader { id: dexHeader; compact: true; title: "Pokédex"; trailing: root.dex.saveTotals; subtitle: root.dex.saveCaption }
         MountedPanel {
             x: 0; y: dexHeader.height; width: parent.width; height: 62; color: "#c4dcd5"
             Row {
@@ -138,17 +138,17 @@ Item {
                 text: root.dex.detail.height + "  ·  " + root.dex.detail.weight; color: Theme.muted; font.pixelSize: 14; visible: preview.hasEntry }
             Item {
                 id: stats; objectName: "dex-stat-board"
-                x: 273; y: 52; width: parent.width - x - 18; height: 180; visible: preview.hasEntry
+                x: 273; y: 52; width: parent.width - x - 18; height: 126; visible: preview.hasEntry
                 Text { text: "BASE STATS"; color: Theme.muted; font.pixelSize: 10; font.letterSpacing: 1.5 }
                 Grid {
-                    y: 22; width: parent.width; columns: 2; spacing: 8
+                    y: 22; width: parent.width; columns: 3; spacing: 8
                     Repeater {
                         model: root.dex.detail.stats
                         delegate: Rectangle {
                             required property int index
                             required property var modelData
                             readonly property var tints: ["#efacb1", "#f1bf88", "#e9d185", "#acc8ee", "#b5d5a1", "#cdb5e3"]
-                            width: (stats.width - 8) / 2; height: 47; radius: 9
+                            width: (stats.width - 16) / 3; height: 47; radius: 9
                             color: tints[index]; border.color: Qt.darker(color, 1.2)
                             Rectangle { anchors.fill: parent; anchors.margins: 2; radius: 7; color: "transparent"; border.color: "#60ffffff" }
                             Text { x: 10; y: 5; text: modelData.label; color: Qt.darker(parent.color, 2.6); font.pixelSize: 11; font.bold: true }
@@ -159,7 +159,14 @@ Item {
             }
             Column {
                 x: stats.x; y: stats.y + stats.height + 5; width: stats.width; spacing: 3; visible: preview.hasEntry
-                Text { width: parent.width; text: root.dex.detail.status + (root.dex.detail.favorite ? "  ★" : ""); color: Theme.ink; font.pixelSize: 12 }
+                Rectangle {
+                    width: parent.width; height: 25; radius: 6
+                    color: root.dex.detail.status === "Caught" ? "#badc9c" : root.dex.detail.status === "Seen" ? "#f0d08c" : "#c7d9e4"
+                    Text { x: 8; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 16
+                        text: root.dex.detail.recordSource + ": " + root.dex.detail.status + (root.dex.detail.favorite ? "  ★" : "")
+                        textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 12; font.bold: true; elide: Text.ElideRight }
+                }
+                Text { width: parent.width; text: "Journal: " + root.dex.detail.journalStatus; color: Theme.muted; font.pixelSize: 11; elide: Text.ElideRight }
                 Text { width: parent.width; text: root.dex.detail.notes || root.dex.detail.family; textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 11; elide: Text.ElideRight }
             }
             Text { x: 20; y: 95; width: parent.width - 40; visible: !preview.hasEntry; text: "Try another trail through the guide."; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 16 }

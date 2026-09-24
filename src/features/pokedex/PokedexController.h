@@ -4,6 +4,7 @@
 #include "PokedexJournalEditor.h"
 #include "ClassicArt.h"
 #include "SpriteArt.h"
+#include "core/model/GameProgress.h"
 #include <QObject>
 #include <QVariantList>
 #include <QJsonObject>
@@ -25,6 +26,8 @@ class PokedexController final : public QObject {
     Q_PROPERTY(QString recoveryLabel READ recoveryLabel NOTIFY changed)
     Q_PROPERTY(trainer::PokedexJournalEditor* journal READ journal CONSTANT)
     Q_PROPERTY(QString source READ source NOTIFY changed)
+    Q_PROPERTY(QString saveCaption READ saveCaption NOTIFY changed)
+    Q_PROPERTY(QString saveTotals READ saveTotals NOTIFY changed)
     Q_PROPERTY(QString artCoverage READ artCoverage NOTIFY changed)
     Q_PROPERTY(QVariantList artChoices READ artChoices NOTIFY changed)
     Q_PROPERTY(QVariantMap spriteClips READ spriteClips NOTIFY changed)
@@ -45,6 +48,9 @@ public:
     QString recoveryLabel() const;
     PokedexJournalEditor* journal() { return &journal_; }
     QString source() const { return catalog_.source; }
+    void setSaveProgress(const QString& selectedId, const QString& title, const QString& observedId, const GameProgress&);
+    QString saveCaption() const;
+    QString saveTotals() const;
     Q_INVOKABLE void cycleForm();
     Q_INVOKABLE void editJournal();
     void configureArtwork(ClassicArt* art);
@@ -73,6 +79,7 @@ private:
     struct Choice { QString id; QString label; };
     QList<Choice> options() const;
     QVariantMap present(const PokedexEntry&, bool detailed=false) const;
+    PokedexProgress currentProgress(const PokedexEntry&) const;
     PokedexForm selectedForm(const PokedexEntry&) const;
     void rebuild();
     void reset();
@@ -96,5 +103,10 @@ private:
     int artFocus_ = 0;
     SpriteArt* sprites_ = nullptr;
     QString artTarget() const;
+    bool saveMode_ = false, staleSave_ = false;
+    QString saveId_, saveTitle_, observationKey_;
+    GameProgress savedObservation_;
+    std::optional<SavePokedex> saveDex_;
+    ProgressAvailability saveAvailability_ = ProgressAvailability::Unsupported;
 };
 }

@@ -16,6 +16,51 @@ QString stateLabel(const PokedexProgress& p) {
     return "Not recorded";
 }
 }
+void PokedexController::setSaveProgress(const QString& selectedId, const QString& title,
+        const QString& observedId, const GameProgress& observation) {
+    const auto key = QStringList{selectedId,title,observedId,QString::number(int(observation.availability)),
+        observation.contextRevision,observation.contentRevision,observation.saveRevision,
+        observation.pokedex ? observation.pokedex->error : QStringLiteral("no-dex")}.join('\n');
+    if (saveMode_ && observationKey_ == key) return;
+    observationKey_ = key; saveMode_ = true; saveTitle_ = title;
+    if (saveId_ != selectedId || selectedId.isEmpty() || observedId != selectedId) savedObservation_ = {};
+    saveId_ = selectedId; saveDex_.reset(); staleSave_ = false;
+    saveAvailability_ = observedId == selectedId ? observation.availability : ProgressAvailability::Unsupported;
+    if (observedId == selectedId && !selectedId.isEmpty()) {
+        if (observation.availability == ProgressAvailability::Available && observation.pokedex && observation.pokedex->error.isEmpty()) {
+            savedObservation_ = observation; saveDex_ = observation.pokedex;
+        } else if ((observation.availability == ProgressAvailability::Unreadable
+                || (observation.availability == ProgressAvailability::Available && observation.pokedex && !observation.pokedex->error.isEmpty()))
+            && savedObservation_.pokedex && !observation.contextRevision.isEmpty()
+            && observation.contextRevision == savedObservation_.contextRevision
+            && observation.contentRevision == savedObservation_.contentRevision) {
+            saveDex_ = savedObservation_.pokedex; staleSave_ = true;
+        } else if (observation.availability != ProgressAvailability::Checking) savedObservation_ = {};
+    }
+    rebuild();
+}
+QString PokedexController::saveCaption() const {
+    if (!saveMode_) return "Field journal";
+    const auto title = saveTitle_.isEmpty() ? QStringLiteral("Choose an Adventure") : saveTitle_;
+    if (staleSave_) return title + " · Last verified save — refresh unavailable";
+    if (saveDex_) return title + " · Last in-game save · Species records";
+    if (saveAvailability_ == ProgressAvailability::Checking) return title + " · Reading save…";
+    if (saveAvailability_ == ProgressAvailability::Missing) return title + " · No saved progress yet";
+    return title + " · Save progress unavailable";
+}
+QString PokedexController::saveTotals() const {
+    return saveDex_ ? QString("Seen %1 · Caught %2").arg(saveDex_->seen.size()).arg(saveDex_->caught.size())
+        : QString("%1 Pokémon").arg(filtered_.size());
+}
+PokedexProgress PokedexController::currentProgress(const PokedexEntry& entry) const {
+    auto p = progress_.progress(entry.id);
+    if (!saveMode_) return p;
+    p.seen.reset(); p.caught.reset();
+    if (saveDex_ && entry.number > 0 && entry.number <= saveDex_->speciesCount) {
+        p.seen = saveDex_->seen.contains(entry.number); p.caught = saveDex_->caught.contains(entry.number);
+    }
+    return p;
+}
 void PokedexController::configureArtwork(ClassicArt* art) {
     art_ = art;
     if (art_) connect(art_, &ClassicArt::changed, this, [this] { emit rowsChanged(); emit changed(); });
@@ -72,7 +117,8 @@ PokedexForm PokedexController::selectedForm(const PokedexEntry& entry) const {
     return entry.forms.first();
 }
 QVariantMap PokedexController::present(const PokedexEntry& entry, bool detailed) const {
-    const auto p = progress_.progress(entry.id);
+    const auto p = currentProgress(entry);
+    const auto journal = progress_.progress(entry.id);
     const auto form=selectedForm(entry);
     QStringList worlds;
     for (const auto& w : catalog_.collections) if (entry.collectionIds.contains(w.id)) worlds.append(w.name);
@@ -80,6 +126,12 @@ QVariantMap PokedexController::present(const PokedexEntry& entry, bool detailed)
         {"name", entry.name}, {"types", form.types.join(" / ")}, {"worlds", worlds.join(" · ")},
         {"status", stateLabel(p)}, {"seen", recorded(p.seen)}, {"caught", recorded(p.caught)},
         {"favorite", p.favorite}};
+    result["journalStatus"] = stateLabel(journal);
+    result["recordSource"] = saveMode_ ? (staleSave_ ? "Last verified save" : "Last save") : "Journal";
+    if (saveMode_ && !p.seen.has_value()) {
+        result["status"] = saveDex_ && entry.number > saveDex_->speciesCount ? "Not in this game" : "Unknown";
+        result["seen"] = "Unknown"; result["caught"] = "Unknown";
+    }
     const auto target = entry.id + '/' + form.id;
     result["formId"] = form.id;
     result["art"] = art_ ? art_->image(target, detailed ? "pokedexDetailArt" : "pokedexListArt") : QVariantMap{};
@@ -179,7 +231,7 @@ void PokedexController::rebuild() {
     bool isNumber = false;
     const int number = numeric.toInt(&isNumber);
     for (const auto& e : catalog_.entries) {
-        const auto p = progress_.progress(e.id);
+        const auto p = currentProgress(e);
         if (!world_.isEmpty() && !e.collectionIds.contains(world_)) continue;
         if (!type_.isEmpty() && !e.types.contains(type_)
             && std::none_of(e.forms.begin(),e.forms.end(),[&](const auto& form){return form.types.contains(type_);})) continue;
@@ -205,6 +257,7 @@ void PokedexController::rebuild() {
         selectedId_ = filtered_.isEmpty() ? QString() : filtered_.first().id;
     }
     if (filtered_.isEmpty() && zone_ == "list") zone_ = "recovery";
+    else if (!filtered_.isEmpty() && zone_ == "recovery") zone_ = "list";
     emit rowsChanged();
     emit changed();
 }

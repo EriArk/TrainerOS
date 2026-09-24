@@ -8,7 +8,8 @@ The user's 2026-09-13 save trial exposed a missing connection: imported saves lo
 
 **2026-09-24 extension:** the exact English Emerald reader also supplies
 [real Party and fourteen-box Storage](EMERALD_PARTY.md) to Center. FireRed
-Party, selected-save species progression and all save writers remain separate.
+Party and all save writers remain separate. [Selected-save species progression](SAVE_POKEDEX.md)
+is now delivered for English Emerald only, independently of the manual journal.
 
 Home reads the eight badge flags and the count of registered National Pokédex species from **English Emerald and FireRed (original and Rev 1)** through the verified RetroArch/mGBA save resolver. A complete ROM SHA-256 match is required. Names, catalogue entries and original ROM headers do not establish compatibility. Other editions, languages, hacks, Diamond and Colosseum retain unknown progress with an explicit explanation; being launchable is a separate capability.
 

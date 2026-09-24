@@ -74,6 +74,17 @@ GameProgress readGen3Progress(const QByteArray& save, Gen3Edition edition) {
     result.provider = edition == Gen3Edition::Emerald ? "gen3-emerald-v1" : "gen3-firered-v1";
     result.message = "Last in-game save · National Pokédex";
     if (edition == Gen3Edition::Emerald) {
+        SavePokedex dex; dex.speciesCount = 386;
+        for (int i = 0; i < dex.speciesCount; ++i) {
+            const bool seen = bit(latest->blocks[0], 0x5c, i);
+            const bool caught = bit(latest->blocks[0], 0x28, i);
+            if (seen != bit(world, 0x988, i) || seen != bit(world, 0x3b24, i) || (caught && !seen))
+                dex.error = "The Pokedex records could not be verified.";
+            if (seen) dex.seen.insert(i + 1);
+            if (caught) dex.caught.insert(i + 1);
+        }
+        if (!dex.error.isEmpty()) { dex.seen.clear(); dex.caught.clear(); }
+        result.pokedex = std::move(dex);
         QByteArray storage;
         for (int id = 5; id < SectorCount; ++id) storage += latest->blocks[id];
         result.party = readEmeraldParty(world, storage);

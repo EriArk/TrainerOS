@@ -346,7 +346,7 @@ int main(int argc, char* argv[]) {
                 provider->refresh(*record);
             };
             QObject::connect(&shell, &ShellController::changed, gameProgress.get(), [&, refreshProgress] {
-                const bool homeVisible = shell.page() == 0 || shell.centerFace();
+                const bool homeVisible = shell.page() == 0 || shell.page() == 2;
                 const bool enteredHome = homeVisible && !progressHomeVisible;
                 progressHomeVisible = homeVisible;
                 refreshProgress(enteredHome);

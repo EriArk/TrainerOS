@@ -18,11 +18,18 @@ const QString EmeraldHash = "a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f
 void put16(QByteArray& b, int p, quint16 v) { qToLittleEndian(v, b.data() + p); }
 void put32(QByteArray& b, int p, quint32 v) { qToLittleEndian(v, b.data() + p); }
 // Original synthetic records. No game/BIOS/save bytes are distributed.
-QByteArray slot(Gen3Edition edition, quint32 counter, int rotation, int mask, int caught) {
+QByteArray slot(Gen3Edition edition, quint32 counter, int rotation, int mask, int caught, int seen = -1, bool inconsistentSeen = false) {
     QByteArray small(edition == Gen3Edition::Emerald ? 0xf2c : 0xf24, 0);
     QByteArray large(edition == Gen3Edition::Emerald ? 0x3d88 : 0x3d68, 0);
     QByteArray boxes(0x83d0, 0);
     for (int i = 0; i < caught; ++i) small[0x28 + i / 8] = char(quint8(small[0x28 + i / 8]) | (1 << (i % 8)));
+    if (edition == Gen3Edition::Emerald) {
+        for (int i = 0; i < (seen < 0 ? caught : seen); ++i) {
+            for (int base : {0x5c}) small[base + i / 8] = char(quint8(small[base + i / 8]) | (1 << (i % 8)));
+            for (int base : {0x988,0x3b24}) large[base + i / 8] = char(quint8(large[base + i / 8]) | (1 << (i % 8)));
+        }
+        if (inconsistentSeen) large[0x988] ^= 1;
+    }
     const int flags = edition == Gen3Edition::Emerald ? 0x1270 : 0xee0;
     const int flag = edition == Gen3Edition::Emerald ? 0x867 : 0x820;
     for (int i = 0; i < 8; ++i) if (mask & (1 << i)) {
@@ -72,6 +79,23 @@ QByteArray pokemonFixture(quint32 personality = 0, int species = 25, bool egg = 
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void emeraldSpeciesFlagsAreNationalCompleteAndConsistent() {
+        const auto fixture = [](int caught, int seen, bool damaged = false) {
+            return slot(Gen3Edition::Emerald,1,7,0,caught,seen,damaged) + QByteArray(18*0x1000,char(0xff));
+        };
+        const auto p = readGen3Progress(fixture(1,3),Gen3Edition::Emerald);
+        QVERIFY(p.pokedex); QCOMPARE(p.pokedex->speciesCount,386); QVERIFY(p.pokedex->error.isEmpty());
+        QCOMPARE(p.pokedex->caught,(QSet<int>{1})); QCOMPARE(p.pokedex->seen,(QSet<int>{1,2,3}));
+        QVERIFY(!p.pokedex->seen.contains(4));
+        const auto last = readGen3Progress(fixture(386,386),Gen3Edition::Emerald);
+        QVERIFY(last.pokedex->seen.contains(386)); QVERIFY(last.pokedex->caught.contains(386));
+        for (auto bytes : {fixture(1,3,true),fixture(3,1)}) {
+            const auto bad = readGen3Progress(bytes,Gen3Edition::Emerald);
+            QCOMPARE(bad.availability,ProgressAvailability::Available); // Other independent fields survive.
+            QVERIFY(!bad.pokedex->error.isEmpty()); QVERIFY(bad.pokedex->seen.isEmpty()); QVERIFY(bad.pokedex->caught.isEmpty());
+        }
+        QVERIFY(!readGen3Progress(save(Gen3Edition::FireRed),Gen3Edition::FireRed).pokedex);
+    }
     void emeraldPartyDecryptsEveryPermutationAndPreservesBoxPositions() {
         for(int permutation=0;permutation<24;++permutation) {
             QByteArray world(0x3d88,0),boxes(0x83d0,0);world[0x234]=1;boxes[0]=13;
@@ -111,6 +135,7 @@ private slots:
         QFile f(path);QVERIFY(f.open(QIODevice::ReadOnly));const auto bytes=f.readAll();
         const auto p=readGen3Progress(bytes,Gen3Edition::Emerald);
         QCOMPARE(p.availability,ProgressAvailability::Available);QVERIFY(p.party.has_value());QVERIFY(p.party->error.isEmpty());
+        QVERIFY(p.pokedex);QVERIFY(p.pokedex->error.isEmpty());QCOMPARE(p.pokedex->caught.size(),p.caught.value());
         int known=0,bad=0;
         for(const auto& mon:p.party->party) {known+=mon.kind==PokemonSlotKind::Known;bad+=mon.kind==PokemonSlotKind::Unreadable;qInfo()<<mon.speciesName<<mon.level<<mon.hp.value_or(-1);}
         for(const auto& box:p.party->boxes)for(const auto& mon:box.members)bad+=mon.kind==PokemonSlotKind::Unreadable;
@@ -206,6 +231,12 @@ private slots:
         write(path, QByteArray(0x20000, 0));
         const auto bad = inspectGameProgress(record(), resolver);
         QCOMPARE(bad.availability, ProgressAvailability::Unreadable); QVERIFY(!bad.caught); QVERIFY(!bad.badgeMask);
+        QCOMPARE(bad.contextRevision,target.contextRevision); // A same-source failure may label a previous complete Dex snapshot.
+        int failureCalls = 0;
+        const auto changedFailure = inspectGameProgress(record(), [&](const AdventureRegistration&) {
+            auto changed = target; if (++failureCalls == 2) changed.contextRevision = "different-owner"; return changed;
+        });
+        QVERIFY(changedFailure.contextRevision.isEmpty());
         write(path, bytes);
         int calls = 0;
         const auto replaced = inspectGameProgress(record(), [&](const AdventureRegistration&) {

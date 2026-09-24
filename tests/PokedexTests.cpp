@@ -31,6 +31,49 @@ public:
 class PokedexTests : public QObject {
     Q_OBJECT
 private slots:
+    void saveProgressIsPrimaryWithoutOverwritingTheJournal() {
+        MockPokedexRepository repo; PokedexController dex(repo,repo);
+        const auto manual = repo.progress("mudkip"); QVERIFY(manual.caught.value_or(false));
+        GameProgress p; p.availability=ProgressAvailability::Available; p.contextRevision="owner-one";
+        p.contentRevision="emerald"; p.saveRevision="first";
+        p.pokedex=SavePokedex{386,{1,4},{1},{}};
+        dex.setSaveProgress("game","Emerald","game",p);
+        dex.applySearch("mudkip"); QCOMPARE(dex.detail()["status"],"Not seen");
+        QCOMPARE(dex.detail()["journalStatus"],"Caught");
+        QCOMPARE(repo.progress("mudkip").caught,manual.caught);
+        dex.applySearch(""); filter(dex,3,"caught"); QCOMPARE(ids(dex),(QStringList{"bulbasaur"}));
+        filter(dex,3,"seen"); QCOMPARE(ids(dex),(QStringList{"bulbasaur","charmander"}));
+        filter(dex,3,""); dex.applySearch("ralts");
+        p.saveRevision="second";p.pokedex->seen.insert(280);p.pokedex->caught.insert(280);
+        dex.setSaveProgress("game","Emerald","game",p); QCOMPARE(dex.detail()["status"],"Caught");
+        p.saveRevision="rollback";p.pokedex->seen.remove(280);p.pokedex->caught.remove(280);
+        dex.setSaveProgress("game","Emerald","game",p); QCOMPARE(dex.detail()["status"],"Not seen");
+        QCOMPARE(repo.progress("mudkip").caught,manual.caught);
+        dex.editJournal(); QVERIFY(dex.journal()->isOpen()); dex.cancelTransient();
+    }
+    void failedSaveRefreshRetainsOnlySameIdentityAndNeverInventsNewSpecies() {
+        MockPokedexRepository repo; MutableReference reference;
+        reference.catalog.entries.append({"rowlet",722,"Rowlet",{"Grass","Flying"},{"alola"}});
+        PokedexController dex(reference,repo);
+        GameProgress p; p.availability=ProgressAvailability::Available; p.contextRevision="owner-one";
+        p.contentRevision="emerald";p.saveRevision="first";p.pokedex=SavePokedex{386,{1},{1},{}};
+        dex.setSaveProgress("game","Emerald","game",p);dex.applySearch("bulbasaur");
+        GameProgress checking;checking.availability=ProgressAvailability::Checking;
+        dex.setSaveProgress("game","Emerald","game",checking);QCOMPARE(dex.detail()["status"],"Unknown");
+        auto failure=p;failure.availability=ProgressAvailability::Unreadable;failure.pokedex.reset();failure.saveRevision="bad";
+        dex.setSaveProgress("game","Emerald","game",failure);QCOMPARE(dex.detail()["status"],"Caught");
+        QVERIFY(dex.saveCaption().contains("Last verified"));
+        auto damaged=p;damaged.saveRevision="inconsistent";damaged.pokedex->error="Flags disagree";
+        dex.setSaveProgress("game","Emerald","game",damaged);QCOMPARE(dex.detail()["status"],"Caught");
+        QVERIFY(dex.saveCaption().contains("Last verified"));
+        failure.contextRevision="owner-two";dex.setSaveProgress("game","Emerald","game",failure);
+        QCOMPARE(dex.detail()["status"],"Unknown");QVERIFY(!dex.saveCaption().contains("Last verified"));
+        dex.setSaveProgress("game","Emerald","game",p);dex.applySearch("rowlet");
+        QCOMPARE(dex.detail()["status"],"Not in this game");
+        dex.setSaveProgress("other","Other","game",p);dex.applySearch("bulbasaur");
+        QCOMPARE(dex.detail()["status"],"Unknown");
+        p.pokedex.reset();dex.setSaveProgress("game","FireRed","game",p);QCOMPARE(dex.detail()["status"],"Unknown");
+    }
     void legacyDetailRestoresTheUnifiedBrowserWithoutChangingProgress() {
         MockPokedexRepository repo; PokedexController dex(repo,repo);
         const auto before=repo.progress("mudkip");

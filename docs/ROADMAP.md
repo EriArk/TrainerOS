@@ -14,8 +14,10 @@ Row 7 Pokedex/Party/Center is active; remote enrichment resumes only after acces
 **2026-09-24 row 7 delivery:** the Party/Storage split view now reads the exact
 English Emerald ordinary save: six Party slots, fourteen boxes, stats, moves/PP
 and held items, bound to the selected Pokémon Adventure and Trainer. Storage
-omits current HP. [Evidence and scope](EMERALD_PARTY.md). Next continue the
-selected-save Pokedex projection, then real Party scene consumers; additional
+omits current HP. [Evidence and scope](EMERALD_PARTY.md). The [selected-save
+Pokedex projection](SAVE_POKEDEX.md) now supplies English Emerald National
+Seen/Caught separately from the preserved manual journal. Next bind real Party
+scene consumers; additional
 formats and independently guarded writers keep their existing acceptance.
 
 **Current owner order — 2026-09-24:** native [ScreenScraper #65](SCREENSCRAPER.md)

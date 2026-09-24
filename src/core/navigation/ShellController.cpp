@@ -13,8 +13,16 @@ void ShellController::configureProgress(GameProgressProvider* provider) {
     progress_ = provider;
     if (progress_) connect(progress_, &GameProgressProvider::changed, this, [this] {
         party_.setProgress(progress_->adventureId(), progress_->snapshot());
+        const auto adventure = homeAdventure();
+        pokedex_.setSaveProgress(currentAdventureId(), adventure ? adventure->title : QString(),
+            progress_->adventureId(), progress_->snapshot());
         emit changed();
     });
+    if (progress_) {
+        const auto adventure = homeAdventure();
+        pokedex_.setSaveProgress(currentAdventureId(), adventure ? adventure->title : QString(),
+            progress_->adventureId(), progress_->snapshot());
+    }
     emit changed();
 }
 ShellController::ShellController(LibraryRepository& repo, TrainerRepository& profiles, AdventureAdapter& adapter,
