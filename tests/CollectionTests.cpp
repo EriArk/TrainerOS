@@ -16,6 +16,23 @@ using namespace trainer;
 class CollectionTests final : public QObject {
     Q_OBJECT
 private slots:
+    void englishCurationPreservesGamesAndRejectsServiceAndLanguageVariants() {
+        const auto all=collectionCatalogue();QSet<QString> ids;
+        for(const auto& a:all)ids.insert(a.catalogueId);
+        for(const auto& id:{"snap-n64","new-snap-switch","pokken-wiiu","smash-ultimate-switch","ranger-nds","dungeon-explorers-sky-nds"}) QVERIFY(ids.contains(id));
+        for(const auto& id:{"green-gb","go-android","box-gc","red-gb-vc-n3ds","studio-red-pc"}) QVERIFY(!ids.contains(id));
+        Adventure a;a.title="Pokemon Emerald";a.platformId="gba";a.catalogueId="emerald-gba";
+        QVERIFY(!collectionExclusion(a,"Pokemon Emerald (Japan).gba").isEmpty());
+        QVERIFY(collectionExclusion(a,"Pokemon Emerald (Europe) (En,Fr,De).gba").isEmpty());
+        QVERIFY(!collectionExclusion(a,"Pokemon Emerald (Europe) (Fr,De).gba").isEmpty());
+        QVERIFY(!collectionExclusion(a,"Pokemon Emerald (J).gba").isEmpty());
+        a.kind=AdventureKind::RomHack;a.catalogueId="";a.title="Pokemon Vega";a.variant="English translation";
+        QVERIFY(collectionExclusion(a,"Pokemon Vega (Japan).gba").isEmpty());
+        a.variant="Portuguese translation";QVERIFY(!collectionExclusion(a).isEmpty());
+        Adventure b=a;b.title="Pokemon Vega Minus";QVERIFY(collectionIdentity(a)!=collectionIdentity(b));
+        a.domain="multiverse";QVERIFY(collectionExclusion(a).isEmpty());
+    }
+
     void chronologyUsesEditionAndRuntimePlatformNotAvailabilityOrTitle() {
         const auto reference = collectionCatalogue();
         auto edition = [&](const QString& id) {
@@ -108,7 +125,7 @@ private slots:
         QSet<QString> worlds, platforms, identities;
         for (const auto& w : collectionWorlds()) { QVERIFY(!worlds.contains(w.id)); worlds.insert(w.id); }
         for (const auto& p : collectionPlatforms()) { QVERIFY(!platforms.contains(p.id)); platforms.insert(p.id); }
-        const auto catalogue = collectionCatalogue(); QVERIFY(catalogue.size() > 100);
+        const auto catalogue = collectionCatalogue(); QCOMPARE(catalogue.size(), 92);
         for (const auto& a : catalogue) {
             QVERIFY2(!identities.contains(a.catalogueId), qPrintable(a.title)); identities.insert(a.catalogueId);
             QVERIFY(worlds.contains(a.worldId)); QVERIFY(platforms.contains(a.platformId));
@@ -139,16 +156,16 @@ private slots:
             collection.saveAdventureAsync(record, this, [&](auto r) { QVERIFY2(r.success, qPrintable(r.error)); done = true; }); QTRY_VERIFY(done);
             QCOMPARE(collection.adventures().size(), all.size()); QCOMPARE(store.adventures().size(), 1);
             auto duplicate = *store.registration(record.adventure.id); duplicate.adventure.id = "second-revision"; duplicate.revision = 0;
-            duplicate.adventure.variant = "Another revision"; done = false;
+            duplicate.adventure.title = "My renamed Ruby"; duplicate.adventure.variant = "Another revision"; done = false;
             collection.saveAdventureAsync(duplicate, this, [&](auto r) { QVERIFY(r.success); done = true; }); QTRY_VERIFY(done);
-            QCOMPARE(collection.adventures().size(), all.size() + 1);
+            QCOMPARE(collection.adventures().size(), all.size());
         }
         LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready()); CollectionRepository collection(store);
         const auto saved = store.registration(record.adventure.id); QVERIFY(saved);
         QCOMPARE(saved->adventure.catalogueId, "ruby-gba"); QCOMPARE(saved->adventure.platformId, "gba");
         QCOMPARE(saved->adventure.variant, "European revision");
         QVERIFY(QFile::rename(path, path + ".moved"));
-        QCOMPARE(collection.adventures().size(), all.size() + 1); // Missing removable content never deletes ownership metadata.
+        QCOMPARE(collection.adventures().size(), all.size()); // Missing removable content never deletes ownership metadata.
         auto wrong = *saved; wrong.adventure.platformId = "n64";
         bool failed = false; collection.saveAdventureAsync(wrong, this, [&](auto r) { failed = !r.success; }); QVERIFY(failed);
         QFile external(path + ".moved"); QVERIFY(external.open(QIODevice::ReadOnly)); QCOMPARE(external.readAll(), QByteArray("Original non-game fixture"));

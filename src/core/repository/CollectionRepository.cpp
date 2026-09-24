@@ -4,6 +4,8 @@
 #include <QJsonArray>
 #include <QSet>
 #include <QFileInfo>
+#include <QDataStream>
+#include <QRegularExpression>
 #include <algorithm>
 #include <limits>
 #include <tuple>
@@ -115,7 +117,7 @@ QList<World> collectionWorlds() {
     }
     return result;
 }
-QList<Adventure> collectionCatalogue() {
+QList<Adventure> collectionCatalogue(bool includeExcluded) {
     static const auto entries = [] {
         QList<Adventure> result;
         for (const auto& value : data()["editions"].toArray()) {
@@ -130,7 +132,58 @@ QList<Adventure> collectionCatalogue() {
         }
         return result;
     }();
-    return entries;
+    if (includeExcluded) return entries;
+    static const auto visible=[&] {
+        QList<Adventure> result;
+        for (const auto& a : entries) if (collectionExclusion(a).isEmpty()) result.append(a);
+        return result;
+    }();
+    return visible;
+}
+QString collectionIdentity(const Adventure& a) {
+    static const auto canonicalNames=[] {QHash<QString,QString> names;for(const auto& value:data()["editions"].toArray()){const auto e=value.toObject();names.insert(e["id"].toString(),e["title"].toString());}return names;}();
+    const auto title=a.kind==AdventureKind::RomHack ? a.title : canonicalNames.value(a.catalogueId,a.title);
+    QString name=title.section(QString::fromUtf8(" · "),0,0).normalized(QString::NormalizationForm_D).toCaseFolded();
+    static const QRegularExpression accents("\\p{M}"), punctuation("\\bversion\\b|[^a-z0-9]");
+    name.remove(accents);
+    name.replace("pocket monsters","pokemon");
+    name.remove(punctuation);
+    if(name=="pokemoncardgb2grdansanjou" || name=="pokemontradingcardgame2") name="pokemontradingcardgame2theinvasionofteamgr";
+    if(name=="pocketmonstersmidoriprepatchedenglish" || name=="pokemonmidoriprepatchedenglish") name="pokemongreen";
+    // A hack called Ruby is still not the official Ruby edition.
+    return a.platformId + ":" + (a.kind==AdventureKind::RomHack ? "hack:" : "official:") + name;
+}
+QString collectionExclusion(const Adventure& a, const QString& filename) {
+    if (a.domain!="pokemon") return {};
+    const QString evidence=(a.variant+" "+QFileInfo(filename).fileName()+" "+a.title).toCaseFolded();
+    static const QRegularExpression translated("english[ _-]*translation|(?:pre[ _-]*patched|translated)[ _-]*english|\\[t[+-]eng");
+    const bool english=translated.match(evidence).hasMatch();
+    if(evidence.contains("debug build") || evidence.contains("intro hack") || evidence.contains("unverified") || a.title==QString::fromUtf8("Pokémon")) return "ambiguous-or-service-build";
+    static const QRegularExpression other("\\b(?:japan(?:ese)?|korea(?:n)?|china|chinese|taiwan|france|french|germany|german|spain|spanish|italy|italian|portugal|portuguese|brazil|russia|russian|dutch)\\b");
+    // A multilingual European release with En is eligible; region alone is not language.
+    static const QRegularExpression englishTag("\\([^)]*\\ben\\b[^)]*\\)");
+    static const QRegularExpression languageCodes("\\((?:j|f|g|s|i|k|fr|de|es|it|ja|jp|ko|zh|pt|ru|nl)(?:,(?:fr|de|es|it|ja|jp|ko|zh|pt|ru|nl))*\\)");
+    if (!english && !englishTag.match(evidence).hasMatch() && (other.match(evidence).hasMatch() || languageCodes.match(evidence).hasMatch())) return "non-english";
+    static const auto exclusions=[] {
+        QHash<QString,QString> byKey;
+        for (const auto& value : data()["editions"].toArray()) {
+            const auto e=value.toObject(); const auto reason=e["excludedFromWorlds"].toString();
+            if(reason.isEmpty()) continue;
+            byKey.insert("id:"+e["id"].toString(),reason);
+            Adventure ref;ref.title=e["title"].toString();ref.platformId=e["platform"].toString();
+            byKey.insert(collectionIdentity(ref),reason);
+        }
+        return byKey;
+    }();
+    static const QSet<QString> officialNames=[] { QSet<QString> names; for(const auto& value:data()["editions"].toArray()){const auto e=value.toObject();Adventure ref;ref.title=e["title"].toString();ref.platformId=e["platform"].toString();ref.kind=AdventureKind::RomHack;names.insert(collectionIdentity(ref));}return names;}();
+    if(a.kind==AdventureKind::RomHack && !english && officialNames.contains(collectionIdentity(a))) return "unidentified-base-game-variant";
+    auto reason=exclusions.value("id:"+a.catalogueId);
+    if(reason.isEmpty() && a.kind!=AdventureKind::RomHack) reason=exclusions.value(collectionIdentity(a));
+    if(reason=="non-english-original" && english) return {};
+    if(!reason.isEmpty()) return reason;
+    if (a.platformId=="android" || a.platformId=="pico") return "companion-service-or-special-input";
+    if (evidence.contains("wii injection") || evidence.contains("virtual console")) return "duplicate-rerelease";
+    return {};
 }
 QList<World> CollectionRepository::worlds() const {
     auto result = collectionWorlds();
@@ -138,10 +191,39 @@ QList<World> CollectionRepository::worlds() const {
         auto it=std::find_if(result.begin(),result.end(),[&](const auto& existing){return existing.id==w.id;});
         if(it==result.end())result.append(w); else it->name=w.name;
     }
+    const auto games=adventures();
+    result.removeIf([&](const auto& w) { return std::none_of(games.cbegin(),games.cend(),[&](const auto& a){return a.domain=="pokemon" && (a.worldId==w.id || a.additionalWorldIds.contains(w.id));}); });
     return result;
 }
 QList<Adventure> CollectionRepository::adventures() const {
-    auto result = personal_.adventures(); QSet<QString> owned;
+    auto candidates = personal_.adventures();
+    const auto registrations=personal_.registrations();
+    // UI consumers ask for this projection repeatedly. Normalize and sort only
+    // when its actual source data changes, including unavailable/removed files.
+    QByteArray key; QDataStream stream(&key,QIODevice::WriteOnly);
+    stream << candidates.size() << registrations.size();
+    for(const auto& a:candidates) stream << a.id << a.worldId << a.title << a.adapterId << int(a.kind)
+        << a.description << bool(a.status) << int(a.status.value_or(JourneyStatus::NotStarted))
+        << a.badges.value_or(-1) << a.caught.value_or(-1) << a.additionalWorldIds
+        << a.platformId << a.catalogueId << a.variant << a.collectionOnly << a.limitation << a.domain;
+    for(const auto& r:registrations) stream << r.adventure.id << r.revision << r.contentAvailable << r.removed << r.contentPath;
+    if(key==curatedKey_) return curatedAdventures_;
+    QList<Adventure> result; QSet<QString> owned, identities;
+    // Stable winner; prefer a present file and configured adapter, without merging history.
+    QHash<QString,std::pair<bool,bool>> ranks;
+    QHash<QString,QString> paths;
+    for(const auto& r:registrations) {ranks.insert(r.adventure.id,{r.contentAvailable,r.adventure.adapterId!="unconfigured"});paths.insert(r.adventure.id,r.contentPath);}
+    std::sort(candidates.begin(),candidates.end(),[&](const auto& a,const auto& b){
+        if(ranks.value(a.id)!=ranks.value(b.id)) return ranks.value(a.id)>ranks.value(b.id);
+        return a.id<b.id;
+    });
+    for (const auto& a : candidates) {
+        if (a.domain!="pokemon") { result.append(a); continue; }
+        if (!collectionExclusion(a,paths.value(a.id)).isEmpty()) continue;
+        const auto identity=collectionIdentity(a);
+        if (identities.contains(identity)) continue;
+        identities.insert(identity);result.append(a);
+    }
     const auto catalogue = collectionCatalogue();
     for (auto& a : result) if (a.domain == "pokemon" && !a.catalogueId.isEmpty()) {
         owned.insert(a.catalogueId);
@@ -151,15 +233,16 @@ QList<Adventure> CollectionRepository::adventures() const {
             break;
         }
     }
-    for (const auto& a : collectionCatalogue()) if (!owned.contains(a.catalogueId)) result.append(a);
+    for (const auto& a : collectionCatalogue()) if (!owned.contains(a.catalogueId) && !identities.contains(collectionIdentity(a))) result.append(a);
     sortWorldAdventures(result, collectionPlatforms(), collectionChronology());
+    curatedKey_=std::move(key);curatedAdventures_=result;
     return result;
 }
 void CollectionRepository::saveAdventureAsync(const AdventureRegistration& value, QObject* context,
         std::function<void(LibraryWriteResult)> completed) {
     auto record = value;
     if (!record.adventure.catalogueId.isEmpty()) {
-        const auto catalogue = collectionCatalogue();
+        const auto catalogue = collectionCatalogue(true);
         const auto entry = std::find_if(catalogue.begin(), catalogue.end(), [&](const auto& a) { return a.catalogueId == record.adventure.catalogueId; });
         if (entry == catalogue.end() || entry->platformId != record.adventure.platformId) {
             completed({false, "This file needs the matching platform edition. Choose its card in Worlds."}); return;

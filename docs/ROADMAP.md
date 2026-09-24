@@ -1,5 +1,13 @@
 # TrainerOS Roadmap
 
+**2026-09-24 priority delivery — English collection cleanup:** 92 eligible
+reference editions; duplicate/non-English/service variants removed from Worlds,
+including grey entries. Permanently deleted 198 device ROMs and updated eight
+gamelists, preserving saves/history/server originals. [Policy and verification](CATALOGUE_CURATION.md).
+Return next to the already-started brighter/random World cards, platform cards
+and physical Move increment; its remaining checks and deployment are still open.
+
+
 ## Current execution override — owner library correction, 2026-09-23
 
 Pause further emulator groups and difficult ROM compatibility work. The next

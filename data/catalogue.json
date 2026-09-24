@@ -267,7 +267,8 @@
       "world": "kanto",
       "order": 30,
       "releaseYear": 1996,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "blue-jp-gb",
@@ -276,7 +277,8 @@
       "world": "kanto",
       "order": 40,
       "releaseYear": 1996,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "red-jp-gb",
@@ -285,7 +287,8 @@
       "world": "kanto",
       "order": 50,
       "releaseYear": 1996,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "yellow-gb",
@@ -667,7 +670,8 @@
       "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
       "order": 430,
       "releaseYear": 2026,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "leafgreen-switch",
@@ -678,7 +682,8 @@
       "limitation": "Device compatibility has not been verified. A local file alone does not guarantee play.",
       "order": 440,
       "releaseYear": 2026,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "pinball-gbc",
@@ -714,7 +719,8 @@
       "world": "tcg-islands",
       "order": 480,
       "releaseYear": 2001,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "stadium-jp-n64",
@@ -723,7 +729,8 @@
       "world": "kanto",
       "order": 490,
       "releaseYear": 1998,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "stadium-n64",
@@ -761,7 +768,8 @@
       "limitation": "Needs voice input. Microphone support and controls still need validation.",
       "order": 530,
       "releaseYear": 1998,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "snap-n64",
@@ -798,7 +806,8 @@
       "limitation": "A storage companion; some functions require a linked Game Boy Advance game.",
       "order": 570,
       "releaseYear": 2003,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "channel-gc",
@@ -866,7 +875,8 @@
       "limitation": "Requires keyboard input. Controller text entry in TrainerOS does not replace the in-game keyboard.",
       "order": 640,
       "releaseYear": 2011,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "trozei-nds",
@@ -929,7 +939,8 @@
       "world": "mystery-dungeon",
       "order": 710,
       "releaseYear": 2009,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "dungeon-stormy-wii",
@@ -938,7 +949,8 @@
       "world": "mystery-dungeon",
       "order": 720,
       "releaseYear": 2009,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "dungeon-light-wii",
@@ -947,7 +959,8 @@
       "world": "mystery-dungeon",
       "order": 730,
       "releaseYear": 2009,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "dungeon-gates-n3ds",
@@ -1011,7 +1024,8 @@
       "platform": "wii",
       "world": "sinnoh",
       "limitation": "A companion for Diamond and Pearl; linking features need separate validation.",
-      "order": 800
+      "order": 800,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "ranch-platinum-wii",
@@ -1021,7 +1035,8 @@
       "limitation": "Japan-only expanded edition. Linking features need separate validation.",
       "order": 810,
       "releaseYear": 2008,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "rumble-wii",
@@ -1122,7 +1137,8 @@
       "world": "ryme-city",
       "order": 920,
       "releaseYear": 2016,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "detective-returns-switch",
@@ -1169,7 +1185,8 @@
       "limitation": "Drawing requires pointer input; controller pointer precision needs validation.",
       "order": 970,
       "releaseYear": 2014,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "thieves-n3ds",
@@ -1179,7 +1196,8 @@
       "limitation": "StreetPass-dependent content may be unavailable; offline play needs validation.",
       "order": 980,
       "releaseYear": 2014,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "dream-radar-n3ds",
@@ -1189,7 +1207,8 @@
       "limitation": "Camera and motion features require separate validation.",
       "order": 990,
       "releaseYear": 2012,
-      "releaseSource": "https://www.pokemon.co.jp/game/"
+      "releaseSource": "https://www.pokemon.co.jp/game/",
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "party-pokemini",
@@ -1217,7 +1236,8 @@
       "title": "Pokémon Puzzle Collection Vol. 2",
       "platform": "pokemini",
       "world": "playroom",
-      "order": 1030
+      "order": 1030,
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "tetris-pokemini",
@@ -1231,21 +1251,24 @@
       "title": "Pokémon Race mini",
       "platform": "pokemini",
       "world": "playroom",
-      "order": 1050
+      "order": 1050,
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "pichu-pokemini",
       "title": "Pichu Bros. mini",
       "platform": "pokemini",
       "world": "playroom",
-      "order": 1060
+      "order": 1060,
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "togepi-pokemini",
       "title": "Togepi's Great Adventure",
       "platform": "pokemini",
       "world": "playroom",
-      "order": 1070
+      "order": 1070,
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "zany-pokemini",
@@ -1259,7 +1282,8 @@
       "title": "Pokémon Breeder mini",
       "platform": "pokemini",
       "world": "playroom",
-      "order": 1090
+      "order": 1090,
+      "excludedFromWorlds": "non-english-original"
     },
     {
       "id": "play-it-pc",
@@ -1267,7 +1291,8 @@
       "platform": "pc",
       "world": "tcg-islands",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1100
+      "order": 1100,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "play-it2-pc",
@@ -1275,7 +1300,8 @@
       "platform": "pc",
       "world": "tcg-islands",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1110
+      "order": 1110,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "masters-arena-pc",
@@ -1283,7 +1309,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1120
+      "order": 1120,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "team-turbo-pc",
@@ -1291,7 +1318,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1130
+      "order": 1130,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "studio-red-pc",
@@ -1299,7 +1327,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1140
+      "order": 1140,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "studio-blue-pc",
@@ -1307,7 +1336,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1150
+      "order": 1150,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokeball-launcher-pc",
@@ -1315,7 +1345,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1160
+      "order": 1160,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "rocket-blast-pc",
@@ -1323,7 +1354,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1170
+      "order": 1170,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "seek-find-pc",
@@ -1331,7 +1363,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1180
+      "order": 1180,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pc-master-pc",
@@ -1339,7 +1372,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1190
+      "order": 1190,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-bulbasaur-pc",
@@ -1347,7 +1381,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1200
+      "order": 1200,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-charmander-pc",
@@ -1355,7 +1390,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1210
+      "order": 1210,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-squirtle-pc",
@@ -1363,7 +1399,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1220
+      "order": 1220,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-pikachu-pc",
@@ -1371,7 +1408,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1230
+      "order": 1230,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-meowth-pc",
@@ -1379,7 +1417,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1240
+      "order": 1240,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-psyduck-pc",
@@ -1387,7 +1426,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1250
+      "order": 1250,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-poliwhirl-pc",
@@ -1395,7 +1435,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1260
+      "order": 1260,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-gengar-pc",
@@ -1403,7 +1444,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1270
+      "order": 1270,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-eevee-pc",
@@ -1411,7 +1453,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1280
+      "order": 1280,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-mewtwo-pc",
@@ -1419,7 +1462,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1290
+      "order": 1290,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-articuno-pc",
@@ -1427,7 +1471,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1300
+      "order": 1300,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-zapdos-pc",
@@ -1435,7 +1480,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1310
+      "order": 1310,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-moltres-pc",
@@ -1443,7 +1489,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1320
+      "order": 1320,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-hoothoot-pc",
@@ -1451,7 +1498,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1330
+      "order": 1330,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-togepi-pc",
@@ -1459,7 +1507,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1340
+      "order": 1340,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-marill-pc",
@@ -1467,7 +1516,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1350
+      "order": 1350,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-elekid-pc",
@@ -1475,7 +1525,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1360
+      "order": 1360,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-ledyba-pc",
@@ -1483,7 +1534,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1370
+      "order": 1370,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-slowking-pc",
@@ -1491,7 +1543,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1380
+      "order": 1380,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-lugia-pc",
@@ -1499,7 +1552,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1390
+      "order": 1390,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-butterfree-pc",
@@ -1507,7 +1561,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1400
+      "order": 1400,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-arbok-pc",
@@ -1515,7 +1570,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1410
+      "order": 1410,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-jigglypuff-pc",
@@ -1523,7 +1579,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1420
+      "order": 1420,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-venonat-pc",
@@ -1531,7 +1588,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1430
+      "order": 1430,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-geodude-pc",
@@ -1539,7 +1597,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1440
+      "order": 1440,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-mr. mime-pc",
@@ -1547,7 +1606,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1450
+      "order": 1450,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-lapras-pc",
@@ -1555,7 +1615,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1460
+      "order": 1460,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-exeggutor-pc",
@@ -1563,7 +1624,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1470
+      "order": 1470,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-jynx-pc",
@@ -1571,7 +1633,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1480
+      "order": 1480,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-chikorita-pc",
@@ -1579,7 +1642,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1490
+      "order": 1490,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-cyndaquil-pc",
@@ -1587,7 +1651,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1500
+      "order": 1500,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-totodile-pc",
@@ -1595,7 +1660,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1510
+      "order": 1510,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-spinarak-pc",
@@ -1603,7 +1669,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1520
+      "order": 1520,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-mareep-pc",
@@ -1611,7 +1678,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1530
+      "order": 1530,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-bellossom-pc",
@@ -1619,7 +1687,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1540
+      "order": 1540,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-sunflora-pc",
@@ -1627,7 +1696,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1550
+      "order": 1550,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-quagsire-pc",
@@ -1635,7 +1705,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1560
+      "order": 1560,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-snubbull-pc",
@@ -1643,7 +1714,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1570
+      "order": 1570,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-scizor-pc",
@@ -1651,7 +1723,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1580
+      "order": 1580,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-stantler-pc",
@@ -1659,7 +1732,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1590
+      "order": 1590,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-charizard-pc",
@@ -1667,7 +1741,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1600
+      "order": 1600,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-blastoise-pc",
@@ -1675,7 +1750,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1610
+      "order": 1610,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-gyarados-pc",
@@ -1683,7 +1759,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1620
+      "order": 1620,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-dragonite-pc",
@@ -1691,7 +1768,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1630
+      "order": 1630,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-sentret-pc",
@@ -1699,7 +1777,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1640
+      "order": 1640,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-hoppip-pc",
@@ -1707,7 +1786,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1650
+      "order": 1650,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-gligar-pc",
@@ -1715,7 +1795,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1660
+      "order": 1660,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-heracross-pc",
@@ -1723,7 +1804,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1670
+      "order": 1670,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-donphan-pc",
@@ -1731,7 +1813,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1680
+      "order": 1680,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "pokerom-blissey-pc",
@@ -1739,7 +1822,8 @@
       "platform": "pc",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1690
+      "order": 1690,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "catch-pico",
@@ -1747,7 +1831,8 @@
       "platform": "pico",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1700
+      "order": 1700,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "loud-battle-pico",
@@ -1755,7 +1840,8 @@
       "platform": "pico",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1710
+      "order": 1710,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "hiragana-pico",
@@ -1763,7 +1849,8 @@
       "platform": "pico",
       "world": "playroom",
       "limitation": "Requires a compatible runtime and controller setup; not yet verified on this device.",
-      "order": 1720
+      "order": 1720,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "smash-n64",
@@ -1822,7 +1909,8 @@
       "platform": "nds",
       "world": "pokepark",
       "limitation": "A limited-distribution DS Download Play game. A compatible local image is required.",
-      "order": 1800
+      "order": 1800,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "magikarp-android",
@@ -1830,7 +1918,8 @@
       "platform": "android",
       "world": "playroom",
       "limitation": "Android runtime and controller mapping need setup and game-level validation.",
-      "order": 1810
+      "order": 1810,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "quest-android",
@@ -1838,7 +1927,8 @@
       "platform": "android",
       "world": "tumblecube",
       "limitation": "Android runtime and controller mapping need setup and game-level validation.",
-      "order": 1820
+      "order": 1820,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "friends-android",
@@ -1846,7 +1936,8 @@
       "platform": "android",
       "world": "think-town",
       "limitation": "Android runtime and controller mapping need setup and game-level validation.",
-      "order": 1830
+      "order": 1830,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "shuffle-android",
@@ -1854,7 +1945,8 @@
       "platform": "android",
       "world": "puzzles",
       "limitation": "Android runtime and controller mapping need setup and game-level validation.",
-      "order": 1840
+      "order": 1840,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "camp-android",
@@ -1862,7 +1954,8 @@
       "platform": "android",
       "world": "playroom",
       "limitation": "Android runtime and controller mapping need setup and game-level validation.",
-      "order": 1850
+      "order": 1850,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "playhouse-android",
@@ -1870,7 +1963,8 @@
       "platform": "android",
       "world": "playroom",
       "limitation": "Android runtime and controller mapping need setup and game-level validation.",
-      "order": 1860
+      "order": 1860,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "smile-android",
@@ -1878,7 +1972,8 @@
       "platform": "android",
       "world": "playroom",
       "limitation": "Uses sensors or camera input. Android runtime and device feature compatibility need validation.",
-      "order": 1870
+      "order": 1870,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "sleep-android",
@@ -1886,7 +1981,8 @@
       "platform": "android",
       "world": "playroom",
       "limitation": "Uses sensors or camera input. Android runtime and device feature compatibility need validation.",
-      "order": 1880
+      "order": 1880,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "masters-android",
@@ -1894,7 +1990,8 @@
       "platform": "android",
       "world": "pasio",
       "limitation": "Requires online access; Android runtime, account compatibility and controller input are not yet verified.",
-      "order": 1890
+      "order": 1890,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "unite-android",
@@ -1902,7 +1999,8 @@
       "platform": "android",
       "world": "aeos",
       "limitation": "Requires online access; Android runtime, account compatibility and controller input are not yet verified.",
-      "order": 1900
+      "order": 1900,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "go-android",
@@ -1910,7 +2008,8 @@
       "platform": "android",
       "world": "our-world",
       "limitation": "Requires location services and online access. Compatibility on this device has not been established.",
-      "order": 1910
+      "order": 1910,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "cafe-android",
@@ -1918,7 +2017,8 @@
       "platform": "android",
       "world": "puzzles",
       "limitation": "Requires online access; Android runtime, account compatibility and controller input are not yet verified.",
-      "order": 1920
+      "order": 1920,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "tcg-live-android",
@@ -1926,7 +2026,8 @@
       "platform": "android",
       "world": "card-club",
       "limitation": "Requires online access; Android runtime, account compatibility and controller input are not yet verified.",
-      "order": 1930
+      "order": 1930,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "tcg-pocket-android",
@@ -1934,7 +2035,8 @@
       "platform": "android",
       "world": "card-club",
       "limitation": "Requires online access; Android runtime, account compatibility and controller input are not yet verified.",
-      "order": 1940
+      "order": 1940,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "tcg-live-pc",
@@ -1942,7 +2044,8 @@
       "platform": "pc",
       "world": "card-club",
       "limitation": "Requires online access and a compatible Windows runtime; account and controller input are not yet verified.",
-      "order": 1950
+      "order": 1950,
+      "excludedFromWorlds": "companion-service-or-special-input"
     },
     {
       "id": "red-gb-vc-n3ds",
@@ -1950,7 +2053,8 @@
       "platform": "n3ds",
       "world": "kanto",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 1960
+      "order": 1960,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "blue-gb-vc-n3ds",
@@ -1958,7 +2062,8 @@
       "platform": "n3ds",
       "world": "kanto",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 1970
+      "order": 1970,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "green-gb-vc-n3ds",
@@ -1966,7 +2071,8 @@
       "platform": "n3ds",
       "world": "kanto",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 1980
+      "order": 1980,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "blue-jp-gb-vc-n3ds",
@@ -1974,7 +2080,8 @@
       "platform": "n3ds",
       "world": "kanto",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 1990
+      "order": 1990,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "red-jp-gb-vc-n3ds",
@@ -1982,7 +2089,8 @@
       "platform": "n3ds",
       "world": "kanto",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2000
+      "order": 2000,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "yellow-gb-vc-n3ds",
@@ -1990,7 +2098,8 @@
       "platform": "n3ds",
       "world": "kanto",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2010
+      "order": 2010,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "gold-gbc-vc-n3ds",
@@ -2001,7 +2110,8 @@
         "kanto"
       ],
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2020
+      "order": 2020,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "silver-gbc-vc-n3ds",
@@ -2012,7 +2122,8 @@
         "kanto"
       ],
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2030
+      "order": 2030,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "crystal-gbc-vc-n3ds",
@@ -2023,7 +2134,8 @@
         "kanto"
       ],
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2040
+      "order": 2040,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "tcg-gbc-vc-n3ds",
@@ -2031,7 +2143,8 @@
       "platform": "n3ds",
       "world": "tcg-islands",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2050
+      "order": 2050,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "snap-n64-vc-wii",
@@ -2039,7 +2152,8 @@
       "platform": "wii",
       "world": "pokemon-island",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2060
+      "order": 2060,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "puzzle-league-n64-vc-wii",
@@ -2047,7 +2161,8 @@
       "platform": "wii",
       "world": "kanto",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2070
+      "order": 2070,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "smash-n64-vc-wii",
@@ -2055,7 +2170,8 @@
       "platform": "wii",
       "world": "crossovers",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2080
+      "order": 2080,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "snap-n64-vc-wiiu",
@@ -2063,7 +2179,8 @@
       "platform": "wiiu",
       "world": "pokemon-island",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2090
+      "order": 2090,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "pinball-rs-gba-vc-wiiu",
@@ -2071,7 +2188,8 @@
       "platform": "wiiu",
       "world": "hoenn",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2100
+      "order": 2100,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "dungeon-red-rescue-gba-vc-wiiu",
@@ -2079,7 +2197,8 @@
       "platform": "wiiu",
       "world": "mystery-dungeon",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2110
+      "order": 2110,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "dungeon-blue-rescue-nds-vc-wiiu",
@@ -2087,7 +2206,8 @@
       "platform": "wiiu",
       "world": "mystery-dungeon",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2120
+      "order": 2120,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "dungeon-explorers-sky-nds-vc-wiiu",
@@ -2095,7 +2215,8 @@
       "platform": "wiiu",
       "world": "mystery-dungeon",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2130
+      "order": 2130,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "ranger-nds-vc-wiiu",
@@ -2103,7 +2224,8 @@
       "platform": "wiiu",
       "world": "fiore",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2140
+      "order": 2140,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "ranger-shadows-nds-vc-wiiu",
@@ -2111,7 +2233,8 @@
       "platform": "wiiu",
       "world": "almia",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2150
+      "order": 2150,
+      "excludedFromWorlds": "duplicate-rerelease"
     },
     {
       "id": "ranger-signs-nds-vc-wiiu",
@@ -2119,7 +2242,8 @@
       "platform": "wiiu",
       "world": "oblivia",
       "limitation": "An official Virtual Console edition. Attach its own package, not the original cartridge image.",
-      "order": 2160
+      "order": 2160,
+      "excludedFromWorlds": "duplicate-rerelease"
     }
   ],
   "chronologyReviewed": "2026-09-23"

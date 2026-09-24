@@ -13,7 +13,9 @@ QList<EditionChronology> collectionChronology();
 void sortWorldAdventures(QList<Adventure>&, const QList<PlatformLabel>&, const QList<EditionChronology>&);
 PlatformLabel platformLabel(const QString& id);
 QList<World> collectionWorlds();
-QList<Adventure> collectionCatalogue();
+QList<Adventure> collectionCatalogue(bool includeExcluded = false);
+QString collectionExclusion(const Adventure&, const QString& filename = {});
+QString collectionIdentity(const Adventure&);
 // Reference data is bundled, read-only and independent of the user's SQLite
 // records. Multiple owned revisions can refer to one catalogue edition.
 class CollectionRepository final : public LibraryRepository {
@@ -34,5 +36,7 @@ public:
     void saveAdventureAsync(const AdventureRegistration&, QObject*, std::function<void(LibraryWriteResult)>) override;
 private:
     LibraryRepository& personal_;
+    mutable QByteArray curatedKey_;
+    mutable QList<Adventure> curatedAdventures_;
 };
 }

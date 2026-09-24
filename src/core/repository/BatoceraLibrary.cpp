@@ -66,7 +66,7 @@ Adventure identify(const QString& filename,const QString& platform,bool hack) {
     const auto normalized=nameKey(stem);
     const bool japanese=stem.contains(QRegularExpression("\\((?:Japan|J)(?:,|\\))",QRegularExpression::CaseInsensitiveOption));
     QList<Adventure> matches;
-    for(const auto& a:collectionCatalogue()) {
+    for(const auto& a:collectionCatalogue(true)) {
         if(hack || a.platformId!=platform)continue;
         const bool jp=a.title.contains("(Japan)");
         if(jp!=japanese && (a.catalogueId=="red-gb" || a.catalogueId=="red-jp-gb" || a.catalogueId=="blue-gb" || a.catalogueId=="blue-jp-gb"))continue;
@@ -251,6 +251,7 @@ void BatoceraLibrary::importNext() {
             continue;
         }
         if(entry.existing)continue;
+        if(!collectionExclusion(r.adventure,r.contentPath).isEmpty())continue;
         bool duplicate=false;
         for(const auto& other:library_.registrations())
             if(QDir::cleanPath(other.contentPath)==QDir::cleanPath(r.contentPath)){duplicate=true;break;}

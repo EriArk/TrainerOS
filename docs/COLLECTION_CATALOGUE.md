@@ -1,5 +1,13 @@
 # Worlds collection catalogue
 
+**Owner curation, 2026-09-24:** English-only ordinary collection, one copy per
+game, no mobile services/companion utilities/educational discs, no duplicate
+Virtual Console checklist cards. Keep substantial spin-offs, fighting, photography
+and distinct ROM hacks; explicitly English fan translations remain eligible.
+[Current policy and device cleanup](CATALOGUE_CURATION.md) supersede the older
+broad coverage/visible-revision rules below. Historical identities remain for
+saves/history, not as grey catalogue cards.
+
 **2026-09-23 — #63:** the real collection now uses data-driven platform/edition
 chronology instead of linked-first alphabetical order. Search and Linked/Missing
 preserve that order; unknown years remain unknown. [Sources and boundaries](WORLD_CHRONOLOGY.md).
