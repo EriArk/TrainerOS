@@ -13,7 +13,7 @@ class CenterActivities final : public QObject {
     Q_PROPERTY(bool sample READ sample CONSTANT)
     Q_PROPERTY(QString reaction READ reaction NOTIFY changed)
     Q_PROPERTY(QVariantMap page READ page NOTIFY changed)
-    Q_PROPERTY(QVariantList actors READ actors NOTIFY changed)
+    Q_PROPERTY(QVariantList actors READ actors NOTIFY actorsChanged)
     Q_PROPERTY(bool hasParty READ hasParty NOTIFY changed)
     Q_PROPERTY(int reactionSerial READ reactionSerial NOTIFY changed)
     Q_PROPERTY(QString gesture READ gesture NOTIFY changed)
@@ -35,8 +35,11 @@ public:
     Q_INVOKABLE void activate(int);
 signals:
     void changed();
+    void actorsChanged();
+    void reactionRequested(int actor, int partner, const QString& gesture);
     void closeRequested();
 private:
+    void react(const QString& gesture);
     bool sample_;
     QString route_ = "menu", stage_ = "setup", reaction_;
     int menu_ = 0, actor_ = 0;

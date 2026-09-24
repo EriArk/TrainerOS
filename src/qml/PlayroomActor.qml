@@ -6,65 +6,72 @@ Item {
     required property int slot
     property bool playing: false
     property bool selected: false
-    property string gesture: ""
-    property int reactionSerial: 0
     readonly property var clips: member.clips || ({})
+    readonly property var portraits: member.portraits || ({})
     readonly property bool resting: member.condition === "Fainted" || member.condition === "Sleep"
     readonly property bool active: visible && playing && !Theme.reducedMotion && Qt.application.state === Qt.ApplicationActive
-    property string action: resting && clips.Sleep ? "Sleep" : "Idle"
+    property string action: "Idle"
+    property string emotion: ""
+    property string symbol: ""
     property real position: 0.5
     property real destination: 0.5
+    property real travelDuration: 1000
     property bool called: false
-    property bool greeting: false
-    readonly property real footprint: Math.min(150, width * 0.65)
+    readonly property bool busy: travel.running || pause.running
+    readonly property real footX: x + body.x + body.width/2
+    readonly property real footY: y + body.y + body.height
+    readonly property var portrait: portraits[emotion] || portraits.Normal || ({})
     onSelectedChanged: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
     onVisibleChanged: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
-    Component.onCompleted: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
+    Component.onCompleted: { settle(); if (selected && visible) forceActiveFocus(Qt.OtherFocusReason) }
     function settle() {
-        travel.stop(); pause.stop(); greeting = false; called = false
+        travel.stop(); pause.stop(); called = false; emotion = ""; symbol = ""
         position = 0.5; action = resting && clips.Sleep ? "Sleep" : "Idle"
     }
-    function react() {
-        if (!selected || !playing) return
-        travel.stop(); pause.stop()
-        greeting = gesture === "greet"; called = gesture === "call"
-        if (resting) action = clips.Sleep ? "Sleep" : "Idle"
-        else if (called && active) walk(0.5)
-        else { action = greeting && clips.Hop ? "Hop" : "Idle"; pause.restart() }
-    }
     function walk(to) {
-        destination = to
-        const direction = to >= position ? "WalkRight" : "WalkLeft"
-        if (!active || resting || !clips[direction]) { action = "Idle"; pause.restart(); return }
+        destination = Math.max(0.05, Math.min(0.95, to))
+        const direction = destination >= position ? "WalkRight" : "WalkLeft"
+        travelDuration = Math.max(650, Math.abs(destination-position) * (width-body.width) / 28 * 1000)
+        if (!active || resting || !clips[direction]) { action = resting && clips.Sleep ? "Sleep" : "Idle"; pause.restart(); return }
         action = direction; travel.restart()
     }
+    function respond(kind, toward) {
+        travel.stop(); pause.stop(); called = false
+        if (resting || kind === "rest") {
+            emotion = "Normal"; symbol = "z z"; action = clips.Sleep ? "Sleep" : "Idle"; pause.restart(); return
+        }
+        emotion = kind === "curious" ? "Normal" : "Happy"
+        symbol = kind === "greet" ? "♥" : kind === "curious" ? "?" : "♪"
+        if (kind === "call") { called = true; walk(0.5) }
+        else if (kind === "play" || kind === "chat") walk(toward)
+        else { action = "Idle"; pause.restart() }
+    }
     function wander(choice, to) {
-        if (!active || travel.running || pause.running || resting) return
-        called = false; greeting = false
+        if (!active || busy || resting) return
+        emotion = ""; symbol = ""; called = false
         if (choice === 0 && clips.Sleep) { action = "Sleep"; pause.restart() }
         else walk(to)
     }
-    onReactionSerialChanged: react()
     onActiveChanged: if (!active) settle()
     onMemberChanged: settle()
     Rectangle {
-        x: body.x + 10; y: body.y + body.height - 9
-        width: root.footprint - 20; height: 17; radius: width / 2
-        color: root.selected ? "#90edb52a" : "#30618565"
-        border.width: root.selected ? 2 : 0; border.color: "#ffe29b"
+        x: body.x + 13; y: body.y + body.height - 5
+        width: body.width - 26; height: 10; radius: 5
+        color: root.selected ? "#b0ffcc38" : "#50618b43"
+        border.width: root.selected ? 2 : 0; border.color: "#fff4a0"
     }
     Item {
         id: body
         x: (root.width - width) * root.position
-        y: parent.height - height - 16 + (root.called ? 12 : 0) - (root.greeting ? 8 : 0)
-        width: root.footprint; height: Math.min(122, parent.height - 12)
-        Behavior on y { NumberAnimation { duration: Theme.motion(220) } }
+        y: parent.height - height - 9 + (root.called ? 12 : 0)
+        width: 94; height: 76
+        Behavior on y { NumberAnimation { duration: Theme.motion(250) } }
         SpritePreview {
             id: sprite; objectName: "playroom-sprite-" + root.slot
             anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom
-            width: parent.width; height: Math.min(parent.height, cellHeight > 0 ? cellHeight * 3 : parent.height)
+            width: parent.width; height: Math.min(parent.height, cellHeight > 0 ? cellHeight * 2 : parent.height)
             asset: root.clips[root.action] || root.clips.Idle || ({})
-            pixelScale: 3; trimTransparentMargins: true; playing: root.active
+            pixelScale: 2; trimTransparentMargins: true; playing: root.active
         }
         Image {
             anchors.fill: parent; source: root.visible && !sprite.ready && root.member.art ? root.member.art.url || "" : ""
@@ -73,14 +80,29 @@ Item {
         Text {
             anchors.centerIn: parent; width: parent.width; visible: !sprite.ready && !(root.member.art && root.member.art.url)
             text: root.member.name; textFormat: Text.PlainText; horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 19
+            wrapMode: Text.WordWrap; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 15
         }
-        Text { anchors.right: parent.right; y: 0; text: root.greeting ? "♪" : root.action === "Sleep" ? "z z" : ""; color: "#6c6697"; font.pixelSize: 21; font.bold: true }
+        Rectangle {
+            id: bubble; objectName: "playroom-bubble-" + root.slot
+            visible: root.emotion.length > 0
+            x: parent.width-12; y: -31; width: 55; height: 50; radius: 8
+            color: "#fffce4"; border.width: 2; border.color: "#566d49"
+            scale: visible ? 1 : 0.8
+            Behavior on scale { NumberAnimation { duration: Theme.motion(140); easing.type: Easing.OutBack } }
+            Rectangle { x: 7; y: parent.height-5; width: 9; height: 9; rotation: 45; color: "#fffce4"; border.color: "#566d49" }
+            Rectangle { x: 5; y: parent.height-8; width: 16; height: 6; color: "#fffce4" }
+            Image {
+                id: face; anchors.centerIn: parent; width: 40; height: 40
+                source: bubble.visible ? root.portrait.url || "" : ""
+                asynchronous: true; smooth: false; fillMode: Image.PreserveAspectFit
+            }
+            Text { anchors.centerIn: parent; visible: face.status !== Image.Ready; text: root.symbol; color: "#bc5973"; font.pixelSize: 25; font.bold: true }
+        }
+        Text { x: parent.width-8; y: parent.height-24; text: root.action === "Sleep" ? "z z" : root.symbol; color: root.action === "Sleep" ? "#435f71" : "#b24d67"; font.pixelSize: 16; font.bold: true }
     }
-    Timer { id: pause; interval: 3300; running: false; onTriggered: { root.greeting = false; root.called = false; root.action = root.resting && root.clips.Sleep ? "Sleep" : "Idle" } }
+    Timer { id: pause; interval: 4200; onTriggered: { root.emotion = ""; root.symbol = ""; root.called = false; root.action = root.resting && root.clips.Sleep ? "Sleep" : "Idle" } }
     NumberAnimation {
-        id: travel; target: root; property: "position"; to: root.destination
-        duration: Math.max(550, Math.abs(root.destination-root.position) * root.width / 35 * 1000)
+        id: travel; target: root; property: "position"; to: root.destination; duration: root.travelDuration
         onFinished: { root.action = "Idle"; pause.restart() }
     }
 }

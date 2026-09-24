@@ -7,7 +7,32 @@ void CenterActivities::setParty(const QVariantList& actors, const QString& sourc
     if (actors_ == actors && source_ == source && unavailable_ == unavailable) return;
     actors_ = actors; source_ = source; unavailable_ = unavailable;
     actor_ = 0; reaction_.clear(); gesture_.clear(); ++reactionSerial_;
+    emit actorsChanged();
     emit changed();
+}
+void CenterActivities::react(const QString& gesture) {
+    if (route_ != "playroom" || !hasParty()) return;
+    const auto resting = [this](int index) {
+        const auto condition = actors_[index].toMap()["condition"].toString();
+        return condition == "Fainted" || condition == "Sleep";
+    };
+    gesture_ = resting(actor_) ? QStringLiteral("rest") : gesture;
+    int partner = -1;
+    if (gesture_ == "play") {
+        for (int offset = 1; offset < actors_.size(); ++offset) {
+            const int candidate = (actor_ + offset) % actors_.size();
+            if (!resting(candidate)) { partner = candidate; break; }
+        }
+    }
+    const auto name = actors_[actor_].toMap()["name"].toString();
+    reaction_ = gesture_ == "rest" ? name + " is resting"
+        : gesture_ == "call" ? name + " called over"
+        : gesture_ == "greet" ? name + " greets you"
+        : partner < 0 ? name + " plays catch"
+        : name + " & " + actors_[partner].toMap()["name"].toString() + " play together";
+    ++reactionSerial_;
+    emit changed();
+    emit reactionRequested(actor_, partner, gesture_);
 }
 QVariantMap CenterActivities::page() const {
     if (route_ == "menu") return {{"title", "Center activities"}, {"message", "Choose a place to visit"}, {"action", "Open"}};
@@ -41,8 +66,7 @@ void CenterActivities::activate(int index) {
         stage_ = "setup"; reaction_.clear(); actor_ = 0;
     } else if (route_ == "playroom" && hasParty()) {
         actor_ = std::clamp(index, 0, int(actors_.size()) - 1);
-        gesture_ = "call"; ++reactionSerial_;
-        reaction_ = actors_[actor_].toMap()["name"].toString() + " called over";
+        react("call"); return;
     }
     else if (!sample_ || route_ == "playroom") route_ = "menu";
     else if (route_ == "practice") stage_ = stage_ == "setup" ? "preview" : "setup";
@@ -65,9 +89,9 @@ void CenterActivities::dispatch(Action action) {
             reaction_.clear();
         }
         if (action == Action::Secondary) {
-            gesture_ = "greet"; ++reactionSerial_;
-            reaction_ = actors_[actor_].toMap()["name"].toString() + " greets you";
+            react("greet"); return;
         }
+        if (action == Action::LocalAction) { react("play"); return; }
     }
     emit changed();
 }

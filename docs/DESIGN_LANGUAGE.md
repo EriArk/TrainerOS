@@ -1,5 +1,17 @@
 # TrainerOS Design Language
 
+## Party Playroom meadow — 2026-09-24
+
+The separate Playroom uses an original pixel meadow, an oblique top-down view,
+wooden enclosure, grass, trees and an open gate. It replaces the flat oval garden.
+Two depth rows leave walking room around six differently sized native sprites.
+Same-set emotional portraits sit in brief speech bubbles above the actors;
+gold ground markers retain selection while the creature moves. A cream dock
+attached below the scene carries identity; controller legends remain only in the
+chassis footer. Static tile scenery is cached, moving actors stay bounded and
+all ambient activity stops behind menus or on other pages. No save rewards or
+friendship changes are implied by these playful reactions.
+
 ## Environmental World cards — 2026-09-24
 
 The region browser uses three columns and two tall rows within its bounded

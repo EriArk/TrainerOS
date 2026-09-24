@@ -1,5 +1,6 @@
 #include "features/pokedex/SpriteArt.h"
 #include "features/pokedex/PokedexController.h"
+#include "features/center/PartyPresentation.h"
 #include "core/repository/OfflinePokedex.h"
 #include <QtTest>
 #include <QTemporaryDir>
@@ -27,6 +28,23 @@ class SpriteArtTests final : public QObject {
         manifest.write(QJsonDocument(root).toJson()); return id;
     }
 private slots:
+    void partyKeepsPortraitsSeparateFromAnimationAndExactForm() {
+        QTemporaryDir dir;const auto id=fixture(dir.path());
+        QFile file(dir.filePath("sprite-index.json"));QVERIFY(file.open(QIODevice::ReadOnly));
+        auto root=QJsonDocument::fromJson(file.readAll()).object();file.close();
+        auto assets=root["assets"].toObject();auto face=assets[id].toObject();
+        face["kind"]="portrait";face["action"]="Normal";assets[id]=face;root["assets"]=assets;
+        QVERIFY(file.open(QIODevice::WriteOnly));file.write(QJsonDocument(root).toJson());file.close();
+        SpriteArt sprites(dir.path());PartyPresentation party(false);party.configureArtwork(nullptr,&sprites);
+        party.setAdventure("game","Game");GameProgress progress;progress.availability=ProgressAvailability::Available;
+        PartySnapshot snapshot;PokemonRecord mon;mon.kind=PokemonSlotKind::Known;mon.speciesId="vulpix";mon.formId="37";
+        snapshot.party.append(mon);progress.party=snapshot;progress.saveRevision="one";party.setProgress("game",progress);
+        auto row=party.activities()->actors().first().toMap();
+        QCOMPARE(row["portraits"].toMap()["Normal"].toMap()["url"].toString(),"image://sprite-detail/"+id);
+        QVERIFY(row["clips"].toMap().isEmpty());
+        progress.party->party[0].formId="10205";progress.saveRevision="two";party.setProgress("game",progress);
+        QVERIFY(party.activities()->actors().first().toMap()["portraits"].toMap().isEmpty());
+    }
     void fittedCompanionCropsPaddingAcrossAllFrames() {
         QTemporaryDir dir;QDir(dir.path()).mkpath("images");
         QImage sheet(40,20,QImage::Format_ARGB32);sheet.fill(Qt::transparent);

@@ -124,13 +124,15 @@ QVariantMap PartyPresentation::withArt(QVariantMap row) const {
     if (row["kind"] == "known") {
         const auto target = row["target"].toString();
         row["art"] = art_ ? art_->image(target, "pokedexDetailArt") : QVariantMap{};
-        QVariantMap clips;
+        QVariantMap clips, portraits;
         if (sprites_) for (const auto& asset : sprites_->choices(target))
             if (asset.toMap()["kind"] == "sprite") {
                 clips[asset.toMap()["action"].toString()] = asset;
                 if (asset.toMap()["action"] == "Idle") row["sprite"] = asset;
-            }
+            } else if (asset.toMap()["kind"] == "portrait")
+                portraits[asset.toMap()["action"].toString()] = asset;
         row["clips"] = clips;
+        row["portraits"] = portraits;
     }
     return row;
 }

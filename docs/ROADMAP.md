@@ -19,7 +19,8 @@ Pokedex projection](SAVE_POKEDEX.md) now supplies English Emerald National
 Seen/Caught. The owner then retired the manual journal, notes and editing;
 favorites and verified save records remain. [Party Playroom](PARTY_PLAYROOM.md)
 now consumes the same real team, with bounded sprites and controller call/greet.
-Further social/portrait scenes, additional
+The delivered meadow refinement adds original pixel scenery, same-set emotion bubbles,
+neighbor greetings and controller ball play. Further scene refinements, additional
 formats and independently guarded writers keep their existing acceptance.
 
 **Current owner order — 2026-09-24:** native [ScreenScraper #65](SCREENSCRAPER.md)

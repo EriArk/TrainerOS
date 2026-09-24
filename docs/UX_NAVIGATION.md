@@ -3,7 +3,9 @@
 **2026-09-24 simplification:** Pokédex has no manual journal, note editor or
 Select shortcut. A still toggles a favorite; Y chooses Adventure. Center →
 Activities → Party Playroom uses the verified Party: Left/Right selects a stable
-member, A calls, X greets, B returns. All legends stay in the bottom chassis.
+member, A calls, X greets, Select plays catch, B returns. Play recruits the next
+awake member or stays solo; resting members stay resting. Emotion bubbles use
+the same exact-form portrait set. All legends stay in the bottom chassis.
 
 **Library context actions — 2026-09-24:** hold physical A in a populated game
 wheel for Rename / Move / Delete / Properties; short A retains its prior action.

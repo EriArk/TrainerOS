@@ -214,7 +214,7 @@ Window {
                 if (shell.page === 2 && shell.centerFace) {
                     const party = shell.party
                     if (party.section === "saves") return shell.center.confirming ? [h("A","Restore"),h("B","Cancel")] : [h("X",shell.center.route === "adventures" ? "Search" : "Refresh"),h("Select","Backup"),h("A","Open"),h("B","Back")]
-                    if (party.section === "activities") return party.activities.route === "playroom" && party.activities.hasParty ? [h("←→","Partner"),h("X","Greet"),h("A","Call"),h("B","Back")] : [h("A","Select"),h("B","Back")]
+                    if (party.section === "activities") return party.activities.route === "playroom" && party.activities.hasParty ? [h("←→","Partner"),h("Select","Play"),h("X","Greet"),h("A","Call"),h("B","Back")] : [h("A","Select"),h("B","Back")]
                     if (party.detailOpen) return [h("A","Select"),h("B","Close")]
                     if (party.boxFocused) return [h("←→","Box"),h("↓","Slots"),h("X","Party"),h("B","Back")]
                     const actions = [h("X",party.section === "party" ? "Storage" : "Party"),h("Select","Backups"),h("A",party.available && !party.activitiesFocused ? "Actions" : "Open"),h("B","Back")]

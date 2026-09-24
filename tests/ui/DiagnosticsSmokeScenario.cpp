@@ -229,7 +229,11 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             check(focus("playroom-actor-1") && shell.party()->activities()->reaction().contains("called"), "Calling preserves the selected actor control");
             press(SDL_CONTROLLER_BUTTON_Y); break;
         case 48:
-            capture("playroom-greeting"); press(b); press(down); press(a); break;
+            capture("playroom-greeting");
+            press(SDL_CONTROLLER_BUTTON_BACK);
+            check(shell.party()->activities()->gesture()=="play", "Select plays without opening backups");
+            check(focus("playroom-actor-1"), "Play retains partner selection");
+            press(b); press(down); press(a); break;
         case 49:
             check(shell.party()->activities()->route()=="practice" && focus("activity-primary"), "Practice setup is controller accessible");
             capture("practice-setup"); press(a); break;

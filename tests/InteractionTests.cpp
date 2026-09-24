@@ -130,8 +130,8 @@ private slots:
         party.setProgress("emerald",observation);QVERIFY(party.available());QVERIFY(!party.sample());
         auto* room = party.activities();
         QCOMPARE(room->actors().size(),1); QCOMPARE(room->actors()[0].toMap()["name"],"Pikachu");
-        room->activate(0);room->dispatch(Action::Confirm);QCOMPARE(room->gesture(),"call");
-        room->dispatch(Action::Secondary);QCOMPARE(room->gesture(),"greet");
+        room->activate(0);room->dispatch(Action::Confirm);QCOMPARE(room->gesture(),"rest");
+        room->dispatch(Action::Secondary);QCOMPARE(room->gesture(),"rest");
         QCOMPARE(observation.party->party[0].hp,std::optional<int>(0));
         QCOMPARE(party.entries().size(),6);QCOMPARE(party.detail()["hp"],"0 / 20");
         party.dispatch(Action::Secondary);QCOMPARE(party.boxCount(),14);QCOMPARE(party.box(),13);
@@ -165,6 +165,27 @@ private slots:
         p.saveRevision="bad";p.party->error="Unreadable";party.setProgress("emerald",p);QVERIFY(room->actors().isEmpty());
         room->dispatch(Action::Secondary);QVERIFY(room->reaction().isEmpty());room->dispatch(Action::Confirm);QCOMPARE(room->route(),"menu");
         p.saveRevision="empty";p.party->error.clear();p.party->party.clear();party.setProgress("emerald",p);QVERIFY(room->actors().isEmpty());
+    }
+    void playroomReactionsKeepActorsAndRespectRestingPartners() {
+        CenterActivities room(false);
+        QVariantList team{QVariantMap{{"name","One"},{"condition","Healthy"}},
+            QVariantMap{{"name","Two"},{"condition","Sleep"}},
+            QVariantMap{{"name","Three"},{"condition","Healthy"}}};
+        room.setParty(team,"save-one",{}); room.activate(0);
+        QSignalSpy roster(&room,&CenterActivities::actorsChanged);
+        QSignalSpy reactions(&room,&CenterActivities::reactionRequested);
+        room.dispatch(Action::LocalAction);
+        QCOMPARE(room.gesture(),"play"); QCOMPARE(reactions.last()[1].toInt(),2);
+        room.dispatch(Action::Secondary); QCOMPARE(room.gesture(),"greet");
+        room.dispatch(Action::Right);room.dispatch(Action::LocalAction);
+        QCOMPARE(room.gesture(),"rest");QCOMPARE(reactions.last()[1].toInt(),-1);
+        QCOMPARE(room.actors(),team);QCOMPARE(roster.count(),0);
+        room.setParty(team,"other-owner",{});QCOMPARE(roster.count(),1);
+        QVERIFY(room.reaction().isEmpty());QCOMPARE(room.focusIndex(),0);
+        room.setParty({team[0]},"solo",{});room.dispatch(Action::LocalAction);
+        QCOMPARE(room.gesture(),"play");QCOMPARE(reactions.last()[1].toInt(),-1);
+        room.setParty({},"missing",{});const auto count=reactions.count();
+        room.dispatch(Action::LocalAction);QCOMPARE(reactions.count(),count);
     }
     void multiverseIsolationAndModalPriority() {
         MockLibraryRepository library; MockTrainerRepository profiles;
