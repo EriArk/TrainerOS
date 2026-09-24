@@ -1,5 +1,12 @@
 # TrainerOS UX & Navigation
 
+**Emerald Center, 2026-09-24:** Party member actions include Visit Pokémon Center.
+The nurse's room accepts A to heal the team and B to leave; no write occurs on
+entry. During treatment the existing service gate blocks unsafe interruption.
+Start overlays and L1/R1 global pages remain available, while Y and paired faces
+cannot retarget an open clinic. Controller legends stay in the bottom chassis.
+[Exact-build treatment and recovery](EMERALD_HEALING.md).
+
 **2026-09-24 simplification:** Pokédex has no manual journal, note editor or
 Select shortcut. A still toggles a favorite; Y chooses Adventure. Center →
 Activities → Party Playroom uses the verified Party: Left/Right selects a stable

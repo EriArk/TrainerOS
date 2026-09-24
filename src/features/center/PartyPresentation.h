@@ -56,6 +56,7 @@ public:
     void returnFromSaves();
 signals:
     void changed();
+    void healingRequested();
 private:
     QVariantMap slot(int) const;
     QVariantMap present(const PokemonRecord&, int) const;

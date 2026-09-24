@@ -8,6 +8,7 @@
 #include "integrations/adventure/standalone/StandaloneAdapter.h"
 #include "integrations/adventure/standalone/MelonDsSave.h"
 #include "integrations/progress/GameProgressService.h"
+#include "integrations/progress/Gen3Progress.h"
 #include <QJsonDocument>
 #include "integrations/achievements/RetroAchievementsProvider.h"
 #include "core/storage/SessionState.h"
@@ -296,9 +297,11 @@ int main(int argc, char* argv[]) {
                     const auto revision=QString::fromLatin1(QCryptographicHash::hash(content.readAll(),QCryptographicHash::Sha256).toHex());
                     return SaveTarget{record.adventure.id,record.adventure.title,record.contentPath+".srm",revision,record.contentPath,{},true};
                 },[](const AdventureRegistration& record){return record.adventure.adapterId=="backup-fixture";});
+            saveBackups->configureHealing([](const QByteArray&,const QString&){return SaveHealing{"HEALED SAVE",{},3};});
         }
 #endif
         if(saveBackups) {
+            if (!smoke) saveBackups->configureHealing(healEmeraldParty);
             shell.center()->configure(saveBackups.get());
             QObject::connect(saveBackups.get(),&SaveBackupService::operationFailed,&session,&SessionState::cancelPendingExit);
         }

@@ -18,6 +18,11 @@ class SaveCenterController final : public QObject {
     Q_PROPERTY(bool confirming READ confirming NOTIFY changed)
     Q_PROPERTY(bool companion READ companion NOTIFY changed)
     Q_PROPERTY(QString restoreLabel READ restoreLabel NOTIFY changed)
+    Q_PROPERTY(bool clinicOpen READ clinicOpen NOTIFY changed)
+    Q_PROPERTY(QString treatment READ treatment NOTIFY changed)
+    Q_PROPERTY(QString clinicMessage READ clinicMessage NOTIFY changed)
+    Q_PROPERTY(bool canHeal READ canHeal NOTIFY changed)
+    Q_PROPERTY(int partyCount READ partyCount NOTIFY changed)
 public:
     explicit SaveCenterController(LibraryRepository&,QObject* parent=nullptr);
     void configure(SaveBackupService*);
@@ -32,6 +37,13 @@ public:
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void back();
     Q_INVOKABLE void search();
+    Q_INVOKABLE void visitClinic();
+    Q_INVOKABLE void heal();
+    bool clinicOpen() const { return clinicOpen_; }
+    QString treatment() const { return treatment_; }
+    QString clinicMessage() const;
+    bool canHeal() const { return snapshot_.canHeal && !busy(); }
+    int partyCount() const { return snapshot_.partyCount; }
     QString route() const { return route_; }
     QString title() const;
     QString message() const;
@@ -65,5 +77,7 @@ private:
     bool companion_=false, refreshPending_=false;
     int focus_=0;
     quint64 generation_=0;
+    bool clinicOpen_=false;
+    QString treatment_="ready", clinicMessage_;
 };
 }

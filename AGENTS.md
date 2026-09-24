@@ -1,5 +1,11 @@
 # AGENTS.md — TrainerOS
 
+**Owner Center scope, 2026-09-24:** complete the real healing cycle for verified
+English Emerald first, with a game-inspired Pokémon Center/nurse presentation.
+Adapt other games/platforms later; one platform does not imply one save format.
+Use automatic verified protection, exact-build writes and normal in-game readback.
+Keep box management, exchange and all other accepted roadmap work intact.
+
 **Owner simplification, 2026-09-24:** remove the manual Pokédex journal entirely:
 no Seen/Caught editor, notes, separate journal screen or Select shortcut. Verified
 selected-save progression and personal favorites remain. This supersedes earlier

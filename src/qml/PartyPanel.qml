@@ -148,11 +148,7 @@ Item {
         MountedPanel {
             anchors.centerIn: parent; width: 330; height: 232; color: "#e3e9dc"
             Text { textFormat: Text.PlainText; x: 22; y: 17; width: parent.width - 44; text: root.selected.name || "Pokémon"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 24; elide: Text.ElideRight }
-            Row {
-                x: 22; y: 56; spacing: 10
-                CapButton { width: 138; height: 38; label: "Move"; enabled: false }
-                CapButton { width: 138; height: 38; label: "Heal"; enabled: false }
-            }
+            CapButton { objectName: "party-menu-heal"; x: 22; y: 56; width: 286; height: 38; label: "Visit Pokémon Center"; tint: Theme.pink; selected: root.takesFocus && root.party.menuIndex === 2; onActivated: root.party.activate(2) }
             CapButton { objectName: "party-menu-backups"; x: 22; y: 108; width: 286; height: 42; label: "Adventure backups"; tint: Theme.blue; selected: root.takesFocus && root.party.menuIndex === 1; onActivated: root.party.activate(1) }
             CapButton { objectName: "party-detail-back"; x: 22; y: 166; width: 286; height: 42; label: "Close"; selected: root.takesFocus && root.party.menuIndex === 0; onActivated: root.party.activate(0) }
         }

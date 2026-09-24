@@ -213,6 +213,7 @@ Window {
                 }
                 if (shell.page === 2 && shell.centerFace) {
                     const party = shell.party
+                    if (shell.center.clinicOpen) return shell.center.busy ? [] : [h("A",shell.center.treatment === "ready" && shell.center.canHeal ? "Heal team" : "Back"),h("B","Back")]
                     if (party.section === "saves") return shell.center.confirming ? [h("A","Restore"),h("B","Cancel")] : [h("X",shell.center.route === "adventures" ? "Search" : "Refresh"),h("Select","Backup"),h("A","Open"),h("B","Back")]
                     if (party.section === "activities") return party.activities.route === "playroom" && party.activities.hasParty ? [h("←→","Partner"),h("Select","Play"),h("X","Greet"),h("A","Call"),h("B","Back")] : [h("A","Select"),h("B","Back")]
                     if (party.detailOpen) return [h("A","Select"),h("B","Close")]
@@ -259,9 +260,10 @@ Window {
         SettingsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "settings" }
         DevicePanel { anchors.fill: screen; shell: shellController; visible: shell.service === "device" }
         DiagnosticsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "diagnostics" }
-        PartyPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && shell.party.section !== "saves" && shell.party.section !== "activities" }
-        CenterActivitiesPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && shell.party.section === "activities" }
-        SaveCenterPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && shell.party.section === "saves" }
+        PartyPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && !shell.center.clinicOpen && shell.party.section !== "saves" && shell.party.section !== "activities" }
+        PokemonClinic { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && shell.center.clinicOpen }
+        CenterActivitiesPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && !shell.center.clinicOpen && shell.party.section === "activities" }
+        SaveCenterPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && !shell.center.clinicOpen && shell.party.section === "saves" }
         LibraryToolsPanel { anchors.fill: screen; shell: shellController; z: 1; visible: shell.libraryTools.open }
         KeyboardPanel {
             anchors { left: screen.left; right: screen.right; top: screen.top; bottom: footer.top }

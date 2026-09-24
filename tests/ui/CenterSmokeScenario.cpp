@@ -85,6 +85,27 @@ void startCenterSmoke(QQuickWindow* window,ShellController& shell,SessionState& 
             check(focus("resume-0"),"Center drawer also owns actual focus");capture("center-choose");press(b);break;
         case 17:
             check(!shell.drawerOpen()&&focus("center-row-0"),"Cancelling drawer restores Center focus");
+            shell.center()->visitClinic();window->resize(960,540);break;
+        case 18:
+            check(shell.center()->clinicOpen()&&focus("clinic-action"),"Clinic owns visible controller focus");capture("clinic-ready");
+            press(y);trigger(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);check(shell.center()->clinicOpen()&&!shell.drawerOpen(),"Clinic cannot change its treatment target");
+            press(start);press(b);check(shell.center()->clinicOpen(),"Start returns to the nurse");
+            press(b);check(!shell.center()->clinicOpen()&&read()=="SECOND SAVE","Cancel never heals");
+            shell.center()->visitClinic();break;
+        case 19:
+            press(a);break;
+        case 20:
+            check(shell.center()->treatment()=="done"&&read()=="HEALED SAVE","Controller healing writes the verified treatment");
+            check(shell.center()->rows().size()==5,"Healing creates its protection copy");capture("clinic-complete");
+            press(b);check(!shell.center()->clinicOpen(),"Back returns from completed treatment");
+            shell.center()->visitClinic();break;
+        case 21:
+            press(b);shell.center()->activate(0);press(a);break;
+        case 22:
+            check(read()=="SECOND SAVE","Before-healing backup restores the exact previous save");
+            shell.center()->visitClinic();break;
+        case 23:
+            press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);check(shell.page()==3&&!shell.center()->clinicOpen(),"L1/R1 leaves idle Center without a write");
             check(warnings==0,"QML warnings");completed=true;timer->stop();
             if(!screenshots.isEmpty()){QFile report(screenshots+"/verification.txt");if(report.open(QIODevice::WriteOnly))report.write(((*failed?QString("FAILED\n"):QString("PASSED\n"))+diagnostics.join('\n')).toUtf8());}
             if(*failed){qCritical().noquote()<<diagnostics.join('\n');QCoreApplication::exit(1);}else window->close();break;

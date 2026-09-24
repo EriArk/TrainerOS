@@ -2,6 +2,7 @@
 #include "EmeraldParty.h"
 #include <QtEndian>
 #include <array>
+#include <algorithm>
 
 namespace trainer {
 namespace {
@@ -12,6 +13,7 @@ struct Slot {
     bool valid = false;
     quint32 counter = 0;
     std::array<QByteArray, SectorCount> blocks;
+    std::array<int, SectorCount> offsets{};
 };
 Slot readSlot(const QByteArray& bytes, int base, Gen3Edition edition) {
     Slot result;
@@ -28,6 +30,7 @@ Slot readSlot(const QByteArray& bytes, int base, Gen3Edition edition) {
         for (int word = 0; word < length; word += 4) sum += u32(bytes, offset + word);
         if (quint16((sum >> 16) + sum) != u16(bytes, offset + 0xff6)) return {};
         result.blocks[id] = bytes.mid(offset, length);
+        result.offsets[id] = offset;
     }
     result.valid = true;
     return result;
@@ -90,5 +93,58 @@ GameProgress readGen3Progress(const QByteArray& save, Gen3Edition edition) {
         result.party = readEmeraldParty(world, storage);
     }
     return result;
+}
+
+SaveHealing healEmeraldParty(const QByteArray& save, const QString& contentHash) {
+    if (gen3Edition(contentHash) != Gen3Edition::Emerald)
+        return {{},"Healing is currently available for the verified English Pokémon Emerald edition."};
+    if (save.size() != 0x20000) return {{},"This save could not be verified."};
+    const auto a = readSlot(save,0,Gen3Edition::Emerald), b = readSlot(save,SectorCount*Sector,Gen3Edition::Emerald);
+    // Reading can recover one intact slot. Writing requires an unambiguous pair.
+    const quint32 distance = b.counter-a.counter;
+    if (!a.valid || !b.valid || !distance || distance == 0x80000000u)
+        return {{},"Save once more inside Emerald, close the game, then try again."};
+    const auto& latest = distance < 0x80000000u ? b : a;
+    const auto before = readGen3Progress(save,Gen3Edition::Emerald);
+    if (!before.party || !before.party->error.isEmpty()) return {{},"Your team could not be verified."};
+    const int count = quint8(latest.blocks[1][0x234]);
+    if (count < 1 || count > 6) return {{},"There are no Pokémon to heal yet."};
+    QByteArray result = save;
+    int healed = 0;
+    for (int i=0; i<count; ++i) {
+        const auto& mon = before.party->party[i];
+        if (mon.kind == PokemonSlotKind::Egg) continue; // Preserve eggs byte-for-byte.
+        if (mon.kind != PokemonSlotKind::Known || !mon.hp || mon.moves.size()!=4)
+            return {{},"A team member could not be verified. Your save was not changed."};
+        const int at = latest.offsets[1]+0x238+i*100;
+        const quint32 personality=u32(save,at), key=personality^u32(save,at+4);
+        QByteArray clear=save.mid(at+32,48);
+        for (int p=0;p<48;p+=4) qToLittleEndian(u32(clear,p)^key,clear.data()+p);
+        std::array<int,4> order{0,1,2,3};
+        for (quint32 p=0;p<personality%24;++p) std::next_permutation(order.begin(),order.end());
+        const int attacks=int(std::find(order.begin(),order.end(),1)-order.begin())*12;
+        for (int m=0;m<4;++m) clear[attacks+8+m]=char(mon.moves[m].maxPp);
+        quint16 checksum=0;
+        for (int p=0;p<48;p+=2) checksum=quint16(checksum+u16(clear,p));
+        qToLittleEndian(checksum,result.data()+at+28);
+        for (int p=0;p<48;p+=4) qToLittleEndian(u32(clear,p)^key,result.data()+at+32+p);
+        qToLittleEndian(quint32(0),result.data()+at+80);
+        qToLittleEndian(u16(save,at+88),result.data()+at+86);
+        ++healed;
+    }
+    if (!healed) return {{},"Your team contains only Eggs. They do not need treatment."};
+    const int sector=latest.offsets[1]; quint32 sum=0;
+    for (int p=0;p<Payload;p+=4) sum+=u32(result,sector+p);
+    qToLittleEndian(quint16((sum>>16)+sum),result.data()+sector+0xff6);
+    const auto after=readGen3Progress(result,Gen3Edition::Emerald);
+    if (!after.party || !after.party->error.isEmpty()) return {{},"The healed team could not be verified."};
+    for (int i=0;i<count;++i) {
+        const auto& mon=after.party->party[i];
+        if (mon.kind==PokemonSlotKind::Egg) continue;
+        if (mon.kind!=PokemonSlotKind::Known || mon.condition!="Healthy" || mon.hp!=u16(result,sector+0x238+i*100+88))
+            return {{},"The healed team could not be verified."};
+        for (const auto& move:mon.moves) if (move.pp!=move.maxPp) return {{},"Move recovery could not be verified."};
+    }
+    return {result,{},healed};
 }
 }

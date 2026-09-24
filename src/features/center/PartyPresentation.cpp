@@ -149,7 +149,7 @@ void PartyPresentation::activate(int index) {
     if (section_ == "activities") { activities_.activate(index); return; }
     if (activitiesFocus_) { openActivities(); return; }
     if (boxFocus_) { changeBox(1); return; }
-    if (detail_) { if (index == 1) openSaves(); else { detail_ = false; emit changed(); } return; }
+    if (detail_) { if (index == 2) {detail_=false;emit changed();emit healingRequested();} else if (index == 1) openSaves(); else { detail_ = false; emit changed(); } return; }
     if (!available()) { openSaves(); return; }
     const int count = section_ == "party" ? 6 : 30;
     if (index < 0 || index >= count || section_ == "saves") return;
@@ -166,7 +166,7 @@ void PartyPresentation::dispatch(Action action) {
     if (detail_) {
         if (action == Action::Back) { detail_ = false; emit changed(); }
         else if (action == Action::Confirm) activate(menuIndex_);
-        else if (action == Action::Up || action == Action::Down) { menuIndex_ = 1 - menuIndex_; emit changed(); }
+        else if (action == Action::Up || action == Action::Down) { menuIndex_ = (menuIndex_ + (action==Action::Up?1:2))%3; emit changed(); }
         return;
     }
     if (action == Action::LocalAction) { openSaves(); return; }

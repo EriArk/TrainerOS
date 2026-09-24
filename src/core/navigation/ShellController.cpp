@@ -40,6 +40,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     });
     connect(&settings_, &SettingsController::trashRequested,this,[this]{libraryTools_.beginTrash();});
     connect(&party_, &PartyPresentation::changed, this, &ShellController::changed);
+    connect(&party_, &PartyPresentation::healingRequested, &center_, &SaveCenterController::visitClinic);
     connect(&center_, &SaveCenterController::changed, this, [this] {
         if (center_.confirming()) party_.openSaves();
     });
@@ -201,7 +202,7 @@ bool ShellController::canEditWorld() const {
         && !drawerOpen_ && !libraryTools_.isOpen() && !worlds_.region().value("id").toString().isEmpty();
 }
 bool ShellController::localModalOpen() {
-    return libraryTools_.isOpen() || trainer_.editing() || (page_ == 2 && (centerFace_ ? center_.confirming() || party_.detailOpen()
+    return libraryTools_.isOpen() || trainer_.editing() || (page_ == 2 && (centerFace_ ? center_.confirming() || center_.clinicOpen() || party_.detailOpen()
         : pokedex_.zone() == "picker" || pokedex_.zone() == "art" || pokedex_.saving()))
         || (page_ == 4 && (hall_.editor()->isOpen() || hall_.account()->isOpen()));
 }
@@ -702,7 +703,8 @@ void ShellController::dispatch(Action action) {
         }
         if (page_ == 2) {
             if (centerFace_) {
-                if (party_.section() != "saves") party_.dispatch(action);
+                if (center_.clinicOpen()) center_.dispatch(action);
+                else if (party_.section() != "saves") party_.dispatch(action);
                 else if (action == Action::Back && !center_.confirming() && !center_.busy()) party_.returnFromSaves();
                 else center_.dispatch(action);
             }

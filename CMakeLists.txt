@@ -255,6 +255,7 @@ qt_add_qml_module(traineros
         src/qml/SpriteActor.qml
         src/qml/SaveCenterPanel.qml
         src/qml/PartyPanel.qml
+        src/qml/PokemonClinic.qml
         src/qml/CenterActivitiesPanel.qml
         src/qml/HomeParty.qml
         src/qml/PartyPlayroom.qml

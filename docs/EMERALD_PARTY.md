@@ -6,7 +6,9 @@ The exact English Emerald build already identified by [Game Progress](GAME_PROGR
 now supplies the Center's six Party positions and fourteen thirty-slot boxes.
 This is an ordinary-save observation, not live emulator memory. FireRed still
 supplies its existing badges/counts only; other titles and hacks gain no implied
-Party support. No save editing, healing, box movement or exchange is enabled.
+Party support. The subsequent [Emerald Center](EMERALD_HEALING.md) adds the
+independently guarded first Party healing writer. Box movement and exchange
+remain unavailable; read support alone never enables writes.
 
 The reader supplies species/form, nickname, level, types, ability, nature, held
 item, six stats and four moves with PP. Party also has current HP and condition.

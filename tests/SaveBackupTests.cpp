@@ -32,6 +32,33 @@ struct Fixture {
 class SaveBackupTests final : public QObject {
     Q_OBJECT
 private slots:
+    void healingIsProtectedAndUndoRestoresExactOriginal() {
+        Fixture f;
+        const SaveHealer healer=[](const QByteArray&,const QString&){return SaveHealing{"HEALED SAVE",{},3};};
+        auto snapshot=inspectSaveBackups(f.root,f.target,healer);QVERIFY(snapshot.canHeal);QVERIFY(snapshot.needsHealing);
+        const auto done=healSaveParty(f.root,f.record,snapshot.token,f.resolve,healer);
+        QVERIFY2(done.success,qPrintable(done.message));QVERIFY(done.restored);QCOMPARE(read(f.path),"HEALED SAVE");
+        QCOMPARE(done.snapshot.copies.size(),1);QVERIFY(!done.snapshot.needsHealing);
+        const auto protection=done.snapshot.copies.first();QCOMPARE(protection.reason,"healing");QVERIFY(protection.protection);
+        const auto twice=healSaveParty(f.root,f.record,done.snapshot.token,f.resolve,healer);
+        QVERIFY(twice.success);QVERIFY(!twice.restored);QCOMPARE(twice.snapshot.copies.size(),1);
+        const auto undo=restoreSaveBackup(f.root,f.record,protection,twice.snapshot.token,f.resolve);
+        QVERIFY(undo.success);QCOMPARE(read(f.path),"FIRST SAVE");
+    }
+    void healingRejectsChangedTargetsAndFailedProtection() {
+        Fixture f;const auto token=f.inspect().token;
+        const SaveHealer healer=[](const QByteArray&,const QString&){return SaveHealing{"HEALED SAVE",{},1};};
+        write(f.path,"NEW SAVE");QVERIFY(!healSaveParty(f.root,f.record,token,f.resolve,healer).success);QCOMPARE(read(f.path),"NEW SAVE");
+        auto fresh=f.inspect().token;
+        auto calls=0;const auto changed=[&](const AdventureRegistration&){auto t=f.target;if(++calls>1)t.contextRevision="another-owner";return t;};
+        QVERIFY(!healSaveParty(f.root,f.record,fresh,changed,healer).success);QCOMPARE(read(f.path),"NEW SAVE");
+        const SaveHealer reject=[](const QByteArray&,const QString&){return SaveHealing{{},"Unsupported team"};};
+        QVERIFY(!healSaveParty(f.root,f.record,fresh,f.resolve,reject).success);QCOMPARE(read(f.path),"NEW SAVE");
+        const auto blocked=f.dir.filePath("blocked");write(blocked,"NOT A FOLDER");
+        QVERIFY(!healSaveParty(blocked,f.record,fresh,f.resolve,healer).success);QCOMPARE(read(f.path),"NEW SAVE");
+        QLockFile lock(QDir(f.root).filePath("service.lock"));QVERIFY(lock.tryLock(0));
+        QVERIFY(!healSaveParty(f.root,f.record,fresh,f.resolve,healer).success);QCOMPARE(read(f.path),"NEW SAVE");
+    }
     void melonDsSaveRequiresVerifiedSingleInstanceLayout() {
         QTemporaryDir dir; AdventureRegistration record;
         record.adventure.id = "ds-fixture"; record.adventure.adapterId = "melonds"; record.adventure.platformId = "nds";

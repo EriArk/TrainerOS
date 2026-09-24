@@ -1,6 +1,6 @@
 # Center Party and Storage presentation
 
-P1 #44/#53 extends the existing Pokédex companion with practical Party/Storage views. Existing ordinary-save backup/restore remains real. Individual Pokémon reading and all semantic writes remain late P8; no new parser or save editing is introduced here.
+P1 #44/#53 established the Pokédex companion's Party/Storage presentation. The P1 controls and fixture boundary below are historical: the subsequent [Emerald reader](EMERALD_PARTY.md) supplies real individuals and [protected healing](EMERALD_HEALING.md) supplies its first semantic write. Other formats retain their independent P8 gates.
 
 ## Controls
 
@@ -18,7 +18,7 @@ P1 #44/#53 extends the existing Pokédex companion with practical Party/Storage 
 
 The real library shows no individuals or invented box counts. No selection, unsupported reading and an unlinked Adventure are distinct messages. The empty action opens ordinary-save backups, whose actual capability/loading/error/confirmation behavior remains in `SaveCenterController`. This synchronous presentation has no pending reader and does not fabricate loading or a successful observation. A future P8 snapshot must carry exact source/build/revision and field availability before populating real cards.
 
-Heal, reorder, transfer, release and related save modifications are unavailable. Viewing a card or changing a box cannot rewrite a save. Separate [Playroom, Practice and Link Counter presentations](CENTER_ACTIVITIES_UI.md) are delivered; their real integrations remain P5/P8.
+[Protected Emerald healing](EMERALD_HEALING.md) is now available through the member menu's Visit Pokémon Center action. Reorder, transfer, release and healing for other editions remain unavailable. Viewing a card or changing a box cannot rewrite a save. Separate [Playroom, Practice and Link Counter presentations](CENTER_ACTIVITIES_UI.md) are delivered; their remaining integrations retain P5/P8 gates.
 
 ## Acceptance
 

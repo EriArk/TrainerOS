@@ -504,6 +504,13 @@ navigation preserve explicit domains, independent choices and exit-media identit
 
 ## Center Party/Storage P1 boundary
 
+**Emerald treatment follow-up:** the pure exact-build `healEmeraldParty`
+transformer is injected into the existing `LocalSaveBackupService`. Center
+receives capability and asynchronous result projections; the storage worker
+owns protected replacement and revalidation. `PartyPresentation` only requests
+the clinic and continues to display save observations. No QML format handling or
+second save-location resolver is introduced. [Contract](EMERALD_HEALING.md).
+
 `PartyPresentation` owns only transient read-only slot/detail/box routes. ShellController binds the current Pokemon Adventure identity and routes Select to the existing SaveCenterController, which retains all backup/restore guards and async source-generation protection. Production supplies no invented individuals. The new views do not read saves, infer individuals from Dex totals or expose a writer. [Availability and controls](CENTER_PARTY_UI.md).
 
 ## Journey P1 boundary

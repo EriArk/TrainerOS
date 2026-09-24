@@ -22,8 +22,12 @@ now consumes the same real team, with bounded sprites and controller call/greet.
 The delivered meadow refinement adds original pixel scenery, same-set emotion bubbles,
 neighbor greetings and controller ball play. Home now shares the verified living
 Party without extra controls. Compact side-by-side headers and a local Y-tab
-cutout give the scene and other page details more usable height. Further scene refinements, additional
-formats and independently guarded writers keep their existing acceptance.
+cutout give the scene and other page details more usable height. Delivered
+[Emerald Center treatment](EMERALD_HEALING.md) adds a nurse's room, real HP/status/PP
+recovery and automatic protection. Flip verification covered exact backup/restore
+and a normal Emerald launch showing recovered HP and PP. Emerald remains the
+only verified healing target. Further scene refinements,
+additional formats, box management and two-device writers retain their acceptance.
 
 **Current owner order — 2026-09-24:** native [ScreenScraper #65](SCREENSCRAPER.md)
 first; video previews plus complete game metadata/description/media presentation

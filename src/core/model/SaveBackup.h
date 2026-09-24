@@ -14,12 +14,22 @@ struct SaveBackup {
     QDateTime createdAt;
     qint64 bytes = 0;
     bool valid = false, hasSave = false, protection = false;
+    QString reason;
 };
 struct SaveBackupSnapshot {
     bool supported = false, hasSave = false;
     QString token, error;
     QList<SaveBackup> copies;
+    bool canHeal = false, needsHealing = false;
+    int partyCount = 0;
+    QString healingError;
 };
+struct SaveHealing {
+    QByteArray data;
+    QString error;
+    int partyCount = 0;
+};
+using SaveHealer = std::function<SaveHealing(const QByteArray&, const QString& contentHash)>;
 struct SaveBackupResult {
     bool success = false, restored = false;
     QString message;
@@ -34,6 +44,9 @@ public:
     virtual void inspect(const AdventureRegistration&, QObject*, std::function<void(SaveBackupSnapshot)>) = 0;
     virtual void create(const AdventureRegistration&, const QString& token, QObject*, std::function<void(SaveBackupResult)>) = 0;
     virtual void restore(const AdventureRegistration&, const SaveBackup&, const QString& token, QObject*, std::function<void(SaveBackupResult)>) = 0;
+    virtual void heal(const AdventureRegistration&, const QString&, QObject*, std::function<void(SaveBackupResult)> done) {
+        done({false,false,"Healing is not available for this Adventure."});
+    }
 signals:
     void busyChanged();
     void operationFailed();

@@ -1,8 +1,13 @@
 # Pokémon Center save backups
 
+**Emerald healing follow-up, 2026-09-24:** [the first exact-build treatment](EMERALD_HEALING.md)
+uses this same worker, resolver, exclusion lock and protection/restore mechanism.
+Its protection bundles carry optional `reason: "healing"`, displayed as
+**Before healing**. Old version-1 bundles remain compatible; no database migration.
+
 Target services and transaction rules: [Center](EXPANSION_42_62.md#pokémon-center-and-practical-party), [exact-save providers](EXPANSION_42_62.md#exact-save-providers-and-research), [lifecycle/migration](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit). The GBA tests and pending DS gates below remain valid for their tested versions.
 
-**Implemented entry (2026-09-19):** Center is the L2/R2 companion of Pokedex. Start opens this same face at the shared selected Adventure. [Shared selection and remaining scope](SHARED_ADVENTURE.md). Protected GBA/mGBA backups and the opt-in melonDS resolver retain their existing format boundaries. Party/Storage and read-only detail now have a [P1 presentation](CENTER_PARTY_UI.md); real individual records and healing remain P8. Emulator states are not ordinary-save backups.
+**Implemented entry (2026-09-19):** Center is the L2/R2 companion of Pokedex. Start opens this same face at the shared selected Adventure. [Shared selection and remaining scope](SHARED_ADVENTURE.md). Protected GBA/mGBA backups and the opt-in melonDS resolver retain their existing format boundaries. Party/Storage's [P1 presentation](CENTER_PARTY_UI.md) now consumes [verified Emerald records](EMERALD_PARTY.md); its subsequent healing route is described above. Other editions retain their P8 gates. Emulator states are not ordinary-save backups.
 
 ## Controller flow
 

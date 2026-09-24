@@ -83,6 +83,7 @@ Bundle readBundle(const QString& path) {
     result.adventure=json["adventure"].toString(); result.content=json["contentSha256"].toString();
     result.entry.createdAt=QDateTime::fromString(json["createdAt"].toString(),Qt::ISODateWithMs);
     result.entry.hasSave=json["hasSave"].toBool(); result.entry.protection=json["protection"].toBool();
+    result.entry.reason=json["reason"].toString();
     result.entry.bytes=result.data.size();
     result.entry.valid=json["version"].toDouble(-1)==1 && json["id"].toString()==result.entry.id
         && !result.adventure.isEmpty() && validHash(result.content) && result.entry.createdAt.isValid()
@@ -97,7 +98,7 @@ bool safeShelf(const QString& root, const QString& directory) {
     return !base.isEmpty() && !actual.isEmpty() && !QFileInfo(root).isSymLink() && !QFileInfo(directory).isSymLink()
         && QFileInfo(actual).dir().canonicalPath()==base;
 }
-QString writeBundle(const QString& root, const SaveTarget& target, const CurrentSave& save, bool protection) {
+QString writeBundle(const QString& root, const SaveTarget& target, const CurrentSave& save, bool protection, const QString& reason = {}) {
     if (!QDir::isAbsolutePath(root) || QFileInfo(root).isSymLink() || !QDir().mkpath(root)) return {};
     const auto directory=shelf(root,target);
     if (!QDir().mkpath(directory) || !safeShelf(root,directory)) return {};
@@ -106,7 +107,7 @@ QString writeBundle(const QString& root, const SaveTarget& target, const Current
     const auto id=QUuid::createUuid().toString(QUuid::WithoutBraces), path=QDir(directory).filePath(id+".tosbackup");
     const QJsonObject object{{"version",1},{"id",id},{"adventure",target.adventureId},{"title",target.title},
         {"owner",target.backupOwner},{"contentSha256",target.contentRevision},{"createdAt",QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)},
-        {"hasSave",save.exists},{"protection",protection},{"bytes",save.data.size()},
+        {"hasSave",save.exists},{"protection",protection},{"reason",reason},{"bytes",save.data.size()},
         {"sha256",hash(save.data)},{"data",QString::fromLatin1(save.data.toBase64())}};
     const auto bytes=QJsonDocument(object).toJson(QJsonDocument::Compact);
     QSaveFile file(path); file.setDirectWriteFallback(false);
@@ -118,12 +119,18 @@ QString writeBundle(const QString& root, const SaveTarget& target, const Current
 }
 QString problem(const SaveTarget& target) { return target.error.isEmpty()?"This Adventure has no verified save-backup setup yet.":target.error; }
 }
-SaveBackupSnapshot inspectSaveBackups(const QString& root, const SaveTarget& target) {
+SaveBackupSnapshot inspectSaveBackups(const QString& root, const SaveTarget& target, const SaveHealer& healer) {
     SaveBackupSnapshot result; result.supported=target.supported;
     if (!target.supported) { result.error=problem(target); return result; }
     const auto save=current(target);
     if (save.success) { result.hasSave=save.exists&&!save.data.isEmpty(); result.token=save.revision; }
     else result.error="The in-game save folder couldn't be read. Check storage and try again.";
+    if (healer && result.hasSave) {
+        const auto healing=healer(save.data,target.contentRevision);
+        result.canHeal=!healing.data.isEmpty() && healing.error.isEmpty();
+        result.needsHealing=result.canHeal && healing.data!=save.data;
+        result.partyCount=healing.partyCount; result.healingError=healing.error;
+    }
     const auto directory=shelf(root,target);
     if (!QFileInfo::exists(directory)) return result;
     if (!safeShelf(root,directory)) { result.error="Your backup folder needs attention. Existing copies have been kept."; return result; }
@@ -173,6 +180,38 @@ SaveBackupResult restoreSaveBackup(const QString& root, const AdventureRegistrat
     if(!synced || !after.success || after.data!=copy.data)return {false,true,"The save was replaced, but storage verification failed. Keep the protection copy and check the storage device."};
     return {true,true,"Save restored. Open the Adventure normally to use it.",inspectSaveBackups(root,resolve(record))};
 }
+SaveBackupResult healSaveParty(const QString& root, const AdventureRegistration& record, const QString& token,
+        const SaveTargetResolver& resolve, const SaveHealer& healer) {
+    if (!healer) return {false,false,"Healing is not available for this Adventure."};
+    if (!QDir::isAbsolutePath(root) || QFileInfo(root).isSymLink() || !QDir().mkpath(root))
+        return {false,false,"Couldn't open the backup folder. Your save is unchanged."};
+    QLockFile lock(QDir(root).filePath("service.lock"));
+    if (!lock.tryLock(0)) return {false,false,"Another save operation is running."};
+    const auto target=resolve(record); if (!target.supported) return {false,false,problem(target)};
+    const auto save=current(target);
+    if (!save.success || !save.exists || token.isEmpty() || save.revision!=token)
+        return {false,false,"The save changed. Visit the Center again before healing."};
+    const auto treatment=healer(save.data,target.contentRevision);
+    if (!treatment.error.isEmpty() || treatment.data.isEmpty()) return {false,false,treatment.error};
+    if (treatment.data==save.data) return {true,false,"Your Pokémon are already feeling great!",inspectSaveBackups(root,target,healer)};
+    if (writeBundle(root,target,save,true,"healing").isEmpty())
+        return {false,false,"Couldn't protect your save. Treatment was cancelled."};
+    if (current(resolve(record)).revision!=token)
+        return {false,false,"The save changed. Treatment was cancelled; your backup was kept."};
+    QSaveFile file(target.savePath); file.setDirectWriteFallback(false);
+    if (!file.open(QIODevice::WriteOnly) || !file.setPermissions(QFileInfo(target.savePath).permissions())
+        || file.write(treatment.data)!=treatment.data.size() || !syncFile(file))
+        return {false,false,"Couldn't prepare treatment. Your save and backup were kept."};
+    if (current(resolve(record)).revision!=token) {
+        file.cancelWriting(); return {false,false,"The save changed before treatment. Please try again."};
+    }
+    if (!file.commit()) return {false,false,"Couldn't replace the save. Your backup is available in Center."};
+    const bool synced=syncDirectory(save.parent);
+    const auto after=current(target);
+    if (!synced || !after.success || after.data!=treatment.data)
+        return {false,true,"Treatment was written, but storage verification failed. Keep the backup and check storage."};
+    return {true,true,"Your Pokémon are back to full health!",inspectSaveBackups(root,target,healer)};
+}
 LocalSaveBackupService::LocalSaveBackupService(QString root, SaveTargetResolver resolve,
         std::function<bool(const AdventureRegistration&)> supports, QObject* parent)
     : SaveBackupService(parent),root_(std::move(root)),resolve_(std::move(resolve)),supports_(std::move(supports)),worker_(new QObject) {
@@ -188,13 +227,16 @@ void LocalSaveBackupService::run(std::function<SaveBackupResult()> work,QObject*
     },Qt::QueuedConnection);
 }
 void LocalSaveBackupService::inspect(const AdventureRegistration& r,QObject* context,std::function<void(SaveBackupSnapshot)> completed) {
-    run([this,r]{return SaveBackupResult{true,false,{},inspectSaveBackups(root_,resolve_(r))};},context,
-        [completed](const SaveBackupResult& result){if(result.success)completed(result.snapshot);else completed({false,false,{},result.message,{}});});
+    run([this,r]{return SaveBackupResult{true,false,{},inspectSaveBackups(root_,resolve_(r),healer_)};},context,
+        [completed](const SaveBackupResult& result){if(result.success)completed(result.snapshot);else {SaveBackupSnapshot error;error.error=result.message;completed(error);}});
 }
 void LocalSaveBackupService::create(const AdventureRegistration& r,const QString& token,QObject* context,std::function<void(SaveBackupResult)> completed) {
     run([this,r,token]{return createSaveBackup(root_,r,token,resolve_);},context,completed);
 }
 void LocalSaveBackupService::restore(const AdventureRegistration& r,const SaveBackup& selected,const QString& token,QObject* context,std::function<void(SaveBackupResult)> completed) {
     run([this,r,selected,token]{return restoreSaveBackup(root_,r,selected,token,resolve_);},context,completed);
+}
+void LocalSaveBackupService::heal(const AdventureRegistration& r,const QString& token,QObject* context,std::function<void(SaveBackupResult)> completed) {
+    run([this,r,token]{return healSaveParty(root_,r,token,resolve_,healer_);},context,completed);
 }
 }

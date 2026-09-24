@@ -23,6 +23,45 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void clinicConfirmationAndStaleCompletionStayWithTheirAdventure() {
+        class Library final : public LibraryRepository {
+        public:
+            MockLibraryRepository sample;
+            QList<World> worlds() const override{return sample.worlds();}
+            QList<Adventure> adventures() const override{return sample.adventures();}
+            QList<ResumePoint> resumePoints() const override{return {};}
+            HomeSnapshot home() const override{return sample.home();}
+            std::optional<AdventureRegistration> registration(const QString& id) const override {
+                AdventureRegistration r;r.adventure.id=id;r.adventure.title=id;r.revision=1;return r;
+            }
+        } library;
+        class Service final : public SaveBackupService {
+        public:
+            bool working=false;QString target;std::function<void(SaveBackupResult)> pending;
+            bool busy() const override{return working;}
+            bool supports(const AdventureRegistration&) const override{return true;}
+            void inspect(const AdventureRegistration&,QObject*,std::function<void(SaveBackupSnapshot)> done) override {
+                SaveBackupSnapshot s;s.hasSave=true;s.supported=true;s.token="token";s.canHeal=true;s.needsHealing=true;s.partyCount=6;done(s);
+            }
+            void create(const AdventureRegistration&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override{}
+            void restore(const AdventureRegistration&,const SaveBackup&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override{}
+            void heal(const AdventureRegistration& r,const QString&,QObject*,std::function<void(SaveBackupResult)> done) override {
+                target=r.adventure.id;working=true;pending=std::move(done);emit busyChanged();
+            }
+            void finish(){working=false;auto done=std::move(pending);done({true,true,"Recovered"});emit busyChanged();}
+        } service;
+        SaveCenterController center(library);center.configure(&service);center.beginSelected("one");
+        center.visitClinic();QVERIFY(center.clinicOpen());QVERIFY(center.canHeal());
+        center.dispatch(Action::Back);QVERIFY(!center.clinicOpen());QVERIFY(service.target.isEmpty());
+        center.visitClinic();center.dispatch(Action::Confirm);QCOMPARE(center.treatment(),"healing");QCOMPARE(service.target,"one");
+        center.dispatch(Action::Back);QVERIFY(center.clinicOpen());center.dispatch(Action::Confirm);QVERIFY(service.working);
+        center.close();center.beginSelected("two");QVERIFY(!center.clinicOpen());service.finish();
+        QCoreApplication::processEvents();QCOMPARE(center.title(),"two");QCOMPARE(center.treatment(),"ready");
+        QVERIFY(!center.clinicMessage().contains("Recovered"));
+        PartyPresentation party(true);QSignalSpy requested(&party,&PartyPresentation::healingRequested);
+        party.dispatch(Action::Confirm);party.dispatch(Action::Down);party.dispatch(Action::Confirm);
+        QCOMPARE(requested.count(),1);QVERIFY(!party.detailOpen());
+    }
     void pageTransitionPublishesOnlyItsCompletedState() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;

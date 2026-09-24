@@ -79,6 +79,45 @@ QByteArray pokemonFixture(quint32 personality = 0, int species = 25, bool egg = 
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void healingRestoresHealthAndPpWithoutChangingOtherSaveData() {
+        for (int rotation=0;rotation<14;++rotation) for(int permutation=0;permutation<24;++permutation) {
+            auto bytes=save(Gen3Edition::Emerald,0xffffffffu,0);
+            // Reorder the current slot and install original synthetic Party records.
+            bytes.replace(14*0x1000,14*0x1000,slot(Gen3Edition::Emerald,0,rotation,0xa5,241));
+            const int sector=(14+(1+rotation)%14)*0x1000;
+            bytes[sector+0x234]=2;
+            auto mon=pokemonFixture(permutation);put32(mon,80,0x40);
+            bytes.replace(sector+0x238,100,mon);
+            const auto egg=pokemonFixture(permutation,25,true);
+            bytes.replace(sector+0x238+100,100,egg);
+            quint32 sum=0;for(int p=0;p<0xf80;p+=4)sum+=qFromLittleEndian<quint32>(bytes.constData()+sector+p);
+            put16(bytes,sector+0xff6,quint16((sum>>16)+sum));
+            const auto healed=healEmeraldParty(bytes,EmeraldHash);
+            QVERIFY2(healed.error.isEmpty(),qPrintable(healed.error));QCOMPARE(healed.partyCount,1);
+            const auto p=readGen3Progress(healed.data,Gen3Edition::Emerald);
+            const auto team=p.party->party;QCOMPARE(team[0].condition,"Healthy");QCOMPARE(team[0].hp,std::optional<int>(20));
+            QCOMPARE(team[0].moves[0].pp,56);QCOMPARE(p.caught,std::optional<int>(241));
+            QCOMPARE(healed.data.mid(sector+0x238+100,100),egg);
+            for(int i=0;i<bytes.size();++i) {
+                if(i>=sector+0x238 && i<sector+0x238+100)continue;
+                if(i==sector+0xff6 || i==sector+0xff7)continue;
+                QCOMPARE(healed.data[i],bytes[i]);
+            }
+            // Personal identity, stats and all non-PP encrypted fields stay intact.
+            const auto output=healed.data.mid(sector+0x238,100);
+            QCOMPARE(output.left(28),mon.left(28));QCOMPARE(output.mid(84,2),mon.mid(84,2));QCOMPARE(output.mid(88),mon.mid(88));
+            QByteArray clearBefore=mon.mid(32,48),clearAfter=output.mid(32,48);
+            const quint32 key=quint32(permutation)^0x12345678u;
+            for(int p=0;p<48;p+=4){put32(clearBefore,p,qFromLittleEndian<quint32>(clearBefore.constData()+p)^key);put32(clearAfter,p,qFromLittleEndian<quint32>(clearAfter.constData()+p)^key);}
+            int changed=0;for(int p=0;p<48;++p)changed+=clearBefore[p]!=clearAfter[p];QCOMPARE(changed,1);
+            QCOMPARE(healEmeraldParty(healed.data,EmeraldHash).data,healed.data);
+            QVERIFY(healEmeraldParty(bytes,"wrong-rom").data.isEmpty());
+            auto damaged=bytes;damaged[sector+8]^=1;QVERIFY(healEmeraldParty(damaged,EmeraldHash).data.isEmpty());
+            QVERIFY(healEmeraldParty(bytes.left(0x10000),EmeraldHash).data.isEmpty());
+        }
+        QVERIFY(healEmeraldParty(save(Gen3Edition::Emerald,8,8),EmeraldHash).data.isEmpty());
+        QVERIFY(healEmeraldParty(save(Gen3Edition::Emerald,0,0x80000000),EmeraldHash).data.isEmpty());
+    }
     void emeraldSpeciesFlagsAreNationalCompleteAndConsistent() {
         const auto fixture = [](int caught, int seen, bool damaged = false) {
             return slot(Gen3Edition::Emerald,1,7,0,caught,seen,damaged) + QByteArray(18*0x1000,char(0xff));
