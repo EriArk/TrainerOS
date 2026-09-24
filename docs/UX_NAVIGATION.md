@@ -465,3 +465,11 @@ Acceptance: SDL scenarios cover modal legends, footer bounds outside the battery
 list/form/journal navigation, old detail-route restoration, favorite persistence,
 empty filters and section/Start restoration. Inspect installed Flip screenshots
 for combined Pokédex, both wheels and contextual bottom legends.
+
+## Party/Storage split view — 2026-09-24
+
+Center keeps six Party slots or a 30-slot Storage box beside the selected
+Pokémon summary. X changes the face; Up from the first box row reaches the box
+selector, Left/Right changes boxes, Down/B returns to remembered slots.
+A opens a compact actions panel; Select retains ordinary backups. L1/R1 and
+L2/R2 retain their global roles. See [presentation and provider boundary](PARTY_STORAGE_UI.md).

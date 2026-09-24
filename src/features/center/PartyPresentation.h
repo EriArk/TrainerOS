@@ -3,6 +3,8 @@
 #include <QObject>
 #include <QVariantList>
 #include "CenterActivities.h"
+#include "features/pokedex/ClassicArt.h"
+#include "features/pokedex/SpriteArt.h"
 
 namespace trainer {
 // Read-only P1 presentation. Never resolves or writes an external save.
@@ -18,6 +20,8 @@ class PartyPresentation final : public QObject {
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(int box READ box NOTIFY changed)
     Q_PROPERTY(bool activitiesFocused READ activitiesFocused NOTIFY changed)
+    Q_PROPERTY(bool boxFocused READ boxFocused NOTIFY changed)
+    Q_PROPERTY(int menuIndex READ menuIndex NOTIFY changed)
     Q_PROPERTY(trainer::CenterActivities* activities READ activities CONSTANT)
 public:
     explicit PartyPresentation(bool sample, QObject* parent = nullptr);
@@ -30,6 +34,10 @@ public:
     QVariantMap detail() const;
     int focusIndex() const { return section_ == "activities" ? activities_.focusIndex() : activitiesFocus_ ? -1 : section_ == "party" ? partyFocus_ : storageFocus_[box_]; }
     bool activitiesFocused() const { return activitiesFocus_; }
+    bool boxFocused() const { return boxFocus_; }
+    int menuIndex() const { return menuIndex_; }
+    void configureArtwork(ClassicArt* art, SpriteArt* sprites);
+    Q_INVOKABLE void changeBox(int delta);
     CenterActivities* activities() { return &activities_; }
     void openActivities();
     int box() const { return box_; }
@@ -47,6 +55,10 @@ private:
     int partyFocus_ = 0, storageFocus_[2] = {0,0}, box_ = 0;
     CenterActivities activities_;
     bool activitiesFocus_ = false;
+    bool boxFocus_ = false;
+    int menuIndex_ = 0;
+    ClassicArt* art_ = nullptr;
+    SpriteArt* sprites_ = nullptr;
     QString managementSection_ = "party";
 };
 }

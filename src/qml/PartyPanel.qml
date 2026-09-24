@@ -4,67 +4,152 @@ Item {
     id: root
     required property var shell
     readonly property var party: shell.party
-    readonly property bool takesFocus: visible && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
+    readonly property var selected: party.detail
+    readonly property bool storage: party.section === "storage"
+    readonly property bool takesFocus: visible && !shell.serviceOpen && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
     enabled: !shell.drawerOpen
     Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset
-        anchors.topMargin: Theme.contentTopInset; anchors.bottomMargin: Theme.panelInset + 30; clip: true
+        anchors.topMargin: Theme.contentTopInset; anchors.bottomMargin: Theme.panelInset + 30
         PageHeader {
             id: heading; compact: true
-            title: root.party.detailOpen ? (root.party.detail.name || "Pokémon") : root.party.section === "party" ? "Party" : "Storage"
-            trailing: "Pokémon Center"; subtitle: root.party.status
+            title: root.storage ? "Storage" : "Party"
+            trailing: root.party.sample ? "Development preview" : "Pokémon Center"
+            subtitle: root.party.title || "Choose an Adventure"
         }
-        MountedPanel {
-            y: heading.height; width: parent.width; height: parent.height - y; color: "#d8e5dc"
-            Text { x: 24; y: 12; width: parent.width - 48; text: root.party.title || "Choose an Adventure"; color: Theme.muted; font.pixelSize: 15; elide: Text.ElideRight; textFormat: Text.PlainText }
-            Item {
-                anchors.fill: parent; visible: !root.party.detailOpen
-                Text { x: 24; y: 37; text: root.party.section === "storage" && root.party.sample ? "Sample box " + (root.party.box + 1) + " / 2" : ""; color: Theme.ink; font.pixelSize: 14 }
+        Item {
+            id: body; y: heading.height + 4; width: parent.width; height: parent.height - y
+            Rectangle {
+                id: tray; width: parent.width * 0.46; height: parent.height
+                color: root.storage ? "#ccdedf" : "#d3e2cc"; radius: 9
+                border.color: "#839d93"
+                CapButton {
+                    objectName: "party-box"; x: 12; y: 7; width: parent.width - 24; height: 33
+                    visible: root.storage && root.party.sample
+                    label: "‹     Box " + (root.party.box + 1) + " / 2     ›"; centered: true; textSize: 15; tint: Theme.blue
+                    selected: root.takesFocus && root.party.boxFocused && !root.party.detailOpen
+                    onActivated: root.party.changeBox(1)
+                }
                 Grid {
-                    x: 24; y: root.party.section === "party" ? 43 : 65
-                    columns: root.party.section === "party" ? 2 : 4; spacing: 12
+                    id: slots; x: 12; y: root.storage ? 51 : 12; width: parent.width - 24
+                    columns: root.storage ? 6 : 2; spacing: root.storage ? 7 : 10
                     Repeater {
                         model: root.party.entries
                         CapButton {
+                            id: slot
                             required property int index
                             required property var modelData
                             objectName: "party-slot-" + index
-                            width: (root.width - 2 * Theme.panelInset - 48 - (parent.columns - 1) * 12) / parent.columns
-                            height: root.party.section === "party" ? 61 : 53
-                            label: (index + 1) + " · " + modelData.name
-                            detail: root.party.section === "party" ? modelData.summary : modelData.kind === "known" ? "Lv. " + modelData.level : modelData.condition
-                            textSize: root.party.section === "party" ? 18 : 15
-                            tint: modelData.kind === "empty" ? "#c9d3ca" : modelData.kind === "unreadable" ? "#e5c3bd" : index % 2 ? Theme.blue : Theme.green
-                            selected: root.takesFocus && !root.party.detailOpen && root.party.focusIndex === index
+                            width: (slots.width - (slots.columns - 1) * slots.spacing) / slots.columns
+                            height: root.storage ? (tray.height - 108) / 5 - 7 : (tray.height - 78) / 3
+                            label: ""; tint: modelData.kind === "empty" ? "#dce6dc" : modelData.kind === "unreadable" ? "#e8bdb1" : index % 2 ? "#b6d9ed" : "#c6df9c"
+                            selected: root.takesFocus && !root.party.detailOpen && !root.party.boxFocused && !root.party.activitiesFocused && root.party.focusIndex === index
                             onActivated: root.shell.activate(index)
+                            Item {
+                                x: root.storage ? 3 : 7; y: 4; width: root.storage ? parent.width - 6 : 53; height: parent.height - 8
+                                SpritePreview {
+                                    id: icon; anchors.fill: parent; asset: slot.modelData.sprite || ({}); pixelScale: 4; trimTransparentMargins: true
+                                    playing: slot.selected; visible: slot.modelData.kind === "known" && !!asset.url
+                                }
+                                ClassicIllustration { anchors.fill: parent; art: slot.modelData.art || ({}); visible: slot.modelData.kind === "known" && !icon.ready }
+                                Rectangle {
+                                    anchors.centerIn: parent; width: Math.min(parent.width * .65, parent.height * .7); height: width * 1.18
+                                    radius: width / 2; rotation: -12; color: "#fff2cf"; border.color: "#a39c78"; border.width: 2
+                                    visible: slot.modelData.kind === "egg"
+                                    Rectangle { x: parent.width * .16; y: parent.height * .2; width: parent.width * .27; height: width; radius: width / 2; color: "#92b798" }
+                                    Rectangle { x: parent.width * .55; y: parent.height * .55; width: parent.width * .27; height: width; radius: width / 2; color: "#92b798" }
+                                }
+                                Text { anchors.centerIn: parent; text: slot.modelData.kind === "unreadable" ? "?" : "·"; visible: slot.modelData.kind === "unreadable" || slot.modelData.kind === "empty"; font.pixelSize: 22; color: Theme.muted }
+                            }
+                            Column {
+                                visible: !root.storage; x: 63; y: 8; width: parent.width - x - 7; spacing: 4
+                                Text { width: parent.width; text: slot.modelData.name; font.family: Theme.displayFamily; font.bold: true; font.pixelSize: 15; color: Theme.ink; elide: Text.ElideRight }
+                                Text { width: parent.width; text: slot.modelData.kind === "known" ? "Lv. " + slot.modelData.level + " · " + slot.modelData.hp : slot.modelData.condition; font.pixelSize: 11; color: Theme.ink; elide: Text.ElideRight }
+                                Rectangle {
+                                    width: parent.width; height: 5; radius: 2; color: "#819789"; visible: slot.modelData.kind === "known"
+                                    Rectangle { width: parent.width * (slot.modelData.hpRatio || 0); height: 5; radius: 2; color: "#4b9670" }
+                                }
+                            }
                         }
                     }
                 }
                 Column {
-                    x: 28; y: 61; width: parent.width - 56; spacing: 18; visible: !root.party.sample
-                    Text { width: parent.width; text: "No verified Pokémon records yet"; color: Theme.ink; font.pixelSize: 25; font.bold: true }
-                    Text { width: parent.width; text: "Your saved game stays untouched.\nOrdinary save backups remain available where supported."; color: Theme.muted; font.pixelSize: 18; wrapMode: Text.WordWrap }
-                    CapButton { objectName: "party-unavailable"; width: 360; height: 54; label: "Open save backups"; selected: root.takesFocus && !root.party.detailOpen && !root.party.sample && !root.party.activitiesFocused; onActivated: root.shell.activate(0) }
+                    x: 22; y: 44; width: parent.width - 44; spacing: 16; visible: !root.party.sample
+                    Text { width: parent.width; text: root.storage ? "Your Pokémon boxes" : "Your team"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25 }
+                    Text { width: parent.width; text: root.party.status; color: Theme.muted; font.pixelSize: 16; wrapMode: Text.WordWrap }
+                    CapButton { objectName: "party-unavailable"; width: parent.width; height: 43; label: "Save backups"; tint: Theme.blue; selected: root.takesFocus && !root.party.activitiesFocused; onActivated: root.shell.activate(0) }
+                }
+                CapButton {
+                    objectName: "party-activities"; x: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 10; width: parent.width - 24; height: 33
+                    label: "Activities"; tint: Theme.blue; textSize: 14; centered: true
+                    selected: root.takesFocus && root.party.activitiesFocused && !root.party.detailOpen
+                    onActivated: root.shell.activate(0, "party-activities")
                 }
             }
             Item {
-                anchors.fill: parent; visible: root.party.detailOpen
-                Rectangle {
-                    x: 24; y: 48; width: 158; height: 158; radius: 79; color: "#b9cfc1"; border.color: "#78988b"; border.width: 3
-                    Text { anchors.centerIn: parent; text: root.party.detail.species || "?"; color: Theme.ink; font.pixelSize: 29; font.bold: true }
+                id: summary; objectName: "party-summary"; x: tray.width + 18; width: parent.width - x; height: parent.height
+                readonly property bool known: root.selected.kind === "known"
+                Text { id: name; width: parent.width - 82; text: root.selected.name || "Pokémon Center"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25; font.bold: true; elide: Text.ElideRight }
+                Text { anchors.right: parent.right; y: 6; text: summary.known ? "Lv. " + root.selected.level : ""; color: Theme.ink; font.pixelSize: 19; font.bold: true }
+                Text { y: 33; text: root.selected.types || ""; color: Theme.muted; font.pixelSize: 14 }
+                ClassicIllustration { x: 0; y: 58; width: 131; height: 123; visible: summary.known; art: root.selected.art || ({}) }
+                Column {
+                    x: 147; y: 56; width: parent.width - x; spacing: 6; visible: summary.known
+                    Repeater {
+                        model: [ {label:"HP",value:root.selected.hp,tint:"#c3dfa7"}, {label:"Ability",value:root.selected.ability,tint:"#bfdbeb"}, {label:"Nature",value:root.selected.nature,tint:"#dbcae8"}, {label:"Item",value:root.selected.item,tint:"#f0d397"} ]
+                        Rectangle {
+                            required property var modelData
+                            width: parent.width; height: 25; radius: 5; color: modelData.tint
+                            Text { x: 8; anchors.verticalCenter: parent.verticalCenter; text: modelData.label; color: Theme.muted; font.pixelSize: 11 }
+                            Text { x: 60; width: parent.width - 68; anchors.verticalCenter: parent.verticalCenter; text: modelData.value || "—"; color: Theme.ink; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight }
+                        }
+                    }
                 }
-                Text { x: 204; y: 50; width: 300; text: "Level  " + (root.party.detail.level || "—") + "\nHP  " + (root.party.detail.hp || "—") + "\nStatus  " + (root.party.detail.condition || "—") + "\nHeld item  " + (root.party.detail.item || "—"); color: Theme.ink; font.pixelSize: 19; lineHeight: 1.5; textFormat: Text.PlainText }
-                Text { x: 530; y: 50; width: parent.width - 556; text: "Moves\n" + (root.party.detail.moves || "Unknown"); color: Theme.ink; font.pixelSize: 17; lineHeight: 1.5; wrapMode: Text.WordWrap; textFormat: Text.PlainText }
-                CapButton { objectName: "party-detail-back"; x: 24; y: 226; width: 260; height: 44; label: "Back to slots"; selected: root.takesFocus && root.party.detailOpen; onActivated: root.shell.activate(0) }
-                Text { x: 312; y: 229; width: parent.width - 340; text: "Read-only preview · healing, moving and release unavailable"; color: Theme.muted; font.pixelSize: 14; wrapMode: Text.WordWrap }
+                Row {
+                    y: 190; width: parent.width; spacing: 5; visible: summary.known
+                    Repeater {
+                        model: ["HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed"]
+                        Rectangle {
+                            required property int index; required property string modelData
+                            width: (summary.width - 25) / 6; height: 39; radius: 5
+                            color: ["#f1d487","#d4e4ab","#b4d9e9","#ecbcc3","#d6bfe9","#f0c295"][index]
+                            Text { y: 3; width: parent.width; horizontalAlignment: Text.AlignHCenter; text: modelData; color: Theme.muted; font.pixelSize: 10 }
+                            Text { y: 16; width: parent.width; horizontalAlignment: Text.AlignHCenter; text: root.selected.stats ? root.selected.stats[index] : "—"; color: Theme.ink; font.pixelSize: 17; font.bold: true }
+                        }
+                    }
+                }
+                Grid {
+                    y: 240; width: parent.width; columns: 2; spacing: 6; visible: summary.known
+                    Repeater {
+                        model: 4
+                        Rectangle {
+                            required property int index
+                            width: (summary.width - 6) / 2; height: 30; radius: 5; color: index % 2 ? "#d3e5d1" : "#d1e0ed"
+                            Text { x: 8; width: parent.width - 16; anchors.verticalCenter: parent.verticalCenter; text: root.selected.moves ? root.selected.moves.split("\n")[index] || "—" : "—"; color: Theme.ink; font.pixelSize: 11; elide: Text.ElideRight }
+                        }
+                    }
+                }
+                Text {
+                    x: 12; y: 112; width: parent.width - 24; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter
+                    visible: !summary.known; font.pixelSize: 20; color: Theme.muted
+                    text: root.selected.kind === "egg" ? "An Egg in your care" : root.selected.kind === "empty" ? "An empty slot" : root.selected.kind === "unreadable" ? "This Pokémon could not be read" : "No Pokémon to display yet."
+                }
             }
-            CapButton {
-                objectName: "party-activities"; anchors.right: parent.right; anchors.rightMargin: 24
-                anchors.bottom: parent.bottom; anchors.bottomMargin: 8; width: 248; height: 38
-                label: "Activities"; tint: Theme.blue; visible: !root.party.detailOpen
-                selected: root.takesFocus && root.party.activitiesFocused
-                onActivated: root.shell.activate(0, "party-activities")
+        }
+    }
+    Rectangle {
+        anchors.fill: parent; anchors.topMargin: Theme.contentTopInset; color: "#660e2524"; visible: root.party.detailOpen
+        MouseArea { anchors.fill: parent }
+        MountedPanel {
+            anchors.centerIn: parent; width: 330; height: 232; color: "#e3e9dc"
+            Text { x: 22; y: 17; width: parent.width - 44; text: root.selected.name || "Pokémon"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 24; elide: Text.ElideRight }
+            Row {
+                x: 22; y: 56; spacing: 10
+                CapButton { width: 138; height: 38; label: "Move"; enabled: false }
+                CapButton { width: 138; height: 38; label: "Heal"; enabled: false }
             }
+            CapButton { objectName: "party-menu-backups"; x: 22; y: 108; width: 286; height: 42; label: "Adventure backups"; tint: Theme.blue; selected: root.takesFocus && root.party.menuIndex === 1; onActivated: root.party.activate(1) }
+            CapButton { objectName: "party-detail-back"; x: 22; y: 166; width: 286; height: 42; label: "Close"; selected: root.takesFocus && root.party.menuIndex === 0; onActivated: root.party.activate(0) }
         }
     }
 }

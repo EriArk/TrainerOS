@@ -182,9 +182,9 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(b); press(SDL_CONTROLLER_BUTTON_Y); break;
         case 38:
             check(shell.party()->section()=="storage" && focus("party-slot-0"), "X opens bounded Storage grid"); capture("center-storage");
-            press(right); press(right); press(right); press(right); break;
+            press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(right); press(down); break;
         case 39:
-            check(shell.party()->box()==1, "Storage edge changes sample box without shoulders");
+            check(shell.party()->box()==1, "Storage header changes box without shoulders");
             press(down); press(right); press(a); break;
         case 40:
             check(shell.party()->detail()["kind"]=="unreadable", "Unreadable is distinct from empty"); capture("center-unreadable");
@@ -208,17 +208,17 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             check(focus("center-check"), "Cancelled empty search restores its opener");
             shell.center()->beginSelected(shell.home()["adventureId"].toString()); press(b); *stage=42; break;
         case 42:
-            check(shell.party()->section()=="storage" && focus("party-slot-5"), "Back restores original box slot");
+            check(shell.party()->section()=="storage" && focus("party-slot-7"), "Back restores original box slot");
             press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER); press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
         case 43:
-            check(shell.centerFace() && focus("party-slot-5"), "Global pages preserve Center route");
+            check(shell.centerFace() && focus("party-slot-7"), "Global pages preserve Center route");
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERLEFT,32767); input.poll();
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERLEFT,-32768); input.poll(); break;
         case 44:
             check(!shell.centerFace(), "Trigger returns to Pokedex");
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767); input.poll();
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768); input.poll();
-            press(down); press(down); press(a); break;
+            press(down); press(down); press(down); press(down); press(a); break;
         case 45:
             check(shell.party()->section()=="activities" && focus("activity-menu-0"), "Center activities has stable menu focus");
             capture("center-activities"); press(a); break;
@@ -246,7 +246,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             check(shell.party()->activities()->stage()=="interrupted", "Interrupted rehearsal never reports transfer success");
             capture("link-interrupted"); press(b); press(b); press(b); press(SDL_CONTROLLER_BUTTON_DPAD_UP); break;
         case 54:
-            check(shell.party()->section()=="storage" && focus("party-slot-9"), "Activities returns to the prior management slot");
+            check(shell.party()->section()=="storage" && focus("party-slot-25"), "Activities returns to the prior management slot");
             press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); for(int i=0;i<2;++i) press(down); press(a); break;
         case 55:
             check(shell.service()=="settings" && focus("settings-category-0"), "Settings categories focus");

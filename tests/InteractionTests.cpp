@@ -75,14 +75,15 @@ private slots:
         sample.activate(1); QCOMPARE(sample.detail()["hp"],"0 / 38");
         sample.dispatch(Action::Secondary); QCOMPARE(sample.section(),"party"); // Detail owns local input.
         sample.dispatch(Action::Back); QCOMPARE(sample.focusIndex(),1);
-        sample.dispatch(Action::Secondary); QCOMPARE(sample.entries().size(),12);
-        sample.dispatch(Action::Right); sample.dispatch(Action::Right); sample.dispatch(Action::Right);
+        sample.dispatch(Action::Secondary); QCOMPARE(sample.entries().size(),30);
+        sample.dispatch(Action::Up); QVERIFY(sample.boxFocused());
         sample.dispatch(Action::Right); QCOMPARE(sample.box(),1);
-        sample.dispatch(Action::Down); sample.dispatch(Action::Right); sample.activate(5);
+        sample.dispatch(Action::Down); QVERIFY(!sample.boxFocused());
+        sample.dispatch(Action::Down); sample.dispatch(Action::Right); sample.activate(7);
         QCOMPARE(sample.detail()["kind"],"unreadable");
         sample.dispatch(Action::Back); sample.openSaves(); sample.returnFromSaves();
-        QCOMPARE(sample.section(),"storage"); QCOMPARE(sample.focusIndex(),5);
-        sample.setAdventure("one", "Same Adventure"); QCOMPARE(sample.focusIndex(),5);
+        QCOMPARE(sample.section(),"storage"); QCOMPARE(sample.focusIndex(),7);
+        sample.setAdventure("one", "Same Adventure"); QCOMPARE(sample.focusIndex(),7);
         sample.setAdventure("two", "Other Adventure"); QCOMPARE(sample.focusIndex(),0); QCOMPARE(sample.box(),0); QVERIFY(!sample.detailOpen());
         PartyPresentation personal(false); personal.setAdventure("one", "Real Adventure");
         QVERIFY(personal.entries().isEmpty()); QVERIFY(personal.detail().isEmpty());
@@ -90,6 +91,31 @@ private slots:
         personal.returnFromSaves(); personal.dispatch(Action::Secondary);
         QVERIFY(personal.entries().isEmpty()); QVERIFY(!personal.sample());
         personal.setAdventure("missing", {}); QVERIFY(personal.status().contains("no longer linked"));
+    }
+    void partyInlineDetailsAndBoxFocusStayIndependent() {
+        PartyPresentation sample(true);
+        sample.setAdventure("one", "First");
+        sample.dispatch(Action::Right);
+        QVERIFY(!sample.detailOpen());
+        QCOMPARE(sample.detail()["hp"], "0 / 38"); // Focus alone updates the inline summary.
+        sample.dispatch(Action::Right);
+        QCOMPARE(sample.focusIndex(), 1); // Never wrap unexpectedly into the next row.
+        sample.dispatch(Action::Secondary);
+        sample.dispatch(Action::Up); QVERIFY(sample.boxFocused());
+        sample.dispatch(Action::Right); QCOMPARE(sample.box(), 1);
+        sample.dispatch(Action::Back); QVERIFY(!sample.boxFocused());
+        sample.activate(7); sample.dispatch(Action::Back);
+        sample.changeBox(-1); QCOMPARE(sample.focusIndex(), 0);
+        sample.changeBox(1); QCOMPARE(sample.focusIndex(), 7);
+        sample.dispatch(Action::Confirm); QVERIFY(sample.detailOpen());
+        sample.dispatch(Action::Up); sample.dispatch(Action::Confirm);
+        QCOMPARE(sample.section(), "saves");
+        sample.returnFromSaves(); QCOMPARE(sample.focusIndex(), 7);
+        QVERIFY(!sample.detailOpen());
+        sample.dispatch(Action::Secondary); QCOMPARE(sample.focusIndex(), 1);
+        PartyPresentation personal(false);
+        personal.dispatch(Action::Secondary); personal.changeBox(1);
+        QCOMPARE(personal.box(), 0); QVERIFY(personal.entries().isEmpty());
     }
     void multiverseIsolationAndModalPriority() {
         MockLibraryRepository library; MockTrainerRepository profiles;

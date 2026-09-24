@@ -427,6 +427,7 @@ int main(int argc, char* argv[]) {
         QQmlApplicationEngine engine;
         engine.addImageProvider("sprite-detail", new SpriteImages(sprites));
         shell.pokedex()->configureSprites(&sprites);
+        shell.party()->configureArtwork(&classicArt, &sprites);
         engine.addImageProvider("exit-frame", new ExitFrameImages(adventureLaunch.exitController()));
         engine.addImageProvider("exit-media", new SavedExitImages(store.get()));
         int qmlWarnings = 0;
