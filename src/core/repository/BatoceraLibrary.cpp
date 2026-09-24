@@ -120,6 +120,7 @@ Metadata readGamelist(const QString& directory,QStringList& warnings) {
     return result;
 }
 }
+QStringList batoceraPlatforms() { return formats().keys(); }
 FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistration>& existing) {
     FolderScan result;QDir root(roms);
     if(!root.exists()) {result.warnings.append("The ROM folder is unavailable.");return result;}

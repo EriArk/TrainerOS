@@ -18,6 +18,7 @@ struct FolderScan {
 // Read-only filesystem discovery. Does not parse ROMs, execute XML commands,
 // modify gamelists or use external play counts as Trainer history.
 FolderScan scanBatoceraLibrary(const QString& roms, const QList<AdventureRegistration>& existing);
+QStringList batoceraPlatforms();
 
 class BatoceraLibrary final : public QObject, public LibraryRepository {
     Q_OBJECT

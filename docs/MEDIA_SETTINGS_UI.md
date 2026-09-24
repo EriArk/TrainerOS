@@ -1,5 +1,11 @@
 # Two-pane Settings and Start controls - P1
 
+**2026-09-24:** Media now exposes a real, persistent **Video previews** switch for
+local Batocera videos in Worlds/Multiverse. Playback is silent and only exists
+while the selected game is visible and unobstructed. See [lifecycle and checks](VIDEO_PREVIEWS.md).
+This supersedes the historical unavailable-video row described below; other
+audio, feedback and final artwork-pack gates are unchanged.
+
 The owner's 2026-09-20 correction supersedes the first media-description layout.
 Settings uses a persistent category rail on the left and settings on the right,
 inspired by tablet Android. Appearance, Sound, Media, Feedback, Trainer, System

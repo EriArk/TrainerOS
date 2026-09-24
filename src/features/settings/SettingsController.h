@@ -9,6 +9,7 @@ class SettingsController final : public QObject {
     Q_PROPERTY(QString theme READ theme NOTIFY changed)
     Q_PROPERTY(bool worldEditing READ worldEditing NOTIFY changed)
     Q_PROPERTY(bool reducedMotion READ reducedMotion NOTIFY changed)
+    Q_PROPERTY(bool videoPreviews READ videoPreviews NOTIFY changed)
     Q_PROPERTY(bool saving READ saving NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
@@ -37,6 +38,7 @@ public:
     QString theme() const { return value_.theme; }
     bool worldEditing() const { return value_.worldEditing; }
     bool reducedMotion() const { return value_.reducedMotion; }
+    bool videoPreviews() const { return value_.videoPreviews; }
     bool saving() const { return saving_; }
     QString error() const { return error_; }
     int focusIndex() const { return pane_ ? row_ : category_; }

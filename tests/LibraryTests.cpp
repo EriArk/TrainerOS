@@ -371,7 +371,7 @@ private slots:
             QCOMPARE(store.worlds().size(), 9); QVERIFY(store.adventures().isEmpty()); QVERIFY(store.navigation().isEmpty());
         }
         Connection connection(dir.path()); QSqlQuery q(connection.db);
-        QVERIFY(q.exec("PRAGMA user_version")); QVERIFY(q.next()); QCOMPARE(q.value(0).toInt(), 12);
+        QVERIFY(q.exec("PRAGMA user_version")); QVERIFY(q.next()); QCOMPARE(q.value(0).toInt(), 13);
         QVERIFY(q.exec("SELECT payload FROM shell_state WHERE scope='prototype-library-v1'")); QVERIFY(q.next()); QVERIFY(!q.value(0).toString().isEmpty());
     }
     void filePagingCancellationAndUnavailableDirectory() {
@@ -408,9 +408,14 @@ private slots:
             QCOMPARE(settings.category(),3); QVERIFY(settings.controlsFocused());
             settings.dispatch(Action::Back); QCOMPARE(settings.category(),3);
             settings.activate(1); QTRY_VERIFY(!settings.saving()); QVERIFY(settings.reducedMotion());
+            settings.selectCategory(2,true); QVERIFY(settings.videoPreviews());
+            settings.dispatch(Action::Confirm);QTRY_VERIFY(!settings.saving());QVERIFY(!settings.videoPreviews());
+            settings.dispatch(Action::Right);QTRY_VERIFY(!settings.saving());QVERIFY(settings.videoPreviews());
+            settings.dispatch(Action::Left);QTRY_VERIFY(!settings.saving());QVERIFY(!settings.videoPreviews());
         }
         LocalStateStore store(dir.path()); store.open(); QTRY_VERIFY(store.ready());
         QCOMPARE(store.preferences().theme, "red"); QVERIFY(store.preferences().reducedMotion);
+        QVERIFY(!store.preferences().videoPreviews);
     }
 };
 QTEST_GUILESS_MAIN(LibraryTests)

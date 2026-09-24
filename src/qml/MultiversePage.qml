@@ -54,6 +54,7 @@ Item {
             anchors.fill: parent; visible: root.model.route === "games"
             entries: root.model.games; entry: root.model.detail; selectionIndex: root.model.focusIndex
             takesFocus: root.takesFocus
+            previewsEnabled: root.shell.settings.videoPreviews && !root.shell.serviceOpen && !adventureLaunch.active && !sessionState.blocked
             filterText: root.model.filterLabel + (root.model.query ? " · " + root.model.query : "")
             actionVisible: entry.linked === true
             emptyTitle: root.model.query || root.model.filterLabel !== "All titles" ? "No matching titles" : "No titles connected yet"

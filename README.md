@@ -22,6 +22,11 @@ A read-only [battery gauge](docs/POWER_STATUS.md) shows the handheld's charge in
 the right. Start has a top block for volume and brightness; theme stays in
 Appearance. Unavailable media and hardware effects remain explicit.
 
+Worlds and Multiverse play local Batocera [video previews](docs/VIDEO_PREVIEWS.md)
+after selection settles, silently and with a screenshot fallback. Settings →
+Media can disable them. The [ScreenScraper backend](docs/SCREENSCRAPER.md) is
+prepared; authenticated scraping and its controller job interface remain next.
+
 Hall now includes a [Journey overview](docs/JOURNEY_UI.md) with a larger badge case using existing verified progress, alongside manual memories and distinct earned/locked/unknown RetroAchievements states. New save fields and automatic Champion records remain planned.
 
 Center's attached [Activities menu](docs/CENTER_ACTIVITIES_UI.md) provides the Playroom, Practice and Link Counter screen framework. Only development mode rehearses those flows; real Party scenes, battles and transfers remain unavailable pending their provider and device gates.

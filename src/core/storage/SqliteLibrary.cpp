@@ -98,8 +98,8 @@ LibrarySnapshot readLibrary(QSqlDatabase& db) {
         r.adventure.additionalWorldIds.append(q.value(1).toString());
     if (!q.exec("SELECT adventure_id,trash_path FROM library_removals")) return fail();
     while(q.next()) for(auto& r:result.registrations) if(r.adventure.id==q.value(0).toString()) {r.removed=true;r.trashPath=q.value(1).toString();}
-    if (!q.exec("SELECT theme,reduced_motion,world_editing FROM preferences WHERE slot=1")) return fail();
-    if (q.next()) result.preferences = {q.value(0).toString(), q.value(1).toBool(), q.value(2).toBool()};
+    if (!q.exec("SELECT theme,reduced_motion,world_editing,video_previews FROM preferences WHERE slot=1")) return fail();
+    if (q.next()) result.preferences = {q.value(0).toString(), q.value(1).toBool(), q.value(2).toBool(), q.value(3).toBool()};
     if (!QStringList{"turquoise", "red", "green", "blue", "orange"}.contains(result.preferences.theme)) result.preferences.theme = "turquoise";
     if (!q.exec("PRAGMA foreign_key_check") || q.next()) return fail();
     return result;
@@ -182,8 +182,8 @@ LibraryWriteResult writeAdventure(QSqlDatabase& db, const AdventureRegistration&
 QString writePreferences(QSqlDatabase& db, const ShellPreferences& value) {
     if (!QStringList{"turquoise", "red", "green", "blue", "orange"}.contains(value.theme)) return "Choose an available color theme.";
     QSqlQuery q(db);
-    q.prepare("INSERT INTO preferences(slot,theme,reduced_motion,world_editing) VALUES(1,?,?,?) ON CONFLICT(slot) DO UPDATE SET theme=excluded.theme,reduced_motion=excluded.reduced_motion,world_editing=excluded.world_editing");
-    q.addBindValue(value.theme); q.addBindValue(value.reducedMotion ? 1 : 0); q.addBindValue(value.worldEditing ? 1 : 0);
+    q.prepare("INSERT INTO preferences(slot,theme,reduced_motion,world_editing,video_previews) VALUES(1,?,?,?,?) ON CONFLICT(slot) DO UPDATE SET theme=excluded.theme,reduced_motion=excluded.reduced_motion,world_editing=excluded.world_editing,video_previews=excluded.video_previews");
+    q.addBindValue(value.theme); q.addBindValue(value.reducedMotion ? 1 : 0); q.addBindValue(value.worldEditing ? 1 : 0); q.addBindValue(value.videoPreviews ? 1 : 0);
     return q.exec() ? QString() : "Couldn't save preferences. Check storage access and retry.";
 }
 }

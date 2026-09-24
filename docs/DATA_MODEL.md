@@ -1,5 +1,10 @@
 # TrainerOS Domain Model
 
+Schema 13 adds device-wide `preferences.video_previews` (default true). The
+transactional migration retains all library, owner, save and history records.
+It is independent of the prepared ScreenScraper client and introduces no remote
+credentials or remote media URLs into SQLite.
+
 Batocera discovery assigns explicit domains and catalogue/World bindings when
 creating a record. Existing records keep their identities and user edits.
 Shared `gamelist.xml` artwork is a separate read-only projection, not personal

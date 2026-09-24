@@ -8,6 +8,7 @@ Item {
     required property int selectionIndex
     required property bool takesFocus
     property bool wheelFocused: true
+    property bool previewsEnabled: false
     property bool showBack: false
     property bool idsInNames: false
     property string itemPrefix: "multiverse-game-"
@@ -187,12 +188,12 @@ Item {
         Rectangle {
             id: picture; x: 0; y: 54; width: parent.width * 0.54; height: Math.min(150, parent.height * 0.5)
             radius: 5; color: "#142e32"; border.color: "#526a66"; border.width: 2
-            Image {
-                id: screenshot; anchors.fill: parent; anchors.margins: 4
-                source: root.visible ? (root.entry.screenshot || "") : ""
-                asynchronous: true; sourceSize.width: 720; sourceSize.height: 420; fillMode: Image.PreserveAspectFit
+            GamePreview {
+                anchors.fill: parent; anchors.margins: 4
+                picture: root.entry.screenshot || ""
+                video: root.entry.artwork ? (root.entry.artwork.video || "") : ""
+                playbackAllowed: root.previewsEnabled && root.takesFocus && root.wheelFocused
             }
-            SystemGlyph { anchors.centerIn: parent; width: 66; height: 70; shape: "handheld"; visible: screenshot.status !== Image.Ready; opacity: 0.45 }
         }
         Column {
             id: facts

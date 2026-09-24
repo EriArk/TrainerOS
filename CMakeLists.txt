@@ -7,11 +7,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_AUTOMOC ON)
 include(CTest)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network Xml)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network Xml Multimedia)
 find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/integrations/scraper/ScreenScraper.cpp
+    src/integrations/scraper/BatoceraScrapeWriter.cpp
     src/core/storage/SqliteLibraryEdits.cpp
     src/core/storage/LibraryFileMove.cpp
     src/features/library/LibraryToolsController.cpp
@@ -182,7 +184,7 @@ qt_add_resources(traineros display_fonts PREFIX "/fonts" BASE assets/fonts
     FILES assets/fonts/Fredoka.ttf assets/fonts/OFL.txt
           assets/fonts/ChakraPetch-Bold.ttf assets/fonts/ChakraPetch-OFL.txt
           assets/fonts/Bungee-Regular.ttf assets/fonts/Bungee-OFL.txt)
-target_link_libraries(traineros PRIVATE trainer_core Qt6::Quick)
+target_link_libraries(traineros PRIVATE trainer_core Qt6::Quick Qt6::Multimedia)
 set_source_files_properties(src/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 file(GLOB trainer_qml_sources CONFIGURE_DEPENDS src/qml/*.qml src/qml/*.js)
 foreach(qml_file IN LISTS trainer_qml_sources)
@@ -196,6 +198,8 @@ qt_add_qml_module(traineros
     QML_FILES
         src/qml/AdventureArtwork.qml
         src/qml/LibraryWheel.qml
+        src/qml/GamePreview.qml
+        src/qml/GameVideoPreview.qml
         src/qml/TrainerAccessPanel.qml
         src/qml/Main.qml
         src/qml/AdventureExitWindow.qml
@@ -255,6 +259,14 @@ qt_add_qml_module(traineros
 )
 
 if(BUILD_TESTING)
+    qt_add_executable(trainer_video_tests tests/VideoPreviewTests.cpp)
+    target_compile_definitions(trainer_video_tests PRIVATE TRAINER_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+    target_link_libraries(trainer_video_tests PRIVATE Qt6::Quick Qt6::Multimedia Qt6::Test)
+    add_test(NAME video_preview COMMAND trainer_video_tests)
+    set_tests_properties(video_preview PROPERTIES TIMEOUT 45)
+    qt_add_executable(trainer_scraper_tests tests/ScreenScraperTests.cpp)
+    target_link_libraries(trainer_scraper_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME screenscraper COMMAND trainer_scraper_tests)
     qt_add_executable(trainer_pointer_tests tests/PointerVisibilityTests.cpp)
     target_link_libraries(trainer_pointer_tests PRIVATE trainer_core Qt6::Quick Qt6::Test)
     add_test(NAME pointer_visibility COMMAND trainer_pointer_tests)

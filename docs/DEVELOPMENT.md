@@ -32,7 +32,8 @@ lease or enable the overlay for normal launches. See [exit boundaries](ADVENTURE
 
 - CMake 3.24 or newer; Ninja is recommended.
 - C++20 compiler.
-- Qt 6.4 or newer: Core, Gui, Qml, Quick, Sql, Network, Xml, the QSQLITE driver, QtQuick / QtQuick.Window / QtQuick.Shapes QML modules, and Test when `BUILD_TESTING=ON`.
+- Qt 6.4 or newer: Core, Gui, Qml, Quick, Sql, Network, Xml, Multimedia, the QSQLITE driver, QtQuick / QtQuick.Window / QtQuick.Shapes / QtMultimedia QML modules, and Test when `BUILD_TESTING=ON`.
+- ffmpeg on the test PATH: `video_preview` generates an original local MP4 and checks actual decoded frames (a graphical Qt test session is required).
 - OpenSSL 3 Crypto development headers/library (PIN verification); runtime libcrypto 3.
 - SDL2 2.0.14 or newer, including development headers and its CMake package.
 
@@ -57,9 +58,9 @@ The last command requests full-screen inside the existing graphical session. It 
 An Ubuntu development/CI example, **not an ArmadaOS installation prescription**:
 
 ```sh
-sudo apt-get install ninja-build qt6-base-dev qt6-declarative-dev libqt6sql6-sqlite libsdl2-dev libssl-dev \
+sudo apt-get install ninja-build qt6-base-dev qt6-declarative-dev qt6-multimedia-dev libqt6sql6-sqlite libsdl2-dev libssl-dev ffmpeg \
   qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtquick-shapes \
-  qml6-module-qtqml-workerscript qml6-module-qtqml-models
+  qml6-module-qtqml-workerscript qml6-module-qtqml-models qml6-module-qtmultimedia
 ```
 
 Build on the target ARM64 system, or supply a real toolchain/sysroot for cross compilation. A Windows `.exe` is a development build and cannot run on ArmadaOS. Packaging and the exact target dependencies remain device-validation work.

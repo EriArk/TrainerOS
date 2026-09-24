@@ -20,7 +20,7 @@
 
 namespace trainer {
 namespace {
-constexpr int SchemaVersion = 12;
+constexpr int SchemaVersion = 13;
 QString failedWrite() { return "Couldn't save changes. Check free space or storage access, then try again."; }
 struct LoadedState {
     QString error;
@@ -203,6 +203,17 @@ public:
             if (openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next())) openError = failedWrite();
             if (openError.isEmpty() && query.value(0).toInt() < 12) {
                 query.finish(); openError = migrateLibraryEditing(db);
+            }
+            if (openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next())) openError = failedWrite();
+            if (openError.isEmpty() && query.value(0).toInt() < 13) {
+                query.finish();
+                if (!db.transaction()) openError = failedWrite();
+                else {
+                    if (!query.exec("ALTER TABLE preferences ADD COLUMN video_previews INTEGER NOT NULL DEFAULT 1 CHECK(video_previews IN(0,1))")
+                        || !query.exec("PRAGMA user_version=13")) openError = failedWrite();
+                    if (openError.isEmpty() && !db.commit()) openError = failedWrite();
+                    if (!openError.isEmpty()) db.rollback();
+                }
             }
             if (openError.isEmpty()) {
                 ownerId_ = localOwner(db);

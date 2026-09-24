@@ -4,12 +4,13 @@
 namespace trainer {
 void SettingsController::reload() { if (repository_ && !saving_) { value_ = repository_->preferences(); emit changed(); } }
 void SettingsController::activate(int index) {
-    if(index<0 || index>2 || saving_) return;
+    if(index<0 || index>3 || saving_) return;
     auto candidate = value_;
     if (index == 0) {
         const QStringList themes{"turquoise", "red", "green", "blue", "orange"};
         candidate.theme = themes[(themes.indexOf(value_.theme) + 1) % themes.size()];
-    } else if(index==2) candidate.worldEditing=!candidate.worldEditing;
+    } else if(index==3) candidate.videoPreviews=!candidate.videoPreviews;
+    else if(index==2) candidate.worldEditing=!candidate.worldEditing;
     else candidate.reducedMotion = !candidate.reducedMotion;
     error_.clear(); saving_ = true; emit changed();
     const auto completed = [this, candidate](const QString& error) {
@@ -27,7 +28,7 @@ QVariantList SettingsController::controls() const {
     switch(category_) {
     case 0: return {row("Shell color","theme",theme()),row("Reduced motion","toggle",reducedMotion()?"On":"Off"),row("Brightness","brightness","")};
     case 1: return {row("Volume","volume",""),row("Interface sounds","unavailable","Sound packs are not available yet"),row("Background music","unavailable","Music playback is not available yet")};
-    case 2: return {row("Adventure pictures","status","Clean exit pictures appear on Home and in your selector"),row("Pokedex illustrations","status","Optional artwork has separate source credits"),row("Video previews","unavailable","Playback is not available yet")};
+    case 2: return {row("Video previews","toggle",videoPreviews()?"On · silent playback":"Off"),row("Adventure pictures","status","Clean exit pictures on Home and in Choose Adventure"),row("Pokedex illustrations","status","Illustrations and animated companions")};
     case 3: return {row("Charger vibration","unavailable","Patterns have not been verified on this handheld"),row("Device lighting","unavailable","Lighting support has not been verified")};
     case 4: return {row("Trainer profile","action","Name, emblem and favorite"),row("RetroAchievements","action","Manage your account"), trainersAvailable_ ? row("Trainers","action","Choose a player or create a Trainer") : row("Separate Trainers & PIN","unavailable","Not available yet"),row("Trainer PIN",trainersAvailable_?"action":"unavailable","Set, change or remove your PIN"),row("Family code",trainersAvailable_?"action":"unavailable","A parent can reset forgotten PINs")};
     case 5: return {row("Refresh status","action",""),row("Restart","action",""),row("Power off","action","")};
@@ -49,6 +50,7 @@ void SettingsController::activateRow(int index) {
     if(category_==0 && row_<2) activate(row_);
     else if(category_==0 && row_==2) emit quickAdjustment(1,Action::Confirm);
     else if(category_==1 && row_==0) emit quickAdjustment(0,Action::Confirm);
+    else if(category_==2 && row_==0) activate(3);
     else if(category_==4) emit trainerRequested(row_);
     else if(category_==5) emit deviceRequested(row_);
     else if(category_==7 && row_==0) emit controllerRequested();
@@ -85,6 +87,7 @@ void SettingsController::dispatch(Action action) {
         else if(category_==0 && row_==1 && reducedMotion()!=(action==Action::Right)) activate(1);
         else if(category_==0 && row_==2) emit quickAdjustment(1,action);
         else if(category_==1 && row_==0) emit quickAdjustment(0,action);
+        else if(category_==2 && row_==0 && videoPreviews()!=(action==Action::Right)) activate(3);
         else if(category_==8 && row_==0 && worldEditing()!=(action==Action::Right)) activate(2);
     }
     emit changed();

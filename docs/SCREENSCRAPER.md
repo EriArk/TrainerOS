@@ -1,9 +1,49 @@
 # Native ScreenScraper — accepted scope and delivery order
 
 Accepted [issue #65](https://github.com/EriArk/TrainerOS/issues/65), 2026-09-24.
-Status: planned, not implemented. This document records acceptance; ROADMAP owns
+Status: client, matching and atomic writer prepared; live service and controller
+scraping are not delivered. This document records acceptance; ROADMAP owns
 the execution queue. The owner places this before video previews and completed
 game metadata/description presentation, followed by Pokedex/Party/Center work.
+
+## Prepared backend — 2026-09-24
+
+`src/integrations/scraper` provides a worker-confined WebAPI v2 client, injectable
+transport/delay, explicit credentials, English metadata/media parsing and a
+33-platform map checked against Batocera discovery. No production UI calls this
+client yet; ordinary scans remain offline. Developer credentials are pending.
+The protocol reference is [ScreenScraper WebAPI v2](https://www.screenscraper.fr/webapi2.php).
+
+Call `account()` before a job, then use one Client on one worker. Requests are
+serial, paced to the returned per-minute limit, count toward known daily limits,
+and stop at quota exhaustion. Busy responses impose at least 30 seconds of
+cancellable backoff on the next call. A caller decides retries; the client never
+silently retries a game. HTTPS is mandatory; responses/downloads have size and
+time limits. Redirects cannot forward credential queries to another origin.
+Credentials are atomically stored with owner-only Unix permissions; request and
+media URLs can contain secrets and must never enter logs, cache or XML.
+
+MD5/SHA1/CRC32/size describe the exact supplied file bytes. Archive contents,
+multi-disc identities and RetroAchievements normalization are not implemented
+by this helper. Only returned matching ROM hashes/size/system mark an exact
+result; title search always needs a user choice. Existing catalogue IDs stay
+independent. Live response shapes and service coverage still need verification.
+
+Validated image/MP4 downloads can be stored under `images/` or `videos/` using
+content-addressed names. The separate XML writer keeps relative media paths,
+owner names, other games and unknown fields. Missing-only preserves populated
+fields; explicit refresh replaces supported fields except names. Invalid XML,
+duplicate paths/fields, changed ROMs and escaping media paths fail without
+replacing the original. Updates use QSaveFile and a per-system lock. The future
+job controller must serialize commits/rescans with existing library edits;
+the lock alone does not serialize external file managers or TrainerOS Move.
+
+Still required for #65: authenticated service proof, persistent identity/download
+cache, archive/disc matching policy, cancellable job queue and progress, pause/
+retry, ambiguous-result selection, game/system/library controller actions and
+rescan handoff. These remain acceptance below, not completed work. At the owner's
+request, independent [local video playback](VIDEO_PREVIEWS.md) proceeds while
+developer access is being requested.
 
 ## Boundaries
 

@@ -49,6 +49,7 @@ struct ShellPreferences {
     QString theme = "turquoise";
     bool reducedMotion = false;
     bool worldEditing = false;
+    bool videoPreviews = true;
 };
 enum class LibraryEditKind { RenameWorld, RenameGame, MoveGame, RemoveGame, RestoreGame, MoveFile };
 struct LibraryEdit {
