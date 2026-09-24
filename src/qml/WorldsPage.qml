@@ -4,7 +4,7 @@ Item {
     id: root
     required property var shell
     readonly property var worlds: shell.worlds
-    readonly property bool takesFocus: visible && !shell.libraryTools.open && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
+    readonly property bool takesFocus: visible && !shell.serviceOpen && !shell.libraryTools.open && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     readonly property bool regionsOpen: worlds.route === "regions"
     readonly property bool listOpen: worlds.route === "adventures"
     readonly property bool detailOpen: worlds.route === "detail"

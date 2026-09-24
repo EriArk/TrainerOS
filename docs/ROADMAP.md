@@ -1,5 +1,16 @@
 # TrainerOS Roadmap
 
+**Current access pause — 2026-09-24:** the owner will announce ScreenScraper
+access. Until then defer live #65 work; continue 6b local media/metadata layout,
+then row 7 Pokedex/Party/Center. No login attempts or scraping jobs are needed
+during this pause. Retain the prepared client and all remaining #65 acceptance.
+
+**6b local presentation delivered:** shared larger game preview, labelled pastel
+year/players/genre/developer/publisher facts, real metadata synopsis with delayed
+reading scroll and lifecycle reset. Unknown fields stay absent. Installed Flip
+controller/capture checks cover both Worlds faces. [Evidence](VIDEO_PREVIEWS.md).
+Next is row 7 Pokedex/Party/Center; remote enrichment resumes only after access.
+
 **Current owner order — 2026-09-24:** native [ScreenScraper #65](SCREENSCRAPER.md)
 first; video previews plus complete game metadata/description/media presentation
 second; then Pokedex, Party/Storage, Center and their related accepted features.

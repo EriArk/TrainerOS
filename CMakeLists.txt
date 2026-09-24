@@ -198,6 +198,7 @@ qt_add_qml_module(traineros
     QML_FILES
         src/qml/AdventureArtwork.qml
         src/qml/LibraryWheel.qml
+        src/qml/GameInformation.qml
         src/qml/GamePreview.qml
         src/qml/GameVideoPreview.qml
         src/qml/TrainerAccessPanel.qml

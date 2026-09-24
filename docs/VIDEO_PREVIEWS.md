@@ -1,5 +1,32 @@
 # Local game video previews
 
+## Game information refinement — 2026-09-24
+
+Both wheels now share GameInformation: a larger preview beside labelled pastel
+fields for year, players, genre, developer and publisher. Empty fields disappear;
+developer and publisher remain separate. The platform badge stays beside the
+title. Game synopsis comes only from actual library metadata, never generated
+import/setup instructions. Existing registration descriptions remain unchanged.
+
+The description occupies the remaining lower area. Overflow waits 6.5 seconds,
+then scrolls at 12 logical pixels/second, pauses at the end and returns to the
+start. Selection changes, inactive pages and menus reset it. Reduced Motion
+disables this automatic movement. No extra focus target, inline button legend or
+separate game-detail page is added. All game-selection shortcuts stay intact.
+
+ScreenScraper is paused until the owner reports access; local Batocera data is
+the current source. Missing source metadata is not filled with invented facts.
+
+Verification: Windows video, Batocera, Worlds and both shell/Worlds QML checks
+passed. The ARM64 Release build was installed with binary/database backups;
+829 Adventure records, three owners and schema 13 were retained. Native Flip
+captures covered N64 Zelda/Banjo with all five facts and Emerald video with
+only its known year. Controller navigation and L1/R1 return passed; captures
+confirmed the long synopsis reaches its end and resets after page switching.
+Sixteen exact generated import/checksum notes were removed from device XML
+description fields (GB/GBC/GBA), with XML backups and preservation comparison.
+Other descriptions, ROMs, media paths, saves and source-server files were kept.
+
 Worlds and Multiverse share a single preview component in the existing game
 details area. Batocera `gamelist.xml` supplies a local `<video>` path; the normal
 scanner resolves it alongside screenshot, marquee and other artwork. No network

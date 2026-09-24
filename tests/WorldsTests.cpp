@@ -81,9 +81,11 @@ private slots:
         QCOMPARE(worlds.adventures()[0].toMap()["logo"],"file:///edition-logo.png");
         QCOMPARE(worlds.detail()["screenshot"],"file:///edition-image.png");
         QCOMPARE(worlds.detail()["year"],"2004");QCOMPARE(worlds.detail()["description"],"Full edition description");
+        QCOMPARE(worlds.detail()["synopsis"],"Full edition description");
         library.media.clear();worlds.refresh();
         QVERIFY(worlds.detail()["screenshot"].toString().isEmpty());
         QVERIFY(worlds.detail()["developer"].toString().isEmpty());
+        QVERIFY(worlds.detail()["synopsis"].toString().isEmpty()); // Never substitute import/setup instructions for a synopsis.
     }
     void collectionSearchFiltersAndIdentity() {
         MutableLibrary library;

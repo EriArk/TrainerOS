@@ -1,5 +1,9 @@
 # AGENTS.md — TrainerOS
 
+**Owner pause, 2026-09-24:** defer live ScreenScraper integration until the owner
+reports account/developer access. Continue local video and game information
+presentation, then Pokedex/Party/Center. Keep #65's remaining acceptance intact.
+
 **Owner execution order, 2026-09-24:** after the delivered library/card work,
 implement #65 native ScreenScraper first, then video previews and the remaining
 game metadata/description/media presentation, then finish Pokedex/Party/Center

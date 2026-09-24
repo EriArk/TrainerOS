@@ -170,48 +170,12 @@ Item {
         text: root.entries.length ? (root.selectionIndex + 1) + " / " + root.entries.length : ""
         color: Theme.muted; font.pixelSize: 13
     }
-    Item {
-        id: info
-        x: root.split + 20; y: 12; width: parent.width - x - 22; height: parent.height - 56
+    GameInformation {
+        x: root.split + 20; y: 12; width: parent.width - x - 22; height: parent.height - 26
         visible: root.entries.length > 0
-        Text {
-            id: title; width: parent.width - 84; height: 47
-            text: root.entry.title || ""; color: Theme.ink; textFormat: Text.PlainText
-            font.family: Theme.displayFamily; font.pixelSize: 23; font.bold: true
-            wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight
-        }
-        PlatformBadge {
-            objectName: "library-detail-platform"
-            anchors.right: parent.right; y: 0
-            label: root.entry.platformShort || ""; shape: root.entry.platformShape || "console"
-        }
-        Rectangle {
-            id: picture; x: 0; y: 54; width: parent.width * 0.54; height: Math.min(150, parent.height * 0.5)
-            radius: 5; color: "#142e32"; border.color: "#526a66"; border.width: 2
-            GamePreview {
-                anchors.fill: parent; anchors.margins: 4
-                picture: root.entry.screenshot || ""
-                video: root.entry.artwork ? (root.entry.artwork.video || "") : ""
-                playbackAllowed: root.previewsEnabled && root.takesFocus && root.wheelFocused
-            }
-        }
-        Column {
-            id: facts
-            x: picture.width + 16; y: picture.y; width: parent.width - x; spacing: 7
-            Text { width: parent.width; text: root.entry.system || ""; color: Theme.ink; font.pixelSize: 15; font.bold: true; wrapMode: Text.WordWrap; textFormat: Text.PlainText }
-            Text { text: root.entry.year || ""; visible: text.length > 0; color: Theme.muted; font.pixelSize: 15 }
-            Text { width: parent.width; text: root.entry.genre || ""; visible: text.length > 0; color: Theme.muted; font.pixelSize: 14; maximumLineCount: 2; wrapMode: Text.WordWrap; elide: Text.ElideRight; textFormat: Text.PlainText }
-            Text { width: parent.width; text: root.entry.developer || root.entry.publisher || ""; visible: text.length > 0; color: Theme.muted; font.pixelSize: 13; maximumLineCount: 2; wrapMode: Text.WordWrap; elide: Text.ElideRight; textFormat: Text.PlainText }
-            Text { text: root.entry.players ? root.entry.players + (root.entry.players === "1" ? " player" : " players") : ""; visible: text.length > 0; color: Theme.muted; font.pixelSize: 13; textFormat: Text.PlainText }
-            Text { width: parent.width; text: root.entry.playable ? "" : root.entry.status || ""; visible: text.length > 0; color: Theme.muted; font.pixelSize: 13; wrapMode: Text.WordWrap }
-        }
-        Text {
-            objectName: "multiverse-description"
-            y: picture.y + Math.max(picture.height, facts.height) + 14; width: parent.width; height: Math.max(0, parent.height - y)
-            text: root.entry.description || ""; textFormat: Text.PlainText
-            color: Theme.ink; font.pixelSize: 14; wrapMode: Text.WordWrap
-            maximumLineCount: Math.max(1, Math.floor(height / 17)); elide: Text.ElideRight
-        }
+        entry: root.entry
+        active: root.takesFocus && root.wheelFocused
+        previewsEnabled: root.previewsEnabled
     }
     CapButton {
         objectName: root.emptyName

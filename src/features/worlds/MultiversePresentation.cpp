@@ -107,7 +107,7 @@ QVariantMap MultiversePresentation::present(const Game& game) const {
         {"description",description},{"preview",preview.isEmpty() && repository_ ? repository_->artwork(game.id).value("cover").toString() : preview},{"time",time},
         {"artwork",artwork},{"logo",artwork.value("marquee",artwork.value("wheel"))},{"screenshot",screenshot},
         {"year",year},{"genre",artwork.value("genre")},{"players",artwork.value("players")},
-        {"developer",artwork.value("developer")},{"publisher",artwork.value("publisher")},
+        {"developer",artwork.value("developer")},{"publisher",artwork.value("publisher")},{"synopsis",artwork.value("desc")},
         {"action",playable?"Start Adventure":game.linked?"Set up Adventure":"File unavailable"},
         {"status",sample_ ? (game.linked?"Sample linked entry":"Sample missing file") : !game.linked?"File unavailable":playable?"Ready to play":"Needs setup"}};
     presentations_.insert(game.id,result);return result;
