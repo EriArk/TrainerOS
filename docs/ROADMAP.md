@@ -1,11 +1,20 @@
 # TrainerOS Roadmap
 
+**Current owner order — 2026-09-24:** native [ScreenScraper #65](SCREENSCRAPER.md)
+first; video previews plus complete game metadata/description/media presentation
+second; then Pokedex, Party/Storage, Center and their related accepted features.
+Finish each consumer with its actual provider in dependency order. Necessary P8
+readers/writes follow those screens; they no longer wait behind unrelated runtime
+expansion/system cleanup. Exact-build proof, backups and two-device gates remain.
+This supersedes earlier ordering statements, not their scope or delivery evidence.
+Generic artwork packs, Pack Studio and consolidated Credits remain final.
+
 **2026-09-24 priority delivery — English collection cleanup:** 92 eligible
 reference editions; duplicate/non-English/service variants removed from Worlds,
 including grey entries. Permanently deleted 198 device ROMs and updated eight
 gamelists, preserving saves/history/server originals. [Policy and verification](CATALOGUE_CURATION.md).
 The brighter/random World cards, platform cards and physical Move follow-up is
-also delivered below. Continue with the remaining P5 presentation/media queue.
+also delivered below. Continue with #65 before the video/media presentation work.
 
 
 ## Current execution override — owner library correction, 2026-09-23
@@ -55,9 +64,11 @@ remains. Windows 40/40 and final targeted checks passed; installed Flip controll
 tests covered cancellation, PS1 folder correction with XML/media, GBA new-folder
 creation and launch/guarded return. Original records and ROMs were preserved;
 temporary test copies were deleted. [Evidence](BATOCERA_LIBRARY.md#physical-move-and-card-refinement-verification--2026-09-24).
-**Next:** resume remaining handheld presentation/motion work. Multi-file
+**Next:** #65 ScreenScraper, then video/metadata presentation, then the
+Pokedex/Party/Center chain in the execution table. Multi-file
 installation moves/deletion remain explicit follow-ups. Emulator edge cases,
-save research, Help and final artwork tooling retain their later slots.
+Help and final artwork tooling retain their later slots. Save research is limited
+to the actual Pokedex/Party/Center consumers when that chain begins.
 An observed Plasma Mobile → TrainerOS session handoff failure was recovered;
 its recurrence/automated recovery check remains in P10, not silently marked fixed.
 
@@ -69,7 +80,14 @@ read-only local provider; its necessary validation is not a generic pack manager
 The next order is sprites/portraits, P2 ownership, then P3/P4 library binding.
 All earlier acceptance remains; ROADMAP is the execution queue.
 
-Reconciled on **2026-09-19** for **#1–64**, including the updated #9/#13/#15/#17/#28/#31/#40 and #49's explicit supersession of state-based resume. **Phases P0–P12 own the dependency queue**, not a serial list of 64 issues. Stable steps 1–10 and U1–U13 preserve prior commitments with explicit amendments. [Earlier acceptance](EXPANSION_PLAN.md), [#42–62 acceptance](EXPANSION_42_62.md) and [#63–64 acceptance](EXPANSION_63_64.md) specify each slice. #62 changes documentation only, not feature availability or GitHub issue states.
+Reconciled on **2026-09-19** for **#1–64**, extended on **2026-09-24** by
+[#65 acceptance](SCREENSCRAPER.md) and the owner order above. The updated
+#9/#13/#15/#17/#28/#31/#40 and #49's explicit supersession of state-based resume
+remain. **Phases P0–P12 own the dependency queue**, not a serial list of issues.
+Stable steps 1–10 and U1–U13 preserve prior commitments with explicit amendments.
+[Earlier acceptance](EXPANSION_PLAN.md), [#42–62 acceptance](EXPANSION_42_62.md)
+and [#63–64 acceptance](EXPANSION_63_64.md) specify the earlier slices.
+#62 changes documentation only, not feature availability or GitHub issue states.
 
 This is a dependency replan, not a reset. The [pre-expansion plan](https://github.com/EriArk/TrainerOS/blob/252f04e0772bd05966fb212ca736d303cab366ea/docs/ROADMAP.md) and the preservation map below make previous commitments traceable. Read the phase table for what comes next, then the referenced acceptance; do not execute the old numbered register as a competing queue.
 
@@ -181,7 +199,13 @@ Module documents contain dated evidence and exact limits. Existing Windows/Linux
 
 ## Unified execution order — existing work and new issues
 
-This table is the **single execution queue**, updated for the owner's 2026-09-19 UI-first and 2026-09-20 Studio-last clarifications. **Read rows top to bottom, not by phase number.** P0-P12 remain stable work-area identifiers so earlier links and evidence keep their meaning; their numerical order is no longer the schedule. Acceptance registers below preserve scope, not a second queue.
+This table is the **single execution queue**, updated for the owner's 2026-09-24
+ScreenScraper → media → Pokedex/Party order. The UI-first and Studio-last
+clarifications remain within each feature chain. **Read rows top to bottom, not
+by phase number.** P0-P12 remain stable work-area identifiers so earlier links and
+evidence keep their meaning; their numerical order is not the schedule. Rows 1–6
+retain the delivered foundations and their residual acceptance; the next new
+increment is 6a. Acceptance registers below preserve scope, not a second queue.
 
 Complete coherent increments within each row. A UI increment includes reusable components, the entire controller flow, explicit states and small data contracts; it does not claim the future service works. Use existing real services wherever available. Future data uses clearly labelled development fixtures, never fabricated personal progress in production. Unsupported writes, exchanges and battles stay unavailable in the normal app.
 
@@ -193,11 +217,13 @@ Complete coherent increments within each row. A UI increment includes reusable c
 | **4. P2 - Trainer/backend ownership** | #2 audit and #20 lossless migration -> bind prepared #19 onboarding/chooser/PIN -> #26 Switch Player and #12 active-Trainer account; shared #9 context persistence; first verified per-Trainer RetroArch ordinary-save route (owner follow-up 2026-09-23) | Shared library/installations/media stay device-wide; journal/history/Hall/Home/RA belong to a Trainer. Preserve legacy identity and external save lineage, scope/invalidate async results, block unsafe switching. Verify rollback and restart before enabling multiple owners. UI prototypes do not grant access across profiles. |
 | **5. P3 - library and chronology** | #28 domain/system metadata, #30 eligible catalogue, U4 archive/title/hack completeness; #63 oldest-platform-first World lists; steps 1-2/#18 audit and safe relink/quarantine | Real ownership mutations follow P2. Preserve private content, variants, missing/linkable editions and separate histories. Chronology is data-driven, retains stable selection/search order, and does not require save research. Read-only sorting/metadata can land earlier when it touches no pending ownership migration. Destructive cleanup is not a prerequisite for Worlds UI. |
 | **6. P4 - bind Worlds and Home** | #17 static Adventure media -> #16 Worlds/paired Multiverse; #56 environmental/split cards; #31 per-context Home -> #15 exit backgrounds/#32 Multiverse Home; install missing viable emulators and required BIOS, import four server-disk ROMs per supported system; U6 ordinary-backup maintenance | P1 UI and P2/P3 identities before real context mutations. Reuse one launch/history engine, fixed A and selection-only Y. Existing clean exit images replace state thumbnails. Static/fallback media works before optional video or a complete art collection; environmental presentation can be prepared in P1. Deliver the initial playable Multiverse collection in this same P4 increment; record unavailable files/runtimes explicitly. P9 retains unresolved runtime paths and broader verification, not the initial collection as a deferred prerequisite. |
-| **7. P5 - motion, media and feedback** | #29 video, #36 audio packs; #37 haptics/#38 RGB and gyro/background motion capability checks; #52 bounded party animation using early #51 assets | Stable UI slots and lifecycle pause/Reduced Motion first. Probe only the capability being added. Fixture scenes are allowed early; production living Party/Playroom waits for P8 exact records. Unsupported hardware never blocks unrelated work. Preserve codec, ownership, credits and measured Flip performance gates. |
-| **8. P9 - finish playable runtime paths** | U5 current input/title gaps; U10 Azahar then Cemu by viability; per-runtime #49 exit coverage; remaining gaps in the P4 representative classics collection | Verify ordinary launch/input/in-game save/load/exit/return per runtime. This does not wait for optional P5 effects or new progress parsers. Matching/read research remains late P6/P8. Other systems stay conditional; protect source ROMs and personal saves. Existing supported routes are not rebuilt. |
-| **9. P10 - system delivery and cleanup** | U11 reproducible install/update/rollback -> #11 verified Mobile/Steam consolidation -> #39 restore UI -> software/background cleanup; complete eligible #18 cleanup after relink/consumer proof | Minimum recovery exists throughout development; final migration follows known runtime/package dependencies. Preserve KDE dependencies, maintenance/SSH, personal content and manifests. Physically verify restore/reboot, then measure space/load. Quarantine alone is not reclaimed space. |
-| **10. P6 - deeper achievements integration** | U3/U7 matching/cache limits; #24/#48 bind prepared earned/current-Adventure views; #12 actual earning; #25 deduplicated unlock banner/jingle | Keep existing RA login/read/cache working throughout. Account isolation and exact-title mapping precede new earning claims. Ordinary read-only UI can bind earlier after P2; heavier format/matching investigations come here. Real earning proof is separate from login; return-time notifications first, live overlay conditional. |
-| **11. P8 - late save research and functional Center** | #50/#42 exact-title samples and readers/U8 -> #46/#47 current Dex/Journey/Champion/U9 -> #44/#53 Party/Storage -> guarded #10 healing/writes. Bind #52/#54 real Party/Playroom; then #55 exact-rules practice spike and #45 Link Counter | Start with one exact build and complete its consumer before another parser. Preserve working GBA observations/backups now. U2 gates DS save operations; no all-platform research ahead of UI. Each field/build needs fixtures and physical proof. #49 protection precedes writers. Read-only practice needs verified Party/rules/ARM64 feasibility, not a save writer; it can proceed independently if healing is blocked. Link needs compatible writers, durable two-device recovery and a second physical device. Conditional failures do not block ordinary Center or final docs for delivered capabilities. |
+| **6a. P3/P4 - native ScreenScraper (next)** | [#65](SCREENSCRAPER.md): complete platform map, explicit controller scraping, matching/cache/quotas, safe Batocera XML/media writes and rescan | Verify API/developer access first. All supported platform families; cancellable asynchronous work, ambiguous-choice UI, preservation and installed-device proof. Ordinary scans stay offline. No generic artwork-pack tooling. |
+| **6b. P4/P5 - video and game information** | #29 video previews; complete #17 metadata, descriptions and media presentation in the existing game views | After #65 static scraping. Bind actual local media and explicit optional video acquisition, keep fallbacks, bounded decoding and one player, pause on hidden pages/modals/game launch and verify return/performance. No unrelated hardware work before the next Pokedex/Party chain. |
+| **7. P1/P7/P8 - finish Pokedex, Party and Center** | Remaining Pokedex/Center UI and reference features, then #50/#42 exact-title samples and readers/U8 -> #46/#47 current Dex/Journey/Champion/U9 -> #44/#53 Party/Storage -> guarded #10 healing/writes. Bind #52/#54 real Party/Playroom; then #55 exact-rules practice spike and #45 Link Counter | After rows 6a/6b, finish the relevant UI before its provider. Start with one exact build and complete its consumer before another parser. Preserve working GBA observations/backups now. U2 gates DS save operations; no all-platform research ahead of UI. Each field/build needs fixtures and physical proof. #49 protection precedes writers. Read-only practice needs verified Party/rules/ARM64 feasibility, not a save writer; it can proceed independently if healing is blocked. Link needs compatible writers, durable two-device recovery and a second physical device. Conditional failures do not block ordinary Center or final docs for delivered capabilities. |
+| **8. P5 - remaining atmosphere and feedback** | #36 audio packs; #37 haptics/#38 RGB and gyro/background motion capability checks; residual #52 motion polish after the Party chain | Stable UI slots and lifecycle pause/Reduced Motion first. Probe only the capability being added. Production living Party/Playroom uses the verified records from row 7; fixtures never become personal progress. Unsupported hardware never blocks unrelated work. Preserve codec, ownership, credits and measured Flip performance gates. |
+| **9. P9 - finish playable runtime paths** | U5 current input/title gaps; U10 Azahar then Cemu by viability; per-runtime #49 exit coverage; remaining gaps in the P4 representative classics collection | Verify ordinary launch/input/in-game save/load/exit/return per runtime. This does not wait for optional P5 effects or new progress parsers. Remaining runtime-specific matching research stays within its own verified integration; P8 consumers follow row 7. Other systems stay conditional; protect source ROMs and personal saves. Existing supported routes are not rebuilt. |
+| **10. P10 - system delivery and cleanup** | U11 reproducible install/update/rollback -> #11 verified Mobile/Steam consolidation -> #39 restore UI -> software/background cleanup; complete eligible #18 cleanup after relink/consumer proof | Minimum recovery exists throughout development; final migration follows known runtime/package dependencies. Preserve KDE dependencies, maintenance/SSH, personal content and manifests. Physically verify restore/reboot, then measure space/load. Quarantine alone is not reclaimed space. |
+| **11. P6 - deeper achievements integration** | U3/U7 matching/cache limits; #24/#48 bind prepared earned/current-Adventure views; #12 actual earning; #25 deduplicated unlock banner/jingle | Keep existing RA login/read/cache working throughout. Account isolation and exact-title mapping precede new earning claims. Ordinary read-only UI can bind earlier after P2; heavier format/matching investigations come here. Real earning proof is separate from login; return-time notifications first, live overlay conditional. |
 | **12. P11 - complete offline guide** | #40 viewer and all current-feature, content/BIOS/media/account/save/maintenance/recovery articles | Entire product Help implementation near the end after actual flows stabilize. Engineering docs, capability facts, recovery notes and required asset Credits remain current earlier. Audit controller routes, internal links and version-matched facts; planned functions are not documented as available. |
 | **13. P12 - startup and whole-product acceptance** | #41 supported userspace/session boot identity; #34 full screen/state audit; U12 measured performance/remapping/calibration; final U11 packaging/recovery | Final profile/session/installer routes first. Branding cannot hide failure or delay readiness. Per-feature controller, layout and regression checks run throughout, not only here. Physically validate startup/rollback, themes/reduced motion and performance. |
 | **14. P7 - final artwork packs and Pack Studio** | #57 generic pack validation and controller install/select/verify/update/remove, then #59 Windows/Linux Qt desktop authoring tool; stabilize the authoring contract against completed handheld consumers; shared validator, mapping, transforms, editable author/source/terms fields, consolidated runtime Credits and export/reimport | Last planned delivery stage, after handheld UI and asset structure settle. Reuse #60 measured profiles and runtime validation; verify exports in TrainerOS and update matching Help/packaging. All Studio acceptance remains. Conditional/deferred research and hardware tasks remain preserved; resolve any effect on the asset contract without inventing support. |

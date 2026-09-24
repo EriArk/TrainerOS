@@ -1,5 +1,14 @@
 # AGENTS.md — TrainerOS
 
+**Owner execution order, 2026-09-24:** after the delivered library/card work,
+implement #65 native ScreenScraper first, then video previews and the remaining
+game metadata/description/media presentation, then finish Pokedex/Party/Center
+and their related features. This moves the required P8 integrations behind those
+library consumers, ahead of unrelated runtime expansion and final system work;
+retain exact-build/save-safety and two-device gates. Finish UI before its deep
+provider work. Generic artwork packs/Pack Studio and consolidated Credits remain
+at the end. Preserve all other accepted work in ROADMAP; see docs/SCREENSCRAPER.md.
+
 **Owner library correction, 2026-09-23:** stop expanding emulator compatibility
 for now. Prioritize Batocera-compatible folders and gamelist/media loading, then
 simple library management: Settings unlock for World wrench/edit popup; long A

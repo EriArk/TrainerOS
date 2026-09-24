@@ -4,6 +4,11 @@ Owner decision, 2026-09-23: use Batocera's filesystem and `gamelist.xml`
 conventions. A future desktop RomM fork is a separate owner project. Do not
 introduce a TrainerOS-only manifest as a requirement for adding a game.
 
+Accepted next: [native ScreenScraper #65](SCREENSCRAPER.md), a separate explicit
+scraping service that writes compatible media/XML and triggers this offline
+loader. It precedes video previews and final metadata/description presentation;
+it is not yet implemented.
+
 ```text
 Emulation/
   bios/
