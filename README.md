@@ -1,111 +1,230 @@
 # TrainerOS
 
-**A controller-first Linux handheld shell built around Adventures, Worlds, and a personal game history.**
-
-TrainerOS started with a simple idea: a handheld should feel like a dedicated device, not a tiny desktop that happens to launch emulators. On the target Retroid Flip 2, TrainerOS is designed to be the main graphical session — power on, choose an Adventure, play, and return directly to the same interface when you are done.
-
-Pokémon games are organized as **Worlds** and **Adventures** instead of ROM files and emulator cores. Non-Pokémon games live in the **Multiverse**, using the same controller-first shell and launch/return flow. Linux, ArmadaOS, emulators, save paths, and filesystem details stay underneath unless you deliberately enter maintenance mode.
-
-> **Project status:** active development. TrainerOS is already installed and exercised as the main session on a real Flip 2 running ArmadaOS, but hardware support and game compatibility are still validated feature-by-feature rather than assumed.
+**The system is not a menu between games. It is the place your games come back to.**
 
 ![TrainerOS Home](docs/images/readme/01-home.webp)
 
-## What it is
+TrainerOS started from a simple annoyance: on a normal handheld, the system knows which game file you launched, while the game knows everything that actually matters — your party, your progress, where you have been, what you collected, what you won. The moment the emulator closes, those two worlds stop talking to each other.
 
-The normal experience is intentionally simple:
+TrainerOS is an attempt to erase that line.
 
-```text
+It is a controller-first handheld system experience built on Linux and ArmadaOS. You turn the device on as **your Trainer**, leave TrainerOS to play an **Adventure**, then come back with part of that Adventure still alive in the system around you.
+
+Pokémon is where this idea starts, because it makes the connection wonderfully literal. Leave Pokémon Emerald and your team does not have to disappear with the emulator window. TrainerOS can read the real save, bring that party onto Home, show the same Pokémon in the Center and Playroom, heal them outside the game, buy an item outside the game, then launch Emerald again and let the game itself see the result.
+
+The long-term idea is bigger than Pokémon. Games in the **Multiverse** can gradually gain their own ways to flow back into the system too. Some may only provide a beautiful launch/return experience and history. Others may eventually expose progress, collections, characters, milestones or game-specific companion features. Pokémon is simply the first place where TrainerOS is going deep.
+
+> You do not open a collection of disconnected games.  
+> **You continue the story of the person playing them.**
+
+---
+
+## One continuous loop
+
+TrainerOS is designed around a loop that crosses the boundary between the system and the game:
+
+~~~text
 Power on
    ↓
-TrainerOS
+Your Trainer
+   ↓
+Home / Worlds / Multiverse
    ↓
 Choose an Adventure
    ↓
-Play in RetroArch / melonDS / Dolphin / another verified adapter
+Play the actual game
    ↓
-Exit the Adventure
+Home / Guide
    ↓
-Return to the same TrainerOS context
-```
+Return to TrainerOS
+   ↓
+The system refreshes what it can really know
+   ↓
+Party · Pokédex · Center · Journey · history · people nearby
+   ↓
+Go back into the same Adventure — or start another one
+~~~
 
-TrainerOS is **not** a Linux distribution of its own, and it is not an Android launcher. It is a native C++/Qt shell and dedicated session that sits on top of an existing Linux handheld stack. The current target uses **ArmadaOS** for graphics, audio, input, packages, emulator runtimes, and recovery/maintenance.
+The game remains the game. TrainerOS does not replace Emerald's battle system, Steam, RetroArch, Dolphin or melonDS. It gives those games a place to return to and, where an integration is proven safe, a way to leave something meaningful behind.
 
-| At a glance | |
-| --- | --- |
-| Target hardware | Retroid Flip 2 |
-| Base system | ArmadaOS / Linux |
-| Application stack | C++20, Qt 6 / QML, SDL2, SQLite, CMake |
-| Input model | Controller-first; normal use does not require touch, mouse, or keyboard |
-| Library format | Batocera-style ROM folders and `gamelist.xml` metadata/media |
-| Development state | Working on real hardware, still evolving quickly |
+Ordinary game saves remain authoritative. TrainerOS does not build its normal experience around emulator savestates. A guarded exit can capture the live game before the shell asks to close it, cancel back into the same still-running process, or return cleanly to the exact TrainerOS context you left.
 
-## The interface today
+That is the basic rhythm of the whole project: **system → game → system → game**, without feeling like you keep dropping in and out of unrelated applications.
 
-TrainerOS has five peer sections switched with L1/R1. The UI keeps the same fixed handheld-style chassis while each section has its own job.
+---
+
+## Pokémon: where the boundary already starts to disappear
+
+The deepest working integration today is an exact English Pokémon Emerald build.
+
+TrainerOS can already read the real ordinary save and turn it into shared system state: National Pokédex Seen/Caught progress, the six-member Party, all fourteen Storage boxes, nicknames, levels, types, nature, ability, held items, stats, moves and PP. The same verified Party can quietly live on Home, appear as practical data in the Pokémon Center, and wander around a small Playroom.
+
+The important part is that these are not decorative copies typed into TrainerOS. They are the Pokémon that are actually in that save.
+
+The connection also goes in the other direction. The first protected Emerald writers are live: the Center can restore Party HP, status and PP, and Shops & Traders can make real purchases with the money and inventories stored by the game. TrainerOS currently understands dozens of Emerald money counters, including ordinary Poké Marts, Lilycove departments, TMs, vending, herbs, plants and Secret Base decorations.
+
+Those writes are tested by launching the normal game afterwards and checking the result there. Buy Fire Blast in TrainerOS, launch Emerald, and Fire Blast is in the Bag. Buy a Pichu Doll, walk to the in-game PC, and the decoration is there.
+
+This is the part of TrainerOS that best explains the project: **the Pokémon Center is no longer only a place inside one ROM. It can become part of the device itself.**
+
+[Emerald Party and Storage](docs/EMERALD_PARTY.md) · [Save-backed Pokédex](docs/SAVE_POKEDEX.md) · [Center healing](docs/EMERALD_HEALING.md) · [Shops & Traders](docs/EMERALD_SHOPS.md)
+
+---
+
+## A Center that exists between Adventures
+
+The Pokémon Center is meant to become the shared companion space around supported Pokémon games.
+
+Today it already has real Party and Storage views, protected save backup/restore, a working Emerald treatment room, Shops & Traders, and a living Party Playroom. The Playroom is intentionally separate from practical management: it is the place where your actual team can wander, sleep, greet one another, react to you and simply exist outside the battle screen.
+
+The direction goes further. Verified games can gain safe Party/Storage operations, title-specific services and a read-only Practice Battle sandbox built from the real team without writing battle damage back to the save.
+
+And when another TrainerOS user is sitting next to you, the same idea becomes social. The planned **Link Counter** is a local, offline meeting point for nearby TrainerOS devices: discover another Trainer, compare exact game capabilities, trade or transfer real Pokémon through verified providers, and recover safely if the connection drops. The goal is the feeling of a modern link cable rather than another internet account.
+
+That local connection is also where future nearby battles and other Trainer-to-Trainer interactions naturally belong. TrainerOS is personal first, but it should not have to be lonely.
+
+[Pokémon Center model](docs/EXPANSION_42_62.md) · [Party Playroom](docs/PARTY_PLAYROOM.md) · [Link Counter issue](https://github.com/EriArk/TrainerOS/issues/45)
+
+---
+
+## One Trainer, many Worlds, years of history
+
+A Pokémon game is an **Adventure**. Kanto, Johto, Hoenn, Sinnoh and the other regions are **Worlds**.
+
+The distinction matters because TrainerOS is not trying to make the emulator or console generation the center of your library. FireRed belongs to Kanto because that is where the Adventure lives. Emerald belongs to Hoenn. Remakes, spin-offs and meaningful ROM hacks can keep their own identity without turning the interface into a directory of cores and extensions.
+
+Your **Trainer** exists above those individual Adventures.
+
+Multiple local Trainers already work on one device, with isolated TrainerOS history, navigation, media and account state, optional controller-entered PINs and a family recovery code. The first private ordinary-save route is also live for GBA/mGBA, so a second Trainer can start Emerald from New Game without inheriting somebody else's playthrough.
+
+The larger goal is a personal history that keeps growing across games: Worlds visited, badges, Pokédex progress, playtime, milestones and preserved Champion records. The planned Journey/Hall model separates the live state of the current save from historical moments, so beating a game can become part of your Trainer's history even after that save moves into post-game or is replaced by another run.
+
+A future portable Trainer backup is intended to make that identity survive a reflash or a move to another supported device. The system can be replaced. **The Trainer should remain yours.**
+
+![TrainerOS Worlds](docs/images/readme/02-worlds.webp)
+
+---
+
+## Multiverse: Pokémon first, not Pokémon only
+
+TrainerOS is still a game system.
+
+Everything outside Pokémon lives in the **Multiverse**: a system-oriented library for retro games and, in the planned direction, locally installed Steam games as well.
+
+The working Multiverse already uses the same controller-first shell, history, selection, media and launch/return model as Pokémon. TrainerOS understands Batocera-style folders and gamelist metadata, can discover games without a private ROM manifest, and has real validated launch routes across several cartridge, disc and standalone emulator families.
+
+Over time, Multiverse games can get deeper adapters of their own.
+
+A simple game may only need:
+
+~~~text
+TrainerOS → launch → play → Home → clean return → history/media
+~~~
+
+A richer adapter may eventually let a game leave more behind: progress, a collection, a character state, milestones, recent context or a companion screen that makes sense for that particular title. TrainerOS does not pretend every game exposes the same semantics. Depth is added **game by game, when it is actually useful and verifiable**.
+
+Steam follows the same philosophy. TrainerOS is not trying to rebuild the Steam Store, downloader, Proton settings or Steam Input. Steam stays installed. The planned integration simply makes installed Steam games another Multiverse source for everyday play, while the full Steam environment remains available when you actually need it.
+
+![TrainerOS Multiverse](docs/images/readme/03-multiverse.webp)
+
+---
+
+## The interface is part of the fiction
+
+TrainerOS is meant to feel like a device, not a desktop application stretched across a handheld screen.
+
+The normal shell has five peer spaces navigated with the shoulders:
+
+**Home ⇄ Worlds ⇄ Pokédex ⇄ Trainer ⇄ Hall of Fame**
+
+Paired faces keep related spaces close without turning the interface into a forest of tabs: Worlds pairs with Multiverse, Pokédex with Pokémon Center, and Hall/Journey with RetroAchievements. Home can switch between Pokémon and Multiverse context.
+
+There is no normal reason to choose a RetroArch core, edit a save path, open a file manager or see a Linux desktop. Those details still exist, but they live underneath the experience or in explicit maintenance tools.
 
 <table>
-<tr>
-<td width="50%"><img src="docs/images/readme/02-worlds.webp" alt="TrainerOS Worlds"></td>
-<td width="50%"><img src="docs/images/readme/03-multiverse.webp" alt="TrainerOS Multiverse"></td>
-</tr>
-<tr>
-<td align="center"><b>Worlds</b><br><sub>Pokémon Adventures organized by region.</sub></td>
-<td align="center"><b>Multiverse</b><br><sub>Non-Pokémon games organized by platform.</sub></td>
-</tr>
 <tr>
 <td width="50%"><img src="docs/images/readme/04-pokedex.webp" alt="TrainerOS Pokedex"></td>
 <td width="50%"><img src="docs/images/readme/05-hall-of-fame.webp" alt="TrainerOS Hall of Fame"></td>
 </tr>
 <tr>
-<td align="center"><b>Pokédex</b><br><sub>Offline reference, search, filters, artwork and personal records.</sub></td>
-<td align="center"><b>Hall of Fame</b><br><sub>Journey progress, memories and achievement views.</sub></td>
+<td align="center"><b>Pokédex</b><br><sub>Offline reference plus real save-backed progress where a provider is verified.</sub></td>
+<td align="center"><b>Hall / Journey</b><br><sub>Current progress, memories, Champion history and the RetroAchievements companion.</sub></td>
 </tr>
 </table>
 
-### Home
+Artwork, animated companions, environmental World cards, local game video previews and later audio/haptic/lighting layers are there to make the handheld feel alive, but the UI tries to keep the information itself calm and readable.
 
-Home is the current Trainer and Adventure at a glance. For explicitly verified Pokémon builds, TrainerOS can read ordinary save data and show real badge and Pokédex progress; it also tracks observed play sessions and can use the latest clean exit image as Adventure media. The large A action launches the selected Adventure normally rather than pretending a savestate is the game itself.
+---
 
-### Worlds
+## What is real today?
 
-Pokémon is organized region-first: Kanto, Johto, Hoenn, Sinnoh, and the later regions are Worlds containing multiple Adventures, editions, remakes, and hacks. TrainerOS keeps stable Adventure identities even when display metadata or folders change. Current library tools support contextual rename, World reassignment, properties, deletion, and physical platform-folder moves where the operation can be proven safe.
+TrainerOS is still in active development, but this is no longer only a UI prototype. The current code has been installed and exercised as the main session on a real Retroid Flip 2 running ArmadaOS.
 
-### Multiverse
+| Area | Working state |
+| --- | --- |
+| Dedicated handheld shell | TrainerOS can boot as the normal graphical session, launch games and return without exposing a desktop during ordinary use |
+| Controller-first UI | Full shell navigation, text entry, settings, diagnostics, profiles and game management work without touch/mouse |
+| Multiple Trainers | Real profile creation/switching, PIN protection, family recovery and owner-scoped TrainerOS state |
+| Library | Batocera-style folder discovery, gamelist metadata/media, contextual rename/move/delete, stable Adventure identity |
+| Launch / return | Real RetroArch and standalone adapter routes, clean exit media and guarded return into the shell |
+| Pokémon Emerald | Save-backed Pokédex, Party, Storage, living Party, healing and protected real purchases |
+| Save safety | Exact-build validation, protection backups, stale-source checks, candidate verification, atomic replacement and read-back verification |
+| Multiverse | Real persistent non-Pokémon library, shared game wheel, media/video presentation and multiple validated runtime routes |
+| RetroAchievements | Real Trainer-scoped sign-in/read/cache foundation; deeper earning/notification integration is still being expanded |
+| ScreenScraper | Native client, hashing, platform map and safe gamelist/media writer are prepared; the complete end-user scraping flow is not finished yet |
 
-Multiverse is the same idea without forcing non-Pokémon games into the Pokémon model. Systems get their own visual cards and game wheels, while launch details stay behind adapters. Multiple RetroArch cartridge and CD routes plus melonDS and Dolphin have been exercised on the target device; support is deliberately recorded per route instead of claiming that every ROM or emulator combination works.
+The project is deliberately strict about the difference between **implemented**, **verified**, and merely **planned**. A working emulator process does not automatically mean a platform is supported. A similar ROM does not inherit another game's save writer. A pretty screen does not claim data that no provider can prove.
 
-See [Multiverse runtimes](docs/MULTIVERSE_RUNTIMES.md), [disc support](docs/MULTIVERSE_DISCS.md), and [standalone adapters](docs/STANDALONE_ADAPTERS.md) for the current verified boundaries.
+The continuously updated [ROADMAP](docs/ROADMAP.md) and module evidence documents record those boundaries in much more detail.
 
-### Pokédex
+---
 
-The Pokédex is useful even without a running game: it has an offline reference database, search, combined filters, sorting, favorites, optional illustrations, and an animated companion layer. Current-save Seen/Caught data is only shown when TrainerOS has a verified provider for the exact game/build; unknown data stays unknown instead of being guessed.
+## Why the save integration is intentionally picky
 
-Its paired Pokémon Center reads Emerald's Party and Storage, offers a living
-Playroom, and can restore Party HP, status and move PP for the verified English
-Emerald build. Treatment keeps a verified backup first and is loaded by the next
-normal game launch. [Healing scope and recovery](docs/EMERALD_HEALING.md).
+TrainerOS does not say “Gen III saves are supported” because one Emerald file worked.
 
-Center also offers 36 Emerald shop counters, grouped departments, TM and decoration
-purchases, with save-based discovery and stock,
-quantity selection and protected purchases. Money and owned contents change together;
-each purchase keeps a restorable backup. [Shop scope](docs/EMERALD_SHOPS.md).
+Deep integration is tied to an **exact game/build and a verified save format**. Read and write capabilities are separate. Unknown information stays unknown. A ROM hack, translation or revision is its own case until proven otherwise.
 
-### Trainer and Hall of Fame
+For a protected write, the intended pattern is conservative:
 
-TrainerOS supports multiple local Trainer profiles with owner-scoped history and records. Optional controller-entered PINs and a family recovery code are available for shared handhelds. The first per-Trainer ordinary-save namespace is implemented for the verified GBA/mGBA route; other emulator save paths stay shared until they are individually validated.
+~~~text
+resolve the exact current save
+        ↓
+prove the game is not writing it
+        ↓
+stable read + validation
+        ↓
+verified protection backup
+        ↓
+prepare a separate candidate
+        ↓
+validate the exact allowed change
+        ↓
+re-check the source revision
+        ↓
+atomic replacement
+        ↓
+read it back and verify again
+~~~
 
-Hall of Fame keeps manual Adventure memories separate from save-derived progress and RetroAchievements. Journey currently reuses verified progress where it exists, while richer Champion snapshots and additional exact-save projections remain future work.
+That is slower to implement than a generic save editor, but it is the only direction that makes sense for a system meant to live with somebody's years-old games.
 
-## Library, artwork, and video
+A global read-only integration mode is also planned for users who want all of the save-aware presentation with **zero TrainerOS-initiated save mutation**.
 
-TrainerOS follows Batocera's filesystem and `gamelist.xml` conventions instead of inventing a private ROM manifest:
+[Save capability model](https://github.com/EriArk/TrainerOS/issues/42)
 
-```text
+---
+
+## The library belongs to the user
+
+TrainerOS follows familiar Batocera-style filesystem and gamelist conventions instead of making the internal database the only way to own a collection:
+
+~~~text
 Emulation/
   bios/
   roms/
     gba/
-      Pokemon - Emerald Version (USA, Europe).gba
+      game.gba
       gamelist.xml
       images/
       videos/
@@ -113,39 +232,79 @@ Emulation/
     psx/
     gamecube/
     ...
-```
+~~~
 
-The default library root is `~/Emulation/roms` and can be overridden with `--roms-dir`. Folder discovery runs off the UI thread. Existing `gamelist.xml` metadata and media are read without importing external favorites/play counts as TrainerOS history, and a normal library scan does **not** make network requests.
+Copy a supported game into the right system folder and TrainerOS can discover it. Existing metadata and media remain useful. Moving a game through TrainerOS preserves its Adventure identity and personal history instead of turning it into a new game because the path changed.
 
-Game views understand cover art, screenshots, logos/wheels, fanart, titleshots, and other Batocera media references. Local `<video>` previews are also supported in Worlds and Multiverse: after selection settles, a single muted player loops the local clip and releases it when the page is hidden, a menu opens, or an Adventure launches. Video previews can be disabled in **Settings → Media** and always fall back to still artwork if decoding is unavailable.
+The planned native ScreenScraper flow builds on that same structure: explicit scraping writes compatible metadata/media back into the library and then lets the ordinary offline scanner pick it up. Normal browsing never needs a network request.
 
-User ROMs, saves, BIOS files, credentials, and private media stay outside this repository. For the exact folder/media contract, see [Batocera library and game media](docs/BATOCERA_LIBRARY.md) and [local video previews](docs/VIDEO_PREVIEWS.md).
+[Batocera library contract](docs/BATOCERA_LIBRARY.md) · [ScreenScraper integration](docs/SCREENSCRAPER.md)
 
-## ScreenScraper integration
+---
 
-Native **ScreenScraper WebAPI** support is the current top-priority integration: [issue #65](https://github.com/EriArk/TrainerOS/issues/65) / [implementation notes](docs/SCREENSCRAPER.md).
+## From a project to an actual handheld system
 
-The backend groundwork is already in the tree: an explicit platform map for the systems currently discovered by TrainerOS, streaming MD5/SHA1/CRC32/size fingerprinting, a bounded WebAPI v2 client with quota pacing and credential handling, exact-match validation, and an atomic Batocera media/`gamelist.xml` writer that preserves unrelated fields. The pieces are covered by injectable/fake-transport tests so ordinary library scans remain completely offline.
+The current target is the **Retroid Flip 2**. ArmadaOS supplies the underlying Linux, graphics, hardware and emulator ecosystem; TrainerOS owns the everyday device experience above it.
 
-What is **not** delivered yet is the live end-user scraping flow: developer credentials and authenticated service proof, persistent identity/download cache, archive/disc matching policy, cancellable job queue, ambiguous-result selection, controller actions for game/system/library scraping, and the final rescan handoff. In other words: the plumbing is prepared, but TrainerOS does not yet present ScreenScraper as a finished user feature.
+The intended public distribution is a reproducible **TrainerOS image based on ArmadaOS**, not a pile of manual shell commands for the user. The finished path is meant to look like:
 
-## Launch, exit, and the dedicated session
+~~~text
+flash image
+   ↓
+boot TrainerOS
+   ↓
+first-run device setup
+   ↓
+create / restore Trainer
+   ↓
+find library and check runtimes
+   ↓
+play
+~~~
 
-TrainerOS owns the normal handheld flow instead of dropping the user back into a desktop between games. The installed session uses Gamescope and a small supervisor/recovery layer on top of ArmadaOS. Supported Adventures launch through narrow adapters, and the shell restores the previous page/focus after the child process exits.
+OTA updates with rollback, device profiles for additional handhelds, portable Trainer backups, runtime/BIOS health, reliable sleep/wake and privacy-safe support bundles are all part of that productization path.
 
-The current exit path can capture the running game before showing a compact controller confirmation. Cancelling keeps the game alive; confirming performs the validated close/save policy and returns to TrainerOS. Clean exit media is stored separately from crashes and incomplete sessions.
+The Flip 2 is the reference device, not a promise that every Linux handheld is already supported. New hardware should earn support through a real device profile and physical validation rather than a model-name check.
 
-Start also exposes quick volume/brightness controls, Power actions, Trainer switching, settings, and device diagnostics. Battery status stays in the fixed lower chassis. Plasma remains available as an explicit maintenance/recovery environment.
+[System image](https://github.com/EriArk/TrainerOS/issues/70) · [OTA](https://github.com/EriArk/TrainerOS/issues/71) · [Device profiles](https://github.com/EriArk/TrainerOS/issues/78)
 
-See [Adventure exit](docs/ADVENTURE_EXIT.md), [session integration](docs/SESSION_PROTOTYPE.md), and [device controls](docs/DEVICE_CONTROLS.md).
+---
 
-## Build and try it
+## Under the hood
 
-TrainerOS is a native Qt application. The current development baseline requires CMake 3.24+, a C++20 compiler, Qt 6.4+ (`Core`, `Gui`, `Qml`, `Quick`, `Sql`, `Network`, `Xml`, `Multimedia`), SDL2, OpenSSL 3, and the Qt SQLite driver. The video-preview test also uses `ffmpeg` to generate an original local fixture.
+TrainerOS is a native **C++20 + Qt 6 / QML** application with SDL2 input, SQLite persistence and narrow platform/integration services. The dedicated session runs on the ArmadaOS/Linux stack with Gamescope.
 
-A normal Linux development build looks like this:
+The architecture intentionally keeps the interesting boundaries boring:
 
-```sh
+~~~text
+Qt Quick presentation
+        ↓
+feature controllers / semantic models
+        ↓
+Trainer + library + history + progress repositories
+        ↓
+game-specific providers and Adventure adapters
+        ↓
+RetroArch / melonDS / Dolphin / Steam / platform services
+        ↓
+ArmadaOS / Linux / hardware
+~~~
+
+QML does not parse save offsets, rewrite XML by hand or talk directly to emulator processes. Game-specific binary knowledge stays inside exact providers. Slow filesystem, database, hashing and network work belongs on worker/service boundaries.
+
+That separation is what lets a real Emerald Party feed Home, Center and Playroom without each screen learning how Emerald stores a Pokémon.
+
+[Architecture](docs/ARCHITECTURE.md) · [Data model](docs/DATA_MODEL.md) · [UX/navigation](docs/UX_NAVIGATION.md)
+
+---
+
+## Building it today
+
+There is no finished consumer image release yet. The repository is the active development tree.
+
+For a normal Linux development build:
+
+~~~sh
 git clone https://github.com/EriArk/TrainerOS.git
 cd TrainerOS
 
@@ -153,67 +312,40 @@ cmake -S . -B build/native -G Ninja -DCMAKE_BUILD_TYPE=Debug
 cmake --build build/native --parallel
 ctest --test-dir build/native --output-on-failure
 
-# Safe desktop preview with sample data:
+# Safe desktop preview:
 ./build/native/traineros --windowed --ephemeral
-```
+~~~
 
-`--ephemeral` is the easiest way to explore the interface without touching a personal database or requiring a ROM library. Running without it uses persistent local TrainerOS data. The dedicated ArmadaOS session should only be installed after reading the device/session documentation and keeping a working maintenance path.
+The current development baseline uses CMake 3.24+, C++20, Qt 6.4+ (Core, Gui, Qml, Quick, Sql, Network, Xml and Multimedia), SDL2, OpenSSL 3, SQLite and ffmpeg for the video test fixture.
 
-For package examples, Windows development notes, test scenarios, and device setup, see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
-
-## Architecture
-
-The project keeps presentation, personal data, emulator quirks, and platform behavior separate on purpose:
-
-```text
-QML / Qt Quick presentation
-          ↓
-feature controllers + domain/repository interfaces
-          ↓
-SQLite / library / history / progress services
-          ↓
-Adventure adapters + platform services
-          ↓
-RetroArch / melonDS / Dolphin / ArmadaOS / Linux
-```
-
-QML does not parse saves, run shell commands, or talk directly to SQLite. Slow filesystem, database, hashing, and network work belongs on worker/service boundaries so controller navigation stays responsive.
-
-The deeper design is documented in [Architecture](docs/ARCHITECTURE.md), [Product spec](docs/PRODUCT_SPEC.md), and [UX/navigation](docs/UX_NAVIGATION.md).
-
-## Current direction
-
-The immediate sequence is:
-
-1. finish the authenticated ScreenScraper job/controller integration and live service validation;
-2. complete richer game metadata and description presentation around the existing artwork/video layer;
-3. continue the Pokédex → Party/Storage → Pokémon Center chain using only verified save providers;
-4. continue runtime/platform/recovery work and the final generic artwork-pack tooling afterwards.
-
-The roadmap is deliberately evidence-driven: a successful process start or a known file format is not treated as proof that a platform, save format, or destructive write is safe. Device checks and exact-build gates stay visible instead of being hand-waved away.
-
-See the continuously updated [ROADMAP](docs/ROADMAP.md) for delivered increments, remaining gates, and the current execution order.
-
-## Repository map
-
-| Path | Purpose |
-| --- | --- |
-| `src/` | C++ application, feature controllers, adapters, platform services, and QML |
-| `tests/` | Native, integration, persistence, and rendered controller scenarios |
-| `data/` | Bundled reference/catalogue data that is safe to distribute |
-| `assets/` | Original/licensed UI assets and attribution files |
-| `packaging/` | Linux desktop/session and maintenance integration |
-| `docs/` | Product contracts, architecture, feature evidence, and roadmap |
-| `AGENTS.md` | Working contract for coding agents used on the project |
-
-## Content and project boundaries
-
-TrainerOS does not ship ROMs, BIOS/firmware dumps, encryption keys, commercial saves, or ripped proprietary game assets. Personal game files and credentials belong to the local installation, not the repository.
-
-TrainerOS is an unofficial fan-made project. It is not affiliated with Nintendo, The Pokémon Company, Retroid, ScreenScraper, Libretro, or the emulator projects it can integrate with. Their names and trademarks belong to their respective owners.
-
-The repository is public, but **no software license has been selected yet**. Until a license file is added, normal copyright rules apply to the source code.
+The dedicated ArmadaOS session is device-specific work. Do not treat the desktop build instructions as a safe installation recipe for an arbitrary handheld. See [Native development](docs/DEVELOPMENT.md), [device baseline](docs/ARMADA_DEVICE_BASELINE.md) and [session integration](docs/SESSION_PROTOTYPE.md).
 
 ---
 
-The long-term goal is pretty simple: opening the handheld should feel like powering on **your own trainer terminal**, with years of Adventures, saves, discoveries, and memories inside it — while Linux quietly does the boring work underneath.
+## Local first, by design
+
+TrainerOS does not need a TrainerOS cloud account to make the basic idea work. Your local Trainer, games, saves and history are the center of the system. RetroAchievements and ScreenScraper are optional external services, not prerequisites for having a usable device.
+
+There is also no plan to turn TrainerOS into a subscription, paid feature ladder or store. The project exists because this kind of device should be fun to have. If donations are accepted, the intended use is practical: buying additional handhelds so new device profiles can be developed and physically verified instead of guessed.
+
+TrainerOS also does not ship ROMs, BIOS/firmware dumps, commercial saves, account credentials or private ripped media. User game content stays on the user's device.
+
+---
+
+## Project status and licensing
+
+TrainerOS is an unofficial fan-made project and is not affiliated with Nintendo, The Pokémon Company, Retroid, ArmadaOS, Valve, ScreenScraper, RetroAchievements, Libretro or the emulator projects it can integrate with. Their names and trademarks belong to their respective owners.
+
+The repository is public, but **no software license has been selected yet**. Until a license is added, normal copyright rules apply to the source code. Artwork, fonts, sprites and other assets may also have their own recorded provenance and terms.
+
+---
+
+## Where this is heading
+
+The end goal is not “a better ROM launcher.”
+
+It is a handheld where the boundary between the operating system and the games on it becomes increasingly thin.
+
+A place where you can leave an Adventure and still see your team. Where your old saves become part of a longer personal history instead of files hidden in emulator folders. Where a Pokémon Center can live outside one game. Where the person sitting next to you can become another Trainer instead of another anonymous online account. Where a non-Pokémon game can eventually teach the system something meaningful about what you did there too.
+
+**The game can close. The Adventure does not have to.**
