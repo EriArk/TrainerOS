@@ -2,6 +2,9 @@
 #include <algorithm>
 
 namespace trainer {
+int SaveCenterController::shopBalance() const {
+    const auto m=merchant();return snapshot_.shops.supported&&m&&m->discovered?m->balance:-1;
+}
 QList<int> SaveCenterController::merchantRows() const {
     QList<int> out;QStringList groups;const auto& list=snapshot_.shops.merchants;
     for(int i=0;i<list.size();++i){const auto& m=list[i];
@@ -31,7 +34,14 @@ QVariantList SaveCenterController::shopStock() const {
 QVariantMap SaveCenterController::shopSelection() const {
     QVariantMap out;const auto m=merchant();if(!m||!m->discovered)return out;
     out["name"]=shopGroup_.isEmpty()&&!m->group.isEmpty()?m->group:m->name;out["location"]=m->location;
-    out["currency"]=m->currency==MerchantCurrency::Money?"₽":m->currency==MerchantCurrency::Coins?"Coins":"BP";
+    out["counter"]=m->name;
+    switch(m->currency){
+    case MerchantCurrency::Money:out["currency"]="₽";break;
+    case MerchantCurrency::Coins:out["currency"]="Coins";break;
+    case MerchantCurrency::BattlePoints:out["currency"]="BP";break;
+    case MerchantCurrency::Ash:out["currency"]="Ash";break;
+    case MerchantCurrency::BerryPowder:out["currency"]="Berry Powder";break;
+    }
     if(stockIndex_>=0&&stockIndex_<m->stock.size()){
         const auto& s=m->stock[stockIndex_];out["item"]=s.name;out["total"]=s.price*quantity_;
         out["kind"]=s.kind;out["owned"]=s.owned;out["maximum"]=m->available?s.maximum:0;out["pocket"]=s.pocket;
@@ -55,13 +65,14 @@ void SaveCenterController::shopActivate(int index){
     if(!shopsOpen_||busy())return;
     if(shopRoute_=="merchants"){
         if(index<0||index>=merchantRows().size())return;
-        merchantIndex_=index;const auto m=merchant();if(!m||!m->discovered)return;
+        merchantIndex_=index;stockIndex_=0;quantity_=1;const auto m=merchant();if(!m||!m->discovered)return;
         if(shopGroup_.isEmpty()&&!m->group.isEmpty()){groupParentIndex_=merchantIndex_;shopGroup_=m->group;merchantIndex_=0;}
         else {stockIndex_=0;quantity_=1;shopRoute_="stock";}
     }else if(shopRoute_=="stock"){
         const auto m=merchant();if(!m||!m->available||index<0||index>=m->stock.size())return;
-        if(stockIndex_!=index)quantity_=1;stockIndex_=index;
-        if(m->stock[index].maximum<quantity_){shopMessage_="Not enough money or storage space.";emit changed();return;}
+        if(stockIndex_!=index)quantity_=1;
+        stockIndex_=index;
+        if(m->stock[index].maximum<quantity_){shopMessage_="Not enough currency or storage space.";emit changed();return;}
         shopMessage_.clear();shopRoute_="confirm";
     }else if(shopRoute_=="confirm"){purchase();return;}
     else {shopRoute_="stock";shopMessage_.clear();quantity_=1;refresh();}
@@ -70,7 +81,7 @@ void SaveCenterController::shopActivate(int index){
 void SaveCenterController::dispatchShop(Action action){
     if(busy())return;
     if(action==Action::Back){
-        if(shopRoute_=="merchants"){if(shopGroup_.isEmpty())shopsOpen_=false;else {shopGroup_.clear();merchantIndex_=groupParentIndex_;}}
+        if(shopRoute_=="merchants"){if(shopGroup_.isEmpty())shopsOpen_=false;else {shopGroup_.clear();merchantIndex_=groupParentIndex_;stockIndex_=0;quantity_=1;}}
         else if(shopRoute_=="stock")shopRoute_="merchants";
         else {shopRoute_="stock";if(!shopMessage_.isEmpty())refresh();}
         shopMessage_.clear();emit changed();return;
@@ -78,7 +89,8 @@ void SaveCenterController::dispatchShop(Action action){
     if(action==Action::Confirm){shopActivate(shopRoute_=="merchants"?merchantIndex_:stockIndex_);return;}
     if(shopRoute_=="merchants"){
         const int size=merchantRows().size();
-        merchantIndex_=std::clamp(merchantIndex_+(action==Action::Down?1:action==Action::Up?-1:0),0,std::max(0,size-1));
+        const int next=std::clamp(merchantIndex_+(action==Action::Down?1:action==Action::Up?-1:0),0,std::max(0,size-1));
+        if(next!=merchantIndex_){merchantIndex_=next;stockIndex_=0;quantity_=1;shopMessage_.clear();}
     }else if(shopRoute_=="stock"){
         const auto m=merchant();if(!m||m->stock.isEmpty())return;
         if(action==Action::Down||action==Action::Up){stockIndex_=std::clamp(stockIndex_+(action==Action::Down?1:-1),0,int(m->stock.size())-1);quantity_=1;shopMessage_.clear();}

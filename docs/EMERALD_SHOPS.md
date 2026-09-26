@@ -11,7 +11,9 @@ items. Browsing and discovery never change the game save.
 The first delivered slice covered eleven ordinary town/city Poké Marts: Oldale, Petalburg,
 Rustboro, Slateport, Mauville, Verdanturf, Fallarbor, Lavaridge, Fortree, Mossdeep
 and Sootopolis. Center → Activities → Shops & Traders opens the shop list.
-Up/Down selects shops/items; Left/Right changes quantity. A opens the price and
+Highlighting a discovered shop immediately previews its stock and prices; no
+greeting screen intervenes. A moves into its stock (or a building's departments).
+Up/Down selects shops/items; Left/Right changes quantity. A on an item opens the price and
 remaining-balance confirmation, then A confirms. B cancels/unwinds; L1/R1 remain
 global pages. All physical legends stay on the bottom chassis. Money and stock
 refresh after a purchase. The room and clerk are original QML/Canvas art.
@@ -20,7 +22,7 @@ refresh after a purchase. The room and clerk are original QML/Canvas art.
 
 The exact English Emerald fingerprint and two-intact-slot write gate are shared
 with [healing](EMERALD_HEALING.md). `EmeraldShops` consumes verified logical
-SaveBlock1 and its SaveBlock2 encryption key, never raw paths. Money is XORed
+SaveBlock1 and SaveBlock2, never raw paths. Money is XORed
 with the full 32-bit key; Bag quantities use its low 16 bits. Normal Items, Poké Balls and TMs/HMs pockets, plus the eight decoration
 inventories, have verified writers. The shop catalogue never offers HMs or key
 items. TM quantities stop at 99 in one slot; they cannot spill into another slot.
@@ -52,8 +54,9 @@ known shops browsable but unavailable; its separate Bag is not supported.
 Visited flags reveal ordinary merchants; additional story flags select their
 current stock. Hidden entries project only `???` / `Undiscovered`, with empty
 identifiers, location and stock. Unknown providers expose no merchant data.
-Known/unavailable remains distinct from undiscovered. The generic currency enum
-contains money, coins and Battle Points; only money purchases are verified now.
+Known/unavailable remains distinct from undiscovered. Merchants carry their own
+currency and observed balance: money, coins, Battle Points, ash or Berry Powder.
+The stock, header and confirmation all use the selected merchant's balance.
 
 A small local discovery cache is scoped to Trainer, Adventure, exact ROM, save
 path and in-game Trainer identity. Its first scan establishes a quiet baseline;
@@ -92,7 +95,7 @@ exact write boundaries, stale sources, protection/undo and scoped discovery.
 
 ## Money merchants expansion — 2026-09-24
 
-The catalogue now contains **36 distinct counters**, including the original 11:
+This increment expanded the catalogue to **36 distinct counters**, including the original 11:
 
 - Lilycove Department Store: ten counters across floors 2–5, rooftop vending and
   the temporary clear-out sale. The building appears as one destination with a
@@ -102,10 +105,9 @@ The catalogue now contains **36 distinct counters**, including the original 11:
 - Pokémon League, Battle Frontier and Trainer Hill ordinary money marts.
 - Mt. Chimney's Lava Cookie stall and Seashore House's paid Soda Pop.
 
-The script inventory was checked across all 468 map script files. Money-to-coins
-belongs with the next Game Corner block. Museum/Safari entry fees are paid access,
-not persistent merchandise, and are excluded. Ash and Berry Powder are distinct
-future currencies; retain those merchants in the remaining acceptance.
+The script inventory was checked across all 468 map script files. Money-to-coins,
+ash and Berry Powder were deferred to the currency block below. Museum/Safari
+entry fees are paid access, not persistent merchandise, and remain excluded.
 
 Required story/landmark flags and hidden-NPC flags gate special merchants.
 Trainer Hill retains its pre/post-Champion inventories. Saved Poké News state
@@ -151,11 +153,79 @@ decoration menu. No in-game save was made during readback. The installed Center
 restored the exact pre-purchase save from its automatic protection copy. The two personal save
 originals and schema-13 personal database remained intact.
 
+## Currency exchanges — 2026-09-26
+
+There are now **46 counters**. Ten new counters contain **58 offers**, all one
+unit or coin bundle per confirmation, matching their individual NPC exchanges:
+
+- Mauville Game Corner: 50/500 coins for money, five TM prizes, three starter dolls.
+- Frontier Exchange: two decoration counters, vitamins and held items for BP.
+- Glass Workshop: five flutes and two furnishings for collected ash.
+- Slateport Market's Berry Powder trader: eleven medicine/vitamin offers.
+
+Game Corner requires a carried Coin Case. Glass needs the Soot Sack and workshop
+state 2; an already paid, uncollected in-game order blocks further exchanges
+until collected in-game. Powder requires its received-jar flag and the jar.
+Discovery alone does not bypass these conditions or create the required item.
+
+Currency bytes in the verified logical save blocks:
+
+| Currency | Location | Representation / limit |
+| --- | --- | --- |
+| Money | SaveBlock1 `0x490` | 32-bit XOR key / 999999 |
+| Coins | SaveBlock1 `0x494` | 16-bit XOR low key / 9999 |
+| Ash | SaveBlock1 `0x142c` (`VAR_ASH_GATHER_COUNT`) | Plain 16-bit / 9999 |
+| BP | SaveBlock2 `0xeb8` | Plain 16-bit / 9999; lifetime/card points untouched |
+| Berry Powder | SaveBlock2 `0x1f4` | 32-bit XOR key / 99999 |
+
+The pure transformer produces both candidate blocks. The existing exact-build
+writer replaces only changed sectors in the chosen slot and recalculates their
+checksums; the protected transaction still commits one complete save. Currency
+rewards have their own kind, so buying coins cannot add an identically numbered
+Bag item. Balances and capacity are checked again from the fresh source.
+
+Additional pinned primary inputs:
+
+- [Game Corner](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/data/maps/MauvilleCity_GameCorner/scripts.inc)
+  and [coin encoding](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/coins.c).
+- [Frontier offers](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/data/maps/BattleFrontier_ExchangeServiceCorner/scripts.inc)
+  and [BP operations](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/field_specials.c).
+- [Glass orders](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/data/maps/Route113_GlassWorkshop/scripts.inc),
+  [ash collection](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/field_tasks.c),
+  [Slateport offers](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/data/maps/SlateportCity/scripts.inc)
+  and [powder encoding](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/berry_powder.c).
+
+### Currency verification
+
+The Windows native build passed all **42 tests**, including all 58 new offers
+with two encryption keys and cross-block writes at all 14 sector rotations.
+The final confirmation-layout adjustment also passed `qml_smoke`. Regenerating
+the catalogue reproduced both JSON files byte-for-byte.
+
+The final ARM64 Release build installed on Flip has SHA-256
+`cca64aba7ebf246ee09a3ec12e71ab41f7cad1b28035797f93691ef4dae446da`.
+Actual controller input in an isolated test profile completed eight purchases:
+50 coins, Double Team, Treecko Doll, Kiss Poster, Protein, Blue Flute, Pretty Chair
+and Energy Powder. Independent full-save comparison verified exactly the reward,
+wallet and checksum bytes; the other save slot and unrelated data stayed intact.
+Final balances were money 49000, coins 2550, BP 283, ash 2750 and powder 4950.
+The automatic pre-purchase protection copy matched its source byte-for-byte.
+
+Normal Emerald/mGBA readback displayed the three Bag items, TM32, Coin Case 2550
+and Powder Jar 4950. This increment did not separately navigate the in-game
+Frontier BP display or decoration PC; their exact storage deltas were checked,
+and the earlier decoration PC readback above remains evidence. No in-game save
+was made. On the final installed build, Center restored the complete exact
+pre-purchase save and retained the purchased state in its before-restore copy.
+Personal save hashes and the schema-13 library remained unchanged.
+The installed UI was captured on Flip, including immediate highlighted-shop
+stock preview and the currency confirmation layout.
+
 ## Remaining #68 acceptance — retained
 
-- Game Corner coins/prizes, including the money-to-coins counter.
-- Frontier BP vendors and their exact owned-item/service writers.
-- Glass Workshop ash and Berry Powder merchants with verified currencies/storage.
+- Service rewards that change an individual Pokémon, including Frontier move
+  tutors, need exact eligibility/move/PP writers and their own selection UI.
+  Item and decoration BP vendors above do not advertise tutoring support.
 - Optional item search across discovered merchants and location/type filters.
 - Any remaining meaningful currency-to-owned-content sources found during those
   integrations; transport-only payments and pure paid entry stay excluded.

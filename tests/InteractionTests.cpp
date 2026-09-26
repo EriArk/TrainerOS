@@ -42,7 +42,7 @@ private slots:
             bool supports(const AdventureRegistration&) const override{return true;}
             void inspect(const AdventureRegistration&,QObject*,std::function<void(SaveBackupSnapshot)> done) override {
                 SaveBackupSnapshot s;s.hasSave=true;s.supported=true;s.token="token";s.canHeal=true;s.needsHealing=true;s.partyCount=6;
-                s.shops.supported=true;s.shops.balance=5000;Merchant m;m.id="oldale";m.name="Oldale";m.discovered=true;m.available=true;m.stock.append({13,300,0,16,"Potion","Items"});s.shops.merchants.append(m);m.id="dept";m.name="Medicine";m.group="Department store";s.shops.merchants.append(m);m.id="dept2";m.name="Vitamins";s.shops.merchants.append(m);done(s);
+                s.shops.supported=true;s.shops.balance=5000;Merchant m;m.balance=5000;m.id="oldale";m.name="Oldale";m.discovered=true;m.available=true;m.stock.append({13,300,0,16,"Potion","Items"});s.shops.merchants.append(m);m.id="dept";m.name="Medicine";m.group="Department store";s.shops.merchants.append(m);m.id="dept2";m.name="Vitamins";m.currency=MerchantCurrency::BattlePoints;m.balance=7;s.shops.merchants.append(m);done(s);
             }
             void create(const AdventureRegistration&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override{}
             void restore(const AdventureRegistration&,const SaveBackup&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override{}
@@ -66,8 +66,10 @@ private slots:
         center.visitShops();QVERIFY(center.shopsOpen());QCOMPARE(center.merchants().size(),2);
         center.dispatch(Action::Down);center.dispatch(Action::Confirm);QCOMPARE(center.shopGroup(),"Department store");QCOMPARE(center.merchants().size(),2);
         center.dispatch(Action::Down);center.dispatch(Action::Confirm);QCOMPARE(center.shopSelection()["name"].toString(),"Vitamins");
+        QCOMPARE(center.shopBalance(),7);QCOMPARE(center.shopSelection()["currency"].toString(),"BP");
         center.dispatch(Action::Back);center.dispatch(Action::Back);QVERIFY(center.shopGroup().isEmpty());QCOMPARE(center.merchantIndex(),1);
         center.dispatch(Action::Up);center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"stock");
+        QCOMPARE(center.shopBalance(),5000);QCOMPARE(center.shopSelection()["currency"].toString(),QString::fromUtf8("₽"));
         center.dispatch(Action::Right);QCOMPARE(center.quantity(),2);center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"confirm");QVERIFY(!service.working);
         center.dispatch(Action::Back);QCOMPARE(center.shopRoute(),"stock");center.dispatch(Action::Confirm);center.dispatch(Action::Confirm);
         QVERIFY(service.working);QCOMPARE(service.request.quantity,2);QCOMPARE(service.request.itemId,13);QCOMPARE(service.target,"two");

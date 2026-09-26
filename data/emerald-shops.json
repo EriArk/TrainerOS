@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "source": "pret/pokeemerald",
   "revision": "5eff78649e7170a877b961ef0b3da13b81a16038",
   "items": {
@@ -3201,6 +3201,272 @@
         140
       ],
       "limit": 1
+    },
+    {
+      "id": "game-corner-coins",
+      "name": "Coins",
+      "location": "Mauville City",
+      "visitedFlag": 2168,
+      "stock": [
+        50,
+        500
+      ],
+      "kind": "coins",
+      "prices": {
+        "50": 1000,
+        "500": 10000
+      },
+      "limit": 1,
+      "group": "Mauville Game Corner",
+      "requiredItem": 260
+    },
+    {
+      "id": "game-corner-tms",
+      "name": "TM prizes",
+      "location": "Mauville City",
+      "visitedFlag": 2168,
+      "stock": [
+        320,
+        317,
+        323,
+        312,
+        301
+      ],
+      "kind": "item",
+      "prices": {
+        "320": 1500,
+        "317": 3500,
+        "323": 4000,
+        "312": 4000,
+        "301": 4000
+      },
+      "limit": 1,
+      "currency": "coins",
+      "group": "Mauville Game Corner",
+      "requiredItem": 260
+    },
+    {
+      "id": "game-corner-dolls",
+      "name": "Doll prizes",
+      "location": "Mauville City",
+      "visitedFlag": 2168,
+      "stock": [
+        88,
+        89,
+        90
+      ],
+      "kind": "decoration",
+      "prices": {
+        "88": 1000,
+        "89": 1000,
+        "90": 1000
+      },
+      "limit": 1,
+      "currency": "coins",
+      "group": "Mauville Game Corner",
+      "requiredItem": 260
+    },
+    {
+      "id": "frontier-decor1",
+      "name": "Small decorations",
+      "location": "Battle Frontier",
+      "visitedFlag": 2216,
+      "stock": [
+        75,
+        103,
+        87,
+        79,
+        84,
+        85,
+        86,
+        80,
+        81,
+        82
+      ],
+      "kind": "decoration",
+      "prices": {
+        "75": 16,
+        "103": 32,
+        "87": 32,
+        "79": 48,
+        "84": 48,
+        "85": 48,
+        "86": 48,
+        "80": 80,
+        "81": 80,
+        "82": 80
+      },
+      "limit": 1,
+      "currency": "bp",
+      "group": "Frontier Exchange"
+    },
+    {
+      "id": "frontier-decor2",
+      "name": "Large dolls",
+      "location": "Battle Frontier",
+      "visitedFlag": 2216,
+      "stock": [
+        113,
+        111,
+        114,
+        115,
+        116
+      ],
+      "kind": "decoration",
+      "prices": {
+        "113": 128,
+        "111": 128,
+        "114": 256,
+        "115": 256,
+        "116": 256
+      },
+      "limit": 1,
+      "currency": "bp",
+      "group": "Frontier Exchange"
+    },
+    {
+      "id": "frontier-vitamin",
+      "name": "Vitamins",
+      "location": "Battle Frontier",
+      "visitedFlag": 2216,
+      "stock": [
+        64,
+        67,
+        65,
+        70,
+        66,
+        63
+      ],
+      "kind": "item",
+      "prices": {
+        "64": 1,
+        "67": 1,
+        "65": 1,
+        "70": 1,
+        "66": 1,
+        "63": 1
+      },
+      "limit": 1,
+      "currency": "bp",
+      "group": "Frontier Exchange"
+    },
+    {
+      "id": "frontier-holditem",
+      "name": "Held items",
+      "location": "Battle Frontier",
+      "visitedFlag": 2216,
+      "stock": [
+        200,
+        180,
+        183,
+        185,
+        179,
+        186,
+        187,
+        196,
+        198
+      ],
+      "kind": "item",
+      "prices": {
+        "200": 48,
+        "180": 48,
+        "183": 48,
+        "185": 48,
+        "179": 64,
+        "186": 64,
+        "187": 64,
+        "196": 64,
+        "198": 64
+      },
+      "limit": 1,
+      "currency": "bp",
+      "group": "Frontier Exchange"
+    },
+    {
+      "id": "glass-item",
+      "name": "Glass flutes",
+      "location": "Route 113",
+      "visitedFlag": 2212,
+      "stock": [
+        39,
+        40,
+        41,
+        43,
+        42
+      ],
+      "kind": "item",
+      "prices": {
+        "39": 250,
+        "40": 500,
+        "41": 500,
+        "43": 1000,
+        "42": 1000
+      },
+      "limit": 1,
+      "currency": "ash",
+      "group": "Glass Workshop",
+      "requiredItem": 270,
+      "glassWorkshop": true
+    },
+    {
+      "id": "glass-decoration",
+      "name": "Glass furniture",
+      "location": "Route 113",
+      "visitedFlag": 2212,
+      "stock": [
+        13,
+        6
+      ],
+      "kind": "decoration",
+      "prices": {
+        "13": 6000,
+        "6": 8000
+      },
+      "limit": 1,
+      "currency": "ash",
+      "group": "Glass Workshop",
+      "requiredItem": 270,
+      "glassWorkshop": true
+    },
+    {
+      "id": "slateport-powder",
+      "name": "Berry Powder trader",
+      "location": "Slateport City",
+      "visitedFlag": 2167,
+      "stock": [
+        30,
+        31,
+        32,
+        33,
+        64,
+        65,
+        66,
+        67,
+        70,
+        63,
+        69
+      ],
+      "kind": "item",
+      "prices": {
+        "30": 50,
+        "31": 80,
+        "32": 50,
+        "33": 300,
+        "64": 1000,
+        "65": 1000,
+        "66": 1000,
+        "67": 1000,
+        "70": 1000,
+        "63": 1000,
+        "69": 3000
+      },
+      "limit": 1,
+      "currency": "powder",
+      "group": "Slateport Market",
+      "requiredFlags": [
+        337
+      ],
+      "requiredItem": 372
     }
   ]
 }

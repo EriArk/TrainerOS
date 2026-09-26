@@ -84,13 +84,74 @@ QByteArray pokemonFixture(quint32 personality = 0, int species = 25, bool egg = 
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void emeraldCurrenciesDebitOnlyTheSelectedWallet() {
+        for(quint32 key:{0u,0x85ce1972u}){
+            QByteArray world(0x3d88,0),trainer(0xf2c,0);
+            put32(trainer,0xac,key);put32(trainer,0x1f4,50000^key);put16(trainer,0xeb8,5000);
+            put32(world,0x490,500000^key);put16(world,0x494,5000^quint16(key));put16(world,0x142c,9000);put16(world,0x1518,2);
+            for(auto p:{std::pair{0x560,30},std::pair{0x5d8,30},std::pair{0x650,16},std::pair{0x690,64}})
+                for(int i=0;i<p.second;++i)put16(world,p.first+4*i+2,quint16(key));
+            for(auto p:{std::pair{0,260},std::pair{1,270},std::pair{2,372}}){put16(world,0x5d8+4*p.first,p.second);put16(world,0x5da+4*p.first,1^quint16(key));}
+            for(int f:{0x878,0x8a8,0x8a4,0x877,0x151})world[0x1270+f/8]|=char(1<<(f%8));
+            const auto get=[](const MerchantSnapshot& s,const QString& id){for(const auto& m:s.merchants)if(m.id==id)return m;return Merchant{};};
+            const auto before=readEmeraldShopBlock(world,trainer);QVERIFY(before.supported);
+            int offers=0;
+            for(const auto& m:before.merchants){
+                if(m.currency==MerchantCurrency::Money&&m.id!="game-corner-coins")continue;
+                if(!m.discovered)continue;
+                QVERIFY(m.available);
+                for(const auto& s:m.stock){
+                    const MerchantPurchase request{m.id,s.itemId,1,s.kind};
+                    auto result=buyEmeraldShopBlock(world,trainer,request);QVERIFY2(result.error.isEmpty(),qPrintable(m.id+result.error));
+                    const auto after=readEmeraldShopBlock(result.data,result.trainer);QVERIFY(after.supported);
+                    QCOMPARE(get(after,m.id).balance,m.balance-s.price);
+                    const auto target=get(after,m.id);
+                    for(const auto& t:target.stock)if(t.itemId==s.itemId&&t.kind==s.kind)QCOMPARE(t.owned,s.owned+(s.kind=="coins"?s.itemId:1));
+                    for(const QString& wallet:{QString("game-corner-coins"),QString("game-corner-tms"),QString("frontier-vitamin"),QString("glass-item"),QString("slateport-powder")}){
+                        const auto a=get(before,wallet),b=get(after,wallet);
+                        if(a.currency==m.currency)continue;
+                        QCOMPARE(b.balance,a.balance+(s.kind=="coins"&&a.currency==MerchantCurrency::Coins?s.itemId:0));
+                    }
+                    // No unrelated trainer data, Party, story flags, storage or game statistics changes.
+                    for(int i=0;i<trainer.size();++i){
+                        if(m.currency==MerchantCurrency::BattlePoints&&i>=0xeb8&&i<0xeba)continue;
+                        if(m.currency==MerchantCurrency::BerryPowder&&i>=0x1f4&&i<0x1f8)continue;
+                        QCOMPARE(result.trainer[i],trainer[i]);
+                    }
+                    for(int i=0;i<world.size();++i){
+                        if((i>=0x490&&i<0x496)||(i>=0x560&&i<0x5d8)||(i>=0x690&&i<0x790)||(i>=0x2734&&i<0x27ca)||(i>=0x142c&&i<0x142e))continue;
+                        QCOMPARE(result.data[i],world[i]);
+                    }
+                    auto invalid=request;invalid.quantity=2;QVERIFY(buyEmeraldShopBlock(world,trainer,invalid).data.isEmpty());++offers;
+                }
+            }
+            QCOMPARE(offers,58);
+            // Missing purses, pending glass orders, full currency and insufficient funds reject without a candidate.
+            put16(world,0x5d8,0);put16(world,0x5da,quint16(key));
+            QVERIFY(!get(readEmeraldShopBlock(world,trainer),"game-corner-coins").available);
+            QVERIFY(buyEmeraldShopBlock(world,trainer,{"game-corner-coins",50,1,"coins"}).data.isEmpty());
+            put16(world,0x5d8,260);put16(world,0x5da,1^quint16(key));
+            put16(world,0x494,9950^quint16(key));QVERIFY(buyEmeraldShopBlock(world,trainer,{"game-corner-coins",50,1,"coins"}).data.isEmpty());
+            put16(world,0x494,9949^quint16(key));auto full=buyEmeraldShopBlock(world,trainer,{"game-corner-coins",50,1,"coins"});
+            QVERIFY(full.error.isEmpty());QCOMPARE(get(readEmeraldShopBlock(full.data,full.trainer),"game-corner-tms").balance,9999);
+            for(int state:{0,1,10,16}){put16(world,0x1518,state);QVERIFY(buyEmeraldShopBlock(world,trainer,{"glass-item",39,1}).data.isEmpty());}
+            put16(world,0x1518,2);put16(world,0x142c,249);QVERIFY(buyEmeraldShopBlock(world,trainer,{"glass-item",39,1}).data.isEmpty());
+            put16(trainer,0xeb8,0);QVERIFY(buyEmeraldShopBlock(world,trainer,{"frontier-vitamin",64,1}).data.isEmpty());
+            put32(trainer,0x1f4,49^key);QVERIFY(buyEmeraldShopBlock(world,trainer,{"slateport-powder",30,1}).data.isEmpty());
+            put32(trainer,0x1f4,100000^key);QVERIFY(!readEmeraldShopBlock(world,trainer).supported);
+            put32(trainer,0x1f4,key);put16(trainer,0xeb8,10000);QVERIFY(!readEmeraldShopBlock(world,trainer).supported);
+            put16(trainer,0xeb8,0);put16(world,0x142c,10000);QVERIFY(!readEmeraldShopBlock(world,trainer).supported);
+            QVERIFY(!readEmeraldShopBlock(world,trainer.left(0x100)).supported);
+        }
+    }
     void emeraldSpecialShopsRespectStockStorageAndConditions() {
         constexpr quint32 key=0x1234abcd;
-        QByteArray world(0x3d88,0);
-        for(auto p:{std::pair{0x560,30},std::pair{0x650,16},std::pair{0x690,64}})
+        QByteArray world(0x3d88,0),trainer(0xf2c,0);
+        put32(trainer,0xac,key);put32(trainer,0x1f4,key);put16(world,0x494,quint16(key));
+        for(auto p:{std::pair{0x560,30},std::pair{0x5d8,30},std::pair{0x650,16},std::pair{0x690,64}})
             for(int i=0;i<p.second;++i)put16(world,p.first+4*i+2,quint16(key));
         put32(world,0x490,999999^key);
-        QVERIFY(readEmeraldShopBlock(world,key).supported);
+        QVERIFY(readEmeraldShopBlock(world,trainer).supported);
         QFile file(":/progress/emerald-shops.json");QVERIFY(file.open(QIODevice::ReadOnly));
         const auto facts=QJsonDocument::fromJson(file.readAll()).object();
         auto flag=[&](int id){if(id>0)world[0x1270+id/8]=char(quint8(world[0x1270+id/8])|(1<<(id%8)));};
@@ -99,14 +160,15 @@ private slots:
             for(auto f:m["requiredFlags"].toArray())flag(f.toInt());
         }
         world[0x2b50]=1;world[0x2b51]=2;world[0x2b54]=3;world[0x2b55]=2;
-        const auto state=readEmeraldShopBlock(world,key);QVERIFY(state.supported);QCOMPARE(state.merchants.size(),36);
+        const auto state=readEmeraldShopBlock(world,trainer);QVERIFY(state.supported);QCOMPARE(state.merchants.size(),46);
         int departments=0,offers=0;
         for(const auto& m:state.merchants){
+            if(m.currency!=MerchantCurrency::Money||m.id=="game-corner-coins")continue;
             QVERIFY2(m.discovered&&m.available,qPrintable(m.id));if(m.group=="Lilycove Department Store")++departments;
             for(const auto& item:m.stock){
-                const auto bought=buyEmeraldShopBlock(world,key,{m.id,item.itemId,1,item.kind});
+                const auto bought=buyEmeraldShopBlock(world,trainer,{m.id,item.itemId,1,item.kind});
                 QVERIFY2(bought.error.isEmpty(),qPrintable(m.id+": "+item.name+": "+bought.error));
-                QCOMPARE(readEmeraldShopBlock(bought.data,key).balance,999999-item.price);++offers;
+                QCOMPARE(readEmeraldShopBlock(bought.data,bought.trainer).balance,999999-item.price);++offers;
                 for(int at=0;at<world.size();++at){
                     if((at>=0x490&&at<0x494)||(at>=0x560&&at<0x5d8)||(at>=0x650&&at<0x790)||(at>=0x2734&&at<0x27ca))continue;
                     QCOMPARE(bought.data[at],world[at]);
@@ -114,29 +176,29 @@ private slots:
             }
         }
         QCOMPARE(departments,12);QVERIFY(offers>180);
-        const auto get=[&](const QString& id){for(const auto& m:readEmeraldShopBlock(world,key).merchants)if(m.id==id)return m;return Merchant{};};
+        const auto get=[&](const QString& id){for(const auto& m:readEmeraldShopBlock(world,trainer).merchants)if(m.id==id)return m;return Merchant{};};
         QCOMPARE(get("slateport-market-0").stock[0].price,4900);
         QCOMPARE(get("lilycove-3f-0").stock[0].price,9800);
         const auto tm=get("lilycove-4f-0").stock[0];
         put16(world,0x690,tm.itemId);put16(world,0x692,98^quint16(key));
-        QVERIFY(!buyEmeraldShopBlock(world,key,{"lilycove-4f-0",tm.itemId,2}).error.isEmpty());
-        QVERIFY(buyEmeraldShopBlock(world,key,{"lilycove-4f-0",tm.itemId,1}).error.isEmpty());
+        QVERIFY(!buyEmeraldShopBlock(world,trainer,{"lilycove-4f-0",tm.itemId,2}).error.isEmpty());
+        QVERIFY(buyEmeraldShopBlock(world,trainer,{"lilycove-4f-0",tm.itemId,1}).error.isEmpty());
         // Decorations cannot be confused with same-numbered Bag items or exceed category capacity.
         const auto doll=get("lilycove-5f-0").stock[0];
-        QVERIFY(!buyEmeraldShopBlock(world,key,{"lilycove-5f-0",doll.itemId,1,"item"}).error.isEmpty());
-        const auto bought=buyEmeraldShopBlock(world,key,{"lilycove-5f-0",doll.itemId,1,"decoration"});
+        QVERIFY(!buyEmeraldShopBlock(world,trainer,{"lilycove-5f-0",doll.itemId,1,"item"}).error.isEmpty());
+        const auto bought=buyEmeraldShopBlock(world,trainer,{"lilycove-5f-0",doll.itemId,1,"decoration"});
         QCOMPARE(quint8(bought.data[0x2798]),quint8(doll.itemId));
         for(int i=0;i<40;++i)world[0x2798+i]=char(doll.itemId);
-        QVERIFY(!buyEmeraldShopBlock(world,key,{"lilycove-5f-0",doll.itemId,1,"decoration"}).error.isEmpty());
-        world[0x2798]=1;QVERIFY(!readEmeraldShopBlock(world,key).supported);world[0x2798]=char(doll.itemId);
+        QVERIFY(!buyEmeraldShopBlock(world,trainer,{"lilycove-5f-0",doll.itemId,1,"decoration"}).error.isEmpty());
+        world[0x2798]=1;QVERIFY(!readEmeraldShopBlock(world,trainer).supported);world[0x2798]=char(doll.itemId);
         // The roof remains known, but weather and the news event control availability.
         put16(world,0x139c+2*0x5e,2);QVERIFY(!get("lilycove-rooftop-drinks").available);
         put16(world,0x139c+2*0x5e,0);world[0x2b55]=0;QVERIFY(!get("lilycove-rooftop-sale").available);
         const auto drink=get("lilycove-rooftop-drinks").stock[0];
-        const auto extra=buyEmeraldShopBlock(world,key,{"lilycove-rooftop-drinks",drink.itemId,1},0);
+        const auto extra=buyEmeraldShopBlock(world,trainer,{"lilycove-rooftop-drinks",drink.itemId,1},0);
         QVERIFY(extra.message.contains("2 extra drinks"));
         QCOMPARE(qFromLittleEndian<quint16>(extra.data.constData()+0x562)^quint16(key),3);
-        QVERIFY(!buyEmeraldShopBlock(world,key,{"lilycove-rooftop-drinks",drink.itemId,2}).error.isEmpty());
+        QVERIFY(!buyEmeraldShopBlock(world,trainer,{"lilycove-rooftop-drinks",drink.itemId,2}).error.isEmpty());
     }
     void emeraldShopsFollowFlagsAndProtectPurchases() {
         for(int rotation=0;rotation<14;++rotation)for(quint32 key:{0u,0x85ce1972u}) {
@@ -144,9 +206,9 @@ private slots:
             const int block0=(14+rotation)*0x1000,block1=(14+(1+rotation)%14)*0x1000,block2=(14+(2+rotation)%14)*0x1000;
             auto seal=[&]{for(int id=0;id<14;++id){const int at=(14+(id+rotation)%14)*0x1000,n=id==0?0xf2c:id==4?0xf08:id==13?0x7d0:0xf80;quint32 sum=0;for(int p=0;p<n;p+=4)sum+=qFromLittleEndian<quint32>(bytes.constData()+at+p);put16(bytes,at+0xff6,quint16((sum>>16)+sum));}};
             auto flag=[&](int id){const int at=block2+0x1270-0xf80+id/8;bytes[at]=char(quint8(bytes[at])|(1<<(id%8)));};
-            put32(bytes,block0+0xac,key);put32(bytes,block1+0x490,10000^key);
-            for(auto pocket: {std::pair{0x560,30},std::pair{0x650,16},std::pair{0x690,64}})for(int i=0;i<pocket.second;++i)put16(bytes,block1+pocket.first+4*i+2,quint16(key));
-            seal();const auto hidden=readEmeraldShops(bytes,EmeraldHash);QVERIFY(hidden.supported);QCOMPARE(hidden.merchants.size(),36);
+            put32(bytes,block0+0xac,key);put32(bytes,block0+0x1f4,key);put16(bytes,block1+0x494,quint16(key));put32(bytes,block1+0x490,10000^key);
+            for(auto pocket: {std::pair{0x560,30},std::pair{0x5d8,30},std::pair{0x650,16},std::pair{0x690,64}})for(int i=0;i<pocket.second;++i)put16(bytes,block1+pocket.first+4*i+2,quint16(key));
+            seal();const auto hidden=readEmeraldShops(bytes,EmeraldHash);QVERIFY(hidden.supported);QCOMPARE(hidden.merchants.size(),46);
             for(const auto& m:hidden.merchants){QCOMPARE(m.name,"???");QVERIFY(m.id.isEmpty());QVERIFY(m.location.isEmpty());QVERIFY(m.stock.isEmpty());QVERIFY(!m.discovered);}
             QVERIFY(buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",13,1}).data.isEmpty());
             flag(0x870);seal();auto state=readEmeraldShops(bytes,EmeraldHash);QVERIFY(state.merchants[0].discovered);QCOMPARE(state.merchants[0].stock.size(),4);
@@ -178,6 +240,23 @@ private slots:
             const int block3=(14+(3+rotation)%14)*0x1000,decorAt=block3+0x2798-2*0xf80;
             QCOMPARE(quint8(furnished.data[decorAt]),quint8(doll.itemId));
             for(int p=0;p<bytes.size();++p){if((p>=block1+0x490&&p<block1+0x494)||p==decorAt||(p>=block1+0xff6&&p<block1+0xff8)||(p>=block3+0xff6&&p<block3+0xff8))continue;QCOMPARE(furnished.data[p],bytes[p]);}
+            // BP/Powder cross logical blocks 0 and 1 in every physical sector rotation.
+            flag(0x8a8);flag(0x877);flag(0x151);
+            put16(bytes,block0+0xeb8,100);put32(bytes,block0+0x1f4,5000^key);
+            put16(bytes,block1+0x5d8,372);put16(bytes,block1+0x5da,1^quint16(key));seal();
+            for(const auto& req:{MerchantPurchase{"frontier-vitamin",64,1},MerchantPurchase{"slateport-powder",30,1}}){
+                const auto exchanged=buyEmeraldItems(bytes,EmeraldHash,req);QVERIFY2(exchanged.error.isEmpty(),qPrintable(exchanged.error));
+                const bool bp=req.merchantId=="frontier-vitamin";
+                if(bp)QCOMPARE(qFromLittleEndian<quint16>(exchanged.data.constData()+block0+0xeb8),99);
+                else QCOMPARE(qFromLittleEndian<quint32>(exchanged.data.constData()+block0+0x1f4)^key,4950u);
+                QCOMPARE(qFromLittleEndian<quint16>(exchanged.data.constData()+block1+0x560),req.itemId);
+                QVERIFY(readEmeraldShops(exchanged.data,EmeraldHash).supported);
+                const int wallet=block0+(bp?0xeb8:0x1f4),width=bp?2:4;
+                for(int p=0;p<bytes.size();++p){
+                    if((p>=wallet&&p<wallet+width)||(p>=block1+0x560&&p<block1+0x564)||(p>=block0+0xff6&&p<block0+0xff8)||(p>=block1+0xff6&&p<block1+0xff8))continue;
+                    QCOMPARE(exchanged.data[p],bytes[p]);
+                }
+            }
             // Known locations can be unavailable while the separate Pyramid Bag is active.
             bytes[block1+4]=26;bytes[block1+5]=26;seal();state=readEmeraldShops(bytes,EmeraldHash);
             QVERIFY(state.merchants[0].discovered);QVERIFY(!state.merchants[0].available);

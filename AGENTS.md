@@ -3,7 +3,8 @@
 **Issue reconciliation, 2026-09-26:** [ROADMAP](docs/ROADMAP.md#unified-execution-order--existing-work-and-new-issues)
 is the single R1–R18 execution queue; [#69–90 acceptance](docs/EXPANSION_69_90.md)
 records all new/changed issue decisions. These target changes are not installed
-behavior. Resume remaining #68 Emerald currencies first, then the bounded #89
+behavior. The #68 currency item/decor exchanges are delivered (46 counters); finish its
+remaining service rewards and shop search/filter work, then the bounded #89
 audit and coherent #83–88 navigation work. Preserve every earlier acceptance
 unless explicitly superseded in that register.
 

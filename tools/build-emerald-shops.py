@@ -62,11 +62,57 @@ for n,((_,stock,kind),name) in enumerate(zip(ls,['Energy Guru','Dolls','Decorati
 source('data/maps/MtChimney/scripts.inc');source('data/maps/Route109_SeashoreHouse/scripts.inc')
 merchant('mt-chimney-cookies','Lava Cookie stall','Mt. Chimney','FLAG_DEFEATED_EVIL_TEAM_MT_CHIMNEY',[ids['ITEM_LAVA_COOKIE']],hiddenFlag=flags['FLAG_HIDE_MT_CHIMNEY_LAVA_COOKIE_LADY'],limit=1)
 merchant('seashore-drinks','Seashore House','Route 109','FLAG_LANDMARK_SEASHORE_HOUSE',[ids['ITEM_SODA_POP']],requiredFlags=[flags['FLAG_RECEIVED_6_SODA_POP']],limit=1)
-for p in ['include/global.h','include/global.tv.h','include/constants/tv.h','include/constants/vars.h','src/tv.c','src/item.c','src/shop.c','src/decoration_inventory.c']:source(p)
-result={'version':2,'source':'pret/pokeemerald','revision':'5eff78649e7170a877b961ef0b3da13b81a16038','items':items,'decorations':decor,'merchants':shops}
-assert len(shops)==36 and len(decor)==121 and ids['ITEM_POKE_BALL']==4
+def blocks(script):
+    return dict(re.findall(r'(\w+)::\n(.*?)(?=\n\w+::|\Z)',script,re.S))
+
+def priced_merchant(id,name,location,flag,offers,kind='item',**extra):
+    return merchant(id,name,location,flag,[i for i,p in offers],kind,
+                    prices={str(i):p for i,p in offers},limit=1,**extra)
+
+s=source('data/maps/MauvilleCity_GameCorner/scripts.inc')
+prices={k:int(v) for k,v in re.findall(r'\.set (\w+),\s+(\d+)',s)}
+common={'group':'Mauville Game Corner','requiredItem':ids['ITEM_COIN_CASE']}
+priced_merchant('game-corner-coins','Coins','Mauville City','FLAG_VISITED_MAUVILLE_CITY',
+                [(n,prices['COINS_PRICE_'+str(n)]) for n in (50,500)],'coins',**common)
+priced_merchant('game-corner-tms','TM prizes','Mauville City','FLAG_VISITED_MAUVILLE_CITY',
+                [(ids['ITEM_'+k[:-6]],v) for k,v in prices.items() if k.startswith('TM_') and k.endswith('_COINS')],currency='coins',**common)
+priced_merchant('game-corner-dolls','Doll prizes','Mauville City','FLAG_VISITED_MAUVILLE_CITY',
+                [(decorids[k],prices['DOLL_COINS']) for k in dict.fromkeys(re.findall(r'givedecoration (DECOR_\w+)',s))],
+                'decoration',currency='coins',**common)
+
+s=source('data/maps/BattleFrontier_ExchangeServiceCorner/scripts.inc')
+b=blocks(s)
+for menu,name,kind in [('Decor1','Small decorations','decoration'),('Decor2','Large dolls','decoration'),('Vitamin','Vitamins','item'),('HoldItem','Held items','item')]:
+    choices=re.findall(r'case \d+, (\w+)',b['BattleFrontier_ExchangeServiceCorner_EventScript_Choose'+menu])
+    offers=[]
+    for label in choices:
+        match=re.search(r'setvar VAR_0x8008, (\d+)\s+setvar VAR_0x8009, ((?:ITEM|DECOR)_\w+)',b[label])
+        if match:offers.append(((decorids if kind=='decoration' else ids)[match[2]],int(match[1])))
+    assert offers
+    priced_merchant('frontier-'+menu.lower(),name,'Battle Frontier','FLAG_LANDMARK_BATTLE_FRONTIER',offers,kind,currency='bp',group='Frontier Exchange')
+
+s=source('data/maps/Route113_GlassWorkshop/scripts.inc');b=blocks(s)
+prices={k:int(v) for k,v in re.findall(r'\.set (\w+),\s+(\d+)',s)}
+for kind,name in [('item','Glass flutes'),('decoration','Glass furniture')]:
+    offers=[]
+    for body in b.values():
+        match=re.search(r'setvar VAR_0x8008, ((?:ITEM|DECOR)_\w+).*?setvar VAR_0x800A, (\w+)',body,re.S)
+        if match and match[1].startswith('DECOR_' if kind=='decoration' else 'ITEM_'):
+            offers.append(((decorids if kind=='decoration' else ids)[match[1]],prices[match[2]]))
+    priced_merchant('glass-'+kind,name,'Route 113','FLAG_LANDMARK_GLASS_WORKSHOP',offers,kind,
+                    currency='ash',group='Glass Workshop',requiredItem=ids['ITEM_SOOT_SACK'],glassWorkshop=True)
+
+s=source('data/maps/SlateportCity/scripts.inc')
+offers=[(ids[k],int(price)) for k,price in re.findall(r'setvar VAR_0x8008, (ITEM_\w+)\s+setvar VAR_0x8009, (\d+)',s)]
+assert len(offers)==11
+priced_merchant('slateport-powder','Berry Powder trader','Slateport City','FLAG_VISITED_SLATEPORT_CITY',offers,
+                currency='powder',group='Slateport Market',requiredFlags=[flags['FLAG_RECEIVED_POWDER_JAR']],requiredItem=ids['ITEM_POWDER_JAR'])
+for p in ['include/global.h','include/global.tv.h','include/constants/tv.h','include/constants/vars.h','src/tv.c','src/item.c','src/shop.c','src/decoration_inventory.c',
+          'src/coins.c','src/berry_powder.c','src/field_specials.c','src/field_tasks.c','include/constants/coins.h','include/constants/battle_frontier.h']:source(p)
+result={'version':3,'source':'pret/pokeemerald','revision':'5eff78649e7170a877b961ef0b3da13b81a16038','items':items,'decorations':decor,'merchants':shops}
+assert len(shops)==46 and len(decor)==121 and ids['ITEM_POKE_BALL']==4
 for m in shops:
-    for id in m['stock']+m.get('expandedStock',[]):assert str(id) in (decor if m['kind']=='decoration' else items)
+    for id in m['stock']+m.get('expandedStock',[]):assert m['kind']=='coins' or str(id) in (decor if m['kind']=='decoration' else items)
 Path('data/emerald-shops.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8',newline='\n')
 Path('data/emerald-shops-source.json').write_text(json.dumps({'source':'https://github.com/pret/pokeemerald','revision':result['revision'],'inputs':dict(sorted(inputs.items())),'scope':'Factual names, identifiers, prices, pockets, stock and flag conditions only. No dialogue, game implementation or art.'},indent=2)+'\n',encoding='utf-8',newline='\n')
 print(len(shops),'counters;',len(items),'item facts;',len(decor),'decoration facts')

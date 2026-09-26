@@ -66,7 +66,7 @@ public:
     int merchantIndex() const {return merchantIndex_;}
     int stockIndex() const {return stockIndex_;}
     int quantity() const {return quantity_;}
-    int shopBalance() const {return snapshot_.shops.supported?snapshot_.shops.balance:-1;}
+    int shopBalance() const;
     QString shopMessage() const;
     QString route() const { return route_; }
     QString title() const;

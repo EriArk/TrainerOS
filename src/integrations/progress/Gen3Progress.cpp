@@ -110,17 +110,17 @@ QByteArray worldBlock(const Slot& slot){QByteArray out;for(int id=1;id<=4;++id)o
 MerchantSnapshot readEmeraldShops(const QByteArray& save,const QString& hash) {
     const auto slot=shopSlot(save,hash);
     if(!slot){MerchantSnapshot out;out.error="Save in the supported English Emerald edition, then visit again.";return out;}
-    auto out=readEmeraldShopBlock(worldBlock(*slot),u32(slot->blocks[0],0xac));
+    auto out=readEmeraldShopBlock(worldBlock(*slot),slot->blocks[0]);
     out.lineage=QString::fromLatin1(slot->blocks[0].left(14).toHex());
     return out;
 }
 MerchantWrite buyEmeraldItems(const QByteArray& save,const QString& hash,const MerchantPurchase& request) {
     const auto slot=shopSlot(save,hash);if(!slot)return {{},"This Emerald save could not be verified.",{}};
-    const auto purchase=buyEmeraldShopBlock(worldBlock(*slot),u32(slot->blocks[0],0xac),request,QRandomGenerator::global()->bounded(4096u));
-    if(purchase.data.isEmpty())return purchase;
+    const auto purchase=buyEmeraldShopBlock(worldBlock(*slot),slot->blocks[0],request,QRandomGenerator::global()->bounded(4096u));
+    if(purchase.data.isEmpty())return {{},purchase.error,{}};
     auto result=save;
-    for(int id=1;id<=4;++id){
-        const auto block=purchase.data.mid((id-1)*Payload,slot->blocks[id].size());
+    for(int id=0;id<=4;++id){
+        const auto block=id==0?purchase.trainer:purchase.data.mid((id-1)*Payload,slot->blocks[id].size());
         if(block==slot->blocks[id])continue;
         const int at=slot->offsets[id];result.replace(at,block.size(),block);
         quint32 sum=0;for(int p=0;p<block.size();p+=4)sum+=u32(block,p);

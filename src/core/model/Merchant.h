@@ -5,7 +5,7 @@
 #include <functional>
 
 namespace trainer {
-enum class MerchantCurrency { Money, Coins, BattlePoints };
+enum class MerchantCurrency { Money, Coins, BattlePoints, Ash, BerryPowder };
 struct MerchantStock {
     int itemId=0, price=0, owned=0, maximum=0;
     QString name, pocket;
@@ -17,6 +17,7 @@ struct Merchant {
     bool discovered=false, available=false;
     QList<MerchantStock> stock;
     QString availability;
+    int balance=0;
 };
 struct MerchantSnapshot {
     bool supported=false;
