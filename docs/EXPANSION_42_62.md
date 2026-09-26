@@ -1,5 +1,12 @@
 # TrainerOS target acceptance — issues 42–62
 
+**2026-09-26 precedence:** [#69–90 reconciliation](EXPANSION_69_90.md)
+explicitly supersedes #11/#39 Steam removal, Home X/pair-only routes, old wheel A,
+Start content destinations and global footer hints. It promotes image/OTA and
+later sleep proof. Manual Dex editing was already retired by the owner; legacy
+rows stay inert. All unaffected acceptance below remains. The [R1–R18 roadmap](ROADMAP.md#unified-execution-order--existing-work-and-new-issues)
+is the only execution queue; this register is not a second schedule.
+
 **Owner scheduling amendment, 2026-09-23:** generic artwork-pack installation,
 selection, verification/update/removal and Pack Studio all move to the final
 artwork delivery stage. Existing private illustrations remain in both the Dex

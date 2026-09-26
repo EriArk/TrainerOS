@@ -1,5 +1,18 @@
 # TrainerOS UX & Navigation
 
+**Current target — 2026-09-26:** #83–88 supersede old dated pair/Home-X,
+Activities, wheel-selection and Start destinations below. Five primaries are
+**Home / Worlds / Pokémon / Trainer / Journey**. L2/R2 cycles secondary faces
+with wrap: Home domains; Worlds/Multiverse; Pokémon Dex/Party/Boxes/Center/
+Playroom/Shops; Journey/Hall/RA. B unwinds locally, never opens Filters.
+Short wheel A launches or opens setup; Y remains selection-only, scoped to the
+active domain with Worlds/modal exceptions. Hold A management must not launch.
+Start is quick system controls, Switch Trainer, Settings, System modes, Power.
+Persistent L1/R1/L2/R2 cues go into compact header/chassis treatment; contextual
+hints stay below without whole-row shrinking. Preserve modal/transaction gates,
+face focus and return routes. [Full target and physical acceptance](EXPANSION_69_90.md#navigation-and-ordinary-use--8388).
+New routes are planned; dated old routes below describe installed/history evidence.
+
 **Emerald shops, 2026-09-24:** Center → Activities → Shops & Traders opens
 merchants discovered in the selected save. A opens a merchant/item confirmation,
 Left/Right adjusts quantity in its stock list, a second A confirms payment.
@@ -75,9 +88,9 @@ In a World's Adventure list, X searches title/version/platform through the contr
 
 ## Accepted expansion routes — planned
 
-The five full-screen peer pages remain **Home ⇄ Worlds ⇄ Pokédex ⇄ Trainer ⇄ Hall of Fame**, selected with **L1/R1**. Home is not a permanent background shell.
+The five target full-screen peer pages are **Home ⇄ Worlds ⇄ Pokémon ⇄ Trainer ⇄ Journey**, selected with **L1/R1**. Home is not a permanent background shell.
 
-**Planned #43:** L2/R2 switches paired faces within Worlds ⇄ Multiverse, Pokédex ⇄ Pokémon Center, and Hall/Journey ⇄ RetroAchievements. Preserve each face's route/focus/filter and the launch return route. B unwinds local detail; it does not flip the pair. Use a compact existing-header/chassis indicator, not a sixth page or large second tab row. Home retains its separate **X** Pokémon/Multiverse toggle (#31).
+**#83–85 supersede #43:** L2/R2 cycles the section's peer faces, including Home contexts. Pokémon exposes Dex/Party/Boxes/Center/Playroom/Shops; Journey exposes live Journey/Hall/RA. Preserve routes/focus/filters and launch return. B stays local; modal/transaction gates take priority. Use compact header/chassis indication, not a large second tab bar. #90 later extends available Home domains.
 
 Updated #9 shares one Trainer-scoped Adventure selection across supported Pokémon-aware pages, with independent Multiverse Home choice. The [Choose Adventure drawer](#choose-adventure-drawer) below defines A/B/Y, Worlds/modal exceptions and persistence; selection never launches.
 
@@ -95,7 +108,7 @@ The normal shell must never feel like a KDE desktop application stretched full-s
 
 Top-level order:
 
-**Home ⇄ Worlds ⇄ Pokédex ⇄ Trainer ⇄ Hall of Fame**
+**Home ⇄ Worlds ⇄ Pokémon ⇄ Trainer ⇄ Journey**
 
 These are full-screen peers. Home is not a permanent base layer.
 
@@ -119,7 +132,7 @@ Whether the page list wraps from Hall of Fame back to Home should be decided dur
 - `Start`: TrainerOS system menu
 - `L1/R1`: global primary-page navigation
 - `Y`: shared Choose Adventure on Home/Pokédex/Center/Trainer/Hall/RA; Worlds keeps its filter and modal editors keep local Y actions
-- `Select`: labelled local journal/new-memory/achievement-refresh/save-backup shortcut
+- `Select`: available local actions such as Hall new-memory or achievement refresh; no retired Dex journal shortcut
 
 `L2/R2` switches the delivered Pokédex/Center pair. Hall/RetroAchievements is also delivered, with independent list/detail/action positions and restart restoration. Worlds/Multiverse L2/R2 and Home X switching now have a transient P1 presentation, with isolated sample selection and honest empty production lists. Real domain binding and persistence remain P2/P3/P4; see [Multiverse UI](MULTIVERSE_UI.md). [Shared routing and remaining boundaries](SHARED_ADVENTURE.md).
 
@@ -180,6 +193,8 @@ Avoid turning every card into a dense statistics panel.
 
 ## Worlds
 
+**Target #87:** short A in either game wheel launches or opens setup; hold A opens management without launch. No mandatory detail screen. The original mock routes below are historical, not the target launch path.
+
 Worlds should feel like choosing destinations rather than browsing files/emulators.
 
 The native mock has three local levels: **regions → Adventure list → Adventure detail**. A region may contain originals, remakes and ROM hacks together.
@@ -235,7 +250,7 @@ Pokédex remains useful offline and controller-operated: bounded lists/detail, c
 
 1. Offline species/form/reference facts.
 2. The selected Adventure's verified ordinary-save Seen/Caught as primary current progression, with only proven regional/National/form semantics.
-3. Preserved Trainer-owned manual journal, Caught collection (#14), favorites and history, explicitly sourced and secondary to the current-save view.
+3. Trainer-owned favorites and independently sourced history. Manual #14 Seen/Caught/notes editing is retired; legacy rows remain inert.
 4. Optional installed classic illustration artwork (#13) for the primary long list.
 5. Optional PMDCollab animated sprites/portraits (#51) for detail and living-party scenes, not the main list artwork.
 
@@ -278,6 +293,8 @@ RetroAchievements is Hall's **L2/R2 companion**, following the shared Adventure 
 Acceptance includes controller list/detail/Back, paired-face restoration, Y changes, unsupported/corrupt/rollback states, preserved manual/Champion history, two-Trainer isolation and offline/wrong-account rejection. [Projection acceptance](EXPANSION_42_62.md#pokédex-journey-and-achievements).
 
 ## System menu
+
+**Target #86:** quick Volume/Brightness, first-level Switch Trainer, Settings, System modes (Steam/Desktop), Power. No Center/content shortcut. Old initial categories below are historical; use the target list.
 
 `Start` opens the TrainerOS system menu from any page.
 
@@ -475,6 +492,8 @@ attribution records stay intact.
 [Source, movement and pause contract](POKEDEX_SPRITES.md).
 
 ## Shared bottom legends and combined browsing — 2026-09-23
+
+**#88 amendment:** contextual legends stay below; persistent L1/R1/L2/R2 indication moves to header/chassis. Retired journal references and the old clamped wheel below are historical; wheels wrap.
 
 Controller legends belong only on the bottom edge throughout TrainerOS, including
 Settings, Start, journals, keyboards and selectors. The shell footer changes with

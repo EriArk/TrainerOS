@@ -1,5 +1,13 @@
 # TrainerOS Product Specification
 
+**Current accepted target — 2026-09-26:** [#69–90 reconciliation](EXPANSION_69_90.md)
+supersedes older Steam-removal, pair-only/Home-X and optional-image statements.
+Steam remains; consumer distribution is an Armada-based image. Pokémon is the
+first franchise experience; generic Multiverse remains the fallback. The
+[roadmap R queue](ROADMAP.md#unified-execution-order--existing-work-and-new-issues)
+controls delivery. Dated installed/mock descriptions below remain evidence,
+not a claim these new targets are implemented.
+
 The following feature sections describe the **accepted target** unless explicitly labeled implemented or historical. Exact reads/writes are per ROM/build; [provider and transaction acceptance](EXPANSION_42_62.md#exact-save-providers-and-research) forbids generation-wide claims from one title.
 
 **Target reconciliation — 2026-09-19 (#62).** The accepted [#42–62 specification](EXPANSION_42_62.md) supersedes older product direction. Planned behavior below is not a claim that the deployed build has changed; see the [working baseline](ROADMAP.md#working-baseline) and dated module evidence.
@@ -20,15 +28,15 @@ Normal flow:
 
 KDE Plasma exists as explicit Desktop / Maintenance Mode and should not appear during ordinary use.
 
-TrainerOS is the intended main/default mode. The accepted 2026-09-13 issue [#11](https://github.com/EriArk/TrainerOS/issues/11) replaces permanent Steam retention with reversible removal. The owner's subsequent clarification prefers Plasma Mobile as the only maintenance shell if viable on Flip. Existing Steam/Plasma Desktop remain until replacement and recovery are proven; shared KDE dependencies and personal data remain protected. See [session consolidation](ARMADA_PLATFORM.md#planned-session-consolidation--2026-09-13).
+TrainerOS is the main/default mode; Steam Gaming Mode remains installed under #69. Plasma is explicit maintenance/recovery, with Mobile-only preferred only after its physical replacement gates pass. #11/#39 removal/restore is cancelled. The distribution target is a reproducible Armada-based image (#70), followed by compatible OTA (#71).
 
 ## Accepted next modules — planned, not implemented
 
-The [roadmap](ROADMAP.md) integrates issues #1–62. [Earlier expansion acceptance](EXPANSION_PLAN.md) retains ownership, onboarding/PIN, media/audio/feedback, Help, catalogue, session and cleanup gates. [New acceptance](EXPANSION_42_62.md) adds shared Adventure/navigation, ordinary-save lifecycle, exact providers, Center/Journey, living Party and the artwork pipeline. These are accepted targets, not delivered features.
+The [roadmap](ROADMAP.md) reconciles all issue records through #90. [Earlier expansion acceptance](EXPANSION_PLAN.md) retains ownership, onboarding/PIN, media/audio/feedback, Help, catalogue, session and cleanup gates. [New acceptance](EXPANSION_42_62.md) adds shared Adventure/navigation, ordinary-save lifecycle, exact providers, Center/Journey, living Party and the artwork pipeline. These are accepted targets, not delivered features.
 
 Multiple Trainers share device library/installations/media but own journal/history/Hall/selections and RA identities. A shared external save does not become a separate playthrough because a Trainer is created. Collection stays English-only, one visible copy per game, and complete for substantial playable titles with credible Flip/controller routes, including missing/linkable editions and meaningful hacks; closed online-only titles are excluded. Reference curation (#30) never deletes private files/history (#18).
 
-Adventure media, local selected-game video, original/licensed audio, hardware feedback/RGB, offline Help and supported boot branding retain their independent roadmap gates. Plasma Mobile replacement, reversible Steam removal and careful software/background cleanup preserve verified recovery and measured rollback. Sleep remains disabled/deferred.
+Adventure media, local selected-game video, original/licensed audio, hardware feedback/RGB, offline Help and supported boot branding retain their independent roadmap gates. Plasma Mobile replacement and careful software/background cleanup preserve Steam, verified recovery and measured rollback. Sleep remains disabled until dedicated #79 proof.
 
 ## Vocabulary
 
@@ -37,18 +45,18 @@ Adventure media, local selected-game video, original/licensed audio, hardware fe
 - **Choose Adventure:** shared recent selector; choosing changes context, never launches.
 - **Trainer:** personal identity/records; shared library ownership is separate.
 - **Multiverse:** non-Pokémon system browser paired with Worlds, with an independent Home context.
-- **Pokédex:** offline reference plus current-save progression and separately sourced manual history/art.
-- **Hall of Fame:** live Journey and preserved Champion/manual archive, paired with external RA.
-- **Pokémon Center:** Pokédex companion for practical Party/Storage and safe ordinary-save services.
+- **Pokédex:** offline reference, verified current-save progression, personal favorites and independent art; no manual journal editor.
+- **Journey:** primary section with live progression, historical Hall of Fame and external RA as distinct secondary faces.
+- **Pokémon Center:** service face for healing, backup/recovery and later Link; Party, Boxes, Playroom and Shops are peers under Pokémon.
 - **Desktop / Maintenance Mode:** deliberate KDE maintenance/recovery transition.
 
 Platform badges and Multiverse system names are intentional normal information. Emulator commands, paths, cores and package details stay in advanced/integration surfaces.
 
 ## Primary sections
 
-The five full-screen peer pages remain **Home ⇄ Worlds ⇄ Pokédex ⇄ Trainer ⇄ Hall of Fame**, selected with **L1/R1**. Home is not a permanent background shell.
+The five target full-screen peer pages are **Home ⇄ Worlds ⇄ Pokémon ⇄ Trainer ⇄ Journey**, selected with **L1/R1**. Home is not a permanent background shell.
 
-**Planned #43:** L2/R2 switches paired faces within Worlds ⇄ Multiverse, Pokédex ⇄ Pokémon Center, and Hall/Journey ⇄ RetroAchievements. Preserve each face's route/focus/filter and the launch return route. B unwinds local detail; it does not flip the pair. Use a compact existing-header/chassis indicator, not a sixth page or large second tab row. Home retains its separate **X** Pokémon/Multiverse toggle (#31).
+**Planned #83–85 supersede #43 pairs:** L2/R2 cycles Home contexts, Worlds/Multiverse, Pokémon (Dex, Party, Boxes, Center, Playroom, Shops) and Journey (Journey, Hall, RA). Useful route/focus/filter and return state survive; modal/transaction gates take priority. B stays local. Use a compact header/chassis indicator, not a sixth primary or a large second tab row. #90 later adds useful franchise contexts without a mixed global Y list.
 
 ## Home
 
@@ -152,17 +160,17 @@ Acceptance: create using physical controls, restart and recover the same profile
 
 ## Hall of Fame
 
-**Planned #47/#48/#64:** Hall's first face is a live save-backed **Journey Record**, useful before completion, plus preserved Champion/completed-run history. Show only proven title-specific badges, milestones, playtime and Dex totals, with larger game-accurate badge assets or deliberate neutral mounts; no universal eight-badge/percentage/date assumptions. See [exact badge identity and artwork acceptance](EXPANSION_63_64.md#accurate-league-badges-and-neutral-fallback).
+**Planned #85/#47/#48/#64:** Journey is the primary section. Its live **Journey Record**, historical Hall and external RA are separate cyclic faces, useful before and after completion. Show only proven title-specific badges, milestones, playtime and Dex totals, with larger game-accurate badge assets or deliberate neutral mounts; no universal eight-badge/percentage/date assumptions. See [exact badge identity and artwork acceptance](EXPANSION_63_64.md#accurate-league-badges-and-neutral-fallback).
 
 Champion snapshots preserve exact build/playthrough/source revision and verified historical team/progress. Current Party is not the historical winning team; older saves do not erase the archive. Observation time is not victory time. Manual memories/editing remain valid and explicitly sourced.
 
-RetroAchievements is Hall's **L2/R2 companion**, following the shared Adventure through verified content/set matching. It remains an external account source independent from current-save or manual completion truth. Settings owns the active Trainer's account; unsupported mapping never substitutes another game. Same-account complete offline caches retain earned/unknown distinctions. Earning, earned-state UI and verified notification have separate gates (#12/#24/#25/U7).
+RetroAchievements is a **L2/R2 face under Journey**, following the shared Adventure through verified content/set matching. It remains an external account source independent from current-save or manual completion truth. Settings owns the active Trainer's account; unsupported mapping never substitutes another game. Same-account complete offline caches retain earned/unknown distinctions. Earning, earned-state UI and verified notification have separate gates (#12/#24/#25/U7).
 
 Acceptance includes controller list/detail/Back, paired-face restoration, Y changes, unsupported/corrupt/rollback states, preserved manual/Champion history, two-Trainer isolation and offline/wrong-account rejection. [Projection acceptance](EXPANSION_42_62.md#pokédex-journey-and-achievements).
 
 ## Pokémon Center / maintenance services
 
-**Planned #44/#53:** Pokémon Center is a first-class L2/R2 companion to Pokédex, using the shared Adventure context. It is not a new primary page or merely system-maintenance branding.
+**Planned #83 refinement of #44/#53:** Pokémon Center is a service face in Pokémon; Party, Boxes, Playroom and Shops are peer faces using the same shared Adventure. Practice is a Playroom action. Center is not the container for all Pokémon features.
 
 - Practical Party cards/list and details expose verified slots, level, HP/status, moves/PP and held items.
 - Storage exposes the actual title's boxes/slots. Read browsing precedes separately proven reorder, Party/Storage moves and release; destructive actions require fresh explicit confirmation and the shared safe transaction.
@@ -174,19 +182,18 @@ Device/account/integration settings remain in Start/Settings. No second Center s
 
 ## System menu
 
-`Start` opens a TrainerOS system menu from any primary section. It may expose:
+`Start` opens a compact system-only overlay from any primary section:
 
-- TrainerOS settings
-- controller mapping
-- visual/accessibility preferences
-- Pokémon Center services
-- Adventure management
-- audio/brightness/network shortcuts
-- sleep/restart/shutdown
-- **Desktop / Maintenance Mode**
-- restart TrainerOS / recovery actions
+- immediately adjustable Volume and Brightness;
+- Switch Trainer at the first level;
+- Settings, including Controller, Appearance and account/system controls;
+- System modes: Steam Gaming Mode and Desktop / Maintenance Mode;
+- Power: Restart, Power off, Cancel; Sleep only after #79 verification.
 
-The system menu is part of TrainerOS, not a desktop taskbar or application launcher.
+No Pokémon Center/content or Adventure-management shortcut belongs here. Those
+features have their own page routes. Switching Trainer is not a power action.
+B restores the exact underlying screen/focus; confirmation, write draining and
+held-button guards apply. This is a device menu, not a desktop application launcher.
 
 ## Desktop / Maintenance Mode
 

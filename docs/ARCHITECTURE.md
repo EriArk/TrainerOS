@@ -1,5 +1,15 @@
 # TrainerOS Architecture
 
+**Accepted architecture work — 2026-09-26:** [#89/#90 and related contracts](EXPANSION_69_90.md#exact-integrations-and-franchise-experiences--7476-82-8990)
+require a bounded code-backed audit before wider per-title integration. This
+planning change does not claim that audit or a new adapter interface is complete.
+Compose launch/runtime, exact semantic readers/mutators and host transactions
+without a second save framework or speculative plugin loader. The pack/domain
+presentation layer stays separate from game knowledge and privileged host work.
+Navigation evolves to cyclic capability-driven faces with per-owner/domain state;
+#75 masks effective writes centrally. #70/#71 image/OTA and #78 device contracts
+stay behind platform boundaries. [ROADMAP](ROADMAP.md) controls sequencing.
+
 The real library now has a read-only Batocera discovery/media wrapper around
 `CollectionRepository`. Background filesystem scans register new files through
 the existing asynchronous store and adapter setup contracts; metadata snapshots
@@ -45,7 +55,7 @@ See `ROADMAP.md` for execution order. Feasibility research is input to later mod
 
 The implemented Armada boundary is documented in [dedicated session integration](SESSION_PROTOTYPE.md). A separate systemd/Gamescope lifecycle owns the compositor, a Linux supervisor preserves orphaned Adventures, and confirmed mode requests drain local persistence before invoking the fixed platform helper. Normal app mode remains available for development and recovery.
 
-The installed main/default session currently coexists with Steam and Plasma. The accepted target now prefers Plasma Mobile maintenance and reversible Steam removal; the platform service owns capability changes only after the [migration/recovery gates](ARMADA_PLATFORM.md#planned-session-consolidation--2026-09-13) pass. Ordinary development app mode remains non-mutating.
+The default session coexists with retained Steam and Plasma. Mobile-only maintenance remains conditional on physical recovery proof; Steam removal is cancelled. #70/#71 compose a reproducible Armada-based image and compatible OTA through platform services. Ordinary development app mode remains available.
 
 ### 1. Development / safe app mode
 
@@ -159,7 +169,7 @@ the later scalable media cache. [Storage and limits](ADVENTURE_EXIT.md#durable-e
 The following target boundaries extend existing repositories/workers; [#42–62 acceptance](EXPANSION_42_62.md) and the [roadmap](ROADMAP.md) define implementation order. Do not build a framework before its first consumer.
 
 - A shell-owned `CurrentPokemonAdventureContext` publishes committed Trainer/Adventure/exact-build/ordinary-save identity and revision. Shared Y changes it; features never own a second current save. Multiverse selection remains independent. Capture initiating owner/context/revision on async work and reject stale results after selection or Trainer/account switches.
-- Navigation owns five primary pages and the L2/R2 paired faces, with per-face route/focus/filter state. Home X changes domain. Drawer/modal priorities and Worlds local Y are explicit; no duplicate persistent context capsule.
+- Navigation owns five primary pages and the L2/R2 paired faces, with per-face route/focus/filter state. #84 replaces Home X with L2/R2; #83/#85 generalize pairs to cyclic peer faces. Drawer/modal priorities and Worlds local Y are explicit; no duplicate persistent context capsule.
 - #49 replaces state-based launch with ordinary startup/save loading. The lifecycle service coordinates capture-before-prompt, still-running-game cancellation, verified save policy, graceful exit, interruption and provenance-bound media. Prove actual compositor/input handoff before generic overlay claims.
 - Adventure media owns title/build images and clean exit captures by Trainer/domain/Adventure/session/revision. #13 illustration art and #51 sprite/portrait providers use separate species/form identities and source/credit rules. They may share bounded cache utilities, never ownership or compatibility assumptions.
 - #42 exact-save resolution/providers extend the current reader/backup layer with independent read/write capabilities and immutable semantic snapshots. Reads feed Dex/Party/Storage/Journey; mutation is through a shared protected transaction, never QML offsets or a read provider implicitly promoted to editor.

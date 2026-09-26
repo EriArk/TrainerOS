@@ -1,5 +1,35 @@
 # AGENTS.md — TrainerOS
 
+**Issue reconciliation, 2026-09-26:** [ROADMAP](docs/ROADMAP.md#unified-execution-order--existing-work-and-new-issues)
+is the single R1–R18 execution queue; [#69–90 acceptance](docs/EXPANSION_69_90.md)
+records all new/changed issue decisions. These target changes are not installed
+behavior. Resume remaining #68 Emerald currencies first, then the bounded #89
+audit and coherent #83–88 navigation work. Preserve every earlier acceptance
+unless explicitly superseded in that register.
+
+- #11/#39 are closed **as superseded**: retain Steam Gaming Mode, add installed
+  Steam games via #69, preserve non-Steam independence and Plasma recovery.
+- Target primaries are Home / Worlds / Pokémon / Trainer / Journey. #83–85 make
+  L2/R2 cyclic secondary navigation, including Home instead of X. Pokémon has
+  Dex/Party/Boxes/Center/Playroom/Shops peers; Journey has Journey/Hall/RA peers.
+- #87 short A launches playable selections in both wheels; missing/unconfigured
+  games enter setup. Hold A management remains; Y selection does not launch.
+- #86 Start is system-only: quick controls, Switch Trainer, Settings, System modes,
+  Power. No Center shortcut; Switch Trainer is not a power operation.
+- #88 persistent shoulder/trigger navigation cues belong in header/chassis;
+  contextual actions stay in the footer. B never opens Filters. Preserve modal
+  gates, per-face focus and short/held-button safety.
+- #89 audits/composes existing narrow interfaces; no speculative rewrite or new
+  plugin framework. #90 franchise experience packs differ from final artwork
+  packs/Pack Studio. Keep adapter data separate from presentation and host powers.
+- #70 makes an Armada-based reproducible image the distribution target; native
+  package/session deployment remains the development foundation. #71 OTA requires
+  compatible image/database rollback. #79 schedules later sleep proof; keep
+  suspend disabled until its device/runtime gates pass.
+- #75 device-wide read-only policy, #76 runtime save ownership, #73 Trainer export,
+  #77–81 device/input/readiness/diagnostics and #82 second exact Pokémon vertical
+  retain their separate roadmap gates. Planning does not implement them.
+
 **Owner merchant clarification, 2026-09-24:** #68 means actual game-inspired
 shops with purchases, analogous to real Center healing. This supersedes the
 issue's read-only purchase exclusion: browsing/discovery stays read-only;
@@ -104,7 +134,7 @@ TrainerOS is not:
 - an Android app
 - an APK
 - a custom Android launcher
-- a custom Linux distribution at this stage
+- an independent low-level Linux distribution; #70 packages the supported ArmadaOS base
 - a replacement for ArmadaOS low-level device support
 - a hardware modification
 - a generic emulator frontend with a Pokémon skin
@@ -121,12 +151,12 @@ Current platform direction:
 - **TrainerOS is a native Linux graphical shell/session on top of ArmadaOS.**
 - **KDE Plasma remains installed and available as maintenance/recovery desktop mode.**
 - **Preserve a verified Plasma maintenance/recovery environment.** The owner's 2026-09-13 clarification prefers Plasma Mobile only, if it can replace ordinary Plasma Desktop on Flip. Validate Mobile and rollback first; preserve shared KDE dependencies.
-- **Steam retention is transitional.** Accepted issue [#11](https://github.com/EriArk/TrainerOS/issues/11) changes the target to reversible Steam Gaming Mode removal. Keep current working sessions until the reviewed migration and physical restore gates in [ARMADA_PLATFORM.md](docs/ARMADA_PLATFORM.md#planned-session-consolidation--2026-09-13) pass. This supersedes the earlier permanent three-mode requirement; it does not authorize blind package deletion.
+- **Steam remains installed.** #11/#39 removal/restore was cancelled; #69 adds its installed library without replacing Steam. Keep supported Steam and Plasma transitions and personal data.
 - The first prototype must run safely as a normal full-screen application before TrainerOS is made the default session.
 - Once crash/recovery behavior is proven, production mode should boot/login into the TrainerOS session by default.
 - Exiting supported Adventures should return to TrainerOS.
 - Never remove the last verified Plasma maintenance/recovery path merely to create the illusion of a dedicated device. Ordinary Desktop may be retired only after the accepted Mobile replacement is proven.
-- Do not fork/rebuild ArmadaOS or create a custom image until the normal-package/session approach has been proven insufficient.
+- Build #70 only in its roadmap release stage on the supported Armada base. Native package/session work is the foundation; do not fork low-level device support or create an unrelated distribution.
 
 If current ArmadaOS internals differ from assumptions in these docs, adapt the platform integration layer and update the docs. Do not leak distro/session-specific quirks upward into feature code.
 
@@ -134,14 +164,14 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 
 - The user-facing library section is **Worlds**, never “Games”.
 - Pokémon Worlds are organized by **region first**, not emulator/platform first. Accepted #28 adds a separate **Multiverse** system browser within Worlds for non-Pokémon titles; it does not add a primary page or fake Pokémon regions. Its persistent system browser and independent per-Trainer Home choice are delivered in schema 11; remaining runtime routes retain their P4/P9 gates. [Boundary](docs/MULTIVERSE_BINDING.md).
-- Top-level sections are full-screen peers.
+- Top-level sections are full-screen peers; target names under #83/#85 are Home, Worlds, Pokémon, Trainer and Journey.
 - **Home is one top-level page, not a permanent background shell.**
 - `L1/R1` switch top-level pages and must not be repurposed for local features.
 - Home is a living trainer overview, not a giant Continue page or tile launcher.
 - Planned updated #9: one shell-owned Choose Adventure drawer selects a shared per-Trainer `CurrentPokemonAdventureContext` across Pokémon-aware screens; Worlds retains local search/filter controls. No duplicate persistent Current Adventure capsule/chip. Shared Y and the Pokedex/Center and Hall/RA pairs are delivered. Schema 10 binds owner-isolated personal repositories, real profile creation/selection, TrainerOS RA accounts and optional PIN/startup gating with a parent-defined family reset code. Active-profile removal is delivered; the first verified GBA/mGBA per-Trainer save route is delivered, preserving original legacy saves. Other runtime save namespaces remain planned. Additional domain consumers remain planned. See docs/TRAINER_ACCESS.md. No universal master password; the owner requested simple family use, not enterprise account controls.
 - Planned #49 supersedes all normal emulator savestate/ResumePoint creation, management and resume. Use ordinary saves/autosaves and recent Adventure cards with clean exit screenshots. Preserve legacy implementation evidence and migrate user data safely; no new state-resume expansion.
 - Selecting a Continue card with A chooses the Adventure shown on Home; it never launches. Home has a large physical-style action button that launches the selected Adventure normally; the game loads its ordinary save/autosave. The explicit Home choice persists; latest launch is the default before a choice is made (2026-09-11 clarification).
-- RetroAchievements achievements belong inside Hall of Fame, alongside the completed-Adventure archive, not on a separate primary page.
+- RetroAchievements is a secondary face under Journey alongside live Journey and the Hall archive (#85); it is not a separate primary page and remains external truth.
 - The accepted plan is [ROADMAP.md](docs/ROADMAP.md), with [earlier acceptance](docs/EXPANSION_PLAN.md), [#42–62 target acceptance](docs/EXPANSION_42_62.md) and [#63–64 acceptance](docs/EXPANSION_63_64.md). Preserve its earlier steps 1–10, U1–U13 and optional/deferred commitments when replanning. The ROADMAP table controls execution order; P0-P12 are stable work-area IDs, not a numerical schedule; acceptance registers are not competing queues.
 - Planned #19–20 introduce separate Trainers/PIN/onboarding: library/installations/shared media are device-wide; personal journal/history/Hall/Home and RA identities are Trainer-scoped. Global RA management belongs in Settings and serves the active Trainer. Shared external saves do not imply separate owned playthroughs.
 - Planned #30 explicitly narrows the reference checklist to substantial playable Pokémon titles with credible Flip/controller routes. Preserve the complete eligible collection, missing/linkable editions and meaningful hacks/variants. Catalogue curation never deletes private content/history and remains separate from #18 duplicate-file cleanup.
@@ -154,7 +184,7 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 ## Accepted target extension — 2026-09-19
 
 - #44/#53 Center is a first-class Pokédex companion: practical Party/Storage, safe Heal/Backup/Restore, later #45 durable exact-pair Link Counter. Separate #54 Playroom and #55 read-only practice use proven Party data; no invented individuals or save rewards.
-- #46 primary current Pokédex progression follows the selected ordinary save; preserve manual #14 journal/history separately. #47 live Journey and preserved Champion snapshots coexist with manual Hall; #48 RA remains external account truth.
+- #46 primary current Pokédex progression follows the selected ordinary save; keep retired #14 journal rows inert; retain favorites and independently sourced history. #47 live Journey and preserved Champion snapshots coexist with manual Hall; #48 RA remains external account truth.
 - #51 sprites/portraits and #52 bounded native living-party animation are optional presentation. Classic #13 illustration art remains primary in long Pokédex lists. Keep per-asset attribution/source and no unlicensed redistribution.
 - #61 runtime prerequisites remain #58 raw corpus -> #60 real Flip bootstrap/canonical map and measured profiles -> #57 required contract/shared validation. **Owner clarification, 2026-09-20: #59 Qt desktop Pack Studio moves to the very end**, after handheld UI and asset structure stabilize; it no longer blocks Settings polish. Keep early work limited to necessary runtime loading/validation; do not prematurely freeze the final authoring format. ROADMAP owns execution order. No resident downloader; early artwork remains independent from save writers. Classic illustrations remain primary list art; #51 sprites serve detail/scenes.
 - #56 larger environmental World cards use original data-driven motifs and intentional small-group diagonal pairs without merging unrelated identities.
@@ -162,17 +192,18 @@ If current ArmadaOS internals differ from assumptions in these docs, adapt the p
 
 ## UX invariants
 
-**Owner visual correction, 2026-09-23:** controller legends belong at the bottom
-throughout TrainerOS, including settings and modal surfaces, without duplicates
-inside content. Pokédex is one combined species-list/detail screen with primary
-illustrations, optional companion and colored numeric stats. Preserve journal,
-forms and favorites. Game wheels use an animated gold crystal pointer instead
-of a rectangular selected-game plate.
+**Owner visual correction, 2026-09-23, refined by #88:** contextual controller
+legends belong at the bottom throughout TrainerOS, including settings/modals,
+without content duplicates. Persistent L1/R1 and L2/R2 cues move to header/chassis.
+Pokédex is one combined species-list/detail screen with primary illustrations,
+optional companion and colored numeric stats. Preserve forms and favorites; the
+manual journal is retired. Game wheels use an animated gold crystal pointer
+instead of a rectangular selected-game plate.
 
 Always preserve:
 
 - `L1/R1` = previous/next top-level section
-- `L2/R2` = switch the delivered Pokedex/Center, Hall/RetroAchievements and P1 Worlds/Multiverse presentation pairs; preserve per-face routes and modal priority. Real Multiverse library binding is delivered; remaining emulator routes require verification. B never flips a pair.
+- `L2/R2` = cyclic secondary faces, including Home under #83–85. The installed pair-based behavior remains evidence until migration. Preserve per-face routes and modal priority; B never changes face.
 - D-pad / left stick = focus navigation
 - `A` = confirm/open
 - `B` = back/close
@@ -180,9 +211,9 @@ Always preserve:
 - `Start` = TrainerOS system menu
 - Physical `Home/Guide` returns to the Home page when no Adventure is running; during a supported Adventure it requests the guarded exit question. It never bypasses an active storage/service gate or directly kills a game.
 - P1 #9 `Y` = shared Choose Adventure on Pokémon Home, Pokédex, Center, Hall/RA and Trainer; Worlds local Y and modal/keyboard/system/recovery priority remain. Profile switching now reconstructs these owner views; independent domain consumers remain planned. [Delivered boundary](docs/SHARED_ADVENTURE.md).
-- `Select` owns labelled local journal/new-memory/achievement-refresh/save-backup shortcuts.
-- Planned #43 `L2/R2` = paired faces Worlds/Multiverse, Pokédex/Center, Hall/Journey/RA; preserve local routes/focus, never use L1/R1 for companions or steal emulator input.
-- #31: unobstructed Home `X` toggles Pokémon/Multiverse in the delivered P1 presentation. Durable per-Trainer/domain choices and existing-adapter Multiverse launch are delivered in schema 11; remaining runtime routes stay P4/P9. A/Y retain selection-versus-launch behavior. Samples never launch or enter the personal library.
+- `Select` owns available labelled local actions such as Hall new-memory or achievement refresh. No manual Dex journal shortcut; Center owns backup/recovery services under #83.
+- #83–85 supersede #43's pair-only limit; preserve local routes/focus, never use L1/R1 for secondary faces or steal emulator input.
+- #31 installed baseline uses Home `X`; target #84 replaces it with `L2/R2`. Durable per-Trainer/domain choices and existing-adapter Multiverse launch are delivered in schema 11; remaining runtime routes stay P4/P9. A/Y retain selection-versus-launch behavior. Samples never launch or enter the personal library.
 - On unobstructed Home, `A` immediately invokes the large Adventure button, regardless of prior D-pad/stick input. `Y` opens the selector; `A` inside it selects for Home without launching.
 - Prefer visible page-specific physical-button actions over moving focus between static modules. Directional focus belongs to lists, grids and open selection/editing panels; modal actions take priority over page shortcuts.
 - visible deterministic focus whenever interactive content exists

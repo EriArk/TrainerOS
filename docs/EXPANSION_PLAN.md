@@ -1,5 +1,12 @@
 # TrainerOS expansion acceptance — issues 19–41
 
+**2026-09-26 precedence:** [#69–90 reconciliation](EXPANSION_69_90.md)
+explicitly supersedes #11/#39 Steam removal, Home X/pair-only routes, old wheel A,
+Start content destinations and global footer hints. It promotes image/OTA and
+later sleep proof. Manual Dex editing was already retired by the owner; legacy
+rows stay inert. All unaffected acceptance below remains. The [R1–R18 roadmap](ROADMAP.md#unified-execution-order--existing-work-and-new-issues)
+is the only execution queue; this register is not a second schedule.
+
 **2026-09-19 reconciliation:** this register remains active for unchanged #19–41 acceptance. Updated #9/#28/#31 and [#42–62](EXPANSION_42_62.md) explicitly amend navigation, save lifecycle, current progression and artwork ordering below. Planned features are not delivered by this docs change.
 
 Reviewed in full on **2026-09-13**, then integrated with all earlier commitments in [ROADMAP.md](ROADMAP.md). This is the detailed acceptance register for the new batch, **not a second execution queue**. Roadmap phases P0–P12 choose the order; existing steps 1–10 and U1–U13 retain their identities and acceptance. Planning alone does not certify implementation; dated delivery notes below link actual verification.

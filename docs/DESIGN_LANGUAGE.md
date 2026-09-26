@@ -1,5 +1,14 @@
 # TrainerOS Design Language
 
+**Navigation composition target — 2026-09-26 (#83–88):** retain the approved
+chassis/tab style; primary labels become Pokémon and Journey. Secondary faces
+use a compact cyclic-position cue in existing header/chassis space, not another
+large tab bar. Persistent shoulder/trigger legends join those cues; contextual
+actions remain in the bottom chassis. Do not shrink the entire footer to fit
+more commands. Capability-driven faces keep useful space free of empty features.
+[Acceptance](EXPANSION_69_90.md#navigation-and-ordinary-use--8388). Earlier dated
+pair-only/all-legends-below directions are superseded only in these details.
+
 ## Compact headers and the Adventure-tab cutout — 2026-09-24
 
 Page headers place the title and secondary context side by side in one compact

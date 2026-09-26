@@ -1,5 +1,14 @@
 # TrainerOS on ArmadaOS
 
+**Current target — 2026-09-26:** #11/#39 are closed as superseded, not delivered.
+Steam Gaming Mode stays installed; #69 exposes installed Steam games through
+Multiverse without replacing Steam. #70 makes a reproducible Armada-based image
+the supported distribution boundary and #71 adds compatible OTA rollback.
+Native package/session development remains the foundation. #73 Trainer recovery,
+#77/#78 profiles, #80/#81 readiness/health and #72 first boot precede release.
+#79 schedules dedicated sleep proof; current suspend remains disabled.
+[Acceptance](EXPANSION_69_90.md), [execution queue](ROADMAP.md#unified-execution-order--existing-work-and-new-issues).
+
 **Planned lifecycle amendment #49:** ordinary saves/autosaves replace normal state-based resume. Prove capture-before-prompt, controller focus and cancellation without terminating the game through this platform/session boundary, not QML commands. Preserve current crash/recovery behavior and no-sleep policy. [Exit and migration contract](EXPANSION_42_62.md#ordinary-saves-and-screenshot-first-exit).
 
 Preparation and acceptance steps are in [FIRST_DEVICE_RUN.md](FIRST_DEVICE_RUN.md). The first actual ARM64 build, runtime, display, storage and package findings are recorded in [ARMADA_DEVICE_BASELINE.md](ARMADA_DEVICE_BASELINE.md). The [dedicated session](SESSION_PROTOTYPE.md) records the later device checks: standalone controller/rendering, Adventure preservation across a shell crash, failed-start recovery and Steam/Plasma transitions. Offscreen CI does not replace those checks; sleep/wake remains deferred.
@@ -12,7 +21,7 @@ TrainerOS targets **ArmadaOS as its system base** on the Retroid Flip-class hand
 
 This replaces the earlier plan to implement TrainerOS as an Android APK/Home launcher.
 
-The goal is not to fork ArmadaOS immediately. The goal is to use ArmadaOS for hardware/Linux support and install TrainerOS as a native graphical shell/session on top of it.
+ArmadaOS owns hardware/Linux support. TrainerOS remains a native graphical shell/session, delivered for consumers through a reproducible prepared Armada-based image (#70). This does not authorize an independent low-level OS fork.
 
 ## Why this model
 
@@ -32,7 +41,7 @@ Those capabilities still require careful implementation, but they can live behin
 
 ## Session philosophy
 
-The installed baseline retains TrainerOS, Steam Gaming Mode and Plasma maintenance options. The accepted 2026-09-13 target is **TrainerOS + Plasma Mobile maintenance**, conditional on verified Mobile recovery and reversible Steam removal. This supersedes the former permanent three-mode requirement. Current working sessions stay available until the migration below passes.
+Retain TrainerOS as default, Steam Gaming Mode for its full environment, and verified Plasma maintenance. Mobile may replace ordinary Desktop only after its recovery gates pass; Steam removal was cancelled by the closure of #11/#39. The three modes do not make non-Steam launch depend on Steam.
 
 ### TrainerOS session — default everyday mode
 
@@ -46,9 +55,9 @@ Purpose:
 
 No Plasma panels, taskbars, desktop windows, or unrelated app-launcher UI should appear during normal use.
 
-### Steam Gaming Mode — retained pending reversible removal
+### Steam Gaming Mode — retained
 
-Keep ArmadaOS's Steam experience available until the accepted issue #11 migration has a tested restore route. Changes must follow the actual Armada session arrangement and preserve personal Steam libraries, compatdata and saves. Removal is planned, not completed.
+Keep ArmadaOS's Steam experience available. #69 discovers installed app manifests/local media and uses supported Steam launch routes with stable app/library identities. Store, downloads, Proton and advanced Steam management remain in Steam; personal libraries, compatdata and saves are protected. No Steam removal/restore work remains scheduled.
 
 ### KDE Plasma — Desktop / Maintenance Mode
 
@@ -109,7 +118,7 @@ The first native skeleton runs only in safe application mode. `DevelopmentPlatfo
 
 ## Planned session consolidation — 2026-09-13
 
-Sources of product direction: [issue #11](https://github.com/EriArk/TrainerOS/issues/11), then the owner's request to keep only Plasma Mobile if possible. This section is the future migration contract, not a record of removal. The current roadmap schedules it as one bounded platform track independent of artwork/save features.
+**Reconciled 2026-09-26:** the stable heading preserves links to the original #11 plan. That issue and #39 were closed as superseded; Steam stays installed. Only the owner's Mobile-only-if-viable maintenance request and measured software cleanup remain active here, at R13. The observations below are dated evidence, not a current package inventory.
 
 ### Feasibility observed, usability still to verify
 
@@ -132,17 +141,20 @@ If Mobile or supported package removal cannot meet these gates, retain the worki
 
 ### B. Prepare Steam restoration before removal
 
-Capture a bounded, versioned restore manifest for only the packages/Flatpaks, exact refs/versions where practical, session entries, managed services/drop-ins and relevant autologin/configuration that the migration changes. Record whether each managed path existed and its prior content; never archive arbitrary home directories or game libraries. Inspect dependencies and the actual update mechanism before choosing removal operations.
-
-Provide a narrow root-owned helper and a visible **Restore Steam Gaming Mode** application launcher in the selected Plasma environment (Mobile if accepted, otherwise retained Desktop), plus a documented SSH/terminal command. It reads only the versioned manifest, presents the proposed restoration, and accepts no arbitrary command/path/package text from QML. Restore only compatible managed state; distinguish unchanged files, later edits, missing package versions and changed Armada session mechanisms. Stop on unsupported drift without overwriting newer configuration.
-
-Prove removal/restore idempotence, interrupted recovery, unknown-state refusal and preservation of unrelated files in a non-destructive fixture root. Change mode UI/supervisor availability together with the platform migration. Plasma remains the recovery destination; direct Adventure adapters must not acquire a Steam dependency.
+**Cancelled historical requirement.** #11/#39 removal, restore manifest/helper,
+Plasma restore launcher and remove/restore trials must not be implemented merely
+because older documents retain this heading. Their closure comments and #69
+retain Steam. Normal platform rollback still protects every configuration change.
 
 ### C. Physical acceptance before declaring consolidation complete
 
-Perform **remove Steam → reboot/use TrainerOS and maintenance → restore Steam → boot Steam → remove again**. Verify direct RetroArch/melonDS/Dolphin launch/input/return, persistence and shell-failure recovery. Exercise the restore launcher from the actual selected Plasma shell and retain CLI recovery if that shell fails. Record precise source/system versions and the final available sessions; protect personal Steam libraries, compatdata, saves and unrelated configuration throughout.
-
-Mobile replacement and Steam removal are separate mutations with separate rollback boundaries. Keep the last verified setup if either fails. A package inventory or fixture pass alone closes neither gate. Sleep/hinge/wake testing remains deferred and outside this migration.
+Prove TrainerOS → chosen maintenance shell → TrainerOS, restart into TrainerOS,
+failed-shell recovery, retained Steam access and representative non-Steam
+launch/input/return. Keep bounded manifests/rollback for actual Mobile or cleanup
+changes. Preserve personal Steam libraries/compatdata/saves and shared KDE services.
+Do not perform the cancelled remove/restore round trip. No package inventory alone
+closes physical recovery. Dedicated #79 sleep testing is a separate gate; neither
+Mobile selection nor cleanup may enable suspend incidentally.
 
 ### D. Carefully reduce installed software and background activity
 
@@ -175,19 +187,20 @@ Feature/domain code must never depend directly on those details.
 
 ## Packaging strategy
 
-The mature project should produce a native ARM64 build and an installable package suitable for the current ArmadaOS base.
+Native ARM64 packages, the session definition, input/supervisor helpers and
+versioned migration/recovery tooling remain development and image building blocks.
+The supported consumer deliverable is **#70's reproducible Armada-based image**,
+not a manual installer for arbitrary distributions. Pin/record upstream base and
+TrainerOS layers, publish manifest/hashes, and include the validated device/runtime
+baseline and maintenance path. Never bake in private ROMs/BIOS/art/saves/secrets.
 
-The exact package/distribution mechanism is intentionally deferred until the target ArmadaOS environment is inspected.
-
-Possible mature deliverables:
-
-1. native TrainerOS package
-2. session definition/configuration
-3. setup/installer script or package hooks
-4. configuration migration/update tooling
-5. optional later custom ArmadaOS image with TrainerOS preconfigured
-
-Do not build a custom OS image merely because packaging is inconvenient during development.
+Build first-boot #72 and portable Trainer recovery #73 before clean-flash release
+acceptance. #71 OTA follows the image mechanism: trusted staged activation,
+space/power/schema checks and a last-known-good **image plus compatible data**
+rollback. An old binary must never run against a migrated unsupported database.
+Update/reboot/rollback/update-again and clean-flash setup/recovery need physical
+proof. No specific partition/bootc/OTA mechanism is chosen by this plan before
+inspecting supported Armada facilities.
 
 ## External application model
 
@@ -250,7 +263,7 @@ TrainerOS should expose normal handheld actions itself through its system menu a
 - sleep/restart/shutdown
 - storage summary
 - controller configuration
-- backups / Pokémon Center
+- system modes and runtime/BIOS readiness (Center remains Pokémon content)
 - Desktop / Maintenance Mode
 
 This does not mean reimplementing every desktop settings panel. Complex/rare configuration can intentionally hand off to Plasma maintenance mode.
@@ -285,7 +298,7 @@ The [#19–41 acceptance register](EXPANSION_PLAN.md) adds capabilities to the s
 
 - #35 Start quick controls reuse actual volume/brightness services and safe minimums. #37 power-cable feedback requires a real supported haptic path and debounced external-power edges; charging/full updates and startup must not replay pulses. No gameplay rumble reconfiguration or resumption of sleep testing.
 - #38 probes installed Armada RGB/tool/config and the actual Flip hardware, then exposes only supported modes. The [generic UART proposal](https://github.com/armada-os/armada-packages/pull/73) and [Pocket S2 integration](https://github.com/armada-os/armada/pull/419) are references for the backend direction, not proof of Flip compatibility. No duplicated low-level protocol, experimental firmware change or continuous setting reassertion.
-- #39 Settings uses #11's same fixed-operation Steam helper/manifest; a fresh install without a restore manifest requires a reviewed version-compatible recipe. Preserve maintenance launcher/CLI access and personal Steam content; optional installation never makes Steam the default or a TrainerOS runtime dependency.
+- #39 Steam install/remove/restore UI is cancelled. #69 retains Steam and adds its installed library; #86 groups Steam and Desktop under System modes.
 - #40 Help obtains active library/backup/BIOS locations and capabilities through semantic non-secret facts. Verify BIOS requirements against actual adapters/official documentation, never hard-code guessed universal locations or proprietary download sources.
 - #41 audits firmware/vendor, bootloader/initramfs/kernel, any userspace splash, display manager, Gamescope/supervisor and first frame separately. Brand only supported userspace/session layers with managed versioned settings, drift protection and rollback. Profile creation/chooser/Home determine the final destination; show real coarse readiness, no fake checks or cinematic delay. Preserve logs, failure fallback and explicit diagnostic access. Record unavoidable earlier branding instead of patching unknown immutable assets.
 
@@ -293,14 +306,9 @@ U11 installation/update/rollback and the selected maintenance arrangement preced
 
 ## Long-term option: TrainerOS image
 
-Only after the package/session approach is mature should the project consider producing a reproducible image based on ArmadaOS.
-
-Such an image would primarily provide:
-
-- TrainerOS preinstalled
-- TrainerOS default session configured
-- known emulator/integration baseline
-- controlled visual boot/session experience
-- easier restore/reinstall for the dedicated device
-
-It should still preserve an accessible maintenance/recovery environment unless there is a strong reason not to.
+**Promoted by #70, 2026-09-24; reconciled 2026-09-26.** This heading remains for
+older links, but the image is now a required distribution deliverable, not an
+option conditional on package deployment failing. R15 owns the reproducible image,
+R16 compatible OTA, R17 startup/release validation. Retain development app mode,
+Steam and verified maintenance/recovery. No physical hardware modification or
+replacement of Armada low-level device support belongs to this work.

@@ -1,5 +1,18 @@
 # TrainerOS Domain Model
 
+**Planned extension — 2026-09-26:** [#69–90 contracts](EXPANSION_69_90.md)
+add no schema migration in this documentation increment. #90 generalizes the
+current two domains into versioned pack identities with per-Trainer selections,
+history projections and per-face state. Reclassification preserves Adventure ID,
+exit media, owner and save lineage; it does not copy ROM rows or infer identity
+from display names. #69 retains Steam app/library identity independently from
+installation state. #74 effective capability combines exact provider evidence,
+source/runtime availability and #75 device-wide read-only policy; policy never
+rewrites provider truth. #73 portable Trainer manifests and #71 compatible
+image/database rollback retain explicit version/integrity/secret boundaries.
+Manual Dex rows stay inert; Hall memories remain active. These are target
+contracts, not persisted fields already present in schema 13.
+
 Schema 13 adds device-wide `preferences.video_previews` (default true). The
 transactional migration retains all library, owner, save and history records.
 It is independent of the prepared ScreenScraper client and introduces no remote
