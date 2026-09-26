@@ -3,8 +3,8 @@
 **Issue reconciliation, 2026-09-26:** [ROADMAP](docs/ROADMAP.md#unified-execution-order--existing-work-and-new-issues)
 is the single R1–R18 execution queue; [#69–90 acceptance](docs/EXPANSION_69_90.md)
 records all new/changed issue decisions. These target changes are not installed
-behavior. The #68 currency item/decor exchanges are delivered (46 counters); finish its
-remaining service rewards and shop search/filter work, then the bounded #89
+behavior. The #68 categorized exchanges and 20 Frontier BP lessons are delivered
+(48 counters); finish remaining special services/item payments and shop search, then the bounded #89
 audit and coherent #83–88 navigation work. Preserve every earlier acceptance
 unless explicitly superseded in that register.
 
@@ -30,6 +30,10 @@ unless explicitly superseded in that register.
 - #75 device-wide read-only policy, #76 runtime save ownership, #73 Trainer export,
   #77–81 device/input/readiness/diagnostics and #82 second exact Pokémon vertical
   retain their separate roadmap gates. Planning does not implement them.
+
+**Owner shop navigation, 2026-09-27:** separate shop/service kinds into categories;
+highlighting a place immediately previews its stock, without a greeting screen.
+Keep undiscovered names, stock and types hidden.
 
 **Owner merchant clarification, 2026-09-24:** #68 means actual game-inspired
 shops with purchases, analogous to real Center healing. This supersedes the

@@ -221,12 +221,68 @@ Personal save hashes and the schema-13 library remained unchanged.
 The installed UI was captured on Flip, including immediate highlighted-shop
 stock preview and the currency confirmation layout.
 
+## Categories and Frontier lessons — 2026-09-27
+
+The 48 discovered counters are split into Poké Marts, Stores, Specialists,
+Exchanges and Services. Unknown counters stay in one neutral Undiscovered group;
+their type and stock are not revealed. Left/Right cycles categories at the place
+list, Up/Down selects a place and immediately previews its stock. Existing grouped
+departments remain together. A enters stock; B returns one level. L1/R1 keeps
+switching primary pages and all local controller legends stay in the footer.
+
+Both Battle Frontier tutors now offer their complete **20 BP lessons**. Choose a
+lesson, an eligible saved Party member and a move slot, then confirm the named
+replacement and BP cost. Eggs, damaged records, incompatible species, already
+known moves and HM replacement are refused. An empty slot is filled first.
+The request carries the selected record's fingerprint; fresh eligibility and
+funds are checked again inside the protected transaction.
+
+The writer changes only the selected move, its base PP and PP-Up bits, the
+individual checksum, BP and affected sector checksums. Other moves, held item,
+condition, training data and friendship remain intact, matching this tutor path.
+It reuses the existing exact-ROM identification, exclusive ordinary-save route,
+automatic verified backup, source-revision check and atomic replacement.
+
+Factual compatibility and lesson prices come from the same pinned source as the
+existing catalogue, with input hashes retained in `emerald-shops-source.json`:
+
+- [Both tutors and BP prices](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/data/maps/BattleFrontier_Lounge7/scripts.inc).
+- [Species compatibility](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/data/pokemon/tutor_learnsets.h).
+- [Move selection, HM protection and PP bonuses](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/party_menu.c),
+  [move-slot PP initialization](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/pokemon.c).
+
+### Lesson verification
+
+The native suite passed all **42 tests**. The new cases exercise all 20 lessons
+at all 24 Pokémon substructure orders, eligibility/refusal paths, empty slots,
+selected-slot PP Ups, stale identity, insufficient BP, exact unrelated-byte
+preservation and both save keys at all 14 sector rotations. Controller tests
+cover categories, immediate preview, grouped places, recipient/move selection,
+confirmation and busy/modal gates. Both generated JSON files reproduce exactly.
+
+On Flip, controller input in an isolated test profile taught Blaziken Mega Punch
+and Thunder Punch through the two tutors. An independent full-save comparison
+proved only the permitted changes: BP 300 → 228, the two moves and PP, their
+PP-Up bits and checksums. Normal Emerald/mGBA readback showed Mega Punch 20/20
+and Thunder Punch 15/15 alongside the unchanged Sky Uppercut and Blaze Kick.
+No in-game save was made. Center restored the exact pre-lesson save and retained
+the learned state in its before-restore copy. Personal saves were unchanged.
+
+The final ARM64 Release installed build has SHA-256
+`abc3b9dfb5f1c64c175a5665aa798bcd4f82517a31e707dd22b95c8e53c8f908`.
+Final category refresh/message-layout polish passed the affected progress,
+interaction and QML smoke checks again. Installed screenshots verified the
+category/stock view and lesson confirmation after that polish. Personal library
+integrity remained valid (schema 13, 829 Adventures and 3 Trainers).
+
 ## Remaining #68 acceptance — retained
 
-- Service rewards that change an individual Pokémon, including Frontier move
-  tutors, need exact eligibility/move/PP writers and their own selection UI.
-  Item and decoration BP vendors above do not advertise tutoring support.
-- Optional item search across discovered merchants and location/type filters.
+- Remaining special services/item payments, notably Heart Scale move relearning
+  and the shard/stone and Shoal ingredient exchanges, still need their own exact
+  eligibility, debit/reward and in-game proof. Frontier BP lessons are delivered;
+  this does not enable arbitrary move editing or another game's tutor format.
+- Optional item search across discovered merchants and location filters. The
+  category browser above supplies the requested separation by shop/service type.
 - Any remaining meaningful currency-to-owned-content sources found during those
   integrations; transport-only payments and pure paid entry stay excluded.
 

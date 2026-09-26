@@ -37,12 +37,20 @@ private slots:
         } library;
         class Service final : public SaveBackupService {
         public:
-            bool working=false;QString target;std::function<void(SaveBackupResult)> pending;
+            bool working=false,lessons=false;QString target;std::function<void(SaveBackupResult)> pending;
             bool busy() const override{return working;}
             bool supports(const AdventureRegistration&) const override{return true;}
             void inspect(const AdventureRegistration&,QObject*,std::function<void(SaveBackupSnapshot)> done) override {
                 SaveBackupSnapshot s;s.hasSave=true;s.supported=true;s.token="token";s.canHeal=true;s.needsHealing=true;s.partyCount=6;
-                s.shops.supported=true;s.shops.balance=5000;Merchant m;m.balance=5000;m.id="oldale";m.name="Oldale";m.discovered=true;m.available=true;m.stock.append({13,300,0,16,"Potion","Items"});s.shops.merchants.append(m);m.id="dept";m.name="Medicine";m.group="Department store";s.shops.merchants.append(m);m.id="dept2";m.name="Vitamins";m.currency=MerchantCurrency::BattlePoints;m.balance=7;s.shops.merchants.append(m);done(s);
+                s.shops.supported=true;s.shops.balance=5000;Merchant m;m.balance=5000;m.id="oldale";m.name="Oldale";m.discovered=true;m.available=true;m.stock.append({13,300,0,16,"Potion","Items"});s.shops.merchants.append(m);m.id="dept";m.name="Medicine";m.group="Department store";s.shops.merchants.append(m);m.id="dept2";m.name="Vitamins";m.currency=MerchantCurrency::BattlePoints;m.balance=7;s.shops.merchants.append(m);
+                if(lessons){
+                    Merchant tutor;tutor.id="tutor";tutor.name="Move tutor";tutor.section="services";tutor.discovered=tutor.available=true;tutor.balance=100;tutor.currency=MerchantCurrency::BattlePoints;
+                    MerchantStock lesson{5,24,0,1,"Mega Punch","Lesson","tutor"};
+                    lesson.recipients.append({0,"fingerprint","Pikachu",{},true,{{"Thunder Shock",true},{"Surf",false},{"Growl",true},{"Tail Whip",true}}});
+                    lesson.recipients.append({1,{},"Egg","Cannot take a lesson",false,{}});tutor.stock.append(lesson);s.shops.merchants.append(tutor);
+                    Merchant hidden;hidden.section="services";s.shops.merchants.append(hidden);
+                }
+                done(s);
             }
             void create(const AdventureRegistration&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override{}
             void restore(const AdventureRegistration&,const SaveBackup&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override{}
@@ -75,6 +83,21 @@ private slots:
         QVERIFY(service.working);QCOMPARE(service.request.quantity,2);QCOMPARE(service.request.itemId,13);QCOMPARE(service.target,"two");
         center.dispatch(Action::Back);QCOMPARE(center.shopRoute(),"confirm");service.finish();QCOMPARE(center.shopRoute(),"receipt");
         center.close();QVERIFY(!center.shopsOpen());
+        service.lessons=true;center.beginSelected("two");center.visitShops();QCOMPARE(center.shopCategories().size(),3);
+        center.dispatch(Action::Left);QCOMPARE(center.shopCategory(),"unknown");QCOMPARE(center.merchants()[0].toMap()["name"].toString(),"???");QVERIFY(center.shopStock().isEmpty());
+        center.dispatch(Action::Left);QCOMPARE(center.shopCategory(),"services");QCOMPARE(center.shopStock().size(),1); // Preview before entering.
+        center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"stock");center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"recipients");
+        center.chooseShopCategory(0);QCOMPARE(center.shopCategory(),"services");
+        center.dispatch(Action::Down);center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"recipients"); // Egg stays blocked.
+        center.dispatch(Action::Up);center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"moves");
+        center.dispatch(Action::Down);center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"moves"); // HM stays blocked.
+        center.dispatch(Action::Up);center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"confirm");QVERIFY(!service.working);
+        center.dispatch(Action::Back);QCOMPARE(center.shopRoute(),"moves");center.dispatch(Action::Confirm);center.dispatch(Action::Confirm);
+        QVERIFY(service.working);QCOMPARE(service.request.kind,"tutor");QCOMPARE(service.request.partySlot,0);QCOMPARE(service.request.moveSlot,0);QCOMPARE(service.request.recipientIdentity,"fingerprint");
+        center.dispatch(Action::Back);center.chooseShopCategory(0);QCOMPARE(center.shopRoute(),"confirm");QCOMPARE(center.shopCategory(),"services");
+        service.finish();center.close();
+        service.lessons=false;center.beginSelected("two");center.visitShops();
+        QCOMPARE(center.shopCategory(),"marts");QVERIFY(!center.merchants().isEmpty());center.close();
         PartyPresentation party(true);QSignalSpy requested(&party,&PartyPresentation::healingRequested);
         party.dispatch(Action::Confirm);party.dispatch(Action::Down);party.dispatch(Action::Confirm);
         QCOMPARE(requested.count(),1);QVERIFY(!party.detailOpen());

@@ -521,3 +521,15 @@ Pokémon summary. X changes the face; Up from the first box row reaches the box
 selector, Left/Right changes boxes, Down/B returns to remembered slots.
 A opens a compact actions panel; Select retains ordinary backups. L1/R1 and
 L2/R2 retain their global roles. See [presentation and provider boundary](PARTY_STORAGE_UI.md).
+
+## Shop categories and lessons — 2026-09-27
+
+Shops use a category strip above the place/stock split view: Poké Marts, Stores,
+Specialists, Exchanges and Services; unseen places remain neutral Undiscovered.
+Left/Right cycles categories at the root place list, Up/Down browses places and
+previews stock immediately. A enters stock or a grouped department; B steps back.
+Item stock retains quantity Left/Right. A BP lesson instead opens saved Party
+selection, then move-slot selection and explicit named replacement confirmation.
+Unavailable members/slots explain their reason and cannot confirm. Categories
+cannot change during selection, confirmation or writing. Persistent global
+navigation remains unchanged until the separately scheduled #83–88 migration.

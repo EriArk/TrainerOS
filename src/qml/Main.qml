@@ -213,7 +213,13 @@ Window {
                 }
                 if (shell.page === 2 && shell.centerFace) {
                     const party = shell.party
-                    if (shell.center.shopsOpen) return shell.center.busy ? [] : shell.center.shopRoute === "stock" ? [h("←→","Quantity"),h("A","Buy"),h("B","Shops")] : [h("A",shell.center.shopRoute === "confirm" ? "Confirm purchase" : "Select"),h("B","Back")]
+                    if (shell.center.shopsOpen) {
+                        const route = shell.center.shopRoute
+                        if (shell.center.busy) return []
+                        if (route === "merchants") return shell.center.shopGroup.length ? [h("A","Select"),h("B","Places")] : [h("←→","Categories"),h("A","Select"),h("B","Back")]
+                        if (route === "stock") return shell.center.shopSelection.kind === "tutor" ? [h("A","Choose Pokémon"),h("B","Tutors")] : [h("←→","Quantity"),h("A","Buy"),h("B","Shops")]
+                        return [h("A",route === "confirm" ? "Confirm" : "Select"),h("B","Back")]
+                    }
                     if (shell.center.clinicOpen) return shell.center.busy ? [] : [h("A",shell.center.treatment === "ready" && shell.center.canHeal ? "Heal team" : "Back"),h("B","Back")]
                     if (party.section === "saves") return shell.center.confirming ? [h("A","Restore"),h("B","Cancel")] : [h("X",shell.center.route === "adventures" ? "Search" : "Refresh"),h("Select","Backup"),h("A","Open"),h("B","Back")]
                     if (party.section === "activities") return party.activities.route === "playroom" && party.activities.hasParty ? [h("←→","Partner"),h("Select","Play"),h("X","Greet"),h("A","Call"),h("B","Back")] : [h("A","Select"),h("B","Back")]

@@ -107,12 +107,42 @@ offers=[(ids[k],int(price)) for k,price in re.findall(r'setvar VAR_0x8008, (ITEM
 assert len(offers)==11
 priced_merchant('slateport-powder','Berry Powder trader','Slateport City','FLAG_VISITED_SLATEPORT_CITY',offers,
                 currency='powder',group='Slateport Market',requiredFlags=[flags['FLAG_RECEIVED_POWDER_JAR']],requiredItem=ids['ITEM_POWDER_JAR'])
+# Tutor facts: two repeatable BP counters, species compatibility and base PP.
+moveids={k:int(v) for k,v in re.findall(r'#define (MOVE_\w+)\s+(\d+)\b',source('include/constants/moves.h'))}
+speciesids={k:int(v) for k,v in re.findall(r'#define (SPECIES_\w+)\s+(\d+)\b',source('include/constants/species.h'))}
+learnsets=source('src/data/pokemon/tutor_learnsets.h')
+eligible={}
+for species,body in re.findall(r'\[(SPECIES_\w+)\]\s*=\s*\((.*?)(?=,\n)',learnsets,re.S):
+    for move in re.findall(r'TUTOR\((MOVE_\w+)\)',body):eligible.setdefault(move,[]).append(speciesids[species])
+reference_path=Path('data/emerald-reference.json')
+reference=json.loads(reference_path.read_text(encoding='utf-8'))
+assert reference['sourceRevision']=='5eff78649e7170a877b961ef0b3da13b81a16038'
+inputs['data/emerald-reference.json']=hashlib.sha256(reference_path.read_bytes()).hexdigest()
+script=blocks(source('data/maps/BattleFrontier_Lounge7/scripts.inc'))
+tutors={}
+for side,name in [('Left','Frontier Beauty'),('Right','Frontier Swimmer')]:
+    offers=[]
+    for label in re.findall(r'case \d+, (\w+)',script['BattleFrontier_Lounge7_EventScript_Choose'+side+'TutorMove']):
+        price=re.search(r'setvar VAR_0x8008, (\d+)',script[label])
+        if not price:continue
+        suffix=label.split('_EventScript_')[1].lower()
+        move=next(k for k in moveids if k[5:].replace('_','').lower()==suffix)
+        mid=moveids[move];fact=reference['moves'][str(mid)]
+        tutors[str(mid)]={**fact,'species':sorted(set(eligible[move]))}
+        offers.append((mid,int(price[1])))
+    assert len(offers)==10
+    priced_merchant('frontier-tutor-'+side.lower(),name,'Battle Frontier','FLAG_LANDMARK_BATTLE_FRONTIER',offers,'tutor',currency='bp')
+assert len(tutors)==20
+hm_moves=[moveids['MOVE_'+m] for m in re.findall(r'F\((\w+)\)',re.search(r'#define FOREACH_HM\(F\)(.*?)(?=\n\n)',tms,re.S)[1])]
+for m in shops:
+    m['section']='services' if m['kind']=='tutor' else 'stores' if m.get('group')=='Lilycove Department Store' else 'exchanges' if m.get('group') in ['Mauville Game Corner','Frontier Exchange','Glass Workshop'] else 'marts' if 'mart' in m['id'] else 'specialists'
+source('src/party_menu.c');source('src/pokemon.c')
 for p in ['include/global.h','include/global.tv.h','include/constants/tv.h','include/constants/vars.h','src/tv.c','src/item.c','src/shop.c','src/decoration_inventory.c',
           'src/coins.c','src/berry_powder.c','src/field_specials.c','src/field_tasks.c','include/constants/coins.h','include/constants/battle_frontier.h']:source(p)
-result={'version':3,'source':'pret/pokeemerald','revision':'5eff78649e7170a877b961ef0b3da13b81a16038','items':items,'decorations':decor,'merchants':shops}
-assert len(shops)==46 and len(decor)==121 and ids['ITEM_POKE_BALL']==4
+result={'version':4,'source':'pret/pokeemerald','revision':'5eff78649e7170a877b961ef0b3da13b81a16038','items':items,'decorations':decor,'tutors':tutors,'hmMoves':hm_moves,'merchants':shops}
+assert len(shops)==48 and len(decor)==121 and ids['ITEM_POKE_BALL']==4
 for m in shops:
-    for id in m['stock']+m.get('expandedStock',[]):assert m['kind']=='coins' or str(id) in (decor if m['kind']=='decoration' else items)
+    for id in m['stock']+m.get('expandedStock',[]):assert m['kind']=='coins' or (m['kind']=='tutor' and str(id) in tutors) or str(id) in (decor if m['kind']=='decoration' else items)
 Path('data/emerald-shops.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8',newline='\n')
-Path('data/emerald-shops-source.json').write_text(json.dumps({'source':'https://github.com/pret/pokeemerald','revision':result['revision'],'inputs':dict(sorted(inputs.items())),'scope':'Factual names, identifiers, prices, pockets, stock and flag conditions only. No dialogue, game implementation or art.'},indent=2)+'\n',encoding='utf-8',newline='\n')
+Path('data/emerald-shops-source.json').write_text(json.dumps({'source':'https://github.com/pret/pokeemerald','revision':result['revision'],'inputs':dict(sorted(inputs.items())),'scope':'Factual names, identifiers, prices, pockets, stock, tutor compatibility/PP and flag conditions only. No dialogue, game implementation or art.'},indent=2)+'\n',encoding='utf-8',newline='\n')
 print(len(shops),'counters;',len(items),'item facts;',len(decor),'decoration facts')

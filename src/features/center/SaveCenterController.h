@@ -25,6 +25,12 @@ class SaveCenterController final : public QObject {
     Q_PROPERTY(int partyCount READ partyCount NOTIFY changed)
     Q_PROPERTY(bool shopsOpen READ shopsOpen NOTIFY changed)
     Q_PROPERTY(QString shopRoute READ shopRoute NOTIFY changed)
+    Q_PROPERTY(QVariantList shopCategories READ shopCategories NOTIFY changed)
+    Q_PROPERTY(QString shopCategory READ shopCategory NOTIFY changed)
+    Q_PROPERTY(QVariantList shopRecipients READ shopRecipients NOTIFY changed)
+    Q_PROPERTY(QVariantList shopMoves READ shopMoves NOTIFY changed)
+    Q_PROPERTY(int recipientIndex READ recipientIndex NOTIFY changed)
+    Q_PROPERTY(int lessonMoveIndex READ lessonMoveIndex NOTIFY changed)
     Q_PROPERTY(QString shopGroup READ shopGroup NOTIFY changed)
     Q_PROPERTY(QVariantList merchants READ merchants NOTIFY changed)
     Q_PROPERTY(QVariantList shopStock READ shopStock NOTIFY changed)
@@ -60,6 +66,13 @@ public:
     bool shopsOpen() const {return shopsOpen_;}
     QString shopRoute() const {return shopRoute_;}
     QString shopGroup() const {return shopGroup_;}
+    QVariantList shopCategories() const;
+    QString shopCategory() const { return shopCategory_; }
+    Q_INVOKABLE void chooseShopCategory(int index);
+    QVariantList shopRecipients() const;
+    QVariantList shopMoves() const;
+    int recipientIndex() const { return recipientIndex_; }
+    int lessonMoveIndex() const { return lessonMoveIndex_; }
     QVariantList merchants() const;
     QVariantList shopStock() const;
     QVariantMap shopSelection() const;
@@ -108,9 +121,11 @@ private:
     void purchase();
     const Merchant* merchant() const;
     QList<int> merchantRows() const;
+    void normalizeShopCategory();
     bool shopsOpen_=false;
     QString shopRoute_="merchants",shopMessage_;
-    QString shopGroup_;
+    QString shopGroup_,shopCategory_="marts";
+    int recipientIndex_=0,lessonMoveIndex_=0;
     int groupParentIndex_=0;
     int merchantIndex_=0,stockIndex_=0,quantity_=1;
 };

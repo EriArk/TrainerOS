@@ -98,7 +98,7 @@ void SaveCenterController::refresh() {
     service_->inspect(selected_,this,[this,generation](const SaveBackupSnapshot& result){
         if(!open_||generation!=generation_)return;
         if(!result.shops.discoveryNotice.isEmpty())emit merchantDiscovered(result.shops.discoveryNotice);
-        snapshot_=result;focus_=std::clamp(focus_,0,std::max(0,int(snapshot_.copies.size())-1));emit rowsChanged();emit changed();
+        snapshot_=result;normalizeShopCategory();focus_=std::clamp(focus_,0,std::max(0,int(snapshot_.copies.size())-1));emit rowsChanged();emit changed();
     });
 }
 void SaveCenterController::activate(int index) {

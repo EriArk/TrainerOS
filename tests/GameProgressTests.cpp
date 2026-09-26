@@ -80,10 +80,69 @@ QByteArray pokemonFixture(quint32 personality = 0, int species = 25, bool egg = 
     if(party) { bytes[84]=5; put16(bytes,86,0);for(int i=0;i<6;++i)put16(bytes,88+2*i,20+i); }
     return bytes;
 }
+QByteArray setTestMoves(QByteArray record,const std::array<int,4>& moves,int bonuses=0xe7) {
+    const auto personality=qFromLittleEndian<quint32>(record.constData()),key=personality^qFromLittleEndian<quint32>(record.constData()+4);
+    std::array<int,4> order{0,1,2,3};for(quint32 n=0;n<personality%24;++n)std::next_permutation(order.begin(),order.end());
+    QByteArray clear=record.mid(32,48);for(int p=0;p<48;p+=4)put32(clear,p,qFromLittleEndian<quint32>(clear.constData()+p)^key);
+    const int growth=int(std::find(order.begin(),order.end(),0)-order.begin())*12,attacks=int(std::find(order.begin(),order.end(),1)-order.begin())*12;
+    clear[growth+8]=char(bonuses);
+    for(int m=0;m<4;++m){put16(clear,attacks+2*m,moves[m]);clear[attacks+8+m]=moves[m]?1:0;}
+    quint16 sum=0;for(int p=0;p<48;p+=2)sum=quint16(sum+qFromLittleEndian<quint16>(clear.constData()+p));put16(record,28,sum);
+    for(int p=0;p<48;p+=4)put32(record,32+p,qFromLittleEndian<quint32>(clear.constData()+p)^key);
+    for(int level=1;level<=100;++level){record[84]=char(level);if(readEmeraldPartyMember(record).kind==PokemonSlotKind::Known)break;}
+    return record;
+}
+
 }
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void emeraldLessonsRespectSpeciesSlotsAndExactMutation() {
+        QFile f(":/progress/emerald-shops.json");QVERIFY(f.open(QIODevice::ReadOnly));const auto facts=QJsonDocument::fromJson(f.readAll()).object();
+        for(int permutation=0;permutation<24;++permutation){
+            QByteArray world(0x3d88,0),trainer(0xf2c,0);put16(trainer,0xeb8,300);
+            world[0x1270+0x8a8/8]|=char(1<<(0x8a8%8));world[0x234]=2;
+            const auto mon=setTestMoves(pokemonFixture(permutation,151),{33,45,84,57}); // Mew; Surf in the last slot.
+            QVERIFY(readEmeraldPartyMember(mon).kind==PokemonSlotKind::Known);
+            world.replace(0x238,100,mon);world.replace(0x29c,100,pokemonFixture(permutation,25,true));
+            const auto state=readEmeraldShopBlock(world,trainer);QVERIFY(state.supported);int tested=0;
+            for(const auto& m:state.merchants)if(m.section=="services")for(const auto& stock:m.stock){
+                QCOMPARE(stock.recipients.size(),2);const auto& recipient=stock.recipients[0];QVERIFY(recipient.available);QVERIFY(!stock.recipients[1].available);
+                QCOMPARE(recipient.moves.size(),4);QVERIFY(!recipient.moves[3].available);
+                MerchantPurchase req{m.id,stock.itemId,1,"tutor",0,permutation%3,recipient.identity};
+                const auto changed=buyEmeraldShopBlock(world,trainer,req);QVERIFY2(changed.error.isEmpty(),qPrintable(changed.error));
+                const auto after=changed.data.mid(0x238,100);const auto parsed=readEmeraldPartyMember(after),before=readEmeraldPartyMember(mon);
+                QCOMPARE(parsed.moves[req.moveSlot].name,stock.name);const int pp=facts["tutors"].toObject()[QString::number(stock.itemId)].toObject()["pp"].toInt();
+                QCOMPARE(parsed.moves[req.moveSlot].pp,pp);QCOMPARE(parsed.moves[req.moveSlot].maxPp,pp);
+                for(int m=0;m<4;++m)if(m!=req.moveSlot){QCOMPARE(parsed.moves[m].name,before.moves[m].name);QCOMPARE(parsed.moves[m].pp,before.moves[m].pp);QCOMPARE(parsed.moves[m].maxPp,before.moves[m].maxPp);}
+                QCOMPARE(parsed.hp,before.hp);QCOMPARE(parsed.condition,before.condition);QCOMPARE(parsed.item,before.item);
+                auto expectedTrainer=trainer;put16(expectedTrainer,0xeb8,300-stock.price);QCOMPARE(changed.trainer,expectedTrainer);
+                auto expectedWorld=world;expectedWorld.replace(0x238,100,after);QCOMPARE(changed.data,expectedWorld);
+                // Only move IDs/PP/that slot's PP-Up bits and the individual checksum may differ.
+                std::array<int,4> order{0,1,2,3};for(int n=0;n<permutation;++n)std::next_permutation(order.begin(),order.end());
+                const int g=int(std::find(order.begin(),order.end(),0)-order.begin())*12,a=int(std::find(order.begin(),order.end(),1)-order.begin())*12;
+                for(int at=0;at<100;++at){if(at==28||at==29||at==32+g+8||at==32+a+req.moveSlot*2||at==33+a+req.moveSlot*2||at==32+a+8+req.moveSlot)continue;QCOMPARE(after[at],mon[at]);}
+                auto bad=req;bad.moveSlot=3;QVERIFY(buyEmeraldShopBlock(world,trainer,bad).data.isEmpty());
+                bad=req;bad.recipientIdentity="stale";QVERIFY(buyEmeraldShopBlock(world,trainer,bad).data.isEmpty());
+                bad=req;bad.partySlot=1;QVERIFY(buyEmeraldShopBlock(world,trainer,bad).data.isEmpty());
+                QVERIFY(buyEmeraldShopBlock(changed.data,changed.trainer,req).data.isEmpty());++tested;
+            }
+            QCOMPARE(tested,20);
+            // Empty slots get filled first; incompatible species cannot receive a lesson.
+            world[0x234]=1;world.replace(0x238,100,setTestMoves(pokemonFixture(permutation),{33,0,0,0},3));
+            auto now=readEmeraldShopBlock(world,trainer);
+            for(const auto& m:now.merchants)if(m.id=="frontier-tutor-left"){
+                QVERIFY(!m.stock[0].recipients[0].available); // Pikachu cannot learn Soft-Boiled.
+                const auto& st=m.stock[3]; // Mega Punch.
+                QVERIFY(st.recipients[0].available);QVERIFY(!st.recipients[0].moves[0].available);QVERIFY(st.recipients[0].moves[1].available);
+                MerchantPurchase req{m.id,st.itemId,1,"tutor",0,1,st.recipients[0].identity};QVERIFY(buyEmeraldShopBlock(world,trainer,req).error.isEmpty());
+                req.moveSlot=2;QVERIFY(buyEmeraldShopBlock(world,trainer,req).data.isEmpty());
+                put16(trainer,0xeb8,0);req.moveSlot=1;QVERIFY(buyEmeraldShopBlock(world,trainer,req).data.isEmpty());
+            }
+            world[0x238+32]^=1;now=readEmeraldShopBlock(world,trainer);
+            for(const auto& m:now.merchants)if(m.section=="services")for(const auto& st:m.stock)QVERIFY(!st.recipients[0].available);
+        }
+    }
     void emeraldCurrenciesDebitOnlyTheSelectedWallet() {
         for(quint32 key:{0u,0x85ce1972u}){
             QByteArray world(0x3d88,0),trainer(0xf2c,0);
@@ -98,7 +157,7 @@ private slots:
             int offers=0;
             for(const auto& m:before.merchants){
                 if(m.currency==MerchantCurrency::Money&&m.id!="game-corner-coins")continue;
-                if(!m.discovered)continue;
+                if(!m.discovered||m.section=="services")continue;
                 QVERIFY(m.available);
                 for(const auto& s:m.stock){
                     const MerchantPurchase request{m.id,s.itemId,1,s.kind};
@@ -160,7 +219,7 @@ private slots:
             for(auto f:m["requiredFlags"].toArray())flag(f.toInt());
         }
         world[0x2b50]=1;world[0x2b51]=2;world[0x2b54]=3;world[0x2b55]=2;
-        const auto state=readEmeraldShopBlock(world,trainer);QVERIFY(state.supported);QCOMPARE(state.merchants.size(),46);
+        const auto state=readEmeraldShopBlock(world,trainer);QVERIFY(state.supported);QCOMPARE(state.merchants.size(),48);
         int departments=0,offers=0;
         for(const auto& m:state.merchants){
             if(m.currency!=MerchantCurrency::Money||m.id=="game-corner-coins")continue;
@@ -208,7 +267,7 @@ private slots:
             auto flag=[&](int id){const int at=block2+0x1270-0xf80+id/8;bytes[at]=char(quint8(bytes[at])|(1<<(id%8)));};
             put32(bytes,block0+0xac,key);put32(bytes,block0+0x1f4,key);put16(bytes,block1+0x494,quint16(key));put32(bytes,block1+0x490,10000^key);
             for(auto pocket: {std::pair{0x560,30},std::pair{0x5d8,30},std::pair{0x650,16},std::pair{0x690,64}})for(int i=0;i<pocket.second;++i)put16(bytes,block1+pocket.first+4*i+2,quint16(key));
-            seal();const auto hidden=readEmeraldShops(bytes,EmeraldHash);QVERIFY(hidden.supported);QCOMPARE(hidden.merchants.size(),46);
+            seal();const auto hidden=readEmeraldShops(bytes,EmeraldHash);QVERIFY(hidden.supported);QCOMPARE(hidden.merchants.size(),48);
             for(const auto& m:hidden.merchants){QCOMPARE(m.name,"???");QVERIFY(m.id.isEmpty());QVERIFY(m.location.isEmpty());QVERIFY(m.stock.isEmpty());QVERIFY(!m.discovered);}
             QVERIFY(buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",13,1}).data.isEmpty());
             flag(0x870);seal();auto state=readEmeraldShops(bytes,EmeraldHash);QVERIFY(state.merchants[0].discovered);QCOMPARE(state.merchants[0].stock.size(),4);
@@ -256,6 +315,13 @@ private slots:
                     if((p>=wallet&&p<wallet+width)||(p>=block1+0x560&&p<block1+0x564)||(p>=block0+0xff6&&p<block0+0xff8)||(p>=block1+0xff6&&p<block1+0xff8))continue;
                     QCOMPARE(exchanged.data[p],bytes[p]);
                 }
+            }
+            bytes[block1+0x234]=1;bytes.replace(block1+0x238,100,setTestMoves(pokemonFixture(rotation),{33,45,84,57}));seal();
+            for(const auto& m:readEmeraldShops(bytes,EmeraldHash).merchants)if(m.id=="frontier-tutor-left"){
+                const auto& st=m.stock[3];const MerchantPurchase req{m.id,st.itemId,1,"tutor",0,0,st.recipients[0].identity};
+                const auto taught=buyEmeraldItems(bytes,EmeraldHash,req);QVERIFY(taught.error.isEmpty());
+                QCOMPARE(readGen3Progress(taught.data,Gen3Edition::Emerald).party->party[0].moves[0].name,QString("Mega Punch"));
+                for(int p=0;p<bytes.size();++p){if((p>=block1+0x238&&p<block1+0x29c)||(p>=block0+0xeb8&&p<block0+0xeba)||(p>=block0+0xff6&&p<block0+0xff8)||(p>=block1+0xff6&&p<block1+0xff8))continue;QCOMPARE(taught.data[p],bytes[p]);}
             }
             // Known locations can be unavailable while the separate Pyramid Bag is active.
             bytes[block1+4]=26;bytes[block1+5]=26;seal();state=readEmeraldShops(bytes,EmeraldHash);

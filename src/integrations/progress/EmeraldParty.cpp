@@ -137,6 +137,7 @@ PokemonRecord pokemon(const QByteArray& bytes, bool inParty) {
     return r;
 }
 }
+PokemonRecord readEmeraldPartyMember(const QByteArray& record) { return pokemon(record,true); }
 PartySnapshot readEmeraldParty(const QByteArray& world, const QByteArray& storage) {
     PartySnapshot result;
     if (world.size()!=0x3d88 || storage.size()!=0x83d0 || reference()["species"].toObject().size()!=386
