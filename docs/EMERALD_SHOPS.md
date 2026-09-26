@@ -275,12 +275,70 @@ interaction and QML smoke checks again. Installed screenshots verified the
 category/stock view and lesson confirmation after that polish. Personal library
 integrity remained valid (schema 13, 829 Adventures and 3 Trainers).
 
+## Item exchanges and Move Reminder — 2026-09-27
+
+The catalogue now has **51 counters**. Exchanges adds the Route 124 Diving
+Treasure Hunter (four shard/stone pairs) and Shoal Cave's Shell Bell craftsman
+(four Shoal Salt plus four Shoal Shell). Services adds Fallarbor's Move Reminder:
+one Heart Scale restores a move from the selected member's current species
+learnset, at or below its verified current level, excluding already known moves.
+This is not a previous-evolution, egg-move or arbitrary-move editor.
+
+The stock preview combines the actual Party's relearnable moves in deterministic
+Party/learnset order. Selecting a move uses the existing eligible-member/slot
+flow. Rechecks include the full member fingerprint, empty-slot priority, HM
+protection and payment. Known moves disappear after the lesson if no other team
+member can relearn them. Empty teams and exhausted learnsets show an empty state.
+
+These trades have item payments, not a synthetic money/BP balance. Confirmation
+names every material and shows before/after quantities. A trade consumes materials
+before checking reward capacity, so a full Bag works when payment frees a slot.
+Missing materials, a still-full Bag or an invalid request never changes the save.
+Only matching Items-pocket entries change; all currencies stay unchanged.
+Move Reminder additionally changes only the selected move/PP/PP-Up bits and
+checksums through the already protected exact-Emerald transaction.
+
+Discovery remains conservative: Fallarbor uses its visited-town flag, the hunter
+uses the game's house landmark, and Shoal uses evidence of collecting at least
+one of its ingredients. Emerald has no equivalent permanent visited-shop flag
+for the craftsman. TrainerOS does not reset tide/daily collection flags, advance
+story or collect ingredients for the player.
+
+Additional same-revision primary facts:
+
+- [Shard exchanges](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/data/maps/Route124_DivingTreasureHuntersHouse/scripts.inc).
+- [Shell Bell recipe and freed-slot behavior](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/data/maps/ShoalCave_LowTideEntranceRoom/scripts.inc).
+- [Heart Scale payment](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/data/maps/FallarborTown_MoveRelearnersHouse/scripts.inc),
+  [current-species learnsets](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/data/pokemon/level_up_learnsets.h)
+  and [relearning implementation](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/move_relearner.c).
+
+### Item-payment verification
+
+All **42 native tests** passed. New cases cover all five exchange recipes with
+both save keys, full-pocket trades that free capacity, missing ingredients and
+remaining-capacity refusals. Relearning covers all 24 substructure orders,
+level/known-move eligibility, empty slots, stale identity and missing payment.
+Full-save checks cover both keys across all 14 sector rotations and preserve
+every byte outside the allowed delta. Controller tests cover the item-payment
+lesson path and ensure selection does not write before confirmation. Both
+generated JSON files reproduce byte-for-byte from the pinned local sources.
+
+On the actual Flip, SDL controller input performed all six protected transactions
+in an isolated test profile: the four stones, Shell Bell and Blaziken's Fire Punch
+for one Heart Scale. An independent complete-save comparison verified only the
+expected item slots, move/PP/PP-Up bits and checksums changed. Normal Emerald/mGBA
+showed all four stones, Shell Bell and the remaining Heart Scale in the Bag,
+and Fire Punch **15/15 PP** beside the unchanged other moves. No in-game save
+was made. Center restored the exact pre-purchase seed and preserved the purchased
+state in its before-restore copy. Personal saves remained unchanged.
+
+The installed ARM64 Release has SHA-256
+`a7ef1e3b9dc7df3a310a9f1504fa10813704661de5475a4b420223b9cbb4291c`.
+Actual Flip screenshots cover stock, both payment confirmation layouts and game
+readback. The isolated validation session is closed after verification.
+
 ## Remaining #68 acceptance — retained
 
-- Remaining special services/item payments, notably Heart Scale move relearning
-  and the shard/stone and Shoal ingredient exchanges, still need their own exact
-  eligibility, debit/reward and in-game proof. Frontier BP lessons are delivered;
-  this does not enable arbitrary move editing or another game's tutor format.
 - Optional item search across discovered merchants and location filters. The
   category browser above supplies the requested separation by shop/service type.
 - Any remaining meaningful currency-to-owned-content sources found during those

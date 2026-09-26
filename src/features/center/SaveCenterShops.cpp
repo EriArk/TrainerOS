@@ -4,6 +4,10 @@
 namespace trainer {
 namespace {
 QString section(const Merchant& m){return !m.discovered?QString("unknown"):m.section.isEmpty()?QString("marts"):m.section;}
+bool lesson(const QString& kind){return kind=="tutor"||kind=="relearn";}
+QString paymentText(const MerchantStock& stock){
+    QStringList lines;for(const auto& p:stock.payments)lines.append(QString("%1 × %2").arg(p.quantity).arg(p.name));return lines.join(" + ");
+}
 const QStringList sectionIds{"marts","stores","specialists","exchanges","services","unknown"};
 const QStringList sectionNames{"Poké Marts","Stores","Specialists","Exchanges","Services","Undiscovered"};
 }
@@ -40,7 +44,7 @@ QVariantList SaveCenterController::shopMoves() const {
 }
 
 int SaveCenterController::shopBalance() const {
-    const auto m=merchant();return snapshot_.shops.supported&&m&&m->discovered?m->balance:-1;
+    const auto m=merchant();return snapshot_.shops.supported&&m&&m->discovered&&!m->itemPayment?m->balance:-1;
 }
 QList<int> SaveCenterController::merchantRows() const {
     QList<int> out;QStringList groups;const auto& list=snapshot_.shops.merchants;
@@ -66,7 +70,7 @@ QVariantList SaveCenterController::merchants() const {
 }
 QVariantList SaveCenterController::shopStock() const {
     QVariantList out;const auto m=merchant();if(!m||!m->discovered)return out;
-    for(const auto& s:m->stock)out.append(QVariantMap{{"name",s.name},{"price",s.price},{"owned",s.owned},{"maximum",m->available?s.maximum:0},{"pocket",s.pocket}});
+    for(const auto& s:m->stock)out.append(QVariantMap{{"name",s.name},{"price",s.price},{"owned",s.owned},{"maximum",m->available?s.maximum:0},{"pocket",s.pocket},{"payment",paymentText(s)}});
     return out;
 }
 QVariantMap SaveCenterController::shopSelection() const {
@@ -82,10 +86,13 @@ QVariantMap SaveCenterController::shopSelection() const {
     }
     if(stockIndex_>=0&&stockIndex_<m->stock.size()){
         const auto& s=m->stock[stockIndex_];out["item"]=s.name;out["total"]=s.price*quantity_;
-        if(s.kind=="tutor"&&recipientIndex_>=0&&recipientIndex_<s.recipients.size()){
+        if(lesson(s.kind)&&recipientIndex_>=0&&recipientIndex_<s.recipients.size()){
             const auto& r=s.recipients[recipientIndex_];out["recipient"]=r.name;
             if(lessonMoveIndex_>=0&&lessonMoveIndex_<r.moves.size())out["oldMove"]=r.moves[lessonMoveIndex_].name;
         }
+        out["lesson"]=lesson(s.kind);out["payment"]=paymentText(s);
+        QStringList remaining;for(const auto& p:s.payments)remaining.append(QString("%1: %2 → %3").arg(p.name).arg(p.owned).arg(p.owned-p.quantity));
+        out["paymentRemaining"]=remaining.join("\n");
         out["kind"]=s.kind;out["owned"]=s.owned;out["maximum"]=m->available?s.maximum:0;out["pocket"]=s.pocket;
     }
     return out;
@@ -115,11 +122,12 @@ void SaveCenterController::shopActivate(int index){
         const auto m=merchant();if(!m||!m->available||index<0||index>=m->stock.size())return;
         if(stockIndex_!=index)quantity_=1;
         stockIndex_=index;
-        if(m->stock[index].kind=="tutor"){
+        if(lesson(m->stock[index].kind)){
+            for(const auto& p:m->stock[index].payments)if(p.owned<p.quantity){shopMessage_="Bring a Heart Scale for this lesson.";emit changed();return;}
             if(m->balance<m->stock[index].price){shopMessage_="Not enough BP for this lesson.";emit changed();return;}
             recipientIndex_=lessonMoveIndex_=0;quantity_=1;shopMessage_.clear();shopRoute_="recipients";emit changed();return;
         }
-        if(m->stock[index].maximum<quantity_){shopMessage_="Not enough currency or storage space.";emit changed();return;}
+        if(m->stock[index].maximum<quantity_){shopMessage_="Not enough payment or Bag space.";emit changed();return;}
         shopMessage_.clear();shopRoute_="confirm";
     }else if(shopRoute_=="recipients"){
         const auto m=merchant();if(!m||stockIndex_>=m->stock.size())return;
@@ -139,7 +147,7 @@ void SaveCenterController::dispatchShop(Action action){
         if(shopRoute_=="merchants"){if(shopGroup_.isEmpty())shopsOpen_=false;else {shopGroup_.clear();merchantIndex_=groupParentIndex_;stockIndex_=0;quantity_=1;}}
         else if(shopRoute_=="stock")shopRoute_="merchants";
         else if(shopRoute_=="moves")shopRoute_="recipients";
-        else if(shopRoute_=="confirm"&&shopSelection()["kind"].toString()=="tutor")shopRoute_="moves";
+        else if(shopRoute_=="confirm"&&lesson(shopSelection()["kind"].toString()))shopRoute_="moves";
         else {shopRoute_="stock";if(!shopMessage_.isEmpty())refresh();}
         shopMessage_.clear();emit changed();return;
     }
@@ -170,7 +178,7 @@ void SaveCenterController::purchase(){
     const auto r=library_.registration(selected_.adventure.id);
     if(!r||r->revision!=selected_.revision){shopRoute_="receipt";shopMessage_="This Adventure changed. Visit the shop again.";emit changed();return;}
     MerchantPurchase request{m->id,m->stock[stockIndex_].itemId,quantity_,m->stock[stockIndex_].kind};
-    if(request.kind=="tutor"){
+    if(lesson(request.kind)){
         const auto& list=m->stock[stockIndex_].recipients;
         if(recipientIndex_<0||recipientIndex_>=list.size())return;
         request.partySlot=list[recipientIndex_].slot;request.moveSlot=lessonMoveIndex_;request.recipientIdentity=list[recipientIndex_].identity;

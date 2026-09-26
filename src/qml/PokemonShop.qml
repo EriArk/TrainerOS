@@ -7,7 +7,7 @@ Item {
     readonly property var choice: shop.shopSelection
     readonly property bool browsing: shop.shopRoute === "merchants"
     readonly property bool lessonChoice: shop.shopRoute === "recipients" || shop.shopRoute === "moves"
-    readonly property bool tutor: choice.kind === "tutor"
+    readonly property bool tutor: !!choice.lesson
     readonly property bool checkout: shop.shopRoute === "confirm" || shop.shopRoute === "receipt"
     readonly property bool active: visible && !shell.menuOpen && !shell.drawerOpen && !shell.notice.length
     Item {
@@ -80,7 +80,7 @@ Item {
                 onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
                 delegate: CapButton {
                     required property int index; required property var modelData
-                    objectName: "shop-stock-"+index; width: stock.width; height: 48; label: modelData.name; detail: (root.choice.currency || "₽")+" "+modelData.price
+                    objectName: "shop-stock-"+index; width: stock.width; height: 48; label: modelData.name; detail: modelData.payment || (root.choice.currency || "₽")+" "+modelData.price
                     tint: modelData.pocket === "Poké Balls" ? "#afd5e8" : index%2 ? "#cdddab" : "#efce9b"
                     selected: root.active && !root.browsing && !root.checkout && index===root.shop.stockIndex
                     onActivated: if(!root.browsing)root.shop.shopActivate(index)
@@ -88,12 +88,12 @@ Item {
             }
             MountedPanel {
                 x: stock.x+stock.width+15; y: stock.y; width: parent.width-x-15; height: parent.height-y-17
-                color: "#fff1d2"; visible: !!root.choice.name && !root.lessonChoice
+                color: "#fff1d2"; visible: !!root.choice.item && !root.lessonChoice
                 Text { x: 14; y: 13; width: parent.width-28; text: root.choice.item || ""; font.family: Theme.displayFamily; font.pixelSize: 21; color: Theme.ink; wrapMode: Text.WordWrap }
-                Text { x: 14; y: 64; visible: !root.tutor && !root.shop.shopMessage.length; text: (root.choice.kind === "coins" ? "In Coin Case  " : root.choice.kind === "decoration" ? "Owned  " : "In Bag  ") + (root.choice.owned || 0); font.pixelSize: 14; color: Theme.muted }
-                Text { x: 14; y: 91; visible: !root.shop.shopMessage.length; text: root.tutor ? "BP lesson" : "× " + root.shop.quantity; font.family: Theme.displayFamily; font.pixelSize: root.tutor ? 23 : 31; color: "#527a83" }
-                Text { x: 14; y: root.shop.shopMessage.length ? 65 : 128; width: parent.width-28; text: "Total   " + (root.choice.currency || "₽") + " " + (root.choice.total || 0); font.pixelSize: 17; font.bold: true; color: Theme.ink; wrapMode: Text.WordWrap }
-                Text { x: 14; y: 94; width: parent.width-28; height: parent.height-y-8; text: root.shop.shopMessage; font.pixelSize: 13; color: Theme.muted; wrapMode: Text.WordWrap }
+                Text { x: 14; y: 64; visible: !root.tutor && !root.choice.payment && !root.shop.shopMessage.length; text: (root.choice.kind === "coins" ? "In Coin Case  " : root.choice.kind === "decoration" ? "Owned  " : "In Bag  ") + (root.choice.owned || 0); font.pixelSize: 14; color: Theme.muted }
+                Text { x: 14; y: 91; visible: !root.shop.shopMessage.length && !root.choice.payment; text: root.tutor ? (root.choice.payment ? "Move reminder" : "BP lesson") : "× " + root.shop.quantity; font.family: Theme.displayFamily; font.pixelSize: root.tutor ? 23 : 31; color: "#527a83" }
+                Text { x: 14; y: root.shop.shopMessage.length || root.choice.payment ? 65 : 128; width: parent.width-28; visible: !root.shop.shopMessage.length; text: root.choice.payment ? "Give  " + root.choice.payment : "Total   " + (root.choice.currency || "₽") + " " + (root.choice.total || 0); font.pixelSize: 17; font.bold: true; color: Theme.ink; wrapMode: Text.WordWrap }
+                Text { x: 14; y: 65; width: parent.width-28; height: parent.height-y-8; text: root.shop.shopMessage; font.pixelSize: 14; color: Theme.muted; wrapMode: Text.WordWrap }
             }
             ListView {
                 id: recipients; x: stock.x; y: stock.y; width: parent.width-x-15; height: stock.height; clip: true; spacing: 7
@@ -111,17 +111,17 @@ Item {
             }
             Text {
                 x: stock.x+14; y: stock.y+20; width: parent.width-x-30
-                visible: root.lessonChoice && recipients.count === 0
-                text: "There are no Pokémon available for this lesson."
+                visible: root.lessonChoice ? recipients.count === 0 : !root.shop.shopStock.length
+                text: root.lessonChoice ? "There are no Pokémon available for this lesson." : root.shop.shopMessage || "No offers available."
                 color: Theme.ink; font.pixelSize: 20; wrapMode: Text.WordWrap
             }
             Rectangle {
                 anchors.fill: parent; color: "#690f303a"; visible: root.checkout
                 MountedPanel {
-                    anchors.centerIn: parent; width: 490; height: root.tutor ? 288 : 238; color: "#fff1d2"
+                    anchors.centerIn: parent; width: 490; height: root.tutor || root.choice.payment ? 300 : 238; color: "#fff1d2"
                     Text { x: 24; y: 20; width: parent.width-48; text: root.tutor ? "Your lesson" : "Your purchase"; font.family: Theme.displayFamily; font.pixelSize: 27; color: Theme.ink }
-                    Text { x: 24; y: 70; width: parent.width-48; height: root.tutor ? 146 : 96; text: root.shop.shopRoute === "confirm" ? (root.tutor ? root.choice.recipient+" learns "+root.choice.item+"\nReplace: "+root.choice.oldMove : root.shop.quantity+" × "+root.choice.item)+"\nTotal  "+root.choice.currency+" "+root.choice.total+"\nRemaining  "+(root.shop.shopBalance-root.choice.total) : root.shop.shopMessage; font.pixelSize: 21; color: Theme.ink; wrapMode: Text.WordWrap }
-                    CapButton { objectName: "shop-checkout"; x: 24; y: parent.height-61; width: parent.width-48; height: 43; label: root.shop.busy ? (root.tutor ? "Teaching…" : "Packing your purchase…") : root.shop.shopRoute === "confirm" ? (root.tutor ? "Confirm lesson" : "Confirm purchase") : "Continue"; tint: Theme.yellow; selected: root.active; enabled: !root.shop.busy; onActivated: root.shop.shopActivate(0) }
+                    Text { x: 24; y: 70; width: parent.width-48; height: root.tutor || root.choice.payment ? 165 : 96; text: root.shop.shopRoute === "confirm" ? (root.tutor ? root.choice.recipient+" learns "+root.choice.item+"\nReplace: "+root.choice.oldMove : root.shop.quantity+" × "+root.choice.item)+ (root.choice.payment ? "\nGive  "+root.choice.payment+"\n"+root.choice.paymentRemaining : "\nTotal  "+root.choice.currency+" "+root.choice.total+"\nRemaining  "+(root.shop.shopBalance-root.choice.total)) : root.shop.shopMessage; font.pixelSize: 21; color: Theme.ink; wrapMode: Text.WordWrap }
+                    CapButton { objectName: "shop-checkout"; x: 24; y: parent.height-61; width: parent.width-48; height: 43; label: root.shop.busy ? (root.tutor ? "Teaching…" : "Packing your purchase…") : root.shop.shopRoute === "confirm" ? (root.tutor ? "Confirm lesson" : root.choice.payment ? "Confirm exchange" : "Confirm purchase") : "Continue"; tint: Theme.yellow; selected: root.active; enabled: !root.shop.busy; onActivated: root.shop.shopActivate(0) }
                 }
             }
         }

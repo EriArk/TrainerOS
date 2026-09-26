@@ -37,7 +37,7 @@ private slots:
         } library;
         class Service final : public SaveBackupService {
         public:
-            bool working=false,lessons=false;QString target;std::function<void(SaveBackupResult)> pending;
+            bool working=false,lessons=false,itemPayment=false;QString target;std::function<void(SaveBackupResult)> pending;
             bool busy() const override{return working;}
             bool supports(const AdventureRegistration&) const override{return true;}
             void inspect(const AdventureRegistration&,QObject*,std::function<void(SaveBackupSnapshot)> done) override {
@@ -46,6 +46,7 @@ private slots:
                 if(lessons){
                     Merchant tutor;tutor.id="tutor";tutor.name="Move tutor";tutor.section="services";tutor.discovered=tutor.available=true;tutor.balance=100;tutor.currency=MerchantCurrency::BattlePoints;
                     MerchantStock lesson{5,24,0,1,"Mega Punch","Lesson","tutor"};
+                    if(itemPayment){tutor.itemPayment=true;lesson.kind="relearn";lesson.price=0;lesson.payments.append({111,1,2,"Heart Scale"});}
                     lesson.recipients.append({0,"fingerprint","Pikachu",{},true,{{"Thunder Shock",true},{"Surf",false},{"Growl",true},{"Tail Whip",true}}});
                     lesson.recipients.append({1,{},"Egg","Cannot take a lesson",false,{}});tutor.stock.append(lesson);s.shops.merchants.append(tutor);
                     Merchant hidden;hidden.section="services";s.shops.merchants.append(hidden);
@@ -98,6 +99,12 @@ private slots:
         service.finish();center.close();
         service.lessons=false;center.beginSelected("two");center.visitShops();
         QCOMPARE(center.shopCategory(),"marts");QVERIFY(!center.merchants().isEmpty());center.close();
+        service.lessons=service.itemPayment=true;center.beginSelected("two");center.visitShops();center.dispatch(Action::Right);
+        QCOMPARE(center.shopBalance(),-1);QVERIFY(center.shopStock()[0].toMap()["payment"].toString().contains("Heart Scale"));
+        center.dispatch(Action::Confirm);center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"recipients");
+        center.dispatch(Action::Confirm);center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"confirm");QVERIFY(!service.working);
+        QVERIFY(center.shopSelection()["paymentRemaining"].toString().contains("2"));
+        center.dispatch(Action::Confirm);QCOMPARE(service.request.kind,"relearn");QCOMPARE(service.request.recipientIdentity,"fingerprint");service.finish();center.close();
         PartyPresentation party(true);QSignalSpy requested(&party,&PartyPresentation::healingRequested);
         party.dispatch(Action::Confirm);party.dispatch(Action::Down);party.dispatch(Action::Confirm);
         QCOMPARE(requested.count(),1);QVERIFY(!party.detailOpen());

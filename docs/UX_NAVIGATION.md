@@ -533,3 +533,10 @@ selection, then move-slot selection and explicit named replacement confirmation.
 Unavailable members/slots explain their reason and cannot confirm. Categories
 cannot change during selection, confirmation or writing. Persistent global
 navigation remains unchanged until the separately scheduled #83–88 migration.
+
+Item exchanges confirm their named materials and before/after quantities instead
+of a currency balance. They exchange one recipe per confirmation, without a
+quantity legend. Fallarbor's Move Reminder previews the actual Party's available
+level-up moves for one Heart Scale, then reuses member/slot/confirmation selection.
+No greeting or second service-entry screen is added. An empty learnset has a
+compact empty state; all controller legends remain in the shared footer.

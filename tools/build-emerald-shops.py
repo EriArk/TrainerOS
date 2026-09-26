@@ -133,16 +133,35 @@ for side,name in [('Left','Frontier Beauty'),('Right','Frontier Swimmer')]:
     assert len(offers)==10
     priced_merchant('frontier-tutor-'+side.lower(),name,'Battle Frontier','FLAG_LANDMARK_BATTLE_FRONTIER',offers,'tutor',currency='bp')
 assert len(tutors)==20
+# Repeatable item payments and current-species/current-level relearning.
+shards=source('data/maps/Route124_DivingTreasureHuntersHouse/scripts.inc')
+pairs=re.findall(r'setvar VAR_0x8008, (ITEM_\w+_SHARD)\s+setvar VAR_0x8009, (ITEM_\w+_STONE)',shards)
+assert len(pairs)==4
+merchant('hunter-shards','Diving Treasure Hunter','Route 124','FLAG_LANDMARK_HUNTERS_HOUSE',
+         [ids[reward] for cost,reward in pairs],'barter',payments={str(ids[reward]):[[ids[cost],1]] for cost,reward in pairs},section='exchanges')
+shell=source('data/maps/ShoalCave_LowTideEntranceRoom/scripts.inc')
+costs=re.findall(r'removeitem (ITEM_SHOAL_\w+), (\d+)',shell)
+assert len(costs)==2 and all(int(n)==4 for _,n in costs) and 'giveitem ITEM_SHELL_BELL' in shell
+merchant('shoal-shell-bell','Shell Bell craftsman','Shoal Cave','FLAG_RECEIVED_SHOAL_SALT_1',[ids['ITEM_SHELL_BELL']],'barter',
+         anyFlags=[flags['FLAG_RECEIVED_SHOAL_'+kind+'_'+str(i)] for kind in ['SALT','SHELL'] for i in range(1,5)],
+         payments={str(ids['ITEM_SHELL_BELL']):[[ids[cost],int(n)] for cost,n in costs]},section='exchanges')
+source('data/maps/FallarborTown_MoveRelearnersHouse/scripts.inc');source('src/move_relearner.c')
+learnsets={name:[[int(level),moveids[move]] for level,move in re.findall(r'LEVEL_UP_MOVE\(\s*(\d+), (MOVE_\w+)\)',body)]
+           for name,body in re.findall(r'static const u16 (\w+)\[\] = \{(.*?)\};',source('src/data/pokemon/level_up_learnsets.h'),re.S)}
+level_moves={str(speciesids[sp]):learnsets[name] for sp,name in re.findall(r'\[(SPECIES_\w+)\] = (\w+)',source('src/data/pokemon/level_up_learnset_pointers.h'))
+             if str(speciesids.get(sp,-1)) in reference['species']}
+assert len(level_moves)==386 and all(level_moves.values())
+merchant('fallarbor-relearner','Move Reminder','Fallarbor Town','FLAG_VISITED_FALLARBOR_TOWN',[],'relearn',paymentItem=ids['ITEM_HEART_SCALE'],section='services')
 hm_moves=[moveids['MOVE_'+m] for m in re.findall(r'F\((\w+)\)',re.search(r'#define FOREACH_HM\(F\)(.*?)(?=\n\n)',tms,re.S)[1])]
 for m in shops:
-    m['section']='services' if m['kind']=='tutor' else 'stores' if m.get('group')=='Lilycove Department Store' else 'exchanges' if m.get('group') in ['Mauville Game Corner','Frontier Exchange','Glass Workshop'] else 'marts' if 'mart' in m['id'] else 'specialists'
+    m['section']=m.get('section') or ('services' if m['kind']=='tutor' else 'stores' if m.get('group')=='Lilycove Department Store' else 'exchanges' if m.get('group') in ['Mauville Game Corner','Frontier Exchange','Glass Workshop'] else 'marts' if 'mart' in m['id'] else 'specialists')
 source('src/party_menu.c');source('src/pokemon.c')
 for p in ['include/global.h','include/global.tv.h','include/constants/tv.h','include/constants/vars.h','src/tv.c','src/item.c','src/shop.c','src/decoration_inventory.c',
           'src/coins.c','src/berry_powder.c','src/field_specials.c','src/field_tasks.c','include/constants/coins.h','include/constants/battle_frontier.h']:source(p)
-result={'version':4,'source':'pret/pokeemerald','revision':'5eff78649e7170a877b961ef0b3da13b81a16038','items':items,'decorations':decor,'tutors':tutors,'hmMoves':hm_moves,'merchants':shops}
-assert len(shops)==48 and len(decor)==121 and ids['ITEM_POKE_BALL']==4
+result={'version':5,'source':'pret/pokeemerald','revision':'5eff78649e7170a877b961ef0b3da13b81a16038','items':items,'decorations':decor,'tutors':tutors,'hmMoves':hm_moves,'levelMoves':level_moves,'moves':reference['moves'],'merchants':shops}
+assert len(shops)==51 and len(decor)==121 and ids['ITEM_POKE_BALL']==4
 for m in shops:
     for id in m['stock']+m.get('expandedStock',[]):assert m['kind']=='coins' or (m['kind']=='tutor' and str(id) in tutors) or str(id) in (decor if m['kind']=='decoration' else items)
 Path('data/emerald-shops.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8',newline='\n')
-Path('data/emerald-shops-source.json').write_text(json.dumps({'source':'https://github.com/pret/pokeemerald','revision':result['revision'],'inputs':dict(sorted(inputs.items())),'scope':'Factual names, identifiers, prices, pockets, stock, tutor compatibility/PP and flag conditions only. No dialogue, game implementation or art.'},indent=2)+'\n',encoding='utf-8',newline='\n')
+Path('data/emerald-shops-source.json').write_text(json.dumps({'source':'https://github.com/pret/pokeemerald','revision':result['revision'],'inputs':dict(sorted(inputs.items())),'scope':'Factual names, identifiers, prices, pockets, stock, item-payment recipes, tutor compatibility, level learnsets, move PP and flag conditions only. No dialogue, game implementation or art.'},indent=2)+'\n',encoding='utf-8',newline='\n')
 print(len(shops),'counters;',len(items),'item facts;',len(decor),'decoration facts')

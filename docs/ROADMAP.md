@@ -8,18 +8,18 @@ Reviewed all 88 issue records: **22 new #69–90**, revised comments on
 The reconciliation itself changed no installed behavior. The following R1
 implementation is now delivered; future issue targets remain planned.
 
-**Return point:** #68 Emerald shops now have **48 counters**, organized into
+**Return point:** #68 Emerald shops now have **51 counters**, organized into
 Poké Marts, Stores, Specialists, Exchanges and Services, with immediate stock
 preview. The existing 58 coin/BP/ash/powder offers and both Frontier tutors'
-**20 BP lessons** use protected save transactions. Tutor selection, exact move/PP
-writes, normal Emerald readback and Center restoration are verified.
-[Evidence and remaining acceptance](EMERALD_SHOPS.md#categories-and-frontier-lessons--2026-09-27).
+**20 BP lessons**, Heart Scale relearning, four shard/stone exchanges and the
+Shoal Shell Bell recipe use protected save transactions. Exact item payments,
+move/PP writes and normal Emerald readback are verified.
+[Evidence and remaining acceptance](EMERALD_SHOPS.md#item-exchanges-and-move-reminder--2026-09-27).
 
-**Next increment: 3/6 Высокое (High)** — finish remaining R1 special services and
-item payments (Heart Scale relearning, shard/stone and Shoal exchanges), plus
-bounded discovered-stock search/location filtering before the R2 audit. Reuse
-the delivered transaction and lesson selection where appropriate; verify each
-new eligibility/reward path. A demonstrated safety defect takes priority.
+**Next increment: 3/6 Высокое (High)** — finish bounded discovered-stock
+search/location filtering and review remaining meaningful merchant-source
+coverage before the R2 audit. Reuse the delivered transactions and lessons;
+do not repeat completed traders. A demonstrated safety defect takes priority.
 
 The [R1–R18 queue](#unified-execution-order--existing-work-and-new-issues) below
 is authoritative. P0–P12 remain stable work areas, not scheduling numbers. Dated
@@ -274,7 +274,7 @@ gates remain explicit. Do not restart the mock or rebuild completed foundations.
 | Progress/Dex | Existing exact-build GBA badge/count observations; Emerald species Seen/Caught, offline reference/favorites/illustrations/optional sprites. Manual journal/editor removed; rows inert. [Progress](GAME_PROGRESS.md), [save Dex](SAVE_POKEDEX.md), [sprites](POKEDEX_SPRITES.md). | Recorded FireRed source/reader fault must be resolved before renewed claims; #82 deeper second title, remaining form/source coverage and #64 in-game badge comparison. |
 | Party/Center | Exact English Emerald six-member Party/fourteen boxes, split-view details; real healing/protection and normal-game proof. [Party](EMERALD_PARTY.md), [healing](EMERALD_HEALING.md), [backups](SAVE_BACKUPS.md). | Box management/other independently verified writes, additional formats, DS backup gate, #75 policy and two-device #45. |
 | Playroom | Real Emerald Party, free two-dimensional meadow movement, same-set emotions, greeting/call/ball play and living Home companions. [Playroom](PARTY_PLAYROOM.md). | Residual #52/#54 refinement, #55 exact-rule disposable practice and its physical/performance proof. |
-| Shops | 48 categorized Emerald counters, 58 money/coin/BP/ash/powder offers and 20 Frontier BP lessons; protected purchases, immediate stock preview and actual game readback. [Shops](EMERALD_SHOPS.md). | R1 retains Heart Scale relearning, item-payment exchanges and optional stock search/location filters; do not redo delivered vendors/tutors. |
+| Shops | 51 categorized Emerald counters, existing currency offers, 20 Frontier BP lessons, Heart Scale relearning and five item-payment exchanges; protected purchases, immediate stock preview and actual game readback. [Shops](EMERALD_SHOPS.md). | R1 retains optional stock search/location filters and bounded remaining meaningful source coverage; do not redo delivered vendors/tutors. |
 | Journey/Hall/RA | Existing Journey presentation, manual Hall memories and RA account/read/cache. [Journey](JOURNEY_UI.md), [Hall](HALL_OF_FAME.md), [RA](RETROACHIEVEMENTS.md). | #85 peer faces, full #47 verified milestones/Champion persistence, #48 matching/earning/notification gates; login is not earning. |
 | Device/session | Default TrainerOS, crash/startup recovery, Steam/Plasma transitions, battery/volume/brightness/power. [Session](SESSION_PROTOTYPE.md), [controls](DEVICE_CONTROLS.md). | #79 sleep remains disabled; U1 fault triage, Mobile/cleanup proof, #77–81 device tools and #70–73 release/recovery. Steam removal cancelled. |
 
@@ -312,7 +312,7 @@ stay usable. P IDs retain earlier acceptance/evidence; they are not sequence IDs
 
 | Order / work area | Complete slice | Dependency / completion boundary |
 | --- | --- | --- |
-| **R1 · P8 — finish Emerald shops** | #68 currency item/decor exchanges, categories and 20 BP tutor lessons delivered; remaining Heart Scale relearning, item-payment exchanges and optional discovery search/location filters | [Existing shop contract](EMERALD_SHOPS.md): discovery/stock/grouping/non-spoilers, verified debit AND reward, capacity/eligibility, confirmation, protection/allowed delta and normal in-game readback. All remaining traders stay tracked; a new currency is not a renamed money field. |
+| **R1 · P8 — finish Emerald shops** | #68 currency item/decor exchanges, categories, 20 BP lessons, Heart Scale relearning and shard/Shoal payments delivered; remaining optional discovery search/location filters and bounded meaningful source coverage | [Existing shop contract](EMERALD_SHOPS.md): discovery/stock/grouping/non-spoilers, verified debit AND reward, capacity/eligibility, confirmation, protection/allowed delta and normal in-game readback. All remaining traders stay tracked; a new currency is not a renamed money field. |
 | **R2 · P0/P8 — bounded adapter audit** | #89 current responsibilities/coupling, composition/portability/versioning decision; conceptual #90 domain boundary | Before wider per-title integration. Short code-backed note, no second save framework, speculative plugin loader or external dependency. Justified implementation gets its own bounded follow-up. Same-build R1 already uses a proven transaction. |
 | **R3 · P1/P2/P4 — navigation and capability UI** | #83–88 Pokémon and Journey peer faces, Home triggers, immediate wheel A, Start, Back/hints; #74 Properties; minimal #90 registry/state groundwork for existing Pokémon/Multiverse | Apply R2 only where needed; reuse existing screens/providers. Preserve owners/selections/face focus, short/held A, modal gates and launch return. Wrapped controller loops and installed screenshots. No empty franchise tabs or claimed unsupported features. |
 | **R4 · P8 — complete meaningful Emerald features** | #75 central read-only policy first; remaining #46 Dex/forms, #44/#53 Party/Boxes management/Center recovery, #47 live Journey/immutable Champion records, #52/#54 scenes, #55 practice and #45 Link | Reads before independently proven writes; #75 blocks every mutator including restore below QML. Retain favorites/Hall memories, inert retired journal rows and #64 in-game badge comparison. Practice uses exact rules/disposable data, no rewards. Link needs exact-pair writers and durable two-device proof; lack of a second device does not block independent rows. |

@@ -67,6 +67,24 @@ bool add(QByteArray& world,quint32 key,int id,int count) {
     }
     return !count;
 }
+bool payItems(QByteArray& world,quint32 key,const QList<MerchantPayment>& payments) {
+    // Only the normal Items pocket is accepted. Clear consumed slots without
+    // rearranging unrelated items; the game compacts them when opening the Bag.
+    for(const auto& cost:payments){
+        if(cost.quantity<=0||item(cost.itemId)["pocket"].toInt()!=1||owned(world,key,cost.itemId,1)<cost.quantity)return false;
+    }
+    for(const auto& cost:payments){
+        int left=cost.quantity;
+        for(int i=0;i<pockets[1].count&&left;++i){
+            const int at=pockets[1].at+i*4;if(u16(world,at)!=cost.itemId)continue;
+            const int qty=u16(world,at+2)^quint16(key),used=std::min(left,qty);
+            qToLittleEndian(quint16((qty-used)^quint16(key)),world.data()+at+2);
+            if(qty==used)qToLittleEndian(quint16(0),world.data()+at);
+            left-=used;
+        }
+    }
+    return true;
+}
 int countDecor(const QByteArray& world,int id,bool empty){
     const auto d=decoration(id);const int category=d["category"].toInt(-1);if(category<0||category>=8)return 0;
     const auto p=decorPockets[category];int count=0;
@@ -93,14 +111,26 @@ MonPayload monPayload(const QByteArray& record) {
     p.attacks=int(std::find(order.begin(),order.end(),1)-order.begin())*12;
     return p;
 }
-MerchantRecipient tutorRecipient(const QByteArray& record,int slot,int move) {
+QList<int> relearnable(const QByteArray& record) {
+    QList<int> result;const auto mon=readEmeraldPartyMember(record);
+    if(mon.kind!=PokemonSlotKind::Known)return result;
+    const auto p=monPayload(record);
+    for(const auto& value:data()["levelMoves"].toObject()[QString::number(u16(p.clear,p.growth))].toArray()){
+        const auto entry=value.toArray();const int move=entry[1].toInt();
+        if(entry[0].toInt()>mon.level||result.contains(move))continue;
+        bool known=false;for(int i=0;i<4;++i)known|=u16(p.clear,p.attacks+2*i)==move;
+        if(!known)result.append(move);
+    }
+    return result;
+}
+MerchantRecipient tutorRecipient(const QByteArray& record,int slot,int move,bool reminder=false) {
     MerchantRecipient r;r.slot=slot;
     const auto mon=readEmeraldPartyMember(record);
     r.name=mon.nickname.isEmpty()?mon.speciesName:mon.nickname;
     if(mon.kind!=PokemonSlotKind::Known){r.name=mon.kind==PokemonSlotKind::Egg?"Egg":"Unavailable";r.reason="Cannot take a lesson";return r;}
     r.identity=QString::fromLatin1(QCryptographicHash::hash(record,QCryptographicHash::Sha256).toHex());
     const auto p=monPayload(record);const auto fact=data()["tutors"].toObject()[QString::number(move)].toObject();
-    if(!fact["species"].toArray().contains(int(u16(p.clear,p.growth)))){r.reason="Cannot learn this move";return r;}
+    if(reminder?!relearnable(record).contains(move):!fact["species"].toArray().contains(int(u16(p.clear,p.growth)))){r.reason="Cannot learn this move";return r;}
     int empty=-1;
     for(int i=0;i<4;++i){
         const int old=u16(p.clear,p.attacks+2*i);
@@ -119,7 +149,7 @@ MerchantRecipient tutorRecipient(const QByteArray& record,int slot,int move) {
 QByteArray taughtRecord(const QByteArray& record,int move,int slot) {
     auto p=monPayload(record);auto result=record;
     qToLittleEndian(quint16(move),p.clear.data()+p.attacks+slot*2);
-    p.clear[p.attacks+8+slot]=char(data()["tutors"].toObject()[QString::number(move)].toObject()["pp"].toInt());
+    p.clear[p.attacks+8+slot]=char(data()["moves"].toObject()[QString::number(move)].toObject()["pp"].toInt());
     p.clear[p.growth+8]=char(quint8(p.clear[p.growth+8])&~(3u<<(2*slot)));
     quint16 checksum=0;for(int i=0;i<48;i+=2)checksum=quint16(checksum+u16(p.clear,i));
     qToLittleEndian(checksum,result.data()+28);
@@ -157,7 +187,7 @@ void setBalance(QByteArray& world,QByteArray& trainer,MerchantCurrency kind,int 
 }
 MerchantSnapshot readEmeraldShopBlock(const QByteArray& world,const QByteArray& trainer) {
     MerchantSnapshot out;
-    if(world.size()!=0x3d88 || trainer.size()!=0xf2c || data()["version"].toInt()!=4){out.error="The shops could not be checked.";return out;}
+    if(world.size()!=0x3d88 || trainer.size()!=0xf2c || data()["version"].toInt()!=5){out.error="The shops could not be checked.";return out;}
     const auto key=u32(trainer,0xac);
     const auto money=u32(world,0x490)^key;
     if(money>999999 || !validBag(world,key)){out.error="Your Bag or decorations could not be verified.";return out;}
@@ -171,12 +201,14 @@ MerchantSnapshot readEmeraldShopBlock(const QByteArray& world,const QByteArray& 
     for(const auto& value:data()["merchants"].toArray()){
         const auto d=value.toObject();Merchant m;
         bool discovered=flag(world,d["visitedFlag"].toInt());
+        if(d.contains("anyFlags")){discovered=false;for(const auto& f:d["anyFlags"].toArray())discovered|=flag(world,f.toInt());}
         for(const auto& f:d["requiredFlags"].toArray())discovered=discovered&&flag(world,f.toInt());
         if(d.contains("hiddenFlag"))discovered=discovered&&!flag(world,d["hiddenFlag"].toInt());
         if(discovered){
             m.id=d["id"].toString();m.name=d["name"].toString();m.location=d["location"].toString();m.group=d["group"].toString();
-            m.category=d["kind"].toString()=="tutor"?"Move tutor":d["kind"].toString()=="decoration"?"Decorations":d["vending"].toBool()?"Drinks":"Shop";m.discovered=true;m.available=!pyramid;
-            m.section=d["section"].toString();
+            const bool reminder=d["kind"].toString()=="relearn",barter=d["kind"].toString()=="barter";
+            m.category=reminder?"Move reminder":barter?"Item exchange":d["kind"].toString()=="tutor"?"Move tutor":d["kind"].toString()=="decoration"?"Decorations":d["vending"].toBool()?"Drinks":"Shop";m.discovered=true;m.available=!pyramid;
+            m.section=d["section"].toString();m.itemPayment=reminder||barter;
             m.currency=currency(d["currency"].toString());m.balance=balance(world,trainer,m.currency);
             if(d.contains("requiredItem")&&!owned(world,key,d["requiredItem"].toInt(),2)){
                 m.available=false;m.availability="Bring your "+item(d["requiredItem"].toInt())["name"].toString()+".";
@@ -188,20 +220,37 @@ MerchantSnapshot readEmeraldShopBlock(const QByteArray& world,const QByteArray& 
             if(d.contains("news")&&!news(world,d["news"].toInt())){m.available=false;m.availability="The clear-out sale is not running.";}
             if(pyramid)m.availability=out.error;
             const bool discount=d.contains("discountNews")&&news(world,d["discountNews"].toInt());
-            const auto stock=(flag(world,d["expandedFlag"].toInt())?d["expandedStock"]:d["stock"]).toArray();
+            auto stock=(flag(world,d["expandedFlag"].toInt())?d["expandedStock"]:d["stock"]).toArray();
+            if(reminder){
+                if(quint8(world[0x234])>6){out={};out.error="Your team could not be verified.";return out;}
+                for(int i=0;i<quint8(world[0x234]);++i)for(int move:relearnable(world.mid(0x238+i*100,100)))if(!stock.contains(move))stock.append(move);
+                if(stock.isEmpty())m.availability="Your team has no moves to remember.";
+            }
             const bool decor=d["kind"].toString()=="decoration",coins=d["kind"].toString()=="coins";
             for(const auto& id:stock){
                 const int value=id.toInt();
-                if(d["kind"].toString()=="tutor"){
-                    const auto fact=data()["tutors"].toObject()[QString::number(value)].toObject();
-                    const int price=d["prices"].toObject()[QString::number(value)].toInt();
+                if(d["kind"].toString()=="tutor"||reminder){
+                    const auto fact=data()["moves"].toObject()[QString::number(value)].toObject();
+                    const int price=reminder?1:d["prices"].toObject()[QString::number(value)].toInt();
                     if(fact.isEmpty()||price<=0||quint8(world[0x234])>6){out={};out.error="The lessons could not be verified.";return out;}
-                    MerchantStock entry{value,price,0,0,fact["name"].toString(),"Move lesson","tutor"};
+                    MerchantStock entry{value,reminder?0:price,0,0,fact["name"].toString(),"Move lesson",reminder?"relearn":"tutor"};
+                    if(reminder){const int id=d["paymentItem"].toInt();entry.payments.append({id,1,owned(world,key,id,1),item(id)["name"].toString()});}
                     for(int i=0;i<quint8(world[0x234]);++i){
-                        auto recipient=tutorRecipient(world.mid(0x238+i*100,100),i,value);
-                        if(recipient.available&&m.balance>=price)entry.maximum=1;
+                        auto recipient=tutorRecipient(world.mid(0x238+i*100,100),i,value,reminder);
+                        if(recipient.available&&(reminder?entry.payments[0].owned>=1:m.balance>=price))entry.maximum=1;
                         entry.recipients.append(std::move(recipient));
                     }
+                    m.stock.append(std::move(entry));continue;
+                }
+                if(barter){
+                    const auto reward=item(value);if(reward["pocket"].toInt()!=1){out={};out.error="The exchange could not be verified.";return out;}
+                    MerchantStock entry{value,0,owned(world,key,value,1),0,reward["name"].toString(),"Items","barter"};
+                    for(const auto& payment:d["payments"].toObject()[QString::number(value)].toArray()){
+                        const auto cost=payment.toArray();const int id=cost[0].toInt();
+                        entry.payments.append({id,cost[1].toInt(),owned(world,key,id,1),item(id)["name"].toString()});
+                    }
+                    auto candidate=world;
+                    if(!entry.payments.isEmpty()&&payItems(candidate,key,entry.payments)&&add(candidate,key,value,1))entry.maximum=1;
                     m.stock.append(std::move(entry));continue;
                 }
                 const auto it=decor?decoration(value):item(value);
@@ -227,7 +276,7 @@ EmeraldShopWrite buyEmeraldShopBlock(const QByteArray& world,const QByteArray& t
         for(const auto& stock:shop.stock)if(stock.itemId==request.itemId&&stock.kind==request.kind){
             if(request.quantity>stock.maximum)return {{},"Not enough currency or storage space.",{}};
             auto result=world,trainerResult=trainer;const bool decor=stock.kind=="decoration",coins=stock.kind=="coins";
-            if(stock.kind=="tutor"){
+            if(stock.kind=="tutor"||stock.kind=="relearn"){
                 if(request.quantity!=1||request.partySlot<0||request.partySlot>=stock.recipients.size())return {{},"Choose a team member first.",{}};
                 const auto& recipient=stock.recipients[request.partySlot];
                 if(!recipient.available||recipient.identity!=request.recipientIdentity||request.moveSlot<0||request.moveSlot>=recipient.moves.size()||!recipient.moves[request.moveSlot].available)
@@ -235,9 +284,16 @@ EmeraldShopWrite buyEmeraldShopBlock(const QByteArray& world,const QByteArray& t
                 const auto mon=taughtRecord(world.mid(0x238+request.partySlot*100,100),request.itemId,request.moveSlot);
                 if(mon.isEmpty())return {{},"The learned move could not be verified.",{}};
                 result.replace(0x238+request.partySlot*100,100,mon);
-                setBalance(result,trainerResult,shop.currency,shop.balance-stock.price);
+                if(stock.kind=="relearn"){
+                    if(!payItems(result,key,stock.payments))return {{},"Bring a Heart Scale for this lesson.",{}};
+                }else setBalance(result,trainerResult,shop.currency,shop.balance-stock.price);
                 if(!readEmeraldShopBlock(result,trainerResult).supported)return {{},"The lesson could not be verified.",{}};
                 return {result,{},recipient.name+" learned "+stock.name+"!",trainerResult};
+            }
+            if(stock.kind=="barter"){
+                if(request.quantity!=1||!payItems(result,key,stock.payments)||!add(result,key,stock.itemId,1))return {{},"Check your materials and Bag space.",{}};
+                if(!readEmeraldShopBlock(result,trainerResult).supported)return {{},"The exchange could not be verified.",{}};
+                return {result,{},stock.name+" added to your Bag!",trainerResult};
             }
             if(coins)setBalance(result,trainerResult,MerchantCurrency::Coins,balance(world,trainer,MerchantCurrency::Coins)+request.itemId*request.quantity);
             else if(!(decor?addDecor(result,request.itemId):add(result,key,request.itemId,request.quantity)))return {{},"There is no room for this purchase.",{}};

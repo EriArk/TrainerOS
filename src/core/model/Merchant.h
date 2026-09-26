@@ -11,11 +11,13 @@ struct MerchantRecipient {
     int slot=-1; QString identity, name, reason; bool available=false;
     QList<MerchantMoveSlot> moves;
 };
+struct MerchantPayment { int itemId=0, quantity=0, owned=0; QString name; };
 struct MerchantStock {
     int itemId=0, price=0, owned=0, maximum=0;
     QString name, pocket;
     QString kind="item";
     QList<MerchantRecipient> recipients;
+    QList<MerchantPayment> payments;
 };
 struct Merchant {
     QString id, name="???", location, category, group;
@@ -25,6 +27,7 @@ struct Merchant {
     QString availability;
     int balance=0;
     QString section;
+    bool itemPayment=false;
 };
 struct MerchantSnapshot {
     bool supported=false;
