@@ -6,6 +6,7 @@
 
 namespace trainer {
 enum class Gen3Edition { Emerald, FireRed };
+PokemonReleaseResult releaseEmeraldPokemon(const QByteArray&,const QString&,const PokemonRelease&);
 PartyMoveResult moveEmeraldPokemon(const QByteArray&,const QString&,const PartyMove&);
 std::optional<Gen3Edition> gen3Edition(const QString& contentSha256);
 // Pure, bounded parser. The caller verifies the full ROM fingerprint before

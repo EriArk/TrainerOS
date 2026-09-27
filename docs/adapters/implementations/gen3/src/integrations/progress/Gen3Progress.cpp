@@ -96,6 +96,7 @@ GameProgress readGen3Progress(const QByteArray& save, Gen3Edition edition) {
         for (int id = 5; id < SectorCount; ++id) storage += latest->blocks[id];
         result.party = readGen3Party(world, storage,edition);
         const auto distance=quint32(second.counter-first.counter);
+        result.party->canRelease=edition==Gen3Edition::Emerald && first.valid && second.valid && distance && distance!=0x80000000u && result.party->error.isEmpty();
         result.party->canManage=edition==Gen3Edition::Emerald && first.valid && second.valid && distance && distance!=0x80000000u && result.party->error.isEmpty();
     }
     return result;
@@ -213,6 +214,73 @@ PartyMoveResult moveEmeraldPokemon(const QByteArray& save,const QString& hash,co
     if(placed.kind!=PokemonSlotKind::Known || placed.speciesId!=member(from).speciesId || placed.level!=member(from).level)
         return {{},"The destination could not be verified.",{}};
     return {result,{},from.box<0 && to.box<0?"Team order saved.":"Pokemon moved."};
+}
+PokemonReleaseResult releaseEmeraldPokemon(const QByteArray& save,const QString& hash,const PokemonRelease& request) {
+    const auto slot=shopSlot(save,hash);
+    if(!slot)return {{},"Release is available only for a verified English Emerald save.",{}};
+    if(request.saveRevision.isEmpty() || request.saveRevision!=QString::fromLatin1(QCryptographicHash::hash(save,QCryptographicHash::Sha256).toHex()))
+        return {{},"The save changed. Read your Pokemon again before releasing.",{}};
+    const auto from=request.from;
+    if(from.box < -1 || from.box>=14 || from.slot<0 || from.slot>=(from.box<0?6:30))
+        return {{},"Choose a valid Pokemon.",{}};
+    auto world=worldBlock(*slot);QByteArray storage;for(int id=5;id<14;++id)storage+=slot->blocks[id];
+    const auto before=readEmeraldParty(world,storage);
+    const int count=quint8(world[0x234]);
+    if(!before.error.isEmpty() || count<1 || count>6 || (from.box<0 && from.slot>=count))return {{},"Your collection could not be verified.",{}};
+    const auto& source=from.box<0?before.party[from.slot]:before.boxes[from.box].members[from.slot];
+    if(source.kind!=PokemonSlotKind::Known)return {{},"Only a readable, hatched Pokemon can be released.",{}};
+    const auto raw=from.box<0?world.mid(0x238+from.slot*100,100):storage.mid(4+(from.box*30+from.slot)*80,80);
+    if(emeraldBoxRecord(raw).isEmpty())return {{},"Remove this Pokemon's Mail inside the game first.",{}};
+    // Native Emerald's release policy: keep two individuals in the collection,
+    // another living non-Egg in Party, and another holder of each restricted move.
+    // Source: pret/pokeemerald 5eff786, pokemon_storage_system.c.
+    QStringList restricted{"Surf","Dive"};
+    if(quint8(world[4])==16 && (quint8(world[5])==10 || quint8(world[5])==14))restricted<<"Strength"<<"Rock Smash";
+    QStringList needed;
+    for(const auto& move:source.moves)if(restricted.contains(move.name) && !needed.contains(move.name))needed<<move.name;
+    int total=0,able=0;
+    auto inspect=[&](const PokemonRecord& mon,bool selected,bool party) {
+        if(mon.kind==PokemonSlotKind::Unreadable)return false;
+        if(mon.kind!=PokemonSlotKind::Empty)++total;
+        if(!selected && mon.kind==PokemonSlotKind::Known) {
+            if(party && mon.hp.value_or(0)>0)++able;
+            for(const auto& move:mon.moves)needed.removeAll(move.name);
+        }
+        return true;
+    };
+    for(int i=0;i<6;++i) {
+        // Reject a count/slot mismatch rather than hiding an uncounted individual.
+        if(i<count ? before.party[i].kind==PokemonSlotKind::Empty : world.mid(0x238+i*100,100)!=QByteArray(100,0))
+            return {{},"Your team could not be verified.",{}};
+        if(!inspect(before.party[i],from.box<0 && from.slot==i,true))return {{},"Your collection must be readable before releasing.",{}};
+    }
+    for(int box=0;box<14;++box)for(int i=0;i<30;++i)
+        if(!inspect(before.boxes[box].members[i],from.box==box && from.slot==i,false))return {{},"Your collection must be readable before releasing.",{}};
+    if(from.box<0 && !able)return {{},"Keep a Pokemon that can battle in your team.",{}};
+    if(total<3)return {{},"Keep at least two Pokemon in your collection.",{}};
+    if(!needed.isEmpty())return {{},"Another Pokemon must know "+needed.join(" and ")+" first.",{}};
+    // Exact native PurgeMonOrBoxMon plus CompactPartySlots semantics. No Bag,
+    // Dex, identity, mail, other slot or older save-bank mutation is permitted.
+    if(from.box<0) {
+        for(int i=from.slot;i<count-1;++i)world.replace(0x238+i*100,100,world.mid(0x238+(i+1)*100,100));
+        world.replace(0x238+(count-1)*100,100,QByteArray(100,0));world[0x234]=char(count-1);
+    } else storage.replace(4+(from.box*30+from.slot)*80,80,QByteArray(80,0));
+    auto result=save;
+    for(int id=1;id<14;++id) {
+        const auto block=id<5?world.mid((id-1)*Payload,slot->blocks[id].size()):storage.mid((id-5)*Payload,slot->blocks[id].size());
+        if(block==slot->blocks[id])continue;
+        const int at=slot->offsets[id];result.replace(at,block.size(),block);
+        quint32 sum=0;for(int p=0;p<block.size();p+=4)sum+=u32(block,p);
+        qToLittleEndian(quint16((sum>>16)+sum),result.data()+at+0xff6);
+    }
+    const auto after=readGen3Progress(result,Gen3Edition::Emerald);
+    if(!after.party || !after.party->canRelease)return {{},"The updated collection could not be verified.",{}};
+    // Reread packed sectors against the prepared logical blocks, including
+    // cross-sector box records. Independent tests check the full allowed delta.
+    const auto verified=shopSlot(result,hash);if(!verified)return {{},"The updated save could not be verified.",{}};
+    QByteArray verifiedStorage;for(int id=5;id<14;++id)verifiedStorage+=verified->blocks[id];
+    if(worldBlock(*verified)!=world || verifiedStorage!=storage)return {{},"The updated collection could not be verified.",{}};
+    return {result,{},"Pokemon released. A backup is available in the Center."};
 }
 static SaveHealing healVerifiedGen3Party(const QByteArray& save, const QString& contentHash) {
     const auto edition=gen3Edition(contentHash);

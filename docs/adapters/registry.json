@@ -84,11 +84,23 @@
             "rollback"
           ],
           "details": "../EMERALD_MOVEMENT.md"
+        },
+        "release": {
+          "state": "integrated",
+          "evidence": [
+            "source-research",
+            "synthetic",
+            "private-copy",
+            "allowed-delta",
+            "device",
+            "normal-game",
+            "rollback"
+          ],
+          "details": "../EMERALD_RELEASE.md"
         }
       },
       "romBytes": 16777216,
       "unknown": [
-        "release",
         "link",
         "practice"
       ],

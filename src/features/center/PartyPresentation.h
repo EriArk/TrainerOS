@@ -14,6 +14,8 @@ namespace trainer {
 // Save layout stays behind the injected protected service; QML receives no paths.
 class PartyPresentation final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool canRelease READ canRelease NOTIFY changed)
+    Q_PROPERTY(QVariantMap releaseSubject READ releaseSubject NOTIFY changed)
     Q_PROPERTY(bool canMove READ canMove NOTIFY changed)
     Q_PROPERTY(bool moveOpen READ moveOpen NOTIFY changed)
     Q_PROPERTY(QString moveStage READ moveStage NOTIFY changed)
@@ -42,6 +44,10 @@ public:
     explicit PartyPresentation(bool sample, QObject* parent = nullptr);
     void configureMovement(SaveBackupService*,LibraryRepository*);
     bool canMove() const;
+    bool canRelease() const;
+    QVariantMap releaseSubject() const {return releaseSubject_;}
+    Q_INVOKABLE void beginRelease();
+    Q_INVOKABLE void confirmRelease();
     bool moveOpen() const {return !moveStage_.isEmpty();}
     bool moving() const {return moveStage_=="writing";}
     QString moveStage() const {return moveStage_;}
@@ -85,7 +91,11 @@ signals:
     void healingRequested();
     void backupsRequested();
 private:
+    void beginOperation(bool release);
+    void submitOperation();
     void dispatchMove(Action);
+    bool releasing_=false;
+    QVariantMap releaseSubject_;
     void cancelMove();
     SaveBackupService* movementService_=nullptr;
     LibraryRepository* movementLibrary_=nullptr;

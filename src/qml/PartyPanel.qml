@@ -146,12 +146,13 @@ Item {
         anchors.fill: parent; anchors.topMargin: Theme.contentTopInset; color: "#660e2524"; visible: root.party.detailOpen
         MouseArea { anchors.fill: parent }
         MountedPanel {
-            anchors.centerIn: parent; width: 330; height: root.party.canMove ? 284 : 232; color: "#e3e9dc"
+            anchors.centerIn: parent; width: 330; height: 232 + (root.party.canMove ? 52 : 0) + (root.party.canRelease ? 48 : 0); color: "#e3e9dc"
             Text { textFormat: Text.PlainText; x: 22; y: 17; width: parent.width - 44; text: root.selected.name || "Pokémon"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 24; elide: Text.ElideRight }
             CapButton { deferredFocus: true; objectName: "party-menu-move"; x: 22; y: 56; width: 286; height: 38; label: "Move Pokémon"; tint: Theme.green; visible: root.party.canMove; selected: root.takesFocus && root.party.menuIndex === 3; onActivated: root.party.beginMove() }
-            CapButton { deferredFocus: true; objectName: "party-menu-heal"; x: 22; y: root.party.canMove ? 108 : 56; width: 286; height: 38; label: "Visit Pokémon Center"; tint: Theme.pink; selected: root.takesFocus && root.party.menuIndex === 2; onActivated: root.party.activate(2) }
-            CapButton { deferredFocus: true; objectName: "party-menu-backups"; x: 22; y: root.party.canMove ? 160 : 108; width: 286; height: 42; label: "Adventure backups"; tint: Theme.blue; selected: root.takesFocus && root.party.menuIndex === 1; onActivated: root.party.activate(1) }
-            CapButton { deferredFocus: true; objectName: "party-detail-back"; x: 22; y: root.party.canMove ? 218 : 166; width: 286; height: 42; label: "Close"; selected: root.takesFocus && root.party.menuIndex === 0; onActivated: root.party.activate(0) }
+            CapButton { deferredFocus: true; objectName: "party-menu-release"; x:22; y:root.party.canMove ? 108 : 56; width:286; height:38; label:"Release Pokémon"; tint:Theme.pink; visible:root.party.canRelease; selected:root.takesFocus && root.party.menuIndex === 4; onActivated:root.party.beginRelease() }
+            CapButton { deferredFocus: true; objectName: "party-menu-heal"; x: 22; y: 56 + (root.party.canMove ? 52 : 0) + (root.party.canRelease ? 48 : 0); width: 286; height: 38; label: "Visit Pokémon Center"; tint: Theme.pink; selected: root.takesFocus && root.party.menuIndex === 2; onActivated: root.party.activate(2) }
+            CapButton { deferredFocus: true; objectName: "party-menu-backups"; x: 22; y: 108 + (root.party.canMove ? 52 : 0) + (root.party.canRelease ? 48 : 0); width: 286; height: 42; label: "Adventure backups"; tint: Theme.blue; selected: root.takesFocus && root.party.menuIndex === 1; onActivated: root.party.activate(1) }
+            CapButton { deferredFocus: true; objectName: "party-detail-back"; x: 22; y: 166 + (root.party.canMove ? 52 : 0) + (root.party.canRelease ? 48 : 0); width: 286; height: 42; label: "Close"; selected: root.takesFocus && root.party.menuIndex === 0; onActivated: root.party.activate(0) }
         }
     }
     Rectangle {
@@ -159,8 +160,18 @@ Item {
         anchors.fill: parent; anchors.topMargin: Theme.contentTopInset; visible: root.party.moveOpen; color: "#a0122927"
         MouseArea {anchors.fill:parent}
         MountedPanel {
-            anchors.centerIn: parent; width: Math.min(parent.width-48,root.party.moveRows.length ? 690 : 480); height: Math.min(parent.height-22,root.party.moveRows.length ? 365 : 230); color: "#e8eddf"
+            anchors.centerIn: parent; width: Math.min(parent.width-48,root.party.moveRows.length ? 690 : 480); height: Math.min(parent.height-22,root.party.moveRows.length ? 365 : root.party.moveStage === "release-confirm" ? 300 : 230); color: "#e8eddf"
             Text {x:22;y:15;width:parent.width-44;text:root.party.moveTitle;textFormat:Text.PlainText;font.family:Theme.displayFamily;font.bold:true;font.pixelSize:24;color:Theme.ink;elide:Text.ElideRight}
+            Row {
+                x:22;y:57;spacing:16;visible:root.party.moveStage === "release-confirm"
+                ClassicIllustration {width:88;height:88;art:root.party.releaseSubject.art || ({})}
+                Column {
+                    width:parent.parent.width-170;spacing:8
+                    Text {width:parent.width;text:(root.party.releaseSubject.species || "") + " · Lv. " + (root.party.releaseSubject.level || "");font.pixelSize:18;font.bold:true;color:Theme.ink;elide:Text.ElideRight;textFormat:Text.PlainText}
+                    Text {text:root.storage ? root.party.boxName + " · Slot " + (root.party.focusIndex+1) : "Party · Slot " + (root.party.focusIndex+1);font.pixelSize:15;color:Theme.muted;textFormat:Text.PlainText}
+                    Text {width:parent.width;text:"Held item: " + (root.party.releaseSubject.item || "Unknown");font.pixelSize:15;color:Theme.ink;elide:Text.ElideRight;textFormat:Text.PlainText}
+                }
+            }
             Grid {
                 id: destinations;x:22;y:58;width:parent.width-44;spacing:8
                 columns:root.party.moveStage === "places" ? 3 : root.party.moveParty ? 2 : 6
@@ -183,8 +194,13 @@ Item {
                 }
             }
             Text {
-                x:22; width:parent.width-44; y:root.party.moveStage === "confirm" || root.party.moveStage === "result" || root.party.moveStage === "writing" || root.party.moveStage === "checking" ? 76 : parent.height-39
+                x:22; width:parent.width-44; y:root.party.moveStage === "release-confirm" ? 158 : root.party.moveStage === "confirm" || root.party.moveStage === "result" || root.party.moveStage === "writing" || root.party.moveStage === "checking" ? 76 : parent.height-39
                 text:root.party.moveMessage;textFormat:Text.PlainText;wrapMode:Text.WordWrap;color:Theme.ink;font.pixelSize:root.party.moveStage === "confirm" ? 22 : 15
+            }
+            CapButton {
+                objectName:"party-release-confirm";x:22;anchors.bottom:parent.bottom;anchors.bottomMargin:20;width:parent.width-44;height:46
+                visible:root.party.moveStage === "release-confirm";label:"Release Pokémon";tint:Theme.pink;centered:true;selected:false;deferredFocus:true
+                onActivated:root.party.confirmRelease()
             }
             CapButton {
                 x:22;anchors.bottom:parent.bottom;anchors.bottomMargin:26;width:parent.width-44;height:52

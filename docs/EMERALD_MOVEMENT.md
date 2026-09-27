@@ -82,3 +82,5 @@ confirmation. The final installed check cancels before a personal-save write.
 
 [#91 knowledge and reusable source](adapters/README.md) record exact game bounds,
 primary-source findings, known exclusions and separately buildable code/profiles.
+
+Protected release is delivered separately; see [release and rollback evidence](EMERALD_RELEASE.md).

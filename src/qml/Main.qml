@@ -238,6 +238,7 @@ Window {
                     if (shell.center.clinicOpen) return shell.center.busy ? [] : [h("Select","Backups"),h("X","Link"),h("A",shell.center.treatment === "ready" && shell.center.canHeal ? "Heal team" : "OK")]
                     if (party.section === "saves") return shell.center.confirming ? [h("A","Restore"),h("B","Cancel")] : [h("X",shell.center.route === "adventures" ? "Search" : "Refresh"),h("Select","Backup"),h("A","Open"),h("B","Back")]
                     if (party.section === "activities") return party.activities.route === "playroom" && party.activities.hasParty ? [h("←→","Partner"),h("Select","Play"),h("X","Greet"),h("A","Call"),h("B","Back")] : [h("A","Select"),h("B","Back")]
+                    if (party.moveStage === "release-confirm") return [h("X","Release"),h("B","Keep Pokemon")]
                     if (party.moveOpen) return party.moveStage === "writing" || party.moveStage === "checking" ? [] : [h("A",party.moveStage === "confirm" ? "Confirm move" : party.moveStage === "result" ? "OK" : "Choose"),h("B",party.moveStage === "places" ? "Cancel" : "Back")]
                     if (party.detailOpen) return [h("A","Select"),h("B","Close")]
                     if (party.boxFocused) return [h("←→","Box"),h("↓","Slots"),h("B","Back")]

@@ -5,20 +5,20 @@
     "data/emerald-reference.json": "7fae3c8d60db18228e582eb4734ca0d38a9bb1abcae99b9d814a3d24b8875a8f",
     "data/emerald-shops-source.json": "0f0ba43e103aad1580ee4e91718e17d9c0d8183afa019f67b0ddcb2dd3540b3a",
     "data/emerald-shops.json": "73b67a9a14f448cc157bac046abfbf4bbc22c21e7f03d7e56b1fcb5bb3badf80",
-    "profiles/emerald-en.json": "9804a693dac12c734978d130a154e70f168179c4e052592eb68b4cd0020c8827",
+    "profiles/emerald-en.json": "fab793a343ed602cd16a8368e81a9578ec48884d0386ae6e60f04377a2c7607b",
     "profiles/firered-en-original.json": "3731eb6b7fca565ccb5096349ddf2144adc27c765809f376e5b4c35084afdd8c",
     "profiles/firered-en-rev1.json": "6279808beb596cbba06969fa079829b86fbcb218676ca6f2093eac222ec81952",
     "src/core/model/GameProgress.h": "51461c2744f6b2c872258de4b2655cc977d93ecdb272140f518a9f65897d55ef",
     "src/core/model/Merchant.h": "bec84823ba039f33c7794a69309070c64c2fd6d8ac3614e0e1b7f64047fad1c8",
     "src/core/model/Models.h": "c0f4ca9cb96d1246577125fd55401b4875b92de178585c3fa5d1684b6b0e278d",
-    "src/core/model/PartyMove.h": "cbcbb0413fcb799d9aba0c92165eaeb71bb7a82fb19fecc36689bf9291f2c7b6",
-    "src/core/model/PartySnapshot.h": "74dc66c43458067523625d07929562f6b8266d8ea0005d4139db4ec1c9019a10",
-    "src/core/model/SaveBackup.h": "b741e95cc37e4dd673be156c8a42bb3a8c6da3838faaa2ec7f6b62f93255d825",
+    "src/core/model/PartyMove.h": "763ef793ed98fc77a305d14ca4169c8dbe44c9a8bf5f541d2a78122f0a471b68",
+    "src/core/model/PartySnapshot.h": "27228db57ccbfc02e400058c4917e0ea87dd9c67fd9f235670573873cc941354",
+    "src/core/model/SaveBackup.h": "4dd33066d8bceb348f2feab8e4fa2f2e7a048257695c5d263b792265459643ce",
     "src/integrations/progress/EmeraldParty.cpp": "c53d4fdcc50d2fb430f6694d5e813cfd0b8e16db5e16f1ad40ffe59effaf18ce",
     "src/integrations/progress/EmeraldParty.h": "d68f715d9cedeb7eb81ba0d777a0887344be21931f1dcbdb392e21f48e0e432b",
     "src/integrations/progress/EmeraldShops.cpp": "6d2eed9788ae1bb7746473fa211a03705a368c090a7a17c86cc5de03e12be058",
     "src/integrations/progress/EmeraldShops.h": "072dadc6b0b6ab95328f017596a221aad03c5d2f8c71099f798f047b15ecd034",
-    "src/integrations/progress/Gen3Progress.cpp": "68eab44a8748ca87d5b928ef5933460855999308b5a9887ef75da7da2982153e",
-    "src/integrations/progress/Gen3Progress.h": "9ca38ab92b09ffca5a709a70f43e69b8b655de853ff759c28243d512895ab604"
+    "src/integrations/progress/Gen3Progress.cpp": "030e687a1e246ed78b3abdd593ce049c1c5420f89ad8a2815f501cf83f5e0e4e",
+    "src/integrations/progress/Gen3Progress.h": "6a499dc8f7ec99c0a3e82ed29153029c9244159d44af6c169c27f451282cfe5e"
   }
 }

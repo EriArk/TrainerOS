@@ -16,6 +16,8 @@ SaveBackupResult purchaseSaveItems(const QString& root,const AdventureRegistrati
 
 SaveBackupResult moveSavePokemon(const QString&,const AdventureRegistration&,const QString&,const PartyMove&,const SaveTargetResolver&,const PartyMover&);
 
+SaveBackupResult releaseSavePokemon(const QString&,const AdventureRegistration&,const QString&,const PokemonRelease&,const SaveTargetResolver&,const PokemonReleaser&);
+
 class LocalSaveBackupService final : public SaveBackupService {
     Q_OBJECT
 public:
@@ -30,6 +32,8 @@ public:
     void create(const AdventureRegistration&, const QString&, QObject*, std::function<void(SaveBackupResult)>) override;
     void restore(const AdventureRegistration&, const SaveBackup&, const QString&, QObject*, std::function<void(SaveBackupResult)>) override;
     void heal(const AdventureRegistration&, const QString&, QObject*, std::function<void(SaveBackupResult)>) override;
+    void configureRelease(PokemonReleaser releaser) { releaser_=std::move(releaser); }
+    void releasePokemon(const AdventureRegistration&,const QString&,const PokemonRelease&,QObject*,std::function<void(SaveBackupResult)>) override;
     void configureMovement(PartyMover mover) { mover_=std::move(mover); }
     void movePokemon(const AdventureRegistration&,const QString&,const PartyMove&,QObject*,std::function<void(SaveBackupResult)>) override;
     void configureHealing(SaveHealer healer) { healer_ = std::move(healer); }
@@ -45,6 +49,7 @@ private:
     bool busy_ = false, readOnly_ = false;
     SaveHealer healer_;
     PartyMover mover_;
+    PokemonReleaser releaser_;
     MerchantReader shops_;
     MerchantBuyer buyer_;
 };

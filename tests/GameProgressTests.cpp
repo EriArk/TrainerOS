@@ -111,6 +111,49 @@ QByteArray movePatch(QByteArray save,int section,int offset,const QByteArray& va
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void emeraldReleasePreservesOtherIndividualsAndSaveBytes() {
+        for(int n=0;n<24;++n) {
+            auto bytes=movementSave(n%14,n);const int at=0xe000+((1+n%14)%14)*0x1000;
+            auto released=releaseEmeraldPokemon(bytes,EmeraldHash,{{-1,1},digest(bytes)});
+            QVERIFY2(released.error.isEmpty(),qPrintable(released.error));
+            auto expected=movePatch(bytes,1,0x234,QByteArray(1,2));
+            expected=movePatch(expected,1,0x238+100,bytes.mid(at+0x238+200,100)+QByteArray(100,0));
+            QCOMPARE(released.data,expected); // Bag, Dex, old bank, extra sectors, held items unchanged.
+            QVERIFY(readGen3Progress(released.data,Gen3Edition::Emerald).party->canRelease);
+            // Slots at section boundaries and both ends of Storage.
+            for(int index:{0,49,99,419}) {
+                auto boxed=bytes;const auto mon=pokemonFixture(n,25,false,false);
+                const int start=4+index*80;
+                const int section=5+start/0xf80,offset=start%0xf80,first=std::min(80,0xf80-offset);
+                boxed=movePatch(boxed,section,offset,mon.left(first));
+                if(first<80)boxed=movePatch(boxed,section+1,0,mon.mid(first));
+                auto r=releaseEmeraldPokemon(boxed,EmeraldHash,{{index/30,index%30},digest(boxed)});
+                QVERIFY2(r.error.isEmpty(),qPrintable(r.error));QCOMPARE(r.data,bytes);
+            }
+        }
+    }
+    void emeraldReleaseRejectsStaleUnsafeAndTraversalLoss() {
+        const auto base=movementSave(0);auto release=[&](const QByteArray& b,PokemonPosition p=PokemonPosition{-1,0}){return releaseEmeraldPokemon(b,EmeraldHash,{p,digest(b)});};
+        QVERIFY(releaseEmeraldPokemon(base,"other",{{-1,0},digest(base)}).data.isEmpty());
+        QVERIFY(releaseEmeraldPokemon(base,EmeraldHash,{{-1,0},"stale"}).data.isEmpty());
+        for(auto pos:{PokemonPosition{-2,0},{14,0},{0,30},{-1,6},{-1,-1},{0,0}})QVERIFY(release(base,pos).data.isEmpty());
+        auto b=base;b[0]^=1;QVERIFY(release(b).data.isEmpty());
+        b=movePatch(base,1,0x238,pokemonFixture(0,25,true));QVERIFY(release(b).error.contains("hatched"));
+        b=movePatch(base,1,0x238+85,QByteArray(1,0));QVERIFY(release(b).error.contains("Mail"));
+        b=movePatch(base,1,0x238+100+86,QByteArray(2,0));b=movePatch(b,1,0x238+200+86,QByteArray(2,0));QVERIFY(release(b).error.contains("battle"));
+        b=movePatch(base,1,0x234,QByteArray(1,2));b=movePatch(b,1,0x238+200,QByteArray(100,0));QVERIFY(release(b).error.contains("at least two"));
+        b=movePatch(base,5,4,QByteArray(80,1));QVERIFY(release(b).error.contains("readable"));
+        for(int move:{57,291,70,249}) { // Surf, Dive, Strength, Rock Smash
+            auto mon=setTestMoves(pokemonFixture(7),{move,0,0,0});mon[85]=char(255);put16(mon,86,15);
+            b=movePatch(base,1,0x238,mon);
+            if(move==70 || move==249) {QVERIFY(!release(b).data.isEmpty());b=movePatch(b,1,4,QByteArray::fromHex("100a"));}
+            QVERIFY(release(b).error.contains("must know"));
+            if(move==70 || move==249){b=movePatch(b,1,5,QByteArray(1,14));QVERIFY(release(b).error.contains("must know"));}
+            auto backup=mon.left(80);b=movePatch(b,5,4,backup);
+            QVERIFY2(release(b).error.isEmpty(),qPrintable(release(b).error));
+        }
+        QVERIFY(!readGen3Progress(save(Gen3Edition::FireRed),Gen3Edition::FireRed).party->canRelease);
+    }
     void emeraldMovementPreservesIdentitiesAndUnrelatedBytes() {
         for(int n=0;n<24;++n) {
             const int rotation=n%14,at=0xe000+((1+rotation)%14)*0x1000;

@@ -21,7 +21,9 @@ struct PokemonRecord {
 };
 struct PokemonBox { QString name; QList<PokemonRecord> members; };
 struct PartySnapshot {
-    bool canManage = false; // Independently verified exact-build writer, not read support.
+    // Independent exact-build writers; reading alone grants neither capability.
+    bool canManage = false;
+    bool canRelease = false;
     QString error;
     QList<PokemonRecord> party;
     QList<PokemonBox> boxes;

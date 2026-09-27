@@ -32,7 +32,8 @@ relearning and shard/Shoal item payments are delivered (51 counters). Discovered
 and #83–88 navigation are delivered. Bounded R4–R6 work adds #75 device-wide
 read-only saves, current-game RA refresh/return notices and exact FireRed
 Party/Boxes/Dex/healing. See docs/SAVE_POLICY_FIRERED.md for proof and open gates.
-Protected Emerald reorder, empty-slot box moves and Party/Box transfer are delivered; see docs/EMERALD_MOVEMENT.md. Continue the remaining management acceptance. Preserve every earlier acceptance
+Protected Emerald reorder, empty-slot box moves and Party/Box transfer are delivered; see docs/EMERALD_MOVEMENT.md. Protected Emerald release is delivered with separate X confirmation and Center rollback;
+see docs/EMERALD_RELEASE.md. Continue R4 Journey/Champion history while retaining the remaining item/box service acceptance. Preserve every earlier acceptance
 unless explicitly superseded in that register.
 
 - #11/#39 are closed **as superseded**: retain Steam Gaming Mode, add installed

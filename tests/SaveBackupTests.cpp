@@ -50,6 +50,39 @@ private slots:
         QVERIFY(!moveSavePokemon(f.dir.filePath("blocked"),f.record,f.inspect().token,{},f.resolve,mover).success);QCOMPARE(read(f.path),QByteArray("FIRST SAVE"));
     }
 
+    void releaseUsesProtectionPolicyStaleGuardAndExactUndo() {
+        Fixture f;int calls=0;
+        PokemonReleaser mover=[&](const QByteArray& input,const QString&,const PokemonRelease&){++calls;return PokemonReleaseResult{input+" MOVED",{},"Moved"};};
+        const auto token=f.inspect().token;
+        QVERIFY(setSaveWritesReadOnly(f.root,true).isEmpty());
+        QVERIFY(!releaseSavePokemon(f.root,f.record,token,{},f.resolve,mover).success);QCOMPARE(calls,0);
+        QVERIFY(setSaveWritesReadOnly(f.root,false).isEmpty());
+        QVERIFY(!releaseSavePokemon(f.root,f.record,"stale",{},f.resolve,mover).success);QCOMPARE(calls,0);
+        auto result=releaseSavePokemon(f.root,f.record,token,{},f.resolve,mover);QVERIFY(result.success);QCOMPARE(calls,1);
+        QCOMPARE(read(f.path),QByteArray("FIRST SAVE MOVED"));QCOMPARE(result.snapshot.copies.size(),1);
+        QCOMPARE(result.snapshot.copies[0].reason,"release");
+        auto restored=restoreSaveBackup(f.root,f.record,result.snapshot.copies[0],result.snapshot.token,f.resolve);
+        QVERIFY(restored.success);QCOMPARE(read(f.path),QByteArray("FIRST SAVE"));
+        f.target.supported=false;QVERIFY(!releaseSavePokemon(f.root,f.record,token,{},f.resolve,mover).success);
+        f.target.supported=true;write(f.dir.filePath("blocked"),"file");
+        QVERIFY(!releaseSavePokemon(f.dir.filePath("blocked"),f.record,f.inspect().token,{},f.resolve,mover).success);QCOMPARE(read(f.path),QByteArray("FIRST SAVE"));
+    }
+
+    void releaseRechecksRuntimeAndSourceAfterPreparation() {
+        Fixture f;auto token=f.inspect().token;
+        PokemonReleaser changed=[&](const QByteArray&,const QString&,const PokemonRelease&) {
+            write(f.path,"NEW IN GAME SAVE");return PokemonReleaseResult{"RELEASED",{},"Released"};
+        };
+        QVERIFY(!releaseSavePokemon(f.root,f.record,token,{},f.resolve,changed).success);
+        QCOMPARE(read(f.path),QByteArray("NEW IN GAME SAVE"));
+        token=f.inspect().token;int resolutions=0;
+        const SaveTargetResolver runtime=[&](const AdventureRegistration&){auto t=f.target;if(++resolutions>1){t.supported=false;t.error="Game running";}return t;};
+        const PokemonReleaser release=[](const QByteArray&,const QString&,const PokemonRelease&){return PokemonReleaseResult{"RELEASED",{},"Released"};};
+        QVERIFY(!releaseSavePokemon(f.root,f.record,token,{},runtime,release).success);
+        QCOMPARE(read(f.path),QByteArray("NEW IN GAME SAVE"));
+        QVERIFY(!f.inspect().copies.isEmpty());
+    }
+
     void deviceReadOnlyPolicyBlocksAllMutatorsAndSurvivesRestart() {
         Fixture f;const auto copy=f.backup();const auto before=f.inspect();int edits=0;
         const SaveHealer healer=[&](const QByteArray&,const QString&){++edits;return SaveHealing{"HEALED",{},1};};

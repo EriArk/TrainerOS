@@ -1,6 +1,6 @@
 # TrainerOS Roadmap
 
-**2026-09-27 #91:** [Adapter knowledge base](adapters/README.md) is a prerequisite for new exact-game research and is updated throughout every adapter increment. It composes the existing #42/#89 work, without replacing or dropping any R1–R18 acceptance. A portable copy of the actual adapter, exact-game profiles and standalone build travel with its evidence. The delivered Emerald slice covers reorder, box movement and Party/Box transfer; release remains later.
+**2026-09-27 #91:** [Adapter knowledge base](adapters/README.md) is a prerequisite for new exact-game research and is updated throughout every adapter increment. It composes the existing #42/#89 work, without replacing or dropping any R1–R18 acceptance. A portable copy of the actual adapter, exact-game profiles and standalone build travel with its evidence. The delivered Emerald slice covers reorder, box movement, Party/Box transfer and protected release.
 
 ## Current plan — reconciled 2026-09-27
 
@@ -52,9 +52,12 @@ restore are installed. [Exact bounds and normal-game evidence](EMERALD_MOVEMENT.
 The #91 knowledge base includes reusable source, tables and three exact profiles.
 This closes only those movement slices, not all R4 acceptance.
 
-**Next increment: 3/6 Высокое (High)** — remaining protected Emerald Party/Boxes
-management (release and its explicit confirmation/rollback), then R4 live
-Journey/Champion history. Keep item/box services and all later queue entries;
+**2026-09-27 release delivery:** Emerald Party/Boxes release now has a separate
+verified capability, deliberate X confirmation, native progression safeguards,
+pre-edit backup and exact Center restore. [Device/game evidence](EMERALD_RELEASE.md).
+
+**Next increment: 3/6 Высокое (High)** — R4 live Journey/Champion history.
+Keep item/box services and all later queue entries;
 practice and two-device Link retain their independent research/proof gates.
 Before trusted Link, add #93 signed lineage and #94 observable session policy;
 ordinary local play remains independent of verified status.
