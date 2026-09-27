@@ -23,6 +23,31 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void cyclicFacesRestoreIndependentlyAndStartContainsNoGameServices() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        QVERIFY(!shell.multiverseHome());shell.dispatch(Action::Secondary);QVERIFY(!shell.multiverseHome());
+        shell.dispatch(Action::NextFace);QVERIFY(shell.multiverseHome());shell.dispatch(Action::NextFace);QVERIFY(!shell.multiverseHome());
+        shell.goToPage(2);const QStringList faces{"dex","party","boxes","center","playroom","shops"};
+        for(int i=0;i<12;++i){QCOMPARE(shell.pokemonFace(),faces[i%6]);shell.dispatch(Action::NextFace);}
+        for(int i=0;i<12;++i){shell.dispatch(Action::PreviousFace);QCOMPARE(shell.pokemonFace(),faces[(11-i)%6]);}
+        shell.dispatch(Action::NextFace);shell.party()->dispatch(Action::Right);QCOMPARE(shell.party()->focusIndex(),1);
+        shell.dispatch(Action::NextFace);shell.party()->changeBox(1);shell.party()->dispatch(Action::Right);
+        QCOMPARE(shell.party()->box(),1);QCOMPARE(shell.party()->focusIndex(),1);
+        shell.dispatch(Action::NextPage);shell.dispatch(Action::PreviousPage);QCOMPARE(shell.pokemonFace(),"boxes");QCOMPARE(shell.party()->box(),1);
+        const auto state=shell.navigationState();shell.goToPage(0);shell.restoreNavigation(state);QCOMPARE(shell.pokemonFace(),"boxes");QCOMPARE(shell.party()->box(),1);
+        shell.dispatch(Action::PreviousFace);QCOMPARE(shell.party()->focusIndex(),1);
+        shell.goToPage(4);for(int i=0;i<9;++i){QCOMPARE(shell.faceIndex(),i%3);shell.dispatch(Action::NextFace);}
+        shell.dispatch(Action::PreviousFace);QCOMPARE(shell.faceIndex(),2);shell.dispatch(Action::PreviousFace);QCOMPARE(shell.faceIndex(),1);
+        shell.dispatch(Action::Back);QCOMPARE(shell.faceIndex(),1);
+        shell.goToPage(2);shell.dispatch(Action::PreviousFace);QCOMPARE(shell.pokemonFace(),"dex");
+        shell.pokedex()->dispatch(Action::Down);const auto zone=shell.pokedex()->zone();shell.dispatch(Action::Back);QCOMPARE(shell.pokedex()->zone(),zone);
+        QVERIFY(shell.menuItems().contains("Switch Trainer"));QVERIFY(!shell.menuItems().contains("Pokémon Center"));
+        shell.dispatch(Action::SystemMenu);shell.activate(6);QVERIFY(shell.powerMenu());QVERIFY(!shell.menuItems().contains("Switch Trainer"));
+        auto legacy=state;legacy.remove("pokemonFace");legacy.remove("party");legacy["pokedexFace"]="center";
+        shell.restoreNavigation(legacy);QCOMPARE(shell.pokemonFace(),"party");
+    }
     void clinicConfirmationAndStaleCompletionStayWithTheirAdventure() {
         class Library final : public LibraryRepository {
         public:
@@ -79,12 +104,18 @@ private slots:
         center.dispatch(Action::Back);center.dispatch(Action::Back);QVERIFY(center.shopGroup().isEmpty());QCOMPARE(center.merchantIndex(),1);
         center.dispatch(Action::Up);center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"stock");
         QCOMPARE(center.shopBalance(),5000);QCOMPARE(center.shopSelection()["currency"].toString(),QString::fromUtf8("₽"));
-        center.dispatch(Action::Right);QCOMPARE(center.quantity(),2);center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"confirm");QVERIFY(!service.working);
-        center.dispatch(Action::Back);QCOMPARE(center.shopRoute(),"stock");center.dispatch(Action::Confirm);center.dispatch(Action::Confirm);
-        QVERIFY(service.working);QCOMPARE(service.request.quantity,2);QCOMPARE(service.request.itemId,13);QCOMPARE(service.target,"two");
-        center.dispatch(Action::Back);QCOMPARE(center.shopRoute(),"confirm");service.finish();QCOMPARE(center.shopRoute(),"receipt");
+        center.dispatch(Action::Right);QCOMPARE(center.quantity(),2);center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"stock");QVERIFY(!service.working);QCOMPARE(center.basketCount(),2);
+        center.dispatch(Action::LocalAction);QCOMPARE(center.shopRoute(),"basket");center.dispatch(Action::Back);QCOMPARE(center.shopRoute(),"stock");
+        center.dispatch(Action::LocalAction);center.dispatch(Action::Confirm);
+        QVERIFY(service.working);QCOMPARE(service.request.kind,"basket");QCOMPARE(service.request.basket.size(),1);QCOMPARE(service.request.basket[0].quantity,2);QCOMPARE(service.request.basket[0].itemId,13);QCOMPARE(service.target,"two");
+        center.dispatch(Action::Back);QCOMPARE(center.shopRoute(),"basket");service.finish();QCOMPARE(center.shopRoute(),"receipt");
         center.close();QVERIFY(!center.shopsOpen());
         service.lessons=true;center.beginSelected("two");center.visitShops();QCOMPARE(center.shopCategories().size(),3);
+        center.applyShopSearch("potion");QCOMPARE(center.shopCategory(),"all");QCOMPARE(center.merchants().size(),2);QCOMPARE(center.shopStock().size(),1);
+        center.applyShopSearch("unseen secret");QVERIFY(center.merchants().isEmpty());QVERIFY(center.shopStock().isEmpty());QVERIFY(center.shopSelection().isEmpty());
+        center.applyShopSearch("");QCOMPARE(center.shopCategory(),"marts");
+        center.dispatch(Action::ToggleContinue);QCOMPARE(center.shopRoute(),"locations");center.dispatch(Action::Back);QCOMPARE(center.shopRoute(),"merchants");
+
         center.dispatch(Action::Left);QCOMPARE(center.shopCategory(),"unknown");QCOMPARE(center.merchants()[0].toMap()["name"].toString(),"???");QVERIFY(center.shopStock().isEmpty());
         center.dispatch(Action::Left);QCOMPARE(center.shopCategory(),"services");QCOMPARE(center.shopStock().size(),1); // Preview before entering.
         center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"stock");center.dispatch(Action::Confirm);QCOMPARE(center.shopRoute(),"recipients");
@@ -122,37 +153,18 @@ private slots:
         QVERIFY(!shell.menuOpen());QVERIFY(!shell.serviceOpen());
     }
     void centerActivitiesAreAnIsolatedRehearsal() {
-        PartyPresentation party(true);
-        party.setAdventure("one", "First");
-        party.dispatch(Action::Down); party.dispatch(Action::Down); party.dispatch(Action::Down);
-        QVERIFY(party.activitiesFocused());
-        party.dispatch(Action::Confirm); QCOMPARE(party.section(), "activities");
-        auto* activities = party.activities();
-        activities->activate(0); activities->dispatch(Action::Right); activities->dispatch(Action::Confirm);
-        QCOMPARE(activities->focusIndex(), 1); QVERIFY(!activities->reaction().isEmpty());
-        activities->dispatch(Action::Secondary); QCOMPARE(activities->gesture(),"greet");
-        party.setAdventure("one", "Renamed"); QCOMPARE(activities->route(), "playroom");
-        party.setAdventure("two", "Other"); QCOMPARE(activities->route(), "menu"); QVERIFY(activities->reaction().isEmpty());
-        activities->activate(1); activities->dispatch(Action::Confirm); QCOMPARE(activities->stage(), "preview");
-        activities->dispatch(Action::Back); QCOMPARE(activities->stage(), "setup");
-        activities->dispatch(Action::Back); activities->activate(2);
-        activities->dispatch(Action::Confirm); QCOMPARE(activities->stage(), "review");
-        activities->dispatch(Action::Confirm); QCOMPARE(activities->stage(), "interrupted");
-        activities->dispatch(Action::Back); activities->dispatch(Action::Back); activities->dispatch(Action::Back);
-        QCOMPARE(party.section(), "party"); QVERIFY(party.activitiesFocused());
-        party.dispatch(Action::Up); QCOMPARE(party.focusIndex(), 0);
-        PartyPresentation personal(false);
-        personal.dispatch(Action::Down); QVERIFY(personal.activitiesFocused());
-        personal.dispatch(Action::Confirm);
-        for (int i = 0; i < 3; ++i) {
-            personal.activities()->activate(i);
-            personal.activities()->dispatch(Action::Secondary);
-            QVERIFY(personal.activities()->reaction().isEmpty());
-            QCOMPARE(personal.activities()->stage(), "setup");
-            personal.activities()->dispatch(Action::Confirm);
-            QCOMPARE(personal.activities()->route(), "menu");
-        }
-        QVERIFY(personal.entries().isEmpty());
+        PartyPresentation party(true);party.setAdventure("one","First");party.showSection("activities");
+        auto* activities=party.activities();activities->showPlace("playroom");activities->dispatch(Action::Right);activities->dispatch(Action::Confirm);
+        QCOMPARE(activities->focusIndex(),1);QVERIFY(!activities->reaction().isEmpty());
+        activities->dispatch(Action::Secondary);QCOMPARE(activities->gesture(),"greet");
+        activities->dispatch(Action::Back);QCOMPARE(activities->route(),"playroom");
+        party.setAdventure("one","Renamed");QCOMPARE(activities->route(),"playroom");
+        party.setAdventure("two","Other");QVERIFY(activities->reaction().isEmpty());
+        activities->showPlace("practice");activities->dispatch(Action::Confirm);QCOMPARE(activities->stage(),"preview");
+        activities->dispatch(Action::Back);QCOMPARE(activities->stage(),"setup");
+        activities->dispatch(Action::Back);QCOMPARE(activities->route(),"playroom");
+        PartyPresentation personal(false);personal.showSection("activities");personal.activities()->showPlace("playroom");
+        personal.dispatch(Action::Confirm);QVERIFY(personal.activities()->reaction().isEmpty());QVERIFY(personal.entries().isEmpty());
     }
     void partyPresentationStaysReadOnlyAndContextBound() {
         PartyPresentation sample(true);
@@ -161,7 +173,7 @@ private slots:
         sample.activate(1); QCOMPARE(sample.detail()["hp"],"0 / 38");
         sample.dispatch(Action::Secondary); QCOMPARE(sample.section(),"party"); // Detail owns local input.
         sample.dispatch(Action::Back); QCOMPARE(sample.focusIndex(),1);
-        sample.dispatch(Action::Secondary); QCOMPARE(sample.entries().size(),30);
+        sample.showSection("storage"); QCOMPARE(sample.entries().size(),30);
         sample.dispatch(Action::Up); QVERIFY(sample.boxFocused());
         sample.dispatch(Action::Right); QCOMPARE(sample.box(),1);
         sample.dispatch(Action::Down); QVERIFY(!sample.boxFocused());
@@ -173,7 +185,7 @@ private slots:
         sample.setAdventure("two", "Other Adventure"); QCOMPARE(sample.focusIndex(),0); QCOMPARE(sample.box(),0); QVERIFY(!sample.detailOpen());
         PartyPresentation personal(false); personal.setAdventure("one", "Real Adventure");
         QVERIFY(personal.entries().isEmpty()); QVERIFY(personal.detail().isEmpty());
-        personal.activate(0); QCOMPARE(personal.section(),"saves");
+        QSignalSpy backups(&personal,&PartyPresentation::backupsRequested);personal.activate(0);QCOMPARE(backups.size(),1);
         personal.returnFromSaves(); personal.dispatch(Action::Secondary);
         QVERIFY(personal.entries().isEmpty()); QVERIFY(!personal.sample());
         personal.setAdventure("missing", {}); QVERIFY(personal.status().contains("no longer linked"));
@@ -186,7 +198,7 @@ private slots:
         QCOMPARE(sample.detail()["hp"], "0 / 38"); // Focus alone updates the inline summary.
         sample.dispatch(Action::Right);
         QCOMPARE(sample.focusIndex(), 1); // Never wrap unexpectedly into the next row.
-        sample.dispatch(Action::Secondary);
+        sample.showSection("storage");
         sample.dispatch(Action::Up); QVERIFY(sample.boxFocused());
         sample.dispatch(Action::Right); QCOMPARE(sample.box(), 1);
         sample.dispatch(Action::Back); QVERIFY(!sample.boxFocused());
@@ -194,11 +206,10 @@ private slots:
         sample.changeBox(-1); QCOMPARE(sample.focusIndex(), 0);
         sample.changeBox(1); QCOMPARE(sample.focusIndex(), 7);
         sample.dispatch(Action::Confirm); QVERIFY(sample.detailOpen());
-        sample.dispatch(Action::Up); sample.dispatch(Action::Confirm);
-        QCOMPARE(sample.section(), "saves");
-        sample.returnFromSaves(); QCOMPARE(sample.focusIndex(), 7);
+        QSignalSpy backup(&sample,&PartyPresentation::backupsRequested);sample.dispatch(Action::Up);sample.dispatch(Action::Confirm);
+        QCOMPARE(backup.size(),1);QCOMPARE(sample.section(),"storage");QCOMPARE(sample.focusIndex(),7);
         QVERIFY(!sample.detailOpen());
-        sample.dispatch(Action::Secondary); QCOMPARE(sample.focusIndex(), 1);
+        sample.showSection("party"); QCOMPARE(sample.focusIndex(), 1);
         PartyPresentation personal(false);
         personal.dispatch(Action::Secondary); personal.changeBox(1);
         QCOMPARE(personal.box(), 0); QVERIFY(personal.entries().isEmpty());
@@ -220,7 +231,7 @@ private slots:
         room->dispatch(Action::Secondary);QCOMPARE(room->gesture(),"rest");
         QCOMPARE(observation.party->party[0].hp,std::optional<int>(0));
         QCOMPARE(party.entries().size(),6);QCOMPARE(party.detail()["hp"],"0 / 20");
-        party.dispatch(Action::Secondary);QCOMPARE(party.boxCount(),14);QCOMPARE(party.box(),13);
+        party.showSection("storage");QCOMPARE(party.boxCount(),14);QCOMPARE(party.box(),13);
         QCOMPARE(party.boxName(),"Last box");QCOMPARE(party.entries().size(),30);
         party.changeBox(1);QCOMPARE(party.box(),0);
         GameProgress refresh; refresh.availability=ProgressAvailability::Checking;
@@ -249,7 +260,7 @@ private slots:
         p.contextRevision="owner-two";p.party->party[0].nickname="Other trainer";party.setProgress("emerald",p);
         QCOMPARE(room->actors()[0].toMap()["name"],"Other trainer");QVERIFY(room->reaction().isEmpty());QCOMPARE(room->focusIndex(),0);
         p.saveRevision="bad";p.party->error="Unreadable";party.setProgress("emerald",p);QVERIFY(room->actors().isEmpty());
-        room->dispatch(Action::Secondary);QVERIFY(room->reaction().isEmpty());room->dispatch(Action::Confirm);QCOMPARE(room->route(),"menu");
+        room->dispatch(Action::Secondary);QVERIFY(room->reaction().isEmpty());room->dispatch(Action::Confirm);QCOMPARE(room->route(),"playroom");
         p.saveRevision="empty";p.party->error.clear();p.party->party.clear();party.setProgress("emerald",p);QVERIFY(room->actors().isEmpty());
     }
     void playroomReactionsKeepActorsAndRespectRestingPartners() {
@@ -280,13 +291,13 @@ private slots:
         ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
         QSignalSpy launches(&shell, &ShellController::homeLaunchPressed);
         const auto pokemon = shell.currentAdventureId();
-        shell.dispatch(Action::Secondary); QVERIFY(shell.multiverseHome());
+        shell.dispatch(Action::NextFace); QVERIFY(shell.multiverseHome());
         shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::Right); shell.dispatch(Action::Confirm);
         QCOMPARE(shell.multiverse()->selected()["id"], "sample-orbit");
         QCOMPARE(shell.currentAdventureId(), pokemon); QCOMPARE(launches.size(), 0);
         shell.dispatch(Action::Confirm); QVERIFY(shell.notice().contains("No game"));
-        shell.dispatch(Action::Secondary); QVERIFY(shell.multiverseHome()); // Notice traps X.
-        shell.dispatch(Action::Back); shell.dispatch(Action::Secondary); QVERIFY(!shell.multiverseHome());
+        shell.dispatch(Action::NextFace); QVERIFY(shell.multiverseHome()); // Notice traps X.
+        shell.dispatch(Action::Back); shell.dispatch(Action::NextFace); QVERIFY(!shell.multiverseHome());
         QCOMPARE(shell.currentAdventureId(), pokemon);
         shell.goToPage(1); const auto route = shell.worlds()->navigationState();
         shell.dispatch(Action::NextFace); QVERIFY(shell.multiverseFace());
@@ -311,7 +322,7 @@ private slots:
         QCOMPARE(shell.page(), 0); QVERIFY(shell.multiverseHome());
         QCOMPARE(shell.multiverse()->selected()["id"], "sample-courier");
         QCOMPARE(shell.currentAdventureId(), pokemon); QCOMPARE(launches.size(), 0);
-        shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::Secondary); QVERIFY(shell.multiverseHome());
+        shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::NextFace); QVERIFY(shell.multiverseHome());
         shell.dispatch(Action::Back); shell.dispatch(Action::SystemMenu); shell.dispatch(Action::Secondary);
         QVERIFY(shell.multiverseHome()); shell.dispatch(Action::Back);
         shell.goToPage(2); QVERIFY(shell.resumePoints() != shell.multiverse()->choices());
@@ -360,7 +371,8 @@ private slots:
         QCOMPARE(library.mediaReads,reads);QCOMPARE(modelReset.size(),0);
         shell.multiverse()->applySearch("absent");QVERIFY(shell.multiverse()->games().isEmpty());QCOMPARE(shell.multiverse()->systems().size(),1);
         shell.dispatch(Action::Confirm);shell.dispatch(Action::Confirm);
-        QCOMPARE(shell.page(),0);QVERIFY(shell.multiverseHome());QVERIFY(adapter.launched.isEmpty());QCOMPARE(shell.currentAdventureId(),"pokemon");
+        QCOMPARE(shell.page(),1);QCOMPARE(adapter.launched,"multi0");QCOMPARE(shell.currentAdventureId(),"pokemon");
+        shell.multiverse()->select("multi0");shell.goToPage(0);shell.dispatch(Action::NextFace);
         const auto state=shell.navigationState();shell.dispatch(Action::Confirm);QCOMPARE(adapter.launched,"multi0");
         ShellController restored(library,profiles,adapter,platform,dex,dex,archive,achievements);restored.restoreNavigation(state);
         QVERIFY(restored.multiverseHome());QCOMPARE(restored.multiverse()->selected()["id"],"multi0");QCOMPARE(restored.currentAdventureId(),"pokemon");
@@ -399,12 +411,12 @@ private slots:
         achievements.enableAccountPreview();
         ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
         QVERIFY(!shell.multiverse()->sample());
-        shell.dispatch(Action::Secondary); QVERIFY(shell.multiverseHome());
+        shell.dispatch(Action::NextFace); QVERIFY(shell.multiverseHome());
         shell.dispatch(Action::ToggleContinue); QVERIFY(shell.resumePoints().isEmpty());
         shell.dispatch(Action::Confirm); QVERIFY(!shell.drawerOpen());
         shell.dispatch(Action::Confirm); QCOMPARE(shell.page(), 1); QVERIFY(shell.multiverseFace());
         shell.dispatch(Action::Confirm); QVERIFY(shell.multiverse()->games().isEmpty());
-        shell.dispatch(Action::Home); shell.dispatch(Action::Secondary); QVERIFY(!shell.multiverseHome());
+        shell.dispatch(Action::Home); shell.dispatch(Action::NextFace); QVERIFY(!shell.multiverseHome());
         shell.dispatch(Action::Confirm); QCOMPARE(shell.page(), 1); QVERIFY(!shell.multiverseFace());
         shell.dispatch(Action::Home);
         shell.dispatch(Action::SystemMenu); shell.activate(0); shell.activate(4);
@@ -533,14 +545,14 @@ private slots:
         shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::SystemMenu); shell.activate(0);
         QCOMPARE(shell.service(),QString("settings")); QVERIFY(!shell.drawerOpen());
         shell.dispatch(Action::Back); QVERIFY(shell.menuOpen()); shell.dispatch(Action::Back);
-        QVERIFY(shell.centerFace()); QVERIFY(service.busy()); service.finish();
+        QVERIFY(shell.centerFace()); if(service.busy())service.finish();
         shell.dispatch(Action::LocalAction); // Party/Storage opens the existing save shelf.
         shell.dispatch(Action::Confirm); QVERIFY(shell.center()->confirming());
         shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::NextFace);
         QVERIFY(!shell.drawerOpen()); QVERIFY(shell.centerFace()); QVERIFY(shell.center()->confirming());
         shell.dispatch(Action::Back); QVERIFY(!shell.center()->confirming());
         shell.dispatch(Action::Back); QVERIFY(shell.centerFace()); // B never flips a pair.
-        shell.dispatch(Action::PreviousFace); QVERIFY(!shell.centerFace());
+        shell.dispatch(Action::PreviousFace);shell.dispatch(Action::PreviousFace);shell.dispatch(Action::PreviousFace);QVERIFY(!shell.centerFace());
         QCOMPARE(shell.pokedex()->navigationState(),dexState);
         shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::NextPage);
         QVERIFY(!shell.drawerOpen()); QCOMPARE(shell.currentAdventureId(),chosen);
@@ -667,7 +679,7 @@ private slots:
         QCOMPARE(requested.first().first().toString(), "steam");
         shell.activate(6);
         QVERIFY(shell.powerMenu()); QVERIFY(!shell.modeConfirmation());
-        QCOMPARE(shell.focusIndex(), 3); // Fresh Power menu defaults to Cancel.
+        QCOMPARE(shell.focusIndex(), 2); // Fresh Power menu defaults to Cancel.
         shell.dispatch(Action::Confirm);
         QVERIFY(!shell.powerMenu()); QCOMPARE(requested.size(), 1);
         shell.activate(4); // Maintenance remains explicit, never a Power default.

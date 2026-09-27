@@ -35,7 +35,8 @@ struct MerchantSnapshot {
     QString error, lineage, discoveryNotice;
     QList<Merchant> merchants;
 };
-struct MerchantPurchase { QString merchantId; int itemId=0, quantity=0; QString kind="item"; int partySlot=-1, moveSlot=-1; QString recipientIdentity; };
+struct MerchantBasketLine { QString merchantId; int itemId=0, quantity=0; QString kind="item"; };
+struct MerchantPurchase { QString merchantId; int itemId=0, quantity=0; QString kind="item"; int partySlot=-1, moveSlot=-1; QString recipientIdentity; QList<MerchantBasketLine> basket; };
 struct MerchantWrite { QByteArray data; QString error, message; };
 using MerchantReader=std::function<MerchantSnapshot(const QByteArray&,const QString&)>;
 using MerchantBuyer=std::function<MerchantWrite(const QByteArray&,const QString&,const MerchantPurchase&)>;

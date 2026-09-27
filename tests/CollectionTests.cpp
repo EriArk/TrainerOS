@@ -82,7 +82,7 @@ private slots:
         int chosen = -1;
         for (int i = 0; i < rows.size(); ++i)
             if (rows[i].toMap()["id"] == "catalogue:firered-gba") chosen = i;
-        QVERIFY(chosen >= 0); worlds.activate(chosen); worlds.dispatch(Action::Back);
+        QVERIFY(chosen >= 0); worlds.activate(chosen);
         const auto state = worlds.navigationState();
         worlds.refresh(); QCOMPARE(worlds.detail()["id"].toString(), "catalogue:firered-gba");
         WorldsController restored(collection, adapter); restored.restoreNavigation(state);

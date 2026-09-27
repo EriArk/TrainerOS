@@ -32,6 +32,24 @@ struct Fixture {
 class SaveBackupTests final : public QObject {
     Q_OBJECT
 private slots:
+    void wholeBasketCommitsOnceAndCannotRepeatWithAnOldToken() {
+        Fixture f;int calls=0;
+        const MerchantBuyer buyer=[&](const QByteArray& bytes,const QString&,const MerchantPurchase& request){
+            ++calls;
+            if(request.kind!="basket" || request.basket.size()!=2 || request.basket[0].quantity!=20 || request.basket[1].quantity!=2)
+                return MerchantWrite{{},"Invalid basket",{}};
+            return MerchantWrite{bytes+" / 20 balls / 2 potions",{},"Purchased"};
+        };
+        MerchantPurchase request;request.kind="basket";request.basket={{"mart",4,20,"item"},{"mart",13,2,"item"}};
+        const MerchantReader reader=[](const QByteArray&,const QString&){MerchantSnapshot s;s.supported=true;return s;};
+        const auto before=f.inspect();const auto bought=purchaseSaveItems(f.root,f.record,before.token,request,f.resolve,buyer,reader);
+        QVERIFY(bought.success);QCOMPARE(calls,1);QCOMPARE(bought.snapshot.copies.size(),1);
+        QCOMPARE(read(f.path),QByteArray("FIRST SAVE / 20 balls / 2 potions"));
+        QVERIFY(!purchaseSaveItems(f.root,f.record,before.token,request,f.resolve,buyer,reader).success);
+        QCOMPARE(calls,1);QCOMPARE(f.inspect().copies.size(),1);
+        QVERIFY(restoreSaveBackup(f.root,f.record,bought.snapshot.copies[0],bought.snapshot.token,f.resolve).success);
+        QCOMPARE(read(f.path),QByteArray("FIRST SAVE"));
+    }
     void shoppingWritesOneProtectedSaveAndDiscoveryIsScoped() {
         Fixture f;bool unlocked=false;
         const MerchantReader reader=[&](const QByteArray&,const QString&){MerchantSnapshot s;s.supported=true;s.lineage="trainer-id";if(unlocked){Merchant m;m.discovered=true;m.id="one";m.name="Oldale";s.merchants.append(m);}return s;};

@@ -53,6 +53,8 @@ public:
     void activateControl(const QString& zone, int index);
     void refreshArchive();
     void switchFace();
+    int faceIndex() const {return overview()?0:isArchive()?1:2;}
+    void cycleFace(int delta);
     QJsonObject navigationState() const;
     void restoreNavigation(const QJsonObject&);
 signals:
@@ -74,6 +76,7 @@ private:
     bool sampleJourney_ = false;
     struct FaceView { QString route, zone; int action = 0; };
     FaceView archiveView_{"archive-list", "list"};
+    FaceView journeyView_{"archive-journey", "actions"};
     FaceView achievementView_{"sets", "list"};
     HallOfFameRepository& repository_;
     AchievementProvider& provider_;

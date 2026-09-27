@@ -6,6 +6,8 @@ Item {
     property string detail: ""
     property color tint: Theme.yellow
     property bool selected: false
+    property bool claimsFocus: true
+    property bool deferredFocus: false
     property int textSize: 17
     property bool centered: false
     property real contentInset: 13
@@ -25,9 +27,13 @@ Item {
     activeFocusOnTab: false
     Accessible.role: Accessible.Button
     Accessible.name: label + (detail.length ? ", " + detail : "")
-    onSelectedChanged: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
-    onVisibleChanged: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
-    Component.onCompleted: if (selected && visible) forceActiveFocus(Qt.OtherFocusReason)
+    function claimFocus() { if (claimsFocus && selected && visible && enabled) forceActiveFocus(Qt.OtherFocusReason) }
+    // Let a page/face transition finish evaluating visibility before taking
+    // focus. Synchronous focus changes can re-enter a parent's QML bindings.
+    function requestFocus() { if (deferredFocus) Qt.callLater(claimFocus); else claimFocus() }
+    onSelectedChanged: requestFocus()
+    onVisibleChanged: requestFocus()
+    Component.onCompleted: requestFocus()
     Rectangle {
         x: -1; y: 2; width: parent.width + 2; height: parent.height + 3
         radius: 10; color: "#50324438"

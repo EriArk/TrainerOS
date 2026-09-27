@@ -22,6 +22,11 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
         const auto press = [&](SDL_GameControllerButton button) {
             SDL_JoystickSetVirtualButton(joystick, button, 1); input.poll(); SDL_JoystickSetVirtualButton(joystick, button, 0); input.poll();
         };
+        const auto flip = [&](bool previous=false) {
+            const auto axis=previous?SDL_CONTROLLER_AXIS_TRIGGERLEFT:SDL_CONTROLLER_AXIS_TRIGGERRIGHT;
+            SDL_JoystickSetVirtualAxis(joystick,axis,32767);input.poll();
+            SDL_JoystickSetVirtualAxis(joystick,axis,-32768);input.poll();
+        };
         const auto focus = [&](const QString& name) { return window->activeFocusItem() && window->activeFocusItem()->objectName() == name; };
         const auto capture = [&](const QString& name) {
             const auto frame = window->grabWindow(); check(!frame.isNull(), "No rendered frame");
@@ -113,17 +118,17 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             check(shell.device()->rows()[1].toMap()["value"].toString().startsWith("55%"), "Quick brightness adjusted");
             capture("start-brightness"); press(SDL_CONTROLLER_BUTTON_Y); for(int i=0;i<5;++i) press(down); press(a); break;
         case 15:
-            check(shell.powerMenu() && focus("menu-3"), "Power opens on safe Cancel");
+            check(shell.powerMenu() && focus("menu-2"), "Power opens on safe Cancel");
             capture("power-menu"); press(a); break;
         case 16:
             check(!shell.powerMenu() && focus("menu-6"), "Cancel restores Power entry");
-            press(a); press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(a); break;
+            press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(a); break;
         case 17:
-            check(!shell.modeConfirmation() && shell.notice().contains("Switch Player"), "Unavailable switching is honest");
+            check(!shell.modeConfirmation() && shell.service()=="trainer-setup", "Switch Trainer opens directly from Start");
             press(b); press(b); press(b); break;
         case 18:
             check(!shell.menuOpen() && !shell.powerMenu(), "Back unwinds Power and Start");
-            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); for(int i=0;i<2;++i) press(down); press(a);
+            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(down); press(down); press(a);
             for (int i=0;i<4;++i) press(down); press(a); break;
         case 19:
             check(shell.service()=="settings" && focus("settings-control-0"), "Trainer settings entry");
@@ -181,9 +186,9 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(right); press(a); break;
         case 37:
             check(shell.party()->detailOpen() && shell.party()->detail()["hp"]=="0 / 38" && focus("party-detail-back"), "Known zero HP and detail focus"); capture("center-party-detail");
-            press(b); press(SDL_CONTROLLER_BUTTON_Y); break;
+            press(b); flip(); break;
         case 38:
-            check(shell.party()->section()=="storage" && focus("party-slot-0"), "X opens bounded Storage grid"); capture("center-storage");
+            check(shell.party()->section()=="storage" && focus("party-slot-0"), "R2 opens bounded Boxes grid"); capture("center-storage");
             press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(right); press(down); break;
         case 39:
             check(shell.party()->box()==1, "Storage header changes box without shoulders");
@@ -208,22 +213,19 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             check(shell.keyboard()->isOpen(), "Advertised X opens Center search"); press(b); break;
         case 86:
             check(focus("center-check"), "Cancelled empty search restores its opener");
-            shell.center()->beginSelected(shell.home()["adventureId"].toString()); press(b); *stage=42; break;
+            shell.center()->beginSelected(shell.home()["adventureId"].toString()); press(b); flip(true); *stage=42; break;
         case 42:
             check(shell.party()->section()=="storage" && focus("party-slot-7"), "Back restores original box slot");
             press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER); press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
         case 43:
             check(shell.centerFace() && focus("party-slot-7"), "Global pages preserve Center route");
-            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERLEFT,32767); input.poll();
-            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERLEFT,-32768); input.poll(); break;
+            flip(true); flip(true); break;
         case 44:
-            check(!shell.centerFace(), "Trigger returns to Pokedex");
-            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767); input.poll();
-            SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768); input.poll();
-            press(down); press(down); press(down); press(down); press(a); break;
+            check(!shell.centerFace(), "Triggers return through Party to Dex");
+            flip(true); flip(true); break;
         case 45:
-            check(shell.party()->section()=="activities" && focus("activity-menu-0"), "Center activities has stable menu focus");
-            capture("center-activities"); press(a); break;
+            check(shell.pokemonFace()=="playroom", "Playroom is a direct peer");
+            capture("center-activities"); break;
         case 46:
             check(focus("playroom-actor-0"), "Playroom uses a fixed actor control");
             capture("playroom"); press(right); press(a); break;
@@ -249,14 +251,14 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(SDL_CONTROLLER_BUTTON_BACK);
             check(shell.party()->activities()->gesture()=="play", "Select plays without opening backups");
             check(focus("playroom-actor-1"), "Play retains partner selection");
-            press(b); press(down); press(a); break;
+            press(b); shell.party()->activities()->showPlace("practice"); break;
         }
         case 49:
-            check(shell.party()->activities()->route()=="practice" && focus("activity-primary"), "Practice setup is controller accessible");
+            check(shell.party()->activities()->route()=="practice" && focus("activity-primary"), "Development practice fixture has a focused action");
             capture("practice-setup"); press(a); break;
         case 50:
             check(shell.party()->activities()->stage()=="preview", "Practice preview does not run a battle");
-            capture("practice-preview"); press(b); press(b); press(down); press(a); break;
+            capture("practice-preview"); press(b); press(b); flip(true); press(SDL_CONTROLLER_BUTTON_Y); break;
         case 51:
             check(shell.party()->activities()->route()=="link", "Link Counter is a separate route");
             capture("link-peer"); press(a); break;
@@ -265,10 +267,10 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             capture("link-review"); press(a); break;
         case 53:
             check(shell.party()->activities()->stage()=="interrupted", "Interrupted rehearsal never reports transfer success");
-            capture("link-interrupted"); press(b); press(b); press(b); press(SDL_CONTROLLER_BUTTON_DPAD_UP); break;
+            capture("link-interrupted"); press(b); press(b); flip(true); break;
         case 54:
-            check(shell.party()->section()=="storage" && focus("party-slot-25"), "Activities returns to the prior management slot");
-            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); for(int i=0;i<2;++i) press(down); press(a); break;
+            check(shell.party()->section()=="storage" && focus("party-slot-7"), "Center returns to the prior box slot");
+            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(down); press(down); press(a); break;
         case 55:
             check(shell.service()=="settings" && focus("settings-category-0"), "Settings categories focus");
             capture("settings-root"); press(a); break;

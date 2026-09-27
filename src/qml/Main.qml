@@ -54,7 +54,7 @@ Window {
             x: Theme.brandWidth; y: 0; spacing: Theme.tabSpacing
             z: 1 // Individual chassis-mounted keys; modal surfaces stay above them.
             Repeater {
-                model: ["Home", "Worlds", "Pokédex", "Trainer", "Hall of Fame"]
+                model: ["Home", "Worlds", "Pokémon", "Trainer", "Journey"]
                 delegate: Item {
                     id: tab
                     required property int index
@@ -140,6 +140,19 @@ Window {
             }
         }
         ChassisTopRim { z: 1.5 }
+        Row {
+            objectName: "navigation-chassis"; x: 28; y: Theme.brandHeight + Theme.screenBevel + 5; spacing: 12; z: 2
+            Hint {button:"L1 R1";label:"Sections";tint:Theme.blue;labelColor:Theme.ink}
+            Hint {button:"L2 R2";label:"";tint:Theme.green;visible:shell.faceNames.length>1;opacity:shell.pairedNavigationAvailable?1:.45}
+            Repeater {model:shell.faceNames
+                Text {
+                    required property int index;required property string modelData
+                    text:modelData;color:shell.faceIndex===index?Theme.ink:Theme.muted
+                    font.family:Theme.displayFamily;font.pixelSize:15;font.bold:shell.faceIndex===index
+                    Rectangle {anchors.left:parent.left;anchors.right:parent.right;anchors.bottom:parent.bottom;anchors.bottomMargin:-3;height:2;color:Theme.focusGlow;visible:shell.faceIndex===index}
+                }
+            }
+        }
         Item {
             id: screen
             objectName: "primary-screen"
@@ -197,7 +210,7 @@ Window {
                 if (shell.serviceOpen) return [h("A","Select"),h("B","Back")]
                 if (shell.page === 1) {
                     const list = shell.multiverseFace ? shell.multiverse.route === "games" : shell.worlds.route === "adventures"
-                    let result = list ? [h("X","Search"),h("Y","Filter"),h("A",shell.multiverseFace ? "Home" : "Open"),h("B",shell.multiverseFace ? "Systems" : "Regions")] : [h("A","Open"),h("B","Back")]
+                    let result = list ? [h("X","Search"),h("Y","Filter"),h("A",(shell.multiverseFace ? shell.multiverse.detail.playable : shell.worlds.detail.playable) ? "Play" : "Set up"),h("B",shell.multiverseFace ? "Systems" : "Regions")] : [h("A","Open"),h("B","Back")]
                     if(shell.canHoldConfirm) result.push(h("Hold A","Options"))
                     if(shell.canEditWorld) result.push(h("Select","Edit World"))
                     return result
@@ -206,9 +219,9 @@ Window {
                     const dex = shell.pokedex
                     if (dex.zone === "art") return [h("←→","Browse"),h("A","Use image"),h("B","Cancel")]
                     if (dex.zone === "picker") return [h("A","Apply"),h("B","Cancel")]
-                    let result = [h("X","Search")]
+                    let result = [h("X","Search"),h("Select","Filters")]
                     if (dex.zone === "list") result.push(h("←→","Jump 8"))
-                    result.push(h("A",dex.zone === "list" ? (dex.detail.favorite ? "Unfavorite" : "Favorite") : "Select"),h("B",dex.zone === "rail" ? "Entries" : "Filters"))
+                    result.push(h("A",dex.zone === "list" ? (dex.detail.favorite ? "Unfavorite" : "Favorite") : "Select"),h(dex.zone === "rail" ? "B" : "↑",dex.zone === "rail" ? "Entries" : "Filters"))
                     return result
                 }
                 if (shell.page === 2 && shell.centerFace) {
@@ -216,16 +229,18 @@ Window {
                     if (shell.center.shopsOpen) {
                         const route = shell.center.shopRoute
                         if (shell.center.busy) return []
-                        if (route === "merchants") return shell.center.shopGroup.length ? [h("A","Select"),h("B","Places")] : [h("←→","Categories"),h("A","Select"),h("B","Back")]
-                        if (route === "stock") return shell.center.shopSelection.lesson ? [h("A","Choose Pokémon"),h("B","Tutors")] : shell.center.shopSelection.payment ? [h("A","Exchange"),h("B","Shops")] : [h("←→","Quantity"),h("A","Buy"),h("B","Shops")]
+                        if (route === "merchants") return [h("←→","Categories"),h("X","Search"),h("Y","Place"),h("Select","Basket · "+shell.center.basketCount),h("A","Open"),h("B","Back")]
+                        if (route === "basket") return shell.center.basketCount ? [h("←→","Quantity"),h("X","Remove"),h("A","Buy basket"),h("B","Back")] : [h("A","Back"),h("B","Back")]
+                        if (route === "locations") return [h("A","Choose"),h("B","Back")]
+                        if (route === "stock") return shell.center.shopSelection.lesson ? [h("A","Choose Pokémon"),h("B","Tutors")] : [h("←→","Quantity"),h("A","Add"),h("Select","Basket · "+shell.center.basketCount),h("B","Shops")]
                         return [h("A",route === "confirm" ? "Confirm" : "Select"),h("B","Back")]
                     }
-                    if (shell.center.clinicOpen) return shell.center.busy ? [] : [h("A",shell.center.treatment === "ready" && shell.center.canHeal ? "Heal team" : "Back"),h("B","Back")]
+                    if (shell.center.clinicOpen) return shell.center.busy ? [] : [h("Select","Backups"),h("X","Link"),h("A",shell.center.treatment === "ready" && shell.center.canHeal ? "Heal team" : "OK")]
                     if (party.section === "saves") return shell.center.confirming ? [h("A","Restore"),h("B","Cancel")] : [h("X",shell.center.route === "adventures" ? "Search" : "Refresh"),h("Select","Backup"),h("A","Open"),h("B","Back")]
                     if (party.section === "activities") return party.activities.route === "playroom" && party.activities.hasParty ? [h("←→","Partner"),h("Select","Play"),h("X","Greet"),h("A","Call"),h("B","Back")] : [h("A","Select"),h("B","Back")]
                     if (party.detailOpen) return [h("A","Select"),h("B","Close")]
-                    if (party.boxFocused) return [h("←→","Box"),h("↓","Slots"),h("X","Party"),h("B","Back")]
-                    const actions = [h("X",party.section === "party" ? "Storage" : "Party"),h("Select","Backups"),h("A",party.available && !party.activitiesFocused ? "Actions" : "Open"),h("B","Back")]
+                    if (party.boxFocused) return [h("←→","Box"),h("↓","Slots"),h("B","Back")]
+                    const actions = [h("Select","Backups"),h("A",party.available && !party.activitiesFocused ? "Actions" : "Open"),h("B","Back")]
                     if (party.section === "storage" && party.available && !party.activitiesFocused && party.focusIndex < 6) actions.unshift(h("↑","Boxes"))
                     return actions
                 }
@@ -240,7 +255,7 @@ Window {
                     else if (hall.archive && hall.editable && hall.rows.length && !hall.overview) result.push(h("X","Edit"))
                     result.push(h("A","Open"),h("B","Back")); return result
                 }
-                if (shell.page === 0) return [h("X",shell.multiverseHome ? "Pokémon" : "Multiverse"),h("A",shell.multiverseHome ? (shell.multiverse.selected.id ? (shell.multiverse.selected.playable ? "Play" : "Set up") : "Explore") : shell.home.actionHint),h("B","Back")]
+                if (shell.page === 0) return [h("A",shell.multiverseHome ? (shell.multiverse.selected.id ? (shell.multiverse.selected.playable ? "Play" : "Set up") : "Explore") : shell.home.actionHint),h("B","Back")]
                 return [h("A","Select"),h("B",shell.trainer.editing ? "Cancel" : "Back")]
             }
             Row {
@@ -248,9 +263,8 @@ Window {
                 anchors { right: parent.right; rightMargin: 14; verticalCenter: parent.verticalCenter }
                 spacing: 9
                 transformOrigin: Item.Right
-                scale: Math.min(1, (footer.width - 136) / Math.max(1, implicitWidth))
-                Hint { visible: shell.pairedNavigationAvailable; button: "L2 R2"; label: shell.page === 1 ? (shell.multiverseFace ? "Worlds" : "Multiverse") : shell.page === 4 ? (shell.hall.archive ? "Achievements" : "Hall of Fame") : (shell.centerFace ? "Pokédex" : "Center"); tint: Theme.green }
-                Hint { button: "L1 R1"; label: "Sections"; tint: Theme.blue }
+
+
                 Repeater { model: footer.actions
                     delegate: Hint {
                         required property var modelData

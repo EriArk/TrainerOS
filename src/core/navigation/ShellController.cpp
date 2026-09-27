@@ -6,11 +6,20 @@
 #include <QSignalBlocker>
 #include <algorithm>
 #include <bit>
+#include "core/model/Experience.h"
 
 namespace trainer {
 void ShellController::configureProgress(GameProgressProvider* provider) {
     if (progress_) disconnect(progress_, nullptr, this, nullptr);
     progress_ = provider;
+    libraryTools_.capabilityQuery=[this](const AdventureRegistration& requested,QObject* receiver,std::function<void(QStringList)> done){
+        const auto record=repository_.registration(requested.adventure.id);
+        if(!record || record->revision!=requested.revision){done({"Adventure changed · Reopen Properties"});return;}
+        const auto caps=adapter_.capabilities(record->adventure);
+        QStringList rows{"Launch · "+QString(record->contentAvailable?(caps.launch?"Ready":"Needs setup"):"File unavailable")};
+        if(progress_)progress_->inspectCapabilities(*record,receiver,[done,rows](QStringList semantic){done(rows+semantic);});
+        else done(rows);
+    };
     if (progress_) connect(progress_, &GameProgressProvider::changed, this, [this] {
         refreshParty();
         const auto adventure = homeAdventure();
@@ -40,8 +49,9 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     });
     connect(&settings_, &SettingsController::trashRequested,this,[this]{libraryTools_.beginTrash();});
     connect(&party_, &PartyPresentation::changed, this, &ShellController::changed);
-    connect(&party_, &PartyPresentation::healingRequested, &center_, &SaveCenterController::visitClinic);
-    connect(party_.activities(), &CenterActivities::shopsRequested, &center_, &SaveCenterController::visitShops);
+    connect(&party_, &PartyPresentation::healingRequested, this, [this]{centerRoute_="clinic";showPokemonFace("center");});
+    connect(&party_, &PartyPresentation::backupsRequested, this, [this]{centerRoute_="backups";showPokemonFace("center");});
+    connect(party_.activities(), &CenterActivities::shopsRequested, this, [this]{showPokemonFace("shops");});
     connect(&center_, &SaveCenterController::changed, this, [this] {
         if (center_.confirming()) party_.openSaves();
     });
@@ -49,6 +59,8 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&multiverse_, &MultiversePresentation::searchRequested, this, [this](const QString& text) {
         textTarget_ = TextTarget::MultiverseSearch; keyboard_.begin("Multiverse · find a title", text, 48);
     });
+    connect(&multiverse_, &MultiversePresentation::setupRequested, this, [this](const QString& id){libraryFromWorlds_=true;service_="library";libraryManager_.beginEdit(id);emit changed();});
+    connect(&multiverse_, &MultiversePresentation::messageRequested, this, &ShellController::showNotice);
     connect(&multiverse_, &MultiversePresentation::homeRequested, this, [this] {
         multiverseHome_ = true; goToPage(0);
     });
@@ -58,7 +70,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&trainerSetup_, &TrainerSetupPresentation::changed, this, &ShellController::changed);
     connect(&trainerSetup_, &TrainerSetupPresentation::closeRequested, this, [this] {
         if (trainerChooserFromPower_) {
-            service_.clear(); menuOpen_ = true; powerMenu_ = true; menuFocus_ = 2;
+            service_.clear(); menuOpen_ = true; powerMenu_ = false; menuFocus_ = 2;
         } else service_ = "settings";
         emit changed();
     });
@@ -106,7 +118,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&libraryManager_, &LibraryManagementController::changed, this, &ShellController::changed);
     connect(&libraryManager_, &LibraryManagementController::saved, this, &ShellController::refreshLibrary);
     connect(&libraryManager_, &LibraryManagementController::messageRequested, this, [this](const QString& text) { notice_ = text; emit changed(); });
-    connect(&libraryManager_, &LibraryManagementController::closeRequested, this, [this] { service_.clear(); if(centerFace())openCenter(); menuOpen_ = !libraryFromWorlds_; libraryFromWorlds_ = false; emit changed(); });
+    connect(&libraryManager_, &LibraryManagementController::closeRequested, this, [this] { service_.clear(); if(centerFace())showPokemonFace(pokemonFace_); menuOpen_ = !libraryFromWorlds_; libraryFromWorlds_ = false; emit changed(); });
     connect(&worlds_, &WorldsController::setupRequested, this, [this](const QString& id) {
         libraryFromWorlds_ = true; service_ = "library"; libraryManager_.beginEdit(id); emit changed();
     });
@@ -118,7 +130,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&settings_, &SettingsController::messageRequested, this, [this](const QString& message) {
         if (service_ != "settings" || menuOpen_) { notice_ = message; emit changed(); }
     });
-    connect(&settings_, &SettingsController::closeRequested, this, [this] { service_.clear(); if(centerFace())openCenter(); menuOpen_ = true; emit changed(); });
+    connect(&settings_, &SettingsController::closeRequested, this, [this] { service_.clear(); if(centerFace())showPokemonFace(pokemonFace_); menuOpen_ = true; emit changed(); });
     connect(&hall_, &HallOfFameController::changed, this, &ShellController::changed);
     connect(&hall_, &HallOfFameController::messageRequested, this, [this](const QString& message) {
         notice_ = message; emit changed();
@@ -163,8 +175,10 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::Archive) hall_.editor()->applyText(text);
         else if (target == TextTarget::TrainerFavorite) trainer_.picker()->applySearch(text);
         else if (target == TextTarget::CenterSearch) center_.applySearch(text);
+        else if(target==TextTarget::ShopSearch)center_.applyShopSearch(text);
         else if (target == TextTarget::AchievementAccount) hall_.account()->applyText(text);
     });
+    connect(&center_, &SaveCenterController::shopSearchRequested,this,[this](const QString& text){textTarget_=TextTarget::ShopSearch;keyboard_.begin("Find goods or shops",text,64);});
     refreshContinue();
 }
 void ShellController::configureServices(FileCatalog* files, PreferencesRepository* preferences) {
@@ -203,21 +217,52 @@ bool ShellController::canEditWorld() const {
         && !drawerOpen_ && !libraryTools_.isOpen() && !worlds_.region().value("id").toString().isEmpty();
 }
 bool ShellController::localModalOpen() {
-    return libraryTools_.isOpen() || trainer_.editing() || (page_ == 2 && (centerFace_ ? center_.confirming() || center_.clinicOpen() || center_.shopsOpen() || party_.detailOpen()
+    return libraryTools_.isOpen() || trainer_.editing() || (page_ == 2 && (centerFace() ? center_.confirming() || center_.writing() || (center_.shopsOpen() && center_.shopModal()) || party_.detailOpen()
         : pokedex_.zone() == "picker" || pokedex_.zone() == "art" || pokedex_.saving()))
         || (page_ == 4 && (hall_.editor()->isOpen() || hall_.account()->isOpen()));
 }
 bool ShellController::chooseAdventureAvailable() {
-    return page_ != 1 && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
+    return page_ != 1 && !(page_==2 && pokemonFace_=="shops") && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
         && !keyboard_.isOpen() && !localModalOpen();
 }
+bool ShellController::navigationLocked() const {
+    return libraryTools_.busy() || center_.writing() || center_.confirming()
+        || (center_.shopsOpen() && center_.shopModal());
+}
 bool ShellController::pairedNavigationAvailable() {
-    if (page_ == 1) return !serviceOpen() && !menuOpen_ && notice_.isEmpty()
+    return page_!=3 && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
         && !keyboard_.isOpen() && !localModalOpen() && !drawerOpen_;
-    return (page_ == 4 || page_ == 2) && chooseAdventureAvailable() && !drawerOpen_;
+}
+QStringList ShellController::faceNames() const {
+    if(page_==0 || page_==1)return {"Pokémon","Multiverse"};
+    if(page_==2)return {"Dex","Party","Boxes","Center","Playroom","Shops"};
+    if(page_==4)return {"Journey","Hall","RA"};
+    return {};
+}
+int ShellController::faceIndex() const {
+    if(page_==0)return multiverseHome_?1:0;
+    if(page_==1)return multiverseFace_?1:0;
+    if(page_==2)return QStringList{"dex","party","boxes","center","playroom","shops"}.indexOf(pokemonFace_);
+    if(page_==4)return hall_.faceIndex();
+    return 0;
+}
+void ShellController::showPokemonFace(const QString& face) {
+    if(pokemonFace_=="playroom")playroomRoute_=party_.activities()->route()=="practice"?"practice":"playroom";
+    pokemonFace_=face;
+    center_.leaveClinic();center_.leaveShops();
+    if(face=="dex"){emit changed();return;}
+    openCenter();
+    if(face=="party" || face=="boxes")party_.showSection(face=="boxes"?"storage":"party");
+    else if(face=="center"){
+        if(centerRoute_=="backups")party_.openSaves();
+        else if(centerRoute_=="link"){party_.showSection("activities");party_.activities()->showPlace("link");}
+        else {party_.showSection("party");center_.visitClinic();}
+    }
+    else if(face=="shops")center_.visitShops();
+    else if(face=="playroom"){party_.showSection("activities");party_.activities()->showPlace(playroomRoute_);}
+    emit changed();
 }
 void ShellController::openCenter() {
-    centerFace_ = true;
     center_.beginSelected(currentAdventureId());
     refreshParty();
 }
@@ -269,14 +314,14 @@ int ShellController::focusIndex() const {
     if (service_ == "center") return center_.focusIndex();
     if (trainer_.editing()) return trainer_.focusIndex();
     if (page_ == 1) return multiverseFace_ ? multiverse_.focusIndex() : worlds_.focusIndex();
-    if (page_ == 2) return centerFace_ ? (party_.section() == "saves" ? center_.focusIndex() : party_.focusIndex()) : pokedex_.focusIndex();
+    if (page_ == 2) return centerFace() ? (party_.section() == "saves" || center_.shopsOpen() || center_.clinicOpen() ? center_.focusIndex() : party_.focusIndex()) : pokedex_.focusIndex();
     if (page_ == 4) return hall_.focusIndex();
     return drawerOpen_ ? drawerFocus_ : 0;
 }
 QJsonObject ShellController::navigationState() const {
     const QStringList pages{"home", "worlds", "pokedex", "trainer", "hall"};
-    return {{"version", 1}, {"page", pages[page_]},
-            {"homeAdventure", homeAdventureId_}, {"homeResume", homeResumeId_}, {"pokedexFace", centerFace_ ? "center" : "pokedex"},
+    return {{"version", 1}, {"experienceVersion",pokemonExperience().version}, {"page", pages[page_]},
+            {"homeAdventure", homeAdventureId_}, {"homeResume", homeResumeId_}, {"pokedexFace", pokemonFace_=="dex" ? "pokedex" : "center"}, {"pokemonFace",pokemonFace_}, {"centerRoute",centerRoute_}, {"party",party_.navigationState()},
             {"homeResumeSource", homeResumeSource_.toJson()},
             {"multiverse",multiverse_.navigationState()},{"homeDomain",multiverseHome_?"multiverse":"pokemon"},
             {"worldsFace",multiverseFace_?"multiverse":"pokemon"},
@@ -286,7 +331,7 @@ QJsonObject ShellController::navigationState() const {
 void ShellController::restoreNavigation(const QJsonObject& state) {
     if (state["version"].toInt() != 1) return;
     const QStringList pages{"home", "worlds", "pokedex", "trainer", "hall"};
-    centerFace_ = false;
+    pokemonFace_ = "dex";
     goToPage(std::max(0, int(pages.indexOf(state["page"].toString()))));
     homeAdventureId_ = state["homeAdventure"].toString(); homeResumeId_ = state["homeResume"].toString();
     homeResumeSource_ = ResumeSource::fromJson(state["homeResumeSource"].toObject());
@@ -300,8 +345,11 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     hall_.restoreNavigation(state["hall"].toObject());
     drawerFocus_ = 0;
     for (int i = 0; i < points_.size(); ++i) if (points_[i].id == state["resume"].toString()) drawerFocus_ = i;
-    centerFace_ = state["pokedexFace"].toString() == "center";
-    if (centerFace()) openCenter(); else refreshParty();
+    pokemonFace_=state["pokemonFace"].toString(state["pokedexFace"].toString()=="center"?"party":"dex");
+    if(!pokemonExperience().pokemonFaces.contains(pokemonFace_))pokemonFace_="dex";
+    centerRoute_=state["centerRoute"].toString()=="backups"?"backups":"clinic";
+    refreshParty();party_.restoreNavigation(state["party"].toObject());
+    if(page_==2)showPokemonFace(pokemonFace_);
     emit changed();
 }
 std::optional<Adventure> ShellController::homeAdventure() const {
@@ -417,20 +465,20 @@ QVariantList ShellController::resumePoints() const {
 }
 QStringList ShellController::menuItems() const {
     if (powerMenu_) {
-        QStringList items{"Power off", "Restart", trainerSetup_.live()?"Switch Player":"Switch Player (coming later)", "Cancel"};
+        QStringList items{"Power off", "Restart", "Cancel"};
         if (!platform_.dedicatedSession()) items.append(platform_.canSwitchSession() ? "Enter TrainerOS Mode" : "Exit Development App");
         return items;
     }
     // Stable action IDs: slot 1 retired when Controller moved into Settings.
-    return {"Settings", "", "Pokémon Center", "",
+    return {"Settings", "", "Switch Trainer", "",
             "Desktop / Maintenance Mode", "Steam Gaming Mode", "Power", "Volume", "Screen brightness"};
 }
 void ShellController::openTrainers() {
-    trainerChooserFromPower_ = powerMenu_;
+    trainerChooserFromPower_ = menuOpen_;
     goToPage(page_);trainerSetup_.begin();service_="trainer-setup";emit changed();
 }
 void ShellController::goToPage(int page) {
-    if(libraryTools_.busy())return;
+    if(navigationLocked())return;
     // Closing transient controllers emits their local notifications. Publish
     // only the completed shell transition, not every intermediate close, so
     // hidden Home/drawer bindings do not rebuild the library repeatedly.
@@ -443,11 +491,11 @@ void ShellController::goToPage(int page) {
     hall_.account()->close();
     trainer_.cancel();
     trainerSetup_.close();
-    center_.close();
+    center_.leaveClinic();center_.leaveShops();
     libraryManager_.close(); service_.clear();
     page_ = std::clamp(page, 0, 4); // No wrapping until physical-device testing.
     if (page_ == 1) repository_.refreshContentAvailability();
-    if (centerFace()) openCenter(); else refreshParty();
+    if (page_==2) showPokemonFace(pokemonFace_); else refreshParty();
     if (page_ == 3) trainer_.refreshOverview();
     drawerOpen_ = false;
     menuOpen_ = false;
@@ -459,7 +507,7 @@ void ShellController::goToPage(int page) {
     emit changed();
 }
 void ShellController::activate(int index, const QString& area) {
-    if(libraryTools_.busy())return;
+    if(libraryTools_.busy() || center_.writing())return;
     if(area=="world-edit" && canEditWorld()){libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
     if (area == "continue") { dispatch(Action::ToggleContinue); return; }
     if (!notice_.isEmpty()) { confirm(); emit changed(); return; }
@@ -486,8 +534,10 @@ void ShellController::activate(int index, const QString& area) {
         return;
     }
     else if (page_ == 2) {
-        if (centerFace_) {
-            if (area == "party-activities") party_.openActivities();
+        if (centerFace()) {
+            if (area == "party-activities") showPokemonFace("playroom");
+            else if (center_.shopsOpen()) center_.shopActivate(index);
+            else if (center_.clinicOpen()) center_.dispatch(Action::Confirm);
             else if (party_.section() == "saves") center_.activate(index); else party_.activate(index);
             return;
         }
@@ -528,9 +578,8 @@ void ShellController::confirm() {
     }
     if (menuOpen_) {
         if (powerMenu_) {
-            if (menuFocus_ == 3) { powerMenu_ = false; menuFocus_ = 6; return; }
-            if (menuFocus_ == 2) { if(trainerSetup_.live())emit trainersRequested();else notice_ = "Switch Player will be available when separate Trainer profiles are ready."; return; }
-            if (menuFocus_ == 4) {
+            if (menuFocus_ == 2) { powerMenu_ = false; menuFocus_ = 6; return; }
+            if (menuFocus_ == 3) {
                 if (platform_.canSwitchSession()) { mode_ = "traineros"; notice_ = "Enter the TrainerOS session?"; }
                 else { mode_ = "development-exit"; notice_ = "Close the development app?"; }
                 return;
@@ -539,7 +588,7 @@ void ShellController::confirm() {
             return;
         }
         if (menuFocus_ >= 7) { device_.adjustQuick(menuFocus_ - 7, Action::Confirm); return; }
-        if (menuFocus_ == 6) { powerMenu_ = true; menuFocus_ = 3; return; }
+        if (menuFocus_ == 6) { powerMenu_ = true; menuFocus_ = 2; return; }
         if (menuFocus_ >= 4 && platform_.canSwitchSession()) {
             mode_ = menuFocus_ == 5 ? "steam" : "desktop";
             notice_ = mode_ == "steam" ? "Open Steam Gaming Mode? Your Trainer data will be saved first."
@@ -549,14 +598,14 @@ void ShellController::confirm() {
         }
 
         if(menuFocus_==2) {
-            centerFace_ = false; goToPage(2); openCenter(); return;
+            if(trainerSetup_.live())emit trainersRequested();else openTrainers(); return;
         }
         if (menuFocus_ == 0 || menuFocus_ == 3) {
             hall_.account()->close();
             trainerSetup_.close();
             keyboard_.cancel(); textTarget_ = TextTarget::None; trainer_.cancel();
             libraryManager_.close(); libraryTools_.close(); menuOpen_ = false; drawerOpen_ = false;
-            center_.close();
+            center_.leaveClinic();center_.leaveShops();
             service_ = menuFocus_ == 0 ? "settings" : "library";
             if (service_ == "settings") settings_.begin();
             else { libraryFromWorlds_ = false; libraryManager_.begin(worlds_.region()["id"].toString()); }
@@ -579,7 +628,7 @@ void ShellController::confirm() {
             homeAdventureId_ = adventure.id; homeResumeId_ = point.resumePoint ? point.id : QString();
             homeResumeSource_ = point.resumePoint ? point.resumePoint->source : ResumeSource{};
             drawerOpen_ = false;
-            if (centerFace()) openCenter(); else refreshParty();
+            if (centerFace()) showPokemonFace(pokemonFace_); else refreshParty();
             return;
         }
         notice_ = "This Adventure is unavailable. Its history has been kept.";
@@ -639,6 +688,7 @@ void ShellController::confirm() {
 }
 void ShellController::dispatch(Action action) {
     if(libraryTools_.busy())return;
+    if(navigationLocked() && (action==Action::Home || action==Action::PreviousPage || action==Action::NextPage || action==Action::SystemMenu || action==Action::PreviousFace || action==Action::NextFace))return;
     if(action==Action::ContextMenu && canHoldConfirm()) {
         libraryTools_.beginGame((multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString());return;
     }
@@ -659,9 +709,12 @@ void ShellController::dispatch(Action action) {
     if (action == Action::PreviousFace || action == Action::NextFace) {
         if (pairedNavigationAvailable()) {
             if (page_ == 1) { multiverseFace_ = !multiverseFace_; if(multiverseFace_)repository_.refreshContentAvailability(); }
-            else if (page_ == 4) hall_.switchFace();
-            else if (centerFace_) { center_.close(); centerFace_ = false; }
-            else openCenter();
+            else if(page_==0)multiverseHome_=!multiverseHome_;
+            else if (page_ == 4) hall_.cycleFace(action==Action::NextFace?1:-1);
+            else {
+                const auto& faces=pokemonExperience().pokemonFaces;
+                showPokemonFace(faces[(faceIndex()+(action==Action::NextFace?1:5))%6]);
+            }
             emit changed();
         }
         return;
@@ -697,16 +750,20 @@ void ShellController::dispatch(Action action) {
         if (service_ == "diagnostics") { diagnostics_.dispatch(action); return; }
         if (service_ == "center") { center_.dispatch(action); return; }
         if (trainer_.editing()) { trainer_.dispatch(action); return; }
-        if (page_ == 0 && action == Action::Secondary) { multiverseHome_ = !multiverseHome_; emit changed(); return; }
+
         if (page_ == 1) {
             if (multiverseFace_) multiverse_.dispatch(action); else worlds_.dispatch(action);
             return;
         }
         if (page_ == 2) {
-            if (centerFace_) {
-                if (center_.clinicOpen() || center_.shopsOpen()) center_.dispatch(action);
+            if (centerFace()) {
+                if (pokemonFace_=="center" && center_.clinicOpen() && action==Action::LocalAction) {centerRoute_="backups";center_.leaveClinic();party_.openSaves();}
+                else if (pokemonFace_=="center" && center_.clinicOpen() && action==Action::Secondary) {centerRoute_="link";center_.leaveClinic();party_.showSection("activities");party_.activities()->showPlace("link");}
+                else if (center_.clinicOpen()) {if(action!=Action::Back)center_.dispatch(action);if(!center_.clinicOpen())center_.visitClinic();}
+                else if (center_.shopsOpen()) {center_.dispatch(action);if(!center_.shopsOpen())center_.visitShops();}
+                else if (pokemonFace_=="center" && action==Action::Back && !center_.confirming()){centerRoute_="clinic";showPokemonFace("center");}
                 else if (party_.section() != "saves") party_.dispatch(action);
-                else if (action == Action::Back && !center_.confirming() && !center_.busy()) party_.returnFromSaves();
+                else if (action == Action::Back && !center_.confirming() && !center_.busy()){centerRoute_="clinic";showPokemonFace("center");}
                 else center_.dispatch(action);
             }
             else pokedex_.dispatch(action);

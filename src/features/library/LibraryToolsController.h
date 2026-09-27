@@ -4,6 +4,7 @@
 #include "platform/storage/FileCatalog.h"
 #include <QObject>
 #include <QVariantList>
+#include <functional>
 
 namespace trainer {
 // Small, contextual library operations. Installation and save routing remain
@@ -36,6 +37,7 @@ public:
     void activate(int);
     void applyText(const QString&);
     void setCatalog(FileCatalog* catalog) {catalog_=catalog;}
+    std::function<void(const AdventureRegistration&,QObject*,std::function<void(QStringList)>)> capabilityQuery;
 signals:
     void changed();
     void saved();
@@ -54,6 +56,7 @@ private:
     FileCatalog* catalog_=nullptr;
     DirectoryPage directory_;
     QString root_,destination_;
+    QStringList capabilities_;
     quint64 browseGeneration_=0;
 };
 }

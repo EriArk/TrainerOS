@@ -3,6 +3,7 @@
 #include <QCryptographicHash>
 #include <QFile>
 #include <QFileInfo>
+#include <QPointer>
 
 namespace trainer {
 namespace {
@@ -50,6 +51,34 @@ GameProgressService::GameProgressService(ProgressSaveResolver resolver, QObject*
     connect(&thread_, &QThread::finished, worker_, &QObject::deleteLater); thread_.start();
 }
 GameProgressService::~GameProgressService() { thread_.quit(); thread_.wait(); }
+void GameProgressService::inspectCapabilities(const AdventureRegistration& record,QObject* receiver,std::function<void(QStringList)> done) {
+    const QPointer<QObject> guard(receiver);
+    QMetaObject::invokeMethod(worker_,[this,record,guard,done=std::move(done)] {
+        const auto target=resolver_(record);
+        const auto edition=gen3Edition(target.contentRevision);
+        const bool route=record.adventure.adapterId=="retroarch" && record.integrationConfig["core"].toString()=="mgba"
+            && record.adventure.kind!=AdventureKind::RomHack && target.supported;
+        const auto progress=inspectGameProgress(record,resolver_);
+        const bool available=progress.availability==ProgressAvailability::Available;
+        const bool emerald=route && edition==Gen3Edition::Emerald;
+        const auto bytes=available?readSave(target.savePath):QByteArray{};
+        const bool heal=emerald && !bytes.isEmpty() && healEmeraldParty(bytes,target.contentRevision).error.isEmpty();
+        const bool shops=emerald && !bytes.isEmpty() && readEmeraldShops(bytes,target.contentRevision).supported;
+        const auto state=[&](bool supported,bool ready){return !supported?QString("Not supported"):ready?QString("Ready"):QString("Unavailable");};
+        QStringList rows{
+            "Save backups · "+state(target.supported,target.supported&&target.error.isEmpty()),
+            "Progress / badges · "+state(route&&edition.has_value(),available),
+            "Pokédex · "+state(emerald,available),
+            "Party / Boxes · "+state(emerald,available&&progress.party.has_value()),
+            "Healing · "+state(emerald,heal),
+            "Shops · "+state(emerald,shops),
+            "Champion records · Not supported"};
+        const auto current=resolver_(record);
+        if(current.contentRevision!=target.contentRevision || current.contextRevision!=target.contextRevision || current.savePath!=target.savePath)
+            rows={"Adventure changed · Reopen Properties"};
+        QMetaObject::invokeMethod(this,[guard,done,rows]{if(guard)done(rows);},Qt::QueuedConnection);
+    },Qt::QueuedConnection);
+}
 void GameProgressService::invalidate() {
     ++generation_; pending_ = false; record_ = {}; snapshot_ = {}; emit changed();
 }

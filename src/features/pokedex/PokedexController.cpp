@@ -370,6 +370,7 @@ void PokedexController::activateControl(const QString& zone, int index) {
     activate(index);
 }
 void PokedexController::dispatch(Action action) {
+    if(action==Action::LocalAction && (zone_=="list" || zone_=="recovery")){zone_="rail";emit changed();return;}
     if (zone_ == "art") {
         if (action == Action::Back) zone_ = filtered_.isEmpty() ? "recovery" : "list";
         else if (action == Action::Confirm) { activate(artFocus_); return; }
@@ -381,7 +382,7 @@ void PokedexController::dispatch(Action action) {
     if (action == Action::Confirm) { activate(focusIndex()); return; }
     if (action == Action::Back) {
         if (zone_ == "picker") zone_ = "rail";
-        else if (zone_ == "list" || zone_ == "recovery") zone_ = "rail";
+
         else if (zone_ == "rail") zone_ = filtered_.isEmpty() ? "recovery" : "list";
     } else if (zone_ == "picker") {
         const int count = options().size() + 1;

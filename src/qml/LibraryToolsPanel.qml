@@ -15,7 +15,7 @@ Item {
         Column {
             x: 20; y: 18; width: parent.width-40; spacing: 8
             Text { id: header; width: parent.width; text: root.tools.title; textFormat: Text.PlainText; font.family: Theme.displayTypeface.name; font.pixelSize: 26; font.bold: true; color: Theme.ink; elide: Text.ElideRight }
-            Text { id: body; width: parent.width; visible: text.length>0; text: root.tools.detail; textFormat: Text.PlainText; font.pixelSize: 16; color: Theme.muted; wrapMode: Text.Wrap; maximumLineCount: 7; elide: Text.ElideMiddle }
+            Text { id: body; width: parent.width; visible: text.length>0; text: root.tools.detail; textFormat: Text.PlainText; font.pixelSize: 16; color: Theme.muted; wrapMode: Text.Wrap; maximumLineCount: tools.route==="properties" ? 3 : 7; elide: Text.ElideMiddle }
             ListView {
                 id: list; width: parent.width; height: Math.min(232,contentHeight); clip: true; spacing: 6
                 interactive: false; keyNavigationEnabled: false
@@ -26,7 +26,7 @@ Item {
                 delegate: CapButton {
                     required property int index; required property var modelData
                     objectName: "library-tool-"+index
-                    width: list.width; height: 48; textSize: 20; label: modelData.label
+                    width: list.width; height: root.tools.route==="properties" ? 36 : 48; textSize: root.tools.route==="properties" ? 16 : 20; label: modelData.label
                     opacity: modelData.enabled ? 1 : 0.42
                     tint: root.tools.route==="remove" && index===1 ? Theme.pink : Theme.blue
                     selected: root.takesFocus && root.tools.focusIndex===index

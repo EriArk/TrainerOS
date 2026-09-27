@@ -1,3 +1,7 @@
+> 2026-09-27 installed update: [cyclic navigation contract](NAVIGATION_20260927.md)
+> supersedes older pair-only routing, Home X and Start Center descriptions below.
+> Stable primary IDs and earlier lifecycle/modal requirements remain.
+
 # TrainerOS UX & Navigation
 
 **Current target — 2026-09-26:** #83–88 supersede old dated pair/Home-X,

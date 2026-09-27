@@ -1,6 +1,7 @@
 #pragma once
 #include "core/input/Action.h"
 #include <QObject>
+#include <QJsonObject>
 #include <QVariantList>
 #include "CenterActivities.h"
 #include "features/pokedex/ClassicArt.h"
@@ -52,11 +53,15 @@ public:
     void setAdventure(const QString& id, const QString& title);
     void dispatch(Action);
     void activate(int);
+    void showSection(const QString&);
+    QJsonObject navigationState() const;
+    void restoreNavigation(const QJsonObject&);
     void openSaves();
     void returnFromSaves();
 signals:
     void changed();
     void healingRequested();
+    void backupsRequested();
 private:
     QVariantMap slot(int) const;
     QVariantMap present(const PokemonRecord&, int) const;

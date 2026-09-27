@@ -48,6 +48,8 @@ signals:
     void libraryChanged();
     void searchRequested(const QString&);
     void homeRequested();
+    void setupRequested(const QString& id);
+    void messageRequested(const QString& message);
 private:
     struct Game { QString id, system, title; bool linked; };
     LibraryRepository* repository_ = nullptr;

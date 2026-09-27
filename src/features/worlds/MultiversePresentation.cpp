@@ -171,7 +171,13 @@ void MultiversePresentation::activate(int index) {
         } else {
             if (index < 0 || index >= list.size()) return;
             positions_[system_] = index;
-            if(list[index].linked) {select(list[index].id);emit homeRequested();}
+            if(sample_){if(list[index].linked){select(list[index].id);emit homeRequested();}} // Content-free UI rehearsal only.
+            else if(repository_ && adapter_){
+                const auto record=repository_->registration(list[index].id);
+                if(record && !record->removed && record->contentAvailable && adapter_->capabilities(record->adventure).launch){
+                    const auto result=adapter_->launch(record->adventure);if(!result.inProgress)emit messageRequested(result.message);
+                }else emit setupRequested(list[index].id);
+            }
         }
     }
     emit changed();

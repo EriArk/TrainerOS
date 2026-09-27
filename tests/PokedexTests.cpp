@@ -81,7 +81,8 @@ private slots:
         QCOMPARE(repo.progress("mudkip").favorite,before.favorite);
         dex.dispatch(Action::Confirm);
         QCOMPARE(dex.zone(),"list"); QCOMPARE(repo.progress("mudkip").favorite,!before.favorite);
-        dex.dispatch(Action::Back); QCOMPARE(dex.zone(),"rail");
+        dex.dispatch(Action::Back); QCOMPARE(dex.zone(),"list");
+        dex.dispatch(Action::LocalAction);QCOMPARE(dex.zone(),"rail");
         dex.dispatch(Action::Back); QCOMPARE(dex.zone(),"list");
         QCOMPARE(dex.detail()["id"],"mudkip");
     }

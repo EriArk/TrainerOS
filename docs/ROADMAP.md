@@ -16,10 +16,17 @@ Shoal Shell Bell recipe use protected save transactions. Exact item payments,
 move/PP writes and normal Emerald readback are verified.
 [Evidence and remaining acceptance](EMERALD_SHOPS.md#item-exchanges-and-move-reminder--2026-09-27).
 
-**Next increment: 3/6 Высокое (High)** — finish bounded discovered-stock
-search/location filtering and review remaining meaningful merchant-source
-coverage before the R2 audit. Reuse the delivered transactions and lessons;
-do not repeat completed traders. A demonstrated safety defect takes priority.
+**2026-09-27 R1–R3 delivery:** discovered-stock search and town filters,
+one-checkout quantity baskets, the bounded [adapter audit](ADAPTER_AUDIT.md),
+cyclic secondary navigation and direct wheel launch are implemented.
+[Navigation and delivery evidence](NAVIGATION_20260927.md). The #74 Properties
+projection and built-in #90 presentation descriptor are bounded foundations,
+not a completed franchise-pack registry.
+
+**Next increment: 3/6 Высокое (High)** — #75 device-wide read-only policy
+before additional save writers, then bounded R5 achievements and R6 FireRed work.
+The owner authorized three further increments together. R4's remaining box,
+Champion, practice and two-device gates stay open; they are not silently closed.
 
 The [R1–R18 queue](#unified-execution-order--existing-work-and-new-issues) below
 is authoritative. P0–P12 remain stable work areas, not scheduling numbers. Dated

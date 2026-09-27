@@ -318,9 +318,20 @@ private slots:
             seal();const auto hidden=readEmeraldShops(bytes,EmeraldHash);QVERIFY(hidden.supported);QCOMPARE(hidden.merchants.size(),51);
             for(const auto& m:hidden.merchants){QCOMPARE(m.name,"???");QVERIFY(m.id.isEmpty());QVERIFY(m.location.isEmpty());QVERIFY(m.stock.isEmpty());QVERIFY(!m.discovered);}
             QVERIFY(buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",13,1}).data.isEmpty());
-            flag(0x870);seal();auto state=readEmeraldShops(bytes,EmeraldHash);QVERIFY(state.merchants[0].discovered);QCOMPARE(state.merchants[0].stock.size(),4);
+            flag(0x870);seal();
+            auto state=readEmeraldShops(bytes,EmeraldHash);QVERIFY(state.merchants[0].discovered);QCOMPARE(state.merchants[0].stock.size(),4);
             QVERIFY(buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",4,1}).data.isEmpty());
             flag(0x74);seal();state=readEmeraldShops(bytes,EmeraldHash);QCOMPARE(state.merchants[0].stock.size(),5);
+            {
+                MerchantPurchase basket;basket.kind="basket";basket.basket={{"oldaletown-mart",4,20,"item"},{"oldaletown-mart",13,2,"item"}};
+                const auto result=buyEmeraldItems(bytes,EmeraldHash,basket);QVERIFY2(result.error.isEmpty(),qPrintable(result.error));
+                const auto snapshot=readEmeraldShops(result.data,EmeraldHash);QCOMPARE(snapshot.balance,5400);
+                for(const auto& m:snapshot.merchants)if(m.id=="oldaletown-mart")for(const auto& st:m.stock){if(st.itemId==4)QCOMPARE(st.owned,20);if(st.itemId==13)QCOMPARE(st.owned,2);}
+                auto rejected=basket;rejected.basket.append({"oldaletown-mart",13,99,"item"});QVERIFY(buyEmeraldItems(bytes,EmeraldHash,rejected).data.isEmpty());
+                rejected=basket;rejected.basket[1].merchantId="undiscovered";QVERIFY(buyEmeraldItems(bytes,EmeraldHash,rejected).data.isEmpty());
+                rejected=basket;rejected.basket[1].kind="tutor";QVERIFY(buyEmeraldItems(bytes,EmeraldHash,rejected).data.isEmpty());
+                rejected=basket;rejected.basket[0].quantity=-1;QVERIFY(buyEmeraldItems(bytes,EmeraldHash,rejected).data.isEmpty());
+            }
             auto purchase=buyEmeraldItems(bytes,EmeraldHash,{"oldaletown-mart",4,10});QVERIFY2(purchase.error.isEmpty(),qPrintable(purchase.error));
             const auto after=readEmeraldShops(purchase.data,EmeraldHash);QCOMPARE(after.balance,8000);QCOMPARE(after.merchants[0].stock[0].owned,10);
             QCOMPARE(qFromLittleEndian<quint16>(purchase.data.constData()+block1+0x654),quint16(12));

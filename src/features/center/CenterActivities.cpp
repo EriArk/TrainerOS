@@ -69,7 +69,7 @@ void CenterActivities::activate(int index) {
         actor_ = std::clamp(index, 0, int(actors_.size()) - 1);
         react("call"); return;
     }
-    else if (!sample_ || route_ == "playroom") route_ = "menu";
+    else if (!sample_ || route_ == "playroom") return;
     else if (route_ == "practice") stage_ = stage_ == "setup" ? "preview" : "setup";
     else stage_ = stage_ == "setup" ? "review" : stage_ == "review" ? "interrupted" : "setup";
     emit changed();
@@ -78,7 +78,8 @@ void CenterActivities::dispatch(Action action) {
     if (action == Action::Back) {
         if (route_ == "menu") { emit closeRequested(); return; }
         if (stage_ != "setup") stage_ = "setup";
-        else route_ = "menu";
+        else if(route_=="practice")route_="playroom";
+        else if(route_=="link"){emit closeRequested();return;}
         reaction_.clear();
     } else if (action == Action::Confirm) { activate(focusIndex()); return; }
     else if (route_ == "menu") {

@@ -228,9 +228,9 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             press(right); press(a); press(a); break;
         case 45:
             check(shell.notice().contains("No game was launched"), "Sample Home does not launch"); press(b);
-            press(SDL_CONTROLLER_BUTTON_Y); break;
+            flipFace(); break;
         case 46:
-            check(!shell.multiverseHome() && focusIs("home-launch"), "X returns to Pokemon Home");
+            check(!shell.multiverseHome() && focusIs("home-launch"), "Triggers return to Pokemon Home");
             capture("pokemon-home-context"); press(r1); break;
         case 47:
             check(shell.multiverseFace() && focusIs("multiverse-game-0"), "Page return keeps wheel position");

@@ -158,7 +158,8 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             check(focusIs("dex-entry-" + dex->detail()["id"].toString()) && dex->detail()["id"] == "eevee", "Refresh notice restores detail");
             press(SDL_CONTROLLER_BUTTON_BACK);break;
         case 43:
-            check(focusIs("dex-entry-eevee") && !shell.keyboard()->isOpen(), "Select leaves Dex browsing unchanged after journal removal");
+            check(dex->zone()=="rail" && !shell.keyboard()->isOpen(), "Select opens filters without a journal");
+            press(down);
             check(!dex->detail().contains("journalStatus") && !dex->detail().contains("notes"), "No manual journal data is presented");
             capture("save-only-dex"); press(r1); *stage=48; break;
         case 48:

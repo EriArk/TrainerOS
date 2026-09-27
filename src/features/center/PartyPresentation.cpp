@@ -1,5 +1,6 @@
 #include "PartyPresentation.h"
 #include <algorithm>
+#include <QJsonArray>
 
 namespace trainer {
 QString PartyPresentation::boxName() const {
@@ -149,12 +150,26 @@ void PartyPresentation::activate(int index) {
     if (section_ == "activities") { activities_.activate(index); return; }
     if (activitiesFocus_) { openActivities(); return; }
     if (boxFocus_) { changeBox(1); return; }
-    if (detail_) { if (index == 2) {detail_=false;emit changed();emit healingRequested();} else if (index == 1) openSaves(); else { detail_ = false; emit changed(); } return; }
-    if (!available()) { openSaves(); return; }
+    if (detail_) { if (index == 2) {detail_=false;emit changed();emit healingRequested();} else if (index == 1) {detail_=false;emit backupsRequested();} else { detail_ = false; emit changed(); } return; }
+    if (!available()) { emit backupsRequested(); return; }
     const int count = section_ == "party" ? 6 : 30;
     if (index < 0 || index >= count || section_ == "saves") return;
     (section_ == "party" ? partyFocus_ : storageFocus_[box_]) = index;
     detail_ = true; menuIndex_ = 0; emit changed();
+}
+void PartyPresentation::showSection(const QString& section) {
+    section_=section;detail_=false;activitiesFocus_=false;boxFocus_=false;emit changed();
+}
+QJsonObject PartyPresentation::navigationState() const {
+    QJsonArray positions;for(auto i:storageFocus_)positions.append(i);
+    return {{"adventure",id_},{"context",sourceContext_},{"box",box_},{"party",partyFocus_},{"slots",positions}};
+}
+void PartyPresentation::restoreNavigation(const QJsonObject& state) {
+    if(state["adventure"].toString()!=id_)return;
+    sourceContext_=state["context"].toString();
+    box_=std::clamp(state["box"].toInt(),0,13);partyFocus_=std::clamp(state["party"].toInt(),0,5);
+    const auto positions=state["slots"].toArray();for(int i=0;i<14;++i)storageFocus_[i]=std::clamp(i<positions.size()?positions.at(i).toInt():0,0,29);
+    initialBoxSet_=true;emit changed();
 }
 void PartyPresentation::openSaves() {
     if (section_ != "saves") previousSection_ = section_;
@@ -169,8 +184,8 @@ void PartyPresentation::dispatch(Action action) {
         else if (action == Action::Up || action == Action::Down) { menuIndex_ = (menuIndex_ + (action==Action::Up?1:2))%3; emit changed(); }
         return;
     }
-    if (action == Action::LocalAction) { openSaves(); return; }
-    if (action == Action::Secondary) { section_ = section_ == "party" ? "storage" : "party"; activitiesFocus_ = false; boxFocus_ = false; emit changed(); return; }
+    if (action == Action::LocalAction) { emit backupsRequested(); return; }
+
     if (boxFocus_) {
         if (action == Action::Left || action == Action::Right || action == Action::Confirm) changeBox(action == Action::Left ? -1 : 1);
         else if (action == Action::Down || action == Action::Back) { boxFocus_ = false; emit changed(); }
@@ -181,8 +196,7 @@ void PartyPresentation::dispatch(Action action) {
         if (action == Action::Up || action == Action::Back) { activitiesFocus_ = false; emit changed(); }
         return;
     }
-    const int lastRow = section_ == "party" ? 4 : 24;
-    if (action == Action::Down && (!available() || focusIndex() >= lastRow)) { activitiesFocus_ = true; emit changed(); return; }
+
     if (!available() || action == Action::Back) return;
     auto& focus = section_ == "party" ? partyFocus_ : storageFocus_[box_];
     const int columns = section_ == "party" ? 2 : 6;

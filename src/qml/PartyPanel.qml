@@ -6,14 +6,14 @@ Item {
     readonly property var party: shell.party
     readonly property var selected: party.detail
     readonly property bool storage: party.section === "storage"
-    readonly property bool takesFocus: visible && !shell.serviceOpen && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
+    readonly property bool takesFocus: shell.page === 2 && (shell.pokemonFace === "party" || shell.pokemonFace === "boxes") && !shell.serviceOpen && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
     enabled: !shell.drawerOpen
     Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset
         anchors.topMargin: Theme.contentTopInset; anchors.bottomMargin: Theme.panelInset
         PageHeader {
             id: heading; compact: true
-            title: root.storage ? "Storage" : "Party"
+            title: root.storage ? "Boxes" : "Party"
             trailing: root.party.sample ? "Development preview" : "Pokémon Center"
             subtitle: root.party.title || "Choose an Adventure"
         }
@@ -24,7 +24,7 @@ Item {
                 width: parent.width * 0.46; height: parent.height
                 color: root.storage ? "#ccdedf" : "#d3e2cc"; radius: 9
                 border.color: "#839d93"
-                CapButton {
+                CapButton { deferredFocus: true;
                     objectName: "party-box"; x: 12; y: 7; width: parent.width - 24; height: 33
                     visible: root.storage && root.party.available
                     label: "‹     " + root.party.boxName + "  " + (root.party.box + 1) + " / " + root.party.boxCount + "     ›"; centered: true; textSize: 15; tint: Theme.blue
@@ -36,13 +36,13 @@ Item {
                     columns: root.storage ? 6 : 2; spacing: root.storage ? 7 : 10
                     Repeater {
                         model: root.party.entries
-                        CapButton {
+                        CapButton { deferredFocus: true;
                             id: slot
                             required property int index
                             required property var modelData
                             objectName: "party-slot-" + index
                             width: (slots.width - (slots.columns - 1) * slots.spacing) / slots.columns
-                            height: root.storage ? (tray.contentHeight - 108) / 5 - 7 : (tray.contentHeight - 78) / 3
+                            height: root.storage ? (tray.contentHeight - 65) / 5 - 7 : (tray.contentHeight - 38) / 3
                             label: ""; tint: modelData.kind === "empty" ? "#dce6dc" : modelData.kind === "unreadable" ? "#e8bdb1" : index % 2 ? "#b6d9ed" : "#c6df9c"
                             selected: root.takesFocus && !root.party.detailOpen && !root.party.boxFocused && !root.party.activitiesFocused && root.party.focusIndex === index
                             onActivated: root.shell.activate(index)
@@ -78,10 +78,10 @@ Item {
                     x: 22; y: 44; width: parent.width - 44; spacing: 16; visible: !root.party.available
                     Text { textFormat: Text.PlainText; width: parent.width; text: root.storage ? "Your Pokémon boxes" : "Your team"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25 }
                     Text { textFormat: Text.PlainText; width: parent.width; text: root.party.status; color: Theme.muted; font.pixelSize: 16; wrapMode: Text.WordWrap }
-                    CapButton { objectName: "party-unavailable"; width: parent.width; height: 43; label: "Save backups"; tint: Theme.blue; selected: root.takesFocus && !root.party.activitiesFocused; onActivated: root.shell.activate(0) }
+                    CapButton { deferredFocus: true; objectName: "party-unavailable"; width: parent.width; height: 43; label: "Save backups"; tint: Theme.blue; selected: root.takesFocus && !root.party.activitiesFocused; onActivated: root.shell.activate(0) }
                 }
-                CapButton {
-                    objectName: "party-activities"; x: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 10 + (root.shell.chooseAdventureAvailable ? Theme.adventureCutoutHeight : 0); width: parent.width - 24; height: 33
+                CapButton { deferredFocus: true;
+                    objectName: "party-activities"; visible:false; x: 12; anchors.bottom: parent.bottom; anchors.bottomMargin: 10 + (root.shell.chooseAdventureAvailable ? Theme.adventureCutoutHeight : 0); width: parent.width - 24; height: 33
                     label: "Activities"; tint: Theme.blue; textSize: 14; centered: true
                     selected: root.takesFocus && root.party.activitiesFocused && !root.party.detailOpen
                     onActivated: root.shell.activate(0, "party-activities")
@@ -148,9 +148,9 @@ Item {
         MountedPanel {
             anchors.centerIn: parent; width: 330; height: 232; color: "#e3e9dc"
             Text { textFormat: Text.PlainText; x: 22; y: 17; width: parent.width - 44; text: root.selected.name || "Pokémon"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 24; elide: Text.ElideRight }
-            CapButton { objectName: "party-menu-heal"; x: 22; y: 56; width: 286; height: 38; label: "Visit Pokémon Center"; tint: Theme.pink; selected: root.takesFocus && root.party.menuIndex === 2; onActivated: root.party.activate(2) }
-            CapButton { objectName: "party-menu-backups"; x: 22; y: 108; width: 286; height: 42; label: "Adventure backups"; tint: Theme.blue; selected: root.takesFocus && root.party.menuIndex === 1; onActivated: root.party.activate(1) }
-            CapButton { objectName: "party-detail-back"; x: 22; y: 166; width: 286; height: 42; label: "Close"; selected: root.takesFocus && root.party.menuIndex === 0; onActivated: root.party.activate(0) }
+            CapButton { deferredFocus: true; objectName: "party-menu-heal"; x: 22; y: 56; width: 286; height: 38; label: "Visit Pokémon Center"; tint: Theme.pink; selected: root.takesFocus && root.party.menuIndex === 2; onActivated: root.party.activate(2) }
+            CapButton { deferredFocus: true; objectName: "party-menu-backups"; x: 22; y: 108; width: 286; height: 42; label: "Adventure backups"; tint: Theme.blue; selected: root.takesFocus && root.party.menuIndex === 1; onActivated: root.party.activate(1) }
+            CapButton { deferredFocus: true; objectName: "party-detail-back"; x: 22; y: 166; width: 286; height: 42; label: "Close"; selected: root.takesFocus && root.party.menuIndex === 0; onActivated: root.party.activate(0) }
         }
     }
 }

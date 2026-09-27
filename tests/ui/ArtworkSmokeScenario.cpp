@@ -55,7 +55,7 @@ void startArtworkSmoke(QQuickWindow* window, ShellController& shell, ControllerI
         }
         if (state->stage == 1) { capture("list-1080p"); state->stage++; return; }
         if (state->stage == 2) {
-            capture("detail-1080p"); press(b); for(int i=0;i<7;++i) press(right); press(a); state->stage++; return;
+            capture("detail-1080p"); press(SDL_CONTROLLER_BUTTON_BACK); for(int i=0;i<7;++i) press(right); press(a); state->stage++; return;
         }
         if (state->stage == 3) {
             check(dex->zone()=="art","Illustrations control opens artwork panel"); capture("artwork-source");
@@ -181,7 +181,8 @@ void startArtworkSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             press(SDL_CONTROLLER_BUTTON_START); press(b);
             check(dex->zone()=="list","Start returns to the Pokemon detail");
             press(r1); press(l1); check(dex->zone()=="list","Page navigation preserves detail");
-            press(b); check(dex->zone()=="rail","Back reaches filters on the same screen");
+            press(b); check(dex->zone()=="list","Back keeps the current face");
+            press(SDL_CONTROLLER_BUTTON_BACK); check(dex->zone()=="rail","Select opens filters on the same screen");
             dex->applySearch("37"); dex->activateControl("list",0); dex->cycleForm();
             if (QGuiApplication::platformName()=="offscreen") window->resize(960,540);
             state->stage=11; return;

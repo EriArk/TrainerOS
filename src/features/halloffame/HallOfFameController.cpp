@@ -239,6 +239,13 @@ void HallOfFameController::switchFace() {
     route_ = view.route; zone_ = view.zone; actionFocus_ = view.action;
     reconcile(); // Missing rows and changed account data must never leave hidden focus.
 }
+void HallOfFameController::cycleFace(int delta) {
+    if(editor_.isOpen() || account_.isOpen())return;
+    FaceView* views[]{&journeyView_,&archiveView_,&achievementView_};
+    const int from=faceIndex();*views[from]={route_,zone_,actionFocus_};
+    const auto view=*views[(from+(delta<0?2:1))%3];
+    route_=view.route;zone_=view.zone;actionFocus_=view.action;reconcile();
+}
 QJsonObject HallOfFameController::navigationState() const {
     QJsonObject selected;
     for (auto i = achievementIds_.cbegin(); i != achievementIds_.cend(); ++i) selected.insert(i.key(), i.value());
@@ -248,7 +255,8 @@ QJsonObject HallOfFameController::navigationState() const {
     const FaceView current{route_, zone_, actionFocus_};
     return {{"archive", archiveId_}, {"set", setId_}, {"achievements", selected}, {"route", route_},
             {"zone", zone_}, {"action", actionFocus_},
-            {"archiveView", encode(isArchive() ? current : archiveView_)},
+            {"journeyView", encode(overview() ? current : journeyView_)},
+            {"archiveView", encode(isArchive() && !overview() ? current : archiveView_)},
             {"achievementView", encode(isArchive() ? achievementView_ : current)}};
 }
 void HallOfFameController::restoreNavigation(const QJsonObject& state) {
@@ -271,10 +279,13 @@ void HallOfFameController::restoreNavigation(const QJsonObject& state) {
     };
     const bool archive = !QStringList{"sets", "achievements", "achievement-detail"}.contains(state["route"].toString());
     archiveView_ = decode(state["archiveView"].toObject(), true);
+    if(archiveView_.route!="archive-list" && archiveView_.route!="archive-detail")archiveView_={"archive-list","list"};
+    journeyView_=decode(state["journeyView"].toObject(),true);
+    if(!QStringList{"archive-journey","archive-champions","archive-champion-detail"}.contains(journeyView_.route))journeyView_={"archive-journey","actions"};
     achievementView_ = decode(state["achievementView"].toObject(), false);
     // Keep the old active-route fields readable without a database migration.
     const auto active = decode(state, archive);
-    (archive ? archiveView_ : achievementView_) = active;
+    (active.route=="archive-list"||active.route=="archive-detail" ? archiveView_ : archive ? journeyView_ : achievementView_) = active;
     route_ = active.route; zone_ = active.zone; actionFocus_ = active.action;
     if (route_ == "archive-champion-detail" && !sampleJourney_) route_ = "archive-champions";
     reconcile();
@@ -285,7 +296,7 @@ void HallOfFameController::showJourney() {
 }
 void HallOfFameController::back() {
     if (route_ == "archive-champion-detail") { route_ = "archive-champions"; emit changed(); return; }
-    if (route_ == "archive-list" || route_ == "archive-champions") { showJourney(); return; }
+    if (route_ == "archive-champions") { showJourney(); return; }
     if (route_ == "archive-detail") route_ = "archive-list";
     else if (route_ == "achievement-detail") route_ = "achievements";
     else if (route_ == "achievements") route_ = "sets";
@@ -300,7 +311,7 @@ void HallOfFameController::activate(int index) {
         if (route_ == "archive-champion-detail") { back(); emit changed(); }
         else if (route_ == "archive-champions" && sampleJourney_) { route_ = "archive-champion-detail"; emit changed(); }
         else if (route_ == "archive-champions") showJourney();
-        else { route_ = "archive-list"; zone_ = currentRows().isEmpty() ? "actions" : "list"; reconcile(); }
+        else { route_ = "archive-champions"; zone_ = "actions"; reconcile(); }
         return;
     }
     if (zone_ == "list") {

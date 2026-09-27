@@ -52,7 +52,7 @@ QtObject {
     readonly property int topRimHeight: viewportWidth - screenBounds.x - screenBounds.width
     readonly property real tabWidth: (screenBounds.x + screenBounds.width - brandWidth - 4 * tabSpacing) / 5
     readonly property int panelInset: 12
-    readonly property int contentTopInset: brandHeight + screenBevel + 1 - screenTop
+    readonly property int contentTopInset: brandHeight + screenBevel + 27 - screenTop
     readonly property int footerHeight: 37
     readonly property int footerTop: viewportHeight - footerHeight
     readonly property int adventureTabWidth: 292

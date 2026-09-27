@@ -40,7 +40,16 @@ class SaveCenterController final : public QObject {
     Q_PROPERTY(int quantity READ quantity NOTIFY changed)
     Q_PROPERTY(int shopBalance READ shopBalance NOTIFY changed)
     Q_PROPERTY(QString shopMessage READ shopMessage NOTIFY changed)
+    Q_PROPERTY(QString shopQuery READ shopQuery NOTIFY changed)
+    Q_PROPERTY(QString shopLocation READ shopLocation NOTIFY changed)
+    Q_PROPERTY(QStringList shopLocations READ shopLocations NOTIFY changed)
+    Q_PROPERTY(int shopLocationIndex READ shopLocationIndex NOTIFY changed)
+    Q_PROPERTY(QVariantList basketRows READ basketRows NOTIFY changed)
+    Q_PROPERTY(QString basketTotal READ basketTotal NOTIFY changed)
+    Q_PROPERTY(int basketIndex READ basketIndex NOTIFY changed)
+    Q_PROPERTY(int basketCount READ basketCount NOTIFY changed)
 public:
+    bool writing() const {return busy() && writing_;}
     explicit SaveCenterController(LibraryRepository&,QObject* parent=nullptr);
     void configure(SaveBackupService*);
     bool configured() const { return service_ != nullptr; }
@@ -81,6 +90,19 @@ public:
     int quantity() const {return quantity_;}
     int shopBalance() const;
     QString shopMessage() const;
+    QString shopQuery() const {return shopQuery_;}
+    QString shopLocation() const {return shopLocation_;}
+    QStringList shopLocations() const;
+    int shopLocationIndex() const {return shopLocationIndex_;}
+    void applyShopSearch(const QString&);
+    QVariantList basketRows() const;
+    QString basketTotal() const;
+    int basketIndex() const {return basketIndex_;}
+    int basketCount() const;
+    Q_INVOKABLE void openBasket();
+    bool shopModal() const {return shopsOpen_ && shopRoute_!="merchants" && shopRoute_!="stock";}
+    void leaveClinic(){clinicOpen_=false;emit changed();}
+    void leaveShops() {shopsOpen_=false;emit changed();}
     QString route() const { return route_; }
     QString title() const;
     QString message() const;
@@ -100,7 +122,9 @@ signals:
     void restored(const QString& adventureId);
     void messageRequested(const QString&);
     void merchantDiscovered(const QString&);
+    void shopSearchRequested(const QString&);
 private:
+    bool writing_ = false;
     void rebuild();
     void restore();
     void completed(const AdventureRegistration&,quint64,const SaveBackupResult&);
@@ -120,6 +144,8 @@ private:
     void dispatchShop(Action);
     void purchase();
     const Merchant* merchant() const;
+    const MerchantStock* stock() const;
+    QList<int> stockRows() const;
     QList<int> merchantRows() const;
     void normalizeShopCategory();
     bool shopsOpen_=false;
@@ -128,5 +154,10 @@ private:
     int recipientIndex_=0,lessonMoveIndex_=0;
     int groupParentIndex_=0;
     int merchantIndex_=0,stockIndex_=0,quantity_=1;
+    QString shopQuery_,shopLocation_,basketReturn_="stock";
+    int shopLocationIndex_=0,basketIndex_=0;
+    QList<MerchantBasketLine> basket_;
+    void buyBasket();
+    void resetShopContext();
 };
 }

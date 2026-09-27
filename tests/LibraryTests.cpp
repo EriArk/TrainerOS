@@ -147,7 +147,9 @@ private slots:
         QCOMPARE(shell.libraryTools()->route(),"remove");
         shell.dispatch(Action::Confirm);QCOMPARE(shell.libraryTools()->route(),"game"); // Default is non-destructive.
         shell.dispatch(Action::Back);QVERIFY(!shell.libraryTools()->isOpen());QVERIFY(shell.canHoldConfirm());
-        shell.dispatch(Action::Confirm);QCOMPARE(shell.worlds()->route(),"detail"); // Short A retains ordinary behavior.
+        QSignalSpy setup(shell.worlds(),&WorldsController::setupRequested);
+        shell.dispatch(Action::Confirm);QCOMPARE(shell.worlds()->route(),"adventures");
+        QCOMPARE(setup.size(),1); // Unconfigured titles open their setup on short A.
         shell.dispatch(Action::Back);
         shell.settings()->activate(2);QTRY_VERIFY(!shell.settings()->saving());QVERIFY(shell.canEditWorld());
         shell.dispatch(Action::LocalAction);QCOMPARE(shell.libraryTools()->route(),"world");

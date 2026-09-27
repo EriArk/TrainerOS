@@ -33,6 +33,9 @@ class ShellController final : public QObject {
     Q_PROPERTY(bool drawerOpen READ drawerOpen NOTIFY changed)
     Q_PROPERTY(bool chooseAdventureAvailable READ chooseAdventureAvailable NOTIFY changed)
     Q_PROPERTY(bool pairedNavigationAvailable READ pairedNavigationAvailable NOTIFY changed)
+    Q_PROPERTY(QString pokemonFace READ pokemonFace NOTIFY changed)
+    Q_PROPERTY(QStringList faceNames READ faceNames NOTIFY changed)
+    Q_PROPERTY(int faceIndex READ faceIndex NOTIFY changed)
     Q_PROPERTY(bool centerFace READ centerFace NOTIFY changed)
     Q_PROPERTY(bool multiverseFace READ multiverseFace NOTIFY changed)
     Q_PROPERTY(bool multiverseHome READ multiverseHome NOTIFY changed)
@@ -96,7 +99,10 @@ public:
     bool drawerOpen() const { return drawerOpen_; }
     bool chooseAdventureAvailable();
     bool pairedNavigationAvailable();
-    bool centerFace() const { return page_ == 2 && centerFace_; }
+    bool centerFace() const { return page_ == 2 && pokemonFace_ != "dex"; }
+    QString pokemonFace() const { return pokemonFace_; }
+    QStringList faceNames() const;
+    int faceIndex() const;
     QString currentAdventureId() const;
     bool menuOpen() const { return menuOpen_; }
     bool powerMenu() const { return powerMenu_; }
@@ -122,6 +128,8 @@ private:
     void refreshContinue();
     bool localModalOpen();
     void openCenter();
+    void showPokemonFace(const QString& face);
+    bool navigationLocked() const;
     void refreshParty();
     std::optional<Adventure> homeAdventure() const;
     std::optional<ResumePoint> homeResumePoint(const QString& adventureId) const;
@@ -147,7 +155,7 @@ private:
     SaveCenterController center_;
     PartyPresentation party_;
     QString service_;
-    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, LibraryTools, Archive, TrainerFavorite, CenterSearch, AchievementAccount, SetupName };
+    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, LibraryTools, Archive, TrainerFavorite, CenterSearch, ShopSearch, AchievementAccount, SetupName };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QString homeAdventureId_, homeResumeId_;
@@ -157,7 +165,8 @@ private:
     int menuFocus_ = 0;
     int menuServiceFocus_ = 0;
     bool drawerOpen_ = false;
-    bool centerFace_ = false;
+    QString pokemonFace_ = "dex";
+    QString centerRoute_ = "clinic", playroomRoute_ = "playroom";
     bool multiverseFace_ = false, multiverseHome_ = false;
     int multiverseDrawerFocus_ = 0;
     bool menuOpen_ = false;

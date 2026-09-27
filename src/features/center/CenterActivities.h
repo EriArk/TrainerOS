@@ -31,6 +31,7 @@ public:
     QString gesture() const { return gesture_; }
     void setParty(const QVariantList&, const QString& source, const QString& unavailable);
     void reset();
+    void showPlace(const QString& place){route_=place;stage_="setup";emit changed();}
     void dispatch(Action);
     Q_INVOKABLE void activate(int);
 signals:

@@ -95,9 +95,9 @@ private slots:
         session.setAdventureActive(false);session.setServiceActive(true);session.requestTrainerSwitch("two");QVERIFY(restarted.isEmpty());
         session.setServiceActive(false);session.setTrainerSwitchGuard([]{return false;});session.requestTrainerSwitch("two");QVERIFY(restarted.isEmpty());
         session.setTrainerSwitchGuard([]{return true;});
-        shell.dispatch(Action::SystemMenu);shell.activate(6);QVERIFY(shell.powerMenu());shell.activate(2);
+        shell.dispatch(Action::SystemMenu);shell.activate(2);
         QCOMPARE(shell.service(),"trainer-setup");QVERIFY(!shell.menuOpen());
-        shell.dispatch(Action::Back);QVERIFY(shell.powerMenu());QCOMPARE(shell.focusIndex(),2);
+        shell.dispatch(Action::Back);QVERIFY(shell.menuOpen());QVERIFY(!shell.powerMenu());QCOMPARE(shell.focusIndex(),2);
         shell.goToPage(3);session.requestTrainerSwitch("two");
         QTRY_COMPARE(restarted.size(),1);QVERIFY(exited.isEmpty());QVERIFY(session.blocked());QCOMPARE(store.navigation()["page"].toString(),"trainer");
         session.dispatch(Action::Back);session.dispatch(Action::NextPage);QVERIFY(session.blocked());

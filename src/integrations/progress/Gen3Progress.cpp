@@ -116,7 +116,29 @@ MerchantSnapshot readEmeraldShops(const QByteArray& save,const QString& hash) {
 }
 MerchantWrite buyEmeraldItems(const QByteArray& save,const QString& hash,const MerchantPurchase& request) {
     const auto slot=shopSlot(save,hash);if(!slot)return {{},"This Emerald save could not be verified.",{}};
-    const auto purchase=buyEmeraldShopBlock(worldBlock(*slot),slot->blocks[0],request,QRandomGenerator::global()->bounded(4096u));
+    auto purchase=EmeraldShopWrite{worldBlock(*slot),{}, {},slot->blocks[0]};
+    if(request.kind=="basket") {
+        if(request.basket.isEmpty()||request.basket.size()>32)return {{},"Choose items for your basket first.",{}};
+        for(const auto& line:request.basket) {
+            if(line.quantity<1||line.quantity>99||!QStringList{"item","decoration","coins","barter"}.contains(line.kind))
+                return {{},"This basket could not be verified.",{}};
+            // Single-sale counters (decorations, vending and exchanges) still
+            // run their exact game rule for each unit, inside one transaction.
+            bool single = line.kind=="barter" || line.kind=="decoration";
+            for(const auto& m:readEmeraldShopBlock(purchase.data,purchase.trainer).merchants)
+                if(m.id==line.merchantId)for(const auto& offer:m.stock)
+                    if(offer.itemId==line.itemId&&offer.kind==line.kind&&offer.maximum==1)single=true;
+            const int repeats=single?line.quantity:1;
+            for(int n=0;n<repeats;++n) {
+                purchase=buyEmeraldShopBlock(purchase.data,purchase.trainer,{line.merchantId,line.itemId,single?1:line.quantity,line.kind},QRandomGenerator::global()->bounded(4096u));
+                if(purchase.data.isEmpty())return {{},purchase.error,{}};
+            }
+        }
+        purchase.message="Your purchases are in your Bag and storage!";
+    } else {
+        if(!request.basket.isEmpty())return {{},"This purchase could not be verified.",{}};
+        purchase=buyEmeraldShopBlock(purchase.data,purchase.trainer,request,QRandomGenerator::global()->bounded(4096u));
+    }
     if(purchase.data.isEmpty())return {{},purchase.error,{}};
     auto result=save;
     for(int id=0;id<=4;++id){

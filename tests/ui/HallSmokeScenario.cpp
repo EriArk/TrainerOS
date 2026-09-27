@@ -62,12 +62,12 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
             check(hall->route()=="archive-champion-detail" && focusIs("journey-primary"), "Historical sample detail has a fixed Back action");
             capture("champion-sample-detail"); press(b); break;
         case -2:
-            check(hall->route()=="archive-champions", "B first returns to records"); press(b); flip(); break;
+            check(hall->route()=="archive-champions", "B first returns to records"); press(b); flip(SDL_CONTROLLER_AXIS_TRIGGERLEFT); break;
         case -1:
-            check(!hall->isArchive(), "Journey pairs with RA"); flip(); break;
+            check(!hall->isArchive(), "Journey wraps backward to RA"); flip(); break;
         case 0:
             check(hall->route()=="archive-journey" && focusIs("journey-primary"), "RA returns to Journey");
-            press(a); break;
+            flip(); break;
         case 1: check(focusIs("hall-row-crystal-champion"), "Initial archive focus"); capture("archive"); press(down, 3); break;
         case 2: {
             check(focusIs("hall-row-crystal-undated"), "Last archive record focus");
@@ -221,10 +221,10 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         }
         case 62:
             check(!shell.drawerOpen() && !hall->isArchive(), "B returns to the same RA face");
-            flip(); break;
+            flip(SDL_CONTROLLER_AXIS_TRIGGERLEFT); break;
         case 63:
             check(hall->isArchive() && hall->route() == "archive-detail" && focusIs("hall-action-0"), "Archive detail restored after account and drawer");
-            capture("paired-archive-return"); flip(SDL_CONTROLLER_AXIS_TRIGGERLEFT); break;
+            capture("paired-archive-return"); flip(); break;
         case 64:
             check(!hall->isArchive() && focused->objectName().startsWith("hall-"), "RA restores visible deterministic focus");
             capture("paired-achievement-return"); break;

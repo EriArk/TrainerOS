@@ -346,3 +346,26 @@ readback. The isolated validation session is closed after verification.
 
 Other Emerald consumers, Party/Storage operations, other exact games, two-device
 exchange and the final pack/credits work retain their roadmap gates.
+
+## Bounded source coverage review — 2026-09-27
+
+Reviewed the pinned `pret/pokeemerald` map scripts used for the existing 51
+counters: ordinary marts, Lilycove departments/roof, Slateport/Fortree markets,
+Frontier BP shops/tutors, Game Corner, ash/powder, Heart Scale, shard and Shoal
+exchanges. Search and location filters use only discovered names and stock.
+Unknown merchants cannot reveal their identity, location, category or wares
+through a query. A highlighted grouped department previews matching goods.
+
+The remaining item/currency-removal scripts are not additional repeatable shops:
+Safari/Oceanic Museum are admission; abandoned-ship keys, bikes and harbor
+tickets are story/access operations; Mauville's Harbor Mail/Coin Case exchange
+is a one-time quest. Fossil revival creates an individual and needs its own
+identity/capacity writer proof. Free move tutors/deletion and fossil services
+remain possible R4 services, not falsely counted as completed paid merchants.
+No new merchant mechanism was added merely to exhaust every script match.
+
+Basket lines retain merchant and offer identity, quantity and reward kind. The
+whole basket is recomputed against current verified bytes before a single
+protected commit. Any unavailable offer, insufficient combined payment or
+capacity failure rejects the complete candidate. Lessons retain their explicit
+recipient/move confirmation; they cannot be smuggled into an item basket.

@@ -52,14 +52,14 @@ private slots:
         QCOMPARE(reopened.route(), "archive-champions");
         reopened.dispatch(Action::Back);
         QCOMPARE(reopened.route(), "archive-journey");
-        reopened.dispatch(Action::Confirm);
+        reopened.cycleFace(1);
         QCOMPARE(reopened.route(), "archive-list");
         QCOMPARE(reopened.rows().size(), 4);
         reopened.activate(2); reopened.dispatch(Action::Back);
         QCOMPARE(reopened.rowIndex(), 2);
         reopened.dispatch(Action::Back);
-        QCOMPARE(reopened.route(), "archive-journey");
-        reopened.dispatch(Action::Confirm); QCOMPARE(reopened.rowIndex(), 2);
+        QCOMPARE(reopened.route(), "archive-list");
+        QCOMPARE(reopened.rowIndex(), 2);
         reopened.switchFace(); QCOMPARE(reopened.detail()["title"], achievement);
         const auto rows = reopened.rows();
         QVERIFY(!rows.isEmpty());
@@ -135,8 +135,8 @@ private slots:
             {"archiveView", QJsonObject{{"route", "achievement-detail"}, {"zone", "rail"}, {"action", 999}}}});
         QCOMPARE(hall.route(), "sets"); QCOMPARE(hall.zone(), "list");
         hall.switchFace();
-        QCOMPARE(hall.route(), "archive-journey"); QCOMPARE(hall.zone(), "actions");
-        hall.activate(0); hall.activate(2); hall.switchFace();
+        QCOMPARE(hall.route(), "archive-list"); QCOMPARE(hall.zone(), "list");
+        hall.activate(2); hall.switchFace();
         HallOfFameController restored(archive, provider);
         restored.restoreNavigation(hall.navigationState());
         QCOMPARE(restored.route(), "sets");
@@ -153,7 +153,7 @@ private slots:
         MockAchievementProvider provider;
         provider.enableAccountPreview();
         ShellController shell(library, profiles, adapter, platform, dex, dex, archive, provider);
-        shell.goToPage(4); shell.activate(0); shell.activate(1);
+        shell.goToPage(4); shell.dispatch(Action::NextFace);shell.activate(1);
         const auto choice = shell.currentAdventureId();
         QVERIFY(shell.pairedNavigationAvailable());
         shell.dispatch(Action::NextFace);
@@ -198,7 +198,7 @@ private slots:
         MockHallOfFameRepository archive;
         MockAchievementProvider provider;
         ShellController shell(library, profiles, adapter, platform, dex, dex, archive, provider);
-        shell.goToPage(4);
+        shell.goToPage(4);shell.dispatch(Action::NextFace);
         shell.dispatch(Action::LocalAction);
         auto* editor = shell.hall()->editor();
         editor->activate(0); editor->activate(0); editor->submit();

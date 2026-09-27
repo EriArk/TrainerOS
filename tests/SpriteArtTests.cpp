@@ -88,7 +88,8 @@ private slots:
         dex.activateControl("rail",7); QCOMPARE(dex.zone(),"art"); dex.dispatch(Action::Back);
         dex.cycleForm(); QVERIFY(dex.spriteChoices().isEmpty());
         dex.cancelTransient(); QCOMPARE(dex.zone(),"list");
-        dex.dispatch(Action::Back); QCOMPARE(dex.zone(),"rail");
+        dex.dispatch(Action::Back); QCOMPARE(dex.zone(),"list");
+        dex.dispatch(Action::LocalAction); QCOMPARE(dex.zone(),"rail");
     }
 };
 QTEST_GUILESS_MAIN(SpriteArtTests)

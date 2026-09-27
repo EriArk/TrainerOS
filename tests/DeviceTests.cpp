@@ -129,7 +129,7 @@ private slots:
         shell.dispatch(Action::SystemMenu); QTRY_VERIFY(!service.busy());
         shell.activate(7); QTRY_VERIFY(!service.busy()); QVERIFY(service.snapshot().muted);
         shell.dispatch(Action::Right); QTRY_VERIFY(!service.busy()); QCOMPARE(service.snapshot().volume, 40);
-        shell.activate(6); QVERIFY(shell.powerMenu()); QCOMPARE(shell.focusIndex(), 3);
+        shell.activate(6); QVERIFY(shell.powerMenu()); QCOMPARE(shell.focusIndex(), 2);
         shell.dispatch(Action::Confirm); QVERIFY(!shell.powerMenu()); QCOMPARE(shell.focusIndex(), 6);
         shell.dispatch(Action::Confirm); shell.activate(0); QVERIFY(shell.modeConfirmation()); QVERIFY(requested.isEmpty());
         shell.dispatch(Action::Back); QVERIFY(shell.powerMenu()); QVERIFY(requested.isEmpty());

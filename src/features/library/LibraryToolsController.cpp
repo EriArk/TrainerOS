@@ -60,7 +60,10 @@ QVariantList LibraryToolsController::rows() const {
     if(route_=="world")return {row("Rename World"),row("Done")};
     if(route_=="remove")return {row("Отмена"),row("Удалить")};
     if(route_=="restore")return {row("Cancel"),row("Restore game")};
-    if(route_=="properties")return {row("Back")};
+    if(route_=="properties"){
+        QVariantList result;for(const auto& capability:capabilities_)result.append(row(capability));
+        result.append(row("Back"));return result;
+    }
     QVariantList result;
     if(route_=="folder") {
         result={row("Move here",directory_.path!=root_ && directory_.path!=QFileInfo(game_.contentPath).canonicalPath()),row("New folder",directory_.path!=root_),row("Parent folder",directory_.path!=root_)};
@@ -97,7 +100,16 @@ void LibraryToolsController::activate(int index) {
             if(game_.adventure.domain=="pokemon"){route_="move-kind";focus_=0;}
             else {root_=repository_.storageRootFor(game_.adventure.id);browse(root_);return;}
         }
-        else {route_=index==2?"remove":"properties";focus_=0;}
+        else {
+            route_=index==2?"remove":"properties";focus_=0;
+            if(index==3 && capabilityQuery){
+                capabilities_={"Checking this Adventure…"};const auto generation=++browseGeneration_;
+                capabilityQuery(game_,this,[this,generation](QStringList rows){
+                    if(generation!=browseGeneration_ || route_!="properties")return;
+                    capabilities_=std::move(rows);focus_=0;emit changed();
+                });
+            }
+        }
     } else if(route_=="world") {
         if(index==0)emit textRequested("World name",world_.name,32);else close();
     } else if(route_=="move-kind") {
@@ -121,7 +133,7 @@ void LibraryToolsController::activate(int index) {
         if(index==0){dispatch(Action::Back);return;}
         submit({route_=="remove"?LibraryEditKind::RemoveGame:LibraryEditKind::RestoreGame,game_.adventure.id,game_.revision});
     } else if(route_=="trash") {game_=trash_[index];route_="restore";focus_=0;}
-    else if(route_=="properties")dispatch(Action::Back);
+    else if(route_=="properties" && index==values.size()-1)dispatch(Action::Back);
     emit changed();
 }
 void LibraryToolsController::applyText(const QString& text) {

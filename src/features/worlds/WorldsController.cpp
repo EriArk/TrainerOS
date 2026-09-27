@@ -363,7 +363,14 @@ void WorldsController::activate(int index) {
     } else if (route_ == Route::Adventures) {
         const auto count = currentAdventures().size();
         if (index == count) back();
-        else if (index >= 0 && index < count) { chooseAdventure(index); openDetail(); }
+        else if (index >= 0 && index < count) {
+            chooseAdventure(index);const auto adventure=currentAdventure();if(!adventure)return;
+            const auto id=adventure->id;const auto record=repository_.registration(id);
+            if(record && !record->removed && record->contentAvailable && adapter_.capabilities(record->adventure).launch){
+                const auto result=adapter_.launch(record->adventure);if(!result.inProgress)emit messageRequested(result.message);
+            } else if(repository_.editable())emit setupRequested(id);
+            else openDetail(); // Development fixture has no installed game.
+        }
     } else executeAction(index);
     emit changed();
 }

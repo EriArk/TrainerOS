@@ -19,6 +19,7 @@ void SaveCenterController::configure(SaveBackupService* service) {
 }
 QString SaveCenterController::title() const { return route_=="adventures" || selected_.adventure.id.isEmpty()?"Pokémon Center":selected_.adventure.title; }
 QString SaveCenterController::message() const {
+    if(selected_.adventure.id.isEmpty() && !message_.isEmpty())return message_;
     if(busy())return "Checking saves and keeping copies… You can leave this page; the operation will finish.";
     if(!message_.isEmpty())return message_;
     if(route_=="adventures")return "In-game save backups · choose an Adventure · unsupported setups stay unavailable";
@@ -60,11 +61,12 @@ void SaveCenterController::begin(const QString& preferred) {
     emit changed();
 }
 void SaveCenterController::beginSelected(const QString& id) {
-    shopsOpen_=false; clinicOpen_=false; treatment_="ready"; clinicMessage_.clear();
     const auto record=library_.registration(id);
     const bool same=companion_ && selected_.adventure.id==id && record && selected_.revision==record->revision;
+    if(same && open_)return;
+    shopsOpen_=false;clinicOpen_=false;treatment_="ready";clinicMessage_.clear();
     ++generation_;open_=true;companion_=true;confirming_=false;route_="copies";message_.clear();
-    if(!same){snapshot_={};focus_=0;}
+    if(!same){snapshot_={};focus_=0;resetShopContext();}
     selected_=record.value_or(AdventureRegistration{});
     refreshPending_=false;
     if(!record) {
@@ -79,7 +81,7 @@ void SaveCenterController::beginSelected(const QString& id) {
     } else refresh();
     emit rowsChanged();emit changed();
 }
-void SaveCenterController::close(){++generation_;open_=false;confirming_=false;clinicOpen_=false;shopsOpen_=false;refreshPending_=false;emit changed();}
+void SaveCenterController::close(){resetShopContext();++generation_;open_=false;confirming_=false;clinicOpen_=false;shopsOpen_=false;refreshPending_=false;emit changed();}
 void SaveCenterController::back() {
     if(shopsOpen_){dispatchShop(Action::Back);return;}
     if(clinicOpen_){if(!busy()){clinicOpen_=false;emit changed();}return;}
@@ -117,6 +119,7 @@ void SaveCenterController::activate(int index) {
     }
 }
 void SaveCenterController::completed(const AdventureRegistration& record,quint64 generation,const SaveBackupResult& result) {
+    writing_=false;
     if(result.restored)emit restored(record.adventure.id);
     if(!open_||generation!=generation_){if(!result.success)emit messageRequested(result.message);return;}
     message_=result.message;confirming_=false;
@@ -128,14 +131,14 @@ void SaveCenterController::create() {
     const auto record=library_.registration(selected_.adventure.id);
     if(!record||record->revision!=selected_.revision){message_="The Adventure changed. Check it again first.";emit changed();return;}
     const auto generation=generation_;message_.clear();
-    service_->create(*record,snapshot_.token,this,[this,record=*record,generation](const SaveBackupResult& result){completed(record,generation,result);});
+    writing_=true;service_->create(*record,snapshot_.token,this,[this,record=*record,generation](const SaveBackupResult& result){completed(record,generation,result);});
 }
 void SaveCenterController::restore() {
     if(!confirming_||busy()||!service_)return;
     const auto record=library_.registration(selected_.adventure.id);
     if(!record||record->revision!=selected_.revision){confirming_=false;message_="The Adventure changed. Check it again before restoring.";emit changed();return;}
     confirming_=false;message_.clear();const auto generation=generation_;
-    service_->restore(*record,confirmation_,snapshot_.token,this,[this,record=*record,generation](const SaveBackupResult& result){completed(record,generation,result);});
+    writing_=true;service_->restore(*record,confirmation_,snapshot_.token,this,[this,record=*record,generation](const SaveBackupResult& result){completed(record,generation,result);});
 }
 void SaveCenterController::dispatch(Action action) {
     if(!open_)return;
@@ -174,7 +177,8 @@ void SaveCenterController::heal() {
         treatment_="error";clinicMessage_="This Adventure changed. Please visit again.";emit changed();return;
     }
     treatment_="healing";const auto generation=generation_;emit changed();
-    service_->heal(*record,snapshot_.token,this,[this,generation,record=*record](const SaveBackupResult& result){
+    writing_=true;service_->heal(*record,snapshot_.token,this,[this,generation,record=*record](const SaveBackupResult& result){
+        writing_=false;
         if(result.restored)emit restored(record.adventure.id);
         if(!open_ || generation!=generation_) {if(!result.success)emit messageRequested(result.message);return;}
         treatment_=result.success?"done":"error";clinicMessage_=result.message;

@@ -42,70 +42,56 @@ void startCenterSmoke(QQuickWindow* window,ShellController& shell,SessionState& 
             });break;
         }
         case 1:
-            shell.restoreNavigation({{"version",1},{"page","home"},{"homeAdventure","center-fixture"},{"homeResume","old-moment"}});
-            press(start);press(down);press(a);break;
+            shell.restoreNavigation({{"version",1},{"page","pokedex"},{"pokemonFace","center"},{"homeAdventure","center-fixture"},{"homeResume","old-moment"}});break;
         case 2:
-            check(shell.centerFace()&&shell.service().isEmpty()&&focus("party-unavailable"),"System-menu Center opens honest Party availability");capture("selected-adventure");press(select);break;
+            check(shell.pokemonFace()=="center"&&shell.center()->clinicOpen()&&focus("clinic-action"),"Center opens the nurse directly");capture("clinic-ready");press(select);break;
         case 3:
-            check(shell.center()->canCreate()&&focus("center-check"),"Empty shelf keeps focus and offers backup");capture("empty");press(select);break;
+            check(shell.center()->canCreate()&&focus("center-check"),"Empty shelf offers backup");capture("empty");press(select);break;
         case 4:
             check(shell.center()->rows().size()==1&&focus("center-row-0"),"New backup is selected");check(read()=="FIRST SAVE","Backup preserves source");capture("first-copy");
             press(a);check(shell.center()->confirming(),"A asks before restore");press(b);check(!shell.center()->confirming()&&read()=="FIRST SAVE","B cancels restore");
             write(save,"SECOND SAVE");press(x);break;
-        case 5:
-            press(a);break;
+        case 5:press(a);break;
         case 6:
-            check(focus("center-confirm"),"Restore confirmation traps focus");capture("confirm");press(y);trigger(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);check(shell.center()->confirming()&&!shell.drawerOpen(),"Y and paired triggers cannot bypass restore confirmation");press(start);press(b);check(shell.center()->confirming(),"Start overlays confirmation without accepting it");press(a);break;
+            check(focus("center-confirm"),"Restore confirmation traps focus");capture("confirm");
+            press(y);trigger(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);press(SDL_CONTROLLER_BUTTON_GUIDE);press(start);
+            check(shell.center()->confirming()&&!shell.drawerOpen()&&!shell.menuOpen()&&shell.page()==2,"Navigation cannot retarget a restore");press(a);break;
         case 7:
-            check(read()=="FIRST SAVE"&&shell.center()->rows().size()==2,"Restore succeeds and protects previous bytes");
-            check(shell.navigationState()["homeResume"].toString().isEmpty(),"Restore clears Home's old moment selection");capture("restored");press(a);press(a);break;
+            check(read()=="FIRST SAVE"&&shell.center()->rows().size()==2,"Restore protects previous bytes");
+            check(shell.navigationState()["homeResume"].toString().isEmpty(),"Restore clears old state choice");capture("restored");press(a);press(a);break;
         case 8:
-            check(read()=="SECOND SAVE"&&shell.center()->rows().size()==3,"Protection copy can undo the restore");
-            press(a);press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);check(shell.service().isEmpty()&&!shell.center()->confirming(),"Global section action discards confirmation");
-            press(start);press(SDL_CONTROLLER_BUTTON_DPAD_UP,10);press(down,3);press(a);window->resize(1920,1080);break;
+            check(read()=="SECOND SAVE"&&shell.center()->rows().size()==3,"Protection copy restores exact bytes");press(b);window->resize(1920,1080);break;
         case 9:
-            capture("copies-1080p");press(select);press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);break;
+            check(shell.center()->clinicOpen(),"B returns to the same Center face");capture("clinic-1080p");press(a);break;
         case 10:
-            check(shell.page()==3&&!shell.menuOpen(),"L1/R1 can leave while a backup finishes");
-            press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);window->resize(1024,768);break;
-        case 11:
-            check(shell.center()->rows().size()==4&&read()=="SECOND SAVE","Background backup finishes without replacing the source");capture("copies-letterbox");
-            trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);break;
+            check(shell.center()->treatment()=="done"&&read()=="HEALED SAVE","Healing performs verified treatment");
+            check(shell.center()->rows().size()==4,"Healing has one protection copy");capture("clinic-complete");press(select);break;
+        case 11:press(a);press(a);break;
         case 12:
-            check(!shell.centerFace()&&shell.page()==2,"Actual SDL trigger opens paired Pokedex");capture("paired-pokedex");
-            press(y);break;
+            check(read()=="SECOND SAVE","Healing can be restored exactly");press(b);trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);window->resize(960,540);break;
         case 13:
-            check(shell.drawerOpen()&&focus("resume-0"),"Shared Y drawer owns focus above Pokedex");capture("pokedex-choose");press(a);break;
+            check(shell.pokemonFace()=="boxes","Previous peer is Boxes");capture("boxes-unavailable");trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);break;
         case 14:
-            check(!shell.drawerOpen()&&shell.page()==2&&shell.currentAdventureId()=="center-fixture","A chooses without changing page or launching");
-            trigger(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);break;
+            check(shell.pokemonFace()=="party","Previous peer is Party");capture("party-unavailable");trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);break;
         case 15:
-            check(shell.centerFace()&&shell.center()->rows().size()==4,"Trigger returns to the same save shelf");press(y);break;
+            check(shell.pokemonFace()=="dex","Previous peer is Dex");capture("peer-dex");press(y);break;
         case 16:
-            check(focus("resume-0"),"Center drawer also owns actual focus");capture("center-choose");press(b);break;
+            check(shell.drawerOpen()&&focus("resume-0"),"Shared Y chooses without launch");capture("pokedex-choose");press(a);break;
         case 17:
-            check(!shell.drawerOpen()&&focus("center-row-0"),"Cancelling drawer restores Center focus");
-            shell.center()->visitClinic();window->resize(960,540);break;
+            check(!shell.drawerOpen()&&shell.currentAdventureId()=="center-fixture","Shared selection retained");
+            trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);break;
         case 18:
-            check(shell.center()->clinicOpen()&&focus("clinic-action"),"Clinic owns visible controller focus");capture("clinic-ready");
-            press(y);trigger(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);check(shell.center()->clinicOpen()&&!shell.drawerOpen(),"Clinic cannot change its treatment target");
-            press(start);press(b);check(shell.center()->clinicOpen(),"Start returns to the nurse");
-            press(b);check(!shell.center()->clinicOpen()&&read()=="SECOND SAVE","Cancel never heals");
-            shell.center()->visitClinic();break;
+            check(shell.pokemonFace()=="shops","Previous wraps Dex to Shops");capture("shops-unavailable");trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);break;
         case 19:
-            press(a);break;
+            check(shell.pokemonFace()=="playroom","Playroom is a peer");capture("playroom-unavailable");trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);break;
         case 20:
-            check(shell.center()->treatment()=="done"&&read()=="HEALED SAVE","Controller healing writes the verified treatment");
-            check(shell.center()->rows().size()==5,"Healing creates its protection copy");capture("clinic-complete");
-            press(b);check(!shell.center()->clinicOpen(),"Back returns from completed treatment");
-            shell.center()->visitClinic();break;
+            check(shell.pokemonFace()=="center"&&shell.center()->clinicOpen(),"Full reverse loop returns to nurse");press(start);break;
         case 21:
-            press(b);shell.center()->activate(0);press(a);break;
+            check(shell.menuOpen()&&shell.menuItems().contains("Switch Trainer")&&!shell.menuItems().contains("Pokémon Center"),"Start is system-only");capture("system-center");press(b);press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);break;
         case 22:
-            check(read()=="SECOND SAVE","Before-healing backup restores the exact previous save");
-            shell.center()->visitClinic();break;
+            check(shell.page()==3&&!shell.center()->clinicOpen(),"L1/R1 leaves idle Center");press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);break;
         case 23:
-            press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);check(shell.page()==3&&!shell.center()->clinicOpen(),"L1/R1 leaves idle Center without a write");
+            check(shell.pokemonFace()=="center"&&read()=="SECOND SAVE","Return preserves face and original save");
             check(warnings==0,"QML warnings");completed=true;timer->stop();
             if(!screenshots.isEmpty()){QFile report(screenshots+"/verification.txt");if(report.open(QIODevice::WriteOnly))report.write(((*failed?QString("FAILED\n"):QString("PASSED\n"))+diagnostics.join('\n')).toUtf8());}
             if(*failed){qCritical().noquote()<<diagnostics.join('\n');QCoreApplication::exit(1);}else window->close();break;
