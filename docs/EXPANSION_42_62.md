@@ -1,5 +1,11 @@
 # TrainerOS target acceptance — issues 42–62
 
+**2026-09-27 final-stage refinement:** [#91–97 acceptance](EXPANSION_91_97.md)
+extends #59 to author both illustration and animated sprite/portrait packs from
+user-added files, using the present sets as private examples. It does not bundle
+those images. #95–97 extraction remains after this pipeline; a compatible active
+pack suppresses extraction of its asset family. All earlier acceptance stays.
+
 **2026-09-26 precedence:** [#69–90 reconciliation](EXPANSION_69_90.md)
 explicitly supersedes #11/#39 Steam removal, Home X/pair-only routes, old wheel A,
 Start content destinations and global footer hints. It promotes image/OTA and

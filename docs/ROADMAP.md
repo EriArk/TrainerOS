@@ -2,7 +2,14 @@
 
 **2026-09-27 #91:** [Adapter knowledge base](adapters/README.md) is a prerequisite for new exact-game research and is updated throughout every adapter increment. It composes the existing #42/#89 work, without replacing or dropping any R1–R18 acceptance. A portable copy of the actual adapter, exact-game profiles and standalone build travel with its evidence. The delivered Emerald slice covers reorder, box movement and Party/Box transfer; release remains later.
 
-## Current plan — reconciled 2026-09-26
+## Current plan — reconciled 2026-09-27
+
+**New acceptance:** [#91–97 and owner Pack Studio clarification](EXPANSION_91_97.md).
+Keep all earlier R1–R18 work. #93/#94 precede trust-sensitive Link; #92 runtime
+packaging follows varied adapter evidence; #95–97 follow final artwork/Studio
+work. The constructor authors both art and sprite packs from user-added files.
+A compatible active pack suppresses corresponding ROM extraction, not merely
+its display. These new targets do not change the installed build.
 
 Reviewed all 88 issue records: **22 new #69–90**, revised comments on
 #26/#28/#31/#43/#47, and superseding closure comments on #11/#39.
@@ -39,9 +46,11 @@ The #91 knowledge base includes reusable source, tables and three exact profiles
 This closes only those movement slices, not all R4 acceptance.
 
 **Next increment: 3/6 Высокое (High)** — remaining protected Emerald Party/Boxes
-management (release and its explicit confirmation/rollback), then R5 live
+management (release and its explicit confirmation/rollback), then R4 live
 Journey/Champion history. Keep item/box services and all later queue entries;
 practice and two-device Link retain their independent research/proof gates.
+Before trusted Link, add #93 signed lineage and #94 observable session policy;
+ordinary local play remains independent of verified status.
 
 The [R1–R18 queue](#unified-execution-order--existing-work-and-new-issues) below
 is authoritative. P0–P12 remain stable work areas, not scheduling numbers. Dated
@@ -60,7 +69,8 @@ continues.
   sleep remains disabled until verified.
 - Live #65 stays paused until the owner reports access. Resume at the next safe
   increment boundary, before unrelated expansion; no login attempts meanwhile.
-- Generic artwork packs, Pack Studio and consolidated Credits remain last.
+- Generic artwork/sprite packs, Pack Studio and consolidated Credits remain in
+  the final artwork stage; #95–97 follow it, with affected release checks repeated.
 
 ## Delivery history through 2026-09-24
 
@@ -327,7 +337,8 @@ run is a delivery gate. The R queue below schedules only remaining work.
 
 ## Unified execution order — existing work and new issues
 
-Single remaining queue, reconciled 2026-09-26. Work top to bottom in coherent
+Single remaining queue, reconciled 2026-09-27; #91–97 add dependencies and
+suffixed rows without removing or renumbering earlier acceptance. Work top to bottom in coherent
 feature chains: backend, UI, checks, device delivery, commit/push. UI precedes
 its new provider; fixtures never become production progress. Existing features
 stay usable. P IDs retain earlier acceptance/evidence; they are not sequence IDs.
@@ -337,21 +348,24 @@ stay usable. P IDs retain earlier acceptance/evidence; they are not sequence IDs
 | **R1 · P8 — finish Emerald shops** | #68 currency item/decor exchanges, categories, 20 BP lessons, Heart Scale relearning and shard/Shoal payments delivered; discovered-stock search/location filters and quantity baskets delivered; bounded remaining source coverage | [Existing shop contract](EMERALD_SHOPS.md): discovery/stock/grouping/non-spoilers, verified debit AND reward, capacity/eligibility, confirmation, protection/allowed delta and normal in-game readback. All remaining traders stay tracked; a new currency is not a renamed money field. |
 | **R2 · P0/P8 — bounded adapter audit** | #89 current responsibilities/coupling, composition/portability/versioning decision; conceptual #90 domain boundary | Before wider per-title integration. Short code-backed note, no second save framework, speculative plugin loader or external dependency. Justified implementation gets its own bounded follow-up. Same-build R1 already uses a proven transaction. |
 | **R3 · P1/P2/P4 — navigation and capability UI** | #83–88 Pokémon and Journey peer faces, Home triggers, immediate wheel A, Start, Back/hints; #74 Properties; minimal #90 registry/state groundwork for existing Pokémon/Multiverse | Apply R2 only where needed; reuse existing screens/providers. Preserve owners/selections/face focus, short/held A, modal gates and launch return. Wrapped controller loops and installed screenshots. No empty franchise tabs or claimed unsupported features. |
-| **R4 · P8 — complete meaningful Emerald features** | #75 central read-only policy delivered; remaining #46 Dex/forms, #44/#53 Party/Boxes management/Center recovery, #47 live Journey/immutable Champion records, #52/#54 scenes, #55 practice and #45 Link | Reads before independently proven writes; #75 blocks every mutator including restore below QML. Retain favorites/Hall memories, inert retired journal rows and #64 in-game badge comparison. Practice uses exact rules/disposable data, no rewards. Link needs exact-pair writers and durable two-device proof; lack of a second device does not block independent rows. |
+| **R4 · P8 — complete meaningful Emerald features** | #75 central read-only policy delivered; remaining #46 Dex/forms, #44/#53 Party/Boxes management/Center recovery, #47 live Journey/immutable Champion records, #52/#54 scenes, #55 practice and #45 Link | Reads before independently proven writes; #75 blocks every mutator including restore below QML. Retain favorites/Hall memories, inert retired journal rows and #64 in-game badge comparison. Practice uses exact rules/disposable data, no rewards. Link needs exact-pair writers and durable two-device proof. Before trust-sensitive exchange, deliver #93 identity/lineage and #94 observable verified-session policy, using the necessary #76 runtime namespace proof. Ordinary imported/local play remains available. Lack of a second device does not block independent rows. |
 | **R5 · P6 — achievements completion** | #12/#24/#25/#48, U3/U7 matching/cache/current-Adventure/earned-state acceptance, actual earning and deduplicated return notifications | Keep working login/read/cache. Login is not earning; RA truth stays separate from saves/Journey. Live in-game overlay remains conditional. |
 | **R6 · P8 — second Pokémon vertical** | #82 preferred exact English FireRed: recorded reader fault, then meaningful identity/read/UI/write chain | R2 and Emerald proof first; existing mGBA namespace reused. Independently verify save/checksums/Party/Boxes/Dex/Journey and feasible writes. Emerald regressions plus physical normal-game readback. Does not wait for every other emulator. |
 | **R7 · P1/P2/P4/P8 — additional franchise proof** | #90 resolver/registry, pack Home/Y/library/state, shared components and title overrides; one useful non-Pokémon series | R2/R3 boundary and R6 reuse evidence. Multiple games, at least two sharing components and one bespoke override. Choose by real adapter readiness. Preserve IDs/history/media/ownership/save lineage; review ambiguous matches; generic Multiverse stays functional. No dependency on final artwork tooling. |
+| **R7a · P8/P10 — installable adapters** | #92 versioned package contract, host/data/code boundary, install/update/disable/remove/rollback and bounded distribution proof | After #89/#91 and materially different adapter evidence: Emerald, another state-rich game and a structurally different non-RPG. Compare formats/isolation before choosing; no v1 freeze after Gen III alone. #95 extractors later extend this same contract. Independent later work proceeds if a proof target is blocked. |
 | **R8 · P9/P2 — supported runtimes and readiness** | #76 personal saves, #80 runtime/BIOS readiness, U2/U5/U10 and remaining representative-classics gaps | Bounded viable systems, not every downloaded ROM or rejected obscure/ancient platforms. Required BIOS/config/input/TrainerOS launch and about four server ROMs per supported system; source originals preserved. Two-Trainer in-game save/load before Personal claims; DS backup gate before DS operations. Runtime needed earlier can be pulled forward alone. |
 | **R9 · P4/P9 — Steam library** | #69 installed-app identity/discovery/local media and supported launch/return | Steam retains store/downloads/Proton/Gaming Mode; no ROM-tree duplication. Preserve unavailable history and non-Steam independence. Actual Armada/ARM64 route proof; installed Steam game does not mean playable. |
 | **R10 · P5 — atmosphere/feedback** | #36 audio, #37 haptics, #38 RGB, gyro parallax or gentle fallback; residual Party motion | Stable consumers/lifecycle, hidden and Reduced Motion pauses, licensed/original sources and measured performance/power. Probe actual hardware independently. Generic pack authoring stays R18. |
 | **R11 · P0/P10/P12 — device/input profiles** | #78 Flip contract/support levels/bring-up checklist; #77 minimal remap/dead-zone/calibration/reset | Existing central input/platform services; overrides separate from defaults, reserved recovery, malformed/hotplug safety. Physical printed-control/Home/display proof. Additional hardware conditional on access, never inferred from model similarity. |
-| **R12 · P2/P10 — portable Trainer and health** | #73 atomic versioned export/restore; #81 offline allowlisted support bundle | Stable identities plus R8/R11 reports. No shared ROM/BIOS duplication or plaintext service secrets. Collision/missing-source/schema/privacy checks. Prepare before flash; fresh-image restore proof at R15, OTA report fields at R16. |
+| **R12 · P2/P10 — portable Trainer and health** | #73 atomic versioned export/restore; #81 offline allowlisted support bundle | Stable identities plus R8/R11 reports. No shared ROM/BIOS duplication or plaintext service secrets. Collision/missing-source/schema/privacy checks. Preserve #93 signing identity/lineage and detect conflicting restored branches; exclude future #96 derived ROM cache bytes. Prepare before flash; fresh-image restore proof at R15, OTA report fields at R16. |
 | **R13 · P10 — maintenance/cleanup/sleep** | Mobile-only if viable; measured software/background cleanup; #79/U13 dedicated lid/sleep/wake | Preserve Steam, KDE dependencies and last verified Plasma/SSH recovery; reversible batches. Sleep stays disabled until repeated shell/game/transaction/modal/display/input/Home recovery and battery/thermal gates pass. Unknown runtime sleep remains unavailable. |
 | **R14 · P1/P11 — first boot and full Help** | #72 offline/resumable setup around #19; #40 viewer/articles and #80 Help/setup links | Stable core flows and device/runtime facts first. Durable-state completion, no duplicate account logic or terminal requirement. Missing games/network not blockers; upgrades preserved. Image/OTA articles finish with R15/R16; engineering/recovery docs stay current throughout. |
 | **R15 · P10 — reproducible official image** | #70/U11 recorded Armada inputs/layers, release hashes/manifests, default session/input/runtime/recovery | Native package/session work remains the building block. R11–R14 precede physical clean flash/setup/use/recovery and #73 restore. No ROM/BIOS/private art/saves/secrets. No independent low-level OS rewrite. |
-| **R16 · P10 — OTA/compatible rollback** | #71/U11 staged trusted download/activation, notes/preconditions and known-good recovery | R15 image mechanism first. Matching image/database pair, protection before irreversible migration, never old binary/new schema. Physical update/reboot/use/rollback/update-again; interrupted/corrupt download proof. |
+| **R16 · P10 — OTA/compatible rollback** | #71/U11 staged trusted download/activation, notes/preconditions and known-good recovery | R15 image mechanism first. Matching image/database pair, protection before irreversible migration, never old binary/new schema. Preserve #93 identity/lineage consistency through rollback. Physical update/reboot/use/rollback/update-again; interrupted/corrupt download proof. |
 | **R17 · P12 — startup/final acceptance** | #41 supported boot/session identity; #34/U12 whole-screen/state/performance audit | Final image/OTA routes first. No fake readiness or masked failures. Physical themes/motion/controllers/cold-start/frame/idle/launch-return checks. Per-feature verification is never deferred until here. |
-| **R18 · P7 — final artwork delivery** | #57 artwork install/select/validate/update/remove; #59 desktop Studio with #58/#60/#61 prerequisites, author/source/terms and consolidated Credits | Last planned stage after consumers stabilize. Shared validator/measured profiles; export/reimport and affected Help/image/OTA recheck. Keep partial assets honest; preserve sources. #90 franchise packs are a separate concept. |
+| **R18 · P7 — final artwork and sprite delivery** | #57 install/select/validate/update/remove; #59 desktop Studio for user-added illustrations AND animated sprites/portraits, using present private sets as examples; #58/#60/#61 prerequisites and consolidated Credits | After consumers stabilize; current providers stay intact. Shared validator/measured profiles, animation/action mapping and previews, non-destructive originals, authors/source/terms, export/reimport and affected Help/image/OTA checks. No bundled example graphics. Keep partial coverage honest. #90 franchise packs remain separate. |
+| **R18a · P7/P8 — exact-ROM extraction and cache** | #95 optional exact-build extractor within #92 adapter; #96 host-owned semantic provider and bounded local derived cache | Only after main UI/current artwork work and varied adapters are stable. Check compatible active art/sprite pack before extraction; skip corresponding work while it supplies that family. Without a pack, use ROM-native assets on demand, then neutral fallback. No invented native animations, arbitrary host powers or redistribution through images/backups/packs. |
+| **R18b · P7/P12 — ROM-native integration and release recheck** | #97 actual-game asset audit and incremental per-slot adoption; reconcile Credits, export, image and Help | #95/#96 and R18 prerequisites first; no wholesale replacement of current visuals. Preserve richer user packs and honest native limitations. Recheck affected #70/#71 image/OTA and #34 visual/performance acceptance after integration; preserve every prior release/recovery obligation. |
 
 **Paused access lane — #65:** wait for the owner to report account/developer
 access. Resume native controller scraping/cache/jobs/rescan at the next safe
@@ -680,6 +694,10 @@ Review each target system explicitly; unavailable files or unsupported runtimes 
 - **New conditional extensions preserved:** live in-game RA overlay only after an actual safe event/presentation path; Home video only after separate UX/performance acceptance; additional per-Trainer save namespaces adapter by adapter after the first P2 RetroArch route; simple context audio moods/optional boot sound; later controller color picker, reactive RGB or measured battery-saver policy only as separately chosen features. These are not prerequisites for the initial issues.
 
 ## Issue reconciliation
+
+**Latest additions:** [#91–97 register](EXPANSION_91_97.md) adds adapter packages,
+trust and final ROM asset integration, including art/sprite Studio scope. Earlier
+acceptance remains unless that register explicitly records a replacement.
 
 **Additions/overrides:** [#69–90 register](EXPANSION_69_90.md) includes every new issue and revised #26/#28/#31/#43/#47. #11/#39 below are cancelled historical acceptance, #14 manual editing retired, #49 replaces states, #65 access-paused, #68 real purchases active. R rows control remaining work.
 

@@ -1,5 +1,16 @@
 # AGENTS.md — TrainerOS
 
+**Owner planning amendment, 2026-09-27:** [#91–97 acceptance](docs/EXPANSION_91_97.md)
+adds #92 installable adapters after varied-game proof, #93 signed lineage and
+#94 verified-session policy before trust-sensitive Link, and #95–97 ROM asset
+extraction/cache/migration only after final artwork work. Preserve ordinary local
+play and all R1–R18 acceptance; ROADMAP adds R7a/R18a/R18b without replacing it.
+Final #59 Pack Studio authors BOTH artwork and animated sprite/portrait packs
+from user-added files, using the current private sets as reference examples;
+it does not bundle those images. A compatible active pack suppresses ROM
+extraction for its asset family, rather than merely hiding extracted output.
+Current art/sprite providers remain intact. This is planned, not installed.
+
 **Issue reconciliation, 2026-09-26:** [ROADMAP](docs/ROADMAP.md#unified-execution-order--existing-work-and-new-issues)
 is the single R1–R18 execution queue; [#69–90 acceptance](docs/EXPANSION_69_90.md)
 records all new/changed issue decisions. These target changes are not installed
