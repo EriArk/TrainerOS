@@ -156,6 +156,16 @@
             "device"
           ],
           "details": "../EMERALD_DEX_FORMS.md"
+        },
+        "practice": {
+          "state": "partial",
+          "evidence": [
+            "source-research",
+            "synthetic",
+            "private-copy",
+            "device"
+          ],
+          "details": "../EMERALD_PRACTICE.md"
         }
       },
       "romBytes": 16777216,

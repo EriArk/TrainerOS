@@ -101,11 +101,18 @@ individual readers provide Unown letters, Emerald Deoxys and stored Castform;
 unreadable areas remain unknown, and rollback replaces counts. No per-form
 capture history is invented. [Evidence and bounds](EMERALD_DEX_FORMS.md).
 
-**Next increment: 3/6 Высокое (High)** - continue R4 #55 practice with a bounded
-Emerald engine/rules feasibility pass: evaluate the accepted engine candidates
-on ARM64 and map required fields from actual Party records before enabling the
-read-only 1v1 consumer. No speculative battle engine or save rewards. Preserve
-remaining scene refinements, Link/two-device gates and all later queue rows.
+**2026-09-27 practice feasibility:** pinned Showdown Gen III runs offline on
+Flip ARM64; deterministic probes and private six-member stat comparisons pass.
+pkmn/engine has no Gen III implementation yet. Missing semantic fields and the
+max-PP mismatch are recorded in [the research handoff](EMERALD_PRACTICE.md).
+No practice UI/capability is enabled. Owner accepts bounded Emerald rule modules
+if verified engine differences require them; no new battle engine by default.
+
+**Next increment: 3/6 Высокое (High)** - R4 #55 read-only Emerald battle records
+and the pinned semantic bridge: exact IV/EV, friendship/gender, move IDs/PP Ups,
+initialization and rule vectors, process cancellation/source-change safety.
+Then connect the native 1v1 consumer after its gates; no save writes or rewards.
+Keep scenes, Link/two-device proof and every later queue row intact.
 
 The [R1–R18 queue](#unified-execution-order--existing-work-and-new-issues) below
 is authoritative. P0–P12 remain stable work areas, not scheduling numbers. Dated

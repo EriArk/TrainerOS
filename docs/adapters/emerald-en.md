@@ -257,3 +257,19 @@ current-form counts; no save edits or per-form historic capture claims.
 [Delivered form-count scope and checks](../EMERALD_DEX_FORMS.md). The reusable
 adapter exposes independent optional Party/Box maps; no database migration or
 writer capability was added. FireRed does not inherit this Emerald-only slice.
+
+## Practice feasibility - 2026-09-27, partial
+
+Evaluate the accepted pkmn/engine and Pokemon Showdown candidates for the exact
+English Emerald first. Check generation coverage, rule differences, required
+individual fields, licensing, ARM64 cost and isolated execution. Existing
+presentation records do not yet prove a complete battle input. No practice
+capability is enabled in the handheld by this research.
+
+[Completed engine/field feasibility](../EMERALD_PRACTICE.md): pkmn lacks Gen III;
+pinned Showdown 0.11.11 runs on ARM64. Six private Party stat reconstructions
+match, but one PP maximum differs. IV/EV, friendship, gender, numeric moves and
+PP initialization need an explicit semantic reader/bridge. Practice stays
+disabled; no exact full-battle, native rules or production consumer claim. Owner
+approves small Emerald-specific rule modules where demonstrated gaps require
+them. Current generic Party presentation and save writers are unchanged.
