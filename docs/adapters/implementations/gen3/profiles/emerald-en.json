@@ -1,0 +1,92 @@
+{
+  "id": "emerald-en",
+  "romSha256": "a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f6226db19085af",
+  "romBytes": 16777216,
+  "saveBytes": 131072,
+  "edition": "English",
+  "platform": "gba",
+  "game": "emerald",
+  "capabilities": {
+    "party-boxes-dex": {
+      "state": "integrated",
+      "evidence": [
+        "synthetic",
+        "private-copy",
+        "allowed-delta",
+        "device",
+        "normal-game",
+        "rollback"
+      ],
+      "details": "emerald-en.md"
+    },
+    "heal": {
+      "state": "integrated",
+      "evidence": [
+        "synthetic",
+        "private-copy",
+        "allowed-delta",
+        "device",
+        "normal-game",
+        "rollback"
+      ],
+      "details": "emerald-en.md"
+    },
+    "shops": {
+      "state": "integrated",
+      "evidence": [
+        "synthetic",
+        "private-copy",
+        "allowed-delta",
+        "device",
+        "normal-game",
+        "rollback"
+      ],
+      "details": "emerald-en.md"
+    },
+    "reorder": {
+      "state": "integrated",
+      "evidence": [
+        "source-research",
+        "synthetic",
+        "private-copy",
+        "allowed-delta",
+        "device",
+        "normal-game",
+        "rollback"
+      ],
+      "details": "../EMERALD_MOVEMENT.md"
+    },
+    "box-move": {
+      "state": "integrated",
+      "evidence": [
+        "source-research",
+        "synthetic",
+        "private-copy",
+        "allowed-delta",
+        "device",
+        "normal-game",
+        "rollback"
+      ],
+      "details": "../EMERALD_MOVEMENT.md"
+    },
+    "party-box-transfer": {
+      "state": "integrated",
+      "evidence": [
+        "source-research",
+        "synthetic",
+        "private-copy",
+        "allowed-delta",
+        "device",
+        "normal-game",
+        "rollback"
+      ],
+      "details": "../EMERALD_MOVEMENT.md"
+    }
+  },
+  "unknown": [
+    "release",
+    "link",
+    "practice"
+  ],
+  "evidenceBase": "../../../"
+}

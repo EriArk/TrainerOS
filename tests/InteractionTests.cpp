@@ -23,6 +23,46 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void partyMovementConfirmationCancelBusyAndOwnerGates() {
+        class Library final : public LibraryRepository {
+        public:
+            MockLibraryRepository sample;
+            QList<World> worlds() const override{return sample.worlds();}
+            QList<Adventure> adventures() const override{return sample.adventures();}
+            QList<ResumePoint> resumePoints() const override{return {};}
+            HomeSnapshot home() const override{return sample.home();}
+            std::optional<AdventureRegistration> registration(const QString& id) const override{AdventureRegistration r;r.adventure.id=id;r.revision=1;return r;}
+        } library;
+        class Service final : public SaveBackupService {
+        public:
+            bool working=false;int moves=0;PartyMove request;std::function<void(SaveBackupResult)> pending;
+            bool busy() const override{return working;}
+            bool supports(const AdventureRegistration&) const override{return true;}
+            void inspect(const AdventureRegistration&,QObject*,std::function<void(SaveBackupSnapshot)> done) override{SaveBackupSnapshot s;s.hasSave=true;s.token="token";done(s);}
+            void create(const AdventureRegistration&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override{}
+            void restore(const AdventureRegistration&,const SaveBackup&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override{}
+            void movePokemon(const AdventureRegistration&,const QString&,const PartyMove& r,QObject*,std::function<void(SaveBackupResult)> done) override{++moves;request=r;working=true;pending=std::move(done);}
+        } service;
+        PartyPresentation party(false);party.configureMovement(&service,&library);party.setAdventure("one","Emerald");
+        GameProgress observation;observation.availability=ProgressAvailability::Available;observation.contextRevision="owner1";observation.saveRevision="save1";
+        PartySnapshot data;data.canManage=true;data.party=QList<PokemonRecord>(6);data.boxes=QList<PokemonBox>(14);
+        for(auto& box:data.boxes){box.members=QList<PokemonRecord>(30);box.name="Box";}
+        for(int i=0;i<2;++i){auto& mon=data.party[i];mon.kind=PokemonSlotKind::Known;mon.speciesName=QString("Member %1").arg(i);}
+        observation.party=data;party.setProgress("one",observation);QVERIFY(party.canMove());
+        party.activate(0);QCOMPARE(party.menuIndex(),3);party.dispatch(Action::Confirm);QCOMPARE(party.moveStage(),"places");
+        party.dispatch(Action::Confirm);party.dispatch(Action::Right);party.dispatch(Action::Confirm);QCOMPARE(party.moveStage(),"confirm");QCOMPARE(service.moves,0);
+        party.dispatch(Action::Back);QCOMPARE(party.moveStage(),"slots");party.dispatch(Action::Confirm);party.dispatch(Action::Confirm);
+        QCOMPARE(service.moves,1);QCOMPARE(service.request.from.slot,0);QCOMPARE(service.request.to.slot,1);QCOMPARE(service.request.saveRevision,"save1");
+        party.dispatch(Action::Back);party.dispatch(Action::Confirm);QVERIFY(party.moving());QCOMPARE(service.moves,1);
+        service.working=false;service.pending({true,true,"Moved"});QCOMPARE(party.moveStage(),"result");party.dispatch(Action::Confirm);QVERIFY(!party.moveOpen());
+        party.beginMove();party.moveActivate(14);QCOMPARE(party.moveStage(),"slots");party.moveActivate(29);QCOMPARE(party.moveStage(),"confirm");
+        observation.contextRevision="owner2";party.setProgress("one",observation);QVERIFY(!party.moveOpen());QCOMPARE(service.moves,1);
+        party.beginMove();party.dispatch(Action::Back);QVERIFY(!party.moveOpen());QCOMPARE(service.moves,1);
+        party.showSection("storage");party.changeBox(13);QCOMPARE(party.box(),13);
+        auto checking=observation;checking.availability=ProgressAvailability::Checking;checking.party.reset();party.setProgress("one",checking);
+        QCOMPARE(party.box(),13);party.setProgress("one",observation);QCOMPARE(party.box(),13);
+    }
+
     void cyclicFacesRestoreIndependentlyAndStartContainsNoGameServices() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;

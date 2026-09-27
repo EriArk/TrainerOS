@@ -32,6 +32,24 @@ struct Fixture {
 class SaveBackupTests final : public QObject {
     Q_OBJECT
 private slots:
+    void movementUsesProtectionPolicyStaleGuardAndExactUndo() {
+        Fixture f;int calls=0;
+        PartyMover mover=[&](const QByteArray& input,const QString&,const PartyMove&){++calls;return PartyMoveResult{input+" MOVED",{},"Moved"};};
+        const auto token=f.inspect().token;
+        QVERIFY(setSaveWritesReadOnly(f.root,true).isEmpty());
+        QVERIFY(!moveSavePokemon(f.root,f.record,token,{},f.resolve,mover).success);QCOMPARE(calls,0);
+        QVERIFY(setSaveWritesReadOnly(f.root,false).isEmpty());
+        QVERIFY(!moveSavePokemon(f.root,f.record,"stale",{},f.resolve,mover).success);QCOMPARE(calls,0);
+        auto result=moveSavePokemon(f.root,f.record,token,{},f.resolve,mover);QVERIFY(result.success);QCOMPARE(calls,1);
+        QCOMPARE(read(f.path),QByteArray("FIRST SAVE MOVED"));QCOMPARE(result.snapshot.copies.size(),1);
+        QCOMPARE(result.snapshot.copies[0].reason,"movement");
+        auto restored=restoreSaveBackup(f.root,f.record,result.snapshot.copies[0],result.snapshot.token,f.resolve);
+        QVERIFY(restored.success);QCOMPARE(read(f.path),QByteArray("FIRST SAVE"));
+        f.target.supported=false;QVERIFY(!moveSavePokemon(f.root,f.record,token,{},f.resolve,mover).success);
+        f.target.supported=true;write(f.dir.filePath("blocked"),"file");
+        QVERIFY(!moveSavePokemon(f.dir.filePath("blocked"),f.record,f.inspect().token,{},f.resolve,mover).success);QCOMPARE(read(f.path),QByteArray("FIRST SAVE"));
+    }
+
     void deviceReadOnlyPolicyBlocksAllMutatorsAndSurvivesRestart() {
         Fixture f;const auto copy=f.backup();const auto before=f.inspect();int edits=0;
         const SaveHealer healer=[&](const QByteArray&,const QString&){++edits;return SaveHealing{"HEALED",{},1};};

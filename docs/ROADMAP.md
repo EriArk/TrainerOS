@@ -1,5 +1,7 @@
 # TrainerOS Roadmap
 
+**2026-09-27 #91:** [Adapter knowledge base](adapters/README.md) is a prerequisite for new exact-game research and is updated throughout every adapter increment. It composes the existing #42/#89 work, without replacing or dropping any R1–R18 acceptance. A portable copy of the actual adapter, exact-game profiles and standalone build travel with its evidence. The delivered Emerald slice covers reorder, box movement and Party/Box transfer; release remains later.
+
 ## Current plan — reconciled 2026-09-26
 
 Reviewed all 88 issue records: **22 new #69–90**, revised comments on
@@ -27,12 +29,19 @@ not a completed franchise-pack registry.
 R5 current-game RA refresh/deduplicated return notifications, and R6 exact English
 FireRed Party/Boxes/Dex/healing. [Evidence and limits](SAVE_POLICY_FIRERED.md).
 The normal FireRed Rev 1 game reads the protected treatment successfully.
-Actual newly earned RA proof, box editing, Champion history, practice and Link
+Actual newly earned RA proof, broader box editing, Champion history, practice and Link
 remain open; this delivery does not close the entire R4-R6 acceptance.
 
-**Next increment: 3/6 Высокое (High)** — meaningful Emerald Party/Boxes
-management through the existing protected transaction, with exact allowed deltas
-and normal-game readback. Preserve all later queue entries.
+**2026-09-27 Emerald management delivery:** protected Party reorder, empty-slot
+Box transfers, deposit/withdrawal, automatic pre-edit protection and verified
+restore are installed. [Exact bounds and normal-game evidence](EMERALD_MOVEMENT.md).
+The #91 knowledge base includes reusable source, tables and three exact profiles.
+This closes only those movement slices, not all R4 acceptance.
+
+**Next increment: 3/6 Высокое (High)** — remaining protected Emerald Party/Boxes
+management (release and its explicit confirmation/rollback), then R5 live
+Journey/Champion history. Keep item/box services and all later queue entries;
+practice and two-device Link retain their independent research/proof gates.
 
 The [R1–R18 queue](#unified-execution-order--existing-work-and-new-issues) below
 is authoritative. P0–P12 remain stable work areas, not scheduling numbers. Dated

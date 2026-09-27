@@ -272,6 +272,15 @@ SaveBackupResult purchaseSaveItems(const QString& root,const AdventureRegistrati
     if(!buyer||!shops)return {false,false,"Purchases are unavailable for this Adventure."};
     return applySaveEdit(root,record,token,resolve,[buyer,request](const QByteArray& bytes,const QString& hash){return buyer(bytes,hash,request);},"purchase",{},shops);
 }
+SaveBackupResult moveSavePokemon(const QString& root,const AdventureRegistration& record,const QString& token,const PartyMove& request,const SaveTargetResolver& resolve,const PartyMover& mover) {
+    if(!mover)return {false,false,"Moving is unavailable for this Adventure."};
+    return applySaveEdit(root,record,token,resolve,[mover,request](const QByteArray& bytes,const QString& hash){
+        const auto moved=mover(bytes,hash,request);return MerchantWrite{moved.data,moved.error,moved.message};
+    },"movement",{},{});
+}
+void LocalSaveBackupService::movePokemon(const AdventureRegistration& r,const QString& token,const PartyMove& request,QObject* context,std::function<void(SaveBackupResult)> completed) {
+    run([this,r,token,request]{return moveSavePokemon(root_,r,token,request,resolve_,mover_);},context,completed);
+}
 LocalSaveBackupService::LocalSaveBackupService(QString root, SaveTargetResolver resolve,
         std::function<bool(const AdventureRegistration&)> supports, QObject* parent)
     : SaveBackupService(parent),root_(std::move(root)),resolve_(std::move(resolve)),supports_(std::move(supports)),worker_(new QObject) {

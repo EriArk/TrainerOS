@@ -94,10 +94,74 @@ QByteArray setTestMoves(QByteArray record,const std::array<int,4>& moves,int bon
     return record;
 }
 
+QString digest(const QByteArray& b){return QString::fromLatin1(QCryptographicHash::hash(b,QCryptographicHash::Sha256).toHex());}
+QByteArray movementSave(int rotation,int permutation=0) {
+    auto bytes=slot(Gen3Edition::Emerald,10,0,0,0)+slot(Gen3Edition::Emerald,11,rotation,0,0)+QByteArray(0x4000,char(0xab));
+    const int at=0xe000+((1+rotation)%14)*0x1000;bytes[at+0x234]=3;
+    for(int i=0;i<3;++i){auto mon=pokemonFixture(permutation+i);mon[85]=char(255);put16(mon,86,15+i);bytes.replace(at+0x238+i*100,100,mon);}
+    quint32 sum=0;for(int p=0;p<0xf80;p+=4)sum+=qFromLittleEndian<quint32>(bytes.constData()+at+p);put16(bytes,at+0xff6,quint16(sum+(sum>>16)));return bytes;
+}
+QByteArray movePatch(QByteArray save,int section,int offset,const QByteArray& value) {
+    int at=-1;for(int n=0;n<14;++n){const int s=0xe000+n*0x1000;if(qFromLittleEndian<quint16>(save.constData()+s+0xff4)==section)at=s;}
+    if(at<0)return {};save.replace(at+offset,value.size(),value);const int size=section==0?0xf2c:section==4?0xf08:section==13?0x7d0:0xf80;
+    quint32 sum=0;for(int p=0;p<size;p+=4)sum+=qFromLittleEndian<quint32>(save.constData()+at+p);put16(save,at+0xff6,quint16(sum+(sum>>16)));return save;
+}
+
 }
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void emeraldMovementPreservesIdentitiesAndUnrelatedBytes() {
+        for(int n=0;n<24;++n) {
+            const int rotation=n%14,at=0xe000+((1+rotation)%14)*0x1000;
+            const auto original=movementSave(rotation,n),first=original.mid(at+0x238,100),second=original.mid(at+0x29c,100);
+            auto reorder=moveEmeraldPokemon(original,EmeraldHash,{{-1,0},{-1,1},digest(original)});
+            QVERIFY2(reorder.error.isEmpty(),qPrintable(reorder.error));
+            auto expected=movePatch(original,1,0x238,second+first);QCOMPARE(reorder.data,expected);
+            auto deposit=moveEmeraldPokemon(original,EmeraldHash,{{-1,0},{0,0},digest(original)});
+            QVERIFY2(deposit.error.isEmpty(),qPrintable(deposit.error));
+            auto view=readGen3Progress(deposit.data,Gen3Edition::Emerald);QVERIFY(view.party->canManage);
+            QCOMPARE(view.party->party[0].hp,readEmeraldPartyMember(second).hp);
+            QCOMPARE(view.party->party[2].kind,PokemonSlotKind::Empty);
+            QCOMPARE(view.party->boxes[0].members[0].moves[0].pp,56);
+            QCOMPARE(deposit.data.left(0xe000),original.left(0xe000));QCOMPARE(deposit.data.mid(0x1c000),original.mid(0x1c000));
+            expected=movePatch(original,1,0x234,QByteArray(1,2));expected=movePatch(expected,1,0x238,original.mid(at+0x29c,200)+QByteArray(100,0));
+            expected=movePatch(expected,5,4,emeraldBoxRecord(first));QCOMPARE(deposit.data,expected);
+            // Last position crosses into the final short Storage section.
+            auto moved=moveEmeraldPokemon(deposit.data,EmeraldHash,{{0,0},{13,29},digest(deposit.data)});
+            QVERIFY2(moved.error.isEmpty(),qPrintable(moved.error));
+            view=readGen3Progress(moved.data,Gen3Edition::Emerald);QCOMPARE(view.party->boxes[0].members[0].kind,PokemonSlotKind::Empty);
+            QCOMPARE(view.party->boxes[13].members[29].speciesId,"pikachu");
+            expected=movePatch(deposit.data,5,4,QByteArray(80,0));expected=movePatch(expected,13,4+419*80-8*0xf80,emeraldBoxRecord(first));QCOMPARE(moved.data,expected);
+            auto withdrawn=moveEmeraldPokemon(moved.data,EmeraldHash,{{13,29},{-1,2},digest(moved.data)});
+            QVERIFY2(withdrawn.error.isEmpty(),qPrintable(withdrawn.error));
+            view=readGen3Progress(withdrawn.data,Gen3Edition::Emerald);const auto mon=view.party->party[2];
+            QCOMPARE(mon.kind,PokemonSlotKind::Known);QCOMPARE(mon.hp.value(),mon.stats[0]);QCOMPARE(mon.condition,"Healthy");
+            QCOMPARE(withdrawn.data.mid(at+0x238+200,80),emeraldBoxRecord(first));
+            QCOMPARE(view.party->boxes[13].members[29].kind,PokemonSlotKind::Empty);
+        }
+    }
+    void emeraldMovesRejectUnsafeAndStaleTargets() {
+        auto bytes=movementSave(0);auto request=PartyMove{{-1,0},{0,0},digest(bytes)};
+        QVERIFY(moveEmeraldPokemon(bytes,"wrong",request).data.isEmpty());request.saveRevision="stale";
+        QVERIFY(moveEmeraldPokemon(bytes,EmeraldHash,request).data.isEmpty());request.saveRevision=digest(bytes);
+        auto broken=bytes;broken[0]^=1;request.saveRevision=digest(broken);QVERIFY(moveEmeraldPokemon(broken,EmeraldHash,request).data.isEmpty());
+        bytes=movePatch(bytes,1,0x234,QByteArray(1,1));request.saveRevision=digest(bytes);
+        QVERIFY(moveEmeraldPokemon(bytes,EmeraldHash,request).error.contains("battle"));
+        bytes=movementSave(0);bytes=movePatch(bytes,1,0x238+85,QByteArray(1,0));request.saveRevision=digest(bytes);
+        QVERIFY(moveEmeraldPokemon(bytes,EmeraldHash,request).error.contains("Mail"));
+        bytes=movementSave(0);auto moved=moveEmeraldPokemon(bytes,EmeraldHash,{{-1,0},{0,0},digest(bytes)});QVERIFY(!moved.data.isEmpty());
+        QVERIFY(moveEmeraldPokemon(moved.data,EmeraldHash,{{-1,0},{0,0},digest(moved.data)}).error.contains("occupied"));
+        QVERIFY(moveEmeraldPokemon(moved.data,EmeraldHash,{{0,0},{-1,5},digest(moved.data)}).error.contains("first empty"));
+        QVERIFY(moveEmeraldPokemon(moved.data,EmeraldHash,{{0,0},{14,0},digest(moved.data)}).data.isEmpty());
+        auto egg=pokemonFixture(0,25,true);bytes=movePatch(movementSave(0),1,0x238,egg);
+        QVERIFY(moveEmeraldPokemon(bytes,EmeraldHash,{{-1,0},{0,0},digest(bytes)}).error.contains("hatched"));
+        // Deoxys stored stats follow base species; displayed Speed form is separate.
+        auto deoxys=pokemonFixture(0,410,false,false); // internal Gen III species ID
+        auto party=emeraldWithdrawRecord(deoxys);QVERIFY(!party.isEmpty());
+        QVERIFY(qFromLittleEndian<quint16>(party.constData()+90)!=readEmeraldPartyMember(party).stats[1]);
+    }
+
     void fireRedPartyDexAndProtectedHealingUseTheirOwnLayout() {
         const QString hash="3d0c79f1627022e18765766f6cb5ea067f6b5bf7dca115552189ad65a5c3a8ac";
         for(int rotation=0;rotation<14;++rotation) {

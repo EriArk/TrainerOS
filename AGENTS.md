@@ -8,7 +8,7 @@ relearning and shard/Shoal item payments are delivered (51 counters). Discovered
 and #83–88 navigation are delivered. Bounded R4–R6 work adds #75 device-wide
 read-only saves, current-game RA refresh/return notices and exact FireRed
 Party/Boxes/Dex/healing. See docs/SAVE_POLICY_FIRERED.md for proof and open gates.
-Continue protected Emerald Party/Boxes management. Preserve every earlier acceptance
+Protected Emerald reorder, empty-slot box moves and Party/Box transfer are delivered; see docs/EMERALD_MOVEMENT.md. Continue the remaining management acceptance. Preserve every earlier acceptance
 unless explicitly superseded in that register.
 
 - #11/#39 are closed **as superseded**: retain Steam Gaming Mode, add installed
@@ -420,3 +420,9 @@ A UI task is not done until:
 - emulator/platform jargon does not leak into normal user-facing copy
 - the screen reads clearly on the target landscape handheld
 - the implementation does not couple QML directly to emulator or ArmadaOS internals
+
+## Adapter research knowledge (#91)
+
+Before any game/save research or adapter edit, consult [docs/adapters/README.md](docs/adapters/README.md). Register exact targets and mark new capabilities researching before implementation; append meaningful sourced findings during work. Update per-capability evidence and registry with the code commit. A stale record means the increment is not done. Keep private data outside Git; #89 remains a bounded interface audit.
+
+Owner clarification, 2026-09-27: the permanent knowledge base also keeps a reusable copy of the actual adapter configured per exact game/revision. Refresh `tools/export-game-adapters.py` with adapter/data/profile edits and pass `tools/check-adapter-knowledge.py` before delivery. Include dependencies, tables, source attribution, a build example and host-protection boundaries; no private game content.

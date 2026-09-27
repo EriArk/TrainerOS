@@ -304,9 +304,11 @@ int main(int argc, char* argv[]) {
         if(saveBackups) {
             if (!smoke) {
                 saveBackups->configureHealing(healGen3Party);
+                saveBackups->configureMovement(moveEmeraldPokemon);
                 saveBackups->configureShops(readEmeraldShops,buyEmeraldItems);
             }
             shell.center()->configure(saveBackups.get());
+            shell.party()->configureMovement(saveBackups.get(),&activeLibrary);
             shell.settings()->configureSavePolicy(saveBackups.get());
             QObject::connect(saveBackups.get(),&SaveBackupService::operationFailed,&session,&SessionState::cancelPendingExit);
         }

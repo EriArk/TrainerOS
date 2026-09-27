@@ -1,0 +1,36 @@
+{
+  "id": "firered-en-original",
+  "romSha256": "3d0c79f1627022e18765766f6cb5ea067f6b5bf7dca115552189ad65a5c3a8ac",
+  "romBytes": 16777216,
+  "saveBytes": 131072,
+  "edition": "English original",
+  "platform": "gba",
+  "game": "firered",
+  "capabilities": {
+    "party-boxes-dex": {
+      "state": "integrated",
+      "evidence": [
+        "synthetic",
+        "private-read"
+      ],
+      "details": "firered-en.md"
+    },
+    "heal": {
+      "state": "integrated",
+      "evidence": [
+        "synthetic",
+        "private-read"
+      ],
+      "details": "firered-en.md"
+    }
+  },
+  "unknown": [
+    "shops",
+    "reorder",
+    "box-move",
+    "party-box-transfer",
+    "release",
+    "link"
+  ],
+  "evidenceBase": "../../../"
+}

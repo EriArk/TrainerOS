@@ -1,0 +1,181 @@
+{
+  "purpose": "Engineering evidence index; not runtime capability authority",
+  "updated": "2026-09-27",
+  "builds": [
+    {
+      "id": "emerald-en",
+      "romSha256": "a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f6226db19085af",
+      "edition": "English",
+      "platform": "gba",
+      "saveBytes": 131072,
+      "record": "emerald-en.md",
+      "capabilities": {
+        "party-boxes-dex": {
+          "state": "integrated",
+          "evidence": [
+            "synthetic",
+            "private-copy",
+            "allowed-delta",
+            "device",
+            "normal-game",
+            "rollback"
+          ],
+          "details": "emerald-en.md"
+        },
+        "heal": {
+          "state": "integrated",
+          "evidence": [
+            "synthetic",
+            "private-copy",
+            "allowed-delta",
+            "device",
+            "normal-game",
+            "rollback"
+          ],
+          "details": "emerald-en.md"
+        },
+        "shops": {
+          "state": "integrated",
+          "evidence": [
+            "synthetic",
+            "private-copy",
+            "allowed-delta",
+            "device",
+            "normal-game",
+            "rollback"
+          ],
+          "details": "emerald-en.md"
+        },
+        "reorder": {
+          "state": "integrated",
+          "evidence": [
+            "source-research",
+            "synthetic",
+            "private-copy",
+            "allowed-delta",
+            "device",
+            "normal-game",
+            "rollback"
+          ],
+          "details": "../EMERALD_MOVEMENT.md"
+        },
+        "box-move": {
+          "state": "integrated",
+          "evidence": [
+            "source-research",
+            "synthetic",
+            "private-copy",
+            "allowed-delta",
+            "device",
+            "normal-game",
+            "rollback"
+          ],
+          "details": "../EMERALD_MOVEMENT.md"
+        },
+        "party-box-transfer": {
+          "state": "integrated",
+          "evidence": [
+            "source-research",
+            "synthetic",
+            "private-copy",
+            "allowed-delta",
+            "device",
+            "normal-game",
+            "rollback"
+          ],
+          "details": "../EMERALD_MOVEMENT.md"
+        }
+      },
+      "romBytes": 16777216,
+      "unknown": [
+        "release",
+        "link",
+        "practice"
+      ],
+      "implementation": "implementations/gen3",
+      "profile": "implementations/gen3/profiles/emerald-en.json"
+    },
+    {
+      "id": "firered-en-original",
+      "romSha256": "3d0c79f1627022e18765766f6cb5ea067f6b5bf7dca115552189ad65a5c3a8ac",
+      "edition": "English original",
+      "platform": "gba",
+      "saveBytes": 131072,
+      "record": "firered-en.md",
+      "capabilities": {
+        "party-boxes-dex": {
+          "state": "integrated",
+          "evidence": [
+            "synthetic",
+            "private-read"
+          ],
+          "details": "firered-en.md"
+        },
+        "heal": {
+          "state": "integrated",
+          "evidence": [
+            "synthetic",
+            "private-read"
+          ],
+          "details": "firered-en.md"
+        }
+      },
+      "romBytes": 16777216,
+      "unknown": [
+        "shops",
+        "reorder",
+        "box-move",
+        "party-box-transfer",
+        "release",
+        "link"
+      ],
+      "implementation": "implementations/gen3",
+      "profile": "implementations/gen3/profiles/firered-en-original.json"
+    },
+    {
+      "id": "firered-en-rev1",
+      "romSha256": "729041b940afe031302d630fdbe57c0c145f3f7b6d9b8eca5e98678d0ca4d059",
+      "edition": "English Rev 1",
+      "platform": "gba",
+      "saveBytes": 131072,
+      "record": "firered-en.md",
+      "capabilities": {
+        "party-boxes-dex": {
+          "state": "integrated",
+          "evidence": [
+            "synthetic",
+            "private-copy",
+            "allowed-delta",
+            "device",
+            "normal-game",
+            "rollback"
+          ],
+          "details": "firered-en.md"
+        },
+        "heal": {
+          "state": "integrated",
+          "evidence": [
+            "synthetic",
+            "private-copy",
+            "allowed-delta",
+            "device",
+            "normal-game",
+            "rollback"
+          ],
+          "details": "firered-en.md"
+        }
+      },
+      "romBytes": 16777216,
+      "unknown": [
+        "shops",
+        "reorder",
+        "box-move",
+        "party-box-transfer",
+        "release",
+        "link"
+      ],
+      "implementation": "implementations/gen3",
+      "profile": "implementations/gen3/profiles/firered-en-rev1.json"
+    }
+  ]
+}

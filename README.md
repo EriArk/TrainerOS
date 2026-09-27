@@ -185,6 +185,7 @@ ctest --test-dir build/native --output-on-failure
 More detail:
 
 - [Roadmap](docs/ROADMAP.md)
+- [Exact-game adapter knowledge](docs/adapters/README.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Batocera library](docs/BATOCERA_LIBRARY.md)
 - [Emerald Party / Storage](docs/EMERALD_PARTY.md)

@@ -1,0 +1,15 @@
+{
+  "source": "https://github.com/pret/pokeemerald",
+  "revision": "5eff78649e7170a877b961ef0b3da13b81a16038",
+  "inputs": {
+    "include/constants/species.h": "a1867c83e78fb767b16a9c95c4c06d51d56c986fd48d713b98dbf01c8305089d",
+    "include/constants/moves.h": "d32746c9ad3ed1bbfbb93712f13e01ab1c43f48a78f3605ef9db5095e8d19d27",
+    "include/constants/items.h": "6e3a9728b4d90cc23fee0aae9b9ffa9fbd71541e6b3cb2b966f334930b6ad6f8",
+    "include/constants/abilities.h": "1c1b93de5d5ff65d8b3066e9b40229b5d30e02842e587e3851a1d708ece1292b",
+    "include/constants/pokemon.h": "e0153a94a2fc0f84e6de372494dfb01e88be4d9cf1cbbeca5e56b8a0b645f7e5",
+    "src/data/pokemon/species_info.h": "1aac881bb02361339dc4dd33c7a5804a7127c0367426b77b982ee213a713e0af",
+    "src/data/battle_moves.h": "8b3d4d143b807807af97ce7288e0cc0ccdd55b6b64ac45824e35a549836b3a0c",
+    "charmap.txt": "e70b91cf9341d7c78239b14bd14e8f67be675d4f1b65d270fdb13d9a413c68d4"
+  },
+  "scope": "Factual IDs, names, numeric rules and text encoding only; no game code or assets."
+}

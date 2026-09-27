@@ -12,7 +12,9 @@ void PartyPresentation::setProgress(const QString& adventureId, const GameProgre
     const auto state = matches ? progress.availability : ProgressAvailability::Unsupported;
     const QString key = matches ? adventureId + progress.contextRevision + progress.contentRevision + progress.saveRevision + QString::number(int(state)) : QString();
     if (observationKey_ == key && availability_ == state) return;
+    if(moveOpen() && !moving() && matches && !progress.contextRevision.isEmpty() && !sourceContext_.isEmpty() && progress.contextRevision!=sourceContext_)cancelMove();
     observationKey_ = key; availability_ = state;
+    saveRevision_=matches?progress.saveRevision:QString();
     snapshot_ = matches && state == ProgressAvailability::Available ? progress.party : std::nullopt;
     detail_ = false; activitiesFocus_ = false; boxFocus_ = false;
     if (snapshot_ && sourceContext_ != progress.contextRevision) {
@@ -20,7 +22,7 @@ void PartyPresentation::setProgress(const QString& adventureId, const GameProgre
         std::fill(std::begin(storageFocus_),std::end(storageFocus_),0);
     }
     if (!initialBoxSet_ && snapshot_ && snapshot_->error.isEmpty()) { box_ = snapshot_->currentBox; initialBoxSet_ = true; }
-    if (box_ >= boxCount()) box_ = 0;
+    if (snapshot_ && box_ >= boxCount()) box_ = 0;
     syncActors();
     emit changed();
 }
@@ -87,6 +89,7 @@ QString PartyPresentation::status() const {
 }
 void PartyPresentation::setAdventure(const QString& id, const QString& title) {
     if (id_ != id) {
+        cancelMove();
         id_ = id; detail_ = false; partyFocus_ = 0; std::fill(std::begin(storageFocus_),std::end(storageFocus_),0); box_ = 0;
         snapshot_.reset(); observationKey_.clear(); sourceContext_.clear(); initialBoxSet_ = false; availability_ = ProgressAvailability::Unsupported;
         activitiesFocus_ = false; boxFocus_ = false; activities_.reset();
@@ -147,15 +150,16 @@ QVariantMap PartyPresentation::detail() const {
     return available() && (section_ == "party" || section_ == "storage") ? slot(section_ == "party" ? partyFocus_ : storageFocus_[box_]) : QVariantMap{};
 }
 void PartyPresentation::activate(int index) {
+    if(moveOpen()){moveActivate(index);return;}
     if (section_ == "activities") { activities_.activate(index); return; }
     if (activitiesFocus_) { openActivities(); return; }
     if (boxFocus_) { changeBox(1); return; }
-    if (detail_) { if (index == 2) {detail_=false;emit changed();emit healingRequested();} else if (index == 1) {detail_=false;emit backupsRequested();} else { detail_ = false; emit changed(); } return; }
+    if (detail_) { if(index==3){beginMove();return;} if (index == 2) {detail_=false;emit changed();emit healingRequested();} else if (index == 1) {detail_=false;emit backupsRequested();} else { detail_ = false; emit changed(); } return; }
     if (!available()) { emit backupsRequested(); return; }
     const int count = section_ == "party" ? 6 : 30;
     if (index < 0 || index >= count || section_ == "saves") return;
     (section_ == "party" ? partyFocus_ : storageFocus_[box_]) = index;
-    detail_ = true; menuIndex_ = 0; emit changed();
+    detail_ = true; menuIndex_ = canMove()?3:0; emit changed();
 }
 void PartyPresentation::showSection(const QString& section) {
     section_=section;detail_=false;activitiesFocus_=false;boxFocus_=false;emit changed();
@@ -177,11 +181,12 @@ void PartyPresentation::openSaves() {
 }
 void PartyPresentation::returnFromSaves() { section_ = previousSection_; emit changed(); }
 void PartyPresentation::dispatch(Action action) {
+    if(moveOpen()){dispatchMove(action);return;}
     if (section_ == "activities") { activities_.dispatch(action); return; }
     if (detail_) {
         if (action == Action::Back) { detail_ = false; emit changed(); }
         else if (action == Action::Confirm) activate(menuIndex_);
-        else if (action == Action::Up || action == Action::Down) { menuIndex_ = (menuIndex_ + (action==Action::Up?1:2))%3; emit changed(); }
+        else if (action == Action::Up || action == Action::Down) { const QList<int> order=canMove()?QList<int>{3,2,1,0}:QList<int>{2,1,0}; const int i=order.indexOf(menuIndex_); menuIndex_=order[(i+(action==Action::Up?order.size()-1:1))%order.size()]; emit changed(); }
         return;
     }
     if (action == Action::LocalAction) { emit backupsRequested(); return; }
@@ -208,4 +213,100 @@ void PartyPresentation::dispatch(Action action) {
     else if (action == Action::Down) focus = std::min(count - 1, focus + columns);
     emit changed();
 }
+void PartyPresentation::configureMovement(SaveBackupService* service,LibraryRepository* library) {
+    movementService_=service;movementLibrary_=library;
+    if(service)connect(service,&SaveBackupService::policyChanged,this,[this]{if(!moving())cancelMove();emit changed();});
+}
+bool PartyPresentation::canMove() const {
+    return !sample_ && available() && snapshot_->canManage && movementService_ && movementLibrary_
+        && !movementService_->busy() && !movementService_->readOnly() && !saveRevision_.isEmpty()
+        && detail().value("kind").toString()=="known";
+}
+void PartyPresentation::cancelMove() {if(moving())return;++moveGeneration_;moveStage_.clear();moveToken_.clear();emit changed();}
+QString PartyPresentation::moveTitle() const {
+    if(moveStage_=="places")return "Move " + moveName_;
+    if(moveStage_=="slots")return moveTargetBox_<0?"Choose a team position":moveSnapshot_.boxes[moveTargetBox_].name;
+    if(moveStage_=="confirm")return "Move " + moveName_ + "?";
+    return moveStage_=="writing"?"Saving your team…":"Your Pokemon";
+}
+QVariantList PartyPresentation::moveRows() const {
+    QVariantList rows;
+    if(moveStage_=="places") {
+        rows.append(QVariantMap{{"name","Party"},{"kind","place"}});
+        for(const auto& box:moveSnapshot_.boxes)rows.append(QVariantMap{{"name",box.name},{"kind","place"}});
+    } else if(moveStage_=="slots") {
+        const auto& members=moveTargetBox_<0?moveSnapshot_.party:moveSnapshot_.boxes[moveTargetBox_].members;
+        for(int i=0;i<members.size();++i)rows.append(present(members[i],i));
+    }
+    return rows;
+}
+void PartyPresentation::beginMove() {
+    if(!canMove())return;
+    const auto record=movementLibrary_->registration(id_);if(!record)return;
+    moveRegistration_=*record;moveSnapshot_=*snapshot_;moveName_=detail()["name"].toString();
+    moveRequest_={{section_=="party"?-1:box_,section_=="party"?partyFocus_:storageFocus_[box_]}, {},saveRevision_};
+    moveIndex_=section_=="party"?0:box_+1;moveTargetBox_=section_=="party"?-1:box_;
+    detail_=false;moveStage_="checking";moveMessage_="Checking your save…";const auto generation=++moveGeneration_;emit changed();
+    movementService_->inspect(*record,this,[this,generation](const SaveBackupSnapshot& snapshot){
+        if(generation!=moveGeneration_)return;
+        moveToken_=snapshot.token;
+        if(snapshot.token.isEmpty() || !snapshot.hasSave || !snapshot.error.isEmpty()) {moveStage_="result";moveMessage_=snapshot.error.isEmpty()?"Save inside your Adventure first.":snapshot.error;}
+        else {moveStage_="places";moveMessage_.clear();}
+        emit changed();
+    });
+}
+void PartyPresentation::moveActivate(int index) {
+    if(moveStage_=="writing" || moveStage_=="checking")return;
+    if(moveStage_=="result"){cancelMove();return;}
+    if(moveStage_=="places") {
+        if(index<0 || index>moveSnapshot_.boxes.size())return;
+        moveTargetBox_=index-1;moveStage_="slots";moveIndex_=0;moveMessage_.clear();emit changed();return;
+    }
+    if(moveStage_=="slots") {
+        const auto& members=moveTargetBox_<0?moveSnapshot_.party:moveSnapshot_.boxes[moveTargetBox_].members;
+        if(index<0 || index>=members.size())return;
+        moveIndex_=index;const auto kind=members[index].kind;
+        const bool reorder=moveRequest_.from.box<0 && moveTargetBox_<0;
+        if(moveRequest_.from.box==moveTargetBox_ && moveRequest_.from.slot==index) {moveMessage_="Choose another position.";emit changed();return;}
+        if(reorder ? kind==PokemonSlotKind::Empty || kind==PokemonSlotKind::Unreadable : kind!=PokemonSlotKind::Empty) {
+            moveMessage_=reorder?"Choose another occupied position.":"Choose an empty slot.";emit changed();return;
+        }
+        if(moveTargetBox_<0 && !reorder) {
+            int first=0;while(first<members.size() && members[first].kind!=PokemonSlotKind::Empty)++first;
+            if(index!=first){moveMessage_="Choose the first empty team position.";emit changed();return;}
+        }
+        moveRequest_.to={moveTargetBox_,index};moveStage_="confirm";
+        const QString destination=moveTargetBox_<0?"Party":moveSnapshot_.boxes[moveTargetBox_].name;
+        moveMessage_=reorder?"Swap places with "+present(members[index],index)["name"].toString()+".":destination+" · Slot "+QString::number(index+1);
+        emit changed();return;
+    }
+    if(moveStage_!="confirm" || !movementService_ || movementService_->busy())return;
+    const auto record=movementLibrary_->registration(moveRegistration_.adventure.id);
+    if(!record || record->revision!=moveRegistration_.revision || movementService_->readOnly()) {
+        moveStage_="result";moveMessage_="The Adventure or save policy changed. Choose again.";emit changed();return;
+    }
+    moveStage_="writing";moveMessage_="Keeping a backup and saving…";const auto generation=moveGeneration_;emit changed();
+    movementService_->movePokemon(*record,moveToken_,moveRequest_,this,[this,generation](const SaveBackupResult& result){
+        if(generation!=moveGeneration_)return;
+        moveStage_="result";moveMessage_=result.message;emit changed();
+    });
+}
+void PartyPresentation::dispatchMove(Action action) {
+    if(moving())return;
+    if(action==Action::Back) {
+        if(moveStage_=="confirm"){moveStage_="slots";moveMessage_.clear();}
+        else if(moveStage_=="slots"){moveStage_="places";moveIndex_=moveTargetBox_+1;moveMessage_.clear();}
+        else cancelMove();
+        emit changed();return;
+    }
+    if(action==Action::Confirm){moveActivate(moveIndex_);return;}
+    const int count=moveRows().size();if(!count)return;
+    const int columns=moveStage_=="places"?3:moveTargetBox_<0?2:6;
+    if(action==Action::Left && moveIndex_%columns>0)--moveIndex_;
+    else if(action==Action::Right && moveIndex_%columns<columns-1)moveIndex_=std::min(count-1,moveIndex_+1);
+    else if(action==Action::Up)moveIndex_=std::max(0,moveIndex_-columns);
+    else if(action==Action::Down)moveIndex_=std::min(count-1,moveIndex_+columns);
+    emit changed();
+}
+
 }

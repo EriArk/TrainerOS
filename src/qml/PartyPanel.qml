@@ -146,11 +146,53 @@ Item {
         anchors.fill: parent; anchors.topMargin: Theme.contentTopInset; color: "#660e2524"; visible: root.party.detailOpen
         MouseArea { anchors.fill: parent }
         MountedPanel {
-            anchors.centerIn: parent; width: 330; height: 232; color: "#e3e9dc"
+            anchors.centerIn: parent; width: 330; height: root.party.canMove ? 284 : 232; color: "#e3e9dc"
             Text { textFormat: Text.PlainText; x: 22; y: 17; width: parent.width - 44; text: root.selected.name || "Pokémon"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 24; elide: Text.ElideRight }
-            CapButton { deferredFocus: true; objectName: "party-menu-heal"; x: 22; y: 56; width: 286; height: 38; label: "Visit Pokémon Center"; tint: Theme.pink; selected: root.takesFocus && root.party.menuIndex === 2; onActivated: root.party.activate(2) }
-            CapButton { deferredFocus: true; objectName: "party-menu-backups"; x: 22; y: 108; width: 286; height: 42; label: "Adventure backups"; tint: Theme.blue; selected: root.takesFocus && root.party.menuIndex === 1; onActivated: root.party.activate(1) }
-            CapButton { deferredFocus: true; objectName: "party-detail-back"; x: 22; y: 166; width: 286; height: 42; label: "Close"; selected: root.takesFocus && root.party.menuIndex === 0; onActivated: root.party.activate(0) }
+            CapButton { deferredFocus: true; objectName: "party-menu-move"; x: 22; y: 56; width: 286; height: 38; label: "Move Pokémon"; tint: Theme.green; visible: root.party.canMove; selected: root.takesFocus && root.party.menuIndex === 3; onActivated: root.party.beginMove() }
+            CapButton { deferredFocus: true; objectName: "party-menu-heal"; x: 22; y: root.party.canMove ? 108 : 56; width: 286; height: 38; label: "Visit Pokémon Center"; tint: Theme.pink; selected: root.takesFocus && root.party.menuIndex === 2; onActivated: root.party.activate(2) }
+            CapButton { deferredFocus: true; objectName: "party-menu-backups"; x: 22; y: root.party.canMove ? 160 : 108; width: 286; height: 42; label: "Adventure backups"; tint: Theme.blue; selected: root.takesFocus && root.party.menuIndex === 1; onActivated: root.party.activate(1) }
+            CapButton { deferredFocus: true; objectName: "party-detail-back"; x: 22; y: root.party.canMove ? 218 : 166; width: 286; height: 42; label: "Close"; selected: root.takesFocus && root.party.menuIndex === 0; onActivated: root.party.activate(0) }
         }
     }
+    Rectangle {
+        objectName: "party-move-dialog"
+        anchors.fill: parent; anchors.topMargin: Theme.contentTopInset; visible: root.party.moveOpen; color: "#a0122927"
+        MouseArea {anchors.fill:parent}
+        MountedPanel {
+            anchors.centerIn: parent; width: Math.min(parent.width-48,root.party.moveRows.length ? 690 : 480); height: Math.min(parent.height-22,root.party.moveRows.length ? 365 : 230); color: "#e8eddf"
+            Text {x:22;y:15;width:parent.width-44;text:root.party.moveTitle;textFormat:Text.PlainText;font.family:Theme.displayFamily;font.bold:true;font.pixelSize:24;color:Theme.ink;elide:Text.ElideRight}
+            Grid {
+                id: destinations;x:22;y:58;width:parent.width-44;spacing:8
+                columns:root.party.moveStage === "places" ? 3 : root.party.moveParty ? 2 : 6
+                Repeater {
+                    model:root.party.moveRows
+                    CapButton {
+                        required property int index
+                        required property var modelData
+                        objectName:"move-target-"+index
+                        width:(destinations.width-(destinations.columns-1)*destinations.spacing)/destinations.columns
+                        height:root.party.moveStage === "places" ? 43 : root.party.moveParty ? 70 : 43
+                        label:root.party.moveStage === "places" || root.party.moveParty ? modelData.name : modelData.kind === "empty" ? String(index+1) : ""
+                        centered:true;textSize:root.party.moveStage === "places" || root.party.moveParty ? 16 : 12
+                        tint:modelData.kind === "empty" ? "#c9ddcb" : index%2 ? Theme.blue : Theme.green
+                        selected:root.party.moveIndex===index;deferredFocus:true
+                        onActivated:root.party.moveActivate(index)
+                        ClassicIllustration {x:5;y:5;width:root.party.moveParty ? 58 : parent.width-10;height:parent.height-10;visible:root.party.moveStage === "slots" && modelData.kind === "known";art:modelData.art || ({})}
+                        Text {anchors.centerIn:parent;visible:root.party.moveStage === "slots" && !root.party.moveParty && modelData.kind === "egg";text:"Egg";color:Theme.ink;font.pixelSize:11}
+                    }
+                }
+            }
+            Text {
+                x:22; width:parent.width-44; y:root.party.moveStage === "confirm" || root.party.moveStage === "result" || root.party.moveStage === "writing" || root.party.moveStage === "checking" ? 76 : parent.height-39
+                text:root.party.moveMessage;textFormat:Text.PlainText;wrapMode:Text.WordWrap;color:Theme.ink;font.pixelSize:root.party.moveStage === "confirm" ? 22 : 15
+            }
+            CapButton {
+                x:22;anchors.bottom:parent.bottom;anchors.bottomMargin:26;width:parent.width-44;height:52
+                visible:root.party.moveStage === "confirm" || root.party.moveStage === "result"
+                label:root.party.moveStage === "confirm" ? "Move" : "Done";tint:Theme.yellow;centered:true;selected:true;deferredFocus:true
+                onActivated:root.party.moveActivate(root.party.moveIndex)
+            }
+        }
+    }
+
 }

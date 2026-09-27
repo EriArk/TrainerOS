@@ -74,3 +74,9 @@ Keep these evidence levels separate:
 | Flip 2 running the actual ArmadaOS build | Physical mapping, display readability/performance, emulator environment and observed device/session behavior |
 
 Linux server checks do not close the ARM64/handheld gate. Follow `FIRST_DEVICE_RUN.md` and `DEVICE_DIAGNOSTICS.md` before real ArmadaOS integration or changing the normal session. If progress in the agreed sequence needs the handheld, state the exact dependency and the prepared next step.
+
+## Adapter research knowledge (#91)
+
+Before any game/save research or adapter edit, consult [the adapter knowledge base](adapters/README.md). Register exact targets and mark new capabilities researching before implementation; append meaningful sourced findings during work. Update per-capability evidence and registry with the code commit. A stale record means the increment is not done. Keep private data outside Git; #89 remains a bounded interface audit.
+
+Owner clarification, 2026-09-27: the permanent knowledge base also keeps a reusable copy of the actual adapter configured per exact game/revision. Refresh `tools/export-game-adapters.py` with adapter/data/profile edits and pass `tools/check-adapter-knowledge.py` before delivery. Include dependencies, tables, source attribution, a build example and host-protection boundaries; no private game content.
