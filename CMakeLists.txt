@@ -72,6 +72,7 @@ add_library(trainer_core STATIC
     src/core/model/SaveBackup.h
     src/platform/storage/SaveBackupStorage.h
     src/platform/storage/SaveBackupStorage.cpp
+    src/platform/storage/SaveLineage.cpp
     src/features/center/SaveCenterController.h
     src/features/center/SaveCenterController.cpp
     src/core/repository/ResumeLibraryRepository.h
@@ -307,6 +308,9 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_save_backup_tests tests/SaveBackupTests.cpp)
     target_link_libraries(trainer_save_backup_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME save_backups COMMAND trainer_save_backup_tests)
+    qt_add_executable(trainer_lineage_tests tests/SaveLineageTests.cpp)
+    target_link_libraries(trainer_lineage_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME save_lineage COMMAND trainer_lineage_tests)
     qt_add_executable(trainer_overview_tests tests/TrainerOverviewTests.cpp)
     target_link_libraries(trainer_overview_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME trainer_overview COMMAND trainer_overview_tests)

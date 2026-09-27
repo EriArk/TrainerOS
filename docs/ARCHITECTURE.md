@@ -537,3 +537,14 @@ JourneyPanel consumes the existing ShellController current-Adventure/Home projec
 ## Center activities P1 boundary
 
 PartyPresentation owns a separate CenterActivities presentation object and remembers the management section/focus while visiting it. Context changes reset its actor and preview state. It has no save, transport or battle provider; production cannot enter sample flows. [Controls and remaining gates](CENTER_ACTIVITIES_UI.md).
+
+
+## Protected save lineage foundation - 2026-09-27
+
+[Save lineage](SAVE_LINEAGE.md) wraps the existing host save transaction. It
+binds a proven active Trainer (separately from legacy backup-shelf placement) to
+an Ed25519 identity and append-only signed observations/edits/restores. Its
+private schema-1 sidecar is independent of the main schema-14 library. Candidate
+parsers, QML and PIN authentication have no signing/file-history responsibility.
+Only verified file readback precedes a successful edit record. Imported history
+stays unknown; normal gameplay/session attestation and peer trust are later gates.

@@ -1,4 +1,5 @@
 #include "SaveBackupStorage.h"
+#include "SaveLineage.h"
 #include <QCryptographicHash>
 #include <QDir>
 #include <QDirIterator>
@@ -213,6 +214,8 @@ SaveBackupResult restoreSaveBackup(const QString& root, const AdventureRegistrat
     if(!save.success || token.isEmpty() || save.revision!=token)return {false,false,"The current save changed. Check it again before confirming a restore."};
     const auto protection=writeBundle(root,target,save,true);
     if(protection.isEmpty())return {false,false,"Couldn't protect the current save first. Restore was cancelled; your save is unchanged."};
+    SaveLineageEdit lineage(root,target,record,token,save.data,save.exists);
+    if(!lineage.error().isEmpty())return {false,false,lineage.error()};
     if(current(resolve(record)).revision!=token)return {false,false,"The save changed during preparation. Restore was cancelled; the protection copy was kept."};
     QSaveFile file(target.savePath); file.setDirectWriteFallback(false);
     if(!file.open(QIODevice::WriteOnly) || file.write(copy.data)!=copy.data.size() || !syncFile(file))
@@ -223,6 +226,8 @@ SaveBackupResult restoreSaveBackup(const QString& root, const AdventureRegistrat
     const bool synced=syncDirectory(save.parent);
     const auto after=current(target);
     if(!synced || !after.success || after.data!=copy.data)return {false,true,"The save was replaced, but storage verification failed. Keep the protection copy and check the storage device."};
+    if(!lineage.finish(after.data,"restore",protection).isEmpty())
+        return {false,true,"The save was restored, but its history could not be recorded. Keep the protection copy and check storage."};
     return {true,true,"Save restored. Open the Adventure normally to use it.",inspectSaveBackups(root,resolve(record))};
 }
 static SaveBackupResult applySaveEdit(const QString& root, const AdventureRegistration& record, const QString& token,
@@ -241,8 +246,11 @@ static SaveBackupResult applySaveEdit(const QString& root, const AdventureRegist
     const auto treatment=edit(save.data,target.contentRevision);
     if (!treatment.error.isEmpty() || treatment.data.isEmpty()) return {false,false,treatment.error};
     if (treatment.data==save.data) return {true,false,treatment.message,inspectSaveBackups(root,target,healer,shops)};
-    if (writeBundle(root,target,save,true,reason).isEmpty())
+    const auto protection=writeBundle(root,target,save,true,reason);
+    if (protection.isEmpty())
         return {false,false,"Couldn't protect your save. The change was cancelled."};
+    SaveLineageEdit lineage(root,target,record,token,save.data,save.exists);
+    if(!lineage.error().isEmpty())return {false,false,lineage.error()};
     if (current(resolve(record)).revision!=token)
         return {false,false,"The save changed. The change was cancelled; your backup was kept."};
     QSaveFile file(target.savePath); file.setDirectWriteFallback(false);
@@ -258,6 +266,8 @@ static SaveBackupResult applySaveEdit(const QString& root, const AdventureRegist
     const auto after=current(target);
     if (!synced || !after.success || after.data!=treatment.data)
         return {false,true,"The change was written, but storage verification failed. Keep the backup and check storage."};
+    if(!lineage.finish(after.data,reason,protection).isEmpty())
+        return {false,true,"The change was saved, but its history could not be recorded. Keep the backup and check storage."};
     return {true,true,treatment.message,inspectSaveBackups(root,target,healer,shops)};
 }
 SaveBackupResult healSaveParty(const QString& root,const AdventureRegistration& record,const QString& token,

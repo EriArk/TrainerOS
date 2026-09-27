@@ -3,8 +3,8 @@
 Reviewed 2026-09-27, including comments added to #51, #57, #61 and #92,
 and the owner's Pack Studio clarification. [ROADMAP](ROADMAP.md#unified-execution-order--existing-work-and-new-issues)
 is the execution queue. This register adds acceptance without replacing earlier
-unfinished work. Except for the bounded #91 delivery, these are **planned**
-capabilities, not installed behavior.
+unfinished work. The bounded #91 delivery and the #93 foundation noted below have implementation
+evidence; all other targets remain planned, not installed behavior.
 
 ## #91 — durable knowledge and reusable implementation
 
@@ -81,6 +81,12 @@ No ordinary single-player feature gains a compulsory verified-session gate.
 Place these prerequisites before trust-sensitive #45 Link operations. A missing
 second device or trust gate does not block Emerald/Journey or other independent
 queue rows. Preserve exact-pair writers and durable two-device recovery proof.
+
+**2026-09-27 bounded #93 foundation:** [local signed save history](SAVE_LINEAGE.md)
+adds lazy per-Trainer software identities, imported/external observations and
+protected-edit/restore chains. This does not close #93/#94: gameplay transitions,
+entity/peer proofs, checkpoint/fork handling, portable export and hardware trust
+retain their explicit gates. Ordinary local play remains available.
 
 ## #95–97 — final ROM-native asset stage
 

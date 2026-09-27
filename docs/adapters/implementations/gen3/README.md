@@ -57,3 +57,9 @@ for the same ROM was refused (exit 3); neither input is opened for writing.
 No ROMs, BIOSes, private saves, assets, paths or credentials are bundled. Table
 source/attribution records travel with the data. This copy does not grant rights
 to any third-party game content or relax the recorded validation limits.
+
+
+TrainerOS now supplies a separate host [signed history foundation](../../../SAVE_LINEAGE.md).
+It is deliberately outside this pure transform snapshot, like file locking,
+backup/restore and runtime exclusion. Another host must provide those services;
+a game parser's successful result is not a signed provenance assertion.

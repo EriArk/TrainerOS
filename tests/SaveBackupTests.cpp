@@ -325,10 +325,12 @@ private slots:
         QVERIFY(!resolveRetroArchSave(r,i).supported); // No pre-unlock fallback to the shared save.
         const auto data=dir.filePath("data");QVERIFY(i.saves->bind({"original",data,true}));
         const auto original=resolveRetroArchSave(r,i);QCOMPARE(original.savePath,legacy.savePath);
+        QCOMPARE(original.lineageOwner,"original");QVERIFY(original.backupOwner.isEmpty());
         QCOMPARE(original.contextRevision,legacy.contextRevision);QCOMPARE(inspectSaveBackups(root,original).copies.size(),1);
         QVERIFY(!i.saves->bind({"child",data,false})); // A worker session cannot be rebound across owners.
         auto child=i;child.saves=std::make_shared<RetroArchSaveSession>();QVERIFY(child.saves->bind({"child",data,false}));
         const auto target=resolveRetroArchSave(r,child);QVERIFY2(target.supported,qPrintable(target.error));
+        QCOMPARE(target.lineageOwner,"child");QCOMPARE(target.backupOwner,"child");
         QVERIFY(target.savePath!=legacy.savePath);QVERIFY(!QFileInfo::exists(target.savePath));
         QVERIFY(inspectSaveBackups(root,target).copies.isEmpty());QVERIFY(inspectSaveBackups(root,target).error.isEmpty());
         ProcessCommand cmd{i.program,{r.contentPath},{}};std::atomic_bool cancelled{false};

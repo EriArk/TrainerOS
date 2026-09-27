@@ -99,6 +99,7 @@ SaveTarget resolveRetroArchSave(const AdventureRegistration& r, const RetroArchI
 #endif
     const auto owner=installation.saves?installation.saves->owner():std::optional<RetroArchSaveOwner>{};
     if(installation.saves && !owner) { target.error="Open your Trainer before checking saves.";return target; }
+    if(owner)target.lineageOwner=owner->id;
     if(owner && !owner->legacy) {
         for(const auto& arg:installation.prefixArguments)
             if(arg.startsWith("-s") || arg.startsWith("--save") || arg.startsWith("--appendconfig") || arg.startsWith("-c") || arg.startsWith("--config")) {

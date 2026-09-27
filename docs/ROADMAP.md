@@ -67,10 +67,15 @@ Normal-game readback, exact restore and device controller flows are verified.
 [Scope and exclusions](EMERALD_HELD_ITEMS.md). The reusable adapter copy includes
 the byte transforms, holdability tables and exact-game profile.
 
-**Next increment: 3/6 Высокое (High)** - bounded #93 save-lineage foundation before
-trusted Link: stable Trainer signing identity, explicit imported roots and
-protected-edit/restore history, composing the existing transaction and repositories.
-Do not claim #94 verified gameplay or two-device exchange from local signatures.
+**2026-09-27 #93 foundation:** [local signed history](SAVE_LINEAGE.md) records
+imported/external save observations and verified protected edits/restores with a
+stable software signing identity per known Trainer. Legacy backup paths remain
+compatible. No Verified gameplay, peer protocol or portable-backup claim follows.
+
+**Next increment: 3/6 Высокое (High)** - connect the verified GBA/mGBA
+launch/return lifecycle to this history: explicit ordinary gameplay transitions,
+interrupted sessions and external changes, retaining #94's separate stronger
+session-policy gate and #76 ownership. Then return to the remaining R4 acceptance.
 Keep item/box services and all later queue entries;
 practice and two-device Link retain their independent research/proof gates.
 Before trusted Link, add #93 signed lineage and #94 observable session policy;

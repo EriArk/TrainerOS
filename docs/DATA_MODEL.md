@@ -462,3 +462,16 @@ Examples:
 - unsupported save parsing ≠ unplayable Adventure
 
 Graceful partial data is a core design requirement.
+
+
+## Local signed save history - 2026-09-27
+
+The bounded [#93 foundation](SAVE_LINEAGE.md) adds host-side SaveLineageProof and
+SaveLineageStatus, separate from native Pokemon origins and Journey snapshots.
+Payloads bind owner, Adventure/build, opaque namespace, runtime/config/source
+revisions, operation/version, protection reference, before/after hashes and audit
+and state parents. Imported/external observations have no state parent; history
+is retained across Center restore. All current roots have unknown prior history,
+and no result is classified as Verified. SaveTarget.lineageOwner names the proven
+active Trainer even when backupOwner is empty to retain a legacy backup shelf.
+No main database migration; private history has its own versioned schema.

@@ -10,6 +10,7 @@ struct SaveTarget {
     QString adventureId, title, savePath, contentRevision, contextRevision, error;
     bool supported = false;
     QString backupOwner; // Empty preserves the legacy shelf; otherwise an exact Trainer ID.
+    QString lineageOwner; // Proven active Trainer, including the original legacy-save owner.
 };
 struct SaveBackup {
     QString id, revision;
