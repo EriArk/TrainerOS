@@ -44,3 +44,23 @@ The direct `Battle` API is intentionally pinned research, not a stable host
 contract. Production must use a bounded semantic bridge, input validation,
 timeout/process cleanup and the exact-game gates described in
 [the findings](../../../docs/EMERALD_PRACTICE.md).
+
+## Read-only bridge (next increment delivered)
+
+The original probe above is retained as feasibility evidence. The native service
+and the bounded worker now live in `src/integrations/practice`; its reproducible
+dependency remains this pinned lock. No server/runtime is auto-installed.
+
+```sh
+node tests/EmeraldPracticeEngineTests.cjs
+# Or pass the actual package directory (not its parent):
+node tests/EmeraldPracticeEngineTests.cjs /path/to/node_modules/pokemon-showdown
+```
+
+This exercises correct PP Ups before start, sparse and locked moves, Transform,
+exhausted-PP Struggle, friendship, rejected malformed pairs, deterministic finish
+and bounded stdio/cancel. `practice_session` adds the native child lifecycle and
+source-change checks when Node and this dependency are available. The optional
+`TRAINER_BUILD_PRACTICE_PROBE=ON` target verifies actual ROM/save inputs and runs
+read-only private Party copies on the handheld. Its detailed output is private.
+Native UI wiring and real-game control cases remain separate gates.

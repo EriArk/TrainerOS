@@ -30,8 +30,15 @@ def include(path):
         include(dependency)
 
 
-for name in ("Gen3Progress", "EmeraldParty", "EmeraldShops"):
+for name in ("Gen3Progress", "EmeraldParty", "EmeraldShops", "EmeraldPractice"):
     include(root / f"src/integrations/progress/{name}.cpp")
+include(root / "src/integrations/practice/PracticeSession.cpp")
+for relative in ("src/integrations/practice/emerald-engine.cjs",
+                 "src/integrations/practice/emerald-worker.cjs",
+                 "tools/research/emerald-practice/.gitignore",
+                 "tools/research/emerald-practice/package.json",
+                 "tools/research/emerald-practice/package-lock.json"):
+    files[relative]=(root/relative).read_text(encoding="utf-8").encode("utf-8")
 for name in ("emerald-reference", "emerald-shops"):
     for suffix in (".json", "-source.json"):
         path = root / f"data/{name}{suffix}"
@@ -48,8 +55,8 @@ for build in registry["builds"]:
 
 manifest = {name: hashlib.sha256(data).hexdigest() for name, data in sorted(files.items())}
 files["manifest.json"] = (json.dumps({"hash": "SHA-256 of UTF-8/LF export", "files": manifest}, indent=2) + "\n").encode()
-managed = {p.relative_to(dest).as_posix() for folder in ("src", "data", "profiles")
-           for p in (dest / folder).rglob("*") if p.is_file()}
+managed = {p.relative_to(dest).as_posix() for folder in ("src", "data", "profiles", "tools")
+           for p in (dest / folder).rglob("*") if p.is_file() and "node_modules" not in p.parts}
 unexpected = managed - set(files)
 if unexpected:
     raise SystemExit(f"Review stale export files explicitly: {sorted(unexpected)}")

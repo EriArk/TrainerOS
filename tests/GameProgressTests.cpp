@@ -5,6 +5,7 @@
 #include <QFile>
 #include "integrations/progress/Gen3Progress.h"
 #include "integrations/progress/EmeraldParty.h"
+#include "integrations/progress/EmeraldPractice.h"
 #include "integrations/progress/GameProgressService.h"
 #include "features/home/BadgeAssets.h"
 #include <QImage>
@@ -111,6 +112,55 @@ QByteArray movePatch(QByteArray save,int section,int offset,const QByteArray& va
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void emeraldBattleFactsPreserveIndividualValues() {
+        for(int permutation=0;permutation<24;++permutation) {
+            auto bytes=pokemonFixture(permutation);
+            const auto key=quint32(permutation)^0x12345678u;
+            QByteArray clear=bytes.mid(32,48);
+            for(int p=0;p<48;p+=4)put32(clear,p,qFromLittleEndian<quint32>(clear.constData()+p)^key);
+            std::array<int,4> order{0,1,2,3};for(int n=0;n<permutation;++n)std::next_permutation(order.begin(),order.end());
+            const auto at=[&](int kind){return int(std::find(order.begin(),order.end(),kind)-order.begin())*12;};
+            clear[at(0)+9]=char(173);clear[at(0)+8]=char(0xe4);
+            const std::array<int,6> ivs{1,4,9,16,25,31},evs{4,12,20,28,36,44};
+            quint32 packed=0;for(int s=0;s<6;++s){packed|=quint32(ivs[s])<<(5*s);clear[at(2)+s]=char(evs[s]);}
+            put32(clear,at(3)+4,packed);
+            for(int m=0;m<4;++m){put16(clear,at(1)+2*m,33+m);clear[at(1)+8+m]=1;}
+            quint16 sum=0;for(int p=0;p<48;p+=2)sum=quint16(sum+qFromLittleEndian<quint16>(clear.constData()+p));put16(bytes,28,sum);
+            for(int p=0;p<48;p+=4)put32(bytes,32+p,qFromLittleEndian<quint32>(clear.constData()+p)^key);
+            const auto mon=readEmeraldPartyMember(bytes);QVERIFY(mon.battle);
+            QCOMPARE(mon.battle->ivs,(std::array<int,6>{1,4,9,25,31,16}));
+            QCOMPARE(mon.battle->evs,(std::array<int,6>{4,12,20,36,44,28}));
+            QCOMPARE(mon.battle->friendship,173);QCOMPARE(mon.battle->natureId,permutation);
+            QCOMPARE(mon.battle->abilityId,9);QCOMPARE(mon.battle->gender,"F");
+            QCOMPARE(mon.battle->moveIds,(std::array<int,4>{33,34,35,36}));
+            QCOMPARE(mon.battle->ppUps,(std::array<int,4>{0,1,2,3}));
+            bytes[40]^=1;QVERIFY(!readEmeraldPartyMember(bytes).battle);
+        }
+        QCOMPARE(readEmeraldPartyMember(pokemonFixture(126)).battle->gender,"F");
+        QCOMPARE(readEmeraldPartyMember(pokemonFixture(127)).battle->gender,"M");
+        const auto female=readEmeraldPartyMember(setTestMoves(pokemonFixture(255,29),{33,0,0,0}));
+        const auto male=readEmeraldPartyMember(setTestMoves(pokemonFixture(0,32),{33,0,0,0}));
+        QVERIFY(female.battle);QVERIFY(male.battle);
+        QCOMPARE(female.battle->gender,"F");QCOMPARE(male.battle->gender,"M");
+        QCOMPARE(readEmeraldPartyMember(pokemonFixture(0,81)).battle->gender,"N");
+        QCOMPARE(readEmeraldPartyMember(pokemonFixture()).battle->friendship,0);
+        QVERIFY(!readEmeraldPartyMember(pokemonFixture(0,25,true)).battle);
+        const auto firered=readGen3Progress(save(Gen3Edition::FireRed),Gen3Edition::FireRed);
+        for(const auto& mon:firered.party->party)QVERIFY(!mon.battle);
+    }
+    void practiceProjectionRequiresExactFreshReadableParty() {
+        auto progress=readGen3Progress(movementSave(0),Gen3Edition::Emerald);
+        progress.contentRevision=EmeraldHash;progress.contextRevision="owner/playthrough";progress.saveRevision="digest";
+        const auto pair=emeraldPracticePair(progress,0,1);QVERIFY2(pair.error.isEmpty(),qPrintable(pair.error));
+        QCOMPARE(pair.input["members"].toArray().size(),2);
+        QVERIFY(!pair.input.contains("contextRevision"));QVERIFY(!pair.input.contains("saveRevision"));
+        for(const auto selection:QList<QPair<int,int>>{{0,0},{-1,0},{0,6},{0,4}})
+            QVERIFY(!emeraldPracticePair(progress,selection.first,selection.second).error.isEmpty());
+        auto bad=progress;bad.party->party[0].battle.reset();QVERIFY(!emeraldPracticePair(bad,0,1).error.isEmpty());
+        bad=progress;bad.contentRevision=QString(64,'0');QVERIFY(!emeraldPracticePair(bad,0,1).error.isEmpty());
+        bad=progress;bad.availability=ProgressAvailability::Checking;QVERIFY(!emeraldPracticePair(bad,0,1).error.isEmpty());
+        bad=progress;bad.contextRevision.clear();QVERIFY(!emeraldPracticePair(bad,0,1).error.isEmpty());
+    }
     void emeraldDexCountsActualFormsWithoutInventingCaughtHistory() {
         for(int rotation=0;rotation<14;++rotation) {
             auto bytes=movementSave(rotation);

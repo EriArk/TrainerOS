@@ -273,3 +273,20 @@ PP initialization need an explicit semantic reader/bridge. Practice stays
 disabled; no exact full-battle, native rules or production consumer claim. Owner
 approves small Emerald-specific rule modules where demonstrated gaps require
 them. Current generic Party presentation and save writers are unchanged.
+
+### 2026-09-27: read-only practice bridge verified on Flip
+
+The actual C++ reader now preserves optional IV/EV, friendship, PID-derived
+M/F/N gender, nature/ability IDs and four move IDs/PP Up counts for Emerald.
+Pinned factual species tables add gender ratios/ability IDs; the source revision
+is unchanged. The portable copy includes the pure exact-game pair projection.
+
+Five native ARM64 copied-pair battles cover all six members of the private Party;
+all individual fields/stats match the independent decoder. A stale save revision
+cancels/reaps the child; originals stay byte-identical. PP default mismatch is
+resolved before battle start. Sparse/locked/Transform/Struggle choices and child
+failure/timeout/oversize cleanup have checks. See [bridge evidence](../EMERALD_PRACTICE.md).
+
+Practice remains partial: the native screen/source bindings, production runtime
+packaging and cartridge rule comparisons are still open. No save writes/rewards
+or general battle-equivalence claim follows from the process bridge.

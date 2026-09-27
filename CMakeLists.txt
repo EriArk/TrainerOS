@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_AUTOMOC ON)
 include(CTest)
+option(TRAINER_BUILD_PRACTICE_PROBE "Build the read-only Emerald battle proof tool" OFF)
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network Xml Multimedia)
 find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
@@ -47,6 +48,8 @@ add_library(trainer_core STATIC
     src/features/center/SaveCenterShops.cpp
     src/integrations/progress/EmeraldParty.h
     src/integrations/progress/EmeraldParty.cpp
+    src/integrations/progress/EmeraldPractice.cpp
+    src/integrations/practice/PracticeSession.cpp
     src/integrations/progress/GameProgressService.h
     src/integrations/progress/GameProgressService.cpp
     src/features/halloffame/AchievementAccountController.h
@@ -178,6 +181,10 @@ qt_add_resources(trainer_core emerald_reference PREFIX "/progress" BASE data FIL
 qt_add_resources(trainer_core emerald_shops PREFIX "/progress" BASE data FILES data/emerald-shops.json)
 target_link_libraries(trainer_core PUBLIC Qt6::Core Qt6::Gui Qt6::Sql Qt6::Network Qt6::Xml SDL2::SDL2 OpenSSL::Crypto)
 target_compile_definitions(trainer_core PUBLIC SDL_MAIN_HANDLED)
+if(TRAINER_BUILD_PRACTICE_PROBE)
+    qt_add_executable(trainer_practice_probe tools/ProbeEmeraldPractice.cpp)
+    target_link_libraries(trainer_practice_probe PRIVATE trainer_core)
+endif()
 if(MSVC)
     target_compile_options(trainer_core PRIVATE /W4 PUBLIC /utf-8)
 else()
@@ -282,6 +289,11 @@ if(BUILD_TESTING)
     target_link_libraries(trainer_pointer_tests PRIVATE trainer_core Qt6::Quick Qt6::Test)
     add_test(NAME pointer_visibility COMMAND trainer_pointer_tests)
     qt_add_executable(trainer_progress_tests tests/GameProgressTests.cpp)
+    qt_add_executable(trainer_practice_tests tests/PracticeSessionTests.cpp)
+    target_compile_definitions(trainer_practice_tests PRIVATE TRAINER_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+    target_link_libraries(trainer_practice_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME practice_session COMMAND trainer_practice_tests)
+    set_tests_properties(practice_session PROPERTIES TIMEOUT 30)
     target_link_libraries(trainer_progress_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME game_progress COMMAND trainer_progress_tests)
     qt_add_executable(trainer_achievement_tests tests/RetroAchievementsTests.cpp)

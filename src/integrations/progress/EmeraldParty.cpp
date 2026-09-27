@@ -114,6 +114,21 @@ PokemonRecord pokemon(const QByteArray& bytes, bool inParty, bool fireRed=false,
     }
     const std::array<int,6> displayOrder{0,1,2,4,5,3};
     for(int s=0;s<6;++s) r.stats[s]=calculated[displayOrder[s]];
+    if(!fireRed) {
+        PokemonBattleTraits traits;
+        for(int s=0;s<6;++s) {
+            traits.ivs[s]=int((iv>>(5*displayOrder[s]))&31);
+            traits.evs[s]=byte(ev,displayOrder[s]);
+        }
+        traits.friendship=byte(growth,9);traits.natureId=nature;
+        const auto ids=facts["abilityIds"].toArray();
+        traits.abilityId=ids.at((iv>>31)&1).toInt();
+        if(!traits.abilityId)traits.abilityId=ids.at(0).toInt();
+        const int ratio=facts["genderRatio"].toInt(-1);
+        if(ratio<0)return unreadable();
+        traits.gender=ratio==255?"N":ratio==254?"F":(personality&255u)<quint32(ratio)?"F":"M";
+        r.battle=traits;
+    }
     r.condition="Stored"; // Box records do not contain current HP or battle status.
     if (inParty) {
         if (byte(bytes,84)!=r.level || u16(bytes,86)>u16(bytes,88) || u16(bytes,88)==0) return unreadable();
@@ -129,6 +144,10 @@ PokemonRecord pokemon(const QByteArray& bytes, bool inParty, bool fireRed=false,
     const auto moves=reference()["moves"].toObject();
     for(int i=0;i<4;++i) {
         const auto move=u16(attacks,2*i); const int pp=byte(attacks,8+i);
+        if(r.battle) {
+            r.battle->moveIds[i]=move;
+            r.battle->ppUps[i]=(byte(growth,8)>>(i*2))&3;
+        }
         if (!move) { if(pp) return unreadable(); r.moves.append(PokemonMove{}); continue; }
         const auto fact=moves.value(QString::number(move)).toObject();
         if(fact.isEmpty()) return unreadable();

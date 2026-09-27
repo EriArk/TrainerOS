@@ -101,18 +101,20 @@ individual readers provide Unown letters, Emerald Deoxys and stored Castform;
 unreadable areas remain unknown, and rollback replaces counts. No per-form
 capture history is invented. [Evidence and bounds](EMERALD_DEX_FORMS.md).
 
-**2026-09-27 practice feasibility:** pinned Showdown Gen III runs offline on
-Flip ARM64; deterministic probes and private six-member stat comparisons pass.
-pkmn/engine has no Gen III implementation yet. Missing semantic fields and the
-max-PP mismatch are recorded in [the research handoff](EMERALD_PRACTICE.md).
-No practice UI/capability is enabled. Owner accepts bounded Emerald rule modules
-if verified engine differences require them; no new battle engine by default.
+**2026-09-27 practice bridge:** pinned Showdown Gen III runs offline on Flip
+ARM64. Exact Emerald battle facts and the bounded native process bridge are
+implemented and tested: five copied-pair battles cover the six-member private
+Party, correct PP Ups and source-change cancellation. Saved bytes stay unchanged.
+The [evidence and remaining gates](EMERALD_PRACTICE.md) distinguish this from
+native UI delivery and full cartridge equivalence. Owner accepts bounded Emerald
+rule modules for demonstrated differences; no new engine by default.
 
-**Next increment: 3/6 Высокое (High)** - R4 #55 read-only Emerald battle records
-and the pinned semantic bridge: exact IV/EV, friendship/gender, move IDs/PP Ups,
-initialization and rule vectors, process cancellation/source-change safety.
-Then connect the native 1v1 consumer after its gates; no save writes or rewards.
-Keep scenes, Link/two-device proof and every later queue row intact.
+**Next increment: 3/6 Высокое (High)** - R4 #55 native controller-first 1v1
+practice using two real Emerald Party copies: pair/move selection, battle events,
+finish/cancel, real source/runtime invalidation and pinned runtime delivery.
+Prove exact rule control cases and installed Flip interaction before enabling it;
+no save writes or rewards. Keep scenes, Link/two-device proof and every later
+queue row intact.
 
 The [R1–R18 queue](#unified-execution-order--existing-work-and-new-issues) below
 is authoritative. P0–P12 remain stable work areas, not scheduling numbers. Dated

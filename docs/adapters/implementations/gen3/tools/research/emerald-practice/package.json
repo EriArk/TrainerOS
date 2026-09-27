@@ -1,0 +1,8 @@
+{
+  "name": "traineros-emerald-practice-probe",
+  "private": true,
+  "description": "Offline research only; not a TrainerOS runtime dependency",
+  "dependencies": {
+    "pokemon-showdown": "0.11.11"
+  }
+}

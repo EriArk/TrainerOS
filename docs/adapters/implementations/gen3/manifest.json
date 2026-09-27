@@ -2,7 +2,7 @@
   "hash": "SHA-256 of UTF-8/LF export",
   "files": {
     "data/emerald-reference-source.json": "e4c9992729a12f34a296062233cc7302a7ca68a97344b542b0bd32ad1cd803db",
-    "data/emerald-reference.json": "7fae3c8d60db18228e582eb4734ca0d38a9bb1abcae99b9d814a3d24b8875a8f",
+    "data/emerald-reference.json": "7bfa37913deb9f2ec06b19eea17ddefb021a923d0de09977da0e8a1a7994bd03",
     "data/emerald-shops-source.json": "0f0ba43e103aad1580ee4e91718e17d9c0d8183afa019f67b0ddcb2dd3540b3a",
     "data/emerald-shops.json": "f573fe4e0599ddefe697521575d859e1b1122f88ce3583cb4d9c4967d0af5cad",
     "profiles/emerald-en.json": "102d67e241ff82e25aaeb84eb2605fa2d06fa4684d253d267a37284fb652cfdf",
@@ -13,13 +13,22 @@
     "src/core/model/Merchant.h": "bec84823ba039f33c7794a69309070c64c2fd6d8ac3614e0e1b7f64047fad1c8",
     "src/core/model/Models.h": "c0f4ca9cb96d1246577125fd55401b4875b92de178585c3fa5d1684b6b0e278d",
     "src/core/model/PartyMove.h": "2f810fd65dcb4074814d50a867113d7c79e35f1bca379438b57ac9f68fb46e15",
-    "src/core/model/PartySnapshot.h": "7f4b9f50df3f68ade06a885b03e25ca9454bbdc7a89aeefbf4b9f634ba57e689",
+    "src/core/model/PartySnapshot.h": "e3aff6dc851b8601e6084c523f1b42363d440b6608795e631ebc07a4372882c2",
     "src/core/model/SaveBackup.h": "a012c3b9cb10d267234b2ca8057c45b8a2b32552e9ffd3c6542e672c713a8283",
-    "src/integrations/progress/EmeraldParty.cpp": "f9ac509542a3abcacc9ee88e4637437f3a243ed73bad09dae2881b9463c91510",
+    "src/integrations/practice/PracticeSession.cpp": "a95f1dcbcb365eb46b96668bc09745f257753e91426eccf7746ea8cb7b0eb62b",
+    "src/integrations/practice/PracticeSession.h": "d43f3891ac466d69e033db5788800016f0cbb709abc1ae4255134178b1c527c5",
+    "src/integrations/practice/emerald-engine.cjs": "9120ed1d7eacdcc2a5befbac945bd0e83c3a7c76f38a82947ca51d54663db2f6",
+    "src/integrations/practice/emerald-worker.cjs": "7793a399b83d00a5a86c564a0cd97b06a429225de710a12a6e9489766e4fb05f",
+    "src/integrations/progress/EmeraldParty.cpp": "b7dda6bbbc52c655bc9640ffca744bd706eaac046dc79eeeb338da8d16562eb8",
     "src/integrations/progress/EmeraldParty.h": "c2955d0f0006c1d699b3d298cd7f9098c7cd8c5ccc36103924f8597b5176aa27",
+    "src/integrations/progress/EmeraldPractice.cpp": "b6722eba30fedbdc565c690d3439aa33fd8e3ebbbfe8dec02fd3af7f556cafca",
+    "src/integrations/progress/EmeraldPractice.h": "b3e9e8c7d68476ca6fea6bfcc7c3c8d10c815f62ee2f3e51426102b52ed57abd",
     "src/integrations/progress/EmeraldShops.cpp": "dda71a4618b311cbfd9e9e6cac703e490f1eadc5cdc785761d7fd6c670301930",
     "src/integrations/progress/EmeraldShops.h": "068cad481779923b66dfb98d6f851cdb12a7ff23d4ec33e4a78002562b2a1497",
     "src/integrations/progress/Gen3Progress.cpp": "3214b9cb6befac194b3af8b16cf644379dcac10ea75874467bf9f4f9b6d0276a",
-    "src/integrations/progress/Gen3Progress.h": "32fc400e5e50b98b2e5f6ab5f784b5c80b0993eb371d570d35fe443103cc08be"
+    "src/integrations/progress/Gen3Progress.h": "32fc400e5e50b98b2e5f6ab5f784b5c80b0993eb371d570d35fe443103cc08be",
+    "tools/research/emerald-practice/.gitignore": "7f21fc8708807e36cac6c39231cce03169676fb90fa5c1f38ec38e29b6d6e8dd",
+    "tools/research/emerald-practice/package-lock.json": "ac2b02e66eb2e8565925b6f77a4feafc480bca6664cb754556f57ca7aefaf53e",
+    "tools/research/emerald-practice/package.json": "6a57954765ba241d6355a9fc0ff1db8eee9fbd293029d056033535d656155488"
   }
 }

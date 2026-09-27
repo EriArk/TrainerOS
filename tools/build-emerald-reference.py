@@ -21,6 +21,7 @@ def main():
         return {name:int(value) for name,value in re.findall(r'^#define '+prefix+r'([A-Z0-9_]+)\s+(\d+)\b',texts[file],re.M)}
     def pretty(name):return name.replace('_',' ').title()
     species=constants(FILES[0],'SPECIES_');moves=constants(FILES[1],'MOVE_')
+    abilities=constants(FILES[3],'ABILITY_')
     # The pinned item IDs are an implicit, zero-based enum, not #defines.
     item_enum=re.search(r'enum\s*\{(.*?)\};',texts[FILES[2]],re.S)[1]
     item_enum=re.sub(r'//[^\n]*','',item_enum)
@@ -40,9 +41,15 @@ def main():
         types=re.findall(r'TYPE_([A-Z]+)',re.search(r'\.types\s*=\s*\{([^}]+)',body)[1])
         ab=re.findall(r'ABILITY_([A-Z0-9_]+)',re.search(r'\.abilities\s*=\s*\{([^}]+)',body)[1])
         growth=re.search(r'\.growthRate\s*=\s*GROWTH_([A-Z_]+)',body)[1]
+        ratio=re.search(r'\.genderRatio\s*=\s*([^,\n]+)',body)[1].strip()
+        if ratio.startswith('PERCENT_FEMALE('):
+            ratio=min(254,int(float(re.search(r'\(([^)]+)\)',ratio)[1])*255/100))
+        else:
+            ratio={'MON_MALE':0,'MON_FEMALE':254,'MON_GENDERLESS':255}[ratio]
         records[str(species[name])]={'id':entry['id'],'number':entry['number'],'name':entry['name'],
             'base':bases,'types':list(dict.fromkeys(map(pretty,types))),'abilities':[pretty(a) if a!='NONE' else '' for a in ab],
-            'growth':growth,'form':entry['forms'][0]['id']}
+            'growth':growth,'form':entry['forms'][0]['id'],
+            'genderRatio':ratio,'abilityIds':[abilities[a] for a in ab]}
     assert len(records)==386, len(records)
     move_table={}
     for name,body in re.findall(r'\[MOVE_([A-Z0-9_]+)\]\s*=\s*\{\s*\n(.*?)\n\s*\},?',texts[FILES[6]],re.S):

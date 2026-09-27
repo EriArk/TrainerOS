@@ -68,3 +68,29 @@ TrainerOS now supplies a separate host [signed history foundation](../../../SAVE
 It is deliberately outside this pure transform snapshot, like file locking,
 backup/restore and runtime exclusion. Another host must provide those services;
 a game parser's successful result is not a signed provenance assertion.
+
+## Optional Emerald practice input
+
+`PokemonRecord::battle` now carries verified Emerald IV/EV, friendship, gender,
+nature/ability IDs and four move IDs/PP Up counts. Other readers leave it absent.
+`emeraldPracticePair` projects two known Party slots from exact available Emerald
+progress into semantic JSON. The caller must supply verified content/context/save
+revisions and retain owner/runtime invalidation. It grants no write capability.
+
+The byte-for-byte Showdown worker and host process lifecycle are also exported,
+with a separate `trainer_emerald_practice` Qt Core target. The parser itself never
+starts or requires Node. The exported package/lock files pin the runtime dependency:
+
+```sh
+# From this portable copy's root, only if the battle bridge is wanted:
+npm ci --prefix tools/research/emerald-practice --ignore-scripts --omit=optional --no-audit --no-fund
+```
+
+Pass an explicitly installed Node runtime, `src/integrations/practice/emerald-worker.cjs`
+and the absolute installed `node_modules/pokemon-showdown` directory to
+`PracticeSession::begin`. Call `updateSource` on every owner/Adventure/save/runtime
+invalidation and `cancel` before discarding a live session. The worker is a normal
+process, not an OS filesystem sandbox. Dependency source remains unvendored;
+retain its upstream MIT license when distributing it. See
+[practice boundaries](../../../EMERALD_PRACTICE.md) for the pinned engine, fresh
+healthy-copy policy, validation and remaining native UI/cartridge-proof gates.
