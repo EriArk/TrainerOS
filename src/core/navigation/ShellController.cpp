@@ -58,7 +58,15 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         textTarget_=TextTarget::LibraryTools;keyboard_.begin(title,initial,limit);
     });
     connect(&settings_, &SettingsController::trashRequested,this,[this]{libraryTools_.beginTrash();});
-    connect(&party_, &PartyPresentation::changed, this, &ShellController::changed);
+    connect(&party_, &PartyPresentation::changed, this, [this] {
+        if(textTarget_==TextTarget::BoxName && party_.moveStage()!=QStringLiteral("name-edit")) {
+            textTarget_=TextTarget::None; keyboard_.cancel();
+        }
+        emit changed();
+    });
+    connect(&party_, &PartyPresentation::boxNameRequested,this,[this](const QString& name,int limit){
+        textTarget_=TextTarget::BoxName;keyboard_.begin("Box name",name,limit);
+    });
     connect(&party_, &PartyPresentation::healingRequested, this, [this]{centerRoute_="clinic";showPokemonFace("center");});
     connect(&party_, &PartyPresentation::backupsRequested, this, [this]{centerRoute_="backups";showPokemonFace("center");});
     connect(party_.activities(), &CenterActivities::shopsRequested, this, [this]{showPokemonFace("shops");});
@@ -186,6 +194,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::TrainerFavorite) trainer_.picker()->applySearch(text);
         else if (target == TextTarget::CenterSearch) center_.applySearch(text);
         else if(target==TextTarget::ShopSearch)center_.applyShopSearch(text);
+        else if(target==TextTarget::BoxName)party_.applyBoxName(text);
         else if (target == TextTarget::AchievementAccount) hall_.account()->applyText(text);
     });
     connect(&center_, &SaveCenterController::shopSearchRequested,this,[this](const QString& text){textTarget_=TextTarget::ShopSearch;keyboard_.begin("Find goods or shops",text,64);});
@@ -736,7 +745,12 @@ void ShellController::dispatch(Action action) {
         drawerOpen_ = !drawerOpen_; emit changed(); return;
     }
     if (notice_.isEmpty() && !menuOpen_) {
-        if (keyboard_.isOpen()) { keyboard_.dispatch(action); return; }
+        if (keyboard_.isOpen()) {
+            const bool naming=textTarget_==TextTarget::BoxName;
+            keyboard_.dispatch(action);
+            if(naming && action==Action::Back) {textTarget_=TextTarget::None;party_.cancelBoxName();}
+            return;
+        }
         if (libraryTools_.isOpen()) {libraryTools_.dispatch(action);return;}
         if (drawerOpen_) {
             if (action == Action::Back) drawerOpen_ = false;

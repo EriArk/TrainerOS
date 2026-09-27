@@ -158,7 +158,7 @@ Item {
     }
     Rectangle {
         objectName: "party-move-dialog"
-        anchors.fill: parent; anchors.topMargin: Theme.contentTopInset; visible: root.party.moveOpen; color: "#a0122927"
+        anchors.fill: parent; anchors.topMargin: Theme.contentTopInset; visible: root.party.moveOpen && root.party.moveStage !== "name-edit"; color: "#a0122927"
         MouseArea {anchors.fill:parent}
         MountedPanel {
             anchors.centerIn: parent; width: Math.min(parent.width-48,root.party.moveRows.length ? 690 : root.party.movePair.length ? 570 : 480); height: Math.min(parent.height-22,root.party.moveRows.length ? 365 : root.party.movePair.length ? 320 : root.party.moveStage === "release-confirm" || root.party.moveStage === "item-confirm" ? 300 : 230); color: "#e8eddf"
@@ -224,7 +224,7 @@ Item {
                 }
             }
             Text {
-                x:22; width:parent.width-44; y:root.party.moveStage === "release-confirm" || root.party.moveStage === "item-confirm" ? 158 : root.party.moveStage === "confirm" || root.party.moveStage === "result" || root.party.moveStage === "writing" || root.party.moveStage === "checking" ? 76 : parent.height-39
+                x:22; width:parent.width-44; y:root.party.moveStage === "release-confirm" || root.party.moveStage === "item-confirm" ? 158 : root.party.moveStage.startsWith("name-") || root.party.moveStage === "confirm" || root.party.moveStage === "result" || root.party.moveStage === "writing" || root.party.moveStage === "checking" ? 76 : parent.height-39
                 text:root.party.moveMessage;textFormat:Text.PlainText;wrapMode:Text.WordWrap;color:Theme.ink;font.pixelSize:root.party.moveStage === "confirm" ? 22 : 15
             }
             CapButton {
@@ -234,8 +234,8 @@ Item {
             }
             CapButton {
                 x:22;anchors.bottom:parent.bottom;anchors.bottomMargin:26;width:parent.width-44;height:52
-                visible:root.party.moveStage === "confirm" || root.party.moveStage === "item-confirm" || root.party.moveStage === "result"
-                label:root.party.moveStage === "confirm" ? root.party.movePair.length ? "Swap places" : "Move" : root.party.moveStage === "item-confirm" ? "Confirm" : "Done";tint:Theme.yellow;centered:true;selected:true;deferredFocus:true
+                visible:root.party.moveStage === "name-confirm" || root.party.moveStage === "name-error" || root.party.moveStage === "confirm" || root.party.moveStage === "item-confirm" || root.party.moveStage === "result"
+                label:root.party.moveStage === "name-confirm" ? "Rename" : root.party.moveStage === "name-error" ? "Edit name" : root.party.moveStage === "confirm" ? root.party.movePair.length ? "Swap places" : "Move" : root.party.moveStage === "item-confirm" ? "Confirm" : "Done";tint:Theme.yellow;centered:true;selected:true;deferredFocus:true
                 onActivated:root.party.moveActivate(root.party.moveIndex)
             }
         }

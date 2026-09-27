@@ -14,7 +14,7 @@ cmake --build build
 There are separate profiles for English Emerald and both allowlisted English
 FireRed revisions. Shared source avoids three divergent implementations; profiles
 carry the exact full-ROM fingerprint, lengths and **per-capability** evidence.
-FireRed does not acquire Emerald shops, movement, release or held-item writes. Original FireRed still lacks
+FireRed does not acquire Emerald shops, movement, release, box-name or held-item writes. Original FireRed still lacks
 the Rev 1 normal-game healing proof; inspect the evidence before enabling writes.
 The profile is a configuration/evidence record, not a trusted runtime permission.
 Keep [the knowledge records](../../README.md) alongside it for sources and limits.
@@ -31,6 +31,11 @@ zero takes the current item, a nonzero ID gives one from the verified Bag.
 Replacement returns the old item atomically. `readGen3Progress().party` includes
 the read-only Bag choices and independent `canHoldItems` capability. See the
 [held-item contract](../../../EMERALD_HELD_ITEMS.md) for exclusions and evidence.
+`BoxNameChange` binds a zero-based Emerald box, 1-8 supported characters and the
+observed save SHA-256. `renameEmeraldBox` encodes a native name and preserves the
+remaining save bytes except the affected sector checksum. The reader exposes
+`boxNameLimit` and `boxNameCharacters`; zero disables the operation. Host
+confirmation, protection and rollback remain mandatory.
 The example verifies the actual ROM against the selected profile and only reads.
 
 **Host responsibility:** this library does not lock emulators, resolve Trainer

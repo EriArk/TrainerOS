@@ -82,6 +82,39 @@ private slots:
         QCOMPARE(read(f.path),QByteArray("NEW IN GAME SAVE"));
         QVERIFY(!f.inspect().copies.isEmpty());
     }
+    void boxNameUsesProtectionPolicyStaleGuardAndExactUndo() {
+        Fixture f;int calls=0;
+        BoxNameWriter mover=[&](const QByteArray& input,const QString&,const BoxNameChange&){++calls;return BoxNameResult{input+" MOVED",{},"Moved"};};
+        const auto token=f.inspect().token;
+        QVERIFY(setSaveWritesReadOnly(f.root,true).isEmpty());
+        QVERIFY(!renameSaveBox(f.root,f.record,token,{},f.resolve,mover).success);QCOMPARE(calls,0);
+        QVERIFY(setSaveWritesReadOnly(f.root,false).isEmpty());
+        QVERIFY(!renameSaveBox(f.root,f.record,"stale",{},f.resolve,mover).success);QCOMPARE(calls,0);
+        auto result=renameSaveBox(f.root,f.record,token,{},f.resolve,mover);QVERIFY(result.success);QCOMPARE(calls,1);
+        QCOMPARE(read(f.path),QByteArray("FIRST SAVE MOVED"));QCOMPARE(result.snapshot.copies.size(),1);
+        QCOMPARE(result.snapshot.copies[0].reason,"box-name");
+        auto restored=restoreSaveBackup(f.root,f.record,result.snapshot.copies[0],result.snapshot.token,f.resolve);
+        QVERIFY(restored.success);QCOMPARE(read(f.path),QByteArray("FIRST SAVE"));
+        f.target.supported=false;QVERIFY(!renameSaveBox(f.root,f.record,token,{},f.resolve,mover).success);
+        f.target.supported=true;write(f.dir.filePath("blocked"),"file");
+        QVERIFY(!renameSaveBox(f.dir.filePath("blocked"),f.record,f.inspect().token,{},f.resolve,mover).success);QCOMPARE(read(f.path),QByteArray("FIRST SAVE"));
+    }
+
+    void boxNameRechecksRuntimeAndSourceAfterPreparation() {
+        Fixture f;auto token=f.inspect().token;
+        BoxNameWriter changed=[&](const QByteArray&,const QString&,const BoxNameChange&) {
+            write(f.path,"NEW IN GAME SAVE");return BoxNameResult{"RELEASED",{},"Released"};
+        };
+        QVERIFY(!renameSaveBox(f.root,f.record,token,{},f.resolve,changed).success);
+        QCOMPARE(read(f.path),QByteArray("NEW IN GAME SAVE"));
+        token=f.inspect().token;int resolutions=0;
+        const SaveTargetResolver runtime=[&](const AdventureRegistration&){auto t=f.target;if(++resolutions>1){t.supported=false;t.error="Game running";}return t;};
+        const BoxNameWriter release=[](const QByteArray&,const QString&,const BoxNameChange&){return BoxNameResult{"RELEASED",{},"Released"};};
+        QVERIFY(!renameSaveBox(f.root,f.record,token,{},runtime,release).success);
+        QCOMPARE(read(f.path),QByteArray("NEW IN GAME SAVE"));
+        QVERIFY(!f.inspect().copies.isEmpty());
+    }
+
     void heldItemUsesProtectionPolicyStaleGuardAndExactUndo() {
         Fixture f;int calls=0;
         HeldItemWriter mover=[&](const QByteArray& input,const QString&,const HeldItemChange&){++calls;return HeldItemResult{input+" MOVED",{},"Moved"};};

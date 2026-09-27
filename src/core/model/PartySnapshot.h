@@ -26,6 +26,8 @@ struct PartySnapshot {
     // Independent exact-build writers; reading alone grants neither capability.
     bool canManage = false;
     bool canSwapOccupied = false;
+    int boxNameLimit = 0; // Zero means no verified naming writer.
+    QString boxNameCharacters;
     bool canRelease = false;
     bool canHoldItems = false;
     HeldItemBag bag;

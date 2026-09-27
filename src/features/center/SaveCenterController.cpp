@@ -41,7 +41,7 @@ QVariantList SaveCenterController::rows() const {
         const auto date=copy.createdAt.isValid()?copy.createdAt.toLocalTime().toString("dd MMM yyyy · HH:mm:ss"):QString("Unreadable copy");
         result.append(QVariantMap{{"id",copy.id},{"title",date},{"available",copy.valid&&copy.hasSave&&copy.bytes>0},
             {"detail",!copy.valid?"Damaged or different game content":!copy.hasSave?"Before restore · no previous save existed"
-                :copy.bytes==0?"Before restore · previous save was empty":QString(copy.reason=="held-item"?"Before changing held item \u00b7 %1 bytes":copy.reason=="release"?"Before releasing Pokemon · %1 bytes":copy.reason=="movement"?"Before moving Pokemon · %1 bytes":copy.reason=="purchase"?"Before purchase · %1 bytes":copy.reason=="healing"?"Before healing · %1 bytes":copy.protection?"Before restore · %1 bytes":"Manual copy · %1 bytes").arg(copy.bytes)}});
+                :copy.bytes==0?"Before restore · previous save was empty":QString(copy.reason=="box-name"?"Before renaming box \u00b7 %1 bytes":copy.reason=="held-item"?"Before changing held item \u00b7 %1 bytes":copy.reason=="release"?"Before releasing Pokemon · %1 bytes":copy.reason=="movement"?"Before moving Pokemon · %1 bytes":copy.reason=="purchase"?"Before purchase · %1 bytes":copy.reason=="healing"?"Before healing · %1 bytes":copy.protection?"Before restore · %1 bytes":"Manual copy · %1 bytes").arg(copy.bytes)}});
     }
     return result;
 }

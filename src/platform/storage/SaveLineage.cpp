@@ -184,7 +184,7 @@ SaveLineageStatus verifySaveLineage(const SaveLineageProof& proof,const QByteArr
             status.state=op=="imported"?LineageState::Imported:LineageState::Changed;
         } else {
             if(i==0 || (!hashLike(save) && !(session && save=="absent"))
-               || (!session && !QStringList{"healing","purchase","movement","release","held-item","restore"}.contains(op))
+               || (!session && !QStringList{"healing","purchase","movement","release","held-item","box-name","restore"}.contains(op))
                || o["stateParent"].toString()!=status.head || o["beforeSha256"].toString()!=lastHash
                || o["context"].toString()!=lastContext || (!session && o["protection"].toString().isEmpty()))return broken();
             status.state=begin?LineageState::Running:LineageState::Managed;
@@ -295,7 +295,7 @@ QString SaveLineageEdit::finish(const QByteArray& after,const QString& operation
     auto& p=*impl_;
     if(!p.enabled)return {};
     if(!p.error.isEmpty() || p.finished || protectionId.isEmpty()
-       || !QStringList{"healing","purchase","movement","release","held-item","restore"}.contains(operation))return problem();
+       || !QStringList{"healing","purchase","movement","release","held-item","box-name","restore"}.contains(operation))return problem();
     p.finished=true;
     return p.append(digest(after),operation,protectionId,false)?QString():problem();
 }

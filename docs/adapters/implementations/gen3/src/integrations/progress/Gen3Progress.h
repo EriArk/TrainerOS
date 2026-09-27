@@ -6,6 +6,7 @@
 
 namespace trainer {
 enum class Gen3Edition { Emerald, FireRed };
+BoxNameResult renameEmeraldBox(const QByteArray&,const QString&,const BoxNameChange&);
 HeldItemResult changeEmeraldHeldItem(const QByteArray&,const QString&,const HeldItemChange&);
 PokemonReleaseResult releaseEmeraldPokemon(const QByteArray&,const QString&,const PokemonRelease&);
 PartyMoveResult moveEmeraldPokemon(const QByteArray&,const QString&,const PartyMove&);

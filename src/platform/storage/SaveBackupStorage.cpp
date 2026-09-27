@@ -326,6 +326,15 @@ SaveBackupResult releaseSavePokemon(const QString& root,const AdventureRegistrat
 void LocalSaveBackupService::releasePokemon(const AdventureRegistration& r,const QString& token,const PokemonRelease& request,QObject* context,std::function<void(SaveBackupResult)> completed) {
     run([this,r,token,request]{return releaseSavePokemon(root_,r,token,request,resolve_,releaser_);},context,completed);
 }
+SaveBackupResult renameSaveBox(const QString& root,const AdventureRegistration& record,const QString& token,const BoxNameChange& request,const SaveTargetResolver& resolve,const BoxNameWriter& writer) {
+    if(!writer)return {false,false,"Renaming boxes is unavailable for this Adventure."};
+    return applySaveEdit(root,record,token,resolve,[writer,request](const QByteArray& bytes,const QString& hash){
+        const auto result=writer(bytes,hash,request);return MerchantWrite{result.data,result.error,result.message};
+    },"box-name",{},{});
+}
+void LocalSaveBackupService::renameBox(const AdventureRegistration& r,const QString& token,const BoxNameChange& request,QObject* context,std::function<void(SaveBackupResult)> completed) {
+    run([this,r,token,request]{return renameSaveBox(root_,r,token,request,resolve_,boxNameWriter_);},context,completed);
+}
 SaveBackupResult changeSaveHeldItem(const QString& root,const AdventureRegistration& record,const QString& token,const HeldItemChange& request,const SaveTargetResolver& resolve,const HeldItemWriter& writer) {
     if(!writer)return {false,false,"Held items are unavailable for this Adventure."};
     return applySaveEdit(root,record,token,resolve,[writer,request](const QByteArray& bytes,const QString& hash){

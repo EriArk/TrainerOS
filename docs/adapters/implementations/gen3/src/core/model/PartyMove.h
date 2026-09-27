@@ -4,6 +4,9 @@
 #include <functional>
 
 namespace trainer {
+struct BoxNameChange { int box=0; QString name,saveRevision; };
+struct BoxNameResult { QByteArray data; QString error,message; };
+using BoxNameWriter = std::function<BoxNameResult(const QByteArray&,const QString&,const BoxNameChange&)>;
 // -1 denotes Party; nonnegative boxes and all positions are zero-based.
 struct PokemonPosition { int box = -1, slot = 0; };
 // itemId 0 returns the held item to the Bag; otherwise give/swap exactly one.

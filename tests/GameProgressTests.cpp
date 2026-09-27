@@ -111,6 +111,34 @@ QByteArray movePatch(QByteArray save,int section,int offset,const QByteArray& va
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void boxNamesPreserveOtherBytesAcrossAllBoxesAndRotations() {
+        for(int rotation=0;rotation<14;++rotation)for(int box=0;box<14;++box) {
+            const int offset=0x744+box*9;
+            auto bytes=movePatch(movementSave(rotation),13,offset,QByteArray::fromHex("bbbcbdbebfc0c1c2ff"));
+            const auto renamed=renameEmeraldBox(bytes,EmeraldHash,{box,"TEAM 123",digest(bytes)});
+            QVERIFY2(!renamed.data.isEmpty(),qPrintable(renamed.error));
+            QCOMPARE(renamed.data,movePatch(bytes,13,offset,QByteArray::fromHex("cebfbb c700a2a3a4ff")));
+            const auto view=readGen3Progress(renamed.data,Gen3Edition::Emerald);
+            QVERIFY(view.party);QCOMPARE(view.party->boxNameLimit,8);QCOMPARE(view.party->boxes[box].name,"TEAM 123");
+            const auto shortened=renameEmeraldBox(renamed.data,EmeraldHash,{box,"A",digest(renamed.data)});
+            QCOMPARE(shortened.data,movePatch(renamed.data,13,offset,QByteArray::fromHex("bbff")));
+            QCOMPARE(renameEmeraldBox(shortened.data,EmeraldHash,{box,"A",digest(shortened.data)}).data,shortened.data);
+        }
+    }
+    void boxNamesRejectInvalidEncodingStaleAndUnsupportedBuilds() {
+        const auto bytes=movementSave(0);
+        for(const auto name:QStringList{"","123456789"," A","A ","$","A\nB",QString(QChar(0x0410)),"A\tB"})
+            QVERIFY2(renameEmeraldBox(bytes,EmeraldHash,{0,name,digest(bytes)}).data.isEmpty(),qPrintable(name));
+        for(int box:{-1,14})QVERIFY(renameEmeraldBox(bytes,EmeraldHash,{box,"A",digest(bytes)}).data.isEmpty());
+        QVERIFY(renameEmeraldBox(bytes,EmeraldHash,{0,"A","old"}).data.isEmpty());
+        QVERIFY(renameEmeraldBox(bytes,"other",{0,"A",digest(bytes)}).data.isEmpty());
+        auto damaged=bytes;damaged[0xe000]^=1;QVERIFY(renameEmeraldBox(damaged,EmeraldHash,{0,"A",digest(damaged)}).data.isEmpty());
+        const auto alias=renameEmeraldBox(bytes,EmeraldHash,{0,"Ash's",digest(bytes)});
+        QVERIFY2(!alias.data.isEmpty(),qPrintable(alias.error));
+        QCOMPARE(readGen3Progress(alias.data,Gen3Edition::Emerald).party->boxes[0].name,QString("Ash")+QChar(0x2019)+"s");
+        const auto fire=readGen3Progress(save(Gen3Edition::FireRed),Gen3Edition::FireRed);
+        if(fire.party)QCOMPARE(fire.party->boxNameLimit,0);
+    }
     void heldItemsPreserveAllOtherBytesAndConserveBagAcrossPermutations() {
         for(int n=0;n<24;++n) {
             auto bytes=movementSave(n%14,n);

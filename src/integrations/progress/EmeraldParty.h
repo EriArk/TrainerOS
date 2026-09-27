@@ -4,6 +4,8 @@
 #include <QByteArray>
 
 namespace trainer {
+QString emeraldBoxNameCharacters();
+QByteArray encodeEmeraldBoxName(const QString&);
 std::optional<ChampionMember> readEmeraldChampionMember(const QByteArray&);
 QByteArray emeraldBoxRecord(const QByteArray& record);
 QByteArray emeraldHeldItemRecord(const QByteArray& record,int itemId);

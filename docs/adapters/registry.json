@@ -133,6 +133,19 @@
             "rollback"
           ],
           "details": "../EMERALD_MOVEMENT.md"
+        },
+        "box-name": {
+          "state": "integrated",
+          "evidence": [
+            "source-research",
+            "synthetic",
+            "private-copy",
+            "allowed-delta",
+            "device",
+            "normal-game",
+            "rollback"
+          ],
+          "details": "../EMERALD_BOX_NAMES.md"
         }
       },
       "romBytes": 16777216,

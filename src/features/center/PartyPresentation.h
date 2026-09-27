@@ -18,6 +18,7 @@ class PartyPresentation final : public QObject {
     Q_PROPERTY(bool canRelease READ canRelease NOTIFY changed)
     Q_PROPERTY(QVariantMap releaseSubject READ releaseSubject NOTIFY changed)
     Q_PROPERTY(bool canMove READ canMove NOTIFY changed)
+    Q_PROPERTY(bool canRenameBox READ canRenameBox NOTIFY changed)
     Q_PROPERTY(bool moveOpen READ moveOpen NOTIFY changed)
     Q_PROPERTY(QString moveStage READ moveStage NOTIFY changed)
     Q_PROPERTY(QString moveTitle READ moveTitle NOTIFY changed)
@@ -46,6 +47,10 @@ public:
     explicit PartyPresentation(bool sample, QObject* parent = nullptr);
     void configureMovement(SaveBackupService*,LibraryRepository*);
     bool canMove() const;
+    bool canRenameBox() const;
+    Q_INVOKABLE void beginBoxName();
+    void applyBoxName(const QString&);
+    void cancelBoxName();
     bool canRelease() const;
     bool canHoldItems() const;
     Q_INVOKABLE void beginHeldItems();
@@ -92,11 +97,14 @@ public:
     void openSaves();
     void returnFromSaves();
 signals:
+    void boxNameRequested(const QString& initial,int limit);
     void changed();
     void healingRequested();
     void backupsRequested();
 private:
-    enum class Operation { Move,Release,HeldItem };
+    enum class Operation { Move,Release,HeldItem,BoxName };
+    QString boxNameDraft_;
+    void editBoxName();
     void beginOperation(Operation);
     void submitOperation();
     void dispatchMove(Action);

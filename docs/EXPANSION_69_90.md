@@ -126,6 +126,14 @@ terminology, reusable semantic/presentation components and exact-title overrides
 Adapters remain presentation-agnostic; a pack resolver maps verified capabilities
 to faces/widgets/actions without filename/title conditionals in QML.
 
+**Owner clarification, 2026-09-27:** the active franchise changes the actual
+interface composition, not only its colors or artwork. The Pokemon primary and
+Dex/Party/Center faces are not mandatory for other games: a matched experience
+may replace them with its own relevant sections, names, layouts and actions.
+Shared chassis/controller grammar, library, profiles and system settings remain.
+A game without such integration keeps functional generic library/launch views,
+not empty Pokemon screens. These remain R7 acceptance, not installed behavior.
+
 Define a small versioned registry, per-Trainer per-pack current choices and useful
 navigation, cyclic Home contexts, scoped Y, grouping and migration. Keep stable
 Adventure IDs, history, media, ownership and save lineage when an explicitly

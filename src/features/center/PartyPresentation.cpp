@@ -62,7 +62,7 @@ void PartyPresentation::configureArtwork(ClassicArt* art, SpriteArt* sprites) {
     emit changed();
 }
 void PartyPresentation::changeBox(int delta) {
-    if (!available() || boxCount() == 0 || section_ != "storage" || detail_) return;
+    if (!available() || boxCount() == 0 || section_ != "storage" || detail_ || moveOpen()) return;
     box_ = (box_ + delta % boxCount() + boxCount()) % boxCount(); emit changed();
 }
 PartyPresentation::PartyPresentation(bool sample, QObject* parent) : QObject(parent), sample_(sample), activities_(sample, this) {
@@ -182,6 +182,7 @@ void PartyPresentation::openSaves() {
 void PartyPresentation::returnFromSaves() { section_ = previousSection_; emit changed(); }
 void PartyPresentation::dispatch(Action action) {
     if(moveOpen()){dispatchMove(action);return;}
+    if(action==Action::Secondary && !detail_ && canRenameBox()){beginBoxName();return;}
     if (section_ == "activities") { activities_.dispatch(action); return; }
     if (detail_) {
         if (action == Action::Back) { detail_ = false; emit changed(); }
@@ -217,6 +218,29 @@ void PartyPresentation::configureMovement(SaveBackupService* service,LibraryRepo
     movementService_=service;movementLibrary_=library;
     if(service)connect(service,&SaveBackupService::policyChanged,this,[this]{if(!moving())cancelMove();emit changed();});
 }
+bool PartyPresentation::canRenameBox() const {
+    return !sample_ && section_=="storage" && available() && snapshot_->boxNameLimit>0
+        && box_>=0 && box_<snapshot_->boxes.size() && movementService_ && movementLibrary_
+        && !movementService_->busy() && !movementService_->readOnly() && !saveRevision_.isEmpty();
+}
+void PartyPresentation::beginBoxName() {beginOperation(Operation::BoxName);}
+void PartyPresentation::editBoxName() {
+    moveStage_="name-edit";moveMessage_.clear();emit changed();
+    emit boxNameRequested(boxNameDraft_,moveSnapshot_.boxNameLimit);
+}
+void PartyPresentation::cancelBoxName() {
+    if(operation_==Operation::BoxName && moveStage_=="name-edit") {cancelMove();emit changed();}
+}
+void PartyPresentation::applyBoxName(const QString& text) {
+    if(operation_!=Operation::BoxName || moveStage_!="name-edit")return;
+    boxNameDraft_=text.trimmed();
+    const bool valid=!boxNameDraft_.isEmpty() && boxNameDraft_.size()<=moveSnapshot_.boxNameLimit
+        && std::all_of(boxNameDraft_.begin(),boxNameDraft_.end(),[this](QChar c){return moveSnapshot_.boxNameCharacters.contains(c);});
+    moveStage_=valid?"name-confirm":"name-error";
+    moveMessage_=valid?moveSnapshot_.boxes[moveRequest_.from.box].name+"  \u2192  "+boxNameDraft_
+        :QString("Choose a name of 1-%1 characters. Use letters, numbers or the game's punctuation.").arg(moveSnapshot_.boxNameLimit);
+    emit changed();
+}
 bool PartyPresentation::canMove() const {
     return !sample_ && available() && snapshot_->canManage && movementService_ && movementLibrary_
         && !movementService_->busy() && !movementService_->readOnly() && !saveRevision_.isEmpty()
@@ -234,6 +258,7 @@ bool PartyPresentation::canHoldItems() const {
 }
 void PartyPresentation::cancelMove() {if(moving())return;++moveGeneration_;moveStage_.clear();moveToken_.clear();emit changed();}
 QString PartyPresentation::moveTitle() const {
+    if(operation_==Operation::BoxName)return moveStage_=="name-confirm"?"Rename this box?":moveStage_=="writing"?"Saving box name":"Box name";
     if(moveStage_=="items")return "Held item \u00b7 " + moveName_;
     if(moveStage_=="item-confirm")return heldItemChoice_?"Give this item?":"Take held item?";
     if(moveStage_=="release-confirm")return "Release " + moveName_ + "?";
@@ -276,10 +301,11 @@ void PartyPresentation::beginMove() {beginOperation(Operation::Move);}
 void PartyPresentation::beginRelease() {beginOperation(Operation::Release);}
 void PartyPresentation::beginHeldItems() {beginOperation(Operation::HeldItem);}
 void PartyPresentation::beginOperation(Operation operation) {
-    if(moveOpen() || (operation==Operation::Release?!canRelease():operation==Operation::HeldItem?!canHoldItems():!canMove()))return;
+    if(moveOpen() || (operation==Operation::BoxName?!canRenameBox():operation==Operation::Release?!canRelease():operation==Operation::HeldItem?!canHoldItems():!canMove()))return;
     operation_=operation;releaseSubject_=detail();
     const auto record=movementLibrary_->registration(id_);if(!record)return;
     moveRegistration_=*record;moveSnapshot_=*snapshot_;moveName_=detail()["name"].toString();
+    if(operation==Operation::BoxName)boxNameDraft_=boxName();
     moveRequest_={{section_=="party"?-1:box_,section_=="party"?partyFocus_:storageFocus_[box_]}, {},saveRevision_};
     moveIndex_=section_=="party"?0:box_+1;moveTargetBox_=section_=="party"?-1:box_;
     detail_=false;moveStage_="checking";moveMessage_="Checking your save…";const auto generation=++moveGeneration_;emit changed();
@@ -287,6 +313,7 @@ void PartyPresentation::beginOperation(Operation operation) {
         if(generation!=moveGeneration_)return;
         moveToken_=snapshot.token;
         if(snapshot.token.isEmpty() || !snapshot.hasSave || !snapshot.error.isEmpty()) {moveStage_="result";moveMessage_=snapshot.error.isEmpty()?"Save inside your Adventure first.":snapshot.error;}
+        else if(operation_==Operation::BoxName) {editBoxName();return;}
         else if(operation_==Operation::Release) {
             moveStage_="release-confirm";
             const auto item=releaseSubject_["item"].toString();
@@ -303,6 +330,8 @@ void PartyPresentation::beginOperation(Operation operation) {
 void PartyPresentation::moveActivate(int index) {
     if(moveStage_=="writing" || moveStage_=="checking")return;
     if(moveStage_=="result"){cancelMove();return;}
+    if(moveStage_=="name-error"){editBoxName();return;}
+    if(moveStage_=="name-confirm"){submitOperation();return;}
     if(moveStage_=="items") {
         const auto rows=moveRows();if(index<0 || index>=rows.size())return;
         moveIndex_=index;const auto row=rows[index].toMap();heldItemChoice_=row["id"].toInt();
@@ -350,13 +379,15 @@ void PartyPresentation::submitOperation() {
         if(generation!=moveGeneration_)return;
         moveStage_="result";moveMessage_=result.message;emit changed();
     };
-    if(operation_==Operation::HeldItem)movementService_->changeHeldItem(*record,moveToken_,{moveRequest_.from,heldItemChoice_,moveRequest_.saveRevision},this,completed);
+    if(operation_==Operation::BoxName)movementService_->renameBox(*record,moveToken_,{moveRequest_.from.box,boxNameDraft_,moveRequest_.saveRevision},this,completed);
+    else if(operation_==Operation::HeldItem)movementService_->changeHeldItem(*record,moveToken_,{moveRequest_.from,heldItemChoice_,moveRequest_.saveRevision},this,completed);
     else if(operation_==Operation::Release)movementService_->releasePokemon(*record,moveToken_,{moveRequest_.from,moveRequest_.saveRevision},this,completed);
     else movementService_->movePokemon(*record,moveToken_,moveRequest_,this,completed);
 }
 void PartyPresentation::dispatchMove(Action action) {
     if(moving())return;
     if(action==Action::Back) {
+        if(moveStage_=="name-confirm"){editBoxName();return;}
         if(moveStage_=="item-confirm"){moveStage_="items";moveMessage_.clear();}
         else if(moveStage_=="confirm"){moveStage_="slots";moveMessage_.clear();}
         else if(moveStage_=="slots"){moveStage_="places";moveIndex_=moveTargetBox_+1;moveMessage_.clear();}

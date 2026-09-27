@@ -153,6 +153,27 @@ std::optional<ChampionMember> readEmeraldChampionMember(const QByteArray& bytes)
     out.shiny=quint16(tid^(tid>>16)^pid^(pid>>16))<8;
     return out;
 }
+QString emeraldBoxNameCharacters() {
+    QString chars;
+    const auto table=reference()["characters"].toObject();
+    for(auto it=table.begin();it!=table.end();++it)
+        if(it.key().toInt()<0xf7 && it.value().toString().size()==1)chars+=it.value().toString();
+    return chars+QChar('\''); // Native apostrophe alias for 0xb4.
+}
+QByteArray encodeEmeraldBoxName(const QString& name) {
+    if(name.isEmpty() || name.size()>8 || name.trimmed()!=name)return {};
+    const auto table=reference()["characters"].toObject();
+    QByteArray encoded;
+    for(auto character:name) {
+        if(character==QChar('\''))character=QChar(0x2019);
+        int code=-1;
+        for(auto it=table.begin();it!=table.end();++it)
+            if(it.key().toInt()<0xf7 && it.value().toString()==QString(character)){code=it.key().toInt();break;}
+        if(code<0)return {}; // Never emit control bytes, placeholders or an embedded terminator.
+        encoded.append(char(code));
+    }
+    encoded.append(char(0xff));return encoded;
+}
 QByteArray emeraldBoxRecord(const QByteArray& record) {
     const auto mon=pokemon(record,record.size()==100);
     if(mon.kind!=PokemonSlotKind::Known)return {};

@@ -224,3 +224,21 @@ Box/Box records; independent exact-delta checks passed. Normal Emerald loaded
 Bulbasaur in the first Party position with 20/20 HP and saved all changed
 Party/Storage records unchanged. Center restored the copied input byte-for-byte.
 Personal saves remained unchanged; portable source/profile copy refreshed.
+
+## Box names - 2026-09-27, integrated
+
+Exact Emerald English only. Controller entry and protected native names are
+integrated; [contract and evidence](../EMERALD_BOX_NAMES.md).
+
+Pinned pret `5eff78649e7170a877b961ef0b3da13b81a16038`:
+`include/pokemon_storage_system.h` defines BOX_NAME_LENGTH=8 and fourteen
+nine-byte names at storage 0x8344, followed by wallpapers at 0x83c2.
+`src/naming_screen.c` uses that limit; `charmap.txt` defines native glyphs and
+0xff EOS. These names all belong to logical sector 13. Encode through the
+existing reference table, disallow EOS/control characters as input, preserve
+unused slot bytes and update only that sector's checksum in the current bank.
+ASCII apostrophe aliases the game's 0xb4 right quotation mark.
+
+All fourteen name slots/rotations pass synthetic preservation checks. Flip copy
+rename, normal native load/save readback and byte-exact Center restore passed;
+personal files stayed unchanged. No native PC naming-screen UI claim.

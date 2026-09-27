@@ -23,6 +23,59 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void boxNameControllerRequiresConfirmAndCancelsStaleDrafts() {
+        class Library final : public LibraryRepository {
+        public:
+            MockLibraryRepository sample;
+            bool editable() const override{return true;}
+            QList<World> worlds() const override{return sample.worlds();}
+            QList<Adventure> adventures() const override{return sample.adventures();}
+            QList<ResumePoint> resumePoints() const override{return {};}
+            HomeSnapshot home() const override{return sample.home();}
+            std::optional<AdventureRegistration> registration(const QString& id) const override{AdventureRegistration r;r.adventure.id=id;r.revision=1;return r;}
+        } library;
+        class Service final : public SaveBackupService {
+        public:
+            bool working=false;int moves=0;BoxNameChange request;std::function<void(SaveBackupResult)> pending;
+            bool busy() const override{return working;}
+            bool supports(const AdventureRegistration&) const override{return true;}
+            void inspect(const AdventureRegistration&,QObject*,std::function<void(SaveBackupSnapshot)> done) override{SaveBackupSnapshot s;s.hasSave=true;s.token="token";done(s);}
+            void create(const AdventureRegistration&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override{}
+            void restore(const AdventureRegistration&,const SaveBackup&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override{}
+            void renameBox(const AdventureRegistration&,const QString&,const BoxNameChange& r,QObject*,std::function<void(SaveBackupResult)> done) override{++moves;request=r;working=true;pending=std::move(done);}
+        } service;
+        MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        shell.goToPage(2);shell.dispatch(Action::NextFace);shell.dispatch(Action::NextFace);
+        auto& party=*shell.party();party.configureMovement(&service,&library);party.setAdventure("one","Emerald");
+        GameProgress observation;observation.availability=ProgressAvailability::Available;observation.contextRevision="owner1";observation.saveRevision="save1";
+        PartySnapshot data;data.boxes=QList<PokemonBox>(14);
+        for(auto& box:data.boxes){box.members=QList<PokemonRecord>(30);box.name="BOX";}
+        observation.party=data;party.setProgress("one",observation);party.showSection("storage");
+        QVERIFY(!party.canRenameBox());party.beginBoxName();QVERIFY(!party.moveOpen());
+        data.boxNameLimit=8;data.boxNameCharacters="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ";
+        observation.party=data;observation.saveRevision="save2";party.setProgress("one",observation);
+        QSignalSpy entry(&party,&PartyPresentation::boxNameRequested);
+        party.changeBox(13);shell.dispatch(Action::Secondary);QCOMPARE(party.moveStage(),"name-edit");
+        QVERIFY(shell.keyboard()->isOpen());QCOMPARE(shell.keyboard()->maximumLength(),8);
+        shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),2);
+        QCOMPARE(entry.size(),1);QCOMPARE(entry.first()[0].toString(),"BOX");QCOMPARE(entry.first()[1].toInt(),8);
+        shell.keyboard()->activate(keyIndex(*shell.keyboard(),"clear"));
+        shell.keyboard()->activate(keyIndex(*shell.keyboard(),"T"));
+        shell.keyboard()->activate(keyIndex(*shell.keyboard(),"apply"));
+        QVERIFY(!shell.keyboard()->isOpen());QCOMPARE(party.moveStage(),"name-confirm");QCOMPARE(service.moves,0);
+        party.changeBox(-1);QCOMPARE(party.box(),13);
+        party.dispatch(Action::Back);QCOMPARE(party.moveStage(),"name-edit");shell.dispatch(Action::Back);QVERIFY(!party.moveOpen());QVERIFY(!shell.keyboard()->isOpen());
+        party.beginBoxName();party.applyBoxName("$");QCOMPARE(party.moveStage(),"name-error");
+        party.dispatch(Action::Confirm);QCOMPARE(party.moveStage(),"name-edit");
+        party.applyBoxName("TEAM 123");party.dispatch(Action::Confirm);QCOMPARE(service.moves,1);
+        QCOMPARE(service.request.box,13);QCOMPARE(service.request.name,"TEAM 123");QCOMPARE(service.request.saveRevision,"save2");
+        party.dispatch(Action::Confirm);party.dispatch(Action::Back);QCOMPARE(service.moves,1);QVERIFY(party.moving());
+        service.working=false;service.pending({true,true,"Box renamed"});party.dispatch(Action::Confirm);
+        QVERIFY(!party.moveOpen());party.beginBoxName();observation.contextRevision="owner2";party.setProgress("one",observation);
+        QVERIFY(!party.moveOpen());QVERIFY(!shell.keyboard()->isOpen());party.applyBoxName("STALE");party.dispatch(Action::Confirm);QCOMPARE(service.moves,1);
+    }
     void partyMovementConfirmationCancelBusyAndOwnerGates() {
         class Library final : public LibraryRepository {
         public:

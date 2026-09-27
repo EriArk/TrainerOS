@@ -148,6 +148,7 @@ GameProgress readGen3Progress(const QByteArray& save, Gen3Edition edition) {
         result.party->canRelease=edition==Gen3Edition::Emerald && first.valid && second.valid && distance && distance!=0x80000000u && result.party->error.isEmpty();
         result.party->canManage=edition==Gen3Edition::Emerald && first.valid && second.valid && distance && distance!=0x80000000u && result.party->error.isEmpty();
         result.party->canSwapOccupied=result.party->canManage;
+        if(result.party->canManage){result.party->boxNameLimit=8;result.party->boxNameCharacters=emeraldBoxNameCharacters();}
         if(edition==Gen3Edition::Emerald) {
             result.party->bag=readEmeraldHeldBag(world,latest->blocks[0]);
             result.party->canHoldItems=result.party->canManage && result.party->bag.error.isEmpty();
@@ -209,6 +210,29 @@ MerchantWrite buyEmeraldItems(const QByteArray& save,const QString& hash,const M
     }
     if(!readEmeraldShops(result,hash).supported)return {{},"The updated save could not be verified.",{}};
     return {result,{},purchase.message};
+}
+BoxNameResult renameEmeraldBox(const QByteArray& save,const QString& hash,const BoxNameChange& request) {
+    const auto slot=shopSlot(save,hash);
+    if(!slot)return {{},"Renaming boxes requires a verified English Emerald save.",{}};
+    if(request.saveRevision.isEmpty() || request.saveRevision!=QString::fromLatin1(QCryptographicHash::hash(save,QCryptographicHash::Sha256).toHex()))
+        return {{},"The save changed. Read your boxes again.",{}};
+    if(request.box<0 || request.box>=14)return {{},"Choose a valid box.",{}};
+    const auto encoded=encodeEmeraldBoxName(request.name);
+    if(encoded.isEmpty())return {{},"Use 1 to 8 characters supported by this game.",{}};
+    // Native storage names are nine-byte slots. Write the name and EOS;
+    // preserve the unused suffix instead of changing unrelated padding.
+    const int offset=0x8344+request.box*9-8*Payload;
+    auto block=slot->blocks[13];block.replace(offset,encoded.size(),encoded);
+    if(block==slot->blocks[13])return {save,{},"The box already has this name."};
+    auto result=save;const int at=slot->offsets[13];result.replace(at,block.size(),block);
+    quint32 sum=0;for(int i=0;i<block.size();i+=4)sum+=u32(block,i);
+    qToLittleEndian(quint16((sum>>16)+sum),result.data()+at+0xff6);
+    const auto checked=shopSlot(result,hash);
+    const auto after=readGen3Progress(result,Gen3Edition::Emerald);
+    if(!checked || checked->blocks[13]!=block || !after.party || !after.party->error.isEmpty()
+        || after.party->boxes[request.box].name!=QString(request.name).replace(QChar('\''),QChar(0x2019)))
+        return {{},"The new box name could not be verified.",{}};
+    return {result,{},"Box renamed."};
 }
 HeldItemResult changeEmeraldHeldItem(const QByteArray& save,const QString& hash,const HeldItemChange& request) {
     const auto slot=shopSlot(save,hash);

@@ -308,6 +308,7 @@ int main(int argc, char* argv[]) {
                 saveBackups->configureMovement(moveEmeraldPokemon);
                 saveBackups->configureRelease(releaseEmeraldPokemon);
                 saveBackups->configureHeldItems(changeEmeraldHeldItem);
+                saveBackups->configureBoxNames(renameEmeraldBox);
                 saveBackups->configureShops(readEmeraldShops,buyEmeraldItems);
             }
             shell.center()->configure(saveBackups.get());

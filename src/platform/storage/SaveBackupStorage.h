@@ -22,6 +22,7 @@ SaveBackupResult moveSavePokemon(const QString&,const AdventureRegistration&,con
 SaveBackupResult releaseSavePokemon(const QString&,const AdventureRegistration&,const QString&,const PokemonRelease&,const SaveTargetResolver&,const PokemonReleaser&);
 
 SaveBackupResult changeSaveHeldItem(const QString&,const AdventureRegistration&,const QString&,const HeldItemChange&,const SaveTargetResolver&,const HeldItemWriter&);
+SaveBackupResult renameSaveBox(const QString&,const AdventureRegistration&,const QString&,const BoxNameChange&,const SaveTargetResolver&,const BoxNameWriter&);
 
 class LocalSaveBackupService final : public SaveBackupService {
     Q_OBJECT
@@ -38,6 +39,8 @@ public:
     void restore(const AdventureRegistration&, const SaveBackup&, const QString&, QObject*, std::function<void(SaveBackupResult)>) override;
     void heal(const AdventureRegistration&, const QString&, QObject*, std::function<void(SaveBackupResult)>) override;
     void configureHeldItems(HeldItemWriter writer) { heldItemWriter_=std::move(writer); }
+    void configureBoxNames(BoxNameWriter writer) { boxNameWriter_=std::move(writer); }
+    void renameBox(const AdventureRegistration&,const QString&,const BoxNameChange&,QObject*,std::function<void(SaveBackupResult)>) override;
     void changeHeldItem(const AdventureRegistration&,const QString&,const HeldItemChange&,QObject*,std::function<void(SaveBackupResult)>) override;
     void configureRelease(PokemonReleaser releaser) { releaser_=std::move(releaser); }
     void releasePokemon(const AdventureRegistration&,const QString&,const PokemonRelease&,QObject*,std::function<void(SaveBackupResult)>) override;
@@ -58,6 +61,7 @@ private:
     PartyMover mover_;
     PokemonReleaser releaser_;
     HeldItemWriter heldItemWriter_;
+    BoxNameWriter boxNameWriter_;
     MerchantReader shops_;
     MerchantBuyer buyer_;
 };

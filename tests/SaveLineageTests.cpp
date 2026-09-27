@@ -108,6 +108,16 @@ private slots:
         QCOMPARE(f.status().state,LineageState::Managed);QVERIFY(saveWritesReadOnly(f.root));
         QCOMPARE(entry(f.proof(),2)["beforeSha256"].toString(),"absent");
     }
+    void boxNameEditHasSignedHistoryAndRollback() {
+        Fixture f;
+        const auto token=inspectSaveBackups(f.root,f.target).token;
+        BoxNameWriter writer=[](const QByteArray& bytes,const QString&,const BoxNameChange&){return BoxNameResult{bytes+" NAME",{},"Renamed"};};
+        const auto result=renameSaveBox(f.root,f.record,token,{0,"TEAM","revision"},f.resolve,writer);
+        QVERIFY2(result.success,qPrintable(result.message));
+        QCOMPARE(f.status().state,LineageState::Managed);QCOMPARE(entry(f.proof(),1)["operation"].toString(),"box-name");
+        QVERIFY(restoreSaveBackup(f.root,f.record,result.snapshot.copies[0],result.snapshot.token,f.resolve).success);
+        QCOMPARE(read(f.path),QByteArray("ORIGINAL PRIVATE SAVE"));QCOMPARE(f.status().state,LineageState::Managed);
+    }
     void protectedEditRestoreAndStablePrivateIdentity() {
         Fixture f;QCOMPARE(f.status().state,LineageState::Untracked);
         const auto result=f.change();QVERIFY2(result.success,qPrintable(result.message));

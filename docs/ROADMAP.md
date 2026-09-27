@@ -84,10 +84,21 @@ and exact Center restore passed on an isolated Flip copy; personal saves stayed
 unchanged. [Scope and proof](EMERALD_MOVEMENT.md#occupied-swaps---2026-09-27).
 The permanent adapter copy/profile includes the new operation.
 
-**Next increment: 3/6 Высокое (High)** - continue R4 practical Boxes management:
-controller-first box naming with exact Emerald text/length rules, protected save
-updates and native-game readback. Keep remaining Dex/forms, scenes, practice,
-Link and every later roadmap gate intact.
+**2026-09-27 box names:** exact Emerald now supports controller-first naming of
+all fourteen boxes, protected writes, native load/save readback and byte-exact
+Center rollback. [Scope and proof](EMERALD_BOX_NAMES.md). The reusable adapter
+source/profile includes the same operation. Other games do not inherit it.
+
+**Owner franchise clarification, 2026-09-27:** R7/#90 must change actual section
+composition for other universes, replacing Pokemon-specific Dex/Party/Center
+with relevant supported views. Shared shell/controller/library/profile/system
+services remain; unintegrated games use the functional generic fallback.
+[Acceptance](EXPANSION_69_90.md). This records future behavior, not a new delivery.
+
+**Next increment: 3/6 Высокое (High)** - continue R4 selected-save Dex/forms:
+reconcile exact Emerald observations with reference forms and combined Dex UI,
+preserving unknowns instead of inferring a form collection from species flags.
+Keep remaining scenes, practice, Link and every later roadmap gate intact.
 
 The [R1–R18 queue](#unified-execution-order--existing-work-and-new-issues) below
 is authoritative. P0–P12 remain stable work areas, not scheduling numbers. Dated
