@@ -8,7 +8,7 @@ Item {
         : (settings.category===0 || settings.category===8 || settings.category===9) && settings.error.length ? settings.error
         : [0,1,5].includes(settings.category) ? shell.device.error : ""
     readonly property string statusText: settings.category===4 && shell.trainer.saving || settings.saving ? "Saving..."
-        : localError || (shell.hall.account.open ? shell.hall.account.status : "")
+        : localError || (shell.hall.account.open ? shell.hall.account.status : settings.category===8 ? settings.libraryStatus : "")
 
     Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset; anchors.topMargin: Theme.contentTopInset

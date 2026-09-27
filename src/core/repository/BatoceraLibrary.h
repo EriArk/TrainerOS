@@ -10,10 +10,12 @@ struct FolderEntry {
     AdventureRegistration record;
     QVariantMap media;
     bool existing = false;
+    bool preserveMedia = false;
 };
 struct FolderScan {
     QList<FolderEntry> entries;
     QStringList warnings;
+    bool complete = true;
 };
 // Read-only filesystem discovery. Does not parse ROMs, execute XML commands,
 // modify gamelists or use external play counts as Trainer history.
@@ -57,6 +59,7 @@ private:
     QThread* thread_ = nullptr;
     bool busy_ = false;
     bool writing_ = false;
+    bool rescanPending_ = false;
     QElapsedTimer lastScan_;
     QTimer deferredScan_;
     FolderScan scan_;

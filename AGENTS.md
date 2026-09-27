@@ -1,5 +1,11 @@
 # AGENTS.md — TrainerOS
 
+**Owner priority, 2026-09-27:** focus on library, Settings, system and
+RetroAchievements, in that order. Defer further Pokemon/practice expansion;
+keep installed features and all later acceptance. ROADMAP records the ordering
+override without dropping R1-R18 or the later extensions. Preserve the existing
+Playroom design.
+
 **Owner device/network addition, 2026-09-27:** prepare Odin 2 as a second test
 device when the owner returns home and makes it available. Verify its actual
 OS, supported Armada route and recovery before installation; Flip compatibility

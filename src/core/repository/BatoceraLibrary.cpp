@@ -10,6 +10,7 @@
 #include <QSet>
 #include <QPointer>
 #include <memory>
+#include <algorithm>
 
 namespace trainer {
 namespace {
@@ -92,10 +93,11 @@ Adventure identify(const QString& filename,const QString& platform,bool hack) {
     return a;
 }
 using Metadata=QHash<QString,QVariantMap>;
-Metadata readGamelist(const QString& directory,QStringList& warnings) {
+Metadata readGamelist(const QString& directory,QStringList& warnings,bool& readable) {
+    readable=true;
     QFile file(QDir(directory).filePath("gamelist.xml"));
     if(!file.exists())return {};
-    if(!file.open(QIODevice::ReadOnly) || file.size()>32*1024*1024) {warnings.append(directory+": cannot read gamelist.xml");return {};}
+    if(!file.open(QIODevice::ReadOnly) || file.size()>32*1024*1024) {readable=false;warnings.append(directory+": cannot read gamelist.xml");return {};}
     QXmlStreamReader xml(&file);Metadata result;
     if(!xml.readNextStartElement() || xml.name()!=u"gameList")xml.raiseError("Expected gameList");
     while(!xml.hasError() && xml.readNextStartElement()) {
@@ -116,14 +118,14 @@ Metadata readGamelist(const QString& directory,QStringList& warnings) {
         if(result.size()>20000)xml.raiseError("Too many entries");
     }
     while(!xml.atEnd())xml.readNext();
-    if(xml.hasError()) {warnings.append(directory+": invalid gamelist.xml");return {};}
+    if(xml.hasError()) {readable=false;warnings.append(directory+": invalid gamelist.xml");return {};}
     return result;
 }
 }
 QStringList batoceraPlatforms() { return formats().keys(); }
 FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistration>& existing) {
     FolderScan result;QDir root(roms);
-    if(!root.exists()) {result.warnings.append("The ROM folder is unavailable.");return result;}
+    if(!root.exists() || !QFileInfo(roms).isReadable()) {result.complete=false;result.warnings.append("The ROM folder is unavailable.");return result;}
     root=QDir(root.canonicalPath());
     QHash<QString,AdventureRegistration> known;
     for(const auto& r:existing)known.insert(key(r.contentPath),r);
@@ -132,7 +134,14 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
         QString platform=folder.fileName();
         if(platform=="gamecube")platform="gc";
         if(platform=="3ds")platform="n3ds";
-        const auto metadata=readGamelist(folder.absoluteFilePath(),result.warnings);
+        const bool supported=formats().contains(platform);
+        const auto folderPath=folder.canonicalFilePath();
+        if(!supported && std::none_of(known.cbegin(),known.cend(),[&](const auto& record){
+            return key(record.contentPath).startsWith(folderPath+'/');
+        }))continue;
+        if(!folder.isReadable()){result.complete=false;result.warnings.append(folder.fileName()+": folder unavailable");continue;}
+        bool metadataReadable=true;
+        const auto metadata=readGamelist(folder.absoluteFilePath(),result.warnings,metadataReadable);
         QStringList paths;QSet<QString> parts;
         QDirIterator files(folder.absoluteFilePath(),QDir::Files|QDir::Dirs|QDir::NoDotAndDotDot,QDirIterator::Subdirectories);
         int visited=0;
@@ -141,10 +150,16 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
             files.next();const auto file=files.fileInfo();
             // Dot directories are not automatically hidden on every filesystem.
             if(QDir::fromNativeSeparators(file.absoluteFilePath()).contains("/.traineros-trash/"))continue;
-            if(++visited>50000) {result.warnings.append(folder.fileName()+": folder scan limit reached");break;}
+            if(++visited>50000) {result.complete=false;result.warnings.append(folder.fileName()+": folder scan limit reached");break;}
             if(!file.isFile() || !file.isReadable())continue;
             const auto path=key(file.absoluteFilePath());
             if(!known.contains(path)) {
+                if(!supported)continue;
+                const auto components=QDir(folder.absoluteFilePath()).relativeFilePath(file.absoluteFilePath()).split('/');
+                bool auxiliary=false;
+                for(const auto& component:components)if(component.startsWith('.') ||
+                    QStringList{"images","videos","manuals","downloaded_images","downloaded_videos"}.contains(component.toLower())){auxiliary=true;break;}
+                if(auxiliary || file.size()==0)continue;
                 // Batocera arcade sets keep dependencies next to their games.
                 // CHDs on NAOMI/Atomiswave are companions, not separate entries.
                 const bool arcade=QStringList{"fbneo","mame","neogeo","neogeocd","naomi","atomiswave"}.contains(platform);
@@ -189,6 +204,7 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
             const auto data=metadata.value(path);
             if(data.value("hidden").toString()=="true" && !known.contains(path))continue;
             seen.insert(path);FolderEntry entry;entry.existing=known.contains(path);
+            entry.preserveMedia=!metadataReadable;
             if(entry.existing)entry.record=known.value(path);
             else {
                 const auto relative=root.relativeFilePath(path).toLower();
@@ -206,7 +222,7 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
             for(const auto& tag:QStringList{"image","thumbnail","boxart","titleshot","fanart","mix"})
                 if(!data.value(tag).toString().isEmpty()) {entry.media["cover"]=data.value(tag);break;}
             result.entries.append(entry);
-            if(result.entries.size()>=20000) {result.warnings.append("Library scan limit reached.");return result;}
+            if(result.entries.size()>=20000) {result.complete=false;result.warnings.append("Library scan limit reached.");return result;}
         }
     }
     return result;
@@ -263,7 +279,8 @@ void BatoceraLibrary::editLibraryAsync(const LibraryEdit& edit,QObject* context,
     });
 }
 void BatoceraLibrary::refreshContentAvailability() {
-    if(busy_ || !library_.editable())return;
+    if(!library_.editable())return;
+    if(busy_){rescanPending_=true;return;}
     // Page/focus changes may request repeatedly. Keep navigation independent of
     // storage work, while still observing files copied during the current run.
     if(lastScan_.isValid() && lastScan_.elapsed()<10000) {
@@ -273,7 +290,9 @@ void BatoceraLibrary::refreshContentAvailability() {
     rescan();
 }
 void BatoceraLibrary::rescan() {
-    if(busy_ || !library_.editable())return;
+    if(!library_.editable())return;
+    if(busy_){rescanPending_=true;return;}
+    rescanPending_=false;
     deferredScan_.stop();lastScan_.start();
     library_.refreshContentAvailability();
     const auto existing=library_.registrations();
@@ -282,7 +301,8 @@ void BatoceraLibrary::rescan() {
     thread_=QThread::create([result,root=roms_,existing]{*result=scanBatoceraLibrary(root,existing);});
     connect(thread_,&QThread::finished,this,[this,result] {
         thread_->wait();delete thread_;thread_=nullptr;
-        scan_=std::move(*result);index_=0;added_=0;nextMedia_.clear();importNext();
+        scan_=std::move(*result);index_=0;added_=0;
+        nextMedia_=scan_.complete?QHash<QString,QVariantMap>{}:media_;importNext();
     });
     thread_->start();
 }
@@ -292,7 +312,8 @@ void BatoceraLibrary::importNext() {
         // Recheck after asynchronous discovery: do not replace edits or bindings.
         const auto current=library_.registration(r.adventure.id);
         if(current) {
-            if(QDir::cleanPath(current->contentPath)==QDir::cleanPath(r.contentPath))nextMedia_.insert(r.adventure.id,entry.media);
+            if(QDir::cleanPath(current->contentPath)==QDir::cleanPath(r.contentPath))
+                nextMedia_.insert(r.adventure.id,entry.preserveMedia?media_.value(r.adventure.id):entry.media);
             // A newly copied ROM may reuse its old identity and history. Legacy
             // trash is restored explicitly and never overwrites a replacement.
             if(current->removed && current->trashPath.isEmpty() && QFileInfo(current->contentPath).isFile()) {
@@ -328,5 +349,9 @@ void BatoceraLibrary::importNext() {
     if(mediaChanged || added_)emit changed();
     emit scanFinished(added_,scan_.warnings);
     scan_={};
+    if(rescanPending_) {
+        rescanPending_=false;
+        deferredScan_.start(int(std::max<qint64>(0,10000-lastScan_.elapsed())));
+    }
 }
 }

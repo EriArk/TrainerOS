@@ -421,3 +421,67 @@ See [session follow-up](SESSION_PROTOTYPE.md#observed-mobile-handoff-failure--20
 Private evidence lives under `work/research/cards-move-*` and the matching device
 task directory. Installed binary SHA-256:
 `36468b77a422c3fe6f5ae7d9fac6ba125083d707e0ae6c575d04b8c65a0d9209`.
+
+
+## Explicit library refresh — 2026-09-27
+
+Settings -> Library -> Refresh library rescans copied games and local XML/media
+without restarting or changing pages. It uses the same asynchronous discovery
+as startup/Worlds. A visible result reports completion or the first concrete
+failure; full warnings remain in the local log. Back/navigation remain usable
+during filesystem discovery; existing transaction gates still protect writes.
+The default-off Edit Worlds switch and legacy trash recovery remain separate.
+This follows Batocera's explicit [Update Gamelists workflow](https://wiki.batocera.org/add_games_bios),
+without requiring XML for newly copied ROMs or writing synthetic metadata.
+
+Requests received during a scan are coalesced into one follow-up, respecting
+the existing ten-second navigation throttle. Missing storage/incomplete scans
+retain already loaded media; unreadable or malformed XML retains the affected
+existing game's last loaded metadata. This cache is in memory, not a substitute
+for reconnecting storage. A later valid XML edit (including removing an image
+reference) replaces that metadata normally. IDs, owner names, saves and history
+are never replaced by a refresh.
+
+New discovery is limited to supported system folders. Unknown top-level staging/
+BIOS folders, hidden staging paths, common media folders and zero-byte new files
+are excluded. Existing registrations in other system folders remain readable.
+Misplaced nonempty ROMs within a supported system remain reachable for Move.
+This is not a guarantee that a nonzero file has finished copying or is playable.
+Use a temporary non-ROM extension while transferring, then rename and refresh.
+
+Verification: the native Windows build and all 44 CTest cases passed. After the
+final status-text correction, the affected Batocera and QML smoke tests passed
+again (2/2). Added coverage exercises unavailable/busy controls, Back, legacy
+trash separation, auxiliary/empty files, malformed XML, offline storage, valid
+metadata removal and one coalesced follow-up after twenty busy requests.
+
+The first ARM64 production build was installed on Flip with schema 14 and all
+829 existing Adventure registrations / three Trainers retained. Injected
+controller events exercised Settings refresh, discovery of one isolated copy
+of an existing GBA game and its local XML metadata, wheel launch, Guide exit
+question, B cancellation, second Guide request and confirmed return to the same
+selection. Actual-device captures are kept privately under
+`work/research/library-refresh-*`. Installed build SHA-256:
+`1d5b55edc3ef6c0ac1115b09773ebb35176157f482521123bc1168e7c6de102f`.
+
+The Guide check exposed the previously observed lost read ACL on the built-in
+gamepad. Running the existing verified read-only ACL helper restored the exit
+flow; persistence across device/session changes remains system follow-up, not
+a fix delivered by this library change.
+
+**Delivery limitation:** a final one-line correction clears the old completion
+message during a new refresh. It was built for ARM64 (SHA-256
+`7746dbe39d910fa3131b6066ff4a0104b66a4e95b978b429f8021ebec28befd9`),
+but its installer stalled while syncing the backup database journal, before
+binary replacement. `/proc` showed disk sleep in `__bio_queue_enter`, roughly
+94% full IO pressure and ample available RAM. A termination signal was sent
+and verified pending; the kernel had not released the blocked operation.
+The cause of that device-wide IO stall is unproven. Do not restart a duplicate
+installer before checking the process and partial backup after recovery.
+
+Pending on device recovery: finish the final install, verify original records
+and file hashes against the private before-snapshot, remove the isolated test
+ROM/registration through the normal library action, and restore the original
+gamelist only after comparing its current hash with the recorded test version.
+The test-copy manifest and original XML are retained privately. Final cleanup
+and a fresh final-build Settings capture are not claimed complete.

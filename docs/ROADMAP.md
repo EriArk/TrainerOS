@@ -116,11 +116,30 @@ checks are wired; copied battle results never reach a save. Reference vectors
 and installed Flip interaction are proven; complete cartridge equivalence stays
 open and simulation mode is explicit. [Delivery boundary](EMERALD_PRACTICE.md).
 
-**Next increment: 3/6 Высокое (High)** - R4 #55 bounded native Emerald battle
-control cases: compare damage/status/ability and held-item behavior, add only
-demonstrated rule corrections and complete the corresponding battle feedback.
-Preserve read-only copies, scenes, Link/two-device proof and every later queue
-row; do not begin a new battle engine or silently claim full rule equivalence.
+**Owner priority override, 2026-09-27:** focus next on the everyday shell:
+**library -> Settings -> system -> RetroAchievements**. Finish folder-based
+library use and then #69 installed Steam launch/return; bring forward R11 real
+Wi-Fi/Bluetooth/airplane controls, then R12 Trainer export/recovery and bounded
+R13 system cleanup, then remaining R5 earning proof. Treat sleep as a separate
+physical increment. Existing Pokemon features remain usable; further practice
+rule research, FireRed expansion, franchise integrations and Link are deferred,
+not cancelled. Preserve all R1-R18/R7a/R18a/R18b acceptance. The rejected practice
+visual redesign also remains a tracked correction; do not alter Playroom.
+
+**Current library increment:** explicit controller-first refresh, coalesced
+requests, auxiliary-folder filtering and retaining loaded media on unreadable
+storage/XML. See [library evidence](BATOCERA_LIBRARY.md#explicit-library-refresh--2026-09-27).
+The first build passed installed discovery/launch/guarded-return checks. The
+final status-only correction and isolated test cleanup await recovery from a
+device-wide IO stall during backup sync. Resolve this delivery tail before the
+next device launch test. The system stage also retains the recurring built-in
+gamepad read-ACL loss and the IO-stall diagnosis; temporary ACL repair is not
+persistent recovery proof.
+
+**Next increment: 3/6 Высокое (High)** - R9/#69 installed Steam games through
+Multiverse, with actual launch/return and separate handling of Steam runtimes.
+Flip inventory contains Dead Cells as a concrete proof target; its installed
+manifest alone does not establish TrainerOS launch support.
 
 The [R1–R18 queue](#unified-execution-order--existing-work-and-new-issues) below
 is authoritative. P0–P12 remain stable work areas, not scheduling numbers. Dated

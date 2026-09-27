@@ -1,6 +1,7 @@
 #include "core/repository/BatoceraLibrary.h"
 #include "core/repository/CollectionRepository.h"
 #include "core/storage/LocalStateStore.h"
+#include "features/settings/SettingsController.h"
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
@@ -16,6 +17,58 @@ void put(const QString& path,const QByteArray& bytes="Test fixture, not a ROM.")
 class BatoceraTests final : public QObject {
     Q_OBJECT
 private slots:
+    void refreshControlKeepsBackAndLegacyTrashSeparate() {
+        SettingsController settings;QSignalSpy refresh(&settings,&SettingsController::libraryRefreshRequested);
+        QSignalSpy trash(&settings,&SettingsController::trashRequested);
+        settings.selectCategory(8);settings.dispatch(Action::Down);settings.dispatch(Action::Confirm);
+        QCOMPARE(refresh.size(),0);
+        settings.setLibraryScanState(true,false);settings.dispatch(Action::Confirm);QCOMPARE(refresh.size(),1);
+        settings.setLibraryScanState(true,true);settings.dispatch(Action::Confirm);QCOMPARE(refresh.size(),1);
+        settings.dispatch(Action::Back);QVERIFY(!settings.controlsFocused());
+        settings.setLegacyTrashAvailable(true);settings.selectCategory(8);settings.activateRow(2);QCOMPARE(trash.size(),1);
+        settings.setLibraryScanState(true,false,"Library is up to date");
+        QCOMPARE(settings.libraryStatus(),QString("Library is up to date"));
+    }
+    void auxiliaryFoldersAreNotGames() {
+        QTemporaryDir dir;
+        put(dir.filePath("bios/firmware.zip"));put(dir.filePath("incoming/Unsorted.gba"));
+        put(dir.filePath("gba/images/Artwork.zip"));put(dir.filePath("gba/.staging/Partial.gba"));
+        put(dir.filePath("gba/Empty.gba"),{});put(dir.filePath("gba/Family/Actual.gba"));
+        // A misplaced, nonempty ROM inside a supported platform stays reachable for Move.
+        put(dir.filePath("gba/Misplaced.chd"));
+        const auto scan=scanBatoceraLibrary(dir.path(),{});
+        QCOMPARE(scan.entries.size(),2);QVERIFY(scan.complete);
+        for(const auto& entry:scan.entries)QVERIFY(entry.record.contentPath.contains("Actual") || entry.record.contentPath.contains("Misplaced"));
+    }
+    void failedRefreshRetainsMediaAndValidRemovalClearsIt() {
+        QTemporaryDir dir;const auto roms=dir.filePath("roms");
+        put(roms+"/gba/Fixture.gba");put(roms+"/gba/art.png");
+        const auto xml=roms+"/gba/gamelist.xml";
+        put(xml,"<gameList><game><path>./Fixture.gba</path><image>./art.png</image></game></gameList>");
+        LocalStateStore store(dir.filePath("state"));store.open();QTRY_VERIFY(store.ready());
+        BatoceraLibrary folders(store,roms);QSignalSpy finished(&folders,&BatoceraLibrary::scanFinished);
+        folders.rescan();QTRY_COMPARE(finished.size(),1);
+        const auto id=store.adventures().first().id;const auto media=folders.artwork(id);QVERIFY(!media.isEmpty());
+        put(xml,"<gameList><game>");folders.rescan();QTRY_COMPARE(finished.size(),2);
+        QCOMPARE(folders.artwork(id),media);QVERIFY(!finished.last()[1].toStringList().isEmpty());
+        QVERIFY(QDir().rename(roms,roms+"-offline"));folders.rescan();QTRY_COMPARE(finished.size(),3);
+        QCOMPARE(folders.artwork(id),media);QCOMPARE(store.registrations().size(),1);
+        QVERIFY(QDir().rename(roms+"-offline",roms));
+        put(xml,"<gameList><game><path>./Fixture.gba</path></game></gameList>");
+        folders.rescan();QTRY_COMPARE(finished.size(),4);QVERIFY(folders.artwork(id).isEmpty());
+        QCOMPARE(store.adventures().first().id,id);
+    }
+    void refreshDuringScanRunsOneFollowup() {
+        QTemporaryDir dir;put(dir.filePath("gba/First.gba"));
+        LocalStateStore store(dir.filePath("state"));store.open();QTRY_VERIFY(store.ready());
+        BatoceraLibrary folders(store,dir.path());QSignalSpy finished(&folders,&BatoceraLibrary::scanFinished);
+        folders.rescan();QVERIFY(folders.busy());
+        for(int i=0;i<20;++i)folders.rescan();
+        QTRY_COMPARE(finished.size(),1);
+        put(dir.filePath("gba/Second.gba"));
+        QTRY_COMPARE_WITH_TIMEOUT(finished.size(),2,12000);
+        QCOMPARE(store.adventures().size(),2);QVERIFY(!folders.busy());
+    }
     void copiedRomReusesPermanentlyRemovedIdentity() {
         QTemporaryDir dir;const auto file=dir.filePath("gba/Fixture.gba");put(file);
         LocalStateStore store(dir.filePath("state"));store.open();QTRY_VERIFY(store.ready());

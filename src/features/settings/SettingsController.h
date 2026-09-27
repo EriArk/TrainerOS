@@ -14,6 +14,7 @@ class SettingsController final : public QObject {
     Q_PROPERTY(bool readOnlySaves READ readOnlySaves NOTIFY changed)
     Q_PROPERTY(bool saving READ saving NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
+    Q_PROPERTY(QString libraryStatus READ libraryStatus NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(bool creditsOpen READ creditsOpen NOTIFY changed)
     Q_PROPERTY(int category READ category NOTIFY changed)
@@ -45,6 +46,8 @@ public:
     bool videoPreviews() const { return value_.videoPreviews; }
     bool saving() const { return saving_; }
     QString error() const { return error_; }
+    QString libraryStatus() const { return libraryStatus_; }
+    void setLibraryScanState(bool available, bool busy, const QString& result = {});
     int focusIndex() const { return pane_ ? row_ : category_; }
     void dispatch(Action);
     void activate(int index);
@@ -54,6 +57,7 @@ signals:
     void deviceRequested(int index);
     void controllerRequested();
     void trashRequested();
+    void libraryRefreshRequested();
     void trainerRequested(int index);
     void messageRequested(const QString& message);
     void quickAdjustment(int index, trainer::Action action);
@@ -64,6 +68,8 @@ private:
     bool saving_ = false;
     bool trainersAvailable_ = false;
     bool legacyTrash_ = false;
+    bool libraryAvailable_ = false, libraryScanning_ = false;
+    QString libraryStatus_;
     QString error_;
     int category_ = 0, row_ = 0;
     bool pane_ = false;

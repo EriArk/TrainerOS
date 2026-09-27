@@ -2,6 +2,12 @@
 #include <algorithm>
 
 namespace trainer {
+void SettingsController::setLibraryScanState(bool available,bool busy,const QString& result) {
+    libraryAvailable_=available;libraryScanning_=busy;
+    if(busy)libraryStatus_.clear();
+    else if(!result.isEmpty())libraryStatus_=result;
+    emit changed();
+}
 void SettingsController::reload() { if (repository_ && !saving_) { value_ = repository_->preferences(); emit changed(); } }
 void SettingsController::activate(int index) {
     if(index<0 || index>3 || saving_) return;
@@ -35,6 +41,9 @@ QVariantList SettingsController::controls() const {
     case 7: return {row("Check controller","action","Test buttons, sticks and triggers"),row("Button layout","status","Right A confirms; bottom B goes back"),row("Page navigation","status","L1 / R1 pages; L2 / R2 secondary pages")};
     case 8: {
         QVariantList result{row("Edit Worlds","toggle",worldEditing()?"On":"Off")};
+        result.append(row(libraryScanning_?"Refreshing library…":"Refresh library",
+            libraryAvailable_ && !libraryScanning_?"action":"unavailable",
+            libraryScanning_?"Looking for games and updated artwork":libraryAvailable_?"Find copied games and reload artwork":"Connect your game library first"));
         if(legacyTrash_)result.append(row("Previous game trash","action","Restore games removed by an earlier version"));
         return result;
     }
@@ -57,7 +66,8 @@ void SettingsController::activateRow(int index) {
     else if(category_==5) emit deviceRequested(row_);
     else if(category_==7 && row_==0) emit controllerRequested();
     else if(category_==8 && row_==0) activate(2);
-    else if(category_==8 && row_==1) emit trashRequested();
+    else if(category_==8 && row_==1 && libraryAvailable_ && !libraryScanning_) emit libraryRefreshRequested();
+    else if(category_==8 && row_==2 && legacyTrash_) emit trashRequested();
     else if(category_==9 && savePolicy_) {
         saving_=true;error_.clear();
         savePolicy_->setReadOnly(!readOnlySaves(),this,[this](const QString& error){saving_=false;error_=error;emit changed();});

@@ -248,8 +248,17 @@ int main(int argc, char* argv[]) {
             };
             QObject::connect(store.get(), &LocalStateStore::opened, &folders, [&](bool ready) { if(ready)folders.refreshContentAvailability(); });
             QObject::connect(&folders, &BatoceraLibrary::changed, &shell, &ShellController::refreshLibrary);
-            QObject::connect(&folders, &BatoceraLibrary::scanFinished, &shell, [](int added,const QStringList& warnings) {
+            shell.settings()->setLibraryScanState(true,false);
+            QObject::connect(shell.settings(), &SettingsController::libraryRefreshRequested, &folders, &BatoceraLibrary::rescan);
+            QObject::connect(&folders, &BatoceraLibrary::busyChanged, &shell, [&] {
+                shell.settings()->setLibraryScanState(true,folders.busy());
+            });
+            QObject::connect(&folders, &BatoceraLibrary::scanFinished, &shell, [&](int added,const QStringList& warnings) {
                 qInfo() << "Library discovery:" << added << "added;" << warnings;
+                const QString result=warnings.isEmpty()
+                    ? added?QString("Library updated · %1 added").arg(added):QString("Library is up to date")
+                    : QString("Refresh incomplete · %1").arg(warnings.first());
+                shell.settings()->setLibraryScanState(true,folders.busy(),result);
             });
             shell.libraryManager()->prepareInstallation = [&adapters](AdventureRegistration& record) { adapters.prepareInstallation(record); };
             shell.libraryManager()->setInitialFolder(QDir::home().filePath("Emulation/roms"));
