@@ -247,23 +247,27 @@ int main(int argc, char* argv[]) {
                 return retroarch::prepareFileMove(record,edit,retroarchInstallation);
             };
             QObject::connect(store.get(), &LocalStateStore::opened, &folders, [&](bool ready) { if(ready)folders.refreshContentAvailability(); });
-            QObject::connect(&folders, &BatoceraLibrary::changed, &shell, &ShellController::refreshLibrary);
             shell.settings()->setLibraryScanState(true,false);
             QObject::connect(shell.settings(), &SettingsController::libraryRefreshRequested, &folders, &BatoceraLibrary::rescan);
             QObject::connect(&folders, &BatoceraLibrary::busyChanged, &shell, [&] {
                 shell.settings()->setLibraryScanState(true,folders.busy());
             });
             QObject::connect(&folders, &BatoceraLibrary::scanFinished, &shell, [&](int added,const QStringList& warnings) {
-                qInfo() << "Library discovery:" << added << "added;" << warnings;
+                shell.refreshLibrary();
+                qInfo() << "Library discovery:" << added << "updated;" << warnings;
                 const QString result=warnings.isEmpty()
-                    ? added?QString("Library updated · %1 added").arg(added):QString("Library is up to date")
+                    ? added?QString("Library updated · %1 items").arg(added):QString("Library is up to date")
                     : QString("Refresh incomplete · %1").arg(warnings.first());
                 shell.settings()->setLibraryScanState(true,folders.busy(),result);
             });
             shell.libraryManager()->prepareInstallation = [&adapters](AdventureRegistration& record) { adapters.prepareInstallation(record); };
             shell.libraryManager()->setInitialFolder(QDir::home().filePath("Emulation/roms"));
         }
-        if (store) QObject::connect(store.get(), &LocalStateStore::libraryChanged, &shell, &ShellController::refreshLibrary);
+        if (store) QObject::connect(store.get(), &LocalStateStore::libraryChanged, &shell, [&] {
+            // A folder import can bind dozens of games. Rebuild pages once when
+            // that batch finishes instead of after every individual SQLite write.
+            if(!folders.busy())shell.refreshLibrary();
+        });
         if(realAchievements)QObject::connect(realAchievements.get(),&AchievementProvider::achievementsEarned,&shell,&ShellController::showAchievements);
         if (realAchievements) QObject::connect(store.get(), &LocalStateStore::opened, realAchievements.get(), [&](bool success) {
             if (success) realAchievements->bind(store->accountDirectory());
@@ -388,7 +392,8 @@ int main(int argc, char* argv[]) {
             QObject::connect(store.get(), &LocalStateStore::opened, gameProgress.get(), [refreshProgress](bool success) {
                 if (success) refreshProgress(true);
             });
-            QObject::connect(store.get(), &LocalStateStore::libraryChanged, gameProgress.get(), [refreshProgress] { refreshProgress(true); });
+            QObject::connect(store.get(), &LocalStateStore::libraryChanged, gameProgress.get(), [&,refreshProgress] { if(!folders.busy())refreshProgress(true); });
+            QObject::connect(&folders, &BatoceraLibrary::scanFinished, gameProgress.get(), [refreshProgress] { refreshProgress(true); });
             QObject::connect(&adventureLaunch, &AdventureLaunchController::changed, gameProgress.get(), [&, refreshProgress] {
                 if (adventureLaunch.active()) { progressSelection.clear(); gameProgress->invalidate(); }
                 else refreshProgress(true);

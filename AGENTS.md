@@ -1,5 +1,20 @@
 # AGENTS.md — TrainerOS
 
+**Owner Worlds re-entry, 2026-09-28:** returning to Worlds from another primary
+page opens its World/system grid, preserving the selected Pokémon/Multiverse
+face. Do not reopen the last game wheel/detail. Modal dismissal, local face
+cycling and Adventure lifecycle checkpoint restoration keep their existing routes.
+
+**Owner generic-launch addition, 2026-09-28:** ordinary ROM launch is platform/
+format based and does not require a per-title semantic save adapter. Expand the
+Batocera-compatible catalogue/folders toward all systems with ARM64 Linux
+emulators; do not exclude old systems just for age. Prepare empty folders but
+keep empty systems hidden in Worlds. Broad documented/theoretical routes and a
+few representative launches are sufficient now; do not investigate every ROM.
+Keep installed/launch-tested/save-verified evidence separate and never delete
+existing content when a platform has no route. This supersedes the earlier
+emulator-expansion pause for this bounded library work. See docs/ROM_PLATFORMS.md.
+
 **Owner priority, 2026-09-27:** focus on library, Settings, system and
 RetroAchievements, in that order. Defer further Pokemon/practice expansion;
 keep installed features and all later acceptance. ROADMAP records the ordering

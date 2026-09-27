@@ -7,4 +7,6 @@ namespace trainer {
 SaveTarget resolveRetroArchSave(const AdventureRegistration&, const RetroArchInstallation&);
 QString prepareRetroArchLaunch(ProcessCommand&, const AdventureRegistration&,
     const RetroArchInstallation&, const std::atomic_bool& cancelled);
+QString prepareGenericRetroArchLaunch(ProcessCommand&, const AdventureRegistration&,
+    const RetroArchInstallation&, const std::atomic_bool& cancelled);
 }

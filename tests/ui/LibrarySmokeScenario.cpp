@@ -84,7 +84,9 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 check(shell.worlds()->adventureIndex() == 0 && focusIs("adventure-catalogue:ruby-gba"), "Owned card moves first and retains focus by identity");
                 capture("collection-linked"); press(next); press(previous); window->resize(1920, 1080); break;
             case 8:
-                check(focusIs("adventure-catalogue:ruby-gba"), "Shoulders preserve collection selection"); capture("collection-linked-1080p");
+                check(shell.worlds()->route()=="regions", "Shoulders return to the World grid");
+                press(a);
+                check(focusIs("adventure-catalogue:ruby-gba"), "Reopening the World retains its edition selection"); capture("collection-linked-1080p");
                 press(a); press(b); break; // Edit then discard: return to the exact wheel identity.
             default:
                 check(!shell.serviceOpen() && !shell.menuOpen() && focusIs("adventure-catalogue:ruby-gba"), "Cancel returns to the Worlds selection");

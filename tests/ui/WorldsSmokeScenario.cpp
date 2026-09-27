@@ -98,8 +98,8 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             check(shell.page() == 2 && focusIs("dex-entry-bulbasaur"), "R1 remains global");
             press(l1); break;
         case 6:
-            check(shell.worlds()->detail()["id"] == "emerald-trails-demo" && focusIs("world-action-launch"), "Page return preserves detail identity and focus");
-            press(b); break;
+            check(shell.worlds()->route() == "regions" && focusIs("world-2"), "Page return opens the highlighted World grid");
+            press(a); break;
         case 7:
             check(focusIs("adventure-emerald-trails-demo"), "Back restores scrolled list row");
             press(up, 3); press(a); break;
@@ -168,8 +168,8 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             check(shell.page() == 2 && !shell.menuOpen(), "R1 from system menu changes primary page");
             press(l1); break;
         case 29:
-            check(focusIs("world-action-launch") && shell.worlds()->detail()["id"] == "emerald-trails-demo", "Detail survives global menu/page transitions");
-            press(b); press(SDL_CONTROLLER_BUTTON_Y); break;
+            check(shell.worlds()->route() == "regions" && focusIs("world-2"), "Global menu/page return opens Worlds");
+            press(a); press(SDL_CONTROLLER_BUTTON_Y); break;
         case 30:
             check(shell.keyboard()->isOpen(), "X opens the shared controller keyboard");
             press(right, 7); press(down); press(a); // R
@@ -197,6 +197,7 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
         case 35:
             check(shell.page() == 2 && !shell.keyboard()->isOpen(), "R1 cancels search draft and switches section");
             press(l1); check(shell.worlds()->query() == "RUBY", "Committed search survives page changes");
+            press(a); // Re-enter the region before using its local search.
             press(SDL_CONTROLLER_BUTTON_Y); press(down, 2); press(right, 7); press(a); // Clear
             press(down); press(a); break; // Apply
         case 36:
@@ -233,11 +234,12 @@ void startWorldsSmoke(QQuickWindow* window, ShellController& shell, ControllerIn
             check(!shell.multiverseHome() && focusIs("home-launch"), "Triggers return to Pokemon Home");
             capture("pokemon-home-context"); press(r1); break;
         case 47:
-            check(shell.multiverseFace() && focusIs("multiverse-game-0"), "Page return keeps wheel position");
+            check(shell.multiverseFace() && focusIs("multiverse-system-0"), "Page return opens Multiverse systems");
             flipFace(); break;
         case 48:
-            check(focusIs("world-action-launch") && shell.worlds()->detail()["id"] == "emerald-trails-demo", "Pokemon detail survives paired browser");
-            flipFace(); press(SDL_CONTROLLER_BUTTON_Y); break;
+            check(focusIs("world-2"), "Pokemon face also returns to its World grid");
+            press(a,2); // Reopen region and remembered edition; local face cycling retains it.
+            flipFace(); press(a); press(SDL_CONTROLLER_BUTTON_Y); break;
         case 49:
             check(shell.keyboard()->isOpen(), "Multiverse uses controller keyboard"); capture("multiverse-search");
             flipFace(); check(shell.multiverseFace(), "Keyboard traps face switching"); press(b); press(b); press(down); press(a); break;

@@ -42,6 +42,10 @@ QJsonObject MultiversePresentation::navigationState() const {
     return {{"selected",selected_},{"system",system_},{"route",route_},{"queries",queries},{"filters",filters},{"positions",positions},
         {"focused",detail().value("id").toString()}};
 }
+void MultiversePresentation::showSystems() {
+    route_ = "systems";
+    emit changed();
+}
 void MultiversePresentation::restoreNavigation(const QJsonObject& state) {
     selected_=state["selected"].toString();system_=state["system"].toString();
     route_=state["route"].toString();if(route_=="detail")route_="games";

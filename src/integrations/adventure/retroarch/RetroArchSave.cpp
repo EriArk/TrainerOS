@@ -10,6 +10,36 @@
 
 namespace trainer {
 using namespace retroarch;
+QString prepareGenericRetroArchLaunch(ProcessCommand& command,const AdventureRegistration& record,
+        const RetroArchInstallation& installation,const std::atomic_bool& cancelled) {
+    if(cancelled)return "Opening was cancelled.";
+    const QFileInfo content(record.contentPath),program(installation.program);
+    if(!content.isFile() || !content.isReadable() || content.size()<=0)
+        return "The game file is missing or unreadable. Check its folder and refresh the library.";
+    const QFileInfo core(installation.cores.value(record.integrationConfig["core"].toString()));
+    if(!program.isFile() || !program.isExecutable() || !core.isFile() || !core.isReadable() || core.size()<=0)
+        return "The emulator is unavailable. Check play setup and try again.";
+    const auto settings=readSettings(installation.configFile);
+    if(settings.isEmpty())return "Couldn't read this game's play settings.";
+    // Generic ordinary play is independent of exact-build save providers and RA
+    // mode. Keep emulator saves in place; only suppress automatic savestates.
+    const QByteArray bytes="# TrainerOS generic ordinary launch v1\n"
+        "savestate_auto_save = \"false\"\nsavestate_auto_load = \"false\"\n"
+        "config_save_on_exit = \"false\"\nauto_overrides_enable = \"false\"\n";
+    const auto path=QFileInfo(installation.configFile).dir().filePath("traineros-generic-ordinary-v1.cfg");
+    if(!safePath(path))return "Couldn't prepare the game's launch settings.";
+    QFile config(path);
+    if(!QFileInfo::exists(path) && !QFileInfo(path).isSymLink() && config.open(QIODevice::WriteOnly|QIODevice::NewOnly)) {
+        if(config.write(bytes)!=bytes.size() || !config.flush())return "Couldn't prepare the game's launch settings.";
+        config.close();
+    }
+    if(QFileInfo(path).isSymLink() || !config.open(QIODevice::ReadOnly) || config.read(bytes.size()+1)!=bytes)
+        return "The game's launch settings changed. Check play setup before opening.";
+    if(cancelled)return "Opening was cancelled.";
+    if(command.arguments.isEmpty() || command.arguments.last()!=record.contentPath)return "The game's launch route changed.";
+    command.arguments.removeLast();command.arguments << "--appendconfig" << path << record.contentPath;
+    return {};
+}
 namespace {
 QString digestId(const QString& id) {
     return QString::fromLatin1(QCryptographicHash::hash(id.toUtf8(),QCryptographicHash::Sha256).toHex());

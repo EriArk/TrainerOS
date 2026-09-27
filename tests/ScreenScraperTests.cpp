@@ -32,9 +32,12 @@ private slots:
         QVERIFY(storeMedia(dir.path(),"42",bytes,true,flag()).isEmpty());
         auto cancel=flag();cancel->store(true);QVERIFY(storeMedia(dir.path(),"43",bytes,false,cancel).isEmpty());
     }
-    void mapsEveryDiscoveredPlatform() {
+    void scrapingSupportIsIndependentOfOrdinaryLaunch() {
         QTemporaryDir dir;const auto systems=platforms();QCOMPARE(systems.size(),33);
-        auto supported=batoceraPlatforms();supported.sort();QCOMPARE(systems,supported);
+        const auto supported=batoceraPlatforms();
+        for(const auto& p:systems)QVERIFY(supported.contains(p));
+        // New ARM64 launch routes do not invent external ScreenScraper IDs.
+        QVERIFY(supported.contains("c64"));QCOMPARE(systemId("c64"),0);
         for(const auto& p:systems){QVERIFY(systemId(p)>0);put(dir.filePath(p+"/Fixture.zip"),"abc");}
         QCOMPARE(systemId("gamecube"),13);QCOMPARE(systemId("ps"),57);QCOMPARE(systemId("unknown"),0);
     }

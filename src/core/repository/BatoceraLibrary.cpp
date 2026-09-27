@@ -1,5 +1,6 @@
 #include "BatoceraLibrary.h"
 #include "CollectionRepository.h"
+#include "RomPlatforms.h"
 #include <QCryptographicHash>
 #include <QDirIterator>
 #include <QFile>
@@ -16,7 +17,8 @@ namespace trainer {
 namespace {
 const QStringList mediaTags{"image","screenshot","thumbnail","marquee","fanart","titleshot","video","manual","magazine","map","bezel","cartridge","boxart","boxback","wheel","mix"};
 const QHash<QString,QStringList>& formats() {
-    static const QHash<QString,QStringList> value{
+    static const auto value=[] {
+      QHash<QString,QStringList> result{
         {"gb",{"gb","zip","7z"}}, {"gbc",{"gb","gbc","zip","7z"}}, {"gba",{"gba","zip","7z"}},
         {"nds",{"nds","srl","zip","7z"}}, {"n3ds",{"3ds","cci","cxi","cia"}},
         {"n64",{"n64","z64","v64","zip","7z"}}, {"gc",{"iso","gcm","rvz","gcz","ciso"}},
@@ -33,6 +35,11 @@ const QHash<QString,QStringList>& formats() {
         {"neogeo",{"zip","7z"}}, {"neogeocd",{"chd","cue","ccd","m3u"}},
         {"fbneo",{"zip","7z"}}, {"mame",{"zip","7z"}},
         {"naomi",{"zip","7z"}}, {"atomiswave",{"zip","7z"}}};
+      for(const auto& p:romPlatforms()) {
+          auto& ext=result[p.id];ext.append(p.extensions);ext.removeDuplicates();
+      }
+      return result;
+    }();
     return value;
 }
 QString key(const QString& path) {
@@ -131,9 +138,7 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
     for(const auto& r:existing)known.insert(key(r.contentPath),r);
     QSet<QString> seen;
     for(const auto& folder:root.entryInfoList(QDir::Dirs|QDir::NoDotAndDotDot,QDir::Name)) {
-        QString platform=folder.fileName();
-        if(platform=="gamecube")platform="gc";
-        if(platform=="3ds")platform="n3ds";
+        QString platform=romPlatformId(folder.fileName());
         const bool supported=formats().contains(platform);
         const auto folderPath=folder.canonicalFilePath();
         if(!supported && std::none_of(known.cbegin(),known.cend(),[&](const auto& record){
@@ -177,11 +182,30 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
                 bool recognized=false;
                 // Raw BINs can be BIOS or disc tracks. They remain visible only
                 // where the platform explicitly treats them as launch content.
-                if(file.suffix().compare("bin",Qt::CaseInsensitive)!=0)
+                if(!QStringList{"bin","png","jpg","jpeg","wav","ogg","mp3","txt","xml","yaml","json","cfg"}.contains(file.suffix().toLower()))
                     for(const auto& extensions:formats())if(extensions.contains(file.suffix().toLower())){recognized=true;break;}
                 if(!recognized)continue;
             }
             paths.append(path);
+            const auto suffix=file.suffix().toLower();
+            if((suffix=="cue" || suffix=="gdi") && file.size()<1024*1024) {
+                QFile manifest(path);
+                if(manifest.open(QIODevice::ReadOnly)) {
+                    const auto text=QString::fromUtf8(manifest.readAll());
+                    const QRegularExpression pattern(suffix=="cue"
+                        ? QString("^\\s*FILE\\s+(?:\"([^\"]+)\"|([^\\s]+))\\s+[^\\r\\n]+$")
+                        : QString("^\\s*\\d+\\s+\\d+\\s+\\d+\\s+\\d+\\s+(?:\"([^\"]+)\"|([^\\s]+))\\s+\\d+\\s*$"),
+                        QRegularExpression::CaseInsensitiveOption|QRegularExpression::MultilineOption);
+                    auto matches=pattern.globalMatch(text);
+                    while(matches.hasNext()) {
+                        const auto m=matches.next();parts.insert(key(resolve(file.absolutePath(),m.captured(1).isEmpty()?m.captured(2):m.captured(1))));
+                    }
+                }
+            }
+            if(suffix=="ccd") {
+                parts.insert(key(file.absolutePath()+"/"+file.completeBaseName()+".img"));
+                parts.insert(key(file.absolutePath()+"/"+file.completeBaseName()+".sub"));
+            }
             if(file.suffix().compare("m3u",Qt::CaseInsensitive)==0 && file.size()<1024*1024) {
                 QFile playlist(path);if(playlist.open(QIODevice::ReadOnly))for(const auto& line:QString::fromUtf8(playlist.readAll()).split('\n')) {
                     if(!line.trimmed().isEmpty() && !line.trimmed().startsWith('#'))parts.insert(key(resolve(file.absolutePath(),line)));
@@ -253,8 +277,7 @@ void BatoceraLibrary::editLibraryAsync(const LibraryEdit& edit,QObject* context,
     const auto record=library_.registration(edit.id);
     if(!record || request.storageRoot.isEmpty()){done("Reconnect this game's library storage before moving it.");return;}
     const auto relative=QDir(request.storageRoot).relativeFilePath(request.text);
-    const auto folder=relative.section('/',0,0);auto platform=folder;
-    if(platform=="gamecube")platform="gc";if(platform=="3ds")platform="n3ds";
+    const auto folder=relative.section('/',0,0);auto platform=romPlatformId(folder);
     if(!formats().contains(platform) || !formats().value(platform).contains(QFileInfo(record->contentPath).suffix().toLower())) {
         done("Choose the correct platform folder for this file type.");return;
     }
@@ -323,6 +346,20 @@ void BatoceraLibrary::importNext() {
                     QTimer::singleShot(0,this,&BatoceraLibrary::importNext);
                 });
                 return;
+            }
+            // New emulator installations also configure already discovered ROMs.
+            // Keep deliberate/custom bindings, identity, edits and history intact.
+            if(!current->removed && current->adventure.adapterId=="unconfigured" && prepareInstallation
+                    && current->contentPath==r.contentPath) {
+                auto configured=*current;prepareInstallation(configured);
+                if(configured.adventure.adapterId!="unconfigured") {
+                    if(!writing_){writing_=true;emit writingChanged();}
+                    library_.saveAdventureAsync(configured,this,[this](const auto& write){
+                        if(write.success)++added_;else scan_.warnings.append(write.error);
+                        QTimer::singleShot(0,this,&BatoceraLibrary::importNext);
+                    });
+                    return;
+                }
             }
             continue;
         }

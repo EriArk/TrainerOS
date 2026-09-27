@@ -268,7 +268,7 @@ private slots:
         tap(worlds, Action::Confirm);
         QCOMPARE(home.size(), 1);
     }
-    void shellRestoresDetailAcrossGlobalLayers() {
+    void shellKeepsDetailAcrossModalsButReopensWorldGridAfterPageChange() {
         MutableLibrary library;
         MockTrainerRepository profiles;
         RecordingAdapter adapter;
@@ -286,7 +286,11 @@ private slots:
         QCOMPARE(shell.focusIndex(), 1);
         shell.dispatch(Action::NextPage); shell.dispatch(Action::PreviousPage);
         QCOMPARE(shell.worlds()->detail()["id"].toString(), "emerald-demo");
-        QCOMPARE(shell.focusIndex(), 1);
+        QCOMPARE(shell.worlds()->route(), "regions");
+        QCOMPARE(shell.focusIndex(), 2);
+        shell.dispatch(Action::Confirm); // Explicitly reopen the remembered region/game.
+        shell.activate(0);
+        shell.dispatch(Action::Right);
         shell.dispatch(Action::Confirm);
         QVERIFY(!shell.notice().isEmpty());
         shell.dispatch(Action::Back);

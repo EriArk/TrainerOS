@@ -154,7 +154,8 @@ private slots:
         shell.settings()->activate(2);QTRY_VERIFY(!shell.settings()->saving());QVERIFY(shell.canEditWorld());
         shell.dispatch(Action::LocalAction);QCOMPARE(shell.libraryTools()->route(),"world");
         shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),2);QVERIFY(!shell.libraryTools()->isOpen());
-        shell.goToPage(1);shell.dispatch(Action::ContextMenu);QVERIFY(shell.libraryTools()->isOpen());
+        shell.goToPage(1);QCOMPARE(shell.worlds()->route(),"regions");
+        shell.dispatch(Action::Confirm);shell.dispatch(Action::ContextMenu);QVERIFY(shell.libraryTools()->isOpen());
         shell.dispatch(Action::SystemMenu);shell.dispatch(Action::Confirm);
         QCOMPARE(shell.service(),"settings");QVERIFY(!shell.libraryTools()->isOpen());
     }

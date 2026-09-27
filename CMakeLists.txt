@@ -19,6 +19,7 @@ add_library(trainer_core STATIC
     src/core/storage/LibraryFileMove.cpp
     src/features/library/LibraryToolsController.cpp
     src/core/repository/BatoceraLibrary.cpp
+    src/core/repository/RomPlatforms.cpp
     src/core/repository/BatoceraLibrary.h
     src/core/storage/TrainerPin.cpp
     src/features/trainer/TrainerAccessController.cpp
@@ -177,6 +178,7 @@ file(GLOB badge_images CONFIGURE_DEPENDS assets/badges/*.png)
 qt_add_resources(trainer_core badge_assets PREFIX "/badges" BASE assets/badges
     FILES assets/badges/manifest.json ${badge_images})
 qt_add_resources(trainer_core collection PREFIX "/collection" BASE data FILES data/catalogue.json)
+qt_add_resources(trainer_core rom_platforms PREFIX "/library" BASE data FILES data/rom-platforms.json)
 qt_add_resources(trainer_core pokedex_reference PREFIX "/pokedex" BASE data FILES data/pokedex.json)
 qt_add_resources(trainer_core emerald_reference PREFIX "/progress" BASE data FILES data/emerald-reference.json)
 qt_add_resources(trainer_core emerald_shops PREFIX "/progress" BASE data FILES data/emerald-shops.json)

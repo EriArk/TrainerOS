@@ -1,4 +1,5 @@
 #include "CollectionRepository.h"
+#include "RomPlatforms.h"
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -75,6 +76,8 @@ QList<PlatformLabel> multiversePlatforms() {
         {"msx2","MSX2","MSX2","computer"},{"dos","DOS","DOS","computer"},
         {"scummvm","ScummVM","SCUMM","computer"}};
     for (const auto& p : additional) if (std::none_of(result.begin(), result.end(), [&](const auto& r) { return r.id == p.id; })) result.append(p);
+    for (const auto& p : romPlatforms()) if (std::none_of(result.begin(), result.end(), [&](const auto& r) { return r.id == p.id; }))
+        result.append({p.id, p.name, p.id.toUpper(), p.shape});
     return result;
 }
 QList<EditionChronology> collectionChronology() {

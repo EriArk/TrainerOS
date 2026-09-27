@@ -474,6 +474,36 @@ private slots:
         room.setParty({},"missing",{});const auto count=reactions.count();
         room.dispatch(Action::LocalAction);QCOMPARE(reactions.count(),count);
     }
+    void worldsPrimaryReentryReturnsToBrowserRoot() {
+        MockLibraryRepository library; MockTrainerRepository profiles;
+        MockAdventureAdapter adapter; DevelopmentPlatformService platform;
+        MockPokedexRepository dex; MockHallOfFameRepository archive; MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        shell.goToPage(1); shell.dispatch(Action::Confirm);
+        QCOMPARE(shell.worlds()->route(), "adventures");
+        const auto world = shell.worlds()->region()["id"];
+        shell.dispatch(Action::SystemMenu); shell.dispatch(Action::Back);
+        QCOMPARE(shell.worlds()->route(), "adventures");
+        shell.goToPage(1); // Re-selecting the same primary is not a re-entry.
+        QCOMPARE(shell.worlds()->route(), "adventures");
+        shell.dispatch(Action::NextPage); shell.dispatch(Action::PreviousPage);
+        QCOMPARE(shell.worlds()->route(), "regions");
+        QCOMPARE(shell.worlds()->region()["id"], world);
+        QVERIFY(!shell.multiverseFace());
+        shell.dispatch(Action::NextFace); shell.dispatch(Action::Confirm);
+        QCOMPARE(shell.multiverse()->route(), "games");
+        const auto checkpoint = shell.navigationState();
+        shell.dispatch(Action::PreviousFace); shell.dispatch(Action::NextFace);
+        QCOMPARE(shell.multiverse()->route(), "games"); // Local face cycling still preserves its route.
+        shell.dispatch(Action::NextPage); shell.dispatch(Action::PreviousPage);
+        QVERIFY(shell.multiverseFace());
+        QCOMPARE(shell.multiverse()->route(), "systems");
+        shell.restoreNavigation(checkpoint); // Adventure lifecycle restore is not a tab revisit.
+        QCOMPARE(shell.multiverse()->route(), "games");
+        shell.dispatch(Action::Secondary); QVERIFY(shell.keyboard()->isOpen());
+        shell.dispatch(Action::NextFace); QVERIFY(shell.multiverseFace());
+        shell.dispatch(Action::Back); QCOMPARE(shell.multiverse()->route(), "games");
+    }
     void multiverseIsolationAndModalPriority() {
         MockLibraryRepository library; MockTrainerRepository profiles;
         MockAdventureAdapter adapter; DevelopmentPlatformService platform;

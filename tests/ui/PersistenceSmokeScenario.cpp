@@ -106,8 +106,10 @@ void startPersistenceSmoke(QQuickWindow* window, ShellController& shell, Session
             case 1:
                 capture("restored-favorite-1080p");
                 press(previous);
-                check(shell.worlds()->route() == "detail" && shell.worlds()->detail()["id"].toString() == "emerald-demo"
-                      && focusIs("world-action-resume"), "Stable World route and focus survived restart");
+                check(shell.worlds()->route() == "regions" && focusIs("world-2"), "Primary re-entry opens the remembered World grid after restart");
+                press(a,2);
+                check(shell.worlds()->detail()["id"].toString() == "emerald-demo"
+                      && focusIs("world-action-resume"), "Reopening the World retains its Adventure identity");
                 window->resize(1024, 768); break;
             case 2:
                 capture("restored-world-letterbox");

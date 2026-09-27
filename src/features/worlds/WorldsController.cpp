@@ -314,6 +314,12 @@ void WorldsController::openDetail() {
     actionFocus_ = 0;
     normalizeActionFocus();
 }
+void WorldsController::showRegions() {
+    route_ = Route::Regions;
+    backFocused_ = false;
+    actionFocus_ = 0;
+    emit changed();
+}
 void WorldsController::back() {
     if (route_ == Route::Detail) { route_ = Route::Adventures; backFocused_ = false; }
     else if (route_ == Route::Adventures) { route_ = Route::Regions; backFocused_ = false; }

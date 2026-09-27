@@ -508,6 +508,7 @@ void ShellController::goToPage(int page) {
     // only the completed shell transition, not every intermediate close, so
     // hidden Home/drawer bindings do not rebuild the library repeatedly.
     QSignalBlocker transition(this);
+    const bool enteringWorlds = page_ != 1 && std::clamp(page, 0, 4) == 1;
     if(page!=page_)party_.activities()->practice()->leave();
     libraryTools_.close();
     keyboard_.cancel();
@@ -520,6 +521,10 @@ void ShellController::goToPage(int page) {
     center_.leaveClinic();center_.leaveShops();
     libraryManager_.close(); service_.clear();
     page_ = std::clamp(page, 0, 4); // No wrapping until physical-device testing.
+    if (enteringWorlds) {
+        worlds_.showRegions();
+        multiverse_.showSystems();
+    }
     if (page_ == 1) repository_.refreshContentAvailability();
     if (page_==2) showPokemonFace(pokemonFace_); else refreshParty();
     if (page_ == 3) trainer_.refreshOverview();

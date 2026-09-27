@@ -4,6 +4,13 @@
 
 # TrainerOS UX & Navigation
 
+**Worlds re-entry, 2026-09-28:** returning from another primary page opens the
+World grid or Multiverse system grid, retaining the selected secondary face and
+its highlighted World/system. It does not reopen the last game wheel/detail.
+Local face cycling, closing a modal and restoring an Adventure lifecycle
+checkpoint retain their routes. This is the Worlds-specific exception to the
+general per-page route retention below.
+
 **Current target — 2026-09-26:** #83–88 supersede old dated pair/Home-X,
 Activities, wheel-selection and Start destinations below. Five primaries are
 **Home / Worlds / Pokémon / Trainer / Journey**. L2/R2 cycles secondary faces

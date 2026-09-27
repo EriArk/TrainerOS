@@ -17,6 +17,36 @@ void put(const QString& path,const QByteArray& bytes="Test fixture, not a ROM.")
 class BatoceraTests final : public QObject {
     Q_OBJECT
 private slots:
+    void discTracksAndPicoCartridgesStayInTheirOwnSystems() {
+        QTemporaryDir dir;
+        put(dir.filePath("neogeocd/Game.cue"),"FILE \"Game.img\" BINARY\n TRACK 01 MODE1/2352\n");
+        put(dir.filePath("neogeocd/Game.img"));put(dir.filePath("neogeocd/Game.ccd"));put(dir.filePath("neogeocd/Game.sub"));
+        put(dir.filePath("dreamcast/Game.gdi"),"1\n1 0 4 2352 \"track 1.bin\" 0\n");put(dir.filePath("dreamcast/track 1.bin"));
+        put(dir.filePath("gba/cover.png"));put(dir.filePath("pico8/Actual.p8.png"));
+        const auto scan=scanBatoceraLibrary(dir.path(),{});QCOMPARE(scan.entries.size(),3);
+        for(const auto& e:scan.entries)QVERIFY(e.record.contentPath.endsWith(".cue") || e.record.contentPath.endsWith(".gdi") || e.record.contentPath.endsWith(".p8.png"));
+    }
+    void refreshConfiguresExistingGamesWithoutReplacingCustomBindings() {
+        QTemporaryDir dir;const auto roms=dir.filePath("roms");
+        put(roms+"/psx/Newly supported.chd");put(roms+"/c64/Computer.d64");
+        put(roms+"/megacd/Disc.chd");put(roms+"/wswan/Handheld.ws");put(roms+"/msx1/Computer.rom");
+        LocalStateStore store(dir.filePath("state"));store.open();QTRY_VERIFY(store.ready());
+        BatoceraLibrary folders(store,roms);QSignalSpy finished(&folders,&BatoceraLibrary::scanFinished);
+        folders.rescan();QTRY_COMPARE(finished.size(),1);QCOMPARE(store.adventures().size(),5);
+        QSet<QString> platforms;for(const auto& a:store.adventures())platforms.insert(a.platformId);
+        QCOMPARE(platforms,(QSet<QString>{"psx","c64","segacd","wonderswan","msx"}));
+        const auto records=store.registrations();
+        folders.prepareInstallation=[](AdventureRegistration& r){r.adventure.adapterId="custom-installed";r.integrationConfig["route"]="fixture";};
+        folders.rescan();QTRY_COMPARE(finished.size(),2);
+        for(const auto& old:records) {
+            const auto current=store.registration(old.adventure.id);QVERIFY(current);
+            QCOMPARE(current->contentPath,old.contentPath);QCOMPARE(current->adventure.title,old.adventure.title);
+            QCOMPARE(current->adventure.adapterId,QString("custom-installed"));QCOMPARE(current->revision,old.revision+1);
+        }
+        folders.prepareInstallation=[](AdventureRegistration& r){r.adventure.adapterId="wrong-replacement";};
+        folders.rescan();QTRY_COMPARE(finished.size(),3);
+        for(const auto& old:records)QCOMPARE(store.registration(old.adventure.id)->adventure.adapterId,QString("custom-installed"));
+    }
     void refreshControlKeepsBackAndLegacyTrashSeparate() {
         SettingsController settings;QSignalSpy refresh(&settings,&SettingsController::libraryRefreshRequested);
         QSignalSpy trash(&settings,&SettingsController::trashRequested);

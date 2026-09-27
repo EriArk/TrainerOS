@@ -47,6 +47,7 @@ void startLaunchSmoke(QQuickWindow* window, ShellController& shell, SessionState
         if (session.blocked() || launch->active()) return;
         if (*stage == 0) {
             if (shell.page() == 0) press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
+            if (shell.worlds()->route() == "regions") press(SDL_CONTROLLER_BUTTON_B);
             check(shell.worlds()->route() == "adventures", "Restored game wheel before launch");
             ++*stage; return;
         }

@@ -11,10 +11,20 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1] / 'packaging/integrations'
 sys.path.insert(0, str(ROOT))
-from overlay_support import RawPad, identity
+from overlay_support import RawPad, identity, retroarch_process
 
 
 class OverlayHelperTests(unittest.TestCase):
+    def test_core_thread_name_does_not_hide_the_owned_emulator(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);process=root/'42';process.mkdir()
+            (process/'comm').write_text('Main')
+            (process/'exe').symlink_to('/app/bin/retroarch')
+            self.assertTrue(retroarch_process(42,root))
+            (process/'exe').unlink();(process/'exe').symlink_to('/usr/bin/unrelated')
+            (process/'comm').write_text('retroarch')
+            self.assertFalse(retroarch_process(42,root))
+            self.assertFalse(retroarch_process(43,root))
     def test_physical_neutral_includes_every_button_stick_and_trigger(self):
         pad = object.__new__(RawPad)
         pad.axes = [0,1,2,3,4,5,20,21]

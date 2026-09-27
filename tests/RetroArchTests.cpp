@@ -2,6 +2,7 @@
 #include "integrations/adventure/retroarch/RetroArchSave.h"
 #include "integrations/adventure/retroarch/RetroArchDisc.h"
 #include "integrations/adventure/retroarch/RetroArchConfiguration.h"
+#include "core/repository/RomPlatforms.h"
 #include <QCryptographicHash>
 #include "core/navigation/AdventureLaunchController.h"
 #include "core/storage/LocalStateStore.h"
@@ -26,6 +27,42 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void genericOrdinaryLaunchKeepsSaveProvidersSeparate() {
+        QTemporaryDir dir;const auto content=dir.filePath("literal ; title.chd"),core=dir.filePath("pcsx_rearmed_libretro.so"),cfg=dir.filePath("retroarch.cfg");
+        touch(content);touch(core);
+        {QFile f(cfg);QVERIFY(f.open(QIODevice::WriteOnly));f.write("cheevos_enable = \"true\"\ncheevos_hardcore_mode_enable = \"true\"\n");}
+        LocalStateStore store(dir.filePath("state"));store.open();QTRY_VERIFY(store.ready());
+        RetroArchInstallation installation{probe(),{},cfg};installation.cores.insert("pcsx_rearmed",core);
+        installation.saves=std::make_shared<RetroArchSaveSession>(); // No exact save owner/provider required for PS1.
+        RetroArchAdapter adapter(store,installation);AdventureRegistration r;
+        r.adventure.id="generic";r.adventure.title="Fixture";r.adventure.domain="multiverse";r.adventure.platformId="psx";
+        r.adventure.adapterId="unconfigured";r.contentPath=content;
+        adapter.prepareInstallation(r);QCOMPARE(r.adventure.adapterId,QString("retroarch"));
+        bool saved=false;store.saveAdventureAsync(r,this,[&](auto result){QVERIFY(result.success);saved=true;});QTRY_VERIFY(saved);
+        std::optional<ProcessCommand> invocation;adapter.requestLaunch=[&](const auto& cmd,const auto&){invocation=cmd;return true;};
+        QVERIFY(adapter.launch(r.adventure).success);QVERIFY(invocation && invocation->prepare);
+        auto cmd=*invocation;std::atomic_bool cancel{false};QVERIFY(cmd.prepare(cmd,cancel).isEmpty());
+        QCOMPARE(cmd.arguments.last(),content);QVERIFY(cmd.arguments.contains("--appendconfig"));
+        QVERIFY(!resolveRetroArchSave(r,installation).supported);
+        QVERIFY(!cmd.inspectOutput("[ERROR] Failed to load content.").isEmpty());
+        QVERIFY(cmd.inspectOutput("Frame: 1").isEmpty());
+        QVERIFY(QFile::remove(content));cmd=*invocation;QVERIFY(!cmd.prepare(cmd,cancel).isEmpty());
+        touch(content);QVERIFY(QFile::remove(core));cmd=*invocation;QVERIFY(!cmd.prepare(cmd,cancel).isEmpty());
+        auto other=r;other.adventure.adapterId="custom";adapter.prepareInstallation(other);QCOMPARE(other.adventure.adapterId,QString("custom"));
+        other=r;other.contentPath=dir.filePath("wrong.gba");adapter.prepareInstallation(other);QCOMPARE(other.adventure.adapterId,QString("unconfigured"));
+    }
+    void platformRegistryIsConsistent() {
+        QSet<QString> ids,folders;
+        for(const auto& p:romPlatforms()) {
+            QVERIFY(!ids.contains(p.id));QVERIFY(!folders.contains(p.folder));ids.insert(p.id);folders.insert(p.folder);
+            QVERIFY(!p.name.isEmpty());QVERIFY(!p.extensions.isEmpty());QVERIFY(!p.folder.contains('/'));
+            QCOMPARE(romPlatformId(p.folder),p.id);
+            if(!p.core.isEmpty())QVERIFY(romContentSupported(p.id,p.core,p.extensions.first()));
+        }
+        QVERIFY(ids.size()>=100);QVERIFY(!ids.contains("xbox"));
+        QCOMPARE(romCore("psp"),QString("ppsspp"));QCOMPARE(romCore("dreamcast"),QString("flycast"));
+        QVERIFY(!romContentSupported("megadrive","genesis_plus_gx","chd"));
+    }
     void movingRomRetainsOrdinarySaveDirectory() {
         QTemporaryDir dir;QVERIFY(QDir().mkpath(dir.filePath("roms/gba/Favorites")));
         const auto source=dir.filePath("roms/gba/game.gba");touch(source);
@@ -194,7 +231,8 @@ private slots:
         QTemporaryDir dir;
         const auto content = dir.filePath("original ; $(unsafe) ' quoted adventure.gba"); touch(content);
         const auto core = dir.filePath("mgba_libretro.so"); touch(core);
-        const auto config = dir.filePath("frontend settings.cfg"); touch(config);
+        const auto config = dir.filePath("frontend settings.cfg");
+        {QFile f(config);QVERIFY(f.open(QIODevice::WriteOnly));f.write("savestate_auto_load = \"false\"\n");}
         const auto resultFile = dir.filePath("arguments.json");
         LocalStateStore store(dir.filePath("data")); store.open(); QTRY_VERIFY(store.ready());
         AdventureRegistration record; record.adventure.id = "real-adapter-fixture";
@@ -220,9 +258,9 @@ private slots:
         QTRY_COMPARE(restored.size(), 1); QCOMPARE(lifecycle.state(), "returned"); QCOMPARE(store.navigation(), context);
         QFile output(resultFile); QVERIFY(output.open(QIODevice::ReadOnly));
         QCOMPARE(QJsonDocument::fromJson(output.readAll()).array(), QJsonArray::fromStringList(
-            {"--fullscreen", "--config", config, "--libretro", core, content}));
+            {"--fullscreen", "--config", config, "--libretro", core, "--appendconfig", dir.filePath("traineros-generic-ordinary-v1.cfg"), content}));
         // Removing the media doesn't block metadata-only browsing. The external
-        // program owns file loading and a failed child restores the shell.
+        // worker preflight checks loading; a failure restores the shell.
         QVERIFY(QFile::remove(content)); QVERIFY(adapter.capabilities(record.adventure).launch);
         auto foreign = record.adventure; foreign.adapterId = "another-adapter";
         QVERIFY(!adapter.capabilities(foreign).launch); QVERIFY(!adapter.launch(foreign).success);

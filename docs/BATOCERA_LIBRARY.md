@@ -469,7 +469,7 @@ gamepad. Running the existing verified read-only ACL helper restored the exit
 flow; persistence across device/session changes remains system follow-up, not
 a fix delivered by this library change.
 
-**Delivery limitation:** a final one-line correction clears the old completion
+**Recovered 2026-09-28:** a final one-line correction clears the old completion
 message during a new refresh. It was built for ARM64 (SHA-256
 `7746dbe39d910fa3131b6066ff4a0104b66a4e95b978b429f8021ebec28befd9`),
 but its installer stalled while syncing the backup database journal, before
@@ -479,9 +479,16 @@ and verified pending; the kernel had not released the blocked operation.
 The cause of that device-wide IO stall is unproven. Do not restart a duplicate
 installer before checking the process and partial backup after recovery.
 
-Pending on device recovery: finish the final install, verify original records
-and file hashes against the private before-snapshot, remove the isolated test
-ROM/registration through the normal library action, and restore the original
-gamelist only after comparing its current hash with the recorded test version.
-The test-copy manifest and original XML are retained privately. Final cleanup
-and a fresh final-build Settings capture are not claimed complete.
+After the owner's reboot, no installer remained active. The final binary was
+installed with the SHA above. All 829 pre-existing registrations matched the
+before-snapshot, all three Trainers and schema 14 remained, and SQLite integrity
+and foreign-key checks passed. The isolated test copy was removed through the
+normal controller-operated library action; its normal removal/history record
+remains. The original ROM hash was unchanged and the original gamelist was
+restored byte-for-byte after checking the test version. A fresh actual-device
+Settings capture is retained as `work/research/library-settings-final.png`.
+The IO-stall root cause remains unproven; the cleanup/install is complete.
+
+The subsequent [generic ARM64 launch increment](ROM_PLATFORMS.md) extends folder
+discovery and existing-record runtime binding without changing catalogue/save
+identity. Its prepared folders are empty until the owner adds content.

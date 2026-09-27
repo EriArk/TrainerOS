@@ -42,6 +42,7 @@ public:
     void dispatch(Action);
     void activate(int index);
     void refresh();
+    void showRegions();
     QJsonObject navigationState() const;
     void restoreNavigation(const QJsonObject&);
 signals:

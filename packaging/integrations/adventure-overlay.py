@@ -12,7 +12,7 @@ import socket
 import subprocess
 import sys
 import time
-from overlay_support import RawPad, X11, identity
+from overlay_support import RawPad, X11, identity, retroarch_process
 
 SERVICE = 'org.shadowblip.InputPlumber'
 INTERFACE = 'org.shadowblip.Input.CompositeDevice'
@@ -158,9 +158,7 @@ def run(args):
                 # own close confirmation, which this overlay must not obscure.
                 supported = False
                 if target and x11.owns(target,args.game,game_start):
-                    try:
-                        supported = (Path('/proc')/str(x11.pid(target))/'comm').read_text().strip().lower() == 'retroarch'
-                    except OSError: pass
+                    supported = retroarch_process(x11.pid(target))
                 if supported and x11.atom('WM_DELETE_WINDOW') in x11.prop(target,'WM_PROTOCOLS'):
                     state = 'requested'; emit('request')
                 else: state = 'release'; neutral_since = None

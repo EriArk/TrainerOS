@@ -25,6 +25,7 @@ public:
     explicit MultiversePresentation(bool sample, QObject* parent = nullptr);
     MultiversePresentation(LibraryRepository&, AdventureAdapter&, QObject* parent = nullptr);
     void refresh();
+    void showSystems();
     QJsonObject navigationState() const;
     void restoreNavigation(const QJsonObject&);
     bool sample() const { return sample_; }

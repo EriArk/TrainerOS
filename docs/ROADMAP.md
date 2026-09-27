@@ -4,6 +4,22 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-28 owner library extension:** [ordinary ARM64 ROM routes and prepared
+folders](ROM_PLATFORMS.md) come with the current library work. Use platform/file
+routes independent of semantic save adapters, retain old systems with ARM64
+emulators, hide empty categories, and verify representative launches rather than
+every ROM. The first registry covers 105 categories; remaining Batocera-specific
+engines/software lists, native PS3/Switch integration and Steam library/lifecycle
+remain explicit follow-up. No earlier acceptance is dropped. Settings/system/RA
+retain their next priority; new Pokémon/practice expansion remains deferred.
+
+Library follow-up from this device check: prefer a standalone PPSSPP route after
+verifying controller setup and guarded return (currently PSP uses its Libretro
+core). Remove the old 128 MiB exit-media content bound for verified large-ROM
+capture without adding UI-thread hashing. The native Steam/Dead Cells probe
+reached its game menu, but installed Steam discovery and owned launch/return
+integration are still pending. These do not reopen per-title compatibility work.
+
 **Owner device/network addition:** [Odin 2 and network acceptance](DEVICE_NETWORK_PLAN.md).
 When the owner returns home, verify Odin 2's actual OS/support/recovery and prepare
 it as the second test device. R11 adds full Wi-Fi/Bluetooth Settings and top-of-Start

@@ -1,6 +1,7 @@
 #include "RetroArchAdapter.h"
 #include "RetroArchSave.h"
 #include "RetroArchDisc.h"
+#include "core/repository/RomPlatforms.h"
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -17,17 +18,12 @@ const QHash<QString, QStringList> extensions{
     {"picodrive", {"32x"}}, {"mednafen_ngp", {"ngp", "ngc"}},
     {"mednafen_pce_fast", {"pce"}}, {"neocd", {"cue", "chd"}}
 };
-const QHash<QString, QString> coreForPlatform{
-    {"gb", "gambatte"}, {"gbc", "gambatte"}, {"gba", "mgba"},
-    {"n64", "parallel_n64"}, {"pokemini", "pokemini"}, {"nes", "fceumm"},
-    {"snes", "snes9x"}, {"megadrive", "genesis_plus_gx"},
-    {"sega32x", "picodrive"}, {"ngpc", "mednafen_ngp"}, {"pcengine", "mednafen_pce_fast"},
-    {"segacd", "genesis_plus_gx"}, {"neogeocd", "neocd"}
-};
 bool contentRoute(const QString& platform, const QString& core, const QString& extension) {
     if (retroarch::discPlatform(platform)) return extension == "chd" || extension == "cue";
-    if (extension == "chd" || extension == "cue") return false;
-    return extensions.value(core).contains(extension);
+    // Compressed GBA saves need a separately verified owned-save route.
+    if (core == "mgba") return extension == "gba";
+    if (platform.isEmpty()) return extensions.value(core).contains(extension);
+    return romContentSupported(platform, core, extension);
 }
 bool cartridgeRoute(const QString& core) {
     return QStringList{"snes9x", "genesis_plus_gx", "picodrive", "mednafen_ngp", "mednafen_pce_fast"}.contains(core);
@@ -56,10 +52,11 @@ RetroArchInstallation RetroArchInstallation::load(const QString& filename) {
         if (!value.isString() || value.toString().contains(QChar::Null)) return {};
         result.prefixArguments.append(value.toString());
     }
-    for (auto it = extensions.cbegin(); it != extensions.cend(); ++it) {
-        const auto path = QDir(coresDirectory).absoluteFilePath(it.key() + "_libretro.so");
+    for (const auto& route : romPlatforms()) {
+        if(route.core.isEmpty())continue;
+        const auto path = QDir(coresDirectory).absoluteFilePath(route.core + "_libretro.so");
         const QFileInfo core(path);
-        if (core.isFile() && core.isReadable()) result.cores.insert(it.key(), path);
+        if (core.isFile() && core.isReadable()) result.cores.insert(route.core, path);
     }
     if (QFileInfo(object.value("runtimeFile").toString()).isAbsolute())
         result.runtimeFile = object.value("runtimeFile").toString();
@@ -91,7 +88,7 @@ void RetroArchAdapter::prepareInstallation(AdventureRegistration& record) const 
         else if (extension == "min") a.platformId = "pokemini";
         else if (extension == "nes") a.platformId = "nes";
     }
-    const auto core = coreForPlatform.value(a.platformId);
+    const auto core = romCore(a.platformId);
     if (!installation_.program.isEmpty() && installation_.cores.contains(core) && contentRoute(a.platformId, core, extension)
         && (!retroarch::discPlatform(a.platformId) || installation_.readyDiscPlatforms.contains(a.platformId))) {
         a.adapterId = id(); record.integrationConfig.insert("core", core);
@@ -106,13 +103,21 @@ std::optional<ProcessCommand> RetroArchAdapter::command(const Adventure& adventu
     if (!record || record->adventure.adapterId != id() || !QDir::isAbsolutePath(record->contentPath)) return {};
     const auto core = record->integrationConfig.value("core").toString();
     if (!installation_.cores.contains(core)
-            || (!record->adventure.platformId.isEmpty() && coreForPlatform.value(record->adventure.platformId) != core)
+            || (!record->adventure.platformId.isEmpty() && romCore(record->adventure.platformId) != core)
             || !contentRoute(record->adventure.platformId, core, QFileInfo(record->contentPath).suffix().toLower())
             || (retroarch::discPlatform(record->adventure.platformId) && !installation_.readyDiscPlatforms.contains(record->adventure.platformId))) return {};
     auto arguments = installation_.prefixArguments;
     arguments << "--fullscreen" << "--config" << installation_.configFile
               << "--libretro" << installation_.cores.value(core) << record->contentPath;
-    return ProcessCommand{installation_.program, arguments, {}};
+    ProcessCommand result{installation_.program, arguments, {}};
+    result.inspectOutput=[](const QByteArray& bytes)->QString {
+        const auto output=bytes.toLower();
+        if(output.contains("failed to load content") || output.contains("failed to load libretro core")
+            || output.contains("failed to open libretro core"))
+            return "Couldn't open this game. Check its file and required BIOS in play setup.";
+        return {};
+    };
+    return result;
 }
 AdventureCapabilities RetroArchAdapter::capabilities(const Adventure& adventure) const {
     return {command(adventure).has_value(), false, false};
@@ -143,6 +148,10 @@ AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
                 if (!error.isEmpty()) return error;
             }
             return prepareRetroArchLaunch(cmd, record, installation, cancel);
+        };
+    } else if (registration) {
+        invocation->prepare = [record=*registration, installation=installation_](ProcessCommand& cmd,const std::atomic_bool& cancel) {
+            return prepareGenericRetroArchLaunch(cmd,record,installation,cancel);
         };
     }
     if (!requestLaunch || !requestLaunch(*invocation, adventure.id)) return {false, "An Adventure is already opening. Try again after returning."};

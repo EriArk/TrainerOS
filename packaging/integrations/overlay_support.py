@@ -40,6 +40,15 @@ def identity(pid):
     return (Path('/proc') / str(pid) / 'stat').read_text().rsplit(')', 1)[1].split()[19]
 
 
+def retroarch_process(pid, proc=Path('/proc')):
+    # Some cores rename the main thread (PPSSPP uses "Main"). Ownership is
+    # checked by X11.owns separately; comm is not executable identity.
+    try:
+        return (proc / str(pid) / 'exe').readlink().name == 'retroarch'
+    except OSError:
+        return False
+
+
 class X11:
     def __init__(self):
         self.x = x = c.CDLL('libX11.so.6')
