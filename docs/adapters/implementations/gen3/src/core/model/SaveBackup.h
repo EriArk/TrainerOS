@@ -56,6 +56,7 @@ public:
         done({false,false,"Purchases are unavailable for this Adventure."});
     }
     virtual void movePokemon(const AdventureRegistration&,const QString&,const PartyMove&,QObject*,std::function<void(SaveBackupResult)> done) { done({false,false,"Moving is unavailable for this Adventure."}); }
+    virtual void changeHeldItem(const AdventureRegistration&,const QString&,const HeldItemChange&,QObject*,std::function<void(SaveBackupResult)> done) { done({false,false,"Held items are unavailable for this Adventure."}); }
     virtual void releasePokemon(const AdventureRegistration&,const QString&,const PokemonRelease&,QObject*,std::function<void(SaveBackupResult)> done) { done({false,false,"Release is unavailable for this Adventure."}); }
 signals:
     void busyChanged();

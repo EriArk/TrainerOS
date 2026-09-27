@@ -102,6 +102,47 @@ private slots:
         party.beginRelease();observation.contextRevision="owner2";party.setProgress("one",observation);QVERIFY(!party.moveOpen());
         party.beginRelease();party.setAdventure("two","FireRed");QVERIFY(!party.moveOpen());QCOMPARE(service.moves,1);
     }
+    void heldItemsChooseConfirmCancelAndKeepModalGates() {
+        class Library final : public LibraryRepository {
+        public:
+            MockLibraryRepository sample;
+            QList<World> worlds() const override{return sample.worlds();}
+            QList<Adventure> adventures() const override{return sample.adventures();}
+            QList<ResumePoint> resumePoints() const override{return {};}
+            HomeSnapshot home() const override{return sample.home();}
+            std::optional<AdventureRegistration> registration(const QString& id) const override{AdventureRegistration r;r.adventure.id=id;r.revision=1;return r;}
+        } library;
+        class Service final : public SaveBackupService {
+        public:
+            bool working=false;int moves=0;HeldItemChange request;std::function<void(SaveBackupResult)> pending;
+            bool busy() const override{return working;}
+            bool supports(const AdventureRegistration&) const override{return true;}
+            void inspect(const AdventureRegistration&,QObject*,std::function<void(SaveBackupSnapshot)> done) override{SaveBackupSnapshot s;s.hasSave=true;s.token="token";done(s);}
+            void create(const AdventureRegistration&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override{}
+            void restore(const AdventureRegistration&,const SaveBackup&,const QString&,QObject*,std::function<void(SaveBackupResult)>) override{}
+            void changeHeldItem(const AdventureRegistration&,const QString&,const HeldItemChange& r,QObject*,std::function<void(SaveBackupResult)> done) override{++moves;request=r;working=true;pending=std::move(done);}
+        } service;
+        PartyPresentation party(false);party.configureMovement(&service,&library);party.setAdventure("one","Emerald");
+        GameProgress observation;observation.availability=ProgressAvailability::Available;observation.contextRevision="owner1";observation.saveRevision="save1";
+        PartySnapshot data;data.canManage=true;data.party=QList<PokemonRecord>(6);data.boxes=QList<PokemonBox>(14);
+        for(auto& box:data.boxes){box.members=QList<PokemonRecord>(30);box.name="Box";}
+        data.party[0].kind=PokemonSlotKind::Known;data.party[0].speciesName="Pikachu";data.party[0].nickname="Sparky";
+        observation.party=data;party.setProgress("one",observation);QVERIFY(!party.canHoldItems());party.beginHeldItems();QVERIFY(!party.moveOpen());
+        data.canHoldItems=true;data.party[0].itemId=215;data.party[0].item="Charcoal";data.bag.items={{13,20,"Potion","Items"}};observation.party=data;observation.saveRevision="save2";party.setProgress("one",observation);
+        party.activate(0);party.dispatch(Action::Down);QCOMPARE(party.menuIndex(),5);party.dispatch(Action::Confirm);
+        QCOMPARE(party.moveStage(),"items");QCOMPARE(party.moveRows().size(),2);
+        party.dispatch(Action::Down);party.dispatch(Action::Confirm);QCOMPARE(party.moveStage(),"item-confirm");
+        QVERIFY(party.moveMessage().contains("Potion"));QVERIFY(party.moveMessage().contains("Charcoal"));QCOMPARE(service.moves,0);
+        party.dispatch(Action::Back);QCOMPARE(party.moveStage(),"items");QCOMPARE(party.moveIndex(),1);
+        for(auto action:{Action::ContextMenu,Action::ToggleContinue,Action::Home,Action::NextPage,Action::NextFace})party.dispatch(action);
+        QCOMPARE(service.moves,0);QCOMPARE(party.moveStage(),"items");
+        party.dispatch(Action::Confirm);party.dispatch(Action::Confirm);QCOMPARE(service.moves,1);QVERIFY(party.moving());
+        QCOMPARE(service.request.pokemon.box,-1);QCOMPARE(service.request.pokemon.slot,0);QCOMPARE(service.request.saveRevision,"save2");QCOMPARE(service.request.itemId,13);
+        party.dispatch(Action::Confirm);party.dispatch(Action::Back);QCOMPARE(service.moves,1);QVERIFY(party.moving());
+        service.working=false;service.pending({true,true,"Released"});QCOMPARE(party.moveStage(),"result");party.dispatch(Action::Confirm);QVERIFY(!party.moveOpen());
+        party.beginHeldItems();observation.contextRevision="owner2";party.setProgress("one",observation);QVERIFY(!party.moveOpen());
+        party.beginHeldItems();party.setAdventure("two","FireRed");QVERIFY(!party.moveOpen());QCOMPARE(service.moves,1);
+    }
 
     void cyclicFacesRestoreIndependentlyAndStartContainsNoGameServices() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
@@ -627,6 +668,9 @@ private slots:
         shell.dispatch(Action::Back); QVERIFY(shell.menuOpen()); shell.dispatch(Action::Back);
         QVERIFY(shell.centerFace()); if(service.busy())service.finish();
         shell.dispatch(Action::LocalAction); // Party/Storage opens the existing save shelf.
+        // A Party edit can have added protection copies since this shelf was read.
+        // Re-entering backups must inspect the current save/token before restore.
+        QVERIFY(service.busy()); service.finish();
         shell.dispatch(Action::Confirm); QVERIFY(shell.center()->confirming());
         shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::NextFace);
         QVERIFY(!shell.drawerOpen()); QVERIFY(shell.centerFace()); QVERIFY(shell.center()->confirming());

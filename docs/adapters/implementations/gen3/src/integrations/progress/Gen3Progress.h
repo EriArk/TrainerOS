@@ -6,6 +6,7 @@
 
 namespace trainer {
 enum class Gen3Edition { Emerald, FireRed };
+HeldItemResult changeEmeraldHeldItem(const QByteArray&,const QString&,const HeldItemChange&);
 PokemonReleaseResult releaseEmeraldPokemon(const QByteArray&,const QString&,const PokemonRelease&);
 PartyMoveResult moveEmeraldPokemon(const QByteArray&,const QString&,const PartyMove&);
 std::optional<Gen3Edition> gen3Edition(const QString& contentSha256);

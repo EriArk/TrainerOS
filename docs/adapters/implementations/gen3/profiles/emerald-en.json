@@ -104,6 +104,19 @@
         "device"
       ],
       "details": "../EMERALD_JOURNEY.md"
+    },
+    "held-items": {
+      "state": "integrated",
+      "evidence": [
+        "source-research",
+        "synthetic",
+        "private-copy",
+        "allowed-delta",
+        "device",
+        "normal-game",
+        "rollback"
+      ],
+      "details": "../EMERALD_HELD_ITEMS.md"
     }
   },
   "unknown": [

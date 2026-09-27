@@ -6,7 +6,7 @@ that another edition of the same game has the same format.
 
 | Record | Exact targets | Current boundary |
 |---|---|---|
-| [Emerald English](emerald-en.md) | One SHA-256 allowlisted GBA build | Integrated reads, healing, shops and protected Party/Box moves and release |
+| [Emerald English](emerald-en.md) | One SHA-256 allowlisted GBA build | Integrated reads/Journey, healing, shops and protected Party/Box moves, release and held items |
 | [FireRed English](firered-en.md) | Original and Rev 1, separately fingerprinted | Integrated reads/healing; normal-game healing proof on Rev 1 only |
 | Diamond / Colosseum | No verified fingerprints recorded here | Planned; no write capability inferred |
 

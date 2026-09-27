@@ -264,7 +264,7 @@ void ShellController::showPokemonFace(const QString& face) {
     openCenter();
     if(face=="party" || face=="boxes")party_.showSection(face=="boxes"?"storage":"party");
     else if(face=="center"){
-        if(centerRoute_=="backups")party_.openSaves();
+        if(centerRoute_=="backups"){party_.openSaves();center_.refresh();}
         else if(centerRoute_=="link"){party_.showSection("activities");party_.activities()->showPlace("link");}
         else {party_.showSection("party");center_.visitClinic();}
     }

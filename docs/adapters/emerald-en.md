@@ -170,3 +170,34 @@ Sources: https://github.com/pret/pokeemerald/tree/5eff78649e7170a877b961ef0b3da1
 Integration: see [Emerald Journey](../EMERALD_JOURNEY.md) for the read-only
 capability, immutable owner archive, device findings and lineage/count limits.
 The configured portable source copy includes these models and parser code.
+
+## Held items - 2026-09-27, integrated
+
+Exact English Emerald only. Protected Bag-to-Pokemon give/take and atomic
+replacement for Party/Boxes, reusing the protected file transaction. Mail, eggs,
+unknown items and other editions remain outside the writer until proven.
+
+### Held-item source findings
+
+Pinned pret/pokeemerald `5eff78649e7170a877b961ef0b3da13b81a16038`:
+`src/item.c` (AddBagItem/RemoveBagItem), `src/item_menu.c` (GiveToParty/GiveToPC),
+`src/party_menu.c` (SwitchItemsFromBag) and `src/data/items.h` establish:
+- Holdability is item importance and pocket policy, not a nonzero hold effect.
+  Ordinary medicines, balls, TMs and berries can be held. Key items and HMs cannot.
+- Quantities use the low half of SaveBlock2's encryption key. Berries stack to
+  999; other supported pockets to 99. TM/berry stacks must remain unique.
+- Replacement removes the new item first, then returns the old item. Failure to
+  return it must leave the entire source untouched.
+- Held item is Growth substructure offset 2; its update changes only that field
+  and the Pokemon checksum, preserving encrypted ordering, identity, PP and HP.
+
+This bounded writer excludes Mail/message associations and dynamic Enigma Berry.
+Battle Pyramid locations use their own Bag and are rejected. No other editions
+inherit this capability.
+
+[Held-item contract and evidence](../EMERALD_HELD_ITEMS.md): all-permutation
+synthetic checks, protected service tests, actual Flip controller give/take/swap,
+independent byte/quantity checks, normal Emerald load and in-game save, and exact
+Center rollback passed. Personal saves remain unchanged. Entering Center backups
+refreshes the shelf after a Party/Box operation. The portable code, tables and
+exact-game profile are synchronized with the implementation.

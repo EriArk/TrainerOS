@@ -92,6 +92,7 @@ PokemonRecord pokemon(const QByteArray& bytes, bool inParty, bool fireRed=false,
     const int nature=personality%25;
     r.nature=reference()["natures"].toObject().value(QString::number(nature)).toString();
     const auto held=u16(growth,2);
+    r.itemId=held;
     r.item=held ? reference()["items"].toObject().value(QString::number(held)).toString() : "None";
     // Unknown item labels stay unknown without invalidating the individual.
     if (r.item.isEmpty()) r.item=QStringLiteral("—");
@@ -169,6 +170,21 @@ QByteArray emeraldBoxRecord(const QByteArray& record) {
     qToLittleEndian(sum,out.data()+28);
     for(int p=0;p<48;p+=4)qToLittleEndian(u32(clear,p)^key,out.data()+32+p);
     return out;
+}
+QByteArray emeraldHeldItemRecord(const QByteArray& record,int itemId) {
+    // Reuse identity/checksum/Egg/Mail validation without the deposit PP change.
+    if(itemId<0 || itemId>65535 || emeraldBoxRecord(record).isEmpty())return {};
+    auto out=record;auto clear=record.mid(32,48);
+    const auto pid=u32(record,0),key=pid^u32(record,4);
+    for(int p=0;p<48;p+=4)qToLittleEndian(u32(clear,p)^key,clear.data()+p);
+    std::array<int,4> order{0,1,2,3};for(quint32 n=0;n<pid%24;++n)std::next_permutation(order.begin(),order.end());
+    const int growth=int(std::find(order.begin(),order.end(),0)-order.begin())*12;
+    qToLittleEndian(quint16(itemId),clear.data()+growth+2);
+    quint16 sum=0;for(int p=0;p<48;p+=2)sum=quint16(sum+u16(clear,p));
+    qToLittleEndian(sum,out.data()+28);
+    for(int p=0;p<48;p+=4)qToLittleEndian(u32(clear,p)^key,out.data()+32+p);
+    const auto checked=pokemon(out,out.size()==100);
+    return checked.kind==PokemonSlotKind::Known && checked.itemId==itemId?out:QByteArray{};
 }
 QByteArray emeraldWithdrawRecord(const QByteArray& record) {
     const auto mon=pokemon(record,false,false,true);

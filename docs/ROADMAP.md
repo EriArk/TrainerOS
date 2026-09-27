@@ -61,8 +61,16 @@ milestones and immutable historical Champion teams are connected to Journey.
 [Evidence and remaining lineage/title gates](EMERALD_JOURNEY.md). Schema 14 keeps
 manual Hall memories separate and preserves history across external-save rollback.
 
-**Next increment: 3/6 Высокое (High)** — R4 held-item services for Emerald Party/Boxes,
-with protected give/take transactions and normal-game proof.
+**2026-09-27 held-item delivery:** Emerald Party/Boxes now give, take and replace
+eligible held items using verified Bag quantities and one protected transaction.
+Normal-game readback, exact restore and device controller flows are verified.
+[Scope and exclusions](EMERALD_HELD_ITEMS.md). The reusable adapter copy includes
+the byte transforms, holdability tables and exact-game profile.
+
+**Next increment: 3/6 Высокое (High)** - bounded #93 save-lineage foundation before
+trusted Link: stable Trainer signing identity, explicit imported roots and
+protected-edit/restore history, composing the existing transaction and repositories.
+Do not claim #94 verified gameplay or two-device exchange from local signatures.
 Keep item/box services and all later queue entries;
 practice and two-device Link retain their independent research/proof gates.
 Before trusted Link, add #93 signed lineage and #94 observable session policy;

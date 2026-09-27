@@ -20,7 +20,7 @@ for key,body in re.findall(r'\[(ITEM_\w+)\]\s*=\s*\{(.*?)\n    \}',source('src/d
     if not pocket or not name:continue
     title=name[1].title()
     if key.startswith(('ITEM_TM_','ITEM_HM_')):title=name[1]+' · '+key[8:].replace('_',' ').title()
-    items[str(ids[key])]={'name':title,'price':int(price[1]) if price else 0,'pocket':{'POCKET_ITEMS':1,'POCKET_KEY_ITEMS':2,'POCKET_POKE_BALLS':3,'POCKET_TM_HM':4,'POCKET_BERRIES':5}[pocket[1]]}
+    items[str(ids[key])]={'name':title,'price':int(price[1]) if price else 0,'holdable':not re.search(r'\.importance = [1-9]',body) and pocket[1]!='POCKET_KEY_ITEMS' and key not in ('ITEM_NONE','ITEM_ENIGMA_BERRY') and not key.endswith('_MAIL') and name[1]!='????????','pocket':{'POCKET_ITEMS':1,'POCKET_KEY_ITEMS':2,'POCKET_POKE_BALLS':3,'POCKET_TM_HM':4,'POCKET_BERRIES':5}[pocket[1]]}
 flagtext=source('include/constants/flags.h')
 flags={k:int(v,0) for k,v in re.findall(r'#define (FLAG_\w+)\s+(0x[0-9a-fA-F]+|\d+)\b',flagtext)}
 for k,v in re.findall(r'#define (FLAG_\w+)\s+\(SYSTEM_FLAGS \+ (0x[0-9A-Fa-f]+)\)',flagtext):flags[k]=0x860+int(v,0)

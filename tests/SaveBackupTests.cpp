@@ -82,6 +82,38 @@ private slots:
         QCOMPARE(read(f.path),QByteArray("NEW IN GAME SAVE"));
         QVERIFY(!f.inspect().copies.isEmpty());
     }
+    void heldItemUsesProtectionPolicyStaleGuardAndExactUndo() {
+        Fixture f;int calls=0;
+        HeldItemWriter mover=[&](const QByteArray& input,const QString&,const HeldItemChange&){++calls;return HeldItemResult{input+" MOVED",{},"Moved"};};
+        const auto token=f.inspect().token;
+        QVERIFY(setSaveWritesReadOnly(f.root,true).isEmpty());
+        QVERIFY(!changeSaveHeldItem(f.root,f.record,token,{},f.resolve,mover).success);QCOMPARE(calls,0);
+        QVERIFY(setSaveWritesReadOnly(f.root,false).isEmpty());
+        QVERIFY(!changeSaveHeldItem(f.root,f.record,"stale",{},f.resolve,mover).success);QCOMPARE(calls,0);
+        auto result=changeSaveHeldItem(f.root,f.record,token,{},f.resolve,mover);QVERIFY(result.success);QCOMPARE(calls,1);
+        QCOMPARE(read(f.path),QByteArray("FIRST SAVE MOVED"));QCOMPARE(result.snapshot.copies.size(),1);
+        QCOMPARE(result.snapshot.copies[0].reason,"held-item");
+        auto restored=restoreSaveBackup(f.root,f.record,result.snapshot.copies[0],result.snapshot.token,f.resolve);
+        QVERIFY(restored.success);QCOMPARE(read(f.path),QByteArray("FIRST SAVE"));
+        f.target.supported=false;QVERIFY(!changeSaveHeldItem(f.root,f.record,token,{},f.resolve,mover).success);
+        f.target.supported=true;write(f.dir.filePath("blocked"),"file");
+        QVERIFY(!changeSaveHeldItem(f.dir.filePath("blocked"),f.record,f.inspect().token,{},f.resolve,mover).success);QCOMPARE(read(f.path),QByteArray("FIRST SAVE"));
+    }
+
+    void heldItemRechecksRuntimeAndSourceAfterPreparation() {
+        Fixture f;auto token=f.inspect().token;
+        HeldItemWriter changed=[&](const QByteArray&,const QString&,const HeldItemChange&) {
+            write(f.path,"NEW IN GAME SAVE");return HeldItemResult{"RELEASED",{},"Released"};
+        };
+        QVERIFY(!changeSaveHeldItem(f.root,f.record,token,{},f.resolve,changed).success);
+        QCOMPARE(read(f.path),QByteArray("NEW IN GAME SAVE"));
+        token=f.inspect().token;int resolutions=0;
+        const SaveTargetResolver runtime=[&](const AdventureRegistration&){auto t=f.target;if(++resolutions>1){t.supported=false;t.error="Game running";}return t;};
+        const HeldItemWriter release=[](const QByteArray&,const QString&,const HeldItemChange&){return HeldItemResult{"RELEASED",{},"Released"};};
+        QVERIFY(!changeSaveHeldItem(f.root,f.record,token,{},runtime,release).success);
+        QCOMPARE(read(f.path),QByteArray("NEW IN GAME SAVE"));
+        QVERIFY(!f.inspect().copies.isEmpty());
+    }
 
     void deviceReadOnlyPolicyBlocksAllMutatorsAndSurvivesRestart() {
         Fixture f;const auto copy=f.backup();const auto before=f.inspect();int edits=0;

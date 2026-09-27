@@ -6,6 +6,7 @@
 namespace trainer {
 std::optional<ChampionMember> readEmeraldChampionMember(const QByteArray&);
 QByteArray emeraldBoxRecord(const QByteArray& record);
+QByteArray emeraldHeldItemRecord(const QByteArray& record,int itemId);
 QByteArray emeraldWithdrawRecord(const QByteArray& record);
 enum class Gen3Edition;
 PartySnapshot readGen3Party(const QByteArray& world,const QByteArray& storage,Gen3Edition);

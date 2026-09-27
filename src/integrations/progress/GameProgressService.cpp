@@ -72,6 +72,7 @@ void GameProgressService::inspectCapabilities(const AdventureRegistration& recor
             "Pokédex · "+state(semantic,available&&progress.pokedex.has_value()&&progress.pokedex->error.isEmpty()),
             "Party / Boxes · "+state(semantic,available&&progress.party.has_value()&&progress.party->error.isEmpty()),
             "Party / Box movement · "+state(emerald,available&&progress.party.has_value()&&progress.party->canManage),
+            "Held items \u00b7 "+state(emerald,available&&progress.party.has_value()&&progress.party->canHoldItems),
             "Pokemon release · "+state(emerald,available&&progress.party.has_value()&&progress.party->canRelease),
             "Healing · "+state(semantic,heal),
             "Shops · "+state(emerald,shops),

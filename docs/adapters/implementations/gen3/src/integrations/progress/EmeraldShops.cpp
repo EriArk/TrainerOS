@@ -185,6 +185,71 @@ void setBalance(QByteArray& world,QByteArray& trainer,MerchantCurrency kind,int 
     }
 }
 }
+HeldItemBag readEmeraldHeldBag(const QByteArray& world,const QByteArray& trainer) {
+    HeldItemBag out;
+    if(world.size()!=0x3d88 || trainer.size()!=0xf2c){out.error="Your Bag could not be read.";return out;}
+    if((quint8(world[4])==26 && (quint8(world[5])==26 || quint8(world[5])==27))
+        || (quint8(world[4])==25 && quint8(world[5])>=44 && quint8(world[5])<=59)) {
+        out.error="Finish your Battle Pyramid challenge before changing items.";return out;
+    }
+    const auto key=quint16(u32(trainer,0xac));
+    for(int p:{1,3,4,5}) {
+        QSet<int> seen;const auto pocket=pockets[p];
+        for(int i=0;i<pocket.count;++i) {
+            const int at=pocket.at+i*4,id=u16(world,at),quantity=u16(world,at+2)^key;
+            const auto fact=item(id);
+            if(id ? fact.isEmpty() || fact["pocket"].toInt()!=p || quantity<1 || quantity>(p==5?999:99)
+                       || ((p==4 || p==5) && seen.contains(id)) : quantity!=0) {
+                out.items.clear();out.error="Your Bag could not be verified.";return out;
+            }
+            if(!id)continue;
+            seen.insert(id);
+            if(!fact["holdable"].toBool())continue;
+            auto existing=std::find_if(out.items.begin(),out.items.end(),[id](const auto& entry){return entry.id==id;});
+            if(existing!=out.items.end())existing->quantity+=quantity;
+            else out.items.append({id,quantity,fact["name"].toString(),QString::fromLatin1(pocket.name)});
+        }
+    }
+    return out;
+}
+QByteArray exchangeEmeraldHeldBag(const QByteArray& world,const QByteArray& trainer,int give,int take,QString& error) {
+    error=readEmeraldHeldBag(world,trainer).error;if(!error.isEmpty())return {};
+    if(give<0 || take<0 || (give && !item(give)["holdable"].toBool()) || (take && !item(take)["holdable"].toBool())) {
+        error="This item must be managed inside the game.";return {};
+    }
+    auto out=world;const auto key=quint16(u32(trainer,0xac));
+    // Native replacement removes the new item before checking room for the old.
+    if(give) {
+        const auto pocket=pockets[item(give)["pocket"].toInt()];bool removed=false;
+        for(int i=0;i<pocket.count;++i) {
+            const int at=pocket.at+i*4;if(u16(out,at)!=give)continue;
+            const int quantity=(u16(out,at+2)^key)-1;
+            qToLittleEndian(quint16(quantity^key),out.data()+at+2);
+            if(!quantity)qToLittleEndian(quint16(0),out.data()+at);
+            removed=true;break;
+        }
+        if(!removed){error="That item is no longer in your Bag.";return {};}
+    }
+    if(take) {
+        const int p=item(take)["pocket"].toInt(),maximum=p==5?999:99;const auto pocket=pockets[p];
+        int destination=-1;bool uniqueFull=false;
+        for(int i=0;i<pocket.count;++i) {
+            const int at=pocket.at+i*4;
+            if(u16(out,at)==take) {
+                if((u16(out,at+2)^key)<maximum){destination=at;break;}
+                if(p==4 || p==5)uniqueFull=true;
+            }
+        }
+        if(destination<0 && !uniqueFull)for(int i=0;i<pocket.count;++i)
+            if(u16(out,pocket.at+i*4)==0){destination=pocket.at+i*4;break;}
+        if(destination<0){error="Make room in your Bag for the held item first.";return {};}
+        const int quantity=(u16(out,destination+2)^key)+1;
+        qToLittleEndian(quint16(take),out.data()+destination);
+        qToLittleEndian(quint16(quantity^key),out.data()+destination+2);
+    }
+    error=readEmeraldHeldBag(out,trainer).error;
+    return error.isEmpty()?out:QByteArray{};
+}
 MerchantSnapshot readEmeraldShopBlock(const QByteArray& world,const QByteArray& trainer) {
     MerchantSnapshot out;
     if(world.size()!=0x3d88 || trainer.size()!=0xf2c || data()["version"].toInt()!=5){out.error="The shops could not be checked.";return out;}

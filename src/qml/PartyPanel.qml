@@ -146,13 +146,14 @@ Item {
         anchors.fill: parent; anchors.topMargin: Theme.contentTopInset; color: "#660e2524"; visible: root.party.detailOpen
         MouseArea { anchors.fill: parent }
         MountedPanel {
-            anchors.centerIn: parent; width: 330; height: 232 + (root.party.canMove ? 52 : 0) + (root.party.canRelease ? 48 : 0); color: "#e3e9dc"
+            anchors.centerIn: parent; width: 330; height: 232 + (root.party.canMove ? 52 : 0) + (root.party.canRelease ? 48 : 0) + (root.party.canHoldItems ? 48 : 0); color: "#e3e9dc"
             Text { textFormat: Text.PlainText; x: 22; y: 17; width: parent.width - 44; text: root.selected.name || "Pokémon"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 24; elide: Text.ElideRight }
             CapButton { deferredFocus: true; objectName: "party-menu-move"; x: 22; y: 56; width: 286; height: 38; label: "Move Pokémon"; tint: Theme.green; visible: root.party.canMove; selected: root.takesFocus && root.party.menuIndex === 3; onActivated: root.party.beginMove() }
-            CapButton { deferredFocus: true; objectName: "party-menu-release"; x:22; y:root.party.canMove ? 108 : 56; width:286; height:38; label:"Release Pokémon"; tint:Theme.pink; visible:root.party.canRelease; selected:root.takesFocus && root.party.menuIndex === 4; onActivated:root.party.beginRelease() }
-            CapButton { deferredFocus: true; objectName: "party-menu-heal"; x: 22; y: 56 + (root.party.canMove ? 52 : 0) + (root.party.canRelease ? 48 : 0); width: 286; height: 38; label: "Visit Pokémon Center"; tint: Theme.pink; selected: root.takesFocus && root.party.menuIndex === 2; onActivated: root.party.activate(2) }
-            CapButton { deferredFocus: true; objectName: "party-menu-backups"; x: 22; y: 108 + (root.party.canMove ? 52 : 0) + (root.party.canRelease ? 48 : 0); width: 286; height: 42; label: "Adventure backups"; tint: Theme.blue; selected: root.takesFocus && root.party.menuIndex === 1; onActivated: root.party.activate(1) }
-            CapButton { deferredFocus: true; objectName: "party-detail-back"; x: 22; y: 166 + (root.party.canMove ? 52 : 0) + (root.party.canRelease ? 48 : 0); width: 286; height: 42; label: "Close"; selected: root.takesFocus && root.party.menuIndex === 0; onActivated: root.party.activate(0) }
+            CapButton { deferredFocus:true; objectName:"party-menu-items"; x:22; y:56+(root.party.canMove ? 52 : 0); width:286; height:38; label:"Held item"; tint:Theme.yellow; visible:root.party.canHoldItems; selected:root.takesFocus && root.party.menuIndex === 5; onActivated:root.party.beginHeldItems() }
+            CapButton { deferredFocus: true; objectName: "party-menu-release"; x:22; y:56 + (root.party.canMove ? 52 : 0) + (root.party.canHoldItems ? 48 : 0); width:286; height:38; label:"Release Pokémon"; tint:Theme.pink; visible:root.party.canRelease; selected:root.takesFocus && root.party.menuIndex === 4; onActivated:root.party.beginRelease() }
+            CapButton { deferredFocus: true; objectName: "party-menu-heal"; x: 22; y: 56 + (root.party.canMove ? 52 : 0) + (root.party.canRelease ? 48 : 0) + (root.party.canHoldItems ? 48 : 0); width: 286; height: 38; label: "Visit Pokémon Center"; tint: Theme.pink; selected: root.takesFocus && root.party.menuIndex === 2; onActivated: root.party.activate(2) }
+            CapButton { deferredFocus: true; objectName: "party-menu-backups"; x: 22; y: 108 + (root.party.canMove ? 52 : 0) + (root.party.canRelease ? 48 : 0) + (root.party.canHoldItems ? 48 : 0); width: 286; height: 42; label: "Adventure backups"; tint: Theme.blue; selected: root.takesFocus && root.party.menuIndex === 1; onActivated: root.party.activate(1) }
+            CapButton { deferredFocus: true; objectName: "party-detail-back"; x: 22; y: 166 + (root.party.canMove ? 52 : 0) + (root.party.canRelease ? 48 : 0) + (root.party.canHoldItems ? 48 : 0); width: 286; height: 42; label: "Close"; selected: root.takesFocus && root.party.menuIndex === 0; onActivated: root.party.activate(0) }
         }
     }
     Rectangle {
@@ -160,10 +161,10 @@ Item {
         anchors.fill: parent; anchors.topMargin: Theme.contentTopInset; visible: root.party.moveOpen; color: "#a0122927"
         MouseArea {anchors.fill:parent}
         MountedPanel {
-            anchors.centerIn: parent; width: Math.min(parent.width-48,root.party.moveRows.length ? 690 : 480); height: Math.min(parent.height-22,root.party.moveRows.length ? 365 : root.party.moveStage === "release-confirm" ? 300 : 230); color: "#e8eddf"
+            anchors.centerIn: parent; width: Math.min(parent.width-48,root.party.moveRows.length ? 690 : 480); height: Math.min(parent.height-22,root.party.moveRows.length ? 365 : root.party.moveStage === "release-confirm" || root.party.moveStage === "item-confirm" ? 300 : 230); color: "#e8eddf"
             Text {x:22;y:15;width:parent.width-44;text:root.party.moveTitle;textFormat:Text.PlainText;font.family:Theme.displayFamily;font.bold:true;font.pixelSize:24;color:Theme.ink;elide:Text.ElideRight}
             Row {
-                x:22;y:57;spacing:16;visible:root.party.moveStage === "release-confirm"
+                x:22;y:57;spacing:16;visible:root.party.moveStage === "release-confirm" || root.party.moveStage === "item-confirm"
                 ClassicIllustration {width:88;height:88;art:root.party.releaseSubject.art || ({})}
                 Column {
                     width:parent.parent.width-170;spacing:8
@@ -173,10 +174,10 @@ Item {
                 }
             }
             Grid {
-                id: destinations;x:22;y:58;width:parent.width-44;spacing:8
+                id: destinations;visible:root.party.moveStage !== "items";x:22;y:58;width:parent.width-44;spacing:8
                 columns:root.party.moveStage === "places" ? 3 : root.party.moveParty ? 2 : 6
                 Repeater {
-                    model:root.party.moveRows
+                    model:root.party.moveStage === "items" ? [] : root.party.moveRows
                     CapButton {
                         required property int index
                         required property var modelData
@@ -193,8 +194,22 @@ Item {
                     }
                 }
             }
+            ListView {
+                id: bagItems;objectName:"party-held-items";x:22;y:58;width:parent.width-44;height:parent.height-82
+                visible:root.party.moveStage === "items";clip:true;spacing:7
+                model:visible ? root.party.moveRows : [];currentIndex:root.party.moveIndex
+                onCurrentIndexChanged:positionViewAtIndex(currentIndex,ListView.Contain)
+                onCountChanged:positionViewAtIndex(currentIndex,ListView.Contain)
+                delegate:CapButton {
+                    required property int index;required property var modelData
+                    width:bagItems.width;height:49;deferredFocus:true;selected:root.party.moveIndex===index
+                    label:modelData.name;detail:modelData.pocket;tint:modelData.id === 0 ? Theme.pink : index%2 ? Theme.green : Theme.blue
+                    onActivated:root.party.moveActivate(index)
+                    Text {anchors.right:parent.right;anchors.rightMargin:18;anchors.verticalCenter:parent.verticalCenter;text:modelData.quantity ? "x"+modelData.quantity : "";font.pixelSize:20;font.bold:true;color:Theme.ink}
+                }
+            }
             Text {
-                x:22; width:parent.width-44; y:root.party.moveStage === "release-confirm" ? 158 : root.party.moveStage === "confirm" || root.party.moveStage === "result" || root.party.moveStage === "writing" || root.party.moveStage === "checking" ? 76 : parent.height-39
+                x:22; width:parent.width-44; y:root.party.moveStage === "release-confirm" || root.party.moveStage === "item-confirm" ? 158 : root.party.moveStage === "confirm" || root.party.moveStage === "result" || root.party.moveStage === "writing" || root.party.moveStage === "checking" ? 76 : parent.height-39
                 text:root.party.moveMessage;textFormat:Text.PlainText;wrapMode:Text.WordWrap;color:Theme.ink;font.pixelSize:root.party.moveStage === "confirm" ? 22 : 15
             }
             CapButton {
@@ -204,8 +219,8 @@ Item {
             }
             CapButton {
                 x:22;anchors.bottom:parent.bottom;anchors.bottomMargin:26;width:parent.width-44;height:52
-                visible:root.party.moveStage === "confirm" || root.party.moveStage === "result"
-                label:root.party.moveStage === "confirm" ? "Move" : "Done";tint:Theme.yellow;centered:true;selected:true;deferredFocus:true
+                visible:root.party.moveStage === "confirm" || root.party.moveStage === "item-confirm" || root.party.moveStage === "result"
+                label:root.party.moveStage === "confirm" ? "Move" : root.party.moveStage === "item-confirm" ? "Confirm" : "Done";tint:Theme.yellow;centered:true;selected:true;deferredFocus:true
                 onActivated:root.party.moveActivate(root.party.moveIndex)
             }
         }

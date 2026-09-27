@@ -147,6 +147,10 @@ GameProgress readGen3Progress(const QByteArray& save, Gen3Edition edition) {
         const auto distance=quint32(second.counter-first.counter);
         result.party->canRelease=edition==Gen3Edition::Emerald && first.valid && second.valid && distance && distance!=0x80000000u && result.party->error.isEmpty();
         result.party->canManage=edition==Gen3Edition::Emerald && first.valid && second.valid && distance && distance!=0x80000000u && result.party->error.isEmpty();
+        if(edition==Gen3Edition::Emerald) {
+            result.party->bag=readEmeraldHeldBag(world,latest->blocks[0]);
+            result.party->canHoldItems=result.party->canManage && result.party->bag.error.isEmpty();
+        }
     }
     return result;
 }
@@ -204,6 +208,41 @@ MerchantWrite buyEmeraldItems(const QByteArray& save,const QString& hash,const M
     }
     if(!readEmeraldShops(result,hash).supported)return {{},"The updated save could not be verified.",{}};
     return {result,{},purchase.message};
+}
+HeldItemResult changeEmeraldHeldItem(const QByteArray& save,const QString& hash,const HeldItemChange& request) {
+    const auto slot=shopSlot(save,hash);
+    if(!slot)return {{},"Held items require a verified English Emerald save.",{}};
+    if(request.saveRevision.isEmpty() || request.saveRevision!=QString::fromLatin1(QCryptographicHash::hash(save,QCryptographicHash::Sha256).toHex()))
+        return {{},"The save changed. Read your Pokemon again.",{}};
+    const auto pos=request.pokemon;
+    if(pos.box < -1 || pos.box>=14 || pos.slot<0 || pos.slot>=(pos.box<0?6:30))return {{},"Choose a valid Pokemon.",{}};
+    auto world=worldBlock(*slot);QByteArray storage;for(int id=5;id<14;++id)storage+=slot->blocks[id];
+    const auto before=readEmeraldParty(world,storage);
+    if(!before.error.isEmpty())return {{},before.error,{}};
+    const auto& mon=pos.box<0?before.party[pos.slot]:before.boxes[pos.box].members[pos.slot];
+    if(mon.kind!=PokemonSlotKind::Known)return {{},"Choose a readable, hatched Pokemon.",{}};
+    const int at=pos.box<0?0x238+pos.slot*100:4+(pos.box*30+pos.slot)*80,size=pos.box<0?100:80;
+    const auto raw=(pos.box<0?world:storage).mid(at,size);
+    if(emeraldBoxRecord(raw).isEmpty())return {{},"Manage this Pokemon's Mail inside the game.",{}};
+    QString error;const auto bag=exchangeEmeraldHeldBag(world,slot->blocks[0],request.itemId,mon.itemId,error);
+    if(bag.isEmpty())return {{},error,{}};
+    if(request.itemId==mon.itemId)return {save,{},request.itemId?"Already holding this item.":"This Pokemon is not holding an item."};
+    const auto changed=emeraldHeldItemRecord(raw,request.itemId);
+    if(changed.isEmpty())return {{},"The held item could not be changed.",{}};
+    world=bag;(pos.box<0?world:storage).replace(at,size,changed);
+    auto result=save;
+    for(int id=1;id<14;++id) {
+        const auto block=id<5?world.mid((id-1)*Payload,slot->blocks[id].size()):storage.mid((id-5)*Payload,slot->blocks[id].size());
+        if(block==slot->blocks[id])continue;
+        const int offset=slot->offsets[id];result.replace(offset,block.size(),block);
+        quint32 sum=0;for(int p=0;p<block.size();p+=4)sum+=u32(block,p);
+        qToLittleEndian(quint16((sum>>16)+sum),result.data()+offset+0xff6);
+    }
+    const auto verified=shopSlot(result,hash);
+    if(!verified)return {{},"The updated save could not be verified.",{}};
+    QByteArray verifiedStorage;for(int id=5;id<14;++id)verifiedStorage+=verified->blocks[id];
+    if(worldBlock(*verified)!=world || verifiedStorage!=storage)return {{},"The updated items could not be verified.",{}};
+    return {result,{},request.itemId?"Held item updated.":"The held item is back in your Bag."};
 }
 PartyMoveResult moveEmeraldPokemon(const QByteArray& save,const QString& hash,const PartyMove& request) {
     const auto slot=shopSlot(save,hash);

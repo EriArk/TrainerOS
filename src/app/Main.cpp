@@ -306,6 +306,7 @@ int main(int argc, char* argv[]) {
                 saveBackups->configureHealing(healGen3Party);
                 saveBackups->configureMovement(moveEmeraldPokemon);
                 saveBackups->configureRelease(releaseEmeraldPokemon);
+                saveBackups->configureHeldItems(changeEmeraldHeldItem);
                 saveBackups->configureShops(readEmeraldShops,buyEmeraldItems);
             }
             shell.center()->configure(saveBackups.get());

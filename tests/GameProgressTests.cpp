@@ -111,6 +111,70 @@ QByteArray movePatch(QByteArray save,int section,int offset,const QByteArray& va
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void heldItemsPreserveAllOtherBytesAndConserveBagAcrossPermutations() {
+        for(int n=0;n<24;++n) {
+            auto bytes=movementSave(n%14,n);
+            QByteArray bag(4,0);put16(bag,0,13);put16(bag,2,2); // Potion x2
+            bytes=movePatch(bytes,1,0x560,bag);
+            const auto party=readGen3Progress(bytes,Gen3Edition::Emerald).party;
+            QVERIFY(party->canHoldItems);QCOMPARE(party->bag.items.size(),1);QCOMPARE(party->bag.items[0].quantity,2);
+            const auto given=changeEmeraldHeldItem(bytes,EmeraldHash,{{-1,0},13,digest(bytes)});
+            QVERIFY2(given.error.isEmpty(),qPrintable(given.error));
+            const auto after=readGen3Progress(given.data,Gen3Edition::Emerald).party;
+            QCOMPARE(after->party[0].itemId,13);QCOMPARE(after->party[1].itemId,215);
+            QCOMPARE(after->bag.items[0].quantity,1);QCOMPARE(after->bag.items[1].id,215);QCOMPARE(after->bag.items[1].quantity,1);
+            // Independently derive the only allowed payload/checksum delta.
+            const int sector=0xe000+((1+n%14)%14)*0x1000;
+            auto mon=bytes.mid(sector+0x238,100),clear=mon.mid(32,48);
+            const auto pid=qFromLittleEndian<quint32>(mon.constData()),key=pid^qFromLittleEndian<quint32>(mon.constData()+4);
+            for(int i=0;i<48;i+=4)put32(clear,i,qFromLittleEndian<quint32>(clear.constData()+i)^key);
+            std::array<int,4> order{0,1,2,3};for(int i=0;i<n;++i)std::next_permutation(order.begin(),order.end());
+            put16(clear,int(std::find(order.begin(),order.end(),0)-order.begin())*12+2,13);
+            quint16 sum=0;for(int i=0;i<48;i+=2)sum+=qFromLittleEndian<quint16>(clear.constData()+i);put16(mon,28,sum);
+            for(int i=0;i<48;i+=4)put32(mon,32+i,qFromLittleEndian<quint32>(clear.constData()+i)^key);
+            auto expected=movePatch(bytes,1,0x238,mon);put16(bag,2,1);expected=movePatch(expected,1,0x560,bag);put16(bag,0,215);expected=movePatch(expected,1,0x564,bag);
+            QCOMPARE(given.data,expected);
+            const auto swapped=changeEmeraldHeldItem(given.data,EmeraldHash,{{-1,0},215,digest(given.data)});
+            QVERIFY2(swapped.error.isEmpty(),qPrintable(swapped.error));QCOMPARE(swapped.data,bytes);
+            auto boxed=movePatch(bytes,5,4,mon.left(80));
+            auto taken=changeEmeraldHeldItem(boxed,EmeraldHash,{{0,0},0,digest(boxed)});
+            QVERIFY2(taken.error.isEmpty(),qPrintable(taken.error));
+            QCOMPARE(readGen3Progress(taken.data,Gen3Edition::Emerald).party->boxes[0].members[0].itemId,0);
+            auto returned=changeEmeraldHeldItem(taken.data,EmeraldHash,{{0,0},13,digest(taken.data)});
+            QCOMPARE(returned.data,boxed);
+        }
+    }
+    void heldItemsRejectUnsafeOrUnavailableTargets() {
+        const auto bytes=movementSave(0);
+        auto change=[&](const QByteArray& b,int item=0,PokemonPosition p=PokemonPosition{-1,0}){return changeEmeraldHeldItem(b,EmeraldHash,{p,item,digest(b)});};
+        QVERIFY(changeEmeraldHeldItem(bytes,"other",{{-1,0},0,digest(bytes)}).data.isEmpty());
+        QVERIFY(changeEmeraldHeldItem(bytes,EmeraldHash,{{-1,0},0,"old"}).data.isEmpty());
+        for(auto pos:{PokemonPosition{-2,0},{14,0},{0,30},{-1,6},{-1,-1},{0,0}})QVERIFY(change(bytes,0,pos).data.isEmpty());
+        for(int item:{-1,65536,121,175,259,339,65535})QVERIFY(change(bytes,item).data.isEmpty());
+        QVERIFY(change(bytes,13).error.contains("no longer"));
+        auto bad=bytes;bad[0]^=1;QVERIFY(change(bad).data.isEmpty());
+        bad=movePatch(bytes,1,0x238,pokemonFixture(0,25,true));QVERIFY(change(bad).error.contains("hatched"));
+        bad=movePatch(bytes,1,0x238+85,QByteArray(1,0));QVERIFY(change(bad).error.contains("Mail"));
+        bad=movePatch(bytes,1,4,QByteArray::fromHex("1a1a"));QVERIFY(change(bad).error.contains("Pyramid"));
+        // Full normal pocket, no Charcoal stack. Taking fails without a candidate.
+        QByteArray full(120,0);for(int i=0;i<30;++i){put16(full,i*4,13);put16(full,i*4+2,99);}
+        bad=movePatch(bytes,1,0x560,full);QVERIFY(change(bad).error.contains("room"));
+        // Swapping the last item frees a slot before returning the previous item.
+        put16(full,2,1);bad=movePatch(bytes,1,0x560,full);QVERIFY(!change(bad,13).data.isEmpty());
+    }
+    void heldBagEncryptionBerryLimitsAndUniquePockets() {
+        QByteArray world(0x3d88,0),trainer(0xf2c,0);put32(trainer,0xac,0x8172a53b);
+        for(const auto pair:{QPair<int,int>{0x560,30},{0x650,16},{0x690,64},{0x790,46}})
+            for(int i=0;i<pair.second;++i)put16(world,pair.first+i*4+2,0xa53b);
+        put16(world,0x790,133);put16(world,0x792,999^0xa53b);
+        auto bag=readEmeraldHeldBag(world,trainer);QVERIFY(bag.error.isEmpty());QCOMPARE(bag.items.size(),1);QCOMPARE(bag.items[0].quantity,999);
+        QString error;QVERIFY(exchangeEmeraldHeldBag(world,trainer,0,133,error).isEmpty());QVERIFY(error.contains("room"));
+        auto changed=exchangeEmeraldHeldBag(world,trainer,133,215,error);QVERIFY2(!changed.isEmpty(),qPrintable(error));
+        QCOMPARE(readEmeraldHeldBag(changed,trainer).items[1].quantity,998);
+        QCOMPARE(exchangeEmeraldHeldBag(changed,trainer,215,133,error),world);
+        put16(world,0x794,133);put16(world,0x796,1^0xa53b);QVERIFY(!readEmeraldHeldBag(world,trainer).error.isEmpty());
+    }
+
     void journeyReadsRealHistoricalTeamAndRejectsDamagedHall() {
         auto bytes=movementSave(0);
         QByteArray time(3,0);put16(time,0,42);time[2]=17;bytes=movePatch(bytes,0,14,time);
