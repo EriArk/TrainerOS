@@ -12,12 +12,14 @@ public:
         if(provider_ || directory.isEmpty())return;
         provider_=std::make_unique<RetroAchievementsProvider>(library_,directory);
         connect(provider_.get(),&AchievementProvider::snapshotChanged,this,&AchievementProvider::snapshotChanged);
+        connect(provider_.get(),&AchievementProvider::achievementsEarned,this,&AchievementProvider::achievementsEarned);
         emit snapshotChanged({});provider_->refreshAll();
     }
     AchievementContext context() const override { return provider_?provider_->context():AchievementContext{"retroAchievements",{}}; }
     QList<AchievementSet> sets() const override {return provider_?provider_->sets():QList<AchievementSet>{};}
     AchievementSnapshot snapshot(const QString& id) const override {return provider_?provider_->snapshot(id):AchievementSnapshot{context(),id,AchievementState::Disconnected,{},{},{}};}
     void refresh(const QString& id) override {if(provider_)provider_->refresh(id);}
+    void refreshAdventure(const QString& id,bool notify=false) override {if(provider_)provider_->refreshAdventure(id,notify);}
     void refreshAll() override {if(provider_)provider_->refreshAll();}
     bool canManageAccount() const override {return bool(provider_);}
     bool accountBusy() const override {return provider_&&provider_->accountBusy();}

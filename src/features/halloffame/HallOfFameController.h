@@ -31,6 +31,7 @@ public:
     QString route() const { return route_; }
     bool overview() const { return route_ == "archive-journey" || route_ == "archive-champions" || route_ == "archive-champion-detail"; }
     void showJourney();
+    void setCurrentAdventure(const QString&);
     void enableSampleJourney() { sampleJourney_ = true; }
     QVariantMap championPreview() const;
     QString zone() const { return zone_; }
@@ -84,7 +85,8 @@ private:
     AchievementAccountController account_;
     QList<HallOfFameEntry> archive_;
     QString archiveError_;
-    QString archiveId_, setId_;
+    QString archiveId_, setId_, currentAdventure_;
+    bool preferCurrent_ = false;
     QHash<QString, QString> achievementIds_;
     QString route_ = "archive-list", zone_ = "list";
     int actionFocus_ = 0;

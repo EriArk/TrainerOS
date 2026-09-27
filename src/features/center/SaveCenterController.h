@@ -13,6 +13,7 @@ class SaveCenterController final : public QObject {
     Q_PROPERTY(QString query READ query NOTIFY changed)
     Q_PROPERTY(QVariantList rows READ rows NOTIFY rowsChanged)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
+    Q_PROPERTY(bool readOnly READ readOnly NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(bool canCreate READ canCreate NOTIFY changed)
     Q_PROPERTY(bool confirming READ confirming NOTIFY changed)
@@ -49,6 +50,7 @@ class SaveCenterController final : public QObject {
     Q_PROPERTY(int basketIndex READ basketIndex NOTIFY changed)
     Q_PROPERTY(int basketCount READ basketCount NOTIFY changed)
 public:
+    bool readOnly() const {return service_ && service_->readOnly();}
     bool writing() const {return busy() && writing_;}
     explicit SaveCenterController(LibraryRepository&,QObject* parent=nullptr);
     void configure(SaveBackupService*);
@@ -68,7 +70,7 @@ public:
     bool clinicOpen() const { return clinicOpen_; }
     QString treatment() const { return treatment_; }
     QString clinicMessage() const;
-    bool canHeal() const { return snapshot_.canHeal && !busy(); }
+    bool canHeal() const { return snapshot_.canHeal && !busy() && !readOnly(); }
     int partyCount() const { return snapshot_.partyCount; }
     Q_INVOKABLE void visitShops();
     Q_INVOKABLE void shopActivate(int index);

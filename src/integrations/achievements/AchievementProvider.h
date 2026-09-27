@@ -49,6 +49,7 @@ public:
     virtual AchievementSnapshot snapshot(const QString& setId) const = 0;
     virtual void refresh(const QString& setId) = 0;
     virtual void refreshAll() { for (const auto& set : sets()) refresh(set.id); }
+    virtual void refreshAdventure(const QString&, bool = false) { refreshAll(); }
     virtual bool canManageAccount() const { return false; }
     virtual bool accountBusy() const { return false; }
     virtual QString accountMessage() const { return {}; }
@@ -56,6 +57,7 @@ public:
     virtual void disconnectAccount() {}
 signals:
     void snapshotChanged(const QString& setId);
+    void achievementsEarned(const QString& title, const QStringList& names);
 };
 class MockAchievementProvider final : public AchievementProvider {
 public:

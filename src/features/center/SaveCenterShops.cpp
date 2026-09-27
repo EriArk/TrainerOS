@@ -210,6 +210,7 @@ void SaveCenterController::dispatchShop(Action action){
     emit changed();
 }
 void SaveCenterController::purchase(){
+    if(readOnly()){shopMessage_="Read-only saves is on. Change it in Settings to buy.";emit changed();return;}
     const auto m=merchant();const auto st=stock();if(!m||!st||!m->available||!service_||busy())return;
     const auto r=library_.registration(selected_.adventure.id);
     if(!r||r->revision!=selected_.revision){shopRoute_="receipt";shopMessage_="This Adventure changed. Visit the shop again.";emit changed();return;}
@@ -270,6 +271,7 @@ QString SaveCenterController::basketTotal() const {
 }
 void SaveCenterController::openBasket(){if(!shopsOpen_||busy()||(shopRoute_!="merchants"&&shopRoute_!="stock"))return;basketReturn_=shopRoute_;shopRoute_="basket";basketIndex_=0;shopMessage_.clear();emit changed();}
 void SaveCenterController::buyBasket(){
+    if(readOnly()){shopMessage_="Read-only saves is on. Change it in Settings to buy.";emit changed();return;}
     if(basket_.isEmpty()||!service_||busy())return;
     const auto r=library_.registration(selected_.adventure.id);
     if(!r||r->revision!=selected_.revision){shopMessage_="This Adventure changed. Reopen the shops.";emit changed();return;}

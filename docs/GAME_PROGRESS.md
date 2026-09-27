@@ -1,5 +1,10 @@
 # Home progress from in-game saves
 
+**Current extension, 2026-09-27:** exact English FireRed now has Party/Boxes,
+species Dex and protected healing, alongside Emerald. Device-wide read-only
+policy gates every current save mutator. [Scope, proof and remaining gates](SAVE_POLICY_FIRERED.md).
+Earlier Emerald-only delivery notes below are historical.
+
 **Accepted expansion, not delivered — #42/#50:** extend this exact-build read-only baseline with small semantic Party/Storage/Pokédex/Journey/Champion providers and independent guarded writers. No generation-wide support or editor capability follows from current badge/count reads. [Provider/research gates](EXPANSION_42_62.md#exact-save-providers-and-research). #9 will supply one shared context; #46/#47 projections follow proven fields. Old moment comparisons below explain legacy behavior superseded by #49.
 
 The user's 2026-09-13 save trial exposed a missing connection: imported saves loaded in the Adventures, while Home's badge/caught fields still had no real provider. This increment introduces the first bounded automatic-progress module on the existing library, launch/return and verified save-resolution foundations.

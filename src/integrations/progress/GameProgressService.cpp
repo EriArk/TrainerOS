@@ -62,15 +62,16 @@ void GameProgressService::inspectCapabilities(const AdventureRegistration& recor
         const bool available=progress.availability==ProgressAvailability::Available;
         const bool emerald=route && edition==Gen3Edition::Emerald;
         const auto bytes=available?readSave(target.savePath):QByteArray{};
-        const bool heal=emerald && !bytes.isEmpty() && healEmeraldParty(bytes,target.contentRevision).error.isEmpty();
+        const bool semantic=route && edition.has_value();
+        const bool heal=semantic && !bytes.isEmpty() && healGen3Party(bytes,target.contentRevision).error.isEmpty();
         const bool shops=emerald && !bytes.isEmpty() && readEmeraldShops(bytes,target.contentRevision).supported;
         const auto state=[&](bool supported,bool ready){return !supported?QString("Not supported"):ready?QString("Ready"):QString("Unavailable");};
         QStringList rows{
             "Save backups · "+state(target.supported,target.supported&&target.error.isEmpty()),
             "Progress / badges · "+state(route&&edition.has_value(),available),
-            "Pokédex · "+state(emerald,available),
-            "Party / Boxes · "+state(emerald,available&&progress.party.has_value()),
-            "Healing · "+state(emerald,heal),
+            "Pokédex · "+state(semantic,available&&progress.pokedex.has_value()&&progress.pokedex->error.isEmpty()),
+            "Party / Boxes · "+state(semantic,available&&progress.party.has_value()&&progress.party->error.isEmpty()),
+            "Healing · "+state(semantic,heal),
             "Shops · "+state(emerald,shops),
             "Champion records · Not supported"};
         const auto current=resolver_(record);

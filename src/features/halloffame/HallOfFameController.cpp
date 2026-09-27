@@ -199,8 +199,16 @@ void HallOfFameController::normalizeActions() {
     const auto available = actions();
     if (actionFocus_ < 0 || actionFocus_ >= available.size() || !available[actionFocus_].toMap()["enabled"].toBool()) actionFocus_ = 0;
 }
+void HallOfFameController::setCurrentAdventure(const QString& id) {
+    if(currentAdventure_==id)return;
+    currentAdventure_=id;preferCurrent_=true;reconcile();
+}
 void HallOfFameController::reconcile() {
     const auto sets = provider_.sets();
+    if(preferCurrent_)for(const auto& set:sets)if(set.adventureId==currentAdventure_){
+        setId_=set.id;preferCurrent_=false;achievementView_={"sets","list"};
+        if(!isArchive()){route_="sets";zone_="list";actionFocus_=0;}break;
+    }
     const bool exists = std::any_of(sets.begin(), sets.end(), [&](const auto& set) { return set.id == setId_; });
     if (!exists) {
         setId_ = sets.isEmpty() ? QString() : sets.first().id;
@@ -327,7 +335,7 @@ void HallOfFameController::activate(int index) {
         if (index < 0 || index >= available.size() || !available[index].toMap()["enabled"].toBool()) return;
         actionFocus_ = index;
         if (route_ == "archive-list") { zone_ = "list"; refreshArchive(); }
-        else if (route_ == "sets") provider_.refreshAll();
+        else if (route_ == "sets") currentAdventure_.isEmpty()?provider_.refreshAll():provider_.refreshAdventure(currentAdventure_);
         else if (index == 0) back();
         else { provider_.refresh(setId_); normalizeActions(); }
     }
@@ -353,7 +361,7 @@ void HallOfFameController::dispatch(Action action) {
         return;
     }
     if (!isArchive() && action == Action::Secondary) { account_.begin(); return; }
-    if (!isArchive() && action == Action::ToggleContinue) { provider_.refreshAll(); return; }
+    if (!isArchive() && action == Action::ToggleContinue) { currentAdventure_.isEmpty()?provider_.refreshAll():provider_.refreshAdventure(currentAdventure_); return; }
     if (isArchive() && action == Action::ToggleContinue) { beginMemory(false); return; }
     if (isArchive() && action == Action::Secondary) { beginMemory(true); return; }
     if (action == Action::Confirm) { activate(focusIndex()); return; }

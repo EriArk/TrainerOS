@@ -3,12 +3,19 @@
 #include "ResumePresentation.h"
 #include "features/home/BadgeAssets.h"
 #include <QSet>
+#include <QTimer>
 #include <QSignalBlocker>
 #include <algorithm>
 #include <bit>
 #include "core/model/Experience.h"
 
 namespace trainer {
+void ShellController::showAchievements(const QString& title,const QStringList& names) {
+    if(names.isEmpty())return;
+    achievementToast_=title+"\n"+(names.size()==1?names.first():QString("%1 achievements unlocked").arg(names.size()));
+    const auto generation=++achievementToastGeneration_;emit changed();
+    QTimer::singleShot(7000,this,[this,generation]{if(generation==achievementToastGeneration_){achievementToast_.clear();emit changed();}});
+}
 void ShellController::configureProgress(GameProgressProvider* provider) {
     if (progress_) disconnect(progress_, nullptr, this, nullptr);
     progress_ = provider;
@@ -17,7 +24,10 @@ void ShellController::configureProgress(GameProgressProvider* provider) {
         if(!record || record->revision!=requested.revision){done({"Adventure changed · Reopen Properties"});return;}
         const auto caps=adapter_.capabilities(record->adventure);
         QStringList rows{"Launch · "+QString(record->contentAvailable?(caps.launch?"Ready":"Needs setup"):"File unavailable")};
-        if(progress_)progress_->inspectCapabilities(*record,receiver,[done,rows](QStringList semantic){done(rows+semantic);});
+        if(progress_)progress_->inspectCapabilities(*record,receiver,[this,done,rows](QStringList semantic){
+            if(center_.readOnly()) semantic.prepend("Save changes: Read-only");
+            done(rows+semantic);
+        });
         else done(rows);
     };
     if (progress_) connect(progress_, &GameProgressProvider::changed, this, [this] {
@@ -267,6 +277,7 @@ void ShellController::openCenter() {
     refreshParty();
 }
 void ShellController::refreshParty() {
+    hall_.setCurrentAdventure(currentAdventureId());
     const auto adventure = homeAdventure();
     {
         const QSignalBlocker batch(&party_);

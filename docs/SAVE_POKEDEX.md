@@ -1,5 +1,10 @@
 # Selected-save Pokédex progression
 
+**Current extension, 2026-09-27:** exact English FireRed now has Party/Boxes,
+species Dex and protected healing, alongside Emerald. Device-wide read-only
+policy gates every current save mutator. [Scope, proof and remaining gates](SAVE_POLICY_FIRERED.md).
+Earlier Emerald-only delivery notes below are historical.
+
 **2026-09-24 follow-up:** the owner removed manual journal functionality.
 The earlier verification screenshots below precede that removal; current
 installed checks confirm no journal line, editor or Select legend remains.

@@ -1,4 +1,5 @@
 #include "EmeraldParty.h"
+#include "Gen3Progress.h"
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -50,7 +51,7 @@ int experience(int level, const QString& growth) {
     return cube;
 }
 PokemonRecord unreadable() { PokemonRecord r; r.kind = PokemonSlotKind::Unreadable; return r; }
-PokemonRecord pokemon(const QByteArray& bytes, bool inParty) {
+PokemonRecord pokemon(const QByteArray& bytes, bool inParty, bool fireRed=false) {
     if (bytes.size() != (inParty ? 100 : 80)) return unreadable();
     if (bytes == QByteArray(bytes.size(), 0)) return {};
     const auto personality = u32(bytes,0), owner = u32(bytes,4);
@@ -76,7 +77,7 @@ PokemonRecord pokemon(const QByteArray& bytes, bool inParty) {
     r.kind=PokemonSlotKind::Known;
     r.speciesId=facts["id"].toString(); r.speciesName=facts["name"].toString(); r.number=facts["number"].toInt();
     r.formId=facts["form"].toString();
-    if (r.speciesId=="deoxys") r.formId="10033"; // Emerald's non-link Speed form.
+    if (r.speciesId=="deoxys") r.formId=fireRed?"10001":"10033"; // Emerald's non-link Speed form.
     if (r.speciesId=="unown") {
         const int letter=(((personality>>24)&3)<<6 | ((personality>>16)&3)<<4 | ((personality>>8)&3)<<2 | (personality&3))%28;
         r.formId=QString::number(letter ? 10000+letter : 201);
@@ -99,7 +100,7 @@ PokemonRecord pokemon(const QByteArray& bytes, bool inParty) {
     r.level=1;
     while (r.level<100 && exp>=quint32(experience(r.level+1,rate))) ++r.level;
     auto bases=facts["base"].toArray();
-    if (r.speciesId=="deoxys") bases=QJsonArray{50,95,90,180,95,90};
+    if (r.speciesId=="deoxys") bases=fireRed?QJsonArray{50,180,20,150,180,20}:QJsonArray{50,95,90,180,95,90};
     std::array<int,6> calculated{};
     for (int s=0;s<6;++s) {
         const int value=(2*bases.at(s).toInt()+int((iv>>(5*s))&31)+byte(ev,s)/4)*r.level/100;
@@ -138,18 +139,20 @@ PokemonRecord pokemon(const QByteArray& bytes, bool inParty) {
 }
 }
 PokemonRecord readEmeraldPartyMember(const QByteArray& record) { return pokemon(record,true); }
-PartySnapshot readEmeraldParty(const QByteArray& world, const QByteArray& storage) {
+PartySnapshot readEmeraldParty(const QByteArray& world, const QByteArray& storage) {return readGen3Party(world,storage,Gen3Edition::Emerald);}
+PartySnapshot readGen3Party(const QByteArray& world, const QByteArray& storage,Gen3Edition edition) {
+    const bool fireRed=edition==Gen3Edition::FireRed;const int countAt=fireRed?0x34:0x234,partyAt=fireRed?0x38:0x238;
     PartySnapshot result;
-    if (world.size()!=0x3d88 || storage.size()!=0x83d0 || reference()["species"].toObject().size()!=386
-        || byte(world,0x234)>6 || byte(storage,0)>=14) {
+    if (world.size()!=(fireRed?0x3d68:0x3d88) || storage.size()!=0x83d0 || reference()["species"].toObject().size()!=386
+        || byte(world,countAt)>6 || byte(storage,0)>=14) {
         result.error="The team and boxes could not be read."; return result;
     }
-    for(int i=0;i<6;++i) result.party.append(i<byte(world,0x234) ? pokemon(world.mid(0x238+i*100,100),true) : PokemonRecord{});
+    for(int i=0;i<6;++i) result.party.append(i<byte(world,countAt) ? pokemon(world.mid(partyAt+i*100,100),true,fireRed) : PokemonRecord{});
     result.currentBox=byte(storage,0);
     for(int box=0;box<14;++box) {
         PokemonBox row; row.name=name(storage.mid(0x8344+box*9,9));
         if(row.name.isEmpty()) row.name=QString("Box %1").arg(box+1);
-        for(int slot=0;slot<30;++slot) row.members.append(pokemon(storage.mid(4+(box*30+slot)*80,80),false));
+        for(int slot=0;slot<30;++slot) row.members.append(pokemon(storage.mid(4+(box*30+slot)*80,80),false,fireRed));
         result.boxes.append(std::move(row));
     }
     return result;

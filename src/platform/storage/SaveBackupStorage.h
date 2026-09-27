@@ -4,6 +4,9 @@
 
 namespace trainer {
 using SaveTargetResolver = std::function<SaveTarget(const AdventureRegistration&)>;
+// Missing policy preserves the previous write-enabled installation. Corrupt policy fails closed.
+bool saveWritesReadOnly(const QString& root);
+QString setSaveWritesReadOnly(const QString& root, bool enabled);
 // All filesystem work below runs on a worker. Targets come from verified adapters.
 SaveBackupSnapshot inspectSaveBackups(const QString& root, const SaveTarget&, const SaveHealer& = {}, const MerchantReader& = {});
 SaveBackupResult createSaveBackup(const QString& root, const AdventureRegistration&, const QString& token, const SaveTargetResolver&);
@@ -18,6 +21,8 @@ public:
         std::function<bool(const AdventureRegistration&)> supports, QObject* parent = nullptr);
     ~LocalSaveBackupService() override;
     bool busy() const override { return busy_; }
+    bool readOnly() const override { return readOnly_; }
+    void setReadOnly(bool, QObject*, std::function<void(QString)>) override;
     bool supports(const AdventureRegistration& r) const override { return supports_(r); }
     void inspect(const AdventureRegistration&, QObject*, std::function<void(SaveBackupSnapshot)>) override;
     void create(const AdventureRegistration&, const QString&, QObject*, std::function<void(SaveBackupResult)>) override;
@@ -33,7 +38,7 @@ private:
     std::function<bool(const AdventureRegistration&)> supports_;
     QThread thread_;
     QObject* worker_;
-    bool busy_ = false;
+    bool busy_ = false, readOnly_ = false;
     SaveHealer healer_;
     MerchantReader shops_;
     MerchantBuyer buyer_;

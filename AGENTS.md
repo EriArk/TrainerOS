@@ -5,8 +5,10 @@ is the single R1–R18 execution queue; [#69–90 acceptance](docs/EXPANSION_69_
 records all new/changed issue decisions. These target changes are not installed
 behavior. The #68 categorized exchanges, 20 Frontier BP lessons, Heart Scale
 relearning and shard/Shoal item payments are delivered (51 counters). Discovered-stock search/location filters, atomic baskets, the bounded #89 audit
-and #83–88 navigation are delivered. Continue #75 before further save writers;
-see docs/NAVIGATION_20260927.md. Preserve every earlier acceptance
+and #83–88 navigation are delivered. Bounded R4–R6 work adds #75 device-wide
+read-only saves, current-game RA refresh/return notices and exact FireRed
+Party/Boxes/Dex/healing. See docs/SAVE_POLICY_FIRERED.md for proof and open gates.
+Continue protected Emerald Party/Boxes management. Preserve every earlier acceptance
 unless explicitly superseded in that register.
 
 - #11/#39 are closed **as superseded**: retain Steam Gaming Mode, add installed

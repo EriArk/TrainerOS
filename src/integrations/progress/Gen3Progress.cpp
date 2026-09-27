@@ -78,12 +78,13 @@ GameProgress readGen3Progress(const QByteArray& save, Gen3Edition edition) {
     result.badgeSet = edition == Gen3Edition::Emerald ? "hoenn-rse" : "kanto-frlg";
     result.provider = edition == Gen3Edition::Emerald ? "gen3-emerald-v1" : "gen3-firered-v1";
     result.message = "Last in-game save · National Pokédex";
-    if (edition == Gen3Edition::Emerald) {
+    {
+        const int seen1=edition==Gen3Edition::Emerald?0x988:0x5f8,seen2=edition==Gen3Edition::Emerald?0x3b24:0x3a18;
         SavePokedex dex; dex.speciesCount = 386;
         for (int i = 0; i < dex.speciesCount; ++i) {
             const bool seen = bit(latest->blocks[0], 0x5c, i);
             const bool caught = bit(latest->blocks[0], 0x28, i);
-            if (seen != bit(world, 0x988, i) || seen != bit(world, 0x3b24, i) || (caught && !seen))
+            if (seen != bit(world, seen1, i) || seen != bit(world, seen2, i) || (caught && !seen))
                 dex.error = "The Pokedex records could not be verified.";
             if (seen) dex.seen.insert(i + 1);
             if (caught) dex.caught.insert(i + 1);
@@ -92,7 +93,7 @@ GameProgress readGen3Progress(const QByteArray& save, Gen3Edition edition) {
         result.pokedex = std::move(dex);
         QByteArray storage;
         for (int id = 5; id < SectorCount; ++id) storage += latest->blocks[id];
-        result.party = readEmeraldParty(world, storage);
+        result.party = readGen3Party(world, storage,edition);
     }
     return result;
 }
@@ -151,19 +152,21 @@ MerchantWrite buyEmeraldItems(const QByteArray& save,const QString& hash,const M
     if(!readEmeraldShops(result,hash).supported)return {{},"The updated save could not be verified.",{}};
     return {result,{},purchase.message};
 }
-SaveHealing healEmeraldParty(const QByteArray& save, const QString& contentHash) {
-    if (gen3Edition(contentHash) != Gen3Edition::Emerald)
-        return {{},"Healing is currently available for the verified English Pokémon Emerald edition."};
+static SaveHealing healVerifiedGen3Party(const QByteArray& save, const QString& contentHash) {
+    const auto edition=gen3Edition(contentHash);
+    if (!edition)
+        return {{},"Healing is unavailable for this exact game build."};
     if (save.size() != 0x20000) return {{},"This save could not be verified."};
-    const auto a = readSlot(save,0,Gen3Edition::Emerald), b = readSlot(save,SectorCount*Sector,Gen3Edition::Emerald);
+    const auto a = readSlot(save,0,*edition), b = readSlot(save,SectorCount*Sector,*edition);
     // Reading can recover one intact slot. Writing requires an unambiguous pair.
     const quint32 distance = b.counter-a.counter;
     if (!a.valid || !b.valid || !distance || distance == 0x80000000u)
-        return {{},"Save once more inside Emerald, close the game, then try again."};
+        return {{},"Save once more inside the game, close the game, then try again."};
     const auto& latest = distance < 0x80000000u ? b : a;
-    const auto before = readGen3Progress(save,Gen3Edition::Emerald);
+    const auto before = readGen3Progress(save,*edition);
     if (!before.party || !before.party->error.isEmpty()) return {{},"Your team could not be verified."};
-    const int count = quint8(latest.blocks[1][0x234]);
+    const int partyAt=*edition==Gen3Edition::FireRed?0x38:0x238;
+    const int count = quint8(latest.blocks[1][partyAt-4]);
     if (count < 1 || count > 6) return {{},"There are no Pokémon to heal yet."};
     QByteArray result = save;
     int healed = 0;
@@ -172,7 +175,7 @@ SaveHealing healEmeraldParty(const QByteArray& save, const QString& contentHash)
         if (mon.kind == PokemonSlotKind::Egg) continue; // Preserve eggs byte-for-byte.
         if (mon.kind != PokemonSlotKind::Known || !mon.hp || mon.moves.size()!=4)
             return {{},"A team member could not be verified. Your save was not changed."};
-        const int at = latest.offsets[1]+0x238+i*100;
+        const int at = latest.offsets[1]+partyAt+i*100;
         const quint32 personality=u32(save,at), key=personality^u32(save,at+4);
         QByteArray clear=save.mid(at+32,48);
         for (int p=0;p<48;p+=4) qToLittleEndian(u32(clear,p)^key,clear.data()+p);
@@ -192,15 +195,21 @@ SaveHealing healEmeraldParty(const QByteArray& save, const QString& contentHash)
     const int sector=latest.offsets[1]; quint32 sum=0;
     for (int p=0;p<Payload;p+=4) sum+=u32(result,sector+p);
     qToLittleEndian(quint16((sum>>16)+sum),result.data()+sector+0xff6);
-    const auto after=readGen3Progress(result,Gen3Edition::Emerald);
+    const auto after=readGen3Progress(result,*edition);
     if (!after.party || !after.party->error.isEmpty()) return {{},"The healed team could not be verified."};
     for (int i=0;i<count;++i) {
         const auto& mon=after.party->party[i];
         if (mon.kind==PokemonSlotKind::Egg) continue;
-        if (mon.kind!=PokemonSlotKind::Known || mon.condition!="Healthy" || mon.hp!=u16(result,sector+0x238+i*100+88))
+        if (mon.kind!=PokemonSlotKind::Known || mon.condition!="Healthy" || mon.hp!=u16(result,sector+partyAt+i*100+88))
             return {{},"The healed team could not be verified."};
         for (const auto& move:mon.moves) if (move.pp!=move.maxPp) return {{},"Move recovery could not be verified."};
     }
     return {result,{},healed};
 }
+SaveHealing healEmeraldParty(const QByteArray& save,const QString& hash) {
+    if(gen3Edition(hash)!=Gen3Edition::Emerald)return {{},"Healing is unavailable for this exact Emerald build."};
+    return healVerifiedGen3Party(save,hash);
+}
+SaveHealing healGen3Party(const QByteArray& save,const QString& hash) { return healVerifiedGen3Party(save,hash); }
+
 }

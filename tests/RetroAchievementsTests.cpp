@@ -42,6 +42,27 @@ public:
 class RetroAchievementsTests : public QObject {
     Q_OBJECT
 private slots:
+    void returnedAdventureRefreshNotifiesOnlyNewConfirmedUnlocks() {
+        QTemporaryDir dir;RecentLibrary library;const auto path=dir.filePath("original.gba");write(path,"Original content-free bytes");library.value=registration(path);
+        QVERIFY(writeAchievementAccount(dir.filePath("integrations/retroachievements-account.json"),account));
+        std::atomic_bool earned{false};
+        const AchievementTransport transport=[&](const auto& q){
+            if(q.value("r")=="unlocks" && q.value("h")=="0")return AchievementReply{{{"UserUnlocks",earned.load()?QJsonArray{101,103}:QJsonArray{101}}},true};
+            return response(q);
+        };
+        {
+            RetroAchievementsProvider provider(library,dir.path(),transport);QSignalSpy notices(&provider,&AchievementProvider::achievementsEarned);
+            QTRY_VERIFY(!provider.accountBusy());provider.refreshAdventure(library.value.adventure.id,true);QTRY_VERIFY(!provider.accountBusy());
+            QCOMPARE(notices.size(),0); // First observation establishes a baseline, never old rewards.
+            earned.store(true);provider.refreshAdventure(library.value.adventure.id,true);QTRY_VERIFY(!provider.accountBusy());
+            QCOMPARE(notices.size(),1);QCOMPARE(notices[0][1].toStringList(),QStringList{"Original test goal 2"});
+            provider.refreshAdventure(library.value.adventure.id,true);QTRY_VERIFY(!provider.accountBusy());QCOMPARE(notices.size(),1);
+        }
+        {
+            RetroAchievementsProvider provider(library,dir.path(),transport);QSignalSpy notices(&provider,&AchievementProvider::achievementsEarned);
+            QTRY_VERIFY(!provider.accountBusy());provider.refreshAdventure(library.value.adventure.id,true);QTRY_VERIFY(!provider.accountBusy());QCOMPARE(notices.size(),0);
+        }
+    }
     void formEncodingPreservesPasswordCharacters() {
         QCOMPARE(achievementFormBody({{"p", "a+%2B &=#?é"}, {"u", "ExampleTrainer"}}), QByteArray("p=a%2B%252B%20%26%3D%23%3F%C3%A9&u=ExampleTrainer"));
     }

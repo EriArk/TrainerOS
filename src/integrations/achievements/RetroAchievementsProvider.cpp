@@ -47,7 +47,8 @@ void RetroAchievementsProvider::loadCache() {
             busy_ = false; for (const auto& value : values) records_.insert(value.set.id, value);
             message_ = "Saved records are available offline. Play a supported Adventure to add its achievements.";
             emit snapshotChanged({});
-            if (pendingRefresh_) { pendingRefresh_ = false; refreshAll(); }
+            if(!pendingAdventure_.isEmpty()){const auto id=pendingAdventure_;const bool notify=pendingNotify_;pendingAdventure_.clear();pendingNotify_=false;refreshAdventure(id,notify);}
+            else if (pendingRefresh_) { pendingRefresh_ = false; refreshAll(); }
         }, Qt::QueuedConnection);
     }, Qt::QueuedConnection);
 }
@@ -80,7 +81,7 @@ void RetroAchievementsProvider::disconnectAccount() {
     if (QFileInfo::exists(filename) && !QFile::remove(filename)) {
         message_ = "The saved sign-in could not be removed. Try again."; emit snapshotChanged({}); return;
     }
-    account_ = {}; records_.clear(); pendingRefresh_ = false;
+    account_ = {}; records_.clear(); pendingRefresh_ = false; pendingAdventure_.clear();pendingNotify_=false;
     message_ = "Signed out. Your local archive remains available."; emit snapshotChanged({});
 }
 bool RetroAchievementsProvider::disconnectForRemoval() {
@@ -90,14 +91,30 @@ bool RetroAchievementsProvider::disconnectForRemoval() {
 }
 void RetroAchievementsProvider::refresh(const QString& id) { sync(id); }
 void RetroAchievementsProvider::refreshAll() { if (busy_) { pendingRefresh_ = true; return; } sync({}); }
-void RetroAchievementsProvider::publish(LinkedAchievementSet value) {
+void RetroAchievementsProvider::refreshAdventure(const QString& id,bool notify) {
+    if(id.isEmpty())return;
+    if(busy_){pendingNotify_=(pendingAdventure_==id&&pendingNotify_)||notify;pendingAdventure_=id;return;}
+    sync({},id,notify);
+}
+void RetroAchievementsProvider::publish(LinkedAchievementSet value,bool notify) {
     if (value.snapshot.context != context()) return;
     if (value.snapshot.state != AchievementState::Ready && records_.contains(value.set.id)) {
         auto cached = records_.value(value.set.id); cached.snapshot.state = value.snapshot.state; value = std::move(cached);
     }
+    QStringList earned;
+    if(notify && value.snapshot.state==AchievementState::Ready && records_.contains(value.set.id)) {
+        const auto& previous=records_[value.set.id];
+        if(previous.contentHash==value.contentHash && previous.snapshot.context==value.snapshot.context)
+            for(const auto& unlock:value.snapshot.unlocks)if(unlock.unlocked==true) {
+                const auto old=std::find_if(previous.snapshot.unlocks.cbegin(),previous.snapshot.unlocks.cend(),[&](const auto& u){return u.achievementId==unlock.achievementId;});
+                if(old==previous.snapshot.unlocks.cend()||old->unlocked!=false)continue;
+                for(const auto& definition:value.snapshot.definitions)if(definition.id==unlock.achievementId)earned.append(definition.title);
+            }
+    }
     records_.insert(value.set.id, value); emit snapshotChanged(value.set.id);
+    if(!earned.isEmpty())emit achievementsEarned(value.set.title,earned);
 }
-void RetroAchievementsProvider::sync(const QString& setId) {
+void RetroAchievementsProvider::sync(const QString& setId,const QString& adventureId,bool notify) {
     if (!account_.valid() || busy_) return;
     QList<AdventureRegistration> candidates; QSet<QString> used;
     const auto append = [&](const QString& id) {
@@ -106,17 +123,21 @@ void RetroAchievementsProvider::sync(const QString& setId) {
         if (!record || record->adventure.collectionOnly || !QStringList{"gb", "gbc", "gba", "pokemini"}.contains(record->adventure.platformId)) return;
         used.insert(id); candidates.append(*record);
     };
-    if (!setId.isEmpty()) { if (records_.contains(setId)) append(records_[setId].set.adventureId); }
+    if(!adventureId.isEmpty()) append(adventureId);
+    else if (!setId.isEmpty()) { if (records_.contains(setId)) append(records_[setId].set.adventureId); }
     else {
         for (const auto& session : library_.recentSessions()) append(session.adventureId);
         for (const auto& record : records_) append(record.set.adventureId);
     }
     if (candidates.isEmpty()) { message_ = "Play a supported Adventure to find its achievements. Saved records stay available."; emit snapshotChanged({}); return; }
     busy_ = true; message_ = "Checking recently played Adventures…";
-    for (auto& record : records_) if (setId.isEmpty() || record.set.id == setId) record.snapshot.state = AchievementState::Loading;
+    for (auto& record : records_)
+        if ((!adventureId.isEmpty() && record.set.adventureId == adventureId)
+            || (adventureId.isEmpty() && (setId.isEmpty() || record.set.id == setId)))
+            record.snapshot.state = AchievementState::Loading;
     emit snapshotChanged({});
     const auto account = account_; const auto folder = cacheDirectory(); const auto worlds = library_.worlds();
-    QMetaObject::invokeMethod(worker_, [this, candidates, account, folder, worlds] {
+    QMetaObject::invokeMethod(worker_, [this, candidates, account, folder, worlds, notify] {
         int matched = 0, saved = 0; QSet<QString> processed; QElapsedTimer elapsed; elapsed.start();
         for (const auto& candidate : candidates) {
             if (cancelled_->load() || elapsed.elapsed() > 90000) break;
@@ -125,16 +146,16 @@ void RetroAchievementsProvider::sync(const QString& setId) {
             for (const auto& item : worlds) if (item.id == candidate.adventure.worldId) { world = item.name; break; }
             auto value = fetchAchievements(account, candidate, world, hash, transport_);
             if (!value) continue;
-            ++matched;
+            ++matched;bool persisted=false;
             if (value->snapshot.state == AchievementState::Ready && QDir().mkpath(folder)) {
                 const auto data = QJsonDocument(achievementCache(*value)).toJson(QJsonDocument::Compact);
                 const auto path = QDir(folder).filePath(value->set.id + ".json");
                 QSaveFile file(path); file.setDirectWriteFallback(false);
                 if (!QFileInfo(path).isSymLink() && file.open(QIODevice::WriteOnly)
                     && file.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner)
-                    && file.write(data) == data.size() && file.commit()) ++saved;
+                    && file.write(data) == data.size() && file.commit()) {++saved;persisted=true;}
             }
-            QMetaObject::invokeMethod(this, [this, value = *value] { publish(value); }, Qt::QueuedConnection);
+            QMetaObject::invokeMethod(this, [this, value = *value, notify, persisted] { publish(value,notify&&persisted); }, Qt::QueuedConnection);
         }
         QMetaObject::invokeMethod(this, [this, matched, saved] {
             busy_ = false;
@@ -143,7 +164,8 @@ void RetroAchievementsProvider::sync(const QString& setId) {
                 : matched > 0 ? "Some records could not be refreshed or saved. Previous records have been kept."
                               : "No new supported set was confirmed. Check your connection or try another Adventure.";
             emit snapshotChanged({});
-            if (pendingRefresh_) { pendingRefresh_ = false; refreshAll(); }
+            if(!pendingAdventure_.isEmpty()){const auto id=pendingAdventure_;const bool notify=pendingNotify_;pendingAdventure_.clear();pendingNotify_=false;refreshAdventure(id,notify);}
+            else if (pendingRefresh_) { pendingRefresh_ = false; refreshAll(); }
         }, Qt::QueuedConnection);
     }, Qt::QueuedConnection);
 }

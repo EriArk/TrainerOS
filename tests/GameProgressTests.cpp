@@ -28,12 +28,13 @@ QByteArray slot(Gen3Edition edition, quint32 counter, int rotation, int mask, in
     QByteArray large(edition == Gen3Edition::Emerald ? 0x3d88 : 0x3d68, 0);
     QByteArray boxes(0x83d0, 0);
     for (int i = 0; i < caught; ++i) small[0x28 + i / 8] = char(quint8(small[0x28 + i / 8]) | (1 << (i % 8)));
-    if (edition == Gen3Edition::Emerald) {
+    {
+        const int seen1=edition==Gen3Edition::Emerald?0x988:0x5f8,seen2=edition==Gen3Edition::Emerald?0x3b24:0x3a18;
         for (int i = 0; i < (seen < 0 ? caught : seen); ++i) {
             for (int base : {0x5c}) small[base + i / 8] = char(quint8(small[base + i / 8]) | (1 << (i % 8)));
-            for (int base : {0x988,0x3b24}) large[base + i / 8] = char(quint8(large[base + i / 8]) | (1 << (i % 8)));
+            for (int base : {seen1,seen2}) large[base + i / 8] = char(quint8(large[base + i / 8]) | (1 << (i % 8)));
         }
-        if (inconsistentSeen) large[0x988] ^= 1;
+        if (inconsistentSeen) large[seen1] ^= 1;
     }
     const int flags = edition == Gen3Edition::Emerald ? 0x1270 : 0xee0;
     const int flag = edition == Gen3Edition::Emerald ? 0x867 : 0x820;
@@ -97,6 +98,37 @@ QByteArray setTestMoves(QByteArray record,const std::array<int,4>& moves,int bon
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void fireRedPartyDexAndProtectedHealingUseTheirOwnLayout() {
+        const QString hash="3d0c79f1627022e18765766f6cb5ea067f6b5bf7dca115552189ad65a5c3a8ac";
+        for(int rotation=0;rotation<14;++rotation) {
+            auto bytes=slot(Gen3Edition::FireRed,10,0,1,12)+slot(Gen3Edition::FireRed,11,rotation,255,241)+QByteArray(0x4000,0);
+            const int at=0xe000+((1+rotation)%14)*0x1000;bytes[at+0x34]=1;
+            bytes.replace(at+0x38,100,pokemonFixture(rotation%24));
+            quint32 sum=0;for(int p=0;p<0xf80;p+=4)sum+=qFromLittleEndian<quint32>(bytes.constData()+at+p);
+            put16(bytes,at+0xff6,quint16(sum+(sum>>16)));
+            const auto before=readGen3Progress(bytes,Gen3Edition::FireRed);
+            QVERIFY(before.party);QVERIFY(before.party->error.isEmpty());QCOMPARE(before.party->party[0].speciesId,"pikachu");
+            QCOMPARE(before.party->party[0].hp.value(),0);QCOMPARE(before.party->boxes.size(),14);
+            QVERIFY(before.pokedex);QVERIFY(before.pokedex->error.isEmpty());QCOMPARE(before.pokedex->caught.size(),241);
+            const auto healed=healGen3Party(bytes,hash);QVERIFY2(healed.error.isEmpty(),qPrintable(healed.error));
+            QCOMPARE(healed.partyCount,1);const auto after=readGen3Progress(healed.data,Gen3Edition::FireRed);
+            QCOMPARE(after.party->party[0].hp.value(),20);QCOMPARE(after.party->party[0].moves[0].pp,56);
+            for(int i=0;i<bytes.size();++i)if(bytes[i]!=healed.data[i])QVERIFY((i>=at+0x38 && i<at+0x38+100)||i==at+0xff6||i==at+0xff7);
+            QVERIFY(healEmeraldParty(bytes,hash).data.isEmpty());
+            auto wrong=bytes;wrong[at+0x38+28]^=1;QVERIFY(healGen3Party(wrong,hash).data.isEmpty());
+        }
+    }
+    void privateFireRedReadback() {
+        const auto path=qEnvironmentVariable("TRAINEROS_FIRERED_SAMPLE");if(path.isEmpty())QSKIP("Private FireRed example is optional");
+        QFile file(path);QVERIFY(file.open(QIODevice::ReadOnly));const auto bytes=file.readAll();
+        const auto p=readGen3Progress(bytes,Gen3Edition::FireRed);QCOMPARE(p.availability,ProgressAvailability::Available);
+        QVERIFY(p.party);QVERIFY(p.party->error.isEmpty());QVERIFY(p.pokedex);QVERIFY2(p.pokedex->error.isEmpty(),qPrintable(p.pokedex->error));
+        int bad=0;for(const auto& mon:p.party->party){bad+=mon.kind==PokemonSlotKind::Unreadable;qInfo()<<mon.speciesName<<mon.level<<mon.hp.value_or(-1);}
+        for(const auto& box:p.party->boxes)for(const auto& mon:box.members)bad+=mon.kind==PokemonSlotKind::Unreadable;
+        QCOMPARE(bad,0);
+        const auto healed=healGen3Party(bytes,"3d0c79f1627022e18765766f6cb5ea067f6b5bf7dca115552189ad65a5c3a8ac");
+        QVERIFY2(healed.error.isEmpty(),qPrintable(healed.error));
+    }
     void emeraldItemPaymentsAndRelearning() {
         QFile file(":/progress/emerald-shops.json");QVERIFY(file.open(QIODevice::ReadOnly));const auto facts=QJsonDocument::fromJson(file.readAll()).object();
         for(quint32 key:{0u,0x85ce1972u}){
@@ -453,7 +485,7 @@ private slots:
             QCOMPARE(bad.availability,ProgressAvailability::Available); // Other independent fields survive.
             QVERIFY(!bad.pokedex->error.isEmpty()); QVERIFY(bad.pokedex->seen.isEmpty()); QVERIFY(bad.pokedex->caught.isEmpty());
         }
-        QVERIFY(!readGen3Progress(save(Gen3Edition::FireRed),Gen3Edition::FireRed).pokedex);
+        QVERIFY(readGen3Progress(save(Gen3Edition::FireRed),Gen3Edition::FireRed).pokedex);
     }
     void emeraldPartyDecryptsEveryPermutationAndPreservesBoxPositions() {
         for(int permutation=0;permutation<24;++permutation) {

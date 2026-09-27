@@ -9,6 +9,7 @@ SaveCenterController::SaveCenterController(LibraryRepository& library,QObject* p
 void SaveCenterController::configure(SaveBackupService* service) {
     if(service_)disconnect(service_,nullptr,this,nullptr);
     service_=service;
+    if(service_)connect(service_,&SaveBackupService::policyChanged,this,[this]{confirming_=false;emit changed();});
     if(service_)connect(service_,&SaveBackupService::busyChanged,this,[this]{
         emit changed();
         if(open_ && refreshPending_ && !busy()) {
@@ -113,6 +114,7 @@ void SaveCenterController::activate(int index) {
         selected_=*record;route_="copies";focus_=0;snapshot_={};emit rowsChanged();refresh();emit changed();
     } else {
         if(index<0||index>=snapshot_.copies.size()){refresh();return;}
+        if(readOnly()){message_="Read-only saves is on. Change it in Settings to restore a save.";emit changed();return;}
         focus_=index;const auto& copy=snapshot_.copies[index];
         if(!copy.valid||!copy.hasSave||copy.bytes==0||snapshot_.token.isEmpty()){message_="This copy can't be restored. Check storage and choose a valid saved copy.";emit changed();return;}
         confirmation_=copy;confirming_=true;message_.clear();emit changed();
@@ -159,11 +161,12 @@ void SaveCenterController::dispatch(Action action) {
     focus_=std::clamp(focus_+step,0,std::max(0,count-1));emit changed();
 }
 QString SaveCenterController::clinicMessage() const {
+    if(readOnly())return "Read-only saves is on. You can change it in Settings.";
     if(treatment_=="healing")return "One moment! We're taking care of your Pokémon.";
     if(!clinicMessage_.isEmpty())return clinicMessage_;
     if(busy())return "Welcome! Let me take a look at your team.";
     if(!canHeal())return !snapshot_.healingError.isEmpty()?snapshot_.healingError:
-        !snapshot_.error.isEmpty()?snapshot_.error:"Save inside Pokémon Emerald, then come back to visit us.";
+        !snapshot_.error.isEmpty()?snapshot_.error:"Save inside your Adventure, then come back to visit us.";
     return snapshot_.needsHealing?"Shall we restore your Pokémon to full health?":"Your Pokémon are feeling great. You're ready to go!";
 }
 void SaveCenterController::visitClinic() {

@@ -166,6 +166,27 @@ SaveBackupSnapshot inspectSaveBackups(const QString& root, const SaveTarget& tar
     std::sort(result.copies.begin(),result.copies.end(),[](const auto& a,const auto& b){return a.createdAt==b.createdAt?a.id>b.id:a.createdAt>b.createdAt;});
     return result;
 }
+bool saveWritesReadOnly(const QString& root) {
+    if(!QDir::isAbsolutePath(root) || QFileInfo(root).isSymLink())return true;
+    const auto path=QDir(root).filePath("save-policy.json");
+    if(QFileInfo(path).isSymLink())return true;
+    if(!QFileInfo::exists(path))return false;
+    QFile file(path);if(!file.open(QIODevice::ReadOnly)||file.size()>1024)return true;
+    const auto obj=QJsonDocument::fromJson(file.readAll()).object();
+    return obj["version"].toInt()!=1 || !obj["readOnly"].isBool() || obj["readOnly"].toBool();
+}
+QString setSaveWritesReadOnly(const QString& root,bool enabled) {
+    if(!QDir::isAbsolutePath(root)||QFileInfo(root).isSymLink()||!QDir().mkpath(root))return "Could not save the save policy.";
+    QLockFile lock(QDir(root).filePath("service.lock"));
+    if(!lock.tryLock(0))return "A save operation is running. Try again when it finishes.";
+    const auto path=QDir(root).filePath("save-policy.json");
+    if(QFileInfo(path).isSymLink())return "The save policy path needs attention.";
+    const auto bytes=QJsonDocument(QJsonObject{{"version",1},{"readOnly",enabled}}).toJson(QJsonDocument::Compact);
+    QSaveFile file(path);file.setDirectWriteFallback(false);
+    if(!file.open(QIODevice::WriteOnly)||!file.setPermissions(QFileDevice::ReadOwner|QFileDevice::WriteOwner)
+       ||file.write(bytes)!=bytes.size()||!syncFile(file)||!file.commit()||!syncDirectory(root))return "Could not save the save policy. Check storage and retry.";
+    return {};
+}
 SaveBackupResult createSaveBackup(const QString& root, const AdventureRegistration& record, const QString& token, const SaveTargetResolver& resolve) {
     if (!QDir::isAbsolutePath(root) || QFileInfo(root).isSymLink() || !QDir().mkpath(root))return {false,false,"Couldn't open the backup folder."};
     QLockFile lock(QDir(root).filePath("service.lock")); if(!lock.tryLock(0))return {false,false,"Another backup operation is running. Try again shortly."};
@@ -181,6 +202,7 @@ SaveBackupResult restoreSaveBackup(const QString& root, const AdventureRegistrat
         const QString& token, const SaveTargetResolver& resolve) {
     if(!QDir::isAbsolutePath(root) || QFileInfo(root).isSymLink() || !validId(selected.id) || selected.revision.isEmpty())return {false,false,"Choose a saved copy again."};
     QLockFile lock(QDir(root).filePath("service.lock")); if(!lock.tryLock(0))return {false,false,"Another backup operation is running. Try again shortly."};
+    if(saveWritesReadOnly(root))return {false,false,"Read-only saves is on. Change it in Settings to restore a save."};
     const auto target=resolve(record); if(!target.supported)return {false,false,problem(target)};
     const auto directory=shelf(root,target);
     if(!safeShelf(root,directory))return {false,false,"The backup folder changed. Existing saves have been kept."};
@@ -196,6 +218,7 @@ SaveBackupResult restoreSaveBackup(const QString& root, const AdventureRegistrat
     if(!file.open(QIODevice::WriteOnly) || file.write(copy.data)!=copy.data.size() || !syncFile(file))
         return {false,false,"Couldn't prepare the restored save. Your current save and protection copy were kept."};
     if(current(resolve(record)).revision!=token) { file.cancelWriting(); return {false,false,"The save changed during preparation. Check again before restoring."}; }
+    if(saveWritesReadOnly(root)){file.cancelWriting();return {false,false,"Read-only saves is on. The save was not changed."};}
     if(!file.commit())return {false,false,"Couldn't replace the save. The protection copy is available in Pokémon Center."};
     const bool synced=syncDirectory(save.parent);
     const auto after=current(target);
@@ -210,6 +233,7 @@ static SaveBackupResult applySaveEdit(const QString& root, const AdventureRegist
         return {false,false,"Couldn't open the backup folder. Your save is unchanged."};
     QLockFile lock(QDir(root).filePath("service.lock"));
     if (!lock.tryLock(0)) return {false,false,"Another save operation is running."};
+    if(saveWritesReadOnly(root))return {false,false,"Read-only saves is on. Change it in Settings to allow save changes."};
     const auto target=resolve(record); if (!target.supported) return {false,false,problem(target)};
     const auto save=current(target);
     if (!save.success || !save.exists || token.isEmpty() || save.revision!=token)
@@ -228,6 +252,7 @@ static SaveBackupResult applySaveEdit(const QString& root, const AdventureRegist
     if (current(resolve(record)).revision!=token) {
         file.cancelWriting(); return {false,false,"The save changed before confirmation. Please try again."};
     }
+    if(saveWritesReadOnly(root)){file.cancelWriting();return {false,false,"Read-only saves is on. The save was not changed."};}
     if (!file.commit()) return {false,false,"Couldn't replace the save. Your backup is available in Center."};
     const bool synced=syncDirectory(save.parent);
     const auto after=current(target);
@@ -250,6 +275,7 @@ SaveBackupResult purchaseSaveItems(const QString& root,const AdventureRegistrati
 LocalSaveBackupService::LocalSaveBackupService(QString root, SaveTargetResolver resolve,
         std::function<bool(const AdventureRegistration&)> supports, QObject* parent)
     : SaveBackupService(parent),root_(std::move(root)),resolve_(std::move(resolve)),supports_(std::move(supports)),worker_(new QObject) {
+    readOnly_=saveWritesReadOnly(root_);
     worker_->moveToThread(&thread_); connect(&thread_,&QThread::finished,worker_,&QObject::deleteLater); thread_.start();
 }
 LocalSaveBackupService::~LocalSaveBackupService(){thread_.quit();thread_.wait();}
@@ -260,6 +286,10 @@ void LocalSaveBackupService::run(std::function<SaveBackupResult()> work,QObject*
         const auto result=work();
         QMetaObject::invokeMethod(this,[this,guard,completed,result]{busy_=false;if(guard)completed(result);if(!result.success)emit operationFailed();emit busyChanged();},Qt::QueuedConnection);
     },Qt::QueuedConnection);
+}
+void LocalSaveBackupService::setReadOnly(bool value,QObject* receiver,std::function<void(QString)> done) {
+    run([this,value]{const auto error=setSaveWritesReadOnly(root_,value);return SaveBackupResult{error.isEmpty(),false,error};},receiver,
+        [this,done](const SaveBackupResult& result){readOnly_=saveWritesReadOnly(root_);emit policyChanged();done(result.message);});
 }
 void LocalSaveBackupService::inspect(const AdventureRegistration& r,QObject* context,std::function<void(SaveBackupSnapshot)> completed) {
     run([this,r]{return SaveBackupResult{true,false,{},inspectSaveBackups(root_,resolve_(r),healer_,shops_)};},context,

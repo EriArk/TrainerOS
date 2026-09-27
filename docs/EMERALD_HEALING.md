@@ -1,5 +1,10 @@
 # Emerald Pokémon Center
 
+**Current extension, 2026-09-27:** exact English FireRed now has Party/Boxes,
+species Dex and protected healing, alongside Emerald. Device-wide read-only
+policy gates every current save mutator. [Scope, proof and remaining gates](SAVE_POLICY_FIRERED.md).
+Earlier Emerald-only delivery notes below are historical.
+
 ## Scope and controls
 
 The owner's 2026-09-24 increment completes the first real healing route for the

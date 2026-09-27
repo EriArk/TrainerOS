@@ -23,10 +23,16 @@ cyclic secondary navigation and direct wheel launch are implemented.
 projection and built-in #90 presentation descriptor are bounded foundations,
 not a completed franchise-pack registry.
 
-**Next increment: 3/6 Высокое (High)** — #75 device-wide read-only policy
-before additional save writers, then bounded R5 achievements and R6 FireRed work.
-The owner authorized three further increments together. R4's remaining box,
-Champion, practice and two-device gates stay open; they are not silently closed.
+**2026-09-27 next-three delivery:** #75 device-wide read-only saves, bounded
+R5 current-game RA refresh/deduplicated return notifications, and R6 exact English
+FireRed Party/Boxes/Dex/healing. [Evidence and limits](SAVE_POLICY_FIRERED.md).
+The normal FireRed Rev 1 game reads the protected treatment successfully.
+Actual newly earned RA proof, box editing, Champion history, practice and Link
+remain open; this delivery does not close the entire R4-R6 acceptance.
+
+**Next increment: 3/6 Высокое (High)** — meaningful Emerald Party/Boxes
+management through the existing protected transaction, with exact allowed deltas
+and normal-game readback. Preserve all later queue entries.
 
 The [R1–R18 queue](#unified-execution-order--existing-work-and-new-issues) below
 is authoritative. P0–P12 remain stable work areas, not scheduling numbers. Dated
@@ -319,10 +325,10 @@ stay usable. P IDs retain earlier acceptance/evidence; they are not sequence IDs
 
 | Order / work area | Complete slice | Dependency / completion boundary |
 | --- | --- | --- |
-| **R1 · P8 — finish Emerald shops** | #68 currency item/decor exchanges, categories, 20 BP lessons, Heart Scale relearning and shard/Shoal payments delivered; remaining optional discovery search/location filters and bounded meaningful source coverage | [Existing shop contract](EMERALD_SHOPS.md): discovery/stock/grouping/non-spoilers, verified debit AND reward, capacity/eligibility, confirmation, protection/allowed delta and normal in-game readback. All remaining traders stay tracked; a new currency is not a renamed money field. |
+| **R1 · P8 — finish Emerald shops** | #68 currency item/decor exchanges, categories, 20 BP lessons, Heart Scale relearning and shard/Shoal payments delivered; discovered-stock search/location filters and quantity baskets delivered; bounded remaining source coverage | [Existing shop contract](EMERALD_SHOPS.md): discovery/stock/grouping/non-spoilers, verified debit AND reward, capacity/eligibility, confirmation, protection/allowed delta and normal in-game readback. All remaining traders stay tracked; a new currency is not a renamed money field. |
 | **R2 · P0/P8 — bounded adapter audit** | #89 current responsibilities/coupling, composition/portability/versioning decision; conceptual #90 domain boundary | Before wider per-title integration. Short code-backed note, no second save framework, speculative plugin loader or external dependency. Justified implementation gets its own bounded follow-up. Same-build R1 already uses a proven transaction. |
 | **R3 · P1/P2/P4 — navigation and capability UI** | #83–88 Pokémon and Journey peer faces, Home triggers, immediate wheel A, Start, Back/hints; #74 Properties; minimal #90 registry/state groundwork for existing Pokémon/Multiverse | Apply R2 only where needed; reuse existing screens/providers. Preserve owners/selections/face focus, short/held A, modal gates and launch return. Wrapped controller loops and installed screenshots. No empty franchise tabs or claimed unsupported features. |
-| **R4 · P8 — complete meaningful Emerald features** | #75 central read-only policy first; remaining #46 Dex/forms, #44/#53 Party/Boxes management/Center recovery, #47 live Journey/immutable Champion records, #52/#54 scenes, #55 practice and #45 Link | Reads before independently proven writes; #75 blocks every mutator including restore below QML. Retain favorites/Hall memories, inert retired journal rows and #64 in-game badge comparison. Practice uses exact rules/disposable data, no rewards. Link needs exact-pair writers and durable two-device proof; lack of a second device does not block independent rows. |
+| **R4 · P8 — complete meaningful Emerald features** | #75 central read-only policy delivered; remaining #46 Dex/forms, #44/#53 Party/Boxes management/Center recovery, #47 live Journey/immutable Champion records, #52/#54 scenes, #55 practice and #45 Link | Reads before independently proven writes; #75 blocks every mutator including restore below QML. Retain favorites/Hall memories, inert retired journal rows and #64 in-game badge comparison. Practice uses exact rules/disposable data, no rewards. Link needs exact-pair writers and durable two-device proof; lack of a second device does not block independent rows. |
 | **R5 · P6 — achievements completion** | #12/#24/#25/#48, U3/U7 matching/cache/current-Adventure/earned-state acceptance, actual earning and deduplicated return notifications | Keep working login/read/cache. Login is not earning; RA truth stays separate from saves/Journey. Live in-game overlay remains conditional. |
 | **R6 · P8 — second Pokémon vertical** | #82 preferred exact English FireRed: recorded reader fault, then meaningful identity/read/UI/write chain | R2 and Emerald proof first; existing mGBA namespace reused. Independently verify save/checksums/Party/Boxes/Dex/Journey and feasible writes. Emerald regressions plus physical normal-game readback. Does not wait for every other emulator. |
 | **R7 · P1/P2/P4/P8 — additional franchise proof** | #90 resolver/registry, pack Home/Y/library/state, shared components and title overrides; one useful non-Pokémon series | R2/R3 boundary and R6 reuse evidence. Multiple games, at least two sharing components and one bespoke override. Choose by real adapter readiness. Preserve IDs/history/media/ownership/save lineage; review ambiguous matches; generic Multiverse stays functional. No dependency on final artwork tooling. |

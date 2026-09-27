@@ -2,6 +2,7 @@
 #include "core/input/Action.h"
 #include "core/repository/PreferencesRepository.h"
 #include <QVariantList>
+#include "core/model/SaveBackup.h"
 
 namespace trainer {
 class SettingsController final : public QObject {
@@ -10,6 +11,7 @@ class SettingsController final : public QObject {
     Q_PROPERTY(bool worldEditing READ worldEditing NOTIFY changed)
     Q_PROPERTY(bool reducedMotion READ reducedMotion NOTIFY changed)
     Q_PROPERTY(bool videoPreviews READ videoPreviews NOTIFY changed)
+    Q_PROPERTY(bool readOnlySaves READ readOnlySaves NOTIFY changed)
     Q_PROPERTY(bool saving READ saving NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
@@ -23,13 +25,15 @@ public:
     using QObject::QObject;
     void setRepository(PreferencesRepository* repository) { repository_ = repository; reload(); }
     void reload();
+    void configureSavePolicy(SaveBackupService* service) { savePolicy_=service;connect(service,&SaveBackupService::policyChanged,this,&SettingsController::changed); }
+    bool readOnlySaves() const { return savePolicy_ && savePolicy_->readOnly(); }
     void setTrainersAvailable(bool value) { trainersAvailable_ = value; emit changed(); }
     void setLegacyTrashAvailable(bool value) { if(legacyTrash_==value)return;legacyTrash_=value;if(category_==8)row_=0;emit changed(); }
     void begin() { category_ = 0; row_ = 0; pane_ = false; emit changed(); }
     int category() const { return category_; }
     int rowFocus() const { return row_; }
     bool controlsFocused() const { return pane_; }
-    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller", "Library"}; }
+    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller", "Library", "Saves"}; }
     QVariantList controls() const;
     Q_INVOKABLE void selectCategory(int index, bool enter = true);
     Q_INVOKABLE void activateRow(int index);
@@ -54,6 +58,7 @@ signals:
     void messageRequested(const QString& message);
     void quickAdjustment(int index, trainer::Action action);
 private:
+    SaveBackupService* savePolicy_ = nullptr;
     PreferencesRepository* repository_ = nullptr;
     ShellPreferences value_;
     bool saving_ = false;

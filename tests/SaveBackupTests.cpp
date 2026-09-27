@@ -32,6 +32,32 @@ struct Fixture {
 class SaveBackupTests final : public QObject {
     Q_OBJECT
 private slots:
+    void deviceReadOnlyPolicyBlocksAllMutatorsAndSurvivesRestart() {
+        Fixture f;const auto copy=f.backup();const auto before=f.inspect();int edits=0;
+        const SaveHealer healer=[&](const QByteArray&,const QString&){++edits;return SaveHealing{"HEALED",{},1};};
+        const MerchantBuyer buyer=[&](const QByteArray&,const QString&,const MerchantPurchase&){++edits;return MerchantWrite{"BOUGHT",{},"Done"};};
+        const MerchantReader reader=[](const QByteArray&,const QString&){MerchantSnapshot s;s.supported=true;return s;};
+        QVERIFY(!saveWritesReadOnly(f.root));QVERIFY(setSaveWritesReadOnly(f.root,true).isEmpty());
+        QVERIFY(saveWritesReadOnly(f.root));
+        {LocalSaveBackupService reopened(f.root,f.resolve,[](const auto&){return true;});QVERIFY(reopened.readOnly());}
+        QVERIFY(!restoreSaveBackup(f.root,f.record,copy,before.token,f.resolve).success);
+        QVERIFY(!healSaveParty(f.root,f.record,before.token,f.resolve,healer).success);
+        QVERIFY(!purchaseSaveItems(f.root,f.record,before.token,{},f.resolve,buyer,reader).success);
+        QCOMPARE(edits,0);QCOMPARE(read(f.path),QByteArray("FIRST SAVE"));
+        QVERIFY(createSaveBackup(f.root,f.record,before.token,f.resolve).success);
+        QVERIFY(setSaveWritesReadOnly(f.root,false).isEmpty());
+        QVERIFY(healSaveParty(f.root,f.record,before.token,f.resolve,healer).success);QCOMPARE(edits,2);
+        write(QDir(f.root).filePath("save-policy.json"),"corrupt");QVERIFY(saveWritesReadOnly(f.root));
+        QVERIFY(!restoreSaveBackup(f.root,f.record,copy,f.inspect().token,f.resolve).success);
+        QVERIFY(setSaveWritesReadOnly(f.root,true).isEmpty());
+    }
+    void policyCannotChangeDuringAProtectedOperation() {
+        Fixture f;QString error;
+        const SaveHealer healer=[&](const QByteArray&,const QString&){error=setSaveWritesReadOnly(f.root,true);return SaveHealing{"HEALED",{},1};};
+        QVERIFY(healSaveParty(f.root,f.record,f.inspect().token,f.resolve,healer).success);
+        QVERIFY(!error.isEmpty());QVERIFY(!saveWritesReadOnly(f.root));
+        QVERIFY(setSaveWritesReadOnly(f.root,true).isEmpty());
+    }
     void wholeBasketCommitsOnceAndCannotRepeatWithAnOldToken() {
         Fixture f;int calls=0;
         const MerchantBuyer buyer=[&](const QByteArray& bytes,const QString&,const MerchantPurchase& request){

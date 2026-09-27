@@ -42,6 +42,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(trainer::MultiversePresentation* multiverse READ multiverse CONSTANT)
     Q_PROPERTY(QString currentAdventureId READ currentAdventureId NOTIFY changed)
     Q_PROPERTY(bool menuOpen READ menuOpen NOTIFY changed)
+    Q_PROPERTY(QString achievementToast READ achievementToast NOTIFY changed)
     Q_PROPERTY(QString notice READ notice NOTIFY changed)
     Q_PROPERTY(bool modeConfirmation READ modeConfirmation NOTIFY changed)
     Q_PROPERTY(QVariantMap home READ home NOTIFY changed)
@@ -92,6 +93,8 @@ public:
     void configureServices(FileCatalog* files, PreferencesRepository* preferences);
     void configureProgress(GameProgressProvider* provider);
     void refreshLibrary();
+    QString achievementToast() const {return achievementToast_;}
+    void showAchievements(const QString& title,const QStringList& names);
     void showNotice(const QString& message) { mode_.clear(); notice_ = message; emit changed(); }
     bool modeConfirmation() const { return !mode_.isEmpty(); }
     int page() const { return page_; }
@@ -173,6 +176,8 @@ private:
     bool powerMenu_ = false;
     bool libraryFromWorlds_ = false;
     QString notice_;
+    QString achievementToast_;
+    quint64 achievementToastGeneration_ = 0;
     QString mode_;
 };
 }

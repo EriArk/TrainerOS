@@ -42,6 +42,8 @@ class SaveBackupService : public QObject {
 public:
     using QObject::QObject;
     virtual bool busy() const = 0;
+    virtual bool readOnly() const { return false; }
+    virtual void setReadOnly(bool, QObject*, std::function<void(QString)> done) { done("Save policy is unavailable."); }
     virtual bool supports(const AdventureRegistration&) const = 0;
     virtual void inspect(const AdventureRegistration&, QObject*, std::function<void(SaveBackupSnapshot)>) = 0;
     virtual void create(const AdventureRegistration&, const QString& token, QObject*, std::function<void(SaveBackupResult)>) = 0;
@@ -55,5 +57,6 @@ public:
 signals:
     void busyChanged();
     void operationFailed();
+    void policyChanged();
 };
 }

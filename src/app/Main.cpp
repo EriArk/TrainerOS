@@ -254,6 +254,7 @@ int main(int argc, char* argv[]) {
             shell.libraryManager()->setInitialFolder(QDir::home().filePath("Emulation/roms"));
         }
         if (store) QObject::connect(store.get(), &LocalStateStore::libraryChanged, &shell, &ShellController::refreshLibrary);
+        if(realAchievements)QObject::connect(realAchievements.get(),&AchievementProvider::achievementsEarned,&shell,&ShellController::showAchievements);
         if (realAchievements) QObject::connect(store.get(), &LocalStateStore::opened, realAchievements.get(), [&](bool success) {
             if (success) realAchievements->bind(store->accountDirectory());
         });
@@ -302,10 +303,11 @@ int main(int argc, char* argv[]) {
 #endif
         if(saveBackups) {
             if (!smoke) {
-                saveBackups->configureHealing(healEmeraldParty);
+                saveBackups->configureHealing(healGen3Party);
                 saveBackups->configureShops(readEmeraldShops,buyEmeraldItems);
             }
             shell.center()->configure(saveBackups.get());
+            shell.settings()->configureSavePolicy(saveBackups.get());
             QObject::connect(saveBackups.get(),&SaveBackupService::operationFailed,&session,&SessionState::cancelPendingExit);
         }
         const auto updateServiceActivity = [&] {
@@ -481,9 +483,11 @@ int main(int argc, char* argv[]) {
             if (!parser.isSet("windowed") && !smoke) window->showFullScreen();
             if (personalLibrary && !smoke) {
                 auto returnFullscreen = std::make_shared<bool>(false);
-                const auto requestAdventure = [&, window, returnFullscreen](const ProcessCommand& command, const QString& id) {
+                auto returnedAdventure=std::make_shared<QString>();
+                const auto requestAdventure = [&, window, returnFullscreen, returnedAdventure](const ProcessCommand& command, const QString& id) {
                     if (session.blocked() || adventureLaunch.active() || (saveBackups && saveBackups->busy())) return false;
                     *returnFullscreen = window->visibility() == QWindow::FullScreen;
+                    *returnedAdventure=id;realAchievements->refreshAdventure(id);
                     return adventureLaunch.launch(command, shell.navigationState(), id);
                 };
                 retroarch.requestLaunch = requestAdventure;
@@ -501,14 +505,14 @@ int main(int argc, char* argv[]) {
                 });
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::suspendRequested, window, [window] { window->hide(); });
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::restoreRequested, window,
-                                 [&, window, returnFullscreen](const QJsonObject& state) {
+                                 [&, window, returnFullscreen, returnedAdventure](const QJsonObject& state) {
                     shell.restoreNavigation(state);
                     if (!adventureLaunch.error().isEmpty()) shell.showNotice(adventureLaunch.error());
                     else if (playHistory && !playHistory->error().isEmpty()) shell.showNotice(playHistory->error());
                     if (*returnFullscreen) window->showFullScreen(); else window->show();
                     window->requestActivate();
                     input.setEnabled(app.applicationState() == Qt::ApplicationActive);
-                    realAchievements->refreshAll();
+                    realAchievements->refreshAdventure(*returnedAdventure,true);
                 });
                 QObject::connect(playHistory.get(), &PlayHistoryController::writeFailed, &shell, [&](const QString& error) {
                     if (!adventureLaunch.active()) shell.showNotice(error);

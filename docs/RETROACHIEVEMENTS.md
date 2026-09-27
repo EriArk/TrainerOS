@@ -1,5 +1,25 @@
 # RetroAchievements in Hall of Fame
 
+## Current-game return delivery — 2026-09-27
+
+Journey's RA face prefers the shared current Adventure's matched set; manual
+refresh targets that Adventure. Launch primes its known baseline and return
+refreshes that exact game rather than the entire recent library. Busy refreshes
+queue the current request without making unrelated cached sets loading/offline.
+
+A small nonmodal notice reports only previously locked achievements that RA now
+confirms unlocked for the same content/account context, after the refreshed cache
+is persisted. First observation, unknown prior state and repeated/restarted
+refreshes never announce old awards. Account-scoped transport tests prove the
+baseline, new unlock, duplicate and restart cases. The original account binding,
+offline cache and separate local Hall history remain unchanged.
+
+This is return-time presentation, not a live emulator overlay or an award engine.
+Actual newly earned in-game RA verification and original audio remain open R5
+acceptance. Downloaded-save tests do not submit achievements. Earlier planned
+projection/return wording below is superseded only by this bounded delivery.
+
+
 **Accepted target, not delivered — #48/#9/#20:** RA becomes the L2/R2 Hall companion, following the shared Adventure via verified exact content/set mapping. Settings owns the active Trainer's account; caches remain isolated and independent from ordinary-save/Journey truth. The Hall/RA L2/R2 route and shared Y selector are delivered; per-Trainer login/read/cache ownership is now delivered by schema-9 session binding. Exact selected-Adventure projection remains pending. Select refreshes the existing collection; X opens Account. Each face keeps its own list/detail/focus. #49 eliminates normal state resume in every achievement mode; old resume restrictions are historical compatibility evidence. [RA projection acceptance](EXPANSION_42_62.md#pokédex-journey-and-achievements).
 
 Hall of Fame keeps account achievements separate from local completion memories and current-save progress. The production provider supports account sign-in, verified content matching, core achievement definitions, Standard/Hardcore unlock flags and an account-scoped offline cache. TrainerOS never awards achievements itself.

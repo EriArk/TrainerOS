@@ -38,14 +38,16 @@ QVariantList SettingsController::controls() const {
         if(legacyTrash_)result.append(row("Previous game trash","action","Restore games removed by an earlier version"));
         return result;
     }
+    case 9: return {row("Read-only saves",savePolicy_?"toggle":"unavailable",readOnlySaves()?"On - reading and backups only":"Off - allow confirmed save changes")};
     default: return {};
     }
 }
 void SettingsController::selectCategory(int index, bool enter) {
-    category_ = std::clamp(index,0,8); row_=0; pane_=enter;
+    category_ = std::clamp(index,0,9); row_=0; pane_=enter;
     emit changed();
 }
 void SettingsController::activateRow(int index) {
+    if(saving_)return;
     pane_=true; row_=std::clamp(index,0,std::max(0,int(controls().size())-1));
     if(category_==0 && row_<2) activate(row_);
     else if(category_==0 && row_==2) emit quickAdjustment(1,Action::Confirm);
@@ -56,6 +58,10 @@ void SettingsController::activateRow(int index) {
     else if(category_==7 && row_==0) emit controllerRequested();
     else if(category_==8 && row_==0) activate(2);
     else if(category_==8 && row_==1) emit trashRequested();
+    else if(category_==9 && savePolicy_) {
+        saving_=true;error_.clear();
+        savePolicy_->setReadOnly(!readOnlySaves(),this,[this](const QString& error){saving_=false;error_=error;emit changed();});
+    }
     emit changed();
 }
 void SettingsController::cycleTheme(int direction) {
@@ -88,6 +94,7 @@ void SettingsController::dispatch(Action action) {
         else if(category_==0 && row_==2) emit quickAdjustment(1,action);
         else if(category_==1 && row_==0) emit quickAdjustment(0,action);
         else if(category_==2 && row_==0 && videoPreviews()!=(action==Action::Right)) activate(3);
+        else if(category_==9 && readOnlySaves()!=(action==Action::Right)) activateRow(0);
         else if(category_==8 && row_==0 && worldEditing()!=(action==Action::Right)) activate(2);
     }
     emit changed();

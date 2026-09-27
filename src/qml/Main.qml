@@ -320,6 +320,15 @@ Window {
         }
         StoragePanel { anchors.fill: parent; visible: sessionState.blocked && !sessionState.entryGate && !sessionState.access.active; stateController: sessionState }
         TrainerAccessPanel { anchors.fill: parent; access: sessionState.access; visible: sessionState.access.active }
+        Rectangle {
+            anchors.right: parent.right; anchors.rightMargin: 28
+            anchors.bottom: parent.bottom; anchors.bottomMargin: 62
+            width: 340; height: message.implicitHeight+28; radius: 12; z: 8
+            color: "#ffefad"; border.color: "#a87927"; border.width: 2
+            visible: shell.achievementToast.length>0 && !adventureLaunch.active && !sessionState.blocked
+            Text { id: message; x: 14; y: 14; width: parent.width-28; text: shell.achievementToast
+                color: "#294440"; font.family: Theme.displayFamily; font.pixelSize: 17; wrapMode: Text.WordWrap }
+        }
         LaunchPanel { anchors.fill: parent; visible: adventureLaunch.preparing; launch: adventureLaunch }
     }
     readonly property var shell: shellController
