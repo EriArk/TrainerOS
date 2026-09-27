@@ -10,6 +10,9 @@ from user-added files, using the current private sets as reference examples;
 it does not bundle those images. A compatible active pack suppresses ROM
 extraction for its asset family, rather than merely hiding extracted output.
 Current art/sprite providers remain intact. This is planned, not installed.
+Pack Studio must also author packs for other supported games/franchises through
+game-specific entity/asset profiles; Pokémon is only the first profile. Do not
+make species/form IDs mandatory for unrelated games or create one tool per series.
 
 **Issue reconciliation, 2026-09-26:** [ROADMAP](docs/ROADMAP.md#unified-execution-order--existing-work-and-new-issues)
 is the single R1–R18 execution queue; [#69–90 acceptance](docs/EXPANSION_69_90.md)

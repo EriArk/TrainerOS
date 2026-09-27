@@ -122,6 +122,19 @@ Use the current ClassicArt/bootstrap and PMDCollab/SpriteArt sets as private
 reference examples for import, mapping, preview and round-trip validation.
 Preserve their separate semantic identities through a shared authoring workflow.
 
+**Multi-game scope — owner clarification, 2026-09-27:** the same constructor
+must author artwork and sprite packs for other supported games and franchises.
+Pokémon is the first authoring profile, not a mandatory model for every pack.
+Use game/franchise-specific entity IDs and semantic asset slots from the shared
+adapter/presentation contracts: for example characters, items, vehicles, stages,
+portraits and supported animations. Do not require National numbers, species or
+Pokémon forms for unrelated games. Profiles supply the appropriate mapping,
+previews and validation targets without a separate constructor per franchise.
+An artwork pack still only supplies presentation assets; it does not become a
+#90 franchise experience pack or a #92 executable game adapter. Validate the
+eventual authoring/export/reimport flow with Pokémon and at least one supported
+non-Pokémon game. The final-stage schedule and pack-before-extraction rule remain.
+
 Allow users to add their own illustrations, sprite sheets/frames and reaction
 portraits, map species/forms/variants and actions/directions, configure animation
 timing/anchors/scale, preview actual consumers and export validated packs.
