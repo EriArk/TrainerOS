@@ -94,4 +94,57 @@ ArchiveWriteResult writeHallOfFame(QSqlDatabase& db, const QString& owner, const
     if (!error.isEmpty()) db.rollback();
     return {error.isEmpty(),error,error.isEmpty()?entry.revision+1:entry.revision};
 }
+QString migrateChampions(QSqlDatabase& db) {
+    if(!db.transaction())return failure();
+    QSqlQuery q(db);
+    const bool ok=q.exec("CREATE TABLE champion_records (trainer_id TEXT NOT NULL REFERENCES trainer_owners(id) ON UPDATE CASCADE, adventure_id TEXT NOT NULL, build TEXT NOT NULL, id TEXT NOT NULL, payload BLOB NOT NULL, PRIMARY KEY(trainer_id,adventure_id,build,id))")
+        && q.exec("PRAGMA user_version=14");
+    if(ok && db.commit())return {};
+    db.rollback();return failure();
+}
+namespace {
+QJsonObject championJson(const ChampionRecord& r) {
+    QJsonArray team;
+    for(const auto& m:r.team)team.append(QJsonObject{{"species",m.speciesId},{"name",m.name},{"nickname",m.nickname},
+        {"number",m.number},{"level",m.level},{"shiny",m.shiny}});
+    return {{"lineage",r.lineage},{"victory",r.victory},{"trainer",r.trainerName},{"save",r.saveRevision},
+        {"observed",r.observedAt.toUTC().toString(Qt::ISODateWithMs)},{"team",team}};
+}
+bool validChampion(const ChampionRecord& r) {
+    const auto hash=[](const QString& s){if(s.size()!=64)return false;for(auto c:s)if(!QString("0123456789abcdef").contains(c))return false;return true;};
+    if(!hash(r.id)||!hash(r.lineage)||!hash(r.build)||!hash(r.saveRevision)||r.adventureId.isEmpty()
+        ||!r.observedAt.isValid()||r.victory<1||r.victory>=999||r.team.isEmpty()||r.team.size()>6)return false;
+    for(const auto& m:r.team)if(m.speciesId.isEmpty()||m.name.isEmpty()||m.name.size()>80||m.nickname.size()>40||m.level<1||m.level>100||m.number<0||m.number>386)return false;
+    return true;
+}
+}
+QList<ChampionRecord> readChampions(QSqlDatabase& db,const QString& owner,QString& error) {
+    QSqlQuery q(db);q.prepare("SELECT adventure_id,build,id,payload FROM champion_records WHERE trainer_id=? ORDER BY rowid DESC");q.addBindValue(owner);
+    error.clear();QList<ChampionRecord> result;
+    if(!q.exec()){error=failure();return {};}
+    while(q.next()) {
+        ChampionRecord r;r.adventureId=q.value(0).toString();r.build=q.value(1).toString();r.id=q.value(2).toString();
+        const auto o=QJsonDocument::fromJson(q.value(3).toByteArray()).object();
+        r.lineage=o["lineage"].toString();r.victory=o["victory"].toInt();r.trainerName=o["trainer"].toString();
+        r.saveRevision=o["save"].toString();r.observedAt=QDateTime::fromString(o["observed"].toString(),Qt::ISODateWithMs);
+        for(const auto& v:o["team"].toArray()) {const auto m=v.toObject();r.team.append({m["species"].toString(),m["name"].toString(),m["nickname"].toString(),m["number"].toInt(),m["level"].toInt(),m["shiny"].toBool()});}
+        if(!validChampion(r)){error="Your Champion records need recovery. Existing records have been kept.";return {};}
+        result.append(r);
+    }
+    return result;
+}
+QString preserveChampions(QSqlDatabase& db,const QString& owner,const QList<ChampionRecord>& records) {
+    if(owner.isEmpty()||records.size()>50)return failure();
+    for(const auto& r:records)if(!validChampion(r))return failure();
+    if(!db.transaction())return failure();
+    for(const auto& r:records) {
+        QSqlQuery q(db);
+        q.prepare("INSERT INTO champion_records(trainer_id,adventure_id,build,id,payload) VALUES(?,?,?,?,?) ON CONFLICT(trainer_id,adventure_id,build,id) DO NOTHING");
+        q.addBindValue(owner);q.addBindValue(r.adventureId);q.addBindValue(r.build);q.addBindValue(r.id);q.addBindValue(QJsonDocument(championJson(r)).toJson(QJsonDocument::Compact));
+        if(!q.exec()){db.rollback();return failure();}
+    }
+    if(db.commit())return {};
+    db.rollback();return failure();
+}
+
 }

@@ -111,6 +111,46 @@ QByteArray movePatch(QByteArray save,int section,int offset,const QByteArray& va
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void journeyReadsRealHistoricalTeamAndRejectsDamagedHall() {
+        auto bytes=movementSave(0);
+        QByteArray time(3,0);put16(time,0,42);time[2]=17;bytes=movePatch(bytes,0,14,time);
+        QByteArray flags(1,char(0x13));bytes=movePatch(bytes,2,0x1270+0x860/8-0xf80,flags);
+        const quint32 key=0x98765432;QByteArray word(4,0);put32(word,0,key);bytes=movePatch(bytes,0,0xac,word);
+        put32(word,0,key^1);bytes=movePatch(bytes,2,0x159c+40-0xf80,word);
+        QByteArray hall(0x1f00,0);put32(hall,0,0x12345678);put32(hall,4,0x87654321);
+        put16(hall,8,quint16(25|(52<<9)));hall[10]=char(0xff);
+        const auto seal=[&](QByteArray& b){for(int n=0;n<2;++n){const int at=(28+n)*0x1000;b.replace(at,0xf80,hall.mid(n*0xf80,0xf80));quint32 sum=0;for(int i=0;i<0xf80;i+=4)sum+=qFromLittleEndian<quint32>(b.constData()+at+i);put16(b,at+0xff4,quint16(sum+(sum>>16)));put32(b,at+0xff8,0x08012025);}};
+        seal(bytes);const auto before=bytes;const auto progress=readGen3Progress(bytes,Gen3Edition::Emerald);
+        QVERIFY(progress.journey);const auto j=*progress.journey;
+        QCOMPARE(j.playtimeMinutes,std::optional<int>(42*60+17));QCOMPARE(j.milestones.size(),3);QVERIFY(j.milestones.last().achieved.value());
+        QCOMPARE(j.champions.size(),1);QCOMPARE(j.champions[0].team.size(),1);QCOMPARE(j.champions[0].team[0].name,"Pikachu");
+        QCOMPARE(j.champions[0].team[0].level,52);QVERIFY(!j.champions[0].observedAt.isValid());QCOMPARE(bytes,before);
+        auto differentParty=movePatch(bytes,1,0x238,QByteArray(100,0));
+        QCOMPARE(readGen3Progress(differentParty,Gen3Edition::Emerald).journey->champions[0].id,j.champions[0].id);
+        auto warp=movePatch(bytes,0,9,QByteArray(1,char(99)));
+        QCOMPARE(readGen3Progress(warp,Gen3Edition::Emerald).journey->champions[0].id,j.champions[0].id);
+        auto newRun=movePatch(bytes,0,10,QByteArray(4,char(55)));
+        QVERIFY(readGen3Progress(newRun,Gen3Edition::Emerald).journey->champions[0].lineage!=j.champions[0].lineage);
+        auto corrupt=bytes;corrupt[0x1d000]^=1;const auto damaged=readGen3Progress(corrupt,Gen3Edition::Emerald);
+        QCOMPARE(damaged.availability,ProgressAvailability::Available);QVERIFY(damaged.journey->champions.isEmpty());QVERIFY(!damaged.journey->championError.isEmpty());
+        put32(word,0,key^2);auto mismatch=movePatch(bytes,2,0x159c+40-0xf80,word);
+        QVERIFY(readGen3Progress(mismatch,Gen3Edition::Emerald).journey->champions.isEmpty());
+        put32(word,0,key^999);auto saturated=movePatch(bytes,2,0x159c+40-0xf80,word);
+        QVERIFY(readGen3Progress(saturated,Gen3Edition::Emerald).journey->champions.isEmpty());
+        auto fresh=movePatch(bytes,2,0x1270+0x860/8-0xf80,QByteArray(1,0));
+        QVERIFY(readGen3Progress(fresh,Gen3Edition::Emerald).journey->champions.isEmpty());
+        // When Emerald rolls its 50-slot window, stored index changes but the
+        // real victory identity must not: this prevents duplicate archive rows.
+        hall.fill(0);
+        for(int i=0;i<50;++i){put32(hall,i*120+4,i+1);put16(hall,i*120+8,quint16(25|(52<<9)));hall[i*120+10]=char(255);}
+        put32(word,0,key^50);auto full=movePatch(bytes,2,0x159c+40-0xf80,word);seal(full);
+        const auto fifty=readGen3Progress(full,Gen3Edition::Emerald).journey->champions;QCOMPARE(fifty.size(),50);
+        hall.replace(0,49*120,hall.mid(120,49*120));put32(hall,49*120+4,51);
+        put32(word,0,key^51);auto rolled=movePatch(full,2,0x159c+40-0xf80,word);seal(rolled);
+        const auto next=readGen3Progress(rolled,Gen3Edition::Emerald).journey->champions;QCOMPARE(next.size(),50);
+        QCOMPARE(next[0].id,fifty[1].id);QCOMPARE(next.last().victory,51);QVERIFY(next.last().id!=fifty.last().id);
+        QVERIFY(!readGen3Progress(slot(Gen3Edition::FireRed,1,0,0,0)+slot(Gen3Edition::FireRed,2,0,0,0)+QByteArray(0x4000,0),Gen3Edition::FireRed).journey);
+    }
     void emeraldReleasePreservesOtherIndividualsAndSaveBytes() {
         for(int n=0;n<24;++n) {
             auto bytes=movementSave(n%14,n);const int at=0xe000+((1+n%14)%14)*0x1000;

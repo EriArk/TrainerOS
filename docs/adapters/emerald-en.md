@@ -143,3 +143,30 @@ rollback. Synthetic all-permutation/rotation/boundary tests, real Flip SDL contr
 independent full-byte delta checks, normal Emerald load + in-game save and exact
 Center restore passed. Personal saves remained unchanged. No FireRed/hack release
 capability follows from this proof. The portable source/profile copy is refreshed.
+
+## Journey / Champion research and delivery (2026-09-27)
+
+Exact English Emerald only. Research covered ordinary-save playtime, semantic
+League progress and separate Hall-of-Fame team storage. No current-Party
+substitution or fabricated victory dates. Archival deduplication is integrated;
+authenticated lineage retains its later independent gate.
+
+Source findings (pret/pokeemerald pinned `5eff78649e7170a877b961ef0b3da13b81a16038`):
+- `include/global.h`: SaveBlock2 name/gender/TID at 0/8/10, playtime at
+  0x0e/0x10; SaveBlock1 flags 0x1270 and XOR-keyed gameStats 0x159c.
+- `src/overworld.c::GetGameStat`: full 32-bit XOR with SaveBlock2 key 0xac.
+- `src/hall_of_fame.c`: 20-byte members, six per team, up to 50 teams;
+  packed 9-bit species / 7-bit level; rolls oldest off. No victory dates.
+- `src/save.c`: special sectors 28/29, each 3968 bytes, signature 0x08012025;
+  their checksum is stored at footer **0xff4**, not ordinary 0xff6.
+  Normal save writes do not rewrite Hall sectors. Entry count stat 10 caps at 999.
+- Archive gate must check current game-clear flag, unsaturated count and matching
+  contiguous team count. Never use current Party or current Dex totals as a
+  historical team/progress snapshot. TID/name/gender is a bounded save identity,
+  not the future #93/94 authenticated lineage; preserve conflicting teams separately.
+
+Sources: https://github.com/pret/pokeemerald/tree/5eff78649e7170a877b961ef0b3da13b81a16038
+
+Integration: see [Emerald Journey](../EMERALD_JOURNEY.md) for the read-only
+capability, immutable owner archive, device findings and lineage/count limits.
+The configured portable source copy includes these models and parser code.

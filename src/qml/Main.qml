@@ -255,7 +255,8 @@ Window {
                     if (!hall.archive && hall.account.available) result.push(h("X","Account"))
                     else if (hall.route === "archive-journey") result.push(h("X","Champions"))
                     else if (hall.archive && hall.editable && hall.rows.length && !hall.overview) result.push(h("X","Edit"))
-                    result.push(h("A","Open"),h("B","Back")); return result
+                    if (hall.route === "archive-champions" || hall.route === "archive-champion-detail") result.push(h("← →","Records"))
+                    result.push(h("A",hall.overview ? (hall.route === "archive-journey" ? "Champions" : "Journey") : "Open"),h("B","Back")); return result
                 }
                 if (shell.page === 0) return [h("A",shell.multiverseHome ? (shell.multiverse.selected.id ? (shell.multiverse.selected.playable ? "Play" : "Set up") : "Explore") : shell.home.actionHint),h("B","Back")]
                 return [h("A","Select"),h("B",shell.trainer.editing ? "Cancel" : "Back")]

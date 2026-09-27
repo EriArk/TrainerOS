@@ -1,6 +1,8 @@
 #include "core/navigation/ShellController.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include <QtTest>
+#include <QTemporaryDir>
+#include "core/storage/LocalStateStore.h"
 
 using namespace trainer;
 namespace {
@@ -32,6 +34,34 @@ void achievements(HallOfFameController& hall, int index = 0) {
 class HallOfFameTests : public QObject {
     Q_OBJECT
 private slots:
+    void realChampionsPersistDeduplicateAndRemainSeparateFromLiveProgress() {
+        QTemporaryDir dir;LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());
+        MockAchievementProvider provider;HallOfFameController hall(store,provider);hall.setCurrentAdventure("emerald");
+        GameProgress p;p.availability=ProgressAvailability::Available;p.contentRevision=QString(64,'a');p.saveRevision=QString(64,'b');p.observedAt=QDateTime::currentDateTimeUtc();
+        JourneySnapshot j;j.playtimeMinutes=99;j.milestones={{"champion","Champion",true}};
+        ChampionRecord r;r.id=QString(64,'c');r.lineage=QString(64,'d');r.victory=1;r.team={{"pikachu","Pikachu","Sparky",25,52,false}};j.champions={r};p.journey=j;
+        hall.setProgress("wrong-adventure",p);QCOMPARE(store.champions().size(),0);
+        hall.setProgress("emerald",p);hall.setProgress("emerald",p);QTRY_COMPARE(store.champions().size(),1);
+        const auto archived=store.champions()[0];QCOMPARE(archived.team[0].level,52);QCOMPARE(hall.journey()["time"].toString(),"1h 39m");
+        p.observedAt=p.observedAt.addDays(1);p.saveRevision=QString(64,'e');p.journey->champions[0].team[0].level=100;
+        hall.setProgress("emerald",p);QTRY_COMPARE(store.pending(),0);QCOMPARE(store.champions().size(),1);QCOMPARE(store.champions()[0].team[0].level,52);QCOMPARE(store.champions()[0].observedAt,archived.observedAt);
+        p.journey->champions.clear();p.journey->playtimeMinutes=3;hall.setProgress("emerald",p);
+        QCOMPARE(hall.journey()["time"].toString(),"0h 03m");QCOMPARE(store.champions().size(),1);QCOMPARE(hall.championPreview()["team"].toList()[0].toMap()["name"].toString(),"Pikachu");
+        r.id=QString(64,'f');r.lineage=QString(64,'1');p.journey->champions={r};hall.setProgress("emerald",p);QTRY_COMPARE(store.champions().size(),2);
+        hall.showJourney();hall.dispatch(Action::Secondary);hall.dispatch(Action::Right);const auto chosen=hall.championPreview()["position"];
+        hall.cycleFace(1);hall.cycleFace(1);hall.cycleFace(1);QCOMPARE(hall.championPreview()["position"],chosen);
+        const auto nav=hall.navigationState();HallOfFameController restored(store,provider);restored.restoreNavigation(nav);restored.setCurrentAdventure("emerald");
+        QCOMPARE(restored.championPreview()["position"],chosen);
+        hall.setCurrentAdventure("firered");hall.setProgress("emerald",p);QVERIFY(hall.championPreview().isEmpty());QVERIFY(hall.journey()["milestones"].toList().isEmpty());
+        hall.setCurrentAdventure("emerald");QVERIFY(!hall.championPreview().isEmpty());QVERIFY(store.loadArchive().entries.isEmpty());
+        // Independent connection reads durable records; another owner sees none.
+        QTRY_COMPARE(store.pending(),0);
+        const auto connection=QString("champions-proof");
+        {auto db=QSqlDatabase::addDatabase("QSQLITE",connection);db.setDatabaseName(dir.filePath("traineros.sqlite3"));QVERIFY(db.open());
+         QString error;const auto saved=readChampions(db,store.ownerId(),error);QVERIFY(error.isEmpty());QCOMPARE(saved.size(),2);
+         QCOMPARE(saved.last().team[0].level,52);QVERIFY(readChampions(db,"another-trainer",error).isEmpty());db.close();}
+        QSqlDatabase::removeDatabase(connection);
+    }
     void journeyRoutesKeepManualHistoryAndIndependentRa() {
         MutableArchive archive;
         MockAchievementProvider provider;
@@ -70,7 +100,8 @@ private slots:
         QCOMPARE(archive.value.entries.size(), 4); // Presentation created no Champion or memory.
         HallOfFameController sample(archive, provider);
         sample.enableSampleJourney(); sample.showJourney(); sample.dispatch(Action::Secondary); sample.dispatch(Action::Confirm);
-        QCOMPARE(sample.route(), "archive-champion-detail");
+        sample.dispatch(Action::Secondary);
+        QCOMPARE(sample.route(), "archive-champions");
         QVERIFY(!sample.championPreview().isEmpty());
         reopened.restoreNavigation(sample.navigationState());
         QCOMPARE(reopened.route(), "archive-champions");

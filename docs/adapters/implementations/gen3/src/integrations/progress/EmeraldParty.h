@@ -1,8 +1,10 @@
 #pragma once
 #include "core/model/PartySnapshot.h"
+#include "core/model/JourneySnapshot.h"
 #include <QByteArray>
 
 namespace trainer {
+std::optional<ChampionMember> readEmeraldChampionMember(const QByteArray&);
 QByteArray emeraldBoxRecord(const QByteArray& record);
 QByteArray emeraldWithdrawRecord(const QByteArray& record);
 enum class Gen3Edition;

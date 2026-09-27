@@ -94,6 +94,16 @@
         "rollback"
       ],
       "details": "../EMERALD_RELEASE.md"
+    },
+    "journey-champions": {
+      "state": "integrated",
+      "evidence": [
+        "source-research",
+        "synthetic",
+        "private-copy",
+        "device"
+      ],
+      "details": "../EMERALD_JOURNEY.md"
     }
   },
   "unknown": [

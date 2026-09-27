@@ -20,7 +20,7 @@
 
 namespace trainer {
 namespace {
-constexpr int SchemaVersion = 13;
+constexpr int SchemaVersion = 14;
 QString failedWrite() { return "Couldn't save changes. Check free space or storage access, then try again."; }
 struct LoadedState {
     QString error;
@@ -34,6 +34,7 @@ struct LoadedState {
     LibrarySnapshot library;
     PlayHistorySnapshot history;
     QList<ExitMedia> exitMedia;
+    QList<ChampionRecord> champions;
     QList<HallOfFameEntry> archive;
     QHash<QString,PokedexProgress> journal;
 };
@@ -215,6 +216,8 @@ public:
                     if (!openError.isEmpty()) db.rollback();
                 }
             }
+            if(openError.isEmpty() && (!query.exec("PRAGMA user_version") || !query.next()))openError=failedWrite();
+            if(openError.isEmpty() && query.value(0).toInt()<14){query.finish();openError=migrateChampions(db);}
             if (openError.isEmpty()) {
                 ownerId_ = localOwner(db);
                 if (ownerId_.isEmpty()) openError = "Your Trainer ownership needs recovery. Existing data has been kept.";
@@ -288,11 +291,18 @@ public:
         const auto archive = readHallOfFame(db, ownerId_);
         if (!archive.success) return fail(archive.error);
         state.archive = archive.entries;
+        state.champions=readChampions(db,ownerId_,state.error);
+        if(!state.error.isEmpty())return fail(state.error);
         const auto journal = readPokedexJournal(db, ownerId_);
         if (!journal.error.isEmpty()) return fail(journal.error);
         state.journal = journal.records;
         state.exitMedia = readExitMedia(db, ownerId_);
         return state;
+    }
+    QString keepChampions(const QList<ChampionRecord>& records,QList<ChampionRecord>& snapshot) {
+        auto error=preserveChampions(db,ownerId_,records);
+        if(error.isEmpty())snapshot=readChampions(db,ownerId_,error);
+        return error;
     }
     ArchiveWriteResult memory(const HallOfFameEntry& entry, ArchiveResult& snapshot) {
         return writeHallOfFame(db, ownerId_, entry, snapshot);
@@ -404,7 +414,7 @@ public:
         // All personal rows disappear together. Shared library and save files
         // never participate. Retired owner IDs remain reserved, including the
         // legacy root-account association, so a new Trainer cannot inherit it.
-        for(const auto& table:QStringList{"exit_media","hall_of_fame","play_sessions","pokedex_records","pokedex_favorites","shell_state","trainer_access"}) {
+        for(const auto& table:QStringList{"exit_media","hall_of_fame","champion_records","play_sessions","pokedex_records","pokedex_favorites","shell_state","trainer_access"}) {
             if(!error.isEmpty())break;
             q.prepare("DELETE FROM "+table+" WHERE trainer_id=?");q.addBindValue(ownerId_);
             if(!q.exec())error=failedWrite();
@@ -521,7 +531,7 @@ void LocalStateStore::open() {
             if (ready_) {
                 ownerId_ = state.ownerId; accountOwner_ = state.accountOwner; profiles_ = state.profiles; profile_ = state.profile; favorites_ = state.favorites; navigation_ = state.navigation;
                 worlds_ = state.library.worlds; registrations_ = state.library.registrations; preferences_ = state.library.preferences;
-                history_ = state.history; archive_ = state.archive; journal_ = state.journal; exitMedia_ = state.exitMedia;
+                history_ = state.history; archive_ = state.archive; champions_=state.champions; journal_ = state.journal; exitMedia_ = state.exitMedia;
             }
             emit opened(ready_);
         }, Qt::QueuedConnection);
@@ -772,6 +782,15 @@ void LocalStateStore::saveRecordAsync(const QString& id, const PokedexProgress& 
         if(error.isEmpty()) journal_=snapshot->records;
         else emit userWriteFailed();
         if(guard) completed({error.isEmpty(),error,result->revision});
+    });
+}
+void LocalStateStore::preserveChampionsAsync(const QList<ChampionRecord>& records,QObject* context,std::function<void(QString)> completed) {
+    auto snapshot=std::make_shared<QList<ChampionRecord>>();
+    write([records,snapshot](SqliteWorker& worker){
+        return worker.keepChampions(records,*snapshot);
+    },[this,snapshot,guard=QPointer<QObject>(context),completed](const QString& error){
+        if(error.isEmpty())champions_=*snapshot;else emit userWriteFailed();
+        if(guard)completed(error);
     });
 }
 void LocalStateStore::saveArchiveAsync(const HallOfFameEntry& entry, QObject* context, std::function<void(ArchiveWriteResult)> completed) {

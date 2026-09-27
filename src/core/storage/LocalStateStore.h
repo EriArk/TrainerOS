@@ -73,6 +73,8 @@ public:
     void saveAdventureAsync(const AdventureRegistration&, QObject*, std::function<void(LibraryWriteResult)>) override;
     ShellPreferences preferences() const override { return preferences_; }
     ArchiveResult loadArchive() const override { return {ready_, archive_, ready_ ? QString() : error_}; }
+    QList<ChampionRecord> champions() const override { return champions_; }
+    void preserveChampionsAsync(const QList<ChampionRecord>&, QObject*, std::function<void(QString)>) override;
     bool archiveEditable() const override { return true; }
     void saveArchiveAsync(const HallOfFameEntry&, QObject*, std::function<void(ArchiveWriteResult)>) override;
     void savePreferences(const ShellPreferences&, QObject*, std::function<void(QString)>) override;
@@ -107,6 +109,7 @@ private:
     ShellPreferences preferences_;
     PlayHistorySnapshot history_;
     QList<ExitMedia> exitMedia_;
+    QList<ChampionRecord> champions_;
     QList<HallOfFameEntry> archive_;
     QHash<QString,PokedexProgress> journal_;
 };

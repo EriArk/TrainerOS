@@ -3,6 +3,16 @@
 
 namespace trainer {
 QVariantMap HallOfFameController::championPreview() const {
+    const auto records=championRecords();
+    if(!records.isEmpty()) {
+        int index=0;for(int i=0;i<records.size();++i)if(records[i].id==championId_)index=i;
+        const auto& r=records[index];QVariantList team;
+        for(const auto& m:r.team)team.append(QVariantMap{{"name",m.name},{"nickname",m.nickname},{"number",m.number},
+            {"speciesId",m.speciesId},{"level",QString("Lv. %1").arg(m.level)},{"shiny",m.shiny},{"art",art_?art_->image(m.speciesId+'/'+QString::number(m.number),"pokedexDetailArt"):QVariantMap{}}});
+        return {{"title",QString("Hoenn Champion #%1").arg(r.victory)},{"team",team},{"sample",false},
+            {"position",QString("%1 / %2").arg(index+1).arg(records.size())},
+            {"observed","Added "+r.observedAt.toLocalTime().toString("dd MMM yyyy")},{"victory",QString()}};
+    }
     if (!sampleJourney_) return {};
     return {{"title", "Sample Hoenn run"}, {"build", "Development fixture · independent historical snapshot"},
         {"victory", "Victory date unknown"}, {"observed", "Observed 20 Sep 2026 · not the victory date"},
@@ -10,6 +20,44 @@ QVariantMap HallOfFameController::championPreview() const {
             QVariantMap{{"name", "Gardevoir"}, {"level", "Level unknown"}},
             QVariantMap{{"name", "Not recorded"}, {"level", "—"}}}}};
 }
+QList<ChampionRecord> HallOfFameController::championRecords() const {
+    QList<ChampionRecord> out;for(const auto& r:repository_.champions())if(r.adventureId==currentAdventure_)out.append(r);return out;
+}
+QVariantMap HallOfFameController::journey() const {
+    QVariantMap out{{"time",QString::fromUtf8("—")},{"seen",QString::fromUtf8("—")},{"milestones",QVariantList{}},
+        {"championCount",championRecords().size()},{"error",QString()}};
+    if(progress_.availability!=ProgressAvailability::Available)return out;
+    if(progress_.pokedex && progress_.pokedex->error.isEmpty())out["seen"]=QString::number(progress_.pokedex->seen.size());
+    if(progress_.journey) {
+        const auto& j=*progress_.journey;
+        if(j.playtimeMinutes)out["time"]=QString("%1h %2m").arg(*j.playtimeMinutes/60).arg(*j.playtimeMinutes%60,2,10,QChar('0'));
+        QVariantList milestones;
+        for(const auto& m:j.milestones)milestones.append(QVariantMap{{"title",m.title},{"known",m.achieved.has_value()},{"earned",m.achieved.value_or(false)}});
+        out["milestones"]=milestones;out["error"]=j.championError;
+    }
+    return out;
+}
+void HallOfFameController::setProgress(const QString& adventure,const GameProgress& progress) {
+    progress_=adventure==currentAdventure_?progress:GameProgress{};
+    if(progress_.availability==ProgressAvailability::Available && progress_.journey && repository_.archiveEditable()
+        && !currentAdventure_.isEmpty() && !progress_.contentRevision.isEmpty() && !progress_.saveRevision.isEmpty()) {
+        QList<ChampionRecord> candidates;const auto existing=repository_.champions();
+        for(auto record:progress_.journey->champions) {
+            record.adventureId=currentAdventure_;record.build=progress_.contentRevision;record.saveRevision=progress_.saveRevision;
+            record.observedAt=progress_.observedAt;
+            const auto key=record.adventureId+':'+record.build+':'+record.id;
+            const bool found=std::any_of(existing.begin(),existing.end(),[&](const auto& r){return r.adventureId==record.adventureId && r.build==record.build && r.id==record.id;});
+            if(!found && !preserving_.contains(key)){candidates.append(record);preserving_.insert(key);}
+        }
+        if(!candidates.isEmpty())repository_.preserveChampionsAsync(candidates,this,[this,candidates](const QString& error){
+            for(const auto& r:candidates)preserving_.remove(r.adventureId+':'+r.build+':'+r.id);
+            if(!error.isEmpty())emit messageRequested(error);
+            emit changed();
+        });
+    }
+    emit changed();
+}
+
 namespace {
 QString dateLabel(const QDateTime& date) { return date.isValid() ? date.toUTC().toString("dd MMM yyyy · HH:mm 'UTC'") : "Date not recorded"; }
 QString memoryDate(const QDateTime& date) { return date.isValid() ? date.toUTC().toString("dd MMM yyyy") : "Date not recorded"; }
@@ -186,7 +234,7 @@ QString HallOfFameController::emptyMessage() const {
     return {};
 }
 QVariantList HallOfFameController::actions() const {
-    if (overview()) return {QVariantMap{{"label", route_ == "archive-journey" ? "Adventure memories" : "Journey Record"}, {"enabled", true}}};
+    if (overview()) return {QVariantMap{{"label", route_ == "archive-journey" ? "Champion records" : "Journey Record"}, {"enabled", true}}};
     if (route_ == "archive-list") return {QVariantMap{{"label", "Refresh archive"}, {"enabled", true}}};
     if (route_ == "archive-detail") return {QVariantMap{{"label", "Back to archive"}, {"enabled", true}}};
     if (route_ == "sets") return {QVariantMap{{"label", "Refresh records"}, {"enabled", true}}};
@@ -201,7 +249,7 @@ void HallOfFameController::normalizeActions() {
 }
 void HallOfFameController::setCurrentAdventure(const QString& id) {
     if(currentAdventure_==id)return;
-    currentAdventure_=id;preferCurrent_=true;reconcile();
+    currentAdventure_=id;progress_={};preferCurrent_=true;reconcile();
 }
 void HallOfFameController::reconcile() {
     const auto sets = provider_.sets();
@@ -261,13 +309,14 @@ QJsonObject HallOfFameController::navigationState() const {
         return QJsonObject{{"route", view.route}, {"zone", view.zone}, {"action", view.action}};
     };
     const FaceView current{route_, zone_, actionFocus_};
-    return {{"archive", archiveId_}, {"set", setId_}, {"achievements", selected}, {"route", route_},
+    return {{"champion",championId_}, {"archive", archiveId_}, {"set", setId_}, {"achievements", selected}, {"route", route_},
             {"zone", zone_}, {"action", actionFocus_},
             {"journeyView", encode(overview() ? current : journeyView_)},
             {"archiveView", encode(isArchive() && !overview() ? current : archiveView_)},
             {"achievementView", encode(isArchive() ? achievementView_ : current)}};
 }
 void HallOfFameController::restoreNavigation(const QJsonObject& state) {
+    championId_=state["champion"].toString();
     archiveId_ = state["archive"].toString(); setId_ = state["set"].toString();
     achievementIds_.clear();
     const auto selected = state["achievements"].toObject();
@@ -279,7 +328,7 @@ void HallOfFameController::restoreNavigation(const QJsonObject& state) {
             : QStringList{"sets", "achievements", "achievement-detail"};
         FaceView view{value["route"].toString(), value["zone"].toString(), std::max(0, value["action"].toInt())};
         if (!routes.contains(view.route)) view.route = routes.first();
-        if (view.route == "archive-champion-detail" && !sampleJourney_) view.route = "archive-champions";
+        if (view.route == "archive-champion-detail" && !sampleJourney_ && championRecords().isEmpty()) view.route = "archive-champions";
         // Old rail focus migrates to the visible list; details only expose actions.
         if (view.zone != "actions") view.zone = "list";
         if (view.route.endsWith("detail") || view.route == "archive-journey" || view.route == "archive-champions") view.zone = "actions";
@@ -295,7 +344,7 @@ void HallOfFameController::restoreNavigation(const QJsonObject& state) {
     const auto active = decode(state, archive);
     (active.route=="archive-list"||active.route=="archive-detail" ? archiveView_ : archive ? journeyView_ : achievementView_) = active;
     route_ = active.route; zone_ = active.zone; actionFocus_ = active.action;
-    if (route_ == "archive-champion-detail" && !sampleJourney_) route_ = "archive-champions";
+    if (route_ == "archive-champion-detail" && !sampleJourney_ && championRecords().isEmpty()) route_ = "archive-champions";
     reconcile();
 }
 void HallOfFameController::showJourney() {
@@ -316,10 +365,8 @@ void HallOfFameController::back() {
 void HallOfFameController::activate(int index) {
     if (account_.isOpen()) { account_.activate(index); return; }
     if (overview()) {
-        if (route_ == "archive-champion-detail") { back(); emit changed(); }
-        else if (route_ == "archive-champions" && sampleJourney_) { route_ = "archive-champion-detail"; emit changed(); }
-        else if (route_ == "archive-champions") showJourney();
-        else { route_ = "archive-champions"; zone_ = "actions"; reconcile(); }
+        if(route_!="archive-journey")showJourney();
+        else {route_="archive-champions";zone_="actions";emit changed();}
         return;
     }
     if (zone_ == "list") {
@@ -354,6 +401,11 @@ void HallOfFameController::dispatch(Action action) {
     if (account_.isOpen()) { account_.dispatch(action); return; }
     if (editor_.isOpen()) { editor_.dispatch(action); return; }
     if (overview()) {
+        if(route_!="archive-journey" && (action==Action::Left || action==Action::Right)) {
+            const auto records=championRecords();if(records.isEmpty())return;
+            int index=0;for(int i=0;i<records.size();++i)if(records[i].id==championId_)index=i;
+            index=(index+(action==Action::Left?-1:1)+records.size())%records.size();championId_=records[index].id;emit changed();return;
+        }
         if (action == Action::Secondary) { route_ = route_ == "archive-journey" ? "archive-champions" : "archive-journey"; emit changed(); }
         else if (action == Action::Confirm) activate(0);
         else if (action == Action::Back) { back(); emit changed(); }

@@ -4,15 +4,18 @@
 #include "core/repository/HallOfFameRepository.h"
 #include "integrations/achievements/AchievementProvider.h"
 #include "ArchiveEditor.h"
+#include "features/pokedex/ClassicArt.h"
 #include "AchievementAccountController.h"
 #include <QVariantList>
+#include "core/model/GameProgress.h"
 
 namespace trainer {
 class HallOfFameController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString route READ route NOTIFY changed)
     Q_PROPERTY(bool overview READ overview NOTIFY changed)
-    Q_PROPERTY(QVariantMap championPreview READ championPreview CONSTANT)
+    Q_PROPERTY(QVariantMap championPreview READ championPreview NOTIFY changed)
+    Q_PROPERTY(QVariantMap journey READ journey NOTIFY changed)
     Q_PROPERTY(QString zone READ zone NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(int rowIndex READ rowIndex NOTIFY changed)
@@ -32,8 +35,11 @@ public:
     bool overview() const { return route_ == "archive-journey" || route_ == "archive-champions" || route_ == "archive-champion-detail"; }
     void showJourney();
     void setCurrentAdventure(const QString&);
+    void configureArtwork(ClassicArt* art) { art_=art; emit changed(); }
     void enableSampleJourney() { sampleJourney_ = true; }
     QVariantMap championPreview() const;
+    QVariantMap journey() const;
+    void setProgress(const QString& adventure, const GameProgress&);
     QString zone() const { return zone_; }
     bool isArchive() const { return route_.startsWith("archive"); }
     int focusIndex() const;
@@ -74,6 +80,11 @@ private:
     void normalizeActions();
     void back();
     bool isDetail() const { return !overview() && route_.endsWith("detail"); }
+    ClassicArt* art_ = nullptr;
+    GameProgress progress_;
+    QList<ChampionRecord> championRecords() const;
+    QString championId_;
+    QSet<QString> preserving_;
     bool sampleJourney_ = false;
     struct FaceView { QString route, zone; int action = 0; };
     FaceView archiveView_{"archive-list", "list"};

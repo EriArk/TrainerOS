@@ -278,6 +278,7 @@ void ShellController::openCenter() {
 }
 void ShellController::refreshParty() {
     hall_.setCurrentAdventure(currentAdventureId());
+    hall_.setProgress(progress_?progress_->adventureId():QString(),progress_?progress_->snapshot():GameProgress{});
     const auto adventure = homeAdventure();
     {
         const QSignalBlocker batch(&party_);

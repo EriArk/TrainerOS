@@ -138,6 +138,20 @@ PokemonRecord pokemon(const QByteArray& bytes, bool inParty, bool fireRed=false,
     return r;
 }
 }
+std::optional<ChampionMember> readEmeraldChampionMember(const QByteArray& bytes) {
+    if(bytes.size()!=20)return {};
+    const int species=u16(bytes,8)&511,level=u16(bytes,8)>>9;
+    if(!species || level<1 || level>100)return {};
+    const auto facts=reference()["species"].toObject().value(QString::number(species)).toObject();
+    if(facts.isEmpty() && species!=412)return {}; // Egg may accompany a winning Party.
+    ChampionMember out;
+    out.speciesId=species==412?"egg":facts["id"].toString();
+    out.name=species==412?"Egg":facts["name"].toString();
+    out.number=facts["number"].toInt();out.level=level;out.nickname=name(bytes.mid(10,10));
+    const auto tid=u32(bytes,0),pid=u32(bytes,4);
+    out.shiny=quint16(tid^(tid>>16)^pid^(pid>>16))<8;
+    return out;
+}
 QByteArray emeraldBoxRecord(const QByteArray& record) {
     const auto mon=pokemon(record,record.size()==100);
     if(mon.kind!=PokemonSlotKind::Known)return {};

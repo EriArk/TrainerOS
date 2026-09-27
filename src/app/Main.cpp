@@ -391,6 +391,7 @@ int main(int argc, char* argv[]) {
         ClassicArt classicArt(parser.isSet("art-dir") ? parser.value("art-dir") : smoke || parser.isSet("ephemeral")
             ? QString() : QDir(reportBase).filePath("artwork/bootstrap"));
         shell.pokedex()->configureArtwork(&classicArt);
+        shell.hall()->configureArtwork(&classicArt);
         shell.trainer()->picker()->setArtwork(&classicArt);
         DiagnosticsService deviceReports(diagnosticsSmoke ? QDir(parser.value("screenshot-dir")).absoluteFilePath("reports")
                                                          : QDir(reportBase).filePath("diagnostics"));

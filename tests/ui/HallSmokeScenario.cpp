@@ -59,8 +59,8 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
             check(hall->route()=="archive-champions" && focusIs("journey-primary"), "Champion availability stays explicit");
             capture("champion-sample"); press(a); break;
         case -3:
-            check(hall->route()=="archive-champion-detail" && focusIs("journey-primary"), "Historical sample detail has a fixed Back action");
-            capture("champion-sample-detail"); press(b); break;
+            check(hall->route()=="archive-journey" && focusIs("journey-primary"), "A returns directly from the team gallery to Journey");
+            capture("journey-return"); press(x); break;
         case -2:
             check(hall->route()=="archive-champions", "B first returns to records"); press(b); flip(SDL_CONTROLLER_AXIS_TRIGGERLEFT); break;
         case -1:

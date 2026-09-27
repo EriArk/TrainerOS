@@ -1,5 +1,6 @@
 #pragma once
 #include "core/model/Models.h"
+#include "core/model/JourneySnapshot.h"
 #include <QObject>
 #include <functional>
 
@@ -15,6 +16,8 @@ class HallOfFameRepository {
 public:
     virtual ~HallOfFameRepository() = default;
     virtual ArchiveResult loadArchive() const = 0;
+    virtual QList<ChampionRecord> champions() const { return {}; }
+    virtual void preserveChampionsAsync(const QList<ChampionRecord>&, QObject*, std::function<void(QString)> done) { done({}); }
     virtual bool archiveEditable() const { return false; }
     virtual void saveArchiveAsync(const HallOfFameEntry&, QObject*, std::function<void(ArchiveWriteResult)> completed) {
         completed({false, "This archive is read-only."});

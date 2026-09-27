@@ -4,6 +4,7 @@
 #include <optional>
 #include <QSet>
 #include "PartySnapshot.h"
+#include "JourneySnapshot.h"
 
 namespace trainer {
 enum class ProgressAvailability { Unsupported, Checking, Available, Missing, Unreadable };
@@ -22,5 +23,6 @@ struct GameProgress {
     QDateTime observedAt;
     std::optional<PartySnapshot> party;
     std::optional<SavePokedex> pokedex;
+    std::optional<JourneySnapshot> journey;
 };
 }

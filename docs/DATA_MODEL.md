@@ -1,3 +1,8 @@
+> Schema 14 (2026-09-27) adds owner-scoped immutable `champion_records` with
+> exact build/source revision, bounded save identity, historical Hall team and
+> first observation time. It does not alter manual memories or external saves.
+> [Exact Emerald scope and lineage limits](EMERALD_JOURNEY.md).
+
 # TrainerOS Domain Model
 
 **Planned extension — 2026-09-26:** [#69–90 contracts](EXPANSION_69_90.md)

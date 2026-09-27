@@ -37,5 +37,15 @@ int main(int argc, char** argv) {
     }
     out << "Profile: " << profile.value("id").toString()
         << "\nParty: " << result.party->party.size() << '\n';
+    if(result.journey) {
+        out << "Journey minutes: " << result.journey->playtimeMinutes.value_or(-1)
+            << "\nChampion teams: " << result.journey->champions.size() << '\n';
+        if(!result.journey->championError.isEmpty())out << result.journey->championError << '\n';
+        for(const auto& record:result.journey->champions) {
+            out << "Victory " << record.victory << ':';
+            for(const auto& mon:record.team)out << ' ' << mon.name << " L" << mon.level;
+            out << '\n';
+        }
+    }
     return 0;
 }

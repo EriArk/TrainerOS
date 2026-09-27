@@ -56,7 +56,13 @@ This closes only those movement slices, not all R4 acceptance.
 verified capability, deliberate X confirmation, native progression safeguards,
 pre-edit backup and exact Center restore. [Device/game evidence](EMERALD_RELEASE.md).
 
-**Next increment: 3/6 Высокое (High)** — R4 live Journey/Champion history.
+**2026-09-27 Journey delivery:** exact English Emerald live time, verified
+milestones and immutable historical Champion teams are connected to Journey.
+[Evidence and remaining lineage/title gates](EMERALD_JOURNEY.md). Schema 14 keeps
+manual Hall memories separate and preserves history across external-save rollback.
+
+**Next increment: 3/6 Высокое (High)** — R4 held-item services for Emerald Party/Boxes,
+with protected give/take transactions and normal-game proof.
 Keep item/box services and all later queue entries;
 practice and two-device Link retain their independent research/proof gates.
 Before trusted Link, add #93 signed lineage and #94 observable session policy;

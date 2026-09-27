@@ -75,7 +75,7 @@ void GameProgressService::inspectCapabilities(const AdventureRegistration& recor
             "Pokemon release · "+state(emerald,available&&progress.party.has_value()&&progress.party->canRelease),
             "Healing · "+state(semantic,heal),
             "Shops · "+state(emerald,shops),
-            "Champion records · Not supported"};
+            "Journey / Champion records · "+state(emerald,available&&progress.journey.has_value()&&progress.journey->championError.isEmpty())};
         const auto current=resolver_(record);
         if(current.contentRevision!=target.contentRevision || current.contextRevision!=target.contextRevision || current.savePath!=target.savePath)
             rows={"Adventure changed · Reopen Properties"};

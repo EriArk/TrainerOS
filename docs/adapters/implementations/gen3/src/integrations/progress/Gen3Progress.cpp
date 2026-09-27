@@ -41,6 +41,54 @@ Slot readSlot(const QByteArray& bytes, int base, Gen3Edition edition) {
 bool bit(const QByteArray& data, int offset, int index) {
     return (quint8(data[offset + index / 8]) & (1u << (index % 8))) != 0;
 }
+JourneySnapshot emeraldJourney(const QByteArray& save,const QByteArray& small,const QByteArray& world) {
+    JourneySnapshot out;
+    const int hours=u16(small,0x0e),minutes=quint8(small[0x10]);
+    if(hours<=999 && minutes<60)out.playtimeMinutes=hours*60+minutes;
+    const bool clear=bit(world,0x1270,0x864);
+    out.milestones={{"partner","First partner",bit(world,0x1270,0x860)},
+        {"pokedex","Pokedex received",bit(world,0x1270,0x861)},
+        {"champion","Hoenn Champion",clear}};
+    const quint32 victories=u32(world,0x159c+10*4)^u32(small,0xac);
+    if(!clear || !victories)return out; // Old special sectors may survive a fresh run.
+    out.championError="The saved Hall of Fame could not be verified.";
+    if(victories>=999)return out; // Saturated counter cannot identify distinct wins.
+    QByteArray hall;
+    for(int s=28;s<30;++s){
+        const int at=s*Sector;quint32 sum=0;
+        for(int p=0;p<Payload;p+=4)sum+=u32(save,at+p);
+        // Hall writes its checksum into the ordinary sector-ID field.
+        if(u32(save,at+0xff8)!=0x08012025 || u16(save,at+0xff4)!=quint16((sum>>16)+sum))return out;
+        hall+=save.mid(at,Payload);
+    }
+    const auto hash=[](const QByteArray& b){return QString::fromLatin1(QCryptographicHash::hash(b,QCryptographicHash::Sha256).toHex());};
+    // Name (up to EOS), gender, full public/secret Trainer ID. Exclude warp flags,
+    // playtime and randomized encryption key: those can change during this run.
+    auto identity=small.left(8);const int eos=identity.indexOf(char(255));if(eos>=0)identity.truncate(eos);
+    identity+='\0';identity+=small.mid(8,1);identity+=small.mid(10,4);
+    const auto lineage=hash(identity);
+    const int count=std::min(victories,50u);
+    QList<ChampionRecord> records;
+    for(int i=0;i<50;++i){
+        const auto bytes=hall.mid(i*120,120);
+        if(i>=count){if(u16(bytes,8)&511)return out;continue;}
+        ChampionRecord record;record.lineage=lineage;record.victory=int(victories)-count+i+1;
+        // Hash excludes empty-slot scratch bytes; preserve all meaningful member
+        // bytes, including OT/personality, rather than just display names.
+        QByteArray canonical;bool empty=false;
+        for(int m=0;m<6;++m){
+            const auto mon=bytes.mid(m*20,20);
+            if(!(u16(mon,8)&511)){empty=true;continue;}
+            if(empty)return out;
+            const auto parsed=readEmeraldChampionMember(mon);if(!parsed)return out;
+            record.team.append(*parsed);canonical+=mon;
+        }
+        if(record.team.isEmpty())return out;
+        record.id=hash(lineage.toLatin1()+':'+QByteArray::number(record.victory)+':'+canonical);
+        records.append(record);
+    }
+    out.champions=records;out.championError.clear();return out;
+}
 }
 
 std::optional<Gen3Edition> gen3Edition(const QString& hash) {
@@ -79,6 +127,7 @@ GameProgress readGen3Progress(const QByteArray& save, Gen3Edition edition) {
     result.badgeSet = edition == Gen3Edition::Emerald ? "hoenn-rse" : "kanto-frlg";
     result.provider = edition == Gen3Edition::Emerald ? "gen3-emerald-v1" : "gen3-firered-v1";
     result.message = "Last in-game save · National Pokédex";
+    if(edition==Gen3Edition::Emerald)result.journey=emeraldJourney(save,latest->blocks[0],world);
     {
         const int seen1=edition==Gen3Edition::Emerald?0x988:0x5f8,seen2=edition==Gen3Edition::Emerald?0x3b24:0x3a18;
         SavePokedex dex; dex.speciesCount = 386;

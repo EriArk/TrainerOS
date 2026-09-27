@@ -1,3 +1,8 @@
+> 2026-09-27: [real Emerald Journey/Champion delivery](EMERALD_JOURNEY.md)
+> supersedes the earlier P1-only boundary below for that exact build. Other games
+> retain capability gates. The gallery shows its team directly; A/B returns to
+> live Journey, left/right browses records. No extra detail confirmation.
+
 # Journey and achievement presentation
 
 P1 #47/#48/#64 adds a Journey entry to Hall while preserving the manual archive and live RetroAchievements account/cache service. This is not a new save parser, Champion detector or ownership migration.
