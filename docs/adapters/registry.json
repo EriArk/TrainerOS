@@ -120,6 +120,19 @@
             "rollback"
           ],
           "details": "../EMERALD_HELD_ITEMS.md"
+        },
+        "occupied-swap": {
+          "state": "integrated",
+          "evidence": [
+            "source-research",
+            "synthetic",
+            "private-copy",
+            "allowed-delta",
+            "device",
+            "normal-game",
+            "rollback"
+          ],
+          "details": "../EMERALD_MOVEMENT.md"
         }
       },
       "romBytes": 16777216,

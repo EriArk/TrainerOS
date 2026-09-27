@@ -58,6 +58,20 @@ private slots:
         party.beginMove();party.moveActivate(14);QCOMPARE(party.moveStage(),"slots");party.moveActivate(29);QCOMPARE(party.moveStage(),"confirm");
         observation.contextRevision="owner2";party.setProgress("one",observation);QVERIFY(!party.moveOpen());QCOMPARE(service.moves,1);
         party.beginMove();party.dispatch(Action::Back);QVERIFY(!party.moveOpen());QCOMPARE(service.moves,1);
+        data.boxes[0].members[0]=data.party[1];observation.saveRevision="save2";observation.party=data;party.setProgress("one",observation);
+        party.beginMove();party.moveActivate(1);party.moveActivate(0);QCOMPARE(party.moveStage(),"slots"); // capability absent
+        party.dispatch(Action::Back);party.dispatch(Action::Back);
+        data.canSwapOccupied=true;observation.saveRevision="save3";observation.party=data;party.setProgress("one",observation);
+        party.beginMove();party.moveActivate(1);party.moveActivate(0);QCOMPARE(party.moveStage(),"confirm");
+        QCOMPARE(party.movePair().size(),2);QCOMPARE(party.movePair()[0].toMap()["name"].toString(),"Member 0");
+        QCOMPARE(party.movePair()[1].toMap()["name"].toString(),"Member 1");QCOMPARE(service.moves,1);
+        party.dispatch(Action::Back);QCOMPARE(party.moveStage(),"slots");QVERIFY(party.movePair().isEmpty());
+        party.moveActivate(1);party.dispatch(Action::Confirm);QVERIFY(!service.request.exchangeOccupied); // empty slot resets intent
+        service.working=false;service.pending({true,true,"Moved"});party.dispatch(Action::Confirm);
+        party.beginMove();party.moveActivate(1);party.moveActivate(0);party.dispatch(Action::Confirm);
+        QVERIFY(service.request.exchangeOccupied);QCOMPARE(service.request.from.box,-1);QCOMPARE(service.request.to.box,0);
+        party.dispatch(Action::Confirm);QCOMPARE(service.moves,3); // no repeated write
+        service.working=false;service.pending({true,true,"Swapped"});party.dispatch(Action::Confirm);
         party.showSection("storage");party.changeBox(13);QCOMPARE(party.box(),13);
         auto checking=observation;checking.availability=ProgressAvailability::Checking;checking.party.reset();party.setProgress("one",checking);
         QCOMPARE(party.box(),13);party.setProgress("one",observation);QCOMPARE(party.box(),13);

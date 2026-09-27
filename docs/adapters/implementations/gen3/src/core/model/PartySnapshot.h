@@ -25,6 +25,7 @@ struct HeldItemBag { QString error; QList<HeldBagItem> items; };
 struct PartySnapshot {
     // Independent exact-build writers; reading alone grants neither capability.
     bool canManage = false;
+    bool canSwapOccupied = false;
     bool canRelease = false;
     bool canHoldItems = false;
     HeldItemBag bag;

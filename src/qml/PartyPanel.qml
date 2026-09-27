@@ -161,8 +161,23 @@ Item {
         anchors.fill: parent; anchors.topMargin: Theme.contentTopInset; visible: root.party.moveOpen; color: "#a0122927"
         MouseArea {anchors.fill:parent}
         MountedPanel {
-            anchors.centerIn: parent; width: Math.min(parent.width-48,root.party.moveRows.length ? 690 : 480); height: Math.min(parent.height-22,root.party.moveRows.length ? 365 : root.party.moveStage === "release-confirm" || root.party.moveStage === "item-confirm" ? 300 : 230); color: "#e8eddf"
+            anchors.centerIn: parent; width: Math.min(parent.width-48,root.party.moveRows.length ? 690 : root.party.movePair.length ? 570 : 480); height: Math.min(parent.height-22,root.party.moveRows.length ? 365 : root.party.movePair.length ? 320 : root.party.moveStage === "release-confirm" || root.party.moveStage === "item-confirm" ? 300 : 230); color: "#e8eddf"
             Text {x:22;y:15;width:parent.width-44;text:root.party.moveTitle;textFormat:Text.PlainText;font.family:Theme.displayFamily;font.bold:true;font.pixelSize:24;color:Theme.ink;elide:Text.ElideRight}
+            Row {
+                x:22;y:56;width:parent.width-44;spacing:34;visible:root.party.movePair.length > 0
+                Repeater {
+                    model:root.party.movePair
+                    Rectangle {
+                        required property var modelData
+                        required property int index
+                        width:(parent.width-34)/2;height:166;radius:12;color:index ? "#c7dfb1" : "#bcdde8"
+                        ClassicIllustration {anchors.horizontalCenter:parent.horizontalCenter;y:9;width:100;height:90;art:modelData.art || ({})}
+                        Text {x:10;y:101;width:parent.width-20;text:modelData.name;textFormat:Text.PlainText;color:Theme.ink;font.family:Theme.displayFamily;font.pixelSize:19;font.bold:true;horizontalAlignment:Text.AlignHCenter;elide:Text.ElideRight}
+                        Text {x:8;y:133;width:parent.width-16;text:modelData.place;textFormat:Text.PlainText;color:Theme.muted;font.pixelSize:15;horizontalAlignment:Text.AlignHCenter;elide:Text.ElideRight}
+                    }
+                }
+            }
+            Text {anchors.horizontalCenter:parent.horizontalCenter;y:111;visible:root.party.movePair.length > 0;text:"⇄";font.pixelSize:30;font.bold:true;color:Theme.ink}
             Row {
                 x:22;y:57;spacing:16;visible:root.party.moveStage === "release-confirm" || root.party.moveStage === "item-confirm"
                 ClassicIllustration {width:88;height:88;art:root.party.releaseSubject.art || ({})}
@@ -220,7 +235,7 @@ Item {
             CapButton {
                 x:22;anchors.bottom:parent.bottom;anchors.bottomMargin:26;width:parent.width-44;height:52
                 visible:root.party.moveStage === "confirm" || root.party.moveStage === "item-confirm" || root.party.moveStage === "result"
-                label:root.party.moveStage === "confirm" ? "Move" : root.party.moveStage === "item-confirm" ? "Confirm" : "Done";tint:Theme.yellow;centered:true;selected:true;deferredFocus:true
+                label:root.party.moveStage === "confirm" ? root.party.movePair.length ? "Swap places" : "Move" : root.party.moveStage === "item-confirm" ? "Confirm" : "Done";tint:Theme.yellow;centered:true;selected:true;deferredFocus:true
                 onActivated:root.party.moveActivate(root.party.moveIndex)
             }
         }

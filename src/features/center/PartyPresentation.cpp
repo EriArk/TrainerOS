@@ -239,8 +239,21 @@ QString PartyPresentation::moveTitle() const {
     if(moveStage_=="release-confirm")return "Release " + moveName_ + "?";
     if(moveStage_=="places")return "Move " + moveName_;
     if(moveStage_=="slots")return moveTargetBox_<0?"Choose a team position":moveSnapshot_.boxes[moveTargetBox_].name;
-    if(moveStage_=="confirm")return "Move " + moveName_ + "?";
+    if(moveStage_=="confirm")return !movePair().isEmpty()?"Swap places?":"Move " + moveName_ + "?";
     return moveStage_=="writing"?"Saving your team…":"Your Pokemon";
+}
+QVariantList PartyPresentation::movePair() const {
+    if(moveStage_!="confirm")return {};
+    const auto from=moveRequest_.from,to=moveRequest_.to;
+    const auto& destination=to.box<0?moveSnapshot_.party[to.slot]:moveSnapshot_.boxes[to.box].members[to.slot];
+    if(destination.kind==PokemonSlotKind::Empty)return {};
+    QVariantList pair;
+    for(const auto pos:{from,to}) {
+        auto row=present(pos.box<0?moveSnapshot_.party[pos.slot]:moveSnapshot_.boxes[pos.box].members[pos.slot],pos.slot);
+        row["place"]=(pos.box<0?QString("Party"):moveSnapshot_.boxes[pos.box].name)+" · "+QString::number(pos.slot+1);
+        pair.append(row);
+    }
+    return pair;
 }
 QVariantList PartyPresentation::moveRows() const {
     QVariantList rows;
@@ -307,16 +320,17 @@ void PartyPresentation::moveActivate(int index) {
         moveIndex_=index;const auto kind=members[index].kind;
         const bool reorder=moveRequest_.from.box<0 && moveTargetBox_<0;
         if(moveRequest_.from.box==moveTargetBox_ && moveRequest_.from.slot==index) {moveMessage_="Choose another position.";emit changed();return;}
-        if(reorder ? kind==PokemonSlotKind::Empty || kind==PokemonSlotKind::Unreadable : kind!=PokemonSlotKind::Empty) {
-            moveMessage_=reorder?"Choose another occupied position.":"Choose an empty slot.";emit changed();return;
+        const bool exchange=!reorder && moveSnapshot_.canSwapOccupied && kind==PokemonSlotKind::Known;
+        if(reorder ? kind==PokemonSlotKind::Empty || kind==PokemonSlotKind::Unreadable : kind!=PokemonSlotKind::Empty && !exchange) {
+            moveMessage_=reorder?"Choose another occupied position.":moveSnapshot_.canSwapOccupied?"Choose an empty slot or a hatched Pokemon.":"Choose an empty slot.";emit changed();return;
         }
-        if(moveTargetBox_<0 && !reorder) {
+        if(moveTargetBox_<0 && !reorder && !exchange) {
             int first=0;while(first<members.size() && members[first].kind!=PokemonSlotKind::Empty)++first;
             if(index!=first){moveMessage_="Choose the first empty team position.";emit changed();return;}
         }
-        moveRequest_.to={moveTargetBox_,index};moveStage_="confirm";
+        moveRequest_.to={moveTargetBox_,index};moveRequest_.exchangeOccupied=exchange;moveStage_="confirm";
         const QString destination=moveTargetBox_<0?"Party":moveSnapshot_.boxes[moveTargetBox_].name;
-        moveMessage_=reorder?"Swap places with "+present(members[index],index)["name"].toString()+".":destination+" · Slot "+QString::number(index+1);
+        moveMessage_=reorder || exchange?QString{}:destination+" · Slot "+QString::number(index+1);
         emit changed();return;
     }
     if(moveStage_!="confirm" && moveStage_!="item-confirm")return;

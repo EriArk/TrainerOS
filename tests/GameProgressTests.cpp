@@ -258,6 +258,57 @@ private slots:
         }
         QVERIFY(!readGen3Progress(save(Gen3Edition::FireRed),Gen3Edition::FireRed).party->canRelease);
     }
+    void occupiedSwapsPreserveBothMembersAndRequireExplicitIntent() {
+        auto boxPatch=[](QByteArray bytes,int box,int position,const QByteArray& mon) {
+            int at=4+(box*30+position)*80,read=0;
+            while(read<mon.size()) {const int size=std::min(int(mon.size())-read,0xf80-at%0xf80);bytes=movePatch(bytes,5+at/0xf80,at%0xf80,mon.mid(read,size));at+=size;read+=size;}
+            return bytes;
+        };
+        for(int n=0;n<24;++n) {
+            const int rotation=n%14,at=0xe000+((1+rotation)%14)*0x1000;
+            auto bytes=movementSave(rotation,n);
+            // A full Party can exchange directly without depositing someone first.
+            bytes=movePatch(bytes,1,0x234,QByteArray(1,6));
+            for(int i=3;i<6;++i)bytes=movePatch(bytes,1,0x238+100*i,bytes.mid(at+0x238,100));
+            const auto first=bytes.mid(at+0x238,100);
+            auto boxed=pokemonFixture(n+7,1,false,false);
+            bytes=boxPatch(bytes,1,19,boxed); // record straddles two save sectors
+            QVERIFY(readGen3Progress(bytes,Gen3Edition::Emerald).party->canSwapOccupied);
+            QVERIFY(moveEmeraldPokemon(bytes,EmeraldHash,{{-1,0},{1,19},digest(bytes)}).data.isEmpty());
+            const auto exchanged=moveEmeraldPokemon(bytes,EmeraldHash,{{-1,0},{1,19},digest(bytes),true});
+            QVERIFY2(exchanged.error.isEmpty(),qPrintable(exchanged.error));
+            auto view=readGen3Progress(exchanged.data,Gen3Edition::Emerald).party;
+            QCOMPARE(view->party[0].speciesId,"bulbasaur");QCOMPARE(view->boxes[1].members[19].speciesId,"pikachu");
+            QCOMPARE(view->party[0].hp.value(),view->party[0].stats[0]);QCOMPARE(view->party[0].moves[0].pp,40);
+            QCOMPARE(view->boxes[1].members[19].moves[0].pp,56);QCOMPARE(view->party[5].kind,PokemonSlotKind::Known);
+            QCOMPARE(exchanged.data.mid(at+0x238,80),boxed); // incoming identity, PP and all encrypted bytes preserved
+            auto expected=boxPatch(bytes,1,19,emeraldBoxRecord(first));
+            expected=movePatch(expected,1,0x238,emeraldWithdrawRecord(boxed));QCOMPARE(exchanged.data,expected);
+            // Reversing request direction yields the same atomic result.
+            const auto reverse=moveEmeraldPokemon(bytes,EmeraldHash,{{1,19},{-1,0},digest(bytes),true});QCOMPARE(reverse.data,exchanged.data);
+            // Both occupied box slots exchange; no other Pokemon, names or bank changes.
+            bytes=boxPatch(bytes,13,29,first.left(80));
+            auto swapped=moveEmeraldPokemon(bytes,EmeraldHash,{{1,19},{13,29},digest(bytes),true});
+            QVERIFY2(swapped.error.isEmpty(),qPrintable(swapped.error));
+            expected=boxPatch(bytes,13,29,emeraldBoxRecord(boxed));expected=boxPatch(expected,1,19,emeraldBoxRecord(first));QCOMPARE(swapped.data,expected);
+            view=readGen3Progress(swapped.data,Gen3Edition::Emerald).party;
+            QCOMPARE(view->boxes[13].members[29].speciesId,"bulbasaur");QCOMPARE(view->boxes[1].members[19].speciesId,"pikachu");
+            // Empty/Egg/unreadable targets, Mail on either participant and stale data are rejected.
+            auto run=[&](const QByteArray& b){return moveEmeraldPokemon(b,EmeraldHash,{{-1,0},{0,0},digest(b),true});};
+            QVERIFY(run(bytes).data.isEmpty());
+            auto egg=boxPatch(bytes,0,0,pokemonFixture(n,25,true,false));QVERIFY(run(egg).data.isEmpty());
+            auto bad=boxed;bad[28]^=1;QVERIFY(run(boxPatch(bytes,0,0,bad)).data.isEmpty());
+            auto safe=boxPatch(bytes,0,0,boxed);
+            QVERIFY(run(movePatch(safe,1,0x238+85,QByteArray(1,0))).error.contains("Mail"));
+            auto mail=emeraldHeldItemRecord(boxed,121);QVERIFY(!mail.isEmpty());QVERIFY(run(boxPatch(bytes,0,0,mail)).error.contains("Mail"));
+            QVERIFY(moveEmeraldPokemon(safe,"wrong",{{-1,0},{0,0},digest(safe),true}).data.isEmpty());
+            QVERIFY(moveEmeraldPokemon(safe,EmeraldHash,{{-1,0},{0,0},"old",true}).data.isEmpty());
+            // Replacing the only able member with a healthy boxed Pokemon remains valid.
+            safe=movePatch(safe,1,0x234,QByteArray(1,1));safe=movePatch(safe,1,0x29c,QByteArray(500,0));
+            QVERIFY2(!run(safe).data.isEmpty(),qPrintable(run(safe).error));
+        }
+    }
+
     void emeraldMovementPreservesIdentitiesAndUnrelatedBytes() {
         for(int n=0;n<24;++n) {
             const int rotation=n%14,at=0xe000+((1+rotation)%14)*0x1000;

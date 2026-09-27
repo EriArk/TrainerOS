@@ -1,16 +1,17 @@
 # Emerald Party and Box management
 
 The exact English Emerald build in the [adapter record](adapters/emerald-en.md)
-now has three protected operations: swap occupied Party positions, move a
-Pokémon to an empty slot in another/same box, and deposit/withdraw between Party
-and Boxes. FireRed and other read-capable providers do not inherit these writes.
+supports protected Party reorder, moves to empty box slots, Party/Box transfers
+and explicit occupied-slot exchanges. FireRed and other read-capable providers
+do not inherit these writes.
 
 ## Controller flow
 
 Select a readable hatched member with A, choose **Move Pokémon**, select Party
 or a named box, then select a position and confirm once. B returns to the previous
 step without writing. No cursor movement writes a save. Team reorder swaps with
-the selected occupied position; other transfers require an empty destination.
+the selected occupied position. Occupied Box/Box and Party/Box destinations
+open a two-member exchange confirmation; empty destinations remain ordinary moves.
 Withdrawal uses the first empty team position, avoiding holes. Party/Boxes retain
 their normal L2/R2 relationship outside the modal. During the move picker the
 source stays fixed; global navigation/Start/Choose Adventure cannot replace it.
@@ -38,12 +39,13 @@ game. Identity, experience, held items, Pokédex, flags, currencies, unrelated
 individuals, names/wallpapers, older bank and counters remain unchanged.
 Only changed section checksums are rebuilt. The output passes the normal reader.
 
-Do not remove the last living non-Egg team member. Do not overwrite an occupied
-box slot or silently exchange a full team member with a stored Pokémon. Eggs
+Do not remove the last living non-Egg team member. Never discard an occupied
+box slot or silently exchange a full team member with a stored Pokémon.
+An explicit exchange prepares both replacements together, as described below. Eggs
 cannot be selected for movement in this first writer; they can remain in a
 reordered team. A member carrying Mail must have it removed inside the game before
-storage. Release, held-item management, box renaming and two-device Link remain
-separate roadmap work, not hidden capabilities of this operation.
+storage. Release and held-item management are delivered separately. Box renaming and
+two-device Link remain separate roadmap work.
 
 ## Verification
 
@@ -84,3 +86,52 @@ confirmation. The final installed check cancels before a personal-save write.
 primary-source findings, known exclusions and separately buildable code/profiles.
 
 Protected release is delivered separately; see [release and rollback evidence](EMERALD_RELEASE.md).
+
+## Occupied swaps - 2026-09-27
+
+A known hatched Pokemon can exchange places with another readable hatched
+Pokemon in a box or Party. This permits replacing a member of a full six-member
+team without a separate deposit. The same Move picker shows both portraits,
+names and current locations, then requires **Swap places**. B returns to the
+same destination without writing. Contextual A/B hints remain in the footer.
+
+The pure request carries explicit `exchangeOccupied` intent, false by default.
+Without it, the old empty-slot requirement remains. The provider advertises
+`canSwapOccupied` only for verified English Emerald; other read providers do not
+inherit it. Both converted records are prepared before altering the candidate.
+The Party count and positions of other members remain unchanged. Native PC
+placement restores PP; withdrawal reconstructs HP/status/stats while retaining
+boxed PP, identity, held items and other individual data. The resulting Party
+must remain readable with an able non-Egg member. Egg, Mail and damaged targets
+are refused; empty slots are not exchange destinations.
+
+Source: pinned [pret/pokeemerald storage implementation](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/pokemon_storage_system.c),
+`SetShiftedMonData`, `SetPlacedMonData`, `CanShiftMon`. This is an atomic composed
+swap, not the game's intermediate cursor-held state. The existing owner/runtime
+lock, read-only policy, source digest, verified backup, atomic write/readback,
+lineage and Center restore cover it. No new persistence schema is introduced.
+
+Validation: all 24 individual permutations and 14 save-sector rotations,
+sector-crossing occupied records, full-Party exchange in either direction,
+explicit intent, capability gating, stale source, Eggs, Mail, damaged targets,
+confirmation cancellation and repeated input. Actual Flip controller input swapped
+Blaziken/Bulbasaur between Party and Box 1, then swapped Blaziken/Ivysaur within
+Box 1. Independent checks compared the whole output file with the expected
+allowed delta and verified sector/Pokemon checksums. Normal Emerald displayed
+Bulbasaur first with 20/20 HP; an ordinary in-game save retained all six Party
+and all Storage records. Center restored the copied baseline byte-for-byte.
+Original personal save hashes remained unchanged. Test game was closed through
+the existing owned-window helper; no new physical Home-button proof is claimed.
+
+
+Delivery checks: the 43-check native suite was run; its one interaction-fixture
+failure was corrected by supplying a new observation revision when changing test
+data. The final affected interaction/rendered checks passed **8/8**. No production
+cache behavior was weakened. The portable Qt Core adapter builds independently;
+source/profile drift and exact-build knowledge checks pass.
+
+Production ARM64 installed/running SHA-256:
+`c2d62d1a9db8a299db6cc90f7b17a1a96dee311fdd047b931dd4762bd76c56dc`.
+Installed Party/Box and Box/Box confirmation captures and controller cancellation
+were checked on Flip without changing personal saves. Database integrity passes
+at schema 14, 829 Adventures and three Trainers; final shell returned to Home.

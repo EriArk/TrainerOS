@@ -239,7 +239,7 @@ Window {
                     if (party.section === "saves") return shell.center.confirming ? [h("A","Restore"),h("B","Cancel")] : [h("X",shell.center.route === "adventures" ? "Search" : "Refresh"),h("Select","Backup"),h("A","Open"),h("B","Back")]
                     if (party.section === "activities") return party.activities.route === "playroom" && party.activities.hasParty ? [h("←→","Partner"),h("Select","Play"),h("X","Greet"),h("A","Call"),h("B","Back")] : [h("A","Select"),h("B","Back")]
                     if (party.moveStage === "release-confirm") return [h("X","Release"),h("B","Keep Pokemon")]
-                    if (party.moveOpen) return party.moveStage === "writing" || party.moveStage === "checking" ? [] : [h("A",party.moveStage === "item-confirm" ? "Confirm" : party.moveStage === "confirm" ? "Confirm move" : party.moveStage === "result" ? "OK" : "Choose"),h("B",party.moveStage === "places" ? "Cancel" : "Back")]
+                    if (party.moveOpen) return party.moveStage === "writing" || party.moveStage === "checking" ? [] : [h("A",party.moveStage === "item-confirm" ? "Confirm" : party.moveStage === "confirm" ? "Confirm" : party.moveStage === "result" ? "OK" : "Choose"),h("B",party.moveStage === "places" ? "Cancel" : "Back")]
                     if (party.detailOpen) return [h("A","Select"),h("B","Close")]
                     if (party.boxFocused) return [h("←→","Box"),h("↓","Slots"),h("B","Back")]
                     const actions = [h("Select","Backups"),h("A",party.available && !party.activitiesFocused ? "Actions" : "Open"),h("B","Back")]

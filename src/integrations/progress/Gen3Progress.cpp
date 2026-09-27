@@ -147,6 +147,7 @@ GameProgress readGen3Progress(const QByteArray& save, Gen3Edition edition) {
         const auto distance=quint32(second.counter-first.counter);
         result.party->canRelease=edition==Gen3Edition::Emerald && first.valid && second.valid && distance && distance!=0x80000000u && result.party->error.isEmpty();
         result.party->canManage=edition==Gen3Edition::Emerald && first.valid && second.valid && distance && distance!=0x80000000u && result.party->error.isEmpty();
+        result.party->canSwapOccupied=result.party->canManage;
         if(edition==Gen3Edition::Emerald) {
             result.party->bag=readEmeraldHeldBag(world,latest->blocks[0]);
             result.party->canHoldItems=result.party->canManage && result.party->bag.error.isEmpty();
@@ -265,8 +266,31 @@ PartyMoveResult moveEmeraldPokemon(const QByteArray& save,const QString& hash,co
         if(to.slot>=count || member(to).kind==PokemonSlotKind::Unreadable || member(to).kind==PokemonSlotKind::Empty)
             return {{},"Choose another occupied team position.",{}};
         world.replace(0x238+from.slot*100,100,destination);world.replace(0x238+to.slot*100,100,source);
+    } else if(request.exchangeOccupied) {
+        if(member(to).kind!=PokemonSlotKind::Known || (to.box<0 && to.slot>=count))
+            return {{},"Choose a readable, hatched Pokemon to swap with.",{}};
+        // Native PC placement restores PP; box-to-Party reconstructs HP/status/stats.
+        // Prepare both records before changing either position; never lose an occupant.
+        const auto placed=to.box<0?emeraldWithdrawRecord(source):emeraldBoxRecord(source);
+        const auto returned=from.box<0?emeraldWithdrawRecord(destination):emeraldBoxRecord(destination);
+        if(placed.isEmpty() || returned.isEmpty())return {{},"Remove both Pokemon's Mail inside the game before swapping.",{}};
+        if(from.box<0 || to.box<0) {
+            const int partySlot=from.box<0?from.slot:to.slot;
+            for(int i=0;i<count;++i)
+                if(before.party[i].kind==PokemonSlotKind::Unreadable || before.party[i].kind==PokemonSlotKind::Empty)
+                    return {{},"The whole team must be readable before swapping.",{}};
+            const auto incoming=readEmeraldPartyMember(from.box<0?returned:placed);
+            int able=incoming.kind==PokemonSlotKind::Known && incoming.hp.value_or(0)>0?1:0;
+            for(int i=0;i<count;++i)if(i!=partySlot && before.party[i].kind==PokemonSlotKind::Known && before.party[i].hp.value_or(0)>0)++able;
+            if(!able)return {{},"Keep a Pokemon that can battle in your team.",{}};
+        }
+        auto place=[&](PokemonPosition p,const QByteArray& mon){
+            if(p.box<0)world.replace(0x238+p.slot*100,100,mon);
+            else storage.replace(4+(p.box*30+p.slot)*80,80,mon);
+        };
+        place(to,placed);place(from,returned);
     } else {
-        // No implicit replacement or exchange: transfers require an empty slot.
+        // Ordinary moves still require an empty destination, even for direct callers.
         if(member(to).kind!=PokemonSlotKind::Empty || destination!=QByteArray(destination.size(),0))return {{},"This place is occupied. Choose an empty slot.",{}};
         if(to.box<0) {
             if(count==6 || to.slot!=count)return {{},"Choose the first empty team position.",{}};
@@ -301,7 +325,11 @@ PartyMoveResult moveEmeraldPokemon(const QByteArray& save,const QString& hash,co
     const auto& placed=to.box<0?after.party->party[to.slot]:after.party->boxes[to.box].members[to.slot];
     if(placed.kind!=PokemonSlotKind::Known || placed.speciesId!=member(from).speciesId || placed.level!=member(from).level)
         return {{},"The destination could not be verified.",{}};
-    return {result,{},from.box<0 && to.box<0?"Team order saved.":"Pokemon moved."};
+    const auto checked=shopSlot(result,hash);
+    if(!checked)return {{},"The moved Pokemon could not be verified.",{}};
+    QByteArray checkedStorage;for(int id=5;id<14;++id)checkedStorage+=checked->blocks[id];
+    if(worldBlock(*checked)!=world || checkedStorage!=storage)return {{},"Both positions could not be verified.",{}};
+    return {result,{},from.box<0 && to.box<0?"Team order saved.":request.exchangeOccupied?"Pokemon swapped places.":"Pokemon moved."};
 }
 PokemonReleaseResult releaseEmeraldPokemon(const QByteArray& save,const QString& hash,const PokemonRelease& request) {
     const auto slot=shopSlot(save,hash);

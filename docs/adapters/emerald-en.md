@@ -201,3 +201,26 @@ independent byte/quantity checks, normal Emerald load and in-game save, and exac
 Center rollback passed. Personal saves remain unchanged. Entering Center backups
 refreshes the shelf after a Party/Box operation. The portable code, tables and
 exact-game profile are synchronized with the implementation.
+
+## Occupied swaps - 2026-09-27, integrated
+
+Exact English Emerald only: occupied Box/Box and Party/Box exchange, with
+explicit two-member confirmation. Native storage swap conversion and last-able
+member constraints are covered by source review, byte tests and normal-game proof.
+Other editions and unreadable/Egg/Mail transfers remain outside this scope.
+
+Source review: pinned pret/pokeemerald `pokemon_storage_system.c` functions
+`SetShiftedMonData`, `SetPlacedMonData` and `CanShiftMon` show atomic composition
+of two placements: storage placement restores PP, withdrawal initializes Party
+HP/status/stats, and the resulting Party must retain an able non-Egg member.
+TrainerOS prepares both records before any write and requires explicit occupied
+exchange intent; it excludes Egg/Mail and damaged records in either direction.
+
+[Occupied swap delivery](../EMERALD_MOVEMENT.md#occupied-swaps---2026-09-27):
+24 Pokemon permutations, 14 sector rotations, full Party, sector-crossing slots,
+explicit-intent/missing-capability gates, stale/Egg/Mail/corrupt rejection and
+controller cancel/repeat checks. Real Flip exchanged Party/Box and occupied
+Box/Box records; independent exact-delta checks passed. Normal Emerald loaded
+Bulbasaur in the first Party position with 20/20 HP and saved all changed
+Party/Storage records unchanged. Center restored the copied input byte-for-byte.
+Personal saves remained unchanged; portable source/profile copy refreshed.

@@ -23,6 +23,7 @@ class PartyPresentation final : public QObject {
     Q_PROPERTY(QString moveTitle READ moveTitle NOTIFY changed)
     Q_PROPERTY(QString moveMessage READ moveMessage NOTIFY changed)
     Q_PROPERTY(QVariantList moveRows READ moveRows NOTIFY changed)
+    Q_PROPERTY(QVariantList movePair READ movePair NOTIFY changed)
     Q_PROPERTY(int moveIndex READ moveIndex NOTIFY changed)
     Q_PROPERTY(bool moveParty READ moveParty NOTIFY changed)
     Q_PROPERTY(QString section READ section NOTIFY changed)
@@ -57,6 +58,7 @@ public:
     QString moveTitle() const;
     QString moveMessage() const {return moveMessage_;}
     QVariantList moveRows() const;
+    QVariantList movePair() const;
     int moveIndex() const {return moveIndex_;}
     bool moveParty() const {return moveTargetBox_<0;}
     Q_INVOKABLE void beginMove();

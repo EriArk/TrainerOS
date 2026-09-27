@@ -77,14 +77,17 @@ intent, normal return, failed/cancelled sessions and recovery of interrupted
 history. External changes retain a separate observation. This is local lifecycle
 evidence, not #94 verified gameplay; ordinary play remains independent.
 
-**Next increment: 3/6 Высокое (High)** - return to remaining R4 Emerald
-Party/Boxes and Dex acceptance: reconcile the already delivered behavior, then
-finish the next practical management flow with exact-save and controller proof.
-Stronger #94 policy stays before trust-sensitive Link, not a gate on local play.
-Keep item/box services and all later queue entries;
-practice and two-device Link retain their independent research/proof gates.
-Before trusted Link, add #93 signed lineage and #94 observable session policy;
-ordinary local play remains independent of verified status.
+**2026-09-27 occupied swap delivery:** exact English Emerald exchanges occupied
+Box/Box or Party/Box positions, including a full Party, through one two-member
+confirmation and the existing protected transaction. Native-game save/readback
+and exact Center restore passed on an isolated Flip copy; personal saves stayed
+unchanged. [Scope and proof](EMERALD_MOVEMENT.md#occupied-swaps---2026-09-27).
+The permanent adapter copy/profile includes the new operation.
+
+**Next increment: 3/6 Высокое (High)** - continue R4 practical Boxes management:
+controller-first box naming with exact Emerald text/length rules, protected save
+updates and native-game readback. Keep remaining Dex/forms, scenes, practice,
+Link and every later roadmap gate intact.
 
 The [R1–R18 queue](#unified-execution-order--existing-work-and-new-issues) below
 is authoritative. P0–P12 remain stable work areas, not scheduling numbers. Dated

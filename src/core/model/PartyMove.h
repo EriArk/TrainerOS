@@ -13,6 +13,7 @@ using HeldItemWriter = std::function<HeldItemResult(const QByteArray&,const QStr
 struct PartyMove {
     PokemonPosition from, to;
     QString saveRevision; // SHA-256 of the observation shown to the user.
+    bool exchangeOccupied = false; // Explicit two-member confirmation, never implicit replacement.
 };
 struct PokemonRelease { PokemonPosition from; QString saveRevision; };
 struct PokemonReleaseResult { QByteArray data; QString error, message; };
