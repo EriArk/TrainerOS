@@ -165,6 +165,7 @@ add_library(trainer_core STATIC
     src/features/worlds/MultiversePresentation.cpp
     src/features/center/PartyPresentation.cpp
     src/features/center/CenterActivities.cpp
+    src/features/center/PracticeController.cpp
     src/features/worlds/WorldsController.h
     src/integrations/adventure/AdventureAdapter.h
     src/integrations/adventure/mock/MockAdventureAdapter.cpp
@@ -269,6 +270,8 @@ qt_add_qml_module(traineros
         src/qml/PokemonClinic.qml
         src/qml/PokemonShop.qml
         src/qml/CenterActivitiesPanel.qml
+        src/qml/PracticePanel.qml
+        src/qml/PracticeFighter.qml
         src/qml/HomeParty.qml
         src/qml/PartyPlayroom.qml
         src/qml/PlayroomMeadow.qml

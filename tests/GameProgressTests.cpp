@@ -1008,6 +1008,22 @@ private slots:
         });
         QCOMPARE(replaced.availability, ProgressAvailability::Unreadable); QVERIFY(!replaced.caught);
     }
+    void verifiesFrozenSourceWithoutReplacingPublicSnapshot() {
+        QTemporaryDir dir;const auto path=dir.filePath("save.srm");const auto bytes=save(Gen3Edition::Emerald);write(path,bytes);
+        GameProgressService service([&](const AdventureRegistration& r){return SaveTarget{r.adventure.id,"",path,EmeraldHash,"context",{},true};});
+        service.refresh(record());QTRY_COMPARE(service.snapshot().availability,ProgressAvailability::Available);
+        const auto expected=service.snapshot();QSignalSpy changes(&service,&GameProgressService::changed);
+        std::optional<bool> checked;
+        service.verifySnapshot(record(),expected,this,[&](bool result){checked=result;});
+        QTRY_VERIFY(checked.has_value());QVERIFY(*checked);QCOMPARE(changes.size(),0);
+        auto different=expected;different.saveRevision="different";checked.reset();
+        service.verifySnapshot(record(),different,this,[&](bool result){checked=result;});
+        QTRY_VERIFY(checked.has_value());QVERIFY(!*checked);QCOMPARE(changes.size(),0);
+        write(path,QByteArray(128,'x'));checked.reset();
+        service.verifySnapshot(record(),expected,this,[&](bool result){checked=result;});
+        QTRY_VERIFY(checked.has_value());QVERIFY(!*checked);QCOMPARE(changes.size(),0);
+        QCOMPARE(service.snapshot().saveRevision,expected.saveRevision);
+    }
     void discardsPreviousAdventureAndRefreshesReplacement() {
         QTemporaryDir dir; const auto path = dir.filePath("save.srm"); write(path, save(Gen3Edition::Emerald));
         QSemaphore entered, release;

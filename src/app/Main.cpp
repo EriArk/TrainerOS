@@ -345,6 +345,17 @@ int main(int argc, char* argv[]) {
                 return resolveRetroArchSave(record, retroarchInstallation);
             });
             shell.configureProgress(gameProgress.get());
+            auto* practice=shell.party()->activities()->practice();
+            practice->configureRuntime(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/practice/emerald-v1");
+            practice->configureVerification([&,provider=gameProgress.get()](const PracticeSource& source,const GameProgress& expected,QObject* receiver,std::function<void(bool)> done) {
+                const auto record=activeLibrary.registration(source.adventureId);
+                if(!record || source.trainerId!=store->ownerId() || source.adventureId!=shell.currentAdventureId()
+                    || adventureLaunch.active() || (saveBackups && saveBackups->busy())) {done(false);return;}
+                provider->verifySnapshot(*record,expected,receiver,[&,source,done=std::move(done)](bool matches){
+                    done(matches && source.trainerId==store->ownerId() && source.adventureId==shell.currentAdventureId()
+                        && !adventureLaunch.active() && !(saveBackups && saveBackups->busy()));
+                });
+            });
             const auto refreshProgress = [&, provider = gameProgress.get()](bool force) {
                 if (adventureLaunch.active() || (saveBackups && saveBackups->busy())) return;
                 const auto id = shell.currentAdventureId();

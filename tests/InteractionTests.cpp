@@ -348,7 +348,9 @@ private slots:
         activities->dispatch(Action::Back);QCOMPARE(activities->route(),"playroom");
         party.setAdventure("one","Renamed");QCOMPARE(activities->route(),"playroom");
         party.setAdventure("two","Other");QVERIFY(activities->reaction().isEmpty());
-        activities->showPlace("practice");activities->dispatch(Action::Confirm);QCOMPARE(activities->stage(),"preview");
+        activities->showPlace("practice");activities->dispatch(Action::Confirm);
+        QVERIFY(!activities->practice()->ready());QCOMPARE(activities->practice()->stage(),"first");
+        QCOMPARE(activities->route(),"playroom");
         activities->dispatch(Action::Back);QCOMPARE(activities->stage(),"setup");
         activities->dispatch(Action::Back);QCOMPARE(activities->route(),"playroom");
         PartyPresentation personal(false);personal.showSection("activities");personal.activities()->showPlace("playroom");

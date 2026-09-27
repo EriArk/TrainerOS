@@ -1,9 +1,11 @@
-# Emerald practice: read-only battle bridge
+# Emerald practice: native read-only sparring
 
-2026-09-27, R4 / #55. **Semantic reader and process bridge are implemented;
-native practice UI is not enabled.** The selected engine is Pokemon Showdown's
-offline Gen III simulator. A native Flip probe uses the actual C++ reader and
-process service; no battle result is written to a save or TrainerOS history.
+2026-09-27, R4 / #55. **Native two-side practice is implemented for the exact
+English Emerald reader.** Enter from Playroom with Up, choose two real Party
+members and their moves, advance battle events with A, or leave with B. The
+selected engine is Pokemon Showdown's offline Gen III simulator. The page labels
+the mode "Gen III simulation"; complete cartridge equivalence is not claimed.
+No battle result is written to a save or TrainerOS history.
 
 ## Candidate decision
 
@@ -41,7 +43,7 @@ save chunks, paths or write-service access to the battle process.
 
 | Field | Reader/bridge after this increment | Remaining boundary |
 |---|---|---|
-| Exact game/context and revision | Frozen owner/Adventure/content/context/save identity; exact Emerald gate | Native consumer must forward every source invalidation, including active emulator/missing reads. |
+| Exact game/context and revision | Frozen owner/Adventure/content/context/save identity; exact Emerald gate | Native consumer forwards source invalidations and rechecks the actual save before start/each turn and every 3 seconds while running. |
 | Species/form, level, ability, nature | Present | Explicit Gen III identifiers and edition form policy; preserve validation failures. |
 | IVs/EVs | Optional numeric battle traits, HP/Atk/Def/SpAtk/SpDef/Speed | Not inferred for other readers or fixtures. |
 | Friendship | Exact Growth byte 9, including zero | Actual friendship initializes Return/Frustration. |
@@ -64,8 +66,9 @@ switch-in abilities or requests, including later Transform behavior.
 The public simulator accepts teams without full validation. Its research custom
 format permits much broader inputs than this handheld feature should accept.
 
-Gen III support does not establish full Emerald cartridge equivalence. Choose
-the native-game control cases before enabling the UI. The intended practice
+Gen III support does not establish full Emerald cartridge equivalence. The UI
+therefore identifies simulation mode under #55's approximate-rule allowance.
+The intended practice
 context is a fresh Link-style duel: no trainer badge bonuses or obedience, no
 bag commands, no switching in this two-individual slice. Emerald's
 `ShouldGetStatBadgeBoost` excludes Link/Frontier contexts but modifies some
@@ -101,7 +104,7 @@ No copyrighted game assets, raw saves or proprietary fixtures are committed.
   remain unchanged; schema 14, 829 Adventures, 3 Trainers. No app deployment or
   new visual screen belongs to this feasibility increment.
 
-## Implemented bridge and evidence
+## Bridge increment evidence (before the native consumer)
 
 - `PokemonRecord::battle` is optional, populated only by the Emerald reader.
   Synthetic records cover all 24 encryption block permutations, IV/EV order,
@@ -152,15 +155,55 @@ when installed). The optional `TRAINER_BUILD_PRACTICE_PROBE=ON` builds
 hash, reads the ordinary save, runs copied pairs and checks original bytes.
 Its detailed report is private test data and must stay outside Git.
 
-## Next gate
+## Native consumer and offline runtime
 
-1. Deliver the native controller-first 1v1 presentation using two real Party
-   copies, validate on Flip against game situations, and prove saves byte-identical
-   after finish/cancel/failure. No HP/PP/item/EXP/money/friendship/evolution rewards.
-2. Wire live source/runtime invalidation and runtime prerequisite delivery; prove
-   input focus, animation responsiveness, finish/cancel/engine failure and clean
-   return on the actual handheld. Do not enable an unverified game/effect silently.
-3. Expand exact rule coverage with native-game comparisons and add only demonstrated
+`PracticeController` freezes both actual Party presentations, validates the pair,
+collects both sides' move choices and translates bounded engine events into
+ordinary battle messages. Private/public split events are displayed once; exact
+HP/status updates occur with their events. Selection excludes the same slot on
+both sides. Source state and saved HP/PP remain untouched. There is no AI claim:
+the owner controls both sides, as accepted in #55.
+
+`GameProgressService::verifySnapshot` reads on its existing worker without
+replacing the public snapshot or triggering a Checking/Available loop. The host
+also checks active Trainer, Adventure, emulator and protected service activity.
+A failed or late check cannot start a closed screen. Leaving a primary/secondary
+page or using Home cancels the child; ordinary Start retains modal priority.
+The runtime exists only while a battle needs it, with no network listener.
+
+The explicit [installer](../tools/install-practice-runtime.py) installs verified
+Node 24.18.0 plus the locked 0.11.11 dependency, worker and factual reference in
+the application data directory's `practice/emerald-v1`. It stages replacement,
+keeps a previous bundle and retains dependency licenses/file hashes. The app
+does not fetch packages or silently fall back to another engine.
+
+Tests cover two-participant selection, Back, same-slot rejection, late async
+checks after leaving, owner changes, actual turns, source mismatch and immutable
+input. Snapshot verification additionally covers changed/malformed saves without
+changing the public observation. Existing timeout/crash/malformed child checks
+remain. Installed Flip controller proof covers selection, a complete two-turn
+battle, returning to Playroom and cancelling another battle with physical Home;
+the child was reaped and personal saves remained byte-identical. Device renders
+are captured from the production shell, with no development preview or fixture.
+
+Validation: Windows native build and the 44-test baseline were exercised. Its
+transition-notification and obsolete preview-focus failures were fixed; the
+affected interaction, practice lifecycle and two QML suites subsequently pass
+(4/4, including zero diagnostics QML warnings). The other 42 baseline checks
+passed. The pinned engine replay still matches the bridge evidence above;
+portable adapter verification passes. Final installed ARM64 application SHA-256:
+`c07274ef5fdfffd1db0979d2e806f74002ffe73203169fb723c13c98653f0bc3`.
+Schema 14, 829 Adventures and three Trainers are preserved with DB integrity
+checks. The source-state tests include unavailable input with a focused Back
+action; no preview fixture can enable a real battle.
+
+## Remaining gates
+
+1. Expand exact rule coverage with native-game comparisons and add only demonstrated
    Emerald corrections. Keep ordinary save writers and trust-sensitive Link separate.
+   Existing reference/PP/stat vectors and private reader agreement are not a
+   complete cartridge battle comparison; approximation remains explicit.
+2. Add more battle presentation/effect coverage only where supported; no claim of
+   every cartridge animation/message, battle switching, AI or saved-battle resume.
 
 All other R4/R1-R18 commitments remain in [ROADMAP](ROADMAP.md).

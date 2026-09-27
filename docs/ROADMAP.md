@@ -109,12 +109,18 @@ The [evidence and remaining gates](EMERALD_PRACTICE.md) distinguish this from
 native UI delivery and full cartridge equivalence. Owner accepts bounded Emerald
 rule modules for demonstrated differences; no new engine by default.
 
-**Next increment: 3/6 Высокое (High)** - R4 #55 native controller-first 1v1
-practice using two real Emerald Party copies: pair/move selection, battle events,
-finish/cancel, real source/runtime invalidation and pinned runtime delivery.
-Prove exact rule control cases and installed Flip interaction before enabling it;
-no save writes or rewards. Keep scenes, Link/two-device proof and every later
-queue row intact.
+**2026-09-27 native practice consumer:** the installed Emerald Gen III simulation
+now has two-Party-member selection, two-side move controls, sequential battle
+messages/HP, results and cancellation. Offline pinned runtime and live source
+checks are wired; copied battle results never reach a save. Reference vectors
+and installed Flip interaction are proven; complete cartridge equivalence stays
+open and simulation mode is explicit. [Delivery boundary](EMERALD_PRACTICE.md).
+
+**Next increment: 3/6 Высокое (High)** - R4 #55 bounded native Emerald battle
+control cases: compare damage/status/ability and held-item behavior, add only
+demonstrated rule corrections and complete the corresponding battle feedback.
+Preserve read-only copies, scenes, Link/two-device proof and every later queue
+row; do not begin a new battle engine or silently claim full rule equivalence.
 
 The [R1–R18 queue](#unified-execution-order--existing-work-and-new-issues) below
 is authoritative. P0–P12 remain stable work areas, not scheduling numbers. Dated

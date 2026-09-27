@@ -86,6 +86,16 @@ void GameProgressService::inspectCapabilities(const AdventureRegistration& recor
 void GameProgressService::invalidate() {
     ++generation_; pending_ = false; record_ = {}; snapshot_ = {}; emit changed();
 }
+void GameProgressService::verifySnapshot(const AdventureRegistration& record,const GameProgress& expected,QObject* receiver,std::function<void(bool)> done) {
+    const QPointer<QObject> guard(receiver);
+    QMetaObject::invokeMethod(worker_,[this,record,expected,guard,done=std::move(done)] {
+        const auto observed=inspectGameProgress(record,resolver_);
+        const bool matches=observed.availability==ProgressAvailability::Available
+            && observed.contentRevision==expected.contentRevision && observed.contextRevision==expected.contextRevision
+            && observed.saveRevision==expected.saveRevision && !expected.saveRevision.isEmpty();
+        QMetaObject::invokeMethod(this,[guard,done,matches]{if(guard)done(matches);},Qt::QueuedConnection);
+    },Qt::QueuedConnection);
+}
 void GameProgressService::refresh(const AdventureRegistration& record) {
     ++generation_; record_ = record; pending_ = true;
     snapshot_ = unavailable(ProgressAvailability::Checking, "Reading the last in-game save…"); emit changed();

@@ -16,6 +16,7 @@ public:
     ~GameProgressService() override;
     void refresh(const AdventureRegistration&);
     void invalidate();
+    void verifySnapshot(const AdventureRegistration&,const GameProgress&,QObject*,std::function<void(bool)>) override;
     void inspectCapabilities(const AdventureRegistration&,QObject*,std::function<void(QStringList)>) override;
     QString adventureId() const override { return record_.adventure.id; }
     GameProgress snapshot() const override { return snapshot_; }

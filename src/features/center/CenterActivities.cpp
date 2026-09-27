@@ -3,10 +3,22 @@
 #include <QStringList>
 
 namespace trainer {
+CenterActivities::CenterActivities(bool sample,QObject* parent):QObject(parent),sample_(sample),practice_(this) {
+    connect(&practice_,&PracticeController::changed,this,&CenterActivities::changed);
+    connect(&practice_,&PracticeController::closeRequested,this,[this]{route_="playroom";emit changed();});
+}
+void CenterActivities::showPlace(const QString& place) {
+    if(route_==place){if(place=="practice" && !practice_.isOpen())practice_.enter();return;}
+    if(route_=="practice")practice_.leave();
+    route_=place;stage_="setup";
+    if(place=="practice")practice_.enter();
+    emit changed();
+}
 void CenterActivities::setParty(const QVariantList& actors, const QString& source, const QString& unavailable) {
     if (actors_ == actors && source_ == source && unavailable_ == unavailable) return;
     actors_ = actors; source_ = source; unavailable_ = unavailable;
     actor_ = 0; reaction_.clear(); gesture_.clear(); ++reactionSerial_;
+    practice_.setActors(actors);
     emit actorsChanged();
     emit changed();
 }
@@ -41,13 +53,10 @@ QVariantMap CenterActivities::page() const {
     if (route_ == "playroom") {
         message = hasParty() ? QString() : unavailable_.isEmpty() ? QStringLiteral("Your Party has no visitors yet.") : unavailable_;
         action = hasParty() ? "Call" : "Activities";
-    } else if (!sample_) {
-        message = route_ == "practice" ? "Practice needs verified Party records and supported battle rules."
-            : "No supported transfer connection yet. Pairing and save changes are unavailable.";
     } else if (route_ == "practice") {
-        message = stage_ == "setup" ? "Two sample partners · layout rehearsal only"
-            : "Battle preview · no simulation, damage or rewards";
-        action = stage_ == "setup" ? "Preview layout" : "Back to setup";
+        message = practice_.message();
+    } else if (!sample_) {
+        message = "No supported transfer connection yet. Pairing and save changes are unavailable.";
     } else {
         message = stage_ == "setup" ? "Sample peer · no discovery or connection is performed"
             : stage_ == "review" ? "Sample proposal · neither side can commit changes"
@@ -57,28 +66,31 @@ QVariantMap CenterActivities::page() const {
     return {{"title", title}, {"message", message}, {"action", action}};
 }
 void CenterActivities::reset() {
+    practice_.leave();
     route_ = "menu"; stage_ = "setup"; reaction_.clear(); gesture_.clear(); actor_ = 0; menu_ = 0; emit changed();
 }
 void CenterActivities::activate(int index) {
+    if(route_=="practice"){practice_.activate(index);return;}
     if (route_ == "menu") {
         if(index==3){menu_=3;emit changed();emit shopsRequested();return;}
         menu_ = std::clamp(index, 0, 2);
         route_ = QStringList{"playroom", "practice", "link"}[menu_];
+        if(route_=="practice")practice_.enter();
         stage_ = "setup"; reaction_.clear(); actor_ = 0;
     } else if (route_ == "playroom" && hasParty()) {
         actor_ = std::clamp(index, 0, int(actors_.size()) - 1);
         react("call"); return;
     }
     else if (!sample_ || route_ == "playroom") return;
-    else if (route_ == "practice") stage_ = stage_ == "setup" ? "preview" : "setup";
     else stage_ = stage_ == "setup" ? "review" : stage_ == "review" ? "interrupted" : "setup";
     emit changed();
 }
 void CenterActivities::dispatch(Action action) {
+    if(route_=="practice"){practice_.dispatch(action);return;}
+    if(route_=="playroom" && action==Action::Up){openPractice();return;}
     if (action == Action::Back) {
         if (route_ == "menu") { emit closeRequested(); return; }
         if (stage_ != "setup") stage_ = "setup";
-        else if(route_=="practice")route_="playroom";
         else if(route_=="link"){emit closeRequested();return;}
         reaction_.clear();
     } else if (action == Action::Confirm) { activate(focusIndex()); return; }

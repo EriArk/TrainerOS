@@ -1,4 +1,5 @@
 #include "integrations/practice/PracticeSession.h"
+#include "features/center/PracticeController.h"
 #include <QtTest>
 #include <QStandardPaths>
 #include <QFileInfo>
@@ -24,6 +25,45 @@ class PracticeSessionTests:public QObject {
     const QString worker=QStringLiteral(TRAINER_SOURCE_DIR "/src/integrations/practice/emerald-worker.cjs");
     const QString engine=QStringLiteral(TRAINER_SOURCE_DIR "/tools/research/emerald-practice/node_modules/pokemon-showdown");
 private slots:
+    void controllerSelectionAndAsyncCancellation() {
+        const auto node=QStandardPaths::findExecutable("node");
+        if(node.isEmpty() || !QFileInfo::exists(engine+"/package.json"))QSKIP("Pinned practice runtime unavailable");
+        PracticeController c;const auto p=fixture();auto s=source(p);
+        const QVariantList actors{QVariantMap{{"index",0},{"name","First"}},QVariantMap{{"index",1},{"name","Second"}}};
+        c.configureRuntime(node,worker,engine);
+        std::function<void(bool)> reply;
+        c.configureVerification([&](const PracticeSource&,const GameProgress&,QObject*,auto done){reply=std::move(done);});
+        c.setObservation(s,p,actors);c.enter();QVERIFY(c.ready());QCOMPARE(c.candidates().size(),2);
+        c.dispatch(Action::Confirm);QCOMPARE(c.stage(),"second");
+        c.activate(0);QCOMPARE(c.stage(),"second"); // A participant cannot fight itself.
+        c.dispatch(Action::Right);
+        c.dispatch(Action::Confirm);QCOMPARE(c.stage(),"ready");
+        c.dispatch(Action::Back);QCOMPARE(c.stage(),"second");
+        c.activate(1);c.dispatch(Action::Confirm);QCOMPARE(c.stage(),"starting");QVERIFY(reply);
+        c.leave();reply(true);QVERIFY(!c.running());QVERIFY(!c.isOpen()); // Late source checks cannot restart a closed screen.
+        c.enter();c.activate(0);c.activate(1);c.activate(0);reply(false);
+        QCOMPARE(c.stage(),"error");QVERIFY(!c.running());
+        c.activate(0);c.activate(0);s.trainerId="another-owner";c.setObservation(s,p,actors);
+        QCOMPARE(c.stage(),"error");QVERIFY(!c.running());
+    }
+    void controllerActualBattleAndSourceChange() {
+        const auto node=QStandardPaths::findExecutable("node");
+        if(node.isEmpty() || !QFileInfo::exists(engine+"/package.json"))QSKIP("Pinned practice runtime unavailable");
+        PracticeController c;const auto p=fixture();const auto s=source(p);
+        c.configureRuntime(node,worker,engine);int checks=0;bool valid=true;
+        c.configureVerification([&](const PracticeSource&,const GameProgress&,QObject*,auto done){++checks;done(valid);});
+        c.setObservation(s,p,{QVariantMap{{"index",0},{"name","First"}},QVariantMap{{"index",1},{"name","Second"}}});
+        c.enter();c.activate(0);c.activate(1);c.activate(0);
+        QTRY_VERIFY(c.stage()=="moves" || c.stage()=="events");
+        while(c.stage()=="events")c.dispatch(Action::Confirm);
+        QCOMPARE(c.stage(),"moves");QCOMPARE(c.fighters()[0].toMap()["battleHp"].toInt(),155);
+        c.activate(0);QCOMPARE(c.side(),1);c.dispatch(Action::Back);QCOMPARE(c.side(),0);
+        c.activate(0);c.activate(0);QTRY_COMPARE(c.stage(),"events");
+        QVERIFY(checks>=2);while(c.stage()=="events")c.dispatch(Action::Confirm);
+        QVERIFY(c.fighters()[0].toMap()["battleHp"].toInt()<155);
+        valid=false;c.activate(0);c.activate(0);QCOMPARE(c.stage(),"error");
+        QTRY_VERIFY(!c.running());QCOMPARE(*p.party->party[0].hp,0);QCOMPARE(p.party->party[0].moves[0].pp,0);
+    }
     void invalidSourceDoesNotStart() {
         PracticeSession session;const auto p=fixture();auto s=source(p);s.trainerId.clear();
         QVERIFY(!session.begin("missing",worker,engine,s,p,0,1,{1,2,3,4}));QVERIFY(!session.active());

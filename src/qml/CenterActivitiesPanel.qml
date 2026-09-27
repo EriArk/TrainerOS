@@ -6,7 +6,12 @@ Item {
     readonly property var activity: shell.party.activities
     readonly property bool takesFocus: visible && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
     enabled: !shell.drawerOpen
+    PracticePanel {
+        anchors.fill: parent; shell: root.shell; controller: root.activity.practice
+        visible: root.activity.route === "practice"
+    }
     Item {
+        visible: root.activity.route !== "practice"
         anchors.fill: parent; anchors.margins: Theme.panelInset
         anchors.topMargin: Theme.contentTopInset; anchors.bottomMargin: Theme.panelInset; clip: true
         PageHeader {
@@ -48,20 +53,11 @@ Item {
                 activity: root.activity; takesFocus: root.takesFocus && visible
                 playing: visible && root.takesFocus
             }
-            Item {
-                anchors.fill: parent; visible: root.activity.sample && root.activity.route === "practice"
-                Row {
-                    x: 40; y: 70; spacing: 30
-                    Repeater {
-                        model: ["Sample partner 1", "Sample partner 2"]
-                        Rectangle {
-                            required property string modelData
-                            width: 350; height: 110; radius: 20; color: "#c4d9da"; border.color: "#8aa89a"; border.width: 2
-                            Text { anchors.centerIn: parent; text: modelData + "\nCopied preview slot"; horizontalAlignment: Text.AlignHCenter; color: Theme.ink; font.pixelSize: 22 }
-                        }
-                    }
-                }
-                Text { x: 44; y: 199; width: parent.width - 88; text: root.activity.stage === "setup" ? "Rules engine unavailable · starting a battle is disabled" : "Preview only · HP, PP, items, EXP and money stay unchanged"; color: Theme.ink; font.pixelSize: 17; wrapMode: Text.WordWrap }
+            CapButton {
+                anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 14
+                width: 164; height: 42; label: "Practice"; centered: true; tint: Theme.yellow
+                visible: root.activity.route === "playroom" && root.activity.hasParty
+                onActivated: if (root.takesFocus) root.activity.openPractice()
             }
             Column {
                 x: 32; y: 68; width: parent.width - 64; spacing: 20
@@ -73,7 +69,7 @@ Item {
             }
             CapButton {
                 objectName: "activity-primary"; x: root.shell.chooseAdventureAvailable ? Theme.adventureCutoutWidth : 24; anchors.bottom: parent.bottom; anchors.bottomMargin: 12; width: 395; height: 44
-                visible: root.activity.route !== "menu" && !(root.activity.hasParty && root.activity.route === "playroom")
+                visible: root.activity.route !== "menu" && root.activity.route !== "practice" && !(root.activity.hasParty && root.activity.route === "playroom")
                 label: root.activity.page.action; tint: Theme.blue; selected: root.takesFocus && visible
                 onActivated: root.shell.activate(root.activity.focusIndex)
             }

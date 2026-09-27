@@ -290,3 +290,18 @@ failure/timeout/oversize cleanup have checks. See [bridge evidence](../EMERALD_P
 Practice remains partial: the native screen/source bindings, production runtime
 packaging and cartridge rule comparisons are still open. No save writes/rewards
 or general battle-equivalence claim follows from the process bridge.
+
+### 2026-09-27: native practice consumer delivered, rule coverage partial
+
+Two-side controller play now consumes the verified pair bridge. The installed
+offline Node/Showdown bundle starts only for a battle. Read-only source checks
+run before starting/turn submission and periodically while active; source or
+navigation changes discard the copied match. No save writers or rewards.
+
+Flip completed a real-Party match through the installed shell, returned to
+Playroom, and cancelled another with Home. The engine process was reaped;
+personal saves stayed byte-identical. UI uses ordinary battle text and exact
+HP event updates, suppressing the engine's duplicate public split-log lines.
+The Gen III simulation label distinguishes bounded supported practice from a
+full Emerald cartridge-rules claim; native damage/status/item control cases
+remain the next gate. Updated [evidence and runtime recipe](../EMERALD_PRACTICE.md).

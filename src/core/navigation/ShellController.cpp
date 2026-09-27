@@ -242,7 +242,7 @@ bool ShellController::localModalOpen() {
 }
 bool ShellController::chooseAdventureAvailable() {
     return page_ != 1 && !(page_==2 && pokemonFace_=="shops") && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
-        && !keyboard_.isOpen() && !localModalOpen();
+        && !keyboard_.isOpen() && !localModalOpen() && !party_.activities()->practice()->running();
 }
 bool ShellController::navigationLocked() const {
     return party_.moveOpen() || libraryTools_.busy() || center_.writing() || center_.confirming()
@@ -267,6 +267,7 @@ int ShellController::faceIndex() const {
 }
 void ShellController::showPokemonFace(const QString& face) {
     if(pokemonFace_=="playroom")playroomRoute_=party_.activities()->route()=="practice"?"practice":"playroom";
+    if(face!=pokemonFace_)party_.activities()->practice()->leave();
     pokemonFace_=face;
     center_.leaveClinic();center_.leaveShops();
     if(face=="dex"){emit changed();return;}
@@ -293,6 +294,9 @@ void ShellController::refreshParty() {
         const QSignalBlocker batch(&party_);
         party_.setAdventure(currentAdventureId(), adventure ? adventure->title : QString());
         party_.setProgress(progress_ ? progress_->adventureId() : QString(), progress_ ? progress_->snapshot() : GameProgress{});
+        const auto progress=progress_ && progress_->adventureId()==currentAdventureId()?progress_->snapshot():GameProgress{};
+        party_.activities()->practice()->setObservation({trainer_.profile()["id"].toString(),currentAdventureId(),
+            progress.contextRevision,progress.contentRevision,progress.saveRevision},progress,party_.activities()->actors());
     }
     emit party_.changed();
 }
@@ -504,6 +508,7 @@ void ShellController::goToPage(int page) {
     // only the completed shell transition, not every intermediate close, so
     // hidden Home/drawer bindings do not rebuild the library repeatedly.
     QSignalBlocker transition(this);
+    if(page!=page_)party_.activities()->practice()->leave();
     libraryTools_.close();
     keyboard_.cancel();
     textTarget_ = TextTarget::None;

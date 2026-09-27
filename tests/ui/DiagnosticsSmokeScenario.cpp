@@ -254,11 +254,11 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(b); shell.party()->activities()->showPlace("practice"); break;
         }
         case 49:
-            check(shell.party()->activities()->route()=="practice" && focus("activity-primary"), "Development practice fixture has a focused action");
-            capture("practice-setup"); press(a); break;
+            check(shell.party()->activities()->route()=="practice" && focus("practice-unavailable"), "Unverified practice has a focused Back action");
+            capture("practice-unavailable"); press(a); break;
         case 50:
-            check(shell.party()->activities()->stage()=="preview", "Practice preview does not run a battle");
-            capture("practice-preview"); press(b); press(b); flip(true); press(SDL_CONTROLLER_BUTTON_Y); break;
+            check(shell.party()->activities()->route()=="playroom" && !shell.party()->activities()->practice()->running(), "Unverified practice returns without a battle");
+            capture("practice-unavailable-return"); press(b); press(b); flip(true); press(SDL_CONTROLLER_BUTTON_Y); break;
         case 51:
             check(shell.party()->activities()->route()=="link", "Link Counter is a separate route");
             capture("link-peer"); press(a); break;

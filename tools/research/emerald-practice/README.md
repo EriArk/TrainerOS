@@ -1,6 +1,6 @@
 # Emerald battle-engine feasibility probe
 
-Development-only, offline, no TrainerOS runtime dependency. It neither reads
+The original development probe is offline. It neither reads
 ROM/save files nor writes battle results. It does not start the Showdown server
 or a browser. Original synthetic teams exercise the pinned simulator API.
 
@@ -63,4 +63,28 @@ and bounded stdio/cancel. `practice_session` adds the native child lifecycle and
 source-change checks when Node and this dependency are available. The optional
 `TRAINER_BUILD_PRACTICE_PROBE=ON` target verifies actual ROM/save inputs and runs
 read-only private Party copies on the handheld. Its detailed output is private.
-Native UI wiring and real-game control cases remain separate gates.
+The native UI now consumes the bounded bridge. Full cartridge rule comparisons
+remain separate gates; this is a Gen III practice simulation.
+
+## Explicit offline runtime installation
+
+Use the pinned npm installation above and a Node 24.18.0 binary from the official
+archive, verified against its published SHASUMS before installation. Preserve
+its LICENSE file. Close practice before replacing a bundle, then run:
+
+```sh
+python3 tools/install-practice-runtime.py \
+  --node /prepared/node-v24.18.0-linux-arm64/bin/node \
+  --node-license /prepared/node-v24.18.0-linux-arm64/LICENSE \
+  --dependencies tools/research/emerald-practice/node_modules \
+  --prefix ~/.local/share/TrainerOS/TrainerOS/practice/emerald-v1
+```
+
+The installer checks versions, copies the worker/reference/locked dependency and
+all dependency licenses into a staged bundle, records file hashes and activates
+it by rename. A previous bundle is retained; an existing backup requires review
+before another install. The hash manifest records installed files, not a claim
+of third-party signature verification. No resident downloader, server, global
+Node installation or personal game content is required. Host UI/source checking
+stays outside the portable game adapter; its actual semantic/process bridge and
+dependency lock remain in the permanent configured implementation copy.

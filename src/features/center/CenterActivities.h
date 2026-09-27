@@ -2,6 +2,7 @@
 #include "core/input/Action.h"
 #include <QObject>
 #include <QVariantMap>
+#include "PracticeController.h"
 
 namespace trainer {
 // Read-only Party scene. Practice and Link retain their separate capability gates.
@@ -17,11 +18,14 @@ class CenterActivities final : public QObject {
     Q_PROPERTY(bool hasParty READ hasParty NOTIFY changed)
     Q_PROPERTY(int reactionSerial READ reactionSerial NOTIFY changed)
     Q_PROPERTY(QString gesture READ gesture NOTIFY changed)
+    Q_PROPERTY(trainer::PracticeController* practice READ practice CONSTANT)
 public:
-    explicit CenterActivities(bool sample, QObject* parent = nullptr) : QObject(parent), sample_(sample) {}
+    explicit CenterActivities(bool sample, QObject* parent = nullptr);
+    PracticeController* practice() {return &practice_;}
+    const PracticeController* practice() const {return &practice_;}
     QString route() const { return route_; }
     QString stage() const { return stage_; }
-    int focusIndex() const { return route_ == "menu" ? menu_ : actor_; }
+    int focusIndex() const { return route_ == "practice" ? practice_.focusIndex() : route_ == "menu" ? menu_ : actor_; }
     bool sample() const { return sample_; }
     QString reaction() const { return reaction_; }
     QVariantMap page() const;
@@ -31,7 +35,8 @@ public:
     QString gesture() const { return gesture_; }
     void setParty(const QVariantList&, const QString& source, const QString& unavailable);
     void reset();
-    void showPlace(const QString& place){route_=place;stage_="setup";emit changed();}
+    void showPlace(const QString& place);
+    Q_INVOKABLE void openPractice() {showPlace("practice");}
     void dispatch(Action);
     Q_INVOKABLE void activate(int);
 signals:
@@ -48,5 +53,6 @@ private:
     QVariantList actors_;
     QString source_, unavailable_, gesture_;
     int reactionSerial_ = 0;
+    PracticeController practice_;
 };
 }

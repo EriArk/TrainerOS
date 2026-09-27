@@ -237,7 +237,13 @@ Window {
                     }
                     if (shell.center.clinicOpen) return shell.center.busy ? [] : [h("Select","Backups"),h("X","Link"),h("A",shell.center.treatment === "ready" && shell.center.canHeal ? "Heal team" : "OK")]
                     if (party.section === "saves") return shell.center.confirming ? [h("A","Restore"),h("B","Cancel")] : [h("X",shell.center.route === "adventures" ? "Search" : "Refresh"),h("Select","Backup"),h("A","Open"),h("B","Back")]
-                    if (party.section === "activities") return party.activities.route === "playroom" && party.activities.hasParty ? [h("←→","Partner"),h("Select","Play"),h("X","Greet"),h("A","Call"),h("B","Back")] : [h("A","Select"),h("B","Back")]
+                    if (party.section === "activities" && party.activities.route === "practice") {
+                        const practice = party.activities.practice
+                        if (practice.stage === "starting" || practice.stage === "waiting") return [h("B","Leave practice")]
+                        if (practice.stage === "first" && !practice.ready) return [h("A","Back"),h("B","Back")]
+                        return [h("A",practice.stage === "ready" ? "Begin" : practice.stage === "events" ? "Next" : practice.stage === "finished" ? "Again" : practice.stage === "moves" ? "Move" : "Choose"),h("B",practice.running ? "Leave practice" : "Back")]
+                    }
+                    if (party.section === "activities") return party.activities.route === "playroom" && party.activities.hasParty ? [h("↑","Practice"),h("←→","Partner"),h("Select","Play"),h("X","Greet"),h("A","Call")] : [h("A","Select"),h("B","Back")]
                     if (party.moveStage === "release-confirm") return [h("X","Release"),h("B","Keep Pokemon")]
                     if (party.moveOpen) return party.moveStage === "writing" || party.moveStage === "checking" ? [] : [h("A",party.moveStage === "name-confirm" ? "Rename" : party.moveStage === "name-error" ? "Edit name" : party.moveStage === "item-confirm" ? "Confirm" : party.moveStage === "confirm" ? "Confirm" : party.moveStage === "result" ? "OK" : "Choose"),h("B",party.moveStage === "places" ? "Cancel" : "Back")]
                     if (party.detailOpen) return [h("A","Select"),h("B","Close")]

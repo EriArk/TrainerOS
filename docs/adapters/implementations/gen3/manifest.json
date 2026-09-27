@@ -29,6 +29,6 @@
     "src/integrations/progress/Gen3Progress.h": "32fc400e5e50b98b2e5f6ab5f784b5c80b0993eb371d570d35fe443103cc08be",
     "tools/research/emerald-practice/.gitignore": "7f21fc8708807e36cac6c39231cce03169676fb90fa5c1f38ec38e29b6d6e8dd",
     "tools/research/emerald-practice/package-lock.json": "ac2b02e66eb2e8565925b6f77a4feafc480bca6664cb754556f57ca7aefaf53e",
-    "tools/research/emerald-practice/package.json": "6a57954765ba241d6355a9fc0ff1db8eee9fbd293029d056033535d656155488"
+    "tools/research/emerald-practice/package.json": "572917cf2999509e6dbc4d627a89aa0a534fbbb9dc2b4902b90275fce7931773"
   }
 }
