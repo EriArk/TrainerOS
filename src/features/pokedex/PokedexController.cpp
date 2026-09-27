@@ -131,6 +131,15 @@ QVariantMap PokedexController::present(const PokedexEntry& entry, bool detailed)
     result["formId"] = form.id;
     result["art"] = art_ ? art_->image(target, detailed ? "pokedexDetailArt" : "pokedexListArt") : QVariantMap{};
     if(detailed) {
+        const bool inRange=saveDex_ && entry.number>0 && entry.number<=saveDex_->speciesCount;
+        const auto count=[&](bool party)->QString {
+            if(!inRange)return QStringLiteral("\u2014");
+            const auto& forms=party?saveDex_->partyForms:saveDex_->boxForms;
+            return forms?QString::number(forms->value(target)):QStringLiteral("\u2014");
+        };
+        result["partyCount"]=count(true);result["boxCount"]=count(false);
+        result["collectionSource"]=staleSave_?"Last verified save":"Last save";
+        result["speciesStatus"]=saveMode_?"Species: "+result["status"].toString():result["status"].toString();
         result["form"]=form.name;result["formCount"]=int(entry.forms.size());
         result["height"]=form.heightDm?QString::number(form.heightDm/10.0,'f',1)+" m":"—";
         result["weight"]=form.weightHg?QString::number(form.weightHg/10.0,'f',1)+" kg":"—";

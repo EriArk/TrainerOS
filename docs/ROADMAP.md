@@ -95,10 +95,17 @@ with relevant supported views. Shared shell/controller/library/profile/system
 services remain; unintegrated games use the functional generic fallback.
 [Acceptance](EXPANSION_69_90.md). This records future behavior, not a new delivery.
 
-**Next increment: 3/6 Высокое (High)** - continue R4 selected-save Dex/forms:
-reconcile exact Emerald observations with reference forms and combined Dex UI,
-preserving unknowns instead of inferring a form collection from species flags.
-Keep remaining scenes, practice, Link and every later roadmap gate intact.
+**2026-09-27 Dex/form delivery:** exact Emerald now shows separate current-form
+Party/Box counts beside species Seen/Caught in the combined Pokédex. Existing
+individual readers provide Unown letters, Emerald Deoxys and stored Castform;
+unreadable areas remain unknown, and rollback replaces counts. No per-form
+capture history is invented. [Evidence and bounds](EMERALD_DEX_FORMS.md).
+
+**Next increment: 3/6 Высокое (High)** - continue R4 #55 practice with a bounded
+Emerald engine/rules feasibility pass: evaluate the accepted engine candidates
+on ARM64 and map required fields from actual Party records before enabling the
+read-only 1v1 consumer. No speculative battle engine or save rewards. Preserve
+remaining scene refinements, Link/two-device gates and all later queue rows.
 
 The [R1–R18 queue](#unified-execution-order--existing-work-and-new-issues) below
 is authoritative. P0–P12 remain stable work areas, not scheduling numbers. Dated

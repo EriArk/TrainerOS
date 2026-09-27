@@ -21,14 +21,17 @@ coverage, never automatically marked unseen or uncaught.
 The owner retired the manual journal on 2026-09-24: no manual Seen/Caught,
 notes, editor or Select shortcut remains. Personal favorites still use A.
 Legacy journal rows remain inert for database compatibility. Save observations
-never invent individuals or award achievements. Forms remain reference/art
+never invent individuals or award achievements. Forms retain reference/art
 selections: flags prove species registration, not ownership of every form.
+The [Emerald form-count extension](EMERALD_DEX_FORMS.md) separately displays
+current hatched individuals in Party/Boxes for the selected form.
 Reference stats and modern type/form facts are not individual game stats.
 
 The existing exact English Emerald SHA-256 and mGBA ordinary-save route gate
-this capability. FireRed's established badge/count observations remain intact,
-but do not imply per-species or Party support. Unsupported/missing observations
-leave current progression unknown; favorites remain independent.
+this capability. FireRed's later [exact read/healing slice](SAVE_POLICY_FIRERED.md)
+includes per-species and Party observations; current-form totals remain
+Emerald-only. Unsupported/missing observations leave current progression unknown;
+favorites remain independent.
 Ephemeral development compositions without a save provider retain their
 explicit sample presentation.
 
@@ -57,7 +60,12 @@ Changing Adventure, Trainer/context, missing saves, unsupported builds or an
 unverifiable source clears it. A successful older save replaces today's flags
 rather than unioning discoveries. Nothing new is persisted in SQLite.
 
-## Acceptance and checks
+## Original delivery evidence (historical)
+
+Later journal retirement and the form-count extension supersede the UI details
+below; these original captures are not evidence of the current screen.
+
+### Acceptance and checks
 
 - Synthetic complete saves cover National bit boundaries, Seen-only versus
   Caught, all 386 species, inconsistent mirrored bits and Caught-without-Seen.

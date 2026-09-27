@@ -158,13 +158,34 @@ Item {
                 }
             }
             Column {
-                x: stats.x; y: stats.y + stats.height + 5; width: stats.width; spacing: 3; visible: preview.hasEntry
+                x: stats.x; y: stats.y + stats.height + 5; width: stats.width; spacing: 2; visible: preview.hasEntry
                 Rectangle {
                     width: parent.width; height: 25; radius: 6
                     color: root.dex.detail.status === "Caught" ? "#badc9c" : root.dex.detail.status === "Seen" ? "#f0d08c" : "#c7d9e4"
                     Text { x: 8; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 16
-                        text: root.dex.detail.recordSource + ": " + root.dex.detail.status + (root.dex.detail.favorite ? "  ★" : "")
+                        text: root.dex.detail.speciesStatus + (root.dex.detail.favorite ? "  ★" : "")
                         textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 12; font.bold: true; elide: Text.ElideRight }
+                }
+                Text {
+                    width:parent.width
+                    text:"THIS FORM \u00b7 " + (root.dex.detail.collectionSource || "Last save").toUpperCase()
+                    color:Theme.muted;font.pixelSize:10;font.letterSpacing:0.5
+                }
+                Row {
+                    width:parent.width;spacing:8
+                    Repeater {
+                        model:[{label:"Party",count:root.dex.detail.partyCount || "\u2014",tint:"#aed3e5"},
+                               {label:"Boxes",count:root.dex.detail.boxCount || "\u2014",tint:"#ceb9e4"}]
+                        Rectangle {
+                            required property var modelData
+                            objectName:"dex-form-" + modelData.label.toLowerCase()
+                            width:(stats.width-8)/2;height:30;radius:7;color:modelData.tint
+                            border.color:Qt.darker(color,1.15)
+                            Text {x:10;anchors.verticalCenter:parent.verticalCenter;text:modelData.label;color:Theme.ink;font.pixelSize:13}
+                            Text {anchors.right:parent.right;anchors.rightMargin:12;anchors.verticalCenter:parent.verticalCenter
+                                text:modelData.count;color:Theme.ink;font.family:Theme.displayFamily;font.pixelSize:22;font.bold:true}
+                        }
+                    }
                 }
                 Text { width: parent.width; text: root.dex.detail.family; textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 11; elide: Text.ElideRight }
             }

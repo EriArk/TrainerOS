@@ -146,6 +146,16 @@
             "rollback"
           ],
           "details": "../EMERALD_BOX_NAMES.md"
+        },
+        "dex-form-collection": {
+          "state": "integrated",
+          "evidence": [
+            "source-research",
+            "synthetic",
+            "private-copy",
+            "device"
+          ],
+          "details": "../EMERALD_DEX_FORMS.md"
         }
       },
       "romBytes": 16777216,

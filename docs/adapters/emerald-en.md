@@ -242,3 +242,18 @@ ASCII apostrophe aliases the game's 0xb4 right quotation mark.
 All fourteen name slots/rotations pass synthetic preservation checks. Flip copy
 rename, normal native load/save readback and byte-exact Center restore passed;
 personal files stayed unchanged. No native PC naming-screen UI claim.
+
+## Selected-form collection - 2026-09-27, integrated
+
+Pinned pret `src/pokedex.c` GetSetPokedexFlag stores National species flags.
+`include/global.h` Pokedex has one first-seen Unown/Spinda personality, not a
+complete form-history checklist. Current form ownership must come from verified
+Party/Storage records, not Caught flags or that first appearance. Reuse existing
+individual PID-based Unown and edition-specific Deoxys readers. Exclude Eggs;
+invalid records make the affected area's exact total unknown. Never union
+observations across rollback or Trainer/source changes. This slice adds read-only
+current-form counts; no save edits or per-form historic capture claims.
+
+[Delivered form-count scope and checks](../EMERALD_DEX_FORMS.md). The reusable
+adapter exposes independent optional Party/Box maps; no database migration or
+writer capability was added. FireRed does not inherit this Emerald-only slice.

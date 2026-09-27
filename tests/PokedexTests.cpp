@@ -31,6 +31,30 @@ public:
 class PokedexTests : public QObject {
     Q_OBJECT
 private slots:
+    void formCountsAreIndependentOfSpeciesFlagsAndFollowSaveIdentity() {
+        MockPokedexRepository repo;MutableReference reference;
+        reference.catalog.entries.append({"unown",201,"Unown",{"Psychic"},{"johto"},{{"201","A",{"Psychic"}},{"10001","B",{"Psychic"}}}});
+        PokedexController dex(reference,repo);GameProgress p;
+        p.availability=ProgressAvailability::Available;p.contextRevision="owner1";p.contentRevision="rom";p.saveRevision="one";
+        p.pokedex=SavePokedex{386,{201},{201},{}};
+        p.pokedex->partyForms=QHash<QString,int>{{"unown/201",1}};
+        p.pokedex->boxForms=QHash<QString,int>{{"unown/10001",2}};
+        dex.setSaveProgress("game","Emerald","game",p);dex.applySearch("unown");
+        QCOMPARE(dex.detail()["speciesStatus"],"Species: Caught");QCOMPARE(dex.detail()["partyCount"],"1");QCOMPARE(dex.detail()["boxCount"],"0");
+        dex.cycleForm();QCOMPARE(dex.detail()["formId"],"10001");QCOMPARE(dex.detail()["partyCount"],"0");QCOMPARE(dex.detail()["boxCount"],"2");
+        QCOMPARE(dex.detail()["status"],"Caught");
+        auto failure=p;failure.availability=ProgressAvailability::Unreadable;failure.pokedex.reset();failure.saveRevision="bad";
+        dex.setSaveProgress("game","Emerald","game",failure);QCOMPARE(dex.detail()["boxCount"],"2");QCOMPARE(dex.detail()["collectionSource"],"Last verified save");
+        p.saveRevision="older";p.pokedex->boxForms=QHash<QString,int>{};
+        dex.setSaveProgress("game","Emerald","game",p);QCOMPARE(dex.detail()["boxCount"],"0");
+        p.saveRevision="damaged boxes";p.pokedex->boxForms.reset();
+        dex.setSaveProgress("game","Emerald","game",p);QCOMPARE(dex.detail()["boxCount"].toString(),QString(QChar(0x2014)));QCOMPARE(dex.detail()["partyCount"],"0");
+        failure.contextRevision="owner2";dex.setSaveProgress("game","Emerald","game",failure);
+        QCOMPARE(dex.detail()["partyCount"].toString(),QString(QChar(0x2014)));QCOMPARE(dex.detail()["boxCount"].toString(),QString(QChar(0x2014)));
+        p.pokedex->speciesCount=151;p.saveRevision="different coverage";dex.setSaveProgress("game","Emerald","game",p);
+        QCOMPARE(dex.detail()["status"],"Not in this game");QCOMPARE(dex.detail()["partyCount"].toString(),QString(QChar(0x2014)));
+    }
+
     void saveProgressIsPrimaryWithoutOverwritingTheJournal() {
         MockPokedexRepository repo; PokedexController dex(repo,repo);
         const auto manual = repo.progress("mudkip"); QVERIFY(manual.caught.value_or(false));

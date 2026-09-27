@@ -111,6 +111,39 @@ QByteArray movePatch(QByteArray save,int section,int offset,const QByteArray& va
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void emeraldDexCountsActualFormsWithoutInventingCaughtHistory() {
+        for(int rotation=0;rotation<14;++rotation) {
+            auto bytes=movementSave(rotation);
+            auto a=pokemonFixture(0,201),b=pokemonFixture(1,201),egg=pokemonFixture(2,25,true);
+            bytes=movePatch(bytes,1,0x238,a+b+egg);
+            bytes=movePatch(bytes,5,4,a.left(80)+b.left(80)+b.left(80));
+            const auto result=readGen3Progress(bytes,Gen3Edition::Emerald);
+            QVERIFY(result.pokedex);const auto& dex=*result.pokedex;
+            QVERIFY(dex.error.isEmpty());QVERIFY(dex.seen.isEmpty());QVERIFY(dex.caught.isEmpty());
+            QVERIFY(dex.partyForms);QVERIFY(dex.boxForms);
+            QCOMPARE(dex.partyForms->value("unown/201"),1);QCOMPARE(dex.partyForms->value("unown/10001"),1);
+            QCOMPARE(dex.boxForms->value("unown/10001"),2);QCOMPARE(dex.boxForms->value("unown/10002"),0);
+            QCOMPARE(dex.partyForms->size(),2); // Egg is not a hatched individual.
+            auto bad=movePatch(bytes,5,4,QByteArray(80,1));
+            auto partial=readGen3Progress(bad,Gen3Edition::Emerald);
+            QVERIFY(partial.pokedex->partyForms);QVERIFY(!partial.pokedex->boxForms);
+            bad=movePatch(bytes,1,0x238,QByteArray(100,1));partial=readGen3Progress(bad,Gen3Edition::Emerald);
+            QVERIFY(!partial.pokedex->partyForms);QVERIFY(partial.pokedex->boxForms);
+        }
+        const auto empty=readGen3Progress(save(Gen3Edition::Emerald),Gen3Edition::Emerald);
+        QVERIFY(empty.pokedex->partyForms);QVERIFY(empty.pokedex->partyForms->isEmpty());
+        QVERIFY(empty.pokedex->boxForms);QVERIFY(empty.pokedex->boxForms->isEmpty());
+        const auto other=readGen3Progress(save(Gen3Edition::FireRed),Gen3Edition::FireRed);
+        QVERIFY(!other.pokedex->partyForms);QVERIFY(!other.pokedex->boxForms);
+        const auto forms=readGen3Progress(movePatch(movementSave(0),5,4,
+            pokemonFixture(0,410,false,false)+pokemonFixture(0,385,false,false)),Gen3Edition::Emerald);
+        QVERIFY(forms.pokedex->boxForms);
+        QCOMPARE(forms.pokedex->boxForms->value("deoxys/10033"),1); // Emerald Speed form.
+        QCOMPARE(forms.pokedex->boxForms->value("deoxys/386"),0);
+        QCOMPARE(forms.pokedex->boxForms->value("castform/351"),1); // Weather changes are transient.
+        QCOMPARE(forms.pokedex->boxForms->size(),2);
+    }
+
     void boxNamesPreserveOtherBytesAcrossAllBoxesAndRotations() {
         for(int rotation=0;rotation<14;++rotation)for(int box=0;box<14;++box) {
             const int offset=0x744+box*9;

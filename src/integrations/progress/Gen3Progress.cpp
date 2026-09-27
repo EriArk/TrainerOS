@@ -144,6 +144,22 @@ GameProgress readGen3Progress(const QByteArray& save, Gen3Edition edition) {
         QByteArray storage;
         for (int id = 5; id < SectorCount; ++id) storage += latest->blocks[id];
         result.party = readGen3Party(world, storage,edition);
+        if(edition==Gen3Edition::Emerald && result.party->error.isEmpty()) {
+            const auto counts=[](const QList<PokemonRecord>& records)->std::optional<QHash<QString,int>> {
+                QHash<QString,int> totals;
+                for(const auto& mon:records) {
+                    if(mon.kind==PokemonSlotKind::Unreadable)return {};
+                    if(mon.kind!=PokemonSlotKind::Known)continue;
+                    if(mon.speciesId.isEmpty() || mon.formId.isEmpty())return {};
+                    ++totals[mon.speciesId+'/'+mon.formId];
+                }
+                return totals;
+            };
+            result.pokedex->partyForms=counts(result.party->party);
+            QList<PokemonRecord> boxed;
+            for(const auto& box:result.party->boxes)boxed.append(box.members);
+            result.pokedex->boxForms=counts(boxed);
+        }
         const auto distance=quint32(second.counter-first.counter);
         result.party->canRelease=edition==Gen3Edition::Emerald && first.valid && second.valid && distance && distance!=0x80000000u && result.party->error.isEmpty();
         result.party->canManage=edition==Gen3Edition::Emerald && first.valid && second.valid && distance && distance!=0x80000000u && result.party->error.isEmpty();

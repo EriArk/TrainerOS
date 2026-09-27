@@ -5,10 +5,10 @@
     "data/emerald-reference.json": "7fae3c8d60db18228e582eb4734ca0d38a9bb1abcae99b9d814a3d24b8875a8f",
     "data/emerald-shops-source.json": "0f0ba43e103aad1580ee4e91718e17d9c0d8183afa019f67b0ddcb2dd3540b3a",
     "data/emerald-shops.json": "f573fe4e0599ddefe697521575d859e1b1122f88ce3583cb4d9c4967d0af5cad",
-    "profiles/emerald-en.json": "bedaab4c995e1613bc1d4f9d3b2d24de710a9b9dddd6b0ac4bcbd05965c3a597",
+    "profiles/emerald-en.json": "56fdbc38db4ec41a3f1a517aa18216d72340a87ed09726dd2b1b703ce59fb3f9",
     "profiles/firered-en-original.json": "3731eb6b7fca565ccb5096349ddf2144adc27c765809f376e5b4c35084afdd8c",
     "profiles/firered-en-rev1.json": "6279808beb596cbba06969fa079829b86fbcb218676ca6f2093eac222ec81952",
-    "src/core/model/GameProgress.h": "1ddd30bc1de4674094cedd99601f290ebe3022f0a6772f47ca4cf3d8ef611692",
+    "src/core/model/GameProgress.h": "4e6ded4cc4cf08f6d69b670999144908a61b7314fefa05fa84fc7fe989be2062",
     "src/core/model/JourneySnapshot.h": "a4d14d35074f9d4e756e7042a7df3d02ade347ebdf0f7ee0c79a660fdbc7dc48",
     "src/core/model/Merchant.h": "bec84823ba039f33c7794a69309070c64c2fd6d8ac3614e0e1b7f64047fad1c8",
     "src/core/model/Models.h": "c0f4ca9cb96d1246577125fd55401b4875b92de178585c3fa5d1684b6b0e278d",
@@ -19,7 +19,7 @@
     "src/integrations/progress/EmeraldParty.h": "c2955d0f0006c1d699b3d298cd7f9098c7cd8c5ccc36103924f8597b5176aa27",
     "src/integrations/progress/EmeraldShops.cpp": "dda71a4618b311cbfd9e9e6cac703e490f1eadc5cdc785761d7fd6c670301930",
     "src/integrations/progress/EmeraldShops.h": "068cad481779923b66dfb98d6f851cdb12a7ff23d4ec33e4a78002562b2a1497",
-    "src/integrations/progress/Gen3Progress.cpp": "00d4419c95a531d1be9f9dc833114abe0ff63646c383f59a4ddea1865c255442",
+    "src/integrations/progress/Gen3Progress.cpp": "3214b9cb6befac194b3af8b16cf644379dcac10ea75874467bf9f4f9b6d0276a",
     "src/integrations/progress/Gen3Progress.h": "32fc400e5e50b98b2e5f6ab5f784b5c80b0993eb371d570d35fe443103cc08be"
   }
 }
