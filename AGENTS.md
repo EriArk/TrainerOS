@@ -1,5 +1,15 @@
 # AGENTS.md — TrainerOS
 
+**Owner device/network addition, 2026-09-27:** prepare Odin 2 as a second test
+device when the owner returns home and makes it available. Verify its actual
+OS, supported Armada route and recovery before installation; Flip compatibility
+does not prove Odin support. Use the two devices for later #45 Link proof.
+Add full controller-first Wi-Fi/Bluetooth management to Settings and quick
+Wi-Fi/Bluetooth/airplane-mode controls at the top of Start alongside existing
+volume/brightness. They must perform real platform operations and reflect actual
+state. See [planned acceptance](docs/DEVICE_NETWORK_PLAN.md); nothing here claims
+installation or implemented controls. Preserve the existing execution queue.
+
 **Owner planning amendment, 2026-09-27:** [#91–97 acceptance](docs/EXPANSION_91_97.md)
 adds #92 installable adapters after varied-game proof, #93 signed lineage and
 #94 verified-session policy before trust-sensitive Link, and #95–97 ROM asset
