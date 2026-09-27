@@ -37,6 +37,7 @@ struct RetroArchInstallation {
     QString runtimeFile;
     bool saveBackups = false;
     std::shared_ptr<RetroArchSaveSession> saves;
+    QString lineageRoot; // Host-owned metadata location, never read from emulator JSON.
     // Locally reviewed firmware identities; readiness is a startup snapshot.
     QHash<QString, QJsonObject> discFirmware;
     QSet<QString> readyDiscPlatforms;

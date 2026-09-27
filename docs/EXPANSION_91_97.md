@@ -84,7 +84,8 @@ queue rows. Preserve exact-pair writers and durable two-device recovery proof.
 
 **2026-09-27 bounded #93 foundation:** [local signed save history](SAVE_LINEAGE.md)
 adds lazy per-Trainer software identities, imported/external observations and
-protected-edit/restore chains. This does not close #93/#94: gameplay transitions,
+protected-edit/restore chains. Owned GBA/mGBA launch/return now records observed
+normal, failed and interrupted sessions. This does not close #93/#94: verified gameplay,
 entity/peer proofs, checkpoint/fork handling, portable export and hardware trust
 retain their explicit gates. Ordinary local play remains available.
 

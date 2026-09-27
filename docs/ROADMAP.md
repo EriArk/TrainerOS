@@ -72,10 +72,15 @@ imported/external save observations and verified protected edits/restores with a
 stable software signing identity per known Trainer. Legacy backup paths remain
 compatible. No Verified gameplay, peer protocol or portable-backup claim follows.
 
-**Next increment: 3/6 Высокое (High)** - connect the verified GBA/mGBA
-launch/return lifecycle to this history: explicit ordinary gameplay transitions,
-interrupted sessions and external changes, retaining #94's separate stronger
-session-policy gate and #76 ownership. Then return to the remaining R4 acceptance.
+**2026-09-27 observed sessions:** the owned GBA/mGBA route now records launch
+intent, normal return, failed/cancelled sessions and recovery of interrupted
+history. External changes retain a separate observation. This is local lifecycle
+evidence, not #94 verified gameplay; ordinary play remains independent.
+
+**Next increment: 3/6 Высокое (High)** - return to remaining R4 Emerald
+Party/Boxes and Dex acceptance: reconcile the already delivered behavior, then
+finish the next practical management flow with exact-save and controller proof.
+Stronger #94 policy stays before trust-sensitive Link, not a gate on local play.
 Keep item/box services and all later queue entries;
 practice and two-device Link retain their independent research/proof gates.
 Before trusted Link, add #93 signed lineage and #94 observable session policy;

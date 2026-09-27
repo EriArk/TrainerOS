@@ -3,7 +3,7 @@
 #include <memory>
 
 namespace trainer {
-enum class LineageState { Untracked, Imported, Managed, Changed, Broken };
+enum class LineageState { Untracked, Imported, Managed, Changed, Broken, Running };
 struct SaveLineageProof {
     QByteArray publicKey;
     QList<QByteArray> records, signatures;
@@ -29,10 +29,13 @@ SaveLineageStatus verifySaveLineage(const SaveLineageProof&, const QByteArray& e
 class SaveLineageEdit final {
 public:
     SaveLineageEdit(const QString& backupRoot, const SaveTarget&, const AdventureRegistration&,
-                    const QString& sourceToken, const QByteArray& before, bool existed);
+                    const QString& sourceToken, const QByteArray& before, bool existed,
+                    const QString& endingSession = {});
     ~SaveLineageEdit();
     QString error() const;
     QString finish(const QByteArray& after, const QString& operation, const QString& protectionId);
+    QString beginSession(); // Signed launch intent, not proof that a process started.
+    QString finishSession(bool started, int exitCode, bool crashed, bool stopped);
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;

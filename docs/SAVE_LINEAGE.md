@@ -79,10 +79,10 @@ rollback remain separate acceptance gates. Do not include private keys in public
 proofs, diagnostics bundles, Git, distributable images or artwork packs. Existing
 profile removal leaves these recovery files inert, like prior save backups.
 
-Normal launch/return recording, authenticated sessions, entity transfer lineage,
+Authenticated sessions, entity transfer lineage,
 peer transport/checkpoints, hardware-backed storage and full issue closure remain
-planned. Until launch/return tracking arrives, changed saves from normal gameplay
-are also unaccounted-for observations; the system does not falsely certify them.
+planned. Observed launch/return is not verified gameplay or evidence that a save
+was produced exclusively by the observed process.
 
 ## Sources and verification
 
@@ -106,3 +106,60 @@ are also unaccounted-for observations; the system does not falsely certify them.
   Installed/running hashes match; personal save hashes are unchanged. Library
   integrity passes with schema 14, 829 Adventures and three Trainers retained.
   No UI changes in this increment.
+
+## Observed GBA/mGBA sessions - 2026-09-27
+
+The proven owned mGBA save route now records a signed `session-start` intent
+in worker preparation after launch configuration validation, followed by
+`session-completed`, `session-failed` or `session-cancelled` after the owned
+process settles. Each session has a fresh opaque ID. Return records bind the
+observed start/exit/crash/stop outcome, before/after save hashes and the same
+resolved owner, build and configuration. A successful exit with unchanged or
+absent save is valid; it never claims the player saved. First-save creation is
+supported. Read-only Center policy does not prohibit ordinary game saving or
+metadata observations.
+
+Return observation runs off the GUI thread before the launch coordinator releases
+its activity gate; another launch or Trainer switch cannot overtake it. Cancelling
+worker preparation waits asynchronously for its completion and settlement, never
+starts the child late and records cancellation when a launch intent exists.
+Existing Home exit confirmation/cancel behavior is unchanged.
+
+A leftover start after host death, unreadable return, changed context or failed
+history commit is closed as `session-interrupted` at the next safe observation
+of that stream (launch or protected service), cutting its state parent. It is not
+retroactively marked successful. Failure/crash/forced-stop records likewise cut
+continuity. External changes between completed sessions remain separate external
+observations. Repeated or mismatched return callbacks cannot complete another
+session. A metadata failure leaves ordinary launch/return available, retains the
+old history and emits only a bounded host diagnostic, without paths or keys.
+
+This is observed local continuity, not #94 verified session evidence. Runtime
+memory, external writes, hardware identity and peer checkpoints remain unverified.
+`session-start` records intent; a lost host cannot prove whether the child started.
+Old binaries do not understand new session records and refuse protected
+history-dependent service writes; ordinary play remains available. No database
+schema rewrite or in-game save mutation is added.
+
+The generic process settlement hook composes with existing QProcess lifecycle
+signals ([Qt reference](https://doc.qt.io/qt-6/qprocess.html#finished)); it does
+not watch arbitrary external emulators. Other runtimes stay untracked until their
+own save-ownership route is proven.
+
+Verification: full native suite 43/43, including worker completion/cancellation,
+ordinary/first-save writes, external changes, crash/failed launch/forced stop,
+lost-session recovery, changed configuration, missing key and repeated return.
+On Flip, a copied Emerald save was loaded and saved normally; a standard
+ownership-checked WM_DELETE_WINDOW close produced `session-completed` with the
+changed save hash. A second launch followed by a controlled kill of that isolated
+child produced `session-failed`, with no successful state parent. All seven old
+and new records passed independent OpenSSL signature checks under the same key.
+This run did not establish a new physical Home-button proof: remote event
+injection did not activate that route. Existing exit UI/input is unchanged.
+
+Test saves were returned to their initial bytes after closing the isolated shell;
+the signed history was retained, so that external test reset will be observed
+on next use. Personal saves remained byte-identical. Production was installed
+and restarted; main DB integrity/schema 14, 829 Adventures and three Trainers
+are preserved. Installed/running SHA-256:
+`f4384ce1f6f707e8b5e74ff4d8ac87128d8de32603194f69bcf7f6d37b9b5584`.

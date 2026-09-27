@@ -1,5 +1,7 @@
 #include "RetroArchSave.h"
 #include "RetroArchConfiguration.h"
+#include "platform/storage/SaveBackupStorage.h"
+#include <QDebug>
 #include <QCryptographicHash>
 #include <QDirIterator>
 #include <QFile>
@@ -80,6 +82,11 @@ QString prepareRetroArchLaunch(ProcessCommand& command, const AdventureRegistrat
         return "The Adventure's play setup changed.";
     command.arguments.removeLast();
     command.arguments << "--appendconfig" << path << record.contentPath;
+    if(owner && target.supported && !installation.lineageRoot.isEmpty()) {
+        const auto error=observeSaveSession(command,installation.lineageRoot,record,
+            [installation](const AdventureRegistration& r){return resolveRetroArchSave(r,installation);});
+        if(!error.isEmpty())qWarning("Save session history unavailable; ordinary play continues.");
+    }
     return {};
 }
 

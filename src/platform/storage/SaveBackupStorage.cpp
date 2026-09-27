@@ -1,5 +1,7 @@
 #include "SaveBackupStorage.h"
 #include "SaveLineage.h"
+#include "platform/process/ProcessService.h"
+#include <QDebug>
 #include <QCryptographicHash>
 #include <QDir>
 #include <QDirIterator>
@@ -140,6 +142,30 @@ void rememberMerchants(const QString& root,const SaveTarget& target,MerchantSnap
     if(!file.open(QIODevice::WriteOnly)||file.write(bytes)!=bytes.size()||!file.commit())return;
     if(!fresh.isEmpty())state.discoveryNotice=fresh.size()==1?"New merchant discovered · "+fresh.first():QString("%1 new merchants discovered").arg(fresh.size());
 }
+}
+QString observeSaveSession(ProcessCommand& command,const QString& root,const AdventureRegistration& record,const SaveTargetResolver& resolve) {
+    if(command.settled || !QDir::isAbsolutePath(root) || QFileInfo(root).isSymLink() || !QDir().mkpath(root))return "Save session history is unavailable.";
+    QLockFile lock(QDir(root).filePath("service.lock"));
+    if(!lock.tryLock(0))return "Save session history is busy.";
+    const auto target=resolve(record);const auto source=current(target);
+    if(!source.success || target.lineageOwner.isEmpty())return "Save session history has no verified owner or source.";
+    SaveLineageEdit history(root,target,record,source.revision,source.data,source.exists);
+    if(!history.error().isEmpty())return history.error();
+    const auto id=history.beginSession();
+    if(id.isEmpty())return "Save session history could not be started.";
+    command.settled=[root,record,resolve,target,id](const ProcessOutcome& outcome){
+        QLockFile lock(QDir(root).filePath("service.lock"));
+        if(!lock.tryLock(0)){qWarning("Save session history: return observation deferred.");return;}
+        const auto afterTarget=resolve(record);const auto after=current(afterTarget);
+        if(!after.success || afterTarget.contextRevision!=target.contextRevision
+           || saveLineageStream(afterTarget)!=saveLineageStream(target)) {
+            qWarning("Save session history: return source changed or unavailable.");return;
+        }
+        SaveLineageEdit history(root,afterTarget,record,after.revision,after.data,after.exists,id);
+        if(!history.error().isEmpty() || !history.finishSession(outcome.started,outcome.exitCode,outcome.crashed,outcome.stopped).isEmpty())
+            qWarning("Save session history: return could not be recorded.");
+    };
+    return {};
 }
 SaveBackupSnapshot inspectSaveBackups(const QString& root, const SaveTarget& target, const SaveHealer& healer, const MerchantReader& shops) {
     SaveBackupSnapshot result; result.supported=target.supported;

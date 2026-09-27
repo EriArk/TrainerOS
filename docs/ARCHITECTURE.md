@@ -548,3 +548,10 @@ private schema-1 sidecar is independent of the main schema-14 library. Candidate
 parsers, QML and PIN authentication have no signing/file-history responsibility.
 Only verified file readback precedes a successful edit record. Imported history
 stays unknown; normal gameplay/session attestation and peer trust are later gates.
+
+Observed GBA/mGBA gameplay now uses the same history through worker preparation
+and ProcessCommand.settled. ProcessService keeps its activity gate until settlement
+finishes, including cancelled preparation. The host callback captures immutable
+registration/installation ownership, resolves the save again after child exit,
+and records bounded outcome metadata. It never blocks play because of a history
+failure, and cannot turn lifecycle observations into #94 verified-session proof.

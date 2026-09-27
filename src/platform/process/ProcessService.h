@@ -8,6 +8,11 @@
 #include <memory>
 
 namespace trainer {
+struct ProcessOutcome {
+    bool started = false;
+    int exitCode = -1;
+    bool crashed = false, stopped = false;
+};
 struct ProcessCommand {
     QString program; QStringList arguments; QString workingDirectory;
     // Runs off the GUI thread, after the navigation checkpoint. Return a
@@ -15,6 +20,9 @@ struct ProcessCommand {
     std::function<QString(ProcessCommand&, const std::atomic_bool&)> prepare{};
     // Optional adapter-owned, bounded output validation. No output is logged.
     std::function<QString(const QByteArray&)> inspectOutput{};
+    // Worker-only observation after the owned child is gone, before return.
+    // Also called for failed/cancelled preparation if preparation installed it.
+    std::function<void(const ProcessOutcome&)> settled{};
 };
 class ProcessService final : public QObject {
     Q_OBJECT
@@ -39,10 +47,12 @@ private:
     QObject* worker_;
     std::shared_ptr<std::atomic_bool> cancelled_;
     std::function<QString(const QByteArray&)> inspectOutput_;
+    std::function<void(const ProcessOutcome&)> settled_;
     QString validationError_;
     quint64 request_ = 0;
     bool preparing_ = false;
     bool active_ = false;
     bool stopRequested_ = false;
+    bool childStarted_ = false, finalizing_ = false;
 };
 }

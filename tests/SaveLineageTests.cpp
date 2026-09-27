@@ -10,6 +10,7 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QUuid>
+#include "platform/process/ProcessService.h"
 
 using namespace trainer;
 namespace {
@@ -42,6 +43,71 @@ QJsonObject entry(const SaveLineageProof& p,int i){return QJsonDocument::fromJso
 class SaveLineageTests final:public QObject {
     Q_OBJECT
 private slots:
+    void gameplayAndExternalEditsRemainDistinct() {
+        Fixture f;f.target.lineageOwner=f.target.backupOwner;
+        ProcessCommand command;QVERIFY(observeSaveSession(command,f.root,f.record,f.resolve).isEmpty());
+        QCOMPARE(f.status().state,LineageState::Running);
+        write(f.path,"ORDINARY GAME SAVE");command.settled({true,0,false,false});
+        auto p=f.proof();QCOMPARE(p.records.size(),3);
+        QCOMPARE(entry(p,2)["operation"].toString(),"session-completed");
+        QCOMPARE(entry(p,2)["beforeSha256"].toString(),sha("ORIGINAL PRIVATE SAVE"));
+        QCOMPARE(entry(p,2)["saveSha256"].toString(),sha("ORDINARY GAME SAVE"));
+        QCOMPARE(f.status().state,LineageState::Managed);
+        const auto completed=p.records;
+        write(f.path,"EDITED OUTSIDE SESSION");
+        ProcessCommand next;QVERIFY(observeSaveSession(next,f.root,f.record,f.resolve).isEmpty());
+        p=f.proof();QCOMPARE(p.records.mid(0,3),completed);
+        QCOMPARE(entry(p,3)["operation"].toString(),"external-observation");
+        next.settled({true,0,false,false});QCOMPARE(f.status().state,LineageState::Managed);
+        const auto count=f.proof().records.size();next.settled({true,0,false,false});
+        QCOMPARE(f.proof().records.size(),count); // No duplicate completion.
+    }
+    void lostSessionRecoversWithoutInventingCompletion() {
+        Fixture f;f.target.lineageOwner=f.target.backupOwner;
+        {ProcessCommand abandoned;QVERIFY(observeSaveSession(abandoned,f.root,f.record,f.resolve).isEmpty());}
+        write(f.path,"UNACCOUNTED AFTER RESTART");
+        ProcessCommand next;QVERIFY(observeSaveSession(next,f.root,f.record,f.resolve).isEmpty());
+        const auto p=f.proof();QCOMPARE(p.records.size(),4);
+        QCOMPARE(entry(p,2)["operation"].toString(),"session-interrupted");
+        QVERIFY(entry(p,2)["stateParent"].toString().isEmpty());
+        QCOMPARE(entry(p,2)["session"],entry(p,1)["session"]);
+        QVERIFY(entry(p,3)["session"]!=entry(p,1)["session"]);
+        next.settled({false,0,false,true});QCOMPARE(f.status().state,LineageState::Changed);
+        QCOMPARE(entry(f.proof(),4)["operation"].toString(),"session-cancelled");
+        QVERIFY(f.change().success);QCOMPARE(f.status().state,LineageState::Managed);
+    }
+    void failedLaunchCrashAndStopNeverBecomeCleanGameplay() {
+        for(const auto outcome:{ProcessOutcome{false,-1,false,false},ProcessOutcome{true,7,false,false},
+                ProcessOutcome{true,-1,true,false},ProcessOutcome{true,0,false,true}}) {
+            Fixture f;f.target.lineageOwner=f.target.backupOwner;ProcessCommand command;
+            QVERIFY(observeSaveSession(command,f.root,f.record,f.resolve).isEmpty());
+            command.settled(outcome);QCOMPARE(f.status().state,LineageState::Changed);
+            QCOMPARE(entry(f.proof(),2)["operation"].toString(),"session-failed");
+            QVERIFY(entry(f.proof(),2)["stateParent"].toString().isEmpty());
+        }
+    }
+    void changedContextOwnerAndLostKeyDoNotForgeReturn() {
+        Fixture f;f.target.lineageOwner=f.target.backupOwner;ProcessCommand command;
+        QVERIFY(observeSaveSession(command,f.root,f.record,f.resolve).isEmpty());
+        f.target.contextRevision=sha("changed configuration");command.settled({true,0,false,false});
+        QCOMPARE(f.proof().records.size(),2);
+        ProcessCommand next;QVERIFY(observeSaveSession(next,f.root,f.record,f.resolve).isEmpty());
+        QCOMPARE(entry(f.proof(),2)["operation"].toString(),"session-interrupted");
+        const auto key=QDir(f.directory()).filePath("identity.key");QVERIFY(QFile::rename(key,key+".kept"));
+        next.settled({true,0,false,false});QCOMPARE(f.proof().records.size(),4);
+        QVERIFY(!QFileInfo::exists(key));
+        ProcessCommand unavailable;QVERIFY(!observeSaveSession(unavailable,f.root,f.record,f.resolve).isEmpty());
+        QVERIFY(!unavailable.settled);QCOMPARE(read(f.path),QByteArray("ORIGINAL PRIVATE SAVE"));
+    }
+    void newSaveAndReadOnlyServicesStillAllowObservedGameplay() {
+        Fixture f;f.target.lineageOwner=f.target.backupOwner;QVERIFY(QFile::remove(f.path));
+        QVERIFY(setSaveWritesReadOnly(f.root,true).isEmpty());
+        ProcessCommand command;QVERIFY(observeSaveSession(command,f.root,f.record,f.resolve).isEmpty());
+        QCOMPARE(entry(f.proof(),1)["saveSha256"].toString(),"absent");
+        write(f.path,"FIRST ORDINARY SAVE");command.settled({true,0,false,false});
+        QCOMPARE(f.status().state,LineageState::Managed);QVERIFY(saveWritesReadOnly(f.root));
+        QCOMPARE(entry(f.proof(),2)["beforeSha256"].toString(),"absent");
+    }
     void protectedEditRestoreAndStablePrivateIdentity() {
         Fixture f;QCOMPARE(f.status().state,LineageState::Untracked);
         const auto result=f.change();QVERIFY2(result.success,qPrintable(result.message));

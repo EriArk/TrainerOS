@@ -140,34 +140,54 @@ SaveLineageStatus verifySaveLineage(const SaveLineageProof& proof,const QByteArr
     if(!proof.error.isEmpty() || proof.records.size()!=proof.signatures.size() || proof.records.size()>RecordLimit)return broken();
     if(proof.records.isEmpty())return status;
     if(expectedKey.size()!=32 || expectedKey!=proof.publicKey || !hashLike(stream) || owner.isEmpty())return broken();
-    QString lastHash,lastContext,adventure,build;
+    QString lastHash,lastContext,adventure,build,pendingSession;
     for(int i=0;i<proof.records.size();++i) {
         const auto& bytes=proof.records[i];
         if(bytes.size()>PayloadLimit || !signatureValid(expectedKey,bytes,proof.signatures[i]))return broken();
         const auto o=QJsonDocument::fromJson(bytes).object();
         const auto op=o["operation"].toString(),save=o["saveSha256"].toString();
-        const bool observation=op=="imported" || op=="external-observation";
+        const bool session=op.startsWith("session-");
+        const bool begin=op=="session-start", completed=op=="session-completed";
+        const bool interrupted=QStringList{"session-interrupted","session-failed","session-cancelled"}.contains(op);
+        const bool observation=op=="imported" || op=="external-observation" || interrupted;
+        const auto sessionId=o["session"].toString();
         if(o["version"].toInt()!=1 || o["sequence"].toInt()!=i+1 || o["owner"].toString()!=owner
            || o["stream"].toString()!=stream || o["previousEntry"].toString()!=status.head
            || o["unknownOrigin"]!=QJsonValue(true) || o["assurance"].toString()!="software-local"
            || (!hashLike(save) && save!="absent") || !hashLike(o["sourceToken"].toString())
            || o["context"].toString().isEmpty()
            || !QStringList{"legacy","trainer"}.contains(o["namespaceKind"].toString())
-           || o["writer"].toString()!=(observation?"save-observer/1":"traineros-protected-"+op+"/1")
+           || o["writer"].toString()!=(session?"traineros-session/1":observation?"save-observer/1":"traineros-protected-"+op+"/1")
            || !QDateTime::fromString(o["observedAt"].toString(),Qt::ISODateWithMs).isValid())return broken();
         if(i==0) {
             if(op!="imported")return broken();
             adventure=o["adventure"].toString();build=o["build"].toString();
             if(adventure.isEmpty() || !hashLike(build))return broken();
         } else if(o["adventure"].toString()!=adventure || o["build"].toString()!=build || op=="imported")return broken();
+        if(session) {
+            if(QUuid(sessionId).isNull() || (!begin && !completed && !interrupted))return broken();
+            if(begin) {
+                if(!pendingSession.isEmpty() || i==0 || save!=lastHash)return broken();
+                pendingSession=sessionId;
+            } else {
+                if(pendingSession!=sessionId)return broken();
+                pendingSession.clear();
+                if(op!="session-interrupted") {
+                    if(!o["started"].isBool() || !o["crashed"].isBool() || !o["stopped"].isBool() || !o["exitCode"].isDouble())return broken();
+                    const bool clean=o["started"].toBool() && o["exitCode"].toInt()==0 && !o["crashed"].toBool() && !o["stopped"].toBool();
+                    if(completed!=clean || (op=="session-cancelled" && (o["started"].toBool() || !o["stopped"].toBool())))return broken();
+                }
+            }
+        } else if(!pendingSession.isEmpty())return broken();
         if(observation) {
             if(!o["stateParent"].toString().isEmpty() || !o["beforeSha256"].toString().isEmpty())return broken();
             status.state=op=="imported"?LineageState::Imported:LineageState::Changed;
         } else {
-            if(i==0 || !hashLike(save) || !QStringList{"healing","purchase","movement","release","held-item","restore"}.contains(op)
+            if(i==0 || (!hashLike(save) && !(session && save=="absent"))
+               || (!session && !QStringList{"healing","purchase","movement","release","held-item","restore"}.contains(op))
                || o["stateParent"].toString()!=status.head || o["beforeSha256"].toString()!=lastHash
-               || o["context"].toString()!=lastContext || o["protection"].toString().isEmpty())return broken();
-            status.state=LineageState::Managed;
+               || o["context"].toString()!=lastContext || (!session && o["protection"].toString().isEmpty()))return broken();
+            status.state=begin?LineageState::Running:LineageState::Managed;
         }
         lastHash=save;lastContext=o["context"].toString();status.head=digest(bytes);status.saveHash=save;++status.count;
     }
@@ -180,12 +200,12 @@ struct SaveLineageEdit::Impl {
     std::unique_ptr<QLockFile> lock;
     Key key{nullptr,EVP_PKEY_free};
     SaveTarget target;AdventureRegistration record;
-    QString stream,sourceToken,beforeHash,head,error;
+    QString stream,sourceToken,beforeHash,head,error,sessionId,sessionBefore;
     int sequence=0;
     bool enabled=false,finished=false;
-    bool append(const QString& save,const QString& operation,const QString& protection,bool observation) {
+    bool append(const QString& save,const QString& operation,const QString& protection,bool observation,const QJsonObject& extra = {}) {
         if(sequence>=RecordLimit){error=problem();return false;}
-        const QJsonObject object{{"version",1},{"sequence",sequence+1},{"owner",ownerOf(target)},
+        QJsonObject object{{"version",1},{"sequence",sequence+1},{"owner",ownerOf(target)},
             {"adventure",target.adventureId},{"build",target.contentRevision},{"stream",stream},
             {"namespaceKind",target.backupOwner.isEmpty()?"legacy":"trainer"},
             {"context",target.contextRevision},{"sourceToken",sourceToken},{"registrationRevision",record.revision},
@@ -194,6 +214,7 @@ struct SaveLineageEdit::Impl {
             {"beforeSha256",observation?QString():beforeHash},{"previousEntry",head},
             {"stateParent",observation?QString():head},{"unknownOrigin",true},{"assurance","software-local"},
             {"observedAt",QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs)}};
+        for(auto it=extra.begin();it!=extra.end();++it)object.insert(it.key(),it.value());
         const auto bytes=QJsonDocument(object).toJson(QJsonDocument::Compact),signature=sign(key.get(),bytes);
         if(bytes.size()>PayloadLimit || !signatureValid(publicKey(key.get()),bytes,signature) || !database.db.transaction()){error=problem();return false;}
         QSqlQuery q(database.db);q.prepare("INSERT INTO records(stream,sequence,payload,signature) VALUES(?,?,?,?)");
@@ -207,7 +228,7 @@ struct SaveLineageEdit::Impl {
 };
 
 SaveLineageEdit::SaveLineageEdit(const QString& root,const SaveTarget& target,const AdventureRegistration& record,
-        const QString& token,const QByteArray& before,bool existed):impl_(std::make_unique<Impl>()) {
+        const QString& token,const QByteArray& before,bool existed,const QString& endingSession):impl_(std::make_unique<Impl>()) {
     auto& p=*impl_;p.target=target;p.record=record;p.sourceToken=token;p.beforeHash=existed?digest(before):"absent";
     // Unbound routes have no proven Trainer. Never infer one from a save or PIN.
     const auto owner=ownerOf(target);
@@ -257,7 +278,14 @@ SaveLineageEdit::SaveLineageEdit(const QString& root,const SaveTarget& target,co
     if(status.state==LineageState::Broken)return;
     p.head=status.head;p.sequence=status.count;p.error.clear();
     const bool changedContext=!proof.records.isEmpty() && QJsonDocument::fromJson(proof.records.last()).object()["context"].toString()!=target.contextRevision;
-    if(!p.sequence)p.append(p.beforeHash,"imported",{},true);
+    const auto last=proof.records.isEmpty()?QJsonObject():QJsonDocument::fromJson(proof.records.last()).object();
+    const bool pending=last["operation"].toString()=="session-start";
+    if(!endingSession.isEmpty()) {
+        if(!pending || last["session"].toString()!=endingSession || changedContext){p.error=problem();return;}
+        p.sessionId=endingSession;p.sessionBefore=status.saveHash;
+    } else if(pending) {
+        p.append(p.beforeHash,"session-interrupted",{},true,{{"session",last["session"]},{"writer","traineros-session/1"}});
+    } else if(!p.sequence)p.append(p.beforeHash,"imported",{},true);
     else if(status.saveHash!=p.beforeHash || changedContext)p.append(p.beforeHash,"external-observation",{},true);
     if(p.sequence>=RecordLimit)p.error=problem(); // Reserve the successor before touching the save.
 }
@@ -270,5 +298,26 @@ QString SaveLineageEdit::finish(const QByteArray& after,const QString& operation
        || !QStringList{"healing","purchase","movement","release","held-item","restore"}.contains(operation))return problem();
     p.finished=true;
     return p.append(digest(after),operation,protectionId,false)?QString():problem();
+}
+}
+
+namespace trainer {
+QString SaveLineageEdit::beginSession() {
+    auto& p=*impl_;
+    if(!p.enabled || !p.error.isEmpty() || p.finished || !p.sessionId.isEmpty())return {};
+    if(p.sequence+2>RecordLimit){p.error=problem();return {};}
+    p.sessionId=QUuid::createUuid().toString(QUuid::WithoutBraces);
+    p.finished=true;
+    return p.append(p.beforeHash,"session-start",{},false,{{"session",p.sessionId},{"writer","traineros-session/1"}})?p.sessionId:QString();
+}
+QString SaveLineageEdit::finishSession(bool started,int exitCode,bool crashed,bool stopped) {
+    auto& p=*impl_;
+    if(!p.enabled || !p.error.isEmpty() || p.finished || p.sessionId.isEmpty())return problem();
+    p.finished=true;
+    const bool clean=started && exitCode==0 && !crashed && !stopped;
+    const auto operation=clean?"session-completed":!started && stopped?"session-cancelled":"session-failed";
+    const auto after=p.beforeHash;p.beforeHash=p.sessionBefore;
+    return p.append(after,operation,{},!clean,{{"session",p.sessionId},{"writer","traineros-session/1"},
+        {"started",started},{"exitCode",exitCode},{"crashed",crashed},{"stopped",stopped}})?QString():problem();
 }
 }

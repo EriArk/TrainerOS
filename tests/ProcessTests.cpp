@@ -18,6 +18,33 @@ class ProcessTests final : public QObject {
         );
     }
 private slots:
+    void returnObservationRunsOffGuiBeforeFinishedAndNextLaunch() {
+        ProcessService process;QSignalSpy done(&process,&ProcessService::finished);
+        auto entered=std::make_shared<std::atomic_bool>(false),release=std::make_shared<std::atomic_bool>(false);
+        ProcessOutcome observed;QThread* worker=nullptr;
+        ProcessCommand command{probe(),{}, {}};
+        command.settled=[&](const ProcessOutcome& outcome){
+            observed=outcome;worker=QThread::currentThread();*entered=true;
+            while(!*release)QThread::msleep(1);
+        };
+        QVERIFY(process.start(command));QTRY_VERIFY(*entered);
+        QVERIFY(process.active());QVERIFY(done.isEmpty());QVERIFY(!process.start(command));
+        QVERIFY(worker!=QThread::currentThread());QVERIFY(observed.started);QCOMPARE(observed.exitCode,0);
+        process.stop();QVERIFY(!process.stopRequested()); // Already finished; cannot relabel the outcome.
+        *release=true;QTRY_COMPARE(done.size(),1);QVERIFY(!process.active());
+    }
+    void cancelledPreparationSettlesOnceWithoutStartingChild() {
+        ProcessService process;QSignalSpy done(&process,&ProcessService::finished),started(&process,&ProcessService::started);
+        auto entered=std::make_shared<std::atomic_bool>(false);ProcessOutcome outcome;int count=0;
+        ProcessCommand command{probe(),{}, {}};
+        command.prepare=[&](ProcessCommand& prepared,const std::atomic_bool& cancel){
+            prepared.settled=[&](const ProcessOutcome& result){outcome=result;++count;};
+            *entered=true;while(!cancel)QThread::msleep(1);return QString();
+        };
+        QVERIFY(process.start(command));QTRY_VERIFY(*entered);process.stop();
+        QTRY_COMPARE(done.size(),1);QCOMPARE(count,1);QVERIFY(!outcome.started);QVERIFY(outcome.stopped);QVERIFY(started.isEmpty());
+        QVERIFY(process.start({probe(),{}, {}}));QTRY_COMPARE(done.size(),2);QCOMPARE(count,1);
+    }
     void preparationIsAsyncCancellableAndCannotStartLate() {
         ProcessService process;
         QSignalSpy started(&process, &ProcessService::started), done(&process, &ProcessService::finished);
@@ -30,7 +57,7 @@ private slots:
         };
         QVERIFY(process.start(command));
         QTRY_VERIFY(*entered); QVERIFY(started.isEmpty());
-        process.stop(); QCOMPARE(done.size(), 1);
+        process.stop(); QTRY_COMPARE(done.size(), 1);
         QVERIFY(process.start({probe(), {}, {}})); QTRY_COMPARE(done.size(), 2);
         QCOMPARE(started.size(), 1); QCOMPARE(done.last()[0].toInt(), 0);
         QTest::qWait(50); QCOMPARE(started.size(), 1);
@@ -58,7 +85,7 @@ private slots:
             return QString();
         };
         QVERIFY(launch.launch(command, {}, "fixture")); QTRY_VERIFY(*entered);
-        launch.cancel(); QCOMPARE(returned.size(), 1); QCOMPARE(launch.state(), "returned");
+        launch.cancel(); QTRY_COMPARE(returned.size(), 1); QCOMPARE(launch.state(), "returned");
         QVERIFY(launch.error().isEmpty()); QVERIFY(started.isEmpty()); QVERIFY(history.isEmpty());
     }
     void adapterOutputFailureStopsOnlyItsOwnedChild() {

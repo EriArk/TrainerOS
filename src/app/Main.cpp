@@ -213,6 +213,7 @@ int main(int argc, char* argv[]) {
             ? RetroArchInstallation::load(QDir(stateDirectory).filePath("integrations/retroarch.json")) : RetroArchInstallation{};
         if(personalLibrary && !smoke) {
             retroarchInstallation.saves=std::make_shared<RetroArchSaveSession>();
+            retroarchInstallation.lineageRoot=QDir(stateDirectory).filePath("backups");
             QObject::connect(store.get(), &LocalStateStore::opened, store.get(),
                 [&, saves=retroarchInstallation.saves](bool success) {
                     if(success)saves->bind({store->ownerId(),stateDirectory,store->usesLegacyStorage()});

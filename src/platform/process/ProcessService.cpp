@@ -8,7 +8,7 @@ ProcessService::ProcessService(QObject* parent) : QObject(parent), worker_(new Q
     thread_.start();
     killTimer_.setSingleShot(true); killTimer_.setInterval(1500);
     connect(&killTimer_, &QTimer::timeout, this, [this] { if (active_) process_.kill(); });
-    connect(&process_, &QProcess::started, this, &ProcessService::started);
+    connect(&process_, &QProcess::started, this, [this]{ childStarted_=true; emit started(); });
     connect(&process_, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
         if (error == QProcess::FailedToStart) complete(-1, false, "The Adventure couldn't start. Check its setup and try again.");
     });
@@ -27,6 +27,7 @@ bool ProcessService::start(const ProcessCommand& command) {
     if (active_ || !QDir::isAbsolutePath(command.program)) return false;
     active_ = true;
     stopRequested_ = false;
+    childStarted_ = false; finalizing_ = false; settled_=command.settled;
     validationError_.clear(); inspectOutput_ = {};
     const auto token = ++request_;
     if (command.prepare) {
@@ -39,7 +40,9 @@ bool ProcessService::start(const ProcessCommand& command) {
             QMetaObject::invokeMethod(this, [this, token, prepared, error] {
                 if (token != request_ || !active_) return;
                 preparing_ = false;
-                if (!error.isEmpty()) complete(-1, false, error);
+                settled_=prepared.settled;
+                if (stopRequested_) complete(0, false, {});
+                else if (!error.isEmpty()) complete(-1, false, error);
                 else execute(prepared);
             }, Qt::QueuedConnection);
         }, Qt::QueuedConnection);
@@ -64,16 +67,27 @@ void ProcessService::drainOutput() {
     }
 }
 void ProcessService::stop() {
-    if (!active_) return;
+    if (!active_ || finalizing_) return;
     stopRequested_ = true;
     if (preparing_) {
-        *cancelled_ = true; ++request_; preparing_ = false;
-        complete(0, false, {}); return;
+        *cancelled_ = true; return; // Let worker preparation settle before return/relaunch.
     }
     process_.terminate(); killTimer_.start(); // Only this owned child can be stopped.
 }
 void ProcessService::complete(int code, bool crashed, const QString& error) {
-    if (!active_) return;
-    active_ = false; killTimer_.stop(); emit finished(code, crashed, error);
+    if (!active_ || finalizing_) return;
+    killTimer_.stop();
+    if(settled_) {
+        finalizing_=true;
+        auto settled=std::move(settled_);
+        const ProcessOutcome outcome{childStarted_,code,crashed,stopRequested_};
+        QMetaObject::invokeMethod(worker_,[this,settled=std::move(settled),outcome,error]{
+            settled(outcome);
+            QMetaObject::invokeMethod(this,[this,outcome,error]{
+                finalizing_=false; active_=false;
+                emit finished(outcome.exitCode,outcome.crashed,error);
+            },Qt::QueuedConnection);
+        },Qt::QueuedConnection);
+    } else { active_=false; emit finished(code,crashed,error); }
 }
 }

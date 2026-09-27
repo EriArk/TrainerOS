@@ -4,6 +4,9 @@
 
 namespace trainer {
 using SaveTargetResolver = std::function<SaveTarget(const AdventureRegistration&)>;
+struct ProcessCommand;
+// Best-effort metadata only; failure never prevents ordinary play or changes saves.
+QString observeSaveSession(ProcessCommand&,const QString& root,const AdventureRegistration&,const SaveTargetResolver&);
 // Missing policy preserves the previous write-enabled installation. Corrupt policy fails closed.
 bool saveWritesReadOnly(const QString& root);
 QString setSaveWritesReadOnly(const QString& root, bool enabled);
