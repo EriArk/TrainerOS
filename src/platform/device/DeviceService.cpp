@@ -7,6 +7,8 @@
 #include <QProcessEnvironment>
 #include <QRegularExpression>
 #include <QStorageInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <cmath>
 #include <algorithm>
 
@@ -100,12 +102,26 @@ DeviceBackend systemDeviceBackend(const QString& dataDirectory, const QString& l
         const auto network = command("/usr/bin/nmcli", {"-t", "-f", "STATE", "general"}).trimmed();
         result.network = network == "connected" ? "Connected" : network.startsWith("connected") ? "Limited connection"
             : network == "connecting" ? "Connecting" : network == "disconnected" || network == "asleep" ? "Offline" : "Unavailable";
+        const auto radios = QJsonDocument::fromJson(command("/usr/bin/python3", {"-I", "/var/opt/traineros/integrations/radio-control.py", "status"})).object();
+        result.wifi = radios.value("wifi").toInt(-1);
+        result.bluetooth = radios.value("bluetooth").toInt(-1);
+        result.airplane = radios.value("airplane").toInt(-1);
 #endif
         storage(dataDirectory, result.internalFree, result.internalTotal);
         storage(libraryDirectory, result.libraryFree, result.libraryTotal);
         return result;
     }, [](const QString& control, int value) -> QString {
 #ifdef Q_OS_LINUX
+        if ((control == "wifi" || control == "bluetooth" || control == "airplane") && (value == 0 || value == 1)) {
+            QProcess process;
+            process.setStandardOutputFile(QProcess::nullDevice()); process.setStandardErrorFile(QProcess::nullDevice());
+            process.start("/usr/bin/sudo", {"-n", "/var/opt/traineros/integrations/radio-control.py", control + (value ? "-on" : "-off")});
+            if (!process.waitForStarted(1000) || !process.waitForFinished(15000)) {
+                process.kill(); process.waitForFinished(1000); return "The radio control did not respond. Try again.";
+            }
+            return process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0 ? QString()
+                : "Couldn't change the radio. Check the device connection and try again.";
+        }
         if (control == "brightness") return writeBacklight("/sys/class/backlight", value);
         if (control == "volume" && value >= 0 && value <= 100)
             return changeCommand({"set-volume", "@DEFAULT_AUDIO_SINK@", QString::number(value / 100.0, 'f', 2)});
@@ -130,6 +146,9 @@ int DeviceService::desired(const QString& control) const {
     if (activeControl_ == control) return activeValue_;
     if (control == "volume") return snapshot_.volume;
     if (control == "brightness") return snapshot_.brightness;
+    if (control == "wifi") return snapshot_.wifi;
+    if (control == "bluetooth") return snapshot_.bluetooth;
+    if (control == "airplane") return snapshot_.airplane;
     return snapshot_.volume < 0 ? -1 : int(snapshot_.muted);
 }
 void DeviceService::adjust(const QString& control, int delta) {
@@ -147,9 +166,15 @@ void DeviceService::toggleMute() {
     const int current = desired("mute");
     if (current >= 0) setValue("mute", !current);
 }
+void DeviceService::toggleRadio(const QString& control) {
+    if (control != "wifi" && control != "bluetooth" && control != "airplane") return;
+    const auto current = desired(control);
+    if (current >= 0) setValue(control, !current);
+}
 void DeviceService::setValue(const QString& control, int value) {
-    if ((control != "volume" && control != "brightness" && control != "mute")
-        || value < (control == "brightness" ? 5 : 0) || value > (control == "mute" ? 1 : 100)) return;
+    const bool binary = control == "mute" || control == "wifi" || control == "bluetooth" || control == "airplane";
+    if ((control != "volume" && control != "brightness" && !binary)
+        || value < (control == "brightness" ? 5 : 0) || value > (binary ? 1 : 100)) return;
     if (busy_) { pending_[control] = value; return; }
     execute(control, value);
 }

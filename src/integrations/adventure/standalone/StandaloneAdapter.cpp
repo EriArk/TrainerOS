@@ -8,11 +8,13 @@
 namespace trainer {
 namespace {
 QStringList allowedPlatforms(const QString& id) {
+    if (id == "ppsspp") return {"psp"};
     if (id == "melonds") return {"nds"};
     if (id == "dolphin") return {"gc", "wii"};
     return {};
 }
 QStringList extensions(const QString& platform) {
+    if (platform == "psp") return {"iso", "cso", "pbp", "chd"};
     if (platform == "nds") return {"nds"};
     if (platform == "gc") return {"iso", "gcm", "rvz"};
     if (platform == "wii") return {"iso", "rvz", "wbfs", "wad"};
@@ -72,6 +74,7 @@ std::optional<ProcessCommand> StandaloneAdapter::command(const Adventure& advent
         || !supports(record->adventure.platformId, record->contentPath)) return {};
     auto arguments = installation_.prefixArguments;
     if (id_ == "melonds") arguments << "-f" << record->contentPath;
+    else if (id_ == "ppsspp") arguments << "--fullscreen" << "--pause-menu-exit" << record->contentPath;
     else if (id_ == "dolphin") arguments << "-b" << "-C" << "Dolphin.Display.Fullscreen=True" << "-e" << record->contentPath;
     else return {};
     ProcessCommand result{installation_.program, arguments, {}};

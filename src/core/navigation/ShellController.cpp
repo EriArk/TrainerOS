@@ -496,7 +496,7 @@ QStringList ShellController::menuItems() const {
     }
     // Stable action IDs: slot 1 retired when Controller moved into Settings.
     return {"Settings", "", "Switch Trainer", "",
-            "Desktop / Maintenance Mode", "Steam Gaming Mode", "Power", "Volume", "Screen brightness"};
+            "Desktop / Maintenance Mode", "Steam Gaming Mode", "Power", "Volume", "Screen brightness", "Wi-Fi", "Bluetooth", "Airplane"};
 }
 void ShellController::openTrainers() {
     trainerChooserFromPower_ = menuOpen_;
@@ -814,6 +814,7 @@ void ShellController::dispatch(Action action) {
     }
     if (menuOpen_ && !powerMenu_ && notice_.isEmpty() && menuFocus_ >= 7
             && (action == Action::Left || action == Action::Right)) {
+        if (menuFocus_ >= 9) { menuFocus_ = std::clamp(menuFocus_ + (action == Action::Right ? 1 : -1), 9, 11); emit changed(); return; }
         device_.adjustQuick(menuFocus_ - 7, action); emit changed(); return;
     }
     if (action == Action::Back) {
@@ -832,7 +833,9 @@ void ShellController::dispatch(Action action) {
         if (menuOpen_) delta = action == Action::Up ? -1 : action == Action::Down ? 1 : 0;
         else if (drawerOpen_) delta = action == Action::Left ? -1 : action == Action::Right ? 1 : 0;
         if(menuOpen_ && !powerMenu_) {
-            const QList<int> order{7,8,0,2,4,5,6};
+            if (menuFocus_ >= 9 && delta > 0) { menuFocus_ = 7; emit changed(); return; }
+            if (menuFocus_ >= 9) { emit changed(); return; }
+            const QList<int> order{9,7,8,0,2,4,5,6};
             *focus=order[std::clamp(int(order.indexOf(*focus))+delta,0,int(order.size())-1)];
         } else *focus = std::clamp(*focus + delta, 0, std::max(0, count - 1));
     }

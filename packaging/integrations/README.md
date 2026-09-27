@@ -62,3 +62,23 @@ verified source when no helper is active before retiring the SDL source filter.
 Keep a working maintenance exit until
 physical Home/A/B and restoration pass for each adapter. Legacy exit bindings
 are not removed by these scripts. Saves and state files are not migrated.
+
+### Odin 2 / PPSSPP addition (2026-09-28)
+
+The helper also recognizes the verified `AYN Odin2 Gamepad` USB source
+2020:3001 with axes 0–5 and triggers 2/5. Flip keeps its own axes 0–5/20/21
+and trigger profile. Odin's separate paddle source is not mistaken for its pad.
+The narrow read-only ACL hook accepts either built-in name; it does not expose
+all input devices. The session client selects Odin's `xbox-elite` InputPlumber
+target after Steam's Deck target, without modifying the global device profile.
+
+Owned `PPSSPPSDL` windows now share the guarded exit path with RetroArch.
+Executable validation supplements the existing XRes/process-start ownership
+checks. PPSSPP uses `--pause-menu-exit` so TrainerOS's confirmation is followed
+by a graceful close, rather than a second emulator question. Other standalone
+emulators still need their own device/exit proof.
+
+`install-radio-control.py --user ACCOUNT` adds the fixed-verb NetworkManager/
+BlueZ helper and sudo policy. Run from a trusted root-owned installation source;
+it preserves previous helper/policy copies and does not toggle radios itself.
+See [network delivery and limits](../../docs/DEVICE_NETWORK_PLAN.md).

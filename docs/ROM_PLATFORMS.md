@@ -86,17 +86,14 @@ LocoRoco through short A in Worlds. Physical Home opened the guarded exit
 overlay. PSP's core renames the RetroArch main thread to `Main`; the overlay now
 checks the executable identity after its existing owned-process/start-time
 validation, rather than trusting the thread name. Cancel kept the same game
-alive; confirm returned to TrainerOS. PSP currently uses the PPSSPP Libretro
-core; a standalone PPSSPP route is the next intended runtime choice, not an
-installed feature or a measured speed claim.
+alive; confirm returned to TrainerOS. That earlier probe used the PPSSPP Libretro
+core. The standalone delivery below supersedes its pending-route status.
 
-Known follow-up: the old 128 MiB content limit in exit-media verification can
-reject new exit pictures for large discs despite successful play and return.
-Existing library media is still available; new large-ROM exit-picture storage
-is not claimed working. Native PS3/Switch and per-system resource/controller
-proof beyond the representative launches remain pending.
+The earlier 128 MiB exit-picture limitation is resolved by the delivery below.
+Native PS3/Switch and per-system resource/controller proof beyond the
+representative launches remain pending.
 
-Final installed production build:
+Earlier installed production build:
 `b77a24e79e7282fac55ebedbae83eae398207ec88bdc2eb9efe65203669ce49c`.
 SQLite schema 14, 830 records (including the removed library-test record) and
 all three Trainers were preserved. Actual controller navigation confirmed both
@@ -108,3 +105,31 @@ Verification: all 44 native CTest cases passed across the full run and targeted
 reruns after updating old route-retention expectations; the four Linux overlay
 helper tests passed on Flip. Adapter knowledge/export checks passed unchanged.
 Both native and ARM64 production builds completed. No GitHub Actions gate used.
+
+## Standalone PSP and large-disc pictures — 2026-09-28
+
+The router prefers configured standalone PPSSPP for newly discovered PSP files.
+Existing explicit routes are preserved; Flip's four PSP bindings were migrated
+after a database backup, retaining identities and history. The adapter accepts
+ISO/CSO/PBP/CHD, launches literal file arguments with `--fullscreen` and
+`--pause-menu-exit`, and retains PPSSPP's ordinary saves/settings. See the
+[upstream command-line reference](https://www.ppsspp.org/docs/reference/command-line/).
+No global emulator input remap or new semantic PSP save capability is implied.
+
+PPSSPP 1.20.4 standalone was installed on Flip; Odin's existing installation
+was reused. LocoRoco passed launch, game controller input, Home overlay, cancel
+to the same process and confirmed exit on both. Linux overlay ownership checks
+now accept the actual PPSSPPSDL executable, not an arbitrary renamed thread.
+
+Optional exit pictures now support large ROMs: files up to 128 MiB retain full
+SHA-256; larger files use a `sample-v1:` fingerprint over size and three 256 KiB
+samples (start/middle/end), alongside registration, owner, size and mtime checks.
+This is bounded worker-thread presentation validation, **not a byte-exact hash**;
+unsampled edits preserving size/mtime can escape it. Never use it as evidence
+for save writes, achievements, lineage or exact-build matching. Their full-build
+verification is unchanged. Schema remains 14. A 2 GiB sparse regression fixture
+checks reload and sampled mutation; the actual 589,758,464-byte PSP ROM produced
+a persisted JPEG after clean exit.
+
+Current ARM64 production SHA-256:
+`bc68663a830535bfb6fe7c0b026b85fd9e5e263e662044053c46e23501c68a9a`.

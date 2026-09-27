@@ -182,6 +182,7 @@ Window {
         }
         Item {
             id: footer
+            visible: !adventureLaunch.preparing
             x: 0; y: Theme.footerTop; width: parent.width; height: Theme.footerHeight
             BatteryGauge { x: 18; y: 5; status: powerStatus }
             Text {
@@ -194,7 +195,7 @@ Window {
             readonly property var actions: {
                 const h = hint
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
-                if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [h("X","Quick controls"),h("←→","Adjust"),h("A","Select"),h("B","Close")]
+                if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [h("X","Quick controls"),h("←→",shell.focusIndex>=9 ? "Choose" : "Adjust"),h("A",shell.focusIndex>=9 ? "Toggle" : "Select"),h("B","Close")]
                 if (shell.keyboard.open) return [h("X","Case"),h("Y","Symbols"),h("A","Type"),h("B","Cancel")]
                 if (shell.libraryTools.open) return [h("A","Select"),h("B","Back")]
                 if (shell.drawerOpen) return [h("A","Choose"),h("B","Close")]

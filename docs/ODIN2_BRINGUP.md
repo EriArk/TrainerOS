@@ -1,0 +1,75 @@
+# Odin 2 bring-up — 2026-09-28
+
+The owner's device was already running ArmadaOS 20260927.eba5232, kernel 7.2.6,
+on the actual AYN Odin 2 device tree. This increment installed TrainerOS; it did
+not flash an OS, repartition storage, replace Android partitions, remove software,
+or copy Flip's Trainer database, accounts, secrets or game saves.
+
+## Installed and preserved
+
+- Native ARM64 production binary, ordinary desktop application and an additive
+  TrainerOS Gamescope session at 1920×1080. A fresh EriArk profile was created
+  through controller text entry. Private illustration and sprite providers were
+  copied separately; absent Pokémon saves remain unknown in the interface.
+- The existing SD Emulation/roms tree is reused through a home-directory alias.
+  The shared 105-category preparation tool created 96 missing folders, honoring
+  existing aliases. It moved/deleted no existing game. Empty categories stay
+  hidden. Existing games were discovered; a private LocoRoco test copy was added.
+- Existing RetroArch, PPSSPP, Dolphin and melonDS installations were reused with
+  TrainerOS bindings. Their existing emulator settings and ordinary saves were
+  retained. A binding is not per-title compatibility or guarded-exit proof.
+- Existing Steam library, Plasma maintenance choices, OdinCare/charging helpers
+  and emulator launch helpers remain installed. No default-session service
+  override was installed. The temporary SDDM choice used for the live session
+  test was backed up and removed; the original Steam boot policy remains.
+- Desktop has both the ordinary TrainerOS app and **Return to TrainerOS**, which
+  enters the dedicated session. TrainerOS Start exposes Steam and maintenance
+  transitions. Backups of replaced files and the initial database remain private
+  on the device; no private artifacts are in Git.
+
+## Input and launch evidence
+
+Odin's built-in USB pad is 2020:3001, `AYN Odin2 Gamepad`, axes 0–5 with triggers
+2/5. Flip's matching vendor/product uses a different axis profile. Odin also has
+a separate paddle input source. The exit helper selects the verified pad and
+retains a read-only ACL, not general access to all input devices.
+
+Steam can leave InputPlumber on `deck-uhid`; its Steam-provided controller then
+disappears outside Steam. The TrainerOS session selects Armada's `xbox-elite`
+target only for the recognized Odin composite. Re-entering TrainerOS after a
+Steam transition recreated the virtual Elite pad and restored controller
+navigation without modifying a global input profile.
+
+On the actual Odin, injected kernel controller events exercised profile entry,
+top-level and secondary navigation, Worlds, Dex, Start and launch/exit. LocoRoco
+ran in standalone PPSSPP 1.20.4; game input advanced its language/title sequence.
+Home opened the small overlay, B resumed the same process, and a subsequent
+Home/A exited and returned to the wheel. Its exit JPEG persisted and survived
+session restart. These are device-path checks, not a claim of a human physical
+button acceptance pass. The owner can do that next.
+
+The Steam transition started Steam successfully; the captured intermediate
+screen was its installation-verification splash. TrainerOS re-entry then passed.
+A full Steam game launch, cold reboot, physical volume keys, suspend, other
+standalone exit paths and two-device Link are not claimed verified here.
+
+## UX audit and checks
+
+Start keeps one action column with radios above sliders; Connections uses the
+existing two-pane Settings rather than another submenu stack. Launch has only
+its own footer, eliminating overlapping controller legends. Empty Home no longer
+prints a redundant milestone under the Choose Adventure tab. The existing
+Playroom composition is unchanged.
+
+Actual-device screenshots: Start, Connections and PSP wheel/exit on Flip;
+Dex, Worlds, PSP exit and restored input on Odin. Windows native and ARM64
+production builds passed. Focused standalone/history/device tests, shared core/
+interaction and exit/QML tests passed; four Linux overlay tests passed on Flip,
+including Odin trigger-neutral sampling. Adapter knowledge/export checks passed.
+No repeated full-suite or GitHub Actions delivery gate was used.
+
+Both devices run production SHA-256
+`bc68663a830535bfb6fe7c0b026b85fd9e5e263e662044053c46e23501c68a9a`.
+Network scope and remaining acceptance are in [DEVICE_NETWORK_PLAN](DEVICE_NETWORK_PLAN.md).
+This second installation enables later #45 work; it does not complete Link,
+image distribution, OTA or sleep acceptance.

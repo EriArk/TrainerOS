@@ -10,11 +10,14 @@ class RawPad:
     def __init__(self, path):
         self.fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
         name = bytes(self.get(0x06, 128)).split(b'\0')[0]
-        if name != b'Retroid Pocket Gamepad':
+        profiles = {b'Retroid Pocket Gamepad': ({0,1,2,3,4,5,20,21}, {20,21}),
+                    b'AYN Odin2 Gamepad': ({0,1,2,3,4,5}, {2,5})}
+        if name not in profiles or struct.unpack('HHHH', self.get(0x02, 8))[:3] != (3, 0x2020, 0x3001):
             raise RuntimeError('Unverified physical controller')
+        expected, self.triggers = profiles[name]
         bits = self.get(0x23, 8)
         self.axes = [i for i in range(64) if bits[i // 8] & (1 << (i % 8))]
-        if set(self.axes) != {0, 1, 2, 3, 4, 5, 20, 21}:
+        if set(self.axes) != expected:
             raise RuntimeError('Unverified controller axes')
 
     def get(self, number, size):
@@ -31,7 +34,7 @@ class RawPad:
             if high <= low:
                 raise RuntimeError('Invalid axis range')
             position = (value - low) / (high - low)
-            neutral &= position < .15 if axis in (20, 21) else abs(position - .5) < .175
+            neutral &= position < .15 if axis in self.triggers else abs(position - .5) < .175
         return {'connected': True, 'neutral': bool(neutral), 'confirm': 305 in keys,
                 'back': 304 in keys, 'home': 316 in keys}
 
@@ -40,11 +43,11 @@ def identity(pid):
     return (Path('/proc') / str(pid) / 'stat').read_text().rsplit(')', 1)[1].split()[19]
 
 
-def retroarch_process(pid, proc=Path('/proc')):
+def supported_emulator_process(pid, proc=Path('/proc')):
     # Some cores rename the main thread (PPSSPP uses "Main"). Ownership is
     # checked by X11.owns separately; comm is not executable identity.
     try:
-        return (proc / str(pid) / 'exe').readlink().name == 'retroarch'
+        return (proc / str(pid) / 'exe').readlink().name in ('retroarch', 'PPSSPPSDL')
     except OSError:
         return False
 

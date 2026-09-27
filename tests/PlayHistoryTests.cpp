@@ -47,6 +47,26 @@ class PlayHistoryTests final : public QObject {
         QTRY_VERIFY(done); QVERIFY(ok);
     }
 private slots:
+    void largeDiscPicturesSurviveRestartAndInvalidateAfterContentChange() {
+        QTemporaryDir dir; const auto path=dir.filePath("disc.iso");
+        QFile file(path); QVERIFY(file.open(QIODevice::ReadWrite));
+        QVERIFY(file.resize(2LL*1024*1024*1024)); file.close();
+        const auto now=QDateTime::currentDateTimeUtc(); QImage frame(64,36,QImage::Format_RGB32); frame.fill(Qt::green);
+        {
+            LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());profile(store);addAdventure(store,path);
+            ExitMediaSource source{"owner","pokemon",*store.registration("journey")};
+            PlaySession value{"large-exit","journey",now,{},{},PlaySessionOutcome::Running};
+            QVERIFY(saveMedia(store,value,source).isEmpty());
+            value.outcome=PlaySessionOutcome::Returned;value.endedAt=now.addSecs(3);value.elapsedSeconds=3;
+            QVERIFY(saveMedia(store,value,source,ExitCapture{frame,now}).isEmpty());
+            QVERIFY(store.exitMedia("journey")); QVERIFY(store.exitMedia("journey")->buildSha256.startsWith("sample-v1:"));
+        }
+        { LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());QVERIFY(store.exitMedia("journey")); }
+        QVERIFY(file.open(QIODevice::ReadWrite)); const auto modified=QFileInfo(file).lastModified();
+        QVERIFY(file.seek(file.size()/2));QCOMPARE(file.write("changed"),qint64(7));QVERIFY(file.flush());
+        QVERIFY(file.setFileTime(modified,QFileDevice::FileModificationTime));file.close();
+        LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());QVERIFY(!store.exitMedia("journey"));
+    }
     void multiverseExitMediaKeepsItsDomainAcrossRestart() {
         QTemporaryDir dir;const auto path=content(dir);const auto now=QDateTime::currentDateTimeUtc();
         QImage frame(64,36,QImage::Format_RGB32);frame.fill(Qt::blue);

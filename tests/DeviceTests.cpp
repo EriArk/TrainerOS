@@ -18,6 +18,23 @@ void write(const QString& path, const QByteArray& value) {
 class DeviceTests : public QObject {
     Q_OBJECT
 private slots:
+    void radioControlsReadBackAndDoNotInventSuccessfulWrites() {
+        DeviceSnapshot value; value.wifi=1;value.bluetooth=0;value.airplane=0;
+        bool fail=false;
+        DeviceService service({[&]{return value;},[&](const QString& control,int target){
+            if(fail)return QString("Radio unavailable");
+            if(control=="wifi")value.wifi=target;
+            if(control=="bluetooth")value.bluetooth=target;
+            if(control=="airplane"){value.airplane=target;value.wifi=!target;value.bluetooth=!target;}
+            return QString();
+        }});
+        DeviceController device;device.configure(&service,true);device.begin();QTRY_VERIFY(!service.busy());
+        device.adjustQuick(3,Action::Confirm);QTRY_VERIFY(!service.busy());QCOMPARE(service.snapshot().bluetooth,1);
+        fail=true;device.adjustQuick(2,Action::Confirm);QTRY_VERIFY(!service.busy());QCOMPARE(service.snapshot().wifi,1);QVERIFY(!device.error().isEmpty());
+        fail=false;device.adjustQuick(4,Action::Confirm);QTRY_VERIFY(!service.busy());QCOMPARE(service.snapshot().airplane,1);QCOMPARE(service.snapshot().wifi,0);
+        SettingsController settings;settings.selectCategory(10);QSignalSpy requested(&settings,&SettingsController::quickAdjustment);
+        settings.dispatch(Action::Down);settings.dispatch(Action::Confirm);QCOMPARE(requested.size(),1);QCOMPARE(requested.first().at(0).toInt(),3);
+    }
     void volumeReadingsAreHonest() {
         QCOMPARE(parseVolume("Volume: 0.11\n").volume, 11);
         const auto muted = parseVolume("Volume: 0.35 [MUTED]\n");
@@ -25,6 +42,25 @@ private slots:
         QCOMPARE(parseVolume("Volume: 1.25").volume, 125);
         for (const auto& value : {"", "Volume: nan", "Volume: -1", "Volume: 0,11", "Volume: 11", "error\nVolume: 0.50"})
             QCOMPARE(parseVolume(value).volume, -1);
+    }
+    void radioTogglesQueueDuringRefreshAndKeepTheirOrder() {
+        DeviceSnapshot value; value.wifi = 1; value.bluetooth = 1;
+        QSemaphore release;
+        bool block = false;
+        DeviceService service({[&] {
+            if (block) release.tryAcquire(1, 2000);
+            return value;
+        }, [&](const QString& control, int target) {
+            if (control == "bluetooth") value.bluetooth = target;
+            return QString();
+        }});
+        service.refresh(); QTRY_VERIFY(!service.busy());
+        block = true; service.refresh();
+        service.toggleRadio("bluetooth"); service.toggleRadio("bluetooth");
+        release.release(3); QTRY_VERIFY(!service.busy());
+        QCOMPARE(service.snapshot().bluetooth, 1);
+        block = false; service.toggleRadio("bluetooth");
+        QTRY_VERIFY(!service.busy()); QCOMPARE(service.snapshot().bluetooth, 0);
     }
     void backlightWritesAreBoundedAndUnambiguous() {
         QTemporaryDir root; QVERIFY(root.isValid());

@@ -1,8 +1,32 @@
-# Odin 2 and network controls — planned acceptance
+# Odin 2 and network controls
 
-Owner addition, 2026-09-27. This is a planning record, not device-support proof
-or a claim that these controls are installed. [ROADMAP](ROADMAP.md#unified-execution-order--existing-work-and-new-issues)
+Owner addition, 2026-09-27. The requirements below retain their acceptance;
+the dated delivery section distinguishes installed behavior from remaining work.
+[ROADMAP](ROADMAP.md#unified-execution-order--existing-work-and-new-issues)
 remains the execution queue.
+
+## Delivered radio slice — 2026-09-28
+
+Installed on Flip and [Odin 2](ODIN2_BRINGUP.md): a compact three-button Start
+row above volume/brightness, and Connections in the existing two-pane Settings.
+Both use one asynchronous device service and actual NetworkManager/BlueZ state.
+Writes use a root-owned fixed-verb helper and a narrowly scoped sudo policy;
+QML never invokes platform commands. Repeated toggles queue during refresh.
+External changes are polled while the controls are visible. Failures retain
+actual state and expose an actionable error rather than optimistic success.
+
+`packaging/integrations/install-radio-control.py --user USER` installs the helper
+without changing radio state. Airplane mode turns Bluetooth off before Wi-Fi;
+leaving it restores the pre-flight radio choices held in a root-only `/run` file.
+Unknown/unavailable controls stay unavailable. This is software radio control,
+not an override of hardware blocks.
+
+Bluetooth off/on and readback were exercised on Flip through controller events;
+both handhelds report live state. Wi-Fi-off/airplane end-to-end recovery was
+deliberately deferred because Wi-Fi is the only unattended SSH path.
+Remaining: network scan/connect/password/disconnect/forget, Bluetooth discovery,
+pairing/code confirmation/connect/remove, and local hardware-block/recovery proof.
+These remain required; three toggles do not complete the network acceptance.
 
 ## Second device
 

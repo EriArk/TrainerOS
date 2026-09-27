@@ -10,6 +10,8 @@
 namespace trainer {
 namespace {
 constexpr qint64 MaximumContent = 128 * 1024 * 1024;
+constexpr qint64 SampleSize = 256 * 1024;
+qint64 hashCost(qint64 size) { return size > MaximumContent ? 3 * SampleSize : size; }
 constexpr int MaximumImage = 512 * 1024;
 QString failure() { return "The exit picture couldn't be saved. Your previous picture has been kept."; }
 QString hash(const QByteArray& data) { return QString::fromLatin1(QCryptographicHash::hash(data, QCryptographicHash::Sha256).toHex()); }
@@ -28,12 +30,26 @@ bool currentSource(QSqlDatabase& db, const ExitMediaSource& source) {
 QString contentHash(const QString& path, qint64 size, qint64 modified) {
     const QFileInfo before(path);
     if (!before.isFile() || before.size() != size || before.lastModified().toMSecsSinceEpoch() != modified
-        || size <= 0 || size > MaximumContent) return {};
+        || size <= 0) return {};
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) return {};
     QCryptographicHash digest(QCryptographicHash::Sha256);
-    // All I/O runs on the store worker. Bound work to the first supported
-    // cartridge routes; larger/disc builds keep an honest image placeholder.
+    // Exit pictures are presentation, not exact-build/save-write evidence.
+    // Large discs use a versioned, bounded sample plus the stored size/mtime
+    // and registration identity. Never pass this fingerprint to save providers.
+    if (size > MaximumContent) {
+        digest.addData(QByteArray::number(size));
+        for (const qint64 offset : {qint64(0), (size - SampleSize) / 2, size - SampleSize}) {
+            if (!file.seek(offset)) return {};
+            const auto bytes = file.read(SampleSize);
+            if (bytes.size() != SampleSize) return {};
+            digest.addData(QByteArray::number(offset)); digest.addData(bytes);
+        }
+        const QFileInfo after(path);
+        if (file.error() != QFileDevice::NoError || after.size() != size
+            || after.lastModified().toMSecsSinceEpoch() != modified) return {};
+        return "sample-v1:" + QString::fromLatin1(digest.result().toHex());
+    }
     qint64 read = 0;
     while (!file.atEnd() && read <= MaximumContent) {
         const auto bytes = file.read(256 * 1024);
@@ -88,8 +104,8 @@ QList<ExitMedia> readExitMedia(QSqlDatabase& db, const QString& owner) {
         if (bytes.size() > budget || hash(bytes) != q.value(8).toString()) continue;
         const QFileInfo content(q.value(9).toString());
         if (!content.isFile() || content.size() != q.value(10).toLongLong() || content.lastModified().toMSecsSinceEpoch() != q.value(11).toLongLong()) continue;
-        if (content.size() <= 0 || content.size() > contentBudget) continue;
-        contentBudget -= content.size();
+        if (content.size() <= 0 || hashCost(content.size()) > contentBudget) continue;
+        contentBudget -= hashCost(content.size());
         if (contentHash(content.filePath(), content.size(), content.lastModified().toMSecsSinceEpoch()) != q.value(5).toString()) continue;
         QBuffer buffer; buffer.setData(bytes); buffer.open(QIODevice::ReadOnly);
         QImageReader reader(&buffer, "JPEG");

@@ -64,6 +64,7 @@ private slots:
     void literalLaunchRoundTripAndMissingFileRecovery_data() {
         QTest::addColumn<QString>("adapterId"); QTest::addColumn<QString>("platform"); QTest::addColumn<QString>("extension");
         QTest::newRow("DS") << QString("melonds") << QString("nds") << QString("nds");
+        QTest::newRow("PSP") << QString("ppsspp") << QString("psp") << QString("cso");
         QTest::newRow("GameCube") << QString("dolphin") << QString("gc") << QString("iso");
         QTest::newRow("Wii") << QString("dolphin") << QString("wii") << QString("wad");
     }
@@ -91,6 +92,7 @@ private slots:
         QTRY_COMPARE(restored.size(), 1); QCOMPARE(lifecycle.state(), "returned"); QCOMPARE(store.navigation(), context);
         QFile output(receipt); QVERIFY(output.open(QIODevice::ReadOnly));
         const auto arguments = adapterId == "melonds" ? QJsonArray{"-f", record.contentPath}
+            : adapterId == "ppsspp" ? QJsonArray{"--fullscreen", "--pause-menu-exit", record.contentPath}
             : QJsonArray{"-b", "-C", "Dolphin.Display.Fullscreen=True", "-e", record.contentPath};
         QCOMPARE(QJsonDocument::fromJson(output.readAll()).array(), arguments); output.close();
         QVERIFY(QFile::remove(receipt)); QVERIFY(QFile::rename(record.contentPath, record.contentPath + ".moved"));

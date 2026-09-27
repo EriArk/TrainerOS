@@ -48,11 +48,12 @@ QVariantList SettingsController::controls() const {
         return result;
     }
     case 9: return {row("Read-only saves",savePolicy_?"toggle":"unavailable",readOnlySaves()?"On - reading and backups only":"Off - allow confirmed save changes")};
+    case 10: return {row("Wi-Fi","toggle",""),row("Bluetooth","toggle",""),row("Airplane","toggle","")};
     default: return {};
     }
 }
 void SettingsController::selectCategory(int index, bool enter) {
-    category_ = std::clamp(index,0,9); row_=0; pane_=enter;
+    category_ = std::clamp(index,0,int(categories().size())-1); row_=0; pane_=enter;
     emit changed();
 }
 void SettingsController::activateRow(int index) {
@@ -64,6 +65,7 @@ void SettingsController::activateRow(int index) {
     else if(category_==2 && row_==0) activate(3);
     else if(category_==4) emit trainerRequested(row_);
     else if(category_==5) emit deviceRequested(row_);
+    else if(category_==10 && row_<3) emit quickAdjustment(row_+2,Action::Confirm);
     else if(category_==7 && row_==0) emit controllerRequested();
     else if(category_==8 && row_==0) activate(2);
     else if(category_==8 && row_==1 && libraryAvailable_ && !libraryScanning_) emit libraryRefreshRequested();
@@ -103,6 +105,7 @@ void SettingsController::dispatch(Action action) {
         else if(category_==0 && row_==1 && reducedMotion()!=(action==Action::Right)) activate(1);
         else if(category_==0 && row_==2) emit quickAdjustment(1,action);
         else if(category_==1 && row_==0) emit quickAdjustment(0,action);
+        else if(category_==10 && row_<3) emit quickAdjustment(row_+2,action);
         else if(category_==2 && row_==0 && videoPreviews()!=(action==Action::Right)) activate(3);
         else if(category_==9 && readOnlySaves()!=(action==Action::Right)) activateRow(0);
         else if(category_==8 && row_==0 && worldEditing()!=(action==Action::Right)) activate(2);

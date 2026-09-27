@@ -24,8 +24,21 @@ Item {
                 x: 9; y: root.shell.powerMenu ? 65 : 48; width: parent.width - 18; height: parent.height - y - 9
                 color: "#d1e0d6"
                 visible: root.shell.notice.length === 0
+                Row {
+                    x: 14; y: 8; spacing: 6; visible: !root.shell.powerMenu
+                    Repeater { model: root.shell.device.radios
+                        CapButton {
+                            required property int index; required property var modelData
+                            objectName: "menu-"+(index+9); width: (parent.parent.width-40)/3; height: 42; textSize: 13
+                            label: modelData.title; detail: modelData.detail
+                            tint: modelData.level===1 ? Theme.green : Theme.blue
+                            selected: root.shell.menuOpen && !root.shell.notice.length && root.shell.focusIndex===index+9
+                            onActivated: root.shell.activate(index+9)
+                        }
+                    }
+                }
                 Column {
-                    x: 14; y: 8; width: parent.width-28; spacing: 4; visible: !root.shell.powerMenu
+                    x: 14; y: 58; width: parent.width-28; spacing: 4; visible: !root.shell.powerMenu
                     Repeater { model: 2
                         SettingControl {
                             required property int index
@@ -45,8 +58,8 @@ Item {
                     CapButton {
                         required property int index; required property string modelData
                         readonly property int actionIndex: root.shell.powerMenu ? index : [0,2,4,5,6][index]
-                        objectName: "menu-"+actionIndex; x: 14; y: root.shell.powerMenu ? 32+index*45 : 104+index*39
-                        width: parent.width-28; height: 34; textSize: root.shell.powerMenu ? 15 : 15
+                        objectName: "menu-"+actionIndex; x: 14; y: root.shell.powerMenu ? 32+index*45 : 152+index*35
+                        width: parent.width-28; height: 30; textSize: 15
                         label: modelData; warning: root.shell.powerMenu && index<2
                         tint: root.shell.powerMenu && index<2 ? Theme.pink : Theme.green
                         selected: root.shell.menuOpen && !root.shell.notice.length && root.shell.focusIndex===actionIndex

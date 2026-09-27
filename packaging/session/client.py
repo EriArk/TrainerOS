@@ -75,6 +75,16 @@ if __name__ == "__main__":
     executable = str(Path.home() / ".local/bin/traineros")
     os.environ["TRAINEROS_SESSION"] = "1"
     os.environ["QT_QPA_PLATFORM"] = "xcb"
+    # Steam leaves Odin's InputPlumber target in Deck mode. Its Steam virtual
+    # controller disappears with Steam; use Armada's native Odin Xbox target
+    # for this session. Steam selects its own target again on return.
+    device = ['/usr/bin/busctl', '--timeout=5', 'get-property',
+              'org.shadowblip.InputPlumber', '/org/shadowblip/InputPlumber/CompositeDevice0',
+              'org.shadowblip.Input.CompositeDevice', 'Name']
+    probe = subprocess.run(device, capture_output=True, text=True, timeout=6)
+    if probe.returncode == 0 and probe.stdout.strip() == 's "AYN Odin 2"':
+        subprocess.run(device[:2] + ['call'] + device[3:6] + ['SetTargetDevices', 'as', '1', 'xbox-elite'],
+                       check=True, timeout=6)
     # Match Armada's X11 application environment. With WAYLAND_DISPLAY set,
     # Flatpak's fallback-x11 permission hides DISPLAY; RetroArch's Qt companion
     # then aborts because QT_QPA_PLATFORM requests xcb. Wayland remains available

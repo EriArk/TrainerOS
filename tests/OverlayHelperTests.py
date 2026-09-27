@@ -11,7 +11,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1] / 'packaging/integrations'
 sys.path.insert(0, str(ROOT))
-from overlay_support import RawPad, identity, retroarch_process
+from overlay_support import RawPad, identity, supported_emulator_process
 
 
 class OverlayHelperTests(unittest.TestCase):
@@ -20,14 +20,17 @@ class OverlayHelperTests(unittest.TestCase):
             root=Path(directory);process=root/'42';process.mkdir()
             (process/'comm').write_text('Main')
             (process/'exe').symlink_to('/app/bin/retroarch')
-            self.assertTrue(retroarch_process(42,root))
+            self.assertTrue(supported_emulator_process(42,root))
+            (process/'exe').unlink();(process/'exe').symlink_to('/app/bin/PPSSPPSDL')
+            self.assertTrue(supported_emulator_process(42,root))
             (process/'exe').unlink();(process/'exe').symlink_to('/usr/bin/unrelated')
             (process/'comm').write_text('retroarch')
-            self.assertFalse(retroarch_process(42,root))
-            self.assertFalse(retroarch_process(43,root))
+            self.assertFalse(supported_emulator_process(42,root))
+            self.assertFalse(supported_emulator_process(43,root))
     def test_physical_neutral_includes_every_button_stick_and_trigger(self):
         pad = object.__new__(RawPad)
         pad.axes = [0,1,2,3,4,5,20,21]
+        pad.triggers = {20,21}
         keys = set(); values = {}
         def read(number, size):
             if number == 0x18:
@@ -36,7 +39,7 @@ class OverlayHelperTests(unittest.TestCase):
                 return bits
             axis = number - 0x40
             return struct.pack('iiiiii', values.get(axis, 78 if axis >= 20 else 0),
-                               0 if axis >= 20 else -1408, 1552 if axis >= 20 else 1408,0,0,0)
+                               0 if axis in pad.triggers else -1408, 1552 if axis in pad.triggers else 1408,0,0,0)
         pad.get = read
         self.assertTrue(pad.sample()['neutral'])
         for code in (304,305,306,307,310,311,314,315,316,317,318):
@@ -45,6 +48,13 @@ class OverlayHelperTests(unittest.TestCase):
             values[axis] = 1200; self.assertFalse(pad.sample()['neutral']); values.clear()
         keys.add(305); self.assertTrue(pad.sample()['confirm']); self.assertFalse(pad.sample()['back'])
         keys.clear(); keys.add(304); self.assertTrue(pad.sample()['back'])
+        keys.clear()
+        # Odin uses 2/5 for triggers, unlike the Flip's 20/21.
+        pad.axes = [0, 1, 2, 3, 4, 5]; pad.triggers = {2, 5}
+        self.assertTrue(pad.sample()['neutral'])
+        for axis in pad.axes:
+            values[axis] = 1200
+            self.assertFalse(pad.sample()['neutral']); values.clear()
 
     def guard(self, channel, path):
         code = '''import importlib.util, socket, sys

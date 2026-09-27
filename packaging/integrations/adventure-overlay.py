@@ -12,7 +12,7 @@ import socket
 import subprocess
 import sys
 import time
-from overlay_support import RawPad, X11, identity, retroarch_process
+from overlay_support import RawPad, X11, identity, supported_emulator_process
 
 SERVICE = 'org.shadowblip.InputPlumber'
 INTERFACE = 'org.shadowblip.Input.CompositeDevice'
@@ -108,9 +108,11 @@ def run(args):
     if not directory.is_absolute() or directory.stat().st_uid != os.getuid() or directory.stat().st_mode & 0o077:
         raise RuntimeError('Private capture directory required')
     device = Device(args.device)
-    if str(device.get('Name')) != 'Retroid Pocket Flip 2' or device.mode() != 0:
+    if str(device.get('Name')) not in ('Retroid Pocket Flip 2', 'AYN Odin 2') or device.mode() != 0:
         raise RuntimeError('Device already intercepted or unsupported')
     sources = list(device.get('SourceDevicePaths'))
+    sources = [path for path in sources if (Path('/sys/class/input')/Path(str(path)).name/'device/name').read_text().strip()
+               in ('Retroid Pocket Gamepad', 'AYN Odin2 Gamepad')]
     if len(sources) != 1: raise RuntimeError('Unverified composite sources')
     args.source = str(sources[0])
     pad, x11 = RawPad(args.source), X11()
@@ -158,7 +160,7 @@ def run(args):
                 # own close confirmation, which this overlay must not obscure.
                 supported = False
                 if target and x11.owns(target,args.game,game_start):
-                    supported = retroarch_process(x11.pid(target))
+                    supported = supported_emulator_process(x11.pid(target))
                 if supported and x11.atom('WM_DELETE_WINDOW') in x11.prop(target,'WM_PROTOCOLS'):
                     state = 'requested'; emit('request')
                 else: state = 'release'; neutral_since = None

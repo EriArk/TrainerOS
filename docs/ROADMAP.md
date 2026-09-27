@@ -13,10 +13,15 @@ engines/software lists, native PS3/Switch integration and Steam library/lifecycl
 remain explicit follow-up. No earlier acceptance is dropped. Settings/system/RA
 retain their next priority; new Pokémon/practice expansion remains deferred.
 
-Library follow-up from this device check: prefer a standalone PPSSPP route after
-verifying controller setup and guarded return (currently PSP uses its Libretro
-core). Remove the old 128 MiB exit-media content bound for verified large-ROM
-capture without adding UI-thread hashing. The native Steam/Dead Cells probe
+**2026-09-28 overnight delivery:** standalone PPSSPP is now the preferred new
+PSP route, installed on Flip and using Odin's existing installation. Both devices
+passed controller-driven launch, guarded exit/cancel and return. Large-disc exit
+pictures use a bounded presentation fingerprint, separate from exact save proof.
+[Odin bring-up](ODIN2_BRINGUP.md) preserves its existing Steam default, games and
+maintenance sessions. Start and Settings now share real Wi-Fi/Bluetooth/airplane
+toggles; detailed network discovery/connection/pairing remains next system work.
+See [network scope](DEVICE_NETWORK_PLAN.md#delivered-radio-slice--2026-09-28).
+The native Steam/Dead Cells probe
 reached its game menu, but installed Steam discovery and owned launch/return
 integration are still pending. These do not reopen per-title compatibility work.
 

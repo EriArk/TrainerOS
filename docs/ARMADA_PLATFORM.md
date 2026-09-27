@@ -306,6 +306,10 @@ U11 installation/update/rollback and the selected maintenance arrangement preced
 
 ## Long-term option: TrainerOS image
 
+The [2026-09-28 Odin 2 bring-up](ODIN2_BRINGUP.md) records the second actual
+Armada installation, its separate input profile and preserved Steam boot policy.
+It is bounded native/session evidence, not a new image or universal device claim.
+
 **Promoted by #70, 2026-09-24; reconciled 2026-09-26.** This heading remains for
 older links, but the image is now a required distribution deliverable, not an
 option conditional on package deployment failing. R15 owns the reproducible image,

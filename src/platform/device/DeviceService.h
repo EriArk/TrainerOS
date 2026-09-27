@@ -11,6 +11,7 @@ struct DeviceSnapshot {
     bool muted = false;
     int brightness = -1;
     QString network = "Unavailable";
+    int wifi = -1, bluetooth = -1, airplane = -1;
     qint64 internalFree = -1, internalTotal = -1, libraryFree = -1, libraryTotal = -1;
 };
 struct BacklightValue { QString directory; int current = -1, maximum = -1; };
@@ -35,6 +36,7 @@ public:
     void setValue(const QString& control, int value);
     void adjust(const QString& control, int delta);
     void toggleMute();
+    void toggleRadio(const QString& control);
     void hardwareVolume(int delta);
 signals:
     void changed();

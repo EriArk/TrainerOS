@@ -59,7 +59,14 @@ Item {
             }
         }
     }
-    Text { x: 34; y: root.hasParty ? 290 : 350; width: 610; elide: Text.ElideRight; textFormat: Text.PlainText; text: root.currentAdventure.milestone; color: Theme.muted; font.pixelSize: 15 }
+    Text {
+        x: root.hasParty ? 34 : Theme.adventureCutoutWidth + 6
+        y: root.hasParty ? 290 : 350
+        width: Math.min(610, root.width - x - 20)
+        visible: root.currentAdventure.adventureId.length > 0
+        elide: Text.ElideRight; textFormat: Text.PlainText
+        text: root.currentAdventure.milestone; color: Theme.muted; font.pixelSize: 15
+    }
     Item {
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom }
         width: 244

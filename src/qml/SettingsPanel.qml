@@ -6,7 +6,7 @@ Item {
     readonly property bool takesFocus: visible && !shell.menuOpen && !shell.notice.length && !shell.keyboard.open && !shell.trainer.picker.open && !shell.libraryTools.open
     readonly property string localError: settings.category===4 && shell.trainer.editing ? shell.trainer.error
         : (settings.category===0 || settings.category===8 || settings.category===9) && settings.error.length ? settings.error
-        : [0,1,5].includes(settings.category) ? shell.device.error : ""
+        : [0,1,5,10].includes(settings.category) ? shell.device.error : ""
     readonly property string statusText: settings.category===4 && shell.trainer.saving || settings.saving ? "Saving..."
         : localError || (shell.hall.account.open ? shell.hall.account.status : settings.category===8 ? settings.libraryStatus : "")
 
@@ -41,14 +41,14 @@ Item {
                         {title: "Favorite", kind: "action", detail: root.shell.trainer.draftFavorite},
                         {title: "Save Trainer", kind: "action", detail: ""},
                         {title: "Cancel", kind: "action", detail: ""}
-                    ] : root.settings.controls
+                    ] : root.settings.category===10 ? root.shell.device.radios.map(r => ({title:r.title, detail:r.detail, kind:r.level<0 ? "unavailable" : "toggle", level:r.level})) : root.settings.controls
                         SettingControl {
                             required property int index; required property var modelData
                             objectName: (root.shell.hall.account.open ? "achievement-account-" : "settings-control-")+index; width: parent.width; height: root.shell.hall.account.open ? 56 : root.shell.trainer.editing ? 44 : root.settings.category===5 ? 32 : root.settings.category===4 ? 44 : 68
                             title: root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===0 ? (root.shell.trainer.exists ? "Edit Trainer" : "Create Trainer") : root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "Preview registration & PIN" : modelData.title
                             detail: root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===0 ? (root.shell.trainer.profile.name || "Give your journey a name") : root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "Development preview only" : modelData.detail
                             kind: root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "action" : modelData.kind
-                            checked: root.settings.category===9 ? root.settings.readOnlySaves : root.settings.category===8 ? root.settings.worldEditing : root.settings.category===2 ? root.settings.videoPreviews : root.settings.reducedMotion
+                            checked: root.settings.category===10 ? modelData.level===1 : root.settings.category===9 ? root.settings.readOnlySaves : root.settings.category===8 ? root.settings.worldEditing : root.settings.category===2 ? root.settings.videoPreviews : root.settings.reducedMotion
                             level: kind==="volume" ? root.shell.device.rows[0].level : kind==="brightness" ? root.shell.device.rows[1].level : -1
                             muted: kind==="volume" && root.shell.device.rows[0].muted
                             selected: root.takesFocus && root.settings.controlsFocused && (root.shell.hall.account.open ? root.shell.hall.account.focusIndex : root.shell.trainer.editing ? root.shell.trainer.focusIndex : root.settings.rowFocus)===index

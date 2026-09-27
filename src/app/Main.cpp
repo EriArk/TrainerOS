@@ -227,7 +227,8 @@ int main(int argc, char* argv[]) {
         const auto melonDsInstallation = standaloneInstallation("melonds");
         StandaloneAdapter melonDs("melonds", activeLibrary, melonDsInstallation);
         StandaloneAdapter dolphin("dolphin", activeLibrary, standaloneInstallation("dolphin"));
-        AdapterRouter adapters({&retroarch, &melonDs, &dolphin});
+        StandaloneAdapter ppsspp("ppsspp", activeLibrary, standaloneInstallation("ppsspp"));
+        AdapterRouter adapters({&ppsspp, &retroarch, &melonDs, &dolphin});
         if (personalLibrary && !smoke) selectedAdapter = &adapters;
 #ifdef TRAINEROS_UI_TESTS
         ProbeAdventureAdapter probeAdapter;
@@ -525,6 +526,7 @@ int main(int argc, char* argv[]) {
                 retroarch.requestLaunch = requestAdventure;
                 melonDs.requestLaunch = requestAdventure;
                 dolphin.requestLaunch = requestAdventure;
+                ppsspp.requestLaunch = requestAdventure;
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::changed, &session, [&] {
                     session.setAdventureActive(adventureLaunch.active());
                     input.setEnabled(app.applicationState() == Qt::ApplicationActive && (!adventureLaunch.active() || adventureLaunch.preparing()));

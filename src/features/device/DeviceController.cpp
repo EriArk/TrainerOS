@@ -21,7 +21,15 @@ void DeviceController::setMonitoring(bool enabled) {
     else monitor_.stop();
 }
 void DeviceController::adjustQuick(int index, Action action) {
-    if (!service_ || index < 0 || index > 1) return;
+    if (!service_ || index < 0 || index > 4) return;
+    if (index >= 2) {
+        const auto radio = radios().at(index - 2).toMap();
+        if (radio.value("level").toInt() < 0) return;
+        if (action == Action::Confirm) service_->toggleRadio(radio.value("id").toString());
+        else if (action == Action::Left || action == Action::Right)
+            service_->setValue(radio.value("id").toString(), action == Action::Right);
+        return;
+    }
     if (action == Action::Confirm && index == 0) service_->toggleMute();
     else if (action == Action::Left || action == Action::Right)
         service_->adjust(index == 0 ? "volume" : "brightness", action == Action::Right ? 5 : -5);
@@ -50,6 +58,15 @@ QVariantList DeviceController::status() const {
     return {QVariantMap{{"title", "Network"}, {"value", value.network}},
             QVariantMap{{"title", "Trainer storage"}, {"value", capacity(value.internalFree, value.internalTotal)}},
             QVariantMap{{"title", "Adventure storage"}, {"value", capacity(value.libraryFree, value.libraryTotal)}}};
+}
+QVariantList DeviceController::radios() const {
+    const auto value = service_ ? service_->snapshot() : DeviceSnapshot{};
+    QVariantList result;
+    const QStringList ids{"wifi", "bluetooth", "airplane"}, names{"Wi-Fi", "Bluetooth", "Airplane"};
+    const QList<int> levels{value.wifi, value.bluetooth, value.airplane};
+    for (int i = 0; i < 3; ++i) result.append(QVariantMap{{"id", ids[i]}, {"title", names[i]}, {"level", levels[i]},
+        {"detail", levels[i] < 0 ? "Unavailable" : levels[i] ? "On" : "Off"}});
+    return result;
 }
 void DeviceController::requestPower(bool restart) {
     if (powerAvailable_) emit powerRequested(restart ? "reboot" : "poweroff");

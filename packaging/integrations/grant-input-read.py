@@ -22,7 +22,8 @@ def grant(account):
     while time.monotonic() < deadline:
         for item in Path('/sys/class/input').glob('event*'):
             try:
-                if (item/'device/name').read_text().strip() != 'Retroid Pocket Gamepad': continue
+                expected_name = (item/'device/name').read_text().strip()
+                if expected_name not in ('Retroid Pocket Gamepad', 'AYN Odin2 Gamepad'): continue
                 path = Path('/dev/input')/item.name
                 fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC | os.O_NOFOLLOW)
                 with os.fdopen(fd, 'rb', buffering=0) as source:
@@ -37,7 +38,7 @@ def grant(account):
                     if info.st_mode & 0o777: continue
                     name = bytearray(128)
                     fcntl.ioctl(source.fileno(), 0x80804506, name, True)
-                    if bytes(name).split(b'\0')[0] != b'Retroid Pocket Gamepad':
+                    if bytes(name).split(b'\0')[0].decode() != expected_name:
                         raise RuntimeError('Unexpected physical controller')
                     subprocess.run(['/usr/bin/setfacl', '-m', f'u:{uid}:r--', '--',
                                     f'/proc/self/fd/{source.fileno()}'],
