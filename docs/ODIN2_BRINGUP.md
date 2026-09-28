@@ -98,3 +98,36 @@ adapter knowledge/export checks passed unchanged. No GitHub Actions gate.
 Actual captures include `odin-network-wifi.png`, `odin-network-bluetooth.png`,
 `odin-network-keyboard.png`, `flip-network-wifi.png` and the PS2 launch/exit
 captures in the ignored research directory. No private content is committed.
+
+## Mainline Pokémon test library — 2026-09-28
+
+The owner narrowed the second-device collection to mainline handheld games,
+without ROM hacks or spin-offs. The bounded set is Red/Blue/Yellow,
+Gold/Silver/Crystal, Ruby/Sapphire/Emerald/FireRed/LeafGreen, and
+Diamond/Pearl/Platinum/HeartGold/SoulSilver/Black/White/Black 2/White 2.
+The inspected private source's 3DS directory contains no ROMs; no 3DS game is
+claimed installed. Extra copies from the interrupted broader transfer were
+removed only from this increment's manifest. Source originals and Odin's
+pre-existing games remain intact.
+
+All 20 destination ROMs passed SHA-256 comparison (2.09 GiB total). The final
+library contains 3 GB, 3 GBC, 5 GBA and 9 DS registrations and no installed hacks;
+SQLite integrity and foreign-key checks passed. Existing World creation caused
+six automatic-import failures; the bounded device import restored those exact
+records and source World memberships. Fixing idempotent World creation remains
+library follow-up; this preparation does not claim that scanner bug is fixed.
+
+The matching full English Emerald ordinary save was copied separately from
+Flip, without copying its Trainer identities, accounts, history or backup lineage.
+Odin's normal emulator save location is used for its original EriArk profile.
+TrainerOS uses a separate RetroArch base configuration with automatic overrides
+disabled, preserving the existing external emulator configuration. The installed
+mGBA override otherwise blocked the verified save route. Gambatte was added for
+GB/GBC; existing mGBA and melonDS installations were retained.
+
+On Odin, short A launched Emerald, its Continue menu displayed 8 badges and
+386 Pokédex entries, and the full save loaded. Guarded Home exit returned to
+TrainerOS. Home read 8/8 badges and 386 caught; Party displayed all six level-100
+members. Actual-device captures are retained privately. These are preparation
+and representative launch/readback evidence, not a two-device multiplayer/Link
+test or proof of every title's compatibility. The existing #45 gates remain.

@@ -4,6 +4,17 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-28 owner Odin test-library scope:** prepare only the mainline Pokémon
+games on the basic handheld platforms through 3DS, without ROM hacks or the
+full spin-off collection. Reuse authorized private sources; an absent 3DS ROM
+is not an installed title. Copy the full Emerald test save for later two-device
+work, keeping each device's profiles/history and pre-existing content separate.
+This is test-device preparation, not delivery of multiplayer/Link acceptance.
+See [Odin preparation](ODIN2_BRINGUP.md).
+Library follow-up: make folder discovery's existing-World creation idempotent;
+Odin preparation exposed six registrations rejected while that World existed.
+The bounded import is complete, but the general scanner correction remains open.
+
 **2026-09-28 owner emulator follow-up:** make platform setup comprehensive in
 advance: one maintained platform/format → preferred installed emulator registry,
 native/Flatpak discovery and preparation of controller/firmware routes. A ready
