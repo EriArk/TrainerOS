@@ -12,6 +12,10 @@ P2P application traffic and Home invitation/decline/accept were verified. The
 search terminal and Companions / Field Guide / Care Center presentation names
 are delivered. Broader radio compatibility, GPU-hang root cause, remaining
 Emerald/native-rule limits and every subsequent RA/system/R1–R18 item stay open.
+Final repeat checks exposed pairing timeouts and loss of Odin SSH availability
+(ping remained alive). Finish bounded reconnect/deadline/error recovery before
+calling direct transport stable or returning to the RA lane; see Nearby play's
+evidence and limits. No save mutation was attempted during those checks.
 
 **2026-09-28 owner Link override:** one substantial Emerald ↔ Emerald nearby
 increment now precedes the remaining RA lane: opt-in local Wi-Fi discovery,

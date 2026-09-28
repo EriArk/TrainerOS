@@ -44,6 +44,17 @@ opening Link. Accept connected both; a battle invitation was declined and then
 accepted without reconnecting, opening the saved-party chooser on both devices.
 The activity was cancelled before any reservation/save mutation.
 
+Repeat-connection reliability remains open. On the final installed build, one
+outgoing attempt timed out before the receiver displayed an invitation. A later
+attempt displayed the correct Home popover and formed a P2P group, but the
+invitation deadline expired during address negotiation. A subsequent attempt
+reported `supplicant-timeout`. Odin then still answered ping but stopped sending
+an SSH banner; the cause is not yet established. The initiator was cancelled,
+with no save operation started. Do not treat the earlier successful connection
+as proof of stable repeated pairing. Next work must separate invitation-response
+and accepted-network-establishment deadlines, expose actionable failures, and
+verify reconnect/decline recovery on these two devices before expanding transport.
+
 The search scene, Trainer row, connected portraits and both invitation popovers
 were captured from the handhelds. Native Windows/ARM builds and focused protocol
 and QML checks supplement device input. Other Wi-Fi chipsets, prolonged roaming,
