@@ -52,6 +52,22 @@ function complete() {
     return crypto.createHash('sha256').update(JSON.stringify(events)).digest('hex');
 }
 const replay=complete();assert.equal(complete(),replay);
+// The simulator, not button-arrival order or the UI, owns action order.
+const speed=input();speed.members[0].ivs[5]=0;speed.members[0].stats[5]=85;
+let orderBattle=engine.start(speed);let ordered=orderBattle.state();
+ordered=orderBattle.turn(ordered.turn,[1,1],ordered.request);
+assert.ok(ordered.events.find(e=>e.startsWith('|move|')).startsWith('|move|p2a:'));
+orderBattle.close();
+speed.members[0].moves[0]={id:98,ppUps:0,maxPp:30}; // Quick Attack outranks faster Flamethrower.
+orderBattle=engine.start(speed);ordered=orderBattle.state();
+ordered=orderBattle.turn(ordered.turn,[1,1],ordered.request);
+assert.ok(ordered.events.find(e=>e.startsWith('|move|')).startsWith('|move|p1a:'));
+orderBattle.close();
+const knocked=input();knocked.members[0].level=1;knocked.members[0].stats=[12,7,6,7,6,6];
+orderBattle=engine.start(knocked);ordered=orderBattle.state();
+ordered=orderBattle.turn(ordered.turn,[1,1],ordered.request);
+assert.equal(ordered.ended,true);assert.equal(ordered.events.filter(e=>e.startsWith('|move|')).length,1);
+orderBattle.close();
 // A Bag action replaces the attack, consumes one native medicine and a turn,
 // preserves move PP, and can target a benched member without switching it in.
 const bagInput=input();bagInput.teams=[[member(),member()],[member(),member()]];

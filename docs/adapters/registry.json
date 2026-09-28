@@ -183,6 +183,7 @@
         "link-battle": {
           "state": "partial",
           "evidence": ["source-research", "synthetic", "allowed-delta", "private-copy", "device"],
+          "presentation": "Ordered intermediate HP and generic typed effects verified on Flip/Odin; simulator speed, priority and KO response checks pass. Cartridge parity remains open.",
           "details": "../EMERALD_LINK.md"
         },
         "link-sale": {

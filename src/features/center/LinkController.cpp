@@ -33,6 +33,13 @@ LinkController::LinkController(QObject* parent):QObject(parent),peer_(this),batt
     });
     connect(&battle_,&PracticeSession::changed,this,&LinkController::battleChanged);
     connect(&battle_,&PracticeSession::stopped,this,[this](const QString& reason){if(open_ && mode_=="battle" && stage_!="finished" && peer_.connected() && !reason.isEmpty())fail(reason);});
+    playbackTimer_.setSingleShot(true);
+    connect(&playbackTimer_,&QTimer::timeout,this,[this]{
+        if(stage_!="events")return;
+        if(playback_.advance())playbackTimer_.start(playback_.event()["duration"].toInt());
+        else finishPlayback();
+        emit changed();
+    });
     heartbeat_.setInterval(2000);
     connect(&heartbeat_,&QTimer::timeout,this,[this]{
         if(!peer_.connected())return;
@@ -60,10 +67,10 @@ void LinkController::enter() {
     if(!backend_){stage_="error";message_="Link requires an installed Emerald Adventure.";emit changed();return;}
     peer_.open();heartbeat_.start();emit changed();
 }
-void LinkController::leave(){if(busy_)return;open_=false;++generation_;heartbeat_.stop();peer_.close();battle_.cancel();emit changed();}
+void LinkController::leave(){if(busy_)return;playbackTimer_.stop();playback_.reset();open_=false;++generation_;heartbeat_.stop();peer_.close();battle_.cancel();emit changed();}
 void LinkController::send(const QString& type,QJsonObject fields){fields["type"]=type;fields["version"]=1;peer_.send(fields);}
-void LinkController::fail(const QString& text){message_=text;stage_="error";if(paired_)send("problem",{{"message",text.left(180)}});emit changed();}
-void LinkController::resetChoice(){mode_.clear();localChoice_={};remoteChoice_={};remoteJournal_={};transaction_.clear();confirmed_=remoteConfirmed_=false;focus_=0;localMove_=remoteMove_=-1;moveSent_=false;battleState_={};bench_=bag_=recovering_=battleStarting_=false;bagItem_=0;forfeitSide_=-1;collection_=-1;stake_="none";stakeAmount_=1000;}
+void LinkController::fail(const QString& text){playbackTimer_.stop();playback_.reset();message_=text;stage_="error";if(paired_)send("problem",{{"message",text.left(180)}});emit changed();}
+void LinkController::resetChoice(){playbackTimer_.stop();playback_.reset();turnSubmitted_=false;mode_.clear();localChoice_={};remoteChoice_={};remoteJournal_={};transaction_.clear();confirmed_=remoteConfirmed_=false;focus_=0;localMove_=remoteMove_=-1;moveSent_=false;battleState_={};bench_=bag_=recovering_=battleStarting_=false;bagItem_=0;forfeitSide_=-1;collection_=-1;stake_="none";stakeAmount_=1000;}
 void LinkController::verify(std::function<void()> next) {
     if(busy_ || !verify_){if(!verify_)fail("Choose a supported Emerald Adventure first.");return;}
     busy_=true;emit changed();const auto generation=++generation_;
@@ -138,7 +145,7 @@ QVariantList LinkController::previewTeam() const {
     for(int i=0;i<progress_.party->party.size();++i){auto m=partyMember(i);if(!m.isEmpty())out.append(display(m));}return out;
 }
 QVariantList LinkController::team() const {
-    QVariantList out;const auto sides=battleState_["sides"].toArray();const auto members=localChoice_["team"].toArray();
+    QVariantList out;const auto sides=playback_.active()?playback_.sides():battleState_["sides"].toArray();const auto members=localChoice_["team"].toArray();
     if(sides.size()!=2)return previewTeam();
     for(const auto& v:sides[host()?0:1].toObject()["team"].toArray()) {
         const auto mon=v.toObject();const int index=mon["member"].toInt(-1);if(index<0 || index>=members.size())continue;
@@ -175,7 +182,7 @@ QVariantList LinkController::rows() const {
     return {};
 }
 QVariantList LinkController::fighters() const {
-    QVariantList out;const auto sides=battleState_["sides"].toArray();
+    QVariantList out;const auto sides=playback_.active()?playback_.sides():battleState_["sides"].toArray();
     const std::array<QJsonObject,2> members{localChoice_,remoteChoice_};
     for(int i=0;i<2;++i){auto shown=members[i];
         if(sides.size()==2 && shown.contains("team")){const auto team=shown["team"].toArray();const int index=sides[host()?i:1-i].toObject()["member"].toInt();if(index>=0 && index<team.size())shown=team[index].toObject();}
@@ -190,30 +197,21 @@ QVariantList LinkController::fighters() const {
                 {"detail",members[i]["account"].toObject()["destination"].toString()}};
         }
         if(sides.size()==2){const auto side=sides[host()?i:1-i].toObject();row["battleHp"]=side["hp"].toInt();row["maxHp"]=side["maxHp"].toInt();row["hpRatio"]=side["hp"].toDouble()/std::max(1,side["maxHp"].toInt());row["battleStatus"]=side["status"].toString();}
-        if(mode_=="battle")for(const auto& value:battleState_["events"].toArray()) {
-            const auto event=value.toString().split('|');
-            if(event.size()>2 && event[1]=="move" && event[2].startsWith((host()?i:1-i)==0?"p1a:":"p2a:"))row["attackBeat"]=battleState_["request"].toInt();
+        const auto event=playback_.event();
+        if(playback_.active() && event["actor"].toInt()==(host()?i:1-i)) {
+            row["effectBeat"]=event["serial"];row["effectKind"]=event["effect"];row["effectElement"]=event["element"];
+            if(event["effect"]=="move")row["attackBeat"]=event["serial"];
         }
         out.append(row);
     }return out;
 }
 QString LinkController::turnSummary() const {
-    QStringList lines;
-    for(const auto& event:battleState_["events"].toArray()) {
-        const auto fields=event.toString().split('|');if(fields.size()<3)continue;
-        const auto kind=fields[1];
-        const auto name=fields[2].section(": ",1).left(24);
-        if(kind=="message") {
-            auto text=fields[2].left(100);text.replace(host()?"Partner 1":"Partner 2","You");text.replace(host()?"Partner 2":"Partner 1","Your friend");lines<<text;
-        }
-        else if(kind=="move" && fields.size()>3)lines<<name+" used "+fields[3].left(32)+"!";
-        else if(kind=="faint")lines<<name+" fainted!";
-        else if(kind=="-miss")lines<<"The attack missed!";
-        else if(kind=="cant")lines<<name+" couldn't move!";
-        else if(kind=="-supereffective")lines<<"Super effective!";
-        else if(kind=="-immune")lines<<"It had no effect!";
+    if(playback_.active()) {
+        auto text=playback_.event()["text"].toString();
+        text.replace(host()?"Partner 1":"Partner 2","You");
+        text.replace(host()?"Partner 2":"Partner 1","Your friend");return text;
     }
-    return lines.mid(0,5).join("  ·  ");
+    return stage_=="moves"?QString("Choose your action for turn %1").arg(battleTurn()):message_;
 }
 void LinkController::pairReady() {
     if(!accepted_ || !peerAccepted_ || paired_)return;paired_=true;pin_.clear();
@@ -305,7 +303,7 @@ void LinkController::confirm() {
     });
 }
 void LinkController::advanceTrade() {
-    if(busy_ || !paired_ || (mode_!="trade" && !sale() && mode_!="battle") || transaction_.isEmpty())return;
+    if(playback_.active() || busy_ || !paired_ || (mode_!="trade" && !sale() && mode_!="battle") || transaction_.isEmpty())return;
     if(journal_.isEmpty() || journal_["stage"]=="complete" && journal_["id"]!=transaction_) {
         if(!confirmed_ || !remoteConfirmed_)return;
         stage_="saving";message_="Protecting both saves…";
@@ -375,15 +373,32 @@ void LinkController::beginBattle() {
     emit changed();
 }
 void LinkController::showBattle(const QJsonObject& state) {
-    const bool conceding=stage_=="concede";
-    battleState_=state;localMove_=remoteMove_=-1;moveSent_=false;focus_=0;bench_=bag_=false;bagItem_=0;
-    const auto sides=state["sides"].toArray();if(sides.size()!=2)return;
+    playbackTimer_.stop();
+    const QJsonArray teams=host()?QJsonArray{localChoice_["team"],remoteChoice_["team"]}:QJsonArray{remoteChoice_["team"],localChoice_["team"]};
+    playback_.load(battleState_,state,teams);
+    battleState_=state;localMove_=remoteMove_=-1;moveSent_=turnSubmitted_=false;focus_=0;bench_=bag_=false;bagItem_=0;
+    if(playback_.active()) {
+        stage_="events";message_="The turn is playing out";
+        playbackTimer_.start(playback_.event()["duration"].toInt());
+    } else finishPlayback();
+    emit changed();
+}
+void LinkController::finishPlayback() {
+    playbackTimer_.stop();
+    const auto sides=battleState_["sides"].toArray();if(sides.size()!=2)return;
+    if(battleState_["ended"].toBool()){finishBattle(battleState_);return;}
+    if(host() && forfeitSide_>=0) {const int side=forfeitSide_;forfeitSide_=-1;concede(side);return;}
     bench_=sides[host()?0:1].toObject()["forceSwitch"].toBool();
     if(sides[host()?0:1].toObject()["wait"].toBool()){localMove_=9;moveSent_=true;}
     if(host() && sides[1].toObject()["wait"].toBool())remoteMove_=9;
-    stage_=state["ended"].toBool()?"saving":conceding?"concede":moveSent_?"waiting":"moves";
-    message_=state["ended"].toBool()?"Saving the battle result…":conceding?"Concede? Your friend wins this battle and the agreed stake.":moveSent_?"Your friend is choosing a replacement":QString("Turn %1").arg(state["turn"].toInt());
-    emit changed();
+    stage_=moveSent_?"waiting":"moves";
+    message_=moveSent_?"Your friend is choosing a replacement":bench_?"Choose your next Pokemon":QString("Turn %1").arg(battleTurn());
+    tryBattleTurn();
+}
+void LinkController::tryBattleTurn() {
+    if(!host() || playback_.active() || turnSubmitted_ || localMove_<0 || remoteMove_<0 || journal_["stage"]!="reserved")return;
+    turnSubmitted_=true;stage_="waiting";message_="Playing this turn...";
+    if(!battle_.choose(localMove_,remoteMove_))fail("This battle move is unavailable.");
 }
 void LinkController::finishBattle(const QJsonObject& state) {
     if(busy_ || journal_["stage"]!="reserved")return;
@@ -397,7 +412,6 @@ void LinkController::battleChanged() {
     const auto state=battle_.state();if(state==battleState_)return;
     operation("battle-checkpoint",{{"id",transaction_},{"state",state}},[this,state](QJsonObject result){
         journal_=result;showBattle(state);send("battle",{{"state",state}});
-        if(state["ended"].toBool())finishBattle(state);
     });
 }
 void LinkController::battleRules(const QString& kind,int amount) {
@@ -412,7 +426,7 @@ void LinkController::battleRules(const QString& kind,int amount) {
 }
 void LinkController::concede(int side) {
     if(!host() || journal_["stage"]!="reserved" || side<0 || side>1)return;
-    if(busy_){forfeitSide_=side;return;}
+    if(busy_ || playback_.active() || turnSubmitted_){forfeitSide_=side;return;}
     auto state=journal_["checkpoint"].toObject();
     if(state["ended"].toBool() || state["sides"].toArray().size()!=2)return;
     state["request"]=state["request"].toInt()+1;state["ended"]=true;
@@ -422,7 +436,7 @@ void LinkController::concede(int side) {
 }
 void LinkController::submitMove(int slot) {
     moveSent_=true;stage_="waiting";message_="Waiting for your friend's move";
-    if(host()){localMove_=slot;if(remoteMove_>=0 && !battle_.choose(localMove_,remoteMove_))fail("This battle move is unavailable.");}
+    if(host()){localMove_=slot;tryBattleTurn();}
     else send("move",{{"turn",battleState_["turn"]},{"request",battleState_["request"]},{"slot",slot}});
     emit changed();
 }
@@ -479,15 +493,15 @@ void LinkController::receive(const QJsonObject& input) {
         const auto state=input["state"].toObject();
         if(state["sides"].toArray().size()!=2 || state["turn"].toInt()<1 || state["turn"].toInt()>201)return;
         if(!battleState_.isEmpty() && state["request"].toInt()<=battleState_["request"].toInt())return;
-        operation("battle-checkpoint",{{"id",transaction_},{"state",state}},[this,state](QJsonObject result){journal_=result;showBattle(state);if(state["ended"].toBool())finishBattle(state);});return;
+        operation("battle-checkpoint",{{"id",transaction_},{"state",state}},[this,state](QJsonObject result){journal_=result;showBattle(state);});return;
     }
     if(type=="move" && host() && mode_=="battle" && input["request"]==battleState_["request"] && input["turn"]==battleState_["turn"] && remoteMove_<0) {
         const int move=input["slot"].toInt(-1);if(move<0 || move>255)return;remoteMove_=move;
-        if(localMove_>=0 && !battle_.choose(localMove_,remoteMove_))fail("This battle move is unavailable.");return;
+        tryBattleTurn();return;
     }
 }
 void LinkController::activate(int index) {
-    if(busy_)return;
+    if(busy_ || stage_=="events")return;
     if(stage_=="browse"){peer_.connectPeer(index);return;}
     if(stage_=="pair" && !pin_.isEmpty()){accepted_=true;send("accept",{{"code",pin_}});message_="Waiting for your friend's confirmation";pairReady();return;}
     if(stage_=="lobby"){
@@ -516,6 +530,7 @@ void LinkController::activate(int index) {
     }
 }
 void LinkController::dispatch(Action action) {
+    if(stage_=="events")return;
     if(!busy_ && stage_=="moves") {
         const auto sides=battleState_["sides"].toArray();
         const bool forced=sides.size()==2 && sides[host()?0:1].toObject()["forceSwitch"].toBool();

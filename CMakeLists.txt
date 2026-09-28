@@ -183,6 +183,7 @@ add_library(trainer_core STATIC
     src/features/center/PartyPresentation.cpp
     src/features/center/CenterActivities.cpp
     src/features/center/LinkController.cpp
+    src/features/center/BattlePlayback.cpp
     src/features/center/PracticeController.cpp
     src/features/worlds/WorldsController.h
     src/integrations/adventure/AdventureAdapter.h

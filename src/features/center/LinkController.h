@@ -3,6 +3,7 @@
 #include "platform/network/LocalLinkPeer.h"
 #include "integrations/practice/PracticeSession.h"
 #include "PracticeController.h"
+#include "BattlePlayback.h"
 #include <QJsonArray>
 namespace trainer {
 class LinkController final:public QObject {
@@ -42,7 +43,7 @@ public:
     QString partner() const{return peerName_;}QString code() const{return pin_;}QString mode() const{return mode_;}
     QString turnSummary() const;
     QString priceText() const{return QString::number(price_);}
-    int battleTurn() const{return battleState_["turn"].toInt();}
+    int battleTurn() const{return playback_.active()?playback_.turn():battleState_["turn"].toInt();}
     bool battleStarted() const{return battleStarting_ || !battleState_.isEmpty();}
     QString battlePanel() const{return bag_?(bagItem_?"target":"bag"):bench_?"team":"moves";}
     QString collectionName() const;
@@ -70,9 +71,11 @@ private:
     bool seller() const{return sellerId_==peer_.id();}
     void publishOffer();void beginBattle();void showBattle(const QJsonObject&);
     void finishBattle(const QJsonObject&);void battleRules(const QString&,int);
+    void finishPlayback();void tryBattleTurn();
     void submitMove(int);void concede(int);QVariantList savedMembers() const;
     QString battleResult() const;
     LocalLinkPeer peer_;PracticeSession battle_;QTimer heartbeat_;
+    BattlePlayback playback_;QTimer playbackTimer_;bool turnSubmitted_=false;
     Backend backend_;PracticeController::Verifier verify_;std::function<QVariantMap(QVariantMap)> artwork_;
     PracticeSource source_;GameProgress progress_;QVariantList actors_;
     QString runtime_,stage_="browse",message_,mode_,peerId_,peerName_,pin_,nonce_,peerNonce_,peerPending_,transaction_,trainerName_;

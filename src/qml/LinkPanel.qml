@@ -6,7 +6,7 @@ Item {
     required property var controller
     readonly property string stage: controller.stage
     readonly property bool takesFocus: visible && !shell.menuOpen && !shell.drawerOpen && !shell.notice.length
-    readonly property bool arena: controller.mode === "battle" && ["starting","saving","moves","waiting","concede","finished"].indexOf(stage) >= 0 && controller.battleStarted
+    readonly property bool arena: controller.mode === "battle" && ["starting","saving","moves","events","waiting","concede","finished"].indexOf(stage) >= 0 && controller.battleStarted
     readonly property bool choosing: stage === "choose" || stage === "stake"
     readonly property bool meeting: ["browse","pair","error"].indexOf(stage) < 0 && !arena
     readonly property var fighters: controller.fighters
@@ -142,7 +142,7 @@ Item {
                     }
                     Item {
                         x: parent.width*0.44; y: 8; width: parent.width-x-12; height: parent.height-16
-                        Text { id: actionTitle; text: root.stage === "finished" ? "Result" : root.controller.battlePanel === "team" ? "Change partner" : root.controller.battlePanel === "target" ? "Use on…" : root.controller.battlePanel === "bag" ? "Medicine" : "Attacks"; font.family: Theme.displayFamily; font.pixelSize: 18; color: Theme.ink }
+                        Text { id: actionTitle; text: root.stage === "events" ? "Turn in progress" : root.stage === "finished" ? "Result" : root.controller.battlePanel === "team" ? "Change partner" : root.controller.battlePanel === "target" ? "Use on…" : root.controller.battlePanel === "bag" ? "Medicine" : "Attacks"; font.family: Theme.displayFamily; font.pixelSize: 18; color: Theme.ink }
                         GridView {
                             y: 24; width: parent.width; height: parent.height-y; cellWidth: width/2; cellHeight: 45; clip: true
                             visible: root.stage === "moves"; model: visible ? root.controller.rows : []; currentIndex: root.controller.focusIndex
@@ -157,7 +157,7 @@ Item {
                             }
                         }
                         CapButton { y: 40; width: parent.width; height: 49; visible: root.stage === "finished" || root.stage === "concede"; label: root.stage === "concede" ? "Concede this battle" : root.controller.message; textSize: 15; tint: Theme.yellow; selected: root.takesFocus && visible; deferredFocus: true; onActivated: root.controller.activate(0) }
-                        Text { y: 43; width: parent.width; visible: root.stage !== "finished" && root.stage !== "concede" && (root.stage !== "moves" || root.controller.rows.length === 0); text: root.stage === "moves" ? (root.controller.battlePanel === "bag" ? "No medicine can help right now." : "No available partner.") : root.controller.message; color: Theme.muted; font.pixelSize: 16; wrapMode: Text.WordWrap }
+                        Text { y: 43; width: parent.width; visible: root.stage !== "events" && root.stage !== "finished" && root.stage !== "concede" && (root.stage !== "moves" || root.controller.rows.length === 0); text: root.stage === "moves" ? (root.controller.battlePanel === "bag" ? "No medicine can help right now." : "No available partner.") : root.controller.message; color: Theme.muted; font.pixelSize: 16; wrapMode: Text.WordWrap }
                     }
                 }
             }

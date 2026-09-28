@@ -26,6 +26,34 @@ class PracticeSessionTests:public QObject {
     const QString worker=QStringLiteral(TRAINER_SOURCE_DIR "/src/integrations/practice/emerald-worker.cjs");
     const QString engine=QStringLiteral(TRAINER_SOURCE_DIR "/tools/research/emerald-practice/node_modules/pokemon-showdown");
 private slots:
+    void playbackKeepsOrderedExactHealthAndRosterIdentity() {
+        const QJsonArray teams{QJsonArray{QJsonObject{{"name","First"}},QJsonObject{{"name","Bench"}}},QJsonArray{QJsonObject{{"name","Second"}}}};
+        const QJsonObject side{{"hp",100},{"maxHp",100},{"member",0},{"team",QJsonArray{QJsonObject{{"member",0},{"hp",100},{"maxHp",100},{"active",true}},QJsonObject{{"member",1},{"hp",80},{"maxHp",80},{"active",false}}}}};
+        const QJsonObject before{{"turn",1},{"sides",QJsonArray{side,side}}};
+        auto finalSide=side;finalSide["hp"]=40;
+        QJsonObject after{{"turn",2},{"sides",QJsonArray{finalSide,finalSide}},
+            {"events",QJsonArray{"|move|p2a: Second|Flamethrower|p1a: First|[traineros-type] Fire",
+            "|split|p1","|-damage|p1a: First|60/100|[traineros-member] 0","|-damage|p1a: First|60/100",
+            "|move|p1a: First|Return|p2a: Second|[traineros-type] Normal",
+            "|split|p2","|-damage|p2a: Second|40/100|[traineros-member] 0","|-damage|p2a: Second|40/100"}}};
+        BattlePlayback playback;playback.load(before,after,teams);
+        QVERIFY(playback.active());QCOMPARE(playback.turn(),1);
+        QCOMPARE(playback.event()["actor"].toInt(),1);QCOMPARE(playback.event()["element"],"Fire");
+        QCOMPARE(playback.sides()[0].toObject()["hp"].toInt(),100);
+        QVERIFY(playback.advance());QCOMPARE(playback.event()["effect"],"hit");
+        QCOMPARE(playback.sides()[0].toObject()["hp"].toInt(),60);
+        QCOMPARE(playback.sides()[1].toObject()["hp"].toInt(),100);
+        QVERIFY(playback.advance());QCOMPARE(playback.event()["kind"],"move"); // No public HP duplicate.
+        QVERIFY(playback.advance());QCOMPARE(playback.sides()[1].toObject()["hp"].toInt(),40);
+        QVERIFY(!playback.advance());QCOMPARE(playback.sides(),after["sides"].toArray());
+        after["events"]=QJsonArray{"|split|p1","|switch|p1a: SameSpecies|Blaziken, L50|80/80|[traineros-member] 1","|switch|p1a: SameSpecies|Blaziken, L50|100/100|[traineros-member] 1"};
+        playback.load(before,after,teams);QCOMPARE(playback.event()["text"],"Go, Bench!");
+        QCOMPARE(playback.sides()[0].toObject()["member"].toInt(),1);
+        QCOMPARE(playback.sides()[0].toObject()["hp"].toInt(),80);
+        after["events"]=QJsonArray{"|-heal|p1: Bench|80/80|[traineros-member] 1"};
+        playback.load(before,after,teams);QCOMPARE(playback.sides()[0].toObject()["hp"].toInt(),100);
+        QVERIFY(playback.event()["effect"].toString().isEmpty()); // Bench healing never animates active HP.
+    }
     void controllerSelectionAndAsyncCancellation() {
         const auto node=QStandardPaths::findExecutable("node");
         if(node.isEmpty() || !QFileInfo::exists(engine+"/package.json"))QSKIP("Pinned practice runtime unavailable");

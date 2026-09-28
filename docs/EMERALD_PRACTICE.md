@@ -199,6 +199,13 @@ action; no preview fixture can enable a real battle.
 
 ## Remaining gates
 
+2026-09-28 presentation correction: practice and Link now share ordered exact-HP
+playback and type-colored impact/heal/status bursts. Practice keeps A event
+stepping, while Link advances automatically. Stable roster annotations prevent
+duplicate species or bench medicine from updating the wrong actor. Speed,
+priority and KO-before-response checks pass in the pinned simulator; this does
+not replace native cartridge comparisons. See [device evidence](EMERALD_LINK.md#ordered-turn-playback-and-effects-2026-09-28).
+
 1. Expand exact rule coverage with native-game comparisons and add only demonstrated
    Emerald corrections. Keep ordinary save writers and trust-sensitive Link separate.
    Existing reference/PP/stat vectors and private reader agreement are not a

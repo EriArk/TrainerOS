@@ -85,6 +85,18 @@ function createEngine(engineRoot) {
         // The pinned start hook runs before switches, ability events or requests.
         // Patch each instance, never global simulator data or prototypes.
         class PreparedBattle extends Battle {
+            add(...parts) {
+                // Stable roster identity for ordered presentation, including
+                // duplicate species and healing a benched member.
+                if (['switch','drag','replace','-damage','-heal','-status','-curestatus','faint'].includes(parts[0]) &&
+                    Number.isInteger(parts[1]?.trainerSource))
+                    parts.push('[traineros-member] '+parts[1].trainerSource);
+                return super.add(...parts);
+            }
+            addMove(...parts) {
+                if(parts[0]==='move')parts.push('[traineros-type] '+dex.moves.get(parts[2]).type);
+                return super.addMove(...parts);
+            }
             runAction(action) {
                 if(action.choice!=='trainerItem')return super.runAction(action);
                 const {side,itemId,target}=action, item=medicines[itemId];

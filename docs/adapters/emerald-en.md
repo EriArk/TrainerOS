@@ -335,3 +335,13 @@ HP event updates, suppressing the engine's duplicate public split-log lines.
 The Gen III simulation label distinguishes bounded supported practice from a
 full Emerald cartridge-rules claim; native damage/status/item control cases
 remain the next gate. Updated [evidence and runtime recipe](../EMERALD_PRACTICE.md).
+
+### 2026-09-28: ordered battle presentation annotations
+
+The pinned bridge now annotates log events with stable roster identity and move
+type. It does not change simulator action order or save transformations. The
+native consumer plays exact intermediate HP/status changes in order and applies
+generic effects. Speed, priority and KO response tests pass; actual two-device
+Link captures verify switch/attack/damage order. The portable engine copy is
+refreshed. [Bounded evidence](../EMERALD_LINK.md#ordered-turn-playback-and-effects-2026-09-28);
+full cartridge parity and per-move animation coverage remain open.

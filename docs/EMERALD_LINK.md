@@ -236,3 +236,34 @@ This increment has native save-service readback and independent raw-save checks;
 normal emulator readback of the new medicine/stake outcomes remains separate from
 prior ordinary-game trade/sale proof. It does not claim exhaustive crash testing,
 all medicine/items, cross-game stakes or cartridge battle parity.
+
+## Ordered turn playback and effects, 2026-09-28
+
+The Link screen previously exposed the completed turn's HP immediately and
+triggered both attack gestures together. It now presents simulator events in
+order: one action, its exact HP/status effects, then the next action. Selection
+reopens only after playback; a single submitted choice still waits for its peer.
+The next turn cannot be submitted during playback. Forced replacements and
+terminal settlement retain their existing protected transaction gates.
+
+The shared presentation parser also serves practice. Stable roster annotations
+disambiguate duplicate species and bench healing; private/public split-log HP
+lines are shown once. Attack lunges, type-colored impact bursts, healing/status
+effects and miss/immunity feedback are presentation only. These are generic
+effects, not a complete collection of cartridge move animations. Practice retains
+its manual event stepping; Link playback advances automatically.
+
+Focused engine checks cover speed order, priority overcoming speed and a KO
+preventing the defeated partner's response. Playback checks cover intermediate
+HP, split-log suppression, duplicate species and off-field healing. Native
+Windows/ARM64 builds and link_peer/practice_session/qml_smoke tests pass.
+Real Flip/Odin controller proof covers waiting for the second choice, two attacks,
+then a voluntary Sceptile switch before Aerial Ace. Display captures show Sceptile
+at 268/268 on entry, then 47/268 with the impact effect, before turn 3 opens.
+Both devices received binary SHA-256
+`ddf528a0acea2ea038411b6e01b8e0b7846d0de53052d5a115f4393c8c4862a8`
+and the matching manifest-verified engine bundle. No save format or battle-rule
+equivalence claim changes in this correction.
+The no-stake proof match ended through confirmed concession. Both receipts are
+complete with no pending transaction; money, Full Restore counts and ordinary
+Party bytes are unchanged, and current saves match their completed receipts.

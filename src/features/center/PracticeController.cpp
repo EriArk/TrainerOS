@@ -65,11 +65,11 @@ void PracticeController::enter() {
 void PracticeController::leave() {
     ++generation_;open_=false;discarding_=true;checking_=false;
     sourceTimer_.stop();checkDeadline_.stop();session_.cancel();
-    first_=second_=-1;frozen_.clear();events_.clear();observed_={};displayedSides_={};stage_="first";error_.clear();emit changed();
+    first_=second_=-1;frozen_.clear();playback_.reset();observed_={};stage_="first";error_.clear();emit changed();
 }
 void PracticeController::fail(const QString& message) {
     ++generation_;checking_=false;checkDeadline_.stop();sourceTimer_.stop();discarding_=true;session_.cancel();
-    events_.clear();frozen_.clear();observed_={};displayedSides_={};first_=second_=-1;
+    playback_.reset();frozen_.clear();observed_={};first_=second_=-1;
     stage_="error";error_=message;focus_=0;emit changed();
 }
 void PracticeController::check(std::function<void()> success) {
@@ -95,14 +95,17 @@ void PracticeController::begin() {
 }
 QVariantList PracticeController::fighters() const {
     auto result=frozen_.isEmpty()?QVariantList{presentation(first_),presentation(second_)}:frozen_;
-    const auto states=displayedSides_;
+    const auto states=playback_.active()?playback_.sides():observed_["sides"].toArray();
     for(int i=0;i<result.size();++i) {
         auto row=result[i].toMap();if(row.isEmpty())continue;
         const int slot=i==0?first_:second_;
         const int maxHp=states.size()==2?states[i].toObject()["maxHp"].toInt():progress_.party->party[slot].stats[0];
         const int hp=states.size()==2?states[i].toObject()["hp"].toInt():maxHp;
         row["battleHp"]=hp;row["maxHp"]=maxHp;row["hpRatio"]=maxHp?double(hp)/maxHp:0;
-        row["battleStatus"]=states.size()==2?states[i].toObject()["status"].toString():QString();result[i]=row;
+        row["battleStatus"]=states.size()==2?states[i].toObject()["status"].toString():QString();
+        const auto e=event();
+        if(playback_.active() && e["actor"].toInt()==i){row["effectBeat"]=e["serial"];row["effectKind"]=e["effect"];row["effectElement"]=e["element"];if(e["effect"]=="move")row["attackBeat"]=e["serial"];}
+        result[i]=row;
     }
     return result;
 }
@@ -129,67 +132,17 @@ QString PracticeController::message() const {
     }
     return {};
 }
-QString PracticeController::named(const QString& value) const {
-    if(value.startsWith("p1"))return frozen_.value(0).toMap()["name"].toString();
-    if(value.startsWith("p2"))return frozen_.value(1).toMap()["name"].toString();
-    return value;
-}
-void PracticeController::parseEvents(const QJsonArray& lines) {
-    events_.clear();eventIndex_=0;
-    for(int line=0;line<lines.size();++line) {
-        auto value=lines[line].toString();
-        // Simulator split logs carry private exact HP followed by public HP.
-        // Consume the exact event once, never show the public duplicate.
-        if(value.startsWith("|split|") && line+2<lines.size()){value=lines[++line].toString();++line;}
-        const auto pieces=value.split('|');if(pieces.size()<3)continue;
-        const auto kind=pieces[1];QString text;int actor=pieces[2].startsWith("p2")?1:0;
-        QVariantMap update;
-        if(kind=="move" && pieces.size()>3)text=named(pieces[2])+" used "+pieces[3]+"!";
-        else if((kind=="-damage" || kind=="-heal") && pieces.size()>3) {
-            const auto health=pieces[3].split(' ');
-            bool ok=false;const int hp=health[0].section('/',0,0).toInt(&ok);
-            if(ok)update["hp"]=hp;
-            text=named(pieces[2])+(kind=="-damage"?" took damage!":" recovered HP!");
-        }
-        else if(kind=="faint")text=named(pieces[2])+" fainted!";
-        else if(kind=="-supereffective")text="It's super effective!";
-        else if(kind=="-resisted")text="It's not very effective...";
-        else if(kind=="-crit")text="A critical hit!";
-        else if(kind=="-miss")text="The attack missed!";
-        else if(kind=="-immune")text="It had no effect!";
-        else if(kind=="-fail")text="But it failed!";
-        else if(kind=="-status" && pieces.size()>3) {
-            update["status"]=pieces[3];
-            const QHash<QString,QString> labels{{"brn","was burned"},{"par","is paralyzed"},{"slp","fell asleep"},{"psn","was poisoned"},{"tox","was badly poisoned"},{"frz","was frozen"}};
-            text=named(pieces[2])+" "+labels.value(pieces[3],"has a status condition")+"!";
-        } else if((kind=="-boost" || kind=="-unboost") && pieces.size()>3) {
-            const QHash<QString,QString> names{{"atk","Attack"},{"def","Defense"},{"spa","Sp. Atk"},{"spd","Sp. Def"},{"spe","Speed"},{"accuracy","Accuracy"},{"evasion","Evasion"}};
-            text=named(pieces[2])+"'s "+names.value(pieces[3],pieces[3])+(kind=="-boost"?" rose!":" fell!");
-        } else if(kind=="-transform")text=named(pieces[2])+" transformed!";
-        else if(kind=="-curestatus"){text=named(pieces[2])+" recovered!";update["status"]=QString();}
-        else if(kind=="cant")text=named(pieces[2])+" couldn't move!";
-        if(!text.isEmpty())events_.append(QVariantMap{{"text",text},{"kind",kind},{"actor",actor},{"update",update}});
-    }
-}
-void PracticeController::applyEvent() {
-    const auto e=event();const auto update=e["update"].toMap();
-    if(displayedSides_.size()!=2 || update.isEmpty())return;
-    const int actor=e["actor"].toInt();auto state=displayedSides_[actor].toObject();
-    for(auto i=update.cbegin();i!=update.cend();++i)state[i.key()]=QJsonValue::fromVariant(i.value());
-    displayedSides_[actor]=state;
-}
-QVariantMap PracticeController::event() const {return events_.value(eventIndex_).toMap();}
+QVariantMap PracticeController::event() const {return playback_.event();}
 void PracticeController::consumeState() {
     if(!open_ || discarding_)return;
     const auto state=session_.state();if(state.isEmpty() || state==observed_)return;
-    if(displayedSides_.isEmpty())displayedSides_=state["sides"].toArray();
-    observed_=state;parseEvents(state["events"].toArray());side_=0;focus_=0;
-    if(events_.isEmpty())finishEvents();else {stage_="events";applyEvent();}
+    const QJsonArray teams{QJsonArray{QJsonObject::fromVariantMap(frozen_.value(0).toMap())},QJsonArray{QJsonObject::fromVariantMap(frozen_.value(1).toMap())}};
+    playback_.load(observed_,state,teams);observed_=state;side_=0;focus_=0;
+    if(!playback_.active())finishEvents();else stage_="events";
     emit changed();
 }
 void PracticeController::finishEvents() {
-    displayedSides_=observed_["sides"].toArray();
-    stage_=observed_["ended"].toBool()?"finished":"moves";side_=0;focus_=0;events_.clear();
+    stage_=observed_["ended"].toBool()?"finished":"moves";side_=0;focus_=0;playback_.reset();
     if(stage_=="finished")sourceTimer_.stop();
 }
 void PracticeController::activate(int index) {
@@ -203,7 +156,7 @@ void PracticeController::activate(int index) {
         if(stage_=="first"){first_=slot;stage_="second";focus_=(index+1)%list.size();}
         else if(slot!=first_){second_=slot;stage_="ready";focus_=0;}
     } else if(stage_=="ready") {begin();return;}
-    else if(stage_=="events"){if(++eventIndex_>=events_.size())finishEvents();else applyEvent();}
+    else if(stage_=="events"){if(!playback_.advance())finishEvents();}
     else if(stage_=="moves") {
         if(checking_)return;
         const auto list=moves();if(index<0 || index>=list.size())return;

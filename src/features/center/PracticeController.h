@@ -1,5 +1,6 @@
 #pragma once
 #include "core/input/Action.h"
+#include "BattlePlayback.h"
 #include "integrations/practice/PracticeSession.h"
 #include <QVariantList>
 #include <QJsonArray>
@@ -51,19 +52,16 @@ private:
     void finishEvents();
     void fail(const QString&);
     QVariantMap presentation(int slot) const;
-    QString named(const QString&) const;
-    void parseEvents(const QJsonArray&);
-    void applyEvent();
     PracticeSession session_;
     PracticeSource source_;
     GameProgress progress_;
-    QVariantList actors_,frozen_,events_;
+    QVariantList actors_,frozen_;
+    BattlePlayback playback_;
     QJsonObject observed_;
-    QJsonArray displayedSides_;
     QTimer sourceTimer_,checkDeadline_;
     Verifier verify_;
     QString node_,worker_,engine_,stage_="first",error_;
-    int first_=-1,second_=-1,focus_=0,side_=0,eventIndex_=0;
+    int first_=-1,second_=-1,focus_=0,side_=0;
     std::array<int,2> choices_{};
     quint64 generation_=0;
     bool open_=false,checking_=false,discarding_=false;

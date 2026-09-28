@@ -256,6 +256,7 @@ Window {
                     }
                     if (party.section === "activities" && party.activities.route === "link") {
                         const link = party.activities.link
+                        if (link.stage === "events") return []
                         if (link.stage === "price") return [h("↑↓","Price ±" + link.priceStep),h("←→","Step"),h("A","Offer"),h("B","Cancel")]
                         if (link.stage === "concede") return [h("A","Concede"),h("B","Keep battling")]
                         if (link.stage === "moves") return [h("X","Team"),h("Y","Bag"),h("A",link.battlePanel === "target" ? "Use" : "Choose"),h("B",link.battlePanel !== "moves" ? "Attacks" : "Concede")]
