@@ -69,6 +69,15 @@ Do not poll or wait for GitHub Actions, or spend project time on its billing. Th
 
 ## Completion report and device boundary
 
+**Owner delivery preference, 2026-09-28:** update both Flip 2 and Odin 2 in each
+device delivery increment when they are reachable. Check SSH and the running
+session first; preserve each device's own profiles, library, emulator settings,
+saves and boot preference. Include required integration helpers, not only the
+binary, and verify the live version separately on each device. Never copy one
+device's personal state onto the other to make versions match. If a device is
+asleep/unreachable or has an active game, report its pending update explicitly;
+do not present a successful Flip deployment as proof of Odin delivery.
+
 Before reporting completion, check the working tree and upstream again. Give a concise result: what changed, the pushed commit/link, which relevant checks passed, and unresolved limitations. Explicitly identify any remaining task edits; a clean tree must not be achieved by discarding them.
 
 Keep these evidence levels separate:

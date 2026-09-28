@@ -438,6 +438,12 @@ Preserve source originals. Stage test copies and test saves/configuration separa
 
 ## Development workflow — required
 
+**Owner delivery preference, 2026-09-28:** update both Flip 2 and Odin 2 during
+each delivery when reachable, including required support files. Preserve each
+device's own state and boot preference, check for an active game, and verify
+the live version separately. Report a deferred device update explicitly.
+See [paired delivery workflow](docs/DEVELOPMENT_WORKFLOW.md#completion-report-and-device-boundary).
+
 ### Reasoning effort before each work increment — owner preference, 2026-09-19
 
 Before each new stage/increment, recommend a reasoning-effort level with one short task-specific reason. Prefer announcing the next increment and its level at the end of the current turn, so the owner can change the setting before saying continue. For an unannounced new task, limit initial assessment to what is needed to recommend a level before substantial work. Do not silently start a different major increment in the same run before giving that recommendation.

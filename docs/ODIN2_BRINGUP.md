@@ -1,5 +1,28 @@
 # Odin 2 bring-up — 2026-09-28
 
+## Paired delivery catch-up — 2026-09-28
+
+After the owner woke Odin, its existing Armada installation was updated to
+source `5eab9db`, matching Flip's production binary SHA-256
+`36fa3a5a65e4843cd78046434ed79c782c04e89a6f628bb0a1a4af1068239f6d`.
+The prior binary and SQLite database were backed up locally. Its own one Trainer
+and 25 registrations passed before/after counts and SQLite integrity; no Flip
+accounts, saves, database or emulator preferences were copied.
+
+The reviewed session installer updated required Adventure/controller helpers
+and added the narrow clock permission rule. No boot-default option was used.
+The temporary session-selection override was backed up and removed after entry,
+preserving Odin's previous boot policy, Steam and Plasma. TrainerOS is currently
+running in its dedicated session; the live executable hash and first frame were
+checked. Kernel controller events exercised L1/R1, Start, Settings and Back;
+`odin-updated-settings.png` records the actual device at 1920×1080. Battery was
+100%; system time remained synchronized in Asia/Jerusalem. Clock writes and RA
+earning were not retested on Odin in this delivery-only increment.
+
+Both reachable handhelds are now part of every normal
+[delivery check](DEVELOPMENT_WORKFLOW.md#completion-report-and-device-boundary).
+Earlier hashes and bring-up evidence below are historical.
+
 The owner's device was already running ArmadaOS 20260927.eba5232, kernel 7.2.6,
 on the actual AYN Odin 2 device tree. This increment installed TrainerOS; it did
 not flash an OS, repartition storage, replace Android partitions, remove software,
