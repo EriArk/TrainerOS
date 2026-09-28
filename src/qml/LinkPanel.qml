@@ -11,7 +11,7 @@ Item {
         anchors.topMargin: Theme.contentTopInset
         PageHeader {
             id: heading; compact: true
-            title: root.controller.mode === "battle" ? "Friendly battle" : root.controller.mode === "trade" ? "Trade Counter" : "Link Counter"
+            title: root.controller.mode === "battle" ? "Friendly battle" : root.controller.mode === "sale" ? "Pokemon market" : root.controller.mode === "gift" ? "A gift for a friend" : root.controller.mode === "trade" ? "Trade Counter" : "Link Counter"
             trailing: root.controller.partner || "Nearby friends"
         }
         MountedPanel {
@@ -37,7 +37,7 @@ Item {
                     highlightMoveDuration: Theme.motion(120); preferredHighlightBegin: 0; preferredHighlightEnd: height-80; highlightRangeMode: ListView.ApplyRange
                     delegate: CapButton {
                         required property int index; required property var modelData
-                        width: ListView.view.width; height: 80; tint: index%2 ? Theme.blue : Theme.green
+                        width: ListView.view.width; height: root.controller.stage === "lobby" ? (ListView.view.height-42)/4 : 80; tint: index%2 ? Theme.blue : Theme.green
                         label: modelData.name || "Friend"; detail: modelData.detail || "TrainerOS · local Wi-Fi"
                         selected: root.takesFocus && root.controller.focusIndex===index
                         onActivated: root.controller.activate(index)
@@ -62,6 +62,12 @@ Item {
                     }
                 }
             }
+            Column {
+                anchors.centerIn: parent; width: parent.width * 0.6; spacing: 20
+                visible: root.controller.stage === "price"
+                Text {width: parent.width; text: "₽ " + root.controller.priceText; horizontalAlignment: Text.AlignHCenter; color: "#aa7117"; font.pixelSize: 64; font.bold: true}
+                CapButton {width: parent.width; height: 56; label: "Offer this price"; centered: true; tint: Theme.yellow; selected: root.takesFocus && visible; onActivated: root.controller.activate(0)}
+            }
             Grid {
                 x: 24; y: message.y + Math.max(34,message.height)+18; width: parent.width-48
                 height: parent.height-y-16
@@ -80,10 +86,22 @@ Item {
                 }
             }
             Item {
-                x: 24; y: message.y+Math.max(34,message.height)+(root.controller.turnSummary.length ? 30 : 12); width: parent.width-48; height: parent.height-y-120
+                x: 24; y: message.y+Math.max(34,message.height)+(root.controller.turnSummary.length ? 30 : 12); width: parent.width-48; height: parent.height-y-(root.controller.stage === "moves" ? 175 : 105)
                 visible: ["review","waiting","starting","saving","moves","finished"].indexOf(root.controller.stage)>=0
-                PracticeFighter {x: parent.width*0.06; y: 12; width: parent.width*0.35; height: parent.height-12; fighter: root.fighters[0] || ({}); showHealth: root.controller.mode === "battle" && root.controller.stage !== "review"; playing: root.takesFocus}
-                PracticeFighter {x: parent.width*0.60; width: parent.width*0.33; height: parent.height-12; fighter: root.fighters[1] || ({}); opponent: true; showHealth: root.controller.mode === "battle" && root.controller.stage !== "review"; playing: root.takesFocus}
+                PracticeFighter {x: parent.width*0.06; y: 12; width: parent.width*0.35; height: parent.height-12; fighter: root.fighters[0] || ({}); visible: !fighter.payment; showHealth: root.controller.mode === "battle" && root.controller.stage !== "review"; playing: root.takesFocus}
+                PracticeFighter {x: parent.width*0.60; width: parent.width*0.33; height: parent.height-12; fighter: root.fighters[1] || ({}); visible: !fighter.payment; opponent: true; showHealth: root.controller.mode === "battle" && root.controller.stage !== "review"; playing: root.takesFocus}
+                Repeater {
+                    model: root.fighters
+                    delegate: Rectangle {
+                        required property int index; required property var modelData
+                        x: parent.width*(index===0?0.06:0.60); y: 20; width: parent.width*0.34; height: parent.height-36
+                        visible: !!modelData.payment; color: "#ffe5a0"; radius: 18; border.width: 2; border.color: "#bc9346"
+                        Column {anchors.centerIn: parent; width: parent.width-24; spacing: 12
+                            Text {width: parent.width; text: modelData.name || ""; color: Theme.ink; font.pixelSize: 25; font.bold: true; horizontalAlignment: Text.AlignHCenter}
+                            Text {width: parent.width; text: modelData.detail || ""; color: Theme.muted; font.pixelSize: 16; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter}
+                        }
+                    }
+                }
                 Text {anchors.centerIn: parent; text: root.controller.mode === "battle" ? "VS" : "↔"; font.pixelSize: 44; font.bold: true; color: "#b69038"}
             }
             Grid {
@@ -104,7 +122,7 @@ Item {
                 anchors.bottom: parent.bottom; anchors.bottomMargin: 22; anchors.horizontalCenter: parent.horizontalCenter
                 width: 340; height: 52; centered: true; tint: Theme.yellow
                 visible: root.controller.stage === "review" || root.controller.stage === "finished"
-                label: root.controller.stage === "finished" ? "Back to Center" : root.controller.mode === "trade" ? "Confirm this exchange" : "Ready to battle"
+                label: root.controller.stage === "finished" ? "Back to Center" : root.controller.mode === "battle" ? "Ready to battle" : root.controller.mode === "sale" ? "Confirm this sale" : root.controller.mode === "gift" ? "Confirm this gift" : "Confirm this exchange"
                 selected: root.takesFocus && visible; onActivated: root.controller.activate(0)
             }
         }

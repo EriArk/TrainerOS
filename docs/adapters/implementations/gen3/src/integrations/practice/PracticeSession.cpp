@@ -26,7 +26,7 @@ bool PracticeSession::begin(const QString& node,const QString& worker,const QStr
 }
 bool PracticeSession::beginLink(const QString& node,const QString& worker,const QString& engineRoot,
     const QJsonObject& pair,const std::array<int,4>& seed) {
-    if(process_ || pair["protocol"].toInt()!=1 || pair["members"].toArray().size()!=2)return false;
+    if(process_ || pair["protocol"].toInt()!=1 || (pair["members"].toArray().size()!=2 && pair["teams"].toArray().size()!=2))return false;
     QJsonArray seeds;for(int value:seed){if(value<0 || value>65535)return false;seeds.append(value);}
     start_=pair;start_["command"]="start";start_["seed"]=seeds;
     ready_=false;pending_=true;stopping_=false;reason_.clear();buffer_.clear();state_={};
@@ -84,7 +84,7 @@ bool PracticeSession::choose(int firstSlot,int secondSlot) {
             if(value.toObject()["slot"].toInt(-1)==selections[i])allowed=true;
         if(!allowed)return false;
     }
-    send({{"command","turn"},{"turn",state_["turn"]},{"moves",QJsonArray{firstSlot,secondSlot}}});return true;
+    send({{"command","turn"},{"turn",state_["turn"]},{"request",state_["request"]},{"moves",QJsonArray{firstSlot,secondSlot}}});return true;
 }
 void PracticeSession::updateSource(const PracticeSource& source,bool available) {
     if(available && source==source_)return;

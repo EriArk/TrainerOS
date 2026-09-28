@@ -268,38 +268,21 @@ private slots:
         tap(worlds, Action::Confirm);
         QCOMPARE(home.size(), 1);
     }
-    void shellKeepsDetailAcrossModalsButReopensWorldGridAfterPageChange() {
-        MutableLibrary library;
-        MockTrainerRepository profiles;
-        RecordingAdapter adapter;
-        DevelopmentPlatformService platform;
-        MockPokedexRepository dex;
-        MockHallOfFameRepository shellArchive;
-        MockAchievementProvider shellAchievements;
-        ShellController shell(library, profiles, adapter, platform, dex, dex, shellArchive, shellAchievements);
-        shell.goToPage(1); shell.activate(2); shell.activate(0);
-        shell.dispatch(Action::Right); // Start instead of Continue.
-        QCOMPARE(shell.focusIndex(), 1);
-        shell.dispatch(Action::SystemMenu); shell.dispatch(Action::Confirm);
-        shell.dispatch(Action::Back); shell.dispatch(Action::Back);
-        QCOMPARE(shell.worlds()->route(), "detail");
-        QCOMPARE(shell.focusIndex(), 1);
-        shell.dispatch(Action::NextPage); shell.dispatch(Action::PreviousPage);
-        QCOMPARE(shell.worlds()->detail()["id"].toString(), "emerald-demo");
-        QCOMPARE(shell.worlds()->route(), "regions");
-        QCOMPARE(shell.focusIndex(), 2);
-        shell.dispatch(Action::Confirm); // Explicitly reopen the remembered region/game.
-        shell.activate(0);
-        shell.dispatch(Action::Right);
-        shell.dispatch(Action::Confirm);
-        QVERIFY(!shell.notice().isEmpty());
+    void shellKeepsWheelAcrossModalsButReopensWorldGridAfterPageChange() {
+        MutableLibrary library;MockTrainerRepository profiles;RecordingAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;
+        MockHallOfFameRepository shellArchive;MockAchievementProvider shellAchievements;
+        ShellController shell(library,profiles,adapter,platform,dex,dex,shellArchive,shellAchievements);
+        shell.goToPage(1);shell.activate(2);
+        QCOMPARE(shell.worlds()->route(),"adventures");const int selected=shell.worlds()->adventureIndex();
+        shell.dispatch(Action::SystemMenu);
         shell.dispatch(Action::Back);
-        QCOMPARE(shell.worlds()->route(), "detail");
-        shell.dispatch(Action::Back);
-        QCOMPARE(shell.worlds()->route(), "adventures");
-        shell.dispatch(Action::Back);
-        QCOMPARE(shell.worlds()->route(), "regions");
-        QCOMPARE(shell.focusIndex(), 2);
+        QCOMPARE(shell.worlds()->route(),"adventures");QCOMPARE(shell.worlds()->adventureIndex(),selected);
+        shell.dispatch(Action::NextPage);shell.dispatch(Action::PreviousPage);
+        QCOMPARE(shell.worlds()->route(),"regions");QCOMPARE(shell.focusIndex(),2);
+        shell.dispatch(Action::Confirm);QCOMPARE(shell.worlds()->route(),"adventures");
+        QCOMPARE(shell.worlds()->adventureIndex(),selected);
+        shell.dispatch(Action::Back);QCOMPARE(shell.worlds()->route(),"regions");QCOMPARE(shell.focusIndex(),2);
     }
 };
 QTEST_GUILESS_MAIN(WorldsTests)

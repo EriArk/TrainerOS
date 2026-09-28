@@ -31,7 +31,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
         const auto capture = [&](const QString& name) {
             const auto frame = window->grabWindow(); check(!frame.isNull(), "No rendered frame");
             if (!output.isEmpty()) check(frame.save(output + "/" + name + ".png"), "Cannot save frame");
-            auto* item = window->activeFocusItem(); check(item && item->isVisible(), "No visible active focus");
+            auto* item = window->activeFocusItem(); check(item && item->isVisible(), "No visible active focus: " + (item ? item->objectName() : QString("none")));
             if (item && shell.service()=="settings" && (item->objectName().startsWith("settings-control-") || item->objectName().startsWith("achievement-account-"))) {
                 auto* status=window->findChild<QQuickItem*>("settings-status");
                 check(status && item->mapToScene(QPointF(0,item->height()+3)).y() <= status->mapToScene(QPointF(0,0)).y(), "Focused setting cannot overlap status text");
@@ -261,13 +261,14 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             capture("practice-unavailable-return"); press(b); press(b); flip(true); press(SDL_CONTROLLER_BUTTON_Y); break;
         case 51:
             check(shell.party()->activities()->route()=="link", "Link Counter is a separate route");
+            check(shell.party()->activities()->link()->stage()=="error", "A sample cannot start real Link transfers");
             capture("link-peer"); press(a); break;
         case 52:
-            check(shell.party()->activities()->stage()=="review", "Sample proposal review");
-            capture("link-review"); press(a); break;
+            check(!shell.party()->activities()->link()->isOpen(), "Unavailable Link returns without a fake proposal");
+            capture("link-unavailable-return"); break;
         case 53:
-            check(shell.party()->activities()->stage()=="interrupted", "Interrupted rehearsal never reports transfer success");
-            capture("link-interrupted"); press(b); press(b); flip(true); break;
+            check(!shell.party()->activities()->link()->pending(), "No sample transaction is created");
+            press(b); press(b); flip(true); break;
         case 54:
             check(shell.party()->section()=="storage" && focus("party-slot-7"), "Center returns to the prior box slot");
             press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(down); press(down); press(down); press(a); break;
@@ -362,7 +363,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             check(shell.hall()->account()->isOpen() && shell.hall()->account()->rows()[1].toMap()["label"]=="Confirm sign out", "Account sign-out asks before changing identity");
             capture("settings-account-confirmation"); press(b); break;
         case 82:
-            check(shell.hall()->account()->isOpen() && shell.hall()->account()->rows()[1].toMap()["label"]=="Sign out of Hall of Fame", "Back cancels sign-out inside the account pane");
+            check(shell.hall()->account()->isOpen() && shell.hall()->account()->rows()[1].toMap()["label"]=="Sign out", "Back cancels sign-out inside the account pane");
             press(b); break;
         case 83:
             check(focus("settings-control-1"), "Account Back restores exact Trainer row");

@@ -1,10 +1,16 @@
 # Emerald Link — implementation and evidence
 
+## Expanded Emerald increment — 2026-09-28
+
+Full saved-team battles, paid sales, gifts and native trade evolutions extend
+the existing exact Emerald pair. FireRed Rev 1 is a researched next pair, not
+implicitly supported. Bluetooth/native parity retain their own evidence gates.
+
 Owner requested a substantial two-handheld Link increment on 2026-09-28,
 ahead of remaining RA work. Preserve that work and all roadmap acceptance.
 
 Delivered: exact English Emerald pairs over local Wi-Fi on Flip 2 and Odin 2.
-Bluetooth, cross-edition conversion, trade evolution, gifts/sales and verified
+Bluetooth, cross-edition conversion and verified
 competitive policy remain separate gates. Casual sessions may use imported saves;
 they do not acquire verified provenance.
 
@@ -12,7 +18,7 @@ References: pret/pokeemerald `include/pokemon.h`, `src/trade.c`,
 `src/pokedex.c` and existing pinned adapter reference in emerald-en.md.
 The native trade exchanges individuals, retains OT/personality and registers
 the received species. The TrainerOS boundary transports named semantic fields,
-never complete save images. Unsupported Mail/eggs/evolution cases must fail
+never complete save images. Unsupported Mail/eggs/first-seen-PID cases must fail
 before a proposal can be confirmed.
 
 Required proof: semantic round-trip; exact candidate allowed delta; stale-source
@@ -25,20 +31,37 @@ whether a remote write happened. No automatic one-sided rollback.
 ## Using Link
 
 Open **Pokémon → Center → X Link** on both consoles on the same Wi-Fi. Select
-the other console and confirm the matching code on both. Choose Friendly battle
-or Trade Pokemon, select one Party member each, and confirm the proposal.
+the other console and confirm the matching code on both. Choose Friendly battle,
+Trade Pokemon, Sell Pokemon or Give a Pokemon. Choose the lead/offer and confirm.
 Contextual controls remain in the footer. Existing Center/Playroom are preserved.
 
-Friendly battle is **one Pokémon per side**, using the existing pinned Showdown
-bridge. Each console chooses its own moves; HP, PP, turn results and winner
+Friendly battle uses **the saved teams, up to six per side**, with the existing
+pinned Showdown bridge. X switches between moves and available teammates;
+fainted members require a replacement. Each console chooses its own moves;
+HP, PP, turn results and winner
 synchronize. It uses copied, battle-ready individuals; no save damage, XP,
 currency, achievements or rewards are written.
 
 Trade exchanges actual saved Party members, retaining individual identity and
 held items, resetting friendship to native trade value 70 and registering the
 received species in the native Pokédex. Both saves receive verified protection.
-Only hatched English individuals without Mail are accepted. Trade-evolution
-species and the additional first-seen-PID cases Unown/Spinda are refused for now.
+Only hatched English individuals without Mail are accepted. Unown/Spinda remain
+refused until their additional first-seen-PID handling is implemented.
+
+**Sales and gifts:** the initiating console offers one Party member. Sales use
+ordinary in-game money; Up/Down changes the price and Left/Right changes its step.
+Both players see the amount, before/after balances and receiving Party/Box slot
+before confirming. A full Party sends the received member to the first empty Box
+slot. Insufficient money, wallet overflow, completely full storage and removal of
+the seller's last able member are rejected. Gifts use the same transaction at
+zero price. Currency and the Pokemon move together, with protected candidates,
+durable receipts and reconnect; no one-sided rollback.
+
+**Trade evolution:** all twelve Gen III trade/item rules are implemented, including
+Everstone prevention, consumed evolution items, native stat recalculation, default
+nickname changes, friendship, both Dex entries and the native evolution counter.
+Current-level moves fill empty slots; a full moveset is retained, rather than
+silently replacing an attack. A move-replacement chooser is not implemented.
 
 This is a casual **trusted local network** feature. The comparison code confirms
 the selected peer/session; it is not authenticated remote identity or encrypted
@@ -60,10 +83,11 @@ An unresolved transaction blocks ordinary play and other save writers across
 application restarts. Device read-only mode and ownership/stale-source gates apply.
 
 `EmeraldLink` validates named semantic fields and native record integrity; it does
-not transport complete save images. The writer changes the selected Party record,
-Dex flags and affected checksums, preserving the older bank, counters, boxes and
-special sectors. Both valid save banks and a remaining able Party member are
-required. Signed local history records `link-trade`; recovery after a write that
+not transport complete save images. The writer changes the relevant Party/Box
+records, money, Dex/evolution data and affected checksums, preserving the older
+bank, unrelated records and special sectors. Both valid save banks and a remaining
+able Party member are required. Signed local history records `link-trade`,
+`link-sale` or `link-gift`; recovery after a write that
 preceded a failed history append must not fabricate the missing event.
 
 ## Adapter-owned Pokédex
@@ -79,7 +103,7 @@ excluded. The scope works without a save; Seen/Caught still require verified dat
 Other ROMs, including FireRed, keep the full catalogue until their own adapters
 supply a scope. Ruby/Sapphire parsing and cross-edition trades are not delivered.
 
-## Evidence, 2026-09-28
+## Initial evidence, 2026-09-28
 
 - Targeted Windows checks: semantic round-trip across all 24 record permutations,
   native allowed-byte delta, malformed/stale/Egg/Mail/evolution rejection;
@@ -102,13 +126,47 @@ supply a scope. Ruby/Sapphire parsing and cross-edition trades are not delivered
 - Installed binary SHA-256:
   `073c190f1ad5d4cca73778768230d20d993964b8e531de009d935aa91ac614a3`.
 
+## Expanded evidence, 2026-09-28
+
+- Tests cover all twelve evolution rules, Everstone, nickname/HP/stat/Dex changes;
+  sale/gift balance and allowed-byte changes, stale source, insufficient funds,
+  overflow, last able member, Party-to-Box delivery and full storage rejection.
+- Protected-service exchange/sale/gift tests interrupt after one committed side,
+  reconnect, verify idempotence and signed operation kinds.
+- The pinned engine completes six-member battles with voluntary switching and
+  multiple forced replacements. Request IDs reject stale choices within a turn.
+- Flip sold Swellow to Odin for **321**: seller money **499800 → 500121**, Party
+  six to five; buyer money **499800 → 499479**, Swellow in **Box 13, slot 27**.
+  Both peers completed the protected transaction. Normal Emerald loaded both
+  saves; seller Party and buyer wallet were inspected in-game.
+- Real controller inputs started a full-team battle between Flip/Odin and switched
+  Flip from Blaziken to Linoone; the opposing attack, HP and next turn synchronized.
+  The test battle does not write damage to ordinary saves.
+- Odin also gifted Swellow to Flip: both balances stayed unchanged, recipient
+  Party grew from five to six and donor Party shrank from six to five. Both
+  protected receipts completed, with no pending transaction.
+- Odin's Box 3 Kadabra was withdrawn through the protected movement UI and
+  exchanged for Flip's Swellow. Both receipts completed. Normal Emerald on Flip
+  loaded **Alakazam Lv.16, 48/48 HP** in Party slot 6 (Kadabra had 43 HP).
+  All twelve rules retain automated evidence; this native readback covers Kadabra.
+- Final ARM64 binary installed on both devices:
+  `6aeb4221d8b691d8e6cdf5ac55d15deeb7ae73dcf8d852af478ea1026a8fa78f`.
+- All 48 CTest targets pass across the full run and focused reruns. Three optional
+  private-example cases were not supplied. The portable adapter also builds
+  independently. Old library tests now enforce direct A launch/error instead of
+  the retired ROM-binding screen; Link return no longer gives a hidden legacy
+  activity button focus.
+
 This is bounded proof, not an exhaustive power-loss/network-fault matrix.
-Bluetooth, full teams/switching, cartridge rule parity, evolution, eggs, Mail,
-Unown/Spinda, gifts/sales, cross-edition conversion and trust-sensitive #93/#94
+Bluetooth, cartridge rule parity, evolution move replacement, eggs, Mail,
+Unown/Spinda, cross-edition conversion and trust-sensitive #93/#94
 policy remain open. Retain all earlier R1–R18 and RA work.
 
 Primary references at the existing pinned pret/pokeemerald revision:
 [native trade](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/trade.c),
 [individual layout](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/include/pokemon.h),
 [Pokédex](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/pokedex.c).
+Evolution references: [rules](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/data/pokemon/evolution.h),
+[trade evolution selection](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/pokemon.c),
+[native evolution effects](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/evolution_scene.c).
 See [exact-build record](adapters/emerald-en.md) and its portable adapter copy.

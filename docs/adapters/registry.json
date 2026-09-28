@@ -180,6 +180,16 @@
           ],
           "details": "../EMERALD_LINK.md"
         },
+        "link-sale": {
+          "state": "partial",
+          "evidence": ["source-research", "synthetic", "allowed-delta", "private-copy", "device", "normal-game", "reconnect"],
+          "details": "../EMERALD_LINK.md"
+        },
+        "trade-evolution": {
+          "state": "partial",
+          "evidence": ["source-research", "synthetic", "allowed-delta", "private-copy", "device", "normal-game"],
+          "details": "../EMERALD_LINK.md"
+        },
         "pokedex-scope": {
           "state": "integrated",
           "evidence": ["source-research", "synthetic", "device"],

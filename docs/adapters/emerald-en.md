@@ -3,9 +3,13 @@
 ## 2026-09-28 nearby Link and ROM-specific Dex
 
 [Link contract and device evidence](../EMERALD_LINK.md): local Wi-Fi pairing,
-copied-individual friendly duel and protected exact Emerald Party exchange run
+full-team friendly battles and protected exact Emerald exchanges/sales run
 on Flip/Odin. Actual ordinary-game readback passed on both; reconnect recovered
-an interrupted exchange. Wider Link remains partial (no trade evolution, Egg/Mail,
+an interrupted exchange. Sales/gifts and twelve native trade/item evolution rules
+are implemented; gifts also completed between the devices, while individual
+evolution readback is recorded in the Link evidence. Full movesets are kept,
+without a move-replacement chooser.
+Wider Link remains partial (no Egg/Mail,
 Unown/Spinda, cross-edition or competitive-trust claim). Pure `EmeraldLink` semantic
 conversion/candidate generation is included in the portable copy; host pairing,
 protection and bilateral durable commit are separate.

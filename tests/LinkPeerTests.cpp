@@ -50,7 +50,7 @@ private slots:
         QTRY_COMPARE(link.code().size(),6);
         send({{"type","mode"},{"mode","trade"}});QTest::qWait(30);QCOMPARE(link.stage(),"pair");
         send({{"type","accept"},{"code",link.code()}});QTest::qWait(30);QCOMPARE(link.stage(),"pair");
-        link.activate(0);QTRY_COMPARE(link.stage(),"lobby");QCOMPARE(link.rows().size(),2);
+        link.activate(0);QTRY_COMPARE(link.stage(),"lobby");QCOMPARE(link.rows().size(),4);
         send({{"type","mode"},{"mode","trade"}});QTRY_COMPARE(link.stage(),"error");
         QVERIFY(link.message().contains("saved Party"));
         // A disconnected peer releases ordinary navigation, no fake completion.

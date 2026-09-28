@@ -117,6 +117,7 @@ Item {
                 Text { objectName: "clinic-message"; x: 22; y: 63; width: parent.width-44; height: 104; text: root.clinic.clinicMessage; wrapMode: Text.WordWrap; color: Theme.ink; font.pixelSize: 18 }
                 Text { x: 22; anchors.bottom: action.top; anchors.bottomMargin: 15; width: parent.width-44; text: root.clinic.treatment==="ready" && root.clinic.canHeal ? "HP · status · move PP\nA backup is kept before treatment." : ""; color: Theme.muted; font.pixelSize: 12; wrapMode: Text.WordWrap }
                 CapButton {
+                    deferredFocus: true
                     id: action; objectName: "clinic-action"; x: 18; anchors.bottom: parent.bottom; anchors.bottomMargin: 17; width: parent.width-36; height: 49
                     label: root.clinic.busy ? "One moment…" : root.clinic.treatment==="ready" && root.clinic.canHeal ? "Heal my team" : "Back to my team"
                     enabled: !root.clinic.busy; selected: root.active && enabled; tint: Theme.pink

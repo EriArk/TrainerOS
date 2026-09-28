@@ -13,11 +13,11 @@ process.stdin.on('data', chunk => {
     while (!closing && (at=buffer.indexOf(10))>=0) {
         const line=buffer.subarray(0,at);buffer=buffer.subarray(at+1);
         try {
-            if (++requests>205) throw new Error('Request limit exceeded');
+            if (++requests>1205) throw new Error('Request limit exceeded');
             const input=JSON.parse(line.toString('utf8'));
             if (input.command==='cancel') {send({type:'cancelled'});close();return;}
             if (input.command==='start' && !session) {session=engine.start(input);send(session.state());}
-            else if (input.command==='turn' && session) send(session.turn(input.turn,input.moves));
+            else if (input.command==='turn' && session) send(session.turn(input.turn,input.moves,input.request));
             else throw new Error('Unsupported command');
         } catch(error) {send({type:'error',error:error.message});close();}
     }

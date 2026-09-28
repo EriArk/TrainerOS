@@ -61,15 +61,17 @@ function createEngine(engineRoot) {
             moves:moves.map(m=>m.id)}};
     }
     function start(input) {
-        assert(input.protocol===1 && Array.isArray(input.members) && input.members.length===2, 'Invalid pair');
+        const teams=input.teams || input.members?.map(m=>[m]);
+        assert(input.protocol===1 && Array.isArray(teams) && teams.length===2 && teams.every(t=>Array.isArray(t) && t.length>=1 && t.length<=6), 'Invalid teams');
         assert(Array.isArray(input.seed) && input.seed.length===4 && input.seed.every(v=>integer(v,0,65535)), 'Invalid seed');
-        const members = input.members.map(member);
+        const members = teams.map(t=>t.map(member));
         // The pinned start hook runs before switches, ability events or requests.
         // Patch each instance, never global simulator data or prototypes.
         class PreparedBattle extends Battle {
             start() {
                 for (const [i, side] of this.sides.entries()) {
-                    const mon = side.pokemon[0], source = members[i];
+                  for (const [index, mon] of side.pokemon.entries()) {
+                    const source = members[i][index];mon.trainerSource=index;
                     const stats = [mon.maxhp,...statNames.slice(1).map(s=>mon.storedStats[s])];
                     assert(stats.every((n,s)=>n===source.record.stats[s]), 'Saved stats do not match battle facts');
                     assert(mon.baseMoveSlots.length===source.moves.length, 'Move initialization failed');
@@ -78,6 +80,7 @@ function createEngine(engineRoot) {
                         mon.baseMoveSlots[slot].pp = mon.baseMoveSlots[slot].maxpp = move.maxPp;
                         mon.ppUps[slot] = move.ppUps;
                     });
+                  }
                 }
                 super.start();
             }
@@ -85,40 +88,49 @@ function createEngine(engineRoot) {
         // Explicit manual setup permits destroy on a rejected second individual.
         const battle = new PreparedBattle({formatid:'gen3customgame',seed:[...input.seed]});
         try {
-            members.forEach((m,i)=>battle.setPlayer('p'+(i+1), {name:'Partner '+(i+1),team:[m.set]}));
+            members.forEach((team,i)=>battle.setPlayer('p'+(i+1), {name:'Partner '+(i+1),team:team.map(m=>m.set)}));
         } catch (e) { battle.destroy(); throw e; }
-        let logOffset=0;
+        let logOffset=0, requestId=0;
         function choices(side) {
             const request = side.activeRequest?.active?.[0];
-            if (!request || battle.ended) return [];
-            return request.moves.map((move,i)=> {
+            if (battle.ended) return [];
+            if (side.activeRequest?.wait) return [{slot:9,move:'Wait',pp:0,maxPp:0,command:''}];
+            const choices = (request?.moves || []).map((move,i)=> {
                 const mon=side.active[0], index=mon.moveSlots.findIndex(m=>m.id===move.id);
                 return {
                 // Locked/recharge requests can contain just one move, regardless
                 // of its original slot. Transform creates a temporary new moveset.
-                slot:index<0?0:mon.transformed?index+1:(members[side.n].moves[index]?.slot ?? 0),
-                engineSlot:i+1, move:move.move, pp:move.pp ?? 0, maxPp:move.maxpp ?? 0,
+                slot:index<0?0:mon.transformed?index+1:(members[side.n][mon.trainerSource].moves[index]?.slot ?? 0),
+                command:'move '+(i+1), move:move.move, pp:move.pp ?? 0, maxPp:move.maxpp ?? 0,
                 disabled:!!move.disabled
             };}).filter(m=>!m.disabled);
+            if (side.activeRequest?.forceSwitch || request && !request.trapped) {
+                side.pokemon.forEach((mon,index)=>{if(!mon.fainted && !side.active.includes(mon))
+                    choices.push({slot:10+mon.trainerSource,command:'switch '+(index+1),move:mon.species.name,pp:mon.hp,maxPp:mon.maxhp,switch:true});});
+            }
+            return choices;
         }
         function state() {
             const events = battle.log.slice(logOffset).filter(l=>!l.startsWith('|t:|'));
             logOffset=battle.log.length;
-            return {type:'state',turn:battle.turn,ended:battle.ended,winner:battle.winner || '',events,
+            return {type:'state',turn:battle.turn,request:++requestId,ended:battle.ended,winner:battle.winner || '',events,
                 sides:battle.sides.map(side=> {
                     const mon=side.active[0];
-                    return {hp:mon.hp,maxHp:mon.maxhp,status:mon.status,
-                        moves:choices(side).map(({engineSlot,...m})=>m)};
+                    return {hp:mon.hp,maxHp:mon.maxhp,status:mon.status,member:mon.trainerSource,wait:!!side.activeRequest?.wait,
+                        remaining:side.pokemon.filter(p=>!p.fainted).length,total:side.pokemon.length,
+                        forceSwitch:!!side.activeRequest?.forceSwitch,
+                        moves:choices(side).map(({command,...m})=>m)};
                 })};
         }
         return {state, close:()=>battle.destroy(),
-            turn(turn, slots) {
+            turn(turn, slots, request) {
                 assert(!battle.ended && turn===battle.turn && turn<=200, 'Stale or finished turn');
+                assert(request===undefined || request===requestId, 'Stale battle choice');
                 assert(Array.isArray(slots) && slots.length===2, 'Invalid choices');
                 const selected = battle.sides.map((s,i)=>choices(s).find(m=>m.slot===slots[i]));
                 assert(selected.every(Boolean), 'Unavailable move');
                 // Both choices validated before either player is advanced.
-                battle.makeChoices(...selected.map(m=>'move '+m.engineSlot));
+                battle.makeChoices(...selected.map(m=>m.command));
                 if (!battle.ended && battle.turn>200) battle.tie();
                 return state();
             }

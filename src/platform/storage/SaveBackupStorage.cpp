@@ -371,7 +371,7 @@ bool writeLink(const QString& root,const QJsonObject& value,bool archive=false) 
 }
 QJsonObject publicLink(const QJsonObject& j) {
     QJsonObject out;
-    for(const auto key:{"id","peer","proposal","before","after","peerAfter","stage","adventure","owner"})out[key]=j[key];
+    for(const auto key:{"id","peer","proposal","before","after","peerAfter","stage","adventure","owner","kind"})out[key]=j[key];
     return out;
 }
 }
@@ -385,9 +385,12 @@ QJsonObject linkSaveStatus(const QString& root,const QString& id) {
 QJsonObject inspectLinkPokemon(const QString& root,const AdventureRegistration& r,int slot,const SaveTargetResolver& resolve) {
     const auto target=resolve(r);const auto save=current(target);
     if(!save.success || !save.exists)return linkError("The ordinary save is unavailable.");
+    const auto account=emeraldLinkAccount(save.data,target.contentRevision);
+    if(account.contains("error"))return account;
+    if(slot<0)return {{"save",hash(save.data)},{"account",account}};
     const auto offer=emeraldLinkOffer(save.data,target.contentRevision,slot);
     if(!offer.error.isEmpty())return linkError(offer.error);
-    return {{"pokemon",offer.pokemon},{"save",hash(save.data)},{"slot",slot}};
+    return {{"pokemon",offer.pokemon},{"save",hash(save.data)},{"slot",slot},{"account",account}};
 }
 QJsonObject prepareLinkSave(const QString& root,const AdventureRegistration& r,const QJsonObject& request,const SaveTargetResolver& resolve) {
     if(!QDir::isAbsolutePath(root) || QFileInfo(root).isSymLink() || !QDir().mkpath(root))return linkError("Cannot protect this trade.");
@@ -399,13 +402,20 @@ QJsonObject prepareLinkSave(const QString& root,const AdventureRegistration& r,c
     if(saveWritesReadOnly(root))return linkError("Read-only saves is on. Change it in Settings before trading.");
     const auto target=resolve(r);const auto save=current(target);
     if(!save.success || !save.exists || hash(save.data)!=request["save"].toString())return linkError("The save changed. Choose your Pokemon again.");
-    const auto offered=emeraldLinkOffer(save.data,target.contentRevision,request["slot"].toInt(-1));
-    if(!offered.error.isEmpty() || offered.pokemon!=request["outgoing"].toObject())return linkError("Your selected Pokemon changed.");
-    const auto result=tradeEmeraldPokemon(save.data,target.contentRevision,request["slot"].toInt(-1),hash(save.data),request["incoming"].toObject());
+    const auto kind=request["kind"].toString("trade");const bool sale=kind=="sale" || kind=="gift";
+    if(!sale && kind!="trade")return linkError("Unsupported transfer.");
+    const bool seller=request["seller"].toBool();
+    if(!sale || seller) {
+        const auto offered=emeraldLinkOffer(save.data,target.contentRevision,request["slot"].toInt(-1));
+        if(!offered.error.isEmpty() || offered.pokemon!=request["outgoing"].toObject())return linkError("Your selected Pokemon changed.");
+    }
+    if(sale && (request["price"].toDouble(-1)!=request["price"].toInt(-2) || (kind=="gift" && request["price"].toInt()!=0)))return linkError("The price is invalid.");
+    const auto result=sale?sellEmeraldPokemon(save.data,target.contentRevision,request["slot"].toInt(-1),hash(save.data),request["incoming"].toObject(),request["price"].toInt(-1),seller)
+        :tradeEmeraldPokemon(save.data,target.contentRevision,request["slot"].toInt(-1),hash(save.data),request["incoming"].toObject());
     if(!result.error.isEmpty() || result.data.isEmpty())return linkError(result.error);
-    const auto backup=writeBundle(root,target,save,true,"link-trade");if(backup.isEmpty())return linkError("Couldn't protect the current save.");
+    const auto backup=writeBundle(root,target,save,true,"link-"+kind);if(backup.isEmpty())return linkError("Couldn't protect the current save.");
     if(current(resolve(r)).revision!=save.revision)return linkError("The save changed while preparing the trade.");
-    QJsonObject journal{{"version",1},{"id",id},{"peer",request["peer"]},{"proposal",request["proposal"]},
+    QJsonObject journal{{"version",1},{"id",id},{"peer",request["peer"]},{"proposal",request["proposal"]},{"kind",kind},
         {"stage","prepared"},{"adventure",r.adventure.id},{"owner",target.backupOwner},
         {"content",target.contentRevision},{"context",target.contextRevision},{"path",target.savePath},
         {"token",save.revision},{"before",hash(save.data)},{"after",hash(result.data)},
@@ -437,7 +447,7 @@ QJsonObject commitLinkSave(const QString& root,const AdventureRegistration& r,co
         if(!f.open(QIODevice::WriteOnly) || !f.setPermissions(QFileInfo(target.savePath).permissions()) || f.write(after)!=after.size() || !syncFile(f))return linkError("Couldn't write this trade. Reconnect to continue.");
         if(current(resolve(r)).revision!=save.revision){f.cancelWriting();return linkError("The save changed during this trade.");}
         if(!f.commit() || !syncDirectory(save.parent) || current(resolve(r)).data!=after)return linkError("Trade readback failed. Keep the protection copies.");
-        if(!lineage.finish(after,"link-trade",j["protection"].toString()).isEmpty())return linkError("Trade saved; its history needs recovery.");
+        if(!lineage.finish(after,"link-"+j["kind"].toString("trade"),j["protection"].toString()).isEmpty())return linkError("Trade saved; its history needs recovery.");
     }
     j["stage"]="committed";if(!writeLink(root,j))return linkError("Trade saved; reconnect to finish its receipt.");
     return publicLink(j);

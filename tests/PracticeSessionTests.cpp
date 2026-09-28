@@ -1,5 +1,6 @@
 #include "integrations/practice/PracticeSession.h"
 #include "features/center/PracticeController.h"
+#include "integrations/progress/EmeraldPractice.h"
 #include <QtTest>
 #include <QStandardPaths>
 #include <QFileInfo>
@@ -88,6 +89,27 @@ private slots:
             QTRY_COMPARE_WITH_TIMEOUT(stopped.size(),1,6500);QVERIFY(!session.active());QVERIFY(session.state().isEmpty());
             QVERIFY(!stopped[0][0].toString().isEmpty());
         }
+    }
+    void fullTeamsSwitchAndReplaceFaintedPartners() {
+        const auto node=QStandardPaths::findExecutable("node");
+        if(node.isEmpty() || !QFileInfo::exists(engine+"/package.json"))QSKIP("Install the pinned research dependency for team-battle proof.");
+        const auto mon=emeraldPracticeMember(fixture(),0);QVERIFY(!mon.isEmpty());
+        PracticeSession session;QJsonArray team{mon,mon,mon,mon,mon,mon};
+        QVERIFY(session.beginLink(node,worker,engine,{{"protocol",1},{"teams",QJsonArray{team,team}}},{1,2,3,4}));
+        QTRY_VERIFY(!session.state().isEmpty());
+        QCOMPARE(session.state()["sides"].toArray()[0].toObject()["total"].toInt(),6);
+        QVERIFY(session.choose(11,12));QTRY_COMPARE(session.state()["turn"].toInt(),2);
+        QCOMPARE(session.state()["sides"].toArray()[0].toObject()["member"].toInt(),1);
+        QCOMPARE(session.state()["sides"].toArray()[1].toObject()["member"].toInt(),2);
+        int replacements=0,requests=0;
+        while(!session.state()["ended"].toBool() && requests++<100) {
+            const auto sides=session.state()["sides"].toArray();const int request=session.state()["request"].toInt();
+            int selected[2];for(int i=0;i<2;++i){const auto side=sides[i].toObject();if(side["forceSwitch"].toBool())++replacements;
+                const auto choices=side["moves"].toArray();QVERIFY(!choices.isEmpty());selected[i]=choices[0].toObject()["slot"].toInt();}
+            QVERIFY(session.choose(selected[0],selected[1]));
+            QTRY_VERIFY(session.state()["request"].toInt()>request);
+        }
+        QVERIFY(replacements>=5);QVERIFY(session.state()["ended"].toBool());QTRY_VERIFY(!session.active());
     }
     void actualWorkerCompletesAndDoesNotReuseStaleInput() {
         const auto node=QStandardPaths::findExecutable("node");

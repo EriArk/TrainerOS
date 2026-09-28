@@ -18,6 +18,8 @@ class LinkController final:public QObject {
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(bool active READ active NOTIFY changed)
     Q_PROPERTY(bool pending READ pending NOTIFY changed)
+    Q_PROPERTY(QString priceText READ priceText NOTIFY changed)
+    Q_PROPERTY(int priceStep READ priceStep NOTIFY changed)
 public:
     using Backend=std::function<void(const QString&,const QJsonObject&,QObject*,std::function<void(QJsonObject)>)>;
     explicit LinkController(QObject* parent=nullptr);
@@ -31,6 +33,8 @@ public:
     QString stage() const{return stage_;}QString message() const{return message_;}
     QString partner() const{return peerName_;}QString code() const{return pin_;}QString mode() const{return mode_;}
     QString turnSummary() const;
+    QString priceText() const{return QString::number(price_);}
+    int priceStep() const{return priceStep_;}
     bool isOpen() const{return open_;}
     QVariantList rows() const;QVariantList fighters() const;
     int focusIndex() const{return focus_;}
@@ -47,6 +51,9 @@ private:
     void verify(std::function<void()>);void resetChoice();void recover(const QString&);
     QVariantMap display(const QJsonObject&) const;QJsonObject partyMember(int) const;
     QString proposal() const;bool host() const{return peer_.id()<peerId_;}
+    bool sale() const{return mode_=="sale" || mode_=="gift";}
+    bool seller() const{return sellerId_==peer_.id();}
+    void publishOffer();
     LocalLinkPeer peer_;PracticeSession battle_;QTimer heartbeat_;
     Backend backend_;PracticeController::Verifier verify_;std::function<QVariantMap(QVariantMap)> artwork_;
     PracticeSource source_;GameProgress progress_;QVariantList actors_;
@@ -55,5 +62,7 @@ private:
     bool open_=false,accepted_=false,peerAccepted_=false,paired_=false,busy_=false,confirmed_=false,remoteConfirmed_=false,moveSent_=false;
     int focus_=0,localMove_=-1,remoteMove_=-1;quint64 generation_=0;
     qint64 lastMessage_=0;
+    QString sellerId_;int price_=1000,priceStep_=100;
+    bool bench_=false;
 };
 }

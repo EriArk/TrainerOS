@@ -256,6 +256,8 @@ Window {
                     }
                     if (party.section === "activities" && party.activities.route === "link") {
                         const link = party.activities.link
+                        if (link.stage === "price") return [h("↑↓","Price ±" + link.priceStep),h("←→","Step"),h("A","Offer"),h("B","Cancel")]
+                        if (link.stage === "moves") return [h("X","Moves / Team"),h("A","Choose"),h("B","Leave battle")]
                         return [h("A",link.stage === "pair" ? "Connect" : link.stage === "review" ? "Confirm" : link.stage === "moves" ? "Move" : "Choose"),h("B",link.pending ? "Pause" : "Back")]
                     }
                     if (party.section === "activities") return party.activities.route === "playroom" && party.activities.hasParty ? [h("↑","Practice"),h("←→","Partner"),h("Select","Play"),h("X","Greet"),h("A","Call")] : [h("A","Select"),h("B","Back")]

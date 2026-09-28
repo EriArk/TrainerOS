@@ -16,6 +16,18 @@ namespace {
 constexpr int Sector = 0x1000, Payload = 0xf80, SectorCount = 14;
 quint16 u16(const QByteArray& bytes, int offset) { return qFromLittleEndian<quint16>(bytes.constData() + offset); }
 quint32 u32(const QByteArray& bytes, int offset) { return qFromLittleEndian<quint32>(bytes.constData() + offset); }
+void receiveEmeraldDex(QByteArray& world,QByteArray& small,const QJsonObject& before,const QJsonObject& after) {
+    for(const auto& value:{before,after}) {
+        const int species=readEmeraldPartyMember(importEmeraldLinkRecord(value)).number-1;
+        for(int offset:{0x28,0x5c})small[offset+species/8]=char(quint8(small[offset+species/8])|(1u<<(species%8)));
+        for(int offset:{0x988,0x3b24})world[offset+species/8]=char(quint8(world[offset+species/8])|(1u<<(species%8)));
+    }
+    if(before["species"]!=after["species"]) {
+        const auto key=u32(small,0xac);const int at=0x159c+14*4;
+        const auto count=u32(world,at)^key;
+        qToLittleEndian(std::min(count,quint32(0xfffffe))+1u^key,world.data()+at);
+    }
+}
 struct Slot {
     bool valid = false;
     quint32 counter = 0;
@@ -262,15 +274,14 @@ PartyMoveResult tradeEmeraldPokemon(const QByteArray& save,const QString& hash,i
     if(revision!=QString::fromLatin1(QCryptographicHash::hash(save,QCryptographicHash::Sha256).toHex()))return {{},"The save changed. Choose your Pokemon again.",{}};
     const auto outgoing=emeraldLinkOffer(save,hash,position);
     if(!outgoing.error.isEmpty())return {{},outgoing.error,{}};
-    auto received=incoming;received["friendship"]=70; // Native TradeMons rule.
+    const auto prepared=prepareEmeraldReceived(incoming);if(!prepared.error.isEmpty())return {{},prepared.error,{}};
+    auto received=prepared.pokemon;
     const auto record=importEmeraldLinkRecord(received);
     if(record.isEmpty())return {{},"The partner's Pokemon is not supported for this trade.",{}};
     const auto mon=readEmeraldPartyMember(record);
     const auto slot=*shopSlot(save,hash);auto world=worldBlock(slot);auto small=slot.blocks[0];
     world.replace(0x238+position*100,100,record);
-    const int species=mon.number-1;
-    for(int offset:{0x28,0x5c})small[offset+species/8]=char(quint8(small[offset+species/8])|(1u<<(species%8)));
-    for(int offset:{0x988,0x3b24})world[offset+species/8]=char(quint8(world[offset+species/8])|(1u<<(species%8)));
+    receiveEmeraldDex(world,small,incoming,received);
     auto result=save;
     for(int id=0;id<5;++id){
         const auto block=id==0?small:world.mid((id-1)*Payload,slot.blocks[id].size());
@@ -285,6 +296,64 @@ PartyMoveResult tradeEmeraldPokemon(const QByteArray& save,const QString& hash,i
     for(const auto& p:progress.party->party)if(p.kind==PokemonSlotKind::Known && p.hp.value_or(0)>0)++able;
     if(!able)return {{},"Keep a Pokemon that can battle in your Party.",{}};
     return {result,{},"Trade complete!"};
+}
+QJsonObject emeraldLinkAccount(const QByteArray& save,const QString& hash) {
+    const auto slot=shopSlot(save,hash);
+    if(!slot)return {{"error","Save in the supported English Emerald edition first."}};
+    const auto world=worldBlock(*slot);const auto progress=readGen3Progress(save,Gen3Edition::Emerald);
+    if(!progress.party || !progress.party->error.isEmpty() || !progress.pokedex || !progress.pokedex->error.isEmpty())
+        return {{"error","Your collection could not be verified."}};
+    const auto money=u32(world,0x490)^u32(slot->blocks[0],0xac);
+    if(money>999999)return {{"error","Your money could not be verified."}};
+    const int count=quint8(world[0x234]);
+    // Never overwrite uncounted data or unreadable records in a receiving save.
+    for(int i=count;i<6;++i)if(world.mid(0x238+i*100,100)!=QByteArray(100,0))return {{"error","Your team could not be verified."}};
+    QJsonObject account{{"money",int(money)},{"box",-1},{"slot",count},{"destination",QString("Party · %1").arg(count+1)}};
+    if(count<6)return account;
+    for(int b=0;b<14;++b)for(int s=0;s<30;++s)if(progress.party->boxes[b].members[s].kind==PokemonSlotKind::Empty) {
+        account["box"]=b;account["slot"]=s;account["destination"]=QString("%1 · %2").arg(progress.party->boxes[b].name).arg(s+1);return account;
+    }
+    account["box"]=-2;account["destination"]="No free space";return account;
+}
+PartyMoveResult sellEmeraldPokemon(const QByteArray& save,const QString& hash,int position,
+        const QString& revision,const QJsonObject& incoming,int price,bool seller) {
+    if(revision!=QString::fromLatin1(QCryptographicHash::hash(save,QCryptographicHash::Sha256).toHex()))return {{},"The save changed. Reopen the counter.",{}};
+    if(price<0 || price>999999)return {{},"Choose a price from 0 to 999,999.",{}};
+    const auto account=emeraldLinkAccount(save,hash);if(account.contains("error"))return {{},account["error"].toString(),{}};
+    const int money=account["money"].toInt();
+    if(seller ? price>999999-money : price>money)return {{},seller?"Your wallet cannot hold this payment.":"Not enough money for this Pokemon.",{}};
+    const auto slot=*shopSlot(save,hash);auto world=worldBlock(slot);auto small=slot.blocks[0];
+    QByteArray storage;for(int id=5;id<14;++id)storage+=slot.blocks[id];
+    const int count=quint8(world[0x234]);
+    QByteArray received;
+    if(seller) {
+        const auto offered=emeraldLinkOffer(save,hash,position);if(!offered.error.isEmpty())return {{},offered.error,{}};
+        const auto progress=readGen3Progress(save,Gen3Edition::Emerald);int able=0;
+        for(int i=0;i<count;++i)if(i!=position && progress.party->party[i].kind==PokemonSlotKind::Known && progress.party->party[i].hp.value_or(0)>0)++able;
+        if(!able)return {{},"Keep a Pokemon that can battle in your Party.",{}};
+        for(int i=position;i<count-1;++i)world.replace(0x238+i*100,100,world.mid(0x238+(i+1)*100,100));
+        world.replace(0x238+(count-1)*100,100,QByteArray(100,0));world[0x234]=char(count-1);
+    } else {
+        if(account["box"].toInt()==-2)return {{},"Make room in your Party or boxes first.",{}};
+        const auto prepared=prepareEmeraldReceived(incoming);if(!prepared.error.isEmpty())return {{},prepared.error,{}};
+        auto semantic=prepared.pokemon;received=importEmeraldLinkRecord(semantic);
+        if(received.isEmpty())return {{},"This Pokemon cannot be received here yet.",{}};
+        if(count<6){world.replace(0x238+count*100,100,received);world[0x234]=char(count+1);}
+        else {received=emeraldBoxRecord(received);if(received.isEmpty())return {{},"This Pokemon cannot be stored.",{}};
+            storage.replace(4+(account["box"].toInt()*30+account["slot"].toInt())*80,80,received);}
+        receiveEmeraldDex(world,small,incoming,semantic);
+    }
+    qToLittleEndian(quint32(money+(seller?price:-price))^u32(small,0xac),world.data()+0x490);
+    auto result=save;
+    for(int id=0;id<14;++id){const auto block=id==0?small:id<5?world.mid((id-1)*Payload,slot.blocks[id].size()):storage.mid((id-5)*Payload,slot.blocks[id].size());
+        if(block==slot.blocks[id])continue;const int at=slot.offsets[id];result.replace(at,block.size(),block);
+        quint32 sum=0;for(int p=0;p<block.size();p+=4)sum+=u32(block,p);qToLittleEndian(quint16((sum>>16)+sum),result.data()+at+0xff6);}
+    const auto checked=shopSlot(result,hash);if(!checked || worldBlock(*checked)!=world || checked->blocks[0]!=small)return {{},"The transfer could not be verified.",{}};
+    QByteArray checkedStorage;for(int id=5;id<14;++id)checkedStorage+=checked->blocks[id];
+    const auto progress=readGen3Progress(result,Gen3Edition::Emerald);
+    if(checkedStorage!=storage || !progress.party || !progress.party->error.isEmpty() || emeraldLinkAccount(result,hash)["money"].toInt(-1)!=money+(seller?price:-price))
+        return {{},"The transferred Pokemon and balance could not be verified.",{}};
+    return {result,{},price?"Sale complete!":"Gift delivered!"};
 }
 BoxNameResult renameEmeraldBox(const QByteArray& save,const QString& hash,const BoxNameChange& request) {
     const auto slot=shopSlot(save,hash);

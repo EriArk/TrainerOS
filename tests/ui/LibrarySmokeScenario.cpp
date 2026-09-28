@@ -67,30 +67,15 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 check(ruby >= 0, "Ruby catalogue edition is listed"); press(down, std::max(0, ruby)); press(a); break;
             }
             case 2:
-                check(focusIs("adventure-field-4") && shell.worlds()->detail()["platform"] == "Game Boy Advance", "Missing edition opens file setup directly");
-                capture("collection-detail"); break;
+                check(focusIs("notice-close") && !shell.serviceOpen(), "Missing ROM gives an actionable error without a setup window");
+                check(store.adventures().isEmpty(), "A missing catalogue card does not create an installation");
+                capture("collection-missing-error");press(b);break;
             case 3:
-                check(focusIs("adventure-field-4") && manager->fields()[0].toMap()["value"] == "Pokémon Ruby", "Catalogue details are prefilled with file field focused");
-                press(a); break;
-            case 4:
-                check(manager->files()->rows().size() == 1 && manager->files()->zone() == "list", "Controller file picker contains the test file"); press(a); break;
-            case 5:
-                check(focusIs("adventure-field-4"), "File selection restores its field"); press(down); press(a); break;
-            case 6:
-                check(store.adventures().size() == 1 && !shell.serviceOpen() && !shell.menuOpen(), "Save returns directly to Worlds, without a system menu");
-                check(store.registration("catalogue:ruby-gba").has_value(), "Stable reference identity linked");
-                check(focusIs("adventure-catalogue:ruby-gba"), "Attachment returns to its wheel identity"); break;
-            case 7:
-                check(shell.worlds()->adventureIndex() == 0 && focusIs("adventure-catalogue:ruby-gba"), "Owned card moves first and retains focus by identity");
-                capture("collection-linked"); press(next); press(previous); window->resize(1920, 1080); break;
-            case 8:
-                check(shell.worlds()->route()=="regions", "Shoulders return to the World grid");
-                press(a);
-                check(focusIs("adventure-catalogue:ruby-gba"), "Reopening the World retains its edition selection"); capture("collection-linked-1080p");
-                press(a); press(b); break; // Edit then discard: return to the exact wheel identity.
+                check(focusIs("adventure-catalogue:ruby-gba") && shell.worlds()->route()=="adventures", "Dismissing the error restores the wheel selection");
+                press(next);press(previous);break;
             default:
-                check(!shell.serviceOpen() && !shell.menuOpen() && focusIs("adventure-catalogue:ruby-gba"), "Cancel returns to the Worlds selection");
-                if (finish()) window->close(); break;
+                check(shell.worlds()->route()=="regions" && !shell.serviceOpen(), "Re-entry restores the World grid");
+                if(finish())window->close();break;
             }
         } else if (phase == "library-seed") {
             switch ((*stage)++) {
@@ -128,8 +113,8 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 check(store.adventures().size() == 1 && !shell.serviceOpen(), "Save completes after global page switch");
                 press(previous); press(a); press(a); break; // Kanto secondary listing / detail.
             case 8:
-                check(shell.worlds()->detail()["title"] == "journeyA" && focusIs("adventure-field-4"), "Unconfigured personal Adventure opens setup directly");
-                capture("personal-adventure"); press(start); press(a); press(a); press(a); break;
+                check(shell.worlds()->detail()["title"] == "journeyA" && focusIs("notice-close") && !shell.serviceOpen(), "Unavailable launch reports its error without opening setup");
+                capture("personal-adventure"); press(b); press(start); press(a); press(a); press(a); break;
             case 9:
                 check(shell.settings()->theme() == "red" && focusIs("settings-control-0"), "Persisted red theme"); capture("theme-red"); press(a); break;
             case 10: check(shell.settings()->theme() == "green", "Green theme"); capture("theme-green"); press(a); break;
@@ -164,7 +149,9 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 press(b); break;
             case 22:
                 check(!shell.settings()->creditsOpen() && focusIs("settings-category-6"), "Back returns to the Credits entry");
-                press(b); press(down, 6); press(a); press(down); press(a);
+                  press(b); press(start);
+                  for (int step=0;step<12 && shell.focusIndex()!=6;++step) press(down);
+                  press(a); press(down); press(a);
                 check(shell.modeConfirmation(), "Development exit requires a fresh confirmation from Power");
                 if (finish()) press(a); break;
             }
@@ -202,7 +189,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 check(focusIs("world-9"), "Custom World is reachable in a bounded region grid"); capture("custom-world-grid");
                 press(a); press(a); window->resize(1024, 768); break;
             case 9:
-                check(shell.worlds()->region()["name"] == "A" && focusIs("adventure-field-4"), "Custom World setup focus"); capture("custom-world-letterbox");
+                check(shell.worlds()->region()["name"] == "A" && focusIs("notice-close") && !shell.serviceOpen(), "A missing ROM reports its launch error without a binding screen"); capture("custom-world-letterbox");
                 if (finish()) window->close(); break;
             }
         } else {

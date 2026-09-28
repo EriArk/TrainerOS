@@ -70,7 +70,7 @@ Item {
             }
             CapButton {
                 objectName: "activity-primary"; x: root.shell.chooseAdventureAvailable ? Theme.adventureCutoutWidth : 24; anchors.bottom: parent.bottom; anchors.bottomMargin: 12; width: 395; height: 44
-                visible: root.activity.route !== "menu" && root.activity.route !== "practice" && !(root.activity.hasParty && root.activity.route === "playroom")
+                visible: root.activity.route !== "menu" && root.activity.route !== "practice" && root.activity.route !== "link" && !(root.activity.hasParty && root.activity.route === "playroom")
                 label: root.activity.page.action; tint: Theme.blue; selected: root.takesFocus && visible
                 onActivated: root.shell.activate(root.activity.focusIndex)
             }

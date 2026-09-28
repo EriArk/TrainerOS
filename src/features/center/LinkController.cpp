@@ -57,7 +57,7 @@ void LinkController::enter() {
     if(!pending())journal_={};
     open_=true;focus_=0;stage_="browse";
     message_=pending()?"Trade paused. Reconnect the same consoles to finish.":"Open Link Counter on both consoles on the same Wi-Fi.";
-    if(!backend_){message_="Link requires an installed Emerald Adventure.";emit changed();return;}
+    if(!backend_){stage_="error";message_="Link requires an installed Emerald Adventure.";emit changed();return;}
     peer_.open();heartbeat_.start();emit changed();
 }
 void LinkController::leave(){if(busy_)return;open_=false;++generation_;heartbeat_.stop();peer_.close();battle_.cancel();emit changed();}
@@ -112,21 +112,31 @@ QVariantMap LinkController::display(const QJsonObject& value) const {
 }
 QVariantList LinkController::rows() const {
     if(stage_=="browse")return peer_.peers();
-    if(stage_=="lobby")return {QVariantMap{{"name","Friendly battle"},{"detail","One partner each · Gen III"}},QVariantMap{{"name","Trade Pokemon"},{"detail","Exchange saved Party members"}}};
+    if(stage_=="lobby")return {QVariantMap{{"name","Friendly battle"},{"detail","Your saved teams · Gen III"}},QVariantMap{{"name","Trade Pokemon"},{"detail","Exchange saved Party members"}},QVariantMap{{"name","Sell Pokemon"},{"detail","For in-game money"}},QVariantMap{{"name","Give a Pokemon"},{"detail","A gift for your friend"}}};
     if(stage_=="choose") {
         QVariantList out;if(!progress_.party)return out;
         for(int slot=0;slot<progress_.party->party.size();++slot){const auto member=partyMember(slot);if(member.isEmpty())continue;auto row=display(member);row["slot"]=slot;row["detail"]=QString("Lv. %1").arg(row["level"].toInt());out.append(row);}return out;
     }
     if(stage_=="moves") {
         QVariantList out;const auto sides=battleState_["sides"].toArray();if(sides.size()!=2)return out;
-        for(const auto& v:sides[host()?0:1].toObject()["moves"].toArray()){auto row=v.toObject().toVariantMap();row["name"]=row["move"];row["detail"]=QString("%1 / %2 PP").arg(row["pp"].toInt()).arg(row["maxPp"].toInt());out.append(row);}return out;
+        const auto side=sides[host()?0:1].toObject();
+        for(const auto& v:side["moves"].toArray()){auto row=v.toObject().toVariantMap();
+            const bool switching=row["switch"].toBool();if(switching!=(bench_ || side["forceSwitch"].toBool()))continue;
+            row["name"]=row["move"];row["detail"]=QString("%1 / %2 %3").arg(row["pp"].toInt()).arg(row["maxPp"].toInt()).arg(switching?"HP":"PP");out.append(row);}return out;
     }
     return {};
 }
 QVariantList LinkController::fighters() const {
     QVariantList out;const auto sides=battleState_["sides"].toArray();
     const std::array<QJsonObject,2> members{localChoice_,remoteChoice_};
-    for(int i=0;i<2;++i){auto row=display(members[i]);
+    for(int i=0;i<2;++i){auto shown=members[i];
+        if(sides.size()==2 && shown.contains("team")){const auto team=shown["team"].toArray();const int index=sides[host()?i:1-i].toObject()["member"].toInt();if(index>=0 && index<team.size())shown=team[index].toObject();}
+        auto row=display(shown);
+        if(sale() && members[i]["role"]=="buyer") {
+            const auto offer=seller()?localChoice_:remoteChoice_;
+            row={{"payment",true},{"name",mode_=="gift"?QString("Thank you!"):QString("₽ %1").arg(offer["price"].toInt())},
+                {"detail",members[i]["account"].toObject()["destination"].toString()}};
+        }
         if(sides.size()==2){const auto side=sides[host()?i:1-i].toObject();row["battleHp"]=side["hp"].toInt();row["maxHp"]=side["maxHp"].toInt();row["hpRatio"]=side["hp"].toDouble()/std::max(1,side["maxHp"].toInt());row["battleStatus"]=side["status"].toString();}
         out.append(row);
     }return out;
@@ -136,8 +146,7 @@ QString LinkController::turnSummary() const {
     for(const auto& event:battleState_["events"].toArray()) {
         const auto fields=event.toString().split('|');if(fields.size()<3)continue;
         const auto kind=fields[1];
-        const bool local=fields[2].startsWith(host()?"p1":"p2");
-        const auto name=(local?localChoice_:remoteChoice_)["name"].toString().left(24);
+        const auto name=fields[2].section(": ",1).left(24);
         if(kind=="move" && fields.size()>3)lines<<name+" used "+fields[3].left(32)+"!";
         else if(kind=="faint")lines<<name+" fainted!";
         else if(kind=="-miss")lines<<"The attack missed!";
@@ -154,7 +163,15 @@ void LinkController::pairReady() {
 }
 void LinkController::startMode(const QString& mode) {
     if(pending() || !paired_ || busy_)return;
-    resetChoice();mode_=mode;stage_="choose";message_=mode=="battle"?"Choose your battle partner":"Choose a Pokemon to offer";
+    resetChoice();mode_=mode;stage_="choose";message_=mode=="battle"?"Choose your lead Pokemon":"Choose a Pokemon to offer";
+    if(sale() && !seller()) {
+        stage_="waiting";message_="Waiting for your friend's offer";
+        verify([this]{operation("inspect",{{"slot",-1}},[this](QJsonObject result){
+            if(!paired_)return;
+            if(result["account"].toObject()["box"].toInt()==-2){fail("Make room in your Party or boxes first.");return;}
+            localChoice_={{"role","buyer"},{"save",result["save"]},{"account",result["account"]}};publishOffer();
+        });});return;
+    }
     if(rows().isEmpty()){fail("Choose an Emerald Adventure with a saved Party, then reconnect.");return;}
     emit changed();
 }
@@ -163,19 +180,50 @@ void LinkController::choose(int index) {
     const int slot=options[index].toMap()["slot"].toInt();
     verify([this,slot]{
         localChoice_=partyMember(slot);
-        if(mode_=="trade")operation("inspect",{{"slot",slot}},[this](QJsonObject result){
+        if(mode_=="trade" || sale())operation("inspect",{{"slot",slot}},[this](QJsonObject result){
             if(!paired_)return;
             localChoice_["pokemon"]=result["pokemon"];localChoice_["save"]=result["save"];
-            send("offer",{{"offer",localChoice_},{"mode",mode_}});review();
-        });else {send("offer",{{"offer",localChoice_},{"mode",mode_}});review();}
+            localChoice_["account"]=result["account"];
+            if(sale()) {
+                localChoice_["role"]="seller";
+                if(mode_=="sale"){stage_="price";message_="Set your price";price_=1000;emit changed();return;}
+                localChoice_["price"]=0;
+            }
+            publishOffer();
+        });else {
+            QJsonArray team{localChoice_};
+            for(int i=0;i<progress_.party->party.size();++i)if(i!=slot){const auto member=partyMember(i);if(!member.isEmpty())team.append(member);}
+            localChoice_["team"]=team;
+            send("offer",{{"offer",localChoice_},{"mode",mode_}});review();}
     });
 }
 QString LinkController::proposal() const {
-    return digest({{"host",host()?localChoice_:remoteChoice_},{"guest",host()?remoteChoice_:localChoice_},{"mode",mode_}});
+    return digest({{"host",host()?localChoice_:remoteChoice_},{"guest",host()?remoteChoice_:localChoice_},{"mode",mode_},{"seller",sale()?sellerId_:QString()}});
 }
+void LinkController::publishOffer(){send("offer",{{"offer",localChoice_},{"mode",mode_}});review();}
 void LinkController::review() {
     if(localChoice_.isEmpty() || remoteChoice_.isEmpty()){stage_="waiting";message_="Waiting for your friend's choice";}
     else {stage_="review";message_=mode_=="trade"?"Trade these Pokemon? Both players must confirm.":"Ready for a friendly battle?";}
+    if(sale() && stage_=="review") {
+        const auto offered=seller()?localChoice_:remoteChoice_;const auto buying=seller()?remoteChoice_:localChoice_;
+        const int price=offered["price"].toInt(-1),balance=buying["account"].toObject()["money"].toInt(-1),wallet=offered["account"].toObject()["money"].toInt(-1);
+        if(price<0 || price>999999 || balance<price || wallet<0 || price>999999-wallet){fail("The price exceeds the buyer's money or the seller's wallet limit.");return;}
+        message_=QString("%1 · %2\n%3 money: %4 → %5 · %6")
+            .arg(mode_=="gift"?"Gift":seller()?"Sell":"Buy",offered["name"].toString(),"Your")
+            .arg(seller()?wallet:balance).arg(seller()?wallet+price:balance-price).arg(buying["account"].toObject()["destination"].toString());
+        if(price)message_+=QString(" · Price %1").arg(price);
+    }
+    if(stage_=="review" && mode_!="battle") {
+        for(const auto& choice:{localChoice_,remoteChoice_}) {
+            const auto input=choice["pokemon"].toObject();if(input.isEmpty())continue;
+            const auto prepared=prepareEmeraldReceived(input);
+            if(!prepared.error.isEmpty()){fail(prepared.error);return;}
+            if(input["species"]!=prepared.pokemon["species"]) {
+                const auto evolved=readEmeraldPartyMember(importEmeraldLinkRecord(prepared.pokemon));
+                message_+=QString("\n%1 → %2 · Keep existing moves").arg(choice["name"].toString(),evolved.speciesName);
+            }
+        }
+    }
     focus_=0;emit changed();
 }
 void LinkController::confirm() {
@@ -190,18 +238,22 @@ void LinkController::confirm() {
 #else
                 const auto node=runtime_+"/bin/node";
 #endif
+                QJsonArray teams;
+                for(const auto& choice:{localChoice_,remoteChoice_}){QJsonArray team;for(const auto& member:choice["team"].toArray())team.append(member.toObject()["battle"]);teams.append(team);}
                 if(!battle_.beginLink(node,runtime_+"/src/integrations/practice/emerald-worker.cjs",runtime_+"/node_modules/pokemon-showdown",
-                    {{"protocol",1},{"members",QJsonArray{localChoice_["battle"],remoteChoice_["battle"]}}},seed))fail("The battle engine could not start.");
-            } else if(mode_=="trade" && host()) {transaction_=uuid();send("prepare",{{"id",transaction_},{"proposal",proposal()}});advanceTrade();}
+                    {{"protocol",1},{"teams",teams}},seed))fail("The battle engine could not start.");
+            } else if((mode_=="trade" || sale()) && host()) {transaction_=uuid();send("prepare",{{"id",transaction_},{"proposal",proposal()}});advanceTrade();}
         }emit changed();
     });
 }
 void LinkController::advanceTrade() {
-    if(busy_ || !paired_ || mode_!="trade" || transaction_.isEmpty())return;
+    if(busy_ || !paired_ || (mode_!="trade" && !sale()) || transaction_.isEmpty())return;
     if(journal_.isEmpty() || journal_["stage"]=="complete" && journal_["id"]!=transaction_) {
         if(!confirmed_ || !remoteConfirmed_)return;
         stage_="saving";message_="Protecting both saves…";
-        operation("prepare",{{"id",transaction_},{"peer",peerId_},{"proposal",proposal()},
+        const auto offered=seller()?localChoice_:remoteChoice_;
+        operation("prepare",{{"id",transaction_},{"peer",peerId_},{"proposal",proposal()},{"kind",mode_},{"seller",seller()},
+            {"price",sale()?offered["price"]:QJsonValue(0)},
             {"slot",localChoice_["slot"]},{"save",localChoice_["save"]},{"outgoing",localChoice_["pokemon"]},{"incoming",remoteChoice_["pokemon"]}},
             [this](QJsonObject result){journal_=result;send("receipt",{{"receipt",journal_}});advanceTrade();});return;
     }
@@ -217,9 +269,9 @@ void LinkController::advanceTrade() {
         operation("commit",{{"id",transaction_},{"peerAfter",remoteJournal_["after"]}},[this](QJsonObject result){journal_=result;send("receipt",{{"receipt",journal_}});advanceTrade();});return;
     }
     if(localCommitted && remoteCommitted && local!="complete") {
-        operation("finish",{{"id",transaction_},{"peerAfter",remoteJournal_["after"]}},[this](QJsonObject result){journal_=result;send("receipt",{{"receipt",journal_}});stage_="finished";message_="Trade complete! Your new partner is waiting in Emerald.";emit saveChanged();});return;
+        operation("finish",{{"id",transaction_},{"peerAfter",remoteJournal_["after"]}},[this](QJsonObject result){journal_=result;send("receipt",{{"receipt",journal_}});stage_="finished";message_=mode_=="sale"?"Sale complete! Pokemon and payment saved.":mode_=="gift"?"Gift delivered!":"Trade complete! Your new partner is waiting in Emerald.";emit saveChanged();});return;
     }
-    if(local=="complete" && remoteCommitted){stage_="finished";message_="Trade complete! Your new partner is waiting in Emerald.";emit changed();}
+    if(local=="complete" && remoteCommitted){stage_="finished";message_=mode_=="sale"?"Sale complete! Pokemon and payment saved.":mode_=="gift"?"Gift delivered!":"Trade complete! Your new partner is waiting in Emerald.";emit changed();}
 }
 void LinkController::recover(const QString& id) {
     if(QUuid(id).isNull()){fail("The pending trade ID is invalid.");return;}
@@ -229,16 +281,19 @@ void LinkController::recover(const QString& id) {
             send("receipt",{{"receipt",QJsonObject{{"id",transaction_},{"peer",peerId_},{"stage","absent"}}}});
             stage_="waiting";message_="Waiting for your friend's recovery receipt";return;
         }
-        journal_=result;send("receipt",{{"receipt",journal_}});advanceTrade();
+        journal_=result;mode_=journal_["kind"].toString("trade");send("receipt",{{"receipt",journal_}});advanceTrade();
     });
 }
 void LinkController::battleChanged() {
     if(!host() || mode_!="battle" || battle_.state().isEmpty())return;
     const auto state=battle_.state();if(state==battleState_)return;battleState_=state;
     send("battle",{{"state",state}});localMove_=remoteMove_=-1;moveSent_=false;focus_=0;
+    bench_=false;const auto sides=state["sides"].toArray();
+    if(sides.size()==2){if(sides[0].toObject()["wait"].toBool()){localMove_=9;moveSent_=true;}if(sides[1].toObject()["wait"].toBool())remoteMove_=9;}
     stage_=state["ended"].toBool()?"finished":"moves";
     const auto winner=state["winner"].toString();
     message_=stage_=="finished"?(winner.isEmpty()?"A draw! Well played.":winner=="Partner 1"?"You win! Well played.":"Your friend wins! Well played."):QString("Turn %1 · Choose a move").arg(state["turn"].toInt());emit changed();
+    if(stage_!="finished" && moveSent_){stage_="waiting";message_="Your friend is choosing a replacement";emit changed();}
 }
 void LinkController::receive(const QJsonObject& input) {
     lastMessage_=QDateTime::currentMSecsSinceEpoch();if(input["version"].toInt()!=1){peer_.disconnectPeer();return;}
@@ -254,27 +309,32 @@ void LinkController::receive(const QJsonObject& input) {
     if(type=="accept" && !peerId_.isEmpty() && input["code"].toString()==pin_){peerAccepted_=true;pairReady();return;}
     if(!paired_)return;
     if(type=="problem"){message_=input["message"].toString().left(180);stage_="error";emit changed();return;}
-    if(type=="mode" && !pending() && (stage_=="lobby" || !host() && stage_=="waiting" && mode_.isEmpty()) && (input["mode"]=="trade" || input["mode"]=="battle")){
+    if(type=="mode" && !pending() && (stage_=="lobby" || !host() && stage_=="waiting" && mode_.isEmpty()) && QStringList{"trade","battle","sale","gift"}.contains(input["mode"].toString())){
         // The host resolves simultaneous invitations so the consoles never
         // select different activities and wait for incompatible proposals.
-        if(host())send("mode",{{"mode",input["mode"]}});
+        sellerId_=input["seller"].toString();
+        if((input["mode"]=="sale" || input["mode"]=="gift") && sellerId_!=peer_.id() && sellerId_!=peerId_)return;
+        if(host())send("mode",{{"mode",input["mode"]},{"seller",sellerId_}});
         startMode(input["mode"].toString());return;
     }
     if(type=="cancel" && !pending() && !busy_){battle_.cancel();resetChoice();stage_="lobby";message_="Your friend returned to the counter.";emit changed();return;}
-    if(type=="offer" && input["mode"]==mode_ && !confirmed_ && (stage_=="choose" || stage_=="waiting" || stage_=="review")) {
+    if(type=="offer" && input["mode"]==mode_ && !confirmed_ && (stage_=="choose" || stage_=="price" || stage_=="waiting" || stage_=="review")) {
         const auto offer=input["offer"].toObject();
-        if(offer["name"].toString().size()>24 || offer["target"].toString().size()>100 || offer["slot"].toInt(-1)<0 || offer["slot"].toInt()>5)return;
-        if(mode_=="trade" && importEmeraldLinkRecord(offer["pokemon"].toObject()).isEmpty()){fail("This Pokemon cannot be exchanged here yet.");return;}
-        remoteChoice_=offer;if(!localChoice_.isEmpty())review();return;
+        const bool remoteBuyer=sale() && seller();
+        if(offer["name"].toString().size()>24 || offer["target"].toString().size()>100 || (!remoteBuyer && (offer["slot"].toInt(-1)<0 || offer["slot"].toInt()>5)))return;
+        if((mode_=="trade" || sale() && !seller()) && importEmeraldLinkRecord(offer["pokemon"].toObject()).isEmpty()){fail("This Pokemon cannot be exchanged here yet.");return;}
+        if(sale() && offer["role"].toString()!=(remoteBuyer?"buyer":"seller"))return;
+        if(mode_=="battle" && (offer["team"].toArray().isEmpty() || offer["team"].toArray().size()>6)){fail("Your friend needs the team-battle update.");return;}
+        remoteChoice_=offer;if(!localChoice_.isEmpty() && stage_!="price")review();return;
     }
     if(type=="confirm" && !localChoice_.isEmpty() && !remoteChoice_.isEmpty() && input["proposal"]==proposal()) {
         remoteConfirmed_=true;
         if(confirmed_ && host() && !busy_) {confirmed_=false;stage_="review";confirm();}return;
     }
-    if(type=="prepare" && !host() && mode_=="trade" && confirmed_ && remoteConfirmed_ && input["proposal"]==proposal() && !QUuid(input["id"].toString()).isNull()) {
+    if(type=="prepare" && !host() && (mode_=="trade" || sale()) && confirmed_ && remoteConfirmed_ && input["proposal"]==proposal() && !QUuid(input["id"].toString()).isNull()) {
         transaction_=input["id"].toString();advanceTrade();return;
     }
-    if(type=="receipt" && mode_=="trade") {
+    if(type=="receipt" && (mode_=="trade" || sale())) {
         const auto receipt=input["receipt"].toObject();
         if(receipt["id"]!=transaction_ || receipt["peer"]!=peer_.id() || !QStringList{"prepared","commit","committed","complete","absent","cancelled"}.contains(receipt["stage"].toString()))return;
         if(receipt["stage"]=="cancelled" && !pending()){stage_="finished";message_="Trade cancelled. Neither save was changed.";emit changed();return;}
@@ -284,12 +344,13 @@ void LinkController::receive(const QJsonObject& input) {
     if(type=="battle" && !host() && mode_=="battle" && confirmed_ && remoteConfirmed_) {
         const auto state=input["state"].toObject();
         if(state["sides"].toArray().size()!=2 || state["turn"].toInt()<1 || state["turn"].toInt()>201)return;
-        if(!battleState_.isEmpty() && state["turn"].toInt()<=battleState_["turn"].toInt() && !state["ended"].toBool())return;
-        battleState_=state;moveSent_=false;focus_=0;stage_=state["ended"].toBool()?"finished":"moves";
-        const auto winner=state["winner"].toString();message_=stage_=="finished"?(winner.isEmpty()?"A draw! Well played.":winner=="Partner 2"?"You win! Well played.":"Your friend wins! Well played."):QString("Turn %1 · Choose a move").arg(state["turn"].toInt());emit changed();return;
+        if(!battleState_.isEmpty() && state["request"].toInt()<=battleState_["request"].toInt())return;
+        battleState_=state;moveSent_=state["sides"].toArray()[1].toObject()["wait"].toBool();bench_=false;focus_=0;stage_=state["ended"].toBool()?"finished":"moves";
+        const auto winner=state["winner"].toString();message_=stage_=="finished"?(winner.isEmpty()?"A draw! Well played.":winner=="Partner 2"?"You win! Well played.":"Your friend wins! Well played."):QString("Turn %1 · Choose a move").arg(state["turn"].toInt());
+        if(stage_!="finished" && moveSent_){stage_="waiting";message_="Your friend is choosing a replacement";}emit changed();return;
     }
-    if(type=="move" && host() && mode_=="battle" && input["turn"]==battleState_["turn"] && remoteMove_<0) {
-        const int move=input["slot"].toInt(-1);if(move<0 || move>4)return;remoteMove_=move;
+    if(type=="move" && host() && mode_=="battle" && input["request"]==battleState_["request"] && input["turn"]==battleState_["turn"] && remoteMove_<0) {
+        const int move=input["slot"].toInt(-1);if(move<0 || move>15)return;remoteMove_=move;
         if(localMove_>=0 && !battle_.choose(localMove_,remoteMove_))fail("This battle move is unavailable.");return;
     }
 }
@@ -298,17 +359,19 @@ void LinkController::activate(int index) {
     if(stage_=="browse"){peer_.connectPeer(index);return;}
     if(stage_=="pair" && !pin_.isEmpty()){accepted_=true;send("accept",{{"code",pin_}});message_="Waiting for your friend's confirmation";pairReady();return;}
     if(stage_=="lobby"){
-        const auto mode=index==0?"battle":"trade";send("mode",{{"mode",mode}});
+        const auto mode=QStringList{"battle","trade","sale","gift"}.value(index);if(mode.isEmpty())return;
+        sellerId_=peer_.id();send("mode",{{"mode",mode},{"seller",sellerId_}});
         if(host())startMode(mode);else {stage_="waiting";message_="Inviting your friend…";emit changed();}return;
     }
     if(stage_=="choose"){choose(index);return;}
+    if(stage_=="price"){localChoice_["price"]=price_;publishOffer();return;}
     if(stage_=="review"){confirm();return;}
     if(stage_=="moves" && !moveSent_) {
         const auto choices=rows();if(index<0 || index>=choices.size())return;
         const int slot=choices[index].toMap()["slot"].toInt();
         verify([this,slot]{moveSent_=true;stage_="waiting";message_="Waiting for your friend's move";
             if(host()){localMove_=slot;if(remoteMove_>=0 && !battle_.choose(localMove_,remoteMove_))fail("This battle move is unavailable.");}
-            else send("move",{{"turn",battleState_["turn"]},{"slot",slot}});emit changed();});return;
+            else send("move",{{"turn",battleState_["turn"]},{"request",battleState_["request"]},{"slot",slot}});emit changed();});return;
     }
     if(stage_=="finished" || stage_=="error") {
         if(pending()){peer_.disconnectPeer();return;}
@@ -317,15 +380,23 @@ void LinkController::activate(int index) {
     }
 }
 void LinkController::dispatch(Action action) {
+    if(action==Action::Secondary && stage_=="moves" && !busy_){bench_=!bench_;focus_=0;emit changed();return;}
     if(action==Action::Back && !busy_) {
+        if(stage_=="finished" && !pending()){leave();emit closeRequested();return;}
         if(pending()){peer_.disconnectPeer();leave();emit closeRequested();return;}
-        if(mode_=="trade" && confirmed_){peer_.disconnectPeer();leave();emit closeRequested();return;}
-        if(stage_=="choose" || stage_=="review" || stage_=="waiting" || stage_=="moves" || stage_=="finished") {
+        if((mode_=="trade" || sale()) && confirmed_){peer_.disconnectPeer();leave();emit closeRequested();return;}
+        if(stage_=="choose" || stage_=="price" || stage_=="review" || stage_=="waiting" || stage_=="moves" || stage_=="finished") {
             send("cancel");battle_.cancel();resetChoice();stage_="lobby";message_="What shall we do together?";emit changed();return;
         }
         leave();emit closeRequested();return;
     }
     if(action==Action::Confirm){activate(focus_);return;}
+    if(stage_=="price" && !busy_) {
+        if(action==Action::Right)priceStep_=std::min(100000,priceStep_*10);
+        if(action==Action::Left)priceStep_=std::max(1,priceStep_/10);
+        const int delta=action==Action::Up?priceStep_:action==Action::Down?-priceStep_:0;
+        price_=std::clamp(price_+delta,1,999999);emit changed();return;
+    }
     const int count=rows().size();if(!count || busy_)return;
     const int columns=stage_=="choose" || stage_=="moves"?2:1;
     if(action==Action::Left)focus_=std::max(0,focus_-1);

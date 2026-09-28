@@ -143,7 +143,64 @@ private slots:
         QVERIFY(readGen3Progress(candidate.data,Gen3Edition::Emerald).pokedex->caught.contains(25));
         QVERIFY(!tradeEmeraldPokemon(source,EmeraldHash,0,"stale",incoming).error.isEmpty());
         auto mail=pokemonFixture();mail[85]=0;QVERIFY(!exportEmeraldLinkRecord(mail).error.isEmpty());
-        auto evolution=pokemonFixture(0,64);evolution[85]=char(255);QVERIFY(!exportEmeraldLinkRecord(evolution).error.isEmpty());
+        auto unsupported=pokemonFixture(0,201);unsupported[85]=char(255);QVERIFY(!exportEmeraldLinkRecord(unsupported).error.isEmpty());
+    }
+    void emeraldTradeEvolutions() {
+        struct Case {int source,item,target;};
+        for(const auto c:std::array<Case,12>{{{64,0,65},{67,0,68},{75,0,76},{93,0,94},
+            {61,187,186},{79,187,199},{95,199,208},{117,201,230},{123,199,212},{137,218,233},{373,192,367},{373,193,368}}}) {
+            auto bytes=setTestMoves(pokemonFixture(7,c.source),{33,0,0,0},0);bytes[85]=char(255);
+            bytes=emeraldWithdrawRecord(bytes.left(80));QVERIFY(!bytes.isEmpty());
+            auto value=exportEmeraldLinkRecord(bytes).pokemon;value["heldItem"]=c.item;
+            const auto evolved=prepareEmeraldReceived(value);QVERIFY2(evolved.error.isEmpty(),qPrintable(evolved.error));
+            const auto record=importEmeraldLinkRecord(evolved.pokemon);QVERIFY(!record.isEmpty());
+            const auto mon=readEmeraldPartyMember(record);QCOMPARE(mon.number,c.target);QCOMPARE(mon.itemId,0);
+            QCOMPARE(evolved.pokemon["friendship"].toInt(),70);QCOMPARE(evolved.pokemon["personality"],value["personality"]);
+            QCOMPARE(evolved.pokemon["nicknameCodes"],value["nicknameCodes"]); // Custom nickname survives.
+            QCOMPARE(record.mid(86,14),emeraldWithdrawRecord(record.left(80)).mid(86,14)); // Native stats and full HP.
+            value["heldItem"]=195;QCOMPARE(prepareEmeraldReceived(value).pokemon["species"],value["species"]);
+        }
+        auto kadabra=setTestMoves(pokemonFixture(0,64),{33,0,0,0},0);kadabra[85]=char(255);
+        kadabra=emeraldWithdrawRecord(kadabra.left(80));auto value=exportEmeraldLinkRecord(kadabra).pokemon;
+        QJsonArray name;for(const auto c:QString("KADABRA"))name.append(0xbb+c.unicode()-'A');while(name.size()<10)name.append(255);
+        value["nicknameCodes"]=name;value["hp"]=0;value["heldItem"]=0;
+        const auto evolved=prepareEmeraldReceived(value);QVERIFY2(evolved.error.isEmpty(),qPrintable(evolved.error));
+        QCOMPARE(readEmeraldPartyMember(importEmeraldLinkRecord(evolved.pokemon)).nickname,"ALAKAZAM");
+        QCOMPARE(evolved.pokemon["hp"].toInt(),0);
+        const auto save=movementSave(7);const auto trade=tradeEmeraldPokemon(save,EmeraldHash,0,digest(save),value);
+        QVERIFY2(trade.error.isEmpty(),qPrintable(trade.error));const auto dex=readGen3Progress(trade.data,Gen3Edition::Emerald).pokedex;
+        QVERIFY(dex->caught.contains(64));QVERIFY(dex->caught.contains(65));
+    }
+    void emeraldSalesAndGifts() {
+        auto source=movementSave(3);QByteArray balance(4,0);put32(balance,0,2500);source=movePatch(source,1,0x490,balance);
+        const auto offer=emeraldLinkOffer(source,EmeraldHash,1).pokemon;
+        const auto sold=sellEmeraldPokemon(source,EmeraldHash,1,digest(source),{},321,true);
+        const auto bought=sellEmeraldPokemon(source,EmeraldHash,-1,digest(source),offer,321,false);
+        QVERIFY2(sold.error.isEmpty(),qPrintable(sold.error));QVERIFY2(bought.error.isEmpty(),qPrintable(bought.error));
+        QCOMPARE(emeraldLinkAccount(sold.data,EmeraldHash)["money"].toInt(),2821);
+        QCOMPARE(emeraldLinkAccount(bought.data,EmeraldHash)["money"].toInt(),2179);
+        QCOMPARE(emeraldLinkAccount(sold.data,EmeraldHash)["slot"].toInt(),2);
+        QCOMPARE(emeraldLinkAccount(bought.data,EmeraldHash)["slot"].toInt(),4);
+        QCOMPARE(emeraldLinkOffer(sold.data,EmeraldHash,1).pokemon,emeraldLinkOffer(source,EmeraldHash,2).pokemon);
+        QCOMPARE(emeraldLinkOffer(bought.data,EmeraldHash,3).pokemon,prepareEmeraldReceived(offer).pokemon);
+        for(const auto& result:{sold,bought}){QCOMPARE(result.data.left(0xe000),source.left(0xe000));QCOMPARE(result.data.mid(0x1c000),source.mid(0x1c000));}
+        QVERIFY(!sellEmeraldPokemon(source,EmeraldHash,1,"stale",{},321,true).error.isEmpty());
+        QVERIFY(!sellEmeraldPokemon(source,EmeraldHash,-1,digest(source),offer,2501,false).error.isEmpty());
+        QVERIFY(!sellEmeraldPokemon(source,EmeraldHash,1,digest(source),{},999999,true).error.isEmpty());
+        const auto gift=sellEmeraldPokemon(source,EmeraldHash,-1,digest(source),offer,0,false);
+        QVERIFY(gift.error.isEmpty());QCOMPARE(emeraldLinkAccount(gift.data,EmeraldHash)["money"].toInt(),2500);
+        auto alone=source;alone=movePatch(alone,1,0x234,QByteArray(1,1));alone=movePatch(alone,1,0x238+100,QByteArray(500,0));
+        QVERIFY(!sellEmeraldPokemon(alone,EmeraldHash,0,digest(alone),{},0,true).error.isEmpty());
+        auto full=source;full=movePatch(full,1,0x234,QByteArray(1,6));
+        for(int i=3;i<6;++i)full=movePatch(full,1,0x238+100*i,importEmeraldLinkRecord(offer));
+        QCOMPARE(emeraldLinkAccount(full,EmeraldHash)["box"].toInt(),0);
+        const auto boxed=sellEmeraldPokemon(full,EmeraldHash,-1,digest(full),offer,321,false);QVERIFY2(boxed.error.isEmpty(),qPrintable(boxed.error));
+        QCOMPARE(readGen3Progress(boxed.data,Gen3Edition::Emerald).party->boxes[0].members[0].kind,PokemonSlotKind::Known);
+        QByteArray boxes(0x83d0,0);const auto record=emeraldBoxRecord(importEmeraldLinkRecord(offer));
+        for(int i=0;i<420;++i)boxes.replace(4+i*80,80,record);
+        for(int id=5;id<14;++id)full=movePatch(full,id,0,boxes.mid((id-5)*0xf80,id==13?0x7d0:0xf80));
+        QCOMPARE(emeraldLinkAccount(full,EmeraldHash)["box"].toInt(),-2);
+        QVERIFY(!sellEmeraldPokemon(full,EmeraldHash,-1,digest(full),offer,0,false).error.isEmpty());
     }
     void preparedLinkCancellationKeepsTheSave() {
         QTemporaryDir temp;QVERIFY(temp.isValid());const auto bytes=movementSave(2,0);
@@ -168,22 +225,27 @@ private slots:
         QVERIFY(!pendingLinkSave(cleanRoot));QFile file(cleanPath);QVERIFY(file.open(QIODevice::ReadOnly));QCOMPARE(file.readAll(),bytes);
         QCOMPARE(linkSaveStatus(cleanRoot,id)["stage"],"cancelled");
     }
+    void durableLinkRecoveryIsIdempotent_data() {
+        QTest::addColumn<QString>("kind");QTest::newRow("exchange")<<QString("trade");QTest::newRow("sale")<<QString("sale");QTest::newRow("gift")<<QString("gift");
+    }
     void durableLinkRecoveryIsIdempotent() {
+        QFETCH(QString,kind);
         QTemporaryDir first,second;QVERIFY(first.isValid());QVERIFY(second.isValid());
-        const auto a=movementSave(2,0),b=movementSave(8,7);write(first.filePath("game.srm"),a);write(second.filePath("game.srm"),b);
+        QByteArray money(4,0);put32(money,0,2500);
+        const auto a=movePatch(movementSave(2,0),1,0x490,money),b=movePatch(movementSave(8,7),1,0x490,money);write(first.filePath("game.srm"),a);write(second.filePath("game.srm"),b);
         const auto r=record();
         auto resolve=[&](const QString& directory){return [&,directory](const AdventureRegistration&){return SaveTarget{"test","Emerald",directory+"/game.srm",EmeraldHash,"context",{},true,"trainer-link-test"};};};
         const auto ra=resolve(first.path()),rb=resolve(second.path());const auto rootA=first.filePath("backups"),rootB=second.filePath("backups");
         const auto id=QUuid::createUuid().toString(QUuid::WithoutBraces),peerA=QUuid::createUuid().toString(QUuid::WithoutBraces),peerB=QUuid::createUuid().toString(QUuid::WithoutBraces);
         const auto ma=emeraldLinkOffer(a,EmeraldHash,0).pokemon,mb=emeraldLinkOffer(b,EmeraldHash,1).pokemon;
-        auto request=[&](bool side){return QJsonObject{{"id",id},{"peer",side?peerB:peerA},{"proposal",QString(64,'a')},{"save",digest(side?a:b)},{"slot",side?0:1},{"outgoing",side?ma:mb},{"incoming",side?mb:ma}};};
+        auto request=[&](bool side){return QJsonObject{{"kind",kind},{"seller",side},{"price",kind=="sale"?321:0},{"id",id},{"peer",side?peerB:peerA},{"proposal",QString(64,'a')},{"save",digest(side?a:b)},{"slot",side?0:1},{"outgoing",side?ma:mb},{"incoming",side?mb:ma}};};
         const auto pa=prepareLinkSave(rootA,r,request(true),ra),pb=prepareLinkSave(rootB,r,request(false),rb);
         QVERIFY2(!pa.contains("error"),qPrintable(pa["error"].toString()));QVERIFY2(!pb.contains("error"),qPrintable(pb["error"].toString()));
         QVERIFY(pendingLinkSave(rootA));QCOMPARE(linkSaveStatus(rootA)["stage"],"prepared");
         // One console commits, then the connection/process disappears.
         const auto ca=commitLinkSave(rootA,r,id,pb["after"].toString(),ra);QVERIFY2(!ca.contains("error"),qPrintable(ca["error"].toString()));
         const auto proof=readSaveLineage(rootA,ra(r));
-        QCOMPARE(QJsonDocument::fromJson(proof.records.last()).object()["operation"],"link-trade");
+        QCOMPARE(QJsonDocument::fromJson(proof.records.last()).object()["operation"],"link-"+kind);
         QCOMPARE(verifySaveLineage(proof,proof.publicKey,"trainer-link-test",saveLineageStream(ra(r)),pa["after"].toString()).state,LineageState::Managed);
         QVERIFY(abortPreparedLinkSave(rootA,r,id,ra).contains("error"));
         QCOMPARE(commitLinkSave(rootA,r,id,pb["after"].toString(),ra),ca);

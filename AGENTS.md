@@ -1,5 +1,13 @@
 # AGENTS.md — TrainerOS
 
+**Owner Link addition, 2026-09-28:** nearby play includes Pokemon sales for real
+in-game money, alongside exchanges and gifts. Exact Emerald pairs now have
+protected bilateral sales/gifts, team battles/switching and trade evolution rules.
+Keep price/balances/destination visible before both confirmations. See
+docs/EMERALD_LINK.md for actual device versus automated evidence and remaining
+exact-game, evolution move-replacement, Bluetooth and trust gates. No universal
+cross-game support is implied; preserve the remaining roadmap.
+
 **Owner Link/Dex addition, 2026-09-28:** deliver a substantial nearby-console
 Emerald increment before returning to the remaining RA lane. Bounded local Wi-Fi
 pairing, a one-member friendly duel and protected bilateral Party exchange are
