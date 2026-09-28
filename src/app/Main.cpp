@@ -1,4 +1,5 @@
 #include "integrations/achievements/TrainerAchievementProvider.h"
+#include "integrations/achievements/RetroArchAchievementSession.h"
 #include "platform/emulation/EmulatorDiscovery.h"
 #include "platform/emulation/EmulatorRefresh.h"
 #include <atomic>
@@ -621,7 +622,11 @@ int main(int argc, char* argv[]) {
                     *returnedAdventure=id;realAchievements->refreshAdventure(id);
                     return adventureLaunch.launch(command, shell.navigationState(), id);
                 };
-                retroarch.requestLaunch = requestAdventure;
+                retroarch.requestLaunch = [&, requestAdventure](const ProcessCommand& command, const QString& id) {
+                    auto launch = command;
+                    useRetroArchAchievementAccount(launch, realAchievements->launchAccount());
+                    return requestAdventure(launch, id);
+                };
                 melonDs.requestLaunch = requestAdventure;
                 dolphin.requestLaunch = requestAdventure;
                 ppsspp.requestLaunch = requestAdventure;

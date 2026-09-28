@@ -1,4 +1,42 @@
-# RetroAchievements in Hall of Fame
+# RetroAchievements in Journey
+
+## RetroArch account handoff — 2026-09-28
+
+Ordinary RetroArch launches now snapshot the active Trainer's saved RA account
+on the owning thread and prepare it after the existing launch/save checks. No
+extra Play, binding or account screen is inserted into the A launch path.
+An unsigned Trainer explicitly disables RA and clears inherited username,
+password and token for that process. Signed-in launches use Standard mode;
+Hardcore earning is not enabled by this integration. Account data never enters
+QML or process arguments. The existing current-game baseline/return refresh
+remains the shell's source of confirmed unlocks.
+
+The temporary owner-only configuration lives alongside RetroArch's base config
+so its Flatpak can read it. A single `--appendconfig` list preserves the ordinary
+owned/moved save override before appending account settings. Base configuration,
+controller settings and saves are not overwritten. The RA custom host is reset
+to upstream default and configuration autosave remains disabled. The temporary
+file is removed after normal/guarded exit, process failure or cancelled start;
+an abrupt shell/OS crash can leave an owner-only orphan, not a global account
+change. A later launch always creates a new file and never reuses that orphan.
+
+This follows RetroArch **v1.22.2**'s
+[token login implementation](https://github.com/libretro/RetroArch/blob/v1.22.2/cheevos/cheevos.c)
+and [configuration loader](https://github.com/libretro/RetroArch/blob/v1.22.2/configuration.c).
+Standalone emulators still need their own verified handoff; their global
+accounts are not changed by this slice. A supported RA core and recognized ROM
+are still necessary. Shell content matching remains limited as documented below.
+
+Evidence: Windows achievements/process/RetroArch/Hall/controller-QML suites and
+Linux achievements/process suites pass. Flip's installed Flatpak 1.22.2 was
+launched by SDL A from an isolated library with an original no-save GB probe:
+the child received the correct account overlay (0600, no token in argv), Home
+exit returned to the wheel and removed it, and Settings sign-out followed by A
+produced an explicitly disconnected launch. The global config hash and personal
+account were unchanged. This proves launch handoff/cleanup, **not** server login,
+ROM compatibility or a newly earned achievement. No downloaded save was used to
+submit achievements. Real fresh-play earning/return proof, standalone handoff,
+Hardcore/trust policy and original achievement audio remain open acceptance.
 
 ## Current-game return delivery — 2026-09-27
 
@@ -32,7 +70,7 @@ Hall of Fame keeps account achievements separate from local completion memories 
 
 Inside Hall of Fame's RetroAchievements section, **X opens Account** and **Select refreshes recent Adventures**. Account name and masked password use the shared controller keyboard, including case, punctuation and a separate numeric block. A activates the focused field/action; B cancels an input or returns to Hall of Fame. Start overlays the form. L1/R1 remain global section navigation and clear unsubmitted account drafts. Busy operations leave a visible Back action. Signing out requires a second A; B cancels that confirmation.
 
-Sign-in exchanges the password for a client access token. Only the canonical username and token are saved, under `integrations/retroachievements-account.json`, with owner-only permissions on Linux and atomic replacement. Password drafts are cleared on submission, Back and global section changes. A failed sign-in keeps an existing account intact. Sign-out clears the Hall of Fame token and its visible records; it does not delete local memories or another account's private cache. Emulator sign-in is a separate integration setting.
+Sign-in exchanges the password for a client access token. Only the canonical username and token are saved, under `integrations/retroachievements-account.json`, with owner-only permissions on Linux and atomic replacement. Password drafts are cleared on submission, Back and global section changes. A failed sign-in keeps an existing account intact. Sign-out clears the active Trainer's token and its visible records; it does not delete local memories or another account's private cache. Subsequent RetroArch launches receive a disconnected overlay; standalone emulator sign-in remains separate.
 
 ## Trainer account binding — 2026-09-23
 
@@ -44,8 +82,8 @@ account activity to finish and destroys the entire old provider/session before
 opening the new one. Sign-out affects only that Trainer's saved account.
 [Storage and switching details](TRAINER_OWNERSHIP.md).
 
-This is TrainerOS account/read/cache isolation. Emulator achievement credentials
-and actual earning remain separate, unverified integration work. Shared ordinary
+RetroArch credential handoff is now delivered above; standalone credentials
+and actual earning proof remain separate integration work. Shared ordinary
 saves do not establish separate RA unlocks or personal playthroughs.
 
 ## Verified matching boundary

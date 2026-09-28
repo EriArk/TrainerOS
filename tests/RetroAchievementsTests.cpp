@@ -1,4 +1,6 @@
 #include "integrations/achievements/RetroAchievementsProvider.h"
+#include "integrations/achievements/TrainerAchievementProvider.h"
+#include "integrations/achievements/RetroArchAchievementSession.h"
 #include "features/halloffame/AchievementAccountController.h"
 #include <QtTest>
 #include <QTemporaryDir>
@@ -42,6 +44,77 @@ public:
 class RetroAchievementsTests : public QObject {
     Q_OBJECT
 private slots:
+    void launchAccountIsTrainerScopedAndClearedOnSignOut() {
+        QTemporaryDir first, second; RecentLibrary library;
+        QVERIFY(writeAchievementAccount(first.filePath("integrations/retroachievements-account.json"), account));
+        TrainerAchievementProvider a(library), b(library);
+        QVERIFY(!a.launchAccount().valid());
+        a.bind(first.path()); b.bind(second.path());
+        QCOMPARE(a.launchAccount().username, account.username);
+        QVERIFY(!b.launchAccount().valid());
+        b.bind(first.path()); QVERIFY(!b.launchAccount().valid()); // Cannot rebind to another owner.
+        QTRY_VERIFY(!a.accountBusy());
+        a.disconnectAccount(); QVERIFY(!a.launchAccount().valid());
+    }
+    void launchOverlayPreservesSaveRouteAndIsRemovedAfterReturn() {
+        QTemporaryDir dir;
+        const auto base = dir.filePath("retroarch.cfg"), ordinary = dir.filePath("owned-save.cfg");
+        const QByteArray global = "cheevos_username = \"OtherTrainer\"\ncheevos_token = \"inherited-token\"\n";
+        const QByteArray saves = "savefile_directory = \"/private/owner/saves\"\n";
+        write(base, global); write(ordinary, saves);
+        for (const auto& selected : {account, AchievementAccount{"SecondTrainer", "fedcba9876543210fedcba9876543210"}, AchievementAccount{}}) {
+            ProcessCommand command{dir.filePath("emulator"), {"--config", base, "--libretro", "core", "rom"}, {}};
+            bool observedReturn = false;
+            command.prepare = [&](auto& cmd, const auto&) -> QString {
+                cmd.arguments.insert(cmd.arguments.size() - 1, "--appendconfig");
+                cmd.arguments.insert(cmd.arguments.size() - 1, ordinary);
+                cmd.settled = [&](const auto&) { observedReturn = true; };
+                return {};
+            };
+            useRetroArchAchievementAccount(command, selected);
+            const std::atomic_bool cancelled{false};
+            QVERIFY(command.prepare(command, cancelled).isEmpty());
+            QCOMPARE(command.arguments.last(), "rom");
+            QCOMPARE(command.arguments.count("--appendconfig"), 1);
+            const auto paths = command.arguments[command.arguments.indexOf("--appendconfig") + 1].split('|');
+            QCOMPARE(paths.size(), 2); QCOMPARE(paths[0], ordinary);
+            QFile file(paths[1]); QVERIFY(file.open(QIODevice::ReadOnly)); const auto bytes = file.readAll(); file.close();
+            QVERIFY(bytes.contains("cheevos_enable = \"" + QByteArray(selected.valid() ? "true" : "false") + "\""));
+            QVERIFY(bytes.contains("cheevos_token = \"" + selected.token.toUtf8() + "\""));
+            QVERIFY(bytes.contains("cheevos_username = \"" + selected.username.toUtf8() + "\""));
+            QVERIFY(bytes.contains("cheevos_password = \"\""));
+            QVERIFY(bytes.contains("cheevos_custom_host = \"\""));
+            QVERIFY(bytes.contains("cheevos_hardcore_mode_enable = \"false\""));
+            QVERIFY(!command.arguments.join(' ').contains(account.token));
+            QVERIFY(!command.arguments.join(' ').contains("fedcba9876543210"));
+#ifdef Q_OS_LINUX
+            QVERIFY(!(QFileInfo(paths[1]).permissions() & (QFileDevice::ReadGroup | QFileDevice::WriteGroup | QFileDevice::ReadOther | QFileDevice::WriteOther)));
+#endif
+            command.settled({true, 0, false, false});
+            QVERIFY(observedReturn); QVERIFY(!QFileInfo::exists(paths[1]));
+            QFile unchanged(base); QVERIFY(unchanged.open(QIODevice::ReadOnly)); QCOMPARE(unchanged.readAll(), global);
+            QFile saveConfig(ordinary); QVERIFY(saveConfig.open(QIODevice::ReadOnly)); QCOMPARE(saveConfig.readAll(), saves);
+        }
+    }
+    void rejectedPreparationDoesNotLeaveCredentials() {
+        QTemporaryDir dir;
+        const auto base = dir.filePath("retroarch.cfg"), ordinary = dir.filePath("save.cfg");
+        write(base, "original"); write(ordinary, "original");
+        const auto invocation = [&] { return ProcessCommand{dir.filePath("absent-emulator"), {"--config", base, "--appendconfig", ordinary, "rom"}, {}}; };
+        const std::atomic_bool cancelled{true}, running{false};
+        auto command = invocation(); useRetroArchAchievementAccount(command, account);
+        QVERIFY(!command.prepare(command, cancelled).isEmpty());
+        command = invocation(); command.prepare = [](auto&, const auto&) -> QString { return "Save storage unavailable."; };
+        useRetroArchAchievementAccount(command, account);
+        QCOMPARE(command.prepare(command, running), "Save storage unavailable.");
+        command = invocation(); useRetroArchAchievementAccount(command, {"Bad\nName", account.token});
+        QVERIFY(!command.prepare(command, running).isEmpty());
+        QCOMPARE(QDir(dir.path()).entryList({".traineros-ra-*"}, QDir::Files | QDir::Hidden).size(), 0);
+        command = invocation(); useRetroArchAchievementAccount(command, account);
+        ProcessService process; QSignalSpy finished(&process, &ProcessService::finished);
+        QVERIFY(process.start(command)); QTRY_COMPARE(finished.size(), 1); QVERIFY(!process.active());
+        QCOMPARE(QDir(dir.path()).entryList({".traineros-ra-*"}, QDir::Files | QDir::Hidden).size(), 0);
+    }
     void returnedAdventureRefreshNotifiesOnlyNewConfirmedUnlocks() {
         QTemporaryDir dir;RecentLibrary library;const auto path=dir.filePath("original.gba");write(path,"Original content-free bytes");library.value=registration(path);
         QVERIFY(writeAchievementAccount(dir.filePath("integrations/retroachievements-account.json"),account));

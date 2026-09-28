@@ -65,6 +65,8 @@ add_library(trainer_core STATIC
     src/features/halloffame/AchievementAccountController.cpp
     src/integrations/achievements/RetroAchievementsApi.h
     src/integrations/achievements/RetroAchievementsApi.cpp
+    src/integrations/achievements/RetroArchAchievementSession.cpp
+    src/integrations/achievements/RetroArchAchievementSession.h
     src/integrations/achievements/RetroAchievementsProvider.h
     src/integrations/achievements/RetroAchievementsProvider.cpp
     src/integrations/adventure/standalone/MelonDsSave.h

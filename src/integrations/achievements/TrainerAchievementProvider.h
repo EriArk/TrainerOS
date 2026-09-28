@@ -16,6 +16,7 @@ public:
         emit snapshotChanged({});provider_->refreshAll();
     }
     AchievementContext context() const override { return provider_?provider_->context():AchievementContext{"retroAchievements",{}}; }
+    AchievementAccount launchAccount() const { return provider_ ? provider_->launchAccount() : AchievementAccount{}; }
     QList<AchievementSet> sets() const override {return provider_?provider_->sets():QList<AchievementSet>{};}
     AchievementSnapshot snapshot(const QString& id) const override {return provider_?provider_->snapshot(id):AchievementSnapshot{context(),id,AchievementState::Disconnected,{},{},{}};}
     void refresh(const QString& id) override {if(provider_)provider_->refresh(id);}

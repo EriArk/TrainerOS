@@ -9,15 +9,15 @@ AchievementAccountController::AchievementAccountController(AchievementProvider& 
     });
 }
 QString AchievementAccountController::status() const {
-    if (confirmSignOut_) return "Sign out of Hall of Fame? Saved records remain private to this account.";
+    if (confirmSignOut_) return "Sign out of RetroAchievements?";
     if (!provider_.accountMessage().isEmpty()) return provider_.accountMessage();
     return connected() ? "Connected as " + provider_.context().accountId
-                       : "Connect your RetroAchievements account. Only an access token is saved on this handheld.";
+                       : "Connect your RetroAchievements account.";
 }
 QVariantList AchievementAccountController::rows() const {
     if (connected()) return {
         QVariantMap{{"label", "Refresh recent Adventures"}, {"detail", provider_.context().accountId}, {"enabled", !busy()}},
-        QVariantMap{{"label", confirmSignOut_ ? "Confirm sign out" : "Sign out of Hall of Fame"}, {"detail", "Your local archive stays available"}, {"enabled", !busy()}},
+        QVariantMap{{"label", confirmSignOut_ ? "Confirm sign out" : "Sign out"}, {"detail", "RetroAchievements"}, {"enabled", !busy()}},
         QVariantMap{{"label", "Back"}, {"detail", ""}, {"enabled", true}}};
     return {
         QVariantMap{{"label", "Account name"}, {"detail", username_.isEmpty() ? "Enter name" : username_}, {"enabled", !busy()}},

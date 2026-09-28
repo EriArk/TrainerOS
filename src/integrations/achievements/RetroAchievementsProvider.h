@@ -10,6 +10,7 @@ public:
     RetroAchievementsProvider(LibraryRepository&, QString directory, AchievementTransport transport = {}, QObject* parent = nullptr);
     ~RetroAchievementsProvider() override;
     AchievementContext context() const override { return {"retroAchievements", account_.username}; }
+    AchievementAccount launchAccount() const { return account_; } // C++ only; never expose the token to QML.
     QList<AchievementSet> sets() const override;
     AchievementSnapshot snapshot(const QString&) const override;
     void refresh(const QString&) override;

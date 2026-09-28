@@ -4,6 +4,16 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-28 RetroArch RA handoff:** [per-launch accounts](RETROACHIEVEMENTS.md#retroarch-account-handoff--2026-09-28)
+now follow the active Trainer automatically on A, preserve existing emulator/save
+configuration and explicitly disable inherited RA credentials when signed out.
+Windows/Linux checks and Flip launch/exit/sign-out proof passed in an isolated
+library; no real unlock or server authentication is claimed by that proof.
+Next bounded RA work: standalone handoff starting with installed PPSSPP, clear
+authentication failures, then legitimate fresh-play unlock/return evidence.
+Keep image/update/recovery, language, Hardcore/verified-session policy, audio
+and every later R acceptance open. No further Pokémon/practice expansion here.
+
 **2026-09-28 date/time:** [system clock controls](DATE_TIME.md) compose real
 automatic time, a controller time-zone picker and cancellable manual editing
 with Settings and resumable first setup. Existing Trainers skip onboarding.
