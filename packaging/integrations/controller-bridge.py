@@ -103,7 +103,7 @@ try:
     if s.SDL_IsGameController(i):controller=s.SDL_GameControllerOpen(i);break
   active=prop(root,'_NET_ACTIVE_WINDOW');owned=active and owns(client_pid(active))
   chord=bool(controller and s.SDL_GameControllerGetButton(controller,4) and s.SDL_GameControllerGetButton(controller,6))
-  if owned and chord and not previousChord:close(active)
+  if owned and chord and not previousChord and os.environ.get('TRAINEROS_SESSION') != '1':close(active)
   previousChord=chord
   click=bool(pointer and owned and controller and s.SDL_GameControllerGetAxis(controller,5)>16000)
   if click!=pressed:xt.XTestFakeButtonEvent(display,1,click,0);pressed=click

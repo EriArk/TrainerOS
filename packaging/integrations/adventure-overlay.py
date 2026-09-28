@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Opt-in Flip/Gamescope exit transport. Never signals or kills the game."""
+"""Owned Gamescope exit transport with guarded, emulator-specific graceful close."""
 import argparse
 import concurrent.futures
 import fcntl

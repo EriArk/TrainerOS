@@ -84,6 +84,11 @@ passing and a binary/database rollback copy retained privately on the device.
 
 ## Remaining acceptance
 
+Follow-up: [guarded standalone Home exit](STANDALONE_HOME_EXIT.md) closes the
+representative DS/GameCube exit gap and installs session helpers reproducibly.
+Its proof supersedes the earlier failed DS probe above; universal coverage,
+Wii proof and image provisioning are still not claimed.
+
 Live idle-safe refresh, package/image installation, real upstream-update rollback,
 firmware inventory/preparation, first-run storage changes affecting default BIOS
 locations, nonstandard/legacy emulator config locations, restrictive Flatpak

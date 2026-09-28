@@ -6,6 +6,7 @@ An existing file's first version is retained in /var/lib/traineros/session-backu
 """
 import argparse
 import configparser
+import importlib.util
 import os
 from pathlib import Path
 import pwd
@@ -19,7 +20,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--user", required=True)
     parser.add_argument("--default", action="store_true", help="Boot into the validated TrainerOS session")
+    parser.add_argument("--emulator-support-only", action="store_true", help="Update Adventure helpers without changing the session")
     args = parser.parse_args()
+    if args.default and args.emulator_support_only:
+        parser.error("Helper-only installation cannot change the boot default")
     if os.geteuid() != 0 or not re.fullmatch(r"[a-z_][a-z0-9_-]*", args.user):
         parser.error("Use root and an existing local login name")
     account = pwd.getpwnam(args.user)
@@ -78,6 +82,14 @@ def main():
         finally:
             if os.path.exists(temporary):
                 os.unlink(temporary)
+
+    specification = importlib.util.spec_from_file_location("emulator_support", source.parent / "integrations/emulator_support.py")
+    support = importlib.util.module_from_spec(specification)
+    specification.loader.exec_module(support)
+    support.install_support(account, install)
+    if args.emulator_support_only:
+        print("Adventure helpers installed. Session, emulators and saves preserved.")
+        return
 
     helper = "/var/opt/traineros/session/control.py"
     verbs = ["traineros", "default-traineros", "desktop", "steam", "recover *", "poweroff", "reboot"]

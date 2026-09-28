@@ -21,6 +21,10 @@ and fresh-image launch/update acceptance remain open.
 The table below records the audit baseline and remaining target acceptance;
 language/time controls, image preparation and update gates are still open.
 
+[Standalone Home exit](STANDALONE_HOME_EXIT.md) subsequently adds guarded
+DS/GameCube return and repeatable session-helper preparation. These were tested
+on the existing Flip installation, not a clean image or upstream emulator update.
+
 ## Observed baseline
 
 - Both devices have the native app, dedicated session, exit/network helpers and

@@ -33,9 +33,10 @@ def grant(account):
                         raise RuntimeError('Unexpected input node')
                     if expected != f'{os.major(info.st_rdev)}:{os.minor(info.st_rdev)}':
                         raise RuntimeError('Input identity changed')
-                    # InputPlumber hides the source with mode 000. Wait for it,
-                    # so a later hide does not mask the newly granted ACL.
-                    if info.st_mode & 0o777: continue
+                    # InputPlumber hides the source with mode 000. An existing
+                    # read-only ACL exposes only its group-class mask (040),
+                    # so repeated installation can renew it without a restart.
+                    if stat.S_IMODE(info.st_mode) not in (0, 0o040): continue
                     name = bytearray(128)
                     fcntl.ioctl(source.fileno(), 0x80804506, name, True)
                     if bytes(name).split(b'\0')[0].decode() != expected_name:

@@ -8,7 +8,7 @@ import sys
 import tempfile
 import time
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 ROOT = Path(__file__).resolve().parents[1] / 'packaging/integrations'
 sys.path.insert(0, str(ROOT))
@@ -30,6 +30,28 @@ class OverlayHelperTests(unittest.TestCase):
             (process/'comm').write_text('retroarch')
             self.assertFalse(supported_emulator_process(42,root))
             self.assertFalse(supported_emulator_process(43,root))
+    def test_ds_and_only_batch_dolphin_with_single_confirmation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);process=root/'42';process.mkdir()
+            (process/'exe').symlink_to('/tmp/mount/usr/bin/melonDS')
+            self.assertTrue(supported_emulator_process(42,root))
+            (process/'exe').unlink();(process/'exe').symlink_to('/app/bin/dolphin-emu')
+            for args, expected in ((b'dolphin-emu\0-b\0-e\0game.iso\0',False),
+                (b'dolphin-emu\0-C\0Dolphin.Interface.ConfirmStop=False\0',False),
+                (b'dolphin-emu\0-b\0-C\0Dolphin.Interface.ConfirmStop=False\0-e\0game.iso\0',True)):
+                (process/'cmdline').write_bytes(args)
+                self.assertEqual(supported_emulator_process(42,root),expected)
+
+    def test_dolphin_close_never_escalates_a_pending_shutdown(self):
+        x=object.__new__(X11);x.graceful_closes=set();x.x=Mock();x.display=None
+        x.x.XSendEvent.return_value=1
+        x.owns=lambda *args:True;x.pid=lambda window:42
+        x.atom=lambda name:7;x.prop=lambda *args:[7]
+        with patch('overlay_support.Path.readlink',return_value=Path('/app/bin/dolphin-emu')), \
+             patch('overlay_support.identity',return_value='123'), \
+             patch('overlay_support.supported_emulator_process',return_value=True):
+            self.assertTrue(x.close(1,40,'120'));self.assertFalse(x.close(1,40,'120'))
+            self.assertEqual(x.x.XSendEvent.call_count,1)
     def test_armsx2_graceful_signal_is_owned_and_never_repeated(self):
         x=object.__new__(X11);x.graceful_signals=set()
         x.owns=lambda *args:True;x.pid=lambda window:42

@@ -99,7 +99,8 @@ std::optional<ProcessCommand> StandaloneAdapter::command(const Adventure& advent
     if (id_ == "melonds") arguments << "-f" << record->contentPath;
     else if (id_ == "ppsspp") arguments << "--fullscreen" << "--pause-menu-exit" << record->contentPath;
     else if (id_ == "armsx2") arguments << "-batch" << "-fullscreen" << "--" << record->contentPath;
-    else if (id_ == "dolphin") arguments << "-b" << "-C" << "Dolphin.Display.Fullscreen=True" << "-e" << record->contentPath;
+    else if (id_ == "dolphin") arguments << "-b" << "-C" << "Dolphin.Display.Fullscreen=True"
+        << "-C" << "Dolphin.Interface.ConfirmStop=False" << "-e" << record->contentPath;
     else return {};
     ProcessCommand result{installation_.program, arguments, {}};
     result.prepare = [path = record->contentPath, program = installation_.program, runtime = installation_.runtimeFile]

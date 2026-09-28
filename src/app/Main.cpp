@@ -373,12 +373,18 @@ int main(int argc, char* argv[]) {
 #ifdef Q_OS_LINUX
         if (personalLibrary && !smoke && platform.dedicatedSession()) {
             QFile configuration(QDir(stateDirectory).filePath("integrations/overlay.json"));
+            QString overlayHelper;
+            const QFileInfo configurationInfo(configuration.fileName());
+            if (!configurationInfo.exists() && !configurationInfo.isSymLink())
+                overlayHelper = "/var/opt/traineros/integrations/adventure-overlay.py";
             if (configuration.open(QIODevice::ReadOnly) && configuration.size() <= 8192) {
                 const auto object = QJsonDocument::fromJson(configuration.readAll()).object();
                 if (object["version"].toInt() == 1 && object["enabled"].toBool())
-                    adventureOverlay = std::make_unique<AdventureOverlayService>(adventureProcess, adventureLaunch,
-                        exitPresentation, object["helper"].toString());
+                    overlayHelper = object["helper"].toString();
             }
+            if (QFileInfo(overlayHelper).isFile())
+                adventureOverlay = std::make_unique<AdventureOverlayService>(adventureProcess, adventureLaunch,
+                    exitPresentation, overlayHelper);
         }
 #endif
         std::unique_ptr<GameProgressService> gameProgress;

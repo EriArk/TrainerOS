@@ -214,7 +214,7 @@ private slots:
         const auto arguments = adapterId == "melonds" ? QJsonArray{"-f", record.contentPath}
             : adapterId == "ppsspp" ? QJsonArray{"--fullscreen", "--pause-menu-exit", record.contentPath}
             : adapterId == "armsx2" ? QJsonArray{"-batch", "-fullscreen", "--", record.contentPath}
-            : QJsonArray{"-b", "-C", "Dolphin.Display.Fullscreen=True", "-e", record.contentPath};
+            : QJsonArray{"-b", "-C", "Dolphin.Display.Fullscreen=True", "-C", "Dolphin.Interface.ConfirmStop=False", "-e", record.contentPath};
         QCOMPARE(QJsonDocument::fromJson(output.readAll()).array(), arguments); output.close();
         QVERIFY(QFile::remove(receipt)); QVERIFY(QFile::rename(record.contentPath, record.contentPath + ".moved"));
         QVERIFY(router.launch(record.adventure).inProgress); QTRY_COMPARE(restored.size(), 2);

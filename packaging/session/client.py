@@ -75,6 +75,11 @@ if __name__ == "__main__":
     executable = str(Path.home() / ".local/bin/traineros")
     os.environ["TRAINEROS_SESSION"] = "1"
     os.environ["QT_QPA_PLATFORM"] = "xcb"
+    # Read-only raw input is reserved for guarded Home. SDL games use the
+    # InputPlumber virtual pad; preserve any other user exclusions.
+    ignored = os.environ.get('SDL_GAMECONTROLLER_IGNORE_DEVICES', '').split(',')
+    if '0x2020/0x3001' not in ignored:
+        os.environ['SDL_GAMECONTROLLER_IGNORE_DEVICES'] = ','.join(filter(None, ignored + ['0x2020/0x3001']))
     # Steam leaves Odin's InputPlumber target in Deck mode. Its Steam virtual
     # controller disappears with Steam; use Armada's native Odin Xbox target
     # for this session. Steam selects its own target again on return.

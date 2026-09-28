@@ -4,6 +4,16 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-28 guarded standalone return:** [DS/Dolphin Home exit](STANDALONE_HOME_EXIT.md)
+now uses the existing confirmation/cancel/normal-close path. Representative Flip
+DS and GameCube launch, cancellation to the same process and return passed.
+Session installation includes prerequisite checks and repeatable helper/ACL
+preparation; absent overlay configuration uses the installed default. Existing
+data and custom configuration remain intact. Wii/Odin follow-up, offline image
+provisioning and upstream update/rollback stay open. Next: idle-safe readiness
+refresh after emulator/library changes, then remaining first-run Settings,
+system/recovery and RA earning. No deferred acceptance is removed.
+
 **2026-09-28 installed emulator discovery:** [startup preparation](EMULATOR_DISCOVERY.md)
 now discovers native/Flatpak/known AppImage routes for the existing adapters,
 retains explicit configurations and seeds only absent controller/config files.

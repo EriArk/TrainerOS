@@ -48,7 +48,13 @@ def supported_emulator_process(pid, proc=Path('/proc')):
     # Some cores rename the main thread (PPSSPP uses "Main"). Ownership is
     # checked by X11.owns separately; comm is not executable identity.
     try:
-        return (proc / str(pid) / 'exe').readlink().name in ('retroarch', 'PPSSPPSDL', 'armsx2-qt')
+        executable = (proc / str(pid) / 'exe').readlink().name
+        if executable == 'dolphin-emu':
+            # Only our batch launch suppresses Dolphin's second desktop prompt.
+            args = (proc / str(pid) / 'cmdline').read_bytes().split(b'\0')
+            return b'-b' in args and any(args[i:i+2] == [b'-C', b'Dolphin.Interface.ConfirmStop=False']
+                                         for i in range(len(args) - 1))
+        return executable in ('retroarch', 'PPSSPPSDL', 'armsx2-qt', 'melonDS')
     except OSError:
         return False
 
@@ -56,6 +62,7 @@ def supported_emulator_process(pid, proc=Path('/proc')):
 class X11:
     def __init__(self):
         self.graceful_signals = set()
+        self.graceful_closes = set()
         self.x = x = c.CDLL('libX11.so.6')
         self.r = r = c.CDLL('libXRes.so.1')
         x.XOpenDisplay.argtypes = [c.c_char_p]; x.XOpenDisplay.restype = c.c_void_p
@@ -147,6 +154,10 @@ class X11:
             return False
         pid = self.pid(window)
         try:
+            token = (pid, identity(pid))
+            dolphin = (Path('/proc') / str(pid) / 'exe').readlink().name == 'dolphin-emu'
+            if dolphin and (token in self.graceful_closes or not supported_emulator_process(pid)):
+                return False
             if (Path('/proc') / str(pid) / 'exe').readlink().name == 'armsx2-qt':
                 # ARMSX2's first SIGTERM requests its normal Qt shutdown with
                 # confirmation disabled. WM_DELETE asks a second desktop modal.
@@ -177,4 +188,7 @@ class X11:
         self.x.XSendEvent.argtypes = [c.c_void_p,c.c_ulong,c.c_int,c.c_long,c.POINTER(Event)]
         sent = self.x.XSendEvent(self.display, window, False, 0, c.byref(event))
         self.x.XFlush(self.display)
+        if sent and dolphin:
+            # A second stop request can force a Wii shutdown. Never escalate.
+            self.graceful_closes.add(token)
         return bool(sent)

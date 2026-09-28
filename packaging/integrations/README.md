@@ -56,11 +56,11 @@ An absent controller must not prevent the underlying service from starting.
 The current hook targets the built-in pad at service startup; controller/device
 replacement needs revalidation. Verify access again after a real reboot.
 
-Rollback: disable/remove `overlay.json`, restore the backed-up binary/helpers
+Rollback: explicitly disable `overlay.json`, restore the backed-up binary/helpers
 and drop-in, reload systemd, and remove this account's named ACL from the exact
 verified source when no helper is active before retiring the SDL source filter.
 Keep a working maintenance exit until
-physical Home/A/B and restoration pass for each adapter. Legacy exit bindings
+physical Home/A/B and restoration pass for each adapter. Custom legacy exit bindings
 are not removed by these scripts. Saves and state files are not migrated.
 
 ### Odin 2 / PPSSPP addition (2026-09-28)
@@ -82,3 +82,18 @@ emulators still need their own device/exit proof.
 BlueZ helper and sudo policy. Run from a trusted root-owned installation source;
 it preserves previous helper/policy copies and does not toggle radios itself.
 See [network delivery and limits](../../docs/DEVICE_NETWORK_PLAN.md).
+
+### Session installation and DS/Dolphin Home (2026-09-28)
+
+The session installer now includes prerequisite checks, canonical helper
+installation and the read-only ACL hook. Use
+`python3 packaging/session/install.py --user ACCOUNT --emulator-support-only`
+for an existing supported device. It keeps the session/default and emulator
+preferences intact. Stock legacy bridges redirect to the installed helper after
+backup; custom bridges remain unchanged. Start+Select no longer bypasses guarded
+Home in the stock dedicated-session bridge.
+
+Without `overlay.json`, dedicated TrainerOS sessions now use the installed
+canonical helper. Explicitly disabled/invalid configurations remain disabled.
+DS and GameCube launch/cancel/close were verified on Flip; Wii and other routes
+retain separate proof gates. See [behavior, sources and evidence](../../docs/STANDALONE_HOME_EXIT.md).
