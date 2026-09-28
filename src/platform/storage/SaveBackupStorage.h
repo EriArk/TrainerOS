@@ -49,6 +49,8 @@ public:
     void configureHealing(SaveHealer healer) { healer_ = std::move(healer); }
     void configureShops(MerchantReader reader,MerchantBuyer buyer) {shops_=std::move(reader);buyer_=std::move(buyer);}
     void purchase(const AdventureRegistration&,const QString&,const MerchantPurchase&,QObject*,std::function<void(SaveBackupResult)>) override;
+    void linkOperation(const AdventureRegistration&,const QString& operation,const QJsonObject& request,
+        QObject* receiver,std::function<void(QJsonObject)> done);
 private:
     void run(std::function<SaveBackupResult()>, QObject*, std::function<void(SaveBackupResult)>);
     QString root_;

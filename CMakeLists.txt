@@ -59,6 +59,8 @@ add_library(trainer_core STATIC
     src/integrations/progress/EmeraldParty.cpp
     src/integrations/progress/EmeraldPractice.cpp
     src/integrations/practice/PracticeSession.cpp
+    src/integrations/progress/EmeraldLink.cpp
+    src/platform/network/LocalLinkPeer.cpp
     src/integrations/progress/GameProgressService.h
     src/integrations/progress/GameProgressService.cpp
     src/features/halloffame/AchievementAccountController.h
@@ -180,6 +182,7 @@ add_library(trainer_core STATIC
     src/features/worlds/MultiversePresentation.cpp
     src/features/center/PartyPresentation.cpp
     src/features/center/CenterActivities.cpp
+    src/features/center/LinkController.cpp
     src/features/center/PracticeController.cpp
     src/features/worlds/WorldsController.h
     src/integrations/adventure/AdventureAdapter.h
@@ -291,6 +294,7 @@ qt_add_qml_module(traineros
         src/qml/PokemonClinic.qml
         src/qml/PokemonShop.qml
         src/qml/CenterActivitiesPanel.qml
+        src/qml/LinkPanel.qml
         src/qml/PracticePanel.qml
         src/qml/PracticeFighter.qml
         src/qml/HomeParty.qml
@@ -317,6 +321,10 @@ if(BUILD_TESTING)
     add_test(NAME pointer_visibility COMMAND trainer_pointer_tests)
     qt_add_executable(trainer_progress_tests tests/GameProgressTests.cpp)
     qt_add_executable(trainer_practice_tests tests/PracticeSessionTests.cpp)
+    qt_add_executable(trainer_link_tests tests/LinkPeerTests.cpp)
+    target_link_libraries(trainer_link_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME link_peer COMMAND trainer_link_tests)
+    set_tests_properties(link_peer PROPERTIES TIMEOUT 20)
     target_compile_definitions(trainer_practice_tests PRIVATE TRAINER_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
     target_link_libraries(trainer_practice_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME practice_session COMMAND trainer_practice_tests)

@@ -1,5 +1,7 @@
 #include "SaveBackupStorage.h"
 #include "SaveLineage.h"
+#include "LinkSaveStore.h"
+#include "integrations/progress/EmeraldLink.h"
 #include "platform/process/ProcessService.h"
 #include <QDebug>
 #include <QCryptographicHash>
@@ -217,6 +219,7 @@ QString setSaveWritesReadOnly(const QString& root,bool enabled) {
 SaveBackupResult createSaveBackup(const QString& root, const AdventureRegistration& record, const QString& token, const SaveTargetResolver& resolve) {
     if (!QDir::isAbsolutePath(root) || QFileInfo(root).isSymLink() || !QDir().mkpath(root))return {false,false,"Couldn't open the backup folder."};
     QLockFile lock(QDir(root).filePath("service.lock")); if(!lock.tryLock(0))return {false,false,"Another backup operation is running. Try again shortly."};
+    if(pendingLinkSave(root))return {false,false,"Finish the pending trade at Link Counter first."};
     const auto target=resolve(record); if(!target.supported)return {false,false,problem(target)};
     const auto save=current(target);
     if(!save.success || !save.exists || save.data.isEmpty() || token.isEmpty() || save.revision!=token)return {false,false,"The save changed or isn't available. Check again before making a copy."};
@@ -227,6 +230,7 @@ SaveBackupResult createSaveBackup(const QString& root, const AdventureRegistrati
 }
 SaveBackupResult restoreSaveBackup(const QString& root, const AdventureRegistration& record, const SaveBackup& selected,
         const QString& token, const SaveTargetResolver& resolve) {
+    if(pendingLinkSave(root))return {false,false,"Finish the pending trade at Link Counter first."};
     if(!QDir::isAbsolutePath(root) || QFileInfo(root).isSymLink() || !validId(selected.id) || selected.revision.isEmpty())return {false,false,"Choose a saved copy again."};
     QLockFile lock(QDir(root).filePath("service.lock")); if(!lock.tryLock(0))return {false,false,"Another backup operation is running. Try again shortly."};
     if(saveWritesReadOnly(root))return {false,false,"Read-only saves is on. Change it in Settings to restore a save."};
@@ -259,11 +263,13 @@ SaveBackupResult restoreSaveBackup(const QString& root, const AdventureRegistrat
 static SaveBackupResult applySaveEdit(const QString& root, const AdventureRegistration& record, const QString& token,
         const SaveTargetResolver& resolve, const std::function<MerchantWrite(const QByteArray&,const QString&)>& edit,
         const QString& reason, const SaveHealer& healer, const MerchantReader& shops) {
+    if(pendingLinkSave(root))return {false,false,"Finish the pending trade at Link Counter first."};
     if (!edit) return {false,false,"This service is not available for this Adventure."};
     if (!QDir::isAbsolutePath(root) || QFileInfo(root).isSymLink() || !QDir().mkpath(root))
         return {false,false,"Couldn't open the backup folder. Your save is unchanged."};
     QLockFile lock(QDir(root).filePath("service.lock"));
     if (!lock.tryLock(0)) return {false,false,"Another save operation is running."};
+    if(pendingLinkSave(root))return {false,false,"Finish the pending trade at Link Counter first."};
     if(saveWritesReadOnly(root))return {false,false,"Read-only saves is on. Change it in Settings to allow save changes."};
     const auto target=resolve(record); if (!target.supported) return {false,false,problem(target)};
     const auto save=current(target);
@@ -344,6 +350,115 @@ SaveBackupResult changeSaveHeldItem(const QString& root,const AdventureRegistrat
 void LocalSaveBackupService::changeHeldItem(const AdventureRegistration& r,const QString& token,const HeldItemChange& request,QObject* context,std::function<void(SaveBackupResult)> completed) {
     run([this,r,token,request]{return changeSaveHeldItem(root_,r,token,request,resolve_,heldItemWriter_);},context,completed);
 }
+namespace {
+QString linkPath(const QString& root,const QString& id={}) {return QDir(root).filePath(id.isEmpty()?"link/active.json":"link/"+id+".json");}
+QJsonObject linkError(const QString& text){return {{"error",text}};}
+QJsonObject readLink(const QString& root,const QString& id={}) {
+    if(!id.isEmpty() && !validId(id))return {};
+    const auto path=linkPath(root,id);QFile f(path);
+    if(QFileInfo(path).isSymLink() || QFileInfo(QDir(root).filePath("link")).isSymLink() || !f.open(QIODevice::ReadOnly) || f.size()>768*1024)return {};
+    const auto value=QJsonDocument::fromJson(f.readAll()).object();
+    if(value["version"].toInt()!=1 || !validId(value["id"].toString()))return {};
+    return value;
+}
+bool writeLink(const QString& root,const QJsonObject& value,bool archive=false) {
+    const auto directory=QDir(root).filePath("link");
+    if(!QDir::isAbsolutePath(root) || QFileInfo(root).isSymLink() || QFileInfo(directory).isSymLink() || !QDir().mkpath(directory))return false;
+    QSaveFile f(linkPath(root,archive?value["id"].toString():QString()));f.setDirectWriteFallback(false);
+    const auto bytes=QJsonDocument(value).toJson(QJsonDocument::Compact);
+    return f.open(QIODevice::WriteOnly) && f.setPermissions(QFile::ReadOwner|QFile::WriteOwner)
+        && f.write(bytes)==bytes.size() && syncFile(f) && f.commit() && syncDirectory(directory);
+}
+QJsonObject publicLink(const QJsonObject& j) {
+    QJsonObject out;
+    for(const auto key:{"id","peer","proposal","before","after","peerAfter","stage","adventure","owner"})out[key]=j[key];
+    return out;
+}
+}
+bool pendingLinkSave(const QString& root){const QFileInfo f(linkPath(root));return f.exists() || f.isSymLink();}
+QJsonObject linkSaveStatus(const QString& root,const QString& id) {
+    auto j=readLink(root);
+    if(!id.isEmpty() && j["id"]!=id)j=readLink(root,id);
+    if(j.isEmpty())return pendingLinkSave(root) && id.isEmpty()?linkError("The pending trade record needs recovery. Your save has been kept."):QJsonObject{};
+    return publicLink(j);
+}
+QJsonObject inspectLinkPokemon(const QString& root,const AdventureRegistration& r,int slot,const SaveTargetResolver& resolve) {
+    const auto target=resolve(r);const auto save=current(target);
+    if(!save.success || !save.exists)return linkError("The ordinary save is unavailable.");
+    const auto offer=emeraldLinkOffer(save.data,target.contentRevision,slot);
+    if(!offer.error.isEmpty())return linkError(offer.error);
+    return {{"pokemon",offer.pokemon},{"save",hash(save.data)},{"slot",slot}};
+}
+QJsonObject prepareLinkSave(const QString& root,const AdventureRegistration& r,const QJsonObject& request,const SaveTargetResolver& resolve) {
+    if(!QDir::isAbsolutePath(root) || QFileInfo(root).isSymLink() || !QDir().mkpath(root))return linkError("Cannot protect this trade.");
+    QLockFile lock(QDir(root).filePath("service.lock"));if(!lock.tryLock(0))return linkError("Another save operation is running.");
+    const auto id=request["id"].toString();
+    if(!validId(id) || !validId(request["peer"].toString()) || !validHash(request["proposal"].toString()))return linkError("The trade proposal is invalid.");
+    if(pendingLinkSave(root))return linkError("Finish the pending trade first.");
+    if(!readLink(root,id).isEmpty())return linkError("This trade has already been completed.");
+    if(saveWritesReadOnly(root))return linkError("Read-only saves is on. Change it in Settings before trading.");
+    const auto target=resolve(r);const auto save=current(target);
+    if(!save.success || !save.exists || hash(save.data)!=request["save"].toString())return linkError("The save changed. Choose your Pokemon again.");
+    const auto offered=emeraldLinkOffer(save.data,target.contentRevision,request["slot"].toInt(-1));
+    if(!offered.error.isEmpty() || offered.pokemon!=request["outgoing"].toObject())return linkError("Your selected Pokemon changed.");
+    const auto result=tradeEmeraldPokemon(save.data,target.contentRevision,request["slot"].toInt(-1),hash(save.data),request["incoming"].toObject());
+    if(!result.error.isEmpty() || result.data.isEmpty())return linkError(result.error);
+    const auto backup=writeBundle(root,target,save,true,"link-trade");if(backup.isEmpty())return linkError("Couldn't protect the current save.");
+    if(current(resolve(r)).revision!=save.revision)return linkError("The save changed while preparing the trade.");
+    QJsonObject journal{{"version",1},{"id",id},{"peer",request["peer"]},{"proposal",request["proposal"]},
+        {"stage","prepared"},{"adventure",r.adventure.id},{"owner",target.backupOwner},
+        {"content",target.contentRevision},{"context",target.contextRevision},{"path",target.savePath},
+        {"token",save.revision},{"before",hash(save.data)},{"after",hash(result.data)},
+        {"original",QString::fromLatin1(save.data.toBase64())},{"candidate",QString::fromLatin1(result.data.toBase64())},{"protection",backup}};
+    if(!writeLink(root,journal))return linkError("Couldn't keep the prepared trade. The save is unchanged.");
+    return publicLink(journal);
+}
+QJsonObject commitLinkSave(const QString& root,const AdventureRegistration& r,const QString& id,const QString& peerAfter,const SaveTargetResolver& resolve) {
+    QLockFile lock(QDir(root).filePath("service.lock"));if(!lock.tryLock(0))return linkError("Another save operation is running.");
+    auto j=readLink(root);if(j["id"]!=id || !validHash(peerAfter))return linkError("This trade cannot be recovered yet.");
+    if(j.contains("peerAfter") && j["peerAfter"]!=peerAfter)return linkError("The partner's prepared save changed.");
+    const auto target=resolve(r);const auto save=current(target);
+    if(j["adventure"]!=r.adventure.id || j["owner"]!=target.backupOwner || j["content"]!=target.contentRevision || j["context"]!=target.contextRevision || j["path"]!=target.savePath || !save.success)
+        return linkError("Return to the Trainer and Emerald Adventure used for this trade.");
+    const auto before=QByteArray::fromBase64(j["original"].toString().toLatin1()),after=QByteArray::fromBase64(j["candidate"].toString().toLatin1());
+    if(before.size()!=0x20000 || after.size()!=0x20000 || hash(before)!=j["before"] || hash(after)!=j["after"])
+        return linkError("The protected trade copy could not be verified.");
+    if(save.data!=before && save.data!=after)return linkError("The save changed outside this trade. Keep both consoles and protection copies for recovery.");
+    if(j["stage"]=="prepared" && save.data!=before)return linkError("The prepared save changed outside this trade.");
+    if(j["stage"]=="committed" && save.data==after)return publicLink(j);
+    if(saveWritesReadOnly(root))return linkError("Read-only saves is on. Allow this pending trade in Settings to continue.");
+    // Durable decision BEFORE replacement. Repeating this operation compares
+    // both images, never applies the Pokemon swap twice.
+    j["stage"]="commit";j["peerAfter"]=peerAfter;if(!writeLink(root,j))return linkError("Couldn't record the trade decision.");
+    if(save.data==before) {
+        SaveLineageEdit lineage(root,target,r,save.revision,before,true);
+        if(!lineage.error().isEmpty())return linkError(lineage.error());
+        QSaveFile f(target.savePath);f.setDirectWriteFallback(false);
+        if(!f.open(QIODevice::WriteOnly) || !f.setPermissions(QFileInfo(target.savePath).permissions()) || f.write(after)!=after.size() || !syncFile(f))return linkError("Couldn't write this trade. Reconnect to continue.");
+        if(current(resolve(r)).revision!=save.revision){f.cancelWriting();return linkError("The save changed during this trade.");}
+        if(!f.commit() || !syncDirectory(save.parent) || current(resolve(r)).data!=after)return linkError("Trade readback failed. Keep the protection copies.");
+        if(!lineage.finish(after,"link-trade",j["protection"].toString()).isEmpty())return linkError("Trade saved; its history needs recovery.");
+    }
+    j["stage"]="committed";if(!writeLink(root,j))return linkError("Trade saved; reconnect to finish its receipt.");
+    return publicLink(j);
+}
+QJsonObject finishLinkSave(const QString& root,const QString& id,const QString& peerAfter) {
+    QLockFile lock(QDir(root).filePath("service.lock"));if(!lock.tryLock(0))return linkError("Another save operation is running.");
+    auto j=readLink(root);if(j["id"]!=id)return linkSaveStatus(root,id);
+    if(j["stage"]!="committed" || j["peerAfter"]!=peerAfter)return linkError("Waiting for the partner's saved receipt.");
+    j["stage"]="complete";
+    if(!writeLink(root,j,true) || !QFile::remove(linkPath(root)) || !syncDirectory(QDir(root).filePath("link")))return linkError("Both trades are saved; reconnect to finish the receipt.");
+    return publicLink(j);
+}
+QJsonObject abortPreparedLinkSave(const QString& root,const AdventureRegistration& r,const QString& id,const SaveTargetResolver& resolve) {
+    QLockFile lock(QDir(root).filePath("service.lock"));if(!lock.tryLock(0))return linkError("Another save operation is running.");
+    auto j=readLink(root);const auto target=resolve(r);const auto save=current(target);
+    if(j["id"]!=id || j["stage"]!="prepared" || !save.success || j["owner"]!=target.backupOwner
+        || j["path"]!=target.savePath || j["token"]!=save.revision || j["before"]!=hash(save.data))return linkError("This trade needs both consoles to recover. No rollback was attempted.");
+    j["stage"]="cancelled";
+    if(!writeLink(root,j,true) || !QFile::remove(linkPath(root)) || !syncDirectory(QDir(root).filePath("link")))return linkError("Couldn't finish cancelling the prepared trade.");
+    return publicLink(j);
+}
 LocalSaveBackupService::LocalSaveBackupService(QString root, SaveTargetResolver resolve,
         std::function<bool(const AdventureRegistration&)> supports, QObject* parent)
     : SaveBackupService(parent),root_(std::move(root)),resolve_(std::move(resolve)),supports_(std::move(supports)),worker_(new QObject) {
@@ -351,6 +466,23 @@ LocalSaveBackupService::LocalSaveBackupService(QString root, SaveTargetResolver 
     worker_->moveToThread(&thread_); connect(&thread_,&QThread::finished,worker_,&QObject::deleteLater); thread_.start();
 }
 LocalSaveBackupService::~LocalSaveBackupService(){thread_.quit();thread_.wait();}
+void LocalSaveBackupService::linkOperation(const AdventureRegistration& r,const QString& operation,const QJsonObject& request,
+        QObject* receiver,std::function<void(QJsonObject)> done) {
+    if(busy_){done(linkError("A save operation is already running."));return;}
+    busy_=true;emit busyChanged();
+    QMetaObject::invokeMethod(worker_,[this,r,operation,request,guard=QPointer<QObject>(receiver),done]{
+        QJsonObject result;
+        if(operation=="inspect")result=inspectLinkPokemon(root_,r,request["slot"].toInt(-1),resolve_);
+        else if(operation=="prepare")result=prepareLinkSave(root_,r,request,resolve_);
+        else if(operation=="commit")result=commitLinkSave(root_,r,request["id"].toString(),request["peerAfter"].toString(),resolve_);
+        else if(operation=="finish")result=finishLinkSave(root_,request["id"].toString(),request["peerAfter"].toString());
+        else if(operation=="abort-prepared")result=abortPreparedLinkSave(root_,r,request["id"].toString(),resolve_);
+        else if(operation=="status")result=linkSaveStatus(root_,request["id"].toString());
+        else result=linkError("Unknown Link operation.");
+        if(result.contains("error") && pendingLinkSave(root_))result["pending"]=linkSaveStatus(root_);
+        QMetaObject::invokeMethod(this,[this,guard,done,result]{busy_=false;if(guard)done(result);emit busyChanged();},Qt::QueuedConnection);
+    },Qt::QueuedConnection);
+}
 void LocalSaveBackupService::run(std::function<SaveBackupResult()> work,QObject* context,std::function<void(SaveBackupResult)> completed) {
     if(busy_){completed({false,false,"A save operation is already running."});return;}
     busy_=true;emit busyChanged();

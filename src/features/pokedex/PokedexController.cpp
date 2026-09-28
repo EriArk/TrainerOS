@@ -23,6 +23,8 @@ void PokedexController::setSaveProgress(const QString& selectedId, const QString
         observation.pokedex ? observation.pokedex->error : QStringLiteral("no-dex")}.join('\n');
     if (saveMode_ && observationKey_ == key) return;
     observationKey_ = key; saveMode_ = true; saveTitle_ = title;
+    if(saveId_!=selectedId || selectedId.isEmpty() || observedId!=selectedId)gameScope_.reset();
+    if(observedId==selectedId && observation.availability!=ProgressAvailability::Checking)gameScope_=observation.pokedexScope;
     if (saveId_ != selectedId || selectedId.isEmpty() || observedId != selectedId) savedObservation_ = {};
     saveId_ = selectedId; saveDex_.reset(); staleSave_ = false;
     saveAvailability_ = observedId == selectedId ? observation.availability : ProgressAvailability::Unsupported;
@@ -233,7 +235,18 @@ void PokedexController::rebuild() {
     if (numeric.startsWith('#')) numeric.remove(0, 1);
     bool isNumber = false;
     const int number = numeric.toInt(&isNumber);
-    for (const auto& e : catalog_.entries) {
+    for (auto e : catalog_.entries) {
+        if(gameScope_) {
+            if(e.number<1 || e.number>gameScope_->nationalLimit)continue;
+            const auto allowed=gameScope_->forms.value(e.number);
+            e.forms.removeIf([&](const auto& form){return !allowed.contains(form.id);});
+            if(gameScope_->types.contains(e.number))e.types=gameScope_->types[e.number];
+            for(auto& form:e.forms){
+                if(e.number!=351 || form.id=="351")form.types=e.types;
+                if(gameScope_->stats.contains(e.number))form.stats=gameScope_->stats[e.number];
+            }
+            e.familyIds.removeIf([&](const auto& id){for(const auto& relative:catalog_.entries)if(relative.id==id)return relative.number>gameScope_->nationalLimit;return false;});
+        }
         const auto p = currentProgress(e);
         if (!world_.isEmpty() && !e.collectionIds.contains(world_)) continue;
         if (!type_.isEmpty() && !e.types.contains(type_)

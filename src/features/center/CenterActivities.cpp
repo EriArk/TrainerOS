@@ -3,15 +3,19 @@
 #include <QStringList>
 
 namespace trainer {
-CenterActivities::CenterActivities(bool sample,QObject* parent):QObject(parent),sample_(sample),practice_(this) {
+CenterActivities::CenterActivities(bool sample,QObject* parent):QObject(parent),sample_(sample),practice_(this),link_(this) {
+    connect(&link_,&LinkController::changed,this,&CenterActivities::changed);
+    connect(&link_,&LinkController::closeRequested,this,&CenterActivities::closeRequested);
     connect(&practice_,&PracticeController::changed,this,&CenterActivities::changed);
     connect(&practice_,&PracticeController::closeRequested,this,[this]{route_="playroom";emit changed();});
 }
 void CenterActivities::showPlace(const QString& place) {
-    if(route_==place){if(place=="practice" && !practice_.isOpen())practice_.enter();return;}
+    if(route_==place){if(place=="practice" && !practice_.isOpen())practice_.enter();if(place=="link" && !link_.isOpen())link_.enter();return;}
     if(route_=="practice")practice_.leave();
+    if(route_=="link")link_.leave();
     route_=place;stage_="setup";
     if(place=="practice")practice_.enter();
+    if(place=="link")link_.enter();
     emit changed();
 }
 void CenterActivities::setParty(const QVariantList& actors, const QString& source, const QString& unavailable) {
@@ -66,16 +70,19 @@ QVariantMap CenterActivities::page() const {
     return {{"title", title}, {"message", message}, {"action", action}};
 }
 void CenterActivities::reset() {
+    link_.leave();
     practice_.leave();
     route_ = "menu"; stage_ = "setup"; reaction_.clear(); gesture_.clear(); actor_ = 0; menu_ = 0; emit changed();
 }
 void CenterActivities::activate(int index) {
+    if(route_=="link"){link_.activate(index);return;}
     if(route_=="practice"){practice_.activate(index);return;}
     if (route_ == "menu") {
         if(index==3){menu_=3;emit changed();emit shopsRequested();return;}
         menu_ = std::clamp(index, 0, 2);
         route_ = QStringList{"playroom", "practice", "link"}[menu_];
         if(route_=="practice")practice_.enter();
+        if(route_=="link")link_.enter();
         stage_ = "setup"; reaction_.clear(); actor_ = 0;
     } else if (route_ == "playroom" && hasParty()) {
         actor_ = std::clamp(index, 0, int(actors_.size()) - 1);
@@ -86,6 +93,7 @@ void CenterActivities::activate(int index) {
     emit changed();
 }
 void CenterActivities::dispatch(Action action) {
+    if(route_=="link"){link_.dispatch(action);return;}
     if(route_=="practice"){practice_.dispatch(action);return;}
     if(route_=="playroom" && action==Action::Up){openPractice();return;}
     if (action == Action::Back) {

@@ -30,7 +30,7 @@ def include(path):
         include(dependency)
 
 
-for name in ("Gen3Progress", "EmeraldParty", "EmeraldShops", "EmeraldPractice"):
+for name in ("Gen3Progress", "EmeraldParty", "EmeraldShops", "EmeraldPractice", "EmeraldLink"):
     include(root / f"src/integrations/progress/{name}.cpp")
 include(root / "src/integrations/practice/PracticeSession.cpp")
 for relative in ("src/integrations/practice/emerald-engine.cjs",

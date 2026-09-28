@@ -57,6 +57,7 @@ QVariantMap PartyPresentation::present(const PokemonRecord& p, int index) const 
 }
 void PartyPresentation::configureArtwork(ClassicArt* art, SpriteArt* sprites) {
     art_ = art; sprites_ = sprites;
+    activities_.link()->setArtwork([this](QVariantMap row){return withArt(row);});
     if (art_) connect(art_, &ClassicArt::changed, this, [this] { syncActors(); emit changed(); });
     syncActors();
     emit changed();

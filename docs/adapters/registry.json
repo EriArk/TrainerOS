@@ -1,6 +1,6 @@
 {
   "purpose": "Engineering evidence index; not runtime capability authority",
-  "updated": "2026-09-27",
+  "updated": "2026-09-28",
   "builds": [
     {
       "id": "emerald-en",
@@ -166,6 +166,24 @@
             "device"
           ],
           "details": "../EMERALD_PRACTICE.md"
+        },
+        "link-trade": {
+          "state": "partial",
+          "evidence": [
+            "source-research",
+            "synthetic",
+            "private-copy",
+            "allowed-delta",
+            "device",
+            "normal-game",
+            "reconnect"
+          ],
+          "details": "../EMERALD_LINK.md"
+        },
+        "pokedex-scope": {
+          "state": "integrated",
+          "evidence": ["source-research", "synthetic", "device"],
+          "details": "../EMERALD_LINK.md"
         }
       },
       "romBytes": 16777216,

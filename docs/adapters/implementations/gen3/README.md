@@ -38,6 +38,14 @@ remaining save bytes except the affected sector checksum. The reader exposes
 confirmation, protection and rollback remain mandatory.
 The example verifies the actual ROM against the selected profile and only reads.
 
+`EmeraldLink.h` adds named semantic individual import/export and an exact Emerald
+Party trade candidate, bound to the observed source hash. It does not implement
+network discovery or commit either peer's file. The host must implement bilateral
+confirmation, durable decision/receipts, pending-play gates and idempotent recovery
+as described in [Link](../../../EMERALD_LINK.md). Never apply two independent
+writes and call that a safe exchange. `gen3PokedexScope` supplies Emerald's
+001–386 membership, Gen III forms/types/stats; other profiles return no scope.
+
 **Host responsibility:** this library does not lock emulators, resolve Trainer
 ownership, ask for confirmation, create backups or commit save files. The other
 project must supply those controls, stale-file checks, a verified backup, atomic

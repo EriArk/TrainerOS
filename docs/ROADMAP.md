@@ -4,6 +4,24 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-28 owner Link override:** one substantial Emerald ↔ Emerald nearby
+increment now precedes the remaining RA lane: opt-in local Wi-Fi discovery,
+mutual pairing, a copied-party friendly duel and protected confirmed exchange.
+See [Link implementation/evidence](EMERALD_LINK.md). Keep Bluetooth, full-team
+battles, native-rule parity, evolution, gifts/sales, cross-edition conversion and
+trust-sensitive #93/#94 policy open. The earlier no-practice-expansion wording
+below is superseded only for this explicit increment; R1–R18 and RA remain.
+The owner also requests adapter-owned Pokédex membership: exact Emerald now
+uses the Ruby/Sapphire/Emerald-compatible National range and Gen III forms;
+other editions retain the full reference until their adapters supply a scope.
+
+**Delivered boundary:** Flip/Odin local Wi-Fi pairing, a complete one-member
+friendly duel and protected Party trades in both directions, with interrupted
+exchange recovery and normal Emerald readback on both devices. The adapter-owned
+Emerald Dex uses 001–386 and Gen III forms/types/stats. Portable adapter/evidence
+is synchronized. The broad #45/#93/#94 acceptance remains partial; next work
+returns to the remaining RA/account-to-play and image/update/system lane below.
+
 **2026-09-28 RetroArch RA handoff:** [per-launch accounts](RETROACHIEVEMENTS.md#retroarch-account-handoff--2026-09-28)
 now follow the active Trainer automatically on A, preserve existing emulator/save
 configuration and explicitly disable inherited RA credentials when signed out.

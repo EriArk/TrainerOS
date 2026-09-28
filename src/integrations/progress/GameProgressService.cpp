@@ -26,7 +26,11 @@ GameProgress inspectGameProgress(const AdventureRegistration& record, const Prog
     if (!target.supported) return unsupported;
     const auto edition = gen3Edition(target.contentRevision);
     if (!edition) return unsupported;
-    if (!QFileInfo::exists(target.savePath)) return unavailable(ProgressAvailability::Missing, "Save in the Adventure, then return here to see your progress.");
+    if (!QFileInfo::exists(target.savePath)) {
+        auto missing=unavailable(ProgressAvailability::Missing, "Save in the Adventure, then return here to see your progress.");
+        missing.contentRevision=target.contentRevision;missing.contextRevision=target.contextRevision;
+        missing.pokedexScope=gen3PokedexScope(target.contentRevision);return missing;
+    }
     const auto bytes = readSave(target.savePath);
     auto result = readGen3Progress(bytes, *edition);
     // Reopen the current path so an atomic replacement during the first read is
@@ -39,6 +43,7 @@ GameProgress inspectGameProgress(const AdventureRegistration& record, const Prog
         || current.contextRevision != target.contextRevision)
         return unavailable(ProgressAvailability::Unreadable, "The Adventure changed while checking its save. Return here to refresh it.");
     result.contentRevision = target.contentRevision;
+    result.pokedexScope=gen3PokedexScope(target.contentRevision);
     result.contextRevision = target.contextRevision;
     result.saveRevision = QString::fromLatin1(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex());
     result.observedAt = QDateTime::currentDateTimeUtc();

@@ -254,6 +254,10 @@ Window {
                         if (practice.stage === "first" && !practice.ready) return [h("A","Back"),h("B","Back")]
                         return [h("A",practice.stage === "ready" ? "Begin" : practice.stage === "events" ? "Next" : practice.stage === "finished" ? "Again" : practice.stage === "moves" ? "Move" : "Choose"),h("B",practice.running ? "Leave practice" : "Back")]
                     }
+                    if (party.section === "activities" && party.activities.route === "link") {
+                        const link = party.activities.link
+                        return [h("A",link.stage === "pair" ? "Connect" : link.stage === "review" ? "Confirm" : link.stage === "moves" ? "Move" : "Choose"),h("B",link.pending ? "Pause" : "Back")]
+                    }
                     if (party.section === "activities") return party.activities.route === "playroom" && party.activities.hasParty ? [h("↑","Practice"),h("←→","Partner"),h("Select","Play"),h("X","Greet"),h("A","Call")] : [h("A","Select"),h("B","Back")]
                     if (party.moveStage === "release-confirm") return [h("X","Release"),h("B","Keep Pokemon")]
                     if (party.moveOpen) return party.moveStage === "writing" || party.moveStage === "checking" ? [] : [h("A",party.moveStage === "name-confirm" ? "Rename" : party.moveStage === "name-error" ? "Edit name" : party.moveStage === "item-confirm" ? "Confirm" : party.moveStage === "confirm" ? "Confirm" : party.moveStage === "result" ? "OK" : "Choose"),h("B",party.moveStage === "places" ? "Cancel" : "Back")]

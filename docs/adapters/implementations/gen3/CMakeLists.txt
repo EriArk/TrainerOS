@@ -7,6 +7,7 @@ add_library(trainer_game_adapter STATIC
     src/integrations/progress/Gen3Progress.cpp
     src/integrations/progress/EmeraldParty.cpp
     src/integrations/progress/EmeraldPractice.cpp
+    src/integrations/progress/EmeraldLink.cpp
     src/integrations/progress/EmeraldShops.cpp)
 target_include_directories(trainer_game_adapter PUBLIC src)
 target_link_libraries(trainer_game_adapter PUBLIC Qt6::Core)

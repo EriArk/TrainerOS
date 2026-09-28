@@ -1,11 +1,15 @@
 #include "Gen3Progress.h"
 #include "EmeraldParty.h"
+#include "EmeraldLink.h"
 #include "EmeraldShops.h"
 #include <QRandomGenerator>
 #include <QCryptographicHash>
 #include <QtEndian>
 #include <array>
 #include <algorithm>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonArray>
 
 namespace trainer {
 namespace {
@@ -100,6 +104,23 @@ std::optional<Gen3Edition> gen3Edition(const QString& hash) {
     return {};
 }
 
+std::optional<PokedexGameScope> gen3PokedexScope(const QString& hash) {
+    if(gen3Edition(hash)!=Gen3Edition::Emerald)return {};
+    static const auto scope=[] {
+        PokedexGameScope out;out.family="ruby-sapphire-emerald";out.nationalLimit=386;
+        QFile file(":/progress/emerald-reference.json");if(!file.open(QIODevice::ReadOnly))return out;
+        const auto species=QJsonDocument::fromJson(file.readAll()).object()["species"].toObject();
+        for(const auto& v:species){const auto s=v.toObject();const int n=s["number"].toInt();
+            out.forms[n]={QString::number(n)};
+            for(const auto& type:s["types"].toArray())out.types[n].append(type.toString());
+            const auto base=s["base"].toArray();for(int i:{0,1,2,4,5,3})out.stats[n].append(base[i].toInt());
+        }
+        for(int i=1;i<28;++i)out.forms[201].append(QString::number(10000+i));
+        out.forms[351]={"351","10028","10029","10030"};
+        out.forms[386]={"10033"};out.stats[386]={50,95,90,95,90,180};
+        return out;
+    }();return scope;
+}
 GameProgress readGen3Progress(const QByteArray& save, Gen3Edition edition) {
     GameProgress result;
     result.availability = ProgressAvailability::Unreadable;
@@ -226,6 +247,44 @@ MerchantWrite buyEmeraldItems(const QByteArray& save,const QString& hash,const M
     }
     if(!readEmeraldShops(result,hash).supported)return {{},"The updated save could not be verified.",{}};
     return {result,{},purchase.message};
+}
+EmeraldLinkOffer emeraldLinkOffer(const QByteArray& save,const QString& hash,int position) {
+    const auto slot=shopSlot(save,hash);
+    if(!slot)return {{},"Save in the supported English Emerald edition first."};
+    const auto world=worldBlock(*slot);
+    if(position<0 || position>=quint8(world[0x234]) || position>=6)return {{},"Choose a Party member."};
+    const auto progress=readGen3Progress(save,Gen3Edition::Emerald);
+    if(!progress.party || !progress.party->error.isEmpty() || !progress.pokedex || !progress.pokedex->error.isEmpty())return {{},"The Party or Pokedex could not be verified."};
+    return exportEmeraldLinkRecord(world.mid(0x238+position*100,100));
+}
+PartyMoveResult tradeEmeraldPokemon(const QByteArray& save,const QString& hash,int position,
+    const QString& revision,const QJsonObject& incoming) {
+    if(revision!=QString::fromLatin1(QCryptographicHash::hash(save,QCryptographicHash::Sha256).toHex()))return {{},"The save changed. Choose your Pokemon again.",{}};
+    const auto outgoing=emeraldLinkOffer(save,hash,position);
+    if(!outgoing.error.isEmpty())return {{},outgoing.error,{}};
+    auto received=incoming;received["friendship"]=70; // Native TradeMons rule.
+    const auto record=importEmeraldLinkRecord(received);
+    if(record.isEmpty())return {{},"The partner's Pokemon is not supported for this trade.",{}};
+    const auto mon=readEmeraldPartyMember(record);
+    const auto slot=*shopSlot(save,hash);auto world=worldBlock(slot);auto small=slot.blocks[0];
+    world.replace(0x238+position*100,100,record);
+    const int species=mon.number-1;
+    for(int offset:{0x28,0x5c})small[offset+species/8]=char(quint8(small[offset+species/8])|(1u<<(species%8)));
+    for(int offset:{0x988,0x3b24})world[offset+species/8]=char(quint8(world[offset+species/8])|(1u<<(species%8)));
+    auto result=save;
+    for(int id=0;id<5;++id){
+        const auto block=id==0?small:world.mid((id-1)*Payload,slot.blocks[id].size());
+        if(block==slot.blocks[id])continue;
+        const int at=slot.offsets[id];result.replace(at,block.size(),block);
+        quint32 sum=0;for(int p=0;p<block.size();p+=4)sum+=u32(block,p);
+        qToLittleEndian(quint16((sum>>16)+sum),result.data()+at+0xff6);
+    }
+    const auto verified=emeraldLinkOffer(result,hash,position);
+    if(!verified.error.isEmpty() || verified.pokemon!=received)return {{},"The received Pokemon could not be verified.",{}};
+    const auto progress=readGen3Progress(result,Gen3Edition::Emerald);int able=0;
+    for(const auto& p:progress.party->party)if(p.kind==PokemonSlotKind::Known && p.hp.value_or(0)>0)++able;
+    if(!able)return {{},"Keep a Pokemon that can battle in your Party.",{}};
+    return {result,{},"Trade complete!"};
 }
 BoxNameResult renameEmeraldBox(const QByteArray& save,const QString& hash,const BoxNameChange& request) {
     const auto slot=shopSlot(save,hash);

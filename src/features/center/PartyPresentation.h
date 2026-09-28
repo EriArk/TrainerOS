@@ -86,6 +86,7 @@ public:
     void configureArtwork(ClassicArt* art, SpriteArt* sprites);
     Q_INVOKABLE void changeBox(int delta);
     CenterActivities* activities() { return &activities_; }
+    const CenterActivities* activities() const { return &activities_; }
     void openActivities();
     int box() const { return box_; }
     void setAdventure(const QString& id, const QString& title);

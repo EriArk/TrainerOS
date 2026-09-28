@@ -6,12 +6,13 @@ Item {
     readonly property var activity: shell.party.activities
     readonly property bool takesFocus: enabled && visible && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
     enabled: !shell.drawerOpen
+    LinkPanel {anchors.fill: parent; shell: root.shell; controller: root.activity.link; visible: root.activity.route === "link"}
     PracticePanel {
         anchors.fill: parent; shell: root.shell; controller: root.activity.practice
         visible: root.activity.route === "practice"
     }
     Item {
-        visible: root.activity.route !== "practice"
+        visible: root.activity.route !== "practice" && root.activity.route !== "link"
         anchors.fill: parent; anchors.margins: Theme.panelInset
         anchors.topMargin: Theme.contentTopInset; anchors.bottomMargin: Theme.panelInset; clip: true
         PageHeader {

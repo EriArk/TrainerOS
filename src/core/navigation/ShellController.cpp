@@ -86,6 +86,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&party_, &PartyPresentation::healingRequested, this, [this]{centerRoute_="clinic";showPokemonFace("center");});
     connect(&party_, &PartyPresentation::backupsRequested, this, [this]{centerRoute_="backups";showPokemonFace("center");});
     connect(party_.activities(), &CenterActivities::shopsRequested, this, [this]{showPokemonFace("shops");});
+    connect(party_.activities()->link(),&LinkController::closeRequested,this,[this]{centerRoute_="clinic";showPokemonFace("center");});
     connect(&center_, &SaveCenterController::changed, this, [this] {
         if (center_.confirming()) party_.openSaves();
     });
@@ -261,10 +262,10 @@ bool ShellController::localModalOpen() {
 }
 bool ShellController::chooseAdventureAvailable() {
     return page_ != 1 && !(page_==2 && pokemonFace_=="shops") && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
-        && !keyboard_.isOpen() && !localModalOpen() && !party_.activities()->practice()->running();
+        && !keyboard_.isOpen() && !localModalOpen() && !party_.activities()->practice()->running() && !party_.activities()->link()->active();
 }
 bool ShellController::navigationLocked() const {
-    return launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || party_.moveOpen() || libraryTools_.busy() || center_.writing() || center_.confirming()
+    return party_.activities()->link()->navigationBlocked() || launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || party_.moveOpen() || libraryTools_.busy() || center_.writing() || center_.confirming()
         || (center_.shopsOpen() && center_.shopModal());
 }
 bool ShellController::pairedNavigationAvailable() {
@@ -286,7 +287,7 @@ int ShellController::faceIndex() const {
 }
 void ShellController::showPokemonFace(const QString& face) {
     if(pokemonFace_=="playroom")playroomRoute_=party_.activities()->route()=="practice"?"practice":"playroom";
-    if(face!=pokemonFace_)party_.activities()->practice()->leave();
+    if(face!=pokemonFace_){party_.activities()->practice()->leave();party_.activities()->link()->leave();}
     pokemonFace_=face;
     center_.leaveClinic();center_.leaveShops();
     if(face=="dex"){emit changed();return;}
@@ -315,6 +316,9 @@ void ShellController::refreshParty() {
         party_.setProgress(progress_ ? progress_->adventureId() : QString(), progress_ ? progress_->snapshot() : GameProgress{});
         const auto progress=progress_ && progress_->adventureId()==currentAdventureId()?progress_->snapshot():GameProgress{};
         party_.activities()->practice()->setObservation({trainer_.profile()["id"].toString(),currentAdventureId(),
+            progress.contextRevision,progress.contentRevision,progress.saveRevision},progress,party_.activities()->actors());
+        party_.activities()->link()->setTrainerName(trainer_.profile()["name"].toString());
+        party_.activities()->link()->setObservation({trainer_.profile()["id"].toString(),currentAdventureId(),
             progress.contextRevision,progress.contentRevision,progress.saveRevision},progress,party_.activities()->actors());
     }
     emit party_.changed();
@@ -527,7 +531,7 @@ void ShellController::goToPage(int page) {
     // hidden Home/drawer bindings do not rebuild the library repeatedly.
     QSignalBlocker transition(this);
     const bool enteringWorlds = page_ != 1 && std::clamp(page, 0, 4) == 1;
-    if(page!=page_)party_.activities()->practice()->leave();
+    if(page!=page_){party_.activities()->practice()->leave();party_.activities()->link()->leave();}
     libraryTools_.close();
     settings_.storage()->close();
     keyboard_.cancel();
@@ -818,6 +822,7 @@ void ShellController::dispatch(Action action) {
                 else if (pokemonFace_=="center" && center_.clinicOpen() && action==Action::Secondary) {centerRoute_="link";center_.leaveClinic();party_.showSection("activities");party_.activities()->showPlace("link");}
                 else if (center_.clinicOpen()) {if(action!=Action::Back)center_.dispatch(action);if(!center_.clinicOpen())center_.visitClinic();}
                 else if (center_.shopsOpen()) {center_.dispatch(action);if(!center_.shopsOpen())center_.visitShops();}
+                else if(pokemonFace_=="center" && centerRoute_=="link")party_.dispatch(action);
                 else if (pokemonFace_=="center" && action==Action::Back && !center_.confirming()){centerRoute_="clinic";showPokemonFace("center");}
                 else if (party_.section() != "saves") party_.dispatch(action);
                 else if (action == Action::Back && !center_.confirming() && !center_.busy()){centerRoute_="clinic";showPokemonFace("center");}

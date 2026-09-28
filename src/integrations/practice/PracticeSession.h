@@ -21,6 +21,8 @@ public:
     bool begin(const QString& node,const QString& worker,const QString& engineRoot,
         const PracticeSource&,const GameProgress&,int first,int second,
         const std::array<int,4>& seed);
+    bool beginLink(const QString& node,const QString& worker,const QString& engineRoot,
+        const QJsonObject& pair,const std::array<int,4>& seed);
     void updateSource(const PracticeSource&,bool available);
     bool choose(int firstSlot,int secondSlot);
     void cancel();

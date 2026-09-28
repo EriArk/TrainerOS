@@ -1,5 +1,15 @@
 # AGENTS.md — TrainerOS
 
+**Owner Link/Dex addition, 2026-09-28:** deliver a substantial nearby-console
+Emerald increment before returning to the remaining RA lane. Bounded local Wi-Fi
+pairing, a one-member friendly duel and protected bilateral Party exchange are
+now verified on Flip/Odin; see docs/EMERALD_LINK.md for actual limits and recovery.
+Do not claim full-team/native-link or competitive trust support. Preserve all
+remaining roadmap acceptance. Pokédex membership is an adapter feature: exact
+Emerald uses Gen III species 001–386 and native forms/types/stats, including
+compatible transfers and paired-edition exclusives. Other ROMs keep the complete
+catalogue until separately adapted. Keep the reusable adapter copy synchronized.
+
 **Owner non-negotiable launch/UX rule, 2026-09-28:** do not add unnecessary
 nested windows, intermediate screens or extra clicks. A on an installed game
 launches it immediately. Batocera folders determine the platform (`gba` means

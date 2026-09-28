@@ -21,8 +21,14 @@ bool PracticeSession::begin(const QString& node,const QString& worker,const QStr
     if(!pair.error.isEmpty() || source.trainerId.isEmpty() || source.adventureId.isEmpty()
         || source.contextRevision!=progress.contextRevision || source.contentRevision!=progress.contentRevision
         || source.saveRevision!=progress.saveRevision) return false;
+    source_=source;
+    return beginLink(node,worker,engineRoot,pair.input,seed);
+}
+bool PracticeSession::beginLink(const QString& node,const QString& worker,const QString& engineRoot,
+    const QJsonObject& pair,const std::array<int,4>& seed) {
+    if(process_ || pair["protocol"].toInt()!=1 || pair["members"].toArray().size()!=2)return false;
     QJsonArray seeds;for(int value:seed){if(value<0 || value>65535)return false;seeds.append(value);}
-    source_=source;start_=pair.input;start_["command"]="start";start_["seed"]=seeds;
+    start_=pair;start_["command"]="start";start_["seed"]=seeds;
     ready_=false;pending_=true;stopping_=false;reason_.clear();buffer_.clear();state_={};
     process_=new QProcess(this);
     // Node options/preloads from the desktop environment cannot alter the worker.

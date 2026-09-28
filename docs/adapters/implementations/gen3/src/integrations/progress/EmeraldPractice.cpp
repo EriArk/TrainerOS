@@ -35,4 +35,12 @@ PracticePair emeraldPracticePair(const GameProgress& progress,int first,int seco
     }
     return {{{"protocol",1},{"members",members}}, {}};
 }
+QJsonObject emeraldPracticeMember(const GameProgress& progress,int index) {
+    // Reuse the same member validation; duplicate only the disposable projection,
+    // not an individual in the user's save.
+    if(!progress.party || index<0 || index>=progress.party->party.size())return {};
+    auto copy=progress;copy.party->party={progress.party->party[index],progress.party->party[index]};
+    const auto pair=emeraldPracticePair(copy,0,1);
+    return pair.error.isEmpty()?pair.input["members"].toArray()[0].toObject():QJsonObject{};
+}
 }

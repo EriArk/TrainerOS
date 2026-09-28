@@ -30,6 +30,10 @@
 #include "core/repository/OfflinePokedex.h"
 #include "integrations/adventure/retroarch/RetroArchSave.h"
 #include "platform/storage/SaveBackupStorage.h"
+#include "platform/storage/LinkSaveStore.h"
+#include <QSaveFile>
+#include <QUuid>
+#include <QSysInfo>
 #include "platform/power/PowerStatus.h"
 #include "platform/ArmadaPlatformService.h"
 #include <QCryptographicHash>
@@ -366,13 +370,14 @@ int main(int argc, char* argv[]) {
             QObject::connect(saveBackups.get(),&SaveBackupService::operationFailed,&session,&SessionState::cancelPendingExit);
         }
         const auto updateServiceActivity = [&] {
-            session.setServiceActive(folders.writing() || shell.settings()->storage()->busy() || deviceService.busy() || shell.network()->busy() || (saveBackups && saveBackups->busy()));
+            session.setServiceActive(shell.party()->activities()->link()->navigationBlocked() || folders.writing() || shell.settings()->storage()->busy() || deviceService.busy() || shell.network()->busy() || (saveBackups && saveBackups->busy()));
         };
         QObject::connect(&folders, &BatoceraLibrary::writingChanged, &session, updateServiceActivity);
         QObject::connect(&deviceService, &DeviceService::changed, &session, updateServiceActivity);
         QObject::connect(shell.network(), &NetworkController::changed, &session, updateServiceActivity);
         QObject::connect(shell.settings()->storage(), &LibraryStorageController::changed, &session, updateServiceActivity);
         if (saveBackups) QObject::connect(saveBackups.get(), &SaveBackupService::busyChanged, &session, updateServiceActivity);
+        QObject::connect(shell.party()->activities()->link(),&LinkController::changed,&session,updateServiceActivity);
         ProcessService adventureProcess;
         AdventureLaunchController adventureLaunch(adventureProcess);
         AdventureExitPresentation exitPresentation(adventureLaunch.exitController());
@@ -404,7 +409,7 @@ int main(int argc, char* argv[]) {
             shell.configureProgress(gameProgress.get());
             auto* practice=shell.party()->activities()->practice();
             practice->configureRuntime(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/practice/emerald-v1");
-            practice->configureVerification([&,provider=gameProgress.get()](const PracticeSource& source,const GameProgress& expected,QObject* receiver,std::function<void(bool)> done) {
+            const PracticeController::Verifier verifyParty=[&,provider=gameProgress.get()](const PracticeSource& source,const GameProgress& expected,QObject* receiver,std::function<void(bool)> done) {
                 const auto record=activeLibrary.registration(source.adventureId);
                 if(!record || source.trainerId!=store->ownerId() || source.adventureId!=shell.currentAdventureId()
                     || adventureLaunch.active() || (saveBackups && saveBackups->busy())) {done(false);return;}
@@ -412,7 +417,29 @@ int main(int argc, char* argv[]) {
                     done(matches && source.trainerId==store->ownerId() && source.adventureId==shell.currentAdventureId()
                         && !adventureLaunch.active() && !(saveBackups && saveBackups->busy()));
                 });
-            });
+            };
+            practice->configureVerification(verifyParty);
+            if(saveBackups) {
+                const auto identityPath=QDir(stateDirectory).filePath("link-device-id");QFile identity(identityPath);QString deviceId;
+                if(identity.open(QIODevice::ReadOnly))deviceId=QString::fromUtf8(identity.read(100)).trimmed();
+                if(QUuid(deviceId).isNull()) {
+                    deviceId=QUuid::createUuid().toString(QUuid::WithoutBraces);QSaveFile file(identityPath);
+                    if(!file.open(QIODevice::WriteOnly) || file.write(deviceId.toUtf8())<0 || !file.commit())deviceId.clear();
+                }
+                auto* link=shell.party()->activities()->link();
+                QString linkName=QSysInfo::machineHostName();QFile model("/proc/device-tree/model");
+                if(model.open(QIODevice::ReadOnly)){const auto name=QString::fromUtf8(model.read(200)).remove(QChar(0)).trimmed();if(!name.isEmpty())linkName=name.left(48);}
+                link->configure(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/practice/emerald-v1",
+                    deviceId,linkName,[&,service=saveBackups.get()](const QString& op,const QJsonObject& args,QObject* receiver,std::function<void(QJsonObject)> done){
+                        const auto record=activeLibrary.registration(args["adventure"].toString());
+                        if(adventureLaunch.active() || !record){done({{"error","Close the game and select the Emerald Adventure used for this trade."}});return;}
+                        service->linkOperation(*record,op,args,receiver,std::move(done));
+                    },verifyParty,linkSaveStatus(QDir(stateDirectory).filePath("backups")));
+                updateServiceActivity();
+                QObject::connect(link,&LinkController::saveChanged,gameProgress.get(),[&,provider=gameProgress.get()]{
+                    if(const auto r=activeLibrary.registration(shell.currentAdventureId()))provider->refresh(*r);
+                });
+            }
             const auto refreshProgress = [&, provider = gameProgress.get()](bool force) {
                 if (adventureLaunch.active() || (saveBackups && saveBackups->busy())) return;
                 const auto id = shell.currentAdventureId();
@@ -617,6 +644,7 @@ int main(int argc, char* argv[]) {
                 auto returnFullscreen = std::make_shared<bool>(false);
                 auto returnedAdventure=std::make_shared<QString>();
                 const auto requestAdventure = [&, window, returnFullscreen, returnedAdventure](const ProcessCommand& command, const QString& id) {
+                    if(shell.party()->activities()->link()->active() || pendingLinkSave(QDir(stateDirectory).filePath("backups"))) {shell.showNotice("Finish or leave Link Counter before playing. Reconnect a paused trade first.");return false;}
                     if (session.blocked() || adventureLaunch.active() || (saveBackups && saveBackups->busy())) return false;
                     *returnFullscreen = window->visibility() == QWindow::FullScreen;
                     *returnedAdventure=id;realAchievements->refreshAdventure(id);

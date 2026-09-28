@@ -6,6 +6,10 @@
 #include "integrations/progress/Gen3Progress.h"
 #include "integrations/progress/EmeraldParty.h"
 #include "integrations/progress/EmeraldPractice.h"
+#include "integrations/progress/EmeraldLink.h"
+#include "platform/storage/LinkSaveStore.h"
+#include "platform/storage/SaveLineage.h"
+#include <QUuid>
 #include "integrations/progress/GameProgressService.h"
 #include "features/home/BadgeAssets.h"
 #include <QImage>
@@ -112,6 +116,88 @@ QByteArray movePatch(QByteArray save,int section,int offset,const QByteArray& va
 class GameProgressTests : public QObject {
     Q_OBJECT
 private slots:
+    void emeraldReferenceScope() {
+        const auto scope=gen3PokedexScope(EmeraldHash);QVERIFY(scope);QCOMPARE(scope->nationalLimit,386);
+        QCOMPARE(scope->forms[25],QStringList{"25"});QCOMPARE(scope->forms[201].size(),28);
+        QCOMPARE(scope->forms[351].size(),4);QCOMPARE(scope->forms[386],QStringList{"10033"});
+        QCOMPARE(scope->types[35],QStringList{"Normal"});
+        QCOMPARE(scope->stats[25],QList<int>({35,55,30,50,40,90}));
+        QVERIFY(!gen3PokedexScope("unknown"));
+        QVERIFY(!gen3PokedexScope("3d0c79f1627022e18765766f6cb5ea067f6b5bf7dca115552189ad65a5c3a8ac"));
+    }
+    void emeraldLinkSemanticRoundTripAndDelta() {
+        for(int p=0;p<24;++p) {
+            auto original=pokemonFixture(p);original[85]=char(255);
+            const auto exported=exportEmeraldLinkRecord(original);QVERIFY2(exported.error.isEmpty(),qPrintable(exported.error));
+            QCOMPARE(importEmeraldLinkRecord(exported.pokemon),original);
+            auto malformed=exported.pokemon;malformed["experience"]=-1;QVERIFY(importEmeraldLinkRecord(malformed).isEmpty());
+            malformed=exported.pokemon;malformed["pp"]=QJsonArray{255,0,0,0};QVERIFY(importEmeraldLinkRecord(malformed).isEmpty());
+        }
+        auto source=movementSave(3);auto offer=emeraldLinkOffer(source,EmeraldHash,1);QVERIFY(offer.error.isEmpty());
+        auto incoming=offer.pokemon;incoming["originalTrainer"]=double(0xdeadbeef);incoming["personality"]=1234;
+        auto candidate=tradeEmeraldPokemon(source,EmeraldHash,0,digest(source),incoming);
+        QVERIFY2(candidate.error.isEmpty(),qPrintable(candidate.error));QVERIFY(!candidate.data.isEmpty());
+        incoming["friendship"]=70;QCOMPARE(emeraldLinkOffer(candidate.data,EmeraldHash,0).pokemon,incoming);
+        QCOMPARE(candidate.data.left(0xe000),source.left(0xe000));QCOMPARE(candidate.data.mid(0x1c000),source.mid(0x1c000));
+        QCOMPARE(emeraldLinkOffer(candidate.data,EmeraldHash,1).pokemon,offer.pokemon);
+        QVERIFY(readGen3Progress(candidate.data,Gen3Edition::Emerald).pokedex->caught.contains(25));
+        QVERIFY(!tradeEmeraldPokemon(source,EmeraldHash,0,"stale",incoming).error.isEmpty());
+        auto mail=pokemonFixture();mail[85]=0;QVERIFY(!exportEmeraldLinkRecord(mail).error.isEmpty());
+        auto evolution=pokemonFixture(0,64);evolution[85]=char(255);QVERIFY(!exportEmeraldLinkRecord(evolution).error.isEmpty());
+    }
+    void preparedLinkCancellationKeepsTheSave() {
+        QTemporaryDir temp;QVERIFY(temp.isValid());const auto bytes=movementSave(2,0);
+        const auto path=temp.filePath("game.srm"),root=temp.filePath("backups");write(path,bytes);
+        const auto r=record();const SaveTarget target{"test","Emerald",path,EmeraldHash,"context",{},true,"trainer-link-test"};
+        const SaveTargetResolver resolve=[&](const AdventureRegistration&){return target;};
+        const auto id=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        const QJsonObject request{{"id",id},{"peer",QUuid::createUuid().toString(QUuid::WithoutBraces)},
+            {"proposal",QString(64,'a')},{"save",digest(bytes)},{"slot",0},
+            {"outgoing",emeraldLinkOffer(bytes,EmeraldHash,0).pokemon},{"incoming",emeraldLinkOffer(bytes,EmeraldHash,1).pokemon}};
+        const auto prepared=prepareLinkSave(root,r,request,resolve);QVERIFY2(!prepared.contains("error"),qPrintable(prepared["error"].toString()));
+        // External changes cannot be silently rolled back by cancellation.
+        write(path,bytes+"external");QVERIFY(abortPreparedLinkSave(root,r,id,resolve).contains("error"));
+        QVERIFY(pendingLinkSave(root));
+        // A changed file revision remains protected even if bytes are copied back.
+        // Use a separate unchanged preparation for the successful cancel path.
+        QTemporaryDir clean;const auto cleanPath=clean.filePath("game.srm"),cleanRoot=clean.filePath("backups");write(cleanPath,bytes);
+        auto cleanTarget=target;cleanTarget.savePath=cleanPath;
+        const SaveTargetResolver cleanResolve=[&](const AdventureRegistration&){return cleanTarget;};
+        QVERIFY(!prepareLinkSave(cleanRoot,r,request,cleanResolve).contains("error"));
+        QCOMPARE(abortPreparedLinkSave(cleanRoot,r,id,cleanResolve)["stage"],"cancelled");
+        QVERIFY(!pendingLinkSave(cleanRoot));QFile file(cleanPath);QVERIFY(file.open(QIODevice::ReadOnly));QCOMPARE(file.readAll(),bytes);
+        QCOMPARE(linkSaveStatus(cleanRoot,id)["stage"],"cancelled");
+    }
+    void durableLinkRecoveryIsIdempotent() {
+        QTemporaryDir first,second;QVERIFY(first.isValid());QVERIFY(second.isValid());
+        const auto a=movementSave(2,0),b=movementSave(8,7);write(first.filePath("game.srm"),a);write(second.filePath("game.srm"),b);
+        const auto r=record();
+        auto resolve=[&](const QString& directory){return [&,directory](const AdventureRegistration&){return SaveTarget{"test","Emerald",directory+"/game.srm",EmeraldHash,"context",{},true,"trainer-link-test"};};};
+        const auto ra=resolve(first.path()),rb=resolve(second.path());const auto rootA=first.filePath("backups"),rootB=second.filePath("backups");
+        const auto id=QUuid::createUuid().toString(QUuid::WithoutBraces),peerA=QUuid::createUuid().toString(QUuid::WithoutBraces),peerB=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        const auto ma=emeraldLinkOffer(a,EmeraldHash,0).pokemon,mb=emeraldLinkOffer(b,EmeraldHash,1).pokemon;
+        auto request=[&](bool side){return QJsonObject{{"id",id},{"peer",side?peerB:peerA},{"proposal",QString(64,'a')},{"save",digest(side?a:b)},{"slot",side?0:1},{"outgoing",side?ma:mb},{"incoming",side?mb:ma}};};
+        const auto pa=prepareLinkSave(rootA,r,request(true),ra),pb=prepareLinkSave(rootB,r,request(false),rb);
+        QVERIFY2(!pa.contains("error"),qPrintable(pa["error"].toString()));QVERIFY2(!pb.contains("error"),qPrintable(pb["error"].toString()));
+        QVERIFY(pendingLinkSave(rootA));QCOMPARE(linkSaveStatus(rootA)["stage"],"prepared");
+        // One console commits, then the connection/process disappears.
+        const auto ca=commitLinkSave(rootA,r,id,pb["after"].toString(),ra);QVERIFY2(!ca.contains("error"),qPrintable(ca["error"].toString()));
+        const auto proof=readSaveLineage(rootA,ra(r));
+        QCOMPARE(QJsonDocument::fromJson(proof.records.last()).object()["operation"],"link-trade");
+        QCOMPARE(verifySaveLineage(proof,proof.publicKey,"trainer-link-test",saveLineageStream(ra(r)),pa["after"].toString()).state,LineageState::Managed);
+        QVERIFY(abortPreparedLinkSave(rootA,r,id,ra).contains("error"));
+        QCOMPARE(commitLinkSave(rootA,r,id,pb["after"].toString(),ra),ca);
+        const auto cb=commitLinkSave(rootB,r,id,pa["after"].toString(),rb);QVERIFY2(!cb.contains("error"),qPrintable(cb["error"].toString()));
+        QVERIFY(finishLinkSave(rootA,id,QString(64,'f')).contains("error"));
+        QCOMPARE(finishLinkSave(rootA,id,cb["after"].toString())["stage"],"complete");
+        QVERIFY(!pendingLinkSave(rootA));QVERIFY(pendingLinkSave(rootB));
+        // Completed peer retains the receipt after its UI/process restarts.
+        QCOMPARE(linkSaveStatus(rootA,id)["after"],pa["after"]);
+        QCOMPARE(finishLinkSave(rootB,id,linkSaveStatus(rootA,id)["after"].toString())["stage"],"complete");
+        QVERIFY(!pendingLinkSave(rootB));QVERIFY(prepareLinkSave(rootA,r,request(true),ra).contains("error"));
+        QFile fa(first.filePath("game.srm")),fb(second.filePath("game.srm"));QVERIFY(fa.open(QIODevice::ReadOnly));QVERIFY(fb.open(QIODevice::ReadOnly));
+        QCOMPARE(digest(fa.readAll()),pa["after"].toString());QCOMPARE(digest(fb.readAll()),pb["after"].toString());
+    }
     void emeraldBattleFactsPreserveIndividualValues() {
         for(int permutation=0;permutation<24;++permutation) {
             auto bytes=pokemonFixture(permutation);

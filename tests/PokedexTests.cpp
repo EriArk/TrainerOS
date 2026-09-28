@@ -1,5 +1,6 @@
 #include "core/navigation/ShellController.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
+#include "integrations/progress/Gen3Progress.h"
 #include <QtTest>
 #include <algorithm>
 
@@ -31,6 +32,19 @@ public:
 class PokedexTests : public QObject {
     Q_OBJECT
 private slots:
+    void adapterScopeFiltersSpeciesFormsAndRestoresOtherGames() {
+        MockPokedexRepository repo;MutableReference reference;
+        reference.catalog.entries.append({"late",900,"Later Pokemon",{"Normal"},{"other"},{{"900","Standard",{"Normal"}}}});
+        for(auto& e:reference.catalog.entries)if(e.number==25)e.forms={{"25","Standard",{"Electric"}},{"10368","Gigantamax",{"Electric"}}};
+        PokedexController dex(reference,repo);const auto full=ids(dex);
+        GameProgress emerald;emerald.availability=ProgressAvailability::Missing;emerald.contentRevision="emerald";
+        emerald.pokedexScope=gen3PokedexScope("a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f6226db19085af");
+        dex.setSaveProgress("em","Emerald","em",emerald);QVERIFY(!ids(dex).contains("late"));
+        dex.applySearch("25");QCOMPARE(dex.detail()["formId"],"25");dex.cycleForm();QCOMPARE(dex.detail()["formId"],"25");
+        dex.applySearch({});auto checking=GameProgress{};checking.availability=ProgressAvailability::Checking;
+        dex.setSaveProgress("em","Emerald","em",checking);QVERIFY(!ids(dex).contains("late"));
+        dex.setSaveProgress("other","Other","other",GameProgress{});QCOMPARE(ids(dex),full);
+    }
     void formCountsAreIndependentOfSpeciesFlagsAndFollowSaveIdentity() {
         MockPokedexRepository repo;MutableReference reference;
         reference.catalog.entries.append({"unown",201,"Unown",{"Psychic"},{"johto"},{{"201","A",{"Psychic"}},{"10001","B",{"Psychic"}}}});

@@ -1,5 +1,21 @@
 # Pokémon Emerald — exact English GBA build
 
+## 2026-09-28 nearby Link and ROM-specific Dex
+
+[Link contract and device evidence](../EMERALD_LINK.md): local Wi-Fi pairing,
+copied-individual friendly duel and protected exact Emerald Party exchange run
+on Flip/Odin. Actual ordinary-game readback passed on both; reconnect recovered
+an interrupted exchange. Wider Link remains partial (no trade evolution, Egg/Mail,
+Unown/Spinda, cross-edition or competitive-trust claim). Pure `EmeraldLink` semantic
+conversion/candidate generation is included in the portable copy; host pairing,
+protection and bilateral durable commit are separate.
+
+`gen3PokedexScope` declares the Ruby/Sapphire/Emerald-compatible National range
+001–386 with native Gen III forms/types/base stats. Later species and forms are
+excluded; other adapters retain full-catalogue fallback. This is ROM capability
+metadata, independent of whether a verified save already exists. Current delivery
+supersedes older dated Link-open checkpoints below only within this scope.
+
 ## Identity and existing evidence
 
 SHA-256 `a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f6226db19085af`.

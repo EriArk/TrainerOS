@@ -102,6 +102,7 @@ private:
     QString saveId_, saveTitle_, observationKey_;
     GameProgress savedObservation_;
     std::optional<SavePokedex> saveDex_;
+    std::optional<PokedexGameScope> gameScope_;
     ProgressAvailability saveAvailability_ = ProgressAvailability::Unsupported;
 };
 }

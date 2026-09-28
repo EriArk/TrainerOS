@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QVariantMap>
 #include "PracticeController.h"
+#include "LinkController.h"
 
 namespace trainer {
 // Read-only Party scene. Practice and Link retain their separate capability gates.
@@ -19,13 +20,16 @@ class CenterActivities final : public QObject {
     Q_PROPERTY(int reactionSerial READ reactionSerial NOTIFY changed)
     Q_PROPERTY(QString gesture READ gesture NOTIFY changed)
     Q_PROPERTY(trainer::PracticeController* practice READ practice CONSTANT)
+    Q_PROPERTY(trainer::LinkController* link READ link CONSTANT)
 public:
     explicit CenterActivities(bool sample, QObject* parent = nullptr);
     PracticeController* practice() {return &practice_;}
+    LinkController* link() {return &link_;}
+    const LinkController* link() const {return &link_;}
     const PracticeController* practice() const {return &practice_;}
     QString route() const { return route_; }
     QString stage() const { return stage_; }
-    int focusIndex() const { return route_ == "practice" ? practice_.focusIndex() : route_ == "menu" ? menu_ : actor_; }
+    int focusIndex() const { return route_ == "link" ? link_.focusIndex() : route_ == "practice" ? practice_.focusIndex() : route_ == "menu" ? menu_ : actor_; }
     bool sample() const { return sample_; }
     QString reaction() const { return reaction_; }
     QVariantMap page() const;
@@ -54,5 +58,6 @@ private:
     QString source_, unavailable_, gesture_;
     int reactionSerial_ = 0;
     PracticeController practice_;
+    LinkController link_;
 };
 }

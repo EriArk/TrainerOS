@@ -163,6 +163,28 @@
         "device"
       ],
       "details": "../EMERALD_PRACTICE.md"
+    },
+    "link-trade": {
+      "state": "partial",
+      "evidence": [
+        "source-research",
+        "synthetic",
+        "private-copy",
+        "allowed-delta",
+        "device",
+        "normal-game",
+        "reconnect"
+      ],
+      "details": "../EMERALD_LINK.md"
+    },
+    "pokedex-scope": {
+      "state": "integrated",
+      "evidence": [
+        "source-research",
+        "synthetic",
+        "device"
+      ],
+      "details": "../EMERALD_LINK.md"
     }
   },
   "unknown": [

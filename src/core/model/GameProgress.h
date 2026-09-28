@@ -8,6 +8,14 @@
 #include "JourneySnapshot.h"
 
 namespace trainer {
+// Game-adapter reference capability, independent of whether a save exists.
+// Absent means the full reference catalogue remains available.
+struct PokedexGameScope {
+    QString family;
+    int nationalLimit=0;
+    QHash<int,QStringList> forms,types;
+    QHash<int,QList<int>> stats;
+};
 enum class ProgressAvailability { Unsupported, Checking, Available, Missing, Unreadable };
 // National species flags, never individual/form ownership or manual journal data.
 struct SavePokedex {
@@ -22,6 +30,7 @@ struct SavePokedex {
 // One observation of the ordinary in-game save, never an emulator state or an
 // account achievement. External progress does not modify the personal journal.
 struct GameProgress {
+    std::optional<PokedexGameScope> pokedexScope;
     ProgressAvailability availability = ProgressAvailability::Unsupported;
     std::optional<int> badgeMask, caught;
     QString provider, contentRevision, saveRevision, message, badgeSet, contextRevision;
