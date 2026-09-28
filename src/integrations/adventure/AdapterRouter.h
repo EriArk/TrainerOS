@@ -29,6 +29,20 @@ public:
             if (record.adventure.adapterId != "unconfigured") return;
         }
     }
+    QString setupIssue(const AdventureRegistration& record) const override {
+        if (const auto* adapter = find(record.adventure)) return adapter->setupIssue(record);
+        if (record.adventure.adapterId != "unconfigured")
+            return "The selected play setup is unavailable. Your custom settings have been kept.";
+        for (const auto* adapter : adapters_) {
+            const auto issue = adapter->setupIssue(record);
+            if (!issue.isEmpty()) return issue;
+        }
+        return AdventureAdapter::setupIssue(record);
+    }
+    QString verifyInstallation(const AdventureRegistration& record) const override {
+        if(const auto* adapter=find(record.adventure))return adapter->verifyInstallation(record);
+        return setupIssue(record);
+    }
 private:
     AdventureAdapter* find(const Adventure& a) const {
         for (auto* adapter : adapters_) if (adapter->id() == a.adapterId) return adapter;

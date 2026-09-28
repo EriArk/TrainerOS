@@ -4,6 +4,15 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-28 play-setup recovery:** installed games that cannot launch now open
+a contextual preparation popup from either Worlds wheel or Home. Its explicit
+worker recheck verifies the file and configured runtime, then can attach an
+unconfigured game to an already prepared route without changing its identity.
+Explicit/custom routes are preserved; unavailable catalogue editions still open
+the file picker. [Bounded scope](ROM_PLATFORMS.md#contextual-play-setup-recovery--2026-09-28).
+Native/Flatpak autodiscovery, new prerequisite installation, live configuration
+reload and repeatable update preservation remain next in the startup lane.
+
 **2026-09-28 discovery correction:** existing-World registration is idempotent
 at the durable/cache boundaries; annotated DS names recognize DSi Enhanced,
 and new file identities distinguish different storage roots with equal relative

@@ -78,6 +78,36 @@ RetroArchInstallation RetroArchInstallation::load(const QString& filename) {
 }
 RetroArchAdapter::RetroArchAdapter(LibraryRepository& repository, RetroArchInstallation installation)
     : repository_(repository), installation_(std::move(installation)) {}
+QString RetroArchAdapter::setupIssue(const AdventureRegistration& record) const {
+    const auto core = romCore(record.adventure.platformId);
+    if (core.isEmpty()) return {};
+    if (installation_.program.isEmpty())
+        return "Emulator setup is missing. Prepare it in Desktop Mode, then reopen TrainerOS.";
+    if (!installation_.cores.contains(core))
+        return "The emulator for this platform is missing. Restore it in Desktop Mode, then reopen TrainerOS.";
+    if (!contentRoute(record.adventure.platformId, core, QFileInfo(record.contentPath).suffix().toLower()))
+        return "This file format cannot be opened with this platform's play setup. Choose a supported game file.";
+    if (retroarch::discPlatform(record.adventure.platformId) && !installation_.readyDiscPlatforms.contains(record.adventure.platformId))
+        return "This platform's BIOS files are missing or have not been verified. Restore play setup in Desktop Mode, then reopen TrainerOS.";
+    return "Play setup is available. Check again to connect this game.";
+}
+QString RetroArchAdapter::verifyInstallation(const AdventureRegistration& record) const {
+    const auto core=record.integrationConfig.value("core").toString();
+    if(core.isEmpty() || core!=romCore(record.adventure.platformId) || !installation_.cores.contains(core))return setupIssue(record);
+    const QFileInfo program(installation_.program),config(installation_.configFile),coreFile(installation_.cores.value(core));
+    if(!program.isFile() || !program.isExecutable() || !config.isFile() || !config.isReadable() || !coreFile.isFile() || !coreFile.isReadable())
+        return "Emulator files are missing or unreadable. Restore play setup in Desktop Mode, then check again.";
+    if(!installation_.runtimeFile.isEmpty() && (!QFileInfo(installation_.runtimeFile).isFile() || !QFileInfo(installation_.runtimeFile).isExecutable()))
+        return "The selected emulator is unavailable. Restore it in Desktop Mode, then check again.";
+    if(retroarch::discPlatform(record.adventure.platformId)) {
+        const std::atomic_bool cancel{false};
+        if(!retroarch::verifiedDiscFirmware(installation_,record.adventure.platformId,cancel))
+            return "This platform's BIOS files changed or are missing. Restore the verified files before playing.";
+    }
+    if(core=="mgba" && installation_.saves && !installation_.saveBackups)
+        return "This platform's save setup needs verification before opening.";
+    return {};
+}
 void RetroArchAdapter::prepareInstallation(AdventureRegistration& record) const {
     auto& a = record.adventure;
     if (a.adapterId != "unconfigured" && a.adapterId != id()) return;

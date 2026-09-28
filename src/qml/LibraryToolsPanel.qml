@@ -8,7 +8,8 @@ Item {
     Rectangle { anchors.fill: parent; color: "#660d2525" }
     TapHandler { onTapped: {} }
     Rectangle {
-        anchors.centerIn: parent; width: tools.route==="properties" ? 660 : 480
+        anchors.centerIn: parent; width: tools.route==="properties" ? 660 : tools.route==="play-setup" ? 580 : 480
+        objectName: "library-tools-surface"
         height: Math.min(parent.height-24, header.implicitHeight+(body.text.length?body.implicitHeight:0)+list.height+(error.text.length?error.implicitHeight:0)+44)
         radius: 18; color: "#e8edda"; border.color: "#35544f"; border.width: 3
         Rectangle { x: 3; y: 3; width: parent.width-6; height: parent.height-6; radius: 15; color: "transparent"; border.color: "#ffffff"; opacity: 0.6 }
@@ -17,7 +18,7 @@ Item {
             Text { id: header; width: parent.width; text: root.tools.title; textFormat: Text.PlainText; font.family: Theme.displayTypeface.name; font.pixelSize: 26; font.bold: true; color: Theme.ink; elide: Text.ElideRight }
             Text { id: body; width: parent.width; visible: text.length>0; text: root.tools.detail; textFormat: Text.PlainText; font.pixelSize: 16; color: Theme.muted; wrapMode: Text.Wrap; maximumLineCount: tools.route==="properties" ? 3 : 7; elide: Text.ElideMiddle }
             ListView {
-                id: list; width: parent.width; height: Math.min(232,contentHeight); clip: true; spacing: 6
+                id: list; width: parent.width; height: Math.min(232,contentHeight+(root.tools.route==="play-setup"?6:0)); clip: true; spacing: 6
                 interactive: false; keyNavigationEnabled: false
                 model: root.tools.rows; currentIndex: root.tools.focusIndex
                 function reveal() {if(count)positionViewAtIndex(currentIndex,ListView.Contain)}
@@ -33,7 +34,7 @@ Item {
                     onActivated: root.shell.activate(index)
                 }
             }
-            Text { id: error; width: parent.width; visible: text.length>0; text: root.tools.busy?"Saving…":root.tools.error; textFormat: Text.PlainText; font.pixelSize: 16; color: "#803724"; wrapMode: Text.WordWrap }
+            Text { id: error; width: parent.width; visible: text.length>0; text: root.tools.busy?(tools.route==="play-setup"?"Checking…":"Saving…"):root.tools.error; textFormat: Text.PlainText; font.pixelSize: 16; color: "#803724"; wrapMode: Text.WordWrap }
         }
     }
 }

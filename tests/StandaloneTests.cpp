@@ -3,6 +3,7 @@
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "core/storage/LocalStateStore.h"
 #include "core/navigation/AdventureLaunchController.h"
+#include "features/library/LibraryToolsController.h"
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
@@ -26,6 +27,46 @@ class StandaloneTests final : public QObject {
         QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly)); QCOMPARE(file.write(data), data.size());
     }
 private slots:
+    void playSetupRepairsBindingWithoutChangingAnExplicitRoute() {
+        QTemporaryDir dir;
+        LocalStateStore store(dir.filePath("data"));store.open();QTRY_VERIFY(store.ready());
+        AdventureRegistration record;record.adventure.id="setup-fixture";record.adventure.worldId="sinnoh";
+        record.adventure.title="Setup fixture";record.adventure.platformId="nds";record.adventure.adapterId="unconfigured";
+        record.contentPath=dir.filePath("fixture.nds");write(record.contentPath,"Original content-free fixture");
+        bool saved=false;store.saveAdventureAsync(record,this,[&](auto r){QVERIFY(r.success);saved=true;});QTRY_VERIFY(saved);
+        StandaloneAdapter ds("melonds",store,{probe(),probe(),{},{"nds"}});AdapterRouter router({&ds});
+        LibraryToolsController tools(store);tools.configurePlaySetup(&router);
+        QSignalSpy play(&tools,&LibraryToolsController::playRequested);
+        tools.beginPlaySetup(record.adventure.id);QCOMPARE(tools.route(),"play-setup");
+        tools.dispatch(Action::Confirm);QVERIFY(tools.busy());tools.dispatch(Action::Back);QVERIFY(tools.isOpen());
+        QTRY_VERIFY(!tools.busy());QVERIFY2(tools.error().isEmpty(),qPrintable(tools.error()));
+        QCOMPARE(store.registration(record.adventure.id)->adventure.adapterId,"melonds");
+        QCOMPARE(store.registration(record.adventure.id)->revision,2);
+        QCOMPARE(tools.rows()[0].toMap()["label"].toString(),"Play");QCOMPARE(play.size(),0);
+        tools.dispatch(Action::Confirm);QCOMPARE(play.size(),1);QVERIFY(!tools.isOpen());
+        tools.beginPlaySetup(record.adventure.id);tools.dispatch(Action::Confirm);QTRY_VERIFY(!tools.busy());
+        QCOMPARE(store.registration(record.adventure.id)->revision,2); // Recheck is idempotent.
+        tools.close();QVERIFY(QFile::remove(record.contentPath));
+        tools.beginPlaySetup(record.adventure.id);tools.dispatch(Action::Confirm);QTRY_VERIFY(!tools.busy());
+        QCOMPARE(tools.rows()[0].toMap()["label"].toString(),"Check again");QVERIFY(tools.detail().contains("missing"));
+        QCOMPARE(store.registration(record.adventure.id)->revision,2);
+        tools.close();write(record.contentPath,"Original content-free fixture");
+        record=*store.registration(record.adventure.id);record.adventure.adapterId="custom";record.integrationConfig={{"keep",true}};
+        saved=false;store.saveAdventureAsync(record,this,[&](auto r){QVERIFY(r.success);saved=true;});QTRY_VERIFY(saved);
+        tools.beginPlaySetup(record.adventure.id);tools.dispatch(Action::Confirm);QTRY_VERIFY(!tools.busy());
+        QCOMPARE(store.registration(record.adventure.id)->adventure.adapterId,"custom");QVERIFY(store.registration(record.adventure.id)->integrationConfig["keep"].toBool());
+        QCOMPARE(tools.rows()[0].toMap()["label"].toString(),"Check again");
+        QSignalSpy choose(&tools,&LibraryToolsController::fileRequested);tools.dispatch(Action::Down);tools.dispatch(Action::Confirm);
+        QCOMPARE(choose.size(),1);QVERIFY(!tools.isOpen());
+    }
+    void setupExplainsMissingCoreFormatAndRuntime() {
+        MockLibraryRepository library;RetroArchAdapter retroarch(library,{probe(),{},"settings",{{"mgba","core"}}});
+        AdventureRegistration r;r.adventure.adapterId="unconfigured";r.adventure.platformId="n64";r.contentPath="/game.z64";
+        QVERIFY(retroarch.setupIssue(r).contains("missing"));
+        r.adventure.platformId="gba";r.contentPath="/game.zip";QVERIFY(retroarch.setupIssue(r).contains("format"));
+        StandaloneAdapter ds("melonds",library,{probe(),"/missing/runtime",{},{"nds"}});
+        r.adventure.platformId="nds";r.contentPath="/game.nds";QVERIFY(ds.verifyInstallation(r).contains("unavailable"));
+    }
     void routingAndAttachmentKeepOtherIntegrationsIntact() {
         MockLibraryRepository library;
         RetroArchAdapter retroarch(library, {probe(), {}, "settings", {{"mgba", "core"}}});

@@ -52,6 +52,8 @@ public:
     AdventureResult launch(const Adventure&) override;
     AdventureResult resume(const Adventure&, const ResumePoint&) override;
     void prepareInstallation(AdventureRegistration&) const override;
+    QString setupIssue(const AdventureRegistration&) const override;
+    QString verifyInstallation(const AdventureRegistration&) const override;
     // The application supplies checkpoint/window/lifecycle coordination.
     std::function<bool(const ProcessCommand&, const QString& adventureId)> requestLaunch;
 private:

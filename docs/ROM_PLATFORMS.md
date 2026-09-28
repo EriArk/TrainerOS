@@ -172,3 +172,42 @@ every earlier roadmap acceptance.
 
 Current installed ARM64 SHA-256:
 `b0b1f608b70cb85e399bd984478ec44fd10958dce9af7f3fcc558f3214773d19`.
+
+## Contextual play-setup recovery — 2026-09-28
+
+An installed game without a usable launch route opens a small popup over the
+current Home or Worlds screen. Missing catalogue editions retain file selection.
+The popup distinguishes missing game files, unavailable runtime/core setup,
+unsupported formats, and the existing Sega CD/Neo Geo CD firmware gates.
+It does not claim arbitrary BIOS/controller readiness or semantic save support.
+
+**Check again** verifies the ROM and known runtime files on a worker. If the
+record is unconfigured and a prepared adapter supports it, the existing guarded
+repository write attaches it while preserving its ID, title, World and history.
+The button becomes **Play** only after the recheck; checking never launches.
+An explicit/custom binding is never silently replaced. Revision/path changes
+abort the repair; repeated checks do not create new records or revisions.
+**Choose game file** opens the existing file editor; **B** returns directly to
+the same wheel/Home. Contextual hints remain in the bottom chassis.
+
+This slice uses the installation snapshot loaded at shell startup. Restoring a
+known missing file can be rechecked immediately; installing a new runtime/core
+or changing integration JSON still requires reopening TrainerOS. Native/Flatpak
+discovery, automatic prerequisite preparation and safe live configuration
+refresh remain open. Emulator settings, firmware, ROMs and saves are not rewritten
+by this popup. Final image defaults and update-preservation gates are unchanged.
+
+Verification: native and ARM64 builds passed; standalone, library, interactions,
+shell and Worlds controller smoke checks passed (5 CTest targets). Final runtime
+file checks also passed the standalone/library rerun. On Flip, actual controller
+events opened the popup, rechecked an unavailable setup and returned to the same
+wheel. In an isolated database, a deliberately unconfigured Kirby Super Star
+Ultra record attached to the existing melonDS installation: ID/title/path were
+unchanged, revision advanced exactly once, and the popup enabled Play. The game
+was not launched by this check. Screenshots were captured on Flip, including
+`play-setup-ready-final.png` in private research storage.
+
+Installed production SHA-256:
+`7f03a7e6963036560407e3a49725c1a98f02594d3874c013329f46d8aced41da`.
+The production database retained all 3 Trainers and 830 registrations and passed
+SQLite quick_check; the pre-install binary/database backup remains private.

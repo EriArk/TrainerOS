@@ -90,7 +90,23 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&multiverse_, &MultiversePresentation::searchRequested, this, [this](const QString& text) {
         textTarget_ = TextTarget::MultiverseSearch; keyboard_.begin("Multiverse · find a title", text, 48);
     });
-    connect(&multiverse_, &MultiversePresentation::setupRequested, this, [this](const QString& id){libraryFromWorlds_=true;service_="library";libraryManager_.beginEdit(id);emit changed();});
+    libraryTools_.configurePlaySetup(&adapter_);
+    const auto setupGame=[this](const QString& id){
+        // Missing catalogue editions still use the file picker. Installed games
+        // need runtime preparation, not a duplicate registration form.
+        if(repository_.registration(id))libraryTools_.beginPlaySetup(id);
+        else {libraryFromWorlds_=true;service_="library";libraryManager_.beginEdit(id);emit changed();}
+    };
+    connect(&multiverse_, &MultiversePresentation::setupRequested, this, setupGame);
+    connect(&worlds_, &WorldsController::setupRequested, this, setupGame);
+    connect(&libraryTools_, &LibraryToolsController::fileRequested, this, [this](const QString& id){
+        libraryFromWorlds_=true;service_="library";libraryManager_.beginEdit(id);emit changed();
+    });
+    connect(&libraryTools_, &LibraryToolsController::playRequested, this, [this](const QString& id){
+        const auto record=repository_.registration(id);
+        if(!record || record->removed || !adapter_.capabilities(record->adventure).launch){showNotice("This game is no longer ready to play.");return;}
+        const auto result=adapter_.launch(record->adventure);if(!result.inProgress)showNotice(result.message);
+    });
     connect(&multiverse_, &MultiversePresentation::messageRequested, this, &ShellController::showNotice);
     connect(&multiverse_, &MultiversePresentation::homeRequested, this, [this] {
         multiverseHome_ = true; goToPage(0);
@@ -150,9 +166,6 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&libraryManager_, &LibraryManagementController::saved, this, &ShellController::refreshLibrary);
     connect(&libraryManager_, &LibraryManagementController::messageRequested, this, [this](const QString& text) { notice_ = text; emit changed(); });
     connect(&libraryManager_, &LibraryManagementController::closeRequested, this, [this] { service_.clear(); if(centerFace())showPokemonFace(pokemonFace_); menuOpen_ = !libraryFromWorlds_; libraryFromWorlds_ = false; emit changed(); });
-    connect(&worlds_, &WorldsController::setupRequested, this, [this](const QString& id) {
-        libraryFromWorlds_ = true; service_ = "library"; libraryManager_.beginEdit(id); emit changed();
-    });
     connect(&libraryManager_, &LibraryManagementController::textRequested, this, [this](const QString& title, const QString& initial, int limit) {
         textTarget_ = TextTarget::Library; keyboard_.begin(title, initial, limit);
     });
@@ -689,7 +702,7 @@ void ShellController::confirm() {
                     emit homeLaunchPressed();const auto result=adapter_.launch(record->adventure);
                     if(!result.inProgress)notice_=result.message;
                 } else {
-                    libraryFromWorlds_=true;service_="library";libraryManager_.beginEdit(record->adventure.id);
+                    libraryTools_.beginPlaySetup(record->adventure.id);
                 }
             }
             return;
@@ -723,7 +736,8 @@ void ShellController::confirm() {
             const auto result = adapter_.launch(*adventure);
             if (!result.inProgress) notice_ = result.message;
         } else if (repository_.editable()) {
-            libraryFromWorlds_ = true; service_ = "library"; libraryManager_.beginEdit(adventure->id);
+            if(repository_.registration(adventure->id))libraryTools_.beginPlaySetup(adventure->id);
+            else {libraryFromWorlds_ = true; service_ = "library"; libraryManager_.beginEdit(adventure->id);}
         } else notice_ = "This Adventure needs play setup.";
     }
     else if (page_ == 3) {

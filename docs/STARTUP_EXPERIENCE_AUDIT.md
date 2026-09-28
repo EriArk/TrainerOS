@@ -192,10 +192,13 @@ development installations, not a finished out-of-box distribution.
   entry and PIN flows, not whole-device onboarding.
 - `BatoceraLibrary.cpp`, `CollectionRepository.cpp`, `SqliteLibrary.cpp`:
   filename identification and the multi-layer World creation/import boundary.
-- `ShellController.cpp`, `LibraryManagementController.cpp`: current setup action
-  opens the registration/file editor rather than platform preparation.
-- `SettingsController.cpp`: real settings alongside unavailable sound/feedback
-  rows; no persistent library-location or whole-device setup flow there.
+- `ShellController.cpp`, `LibraryToolsController.cpp`: installed-game setup now
+  opens a contextual popup with worker recheck and attachment to a prepared route.
+  Missing catalogue editions and explicit file selection retain the editor.
+  New native/Flatpak discovery and prerequisite installation remain open.
+- `SettingsController.cpp`, `LibraryStorageController.cpp`: persistent storage
+  selection/discovery is delivered and reused by the first-run flow; unavailable
+  sound/feedback controls retain their separate acceptance.
 - `AchievementAccountController.cpp`, `RETROACHIEVEMENTS.md`: shell account/read
   flow remains separate from verified emulator earning.
 - README and older sections of PRODUCT_SPEC/UX_NAVIGATION still contain retired

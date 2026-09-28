@@ -62,6 +62,24 @@ bool StandaloneAdapter::supports(const QString& platform, const QString& path) c
     return !installation_.program.isEmpty() && allowedPlatforms(id_).contains(platform)
         && installation_.platforms.contains(platform) && extensions(platform).contains(QFileInfo(path).suffix().toLower());
 }
+QString StandaloneAdapter::setupIssue(const AdventureRegistration& record) const {
+    const auto platform = record.adventure.platformId;
+    if (!allowedPlatforms(id_).contains(platform)) return {};
+    if (installation_.program.isEmpty() || !installation_.platforms.contains(platform)) {
+        // An unconfigured title may have a prepared core route instead.
+        if (record.adventure.adapterId != id_) return {};
+        return "The selected emulator setup is unavailable. Restore it in Desktop Mode, then reopen TrainerOS.";
+    }
+    if (!extensions(platform).contains(QFileInfo(record.contentPath).suffix().toLower()))
+        return "This file format cannot be opened by the selected emulator. Choose a supported game file.";
+    return "Play setup is available. Check again to connect this game.";
+}
+QString StandaloneAdapter::verifyInstallation(const AdventureRegistration& record) const {
+    if(!supports(record.adventure.platformId,record.contentPath))return setupIssue(record);
+    if(!executable(installation_.program) || !executable(installation_.runtimeFile))
+        return "The selected emulator is unavailable. Restore it in Desktop Mode, then check again.";
+    return {};
+}
 void StandaloneAdapter::prepareInstallation(AdventureRegistration& record) const {
     auto& adventure = record.adventure;
     if (adventure.adapterId != "unconfigured" && adventure.adapterId != id_) return;

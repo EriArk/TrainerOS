@@ -29,6 +29,12 @@ public:
     virtual AdventureResult launch(const Adventure&) = 0;
     virtual AdventureResult resume(const Adventure&, const ResumePoint&) = 0;
     virtual void prepareInstallation(AdventureRegistration&) const {}
+    // Cached explanation; inspecting a selected card must never scan storage.
+    virtual QString setupIssue(const AdventureRegistration&) const {
+        return "This platform has no prepared play setup on this device.";
+    }
+    // Explicit worker-only recheck of the selected runtime; no save writes.
+    virtual QString verifyInstallation(const AdventureRegistration&) const { return {}; }
 };
 class UnconfiguredAdventureAdapter final : public AdventureAdapter {
 public:
