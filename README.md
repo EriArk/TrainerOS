@@ -122,17 +122,19 @@ Linux, emulator cores, save paths and desktop tools stay out of the way during n
 
 ## What already works
 
-TrainerOS is still in active development, but it is already running as the main session on a real Retroid Flip 2.
+TrainerOS is still in active development, but it is already running on real **Retroid Flip 2** and **AYN Odin 2** handhelds under ArmadaOS.
+
+The Flip 2 is the original/reference development device. Odin 2 is now the second real hardware target: TrainerOS has its own 1920×1080 Gamescope session there, uses the built-in controller profile, reuses the existing ArmadaOS emulator/Steam environment, and has passed real launch → guarded Home exit/cancel → return flows.
 
 Working pieces include:
 
-- dedicated TrainerOS session on ArmadaOS
-- controller-first navigation and settings
+- dedicated TrainerOS sessions on Retroid Flip 2 and AYN Odin 2
+- controller-first navigation, text entry, Wi-Fi and Bluetooth settings
 - multiple local Trainers
 - Batocera-style ROM folder discovery and gamelist media
 - contextual library rename/move/delete
-- RetroArch, melonDS and Dolphin launch routes
-- guarded game exit and return to TrainerOS
+- RetroArch plus standalone melonDS, Dolphin, PPSSPP and device-specific PS2 launch routes where verified
+- guarded game exit, cancel back into the running game, and return to TrainerOS
 - Pokémon Emerald save-backed Pokédex, Party and Storage
 - living Party on Home and in Playroom
 - protected Emerald healing and purchases
@@ -161,7 +163,9 @@ Drop a supported game into the appropriate folder and TrainerOS can discover it.
 
 ## Where it is going
 
-The finished system is intended to ship as a TrainerOS image based on ArmadaOS, with first-run setup, OTA updates, rollback, portable Trainer backups and support for more handhelds through explicit device profiles.
+The finished system is intended to ship as a TrainerOS image based on ArmadaOS, with first-run setup, OTA updates, rollback and portable Trainer backups.
+
+Retroid Flip 2 and AYN Odin 2 are the current real development devices. More handhelds can be added through explicit device/controller profiles instead of scattering model-specific checks through the UI.
 
 Pokémon is going first because it gives TrainerOS the clearest version of the idea.
 
@@ -185,6 +189,7 @@ ctest --test-dir build/native --output-on-failure
 More detail:
 
 - [Roadmap](docs/ROADMAP.md)
+- [Odin 2 bring-up](docs/ODIN2_BRINGUP.md)
 - [Exact-game adapter knowledge](docs/adapters/README.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Batocera library](docs/BATOCERA_LIBRARY.md)
