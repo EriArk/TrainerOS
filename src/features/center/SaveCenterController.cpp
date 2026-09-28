@@ -18,7 +18,7 @@ void SaveCenterController::configure(SaveBackupService* service) {
         }
     });
 }
-QString SaveCenterController::title() const { return route_=="adventures" || selected_.adventure.id.isEmpty()?"Pokémon Center":selected_.adventure.title; }
+QString SaveCenterController::title() const { return route_=="adventures" || selected_.adventure.id.isEmpty()?"Care Center":selected_.adventure.title; }
 QString SaveCenterController::message() const {
     if(selected_.adventure.id.isEmpty() && !message_.isEmpty())return message_;
     if(busy())return "Checking saves and keeping copies… You can leave this page; the operation will finish.";

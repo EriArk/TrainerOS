@@ -22,6 +22,7 @@ helper = root/'radio-control.py'
 verbs = [kind+'-'+state for kind in ('wifi','bluetooth','airplane') for state in ('on','off')]
 policy = a.user+' ALL=(root) NOPASSWD: '+', '.join(str(helper)+' '+verb for verb in verbs)+'\n'
 policy += a.user+' ALL=(root) NOPASSWD: '+str(root/'network-control.py')+' ""\n'
+policy += a.user+' ALL=(root) NOPASSWD: '+str(root/'nearby-control.py')+' ""\n'
 with tempfile.NamedTemporaryFile() as check:
     check.write(policy.encode()); check.flush()
     subprocess.run(['/usr/sbin/visudo','-cf',check.name],check=True,stdout=subprocess.DEVNULL)
@@ -29,6 +30,7 @@ backup = Path('/var/lib/traineros/radio-backup')
 backup.mkdir(parents=True, exist_ok=True, mode=0o700)
 for destination, data, mode in [(helper, Path(__file__).with_name('radio-control.py').read_bytes(), 0o755),
                                 (root/'network-control.py', Path(__file__).with_name('network-control.py').read_bytes(), 0o755),
+                                (root/'nearby-control.py', Path(__file__).with_name('nearby-control.py').read_bytes(), 0o755),
                                 (Path('/etc/sudoers.d/traineros-radio'), policy.encode(), 0o440)]:
     previous = backup/destination.name
     if destination.exists() and not previous.exists():

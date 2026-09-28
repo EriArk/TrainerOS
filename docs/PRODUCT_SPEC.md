@@ -1,5 +1,10 @@
 # TrainerOS Product Specification
 
+**2026-09-28 presentation/nearby update:** use Companions / Field Guide / Care
+Center for shell-owned section names. [Nearby play](NEARBY_PLAY.md) specifies
+Trainer-named direct discovery, persistent connections and acceptance popovers;
+it supersedes earlier same-router and code-comparison descriptions.
+
 **Owner interaction rule — 2026-09-28:** Batocera platform folders determine
 ordinary ROM launch (`gba` means GBA). One A starts the selected game with its
 prepared emulator. Internal preparation is automatic; no per-title binding,

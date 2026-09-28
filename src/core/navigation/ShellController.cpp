@@ -87,6 +87,13 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&party_, &PartyPresentation::backupsRequested, this, [this]{centerRoute_="backups";showPokemonFace("center");});
     connect(party_.activities(), &CenterActivities::shopsRequested, this, [this]{showPokemonFace("shops");});
     connect(party_.activities()->link(),&LinkController::closeRequested,this,[this]{centerRoute_="clinic";showPokemonFace("center");});
+    connect(party_.activities()->link(),&LinkController::workspaceRequested,this,[this]{
+        // Both Trainers explicitly accepted this activity. Enter its one shared
+        // workspace even though the activity now owns the navigation gate.
+        page_=2;menuOpen_=drawerOpen_=false;service_.clear();
+        centerRoute_="link";showPokemonFace("center");emit changed();
+    });
+    settings_.configureNearby(party_.activities()->link());
     connect(&center_, &SaveCenterController::changed, this, [this] {
         if (center_.confirming()) party_.openSaves();
     });
@@ -178,7 +185,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     });
     connect(&pokedex_, &PokedexController::searchRequested, this, [this](const QString& initial) {
         textTarget_ = TextTarget::PokedexSearch;
-        keyboard_.begin("Pokédex · name or number", initial, 32);
+        keyboard_.begin("Field Guide · name or number", initial, 32);
     });
     connect(&worlds_, &WorldsController::changed, this, &ShellController::changed);
     connect(&worlds_, &WorldsController::searchRequested, this, [this](const QString& initial) {
@@ -274,7 +281,7 @@ bool ShellController::pairedNavigationAvailable() {
 }
 QStringList ShellController::faceNames() const {
     if(page_==0 || page_==1)return {"Pokémon","Multiverse"};
-    if(page_==2)return {"Dex","Party","Boxes","Center","Playroom","Shops"};
+    if(page_==2)return {"Guide","Party","Boxes","Center","Playroom","Shops"};
     if(page_==4)return {"Journey","Hall","RA"};
     return {};
 }
@@ -741,6 +748,9 @@ void ShellController::confirm() {
     }
 }
 void ShellController::dispatch(Action action) {
+    if(party_.activities()->link()->invitationOpen()) {
+        party_.activities()->link()->dispatch(action);return;
+    }
     if(launchPreparation_.busy() || libraryTools_.busy())return;
     if(navigationLocked() && (action==Action::Home || action==Action::PreviousPage || action==Action::NextPage || action==Action::SystemMenu || action==Action::PreviousFace || action==Action::NextFace))return;
     if(action==Action::ContextMenu && canHoldConfirm()) {

@@ -7,6 +7,7 @@
 #include "core/model/SaveBackup.h"
 
 namespace trainer {
+class LinkController;
 class SettingsController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(trainer::LibraryStorageController* storage READ storage CONSTANT)
@@ -27,6 +28,7 @@ class SettingsController final : public QObject {
     Q_PROPERTY(QStringList categories READ categories CONSTANT)
     Q_PROPERTY(QVariantList controls READ controls NOTIFY changed)
 public:
+    void configureNearby(LinkController*);
     ClockController* clock() { return &clock_; }
     const ClockController* clock() const { return &clock_; }
     LibraryStorageController* storage() { return &storage_; }
@@ -42,7 +44,7 @@ public:
     int category() const { return category_; }
     int rowFocus() const { return row_; }
     bool controlsFocused() const { return pane_; }
-    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller", "Library", "Saves", "Connections", "Date & time"}; }
+    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller", "Library", "Saves", "Connections", "Date & time", "Nearby play"}; }
     QVariantList controls() const;
     Q_INVOKABLE void selectCategory(int index, bool enter = true);
     Q_INVOKABLE void activateRow(int index);
@@ -70,6 +72,7 @@ signals:
     void messageRequested(const QString& message);
     void quickAdjustment(int index, trainer::Action action);
 private:
+    LinkController* nearby_ = nullptr;
     ClockController clock_;
     LibraryStorageController storage_;
     SaveBackupService* savePolicy_ = nullptr;

@@ -13,10 +13,14 @@ class LocalLinkPeer final:public QObject {
     Q_OBJECT
 public:
     explicit LocalLinkPeer(QObject* parent=nullptr);
+    ~LocalLinkPeer() override;
     void configure(const QString& id,const QString& name);
     bool open();void close();void disconnectPeer();
     QVariantList peers() const;
     void connectPeer(int index);
+    void connectId(const QString& id,const QString& interface={});
+    bool outgoing() const{return outgoing_;}
+    void setVisible(bool visible){advertising_=visible;}
     void send(const QJsonObject&);
     bool connected() const{return socket_ && socket_->state()==QAbstractSocket::ConnectedState;}
     QString id() const{return id_;}
@@ -30,5 +34,7 @@ private:
     QTcpServer server_;QUdpSocket discovery_;QTimer timer_;
     QTcpSocket* socket_=nullptr;QByteArray buffer_;QString id_,name_;
     QMap<QString,QVariantMap> peers_;
+    bool outgoing_=false;
+    bool advertising_=true;
 };
 }

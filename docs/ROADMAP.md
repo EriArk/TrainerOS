@@ -4,6 +4,15 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-28 direct nearby follow-up:** [Nearby play](NEARBY_PLAY.md) replaces
+same-router/code comparison with Wi-Fi Direct discovery, active Trainer names,
+background invitation popovers and a persistent accepted session. Activity
+invitations require acceptance; ordinary save protection remains. Flip/Odin
+P2P application traffic and Home invitation/decline/accept were verified. The
+search terminal and Companions / Field Guide / Care Center presentation names
+are delivered. Broader radio compatibility, GPU-hang root cause, remaining
+Emerald/native-rule limits and every subsequent RA/system/R1–R18 item stay open.
+
 **2026-09-28 owner Link override:** one substantial Emerald ↔ Emerald nearby
 increment now precedes the remaining RA lane: opt-in local Wi-Fi discovery,
 mutual pairing, a copied-party friendly duel and protected confirmed exchange.

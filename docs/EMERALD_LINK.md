@@ -1,5 +1,10 @@
 # Emerald Link — implementation and evidence
 
+**Current pairing UX:** [Nearby play](NEARBY_PLAY.md) supersedes the same-router,
+both-pages-open and matching-code instructions below. Direct discovery uses
+Trainer names and acceptance popovers. The older proof remains historical;
+the protected transaction/battle engine boundaries below are unchanged.
+
 ## Portrait workspace, Bag and stakes ? 2026-09-28
 
 Link now keeps one activity rail and one working area, with portrait offers and

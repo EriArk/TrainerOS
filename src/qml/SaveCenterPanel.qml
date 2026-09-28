@@ -11,7 +11,7 @@ Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset
         anchors.topMargin: Theme.contentTopInset; clip: true
         anchors.bottomMargin: Theme.panelInset
-        PageHeader { id: centerHeader; compact: true; title: root.center.title; trailing: "Pokémon Center"; subtitle: root.center.message; multilineStatus: true }
+        PageHeader { id: centerHeader; compact: true; title: root.center.title; trailing: "Care Center"; subtitle: root.center.message; multilineStatus: true }
         MountedPanel {
             x: 0; y: centerHeader.height; width: parent.width; height: 320 - y; color: "#d8e5d8"
             ListView {

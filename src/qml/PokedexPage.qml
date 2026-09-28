@@ -11,7 +11,7 @@ Item {
 
     Item {
         anchors.fill: parent
-        PageHeader { id: dexHeader; compact: true; title: "Pokédex"; trailing: root.dex.saveTotals; subtitle: root.dex.saveCaption }
+        PageHeader { id: dexHeader; compact: true; title: "Field Guide"; trailing: root.dex.saveTotals; subtitle: root.dex.saveCaption }
         MountedPanel {
             x: 0; y: dexHeader.height; width: parent.width; height: 62; color: "#c4dcd5"
             Row {

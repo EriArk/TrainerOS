@@ -5,14 +5,14 @@ Item {
     required property var shell
     required property var controller
     readonly property string stage: controller.stage
-    readonly property bool takesFocus: visible && !shell.menuOpen && !shell.drawerOpen && !shell.notice.length
+    readonly property bool takesFocus: visible && !controller.invitationOpen && !shell.menuOpen && !shell.drawerOpen && !shell.notice.length
     readonly property bool arena: controller.mode === "battle" && ["starting","saving","moves","events","waiting","concede","finished"].indexOf(stage) >= 0 && controller.battleStarted
     readonly property bool choosing: stage === "choose" || stage === "stake"
     readonly property bool meeting: ["browse","pair","error"].indexOf(stage) < 0 && !arena
     readonly property var fighters: controller.fighters
     Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset; anchors.topMargin: Theme.contentTopInset
-        PageHeader { id: heading; compact: true; title: root.arena ? "Link Battle" : "Link Counter"; trailing: root.arena ? root.controller.stakeText : root.controller.partner || "Nearby friends" }
+        PageHeader { id: heading; compact: true; title: root.arena ? "Link Battle" : "Nearby play"; trailing: root.arena ? root.controller.stakeText : root.controller.partner || "Together, wherever you are" }
         Rectangle {
             id: desk
             anchors.top: heading.bottom; anchors.bottom: parent.bottom; width: parent.width
@@ -44,10 +44,53 @@ Item {
             Item {
                 x: rail.width + 22; width: parent.width-x-22; height: parent.height
                 visible: !root.arena
-                Text { id: status; y: 12; width: parent.width; text: root.controller.message; font.pixelSize: 17; font.bold: true; color: Theme.ink; wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight }
+                Text { id: status; y: 12; width: parent.width; text: root.stage === "browse" ? "Trainers nearby" : root.controller.message; font.family: Theme.displayFamily; font.pixelSize: 23; font.bold: true; color: Theme.ink; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
+                Item {
+                    id: terminal
+                    anchors.horizontalCenter: parent.horizontalCenter; y: 63; width: 280; height: 195
+                    visible: root.stage === "browse" && !root.controller.rows.length
+                    Rectangle { x: -120; y: 155; width: 520; height: 80; color: "#e7e2c6" }
+                    Repeater { model: 5
+                        Rectangle { required property int index; x: -120+index*104; y: 157; width: 2; height: 78; color: "#d6d2b9" }
+                    }
+                    Rectangle { x: 54; y: 166; width: 184; height: 20; radius: 10; color: "#33466554" }
+                    Rectangle { x: 71; y: 33; width: 144; height: 144; radius: 9; color: "#48776d"; border.width: 3; border.color: "#315a55" }
+                    Rectangle { x: 60; y: 18; width: 160; height: 108; radius: 11; color: "#8cc1b0"; border.width: 4; border.color: "#315a55"
+                        Rectangle { x: 12; y: 12; width: parent.width-24; height: 78; radius: 5; color: "#183e41"
+                            Repeater { model: 3
+                                Rectangle {
+                                    required property int index
+                                    anchors.centerIn: parent; width: 28+index*23; height: width; radius: width/2
+                                    color: "transparent"; border.width: 2; border.color: "#8ce3c4"; opacity: 0.55
+                                    SequentialAnimation on opacity {
+                                        running: terminal.visible && root.takesFocus && root.controller.searching && !Theme.reducedMotion; loops: Animation.Infinite
+                                        PauseAnimation { duration: index*190 }
+                                        NumberAnimation { to: 0.15; duration: 550 }
+                                        NumberAnimation { to: 0.8; duration: 650 }
+                                        PauseAnimation { duration: (2-index)*190 }
+                                    }
+                                }
+                            }
+                            Rectangle { anchors.centerIn: parent; width: 10; height: 10; radius: 5; color: root.controller.searching ? "#ffe58d" : "#70958b" }
+                        }
+                    }
+                    Rectangle { x: 59; y: 127; width: 162; height: 27; radius: 5; color: "#b2d5bd"; border.width: 3; border.color: "#315a55"
+                        Row { x: 17; y: 9; spacing: 9
+                            Repeater { model: ["#f5cb66", "#a3d4e4", "#ec9696", "#a6c771"]
+                                Rectangle { required property string modelData; width: 24; height: 7; color: modelData; radius: 2 }
+                            }
+                        }
+                    }
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 23
+                    width: parent.width; horizontalAlignment: Text.AlignHCenter; textFormat: Text.PlainText
+                    visible: terminal.visible; font.pixelSize: 18; color: Theme.ink
+                    text: !root.controller.visibleNearby ? "Nearby visibility is off" : root.controller.searching ? "Looking for Trainers…" : "Looking on your local network…"
+                }
                 ListView {
                     y: 65; width: parent.width; height: parent.height-y-18; spacing: 12; clip: true
-                    visible: root.stage === "browse"
+                    visible: root.stage === "browse" && root.controller.rows.length > 0
                     model: visible ? root.controller.rows : []; currentIndex: root.controller.focusIndex
                     delegate: CapButton {
                         required property int index; required property var modelData
@@ -58,9 +101,8 @@ Item {
                 }
                 Column {
                     anchors.centerIn: parent; width: parent.width-40; spacing: 22
-                    visible: root.stage === "pair" || root.stage === "error"
-                    Text { width: parent.width; text: root.controller.code; font.family: Theme.brandFamily; font.pixelSize: 58; font.letterSpacing: 5; color: Theme.ink; horizontalAlignment: Text.AlignHCenter }
-                    CapButton { width: parent.width; height: 53; label: root.stage === "pair" ? "Connect" : "Return"; centered: true; selected: root.takesFocus; deferredFocus: true; onActivated: root.controller.activate(0) }
+                    visible: root.stage === "error"
+                    CapButton { width: parent.width; height: 53; label: "Return"; centered: true; selected: root.takesFocus; deferredFocus: true; onActivated: root.controller.activate(0) }
                 }
                 Item {
                     y: 64; width: parent.width; height: parent.height-y-14
@@ -113,7 +155,7 @@ Item {
                     CapButton {
                         anchors.bottom: parent.bottom; width: parent.width; height: 43; centered: true; deferredFocus: true
                         visible: ["review","price","finished"].indexOf(root.stage)>=0
-                        label: root.stage === "price" ? "Offer this amount" : root.stage === "finished" ? "Back to Center" : root.controller.mode === "battle" ? "Ready to battle" : "Confirm " + (root.controller.mode === "sale" ? "sale" : root.controller.mode === "gift" ? "gift" : "trade")
+                        label: root.stage === "price" ? "Offer this amount" : root.stage === "finished" ? "Back to friends" : root.controller.mode === "battle" ? "Ready to battle" : "Confirm " + (root.controller.mode === "sale" ? "sale" : root.controller.mode === "gift" ? "gift" : "trade")
                         selected: root.takesFocus && visible; onActivated: root.controller.activate(0)
                     }
                 }

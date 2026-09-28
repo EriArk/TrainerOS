@@ -1,5 +1,16 @@
 # AGENTS.md — TrainerOS
 
+**Owner nearby/name refinement, 2026-09-28:** consoles advertise the active
+Trainer name, discover each other outside the Link page, and support a direct
+Wi-Fi route without a router. Use one compact Accept/Decline invitation instead
+of code comparison; once paired, either player proposes an activity through
+another invitation. Preserve the connection across page changes and declined
+activities. Keep the search state visually explicit with a center-style terminal.
+See [delivered scope and limits](docs/NEARBY_PLAY.md). Primary companion section
+is now **Companions**, reference browser **Field Guide** (Guide in the face strip),
+and clinic **Care Center**. These presentation names supersede earlier shell
+labels below; preserve actual game/species names and persistent IDs.
+
 **Owner Link UX/stakes clarification, 2026-09-28:** use a persistent portrait-based
 meeting/battle workspace, not a chain of full-screen pages. Team and Bag actions
 stay inside the arena. Exact Emerald pairs may mutually stake real in-game money

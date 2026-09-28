@@ -10,25 +10,38 @@
 #include <QRegularExpression>
 #include <QUuid>
 #include <QSysInfo>
+#include <QSettings>
 #include <algorithm>
 namespace trainer {
 namespace {
 QString digest(const QJsonObject& value){return QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(value).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());}
 QString uuid(){return QUuid::createUuid().toString(QUuid::WithoutBraces);}
 }
+LinkController::~LinkController(){
+    disconnect(&peer_,nullptr,this,nullptr);disconnect(&nearby_,nullptr,this,nullptr);
+    disconnect(&battle_,nullptr,this,nullptr);peer_.close();battle_.cancel();
+}
 LinkController::LinkController(QObject* parent):QObject(parent),peer_(this),battle_(this) {
-    connect(&peer_,&LocalLinkPeer::changed,this,&LinkController::changed);
+    connect(&peer_,&LocalLinkPeer::changed,this,[this]{
+        if(!directPeer_.isEmpty() && !directIncoming_ && !directInterface_.isEmpty())peer_.connectId(directPeer_,directInterface_);
+        emit changed();
+    });
+    connect(&nearby_,&NearbyService::event,this,&LinkController::directEvent);
+    invitationTimer_.setSingleShot(true);invitationTimer_.setInterval(45000);
+    connect(&invitationTimer_,&QTimer::timeout,this,[this]{answerInvitation(false);});
     connect(&peer_,&LocalLinkPeer::error,this,&LinkController::fail);
     connect(&peer_,&LocalLinkPeer::received,this,&LinkController::receive);
     connect(&peer_,&LocalLinkPeer::connectedToPeer,this,[this]{
         nonce_=uuid();peerId_.clear();peerName_.clear();pin_.clear();peerNonce_.clear();
-        accepted_=peerAccepted_=paired_=false;stage_="pair";lastMessage_=QDateTime::currentMSecsSinceEpoch();
-        message_="Compare the code on both consoles";
+        accepted_=peer_.outgoing();peerAccepted_=paired_=false;stage_="pair";lastMessage_=QDateTime::currentMSecsSinceEpoch();
+        message_="Waiting for your friend";invitationTimer_.start();
         send("hello",{{"id",peer_.id()},{"name",peer_.name()},{"trainer",trainerName_},{"nonce",nonce_},{"pending",pending()?journal_["id"]:QJsonValue()}});emit changed();
     });
     connect(&peer_,&LocalLinkPeer::disconnectedFromPeer,this,[this]{
         battle_.cancel();paired_=accepted_=peerAccepted_=false;peerId_.clear();pin_.clear();
-        stage_="browse";message_=pending()?"Trade paused. Reconnect these same consoles to finish.":"Open Link Counter on both consoles on the same Wi-Fi.";
+        stage_="browse";message_=pending()?"Trade paused. Reconnect these same consoles to finish.":"Choose a nearby Trainer";
+        invitationTimer_.stop();inviteId_.clear();inviteMode_.clear();inviteOwner_.clear();
+        if(!directPeer_.isEmpty()){nearby_.request({{"op","disconnect"}});directPeer_.clear();directInterface_.clear();directAccepted_=false;}
         resetChoice();emit changed();
     });
     connect(&battle_,&PracticeSession::changed,this,&LinkController::battleChanged);
@@ -49,26 +62,112 @@ LinkController::LinkController(QObject* parent):QObject(parent),peer_(this),batt
 }
 void LinkController::configure(const QString& root,const QString& id,const QString& name,Backend backend,
         PracticeController::Verifier verify,const QJsonObject& pending) {
-    runtime_=root;backend_=std::move(backend);verify_=std::move(verify);journal_=pending;peer_.configure(id,name);
+    runtime_=root;backend_=std::move(backend);verify_=std::move(verify);journal_=pending;
+    if(trainerName_.isEmpty())trainerName_=name.left(32);
+    peer_.configure(id,trainerName_);visibleNearby_=QSettings().value("nearby/visible",true).toBool();updatePresence();
+}
+void LinkController::setTrainerName(const QString& name) {
+    if(trainerName_==name.left(32))return;trainerName_=name.left(32);
+    peer_.configure(peer_.id(),trainerName_);updatePresence();
+    if(paired_)send("identity",{{"name",trainerName_}});
+}
+void LinkController::setVisibleNearby(bool value) {
+    if(visibleNearby_==value)return;visibleNearby_=value;QSettings().setValue("nearby/visible",value);
+    if(!value && !active())disconnectSession();updatePresence();emit changed();
+}
+void LinkController::setInvitationsAllowed(bool value) {
+    if(invitationsAllowed_==value)return;invitationsAllowed_=value;
+    if(!value && invitationOpen())answerInvitation(false);updatePresence();
+}
+void LinkController::updatePresence() {
+    if(!backend_ || QUuid(peer_.id()).isNull() || trainerName_.isEmpty())return;
+    const bool show=visibleNearby_ && invitationsAllowed_;
+    peer_.setVisible(show);
+    if(show){peer_.open();heartbeat_.start();}else if(!peer_.connected() && !pending())peer_.close();
+    nearby_.configure(peer_.id(),trainerName_,show);
+}
+bool LinkController::invitationOpen() const {
+    return (stage_=="pair" && !peerId_.isEmpty()) || !inviteId_.isEmpty() || (!directPeer_.isEmpty() && !paired_);
+}
+bool LinkController::invitationIncoming() const {
+    if(!inviteId_.isEmpty())return inviteOwner_==peerId_;
+    if(!directPeer_.isEmpty())return directIncoming_ && !directAccepted_;
+    return stage_=="pair" && !accepted_;
+}
+QString LinkController::invitationText() const {
+    const auto name=!directPeer_.isEmpty() && peerName_.isEmpty()?directName_:peerName_;
+    if(!invitationIncoming())return "Waiting for "+name+"...";
+    if(inviteMode_.isEmpty())return name+" invites you to connect";
+    const QString activity=inviteMode_=="battle"?"a battle":inviteMode_=="trade"?"an exchange":inviteMode_=="sale"?"a sale":"a gift";
+    return name+" invites you to "+activity;
+}
+void LinkController::disconnectSession() {
+    if(busy_)return;
+    invitationTimer_.stop();inviteId_.clear();inviteMode_.clear();inviteOwner_.clear();
+    peer_.disconnectPeer();nearby_.request({{"op","disconnect"}});directPeer_.clear();directInterface_.clear();directAccepted_=false;
+    resetChoice();stage_="browse";peerName_.clear();paired_=false;emit changed();
+}
+void LinkController::answerInvitation(bool accept) {
+    if(!invitationOpen())return;
+    if(!inviteId_.isEmpty()) {
+        const auto id=inviteId_,mode=inviteMode_,owner=inviteOwner_;
+        if(accept && owner!=peerId_)return;
+        send(accept?"activity-accept":"activity-cancel",{{"id",id}});
+        invitationTimer_.stop();inviteId_.clear();inviteMode_.clear();inviteOwner_.clear();
+        if(accept){sellerId_=owner;startMode(mode);emit workspaceRequested();}
+        else {stage_="lobby";message_="What shall we do together?";emit changed();}
+        return;
+    }
+    if(!directPeer_.isEmpty() && !peer_.connected()) {
+        if(accept && directIncoming_){directAccepted_=true;nearby_.request({{"op","accept"},{"peer",directPeer_}});emit changed();}
+        else if(!accept)disconnectSession();return;
+    }
+    if(!accept){disconnectSession();return;}
+    accepted_=true;send("accept",{{"code",pin_}});pairReady();emit changed();
+}
+void LinkController::directEvent(const QJsonObject& event) {
+    const auto kind=event["event"].toString();
+    if(kind=="searching")directSearching_=event["active"].toBool();
+    if(kind=="unavailable" || kind=="closed" || kind=="error")directSearching_=false;
+    if(kind=="invite") {
+        if(!invitationsAllowed_ || !visibleNearby_ || busy_ || !mode_.isEmpty() || invitationOpen() || paired_
+            || (pending() && journal_["peer"].toString()!=event["peer"].toString())) {
+            nearby_.request({{"op","disconnect"}});return;
+        }
+        directPeer_=event["peer"].toString();directName_=event["name"].toString();directIncoming_=true;directAccepted_=false;
+        invitationTimer_.start();
+    } else if(kind=="ready" && event["peer"].toString()==directPeer_) {
+        directInterface_=event["interface"].toString();
+        if(!directIncoming_)peer_.connectId(directPeer_,directInterface_);
+    } else if((kind=="closed" || kind=="error") && !directPeer_.isEmpty()) {
+        directPeer_.clear();directInterface_.clear();directAccepted_=false;peer_.disconnectPeer();
+        if(!event["error"].toString().isEmpty())message_=event["error"].toString();
+    }
+    emit changed();
+}
+void LinkController::inviteActivity(const QString& mode) {
+    if(!paired_ || pending() || busy_ || !inviteId_.isEmpty() || !mode_.isEmpty())return;
+    inviteId_=uuid();inviteMode_=mode;inviteOwner_=peer_.id();invitationTimer_.start();
+    send("activity-invite",{{"id",inviteId_},{"mode",mode}});emit changed();
 }
 void LinkController::setObservation(const PracticeSource& source,const GameProgress& progress,const QVariantList& actors) {
-    if(active() && !busy_ && !pending() && !source.trainerId.isEmpty() &&
+    if((active() || paired_) && !busy_ && !pending() && !source.trainerId.isEmpty() &&
         (source.trainerId!=source_.trainerId || source.adventureId!=source_.adventureId))peer_.disconnectPeer();
     // Save-service inspection temporarily emits Checking/Unavailable. It is not
     // a new Party. Actual source verification precedes every action.
-    if(progress.availability==ProgressAvailability::Available && (!active() || stage_=="browse" || stage_=="lobby")) {
+    if(progress.availability==ProgressAvailability::Available && (!active() || stage_=="browse" || stage_=="lobby" || stage_=="finished")) {
         source_=source;progress_=progress;actors_=actors;
     } else if(!active()){source_=source;progress_=progress;actors_=actors;}
 }
 void LinkController::enter() {
     if(!pending())journal_={};
-    open_=true;focus_=0;stage_="browse";
-    message_=pending()?"Trade paused. Reconnect the same consoles to finish.":"Open Link Counter on both consoles on the same Wi-Fi.";
+    open_=true;focus_=0;if(!paired_ && !invitationOpen())stage_="browse";
+    if(stage_=="browse")message_=pending()?"Trade paused. Reconnect the same consoles to finish.":"Choose a nearby Trainer";
     if(!backend_){stage_="error";message_="Link requires an installed Emerald Adventure.";emit changed();return;}
     peer_.open();heartbeat_.start();emit changed();
 }
-void LinkController::leave(){if(busy_)return;playbackTimer_.stop();playback_.reset();open_=false;++generation_;heartbeat_.stop();peer_.close();battle_.cancel();emit changed();}
-void LinkController::send(const QString& type,QJsonObject fields){fields["type"]=type;fields["version"]=1;peer_.send(fields);}
+void LinkController::leave(){if(busy_ || pending() || !mode_.isEmpty())return;open_=false;emit changed();}
+void LinkController::send(const QString& type,QJsonObject fields){fields["type"]=type;fields["version"]=2;peer_.send(fields);}
 void LinkController::fail(const QString& text){playbackTimer_.stop();playback_.reset();message_=text;stage_="error";if(paired_)send("problem",{{"message",text.left(180)}});emit changed();}
 void LinkController::resetChoice(){playbackTimer_.stop();playback_.reset();turnSubmitted_=false;mode_.clear();localChoice_={};remoteChoice_={};remoteJournal_={};transaction_.clear();confirmed_=remoteConfirmed_=false;focus_=0;localMove_=remoteMove_=-1;moveSent_=false;battleState_={};bench_=bag_=recovering_=battleStarting_=false;bagItem_=0;forfeitSide_=-1;collection_=-1;stake_="none";stakeAmount_=1000;}
 void LinkController::verify(std::function<void()> next) {
@@ -154,7 +253,12 @@ QVariantList LinkController::team() const {
     }return out;
 }
 QVariantList LinkController::rows() const {
-    if(stage_=="browse")return peer_.peers();
+    if(stage_=="browse") {
+        auto rows=nearby_.peers();QSet<QString> ids;
+        for(auto& v:rows){auto row=v.toMap();ids.insert(row["id"].toString());row["direct"]=true;row["detail"]="Nearby";v=row;}
+        for(const auto& v:peer_.peers())if(!ids.contains(v.toMap()["id"].toString()))rows.append(v);
+        std::sort(rows.begin(),rows.end(),[](const QVariant& a,const QVariant& b){return a.toMap()["name"].toString()<b.toMap()["name"].toString();});return rows;
+    }
     if(stage_=="lobby")return {QVariantMap{{"name","Friendly battle"},{"detail","Your saved teams · Gen III"}},QVariantMap{{"name","Trade Pokemon"},{"detail","Party and Boxes"}},QVariantMap{{"name","Sell Pokemon"},{"detail","For in-game money"}},QVariantMap{{"name","Give a Pokemon"},{"detail","A gift for your friend"}}};
     if(stage_=="stake" || stage_=="choose" && mode_!="battle")return savedMembers();
     if(stage_=="choose") {
@@ -214,8 +318,8 @@ QString LinkController::turnSummary() const {
     return stage_=="moves"?QString("Choose your action for turn %1").arg(battleTurn()):message_;
 }
 void LinkController::pairReady() {
-    if(!accepted_ || !peerAccepted_ || paired_)return;paired_=true;pin_.clear();
-    if(pending() || !peerPending_.isEmpty()){recover(pending()?journal_["id"].toString():peerPending_);return;}
+    if(!accepted_ || !peerAccepted_ || paired_)return;paired_=true;pin_.clear();invitationTimer_.stop();
+    if(pending() || !peerPending_.isEmpty()){recover(pending()?journal_["id"].toString():peerPending_);emit workspaceRequested();return;}
     stage_="lobby";message_="What shall we do together?";focus_=0;emit changed();
 }
 void LinkController::startMode(const QString& mode) {
@@ -441,27 +545,38 @@ void LinkController::submitMove(int slot) {
     emit changed();
 }
 void LinkController::receive(const QJsonObject& input) {
-    lastMessage_=QDateTime::currentMSecsSinceEpoch();if(input["version"].toInt()!=1){peer_.disconnectPeer();return;}
+    lastMessage_=QDateTime::currentMSecsSinceEpoch();if(input["version"].toInt()!=2){peer_.disconnectPeer();return;}
     const auto type=input["type"].toString();if(type=="ping")return;
     if(type=="hello" && peerId_.isEmpty()) {
         const auto id=input["id"].toString(),nonce=input["nonce"].toString();
         if(QUuid(id).isNull() || QUuid(nonce).isNull() || id==peer_.id() || pending() && journal_["peer"]!=id){peer_.disconnectPeer();return;}
-        peerId_=id;peerNonce_=nonce;peerName_=input["name"].toString().left(48);peerPending_=input["pending"].toString();
-        const auto trainer=input["trainer"].toString().left(32);if(!trainer.isEmpty())peerName_=trainer+" · "+peerName_;
+        if(!invitationsAllowed_ || !visibleNearby_ || (!directPeer_.isEmpty() && directPeer_!=id)){peer_.disconnectPeer();return;}
+        peerId_=id;peerNonce_=nonce;peerName_=input["name"].toString().left(32);peerPending_=input["pending"].toString();
         const auto code=digest({{"a",host()?nonce_:peerNonce_},{"b",host()?peerNonce_:nonce_}}).left(8).toUInt(nullptr,16)%1000000;
-        pin_=QString::number(code).rightJustified(6,'0');emit changed();return;
+        pin_=QString::number(code).rightJustified(6,'0');
+        if(directPeer_==id && directAccepted_)accepted_=true;
+        if(accepted_)send("accept",{{"code",pin_}});emit changed();return;
     }
     if(type=="accept" && !peerId_.isEmpty() && input["code"].toString()==pin_){peerAccepted_=true;pairReady();return;}
     if(!paired_)return;
-    if(type=="problem"){message_=input["message"].toString().left(180);stage_="error";emit changed();return;}
-    if(type=="mode" && !pending() && (stage_=="lobby" || !host() && stage_=="waiting" && mode_.isEmpty()) && QStringList{"trade","battle","sale","gift"}.contains(input["mode"].toString())){
-        // The host resolves simultaneous invitations so the consoles never
-        // select different activities and wait for incompatible proposals.
-        sellerId_=input["seller"].toString();
-        if((input["mode"]=="sale" || input["mode"]=="gift") && sellerId_!=peer_.id() && sellerId_!=peerId_)return;
-        if(host())send("mode",{{"mode",input["mode"]},{"seller",sellerId_}});
-        startMode(input["mode"].toString());return;
+    if(type=="identity"){peerName_=input["name"].toString().left(32);emit changed();return;}
+    if(type=="activity-invite") {
+        const auto id=input["id"].toString(),mode=input["mode"].toString();
+        if(QUuid(id).isNull() || !QStringList{"battle","trade","sale","gift"}.contains(mode))return;
+        if(!invitationsAllowed_ || pending() || busy_ || !mode_.isEmpty() || (!inviteId_.isEmpty() && (inviteOwner_==peerId_ || host()))) {
+            send("activity-cancel",{{"id",id}});return;
+        }
+        if(!inviteId_.isEmpty())send("activity-cancel",{{"id",inviteId_}});
+        inviteId_=id;inviteMode_=mode;inviteOwner_=peerId_;invitationTimer_.start();emit changed();return;
     }
+    if(type=="activity-cancel" && input["id"]==inviteId_ && !inviteId_.isEmpty()) {
+        invitationTimer_.stop();inviteId_.clear();inviteMode_.clear();inviteOwner_.clear();emit changed();return;
+    }
+    if(type=="activity-accept" && input["id"]==inviteId_ && inviteOwner_==peer_.id() && !inviteId_.isEmpty()) {
+        const auto mode=inviteMode_;invitationTimer_.stop();inviteId_.clear();inviteMode_.clear();inviteOwner_.clear();
+        sellerId_=peer_.id();startMode(mode);emit workspaceRequested();return;
+    }
+    if(type=="problem"){message_=input["message"].toString().left(180);stage_="error";emit changed();return;}
     if(type=="rules" && !host() && mode_=="battle" && !pending()) {battleRules(input["stake"].toString(),input["amount"].toInt());return;}
     if(type=="forfeit" && host() && mode_=="battle" && pending()){concede(1);return;}
     if(type=="cancel" && !pending() && !busy_){battle_.cancel();resetChoice();stage_="lobby";message_="Your friend returned to the counter.";emit changed();return;}
@@ -502,12 +617,17 @@ void LinkController::receive(const QJsonObject& input) {
 }
 void LinkController::activate(int index) {
     if(busy_ || stage_=="events")return;
-    if(stage_=="browse"){peer_.connectPeer(index);return;}
-    if(stage_=="pair" && !pin_.isEmpty()){accepted_=true;send("accept",{{"code",pin_}});message_="Waiting for your friend's confirmation";pairReady();return;}
+    if(invitationOpen()){answerInvitation(true);return;}
+    if(stage_=="browse"){
+        const auto options=rows();if(index<0 || index>=options.size())return;const auto row=options[index].toMap();
+        if(row["direct"].toBool()) {
+            directPeer_=row["id"].toString();directName_=row["name"].toString();directIncoming_=false;directAccepted_=true;
+            invitationTimer_.start();nearby_.request({{"op","invite"},{"peer",directPeer_}});emit changed();
+        }else peer_.connectId(row["id"].toString());return;
+    }
     if(stage_=="lobby"){
         const auto mode=QStringList{"battle","trade","sale","gift"}.value(index);if(mode.isEmpty())return;
-        sellerId_=peer_.id();send("mode",{{"mode",mode},{"seller",sellerId_}});
-        if(host())startMode(mode);else {stage_="waiting";message_="Inviting your friend…";emit changed();}return;
+        inviteActivity(mode);return;
     }
     if(stage_=="choose" || stage_=="stake"){choose(index);return;}
     if(stage_=="price"){
@@ -525,11 +645,12 @@ void LinkController::activate(int index) {
     }
     if(stage_=="finished" || stage_=="error") {
         if(pending()){peer_.disconnectPeer();return;}
-        // A fresh observation is required after a trade; leave/re-enter refreshes it.
-        leave();emit closeRequested();
+        battle_.cancel();resetChoice();stage_=paired_?"lobby":"browse";message_="What shall we do together?";emit changed();
     }
 }
 void LinkController::dispatch(Action action) {
+    if(invitationOpen()){if(action==Action::Confirm)answerInvitation(true);else if(action==Action::Back)answerInvitation(false);return;}
+    if(action==Action::Secondary && stage_=="lobby"){disconnectSession();return;}
     if(stage_=="events")return;
     if(!busy_ && stage_=="moves") {
         const auto sides=battleState_["sides"].toArray();
@@ -558,7 +679,7 @@ void LinkController::dispatch(Action action) {
     }
     if(action==Action::Back && !busy_) {
         if(stage_=="concede"){stage_=moveSent_?"waiting":"moves";message_=QString("Turn %1").arg(battleTurn());emit changed();return;}
-        if(stage_=="finished" && !pending()){leave();emit closeRequested();return;}
+        if(stage_=="finished" && !pending()){activate(0);return;}
         if(pending() && mode_=="battle" && journal_["stage"]=="reserved" && peer_.connected()) {
             if(!battleState_.isEmpty()){stage_="concede";message_="Concede? Your friend wins this battle and the agreed stake.";emit changed();return;}
             peer_.disconnectPeer();leave();emit closeRequested();return;

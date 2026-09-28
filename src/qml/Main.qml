@@ -54,7 +54,7 @@ Window {
             x: Theme.brandWidth; y: 0; spacing: Theme.tabSpacing
             z: 1 // Individual chassis-mounted keys; modal surfaces stay above them.
             Repeater {
-                model: ["Home", "Worlds", "Pokémon", "Trainer", "Journey"]
+                model: ["Home", "Worlds", "Companions", "Trainer", "Journey"]
                 delegate: Item {
                     id: tab
                     required property int index
@@ -194,6 +194,7 @@ Window {
             function hint(button, label) { return {button:button, label:label} }
             readonly property var actions: {
                 const h = hint
+                if (shell.party.activities.link.invitationOpen) return shell.party.activities.link.invitationIncoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
                 if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [h("X","Quick controls"),h("←→",shell.focusIndex>=9 ? "Choose" : "Adjust"),h("A",shell.focusIndex>=9 ? "Toggle" : "Select"),h("B","Close")]
                 if (shell.keyboard.open) return [h("X","Case"),h("Y","Symbols"),h("A","Type"),h("B","Cancel")]
@@ -256,6 +257,8 @@ Window {
                     }
                     if (party.section === "activities" && party.activities.route === "link") {
                         const link = party.activities.link
+                        if (link.stage === "browse") return link.rows.length ? [h("A","Connect"),h("B","Back")] : [h("B","Back")]
+                        if (link.stage === "lobby") return [h("X","Disconnect"),h("A","Invite"),h("B","Back")]
                         if (link.stage === "events") return []
                         if (link.stage === "price") return [h("↑↓","Price ±" + link.priceStep),h("←→","Step"),h("A","Offer"),h("B","Cancel")]
                         if (link.stage === "concede") return [h("A","Concede"),h("B","Keep battling")]
@@ -303,7 +306,7 @@ Window {
                         tint: button === "B" ? Theme.pink : button === "X" || button === "←→" ? Theme.blue : button === "Y" ? Theme.yellow : Theme.green
                     }
                 }
-                Hint { button: "Start"; label: "System"; tint: Theme.yellow; visible: !shell.party.moveOpen }
+                Hint { button: "Start"; label: "System"; tint: Theme.yellow; visible: !shell.party.moveOpen && !shell.party.activities.link.invitationOpen }
             }
         }
         LibraryPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "library" }
@@ -351,6 +354,22 @@ Window {
         SystemPanel {
             anchors { left: screen.left; right: parent.right; top: screen.top; bottom: footer.top }
             z: 4; shell: shellController
+        }
+        Item {
+            id: nearbyInvitation
+            objectName: "nearby-invitation"
+            property var link: shell.party.activities.link
+            width: parent.width; height: Theme.footerTop; z: 6
+            visible: link.invitationOpen && !sessionState.blocked && !adventureLaunch.active
+            Rectangle { anchors.fill: parent; color: "#77112323" }
+            MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted=true }
+            Panel {
+                anchors.centerIn: parent; width: 470; height: 225; surface: "#f6f0d7"
+                Text { x: 27; y: 23; text: "NEARBY PLAY"; font.family: Theme.brandFamily; font.pixelSize: 16; color: "#4c8175" }
+                Text { x: 27; y: 56; width: parent.width-54; height: 85; text: nearbyInvitation.link.invitationText; textFormat: Text.PlainText; font.family: Theme.displayFamily; font.pixelSize: 26; color: Theme.ink; wrapMode: Text.WordWrap }
+                CapButton { x: 27; y: 154; width: 200; height: 45; label: "Accept"; centered: true; tint: Theme.green; selected: true; deferredFocus: true; visible: nearbyInvitation.link.invitationIncoming; onActivated: nearbyInvitation.link.answerInvitation(true) }
+                CapButton { x: nearbyInvitation.link.invitationIncoming ? 242 : 135; y: 154; width: 200; height: 45; label: nearbyInvitation.link.invitationIncoming ? "Decline" : "Cancel"; centered: true; tint: Theme.blue; selected: !nearbyInvitation.link.invitationIncoming; deferredFocus: true; onActivated: nearbyInvitation.link.answerInvitation(false) }
+            }
         }
         }
         Item {

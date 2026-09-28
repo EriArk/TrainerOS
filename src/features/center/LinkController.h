@@ -4,6 +4,7 @@
 #include "integrations/practice/PracticeSession.h"
 #include "PracticeController.h"
 #include "BattlePlayback.h"
+#include "platform/network/NearbyService.h"
 #include <QJsonArray>
 namespace trainer {
 class LinkController final:public QObject {
@@ -29,13 +30,30 @@ class LinkController final:public QObject {
     Q_PROPERTY(QVariantList team READ team NOTIFY changed)
     Q_PROPERTY(QVariantList previewTeam READ previewTeam NOTIFY changed)
     Q_PROPERTY(int priceStep READ priceStep NOTIFY changed)
+    Q_PROPERTY(bool invitationOpen READ invitationOpen NOTIFY changed)
+    Q_PROPERTY(bool invitationIncoming READ invitationIncoming NOTIFY changed)
+    Q_PROPERTY(QString invitationText READ invitationText NOTIFY changed)
+    Q_PROPERTY(bool visibleNearby READ visibleNearby WRITE setVisibleNearby NOTIFY changed)
+    Q_PROPERTY(bool connected READ connected NOTIFY changed)
+    Q_PROPERTY(bool searching READ searching NOTIFY changed)
 public:
     using Backend=std::function<void(const QString&,const QJsonObject&,QObject*,std::function<void(QJsonObject)>)>;
     explicit LinkController(QObject* parent=nullptr);
+    ~LinkController() override;
     void configure(const QString& root,const QString& id,const QString& name,Backend,
         PracticeController::Verifier,const QJsonObject& pending);
     void setObservation(const PracticeSource&,const GameProgress&,const QVariantList&);
-    void setTrainerName(const QString& name){trainerName_=name.left(32);}
+    void setTrainerName(const QString& name);
+    void setVisibleNearby(bool);
+    bool visibleNearby() const{return visibleNearby_;}
+    void setInvitationsAllowed(bool);
+    bool invitationOpen() const;
+    bool invitationIncoming() const;
+    QString invitationText() const;
+    bool connected() const{return paired_;}
+    bool searching() const{return directSearching_ && visibleNearby_ && invitationsAllowed_;}
+    Q_INVOKABLE void answerInvitation(bool accept);
+    Q_INVOKABLE void disconnectSession();
     void setArtwork(std::function<QVariantMap(QVariantMap)> resolve){artwork_=std::move(resolve);}
     void enter();void leave();void dispatch(Action);
     Q_INVOKABLE void activate(int);
@@ -54,11 +72,11 @@ public:
     bool isOpen() const{return open_;}
     QVariantList rows() const;QVariantList fighters() const;
     int focusIndex() const{return focus_;}
-    bool active() const{return peer_.connected() || busy_ || pending();}
-    bool navigationBlocked() const{return peer_.connected() || busy_;}
+    bool active() const{return busy_ || pending() || !mode_.isEmpty() || invitationOpen();}
+    bool navigationBlocked() const{return busy_ || pending() || !mode_.isEmpty();}
     bool pending() const{return !journal_.isEmpty() && journal_["stage"]!="complete" && journal_["stage"]!="cancelled";}
 signals:
-    void changed();void closeRequested();void saveChanged();
+    void changed();void closeRequested();void saveChanged();void workspaceRequested();
 private:
     void receive(const QJsonObject&);void send(const QString&,QJsonObject={});
     void fail(const QString&);void pairReady();void startMode(const QString&);
@@ -73,8 +91,13 @@ private:
     void finishBattle(const QJsonObject&);void battleRules(const QString&,int);
     void finishPlayback();void tryBattleTurn();
     void submitMove(int);void concede(int);QVariantList savedMembers() const;
+    void updatePresence();void directEvent(const QJsonObject&);void inviteActivity(const QString&);
     QString battleResult() const;
     LocalLinkPeer peer_;PracticeSession battle_;QTimer heartbeat_;
+    NearbyService nearby_;QTimer invitationTimer_;
+    QString inviteId_,inviteMode_,inviteOwner_,directPeer_,directName_,directInterface_;
+    bool visibleNearby_=true,invitationsAllowed_=true,directIncoming_=false,directAccepted_=false;
+    bool directSearching_=false;
     BattlePlayback playback_;QTimer playbackTimer_;bool turnSubmitted_=false;
     Backend backend_;PracticeController::Verifier verify_;std::function<QVariantMap(QVariantMap)> artwork_;
     PracticeSource source_;GameProgress progress_;QVariantList actors_;

@@ -74,6 +74,8 @@ public:
     TrainerSetupPresentation* trainerSetup() { return &trainerSetup_; }
     void setOnboardingConnections(bool active) { if(onboardingConnections_==active)return; onboardingConnections_=active; emit changed(); }
     TextEntryController* keyboard() { return &keyboard_; }
+    bool canReceiveNearby() { return !menuOpen_ && !drawerOpen_ && !serviceOpen() && notice_.isEmpty()
+        && !localModalOpen() && !keyboard_.isOpen() && !party_.activities()->practice()->running(); }
     TrainerController* trainer() { return &trainer_; }
     WorldsController* worlds() { return &worlds_; }
     MultiversePresentation* multiverse() { return &multiverse_; }

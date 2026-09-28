@@ -83,6 +83,12 @@ BlueZ helper and sudo policy. Run from a trusted root-owned installation source;
 it preserves previous helper/policy copies and does not toggle radios itself.
 See [network delivery and limits](../../docs/DEVICE_NETWORK_PLAN.md).
 
+The same installer includes `nearby-control.py`, a no-argument process-owned
+Wi-Fi Direct helper. It uses volatile client-bound NetworkManager profiles and
+restores discovery identity on exit. Install python3-dbus and PyGObject with
+NetworkManager/wpa_supplicant on the supported image. See
+[Nearby play behavior and proof](../../docs/NEARBY_PLAY.md).
+
 ### Session installation and DS/Dolphin Home (2026-09-28)
 
 The session installer now includes prerequisite checks, canonical helper

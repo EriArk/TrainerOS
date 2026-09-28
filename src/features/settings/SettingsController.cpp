@@ -1,7 +1,11 @@
 #include "SettingsController.h"
+#include "features/center/LinkController.h"
 #include <algorithm>
 
 namespace trainer {
+void SettingsController::configureNearby(LinkController* value) {
+    nearby_=value;connect(value,&LinkController::changed,this,&SettingsController::changed);
+}
 void SettingsController::setLibraryScanState(bool available,bool busy,const QString& result) {
     libraryAvailable_=available;libraryScanning_=busy;
     if(busy)libraryStatus_.clear();
@@ -34,7 +38,7 @@ QVariantList SettingsController::controls() const {
     switch(category_) {
     case 0: return {row("Shell color","theme",theme()),row("Reduced motion","toggle",reducedMotion()?"On":"Off"),row("Brightness","brightness","")};
     case 1: return {row("Volume","volume",""),row("Interface sounds","unavailable","Sound packs are not available yet"),row("Background music","unavailable","Music playback is not available yet")};
-    case 2: return {row("Video previews","toggle",videoPreviews()?"On · silent playback":"Off"),row("Adventure pictures","status","Clean exit pictures on Home and in Choose Adventure"),row("Pokedex illustrations","status","Illustrations and animated companions")};
+    case 2: return {row("Video previews","toggle",videoPreviews()?"On · silent playback":"Off"),row("Adventure pictures","status","Clean exit pictures on Home and in Choose Adventure"),row("Field Guide illustrations","status","Illustrations and animated companions")};
     case 3: return {row("Charger vibration","unavailable","Patterns have not been verified on this handheld"),row("Device lighting","unavailable","Lighting support has not been verified")};
     case 4: return {row("Trainer profile","action","Name, emblem and favorite"),row("RetroAchievements","action","Manage your account"), trainersAvailable_ ? row("Trainers","action","Choose a player or create a Trainer") : row("Separate Trainers & PIN","unavailable","Not available yet"),row("Trainer PIN",trainersAvailable_?"action":"unavailable","Set, change or remove your PIN"),row("Family code",trainersAvailable_?"action":"unavailable","A parent can reset forgotten PINs")};
     case 5: return {row("Refresh status","action",""),row("Restart","action",""),row("Power off","action","")};
@@ -50,6 +54,7 @@ QVariantList SettingsController::controls() const {
     }
     case 9: return {row("Read-only saves",savePolicy_?"toggle":"unavailable",readOnlySaves()?"On - reading and backups only":"Off - allow confirmed save changes")};
     case 10: return {}; // NetworkController owns the inline connections pane.
+    case 12: return {row("Visible to nearby Trainers",nearby_?"toggle":"unavailable",nearby_ && nearby_->visibleNearby()?"On":"Off")};
     default: return {};
     }
 }
@@ -81,6 +86,7 @@ void SettingsController::activateRow(int index) {
         saving_=true;error_.clear();
         savePolicy_->setReadOnly(!readOnlySaves(),this,[this](const QString& error){saving_=false;error_=error;emit changed();});
     }
+    else if(category_==12 && nearby_)nearby_->setVisibleNearby(!nearby_->visibleNearby());
     emit changed();
 }
 void SettingsController::cycleTheme(int direction) {

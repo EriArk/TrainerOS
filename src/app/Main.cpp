@@ -427,8 +427,7 @@ int main(int argc, char* argv[]) {
                     if(!file.open(QIODevice::WriteOnly) || file.write(deviceId.toUtf8())<0 || !file.commit())deviceId.clear();
                 }
                 auto* link=shell.party()->activities()->link();
-                QString linkName=QSysInfo::machineHostName();QFile model("/proc/device-tree/model");
-                if(model.open(QIODevice::ReadOnly)){const auto name=QString::fromUtf8(model.read(200)).remove(QChar(0)).trimmed();if(!name.isEmpty())linkName=name.left(48);}
+                const QString linkName=shell.trainer()->profile().value("name").toString();
                 link->configure(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/practice/emerald-v1",
                     deviceId,linkName,[&,service=saveBackups.get()](const QString& op,const QJsonObject& args,QObject* receiver,std::function<void(QJsonObject)> done){
                         const auto record=activeLibrary.registration(args["adventure"].toString());
@@ -436,6 +435,14 @@ int main(int argc, char* argv[]) {
                         service->linkOperation(*record,op,args,receiver,std::move(done));
                     },verifyParty,linkSaveStatus(QDir(stateDirectory).filePath("backups")));
                 updateServiceActivity();
+                const auto nearbyGate=[&,link]{
+                    link->setInvitationsAllowed(!adventureLaunch.active() && !session.blocked()
+                        && shell.canReceiveNearby());
+                };
+                QObject::connect(&adventureLaunch,&AdventureLaunchController::changed,link,nearbyGate);
+                QObject::connect(&session,&SessionState::changed,link,nearbyGate);
+                QObject::connect(&shell,&ShellController::changed,link,nearbyGate);
+                nearbyGate();
                 QObject::connect(link,&LinkController::saveChanged,gameProgress.get(),[&,provider=gameProgress.get()]{
                     if(const auto r=activeLibrary.registration(shell.currentAdventureId()))provider->refresh(*r);
                 });

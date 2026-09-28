@@ -4,6 +4,11 @@
 
 # TrainerOS UX & Navigation
 
+**2026-09-28:** [Nearby play](NEARBY_PLAY.md) adds one global invitation popover
+(A accept, B decline/cancel), without stacking new pages. An accepted activity
+opens the existing Link workspace. Connected idle sessions survive navigation.
+Companions / Field Guide / Care Center supersede older shell section labels.
+
 **Owner launch rule, 2026-09-28:** one short A on a game launches it. The Batocera
 platform folder supplies its platform; the shell selects the prepared emulator
 automatically. No Choose game file, Check again, setup popup or second Play action
