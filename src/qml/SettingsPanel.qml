@@ -29,13 +29,20 @@ Item {
                         onVisibleChanged: if(selected && visible) forceActiveFocus(Qt.OtherFocusReason)
                         Component.onCompleted: if(selected && visible) forceActiveFocus(Qt.OtherFocusReason)
                         Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: modelData; color: Theme.ink; font.pixelSize: 18; font.bold: root.settings.category===index }
-                        TapHandler { enabled: !root.shell.trainer.editing && !root.shell.hall.account.open; onTapped: root.settings.selectCategory(index,true) }
+                        TapHandler { enabled: !root.shell.trainer.editing && !root.shell.hall.account.open && !root.settings.storage.busy; onTapped: root.settings.selectCategory(index,true) }
                     }
                 }
             }
             Item { x: 260; width: parent.width-x-16; height: parent.height
                 ConnectionsPane { anchors.fill: parent; shell: root.shell; visible: root.settings.category===10 }
-                Column { x: 0; y: root.settings.category===5 ? 158 : 13; width: parent.width; spacing: root.settings.category===4 || root.settings.category===5 || root.shell.trainer.editing || root.shell.hall.account.open ? 5 : 12; visible: root.settings.category!==6 && root.settings.category!==10
+                Item {
+                    anchors.fill: parent; visible: root.settings.storage.open
+                    Text { x: 5; y: 13; text: "Game storage"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25 }
+                    Text { x: 5; y: 48; width: parent.width-10; text: "Choose where to look for games. Existing files stay in place."; color: Theme.muted; font.pixelSize: 13; wrapMode: Text.WordWrap }
+                    StorageChoices { x: 0; y: 75; width: parent.width; height: parent.height-y-43; compact: true; flow: root.settings.storage; takesFocus: root.takesFocus && root.settings.controlsFocused }
+                    Text { x: 5; y: parent.height-37; width: parent.width-10; height: 33; text: root.settings.storage.busy ? "Preparing your library…" : root.settings.storage.error || root.settings.storage.rows[root.settings.storage.focusIndex]?.path || ""; textFormat: Text.PlainText; color: root.settings.storage.error.length ? "#853b24" : Theme.muted; font.pixelSize: 12; wrapMode: Text.WrapAnywhere; maximumLineCount: 2; elide: Text.ElideMiddle }
+                }
+                Column { x: 0; y: root.settings.category===5 ? 158 : 13; width: parent.width; spacing: root.settings.category===4 || root.settings.category===5 || root.settings.category===8 || root.shell.trainer.editing || root.shell.hall.account.open ? 5 : 12; visible: root.settings.category!==6 && root.settings.category!==10 && !root.settings.storage.open
                     Repeater { model: root.shell.hall.account.open ? root.shell.hall.account.rows.map(r => ({title: r.label, detail: r.detail, kind: r.enabled ? "action" : "unavailable"})) : root.shell.trainer.editing ? [
                         {title: "Name", kind: "action", detail: root.shell.trainer.draftName || "Choose your name"},
                         {title: "Emblem", kind: "action", detail: root.shell.trainer.draftEmblem},
@@ -45,7 +52,7 @@ Item {
                     ] : root.settings.controls
                         SettingControl {
                             required property int index; required property var modelData
-                            objectName: (root.shell.hall.account.open ? "achievement-account-" : "settings-control-")+index; width: parent.width; height: root.shell.hall.account.open ? 56 : root.shell.trainer.editing ? 44 : root.settings.category===5 ? 32 : root.settings.category===4 ? 44 : 68
+                            objectName: (root.shell.hall.account.open ? "achievement-account-" : "settings-control-")+index; width: parent.width; height: root.shell.hall.account.open ? 56 : root.shell.trainer.editing ? 44 : root.settings.category===5 ? 32 : root.settings.category===4 ? 44 : root.settings.category===8 ? 58 : 68
                             title: root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===0 ? (root.shell.trainer.exists ? "Edit Trainer" : "Create Trainer") : root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "Preview registration & PIN" : modelData.title
                             detail: root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===0 ? (root.shell.trainer.profile.name || "Give your journey a name") : root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "Development preview only" : modelData.detail
                             kind: root.settings.category===4 && !root.shell.trainer.editing && !root.shell.hall.account.open && index===2 && root.shell.sampleLibrary ? "action" : modelData.kind
@@ -81,7 +88,7 @@ Item {
                 }
                 Text {
                     objectName: "settings-status"
-                    visible: root.settings.category!==10
+                    visible: root.settings.category!==10 && !root.settings.storage.open
                     x: 5; y: parent.height-58; width: parent.width-10; height: 52
                     text: root.statusText; textFormat: Text.PlainText
                     font.pixelSize: 14; color: root.localError.length ? "#853b24" : Theme.muted

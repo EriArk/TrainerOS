@@ -55,7 +55,7 @@ private slots:
         settings.setLibraryScanState(true,false);settings.dispatch(Action::Confirm);QCOMPARE(refresh.size(),1);
         settings.setLibraryScanState(true,true);settings.dispatch(Action::Confirm);QCOMPARE(refresh.size(),1);
         settings.dispatch(Action::Back);QVERIFY(!settings.controlsFocused());
-        settings.setLegacyTrashAvailable(true);settings.selectCategory(8);settings.activateRow(2);QCOMPARE(trash.size(),1);
+        settings.setLegacyTrashAvailable(true);settings.selectCategory(8);settings.activateRow(3);QCOMPARE(trash.size(),1);
         settings.setLibraryScanState(true,false,"Library is up to date");
         QCOMPARE(settings.libraryStatus(),QString("Library is up to date"));
     }

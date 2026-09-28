@@ -4,12 +4,19 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-28 setup refinement:** the first-run composition now has a compact
+step route, original illustrated control checks and mounted-storage cards.
+Settings → Library reuses that storage selection, persists the device-wide ROM
+root and starts discovery without restarting. Existing files/history stay in
+place. [Scope and verification](FIRST_RUN.md) retain language/time/account,
+nonstandard path/mount identity, scanner, image and update acceptance.
+
 **2026-09-28 first-run implementation:** [native setup flow](FIRST_RUN.md)
 connects welcome/control checks, optional existing Connections, mounted-library
 selection/folder preparation, real Trainer creation, optional family/PIN and
 Home. Atomic progress/card-draft persistence resumes interrupted setup; existing
 owners bypass the new flow. Language/time-zone controls, inline optional accounts,
-Settings storage reuse, scanner corrections and clean-image/runtime-update
+scanner corrections and clean-image/runtime-update
 acceptance remain open. This does not claim delivery of #70/#71 or bundled
 emulators; the owner requires those defaults in the final Armada-based image.
 

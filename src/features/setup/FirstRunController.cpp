@@ -15,10 +15,10 @@ FirstRunController::~FirstRunController() { if (worker_) { worker_->wait(); dele
 QString FirstRunController::libraryRoot(const QString& directory, const QString& fallback) {
     if(directory.isEmpty())return fallback;
     QFile file(stateFile(directory));
-    if (!file.open(QIODevice::ReadOnly) || file.size() > 32768) return fallback;
+    if (!file.open(QIODevice::ReadOnly) || file.size() > 32768) return readLibraryRoot(directory,fallback);
     const auto value = QJsonDocument::fromJson(file.readAll()).object();
     const auto path = value["libraryRoot"].toString();
-    return value["version"].toInt() == 1 && QDir::isAbsolutePath(path) ? path : fallback;
+    return readLibraryRoot(directory,value["version"].toInt() == 1 && QDir::isAbsolutePath(path) ? path : fallback);
 }
 void FirstRunController::configure(const QString& directory, const QString& root) {
     directory_ = directory; root_ = root; configured_ = !directory.isEmpty();
@@ -82,18 +82,18 @@ void FirstRunController::backFromTrainer() { if (active_ && stage() == "trainer"
 void FirstRunController::closeConnections() { connections_ = false; emit changed(); }
 int FirstRunController::step() const { return std::max(0, int(stages.indexOf(stage()))); }
 QString FirstRunController::title() const {
-    if (stage() == "welcome") return "Welcome to TrainerOS";
-    if (stage() == "controls") return "Make yourself comfortable";
-    if (stage() == "network") return "A little connection";
-    if (stage() == "storage") return "A home for your games";
+    if (stage() == "welcome") return "Hello, Trainer.";
+    if (stage() == "controls") return "Get a feel for it.";
+    if (stage() == "network") return "Stay connected.";
+    if (stage() == "storage") return "Room for adventure.";
     if (stage() == "trainer") return "Meet your Trainer";
-    return "You're ready to explore";
+    return "Make it your journey.";
 }
 QString FirstRunController::description() const {
-    if (stage() == "welcome") return "Your handheld. Your worlds. Your next adventure.";
+    if (stage() == "welcome") return "A few little things, and your next adventure is ready to begin.";
     if (stage() == "controls") return "Try each direction, then the two buttons.";
     if (stage() == "network") return "Connect now, or enjoy your games offline.";
-    if (stage() == "storage") return "Choose where your library lives. Existing games stay in place.";
+    if (stage() == "storage") return "Choose a home for your games.";
     if (stage() == "ready") return "Pick an Adventure in Worlds. Your journey starts on Home.";
     return {};
 }
@@ -106,8 +106,7 @@ QVariantList FirstRunController::rows() const {
     if (stage() == "welcome") add("Let's begin");
     else if (stage() == "network") { add("Wi-Fi", "Find a network"); add("Continue", "Wi-Fi can be set up later"); }
     else if (stage() == "storage") {
-        for (const auto& entry : locations_)
-            add(entry.label, QString::number(entry.available / (1024.0*1024*1024), 'f', 1) + " GB free · " + entry.path);
+        for (const auto& entry : locations_)result.append(libraryLocationRow(entry,root_));
         add("Refresh", "Find connected storage");
     } else if (stage() == "ready") { add("Let's go", "Open Home"); add("Trainer PIN", "Optional"); }
     return result;

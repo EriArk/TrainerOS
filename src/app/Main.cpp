@@ -279,10 +279,21 @@ int main(int argc, char* argv[]) {
         SessionState session(shell, store.get());
         if(personalLibrary && !smoke) {
             session.firstRun()->configure(stateDirectory,libraryRoot);
-            session.firstRun()->useLibraryRoot=[&](const QString& root)->QString {
-                if(!folders.setRoot(root))return "The library is busy. Wait a moment and try again.";
+            const auto applyLibraryRoot=[&](const QString& root)->QString {
+                if(folders.busy() || folders.writing() || store->pending() || store->opening())return "The library is busy. Wait a moment and try again.";
+                const auto error=saveLibraryRoot(stateDirectory,root);
+                if(!error.isEmpty())return error;
+                folders.setRoot(root);
                 shell.libraryManager()->setInitialFolder(root);
+                shell.settings()->storage()->configure(root);
                 return {};
+            };
+            session.firstRun()->useLibraryRoot=applyLibraryRoot;
+            shell.settings()->storage()->configure(libraryRoot);
+            shell.settings()->storage()->apply=[&,applyLibraryRoot](const QString& root)->QString {
+                const auto error=applyLibraryRoot(root);
+                if(error.isEmpty())folders.rescan();
+                return error;
             };
             shell.libraryManager()->setInitialFolder(libraryRoot);
         }
@@ -345,11 +356,12 @@ int main(int argc, char* argv[]) {
             QObject::connect(saveBackups.get(),&SaveBackupService::operationFailed,&session,&SessionState::cancelPendingExit);
         }
         const auto updateServiceActivity = [&] {
-            session.setServiceActive(folders.writing() || deviceService.busy() || shell.network()->busy() || (saveBackups && saveBackups->busy()));
+            session.setServiceActive(folders.writing() || shell.settings()->storage()->busy() || deviceService.busy() || shell.network()->busy() || (saveBackups && saveBackups->busy()));
         };
         QObject::connect(&folders, &BatoceraLibrary::writingChanged, &session, updateServiceActivity);
         QObject::connect(&deviceService, &DeviceService::changed, &session, updateServiceActivity);
         QObject::connect(shell.network(), &NetworkController::changed, &session, updateServiceActivity);
+        QObject::connect(shell.settings()->storage(), &LibraryStorageController::changed, &session, updateServiceActivity);
         if (saveBackups) QObject::connect(saveBackups.get(), &SaveBackupService::busyChanged, &session, updateServiceActivity);
         ProcessService adventureProcess;
         AdventureLaunchController adventureLaunch(adventureProcess);

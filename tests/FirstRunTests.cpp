@@ -23,6 +23,34 @@ QByteArray read(const QString& path) {QFile file(path);if(!file.open(QIODevice::
 class FirstRunTests : public QObject {
     Q_OBJECT
 private slots:
+    void storageSettingSurvivesAndOverridesOldSetupRoot() {
+        QTemporaryDir dir;
+        const auto target=dir.path()+"/new-library";
+        QCOMPARE(saveLibraryRoot(dir.path(),target),QString());
+        QCOMPARE(FirstRunController::libraryRoot(dir.path(),"old-library"),target);
+        QVERIFY(!saveLibraryRoot(dir.path(),"relative/path").isEmpty());
+        QCOMPARE(readLibraryRoot(dir.path(),"fallback"),target);
+        // An unwritable state directory must not report a saved choice.
+        QFile occupied(dir.path()+"/occupied");QVERIFY(occupied.open(QIODevice::WriteOnly));occupied.close();
+        QVERIFY(!saveLibraryRoot(occupied.fileName(),target).isEmpty());
+    }
+    void settingsStorageRetainsChoiceOnFailureAndPreventsBusyExit() {
+        QTemporaryDir dir;LibraryStorageController flow;
+        flow.configure(dir.path()+"/old");
+        QStorageInfo disk(dir.path());
+        const auto target=dir.path()+"/new";
+        flow.locations=[&](const QString&){return QList<LibraryLocation>{{"Card",target,disk.rootPath(),QString::fromUtf8(disk.device()),disk.bytesAvailable()}};};
+        int applied=0;
+        flow.apply=[&](const QString& root){++applied;return saveLibraryRoot(dir.path(),root);};
+        flow.prepare=[](const LibraryLocation&){return QString("Card disconnected");};
+        flow.begin();flow.activate(0);QVERIFY(flow.busy());flow.close();QVERIFY(flow.isOpen());
+        QTRY_VERIFY(!flow.busy());QCOMPARE(applied,0);QVERIFY(flow.isOpen());QVERIFY(!flow.error().isEmpty());
+        QCOMPARE(flow.root(),dir.path()+"/old");
+        flow.prepare=prepareLibraryLocation;flow.activate(0);QTRY_VERIFY(!flow.busy());
+        QCOMPARE(applied,1);QVERIFY(!flow.isOpen());QCOMPARE(flow.root(),target);
+        QCOMPARE(readLibraryRoot(dir.path(),"fallback"),target);QVERIFY(QFileInfo(target+"/gba").isDir());
+        flow.begin();flow.dispatch(Action::Back);QVERIFY(!flow.isOpen());
+    }
     void freshSetupResumesAndKeepsExistingFiles() {
         QTemporaryDir dir;const auto root=dir.path()+"/roms";
         QVERIFY(QDir().mkpath(root+"/gba"));

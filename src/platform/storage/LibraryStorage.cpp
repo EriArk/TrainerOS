@@ -5,6 +5,9 @@
 #include <QStorageInfo>
 #include <QTemporaryFile>
 #include <QSet>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QSaveFile>
 
 namespace trainer {
 QList<LibraryLocation> libraryLocations(const QString& currentRoot) {
@@ -17,7 +20,8 @@ QList<LibraryLocation> libraryLocations(const QString& currentRoot) {
         const auto target = canonical.isEmpty() ? QDir::cleanPath(path) : canonical;
         if (seen.contains(target)) return;
         seen.insert(target);
-        result.append({label, target, disk.rootPath(), QString::fromUtf8(disk.device()), disk.bytesAvailable()});
+        result.append({label, target, disk.rootPath(), QString::fromUtf8(disk.device()), disk.bytesAvailable(), disk.bytesTotal(),
+            disk.rootPath()==QStorageInfo(QDir::homePath()).rootPath()?"internal":"card"});
     };
     if (QFileInfo(currentRoot).isDir()) add("Existing library", currentRoot, currentRoot);
     // A pre-existing SD alias must never be presented as internal memory.
@@ -37,6 +41,30 @@ QList<LibraryLocation> libraryLocations(const QString& currentRoot) {
         add(disk.name().isEmpty() ? "Memory card" : disk.name(), path, mount);
     }
     return result;
+}
+
+QVariantMap libraryLocationRow(const LibraryLocation& location,const QString& currentRoot) {
+    const auto current=QFileInfo(currentRoot).canonicalFilePath();
+    return {{"label",location.label},{"path",location.path},{"kind",location.kind.isEmpty()?"card":location.kind},
+        {"detail",QString::number(location.available/(1024.0*1024*1024),'f',1)+" GB free"},
+        {"total",location.total},{"available",location.available},
+        {"current",location.path==currentRoot || (!current.isEmpty() && location.path==current)}};
+}
+QString readLibraryRoot(const QString& directory,const QString& fallback) {
+    if(directory.isEmpty())return fallback;
+    QFile file(QDir(directory).filePath("library-location.json"));
+    if(!file.open(QIODevice::ReadOnly) || file.size()>32768)return fallback;
+    const auto value=QJsonDocument::fromJson(file.readAll()).object();
+    const auto root=value["root"].toString();
+    return value["version"].toInt()==1 && QDir::isAbsolutePath(root)?root:fallback;
+}
+QString saveLibraryRoot(const QString& directory,const QString& root) {
+    if(directory.isEmpty() || !QDir::isAbsolutePath(root))return "Choose a valid library folder.";
+    QSaveFile file(QDir(directory).filePath("library-location.json"));
+    const auto data=QJsonDocument(QJsonObject{{"version",1},{"root",root}}).toJson(QJsonDocument::Compact);
+    if(!QDir().mkpath(directory) || !file.open(QIODevice::WriteOnly) || file.write(data)!=data.size() || !file.commit())
+        return "Couldn't save your library location. Free some space and try again.";
+    return {};
 }
 
 QString prepareLibraryLocation(const LibraryLocation& location) {

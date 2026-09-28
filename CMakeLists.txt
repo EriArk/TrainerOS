@@ -13,6 +13,7 @@ find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/features/settings/LibraryStorageController.cpp
     src/features/setup/FirstRunController.cpp
     src/platform/storage/LibraryStorage.cpp
     src/integrations/scraper/ScreenScraper.cpp
@@ -254,6 +255,8 @@ qt_add_qml_module(traineros
         src/qml/TrainerSettingsPanel.qml
         src/qml/TrainerSetupPanel.qml
         src/qml/FirstRunPanel.qml
+        src/qml/SetupIllustration.qml
+        src/qml/StorageChoices.qml
         src/qml/SettingControl.qml
         src/qml/SettingsPanel.qml
         src/qml/DevicePanel.qml

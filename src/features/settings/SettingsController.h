@@ -1,4 +1,5 @@
 #pragma once
+#include "LibraryStorageController.h"
 #include "core/input/Action.h"
 #include "core/repository/PreferencesRepository.h"
 #include <QVariantList>
@@ -7,6 +8,7 @@
 namespace trainer {
 class SettingsController final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(trainer::LibraryStorageController* storage READ storage CONSTANT)
     Q_PROPERTY(QString theme READ theme NOTIFY changed)
     Q_PROPERTY(bool worldEditing READ worldEditing NOTIFY changed)
     Q_PROPERTY(bool reducedMotion READ reducedMotion NOTIFY changed)
@@ -23,6 +25,8 @@ class SettingsController final : public QObject {
     Q_PROPERTY(QStringList categories READ categories CONSTANT)
     Q_PROPERTY(QVariantList controls READ controls NOTIFY changed)
 public:
+    LibraryStorageController* storage() { return &storage_; }
+    const LibraryStorageController* storage() const { return &storage_; }
     using QObject::QObject;
     void setRepository(PreferencesRepository* repository) { repository_ = repository; reload(); }
     void reload();
@@ -30,7 +34,7 @@ public:
     bool readOnlySaves() const { return savePolicy_ && savePolicy_->readOnly(); }
     void setTrainersAvailable(bool value) { trainersAvailable_ = value; emit changed(); }
     void setLegacyTrashAvailable(bool value) { if(legacyTrash_==value)return;legacyTrash_=value;if(category_==8)row_=0;emit changed(); }
-    void begin() { category_ = 0; row_ = 0; pane_ = false; emit changed(); }
+    void begin() { storage_.close(); category_ = 0; row_ = 0; pane_ = false; emit changed(); }
     int category() const { return category_; }
     int rowFocus() const { return row_; }
     bool controlsFocused() const { return pane_; }
@@ -62,6 +66,7 @@ signals:
     void messageRequested(const QString& message);
     void quickAdjustment(int index, trainer::Action action);
 private:
+    LibraryStorageController storage_;
     SaveBackupService* savePolicy_ = nullptr;
     PreferencesRepository* repository_ = nullptr;
     ShellPreferences value_;

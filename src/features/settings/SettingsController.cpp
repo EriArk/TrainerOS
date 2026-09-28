@@ -44,6 +44,7 @@ QVariantList SettingsController::controls() const {
         result.append(row(libraryScanning_?"Refreshing library…":"Refresh library",
             libraryAvailable_ && !libraryScanning_?"action":"unavailable",
             libraryScanning_?"Looking for games and updated artwork":libraryAvailable_?"Find copied games and reload artwork":"Connect your game library first"));
+        result.append(row("Game storage",storage_.apply?"action":"unavailable",storage_.root()));
         if(legacyTrash_)result.append(row("Previous game trash","action","Restore games removed by an earlier version"));
         return result;
     }
@@ -53,10 +54,13 @@ QVariantList SettingsController::controls() const {
     }
 }
 void SettingsController::selectCategory(int index, bool enter) {
+    if(storage_.busy())return;
+    storage_.close();
     category_ = std::clamp(index,0,int(categories().size())-1); row_=0; pane_=enter;
     emit changed();
 }
 void SettingsController::activateRow(int index) {
+    if(storage_.isOpen()){storage_.activate(index);return;}
     if(saving_)return;
     pane_=true; row_=std::clamp(index,0,std::max(0,int(controls().size())-1));
     if(category_==0 && row_<2) activate(row_);
@@ -68,7 +72,8 @@ void SettingsController::activateRow(int index) {
     else if(category_==7 && row_==0) emit controllerRequested();
     else if(category_==8 && row_==0) activate(2);
     else if(category_==8 && row_==1 && libraryAvailable_ && !libraryScanning_) emit libraryRefreshRequested();
-    else if(category_==8 && row_==2 && legacyTrash_) emit trashRequested();
+    else if(category_==8 && row_==2) storage_.begin();
+    else if(category_==8 && row_==3 && legacyTrash_) emit trashRequested();
     else if(category_==9 && savePolicy_) {
         saving_=true;error_.clear();
         savePolicy_->setReadOnly(!readOnlySaves(),this,[this](const QString& error){saving_=false;error_=error;emit changed();});
@@ -85,6 +90,7 @@ void SettingsController::cycleTheme(int direction) {
     if(repository_) repository_->savePreferences(candidate,this,completed); else completed({});
 }
 void SettingsController::dispatch(Action action) {
+    if(storage_.isOpen()){storage_.dispatch(action);return;}
     if(action==Action::Back) {
         if(pane_) {pane_=false;emit changed();} else emit closeRequested();
         return;

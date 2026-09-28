@@ -53,6 +53,8 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
       libraryManager_(repo, nullptr, this), libraryTools_(repo,this), settings_(this), device_(this), diagnostics_(this), center_(repo,this), party_(!repo.editable(),this) {
     connect(&network_, &NetworkController::changed,this,&ShellController::changed);
+    connect(settings_.storage(), &LibraryStorageController::changed, &settings_, &SettingsController::changed);
+    connect(settings_.storage(), &LibraryStorageController::changed, this, &ShellController::changed);
     connect(this,&ShellController::changed,this,[this]{network_.setActive(onboardingConnections_ || (service_=="settings" && settings_.category()==10));});
     connect(&settings_,&SettingsController::changed,this,[this]{network_.setActive(onboardingConnections_ || (service_=="settings" && settings_.category()==10));});
     connect(&network_,&NetworkController::backRequested,this,[this]{settings_.selectCategory(10,false);});
@@ -257,7 +259,7 @@ bool ShellController::chooseAdventureAvailable() {
         && !keyboard_.isOpen() && !localModalOpen() && !party_.activities()->practice()->running();
 }
 bool ShellController::navigationLocked() const {
-    return party_.moveOpen() || libraryTools_.busy() || center_.writing() || center_.confirming()
+    return settings_.storage()->busy() || party_.moveOpen() || libraryTools_.busy() || center_.writing() || center_.confirming()
         || (center_.shopsOpen() && center_.shopModal());
 }
 bool ShellController::pairedNavigationAvailable() {
@@ -523,6 +525,7 @@ void ShellController::goToPage(int page) {
     const bool enteringWorlds = page_ != 1 && std::clamp(page, 0, 4) == 1;
     if(page!=page_)party_.activities()->practice()->leave();
     libraryTools_.close();
+    settings_.storage()->close();
     keyboard_.cancel();
     textTarget_ = TextTarget::None;
     pokedex_.cancelTransient();
