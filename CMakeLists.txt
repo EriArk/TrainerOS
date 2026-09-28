@@ -13,6 +13,7 @@ find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/platform/emulation/EmulatorDiscovery.cpp
     src/core/navigation/LaunchPreparation.cpp
     src/features/settings/LibraryStorageController.cpp
     src/features/setup/FirstRunController.cpp

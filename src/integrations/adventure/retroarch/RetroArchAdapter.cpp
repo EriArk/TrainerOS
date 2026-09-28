@@ -35,7 +35,9 @@ RetroArchInstallation RetroArchInstallation::load(const QString& filename) {
     QJsonParseError error;
     const auto document = QJsonDocument::fromJson(file.readAll(), &error);
     if (error.error != QJsonParseError::NoError || !document.isObject()) return {};
-    const auto object = document.object();
+    return fromJson(document.object());
+}
+RetroArchInstallation RetroArchInstallation::fromJson(const QJsonObject& object) {
     if (object.value("version").toInt() != 1) return {};
     RetroArchInstallation result;
     result.program = object.value("program").toString();

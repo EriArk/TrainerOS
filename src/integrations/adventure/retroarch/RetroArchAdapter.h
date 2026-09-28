@@ -42,6 +42,7 @@ struct RetroArchInstallation {
     QHash<QString, QJsonObject> discFirmware;
     QSet<QString> readyDiscPlatforms;
     static RetroArchInstallation load(const QString& filename);
+    static RetroArchInstallation fromJson(const QJsonObject&);
 };
 
 class RetroArchAdapter final : public AdventureAdapter {

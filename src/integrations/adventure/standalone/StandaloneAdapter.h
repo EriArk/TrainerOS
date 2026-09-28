@@ -10,6 +10,7 @@ struct StandaloneInstallation {
     QString configFile;
     bool melonDsSaveBackups = false;
     static StandaloneInstallation load(const QString& filename, const QString& adapterId);
+    static StandaloneInstallation fromJson(const QJsonObject&, const QString& adapterId);
 };
 class StandaloneAdapter final : public AdventureAdapter {
 public:

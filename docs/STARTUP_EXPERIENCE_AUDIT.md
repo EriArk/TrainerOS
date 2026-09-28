@@ -195,7 +195,8 @@ development installations, not a finished out-of-box distribution.
 - `ShellController.cpp`, `LaunchPreparation.cpp`: one A launches using the
   folder-derived platform; missing internal runtime records are prepared
   automatically, never through a per-title setup popup. Missing games/runtimes
-  report errors. Native/Flatpak discovery and prerequisite installation remain open.
+   report errors. [Native/Flatpak discovery](EMULATOR_DISCOVERY.md) is delivered
+   for the existing adapters; prerequisite installation and image/update proof remain open.
 - `SettingsController.cpp`, `LibraryStorageController.cpp`: persistent storage
   selection/discovery is delivered and reused by the first-run flow; unavailable
   sound/feedback controls retain their separate acceptance.

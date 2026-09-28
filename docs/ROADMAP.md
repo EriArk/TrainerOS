@@ -4,14 +4,26 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-28 installed emulator discovery:** [startup preparation](EMULATOR_DISCOVERY.md)
+now discovers native/Flatpak/known AppImage routes for the existing adapters,
+retains explicit configurations and seeds only absent controller/config files.
+Known Flatpak runtime paths follow the current installed deployment in one
+consistent startup snapshot. An isolated Flip library launched DS with one A
+without a manual emulator description; existing configuration hashes matched.
+This does not complete firmware/image installation, live refresh, actual package
+update rollback or uniform standalone Home exit. Those remain in the startup lane,
+followed by first-run Settings, system/recovery and RA earning; every later
+acceptance and deferred Pokémon/Pack Studio work remains unchanged.
+
 **2026-09-28 owner correction:** the play-setup popup from 1c9a798 is rejected
 and removed. A launches the game in one action; its Batocera folder determines
 the platform. Any required internal preparation happens automatically, with no
 per-title file choice/recheck/second Play. Missing content/runtime reports an
 error without opening setup. Existing management and save protections remain.
 See [approach audit](APPROACH_AUDIT_20260928.md); it adds no competing queue.
-Native/Flatpak autodiscovery, new prerequisite installation, live configuration
-reload and repeatable update preservation remain next in the startup lane.
+Native/Flatpak autodiscovery is now delivered for the existing adapters above.
+New prerequisite installation, live configuration reload and actual upstream
+update/rollback acceptance remain in the startup lane.
 
 **2026-09-28 discovery correction:** existing-World registration is idempotent
 at the durable/cache boundaries; annotated DS names recognize DSi Enhanced,

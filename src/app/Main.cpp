@@ -1,4 +1,5 @@
 #include "integrations/achievements/TrainerAchievementProvider.h"
+#include "platform/emulation/EmulatorDiscovery.h"
 #include "core/repository/BatoceraLibrary.h"
 #include "platform/device/VolumeKeys.h"
 #include "core/input/ControllerInput.h"
@@ -211,8 +212,11 @@ int main(int argc, char* argv[]) {
         std::unique_ptr<TrainerAchievementProvider> realAchievements;
         if (personalLibrary && !smoke) realAchievements = std::make_unique<TrainerAchievementProvider>(activeLibrary);
         AdventureAdapter* selectedAdapter = personalLibrary ? static_cast<AdventureAdapter*>(&unconfiguredAdapter) : &adapter;
-        auto retroarchInstallation = personalLibrary && !smoke
-            ? RetroArchInstallation::load(QDir(stateDirectory).filePath("integrations/retroarch.json")) : RetroArchInstallation{};
+        const auto discovered = personalLibrary && !smoke
+            ? prepareEmulators(installedEmulators(stateDirectory, libraryRoot)) : EmulatorDiscovery{};
+        for (const auto& notice : discovered.notices) qWarning().noquote() << "Emulator preparation:" << notice;
+        if (personalLibrary && !smoke) qInfo() << "Emulator integration snapshots:" << discovered.profiles.keys();
+        auto retroarchInstallation = RetroArchInstallation::fromJson(discovered.profiles.value("retroarch"));
         if(personalLibrary && !smoke) {
             retroarchInstallation.saves=std::make_shared<RetroArchSaveSession>();
             retroarchInstallation.lineageRoot=QDir(stateDirectory).filePath("backups");
@@ -223,15 +227,14 @@ int main(int argc, char* argv[]) {
         }
         RetroArchAdapter retroarch(activeLibrary, retroarchInstallation);
         const auto standaloneInstallation = [&](const QString& id) {
-            return personalLibrary && !smoke
-                ? StandaloneInstallation::load(QDir(stateDirectory).filePath("integrations/" + id + ".json"), id) : StandaloneInstallation{};
+            return StandaloneInstallation::fromJson(discovered.profiles.value(id), id);
         };
         const auto melonDsInstallation = standaloneInstallation("melonds");
         StandaloneAdapter melonDs("melonds", activeLibrary, melonDsInstallation);
         StandaloneAdapter dolphin("dolphin", activeLibrary, standaloneInstallation("dolphin"));
         StandaloneAdapter ppsspp("ppsspp", activeLibrary, standaloneInstallation("ppsspp"));
         StandaloneAdapter armsx2("armsx2", activeLibrary, standaloneInstallation("armsx2"));
-        AdapterRouter adapters({&ppsspp, &armsx2, &retroarch, &melonDs, &dolphin});
+        AdapterRouter adapters({&ppsspp, &armsx2, &melonDs, &dolphin, &retroarch});
         if (personalLibrary && !smoke) selectedAdapter = &adapters;
 #ifdef TRAINEROS_UI_TESTS
         ProbeAdventureAdapter probeAdapter;

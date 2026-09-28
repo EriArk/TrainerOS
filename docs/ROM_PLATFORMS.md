@@ -241,3 +241,12 @@ launch, not new save/exit support. See the [approach audit](APPROACH_AUDIT_20260
 Final native/ARM64 builds passed. Installed production SHA-256:
 `9e20910dcff213d3a71a3586bacc033aa3f7c0f39ec4faf7568665a218b53916`.
 Production retained 3 Trainers/830 records and passed SQLite quick_check.
+
+## Automatic installed-emulator preparation — 2026-09-28
+
+The [startup discovery layer](EMULATOR_DISCOVERY.md) now resolves installed
+native/Flatpak/known AppImage routes for the existing adapters, preserves custom
+profiles and seeds absent defaults. DS discovery/one-A launch was proven on Flip;
+this does not promote the theoretical platform catalogue to universal launch,
+controller, firmware or save support. Runtime/input/exit image preparation remains
+separate acceptance; the owner still does not request per-ROM compatibility work.

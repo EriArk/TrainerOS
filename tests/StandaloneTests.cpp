@@ -5,6 +5,7 @@
 #include "core/navigation/AdventureLaunchController.h"
 #include "core/navigation/LaunchPreparation.h"
 #include "core/repository/BatoceraLibrary.h"
+#include "platform/emulation/EmulatorDiscovery.h"
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
@@ -28,6 +29,68 @@ class StandaloneTests final : public QObject {
         QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly)); QCOMPARE(file.write(data), data.size());
     }
 private slots:
+    void discoveryIsAutomaticAndPreservesUserSettingsAndRoute() {
+        QTemporaryDir dir;
+        EmulatorEnvironment env; env.home=dir.path();env.configHome=dir.filePath("config");
+        env.stateDirectory=dir.filePath("state");env.libraryRoot=dir.filePath("roms");
+        env.executables={{"PPSSPPSDL",probe()},{"retroarch",probe()},{"melonDS",probe()}};
+        env.controllerButtons={{"A",1},{"B",0},{"X",3},{"Y",2},{"L",4},{"R",5},
+            {"Start",7},{"Select",6},{"Up",257},{"Down",260},{"Left",264},{"Right",258}};
+        const auto cores=dir.filePath("config/retroarch/cores");QVERIFY(QDir().mkpath(cores));
+        write(cores+"/mgba_libretro.so","Non-executable core fixture");
+        auto found=prepareEmulators(env);QVERIFY(found.profiles.contains("ppsspp"));QVERIFY(found.profiles.contains("retroarch"));
+        auto ra=RetroArchInstallation::fromJson(found.profiles["retroarch"]);
+        QVERIFY(ra.cores.contains("mgba"));QVERIFY(ra.saveBackups);QVERIFY(!ra.saves);
+        QFile config(ra.configFile);QVERIFY(config.open(QIODevice::ReadOnly));const auto original=config.readAll();config.close();
+        QVERIFY(original.contains("input_autodetect_enable"));
+        const auto ds=dir.filePath("config/melonDS/melonDS.toml");QFile dsFile(ds);QVERIFY(dsFile.open(QIODevice::ReadOnly));
+        QVERIFY(dsFile.readAll().contains("A = 1"));dsFile.close();
+        write(ra.configFile,"User settings must stay exactly as written\n");
+        write(ds,"User controller preferences\n");
+        env.executables["PPSSPPSDL"]=dir.filePath("different-runtime");
+        found=prepareEmulators(env);
+        QCOMPARE(found.profiles["ppsspp"]["program"].toString(),probe()); // no silent save-namespace switch
+        QVERIFY(config.open(QIODevice::ReadOnly));QCOMPARE(config.readAll(),"User settings must stay exactly as written\n");
+        QVERIFY(dsFile.open(QIODevice::ReadOnly));QCOMPARE(dsFile.readAll(),"User controller preferences\n");
+        auto psp=StandaloneInstallation::fromJson(found.profiles["ppsspp"],"ppsspp");
+        MockLibraryRepository library;StandaloneAdapter standalone("ppsspp",library,psp);AdapterRouter router({&standalone});
+        AdventureRegistration game;game.adventure.adapterId="unconfigured";game.adventure.platformId="psp";game.contentPath="/roms/psp/Any game.iso";
+        router.prepareInstallation(game);QCOMPARE(game.adventure.adapterId,"ppsspp");
+    }
+    void explicitBrokenIntegrationDoesNotFallBackOrGetOverwritten() {
+        QTemporaryDir dir;EmulatorEnvironment env;env.home=dir.path();env.configHome=dir.filePath("config");env.stateDirectory=dir.filePath("state");
+        env.executables={{"ARMSX2",probe()},{"PPSSPPSDL",probe()}};
+        QVERIFY(QDir().mkpath(dir.filePath("state/integrations")));
+        const auto explicitFile=dir.filePath("state/integrations/armsx2.json");
+        const QJsonObject custom{{"version",1},{"adapter","armsx2"},{"program",probe()},{"runtimeFile",probe()},
+            {"prefixArguments",QJsonArray{"existing-wrapper","--private-settings"}},{"validatedPlatforms",QJsonArray{"ps2"}}};
+        write(explicitFile,QJsonDocument(custom).toJson());
+        const auto broken=dir.filePath("state/integrations/ppsspp.json");write(broken,"broken custom config");
+        auto found=prepareEmulators(env);QCOMPARE(found.profiles["armsx2"],custom);QVERIFY(!found.profiles.contains("ppsspp"));
+        QFile f(broken);QVERIFY(f.open(QIODevice::ReadOnly));QCOMPARE(f.readAll(),"broken custom config");
+        QVERIFY(!QFileInfo::exists(dir.filePath("state/integrations/discovered/armsx2.json")));
+    }
+    void flatpakUpdateRefreshesOnlyRuntimeAndKeepsWrapperAndDataPaths() {
+#ifdef Q_OS_WIN
+        QSKIP("Linux Flatpak executable filenames; run this case on the ARM64 Linux build.");
+#endif
+        QTemporaryDir dir;EmulatorEnvironment env;env.home=dir.path();env.configHome=dir.filePath("config");env.stateDirectory=dir.filePath("state");
+        const auto deployment=dir.filePath("flatpak/app/org.ppsspp.PPSSPP/current/active");
+        QVERIFY(QDir().mkpath(deployment+"/files/bin"));const auto runtime=deployment+"/files/bin/PPSSPPSDL";
+        QVERIFY(QFile::copy(probe(),runtime));
+        env.executables["flatpak"]=probe();env.flatpaks["org.ppsspp.PPSSPP"]=deployment;
+        auto found=prepareEmulators(env);auto profile=found.profiles["ppsspp"];
+        QCOMPARE(profile["runtimeFile"].toString(),runtime);QVERIFY(!StandaloneInstallation::fromJson(profile,"ppsspp").program.isEmpty());
+        profile["program"]=probe();profile["prefixArguments"]=QJsonArray{"controller-bridge","--",probe(),"run","org.ppsspp.PPSSPP"};
+        profile["runtimeFile"]=dir.filePath("flatpak/app/org.ppsspp.PPSSPP/aarch64/stable/removed-version/files/bin/PPSSPPSDL");
+        profile["configFile"]="/keep/all/personal/data";
+        const auto path=dir.filePath("state/integrations/ppsspp.json");const auto bytes=QJsonDocument(profile).toJson();write(path,bytes);
+        found=prepareEmulators(env);auto repaired=found.profiles["ppsspp"];
+        QCOMPARE(repaired["runtimeFile"].toString(),runtime);repaired["runtimeFile"]=profile["runtimeFile"];QCOMPARE(repaired,profile);
+        QFile f(path);QVERIFY(f.open(QIODevice::ReadOnly));QCOMPARE(f.readAll(),bytes); // runtime fix is snapshot-only
+        env.flatpaks.clear();found=prepareEmulators(env);QCOMPARE(found.profiles["ppsspp"],profile);
+        QVERIFY(StandaloneInstallation::fromJson(found.profiles["ppsspp"],"ppsspp").program.isEmpty());
+    }
     void oneLaunchRequestPreparesAndLaunchesWithoutAnotherConfirmation() {
         QTemporaryDir dir;
         LocalStateStore store(dir.filePath("data"));store.open();QTRY_VERIFY(store.ready());

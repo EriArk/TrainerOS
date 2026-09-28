@@ -1,5 +1,10 @@
 # Agent approach audit — 2026-09-28
 
+Follow-up: [installed emulator discovery](EMULATOR_DISCOVERY.md) implements the
+missing startup dependency described below for the existing adapters. The audit
+is retained as the record of the rejected UI and its correction. No replacement
+setup popup was introduced; firmware/image/update/standalone-exit gaps stay open.
+
 This is a correction of agent decisions against the owner's requirements, not
 a replacement roadmap or a claim of a full-device feature audit.
 

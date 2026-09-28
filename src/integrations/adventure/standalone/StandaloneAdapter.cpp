@@ -32,7 +32,10 @@ StandaloneInstallation StandaloneInstallation::load(const QString& filename, con
     QJsonParseError error;
     const auto document = QJsonDocument::fromJson(file.readAll(), &error);
     if (error.error != QJsonParseError::NoError || !document.isObject()) return {};
-    const auto object = document.object();
+    return fromJson(document.object(), adapterId);
+}
+StandaloneInstallation StandaloneInstallation::fromJson(const QJsonObject& object, const QString& adapterId) {
+    if (allowedPlatforms(adapterId).isEmpty()) return {};
     if (object["version"].toInt() != 1 || object["adapter"].toString() != adapterId) return {};
     StandaloneInstallation result;
     result.program = object["program"].toString(); result.runtimeFile = object["runtimeFile"].toString();
