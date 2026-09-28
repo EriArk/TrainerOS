@@ -14,6 +14,10 @@ ROADMAP remains the execution queue; this is a user-journey acceptance map.
 **Follow-up:** [native first-run implementation](FIRST_RUN.md) now connects the
 core welcome/control/network/storage/Trainer/Home journey and durable resume.
 Its refinement adds illustrated setup and persistent storage selection in Settings.
+The subsequent discovery correction reuses existing Worlds, recognizes DSi
+Enhanced filename annotations and separates equal relative names across storage
+roots. Existing classifications are preserved; stable changed-mount identity
+and fresh-image launch/update acceptance remain open.
 The table below records the audit baseline and remaining target acceptance;
 language/time controls, image preparation and update gates are still open.
 

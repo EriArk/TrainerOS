@@ -674,7 +674,8 @@ void LocalStateStore::saveAdventureAsync(const AdventureRegistration& candidate,
     write([record, result](SqliteWorker& worker) { *result = worker.adventure(record); return result->error; },
           [this, record, result, guard = QPointer<QObject>(context), completed](const QString& error) mutable {
         if (error.isEmpty()) {
-            if (record.newWorld) worlds_.append(*record.newWorld);
+            if (record.newWorld && std::none_of(worlds_.cbegin(), worlds_.cend(), [&](const auto& world) { return world.id == record.newWorld->id; }))
+                worlds_.append(*record.newWorld);
             record.contentAvailable = true; // The worker just validated this file before committing.
             for (const auto& world : record.additionalNewWorlds)
                 if (std::none_of(worlds_.begin(), worlds_.end(), [&](const auto& w) { return w.id == world.id; })) worlds_.append(world);

@@ -128,7 +128,9 @@ LibraryWriteResult writeAdventure(QSqlDatabase& db, const AdventureRegistration&
             if (record.newWorld->id.isEmpty() || record.newWorld->id != a.worldId || !validText(record.newWorld->name, 32))
                 error = "Give the new World a valid name.";
             else {
-                q.prepare("INSERT INTO worlds(id,name,sort_order) SELECT ?,?,COALESCE(MAX(sort_order),-1)+1 FROM worlds");
+                // Discovery requests may share a World or arrive before its
+                // earlier write is published. Reuse its identity and owner name.
+                q.prepare("INSERT INTO worlds(id,name,sort_order) SELECT ?,?,COALESCE(MAX(sort_order),-1)+1 FROM worlds WHERE true ON CONFLICT(id) DO NOTHING");
                 q.addBindValue(record.newWorld->id); q.addBindValue(record.newWorld->name.trimmed());
                 if (!q.exec()) error = "This World couldn't be created. Retry from the library.";
             }

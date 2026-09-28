@@ -59,6 +59,9 @@ QString plain(QString value, int limit) {
 }
 QString nameKey(QString value) {
     value=value.normalized(QString::NormalizationForm_D).toCaseFolded();
+    // DSi capability and dump status are not distinct game titles. Keep all
+    // unknown annotations (hacks, translations, patches) in the match key.
+    value.remove(QRegularExpression(R"(\(dsi enhanced\))"));
     value.remove(QRegularExpression("\\p{M}"));
     value.remove(QRegularExpression("^\\d{4}\\s*[-.]\\s*"));
     // Strip only known dump annotations; hack/translation titles remain distinct.
@@ -237,7 +240,9 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
                     entry.record.adventure.domain="pokemon";entry.record.adventure.worldId="unclassified-pokemon";
                 }
                 entry.record.contentPath=path;
-                entry.record.adventure.id="folder-"+QString::fromLatin1(QCryptographicHash::hash(root.relativeFilePath(path).toUtf8(),QCryptographicHash::Sha256).toHex().left(32));
+                // Existing paths keep their stored IDs above. New registrations
+                // must not collide with a different library's same relative name.
+                entry.record.adventure.id="folder-"+QString::fromLatin1(QCryptographicHash::hash(path.toUtf8(),QCryptographicHash::Sha256).toHex().left(32));
                 if(!data.value("name").toString().isEmpty())entry.record.adventure.title=plain(data.value("name").toString(),96);
                 if(entry.record.adventure.catalogueId.isEmpty())entry.record.adventure.description=plain(data.value("desc").toString(),160);
                 if(entry.record.adventure.worldId=="unclassified-pokemon")entry.record.newWorld=World{"unclassified-pokemon","Other Pokémon",{}};

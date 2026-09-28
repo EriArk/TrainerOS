@@ -4,6 +4,16 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-28 discovery correction:** existing-World registration is idempotent
+at the durable/cache boundaries; annotated DS names recognize DSi Enhanced,
+and new file identities distinguish different storage roots with equal relative
+paths. Existing IDs/edits/history remain unchanged. Repeated scan, reconnect and
+metadata preservation checks retain the folder contract. See
+[discovery scope](BATOCERA_LIBRARY.md#discovery-corrections--2026-09-28).
+Next in the startup lane: preinstalled platform readiness/repair, followed by
+repeatable installation/update preservation. Language/time/accounts, stable
+removable-mount identity and every later acceptance remain open.
+
 **2026-09-28 setup refinement:** the first-run composition now has a compact
 step route, original illustrated control checks and mounted-storage cards.
 Settings → Library reuses that storage selection, persists the device-wide ROM
@@ -47,9 +57,9 @@ is not an installed title. Copy the full Emerald test save for later two-device
 work, keeping each device's profiles/history and pre-existing content separate.
 This is test-device preparation, not delivery of multiplayer/Link acceptance.
 See [Odin preparation](ODIN2_BRINGUP.md).
-Library follow-up: make folder discovery's existing-World creation idempotent;
+Library follow-up, now corrected in the discovery increment above:
 Odin preparation exposed six registrations rejected while that World existed.
-The bounded import is complete, but the general scanner correction remains open.
+The bounded import was completed first; general World creation now reuses its ID.
 
 **2026-09-28 owner emulator follow-up:** make platform setup comprehensive in
 advance: one maintained platform/format → preferred installed emulator registry,

@@ -46,6 +46,41 @@ they never silently become an official base edition. Other files enter Multivers
 Folder/name evidence identifies hacks without collapsing their identities.
 Catalogue coverage and matching aliases can expand independently of runtime support.
 
+### Discovery corrections — 2026-09-28
+
+Primary World creation now reuses an existing ID inside the database transaction,
+preserving its name/order; queued imports also publish only one World in memory.
+This closes the existing-World registration failure found during Odin preparation.
+The conflict is limited to the World ID; invalid data and stale Adventure edits
+still fail and roll back. The SQL follows SQLite's
+[targeted UPSERT contract](https://www.sqlite.org/lang_upsert.html).
+
+`(DSi Enhanced)` is recognized as a filename annotation, alongside the existing
+dump number, region, language-list and revision handling. Black/White and their
+sequels match their distinct catalogue entries. Unknown patch/translation labels
+and explicit `romhacks/` locations remain distinct, without fuzzy title matching.
+This affects new discovery; existing owner classifications are not rewritten.
+
+New folder IDs include the canonical absolute file path, avoiding collisions
+when two selected storage roots contain the same relative filename. Previously
+registered paths keep their original IDs, edits and history. Repeated scanning
+does not merge separate physical copies or infer relocation by content hash;
+explicit Move still owns rebinding. Disconnected storage keeps registrations.
+
+Flip verification used an isolated copy of the existing database and four
+non-playable filename fixtures (two annotated official DS names and two unknown
+Pokémon names). They registered under Unova / Other Pokémon, and subsequent
+process restarts kept the same four IDs and revision 1. These fixtures were
+never launched or added to the owner's production library. SQLite integrity
+and foreign keys passed. The production ARM64 build was then installed with
+all 3 Trainers and 830 existing registrations retained; recovery copies remain
+private. SHA-256:
+`3d3dc19d8b541bc7d552d82e2a81a0eb93cad95730138200e04dfec7ffd83e7b`.
+This verifies discovery, not ROM gameplay or physical SD removal/mount changes.
+Native build and all 45 CTest targets passed, including the new queued-World,
+annotated-name and storage-root collision cases, existing metadata/reconnect
+checks and persistent-library rollback/owner-isolation coverage.
+
 Discovery currently covers the cartridge/disc/arcade extensions in
 `BatoceraLibrary.cpp`; existing registered files on other platforms still receive
 metadata. Recognized extensions are not a promise of an installed working emulator.

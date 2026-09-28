@@ -17,6 +17,57 @@ void put(const QString& path,const QByteArray& bytes="Test fixture, not a ROM.")
 class BatoceraTests final : public QObject {
     Q_OBJECT
 private slots:
+    void sharedWorldRequestsPreserveItsNameAndSurviveReopen() {
+        QTemporaryDir dir;const auto state=dir.filePath("state");
+        put(dir.filePath("gba/First.gba"));put(dir.filePath("gba/Second.gba"));
+        {
+            LocalStateStore store(state);store.open();QTRY_VERIFY(store.ready());
+            AdventureRegistration first;first.adventure.id="first";first.adventure.title="First";
+            first.adventure.worldId="shared-island";first.adventure.platformId="gba";first.adventure.adapterId="unconfigured";
+            first.contentPath=dir.filePath("gba/First.gba");first.newWorld=World{"shared-island","Family island",{}};
+            auto second=first;second.adventure.id="second";second.adventure.title="Second";
+            second.contentPath=dir.filePath("gba/Second.gba");second.newWorld->name="Importer default";
+            int completed=0;QStringList errors;
+            const auto done=[&](const auto& result){++completed;if(!result.success)errors.append(result.error);};
+            store.saveAdventureAsync(first,this,done);store.saveAdventureAsync(second,this,done);
+            QTRY_COMPARE(completed,2);QVERIFY2(errors.isEmpty(),qPrintable(errors.join(';')));
+            QCOMPARE(store.registrations().size(),2);QCOMPARE(store.worlds().size(),10);
+            QCOMPARE(store.worlds().last().name,QString("Family island"));
+        }
+        LocalStateStore reopened(state);reopened.open();QTRY_VERIFY(reopened.ready());
+        QCOMPARE(reopened.registrations().size(),2);QCOMPARE(reopened.worlds().size(),10);
+        QCOMPARE(reopened.worlds().last().name,QString("Family island"));
+    }
+    void annotatedDsEditionsMatchWithoutAbsorbingHacks() {
+        QTemporaryDir dir;
+        put(dir.filePath("nds/5585 - Pokemon - Black Version (USA, Europe) (En,Fr,De,Es,It) (DSi Enhanced).nds"));
+        put(dir.filePath("nds/Pokemon White Version 2 (DSi Enhanced) (Rev 1).nds"));
+        put(dir.filePath("nds/Pokemon Black (DSi Enhanced) (Randomized).nds"));
+        put(dir.filePath("nds/romhacks/Pokemon White Version (DSi Enhanced).nds"));
+        const auto scan=scanBatoceraLibrary(dir.path(),{});QCOMPARE(scan.entries.size(),4);
+        QSet<QString> matched;int unknown=0;
+        for(const auto& entry:scan.entries) {
+            const auto& a=entry.record.adventure;
+            if(a.catalogueId.isEmpty()){++unknown;QCOMPARE(a.worldId,QString("unclassified-pokemon"));}
+            else {matched.insert(a.catalogueId);QCOMPARE(a.worldId,QString("unova"));}
+        }
+        QCOMPARE(matched,(QSet<QString>{"black-nds","white2-nds"}));QCOMPARE(unknown,2);
+    }
+    void switchingRootsAndRepeatedScansKeepSeparateFilesAndStableIds() {
+        QTemporaryDir dir;const auto first=dir.filePath("card-one"),second=dir.filePath("card-two");
+        const QString relative="gba/Fixture.gba";put(first+'/'+relative);put(second+'/'+relative);
+        LocalStateStore store(dir.filePath("state"));store.open();QTRY_VERIFY(store.ready());
+        CollectionRepository collection(store);BatoceraLibrary folders(collection,first);
+        QSignalSpy finished(&folders,&BatoceraLibrary::scanFinished);
+        folders.rescan();QTRY_COMPARE(finished.size(),1);QCOMPARE(store.registrations().size(),1);
+        const auto original=store.registrations().first();
+        QVERIFY(folders.setRoot(second));folders.rescan();QTRY_COMPARE(finished.size(),2);
+        QCOMPARE(store.registrations().size(),2);QCOMPARE(finished.last()[0].toInt(),1);
+        QVERIFY(folders.setRoot(first));folders.rescan();QTRY_COMPARE(finished.size(),3);
+        QCOMPARE(store.registrations().size(),2);QCOMPARE(finished.last()[0].toInt(),0);
+        QCOMPARE(store.registration(original.adventure.id)->revision,original.revision);
+        QCOMPARE(store.registration(original.adventure.id)->contentPath,original.contentPath);
+    }
     void discTracksAndPicoCartridgesStayInTheirOwnSystems() {
         QTemporaryDir dir;
         put(dir.filePath("neogeocd/Game.cue"),"FILE \"Game.img\" BINARY\n TRACK 01 MODE1/2352\n");
