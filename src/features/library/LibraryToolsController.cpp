@@ -5,55 +5,6 @@
 #include <algorithm>
 
 namespace trainer {
-LibraryToolsController::~LibraryToolsController() {
-    if(setupWorker_){setupWorker_->wait();delete setupWorker_;}
-}
-void LibraryToolsController::beginPlaySetup(const QString& id) {
-    if(busy_ || !adapter_)return;
-    const auto record=repository_.registration(id);
-    if(!record || record->removed)return;
-    game_=*record;route_="play-setup";focus_=0;error_.clear();playReady_=false;
-    setupMessage_=game_.contentAvailable?adapter_->setupIssue(game_):"The game file is unavailable. Reconnect its storage or choose its current file.";
-    if(setupMessage_.isEmpty())setupMessage_="This platform has no prepared play setup on this device.";
-    emit changed();
-}
-void LibraryToolsController::checkPlaySetup() {
-    if(busy_ || !adapter_ || route_!="play-setup")return;
-    const auto current=repository_.registration(game_.adventure.id);
-    if(!current || current->removed){error_="This game is no longer in the library.";emit changed();return;}
-    game_=*current;busy_=true;playReady_=false;error_.clear();emit changed();
-    auto prepared=game_;
-    // Never replace an explicit route with an alternative emulator.
-    if(prepared.adventure.adapterId=="unconfigured")adapter_->prepareInstallation(prepared);
-    if(setupWorker_){setupWorker_->wait();delete setupWorker_;}
-    setupWorker_=QThread::create([this,record=game_,prepared] {
-        const QFileInfo file(record.contentPath);
-        const bool available=file.isAbsolute() && file.isFile() && file.isReadable() && file.size()>0;
-        const auto issue=available?adapter_->verifyInstallation(prepared):QString();
-        QMetaObject::invokeMethod(this,[this,record,prepared,available,issue] {
-            const auto current=repository_.registration(record.adventure.id);
-            if(!current || current->removed || current->revision!=record.revision || current->contentPath!=record.contentPath){
-                busy_=false;error_="This game changed. Close this window and try again.";emit changed();return;
-            }
-            if(!available){busy_=false;setupMessage_="The game file is missing, empty or unreadable. Reconnect its storage or choose another file.";emit changed();return;}
-            if(!issue.isEmpty()){busy_=false;setupMessage_=issue;emit changed();return;}
-            const auto finish=[this](const QString& error) {
-                busy_=false;error_=error;
-                if(const auto updated=repository_.registration(game_.adventure.id))game_=*updated;
-                playReady_=error.isEmpty() && adapter_->capabilities(game_.adventure).launch;
-                setupMessage_=playReady_?"Ready to play.":adapter_->setupIssue(game_);
-                if(setupMessage_.isEmpty())setupMessage_="This platform has no prepared play setup on this device.";
-                emit changed();
-            };
-            if(prepared.adventure.adapterId!=current->adventure.adapterId || prepared.integrationConfig!=current->integrationConfig)
-                repository_.saveAdventureAsync(prepared,this,[this,finish](const LibraryWriteResult& result){
-                    finish(result.success?QString():result.error);if(result.success)emit saved();
-                });
-            else finish({});
-        },Qt::QueuedConnection);
-    });
-    setupWorker_->start();
-}
 void LibraryToolsController::beginGame(const QString& id) {
     if(busy_ || !repository_.editable())return;
     const auto record=repository_.registration(id);
@@ -84,7 +35,6 @@ QString LibraryToolsController::title() const {
     return game_.adventure.title;
 }
 QString LibraryToolsController::detail() const {
-    if(route_=="play-setup")return platformLabel(game_.adventure.platformId).name+"\n"+setupMessage_;
     if(route_=="folder")return QDir(root_).relativeFilePath(directory_.path)=="."?QFileInfo(root_).fileName():QDir(root_).relativeFilePath(directory_.path);
     if(route_=="move-file")return game_.adventure.title+"\n"+QFileInfo(root_).fileName()+" / "+QDir(root_).relativeFilePath(destination_);
     if(route_=="remove")return game_.adventure.title+"\nROM будет удалён навсегда. Сохранения и история останутся.";
@@ -104,7 +54,6 @@ QString LibraryToolsController::detail() const {
 }
 QVariantList LibraryToolsController::rows() const {
     const auto row=[](const QString& label,bool enabled=true){return QVariantMap{{"label",label},{"enabled",enabled}};};
-    if(route_=="play-setup")return {row(playReady_?"Play":"Check again"),row("Choose game file")};
     if(route_=="game")return {row("Rename"),row("Move",game_.adventure.domain=="pokemon" || (catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty())),row("Удалить"),row("Properties")};
     if(route_=="move-kind")return {row("Platform / folder",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Another World")};
     if(route_=="move-file")return {row("Cancel"),row("Move")};
@@ -145,14 +94,7 @@ void LibraryToolsController::dispatch(Action action) {
 void LibraryToolsController::activate(int index) {
     const auto values=rows();if(busy_ || index<0 || index>=values.size())return;
     focus_=index;if(!values[index].toMap().value("enabled").toBool())return;
-    if(route_=="play-setup") {
-        if(index==0) {
-            if(playReady_){const auto id=game_.adventure.id;close();emit playRequested(id);}
-            else checkPlaySetup();
-        } else if(index==1){const auto id=game_.adventure.id;close();emit fileRequested(id);}
-        else close();
-        return;
-    } else if(route_=="game") {
+    if(route_=="game") {
         if(index==0)emit textRequested("Game name",game_.adventure.title,96);
         else if(index==1){
             if(game_.adventure.domain=="pokemon"){route_="move-kind";focus_=0;}

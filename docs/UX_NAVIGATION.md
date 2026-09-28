@@ -4,6 +4,14 @@
 
 # TrainerOS UX & Navigation
 
+**Owner launch rule, 2026-09-28:** one short A on a game launches it. The Batocera
+platform folder supplies its platform; the shell selects the prepared emulator
+automatically. No Choose game file, Check again, setup popup or second Play action
+belongs in this path. A missing file/runtime reports the actual error. Explicit
+library management remains a separate owner-requested action. Do not add nested
+windows or intermediate screens without a necessary user decision. This
+supersedes older setup-on-A and manual attachment descriptions below.
+
 **Settings presentation, 2026-09-28:** Settings is an inset framed overlay over
 the dimmed, inactive source page, not replacement content beneath its primary
 tab. Its two-column categories/controls and contextual chassis footer remain.
@@ -31,7 +39,7 @@ Activities, wheel-selection and Start destinations below. Five primaries are
 **Home / Worlds / Pokémon / Trainer / Journey**. L2/R2 cycles secondary faces
 with wrap: Home domains; Worlds/Multiverse; Pokémon Dex/Party/Boxes/Center/
 Playroom/Shops; Journey/Hall/RA. B unwinds locally, never opens Filters.
-Short wheel A launches or opens setup; Y remains selection-only, scoped to the
+Short wheel A launches automatically; Y remains selection-only, scoped to the
 active domain with Worlds/modal exceptions. Hold A management must not launch.
 Start is quick system controls, Switch Trainer, Settings, System modes, Power.
 Persistent L1/R1/L2/R2 cues go into compact header/chassis treatment; contextual
@@ -93,7 +101,7 @@ right A confirms, bottom B returns to the same game. See the device-specific
 
 **Implementation versus target:** shared Y, the Pokedex/Center and Hall/RetroAchievements L2/R2 pairs, and opt-in confirmed RetroArch exit are delivered. Worlds/Multiverse and Home X now have a [P1 UI foundation](MULTIVERSE_UI.md); real library binding, full Center/Playroom and additional exit adapters remain planned. Existing reference/manual-journal, keyboard, menu and pointer checks remain evidence for their delivered routes. [Full new acceptance](EXPANSION_42_62.md).
 
-Worlds includes the [collection checklist and controller attachment flow](COLLECTION_CATALOGUE.md). Grey missing cards remain focusable; A → Link a file opens the shared picker, while Save/Cancel returns to the original Worlds detail. Platform badges identify the edition without changing region-first navigation.
+Worlds includes the [collection checklist](COLLECTION_CATALOGUE.md). Grey missing cards remain focusable; missing ROMs are added through the platform folders. Short A reports an absent file rather than opening an attachment wizard. Platform badges identify the edition without changing region-first navigation.
 
 **Multiverse browser, 2026-09-23:** after the system grid, Up/Down moves a logo
 wheel on the left; the same screen shows selected-game imagery and metadata on
@@ -203,7 +211,7 @@ A on a card commits the context and closes without launching; B cancels and rest
 
 Cards show the latest clean TrainerOS exit image, title, World and honest session/progress metadata. They are recent Adventure choices, not emulator-state slots. No extra persistent Current Adventure capsule/chip or independent per-feature selector: headers/content may show identity naturally.
 
-Unobstructed Home A immediately invokes its large physical launch button regardless of prior directional input. Launch uses normal game startup and the game's ordinary save/autosave; Worlds also has an explicit launch action. Unconfigured/empty selections offer setup or Worlds exploration. The bottom-frame drawer remains compact, expands before rising inside the fixed viewport, and preserves controller focus. See [shared selection acceptance](EXPANSION_42_62.md#shared-adventure-and-paired-navigation).
+Unobstructed Home A immediately invokes its large physical launch button regardless of prior directional input. Launch uses normal game startup and the game's ordinary save/autosave. A prepared emulator is selected automatically from the platform; unavailable games report the problem without a setup screen. Empty Home opens Worlds exploration. The bottom-frame drawer selects the Home Adventure without launching. See [shared selection acceptance](EXPANSION_42_62.md#shared-adventure-and-paired-navigation).
 
 ### Continue card hierarchy
 
@@ -219,7 +227,7 @@ Avoid turning every card into a dense statistics panel.
 
 ## Worlds
 
-**Target #87:** short A in either game wheel launches or opens setup; hold A opens management without launch. No mandatory detail screen. The original mock routes below are historical, not the target launch path.
+**Target #87, corrected 2026-09-28:** short A in either game wheel launches; hold A opens management without launch. No setup or mandatory detail screen. The original mock routes below are historical, not the target launch path.
 
 Worlds should feel like choosing destinations rather than browsing files/emulators.
 
@@ -433,7 +441,7 @@ The system should preserve a straightforward path back into TrainerOS. Detailed 
 
 ## Library and settings services
 
-Folders populate the library automatically. Long A in either Worlds game wheel opens Rename / Move / Удалить / Properties. Move offers the destination platform and its folders (including a new folder), then confirms with Cancel selected first. This corrects a ROM placed under the wrong platform. Pokémon also retains World reassignment. The former global Start → Manage Adventures entry is retired. Missing catalogue editions still open Link a file; its editor uses the existing shared keyboard and bounded file picker.
+Folders populate the library automatically. Long A in either Worlds game wheel opens Rename / Move / Удалить / Properties. Move offers the destination platform and its folders (including a new folder), then confirms with Cancel selected first. This corrects a ROM placed under the wrong platform. Pokémon also retains World reassignment. The former global Start → Manage Adventures entry is retired. Add missing catalogue ROMs to the platform folders; short A never opens a file picker or registration editor.
 
 The file picker keeps directory scrolling inside a bounded list, with Locations, Parent folder, Previous/Next batch, Refresh/Retry and Cancel on an attached action rail. B retraces entered folders or cancels at the starting point; B during loading cancels and ignores late results. Empty/error states keep a recovery or Cancel action focused. Choosing a file returns to the editor without saving it.
 

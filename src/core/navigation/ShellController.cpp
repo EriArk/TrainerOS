@@ -90,23 +90,12 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&multiverse_, &MultiversePresentation::searchRequested, this, [this](const QString& text) {
         textTarget_ = TextTarget::MultiverseSearch; keyboard_.begin("Multiverse · find a title", text, 48);
     });
-    libraryTools_.configurePlaySetup(&adapter_);
-    const auto setupGame=[this](const QString& id){
-        // Missing catalogue editions still use the file picker. Installed games
-        // need runtime preparation, not a duplicate registration form.
-        if(repository_.registration(id))libraryTools_.beginPlaySetup(id);
-        else {libraryFromWorlds_=true;service_="library";libraryManager_.beginEdit(id);emit changed();}
-    };
-    connect(&multiverse_, &MultiversePresentation::setupRequested, this, setupGame);
-    connect(&worlds_, &WorldsController::setupRequested, this, setupGame);
-    connect(&libraryTools_, &LibraryToolsController::fileRequested, this, [this](const QString& id){
-        libraryFromWorlds_=true;service_="library";libraryManager_.beginEdit(id);emit changed();
-    });
-    connect(&libraryTools_, &LibraryToolsController::playRequested, this, [this](const QString& id){
-        const auto record=repository_.registration(id);
-        if(!record || record->removed || !adapter_.capabilities(record->adventure).launch){showNotice("This game is no longer ready to play.");return;}
-        const auto result=adapter_.launch(record->adventure);if(!result.inProgress)showNotice(result.message);
-    });
+    connect(&launchPreparation_, &LaunchPreparation::changed, this, &ShellController::changed);
+    connect(&launchPreparation_, &LaunchPreparation::libraryChanged, this, &ShellController::refreshLibrary);
+    connect(&launchPreparation_, &LaunchPreparation::messageRequested, this, &ShellController::showNotice);
+    const auto openGame=[this](const QString& id){launchPreparation_.launch(id);};
+    connect(&multiverse_, &MultiversePresentation::setupRequested, this, openGame);
+    connect(&worlds_, &WorldsController::setupRequested, this, openGame);
     connect(&multiverse_, &MultiversePresentation::messageRequested, this, &ShellController::showNotice);
     connect(&multiverse_, &MultiversePresentation::homeRequested, this, [this] {
         multiverseHome_ = true; goToPage(0);
@@ -272,7 +261,7 @@ bool ShellController::chooseAdventureAvailable() {
         && !keyboard_.isOpen() && !localModalOpen() && !party_.activities()->practice()->running();
 }
 bool ShellController::navigationLocked() const {
-    return settings_.storage()->busy() || party_.moveOpen() || libraryTools_.busy() || center_.writing() || center_.confirming()
+    return launchPreparation_.busy() || settings_.storage()->busy() || party_.moveOpen() || libraryTools_.busy() || center_.writing() || center_.confirming()
         || (center_.shopsOpen() && center_.shopModal());
 }
 bool ShellController::pairedNavigationAvailable() {
@@ -458,10 +447,9 @@ QVariantMap ShellController::home() const {
             }
         }
         seconds = repository_.recordedSeconds(adventure->id);
-        const auto caps = adapter_.capabilities(*adventure);
         const auto resumeStatus = homeResumeAvailability(*adventure);
-        action = resumeStatus == ResumeAvailability::Exact ? "Resume Adventure" : caps.launch ? "Start Adventure" : "Set up Adventure";
-        actionHint = resumeStatus == ResumeAvailability::Exact ? "Resume" : caps.launch ? "Play" : "Set up";
+        action = resumeStatus == ResumeAvailability::Exact ? "Resume Adventure" : "Start Adventure";
+        actionHint = resumeStatus == ResumeAvailability::Exact ? "Resume" : "Play";
         if (repository_.editable()) {
             milestone = "Your selected Adventure";
             for (const auto& recent : repository_.recentSessions()) if (recent.adventureId == adventure->id) {
@@ -566,7 +554,7 @@ void ShellController::goToPage(int page) {
     emit changed();
 }
 void ShellController::activate(int index, const QString& area) {
-    if(libraryTools_.busy() || center_.writing())return;
+    if(launchPreparation_.busy() || libraryTools_.busy() || center_.writing())return;
     if(area=="world-edit" && canEditWorld()){libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
     if (area == "continue") { dispatch(Action::ToggleContinue); return; }
     if (!notice_.isEmpty()) { confirm(); emit changed(); return; }
@@ -702,7 +690,7 @@ void ShellController::confirm() {
                     emit homeLaunchPressed();const auto result=adapter_.launch(record->adventure);
                     if(!result.inProgress)notice_=result.message;
                 } else {
-                    libraryTools_.beginPlaySetup(record->adventure.id);
+                    launchPreparation_.launch(record->adventure.id);
                 }
             }
             return;
@@ -736,8 +724,7 @@ void ShellController::confirm() {
             const auto result = adapter_.launch(*adventure);
             if (!result.inProgress) notice_ = result.message;
         } else if (repository_.editable()) {
-            if(repository_.registration(adventure->id))libraryTools_.beginPlaySetup(adventure->id);
-            else {libraryFromWorlds_ = true; service_ = "library"; libraryManager_.beginEdit(adventure->id);}
+            launchPreparation_.launch(adventure->id);
         } else notice_ = "This Adventure needs play setup.";
     }
     else if (page_ == 3) {
@@ -747,7 +734,7 @@ void ShellController::confirm() {
     }
 }
 void ShellController::dispatch(Action action) {
-    if(libraryTools_.busy())return;
+    if(launchPreparation_.busy() || libraryTools_.busy())return;
     if(navigationLocked() && (action==Action::Home || action==Action::PreviousPage || action==Action::NextPage || action==Action::SystemMenu || action==Action::PreviousFace || action==Action::NextFace))return;
     if(action==Action::ContextMenu && canHoldConfirm()) {
         libraryTools_.beginGame((multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString());return;

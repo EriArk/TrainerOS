@@ -1,5 +1,13 @@
 # TrainerOS Product Specification
 
+**Owner interaction rule — 2026-09-28:** Batocera platform folders determine
+ordinary ROM launch (`gba` means GBA). One A starts the selected game with its
+prepared emulator. Internal preparation is automatic; no per-title binding,
+Choose game file, Check again or second Play screen belongs in the launch path.
+Missing files/runtimes produce a concrete error, not a setup wizard. Preserve
+explicit management, Y selection and necessary save/destructive confirmations.
+This supersedes older setup-on-A/manual-attachment directions.
+
 **Current accepted target — 2026-09-26:** [#69–90 reconciliation](EXPANSION_69_90.md)
 supersedes older Steam-removal, pair-only/Home-X and optional-image statements.
 Steam remains; consumer distribution is an Armada-based image. Pokémon is the

@@ -71,8 +71,8 @@ QString StandaloneAdapter::setupIssue(const AdventureRegistration& record) const
         return "The selected emulator setup is unavailable. Restore it in Desktop Mode, then reopen TrainerOS.";
     }
     if (!extensions(platform).contains(QFileInfo(record.contentPath).suffix().toLower()))
-        return "This file format cannot be opened by the selected emulator. Choose a supported game file.";
-    return "Play setup is available. Check again to connect this game.";
+        return "This file format cannot be opened by this emulator.";
+    return {};
 }
 QString StandaloneAdapter::verifyInstallation(const AdventureRegistration& record) const {
     if(!supports(record.adventure.platformId,record.contentPath))return setupIssue(record);

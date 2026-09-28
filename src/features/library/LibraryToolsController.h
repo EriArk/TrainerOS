@@ -5,8 +5,6 @@
 #include <QObject>
 #include <QVariantList>
 #include <functional>
-#include <QThread>
-#include "integrations/adventure/AdventureAdapter.h"
 
 namespace trainer {
 // Small, contextual library operations. Installation and save routing remain
@@ -23,7 +21,6 @@ class LibraryToolsController final : public QObject {
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
 public:
     explicit LibraryToolsController(LibraryRepository& repository, QObject* parent=nullptr):QObject(parent),repository_(repository){}
-    ~LibraryToolsController() override;
     bool isOpen() const {return !route_.isEmpty();}
     bool busy() const {return busy_;}
     QString route() const {return route_;}
@@ -33,8 +30,6 @@ public:
     QVariantList rows() const;
     int focusIndex() const {return focus_;}
     void beginGame(const QString& id);
-    void beginPlaySetup(const QString& id);
-    void configurePlaySetup(AdventureAdapter* adapter) { adapter_=adapter; }
     void beginWorld(const QString& id, bool enabled);
     void beginTrash();
     void close();
@@ -47,10 +42,7 @@ signals:
     void changed();
     void saved();
     void textRequested(const QString& title,const QString& initial,int limit);
-    void fileRequested(const QString& id);
-    void playRequested(const QString& id);
 private:
-    void checkPlaySetup();
     void submit(LibraryEdit);
     void browse(const QString&,int page=0);
     LibraryRepository& repository_;
@@ -66,9 +58,5 @@ private:
     QString root_,destination_;
     QStringList capabilities_;
     quint64 browseGeneration_=0;
-    AdventureAdapter* adapter_=nullptr;
-    QThread* setupWorker_=nullptr;
-    bool playReady_=false;
-    QString setupMessage_;
 };
 }

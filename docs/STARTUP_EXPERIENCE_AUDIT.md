@@ -192,10 +192,10 @@ development installations, not a finished out-of-box distribution.
   entry and PIN flows, not whole-device onboarding.
 - `BatoceraLibrary.cpp`, `CollectionRepository.cpp`, `SqliteLibrary.cpp`:
   filename identification and the multi-layer World creation/import boundary.
-- `ShellController.cpp`, `LibraryToolsController.cpp`: installed-game setup now
-  opens a contextual popup with worker recheck and attachment to a prepared route.
-  Missing catalogue editions and explicit file selection retain the editor.
-  New native/Flatpak discovery and prerequisite installation remain open.
+- `ShellController.cpp`, `LaunchPreparation.cpp`: one A launches using the
+  folder-derived platform; missing internal runtime records are prepared
+  automatically, never through a per-title setup popup. Missing games/runtimes
+  report errors. Native/Flatpak discovery and prerequisite installation remain open.
 - `SettingsController.cpp`, `LibraryStorageController.cpp`: persistent storage
   selection/discovery is delivered and reused by the first-run flow; unavailable
   sound/feedback controls retain their separate acceptance.

@@ -86,10 +86,10 @@ QString RetroArchAdapter::setupIssue(const AdventureRegistration& record) const 
     if (!installation_.cores.contains(core))
         return "The emulator for this platform is missing. Restore it in Desktop Mode, then reopen TrainerOS.";
     if (!contentRoute(record.adventure.platformId, core, QFileInfo(record.contentPath).suffix().toLower()))
-        return "This file format cannot be opened with this platform's play setup. Choose a supported game file.";
+        return "This file format cannot be opened by this platform's emulator.";
     if (retroarch::discPlatform(record.adventure.platformId) && !installation_.readyDiscPlatforms.contains(record.adventure.platformId))
         return "This platform's BIOS files are missing or have not been verified. Restore play setup in Desktop Mode, then reopen TrainerOS.";
-    return "Play setup is available. Check again to connect this game.";
+    return {};
 }
 QString RetroArchAdapter::verifyInstallation(const AdventureRegistration& record) const {
     const auto core=record.integrationConfig.value("core").toString();

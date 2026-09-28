@@ -1,5 +1,15 @@
 # AGENTS.md — TrainerOS
 
+**Owner non-negotiable launch/UX rule, 2026-09-28:** do not add unnecessary
+nested windows, intermediate screens or extra clicks. A on an installed game
+launches it immediately. Batocera folders determine the platform (`gba` means
+GBA); emulator selection and any internal record preparation are automatic.
+Never require per-game binding, Choose game file, Check again or a second Play
+confirmation in the normal launch path. If launch is impossible, show the actual
+error; do not turn it into a setup menu. Explicit management actions and required
+destructive/save confirmations remain separate from normal play. This supersedes
+the contextual play-setup popup added in 1c9a798 and earlier short-A setup routes.
+
 **Owner first-run/update clarification, 2026-09-28:** start the next work from
 the complete first-boot journey: a short resumable controller-first setup,
 then Home. Integrate storage/discovery/readiness into that journey instead of
@@ -87,8 +97,9 @@ unless explicitly superseded in that register.
 - Target primaries are Home / Worlds / Pokémon / Trainer / Journey. #83–85 make
   L2/R2 cyclic secondary navigation, including Home instead of X. Pokémon has
   Dex/Party/Boxes/Center/Playroom/Shops peers; Journey has Journey/Hall/RA peers.
-- #87 short A launches playable selections in both wheels; missing/unconfigured
-  games enter setup. Hold A management remains; Y selection does not launch.
+- #87 short A launches in both wheels, automatically resolving the emulator from
+  the folder/platform. Missing files or unavailable runtimes report the problem;
+  no per-title setup UI. Hold A management remains; Y selection does not launch.
 - #86 Start is system-only: quick controls, Switch Trainer, Settings, System modes,
   Power. No Center shortcut; Switch Trainer is not a power operation.
 - #88 persistent shoulder/trigger navigation cues belong in header/chassis;

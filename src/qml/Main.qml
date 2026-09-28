@@ -220,7 +220,7 @@ Window {
                 if (shell.serviceOpen) return [h("A","Select"),h("B","Back")]
                 if (shell.page === 1) {
                     const list = shell.multiverseFace ? shell.multiverse.route === "games" : shell.worlds.route === "adventures"
-                    let result = list ? [h("X","Search"),h("Y","Filter"),h("A",(shell.multiverseFace ? shell.multiverse.detail.playable : shell.worlds.detail.playable) ? "Play" : "Set up"),h("B",shell.multiverseFace ? "Systems" : "Regions")] : [h("A","Open"),h("B","Back")]
+                    let result = list ? [h("X","Search"),h("Y","Filter"),h("A","Play"),h("B",shell.multiverseFace ? "Systems" : "Regions")] : [h("A","Open"),h("B","Back")]
                     if(shell.canHoldConfirm) result.push(h("Hold A","Options"))
                     if(shell.canEditWorld) result.push(h("Select","Edit World"))
                     return result
@@ -275,7 +275,7 @@ Window {
                     if (hall.route === "archive-champions" || hall.route === "archive-champion-detail") result.push(h("← →","Records"))
                     result.push(h("A",hall.overview ? (hall.route === "archive-journey" ? "Champions" : "Journey") : "Open"),h("B","Back")); return result
                 }
-                if (shell.page === 0) return [h("A",shell.multiverseHome ? (shell.multiverse.selected.id ? (shell.multiverse.selected.playable ? "Play" : "Set up") : "Explore") : shell.home.actionHint),h("B","Back")]
+                if (shell.page === 0) return [h("A",shell.multiverseHome ? (shell.multiverse.selected.id ? "Play" : "Explore") : shell.home.actionHint),h("B","Back")]
                 return [h("A","Select"),h("B",shell.trainer.editing ? "Cancel" : "Back")]
             }
             Row {

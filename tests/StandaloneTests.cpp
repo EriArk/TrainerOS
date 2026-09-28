@@ -3,7 +3,8 @@
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "core/storage/LocalStateStore.h"
 #include "core/navigation/AdventureLaunchController.h"
-#include "features/library/LibraryToolsController.h"
+#include "core/navigation/LaunchPreparation.h"
+#include "core/repository/BatoceraLibrary.h"
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
@@ -27,7 +28,7 @@ class StandaloneTests final : public QObject {
         QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly)); QCOMPARE(file.write(data), data.size());
     }
 private slots:
-    void playSetupRepairsBindingWithoutChangingAnExplicitRoute() {
+    void oneLaunchRequestPreparesAndLaunchesWithoutAnotherConfirmation() {
         QTemporaryDir dir;
         LocalStateStore store(dir.filePath("data"));store.open();QTRY_VERIFY(store.ready());
         AdventureRegistration record;record.adventure.id="setup-fixture";record.adventure.worldId="sinnoh";
@@ -35,29 +36,43 @@ private slots:
         record.contentPath=dir.filePath("fixture.nds");write(record.contentPath,"Original content-free fixture");
         bool saved=false;store.saveAdventureAsync(record,this,[&](auto r){QVERIFY(r.success);saved=true;});QTRY_VERIFY(saved);
         StandaloneAdapter ds("melonds",store,{probe(),probe(),{},{"nds"}});AdapterRouter router({&ds});
-        LibraryToolsController tools(store);tools.configurePlaySetup(&router);
-        QSignalSpy play(&tools,&LibraryToolsController::playRequested);
-        tools.beginPlaySetup(record.adventure.id);QCOMPARE(tools.route(),"play-setup");
-        tools.dispatch(Action::Confirm);QVERIFY(tools.busy());tools.dispatch(Action::Back);QVERIFY(tools.isOpen());
-        QTRY_VERIFY(!tools.busy());QVERIFY2(tools.error().isEmpty(),qPrintable(tools.error()));
+        LaunchPreparation launch(store,router);int starts=0;
+        ds.requestLaunch=[&](const ProcessCommand&,const QString&){++starts;return true;};
+        QSignalSpy errors(&launch,&LaunchPreparation::messageRequested);
+        launch.launch(record.adventure.id);QVERIFY(launch.busy());launch.launch(record.adventure.id);
+        QTRY_VERIFY(!launch.busy());QCOMPARE(errors.size(),0);QCOMPARE(starts,1);
         QCOMPARE(store.registration(record.adventure.id)->adventure.adapterId,"melonds");
         QCOMPARE(store.registration(record.adventure.id)->revision,2);
-        QCOMPARE(tools.rows()[0].toMap()["label"].toString(),"Play");QCOMPARE(play.size(),0);
-        tools.dispatch(Action::Confirm);QCOMPARE(play.size(),1);QVERIFY(!tools.isOpen());
-        tools.beginPlaySetup(record.adventure.id);tools.dispatch(Action::Confirm);QTRY_VERIFY(!tools.busy());
+        launch.launch(record.adventure.id);QTRY_VERIFY(!launch.busy());QCOMPARE(starts,2);
         QCOMPARE(store.registration(record.adventure.id)->revision,2); // Recheck is idempotent.
-        tools.close();QVERIFY(QFile::remove(record.contentPath));
-        tools.beginPlaySetup(record.adventure.id);tools.dispatch(Action::Confirm);QTRY_VERIFY(!tools.busy());
-        QCOMPARE(tools.rows()[0].toMap()["label"].toString(),"Check again");QVERIFY(tools.detail().contains("missing"));
+        QVERIFY(QFile::remove(record.contentPath));
+        launch.launch(record.adventure.id);QTRY_VERIFY(!launch.busy());
+        QCOMPARE(starts,2);QCOMPARE(errors.size(),1);QVERIFY(errors.last()[0].toString().contains("missing"));
         QCOMPARE(store.registration(record.adventure.id)->revision,2);
-        tools.close();write(record.contentPath,"Original content-free fixture");
+        write(record.contentPath,"Original content-free fixture");
         record=*store.registration(record.adventure.id);record.adventure.adapterId="custom";record.integrationConfig={{"keep",true}};
         saved=false;store.saveAdventureAsync(record,this,[&](auto r){QVERIFY(r.success);saved=true;});QTRY_VERIFY(saved);
-        tools.beginPlaySetup(record.adventure.id);tools.dispatch(Action::Confirm);QTRY_VERIFY(!tools.busy());
+        launch.launch(record.adventure.id);QTRY_VERIFY(!launch.busy());
         QCOMPARE(store.registration(record.adventure.id)->adventure.adapterId,"custom");QVERIFY(store.registration(record.adventure.id)->integrationConfig["keep"].toBool());
-        QCOMPARE(tools.rows()[0].toMap()["label"].toString(),"Check again");
-        QSignalSpy choose(&tools,&LibraryToolsController::fileRequested);tools.dispatch(Action::Down);tools.dispatch(Action::Confirm);
-        QCOMPARE(choose.size(),1);QVERIFY(!tools.isOpen());
+        QCOMPARE(starts,2);QCOMPARE(errors.size(),2);
+        launch.launch("absent-catalogue-edition");QCOMPARE(starts,2);QCOMPARE(errors.size(),3);
+    }
+    void gbaFolderDeterminesEmulatorWithoutTitleRegistration() {
+        QTemporaryDir dir;const auto root=dir.filePath("roms");QVERIFY(QDir().mkpath(root+"/gba"));
+        const auto file=root+"/gba/Any title.gba";write(file,"Content-free folder discovery fixture");
+        const auto scan=scanBatoceraLibrary(root,{});QCOMPARE(scan.entries.size(),1);
+        const auto record=scan.entries.first().record;QCOMPARE(record.adventure.platformId,"gba");
+        LocalStateStore store(dir.filePath("data"));store.open();QTRY_VERIFY(store.ready());
+        bool saved=false;store.saveAdventureAsync(record,this,[&](auto r){QVERIFY(r.success);saved=true;});QTRY_VERIFY(saved);
+        const auto config=dir.filePath("retroarch.cfg"),core=dir.filePath("mgba_libretro.so");
+        write(config,"config_save_on_exit = \"false\"\n");write(core,"Non-executable core fixture");
+        RetroArchAdapter ra(store,{probe(),{},config,{{"mgba",core}}});AdapterRouter router({&ra});
+        int starts=0;QStringList arguments;
+        ra.requestLaunch=[&](const ProcessCommand& command,const QString&){++starts;arguments=command.arguments;return true;};
+        LaunchPreparation launch(store,router);QSignalSpy errors(&launch,&LaunchPreparation::messageRequested);
+        launch.launch(record.adventure.id);QTRY_COMPARE(starts,1);QCOMPARE(errors.size(),0);
+        QVERIFY(arguments.contains(core));QVERIFY(arguments.contains(file));
+        QCOMPARE(store.registration(record.adventure.id)->adventure.platformId,"gba");
     }
     void setupExplainsMissingCoreFormatAndRuntime() {
         MockLibraryRepository library;RetroArchAdapter retroarch(library,{probe(),{},"settings",{{"mgba","core"}}});

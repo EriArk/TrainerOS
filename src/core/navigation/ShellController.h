@@ -1,5 +1,6 @@
 #pragma once
 #include "core/input/Action.h"
+#include "LaunchPreparation.h"
 #include "core/input/TextEntryController.h"
 #include "core/repository/LibraryRepository.h"
 #include "core/model/GameProgressProvider.h"
@@ -144,6 +145,7 @@ private:
     LibraryRepository& repository_;
     QPointer<GameProgressProvider> progress_;
     AdventureAdapter& adapter_;
+    LaunchPreparation launchPreparation_{repository_, adapter_, this};
     PlatformService& platform_;
     TextEntryController keyboard_;
     TrainerController trainer_;

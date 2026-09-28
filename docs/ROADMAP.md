@@ -4,12 +4,12 @@
 
 ## Current plan — reconciled 2026-09-27
 
-**2026-09-28 play-setup recovery:** installed games that cannot launch now open
-a contextual preparation popup from either Worlds wheel or Home. Its explicit
-worker recheck verifies the file and configured runtime, then can attach an
-unconfigured game to an already prepared route without changing its identity.
-Explicit/custom routes are preserved; unavailable catalogue editions still open
-the file picker. [Bounded scope](ROM_PLATFORMS.md#contextual-play-setup-recovery--2026-09-28).
+**2026-09-28 owner correction:** the play-setup popup from 1c9a798 is rejected
+and removed. A launches the game in one action; its Batocera folder determines
+the platform. Any required internal preparation happens automatically, with no
+per-title file choice/recheck/second Play. Missing content/runtime reports an
+error without opening setup. Existing management and save protections remain.
+See [approach audit](APPROACH_AUDIT_20260928.md); it adds no competing queue.
 Native/Flatpak autodiscovery, new prerequisite installation, live configuration
 reload and repeatable update preservation remain next in the startup lane.
 

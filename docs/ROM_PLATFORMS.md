@@ -175,6 +175,14 @@ Current installed ARM64 SHA-256:
 
 ## Contextual play-setup recovery — 2026-09-28
 
+**Rejected/superseded by the owner:** the popup below was an agent UX error,
+not the accepted direction. It has been removed. A now verifies/prepares any
+missing internal runtime record and launches in the same request, using the
+platform inferred by folder discovery. No per-game file picker, recheck or
+second confirmation is shown. Missing files/runtime prerequisites produce an
+error. Existing explicit custom routes are preserved. The following paragraphs
+record the superseded implementation and its old binary, not current behavior.
+
 An installed game without a usable launch route opens a small popup over the
 current Home or Worlds screen. Missing catalogue editions retain file selection.
 The popup distinguishes missing game files, unavailable runtime/core setup,
@@ -211,3 +219,25 @@ Installed production SHA-256:
 `7f03a7e6963036560407e3a49725c1a98f02594d3874c013329f46d8aced41da`.
 The production database retained all 3 Trainers and 830 registrations and passed
 SQLite quick_check; the pre-install binary/database backup remains private.
+
+## One-action launch correction — 2026-09-28
+
+The owner rejected the popup above. It is removed, including Choose game file,
+Check again and the second Play. Home and game-wheel A launch directly. If an
+existing record needs preparation, `LaunchPreparation` reuses its folder-derived
+platform and the prepared adapter, verifies files off the UI thread, updates the
+internal record if needed and continues the original launch request. No new
+screen is created. A duplicate press during preparation cannot start another
+game. Explicit/custom routes and save guards remain unchanged. Missing catalogue
+files report absence and are supplied through the platform folders.
+
+Regression evidence: five affected CTest targets passed. An arbitrary ROM name
+under `gba` selected mGBA without catalogue recognition; a single request both
+prepared and invoked launch, repeated requests did not rewrite the record, and
+missing files/custom routes were preserved. Actual controller A on an isolated
+Flip Kirby DS wheel reached its title screen without intermediate UI. This checks
+launch, not new save/exit support. See the [approach audit](APPROACH_AUDIT_20260928.md).
+
+Final native/ARM64 builds passed. Installed production SHA-256:
+`9e20910dcff213d3a71a3586bacc033aa3f7c0f39ec4faf7568665a218b53916`.
+Production retained 3 Trainers/830 records and passed SQLite quick_check.

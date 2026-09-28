@@ -149,9 +149,9 @@ private slots:
         shell.dispatch(Action::Back);QVERIFY(!shell.libraryTools()->isOpen());QVERIFY(shell.canHoldConfirm());
         QSignalSpy setup(shell.worlds(),&WorldsController::setupRequested);
         shell.dispatch(Action::Confirm);QCOMPARE(shell.worlds()->route(),"adventures");
-        QCOMPARE(setup.size(),1); // Unconfigured titles open their setup on short A.
-        QCOMPARE(shell.libraryTools()->route(),"play-setup");QVERIFY(!shell.serviceOpen());
-        shell.dispatch(Action::NextFace);QVERIFY(!shell.multiverseFace());
+        QCOMPARE(setup.size(),1); // Short A tries to launch, never opens a setup UI.
+        QTRY_VERIFY(!shell.notice().isEmpty());
+        QVERIFY(!shell.libraryTools()->isOpen());QVERIFY(!shell.serviceOpen());
         shell.dispatch(Action::Back);
         QVERIFY(!shell.libraryTools()->isOpen());QCOMPARE(shell.worlds()->route(),"adventures");
         shell.settings()->activate(2);QTRY_VERIFY(!shell.settings()->saving());QVERIFY(shell.canEditWorld());
