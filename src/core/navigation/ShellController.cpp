@@ -161,7 +161,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&settings_, &SettingsController::messageRequested, this, [this](const QString& message) {
         if (service_ != "settings" || menuOpen_) { notice_ = message; emit changed(); }
     });
-    connect(&settings_, &SettingsController::closeRequested, this, [this] { service_.clear(); if(centerFace())showPokemonFace(pokemonFace_); menuOpen_ = true; emit changed(); });
+    connect(&settings_, &SettingsController::closeRequested, this, [this] { service_.clear(); menuOpen_ = false; emit changed(); });
     connect(&hall_, &HallOfFameController::changed, this, &ShellController::changed);
     connect(&hall_, &HallOfFameController::messageRequested, this, [this](const QString& message) {
         notice_ = message; emit changed();
@@ -651,7 +651,7 @@ void ShellController::confirm() {
             trainerSetup_.close();
             keyboard_.cancel(); textTarget_ = TextTarget::None; trainer_.cancel();
             libraryManager_.close(); libraryTools_.close(); menuOpen_ = false; drawerOpen_ = false;
-            center_.leaveClinic();center_.leaveShops();
+            if(menuFocus_ != 0){center_.leaveClinic();center_.leaveShops();}
             service_ = menuFocus_ == 0 ? "settings" : "library";
             if (service_ == "settings") settings_.begin();
             else { libraryFromWorlds_ = false; libraryManager_.begin(worlds_.region()["id"].toString()); }

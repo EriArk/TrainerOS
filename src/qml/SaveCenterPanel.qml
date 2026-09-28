@@ -4,7 +4,7 @@ Item {
     id: root
     required property var shell
     readonly property var center: shell.center
-    readonly property bool takesFocus: visible && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
+    readonly property bool takesFocus: enabled && visible && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     enabled: !shell.drawerOpen
     // The main chassis owns the recessed surface for pages and services alike.
     Item {

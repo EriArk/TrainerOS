@@ -160,17 +160,17 @@ Window {
             width: Theme.screenBounds.width; height: Theme.screenBounds.height
             Item {
                 objectName: "page-viewport"
-                enabled: !shell.drawerOpen
+                enabled: !shell.drawerOpen && !shell.serviceOpen
                 anchors.fill: parent; anchors.margins: Theme.panelInset
                 anchors.topMargin: Theme.contentTopInset; clip: true
                 anchors.bottomMargin: Theme.panelInset
-                HomePage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 0 && !shell.multiverseHome }
-                MultiverseHome { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 0 && shell.multiverseHome }
-                HallOfFamePage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 4 }
-                TrainerPage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 3 }
-                WorldsPage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 1 && !shell.multiverseFace }
-                MultiversePage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 1 && shell.multiverseFace }
-                PokedexPage { anchors.fill: parent; shell: shellController; visible: !shell.serviceOpen && shell.page === 2 && !shell.centerFace }
+                HomePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 0 && !shell.multiverseHome }
+                MultiverseHome { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 0 && shell.multiverseHome }
+                HallOfFamePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 4 }
+                TrainerPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 3 }
+                WorldsPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && !shell.multiverseFace }
+                MultiversePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && shell.multiverseFace }
+                PokedexPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 2 && !shell.centerFace }
             }
         }
         ContinueDrawer {
@@ -298,14 +298,13 @@ Window {
         LibraryPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "library" }
         TrainerSettingsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "trainer-settings" }
         TrainerSetupPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "trainer-setup" }
-        SettingsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "settings" }
         DevicePanel { anchors.fill: screen; shell: shellController; visible: shell.service === "device" }
         DiagnosticsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "diagnostics" }
-        PartyPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && !shell.center.clinicOpen && !shell.center.shopsOpen && shell.party.section !== "saves" && shell.party.section !== "activities" }
-        PokemonShop { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && shell.center.shopsOpen }
-        PokemonClinic { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && shell.center.clinicOpen }
-        CenterActivitiesPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && !shell.center.clinicOpen && !shell.center.shopsOpen && shell.party.section === "activities" }
-        SaveCenterPanel { anchors.fill: screen; shell: shellController; visible: !shell.serviceOpen && shell.centerFace && !shell.center.clinicOpen && !shell.center.shopsOpen && shell.party.section === "saves" }
+        PartyPanel { anchors.fill: screen; shell: shellController; enabled: !shell.serviceOpen && !shell.drawerOpen; visible: (!shell.serviceOpen || shell.service === "settings") && shell.centerFace && !shell.center.clinicOpen && !shell.center.shopsOpen && shell.party.section !== "saves" && shell.party.section !== "activities" }
+        PokemonShop { anchors.fill: screen; shell: shellController; enabled: !shell.serviceOpen && !shell.drawerOpen; visible: (!shell.serviceOpen || shell.service === "settings") && shell.centerFace && shell.center.shopsOpen }
+        PokemonClinic { anchors.fill: screen; shell: shellController; enabled: !shell.serviceOpen && !shell.drawerOpen; visible: (!shell.serviceOpen || shell.service === "settings") && shell.centerFace && shell.center.clinicOpen }
+        CenterActivitiesPanel { anchors.fill: screen; shell: shellController; enabled: !shell.serviceOpen && !shell.drawerOpen; visible: (!shell.serviceOpen || shell.service === "settings") && shell.centerFace && !shell.center.clinicOpen && !shell.center.shopsOpen && shell.party.section === "activities" }
+        SaveCenterPanel { anchors.fill: screen; shell: shellController; enabled: !shell.serviceOpen && !shell.drawerOpen; visible: (!shell.serviceOpen || shell.service === "settings") && shell.centerFace && !shell.center.clinicOpen && !shell.center.shopsOpen && shell.party.section === "saves" }
         Rectangle {
             id: merchantToast; property string message: ""
             anchors.right: screen.right; anchors.bottom: screen.bottom; anchors.margins: 12
@@ -315,14 +314,32 @@ Window {
             Timer { id: toastTimer; interval: 4500 }
             Connections { target: shell.center; function onMerchantDiscovered(message) { merchantToast.message=message; toastTimer.restart() } }
         }
-        LibraryToolsPanel { anchors.fill: screen; shell: shellController; z: 1; visible: shell.libraryTools.open }
+        LibraryToolsPanel { anchors.fill: screen; shell: shellController; z: 3; visible: shell.libraryTools.open }
+        Item {
+            id: settingsOverlay
+            objectName: "settings-overlay"
+            width: parent.width; height: Theme.footerTop; z: 2.2
+            visible: shell.service === "settings"
+            Rectangle { anchors.fill: parent; color: "#99102020" }
+            MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted = true }
+            Rectangle {
+                x: 37; y: 61; width: parent.width-64; height: parent.height-66
+                radius: 16; color: "#60101a19"
+            }
+            Panel {
+                id: settingsSurface
+                objectName: "settings-surface"
+                x: 32; y: 52; width: parent.width-64; height: parent.height-66
+                SettingsPanel { anchors.fill: parent; shell: shellController }
+            }
+        }
         KeyboardPanel {
             anchors { left: screen.left; right: screen.right; top: screen.top; bottom: footer.top }
-            z: 2; shell: shellController
+            z: 3; shell: shellController
         }
         SystemPanel {
             anchors { left: screen.left; right: parent.right; top: screen.top; bottom: footer.top }
-            z: 3; shell: shellController
+            z: 4; shell: shellController
         }
         }
         Item {

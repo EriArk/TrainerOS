@@ -273,6 +273,11 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(down); press(down); press(down); press(a); break;
         case 55:
             check(shell.service()=="settings" && focus("settings-category-0"), "Settings categories focus");
+            {
+                auto* overlay=window->findChild<QQuickItem*>("settings-overlay");
+                auto* surface=window->findChild<QQuickItem*>("settings-surface");
+                check(overlay && overlay->isVisible() && surface && surface->width()<overlay->width(), "Settings has a separate inset modal surface");
+            }
             capture("settings-root"); press(a); break;
         case 56:
             check(focus("settings-control-0"), "Appearance controls receive focus");

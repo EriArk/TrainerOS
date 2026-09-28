@@ -11,8 +11,8 @@ Item {
         : localError || (shell.hall.account.open ? shell.hall.account.status : settings.category===8 ? settings.libraryStatus : "")
 
     Item {
-        anchors.fill: parent; anchors.margins: Theme.panelInset; anchors.topMargin: Theme.contentTopInset
-        PageHeader { id: heading; compact: true; title: "Settings"; subtitle: "A little more you." }
+        anchors.fill: parent; anchors.margins: 12
+        PageHeader { id: heading; compact: true; title: "Settings" }
         MountedPanel {
             y: heading.height; width: parent.width; height: parent.height-y; color: "#d4e2d6"
             Rectangle { x: 0; y: 0; width: 245; height: parent.height; color: "#c5d8ca" }

@@ -1,7 +1,6 @@
 name: Native Linux build
 on:
-  push:
-  pull_request:
+  # Owner disabled automatic GitHub runs; native/device checks run locally.
   workflow_dispatch:
 
 permissions:

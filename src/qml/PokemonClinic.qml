@@ -5,7 +5,7 @@ Item {
     id: root
     required property var shell
     readonly property var clinic: shell.center
-    readonly property bool active: visible && !shell.menuOpen && !shell.drawerOpen && !shell.notice.length && Qt.application.state === Qt.ApplicationActive
+    readonly property bool active: enabled && visible && !shell.menuOpen && !shell.drawerOpen && !shell.notice.length && Qt.application.state === Qt.ApplicationActive
     readonly property bool treating: clinic.treatment === "healing" || recovery.running
     property var team: []
     property int pulse: 0

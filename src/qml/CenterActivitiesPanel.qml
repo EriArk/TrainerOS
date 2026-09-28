@@ -4,7 +4,7 @@ Item {
     id: root
     required property var shell
     readonly property var activity: shell.party.activities
-    readonly property bool takesFocus: visible && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
+    readonly property bool takesFocus: enabled && visible && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
     enabled: !shell.drawerOpen
     PracticePanel {
         anchors.fill: parent; shell: root.shell; controller: root.activity.practice

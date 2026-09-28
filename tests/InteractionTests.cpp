@@ -764,7 +764,7 @@ private slots:
         QCOMPARE(shell.center()->rows().first().toMap()["id"].toString(),chosen);
         shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::SystemMenu); shell.activate(0);
         QCOMPARE(shell.service(),QString("settings")); QVERIFY(!shell.drawerOpen());
-        shell.dispatch(Action::Back); QVERIFY(shell.menuOpen()); shell.dispatch(Action::Back);
+        shell.dispatch(Action::Back); QVERIFY(!shell.menuOpen()); QVERIFY(!shell.serviceOpen());
         QVERIFY(shell.centerFace()); if(service.busy())service.finish();
         shell.dispatch(Action::LocalAction); // Party/Storage opens the existing save shelf.
         // A Party edit can have added protection copies since this shelf was read.

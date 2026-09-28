@@ -11,7 +11,7 @@ Item {
     readonly property bool basket: shop.shopRoute === "basket"
     readonly property bool locations: shop.shopRoute === "locations"
     readonly property bool checkout: shop.shopRoute === "confirm" || shop.shopRoute === "receipt"
-    readonly property bool active: visible && !shell.menuOpen && !shell.drawerOpen && !shell.notice.length
+    readonly property bool active: enabled && visible && !shell.menuOpen && !shell.drawerOpen && !shell.notice.length
     Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset; anchors.topMargin: Theme.contentTopInset
         PageHeader { id: header; compact: true; title: "Shops & Traders"; subtitle: root.shop.shopQuery ? "Search: " + root.shop.shopQuery : root.shop.shopLocation || root.shop.shopGroup || root.shop.title; trailing: root.shop.shopBalance < 0 ? "" : (root.choice.currency || "₽") + " " + root.shop.shopBalance }

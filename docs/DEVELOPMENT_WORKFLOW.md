@@ -44,6 +44,12 @@ On the Windows checkout, use the established line-ending policy. Shell scripts a
 
 ## Push and verify GitHub
 
+Owner request, 2026-09-28: the repository's Native Linux build workflow is
+disabled on GitHub. Its tracked triggers retain only `workflow_dispatch`, with
+no push/pull-request runs. Do not re-enable it or automatic triggers without an
+owner request. This suppresses new build-failure notifications at their source;
+local native checks and actual-device verification remain required.
+
 Fetch the intended remote and compare its branch to the local branch. Push to the active intended upstream after the increment passes local checks. Use branch protections and PR requirements if present; no routine force-push, shared-history rewrite or protection bypass is authorized.
 
 For the current `main` / `origin/main` arrangement:

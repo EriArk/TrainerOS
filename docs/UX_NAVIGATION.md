@@ -4,6 +4,21 @@
 
 # TrainerOS UX & Navigation
 
+**Settings presentation, 2026-09-28:** Settings is an inset framed overlay over
+the dimmed, inactive source page, not replacement content beneath its primary
+tab. Its two-column categories/controls and contextual chassis footer remain.
+B unwinds an inner editor/chooser to categories, then closes directly to the
+underlying page without reopening Start. Opening Settings retains Clinic/Shop
+context. Keyboard, notices and Start layer above Settings; existing global
+shoulder/Home navigation and busy-operation gates remain unchanged.
+
+Verification: native/ARM64 builds and five affected core, interaction and QML
+scenarios passed; diagnostics/settings QML passed again after the final drawer
+input guard. Actual Flip controller checks covered opening, storage selection
+navigation and direct B return; installed-device captures were reviewed.
+The final binary is `2aa2a5a1402f89657c1631b20184ad97e94dd3fda3b9ef5e7b56e5453b6ec823`
+(SHA-256), preserving 3 Trainers and 830 registrations.
+
 **Worlds re-entry, 2026-09-28:** returning from another primary page opens the
 World grid or Multiverse system grid, retaining the selected secondary face and
 its highlighted World/system. It does not reopen the last game wheel/detail.
