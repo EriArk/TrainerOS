@@ -14,6 +14,7 @@
 #include "features/library/LibraryToolsController.h"
 #include "features/settings/SettingsController.h"
 #include "features/device/DeviceController.h"
+#include "features/device/NetworkController.h"
 #include "features/diagnostics/DiagnosticsController.h"
 #include "features/center/SaveCenterController.h"
 #include "features/center/PartyPresentation.h"
@@ -54,6 +55,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(trainer::LibraryManagementController* libraryManager READ libraryManager CONSTANT)
     Q_PROPERTY(trainer::SettingsController* settings READ settings CONSTANT)
     Q_PROPERTY(trainer::DeviceController* device READ device CONSTANT)
+    Q_PROPERTY(trainer::NetworkController* network READ network CONSTANT)
     Q_PROPERTY(trainer::DiagnosticsController* diagnostics READ diagnostics CONSTANT)
     Q_PROPERTY(trainer::SaveCenterController* center READ center CONSTANT)
     Q_PROPERTY(trainer::PartyPresentation* party READ party CONSTANT)
@@ -83,6 +85,7 @@ public:
     bool canEditWorld() const;
     SettingsController* settings() { return &settings_; }
     DeviceController* device() { return &device_; }
+    NetworkController* network() { return &network_; }
     DiagnosticsController* diagnostics() { return &diagnostics_; }
     SaveCenterController* center() { return &center_; }
     PartyPresentation* party() { return &party_; }
@@ -154,11 +157,12 @@ private:
     LibraryToolsController libraryTools_;
     SettingsController settings_;
     DeviceController device_;
+    NetworkController network_;
     DiagnosticsController diagnostics_;
     SaveCenterController center_;
     PartyPresentation party_;
     QString service_;
-    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, LibraryTools, Archive, TrainerFavorite, CenterSearch, ShopSearch, BoxName, AchievementAccount, SetupName };
+    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, LibraryTools, Archive, TrainerFavorite, CenterSearch, ShopSearch, BoxName, AchievementAccount, SetupName, Network };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QString homeAdventureId_, homeResumeId_;

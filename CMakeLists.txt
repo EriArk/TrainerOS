@@ -66,6 +66,10 @@ add_library(trainer_core STATIC
     src/integrations/adventure/standalone/StandaloneAdapter.cpp
     src/platform/device/DeviceService.h
     src/platform/device/DeviceService.cpp
+    src/platform/device/NetworkService.h
+    src/platform/device/NetworkService.cpp
+    src/features/device/NetworkController.h
+    src/features/device/NetworkController.cpp
     src/platform/device/VolumeKeys.cpp
     src/features/device/DeviceController.h
     src/features/device/DeviceController.cpp
@@ -240,6 +244,7 @@ qt_add_qml_module(traineros
         src/qml/ControllerList.qml
         src/qml/ContinueDrawer.qml
         src/qml/SystemPanel.qml
+        src/qml/ConnectionsPane.qml
         src/qml/StoragePanel.qml
         src/qml/LaunchPanel.qml
         src/qml/LibraryToolsPanel.qml
@@ -308,6 +313,7 @@ if(BUILD_TESTING)
         find_package(Python3 REQUIRED COMPONENTS Interpreter)
         add_test(NAME session_supervisor COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SessionSupervisorTests.py)
         add_test(NAME overlay_helper COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/OverlayHelperTests.py)
+        add_test(NAME network_helper COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/NetworkHelperTests.py)
         add_test(NAME legacy_retirement COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/LegacyRetirementTests.py)
         set_tests_properties(overlay_helper PROPERTIES TIMEOUT 15)
         set_tests_properties(session_supervisor PROPERTIES TIMEOUT 40)

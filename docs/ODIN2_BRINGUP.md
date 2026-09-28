@@ -73,3 +73,28 @@ Both devices run production SHA-256
 Network scope and remaining acceptance are in [DEVICE_NETWORK_PLAN](DEVICE_NETWORK_PLAN.md).
 This second installation enables later #45 work; it does not complete Link,
 image distribution, OTA or sleep acceptance.
+
+## Follow-up — 2026-09-28
+
+Both devices now run
+`b0b1f608b70cb85e399bd984478ec44fd10958dce9af7f3fcc558f3214773d19`.
+Connections adds inline real Wi-Fi/Bluetooth management and masked controller
+text entry. Actual-device scans, list/focus/face navigation and keyboard
+cancellation passed; no saved networks or paired accessories were removed.
+See the [implemented flows and remaining hardware gates](DEVICE_NETWORK_PLAN.md#connections-delivery--2026-09-28).
+
+Odin's previously installed ARMSX2 is connected to the PS2 library route.
+The Matrix: Path of Neo CHD passed short-A launch, Home question, B cancel and
+confirmed graceful exit/return. Emulator settings, BIOS, memory cards, existing
+Steam default and Plasma recovery remain intact. This does not validate a whole
+playthrough or semantic PS2 saves. [Launch contract](ROM_PLATFORMS.md#native-ps2-correction-and-wider-setup--2026-09-28).
+
+Native and ARM64 builds passed. All 44 native CTest cases passed across the main
+run and necessary reruns: concurrent build/test file locks were resolved before
+rerunning affected cases, and the old diagnostics scenario was corrected for
+the added Start radio row. Focused device/standalone/diagnostics checks passed
+after that correction. Five Linux overlay and four network-helper tests passed;
+adapter knowledge/export checks passed unchanged. No GitHub Actions gate.
+Actual captures include `odin-network-wifi.png`, `odin-network-bluetooth.png`,
+`odin-network-keyboard.png`, `flip-network-wifi.png` and the PS2 launch/exit
+captures in the ignored research directory. No private content is committed.

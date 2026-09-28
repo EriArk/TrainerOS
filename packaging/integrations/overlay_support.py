@@ -2,6 +2,7 @@
 import ctypes as c
 import fcntl
 import os
+import signal
 from pathlib import Path
 import struct
 
@@ -47,13 +48,14 @@ def supported_emulator_process(pid, proc=Path('/proc')):
     # Some cores rename the main thread (PPSSPP uses "Main"). Ownership is
     # checked by X11.owns separately; comm is not executable identity.
     try:
-        return (proc / str(pid) / 'exe').readlink().name in ('retroarch', 'PPSSPPSDL')
+        return (proc / str(pid) / 'exe').readlink().name in ('retroarch', 'PPSSPPSDL', 'armsx2-qt')
     except OSError:
         return False
 
 
 class X11:
     def __init__(self):
+        self.graceful_signals = set()
         self.x = x = c.CDLL('libX11.so.6')
         self.r = r = c.CDLL('libXRes.so.1')
         x.XOpenDisplay.argtypes = [c.c_char_p]; x.XOpenDisplay.restype = c.c_void_p
@@ -142,6 +144,27 @@ class X11:
 
     def close(self, window, root_pid, start):
         if not self.owns(window, root_pid, start) or self.atom('WM_DELETE_WINDOW') not in self.prop(window, 'WM_PROTOCOLS'):
+            return False
+        pid = self.pid(window)
+        try:
+            if (Path('/proc') / str(pid) / 'exe').readlink().name == 'armsx2-qt':
+                # ARMSX2's first SIGTERM requests its normal Qt shutdown with
+                # confirmation disabled. WM_DELETE asks a second desktop modal.
+                # Never repeat: its second signal is a forced exit. Keep the
+                # upstream memory-card-busy guard and existing emulator config.
+                token = (pid, identity(pid))
+                if token in self.graceful_signals:
+                    return False
+                fd = os.pidfd_open(pid)
+                try:
+                    if identity(pid) != token[1] or not self.owns(window, root_pid, start):
+                        return False
+                    signal.pidfd_send_signal(fd, signal.SIGTERM)
+                    self.graceful_signals.add(token)
+                    return True
+                finally:
+                    os.close(fd)
+        except OSError:
             return False
         class Data(c.Union):
             _fields_ = [('b', c.c_char * 20), ('s', c.c_short * 10), ('l', c.c_long * 5)]

@@ -8,9 +8,19 @@
 #include <QFile>
 #include <QDir>
 #include <QSemaphore>
+#include <QJsonArray>
 
 using namespace trainer;
 namespace {
+class NetworkProbe : public NetworkService {
+public:
+    QJsonObject requestValue, reply;
+    int requests=0, cancellations=0;
+    void request(const QJsonObject& value) override {requestValue=value;++requests;}
+    void respond(const QJsonObject& value) override {reply=value;}
+    void cancel() override {++cancellations;}
+    void list(const QJsonArray& rows) {emit event({{"event","snapshot"},{"rows",rows}});emit finished({});}
+};
 void write(const QString& path, const QByteArray& value) {
     QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly)); QCOMPARE(file.write(value), value.size());
 }
@@ -18,6 +28,43 @@ void write(const QString& path, const QByteArray& value) {
 class DeviceTests : public QObject {
     Q_OBJECT
 private slots:
+    void networkPasswordsCancelAndStableSelection() {
+        NetworkProbe service; NetworkController network;network.configure(&service);
+        QSignalSpy text(&network,&NetworkController::textRequested);
+        const QJsonObject first{{"id","ap:one"},{"title","First"},{"security","wpa-psk"},{"saved",false}};
+        const QJsonObject second{{"id","saved:two"},{"title","Second"},{"security","wpa-psk"},{"saved",true}};
+        network.setActive(true);QCOMPARE(service.requestValue["op"].toString(),"list");QVERIFY(network.busy());
+        service.list({first,second});network.activate(0);QCOMPARE(text.size(),1);QVERIFY(text.first()[2].toBool());
+        network.cancelText();QCOMPARE(service.requests,1);network.activate(0);network.applyText("test password");
+        QCOMPARE(service.requestValue["password"].toString(),"test password");QVERIFY(network.busy());
+        network.dispatch(Action::Back);QCOMPARE(service.cancellations,1);QVERIFY(network.busy());
+        service.list({first,second});network.dispatch(Action::Down);QCOMPARE(network.focusIndex(),1);
+        service.list({second,first});QCOMPARE(network.focusIndex(),0);QVERIFY(network.canForget());
+        network.dispatch(Action::LocalAction);QVERIFY(!network.prompt().isEmpty());
+        const int requests=service.requests;network.dispatch(Action::Back);QCOMPARE(service.requests,requests);
+        network.dispatch(Action::LocalAction);network.dispatch(Action::Confirm);
+        QCOMPARE(service.requestValue["op"].toString(),"forget");QCOMPARE(service.requestValue["id"].toString(),"saved:two");
+        network.setActive(false);QCOMPARE(service.cancellations,2);
+    }
+    void bluetoothPairingOwnsItsConfirmationAndKeyboard() {
+        NetworkProbe service;NetworkController network;network.configure(&service);
+        QSignalSpy keyboard(&network,&NetworkController::textRequested);
+        network.setActive(true);service.list({});
+        network.selectFace(true);service.list({QJsonObject{{"id","/device"},{"title","Gamepad"},{"saved",false}}});
+        network.activate(0);QCOMPARE(service.requestValue["op"].toString(),"pair");
+        emit service.event({{"event","prompt"},{"kind","confirm"},{"text","Confirm 123456"}});
+        QCOMPARE(network.prompt(),"Confirm 123456");network.dispatch(Action::Confirm);
+        QVERIFY(service.reply["accept"].toBool());QVERIFY(network.busy());
+        emit service.event({{"event","prompt"},{"kind","passkey"}});
+        QCOMPARE(keyboard.size(),1);QCOMPARE(keyboard.first()[1].toInt(),6);
+        network.applyText("123456");QCOMPARE(service.reply["value"].toString(),"123456");
+        emit service.event({{"event","prompt"},{"kind","display"},{"text","Enter code on device"}});
+        QCOMPARE(network.confirmLabel(),"Wait");network.dispatch(Action::Back);QCOMPARE(service.cancellations,1);
+        emit service.finished("Cancelled");QVERIFY(!network.busy());QVERIFY(network.prompt().isEmpty());
+        network.setActive(false);
+        emit service.event({{"event","prompt"},{"kind","passkey"}});
+        QCOMPARE(keyboard.size(),1);QCOMPARE(service.cancellations,2);
+    }
     void radioControlsReadBackAndDoNotInventSuccessfulWrites() {
         DeviceSnapshot value; value.wifi=1;value.bluetooth=0;value.airplane=0;
         bool fail=false;
@@ -33,7 +80,7 @@ private slots:
         fail=true;device.adjustQuick(2,Action::Confirm);QTRY_VERIFY(!service.busy());QCOMPARE(service.snapshot().wifi,1);QVERIFY(!device.error().isEmpty());
         fail=false;device.adjustQuick(4,Action::Confirm);QTRY_VERIFY(!service.busy());QCOMPARE(service.snapshot().airplane,1);QCOMPARE(service.snapshot().wifi,0);
         SettingsController settings;settings.selectCategory(10);QSignalSpy requested(&settings,&SettingsController::quickAdjustment);
-        settings.dispatch(Action::Down);settings.dispatch(Action::Confirm);QCOMPARE(requested.size(),1);QCOMPARE(requested.first().at(0).toInt(),3);
+        settings.dispatch(Action::Down);settings.dispatch(Action::Confirm);QCOMPARE(requested.size(),0);
     }
     void volumeReadingsAreHonest() {
         QCOMPARE(parseVolume("Volume: 0.11\n").volume, 11);

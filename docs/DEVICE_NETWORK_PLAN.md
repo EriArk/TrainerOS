@@ -24,9 +24,55 @@ not an override of hardware blocks.
 Bluetooth off/on and readback were exercised on Flip through controller events;
 both handhelds report live state. Wi-Fi-off/airplane end-to-end recovery was
 deliberately deferred because Wi-Fi is the only unattended SSH path.
-Remaining: network scan/connect/password/disconnect/forget, Bluetooth discovery,
-pairing/code confirmation/connect/remove, and local hardware-block/recovery proof.
-These remain required; three toggles do not complete the network acceptance.
+The following delivery replaces the earlier toggle-only boundary. Local
+hardware-block/radio-off recovery proof remains open.
+
+## Connections delivery — 2026-09-28
+
+Connections now owns one inline Wi-Fi/Bluetooth list in the existing right-hand
+Settings pane. Left/right selects the radio, Y searches, A connects or offers
+one disconnect confirmation, Select forgets a saved entry with confirmation,
+and B cancels or returns to categories. X toggles the selected radio. Contextual
+legends stay in the footer; no intermediate device/details/action-menu stack.
+The shared controller keyboard masks Wi-Fi passwords and handles Bluetooth
+PIN/passkey entry. BlueZ confirmation/display codes appear inline. Leaving the
+page cancels the pending operation; late callbacks cannot reopen its keyboard.
+
+`NetworkService` runs the bounded JSON-lines `network-control.py` asynchronously.
+Listing runs unprivileged; mutations have an exact no-arguments sudo rule.
+Passwords travel over stdin, never command arguments, diagnostic output or
+TrainerOS persistence. NetworkManager keeps successful credentials. Wi-Fi
+activation creates a 90-second NetworkManager checkpoint first; a new profile
+is initially memory-only, saved after successful activation, and removed on
+failure/cancellation while the old connection is restored. Process loss retains
+the timed rollback. Successful IP activation does not imply Internet access or
+completion of a captive portal.
+
+Supported new networks are open, WPA/WPA2 personal and WPA3 SAE. Already configured
+enterprise profiles may reconnect through NetworkManager; new enterprise/WEP
+configuration and manually entering a hidden SSID remain Desktop Mode work.
+Bluetooth uses a temporary, target-bound KeyboardDisplay agent, never replaces
+the desktop default agent, and handles confirmation, PIN/passkey and display
+requests. Discovery, connect/disconnect and removal operate on actual BlueZ
+devices; only the explicitly paired device is trusted.
+
+Evidence: both Flip and Odin returned actual saved/nearby lists and completed
+Wi-Fi and Bluetooth scans without losing their active SSH connection. Installed
+controller checks covered lists, face switching, scrolling, masked keyboard and
+cancel/back. Four Python tests cover request/security validation, success-only
+profile persistence, rollback/cancellation and stale targets; native tests cover
+pairing prompts, target/focus retention, cancellation and delayed callbacks.
+Actual new-network password authentication and accessory pairing/code exchange
+still need local hardware acceptance; these are implemented flows, not claimed
+end-to-end device proof. Radio-off/airplane recovery remains deferred until a
+local recovery path is available. No existing saved connection was forgotten.
+
+API references: [NetworkManager manager/checkpoints](https://networkmanager.dev/docs/api/latest/gdbus-org.freedesktop.NetworkManager.html),
+[wireless devices](https://networkmanager.dev/docs/api/latest/gdbus-org.freedesktop.NetworkManager.Device.Wireless.html),
+[BlueZ agent contract](https://github.com/bluez/bluez/blob/master/doc/org.bluez.Agent.rst).
+
+Installed ARM64 SHA-256 on both devices:
+`b0b1f608b70cb85e399bd984478ec44fd10958dce9af7f3fcc558f3214773d19`.
 
 ## Second device
 

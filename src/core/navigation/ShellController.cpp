@@ -52,6 +52,17 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this), multiverse_(repo, adapter, this),
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
       libraryManager_(repo, nullptr, this), libraryTools_(repo,this), settings_(this), device_(this), diagnostics_(this), center_(repo,this), party_(!repo.editable(),this) {
+    connect(&network_, &NetworkController::changed,this,&ShellController::changed);
+    connect(this,&ShellController::changed,this,[this]{network_.setActive(service_=="settings" && settings_.category()==10);});
+    connect(&settings_,&SettingsController::changed,this,[this]{network_.setActive(service_=="settings" && settings_.category()==10);});
+    connect(&network_,&NetworkController::backRequested,this,[this]{settings_.selectCategory(10,false);});
+    connect(&network_,&NetworkController::radioRequested,this,[this](int index){device_.adjustQuick(index,Action::Confirm);});
+    connect(&network_,&NetworkController::textRequested,this,[this](const QString& title,int limit,bool secret){
+        textTarget_=TextTarget::Network;keyboard_.begin(title,{},limit,secret);
+    });
+    connect(&network_,&NetworkController::closeKeyboardRequested,this,[this]{
+        if(textTarget_==TextTarget::Network){textTarget_=TextTarget::None;keyboard_.cancel();}
+    });
     connect(&libraryTools_, &LibraryToolsController::changed,this,&ShellController::changed);
     connect(&libraryTools_, &LibraryToolsController::saved,this,&ShellController::refreshLibrary);
     connect(&libraryTools_, &LibraryToolsController::textRequested,this,[this](const QString& title,const QString& initial,int limit){
@@ -196,6 +207,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if(target==TextTarget::ShopSearch)center_.applyShopSearch(text);
         else if(target==TextTarget::BoxName)party_.applyBoxName(text);
         else if (target == TextTarget::AchievementAccount) hall_.account()->applyText(text);
+        else if (target == TextTarget::Network) network_.applyText(text);
     });
     connect(&center_, &SaveCenterController::shopSearchRequested,this,[this](const QString& text){textTarget_=TextTarget::ShopSearch;keyboard_.begin("Find goods or shops",text,64);});
     refreshContinue();
@@ -552,7 +564,7 @@ void ShellController::activate(int index, const QString& area) {
     else if (service_ == "library") { libraryManager_.activate(index, area); return; }
     else if (service_ == "trainer-settings") { trainerSettingsAction(index); return; }
     else if (service_ == "trainer-setup") { trainerSetup_.activate(index); return; }
-    else if (service_ == "settings") { if(hall_.account()->isOpen()) { hall_.account()->activate(index); return; } if(trainer_.editing()) { trainer_.activate(index); return; } if(settings_.controlsFocused()) settings_.activateRow(index); else settings_.selectCategory(index,true); return; }
+    else if (service_ == "settings") { if(hall_.account()->isOpen()) { hall_.account()->activate(index); return; } if(trainer_.editing()) { trainer_.activate(index); return; } if(settings_.controlsFocused()) {if(settings_.category()==10)network_.activate(index);else settings_.activateRow(index);} else settings_.selectCategory(index,true); return; }
     else if (service_ == "device") { device_.activate(index); return; }
     else if (service_ == "diagnostics") { diagnostics_.activate(index); return; }
     else if (service_ == "center") { center_.activate(index); return; }
@@ -618,7 +630,7 @@ void ShellController::confirm() {
             device_.requestPower(menuFocus_ == 1);
             return;
         }
-        if (menuFocus_ >= 7) { device_.adjustQuick(menuFocus_ - 7, Action::Confirm); return; }
+        if (menuFocus_ >= 7) { if(menuFocus_<9 || !network_.busy())device_.adjustQuick(menuFocus_ - 7, Action::Confirm); return; }
         if (menuFocus_ == 6) { powerMenu_ = true; menuFocus_ = 2; return; }
         if (menuFocus_ >= 4 && platform_.canSwitchSession()) {
             mode_ = menuFocus_ == 5 ? "steam" : "desktop";
@@ -757,8 +769,10 @@ void ShellController::dispatch(Action action) {
     if (notice_.isEmpty() && !menuOpen_) {
         if (keyboard_.isOpen()) {
             const bool naming=textTarget_==TextTarget::BoxName;
+            const bool connecting=textTarget_==TextTarget::Network;
             keyboard_.dispatch(action);
             if(naming && action==Action::Back) {textTarget_=TextTarget::None;party_.cancelBoxName();}
+            if(connecting && action==Action::Back) {textTarget_=TextTarget::None;network_.cancelText();}
             return;
         }
         if (libraryTools_.isOpen()) {libraryTools_.dispatch(action);return;}
@@ -781,7 +795,7 @@ void ShellController::dispatch(Action action) {
             else if (action == Action::Down) trainerSettingsFocus_ = std::min(3, trainerSettingsFocus_ + 1);
             emit changed(); return;
         }
-        if (service_ == "settings") { if(hall_.account()->isOpen()) hall_.account()->dispatch(action); else if(trainer_.editing()) trainer_.dispatch(action,true); else settings_.dispatch(action); return; }
+        if (service_ == "settings") { if(hall_.account()->isOpen()) hall_.account()->dispatch(action); else if(trainer_.editing()) trainer_.dispatch(action,true); else if(settings_.category()==10 && settings_.controlsFocused()) network_.dispatch(action); else settings_.dispatch(action); return; }
         if (service_ == "device") { device_.dispatch(action); return; }
         if (service_ == "diagnostics") { diagnostics_.dispatch(action); return; }
         if (service_ == "center") { center_.dispatch(action); return; }

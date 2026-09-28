@@ -228,7 +228,8 @@ int main(int argc, char* argv[]) {
         StandaloneAdapter melonDs("melonds", activeLibrary, melonDsInstallation);
         StandaloneAdapter dolphin("dolphin", activeLibrary, standaloneInstallation("dolphin"));
         StandaloneAdapter ppsspp("ppsspp", activeLibrary, standaloneInstallation("ppsspp"));
-        AdapterRouter adapters({&ppsspp, &retroarch, &melonDs, &dolphin});
+        StandaloneAdapter armsx2("armsx2", activeLibrary, standaloneInstallation("armsx2"));
+        AdapterRouter adapters({&ppsspp, &armsx2, &retroarch, &melonDs, &dolphin});
         if (personalLibrary && !smoke) selectedAdapter = &adapters;
 #ifdef TRAINEROS_UI_TESTS
         ProbeAdventureAdapter probeAdapter;
@@ -293,6 +294,8 @@ int main(int argc, char* argv[]) {
                 return QString();
             }});
         shell.device()->configure(&deviceService, platform.canSwitchSession());
+        NetworkService networkService;
+        if(!smoke && !parser.isSet("ephemeral")) shell.network()->configure(&networkService);
         VolumeKeys volumeKeys(!smoke && !parser.isSet("ephemeral") && platform.dedicatedSession());
         QObject::connect(&volumeKeys, &VolumeKeys::adjustmentRequested, &deviceService,
             [&deviceService](int delta) { deviceService.hardwareVolume(delta); });
@@ -331,10 +334,11 @@ int main(int argc, char* argv[]) {
             QObject::connect(saveBackups.get(),&SaveBackupService::operationFailed,&session,&SessionState::cancelPendingExit);
         }
         const auto updateServiceActivity = [&] {
-            session.setServiceActive(folders.writing() || deviceService.busy() || (saveBackups && saveBackups->busy()));
+            session.setServiceActive(folders.writing() || deviceService.busy() || shell.network()->busy() || (saveBackups && saveBackups->busy()));
         };
         QObject::connect(&folders, &BatoceraLibrary::writingChanged, &session, updateServiceActivity);
         QObject::connect(&deviceService, &DeviceService::changed, &session, updateServiceActivity);
+        QObject::connect(shell.network(), &NetworkController::changed, &session, updateServiceActivity);
         if (saveBackups) QObject::connect(saveBackups.get(), &SaveBackupService::busyChanged, &session, updateServiceActivity);
         ProcessService adventureProcess;
         AdventureLaunchController adventureLaunch(adventureProcess);
@@ -527,6 +531,7 @@ int main(int argc, char* argv[]) {
                 melonDs.requestLaunch = requestAdventure;
                 dolphin.requestLaunch = requestAdventure;
                 ppsspp.requestLaunch = requestAdventure;
+                armsx2.requestLaunch = requestAdventure;
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::changed, &session, [&] {
                     session.setAdventureActive(adventureLaunch.active());
                     input.setEnabled(app.applicationState() == Qt::ApplicationActive && (!adventureLaunch.active() || adventureLaunch.preparing()));

@@ -8,10 +8,11 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1] / 'packaging/integrations'
 sys.path.insert(0, str(ROOT))
-from overlay_support import RawPad, identity, supported_emulator_process
+from overlay_support import RawPad, X11, identity, supported_emulator_process
 
 
 class OverlayHelperTests(unittest.TestCase):
@@ -21,12 +22,27 @@ class OverlayHelperTests(unittest.TestCase):
             (process/'comm').write_text('Main')
             (process/'exe').symlink_to('/app/bin/retroarch')
             self.assertTrue(supported_emulator_process(42,root))
+            (process/'exe').unlink();(process/'exe').symlink_to('/tmp/mount/usr/bin/armsx2-qt')
+            self.assertTrue(supported_emulator_process(42,root))
             (process/'exe').unlink();(process/'exe').symlink_to('/app/bin/PPSSPPSDL')
             self.assertTrue(supported_emulator_process(42,root))
             (process/'exe').unlink();(process/'exe').symlink_to('/usr/bin/unrelated')
             (process/'comm').write_text('retroarch')
             self.assertFalse(supported_emulator_process(42,root))
             self.assertFalse(supported_emulator_process(43,root))
+    def test_armsx2_graceful_signal_is_owned_and_never_repeated(self):
+        x=object.__new__(X11);x.graceful_signals=set()
+        x.owns=lambda *args:True;x.pid=lambda window:42
+        x.atom=lambda name:7;x.prop=lambda *args:[7]
+        with patch('overlay_support.Path.readlink',return_value=Path('/usr/bin/armsx2-qt')), \
+             patch('overlay_support.identity',return_value='123'), \
+             patch('overlay_support.os.pidfd_open',return_value=9), \
+             patch('overlay_support.os.close'), \
+             patch('overlay_support.signal.pidfd_send_signal') as send:
+            self.assertTrue(x.close(1,40,'120'));self.assertFalse(x.close(1,40,'120'))
+            self.assertEqual(send.call_count,1)
+            x.owns=lambda *args:False
+            self.assertFalse(x.close(2,40,'120'));self.assertEqual(send.call_count,1)
     def test_physical_neutral_includes_every_button_stick_and_trigger(self):
         pad = object.__new__(RawPad)
         pad.axes = [0,1,2,3,4,5,20,21]

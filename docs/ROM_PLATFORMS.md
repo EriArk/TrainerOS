@@ -133,3 +133,42 @@ a persisted JPEG after clean exit.
 
 Current ARM64 production SHA-256:
 `bc68663a830535bfb6fe7c0b026b85fd9e5e263e662044053c46e23501c68a9a`.
+
+## Native PS2 correction and wider setup — 2026-09-28
+
+Odin already had ARMSX2 2.7.1-35-ge2f7d015cb, a BIOS and an SDL controller
+configuration. Its PS2 file was discovered but left unconfigured because the
+router had no standalone PS2 adapter. `armsx2` is now a supported standalone
+installation, preferred over a core for new PS2 bindings when configured.
+It accepts ISO/CHD/CSO/BIN/GZ and invokes `-batch -fullscreen -- FILE` as literal
+arguments; no savestate option or semantic save capability is added. Existing
+explicit custom routes remain intact. A private `integrations/armsx2.json`
+uses the standard version/program/runtimeFile/prefixArguments/validatedPlatforms
+contract (`adapter: armsx2`, `validatedPlatforms: [ps2]`). Odin reuses its
+existing Armada performance wrapper and AppImage, BIOS, settings and memory cards.
+
+Short A launched The Matrix: Path of Neo CHD on Odin. Home opened the guarded
+question, B returned to the running game and confirmed A returned to TrainerOS.
+The actual `armsx2-qt` window owner is checked through the existing process
+ancestry/start-time boundary. A single pidfd-targeted SIGTERM invokes ARMSX2's
+normal Qt graceful shutdown, avoiding a second desktop confirmation. It is
+never repeated for the same process: upstream treats a second signal as forced
+exit. The upstream busy-memory-card guard remains authoritative. Odin's existing
+SaveStateOnShutdown=false was retained; no emulator configuration was rewritten.
+This is a launch/return check, not game completion or PS2 save-isolation proof.
+
+Sources: upstream [QtHost command-line and signal handling](https://github.com/ARMSX2/ARMSX2/blob/master/pcsx2-qt/QtHost.cpp)
+and [MainWindow shutdown](https://github.com/ARMSX2/ARMSX2/blob/master/pcsx2-qt/MainWindow.cpp),
+cross-checked against installed `-help` and actual device behavior.
+
+Owner follow-up: broaden ready-to-use emulator setup ahead of individual games.
+Next extend the existing shared registry with native/Flatpak candidate discovery,
+standalone preference and explicit controller/firmware prerequisites. The target
+is copy ROM → launch A once that platform is ready. Setup must represent missing
+prerequisites, not require registering every game. This is still follow-up work,
+not a claim all 105 categories are installed or launch-tested. Keep representative
+proof and defer per-title tuning; retain Steam/Plasma, user configurations and
+every earlier roadmap acceptance.
+
+Current installed ARM64 SHA-256:
+`b0b1f608b70cb85e399bd984478ec44fd10958dce9af7f3fcc558f3214773d19`.

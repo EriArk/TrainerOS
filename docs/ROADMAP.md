@@ -4,6 +4,17 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-28 owner emulator follow-up:** make platform setup comprehensive in
+advance: one maintained platform/format → preferred installed emulator registry,
+native/Flatpak discovery and preparation of controller/firmware routes. A ready
+platform launches newly copied ROMs with short A; Setup is reserved for genuinely
+missing prerequisites. Reuse the existing shared ROM registry and adapters,
+preserve explicit custom routes and current emulator data, and distinguish
+documented candidates from installed and launch-tested routes. PS2/ARMSX2 on
+Odin is the immediate correction. Expand the other standalone routes in the
+library lane without per-ROM compatibility investigations or displacing the
+remaining Settings/system/RA work and R1–R18 acceptance.
+
 **2026-09-28 owner library extension:** [ordinary ARM64 ROM routes and prepared
 folders](ROM_PLATFORMS.md) come with the current library work. Use platform/file
 routes independent of semantic save adapters, retain old systems with ARM64
@@ -24,6 +35,19 @@ See [network scope](DEVICE_NETWORK_PLAN.md#delivered-radio-slice--2026-09-28).
 The native Steam/Dead Cells probe
 reached its game menu, but installed Steam discovery and owned launch/return
 integration are still pending. These do not reopen per-title compatibility work.
+
+**2026-09-28 follow-up delivery:** Connections now has Wi-Fi list/search,
+controller password entry, connect/disconnect/forget, and Bluetooth
+discovery/pair/code/connect/remove in one Settings pane. Both devices passed
+actual list/scan/controller/keyboard checks; new-network authentication,
+accessory pairing and radio-off recovery remain separate physical gates.
+[Network evidence](DEVICE_NETWORK_PLAN.md#connections-delivery--2026-09-28).
+Odin's existing ARMSX2 is now wired to short-A PS2 launch with guarded Home
+exit/cancel/return, preserving emulator settings and memory cards.
+[Native PS2 boundary](ROM_PLATFORMS.md#native-ps2-correction-and-wider-setup--2026-09-28).
+Continue broader prepared emulator routes, installed Steam library/lifecycle,
+Settings/system polish and RA acceptance; keep the deferred Pokémon/practice,
+release, artwork and every R1–R18 item in place.
 
 **Owner device/network addition:** [Odin 2 and network acceptance](DEVICE_NETWORK_PLAN.md).
 When the owner returns home, verify Odin 2's actual OS/support/recovery and prepare

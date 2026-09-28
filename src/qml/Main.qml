@@ -206,6 +206,14 @@ Window {
                     if (shell.trainerSetup.canRemove) result.unshift(h("X","Remove Trainer"))
                     return result
                 }
+                if (shell.service === "settings" && shell.settings.category===10 && shell.settings.controlsFocused) {
+                    if(shell.network.prompt.length) return shell.network.confirmLabel==="Wait" ? [h("B","Cancel")] : [h("A",shell.network.confirmLabel),h("B","Cancel")]
+                    if(shell.network.busy) return [h("B","Cancel")]
+                    let controls = [h("←→","Wi-Fi / Bluetooth"),h("X","Radio"),h("Y","Search")]
+                    if(shell.network.canForget) controls.push(h("Select","Forget"))
+                    if(shell.network.rows.length) controls.push(h("A",shell.network.actionLabel))
+                    controls.push(h("B","Categories")); return controls
+                }
                 if (shell.service === "settings") return [h("←→","Adjust"),h("A",shell.settings.controlsFocused ? "Select" : "Open"),h("B",shell.settings.controlsFocused ? "Categories" : "Back")]
                 if (shell.service === "device") return [h("←→","Adjust"),h("Y","Refresh"),h("A","Select"),h("B","Back")]
                 if (shell.serviceOpen) return [h("A","Select"),h("B","Back")]

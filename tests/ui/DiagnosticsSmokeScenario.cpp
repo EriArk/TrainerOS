@@ -128,7 +128,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(b); press(b); press(b); break;
         case 18:
             check(!shell.menuOpen() && !shell.powerMenu(), "Back unwinds Power and Start");
-            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(down); press(down); press(a);
+            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(down); press(down); press(down); press(a);
             for (int i=0;i<4;++i) press(down); press(a); break;
         case 19:
             check(shell.service()=="settings" && focus("settings-control-0"), "Trainer settings entry");
@@ -270,7 +270,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             capture("link-interrupted"); press(b); press(b); flip(true); break;
         case 54:
             check(shell.party()->section()=="storage" && focus("party-slot-7"), "Center returns to the prior box slot");
-            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(down); press(down); press(a); break;
+            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(down); press(down); press(down); press(a); break;
         case 55:
             check(shell.service()=="settings" && focus("settings-category-0"), "Settings categories focus");
             capture("settings-root"); press(a); break;
@@ -302,7 +302,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
         case 65:
             check(shell.settings()->theme()=="turquoise", "Reverse theme adjustment"); press(b);
             press(start); for(int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP);
-            press(down); press(down); press(a); for(int i=0;i<4;++i) press(down); press(a); break;
+            press(down); press(down); press(down); press(a); for(int i=0;i<4;++i) press(down); press(a); break;
         case 66:
             check(focus("settings-control-0") && shell.settings()->category()==4, "Inline Trainer category");
             capture("settings-trainer"); press(a); break;

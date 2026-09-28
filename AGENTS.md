@@ -1,5 +1,13 @@
 # AGENTS.md — TrainerOS
 
+**Owner emulator coverage, 2026-09-28:** prepare a broad platform-to-emulator
+launch setup in advance, detecting installed native/Flatpak routes and preferring
+appropriate standalone emulators. Adding a ROM should not require per-title
+setup when its platform is ready. Keep firmware/controller prerequisites and
+installed/launch-tested evidence explicit; preserve existing emulator settings,
+ROMs and saves. PS2 on Odin must use its existing ARMSX2 installation. This
+extends the current library lane, not semantic save research or per-ROM tuning.
+
 **Owner Worlds re-entry, 2026-09-28:** returning to Worlds from another primary
 page opens its World/system grid, preserving the selected Pokémon/Multiverse
 face. Do not reopen the last game wheel/detail. Modal dismissal, local face
