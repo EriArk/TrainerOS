@@ -71,6 +71,7 @@ public:
                     PokedexReferenceProvider&, PokedexProgressRepository&, HallOfFameRepository&,
                     AchievementProvider&, QObject* parent = nullptr);
     TrainerSetupPresentation* trainerSetup() { return &trainerSetup_; }
+    void setOnboardingConnections(bool active) { if(onboardingConnections_==active)return; onboardingConnections_=active; emit changed(); }
     TextEntryController* keyboard() { return &keyboard_; }
     TrainerController* trainer() { return &trainer_; }
     WorldsController* worlds() { return &worlds_; }
@@ -147,6 +148,7 @@ private:
     TextEntryController keyboard_;
     TrainerController trainer_;
     TrainerSetupPresentation trainerSetup_;
+    bool onboardingConnections_ = false;
     int trainerSettingsFocus_ = 0;
     bool trainerChooserFromPower_ = false;
     WorldsController worlds_;

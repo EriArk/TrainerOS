@@ -3,12 +3,15 @@
 #include "core/navigation/ShellController.h"
 #include <QTimer>
 #include "features/trainer/TrainerAccessController.h"
+#include "features/setup/FirstRunController.h"
 
 namespace trainer {
 // Application lifecycle coordinator. QML sees status/actions, never database paths.
 class SessionState final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool entryGate READ entryGate NOTIFY changed)
+    Q_PROPERTY(trainer::FirstRunController* firstRun READ firstRun CONSTANT)
+    Q_PROPERTY(bool firstRunPage READ firstRunPage NOTIFY changed)
     Q_PROPERTY(trainer::TrainerAccessController* access READ access CONSTANT)
     Q_PROPERTY(bool persistent READ persistent CONSTANT)
     Q_PROPERTY(bool blocked READ blocked NOTIFY changed)
@@ -20,9 +23,11 @@ public:
     SessionState(ShellController&, LocalStateStore*, QObject* parent = nullptr);
     TrainerAccessController* access() {return &access_;}
     bool entryGate() const {return entryGate_;}
+    FirstRunController* firstRun() { return &firstRun_; }
+    bool firstRunPage() const { return firstRun_.active() && !(entryGate_ && store_ && !store_->trainers().isEmpty() && firstRun_.stage()=="ready"); }
     QString restartGrant() const {return nextTrainer_;}
     bool persistent() const { return store_ != nullptr; }
-    bool blocked() const { return entryGate_ || access_.active() || creating_ || switching_ || closing_ || (store_ && (!restored_ || !error_.isEmpty())); }
+    bool blocked() const { return firstRun_.active() || entryGate_ || access_.active() || creating_ || switching_ || closing_ || (store_ && (!restored_ || !error_.isEmpty())); }
     QString title() const;
     QString message() const;
     QStringList choices() const;
@@ -63,6 +68,8 @@ private:
     std::function<QString()> prepareRemoval_;
     bool canChangeTrainer() const;
     TrainerAccessController access_;
+    FirstRunController firstRun_;
+    bool setupFamilyPin_ = false;
     bool entryGate_=false;
     QString verifiedTrainer_;
 };

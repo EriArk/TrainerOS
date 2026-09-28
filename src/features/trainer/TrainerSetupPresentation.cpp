@@ -10,6 +10,17 @@ void TrainerSetupPresentation::moveTo(const QString& stage, int focus) {
 void TrainerSetupPresentation::configure(const QList<TrainerProfile>& profiles,const QString& active) {live_=true;profiles_=profiles;active_=active;emit changed();}
 void TrainerSetupPresentation::begin() { startup_=false;close(); moveTo(live_?"chooser":"menu"); }
 void TrainerSetupPresentation::beginStartup() {begin();startup_=true;moveTo(profiles_.isEmpty()?"welcome":"chooser");}
+QJsonObject TrainerSetupPresentation::draft() const {
+    return {{"name",name_},{"emblem",emblem_},{"favorite",favorite_}};
+}
+void TrainerSetupPresentation::restoreDraft(const QJsonObject& draft) {
+    name_=draft["name"].toString().left(24);
+    const auto emblem=draft["emblem"].toString(), favorite=draft["favorite"].toString();
+    if(QStringList{"compass","leaf","spark"}.contains(emblem))emblem_=emblem;
+    if(QStringList{"Not chosen","Bulbasaur","Charmander","Squirtle"}.contains(favorite))favorite_=favorite;
+    // Secret PIN drafts intentionally never survive a restart.
+    moveTo("identity");
+}
 void TrainerSetupPresentation::close() {
     name_.clear(); pin_=emptyPin(); firstPin_=emptyPin(); pinChosen_ = false;
     emblem_ = "compass"; favorite_ = "Not chosen"; moveTo("menu");
@@ -52,7 +63,7 @@ QVariantList TrainerSetupPresentation::rows() const {
         if(profiles_.size()<8)add("Add Trainer","Create a profile");
         if(!startup_)add("Back");return result;
     }
-    if(live_ && stage_=="review") {add("Create Trainer");add("Edit card");add("Change PIN choice");add("Cancel");return result;}
+    if(live_ && stage_=="review") {add("Create Trainer");add("Edit card");if(familyReady_)add("Change PIN choice");add("Cancel");return result;}
     if (stage_ == "menu") { add("Registration", "Welcome, identity, optional PIN and review"); add("Choose a Trainer", "Sample cards and PIN entry"); add("Back to settings"); }
     else if (stage_ == "chooser") { add("River", "Sample Trainer · no PIN"); add("Sky", "Sample Trainer · PIN"); add("Add Trainer", "Rehearse registration"); add("Back"); }
     else if (stage_ == "welcome") { add("Let's begin"); add("Back"); }
@@ -93,10 +104,13 @@ void TrainerSetupPresentation::activate(int index) {
         return;
     }
     if(live_ && stage_=="review") {
+        if(index<0 || index>=rows().size())return;
         if(index==0) {
             const auto favorite=favorite_=="Not chosen"?QString():favorite_.toLower();
             emit createRequested({QUuid::createUuid().toString(QUuid::WithoutBraces),name_,emblem_,favorite,QDateTime::currentDateTimeUtc()});
-        } else if(index==1)moveTo("identity");else if(index==2){pin_=emptyPin();firstPin_=emptyPin();pinChosen_=false;if(familyReady_)moveTo("pin");else {error_="A parent can enable PINs by setting a family code in Settings.";emit changed();}}else if(index==3){close();moveTo(startup_ && profiles_.isEmpty()?"welcome":"chooser");}
+        } else if(index==1)moveTo("identity");
+        else if(index==2 && familyReady_){pin_=emptyPin();firstPin_=emptyPin();pinChosen_=false;moveTo("pin");}
+        else {close();moveTo(startup_ && profiles_.isEmpty()?"welcome":"chooser");}
         return;
     }
     if (keypad()) {

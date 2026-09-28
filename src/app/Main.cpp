@@ -204,7 +204,9 @@ int main(int argc, char* argv[]) {
         CollectionRepository collection(personalLibrary ? static_cast<LibraryRepository&>(*store) : repository);
         LibraryRepository& baseLibrary = personalLibrary ? (!smoke || persistencePhase == "collection" ? static_cast<LibraryRepository&>(collection) : *store) : repository;
         // State thumbnails are migration evidence, not normal launch targets.
-        BatoceraLibrary folders(baseLibrary, parser.isSet("roms-dir") ? QDir(parser.value("roms-dir")).absolutePath() : QDir::home().filePath("Emulation/roms"));
+        const auto libraryRoot = parser.isSet("roms-dir") ? QDir(parser.value("roms-dir")).absolutePath()
+            : FirstRunController::libraryRoot(stateDirectory, QDir::home().filePath("Emulation/roms"));
+        BatoceraLibrary folders(baseLibrary, libraryRoot);
         LibraryRepository& activeLibrary = personalLibrary && !smoke ? static_cast<LibraryRepository&>(folders) : baseLibrary;
         std::unique_ptr<TrainerAchievementProvider> realAchievements;
         if (personalLibrary && !smoke) realAchievements = std::make_unique<TrainerAchievementProvider>(activeLibrary);
@@ -275,6 +277,15 @@ int main(int argc, char* argv[]) {
             if (success) realAchievements->bind(store->accountDirectory());
         });
         SessionState session(shell, store.get());
+        if(personalLibrary && !smoke) {
+            session.firstRun()->configure(stateDirectory,libraryRoot);
+            session.firstRun()->useLibraryRoot=[&](const QString& root)->QString {
+                if(!folders.setRoot(root))return "The library is busy. Wait a moment and try again.";
+                shell.libraryManager()->setInitialFolder(root);
+                return {};
+            };
+            shell.libraryManager()->setInitialFolder(libraryRoot);
+        }
         session.setTrainerSwitchGuard([&]{return !realAchievements || !realAchievements->accountBusy();});
         session.setTrainerRemovalPreparation([&]() -> QString {
             if(!realAchievements)return {};

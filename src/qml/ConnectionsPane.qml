@@ -2,9 +2,10 @@ import QtQuick
 Item {
     id: root
     required property var shell
+    property bool onboarding: false
     readonly property var network: shell.network
-    readonly property bool focused: shell.settings.controlsFocused && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
-    function enter() { if(!shell.settings.controlsFocused) shell.settings.selectCategory(10,true) }
+    readonly property bool focused: (onboarding || shell.settings.controlsFocused) && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
+    function enter() { if(!onboarding && !shell.settings.controlsFocused) shell.settings.selectCategory(10,true) }
     Row {
         x: 0; y: 10; width: parent.width; spacing: 8
         Repeater { model: ["Wi-Fi", "Bluetooth"]

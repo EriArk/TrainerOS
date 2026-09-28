@@ -3,6 +3,7 @@
 #include <QObject>
 #include "core/storage/TrainerPin.h"
 #include <QVariantList>
+#include <QJsonObject>
 #include "core/model/Models.h"
 
 namespace trainer {
@@ -52,6 +53,8 @@ public:
     QVariantList rows() const;
     void begin();
     void beginStartup();
+    QJsonObject draft() const;
+    void restoreDraft(const QJsonObject&);
     void setFamilyReady(bool ready) { familyReady_=ready; }
     SecretPin registrationPin() const { return firstPin_; }
     void close();

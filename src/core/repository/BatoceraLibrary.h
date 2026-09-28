@@ -43,6 +43,7 @@ public:
     QVariantMap artwork(const QString& id) const override { return media_.value(id); }
     void refreshContentAvailability() override;
     void rescan();
+    bool setRoot(const QString& root) { if(busy_)return false; roms_=root;media_.clear();lastScan_.invalidate();return true; }
     bool busy() const { return busy_; }
     bool writing() const { return writing_; }
     std::function<void(AdventureRegistration&)> prepareInstallation;

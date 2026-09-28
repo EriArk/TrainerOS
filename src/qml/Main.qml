@@ -325,19 +325,30 @@ Window {
         }
         }
         Item {
-            anchors.fill: parent; visible: sessionState.entryGate && !sessionState.access.active
+            anchors.fill: parent; visible: (sessionState.entryGate || sessionState.firstRunPage) && !sessionState.access.active
             ChassisFrame { anchors.fill: parent }
-            Text { x: 38; y: 23; text: "TRAINER OS"; color: "#f6e4b3"; font.pixelSize: 26; font.bold: true }
-            TrainerSetupPanel { entry: true; x: 0; y: 43; width: parent.width; height: parent.height-63; shell: shellController }
+            ChassisTopRim { }
+            Text { x: 12; y: 0; width: Theme.brandWidth-24; height: Theme.brandHeight; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; text: "TRAINER OS"; color: "#edf5e9"; font.family: Theme.brandFamily; font.pixelSize: 25; font.bold: true }
+            FirstRunPanel { anchors.fill: parent; shell: shellController; flow: sessionState.firstRun; visible: sessionState.firstRunPage && sessionState.firstRun.stage !== "trainer" }
+            TrainerSetupPanel { entry: true; x: 0; y: 43; width: parent.width; height: parent.height-63; shell: shellController; visible: !sessionState.firstRunPage || sessionState.firstRun.stage === "trainer" }
+            Text {
+                x: 48; y: parent.height-62; width: parent.width-96; height: 24
+                visible: sessionState.firstRunPage && sessionState.firstRun.stage === "trainer"
+                text: sessionState.firstRun.error; textFormat: Text.PlainText; elide: Text.ElideRight
+                color: "#853b24"; font.pixelSize: 14
+            }
             KeyboardPanel { x: Theme.screenBounds.x; y: Theme.screenBounds.y; width: Theme.screenBounds.width; height: Theme.screenBounds.height; shell: shellController }
             Row { anchors.right: parent.right; anchors.rightMargin: 22; anchors.bottom: parent.bottom; anchors.bottomMargin: 9; spacing: 18
                 Hint { visible: shell.keyboard.open; button: "X"; label: "Case" }
                 Hint { visible: shell.keyboard.open; button: "Y"; label: "Symbols" }
+                Hint { visible: sessionState.firstRun.connections && !shell.keyboard.open; button: "X"; label: "Radio" }
+                Hint { visible: sessionState.firstRun.connections && !shell.keyboard.open; button: "Y"; label: "Search" }
+                Hint { visible: sessionState.firstRun.connections && !shell.keyboard.open; button: "←→"; label: "Connections" }
                 Hint { button: "A"; label: shell.keyboard.open ? "Type" : "Select" }
                 Hint { button: "B"; label: "Back"; tint: Theme.pink }
             }
         }
-        StoragePanel { anchors.fill: parent; visible: sessionState.blocked && !sessionState.entryGate && !sessionState.access.active; stateController: sessionState }
+        StoragePanel { anchors.fill: parent; visible: sessionState.blocked && !sessionState.entryGate && !sessionState.firstRunPage && !sessionState.access.active; stateController: sessionState }
         TrainerAccessPanel { anchors.fill: parent; access: sessionState.access; visible: sessionState.access.active }
         Rectangle {
             anchors.right: parent.right; anchors.rightMargin: 28

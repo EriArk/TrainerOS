@@ -11,6 +11,11 @@ and Odin. No clean flash, factory reset, new network pairing, update/rollback or
 new achievement earning was performed. Existing device data is preserved.
 ROADMAP remains the execution queue; this is a user-journey acceptance map.
 
+**Follow-up:** [native first-run implementation](FIRST_RUN.md) now connects the
+core welcome/control/network/storage/Trainer/Home journey and durable resume.
+The table below records the audit baseline and remaining target acceptance;
+language/time controls, image preparation and update gates are still open.
+
 ## Observed baseline
 
 - Both devices have the native app, dedicated session, exit/network helpers and

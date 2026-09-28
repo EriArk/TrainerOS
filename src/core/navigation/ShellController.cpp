@@ -53,8 +53,8 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
       libraryManager_(repo, nullptr, this), libraryTools_(repo,this), settings_(this), device_(this), diagnostics_(this), center_(repo,this), party_(!repo.editable(),this) {
     connect(&network_, &NetworkController::changed,this,&ShellController::changed);
-    connect(this,&ShellController::changed,this,[this]{network_.setActive(service_=="settings" && settings_.category()==10);});
-    connect(&settings_,&SettingsController::changed,this,[this]{network_.setActive(service_=="settings" && settings_.category()==10);});
+    connect(this,&ShellController::changed,this,[this]{network_.setActive(onboardingConnections_ || (service_=="settings" && settings_.category()==10));});
+    connect(&settings_,&SettingsController::changed,this,[this]{network_.setActive(onboardingConnections_ || (service_=="settings" && settings_.category()==10));});
     connect(&network_,&NetworkController::backRequested,this,[this]{settings_.selectCategory(10,false);});
     connect(&network_,&NetworkController::radioRequested,this,[this](int index){device_.adjustQuick(index,Action::Confirm);});
     connect(&network_,&NetworkController::textRequested,this,[this](const QString& title,int limit,bool secret){
@@ -109,7 +109,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&settings_, &SettingsController::deviceRequested, this, [this](int index) { device_.activate(index + 2); emit changed(); });
     connect(&settings_, &SettingsController::controllerRequested, this, [this] { service_ = "diagnostics"; diagnostics_.begin(); emit changed(); });
     connect(&device_, &DeviceController::changed, this, &ShellController::changed);
-    connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(menuOpen_ || service_ == "device" || service_ == "settings"); });
+    connect(this, &ShellController::changed, this, [this] { device_.setMonitoring(onboardingConnections_ || menuOpen_ || service_ == "device" || service_ == "settings"); });
     connect(&device_, &DeviceController::closeRequested, this, [this] { service_ = "settings"; emit changed(); });
     connect(&device_, &DeviceController::messageRequested, this, &ShellController::showNotice);
     connect(&device_, &DeviceController::powerRequested, this, [this](const QString& mode) {

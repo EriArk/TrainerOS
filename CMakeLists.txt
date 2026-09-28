@@ -13,6 +13,8 @@ find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/features/setup/FirstRunController.cpp
+    src/platform/storage/LibraryStorage.cpp
     src/integrations/scraper/ScreenScraper.cpp
     src/integrations/scraper/BatoceraScrapeWriter.cpp
     src/core/storage/SqliteLibraryEdits.cpp
@@ -251,6 +253,7 @@ qt_add_qml_module(traineros
         src/qml/LibraryPanel.qml
         src/qml/TrainerSettingsPanel.qml
         src/qml/TrainerSetupPanel.qml
+        src/qml/FirstRunPanel.qml
         src/qml/SettingControl.qml
         src/qml/SettingsPanel.qml
         src/qml/DevicePanel.qml
@@ -414,6 +417,9 @@ if(BUILD_TESTING)
     target_link_libraries(trainer_ownership_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME ownership COMMAND trainer_ownership_tests)
     qt_add_executable(trainer_access_tests tests/TrainerAccessTests.cpp)
+    qt_add_executable(trainer_first_run_tests tests/FirstRunTests.cpp)
+    target_link_libraries(trainer_first_run_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME first_run COMMAND trainer_first_run_tests)
     target_link_libraries(trainer_access_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME trainer_access COMMAND trainer_access_tests)
     qt_add_executable(trainer_profiles_tests tests/TrainerProfilesTests.cpp)

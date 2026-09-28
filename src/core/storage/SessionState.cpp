@@ -6,6 +6,32 @@ SessionState::SessionState(ShellController& shell, LocalStateStore* store, QObje
     : QObject(parent), shell_(shell), store_(store), access_(store,this) {
     connect(&shell_, &ShellController::exitRequested, this, &SessionState::requestExit);
     if (!store_) return;
+    connect(&firstRun_, &FirstRunController::changed, this, [this] {
+        shell_.setOnboardingConnections(firstRun_.active() && firstRun_.connections());
+        emit changed();
+    });
+    connect(&firstRun_, &FirstRunController::trainerRequested, this, [this] {
+        const auto draft=firstRun_.trainerDraft();
+        shell_.trainerSetup()->beginStartup();
+        shell_.trainerSetup()->restoreDraft(draft);
+    });
+    connect(shell_.trainerSetup(), &TrainerSetupPresentation::changed, this, [this] {
+        if(shell_.trainerSetup()->stage()=="identity")firstRun_.saveTrainerDraft(shell_.trainerSetup()->draft());
+    });
+    connect(shell_.network(), &NetworkController::backRequested, &firstRun_, &FirstRunController::closeConnections);
+    connect(&firstRun_, &FirstRunController::finished, this, [this] { shell_.goToPage(0); emit changed(); });
+    connect(&firstRun_, &FirstRunController::protectTrainerRequested, this, [this] {
+        if(!canChangeTrainer())return;
+        const bool needsFamily=!store_->familyProtected();
+        access_.beginManage(needsFamily);
+        setupFamilyPin_=needsFamily;
+    });
+    connect(&access_, &TrainerAccessController::changed, this, [this] {
+        if(setupFamilyPin_ && !access_.active()) {
+            setupFamilyPin_=false;
+            if(store_->familyProtected())QTimer::singleShot(0,this,[this]{if(firstRun_.active())access_.beginManage(false);});
+        }
+    });
     connect(&access_,&TrainerAccessController::changed,this,&SessionState::changed);
     connect(shell_.trainerSetup(),&TrainerSetupPresentation::removeRequested,this,&SessionState::requestTrainerRemoval);
     connect(&access_,&TrainerAccessController::removalRequested,this,[this](SecretPin code){
@@ -27,7 +53,7 @@ SessionState::SessionState(ShellController& shell, LocalStateStore* store, QObje
     });
     connect(store_,&LocalStateStore::accessNeeded,this,[this]{
         entryGate_=true;error_.clear();shell_.trainerSetup()->configure(store_->trainers(),store_->ownerId());shell_.trainerSetup()->setFamilyReady(store_->familyProtected());
-        shell_.trainerSetup()->beginStartup();focus_=0;emit changed();
+        shell_.trainerSetup()->beginStartup();firstRun_.begin(!store_->trainers().isEmpty());focus_=0;emit changed();
     });
     connect(shell_.trainerSetup(),&TrainerSetupPresentation::closeRequested,this,[this]{if(entryGate_)shell_.trainerSetup()->beginStartup();});
     connect(&shell_,&ShellController::trainersRequested,this,&SessionState::requestTrainers);
@@ -39,6 +65,8 @@ SessionState::SessionState(ShellController& shell, LocalStateStore* store, QObje
     connect(&shell_, &ShellController::changed, this, &SessionState::stateChanged);
     connect(store_, &LocalStateStore::opened, this, [this](bool success) {
         if (success) {
+            firstRun_.begin(!store_->trainers().isEmpty());
+            firstRun_.trainerOpened();
             entryGate_=false;verifiedTrainer_.clear();shell_.trainerSetup()->close();
             shell_.trainerSetup()->configure(store_->trainers(),store_->ownerId());shell_.trainerSetup()->setFamilyReady(store_->familyProtected());
             shell_.settings()->setTrainersAvailable(true);
@@ -47,6 +75,7 @@ SessionState::SessionState(ShellController& shell, LocalStateStore* store, QObje
             shell_.hall()->refreshArchive();
             shell_.refreshLibrary(); shell_.settings()->reload();
             shell_.restoreNavigation(store_->navigation());
+            if(firstRun_.stage()=="complete")shell_.goToPage(0);
             committed_ = store_->navigation();
             desired_ = shell_.navigationState();
             restored_ = true;
@@ -144,7 +173,7 @@ void SessionState::flush() {
 void SessionState::requestExit() {
     // Closing the shell must not destroy an owned emulator process and its save
     // operation. Finish the Adventure in its own interface, then exit the shell.
-    if (adventureActive_ || creating_ || switching_ || access_.active() || entryGate_) return;
+    if (adventureActive_ || creating_ || switching_ || access_.active() || entryGate_ || firstRun_.active()) return;
     if (!store_) { closing_=true;emit changed();finishExit();return; }
     closing_ = true; paused_ = false; focus_ = 0;
     // Preserve a visible failed flush until the user chooses Retry or an explicit skip.
@@ -183,9 +212,15 @@ void SessionState::activate(int index) {
 }
 void SessionState::dispatch(Action action) {
     if(access_.active()){
-        if(!entryGate_ && !access_.busy() && (action==Action::PreviousPage || action==Action::NextPage || action==Action::Home)) {
+        if(!entryGate_ && !firstRun_.active() && !access_.busy() && (action==Action::PreviousPage || action==Action::NextPage || action==Action::Home)) {
             access_.cancel();shell_.dispatch(action);emit changed();
         } else access_.dispatch(action);
+        return;
+    }
+    if(firstRunPage() && firstRun_.stage()!="trainer") {
+        if(shell_.keyboard()->isOpen())shell_.keyboard()->dispatch(action);
+        else if(firstRun_.connections())shell_.network()->dispatch(action);
+        else firstRun_.dispatch(action);
         return;
     }
     if(entryGate_) {
@@ -193,6 +228,7 @@ void SessionState::dispatch(Action action) {
         // No page, Home, Start or paired-face destination exists before entry.
         if(action==Action::PreviousPage || action==Action::NextPage || action==Action::Home || action==Action::SystemMenu || action==Action::PreviousFace || action==Action::NextFace)return;
         if(shell_.keyboard()->isOpen())shell_.keyboard()->dispatch(action);
+        else if(firstRun_.active() && action==Action::Back && (shell_.trainerSetup()->stage()=="identity" || shell_.trainerSetup()->stage()=="welcome"))firstRun_.backFromTrainer();
         else shell_.trainerSetup()->dispatch(action);
         return;
     }

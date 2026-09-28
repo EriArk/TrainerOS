@@ -4,7 +4,8 @@ Item {
     id: root
     required property var access
     ChassisFrame { anchors.fill: parent }
-    Text { x: 38; y: 30; text: "TRAINER OS"; color: "#f6e4b3"; font.pixelSize: 26; font.bold: true }
+    ChassisTopRim { }
+    Text { x: 12; y: 0; width: Theme.brandWidth-24; height: Theme.brandHeight; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; text: "TRAINER OS"; color: "#edf5e9"; font.family: Theme.brandFamily; font.pixelSize: 25; font.bold: true }
     MountedPanel {
         x: 30; y: 83; width: parent.width-60; height: parent.height-136; color: "#e5eadc"
         Text { x: 28; y: 22; width: parent.width-56; text: root.access.title; textFormat: Text.PlainText; color: Theme.ink; font.pixelSize: 27; font.bold: true; elide: Text.ElideRight }
