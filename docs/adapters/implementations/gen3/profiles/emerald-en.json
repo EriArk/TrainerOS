@@ -177,6 +177,17 @@
       ],
       "details": "../EMERALD_LINK.md"
     },
+    "link-battle": {
+      "state": "partial",
+      "evidence": [
+        "source-research",
+        "synthetic",
+        "allowed-delta",
+        "private-copy",
+        "device"
+      ],
+      "details": "../EMERALD_LINK.md"
+    },
     "link-sale": {
       "state": "partial",
       "evidence": [

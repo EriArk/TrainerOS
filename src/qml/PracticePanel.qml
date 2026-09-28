@@ -49,7 +49,7 @@ Item {
                             textSize: 15; contentInset: 65; tint: modelData.chosen ? Theme.yellow : Theme.green
                             selected: root.takesFocus && root.controller.ready && root.controller.focusIndex === index
                             onActivated: root.controller.activate(index)
-                            Image { x: 8; y: 7; width: 49; height: parent.height - 14; source: modelData.art && modelData.art.url ? modelData.art.url : ""; fillMode: Image.PreserveAspectFit; asynchronous: true }
+                            LinkPortrait { x: 8; y: 7; width: 49; height: parent.height-14; member: modelData; tint: parent.tint }
                         }
                     }
                 }

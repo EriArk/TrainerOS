@@ -260,6 +260,59 @@ private slots:
         QFile fa(first.filePath("game.srm")),fb(second.filePath("game.srm"));QVERIFY(fa.open(QIODevice::ReadOnly));QVERIFY(fb.open(QIODevice::ReadOnly));
         QCOMPARE(digest(fa.readAll()),pa["after"].toString());QCOMPARE(digest(fb.readAll()),pb["after"].toString());
     }
+    void emeraldBattleSettlementAndBoxStake() {
+        auto source=movementSave(3);QByteArray money(4,0);put32(money,0,2500);source=movePatch(source,1,0x490,money);
+        QByteArray item(4,0);put16(item,0,13);put16(item,2,3);source=movePatch(source,1,0x560,item);
+        QCOMPARE(emeraldBattleBag(source,EmeraldHash).first().toObject()["quantity"].toInt(),3);
+        QJsonObject terms{{"stake","money"},{"amount",321}};
+        const auto win=settleEmeraldBattle(source,EmeraldHash,terms,"win",{{"13",1}});
+        QVERIFY2(win.error.isEmpty(),qPrintable(win.error));QCOMPARE(emeraldLinkAccount(win.data,EmeraldHash)["money"].toInt(),2821);
+        QCOMPARE(emeraldBattleBag(win.data,EmeraldHash).first().toObject()["quantity"].toInt(),2);
+        QCOMPARE(win.data.left(0xe000),source.left(0xe000));
+        const auto cancel=settleEmeraldBattle(source,EmeraldHash,terms,"cancel",{{"13",1}});
+        QCOMPARE(emeraldLinkAccount(cancel.data,EmeraldHash)["money"].toInt(),2500);
+        QVERIFY(!settleEmeraldBattle(source,EmeraldHash,terms,"win",{{"13",4}}).error.isEmpty());
+        QVERIFY(!settleEmeraldBattle(source,EmeraldHash,terms,"win",{{"13",1.5}}).error.isEmpty());
+        source=movePatch(source,5,4,pokemonFixture(9,25,false,false));
+        const auto boxed=emeraldLinkOffer(source,EmeraldHash,6);QVERIFY2(boxed.error.isEmpty(),qPrintable(boxed.error));
+        terms={{"stake","pokemon"},{"slot",6},{"outgoing",boxed.pokemon},{"incoming",boxed.pokemon}};
+        const auto lost=settleEmeraldBattle(source,EmeraldHash,terms,"loss",{});
+        QVERIFY2(lost.error.isEmpty(),qPrintable(lost.error));
+        const auto observed=readGen3Progress(lost.data,Gen3Edition::Emerald);
+        QCOMPARE(observed.party->boxes[0].members[0].kind,PokemonSlotKind::Empty);
+        QCOMPARE(observed.party->party[3].kind,PokemonSlotKind::Empty);
+        for(int i=0;i<3;++i)QCOMPARE(emeraldLinkOffer(lost.data,EmeraldHash,i).pokemon,emeraldLinkOffer(source,EmeraldHash,i).pokemon);
+        QVERIFY(!emeraldLinkOffer(lost.data,EmeraldHash,6).error.isEmpty());
+        const auto won=settleEmeraldBattle(source,EmeraldHash,terms,"win",{});QVERIFY2(won.error.isEmpty(),qPrintable(won.error));
+        QCOMPARE(readGen3Progress(won.data,Gen3Edition::Emerald).party->party[3].kind,PokemonSlotKind::Known);
+    }
+    void battleReservationRecoveryAndUsedItems() {
+        QTemporaryDir dir;const auto path=dir.filePath("game.srm"),root=dir.filePath("backups");
+        auto bytes=movementSave(3);QByteArray money(4,0);put32(money,0,2500);bytes=movePatch(bytes,1,0x490,money);
+        QByteArray item(4,0);put16(item,0,13);put16(item,2,3);bytes=movePatch(bytes,1,0x560,item);write(path,bytes);
+        const auto r=record();const SaveTarget target{"test","Emerald",path,EmeraldHash,"context",{},true,"trainer-link-test"};
+        const SaveTargetResolver resolve=[&](const AdventureRegistration&){return target;};
+        const auto id=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        QJsonObject request{{"id",id},{"peer",QUuid::createUuid().toString(QUuid::WithoutBraces)},
+            {"proposal",QString(64,'a')},{"save",digest(bytes)},{"kind","battle"},{"host",true},
+            {"terms",QJsonObject{{"stake","money"},{"amount",321}}},{"bag",emeraldBattleBag(bytes,EmeraldHash)}};
+        const auto reserved=prepareLinkSave(root,r,request,resolve);QVERIFY2(!reserved.contains("error"),qPrintable(reserved["error"].toString()));
+        QCOMPARE(reserved["stage"],"reserved");QVERIFY(pendingLinkSave(root));
+        QVERIFY(commitLinkSave(root,r,id,QString(64,'b'),resolve).contains("error"));
+        QJsonObject checkpoint{{"request",2},{"turn",2},{"ended",false},{"winner",""},
+            {"sides",QJsonArray{QJsonObject{{"used",QJsonObject{{"13",1}}}},QJsonObject{{"used",QJsonObject{}}}}}};
+        QVERIFY(!checkpointBattleSave(root,r,id,checkpoint,resolve,false).contains("error"));
+        QVERIFY(abortPreparedLinkSave(root,r,id,resolve).contains("error"));
+        auto stale=checkpoint;stale["request"]=1;QVERIFY(checkpointBattleSave(root,r,id,stale,resolve,false).contains("error"));
+        const auto prepared=checkpointBattleSave(root,r,id,checkpoint,resolve,true);
+        QCOMPARE(prepared["stage"],"prepared");QCOMPARE(prepared["outcome"],"cancel");
+        QVERIFY(!commitLinkSave(root,r,id,QString(64,'b'),resolve).contains("error"));
+        QVERIFY(!commitLinkSave(root,r,id,QString(64,'b'),resolve).contains("error"));
+        QCOMPARE(finishLinkSave(root,id,QString(64,'b'))["stage"],"complete");
+        QFile f(path);QVERIFY(f.open(QIODevice::ReadOnly));const auto after=f.readAll();
+        QCOMPARE(emeraldLinkAccount(after,EmeraldHash)["money"].toInt(),2500);
+        QCOMPARE(emeraldBattleBag(after,EmeraldHash).first().toObject()["quantity"].toInt(),2);
+    }
     void emeraldBattleFactsPreserveIndividualValues() {
         for(int permutation=0;permutation<24;++permutation) {
             auto bytes=pokemonFixture(permutation);

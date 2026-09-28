@@ -257,7 +257,10 @@ Window {
                     if (party.section === "activities" && party.activities.route === "link") {
                         const link = party.activities.link
                         if (link.stage === "price") return [h("↑↓","Price ±" + link.priceStep),h("←→","Step"),h("A","Offer"),h("B","Cancel")]
-                        if (link.stage === "moves") return [h("X","Moves / Team"),h("A","Choose"),h("B","Leave battle")]
+                        if (link.stage === "concede") return [h("A","Concede"),h("B","Keep battling")]
+                        if (link.stage === "moves") return [h("X","Team"),h("Y","Bag"),h("A",link.battlePanel === "target" ? "Use" : "Choose"),h("B",link.battlePanel !== "moves" ? "Attacks" : "Concede")]
+                        if (link.stage === "stake" || link.stage === "choose" && link.mode !== "battle") return [h("X Y","Party / Boxes"),h("A","Choose"),h("B","Back")]
+                        if (link.canSetTerms) return (link.stakeText.indexOf("₽") >= 0 ? [h("↑↓","Amount ±" + link.priceStep),h("←→","Step")] : []).concat([h("Select","Stake"),h("A","Ready"),h("B","Back")])
                         return [h("A",link.stage === "pair" ? "Connect" : link.stage === "review" ? "Confirm" : link.stage === "moves" ? "Move" : "Choose"),h("B",link.pending ? "Pause" : "Back")]
                     }
                     if (party.section === "activities") return party.activities.route === "playroom" && party.activities.hasParty ? [h("↑","Practice"),h("←→","Partner"),h("Select","Play"),h("X","Greet"),h("A","Call")] : [h("A","Select"),h("B","Back")]

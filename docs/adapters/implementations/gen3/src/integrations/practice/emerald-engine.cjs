@@ -1,6 +1,12 @@
 'use strict';
 // TrainerOS' bounded bridge to the pinned offline simulator. No save/file API.
 const reference = require('../../../data/emerald-reference.json');
+const medicines = {
+    13:{name:'Potion',heal:20},19:{name:'Full Restore',heal:999,status:true},
+    20:{name:'Max Potion',heal:999},21:{name:'Hyper Potion',heal:200},
+    22:{name:'Super Potion',heal:50},23:{name:'Full Heal',status:true},
+    24:{name:'Revive',revive:0.5},25:{name:'Max Revive',revive:1}
+};
 const statNames = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 const assert = (ok, message) => { if (!ok) throw new Error(message); };
 const integer = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
@@ -65,9 +71,33 @@ function createEngine(engineRoot) {
         assert(input.protocol===1 && Array.isArray(teams) && teams.length===2 && teams.every(t=>Array.isArray(t) && t.length>=1 && t.length<=6), 'Invalid teams');
         assert(Array.isArray(input.seed) && input.seed.length===4 && input.seed.every(v=>integer(v,0,65535)), 'Invalid seed');
         const members = teams.map(t=>t.map(member));
+        const stock = [0,1].map(i=> {
+            const out={};const bag=input.bags?.[i] || [];
+            assert(Array.isArray(bag) && bag.length<=8, 'Invalid medicine Bag');
+            for(const item of bag){assert(medicines[item.id] && integer(item.quantity,1,999) && !out[item.id], 'Invalid medicine');out[item.id]=item.quantity;}
+            return out;
+        });
+        const used=[{},{}];
+        function usable(item,mon) {
+            if(item.revive)return mon.fainted;
+            return !mon.fainted && ((item.heal && mon.hp<mon.maxhp) || (item.status && (mon.status || mon.volatiles.confusion)));
+        }
         // The pinned start hook runs before switches, ability events or requests.
         // Patch each instance, never global simulator data or prototypes.
         class PreparedBattle extends Battle {
+            runAction(action) {
+                if(action.choice!=='trainerItem')return super.runAction(action);
+                const {side,itemId,target}=action, item=medicines[itemId];
+                // Medicine is a Trainer action: before switches and attacks,
+                // consumes this turn, no move PP and no held-item trigger.
+                if(!stock[side.n][itemId] || !usable(item,target))return;
+                --stock[side.n][itemId];used[side.n][itemId]=(used[side.n][itemId] || 0)+1;
+                this.add('message',side.name+' used '+item.name+' on '+target.species.name+'!');
+                if(item.revive){target.fainted=false;target.faintQueued=false;target.hp=Math.max(1,Math.floor(target.maxhp*item.revive));++side.pokemonLeft;}
+                else if(item.heal)target.hp=Math.min(target.maxhp,target.hp+item.heal);
+                if(item.status){target.cureStatus();target.removeVolatile('confusion');}
+                this.add('-heal',target,target.getHealth);
+            }
             start() {
                 for (const [i, side] of this.sides.entries()) {
                   for (const [index, mon] of side.pokemon.entries()) {
@@ -108,6 +138,15 @@ function createEngine(engineRoot) {
                 side.pokemon.forEach((mon,index)=>{if(!mon.fainted && !side.active.includes(mon))
                     choices.push({slot:10+mon.trainerSource,command:'switch '+(index+1),move:mon.species.name,pp:mon.hp,maxPp:mon.maxhp,switch:true});});
             }
+            if(request && !side.activeRequest?.forceSwitch) {
+                for(const [id,quantity] of Object.entries(stock[side.n]))if(quantity>0) {
+                    const item=medicines[id];
+                    for(const mon of side.pokemon)if(usable(item,mon))choices.push({
+                        slot:100+Number(id)*6+mon.trainerSource,item:Number(id),target:mon.trainerSource,
+                        move:item.name,pp:quantity,maxPp:quantity,command:'',bag:true
+                    });
+                }
+            }
             return choices;
         }
         function state() {
@@ -117,7 +156,8 @@ function createEngine(engineRoot) {
                 sides:battle.sides.map(side=> {
                     const mon=side.active[0];
                     return {hp:mon.hp,maxHp:mon.maxhp,status:mon.status,member:mon.trainerSource,wait:!!side.activeRequest?.wait,
-                        remaining:side.pokemon.filter(p=>!p.fainted).length,total:side.pokemon.length,
+                        remaining:side.pokemon.filter(p=>!p.fainted).length,total:side.pokemon.length,used:{...used[side.n]},
+                        team:side.pokemon.map(p=>({member:p.trainerSource,hp:p.hp,maxHp:p.maxhp,status:p.status,active:side.active.includes(p),fainted:p.fainted})),
                         forceSwitch:!!side.activeRequest?.forceSwitch,
                         moves:choices(side).map(({command,...m})=>m)};
                 })};
@@ -130,7 +170,19 @@ function createEngine(engineRoot) {
                 const selected = battle.sides.map((s,i)=>choices(s).find(m=>m.slot===slots[i]));
                 assert(selected.every(Boolean), 'Unavailable move');
                 // Both choices validated before either player is advanced.
-                battle.makeChoices(...selected.map(m=>m.command));
+                for(const [i,choice] of selected.entries()) {
+                    const side=battle.sides[i];
+                    if(choice.bag) {
+                        // Parse an ordinary valid move first to preserve the
+                        // simulator's choice bookkeeping, then replace only its
+                        // action. Never execute or deduct PP for that move.
+                        const placeholder=choices(side).find(m=>!m.bag && !m.switch && m.command);
+                        assert(placeholder && side.choose(placeholder.command), 'Cannot choose medicine now');
+                        side.choice.actions=[{choice:'trainerItem',order:102,side,pokemon:side.active[0],
+                            itemId:choice.item,target:side.pokemon.find(p=>p.trainerSource===choice.target)}];
+                    } else if(choice.command)assert(side.choose(choice.command), 'Invalid battle action');
+                }
+                battle.commitChoices();
                 if (!battle.ended && battle.turn>200) battle.tie();
                 return state();
             }

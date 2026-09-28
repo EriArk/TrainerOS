@@ -6,6 +6,8 @@ Item {
     property bool opponent: false
     property bool playing: false
     property bool striking: false
+    readonly property int attackBeat: fighter.attackBeat || 0
+    onAttackBeatChanged: if (attackBeat > 0 && playing) strike.restart()
     property bool showHealth: true
     visible: !!fighter.name
     readonly property var idle: fighter.clips && fighter.clips.Idle ? fighter.clips.Idle : fighter.sprite || ({})
@@ -18,7 +20,7 @@ Item {
     }
     Item {
         id: creature
-        x: 0; y: root.showHealth ? 58 : 33; width: parent.width; height: Math.max(35, parent.height - y - 7)
+        x: 0; y: 68; width: parent.width; height: Math.max(35, parent.height - y - 7)
         opacity: root.fighter.maxHp && root.fighter.battleHp === 0 ? 0.35 : 1
         Behavior on opacity { NumberAnimation { duration: Theme.motion(300) } }
         SpritePreview {
@@ -36,16 +38,17 @@ Item {
     }
     Rectangle {
         anchors.top: parent.top; anchors.horizontalCenter: parent.horizontalCenter
-        width: Math.min(parent.width, 255); height: root.showHealth ? 54 : 31
+        width: Math.min(parent.width, 290); height: root.showHealth ? 67 : 58
         radius: 7; color: "#f5f4d9"; border.width: 2; border.color: "#54785d"
         visible: !!root.fighter.name
-        Text { x: 10; y: 5; width: parent.width - 68; text: root.fighter.name || ""; color: Theme.ink; font.pixelSize: 15; font.bold: true; elide: Text.ElideRight }
-        Text { anchors.right: parent.right; anchors.rightMargin: 9; y: 6; text: root.fighter.level ? "Lv. " + root.fighter.level : ""; color: Theme.muted; font.pixelSize: 12 }
+        LinkPortrait { x: 5; y: 5; width: 53; height: 53; member: root.fighter; tint: root.opponent ? Theme.pink : Theme.blue; emotion: root.fighter.maxHp && root.fighter.battleHp === 0 ? "Pain" : "Normal" }
+        Text { x: 66; y: 9; width: parent.width - 122; text: root.fighter.name || ""; color: Theme.ink; font.pixelSize: 15; font.bold: true; elide: Text.ElideRight }
+        Text { anchors.right: parent.right; anchors.rightMargin: 9; y: 10; text: root.fighter.level ? "Lv. " + root.fighter.level : ""; color: Theme.muted; font.pixelSize: 12 }
         Rectangle {
-            x: 10; y: 30; width: parent.width - 87; height: 9; radius: 4; color: "#c5d1ba"; visible: root.showHealth
+            x: 66; y: 37; width: parent.width - 136; height: 9; radius: 4; color: "#c5d1ba"; visible: root.showHealth
             Rectangle { width: parent.width * Math.max(0, Math.min(1, root.fighter.hpRatio || 0)); height: parent.height; radius: 4; color: root.fighter.hpRatio > 0.5 ? "#67b768" : root.fighter.hpRatio > 0.2 ? "#edbd48" : "#df6a62"; Behavior on width { NumberAnimation { duration: Theme.motion(300) } } }
         }
-        Text { anchors.right: parent.right; anchors.rightMargin: 9; y: 28; text: (root.fighter.battleHp || 0) + "/" + (root.fighter.maxHp || 0); color: Theme.ink; font.pixelSize: 11; visible: root.showHealth }
+        Text { anchors.right: parent.right; anchors.rightMargin: 9; y: 35; text: (root.fighter.battleHp || 0) + "/" + (root.fighter.maxHp || 0); color: Theme.ink; font.pixelSize: 11; visible: root.showHealth }
         Text { anchors.top: parent.bottom; anchors.topMargin: 3; anchors.right: parent.right; text: (root.fighter.battleStatus || "").toUpperCase(); color: "#73354e"; font.pixelSize: 13; font.bold: true }
     }
 }

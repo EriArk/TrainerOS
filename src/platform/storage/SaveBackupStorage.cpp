@@ -371,7 +371,7 @@ bool writeLink(const QString& root,const QJsonObject& value,bool archive=false) 
 }
 QJsonObject publicLink(const QJsonObject& j) {
     QJsonObject out;
-    for(const auto key:{"id","peer","proposal","before","after","peerAfter","stage","adventure","owner","kind"})out[key]=j[key];
+    for(const auto key:{"id","peer","proposal","before","after","peerAfter","stage","adventure","owner","kind","checkpoint","outcome"})out[key]=j[key];
     return out;
 }
 }
@@ -387,7 +387,7 @@ QJsonObject inspectLinkPokemon(const QString& root,const AdventureRegistration& 
     if(!save.success || !save.exists)return linkError("The ordinary save is unavailable.");
     const auto account=emeraldLinkAccount(save.data,target.contentRevision);
     if(account.contains("error"))return account;
-    if(slot<0)return {{"save",hash(save.data)},{"account",account}};
+    if(slot<0)return {{"save",hash(save.data)},{"account",account},{"bag",emeraldBattleBag(save.data,target.contentRevision)}};
     const auto offer=emeraldLinkOffer(save.data,target.contentRevision,slot);
     if(!offer.error.isEmpty())return linkError(offer.error);
     return {{"pokemon",offer.pokemon},{"save",hash(save.data)},{"slot",slot},{"account",account}};
@@ -403,16 +403,24 @@ QJsonObject prepareLinkSave(const QString& root,const AdventureRegistration& r,c
     const auto target=resolve(r);const auto save=current(target);
     if(!save.success || !save.exists || hash(save.data)!=request["save"].toString())return linkError("The save changed. Choose your Pokemon again.");
     const auto kind=request["kind"].toString("trade");const bool sale=kind=="sale" || kind=="gift";
-    if(!sale && kind!="trade")return linkError("Unsupported transfer.");
+    const bool battle=kind=="battle";
+    if(!sale && kind!="trade" && !battle)return linkError("Unsupported transfer.");
     const bool seller=request["seller"].toBool();
-    if(!sale || seller) {
+    if(!battle && (!sale || seller)) {
         const auto offered=emeraldLinkOffer(save.data,target.contentRevision,request["slot"].toInt(-1));
         if(!offered.error.isEmpty() || offered.pokemon!=request["outgoing"].toObject())return linkError("Your selected Pokemon changed.");
     }
     if(sale && (request["price"].toDouble(-1)!=request["price"].toInt(-2) || (kind=="gift" && request["price"].toInt()!=0)))return linkError("The price is invalid.");
-    const auto result=sale?sellEmeraldPokemon(save.data,target.contentRevision,request["slot"].toInt(-1),hash(save.data),request["incoming"].toObject(),request["price"].toInt(-1),seller)
+    const auto result=battle?PartyMoveResult{save.data,{},{}}:sale?sellEmeraldPokemon(save.data,target.contentRevision,request["slot"].toInt(-1),hash(save.data),request["incoming"].toObject(),request["price"].toInt(-1),seller)
         :tradeEmeraldPokemon(save.data,target.contentRevision,request["slot"].toInt(-1),hash(save.data),request["incoming"].toObject());
     if(!result.error.isEmpty() || result.data.isEmpty())return linkError(result.error);
+    if(battle) {
+        for(const auto outcome:{"win","loss"}) {
+            const auto proof=settleEmeraldBattle(save.data,target.contentRevision,request["terms"].toObject(),outcome,{});
+            if(!proof.error.isEmpty())return linkError(proof.error);
+        }
+        if(request["bag"].toArray()!=emeraldBattleBag(save.data,target.contentRevision))return linkError("Your Bag changed. Reopen the counter.");
+    }
     const auto backup=writeBundle(root,target,save,true,"link-"+kind);if(backup.isEmpty())return linkError("Couldn't protect the current save.");
     if(current(resolve(r)).revision!=save.revision)return linkError("The save changed while preparing the trade.");
     QJsonObject journal{{"version",1},{"id",id},{"peer",request["peer"]},{"proposal",request["proposal"]},{"kind",kind},
@@ -420,12 +428,53 @@ QJsonObject prepareLinkSave(const QString& root,const AdventureRegistration& r,c
         {"content",target.contentRevision},{"context",target.contextRevision},{"path",target.savePath},
         {"token",save.revision},{"before",hash(save.data)},{"after",hash(result.data)},
         {"original",QString::fromLatin1(save.data.toBase64())},{"candidate",QString::fromLatin1(result.data.toBase64())},{"protection",backup}};
+    if(battle){journal["stage"]="reserved";journal["terms"]=request["terms"];journal["host"]=request["host"];}
     if(!writeLink(root,journal))return linkError("Couldn't keep the prepared trade. The save is unchanged.");
     return publicLink(journal);
+}
+// A battle holds the ordinary save unchanged. Checkpoints preserve consumed
+// medicine and the host result before publishing a new turn to the other console.
+QJsonObject checkpointBattleSave(const QString& root,const AdventureRegistration& r,const QString& id,
+        const QJsonObject& state,const SaveTargetResolver& resolve,bool finalize=false) {
+    QLockFile lock(QDir(root).filePath("service.lock"));if(!lock.tryLock(0))return linkError("Another save operation is running.");
+    auto j=readLink(root);const auto target=resolve(r);const auto save=current(target);
+    if(j["id"]!=id || j["kind"]!="battle" || j["stage"]!="reserved" || !save.success ||
+        j["owner"]!=target.backupOwner || j["path"]!=target.savePath || j["content"]!=target.contentRevision ||
+        j["context"]!=target.contextRevision || j["token"]!=save.revision || j["before"]!=hash(save.data))
+        return linkError("Return to the unchanged Emerald save used for this battle.");
+    auto previous=j["checkpoint"].toObject();
+    if(!state.isEmpty()) {
+        if(previous["ended"].toBool() && state!=previous)return linkError("The battle already has a result.");
+        if(state["request"].toInt() < previous["request"].toInt() ||
+            (state["request"]==previous["request"] && state!=previous) ||
+            state["sides"].toArray().size()!=2 || state["turn"].toInt()<1 || state["turn"].toInt()>201 ||
+            !QStringList{"","Partner 1","Partner 2"}.contains(state["winner"].toString()))return linkError("The battle checkpoint is invalid.");
+        const int side=j["host"].toBool()?0:1;
+        const auto used=state["sides"].toArray()[side].toObject()["used"].toObject();
+        const auto oldSides=previous["sides"].toArray();
+        if(oldSides.size()==2){const auto old=oldSides[side].toObject()["used"].toObject();
+            for(auto it=old.begin();it!=old.end();++it)if(used[it.key()].toInt()<it.value().toInt())return linkError("The item checkpoint moved backwards.");}
+        const auto proof=settleEmeraldBattle(save.data,target.contentRevision,j["terms"].toObject(),"draw",used);
+        if(!proof.error.isEmpty())return linkError(proof.error);
+        previous=state;j["checkpoint"]=state;
+    }
+    if(finalize) {
+        const auto winner=previous["winner"].toString();
+        const QString outcome=!previous["ended"].toBool()?"cancel":winner.isEmpty()?"draw":
+            winner==(j["host"].toBool()?"Partner 1":"Partner 2")?"win":"loss";
+        const auto sides=previous["sides"].toArray();
+        const auto used=sides.size()==2?sides[j["host"].toBool()?0:1].toObject()["used"].toObject():QJsonObject{};
+        const auto result=settleEmeraldBattle(save.data,target.contentRevision,j["terms"].toObject(),outcome,used);
+        if(!result.error.isEmpty())return linkError(result.error);
+        j["candidate"]=QString::fromLatin1(result.data.toBase64());j["after"]=hash(result.data);j["outcome"]=outcome;j["stage"]="prepared";
+    }
+    if(!writeLink(root,j))return linkError("Couldn't protect the battle checkpoint.");
+    return publicLink(j);
 }
 QJsonObject commitLinkSave(const QString& root,const AdventureRegistration& r,const QString& id,const QString& peerAfter,const SaveTargetResolver& resolve) {
     QLockFile lock(QDir(root).filePath("service.lock"));if(!lock.tryLock(0))return linkError("Another save operation is running.");
     auto j=readLink(root);if(j["id"]!=id || !validHash(peerAfter))return linkError("This trade cannot be recovered yet.");
+    if(!QStringList{"prepared","commit","committed"}.contains(j["stage"].toString()))return linkError("The battle result is not ready to save.");
     if(j.contains("peerAfter") && j["peerAfter"]!=peerAfter)return linkError("The partner's prepared save changed.");
     const auto target=resolve(r);const auto save=current(target);
     if(j["adventure"]!=r.adventure.id || j["owner"]!=target.backupOwner || j["content"]!=target.contentRevision || j["context"]!=target.contextRevision || j["path"]!=target.savePath || !save.success)
@@ -463,7 +512,7 @@ QJsonObject finishLinkSave(const QString& root,const QString& id,const QString& 
 QJsonObject abortPreparedLinkSave(const QString& root,const AdventureRegistration& r,const QString& id,const SaveTargetResolver& resolve) {
     QLockFile lock(QDir(root).filePath("service.lock"));if(!lock.tryLock(0))return linkError("Another save operation is running.");
     auto j=readLink(root);const auto target=resolve(r);const auto save=current(target);
-    if(j["id"]!=id || j["stage"]!="prepared" || !save.success || j["owner"]!=target.backupOwner
+    if(j["id"]!=id || (j["stage"]!="prepared" && !(j["stage"]=="reserved" && j["checkpoint"].toObject().isEmpty())) || !save.success || j["owner"]!=target.backupOwner
         || j["path"]!=target.savePath || j["token"]!=save.revision || j["before"]!=hash(save.data))return linkError("This trade needs both consoles to recover. No rollback was attempted.");
     j["stage"]="cancelled";
     if(!writeLink(root,j,true) || !QFile::remove(linkPath(root)) || !syncDirectory(QDir(root).filePath("link")))return linkError("Couldn't finish cancelling the prepared trade.");
@@ -484,6 +533,7 @@ void LocalSaveBackupService::linkOperation(const AdventureRegistration& r,const 
         QJsonObject result;
         if(operation=="inspect")result=inspectLinkPokemon(root_,r,request["slot"].toInt(-1),resolve_);
         else if(operation=="prepare")result=prepareLinkSave(root_,r,request,resolve_);
+        else if(operation=="battle-checkpoint" || operation=="battle-finish")result=checkpointBattleSave(root_,r,request["id"].toString(),request["state"].toObject(),resolve_,operation=="battle-finish");
         else if(operation=="commit")result=commitLinkSave(root_,r,request["id"].toString(),request["peerAfter"].toString(),resolve_);
         else if(operation=="finish")result=finishLinkSave(root_,request["id"].toString(),request["peerAfter"].toString());
         else if(operation=="abort-prepared")result=abortPreparedLinkSave(root_,r,request["id"].toString(),resolve_);

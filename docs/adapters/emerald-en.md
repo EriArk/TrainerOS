@@ -20,6 +20,16 @@ excluded; other adapters retain full-catalogue fallback. This is ROM capability
 metadata, independent of whether a verified save already exists. Current delivery
 supersedes older dated Link-open checkpoints below only within this scope.
 
+### Portrait battle workspace and protected stakes
+
+The exact adapter exports eligible individuals from Party and all fourteen Boxes,
+reads the supported eight-medicine Bag subset, and generates verified battle
+settlement candidates: money/Pokemon win/loss, draw/cancel and consumed medicine.
+It preserves older banks and ordinary Party HP/PP. Host reservations/checkpoints
+and two-sided commit remain platform services, not portable adapter powers.
+The pure functions and exact profile are included in the synchronized reusable
+copy. See the Link record for real money/medicine and Box-stake device evidence.
+
 ## Identity and existing evidence
 
 SHA-256 `a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f6226db19085af`.

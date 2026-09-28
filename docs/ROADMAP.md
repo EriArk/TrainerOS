@@ -27,6 +27,15 @@ next exact-build pair remains open. Preserve the full-moveset replacement choose
 as a separate evolution follow-up. The broad #45/#93/#94 acceptance remains partial; next work
 returns to the remaining RA/account-to-play and image/update/system lane below.
 
+**2026-09-28 owner battle UX/stakes extension:** the same bounded Emerald Link
+lane adds a persistent portrait workspace, inline team/Bag controls, real money
+or Party/Box Pokemon stakes, protected medicine consumption and confirmed
+concession. See [current behavior and device evidence](EMERALD_LINK.md).
+This supersedes the no-currency-write boundary for explicitly agreed Link stakes,
+not read-only local practice. Other items, native battle-rule parity, further
+exact games, Bluetooth and competitive trust remain open. RA and every later
+R1?R18 acceptance are retained; this increment does not start a new battle engine.
+
 **2026-09-28 RetroArch RA handoff:** [per-launch accounts](RETROACHIEVEMENTS.md#retroarch-account-handoff--2026-09-28)
 now follow the active Trainer automatically on A, preserve existing emulator/save
 configuration and explicitly disable inherited RA credentials when signed out.

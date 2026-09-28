@@ -1,7 +1,12 @@
 #pragma once
 #include <QJsonObject>
+#include <QJsonArray>
 #include "core/model/PartyMove.h"
 namespace trainer {
+// Flattened saved position: Party 0..5, Boxes 6 + box*30 + slot.
+QJsonArray emeraldBattleBag(const QByteArray&,const QString&);
+PartyMoveResult settleEmeraldBattle(const QByteArray&,const QString&,const QJsonObject& terms,
+    const QString& outcome,const QJsonObject& used);
 QJsonObject emeraldLinkAccount(const QByteArray& save,const QString& hash);
 PartyMoveResult sellEmeraldPokemon(const QByteArray& save,const QString& hash,int position,
     const QString& revision,const QJsonObject& incoming,int price,bool seller);

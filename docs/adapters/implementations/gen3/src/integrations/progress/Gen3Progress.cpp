@@ -264,10 +264,13 @@ EmeraldLinkOffer emeraldLinkOffer(const QByteArray& save,const QString& hash,int
     const auto slot=shopSlot(save,hash);
     if(!slot)return {{},"Save in the supported English Emerald edition first."};
     const auto world=worldBlock(*slot);
-    if(position<0 || position>=quint8(world[0x234]) || position>=6)return {{},"Choose a Party member."};
+    if(position<0 || position>=426 || (position<6 && position>=quint8(world[0x234])))return {{},"Choose a saved Pokemon."};
     const auto progress=readGen3Progress(save,Gen3Edition::Emerald);
     if(!progress.party || !progress.party->error.isEmpty() || !progress.pokedex || !progress.pokedex->error.isEmpty())return {{},"The Party or Pokedex could not be verified."};
-    return exportEmeraldLinkRecord(world.mid(0x238+position*100,100));
+    if(position<6)return exportEmeraldLinkRecord(world.mid(0x238+position*100,100));
+    QByteArray storage;for(int id=5;id<14;++id)storage+=slot->blocks[id];
+    const auto record=emeraldWithdrawRecord(storage.mid(4+(position-6)*80,80));
+    return exportEmeraldLinkRecord(record);
 }
 PartyMoveResult tradeEmeraldPokemon(const QByteArray& save,const QString& hash,int position,
     const QString& revision,const QJsonObject& incoming) {
@@ -280,18 +283,20 @@ PartyMoveResult tradeEmeraldPokemon(const QByteArray& save,const QString& hash,i
     if(record.isEmpty())return {{},"The partner's Pokemon is not supported for this trade.",{}};
     const auto mon=readEmeraldPartyMember(record);
     const auto slot=*shopSlot(save,hash);auto world=worldBlock(slot);auto small=slot.blocks[0];
-    world.replace(0x238+position*100,100,record);
+    QByteArray storage;for(int id=5;id<14;++id)storage+=slot.blocks[id];
+    if(position<6)world.replace(0x238+position*100,100,record);
+    else storage.replace(4+(position-6)*80,80,emeraldBoxRecord(record));
     receiveEmeraldDex(world,small,incoming,received);
     auto result=save;
-    for(int id=0;id<5;++id){
-        const auto block=id==0?small:world.mid((id-1)*Payload,slot.blocks[id].size());
+    for(int id=0;id<14;++id){
+        const auto block=id==0?small:id<5?world.mid((id-1)*Payload,slot.blocks[id].size()):storage.mid((id-5)*Payload,slot.blocks[id].size());
         if(block==slot.blocks[id])continue;
         const int at=slot.offsets[id];result.replace(at,block.size(),block);
         quint32 sum=0;for(int p=0;p<block.size();p+=4)sum+=u32(block,p);
         qToLittleEndian(quint16((sum>>16)+sum),result.data()+at+0xff6);
     }
     const auto verified=emeraldLinkOffer(result,hash,position);
-    if(!verified.error.isEmpty() || verified.pokemon!=received)return {{},"The received Pokemon could not be verified.",{}};
+    if(!verified.error.isEmpty() || (position<6 ? verified.pokemon!=received : emeraldBoxRecord(importEmeraldLinkRecord(verified.pokemon))!=emeraldBoxRecord(record)))return {{},"The received Pokemon could not be verified.",{}};
     const auto progress=readGen3Progress(result,Gen3Edition::Emerald);int able=0;
     for(const auto& p:progress.party->party)if(p.kind==PokemonSlotKind::Known && p.hp.value_or(0)>0)++able;
     if(!able)return {{},"Keep a Pokemon that can battle in your Party.",{}};
@@ -331,8 +336,10 @@ PartyMoveResult sellEmeraldPokemon(const QByteArray& save,const QString& hash,in
         const auto progress=readGen3Progress(save,Gen3Edition::Emerald);int able=0;
         for(int i=0;i<count;++i)if(i!=position && progress.party->party[i].kind==PokemonSlotKind::Known && progress.party->party[i].hp.value_or(0)>0)++able;
         if(!able)return {{},"Keep a Pokemon that can battle in your Party.",{}};
-        for(int i=position;i<count-1;++i)world.replace(0x238+i*100,100,world.mid(0x238+(i+1)*100,100));
-        world.replace(0x238+(count-1)*100,100,QByteArray(100,0));world[0x234]=char(count-1);
+        if(position<6) {
+            for(int i=position;i<count-1;++i)world.replace(0x238+i*100,100,world.mid(0x238+(i+1)*100,100));
+            world.replace(0x238+(count-1)*100,100,QByteArray(100,0));world[0x234]=char(count-1);
+        } else storage.replace(4+(position-6)*80,80,QByteArray(80,0));
     } else {
         if(account["box"].toInt()==-2)return {{},"Make room in your Party or boxes first.",{}};
         const auto prepared=prepareEmeraldReceived(incoming);if(!prepared.error.isEmpty())return {{},prepared.error,{}};
@@ -354,6 +361,55 @@ PartyMoveResult sellEmeraldPokemon(const QByteArray& save,const QString& hash,in
     if(checkedStorage!=storage || !progress.party || !progress.party->error.isEmpty() || emeraldLinkAccount(result,hash)["money"].toInt(-1)!=money+(seller?price:-price))
         return {{},"The transferred Pokemon and balance could not be verified.",{}};
     return {result,{},price?"Sale complete!":"Gift delivered!"};
+}
+QJsonArray emeraldBattleBag(const QByteArray& save,const QString& hash) {
+    QJsonArray out;const auto slot=shopSlot(save,hash);if(!slot)return out;
+    const auto bag=readEmeraldHeldBag(worldBlock(*slot),slot->blocks[0]);if(!bag.error.isEmpty())return out;
+    // Exact Gen III medicine subset shared with the pinned battle bridge.
+    for(const auto& item:bag.items)if(QList<int>{13,19,20,21,22,23,24,25}.contains(item.id))
+        out.append(QJsonObject{{"id",item.id},{"name",item.name},{"quantity",item.quantity}});
+    return out;
+}
+PartyMoveResult settleEmeraldBattle(const QByteArray& save,const QString& hash,const QJsonObject& terms,
+        const QString& outcome,const QJsonObject& used) {
+    if(!QStringList{"win","loss","draw","cancel"}.contains(outcome))return {{},"Invalid battle result.",{}};
+    const auto original=shopSlot(save,hash);if(!original)return {{},"This battle requires verified English Emerald.",{}};
+    const auto stake=terms["stake"].toString("none");
+    if(!QStringList{"none","money","pokemon"}.contains(stake))return {{},"Invalid battle stake.",{}};
+    auto result=save;
+    const bool decided=outcome=="win" || outcome=="loss";
+    if(stake=="pokemon" && decided) {
+        if(outcome=="loss") {
+            const auto offer=emeraldLinkOffer(save,hash,terms["slot"].toInt(-1));
+            if(!offer.error.isEmpty() || offer.pokemon!=terms["outgoing"].toObject())return {{},"The staked Pokemon changed.",{}};
+        }
+        const auto transfer=sellEmeraldPokemon(save,hash,terms["slot"].toInt(-1),
+            QString::fromLatin1(QCryptographicHash::hash(save,QCryptographicHash::Sha256).toHex()),
+            terms["incoming"].toObject(),0,outcome=="loss");
+        if(!transfer.error.isEmpty())return transfer;result=transfer.data;
+    }
+    const auto slot=*shopSlot(result,hash);auto world=worldBlock(slot);const auto small=slot.blocks[0];
+    const auto bag=emeraldBattleBag(save,hash);QJsonObject stock;
+    for(const auto& v:bag){const auto item=v.toObject();stock[QString::number(item["id"].toInt())]=item["quantity"];}
+    int total=0;
+    for(auto it=used.begin();it!=used.end();++it) {
+        const int quantity=it.value().toInt(-1),id=it.key().toInt();
+        if(it.key()!=QString::number(id) || quantity<0 || it.value().toDouble()!=quantity || quantity>stock[it.key()].toInt() || !stock.contains(it.key()) || (total+=quantity)>200)
+            return {{},"The battle's item use could not be verified.",{}};
+        for(int n=0;n<quantity;++n){QString error;world=exchangeEmeraldHeldBag(world,small,id,0,error);if(!error.isEmpty())return {{},error,{}};}
+    }
+    if(stake=="money") {
+        const int amount=terms["amount"].toInt(-1),money=int(u32(world,0x490)^u32(small,0xac));
+        if(amount<1 || amount>999999 || terms["amount"].toDouble()!=amount || money<amount || money>999999-amount)
+            return {{},"Both wallets need enough money and room for this stake.",{}};
+        if(decided)qToLittleEndian(quint32(money+(outcome=="win"?amount:-amount))^u32(small,0xac),world.data()+0x490);
+    }
+    for(int id=1;id<5;++id){const auto block=world.mid((id-1)*Payload,slot.blocks[id].size());if(block==slot.blocks[id])continue;
+        const int at=slot.offsets[id];result.replace(at,block.size(),block);quint32 sum=0;
+        for(int p=0;p<block.size();p+=4)sum+=u32(block,p);qToLittleEndian(quint16((sum>>16)+sum),result.data()+at+0xff6);}
+    const auto check=shopSlot(result,hash);
+    if(!check || worldBlock(*check)!=world || !readEmeraldHeldBag(world,small).error.isEmpty())return {{},"Battle settlement readback failed.",{}};
+    return {result,{},"Battle saved."};
 }
 BoxNameResult renameEmeraldBox(const QByteArray& save,const QString& hash,const BoxNameChange& request) {
     const auto slot=shopSlot(save,hash);

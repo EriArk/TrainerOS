@@ -52,6 +52,33 @@ function complete() {
     return crypto.createHash('sha256').update(JSON.stringify(events)).digest('hex');
 }
 const replay=complete();assert.equal(complete(),replay);
+// A Bag action replaces the attack, consumes one native medicine and a turn,
+// preserves move PP, and can target a benched member without switching it in.
+const bagInput=input();bagInput.teams=[[member(),member()],[member(),member()]];
+bagInput.bags=[[{id:13,quantity:2},{id:24,quantity:1}],[]];
+const bagBattle=engine.start(bagInput);let bs=bagBattle.state();
+assert.ok(!bs.sides[0].moves.some(m=>m.bag));
+bs=bagBattle.turn(bs.turn,[1,1],bs.request);
+const medicine=bs.sides[0].moves.find(m=>m.item===13 && m.target===0);assert.ok(medicine);
+const ppBefore=bs.sides[0].moves.find(m=>m.slot===1).pp;
+bs=bagBattle.turn(bs.turn,[medicine.slot,1],bs.request);
+assert.equal(bs.sides[0].used['13'],1);assert.equal(bs.sides[0].moves.find(m=>m.slot===1).pp,ppBefore);
+bs=bagBattle.turn(bs.turn,[11,1],bs.request);assert.equal(bs.sides[0].member,1);
+const benchPotion=bs.sides[0].moves.find(m=>m.item===13 && m.target===0);assert.ok(benchPotion);
+bs=bagBattle.turn(bs.turn,[benchPotion.slot,1],bs.request);
+assert.equal(bs.sides[0].used['13'],2);assert.equal(bs.sides[0].member,1);
+assert.ok(!bs.sides[0].moves.some(m=>m.item===13));bagBattle.close();
+assert.throws(()=>engine.start({...input(),bags:[[{id:1,quantity:10}],[]]}),/Invalid medicine/);
+const reviveInput=input();const weak={...member(),number:132,form:'132',gender:'N',ability:7,
+    stats:[123,68,68,68,68,68],moves:[{id:150,ppUps:0,maxPp:40},empty(),empty(),empty()]};
+reviveInput.teams=[[weak,member()],[member()]];reviveInput.bags=[[{id:24,quantity:1}],[]];
+const revival=engine.start(reviveInput);let rs=revival.state();
+while(!rs.sides[0].forceSwitch)rs=revival.turn(rs.turn,[1,1],rs.request);
+rs=revival.turn(rs.turn,[11,9],rs.request);
+const revive=rs.sides[0].moves.find(m=>m.item===24 && m.target===0);assert.ok(revive);
+rs=revival.turn(rs.turn,[revive.slot,1],rs.request);
+assert.equal(rs.sides[0].remaining,2);assert.equal(rs.sides[0].used['24'],1);
+assert.equal(rs.sides[0].team.find(m=>m.member===0).hp,61);revival.close();
 async function protocol(payload) {
     return new Promise((resolve,reject)=> {
         const child=spawn(process.execPath,[path.resolve('src/integrations/practice/emerald-worker.cjs'),root],{stdio:['pipe','pipe','pipe']});

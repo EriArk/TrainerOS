@@ -295,6 +295,7 @@ qt_add_qml_module(traineros
         src/qml/PokemonShop.qml
         src/qml/CenterActivitiesPanel.qml
         src/qml/LinkPanel.qml
+        src/qml/LinkPortrait.qml
         src/qml/PracticePanel.qml
         src/qml/PracticeFighter.qml
         src/qml/HomeParty.qml

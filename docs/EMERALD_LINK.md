@@ -1,5 +1,40 @@
 # Emerald Link — implementation and evidence
 
+## Portrait workspace, Bag and stakes ? 2026-09-28
+
+Link now keeps one activity rail and one working area, with portrait offers and
+Party/Box selection. Battles retain the arena while the lower action area switches
+between attacks, team and medicine; no separate full-screen Bag/team route.
+
+Select on the host's review cycles no stake / in-game money / one Pokemon each.
+Money changes directly with arrows. Both players see and approve the same proposal;
+a terms change revokes previous acceptance. Pokemon can come from Party or any of
+the fourteen Boxes of the selected verified Emerald save. Unsupported records,
+last able Party removal, funds/capacity overflow and full receiving storage fail
+before the match. This is not cross-game staking.
+
+X opens teammates, Y opens the actual saved Bag. Supported medicine: Potion,
+Super/Hyper/Max Potion, Full Restore, Full Heal, Revive and Max Revive. Select a
+medicine and a target in the same lower panel. Using one consumes a turn and one
+real item; it does not also attack or spend attack PP. These are TrainerOS casual
+battle rules inspired by Emerald's medicine behavior, not cartridge Link parity.
+Other battle items remain unsupported. Copied battle HP/PP/status and damage are
+not written to the ordinary save; only the agreed stake and used medicine are.
+
+Before starting, both sides create verified protected reservations. The host
+persists each completed turn before publishing it; checkpoints retain monotonic
+consumption and request IDs. Terminal results become bilateral prepared/commit
+receipts using the existing protected save service. B asks to concede inside the
+arena; confirming awards the agreed stake to the opponent. An unfinished network
+interruption requires the same peers to reconnect: it voids the stake but charges
+medicine in the last durable host checkpoint. A durable finished result is
+completed on reconnect. This is trusted casual play, not an anti-cheat system.
+
+Medicine references: [native item use](https://github.com/pret/pokeemerald/blob/master/src/item_use.c)
+and [battle utilities](https://github.com/pret/pokeemerald/blob/master/src/battle_util.c).
+The pinned Showdown bridge remains the battle foundation, with a bounded custom
+trainer-item action; exact native rule equivalence remains open.
+
 ## Expanded Emerald increment — 2026-09-28
 
 Full saved-team battles, paid sales, gifts and native trade evolutions extend
@@ -38,17 +73,17 @@ Contextual controls remain in the footer. Existing Center/Playroom are preserved
 Friendly battle uses **the saved teams, up to six per side**, with the existing
 pinned Showdown bridge. X switches between moves and available teammates;
 fainted members require a replacement. Each console chooses its own moves;
-HP, PP, turn results and winner
-synchronize. It uses copied, battle-ready individuals; no save damage, XP,
-currency, achievements or rewards are written.
+HP, PP, turn results and winner synchronize. It uses copied, battle-ready
+individuals. Optional agreed stakes and consumed medicine follow the protected
+transaction described above; no battle damage, XP or achievements are written.
 
-Trade exchanges actual saved Party members, retaining individual identity and
+Trade exchanges actual saved Party or Box members, retaining individual identity and
 held items, resetting friendship to native trade value 70 and registering the
 received species in the native Pokédex. Both saves receive verified protection.
 Only hatched English individuals without Mail are accepted. Unown/Spinda remain
 refused until their additional first-seen-PID handling is implemented.
 
-**Sales and gifts:** the initiating console offers one Party member. Sales use
+**Sales and gifts:** the initiating console offers one Party or Box member. Sales use
 ordinary in-game money; Up/Down changes the price and Left/Right changes its step.
 Both players see the amount, before/after balances and receiving Party/Box slot
 before confirming. A full Party sends the received member to the first empty Box
@@ -87,7 +122,7 @@ not transport complete save images. The writer changes the relevant Party/Box
 records, money, Dex/evolution data and affected checksums, preserving the older
 bank, unrelated records and special sectors. Both valid save banks and a remaining
 able Party member are required. Signed local history records `link-trade`,
-`link-sale` or `link-gift`; recovery after a write that
+`link-sale`, `link-gift` or `link-battle`; recovery after a write that
 preceded a failed history append must not fabricate the missing event.
 
 ## Adapter-owned Pokédex
@@ -170,3 +205,34 @@ Evolution references: [rules](https://github.com/pret/pokeemerald/blob/5eff78649
 [trade evolution selection](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/pokemon.c),
 [native evolution effects](https://github.com/pret/pokeemerald/blob/5eff78649e7170a877b961ef0b3da13b81a16038/src/evolution_scene.c).
 See [exact-build record](adapters/emerald-en.md) and its portable adapter copy.
+
+## Workspace/stakes evidence, 2026-09-28
+
+- Full CTest run passed 47/48 targets; emulator_refresh exited without output under
+  concurrent load and passed its isolated verbose rerun. All 48 targets therefore
+  passed across the run/rerun; three optional private-example cases were skipped.
+  Updated Link peer checks pass. Engine tests cover consumed-turn medicine,
+  bench healing, revive, remaining-team count and invalid medicine rejection.
+- Exact-save tests cover money outcomes, Party/Box stakes, native record delta,
+  encrypted Bag consumption, fractional/overdraft rejection, reserved commit gates,
+  monotonic checkpoints, terminal result preservation and idempotent settlement.
+- A real twenty-turn Flip/Odin match used Full Restore and switched to Linoone.
+  Odin won the 1,000 stake: Flip 500121 -> 499121, Odin 499479 -> 500479.
+  Flip's Full Restore count changed 48 -> 47. Both ordinary Party blocks remained
+  byte-identical, both receipts completed and matched the saves; no pending work.
+- A second match staked Box individuals. Odin confirmed concession; its Box 1
+  Ivysaur moved to Flip, while Flip retained its offered Bulbasaur. An independent
+  decoder checked species/PID/OT: Odin's Ivysaur count 1 -> 0, Flip's 1 -> 2;
+  the preexisting duplicate on Flip is from the test collection. Both ordinary
+  Party blocks, money and medicine stayed unchanged; both receipts completed.
+- Stakes are shown as the actual offered individuals, not the selected battle
+  leads. Actual-device screenshots were inspected for the counter, portraits,
+  Party/Boxes, arena, medicine and final result. Private captures stay outside Git.
+- Updated pure adapter snapshot, exact profile and standalone build verified.
+  Both devices run binary SHA-256
+  `56153b7536c5e1e1cc97d2815c57ba33de004fe03bda7a2b5c5d1be721a853f0`.
+
+This increment has native save-service readback and independent raw-save checks;
+normal emulator readback of the new medicine/stake outcomes remains separate from
+prior ordinary-game trade/sale proof. It does not claim exhaustive crash testing,
+all medicine/items, cross-game stakes or cartridge battle parity.

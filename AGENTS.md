@@ -1,5 +1,13 @@
 # AGENTS.md — TrainerOS
 
+**Owner Link UX/stakes clarification, 2026-09-28:** use a persistent portrait-based
+meeting/battle workspace, not a chain of full-screen pages. Team and Bag actions
+stay inside the arena. Exact Emerald pairs may mutually stake real in-game money
+or an eligible individual from Party/any Box; consume supported medicine from the
+real Bag through the protected bilateral settlement. Normal B is confirmed
+concession, not unilateral stake cancellation. Preserve the read-only copied
+battle HP/PP boundary, saved identity and all later exact-game/trust gates.
+
 **Owner Link addition, 2026-09-28:** nearby play includes Pokemon sales for real
 in-game money, alongside exchanges and gifts. Exact Emerald pairs now have
 protected bilateral sales/gifts, team battles/switching and trade evolution rules.
@@ -12,7 +20,7 @@ cross-game support is implied; preserve the remaining roadmap.
 Emerald increment before returning to the remaining RA lane. Bounded local Wi-Fi
 pairing, a one-member friendly duel and protected bilateral Party exchange are
 now verified on Flip/Odin; see docs/EMERALD_LINK.md for actual limits and recovery.
-Do not claim full-team/native-link or competitive trust support. Preserve all
+Full-team battles are delivered; do not claim native-link parity or competitive trust support. Preserve all
 remaining roadmap acceptance. Pokédex membership is an adapter feature: exact
 Emerald uses Gen III species 001–386 and native forms/types/stats, including
 compatible transfers and paired-edition exclusives. Other ROMs keep the complete
