@@ -18,7 +18,7 @@ QString prepareGenericRetroArchLaunch(ProcessCommand& command,const AdventureReg
         return "The game file is missing or unreadable. Check its folder and refresh the library.";
     const QFileInfo core(installation.cores.value(record.integrationConfig["core"].toString()));
     if(!program.isFile() || !program.isExecutable() || !core.isFile() || !core.isReadable() || core.size()<=0)
-        return "The emulator is unavailable. Check play setup and try again.";
+        return "The emulator is unavailable. Restore it before opening the game.";
     const auto settings=readSettings(installation.configFile);
     if(settings.isEmpty())return "Couldn't read this game's play settings.";
     // Generic ordinary play is independent of exact-build save providers and RA
@@ -34,7 +34,7 @@ QString prepareGenericRetroArchLaunch(ProcessCommand& command,const AdventureReg
         config.close();
     }
     if(QFileInfo(path).isSymLink() || !config.open(QIODevice::ReadOnly) || config.read(bytes.size()+1)!=bytes)
-        return "The game's launch settings changed. Check play setup before opening.";
+        return "The game's launch settings changed. Try opening it again.";
     if(cancelled)return "Opening was cancelled.";
     if(command.arguments.isEmpty() || command.arguments.last()!=record.contentPath)return "The game's launch route changed.";
     command.arguments.removeLast();command.arguments << "--appendconfig" << path << record.contentPath;
@@ -106,7 +106,7 @@ QString prepareRetroArchLaunch(ProcessCommand& command, const AdventureRegistrat
     }
     if (QFileInfo(path).isSymLink() || !config.open(QIODevice::ReadOnly)
         || config.read(bytes.size() + 1) != bytes || config.error() != QFile::NoError)
-        return "The Adventure's launch settings changed. Check play setup before opening.";
+        return "The Adventure's launch settings changed. Try opening it again.";
     if (cancelled) return "Opening was cancelled.";
     if (command.arguments.isEmpty() || command.arguments.last() != record.contentPath)
         return "The Adventure's play setup changed.";

@@ -71,7 +71,7 @@ QString StandaloneAdapter::setupIssue(const AdventureRegistration& record) const
     if (installation_.program.isEmpty() || !installation_.platforms.contains(platform)) {
         // An unconfigured title may have a prepared core route instead.
         if (record.adventure.adapterId != id_) return {};
-        return "The selected emulator setup is unavailable. Restore it in Desktop Mode, then reopen TrainerOS.";
+        return "The emulator for this platform is unavailable. Restore it in Desktop Mode.";
     }
     if (!extensions(platform).contains(QFileInfo(record.contentPath).suffix().toLower()))
         return "This file format cannot be opened by this emulator.";
@@ -116,7 +116,7 @@ std::optional<ProcessCommand> StandaloneAdapter::command(const Adventure& advent
 AdventureCapabilities StandaloneAdapter::capabilities(const Adventure& adventure) const { return {command(adventure).has_value(), false, false}; }
 AdventureResult StandaloneAdapter::launch(const Adventure& adventure) {
     const auto invocation = command(adventure);
-    if (!invocation) return {false, "This Adventure needs play setup. Its library record has been kept."};
+    if (!invocation) return {false, "This game's file or emulator is unavailable."};
     if (!requestLaunch || !requestLaunch(*invocation, adventure.id)) return {false, "An Adventure is already opening. Try again after returning."};
     return {true, {}, true};
 }

@@ -1,5 +1,7 @@
 #include "integrations/achievements/TrainerAchievementProvider.h"
 #include "platform/emulation/EmulatorDiscovery.h"
+#include "platform/emulation/EmulatorRefresh.h"
+#include <atomic>
 #include "core/repository/BatoceraLibrary.h"
 #include "platform/device/VolumeKeys.h"
 #include "core/input/ControllerInput.h"
@@ -212,8 +214,10 @@ int main(int argc, char* argv[]) {
         std::unique_ptr<TrainerAchievementProvider> realAchievements;
         if (personalLibrary && !smoke) realAchievements = std::make_unique<TrainerAchievementProvider>(activeLibrary);
         AdventureAdapter* selectedAdapter = personalLibrary ? static_cast<AdventureAdapter*>(&unconfiguredAdapter) : &adapter;
+        const auto emulatorEnvironment = personalLibrary && !smoke
+            ? installedEmulators(stateDirectory, libraryRoot) : EmulatorEnvironment{};
         const auto discovered = personalLibrary && !smoke
-            ? prepareEmulators(installedEmulators(stateDirectory, libraryRoot)) : EmulatorDiscovery{};
+            ? prepareEmulators(emulatorEnvironment) : EmulatorDiscovery{};
         for (const auto& notice : discovered.notices) qWarning().noquote() << "Emulator preparation:" << notice;
         if (personalLibrary && !smoke) qInfo() << "Emulator integration snapshots:" << discovered.profiles.keys();
         auto retroarchInstallation = RetroArchInstallation::fromJson(discovered.profiles.value("retroarch"));
@@ -234,6 +238,9 @@ int main(int argc, char* argv[]) {
         StandaloneAdapter dolphin("dolphin", activeLibrary, standaloneInstallation("dolphin"));
         StandaloneAdapter ppsspp("ppsspp", activeLibrary, standaloneInstallation("ppsspp"));
         StandaloneAdapter armsx2("armsx2", activeLibrary, standaloneInstallation("armsx2"));
+        struct SaveRuntimes { RetroArchInstallation retroarch; StandaloneInstallation melonds; };
+        auto saveRuntimes = std::make_shared<std::atomic<std::shared_ptr<const SaveRuntimes>>>(
+            std::make_shared<const SaveRuntimes>(SaveRuntimes{retroarchInstallation, melonDsInstallation}));
         AdapterRouter adapters({&ppsspp, &armsx2, &melonDs, &dolphin, &retroarch});
         if (personalLibrary && !smoke) selectedAdapter = &adapters;
 #ifdef TRAINEROS_UI_TESTS
@@ -250,12 +257,11 @@ int main(int argc, char* argv[]) {
         shell.configureServices(&files, store.get());
         if (personalLibrary && !smoke) {
             folders.prepareInstallation = [&adapters](AdventureRegistration& record) { adapters.prepareInstallation(record); };
-            folders.prepareFileMove = [retroarchInstallation](const AdventureRegistration& record,LibraryEdit& edit)->QString {
-                return retroarch::prepareFileMove(record,edit,retroarchInstallation);
+            folders.prepareFileMove = [saveRuntimes](const AdventureRegistration& record,LibraryEdit& edit)->QString {
+                return retroarch::prepareFileMove(record,edit,saveRuntimes->load()->retroarch);
             };
             QObject::connect(store.get(), &LocalStateStore::opened, &folders, [&](bool ready) { if(ready)folders.refreshContentAvailability(); });
             shell.settings()->setLibraryScanState(true,false);
-            QObject::connect(shell.settings(), &SettingsController::libraryRefreshRequested, &folders, &BatoceraLibrary::rescan);
             QObject::connect(&folders, &BatoceraLibrary::busyChanged, &shell, [&] {
                 shell.settings()->setLibraryScanState(true,folders.busy());
             });
@@ -328,10 +334,10 @@ int main(int argc, char* argv[]) {
         std::unique_ptr<LocalSaveBackupService> saveBackups;
         if (personalLibrary && !smoke) {
             saveBackups=std::make_unique<LocalSaveBackupService>(QDir(stateDirectory).filePath("backups"),
-                [retroarchInstallation, melonDsInstallation](const AdventureRegistration& record){return record.adventure.adapterId == "melonds"
-                    ? resolveMelonDsSave(record, melonDsInstallation) : resolveRetroArchSave(record,retroarchInstallation);},
-                [retroarchInstallation, melonDsInstallation](const AdventureRegistration& record){return supportsMelonDsSave(record, melonDsInstallation)
-                    || (retroarchInstallation.saveBackups && record.adventure.adapterId=="retroarch" && record.integrationConfig["core"].toString()=="mgba");});
+                [saveRuntimes](const AdventureRegistration& record){const auto snapshot=saveRuntimes->load(); return record.adventure.adapterId == "melonds"
+                    ? resolveMelonDsSave(record, snapshot->melonds) : resolveRetroArchSave(record,snapshot->retroarch);},
+                [saveRuntimes](const AdventureRegistration& record){const auto snapshot=saveRuntimes->load(); return supportsMelonDsSave(record, snapshot->melonds)
+                    || (snapshot->retroarch.saveBackups && record.adventure.adapterId=="retroarch" && record.integrationConfig["core"].toString()=="mgba");});
         }
 #ifdef TRAINEROS_UI_TESTS
         if(persistencePhase=="library-center") {
@@ -391,8 +397,8 @@ int main(int argc, char* argv[]) {
         QByteArray progressSelection;
         bool progressHomeVisible = false;
         if (personalLibrary && !smoke) {
-            gameProgress = std::make_unique<GameProgressService>([retroarchInstallation](const AdventureRegistration& record) {
-                return resolveRetroArchSave(record, retroarchInstallation);
+            gameProgress = std::make_unique<GameProgressService>([saveRuntimes](const AdventureRegistration& record) {
+                return resolveRetroArchSave(record, saveRuntimes->load()->retroarch);
             });
             shell.configureProgress(gameProgress.get());
             auto* practice=shell.party()->activities()->practice();
@@ -448,6 +454,62 @@ int main(int argc, char* argv[]) {
             if (!profile || !record) return {};
             return ExitMediaSource{profile->id, record->adventure.domain, *record};
         });
+        std::unique_ptr<EmulatorRefresh> emulatorRefresh;
+        QTimer emulatorPoll;
+        if (personalLibrary && !smoke) {
+            emulatorRefresh = std::make_unique<EmulatorRefresh>([stateDirectory, emulatorEnvironment](const QString& root) {
+                // SDL input stays on its original thread; inventory only reads
+                // filesystem/Flatpak state. Existing mappings are never replaced.
+                auto environment = installedEmulators(stateDirectory, root, false);
+                environment.controllerName = emulatorEnvironment.controllerName;
+                environment.controllerButtons = emulatorEnvironment.controllerButtons;
+                return environment;
+            });
+            emulatorRefresh->idle = [&] {
+                return !adventureLaunch.active() && !shell.runtimeChangeBlocked() && !session.blocked() && !folders.busy()
+                    && !store->pending() && !store->opening() && !shell.libraryManager()->saving()
+                    && !shell.libraryTools()->busy() && !shell.settings()->storage()->busy()
+                    && !(saveBackups && saveBackups->busy());
+            };
+            emulatorRefresh->apply = [&](const EmulatorEnvironment& environment, bool scanLibrary) {
+                if (environment.libraryRoot != folders.root()) {
+                    emulatorRefresh->request(folders.root(), scanLibrary); return;
+                }
+                const auto prepared = prepareEmulators(environment);
+                for (const auto& notice : prepared.notices) qWarning().noquote() << "Emulator refresh:" << notice;
+                auto next = RetroArchInstallation::fromJson(prepared.profiles.value("retroarch"));
+                next.saves = retroarchInstallation.saves;
+                next.lineageRoot = retroarchInstallation.lineageRoot;
+                const auto standalone = [&](const QString& id) { return StandaloneInstallation::fromJson(prepared.profiles.value(id), id); };
+                const auto ds = standalone("melonds");
+                bool changed = retroarch.updateInstallation(next);
+                changed |= melonDs.updateInstallation(ds);
+                changed |= dolphin.updateInstallation(standalone("dolphin"));
+                changed |= ppsspp.updateInstallation(standalone("ppsspp"));
+                changed |= armsx2.updateInstallation(standalone("armsx2"));
+                if (changed) {
+                    retroarchInstallation = next;
+                    saveRuntimes->store(std::make_shared<const SaveRuntimes>(SaveRuntimes{next, ds}));
+                    progressSelection.clear(); gameProgress->invalidate();
+                    qInfo() << "Emulator readiness refreshed at idle";
+                    shell.refreshLibrary();
+                }
+                if (scanLibrary || changed) folders.refreshContentAvailability();
+            };
+            const auto refreshEmulators = [&] { emulatorRefresh->request(folders.root(), true); };
+            QObject::connect(shell.settings(), &SettingsController::libraryRefreshRequested, emulatorRefresh.get(), refreshEmulators);
+            QObject::connect(&app, &QGuiApplication::applicationStateChanged, emulatorRefresh.get(), [&](Qt::ApplicationState state) {
+                if (state == Qt::ApplicationActive) emulatorRefresh->request(folders.root());
+            });
+            auto previousPage = std::make_shared<int>(shell.page());
+            QObject::connect(&shell, &ShellController::changed, emulatorRefresh.get(), [&, previousPage, refreshEmulators] {
+                const auto previous = *previousPage; *previousPage = shell.page();
+                if (shell.page() == 1 && previous != 1) refreshEmulators();
+            });
+            emulatorPoll.setInterval(60000);
+            QObject::connect(&emulatorPoll, &QTimer::timeout, emulatorRefresh.get(), [&] { emulatorRefresh->request(folders.root()); });
+            emulatorPoll.start();
+        }
         ControllerInput input(nullptr, preferred);
         QObject::connect(&shell,&ShellController::changed,&input,[&]{input.setHoldConfirmEnabled(shell.canHoldConfirm());});
         input.setHoldConfirmEnabled(shell.canHoldConfirm());

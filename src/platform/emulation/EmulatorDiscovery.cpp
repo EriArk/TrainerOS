@@ -80,7 +80,7 @@ void controllerDefaults(const Route& route, const QString& configDir, const Emul
     }
 }
 }
-EmulatorEnvironment installedEmulators(const QString& stateDirectory, const QString& libraryRoot) {
+EmulatorEnvironment installedEmulators(const QString& stateDirectory, const QString& libraryRoot, bool readController) {
     EmulatorEnvironment env;
     env.home = QDir::homePath(); env.configHome = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation);
     env.stateDirectory = stateDirectory; env.libraryRoot = libraryRoot;
@@ -113,7 +113,7 @@ EmulatorEnvironment installedEmulators(const QString& stateDirectory, const QStr
         const auto appImage = QDir(env.home).filePath("Applications/" + route.binary + ".AppImage");
         if (!env.executables.contains(route.names.first()) && executable(appImage)) env.executables.insert(route.names.first(), appImage);
     }
-    const bool sdlReady = SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) == 0;
+    const bool sdlReady = readController && SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) == 0;
     if (sdlReady && SDL_NumJoysticks() > 0 && SDL_IsGameController(0)) {
         if (auto* pad = SDL_GameControllerOpen(0)) {
             env.controllerName = QString::fromUtf8(SDL_GameControllerName(pad));

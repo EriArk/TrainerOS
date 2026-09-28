@@ -17,6 +17,6 @@ struct EmulatorDiscovery {
     QHash<QString, QJsonObject> profiles;
     QStringList notices;
 };
-EmulatorEnvironment installedEmulators(const QString& stateDirectory, const QString& libraryRoot);
+EmulatorEnvironment installedEmulators(const QString& stateDirectory, const QString& libraryRoot, bool readController = true);
 EmulatorDiscovery prepareEmulators(const EmulatorEnvironment&);
 }

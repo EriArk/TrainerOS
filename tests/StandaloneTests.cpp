@@ -197,8 +197,15 @@ private slots:
         record.contentPath = dir.filePath("Adventure ; $(literal) ' quote." + extension); write(record.contentPath, "Original content-free fixture");
         bool saved = false; store.saveAdventureAsync(record, this, [&](LibraryWriteResult result) { saved = result.success; }); QTRY_VERIFY(saved);
         const auto receipt = dir.filePath("arguments.json");
-        StandaloneAdapter ds(adapterId, store, {probe(), probe(), {"arguments", receipt}, {platform}});
+        const StandaloneInstallation installation{probe(), probe(), {"arguments", receipt}, {platform}};
+        StandaloneAdapter ds(adapterId, store, installation);
         AdapterRouter router({&ds});
+        const auto revision = store.registration(record.adventure.id)->revision;
+        QVERIFY(ds.updateInstallation({}));
+        QVERIFY(!router.capabilities(record.adventure).launch);
+        QVERIFY(ds.updateInstallation(installation));
+        QVERIFY(!ds.updateInstallation(installation));
+        QCOMPARE(store.registration(record.adventure.id)->revision, revision);
         QVERIFY(router.capabilities(record.adventure).launch); QVERIFY(!router.capabilities(record.adventure).directResume);
         QVERIFY(!router.resume(record.adventure, {}).success);
         ProcessService process; AdventureLaunchController lifecycle(process);

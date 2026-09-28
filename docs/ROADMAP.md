@@ -4,6 +4,20 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-28 live readiness:** [idle-safe refresh](EMULATOR_DISCOVERY.md#live-refresh--2026-09-28)
+now updates installed-runtime snapshots without restarting TrainerOS. Worlds
+entry and Settings refresh compose it with existing folder discovery; a bounded
+background poll also detects runtime changes. Launch preparation/gameplay/save
+and library operations gate application, with stale inventory discarded. Actual
+Flip recovered a deliberately unavailable isolated DS route in the same shell,
+then deferred a change made during its game until return. Package upgrading,
+firmware readiness and update rollback remain distinct open acceptance. Next:
+the remaining first-run Settings/system journey, then active-Trainer RA earning.
+Retain all later R acceptance, exact-game work and final Pack Studio.
+The next bounded Settings slice is real date/time/time-zone control composed with
+first run; language/translation, image/update/recovery and all other acceptance
+remain in the queue.
+
 **2026-09-28 guarded standalone return:** [DS/Dolphin Home exit](STANDALONE_HOME_EXIT.md)
 now uses the existing confirmation/cancel/normal-close path. Representative Flip
 DS and GameCube launch, cancellation to the same process and return passed.

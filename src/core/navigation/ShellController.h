@@ -115,6 +115,7 @@ public:
     bool menuOpen() const { return menuOpen_; }
     bool powerMenu() const { return powerMenu_; }
     QString notice() const { return notice_; }
+    bool runtimeChangeBlocked() const { return navigationLocked(); }
     QVariantMap home() const;
     QVariantList resumePoints() const;
     QStringList menuItems() const;

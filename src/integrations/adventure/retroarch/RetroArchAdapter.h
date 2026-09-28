@@ -41,6 +41,7 @@ struct RetroArchInstallation {
     // Locally reviewed firmware identities; readiness is a startup snapshot.
     QHash<QString, QJsonObject> discFirmware;
     QSet<QString> readyDiscPlatforms;
+    bool operator==(const RetroArchInstallation&) const = default;
     static RetroArchInstallation load(const QString& filename);
     static RetroArchInstallation fromJson(const QJsonObject&);
 };
@@ -55,6 +56,10 @@ public:
     void prepareInstallation(AdventureRegistration&) const override;
     QString setupIssue(const AdventureRegistration&) const override;
     QString verifyInstallation(const AdventureRegistration&) const override;
+    bool updateInstallation(const RetroArchInstallation& value) {
+        if (installation_ == value) return false;
+        installation_ = value; return true;
+    }
     // The application supplies checkpoint/window/lifecycle coordination.
     std::function<bool(const ProcessCommand&, const QString& adventureId)> requestLaunch;
 private:

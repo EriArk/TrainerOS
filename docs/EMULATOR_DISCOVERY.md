@@ -1,6 +1,8 @@
 # Installed emulator preparation — 2026-09-28
 
-TrainerOS now prepares the existing launch adapters automatically at shell startup.
+TrainerOS prepares the existing launch adapters at startup and refreshes their
+readiness during the same session. [Live refresh](#live-refresh--2026-09-28) adds
+idle-gated application without restarting the shell.
 An ordinary game remains **platform folder → wheel → A → game**. No screen or
 per-title question was added. This is native development delivery, not a completed
 Armada image, firmware installer or OTA updater.
@@ -82,6 +84,54 @@ Installed Flip production SHA-256:
 Deployment preserved 3 Trainers and 830 registrations, with SQLite quick_check
 passing and a binary/database rollback copy retained privately on the device.
 
+## Live refresh — 2026-09-28
+
+Local installed-emulator inventory now runs in a worker on entering Worlds,
+returning to the active application, Settings library refresh, and a 60-second
+readiness poll. It executes no network/download/update operation. SDL stays on
+its original thread; refresh reuses the initial controller defaults and preserves
+all existing controller files. A newly connected/reordered pad is not remapped.
+
+`EmulatorRefresh` coalesces requests and checks the idle gate both before
+inventory and before applying it. Launch preparation, an active Adventure,
+protected service confirmations/writes, library work, storage changes and Trainer
+entry/switching defer application. Inventory completed across a busy interval is
+discarded and reread; a changed storage root invalidates its outstanding result.
+
+All adapters are updated together on the GUI thread. Backup/progress/file-move
+resolvers share an atomically published immutable pair of save-runtime snapshots;
+the existing authenticated save owner and lineage root survive refresh. No
+per-game identity, explicit route, personal history or save namespace is migrated.
+Read-only progress verification still rejects a source that changes while read.
+
+Changed readiness refreshes existing library views. Entering Worlds or using
+Settings refresh also requests the existing asynchronous, debounced folder scan,
+including already discovered unconfigured games. Unchanged periodic readiness
+does not start a full ROM scan or rebuild pages. Missing runtime errors no longer
+instruct the user to reopen TrainerOS or enter the removed play-setup screen.
+
+Verification: native Windows build and eight affected suites passed; follow-up
+refresh/standalone/RetroArch checks passed after final edits. Refresh regressions
+exercise responsive GUI work during inventory, busy-interval rereads, merged
+requests and discarded old-storage results. Five standalone launch/return cases
+also remove/restore the live installation while retaining library revision and
+launch callbacks.
+
+Actual Flip used an isolated copied library: an unavailable melonDS description
+reported an error; restoring it and re-entering Worlds allowed A to launch Kirby
+without restarting the same shell process. Changing that description during the
+game left the running emulator alive; after guarded Home exit, the changed
+availability took effect. Original integration files, ROMs and personal state
+were not modified by this probe. This is configuration/readiness recovery, not
+proof of an upstream package upgrade or firmware readiness.
+
+Final ARM64 build and the refresh/standalone Linux suites also passed. Installed
+Flip binary SHA-256:
+`3315c8c94af181a5d34cf56aeaaa1be7d0887e82c5598e32a1fdb632299df06c`.
+Deployment preserved 3 Trainers and 830 registrations, passed SQLite quick_check,
+and retained binary/database rollback copies. Input interception returned to
+mode 0 after the probes. Odin was not exercised in this increment.
+
 ## Remaining acceptance
 
 Follow-up: [guarded standalone Home exit](STANDALONE_HOME_EXIT.md) closes the
@@ -89,7 +139,7 @@ representative DS/GameCube exit gap and installs session helpers reproducibly.
 Its proof supersedes the earlier failed DS probe above; universal coverage,
 Wii proof and image provisioning are still not claimed.
 
-Live idle-safe refresh, package/image installation, real upstream-update rollback,
+Package/image installation, real upstream-update rollback,
 firmware inventory/preparation, first-run storage changes affecting default BIOS
 locations, nonstandard/legacy emulator config locations, restrictive Flatpak
 filesystem overrides, disconnected/reordered controllers, Wii mappings, and

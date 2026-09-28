@@ -45,6 +45,7 @@ public:
     void rescan();
     bool setRoot(const QString& root) { if(busy_)return false; roms_=root;media_.clear();lastScan_.invalidate();return true; }
     bool busy() const { return busy_; }
+    QString root() const { return roms_; }
     bool writing() const { return writing_; }
     std::function<void(AdventureRegistration&)> prepareInstallation;
     std::function<QString(const AdventureRegistration&,LibraryEdit&)> prepareFileMove;

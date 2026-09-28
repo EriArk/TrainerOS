@@ -25,6 +25,12 @@ language/time controls, image preparation and update gates are still open.
 DS/GameCube return and repeatable session-helper preparation. These were tested
 on the existing Flip installation, not a clean image or upstream emulator update.
 
+[Live readiness](EMULATOR_DISCOVERY.md#live-refresh--2026-09-28) now refreshes
+installed-runtime snapshots and composes them with existing library discovery
+without restarting. Applying a snapshot waits for games and protected work to
+finish. The actual Flip recovery probe changed only an isolated integration
+description; package upgrade/rollback and fresh-image acceptance remain open.
+
 ## Observed baseline
 
 - Both devices have the native app, dedicated session, exit/network helpers and

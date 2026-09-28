@@ -14,6 +14,7 @@ find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
     src/platform/emulation/EmulatorDiscovery.cpp
+    src/platform/emulation/EmulatorRefresh.cpp
     src/core/navigation/LaunchPreparation.cpp
     src/features/settings/LibraryStorageController.cpp
     src/features/setup/FirstRunController.cpp
@@ -295,6 +296,9 @@ qt_add_qml_module(traineros
 )
 
 if(BUILD_TESTING)
+    qt_add_executable(trainer_emulator_refresh_tests tests/EmulatorRefreshTests.cpp)
+    target_link_libraries(trainer_emulator_refresh_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME emulator_refresh COMMAND trainer_emulator_refresh_tests)
     qt_add_executable(trainer_video_tests tests/VideoPreviewTests.cpp)
     target_compile_definitions(trainer_video_tests PRIVATE TRAINER_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
     target_link_libraries(trainer_video_tests PRIVATE Qt6::Quick Qt6::Multimedia Qt6::Test)

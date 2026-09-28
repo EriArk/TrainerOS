@@ -9,6 +9,7 @@ struct StandaloneInstallation {
     QStringList prefixArguments, platforms;
     QString configFile;
     bool melonDsSaveBackups = false;
+    bool operator==(const StandaloneInstallation&) const = default;
     static StandaloneInstallation load(const QString& filename, const QString& adapterId);
     static StandaloneInstallation fromJson(const QJsonObject&, const QString& adapterId);
 };
@@ -22,6 +23,10 @@ public:
     void prepareInstallation(AdventureRegistration&) const override;
     QString setupIssue(const AdventureRegistration&) const override;
     QString verifyInstallation(const AdventureRegistration&) const override;
+    bool updateInstallation(const StandaloneInstallation& value) {
+        if (installation_ == value) return false;
+        installation_ = value; return true;
+    }
     std::function<bool(const ProcessCommand&, const QString&)> requestLaunch;
 private:
     bool supports(const QString& platform, const QString& path) const;

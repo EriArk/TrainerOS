@@ -84,13 +84,13 @@ QString RetroArchAdapter::setupIssue(const AdventureRegistration& record) const 
     const auto core = romCore(record.adventure.platformId);
     if (core.isEmpty()) return {};
     if (installation_.program.isEmpty())
-        return "Emulator setup is missing. Prepare it in Desktop Mode, then reopen TrainerOS.";
+        return "The emulator configuration is missing or unreadable. Restore it in Desktop Mode.";
     if (!installation_.cores.contains(core))
-        return "The emulator for this platform is missing. Restore it in Desktop Mode, then reopen TrainerOS.";
+        return "The emulator for this platform is missing. Restore it in Desktop Mode.";
     if (!contentRoute(record.adventure.platformId, core, QFileInfo(record.contentPath).suffix().toLower()))
         return "This file format cannot be opened by this platform's emulator.";
     if (retroarch::discPlatform(record.adventure.platformId) && !installation_.readyDiscPlatforms.contains(record.adventure.platformId))
-        return "This platform's BIOS files are missing or have not been verified. Restore play setup in Desktop Mode, then reopen TrainerOS.";
+        return "This platform's BIOS files are missing or have not been verified. Check its BIOS files in Desktop Mode.";
     return {};
 }
 QString RetroArchAdapter::verifyInstallation(const AdventureRegistration& record) const {
@@ -146,7 +146,7 @@ std::optional<ProcessCommand> RetroArchAdapter::command(const Adventure& adventu
         const auto output=bytes.toLower();
         if(output.contains("failed to load content") || output.contains("failed to load libretro core")
             || output.contains("failed to open libretro core"))
-            return "Couldn't open this game. Check its file and required BIOS in play setup.";
+            return "Couldn't open this game. Check its file and required BIOS.";
         return {};
     };
     return result;
@@ -156,7 +156,7 @@ AdventureCapabilities RetroArchAdapter::capabilities(const Adventure& adventure)
 }
 AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
     auto invocation = command(adventure);
-    if (!invocation) return {false, "This Adventure needs play setup. Its library record has been kept."};
+    if (!invocation) return {false, "This game's file or emulator is unavailable."};
     const auto registration = repository_.registration(adventure.id);
     if(registration && registration->integrationConfig["core"].toString()=="mgba" && installation_.saves && !installation_.saveBackups)
         return {false,"This Adventure's save setup needs verification before opening."};
@@ -175,7 +175,7 @@ AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
         invocation->prepare = [record = *registration, installation](ProcessCommand& cmd, const std::atomic_bool& cancel) {
             if (retroarch::discPlatform(record.adventure.platformId)) {
                 if (!retroarch::verifiedDiscFirmware(installation, record.adventure.platformId, cancel))
-                    return QString("This system's BIOS files changed or are missing. Check play setup before opening.");
+                    return QString("This system's BIOS files changed or are missing. Restore them before opening the game.");
                 const auto error = retroarch::validateDiscContent(record.contentPath, cancel);
                 if (!error.isEmpty()) return error;
             }

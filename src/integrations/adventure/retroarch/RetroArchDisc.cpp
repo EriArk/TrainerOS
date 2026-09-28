@@ -46,7 +46,7 @@ QString validateDiscContent(const QString& path, const std::atomic_bool& cancel)
     const auto extension = info.suffix().toLower();
     if (extension == "chd")
         return file.read(8) == "MComprHD" ? QString() : QString("This game disc isn't a readable CHD image. Link a valid copy.");
-    if (extension != "cue" || file.size() > 65536) return "This game disc format needs play setup.";
+    if (extension != "cue" || file.size() > 65536) return "This disc format or track list is not supported.";
     const auto bytes = file.readAll();
     if (file.error() != QFile::NoError || bytes.contains('\0')) return "The game disc's track list couldn't be read.";
     const QRegularExpression entry("^FILE\\s+(?:\"([^\"]+)\"|(\\S+))\\s+\\S+\\s*$", QRegularExpression::CaseInsensitiveOption);
