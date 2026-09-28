@@ -1,5 +1,20 @@
 # AGENTS.md — TrainerOS
 
+**Owner first-run/update clarification, 2026-09-28:** start the next work from
+the complete first-boot journey: a short resumable controller-first setup,
+then Home. Integrate storage/discovery/readiness into that journey instead of
+leaving onboarding until after unrelated library work. Supported emulators and
+baseline settings ship inside the Armada-based TrainerOS image (#70), not as
+first-run downloads or per-emulator setup. They must receive ongoing updates.
+Native deployment remains the development foundation. Keep TrainerOS
+integration, user preferences and saves separate from
+replaceable emulator files; updates must preserve controller input, launch/return,
+save paths and existing playthroughs. Use supported upstream update mechanisms
+with bounded compatibility checks and recovery, not a permanently frozen version
+or blind global configuration replacement. See
+[first-run and update acceptance](docs/STARTUP_EXPERIENCE_AUDIT.md).
+This is planned behavior, not a claim that an updater is already delivered.
+
 **Owner emulator coverage, 2026-09-28:** prepare a broad platform-to-emulator
 launch setup in advance, detecting installed native/Flatpak routes and preferring
 appropriate standalone emulators. Adding a ROM should not require per-title

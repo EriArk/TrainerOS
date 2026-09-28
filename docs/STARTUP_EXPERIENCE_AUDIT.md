@@ -1,9 +1,10 @@
 # Installation to everyday use — audit, 2026-09-28
 
 TrainerOS has a working prepared-device experience, but not yet a reproducible
-new-user experience. The main gap is the preparation between installation and
-the first playable game. More explanatory labels or a wizard alone will not
-close it. This audit records gaps and acceptance, not implemented behavior.
+new-user experience. The next work starts at power-on: compose the complete
+first-run journey and connect its real preparation services as needed, through
+the first playable game. A wizard with nonfunctional steps does not close these
+gaps. This audit records acceptance, not implemented behavior.
 
 Scope: current source, tracked deployment tools and read-only checks of Flip
 and Odin. No clean flash, factory reset, new network pairing, update/rollback or
@@ -43,11 +44,29 @@ ROADMAP remains the execution queue; this is a user-journey acceptance map.
 
 ## Target first-run composition
 
-Keep device setup short: welcome/control check → choose library storage →
-create/select Trainer → optional network → Home. Reuse Settings and Trainer
-components rather than introducing duplicate forms or a deep setup menu tree.
-Show only relevant steps, with Back, skip for optional steps and durable resume.
-Account, theme and optional media setup can happen later in Settings.
+Keep device setup short and ordered from the user's first power-on:
+
+1. Welcome and language selection, using actual available translations.
+2. A brief physical-control check with the correct A/B mapping.
+3. Optional Wi-Fi and date/time setup; offline use remains possible.
+4. Internal/SD library storage: reuse existing games or prepare compatible folders.
+5. Create/select a Trainer, with appearance and optional PIN. If PIN is chosen,
+   integrate the existing family reset-code prerequisite into that path.
+6. Optional accounts such as RetroAchievements, skippable until later Settings.
+7. Home: choose an existing Adventure or directly open library setup when empty.
+
+Reuse Settings and Trainer components rather than introducing duplicate forms
+or a deep setup menu tree. Back and skip must preserve completed choices;
+restart resumes the unfinished step. Subsequent boots use the existing Trainer
+chooser/PIN rules and enter Home. Upgrades preserve existing owners' completed
+setup and must not force fresh-install setup or reset their boot-session choice.
+Optional media setup can happen later in Settings.
+
+In the target Armada-based TrainerOS image (#70), supported emulators and their
+baseline controller/launch settings are already included. First run must not
+download or ask users to build that stack one
+emulator at a time. User-supplied firmware remains separate from distributable
+defaults; missing optional platforms or firmware do not block entering Home.
 
 On an existing library, discover before asking the user to register anything.
 A missing emulator/BIOS should open the corresponding actionable platform
@@ -62,23 +81,27 @@ layers just to play; expose the specific missing action when it matters.
 
 ## Gap-filling order inside the current priority lane
 
-1. **Library correctness first:** existing-World import, classification and
-   idempotent refresh. Include copied/missing/reconnected storage and preservation
-   of existing edits/history. This removes the actual Odin SQL workaround.
-2. **Storage setup:** reusable persistent library location, folder creation,
-   existing-library adoption and controller Settings flow. Preserve sources.
-3. **Platform preparation/readiness:** broad installed-runtime discovery and
-   bounded native/Flatpak routes, BIOS/controller/save/exit preparation and
-   actionable repair. Representative launches only; no per-ROM compatibility
-   campaign. Ordinary play and semantic save support remain independent.
-4. **Repeatable development installation:** compose the proven services into
-   a tracked install/update/repair path; preserve Steam, Plasma, prior settings
-   and existing libraries. Validate the dependency chain on a clean isolated
-   user/data setup before destructive device acceptance. This is not the final
-   Armada image and must not become a competing packaging framework.
-5. **Minimal first run:** connect the completed steps into the short resumable
-   flow above, including useful empty states and return-to-game after setup.
-   Pull only this necessary slice of #72/R14 forward. Full Help remains late.
+1. **First-boot journey first:** define and build the resumable flow above,
+   reusing the real controller, Connections and Trainer services. Pull only this
+   necessary #72/R14 slice forward. Develop the following dependencies within
+   this user journey; do not ship placeholder steps or defer onboarding until
+   after unrelated library expansion. Full Help remains late.
+2. **Storage/discovery within setup:** persistent library location, folder
+   creation and existing-library adoption, reusable from Settings. Fix the
+   existing-World import failure and classification/idempotent refresh. Include
+   copied/missing/reconnected storage and preservation of edits/history.
+3. **Preinstalled platform readiness:** discover supported native/Flatpak routes,
+   prepare controller/firmware/save/exit paths and offer actionable repair.
+   Representative launches only; no per-ROM campaign. Ordinary play remains
+   independent of semantic save support.
+4. **Repeatable installation and update preservation:** compose those services
+   into a tracked install/update/repair path under the policy below, preserving
+   Steam, Plasma, preferences and libraries. This remains the foundation for the
+   later Armada image, not a competing packaging framework.
+5. **Fresh-install acceptance:** on a clean isolated user/data setup, exercise
+   first boot, interrupted setup/resume, offline/empty and existing libraries,
+   first launch/save/return and upgrade preservation. Retain later physical
+   clean-image acceptance; prepared devices alone are insufficient proof.
 6. **Family and RA completion:** finish supported save ownership/adoption and
    active-account emulator earning, with two-Trainer and offline acceptance.
    Finish installed Steam integration in the library lane without waiting for
@@ -89,6 +112,50 @@ reproducible image, OTA/compatible rollback and final UX acceptance in their
 existing dependency order. Final artwork/Pack Studio/Credits stay at the end.
 Pokémon/Link/practice/franchise and all R1–R18, R7a/R18a/R18b acceptance remain;
 this audit does not reopen deep save research ahead of the current priorities.
+
+## Emulator defaults and ongoing updates — owner clarification, 2026-09-28
+
+The Armada-based TrainerOS image (#70) includes supported emulators and usable
+baseline settings before first boot. Native package/session deployment remains
+the development foundation; it is not the intended consumer installation flow.
+They receive ongoing upstream updates through the supported Armada/package,
+Flatpak or native-runtime route. Do not freeze the whole stack indefinitely to
+protect integration, or update running games. Exact unattended-update policy
+and release channels remain to be chosen; this is not a delivered updater.
+
+- **Separate ownership:** emulator binaries/resources are replaceable; TrainerOS
+  launch bindings, controller/exit integration and save-location policy have
+  their own maintained configuration. User preferences, accounts, ROMs, firmware
+  and saves remain user data. An update must not reinstall factory defaults over
+  them or silently move to a different save directory.
+- **Use narrow overrides:** prefer supported per-launch/per-profile configuration
+  where available. Seed defaults once. Where an emulator requires a shared file,
+  patch only the necessary owned keys with a backup and preserve unrelated edits.
+  A copied whole base configuration must not become an indefinitely stale fork;
+  reconcile it with upstream changes when that route is updated. Never assume
+  all emulators expose the same override or migration mechanism.
+- **Keep integration compatible:** track the installed runtime identity/version
+  and the relevant CLI, configuration, input, save-path and exit requirements
+  in the existing adapter/platform registry. Refresh discovered executable/core
+  locations after updates while preserving explicit user routes. Version changes
+  do not by themselves invalidate unrelated platforms or imply verified support.
+- **Bounded update checks:** check an affected route's launch, controller input,
+  Home exit/cancel/return and ordinary save/load, including claimed Trainer save
+  separation. Verify that user preferences survive and the same saves remain
+  reachable. No retest of every ROM or semantic research campaign is required.
+  Protected semantic writes retain their independent exact-build gates.
+- **Recover incompatibilities:** preserve the last working integration settings
+  before migration and the prior runtime when the update mechanism supports it.
+  Restore a compatible runtime/configuration pair or offer a concrete repair;
+  do not silently reset settings or roll back/delete newer game saves. Runtime
+  downgrade must consider changed config/save formats. An affected emulator must
+  not prevent TrainerOS, other games or maintenance mode from working.
+
+These requirements extend platform preparation and later #71 update acceptance;
+they do not claim arbitrary future emulator changes can never break integration.
+Keep update work within existing adapters/platform services, without a new
+generic plugin/update framework. Existing prepared-device settings are preserved
+until a replacement route is verified.
 
 ## Completion criterion
 

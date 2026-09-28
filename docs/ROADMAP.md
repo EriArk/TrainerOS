@@ -7,11 +7,18 @@
 **2026-09-28 owner startup-experience audit:**
 [installation → everyday-use gaps](STARTUP_EXPERIENCE_AUDIT.md) distinguish the
 prepared devices from a reproducible new-user installation. The current
-library/Settings/system/RA lane proceeds through: (1) idempotent discovery and
-classification, (2) storage selection/folder preparation, (3) platform runtime
-readiness and real repair, (4) repeatable native development install/update,
-(5) minimal resumable first run reusing those services, (6) supported family
-save ownership and RA earning completion. Installed Steam work remains in the
+library/Settings/system/RA lane starts with the complete first-boot journey:
+(1) resumable welcome/language/control/network/Trainer/Home flow, connecting
+(2) persistent storage and idempotent discovery and (3) preinstalled platform
+readiness/repair as its real services, then (4) repeatable native installation
+and emulator update preservation, (5) fresh-install-to-play acceptance and
+(6) supported family save ownership and RA earning completion. Build these
+dependencies as needed for onboarding; do not postpone the user journey behind
+an unrelated scanner/emulator expansion. Supported emulators and baseline
+settings ship inside the Armada-based TrainerOS image (#70), not through
+first-boot installation prompts, and stay updatable, with separate TrainerOS overrides,
+preserved user settings/saves and bounded launch/input/return/update recovery
+checks. Detailed acceptance is in the linked audit. Installed Steam work remains in the
 library lane; no requirement to validate every ROM or emulator first.
 Only the necessary #72/R14 first-run slice moves forward; full Help, final image,
 OTA, artwork/Pack Studio/Credits and all R1–R18/R7a/R18a/R18b acceptance retain
