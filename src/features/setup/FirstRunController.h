@@ -1,6 +1,7 @@
 #pragma once
 #include "core/input/Action.h"
 #include "platform/storage/LibraryStorage.h"
+#include "features/settings/ClockController.h"
 #include <QObject>
 #include <QJsonObject>
 #include <QVariantList>
@@ -11,6 +12,7 @@ namespace trainer {
 class FirstRunController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool active READ active NOTIFY changed)
+    Q_PROPERTY(trainer::ClockController* clock READ clock CONSTANT)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(bool connections READ connections NOTIFY changed)
     Q_PROPERTY(QString stage READ stage NOTIFY changed)
@@ -22,6 +24,7 @@ class FirstRunController final : public QObject {
     Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
     Q_PROPERTY(int checkedControls READ checkedControls NOTIFY changed)
 public:
+    ClockController* clock() { return &clock_; }
     explicit FirstRunController(QObject* parent = nullptr);
     ~FirstRunController() override;
     void configure(const QString& directory, const QString& root);
@@ -31,7 +34,7 @@ public:
     void saveTrainerDraft(const QJsonObject& draft);
     QJsonObject trainerDraft() const { return state_["trainerDraft"].toObject(); }
     bool active() const { return active_; }
-    bool busy() const { return busy_; }
+    bool busy() const { return busy_ || clock_.busy(); }
     bool connections() const { return connections_; }
     QString stage() const { return state_["stage"].toString("welcome"); }
     QString title() const;
@@ -55,6 +58,7 @@ signals:
     void protectTrainerRequested();
     void finished();
 private:
+    ClockController clock_;
     bool persist(const QJsonObject& next);
     bool move(const QString& next);
     void loadLocations();

@@ -40,7 +40,17 @@ Item {
             c.beginPath();c.moveTo(16+i*104,132);c.lineTo(66+i*87,60+i*13);c.lineTo(140+i*80,151)
             c.fillStyle=["#bdd4b5","#a2c5ac","#c7dcc0"][i];c.fill()
         }
-        if(stage==="storage") {
+        if(stage==="clock") {
+            circle(157,131,89,"#76978c","#355c56")
+            circle(157,125,85,"#f6d680","#355c56")
+            circle(157,125,71,"#fff9e5","#bdad78")
+            for(let i=0;i<12;i++) {
+                const angle=i*Math.PI/6
+                line([157+58*Math.sin(angle),125-58*Math.cos(angle),157+64*Math.sin(angle),125-64*Math.cos(angle)],"#527569",3)
+            }
+            line([157,84,157,125,192,146],"#355c56",6)
+            circle(157,125,7,"#db827b","#355c56")
+        } else if(stage==="storage") {
             c.save();c.translate(78,50);c.rotate(-.12)
             box(0,5,133,171,12,"#315d60","");box(0,0,133,166,12,"#57969a","#24474c")
             box(12,42,109,80,5,"#fff3ce","#3b7173");label(67,70,"ADVENTURES",11,"#315354")

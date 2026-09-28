@@ -4,6 +4,14 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-28 date/time:** [system clock controls](DATE_TIME.md) compose real
+automatic time, a controller time-zone picker and cancellable manual editing
+with Settings and resumable first setup. Existing Trainers skip onboarding.
+Native session installation grants only the active local owner's three clock
+operations. Next bounded slice: active-Trainer RetroAchievements account-to-play
+journey and earning readiness. Language/translation, reproducible image,
+installation/update/recovery and every later R acceptance remain open.
+
 **2026-09-28 live readiness:** [idle-safe refresh](EMULATOR_DISCOVERY.md#live-refresh--2026-09-28)
 now updates installed-runtime snapshots without restarting TrainerOS. Worlds
 entry and Settings refresh compose it with existing folder discovery; a bounded
@@ -14,9 +22,8 @@ then deferred a change made during its game until return. Package upgrading,
 firmware readiness and update rollback remain distinct open acceptance. Next:
 the remaining first-run Settings/system journey, then active-Trainer RA earning.
 Retain all later R acceptance, exact-game work and final Pack Studio.
-The next bounded Settings slice is real date/time/time-zone control composed with
-first run; language/translation, image/update/recovery and all other acceptance
-remain in the queue.
+The subsequent date/time slice is recorded above; language/translation,
+image/update/recovery and all other acceptance remain in the queue.
 
 **2026-09-28 guarded standalone return:** [DS/Dolphin Home exit](STANDALONE_HOME_EXIT.md)
 now uses the existing confirmation/cancel/normal-close path. Representative Flip

@@ -13,6 +13,7 @@ void controls(FirstRunController& flow) {
     for(auto action:{Action::Up,Action::Down,Action::Left,Action::Right,Action::Confirm,Action::Back})flow.dispatch(action);
 }
 void isolatedStorage(FirstRunController& flow,const QString& root) {
+    flow.clock()->read=[] { return ClockSnapshot{"UTC", {}, {"UTC"}, true, true, true, true}; };
     flow.locations=[root](const QString&){
         QStorageInfo disk(QFileInfo(root).absolutePath());
         return QList<LibraryLocation>{{"Test storage",root,disk.rootPath(),QString::fromUtf8(disk.device()),disk.bytesAvailable()}};
@@ -23,6 +24,19 @@ QByteArray read(const QString& path) {QFile file(path);if(!file.open(QIODevice::
 class FirstRunTests : public QObject {
     Q_OBJECT
 private slots:
+    void timeStepResumesWithoutForcingItOnExistingTrainers() {
+        QTemporaryDir dir;
+        {
+            FirstRunController flow;flow.configure(dir.path(),dir.path()+"/roms");isolatedStorage(flow,dir.path()+"/roms");
+            flow.begin(false);flow.activate(0);controls(flow);flow.activate(1);
+            QCOMPARE(flow.stage(),"clock");QTRY_VERIFY(!flow.busy());
+        }
+        FirstRunController resumed;resumed.configure(dir.path(),dir.path()+"/roms");isolatedStorage(resumed,dir.path()+"/roms");resumed.begin(false);
+        QCOMPARE(resumed.stage(),"clock");QTRY_VERIFY(!resumed.busy());
+        resumed.dispatch(Action::Confirm);QCOMPARE(resumed.stage(),"storage");
+        resumed.dispatch(Action::Back);QCOMPARE(resumed.stage(),"clock");QTRY_VERIFY(!resumed.busy());
+        resumed.dispatch(Action::Back);QCOMPARE(resumed.stage(),"network");
+    }
     void storageSettingSurvivesAndOverridesOldSetupRoot() {
         QTemporaryDir dir;
         const auto target=dir.path()+"/new-library";
@@ -58,7 +72,7 @@ private slots:
         {
             FirstRunController flow;flow.configure(dir.path(),root);isolatedStorage(flow,root);flow.begin(false);
             QCOMPARE(flow.stage(),"welcome");flow.activate(0);controls(flow);QCOMPARE(flow.stage(),"network");
-            flow.activate(1);QCOMPARE(flow.stage(),"storage");
+            flow.activate(1);QTRY_VERIFY(!flow.clock()->busy());flow.activate(3);QCOMPARE(flow.stage(),"storage");
             flow.activate(0);QTRY_COMPARE(flow.stage(),"trainer");
             flow.saveTrainerDraft({{"name","River"},{"emblem","leaf"},{"favorite","Squirtle"}});
             QCOMPARE(read(root+"/gba/keep.gba"),"original");QVERIFY(QFileInfo(root+"/psp").isDir());
@@ -77,7 +91,7 @@ private slots:
     void failedStorageDoesNotAdvanceOrOverwriteTheRoot() {
         QTemporaryDir dir;FirstRunController flow;flow.configure(dir.path(),"original");isolatedStorage(flow,dir.path()+"/roms");
         flow.prepare=[](const LibraryLocation&){return QString("Card disconnected");};
-        flow.begin(false);flow.activate(0);controls(flow);flow.activate(1);flow.activate(0);
+        flow.begin(false);flow.activate(0);controls(flow);flow.activate(1);QTRY_VERIFY(!flow.clock()->busy());flow.activate(3);flow.activate(0);
         QTRY_VERIFY(!flow.busy());QCOMPARE(flow.stage(),"storage");QVERIFY(flow.error().contains("disconnected"));
         QCOMPARE(FirstRunController::libraryRoot(dir.path(),"original"),"original");
         QStorageInfo disk(dir.path());LibraryLocation changed{"Card",dir.path()+"/absent",disk.rootPath(),"wrong-device",1000000};
@@ -93,7 +107,7 @@ private slots:
         QTemporaryDir dir;const auto root=dir.path()+"/roms";
         {
             FirstRunController flow;flow.configure(dir.path(),root);isolatedStorage(flow,root);
-            flow.begin(false);flow.activate(0);controls(flow);flow.activate(1);flow.activate(0);
+            flow.begin(false);flow.activate(0);controls(flow);flow.activate(1);QTRY_VERIFY(!flow.clock()->busy());flow.activate(3);flow.activate(0);
             QTRY_COMPARE(flow.stage(),"trainer");
         }
         FirstRunController flow;flow.configure(dir.path(),root);QSignalSpy requested(&flow,&FirstRunController::trainerRequested);
@@ -109,7 +123,7 @@ private slots:
         QCOMPARE(shell.page(),0);QVERIFY(!shell.menuOpen());QVERIFY(!shell.drawerOpen());
         session.dispatch(Action::Confirm);controls(*flow);flow->activate(0);QVERIFY(flow->connections());
         session.dispatch(Action::Back);QVERIFY(!flow->connections());
-        flow->activate(1);flow->activate(0);QTRY_COMPARE(flow->stage(),"trainer");
+        flow->activate(1);QTRY_VERIFY(!flow->clock()->busy());flow->activate(3);flow->activate(0);QTRY_COMPARE(flow->stage(),"trainer");
         QCOMPARE(shell.trainerSetup()->stage(),"identity");shell.trainerSetup()->applyName("River");
         shell.trainerSetup()->activate(3);QCOMPARE(shell.trainerSetup()->stage(),"review");
         QCOMPARE(shell.trainerSetup()->rows().size(),3); // PIN setup follows creation when the family code is absent.

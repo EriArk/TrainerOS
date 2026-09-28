@@ -53,6 +53,9 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
       libraryManager_(repo, nullptr, this), libraryTools_(repo,this), settings_(this), device_(this), diagnostics_(this), center_(repo,this), party_(!repo.editable(),this) {
     connect(&network_, &NetworkController::changed,this,&ShellController::changed);
+    connect(settings_.clock(), &ClockController::changed, this, &ShellController::changed);
+    connect(settings_.clock(), &ClockController::backRequested, this, [this]{ if(service_=="settings")settings_.selectCategory(11,false); });
+    connect(this, &ShellController::changed, this, [this]{ if(service_!="settings" || settings_.category()!=11)settings_.clock()->leave(); });
     connect(settings_.storage(), &LibraryStorageController::changed, &settings_, &SettingsController::changed);
     connect(settings_.storage(), &LibraryStorageController::changed, this, &ShellController::changed);
     connect(this,&ShellController::changed,this,[this]{network_.setActive(onboardingConnections_ || (service_=="settings" && settings_.category()==10));});
@@ -261,7 +264,7 @@ bool ShellController::chooseAdventureAvailable() {
         && !keyboard_.isOpen() && !localModalOpen() && !party_.activities()->practice()->running();
 }
 bool ShellController::navigationLocked() const {
-    return launchPreparation_.busy() || settings_.storage()->busy() || party_.moveOpen() || libraryTools_.busy() || center_.writing() || center_.confirming()
+    return launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || party_.moveOpen() || libraryTools_.busy() || center_.writing() || center_.confirming()
         || (center_.shopsOpen() && center_.shopModal());
 }
 bool ShellController::pairedNavigationAvailable() {

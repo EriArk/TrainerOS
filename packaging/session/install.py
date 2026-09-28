@@ -20,9 +20,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--user", required=True)
     parser.add_argument("--default", action="store_true", help="Boot into the validated TrainerOS session")
-    parser.add_argument("--emulator-support-only", action="store_true", help="Update Adventure helpers without changing the session")
+    helpers = parser.add_mutually_exclusive_group()
+    helpers.add_argument("--emulator-support-only", action="store_true", help="Update Adventure helpers without changing the session")
+    helpers.add_argument("--clock-only", action="store_true", help="Install date/time permissions without changing the session")
     args = parser.parse_args()
-    if args.default and args.emulator_support_only:
+    if args.default and (args.emulator_support_only or args.clock_only):
         parser.error("Helper-only installation cannot change the boot default")
     if os.geteuid() != 0 or not re.fullmatch(r"[a-z_][a-z0-9_-]*", args.user):
         parser.error("Use root and an existing local login name")
@@ -82,6 +84,21 @@ def main():
         finally:
             if os.path.exists(temporary):
                 os.unlink(temporary)
+
+    if not args.emulator_support_only:
+        # Narrow existing system-service operations to the active local device owner.
+        # No root shell, arbitrary command or global wheel grant is introduced.
+        rule = '''polkit.addRule(function(action, subject) {
+    if (subject.local && subject.active && subject.user == "%s" &&
+        ["org.freedesktop.timedate1.set-time", "org.freedesktop.timedate1.set-timezone",
+         "org.freedesktop.timedate1.set-ntp"].indexOf(action.id) >= 0)
+        return polkit.Result.YES;
+});
+''' % args.user
+        install("/etc/polkit-1/rules.d/50-traineros-clock.rules", rule.encode(), 0o644)
+    if args.clock_only:
+        print("Date/time permissions installed. Session and clock settings preserved.")
+        return
 
     specification = importlib.util.spec_from_file_location("emulator_support", source.parent / "integrations/emulator_support.py")
     support = importlib.util.module_from_spec(specification)

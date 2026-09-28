@@ -6,13 +6,17 @@ the image, bundled emulators or their updater.
 
 ## User path
 
-Welcome → directions/A/B check → optional Connections → library storage →
+Welcome → directions/A/B check → optional Connections → date/time → library storage →
 Trainer card → optional Trainer PIN/family reset code → Home.
 
 Connections reuses the existing Wi-Fi/Bluetooth pane and masked controller
 keyboard. B returns to the setup choice; a connection operation or question
 retains its own cancellation behavior first. Continuing offline is supported.
 Physical navigation remains trapped in setup until a real Trainer is open.
+
+[Date and time](DATE_TIME.md) shows the actual system clock and initially focuses
+Continue. Automatic synchronization, time-zone selection and optional manual
+date/time use the same controls as Settings; this step is also resumable.
 
 Storage offers the existing library, internal storage and mounted removable
 locations. It recognizes `Emulation/roms`, `roms` and `batocera/roms`, preserves
@@ -110,7 +114,7 @@ replacement for the established TrainerOS chassis.
 
 ## Remaining first-run acceptance
 
-- Real translations/language selection and time-zone/date controls.
+- Real translations/language selection. Date/time controls are delivered separately above.
 - Optional account setup within the wizard; active-Trainer RA is still Settings.
 - Nonstandard folder browsing and stable removable-device identity across
   changed mount paths. Mounted-location selection in Settings is implemented.

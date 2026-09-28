@@ -13,6 +13,8 @@ find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/platform/device/ClockService.cpp
+    src/features/settings/ClockController.cpp
     src/platform/emulation/EmulatorDiscovery.cpp
     src/platform/emulation/EmulatorRefresh.cpp
     src/core/navigation/LaunchPreparation.cpp
@@ -262,6 +264,7 @@ qt_add_qml_module(traineros
         src/qml/StorageChoices.qml
         src/qml/SettingControl.qml
         src/qml/SettingsPanel.qml
+        src/qml/ClockPane.qml
         src/qml/DevicePanel.qml
         src/qml/DiagnosticsPanel.qml
         src/qml/KeyboardPanel.qml
@@ -428,6 +431,9 @@ if(BUILD_TESTING)
     add_test(NAME ownership COMMAND trainer_ownership_tests)
     qt_add_executable(trainer_access_tests tests/TrainerAccessTests.cpp)
     qt_add_executable(trainer_first_run_tests tests/FirstRunTests.cpp)
+    qt_add_executable(trainer_clock_tests tests/ClockTests.cpp)
+    target_link_libraries(trainer_clock_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME clock COMMAND trainer_clock_tests)
     target_link_libraries(trainer_first_run_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME first_run COMMAND trainer_first_run_tests)
     target_link_libraries(trainer_access_tests PRIVATE trainer_core Qt6::Test)

@@ -1,5 +1,6 @@
 #pragma once
 #include "LibraryStorageController.h"
+#include "ClockController.h"
 #include "core/input/Action.h"
 #include "core/repository/PreferencesRepository.h"
 #include <QVariantList>
@@ -9,6 +10,7 @@ namespace trainer {
 class SettingsController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(trainer::LibraryStorageController* storage READ storage CONSTANT)
+    Q_PROPERTY(trainer::ClockController* clock READ clock CONSTANT)
     Q_PROPERTY(QString theme READ theme NOTIFY changed)
     Q_PROPERTY(bool worldEditing READ worldEditing NOTIFY changed)
     Q_PROPERTY(bool reducedMotion READ reducedMotion NOTIFY changed)
@@ -25,6 +27,8 @@ class SettingsController final : public QObject {
     Q_PROPERTY(QStringList categories READ categories CONSTANT)
     Q_PROPERTY(QVariantList controls READ controls NOTIFY changed)
 public:
+    ClockController* clock() { return &clock_; }
+    const ClockController* clock() const { return &clock_; }
     LibraryStorageController* storage() { return &storage_; }
     const LibraryStorageController* storage() const { return &storage_; }
     using QObject::QObject;
@@ -38,7 +42,7 @@ public:
     int category() const { return category_; }
     int rowFocus() const { return row_; }
     bool controlsFocused() const { return pane_; }
-    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller", "Library", "Saves", "Connections"}; }
+    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller", "Library", "Saves", "Connections", "Date & time"}; }
     QVariantList controls() const;
     Q_INVOKABLE void selectCategory(int index, bool enter = true);
     Q_INVOKABLE void activateRow(int index);
@@ -66,6 +70,7 @@ signals:
     void messageRequested(const QString& message);
     void quickAdjustment(int index, trainer::Action action);
 private:
+    ClockController clock_;
     LibraryStorageController storage_;
     SaveBackupService* savePolicy_ = nullptr;
     PreferencesRepository* repository_ = nullptr;

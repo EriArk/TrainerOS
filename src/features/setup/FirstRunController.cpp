@@ -7,10 +7,14 @@
 
 namespace trainer {
 namespace {
-const QStringList stages{"welcome", "controls", "network", "storage", "trainer", "ready", "complete"};
+const QStringList stages{"welcome", "controls", "network", "clock", "storage", "trainer", "ready", "complete"};
 QString stateFile(const QString& directory) { return QDir(directory).filePath("first-run.json"); }
 }
-FirstRunController::FirstRunController(QObject* parent) : QObject(parent) {}
+FirstRunController::FirstRunController(QObject* parent) : QObject(parent) {
+    connect(&clock_, &ClockController::changed, this, &FirstRunController::changed);
+    connect(&clock_, &ClockController::continueRequested, this, [this]{ if(active_ && stage()=="clock")move("storage"); });
+    connect(&clock_, &ClockController::backRequested, this, [this]{ if(active_ && stage()=="clock")move("network"); });
+}
 FirstRunController::~FirstRunController() { if (worker_) { worker_->wait(); delete worker_; } }
 QString FirstRunController::libraryRoot(const QString& directory, const QString& fallback) {
     if(directory.isEmpty())return fallback;
@@ -49,6 +53,8 @@ bool FirstRunController::move(const QString& next) {
     auto value = state_; value["version"] = 1; value["stage"] = next;
     if (!persist(value)) return false;
     focus_ = 0; connections_ = false;
+    clock_.leave();
+    if (next == "clock") clock_.begin(true);
     if (next == "storage") loadLocations();
     emit changed();
     if (next == "trainer") emit trainerRequested();
@@ -65,6 +71,7 @@ void FirstRunController::begin(bool hasTrainers) {
     else if (stage() == "ready" && !hasTrainers) move("trainer");
     else if (state_.isEmpty()) move("welcome");
     else {
+        if (stage() == "clock") clock_.begin(true);
         if (stage() == "storage") loadLocations();
         emit changed();
         if (stage() == "trainer") emit trainerRequested();
@@ -85,6 +92,7 @@ QString FirstRunController::title() const {
     if (stage() == "welcome") return "Hello, Trainer.";
     if (stage() == "controls") return "Get a feel for it.";
     if (stage() == "network") return "Stay connected.";
+    if (stage() == "clock") return "Your local time.";
     if (stage() == "storage") return "Room for adventure.";
     if (stage() == "trainer") return "Meet your Trainer";
     return "Make it your journey.";
@@ -93,6 +101,7 @@ QString FirstRunController::description() const {
     if (stage() == "welcome") return "A few little things, and your next adventure is ready to begin.";
     if (stage() == "controls") return "Try each direction, then the two buttons.";
     if (stage() == "network") return "Connect now, or enjoy your games offline.";
+    if (stage() == "clock") return "Keep this time, or make a quick adjustment.";
     if (stage() == "storage") return "Choose a home for your games.";
     if (stage() == "ready") return "Pick an Adventure in Worlds. Your journey starts on Home.";
     return {};
@@ -112,13 +121,14 @@ QVariantList FirstRunController::rows() const {
     return result;
 }
 void FirstRunController::activate(int index) {
+    if(active_ && stage()=="clock"){clock_.activate(index);return;}
     if (!active_ || busy_ || connections_ || index < 0 || index >= rows().size()) return;
     if (loadFailed_) { const bool hasTrainers=hasTrainers_; configure(directory_, root_); begin(hasTrainers); return; }
     focus_ = index;
     if (stage() == "welcome") { checked_ = 0; move("controls"); }
     else if (stage() == "network") {
         if (index == 0) { connections_ = true; emit changed(); }
-        else move("storage");
+        else move("clock");
     } else if (stage() == "storage") {
         if (index == locations_.size()) { loadLocations(); emit changed(); return; }
         const auto location = locations_[index];
@@ -149,6 +159,7 @@ void FirstRunController::activate(int index) {
     }
 }
 void FirstRunController::dispatch(Action action) {
+    if(active_ && stage()=="clock"){clock_.dispatch(action);return;}
     if (!active_ || busy_ || connections_) return;
     if (loadFailed_) { if (action == Action::Confirm) activate(0); return; }
     if (stage() == "controls") {
@@ -160,7 +171,7 @@ void FirstRunController::dispatch(Action action) {
     }
     if (action == Action::Back) {
         if (stage() == "network") { checked_ = 0; move("controls"); }
-        else if (stage() == "storage") move("network");
+        else if (stage() == "storage") move("clock");
     } else if (action == Action::Confirm) activate(focus_);
     else if (action == Action::Up) { focus_ = std::max(0, focus_ - 1); emit changed(); }
     else if (action == Action::Down) { focus_ = std::min(std::max(0, int(rows().size()) - 1), focus_ + 1); emit changed(); }

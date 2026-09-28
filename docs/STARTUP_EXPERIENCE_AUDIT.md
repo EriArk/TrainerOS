@@ -19,7 +19,9 @@ Enhanced filename annotations and separates equal relative names across storage
 roots. Existing classifications are preserved; stable changed-mount identity
 and fresh-image launch/update acceptance remain open.
 The table below records the audit baseline and remaining target acceptance;
-language/time controls, image preparation and update gates are still open.
+language controls, image preparation and update gates are still open.
+[Date/time controls](DATE_TIME.md) now share a real system service between setup
+and Settings; they do not imply fresh-image or update acceptance.
 
 [Standalone Home exit](STANDALONE_HOME_EXIT.md) subsequently adds guarded
 DS/GameCube return and repeatable session-helper preparation. These were tested

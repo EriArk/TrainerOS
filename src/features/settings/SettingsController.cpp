@@ -54,12 +54,15 @@ QVariantList SettingsController::controls() const {
     }
 }
 void SettingsController::selectCategory(int index, bool enter) {
-    if(storage_.busy())return;
+    if(storage_.busy() || clock_.busy())return;
+    clock_.leave();
     storage_.close();
     category_ = std::clamp(index,0,int(categories().size())-1); row_=0; pane_=enter;
+    if(category_==11)clock_.begin();
     emit changed();
 }
 void SettingsController::activateRow(int index) {
+    if(category_==11){clock_.activate(index);return;}
     if(storage_.isOpen()){storage_.activate(index);return;}
     if(saving_)return;
     pane_=true; row_=std::clamp(index,0,std::max(0,int(controls().size())-1));
@@ -90,6 +93,8 @@ void SettingsController::cycleTheme(int direction) {
     if(repository_) repository_->savePreferences(candidate,this,completed); else completed({});
 }
 void SettingsController::dispatch(Action action) {
+    if(clock_.busy())return;
+    if(category_==11 && pane_){clock_.dispatch(action);return;}
     if(storage_.isOpen()){storage_.dispatch(action);return;}
     if(action==Action::Back) {
         if(pane_) {pane_=false;emit changed();} else emit closeRequested();

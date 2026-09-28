@@ -7,15 +7,15 @@ Item {
     readonly property string currentStage: flow.stage
     onCurrentStageChanged: entrance.restart()
     NumberAnimation { id: entrance; target: sheet; property: "opacity"; from: 0; to: 1; duration: Theme.motion(160); easing.type: Easing.OutCubic }
-    readonly property var labels: ["Welcome", "Controls", "Connection", "Games", "Trainer", "Ready"]
+    readonly property var labels: ["Welcome", "Controls", "Connection", "Time", "Games", "Trainer", "Ready"]
     Row {
-        x: 237; y: 28; spacing: 10
+        x: 237; y: 28; spacing: 0
         Repeater {
             model: root.labels
             Item {
                 required property int index; required property string modelData
-                width: 102; height: 39
-                Rectangle { x: 7; y: 9; width: 98; height: 2; color: index<root.flow.step ? "#b7a56d" : "#dce2d6"; visible: index<5 }
+                width: 94; height: 39
+                Rectangle { x: 7; y: 9; width: 90; height: 2; color: index<root.flow.step ? "#b7a56d" : "#dce2d6"; visible: index<6 }
                 Rectangle { width: 19; height: 19; radius: 10; color: index<=root.flow.step ? "#f1ce74" : "#e0e7db"; border.color: index===root.flow.step ? "#997e42" : "#b9c9ba"
                     Text { anchors.centerIn: parent; text: index<root.flow.step ? "✓" : index+1; font.pixelSize: 10; color: Theme.ink; font.bold: true }
                 }
@@ -48,6 +48,7 @@ Item {
             Text { id: heading; width: parent.width; text: root.flow.title; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 31; wrapMode: Text.WordWrap; lineHeight: .95 }
             Text { y: heading.height+13; width: parent.width; text: root.flow.description; color: Theme.muted; font.pixelSize: 16; wrapMode: Text.WordWrap }
             StorageChoices { x: -5; y: 105; width: parent.width+10; height: parent.height-y-(root.flow.error.length || root.flow.busy ? 40 : 8); flow: root.flow; visible: root.flow.stage==="storage" }
+            ClockPane { x: 0; y: 93; width: parent.width; height: parent.height-y; clock: root.flow.clock; externalError: root.flow.error; compact: true; visible: root.flow.stage==="clock" }
             Item {
                 x: 0; y: 135; width: parent.width; height: 185; visible: root.flow.stage==="controls"
                 Row { y: 15; spacing: 12
@@ -64,7 +65,7 @@ Item {
             }
             Rectangle {
                 x: -29; y: parent.height-155; width: parent.width+53; height: 171
-                visible: !["storage","controls"].includes(root.flow.stage)
+                visible: !["storage","controls","clock"].includes(root.flow.stage)
                 color: "#eef0df"
                 Rectangle { width: parent.width; height: 1; color: "#c5d2be" }
                 Column { x: 29; y: 19; width: parent.width-53; spacing: 13
@@ -79,7 +80,7 @@ Item {
                     }
                 }
             }
-            Text { anchors.bottom: parent.bottom; width: parent.width; height: 24; text: root.flow.busy ? "Preparing your library…" : root.flow.error; textFormat: Text.PlainText; color: "#853b24"; font.pixelSize: 13; wrapMode: Text.WordWrap }
+            Text { anchors.bottom: parent.bottom; width: parent.width; height: 24; visible: root.flow.stage!=="clock"; text: root.flow.busy ? "Preparing your library…" : root.flow.error; textFormat: Text.PlainText; color: "#853b24"; font.pixelSize: 13; wrapMode: Text.WordWrap }
         }
     }
     ConnectionsPane { x: 40; y: 95; width: parent.width-80; height: parent.height-y-61; shell: root.shell; onboarding: true; visible: root.flow.connections }

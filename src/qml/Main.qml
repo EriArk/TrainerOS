@@ -214,6 +214,7 @@ Window {
                     if(shell.network.rows.length) controls.push(h("A",shell.network.actionLabel))
                     controls.push(h("B","Categories")); return controls
                 }
+                if (shell.service === "settings" && shell.settings.category===11 && shell.settings.controlsFocused) return shell.settings.clock.busy ? [] : [h("←→",shell.settings.clock.mode==="zones" ? "Region" : "Adjust"),h("A",shell.settings.clock.mode==="manual" ? (shell.settings.clock.focusIndex===5 ? "Save" : "Next") : "Select"),h("B",shell.settings.clock.mode==="main" ? "Categories" : "Cancel")]
                 if (shell.service === "settings" && shell.settings.storage.open) return shell.settings.storage.busy ? [] : [h("A","Use storage"),h("B","Library")]
                 if (shell.service === "settings") return [h("←→","Adjust"),h("A",shell.settings.controlsFocused ? "Select" : "Open"),h("B",shell.settings.controlsFocused ? "Categories" : "Back")]
                 if (shell.service === "device") return [h("←→","Adjust"),h("Y","Refresh"),h("A","Select"),h("B","Back")]
@@ -362,8 +363,9 @@ Window {
                 Hint { visible: sessionState.firstRun.connections && !shell.keyboard.open; button: "X"; label: "Radio" }
                 Hint { visible: sessionState.firstRun.connections && !shell.keyboard.open; button: "Y"; label: "Search" }
                 Hint { visible: sessionState.firstRun.connections && !shell.keyboard.open; button: "←→"; label: "Connections" }
+                Hint { visible: sessionState.firstRun.stage==="clock" && !sessionState.firstRun.busy; button: "←→"; label: sessionState.firstRun.clock.mode==="zones" ? "Region" : "Adjust" }
                 Hint { visible: !sessionState.firstRun.busy; button: "A"; label: shell.keyboard.open ? "Type" : sessionState.firstRunPage && sessionState.firstRun.stage==="controls" ? "Check" : sessionState.firstRunPage && sessionState.firstRun.stage==="storage" ? "Use storage" : "Select" }
-                Hint { visible: !sessionState.firstRun.busy && (!sessionState.firstRunPage || shell.keyboard.open || sessionState.firstRun.connections || ["controls","network","storage","trainer"].includes(sessionState.firstRun.stage)); button: "B"; label: sessionState.firstRunPage && sessionState.firstRun.stage==="controls" ? "Check" : "Back"; tint: Theme.pink }
+                Hint { visible: !sessionState.firstRun.busy && (!sessionState.firstRunPage || shell.keyboard.open || sessionState.firstRun.connections || ["controls","network","clock","storage","trainer"].includes(sessionState.firstRun.stage)); button: "B"; label: sessionState.firstRunPage && sessionState.firstRun.stage==="controls" ? "Check" : "Back"; tint: Theme.pink }
             }
         }
         StoragePanel { anchors.fill: parent; visible: sessionState.blocked && !sessionState.entryGate && !sessionState.firstRunPage && !sessionState.access.active; stateController: sessionState }
