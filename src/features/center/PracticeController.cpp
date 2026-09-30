@@ -63,6 +63,7 @@ void PracticeController::enter() {
     leave();open_=true;stage_="first";focus_=0;error_.clear();emit changed();
 }
 void PracticeController::leave() {
+    if (!open_) return;
     ++generation_;open_=false;discarding_=true;checking_=false;
     sourceTimer_.stop();checkDeadline_.stop();session_.cancel();
     first_=second_=-1;frozen_.clear();playback_.reset();observed_={};stage_="first";error_.clear();emit changed();

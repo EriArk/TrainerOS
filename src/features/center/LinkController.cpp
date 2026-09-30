@@ -166,7 +166,7 @@ void LinkController::enter() {
     if(!backend_){stage_="error";message_="Link requires an installed Emerald Adventure.";emit changed();return;}
     peer_.open();heartbeat_.start();emit changed();
 }
-void LinkController::leave(){if(busy_ || pending() || !mode_.isEmpty())return;open_=false;emit changed();}
+void LinkController::leave(){if(!open_ || busy_ || pending() || !mode_.isEmpty())return;open_=false;emit changed();}
 void LinkController::send(const QString& type,QJsonObject fields){fields["type"]=type;fields["version"]=2;peer_.send(fields);}
 void LinkController::fail(const QString& text){playbackTimer_.stop();playback_.reset();message_=text;stage_="error";if(paired_)send("problem",{{"message",text.left(180)}});emit changed();}
 void LinkController::resetChoice(){playbackTimer_.stop();playback_.reset();turnSubmitted_=false;mode_.clear();localChoice_={};remoteChoice_={};remoteJournal_={};transaction_.clear();confirmed_=remoteConfirmed_=false;focus_=0;localMove_=remoteMove_=-1;moveSent_=false;battleState_={};bench_=bag_=recovering_=battleStarting_=false;bagItem_=0;forfeitSide_=-1;collection_=-1;stake_="none";stakeAmount_=1000;}

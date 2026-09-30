@@ -1,3 +1,4 @@
+#include "core/PerformanceTrace.h"
 #include "BatoceraLibrary.h"
 #include "CollectionRepository.h"
 #include "RomPlatforms.h"
@@ -307,6 +308,7 @@ void BatoceraLibrary::editLibraryAsync(const LibraryEdit& edit,QObject* context,
     });
 }
 void BatoceraLibrary::refreshContentAvailability() {
+    PerformanceTrace::Scope perf("BatoceraLibrary.refreshContentAvailability");
     if(!library_.editable())return;
     if(busy_){rescanPending_=true;return;}
     // Page/focus changes may request repeatedly. Keep navigation independent of

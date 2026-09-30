@@ -30,7 +30,7 @@ void SpeciesPicker::begin(const QString& selected) {
     for (int i = 0; i < filtered_.size(); ++i) if (filtered_[i].id == selected) focus_ = i;
     emit changed();
 }
-void SpeciesPicker::cancel() { open_ = false; emit changed(); }
+void SpeciesPicker::cancel() { if (!open_) return; open_ = false; emit changed(); }
 void SpeciesPicker::rebuild() {
     filtered_.clear(); focus_ = 0;
     QString numberQuery = query_; if (numberQuery.startsWith('#')) numberQuery.remove(0, 1);

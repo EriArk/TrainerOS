@@ -13,9 +13,65 @@
 #include <algorithm>
 
 using namespace trainer;
+class CountedLibrary final : public LibraryRepository {
+public:
+    mutable int reads = 0;
+    std::optional<quint64> revision = 0;
+    QList<Adventure> games;
+    QList<World> regions;
+    QList<Adventure> adventures() const override { ++reads; return games; }
+    QList<World> worlds() const override { ++reads; return regions; }
+    QList<AdventureRegistration> registrations() const override { ++reads; return {}; }
+    std::optional<quint64> libraryRevision() const override { return revision; }
+    QList<ResumePoint> resumePoints() const override { return {}; }
+    HomeSnapshot home() const override { return {}; }
+};
 class CollectionTests final : public QObject {
     Q_OBJECT
 private slots:
+    void committedProjectionAvoidsCatalogueWalksAndInvalidates() {
+        CountedLibrary source;
+        Adventure game; game.id="fixture"; game.worldId="fixture-world";
+        game.title="Fixture"; game.kind=AdventureKind::RomHack; game.platformId="gba";
+        source.games={game}; source.regions={{game.worldId,"First world",{}}};
+        CollectionRepository collection(source);
+        collection.adventures(); collection.worlds(); const auto reads=source.reads;
+        for(int i=0;i<100;++i) { collection.adventures(); collection.worlds(); }
+        QCOMPARE(source.reads,reads);
+        source.games[0].title="Renamed"; source.regions[0].name="Second world"; ++*source.revision;
+        auto games=collection.adventures();
+        QVERIFY(std::any_of(games.begin(),games.end(),[](const auto& a){return a.id=="fixture" && a.title=="Renamed";}));
+        auto worlds=collection.worlds();
+        QVERIFY(std::any_of(worlds.begin(),worlds.end(),[](const auto& w){return w.id=="fixture-world" && w.name=="Second world";}));
+        source.games.clear(); ++*source.revision;
+        worlds=collection.worlds();
+        QVERIFY(std::none_of(worlds.begin(),worlds.end(),[](const auto& w){return w.id=="fixture-world";}));
+        // Legacy/non-versioned providers must still observe mutations.
+        source.revision.reset(); source.games={game}; collection.adventures(); source.games[0].title="Legacy edit";
+        games=collection.adventures();
+        QVERIFY(std::any_of(games.begin(),games.end(),[](const auto& a){return a.id=="fixture" && a.title=="Legacy edit";}));
+    }
+    void storeRevisionIsPublishedBeforeConsumersAndOnOpen() {
+        QTemporaryDir dir; LocalStateStore store(dir.path()); CollectionRepository collection(store);
+        const auto before=store.libraryRevision(); collection.adventures(); collection.worlds();
+        store.open(); QTRY_VERIFY(store.ready()); QVERIFY(store.libraryRevision()!=before);
+        const auto opened=store.libraryRevision(); bool notified=false;
+        connect(&store,&LocalStateStore::libraryChanged,this,[&]{
+            QVERIFY(store.libraryRevision()!=opened);
+            const auto games=collection.adventures();
+            QVERIFY(std::any_of(games.begin(),games.end(),[](const auto& a){return a.id=="performance-fixture";}));
+            notified=true;
+        });
+        AdventureRegistration record; record.adventure.id="performance-fixture";
+        record.adventure.title="Performance fixture"; record.adventure.worldId="fixture-world";
+        record.adventure.kind=AdventureKind::RomHack; record.adventure.platformId="gba";
+        record.adventure.adapterId="unconfigured";
+        record.newWorld=World{"fixture-world","Fixture world",{}};
+        record.contentPath=dir.filePath("fixture.gba");
+        { QFile f(record.contentPath); QVERIFY(f.open(QIODevice::WriteOnly)); f.write("fixture"); }
+        bool done=false; store.saveAdventureAsync(record,this,[&](auto result){QVERIFY2(result.success,qPrintable(result.error));done=true;});
+        QTRY_VERIFY(done); QVERIFY(notified);
+    }
     void englishCurationPreservesGamesAndRejectsServiceAndLanguageVariants() {
         const auto all=collectionCatalogue();QSet<QString> ids;
         for(const auto& a:all)ids.insert(a.catalogueId);

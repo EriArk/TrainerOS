@@ -38,7 +38,7 @@ Item {
         objectName: "memory-adventure-list"
         x: 21; y: 82; width: parent.width - 42; height: 216
         visible: root.editor.route === "adventures"
-        model: root.editor.rows; currentIndex: root.editor.focusIndex; namePrefix: "memory-adventure-"
+        model: visible ? root.editor.rows : []; currentIndex: root.editor.focusIndex; namePrefix: "memory-adventure-"
         takesFocus: root.takesFocus && visible
         onActivated: row => root.editor.activate(row)
     }

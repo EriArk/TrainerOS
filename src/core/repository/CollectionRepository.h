@@ -23,6 +23,7 @@ public:
     explicit CollectionRepository(LibraryRepository& personal) : personal_(personal) {}
     QList<World> worlds() const override;
     QList<Adventure> adventures() const override;
+    std::optional<quint64> libraryRevision() const override { return personal_.libraryRevision(); }
     QList<ResumePoint> resumePoints() const override { return personal_.resumePoints(); }
     QList<PlaySession> recentSessions() const override { return personal_.recentSessions(); }
     std::optional<ExitMedia> exitMedia(const QString& id) const override { return personal_.exitMedia(id); }
@@ -38,5 +39,7 @@ private:
     LibraryRepository& personal_;
     mutable QByteArray curatedKey_;
     mutable QList<Adventure> curatedAdventures_;
+    mutable std::optional<quint64> curatedRevision_, worldsRevision_;
+    mutable QList<World> cachedWorlds_;
 };
 }

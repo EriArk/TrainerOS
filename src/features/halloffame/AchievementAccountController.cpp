@@ -30,6 +30,7 @@ void AchievementAccountController::begin() {
     open_ = true; username_ = provider_.context().accountId; password_.clear(); focus_ = 0; confirmSignOut_ = false; emit changed();
 }
 void AchievementAccountController::close() {
+    if (!open_) return;
     open_ = false; password_.clear(); username_.clear(); confirmSignOut_ = false; emit changed();
 }
 void AchievementAccountController::applyText(const QString& value) {

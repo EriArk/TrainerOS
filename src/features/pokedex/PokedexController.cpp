@@ -1,3 +1,4 @@
+#include "core/PerformanceTrace.h"
 #include "PokedexController.h"
 #include <algorithm>
 
@@ -153,11 +154,13 @@ QVariantMap PokedexController::present(const PokedexEntry& entry, bool detailed)
     return result;
 }
 QVariantList PokedexController::entries() const {
+    PerformanceTrace::Scope perf("PokedexController.entries");
     QVariantList result;
     for (const auto& e : filtered_) result.append(present(e));
     return result;
 }
 QVariantMap PokedexController::detail() const {
+    PerformanceTrace::Scope perf("PokedexController.detail");
     if (filtered_.isEmpty()) return {{"id", ""}, {"name", "A new discovery awaits"}, {"number", "—"},
         {"types", ""}, {"worlds", ""}, {"status", ""}, {"seen", "Not recorded"}, {"caught", "Not recorded"}, {"favorite", false},
         {"form",""},{"formCount",0},{"notes",""},{"height","—"},{"weight","—"},{"family",""},{"stats",QVariantList{}},{"editable",false}};
@@ -230,6 +233,7 @@ QString PokedexController::emptyMessage() const {
 }
 QString PokedexController::recoveryLabel() const { return !error_.isEmpty() || catalog_.entries.isEmpty() ? "Retry field guide" : "Reset filters"; }
 void PokedexController::rebuild() {
+    PerformanceTrace::Scope perf("PokedexController.rebuild");
     filtered_.clear();
     QString numeric = query_.trimmed();
     if (numeric.startsWith('#')) numeric.remove(0, 1);
@@ -245,7 +249,7 @@ void PokedexController::rebuild() {
                 if(e.number!=351 || form.id=="351")form.types=e.types;
                 if(gameScope_->stats.contains(e.number))form.stats=gameScope_->stats[e.number];
             }
-            e.familyIds.removeIf([&](const auto& id){for(const auto& relative:catalog_.entries)if(relative.id==id)return relative.number>gameScope_->nationalLimit;return false;});
+            e.familyIds.removeIf([&](const auto& id){return numbers_.value(id,0)>gameScope_->nationalLimit;});
         }
         const auto p = currentProgress(e);
         if (!world_.isEmpty() && !e.collectionIds.contains(world_)) continue;
@@ -282,7 +286,10 @@ void PokedexController::refresh() {
     error_ = loaded.success ? QString() : loaded.error;
     if (!loaded.success && error_.isEmpty()) error_ = "The field guide couldn't be loaded. Try again.";
     // Failed refresh keeps the last good reference snapshot available.
-    if (loaded.success) { catalog_ = loaded;names_.clear();for(const auto& entry:catalog_.entries)names_.insert(entry.id,entry.name); }
+    if (loaded.success) {
+        catalog_ = loaded; names_.clear(); numbers_.clear();
+        for (const auto& entry : catalog_.entries) { names_.insert(entry.id,entry.name); numbers_.insert(entry.id,entry.number); }
+    }
     rebuild();
     if (!loaded.success && !catalog_.entries.isEmpty()) emit messageRequested(error_);
 }

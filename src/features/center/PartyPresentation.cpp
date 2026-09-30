@@ -1,3 +1,4 @@
+#include "core/PerformanceTrace.h"
 #include "PartyPresentation.h"
 #include <algorithm>
 #include <QJsonArray>
@@ -27,6 +28,7 @@ void PartyPresentation::setProgress(const QString& adventureId, const GameProgre
     emit changed();
 }
 void PartyPresentation::syncActors() {
+    PerformanceTrace::Scope perf("PartyPresentation.syncActors");
     QVariantList actors;
     if (sample_) {
         // Explicit development fixture; never fills missing production records.
@@ -89,6 +91,7 @@ QString PartyPresentation::status() const {
         : "Party and Storage reading is not available for this Adventure yet.";
 }
 void PartyPresentation::setAdventure(const QString& id, const QString& title) {
+    if (id_ == id && title_ == title) return;
     if (id_ != id) {
         cancelMove();
         id_ = id; detail_ = false; partyFocus_ = 0; std::fill(std::begin(storageFocus_),std::end(storageFocus_),0); box_ = 0;
@@ -142,6 +145,7 @@ QVariantMap PartyPresentation::withArt(QVariantMap row) const {
     return row;
 }
 QVariantList PartyPresentation::entries() const {
+    PerformanceTrace::Scope perf("PartyPresentation.entries");
     QVariantList result;
     if (!available() || section_ == "saves" || section_ == "activities") return result;
     for (int i = 0; i < (section_ == "party" ? 6 : 30); ++i) result.append(slot(i));

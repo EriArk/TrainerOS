@@ -33,6 +33,7 @@ void ArchiveEditor::begin(const std::optional<HallOfFameEntry>& entry) {
     emit changed();
 }
 void ArchiveEditor::cancel() {
+    if (!isOpen()) return;
     route_.clear();error_.clear();textTarget_.clear();draft_={};focus_=0;
     emit changed();
 }
@@ -56,9 +57,11 @@ QVariantList ArchiveEditor::fields() const {
 }
 QVariantList ArchiveEditor::rows() const {
     QVariantList result;
+    if (route_ != "adventures") return result;
+    QHash<QString, QString> worlds;
+    if (library_) for (const auto& world : library_->worlds()) worlds.insert(world.id, world.name);
     for (const auto& adventure : adventures()) {
-        QString world=adventure.worldId;
-        if (library_) for (const auto& item : library_->worlds()) if (item.id==world) { world=item.name;break; }
+        const auto world = worlds.value(adventure.worldId, adventure.worldId);
         result.append(QVariantMap{{"id",adventure.id},{"title",adventure.title},{"subtitle",world+(adventure.variant.isEmpty()?QString():" · "+adventure.variant)}});
     }
     return result;

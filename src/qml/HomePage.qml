@@ -12,7 +12,9 @@ Item {
         objectName: "home-exit-picture"
         anchors.fill: parent
         source: root.currentAdventure.exitPreview
-        asynchronous: false; cache: false
+        // Exit URLs identify immutable play sessions; do not decode the same
+        // captured frame again when unrelated shell properties change.
+        asynchronous: false; cache: true
         fillMode: Image.PreserveAspectCrop
         opacity: 0.13
         sourceSize.width: 960; sourceSize.height: 540

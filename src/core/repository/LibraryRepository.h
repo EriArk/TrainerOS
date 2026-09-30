@@ -11,6 +11,9 @@ public:
     virtual ~LibraryRepository() = default;
     virtual QList<World> worlds() const = 0;
     virtual QList<Adventure> adventures() const = 0;
+    // Committed worlds/adventures/registrations snapshot. Providers without a
+    // revision retain value-based invalidation; never cache them indefinitely.
+    virtual std::optional<quint64> libraryRevision() const { return {}; }
     // Cached snapshot only: external scanning/validation must publish updates
     // asynchronously. IDs are unique/stable; source revisions track replacement.
     virtual QList<ResumePoint> resumePoints() const = 0;

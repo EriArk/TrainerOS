@@ -16,6 +16,7 @@ class PokedexController final : public QObject {
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(int entryIndex READ entryIndex NOTIFY changed)
     Q_PROPERTY(QVariantList entries READ entries NOTIFY rowsChanged)
+    Q_PROPERTY(int entryCount READ entryCount NOTIFY rowsChanged)
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY changed)
     Q_PROPERTY(QVariantList rail READ rail NOTIFY changed)
     Q_PROPERTY(QVariantList choices READ choices NOTIFY pickerChanged)
@@ -37,6 +38,7 @@ public:
     int focusIndex() const;
     int entryIndex() const;
     QVariantList entries() const;
+    int entryCount() const { return int(filtered_.size()); }
     QVariantMap detail() const;
     QVariantList rail() const;
     QVariantList choices() const;
@@ -86,6 +88,7 @@ private:
     PokedexProgressRepository& progress_;
     PokedexCatalog catalog_;
     QHash<QString,QString> names_;
+    QHash<QString,int> numbers_;
     QList<PokedexEntry> filtered_;
     QString selectedId_;
     QString formId_;

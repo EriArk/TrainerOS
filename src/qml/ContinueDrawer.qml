@@ -182,7 +182,9 @@ Item {
             interactive: false
             clip: true
             spacing: 14
-            model: root.shell.resumePoints
+            // Closed drawer has no delegates/images to rebuild on page changes.
+            // Keep them through the closing animation while its contents show.
+            model: visible ? root.shell.resumePoints : []
             currentIndex: root.expanded ? root.shell.focusIndex : 0
             function reveal() {
                 positionViewAtIndex(currentIndex, ListView.Contain)
@@ -203,6 +205,7 @@ Item {
                     CapButton {
                         id: resumeCap
                         objectName: "resume-" + index
+                        deferredFocus: true
                         x: 4; y: 4; width: parent.width - 8; height: 150
                         tint: [Theme.green, Theme.blue, Theme.pink][index % 3]
                         selected: root.expanded && !root.shell.menuOpen && root.shell.notice.length === 0 && root.shell.focusIndex === index
@@ -214,7 +217,7 @@ Item {
                                 id: cardImage
                                 objectName: "resume-background-" + index
                                 anchors.fill: parent; source: modelData.preview
-                                asynchronous: false; cache: false
+                                asynchronous: false; cache: true
                                 fillMode: Image.PreserveAspectCrop; opacity: 0.18
                                 sourceSize: Qt.size(640, 400)
                             }

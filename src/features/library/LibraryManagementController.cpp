@@ -26,6 +26,7 @@ void LibraryManagementController::beginEdit(const QString& id) {
     emit changed();
 }
 void LibraryManagementController::close() {
+    if (!open_) return;
     open_ = false; files_.cancel(); textField_ = -1; route_ = "list";
     if (!saving_) draft_ = {};
     error_.clear(); emit changed();

@@ -77,13 +77,13 @@ Item {
             }
             Text {
                 x: 28; y: 31; width: parent.width - 56; wrapMode: Text.WordWrap
-                visible: root.dex.entries.length === 0
+                visible: root.dex.entryCount === 0
                 text: root.dex.emptyMessage; color: Theme.ink; font.pixelSize: 20; textFormat: Text.PlainText
             }
             CapButton {
                 objectName: "dex-recovery"
                 x: 24; y: 163; width: parent.width - 48; height: 48; tint: Theme.yellow
-                visible: root.dex.entries.length === 0; label: root.dex.recoveryLabel
+                visible: root.dex.entryCount === 0; label: root.dex.recoveryLabel
                 selected: root.takesFocus && root.dex.zone === "recovery"
                 onActivated: root.shell.activate(0, "recovery")
             }
@@ -93,7 +93,7 @@ Item {
             objectName: "dex-list-preview"
             x: 330; y: dexHeader.height + 62; width: parent.width - x; height: root.height - y
             color: "#e6edde"
-            readonly property bool hasEntry: root.dex.entries.length > 0
+            readonly property bool hasEntry: root.dex.entryCount > 0
             readonly property var types: root.dex.detail.types ? root.dex.detail.types.split(" / ") : []
             function typeTint(type) {
                 const colors = {Bug:"#cddd9c", Dark:"#c6b9b0", Dragon:"#bbbbe8", Electric:"#f5dc83",

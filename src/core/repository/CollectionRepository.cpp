@@ -189,6 +189,8 @@ QString collectionExclusion(const Adventure& a, const QString& filename) {
     return {};
 }
 QList<World> CollectionRepository::worlds() const {
+    const auto revision = personal_.libraryRevision();
+    if (revision && worldsRevision_ == revision) return cachedWorlds_;
     auto result = collectionWorlds();
     for (const auto& w : personal_.worlds()) {
         auto it=std::find_if(result.begin(),result.end(),[&](const auto& existing){return existing.id==w.id;});
@@ -196,9 +198,12 @@ QList<World> CollectionRepository::worlds() const {
     }
     const auto games=adventures();
     result.removeIf([&](const auto& w) { return std::none_of(games.cbegin(),games.cend(),[&](const auto& a){return a.domain=="pokemon" && (a.worldId==w.id || a.additionalWorldIds.contains(w.id));}); });
+    cachedWorlds_ = result; worldsRevision_ = revision;
     return result;
 }
 QList<Adventure> CollectionRepository::adventures() const {
+    const auto revision = personal_.libraryRevision();
+    if (revision && curatedRevision_ == revision) return curatedAdventures_;
     auto candidates = personal_.adventures();
     const auto registrations=personal_.registrations();
     // UI consumers ask for this projection repeatedly. Normalize and sort only
@@ -210,6 +215,7 @@ QList<Adventure> CollectionRepository::adventures() const {
         << a.badges.value_or(-1) << a.caught.value_or(-1) << a.additionalWorldIds
         << a.platformId << a.catalogueId << a.variant << a.collectionOnly << a.limitation << a.domain;
     for(const auto& r:registrations) stream << r.adventure.id << r.revision << r.contentAvailable << r.removed << r.contentPath;
+    curatedRevision_ = revision;
     if(key==curatedKey_) return curatedAdventures_;
     QList<Adventure> result; QSet<QString> owned, identities;
     // Stable winner; prefer a present file and configured adapter, without merging history.

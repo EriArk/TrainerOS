@@ -1,3 +1,4 @@
+#include "core/PerformanceTrace.h"
 #include "integrations/achievements/TrainerAchievementProvider.h"
 #include "integrations/achievements/RetroArchAchievementSession.h"
 #include "platform/emulation/EmulatorDiscovery.h"
@@ -73,6 +74,7 @@ class SavedExitImages final : public QQuickImageProvider {
 public:
     explicit SavedExitImages(LocalStateStore* store) : QQuickImageProvider(Image), store_(store) {}
     QImage requestImage(const QString& id, QSize* size, const QSize&) override {
+        PerformanceTrace::Scope perf("SavedExitImages.requestImage");
         const auto frame = frameExitImage(store_ ? store_->exitImage(id) : QImage{});
         if (size) *size = frame.size();
         return frame;
@@ -644,6 +646,20 @@ int main(int argc, char* argv[]) {
                 }, Qt::QueuedConnection);
             }
 #endif
+            if(PerformanceTrace::enabled()) {
+                auto beat=std::make_shared<QElapsedTimer>();beat->start();
+                auto* timer=new QTimer(window);timer->setInterval(100);timer->setTimerType(Qt::PreciseTimer);
+                QObject::connect(timer,&QTimer::timeout,window,[beat]{
+                    PerformanceTrace::sample("eventLoop.delay",qMax(0.0,beat->nsecsElapsed()/1e6-100));beat->restart();
+                });timer->start();
+                auto frame=std::make_shared<QElapsedTimer>();
+                QObject::connect(window,&QQuickWindow::frameSwapped,window,[frame]{
+                    if(frame->isValid())PerformanceTrace::sample("frame.interval",frame->nsecsElapsed()/1e6);
+                    frame->restart();
+                },Qt::DirectConnection);
+                auto* report=new QTimer(window);report->setInterval(1000);
+                QObject::connect(report,&QTimer::timeout,window,[&shell]{PerformanceTrace::flush(shell.page());});report->start();
+            }
             deviceReports.setWindow(window);
             session.start();
             if (!parser.isSet("windowed") && !smoke) window->showFullScreen();

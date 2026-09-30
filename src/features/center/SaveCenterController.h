@@ -103,8 +103,8 @@ public:
     int basketCount() const;
     Q_INVOKABLE void openBasket();
     bool shopModal() const {return shopsOpen_ && shopRoute_!="merchants" && shopRoute_!="stock";}
-    void leaveClinic(){clinicOpen_=false;emit changed();}
-    void leaveShops() {shopsOpen_=false;emit changed();}
+    void leaveClinic(){if(!clinicOpen_)return;clinicOpen_=false;emit changed();}
+    void leaveShops() {if(!shopsOpen_)return;shopsOpen_=false;emit changed();}
     QString route() const { return route_; }
     QString title() const;
     QString message() const;

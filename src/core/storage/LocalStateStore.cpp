@@ -507,6 +507,8 @@ private:
 
 LocalStateStore::LocalStateStore(QString directory, QObject* parent, QString scope)
     : QObject(parent), worker_(new SqliteWorker), directory_(std::move(directory)), scope_(std::move(scope)) {
+    // Registered before consumers: their synchronous reads see the new revision.
+    connect(this, &LocalStateStore::libraryChanged, this, [this] { ++libraryRevision_; });
     worker_->moveToThread(&thread_);
     connect(&thread_, &QThread::finished, worker_, &QObject::deleteLater);
     thread_.start();
@@ -531,6 +533,7 @@ void LocalStateStore::open() {
             if (ready_) {
                 ownerId_ = state.ownerId; accountOwner_ = state.accountOwner; profiles_ = state.profiles; profile_ = state.profile; favorites_ = state.favorites; navigation_ = state.navigation;
                 worlds_ = state.library.worlds; registrations_ = state.library.registrations; preferences_ = state.library.preferences;
+                ++libraryRevision_;
                 history_ = state.history; archive_ = state.archive; champions_=state.champions; journal_ = state.journal; exitMedia_ = state.exitMedia;
             }
             emit opened(ready_);

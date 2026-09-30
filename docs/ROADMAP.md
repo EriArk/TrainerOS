@@ -4,6 +4,12 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-30 owner performance override:** prioritize the measured Home / Worlds /
+Field Guide stalls on Flip before returning to nearby reliability or the RA lane.
+See [interface performance audit](INTERFACE_PERFORMANCE.md) for causes, changes,
+measurements and remaining limits. Preserve the established visuals and every
+pending nearby/RA/system/R1–R18 acceptance; Odin availability is a separate gate.
+
 **2026-09-28 direct nearby follow-up:** [Nearby play](NEARBY_PLAY.md) replaces
 same-router/code comparison with Wi-Fi Direct discovery, active Trainer names,
 background invitation popovers and a persistent accepted session. Activity

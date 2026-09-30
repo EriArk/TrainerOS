@@ -1,3 +1,4 @@
+#include "core/PerformanceTrace.h"
 #include "ShellController.h"
 #include "features/home/PlayHistoryController.h"
 #include "ResumePresentation.h"
@@ -314,6 +315,7 @@ void ShellController::openCenter() {
     refreshParty();
 }
 void ShellController::refreshParty() {
+    PerformanceTrace::Scope perf("ShellController.refreshParty");
     hall_.setCurrentAdventure(currentAdventureId());
     hall_.setProgress(progress_?progress_->adventureId():QString(),progress_?progress_->snapshot():GameProgress{});
     const auto adventure = homeAdventure();
@@ -423,6 +425,7 @@ ResumeAvailability ShellController::homeResumeAvailability(const Adventure& adve
     return adapter_.resumeAvailability(adventure, *point);
 }
 QVariantMap ShellController::home() const {
+    PerformanceTrace::Scope perf("ShellController.home");
     const auto snapshot = repository_.home();
     QString title = "Choose a journey in Worlds", world = "Your journey";
     const auto adventure = homeAdventure();
@@ -485,6 +488,7 @@ QVariantMap ShellController::home() const {
             {"recordedTime", seconds ? recordedDuration(*seconds) : "—"}, {"milestone", milestone}};
 }
 QVariantList ShellController::resumePoints() const {
+    PerformanceTrace::Scope perf("ShellController.resumePoints");
     if (page_ == 0 && multiverseHome_) return multiverse_.choices();
     QVariantList result;
     const auto adventures = repository_.adventures();
@@ -532,6 +536,7 @@ void ShellController::openTrainers() {
     goToPage(page_);trainerSetup_.begin();service_="trainer-setup";emit changed();
 }
 void ShellController::goToPage(int page) {
+    PerformanceTrace::Scope perf("ShellController.goToPage");
     if(navigationLocked())return;
     // Closing transient controllers emits their local notifications. Publish
     // only the completed shell transition, not every intermediate close, so
@@ -539,24 +544,26 @@ void ShellController::goToPage(int page) {
     QSignalBlocker transition(this);
     const bool enteringWorlds = page_ != 1 && std::clamp(page, 0, 4) == 1;
     if(page!=page_){party_.activities()->practice()->leave();party_.activities()->link()->leave();}
-    libraryTools_.close();
-    settings_.storage()->close();
-    keyboard_.cancel();
+    { PerformanceTrace::Scope phase("navigation.tools"); libraryTools_.close(); }
+    { PerformanceTrace::Scope phase("navigation.storage"); settings_.storage()->close(); }
+    { PerformanceTrace::Scope phase("navigation.keyboard"); keyboard_.cancel(); }
     textTarget_ = TextTarget::None;
     pokedex_.cancelTransient();
-    hall_.editor()->cancel();
-    hall_.account()->close();
-    trainer_.cancel();
-    trainerSetup_.close();
-    center_.leaveClinic();center_.leaveShops();
-    libraryManager_.close(); service_.clear();
+    { PerformanceTrace::Scope phase("navigation.archive"); hall_.editor()->cancel(); }
+    { PerformanceTrace::Scope phase("navigation.account"); hall_.account()->close(); }
+    { PerformanceTrace::Scope phase("navigation.trainer"); trainer_.cancel(); }
+    { PerformanceTrace::Scope phase("navigation.setup"); trainerSetup_.close(); }
+    { PerformanceTrace::Scope phase("navigation.center"); center_.leaveClinic();center_.leaveShops(); }
+    { PerformanceTrace::Scope phase("navigation.manager"); libraryManager_.close(); service_.clear(); }
     page_ = std::clamp(page, 0, 4); // No wrapping until physical-device testing.
     if (enteringWorlds) {
-        worlds_.showRegions();
-        multiverse_.showSystems();
+        { PerformanceTrace::Scope phase("navigation.worlds"); worlds_.showRegions(); }
+        { PerformanceTrace::Scope phase("navigation.multiverse"); multiverse_.showSystems(); }
     }
     if (page_ == 1) repository_.refreshContentAvailability();
-    if (page_==2) showPokemonFace(pokemonFace_); else refreshParty();
+    // Party observes the current Adventure, library and save provider directly.
+    // Visiting an unrelated page must not republish the same actors/practice UI.
+    if (page_==2) showPokemonFace(pokemonFace_);
     if (page_ == 3) trainer_.refreshOverview();
     drawerOpen_ = false;
     menuOpen_ = false;
@@ -565,7 +572,7 @@ void ShellController::goToPage(int page) {
     notice_.clear();
     mode_.clear();
     transition.unblock();
-    emit changed();
+    { PerformanceTrace::Scope phase("navigation.publish"); emit changed(); }
 }
 void ShellController::activate(int index, const QString& area) {
     if(launchPreparation_.busy() || libraryTools_.busy() || center_.writing())return;

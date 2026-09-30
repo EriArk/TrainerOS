@@ -58,6 +58,7 @@ public:
     void refreshContentAvailability() override;
     QList<World> worlds() const override { return worlds_; }
     QList<Adventure> adventures() const override;
+    std::optional<quint64> libraryRevision() const override { return libraryRevision_; }
     QList<ResumePoint> resumePoints() const override { return {}; }
     HomeSnapshot home() const override;
     QList<PlaySession> recentSessions() const override { return history_.recent; }
@@ -90,6 +91,7 @@ private:
     void accessWrite(std::function<QString(SqliteWorker&)>, std::function<void(QString)>);
     void write(std::function<QString(SqliteWorker&)>, std::function<void(QString)>);
     QThread thread_;
+    quint64 libraryRevision_ = 0;
     SqliteWorker* worker_;
     QString directory_, scope_, error_, ownerId_, accountOwner_;
     QList<TrainerProfile> profiles_;

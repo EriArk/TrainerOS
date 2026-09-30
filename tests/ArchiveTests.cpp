@@ -28,6 +28,17 @@ AdventureRegistration adventure(const QString& path) {
 class ArchiveTests final : public QObject {
     Q_OBJECT
 private slots:
+    void closedEditorDoesNotRebuildHiddenLibrary() {
+        MockHallOfFameRepository archive; MockLibraryRepository library;
+        ArchiveEditor editor(archive); editor.setLibrary(&library);
+        QSignalSpy changed(&editor,&ArchiveEditor::changed);
+        for(int i=0;i<20;++i) { editor.cancel(); QVERIFY(editor.rows().isEmpty()); }
+        QCOMPARE(changed.size(),0);
+        editor.begin(); QVERIFY(editor.rows().isEmpty());
+        editor.activate(0); QVERIFY(!editor.rows().isEmpty());
+        editor.cancel(); QVERIFY(editor.rows().isEmpty());
+        const auto count=changed.size(); editor.cancel(); QCOMPARE(changed.size(),count);
+    }
     void migrationPersistenceUnknownsAndRevision() {
         QTemporaryDir dir;
         {

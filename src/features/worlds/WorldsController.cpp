@@ -1,3 +1,4 @@
+#include "core/PerformanceTrace.h"
 #include "WorldsController.h"
 #include "core/repository/CollectionRepository.h"
 #include "core/navigation/ResumePresentation.h"
@@ -133,6 +134,7 @@ int WorldsController::regionTileIndex() const {
     return 0;
 }
 QVariantList WorldsController::regionTiles() const {
+    PerformanceTrace::Scope perf("WorldsController.regionTiles");
     const auto entries=regions();QVariantList result;
     for(const auto& group:regionGroups()) {
         QVariantList members;
@@ -173,6 +175,7 @@ std::optional<ResumePoint> WorldsController::latestResume(const Adventure& adven
     return result;
 }
 QVariantMap WorldsController::detail() const {
+    PerformanceTrace::Scope perf("WorldsController.detail");
     const auto adventure = currentAdventure();
     if (!adventure) return {{"title", "No matching Adventures"}, {"kind", ""},
         {"status", ""}, {"description", "Your Adventures for this World will appear here."},
