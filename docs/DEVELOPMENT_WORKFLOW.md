@@ -22,6 +22,14 @@ git diff --check
 
 Scale checks to risk. An affected module may need focused tests; changes to shared input, persistence, startup/exit or launch/return normally need the broader suite. Exercise real child processes for lifecycle changes and real database reopen/migration for persistence. Do not replace these with tests that only repeat the implementation.
 
+Run `link_peer` tests in an isolated network namespace when TrainerOS is live on
+the build host. The test protocol listens on port 47845; `--network=host` containers
+share the handheld's real listener and are not a safe protocol-test environment.
+For Podman, use a separate test container with `--network=none`, loopback enabled,
+the build's Qt dependencies and the existing source/build mounts. Build compilation
+may retain its original networking. Do not stop a user's live session or weaken
+pairing assertions merely to resolve a test-port collision.
+
 For QML, use the rendered application with SDL virtual-controller events, inspect actual focus/Back/global navigation, and visually check the changed views at handheld landscape dimensions. Review empty/loading/error states and bounded scrolling. Keep test output/captures outside commits. Run a non-testing build when testing guards, packaging or composition boundaries change.
 
 Documentation-only and reversible low-impact changes should get relevant content/link/diff checks. Do not rerun unrelated tests solely to make a report sound thorough. If checks fail, diagnose and fix the cause; do not weaken assertions or suppress warnings to obtain a green result.

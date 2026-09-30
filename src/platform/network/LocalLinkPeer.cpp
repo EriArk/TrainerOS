@@ -8,6 +8,10 @@ namespace trainer {
 namespace {constexpr quint16 Port=47845,DiscoveryPort=47846;}
 LocalLinkPeer::~LocalLinkPeer(){close();}
 LocalLinkPeer::LocalLinkPeer(QObject* parent):QObject(parent) {
+    connectTimer_.setSingleShot(true);connectTimer_.setInterval(12000);
+    connect(&connectTimer_,&QTimer::timeout,this,[this]{
+        emit error("Could not reach your friend. Try inviting them again.");disconnectPeer();
+    });
     timer_.setInterval(1500);connect(&timer_,&QTimer::timeout,this,&LocalLinkPeer::announce);
     connect(&discovery_,&QUdpSocket::readyRead,this,&LocalLinkPeer::readDiscovery);
     connect(&server_,&QTcpServer::newConnection,this,[this]{
@@ -31,7 +35,7 @@ bool LocalLinkPeer::open() {
     server_.setMaxPendingConnections(2);timer_.start();announce();return true;
 }
 void LocalLinkPeer::close(){timer_.stop();server_.close();discovery_.close();disconnectPeer();peers_.clear();emit changed();}
-void LocalLinkPeer::disconnectPeer(){if(!socket_)return;auto* old=socket_;socket_=nullptr;old->disconnect(this);old->abort();old->deleteLater();buffer_.clear();emit disconnectedFromPeer();}
+void LocalLinkPeer::disconnectPeer(){connectTimer_.stop();if(!socket_)return;auto* old=socket_;socket_=nullptr;old->disconnect(this);old->abort();old->deleteLater();buffer_.clear();emit disconnectedFromPeer();}
 QVariantList LocalLinkPeer::peers() const {QVariantList result;for(const auto& row:peers_)result.append(row);return result;}
 void LocalLinkPeer::announce() {
     const auto now=QDateTime::currentMSecsSinceEpoch();bool changed=false;
@@ -68,14 +72,17 @@ void LocalLinkPeer::connectId(const QString& id,const QString& interface) {
             if(entry.ip().protocol()==QAbstractSocket::IPv4Protocol && QHostAddress(ip).isInSubnet(entry.ip(),entry.prefixLength()))address=ip;
         if(address.isEmpty())return;
     }
-    outgoing_=true;auto* socket=new QTcpSocket(this);attach(socket);socket->connectToHost(address,Port);
+    outgoing_=true;auto* socket=new QTcpSocket(this);attach(socket);connectTimer_.start();socket->connectToHost(address,Port);
 }
 void LocalLinkPeer::attach(QTcpSocket* socket) {
     socket_=socket;buffer_.clear();socket->setReadBufferSize(65536);
     connect(socket,&QTcpSocket::readyRead,this,&LocalLinkPeer::receive);
-    connect(socket,&QTcpSocket::connected,this,&LocalLinkPeer::connectedToPeer);
+    connect(socket,&QTcpSocket::connected,this,[this]{connectTimer_.stop();emit connectedToPeer();});
     connect(socket,&QTcpSocket::disconnected,this,[this]{disconnectPeer();});
-    connect(socket,&QTcpSocket::errorOccurred,this,[this](QAbstractSocket::SocketError){disconnectPeer();});
+    connect(socket,&QTcpSocket::errorOccurred,this,[this](QAbstractSocket::SocketError){
+        if(connectTimer_.isActive())emit error("Could not reach your friend. Try inviting them again.");
+        disconnectPeer();
+    });
     if(socket->state()==QAbstractSocket::ConnectedState)emit connectedToPeer();
 }
 void LocalLinkPeer::send(const QJsonObject& object) {

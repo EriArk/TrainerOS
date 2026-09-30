@@ -77,6 +77,7 @@ public:
     bool pending() const{return !journal_.isEmpty() && journal_["stage"]!="complete" && journal_["stage"]!="cancelled";}
 signals:
     void changed();void closeRequested();void saveChanged();void workspaceRequested();
+    void connectionFailed(const QString&);
 private:
     void receive(const QJsonObject&);void send(const QString&,QJsonObject={});
     void fail(const QString&);void pairReady();void startMode(const QString&);
@@ -92,12 +93,14 @@ private:
     void finishPlayback();void tryBattleTurn();
     void submitMove(int);void concede(int);QVariantList savedMembers() const;
     void updatePresence();void directEvent(const QJsonObject&);void inviteActivity(const QString&);
+    void endConnectionAttempt(const QString&);
     QString battleResult() const;
     LocalLinkPeer peer_;PracticeSession battle_;QTimer heartbeat_;
-    NearbyService nearby_;QTimer invitationTimer_;
+    NearbyService nearby_;QTimer invitationTimer_,connectionTimer_;
     QString inviteId_,inviteMode_,inviteOwner_,directPeer_,directName_,directInterface_;
     bool visibleNearby_=true,invitationsAllowed_=true,directIncoming_=false,directAccepted_=false;
     bool directSearching_=false;
+    bool directConnecting_=false;
     BattlePlayback playback_;QTimer playbackTimer_;bool turnSubmitted_=false;
     Backend backend_;PracticeController::Verifier verify_;std::function<QVariantMap(QVariantMap)> artwork_;
     PracticeSource source_;GameProgress progress_;QVariantList actors_;

@@ -31,7 +31,7 @@ signals:
 private:
     void attach(QTcpSocket*);void announce();void readDiscovery();void receive();
     bool localAddress(const QHostAddress&) const;
-    QTcpServer server_;QUdpSocket discovery_;QTimer timer_;
+    QTcpServer server_;QUdpSocket discovery_;QTimer timer_,connectTimer_;
     QTcpSocket* socket_=nullptr;QByteArray buffer_;QString id_,name_;
     QMap<QString,QVariantMap> peers_;
     bool outgoing_=false;

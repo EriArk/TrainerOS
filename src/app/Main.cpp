@@ -429,6 +429,7 @@ int main(int argc, char* argv[]) {
                     if(!file.open(QIODevice::WriteOnly) || file.write(deviceId.toUtf8())<0 || !file.commit())deviceId.clear();
                 }
                 auto* link=shell.party()->activities()->link();
+                QObject::connect(link,&LinkController::connectionFailed,&shell,&ShellController::showNotice);
                 const QString linkName=shell.trainer()->profile().value("name").toString();
                 link->configure(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/practice/emerald-v1",
                     deviceId,linkName,[&,service=saveBackups.get()](const QString& op,const QJsonObject& args,QObject* receiver,std::function<void(QJsonObject)> done){

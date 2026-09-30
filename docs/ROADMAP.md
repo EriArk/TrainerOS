@@ -32,6 +32,19 @@ Final repeat checks exposed pairing timeouts and loss of Odin SSH availability
 calling direct transport stable or returning to the RA lane; see Nearby play's
 evidence and limits. No save mutation was attempted during those checks.
 
+**2026-09-30 nearby deadline/recovery slice:** response, network creation and
+application pairing now have separate bounded windows. Late acceptance and
+failed activation no longer leave the attempt cancelled or occupied; compact
+failure notices permit retry. Focused tests cover retention of an accepted
+connection on activity decline/expiry and page changes, with protected trade
+recovery intact. Both devices run the new production build. Direct device checks
+still exposed NetworkManager `supplicant-timeout` before invitation delivery;
+failure cleanup/navigation were observed, repeated physical P2P pairing remains
+open. Odin's dedicated session launched with its original boot preference restored,
+but its earlier GPU-hang cause remains unproven. See Nearby play's delivery evidence;
+do not mark these radio/GPU gates complete from automated checks.
+The subsequent RA/account-to-play and image/update/system queue is unchanged.
+
 **2026-09-28 owner Link override:** one substantial Emerald ↔ Emerald nearby
 increment now precedes the remaining RA lane: opt-in local Wi-Fi discovery,
 mutual pairing, a copied-party friendly duel and protected confirmed exchange.

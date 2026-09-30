@@ -2,10 +2,61 @@
 #include <QtTest>
 #include <QTcpSocket>
 #include <QJsonDocument>
+#include "platform/network/NearbyService.h"
 using namespace trainer;
 class LinkPeerTests:public QObject {
     Q_OBJECT
 private slots:
+    void directAttemptHasIndependentDeadlinesAndCanRetry() {
+        LinkController link;
+        link.configure({},"11111111-1111-4111-8111-111111111111","Misty",
+            [](const QString&,const QJsonObject&,QObject*,std::function<void(QJsonObject)> done){done({});},{},{});
+        auto* radio=link.findChild<NearbyService*>();QVERIFY(radio);
+        auto* response=link.findChild<QTimer*>("link-invitation-deadline");QVERIFY(response);
+        auto* network=link.findChild<QTimer*>("link-connection-deadline");QVERIFY(network);
+        QSignalSpy failed(&link,&LinkController::connectionFailed);
+        const QJsonObject invite{{"event","invite"},{"peer","22222222-2222-4222-8222-222222222222"},{"name","Friend"}};
+        emit radio->event(invite);QVERIFY(link.invitationOpen());QVERIFY(link.invitationIncoming());
+        QCOMPARE(network->interval(),60000);QVERIFY(!response->isActive());
+        link.answerInvitation(true);QCOMPARE(network->interval(),75000);
+        QVERIFY(network->isActive());QVERIFY(!response->isActive());QVERIFY(link.invitationText().startsWith("Connecting"));
+        emit radio->event(invite);QCOMPARE(network->interval(),75000);QVERIFY(!link.invitationIncoming());
+        QVERIFY(QMetaObject::invokeMethod(network,"timeout",Qt::DirectConnection));
+        QCOMPARE(failed.size(),1);QVERIFY(!link.invitationOpen());QVERIFY(!link.active());QCOMPARE(link.stage(),"browse");
+        emit radio->event(invite);QVERIFY(link.invitationIncoming());link.answerInvitation(true);
+        emit radio->event({{"event","closed"},{"error","Your friend did not respond. Invite them again."}});
+        QCOMPARE(failed.size(),2);QVERIFY(!network->isActive());QVERIFY(!link.invitationOpen());
+        emit radio->event(invite);QVERIFY(link.invitationIncoming());link.answerInvitation(false);
+        QCOMPARE(failed.size(),2);QVERIFY(!link.invitationOpen());
+    }
+    void directPairSurvivesPageChangesAndActivityTimeout() {
+        LinkController link;
+        const QString other="22222222-2222-4222-8222-222222222222";
+        link.configure({},"11111111-1111-4111-8111-111111111111","Misty",
+            [](const QString&,const QJsonObject&,QObject*,std::function<void(QJsonObject)> done){done({});},{},{});
+        auto* radio=link.findChild<NearbyService*>();QVERIFY(radio);
+        auto* network=link.findChild<QTimer*>("link-connection-deadline");QVERIFY(network);
+        auto* response=link.findChild<QTimer*>("link-invitation-deadline");QVERIFY(response);
+        QSignalSpy failed(&link,&LinkController::connectionFailed);
+        emit radio->event({{"event","invite"},{"peer",other},{"name","Friend"}});link.answerInvitation(true);
+        emit radio->event({{"event","ready"},{"peer",other},{"interface","p2p-test"}});QCOMPARE(network->interval(),15000);
+        QTcpSocket remote;remote.connectToHost(QHostAddress::LocalHost,47845);
+        QTRY_COMPARE(remote.state(),QAbstractSocket::ConnectedState);QTRY_VERIFY(remote.bytesAvailable()>0);
+        const auto hello=QJsonDocument::fromJson(remote.readLine()).object();
+        QVERIFY(!hello.contains("save"));QVERIFY(!hello.contains("pokemon"));
+        auto send=[&](QJsonObject value){value["version"]=2;remote.write(QJsonDocument(value).toJson(QJsonDocument::Compact)+'\n');remote.flush();};
+        send({{"type","hello"},{"id",other},{"nonce","33333333-3333-4333-8333-333333333333"},{"name","Friend"}});
+        QTRY_COMPARE(link.code().size(),6);send({{"type","accept"},{"code",link.code()}});
+        QTRY_VERIFY(link.connected());QVERIFY(!network->isActive());QVERIFY(!response->isActive());
+        link.enter();link.leave();QVERIFY(link.connected());QVERIFY(!link.isOpen());
+        const QString invitation="55555555-5555-4555-8555-555555555555";
+        send({{"type","activity-invite"},{"id",invitation},{"mode","trade"}});QTRY_VERIFY(link.invitationIncoming());
+        QVERIFY(QMetaObject::invokeMethod(response,"timeout",Qt::DirectConnection));
+        QVERIFY(link.connected());QVERIFY(!link.invitationOpen());QCOMPARE(failed.size(),0);
+        send({{"type","activity-invite"},{"id",invitation},{"mode","trade"}});QTRY_VERIFY(link.invitationIncoming());
+        link.answerInvitation(false);QVERIFY(link.connected());QVERIFY(!link.invitationOpen());
+        emit radio->event({{"event","unavailable"},{"error","Search unavailable"}});QVERIFY(link.connected());
+    }
     void recoveredTradeKeepsResultUntilExplicitReturn() {
         const QString local="11111111-1111-4111-8111-111111111111";
         const QString other="22222222-2222-4222-8222-222222222222";

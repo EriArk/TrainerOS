@@ -12,6 +12,8 @@ NM = 'org.freedesktop.NetworkManager'
 WPA = 'fi.w1.wpa_supplicant1'
 PROPS = 'org.freedesktop.DBus.Properties'
 P2P = WPA + '.Interface.P2PDevice'
+RESPONSE_SECONDS = 50
+NETWORK_SECONDS = 65
 
 
 def identity(data):
@@ -55,6 +57,7 @@ class Nearby:
         self.declined = {}
         self.incoming = False; self.ready = False; self.last_scan = 0; self.matches = []
         self.buffer = b''
+        self.network_started = False; self.retry_after = 0
         self.manager = self.iface(NM, '/org/freedesktop/NetworkManager', NM)
         GLib.io_add_watch(sys.stdin, GLib.IO_IN | GLib.IO_HUP, self.input)
         GLib.timeout_add_seconds(3, self.tick)
@@ -78,11 +81,15 @@ class Nearby:
         self.old = self.props(WPA, self.path, P2P)['P2PDeviceConfig']
         self.matches = [self.bus.add_signal_receiver(self.found, signal_name='DeviceFound', dbus_interface=P2P, path=self.path),
                         self.bus.add_signal_receiver(self.requested, signal_name='GONegotiationRequest', dbus_interface=P2P, path=self.path),
+                        self.bus.add_signal_receiver(self.negotiated, signal_name='GONegotiationSuccess', dbus_interface=P2P, path=self.path),
+                        self.bus.add_signal_receiver(self.negotiation_failed, signal_name='GONegotiationFailure', dbus_interface=P2P, path=self.path),
                         self.bus.add_signal_receiver(self.lost, signal_name='DeviceLost', dbus_interface=P2P, path=self.path)]
         self.advertise()
 
     def lost(self, path):
-        self.peers = {k:r for k,r in self.peers.items() if r['path'] != str(path)}
+        # Discovery may lose a peer while its P2P group is being created.
+        # Keep the accepted attempt's identity for the negotiation signals.
+        self.peers = {k:r for k,r in self.peers.items() if k == self.target or r['path'] != str(path)}
 
     def advertise(self):
         d = self.d
@@ -96,7 +103,7 @@ class Nearby:
         self.iface(WPA, self.path, PROPS).Set(P2P, 'P2PDeviceConfig', d.Dictionary(config, signature='sv'), timeout=4)
         if not self.visible:
             self.api.StopFind(timeout=4)
-            self.api.ExtendedListen(d.Dictionary({'period': d.Int32(0), 'interval': d.Int32(0)}, signature='sv'), timeout=4)
+            self.api.ExtendedListen(d.Dictionary({}, signature='sv'), timeout=4)
             self.peers.clear(); emit('peers', peers=[])
         self.last_scan = 0
         emit('searching', active=self.visible)
@@ -117,13 +124,29 @@ class Nearby:
         row = next((r for r in self.peers.values() if r['path'] == str(path)), None)
         if not self.visible or not row or self.active or self.target or self.declined.get(row['id'],0)>time.monotonic():
             return
-        self.target = row['id']; self.incoming = True; self.deadline = time.monotonic()+35
+        self.target = row['id']; self.incoming = True; self.network_started = False
+        self.deadline = time.monotonic()+RESPONSE_SECONDS
         emit('invite', peer=self.target, name=row['name'])
+
+    def negotiated(self, properties):
+        row = self.peers.get(self.target)
+        if not self.active or not row or str(properties.get('peer_object', '')) != row['path']:
+            return
+        if not self.network_started:
+            self.network_started = True; self.deadline = time.monotonic()+NETWORK_SECONDS
+            emit('connecting', peer=self.target, phase='network')
+
+    def negotiation_failed(self, properties):
+        row = self.peers.get(self.target)
+        if not row or str(properties.get('peer_object', '')) != row['path']:
+            return
+        self.release(); emit('closed', error='Could not connect. Try inviting your friend again.')
 
     def connect(self, key):
         if self.active or key not in self.peers:
             raise ValueError('This Trainer is no longer nearby.')
-        self.target = key; self.deadline = time.monotonic()+50; self.ready = False
+        self.target = key; self.ready = False; self.network_started = self.incoming
+        self.deadline = time.monotonic()+(NETWORK_SECONDS if self.incoming else RESPONSE_SECONDS)
         d = self.d
         settings = d.Dictionary({'connection': {'id': 'TrainerOS nearby', 'uuid': str(uuid.uuid4()),
                                   'type': 'wifi-p2p', 'autoconnect': False},
@@ -131,24 +154,25 @@ class Nearby:
                     'ipv4': {'method': 'auto', 'never-default': True}, 'ipv6': {'method': 'disabled'}}, signature='sa{sv}')
         self.profile, self.active, _ = self.manager.AddAndActivateConnection2(settings, self.device,
             d.ObjectPath('/'), d.Dictionary({'persist': 'volatile', 'bind-activation': 'dbus-client'}, signature='sv'), timeout=6)
-        emit('connecting', peer=key)
+        emit('connecting', peer=key, phase='network' if self.incoming else 'response')
 
     def release(self):
         if self.active:
             try:self.manager.DeactivateConnection(self.active, timeout=4)
             except self.d.DBusException:pass
         elif self.target and self.incoming and self.path:
-            self.declined[self.target] = time.monotonic()+35
+            self.declined[self.target] = time.monotonic()+3
             try:self.api.Cancel(timeout=4)
             except self.d.DBusException:pass
         self.active = self.profile = None
         self.target = ''; self.ready = self.incoming = False; self.deadline = 0
+        self.network_started = False
         self.last_scan = 0
 
     def tick(self):
         try:
             now = time.monotonic()
-            if self.visible and not self.path:
+            if self.visible and not self.path and now >= self.retry_after:
                 self.initialize()
             if self.active:
                 state = self.props(NM, self.active, NM+'.Connection.Active')
@@ -159,15 +183,17 @@ class Nearby:
                     emit('ready', peer=self.target, interface=interface, incoming=self.incoming)
                     emit('searching', active=False)
                 elif int(state['State']) >= 3:
-                    self.release(); emit('closed')
+                    self.release(); emit('closed', error='The nearby connection ended. Invite your friend again.')
             if self.deadline and now > self.deadline:
-                self.release(); emit('closed', error='The invitation timed out.')
+                message = 'Could not finish connecting. Try again.' if self.network_started else 'Your friend did not answer. Try inviting them again.'
+                self.release(); emit('closed', error=message)
             if self.visible and self.path and not self.active and not self.target and now-self.last_scan >= 18:
                 self.api.Find(self.d.Dictionary({'Timeout': self.d.Int32(5)}, signature='sv'), timeout=4)
                 self.api.ExtendedListen(self.d.Dictionary({'period': self.d.Int32(300), 'interval': self.d.Int32(2500)}, signature='sv'), timeout=4)
                 self.last_scan = now
                 emit('searching', active=True)
-            self.peers = {k:r for k,r in self.peers.items() if now-r['seen'] < 45}
+            self.peers = {k:r for k,r in self.peers.items() if k == self.target or now-r['seen'] < 45}
+            self.declined = {k:deadline for k,deadline in self.declined.items() if deadline > now}
             emit('peers', peers=[{k:r[k] for k in ('id','name')} for r in self.peers.values()])
         except Exception:
             if self.active or self.target:
@@ -176,6 +202,7 @@ class Nearby:
             self.close()
             for match in self.matches:match.remove()
             self.matches = []; self.path = self.device = None
+            self.retry_after = time.monotonic()+15
             self.peers.clear(); emit('peers', peers=[]); emit('unavailable')
         return True
 
@@ -191,20 +218,30 @@ class Nearby:
         return True
 
     def command(self, line):
+        starting = False; op = None
         try:
             v = json.loads(line); op = v.get('op')
             if op == 'configure':
                 key, name = identity(v)
+                changed = (self.key, self.name, self.visible) != (key, name, v.get('visible') is True)
                 self.key, self.name, self.visible = key, name, v.get('visible') is True
-                if self.path:self.advertise()
+                if self.path and changed:self.advertise()
                 self.tick()
             elif op == 'invite' and self.visible and not self.target:
-                self.incoming = False; self.connect(str(uuid.UUID(v['peer'])))
+                peer = str(uuid.UUID(v['peer']))
+                if peer not in self.peers:raise ValueError('This Trainer is no longer nearby.')
+                self.incoming = False; starting = True; self.connect(peer)
             elif op == 'accept' and self.incoming and v.get('peer') == self.target:
+                if self.active:return
+                starting = True
                 self.connect(self.target)
             elif op == 'disconnect':self.release()
             else:raise ValueError('Nearby request is unavailable.')
         except Exception as e:
+            if starting:self.release()
+            if op == 'configure' and self.active:
+                # Discovery settings are not the established connection.
+                emit('searching', active=False); return
             emit('error', error=str(e) if isinstance(e, ValueError) else 'Nearby connection could not start.')
 
     def stop(self, *_):

@@ -21,28 +21,34 @@ LinkController::~LinkController(){
     disconnect(&peer_,nullptr,this,nullptr);disconnect(&nearby_,nullptr,this,nullptr);
     disconnect(&battle_,nullptr,this,nullptr);peer_.close();battle_.cancel();
 }
-LinkController::LinkController(QObject* parent):QObject(parent),peer_(this),battle_(this) {
+LinkController::LinkController(QObject* parent):QObject(parent),peer_(this),battle_(this),nearby_(this) {
     connect(&peer_,&LocalLinkPeer::changed,this,[this]{
         if(!directPeer_.isEmpty() && !directIncoming_ && !directInterface_.isEmpty())peer_.connectId(directPeer_,directInterface_);
         emit changed();
     });
     connect(&nearby_,&NearbyService::event,this,&LinkController::directEvent);
     invitationTimer_.setSingleShot(true);invitationTimer_.setInterval(45000);
+    invitationTimer_.setParent(this);invitationTimer_.setObjectName("link-invitation-deadline");
     connect(&invitationTimer_,&QTimer::timeout,this,[this]{answerInvitation(false);});
-    connect(&peer_,&LocalLinkPeer::error,this,&LinkController::fail);
+    connectionTimer_.setParent(this);connectionTimer_.setObjectName("link-connection-deadline");connectionTimer_.setSingleShot(true);
+    connect(&connectionTimer_,&QTimer::timeout,this,[this]{endConnectionAttempt("Could not finish connecting. Invite your friend again.");});
+    connect(&peer_,&LocalLinkPeer::error,this,[this](const QString& reason){
+        if(!directPeer_.isEmpty() && !paired_)endConnectionAttempt(reason);else fail(reason);
+    });
     connect(&peer_,&LocalLinkPeer::received,this,&LinkController::receive);
     connect(&peer_,&LocalLinkPeer::connectedToPeer,this,[this]{
         nonce_=uuid();peerId_.clear();peerName_.clear();pin_.clear();peerNonce_.clear();
         accepted_=peer_.outgoing();peerAccepted_=paired_=false;stage_="pair";lastMessage_=QDateTime::currentMSecsSinceEpoch();
-        message_="Waiting for your friend";invitationTimer_.start();
+        message_="Waiting for your friend";
+        if(directPeer_.isEmpty())invitationTimer_.start();else connectionTimer_.start(15000);
         send("hello",{{"id",peer_.id()},{"name",peer_.name()},{"trainer",trainerName_},{"nonce",nonce_},{"pending",pending()?journal_["id"]:QJsonValue()}});emit changed();
     });
     connect(&peer_,&LocalLinkPeer::disconnectedFromPeer,this,[this]{
         battle_.cancel();paired_=accepted_=peerAccepted_=false;peerId_.clear();pin_.clear();
         stage_="browse";message_=pending()?"Trade paused. Reconnect these same consoles to finish.":"Choose a nearby Trainer";
-        invitationTimer_.stop();inviteId_.clear();inviteMode_.clear();inviteOwner_.clear();
+        invitationTimer_.stop();connectionTimer_.stop();inviteId_.clear();inviteMode_.clear();inviteOwner_.clear();
         if(!directPeer_.isEmpty()){nearby_.request({{"op","disconnect"}});directPeer_.clear();directInterface_.clear();directAccepted_=false;}
-        resetChoice();emit changed();
+        directConnecting_=false;resetChoice();emit changed();
     });
     connect(&battle_,&PracticeSession::changed,this,&LinkController::battleChanged);
     connect(&battle_,&PracticeSession::stopped,this,[this](const QString& reason){if(open_ && mode_=="battle" && stage_!="finished" && peer_.connected() && !reason.isEmpty())fail(reason);});
@@ -96,6 +102,7 @@ bool LinkController::invitationIncoming() const {
 }
 QString LinkController::invitationText() const {
     const auto name=!directPeer_.isEmpty() && peerName_.isEmpty()?directName_:peerName_;
+    if(!directPeer_.isEmpty() && directConnecting_)return "Connecting to "+name+"…";
     if(!invitationIncoming())return "Waiting for "+name+"...";
     if(inviteMode_.isEmpty())return name+" invites you to connect";
     const QString activity=inviteMode_=="battle"?"a battle":inviteMode_=="trade"?"an exchange":inviteMode_=="sale"?"a sale":"a gift";
@@ -103,9 +110,15 @@ QString LinkController::invitationText() const {
 }
 void LinkController::disconnectSession() {
     if(busy_)return;
-    invitationTimer_.stop();inviteId_.clear();inviteMode_.clear();inviteOwner_.clear();
+    invitationTimer_.stop();connectionTimer_.stop();inviteId_.clear();inviteMode_.clear();inviteOwner_.clear();
     peer_.disconnectPeer();nearby_.request({{"op","disconnect"}});directPeer_.clear();directInterface_.clear();directAccepted_=false;
-    resetChoice();stage_="browse";peerName_.clear();paired_=false;emit changed();
+    directConnecting_=false;resetChoice();stage_="browse";peerName_.clear();paired_=false;emit changed();
+}
+void LinkController::endConnectionAttempt(const QString& reason) {
+    const bool waiting = invitationOpen() && !paired_;
+    peer_.disconnectPeer();
+    disconnectSession();
+    if(waiting && !pending()){message_=reason;emit changed();emit connectionFailed(reason);}
 }
 void LinkController::answerInvitation(bool accept) {
     if(!invitationOpen())return;
@@ -119,7 +132,10 @@ void LinkController::answerInvitation(bool accept) {
         return;
     }
     if(!directPeer_.isEmpty() && !peer_.connected()) {
-        if(accept && directIncoming_){directAccepted_=true;nearby_.request({{"op","accept"},{"peer",directPeer_}});emit changed();}
+        if(accept && directIncoming_ && !directAccepted_){
+            directAccepted_=directConnecting_=true;invitationTimer_.stop();connectionTimer_.start(75000);
+            nearby_.request({{"op","accept"},{"peer",directPeer_}});emit changed();
+        }
         else if(!accept)disconnectSession();return;
     }
     if(!accept){disconnectSession();return;}
@@ -130,18 +146,23 @@ void LinkController::directEvent(const QJsonObject& event) {
     if(kind=="searching")directSearching_=event["active"].toBool();
     if(kind=="unavailable" || kind=="closed" || kind=="error")directSearching_=false;
     if(kind=="invite") {
+        if(!directPeer_.isEmpty() || paired_)return;
         if(!invitationsAllowed_ || !visibleNearby_ || busy_ || !mode_.isEmpty() || invitationOpen() || paired_
             || (pending() && journal_["peer"].toString()!=event["peer"].toString())) {
             nearby_.request({{"op","disconnect"}});return;
         }
-        directPeer_=event["peer"].toString();directName_=event["name"].toString();directIncoming_=true;directAccepted_=false;
-        invitationTimer_.start();
+        if(QUuid(event["peer"].toString()).isNull())return;
+        directPeer_=event["peer"].toString();directName_=event["name"].toString().left(32);directIncoming_=true;directAccepted_=directConnecting_=false;
+        invitationTimer_.stop();connectionTimer_.start(60000);
+    } else if(kind=="connecting" && event["peer"].toString()==directPeer_ && event["phase"]=="network" && !directConnecting_) {
+        directConnecting_=true;connectionTimer_.start(75000);
     } else if(kind=="ready" && event["peer"].toString()==directPeer_) {
+        if(!directInterface_.isEmpty() || paired_)return;
         directInterface_=event["interface"].toString();
+        connectionTimer_.start(15000);
         if(!directIncoming_)peer_.connectId(directPeer_,directInterface_);
-    } else if((kind=="closed" || kind=="error") && !directPeer_.isEmpty()) {
-        directPeer_.clear();directInterface_.clear();directAccepted_=false;peer_.disconnectPeer();
-        if(!event["error"].toString().isEmpty())message_=event["error"].toString();
+    } else if((kind=="closed" || kind=="error" || (kind=="unavailable" && !paired_)) && !directPeer_.isEmpty()) {
+        endConnectionAttempt(event["error"].toString().isEmpty()?"Nearby connection is unavailable. Try again.":event["error"].toString());
     }
     emit changed();
 }
@@ -318,7 +339,7 @@ QString LinkController::turnSummary() const {
     return stage_=="moves"?QString("Choose your action for turn %1").arg(battleTurn()):message_;
 }
 void LinkController::pairReady() {
-    if(!accepted_ || !peerAccepted_ || paired_)return;paired_=true;pin_.clear();invitationTimer_.stop();
+    if(!accepted_ || !peerAccepted_ || paired_)return;paired_=true;pin_.clear();invitationTimer_.stop();connectionTimer_.stop();
     if(pending() || !peerPending_.isEmpty()){recover(pending()?journal_["id"].toString():peerPending_);emit workspaceRequested();return;}
     stage_="lobby";message_="What shall we do together?";focus_=0;emit changed();
 }
@@ -622,7 +643,8 @@ void LinkController::activate(int index) {
         const auto options=rows();if(index<0 || index>=options.size())return;const auto row=options[index].toMap();
         if(row["direct"].toBool()) {
             directPeer_=row["id"].toString();directName_=row["name"].toString();directIncoming_=false;directAccepted_=true;
-            invitationTimer_.start();nearby_.request({{"op","invite"},{"peer",directPeer_}});emit changed();
+            directConnecting_=false;invitationTimer_.stop();connectionTimer_.start(60000);
+            nearby_.request({{"op","invite"},{"peer",directPeer_}});emit changed();
         }else peer_.connectId(row["id"].toString());return;
     }
     if(stage_=="lobby"){
