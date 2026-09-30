@@ -7,6 +7,22 @@ using namespace trainer;
 class LinkPeerTests:public QObject {
     Q_OBJECT
 private slots:
+    void bluetoothBridgeCarriesExistingFramesOverLoopback() {
+        LocalLinkPeer link;link.configure("11111111-1111-4111-8111-111111111111","Misty");
+        QTcpServer bridge;QVERIFY(bridge.listen(QHostAddress::LocalHost,0));
+        QSignalSpy received(&link,&LocalLinkPeer::received);
+        QSignalSpy disconnected(&link,&LocalLinkPeer::disconnectedFromPeer);
+        link.connectBridge(bridge.serverPort());
+        QTRY_VERIFY(bridge.hasPendingConnections());auto* remote=bridge.nextPendingConnection();
+        QTRY_VERIFY(link.connected());QVERIFY(link.outgoing());
+        link.send({{"type","hello"},{"version",2}});QTRY_VERIFY(remote->bytesAvailable()>0);
+        QCOMPARE(QJsonDocument::fromJson(remote->readLine()).object()["type"],"hello");
+        remote->write("{\"type\":\"ping\",");remote->flush();QTest::qWait(10);QCOMPARE(received.size(),0);
+        remote->write("\"version\":2}\n");remote->flush();QTRY_COMPARE(received.size(),1);
+        QCOMPARE(received[0][0].value<QJsonObject>()["type"],"ping");
+        remote->disconnectFromHost();QTRY_COMPARE(disconnected.size(),1);
+        QVERIFY(!link.connected());remote->deleteLater();
+    }
     void directAttemptHasIndependentDeadlinesAndCanRetry() {
         LinkController link;
         link.configure({},"11111111-1111-4111-8111-111111111111","Misty",
@@ -39,7 +55,7 @@ private slots:
         auto* response=link.findChild<QTimer*>("link-invitation-deadline");QVERIFY(response);
         QSignalSpy failed(&link,&LinkController::connectionFailed);
         emit radio->event({{"event","invite"},{"peer",other},{"name","Friend"}});link.answerInvitation(true);
-        emit radio->event({{"event","ready"},{"peer",other},{"interface","p2p-test"}});QCOMPARE(network->interval(),15000);
+        emit radio->event({{"event","ready"},{"peer",other},{"transport","bluetooth"},{"incoming",true}});QCOMPARE(network->interval(),15000);
         QTcpSocket remote;remote.connectToHost(QHostAddress::LocalHost,47845);
         QTRY_COMPARE(remote.state(),QAbstractSocket::ConnectedState);QTRY_VERIFY(remote.bytesAvailable()>0);
         const auto hello=QJsonDocument::fromJson(remote.readLine()).object();
@@ -51,6 +67,7 @@ private slots:
         link.enter();link.leave();QVERIFY(link.connected());QVERIFY(!link.isOpen());
         const QString invitation="55555555-5555-4555-8555-555555555555";
         send({{"type","activity-invite"},{"id",invitation},{"mode","trade"}});QTRY_VERIFY(link.invitationIncoming());
+        QVERIFY(link.invitationText().contains("an exchange"));
         QVERIFY(QMetaObject::invokeMethod(response,"timeout",Qt::DirectConnection));
         QVERIFY(link.connected());QVERIFY(!link.invitationOpen());QCOMPARE(failed.size(),0);
         send({{"type","activity-invite"},{"id",invitation},{"mode","trade"}});QTRY_VERIFY(link.invitationIncoming());

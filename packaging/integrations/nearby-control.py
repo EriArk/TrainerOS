@@ -1,5 +1,5 @@
 #!/usr/bin/python3 -I
-"""Process-owned Wi-Fi Direct discovery/link. No saved Wi-Fi profiles are changed."""
+"""Process-owned nearby transport. Bluetooth by default; Direct is opt-in."""
 import json
 import os
 import signal
@@ -322,6 +322,22 @@ if __name__ == '__main__':
     except BlockingIOError:sys.exit(3)
     # The shell owns this helper through stdin; its D-Bus lifetime owns the
     # volatile connection as a second cleanup path after a crash/kill.
-    app = Nearby()
+    # The root-owned entry point and sudo policy stay fixed. Never import code
+    # from the caller's environment or turn Bluetooth failure into P2P scanning.
+    transport = 'bluetooth'
+    try:
+        policy = DIRECT_POLICY.read_bytes()
+        if len(policy) <= 1024 and json.loads(policy).get('transport') == 'wifi-direct':
+            transport = 'wifi-direct'
+    except (OSError, ValueError, AttributeError):
+        pass
+    if transport == 'wifi-direct':
+        app = Nearby()
+    else:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('traineros_bluetooth', Path(__file__).with_name('nearby-bluetooth.py'))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        app = module.NearbyBluetooth()
     try:app.loop.run()
     finally:app.close()

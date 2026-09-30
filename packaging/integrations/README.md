@@ -83,10 +83,16 @@ BlueZ helper and sudo policy. Run from a trusted root-owned installation source;
 it preserves previous helper/policy copies and does not toggle radios itself.
 See [network delivery and limits](../../docs/DEVICE_NETWORK_PLAN.md).
 
-The same installer includes `nearby-control.py`, a no-argument process-owned
-Wi-Fi Direct helper. It uses volatile client-bound NetworkManager profiles and
-restores discovery identity on exit. Install python3-dbus and PyGObject with
-NetworkManager/wpa_supplicant on the supported image. See
+The same installer includes the no-argument process-owned `nearby-control.py`
+entry and its root-owned `nearby-bluetooth.py` module (0644). Bluetooth/BlueZ
+RFCOMM is the default route; install python3-dbus, PyGObject, BlueZ and kernel
+RFCOMM support on the supported image. The existing fixed sudo entry is unchanged;
+the shell cannot choose arbitrary Python modules or commands. Discovery and
+the profile belong to the helper's D-Bus lifetime; existing bonds/radio power and
+other profiles stay intact. Explicit root policy `{"transport":"wifi-direct"}`
+selects the retained NetworkManager/wpa_supplicant Direct implementation instead.
+Its separate `enabled` policy still applies; there is no automatic P2P fallback.
+The installer does not create/change a device's local policy. See
 [Nearby play behavior and proof](../../docs/NEARBY_PLAY.md).
 
 ### Session installation and DS/Dolphin Home (2026-09-28)

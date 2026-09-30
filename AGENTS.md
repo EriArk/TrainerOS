@@ -1,5 +1,14 @@
 # AGENTS.md — TrainerOS
 
+**Owner transport override, 2026-09-30:** prefer Bluetooth for direct nearby
+play after the reported Odin freezes; defer further Wi-Fi Direct work if
+Bluetooth satisfies the same invitation/session UX. Bluetooth is now the default
+root helper route; ordinary LAN remains available. Never automatically fall back
+to P2P scanning on Bluetooth failure. Preserve save protection, invitation consent,
+page/activity retention and every remaining roadmap item. Actual route evidence,
+casual-session trust limits and the unresolved freeze/recovery gates are in
+[Nearby play](docs/NEARBY_PLAY.md#bluetooth-transport--2026-09-30).
+
 **Owner nearby/name refinement, 2026-09-28:** consoles advertise the active
 Trainer name, discover each other outside the Link page, and support a direct
 Wi-Fi route without a router. Use one compact Accept/Decline invitation instead

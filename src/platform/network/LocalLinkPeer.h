@@ -19,6 +19,8 @@ public:
     QVariantList peers() const;
     void connectPeer(int index);
     void connectId(const QString& id,const QString& interface={});
+    void connectBridge(quint16 port);
+    void setBluetoothDiscoveryId(const QString& id){bluetoothId_=id;if(timer_.isActive())announce();}
     bool outgoing() const{return outgoing_;}
     void setVisible(bool visible){advertising_=visible;}
     void send(const QJsonObject&);
@@ -32,7 +34,7 @@ private:
     void attach(QTcpSocket*);void announce();void readDiscovery();void receive();
     bool localAddress(const QHostAddress&) const;
     QTcpServer server_;QUdpSocket discovery_;QTimer timer_,connectTimer_;
-    QTcpSocket* socket_=nullptr;QByteArray buffer_;QString id_,name_;
+    QTcpSocket* socket_=nullptr;QByteArray buffer_;QString id_,name_,bluetoothId_;
     QMap<QString,QVariantMap> peers_;
     bool outgoing_=false;
     bool advertising_=true;

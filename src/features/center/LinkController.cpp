@@ -102,7 +102,7 @@ bool LinkController::invitationIncoming() const {
 }
 QString LinkController::invitationText() const {
     const auto name=!directPeer_.isEmpty() && peerName_.isEmpty()?directName_:peerName_;
-    if(!directPeer_.isEmpty() && directConnecting_)return "Connecting to "+name+"…";
+    if(!paired_ && !directPeer_.isEmpty() && directConnecting_)return "Connecting to "+name+"…";
     if(!invitationIncoming())return "Waiting for "+name+"...";
     if(inviteMode_.isEmpty())return name+" invites you to connect";
     const QString activity=inviteMode_=="battle"?"a battle":inviteMode_=="trade"?"an exchange":inviteMode_=="sale"?"a sale":"a gift";
@@ -143,6 +143,7 @@ void LinkController::answerInvitation(bool accept) {
 }
 void LinkController::directEvent(const QJsonObject& event) {
     const auto kind=event["event"].toString();
+    if(kind=="identity")peer_.setBluetoothDiscoveryId(event["discovery"].toString());
     if(kind=="searching")directSearching_=event["active"].toBool();
     if(kind=="unavailable" || kind=="closed" || kind=="error")directSearching_=false;
     if(kind=="invite") {
@@ -158,6 +159,19 @@ void LinkController::directEvent(const QJsonObject& event) {
         directConnecting_=true;connectionTimer_.start(75000);
     } else if(kind=="ready" && event["peer"].toString()==directPeer_) {
         if(!directInterface_.isEmpty() || paired_)return;
+        if(event["transport"]=="bluetooth") {
+            if(!directIncoming_) {
+                const auto identity=event["identity"].toString();const int port=event["port"].toInt();
+                if(QUuid(identity).isNull() || identity==peer_.id() || port<=0 || port>65535 || port==47845) {
+                    endConnectionAttempt("Bluetooth connection could not start.");return;
+                }
+                // Discovery addresses are not persistent Trainer/save identity.
+                // Bind the accepted transport to its handshake before Link hello.
+                directPeer_=identity;directName_=event["name"].toString().left(32);
+                connectionTimer_.start(15000);peer_.connectBridge(quint16(port));
+            }else connectionTimer_.start(15000);
+            emit changed();return;
+        }
         directInterface_=event["interface"].toString();
         connectionTimer_.start(15000);
         if(!directIncoming_)peer_.connectId(directPeer_,directInterface_);
@@ -276,8 +290,11 @@ QVariantList LinkController::team() const {
 QVariantList LinkController::rows() const {
     if(stage_=="browse") {
         auto rows=nearby_.peers();QSet<QString> ids;
-        for(auto& v:rows){auto row=v.toMap();ids.insert(row["id"].toString());row["direct"]=true;row["detail"]="Nearby";v=row;}
-        for(const auto& v:peer_.peers())if(!ids.contains(v.toMap()["id"].toString()))rows.append(v);
+        for(auto& v:rows){auto row=v.toMap();ids.insert(row["id"].toString());row["direct"]=true;row["detail"]=row["transport"]=="bluetooth"?"Bluetooth":"Nearby";v=row;}
+        for(const auto& v:peer_.peers()) {
+            const auto row=v.toMap();
+            if(!ids.contains(row["id"].toString()) && !ids.contains(row["bluetooth"].toString()))rows.append(v);
+        }
         std::sort(rows.begin(),rows.end(),[](const QVariant& a,const QVariant& b){return a.toMap()["name"].toString()<b.toMap()["name"].toString();});return rows;
     }
     if(stage_=="lobby")return {QVariantMap{{"name","Friendly battle"},{"detail","Your saved teams · Gen III"}},QVariantMap{{"name","Trade Pokemon"},{"detail","Party and Boxes"}},QVariantMap{{"name","Sell Pokemon"},{"detail","For in-game money"}},QVariantMap{{"name","Give a Pokemon"},{"detail","A gift for your friend"}}};
@@ -340,6 +357,7 @@ QString LinkController::turnSummary() const {
 }
 void LinkController::pairReady() {
     if(!accepted_ || !peerAccepted_ || paired_)return;paired_=true;pin_.clear();invitationTimer_.stop();connectionTimer_.stop();
+    directConnecting_=false;
     if(pending() || !peerPending_.isEmpty()){recover(pending()?journal_["id"].toString():peerPending_);emit workspaceRequested();return;}
     stage_="lobby";message_="What shall we do together?";focus_=0;emit changed();
 }

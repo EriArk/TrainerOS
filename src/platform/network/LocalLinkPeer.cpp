@@ -42,7 +42,7 @@ void LocalLinkPeer::announce() {
     for(auto it=peers_.begin();it!=peers_.end();)if(now-it.value()["seen"].toLongLong()>6000){it=peers_.erase(it);changed=true;}else ++it;
     if(changed)emit this->changed();
     if(!advertising_)return;
-    const auto packet=QJsonDocument(QJsonObject{{"trainerosLink",2},{"id",id_},{"name",name_}}).toJson(QJsonDocument::Compact);
+    const auto packet=QJsonDocument(QJsonObject{{"trainerosLink",2},{"id",id_},{"name",name_},{"bluetooth",bluetoothId_}}).toJson(QJsonDocument::Compact);
     for(const auto& iface:QNetworkInterface::allInterfaces())if(iface.flags().testFlag(QNetworkInterface::IsUp))for(const auto& address:iface.addressEntries())
         if(address.ip().protocol()==QAbstractSocket::IPv4Protocol && !address.broadcast().isNull())discovery_.writeDatagram(packet,address.broadcast(),DiscoveryPort);
 }
@@ -55,7 +55,9 @@ void LocalLinkPeer::readDiscovery() {
         if(peers_.size()>=16 && !peers_.contains(id))continue;
         auto addresses=peers_.value(id).value("addresses").toStringList();const auto address=packet.senderAddress().toString();
         if(!addresses.contains(address))addresses.append(address);while(addresses.size()>8)addresses.removeFirst();
-        peers_[id]={{"id",id},{"name",j["name"].toString()},{"address",address},{"addresses",addresses},{"seen",QDateTime::currentMSecsSinceEpoch()}};
+        const auto bluetooth=j["bluetooth"].toString();
+        peers_[id]={{"id",id},{"name",j["name"].toString()},{"address",address},{"addresses",addresses},
+                    {"bluetooth",QUuid(bluetooth).isNull()?QString{}:bluetooth},{"seen",QDateTime::currentMSecsSinceEpoch()}};
         emit changed();
     }
 }
@@ -84,6 +86,11 @@ void LocalLinkPeer::attach(QTcpSocket* socket) {
         disconnectPeer();
     });
     if(socket->state()==QAbstractSocket::ConnectedState)emit connectedToPeer();
+}
+void LocalLinkPeer::connectBridge(quint16 port) {
+    if(socket_ || !port || port==Port)return;
+    outgoing_=true;auto* socket=new QTcpSocket(this);attach(socket);
+    connectTimer_.start();socket->connectToHost(QHostAddress::LocalHost,port);
 }
 void LocalLinkPeer::send(const QJsonObject& object) {
     if(!connected())return;const auto bytes=QJsonDocument(object).toJson(QJsonDocument::Compact)+'\n';

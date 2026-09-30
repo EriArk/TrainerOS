@@ -1,9 +1,11 @@
 # Nearby play — 2026-09-30
 
 The consoles advertise the active Trainer's name outside the Link screen.
-Nearby play uses Wi-Fi Direct when both devices expose its native route, with
-ordinary local-network discovery as a fallback. No router is required for the
-direct route. This replaces the earlier same-router/page-open/code-comparison UX.
+Nearby play now prefers Bluetooth RFCOMM, with ordinary local-network discovery
+as an independent alternative. No router is required for the Bluetooth route.
+Wi-Fi Direct is retained only as an explicit root-selected experimental route;
+its earlier evidence below is historical. Bluetooth failure never starts P2P
+scanning. This follows the owner's request after the Odin freeze reports.
 
 An invitation shows the Trainer's name with Accept/Decline over the current
 page. Accept establishes a session; it does not select an activity or expose
@@ -16,9 +18,124 @@ Save confirmations/reservations and interrupted transaction recovery are intact.
 Settings / Nearby play controls visibility. Discovery pauses while an Adventure,
 profile entry, editing/modal or system/settings operation owns input. Existing
 idle connections remain alive, but those interruptions do not accept new
-activities. Visibility here describes TrainerOS, not system Bluetooth names.
+activities. Bluetooth advertises the active Trainer name while TrainerOS owns
+its visibility, restoring the previous adapter alias on cleanup if it still
+owns that value. This does not rename saved identities or the system hostname.
 
-## Platform boundary
+## Bluetooth transport — 2026-09-30
+
+The fixed root entry loads only its root-installed sibling module. BlueZ registers
+the vendor service `91b83720-0abc-4a62-90ad-1bf7c3305d04` with a dynamically assigned
+RFCOMM channel. Both client and server roles use the same existing Link v2
+framing, heartbeat, saved identities, bilateral activity consent and protected
+save transactions. No game adapter or settlement logic is replaced.
+
+BR/EDR discovery uses a per-client UUID filter, RSSI threshold and scoped
+discoverability. It validates service/name/address and bounds the list to 16;
+rows expire after 180 seconds without a relevant update, accommodating sparse
+inquiry updates. A stale row can fail its bounded ConnectProfile attempt and be
+retried. Local-network rows identify their Bluetooth discovery UUID so the same
+console is not listed twice; matching names alone never merge two Trainers.
+Discovery UUIDs are not persistent game/Trainer identities. The accepted control
+handshake supplies the real device identity before the existing native hello.
+
+The helper creates one bounded worker for an RFCOMM descriptor. Its small control
+handshake exchanges identity/name only, before the existing Accept/Decline popup.
+It opens the game bridge only after Accept. The incoming side connects to
+`127.0.0.1:47845`; the outgoing side exposes an ephemeral **loopback-only** port.
+The relay preserves opaque native frames and bounds queued bytes to 64 KiB per
+direction with backpressure. Connection/handshake/response/local-bridge deadlines,
+EOF cleanup and generation checks prevent cancelled workers from releasing a
+new session. Search resumes after disconnect; service/radio failure backs off
+15 seconds. Existing bonds, power, saved Wi-Fi profiles and other Bluetooth
+profiles are not removed or replaced.
+
+The Bluetooth service uses application consent without requiring OS pairing or
+a code comparison (`RequireAuthentication=false`, `RequireAuthorization=false`).
+This is a casual nearby route, **not an authenticated/encrypted competitive
+transport guarantee**. Existing bonds may protect an underlying connection, but
+the implementation does not establish that guarantee for an unbonded peer.
+Keep #93/#94 lineage/session trust gates open. The save transaction's exact-game,
+identity and confirmation checks remain, but do not claim radio identity trust.
+
+Default/missing policy selects Bluetooth. Only root policy
+`/etc/traineros/nearby.json` with `"transport":"wifi-direct"` selects the retained
+Direct implementation; its own `enabled` validation then applies. Odin's earlier
+`{"enabled":false}` policy remains preserved and does not disable Bluetooth.
+Do not re-enable Direct merely to recover an unavailable Bluetooth service.
+`journalctl -t traineros-bluetooth` records allowlisted lifecycle stages/error
+types, without Trainer names, payloads or exception messages.
+
+Primary references: [BlueZ ProfileManager](https://raw.githubusercontent.com/bluez/bluez/master/doc/org.bluez.ProfileManager.rst),
+[Profile descriptor lifecycle](https://raw.githubusercontent.com/bluez/bluez/master/doc/org.bluez.Profile.rst),
+[scoped discovery and adapter alias](https://raw.githubusercontent.com/bluez/bluez/master/doc/org.bluez.Adapter.rst).
+
+### Bluetooth device evidence and remaining limits
+
+Both actual handhelds discovered each other over Bluetooth. An incoming
+invitation appeared on Odin Home while only Flip was in Nearby play. Acceptance
+established native Link through RFCOMM: Flip's native socket used
+`127.0.0.1:58402 → 127.0.0.1:36419`, and Odin's incoming native socket used
+`127.0.0.1:47845 ← 127.0.0.1:37498`; both helper journals recorded `ready` and
+`relay-ready`. There was no inter-device LAN TCP Link connection in that check.
+The consoles remained on their home Wi-Fi for SSH/capture; loopback sockets and
+RFCOMM worker stages, rather than the UI label, establish the Bluetooth route.
+This is not a physical Wi-Fi-off/airplane-mode acceptance test.
+
+Declining a battle invitation retained the same connection. A reverse activity
+invitation was accepted, opening the real saved-Party chooser, then cancelled
+before reservation. Home/return kept the same TCP bridge. Earlier checks in this
+increment also exposed an invitation timeout and a LAN invitation; neither is
+counted as successful Bluetooth pairing. The initial 45-second discovery-row
+expiry was extended for sparse BR/EDR inquiry, and the stale `Connecting` caption
+was corrected for activity invitations after an accepted direct connection.
+
+Native Windows and ARM builds passed. Four focused Windows C++ suites and six
+ARM suites (including both Python helpers) passed; nine Bluetooth and thirteen
+retained Direct helper checks also ran directly on Windows. ARM protocol tests
+ran in a separate `--network none` container, never against the live shell's
+port. Automated relay checks exercise fragmented control, consent gating,
+decline/cancel, bounded duplex payloads, identity rejection and stale callbacks.
+
+The helpers and production binary are installed on both devices with backups.
+Each device retains its own library, Trainers, boot preference and save data;
+no Link save reservation or settlement was made during this transport increment.
+Repeated physical pairing is recorded in the final delivery note below.
+Real battle completion/trade settlement over Bluetooth, additional radios,
+prolonged reliability and authenticated trust remain separate gates. The earlier
+Odin GPU hang, radio-driver lead and unproven Steam recovery are still unresolved;
+do not call those fixed because a bounded Bluetooth session worked.
+
+### Final Bluetooth delivery
+
+Final production SHA-256 on both handhelds:
+`1509f82a01ef3117bceccef636e522782246ca0fbbc1fea43d2d029bb9e3f963`.
+Root Bluetooth module SHA-256:
+`39c58377c322d4ae3bed15991555edbb368dd82ad10a774257d49129f1e7037c`;
+fixed entry SHA-256:
+`1dce71fa48f959f5e5e62cac0cdc35ed10f6875167d065617feba430fd10f936`.
+Module/entry ownership and modes are root 0644/0755. Final live process checks
+verified SQLite integrity, InputPlumber, Flip's three Trainers/830 registrations,
+Odin's one/25, their individual boot preferences and no pending Link transaction.
+The final build and six isolated ARM suites passed; four Windows C++ suites
+passed again after the activity-caption correction.
+
+Flip-to-Odin Bluetooth paired at 23:46:25. After final delivery, Odin-to-Flip
+paired at 23:55:38 and retained the same loopback bridge through activity decline
+and Home/return. The incoming battle popup on Flip Home used the corrected
+activity caption. X disconnected the session; another invitation paired at
+23:58:09 **without restarting either shell/helper**, using a new ephemeral bridge
+`127.0.0.1:43954 → :51451` then `127.0.0.1:36200 → :51679` on Odin.
+Both directions and one same-process reconnect are physical evidence, not a
+long-duration/repeated-radio reliability claim. All times are local device time.
+
+Both remained SSH-accessible. The sampled kernel journal since 23:32 had no
+matching ath12k/hangcheck/preemption/GPU-fault lines, and no `traineros-nearby`
+P2P stages occurred in that window. This is a bounded approximately 27-minute
+Bluetooth session window with builds/restarts, not freeze causality proof.
+Both were left on Home, disconnected from Link; the build container was stopped.
+
+## Historical Wi-Fi Direct platform boundary
 
 `NearbyService` owns the no-argument, root-installed `nearby-control.py` child.
 Its bounded JSON verbs only configure Trainer identity/visibility, invite,
@@ -170,7 +287,7 @@ The helper now reads the root-managed `/etc/traineros/nearby.json` once on start
 {"enabled": false}
 ```
 
-Missing policy retains the existing Direct-enabled default. A malformed,
+At this historical delivery, missing policy retained the Direct-enabled default. A malformed,
 unreadable, oversized or non-boolean policy disables Direct. Disabled configure
 keeps the helper command pipe alive but never initializes/scans/activates the
 P2P radio. Ordinary LAN discovery and pairing remain separate and usable.
@@ -178,6 +295,8 @@ The temporary root-owned policy is installed **only on Odin**, not every Odin
 model or Flip. It does not alter home-network profiles. Re-enable only during a
 controlled recovery/driver investigation: set `enabled` to true or remove the
 policy, then restart TrainerOS with no active game or protected operation.
+The Bluetooth override above supersedes that default and re-enable advice:
+Direct now additionally requires explicit `"transport":"wifi-direct"` selection.
 Keeping this local policy through future image/OTA replacement remains an update
 acceptance concern, not a delivered image-updater claim.
 

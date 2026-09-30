@@ -4,6 +4,21 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-30 owner Bluetooth override:** Bluetooth replaces Wi-Fi Direct as the
+default no-router nearby route. Keep ordinary LAN as an independent alternative;
+do not activate P2P after Bluetooth failure. The installed Flip/Odin connection
+has carried the existing Link protocol through RFCOMM, including a Home invitation,
+activity decline/accept and Home/return retention. See
+[Bluetooth scope and evidence](NEARBY_PLAY.md#bluetooth-transport--2026-09-30).
+Further Direct negotiation is deferred at the owner's request. This supersedes
+the mandatory next-Direct-investigation wording in the historical entries below,
+not the unresolved Odin GPU/radio causality and session-recovery acceptance.
+Both directions and a same-process Bluetooth disconnect/reconnect are now
+physically verified. Next transport acceptance is a bounded real activity/settlement
+check, then the existing RA/account and image/update/system queue. Broader radios,
+long-duration reliability and trust-sensitive #93/#94 remain separate evidence;
+preserve all R1–R18 and suspend deferral.
+
 **2026-09-30 owner Odin freeze override:** prioritize the newly reported frozen
 TrainerOS session before further Direct pairing. The current kernel evidence
 points to recurring ath12k P2P discovery errors, without establishing the cause

@@ -30,6 +30,7 @@ backup = Path('/var/lib/traineros/radio-backup')
 backup.mkdir(parents=True, exist_ok=True, mode=0o700)
 for destination, data, mode in [(helper, Path(__file__).with_name('radio-control.py').read_bytes(), 0o755),
                                 (root/'network-control.py', Path(__file__).with_name('network-control.py').read_bytes(), 0o755),
+                                (root/'nearby-bluetooth.py', Path(__file__).with_name('nearby-bluetooth.py').read_bytes(), 0o644),
                                 (root/'nearby-control.py', Path(__file__).with_name('nearby-control.py').read_bytes(), 0o755),
                                 (Path('/etc/sudoers.d/traineros-radio'), policy.encode(), 0o440)]:
     previous = backup/destination.name
