@@ -4,6 +4,21 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-09-30 owner Odin freeze override:** prioritize the newly reported frozen
+TrainerOS session before further Direct pairing. The current kernel evidence
+points to recurring ath12k P2P discovery errors, without establishing the cause
+or reproducing the earlier GPU hang. A bounded radio-isolated session stayed
+responsive; the updated helper supports a root-managed Direct policy and safe
+stage diagnostics. Odin temporarily disables Direct while retaining ordinary
+Wi-Fi/LAN discovery and pairing; Flip keeps its default. Both helpers are
+delivered and installed-policy LAN pairing/Home-return were verified. This is
+mitigation and narrower evidence, not a permanent freeze fix or no-router proof.
+The control's Steam recovery request did not actually switch sessions; preserve
+that recovery gate. See [isolation and limits](NEARBY_PLAY.md#odin-freeze-isolation-and-temporary-direct-policy--2026-09-30).
+Next: establish freeze/radio causality and recovery, then controlled Direct
+negotiation/reconnect. Keep the subsequent RA/image/system queue, suspend deferral
+and every R1–R18 acceptance; do not replace them with this investigation.
+
 **2026-09-30 owner performance override:** prioritize the measured Home / Worlds /
 Field Guide stalls on Flip before returning to nearby reliability or the RA lane.
 See [interface performance audit](INTERFACE_PERFORMANCE.md) for causes, changes,

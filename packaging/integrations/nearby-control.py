@@ -6,6 +6,7 @@ import signal
 import sys
 import time
 import uuid
+from pathlib import Path
 
 MAGIC = b'\x02TOTrainerOS1'
 NM = 'org.freedesktop.NetworkManager'
@@ -14,6 +15,40 @@ PROPS = 'org.freedesktop.DBus.Properties'
 P2P = WPA + '.Interface.P2PDevice'
 RESPONSE_SECONDS = 50
 NETWORK_SECONDS = 65
+DIRECT_POLICY = Path('/etc/traineros/nearby.json')
+
+
+def diagnostic(stage, **values):
+    # Explicit fields only: never pass signal dictionaries, exception messages,
+    # peer names, WPS PINs or credentials into the persistent system journal.
+    record = {'stage': stage, **{k: v for k, v in values.items()
+                              if k in ('state', 'reason', 'status', 'phase', 'error_type')}}
+    try:
+        import syslog
+        syslog.openlog('traineros-nearby', syslog.LOG_PID, syslog.LOG_DAEMON)
+        syslog.syslog(syslog.LOG_INFO, json.dumps(record, ensure_ascii=True))
+    except (ImportError, OSError):
+        pass
+
+
+def direct_enabled(path=DIRECT_POLICY):
+    try:
+        data = path.read_bytes()
+    except FileNotFoundError:
+        return True
+    except OSError:
+        diagnostic('policy-unavailable')
+        return False
+    try:
+        if len(data) > 1024:
+            raise ValueError('oversized policy')
+        policy = json.loads(data)
+        if not isinstance(policy, dict) or type(policy.get('enabled')) is not bool:
+            raise ValueError('invalid policy')
+        return policy['enabled']
+    except (ValueError, UnicodeError):
+        diagnostic('policy-invalid')
+        return False
 
 
 def identity(data):
@@ -58,6 +93,7 @@ class Nearby:
         self.incoming = False; self.ready = False; self.last_scan = 0; self.matches = []
         self.buffer = b''
         self.network_started = False; self.retry_after = 0
+        self.direct_enabled = direct_enabled()
         self.manager = self.iface(NM, '/org/freedesktop/NetworkManager', NM)
         GLib.io_add_watch(sys.stdin, GLib.IO_IN | GLib.IO_HUP, self.input)
         GLib.timeout_add_seconds(3, self.tick)
@@ -84,7 +120,15 @@ class Nearby:
                         self.bus.add_signal_receiver(self.negotiated, signal_name='GONegotiationSuccess', dbus_interface=P2P, path=self.path),
                         self.bus.add_signal_receiver(self.negotiation_failed, signal_name='GONegotiationFailure', dbus_interface=P2P, path=self.path),
                         self.bus.add_signal_receiver(self.lost, signal_name='DeviceLost', dbus_interface=P2P, path=self.path)]
+        self.matches.append(self.bus.add_signal_receiver(self.device_state, signal_name='StateChanged',
+                            dbus_interface=NM+'.Device', path=self.device))
+        diagnostic('initialized')
         self.advertise()
+
+    def device_state(self, state, _old, reason):
+        if self.active:
+            # Capture the failure reason before NM removes the volatile object.
+            diagnostic('device-state', state=int(state), reason=int(reason))
 
     def lost(self, path):
         # Discovery may lose a peer while its P2P group is being created.
@@ -126,6 +170,7 @@ class Nearby:
             return
         self.target = row['id']; self.incoming = True; self.network_started = False
         self.deadline = time.monotonic()+RESPONSE_SECONDS
+        diagnostic('invitation-received')
         emit('invite', peer=self.target, name=row['name'])
 
     def negotiated(self, properties):
@@ -134,12 +179,14 @@ class Nearby:
             return
         if not self.network_started:
             self.network_started = True; self.deadline = time.monotonic()+NETWORK_SECONDS
+            diagnostic('negotiated')
             emit('connecting', peer=self.target, phase='network')
 
     def negotiation_failed(self, properties):
         row = self.peers.get(self.target)
         if not row or str(properties.get('peer_object', '')) != row['path']:
             return
+        diagnostic('negotiation-failed', status=int(properties.get('status', -1)))
         self.release(); emit('closed', error='Could not connect. Try inviting your friend again.')
 
     def connect(self, key):
@@ -154,6 +201,7 @@ class Nearby:
                     'ipv4': {'method': 'auto', 'never-default': True}, 'ipv6': {'method': 'disabled'}}, signature='sa{sv}')
         self.profile, self.active, _ = self.manager.AddAndActivateConnection2(settings, self.device,
             d.ObjectPath('/'), d.Dictionary({'persist': 'volatile', 'bind-activation': 'dbus-client'}, signature='sv'), timeout=6)
+        diagnostic('activation-started', phase='network' if self.incoming else 'response')
         emit('connecting', peer=key, phase='network' if self.incoming else 'response')
 
     def release(self):
@@ -181,10 +229,12 @@ class Nearby:
                     device = state['Devices'][0]
                     interface = str(self.props(NM, device, NM+'.Device')['IpInterface'])
                     emit('ready', peer=self.target, interface=interface, incoming=self.incoming)
+                    diagnostic('ready')
                     emit('searching', active=False)
                 elif int(state['State']) >= 3:
                     self.release(); emit('closed', error='The nearby connection ended. Invite your friend again.')
             if self.deadline and now > self.deadline:
+                diagnostic('deadline', phase='network' if self.network_started else 'response')
                 message = 'Could not finish connecting. Try again.' if self.network_started else 'Your friend did not answer. Try inviting them again.'
                 self.release(); emit('closed', error=message)
             if self.visible and self.path and not self.active and not self.target and now-self.last_scan >= 18:
@@ -195,7 +245,9 @@ class Nearby:
             self.peers = {k:r for k,r in self.peers.items() if k == self.target or now-r['seen'] < 45}
             self.declined = {k:deadline for k,deadline in self.declined.items() if deadline > now}
             emit('peers', peers=[{k:r[k] for k in ('id','name')} for r in self.peers.values()])
-        except Exception:
+        except Exception as e:
+            diagnostic('service-failure', error_type=e.get_dbus_name() if isinstance(e, self.d.DBusException)
+                       and hasattr(e, 'get_dbus_name') else type(e).__name__)
             if self.active or self.target:
                 self.release(); emit('closed', error='Nearby connection was interrupted.')
             # Radio-off and service restarts must not create a busy error popup loop.
@@ -223,8 +275,11 @@ class Nearby:
             v = json.loads(line); op = v.get('op')
             if op == 'configure':
                 key, name = identity(v)
-                changed = (self.key, self.name, self.visible) != (key, name, v.get('visible') is True)
-                self.key, self.name, self.visible = key, name, v.get('visible') is True
+                visible = v.get('visible') is True and self.direct_enabled
+                changed = (self.key, self.name, self.visible) != (key, name, visible)
+                self.key, self.name, self.visible = key, name, visible
+                if v.get('visible') is True and not self.direct_enabled:
+                    diagnostic('disabled-by-policy'); emit('searching', active=False); emit('unavailable')
                 if self.path and changed:self.advertise()
                 self.tick()
             elif op == 'invite' and self.visible and not self.target:
@@ -238,6 +293,8 @@ class Nearby:
             elif op == 'disconnect':self.release()
             else:raise ValueError('Nearby request is unavailable.')
         except Exception as e:
+            diagnostic('command-failure', error_type=e.get_dbus_name() if isinstance(e, self.d.DBusException)
+                       and hasattr(e, 'get_dbus_name') else type(e).__name__)
             if starting:self.release()
             if op == 'configure' and self.active:
                 # Discovery settings are not the established connection.

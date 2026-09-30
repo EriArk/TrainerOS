@@ -144,6 +144,69 @@ Armada build, followed by repeated pair/decline/return proof. Do not expand batt
 save adapters or transport claims to conceal this remaining radio gate; keep the
 following RA and image/update/system work in ROADMAP.
 
+## Odin freeze isolation and temporary Direct policy — 2026-09-30
+
+The owner reported another unresponsive Odin session. Before any new pairing
+attempt in this increment, Odin still answered ping but stopped producing an
+SSH banner. After the owner's reboot, the persisted previous-boot kernel journal
+showed recurring `ath12k_wifi7_pci` vdev-1 lookup errors, firmware-stat failures
+and timeouts during the background discovery window. It did not contain a new
+GPU hangcheck/preemption event for this incident. Other user services continued
+logging afterward. This is a radio-driver lead, not proof of a whole-kernel
+freeze, an application deadlock or the cause of the separate earlier GPU hang.
+
+A controlled session temporarily withheld only the Direct helper. The existing
+production binary and normal graphics ran for about 19 minutes with controller
+navigation and compositor captures. A six-minute observation recorded 37 thread/
+load samples over 372 seconds, without sampled D-state render threads or matching
+ath12k/hangcheck/preemption kernel lines. Two ordinary LAN connections worked;
+declining a battle invitation retained the lobby, and leaving for Home and
+returning retained its established TCP connection. No Link save reservation or
+settlement was started. Short isolation evidence does not prove permanent recovery.
+
+The helper now reads the root-managed `/etc/traineros/nearby.json` once on startup:
+
+```json
+{"enabled": false}
+```
+
+Missing policy retains the existing Direct-enabled default. A malformed,
+unreadable, oversized or non-boolean policy disables Direct. Disabled configure
+keeps the helper command pipe alive but never initializes/scans/activates the
+P2P radio. Ordinary LAN discovery and pairing remain separate and usable.
+The temporary root-owned policy is installed **only on Odin**, not every Odin
+model or Flip. It does not alter home-network profiles. Re-enable only during a
+controlled recovery/driver investigation: set `enabled` to true or remove the
+policy, then restart TrainerOS with no active game or protected operation.
+Keeping this local policy through future image/OTA replacement remains an update
+acceptance concern, not a delivered image-updater claim.
+
+Allowlisted `traineros-nearby` system-journal events record initialization,
+invitation, negotiation/activation stages, numeric NM device state/reason and
+timeouts. They do not serialize signal dictionaries, credentials, WPS PINs,
+Trainer names, peer paths or exception messages. Device-state observation does
+not change network recovery behavior. Use `journalctl -t traineros-nearby` to
+inspect these stages alongside the kernel journal.
+
+Both devices received the helper atomically, with the unchanged production
+binary SHA above. New live helper SHA-256:
+`e132f8527e527bc24067799260df2dffc31b5785fb7f3731801bed099ff01294`.
+The helper's 13 checks passed on Windows and ARM Linux. Live helper ownership,
+InputPlumber, SQLite integrity, each device's own Trainer/library counts and
+original boot preference were verified. Odin's journal reports disabled-by-policy;
+Flip initializes normally. After the final installed-helper restart, a new
+Odin-to-Flip session used `192.168.50.2:38986` → `192.168.50.206:47845` and
+survived Home/return without reconnecting. No matching driver/render errors
+appeared in the sampled post-delivery kernel journal. Both were left on Home.
+
+The bounded control's recovery timer requested Steam, but the dedicated
+TrainerOS process remained running: that request did **not** prove a working
+Steam/session fallback. The temporary helper withholding was restored and
+Odin's absent boot override preserved. Keep session-transition recovery as an
+explicit open gate. Next work is freeze/radio causality and recovery, then
+controlled Direct negotiation/reconnect proof; LAN success does not close the
+no-router requirement or the separate GPU-hang investigation.
+
 ## Presentation names
 
 Primary Pokémon section becomes **Companions**, Pokédex becomes **Field Guide**

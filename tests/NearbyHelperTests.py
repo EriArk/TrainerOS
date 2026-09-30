@@ -5,6 +5,7 @@ from pathlib import Path
 import types
 import unittest
 import uuid
+import tempfile
 from unittest.mock import patch
 
 spec = importlib.util.spec_from_file_location('nearby', Path(__file__).resolve().parents[1]/'packaging/integrations/nearby-control.py')
@@ -18,6 +19,7 @@ class NearbyTests(unittest.TestCase):
         app.path='/radio'; app.device='/device'; app.active=app.profile=None
         app.target=''; app.deadline=0; app.incoming=app.ready=app.network_started=False
         app.last_scan=0; app.retry_after=0; app.declined={}; app.matches=[]; app.old={}
+        app.direct_enabled=True
         peer='22222222-2222-4222-8222-222222222222'
         app.peers={peer:{'id':peer,'name':'Brock','path':'/peer','mac':'00:11:22:33:44:55','seen':100}}
         calls=[]
@@ -40,6 +42,39 @@ class NearbyTests(unittest.TestCase):
             self.assertIsNone(n.decode_peer({'VendorExtension': [raw]}))
         for name in ('', 'x'*33, '\x00Trainer'):
             with self.assertRaises(ValueError): n.identity({'id':key,'name':name})
+
+    def test_direct_policy_defaults_on_and_rejects_malformed_configuration(self):
+        with tempfile.TemporaryDirectory() as directory:
+            policy=Path(directory)/'nearby.json'
+            self.assertTrue(n.direct_enabled(policy))
+            for data,expected in ((b'{"enabled":false}',False),(b'{"enabled":true}',True),
+                                  (b'{"enabled":"false"}',False),(b'[]',False),
+                                  (b'{',False),(b'\xff',False),(b'x'*1025,False)):
+                policy.write_bytes(data)
+                with patch.object(n,'diagnostic'):self.assertEqual(n.direct_enabled(policy),expected)
+
+    def test_disabled_direct_keeps_pipe_alive_without_touching_the_radio(self):
+        app,peer,calls=self.radio();app.direct_enabled=False;app.path=None;app.device=None
+        app.initialize=lambda:self.fail('Disabled transport touched the radio')
+        with patch.object(n,'emit') as event, patch.object(n,'diagnostic'):
+            app.command(json.dumps({'op':'configure','id':app.key,'name':app.name,'visible':True}))
+            app.tick();self.assertFalse(app.visible);self.assertEqual(calls,[])
+            self.assertTrue(any(c.args[0]=='unavailable' for c in event.call_args_list))
+            app.command(json.dumps({'op':'invite','peer':peer}));self.assertIsNone(app.active)
+            app.command(json.dumps({'op':'disconnect'}));self.assertEqual(calls,[])
+
+    def test_diagnostic_does_not_record_credentials_or_exception_text(self):
+        messages=[]
+        logger=types.SimpleNamespace(LOG_PID=1,LOG_DAEMON=2,LOG_INFO=3,
+                                     openlog=lambda *a:None,syslog=lambda level,value:messages.append(value))
+        with patch.dict('sys.modules',{'syslog':logger}):
+            n.diagnostic('negotiation-failed',status=7,passphrase='secret',pin='1234',peer_object='/peer')
+        self.assertEqual(json.loads(messages[0]),{'stage':'negotiation-failed','status':7})
+        app,peer,calls=self.radio();app.active='/owned'
+        with patch.object(n,'diagnostic') as log:
+            app.device_state(120,50,11)
+            log.assert_called_once_with('device-state',state=120,reason=11)
+            self.assertEqual(app.active,'/owned') # Observation is not a network mutation.
 
     def test_partial_and_batched_commands_survive_pipe_buffering(self):
         app = object.__new__(n.Nearby); app.buffer=b''; commands=[]; app.command=commands.append
