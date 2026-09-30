@@ -32,7 +32,7 @@ and 830 registered Adventures; Odin retained 1 Trainer and 25 registered
 Adventures. These are registration counts, not a claim about ROM-file totals.
 Configured boot preference hashes initially matched after both OS reboots.
 
-## Runtime checks and open Odin recovery
+## Runtime checks and Odin recovery
 
 Flip returned automatically to its TrainerOS session. A bounded controller
 Home → Worlds → Guide → Home sequence and actual Gamescope captures passed.
@@ -48,11 +48,20 @@ SSH stopped completing its protocol handshake although ping still responded.
 No root cause is established, and the new OS is not claimed to cure the prior
 Odin hang. A manual reboot was requested because remote restart was unavailable.
 
-That session action temporarily created
-`/etc/sddm.conf.d/zz-steamos-autologin.conf`. It was absent in Odin's pre-update
-configuration. Once access returns, remove **only** this exact temporary file
-after checking its content is `[Autologin]\nSession=traineros.desktop\n`, then
-verify the complete saved boot-configuration hashes. Keep the existing
-`zz-holo-autologin.conf` and other Armada files. Final Odin boot-policy restoration
-and post-hang runtime checks are pending; do not repeat session-entry tests
-without first collecting the previous boot's logs.
+After the owner's manual reboot, SSH returned at the same address. Armada's
+boot handling had already removed the temporary
+`/etc/sddm.conf.d/zz-steamos-autologin.conf`; the full saved boot-configuration
+hashes matched again, including the original `zz-holo-autologin.conf`. No manual
+configuration replacement was needed. Bootc still reported `20260929.5915c28`,
+the installed TrainerOS hash matched, and SQLite integrity/counts passed again.
+Odin is currently in its original Steam session, with no running TrainerOS
+process; its production binary remains installed. Flip's live production check
+passed again. Do not describe this recovery as proof that the Odin hang is fixed.
+
+The previous kernel/network/user-session journals were preserved privately on
+Odin and copied to ignored operational files on the development machine. Before
+loss of SSH, the kernel recorded repeated `ath12k_wifi7_pci` errors for virtual
+device 1: `No VIF found`, `not found vif` and firmware-stat failure `-71`.
+These provide a Wi-Fi investigation lead, not an established cause or a reason
+to label this incident a proven GPU crash. Root-cause work and another Odin
+session-entry attempt remain a separate increment.
