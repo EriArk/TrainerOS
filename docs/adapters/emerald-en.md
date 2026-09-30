@@ -345,3 +345,17 @@ generic effects. Speed, priority and KO response tests pass; actual two-device
 Link captures verify switch/attack/damage order. The portable engine copy is
 refreshed. [Bounded evidence](../EMERALD_LINK.md#ordered-turn-playback-and-effects-2026-09-28);
 full cartridge parity and per-move animation coverage remain open.
+
+### 2026-10-01: existing exact-pair adapter exercised over Bluetooth
+
+No adapter/source/profile behavior changed. Both installed handhelds completed
+the protected Alakazam/Swellow Party exchange over RFCOMM, then loaded the received
+individual in ordinary Emerald. A subsequent full-team battle completed normally
+at turn 20; both protected settlements applied the mutually approved money stake
+and Odin's one used Full Restore. Independent before/after decoding showed the
+entire ordinary Party unchanged during the battle. No active transaction remained.
+
+This adds transport-specific device evidence, without promoting the partial
+Link capabilities to universal/native/competitive support. Bluetooth sales/gifts,
+other exact pairs, cartridge rule parity, extended fault recovery and #93/#94
+remain open. [Evidence and actual-device limits](../NEARBY_PLAY.md#bluetooth-emerald-activities--2026-10-01).

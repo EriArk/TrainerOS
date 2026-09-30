@@ -1,9 +1,32 @@
 # Emerald Link — implementation and evidence
 
 **Current pairing UX:** [Nearby play](NEARBY_PLAY.md) supersedes the same-router,
-both-pages-open and matching-code instructions below. Direct discovery uses
+both-pages-open and matching-code instructions below. Bluetooth discovery uses
 Trainer names and acceptance popovers. The older proof remains historical;
 the protected transaction/battle engine boundaries below are unchanged.
+
+## Bluetooth activity evidence — 2026-10-01
+
+The exact English Emerald pair on installed Flip 2/Odin 2 has now completed a
+mutually confirmed Alakazam/Swellow exchange over Bluetooth RFCOMM. Both protected
+receipts completed, and ordinary Emerald loaded the received individual on each
+device. The same accepted connection survived both game launches/guarded exits
+and carried a subsequent full-team battle to a normal turn-20 victory.
+
+Both players approved stakes of 1000 in-game money each. Flip's final balance
+increased by 1000 and Odin's decreased by 1000; Odin's one used Full Restore
+was charged exactly once. Both current save hashes matched their completed
+battle receipts, no active transaction remained and both entire Party records
+were byte-identical to the battle's protected originals. Copied battle HP/PP
+were not written to ordinary saves.
+
+These were controller-injected actual-device runs using the existing production
+binary and adapters, not new parser/rule work or owner manual-button acceptance.
+Wi-Fi remained enabled for SSH; the application Link sockets were loopback-only
+Bluetooth bridges. This covers this pair's bounded exchange/battle settlement,
+not Bluetooth sales/gifts, other radios/games, cartridge parity, extended fault
+recovery or competitive authentication. See
+[transport proof and remaining gates](NEARBY_PLAY.md#bluetooth-emerald-activities--2026-10-01).
 
 ## Portrait workspace, Bag and stakes ? 2026-09-28
 

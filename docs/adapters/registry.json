@@ -1,6 +1,6 @@
 {
   "purpose": "Engineering evidence index; not runtime capability authority",
-  "updated": "2026-09-28",
+  "updated": "2026-10-01",
   "builds": [
     {
       "id": "emerald-en",
@@ -169,6 +169,7 @@
         },
         "link-trade": {
           "state": "partial",
+          "bluetooth": "2026-10-01: Flip/Odin protected Party exchange and ordinary Emerald readback on both; broader radio and fault recovery remain open.",
           "evidence": [
             "source-research",
             "synthetic",
@@ -182,6 +183,7 @@
         },
         "link-battle": {
           "state": "partial",
+          "bluetooth": "2026-10-01: Flip/Odin full-team victory at turn 20, money stake and one medicine settled bilaterally; ordinary Party HP/PP unchanged. Native parity and competitive trust remain open.",
           "evidence": ["source-research", "synthetic", "allowed-delta", "private-copy", "device"],
           "presentation": "Ordered intermediate HP and generic typed effects verified on Flip/Odin; simulator speed, priority and KO response checks pass. Cartridge parity remains open.",
           "details": "../EMERALD_LINK.md"

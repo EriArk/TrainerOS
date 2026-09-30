@@ -94,7 +94,7 @@ A traded Pokémon is written into the real receiving save. Ordinary Emerald on t
 
 The Link transaction is deliberately conservative: both sides prepare protected changes, commit through durable journals and keep unresolved work blocked until both devices agree on the final result.
 
-Nearby Play is moving this away from old link-cable-style setup: TrainerOS devices can advertise the active Trainer, show invitation popovers and connect directly over Wi-Fi Direct where the hardware supports it. The first Flip 2 ↔ Odin 2 direct connection has been proven; repeated reconnect reliability is still being hardened.
+Nearby Play advertises the active Trainer and uses invitation popovers. Bluetooth is the default route between nearby consoles without a router; ordinary LAN is an independent alternative. Flip 2 ↔ Odin 2 has completed a protected Emerald exchange and a full-team battle with money stakes and medicine over Bluetooth. Wi-Fi Direct is deferred. Broader radio compatibility, long-duration reliability and the earlier Odin freeze cause remain open.
 
 [Emerald Link details and evidence](docs/EMERALD_LINK.md) · [Nearby Play](docs/NEARBY_PLAY.md)
 

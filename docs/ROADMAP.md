@@ -4,6 +4,18 @@
 
 ## Current plan — reconciled 2026-09-27
 
+**2026-10-01 Bluetooth activity acceptance:** the installed exact Emerald pair
+completed a protected Party exchange, ordinary-game readback on both handhelds,
+and a full-team Bluetooth battle to turn-20 victory with 1000-money stakes and
+one real Full Restore. Both settlement receipts completed; Party HP/PP stayed
+unchanged and no transaction remained pending. See
+[actual-device evidence and limits](NEARBY_PLAY.md#bluetooth-emerald-activities--2026-10-01).
+No further implementation was needed for this bounded gate. Next: standalone
+PPSSPP active-Trainer RA handoff, then authentication/legitimate fresh-play return
+evidence and the retained image/update/system queue. Keep Wi-Fi Direct deferred,
+suspend disabled, and all R1–R18, broader radio/recovery and #93/#94 trust gates.
+This successful window does not prove the earlier Odin freeze fixed.
+
 **2026-09-30 owner Bluetooth override:** Bluetooth replaces Wi-Fi Direct as the
 default no-router nearby route. Keep ordinary LAN as an independent alternative;
 do not activate P2P after Bluetooth failure. The installed Flip/Odin connection
@@ -14,8 +26,8 @@ Further Direct negotiation is deferred at the owner's request. This supersedes
 the mandatory next-Direct-investigation wording in the historical entries below,
 not the unresolved Odin GPU/radio causality and session-recovery acceptance.
 Both directions and a same-process Bluetooth disconnect/reconnect are now
-physically verified. Next transport acceptance is a bounded real activity/settlement
-check, then the existing RA/account and image/update/system queue. Broader radios,
+physically verified. The bounded real activity/settlement gate was completed on
+2026-10-01 above; next is the existing RA/account and image/update/system queue. Broader radios,
 long-duration reliability and trust-sensitive #93/#94 remain separate evidence;
 preserve all R1–R18 and suspend deferral.
 

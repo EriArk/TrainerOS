@@ -1,4 +1,4 @@
-# Nearby play — 2026-09-30
+# Nearby play — 2026-10-01
 
 The consoles advertise the active Trainer's name outside the Link screen.
 Nearby play now prefers Bluetooth RFCOMM, with ordinary local-network discovery
@@ -101,8 +101,10 @@ The helpers and production binary are installed on both devices with backups.
 Each device retains its own library, Trainers, boot preference and save data;
 no Link save reservation or settlement was made during this transport increment.
 Repeated physical pairing is recorded in the final delivery note below.
-Real battle completion/trade settlement over Bluetooth, additional radios,
-prolonged reliability and authenticated trust remain separate gates. The earlier
+Real battle completion/trade settlement over Bluetooth was still pending at this
+transport delivery; the 2026-10-01 activity evidence below now covers that bounded
+gate. Additional radios, prolonged reliability and authenticated trust remain
+separate gates. The earlier
 Odin GPU hang, radio-driver lead and unproven Steam recovery are still unresolved;
 do not call those fixed because a bounded Bluetooth session worked.
 
@@ -134,6 +136,60 @@ matching ath12k/hangcheck/preemption/GPU-fault lines, and no `traineros-nearby`
 P2P stages occurred in that window. This is a bounded approximately 27-minute
 Bluetooth session window with builds/restarts, not freeze causality proof.
 Both were left on Home, disconnected from Link; the build container was stopped.
+
+## Bluetooth Emerald activities — 2026-10-01
+
+The same production binary recorded above ran on both Flip 2 and Odin 2 under
+Armada `20260929.5915c28`. Controller events were injected into the devices'
+existing input routes; these were actual installed-device/emulator runs, not host
+renders or a claim that the owner manually pressed each button.
+
+An invitation reached Odin Home at 00:11:25 and was accepted at 00:12:09.
+Flip's native socket used `127.0.0.1:48036 → :55461`; Odin used
+`127.0.0.1:47845 ← :32824`. Both Bluetooth helpers recorded `ready` and
+`relay-ready`. The same bridges survived the exchange, ordinary Emerald launches
+and guarded Home exits, page navigation, a battle invitation and battle completion.
+There was no inter-device LAN TCP Link connection or Direct helper stage in this
+window. Wi-Fi stayed enabled for SSH and captures; physical Wi-Fi-off acceptance
+is still separate.
+
+- A mutually confirmed Party-slot-6 exchange sent Alakazam from Flip to Odin and
+  Swellow from Odin to Flip. Both protected journals completed. Before the later
+  battle, both current save hashes matched their exchange receipts, money stayed
+  unchanged and each Party still contained six individuals. Ordinary Emerald
+  loaded both saves without a corruption warning: its native Party showed
+  Swellow Lv.100 on Flip and Alakazam Lv.16, 48/48 HP on Odin.
+- A full-team match used Blaziken and Swampert as leads and mutually approved
+  stakes of 1000 in-game money each. Controller actions progressed through team
+  knockouts/switches to a normal victory at turn 20; this was not a concession.
+  Odin used one Full Restore on Swampert during turn 6.
+- Both battle journals completed and current save hashes matched their receipts.
+  Flip won: money changed `499121 → 500121`; Odin changed `500479 → 499479`.
+  Full Restore counts were unchanged at 47 on Flip and `48 → 47` on Odin.
+  Independent before/after decoding showed each complete Party record unchanged,
+  including ordinary HP/PP; only the agreed money/item effects were applied.
+  Both SQLite quick checks passed and neither device retained an active transaction.
+
+Versioned byte-verified before-save copies, protected receipts and actual-device
+screenshots are private operational evidence, excluded from Git. No game adapter,
+battle rule, UI or production binary change was needed for this acceptance run.
+Both devices retained their own Trainers, libraries, emulator configuration and
+boot preferences. The exchanged test individuals and settled balances are retained.
+
+The accepted bridge stayed alive for approximately 25 minutes, through 00:37:27.
+Both shells remained responsive with their original process IDs. A bounded kernel
+query from 00:10 through 00:38:31 found no ath12k/hangcheck/preemption/GPU-fault/
+A6xx/HFI/ringbuffer matches on either device. Odin did have HFI response errors at
+00:04:24, before this activity window; this run does not establish their cause or
+prove that its freeze problem is fixed. Final cleanup disconnected Link and
+returned both consoles to Home without a game running.
+
+This closes the bounded Bluetooth exchange/completed-battle settlement gate for
+the exact English Emerald pair. Sales/gifts, other games/radios, repeated
+power-loss/reconnect coverage, physical Wi-Fi-off operation, cartridge battle-rule
+parity and authenticated #93/#94 trust remain separate acceptance. The next
+ordinary development lane returns to active-Trainer RA handoff, starting with
+installed standalone PPSSPP; all image/update/system and R1–R18 work is preserved.
 
 ## Historical Wi-Fi Direct platform boundary
 
