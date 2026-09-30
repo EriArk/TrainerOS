@@ -101,9 +101,19 @@ void GameProgressService::verifySnapshot(const AdventureRegistration& record,con
         QMetaObject::invokeMethod(this,[guard,done,matches]{if(guard)done(matches);},Qt::QueuedConnection);
     },Qt::QueuedConnection);
 }
-void GameProgressService::refresh(const AdventureRegistration& record) {
+void GameProgressService::refresh(const AdventureRegistration& record, bool sameContext) {
+    auto checking = unavailable(ProgressAvailability::Checking, "Reading the last in-game save…");
+    // Identity only: consumers may keep a read-only presentation while every
+    // action still sees Checking. The caller also checks the active Trainer.
+    if (sameContext && record.adventure.id == record_.adventure.id
+        && record.revision == record_.revision && record.contentPath == record_.contentPath
+        && record.integrationConfig == record_.integrationConfig) {
+        checking.contentRevision = snapshot_.contentRevision;
+        checking.contextRevision = snapshot_.contextRevision;
+        checking.saveRevision = snapshot_.saveRevision;
+    }
     ++generation_; record_ = record; pending_ = true;
-    snapshot_ = unavailable(ProgressAvailability::Checking, "Reading the last in-game save…"); emit changed();
+    snapshot_ = std::move(checking); emit changed();
     if (!reading_) startRead();
 }
 void GameProgressService::startRead() {

@@ -404,6 +404,41 @@ private slots:
         personal.dispatch(Action::Secondary); personal.changeBox(1);
         QCOMPARE(personal.box(), 0); QVERIFY(personal.entries().isEmpty());
     }
+    void repeatedTeamReadKeepsPresentationButBlocksActions() {
+        PartyPresentation party(false); party.setAdventure("emerald", "Emerald");
+        GameProgress p; p.availability = ProgressAvailability::Available;
+        p.contextRevision = "owner"; p.contentRevision = "rom"; p.saveRevision = "one";
+        PartySnapshot data; data.party = QList<PokemonRecord>(6); data.boxes = QList<PokemonBox>(14);
+        for (auto& box : data.boxes) box.members = QList<PokemonRecord>(30);
+        auto& mon = data.party[0]; mon.kind = PokemonSlotKind::Known; mon.nickname = "Partner";
+        mon.speciesId = "pikachu"; mon.formId = "25"; mon.level = 5;
+        p.party = data; party.setProgress("emerald", p);
+        const auto entries = party.entries();
+        QSignalSpy rowsChanged(&party, &PartyPresentation::entriesChanged);
+        QSignalSpy actorsChanged(party.activities(), &CenterActivities::actorsChanged);
+        QSignalSpy backups(&party, &PartyPresentation::backupsRequested);
+        party.dispatch(Action::Right);
+        QCOMPARE(rowsChanged.size(), 0); QCOMPARE(party.focusIndex(), 1);
+        GameProgress checking; checking.availability = ProgressAvailability::Checking;
+        checking.contextRevision = p.contextRevision; checking.contentRevision = p.contentRevision;
+        checking.saveRevision = p.saveRevision;
+        party.setProgress("emerald", checking);
+        QVERIFY(!party.available()); QVERIFY(!party.canMove()); QVERIFY(!party.canRelease());
+        QVERIFY(party.displayAvailable());
+        QCOMPARE(party.entries(), entries); QCOMPARE(party.activities()->actors().size(), 1);
+        party.dispatch(Action::Confirm); QCOMPARE(backups.size(), 0); QVERIFY(!party.detailOpen());
+        party.setProgress("emerald", p);
+        QVERIFY(party.available()); QCOMPARE(party.focusIndex(), 1);
+        QCOMPARE(rowsChanged.size(), 0); QCOMPARE(actorsChanged.size(), 0);
+        p.saveRevision = "new"; p.party->party[0].nickname = "Updated";
+        party.setProgress("emerald", p);
+        QCOMPARE(party.entries()[0].toMap()["name"], "Updated");
+        QCOMPARE(rowsChanged.size(), 1); QCOMPARE(actorsChanged.size(), 1);
+        checking.contextRevision = "another-owner";
+        party.setProgress("emerald", checking);
+        QVERIFY(party.entries().isEmpty()); QVERIFY(party.activities()->actors().isEmpty());
+        QVERIFY(!party.displayAvailable());
+    }
     void realPartyClearsOnSourceChangeAndNeverFallsBackToSamples() {
         PartyPresentation party(false); party.setAdventure("emerald", "Emerald");
         GameProgress observation; observation.availability=ProgressAvailability::Available;

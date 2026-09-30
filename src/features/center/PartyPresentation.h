@@ -31,11 +31,12 @@ class PartyPresentation final : public QObject {
     Q_PROPERTY(bool detailOpen READ detailOpen NOTIFY changed)
     Q_PROPERTY(bool sample READ sample CONSTANT)
     Q_PROPERTY(bool available READ available NOTIFY changed)
+    Q_PROPERTY(bool displayAvailable READ displayAvailable NOTIFY changed)
     Q_PROPERTY(int boxCount READ boxCount NOTIFY changed)
     Q_PROPERTY(QString boxName READ boxName NOTIFY changed)
     Q_PROPERTY(QString title READ title NOTIFY changed)
     Q_PROPERTY(QString status READ status NOTIFY changed)
-    Q_PROPERTY(QVariantList entries READ entries NOTIFY changed)
+    Q_PROPERTY(QVariantList entries READ entries NOTIFY entriesChanged)
     Q_PROPERTY(QVariantMap detail READ detail NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(int box READ box NOTIFY changed)
@@ -71,10 +72,11 @@ public:
     QString section() const { return section_; }
     bool detailOpen() const { return detail_; }
     bool sample() const { return sample_; }
-    bool available() const { return sample_ || (snapshot_ && snapshot_->error.isEmpty()); }
+    bool available() const { return sample_ || (availability_ == ProgressAvailability::Available && displayAvailable()); }
+    bool displayAvailable() const { return sample_ || (snapshot_ && snapshot_->error.isEmpty()); }
     int boxCount() const { return sample_ ? 2 : snapshot_ ? snapshot_->boxes.size() : 0; }
     QString boxName() const;
-    void setProgress(const QString& adventureId, const GameProgress&);
+    bool setProgress(const QString& adventureId, const GameProgress&);
     QString title() const { return title_; }
     QString status() const;
     QVariantList entries() const;
@@ -89,7 +91,7 @@ public:
     const CenterActivities* activities() const { return &activities_; }
     void openActivities();
     int box() const { return box_; }
-    void setAdventure(const QString& id, const QString& title);
+    bool setAdventure(const QString& id, const QString& title);
     void dispatch(Action);
     void activate(int);
     void showSection(const QString&);
@@ -100,9 +102,15 @@ public:
 signals:
     void boxNameRequested(const QString& initial,int limit);
     void changed();
+    void entriesChanged();
     void healingRequested();
     void backupsRequested();
 private:
+    QString entriesKey() const;
+    QString publishedEntriesKey_;
+    mutable QString cachedEntriesKey_;
+    mutable QVariantList cachedEntries_;
+    quint64 artRevision_ = 0;
     enum class Operation { Move,Release,HeldItem,BoxName };
     QString boxNameDraft_;
     void editBoxName();
@@ -130,7 +138,7 @@ private:
     int partyFocus_ = 0, storageFocus_[14] = {}, box_ = 0;
     std::optional<PartySnapshot> snapshot_;
     QString observationKey_;
-    QString sourceContext_;
+    QString sourceContext_, contentRevision_;
     bool initialBoxSet_ = false;
     ProgressAvailability availability_ = ProgressAvailability::Unsupported;
     CenterActivities activities_;

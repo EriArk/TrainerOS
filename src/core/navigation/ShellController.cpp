@@ -319,10 +319,11 @@ void ShellController::refreshParty() {
     hall_.setCurrentAdventure(currentAdventureId());
     hall_.setProgress(progress_?progress_->adventureId():QString(),progress_?progress_->snapshot():GameProgress{});
     const auto adventure = homeAdventure();
+    bool partyChanged = false;
     {
         const QSignalBlocker batch(&party_);
-        party_.setAdventure(currentAdventureId(), adventure ? adventure->title : QString());
-        party_.setProgress(progress_ ? progress_->adventureId() : QString(), progress_ ? progress_->snapshot() : GameProgress{});
+        partyChanged = party_.setAdventure(currentAdventureId(), adventure ? adventure->title : QString());
+        partyChanged |= party_.setProgress(progress_ ? progress_->adventureId() : QString(), progress_ ? progress_->snapshot() : GameProgress{});
         const auto progress=progress_ && progress_->adventureId()==currentAdventureId()?progress_->snapshot():GameProgress{};
         party_.activities()->practice()->setObservation({trainer_.profile()["id"].toString(),currentAdventureId(),
             progress.contextRevision,progress.contentRevision,progress.saveRevision},progress,party_.activities()->actors());
@@ -330,7 +331,7 @@ void ShellController::refreshParty() {
         party_.activities()->link()->setObservation({trainer_.profile()["id"].toString(),currentAdventureId(),
             progress.contextRevision,progress.contentRevision,progress.saveRevision},progress,party_.activities()->actors());
     }
-    emit party_.changed();
+    if (partyChanged) emit party_.changed();
 }
 void ShellController::refreshContinue() {
     points_.clear();

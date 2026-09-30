@@ -16,6 +16,16 @@ QString stateLabel(const PokedexProgress& p) {
     if (p.seen.has_value() && p.caught.has_value()) return "Not seen";
     return "Not recorded";
 }
+bool sameDex(const std::optional<SavePokedex>& a, const std::optional<SavePokedex>& b) {
+    if (a.has_value() != b.has_value()) return false;
+    return !a || (a->speciesCount == b->speciesCount && a->seen == b->seen && a->caught == b->caught
+        && a->error == b->error && a->partyForms == b->partyForms && a->boxForms == b->boxForms);
+}
+bool sameScope(const std::optional<PokedexGameScope>& a, const std::optional<PokedexGameScope>& b) {
+    if (a.has_value() != b.has_value()) return false;
+    return !a || (a->family == b->family && a->nationalLimit == b->nationalLimit
+        && a->forms == b->forms && a->types == b->types && a->stats == b->stats);
+}
 }
 void PokedexController::setSaveProgress(const QString& selectedId, const QString& title,
         const QString& observedId, const GameProgress& observation) {
@@ -23,6 +33,10 @@ void PokedexController::setSaveProgress(const QString& selectedId, const QString
         observation.contextRevision,observation.contentRevision,observation.saveRevision,
         observation.pokedex ? observation.pokedex->error : QStringLiteral("no-dex")}.join('\n');
     if (saveMode_ && observationKey_ == key) return;
+    const auto previousDex = saveDex_;
+    const auto previousScope = gameScope_;
+    const bool previousStale = staleSave_;
+    const bool sameSelection = saveMode_ && saveId_ == selectedId;
     observationKey_ = key; saveMode_ = true; saveTitle_ = title;
     if(saveId_!=selectedId || selectedId.isEmpty() || observedId!=selectedId)gameScope_.reset();
     if(observedId==selectedId && observation.availability!=ProgressAvailability::Checking)gameScope_=observation.pokedexScope;
@@ -32,6 +46,14 @@ void PokedexController::setSaveProgress(const QString& selectedId, const QString
     if (observedId == selectedId && !selectedId.isEmpty()) {
         if (observation.availability == ProgressAvailability::Available && observation.pokedex && observation.pokedex->error.isEmpty()) {
             savedObservation_ = observation; saveDex_ = observation.pokedex;
+        } else if (observation.availability == ProgressAvailability::Checking
+            && savedObservation_.pokedex && !observation.saveRevision.isEmpty()
+            && observation.saveRevision == savedObservation_.saveRevision
+            && observation.contextRevision == savedObservation_.contextRevision
+            && observation.contentRevision == savedObservation_.contentRevision) {
+            // Presentation only. The provider remains Checking and has no
+            // semantic payload; a fresh read still precedes every save action.
+            saveDex_ = savedObservation_.pokedex;
         } else if ((observation.availability == ProgressAvailability::Unreadable
                 || (observation.availability == ProgressAvailability::Available && observation.pokedex && !observation.pokedex->error.isEmpty()))
             && savedObservation_.pokedex && !observation.contextRevision.isEmpty()
@@ -40,14 +62,16 @@ void PokedexController::setSaveProgress(const QString& selectedId, const QString
             saveDex_ = savedObservation_.pokedex; staleSave_ = true;
         } else if (observation.availability != ProgressAvailability::Checking) savedObservation_ = {};
     }
-    rebuild();
+    if (!sameSelection || previousStale != staleSave_ || !sameDex(previousDex, saveDex_)
+        || !sameScope(previousScope, gameScope_)) rebuild();
+    else emit changed();
 }
 QString PokedexController::saveCaption() const {
     if (!saveMode_) return "Field guide";
     const auto title = saveTitle_.isEmpty() ? QStringLiteral("Choose an Adventure") : saveTitle_;
+    if (saveAvailability_ == ProgressAvailability::Checking) return title + " · Reading save…";
     if (staleSave_) return title + " · Last verified save — refresh unavailable";
     if (saveDex_) return title + " · Last in-game save · Species records";
-    if (saveAvailability_ == ProgressAvailability::Checking) return title + " · Reading save…";
     if (saveAvailability_ == ProgressAvailability::Missing) return title + " · No saved progress yet";
     return title + " · Save progress unavailable";
 }

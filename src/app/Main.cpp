@@ -460,8 +460,9 @@ int main(int argc, char* argv[]) {
                 const auto key = QJsonDocument(QJsonObject{{"id", id}, {"owner", store->ownerId()}, {"revision", record->revision},
                     {"path", record->contentPath}, {"config", record->integrationConfig}}).toJson(QJsonDocument::Compact);
                 if (!force && key == progressSelection) return;
+                const bool sameContext = key == progressSelection;
                 progressSelection = key;
-                provider->refresh(*record);
+                provider->refresh(*record, sameContext);
             };
             QObject::connect(&shell, &ShellController::changed, gameProgress.get(), [&, refreshProgress] {
                 const bool homeVisible = shell.page() == 0 || shell.page() == 2;

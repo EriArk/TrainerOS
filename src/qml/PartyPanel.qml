@@ -26,7 +26,7 @@ Item {
                 border.color: "#839d93"
                 CapButton { deferredFocus: true;
                     objectName: "party-box"; x: 12; y: 7; width: parent.width - 24; height: 33
-                    visible: root.storage && root.party.available
+                    visible: root.storage && root.party.displayAvailable
                     label: "‹     " + root.party.boxName + "  " + (root.party.box + 1) + " / " + root.party.boxCount + "     ›"; centered: true; textSize: 15; tint: Theme.blue
                     selected: root.takesFocus && root.party.boxFocused && !root.party.detailOpen
                     onActivated: root.party.changeBox(1)
@@ -75,7 +75,7 @@ Item {
                     }
                 }
                 Column {
-                    x: 22; y: 44; width: parent.width - 44; spacing: 16; visible: !root.party.available
+                    x: 22; y: 44; width: parent.width - 44; spacing: 16; visible: !root.party.displayAvailable
                     Text { textFormat: Text.PlainText; width: parent.width; text: root.storage ? "Your Pokémon boxes" : "Your team"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 25 }
                     Text { textFormat: Text.PlainText; width: parent.width; text: root.party.status; color: Theme.muted; font.pixelSize: 16; wrapMode: Text.WordWrap }
                     CapButton { deferredFocus: true; objectName: "party-unavailable"; width: parent.width; height: 43; label: "Save backups"; tint: Theme.blue; selected: root.takesFocus && !root.party.activitiesFocused; onActivated: root.shell.activate(0) }

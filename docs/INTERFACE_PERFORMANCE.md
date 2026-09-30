@@ -3,7 +3,8 @@
 The owner reports pauses when switching Home / Worlds / Field Guide. This pass
 measures the installed native shell on Flip, fixes the synchronous work behind
 those pauses, and preserves the existing composition, artwork and animations.
-Odin was unavailable; these measurements do not establish its GPU stability.
+The first slice measured Flip only. The follow-up below records paired delivery;
+Flip measurements still do not establish Odin's GPU stability.
 
 ## Measurement
 
@@ -107,11 +108,10 @@ activity guards or save verification. Cache invalidation follows committed
 library snapshots, including content availability and management changes;
 providers without revisions are not treated as immutable.
 
-The next performance target is the `Checking → Available` save-observation
-notification fan-out: it still clears/rebuilds Party/Guide presentations on
-visits even when the verified result is identical. Address it through explicit
-observation/presentation invalidation, retaining mutation and exact-source gates;
-do not simply suppress verification or leave stale saves writable. Other cost
+The second slice below addresses the `Checking → Available` save-observation
+notification fan-out through explicit observation/presentation invalidation,
+retaining mutation and exact-source gates. It does not suppress verification or
+leave stale saves writable. Other cost
 areas are QML projections using broad `changed` signals, first-use image decode,
 and platform graphics/radio behavior. A cached collection is not a claim that all pages,
 cold-start workloads or Odin GPU hangs are solved. Save reads still run on their
@@ -119,6 +119,81 @@ existing worker and refresh when entering the relevant pages; no freshness or
 write-validation gate was weakened to obtain lower timings. Sprite loading is
 already asynchronous and hidden animation timers already stop; removing artwork
 or flattening the design is not the remedy for this incident.
+
+## Save-presentation follow-up — 2026-09-30
+
+Repeated visits still published an empty Checking observation, clearing Party
+actors/rows and rebuilding Field Guide twice despite identical verified save
+bytes. This slice separates a retained read-only presentation from readiness to
+act. `GameProgressService` carries only the previous source/save identifiers
+while Checking, and only when the caller confirms the same active Trainer,
+registration revision, ROM path and integration configuration. It carries no
+Party/Dex/Journey payload or badge facts. The worker still opens and validates
+fresh save bytes, repeats the read to detect replacement and checks the resolved
+source again. Generation invalidation and protected write services are unchanged.
+
+Party keeps its verified rows, actors and selection through that qualified read;
+its `available`/management gates remain false until completion. QML uses a
+separate display-availability property, so an unavailable-data panel does not
+cover retained rows. Entries have their own notification and cached projection;
+focus and status changes no longer republish the entire grid. Actual source,
+save, box/section or artwork changes invalidate the projection. Field Guide
+rebuilds only when its displayed records, scope or stale status change. Missing
+or unqualified observations still clear the display; a new owner's records are
+never filled from the previous owner.
+
+The matched comparison below starts with the already improved `04d004d` binary,
+not the original pre-audit baseline above. Both runs use the same Flip, Armada
+`20260929.5915c28`, library and Field Guide face, with no Adventure or build
+running. The production build uses Release with `BUILD_TESTING=OFF`.
+
+| Same 20 requested transitions | Before this slice | After this slice |
+| --- | ---: | ---: |
+| Sequence elapsed | 27.72 s | 27.70 s |
+| Completed page handlers | 20 | 20 |
+| Mean synchronous page handler | 102.71 ms | 51.89 ms |
+| Maximum page handler | 197.27 ms | 134.33 ms |
+| Mean GUI heartbeat lateness | 15.24 ms | 8.73 ms |
+| Maximum GUI heartbeat lateness | 234.40 ms | 203.81 ms |
+| Process CPU time | 13.91 s | 10.47 s |
+| Field Guide rebuild calls | 26 | 0 |
+| Party actor synchronization calls | 26 | 0 |
+
+This bounded sample approximately halves mean handler time and reduces process
+CPU time by 25%. The macro deliberately waits between presses, so its elapsed
+time is not an improvement metric. Heartbeat peaks remain above a frame budget;
+this is not a claim of smoothness on every page or a button-to-photon measurement.
+
+Verification and delivery:
+
+- Windows: eight affected suites passed (core, game progress, Guide,
+  interactions, practice, Link, protected backups and ownership); shell,
+  Guide and artwork SDL/QML scenarios passed too.
+- ARM64: core, game progress, Guide and interactions passed, followed by a
+  separate production configuration/build. Portable adapter snapshot and
+  knowledge checks passed; no parser or exact-game profile changed.
+- Regression cases cover same-save retention, changed bytes during a worker
+  read, rollback/new-save refresh, owner invalidation, disabled actions while
+  Checking and focus-only changes without rebuilding rows/actors.
+- Both devices received SHA-256
+  `eaa851b3a5ebd104172ae29fbd097ed56c6ff8a0782df10289360eed1e34ea01`.
+  Each retained its own database (Flip: 3 Trainers / 830 registrations;
+  Odin: 1 / 25). A binary/database backup preceded atomic replacement.
+- Flip's live process hash matched. Actual Home, Guide and Party captures were
+  inspected. Shoulder/trigger navigation and Home worked; Party selection
+  remained on Swampert after Home and a fresh return/read. Diagnostic capture
+  was disabled, the process restarted, trace growth stopped and InputPlumber
+  remained active. The shell was left on Home.
+- Odin's installed hash matched, but it remained in its existing Steam session.
+  A bounded application launch in that session did not produce the first-frame
+  signal within six seconds and was terminated. SSH and InputPlumber remained
+  available afterwards. This does not verify its normal TrainerOS session or
+  solve the previously recorded graphics/radio incident. No boot preference,
+  emulator configuration, ROM or save was replaced.
+
+Remaining cost includes broad Home/other presentation notifications, cold image
+decoding and device graphics/radio behavior. Nearby reliability and RA remain in
+the roadmap; sleep work is deferred by the owner and suspend stays disabled.
 
 ## Reproduce a bounded diagnostic capture
 

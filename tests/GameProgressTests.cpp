@@ -1248,6 +1248,35 @@ private slots:
         service.invalidate(); release.release(); QTest::qWait(100);
         QVERIFY(service.adventureId().isEmpty()); QVERIFY(!service.snapshot().caught);
     }
+    void repeatedReadCarriesOnlyIdentityAndStillVerifiesBytes() {
+        QTemporaryDir dir; const auto path = dir.filePath("ordinary.sav");
+        write(path, save(Gen3Edition::Emerald));
+        std::atomic<bool> blockNext = false; QSemaphore entered, release;
+        GameProgressService service([&](const AdventureRegistration& r) {
+            if (blockNext.exchange(false)) { entered.release(); release.tryAcquire(1, 5000); }
+            SaveTarget t; t.supported = true; t.adventureId = r.adventure.id;
+            t.savePath = path; t.contentRevision = EmeraldHash; t.contextRevision = "owner"; return t;
+        });
+        const auto r = record(); service.refresh(r);
+        QTRY_COMPARE(service.snapshot().availability, ProgressAvailability::Available);
+        const auto previous = service.snapshot();
+        blockNext = true; service.refresh(r, true);
+        QTRY_VERIFY(entered.available() > 0);
+        QCOMPARE(service.snapshot().availability, ProgressAvailability::Checking);
+        QCOMPARE(service.snapshot().saveRevision, previous.saveRevision);
+        QCOMPARE(service.snapshot().contextRevision, previous.contextRevision);
+        QVERIFY(!service.snapshot().party); QVERIFY(!service.snapshot().pokedex);
+        QVERIFY(!service.snapshot().journey); QVERIFY(!service.snapshot().badgeMask);
+        // An external write during the new read must still replace the result.
+        write(path, save(Gen3Edition::Emerald, 20, 21)); release.release();
+        QTRY_COMPARE(service.snapshot().availability, ProgressAvailability::Available);
+        QVERIFY(service.snapshot().saveRevision != previous.saveRevision);
+        blockNext = true; service.refresh(r, false); // Same title, another owner/context.
+        QTRY_VERIFY(entered.available() > 1);
+        QVERIFY(service.snapshot().contextRevision.isEmpty());
+        QVERIFY(service.snapshot().saveRevision.isEmpty()); release.release();
+        QTRY_COMPARE(service.snapshot().availability, ProgressAvailability::Available);
+    }
     void externalExamples() {
         const auto folder = qEnvironmentVariable("TRAINEROS_PROGRESS_SAMPLE_DIR");
         if (folder.isEmpty()) QSKIP("Optional private examples were not supplied; synthetic format cases run above.");

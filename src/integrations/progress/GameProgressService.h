@@ -14,7 +14,7 @@ class GameProgressService final : public GameProgressProvider {
 public:
     explicit GameProgressService(ProgressSaveResolver, QObject* parent = nullptr);
     ~GameProgressService() override;
-    void refresh(const AdventureRegistration&);
+    void refresh(const AdventureRegistration&, bool sameContext = false);
     void invalidate();
     void verifySnapshot(const AdventureRegistration&,const GameProgress&,QObject*,std::function<void(bool)>) override;
     void inspectCapabilities(const AdventureRegistration&,QObject*,std::function<void(QStringList)>) override;

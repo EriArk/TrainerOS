@@ -10,6 +10,15 @@ See [interface performance audit](INTERFACE_PERFORMANCE.md) for causes, changes,
 measurements and remaining limits. Preserve the established visuals and every
 pending nearby/RA/system/R1–R18 acceptance; Odin availability is a separate gate.
 
+**2026-09-30 save-presentation follow-up:** unchanged verified saves no longer
+clear/rebuild Party actors and Field Guide rows on every page visit. Read-only
+presentation can survive a same-Trainer/same-registration recheck; the provider
+still reads and verifies fresh bytes, and save actions remain gated while it is
+Checking. Owner/source changes invalidate the retained presentation. This is the
+second bounded performance slice, not a new save adapter or a redesign. Device
+measurement and delivery evidence are in the interface audit above. Sleep work
+is deferred again at the owner's request; preserve #79 without enabling suspend.
+
 **2026-09-28 direct nearby follow-up:** [Nearby play](NEARBY_PLAY.md) replaces
 same-router/code comparison with Wi-Fi Direct discovery, active Trainer names,
 background invitation popovers and a persistent accepted session. Activity

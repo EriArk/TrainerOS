@@ -32,6 +32,34 @@ public:
 class PokedexTests : public QObject {
     Q_OBJECT
 private slots:
+    void repeatedVerifiedReadKeepsRowsAndFiltersUntilDataChanges() {
+        MockPokedexRepository repo; PokedexController dex(repo, repo);
+        GameProgress p; p.availability = ProgressAvailability::Available;
+        p.contextRevision = "owner-one"; p.contentRevision = "emerald"; p.saveRevision = "save-one";
+        p.pokedex = SavePokedex{386, {1, 4}, {1}, {}};
+        dex.setSaveProgress("game", "Emerald", "game", p);
+        filter(dex, 3, "caught");
+        const auto rows = dex.entries();
+        QSignalSpy rowsChanged(&dex, &PokedexController::rowsChanged);
+        GameProgress checking; checking.availability = ProgressAvailability::Checking;
+        checking.contextRevision = p.contextRevision; checking.contentRevision = p.contentRevision;
+        checking.saveRevision = p.saveRevision;
+        dex.setSaveProgress("game", "Emerald", "game", checking);
+        QCOMPARE(dex.entries(), rows); QCOMPARE(rowsChanged.size(), 0);
+        QVERIFY(dex.saveCaption().contains("Reading save"));
+        p.observedAt = QDateTime::currentDateTimeUtc();
+        dex.setSaveProgress("game", "Emerald", "game", p);
+        QCOMPARE(dex.entries(), rows); QCOMPARE(rowsChanged.size(), 0);
+        p.saveRevision = "rolled-back"; p.pokedex->caught.clear();
+        dex.setSaveProgress("game", "Emerald", "game", p);
+        QVERIFY(dex.entries().isEmpty()); QCOMPARE(rowsChanged.size(), 1);
+        p.saveRevision = "save-two"; p.pokedex->caught.insert(4);
+        dex.setSaveProgress("game", "Emerald", "game", p);
+        QCOMPARE(ids(dex), QStringList{"charmander"});
+        checking.contextRevision = "owner-two";
+        dex.setSaveProgress("game", "Emerald", "game", checking);
+        QVERIFY(dex.entries().isEmpty()); // No old owner's caught filter results.
+    }
     void adapterScopeFiltersSpeciesFormsAndRestoresOtherGames() {
         MockPokedexRepository repo;MutableReference reference;
         reference.catalog.entries.append({"late",900,"Later Pokemon",{"Normal"},{"other"},{{"900","Standard",{"Normal"}}}});

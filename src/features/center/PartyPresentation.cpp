@@ -7,15 +7,26 @@ namespace trainer {
 QString PartyPresentation::boxName() const {
     return !sample_ && snapshot_ && box_ < snapshot_->boxes.size() ? snapshot_->boxes[box_].name : QString("Box %1").arg(box_+1);
 }
-void PartyPresentation::setProgress(const QString& adventureId, const GameProgress& progress) {
-    if (sample_) return;
+bool PartyPresentation::setProgress(const QString& adventureId, const GameProgress& progress) {
+    if (sample_) return false;
     const bool matches = adventureId == id_ && !id_.isEmpty();
     const auto state = matches ? progress.availability : ProgressAvailability::Unsupported;
-    const QString key = matches ? adventureId + progress.contextRevision + progress.contentRevision + progress.saveRevision + QString::number(int(state)) : QString();
-    if (observationKey_ == key && availability_ == state) return;
+    const QString key = matches ? QStringList{adventureId, progress.contextRevision, progress.contentRevision,
+        progress.saveRevision, QString::number(int(state)), progress.party ? progress.party->error : QStringLiteral("no-party")}.join('\n') : QString();
+    if (state == ProgressAvailability::Checking && snapshot_ && !saveRevision_.isEmpty()
+        && progress.saveRevision == saveRevision_ && progress.contextRevision == sourceContext_
+        && progress.contentRevision == contentRevision_) {
+        if (availability_ == state) return false;
+        availability_ = state; emit changed(); return true;
+    }
+    if (observationKey_ == key) {
+        if (availability_ == state) return false;
+        availability_ = state; emit changed(); return true;
+    }
     if(moveOpen() && !moving() && matches && !progress.contextRevision.isEmpty() && !sourceContext_.isEmpty() && progress.contextRevision!=sourceContext_)cancelMove();
     observationKey_ = key; availability_ = state;
     saveRevision_=matches?progress.saveRevision:QString();
+    contentRevision_=matches?progress.contentRevision:QString();
     snapshot_ = matches && state == ProgressAvailability::Available ? progress.party : std::nullopt;
     detail_ = false; activitiesFocus_ = false; boxFocus_ = false;
     if (snapshot_ && sourceContext_ != progress.contextRevision) {
@@ -26,6 +37,7 @@ void PartyPresentation::setProgress(const QString& adventureId, const GameProgre
     if (snapshot_ && box_ >= boxCount()) box_ = 0;
     syncActors();
     emit changed();
+    return true;
 }
 void PartyPresentation::syncActors() {
     PerformanceTrace::Scope perf("PartyPresentation.syncActors");
@@ -34,7 +46,7 @@ void PartyPresentation::syncActors() {
         // Explicit development fixture; never fills missing production records.
         for (const auto& pair : {QPair<QString,QString>{"Bulbasaur","bulbasaur/1"}, {"Pikachu","pikachu/25"}})
             actors.append(withArt({{"name",pair.first},{"target",pair.second},{"kind","known"},{"level","12"},{"condition","Healthy"}}));
-    } else if (available()) {
+    } else if (displayAvailable()) {
         for (int i=0;i<snapshot_->party.size() && i<6;++i)
             if (snapshot_->party[i].kind == PokemonSlotKind::Known) actors.append(present(snapshot_->party[i],i));
     }
@@ -60,7 +72,8 @@ QVariantMap PartyPresentation::present(const PokemonRecord& p, int index) const 
 void PartyPresentation::configureArtwork(ClassicArt* art, SpriteArt* sprites) {
     art_ = art; sprites_ = sprites;
     activities_.link()->setArtwork([this](QVariantMap row){return withArt(row);});
-    if (art_) connect(art_, &ClassicArt::changed, this, [this] { syncActors(); emit changed(); });
+    ++artRevision_;
+    if (art_) connect(art_, &ClassicArt::changed, this, [this] { ++artRevision_; syncActors(); emit changed(); });
     syncActors();
     emit changed();
 }
@@ -69,6 +82,11 @@ void PartyPresentation::changeBox(int delta) {
     box_ = (box_ + delta % boxCount() + boxCount()) % boxCount(); emit changed();
 }
 PartyPresentation::PartyPresentation(bool sample, QObject* parent) : QObject(parent), sample_(sample), activities_(sample, this) {
+    connect(this, &PartyPresentation::changed, this, [this] {
+        const auto key = entriesKey();
+        if (key == publishedEntriesKey_) return;
+        publishedEntriesKey_ = key; emit entriesChanged();
+    });
     connect(&activities_, &CenterActivities::changed, this, &PartyPresentation::changed);
     connect(&activities_, &CenterActivities::closeRequested, this, [this] {
         section_ = managementSection_; activitiesFocus_ = true; emit changed();
@@ -90,19 +108,20 @@ QString PartyPresentation::status() const {
     return id_.isEmpty() ? "Choose an Adventure with a supported save to view its Party and Storage."
         : "Party and Storage reading is not available for this Adventure yet.";
 }
-void PartyPresentation::setAdventure(const QString& id, const QString& title) {
-    if (id_ == id && title_ == title) return;
+bool PartyPresentation::setAdventure(const QString& id, const QString& title) {
+    if (id_ == id && title_ == title) return false;
     if (id_ != id) {
         cancelMove();
         id_ = id; detail_ = false; partyFocus_ = 0; std::fill(std::begin(storageFocus_),std::end(storageFocus_),0); box_ = 0;
-        snapshot_.reset(); observationKey_.clear(); sourceContext_.clear(); initialBoxSet_ = false; availability_ = ProgressAvailability::Unsupported;
+        snapshot_.reset(); observationKey_.clear(); sourceContext_.clear(); contentRevision_.clear(); saveRevision_.clear(); initialBoxSet_ = false; availability_ = ProgressAvailability::Unsupported;
         activitiesFocus_ = false; boxFocus_ = false; activities_.reset();
     }
     title_ = title; syncActors(); emit changed();
+    return true;
 }
 QVariantMap PartyPresentation::slot(int index) const {
     if (!sample_) {
-        if (!available()) return {};
+        if (!displayAvailable()) return {};
         const auto& members = section_ == "party" ? snapshot_->party : snapshot_->boxes[box_].members;
         return index >= 0 && index < members.size() ? present(members[index], index) : QVariantMap{};
     }
@@ -144,15 +163,22 @@ QVariantMap PartyPresentation::withArt(QVariantMap row) const {
     }
     return row;
 }
+QString PartyPresentation::entriesKey() const {
+    return QStringList{id_, observationKey_, section_, QString::number(box_), QString::number(artRevision_),
+        displayAvailable() ? QStringLiteral("shown") : QStringLiteral("empty")}.join('\n');
+}
 QVariantList PartyPresentation::entries() const {
     PerformanceTrace::Scope perf("PartyPresentation.entries");
+    const auto key = entriesKey();
+    if (cachedEntriesKey_ == key) return cachedEntries_;
     QVariantList result;
-    if (!available() || section_ == "saves" || section_ == "activities") return result;
-    for (int i = 0; i < (section_ == "party" ? 6 : 30); ++i) result.append(slot(i));
-    return result;
+    if (displayAvailable() && section_ != "saves" && section_ != "activities")
+        for (int i = 0; i < (section_ == "party" ? 6 : 30); ++i) result.append(slot(i));
+    cachedEntriesKey_ = key; cachedEntries_ = result;
+    return cachedEntries_;
 }
 QVariantMap PartyPresentation::detail() const {
-    return available() && (section_ == "party" || section_ == "storage") ? slot(section_ == "party" ? partyFocus_ : storageFocus_[box_]) : QVariantMap{};
+    return displayAvailable() && (section_ == "party" || section_ == "storage") ? slot(section_ == "party" ? partyFocus_ : storageFocus_[box_]) : QVariantMap{};
 }
 void PartyPresentation::activate(int index) {
     if(moveOpen()){moveActivate(index);return;}
@@ -160,7 +186,7 @@ void PartyPresentation::activate(int index) {
     if (activitiesFocus_) { openActivities(); return; }
     if (boxFocus_) { changeBox(1); return; }
     if (detail_) { if(index==5){beginHeldItems();return;} if(index==4){beginRelease();return;} if(index==3){beginMove();return;} if (index == 2) {detail_=false;emit changed();emit healingRequested();} else if (index == 1) {detail_=false;emit backupsRequested();} else { detail_ = false; emit changed(); } return; }
-    if (!available()) { emit backupsRequested(); return; }
+    if (!available()) { if (availability_ != ProgressAvailability::Checking) emit backupsRequested(); return; }
     const int count = section_ == "party" ? 6 : 30;
     if (index < 0 || index >= count || section_ == "saves") return;
     (section_ == "party" ? partyFocus_ : storageFocus_[box_]) = index;
