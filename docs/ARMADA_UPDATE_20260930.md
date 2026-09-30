@@ -65,3 +65,7 @@ device 1: `No VIF found`, `not found vif` and firmware-stat failure `-71`.
 These provide a Wi-Fi investigation lead, not an established cause or a reason
 to label this incident a proven GPU crash. Root-cause work and another Odin
 session-entry attempt remain a separate increment.
+
+The owner's follow-up reopened sleep assessment and isolated radio diagnostics.
+See [the September 30 assessment](ARMADA_SLEEP_20260930.md) for exact upstream
+changes, current per-device sleep policy and the unresolved radio evidence.

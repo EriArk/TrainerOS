@@ -963,6 +963,12 @@ Measure cold start/first frame, normal idle CPU/RAM, launch/return latency and f
 
 ### U13. Sleep/hinge/wake — explicitly deferred
 
+**2026-09-30 owner follow-up:** inspect the newly installed Armada sleep changes
+now, without dropping R13/#79 acceptance or enabling an untested route. The
+[live assessment](ARMADA_SLEEP_20260930.md) separates Flip/Odin chip/build changes,
+Steam-specific button handling and the still-unresolved Odin radio incident.
+Physical sleep/wake verification remains pending; no sleep policy was changed.
+
 **Scheduling supersession:** #79 now schedules R13. This heading stays for existing links; “outside the active order” below is historical. Keep sleep disabled until all physical gates pass.
 
 Source: [device investigation](ARMADA_DEVICE_BASELINE.md), [play-session time semantics](HOME_AND_HISTORY.md#recording-and-storage), former milestones 4/11/14.
