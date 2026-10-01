@@ -54,7 +54,7 @@ Window {
             x: Theme.brandWidth; y: 0; spacing: Theme.tabSpacing
             z: 1 // Individual chassis-mounted keys; modal surfaces stay above them.
             Repeater {
-                model: ["Home", "Worlds", "Companions", "Trainer", "Journey"]
+                model: shell.primaryNames
                 delegate: Item {
                     id: tab
                     required property int index
@@ -166,8 +166,9 @@ Window {
                 anchors.bottomMargin: Theme.panelInset
                 HomePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 0 && !shell.multiverseHome }
                 MultiverseHome { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 0 && shell.multiverseHome }
-                HallOfFamePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 4 }
-                TrainerPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 3 }
+                HallOfFamePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.trainerHistoryFace }
+                TrainerPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 3 && shell.trainerFace === "profile" }
+                SocialPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 4 }
                 WorldsPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && !shell.multiverseFace }
                 MultiversePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && shell.multiverseFace }
                 PokedexPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 2 && !shell.centerFace }
@@ -277,7 +278,7 @@ Window {
                     if (party.section === "storage" && party.available && !party.activitiesFocused && party.focusIndex < 6) actions.unshift(h("↑","Boxes"))
                     return actions
                 }
-                if (shell.page === 4) {
+                if (shell.trainerHistoryFace) {
                     const hall = shell.hall
                     if (hall.editor.open) return hall.editor.route === "form" ? [h("Y","Save"),h("A","Edit"),h("B","Discard")] : [h("X",hall.editor.route === "team" ? "Level" : "Search"),h("A",hall.editor.route === "team" ? "Name" : "Choose"),h("B","Back")]
                     let result = []
@@ -290,7 +291,8 @@ Window {
                     result.push(h("A",hall.overview ? (hall.route === "archive-journey" ? "Champions" : "Journey") : "Open"),h("B","Back")); return result
                 }
                 if (shell.page === 0) return [h("A",shell.multiverseHome ? (shell.multiverse.selected.id ? "Play" : "Explore") : shell.home.actionHint),h("B","Back")]
-                return [h("A","Select"),h("B",shell.trainer.editing ? "Cancel" : "Back")]
+                if (shell.page === 4) return []
+                return [h("A",shell.trainer.editing ? "Select" : "Edit Trainer"),h("B",shell.trainer.editing ? "Cancel" : "Back")]
             }
             Row {
                 objectName: "shell-button-hints"

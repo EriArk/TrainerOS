@@ -1,5 +1,12 @@
 # TrainerOS Design Language
 
+**2026-10-01 composition:** preserve the approved material chassis, tab geometry,
+gold focus and existing feature interiors. #111 uses Home / Worlds / Companions /
+Trainer / Social, with compact Profile/Journey/Hall/RA and Friends/Chats face
+indicators in the existing header space. No extra tab row, nested dashboard or
+redesign of the Playroom. Social's current unlinked surface contains no fake
+friends or inactive setup controls. [Current routing](NAVIGATION_111.md).
+
 **Navigation composition target — 2026-09-26 (#83–88):** retain the approved
 chassis/tab style; primary labels become Pokémon and Journey. Secondary faces
 use a compact cyclic-position cue in existing header/chassis space, not another

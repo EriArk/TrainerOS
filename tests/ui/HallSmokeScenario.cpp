@@ -51,7 +51,7 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         constexpr auto x = SDL_CONTROLLER_BUTTON_Y, y = SDL_CONTROLLER_BUTTON_X;
         auto* hall = shell.hall();
         switch ((*stage)++) {
-        case -6: check(input.connected(), "Controller unavailable"); press(r1, 4); break;
+        case -6: check(input.connected(), "Controller unavailable"); press(r1, 3); flip(); break;
         case -5:
             check(hall->overview() && focusIs("journey-primary"), "Journey has a fixed visible action");
             capture("journey"); press(x); break;
@@ -62,9 +62,9 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
             check(hall->route()=="archive-journey" && focusIs("journey-primary"), "A returns directly from the team gallery to Journey");
             capture("journey-return"); press(x); break;
         case -2:
-            check(hall->route()=="archive-champions", "B first returns to records"); press(b); flip(SDL_CONTROLLER_AXIS_TRIGGERLEFT); break;
+            check(hall->route()=="archive-champions", "B first returns to records"); press(b); flip(SDL_CONTROLLER_AXIS_TRIGGERLEFT); flip(SDL_CONTROLLER_AXIS_TRIGGERLEFT); break;
         case -1:
-            check(!hall->isArchive(), "Journey wraps backward to RA"); flip(); break;
+            check(!hall->isArchive(), "Profile wraps backward to RA"); flip(); flip(); break;
         case 0:
             check(hall->route()=="archive-journey" && focusIs("journey-primary"), "RA returns to Journey");
             flip(); break;
@@ -78,7 +78,7 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         case 3: check(focusIs("hall-action-0"), "Unknown record has Back"); capture("unknown-record"); press(b); press(up, 3); press(a); break;
         case 4: capture("team-detail"); press(start); break;
         case 5: check(focusIs("menu-0"), "System menu above archive detail"); press(b); press(l1); break;
-        case 6: check(shell.page() == 3, "L1 remains global"); press(r1); break;
+        case 6: check(shell.page() == 2, "L1 remains global"); press(r1); break;
         case 7:
             check(hall->route() == "archive-detail" && focusIs("hall-action-0"), "Archive detail preserved across sections");
             flip(); break;
@@ -183,7 +183,7 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         case 49:
             check(hall->editor()->query()=="A", "Search applied through controller");capture("memory-search");press(b);press(l1);break;
         case 50:
-            check(shell.page()==3 && !hall->editor()->isOpen(), "L1 closes transient editor and remains global");press(r1);break;
+            check(shell.page()==2 && !hall->editor()->isOpen(), "L1 closes transient editor and remains global");press(r1);break;
         case 51:
             check(hall->rows().size()==5 && focusIs("hall-action-0"), "Archive detail restores focus after leaving editor");
             press(x);press(down,2);press(a);press(a);press(b);press(b);break;
@@ -206,7 +206,7 @@ void startHallSmoke(QQuickWindow* window, ShellController& shell, ControllerInpu
         case 57:
             check(focusIs("achievement-account-1"), "Account focus returns after Start"); capture("account-1080p"); press(l1); break;
         case 58:
-            check(shell.page()==3 && !hall->account()->isOpen(), "Global page navigation clears account draft"); press(r1); press(x); break;
+            check(shell.page()==2 && !hall->account()->isOpen(), "Global page navigation clears account draft"); press(r1); press(x); break;
         case 59:
             check(hall->account()->rows()[1].toMap()["detail"] == "Enter password", "Password not retained after leaving page");
             press(b); window->resize(960,540); break;

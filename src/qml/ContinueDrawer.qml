@@ -192,15 +192,19 @@ Item {
                 if (card) {
                     if (card.x - 4 < contentX) contentX = card.x - 4
                     else if (card.x + card.width + 4 > contentX + width) contentX = card.x + card.width + 4 - width
+                    card.claimSelection()
                 }
             }
             onCurrentIndexChanged: Qt.callLater(reveal)
+            onCurrentItemChanged: Qt.callLater(reveal)
             onWidthChanged: Qt.callLater(reveal)
             onCountChanged: Qt.callLater(reveal)
             Connections { target: root; function onExpandedChanged() { Qt.callLater(cards.reveal) } }
+            Connections { target: root.shell; function onChanged() { if (root.expanded) Qt.callLater(cards.reveal) } }
                 delegate: Item {
                     required property int index
                     required property var modelData
+                    function claimSelection() { resumeCap.requestFocus() }
                     width: (root.expandedWidth - 72) / 3; height: 158
                     CapButton {
                         id: resumeCap

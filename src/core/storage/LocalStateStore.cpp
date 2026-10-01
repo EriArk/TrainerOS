@@ -1,4 +1,5 @@
 #include "LocalStateStore.h"
+#include "core/model/NavigationVersion.h"
 #include "SqliteLibrary.h"
 #include "LibraryFileMove.h"
 #include "SqliteExitMedia.h"
@@ -275,7 +276,7 @@ public:
                 else if (query.next()) {
                     // Invalid optional navigation can fall back without discarding profile/favorites.
                     state.navigation = QJsonDocument::fromJson(query.value(0).toByteArray()).object();
-                    if (state.navigation["version"].toInt() > 1)
+                    if (state.navigation["version"].toInt() > ShellNavigationVersion)
                         openError = "This browsing state needs a newer TrainerOS. The existing file has been kept.";
                 }
             }

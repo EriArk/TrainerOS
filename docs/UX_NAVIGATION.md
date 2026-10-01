@@ -4,6 +4,18 @@
 
 # TrainerOS UX & Navigation
 
+**2026-10-01 #111:** primaries are **Home / Worlds / Companions / Trainer /
+Social**. Trainer cycles **Profile / Journey / Hall / RA**, Social **Friends /
+Chats**. Full existing views/providers and modal priority are retained. First
+Trainer entry is Profile; revisits retain the face; explicit semantic history
+links select it. Navigation v2 migrates legacy Hall and launch/return checkpoints
+to Trainer, never Social. [Current migration](NAVIGATION_111.md).
+
+**Next, not yet installed:** #112 changes physical Home to an adaptive shell/game
+overlay; only explicit Exit starts updated #49. Start remains system-only.
+[Acceptance and preserved dependencies](EXPANSION_98_112.md). The existing
+Home jump/exit behavior remains until that independent increment.
+
 **2026-09-28:** [Nearby play](NEARBY_PLAY.md) adds one global invitation popover
 (A accept, B decline/cancel), without stacking new pages. An accepted activity
 opens the existing Link workspace. Connected idle sessions survive navigation.

@@ -5,6 +5,13 @@
 
 # TrainerOS Domain Model
 
+**2026-10-01 navigation v2:** owner-scoped navigation JSON stores semantic
+`home/worlds/companions/trainer/social` plus `trainerFace` and `socialFace`.
+Legacy `hall`/slot 4 maps to the existing nested Journey/Hall/RA state under
+Trainer; old Trainer opens Profile. Unknown future layouts fall back to Home.
+The SQLite schema, archive/history/RA ownership, persistent game IDs and external
+saves do not change. [Migration and checkpoint boundary](NAVIGATION_111.md).
+
 **Planned extension — 2026-09-26:** [#69–90 contracts](EXPANSION_69_90.md)
 add no schema migration in this documentation increment. #90 generalizes the
 current two domains into versioned pack identities with per-Trainer selections,

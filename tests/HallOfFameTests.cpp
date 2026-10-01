@@ -184,7 +184,7 @@ private slots:
         MockAchievementProvider provider;
         provider.enableAccountPreview();
         ShellController shell(library, profiles, adapter, platform, dex, dex, archive, provider);
-        shell.goToPage(4); shell.dispatch(Action::NextFace);shell.activate(1);
+        shell.goToTrainerFace("journey"); shell.dispatch(Action::NextFace);shell.activate(1);
         const auto choice = shell.currentAdventureId();
         QVERIFY(shell.pairedNavigationAvailable());
         shell.dispatch(Action::NextFace);
@@ -213,7 +213,7 @@ private slots:
         const auto saved = shell.navigationState();
         ShellController restored(library, profiles, adapter, platform, dex, dex, archive, provider);
         restored.restoreNavigation(saved);
-        QCOMPARE(restored.page(), 4);
+        QCOMPARE(restored.page(), 3);
         QCOMPARE(restored.hall()->route(), "archive-detail");
         restored.dispatch(Action::NextFace);
         QCOMPARE(restored.hall()->route(), "achievement-detail");
@@ -229,7 +229,7 @@ private slots:
         MockHallOfFameRepository archive;
         MockAchievementProvider provider;
         ShellController shell(library, profiles, adapter, platform, dex, dex, archive, provider);
-        shell.goToPage(4);shell.dispatch(Action::NextFace);
+        shell.goToTrainerFace("journey");shell.dispatch(Action::NextFace);
         shell.dispatch(Action::LocalAction);
         auto* editor = shell.hall()->editor();
         editor->activate(0); editor->activate(0); editor->submit();
@@ -362,7 +362,7 @@ private slots:
         MockAchievementProvider provider;
         ShellController shell(library, profiles, adapter, platform, dex, dex, archive, provider);
         const auto home = shell.home();
-        shell.goToPage(4); achievements(*shell.hall()); shell.activate(1);
+        shell.goToTrainerFace("journey"); achievements(*shell.hall()); shell.activate(1);
         shell.dispatch(Action::SystemMenu); shell.dispatch(Action::Back);
         QCOMPARE(shell.hall()->route(), "achievement-detail");
         shell.dispatch(Action::PreviousPage); shell.dispatch(Action::NextPage);
@@ -373,7 +373,7 @@ private slots:
         QCOMPARE(shell.home(), home);
         QCOMPARE(archive.loadArchive().entries.size(), 4);
         shell.dispatch(Action::Back); shell.dispatch(Action::Back); shell.dispatch(Action::Back);
-        QCOMPARE(shell.page(), 4); QCOMPARE(shell.hall()->route(), "sets");
+        QCOMPARE(shell.page(), 3); QCOMPARE(shell.hall()->route(), "sets");
     }
 };
 QTEST_GUILESS_MAIN(HallOfFameTests)

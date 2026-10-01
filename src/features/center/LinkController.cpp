@@ -685,6 +685,9 @@ void LinkController::activate(int index) {
     }
     if(stage_=="finished" || stage_=="error") {
         if(pending()){peer_.disconnectPeer();return;}
+        if(stage_=="error" && !paired_) {
+            resetChoice();leave();return; // Return to Center, not an empty peer list.
+        }
         battle_.cancel();resetChoice();stage_=paired_?"lobby":"browse";message_="What shall we do together?";emit changed();
     }
 }

@@ -33,6 +33,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
     auto* progress = new HomeProgressFixture(window);
     auto stage = std::make_shared<int>(0), starts = std::make_shared<int>(0), returns = std::make_shared<int>(0);
     auto failed = std::make_shared<bool>(false);
+    auto returningToSelector = std::make_shared<bool>(false);
     const auto program = QDir(QCoreApplication::applicationDirPath()).filePath(
 #ifdef Q_OS_WIN
         "trainer_process_probe.exe"
@@ -105,14 +106,19 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             for (int i = 0; i < 4; ++i) press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
             break;
         case 3: {
-            check(focusIs("resume-4"), "Controller reaches fifth card");
+            check(focusIs("resume-4"), QString("Controller reaches fifth card (index=%1, focus=%2)").arg(shell.focusIndex()).arg(window->activeFocusItem()?window->activeFocusItem()->objectName():"none"));
             auto* card = window->activeFocusItem();
             if (card) { const auto rect = card->mapRectToScene(card->boundingRect()); check(rect.left() >= 0 && rect.right() <= window->width(), "Scrolled card stays inside screen"); }
             capture("home-recent-scroll"); press(SDL_CONTROLLER_BUTTON_START); break;
         }
         case 4:
-            check(shell.menuOpen(), "Start opens system menu above selector");
-            press(SDL_CONTROLLER_BUTTON_A); check(focusIs("resume-4"), "Back restores selected card");
+            if (!*returningToSelector) {
+                check(shell.menuOpen(), "Start opens system menu above selector");
+                press(SDL_CONTROLLER_BUTTON_A);
+                *returningToSelector = true; --*stage; break;
+            }
+            // Deferred QML focus settles after closing the system overlay.
+            check(focusIs("resume-4"), "Back restores selected card");
             press(SDL_CONTROLLER_BUTTON_B); break;
         case 5: {
             check(*starts == 0 && *returns == 0 && shell.notice().isEmpty(), "Selecting a card must never launch");
@@ -240,7 +246,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             capture("badges-large-case-fixture");
             delete window->findChild<QQuickItem*>("badge-case-fixture");
             progress->value.badgeMask = 255; progress->publish();
-            shell.goToPage(4); shell.hall()->showJourney(); break;
+            shell.goToTrainerFace("journey"); break;
         case 16:
             check(focusIs("journey-primary") && shell.home()["badgeSlots"].toList().size() == 8, "Journey keeps a fixed action beside verified badge data");
             capture("journey-badges-960");

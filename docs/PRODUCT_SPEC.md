@@ -1,5 +1,13 @@
 # TrainerOS Product Specification
 
+**2026-10-01 supersession:** #111 places Profile/Journey/Hall/RA under Trainer
+and uses rightmost Social for Friends/Chats, retaining five primaries and every
+existing provider. [Navigation migration](NAVIGATION_111.md). #112's adaptive
+Home overlay and updated #49 explicit Exit are next; Start is unchanged.
+[#98–112 acceptance](EXPANSION_98_112.md) separates native system Link from runtime
+multiplayer and preserves every earlier roadmap obligation. Messaging/voice/
+online Link are planned; a navigation change is not a live Fluxer integration.
+
 **2026-09-28 presentation/nearby update:** use Companions / Field Guide / Care
 Center for shell-owned section names. [Nearby play](NEARBY_PLAY.md) specifies
 Trainer-named direct discovery, persistent connections and acceptance popovers;
@@ -59,17 +67,19 @@ Adventure media, local selected-game video, original/licensed audio, hardware fe
 - **Trainer:** personal identity/records; shared library ownership is separate.
 - **Multiverse:** non-Pokémon system browser paired with Worlds, with an independent Home context.
 - **Pokédex:** offline reference, verified current-save progression, personal favorites and independent art; no manual journal editor.
-- **Journey:** primary section with live progression, historical Hall of Fame and external RA as distinct secondary faces.
-- **Pokémon Center:** service face for healing, backup/recovery and later Link; Party, Boxes, Playroom and Shops are peers under Pokémon.
+- **Companions:** franchise companion section; its Field Guide, Party, Boxes, Care Center, Playroom and Shops remain peer faces.
+- **Journey:** Trainer face for live progression; Profile, historical Hall and external RA are its peers.
+- **Social:** Friends and Chats faces; real account/provider integration follows navigation delivery.
+- **Care Center:** service face for healing, backup/recovery and Link under Companions.
 - **Desktop / Maintenance Mode:** deliberate KDE maintenance/recovery transition.
 
 Platform badges and Multiverse system names are intentional normal information. Emulator commands, paths, cores and package details stay in advanced/integration surfaces.
 
 ## Primary sections
 
-The five target full-screen peer pages are **Home ⇄ Worlds ⇄ Pokémon ⇄ Trainer ⇄ Journey**, selected with **L1/R1**. Home is not a permanent background shell.
+The five full-screen peer pages are **Home ⇄ Worlds ⇄ Companions ⇄ Trainer ⇄ Social**, selected with **L1/R1**. Home is not a permanent background shell.
 
-**Planned #83–85 supersede #43 pairs:** L2/R2 cycles Home contexts, Worlds/Multiverse, Pokémon (Dex, Party, Boxes, Center, Playroom, Shops) and Journey (Journey, Hall, RA). Useful route/focus/filter and return state survive; modal/transaction gates take priority. B stays local. Use a compact header/chassis indicator, not a sixth primary or a large second tab row. #90 later adds useful franchise contexts without a mixed global Y list.
+**#111 supersedes #85's separate Journey primary:** L2/R2 cycles Home contexts, Worlds/Multiverse, Companions (Guide, Party, Boxes, Center, Playroom, Shops), Trainer (Profile, Journey, Hall, RA) and Social (Friends, Chats). Useful route/focus/filter and return state survive; modal/transaction gates take priority. B stays local. Use a compact header/chassis indicator, not a sixth primary or a large second tab row. #90 later adds useful franchise contexts without a mixed global Y list.
 
 ## Home
 

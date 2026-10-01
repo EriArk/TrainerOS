@@ -276,6 +276,7 @@ qt_add_qml_module(traineros
         src/qml/DiagnosticsPanel.qml
         src/qml/KeyboardPanel.qml
         src/qml/TrainerPage.qml
+        src/qml/SocialPage.qml
         src/qml/TrainerEmblem.qml
         src/qml/WorldsPage.qml
         src/qml/WorldCard.qml

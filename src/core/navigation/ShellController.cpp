@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <bit>
 #include "core/model/Experience.h"
+#include "core/model/NavigationVersion.h"
 
 namespace trainer {
 void ShellController::showAchievements(const QString& title,const QStringList& names) {
@@ -238,7 +239,7 @@ void ShellController::refreshLibrary() {
     worlds_.refresh(); libraryManager_.refresh(); multiverse_.refresh();
     const auto records=repository_.registrations();
     settings_.setLegacyTrashAvailable(std::any_of(records.cbegin(),records.cend(),[](const auto& r){return r.removed && !r.trashPath.isEmpty();}));
-    if (page_ == 3) trainer_.refreshOverview();
+    if (page_ == 3 && trainerProfile_) trainer_.refreshOverview();
     const QString selected = drawerFocus_ < points_.size() ? points_[drawerFocus_].id : QString();
     refreshContinue();
     drawerFocus_ = 0;
@@ -266,10 +267,10 @@ bool ShellController::canEditWorld() const {
 bool ShellController::localModalOpen() {
     return libraryTools_.isOpen() || trainer_.editing() || (page_ == 2 && (centerFace() ? center_.confirming() || center_.writing() || (center_.shopsOpen() && center_.shopModal()) || party_.detailOpen() || party_.moveOpen()
         : pokedex_.zone() == "picker" || pokedex_.zone() == "art" || pokedex_.saving()))
-        || (page_ == 4 && (hall_.editor()->isOpen() || hall_.account()->isOpen()));
+        || (trainerHistoryFace() && (hall_.editor()->isOpen() || hall_.account()->isOpen()));
 }
 bool ShellController::chooseAdventureAvailable() {
-    return page_ != 1 && !(page_==2 && pokemonFace_=="shops") && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
+    return page_ != 1 && page_ != 4 && !(page_==2 && pokemonFace_=="shops") && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
         && !keyboard_.isOpen() && !localModalOpen() && !party_.activities()->practice()->running() && !party_.activities()->link()->active();
 }
 bool ShellController::navigationLocked() const {
@@ -277,21 +278,40 @@ bool ShellController::navigationLocked() const {
         || (center_.shopsOpen() && center_.shopModal());
 }
 bool ShellController::pairedNavigationAvailable() {
-    return page_!=3 && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
+    return !serviceOpen() && !menuOpen_ && notice_.isEmpty()
         && !keyboard_.isOpen() && !localModalOpen() && !drawerOpen_;
 }
 QStringList ShellController::faceNames() const {
     if(page_==0 || page_==1)return {"Pokémon","Multiverse"};
     if(page_==2)return {"Guide","Party","Boxes","Center","Playroom","Shops"};
-    if(page_==4)return {"Journey","Hall","RA"};
+    if(page_==3)return {"Profile","Journey","Hall","RA"};
+    if(page_==4)return {"Friends","Chats"};
     return {};
 }
 int ShellController::faceIndex() const {
     if(page_==0)return multiverseHome_?1:0;
     if(page_==1)return multiverseFace_?1:0;
     if(page_==2)return QStringList{"dex","party","boxes","center","playroom","shops"}.indexOf(pokemonFace_);
-    if(page_==4)return hall_.faceIndex();
+    if(page_==3)return trainerProfile_ ? 0 : hall_.faceIndex()+1;
+    if(page_==4)return socialFace_=="chats"?1:0;
     return 0;
+}
+QString ShellController::trainerFace() const {
+    return trainerProfile_ ? QStringLiteral("profile") : QStringList{"journey","hall","ra"}[hall_.faceIndex()];
+}
+void ShellController::showTrainerFace(const QString& face) {
+    const QStringList faces{"profile","journey","hall","ra"};
+    const int index=faces.indexOf(face);
+    if(index<0)return;
+    trainerProfile_=index==0;
+    if(index>0)hall_.showFace(index-1);
+    if(trainerProfile_)trainer_.refreshOverview();
+    emit changed();
+}
+void ShellController::goToTrainerFace(const QString& face) {
+    if(navigationLocked() || !QStringList{"profile","journey","hall","ra"}.contains(face))return;
+    goToPage(3);
+    showTrainerFace(face);
 }
 void ShellController::showPokemonFace(const QString& face) {
     if(pokemonFace_=="playroom")playroomRoute_=party_.activities()->route()=="practice"?"practice":"playroom";
@@ -373,12 +393,13 @@ int ShellController::focusIndex() const {
     if (trainer_.editing()) return trainer_.focusIndex();
     if (page_ == 1) return multiverseFace_ ? multiverse_.focusIndex() : worlds_.focusIndex();
     if (page_ == 2) return centerFace() ? (party_.section() == "saves" || center_.shopsOpen() || center_.clinicOpen() ? center_.focusIndex() : party_.focusIndex()) : pokedex_.focusIndex();
-    if (page_ == 4) return hall_.focusIndex();
+    if (trainerHistoryFace()) return hall_.focusIndex();
     return drawerOpen_ ? drawerFocus_ : 0;
 }
 QJsonObject ShellController::navigationState() const {
-    const QStringList pages{"home", "worlds", "pokedex", "trainer", "hall"};
-    return {{"version", 1}, {"experienceVersion",pokemonExperience().version}, {"page", pages[page_]},
+    const QStringList pages{"home", "worlds", "companions", "trainer", "social"};
+    return {{"version", ShellNavigationVersion}, {"experienceVersion",pokemonExperience().version}, {"page", pages[page_]},
+            {"trainerFace",trainerFace()},{"socialFace",socialFace_},
             {"homeAdventure", homeAdventureId_}, {"homeResume", homeResumeId_}, {"pokedexFace", pokemonFace_=="dex" ? "pokedex" : "center"}, {"pokemonFace",pokemonFace_}, {"centerRoute",centerRoute_}, {"party",party_.navigationState()},
             {"homeResumeSource", homeResumeSource_.toJson()},
             {"multiverse",multiverse_.navigationState()},{"homeDomain",multiverseHome_?"multiverse":"pokemon"},
@@ -387,10 +408,23 @@ QJsonObject ShellController::navigationState() const {
             {"worlds", worlds_.navigationState()}, {"pokedex", pokedex_.navigationState()}, {"hall", hall_.navigationState()}};
 }
 void ShellController::restoreNavigation(const QJsonObject& state) {
-    if (state["version"].toInt() != 1) return;
-    const QStringList pages{"home", "worlds", "pokedex", "trainer", "hall"};
+    if(navigationLocked())return;
+    const int version=state["version"].toInt();
+    if(version!=1 && version!=ShellNavigationVersion) {
+        // A future layout is not permission to reinterpret its numeric slots.
+        trainerProfile_=true;socialFace_="friends";goToPage(0);return;
+    }
+    const QStringList legacyPages{"home","worlds","pokedex","trainer","hall"};
+    const QStringList pages{"home", "worlds", "companions", "trainer", "social"};
+    QString target=state["page"].toString();
+    if(version==1 && state["page"].isDouble())target=legacyPages.value(state["page"].toInt(),"home");
+    if(version==1 && target=="pokedex")target="companions";
+    const bool legacyHall=version==1 && target=="hall";
+    if(legacyHall)target="trainer";
     pokemonFace_ = "dex";
-    goToPage(std::max(0, int(pages.indexOf(state["page"].toString()))));
+    trainerProfile_=true;
+    socialFace_=version==2 && state["socialFace"].toString()=="chats"?"chats":"friends";
+    goToPage(std::max(0, int(pages.indexOf(target))));
     homeAdventureId_ = state["homeAdventure"].toString(); homeResumeId_ = state["homeResume"].toString();
     homeResumeSource_ = ResumeSource::fromJson(state["homeResumeSource"].toObject());
     // Preserve the Adventure choice, but never restore a retired state target.
@@ -400,13 +434,19 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     multiverseHome_=state["homeDomain"].toString()=="multiverse";
     multiverseFace_=state["worldsFace"].toString()=="multiverse";
     pokedex_.restoreNavigation(state["pokedex"].toObject());
+    // Establish the selected game's provider context before replaying its view.
+    // Otherwise the initial current-game reconciliation replaces the restored
+    // inactive RA detail with its default set list.
+    refreshParty();
     hall_.restoreNavigation(state["hall"].toObject());
+    if(legacyHall)trainerProfile_=false; // Its nested route chooses Journey, Hall or RA.
+    else if(version==2)showTrainerFace(state["trainerFace"].toString("profile"));
     drawerFocus_ = 0;
     for (int i = 0; i < points_.size(); ++i) if (points_[i].id == state["resume"].toString()) drawerFocus_ = i;
     pokemonFace_=state["pokemonFace"].toString(state["pokedexFace"].toString()=="center"?"party":"dex");
     if(!pokemonExperience().pokemonFaces.contains(pokemonFace_))pokemonFace_="dex";
     centerRoute_=state["centerRoute"].toString()=="backups"?"backups":"clinic";
-    refreshParty();party_.restoreNavigation(state["party"].toObject());
+    party_.restoreNavigation(state["party"].toObject());
     if(page_==2)showPokemonFace(pokemonFace_);
     emit changed();
 }
@@ -565,7 +605,7 @@ void ShellController::goToPage(int page) {
     // Party observes the current Adventure, library and save provider directly.
     // Visiting an unrelated page must not republish the same actors/practice UI.
     if (page_==2) showPokemonFace(pokemonFace_);
-    if (page_ == 3) trainer_.refreshOverview();
+    if (page_ == 3 && trainerProfile_) trainer_.refreshOverview();
     drawerOpen_ = false;
     menuOpen_ = false;
     if (powerMenu_) menuFocus_ = 6;
@@ -614,7 +654,7 @@ void ShellController::activate(int index, const QString& area) {
         else pokedex_.activateControl(area, index);
         return;
     }
-    else if (page_ == 4) {
+    else if (trainerHistoryFace()) {
         if (area.isEmpty()) hall_.activate(index);
         else hall_.activateControl(area, index);
         return;
@@ -749,8 +789,10 @@ void ShellController::confirm() {
             launchPreparation_.launch(adventure->id);
         } else notice_ = "This Adventure needs play setup.";
     }
-    else if (page_ == 3) {
+    else if (page_ == 3 && trainerProfile_) {
         trainer_.beginEdit();
+    } else if (page_ == 4) {
+        return; // Unlinked Social has no fabricated account action.
     } else {
         notice_ = "This section is not available in the prototype yet.";
     }
@@ -782,7 +824,11 @@ void ShellController::dispatch(Action action) {
         if (pairedNavigationAvailable()) {
             if (page_ == 1) { multiverseFace_ = !multiverseFace_; if(multiverseFace_)repository_.refreshContentAvailability(); }
             else if(page_==0)multiverseHome_=!multiverseHome_;
-            else if (page_ == 4) hall_.cycleFace(action==Action::NextFace?1:-1);
+            else if (page_ == 3) {
+                const QStringList faces{"profile","journey","hall","ra"};
+                showTrainerFace(faces[(faceIndex()+(action==Action::NextFace?1:3))%4]);
+            }
+            else if (page_ == 4) socialFace_=socialFace_=="friends"?"chats":"friends";
             else {
                 const auto& faces=pokemonExperience().pokemonFaces;
                 showPokemonFace(faces[(faceIndex()+(action==Action::NextFace?1:5))%6]);
@@ -849,7 +895,8 @@ void ShellController::dispatch(Action action) {
             else pokedex_.dispatch(action);
             return;
         }
-        if (page_ == 4) { hall_.dispatch(action == Action::LocalAction && !localModalOpen() ? Action::ToggleContinue : action); return; }
+        if (trainerHistoryFace()) { hall_.dispatch(action == Action::LocalAction && !localModalOpen() ? Action::ToggleContinue : action); return; }
+        if (page_ == 4) return;
     }
     if (menuOpen_ && !powerMenu_ && notice_.isEmpty() && action == Action::Secondary) {
         if (menuFocus_ >= 7) menuFocus_ = menuServiceFocus_;

@@ -931,7 +931,7 @@ int main(int argc, char* argv[]) {
                         press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); // Global page switch cancels both drafts.
                         break;
                     case 21:
-                        check(shell.page() == 4 && focusIs("journey-primary"), "R1 escapes keyboard to Hall of Fame");
+                        check(shell.page() == 4 && focusIs("social-empty"), "R1 escapes keyboard to Social");
                         check(!shell.keyboard()->isOpen() && !shell.trainer()->editing(), "page switch closes both drafts");
                         check(shell.trainer()->profile()["id"] == *savedId && shell.trainer()->profile()["name"] == "ERI 2", "switch preserves saved identity and name");
                         press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER); break;
@@ -950,13 +950,18 @@ int main(int argc, char* argv[]) {
                         capture("keyboard-letterbox"); press(b); press(b);
                         press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
                     case 26:
-                        check(shell.page() == 4 && focusIs("journey-primary"), "Hall of Fame focus");
+                        check(shell.page() == 4 && focusIs("social-empty"), "Unlinked Friends has visible shell focus");
+                        check(shell.socialFace()=="friends" && !shell.chooseAdventureAvailable(), "Social has no game selector");
                         press(b);
                         check(shell.page() == 4, "Back must not leave primary page");
+                        capture("social-friends-letterbox");
+                        SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767);input.poll();
+                        SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768);input.poll();
+                        check(shell.socialFace()=="chats", "Physical R2 cycles Social peers");
                         capture("landscape-letterbox");
                         window->resize(1920, 1080); break;
                     case 27:
-                        capture("hall-of-fame-1080p");
+                        capture("social-chats-1080p");
                         taps(SDL_CONTROLLER_BUTTON_LEFTSHOULDER, 4);
                         adapter.setSource("crystal-1", ""); shell.refreshLibrary();
                         press(SDL_CONTROLLER_BUTTON_X); break;

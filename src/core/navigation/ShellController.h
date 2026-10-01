@@ -31,6 +31,10 @@ class ShellController final : public QObject {
     Q_PROPERTY(bool canHoldConfirm READ canHoldConfirm NOTIFY changed)
     Q_PROPERTY(bool canEditWorld READ canEditWorld NOTIFY changed)
     Q_PROPERTY(int page READ page NOTIFY changed)
+    Q_PROPERTY(QStringList primaryNames READ primaryNames CONSTANT)
+    Q_PROPERTY(QString trainerFace READ trainerFace NOTIFY changed)
+    Q_PROPERTY(bool trainerHistoryFace READ trainerHistoryFace NOTIFY changed)
+    Q_PROPERTY(QString socialFace READ socialFace NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(bool drawerOpen READ drawerOpen NOTIFY changed)
     Q_PROPERTY(bool chooseAdventureAvailable READ chooseAdventureAvailable NOTIFY changed)
@@ -105,6 +109,10 @@ public:
     void showNotice(const QString& message) { mode_.clear(); notice_ = message; emit changed(); }
     bool modeConfirmation() const { return !mode_.isEmpty(); }
     int page() const { return page_; }
+    QStringList primaryNames() const { return {"Home", "Worlds", "Companions", "Trainer", "Social"}; }
+    QString trainerFace() const;
+    bool trainerHistoryFace() const { return page_ == 3 && !trainerProfile_; }
+    QString socialFace() const { return socialFace_; }
     int focusIndex() const;
     bool drawerOpen() const { return drawerOpen_; }
     bool chooseAdventureAvailable();
@@ -125,6 +133,7 @@ public:
     QJsonObject navigationState() const;
     void restoreNavigation(const QJsonObject&);
     Q_INVOKABLE void goToPage(int page);
+    Q_INVOKABLE void goToTrainerFace(const QString& face);
     Q_INVOKABLE void activate(int index, const QString& area = {});
 signals:
     void changed();
@@ -140,6 +149,7 @@ private:
     bool localModalOpen();
     void openCenter();
     void showPokemonFace(const QString& face);
+    void showTrainerFace(const QString& face);
     bool navigationLocked() const;
     void refreshParty();
     std::optional<Adventure> homeAdventure() const;
@@ -175,6 +185,8 @@ private:
     QString homeAdventureId_, homeResumeId_;
     ResumeSource homeResumeSource_;
     int page_ = 0;
+    bool trainerProfile_ = true;
+    QString socialFace_ = "friends";
     int drawerFocus_ = 0;
     int menuFocus_ = 0;
     int menuServiceFocus_ = 0;

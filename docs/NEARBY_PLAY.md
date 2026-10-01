@@ -382,6 +382,25 @@ explicit open gate. Next work is freeze/radio causality and recovery, then
 controlled Direct negotiation/reconnect proof; LAN success does not close the
 no-router requirement or the separate GPU-hang investigation.
 
+## Odin GPU freeze during navigation delivery — 2026-10-01
+
+The owner reported a freeze before the #111 update was installed. SSH still
+worked. At 06:32 the kernel recorded GPU_SET OOB timeouts, an Adreno translation
+fault naming TrainerOS's QSGRenderThread and a subsequent preemption timeout.
+The GPU worker was blocked; terminating TrainerOS left its process unable to
+finish. The running binary was the preceding production build, SHA-256
+`1509f82a01ef3117bceccef636e522782246ca0fbbc1fea43d2d029bb9e3f963`.
+No Adventure or bilateral transaction was pending. Earlier bandwidth-vote/HFI
+errors were present, but these logs do not establish a radio trigger or cause.
+
+Kernel/thread evidence was saved privately before recovery. A normal reboot
+request returned success but did not restore SSH. The owner physically restarted
+Odin; Steam rendered, then the updated TrainerOS session rendered and navigated.
+The original Steam boot preference was preserved. Keep root cause, reliable
+GPU/session recovery and duration proof open; do not treat the new layout or
+successful post-reboot window as a freeze fix. Bluetooth remains the default,
+without Wi-Fi Direct fallback or enabling suspend.
+
 ## Presentation names
 
 Primary Pokémon section becomes **Companions**, Pokédex becomes **Field Guide**

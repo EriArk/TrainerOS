@@ -1,5 +1,18 @@
 # AGENTS.md — TrainerOS
 
+**Owner approved issue order, 2026-10-01:** #111 changes primaries to Home /
+Worlds / Companions / Trainer / Social. Trainer has Profile / Journey / Hall / RA
+peer faces; Social has Friends / Chats. This supersedes the separate Journey
+primary and former in-Trainer messenger placement. #112 adaptive physical Home
+menu and updated #49 explicit Exit come next; Start remains system-only and is
+never duplicated. The Home behavior is planned until that separate increment.
+Then finish standalone PPSSPP RA, verify #99 user-client Fluxer access, deliver
+#100/#101 messaging, #104/#109/#105 to #110 native online Link, #102/#103 media/
+voice and #107 one exact runtime multiplayer route. #106 is conditional; #108
+applies throughout. Preserve every R1–R18 and later acceptance, current UI/save
+protection, Bluetooth default and Direct/suspend deferral. See
+[new acceptance](docs/EXPANSION_98_112.md) and [navigation](docs/NAVIGATION_111.md).
+
 **Owner transport override, 2026-09-30:** prefer Bluetooth for direct nearby
 play after the reported Odin freezes; defer further Wi-Fi Direct work if
 Bluetooth satisfies the same invitation/session UX. Bluetooth is now the default

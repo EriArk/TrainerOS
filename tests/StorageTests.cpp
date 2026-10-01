@@ -175,7 +175,7 @@ private slots:
         QCOMPARE(f.shell.navigationState(), before); QVERIFY(!f.store.load());
         f.shell.restoreNavigation(before); QVERIFY(!f.shell.keyboard()->isOpen()); QVERIFY(!f.shell.trainer()->editing());
         f.shell.restoreNavigation(QJsonObject{{"version", 99}, {"page", "worlds"}});
-        QCOMPARE(f.shell.page(), 3);
+        QCOMPARE(f.shell.page(), 0);
     }
     void navigationFailureRetryAndExplicitSkip() {
         QTemporaryDir dir; Fixture f(dir.path()); f.session.start(); QTRY_VERIFY(f.store.ready());

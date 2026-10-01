@@ -296,10 +296,14 @@ void HallOfFameController::switchFace() {
     reconcile(); // Missing rows and changed account data must never leave hidden focus.
 }
 void HallOfFameController::cycleFace(int delta) {
+    showFace((faceIndex()+(delta<0?2:1))%3);
+}
+void HallOfFameController::showFace(int index) {
     if(editor_.isOpen() || account_.isOpen())return;
+    if(index<0 || index>2 || index==faceIndex())return;
     FaceView* views[]{&journeyView_,&archiveView_,&achievementView_};
     const int from=faceIndex();*views[from]={route_,zone_,actionFocus_};
-    const auto view=*views[(from+(delta<0?2:1))%3];
+    const auto view=*views[index];
     route_=view.route;zone_=view.zone;actionFocus_=view.action;reconcile();
 }
 QJsonObject HallOfFameController::navigationState() const {

@@ -68,7 +68,12 @@ The current Adventure is shared across them.
 
 The shell itself stays simple:
 
-**Home ⇄ Worlds ⇄ Companions ⇄ Trainer ⇄ Journey**
+**Home ⇄ Worlds ⇄ Companions ⇄ Trainer ⇄ Social**
+
+Trainer contains **Profile ⇄ Journey ⇄ Hall ⇄ RetroAchievements** as full peer
+views. Social has Friends and Chats faces; its external account/messaging
+provider is the next integration and the current surface is honestly unlinked.
+Existing history, profiles and achievements remain available offline.
 
 L1/R1 changes the main section. L2/R2 changes the current section's faces.
 
@@ -260,6 +265,8 @@ ctest --test-dir build/native --output-on-failure
 Useful project docs:
 
 - [Roadmap](docs/ROADMAP.md)
+- [Navigation migration](docs/NAVIGATION_111.md)
+- [Social/Home acceptance](docs/EXPANSION_98_112.md)
 - [Odin 2 bring-up](docs/ODIN2_BRINGUP.md)
 - [Game-adapter knowledge](docs/adapters/README.md)
 - [Emerald Link](docs/EMERALD_LINK.md)

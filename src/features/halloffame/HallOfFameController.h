@@ -62,6 +62,7 @@ public:
     void switchFace();
     int faceIndex() const {return overview()?0:isArchive()?1:2;}
     void cycleFace(int delta);
+    void showFace(int index);
     QJsonObject navigationState() const;
     void restoreNavigation(const QJsonObject&);
 signals:

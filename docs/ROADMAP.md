@@ -2,7 +2,35 @@
 
 **2026-09-27 #91:** [Adapter knowledge base](adapters/README.md) is a prerequisite for new exact-game research and is updated throughout every adapter increment. It composes the existing #42/#89 work, without replacing or dropping any R1–R18 acceptance. A portable copy of the actual adapter, exact-game profiles and standalone build travel with its evidence. The delivered Emerald slice covers reorder, box movement, Party/Box transfer and protected release.
 
-## Current plan — reconciled 2026-09-27
+## Current plan — reconciled 2026-10-01
+
+**Owner-approved #98–112 order:** [acceptance register](EXPANSION_98_112.md)
+and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
+
+1. #111 delivered on Flip/Odin: five primaries; full Trainer Profile/Journey/Hall/RA,
+   rightmost Social and legacy navigation/deep-link/launch checkpoint migration.
+   Live messaging remains in its provider stages below.
+2. #112 local adaptive Home menu, updated #49 explicit Exit and capability-correct
+   shader/ratio/widescreen/bezel choices. Start keeps its existing system role.
+3. Finish existing R5 standalone PPSSPP active-Trainer RA handoff, actionable
+   authentication and legitimate fresh-play/return evidence.
+4. #99 bounded supported Fluxer **user-client** auth/API/native feasibility gate.
+5. #100 owner-scoped provider and #101 compact Friends/Chats messenger.
+6. #104 invitations + #109 reusable existing system activities + #105 per-traffic
+   delivery proof → #110 exact Emerald internet exchange with runtimes closed.
+7. #102 images/recorded voice and #103 simple private calls, independent gates.
+8. #107 one actual exact-game/runtime online multiplayer route. #106 direct/relay
+   is implemented only where the chosen consumer needs it; suitable #105 native
+   events do not wait for full P2P. #108 privacy/recovery/performance throughout.
+
+These are bounded coherent deliveries, not one all-or-nothing social release.
+Retain and then resume **every** unfinished R1–R18/R7a/R18a/R18b, U1–U13 and
+optional commitment below, including image/OTA/system/recovery and final packs/
+Studio/Credits. Working UI, offline use, ordinary saves and Bluetooth Link remain
+regression baselines. #65 account access, #93/#94 trust, Odin freeze cause,
+physical radio proof and longer reliability keep their separate gates; Direct
+and suspend remain deferred. Older dated next-step notes below are history;
+this owner-approved order supersedes their scheduling, not their acceptance.
 
 **2026-10-01 Bluetooth activity acceptance:** the installed exact Emerald pair
 completed a protected Party exchange, ordinary-game readback on both handhelds,
@@ -705,7 +733,7 @@ run is a delivery gate. The R queue below schedules only remaining work.
 
 ## Unified execution order — existing work and new issues
 
-Single remaining queue, reconciled 2026-09-27; #91–97 add dependencies and
+Single remaining queue, reconciled 2026-10-01; #91–112 add dependencies and
 suffixed rows without removing or renumbering earlier acceptance. Work top to bottom in coherent
 feature chains: backend, UI, checks, device delivery, commit/push. UI precedes
 its new provider; fixtures never become production progress. Existing features
@@ -713,6 +741,15 @@ stay usable. P IDs retain earlier acceptance/evidence; they are not sequence IDs
 
 | Order / work area | Complete slice | Dependency / completion boundary |
 | --- | --- | --- |
+| **N1 · R3 — navigation migration (delivered)** | #111 Profile/Journey/Hall/RA under Trainer; rightmost Social Friends/Chats; stable five-section layout | [Flip/Odin delivery and v1 → v2 migration](NAVIGATION_111.md#installed-device-evidence--2026-10-01), deep links, restart and actual launch/return. Social remains unlinked until its provider stages; full history retained. |
+| **N2 · P1/P9 — adaptive Home and appearance** | #112 shell/game menu and updated #49 explicit Exit; shader, ratio, exact widescreen, bezel | Actual session/origin binding, neutral input, clean exit capture, safe same-process return; Start unchanged. Runtime capabilities independently proven; no Fluxer/voice/P2P prerequisite. |
+| **N3 · R5 — retained RA completion** | PPSSPP active-Trainer handoff, account failure states, legitimate earning/return | Preserve current RetroArch login/cache/handoff; new navigation does not merge RA with game saves or Fluxer. |
+| **N4 · P0 — social feasibility** | #99 supported user authentication and deployed capability matrix | Official current contracts, ARM64/native feasibility and sanitized consenting test-account proof; precise blocker rather than guessed bot/identity permissions. |
+| **N5 · P1/P2 — compact social** | #100 provider/owner isolation and #101 Friends/Chats | #99 supported path; drafts/history/realtime/rate limits/offline/privacy, controller-first UI, no second Home messenger. |
+| **N6 · P8/network — native online Link** | #104 invitations, #109 independent adapter activities, #105 suitable delivery → #110 Emerald exchanges | Existing protected native Link with runtimes closed; different internet connections, durable receipts, fault recovery and normal-save readback. #106 only if needed; voice/netplay/virtual LAN do not block it. |
+| **N7 · P1/audio — social media and voice** | #102 pictures/recorded voice messages and #103 simple private calls | Independent #99/#100 capability gates, explicit microphone consent/audience/audio ownership and ordinary-client interoperability. |
+| **N8 · P9/network — actual runtime multiplayer** | #107 one exact game/runtime; needed #106 direct/authorized relay | Automatic safe compatible host/join, actual remote gameplay, host/guest persistence and return. No every-ROM tuning or native-trade-as-netplay claim. |
+| **Cross-cutting N1–N8** | #108 independent release/privacy/recovery/resource gates | Measured Flip/Odin results, isolated network tests, migration/rollback, offline regression; retain earlier #70/#71/#75/#76/#93/#94 and Bluetooth/Direct safety. |
 | **R1 · P8 — finish Emerald shops** | #68 currency item/decor exchanges, categories, 20 BP lessons, Heart Scale relearning and shard/Shoal payments delivered; discovered-stock search/location filters and quantity baskets delivered; bounded remaining source coverage | [Existing shop contract](EMERALD_SHOPS.md): discovery/stock/grouping/non-spoilers, verified debit AND reward, capacity/eligibility, confirmation, protection/allowed delta and normal in-game readback. All remaining traders stay tracked; a new currency is not a renamed money field. |
 | **R2 · P0/P8 — bounded adapter audit** | #89 current responsibilities/coupling, composition/portability/versioning decision; conceptual #90 domain boundary | Before wider per-title integration. Short code-backed note, no second save framework, speculative plugin loader or external dependency. Justified implementation gets its own bounded follow-up. Same-build R1 already uses a proven transaction. |
 | **R3 · P1/P2/P4 — navigation and capability UI** | #83–88 Pokémon and Journey peer faces, Home triggers, immediate wheel A, Start, Back/hints; #74 Properties; minimal #90 registry/state groundwork for existing Pokémon/Multiverse | Apply R2 only where needed; reuse existing screens/providers. Preserve owners/selections/face focus, short/held A, modal gates and launch return. Wrapped controller loops and installed screenshots. No empty franchise tabs or claimed unsupported features. |
