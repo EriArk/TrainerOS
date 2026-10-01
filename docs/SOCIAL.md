@@ -458,3 +458,51 @@ protocol or save transaction. Remaining completion work is listed above.
   unread from provider truth; old unseen protocol traffic can remain unread until
   that conversation is presented. Protocol-only history pages remain pageable
   through the existing Earlier action. Separate-internet #110 proof stays open.
+
+## Notification list and simpler composer, 2026-10-02
+
+Owner correction: the composer contains only the message draft. The attached
+Together button is removed; Y / Play together in the footer retains direct
+activity selection and explicit recipient consent. Y / Latest still takes
+priority when reading earlier history.
+
+Physical Home now includes Notifications, with a compact list in the same overlay.
+Unread DMs, groups and community channels come from the current Fluxer read state;
+incoming friend requests come from its relationship state. Muted chats are omitted.
+There is one row per conversation, not one row per message, and no private message
+preview is retained in another local store. Signing in again reconstructs the list
+from provider state. Switching Trainer clears the source snapshot immediately.
+
+A opens the selected conversation in the correct Social face. A on a friend
+request selects that person's request in Friends; acceptance remains a separate
+explicit action. Merely opening Notifications does not acknowledge messages.
+B returns to quick access; Home closes the overlay at its original page; Start
+retains the system menu. Reading a conversation clears its row through the normal
+provider acknowledgement.
+
+This is an unread/request inbox, not a historical archive of dismissed alerts.
+Notification sound controls, mention-specific presentation, expired activity
+history and active-game delivery remain open. Existing activity invitations keep
+their live Accept/Decline surface. The separate-internet route remains unverified.
+
+### Notification-list device evidence
+
+- Windows and ARM64 builds passed. Social, core, interactions, qml_smoke and
+  exit_qml_smoke passed (5/5). Coverage includes empty-list modal navigation,
+  provider unread/request filtering, owner reset and no implicit acceptance.
+- Both handhelds run SHA
+  `ae547c3501adb43918c9c197795acd9934058b12ec22d7c26b597dbad31136e9`.
+  Final live binary hashes, SQLite integrity, profile/library counts, boot settings
+  and nearby helper preservation were checked independently. Both exact Emerald
+  saves retain their pre-increment hashes; no pending transaction exists.
+- Controller-composed group messages were delivered in both directions while the
+  receiving handheld displayed Notifications. Each list gained its unread row;
+  A opened the correct group and ordinary presentation cleared unread. Keeping
+  the overlay open over that same group did not acknowledge its new message.
+- Empty and populated overlays were visually inspected. Height follows one to
+  three visible rows; longer lists scroll. Actual final Flip captures are private
+  `work/research/notifications-final-flip.png` and
+  `work/research/notifications-composer-final.png`. The latter shows the composer
+  without the removed button. Live friend-request creation was not repeated;
+  source filtering, direct selection without acceptance and Trainer isolation
+  are covered by the social test. This does not claim the full reconnect matrix.

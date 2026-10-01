@@ -393,11 +393,39 @@ Window {
             Rectangle { anchors.fill: parent; color: "#88102324" }
             MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted = true }
             HomeMenuCard {
+                visible: !shell.notificationsOpen
                 anchors.centerIn: parent
                 caption: "Your next stop"
-                actions: [{id:"home",label:"Home"},{id:"friends",label:"Friends"},{id:"chats",label:"Chats"}]
+                actions: [{id:"home",label:"Home"},{id:"friends",label:"Friends"},{id:"chats",label:"Chats"},{id:"notifications",label:"Notifications" + (shell.social.notifications.length ? " · " + shell.social.notifications.length : "")}]
                 currentIndex: shell.homeMenuFocus
                 onChosen: index => shell.activateHomeMenu(index)
+            }
+            Panel {
+                visible: shell.notificationsOpen
+                anchors.centerIn: parent; width: 550
+                height: shell.social.notifications.length ? 120 + Math.min(3,shell.social.notifications.length)*71 : 200
+                patterned: false
+                Text { x: 23; y: 17; text: "Notifications"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 26 }
+                Text { x: 23; y: 52; text: "Messages & friend requests"; color: Theme.muted; font.pixelSize: 15 }
+                MountedPanel {
+                    x: 10; y: 82; width: parent.width-20; height: parent.height-94; color: "#dce9d9"
+                    ListView {
+                        id: notificationList
+                        anchors.fill: parent; anchors.margins: 12; clip: true; spacing: 9
+                        model: shell.social.notifications; currentIndex: Math.min(shell.notificationFocus, count-1)
+                        onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
+                        delegate: CapButton {
+                            required property var modelData
+                            required property int index
+                            width: notificationList.width; height: 62; claimsFocus: false
+                            label: modelData.name; detail: modelData.detail
+                            tint: modelData.request ? Theme.pink : Theme.blue
+                            selected: index===notificationList.currentIndex
+                            onActivated: shell.activateNotification(index)
+                        }
+                    }
+                    Text { anchors.centerIn: parent; visible: !notificationList.count; text: "You're all caught up!"; font.family: Theme.displayFamily; font.pixelSize: 23; color: Theme.ink }
+                }
             }
         }
         Item {

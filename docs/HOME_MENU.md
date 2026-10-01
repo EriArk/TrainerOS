@@ -3,10 +3,12 @@
 The local menu reuses the existing shell, exit controller and owned-process
 transport. It is separate from Start and from the Home primary page.
 
-- In the shell, Home opens a compact Home / Friends / Chats selector over the
+- In the shell, Home opens a compact Home / Friends / Chats / Notifications selector over the
   retained page, face and focus. Home again or B dismisses it without navigating.
   Selecting a destination is explicit. Friends/Chats use the existing Social
-  faces; this does not imply that their external provider is installed.
+  faces. Notifications opens the unread/request list in the same overlay;
+  A goes directly to the relevant conversation or selects the pending friend
+  request without accepting it. B returns to quick access. See [Social](SOCIAL.md).
 - During a supported Adventure, Home opens Continue / Exit game over a temporary
   game preview. Continue, B and Home again return to the same process. Opening
   the menu does not close play history, save, relaunch or request pause.

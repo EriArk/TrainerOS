@@ -21,6 +21,24 @@ class SocialTests : public QObject {
     }
 private slots:
     void initTestCase() { QStandardPaths::setTestModeEnabled(true); }
+    void missedNotificationsFollowProviderStateAndNeverAcceptRequests() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        QVariantMap state{{"state","connected"},{"userId","self"},{"friends",QVariantList{
+            QVariantMap{{"id","request"},{"name","New friend"},{"type",3}}}},
+            {"chats",QVariantList{
+            QVariantMap{{"id",channel},{"name","Group"},{"kind","groups"},{"unread",1}},
+            QVariantMap{{"id","muted"},{"kind","chats"},{"unread",1},{"muted",true}},
+            QVariantMap{{"id","read"},{"kind","chats"},{"unread",0}}}}};
+        c.receive(0,state);QCOMPARE(c.notifications().size(),2);
+        QCOMPARE(c.notificationFaceAt(1),"groups");c.openNotificationAt(1);
+        QCOMPARE(commands.last()[0].toString(),"conversation");
+        QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString(channel));
+        commands.clear();c.openNotificationAt(0);QVERIFY(c.contacts());
+        QCOMPARE(c.rows().value(c.focusIndex()).toMap()["id"].toString(),"request");
+        for(const auto& command:commands)QVERIFY(command[0].toString()!="accept");
+        state["chats"]=QVariantList{};c.receive(0,state);QCOMPARE(c.notifications().size(),1);
+        c.setOwner("another-trainer");QVERIFY(c.notifications().isEmpty());
+    }
     void linkPacketsAreHiddenButKeepTheirReadWatermark() {
         FluxerSession s;bind(s);s.readsReady_=true;
         QSignalSpy snapshots(&s,&FluxerSession::snapshot);
@@ -83,7 +101,7 @@ private slots:
         QCOMPARE(commands.last()[1].toMap()["text"].toString(),QString::fromUtf8("Привет 😀"));
         QVERIFY(c.draft().isEmpty());commands.clear();
         c.dispatch(Action::ToggleContinue);QCOMPARE(commands.size(),1);
-        QCOMPARE(commands.last()[0].toString(),"online-probe");QCOMPARE(c.menuTitle(),"Together");
+        QCOMPARE(commands.last()[0].toString(),"online-probe");QCOMPARE(c.menuTitle(),"Play together");
         c.dispatch(Action::Back);QVERIFY(c.menu().isEmpty());QCOMPARE(commands.size(),1);
         // An ordinary contact must still have chat, without game invitations.
         snapshot["chats"]=QVariantList{QVariantMap{{"id",channel},{"name","Other"},{"kind","chats"}}};

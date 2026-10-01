@@ -64,7 +64,10 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
    [history/read-state increment](SOCIAL.md#history-and-notification-destinations-2026-10-02)
    hides Link transport rows, preserves the current history anchor and opens the
    latest notified conversation directly through Home / Chats (including groups).
-   The missed-notification list, sound and full reconnect matrix remain open.
+   The [unread/request notification list](SOCIAL.md#notification-list-and-simpler-composer-2026-10-02)
+   now opens through Home and navigates directly to its destination; the composer
+   keeps only message entry, with Play together on Y in the footer. Sound,
+   activity history, active-game notification proof and the full reconnect matrix remain open.
    Then #102 chat images/
    recorded voice and #103 simple private calls, with independent gates.
 7. #107 one actual exact-game/runtime online multiplayer route. #106 direct/relay

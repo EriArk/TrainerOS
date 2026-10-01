@@ -817,12 +817,18 @@ void ShellController::closeHomeMenu() {
     homeMenuOpen_ = false; emit changed();
 }
 void ShellController::activateHomeMenu(int index) {
-    if (!homeMenuOpen_ || navigationLocked() || index < 0 || index > 2) return;
+    if (!homeMenuOpen_ || navigationLocked() || index < 0 || index > 3) return;
+    if(index==3){notificationsOpen_=true;notificationFocus_=0;emit changed();return;}
     if(index==2&&!social_.notificationFace().isEmpty()){openSocialNotification();return;}
     if (index) socialFace_ = "chats";
     social_.setFace(socialFace_);
     goToPage(index ? 4 : 0);
     if(index==1)social_.showContacts();
+}
+void ShellController::activateNotification(int index) {
+    if(!notificationsOpen()||navigationLocked())return;
+    const auto face=social_.notificationFaceAt(index);if(face.isEmpty())return;
+    socialFace_=face;goToPage(4);social_.openNotificationAt(index);emit changed();
 }
 void ShellController::openSocialNotification() {
     if(navigationLocked()||(!homeMenuOpen_&&!canReceiveNearby()))return;
@@ -841,10 +847,18 @@ void ShellController::dispatch(Action action) {
     if(launchPreparation_.busy() || libraryTools_.busy())return;
     if(navigationLocked(action==Action::PreviousPage || action==Action::NextPage) && (action==Action::Home || action==Action::PreviousPage || action==Action::NextPage || action==Action::SystemMenu || action==Action::PreviousFace || action==Action::NextFace))return;
     if (homeMenuOpen_) {
+        if(notificationsOpen_) {
+            if(action==Action::Home)closeHomeMenu();
+            else if(action==Action::Back){notificationsOpen_=false;emit changed();}
+            else if(action==Action::Confirm)activateNotification(notificationFocus());
+            else if(action==Action::SystemMenu){closeHomeMenu();dispatch(action);}
+            else if(action==Action::Up||action==Action::Down){notificationFocus_=std::clamp(notificationFocus_+(action==Action::Up?-1:1),0,std::max(0,int(social_.notifications().size())-1));emit changed();}
+            return;
+        }
         if (action == Action::Home || action == Action::Back) closeHomeMenu();
         else if (action == Action::Confirm) activateHomeMenu(homeMenuFocus_);
         else if (action == Action::Up || action == Action::Down) {
-            homeMenuFocus_ = std::clamp(homeMenuFocus_ + (action == Action::Up ? -1 : 1), 0, 2); emit changed();
+            homeMenuFocus_ = std::clamp(homeMenuFocus_ + (action == Action::Up ? -1 : 1), 0, 3); emit changed();
         } else if (action == Action::SystemMenu) {
             closeHomeMenu(); dispatch(action);
         }
@@ -854,7 +868,7 @@ void ShellController::dispatch(Action action) {
         libraryTools_.beginGame((multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString());return;
     }
     if(action==Action::LocalAction && canEditWorld()) {libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
-    if (action == Action::Home) { homeMenuOpen_ = true; homeMenuFocus_ = 0; emit changed(); return; }
+    if (action == Action::Home) { homeMenuOpen_ = true; notificationsOpen_=false; homeMenuFocus_ = 0; emit changed(); return; }
     if (action == Action::PreviousPage || action == Action::NextPage) {
         goToPage(page_ + (action == Action::NextPage ? 1 : -1));
         return;

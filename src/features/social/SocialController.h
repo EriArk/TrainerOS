@@ -20,6 +20,7 @@ class SocialController final : public QObject {
     Q_PROPERTY(QVariantMap account READ account NOTIFY changed)
     Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
     Q_PROPERTY(QVariantList messages READ messages NOTIFY changed)
+    Q_PROPERTY(QVariantList notifications READ notifications NOTIFY changed)
     Q_PROPERTY(QVariantList hints READ hints NOTIFY changed)
     Q_PROPERTY(QString draft READ draft NOTIFY changed)
     Q_PROPERTY(QString conversationName READ conversationName NOTIFY changed)
@@ -91,6 +92,9 @@ public:
     Q_INVOKABLE void presented(QString channel, QString message);
     QString notificationFace() const;
     void openNotification();
+    QVariantList notifications() const;
+    QString notificationFaceAt(int index) const;
+    void openNotificationAt(int index);
 signals:
     void changed();
     void presentationChanged();

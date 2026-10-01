@@ -52,6 +52,8 @@ class ShellController final : public QObject {
     Q_PROPERTY(bool menuOpen READ menuOpen NOTIFY changed)
     Q_PROPERTY(bool homeMenuOpen READ homeMenuOpen NOTIFY changed)
     Q_PROPERTY(int homeMenuFocus READ homeMenuFocus NOTIFY changed)
+    Q_PROPERTY(bool notificationsOpen READ notificationsOpen NOTIFY changed)
+    Q_PROPERTY(int notificationFocus READ notificationFocus NOTIFY changed)
     Q_PROPERTY(QString achievementToast READ achievementToast NOTIFY changed)
     Q_PROPERTY(QString notice READ notice NOTIFY changed)
     Q_PROPERTY(bool modeConfirmation READ modeConfirmation NOTIFY changed)
@@ -134,6 +136,9 @@ public:
     bool menuOpen() const { return menuOpen_; }
     bool homeMenuOpen() const { return homeMenuOpen_; }
     int homeMenuFocus() const { return homeMenuFocus_; }
+    bool notificationsOpen() const { return homeMenuOpen_ && notificationsOpen_; }
+    int notificationFocus() const { return qBound(0,notificationFocus_,qMax(0,int(social_.notifications().size())-1)); }
+    Q_INVOKABLE void activateNotification(int index);
     Q_INVOKABLE void activateHomeMenu(int index);
     Q_INVOKABLE void openSocialNotification();
     Q_INVOKABLE void closeHomeMenu();
@@ -212,6 +217,8 @@ private:
     int multiverseDrawerFocus_ = 0;
     bool menuOpen_ = false;
     bool homeMenuOpen_ = false;
+    bool notificationsOpen_ = false;
+    int notificationFocus_ = 0;
     int homeMenuFocus_ = 0;
     bool powerMenu_ = false;
     bool libraryFromWorlds_ = false;
