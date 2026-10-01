@@ -2,6 +2,10 @@
 #include "integrations/social/FluxerSession.h"
 #include "features/social/SocialController.h"
 #include <QJsonArray>
+#include <QFile>
+#include <QStandardPaths>
+#include <QUuid>
+#include "platform/storage/EncryptedCredentials.h"
 
 namespace trainer {
 class SocialTests : public QObject {
@@ -15,6 +19,70 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void initTestCase() { QStandardPaths::setTestModeEnabled(true); }
+    void credentialPathsCannotEscapeTheirStore() {
+        QVERIFY(EncryptedCredentials::path("../token").isEmpty());
+        QVERIFY(EncryptedCredentials::path(QString(64,'a')).endsWith("/credentials/fluxer-"+QString(64,'a')+".cred"));
+    }
+    void draftsSurviveReopenButNotAccountChangeOrLogout() {
+        const auto owner="draft-test-"+QUuid::createUuid().toString(QUuid::WithoutBraces);
+        QString firstFile;
+        {
+            SocialController c;c.owner_=owner;
+            c.receive(0,{{"state","connected"},{"userId",remote},{"channel",channel}});
+            c.compose();c.preserveText("Unsent hello");c.saveDrafts();firstFile=c.draftFile_;
+            QVERIFY(QFile::exists(firstFile));
+        }
+        {
+            SocialController c;c.owner_=owner;
+            c.receive(0,{{"state","connected"},{"userId",remote},{"channel",channel}});
+            QCOMPARE(c.draft(),QString("Unsent hello"));
+            c.receive(0,{{"state","connected"},{"userId","2"},{"channel",channel}});
+            QVERIFY(c.draft().isEmpty());QVERIFY(c.draftFile_!=firstFile);
+            c.receive(0,{{"state","signed-out"}});QVERIFY(c.draftFile_.isEmpty());
+            c.receive(0,{{"state","connected"},{"userId",remote},{"channel",channel}});
+            QCOMPARE(c.draft(),QString("Unsent hello"));
+            c.receive(0,{{"state","signed-out"}});QVERIFY(!QFile::exists(firstFile));
+        }
+    }
+    void olderHistoryMovesABoundedWindowAndKeepsNewEventsOut() {
+        FluxerSession s;Completion reply;QString path;
+        s.setTransport([&](auto,auto requestPath,auto,Completion done){path=requestPath;reply=done;});bind(s);
+        for(int id=100;id<200;++id)s.mergeMessage({{"id",QString::number(id)},{"channel_id",channel},{"content","recent"}});
+        s.historyMore_=true;s.loadOlderMessages();QVERIFY(path.endsWith("&before=100"));QVERIFY(s.historyBusy_);
+        QJsonArray older;for(int id=59;id>=10;--id)older.append(QJsonObject{{"id",QString::number(id)},{"channel_id",channel},{"content","earlier"}});
+        reply({200,QJsonDocument(older)});
+        QCOMPARE(s.messageOrder_.size(),100);QCOMPARE(s.messageOrder_.first(),QString("10"));QCOMPARE(s.messageOrder_.last(),QString("149"));
+        QVERIFY(s.historyPast_);QVERIFY(!s.historyBusy_);
+        s.gatewayEvent({{"op",0},{"s",1},{"t","MESSAGE_CREATE"},{"d",QJsonObject{{"id","201"},{"channel_id",channel},{"content","new"}}}});
+        QVERIFY(!s.messages_.contains("201"));QCOMPARE(s.messageOrder_.first(),QString("10"));
+        s.command("latest");QVERIFY(!path.contains("before="));
+        reply({200,QJsonDocument(QJsonArray{QJsonObject{{"id","201"},{"channel_id",channel},{"content","new"}}})});
+        QVERIFY(!s.historyPast_);QCOMPARE(s.messageOrder_,QStringList{"201"});
+    }
+    void earlierHistoryRetainsControllerReadingPosition() {
+        SocialController c;
+        c.receive(0,{{"state","connected"},{"channel",channel},{"historyMore",true},{"messages",QVariantList{QVariantMap{{"id","100"},{"text","old"}},QVariantMap{{"id","101"},{"text","new"}}}}});
+        c.dispatch(Action::Right);c.dispatch(Action::Up);QCOMPARE(c.messageIndex(),0);
+        QSignalSpy commands(&c,&SocialController::commandRequested);c.dispatch(Action::Up);
+        QCOMPARE(commands.last().first().toString(),QString("older"));
+        c.receive(0,{{"state","connected"},{"channel",channel},{"historyPast",true},{"messages",QVariantList{QVariantMap{{"id","99"}},QVariantMap{{"id","100"}},QVariantMap{{"id","101"}}}}});
+        QVERIFY(c.reading());QCOMPARE(c.messageIndex(),1);
+        c.receive(0,{{"state","connected"},{"channel",channel},{"historyPast",false},{"messages",QVariantList{QVariantMap{{"id","200"}},QVariantMap{{"id","201"}},QVariantMap{{"id","202"}}}}});
+        QCOMPARE(c.messageIndex(),2);
+    }
+    void pagingDoesNotForgetAnUncertainSend() {
+        FluxerSession s;Completion reply;
+        s.setTransport([&](auto,auto,auto,Completion done){reply=done;});bind(s);
+        for(int id=100;id<199;++id)s.mergeMessage({{"id",QString::number(id)},{"channel_id",channel}});
+        const QString nonce(32,'a');s.pendingNonces_.insert(nonce,channel);
+        s.mergeMessage({{"id",nonce},{"channel_id",channel},{"content","hello"},{"local_delivery","unknown"}});
+        s.historyMore_=true;s.loadOlderMessages();
+        reply({200,QJsonDocument(QJsonArray{QJsonObject{{"id","99"},{"channel_id",channel}}})});
+        QVERIFY(!s.messageOrder_.contains(nonce));QVERIFY(s.messages_.contains(nonce));
+        s.gatewayEvent({{"op",0},{"s",1},{"t","MESSAGE_CREATE"},{"d",QJsonObject{{"id","200"},{"channel_id",channel},{"nonce",nonce},{"content","hello"}}}});
+        QVERIFY(s.pendingNonces_.isEmpty());QVERIFY(!s.messages_.contains(nonce));QVERIFY(s.messages_.contains("200"));
+    }
     void repeatedActionsRespectServerRetryDelay() {
         FluxerSession s;int requests=0;
         s.setTransport([&](auto,auto,auto,Completion done){++requests;done({429,{},60});});bind(s);

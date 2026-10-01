@@ -50,7 +50,7 @@ FocusScope {
             Rectangle { visible: (root.account.code || "").length > 0; width: parent.width; height: 60; radius: 10; color: "#fff4c6"; border.color: "#c5af66"; border.width: 2
                 Text { anchors.centerIn: parent; text: root.account.code || ""; font.family: Theme.brandFamily; font.pixelSize: 27; color: Theme.ink; textFormat: Text.PlainText }
             }
-            CapButton { visible: root.account.state !== "authorizing"; width: parent.width; height: 54; label: "Connect Fluxer"; tint: Theme.yellow; selected: root.takesFocus; enabled: root.account.available || false; claimsFocus: false; onActivated: root.social.login() }
+            CapButton { visible: root.account.state !== "authorizing"; width: parent.width; height: 54; label: root.account.state === "restoring" ? "Signing in..." : "Connect Fluxer"; tint: Theme.yellow; selected: root.takesFocus; enabled: !!root.account.available && root.account.state !== "restoring"; claimsFocus: false; onActivated: root.social.login() }
             Text { width: parent.width; visible: root.account.state !== "authorizing" && !!root.account.status && root.account.status !== "Sign in to Fluxer"; text: root.account.status || ""; color: Theme.muted; font.pixelSize: 13; wrapMode: Text.WordWrap; textFormat: Text.PlainText }
         }
     }
@@ -83,7 +83,7 @@ FocusScope {
         Item {
             anchors { left: people.right; leftMargin: 30; right: parent.right; rightMargin: 18; top: parent.top; bottom: parent.bottom }
             visible: root.social.conversation
-            Text { id: chatHeading; y: 10; width: parent.width; text: root.social.conversationName; font.family: Theme.displayFamily; font.pixelSize: 23; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }
+            Text { id: chatHeading; y: 10; width: parent.width; text: root.social.conversationName + (root.account.historyBusy ? " · Loading..." : ""); font.family: Theme.displayFamily; font.pixelSize: 23; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }
             Rectangle { y: 42; width: parent.width; height: 1; color: "#b4c6b8" }
             ListView {
                 id: log

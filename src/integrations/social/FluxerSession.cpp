@@ -1,4 +1,5 @@
 #include "FluxerSession.h"
+#include "platform/storage/EncryptedCredentials.h"
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QNetworkRequest>
@@ -12,6 +13,7 @@
 #include <QSettings>
 #include <QUrlQuery>
 #include <QRegularExpression>
+#include <QFileInfo>
 #include <qt6keychain/keychain.h>
 #ifdef Q_OS_LINUX
 #include <QDBusConnection>
@@ -31,6 +33,9 @@ FluxerSession::FluxerSession(QObject* parent) : QObject(parent) {}
 FluxerSession::~FluxerSession() { reset(); }
 void FluxerSession::reset() {
     ++epoch_;
+    if(encryptedCredentials_)encryptedCredentials_->cancel();
+    credentialLoading_=false;
+    ++historyRequest_;historyBusy_=historyMore_=historyPast_=false;
     if (poll_) poll_->stop();
     if (heartbeat_) heartbeat_->stop();
     if (reconnect_) reconnect_->stop();
@@ -89,6 +94,7 @@ void FluxerSession::publish() {
     for(auto it=guilds_.cbegin();it!=guilds_.cend();++it)communities.append(QVariantMap{{"id",it.key()},{"name",it.value()["name"].toString()},{"kind","community"},{"detail","Community"}});
     std::sort(communities.begin(),communities.end(),[](const QVariant& a,const QVariant& b){return a.toMap()["name"].toString()<b.toMap()["name"].toString();});
     emit snapshot(generation_, {{"state",state_},{"status",status_},{"name",name_},{"code",code_},
+        {"historyBusy",historyBusy_},{"historyMore",historyMore_},{"historyPast",historyPast_},
         {"userId",self_},{"searchResults",searchResults_},{"searchStatus",searchStatus_},{"searching",searching_},{"searchTotal",searchTotal_},{"searchOffset",searchOffset_},
         {"guild",guild_},{"communities",communities},{"remembered",remembered_},{"friends",friends},{"chats",chats},{"messages",messages},{"channel",channel_}});
 }
@@ -139,9 +145,28 @@ bool FluxerSession::credentialStoreAvailable() const {
 #endif
 }
 void FluxerSession::credential(bool write, bool remove) {
-    if(transport_ || owner_.isEmpty() || !credentialStoreAvailable()) return;
+    if(transport_ || owner_.isEmpty()) return;
     const auto epoch=epoch_;
     const auto key=QString::fromLatin1(QCryptographicHash::hash(("https://fluxer.app\n"+owner_).toUtf8(),QCryptographicHash::Sha256).toHex());
+    // Prefer the already-running desktop vault. Armada gaming sessions use the
+    // OS host-key store without starting a wallet/password window.
+    const bool encrypted=EncryptedCredentials::available()&&(!credentialStoreAvailable()||QFileInfo::exists(EncryptedCredentials::path(key)));
+    if(remove) {if(encryptedCredentials_)encryptedCredentials_->cancel();EncryptedCredentials::remove(key);}
+    if(encrypted&&!remove) {
+        if(!encryptedCredentials_)encryptedCredentials_=new EncryptedCredentials(this);
+        if(!write){credentialLoading_=true;state_="restoring";status_="Signing in...";publish();}
+        auto completed=[this,epoch,write](bool ok,QByteArray value){
+            if(epoch!=epoch_)return;
+            credentialLoading_=false;remembered_=ok&&(write||!value.isEmpty());
+            if(!write){if(ok&&!value.isEmpty()){token_=QString::fromUtf8(value);authenticated();return;}state_="signed-out";status_="Sign in to Fluxer";}
+            publish();
+        };
+        if(write)encryptedCredentials_->write(key,token_.toUtf8(),std::move(completed));
+        else encryptedCredentials_->read(key,std::move(completed));
+        return;
+    }
+    if(!credentialStoreAvailable())return;
+    if(!write&&!remove){credentialLoading_=true;state_="restoring";status_="Signing in...";publish();}
     QKeychain::Job* job;
     if(remove) { auto* j=new QKeychain::DeletePasswordJob("TrainerOS.Fluxer",this); j->setKey(key); job=j; }
     else if(write) { auto* j=new QKeychain::WritePasswordJob("TrainerOS.Fluxer",this); j->setKey(key); j->setTextData(token_); job=j; }
@@ -149,15 +174,17 @@ void FluxerSession::credential(bool write, bool remove) {
     job->setInsecureFallback(false);
     connect(job,&QKeychain::Job::finished,this,[this,epoch,write,remove](QKeychain::Job* j){
         if(epoch!=epoch_ || remove) return;
-        if(j->error()!=QKeychain::NoError) { remembered_=false; publish(); return; }
+        credentialLoading_=false;
+        if(j->error()!=QKeychain::NoError) { remembered_=false;if(!write){state_="signed-out";status_="Sign in to Fluxer";} publish(); return; }
         remembered_=true;
-        if(!write) { token_=static_cast<QKeychain::ReadPasswordJob*>(j)->textData(); if(!token_.isEmpty()) authenticated(); }
+        if(!write) { token_=static_cast<QKeychain::ReadPasswordJob*>(j)->textData(); if(!token_.isEmpty()) authenticated(); else {remembered_=false;state_="signed-out";status_="Sign in to Fluxer";publish();} }
         else publish();
     });
     job->start();
 }
 void FluxerSession::login() {
-    if(owner_.isEmpty() || state_=="authorizing" || !token_.isEmpty()) return;
+    if(owner_.isEmpty() || credentialLoading_ || state_=="authorizing") return;
+    if(!token_.isEmpty()){if(self_.isEmpty())authenticated();return;}
     state_="authorizing"; status_="Preparing browser sign-in…"; publish();
     // Public instance only for this increment. Validate advertised endpoints before authentication.
     request("GET","/.well-known/fluxer",{},[this](Reply r){
@@ -190,13 +217,17 @@ void FluxerSession::pollLogin() {
     },true);
 }
 void FluxerSession::authenticated() {
-    state_="connecting";status_="Connecting…";publish();
+    state_="restoring";status_="Signing in...";publish();
     request("GET","/v1/users/@me",{},[this](Reply r){
-        if(r.status!=200||!idValid(r.body.object()["id"].toString())) {fail(r,"Could not verify your account");return;}
+        if(r.status!=200||!idValid(r.body.object()["id"].toString())) {
+            state_="signed-out";fail(r,"Could not verify your account");
+            if(!token_.isEmpty()){const auto epoch=epoch_;QTimer::singleShot(qMax(15000,r.retrySeconds*1000),this,[this,epoch]{if(epoch==epoch_&&self_.isEmpty()&&!token_.isEmpty())authenticated();});}
+            return;
+        }
         self_=r.body.object()["id"].toString();name_=label(r.body.object());
         navigationKey_="social/navigation/"+QString::fromLatin1(QCryptographicHash::hash((owner_+"\n"+self_).toUtf8(),QCryptographicHash::Sha256).toHex())+"/";
         if(!transport_) {QSettings settings;for(const auto& key:{"chats","groups","communities","guild"})preferred_[key]=settings.value(navigationKey_+key).toString();}
-        state_="connected";status_="Connected";credential(true);refresh();openGateway();publish();
+        state_="connected";status_="Connected";if(!remembered_)credential(true);refresh();openGateway();publish();
     });
 }
 void FluxerSession::refresh() {
@@ -223,19 +254,46 @@ void FluxerSession::refresh() {
         if(!guild_.isEmpty()&&!guilds_.contains(guild_)){guild_.clear();channel_.clear();messages_.clear();messageOrder_.clear();}
         ensureConversation();publish();
     });
-    if(!channel_.isEmpty())loadMessages(channel_);
+    if(!channel_.isEmpty()&&!historyPast_&&!historyBusy_)loadMessages(channel_);
 }
 void FluxerSession::loadMessages(QString channel) {
-    const auto revision=messageRevision_;
-    request("GET","/v1/channels/"+channel+"/messages?limit=50",{},[this,channel,revision](Reply r){
-        if(channel!=channel_)return;
-        if(revision!=messageRevision_)return; // Never resurrect a deleted message or erase a fresh event.
+    const auto revision=messageRevision_, ticket=++historyRequest_;
+    historyBusy_=true;publish();
+    request("GET","/v1/channels/"+channel+"/messages?limit=50",{},[this,channel,revision,ticket](Reply r){
+        if(channel!=channel_||ticket!=historyRequest_)return;
+        historyBusy_=false;
+        if(revision!=messageRevision_){publish();return;} // Never resurrect a deleted message or erase a fresh event.
         if(r.status!=200) {if(r.status==403||r.status==404){messages_.clear();messageOrder_.clear();}fail(r,"Could not load messages");return;}
+        historyPast_=false;historyMore_=!r.body.array().isEmpty();
         // Keep uncertain sends; the server response is authoritative for remote history.
         auto old=messages_;messages_.clear();messageOrder_.clear();
         const auto list=r.body.array();for(auto i=list.size();i>0;--i)mergeMessage(list.at(i-1).toObject());
         for(auto it=old.cbegin();it!=old.cend();++it) if(!it.value()["local_delivery"].toString().isEmpty()&&pendingNonces_.contains(it.key()))mergeMessage(it.value());
         unread_[channel]=0;publish();
+    });
+}
+void FluxerSession::loadOlderMessages() {
+    if(historyBusy_||!historyMore_||channel_.isEmpty())return;
+    QString before;for(const auto& id:messageOrder_)if(idValid(id)){before=id;break;}
+    if(before.isEmpty())return;
+    const auto channel=channel_;const auto revision=messageRevision_,ticket=++historyRequest_;
+    historyBusy_=true;publish();
+    request("GET","/v1/channels/"+channel+"/messages?limit=50&before="+before,{},[this,channel,revision,ticket](Reply r){
+        if(channel!=channel_||ticket!=historyRequest_)return;
+        historyBusy_=false;
+        if(revision!=messageRevision_){publish();return;}
+        if(r.status!=200){fail(r,"Could not load earlier messages");return;}
+        QStringList added;const auto list=r.body.array();
+        for(auto i=list.size();i>0;--i){const auto m=list.at(i-1).toObject();const auto id=m["id"].toString();
+            if(idValid(id)&&m["channel_id"]==channel&&!messages_.contains(id)){messages_[id]=m;added.append(id);}}
+        historyMore_=!added.isEmpty();
+        if(!added.isEmpty()){historyPast_=true;messageOrder_=added+messageOrder_;}
+        // A moving window can page indefinitely without retaining the entire account.
+        while(messageOrder_.size()>100) {
+            const auto id=messageOrder_.takeLast();
+            if(!pendingNonces_.contains(id))messages_.remove(id);
+        }
+        publish();
     });
 }
 void FluxerSession::mergeMessage(const QJsonObject& message) {
@@ -264,6 +322,8 @@ void FluxerSession::command(QString operation, QVariantMap args) {
         });return;
     }
     if(self_.isEmpty())return;
+    if(operation=="older"){loadOlderMessages();return;}
+    if(operation=="latest"&&!channel_.isEmpty()){loadMessages(channel_);return;}
     if(operation=="search") {search(args["mode"].toString(),args["text"].toString(),args["offset"].toInt());return;}
     if(operation=="search-action") {
         const auto id=args["id"].toString();
@@ -351,6 +411,7 @@ void FluxerSession::remember(const QString& key,const QString& value) {
 void FluxerSession::openConversation(const QString& id) {
     if(!channels_.contains(id)||channel_==id)return;
     channel_=id;remember(channelKind(channels_[id]),id);
+    ++historyRequest_;historyBusy_=historyMore_=historyPast_=false;
     messages_.clear();messageOrder_.clear();publish();loadMessages(id);
 }
 void FluxerSession::ensureConversation() {
@@ -454,7 +515,8 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
         if(type=="READY"||type=="RESUMED") {if(type=="READY")gatewaySession_=d["session_id"].toString();reconnectAttempt_=0;status_="Connected";refresh();}
         else if(type=="MESSAGE_CREATE"||type=="MESSAGE_UPDATE") {
             ++messageRevision_;
-            mergeMessage(d);const auto channel=d["channel_id"].toString();
+            if(!historyPast_||messages_.contains(d["id"].toString())||pendingNonces_.contains(d["nonce"].toString()))mergeMessage(d);
+            const auto channel=d["channel_id"].toString();
             if(type=="MESSAGE_CREATE"&&channels_.contains(channel)) {channels_[channel]["last_message_id"]=d["id"];if(channel!=channel_&&d["author"].toObject()["id"]!=self_)unread_[channel]++;}
         } else if(type=="MESSAGE_DELETE") {++messageRevision_;const auto id=d["id"].toString();messages_.remove(id);messageOrder_.removeAll(id);}
         else if(type.startsWith("RELATIONSHIP_")||type.startsWith("CHANNEL_")||type.startsWith("GUILD_")) {

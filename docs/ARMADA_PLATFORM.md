@@ -1,5 +1,13 @@
 # TrainerOS on ArmadaOS
 
+**2026-10-01 Social session storage:** native Fluxer login can persist without a
+desktop wallet. `EncryptedCredentials` invokes the installed `/usr/bin/systemd-creds`
+as the unprivileged user, using user-scoped host-key encryption and owner-only
+atomic ciphertext files. Flip's systemd 259.9 supports the required operations;
+synthetic encrypt/decrypt and real login/restart/logout passed. No daemon, root
+helper or wallet prompt is added. Unsupported/failing stores retain a session-only
+login; Odin and other base versions require their own proof. See [SOCIAL](SOCIAL.md).
+
 **Current target — 2026-09-26:** #11/#39 are closed as superseded, not delivered.
 Steam Gaming Mode stays installed; #69 exposes installed Steam games through
 Multiverse without replacing Steam. #70 makes a reproducible Armada-based image

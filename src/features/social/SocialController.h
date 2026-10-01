@@ -86,6 +86,10 @@ private:
     QString searchKind_ = "communities";
     int searchFocus_ = -1;
     QTimer selection_;
+    QTimer draftSave_;
+    QString draftFile_;
+    void saveDrafts();
+    void bindDrafts(const QString& accountId);
     void preview();
     void runSearch(int offset = 0);
 

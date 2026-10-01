@@ -2,7 +2,9 @@
 
 **2026-10-01 #111:** shell navigation v2 uses named primary/secondary routes and
 migrates old history slots to Trainer. Profile and Hall/Journey/RA controllers
-remain separate; Social is an unlinked surface until its provider is proven.
+remain separate; Social now consumes the bounded native Fluxer provider described
+in [SOCIAL](SOCIAL.md). Its worker owns REST/Gateway and protected credential jobs;
+the controller owns account-scoped drafts and presentation. No token reaches QML.
 Launch checkpoints and persisted navigation share one migration boundary.
 [Current implementation](NAVIGATION_111.md). Planned #100–110 reuse narrow owner-
 scoped providers and Link/activity hosts; native activities and runtime netplay

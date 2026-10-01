@@ -23,8 +23,11 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
    faces are Messages / Groups / Communities / Search. Home shortcuts share these
    services. Conversations open on entry/highlight; full-width Search uses real
    community discovery, full-tag people requests and group/community invites.
-   Next: remembered handheld credentials, then the remaining messaging/activity
-   acceptance in SOCIAL.md; no bulk user enumeration or extra choose-person page.
+   Remembered login, account-scoped drafts and inline history paging are delivered
+   on Flip. Next: group/message controls and compact notification/read-state UX,
+   then the remaining messaging/activity acceptance in SOCIAL.md. Odin delivery
+   and two-handheld proof wait for the owner's evening reboot; no bulk user
+   enumeration or extra choose-person page.
 5. #104 invitations + #109 reusable existing system activities + #105 per-traffic
    delivery proof → #110 exact Emerald internet exchange with runtimes closed.
    A bounded live TrainerOS capability exchange gates game offers; ordinary

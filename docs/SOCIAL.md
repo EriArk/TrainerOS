@@ -8,7 +8,7 @@ primaries and Start/Home responsibilities remain unchanged.
 
 FluxerSession owns supported public-instance browser handoff, REST and Gateway
 on a separate Qt event-loop thread. UI receives only presentation snapshots.
-SocialController owns list focus, the retained conversation and in-memory drafts;
+SocialController owns list focus, the retained conversation and account-scoped drafts;
 ShellController routes physical actions and the existing controller keyboard.
 No browser cookies, bot credentials, password scraping or provider webview.
 
@@ -20,6 +20,13 @@ returns focus to the list without clearing the conversation. Options holds the
 less frequent account/friend actions. Home Friends opens the contacts view in
 Messages; Home Chats opens Messages. Existing in-game
 Home Continue/Exit is preserved; live in-game chat overlay is a separate gate.
+
+At the oldest visible message, Up fetches the preceding page in the same view;
+Y returns to the latest messages while reading older history. Selection stays on
+the same message after prepending. Pages contain up to 50 messages, with a moving
+100-message display window rather than retaining an entire account in memory.
+Gateway events do not pull the reader out of older history. Uncertain sends remain
+tracked even when their display row falls outside that window.
 
 The first slice supports approved browser sign-in, friend requests by exact
 Fluxer tag, accept/decline/cancel/remove/block/unblock, opening DMs, existing
@@ -47,14 +54,27 @@ The selected local Trainer scopes each session and every asynchronous result.
 Owner changes close the old worker's network session and immediately clear the
 private view/drafts. Credentials stay in the worker; QtKeychain has insecure
 fallback disabled. Windows uses its native protected store. On Linux an already
-running secret service/wallet is used; absence/failure explicitly means a
-memory-only session. TrainerOS does not summon a desktop wallet unlock dialog.
+running secret service/wallet is preferred. Armada gaming sessions without one
+use asynchronous `systemd-creds --user` host-key encryption. The encrypted file
+is scoped to the local Trainer/public provider; systemd binds decryption to the
+host and OS user. It is atomically written with owner-only permissions. Input
+travels through stdin, never shell arguments; the fixed executable runs as the
+ordinary session user, with a timeout. No desktop wallet unlock dialog is started.
+This is host-key protection, not a TPM/physical-theft claim. An unavailable or
+failed protected store leaves an explicitly session-only login, never plaintext.
+Startup verifies the restored token, retries temporary connection failures and
+removes rejected credentials. Owner changes cancel outstanding credential jobs.
 Options reports whether the session is remembered. No token is stored in the
 ordinary database, screenshots, logs, ROMs, save backups or command arguments.
 
 Logout calls the supported revocation route. An offline/failed revocation stays
 visible and retains the session for a retry rather than claiming success.
-Successful logout clears private session data and deletes its vault entry.
+Successful logout clears private session data and deletes its protected entry
+and account drafts. Drafts use a separate atomic owner-readable local JSON cache,
+keyed by provider/local Trainer/verified Fluxer account, with at most 128 drafts
+of 2000 characters. They survive restarts and Trainer switching; another account
+cannot inherit them. They are not encrypted message-history storage. No history
+archive is persisted in this increment.
 Heartbeat ACKs, bounded backoff/jitter and Gateway Resume reconnect the client;
 new sessions also refresh bounded REST views. Provider retry delays are honored.
 Messages carry a provider-supported 32-character nonce; an uncertain HTTP result
@@ -67,13 +87,13 @@ No activity/title/ROM/save data is automatically published to Fluxer.
 
 This is a working text slice, not completion of both issues. Preserve:
 
-- durable account-scoped history/drafts, history pagination and detailed read-state
-  synchronization; current history is bounded to 50 fetched / 100 displayed items;
+- durable account-scoped history and detailed read-state synchronization;
+  drafts and bounded history pagination are delivered;
 - group creation/member management/leave, own-message edit/delete controls,
   richer friend lookup where supported, avatars and compact notification/privacy
   controls; remote edits/deletions are already reflected;
-- hardware proof of remembered secure credentials where a system vault is not
-  already available, and longer reconnect/rate-limit/large-account validation;
+- Odin proof of remembered credentials, and longer reconnect/rate-limit/
+  large-account validation; Flip proof is recorded below;
 - live in-game Home messenger presentation without disturbing emulator input;
 - #104/#105 supported compatible-TrainerOS recognition and accepted game offers,
   #109/#110 native online activities, #102 media, #103 calls and #107 runtime play.
@@ -92,6 +112,8 @@ administration clone. No new account-name markers or invisible profile suffixes.
 - [Community discovery](https://docs.fluxer.app/http-api/discovery/)
 - [Invitations](https://docs.fluxer.app/http-api/invites/)
 - [Earlier native feasibility proof](FLUXER_SPIKE.md)
+- [systemd credential command contract](https://github.com/systemd/systemd/blob/main/man/systemd-creds.xml)
+- [systemd credential protection](https://github.com/systemd/systemd/blob/main/docs/CREDENTIALS.md)
 
 ## First text increment verification (historical)
 
@@ -116,8 +138,8 @@ administration clone. No new account-name markers or invisible profile suffixes.
   Session restart did not recover it; after a normal remote reboot request SSH
   became unreachable. Final polished build is not installed there; live acceptance
   remains open. This is not evidence that the new Social client froze Odin.
-- Flip currently has no available system credential vault: sign-in is session-only.
-  Persistent handheld sign-in is the next account UX gate, not delivered evidence.
+- At that delivery Flip had no available system credential vault: sign-in was
+  session-only. The later persistence increment below supersedes this limitation.
 - Receiving/edits/deletions, group/community and recovery paths have implementation
   and synthetic/earlier-spike coverage, but no current two-handheld live claim.
 
@@ -143,5 +165,32 @@ administration clone. No new account-name markers or invisible profile suffixes.
 - Synthetic coverage includes latest/remembered conversation selection, Back,
   account isolation, stale search and membership callbacks, encoded query/paging,
   omitted empty query and lookup-versus-explicit-invite-join behavior.
-- Odin SSH still times out; this correction is not installed there. Persistent
-  handheld credentials and the remaining acceptance above stay open.
+- At that delivery Odin SSH still timed out; this correction was not installed
+  there. Persistence was subsequently addressed in the following increment.
+
+## Remembered login, drafts and history - 2026-10-01
+
+- Final Windows native build passed. Focused `social`, `core`, `interactions`,
+  `qml_smoke` and `exit_qml_smoke` passed 5/5 in 27.55 seconds.
+- Production ARM64 build installed and live executable verified on Flip:
+  `77b569c4ae6a62493d77924b7a396e784c634954ab6202dbe4ce911230a2e3d3`.
+  Same 3 Trainers / 830 Adventures, boot configuration and nearby helpers preserved.
+- Actual official-browser handoff created a 292-byte encrypted credential with mode
+  0600. A controller-entered unsent draft was stored separately with mode 0600.
+  Terminating/restarting TrainerOS restored the verified account, selected DM and
+  draft without another handoff. Explicit logout revoked the session and removed
+  both credential and draft files; reauthorization restored server history without
+  the old draft. No plaintext real token was extracted during verification.
+- The real test DM's beginning-of-history request completed without duplicate rows
+  or a stuck Loading state. It has only one message: multi-page ordering/window
+  bounds and concurrent-event behavior use synthetic tests, not fabricated live
+  traffic. No messages or requests to unrelated accounts were sent.
+- Synthetic coverage adds account-isolated draft restart/logout, earlier-history
+  selection, moving 100-message windows, Latest focus and pending-send reconciliation
+  after paging, alongside existing stale-owner/delete/backoff coverage.
+- Actual-device captures are private `work/research/persistence-final-restored.png`,
+  `persistence-options.png`, `persistence-history.png` and `persistence-final-search.png`.
+  The final build also passed another login/draft restart and L2/R2 Search round
+  trip; the public directory returned 186 results at that check.
+- The same ARM64 artifact is retained locally for Odin. Its delivery and paired
+  live tests wait for the owner's reboot; this is not two-handheld acceptance.

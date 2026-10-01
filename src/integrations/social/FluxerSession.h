@@ -10,6 +10,7 @@
 class QNetworkAccessManager;
 class QWebSocket;
 namespace trainer {
+class EncryptedCredentials;
 // Lives on its own event loop. Tokens and protocol payloads never cross into QML.
 class FluxerSession final : public QObject {
     Q_OBJECT
@@ -51,11 +52,16 @@ private:
     void authenticated();
     void refresh();
     void loadMessages(QString channel);
+    void loadOlderMessages();
+    bool historyBusy_ = false, historyMore_ = false, historyPast_ = false;
+    quint64 historyRequest_ = 0;
     void openGateway();
     void gatewayEvent(const QJsonObject& event);
     void gatewaySend(int op, const QJsonValue& data);
     void credential(bool write = false, bool remove = false);
     bool credentialStoreAvailable() const;
+    EncryptedCredentials* encryptedCredentials_ = nullptr;
+    bool credentialLoading_ = false;
     void disconnected();
     void reset();
     void mergeMessage(const QJsonObject& message);

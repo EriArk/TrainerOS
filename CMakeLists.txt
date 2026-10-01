@@ -15,6 +15,7 @@ find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
     src/integrations/social/FluxerSession.cpp
+    src/platform/storage/EncryptedCredentials.cpp
     src/features/social/SocialController.cpp
     src/platform/network/NearbyService.cpp
     src/platform/device/ClockService.cpp
