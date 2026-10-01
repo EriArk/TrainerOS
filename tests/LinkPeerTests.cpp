@@ -22,6 +22,7 @@ private slots:
         QVERIFY(!link.beginOnline(local,remote,"Friend","org.traineros.emerald.battle",true));
         QVERIFY(link.beginOnline(local,remote,"Friend","org.traineros.emerald.trade",true));
         QCOMPARE(opened.size(),1);QCOMPARE(link.stage(),"choose");QVERIFY(operations.isEmpty());
+        QVERIFY(!link.canBrowseForRecovery());
         QVERIFY(!link.activityModes().contains("battle"));
         link.dispatch(Action::Back);QCOMPARE(link.stage(),"lobby");QVERIFY(link.connected());
         link.receiveOnline({{"type","activity-invite"},{"version",2},{"id","44444444-4444-4444-8444-444444444444"},{"mode","battle"}});
@@ -31,12 +32,15 @@ private slots:
         const QJsonObject pending{{"id","55555555-5555-4555-8555-555555555555"},{"peer",remote},{"stage","prepared"},{"kind","trade"},{"owner","trainer"},{"adventure","emerald"}};
         link.configure({},local,"Misty",[&](const QString& op,const QJsonObject&,QObject*,auto done){operations<<op;done(pending);},
             [](const PracticeSource&,const GameProgress&,QObject*,auto done){done(true);},pending);
+        QVERIFY(link.canBrowseForRecovery());
         QVERIFY(!link.beginOnline(local,"33333333-3333-4333-8333-333333333333","Other","org.traineros.emerald.trade",true));
         QVERIFY(link.beginOnline(local,remote,"Friend","org.traineros.emerald.trade",true));
         QCOMPARE(operations,QStringList{"status"});QVERIFY(link.pending());
+        QVERIFY(!link.canBrowseForRecovery());
         const auto receipt=sent.last()[0].toJsonObject()["receipt"].toObject();
         QVERIFY(!receipt.contains("owner"));QVERIFY(!receipt.contains("adventure"));
         link.endOnline();QVERIFY(link.pending());QCOMPARE(operations,QStringList{"status"});
+        QVERIFY(link.canBrowseForRecovery());QVERIFY(link.navigationBlocked());
     }
     void bluetoothBridgeCarriesExistingFramesOverLoopback() {
         LocalLinkPeer link;link.configure("11111111-1111-4111-8111-111111111111","Misty");

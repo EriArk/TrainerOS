@@ -279,8 +279,12 @@ bool ShellController::chooseAdventureAvailable() {
     return !homeMenuOpen_ && page_ != 1 && page_ != 4 && !(page_==2 && pokemonFace_=="shops") && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
         && !keyboard_.isOpen() && !localModalOpen() && !party_.activities()->practice()->running() && !party_.activities()->link()->active();
 }
-bool ShellController::navigationLocked() const {
-    return party_.activities()->link()->navigationBlocked() || launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || party_.moveOpen() || libraryTools_.busy() || center_.writing() || center_.confirming()
+bool ShellController::navigationLocked(bool primaryRecovery) const {
+    const auto* link=party_.activities()->link();
+    // A disconnected durable exchange must not strand both peers away from
+    // Social. Only primary browsing relaxes this gate; runtime/save operations,
+    // owner changes and Adventure selection keep their existing protection.
+    return (link->navigationBlocked() && !(primaryRecovery && link->canBrowseForRecovery())) || launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || party_.moveOpen() || libraryTools_.busy() || center_.writing() || center_.confirming()
         || (center_.shopsOpen() && center_.shopModal());
 }
 bool ShellController::pairedNavigationAvailable() {
@@ -586,7 +590,7 @@ void ShellController::openTrainers() {
 }
 void ShellController::goToPage(int page) {
     PerformanceTrace::Scope perf("ShellController.goToPage");
-    if(navigationLocked())return;
+    if(navigationLocked(true))return;
     // Closing transient controllers emits their local notifications. Publish
     // only the completed shell transition, not every intermediate close, so
     // hidden Home/drawer bindings do not rebuild the library repeatedly.
@@ -829,7 +833,7 @@ void ShellController::dispatch(Action action) {
         party_.activities()->link()->dispatch(action);return;
     }
     if(launchPreparation_.busy() || libraryTools_.busy())return;
-    if(navigationLocked() && (action==Action::Home || action==Action::PreviousPage || action==Action::NextPage || action==Action::SystemMenu || action==Action::PreviousFace || action==Action::NextFace))return;
+    if(navigationLocked(action==Action::PreviousPage || action==Action::NextPage) && (action==Action::Home || action==Action::PreviousPage || action==Action::NextPage || action==Action::SystemMenu || action==Action::PreviousFace || action==Action::NextFace))return;
     if (homeMenuOpen_) {
         if (action == Action::Home || action == Action::Back) closeHomeMenu();
         else if (action == Action::Confirm) activateHomeMenu(homeMenuFocus_);

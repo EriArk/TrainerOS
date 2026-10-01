@@ -34,8 +34,9 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
    keeps Fluxer's eligibility/approval; ordinary private invitations remain usable.
    A marker is a hint, never activity consent or proof of compatible clients.
    Shared invitations and effective peer capabilities (#104/#109) now have a
-   bounded [online Link increment](ONLINE_LINK.md). Odin delivery
-   and two-handheld proof wait for the owner's evening reboot; no bulk user
+   bounded [online Link increment](ONLINE_LINK.md). Both handhelds now run the
+   update and retain their native Fluxer login after restart. Actual Flip/Odin
+   invitations, saved-member offers and cancellation are verified; no bulk user
    enumeration or extra choose-person page.
 5. #104 invitations + #109 reusable existing system activities + #105 per-traffic
    delivery proof → #110 exact Emerald internet exchange with runtimes closed.
@@ -43,7 +44,10 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
    Fluxer contacts remain chat-only. Keep names intact and save trust separate.
    The first increment connects friend-DM consent to the existing exact Emerald
    exchange/sale/gift workspace through bounded provider messages. Public-route
-   invitation/offer proof is one Flip plus a test client, not two-device settlement.
+   invitation/offer proof now includes the actual Flip and Odin, without final
+   save confirmation. Disconnected pending exchanges can reach Social to reconnect
+   while runtime/save/owner protections remain active. Flip's low battery deferred
+   final writes; the two devices also still share one internet connection.
    **Next:** #110 two-handheld protected exchange/readback and interrupted recovery;
    complete the #105 workload/privacy/retention matrix and remaining #109 contracts.
    Online battle and emulator netplay are not advertised by this increment.

@@ -163,7 +163,7 @@ private:
     void openCenter();
     void showPokemonFace(const QString& face);
     void showTrainerFace(const QString& face);
-    bool navigationLocked() const;
+    bool navigationLocked(bool primaryRecovery = false) const;
     void refreshParty();
     std::optional<Adventure> homeAdventure() const;
     std::optional<ResumePoint> homeResumePoint(const QString& adventureId) const;

@@ -83,6 +83,7 @@ public:
     int focusIndex() const{return focus_;}
     bool active() const{return busy_ || pending() || !mode_.isEmpty() || invitationOpen();}
     bool navigationBlocked() const{return busy_ || pending() || !mode_.isEmpty();}
+    bool canBrowseForRecovery() const{return pending() && !busy_ && !transportConnected() && mode_.isEmpty() && !invitationOpen();}
     bool pending() const{return !journal_.isEmpty() && journal_["stage"]!="complete" && journal_["stage"]!="cancelled";}
 signals:
     void changed();void closeRequested();void saveChanged();void workspaceRequested();

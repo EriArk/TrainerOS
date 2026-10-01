@@ -71,8 +71,10 @@ The shell itself stays simple:
 **Home ⇄ Worlds ⇄ Companions ⇄ Trainer ⇄ Social**
 
 Trainer contains **Profile ⇄ Journey ⇄ Hall ⇄ RetroAchievements** as full peer
-views. Social has Friends and Chats faces; its external account/messaging
-provider is the next integration and the current surface is honestly unlinked.
+views. Social has Messages, Groups, Communities and Search faces, with native
+Fluxer login and text messaging. Compatible friends can invite each other into
+the existing Emerald exchange workspace; complete online settlement and recovery
+acceptance remain tracked in [online Link](docs/ONLINE_LINK.md).
 Existing history, profiles and achievements remain available offline.
 
 L1/R1 changes the main section. L2/R2 changes the current section's faces.

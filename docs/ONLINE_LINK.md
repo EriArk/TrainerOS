@@ -73,6 +73,9 @@ ordinary chat can recover independently. Inactivity expires after ten minutes;
 an incomplete frame expires after 90 seconds. Reconnection is explicit and uses
 the same persistent peer identity to recover an unresolved exchange. Existing
 local journal/backup/read-only/runtime/source-revision safeguards remain in force.
+An idle, disconnected pending exchange permits primary-page browsing so either
+peer can reach Social and explicitly reconnect. Connected settlement, runtime
+launch, owner/Adventure changes and save operations keep their existing gates.
 Neither a declined activity nor page changes tear down an otherwise accepted
 connection. Unresolved saves are never unilaterally rolled back by this carrier.
 
@@ -128,3 +131,40 @@ successful invitation must never be reported as that full acceptance.
 - Odin SSH timed out. Its deployment and separate-internet two-handheld proof
   remain deferred. Account names containing Odin are not evidence of a running
   Odin handheld. The production artifact is retained for that next delivery.
+
+## Two-handheld follow-up, 2026-10-01
+
+- Odin was positively identified after reboot, updated and started in TrainerOS.
+  Its original Steam boot preference, existing library and saves were preserved.
+  Official browser handoff connected its designated public Fluxer test account.
+- Actual Flip and Odin controller input exercised explicit Together selection,
+  an incoming invitation, acceptance into the existing portrait workspace, and
+  both saved-member offers (Swellow and Alakazam). The review displayed both
+  proposals. Cancellation and explicit session disconnect left no pending journal.
+- This did **not** confirm a save exchange. Flip fell from 15% to 12% while
+  discharging; final save writes and fault injection were deferred pending power.
+  Fresh private backups were verified. Both current save hashes still matched
+  their pre-test values. Both devices used the same home internet connection;
+  separate-internet proof remains open.
+- Source review found that a pending journal locked both peers out of Social
+  after disconnection. Primary-page navigation now permits reaching chat in that
+  idle recovery state. Focused tests verify the exception and retained runtime,
+  Home menu, Adventure selector and connected-settlement gates. This is automated
+  regression evidence, not completed physical interrupted-commit recovery.
+- Windows and ARM64 production builds passed. All seven focused CTest targets
+  passed in 26.55 seconds: link_peer, online_link, social, core, interactions,
+  qml_smoke and exit_qml_smoke.
+- Both installed **and live** executables now match SHA-256
+  `7760f20ce6ec62df6fe00b0a5b4a8803440817fa0797d88c899025c08e5a138e`.
+  Flip retained three Trainers/830 Adventures; Odin retained one Trainer/25
+  Adventures. Database checks, boot preferences, nearby helpers and InputPlumber
+  were verified. Both native logins survived the final app restart. The final
+  build repeated a real invitation and decline between the two handhelds.
+- Actual compositor captures remain private under `work/research/`:
+  `pair-flip-review.png` (two offers, before confirmation),
+  `pair-final-incoming.png` (final-build Odin invitation), and
+  `pair-flip-final-chat.png` / `pair-odin-final-chat.png` (remembered login).
+  No synthetic save or host-rendered image is presented as handheld proof.
+- Next remains final bilateral settlement, normal Emerald readback and controlled
+  interruption/reconnection on stable power, then separate-internet validation.
+  #110, the #105 traffic matrix and remaining #109 contracts stay open.

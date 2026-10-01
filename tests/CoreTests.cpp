@@ -17,6 +17,28 @@ public:
 class CoreTests : public QObject {
     Q_OBJECT
 private slots:
+    void disconnectedExchangeCanReachChatWithoutUnlockingSaveOperations() {
+        MockLibraryRepository repo;MockTrainerRepository profiles;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;
+        MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(repo,profiles,adapter,platform,dex,dex,archive,achievements);
+        auto* link=shell.party()->activities()->link();
+        const QJsonObject journal{{"id","55555555-5555-4555-8555-555555555555"},
+            {"peer","22222222-2222-4222-8222-222222222222"},{"stage","committed"},{"kind","trade"}};
+        link->configure({},"11111111-1111-4111-8111-111111111111","Trainer",{}, {},journal);
+        QVERIFY(link->pending());QVERIFY(link->canBrowseForRecovery());
+        QVERIFY(shell.runtimeChangeBlocked());QVERIFY(!shell.chooseAdventureAvailable());
+        shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),1);
+        shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),2);
+        shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),3);
+        shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),4);
+        QVERIFY(shell.canReceiveOnline());QVERIFY(shell.runtimeChangeBlocked());
+        shell.dispatch(Action::SystemMenu);QVERIFY(!shell.menuOpen());
+        shell.dispatch(Action::ToggleContinue);QVERIFY(!shell.drawerOpen());
+        shell.goToPage(0);QCOMPARE(shell.page(),0);
+        QVERIFY(link->pending());QVERIFY(link->navigationBlocked());
+        shell.dispatch(Action::Home);QVERIFY(!shell.homeMenuOpen());
+    }
     void navigationAndBack() {
         MockLibraryRepository repo;
         MockTrainerRepository profiles;
