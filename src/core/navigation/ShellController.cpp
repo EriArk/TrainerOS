@@ -253,7 +253,7 @@ QString ShellController::currentAdventureId() const {
     return homeAdventureId_.isEmpty() ? repository_.home().activeAdventureId : homeAdventureId_;
 }
 bool ShellController::canHoldConfirm() const {
-    if(page_!=1 || !repository_.editable() || menuOpen_ || !notice_.isEmpty() || !service_.isEmpty()
+    if(page_!=1 || !repository_.editable() || homeMenuOpen_ || menuOpen_ || !notice_.isEmpty() || !service_.isEmpty()
         || keyboard_.isOpen() || drawerOpen_ || libraryTools_.isOpen())return false;
     if(multiverseFace_ ? multiverse_.route()!="games" : worlds_.route()!="adventures")return false;
     const auto id=(multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString();
@@ -270,7 +270,7 @@ bool ShellController::localModalOpen() {
         || (trainerHistoryFace() && (hall_.editor()->isOpen() || hall_.account()->isOpen()));
 }
 bool ShellController::chooseAdventureAvailable() {
-    return page_ != 1 && page_ != 4 && !(page_==2 && pokemonFace_=="shops") && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
+    return !homeMenuOpen_ && page_ != 1 && page_ != 4 && !(page_==2 && pokemonFace_=="shops") && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
         && !keyboard_.isOpen() && !localModalOpen() && !party_.activities()->practice()->running() && !party_.activities()->link()->active();
 }
 bool ShellController::navigationLocked() const {
@@ -278,7 +278,7 @@ bool ShellController::navigationLocked() const {
         || (center_.shopsOpen() && center_.shopModal());
 }
 bool ShellController::pairedNavigationAvailable() {
-    return !serviceOpen() && !menuOpen_ && notice_.isEmpty()
+    return !homeMenuOpen_ && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
         && !keyboard_.isOpen() && !localModalOpen() && !drawerOpen_;
 }
 QStringList ShellController::faceNames() const {
@@ -409,6 +409,7 @@ QJsonObject ShellController::navigationState() const {
 }
 void ShellController::restoreNavigation(const QJsonObject& state) {
     if(navigationLocked())return;
+    homeMenuOpen_ = false;
     const int version=state["version"].toInt();
     if(version!=1 && version!=ShellNavigationVersion) {
         // A future layout is not permission to reinterpret its numeric slots.
@@ -583,6 +584,7 @@ void ShellController::goToPage(int page) {
     // only the completed shell transition, not every intermediate close, so
     // hidden Home/drawer bindings do not rebuild the library repeatedly.
     QSignalBlocker transition(this);
+    homeMenuOpen_ = false;
     const bool enteringWorlds = page_ != 1 && std::clamp(page, 0, 4) == 1;
     if(page!=page_){party_.activities()->practice()->leave();party_.activities()->link()->leave();}
     { PerformanceTrace::Scope phase("navigation.tools"); libraryTools_.close(); }
@@ -616,6 +618,7 @@ void ShellController::goToPage(int page) {
     { PerformanceTrace::Scope phase("navigation.publish"); emit changed(); }
 }
 void ShellController::activate(int index, const QString& area) {
+    if(homeMenuOpen_)return;
     if(launchPreparation_.busy() || libraryTools_.busy() || center_.writing())return;
     if(area=="world-edit" && canEditWorld()){libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
     if (area == "continue") { dispatch(Action::ToggleContinue); return; }
@@ -797,17 +800,36 @@ void ShellController::confirm() {
         notice_ = "This section is not available in the prototype yet.";
     }
 }
+void ShellController::closeHomeMenu() {
+    if (!homeMenuOpen_ || navigationLocked()) return;
+    homeMenuOpen_ = false; emit changed();
+}
+void ShellController::activateHomeMenu(int index) {
+    if (!homeMenuOpen_ || navigationLocked() || index < 0 || index > 2) return;
+    if (index) socialFace_ = index == 1 ? "friends" : "chats";
+    goToPage(index ? 4 : 0);
+}
 void ShellController::dispatch(Action action) {
     if(party_.activities()->link()->invitationOpen()) {
         party_.activities()->link()->dispatch(action);return;
     }
     if(launchPreparation_.busy() || libraryTools_.busy())return;
     if(navigationLocked() && (action==Action::Home || action==Action::PreviousPage || action==Action::NextPage || action==Action::SystemMenu || action==Action::PreviousFace || action==Action::NextFace))return;
+    if (homeMenuOpen_) {
+        if (action == Action::Home || action == Action::Back) closeHomeMenu();
+        else if (action == Action::Confirm) activateHomeMenu(homeMenuFocus_);
+        else if (action == Action::Up || action == Action::Down) {
+            homeMenuFocus_ = std::clamp(homeMenuFocus_ + (action == Action::Up ? -1 : 1), 0, 2); emit changed();
+        } else if (action == Action::SystemMenu) {
+            closeHomeMenu(); dispatch(action);
+        }
+        return;
+    }
     if(action==Action::ContextMenu && canHoldConfirm()) {
         libraryTools_.beginGame((multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString());return;
     }
     if(action==Action::LocalAction && canEditWorld()) {libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
-    if (action == Action::Home) { goToPage(0); return; }
+    if (action == Action::Home) { homeMenuOpen_ = true; homeMenuFocus_ = 0; emit changed(); return; }
     if (action == Action::PreviousPage || action == Action::NextPage) {
         goToPage(page_ + (action == Action::NextPage ? 1 : -1));
         return;

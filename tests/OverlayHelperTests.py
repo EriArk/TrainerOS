@@ -87,6 +87,10 @@ class OverlayHelperTests(unittest.TestCase):
         keys.add(305); self.assertTrue(pad.sample()['confirm']); self.assertFalse(pad.sample()['back'])
         keys.clear(); keys.add(304); self.assertTrue(pad.sample()['back'])
         keys.clear()
+        keys.add(544); self.assertTrue(pad.sample()['up']); self.assertFalse(pad.sample()['down']); keys.clear()
+        keys.add(545); self.assertTrue(pad.sample()['down']); keys.clear()
+        values[1]=-1200; self.assertTrue(pad.sample()['up'])
+        values[1]=1200; self.assertTrue(pad.sample()['down']); values.clear()
         # Odin uses 2/5 for triggers, unlike the Flip's 20/21.
         pad.axes = [0, 1, 2, 3, 4, 5]; pad.triggers = {2, 5}
         self.assertTrue(pad.sample()['neutral'])

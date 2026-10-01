@@ -48,6 +48,8 @@ class ShellController final : public QObject {
     Q_PROPERTY(trainer::MultiversePresentation* multiverse READ multiverse CONSTANT)
     Q_PROPERTY(QString currentAdventureId READ currentAdventureId NOTIFY changed)
     Q_PROPERTY(bool menuOpen READ menuOpen NOTIFY changed)
+    Q_PROPERTY(bool homeMenuOpen READ homeMenuOpen NOTIFY changed)
+    Q_PROPERTY(int homeMenuFocus READ homeMenuFocus NOTIFY changed)
     Q_PROPERTY(QString achievementToast READ achievementToast NOTIFY changed)
     Q_PROPERTY(QString notice READ notice NOTIFY changed)
     Q_PROPERTY(bool modeConfirmation READ modeConfirmation NOTIFY changed)
@@ -78,7 +80,7 @@ public:
     TrainerSetupPresentation* trainerSetup() { return &trainerSetup_; }
     void setOnboardingConnections(bool active) { if(onboardingConnections_==active)return; onboardingConnections_=active; emit changed(); }
     TextEntryController* keyboard() { return &keyboard_; }
-    bool canReceiveNearby() { return !menuOpen_ && !drawerOpen_ && !serviceOpen() && notice_.isEmpty()
+    bool canReceiveNearby() { return !homeMenuOpen_ && !menuOpen_ && !drawerOpen_ && !serviceOpen() && notice_.isEmpty()
         && !localModalOpen() && !keyboard_.isOpen() && !party_.activities()->practice()->running(); }
     TrainerController* trainer() { return &trainer_; }
     WorldsController* worlds() { return &worlds_; }
@@ -123,6 +125,10 @@ public:
     int faceIndex() const;
     QString currentAdventureId() const;
     bool menuOpen() const { return menuOpen_; }
+    bool homeMenuOpen() const { return homeMenuOpen_; }
+    int homeMenuFocus() const { return homeMenuFocus_; }
+    Q_INVOKABLE void activateHomeMenu(int index);
+    Q_INVOKABLE void closeHomeMenu();
     bool powerMenu() const { return powerMenu_; }
     QString notice() const { return notice_; }
     bool runtimeChangeBlocked() const { return navigationLocked(); }
@@ -196,6 +202,8 @@ private:
     bool multiverseFace_ = false, multiverseHome_ = false;
     int multiverseDrawerFocus_ = 0;
     bool menuOpen_ = false;
+    bool homeMenuOpen_ = false;
+    int homeMenuFocus_ = 0;
     bool powerMenu_ = false;
     bool libraryFromWorlds_ = false;
     QString notice_;

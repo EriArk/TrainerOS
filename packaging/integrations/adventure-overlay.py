@@ -128,8 +128,10 @@ def run(args):
         raise RuntimeError('Input watchdog unavailable')
     pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     future = None; state = 'game'; target = 0; token = 0; epoch = '0'; buffer = b''; neutral_since = None
+    capture_event = 'previewed'; capture_deadline = 0; clean_since = None
+    capture_job = None
     try:
-        device.mode(1); emit('ready')
+        device.mode(1); emit('ready', protocol=2)
         while guard.poll() is None:
             if identity(args.game) != game_start: break
             if select.select([sys.stdin.buffer],[],[],.02)[0]:
@@ -142,10 +144,14 @@ def run(args):
                     op = command.get('command')
                     if op == 'ping': parent.sendall(b'K')
                     elif op == 'context': epoch = str(command['epoch'])
-                    elif op == 'capture' and state == 'requested':
-                        token = int(command['token']); state = 'overlay'
-                        future = pool.submit(capture, directory)
-                    elif op == 'cancel' and state in ('requested','overlay'):
+                    elif (op == 'preview' and state == 'requested') or (op == 'capture' and state == 'overlay'):
+                        # QML hides the overlay for explicit Exit. Keep the
+                        # input lease and wait for the owned game to regain the
+                        # compositor before capturing; never use the menu image.
+                        token = int(command['token']); state = 'capturing'
+                        capture_event = 'previewed' if op == 'preview' else 'captured'
+                        capture_deadline = time.monotonic() + .7; clean_since = None
+                    elif op == 'cancel' and state in ('requested','overlay','capturing'):
                         state = 'release'; neutral_since = None
                     elif op == 'close' and state == 'overlay' and int(command['token']) == token:
                         if x11.close(target,args.game,game_start): state = 'closing'
@@ -164,11 +170,20 @@ def run(args):
                 if supported and x11.atom('WM_DELETE_WINDOW') in x11.prop(target,'WM_PROTOCOLS'):
                     state = 'requested'; emit('request')
                 else: state = 'release'; neutral_since = None
+            if state == 'capturing' and future is None:
+                clean = x11.active() == target and x11.owns(target, args.game, game_start)
+                clean_since = (clean_since or time.monotonic()) if clean else None
+                if clean_since and time.monotonic() - clean_since >= .1:
+                    capture_job = (capture_event, token)
+                    future = pool.submit(capture, directory); state = 'overlay'
+                elif time.monotonic() > capture_deadline:
+                    state = 'overlay'; emit(capture_event, token=token, ok=False)
             if future is not None and future.done():
                 error = future.exception()
-                if state == 'overlay': emit('captured',token=token,ok=error is None)
+                if state == 'overlay' and capture_job == (capture_event, token):
+                    emit(capture_event,token=token,ok=error is None)
                 future = None
-            if state in ('requested','overlay','closing'):
+            if state in ('requested','overlay','capturing','closing'):
                 emit('input',epoch=epoch,**sample)
             if state == 'release':
                 neutral_since = (neutral_since or time.monotonic()) if sample['neutral'] else None

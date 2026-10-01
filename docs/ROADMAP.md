@@ -10,7 +10,8 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
 1. #111 delivered on Flip/Odin: five primaries; full Trainer Profile/Journey/Hall/RA,
    rightmost Social and legacy navigation/deep-link/launch checkpoint migration.
    Live messaging remains in its provider stages below.
-2. #112 local adaptive Home menu, updated #49 explicit Exit and capability-correct
+2. #112 [local Home menu and #49 explicit Exit](HOME_MENU.md) separate quick access
+   from safe termination. Next within #112: capability-correct independent
    shader/ratio/widescreen/bezel choices. Start keeps its existing system role.
 3. Finish existing R5 standalone PPSSPP active-Trainer RA handoff, actionable
    authentication and legitimate fresh-play/return evidence.

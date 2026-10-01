@@ -634,7 +634,8 @@ private slots:
         shell.dispatch(Action::Back); shell.dispatch(Action::SystemMenu); shell.dispatch(Action::Secondary);
         QVERIFY(shell.multiverseHome()); shell.dispatch(Action::Back);
         shell.goToPage(2); QVERIFY(shell.resumePoints() != shell.multiverse()->choices());
-        shell.dispatch(Action::Home); QVERIFY(shell.multiverseHome());
+        shell.dispatch(Action::Home); QVERIFY(shell.homeMenuOpen());
+        shell.dispatch(Action::Confirm); QVERIFY(shell.multiverseHome());
     }
     void realMultiverseSelectionLaunchAndMissingContent() {
         class Library final:public LibraryRepository {
@@ -724,7 +725,8 @@ private slots:
         shell.dispatch(Action::Confirm); QVERIFY(!shell.drawerOpen());
         shell.dispatch(Action::Confirm); QCOMPARE(shell.page(), 1); QVERIFY(shell.multiverseFace());
         shell.dispatch(Action::Confirm); QVERIFY(shell.multiverse()->games().isEmpty());
-        shell.dispatch(Action::Home); shell.dispatch(Action::NextFace); QVERIFY(!shell.multiverseHome());
+        shell.dispatch(Action::Home); shell.dispatch(Action::Confirm);
+        shell.dispatch(Action::NextFace); QVERIFY(!shell.multiverseHome());
         shell.dispatch(Action::Confirm); QCOMPARE(shell.page(), 1); QVERIFY(!shell.multiverseFace());
         shell.dispatch(Action::Home);
         shell.dispatch(Action::SystemMenu); shell.activate(0); shell.activate(4);

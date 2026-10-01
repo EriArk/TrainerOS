@@ -15,10 +15,11 @@ private slots:
 from pathlib import Path
 marker=Path(__file__).with_suffix('.log')
 def emit(event,**data): print(json.dumps(dict(event=event,**data)),flush=True)
-emit('ready'); emit('request')
+emit('ready',protocol=2); emit('request')
 for line in sys.stdin:
  c=json.loads(line); op=c['command']
  if op=='context': emit('input',epoch=c['epoch'],connected=True,neutral=True)
+ elif op=='preview': emit('previewed',token=c['token'],ok=False)
  elif op=='capture': emit('captured',token=c['token'],ok=False)
  elif op=='cancel':
   marker.write_text('cancelled');emit('released');emit('request')
@@ -37,12 +38,12 @@ for line in sys.stdin:
         const auto control = directory.filePath("control");
         QVERIFY(launch.launch({probe, {"controlled", control, directory.filePath("pid")}, {}}, {}, "fixture"));
         QTRY_VERIFY(view.visible()); view.setWindowFocused(true);
-        QTRY_VERIFY(view.ready()); QVERIFY(view.captureFailed());
+        QTRY_VERIFY(view.ready()); QVERIFY(view.menuOpen());
         const auto pid = game.processId(); QVERIFY(pid > 0);
         view.cancel();
         QTRY_VERIFY(QFile::exists(directory.filePath("helper.log")));
         QTRY_VERIFY(view.ready()); QCOMPARE(game.processId(), pid);
-        view.confirm();
+        view.activateMenu(1); QTRY_VERIFY(view.confirming()); QTRY_VERIFY(view.ready()); view.confirm();
         QTRY_COMPARE(failed.size(), 1);
         QVERIFY(!view.visible()); QVERIFY(game.active()); QCOMPARE(game.processId(), pid);
         QVERIFY(completed.isEmpty());

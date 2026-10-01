@@ -20,7 +20,7 @@ remain. Planned integrations are not installed capabilities.
   Settings returns and launch checkpoints; an old slot 4 must never become Social.
   Unsupported route versions have a safe Home fallback. Retain per-owner state,
   per-face focus/selection, existing modal/write priority and Worlds grid re-entry.
-- [#112](https://github.com/EriArk/TrainerOS/issues/112) **plans** adaptive physical
+- [#112](https://github.com/EriArk/TrainerOS/issues/112) owns adaptive physical
   Home/Guide quick access in both shell and supported games. Opening it does not
   jump to Home, ask about saving, end history or pause an online game. It captures
   the actual owner/live session/origin, not a subsequently selected library game.
@@ -33,7 +33,8 @@ remain. Planned integrations are not installed capabilities.
   capture occurs after Exit intent, before its question; an overlay thumbnail
   is not exit evidence. Preserve capture errors, neutral input, stale-session
   rejection, spontaneous exit/watchdog recovery and ordinary saves; no persistent
-  savestate resume. These Home/exit changes are a separate increment after #111.
+  savestate resume. The local Home/explicit-exit increment is documented in
+  [HOME_MENU](HOME_MENU.md); appearance and external-provider actions remain open.
 - Home appearance keeps shader, ratio, exact supported widescreen hack and bezel
   independent, with small previews, per-game override/inheritance/reset, actual
   live-versus-next-launch state and failure/cancel behavior. Use proven runtime

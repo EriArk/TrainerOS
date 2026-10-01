@@ -22,7 +22,7 @@ Window {
     Image {
         objectName: "exit-game-backdrop"
         anchors.fill: parent
-        source: window.visible && !window.presentation.captureFailed
+        source: window.visible && window.presentation.hasFrame
             ? "image://exit-frame/" + window.presentation.frameKey : ""
         fillMode: Image.PreserveAspectFit
         asynchronous: false
@@ -34,6 +34,7 @@ Window {
         width: Theme.viewportWidth; height: Theme.viewportHeight
         scale: Math.min(window.width / width, window.height / height)
         Item {
+            visible: !window.presentation.menuOpen
             anchors.centerIn: parent
             width: 540; height: 236
             scale: window.visible ? 1 : .97
@@ -96,6 +97,22 @@ Window {
                     }
                 }
             }
+        }
+        HomeMenuCard {
+            objectName: "game-home-menu"
+            anchors.centerIn: parent
+            visible: window.presentation.menuOpen
+            heading: window.presentation.gameTitle.length ? window.presentation.gameTitle : "Adventure"
+            caption: "In game"
+            actions: [{id:"continue",label:"Continue"},{id:"exit",label:"Exit game"}]
+            currentIndex: window.presentation.menuFocus
+            ready: window.presentation.ready
+            onChosen: index => window.presentation.activateMenu(index)
+        }
+        Row { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 14; spacing: 26; visible: window.presentation.menuOpen
+            Hint { button: "↑↓"; label: "Choose"; tint: Theme.blue }
+            Hint { button: "A"; label: "Select"; tint: Theme.yellow }
+            Hint { button: "B"; label: "Continue"; tint: Theme.blue }
         }
         Row { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 14; spacing: 26; visible: window.presentation.confirming
             Hint { button: "B"; label: "Keep playing"; tint: Theme.blue }

@@ -5,6 +5,50 @@ using namespace trainer;
 class AdventureExitPresentationTests final : public QObject {
     Q_OBJECT
 private slots:
+    void menuKeepsSessionAndRequiresExplicitFreshExit() {
+        AdventureExitController exit; AdventureExitPresentation view(exit);
+        QSignalSpy captures(&exit, &AdventureExitController::captureRequested);
+        QSignalSpy previews(&view, &AdventureExitPresentation::menuCaptureRequested);
+        QSignalSpy dismissed(&view, &AdventureExitPresentation::menuDismissed);
+        QSignalSpy completed(&exit, &AdventureExitController::completed);
+        exit.beginSession(AdventureSavePolicy::ManualConfirm); exit.setAvailable(true);
+        auto feed = [&](ExitInputSnapshot s) { view.updateInput(view.inputGeneration(),s); };
+        auto open = [&] {
+            QVERIFY(view.requestMenu()); QVERIFY(!view.requestMenu());
+            view.setInputIsolated(true);
+            QImage image(60,40,QImage::Format_RGB32); image.fill(Qt::green);
+            view.menuCaptureCompleted(previews.last()[0].toULongLong(),image);
+            view.setWindowFocused(true);
+        };
+        open(); QVERIFY(view.menuOpen()); QVERIFY(view.visible()); QVERIFY(captures.isEmpty());
+        QCOMPARE(exit.phase(), AdventureExitController::Phase::Idle);
+        feed({true,false,true}); QVERIFY(!view.ready());
+        feed({true,true}); feed({true,false,true}); // Continue
+        QVERIFY(!view.visible()); QCOMPARE(dismissed.size(),1); QVERIFY(captures.isEmpty());
+        open(); feed({true,true}); feed({true,false,false,false,true}); // Home again
+        QVERIFY(!view.visible()); QCOMPARE(dismissed.size(),2);
+        open(); feed({true,true});
+        feed({true,false,true,false,false,false,true}); // Down+A only selects Exit.
+        QCOMPARE(view.menuFocus(),1); QVERIFY(captures.isEmpty());
+        feed({true,true}); feed({true,false,true});
+        QCOMPARE(captures.size(),1); QVERIFY(!view.visible());
+        QVERIFY(view.frame().isNull()); // Menu preview never becomes exit media.
+        exit.captureCompleted(captures.last()[0].toULongLong(),{},"No capture");
+        view.setInputIsolated(true); feed({true,false,true}); QVERIFY(!view.ready());
+        feed({true,true}); feed({true,false,false,false,true});
+        QCOMPARE(exit.phase(),AdventureExitController::Phase::Idle); QVERIFY(completed.isEmpty());
+    }
+    void menuLeaseLossAndOldPreviewCannotOpenAnotherSession() {
+        AdventureExitController exit; AdventureExitPresentation view(exit);
+        QSignalSpy previews(&view,&AdventureExitPresentation::menuCaptureRequested);
+        exit.beginSession(AdventureSavePolicy::Unknown); exit.setAvailable(true);
+        QVERIFY(view.requestMenu()); const auto old=previews.last()[0].toULongLong();
+        exit.endSession(false); view.menuCaptureCompleted(old,{}); QVERIFY(!view.visible());
+        exit.beginSession(AdventureSavePolicy::Unknown); exit.setAvailable(true);
+        QVERIFY(view.requestMenu()); view.menuCaptureCompleted(old,{}); QVERIFY(!view.visible());
+        view.menuCaptureCompleted(previews.last()[0].toULongLong(),{}); QVERIFY(view.menuOpen());
+        exit.setAvailable(false); QVERIFY(!view.visible());
+    }
     void isolatedFocusedNeutralAndFreshAreAllRequired() {
         AdventureExitController exit;
         AdventureExitPresentation view(exit);

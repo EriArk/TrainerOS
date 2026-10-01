@@ -64,10 +64,19 @@ private slots:
         shell.dispatch(Action::NextPage);
         QCOMPARE(shell.page(), 4);
         shell.dispatch(Action::Home);
-        QCOMPARE(shell.page(), 0);
+        QCOMPARE(shell.page(), 4); QVERIFY(shell.homeMenuOpen());
+        const auto origin = shell.navigationState();
+        shell.dispatch(Action::NextPage); QCOMPARE(shell.navigationState(), origin);
+        shell.dispatch(Action::Home); QVERIFY(!shell.homeMenuOpen());
+        QCOMPARE(shell.navigationState(), origin);
+        shell.dispatch(Action::Home); shell.dispatch(Action::Confirm);
+        QCOMPARE(shell.page(), 0); QVERIFY(!shell.homeMenuOpen());
         shell.goToPage(1); shell.dispatch(Action::SystemMenu);
         shell.dispatch(Action::Home);
-        QCOMPARE(shell.page(), 0); QVERIFY(!shell.menuOpen());
+        QCOMPARE(shell.page(), 1); QVERIFY(shell.menuOpen()); QVERIFY(shell.homeMenuOpen());
+        shell.dispatch(Action::Back); QVERIFY(!shell.homeMenuOpen()); QVERIFY(shell.menuOpen());
+        shell.dispatch(Action::Home); shell.dispatch(Action::Down); shell.dispatch(Action::Confirm);
+        QCOMPARE(shell.page(), 4); QCOMPARE(shell.socialFace(), "friends"); QVERIFY(!shell.menuOpen());
         shell.goToPage(2); shell.dispatch(Action::NextFace);
         QVERIFY(shell.centerFace()); QVERIFY(!shell.center()->configured());
         QCOMPARE(shell.party()->section(), "party"); QVERIFY(shell.notice().isEmpty());
@@ -133,6 +142,17 @@ private slots:
                 QCOMPARE(qvariant_cast<Action>(events.first().first()), action);
                 button(code, false);
             }
+            const auto layerGate = connect(&input, &ControllerInput::action, &input, [&](Action action) {
+                if (action == Action::Home) input.requireNeutral();
+            });
+            events.clear();
+            SDL_JoystickSetVirtualButton(joystick, SDL_CONTROLLER_BUTTON_GUIDE, true);
+            button(SDL_CONTROLLER_BUTTON_B, true);
+            QCOMPARE(events.size(), 1); QCOMPARE(qvariant_cast<Action>(events.first().first()),Action::Home);
+            button(SDL_CONTROLLER_BUTTON_GUIDE, false); input.poll(); QCOMPARE(events.size(), 1);
+            button(SDL_CONTROLLER_BUTTON_B, false); button(SDL_CONTROLLER_BUTTON_B, true);
+            QCOMPARE(events.size(), 2); button(SDL_CONTROLLER_BUTTON_B, false);
+            disconnect(layerGate);
             events.clear();
             SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_LEFTX, 9000); input.poll();
             QCOMPARE(events.size(), 0);

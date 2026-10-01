@@ -111,19 +111,24 @@ private slots:
         QVERIFY(game.completed.first()[2].toBool()); QCOMPARE(game.started.size(), 1);
         QVERIFY(!game.exit().requestExit());
     }
-    void verifiedAutosaveStillAsksAndCanReturnToSameProcess() {
+    void verifiedAutosaveClosesOnlyAfterExplicitIntentAndFreshCapture() {
         RunningAdventure game; QVERIFY(game.start(AdventureSavePolicy::VerifiedAutosave));
         QTRY_VERIFY(!game.pid().isEmpty()); game.exit().setAvailable(true);
         QVERIFY(game.exit().requestExit()); QVERIFY(game.closes.isEmpty());
         game.exit().captureCompleted(game.attempt(), frame());
-        QCOMPARE(game.prompts.size(), 1); QVERIFY(game.closes.isEmpty());
+        QVERIFY(game.prompts.isEmpty()); QCOMPARE(game.closes.size(), 1);
         QVERIFY(game.exit().verifiedAutosave());
-        const auto pid = game.pid();
-        QVERIFY(game.exit().cancel()); QVERIFY(game.process.active()); QCOMPARE(game.pid(), pid);
-        QVERIFY(game.exit().requestExit()); game.exit().captureCompleted(game.attempt(), frame());
-        QVERIFY(game.exit().confirm()); QCOMPARE(game.closes.size(), 1);
+        QVERIFY(!game.exit().confirm()); QVERIFY(!game.exit().cancel());
         QVERIFY(game.command("exit")); QTRY_COMPARE(game.completed.size(), 1);
         QVERIFY(game.completed.first()[2].toBool()); // Permission to exit, not proof of autosave.
+    }
+    void autosaveCaptureFailureRemainsCancellable() {
+        RunningAdventure game; QVERIFY(game.start(AdventureSavePolicy::VerifiedAutosave));
+        QTRY_VERIFY(!game.pid().isEmpty()); game.exit().setAvailable(true);
+        QVERIFY(game.exit().requestExit());
+        game.exit().captureCompleted(game.attempt(), {}, "Capture unavailable");
+        QCOMPARE(game.prompts.size(), 1); QVERIFY(game.closes.isEmpty());
+        QVERIFY(game.exit().cancel()); QVERIFY(game.process.active());
     }
     void captureFailureAndTimeoutKeepExitAndCancellationUsable_data() {
         QTest::addColumn<bool>("timeout");

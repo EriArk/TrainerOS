@@ -38,10 +38,17 @@ void ControllerInput::setEnabled(bool enabled) {
     emit sampled();
 }
 void ControllerInput::deliver(Action semantic, bool fromController) {
+    // A layer change can occur in the middle of this same sampled packet.
+    if (fromController && awaitingNeutral_) return;
     if(semantic!=Action::Confirm)confirmPending_=false;
     if (semantic == Action::Confirm) emit confirmPressed();
     emit observedAction(semantic, fromController);
     emit action(semantic);
+}
+void ControllerInput::requireNeutral() {
+    awaitingNeutral_ = true; confirmPending_ = false;
+    heldDirection_.reset(); previous_.fill(false); triggers_.fill(false);
+    sample_.awaitingNeutral = true;
 }
 std::optional<Action> ControllerInput::direction(float x, float y,
         const std::array<bool, SDL_CONTROLLER_BUTTON_MAX>& b) {
@@ -111,6 +118,8 @@ void ControllerInput::poll() {
     if (awaitingNeutral_) {
         const bool anyButton = std::any_of(buttons.begin(), buttons.end(), [](bool b) { return b; });
         if (anyButton || std::abs(x) >= StickRelease || std::abs(y) >= StickRelease
+                || std::abs(sample_.axes[SDL_CONTROLLER_AXIS_RIGHTX] / 32768.0f) >= StickRelease
+                || std::abs(sample_.axes[SDL_CONTROLLER_AXIS_RIGHTY] / 32768.0f) >= StickRelease
                 || triggers[0] >= StickRelease || triggers[1] >= StickRelease) { emit sampled(); return; }
         awaitingNeutral_ = false;
     }

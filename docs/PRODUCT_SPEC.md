@@ -3,7 +3,8 @@
 **2026-10-01 supersession:** #111 places Profile/Journey/Hall/RA under Trainer
 and uses rightmost Social for Friends/Chats, retaining five primaries and every
 existing provider. [Navigation migration](NAVIGATION_111.md). #112's adaptive
-Home overlay and updated #49 explicit Exit are next; Start is unchanged.
+Home overlay and updated #49 explicit Exit are described in [the local menu](HOME_MENU.md);
+appearance controls remain next; Start is unchanged.
 [#98–112 acceptance](EXPANSION_98_112.md) separates native system Link from runtime
 multiplayer and preserves every earlier roadmap obligation. Messaging/voice/
 online Link are planned; a navigation change is not a live Fluxer integration.
@@ -267,7 +268,7 @@ Ordinary game saves remain external source data. TrainerOS stores source-aware o
 
 **Accepted target #49, not yet implemented:** normal TrainerOS creates, manages and resumes no emulator savestates/ResumePoints, in either Pokémon or Multiverse. Ordinary game saves/autosaves are authoritative. Relaunch starts the game normally; the game loads its own save.
 
-On user-requested exit, capture a clean gameplay screenshot **before** the overlay. Resolve exact title/integration policy `manualConfirm | autosave | unknown`; do not infer it from platform. Manual/unknown asks “Have you saved?” while the game remains alive. B returns to the same process; A confirms graceful exit. Per the owner's 2026-09-19 clarification, verified autosave also asks "Close this game?"; it never exits without A. The target trigger is the physical Home/Guide button instead of Start+Select, subject to the Flip routing gate. Start retains the shell system menu. Confirmation is a user assertion, not automatic proof of saving.
+Physical Home/Guide opens quick access without requesting termination. Only explicit Exit game starts #49: hide the menu, capture a fresh clean gameplay screenshot, then resolve exact title/integration policy `manualConfirm | autosave | unknown`; never infer it from platform. Manual/unknown asks about saving while the game remains alive. B returns to the same process; A confirms graceful exit. Verified autosave skips that question after a valid capture, while failed capture keeps the cancellable fallback. Start retains the shell system menu. Confirmation is a user assertion, not automatic proof of saving. See [the local menu and device evidence](HOME_MENU.md); appearance and additional runtime/online gates remain open.
 
 Exit images feed Home/Y/history with Trainer/domain/Adventure/session provenance. Cancelled attempts and crash/kill/battery loss cannot fabricate a confirmed exit or replace valid history with a false capture. Preserve prior valid media where appropriate and mark interrupted outcomes honestly. Capture failure leaves a usable exit/cancel path, never a state-thumbnail substitute.
 

@@ -35,6 +35,7 @@ public:
     const ControllerSample& sample() const { return sample_; }
     void setEnabled(bool enabled);
     void setHoldConfirmEnabled(bool enabled);
+    void requireNeutral();
     void poll();
     bool eventFilter(QObject*, QEvent*) override;
 signals:

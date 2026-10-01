@@ -47,10 +47,10 @@ an actual checkpoint restores its local wheel route as before.
 
 ## Separate pending work
 
-#112's adaptive Home menu and updated #49 explicit-Exit sequence are next.
-In this navigation increment, physical Home still uses the prior shell jump/game
-exit question. Start was not repurposed. #99–110 social/online capabilities and
-every earlier roadmap acceptance remain open independently.
+The later [#112 local Home menu](HOME_MENU.md) supersedes this increment's
+physical Home jump/game exit question with quick access and explicit Exit.
+Start is not repurposed. #112 appearance and #99–110 social/online capabilities
+and every earlier roadmap acceptance remain open independently.
 
 ## Verification
 

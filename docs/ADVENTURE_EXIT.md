@@ -1,5 +1,11 @@
 # Ordinary-save exit — #49 implementation
 
+**2026-10-01 supersession:** [physical Home menu](HOME_MENU.md) separates opening
+Home from Exit. Only explicit Exit requests a fresh clean capture and the save
+question. Verified autosave skips the manual question after a successful capture;
+capture failure keeps a cancellable fallback. The direct Home question and
+always-confirm-autosave descriptions below are historical evidence.
+
 ## Delivered boundary, 2026-09-19
 
 `AdventureLaunchController` now owns an `AdventureExitController` for its running

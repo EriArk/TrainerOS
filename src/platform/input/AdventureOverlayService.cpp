@@ -28,6 +28,11 @@ AdventureOverlayService::AdventureOverlayService(ProcessService& game, Adventure
         view_.setInputIsolated(true);
         send({{"command", "capture"}, {"token", QString::number(token)}});
     });
+    connect(&view_, &AdventureExitPresentation::menuCaptureRequested, this, [this](quint64 token) {
+        view_.setInputIsolated(true);
+        send({{"command", "preview"}, {"token", QString::number(token)}});
+    });
+    connect(&view_, &AdventureExitPresentation::menuDismissed, this, [this] { send({{"command", "cancel"}}); });
     connect(&exit_, &AdventureExitController::returnToGameRequested, this, [this] { send({{"command", "cancel"}}); });
     connect(&exit_, &AdventureExitController::gracefulExitRequested, this, [this](quint64 token) {
         send({{"command", "close"}, {"token", QString::number(token)}});
@@ -81,21 +86,24 @@ void AdventureOverlayService::receive() {
         const auto message = QJsonDocument::fromJson(buffer_.left(index)).object(); buffer_.remove(0, index + 1);
         if (!active_ || !game_.active()) continue;
         const auto event = message["event"].toString();
-        if (event == "ready") exit_.setAvailable(true);
-        else if (event == "request") { if (!exit_.requestExit()) send({{"command", "cancel"}}); }
+        if (event == "ready") exit_.setAvailable(message["protocol"].toInt() == 2);
+        else if (event == "request") { if (!view_.requestMenu()) send({{"command", "cancel"}}); }
         else if (event == "released") view_.setInputIsolated(false);
         else if (event == "failed") lost();
         else if (event == "input") {
             view_.updateInput(message["epoch"].toString().toULongLong(), {message["connected"].toBool(),
-                message["neutral"].toBool(), message["confirm"].toBool(), message["back"].toBool()});
-        } else if (event == "captured") {
+                message["neutral"].toBool(), message["confirm"].toBool(), message["back"].toBool(),
+                message["home"].toBool(), message["up"].toBool(), message["down"].toBool()});
+        } else if (event == "captured" || event == "previewed") {
             QImage frame;
             if (message["ok"].toBool() && temporary_) {
                 QImageReader reader(temporary_->filePath("frame.png"), "png");
                 const auto size = reader.size();
                 if (size.width() > 0 && size.height() > 0 && size.width() <= 4096 && size.height() <= 4096) frame = reader.read();
             }
-            exit_.captureCompleted(message["token"].toVariant().toULongLong(), frame);
+            const auto token = message["token"].toVariant().toULongLong();
+            if (event == "previewed") view_.menuCaptureCompleted(token, frame);
+            else exit_.captureCompleted(token, frame);
         } else if (event == "close-failed") {
             exit_.gracefulExitFailed(message["token"].toVariant().toULongLong(), {});
         }

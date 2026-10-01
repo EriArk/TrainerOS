@@ -196,6 +196,7 @@ Window {
             readonly property var actions: {
                 const h = hint
                 if (shell.party.activities.link.invitationOpen) return shell.party.activities.link.invitationIncoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
+                if (shell.homeMenuOpen) return [h("↑↓","Choose"),h("A","Open"),h("B","Close")]
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
                 if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [h("X","Quick controls"),h("←→",shell.focusIndex>=9 ? "Choose" : "Adjust"),h("A",shell.focusIndex>=9 ? "Toggle" : "Select"),h("B","Close")]
                 if (shell.keyboard.open) return [h("X","Case"),h("Y","Symbols"),h("A","Type"),h("B","Cancel")]
@@ -356,6 +357,25 @@ Window {
         SystemPanel {
             anchors { left: screen.left; right: parent.right; top: screen.top; bottom: footer.top }
             z: 4; shell: shellController
+        }
+        Item {
+            objectName: "shell-home-menu"
+            width: parent.width; height: Theme.footerTop; z: 5
+            visible: shell.homeMenuOpen
+            property var originFocus: null
+            onVisibleChanged: {
+                if (visible) originFocus = window.activeFocusItem
+                else if (originFocus && originFocus.visible && originFocus.enabled) originFocus.forceActiveFocus()
+            }
+            Rectangle { anchors.fill: parent; color: "#88102324" }
+            MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted = true }
+            HomeMenuCard {
+                anchors.centerIn: parent
+                caption: "Your next stop"
+                actions: [{id:"home",label:"Home"},{id:"friends",label:"Friends"},{id:"chats",label:"Chats"}]
+                currentIndex: shell.homeMenuFocus
+                onChosen: index => shell.activateHomeMenu(index)
+            }
         }
         Item {
             id: nearbyInvitation

@@ -30,14 +30,18 @@ class RawPad:
         bits = self.get(0x18, 96)
         keys = {i for i in range(768) if bits[i // 8] & (1 << (i % 8))}
         neutral = not keys
+        positions = {}
         for axis in self.axes:
             value, low, high, _, _, _ = struct.unpack('iiiiii', self.get(0x40 + axis, 24))
             if high <= low:
                 raise RuntimeError('Invalid axis range')
             position = (value - low) / (high - low)
+            positions[axis] = position
             neutral &= position < .15 if axis in self.triggers else abs(position - .5) < .175
         return {'connected': True, 'neutral': bool(neutral), 'confirm': 305 in keys,
-                'back': 304 in keys, 'home': 316 in keys}
+                'back': 304 in keys, 'home': 316 in keys,
+                'up': 544 in keys or positions[1] < .225,
+                'down': 545 in keys or positions[1] > .775}
 
 
 def identity(pid):

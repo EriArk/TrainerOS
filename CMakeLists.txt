@@ -238,6 +238,7 @@ qt_add_qml_module(traineros
         src/qml/TrainerAccessPanel.qml
         src/qml/Main.qml
         src/qml/AdventureExitWindow.qml
+        src/qml/HomeMenuCard.qml
         src/qml/Theme.qml
         src/qml/Panel.qml
         src/qml/ChassisFrame.qml

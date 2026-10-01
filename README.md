@@ -44,8 +44,8 @@ Play the actual game
    ↓
 Press Home
    ↓
-Cancel back into the same running game
-or confirm exit
+Continue in the same running game
+or choose Exit game → confirm saving when required
    ↓
 Return to TrainerOS
    ↓

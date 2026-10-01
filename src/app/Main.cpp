@@ -84,14 +84,14 @@ private:
 };
 class ExitFrameImages final : public QQuickImageProvider {
 public:
-    explicit ExitFrameImages(AdventureExitController& controller) : QQuickImageProvider(Image), controller_(controller) {}
+    explicit ExitFrameImages(AdventureExitPresentation& controller) : QQuickImageProvider(Image), controller_(controller) {}
     QImage requestImage(const QString&, QSize* size, const QSize&) override {
-        const auto frame = controller_.capturedFrame();
+        const auto frame = controller_.frame();
         if (size) *size = frame.size();
         return frame;
     }
 private:
-    AdventureExitController& controller_;
+    AdventureExitPresentation& controller_;
 };
 
 int main(int argc, char* argv[]) {
@@ -383,6 +383,13 @@ int main(int argc, char* argv[]) {
         ProcessService adventureProcess;
         AdventureLaunchController adventureLaunch(adventureProcess);
         AdventureExitPresentation exitPresentation(adventureLaunch.exitController());
+        QObject::connect(&adventureLaunch, &AdventureLaunchController::adventureStarted, &exitPresentation,
+            [&](const QString& id) {
+                QString title = "Adventure";
+                for (const auto& adventure : activeLibrary.adventures())
+                    if (adventure.id == id) { title = adventure.title; break; }
+                exitPresentation.setGameTitle(title);
+            });
         std::unique_ptr<AdventureOverlayService> adventureOverlay;
 #ifdef Q_OS_LINUX
         if (personalLibrary && !smoke && platform.dedicatedSession()) {
@@ -550,6 +557,11 @@ int main(int argc, char* argv[]) {
             emulatorPoll.start();
         }
         ControllerInput input(nullptr, preferred);
+        bool homeMenuWasOpen = false;
+        QObject::connect(&shell, &ShellController::changed, &input, [&] {
+            if (homeMenuWasOpen == shell.homeMenuOpen()) return;
+            homeMenuWasOpen = shell.homeMenuOpen(); input.requireNeutral();
+        });
         QObject::connect(&shell,&ShellController::changed,&input,[&]{input.setHoldConfirmEnabled(shell.canHoldConfirm());});
         input.setHoldConfirmEnabled(shell.canHoldConfirm());
         const auto reportBase = parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()
@@ -606,7 +618,7 @@ int main(int argc, char* argv[]) {
         engine.addImageProvider("sprite-detail", new SpriteImages(sprites));
         shell.pokedex()->configureSprites(&sprites);
         shell.party()->configureArtwork(&classicArt, &sprites);
-        engine.addImageProvider("exit-frame", new ExitFrameImages(adventureLaunch.exitController()));
+        engine.addImageProvider("exit-frame", new ExitFrameImages(exitPresentation));
         engine.addImageProvider("exit-media", new SavedExitImages(store.get()));
         int qmlWarnings = 0;
         QStringList diagnostics;

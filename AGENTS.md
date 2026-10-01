@@ -4,8 +4,12 @@
 Worlds / Companions / Trainer / Social. Trainer has Profile / Journey / Hall / RA
 peer faces; Social has Friends / Chats. This supersedes the separate Journey
 primary and former in-Trainer messenger placement. #112 adaptive physical Home
-menu and updated #49 explicit Exit come next; Start remains system-only and is
-never duplicated. The Home behavior is planned until that separate increment.
+menu and updated #49 explicit Exit follow; Start remains system-only and is
+never duplicated. The local Home / Friends / Chats menu and in-game Continue /
+Exit menu are delivered in [HOME_MENU](docs/HOME_MENU.md); physical Home no
+longer immediately changes page or asks about saving. B/Home again retains the
+origin/process. Only explicit Exit starts fresh capture and the applicable
+save question. Independent appearance controls remain the next #112 increment.
 Then finish standalone PPSSPP RA, verify #99 user-client Fluxer access, deliver
 #100/#101 messaging, #104/#109/#105 to #110 native online Link, #102/#103 media/
 voice and #107 one exact runtime multiplayer route. #106 is conditional; #108
@@ -358,7 +362,7 @@ Always preserve:
 - `B` = back/close
 - A/B physical shell positions follow Switch: right A confirms, bottom B goes back (owner clarification 2026-09-19). SDL's Xbox positional names are B/east and A/south; translate centrally, not per feature. North X is SDL Y and west Y is SDL X; translate those centrally too. This does not remap emulator gameplay.
 - `Start` = TrainerOS system menu
-- Physical `Home/Guide` returns to the Home page when no Adventure is running; during a supported Adventure it requests the guarded exit question. It never bypasses an active storage/service gate or directly kills a game.
+- Physical `Home/Guide` opens the compact quick-access menu, preserving the page or supported live Adventure. B/Home again returns to the same origin. Only explicit Exit game requests clean capture and the applicable save question. It never bypasses an active storage/service gate or directly kills a game. See [current behavior](docs/HOME_MENU.md).
 - P1 #9 `Y` = shared Choose Adventure on Pokémon Home, Pokédex, Center, Hall/RA and Trainer; Worlds local Y and modal/keyboard/system/recovery priority remain. Profile switching now reconstructs these owner views; independent domain consumers remain planned. [Delivered boundary](docs/SHARED_ADVENTURE.md).
 - `Select` owns available labelled local actions such as Hall new-memory or achievement refresh. No manual Dex journal shortcut; Center owns backup/recovery services under #83.
 - #83–85 supersede #43's pair-only limit; preserve local routes/focus, never use L1/R1 for secondary faces or steal emulator input.
@@ -457,7 +461,7 @@ Do not assume a specific display manager, compositor, Gamescope arrangement, sys
 
 - Do not hard-code the entire application around one emulator.
 - Target adapter capabilities include normal launch, process lifecycle, clean exit capture, verified title save policy and ordinary-save resolution/backup. Exact-build providers independently advertise semantic reads and protected writes (#42/#50); reading Party/money does not prove editing support.
-- Planned #49 exit captures gameplay before its overlay, asks manual/unknown titles while the game stays alive, cancels back to that same process or confirms graceful exit; verified autosave also asks "Close this game?" (owner clarification, 2026-09-19). Target physical Home/Guide as the request instead of Start+Select after verifying platform interception. Start retains the shell system menu. Crashes never fabricate save confirmation. Prove compositor/input handoff on Flip before claiming support.
+- #112 Home opens quick access; #49 starts only from explicit Exit game. Hide the menu before fresh gameplay capture, ask manual/unknown titles while the game stays alive, cancel back to that process or confirm graceful exit. Verified autosave skips the manual question after a valid capture; capture failure remains cancellable. Start retains the system menu. Crashes never fabricate save confirmation. Keep runtime-specific compositor/input proof; see [delivery and limits](docs/HOME_MENU.md).
 - The UI must degrade gracefully when an adapter lacks a capability.
 - Process invocation and emulator-specific CLI/environment details belong in adapters, not feature UI.
 - Never delete or overwrite a user's save/state silently.
