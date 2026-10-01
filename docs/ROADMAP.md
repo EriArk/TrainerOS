@@ -14,11 +14,17 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
    Flip/Odin. Start keeps its existing system role. Owner refinement, 2026-10-01:
    communication and multiplayer invitations now precede game appearance and RA.
 3. #99 bounded supported Fluxer **user-client** auth/API/native feasibility gate.
-   Existing test-account registration does not establish native client access.
+   [Native session/text proof](FLUXER_SPIKE.md) now passes on Windows and ARM64:
+   official browser handoff, friendship/DM, realtime changes, resume and logout.
+   Voice grant is proven separately; audio/media and the remaining matrix gates
+   are not delivered messenger functionality.
 4. #100 owner-scoped provider and #101 compact Friends/Chats messenger. Wire Home
-   social shortcuts to these same services as they become available.
+   social shortcuts to these same services as they become available. Include
+   people search using supported provider lookup, without bulk user enumeration.
 5. #104 invitations + #109 reusable existing system activities + #105 per-traffic
    delivery proof → #110 exact Emerald internet exchange with runtimes closed.
+   A bounded live TrainerOS capability exchange gates game offers; ordinary
+   Fluxer contacts remain chat-only. Keep names intact and save trust separate.
 6. #102 chat images/recorded voice and #103 simple private calls, independent gates.
 7. #107 one actual exact-game/runtime online multiplayer route. #106 direct/relay
    is implemented only where the chosen consumer needs it; suitable #105 native

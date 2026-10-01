@@ -79,7 +79,41 @@ is not proof of save provenance, and a paused/covered game is not safe to edit.
 
 ## Delivery record
 
+2026-10-01 #99: [public native-client spike](FLUXER_SPIKE.md) reproduces browser
+handoff, two verified accounts, friendship/DM, live message changes and reconnect
+on Windows and ARM64. Logout/revocation and a muted voice grant/leave also pass.
+The documented matrix explicitly retains unproven media, audio, groups, challenge
+variants and #105 gameplay transport. No live messenger UI is installed yet.
+
 The #111 increment changes shell routing/presentation only. It does not claim a
 Fluxer login, live friends/chat, Home activity overlay, appearance application,
 internet settlement, voice or emulator multiplayer. Native and device verification
 is recorded in [navigation migration](NAVIGATION_111.md).
+
+## People search and client compatibility
+
+Owner addition, 2026-10-01, for the later #101/#104/#105 increments:
+
+- Friends includes controller-first people lookup and an Add friend action using
+  supported Fluxer APIs. Distinguish local friend filtering from remote lookup.
+  Verify which exact-name/tag or search routes the provider permits; do not
+  promise a global partial-name directory or enumerate the public user base.
+- Names stay unchanged. Do not hide suffixes in TrainerOS, use invisible Unicode
+  markers or infer compatibility from a profile name/avatar/custom status.
+- Use a small versioned capability exchange bound to the authenticated provider
+  user and current client session: TrainerOS protocol version, available activity
+  kinds and freshness. This is compatibility information, not secret account
+  metadata, verified binaries or save provenance.
+- Only a fresh positive compatible response enables a game/activity offer.
+  Unknown, expired, offline or incompatible contacts remain ordinary chat
+  contacts; no game invitation is sent to a random non-TrainerOS client.
+- Choose the supported carrier in #105. No undocumented invisible fields or
+  broadcast probes to every contact. A fallback seen by an ordinary Fluxer client
+  must be understandable and low-noise; capability discovery itself is not an
+  activity invitation. Preserve provider privacy/block rules.
+- Even a compatible peer must explicitly accept each invitation. Advertised
+  capabilities never launch a ROM, open a microphone or permit save writes.
+  Existing exact-game checks, bilateral confirmation and #93/#94 trust remain.
+
+This addition changes upcoming acceptance only; the #99 spike does not implement
+people search or the capability exchange.

@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.24)
+project(TrainerFluxerSpike LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Network WebSockets)
+add_executable(trainer-fluxer-spike main.cpp)
+target_link_libraries(trainer-fluxer-spike PRIVATE Qt6::Core Qt6::Network Qt6::WebSockets)

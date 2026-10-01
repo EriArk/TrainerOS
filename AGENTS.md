@@ -1,5 +1,14 @@
 # AGENTS.md — TrainerOS
 
+**Owner social refinement, 2026-10-01:** include people search in #101 Friends.
+Before offering multiplayer, recognize an active compatible TrainerOS peer via
+a small versioned capability exchange under #104/#105. Do not force visible or
+hidden username suffixes, scrape users, or treat a name/presence string as proof.
+Ordinary Fluxer contacts remain chat-only until compatibility is established.
+This is a future invitation increment, not part of the #99 spike; preserve
+consent, expiry, identity binding and the separate save/trust gates. See
+[acceptance](docs/EXPANSION_98_112.md#people-search-and-client-compatibility).
+
 **Owner approved issue order, 2026-10-01:** #111 changes primaries to Home /
 Worlds / Companions / Trainer / Social. Trainer has Profile / Journey / Hall / RA
 peer faces; Social has Friends / Chats. This supersedes the separate Journey
