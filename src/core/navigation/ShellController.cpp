@@ -818,10 +818,16 @@ void ShellController::closeHomeMenu() {
 }
 void ShellController::activateHomeMenu(int index) {
     if (!homeMenuOpen_ || navigationLocked() || index < 0 || index > 2) return;
+    if(index==2&&!social_.notificationFace().isEmpty()){openSocialNotification();return;}
     if (index) socialFace_ = "chats";
     social_.setFace(socialFace_);
     goToPage(index ? 4 : 0);
     if(index==1)social_.showContacts();
+}
+void ShellController::openSocialNotification() {
+    if(navigationLocked()||(!homeMenuOpen_&&!canReceiveNearby()))return;
+    const auto face=social_.notificationFace();if(face.isEmpty())return;
+    socialFace_=face;goToPage(4);social_.openNotification();emit changed();
 }
 void ShellController::dispatch(Action action) {
     if(social_.online()["open"].toBool()) {

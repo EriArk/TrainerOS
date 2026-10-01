@@ -21,6 +21,54 @@ class SocialTests : public QObject {
     }
 private slots:
     void initTestCase() { QStandardPaths::setTestModeEnabled(true); }
+    void linkPacketsAreHiddenButKeepTheirReadWatermark() {
+        FluxerSession s;bind(s);s.readsReady_=true;
+        QSignalSpy snapshots(&s,&FluxerSession::snapshot);
+        const auto packet=OnlineLink::encode({{"ns","org.traineros.link"},{"v",1},{"kind","frame"}});
+        s.mergeMessage({{"id","100"},{"channel_id",channel},{"content","Hello"}});
+        s.mergeMessage({{"id","101"},{"channel_id",channel},{"content",packet}});
+        s.publish();auto state=snapshots.last()[1].toMap();
+        QCOMPARE(state["messages"].toList().size(),1);QCOMPARE(state["readTail"].toString(),"101");
+        QString ack; s.setTransport([&](auto,auto,QJsonObject body,auto,auto){ack=body["read_states"].toArray().first().toObject()["message_id"].toString();});
+        s.command("read",{{"channel",channel},{"message","101"}});QCOMPARE(ack,"101");
+        s.messages_.remove("100");s.messageOrder_.removeAll("100");s.publish();
+        state=snapshots.last()[1].toMap();QVERIFY(state["messages"].toList().isEmpty());QCOMPARE(state["readTail"].toString(),"101");
+        SocialController c;c.receive(0,state);c.setSurfaceAvailable(true);c.setConversationVisible(true);
+        QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.presented(channel,"101");QCOMPARE(commands.size(),1);
+        c.presented(channel,"999");QCOMPARE(commands.size(),1);
+    }
+    void quietTrafficNeverClearsEarlierHumanUnread() {
+        FluxerSession s;bind(s);s.setTransport([](auto,auto,auto,auto,auto){});s.readsReady_=true;
+        auto event=[&](QString id,QString who,QString content){s.gatewayEvent({{"op",0},{"t","MESSAGE_CREATE"},{"d",QJsonObject{
+            {"id",id},{"channel_id",channel},{"author",QJsonObject{{"id",who}}},{"content",content}}}});};
+        const auto packet=OnlineLink::encode({{"ns","org.traineros.link"},{"v",1},{"kind","probe"}});
+        event("100",remote,packet);QCOMPARE(s.unread_.value(channel),0);
+        event("101",s.self_,"My reply");QCOMPARE(s.unread_.value(channel),0);
+        event("102",remote,"Hello");QCOMPARE(s.unread_.value(channel),1);
+        event("103",remote,packet);QCOMPARE(s.unread_.value(channel),1);
+        event("104",s.self_,"Reply while earlier message is unread");QCOMPARE(s.unread_.value(channel),1);
+        s.applyReadState({{"id",channel},{"last_message_id","104"}},false);QCOMPARE(s.unread_.value(channel),0);
+        s.applyReadState({{"channel_id",channel},{"message_id","99"},{"manual",true}},true);QCOMPARE(s.unread_.value(channel),1);
+    }
+    void notificationDestinationOpensTheActualGroupAndStaysOwnerScoped() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.receive(0,{{"state","connected"},{"channel",channel},{"chats",QVariantList{QVariantMap{
+            {"id",remote},{"kind","groups"},{"unread",1}}}}});
+        c.toastChannel_=remote;QCOMPARE(c.notificationFace(),"groups");c.openNotification();
+        QCOMPARE(commands.last()[0].toString(),"conversation");QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString(remote));
+        QVERIFY(c.notificationFace().isEmpty());
+        c.toastChannel_=remote;c.setOwner("different-owner");QVERIFY(c.notificationFace().isEmpty());
+        FluxerSession s;bind(s);QString path;s.setTransport([&](auto,auto p,auto,auto,auto){path=p;});
+        s.channels_[remote]={{"id",remote},{"type",3}};s.command("conversation",{{"id",remote}});
+        QCOMPARE(s.channel_,QString(remote));QCOMPARE(s.face_,"groups");QVERIFY(path.contains(remote));
+    }
+    void singleMessageAnchorSurvivesPrependingHistory() {
+        SocialController c;c.receive(0,{{"channel",channel},{"messages",QVariantList{QVariantMap{{"id","100"}}}}});
+        c.dispatch(Action::Right);
+        c.receive(0,{{"channel",channel},{"historyPast",true},{"messages",QVariantList{QVariantMap{{"id","99"}},QVariantMap{{"id","100"}},QVariantMap{{"id","101"}}}}});
+        QCOMPARE(c.messageIndex(),1);
+    }
     void directComposeSendAndTogetherKeepTheirOwnConsent() {
         SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
         QSignalSpy text(&c,&SocialController::textRequested);

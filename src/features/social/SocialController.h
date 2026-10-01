@@ -89,6 +89,8 @@ public:
     QString toastTitle() const { return toastTitle_; }
     QString toastText() const { return toastText_; }
     Q_INVOKABLE void presented(QString channel, QString message);
+    QString notificationFace() const;
+    void openNotification();
 signals:
     void changed();
     void presentationChanged();
@@ -125,7 +127,7 @@ private:
     QTimer draftSave_;
     QTimer toastTimer_;
     bool surfaceAvailable_ = false, conversationVisible_ = false;
-    QString toastTitle_, toastText_;
+    QString toastTitle_, toastText_, toastChannel_;
     QString draftFile_;
     void saveDrafts();
     void bindDrafts(const QString& accountId);

@@ -160,6 +160,7 @@ Window {
                 Text { width: parent.width; text: shell.social.toastTitle; textFormat: Text.PlainText; elide: Text.ElideRight; font.family: Theme.displayFamily; font.pixelSize: 18; color: Theme.ink }
                 Text { width: parent.width; text: shell.social.toastText; textFormat: Text.PlainText; elide: Text.ElideRight; font.pixelSize: 14; color: Theme.ink }
             }
+            MouseArea { anchors.fill: parent; onClicked: shell.openSocialNotification() }
         }
         Row {
             objectName: "navigation-chassis"; x: 28; y: Theme.brandHeight + Theme.screenBevel + 5; spacing: 12; z: 2

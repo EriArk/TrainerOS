@@ -92,12 +92,16 @@ FocusScope {
                 id: log
                 anchors { top: chatHeading.bottom; topMargin: 14; bottom: composer.top; bottomMargin: 9; left: parent.left; right: parent.right }
                 clip: true; spacing: 10; model: root.social.messages; currentIndex: root.social.messageIndex
-                onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
-                onCountChanged: Qt.callLater(function(){log.positionViewAtIndex(log.currentIndex,ListView.Contain)})
+                function restorePosition() {
+                    if (currentIndex >= count - 1) positionViewAtEnd()
+                    else positionViewAtIndex(currentIndex,ListView.Contain)
+                }
+                onCurrentIndexChanged: Qt.callLater(restorePosition)
+                onModelChanged: Qt.callLater(restorePosition)
                 Timer {
                     interval: 1000; repeat: true
-                    running: root.visible && root.connected && root.faceIndex !== 3 && root.social.conversation && log.atYEnd && root.social.surfaceAvailable
-                    onTriggered: if (log.count > 0) root.social.presented(root.account.channel, root.social.messages[log.count - 1].id)
+                    running: root.visible && root.connected && root.faceIndex !== 3 && root.social.conversation && (log.atYEnd || log.contentHeight <= log.height) && root.social.surfaceAvailable
+                    onTriggered: if (root.account.readTail) root.social.presented(root.account.channel, root.account.readTail)
                 }
                 delegate: Item {
                     required property var modelData
@@ -117,6 +121,12 @@ FocusScope {
                         }
                     }
                 }
+            }
+            Text {
+                anchors.centerIn: log; width: log.width - 40; visible: log.count === 0
+                text: root.account.historyBusy ? "Loading messages..." : root.account.historyMore ? "Earlier messages are above." : "Say hello!"
+                horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
+                font.family: Theme.displayFamily; font.pixelSize: 22; color: Theme.muted
             }
             Rectangle { id: composer; anchors { left: parent.left; right: parent.right; bottom: parent.bottom; bottomMargin: 12 }
                 height: 49; radius: 10; color: "#fff4cd"; border.color: "#bcab6c"

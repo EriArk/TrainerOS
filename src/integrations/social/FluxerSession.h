@@ -53,6 +53,7 @@ private:
     void updateUnread(const QString& channel);
     void acknowledge(QString channel, QString message);
     QHash<QString,QString> readThrough_;
+    QHash<QString,QString> quietThrough_;
     QHash<QString,quint64> readRevision_;
     bool readsReady_ = false, ackBusy_ = false, doNotDisturb_ = false, privatePreviews_ = true;
     QStringList muted_;

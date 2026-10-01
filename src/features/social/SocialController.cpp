@@ -22,7 +22,7 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(session_,&FluxerSession::incomingMessage,this,[this](quint64 generation,QString channel,QString name,QString text){
         if(generation!=generation_||!surfaceAvailable_||!menu_.isEmpty()
             ||(conversationVisible_&&!contacts_&&face_!="friends"&&snapshot_["channel"]==channel))return;
-        toastTitle_=std::move(name);toastText_=std::move(text);toastTimer_.start();emit presentationChanged();
+        toastChannel_=channel;toastTitle_=std::move(name);toastText_=std::move(text);toastTimer_.start();emit presentationChanged();
     });
     connect(session_,&FluxerSession::sendFailed,this,[this](quint64 generation,QString channel,QString text){
         if(generation!=generation_ || !drafts_.value(channel).isEmpty())return;
@@ -47,7 +47,7 @@ void SocialController::setOwner(QString owner) {
     saveDrafts();draftFile_.clear();
     editDrafts_.clear();pickedPeople_.clear();
     toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();
-    owner_=std::move(owner);++generation_;snapshot_.clear();drafts_.clear();menu_.clear();
+    owner_=std::move(owner);++generation_;snapshot_.clear();drafts_.clear();menu_.clear();toastChannel_.clear();
     selection_.stop();contacts_=false;searchStarted_=false;searchFocus_=-1;
     textPurpose_.clear();textChannel_.clear();query_.clear();focus_=messageFocus_=0;reading_=false;
     emit ownerRequested(owner_,generation_);emit changed();
@@ -89,9 +89,25 @@ void SocialController::setConversationVisible(bool visible) {
 }
 void SocialController::presented(QString channel,QString message) {
     if(!surfaceAvailable_||!conversationVisible_||contacts_||face_=="friends"||!menu_.isEmpty()
-        ||snapshot_["historyBusy"].toBool()||snapshot_["channel"]!=channel||messages().isEmpty()
-        ||messages().last().toMap()["id"]!=message)return;
+        ||snapshot_["historyBusy"].toBool()||snapshot_["channel"]!=channel
+        ||snapshot_.value("readTail",messages().isEmpty()?QString():messages().last().toMap()["id"]).toString()!=message)return;
     emit commandRequested("read",{{"channel",channel},{"message",message}});
+}
+QString SocialController::notificationFace() const {
+    if(toastChannel_.isEmpty())return {};
+    for(const auto& value:snapshot_["chats"].toList()) {
+        const auto row=value.toMap();if(row["id"]==toastChannel_ && row["unread"].toInt()>0)
+            return row["guild"].toString().isEmpty()?row["kind"].toString():QString("communities");
+    }
+    return {};
+}
+void SocialController::openNotification() {
+    const auto face=notificationFace();if(face.isEmpty())return;
+    const auto channel=toastChannel_;
+    setFace(face);contacts_=false;reading_=false;selection_.stop();
+    emit commandRequested("conversation",{{"id",channel}});
+    toastTimer_.stop();toastTitle_.clear();toastText_.clear();toastChannel_.clear();
+    emit presentationChanged();emit changed();
 }
 void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     if(generation!=generation_)return;
@@ -121,7 +137,8 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
         if(!contacts_)for(int i=0;i<list.size();++i)if(list[i].toMap()["id"]==snapshot_["channel"]){focus_=i;break;}
     }
     const auto log=messages();
-    if(atEnd||oldChannel!=snapshot_["channel"]||(wasEarlier&&!snapshot_["historyPast"].toBool()))messageFocus_=qMax(0,int(log.size())-1);
+    const bool prepended=!messages().isEmpty() && snapshot_["historyPast"].toBool() && oldMessage.isValid();
+    if((atEnd&&!prepended)||oldChannel!=snapshot_["channel"]||(wasEarlier&&!snapshot_["historyPast"].toBool()))messageFocus_=qMax(0,int(log.size())-1);
     else for(int i=0;i<log.size();++i)if(log[i].toMap()["id"]==oldMessage){messageFocus_=i;break;}
     messageFocus_=qBound(0,messageFocus_,qMax(0,int(log.size())-1));
     if(snapshot_["state"]=="signed-out") {toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();draftSave_.stop();if(!draftFile_.isEmpty())QFile::remove(draftFile_);draftFile_.clear();drafts_.clear();editDrafts_.clear();menu_.clear();textPurpose_.clear();textChannel_.clear();searchStarted_=false;}

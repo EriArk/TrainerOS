@@ -76,7 +76,7 @@ void FluxerSession::reset() {
     ++epoch_;
     ++onlineSendRevision_;onlineSendTimer_.stop();onlineQueue_.clear();onlineSending_=false;online_.bind({},{});
     delete proof_; proof_=nullptr;
-    readThrough_.clear();readRevision_.clear();muted_.clear();
+    readThrough_.clear();quietThrough_.clear();readRevision_.clear();muted_.clear();
     readsReady_=ackBusy_=doNotDisturb_=false;privatePreviews_=true;
     mutationBusy_=channelsLoading_=false;++channelRevision_;
     ++guildListRevision_;
@@ -140,15 +140,12 @@ void FluxerSession::publish() {
     for (const auto& id:messageOrder_) {
         const auto m=messages_.value(id);
         const auto onlineEnvelope=OnlineLink::decode(m["content"].toString());
+        // Link traffic has its own invitation/session surface. Keep its IDs in
+        // the provider window for paging/acknowledgement, never as chat bubbles.
+        if(!onlineEnvelope.isEmpty())continue;
         const auto guild=channels_.value(channel_)["guild_id"].toString();
         const bool welcome=communityIdentity::matches(m,guild,guilds_.value(guild)["owner_id"].toString(),communityChannels_.value(guild));
         QString text=welcome?QString("A gathering place for TrainerOS players. Welcome!"):m["content"].toString().left(4000);
-        if(!onlineEnvelope.isEmpty()) {
-            text=m["content"].toString().section('\n',0,0);
-            // Keep the newest ID when collapsing adjacent protocol updates so
-            // normal read acknowledgement still reaches the conversation tail.
-            if(!messages.isEmpty()&&messages.last().toMap()["onlineKind"]==onlineEnvelope["kind"].toString())messages.removeLast();
-        }
         if(m["type"].toInt()==6)text=label(m["author"].toObject())+" pinned a message";
         else if(m["type"].toInt()==7)text=label(m["author"].toObject())+" joined the community";
         messages.append(QVariantMap{{"id",id},{"name",label(m["author"].toObject())},
@@ -166,6 +163,8 @@ void FluxerSession::publish() {
     }
     std::sort(communities.begin(),communities.end(),[](const QVariant& a,const QVariant& b){return a.toMap()["name"].toString()<b.toMap()["name"].toString();});
     int unreadCount=0;for(auto it=unread_.cbegin();it!=unread_.cend();++it)if(it.value()&&channels_.contains(it.key()))++unreadCount;
+    QString readTail;
+    for(auto i=messageOrder_.crbegin();i!=messageOrder_.crend();++i)if(idValid(*i)){readTail=*i;break;}
     emit snapshot(generation_, {{"state",state_},{"status",status_},{"name",name_},{"code",code_},
         {"unreadCount",unreadCount},{"doNotDisturb",doNotDisturb_},{"privatePreviews",privatePreviews_},
         {"mutationBusy",mutationBusy_},
@@ -173,6 +172,7 @@ void FluxerSession::publish() {
         {"communityInvite",communityInvite_},{"communityOwner",guilds_.value(guild_)["owner_id"]==self_},
         {"communityMarked",communityMarked_.contains(guild_)},
         {"historyBusy",historyBusy_},{"historyMore",historyMore_},{"historyPast",historyPast_},
+        {"readTail",readTail},
         {"online",online_.state()},{"userId",self_},{"searchResults",searchResults_},{"searchStatus",searchStatus_},{"searching",searching_},{"searchTotal",searchTotal_},{"searchOffset",searchOffset_},
         {"guild",guild_},{"communities",communities},{"remembered",remembered_},{"friends",friends},{"chats",chats},{"messages",messages},{"channel",channel_}});
 }
@@ -227,13 +227,15 @@ void FluxerSession::verifiedRequest(QByteArray method, QString path, QJsonObject
 }
 void FluxerSession::updateUnread(const QString& channel) {
     if(!readsReady_)return;
-    unread_[channel]=newer(channels_.value(channel)["last_message_id"].toString(),readThrough_.value(channel))?1:0;
+    const auto read=readThrough_.value(channel),quiet=quietThrough_.value(channel);
+    unread_[channel]=newer(channels_.value(channel)["last_message_id"].toString(),newer(quiet,read)?quiet:read)?1:0;
 }
 void FluxerSession::applyReadState(const QJsonObject& state, bool gateway) {
     const auto channel=state[gateway?"channel_id":"id"].toString();
     if(!idValid(channel))return;
     const auto message=state[gateway?"message_id":"last_message_id"].toString();
     if(!message.isEmpty()&&!idValid(message))return;
+    if(state["manual"].toBool())quietThrough_.remove(channel);
     readThrough_[channel]=message;++readRevision_[channel];updateUnread(channel);
 }
 void FluxerSession::acknowledge(QString channel, QString message) {
@@ -444,6 +446,12 @@ void FluxerSession::mergeMessage(const QJsonObject& message) {
     while(messageOrder_.size()>100)messages_.remove(messageOrder_.takeFirst());
 }
 void FluxerSession::command(QString operation, QVariantMap args) {
+    if(operation=="conversation") {
+        const auto id=args["id"].toString();if(!channels_.contains(id))return;
+        face_=channelKind(channels_[id]);guild_=channels_[id]["guild_id"].toString();
+        if(!guild_.isEmpty())remember("guild",guild_);
+        openConversation(id);publish();return;
+    }
     if(operation=="online-capabilities"){online_.setCapabilities(QJsonArray::fromVariantList(args["activities"].toList()));return;}
     if(operation=="online-available"){online_.setAvailable(args["available"].toBool());return;}
     if(operation=="online-answer"){online_.answer(args["accept"].toBool());return;}
@@ -874,7 +882,7 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
             checkCommunities();
         }
         if(type=="READY"||type=="RESUMED") {
-            if(type=="READY") {gatewaySession_=d["session_id"].toString();readThrough_.clear();unread_.clear();readsReady_=true;
+            if(type=="READY") {gatewaySession_=d["session_id"].toString();readThrough_.clear();quietThrough_.clear();unread_.clear();readsReady_=true;
                 for(const auto& v:d["read_states"].toArray())applyReadState(v.toObject(),false);
                 for(auto it=channels_.cbegin();it!=channels_.cend();++it)updateUnread(it.key());}
             reconnectAttempt_=0;status_="Connected";refresh();
@@ -892,6 +900,10 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
             const auto channel=d["channel_id"].toString();
             if(type=="MESSAGE_CREATE"&&channels_.contains(channel)) {
                 const auto id=d["id"].toString();const bool fresh=newer(id,channels_[channel]["last_message_id"].toString());
+                // A transport packet or our own post cannot create a new chat
+                // unread badge, but must never erase an earlier unread message.
+                if(fresh&&!unread_.value(channel)&&(d["author"].toObject()["id"]==self_||!OnlineLink::decode(d["content"].toString()).isEmpty()))
+                    quietThrough_[channel]=id;
                 if(fresh){++channelRevision_;channels_[channel]["last_message_id"]=id;}
                 updateUnread(channel);
                 const auto author=d["author"].toObject();

@@ -135,6 +135,7 @@ public:
     bool homeMenuOpen() const { return homeMenuOpen_; }
     int homeMenuFocus() const { return homeMenuFocus_; }
     Q_INVOKABLE void activateHomeMenu(int index);
+    Q_INVOKABLE void openSocialNotification();
     Q_INVOKABLE void closeHomeMenu();
     bool powerMenu() const { return powerMenu_; }
     QString notice() const { return notice_; }

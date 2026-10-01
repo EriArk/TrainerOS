@@ -60,7 +60,12 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
    retaining every provider and transport gate above. The owner's 2026-10-02
    [notification completion](SOCIAL.md#notifications-completion---owner-addition-2026-10-02)
    adds a compact missed-notification list, direct destinations and sound/privacy
-   controls; existing toasts/badges alone do not satisfy it. Then #102 chat images/
+   controls; existing toasts/badges alone do not satisfy it. The 2026-10-02
+   [history/read-state increment](SOCIAL.md#history-and-notification-destinations-2026-10-02)
+   hides Link transport rows, preserves the current history anchor and opens the
+   latest notified conversation directly through Home / Chats (including groups).
+   The missed-notification list, sound and full reconnect matrix remain open.
+   Then #102 chat images/
    recorded voice and #103 simple private calls, with independent gates.
 7. #107 one actual exact-game/runtime online multiplayer route. #106 direct/relay
    is implemented only where the chosen consumer needs it; suitable #105 native

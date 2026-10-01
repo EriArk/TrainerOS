@@ -410,3 +410,51 @@ protocol or save transaction. Remaining completion work is listed above.
   Unicode drafts without silent truncation when the provider rejects their length.
 - Both devices were on the same ordinary LAN. Public Fluxer message/invitation
   delivery is proven here; this does not satisfy the separate-internet #110 gate.
+
+## History and notification destinations, 2026-10-02
+
+- Link protocol messages remain available to the transport, history paging and
+  read acknowledgement, but no longer appear as conversation bubbles. Invitation
+  consent and the activity workspace retain their own surfaces. Ordinary messages
+  and provider system events remain visible.
+- A separate server-message tail permits acknowledging a displayed conversation
+  whose final rows are hidden protocol packets. Fresh protocol traffic and own
+  posts do not create an unread badge on an otherwise read conversation, and do
+  not clear earlier unread human messages. Manual Mark unread remains effective.
+  Provider read state remains authoritative; implementation follows the official
+  [read-state contract](https://github.com/fluxerapp/fluxer/blob/main/fluxer_docs/src/content/docs/http-api/read-states.mdx).
+- Prepending history retains the selected message, including a one-message
+  window. Latest scrolls to the bottom. This is not persistent scroll restoration
+  across changing conversations or restarting the shell.
+- Tapping a message toast, or opening physical Home / Chats while its destination
+  is still unread, opens that conversation directly in its correct face. The
+  destination survives toast expiry and opening Home, but is cleared on Trainer
+  change. No invitation is accepted and no game is launched by this navigation.
+
+### Installed evidence and remaining limits
+
+- Windows and ARM64 builds succeeded. Social, core, interactions and qml_smoke
+  passed. The exit smoke initially raced its fixture PID-file creation (three
+  related assertions); its isolated rerun passed. No product fix was inferred
+  from that test timing failure.
+- On the actual handhelds, the DM shows ordinary emoji messages without protocol
+  noise. Flip loaded older messages and returned through Latest; Together still
+  resolved Odin's actual available activities after the filtered capability
+  exchange. No invitation settlement or save mutation was needed in this check.
+- Odin sent a group message while Flip was on Home. Flip showed unread, then
+  physical Home / Chats opened that group directly; after presentation its unread
+  badge cleared. The test message was sent with the controller keyboard.
+- Both devices run production SHA
+  `024e03ba602f7ffc312757cf901486d68eb8cfd40f2653d058ca32b3ec0674c0`.
+  Flip retains 3 Trainers / 830 Adventures and Odin 1 / 25. Boot settings and
+  helpers are preserved, SQLite checks pass, no Link transaction is pending,
+  and both Emerald save hashes match the pre-increment values.
+- Actual compositor captures: private `work/research/history-final-flip.png`,
+  `history-final-odin.png`, `history-earlier-flip.png` and
+  `history-notification-group-flip.png`. These are installed device screenshots.
+- The destination is the latest eligible message toast, not a durable notification
+  inbox. Missed-event lists, notification sounds, active-game delivery and the
+  broader notification/reconnect acceptance above remain pending. READY rebuilds
+  unread from provider truth; old unseen protocol traffic can remain unread until
+  that conversation is presented. Protocol-only history pages remain pageable
+  through the existing Earlier action. Separate-internet #110 proof stays open.
