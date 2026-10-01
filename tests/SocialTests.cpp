@@ -21,6 +21,45 @@ class SocialTests : public QObject {
     }
 private slots:
     void initTestCase() { QStandardPaths::setTestModeEnabled(true); }
+    void directComposeSendAndTogetherKeepTheirOwnConsent() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        QSignalSpy text(&c,&SocialController::textRequested);
+        QVariantMap snapshot{{"state","connected"},{"channel",channel},
+            {"chats",QVariantList{QVariantMap{{"id",channel},{"name","Friend"},{"kind","chats"},{"friend",true}}}}};
+        c.receive(0,snapshot);
+        c.dispatch(Action::Confirm);QCOMPARE(text.size(),1);QCOMPARE(c.textSubmitLabel(),"Send");
+        c.preserveText(QString::fromUtf8("Привет 😀"));QVERIFY(commands.isEmpty());
+        c.applyText(QString::fromUtf8("Привет 😀"));QCOMPARE(commands.size(),1);
+        QCOMPARE(commands.last()[0].toString(),"send");
+        QCOMPARE(commands.last()[1].toMap()["channel"].toString(),QString(channel));
+        QCOMPARE(commands.last()[1].toMap()["text"].toString(),QString::fromUtf8("Привет 😀"));
+        QVERIFY(c.draft().isEmpty());commands.clear();
+        c.dispatch(Action::ToggleContinue);QCOMPARE(commands.size(),1);
+        QCOMPARE(commands.last()[0].toString(),"online-probe");QCOMPARE(c.menuTitle(),"Together");
+        c.dispatch(Action::Back);QVERIFY(c.menu().isEmpty());QCOMPARE(commands.size(),1);
+        // An ordinary contact must still have chat, without game invitations.
+        snapshot["chats"]=QVariantList{QVariantMap{{"id",channel},{"name","Other"},{"kind","chats"}}};
+        c.receive(0,snapshot);QVERIFY(!c.togetherAvailable());c.together();QCOMPARE(commands.size(),1);
+        // A channel change while editing keeps the original draft, never sends it to the new person.
+        c.compose();snapshot["channel"]="another";c.receive(0,snapshot);commands.clear();
+        c.applyText("For the original friend");QVERIFY(commands.isEmpty());
+        QCOMPARE(c.drafts_.value(channel),"For the original friend");
+        snapshot["channel"]=channel;c.receive(0,snapshot);c.compose();
+        const auto emojiDraft=QString::fromUtf8("😀").repeated(1001);
+        c.preserveText(emojiDraft);QCOMPARE(c.draft(),emojiDraft);
+    }
+    void sendCannotFollowAnAsynchronousChannelChange() {
+        FluxerSession s;bind(s);int posts=0;
+        s.setTransport([&](auto,auto,auto,auto,auto){++posts;});
+        QSignalSpy failed(&s,&FluxerSession::sendFailed);
+        s.command("send",{{"channel","1501314428688999999"},{"text","Original recipient"}});
+        QCOMPARE(posts,0);QCOMPARE(failed.size(),1);
+        QCOMPARE(failed.first()[1].toString(),"1501314428688999999");
+        const auto longEmoji=QString::fromUtf8("😀").repeated(1001);
+        s.command("send",{{"channel",channel},{"text",longEmoji}});
+        QCOMPARE(posts,0);QCOMPARE(failed.size(),2);
+        QCOMPARE(failed.last()[2].toString(),longEmoji);
+    }
     void onlineUsesOnlyLiveFriendDmAndStopsQueuedDelivery() {
         FluxerSession s;bind(s);s.bindOnline();s.online_.setAvailable(true);
         s.channels_[channel]["recipients"]=QJsonArray{QJsonObject{{"id",remote}}};
@@ -345,7 +384,7 @@ private slots:
         SocialController c; // Synthetic snapshots only; no owner means no network/credential access.
         c.receive(0,{{"state","connected"},{"channel",channel},{"friends",QVariantList{QVariantMap{{"id",remote},{"name","Friend"},{"type",1}}}},
             {"chats",QVariantList{QVariantMap{{"id",channel},{"name","Friend"},{"kind","chats"}},QVariantMap{{"id","3"},{"name","Group"},{"kind","groups"}}}}});
-        QCOMPARE(c.rows().size(),1);c.compose();c.applyText("Draft <b>plain text</b>");
+        QCOMPARE(c.rows().size(),1);c.compose();c.preserveText("Draft <b>plain text</b>");
         c.setFace("groups");QCOMPARE(c.rows().first().toMap()["name"].toString(),QString("Group"));QCOMPARE(c.draft(),QString("Draft <b>plain text</b>"));
         c.receive(99,{{"channel","wrong-owner"}});QCOMPARE(c.draft(),QString("Draft <b>plain text</b>"));
         c.setOwner("other");QVERIFY(c.draft().isEmpty());QVERIFY(c.rows().isEmpty());

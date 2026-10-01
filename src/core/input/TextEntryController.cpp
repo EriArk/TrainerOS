@@ -28,7 +28,17 @@ int TextEntryController::characterCount(const QString& text) {
 }
 int TextEntryController::count() const { return characterCount(text_); }
 QString TextEntryController::label(const Key& key) const {
+    if (key.kind == KeyKind::Apply) return submitLabel_;
     if (key.kind != KeyKind::Character || key.column >= 11) return key.label;
+    if (symbolPage_ == 3) {
+        static const QStringList emoji{
+            QString::fromUtf8("😀"),QString::fromUtf8("😁"),QString::fromUtf8("😂"),QString::fromUtf8("😊"),QString::fromUtf8("😍"),QString::fromUtf8("😎"),
+            QString::fromUtf8("🤔"),QString::fromUtf8("😴"),QString::fromUtf8("😢"),QString::fromUtf8("😭"),QString::fromUtf8("👍"),QString::fromUtf8("👎"),
+            QString::fromUtf8("👋"),QString::fromUtf8("👏"),QString::fromUtf8("🙌"),QString::fromUtf8("🤝"),QString::fromUtf8("❤️"),QString::fromUtf8("💛"),
+            QString::fromUtf8("💚"),QString::fromUtf8("💙"),QString::fromUtf8("🎉"),QString::fromUtf8("✨"),QString::fromUtf8("🔥"),QString::fromUtf8("🎮"),
+            QString::fromUtf8("🏆"),QString::fromUtf8("💬")};
+        return emoji.value(key.row * 10 + key.column);
+    }
     if (!symbolPage_) return lowercase_ ? key.label.toLower() : key.label;
     QString symbols;
     for (int value = 33; value <= 126; ++value) if (!QChar(value).isLetterOrNumber()) symbols.append(QChar(value));
@@ -37,7 +47,11 @@ QString TextEntryController::label(const Key& key) const {
 }
 QString TextEntryController::layoutHint() const {
     return QString("X · %1    Y · %2").arg(lowercase_ ? "UPPERCASE" : "lowercase",
-        symbolPage_ == 0 ? "Symbols 1/2" : symbolPage_ == 1 ? "Symbols 2/2" : "Letters");
+        nextLayout());
+}
+QString TextEntryController::nextLayout() const {
+    return symbolPage_ == 0 ? "Symbols 1/2" : symbolPage_ == 1 ? "Symbols 2/2"
+        : symbolPage_ == 2 && emoji_ ? "Emoji" : "Letters";
 }
 QVariantList TextEntryController::keys() const {
     QVariantList result;
@@ -47,7 +61,8 @@ QVariantList TextEntryController::keys() const {
     }
     return result;
 }
-void TextEntryController::begin(const QString& title, const QString& initial, int maximumLength, bool secret) {
+void TextEntryController::begin(const QString& title, const QString& initial, int maximumLength, bool secret,
+                                const QString& submitLabel, bool emoji) {
     title_ = title;
     text_ = initial; // Do not silently truncate an existing value.
     maximumLength_ = std::clamp(maximumLength, 1, 2000);
@@ -56,6 +71,7 @@ void TextEntryController::begin(const QString& title, const QString& initial, in
     preferredColumn_ = 0;
     open_ = true;
     secret_ = secret; lowercase_ = secret; symbolPage_ = 0;
+    submitLabel_ = submitLabel; emoji_ = emoji && !secret;
     emit layoutChanged();
     emit changed();
 }
@@ -130,10 +146,13 @@ void TextEntryController::activate(int index) {
 void TextEntryController::dispatch(Action action) {
     if (!open_) return;
     if (action == Action::Back) cancel();
+    else if (action == Action::LocalAction) {
+        for (int i=0;i<keys_.size();++i) if(keys_[i].kind==KeyKind::Apply) {activate(i);break;}
+    }
     else if (action == Action::Confirm) activate(focus_);
     else if (action == Action::Secondary || action == Action::ToggleContinue) {
         if (action == Action::Secondary) { lowercase_ = !lowercase_; symbolPage_ = 0; }
-        else symbolPage_ = (symbolPage_ + 1) % 3;
+        else symbolPage_ = (symbolPage_ + 1) % (emoji_ ? 4 : 3);
         if (label(keys_[focus_]).isEmpty()) { focus_ = 0; preferredColumn_ = 0; }
         hint_.clear(); emit layoutChanged(); emit changed();
     }

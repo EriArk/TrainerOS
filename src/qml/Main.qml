@@ -221,7 +221,7 @@ Window {
                 if (shell.homeMenuOpen) return [h("↑↓","Choose"),h("A","Open"),h("B","Close")]
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
                 if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [h("X","Quick controls"),h("←→",shell.focusIndex>=9 ? "Choose" : "Adjust"),h("A",shell.focusIndex>=9 ? "Toggle" : "Select"),h("B","Close")]
-                if (shell.keyboard.open) return [h("X","Case"),h("Y","Symbols"),h("A","Type"),h("B","Cancel")]
+                if (shell.keyboard.open) return [h("X","Case"),h("Y",shell.keyboard.nextLayout),h("A","Type"),h("Select",shell.keyboard.submitLabel),h("B",shell.keyboard.submitLabel === "Send" ? "Keep draft" : "Cancel")]
                 if (shell.libraryTools.open) return [h("A","Select"),h("B","Back")]
                 if (shell.drawerOpen) return [h("A","Choose"),h("B","Close")]
                 if (shell.trainer.picker.open) return [h("X","Search"),h("Y","Clear"),h("←→","Jump 8"),h("A","Choose"),h("B","Cancel")]

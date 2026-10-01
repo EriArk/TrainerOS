@@ -24,8 +24,12 @@ No browser cookies, bot credentials, password scraping or provider webview.
 
 The landscape layout keeps people/conversations on the left and the selected
 conversation on the right. Text uses plain-text rendering. L2/R2 wraps the four
-faces; L1/R1 keeps its primary meaning. X writes a draft in a conversation, Y
-sends it, right reads/scrolls messages, left returns to the people list. Back
+faces; L1/R1 keeps its primary meaning. A writes in the selected conversation
+(X remains a compose shortcut); the keyboard's Send key or Select sends directly.
+B keeps an unsent draft. Its optional emoji layout shares the same keyboard;
+X changes case and Y cycles symbols/emoji/letters. Y in a friend DM opens Together
+directly, with a matching attached composer action. Right reads/scrolls messages,
+left returns to the people list. Back
 returns focus to the list without clearing the conversation. Options holds the
 less frequent account/friend actions. Home Friends opens the contacts view in
 Messages; Home Chats opens Messages. Existing in-game
@@ -314,3 +318,95 @@ providers, so the current public documentation and reference solver were checked
   `read-final-toast.png`, `read-final-options.png`, `read-group-result.png`.
 - Odin remained unavailable by SSH. Its deployment and two-handheld acceptance
   remain deferred; the official test-account web client is only peer evidence.
+
+
+## Communication completion order
+
+Owner clarification, 2026-10-01: finish the accepted Fluxer feature set and make
+communication familiar and direct. This is part of the existing roadmap lane,
+not a new feature tree and not permission to call partial implementations complete.
+
+| Order | User result | Remaining acceptance |
+| --- | --- | --- |
+| Current | Write/send and invite directly from the conversation | Direct keyboard send, retained drafts, emoji entry and direct Together are this increment; keep two-handheld proof explicit below. |
+| Next | Reliable everyday conversations and people/groups | Complete #100/#101 history/scroll restoration, failed-send recovery, ordinary friend/group/member flows and a compact notification/account layout; validate actual provider permissions. |
+| Alongside | Clear, recoverable activity invitations | Keep #104/#105/#109/#110 transport/privacy/workload and separate-internet gates; use the existing native activity, never another setup wizard. |
+| Then | Images, recorded messages and private calls | Deliver #102 and #103, including actual device capture/playback, permissions, cancellation and recovery. |
+| Then | One real supported in-game online route | #107 exact runtime proof; #106 only if its transport needs it. |
+| Throughout and at completion | Familiar controller-first communication | One conversation workspace; obvious direct actions; no duplicate selection/apply/send pages; consistent Back, footer hints, retained drafts/focus and account isolation. End with an actual Flip/Odin walkthrough and screenshots. |
+
+All #98-112 and R1-R18 acceptance stays in ROADMAP. Avatar/media presentation,
+joined-community navigation, group actions, notifications and discovery need one
+cohesive final visual/input pass; this small increment does not claim that audit
+or the whole messenger is complete. Separate-internet proof must not be invented
+from the current same-network devices.
+
+Observed in the paired walkthrough: availability/invitation/exchange protocol
+messages still occupy the ordinary timeline, and unread badges need reconciliation
+with the actually displayed/read messages. Address these in the next conversation/
+notification pass; keep the underlying invitation/session protocol intact.
+
+### Notifications completion - owner addition, 2026-10-02
+
+Deliver a coherent notification experience as part of the communication lane:
+messages/mentions, friend requests and activity invitations. Existing transient
+toasts, unread badges and Do Not Disturb are the baseline, not completion.
+
+- Give missed notifications one compact, controller-accessible list and open the
+  relevant conversation/request/activity directly from an entry, without another
+  selection page. Respect actual Fluxer permissions and read/mention state.
+- Keep unread counts, read/dismiss state and reconnect behaviour consistent;
+  deduplicate live events and respect the active Trainer/account.
+- Add understandable sound/private-preview/Do Not Disturb controls; receiving a
+  notification must not steal focus, interrupt gameplay or accept an invitation.
+- Verify live arrival, missed events, direct navigation and dismissal on Flip
+  and Odin, including an active game. Keep the shell's existing Home/Start routes.
+
+This is recorded acceptance for a later increment, not installed functionality.
+
+## Direct composition and invitations, 2026-10-01
+
+- A on the already displayed conversation opens its message keyboard. Send on
+  that keyboard (or Select) submits once; no second Apply-then-Send step. X remains
+  a compatible compose shortcut. Back retains the draft without transmitting it.
+- The keyboard includes 26 standard Unicode emoji in its optional message/edit
+  layout, reached through Y with the next layout named in the footer. Numeric
+  keys remain on the right. Grapheme deletion keeps multi-codepoint emoji intact.
+  Other name/password/search keyboards retain their ordinary layouts.
+- Y and the attached Together action enter compatible activities directly from a
+  friend DM. Options no longer duplicates it. Probing does not send an invitation;
+  choosing an available activity does, and acceptance remains explicit. In older
+  history, the existing Y Latest shortcut takes priority and the visible Together
+  button remains available. Ordinary contacts keep ordinary chat.
+- Message commands carry their intended channel. A provider-side channel change
+  cannot redirect the text to a different person; the draft is retained instead.
+  Blank messages and cancelled input are not sent. Ordinary message permissions
+  and encoding still use the [supported message API](https://docs.fluxer.app/http-api/messages/).
+
+This changes host presentation and input, not the Emerald adapter, transport
+protocol or save transaction. Remaining completion work is listed above.
+
+### Paired delivery evidence, 2026-10-02
+
+- Final Windows and ARM64 builds succeeded. Social, core, interactions, qml_smoke
+  and exit_qml_smoke passed: 5/5 CTest targets in 28.71 seconds. Coverage includes
+  direct send, invitation consent, stale recipient protection and emoji drafts.
+- Real controller events on Flip opened composition with A, cycled to the emoji
+  keyboard with Y and entered a standard emoji. B returned without sending; A
+  reopened the intact draft. Select sent once, and the same message appeared on
+  the native Odin client. Odin sent a thumbs-up reply through the same keyboard.
+- Y from the DM opened the available activities directly. Choosing Exchange sent
+  the real invitation to Odin; B declined and returned to the existing chat. No
+  offer/settlement was started and neither save was modified.
+- Final production ARM64 binary installed and live SHA verified on both devices:
+  `f2f95e2e989c5dd572da4092a09c357081ae4c079203f1ea36d9b2bbb7d3abc3`.
+  Flip retains 3 Trainers / 830 Adventures; Odin 1 / 25. Boot choices and nearby
+  helpers are unchanged; SQLite checks pass and no Link transaction is pending.
+  Both exact Emerald save hashes still match the pre-increment values.
+- Actual compositor screenshots are private `work/research/direct-final-keyboard.png`
+  (Flip) and `direct-final-chat.png` (Odin); invitation/draft evidence is in
+  `direct-incoming-odin.png` and `direct-draft-reopened.png`. These are installed
+  handheld captures, not desktop mockups. The final revision also preserves long
+  Unicode drafts without silent truncation when the provider rejects their length.
+- Both devices were on the same ordinary LAN. Public Fluxer message/invitation
+  delivery is proven here; this does not satisfy the separate-internet #110 gate.

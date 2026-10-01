@@ -12,6 +12,8 @@ class TextEntryController final : public QObject {
     Q_PROPERTY(QString displayText READ displayText NOTIFY changed)
     Q_PROPERTY(QString layoutHint READ layoutHint NOTIFY layoutChanged)
     Q_PROPERTY(QString hint READ hint NOTIFY changed)
+    Q_PROPERTY(QString submitLabel READ submitLabel NOTIFY changed)
+    Q_PROPERTY(QString nextLayout READ nextLayout NOTIFY layoutChanged)
     Q_PROPERTY(int count READ count NOTIFY changed)
     Q_PROPERTY(int maximumLength READ maximumLength NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
@@ -24,11 +26,14 @@ public:
     QString displayText() const { return secret_ ? QString(count(), QChar(0x2022)) : text_; }
     QString layoutHint() const;
     QString hint() const { return hint_; }
+    QString submitLabel() const { return submitLabel_; }
+    QString nextLayout() const;
     int count() const;
     int maximumLength() const { return maximumLength_; }
     int focusIndex() const { return focus_; }
     QVariantList keys() const;
-    void begin(const QString& title, const QString& initial, int maximumLength, bool secret = false);
+    void begin(const QString& title, const QString& initial, int maximumLength, bool secret = false,
+               const QString& submitLabel = "Apply", bool emoji = false);
     void cancel();
     void dispatch(Action);
     Q_INVOKABLE void activate(int index);
@@ -53,6 +58,8 @@ private:
     bool open_ = false;
     bool lowercase_ = false, secret_ = false;
     int symbolPage_ = 0;
+    bool emoji_ = false;
+    QString submitLabel_ = "Apply";
     QString title_;
     QString text_;
     QString hint_;

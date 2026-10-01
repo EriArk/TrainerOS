@@ -3,7 +3,7 @@
 ## Scope, 2026-10-01
 
 This increment composes #104/#109/#105 with the existing Emerald Link controller.
-In a friend's DM, Options / Together checks the **running client**, then offers
+In a friend's DM, Y / the attached Together action checks the **running client**, then offers
 only matching activities. One compact Accept/Decline invitation opens the existing
 portrait workspace. Invitation consent is separate from both final offer
 confirmations. There is no ROM launch, download, voice activation or new setup page.

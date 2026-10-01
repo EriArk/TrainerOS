@@ -27,6 +27,7 @@ class SocialController final : public QObject {
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(int messageIndex READ messageIndex NOTIFY changed)
     Q_PROPERTY(bool reading READ reading NOTIFY changed)
+    Q_PROPERTY(bool togetherAvailable READ togetherAvailable NOTIFY changed)
     Q_PROPERTY(QStringList menu READ menu NOTIFY changed)
     Q_PROPERTY(int menuIndex READ menuIndex NOTIFY changed)
     Q_PROPERTY(QString menuTitle READ menuTitle NOTIFY changed)
@@ -75,6 +76,10 @@ public:
     QString menuDetail() const {return menuDetail_;}
     Q_INVOKABLE void activate(int index);
     Q_INVOKABLE void compose();
+    Q_INVOKABLE void together();
+    bool togetherAvailable() const;
+    QString textSubmitLabel() const { return textPurpose_ == "message" ? "Send" : "Apply"; }
+    bool textAllowsEmoji() const { return textPurpose_ == "message" || textPurpose_ == "edit-message"; }
     Q_INVOKABLE void login();
     Q_INVOKABLE void selectMenu(int index);
     bool surfaceAvailable() const { return surfaceAvailable_; }

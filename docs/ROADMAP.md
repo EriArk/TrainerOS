@@ -52,7 +52,16 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
    **Next:** #110 separate-internet validation of that same protected exchange;
    complete the #105 workload/privacy/retention matrix and remaining #109 contracts.
    Online battle and emulator netplay are not advertised by this increment.
-6. #102 chat images/recorded voice and #103 simple private calls, independent gates.
+6. Finish the remaining #100/#101 everyday communication flows and a coherent
+   controller/visual pass, per the owner's 2026-10-01 clarification. The first
+   correction removes Apply-then-Send and buries no Together action in Options;
+   it does not complete all messenger acceptance. Follow the
+   [communication completion order](SOCIAL.md#communication-completion-order),
+   retaining every provider and transport gate above. The owner's 2026-10-02
+   [notification completion](SOCIAL.md#notifications-completion---owner-addition-2026-10-02)
+   adds a compact missed-notification list, direct destinations and sound/privacy
+   controls; existing toasts/badges alone do not satisfy it. Then #102 chat images/
+   recorded voice and #103 simple private calls, with independent gates.
 7. #107 one actual exact-game/runtime online multiplayer route. #106 direct/relay
    is implemented only where the chosen consumer needs it; suitable #105 native
    events do not wait for full P2P. #108 privacy/recovery/performance throughout.

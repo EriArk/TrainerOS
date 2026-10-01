@@ -120,8 +120,14 @@ FocusScope {
             }
             Rectangle { id: composer; anchors { left: parent.left; right: parent.right; bottom: parent.bottom; bottomMargin: 12 }
                 height: 49; radius: 10; color: "#fff4cd"; border.color: "#bcab6c"
-                Text { anchors { fill: parent; margins: 12 } text: root.social.draft || "Write a little hello..."; font.pixelSize: 16; color: root.social.draft.length ? Theme.ink : Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
-                MouseArea { anchors.fill: parent; onClicked: root.social.compose() }
+                Text { anchors { fill: parent; margins: 12; rightMargin: root.social.togetherAvailable ? 132 : 12 } text: root.social.draft || "Write a message..."; font.pixelSize: 16; color: root.social.draft.length ? Theme.ink : Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
+                MouseArea { anchors.fill: parent; anchors.rightMargin: root.social.togetherAvailable ? 126 : 0; onClicked: root.social.compose() }
+                CapButton {
+                    anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 5
+                    width: 116; height: parent.height-10; visible: root.social.togetherAvailable
+                    label: "Together"; tint: Theme.green; claimsFocus: false; selected: false
+                    onActivated: root.social.together()
+                }
             }
         }
         Column { visible: !root.social.conversation; x: people.width + 62; width: parent.width - x - 30; anchors.verticalCenter: parent.verticalCenter; spacing: 16

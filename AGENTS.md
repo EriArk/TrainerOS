@@ -1,5 +1,14 @@
 # AGENTS.md — TrainerOS
 
+**Owner communication completion, 2026-10-01:** finish the accepted Fluxer lane
+and make its interface/control familiar and direct before returning to unrelated
+appearance/RA work. A displayed conversation must not require another Open step,
+and composing must not require separate Apply and Send actions. Preserve drafts,
+ordinary Fluxer contacts/permissions and explicit activity invitation consent.
+Complete the remaining messaging/media/voice/runtime gates in ROADMAP, then
+review the whole communication journey on both handhelds; a partial UI increment
+does not complete the messenger. See [completion order](docs/SOCIAL.md#communication-completion-order).
+
 **Owner Social correction, 2026-10-01:** entering Messages immediately displays
 the remembered conversation, otherwise the most recent/first available one.
 Highlighting another conversation previews it without an extra Open step; Back

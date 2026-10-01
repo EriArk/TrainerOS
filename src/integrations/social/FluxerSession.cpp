@@ -549,7 +549,14 @@ void FluxerSession::command(QString operation, QVariantMap args) {
     }
     if(operation=="send") {
         auto content=args["text"].toString().trimmed();
-        if(content.isEmpty()||content.size()>2000||!idValid(channel_))return;
+        const auto intended=args.value("channel",channel_).toString();
+        if(intended!=channel_) {emit sendFailed(generation_,intended,content);return;}
+        if(content.isEmpty())return;
+        if(content.size()>2000||!idValid(channel_)) {
+            emit sendFailed(generation_,intended,content);
+            status_=content.size()>2000?"Message is too long. Shorten the draft and try again.":"This conversation is unavailable.";
+            publish();return;
+        }
         const auto channel=channel_; const auto nonce=QUuid::createUuid().toString(QUuid::Id128);
         if(pendingNonces_.size()>=100)pendingNonces_.erase(pendingNonces_.begin());
         pendingNonces_[nonce]=channel;

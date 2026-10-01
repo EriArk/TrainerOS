@@ -166,7 +166,7 @@ QVariantList SocialController::hints() const {
         if(face_=="communities"&&!reading_&&draft().trimmed().isEmpty())h("Y",snapshot_["communityOnly"].toBool()?"All communities":"TrainerOS only");
         if(reading_&&messages().value(messageFocus_).toMap()["editable"].toBool())h("A","Message");
         if(contacts_&&rows().value(focus_).toMap()["type"].toInt()==3)h("A","Accept request");
-        if(conversation()){h("X","Write");if(reading_&&snapshot_["historyPast"].toBool())h("Y","Latest");else if(!draft().trimmed().isEmpty())h("Y","Send");h(reading_?"←":"→",reading_?"Conversations":"Read");if(reading_&&messageFocus_==0&&snapshot_["historyMore"].toBool())h("↑","Earlier");}
+        if(conversation()){h(reading_||contacts_?"X":"A","Write");if(reading_&&snapshot_["historyPast"].toBool())h("Y","Latest");else if(togetherAvailable())h("Y","Together");else if(!draft().trimmed().isEmpty())h("Y","Send");h(reading_?"←":"→",reading_?"Conversations":"Read");if(reading_&&messageFocus_==0&&snapshot_["historyMore"].toBool())h("↑","Earlier");}
         if(contacts_||reading_)h("B",contacts_?"Conversations":"List");
     }
     h("Select","Options");return result;
@@ -186,12 +186,14 @@ void SocialController::activate(int index) {
 }
 void SocialController::compose() {
     if(!conversation())return;
+    selection_.stop();
     textPurpose_="message";textChannel_=snapshot_["channel"].toString();
-    emit textRequested("Message",drafts_.value(textChannel_),2000);
+    emit textRequested("Message - "+conversationName(),drafts_.value(textChannel_),2000);
 }
 void SocialController::preserveText(QString text) {
-    if(textPurpose_=="message"&&!textChannel_.isEmpty()){drafts_[textChannel_]=text.left(2000);draftSave_.start();}
-    else if(textPurpose_=="edit-message")editDrafts_[textChannel_+"/"+textId_]=text.left(2000);
+    // Input and provider limits report errors; never silently cut a composed emoji/text draft.
+    if(textPurpose_=="message"&&!textChannel_.isEmpty()){drafts_[textChannel_]=text;draftSave_.start();}
+    else if(textPurpose_=="edit-message")editDrafts_[textChannel_+"/"+textId_]=text;
 }
 void SocialController::applyText(QString text) {
     if(textPurpose_=="search"){query_=text.trimmed();searchFocus_=-1;runSearch();}
@@ -199,18 +201,36 @@ void SocialController::applyText(QString text) {
     else if(textPurpose_=="create-community")emit commandRequested("create-community",{{"text",text}});
     else if(textPurpose_=="edit-message"||textPurpose_=="rename-group") {
         preserveText(text);emit commandRequested(textPurpose_,{{"channel",textChannel_},{"id",textId_},{"text",text}});
+    } else if(textPurpose_=="message") {
+        preserveText(text);
+        if(textChannel_==snapshot_["channel"].toString())send();
     } else preserveText(text);
     textPurpose_.clear();textChannel_.clear();emit changed();
 }
 void SocialController::send() {
     if(!conversation()||draft().trimmed().isEmpty())return;
-    emit commandRequested("send",{{"text",draft()}});
+    emit commandRequested("send",{{"channel",snapshot_["channel"]},{"text",draft()}});
     drafts_.remove(snapshot_["channel"].toString());emit changed();
     saveDrafts();
 }
 QVariantMap SocialController::currentChat() const {
     for(const auto& row:snapshot_["chats"].toList())if(row.toMap()["id"]==snapshot_["channel"])return row.toMap();
     return {};
+}
+bool SocialController::togetherAvailable() const {
+    return face_=="chats" && !contacts_ && conversation() && currentChat()["friend"].toBool()
+        && rows().value(focus_).toMap()["id"]==snapshot_["channel"];
+}
+void SocialController::together() {
+    if(!menu_.isEmpty() || !togetherAvailable())return;
+    selection_.stop();menuChannel_=snapshot_["channel"].toString();
+    if(online()["stage"]=="connected"&&online()["channel"]==menuChannel_&&link_){
+        link_->showOnline();return;
+    }
+    menuMode_="online";menuTitle_="Together";menuDetail_="Checking TrainerOS...";menuFocus_=0;
+    menu_={"Close"};menuCommands_={"cancel"};
+    if(online()["stage"]=="connected") {menuDetail_="Finish your current session first.";emit changed();return;}
+    emit commandRequested("online-probe",{{"channel",menuChannel_}});emit changed();
 }
 void SocialController::openMenu() {
     selection_.stop();menu_.clear();menuCommands_.clear();menuFocus_=0;menuMode_="options";
@@ -224,7 +244,6 @@ void SocialController::openMenu() {
         add("Edit message","edit-message");add("Delete message","ask-delete-message");
     } else {
         if(face_=="chats")add(contacts_?"Conversations":"Friends & requests","contacts");
-        if(face_=="chats"&&!contacts_&&conversation()&&currentChat()["friend"].toBool())add("Together","online");
         if(contacts_&&!menuSubject_.isEmpty()) {
             const int type=row["type"].toInt();
             if(type==3){add("Accept request","accept");add("Decline request","remove");}
@@ -283,15 +302,6 @@ void SocialController::selectMenu(int index) {
     const auto command=menuCommands_[index];
     if(command=="none")return;
     if(command=="cancel"){menu_.clear();emit changed();return;}
-    if(command=="online") {
-        if(online()["stage"]=="connected"&&online()["channel"]==menuChannel_&&link_){
-            menu_.clear();emit changed();link_->showOnline();return;
-        }
-        menuMode_="online";menuTitle_="Together";menuDetail_="Checking TrainerOS...";menuFocus_=0;
-        menu_={"Close"};menuCommands_={"cancel"};
-        if(online()["stage"]=="connected") {menuDetail_="Finish your current session first.";emit changed();return;}
-        emit commandRequested("online-probe",{{"channel",menuChannel_}});emit changed();return;
-    }
     if(command.startsWith("online:")){menu_.clear();emit changed();emit commandRequested("online-invite",{{"id",command.mid(7)}});return;}
     if(menuMode_=="create-group") {
         const bool selected=pickedPeople_.contains(command);
@@ -362,12 +372,12 @@ void SocialController::dispatch(Action action) {
         if(!reading_)selection_.start();
     } else if(action==Action::Right&&conversation())reading_=true;
     else if(action==Action::Left)reading_=false;
-    else if(action==Action::Confirm){if(reading_){if(messages().value(messageFocus_).toMap()["editable"].toBool())openMenu();}else activate(focus_);}
+    else if(action==Action::Confirm){if(reading_){if(messages().value(messageFocus_).toMap()["editable"].toBool())openMenu();}else if(!contacts_&&conversation()&&rows().value(focus_).toMap()["id"]==snapshot_["channel"])compose();else activate(focus_);}
     else if(action==Action::Back){reading_=false;if(contacts_){contacts_=false;focus_=0;} }
     else if(action==Action::Secondary){if(face_=="groups"&&!conversation())openPeople("create-group");
         else if(face_=="communities"&&!conversation()){textPurpose_="create-community";emit textRequested("Community name",QString(),100);}else compose();}
     else if(action==Action::ToggleContinue){if(reading_&&snapshot_["historyPast"].toBool())emit commandRequested("latest",{});
-        else if(face_=="communities"&&!reading_&&draft().trimmed().isEmpty())emit commandRequested("community-filter",{});else send();}
+        else if(togetherAvailable())together();else if(face_=="communities"&&!reading_&&draft().trimmed().isEmpty())emit commandRequested("community-filter",{});else send();}
     else if(action==Action::LocalAction||action==Action::ContextMenu)openMenu();
     emit changed();
 }
@@ -405,11 +415,11 @@ void SocialController::bindDrafts(const QString& accountId) {
     QFile input(file);if(QFileInfo(file).isSymLink()||input.size()>1024*1024||!input.open(QIODevice::ReadOnly))return;
     const auto data=QJsonDocument::fromJson(input.readAll()).object();
     for(auto it=data.begin();it!=data.end()&&drafts_.size()<128;++it)
-        if(!it.key().isEmpty()&&it.key().size()<=20)drafts_[it.key()]=it.value().toString().left(2000);
+        if(!it.key().isEmpty()&&it.key().size()<=20)drafts_[it.key()]=it.value().toString();
 }
 void SocialController::saveDrafts() {
     draftSave_.stop();if(draftFile_.isEmpty())return;
-    QJsonObject data;for(auto it=drafts_.cbegin();it!=drafts_.cend()&&data.size()<128;++it)if(!it.value().isEmpty())data[it.key()]=it.value().left(2000);
+    QJsonObject data;for(auto it=drafts_.cbegin();it!=drafts_.cend()&&data.size()<128;++it)if(!it.value().isEmpty())data[it.key()]=it.value();
     const auto dir=QFileInfo(draftFile_).absolutePath();
     if(QFileInfo(dir).isSymLink()||QFileInfo(draftFile_).isSymLink()||!QDir().mkpath(dir))return;
     QFile::setPermissions(dir,QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner);

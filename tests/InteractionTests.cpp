@@ -23,6 +23,21 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void messageKeyboardSendsOnceAndKeepsEmojiWhole() {
+        TextEntryController keyboard;QSignalSpy accepted(&keyboard,&TextEntryController::accepted);
+        keyboard.begin("Message",{},10,false,"Send",true);
+        QCOMPARE(keyboard.keys()[keyIndex(keyboard,"apply")].toMap()["label"].toString(),"Send");
+        tap(keyboard,Action::ToggleContinue,2);QCOMPARE(keyboard.nextLayout(),"Emoji");
+        keyboard.dispatch(Action::ToggleContinue);keyboard.activate(keyIndex(keyboard,"Q"));
+        QCOMPARE(keyboard.text(),QString::fromUtf8("❤️"));QCOMPARE(keyboard.count(),1);
+        keyboard.activate(keyIndex(keyboard,"delete"));QVERIFY(keyboard.text().isEmpty());
+        keyboard.activate(keyIndex(keyboard,"A"));keyboard.dispatch(Action::LocalAction);
+        QCOMPARE(accepted.size(),1);QCOMPARE(accepted.first()[0].toString(),QString::fromUtf8("😀"));
+        keyboard.dispatch(Action::LocalAction);QCOMPARE(accepted.size(),1);
+        keyboard.begin("Name","draft",24);QCOMPARE(keyboard.submitLabel(),"Apply");
+        tap(keyboard,Action::ToggleContinue,3);QCOMPARE(keyboard.nextLayout(),"Symbols 1/2");
+        keyboard.dispatch(Action::Back);QCOMPARE(accepted.size(),1);
+    }
     void boxNameControllerRequiresConfirmAndCancelsStaleDrafts() {
         class Library final : public LibraryRepository {
         public:
