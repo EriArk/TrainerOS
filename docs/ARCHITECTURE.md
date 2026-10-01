@@ -14,6 +14,12 @@ Home quick access reuses them later; Start remains system-only. The delivered
 and owned-process helper. Its temporary preview and explicit exit capture have
 separate generations; only the latter can enter play history.
 
+Community identity is ordinary provider-owned content validated by the social
+worker, not a new authentication or adapter capability. The versioned owner pin
+and the public discovery tag have separate visibility/proof boundaries; see
+[community representation](SOCIAL_COMMUNITIES.md). No SQLite migration, save
+write, peer connection or executable remote content is introduced by discovery.
+
 **Accepted architecture work — 2026-09-26:** [#89/#90 and related contracts](EXPANSION_69_90.md#exact-integrations-and-franchise-experiences--7476-82-8990)
 require a bounded code-backed audit before wider per-title integration. This
 planning change does not claim that audit or a new adapter interface is complete.

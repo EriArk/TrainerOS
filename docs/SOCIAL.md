@@ -4,6 +4,11 @@
 uses four cyclic faces: Messages / Groups / Communities / Search. The five
 primaries and Start/Home responsibilities remain unchanged.
 
+The subsequent [native Community slice](SOCIAL_COMMUNITIES.md) adds creation,
+owner-pinned versioned discovery identity, All/TrainerOS filtering, public tag
+search and ordinary invite links. Its marker is independent of game/client
+capabilities. Shared activity invitations remain the next #104/#109 increment.
+
 ## Implementation
 
 FluxerSession owns supported public-instance browser handoff, REST and Gateway

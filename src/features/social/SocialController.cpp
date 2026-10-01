@@ -81,6 +81,9 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     const auto oldMessage=messages().value(messageFocus_).toMap().value("id");
     const bool atEnd=messageFocus_>=messages().size()-1;
     snapshot_=std::move(snapshot);
+    if(menuMode_=="community-invite"&&!menu_.isEmpty())menuDetail_=snapshot_["communityInvite"].toString().isEmpty()
+        ?snapshot_["mutationBusy"].toBool()?"Creating invitation...":snapshot_["communityStatus"].toString()
+        :snapshot_["communityInvite"].toString();
     const auto accountId=snapshot_["userId"].toString();
     if(!accountId.isEmpty())bindDrafts(accountId);
     const auto list=rows();focus_=qBound(0,focus_,qMax(0,int(list.size())-1));
@@ -131,6 +134,8 @@ QVariantList SocialController::hints() const {
         if(snapshot_["searchTotal"].toInt()>24)h("Y","Next page");
     } else {
         if(face_=="groups"&&!conversation())h("X","New group");
+        if(face_=="communities"&&!conversation())h("X","New community");
+        if(face_=="communities"&&!reading_&&draft().trimmed().isEmpty())h("Y",snapshot_["communityOnly"].toBool()?"All communities":"TrainerOS only");
         if(reading_&&messages().value(messageFocus_).toMap()["editable"].toBool())h("A","Message");
         if(contacts_&&rows().value(focus_).toMap()["type"].toInt()==3)h("A","Accept request");
         if(conversation()){h("X","Write");if(reading_&&snapshot_["historyPast"].toBool())h("Y","Latest");else if(!draft().trimmed().isEmpty())h("Y","Send");h(reading_?"←":"→",reading_?"Conversations":"Read");if(reading_&&messageFocus_==0&&snapshot_["historyMore"].toBool())h("↑","Earlier");}
@@ -163,6 +168,7 @@ void SocialController::preserveText(QString text) {
 void SocialController::applyText(QString text) {
     if(textPurpose_=="search"){query_=text.trimmed();searchFocus_=-1;runSearch();}
     else if(textPurpose_=="add")emit commandRequested("add",{{"text",text}});
+    else if(textPurpose_=="create-community")emit commandRequested("create-community",{{"text",text}});
     else if(textPurpose_=="edit-message"||textPurpose_=="rename-group") {
         preserveText(text);emit commandRequested(textPurpose_,{{"channel",textChannel_},{"id",textId_},{"text",text}});
     } else preserveText(text);
@@ -205,6 +211,12 @@ void SocialController::openMenu() {
                 if(currentChat()["owner"]==snapshot_["userId"])add("Remove member","remove-member");
                 add("Leave group","ask-leave-group");
             }
+        }
+        if(face_=="communities") {
+            add("New community","create-community");
+            add(snapshot_["communityOnly"].toBool()?"Show all communities":"Show TrainerOS communities","community-filter");
+            if(!snapshot_["guild"].toString().isEmpty())add("Invite link","community-invite");
+            if(snapshot_["communityOwner"].toBool()&&!snapshot_["communityMarked"].toBool())add("Finish TrainerOS setup","mark-community");
         }
         if(conversation()&&!contacts_&&face_!="friends")add(currentChat()["muted"].toBool()?"Unmute conversation":"Mute conversation","mute");
         add(snapshot_["doNotDisturb"].toBool()?"Do not disturb: On":"Do not disturb: Off","dnd");
@@ -251,6 +263,15 @@ void SocialController::selectMenu(int index) {
     if(menuMode_=="add-member"){emit commandRequested("add-member",{{"channel",menuChannel_},{"id",command}});menu_.clear();emit changed();return;}
     if(menuMode_=="remove-member"){confirmAction("Remove "+menu_[index]+"?","remove-member",command);return;}
     if(command=="contacts"){contacts_=!contacts_;menu_.clear();focus_=0;preview();emit changed();return;}
+    if(command=="create-community") {
+        menu_.clear();textPurpose_=command;emit textRequested("Community name",QString(),100);emit changed();return;
+    }
+    if(command=="community-invite") {
+        menuMode_=command;menuTitle_="Invite friends";menuDetail_="Creating invitation...";
+        menu_={"Close"};menuCommands_={"cancel"};menuFocus_=0;
+        emit commandRequested(command,{{"id",snapshot_["guild"]}});emit changed();return;
+    }
+    if(command=="mark-community") {emit commandRequested(command,{{"id",snapshot_["guild"]}});menu_.clear();emit changed();return;}
     if(command=="create-group"||command=="add-member"||command=="remove-member") {
         if(menuMode_!="confirm"){openPeople(command);return;}
     }
@@ -284,8 +305,8 @@ void SocialController::dispatch(Action action) {
         if(action==Action::Secondary||(action==Action::Confirm&&searchFocus_<0))editSearch();
         else if(action==Action::Back)searchFocus_=-1;
         else if((action==Action::Left||action==Action::Right)&&searchFocus_<0) {
-            const QStringList kinds{"people","communities","invite"};const int current=kinds.indexOf(searchKind_);
-            setSearchKind(kinds[(current+(action==Action::Right?1:2))%3]);
+            const QStringList kinds{"people","communities","traineros","invite"};const int current=kinds.indexOf(searchKind_);
+            setSearchKind(kinds[(current+(action==Action::Right?1:3))%4]);
         } else if(action==Action::Down)searchFocus_=qMin(searchFocus_<0?0:searchFocus_+2,int(searchResults().size())-1);
         else if(action==Action::Up)searchFocus_=qMax(-1,searchFocus_-2);
         else if(action==Action::Left)searchFocus_=qMax(0,searchFocus_-1);
@@ -304,8 +325,10 @@ void SocialController::dispatch(Action action) {
     else if(action==Action::Left)reading_=false;
     else if(action==Action::Confirm){if(reading_){if(messages().value(messageFocus_).toMap()["editable"].toBool())openMenu();}else activate(focus_);}
     else if(action==Action::Back){reading_=false;if(contacts_){contacts_=false;focus_=0;} }
-    else if(action==Action::Secondary){if(face_=="groups"&&!conversation())openPeople("create-group");else compose();}
-    else if(action==Action::ToggleContinue){if(reading_&&snapshot_["historyPast"].toBool())emit commandRequested("latest",{});else send();}
+    else if(action==Action::Secondary){if(face_=="groups"&&!conversation())openPeople("create-group");
+        else if(face_=="communities"&&!conversation()){textPurpose_="create-community";emit textRequested("Community name",QString(),100);}else compose();}
+    else if(action==Action::ToggleContinue){if(reading_&&snapshot_["historyPast"].toBool())emit commandRequested("latest",{});
+        else if(face_=="communities"&&!reading_&&draft().trimmed().isEmpty())emit commandRequested("community-filter",{});else send();}
     else if(action==Action::LocalAction||action==Action::ContextMenu)openMenu();
     emit changed();
 }
@@ -323,7 +346,7 @@ void SocialController::runSearch(int offset) {
 }
 void SocialController::setSearchKind(QString kind) {
     if(kind==searchKind_)return;
-    if(!QStringList{"people","communities","invite"}.contains(kind))return;
+    if(!QStringList{"people","communities","traineros","invite"}.contains(kind))return;
     searchKind_=kind;query_.clear();runSearch();emit changed();
 }
 void SocialController::editSearch() {

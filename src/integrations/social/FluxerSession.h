@@ -5,6 +5,7 @@
 #include <QVariantMap>
 #include <QHash>
 #include <QTimer>
+#include <QSet>
 #include <functional>
 
 class QNetworkAccessManager;
@@ -46,6 +47,16 @@ private:
     QStringList muted_;
     void publish();
     void ensureConversation();
+    void checkCommunities();
+    void invalidateCommunity(const QString& guild);
+    void createCommunity(QString name);
+    void markCommunity(QString guild);
+    bool communityOnly_ = false, communityChecking_ = false;
+    QSet<QString> communityChecked_, communityMarked_;
+    QHash<QString,quint64> communityRevision_;
+    QHash<QString,QString> communityChannels_;
+    quint64 guildListRevision_ = 0;
+    QString communityStatus_, communityInvite_;
     void openConversation(const QString& id);
     void search(QString mode, QString text, int offset = 0);
     bool mutate(const QString& operation, const QVariantMap& args);

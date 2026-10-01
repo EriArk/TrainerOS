@@ -1,5 +1,6 @@
 #include "FluxerSession.h"
 #include "AltchaProof.h"
+#include "CommunityIdentity.h"
 #include "platform/storage/EncryptedCredentials.h"
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -41,6 +42,9 @@ void FluxerSession::reset() {
     readThrough_.clear();readRevision_.clear();muted_.clear();
     readsReady_=ackBusy_=doNotDisturb_=false;privatePreviews_=true;
     mutationBusy_=channelsLoading_=false;++channelRevision_;
+    ++guildListRevision_;
+    communityOnly_=communityChecking_=false;communityChecked_.clear();communityMarked_.clear();
+    communityRevision_.clear();communityChannels_.clear();communityStatus_.clear();communityInvite_.clear();
     if(encryptedCredentials_)encryptedCredentials_->cancel();
     credentialLoading_=false;
     ++historyRequest_;historyBusy_=historyMore_=historyPast_=false;
@@ -97,18 +101,31 @@ void FluxerSession::publish() {
     });
     for (const auto& id:messageOrder_) {
         const auto m=messages_.value(id);
+        const auto guild=channels_.value(channel_)["guild_id"].toString();
+        const bool welcome=communityIdentity::matches(m,guild,guilds_.value(guild)["owner_id"].toString(),communityChannels_.value(guild));
+        QString text=welcome?QString("A gathering place for TrainerOS players. Welcome!"):m["content"].toString().left(4000);
+        if(m["type"].toInt()==6)text=label(m["author"].toObject())+" pinned a message";
+        else if(m["type"].toInt()==7)text=label(m["author"].toObject())+" joined the community";
         messages.append(QVariantMap{{"id",id},{"name",label(m["author"].toObject())},
-            {"editable",idValid(id)&&m["author"].toObject()["id"]==self_&&(m["type"].toInt()==0||m["type"].toInt()==19)&&m["message_snapshots"].toArray().isEmpty()&&m["local_delivery"].toString().isEmpty()},
+            {"editable",!welcome&&idValid(id)&&m["author"].toObject()["id"]==self_&&(m["type"].toInt()==0||m["type"].toInt()==19)&&m["message_snapshots"].toArray().isEmpty()&&m["local_delivery"].toString().isEmpty()},
             {"edited",!m["edited_timestamp"].toString().isEmpty()},{"system",m["type"].toInt()!=0&&m["type"].toInt()!=19},
-            {"mine",m["author"].toObject()["id"]==self_},{"text",m["content"].toString().left(4000)},
+            {"mine",m["author"].toObject()["id"]==self_},{"text",text},
             {"delivery",m["local_delivery"].toString()}, {"media",!m["attachments"].toArray().isEmpty()}});
     }
-    for(auto it=guilds_.cbegin();it!=guilds_.cend();++it)communities.append(QVariantMap{{"id",it.key()},{"name",it.value()["name"].toString()},{"kind","community"},{"detail","Community"}});
+    for(auto it=guilds_.cbegin();it!=guilds_.cend();++it) {
+        const bool marked=communityMarked_.contains(it.key());
+        if(communityOnly_&&!marked)continue;
+        communities.append(QVariantMap{{"id",it.key()},{"name",it.value()["name"].toString()},
+            {"kind","community"},{"traineros",marked},{"detail",marked?"TrainerOS":"Community"}});
+    }
     std::sort(communities.begin(),communities.end(),[](const QVariant& a,const QVariant& b){return a.toMap()["name"].toString()<b.toMap()["name"].toString();});
     int unreadCount=0;for(auto it=unread_.cbegin();it!=unread_.cend();++it)if(it.value()&&channels_.contains(it.key()))++unreadCount;
     emit snapshot(generation_, {{"state",state_},{"status",status_},{"name",name_},{"code",code_},
         {"unreadCount",unreadCount},{"doNotDisturb",doNotDisturb_},{"privatePreviews",privatePreviews_},
         {"mutationBusy",mutationBusy_},
+        {"communityOnly",communityOnly_},{"communityChecking",communityChecking_},{"communityStatus",communityStatus_},
+        {"communityInvite",communityInvite_},{"communityOwner",guilds_.value(guild_)["owner_id"]==self_},
+        {"communityMarked",communityMarked_.contains(guild_)},
         {"historyBusy",historyBusy_},{"historyMore",historyMore_},{"historyPast",historyPast_},
         {"userId",self_},{"searchResults",searchResults_},{"searchStatus",searchStatus_},{"searching",searching_},{"searchTotal",searchTotal_},{"searchOffset",searchOffset_},
         {"guild",guild_},{"communities",communities},{"remembered",remembered_},{"friends",friends},{"chats",chats},{"messages",messages},{"channel",channel_}});
@@ -150,7 +167,7 @@ void FluxerSession::verifiedRequest(QByteArray method, QString path, QJsonObject
         const auto error=r.body.object();const auto code=error["code"].toString();
         if(r.status!=400 || (code!="CAPTCHA_REQUIRED"&&code!="INVALID_CAPTCHA") || attempt>=2
             || error["captcha_provider"]!="altcha" || proof_) {done(std::move(r));return;}
-        status_="Connecting your group...";publish();
+        status_="Completing verification...";publish();
         const auto epoch=epoch_;
         proof_=new AltchaProof(error["altcha_challenge"].toObject(),
             [this,epoch,method,path,body,done=std::move(done),attempt,r](QByteArray token) mutable {
@@ -301,12 +318,18 @@ void FluxerSession::refresh() {
         for(const auto& v:r.body.array()) {auto o=v.toObject();auto id=o["id"].toString();if(idValid(id)&&relationships_.size()<2000)relationships_[id]=o;}
         ensureConversation();publish();
     });
-    request("GET","/v1/users/@me/guilds?limit=100",{},[this](Reply r){
+    const auto guildRevision=++guildListRevision_;
+    request("GET","/v1/users/@me/guilds?limit=100",{},[this,guildRevision](Reply r){
+        if(guildRevision!=guildListRevision_)return;
         if(r.status!=200){fail(r,"Could not load communities");return;}
-        guilds_.clear();for(const auto& v:r.body.array()){auto g=v.toObject();if(idValid(g["id"].toString()))guilds_[g["id"].toString()]=g;}
+        auto previous=guilds_;guilds_.clear();for(const auto& v:r.body.array()){auto g=v.toObject();const auto id=g["id"].toString();if(idValid(id)){
+            if(!g.contains("owner_id")&&previous.contains(id))g["owner_id"]=previous[id]["owner_id"];
+            guilds_[id]=g;}}
+        for(const auto& id:communityMarked_)if(!guilds_.contains(id))communityChecked_.remove(id);
+        communityMarked_.intersect(QSet<QString>(guilds_.keyBegin(),guilds_.keyEnd()));
         for(auto it=channels_.begin();it!=channels_.end();) {auto guild=it.value()["guild_id"].toString();if(!guild.isEmpty()&&!guilds_.contains(guild))it=channels_.erase(it);else ++it;}
         if(!guild_.isEmpty()&&!guilds_.contains(guild_)){guild_.clear();channel_.clear();messages_.clear();messageOrder_.clear();}
-        ensureConversation();publish();
+        ensureConversation();checkCommunities();publish();
     });
     if(!channel_.isEmpty()&&!historyPast_&&!historyBusy_)loadMessages(channel_);
 }
@@ -375,7 +398,7 @@ void FluxerSession::mergeMessage(const QJsonObject& message) {
     while(messageOrder_.size()>100)messages_.remove(messageOrder_.takeFirst());
 }
 void FluxerSession::command(QString operation, QVariantMap args) {
-    if(operation=="face") {face_=args["face"].toString();ensureConversation();publish();return;}
+    if(operation=="face") {face_=args["face"].toString();if(face_=="communities")communityChecked_.clear();ensureConversation();checkCommunities();publish();return;}
     if(operation=="login") {login();return;}
     if(operation=="cancel-login") {
         if(poll_)poll_->stop();
@@ -391,6 +414,26 @@ void FluxerSession::command(QString operation, QVariantMap args) {
         });return;
     }
     if(self_.isEmpty())return;
+    if(operation=="create-community"){createCommunity(args["text"].toString());return;}
+    if(operation=="mark-community"){markCommunity(args["id"].toString());return;}
+    if(operation=="community-filter") {
+        communityOnly_=!communityOnly_;
+        if(communityOnly_&&!communityMarked_.contains(guild_)){guild_.clear();channel_.clear();messages_.clear();messageOrder_.clear();}
+        ensureConversation();checkCommunities();publish();return;
+    }
+    if(operation=="community-invite") {
+        const auto guild=args["id"].toString(),channel=communityChannels_.value(guild);
+        if(mutationBusy_||!guilds_.contains(guild)||!idValid(channel))return;
+        mutationBusy_=true;communityInvite_.clear();publish();
+        request("POST","/v1/channels/"+channel+"/invites",{{"max_age",86400},{"max_uses",0},{"temporary",false}},[this,guild](Reply r){
+            mutationBusy_=false;
+            const auto code=r.body.object()["code"].toString();
+            static const QRegularExpression valid("^[A-Za-z0-9_-]{1,100}$");
+            if(r.status>=200&&r.status<300&&valid.match(code).hasMatch()&&guild==guild_)communityInvite_="https://fluxer.gg/"+code;
+            else communityStatus_="Could not create an invite. Check your community permissions.";
+            publish();checkCommunities();
+        });return;
+    }
     if(operation=="read"){acknowledge(args["channel"].toString(),args["message"].toString());return;}
     if(operation=="mute"||operation=="dnd"||operation=="private") {
         if(operation=="mute") {const auto channel=args["channel"].toString();if(!channels_.contains(channel))return;
@@ -416,19 +459,21 @@ void FluxerSession::command(QString operation, QVariantMap args) {
             if(revision==searchRevision_){searchStatus_="Joined";for(auto& v:searchResults_){auto row=v.toMap();if(row["id"]==id)row["action"]="Joined";v=row;}}refresh();publish();
         });return;
     }
-    if(operation=="refresh") {refresh();return;}
+    if(operation=="refresh") {communityChecked_.clear();communityStatus_.clear();refresh();return;}
     if(operation=="close") {channel_.clear();messages_.clear();messageOrder_.clear();publish();return;}
     const auto id=args["id"].toString();
     if(operation=="guild"&&idValid(id)&&guilds_.contains(id)) {
         if(openingGuild_&&guild_==id)return;
-        guild_=id;openingGuild_=true;remember("guild",id);publish();
+        guild_=id;openingGuild_=true;communityInvite_.clear();remember("guild",id);publish();
         request("GET","/v1/guilds/"+id,{},[this,id](Reply r){
             if(id!=guild_)return;
             openingGuild_=false;
             if(r.status!=200){fail(r,"Could not open this community");return;}
+            guilds_[id]=r.body.object();
+            communityChannels_[id]=r.body.object()["system_channel_id"].toString();
             for(auto it=channels_.begin();it!=channels_.end();) {if(it.value()["guild_id"]==id)it=channels_.erase(it);else ++it;}
             for(const auto& v:r.body.object()["channels"].toArray()){auto c=v.toObject();if(c["type"].toInt(-1)==0&&idValid(c["id"].toString())&&channels_.size()<1000){c["guild_id"]=id;channels_[c["id"].toString()]=c;}}
-            ensureConversation();publish();
+            ensureConversation();checkCommunities();publish();
         });return;
     }
     if(operation=="open"&&idValid(id)&&channels_.contains(id)) {openConversation(id);return;}
@@ -568,8 +613,10 @@ void FluxerSession::openConversation(const QString& id) {
 void FluxerSession::ensureConversation() {
     if(self_.isEmpty()||face_=="friends"||!channelsLoaded_)return;
     if(face_=="communities"&&guild_.isEmpty()&&!guilds_.isEmpty()) {
-        const auto id=guilds_.contains(preferred_["guild"])?preferred_["guild"]:guilds_.keys().first();
-        command("guild",{{"id",id}});return;
+        auto candidates=guilds_.keys();std::sort(candidates.begin(),candidates.end());
+        if(communityOnly_)candidates.removeIf([this](const QString& id){return !communityMarked_.contains(id);});
+        if(!candidates.isEmpty()) {const auto id=candidates.contains(preferred_["guild"])?preferred_["guild"]:candidates.first();
+            command("guild",{{"id",id}});return;}
     }
     auto matches=[&](const QJsonObject& c){return channelKind(c)==face_&&(face_!="communities"||c["guild_id"]==guild_);};
     if(channels_.contains(channel_)&&matches(channels_[channel_]))return;
@@ -588,7 +635,7 @@ void FluxerSession::ensureConversation() {
     }
 }
 void FluxerSession::search(QString mode,QString text,int offset) {
-    if(mode!="people"&&mode!="communities"&&mode!="invite")return;
+    if(mode!="people"&&mode!="communities"&&mode!="traineros"&&mode!="invite")return;
     const auto revision=++searchRevision_;searchMode_=mode;searchText_=text.trimmed().left(256);
     searchOffset_=qMax(0,offset);searchTotal_=0;searchResults_.clear();searching_=false;searchStatus_.clear();
     if(mode=="people") {
@@ -605,6 +652,7 @@ void FluxerSession::search(QString mode,QString text,int offset) {
         path="/v1/invites/"+QString::fromLatin1(QUrl::toPercentEncoding(code));
     } else {
         QUrlQuery q;if(!searchText_.isEmpty())q.addQueryItem("query",searchText_.left(100));q.addQueryItem("limit","24");q.addQueryItem("offset",QString::number(searchOffset_));
+        if(mode=="traineros")q.addQueryItem("tag","traineros-v1");
         path="/v1/discovery/guilds?"+q.toString(QUrl::FullyEncoded);
     }
     searching_=true;searchStatus_="Searching...";publish();
@@ -622,7 +670,95 @@ void FluxerSession::search(QString mode,QString text,int offset) {
                 searchResults_.append(QVariantMap{{"id",g["id"].toString()},{"name",g["name"].toString()},{"description",g["description"].toString()},{"detail",QString("%1 members").arg(g["member_count"].toInt())},{"kind","community"},{"action",guilds_.contains(g["id"].toString())?"Joined":"Join"}});
             }
         }
-        searchStatus_=searchResults_.isEmpty()?"No matches":QString("%1 results").arg(searchTotal_);publish();
+        searchStatus_=searchResults_.isEmpty()?(mode=="traineros"?"No public TrainerOS communities yet. Private communities use invite links.":"No matches"):QString("%1 results").arg(searchTotal_);publish();
+    });
+}
+
+void FluxerSession::invalidateCommunity(const QString& id) {
+    if(id.isEmpty())return;
+    ++communityRevision_[id];communityChecked_.remove(id);communityMarked_.remove(id);
+}
+void FluxerSession::checkCommunities() {
+    if(self_.isEmpty()||face_!="communities"||communityChecking_||mutationBusy_)return;
+    QString id;
+    for(auto it=guilds_.cbegin();it!=guilds_.cend();++it)if(!communityChecked_.contains(it.key())){id=it.key();break;}
+    if(id.isEmpty())return;
+    communityChecking_=true;communityChecked_.insert(id);
+    const auto revision=communityRevision_.value(id);
+    auto finish=[this,id,revision](bool marked) {
+        communityChecking_=false;
+        if(guilds_.contains(id)&&revision==communityRevision_.value(id)) {
+            if(marked)communityMarked_.insert(id);else communityMarked_.remove(id);
+        }
+        if(communityOnly_&&!communityMarked_.contains(guild_)){guild_.clear();channel_.clear();messages_.clear();messageOrder_.clear();}
+        ensureConversation();publish();
+        // One community at a time; never fan out requests on the UI thread.
+        const auto epoch=epoch_;
+        QTimer::singleShot(300,this,[this,epoch]{if(epoch==epoch_)checkCommunities();});
+    };
+    request("GET","/v1/guilds/"+id,{},[this,id,revision,finish](Reply r){
+        if(!guilds_.contains(id)||revision!=communityRevision_.value(id)||r.status!=200||r.body.object()["id"]!=id){finish(false);return;}
+        const auto g=r.body.object();const auto channel=g["system_channel_id"].toString(),owner=g["owner_id"].toString();
+        guilds_[id]["owner_id"]=owner;communityChannels_[id]=channel;
+        bool visible=false;for(const auto& c:g["channels"].toArray())if(c.toObject()["id"]==channel&&c.toObject()["type"].toInt(-1)==0)visible=true;
+        if(!visible||!idValid(channel)||!idValid(owner)){finish(false);return;}
+        request("GET","/v1/channels/"+channel+"/messages/pins?limit=50",{},[id,channel,owner,finish](Reply pins){
+            bool marked=false;
+            if(pins.status==200)for(const auto& p:pins.body.object()["items"].toArray()) {
+                const auto m=p.toObject()["message"].toObject();
+                if(m["pinned"].toBool()&&communityIdentity::matches(m,id,owner,channel))marked=true;
+            }
+            finish(marked);
+        });
+    });
+}
+void FluxerSession::createCommunity(QString name) {
+    name=name.trimmed();if(mutationBusy_||name.isEmpty()||name.size()>100)return;
+    mutationBusy_=true;communityStatus_="Creating your community...";publish();
+    const QJsonObject setup{{"name","TrainerOS"},{"roles",QJsonArray{}},{"system_channel_id","1"},
+        {"channels",QJsonArray{QJsonObject{{"id","1"},{"type",0},{"name","general"},{"position",0}}}}};
+    verifiedRequest("POST","/v1/guilds",{{"name",name},{"template",setup}},[this](Reply r){
+        mutationBusy_=false;const auto g=r.body.object();const auto id=g["id"].toString();
+        if(r.status<200||r.status>=300||!idValid(id)) {
+            const auto code=g["code"].toString();
+            communityStatus_=code=="GUILD_CREATION_EMAIL_VERIFICATION_REQUIRED"?"Verify your Fluxer email before creating a community."
+                :r.status==0?"Connection lost. Refresh your communities before trying again."
+                :"Community was not created. "+g["message"].toString().left(140);
+            fail(r,communityStatus_);return;
+        }
+        ++guildListRevision_;guilds_[id]=g;communityOnly_=false;
+        if(face_=="communities"){guild_=id;remember("guild",id);}
+        markCommunity(id);
+    });
+}
+void FluxerSession::markCommunity(QString id) {
+    if(mutationBusy_||!idValid(id)||!guilds_.contains(id))return;
+    mutationBusy_=true;communityStatus_="Preparing your community...";publish();
+    auto finish=[this,id](bool success,const Reply& reply) {
+        mutationBusy_=false;
+        communityStatus_=success?QString():"Community kept. TrainerOS setup is incomplete; retry from Options.";
+        if(reply.status==401){fail(reply,communityStatus_);return;}
+        invalidateCommunity(id);
+        if(face_=="communities"&&guild_==id)command("guild",{{"id",id}});
+        checkCommunities();publish();
+    };
+    request("GET","/v1/guilds/"+id,{},[this,id,finish](Reply r){
+        const auto g=r.body.object();const auto channel=g["system_channel_id"].toString();
+        if(r.status!=200||g["id"]!=id||g["owner_id"]!=self_||!idValid(channel)){finish(false,r);return;}
+        guilds_[id]=g;communityChannels_[id]=channel;
+        auto pin=[this,id,channel,finish](const QJsonObject& message) {
+            const auto messageId=message["id"].toString();
+            if(!idValid(messageId)||!communityIdentity::matches(message,id,self_,channel)){finish(false,{});return;}
+            request("PUT","/v1/channels/"+channel+"/pins/"+messageId,{},[finish](Reply reply){finish(reply.status==204,reply);});
+        };
+        // Reuse a completed post after a pin failure, including across restart.
+        request("GET","/v1/channels/"+channel+"/messages?limit=50",{},[this,id,channel,pin,finish](Reply history){
+            if(history.status!=200){finish(false,history);return;}
+            for(const auto& v:history.body.array())if(communityIdentity::matches(v.toObject(),id,self_,channel)){pin(v.toObject());return;}
+            request("POST","/v1/channels/"+channel+"/messages",
+                {{"content",communityIdentity::content(id)},{"allowed_mentions",QJsonObject{{"parse",QJsonArray{}}}}},
+                [pin,finish](Reply message){if(message.status>=200&&message.status<300)pin(message.body.object());else finish(false,message);});
+        });
     });
 }
 
@@ -663,6 +799,12 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
     else if(op==9) {gatewaySession_.clear();sequence_=0;socket_->abort();request("GET","/v1/users/@me",{},[this](Reply r){if(r.status!=200)fail(r,"Session interrupted");});}
     else if(op==0) {
         sequence_=event["s"].toInteger();const auto type=event["t"].toString();
+        if(type=="MESSAGE_UPDATE"||type=="MESSAGE_DELETE"||type=="CHANNEL_PINS_UPDATE"||type=="CHANNEL_DELETE"||type=="GUILD_UPDATE"||type=="GUILD_DELETE") {
+            const auto channel=d["channel_id"].toString(d["id"].toString());
+            for(auto it=communityChannels_.cbegin();it!=communityChannels_.cend();++it)
+                if(it.value()==channel||it.key()==d["id"].toString())invalidateCommunity(it.key());
+            checkCommunities();
+        }
         if(type=="READY"||type=="RESUMED") {
             if(type=="READY") {gatewaySession_=d["session_id"].toString();readThrough_.clear();unread_.clear();readsReady_=true;
                 for(const auto& v:d["read_states"].toArray())applyReadState(v.toObject(),false);

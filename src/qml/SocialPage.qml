@@ -14,7 +14,7 @@ FocusScope {
     PageHeader {
         id: heading
         title: [root.social.contacts ? "Friends" : "Messages", "Groups", "Communities", "Search"][root.faceIndex]
-        subtitle: root.connected ? (root.account.name || "") + " · " + (root.account.status || "") : "A little closer, wherever you are."
+        subtitle: root.connected ? (root.account.name || "") + " · " + (root.faceIndex === 2 && root.account.communityStatus ? root.account.communityStatus : root.account.status || "") : "A little closer, wherever you are."
     }
     Item {
         anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
@@ -58,9 +58,12 @@ FocusScope {
         visible: root.connected && root.faceIndex !== 3
         anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
         Rectangle { width: people.width + 30; height: parent.height; color: "#dce9d9"; border.color: "#b9cebd" }
+        Text { x: 20; y: 10; visible: root.faceIndex === 2; width: people.width
+            text: (root.account.communityOnly ? "TrainerOS communities" : "All communities") + (root.account.communityChecking ? " · Checking..." : "")
+            font.family: Theme.displayFamily; font.pixelSize: 14; color: Theme.ink; elide: Text.ElideRight }
         ListView {
             id: people
-            x: 14; y: 14; width: parent.width * 0.31; height: parent.height - 28
+            x: 14; y: root.faceIndex === 2 ? 36 : 14; width: parent.width * 0.31; height: parent.height - y - 14
             clip: true; spacing: 10; model: root.social.rows; currentIndex: root.social.focusIndex
             onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
             delegate: CapButton {
@@ -102,14 +105,14 @@ FocusScope {
                     width: log.width; height: bubble.height + 3
                     Rectangle {
                         id: bubble
-                        x: modelData.mine ? 26 : 2; width: parent.width - 30
-                        height: content.height + 18; radius: 11
-                        color: modelData.mine ? "#e5efbe" : "#d5eaf1"
+                        x: modelData.mine && !modelData.system ? 26 : 2; width: parent.width - 30
+                        height: content.height + (modelData.system ? 10 : 18); radius: 11
+                        color: modelData.system ? "transparent" : modelData.mine ? "#e5efbe" : "#d5eaf1"
                         border.color: root.social.reading && index === log.currentIndex ? "#c09220" : modelData.mine ? "#a7be81" : "#a1c1c8"
-                        border.width: root.social.reading && index === log.currentIndex ? 2 : 1
-                        Column { id: content; x: 12; y: 8; width: parent.width - 24; spacing: 3
-                            Text { width: parent.width; text: modelData.name + (modelData.edited ? " (edited)" : ""); font.family: Theme.displayFamily; font.pixelSize: 13; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
-                            Text { width: parent.width; text: modelData.text || (modelData.media ? "Attachment" : modelData.system ? "Conversation updated" : ""); font.pixelSize: 16; color: Theme.ink; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+                        border.width: root.social.reading && index === log.currentIndex ? 2 : modelData.system ? 0 : 1
+                        Column { id: content; x: 12; y: modelData.system ? 4 : 8; width: parent.width - 24; spacing: 3
+                            Text { visible: !modelData.system; width: parent.width; text: modelData.name + (modelData.edited ? " (edited)" : ""); font.family: Theme.displayFamily; font.pixelSize: 13; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
+                            Text { width: parent.width; text: modelData.text || (modelData.media ? "Attachment" : modelData.system ? "Conversation updated" : ""); font.pixelSize: modelData.system ? 13 : 16; color: modelData.system ? Theme.muted : Theme.ink; wrapMode: Text.Wrap; textFormat: Text.PlainText }
                             Text { visible: modelData.delivery.length > 0; width: parent.width; text: modelData.delivery; font.pixelSize: 11; color: "#80542a"; wrapMode: Text.Wrap; textFormat: Text.PlainText }
                         }
                     }
@@ -122,8 +125,8 @@ FocusScope {
             }
         }
         Column { visible: !root.social.conversation; x: people.width + 62; width: parent.width - x - 30; anchors.verticalCenter: parent.verticalCenter; spacing: 16
-            Text { width: parent.width; text: ["No conversations yet", "No group chats yet", "No text channels yet"][root.faceIndex] || ""; font.family: Theme.displayFamily; font.pixelSize: 29; color: Theme.ink; horizontalAlignment: Text.AlignHCenter }
-            Text { width: parent.width; text: root.faceIndex === 1 ? "Bring your friends together in a group." : "Find someone new in Search."; font.pixelSize: 17; color: Theme.muted; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
+            Text { width: parent.width; text: ["No conversations yet", "No group chats yet", "A place for your people"][root.faceIndex] || ""; font.family: Theme.displayFamily; font.pixelSize: 29; color: Theme.ink; horizontalAlignment: Text.AlignHCenter }
+            Text { width: parent.width; text: root.faceIndex === 2 ? "Create a community, or join your friends through Search." : root.faceIndex === 1 ? "Bring your friends together in a group." : "Find someone new in Search."; font.pixelSize: 17; color: Theme.muted; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
             Row { anchors.horizontalCenter: parent.horizontalCenter; spacing: 12
                 Repeater { model: [Theme.blue,Theme.pink,Theme.yellow]
                     Rectangle { required property color modelData; width: 48; height: 38; radius: 12; color: modelData; border.color: Qt.darker(modelData,1.35)
@@ -141,8 +144,8 @@ FocusScope {
         Row {
             id: categories; x: 16; y: 10; spacing: 10
             Repeater {
-                model: [{kind:"people",title:"People",tint:Theme.pink}, {kind:"communities",title:"Communities",tint:Theme.green}, {kind:"invite",title:"Invite link",tint:Theme.blue}]
-                CapButton { required property var modelData; width: (searchPage.width - 52) / 3; height: 38
+                model: [{kind:"people",title:"People",tint:Theme.pink}, {kind:"communities",title:"Communities",tint:Theme.green}, {kind:"traineros",title:"TrainerOS",tint:Theme.yellow}, {kind:"invite",title:"Invite link",tint:Theme.blue}]
+                CapButton { required property var modelData; width: (searchPage.width - 62) / 4; height: 38
                     label: modelData.title; tint: modelData.tint; claimsFocus: false
                     selected: root.social.searchKind === modelData.kind && root.social.searchFocus < 0
                     onActivated: root.social.setSearchKind(modelData.kind)

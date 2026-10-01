@@ -1,5 +1,6 @@
 #include <QtTest>
 #include "integrations/social/FluxerSession.h"
+#include "integrations/social/CommunityIdentity.h"
 #include "features/social/SocialController.h"
 #include <QJsonArray>
 #include <QFile>
@@ -20,6 +21,78 @@ class SocialTests : public QObject {
     }
 private slots:
     void initTestCase() { QStandardPaths::setTestModeEnabled(true); }
+    void communityManifestIsBoundToOwnerGuildAndVersion() {
+        QJsonObject m{{"id","199"},{"channel_id",channel},{"type",0},{"author",QJsonObject{{"id",remote}}},
+            {"content",communityIdentity::content("200")}};
+        QVERIFY(communityIdentity::matches(m,"200",remote,channel));
+        QVERIFY(!communityIdentity::matches(m,"201",remote,channel));
+        QVERIFY(!communityIdentity::matches(m,"200","202",channel));
+        QVERIFY(!communityIdentity::matches(m,"200",remote,"203"));
+        auto changed=m;changed["content"]=changed["content"].toString().replace("\"version\":1","\"version\":2");
+        QVERIFY(!communityIdentity::matches(changed,"200",remote,channel));
+        changed=m;changed["webhook_id"]="204";QVERIFY(!communityIdentity::matches(changed,"200",remote,channel));
+        changed=m;changed["content"]="TrainerOS compatible";QVERIFY(!communityIdentity::matches(changed,"200",remote,channel));
+    }
+    void communityCreationRetainsPartialSuccessAndReusesMessage() {
+        FluxerSession s;bind(s);QStringList calls;int creates=0,posts=0,pins=0;bool allowPin=false;
+        const QString guild="200";QJsonObject marker;
+        const QJsonObject g{{"id",guild},{"name","Our place"},{"owner_id",s.self_},{"system_channel_id",channel}};
+        s.setTransport([&](QByteArray method,QString path,QJsonObject body,Completion done,QByteArray){
+            calls<<path;
+            if(path=="/v1/guilds") {++creates;QCOMPARE(body["name"].toString(),QString("Our place"));
+                QCOMPARE(body["template"].toObject()["channels"].toArray().size(),1);done({200,QJsonDocument(g)});}
+            else if(path=="/v1/guilds/200")done({200,QJsonDocument(g)});
+            else if(path.endsWith("messages?limit=50"))done({200,QJsonDocument(marker.isEmpty()?QJsonArray{}:QJsonArray{marker})});
+            else if(method=="POST"&&path.endsWith("/messages")) {++posts;marker={{"id","199"},{"channel_id",channel},{"type",0},{"author",QJsonObject{{"id",s.self_}}},{"content",body["content"]}};done({200,QJsonDocument(marker)});}
+            else if(method=="PUT"){++pins;done({allowPin?204:403,{}});}
+            else QFAIL("Unexpected community request");
+        });
+        s.command("create-community",{{"text"," Our place "}});
+        QCOMPARE(creates,1);QCOMPARE(posts,1);QCOMPARE(pins,1);QVERIFY(s.guilds_.contains(guild));
+        QVERIFY(!s.mutationBusy_);QVERIFY(s.communityStatus_.contains("incomplete"));QVERIFY(!s.communityMarked_.contains(guild));
+        allowPin=true;s.command("mark-community",{{"id",guild}});
+        QCOMPARE(creates,1);QCOMPARE(posts,1);QCOMPARE(pins,2);QVERIFY(s.communityStatus_.isEmpty());
+        // Even a successful write is not a cached positive: read the actual pin.
+        QVERIFY(!s.communityMarked_.contains(guild));
+    }
+    void communityDiscoveryRejectsRevokedAndStalePins() {
+        FluxerSession s;bind(s);s.face_="communities";const QString guild="200";
+        s.guilds_[guild]={{"id",guild},{"name","TrainerOS"}};
+        Completion pins;
+        const QJsonObject g{{"id",guild},{"owner_id",remote},{"system_channel_id",channel},
+            {"channels",QJsonArray{QJsonObject{{"id",channel},{"type",0}}}}};
+        s.setTransport([&](auto,QString path,auto,Completion done,auto){
+            if(path=="/v1/guilds/200")done({200,QJsonDocument(g)});else pins=done;
+        });
+        const QJsonObject m{{"id","199"},{"channel_id",channel},{"type",0},{"pinned",true},
+            {"author",QJsonObject{{"id",remote}}},{"content",communityIdentity::content(guild)}};
+        const Reply valid{200,QJsonDocument(QJsonObject{{"items",QJsonArray{QJsonObject{{"message",m}}}}})};
+        s.checkCommunities();QVERIFY(bool(pins));pins(valid);QVERIFY(s.communityMarked_.contains(guild));
+        s.invalidateCommunity(guild);QVERIFY(!s.communityMarked_.contains(guild));s.checkCommunities();
+        s.invalidateCommunity(guild);pins(valid);QVERIFY(!s.communityMarked_.contains(guild));
+        s.checkCommunities();pins({403,{}});QVERIFY(!s.communityMarked_.contains(guild));
+        s.invalidateCommunity(guild);s.checkCommunities();const auto old=pins;
+        s.setOwner("other",2);old(valid);QVERIFY(s.communityMarked_.isEmpty());
+    }
+    void communityCreateIsNotReplayedOnUnknownDeliveryOrOwnerSwitch() {
+        FluxerSession s;bind(s);Completion reply;int count=0;
+        s.setTransport([&](auto,auto,auto,Completion done,auto){++count;reply=done;});
+        s.command("create-community",{{"text","Our place"}});s.command("create-community",{{"text","Our place"}});QCOMPARE(count,1);
+        reply({0,{}});QCOMPARE(count,1);QVERIFY(s.guilds_.isEmpty());QVERIFY(!s.mutationBusy_);
+        s.command("create-community",{{"text","Our place"}});s.setOwner("other",2);
+        reply({200,QJsonDocument(QJsonObject{{"id","200"}})});QVERIFY(s.guilds_.isEmpty());
+    }
+    void communityControllerUsesOneKeyboardAndNativeTagFilter() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested),text(&c,&SocialController::textRequested);
+        c.receive(0,{{"state","connected"}});c.setFace("communities");c.dispatch(Action::Secondary);
+        QCOMPARE(text.size(),1);QVERIFY(c.menu().isEmpty());c.applyText("Our place");
+        QCOMPARE(commands.last()[0].toString(),QString("create-community"));
+        c.dispatch(Action::ToggleContinue);QCOMPARE(commands.last()[0].toString(),QString("community-filter"));
+        FluxerSession s;bind(s);QString path;s.setTransport([&](auto,QString p,auto,Completion done,auto){path=p;done({200,QJsonDocument(QJsonObject{{"guilds",QJsonArray{}},{"total",0}})});});
+        s.search("traineros","");QVERIFY(path.contains("tag=traineros-v1"));QVERIFY(!path.contains("query="));
+        QVERIFY(s.searchStatus_.contains("Private communities"));
+        s.search("communities","");QVERIFY(!path.contains("tag="));
+    }
     void nativeChallengeUsesFreshHeaderAndNeverReplaysUncertainMutation() {
         FluxerSession s;QList<Completion> replies;QList<QByteArray> headers;bind(s);
         s.setTransport([&](auto,auto,auto,Completion done,QByteArray token){replies<<done;headers<<token;});

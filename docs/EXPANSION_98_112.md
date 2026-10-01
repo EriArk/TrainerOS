@@ -149,3 +149,10 @@ Schedule this research and creation/filter slice after base messaging/read-state
 completion and before shared activity invitations. Preserve all earlier remaining
 acceptance, including messaging scroll/emoji, media, voice, runtime multiplayer,
 RA and appearance deferrals. Implementation is not claimed by this register.
+
+The subsequent [Community delivery](SOCIAL_COMMUNITIES.md) records the supported
+owner-pinned manifest and public discovery-tag decision, native creation/filter/
+invite behavior, recovery and actual evidence. Private membership and public
+listing are distinct; Fluxer approval is still required for its public directory.
+The marker never enables an activity. Preserve #104/#109 peer negotiation and
+consent, #105 delivery proof and all other remaining acceptance above.

@@ -28,11 +28,12 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
    supported ALTCHA completion removes the former creation challenge blocker.
    Compact notifications, account-scoped mute/DND/private previews and provider
    read-state synchronization are delivered. Keep the remaining live group/member
-   proof and messaging acceptance in SOCIAL.md. Next, updated #98/#101: research
-   supported durable TrainerOS-aware Community identity with #104/#109, then
-   native creation and All/TrainerOS-compatible discovery. A marker is a hint,
-   never activity consent or proof of compatibility. Ordinary chat stays usable.
-   Continue shared invitations after this bounded Community slice. Odin delivery
+   proof and messaging acceptance in SOCIAL.md. Updated #98/#101 community creation,
+   owner-pinned versioned identity, joined-community filter and public tag search
+   are described in [community delivery](SOCIAL_COMMUNITIES.md). Public listing
+   keeps Fluxer's eligibility/approval; ordinary private invitations remain usable.
+   A marker is a hint, never activity consent or proof of compatible clients.
+   Next: shared invitations and effective peer capabilities (#104/#109). Odin delivery
    and two-handheld proof wait for the owner's evening reboot; no bulk user
    enumeration or extra choose-person page.
 5. #104 invitations + #109 reusable existing system activities + #105 per-traffic
