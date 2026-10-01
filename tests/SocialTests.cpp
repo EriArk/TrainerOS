@@ -20,9 +20,60 @@ class SocialTests : public QObject {
     }
 private slots:
     void initTestCase() { QStandardPaths::setTestModeEnabled(true); }
+    void nativeChallengeUsesFreshHeaderAndNeverReplaysUncertainMutation() {
+        FluxerSession s;QList<Completion> replies;QList<QByteArray> headers;bind(s);
+        s.setTransport([&](auto,auto,auto,Completion done,QByteArray token){replies<<done;headers<<token;});
+        s.command("create-group",{{"recipients",QStringList{remote}}});
+        const QJsonObject challenge{{"parameters",QJsonObject{{"algorithm","PBKDF2/SHA-256"},{"nonce","aabb"},
+            {"salt","ccdd"},{"cost",3},{"keyLength",32},{"keyPrefix","280"}}},{"signature","opaque-test-signature"}};
+        const Reply rejection{400,QJsonDocument(QJsonObject{{"code","CAPTCHA_REQUIRED"},{"captcha_provider","altcha"},{"altcha_challenge",challenge}})};
+        replies.takeFirst()(rejection);QTRY_COMPARE(replies.size(),1);
+        QVERIFY(headers.first().isEmpty());
+        const auto token=QJsonDocument::fromJson(QByteArray::fromBase64(headers.last())).object();
+        QCOMPARE(token["challenge"].toObject(),challenge);QCOMPARE(token["solution"].toObject()["counter"].toInt(),0);
+        QCOMPARE(token["solution"].toObject()["derivedKey"].toString(),QString("2800796f5ab30c9490225157a404d97bb89cb5331abdeaa408a3b47c3789a224"));
+        replies.takeFirst()({0,{}});QTest::qWait(30);QCOMPARE(headers.size(),2);QVERIFY(!s.mutationBusy_);
+        s.command("create-group",{{"recipients",QStringList{remote}}});replies.takeFirst()(rejection);
+        s.setOwner("different-trainer",2);QTest::qWait(30);QCOMPARE(headers.size(),3);QVERIFY(!s.proof_);
+    }
+    void backgroundHistoryDoesNotReadAndGatewayAckWinsOverOlderResponse() {
+        FluxerSession s;QList<Completion> replies;QStringList paths;
+        s.setTransport([&](auto,auto path,auto,Completion done,QByteArray){paths<<path;replies<<done;});bind(s);
+        s.readsReady_=true;s.channels_[channel]["last_message_id"]="105";s.updateUnread(channel);
+        s.loadMessages(channel);replies.takeFirst()({200,QJsonDocument(QJsonArray{QJsonObject{{"id","105"},{"channel_id",channel}}})});
+        QCOMPARE(s.unread_.value(channel),1);
+        s.command("read",{{"channel",channel},{"message","999"}});QCOMPARE(paths.size(),1);
+        s.command("read",{{"channel",channel},{"message","105"}});QCOMPARE(paths.last(),QString("/v1/read-states/ack"));
+        s.gatewayEvent({{"op",0},{"t","MESSAGE_ACK"},{"d",QJsonObject{{"channel_id",channel},{"message_id","100"},{"manual",true}}}});
+        replies.takeFirst()({200,QJsonDocument(QJsonObject{{"read_states",QJsonArray{QJsonObject{{"id",channel},{"last_message_id","105"}}}}})});
+        QCOMPARE(s.readThrough_.value(channel),QString("100"));QCOMPARE(s.unread_.value(channel),1);
+        s.gatewayEvent({{"op",0},{"t","MESSAGE_ACK"},{"d",QJsonObject{{"channel_id",channel},{"message_id","105"}}}});
+        QCOMPARE(s.unread_.value(channel),0);
+    }
+    void notificationPreferencesSuppressWithoutDiscardingUnread() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,auto,auto){});bind(s);s.readsReady_=true;
+        QSignalSpy notices(&s,&FluxerSession::incomingMessage);
+        auto incoming=[&](QString id,QString who=remote){s.gatewayEvent({{"op",0},{"t","MESSAGE_CREATE"},{"d",QJsonObject{
+            {"id",id},{"channel_id",channel},{"content","Private text"},{"author",QJsonObject{{"id",who},{"username","Friend"}}}}}});};
+        incoming("101");QCOMPARE(notices.size(),1);QCOMPARE(notices.last()[3].toString(),QString("Open Social to catch up"));
+        incoming("101");QCOMPARE(notices.size(),1);
+        s.command("mute",{{"channel",channel}});incoming("102");QCOMPARE(notices.size(),1);QCOMPARE(s.unread_.value(channel),1);
+        s.command("mute",{{"channel",channel}});s.command("dnd");incoming("103");QCOMPARE(notices.size(),1);
+        s.command("dnd");s.command("private");incoming("104");QCOMPARE(notices.size(),2);QCOMPARE(notices.last()[3].toString(),QString("Private text"));
+        incoming("105",s.self_);QCOMPARE(notices.size(),2);
+        s.relationships_[remote]={{"type",2}};incoming("106");QCOMPARE(notices.size(),2);
+    }
+    void presentationAcknowledgesOnlyVisibleConversationAndClearsCoveredToast() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.receive(0,{{"channel",channel},{"messages",QVariantList{QVariantMap{{"id","105"}}}}});
+        c.presented(channel,"105");QVERIFY(commands.isEmpty());
+        c.setSurfaceAvailable(true);c.setConversationVisible(true);c.presented(channel,"105");QCOMPARE(commands.size(),1);
+        c.setConversationVisible(false);c.presented(channel,"105");QCOMPARE(commands.size(),1);
+        c.toastTitle_="Private";c.setSurfaceAvailable(false);QVERIFY(c.toastTitle().isEmpty());
+    }
     void messageMutationsPreserveAttachmentsAndRespectOwnership() {
         FluxerSession s;Completion done;QByteArray method;QJsonObject body;int calls=0;
-        s.setTransport([&](auto m,auto,auto b,Completion cb){++calls;method=m;body=b;done=cb;});bind(s);
+        s.setTransport([&](auto m,auto,auto b,Completion cb, QByteArray){++calls;method=m;body=b;done=cb;});bind(s);
         const QString id="1501314428688998190";
         QJsonObject message{{"id",id},{"channel_id",channel},{"type",0},{"content","before"},{"author",QJsonObject{{"id",remote}}}};
         s.mergeMessage(message);s.command("edit-message",{{"channel",channel},{"id",id},{"text","after"}});QCOMPARE(calls,0);
@@ -37,7 +88,7 @@ private slots:
     }
     void groupCreationAndMembershipUseProviderContract() {
         FluxerSession s;Completion done;QByteArray method;QString path;QJsonObject body;int calls=0;
-        s.setTransport([&](auto m,auto p,auto b,Completion cb){++calls;method=m;path=p;body=b;done=cb;});bind(s);
+        s.setTransport([&](auto m,auto p,auto b,Completion cb, QByteArray){++calls;method=m;path=p;body=b;done=cb;});bind(s);
         s.command("create-group",{{"recipients",QStringList{remote,remote}}});QCOMPARE(calls,0);
         s.command("create-group",{{"recipients",QStringList{remote}}});QCOMPARE(calls,1);
         QCOMPARE(method,QByteArray("POST"));QCOMPARE(path,QString("/v1/users/@me/channels"));
@@ -53,12 +104,12 @@ private slots:
         QCOMPARE(path,"/v1/channels/"+group);QVERIFY(body.isEmpty());done({204,{}});QVERIFY(!s.channels_.contains(group));
     }
     void deniedGroupCreationNeverInventsConversation() {
-        FluxerSession s;s.setTransport([](auto,auto,auto,Completion done){done({403,QJsonDocument(QJsonObject{{"code","CAPTCHA_REQUIRED"}})});});bind(s);
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion done, QByteArray){done({403,QJsonDocument(QJsonObject{{"code","CAPTCHA_REQUIRED"}})});});bind(s);
         s.command("create-group",{{"recipients",QStringList{remote}}});
         QCOMPARE(s.channels_.size(),1);QVERIFY(!s.mutationBusy_);QVERIFY(s.status_.contains("verification"));
     }
     void staleChannelRefreshRefetchesInsteadOfErasingNewGroup() {
-        FluxerSession s;QList<Completion> replies;s.setTransport([&](auto,auto,auto,Completion done){replies<<done;});bind(s);
+        FluxerSession s;QList<Completion> replies;s.setTransport([&](auto,auto,auto,Completion done, QByteArray){replies<<done;});bind(s);
         s.refreshChannels();++s.channelRevision_;replies.takeFirst()({200,QJsonDocument(QJsonArray{})});
         QCOMPARE(s.channels_.size(),1);QCOMPARE(replies.size(),1);
         replies.takeFirst()({200,QJsonDocument(QJsonArray{QJsonObject{{"id",channel},{"type",1}}})});QVERIFY(s.channels_.contains(channel));
@@ -106,7 +157,7 @@ private slots:
     }
     void olderHistoryMovesABoundedWindowAndKeepsNewEventsOut() {
         FluxerSession s;Completion reply;QString path;
-        s.setTransport([&](auto,auto requestPath,auto,Completion done){path=requestPath;reply=done;});bind(s);
+        s.setTransport([&](auto,auto requestPath,auto,Completion done, QByteArray){path=requestPath;reply=done;});bind(s);
         for(int id=100;id<200;++id)s.mergeMessage({{"id",QString::number(id)},{"channel_id",channel},{"content","recent"}});
         s.historyMore_=true;s.loadOlderMessages();QVERIFY(path.endsWith("&before=100"));QVERIFY(s.historyBusy_);
         QJsonArray older;for(int id=59;id>=10;--id)older.append(QJsonObject{{"id",QString::number(id)},{"channel_id",channel},{"content","earlier"}});
@@ -132,7 +183,7 @@ private slots:
     }
     void pagingDoesNotForgetAnUncertainSend() {
         FluxerSession s;Completion reply;
-        s.setTransport([&](auto,auto,auto,Completion done){reply=done;});bind(s);
+        s.setTransport([&](auto,auto,auto,Completion done, QByteArray){reply=done;});bind(s);
         for(int id=100;id<199;++id)s.mergeMessage({{"id",QString::number(id)},{"channel_id",channel}});
         const QString nonce(32,'a');s.pendingNonces_.insert(nonce,channel);
         s.mergeMessage({{"id",nonce},{"channel_id",channel},{"content","hello"},{"local_delivery","unknown"}});
@@ -144,7 +195,7 @@ private slots:
     }
     void repeatedActionsRespectServerRetryDelay() {
         FluxerSession s;int requests=0;
-        s.setTransport([&](auto,auto,auto,Completion done){++requests;done({429,{},60});});bind(s);
+        s.setTransport([&](auto,auto,auto,Completion done, QByteArray){++requests;done({429,{},60});});bind(s);
         s.request("GET","/test",{},[](Reply){});
         const auto deadline=s.blockedUntil_;
         s.request("GET","/test",{},[](Reply){});
@@ -152,14 +203,14 @@ private slots:
     }
     void ownerChangeDiscardsLateResponse() {
         FluxerSession s;Completion deferred;
-        s.setTransport([&](auto,auto,auto,Completion done){deferred=std::move(done);});bind(s);
+        s.setTransport([&](auto,auto,auto,Completion done, QByteArray){deferred=std::move(done);});bind(s);
         s.loadMessages(channel);s.setOwner("trainer-b",2);
         deferred({200,QJsonDocument(QJsonArray{QJsonObject{{"id","99"},{"channel_id",channel},{"content","private old owner text"}}})});
         QVERIFY(s.messages_.isEmpty());QVERIFY(s.token_.isEmpty());QCOMPARE(s.generation_,quint64(2));
     }
     void canceledLoginNeverInstallsLateToken() {
         FluxerSession s;Completion deferred;
-        s.setTransport([&](auto,auto,auto,Completion done){deferred=std::move(done);});s.setOwner("a",1);
+        s.setTransport([&](auto,auto,auto,Completion done, QByteArray){deferred=std::move(done);});s.setOwner("a",1);
         s.code_="test-code";s.pollSecret_="test-poll-secret";s.expires_=QDateTime::currentMSecsSinceEpoch()+10000;
         s.pollLogin();auto late=deferred;s.command("cancel-login");
         late({200,QJsonDocument(QJsonObject{{"status","completed"},{"token","must-not-install"}})});
@@ -167,7 +218,7 @@ private slots:
     }
     void uncertainSendHasOneRequestAndNoAutomaticRetry() {
         FluxerSession s;int requests=0;QString nonce;
-        s.setTransport([&](auto method,auto path,auto body,Completion done){
+        s.setTransport([&](auto method,auto path,auto body,Completion done, QByteArray){
             QCOMPARE(method,QByteArray("POST"));QVERIFY(path.endsWith("/messages"));
             nonce=body["nonce"].toString();++requests;done({0,{}});
         });bind(s);s.command("send",{{"text","Hello :)"}});
@@ -178,7 +229,7 @@ private slots:
     }
     void historyCannotResurrectDeletedMessage() {
         FluxerSession s;Completion deferred;
-        s.setTransport([&](auto,auto,auto,Completion done){deferred=std::move(done);});bind(s);
+        s.setTransport([&](auto,auto,auto,Completion done, QByteArray){deferred=std::move(done);});bind(s);
         s.loadMessages(channel);
         s.gatewayEvent({{"op",0},{"s",3},{"t","MESSAGE_DELETE"},{"d",QJsonObject{{"id","1501314428688998190"},{"channel_id",channel}}}});
         deferred({200,QJsonDocument(QJsonArray{QJsonObject{{"id","1501314428688998190"},{"channel_id",channel},{"content","deleted"}}})});
@@ -186,12 +237,12 @@ private slots:
     }
     void logoutRevokesBeforeClearingSession() {
         FluxerSession s;int status=0;
-        s.setTransport([&](auto,auto path,auto,Completion done){QCOMPARE(path,QString("/v1/auth/logout"));done({status,{}});});bind(s);
+        s.setTransport([&](auto,auto path,auto,Completion done, QByteArray){QCOMPARE(path,QString("/v1/auth/logout"));done({status,{}});});bind(s);
         s.command("logout");QVERIFY(!s.token_.isEmpty());status=204;s.command("logout");
         QVERIFY(s.token_.isEmpty());QVERIFY(s.channels_.isEmpty());QCOMPARE(s.state_,QString("signed-out"));
     }
     void messagesAreBoundedAndIdsStayStrings() {
-        FluxerSession s;s.setTransport([](auto,auto,auto,auto){});bind(s);
+        FluxerSession s;s.setTransport([](auto,auto,auto,auto,auto){});bind(s);
         for(quint64 id=1501314428688998000ULL;id<1501314428688998200ULL;++id)
             s.mergeMessage({{"id",QString::number(id)},{"channel_id",channel},{"content","hello"},{"author",QJsonObject{{"id",remote}}}});
         QCOMPARE(s.messages_.size(),100);QCOMPARE(s.messageOrder_.last(),QString("1501314428688998199"));
@@ -221,7 +272,7 @@ private slots:
         QVERIFY(!c.reading());QVERIFY(c.conversation());QVERIFY(commands.isEmpty());
     }
     void automaticConversationPrefersLastChoiceThenRecent() {
-        FluxerSession s;QStringList requests;s.setTransport([&](auto,auto path,auto,Completion done){requests<<path;done({200,QJsonDocument(QJsonArray{})});});bind(s);
+        FluxerSession s;QStringList requests;s.setTransport([&](auto,auto path,auto,Completion done, QByteArray){requests<<path;done({200,QJsonDocument(QJsonArray{})});});bind(s);
         s.channelsLoaded_=true;s.channels_[channel]["last_message_id"]="100";
         s.channels_[remote]={{"id",remote},{"type",1},{"last_message_id","200"}};
         s.channel_.clear();s.ensureConversation();QCOMPARE(s.channel_,QString(remote));
@@ -232,7 +283,7 @@ private slots:
     }
     void discoveryIgnoresLateQueryAndUsesProviderPaging() {
         FluxerSession s;QList<Completion> responses;QStringList paths;
-        s.setTransport([&](auto method,auto path,auto,Completion done){QCOMPARE(method,QByteArray("GET"));paths<<path;responses<<done;});bind(s);
+        s.setTransport([&](auto method,auto path,auto,Completion done, QByteArray){QCOMPARE(method,QByteArray("GET"));paths<<path;responses<<done;});bind(s);
         s.search("communities","old");s.search("communities","new & fun",24);
         QVERIFY(paths.last().contains("offset=24"));QVERIFY(paths.last().contains("%26"));
         responses[0]({200,QJsonDocument(QJsonObject{{"total",1},{"guilds",QJsonArray{QJsonObject{{"id",remote},{"name","Old"}}}}})});
@@ -243,13 +294,13 @@ private slots:
     }
     void inviteLookupNeverJoinsUntilExplicitAction() {
         FluxerSession s;QStringList methods,paths;
-        s.setTransport([&](auto method,auto path,auto,Completion done){methods<<method;paths<<path;if(method=="GET"&&path.startsWith("/v1/invites/"))done({200,QJsonDocument(QJsonObject{{"code","aB1"},{"channel",QJsonObject{{"name","Our group"}}}})});});bind(s);
+        s.setTransport([&](auto method,auto path,auto,Completion done, QByteArray){methods<<method;paths<<path;if(method=="GET"&&path.startsWith("/v1/invites/"))done({200,QJsonDocument(QJsonObject{{"code","aB1"},{"channel",QJsonObject{{"name","Our group"}}}})});});bind(s);
         s.search("invite","https://fluxer.gg/aB1");QCOMPARE(methods,QStringList{"GET"});QCOMPARE(paths.first(),QString("/v1/invites/aB1"));
         s.command("search-action",{{"id","aB1"}});QCOMPARE(methods.last(),QString("POST"));
     }
     void lateMembershipActionDoesNotReplaceNewSearch() {
         FluxerSession s;Completion join;
-        s.setTransport([&](auto method,auto path,auto,Completion done){
+        s.setTransport([&](auto method,auto path,auto,Completion done, QByteArray){
             if(method=="POST"&&path=="/v1/invites/aB1")join=done;
         });bind(s);
         s.searchResults_.append(QVariantMap{{"id","aB1"},{"kind","invite"},{"action","Join"}});

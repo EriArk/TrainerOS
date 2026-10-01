@@ -1,4 +1,5 @@
 #include "FluxerSession.h"
+#include "AltchaProof.h"
 #include "platform/storage/EncryptedCredentials.h"
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -28,11 +29,17 @@ bool idValid(const QString& id) {
         && std::all_of(id.begin(),id.end(),[](QChar c){return c >= QLatin1Char('0') && c <= QLatin1Char('9');});
 }
 constexpr int responseLimit = 2 * 1024 * 1024;
+bool newer(const QString& a, const QString& b) {
+    return !a.isEmpty() && (a.size() == b.size() ? a > b : a.size() > b.size());
+}
 }
 FluxerSession::FluxerSession(QObject* parent) : QObject(parent) {}
 FluxerSession::~FluxerSession() { reset(); }
 void FluxerSession::reset() {
     ++epoch_;
+    delete proof_; proof_=nullptr;
+    readThrough_.clear();readRevision_.clear();muted_.clear();
+    readsReady_=ackBusy_=doNotDisturb_=false;privatePreviews_=true;
     mutationBusy_=channelsLoading_=false;++channelRevision_;
     if(encryptedCredentials_)encryptedCredentials_->cancel();
     credentialLoading_=false;
@@ -80,7 +87,8 @@ void FluxerSession::publish() {
         if(name.isEmpty()) { QStringList names; for(const auto& v:c["recipients"].toArray()) if(v.toObject()["id"]!=self_) names<<label(v.toObject()); name=names.join(", "); }
         chats.append(QVariantMap{{"id",it.key()},{"name",name.isEmpty()?QString("Conversation"):name.left(120)},
             {"owner",c["owner_id"].toString()},{"members",c["recipients"].toArray().toVariantList()},
-            {"detail",unread_.value(it.key())?QString("New messages"):QString("Private conversation")},
+            {"muted",muted_.contains(it.key())},
+            {"detail",muted_.contains(it.key())?QString("Muted"):unread_.value(it.key())?QString("New messages"):QString("Private conversation")},
             {"kind",c["guild_id"].toString().isEmpty() ? (c["type"].toInt()==3 ? "groups" : "chats") : "community-channel"},{"guild",c["guild_id"].toString()},{"unread",unread_.value(it.key())},{"last",c["last_message_id"].toString()}});
     }
     std::sort(chats.begin(),chats.end(),[](const QVariant& a,const QVariant& b){
@@ -97,13 +105,15 @@ void FluxerSession::publish() {
     }
     for(auto it=guilds_.cbegin();it!=guilds_.cend();++it)communities.append(QVariantMap{{"id",it.key()},{"name",it.value()["name"].toString()},{"kind","community"},{"detail","Community"}});
     std::sort(communities.begin(),communities.end(),[](const QVariant& a,const QVariant& b){return a.toMap()["name"].toString()<b.toMap()["name"].toString();});
+    int unreadCount=0;for(auto it=unread_.cbegin();it!=unread_.cend();++it)if(it.value()&&channels_.contains(it.key()))++unreadCount;
     emit snapshot(generation_, {{"state",state_},{"status",status_},{"name",name_},{"code",code_},
+        {"unreadCount",unreadCount},{"doNotDisturb",doNotDisturb_},{"privatePreviews",privatePreviews_},
         {"mutationBusy",mutationBusy_},
         {"historyBusy",historyBusy_},{"historyMore",historyMore_},{"historyPast",historyPast_},
         {"userId",self_},{"searchResults",searchResults_},{"searchStatus",searchStatus_},{"searching",searching_},{"searchTotal",searchTotal_},{"searchOffset",searchOffset_},
         {"guild",guild_},{"communities",communities},{"remembered",remembered_},{"friends",friends},{"chats",chats},{"messages",messages},{"channel",channel_}});
 }
-void FluxerSession::request(QByteArray method, QString path, QJsonObject body, Completion done, bool anonymous) {
+void FluxerSession::request(QByteArray method, QString path, QJsonObject body, Completion done, bool anonymous, QByteArray captcha) {
     const auto epoch=epoch_; QPointer<FluxerSession> guard(this);
     auto complete=[this,guard,epoch,done=std::move(done)](Reply r) {
         if(!guard || epoch!=epoch_) return;
@@ -111,13 +121,14 @@ void FluxerSession::request(QByteArray method, QString path, QJsonObject body, C
         done(std::move(r));
     };
     if(QDateTime::currentMSecsSinceEpoch()<blockedUntil_) { complete({429,{ },1}); return; }
-    if(transport_) { transport_(method,path,body,std::move(complete)); return; }
+    if(transport_) { transport_(method,path,body,std::move(complete),captcha); return; }
     if(!network_) network_=new QNetworkAccessManager(this);
     QNetworkRequest req(QUrl("https://api.fluxer.app"+path));
     req.setAttribute(QNetworkRequest::RedirectPolicyAttribute,QNetworkRequest::ManualRedirectPolicy);
     req.setTransferTimeout(15000);
     req.setHeader(QNetworkRequest::ContentTypeHeader,"application/json");
     req.setRawHeader("User-Agent","TrainerOS/0.1 (native user client)");
+    if(!captcha.isEmpty())req.setRawHeader("X-Captcha-Token",captcha);
     if(!anonymous && !token_.isEmpty()) req.setRawHeader("Authorization",token_.toUtf8());
     auto* reply=network_->sendCustomRequest(req,method,method=="GET"?QByteArray():QJsonDocument(body).toJson(QJsonDocument::Compact));
     reply->setReadBufferSize(responseLimit+1);
@@ -133,6 +144,48 @@ void FluxerSession::request(QByteArray method, QString path, QJsonObject body, C
         Reply result{status,status?QJsonDocument::fromJson(*received):QJsonDocument(),int(retry)+1};
         reply->deleteLater(); complete(std::move(result));
     });
+}
+void FluxerSession::verifiedRequest(QByteArray method, QString path, QJsonObject body, Completion done, int attempt, QByteArray captcha) {
+    request(method,path,body,[this,method,path,body,done=std::move(done),attempt](Reply r) mutable {
+        const auto error=r.body.object();const auto code=error["code"].toString();
+        if(r.status!=400 || (code!="CAPTCHA_REQUIRED"&&code!="INVALID_CAPTCHA") || attempt>=2
+            || error["captcha_provider"]!="altcha" || proof_) {done(std::move(r));return;}
+        status_="Connecting your group...";publish();
+        const auto epoch=epoch_;
+        proof_=new AltchaProof(error["altcha_challenge"].toObject(),
+            [this,epoch,method,path,body,done=std::move(done),attempt,r](QByteArray token) mutable {
+                proof_=nullptr;if(epoch!=epoch_)return;
+                if(token.isEmpty()){done(r);return;}
+                // Only retry an explicit challenge rejection. Never replay an
+                // uncertain mutation or a token rejected by the provider.
+                verifiedRequest(method,path,body,std::move(done),attempt+1,std::move(token));
+            },this);
+    },false,std::move(captcha));
+}
+void FluxerSession::updateUnread(const QString& channel) {
+    if(!readsReady_)return;
+    unread_[channel]=newer(channels_.value(channel)["last_message_id"].toString(),readThrough_.value(channel))?1:0;
+}
+void FluxerSession::applyReadState(const QJsonObject& state, bool gateway) {
+    const auto channel=state[gateway?"channel_id":"id"].toString();
+    if(!idValid(channel))return;
+    const auto message=state[gateway?"message_id":"last_message_id"].toString();
+    if(!message.isEmpty()&&!idValid(message))return;
+    readThrough_[channel]=message;++readRevision_[channel];updateUnread(channel);
+}
+void FluxerSession::acknowledge(QString channel, QString message) {
+    if(!readsReady_||ackBusy_||channel!=channel_||!idValid(message)||!messages_.contains(message)
+        ||!newer(message,readThrough_.value(channel)))return;
+    ackBusy_=true;const auto revision=readRevision_.value(channel);
+    request("POST","/v1/read-states/ack",{{"read_states",QJsonArray{QJsonObject{
+        {"channel_id",channel},{"message_id",message},{"mention_count",0},{"manual",false}}}}},
+        [this,channel,revision](Reply r){
+            ackBusy_=false;
+            if(r.status==200&&revision==readRevision_.value(channel))
+                for(const auto& v:r.body.object()["read_states"].toArray())if(v.toObject()["id"]==channel)applyReadState(v.toObject(),false);
+            if(r.status==401){fail(r,"Please sign in again");return;}
+            publish();
+        });
 }
 void FluxerSession::fail(const Reply& r, QString fallback) {
     if(r.status==401) { credential(false,true); reset(); state_="signed-out"; status_="Please sign in again"; }
@@ -231,7 +284,8 @@ void FluxerSession::authenticated() {
         }
         self_=r.body.object()["id"].toString();name_=label(r.body.object());
         navigationKey_="social/navigation/"+QString::fromLatin1(QCryptographicHash::hash((owner_+"\n"+self_).toUtf8(),QCryptographicHash::Sha256).toHex())+"/";
-        if(!transport_) {QSettings settings;for(const auto& key:{"chats","groups","communities","guild"})preferred_[key]=settings.value(navigationKey_+key).toString();}
+        if(!transport_) {QSettings settings;for(const auto& key:{"chats","groups","communities","guild"})preferred_[key]=settings.value(navigationKey_+key).toString();
+            doNotDisturb_=settings.value(navigationKey_+"dnd",false).toBool();privatePreviews_=settings.value(navigationKey_+"private",true).toBool();muted_=settings.value(navigationKey_+"muted").toStringList();}
         state_="connected";status_="Connected";if(!remembered_)credential(true);refresh();openGateway();publish();
     });
 }
@@ -267,6 +321,7 @@ void FluxerSession::refreshChannels() {
         for(auto it=channels_.begin();it!=channels_.end();) {if(it.value()["guild_id"].toString().isEmpty())it=channels_.erase(it);else ++it;}
         for(const auto& v:r.body.array()) {auto o=v.toObject();auto id=o["id"].toString();if(idValid(id)&&channels_.size()<500)channels_[id]=o;}
         if(!channel_.isEmpty()&&!channels_.contains(channel_)) {channel_.clear();messages_.clear();messageOrder_.clear();}
+        for(auto it=channels_.cbegin();it!=channels_.cend();++it)updateUnread(it.key());
         channelsLoaded_=true;status_="Connected";ensureConversation();publish();
     });
 }
@@ -283,7 +338,7 @@ void FluxerSession::loadMessages(QString channel) {
         auto old=messages_;messages_.clear();messageOrder_.clear();
         const auto list=r.body.array();for(auto i=list.size();i>0;--i)mergeMessage(list.at(i-1).toObject());
         for(auto it=old.cbegin();it!=old.cend();++it) if(!it.value()["local_delivery"].toString().isEmpty()&&pendingNonces_.contains(it.key()))mergeMessage(it.value());
-        unread_[channel]=0;publish();
+        publish();
     });
 }
 void FluxerSession::loadOlderMessages() {
@@ -336,6 +391,14 @@ void FluxerSession::command(QString operation, QVariantMap args) {
         });return;
     }
     if(self_.isEmpty())return;
+    if(operation=="read"){acknowledge(args["channel"].toString(),args["message"].toString());return;}
+    if(operation=="mute"||operation=="dnd"||operation=="private") {
+        if(operation=="mute") {const auto channel=args["channel"].toString();if(!channels_.contains(channel))return;
+            if(muted_.contains(channel))muted_.removeAll(channel);else muted_.append(channel);
+        } else if(operation=="dnd")doNotDisturb_=!doNotDisturb_;else privatePreviews_=!privatePreviews_;
+        if(!transport_&&!navigationKey_.isEmpty()){QSettings settings;settings.setValue(navigationKey_+"dnd",doNotDisturb_);settings.setValue(navigationKey_+"private",privatePreviews_);settings.setValue(navigationKey_+"muted",muted_);}
+        publish();return;
+    }
     if(mutate(operation,args))return;
     if(operation=="older"){loadOlderMessages();return;}
     if(operation=="latest"&&!channel_.isEmpty()){loadMessages(channel_);return;}
@@ -450,7 +513,7 @@ bool FluxerSession::mutate(const QString& operation,const QVariantMap& args) {
         }
     }
     mutationBusy_=true;++channelRevision_;status_="Updating...";publish();
-    request(method,path,body,[this,operation,channel,id,message](Reply r){
+    verifiedRequest(method,path,body,[this,operation,channel,id,message](Reply r){
         mutationBusy_=false;
         const bool ok=r.status>=200&&r.status<300;
         emit mutationFinished(generation_,operation,channel,id,ok);
@@ -600,12 +663,27 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
     else if(op==9) {gatewaySession_.clear();sequence_=0;socket_->abort();request("GET","/v1/users/@me",{},[this](Reply r){if(r.status!=200)fail(r,"Session interrupted");});}
     else if(op==0) {
         sequence_=event["s"].toInteger();const auto type=event["t"].toString();
-        if(type=="READY"||type=="RESUMED") {if(type=="READY")gatewaySession_=d["session_id"].toString();reconnectAttempt_=0;status_="Connected";refresh();}
+        if(type=="READY"||type=="RESUMED") {
+            if(type=="READY") {gatewaySession_=d["session_id"].toString();readThrough_.clear();unread_.clear();readsReady_=true;
+                for(const auto& v:d["read_states"].toArray())applyReadState(v.toObject(),false);
+                for(auto it=channels_.cbegin();it!=channels_.cend();++it)updateUnread(it.key());}
+            reconnectAttempt_=0;status_="Connected";refresh();
+        }
+        else if(type=="MESSAGE_ACK")applyReadState(d,true);
         else if(type=="MESSAGE_CREATE"||type=="MESSAGE_UPDATE") {
             ++messageRevision_;
             if(!historyPast_||messages_.contains(d["id"].toString())||pendingNonces_.contains(d["nonce"].toString()))mergeMessage(d);
             const auto channel=d["channel_id"].toString();
-            if(type=="MESSAGE_CREATE"&&channels_.contains(channel)) {channels_[channel]["last_message_id"]=d["id"];if(channel!=channel_&&d["author"].toObject()["id"]!=self_)unread_[channel]++;}
+            if(type=="MESSAGE_CREATE"&&channels_.contains(channel)) {
+                const auto id=d["id"].toString();const bool fresh=newer(id,channels_[channel]["last_message_id"].toString());
+                if(fresh){++channelRevision_;channels_[channel]["last_message_id"]=id;}
+                updateUnread(channel);
+                const auto author=d["author"].toObject();
+                if(fresh&&author["id"]!=self_&&relationships_.value(author["id"].toString())["type"].toInt()!=2
+                    &&!muted_.contains(channel)&&!doNotDisturb_)
+                    emit incomingMessage(generation_,channel,privatePreviews_?QString("New message"):label(author),
+                        privatePreviews_?QString("Open Social to catch up"):d["content"].toString().left(160));
+            }
         } else if(type=="MESSAGE_DELETE") {++messageRevision_;const auto id=d["id"].toString();messages_.remove(id);messageOrder_.removeAll(id);}
         else if(type.startsWith("RELATIONSHIP_")||type.startsWith("CHANNEL_")||type.startsWith("GUILD_")) {
             ++channelRevision_;

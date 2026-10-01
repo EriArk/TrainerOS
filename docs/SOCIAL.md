@@ -61,9 +61,40 @@ Right enters message reading; A on one's own ordinary text message opens Edit /
 Delete. Editing uses the existing controller keyboard and sends only content,
 preserving attachments/embeds. A cancelled edit does not send anything; its draft
 stays in memory for the same message/account. Delete, leave and member removal
-replace the same popover with a Cancel-first confirmation. No automatic retry of
-mutations. Provider rejection remains visible; a required verification challenge
-is reported rather than bypassed. Pending or unsupported messages offer no edit.
+replace the same popover with a Cancel-first confirmation. Uncertain mutations
+are never retried automatically. Pending or unsupported messages offer no edit.
+
+Public Fluxer now advertises ALTCHA v2. An explicit CAPTCHA_REQUIRED rejection
+can complete the documented PBKDF2/SHA-256 proof in short worker-loop slices and
+retry with X-Captcha-Token. Challenge parameters/signature are preserved; tokens
+never reach QML, persistence or logs. INVALID_CAPTCHA permits one fresh challenge
+retry; network uncertainty never does. Profile changes cancel the solver. Work
+has a 90-second deadline and bounded input/cost. Unsupported challenges remain
+actionable errors, not invented successful groups. Sources:
+[Fluxer challenge contract](https://docs.fluxer.app/topics/captcha/) and
+[ALTCHA v2 reference](https://github.com/altcha-org/altcha-lib-go/blob/main/v2/altcha.go).
+
+## Read state and notifications
+
+READY read_states and MESSAGE_ACK synchronize the active account's read watermark.
+Loading history in the background no longer clears unread. Only a visible,
+unobstructed conversation at the bottom of its rendered log requests the supported
+batched read-state ACK; runtime, keyboard, service and protected modal gates take
+priority. A newer Gateway ACK wins over an older REST response, including manual
+mark-unread. This is current-account synchronization, not a peer read receipt.
+See [read states](https://docs.fluxer.app/http-api/read-states/).
+
+The Social tab shows the number of unread conversations, not a fabricated exact
+message count. New messages can display one compact 4.5-second toast without
+focus/input capture. Open chats, blocked authors, own/replayed messages, muted
+conversations and local Do Not Disturb suppress toasts; covering the surface
+discards a toast rather than replaying private content later. In-game delivery
+retains the badge for return; this increment does not claim external-game overlays.
+Options contains Mute conversation, Do not disturb and Private notifications.
+These local presentation preferences are scoped to Trainer plus Fluxer account;
+they do not pretend to change Fluxer presence. Private notifications default on,
+showing generic text; opting out enables sender/message previews. Muting never
+marks a conversation read.
 
 ## Sessions and recovery
 
@@ -104,11 +135,12 @@ No activity/title/ROM/save data is automatically published to Fluxer.
 
 This is a working text slice, not completion of both issues. Preserve:
 
-- durable account-scoped history and detailed read-state synchronization;
-  drafts and bounded history pagination are delivered;
-- richer friend lookup where supported, avatars and compact notification/privacy
-  controls; group/member and own-message controls are implemented, with current
-  live acceptance and provider limitations recorded below;
+- durable account-scoped history/scroll, emoji picker and wider Unicode/RTL proof;
+  drafts, bounded history pagination and current-account read-state sync are delivered;
+- richer friend lookup where supported and avatars; group/member controls retain
+  their actual live acceptance and provider limitations recorded below;
+- native Community creation and durable supported TrainerOS-aware discovery/filter,
+  per updated #98/#101; research with #104/#109 before picking a representation;
 - Odin proof of remembered credentials, and longer reconnect/rate-limit/
   large-account validation; Flip proof is recorded below;
 - live in-game Home messenger presentation without disturbing emulator input;
@@ -241,3 +273,34 @@ administration clone. No new account-name markers or invisible profile suffixes.
   `management-final-chat.png`. These are compositor captures, not host mockups.
 - Odin SSH timed out. The exact ARM64 artifact is retained for its next delivery;
   official-browser observation of the Odin test account is not two-handheld proof.
+
+## ALTCHA/read-state follow-up proof - 2026-10-01
+
+This supersedes the creation challenge blocker above. The live discovery document
+advertises ALTCHA; an older cached documentation result still described different
+providers, so the current public documentation and reference solver were checked.
+
+- Controller-only Groups / X / friend A / Y successfully created a real group on
+  Flip. The approved Odin test account saw the two-member group in the official
+  Fluxer web client. No browser challenge interaction was needed for creation.
+  Addition/removal/rename/leave retain contract tests, not new physical proof.
+- Real incoming emoji from the designated peer produced a private toast and
+  one-conversation badge while another conversation/Home was displayed. The
+  selected page/focus stayed intact. Opening Messages displayed the actual emoji;
+  successful read acknowledgement cleared the badge. Restart preserved read state.
+- Options was exercised with physical-controller events; Do Not Disturb survived
+  a production restart. It was restored to Off afterwards; private previews remain
+  On. A final incoming message on Home verified the corrected unobscured badge.
+- Visual review caught the badge under the chassis rim; QML smoke caught a
+  presentation-notification binding cycle. The badge was moved below the rim and
+  presentation signals were separated from Shell navigation before final delivery.
+- Final Windows/ARM64 builds succeeded; social (31 cases), core, interactions,
+  qml_smoke and exit_qml_smoke passed, 5/5 CTest targets in 25.15 seconds.
+- Final installed Flip SHA-256:
+  `09625e820391c6603fc537a0d119fff7f32b0932a5277c64cf6bc12dfe858c13`.
+  Deployment retained three Trainers, 830 Adventures, boot configuration and
+  nearby helpers, with no active runtime or pending settlement. Private artifact:
+  `work/research/social-read-production`; compositor captures:
+  `read-final-toast.png`, `read-final-options.png`, `read-group-result.png`.
+- Odin remained unavailable by SSH. Its deployment and two-handheld acceptance
+  remain deferred; the official test-account web client is only peer evidence.

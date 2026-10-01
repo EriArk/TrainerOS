@@ -83,6 +83,7 @@ public:
     void setOnboardingConnections(bool active) { if(onboardingConnections_==active)return; onboardingConnections_=active; emit changed(); }
     SocialController* social() { return &social_; }
     TextEntryController* keyboard() { return &keyboard_; }
+    Q_PROPERTY(bool unobstructed READ canReceiveNearby NOTIFY changed)
     bool canReceiveNearby() { return !homeMenuOpen_ && !menuOpen_ && !drawerOpen_ && !serviceOpen() && notice_.isEmpty()
         && !localModalOpen() && !keyboard_.isOpen() && !party_.activities()->practice()->running(); }
     TrainerController* trainer() { return &trainer_; }

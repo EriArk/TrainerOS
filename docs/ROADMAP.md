@@ -24,10 +24,15 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
    services. Conversations open on entry/highlight; full-width Search uses real
    community discovery, full-tag people requests and group/community invites.
    Remembered login, account-scoped drafts and inline history paging are delivered
-   on Flip. Own-message edit/delete is now verified there; group controls are
-   implemented, but public Fluxer CAPTCHA blocks native creation/addition proof.
-   Next: supported challenge completion and compact notification/read-state UX,
-   then the remaining messaging/activity acceptance in SOCIAL.md. Odin delivery
+   on Flip. Own-message edit/delete and native group creation are verified there;
+   supported ALTCHA completion removes the former creation challenge blocker.
+   Compact notifications, account-scoped mute/DND/private previews and provider
+   read-state synchronization are delivered. Keep the remaining live group/member
+   proof and messaging acceptance in SOCIAL.md. Next, updated #98/#101: research
+   supported durable TrainerOS-aware Community identity with #104/#109, then
+   native creation and All/TrainerOS-compatible discovery. A marker is a hint,
+   never activity consent or proof of compatibility. Ordinary chat stays usable.
+   Continue shared invitations after this bounded Community slice. Odin delivery
    and two-handheld proof wait for the owner's evening reboot; no bulk user
    enumeration or extra choose-person page.
 5. #104 invitations + #109 reusable existing system activities + #105 per-traffic

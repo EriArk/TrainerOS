@@ -16,6 +16,13 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(this,&SocialController::ownerRequested,session_,&FluxerSession::setOwner);
     connect(this,&SocialController::commandRequested,session_,&FluxerSession::command);
     connect(session_,&FluxerSession::snapshot,this,&SocialController::receive);
+    toastTimer_.setSingleShot(true);toastTimer_.setInterval(4500);
+    connect(&toastTimer_,&QTimer::timeout,this,[this]{toastTitle_.clear();toastText_.clear();emit presentationChanged();});
+    connect(session_,&FluxerSession::incomingMessage,this,[this](quint64 generation,QString channel,QString name,QString text){
+        if(generation!=generation_||!surfaceAvailable_||!menu_.isEmpty()
+            ||(conversationVisible_&&!contacts_&&face_!="friends"&&snapshot_["channel"]==channel))return;
+        toastTitle_=std::move(name);toastText_=std::move(text);toastTimer_.start();emit presentationChanged();
+    });
     connect(session_,&FluxerSession::sendFailed,this,[this](quint64 generation,QString channel,QString text){
         if(generation!=generation_ || !drafts_.value(channel).isEmpty())return;
         drafts_[channel]=text;draftSave_.start();emit changed();
@@ -37,6 +44,7 @@ void SocialController::setOwner(QString owner) {
     if(owner==owner_)return;
     saveDrafts();draftFile_.clear();
     editDrafts_.clear();pickedPeople_.clear();
+    toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();
     owner_=std::move(owner);++generation_;snapshot_.clear();drafts_.clear();menu_.clear();
     selection_.stop();contacts_=false;searchStarted_=false;searchFocus_=-1;
     textPurpose_.clear();textChannel_.clear();query_.clear();focus_=messageFocus_=0;reading_=false;
@@ -48,6 +56,22 @@ void SocialController::setFace(QString face) {
     emit commandRequested("face",{{"face",face_}});
     if(face_=="friends"&&!searchStarted_&&snapshot_["state"]=="connected")runSearch();
     emit changed();
+}
+void SocialController::setSurfaceAvailable(bool available) {
+    if(surfaceAvailable_==available)return;
+    surfaceAvailable_=available;
+    if(!available){toastTimer_.stop();toastTitle_.clear();toastText_.clear();}
+    emit presentationChanged();
+}
+void SocialController::setConversationVisible(bool visible) {
+    if(conversationVisible_==visible)return;
+    conversationVisible_=visible;emit presentationChanged();
+}
+void SocialController::presented(QString channel,QString message) {
+    if(!surfaceAvailable_||!conversationVisible_||contacts_||face_=="friends"||!menu_.isEmpty()
+        ||snapshot_["historyBusy"].toBool()||snapshot_["channel"]!=channel||messages().isEmpty()
+        ||messages().last().toMap()["id"]!=message)return;
+    emit commandRequested("read",{{"channel",channel},{"message",message}});
 }
 void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     if(generation!=generation_)return;
@@ -69,7 +93,7 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     if(atEnd||oldChannel!=snapshot_["channel"]||(wasEarlier&&!snapshot_["historyPast"].toBool()))messageFocus_=qMax(0,int(log.size())-1);
     else for(int i=0;i<log.size();++i)if(log[i].toMap()["id"]==oldMessage){messageFocus_=i;break;}
     messageFocus_=qBound(0,messageFocus_,qMax(0,int(log.size())-1));
-    if(snapshot_["state"]=="signed-out") {draftSave_.stop();if(!draftFile_.isEmpty())QFile::remove(draftFile_);draftFile_.clear();drafts_.clear();editDrafts_.clear();menu_.clear();textPurpose_.clear();textChannel_.clear();searchStarted_=false;}
+    if(snapshot_["state"]=="signed-out") {toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();draftSave_.stop();if(!draftFile_.isEmpty())QFile::remove(draftFile_);draftFile_.clear();drafts_.clear();editDrafts_.clear();menu_.clear();textPurpose_.clear();textChannel_.clear();searchStarted_=false;}
     if(face_=="friends"&&!searchStarted_&&snapshot_["state"]=="connected")runSearch();
     searchFocus_=qMin(searchFocus_,int(searchResults().size())-1);
     emit changed();
@@ -182,6 +206,9 @@ void SocialController::openMenu() {
                 add("Leave group","ask-leave-group");
             }
         }
+        if(conversation()&&!contacts_&&face_!="friends")add(currentChat()["muted"].toBool()?"Unmute conversation":"Mute conversation","mute");
+        add(snapshot_["doNotDisturb"].toBool()?"Do not disturb: On":"Do not disturb: Off","dnd");
+        add(snapshot_["privatePreviews"].toBool()?"Private notifications: On":"Private notifications: Off","private");
         add("Refresh","refresh");add("Sign out of Fluxer","logout");
     }
     emit changed();

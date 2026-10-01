@@ -11,13 +11,14 @@ class QNetworkAccessManager;
 class QWebSocket;
 namespace trainer {
 class EncryptedCredentials;
+class AltchaProof;
 // Lives on its own event loop. Tokens and protocol payloads never cross into QML.
 class FluxerSession final : public QObject {
     Q_OBJECT
 public:
     struct Reply { int status = 0; QJsonDocument body; int retrySeconds = 0; };
     using Completion = std::function<void(Reply)>;
-    using Transport = std::function<void(QByteArray, QString, QJsonObject, Completion)>;
+    using Transport = std::function<void(QByteArray, QString, QJsonObject, Completion, QByteArray)>;
     explicit FluxerSession(QObject* parent = nullptr);
     ~FluxerSession() override;
     // Deterministic transport seam; supplied before the worker starts, tests only.
@@ -30,9 +31,19 @@ signals:
     void snapshot(quint64 generation, QVariantMap state);
     void sendFailed(quint64 generation, QString channel, QString text);
     void mutationFinished(quint64 generation, QString operation, QString channel, QString id, bool success);
+    void incomingMessage(quint64 generation, QString channel, QString name, QString text);
 private:
     friend class SocialTests;
-    void request(QByteArray method, QString path, QJsonObject body, Completion done, bool anonymous = false);
+    void request(QByteArray method, QString path, QJsonObject body, Completion done, bool anonymous = false, QByteArray captcha = {});
+    void verifiedRequest(QByteArray method, QString path, QJsonObject body, Completion done, int attempt = 0, QByteArray captcha = {});
+    AltchaProof* proof_ = nullptr;
+    void applyReadState(const QJsonObject& state, bool gateway);
+    void updateUnread(const QString& channel);
+    void acknowledge(QString channel, QString message);
+    QHash<QString,QString> readThrough_;
+    QHash<QString,quint64> readRevision_;
+    bool readsReady_ = false, ackBusy_ = false, doNotDisturb_ = false, privatePreviews_ = true;
+    QStringList muted_;
     void publish();
     void ensureConversation();
     void openConversation(const QString& id);

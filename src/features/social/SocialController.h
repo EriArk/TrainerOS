@@ -30,6 +30,10 @@ class SocialController final : public QObject {
     Q_PROPERTY(int menuIndex READ menuIndex NOTIFY changed)
     Q_PROPERTY(QString menuTitle READ menuTitle NOTIFY changed)
     Q_PROPERTY(QString menuDetail READ menuDetail NOTIFY changed)
+    Q_PROPERTY(bool surfaceAvailable READ surfaceAvailable WRITE setSurfaceAvailable NOTIFY presentationChanged)
+    Q_PROPERTY(bool conversationVisible READ conversationVisible WRITE setConversationVisible NOTIFY presentationChanged)
+    Q_PROPERTY(QString toastTitle READ toastTitle NOTIFY presentationChanged)
+    Q_PROPERTY(QString toastText READ toastText NOTIFY presentationChanged)
 public:
     explicit SocialController(QObject* parent = nullptr);
     ~SocialController() override;
@@ -67,8 +71,16 @@ public:
     Q_INVOKABLE void compose();
     Q_INVOKABLE void login();
     Q_INVOKABLE void selectMenu(int index);
+    bool surfaceAvailable() const { return surfaceAvailable_; }
+    bool conversationVisible() const { return conversationVisible_; }
+    void setSurfaceAvailable(bool available);
+    void setConversationVisible(bool visible);
+    QString toastTitle() const { return toastTitle_; }
+    QString toastText() const { return toastText_; }
+    Q_INVOKABLE void presented(QString channel, QString message);
 signals:
     void changed();
+    void presentationChanged();
     void textRequested(QString title, QString initial, int limit);
     void commandRequested(QString operation, QVariantMap args);
     void ownerRequested(QString owner, quint64 generation);
@@ -97,6 +109,9 @@ private:
     int searchFocus_ = -1;
     QTimer selection_;
     QTimer draftSave_;
+    QTimer toastTimer_;
+    bool surfaceAvailable_ = false, conversationVisible_ = false;
+    QString toastTitle_, toastText_;
     QString draftFile_;
     void saveDrafts();
     void bindDrafts(const QString& accountId);

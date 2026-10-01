@@ -130,3 +130,22 @@ and community text access is in scope; guild administration is not implied.
 Follow provider standards/permissions, without invented ordinary-chat restrictions.
 TrainerOS capability recognition applies only to game/activity offers.
 See [native text delivery and preserved remaining acceptance](SOCIAL.md).
+
+## Updated #98/#101 Community acceptance - 2026-10-01
+
+Communities now include native creation and a durable machine-readable
+TrainerOS-aware identity. Research current supported Fluxer storage/discovery
+mechanisms together with #104/#109 before choosing the representation. A visible
+name/description convention is insufficient; unsupported hidden fields/opcodes
+are forbidden. Keep All / TrainerOS-compatible filtering compact and preserve
+ordinary Fluxer chat. The marker is only a discovery hint: membership never
+authorizes launches, microphones, peer connections, save writes or an activity.
+Fresh capability negotiation and per-activity consent still apply. Keep the
+identity independent of Pokemon or any particular transport. This explicit
+bounded addition supersedes the earlier blanket community-workspace exclusion;
+it does not authorize role/server administration, feeds or marketplace scope.
+
+Schedule this research and creation/filter slice after base messaging/read-state
+completion and before shared activity invitations. Preserve all earlier remaining
+acceptance, including messaging scroll/emoji, media, voice, runtime multiplayer,
+RA and appearance deferrals. Implementation is not claimed by this register.

@@ -91,6 +91,11 @@ FocusScope {
                 clip: true; spacing: 10; model: root.social.messages; currentIndex: root.social.messageIndex
                 onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
                 onCountChanged: Qt.callLater(function(){log.positionViewAtIndex(log.currentIndex,ListView.Contain)})
+                Timer {
+                    interval: 1000; repeat: true
+                    running: root.visible && root.connected && root.faceIndex !== 3 && root.social.conversation && log.atYEnd && root.social.surfaceAvailable
+                    onTriggered: if (log.count > 0) root.social.presented(root.account.channel, root.social.messages[log.count - 1].id)
+                }
                 delegate: Item {
                     required property var modelData
                     required property int index

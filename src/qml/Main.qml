@@ -17,6 +17,8 @@ Window {
     }
     Binding { target: Theme; property: "themeId"; value: shell.settings.theme }
     Binding { target: Theme; property: "reducedMotion"; value: shell.settings.reducedMotion }
+    Binding { target: shell.social; property: "surfaceAvailable"; value: window.active && !sessionState.blocked && !adventureLaunch.active && shell.unobstructed }
+    Binding { target: shell.social; property: "conversationVisible"; value: shell.page === 4 && !shell.serviceOpen }
     onClosing: function(close) { close.accepted = false; sessionState.requestExit() }
     Connections {
         target: controllerInput
@@ -135,11 +137,30 @@ Window {
                         text: modelData; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: shell.page === index ? 21 : 19; font.weight: Font.DemiBold
                     }
                     Rectangle { x: 18; y: parent.height - 8; width: parent.width - 36; height: 3; radius: 1.5; color: "#7a4a24"; visible: shell.page === index }
+                    Rectangle {
+                        visible: index === 4 && (shell.social.account.unreadCount || 0) > 0
+                        anchors.right: parent.right; anchors.rightMargin: 6; y: Theme.topRimHeight + 3
+                        width: 23; height: 17; radius: 7; color: Theme.yellow; border.color: "#8e642e"
+                        Text { anchors.centerIn: parent; text: Math.min(99, shell.social.account.unreadCount || 0); color: Theme.ink; font.bold: true; font.pixelSize: 11 }
+                    }
                     MouseArea { anchors.fill: parent; onClicked: shell.goToPage(index) }
                 }
             }
         }
         ChassisTopRim { z: 1.5 }
+        Rectangle {
+            objectName: "social-notification"
+            visible: shell.social.surfaceAvailable && shell.social.toastTitle.length > 0
+            z: 30; x: parent.width - width - 26; y: Theme.brandHeight + 21
+            width: 310; height: 75; radius: 12; color: "#fff0bb"; border.color: "#8e713e"; border.width: 2
+            Rectangle { x: 10; y: 13; width: 43; height: 43; radius: 12; color: Theme.blue; border.color: "#658b91"
+                Text { anchors.centerIn: parent; text: ":)"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23 }
+            }
+            Column { x: 64; y: 12; width: parent.width - 77; spacing: 4
+                Text { width: parent.width; text: shell.social.toastTitle; textFormat: Text.PlainText; elide: Text.ElideRight; font.family: Theme.displayFamily; font.pixelSize: 18; color: Theme.ink }
+                Text { width: parent.width; text: shell.social.toastText; textFormat: Text.PlainText; elide: Text.ElideRight; font.pixelSize: 14; color: Theme.ink }
+            }
+        }
         Row {
             objectName: "navigation-chassis"; x: 28; y: Theme.brandHeight + Theme.screenBevel + 5; spacing: 12; z: 2
             Hint {button:"L1 R1";label:"Sections";tint:Theme.blue;labelColor:Theme.ink}
