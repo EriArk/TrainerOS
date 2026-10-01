@@ -9,11 +9,14 @@ never duplicated. The local Home / Friends / Chats menu and in-game Continue /
 Exit menu are delivered in [HOME_MENU](docs/HOME_MENU.md); physical Home no
 longer immediately changes page or asks about saving. B/Home again retains the
 origin/process. Only explicit Exit starts fresh capture and the applicable
-save question. Independent appearance controls remain the next #112 increment.
-Then finish standalone PPSSPP RA, verify #99 user-client Fluxer access, deliver
+save question. Owner priority refinement, 2026-10-01: finish communication and
+multiplayer invitations first. Defer #112 game appearance controls and the
+remaining standalone PPSSPP RA lane until after that block; retain both.
+Next verify #99 user-client Fluxer access, deliver
 #100/#101 messaging, #104/#109/#105 to #110 native online Link, #102/#103 media/
 voice and #107 one exact runtime multiplayer route. #106 is conditional; #108
-applies throughout. Preserve every R1–R18 and later acceptance, current UI/save
+applies throughout. Home social actions reuse those providers as they become
+available; do not create a second messenger. Preserve every R1–R18 and later acceptance, current UI/save
 protection, Bluetooth default and Direct/suspend deferral. See
 [new acceptance](docs/EXPANSION_98_112.md) and [navigation](docs/NAVIGATION_111.md).
 

@@ -42,8 +42,9 @@ graceful-close ownership and single-request safeguards remain.
 
 ## Remaining #112 work
 
-Independent shader / ratio / exact supported widescreen / bezel controls are the
-next increment. Their runtime capability, preview, per-game inheritance/reset and
+Independent shader / ratio / exact supported widescreen / bezel controls are
+deferred until after communication and multiplayer invitations by the owner's
+2026-10-01 priority change. Their runtime capability, preview, per-game inheritance/reset and
 live versus next-launch gates remain open. Unsupported controls are omitted.
 In-game social/activity actions await their actual providers; no duplicate chat,
 voice or save implementation is introduced here. Full issue acceptance remains

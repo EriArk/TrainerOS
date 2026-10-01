@@ -6,6 +6,14 @@ queue; this register preserves acceptance, not a second schedule. Earlier
 R1–R18/R7a/R18a/R18b, exact-game, device, image/update, trust and artwork gates
 remain. Planned integrations are not installed capabilities.
 
+**Owner priority refinement, 2026-10-01:** after the delivered local Home/Exit
+menu, prioritize communication and multiplayer invitations: #99, #100/#101,
+#104/#109/#105/#110, #102/#103 and #107 with conditional #106. #108 applies
+throughout. #112 game appearance and the remaining standalone PPSSPP RA work
+follow that block; preserve all their acceptance. Chat pictures in #102 are
+part of communication, separate from the deferred game-image controls. Home
+social actions share the same provider and session state as Social.
+
 ## Placement and lifecycle supersessions
 
 - [#111](https://github.com/EriArk/TrainerOS/issues/111) owns five primaries:

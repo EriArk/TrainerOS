@@ -10,19 +10,23 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
 1. #111 delivered on Flip/Odin: five primaries; full Trainer Profile/Journey/Hall/RA,
    rightmost Social and legacy navigation/deep-link/launch checkpoint migration.
    Live messaging remains in its provider stages below.
-2. #112 [local Home menu and #49 explicit Exit](HOME_MENU.md) separate quick access
-   from safe termination. Next within #112: capability-correct independent
-   shader/ratio/widescreen/bezel choices. Start keeps its existing system role.
-3. Finish existing R5 standalone PPSSPP active-Trainer RA handoff, actionable
-   authentication and legitimate fresh-play/return evidence.
-4. #99 bounded supported Fluxer **user-client** auth/API/native feasibility gate.
-5. #100 owner-scoped provider and #101 compact Friends/Chats messenger.
-6. #104 invitations + #109 reusable existing system activities + #105 per-traffic
+2. #112 [local Home menu and #49 explicit Exit](HOME_MENU.md) are delivered on
+   Flip/Odin. Start keeps its existing system role. Owner refinement, 2026-10-01:
+   communication and multiplayer invitations now precede game appearance and RA.
+3. #99 bounded supported Fluxer **user-client** auth/API/native feasibility gate.
+   Existing test-account registration does not establish native client access.
+4. #100 owner-scoped provider and #101 compact Friends/Chats messenger. Wire Home
+   social shortcuts to these same services as they become available.
+5. #104 invitations + #109 reusable existing system activities + #105 per-traffic
    delivery proof → #110 exact Emerald internet exchange with runtimes closed.
-7. #102 images/recorded voice and #103 simple private calls, independent gates.
-8. #107 one actual exact-game/runtime online multiplayer route. #106 direct/relay
+6. #102 chat images/recorded voice and #103 simple private calls, independent gates.
+7. #107 one actual exact-game/runtime online multiplayer route. #106 direct/relay
    is implemented only where the chosen consumer needs it; suitable #105 native
    events do not wait for full P2P. #108 privacy/recovery/performance throughout.
+8. Resume existing R5 standalone PPSSPP active-Trainer RA handoff, actionable
+   authentication and legitimate fresh-play/return evidence.
+9. Resume #112 capability-correct independent shader/ratio/widescreen/bezel
+   choices. This appearance deferral does not defer chat attachments in #102.
 
 These are bounded coherent deliveries, not one all-or-nothing social release.
 Retain and then resume **every** unfinished R1–R18/R7a/R18a/R18b, U1–U13 and

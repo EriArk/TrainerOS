@@ -4,7 +4,8 @@
 and uses rightmost Social for Friends/Chats, retaining five primaries and every
 existing provider. [Navigation migration](NAVIGATION_111.md). #112's adaptive
 Home overlay and updated #49 explicit Exit are described in [the local menu](HOME_MENU.md);
-appearance controls remain next; Start is unchanged.
+communication and multiplayer invitations come next; game appearance controls
+are deferred by the owner's priority change. Start is unchanged.
 [#98–112 acceptance](EXPANSION_98_112.md) separates native system Link from runtime
 multiplayer and preserves every earlier roadmap obligation. Messaging/voice/
 online Link are planned; a navigation change is not a live Fluxer integration.
