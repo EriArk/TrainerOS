@@ -186,8 +186,8 @@ AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
             return prepareGenericRetroArchLaunch(cmd,record,installation,cancel);
         };
     }
-    if (!requestLaunch || !requestLaunch(*invocation, adventure.id)) return {false, "An Adventure is already opening. Try again after returning."};
-    return {true, {}, true};
+    if (!requestLaunch) return {false, "Game launch is unavailable in this session."};
+    return requestLaunch(*invocation, adventure.id);
 }
 AdventureResult RetroArchAdapter::resume(const Adventure& adventure, const ResumePoint& point) {
     Q_UNUSED(adventure); Q_UNUSED(point);

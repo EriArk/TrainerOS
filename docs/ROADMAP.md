@@ -44,11 +44,12 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
    Fluxer contacts remain chat-only. Keep names intact and save trust separate.
    The first increment connects friend-DM consent to the existing exact Emerald
    exchange/sale/gift workspace through bounded provider messages. Public-route
-   invitation/offer proof now includes the actual Flip and Odin, without final
-   save confirmation. Disconnected pending exchanges can reach Social to reconnect
-   while runtime/save/owner protections remain active. Flip's low battery deferred
-   final writes; the two devices also still share one internet connection.
-   **Next:** #110 two-handheld protected exchange/readback and interrupted recovery;
+   exchange now has actual Flip/Odin bilateral settlement and ordinary Emerald
+   readback. A controlled interruption after one peer committed recovered through
+   explicit reinvitation; both saves matched their initial bytes after the reverse
+   exchange. Disconnected pending exchanges can reach Social while launch/save/
+   owner protections remain active. Both devices still share one home internet.
+   **Next:** #110 separate-internet validation of that same protected exchange;
    complete the #105 workload/privacy/retention matrix and remaining #109 contracts.
    Online battle and emulator netplay are not advertised by this increment.
 6. #102 chat images/recorded voice and #103 simple private calls, independent gates.

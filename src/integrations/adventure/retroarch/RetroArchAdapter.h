@@ -61,7 +61,7 @@ public:
         installation_ = value; return true;
     }
     // The application supplies checkpoint/window/lifecycle coordination.
-    std::function<bool(const ProcessCommand&, const QString& adventureId)> requestLaunch;
+    std::function<AdventureResult(const ProcessCommand&, const QString& adventureId)> requestLaunch;
 private:
     std::optional<ProcessCommand> command(const Adventure&) const;
     LibraryRepository& repository_;

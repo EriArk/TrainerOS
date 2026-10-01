@@ -39,7 +39,7 @@ private slots:
         r.adventure.adapterId="unconfigured";r.contentPath=content;
         adapter.prepareInstallation(r);QCOMPARE(r.adventure.adapterId,QString("retroarch"));
         bool saved=false;store.saveAdventureAsync(r,this,[&](auto result){QVERIFY(result.success);saved=true;});QTRY_VERIFY(saved);
-        std::optional<ProcessCommand> invocation;adapter.requestLaunch=[&](const auto& cmd,const auto&){invocation=cmd;return true;};
+        std::optional<ProcessCommand> invocation;adapter.requestLaunch=[&](const auto& cmd,const auto&){invocation=cmd;return AdventureResult{true, {}, true};};
         QVERIFY(adapter.launch(r.adventure).success);QVERIFY(invocation && invocation->prepare);
         auto cmd=*invocation;std::atomic_bool cancel{false};QVERIFY(cmd.prepare(cmd,cancel).isEmpty());
         QCOMPARE(cmd.arguments.last(),content);QVERIFY(cmd.arguments.contains("--appendconfig"));
@@ -125,7 +125,7 @@ private slots:
         auto wrong=r;wrong.adventure.platformId="megadrive";adapter.prepareInstallation(wrong);QCOMPARE(wrong.adventure.adapterId,"unconfigured");
         wrong=r;wrong.contentPath=dir.filePath("cartridge.bin");adapter.prepareInstallation(wrong);QCOMPARE(wrong.adventure.adapterId,"unconfigured");
         bool done=false;store.saveAdventureAsync(r,this,[&](auto result){QVERIFY(result.success);done=true;});QTRY_VERIFY(done);
-        std::optional<ProcessCommand> invocation;adapter.requestLaunch=[&](const auto& cmd,const auto&){invocation=cmd;return true;};
+        std::optional<ProcessCommand> invocation;adapter.requestLaunch=[&](const auto& cmd,const auto&){invocation=cmd;return AdventureResult{true, {}, true};};
         QVERIFY(adapter.launch(r.adventure).success);QVERIFY(invocation && invocation->prepare);
         auto cmd=*invocation;std::atomic_bool cancel{false};QVERIFY(cmd.prepare(cmd,cancel).isEmpty());
         QCOMPARE(cmd.arguments.last(),r.contentPath);QVERIFY(cmd.arguments.contains("--appendconfig"));
@@ -163,7 +163,7 @@ private slots:
         adapter.prepareInstallation(r); QCOMPARE(r.adventure.adapterId,"retroarch"); QCOMPARE(r.integrationConfig["core"].toString(),core);
         bool done=false; store.saveAdventureAsync(r,this,[&](auto result){QVERIFY(result.success);done=true;}); QTRY_VERIFY(done);
         std::optional<ProcessCommand> invocation;
-        adapter.requestLaunch=[&](const auto& cmd,const auto&){invocation=cmd;return true;};
+        adapter.requestLaunch=[&](const auto& cmd,const auto&){invocation=cmd;return AdventureResult{true, {}, true};};
         QVERIFY(adapter.launch(r.adventure).success); QVERIFY(invocation && invocation->prepare);
         const auto original=*invocation; std::atomic_bool cancelled{false};
         QVERIFY(invocation->prepare(*invocation,cancelled).isEmpty());
@@ -251,7 +251,16 @@ private slots:
                 [&](quint64 token, const QJsonObject& state) {
             store.saveNavigation(state, &lifecycle, [&, token](const QString& error) { lifecycle.checkpointCompleted(token, error); });
         });
-        adapter.requestLaunch = [&](const ProcessCommand& command, const QString& id) { return lifecycle.launch(command, context, id); };
+        adapter.requestLaunch = [&](const ProcessCommand& command, const QString& id) { const bool started=lifecycle.launch(command, context, id); return AdventureResult{started, {}, started}; };
+        const auto acceptLaunch = adapter.requestLaunch;
+        adapter.requestLaunch = [](const auto&, const auto&) {
+            return AdventureResult{false, "Reconnect with your friend to finish the exchange before playing."};
+        };
+        const auto refused = adapter.launch(record.adventure);
+        QVERIFY(!refused.success); QVERIFY(!refused.inProgress);
+        QCOMPARE(refused.message, "Reconnect with your friend to finish the exchange before playing.");
+        QCOMPARE(lifecycle.state(), "idle");
+        adapter.requestLaunch = acceptLaunch;
         QSignalSpy restored(&lifecycle, &AdventureLaunchController::restoreRequested);
         const auto accepted = adapter.launch(record.adventure); QVERIFY(accepted.success && accepted.inProgress);
         QVERIFY(!adapter.launch(record.adventure).success); // No second child while checkpointing.

@@ -359,3 +359,15 @@ This adds transport-specific device evidence, without promoting the partial
 Link capabilities to universal/native/competitive support. Bluetooth sales/gifts,
 other exact pairs, cartridge rule parity, extended fault recovery and #93/#94
 remain open. [Evidence and actual-device limits](../NEARBY_PLAY.md#bluetooth-emerald-activities--2026-10-01).
+
+
+### 2026-10-01: public-route exchange and one-sided commit recovery
+
+The unchanged exact-pair adapter completed a real Flip/Odin Party exchange over
+public Fluxer messages. Ordinary Emerald displayed the received individual on
+both consoles. A reverse exchange was interrupted with Flip committed and Odin
+prepared; explicit reinvitation recovered the same durable transaction. Both
+full save hashes then matched their pre-test originals and no active journals
+remained. No adapter/profile/portable source changed. Both handhelds shared one
+home internet, so separate-internet proof remains open alongside broader fault,
+trust and exact-pair gates. See [bounded evidence](../ONLINE_LINK.md#protected-public-route-exchange-and-interruption-2026-10-01).

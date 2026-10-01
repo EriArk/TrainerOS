@@ -138,11 +138,19 @@ Item {
                 Item {
                     y: 76; width: parent.width; height: parent.height-y-14
                     visible: !root.choosing && ["review","price","waiting","saving","starting","finished"].indexOf(root.stage)>=0
+                    Rectangle {
+                        anchors.horizontalCenter: parent.horizontalCenter; y: 18
+                        width: 96; height: 96; radius: 48
+                        visible: root.stage === "finished" && !root.fighters.some(function(member) { return !!member.name || !!member.payment })
+                        color: Theme.green; border.width: 3; border.color: "#73965e"
+                        Text { anchors.centerIn: parent; text: "✓"; font.pixelSize: 58; color: Theme.ink }
+                    }
                     Row {
                         anchors.horizontalCenter: parent.horizontalCenter; spacing: 38; y: 5
                         Repeater { model: root.fighters
                             Column {
                                 required property int index; required property var modelData
+                                visible: root.stage !== "finished" || !!modelData.name || !!modelData.payment
                                 spacing: 8; width: 170
                                 LinkPortrait { anchors.horizontalCenter: parent.horizontalCenter; width: 96; height: 96; member: modelData; tint: index ? Theme.pink : Theme.blue; visible: !modelData.payment }
                                 Text { width: parent.width; text: modelData.name || "Choosing…"; font.family: Theme.displayFamily; font.pixelSize: 21; color: Theme.ink; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight }

@@ -693,12 +693,20 @@ int main(int argc, char* argv[]) {
             if (personalLibrary && !smoke) {
                 auto returnFullscreen = std::make_shared<bool>(false);
                 auto returnedAdventure=std::make_shared<QString>();
-                const auto requestAdventure = [&, window, returnFullscreen, returnedAdventure](const ProcessCommand& command, const QString& id) {
-                    if(shell.party()->activities()->link()->active() || pendingLinkSave(QDir(stateDirectory).filePath("backups"))) {shell.showNotice("Finish or leave Link Counter before playing. Reconnect a paused trade first.");return false;}
-                    if (session.blocked() || adventureLaunch.active() || (saveBackups && saveBackups->busy())) return false;
+                const auto requestAdventure = [&, window, returnFullscreen, returnedAdventure](const ProcessCommand& command, const QString& id) -> AdventureResult {
+                    if (pendingLinkSave(QDir(stateDirectory).filePath("backups")))
+                        return {false, "Reconnect with your friend to finish the exchange before playing."};
+                    if (shell.party()->activities()->link()->active())
+                        return {false, "Leave Together before starting a game."};
+                    if (session.blocked() || adventureLaunch.active())
+                        return {false, "An Adventure is already opening. Try again after returning."};
+                    if (saveBackups && saveBackups->busy())
+                        return {false, "Wait for the save operation to finish before playing."};
                     *returnFullscreen = window->visibility() == QWindow::FullScreen;
                     *returnedAdventure=id;realAchievements->refreshAdventure(id);
-                    return adventureLaunch.launch(command, shell.navigationState(), id);
+                    if (!adventureLaunch.launch(command, shell.navigationState(), id))
+                        return {false, "This Adventure could not start. Try again."};
+                    return {true, {}, true};
                 };
                 retroarch.requestLaunch = [&, requestAdventure](const ProcessCommand& command, const QString& id) {
                     auto launch = command;

@@ -117,8 +117,8 @@ AdventureCapabilities StandaloneAdapter::capabilities(const Adventure& adventure
 AdventureResult StandaloneAdapter::launch(const Adventure& adventure) {
     const auto invocation = command(adventure);
     if (!invocation) return {false, "This game's file or emulator is unavailable."};
-    if (!requestLaunch || !requestLaunch(*invocation, adventure.id)) return {false, "An Adventure is already opening. Try again after returning."};
-    return {true, {}, true};
+    if (!requestLaunch) return {false, "Game launch is unavailable in this session."};
+    return requestLaunch(*invocation, adventure.id);
 }
 AdventureResult StandaloneAdapter::resume(const Adventure&, const ResumePoint&) {
     return {false, "Open this Adventure normally and choose your save inside it. Direct resume is not configured."};

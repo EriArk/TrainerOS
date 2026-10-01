@@ -27,7 +27,7 @@ public:
         if (installation_ == value) return false;
         installation_ = value; return true;
     }
-    std::function<bool(const ProcessCommand&, const QString&)> requestLaunch;
+    std::function<AdventureResult(const ProcessCommand&, const QString&)> requestLaunch;
 private:
     bool supports(const QString& platform, const QString& path) const;
     std::optional<ProcessCommand> command(const Adventure&) const;

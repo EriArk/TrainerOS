@@ -100,7 +100,7 @@ private slots:
         bool saved=false;store.saveAdventureAsync(record,this,[&](auto r){QVERIFY(r.success);saved=true;});QTRY_VERIFY(saved);
         StandaloneAdapter ds("melonds",store,{probe(),probe(),{},{"nds"}});AdapterRouter router({&ds});
         LaunchPreparation launch(store,router);int starts=0;
-        ds.requestLaunch=[&](const ProcessCommand&,const QString&){++starts;return true;};
+        ds.requestLaunch=[&](const ProcessCommand&,const QString&){++starts;return AdventureResult{true, {}, true};};
         QSignalSpy errors(&launch,&LaunchPreparation::messageRequested);
         launch.launch(record.adventure.id);QVERIFY(launch.busy());launch.launch(record.adventure.id);
         QTRY_VERIFY(!launch.busy());QCOMPARE(errors.size(),0);QCOMPARE(starts,1);
@@ -131,7 +131,7 @@ private slots:
         write(config,"config_save_on_exit = \"false\"\n");write(core,"Non-executable core fixture");
         RetroArchAdapter ra(store,{probe(),{},config,{{"mgba",core}}});AdapterRouter router({&ra});
         int starts=0;QStringList arguments;
-        ra.requestLaunch=[&](const ProcessCommand& command,const QString&){++starts;arguments=command.arguments;return true;};
+        ra.requestLaunch=[&](const ProcessCommand& command,const QString&){++starts;arguments=command.arguments;return AdventureResult{true, {}, true};};
         LaunchPreparation launch(store,router);QSignalSpy errors(&launch,&LaunchPreparation::messageRequested);
         launch.launch(record.adventure.id);QTRY_COMPARE(starts,1);QCOMPARE(errors.size(),0);
         QVERIFY(arguments.contains(core));QVERIFY(arguments.contains(file));
@@ -213,7 +213,16 @@ private slots:
             store.saveNavigation(state, &lifecycle, [&, token](const QString& error) { lifecycle.checkpointCompleted(token, error); });
         });
         const QJsonObject context{{"page", "worlds"}, {"selected", record.adventure.id}};
-        ds.requestLaunch = [&](const ProcessCommand& command, const QString& id) { return lifecycle.launch(command, context, id); };
+        ds.requestLaunch = [&](const ProcessCommand& command, const QString& id) { const bool started=lifecycle.launch(command, context, id); return AdventureResult{started, {}, started}; };
+        const auto acceptLaunch = ds.requestLaunch;
+        ds.requestLaunch = [](const auto&, const auto&) {
+            return AdventureResult{false, "Reconnect with your friend to finish the exchange before playing."};
+        };
+        const auto refused = router.launch(record.adventure);
+        QVERIFY(!refused.success); QVERIFY(!refused.inProgress);
+        QCOMPARE(refused.message, "Reconnect with your friend to finish the exchange before playing.");
+        QCOMPARE(lifecycle.state(), "idle");
+        ds.requestLaunch = acceptLaunch;
         QSignalSpy restored(&lifecycle, &AdventureLaunchController::restoreRequested);
         QVERIFY(router.launch(record.adventure).inProgress); QVERIFY(!router.launch(record.adventure).success);
         QTRY_COMPARE(restored.size(), 1); QCOMPARE(lifecycle.state(), "returned"); QCOMPARE(store.navigation(), context);

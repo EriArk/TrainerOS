@@ -168,3 +168,63 @@ successful invitation must never be reported as that full acceptance.
 - Next remains final bilateral settlement, normal Emerald readback and controlled
   interruption/reconnection on stable power, then separate-internet validation.
   #110, the #105 traffic matrix and remaining #109 contracts stay open.
+
+## Protected public-route exchange and interruption, 2026-10-01
+
+With Flip charging, both positively identified handhelds completed an actual
+public Fluxer DM exchange using their installed shells and existing exact English
+Emerald saves. No synthetic peer, save fixture or LAN Link carrier was substituted.
+Both remained on the same home internet connection; this does not close the
+separate-internet acceptance gate above.
+
+- Fresh private backups preceded final confirmation. Transaction
+  `f378fe29-8436-42e2-88f7-8ac6b0fbe856` exchanged Flip's Swellow Lv.100 and
+  Odin's Alakazam Lv.16, each from Party slot six. Both receipts completed and
+  current hashes matched their protected after-images. Party counts and money
+  remained unchanged.
+- Home A launched ordinary Emerald on each handheld. Its own Party screen showed
+  the received Alakazam on Flip and Swellow on Odin. Both games exited through
+  physical Home / explicit Exit; the verified save bytes remained unchanged.
+- Reverse transaction `0b3bcfdb-2583-4e4e-b12e-533f81ea8285` was interrupted
+  deliberately after Flip's atomic save commit but before Odin committed. A
+  bounded watcher stopped then killed only the identified shell process; the
+  existing supervisor restarted it. Flip's journal was committed, Odin's was
+  prepared, and each save matched its respective recorded before/after image.
+  No radio reset, journal editing or unilateral rollback was used.
+- A launch attempt was blocked while pending. Flip could browse back to Social
+  and explicitly invite Odin again. Acceptance recovered the **same** transaction:
+  both archives became complete, neither active journal remained, and both full
+  saves were byte-identical to the original pre-exchange files. This proves this
+  particular one-sided commit/restart/reconnect path without duplicate settlement.
+- The attempt exposed a misleading generic launch error. Runtime adapters now
+  preserve the host's actual refusal message for every launch entry, including
+  reconnecting an unfinished exchange. Focused tests exercise refusal through both
+  RetroArch and standalone/router paths before real child-process launch/return.
+- Recovery does not retain volatile offer portraits after restart. Its finished
+  screen now shows completion instead of empty portraits labelled Choosing.
+
+Private compositor evidence: `online-trade-flip-complete.png`,
+`online-readback-flip.png`, `online-readback-odin.png`, and
+`online-recovered-flip.png` / `online-recovered-odin.png` under `work/research/`.
+The two ordinary-game captures are direct handheld output, not reconstructed UI.
+
+This remains one exact-game exchange and one fault boundary, not a proof of every
+failure ordering, separate-internet delivery, online sales/gifts/battles, native
+runtime multiplayer, or competitive trust. Retain #105 privacy/traffic/retention,
+#109 wider consumer contracts, #107 runtime and #93/#94 gates. No pure save adapter
+or portable adapter copy changed in this host/transport evidence increment.
+
+
+Final delivery for this follow-up:
+- Windows and ARM64 production builds passed. Six focused CTest targets passed
+  in 30.75 seconds: standalone, retroarch, core, interactions, qml_smoke and
+  exit_qml_smoke. Adapter knowledge/export consistency passed for three builds.
+- Both installed/live binaries match
+  `255ce053ac4c4b07de04f34207fd532a2eb6a2b8d908a73bafe6661ab1156c6f`.
+  Flip retained three Trainers/830 Adventures, Odin one Trainer/25 Adventures;
+  database integrity, original boot preferences, nearby helpers and InputPlumber
+  were verified. No pending transaction remained.
+- On the final binary, Home A again started ordinary Emerald on both devices;
+  physical Home opened the compact game menu and explicit Exit returned normally.
+  Final save bytes still matched the original pre-test files. Captures
+  `settlement-flip-overlay.png` and `settlement-odin-overlay.png` record that check.
