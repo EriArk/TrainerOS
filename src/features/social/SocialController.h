@@ -5,11 +5,17 @@
 #include <QVariantMap>
 #include <QVariantList>
 #include <QHash>
+#include <QTimer>
 
 namespace trainer {
 class FluxerSession;
 class SocialController final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool contacts READ contacts NOTIFY changed)
+    Q_PROPERTY(QString searchKind READ searchKind NOTIFY changed)
+    Q_PROPERTY(QString query READ query NOTIFY changed)
+    Q_PROPERTY(int searchFocus READ searchFocus NOTIFY changed)
+    Q_PROPERTY(QVariantList searchResults READ searchResults NOTIFY changed)
     Q_PROPERTY(QVariantMap account READ account NOTIFY changed)
     Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
     Q_PROPERTY(QVariantList messages READ messages NOTIFY changed)
@@ -28,6 +34,16 @@ public:
     void setOwner(QString owner);
     void setFace(QString face);
     void dispatch(Action action);
+    void showContacts();
+    bool contacts() const { return contacts_; }
+    QString searchKind() const { return searchKind_; }
+    QString query() const { return query_; }
+    int searchFocus() const { return searchFocus_; }
+    QVariantList searchResults() const { return snapshot_.value("searchResults").toList(); }
+    Q_INVOKABLE void setSearchKind(QString kind);
+    Q_INVOKABLE void editSearch();
+    Q_INVOKABLE void activateSearch(int index);
+
     void applyText(QString text);
     void preserveText(QString text);
     void closeMenu() { if(!menu_.isEmpty()){menu_.clear();emit changed();} }
@@ -66,6 +82,12 @@ private:
     QString menuSubject_, query_;
     quint64 generation_ = 0;
     int focus_ = 0, messageFocus_ = 0, menuFocus_ = 0;
-    bool reading_ = false;
+    bool reading_ = false, contacts_ = false, searchStarted_ = false;
+    QString searchKind_ = "communities";
+    int searchFocus_ = -1;
+    QTimer selection_;
+    void preview();
+    void runSearch(int offset = 0);
+
 };
 }

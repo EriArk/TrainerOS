@@ -1,4 +1,4 @@
-# Native Social - first text increment
+# Native Social - conversations and discovery
 
 2026-10-01. Supersedes the unlinked #111 placeholder. The owner's refinement
 uses four cyclic faces: Messages / Groups / Communities / Search. The five
@@ -16,8 +16,9 @@ The landscape layout keeps people/conversations on the left and the selected
 conversation on the right. Text uses plain-text rendering. L2/R2 wraps the four
 faces; L1/R1 keeps its primary meaning. X writes a draft in a conversation, Y
 sends it, right reads/scrolls messages, left returns to the people list. Back
-closes the conversation. Options holds the less frequent account/friend actions.
-Home Friends opens Search/friends; Home Chats opens Messages. Existing in-game
+returns focus to the list without clearing the conversation. Options holds the
+less frequent account/friend actions. Home Friends opens the contacts view in
+Messages; Home Chats opens Messages. Existing in-game
 Home Continue/Exit is preserved; live in-game chat overlay is a separate gate.
 
 The first slice supports approved browser sign-in, friend requests by exact
@@ -25,8 +26,20 @@ Fluxer tag, accept/decline/cancel/remove/block/unblock, opening DMs, existing
 group conversations, joined-community text channels, recent plain-text history,
 sending and realtime incoming messages/edits/deletions. A community expands its
 visible channels inside the left list, not into another full-screen page.
-Search filters the current friends locally; Add friend uses Fluxer's supported
-username/discriminator request. This is not a global partial-name directory.
+Messages restores the selected conversation per local Trainer and Fluxer account;
+without a remembered selection it opens the most recent available conversation,
+then the first accepted friend when no conversation exists. Groups and community
+channels keep separate choices. Highlighting a row loads its conversation after
+a short selection debounce; it never accepts a friendship automatically.
+
+Search occupies the full content width, with People / Communities / Invite link
+categories and a two-column result grid. Communities use the actual public
+discovery endpoint with query and 24-result paging. People use Fluxer's exact
+username#1234 friend request, not an invented partial-name user directory or a
+fake resolved profile. Private groups/community invites are looked up through
+the supported invite endpoint. Joining or sending a request requires explicit A;
+browsing never changes membership. Existing friends are not search results.
+Late query/action responses cannot replace a newer search's state.
 
 ## Sessions and recovery
 
@@ -76,9 +89,11 @@ administration clone. No new account-name markers or invisible profile suffixes.
 - [Messages](https://docs.fluxer.app/http-api/messages/)
 - [Guilds](https://docs.fluxer.app/http-api/guilds/) - Get guild returns visible channels.
 - [Gateway](https://docs.fluxer.app/gateway/events/)
+- [Community discovery](https://docs.fluxer.app/http-api/discovery/)
+- [Invitations](https://docs.fluxer.app/http-api/invites/)
 - [Earlier native feasibility proof](FLUXER_SPIKE.md)
 
-## Verification
+## First text increment verification (historical)
 
 - Windows: native build and focused `social`, `core`, `interactions`, `qml_smoke`
   and `exit_qml_smoke` all passed on the final source (5/5, 27.59 seconds).
@@ -105,3 +120,28 @@ administration clone. No new account-name markers or invisible profile suffixes.
   Persistent handheld sign-in is the next account UX gate, not delivered evidence.
 - Receiving/edits/deletions, group/community and recovery paths have implementation
   and synthetic/earlier-spike coverage, but no current two-handheld live claim.
+
+## Automatic conversation and discovery correction - 2026-10-01
+
+- Final Windows native build passed; focused `social`, `core`, `interactions`,
+  `qml_smoke` and `exit_qml_smoke` passed 5/5 in 25.35 seconds.
+- Production ARM64 build installed and live executable verified on Flip:
+  `b8706982a64afdfbe15e6ed4b0299a9e17a52c4885be3ebc3a5a0bddfe3fb6ad`.
+  The same 3 local Trainers / 830 library records, boot configuration and nearby
+  helpers were preserved; no emulator or pending Link settlement was active.
+- Real official handoff restored the designated Flip account. Entering Messages
+  opened the existing Odin-test conversation/history without A. B and a primary
+  tab round trip retained it. Reauthorization after a binary restart also opened
+  the remembered conversation directly.
+- Search has no friend sidebar. The actual public directory loaded 187 results
+  at verification time; entering GAME with the physical-controller keyboard returned
+  18 matching communities. Empty browsing omits the optional query parameter: the
+  deployed API rejected an explicit empty `query=` despite the current schema.
+- Actual device captures: private `work/research/chat-final.png` and
+  `work/research/search-final.png`. No random public community was joined and no
+  message/request was sent to an unrelated account during this correction.
+- Synthetic coverage includes latest/remembered conversation selection, Back,
+  account isolation, stale search and membership callbacks, encoded query/paging,
+  omitted empty query and lookup-versus-explicit-invite-join behavior.
+- Odin SSH still times out; this correction is not installed there. Persistent
+  handheld credentials and the remaining acceptance above stay open.

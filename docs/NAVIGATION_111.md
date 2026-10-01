@@ -10,6 +10,11 @@ L1/R1 stops at the existing primary edges. L2/R2 wraps section faces:
 - Trainer: Profile / Journey / Hall / RA.
 - Social: Messages / Groups / Communities / Search (owner refinement; [native Social](SOCIAL.md)).
 
+Messages opens the last selected or first available conversation automatically.
+Search uses a full-width discovery layout, not the conversation sidebar; existing
+friends/requests are inside Messages and the Home Friends shortcut. Per-face
+conversation choices remain account-scoped. Back retains the current conversation.
+
 The Trainer profile, existing Hall controller's three independent face views and
 their providers are reused. No dashboard, additional submenu or save writer was
 introduced. First Trainer entry is Profile; ordinary visits retain its selected

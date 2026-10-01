@@ -76,7 +76,7 @@ private slots:
         QCOMPARE(shell.page(), 1); QVERIFY(shell.menuOpen()); QVERIFY(shell.homeMenuOpen());
         shell.dispatch(Action::Back); QVERIFY(!shell.homeMenuOpen()); QVERIFY(shell.menuOpen());
         shell.dispatch(Action::Home); shell.dispatch(Action::Down); shell.dispatch(Action::Confirm);
-        QCOMPARE(shell.page(), 4); QCOMPARE(shell.socialFace(), "friends"); QVERIFY(!shell.menuOpen());
+        QCOMPARE(shell.page(), 4); QCOMPARE(shell.socialFace(), "chats"); QVERIFY(shell.social()->contacts()); QVERIFY(!shell.menuOpen());
         shell.goToPage(2); shell.dispatch(Action::NextFace);
         QVERIFY(shell.centerFace()); QVERIFY(!shell.center()->configured());
         QCOMPARE(shell.party()->section(), "party"); QVERIFY(shell.notice().isEmpty());

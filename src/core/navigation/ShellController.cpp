@@ -813,9 +813,10 @@ void ShellController::closeHomeMenu() {
 }
 void ShellController::activateHomeMenu(int index) {
     if (!homeMenuOpen_ || navigationLocked() || index < 0 || index > 2) return;
-    if (index) socialFace_ = index == 1 ? "friends" : "chats";
+    if (index) socialFace_ = "chats";
     social_.setFace(socialFace_);
     goToPage(index ? 4 : 0);
+    if(index==1)social_.showContacts();
 }
 void ShellController::dispatch(Action action) {
     if(party_.activities()->link()->invitationOpen()) {

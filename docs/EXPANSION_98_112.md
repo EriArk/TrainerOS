@@ -122,7 +122,10 @@ people search or the capability exchange.
 
 The owner replaced the Friends/Chats-only face pair with cyclic L2/R2 Messages /
 Groups / Communities / Search, retaining L1/R1 primaries and a left-list/right-chat
-landscape composition. Friends/requests live with search. Supported Fluxer group
+landscape composition for conversations. The later owner correction makes Search
+full-width discovery for new people, communities and invitations; friends/requests
+live inside Messages. Restore the last/first conversation and preview on highlight,
+without an extra Open step. Supported Fluxer group
 and community text access is in scope; guild administration is not implied.
 Follow provider standards/permissions, without invented ordinary-chat restrictions.
 TrainerOS capability recognition applies only to game/activity offers.

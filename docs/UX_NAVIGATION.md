@@ -5,8 +5,11 @@
 # TrainerOS UX & Navigation
 
 **2026-10-01 #111:** primaries are **Home / Worlds / Companions / Trainer /
-Social**. Trainer cycles **Profile / Journey / Hall / RA**, Social **Friends /
-Chats**. Full existing views/providers and modal priority are retained. First
+Social**. Trainer cycles **Profile / Journey / Hall / RA**, Social **Messages /
+Groups / Communities / Search**. Conversations open on entry/highlight without
+an extra click; full-width Search discovers new people/communities/invitations.
+Existing friends/requests remain in Messages. [Current Social](SOCIAL.md).
+Full existing views/providers and modal priority are retained. First
 Trainer entry is Profile; revisits retain the face; explicit semantic history
 links select it. Navigation v2 migrates legacy Hall and launch/return checkpoints
 to Trainer, never Social. [Current migration](NAVIGATION_111.md).

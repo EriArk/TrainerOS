@@ -1,5 +1,15 @@
 # AGENTS.md — TrainerOS
 
+**Owner Social correction, 2026-10-01:** entering Messages immediately displays
+the remembered conversation, otherwise the most recent/first available one.
+Highlighting another conversation previews it without an extra Open step; Back
+does not erase the selected conversation. Search is a full-width discovery
+surface for new people, public communities and group/community invitations,
+never a filter of existing friends or a left-list/empty-chat layout. Existing
+friends/requests remain in Messages and the Home Friends shortcut. Follow real
+Fluxer contracts (full tags for people, discovery for public communities,
+invitations for private groups). See [Social](docs/SOCIAL.md).
+
 **Owner remote recovery, 2026-10-01:** the owner is often away from both handhelds.
 If the shell hangs, collect bounded diagnostics and force-stop/restart the affected
 process or session as needed; remote reboot is also authorized for recovery.

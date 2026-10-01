@@ -78,16 +78,60 @@ private slots:
         c.receive(99,{{"channel","wrong-owner"}});QCOMPARE(c.draft(),QString("Draft <b>plain text</b>"));
         c.setOwner("other");QVERIFY(c.draft().isEmpty());QVERIFY(c.rows().isEmpty());
     }
-    void searchAndAddFriendHaveDistinctControllerActions() {
-        SocialController c;
-        c.receive(0,{{"state","connected"},{"friends",QVariantList{
-            QVariantMap{{"id",remote},{"name","Odin"},{"type",1}},
-            QVariantMap{{"id","4"},{"name","Flip"},{"type",1}}}}});
-        c.setFace("friends");QSignalSpy input(&c,&SocialController::textRequested);
-        c.dispatch(Action::Secondary);QCOMPARE(input.last().first().toString(),QString("Find friends"));
-        c.applyText("odin");QCOMPARE(c.rows().size(),1);QCOMPARE(c.rows().first().toMap()["name"].toString(),QString("Odin"));
-        c.dispatch(Action::ToggleContinue);QVERIFY(input.last().first().toString().startsWith("Add friend"));
+    void searchUsesDiscoveryAndDoesNotFilterFriends() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.receive(0,{{"state","connected"},{"friends",QVariantList{QVariantMap{{"id",remote},{"name","Odin"},{"type",1}}}}});
+        c.setFace("friends");c.editSearch();c.applyText("new community");
+        QCOMPARE(commands.last().first().toString(),QString("search"));
+        QCOMPARE(commands.last()[1].toMap()["text"].toString(),QString("new community"));
+        QVERIFY(c.rows().isEmpty());
+        c.showContacts();QCOMPARE(c.rows().size(),1);QVERIFY(c.contacts());
     }
+    void backNeverClosesTheSelectedConversation() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.receive(0,{{"state","connected"},{"channel",channel}});
+        c.dispatch(Action::Right);QVERIFY(c.reading());c.dispatch(Action::Back);
+        QVERIFY(!c.reading());QVERIFY(c.conversation());QVERIFY(commands.isEmpty());
+    }
+    void automaticConversationPrefersLastChoiceThenRecent() {
+        FluxerSession s;QStringList requests;s.setTransport([&](auto,auto path,auto,Completion done){requests<<path;done({200,QJsonDocument(QJsonArray{})});});bind(s);
+        s.channelsLoaded_=true;s.channels_[channel]["last_message_id"]="100";
+        s.channels_[remote]={{"id",remote},{"type",1},{"last_message_id","200"}};
+        s.channel_.clear();s.ensureConversation();QCOMPARE(s.channel_,QString(remote));
+        s.openConversation(channel);s.command("face",{{"face","groups"}});QVERIFY(s.channel_.isEmpty());
+        s.command("face",{{"face","chats"}});QCOMPARE(s.channel_,QString(channel));
+        auto count=requests.size();s.ensureConversation();QCOMPARE(requests.size(),count);
+        s.setOwner("b",2);QVERIFY(s.preferred_.isEmpty());
+    }
+    void discoveryIgnoresLateQueryAndUsesProviderPaging() {
+        FluxerSession s;QList<Completion> responses;QStringList paths;
+        s.setTransport([&](auto method,auto path,auto,Completion done){QCOMPARE(method,QByteArray("GET"));paths<<path;responses<<done;});bind(s);
+        s.search("communities","old");s.search("communities","new & fun",24);
+        QVERIFY(paths.last().contains("offset=24"));QVERIFY(paths.last().contains("%26"));
+        responses[0]({200,QJsonDocument(QJsonObject{{"total",1},{"guilds",QJsonArray{QJsonObject{{"id",remote},{"name","Old"}}}}})});
+        QVERIFY(s.searchResults_.isEmpty());QVERIFY(s.searching_);
+        responses[1]({200,QJsonDocument(QJsonObject{{"total",30},{"guilds",QJsonArray{QJsonObject{{"id",remote},{"name","New"},{"member_count",12}}}}})});
+        QCOMPARE(s.searchResults_.size(),1);QCOMPARE(s.searchResults_[0].toMap()["name"].toString(),QString("New"));QCOMPARE(s.searchTotal_,30);
+        s.search("communities","");QVERIFY(!paths.last().contains("query="));
+    }
+    void inviteLookupNeverJoinsUntilExplicitAction() {
+        FluxerSession s;QStringList methods,paths;
+        s.setTransport([&](auto method,auto path,auto,Completion done){methods<<method;paths<<path;if(method=="GET"&&path.startsWith("/v1/invites/"))done({200,QJsonDocument(QJsonObject{{"code","aB1"},{"channel",QJsonObject{{"name","Our group"}}}})});});bind(s);
+        s.search("invite","https://fluxer.gg/aB1");QCOMPARE(methods,QStringList{"GET"});QCOMPARE(paths.first(),QString("/v1/invites/aB1"));
+        s.command("search-action",{{"id","aB1"}});QCOMPARE(methods.last(),QString("POST"));
+    }
+    void lateMembershipActionDoesNotReplaceNewSearch() {
+        FluxerSession s;Completion join;
+        s.setTransport([&](auto method,auto path,auto,Completion done){
+            if(method=="POST"&&path=="/v1/invites/aB1")join=done;
+        });bind(s);
+        s.searchResults_.append(QVariantMap{{"id","aB1"},{"kind","invite"},{"action","Join"}});
+        s.command("search-action",{{"id","aB1"}});
+        s.search("communities","new search");QVERIFY(s.searching_);
+        join({204,{}});QVERIFY(s.searching_);QCOMPARE(s.searchStatus_,QString("Searching..."));
+        QVERIFY(s.searchResults_.isEmpty());
+    }
+
 };
 }
 QTEST_GUILESS_MAIN(trainer::SocialTests)

@@ -2,10 +2,12 @@
 
 **2026-10-01 composition:** preserve the approved material chassis, tab geometry,
 gold focus and existing feature interiors. #111 uses Home / Worlds / Companions /
-Trainer / Social, with compact Profile/Journey/Hall/RA and Friends/Chats face
+Trainer / Social, with compact Profile/Journey/Hall/RA and Messages/Groups/Communities/Search face
 indicators in the existing header space. No extra tab row, nested dashboard or
-redesign of the Playroom. Social's current unlinked surface contains no fake
-friends or inactive setup controls. [Current routing](NAVIGATION_111.md).
+redesign of the Playroom. Social conversations use a left list and immediately
+visible right conversation; Search instead spans the full width with category
+caps, a search field and pastel result cards. No empty choose-person interstitial.
+[Current routing](NAVIGATION_111.md) and [Social](SOCIAL.md).
 
 **Navigation composition target — 2026-09-26 (#83–88):** retain the approved
 chassis/tab style; primary labels become Pokémon and Journey. Secondary faces

@@ -20,9 +20,11 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
    are not delivered messenger functionality.
 4. #100 owner-scoped provider and #101 [native Social](SOCIAL.md): first text
    increment, followed by the explicit remaining acceptance there. Owner-refined
-   faces are Messages / Groups / Communities / Search. Wire Home
-   social shortcuts to these same services as they become available. Include
-   people search using supported provider lookup, without bulk user enumeration.
+   faces are Messages / Groups / Communities / Search. Home shortcuts share these
+   services. Conversations open on entry/highlight; full-width Search uses real
+   community discovery, full-tag people requests and group/community invites.
+   Next: remembered handheld credentials, then the remaining messaging/activity
+   acceptance in SOCIAL.md; no bulk user enumeration or extra choose-person page.
 5. #104 invitations + #109 reusable existing system activities + #105 per-traffic
    delivery proof → #110 exact Emerald internet exchange with runtimes closed.
    A bounded live TrainerOS capability exchange gates game offers; ordinary

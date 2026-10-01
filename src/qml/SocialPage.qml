@@ -13,7 +13,7 @@ FocusScope {
     Component.onCompleted: if (takesFocus) forceActiveFocus()
     PageHeader {
         id: heading
-        title: ["Messages", "Groups", "Communities", "Find friends"][root.faceIndex]
+        title: [root.social.contacts ? "Friends" : "Messages", "Groups", "Communities", "Search"][root.faceIndex]
         subtitle: root.connected ? (root.account.name || "") + " · " + (root.account.status || "") : "A little closer, wherever you are."
     }
     Item {
@@ -55,7 +55,7 @@ FocusScope {
         }
     }
     Item {
-        visible: root.connected
+        visible: root.connected && root.faceIndex !== 3
         anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
         Rectangle { width: people.width + 30; height: parent.height; color: "#dce9d9"; border.color: "#b9cebd" }
         ListView {
@@ -117,8 +117,8 @@ FocusScope {
             }
         }
         Column { visible: !root.social.conversation; x: people.width + 62; width: parent.width - x - 30; anchors.verticalCenter: parent.verticalCenter; spacing: 16
-            Text { width: parent.width; text: "A place to catch up"; font.family: Theme.displayFamily; font.pixelSize: 29; color: Theme.ink; horizontalAlignment: Text.AlignHCenter }
-            Text { width: parent.width; text: "Pick someone and send a little hello."; font.pixelSize: 17; color: Theme.muted; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
+            Text { width: parent.width; text: ["No conversations yet", "No group chats yet", "No text channels yet"][root.faceIndex] || ""; font.family: Theme.displayFamily; font.pixelSize: 29; color: Theme.ink; horizontalAlignment: Text.AlignHCenter }
+            Text { width: parent.width; text: "Find someone new in Search."; font.pixelSize: 17; color: Theme.muted; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
             Row { anchors.horizontalCenter: parent.horizontalCenter; spacing: 12
                 Repeater { model: [Theme.blue,Theme.pink,Theme.yellow]
                     Rectangle { required property color modelData; width: 48; height: 38; radius: 12; color: modelData; border.color: Qt.darker(modelData,1.35)
@@ -126,6 +126,65 @@ FocusScope {
                     }
                 }
             }
+        }
+    }
+    Item {
+        id: searchPage
+        visible: root.connected && root.faceIndex === 3
+        anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
+        Rectangle { anchors.fill: parent; color: "#eaf0e3" }
+        Row {
+            id: categories; x: 16; y: 10; spacing: 10
+            Repeater {
+                model: [{kind:"people",title:"People",tint:Theme.pink}, {kind:"communities",title:"Communities",tint:Theme.green}, {kind:"invite",title:"Invite link",tint:Theme.blue}]
+                CapButton { required property var modelData; width: (searchPage.width - 52) / 3; height: 38
+                    label: modelData.title; tint: modelData.tint; claimsFocus: false
+                    selected: root.social.searchKind === modelData.kind && root.social.searchFocus < 0
+                    onActivated: root.social.setSearchKind(modelData.kind)
+                }
+            }
+        }
+        CapButton {
+            id: searchBar; x: 16; y: categories.y + categories.height + 12; width: parent.width - 32; height: 48
+            label: root.social.query || (root.social.searchKind === "people" ? "username#1234" : root.social.searchKind === "invite" ? "Paste or enter an invitation" : "Search communities...")
+            tint: Theme.paper; claimsFocus: false; selected: false
+            onActivated: root.social.editSearch()
+        }
+        Text { id: searchStatus; x: 20; y: searchBar.y + searchBar.height + 9; width: parent.width - 40
+            text: root.account.searchStatus || ""; font.pixelSize: 13; color: Theme.muted; textFormat: Text.PlainText; elide: Text.ElideRight
+        }
+        GridView {
+            id: results; x: 16; y: searchStatus.y + searchStatus.height + 10; width: parent.width - 24; height: parent.height - y - 12
+            clip: true; cellWidth: width / 2; cellHeight: 121
+            model: root.social.searchResults; currentIndex: root.social.searchFocus
+            onCurrentIndexChanged: if(currentIndex >= 0) positionViewAtIndex(currentIndex, GridView.Contain)
+            delegate: Item {
+                required property var modelData; required property int index
+                width: results.cellWidth; height: results.cellHeight
+                Rectangle { x: 0; y: 4; width: parent.width - 10; height: parent.height - 10; radius: 12; color: "#617b6959" }
+                Rectangle { width: parent.width - 10; height: parent.height - 10; radius: 12
+                    color: index % 3 === 0 ? "#e1efca" : index % 3 === 1 ? "#d8ebf1" : "#f3dfd4"
+                    border.width: results.currentIndex === index ? 3 : 1; border.color: results.currentIndex === index ? "#e7b327" : "#a2b4a3"
+                    Column { x: 14; y: 10; width: parent.width - 28; spacing: 4
+                        Text { width: parent.width; text: modelData.name; font.family: Theme.displayFamily; font.pixelSize: 20; color: Theme.ink; textFormat: Text.PlainText; elide: Text.ElideRight }
+                        Text { width: parent.width; text: modelData.description; font.pixelSize: 13; color: Theme.ink; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight; textFormat: Text.PlainText }
+                    }
+                    Text { x: 14; anchors.bottom: parent.bottom; anchors.bottomMargin: 10; width: parent.width - 130; text: modelData.detail; font.pixelSize: 12; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
+                    Rectangle { anchors { right: parent.right; bottom: parent.bottom; margins: 9 } width: 96; height: 25; radius: 8; color: Theme.yellow; border.color: "#b4a36a"
+                        Text { anchors.centerIn: parent; text: modelData.action; color: Theme.ink; font.pixelSize: 13; font.bold: true; textFormat: Text.PlainText }
+                    }
+                    MouseArea { anchors.fill: parent; onClicked: root.social.activateSearch(index) }
+                }
+            }
+        }
+        Column {
+            visible: !results.count; anchors.horizontalCenter: parent.horizontalCenter; y: results.y + 22; spacing: 13
+            Item { width: 76; height: 69; anchors.horizontalCenter: parent.horizontalCenter
+                Rectangle { x: 44; y: 42; width: 31; height: 12; radius: 5; rotation: 45; color: "#648983" }
+                Rectangle { x: 0; y: 0; width: 55; height: 55; radius: 28; color: "#d1e8ef"; border.color: "#648983"; border.width: 6 }
+                Rectangle { x: 14; y: 12; width: 23; height: 9; radius: 5; rotation: -30; color: "#f4ffff" }
+            }
+            Text { text: root.account.searching ? "Looking around..." : root.social.searchKind === "people" ? "Make a new friend" : root.social.searchKind === "invite" ? "A place for your people" : "Find your next community"; font.family: Theme.displayFamily; font.pixelSize: 24; color: Theme.ink; anchors.horizontalCenter: parent.horizontalCenter }
         }
     }
     Rectangle {

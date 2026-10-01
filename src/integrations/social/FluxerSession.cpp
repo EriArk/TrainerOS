@@ -9,6 +9,9 @@
 #include <QUuid>
 #include <QCryptographicHash>
 #include <QPointer>
+#include <QSettings>
+#include <QUrlQuery>
+#include <QRegularExpression>
 #include <qt6keychain/keychain.h>
 #ifdef Q_OS_LINUX
 #include <QDBusConnection>
@@ -36,6 +39,8 @@ void FluxerSession::reset() {
         for(auto* reply:network_->findChildren<QNetworkReply*>())reply->abort();
         network_->deleteLater(); network_ = nullptr;
     }
+    channelsLoaded_=friendsLoaded_=openingDm_=openingGuild_=false;preferred_.clear();navigationKey_.clear();
+    ++searchRevision_;searchResults_.clear();searchText_.clear();searchStatus_.clear();searching_=false;searchTotal_=searchOffset_=0;
     token_.clear(); self_.clear(); name_.clear(); code_.clear(); pollSecret_.clear();
     gatewaySession_.clear(); channel_.clear(); relationships_.clear(); channels_.clear();
     messages_.clear(); messageOrder_.clear(); pendingNonces_.clear(); unread_.clear(); guilds_.clear(); guild_.clear();
@@ -84,6 +89,7 @@ void FluxerSession::publish() {
     for(auto it=guilds_.cbegin();it!=guilds_.cend();++it)communities.append(QVariantMap{{"id",it.key()},{"name",it.value()["name"].toString()},{"kind","community"},{"detail","Community"}});
     std::sort(communities.begin(),communities.end(),[](const QVariant& a,const QVariant& b){return a.toMap()["name"].toString()<b.toMap()["name"].toString();});
     emit snapshot(generation_, {{"state",state_},{"status",status_},{"name",name_},{"code",code_},
+        {"userId",self_},{"searchResults",searchResults_},{"searchStatus",searchStatus_},{"searching",searching_},{"searchTotal",searchTotal_},{"searchOffset",searchOffset_},
         {"guild",guild_},{"communities",communities},{"remembered",remembered_},{"friends",friends},{"chats",chats},{"messages",messages},{"channel",channel_}});
 }
 void FluxerSession::request(QByteArray method, QString path, QJsonObject body, Completion done, bool anonymous) {
@@ -188,6 +194,8 @@ void FluxerSession::authenticated() {
     request("GET","/v1/users/@me",{},[this](Reply r){
         if(r.status!=200||!idValid(r.body.object()["id"].toString())) {fail(r,"Could not verify your account");return;}
         self_=r.body.object()["id"].toString();name_=label(r.body.object());
+        navigationKey_="social/navigation/"+QString::fromLatin1(QCryptographicHash::hash((owner_+"\n"+self_).toUtf8(),QCryptographicHash::Sha256).toHex())+"/";
+        if(!transport_) {QSettings settings;for(const auto& key:{"chats","groups","communities","guild"})preferred_[key]=settings.value(navigationKey_+key).toString();}
         state_="connected";status_="Connected";credential(true);refresh();openGateway();publish();
     });
 }
@@ -197,23 +205,23 @@ void FluxerSession::refresh() {
     request("GET","/v1/users/@me/relationships",{},[this](Reply r){
         refreshing_=false;
         if(r.status!=200) {fail(r,"Could not load friends");return;}
-        relationships_.clear();
+        friendsLoaded_=true;relationships_.clear();
         for(const auto& v:r.body.array()) {auto o=v.toObject();auto id=o["id"].toString();if(idValid(id)&&relationships_.size()<2000)relationships_[id]=o;}
-        publish();
+        ensureConversation();publish();
     });
     request("GET","/v1/users/@me/channels",{},[this](Reply r){
         if(r.status!=200) {fail(r,"Could not load conversations");return;}
         for(auto it=channels_.begin();it!=channels_.end();) {if(it.value()["guild_id"].toString().isEmpty())it=channels_.erase(it);else ++it;}
         for(const auto& v:r.body.array()) {auto o=v.toObject();auto id=o["id"].toString();if(idValid(id)&&channels_.size()<500)channels_[id]=o;}
         if(!channel_.isEmpty()&&!channels_.contains(channel_)) {channel_.clear();messages_.clear();messageOrder_.clear();}
-        status_="Connected";publish();
+        channelsLoaded_=true;status_="Connected";ensureConversation();publish();
     });
     request("GET","/v1/users/@me/guilds?limit=100",{},[this](Reply r){
         if(r.status!=200){fail(r,"Could not load communities");return;}
         guilds_.clear();for(const auto& v:r.body.array()){auto g=v.toObject();if(idValid(g["id"].toString()))guilds_[g["id"].toString()]=g;}
         for(auto it=channels_.begin();it!=channels_.end();) {auto guild=it.value()["guild_id"].toString();if(!guild.isEmpty()&&!guilds_.contains(guild))it=channels_.erase(it);else ++it;}
         if(!guild_.isEmpty()&&!guilds_.contains(guild_)){guild_.clear();channel_.clear();messages_.clear();messageOrder_.clear();}
-        publish();
+        ensureConversation();publish();
     });
     if(!channel_.isEmpty())loadMessages(channel_);
 }
@@ -240,6 +248,7 @@ void FluxerSession::mergeMessage(const QJsonObject& message) {
     while(messageOrder_.size()>100)messages_.remove(messageOrder_.takeFirst());
 }
 void FluxerSession::command(QString operation, QVariantMap args) {
+    if(operation=="face") {face_=args["face"].toString();ensureConversation();publish();return;}
     if(operation=="login") {login();return;}
     if(operation=="cancel-login") {
         if(poll_)poll_->stop();
@@ -255,25 +264,45 @@ void FluxerSession::command(QString operation, QVariantMap args) {
         });return;
     }
     if(self_.isEmpty())return;
+    if(operation=="search") {search(args["mode"].toString(),args["text"].toString(),args["offset"].toInt());return;}
+    if(operation=="search-action") {
+        const auto id=args["id"].toString();
+        QVariantMap row;for(const auto& v:searchResults_)if(v.toMap()["id"]==id){row=v.toMap();break;}
+        if(row.isEmpty()||searching_||row["action"]=="Joined"||row["action"]=="Sent")return;
+        if(row["kind"]=="person") {command("add",{{"text",id}});return;}
+        searching_=true;searchStatus_="Joining...";publish();
+        const bool invite=row["kind"]=="invite";const auto revision=searchRevision_;
+        request("POST",invite?"/v1/invites/"+QString::fromLatin1(QUrl::toPercentEncoding(id)):"/v1/discovery/guilds/"+id+"/join",{},[this,id,revision](Reply r){
+            if(revision==searchRevision_)searching_=false;
+            if(r.status<200||r.status>=300){if(revision==searchRevision_){searchStatus_="Could not join. "+r.body.object()["message"].toString().left(180);fail(r,"Could not join");}return;}
+            if(revision==searchRevision_){searchStatus_="Joined";for(auto& v:searchResults_){auto row=v.toMap();if(row["id"]==id)row["action"]="Joined";v=row;}}refresh();publish();
+        });return;
+    }
     if(operation=="refresh") {refresh();return;}
     if(operation=="close") {channel_.clear();messages_.clear();messageOrder_.clear();publish();return;}
     const auto id=args["id"].toString();
     if(operation=="guild"&&idValid(id)&&guilds_.contains(id)) {
-        guild_=id;publish();
+        if(openingGuild_&&guild_==id)return;
+        guild_=id;openingGuild_=true;remember("guild",id);publish();
         request("GET","/v1/guilds/"+id,{},[this,id](Reply r){
             if(id!=guild_)return;
+            openingGuild_=false;
             if(r.status!=200){fail(r,"Could not open this community");return;}
             for(auto it=channels_.begin();it!=channels_.end();) {if(it.value()["guild_id"]==id)it=channels_.erase(it);else ++it;}
             for(const auto& v:r.body.object()["channels"].toArray()){auto c=v.toObject();if(c["type"].toInt(-1)==0&&idValid(c["id"].toString())&&channels_.size()<1000){c["guild_id"]=id;channels_[c["id"].toString()]=c;}}
-            publish();
+            ensureConversation();publish();
         });return;
     }
-    if(operation=="open"&&idValid(id)&&channels_.contains(id)) {channel_=id;messages_.clear();messageOrder_.clear();publish();loadMessages(id);return;}
+    if(operation=="open"&&idValid(id)&&channels_.contains(id)) {openConversation(id);return;}
     if(operation=="dm"&&idValid(id)&&relationships_.value(id)["type"]==1) {
+        for(auto it=channels_.cbegin();it!=channels_.cend();++it)if(it.value()["type"]==1)
+            for(const auto& recipient:it.value()["recipients"].toArray())if(recipient.toObject()["id"]==id){openConversation(it.key());return;}
+        if(openingDm_)return;
+        openingDm_=true;
         request("POST","/v1/users/@me/channels",{{"recipient_id",id}},[this](Reply r){
-            const auto c=r.body.object();const auto id=c["id"].toString();
+            openingDm_=false;const auto c=r.body.object();const auto id=c["id"].toString();
             if(r.status<200||r.status>=300||!idValid(id)){fail(r,"Could not open conversation");return;}
-            channels_[id]=c;channel_=id;messages_.clear();messageOrder_.clear();publish();loadMessages(id);
+            channels_[id]=c;if(face_=="chats")openConversation(id);else publish();
         });return;
     }
     if(operation=="send") {
@@ -299,8 +328,9 @@ void FluxerSession::command(QString operation, QVariantMap args) {
     if(operation=="add") {
         const auto tag=args["text"].toString().trimmed();const auto split=tag.lastIndexOf('#');
         if(split<1||tag.size()-split!=5){status_="Enter username#1234";publish();return;}
-        request("POST","/v1/users/@me/relationships",{{"username",tag.left(split)},{"discriminator",tag.mid(split+1)}},[this](Reply r){
-            if(r.status>=200&&r.status<300){status_="Friend request sent";refresh();}else fail(r,"Could not send friend request. Check the name and tag");
+        const auto revision=searchRevision_;
+        request("POST","/v1/users/@me/relationships",{{"username",tag.left(split)},{"discriminator",tag.mid(split+1)}},[this,tag,revision](Reply r){
+            if(r.status>=200&&r.status<300){if(revision==searchRevision_){searchStatus_="Friend request sent";for(auto& v:searchResults_){auto row=v.toMap();if(row["kind"]=="person"&&row["id"]==tag)row["action"]="Sent";v=row;}}status_="Friend request sent";refresh();publish();}else {if(revision==searchRevision_)searchStatus_="Could not add this person. Check their full tag";fail(r,"Could not send friend request. Check the name and tag");}
         });return;
     }
     if(idValid(id)&&relationships_.contains(id)&&(operation=="accept"||operation=="remove"||operation=="block")) {
@@ -310,6 +340,80 @@ void FluxerSession::command(QString operation, QVariantMap args) {
             });
     }
 }
+
+QString FluxerSession::channelKind(const QJsonObject& channel) const {
+    return !channel["guild_id"].toString().isEmpty()?"communities":channel["type"].toInt()==3?"groups":"chats";
+}
+void FluxerSession::remember(const QString& key,const QString& value) {
+    preferred_[key]=value;
+    if(!transport_&&!navigationKey_.isEmpty()){QSettings settings;settings.setValue(navigationKey_+key,value);}
+}
+void FluxerSession::openConversation(const QString& id) {
+    if(!channels_.contains(id)||channel_==id)return;
+    channel_=id;remember(channelKind(channels_[id]),id);
+    messages_.clear();messageOrder_.clear();publish();loadMessages(id);
+}
+void FluxerSession::ensureConversation() {
+    if(self_.isEmpty()||face_=="friends"||!channelsLoaded_)return;
+    if(face_=="communities"&&guild_.isEmpty()&&!guilds_.isEmpty()) {
+        const auto id=guilds_.contains(preferred_["guild"])?preferred_["guild"]:guilds_.keys().first();
+        command("guild",{{"id",id}});return;
+    }
+    auto matches=[&](const QJsonObject& c){return channelKind(c)==face_&&(face_!="communities"||c["guild_id"]==guild_);};
+    if(channels_.contains(channel_)&&matches(channels_[channel_]))return;
+    QString choice;
+    if(channels_.contains(preferred_[face_])&&matches(channels_[preferred_[face_]]))choice=preferred_[face_];
+    else for(auto it=channels_.cbegin();it!=channels_.cend();++it)if(matches(it.value())) {
+        const auto last=it.value()["last_message_id"].toString();const auto old=channels_.value(choice)["last_message_id"].toString();
+        if(choice.isEmpty()||last.size()>old.size()||(last.size()==old.size()&&(last>old||(last==old&&it.key()<choice))))choice=it.key();
+    }
+    if(!choice.isEmpty()){openConversation(choice);return;}
+    channel_.clear();messages_.clear();messageOrder_.clear();
+    if(face_=="chats"&&friendsLoaded_&&!openingDm_) {
+        QString first;for(auto it=relationships_.cbegin();it!=relationships_.cend();++it)
+            if(it.value()["type"]==1&&(first.isEmpty()||label(it.value()["user"].toObject())<label(relationships_[first]["user"].toObject())))first=it.key();
+        if(!first.isEmpty())command("dm",{{"id",first}});
+    }
+}
+void FluxerSession::search(QString mode,QString text,int offset) {
+    if(mode!="people"&&mode!="communities"&&mode!="invite")return;
+    const auto revision=++searchRevision_;searchMode_=mode;searchText_=text.trimmed().left(256);
+    searchOffset_=qMax(0,offset);searchTotal_=0;searchResults_.clear();searching_=false;searchStatus_.clear();
+    if(mode=="people") {
+        static const QRegularExpression tag("^[A-Za-z0-9_]{1,32}#[0-9]{4}$");
+        if(!tag.match(searchText_).hasMatch())searchStatus_="Enter their full Fluxer tag: username#1234";
+        else {searchStatus_="Ready to send a friend request";searchResults_.append(QVariantMap{{"id",searchText_},{"name",searchText_},{"description","Add this person on Fluxer"},{"detail","New friend"},{"kind","person"},{"action","Add friend"}});}
+        publish();return;
+    }
+    QString path;
+    if(mode=="invite") {
+        QString code=searchText_;
+        if(code.contains('/')) {QUrl url(code.contains("://")?code:"https://"+code);code=url.path().section('/',-1);}
+        if(code.isEmpty()){searchStatus_="Enter a group or community invite link";publish();return;}
+        path="/v1/invites/"+QString::fromLatin1(QUrl::toPercentEncoding(code));
+    } else {
+        QUrlQuery q;if(!searchText_.isEmpty())q.addQueryItem("query",searchText_.left(100));q.addQueryItem("limit","24");q.addQueryItem("offset",QString::number(searchOffset_));
+        path="/v1/discovery/guilds?"+q.toString(QUrl::FullyEncoded);
+    }
+    searching_=true;searchStatus_="Searching...";publish();
+    request("GET",path,{},[this,revision,mode](Reply r){
+        if(revision!=searchRevision_)return;
+        searching_=false;
+        if(r.status!=200){searchStatus_=r.status==404?"Invite not found or expired":r.body.object()["message"].toString().left(180);if(searchStatus_.isEmpty())searchStatus_="Search is unavailable. Try again";if(r.status==401)fail(r,searchStatus_);else publish();return;}
+        if(mode=="invite") {
+            const auto b=r.body.object();const auto g=b["guild"].toObject(),c=b["channel"].toObject();
+            QString name=g["name"].toString();if(name.isEmpty())name=c["name"].toString();if(name.isEmpty())name="Group conversation";
+            searchResults_.append(QVariantMap{{"id",b["code"].toString()},{"name",name},{"description",QString("%1 members").arg(b["member_count"].toInt())},{"detail",g.isEmpty()?"Group invite":"Community invite"},{"kind","invite"},{"action","Join"}});searchTotal_=1;
+        } else {
+            const auto body=r.body.object();searchTotal_=body["total"].toInt();
+            for(const auto& v:body["guilds"].toArray()){auto g=v.toObject();if(!idValid(g["id"].toString()))continue;
+                searchResults_.append(QVariantMap{{"id",g["id"].toString()},{"name",g["name"].toString()},{"description",g["description"].toString()},{"detail",QString("%1 members").arg(g["member_count"].toInt())},{"kind","community"},{"action",guilds_.contains(g["id"].toString())?"Joined":"Join"}});
+            }
+        }
+        searchStatus_=searchResults_.isEmpty()?"No matches":QString("%1 results").arg(searchTotal_);publish();
+    });
+}
+
 void FluxerSession::gatewaySend(int op,const QJsonValue& data) {
     if(socket_)socket_->sendTextMessage(QString::fromUtf8(QJsonDocument(QJsonObject{{"op",op},{"d",data}}).toJson(QJsonDocument::Compact)));
 }

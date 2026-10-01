@@ -32,6 +32,20 @@ private:
     friend class SocialTests;
     void request(QByteArray method, QString path, QJsonObject body, Completion done, bool anonymous = false);
     void publish();
+    void ensureConversation();
+    void openConversation(const QString& id);
+    void search(QString mode, QString text, int offset = 0);
+    void remember(const QString& key, const QString& value);
+    QString channelKind(const QJsonObject& channel) const;
+    QString face_ = "chats", navigationKey_;
+    QHash<QString,QString> preferred_;
+    bool channelsLoaded_ = false, friendsLoaded_ = false, openingDm_ = false, openingGuild_ = false;
+    QVariantList searchResults_;
+    QString searchMode_ = "communities", searchText_, searchStatus_;
+    int searchOffset_ = 0, searchTotal_ = 0;
+    quint64 searchRevision_ = 0;
+    bool searching_ = false;
+
     void login();
     void pollLogin();
     void authenticated();
