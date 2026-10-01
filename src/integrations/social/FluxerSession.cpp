@@ -34,10 +34,47 @@ bool newer(const QString& a, const QString& b) {
     return !a.isEmpty() && (a.size() == b.size() ? a > b : a.size() > b.size());
 }
 }
-FluxerSession::FluxerSession(QObject* parent) : QObject(parent) {}
+FluxerSession::FluxerSession(QObject* parent) : QObject(parent) {
+    onlineSendTimer_.setSingleShot(true);onlineSendTimer_.setInterval(1000);
+    connect(&onlineSendTimer_,&QTimer::timeout,this,&FluxerSession::sendOnline);
+    connect(&online_,&OnlineLink::changed,this,[this]{
+        if(online_.state()["stage"]=="idle") {
+            // Keep an explicit final close, but never send queued exchange data
+            // after cancellation/block/expiry. In-flight delivery is uncertain.
+            onlineQueue_.removeIf([](const auto& entry){return OnlineLink::decode(entry.second)["kind"]!="close";});
+        }
+        publish();
+    });
+    connect(&online_,&OnlineLink::established,this,[this](QString self,QString peer,QString name,QString activity,bool initiator){emit onlineEstablished(generation_,self,peer,name,activity,initiator);});
+    connect(&online_,&OnlineLink::frameReceived,this,[this](QJsonObject frame){emit onlineFrame(generation_,frame);});
+    connect(&online_,&OnlineLink::ended,this,[this]{emit onlineEnded(generation_);});
+    connect(&online_,&OnlineLink::outgoing,this,[this](QString channel,QString content){
+        if(onlineQueue_.size()>=32){onlineQueue_.clear();online_.close("Online activity queue is full. Reconnect to recover.");return;}
+        onlineQueue_.append({channel,content});if(!onlineSending_&&!onlineSendTimer_.isActive())sendOnline();
+    });
+}
+void FluxerSession::bindOnline() {
+    QSettings settings;
+    const auto key="social/endpoint/"+owner_+"/"+self_;
+    auto endpoint=settings.value(key).toString();
+    if(QUuid(endpoint).isNull()){endpoint=QUuid::createUuid().toString(QUuid::WithoutBraces);settings.setValue(key,endpoint);}
+    online_.bind(self_,endpoint);
+}
+void FluxerSession::sendOnline() {
+    if(onlineSending_||onlineQueue_.isEmpty()||self_.isEmpty())return;
+    const auto entry=onlineQueue_.takeFirst();onlineSending_=true;const auto revision=onlineSendRevision_;
+    const auto nonce=QUuid::createUuid().toString(QUuid::Id128);
+    request("POST","/v1/channels/"+entry.first+"/messages",{{"content",entry.second},{"nonce",nonce},{"flags",1<<12},
+        {"allowed_mentions",QJsonObject{{"parse",QJsonArray{}}}}},[this,revision](Reply r){
+        if(revision!=onlineSendRevision_)return;onlineSending_=false;
+        if(r.status<200||r.status>=300){onlineQueue_.clear();online_.close("Online delivery stopped. Reconnect to recover; nothing is automatically resent.");return;}
+        onlineSendTimer_.start();
+    });
+}
 FluxerSession::~FluxerSession() { reset(); }
 void FluxerSession::reset() {
     ++epoch_;
+    ++onlineSendRevision_;onlineSendTimer_.stop();onlineQueue_.clear();onlineSending_=false;online_.bind({},{});
     delete proof_; proof_=nullptr;
     readThrough_.clear();readRevision_.clear();muted_.clear();
     readsReady_=ackBusy_=doNotDisturb_=false;privatePreviews_=true;
@@ -91,6 +128,7 @@ void FluxerSession::publish() {
         if(name.isEmpty()) { QStringList names; for(const auto& v:c["recipients"].toArray()) if(v.toObject()["id"]!=self_) names<<label(v.toObject()); name=names.join(", "); }
         chats.append(QVariantMap{{"id",it.key()},{"name",name.isEmpty()?QString("Conversation"):name.left(120)},
             {"owner",c["owner_id"].toString()},{"members",c["recipients"].toArray().toVariantList()},
+            {"friend",c["type"].toInt(-1)==1&&c["recipients"].toArray().size()==1&&relationships_.value(c["recipients"].toArray().first().toObject()["id"].toString())["type"].toInt()==1},
             {"muted",muted_.contains(it.key())},
             {"detail",muted_.contains(it.key())?QString("Muted"):unread_.value(it.key())?QString("New messages"):QString("Private conversation")},
             {"kind",c["guild_id"].toString().isEmpty() ? (c["type"].toInt()==3 ? "groups" : "chats") : "community-channel"},{"guild",c["guild_id"].toString()},{"unread",unread_.value(it.key())},{"last",c["last_message_id"].toString()}});
@@ -101,14 +139,22 @@ void FluxerSession::publish() {
     });
     for (const auto& id:messageOrder_) {
         const auto m=messages_.value(id);
+        const auto onlineEnvelope=OnlineLink::decode(m["content"].toString());
         const auto guild=channels_.value(channel_)["guild_id"].toString();
         const bool welcome=communityIdentity::matches(m,guild,guilds_.value(guild)["owner_id"].toString(),communityChannels_.value(guild));
         QString text=welcome?QString("A gathering place for TrainerOS players. Welcome!"):m["content"].toString().left(4000);
+        if(!onlineEnvelope.isEmpty()) {
+            text=m["content"].toString().section('\n',0,0);
+            // Keep the newest ID when collapsing adjacent protocol updates so
+            // normal read acknowledgement still reaches the conversation tail.
+            if(!messages.isEmpty()&&messages.last().toMap()["onlineKind"]==onlineEnvelope["kind"].toString())messages.removeLast();
+        }
         if(m["type"].toInt()==6)text=label(m["author"].toObject())+" pinned a message";
         else if(m["type"].toInt()==7)text=label(m["author"].toObject())+" joined the community";
         messages.append(QVariantMap{{"id",id},{"name",label(m["author"].toObject())},
-            {"editable",!welcome&&idValid(id)&&m["author"].toObject()["id"]==self_&&(m["type"].toInt()==0||m["type"].toInt()==19)&&m["message_snapshots"].toArray().isEmpty()&&m["local_delivery"].toString().isEmpty()},
-            {"edited",!m["edited_timestamp"].toString().isEmpty()},{"system",m["type"].toInt()!=0&&m["type"].toInt()!=19},
+            {"editable",onlineEnvelope.isEmpty()&&!welcome&&idValid(id)&&m["author"].toObject()["id"]==self_&&(m["type"].toInt()==0||m["type"].toInt()==19)&&m["message_snapshots"].toArray().isEmpty()&&m["local_delivery"].toString().isEmpty()},
+            {"onlineKind",onlineEnvelope["kind"].toString()},
+            {"edited",!m["edited_timestamp"].toString().isEmpty()},{"system",!onlineEnvelope.isEmpty()||(m["type"].toInt()!=0&&m["type"].toInt()!=19)},
             {"mine",m["author"].toObject()["id"]==self_},{"text",text},
             {"delivery",m["local_delivery"].toString()}, {"media",!m["attachments"].toArray().isEmpty()}});
     }
@@ -127,7 +173,7 @@ void FluxerSession::publish() {
         {"communityInvite",communityInvite_},{"communityOwner",guilds_.value(guild_)["owner_id"]==self_},
         {"communityMarked",communityMarked_.contains(guild_)},
         {"historyBusy",historyBusy_},{"historyMore",historyMore_},{"historyPast",historyPast_},
-        {"userId",self_},{"searchResults",searchResults_},{"searchStatus",searchStatus_},{"searching",searching_},{"searchTotal",searchTotal_},{"searchOffset",searchOffset_},
+        {"online",online_.state()},{"userId",self_},{"searchResults",searchResults_},{"searchStatus",searchStatus_},{"searching",searching_},{"searchTotal",searchTotal_},{"searchOffset",searchOffset_},
         {"guild",guild_},{"communities",communities},{"remembered",remembered_},{"friends",friends},{"chats",chats},{"messages",messages},{"channel",channel_}});
 }
 void FluxerSession::request(QByteArray method, QString path, QJsonObject body, Completion done, bool anonymous, QByteArray captcha) {
@@ -299,7 +345,7 @@ void FluxerSession::authenticated() {
             if(!token_.isEmpty()){const auto epoch=epoch_;QTimer::singleShot(qMax(15000,r.retrySeconds*1000),this,[this,epoch]{if(epoch==epoch_&&self_.isEmpty()&&!token_.isEmpty())authenticated();});}
             return;
         }
-        self_=r.body.object()["id"].toString();name_=label(r.body.object());
+        self_=r.body.object()["id"].toString();name_=label(r.body.object());bindOnline();
         navigationKey_="social/navigation/"+QString::fromLatin1(QCryptographicHash::hash((owner_+"\n"+self_).toUtf8(),QCryptographicHash::Sha256).toHex())+"/";
         if(!transport_) {QSettings settings;for(const auto& key:{"chats","groups","communities","guild"})preferred_[key]=settings.value(navigationKey_+key).toString();
             doNotDisturb_=settings.value(navigationKey_+"dnd",false).toBool();privatePreviews_=settings.value(navigationKey_+"private",true).toBool();muted_=settings.value(navigationKey_+"muted").toStringList();}
@@ -398,6 +444,19 @@ void FluxerSession::mergeMessage(const QJsonObject& message) {
     while(messageOrder_.size()>100)messages_.remove(messageOrder_.takeFirst());
 }
 void FluxerSession::command(QString operation, QVariantMap args) {
+    if(operation=="online-capabilities"){online_.setCapabilities(QJsonArray::fromVariantList(args["activities"].toList()));return;}
+    if(operation=="online-available"){online_.setAvailable(args["available"].toBool());return;}
+    if(operation=="online-answer"){online_.answer(args["accept"].toBool());return;}
+    if(operation=="online-close"){online_.answer(false);return;}
+    if(operation=="online-frame"){online_.sendFrame(QJsonObject::fromVariantMap(args));return;}
+    if(operation=="online-invite"){online_.invite(args["id"].toString());return;}
+    if(operation=="online-probe") {
+        const auto channel=args["channel"].toString();const auto c=channels_.value(channel);
+        if(c["type"].toInt(-1)!=1||c["recipients"].toArray().size()!=1)return;
+        const auto peer=c["recipients"].toArray().first().toObject()["id"].toString();
+        if(relationships_.value(peer)["type"].toInt()!=1)return;
+        online_.probe(channel,peer);return;
+    }
     if(operation=="face") {face_=args["face"].toString();if(face_=="communities")communityChecked_.clear();ensureConversation();checkCommunities();publish();return;}
     if(operation=="login") {login();return;}
     if(operation=="cancel-login") {
@@ -779,6 +838,8 @@ void FluxerSession::openGateway() {
     socket_->open(QUrl("wss://gateway.fluxer.app/?v=1&encoding=json"));
 }
 void FluxerSession::disconnected() {
+    ++onlineSendRevision_;onlineQueue_.clear();onlineSending_=false;onlineSendTimer_.stop();
+    online_.close("Connection interrupted. Reconnect the activity to recover.");
     if(heartbeat_)heartbeat_->stop();
     awaitingAck_=false;
     if(token_.isEmpty())return;
@@ -813,6 +874,12 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
         }
         else if(type=="MESSAGE_ACK")applyReadState(d,true);
         else if(type=="MESSAGE_CREATE"||type=="MESSAGE_UPDATE") {
+            if(type=="MESSAGE_CREATE"&&d["webhook_id"].toString().isEmpty()&&d["type"].toInt(-1)==0) {
+                const auto author=d["author"].toObject();const auto id=author["id"].toString();
+                const auto c=channels_.value(d["channel_id"].toString());
+                if(c["type"].toInt(-1)==1&&c["recipients"].toArray().size()==1&&c["recipients"].toArray().first().toObject()["id"]==id&&relationships_.value(id)["type"].toInt()==1)
+                    online_.receive(d["channel_id"].toString(),id,label(author),OnlineLink::decode(d["content"].toString()));
+            }
             ++messageRevision_;
             if(!historyPast_||messages_.contains(d["id"].toString())||pendingNonces_.contains(d["nonce"].toString()))mergeMessage(d);
             const auto channel=d["channel_id"].toString();
@@ -821,13 +888,14 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
                 if(fresh){++channelRevision_;channels_[channel]["last_message_id"]=id;}
                 updateUnread(channel);
                 const auto author=d["author"].toObject();
-                if(fresh&&author["id"]!=self_&&relationships_.value(author["id"].toString())["type"].toInt()!=2
+                if(fresh&&OnlineLink::decode(d["content"].toString()).isEmpty()&&author["id"]!=self_&&relationships_.value(author["id"].toString())["type"].toInt()!=2
                     &&!muted_.contains(channel)&&!doNotDisturb_)
                     emit incomingMessage(generation_,channel,privatePreviews_?QString("New message"):label(author),
                         privatePreviews_?QString("Open Social to catch up"):d["content"].toString().left(160));
             }
         } else if(type=="MESSAGE_DELETE") {++messageRevision_;const auto id=d["id"].toString();messages_.remove(id);messageOrder_.removeAll(id);}
         else if(type.startsWith("RELATIONSHIP_")||type.startsWith("CHANNEL_")||type.startsWith("GUILD_")) {
+            if(type.startsWith("RELATIONSHIP_")&&d["id"]==online_.peerAccount()&&(type=="RELATIONSHIP_REMOVE"||d["type"].toInt()!=1))online_.close("Friend connection ended");
             ++channelRevision_;
             if(type=="CHANNEL_DELETE") {channels_.remove(d["id"].toString());if(d["id"]==channel_){channel_.clear();messages_.clear();messageOrder_.clear();}}
             refresh();

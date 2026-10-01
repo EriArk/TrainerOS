@@ -12,7 +12,7 @@ Item {
     readonly property var fighters: controller.fighters
     Item {
         anchors.fill: parent; anchors.margins: Theme.panelInset; anchors.topMargin: Theme.contentTopInset
-        PageHeader { id: heading; compact: true; title: root.arena ? "Link Battle" : "Nearby play"; trailing: root.arena ? root.controller.stakeText : root.controller.partner || "Together, wherever you are" }
+        PageHeader { id: heading; compact: true; title: root.arena ? "Link Battle" : root.controller.online ? "Together" : "Nearby play"; trailing: root.arena ? root.controller.stakeText : root.controller.partner || "Together, wherever you are" }
         Rectangle {
             id: desk
             anchors.top: heading.bottom; anchors.bottom: parent.bottom; width: parent.width
@@ -27,16 +27,16 @@ Item {
                 Column {
                     x: 13; y: 52; width: parent.width-28; spacing: 12
                     Repeater {
-                        model: ["Battle", "Trade", "Sell", "Give"]
+                        model: root.controller.activityModes
                         CapButton {
                             required property int index; required property string modelData
-                            width: parent.width; height: 47; label: modelData; contentInset: 43
+                            width: parent.width; height: 47; label: ({battle:"Battle",trade:"Trade",sale:"Sell",gift:"Give"})[modelData]; contentInset: 43
                             tint: [Theme.yellow, Theme.blue, Theme.pink, Theme.green][index]
                             selected: root.takesFocus && root.stage === "lobby" && root.controller.focusIndex === index
-                            opacity: root.controller.mode.length && root.controller.mode !== ["battle","trade","sale","gift"][index] ? 0.55 : 1
+                            opacity: root.controller.mode.length && root.controller.mode !== modelData ? 0.55 : 1
                             deferredFocus: true
                             onActivated: if (root.stage === "lobby") root.controller.activate(index)
-                            Text { x: 13; anchors.verticalCenter: parent.verticalCenter; text: ["⚔", "⇄", "₽", "♥"][index]; font.pixelSize: 23; color: Theme.ink }
+                            Text { x: 13; anchors.verticalCenter: parent.verticalCenter; text: ({battle:"⚔",trade:"⇄",sale:"₽",gift:"♥"})[modelData]; font.pixelSize: 23; color: Theme.ink }
                         }
                     }
                 }
@@ -114,7 +114,7 @@ Item {
                             LinkPortrait { required property int index; required property var modelData; width: Math.min(72,(parent.parent.width-50)/6); height: width; member: modelData; tint: [Theme.blue,Theme.green,Theme.yellow][index%3] }
                         }
                     }
-                    Text { y: 151; width: parent.width; text: "A friendly match, a new partner,\nor a gift for someone special."; font.family: Theme.displayFamily; font.pixelSize: 24; color: "#517d6a"; lineHeight: 1.2 }
+                    Text { y: 151; width: parent.width; text: root.controller.online ? "A new partner,\nor a gift for someone special." : "A friendly match, a new partner,\nor a gift for someone special."; font.family: Theme.displayFamily; font.pixelSize: 24; color: "#517d6a"; lineHeight: 1.2 }
                 }
                 Item {
                     y: 59; width: parent.width; height: parent.height-y-12

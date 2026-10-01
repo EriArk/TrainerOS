@@ -1,5 +1,6 @@
 #include "SocialController.h"
 #include "integrations/social/FluxerSession.h"
+#include "features/center/LinkController.h"
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFileInfo>
@@ -42,6 +43,7 @@ SocialController::~SocialController() {
 }
 void SocialController::setOwner(QString owner) {
     if(owner==owner_)return;
+    if(link_)link_->endOnline();
     saveDrafts();draftFile_.clear();
     editDrafts_.clear();pickedPeople_.clear();
     toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();
@@ -57,6 +59,24 @@ void SocialController::setFace(QString face) {
     if(face_=="friends"&&!searchStarted_&&snapshot_["state"]=="connected")runSearch();
     emit changed();
 }
+void SocialController::setLink(LinkController* link) {
+    link_=link;
+    connect(session_,&FluxerSession::onlineEstablished,this,[this](quint64 generation,QString self,QString peer,QString name,QString activity,bool initiator){
+        if(generation!=generation_)return;
+        if(!onlineWritable_||!link_||!link_->beginOnline(self,peer,name,activity,initiator))emit commandRequested("online-close",{});
+    });
+    connect(session_,&FluxerSession::onlineFrame,this,[this](quint64 generation,QJsonObject frame){if(generation==generation_&&link_)link_->receiveOnline(frame);});
+    connect(session_,&FluxerSession::onlineEnded,this,[this](quint64 generation){if(generation==generation_&&link_)link_->endOnline();});
+    connect(link,&LinkController::onlineSend,this,[this](QJsonObject frame){emit commandRequested("online-frame",frame.toVariantMap());});
+    connect(link,&LinkController::onlineClosed,this,[this]{emit commandRequested("online-close",{});});
+}
+void SocialController::setOnlineContext(bool available,bool writable) {
+    if(onlineAvailable_!=available){onlineAvailable_=available;emit commandRequested("online-available",{{"available",available}});}
+    onlineWritable_=writable;
+    const auto caps=writable&&link_?link_->onlineCapabilities().toVariantList():QVariantList{};
+    if(caps!=onlineCapabilities_){onlineCapabilities_=caps;emit commandRequested("online-capabilities",{{"activities",caps}});}
+}
+void SocialController::answerOnline(bool accept){emit commandRequested("online-answer",{{"accept",accept}});}
 void SocialController::setSurfaceAvailable(bool available) {
     if(surfaceAvailable_==available)return;
     surfaceAvailable_=available;
@@ -81,6 +101,14 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     const auto oldMessage=messages().value(messageFocus_).toMap().value("id");
     const bool atEnd=messageFocus_>=messages().size()-1;
     snapshot_=std::move(snapshot);
+    if(online()["open"].toBool())menu_.clear();
+    else if(menuMode_=="online"&&!menu_.isEmpty()) {
+        menuDetail_=online()["status"].toString();menu_.clear();menuCommands_.clear();
+        for(const auto& value:online()["actions"].toList()){const auto a=value.toMap();menu_.append(a["label"].toString());menuCommands_.append("online:"+a["id"].toString());}
+        if(menu_.isEmpty()) {menu_.append("Close");menuCommands_.append("cancel");
+            if(online()["stage"]=="available")menuDetail_="TrainerOS is connected, but no matching activity is ready. Choose a supported saved Adventure on both devices.";}
+        menuFocus_=qBound(0,menuFocus_,int(menu_.size())-1);
+    }
     if(menuMode_=="community-invite"&&!menu_.isEmpty())menuDetail_=snapshot_["communityInvite"].toString().isEmpty()
         ?snapshot_["mutationBusy"].toBool()?"Creating invitation...":snapshot_["communityStatus"].toString()
         :snapshot_["communityInvite"].toString();
@@ -196,6 +224,7 @@ void SocialController::openMenu() {
         add("Edit message","edit-message");add("Delete message","ask-delete-message");
     } else {
         if(face_=="chats")add(contacts_?"Conversations":"Friends & requests","contacts");
+        if(face_=="chats"&&!contacts_&&conversation()&&currentChat()["friend"].toBool())add("Together","online");
         if(contacts_&&!menuSubject_.isEmpty()) {
             const int type=row["type"].toInt();
             if(type==3){add("Accept request","accept");add("Decline request","remove");}
@@ -254,6 +283,16 @@ void SocialController::selectMenu(int index) {
     const auto command=menuCommands_[index];
     if(command=="none")return;
     if(command=="cancel"){menu_.clear();emit changed();return;}
+    if(command=="online") {
+        if(online()["stage"]=="connected"&&online()["channel"]==menuChannel_&&link_){
+            menu_.clear();emit changed();link_->showOnline();return;
+        }
+        menuMode_="online";menuTitle_="Together";menuDetail_="Checking TrainerOS...";menuFocus_=0;
+        menu_={"Close"};menuCommands_={"cancel"};
+        if(online()["stage"]=="connected") {menuDetail_="Finish your current session first.";emit changed();return;}
+        emit commandRequested("online-probe",{{"channel",menuChannel_}});emit changed();return;
+    }
+    if(command.startsWith("online:")){menu_.clear();emit changed();emit commandRequested("online-invite",{{"id",command.mid(7)}});return;}
     if(menuMode_=="create-group") {
         const bool selected=pickedPeople_.contains(command);
         if(selected)pickedPeople_.removeAll(command);else if(pickedPeople_.size()<49)pickedPeople_.append(command);else return;

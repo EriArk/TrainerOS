@@ -86,6 +86,9 @@ public:
     Q_PROPERTY(bool unobstructed READ canReceiveNearby NOTIFY changed)
     bool canReceiveNearby() { return !homeMenuOpen_ && !menuOpen_ && !drawerOpen_ && !serviceOpen() && notice_.isEmpty()
         && !localModalOpen() && !keyboard_.isOpen() && !party_.activities()->practice()->running(); }
+    bool canReceiveOnline() { return !homeMenuOpen_ && !menuOpen_ && !drawerOpen_ && !serviceOpen() && notice_.isEmpty()
+        && (!localModalOpen() || (page_==4 && !social_.menu().isEmpty()))
+        && !keyboard_.isOpen() && !party_.activities()->practice()->running(); }
     TrainerController* trainer() { return &trainer_; }
     WorldsController* worlds() { return &worlds_; }
     MultiversePresentation* multiverse() { return &multiverse_; }

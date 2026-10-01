@@ -14,6 +14,7 @@ find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/integrations/social/OnlineLink.cpp
     src/integrations/social/FluxerSession.cpp
     src/integrations/social/AltchaProof.cpp
     src/platform/storage/EncryptedCredentials.cpp
@@ -433,6 +434,9 @@ if(BUILD_TESTING)
     # to that file instead of defining them for every generated QML unit.
     set_source_files_properties(src/app/Main.cpp PROPERTIES COMPILE_DEFINITIONS TRAINEROS_UI_TESTS)
     qt_add_executable(trainer_social_tests tests/SocialTests.cpp)
+    qt_add_executable(trainer_online_link_tests tests/OnlineLinkTests.cpp)
+    target_link_libraries(trainer_online_link_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME online_link COMMAND trainer_online_link_tests)
     target_link_libraries(trainer_social_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME social COMMAND trainer_social_tests)
     qt_add_executable(trainer_core_tests tests/CoreTests.cpp)

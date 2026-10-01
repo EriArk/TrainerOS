@@ -96,6 +96,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         centerRoute_="link";showPokemonFace("center");emit changed();
     });
     settings_.configureNearby(party_.activities()->link());
+    social_.setLink(party_.activities()->link());
     connect(&center_, &SaveCenterController::changed, this, [this] {
         if (center_.confirming()) party_.openSaves();
     });
@@ -819,6 +820,11 @@ void ShellController::activateHomeMenu(int index) {
     if(index==1)social_.showContacts();
 }
 void ShellController::dispatch(Action action) {
+    if(social_.online()["open"].toBool()) {
+        if(action==Action::Confirm)social_.answerOnline(true);
+        else if(action==Action::Back)social_.answerOnline(false);
+        return;
+    }
     if(party_.activities()->link()->invitationOpen()) {
         party_.activities()->link()->dispatch(action);return;
     }

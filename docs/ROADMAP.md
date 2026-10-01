@@ -33,13 +33,20 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
    are described in [community delivery](SOCIAL_COMMUNITIES.md). Public listing
    keeps Fluxer's eligibility/approval; ordinary private invitations remain usable.
    A marker is a hint, never activity consent or proof of compatible clients.
-   Next: shared invitations and effective peer capabilities (#104/#109). Odin delivery
+   Shared invitations and effective peer capabilities (#104/#109) now have a
+   bounded [online Link increment](ONLINE_LINK.md). Odin delivery
    and two-handheld proof wait for the owner's evening reboot; no bulk user
    enumeration or extra choose-person page.
 5. #104 invitations + #109 reusable existing system activities + #105 per-traffic
    delivery proof → #110 exact Emerald internet exchange with runtimes closed.
    A bounded live TrainerOS capability exchange gates game offers; ordinary
    Fluxer contacts remain chat-only. Keep names intact and save trust separate.
+   The first increment connects friend-DM consent to the existing exact Emerald
+   exchange/sale/gift workspace through bounded provider messages. Public-route
+   invitation/offer proof is one Flip plus a test client, not two-device settlement.
+   **Next:** #110 two-handheld protected exchange/readback and interrupted recovery;
+   complete the #105 workload/privacy/retention matrix and remaining #109 contracts.
+   Online battle and emulator netplay are not advertised by this increment.
 6. #102 chat images/recorded voice and #103 simple private calls, independent gates.
 7. #107 one actual exact-game/runtime online multiplayer route. #106 direct/relay
    is implemented only where the chosen consumer needs it; suitable #105 native

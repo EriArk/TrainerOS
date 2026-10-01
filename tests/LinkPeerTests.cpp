@@ -7,6 +7,37 @@ using namespace trainer;
 class LinkPeerTests:public QObject {
     Q_OBJECT
 private slots:
+    void onlineReusesConsentWorkspaceAndPreservesRecovery() {
+        const QString local="11111111-1111-4111-8111-111111111111",remote="22222222-2222-4222-8222-222222222222";
+        LinkController link;QStringList operations;
+        link.configure({},local,"Misty",[&](const QString& op,const QJsonObject&,QObject*,auto done){operations<<op;done(QJsonObject{});},
+            [](const PracticeSource&,const GameProgress&,QObject*,auto done){done(true);},{});
+        GameProgress progress;progress.availability=ProgressAvailability::Available;
+        progress.contentRevision="a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f6226db19085af";
+        progress.saveRevision="save";progress.contextRevision="owner";progress.party=PartySnapshot{};
+        PokemonRecord mon;mon.kind=PokemonSlotKind::Known;mon.speciesName="Test";mon.speciesId="1";mon.formId="standard";progress.party->party.append(mon);
+        link.setObservation({"trainer","emerald","owner",progress.contentRevision,"save"},progress,{});
+        QCOMPARE(link.onlineCapabilities().size(),3);
+        QSignalSpy sent(&link,&LinkController::onlineSend),opened(&link,&LinkController::workspaceRequested);
+        QVERIFY(!link.beginOnline(local,remote,"Friend","org.traineros.emerald.battle",true));
+        QVERIFY(link.beginOnline(local,remote,"Friend","org.traineros.emerald.trade",true));
+        QCOMPARE(opened.size(),1);QCOMPARE(link.stage(),"choose");QVERIFY(operations.isEmpty());
+        QVERIFY(!link.activityModes().contains("battle"));
+        link.dispatch(Action::Back);QCOMPARE(link.stage(),"lobby");QVERIFY(link.connected());
+        link.receiveOnline({{"type","activity-invite"},{"version",2},{"id","44444444-4444-4444-8444-444444444444"},{"mode","battle"}});
+        QVERIFY(!link.invitationOpen());
+        link.leave();QVERIFY(link.connected());link.showOnline();QVERIFY(link.isOpen());QCOMPARE(opened.size(),2);
+        link.endOnline();QVERIFY(!link.connected());
+        const QJsonObject pending{{"id","55555555-5555-4555-8555-555555555555"},{"peer",remote},{"stage","prepared"},{"kind","trade"},{"owner","trainer"},{"adventure","emerald"}};
+        link.configure({},local,"Misty",[&](const QString& op,const QJsonObject&,QObject*,auto done){operations<<op;done(pending);},
+            [](const PracticeSource&,const GameProgress&,QObject*,auto done){done(true);},pending);
+        QVERIFY(!link.beginOnline(local,"33333333-3333-4333-8333-333333333333","Other","org.traineros.emerald.trade",true));
+        QVERIFY(link.beginOnline(local,remote,"Friend","org.traineros.emerald.trade",true));
+        QCOMPARE(operations,QStringList{"status"});QVERIFY(link.pending());
+        const auto receipt=sent.last()[0].toJsonObject()["receipt"].toObject();
+        QVERIFY(!receipt.contains("owner"));QVERIFY(!receipt.contains("adventure"));
+        link.endOnline();QVERIFY(link.pending());QCOMPARE(operations,QStringList{"status"});
+    }
     void bluetoothBridgeCarriesExistingFramesOverLoopback() {
         LocalLinkPeer link;link.configure("11111111-1111-4111-8111-111111111111","Misty");
         QTcpServer bridge;QVERIFY(bridge.listen(QHostAddress::LocalHost,0));

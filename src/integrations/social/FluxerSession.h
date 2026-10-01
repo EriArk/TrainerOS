@@ -7,6 +7,7 @@
 #include <QTimer>
 #include <QSet>
 #include <functional>
+#include "OnlineLink.h"
 
 class QNetworkAccessManager;
 class QWebSocket;
@@ -33,8 +34,18 @@ signals:
     void sendFailed(quint64 generation, QString channel, QString text);
     void mutationFinished(quint64 generation, QString operation, QString channel, QString id, bool success);
     void incomingMessage(quint64 generation, QString channel, QString name, QString text);
+    void onlineEstablished(quint64 generation, QString self, QString peer, QString name, QString activity, bool initiator);
+    void onlineFrame(quint64 generation, QJsonObject frame);
+    void onlineEnded(quint64 generation);
 private:
     friend class SocialTests;
+    OnlineLink online_{this};
+    QTimer onlineSendTimer_{this};
+    QList<QPair<QString,QString>> onlineQueue_;
+    bool onlineSending_=false;
+    quint64 onlineSendRevision_=0;
+    void sendOnline();
+    void bindOnline();
     void request(QByteArray method, QString path, QJsonObject body, Completion done, bool anonymous = false, QByteArray captcha = {});
     void verifiedRequest(QByteArray method, QString path, QJsonObject body, Completion done, int attempt = 0, QByteArray captcha = {});
     AltchaProof* proof_ = nullptr;

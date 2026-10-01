@@ -9,6 +9,7 @@
 
 namespace trainer {
 class FluxerSession;
+class LinkController;
 class SocialController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool contacts READ contacts NOTIFY changed)
@@ -34,10 +35,15 @@ class SocialController final : public QObject {
     Q_PROPERTY(bool conversationVisible READ conversationVisible WRITE setConversationVisible NOTIFY presentationChanged)
     Q_PROPERTY(QString toastTitle READ toastTitle NOTIFY presentationChanged)
     Q_PROPERTY(QString toastText READ toastText NOTIFY presentationChanged)
+    Q_PROPERTY(QVariantMap online READ online NOTIFY changed)
 public:
     explicit SocialController(QObject* parent = nullptr);
     ~SocialController() override;
     void setOwner(QString owner);
+    void setLink(LinkController* link);
+    void setOnlineContext(bool available,bool writable);
+    QVariantMap online() const{return snapshot_.value("online").toMap();}
+    Q_INVOKABLE void answerOnline(bool accept);
     void setFace(QString face);
     void dispatch(Action action);
     void showContacts();
@@ -94,6 +100,9 @@ private:
     void send();
     QThread thread_;
     FluxerSession* session_;
+    LinkController* link_=nullptr;
+    bool onlineAvailable_=false,onlineWritable_=true;
+    QVariantList onlineCapabilities_;
     QVariantMap snapshot_;
     QHash<QString,QString> drafts_;
     QString owner_, face_ = "chats", textPurpose_, textChannel_;

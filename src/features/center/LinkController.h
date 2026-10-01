@@ -36,6 +36,8 @@ class LinkController final:public QObject {
     Q_PROPERTY(bool visibleNearby READ visibleNearby WRITE setVisibleNearby NOTIFY changed)
     Q_PROPERTY(bool connected READ connected NOTIFY changed)
     Q_PROPERTY(bool searching READ searching NOTIFY changed)
+    Q_PROPERTY(bool online READ online NOTIFY changed)
+    Q_PROPERTY(QStringList activityModes READ activityModes NOTIFY changed)
 public:
     using Backend=std::function<void(const QString&,const QJsonObject&,QObject*,std::function<void(QJsonObject)>)>;
     explicit LinkController(QObject* parent=nullptr);
@@ -44,6 +46,13 @@ public:
         PracticeController::Verifier,const QJsonObject& pending);
     void setObservation(const PracticeSource&,const GameProgress&,const QVariantList&);
     void setTrainerName(const QString& name);
+    QJsonArray onlineCapabilities() const;
+    bool beginOnline(QString self,QString peer,QString name,QString activity,bool initiator);
+    void receiveOnline(QJsonObject frame);
+    void showOnline();
+    void endOnline();
+    bool online() const{return online_;}
+    QStringList activityModes() const{return online_?QStringList{"trade","sale","gift"}:QStringList{"battle","trade","sale","gift"};}
     void setVisibleNearby(bool);
     bool visibleNearby() const{return visibleNearby_;}
     void setInvitationsAllowed(bool);
@@ -78,6 +87,8 @@ public:
 signals:
     void changed();void closeRequested();void saveChanged();void workspaceRequested();
     void connectionFailed(const QString&);
+    void onlineSend(QJsonObject frame);
+    void onlineClosed();
 private:
     void receive(const QJsonObject&);void send(const QString&,QJsonObject={});
     void fail(const QString&);void pairReady();void startMode(const QString&);
@@ -85,9 +96,13 @@ private:
     void operation(const QString&,QJsonObject,std::function<void(QJsonObject)>);
     void verify(std::function<void()>);void resetChoice();void recover(const QString&);
     QVariantMap display(const QJsonObject&) const;QJsonObject partyMember(int) const;
-    QString proposal() const;bool host() const{return peer_.id()<peerId_;}
+    QString proposal() const;bool host() const{return localId()<peerId_;}
     bool sale() const{return mode_=="sale" || mode_=="gift";}
-    bool seller() const{return sellerId_==peer_.id();}
+    bool seller() const{return sellerId_==localId();}
+    bool transportConnected() const{return online_||peer_.connected();}
+    QString localId() const{return online_?onlineSelf_:peer_.id();}
+    void disconnectTransport();
+    bool online_=false;QString onlineSelf_;
     void publishOffer();void beginBattle();void showBattle(const QJsonObject&);
     void finishBattle(const QJsonObject&);void battleRules(const QString&,int);
     void finishPlayback();void tryBattleTurn();

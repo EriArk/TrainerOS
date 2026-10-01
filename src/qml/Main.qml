@@ -216,6 +216,7 @@ Window {
             function hint(button, label) { return {button:button, label:label} }
             readonly property var actions: {
                 const h = hint
+                if (shell.social.online.open) return shell.social.online.incoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
                 if (shell.party.activities.link.invitationOpen) return shell.party.activities.link.invitationIncoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
                 if (shell.homeMenuOpen) return [h("↑↓","Choose"),h("A","Open"),h("B","Close")]
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
@@ -330,7 +331,7 @@ Window {
                         tint: button === "B" ? Theme.pink : button === "X" || button === "←→" ? Theme.blue : button === "Y" ? Theme.yellow : Theme.green
                     }
                 }
-                Hint { button: "Start"; label: "System"; tint: Theme.yellow; visible: !shell.party.moveOpen && !shell.party.activities.link.invitationOpen }
+                Hint { button: "Start"; label: "System"; tint: Theme.yellow; visible: !shell.party.moveOpen && !shell.party.activities.link.invitationOpen && !shell.social.online.open }
             }
         }
         LibraryPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "library" }
@@ -402,16 +403,19 @@ Window {
             id: nearbyInvitation
             objectName: "nearby-invitation"
             property var link: shell.party.activities.link
+            readonly property bool online: !!shell.social.online.open
+            readonly property bool incoming: online ? !!shell.social.online.incoming : link.invitationIncoming
+            function answer(accept) { if (online) shell.social.answerOnline(accept); else link.answerInvitation(accept) }
             width: parent.width; height: Theme.footerTop; z: 6
-            visible: link.invitationOpen && !sessionState.blocked && !adventureLaunch.active
+            visible: (online || link.invitationOpen) && !sessionState.blocked && !adventureLaunch.active
             Rectangle { anchors.fill: parent; color: "#77112323" }
             MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted=true }
             Panel {
                 anchors.centerIn: parent; width: 470; height: 225; surface: "#f6f0d7"
-                Text { x: 27; y: 23; text: "NEARBY PLAY"; font.family: Theme.brandFamily; font.pixelSize: 16; color: "#4c8175" }
-                Text { x: 27; y: 56; width: parent.width-54; height: 85; text: nearbyInvitation.link.invitationText; textFormat: Text.PlainText; font.family: Theme.displayFamily; font.pixelSize: 26; color: Theme.ink; wrapMode: Text.WordWrap }
-                CapButton { x: 27; y: 154; width: 200; height: 45; label: "Accept"; centered: true; tint: Theme.green; selected: true; deferredFocus: true; visible: nearbyInvitation.link.invitationIncoming; onActivated: nearbyInvitation.link.answerInvitation(true) }
-                CapButton { x: nearbyInvitation.link.invitationIncoming ? 242 : 135; y: 154; width: 200; height: 45; label: nearbyInvitation.link.invitationIncoming ? "Decline" : "Cancel"; centered: true; tint: Theme.blue; selected: !nearbyInvitation.link.invitationIncoming; deferredFocus: true; onActivated: nearbyInvitation.link.answerInvitation(false) }
+                Text { x: 27; y: 23; text: nearbyInvitation.online || nearbyInvitation.link.online ? "TOGETHER" : "NEARBY PLAY"; font.family: Theme.brandFamily; font.pixelSize: 16; color: "#4c8175" }
+                Text { x: 27; y: 56; width: parent.width-54; height: 85; text: nearbyInvitation.online ? shell.social.online.status : nearbyInvitation.link.invitationText; textFormat: Text.PlainText; font.family: Theme.displayFamily; font.pixelSize: 26; color: Theme.ink; wrapMode: Text.WordWrap }
+                CapButton { x: 27; y: 154; width: 200; height: 45; label: "Accept"; centered: true; tint: Theme.green; selected: true; deferredFocus: true; visible: nearbyInvitation.incoming; onActivated: nearbyInvitation.answer(true) }
+                CapButton { x: nearbyInvitation.incoming ? 242 : 135; y: 154; width: 200; height: 45; label: nearbyInvitation.incoming ? "Decline" : "Cancel"; centered: true; tint: Theme.blue; selected: !nearbyInvitation.incoming; deferredFocus: true; onActivated: nearbyInvitation.answer(false) }
             }
         }
         }

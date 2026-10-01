@@ -456,10 +456,15 @@ int main(int argc, char* argv[]) {
                 const auto nearbyGate=[&,link]{
                     link->setInvitationsAllowed(!adventureLaunch.active() && !session.blocked()
                         && shell.canReceiveNearby());
+                    shell.social()->setOnlineContext(!adventureLaunch.active() && !session.blocked()
+                        && (!link->active() || link->pending()) && !link->connected()
+                        && shell.canReceiveOnline(),
+                        !shell.settings()->readOnlySaves());
                 };
                 QObject::connect(&adventureLaunch,&AdventureLaunchController::changed,link,nearbyGate);
                 QObject::connect(&session,&SessionState::changed,link,nearbyGate);
                 QObject::connect(&shell,&ShellController::changed,link,nearbyGate);
+                QObject::connect(link,&LinkController::changed,link,nearbyGate);
                 nearbyGate();
                 QObject::connect(link,&LinkController::saveChanged,gameProgress.get(),[&,provider=gameProgress.get()]{
                     if(const auto r=activeLibrary.registration(shell.currentAdventureId()))provider->refresh(*r);

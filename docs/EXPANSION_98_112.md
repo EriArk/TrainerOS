@@ -6,6 +6,13 @@ queue; this register preserves acceptance, not a second schedule. Earlier
 R1–R18/R7a/R18a/R18b, exact-game, device, image/update, trust and artwork gates
 remain. Planned integrations are not installed capabilities.
 
+**Bounded delivery, 2026-10-01:** [online Link evidence](ONLINE_LINK.md) records
+active friend-client negotiation, compact consent and the existing Emerald
+workspace over ordinary public Fluxer DM envelopes. It does not close #104-110
+as a group: two handhelds on separate connections, bilateral save readback and
+interrupted settlement, wider contracts/trust, voice and runtime netplay retain
+their individual gates below.
+
 **Owner priority refinement, 2026-10-01:** after the delivered local Home/Exit
 menu, prioritize communication and multiplayer invitations: #99, #100/#101,
 #104/#109/#105/#110, #102/#103 and #107 with conditional #106. #108 applies

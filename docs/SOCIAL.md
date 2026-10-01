@@ -1,5 +1,10 @@
 # Native Social - conversations and discovery
 
+The [online Link increment](ONLINE_LINK.md) adds active-client checks and compact
+friend-DM invitations. Accepted exact Emerald activities reuse the native Link
+workspace; final bilateral save approval remains separate. The linked evidence
+distinguishes public invitation/offer delivery from two-handheld settlement.
+
 2026-10-01. Supersedes the unlinked #111 placeholder. The owner's refinement
 uses four cyclic faces: Messages / Groups / Communities / Search. The five
 primaries and Start/Home responsibilities remain unchanged.

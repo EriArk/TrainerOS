@@ -21,6 +21,27 @@ class SocialTests : public QObject {
     }
 private slots:
     void initTestCase() { QStandardPaths::setTestModeEnabled(true); }
+    void onlineUsesOnlyLiveFriendDmAndStopsQueuedDelivery() {
+        FluxerSession s;bind(s);s.bindOnline();s.online_.setAvailable(true);
+        s.channels_[channel]["recipients"]=QJsonArray{QJsonObject{{"id",remote}}};
+        s.relationships_[remote]={{"type",1}};
+        OnlineLink other;other.bind(remote,"11111111-1111-4111-8111-111111111111");other.setAvailable(true);
+        QString probe;connect(&other,&OnlineLink::outgoing,this,[&](QString,QString text){probe=text;});other.probe(channel,s.self_);
+        QJsonObject m{{"id","1501314428688998200"},{"channel_id",channel},{"type",0},{"author",QJsonObject{{"id",remote}}},{"content",probe}};
+        int posts=0;Completion delivery;
+        s.setTransport([&](auto method,QString path,QJsonObject body,Completion done,auto){
+            if(method=="POST"&&path.endsWith("/messages")){QCOMPARE(body["flags"].toInt(),1<<12);++posts;delivery=done;}else done({200,QJsonDocument(QJsonArray{})});
+        });
+        s.mergeMessage(m);s.publish();QCOMPARE(posts,0);
+        auto event=[&](QString type,QJsonObject value){s.gatewayEvent({{"op",0},{"t",type},{"d",value}});};
+        event("MESSAGE_UPDATE",m);QCOMPARE(posts,0);
+        auto bad=m;bad["author"]=QJsonObject{{"id","999"}};event("MESSAGE_CREATE",bad);QCOMPARE(posts,0);
+        bad=m;bad["webhook_id"]="900";event("MESSAGE_CREATE",bad);QCOMPARE(posts,0);
+        event("MESSAGE_CREATE",m);QCOMPARE(posts,1);QCOMPARE(s.online_.state()["stage"].toString(),"offered");
+        s.onlineQueue_.append({channel,probe});s.online_.close();QVERIFY(s.onlineQueue_.isEmpty());
+        delivery({429,{},10});QVERIFY(s.onlineQueue_.isEmpty());QVERIFY(!s.onlineSendTimer_.isActive());QCOMPARE(posts,1);
+        s.relationships_[remote]={{"type",2}};s.command("online-probe",{{"channel",channel}});QCOMPARE(posts,1);
+    }
     void communityManifestIsBoundToOwnerGuildAndVersion() {
         QJsonObject m{{"id","199"},{"channel_id",channel},{"type",0},{"author",QJsonObject{{"id",remote}}},
             {"content",communityIdentity::content("200")}};

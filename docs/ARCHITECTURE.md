@@ -1,5 +1,13 @@
 # TrainerOS Architecture
 
+**2026-10-01 #104/#105 increment:** [OnlineLink](ONLINE_LINK.md) owns bounded
+provider-message session binding/framing on the existing Fluxer worker. Social
+bridges accepted sessions to the existing LinkController on the UI thread. The
+Link host keeps all verifier/backend/journal authority; game adapters gain no
+network credentials or sockets. Native system activities and runtime netplay
+remain independent capability families. Two-device internet settlement is still
+an open acceptance gate, not implied by this transport/UI integration.
+
 **2026-10-01 #111:** shell navigation v2 uses named primary/secondary routes and
 migrates old history slots to Trainer. Profile and Hall/Journey/RA controllers
 remain separate; Social now consumes the bounded native Fluxer provider described

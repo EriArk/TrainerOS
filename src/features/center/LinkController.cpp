@@ -2,6 +2,7 @@
 #include "integrations/progress/EmeraldPractice.h"
 #include "integrations/progress/EmeraldLink.h"
 #include "integrations/progress/EmeraldParty.h"
+#include "integrations/progress/Gen3Progress.h"
 #include <QCryptographicHash>
 #include <QDateTime>
 #include <QFileInfo>
@@ -23,7 +24,7 @@ LinkController::~LinkController(){
 }
 LinkController::LinkController(QObject* parent):QObject(parent),peer_(this),battle_(this),nearby_(this) {
     connect(&peer_,&LocalLinkPeer::changed,this,[this]{
-        if(!directPeer_.isEmpty() && !directIncoming_ && !directInterface_.isEmpty())peer_.connectId(directPeer_,directInterface_);
+        if(!online_ && !directPeer_.isEmpty() && !directIncoming_ && !directInterface_.isEmpty())peer_.connectId(directPeer_,directInterface_);
         emit changed();
     });
     connect(&nearby_,&NearbyService::event,this,&LinkController::directEvent);
@@ -37,13 +38,15 @@ LinkController::LinkController(QObject* parent):QObject(parent),peer_(this),batt
     });
     connect(&peer_,&LocalLinkPeer::received,this,&LinkController::receive);
     connect(&peer_,&LocalLinkPeer::connectedToPeer,this,[this]{
+        if(online_){peer_.disconnectPeer();return;}
         nonce_=uuid();peerId_.clear();peerName_.clear();pin_.clear();peerNonce_.clear();
         accepted_=peer_.outgoing();peerAccepted_=paired_=false;stage_="pair";lastMessage_=QDateTime::currentMSecsSinceEpoch();
         message_="Waiting for your friend";
         if(directPeer_.isEmpty())invitationTimer_.start();else connectionTimer_.start(15000);
-        send("hello",{{"id",peer_.id()},{"name",peer_.name()},{"trainer",trainerName_},{"nonce",nonce_},{"pending",pending()?journal_["id"]:QJsonValue()}});emit changed();
+        send("hello",{{"id",localId()},{"name",peer_.name()},{"trainer",trainerName_},{"nonce",nonce_},{"pending",pending()?journal_["id"]:QJsonValue()}});emit changed();
     });
     connect(&peer_,&LocalLinkPeer::disconnectedFromPeer,this,[this]{
+        if(online_)return;
         battle_.cancel();paired_=accepted_=peerAccepted_=false;peerId_.clear();pin_.clear();
         stage_="browse";message_=pending()?"Trade paused. Reconnect these same consoles to finish.":"Choose a nearby Trainer";
         invitationTimer_.stop();connectionTimer_.stop();inviteId_.clear();inviteMode_.clear();inviteOwner_.clear();
@@ -51,7 +54,7 @@ LinkController::LinkController(QObject* parent):QObject(parent),peer_(this),batt
         directConnecting_=false;resetChoice();emit changed();
     });
     connect(&battle_,&PracticeSession::changed,this,&LinkController::battleChanged);
-    connect(&battle_,&PracticeSession::stopped,this,[this](const QString& reason){if(open_ && mode_=="battle" && stage_!="finished" && peer_.connected() && !reason.isEmpty())fail(reason);});
+    connect(&battle_,&PracticeSession::stopped,this,[this](const QString& reason){if(open_ && mode_=="battle" && stage_!="finished" && transportConnected() && !reason.isEmpty())fail(reason);});
     playbackTimer_.setSingleShot(true);
     connect(&playbackTimer_,&QTimer::timeout,this,[this]{
         if(stage_!="events")return;
@@ -61,11 +64,59 @@ LinkController::LinkController(QObject* parent):QObject(parent),peer_(this),batt
     });
     heartbeat_.setInterval(2000);
     connect(&heartbeat_,&QTimer::timeout,this,[this]{
-        if(!peer_.connected())return;
-        if(QDateTime::currentMSecsSinceEpoch()-lastMessage_>12000){peer_.disconnectPeer();return;}
+        if(online_ || !transportConnected())return;
+        if(QDateTime::currentMSecsSinceEpoch()-lastMessage_>12000){disconnectTransport();return;}
         send("ping");
     });
 }
+
+QJsonArray LinkController::onlineCapabilities() const {
+    if(!backend_||!verify_||source_.trainerId.isEmpty()||gen3Edition(progress_.contentRevision)!=Gen3Edition::Emerald
+        ||progress_.availability!=ProgressAvailability::Available||!progress_.party||!progress_.party->error.isEmpty()
+        ||progress_.saveRevision.isEmpty()||progress_.contextRevision.isEmpty())return {};
+    QJsonArray out;
+    for(const auto& mode:QStringList{"trade","sale","gift"})out.append(QJsonObject{
+        {"family","systemActivity"},{"id","org.traineros.emerald."+mode},{"version",1},
+        {"build",progress_.contentRevision},{"schema","emerald-individual-1"},{"rules","emerald-link-v2"},
+        {"effect","bilateralSave"},{"participants",2},{"delivery","fluxer-dm-v1"},
+        {"label",mode=="trade"?"Exchange Pokemon":mode=="sale"?"Sell Pokemon":"Give a Pokemon"}});
+    return out;
+}
+bool LinkController::beginOnline(QString self,QString peer,QString name,QString activity,bool initiator) {
+    if(online_||peer_.connected()||busy_||!mode_.isEmpty()||invitationOpen()||QUuid(self).isNull()||QUuid(peer).isNull()
+        ||(pending()&&(journal_["peer"]!=peer||journal_["kind"]=="battle")))return false;
+    bool supported=false;for(const auto& c:onlineCapabilities())if(c.toObject()["id"]==activity)supported=true;
+    if(!supported)return false;
+    online_=true;onlineSelf_=self;peerId_=peer;peerName_=name.left(100);paired_=accepted_=peerAccepted_=true;
+    stage_="lobby";open_=true;updatePresence();
+    send("online-ready",{{"pending",pending()?journal_["id"]:QJsonValue()}});
+    if(pending())recover(journal_["id"].toString());
+    else {sellerId_=initiator?self:peer;startMode(activity.section('.',-1));}
+    emit workspaceRequested();emit changed();return true;
+}
+void LinkController::receiveOnline(QJsonObject frame) {
+    if(!online_)return;
+    if(frame["version"].toInt()!=2){disconnectTransport();return;}
+    if(frame["type"]=="online-ready") {
+        const auto id=frame["pending"].toString();
+        if(!id.isEmpty()&&!QUuid(id).isNull()&&!pending()&&!busy_){resetChoice();recover(id);}
+        return;
+    }
+    static const QStringList allowed{"activity-invite","activity-accept","activity-cancel","offer","confirm","prepare","receipt","cancel","problem"};
+    if(!allowed.contains(frame["type"].toString()))return;
+    if(frame["type"]=="receipt" && frame["receipt"].toObject()["kind"]=="battle")return;
+    receive(frame);
+}
+void LinkController::endOnline() {
+    if(!online_)return;
+    online_=false;paired_=accepted_=peerAccepted_=false;peerId_.clear();onlineSelf_.clear();
+    invitationTimer_.stop();inviteId_.clear();inviteMode_.clear();inviteOwner_.clear();
+    resetChoice();stage_="browse";message_=pending()?"Exchange paused. Reconnect with the same friend to recover.":"Online connection ended";
+    updatePresence();emit changed();
+}
+void LinkController::showOnline(){if(online_){enter();emit workspaceRequested();}}
+void LinkController::disconnectTransport(){if(online_){endOnline();emit onlineClosed();}else peer_.disconnectPeer();}
+
 void LinkController::configure(const QString& root,const QString& id,const QString& name,Backend backend,
         PracticeController::Verifier verify,const QJsonObject& pending) {
     runtime_=root;backend_=std::move(backend);verify_=std::move(verify);journal_=pending;
@@ -87,9 +138,9 @@ void LinkController::setInvitationsAllowed(bool value) {
 }
 void LinkController::updatePresence() {
     if(!backend_ || QUuid(peer_.id()).isNull() || trainerName_.isEmpty())return;
-    const bool show=visibleNearby_ && invitationsAllowed_;
+    const bool show=!online_ && visibleNearby_ && invitationsAllowed_;
     peer_.setVisible(show);
-    if(show){peer_.open();heartbeat_.start();}else if(!peer_.connected() && !pending())peer_.close();
+    if(show){peer_.open();heartbeat_.start();}else if(!transportConnected() && !pending())peer_.close();
     nearby_.configure(peer_.id(),trainerName_,show);
 }
 bool LinkController::invitationOpen() const {
@@ -111,12 +162,12 @@ QString LinkController::invitationText() const {
 void LinkController::disconnectSession() {
     if(busy_)return;
     invitationTimer_.stop();connectionTimer_.stop();inviteId_.clear();inviteMode_.clear();inviteOwner_.clear();
-    peer_.disconnectPeer();nearby_.request({{"op","disconnect"}});directPeer_.clear();directInterface_.clear();directAccepted_=false;
+    disconnectTransport();nearby_.request({{"op","disconnect"}});directPeer_.clear();directInterface_.clear();directAccepted_=false;
     directConnecting_=false;resetChoice();stage_="browse";peerName_.clear();paired_=false;emit changed();
 }
 void LinkController::endConnectionAttempt(const QString& reason) {
     const bool waiting = invitationOpen() && !paired_;
-    peer_.disconnectPeer();
+    disconnectTransport();
     disconnectSession();
     if(waiting && !pending()){message_=reason;emit changed();emit connectionFailed(reason);}
 }
@@ -131,7 +182,7 @@ void LinkController::answerInvitation(bool accept) {
         else {stage_="lobby";message_="What shall we do together?";emit changed();}
         return;
     }
-    if(!directPeer_.isEmpty() && !peer_.connected()) {
+    if(!directPeer_.isEmpty() && !transportConnected()) {
         if(accept && directIncoming_ && !directAccepted_){
             directAccepted_=directConnecting_=true;invitationTimer_.stop();connectionTimer_.start(75000);
             nearby_.request({{"op","accept"},{"peer",directPeer_}});emit changed();
@@ -162,7 +213,7 @@ void LinkController::directEvent(const QJsonObject& event) {
         if(event["transport"]=="bluetooth") {
             if(!directIncoming_) {
                 const auto identity=event["identity"].toString();const int port=event["port"].toInt();
-                if(QUuid(identity).isNull() || identity==peer_.id() || port<=0 || port>65535 || port==47845) {
+                if(QUuid(identity).isNull() || identity==localId() || port<=0 || port>65535 || port==47845) {
                     endConnectionAttempt("Bluetooth connection could not start.");return;
                 }
                 // Discovery addresses are not persistent Trainer/save identity.
@@ -181,13 +232,13 @@ void LinkController::directEvent(const QJsonObject& event) {
     emit changed();
 }
 void LinkController::inviteActivity(const QString& mode) {
-    if(!paired_ || pending() || busy_ || !inviteId_.isEmpty() || !mode_.isEmpty())return;
-    inviteId_=uuid();inviteMode_=mode;inviteOwner_=peer_.id();invitationTimer_.start();
+    if(!paired_ || pending() || busy_ || !inviteId_.isEmpty() || !mode_.isEmpty() || (online_ && mode=="battle"))return;
+    inviteId_=uuid();inviteMode_=mode;inviteOwner_=localId();invitationTimer_.start();
     send("activity-invite",{{"id",inviteId_},{"mode",mode}});emit changed();
 }
 void LinkController::setObservation(const PracticeSource& source,const GameProgress& progress,const QVariantList& actors) {
     if((active() || paired_) && !busy_ && !pending() && !source.trainerId.isEmpty() &&
-        (source.trainerId!=source_.trainerId || source.adventureId!=source_.adventureId))peer_.disconnectPeer();
+        (source.trainerId!=source_.trainerId || source.adventureId!=source_.adventureId))disconnectTransport();
     // Save-service inspection temporarily emits Checking/Unavailable. It is not
     // a new Party. Actual source verification precedes every action.
     if(progress.availability==ProgressAvailability::Available && (!active() || stage_=="browse" || stage_=="lobby" || stage_=="finished")) {
@@ -202,8 +253,15 @@ void LinkController::enter() {
     peer_.open();heartbeat_.start();emit changed();
 }
 void LinkController::leave(){if(!open_ || busy_ || pending() || !mode_.isEmpty())return;open_=false;emit changed();}
-void LinkController::send(const QString& type,QJsonObject fields){fields["type"]=type;fields["version"]=2;peer_.send(fields);}
-void LinkController::fail(const QString& text){playbackTimer_.stop();playback_.reset();message_=text;stage_="error";if(paired_)send("problem",{{"message",text.left(180)}});emit changed();}
+void LinkController::send(const QString& type,QJsonObject fields){
+    fields["type"]=type;fields["version"]=2;
+    if(online_){
+        // Local owner and registration IDs have no meaning to an internet peer.
+        if(type=="receipt"){auto r=fields["receipt"].toObject();r.remove("owner");r.remove("adventure");fields["receipt"]=r;}
+        emit onlineSend(fields);
+    }else peer_.send(fields);
+}
+void LinkController::fail(const QString& text){playbackTimer_.stop();playback_.reset();message_=text;stage_="error";if(paired_)send("problem",{{"message",online_?QString("The activity could not continue on your friend's device."):text.left(180)}});emit changed();}
 void LinkController::resetChoice(){playbackTimer_.stop();playback_.reset();turnSubmitted_=false;mode_.clear();localChoice_={};remoteChoice_={};remoteJournal_={};transaction_.clear();confirmed_=remoteConfirmed_=false;focus_=0;localMove_=remoteMove_=-1;moveSent_=false;battleState_={};bench_=bag_=recovering_=battleStarting_=false;bagItem_=0;forfeitSide_=-1;collection_=-1;stake_="none";stakeAmount_=1000;}
 void LinkController::verify(std::function<void()> next) {
     if(busy_ || !verify_){if(!verify_)fail("Choose a supported Emerald Adventure first.");return;}
@@ -211,7 +269,7 @@ void LinkController::verify(std::function<void()> next) {
     QTimer::singleShot(6000,this,[this,generation]{if(generation==generation_ && busy_){++generation_;busy_=false;fail("The Party check timed out. Reconnect to try again.");}});
     verify_(source_,progress_,this,[this,generation,next](bool ok){
         if(generation!=generation_)return;busy_=false;++generation_;
-        if(!paired_ || !peer_.connected()){emit changed();return;}
+        if(!paired_ || !transportConnected()){emit changed();return;}
         if(!ok){send("cancel");fail("Your Party changed. Return to Center, then reconnect.");return;}
         next();emit changed();
     });
@@ -297,7 +355,13 @@ QVariantList LinkController::rows() const {
         }
         std::sort(rows.begin(),rows.end(),[](const QVariant& a,const QVariant& b){return a.toMap()["name"].toString()<b.toMap()["name"].toString();});return rows;
     }
-    if(stage_=="lobby")return {QVariantMap{{"name","Friendly battle"},{"detail","Your saved teams · Gen III"}},QVariantMap{{"name","Trade Pokemon"},{"detail","Party and Boxes"}},QVariantMap{{"name","Sell Pokemon"},{"detail","For in-game money"}},QVariantMap{{"name","Give a Pokemon"},{"detail","A gift for your friend"}}};
+    if(stage_=="lobby") {
+        QVariantList out;
+        if(!online_)out.append(QVariantMap{{"name","Friendly battle"},{"detail","Your saved teams · Gen III"}});
+        out.append(QVariantMap{{"name","Trade Pokemon"},{"detail","Party and Boxes"}});
+        out.append(QVariantMap{{"name","Sell Pokemon"},{"detail","For in-game money"}});
+        out.append(QVariantMap{{"name","Give a Pokemon"},{"detail","A gift for your friend"}});return out;
+    }
     if(stage_=="stake" || stage_=="choose" && mode_!="battle")return savedMembers();
     if(stage_=="choose") {
         QVariantList out;if(!progress_.party)return out;
@@ -465,7 +529,7 @@ void LinkController::advanceTrade() {
     if((remoteJournal_["stage"]=="absent" || remoteJournal_["stage"]=="cancelled") && (journal_["stage"]=="prepared" || journal_["stage"]=="reserved" && journal_["checkpoint"].toObject().isEmpty())) {
         operation("abort-prepared",{{"id",transaction_}},[this](QJsonObject result){journal_=result;send("receipt",{{"receipt",journal_}});stage_="finished";message_="Trade cancelled. Neither save was changed.";});return;
     }
-    if(journal_["proposal"]!=remoteJournal_["proposal"] || journal_["peer"]!=peerId_ || remoteJournal_["peer"]!=peer_.id()){fail("The recovered trade does not match this partner.");return;}
+    if(journal_["proposal"]!=remoteJournal_["proposal"] || journal_["peer"]!=peerId_ || remoteJournal_["peer"]!=localId()){fail("The recovered trade does not match this partner.");return;}
     const auto local=journal_["stage"].toString(),remote=remoteJournal_["stage"].toString();
     if(mode_=="battle" && (local=="reserved" || remote=="reserved")) {
         if(local=="reserved" && remote=="reserved") {
@@ -490,6 +554,9 @@ void LinkController::recover(const QString& id) {
     if(QUuid(id).isNull()){fail("The pending trade ID is invalid.");return;}
     recovering_=true;mode_="trade";transaction_=id;stage_="saving";message_="Reconnecting the saved exchange…";
     operation("status",{{"id",id}},[this](QJsonObject result){
+        if(online_&&!result.isEmpty()&&(result["peer"]!=peerId_||result["kind"]=="battle")) {
+            fail("This saved exchange belongs to a different session.");return;
+        }
         if(result.isEmpty()) {
             send("receipt",{{"receipt",QJsonObject{{"id",transaction_},{"peer",peerId_},{"stage","absent"}}}});
             stage_="waiting";message_="Waiting for your friend's recovery receipt";return;
@@ -584,12 +651,12 @@ void LinkController::submitMove(int slot) {
     emit changed();
 }
 void LinkController::receive(const QJsonObject& input) {
-    lastMessage_=QDateTime::currentMSecsSinceEpoch();if(input["version"].toInt()!=2){peer_.disconnectPeer();return;}
+    lastMessage_=QDateTime::currentMSecsSinceEpoch();if(input["version"].toInt()!=2){disconnectTransport();return;}
     const auto type=input["type"].toString();if(type=="ping")return;
     if(type=="hello" && peerId_.isEmpty()) {
         const auto id=input["id"].toString(),nonce=input["nonce"].toString();
-        if(QUuid(id).isNull() || QUuid(nonce).isNull() || id==peer_.id() || pending() && journal_["peer"]!=id){peer_.disconnectPeer();return;}
-        if(!invitationsAllowed_ || !visibleNearby_ || (!directPeer_.isEmpty() && directPeer_!=id)){peer_.disconnectPeer();return;}
+        if(QUuid(id).isNull() || QUuid(nonce).isNull() || id==localId() || pending() && journal_["peer"]!=id){disconnectTransport();return;}
+        if(!invitationsAllowed_ || !visibleNearby_ || (!directPeer_.isEmpty() && directPeer_!=id)){disconnectTransport();return;}
         peerId_=id;peerNonce_=nonce;peerName_=input["name"].toString().left(32);peerPending_=input["pending"].toString();
         const auto code=digest({{"a",host()?nonce_:peerNonce_},{"b",host()?peerNonce_:nonce_}}).left(8).toUInt(nullptr,16)%1000000;
         pin_=QString::number(code).rightJustified(6,'0');
@@ -601,7 +668,7 @@ void LinkController::receive(const QJsonObject& input) {
     if(type=="identity"){peerName_=input["name"].toString().left(32);emit changed();return;}
     if(type=="activity-invite") {
         const auto id=input["id"].toString(),mode=input["mode"].toString();
-        if(QUuid(id).isNull() || !QStringList{"battle","trade","sale","gift"}.contains(mode))return;
+        if(QUuid(id).isNull() || !QStringList{"battle","trade","sale","gift"}.contains(mode) || (online_ && mode=="battle"))return;
         if(!invitationsAllowed_ || pending() || busy_ || !mode_.isEmpty() || (!inviteId_.isEmpty() && (inviteOwner_==peerId_ || host()))) {
             send("activity-cancel",{{"id",id}});return;
         }
@@ -611,9 +678,9 @@ void LinkController::receive(const QJsonObject& input) {
     if(type=="activity-cancel" && input["id"]==inviteId_ && !inviteId_.isEmpty()) {
         invitationTimer_.stop();inviteId_.clear();inviteMode_.clear();inviteOwner_.clear();emit changed();return;
     }
-    if(type=="activity-accept" && input["id"]==inviteId_ && inviteOwner_==peer_.id() && !inviteId_.isEmpty()) {
+    if(type=="activity-accept" && input["id"]==inviteId_ && inviteOwner_==localId() && !inviteId_.isEmpty()) {
         const auto mode=inviteMode_;invitationTimer_.stop();inviteId_.clear();inviteMode_.clear();inviteOwner_.clear();
-        sellerId_=peer_.id();startMode(mode);emit workspaceRequested();return;
+        sellerId_=localId();startMode(mode);emit workspaceRequested();return;
     }
     if(type=="problem"){message_=input["message"].toString().left(180);stage_="error";emit changed();return;}
     if(type=="rules" && !host() && mode_=="battle" && !pending()) {battleRules(input["stake"].toString(),input["amount"].toInt());return;}
@@ -638,7 +705,7 @@ void LinkController::receive(const QJsonObject& input) {
     }
     if(type=="receipt" && (mode_=="trade" || sale() || mode_=="battle")) {
         const auto receipt=input["receipt"].toObject();
-        if(receipt["id"]!=transaction_ || receipt["peer"]!=peer_.id() || !QStringList{"reserved","prepared","commit","committed","complete","absent","cancelled"}.contains(receipt["stage"].toString()))return;
+        if(receipt["id"]!=transaction_ || receipt["peer"]!=localId() || !QStringList{"reserved","prepared","commit","committed","complete","absent","cancelled"}.contains(receipt["stage"].toString()))return;
         if(receipt["stage"]=="cancelled" && !pending()){stage_="finished";message_="Trade cancelled. Neither save was changed.";emit changed();return;}
         remoteJournal_=receipt;advanceTrade();return;
     }
@@ -666,7 +733,7 @@ void LinkController::activate(int index) {
         }else peer_.connectId(row["id"].toString());return;
     }
     if(stage_=="lobby"){
-        const auto mode=QStringList{"battle","trade","sale","gift"}.value(index);if(mode.isEmpty())return;
+        const auto mode=activityModes().value(index);if(mode.isEmpty())return;
         inviteActivity(mode);return;
     }
     if(stage_=="choose" || stage_=="stake"){choose(index);return;}
@@ -684,7 +751,7 @@ void LinkController::activate(int index) {
         submitMove(slot);return;
     }
     if(stage_=="finished" || stage_=="error") {
-        if(pending()){peer_.disconnectPeer();return;}
+        if(pending()){disconnectTransport();return;}
         if(stage_=="error" && !paired_) {
             resetChoice();leave();return; // Return to Center, not an empty peer list.
         }
@@ -723,12 +790,12 @@ void LinkController::dispatch(Action action) {
     if(action==Action::Back && !busy_) {
         if(stage_=="concede"){stage_=moveSent_?"waiting":"moves";message_=QString("Turn %1").arg(battleTurn());emit changed();return;}
         if(stage_=="finished" && !pending()){activate(0);return;}
-        if(pending() && mode_=="battle" && journal_["stage"]=="reserved" && peer_.connected()) {
+        if(pending() && mode_=="battle" && journal_["stage"]=="reserved" && transportConnected()) {
             if(!battleState_.isEmpty()){stage_="concede";message_="Concede? Your friend wins this battle and the agreed stake.";emit changed();return;}
-            peer_.disconnectPeer();leave();emit closeRequested();return;
+            disconnectTransport();leave();emit closeRequested();return;
         }
-        if(pending()){peer_.disconnectPeer();leave();emit closeRequested();return;}
-        if((mode_=="trade" || sale()) && confirmed_){peer_.disconnectPeer();leave();emit closeRequested();return;}
+        if(pending()){disconnectTransport();leave();emit closeRequested();return;}
+        if((mode_=="trade" || sale()) && confirmed_){disconnectTransport();leave();emit closeRequested();return;}
         if(stage_=="choose" || stage_=="stake" || stage_=="price" || stage_=="review" || stage_=="waiting" || stage_=="moves" || stage_=="finished") {
             send("cancel");battle_.cancel();resetChoice();stage_="lobby";message_="What shall we do together?";emit changed();return;
         }
