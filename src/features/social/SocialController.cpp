@@ -22,6 +22,10 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     });
     selection_.setSingleShot(true);selection_.setInterval(140);connect(&selection_,&QTimer::timeout,this,&SocialController::preview);
     draftSave_.setSingleShot(true);draftSave_.setInterval(700);connect(&draftSave_,&QTimer::timeout,this,&SocialController::saveDrafts);
+    connect(session_,&FluxerSession::mutationFinished,this,[this](quint64 generation,QString operation,QString channel,QString id,bool success){
+        if(generation!=generation_)return;
+        if(success&&(operation=="edit-message"||operation=="delete-message"))editDrafts_.remove(channel+"/"+id);
+    });
     thread_.start();
 }
 SocialController::~SocialController() {
@@ -32,6 +36,7 @@ SocialController::~SocialController() {
 void SocialController::setOwner(QString owner) {
     if(owner==owner_)return;
     saveDrafts();draftFile_.clear();
+    editDrafts_.clear();pickedPeople_.clear();
     owner_=std::move(owner);++generation_;snapshot_.clear();drafts_.clear();menu_.clear();
     selection_.stop();contacts_=false;searchStarted_=false;searchFocus_=-1;
     textPurpose_.clear();textChannel_.clear();query_.clear();focus_=messageFocus_=0;reading_=false;
@@ -64,7 +69,7 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     if(atEnd||oldChannel!=snapshot_["channel"]||(wasEarlier&&!snapshot_["historyPast"].toBool()))messageFocus_=qMax(0,int(log.size())-1);
     else for(int i=0;i<log.size();++i)if(log[i].toMap()["id"]==oldMessage){messageFocus_=i;break;}
     messageFocus_=qBound(0,messageFocus_,qMax(0,int(log.size())-1));
-    if(snapshot_["state"]=="signed-out") {draftSave_.stop();if(!draftFile_.isEmpty())QFile::remove(draftFile_);draftFile_.clear();drafts_.clear();textPurpose_.clear();textChannel_.clear();searchStarted_=false;}
+    if(snapshot_["state"]=="signed-out") {draftSave_.stop();if(!draftFile_.isEmpty())QFile::remove(draftFile_);draftFile_.clear();drafts_.clear();editDrafts_.clear();menu_.clear();textPurpose_.clear();textChannel_.clear();searchStarted_=false;}
     if(face_=="friends"&&!searchStarted_&&snapshot_["state"]=="connected")runSearch();
     searchFocus_=qMin(searchFocus_,int(searchResults().size())-1);
     emit changed();
@@ -91,7 +96,7 @@ QString SocialController::conversationName() const {
 QVariantList SocialController::hints() const {
     QVariantList result;
     auto h=[&](QString key,QString label){result.append(QVariantMap{{"button",key},{"label",label}});};
-    if(!menu_.isEmpty()){h("A","Choose");h("B","Close");return result;}
+    if(!menu_.isEmpty()){h("A",menuMode_=="create-group"?"Choose friend":"Choose");if(menuMode_=="create-group"&&!pickedPeople_.isEmpty())h("Y","Create group");h("B","Close");return result;}
     if(snapshot_["state"]=="restoring")return result;
     if(snapshot_.value("state")=="authorizing"){h("B","Cancel sign-in");return result;}
     if(snapshot_.value("state")=="signed-out"||snapshot_.isEmpty()){if(!owner_.isEmpty())h("A","Sign in");return result;}
@@ -101,6 +106,8 @@ QVariantList SocialController::hints() const {
         else {const auto action=searchResults().value(searchFocus_).toMap()["action"].toString();if(action!="Joined"&&action!="Sent")h("A",action);h("B","Search bar");}
         if(snapshot_["searchTotal"].toInt()>24)h("Y","Next page");
     } else {
+        if(face_=="groups"&&!conversation())h("X","New group");
+        if(reading_&&messages().value(messageFocus_).toMap()["editable"].toBool())h("A","Message");
         if(contacts_&&rows().value(focus_).toMap()["type"].toInt()==3)h("A","Accept request");
         if(conversation()){h("X","Write");if(reading_&&snapshot_["historyPast"].toBool())h("Y","Latest");else if(!draft().trimmed().isEmpty())h("Y","Send");h(reading_?"←":"→",reading_?"Conversations":"Read");if(reading_&&messageFocus_==0&&snapshot_["historyMore"].toBool())h("↑","Earlier");}
         if(contacts_||reading_)h("B",contacts_?"Conversations":"List");
@@ -127,11 +134,14 @@ void SocialController::compose() {
 }
 void SocialController::preserveText(QString text) {
     if(textPurpose_=="message"&&!textChannel_.isEmpty()){drafts_[textChannel_]=text.left(2000);draftSave_.start();}
+    else if(textPurpose_=="edit-message")editDrafts_[textChannel_+"/"+textId_]=text.left(2000);
 }
 void SocialController::applyText(QString text) {
     if(textPurpose_=="search"){query_=text.trimmed();searchFocus_=-1;runSearch();}
     else if(textPurpose_=="add")emit commandRequested("add",{{"text",text}});
-    else preserveText(text);
+    else if(textPurpose_=="edit-message"||textPurpose_=="rename-group") {
+        preserveText(text);emit commandRequested(textPurpose_,{{"channel",textChannel_},{"id",textId_},{"text",text}});
+    } else preserveText(text);
     textPurpose_.clear();textChannel_.clear();emit changed();
 }
 void SocialController::send() {
@@ -140,24 +150,95 @@ void SocialController::send() {
     drafts_.remove(snapshot_["channel"].toString());emit changed();
     saveDrafts();
 }
+QVariantMap SocialController::currentChat() const {
+    for(const auto& row:snapshot_["chats"].toList())if(row.toMap()["id"]==snapshot_["channel"])return row.toMap();
+    return {};
+}
 void SocialController::openMenu() {
-    menu_.clear();menuCommands_.clear();menuFocus_=0;
+    selection_.stop();menu_.clear();menuCommands_.clear();menuFocus_=0;menuMode_="options";
+    menuChannel_=snapshot_["channel"].toString();
     const auto row=rows().value(focus_).toMap();menuSubject_=row["id"].toString();
+    menuTitle_=snapshot_["name"].toString();menuDetail_=snapshot_["remembered"].toBool()?"Account connected":"Connected for this session";
     auto add=[&](QString label,QString command){menu_.append(label);menuCommands_.append(command);};
-    if(face_=="chats")add(contacts_?"Conversations":"Friends & requests","contacts");
-    if(contacts_&&!menuSubject_.isEmpty()) {
-        const int type=row["type"].toInt();
-        if(type==3){add("Accept request","accept");add("Decline request","remove");}
-        if(type==4)add("Cancel request","remove");
-        if(type==1)add("Remove friend","remove");
-        if(type==2)add("Unblock","remove");else add("Block","block");
+    const auto message=messages().value(messageFocus_).toMap();
+    if(reading_&&message["editable"].toBool()) {
+        menuSubject_=message["id"].toString();menuTitle_="Your message";menuDetail_=message["text"].toString().left(120);
+        add("Edit message","edit-message");add("Delete message","ask-delete-message");
+    } else {
+        if(face_=="chats")add(contacts_?"Conversations":"Friends & requests","contacts");
+        if(contacts_&&!menuSubject_.isEmpty()) {
+            const int type=row["type"].toInt();
+            if(type==3){add("Accept request","accept");add("Decline request","remove");}
+            if(type==4)add("Cancel request","remove");
+            if(type==1)add("Remove friend","remove");
+            if(type==2)add("Unblock","remove");else add("Block","block");
+        }
+        if(face_=="groups") {
+            add("New group","create-group");
+            if(currentChat()["kind"]=="groups") {
+                menuTitle_=conversationName();menuDetail_="Group conversation";
+                add("Rename group","rename-group");add("Add friend","add-member");
+                if(currentChat()["owner"]==snapshot_["userId"])add("Remove member","remove-member");
+                add("Leave group","ask-leave-group");
+            }
+        }
+        add("Refresh","refresh");add("Sign out of Fluxer","logout");
     }
-    add("Refresh","refresh");add("Sign out of Fluxer","logout");emit changed();
+    emit changed();
+}
+void SocialController::openPeople(QString mode) {
+    selection_.stop();menuMode_=mode;menu_.clear();menuCommands_.clear();menuFocus_=0;pickedPeople_.clear();
+    menuChannel_=snapshot_["channel"].toString();
+    menuTitle_=mode=="create-group"?"Bring friends together":mode=="add-member"?"Add a friend":"Remove a member";
+    menuDetail_=mode=="create-group"?"Choose friends for your group":conversationName();
+    const auto members=currentChat()["members"].toList();QStringList memberIds;
+    for(const auto& member:members)memberIds<<member.toMap()["id"].toString();
+    const auto candidates=mode=="remove-member"?members:snapshot_["friends"].toList();
+    for(const auto& value:candidates) {
+        const auto person=value.toMap();const auto id=person["id"].toString();
+        if(id==snapshot_["userId"].toString()||id.isEmpty())continue;
+        if(mode!="remove-member"&&person["type"].toInt()!=1)continue;
+        if(mode=="add-member"&&memberIds.contains(id))continue;
+        QString name=person["name"].toString();if(name.isEmpty())name=person["global_name"].toString();if(name.isEmpty())name=person["username"].toString();
+        menu_.append((mode=="create-group"?QString::fromUtf8("\xe2\x97\x8b "):QString())+name);menuCommands_.append(id);
+    }
+    if(menu_.isEmpty()){menu_.append(mode=="remove-member"?"No other members":"No friends available");menuCommands_.append("none");}
+    emit changed();
+}
+void SocialController::confirmAction(QString title,QString operation,QString id) {
+    menuTitle_=title;menuDetail_=operation=="delete-message"?"This message will be deleted for everyone.":operation=="leave-group"?"You will leave this conversation.":"This person will be removed from the group.";
+    menuMode_="confirm";menu_={"Cancel",operation=="delete-message"?"Delete message":operation=="leave-group"?"Leave group":"Remove member"};
+    menuCommands_={"cancel",operation};menuSubject_=id;menuFocus_=0;emit changed();
 }
 void SocialController::selectMenu(int index) {
-    if(index<0||index>=menuCommands_.size())return;
-    if(menuCommands_[index]=="contacts"){contacts_=!contacts_;menu_.clear();focus_=0;preview();emit changed();return;}
-    emit commandRequested(menuCommands_[index],{{"id",menuSubject_}});menu_.clear();emit changed();
+    if(index<0||index>=menuCommands_.size()||snapshot_["mutationBusy"].toBool())return;
+    const auto command=menuCommands_[index];
+    if(command=="none")return;
+    if(command=="cancel"){menu_.clear();emit changed();return;}
+    if(menuMode_=="create-group") {
+        const bool selected=pickedPeople_.contains(command);
+        if(selected)pickedPeople_.removeAll(command);else if(pickedPeople_.size()<49)pickedPeople_.append(command);else return;
+        menu_[index]=(selected?QString::fromUtf8("\xe2\x97\x8b "):QString::fromUtf8("\xe2\x9c\x93 "))+menu_[index].mid(2);
+        menuFocus_=index;emit changed();return;
+    }
+    if(menuMode_=="add-member"){emit commandRequested("add-member",{{"channel",menuChannel_},{"id",command}});menu_.clear();emit changed();return;}
+    if(menuMode_=="remove-member"){confirmAction("Remove "+menu_[index]+"?","remove-member",command);return;}
+    if(command=="contacts"){contacts_=!contacts_;menu_.clear();focus_=0;preview();emit changed();return;}
+    if(command=="create-group"||command=="add-member"||command=="remove-member") {
+        if(menuMode_!="confirm"){openPeople(command);return;}
+    }
+    if(command=="ask-delete-message"){confirmAction("Delete this message?","delete-message",menuSubject_);return;}
+    if(command=="ask-leave-group"){confirmAction("Leave "+conversationName()+"?","leave-group");return;}
+    if(command=="edit-message"||command=="rename-group") {
+        textPurpose_=command;textChannel_=menuChannel_;textId_=menuSubject_;
+        QString text=conversationName();
+        if(command=="edit-message") {
+            text.clear();for(const auto& m:messages())if(m.toMap()["id"]==textId_)text=m.toMap()["text"].toString();
+            text=editDrafts_.value(textChannel_+"/"+textId_,text);
+        }
+        menu_.clear();emit textRequested(command=="edit-message"?"Edit message":"Group name",text,command=="edit-message"?2000:100);emit changed();return;
+    }
+    emit commandRequested(command,{{"id",menuSubject_},{"channel",menuChannel_}});menu_.clear();emit changed();
 }
 void SocialController::dispatch(Action action) {
     if(snapshot_["state"]=="restoring")return;
@@ -165,6 +246,9 @@ void SocialController::dispatch(Action action) {
         if(action==Action::Back)menu_.clear();
         else if(action==Action::Up||action==Action::Down)menuFocus_=qBound(0,menuFocus_+(action==Action::Up?-1:1),int(menu_.size())-1);
         else if(action==Action::Confirm)selectMenu(menuFocus_);
+        else if(action==Action::ToggleContinue&&menuMode_=="create-group"&&!pickedPeople_.isEmpty()&&!snapshot_["mutationBusy"].toBool()) {
+            emit commandRequested("create-group",{{"recipients",pickedPeople_}});menu_.clear();
+        }
         emit changed();return;
     }
     if(snapshot_.value("state")=="authorizing") {if(action==Action::Back)emit commandRequested("cancel-login",{});return;}
@@ -191,9 +275,9 @@ void SocialController::dispatch(Action action) {
         if(!reading_)selection_.start();
     } else if(action==Action::Right&&conversation())reading_=true;
     else if(action==Action::Left)reading_=false;
-    else if(action==Action::Confirm&&!reading_)activate(focus_);
+    else if(action==Action::Confirm){if(reading_){if(messages().value(messageFocus_).toMap()["editable"].toBool())openMenu();}else activate(focus_);}
     else if(action==Action::Back){reading_=false;if(contacts_){contacts_=false;focus_=0;} }
-    else if(action==Action::Secondary)compose();
+    else if(action==Action::Secondary){if(face_=="groups"&&!conversation())openPeople("create-group");else compose();}
     else if(action==Action::ToggleContinue){if(reading_&&snapshot_["historyPast"].toBool())emit commandRequested("latest",{});else send();}
     else if(action==Action::LocalAction||action==Action::ContextMenu)openMenu();
     emit changed();

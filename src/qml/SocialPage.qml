@@ -103,8 +103,8 @@ FocusScope {
                         border.color: root.social.reading && index === log.currentIndex ? "#c09220" : modelData.mine ? "#a7be81" : "#a1c1c8"
                         border.width: root.social.reading && index === log.currentIndex ? 2 : 1
                         Column { id: content; x: 12; y: 8; width: parent.width - 24; spacing: 3
-                            Text { width: parent.width; text: modelData.name; font.family: Theme.displayFamily; font.pixelSize: 13; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
-                            Text { width: parent.width; text: modelData.text || (modelData.media ? "Attachment" : ""); font.pixelSize: 16; color: Theme.ink; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+                            Text { width: parent.width; text: modelData.name + (modelData.edited ? " (edited)" : ""); font.family: Theme.displayFamily; font.pixelSize: 13; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
+                            Text { width: parent.width; text: modelData.text || (modelData.media ? "Attachment" : modelData.system ? "Conversation updated" : ""); font.pixelSize: 16; color: Theme.ink; wrapMode: Text.Wrap; textFormat: Text.PlainText }
                             Text { visible: modelData.delivery.length > 0; width: parent.width; text: modelData.delivery; font.pixelSize: 11; color: "#80542a"; wrapMode: Text.Wrap; textFormat: Text.PlainText }
                         }
                     }
@@ -118,7 +118,7 @@ FocusScope {
         }
         Column { visible: !root.social.conversation; x: people.width + 62; width: parent.width - x - 30; anchors.verticalCenter: parent.verticalCenter; spacing: 16
             Text { width: parent.width; text: ["No conversations yet", "No group chats yet", "No text channels yet"][root.faceIndex] || ""; font.family: Theme.displayFamily; font.pixelSize: 29; color: Theme.ink; horizontalAlignment: Text.AlignHCenter }
-            Text { width: parent.width; text: "Find someone new in Search."; font.pixelSize: 17; color: Theme.muted; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
+            Text { width: parent.width; text: root.faceIndex === 1 ? "Bring your friends together in a group." : "Find someone new in Search."; font.pixelSize: 17; color: Theme.muted; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
             Row { anchors.horizontalCenter: parent.horizontalCenter; spacing: 12
                 Repeater { model: [Theme.blue,Theme.pink,Theme.yellow]
                     Rectangle { required property color modelData; width: 48; height: 38; radius: 12; color: modelData; border.color: Qt.darker(modelData,1.35)
@@ -190,12 +190,26 @@ FocusScope {
     Rectangle {
         visible: root.social.menu.length > 0; anchors.fill: parent; color: "#6630433b"
         MouseArea { anchors.fill: parent }
-        Rectangle { anchors.centerIn: parent; width: 350; height: menuColumn.height + 30; radius: 16; color: Theme.paper; border.color: Theme.chassis; border.width: 3
-            Column { id: menuColumn; x: 15; y: 15; width: parent.width - 30; spacing: 9
-                Text { width: parent.width; text: root.account.name || "Fluxer"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23; textFormat: Text.PlainText; elide: Text.ElideRight }
-                Text { width: parent.width; text: root.account.remembered ? "Account connected" : "Connected for this session"; color: Theme.muted; font.pixelSize: 12 }
-                Repeater { model: root.social.menu
-                    CapButton { required property string modelData; required property int index; width: menuColumn.width; height: 42; label: modelData; selected: index === root.social.menuIndex; claimsFocus: false; tint: index === root.social.menu.length - 1 ? Theme.pink : Theme.blue; onActivated: root.social.selectMenu(index) }
+        Rectangle {
+            anchors.centerIn: parent; width: Math.min(410, parent.width - 40)
+            height: Math.min(parent.height - 24, menuHeading.height + menuList.contentHeight + 44)
+            radius: 16; color: Theme.paper; border.color: Theme.chassis; border.width: 3
+            Column {
+                id: menuHeading; x: 18; y: 15; width: parent.width - 36; spacing: 6
+                Text { width: parent.width; text: root.social.menuTitle || "Fluxer"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23; textFormat: Text.PlainText; elide: Text.ElideRight }
+                Text { width: parent.width; text: root.social.menuDetail; color: Theme.muted; font.pixelSize: 13; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight; textFormat: Text.PlainText }
+            }
+            ListView {
+                id: menuList; x: 15; y: menuHeading.y + menuHeading.height + 12
+                width: parent.width - 30; height: parent.height - y - 15; clip: true; spacing: 8
+                model: root.social.menu; currentIndex: root.social.menuIndex
+                onCurrentIndexChanged: if (currentIndex >= 0) positionViewAtIndex(currentIndex, ListView.Contain)
+                delegate: CapButton {
+                    required property string modelData; required property int index
+                    width: menuList.width; height: 42; label: modelData
+                    selected: index === root.social.menuIndex; claimsFocus: false
+                    tint: modelData.startsWith("Delete") || modelData.startsWith("Leave") || modelData.startsWith("Remove") || modelData.startsWith("Sign out") ? Theme.pink : Theme.blue
+                    onActivated: root.social.selectMenu(index)
                 }
             }
         }

@@ -24,7 +24,9 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
    services. Conversations open on entry/highlight; full-width Search uses real
    community discovery, full-tag people requests and group/community invites.
    Remembered login, account-scoped drafts and inline history paging are delivered
-   on Flip. Next: group/message controls and compact notification/read-state UX,
+   on Flip. Own-message edit/delete is now verified there; group controls are
+   implemented, but public Fluxer CAPTCHA blocks native creation/addition proof.
+   Next: supported challenge completion and compact notification/read-state UX,
    then the remaining messaging/activity acceptance in SOCIAL.md. Odin delivery
    and two-handheld proof wait for the owner's evening reboot; no bulk user
    enumeration or extra choose-person page.

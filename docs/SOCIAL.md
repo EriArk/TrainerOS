@@ -48,6 +48,23 @@ the supported invite endpoint. Joining or sending a request requires explicit A;
 browsing never changes membership. Existing friends are not search results.
 Late query/action responses cannot replace a newer search's state.
 
+## Groups and own messages
+
+Groups uses a compact friend picker: A toggles people and Y creates the group.
+An empty Groups face exposes New group directly on X; existing groups keep it in
+Options alongside rename, add friend, owner-only removal and leave. Any current
+group recipient may rename it. The provider owns privacy/admission and capacity;
+there is no separate TrainerOS friendship policy. Member lists refresh after changes.
+The controller-scrollable popover stays inside the current conversation.
+
+Right enters message reading; A on one's own ordinary text message opens Edit /
+Delete. Editing uses the existing controller keyboard and sends only content,
+preserving attachments/embeds. A cancelled edit does not send anything; its draft
+stays in memory for the same message/account. Delete, leave and member removal
+replace the same popover with a Cancel-first confirmation. No automatic retry of
+mutations. Provider rejection remains visible; a required verification challenge
+is reported rather than bypassed. Pending or unsupported messages offer no edit.
+
 ## Sessions and recovery
 
 The selected local Trainer scopes each session and every asynchronous result.
@@ -89,9 +106,9 @@ This is a working text slice, not completion of both issues. Preserve:
 
 - durable account-scoped history and detailed read-state synchronization;
   drafts and bounded history pagination are delivered;
-- group creation/member management/leave, own-message edit/delete controls,
-  richer friend lookup where supported, avatars and compact notification/privacy
-  controls; remote edits/deletions are already reflected;
+- richer friend lookup where supported, avatars and compact notification/privacy
+  controls; group/member and own-message controls are implemented, with current
+  live acceptance and provider limitations recorded below;
 - Odin proof of remembered credentials, and longer reconnect/rate-limit/
   large-account validation; Flip proof is recorded below;
 - live in-game Home messenger presentation without disturbing emulator input;
@@ -106,6 +123,7 @@ administration clone. No new account-name markers or invisible profile suffixes.
 - [Authentication](https://docs.fluxer.app/http-api/authentication/)
 - [Relationships](https://docs.fluxer.app/http-api/users/relationships/)
 - [Private channels](https://docs.fluxer.app/http-api/users/private-channels/)
+- [Channels and group membership](https://docs.fluxer.app/http-api/channels/)
 - [Messages](https://docs.fluxer.app/http-api/messages/)
 - [Guilds](https://docs.fluxer.app/http-api/guilds/) - Get guild returns visible channels.
 - [Gateway](https://docs.fluxer.app/gateway/events/)
@@ -194,3 +212,32 @@ administration clone. No new account-name markers or invisible profile suffixes.
   trip; the public directory returned 186 results at that check.
 - The same ARM64 artifact is retained locally for Odin. Its delivery and paired
   live tests wait for the owner's reboot; this is not two-handheld acceptance.
+
+## Group and message controls - 2026-10-01
+
+- Final Windows native build completed; focused social/core/interactions/QML/exit
+  checks passed 5/5 in 27.07 seconds. New tests cover own-message authorization,
+  content-only edits, deletion racing an edit response, serialized mutations,
+  explicit group multi-select/create, owner-only removal, recipient rename,
+  leave without message deletion, provider rejection and stale channel refresh.
+  Channel refreshes are coalesced so Gateway bursts do not fan out HTTP requests.
+- Production ARM64 installed and live executable verified on Flip:
+  `a22568ee7d6031664459d1b851e1c9a31e7f5b4372dd882f48f8f270e87116fd`.
+  Preserved 3 Trainers / 830 Adventures, boot preference and nearby helpers;
+  no active emulator or pending Link settlement during delivery.
+- Actual controller proof: existing test DM reopened after restart; editing HI
+  to HIA appeared as edited in the designated Odin account's official web client.
+  Cancelling the keyboard kept the in-memory edit draft without sending it.
+  Cancel-first deletion was dismissed once, then explicitly confirmed: the
+  message disappeared in both native and official clients. A fresh HI from the
+  pre-existing composer draft was then sent to retain a useful test conversation.
+- Group picker/selection/rendering works on Flip, but the public instance rejected
+  native group creation with CAPTCHA_REQUIRED. No group was invented or challenge
+  bypassed. Native supported challenge completion is an OPEN integration gate;
+  group creation/addition cannot be called end-to-end ready on this instance.
+  Rename/member removal/leave currently have contract/synthetic coverage only.
+- Actual Flip screenshots: private `work/research/management-group-picker.png`,
+  `management-final-message.png`, `management-delete-confirm.png` and
+  `management-final-chat.png`. These are compositor captures, not host mockups.
+- Odin SSH timed out. The exact ARM64 artifact is retained for its next delivery;
+  official-browser observation of the Odin test account is not two-handheld proof.

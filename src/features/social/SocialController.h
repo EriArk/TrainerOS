@@ -28,6 +28,8 @@ class SocialController final : public QObject {
     Q_PROPERTY(bool reading READ reading NOTIFY changed)
     Q_PROPERTY(QStringList menu READ menu NOTIFY changed)
     Q_PROPERTY(int menuIndex READ menuIndex NOTIFY changed)
+    Q_PROPERTY(QString menuTitle READ menuTitle NOTIFY changed)
+    Q_PROPERTY(QString menuDetail READ menuDetail NOTIFY changed)
 public:
     explicit SocialController(QObject* parent = nullptr);
     ~SocialController() override;
@@ -59,6 +61,8 @@ public:
     bool reading() const {return reading_;}
     QStringList menu() const {return menu_;}
     int menuIndex() const {return menuFocus_;}
+    QString menuTitle() const {return menuTitle_;}
+    QString menuDetail() const {return menuDetail_;}
     Q_INVOKABLE void activate(int index);
     Q_INVOKABLE void compose();
     Q_INVOKABLE void login();
@@ -72,6 +76,9 @@ private:
     friend class SocialTests;
     void receive(quint64 generation, QVariantMap snapshot);
     void openMenu();
+    void openPeople(QString mode);
+    QVariantMap currentChat() const;
+    void confirmAction(QString title, QString operation, QString id = {});
     void send();
     QThread thread_;
     FluxerSession* session_;
@@ -80,6 +87,9 @@ private:
     QString owner_, face_ = "chats", textPurpose_, textChannel_;
     QStringList menu_, menuCommands_;
     QString menuSubject_, query_;
+    QString menuTitle_, menuDetail_, menuMode_, menuChannel_, textId_;
+    QStringList pickedPeople_;
+    QHash<QString,QString> editDrafts_;
     quint64 generation_ = 0;
     int focus_ = 0, messageFocus_ = 0, menuFocus_ = 0;
     bool reading_ = false, contacts_ = false, searchStarted_ = false;

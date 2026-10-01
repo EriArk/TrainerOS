@@ -20,6 +20,65 @@ class SocialTests : public QObject {
     }
 private slots:
     void initTestCase() { QStandardPaths::setTestModeEnabled(true); }
+    void messageMutationsPreserveAttachmentsAndRespectOwnership() {
+        FluxerSession s;Completion done;QByteArray method;QJsonObject body;int calls=0;
+        s.setTransport([&](auto m,auto,auto b,Completion cb){++calls;method=m;body=b;done=cb;});bind(s);
+        const QString id="1501314428688998190";
+        QJsonObject message{{"id",id},{"channel_id",channel},{"type",0},{"content","before"},{"author",QJsonObject{{"id",remote}}}};
+        s.mergeMessage(message);s.command("edit-message",{{"channel",channel},{"id",id},{"text","after"}});QCOMPARE(calls,0);
+        message["author"]=QJsonObject{{"id",s.self_}};s.mergeMessage(message);
+        s.command("edit-message",{{"channel",channel},{"id",id},{"text","after"}});
+        QCOMPARE(method,QByteArray("PATCH"));QCOMPARE(body,(QJsonObject{{"content","after"}}));
+        s.command("delete-message",{{"channel",channel},{"id",id}});QCOMPARE(calls,1);
+        s.gatewayEvent({{"op",0},{"s",1},{"t","MESSAGE_DELETE"},{"d",QJsonObject{{"id",id},{"channel_id",channel}}}});
+        message["content"]="after";done({200,QJsonDocument(message)});QVERIFY(!s.messages_.contains(id));
+        s.mergeMessage(message);s.command("delete-message",{{"channel",channel},{"id",id}});
+        QCOMPARE(method,QByteArray("DELETE"));done({204,{}});QVERIFY(!s.messages_.contains(id));
+    }
+    void groupCreationAndMembershipUseProviderContract() {
+        FluxerSession s;Completion done;QByteArray method;QString path;QJsonObject body;int calls=0;
+        s.setTransport([&](auto m,auto p,auto b,Completion cb){++calls;method=m;path=p;body=b;done=cb;});bind(s);
+        s.command("create-group",{{"recipients",QStringList{remote,remote}}});QCOMPARE(calls,0);
+        s.command("create-group",{{"recipients",QStringList{remote}}});QCOMPARE(calls,1);
+        QCOMPARE(method,QByteArray("POST"));QCOMPARE(path,QString("/v1/users/@me/channels"));
+        QCOMPARE(body,(QJsonObject{{"recipients",QJsonArray{remote}}}));
+        const QString group="1501314428688998199";
+        QJsonObject groupData{{"id",group},{"type",3},{"owner_id",remote},{"name","Friends"}};
+        done({200,QJsonDocument(groupData)});QVERIFY(s.channels_.contains(group));
+        s.command("remove-member",{{"channel",group},{"id",remote}});QCOMPARE(calls,1);
+        s.command("rename-group",{{"channel",group},{"text","Play together"}});QCOMPARE(calls,2);
+        QCOMPARE(method,QByteArray("PATCH"));QCOMPARE(body,(QJsonObject{{"name","Play together"}}));
+        groupData["name"]="Play together";done({200,QJsonDocument(groupData)});
+        s.command("leave-group",{{"channel",group}});QCOMPARE(method,QByteArray("DELETE"));
+        QCOMPARE(path,"/v1/channels/"+group);QVERIFY(body.isEmpty());done({204,{}});QVERIFY(!s.channels_.contains(group));
+    }
+    void deniedGroupCreationNeverInventsConversation() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion done){done({403,QJsonDocument(QJsonObject{{"code","CAPTCHA_REQUIRED"}})});});bind(s);
+        s.command("create-group",{{"recipients",QStringList{remote}}});
+        QCOMPARE(s.channels_.size(),1);QVERIFY(!s.mutationBusy_);QVERIFY(s.status_.contains("verification"));
+    }
+    void staleChannelRefreshRefetchesInsteadOfErasingNewGroup() {
+        FluxerSession s;QList<Completion> replies;s.setTransport([&](auto,auto,auto,Completion done){replies<<done;});bind(s);
+        s.refreshChannels();++s.channelRevision_;replies.takeFirst()({200,QJsonDocument(QJsonArray{})});
+        QCOMPARE(s.channels_.size(),1);QCOMPARE(replies.size(),1);
+        replies.takeFirst()({200,QJsonDocument(QJsonArray{QJsonObject{{"id",channel},{"type",1}}})});QVERIFY(s.channels_.contains(channel));
+    }
+    void messageDeleteRequiresConfirmationAndEditKeepsCapturedIdentity() {
+        SocialController c;c.receive(0,{{"state","connected"},{"channel",channel},{"messages",QVariantList{QVariantMap{{"id","91"},{"text","hello"},{"editable",true}}}}});
+        QSignalSpy commands(&c,&SocialController::commandRequested);QSignalSpy text(&c,&SocialController::textRequested);
+        c.dispatch(Action::Right);c.dispatch(Action::Confirm);QCOMPARE(c.menu().size(),2);
+        c.selectMenu(1);QCOMPARE(c.menuTitle(),QString("Delete this message?"));c.selectMenu(0);QVERIFY(commands.isEmpty());
+        c.dispatch(Action::Confirm);c.selectMenu(0);QCOMPARE(text.size(),1);c.preserveText("edited draft");QVERIFY(commands.isEmpty());
+        c.applyText("edited");QCOMPARE(commands.last()[0].toString(),QString("edit-message"));
+        QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString("91"));QCOMPARE(commands.last()[1].toMap()["channel"].toString(),QString(channel));
+    }
+    void groupPickerRequiresExplicitCreateAfterSelection() {
+        SocialController c;c.face_="groups";c.receive(0,{{"state","connected"},{"userId","self"},{"friends",QVariantList{QVariantMap{{"id",remote},{"name","Friend"},{"type",1}}}}});
+        QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.dispatch(Action::Secondary);c.dispatch(Action::Confirm);QVERIFY(commands.isEmpty());
+        c.dispatch(Action::ToggleContinue);QCOMPARE(commands.size(),1);QCOMPARE(commands.first()[0].toString(),QString("create-group"));
+        QCOMPARE(commands.first()[1].toMap()["recipients"].toStringList(),QStringList{remote});QVERIFY(c.menu().isEmpty());
+    }
     void credentialPathsCannotEscapeTheirStore() {
         QVERIFY(EncryptedCredentials::path("../token").isEmpty());
         QVERIFY(EncryptedCredentials::path(QString(64,'a')).endsWith("/credentials/fluxer-"+QString(64,'a')+".cred"));

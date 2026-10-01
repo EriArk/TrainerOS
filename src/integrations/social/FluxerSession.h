@@ -29,6 +29,7 @@ public slots:
 signals:
     void snapshot(quint64 generation, QVariantMap state);
     void sendFailed(quint64 generation, QString channel, QString text);
+    void mutationFinished(quint64 generation, QString operation, QString channel, QString id, bool success);
 private:
     friend class SocialTests;
     void request(QByteArray method, QString path, QJsonObject body, Completion done, bool anonymous = false);
@@ -36,6 +37,9 @@ private:
     void ensureConversation();
     void openConversation(const QString& id);
     void search(QString mode, QString text, int offset = 0);
+    bool mutate(const QString& operation, const QVariantMap& args);
+    bool mutationBusy_ = false, channelsLoading_ = false;
+    quint64 channelRevision_ = 0;
     void remember(const QString& key, const QString& value);
     QString channelKind(const QJsonObject& channel) const;
     QString face_ = "chats", navigationKey_;
@@ -51,6 +55,7 @@ private:
     void pollLogin();
     void authenticated();
     void refresh();
+    void refreshChannels();
     void loadMessages(QString channel);
     void loadOlderMessages();
     bool historyBusy_ = false, historyMore_ = false, historyPast_ = false;
