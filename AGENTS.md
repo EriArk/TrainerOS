@@ -1,5 +1,21 @@
 # AGENTS.md — TrainerOS
 
+**Owner remote recovery, 2026-10-01:** the owner is often away from both handhelds.
+If the shell hangs, collect bounded diagnostics and force-stop/restart the affected
+process or session as needed; remote reboot is also authorized for recovery.
+Identify the device and preserve game/save operations. An unreachable SSH host or
+uninterruptible kernel/driver task is a recovery limit, not evidence of success.
+
+**Owner Social refinement, 2026-10-01:** keep the handheld's landscape material
+style, coloured caps and warm retro-handheld character. Social L2/R2 cycles
+Messages / Groups / Communities / Search; L1/R1 remains primary navigation.
+Friends and incoming requests belong with people search; Home Friends opens that
+face and Home Chats opens Messages. Keep one left list and right conversation,
+not a stack of conversation pages. Follow supported Fluxer behaviour and its
+actual permissions/rate limits without invented account restrictions. The
+TrainerOS compatibility exchange gates game invitations only, never ordinary chat.
+This supersedes the earlier Friends/Chats-only face pair. See docs/SOCIAL.md.
+
 **Owner social refinement, 2026-10-01:** include people search in #101 Friends.
 Before offering multiplayer, recognize an active compatible TrainerOS peer via
 a small versioned capability exchange under #104/#105. Do not force visible or

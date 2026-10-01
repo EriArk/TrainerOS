@@ -271,12 +271,15 @@ private slots:
         shell.dispatch(Action::Back);shell.dispatch(Action::NextFace);QCOMPARE(shell.trainerFace(),"journey");
         shell.goToTrainerFace("hall");shell.dispatch(Action::Confirm);
         const auto history=shell.hall()->navigationState();QCOMPARE(shell.hall()->route(),"archive-detail");
-        shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),4);QCOMPARE(shell.socialFace(),"friends");
+        shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),4);QCOMPARE(shell.socialFace(),"chats");
         QVERIFY(!shell.chooseAdventureAvailable());shell.dispatch(Action::ToggleContinue);QVERIFY(!shell.drawerOpen());
         shell.dispatch(Action::Confirm);QVERIFY(shell.notice().isEmpty());QVERIFY(!shell.trainer()->editing());
-        shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"chats");
+        shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"groups");
+        shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"communities");
         shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"friends");
-        shell.dispatch(Action::PreviousFace);QCOMPARE(shell.socialFace(),"chats");
+        shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"chats");
+        shell.dispatch(Action::PreviousFace);QCOMPARE(shell.socialFace(),"friends");
+        shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"chats");
         shell.dispatch(Action::Back);QCOMPARE(shell.socialFace(),"chats");
         const auto checkpoint=shell.navigationState();
         shell.dispatch(Action::PreviousPage);QCOMPARE(shell.trainerFace(),"hall");QCOMPARE(shell.hall()->navigationState(),history);
@@ -285,7 +288,7 @@ private slots:
         shell.restoreNavigation(checkpoint);QCOMPARE(shell.page(),4);QCOMPARE(shell.trainerFace(),"hall");
         QCOMPARE(shell.hall()->navigationState(),history);QCOMPARE(shell.socialFace(),"chats");
         shell.goToTrainerFace("ra");shell.restoreNavigation({{"version",99},{"page",4},{"trainerFace","ra"}});
-        QCOMPARE(shell.page(),0);QCOMPARE(shell.trainerFace(),"profile");QCOMPARE(shell.socialFace(),"friends");
+        QCOMPARE(shell.page(),0);QCOMPARE(shell.trainerFace(),"profile");QCOMPARE(shell.socialFace(),"chats");
         shell.restoreNavigation({{"version",2},{"page","removed"},{"trainerFace","removed"}});
         QCOMPARE(shell.page(),0);QCOMPARE(shell.trainerFace(),"profile");
     }

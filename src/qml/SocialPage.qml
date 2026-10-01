@@ -3,37 +3,142 @@ import QtQuick
 FocusScope {
     id: root
     required property var shell
-    objectName: "social-empty"
+    readonly property int faceIndex: ["chats","groups","communities","friends"].indexOf(shell.socialFace)
+    readonly property var social: shell.social
+    readonly property var account: social.account
+    readonly property bool connected: account.state === "connected" || account.state === "connecting"
     readonly property bool takesFocus: visible && !shell.serviceOpen && !shell.menuOpen && !shell.drawerOpen && !shell.keyboard.open && shell.notice.length === 0
+    objectName: "social-empty"
     onTakesFocusChanged: if (takesFocus) forceActiveFocus()
     Component.onCompleted: if (takesFocus) forceActiveFocus()
-
     PageHeader {
-        title: root.shell.socialFace === "friends" ? "Friends" : "Chats"
+        id: heading
+        title: ["Messages", "Groups", "Communities", "Find friends"][root.faceIndex]
+        subtitle: root.connected ? (root.account.name || "") + " · " + (root.account.status || "") : "A little closer, wherever you are."
     }
-    // Honest unlinked state until #99/#100 establish a supported user provider.
-    // No fake friends, disabled setup button, polling or duplicate account store.
     Item {
-        anchors.centerIn: parent
-        width: 400; height: 190
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 5; width: 116; height: 92; radius: 24
-            color: Theme.blue; border.color: Qt.darker(Theme.blue,1.6); border.width: 2
-            Rectangle { x: 8; y: 6; width: 100; height: 3; radius: 1; color: "#70ffffff" }
-            Row {
-                anchors.centerIn: parent; spacing: 12
-                Repeater { model: 3
-                    Rectangle { width: 10; height: 10; radius: 5; color: Theme.ink }
+        anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
+        visible: !root.connected
+        Rectangle { anchors.fill: parent; color: "#edf2e4" }
+        Rectangle { width: parent.width * 0.36; height: parent.height; color: "#d3e5dd"; border.color: "#b0c6b9" }
+        Item {
+            x: 34; width: parent.width * 0.36 - 68; height: 194; anchors.verticalCenter: parent.verticalCenter
+            Rectangle { x: 4; y: 7; width: parent.width; height: 150; radius: 24; color: "#6684947b" }
+            Rectangle {
+                width: parent.width; height: 150; radius: 24; color: Theme.blue; border.color: "#668f9f"; border.width: 2
+                Rectangle { x: 7; y: 7; width: parent.width - 14; height: parent.height - 14; radius: 19; color: "#bde3ec"; border.color: "#e9f6f4"; border.width: 2 }
+                Rectangle { x: 18; y: 22; width: parent.width - 36; height: 97; radius: 12; color: "#587d76" }
+                Rectangle { x: 24; y: 28; width: parent.width - 48; height: 84; radius: 9; color: "#e6f2c9"; border.color: "#7ba490"; border.width: 2
+                    Row { anchors.centerIn: parent; spacing: 21
+                        Rectangle { width: 8; height: 15; radius: 4; color: Theme.ink }
+                        Rectangle { width: 8; height: 15; radius: 4; color: Theme.ink }
+                    }
+                    Rectangle { anchors.horizontalCenter: parent.horizontalCenter; y: 58; width: 19; height: 3; radius: 2; color: Theme.ink }
+                    Rectangle { x: 21; y: 50; width: 16; height: 7; radius: 4; color: Theme.pink }
+                    Rectangle { anchors.right: parent.right; anchors.rightMargin: 21; y: 50; width: 16; height: 7; radius: 4; color: Theme.pink }
+                }
+                Row { x: 22; y: 129; spacing: 5; Repeater { model: 4; Rectangle { width: 16; height: 3; radius: 1; color: "#719ea5" } } }
+                Rectangle { anchors.right: parent.right; anchors.rightMargin: 22; y: 126; width: 10; height: 10; radius: 5; color: Theme.yellow; border.color: "#927e3f" }
+            }
+            Text { y: 168; width: parent.width; text: "HELLO, FRIEND!"; horizontalAlignment: Text.AlignHCenter; font.family: Theme.brandFamily; font.pixelSize: 21; color: Theme.ink }
+        }
+        Column {
+            x: parent.width * 0.36 + 32; width: parent.width * 0.64 - 64
+            anchors.verticalCenter: parent.verticalCenter; spacing: 14
+            Text { width: parent.width; text: root.account.state === "authorizing" ? "Let's get you connected" : "Your friends, along for the ride"; wrapMode: Text.WordWrap; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 26 }
+            Text { width: parent.width; text: root.account.state === "authorizing" ? (root.account.status || "Connecting...") : "Chat with your Fluxer friends from your handheld."; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 16; textFormat: Text.PlainText }
+            Rectangle { visible: (root.account.code || "").length > 0; width: parent.width; height: 60; radius: 10; color: "#fff4c6"; border.color: "#c5af66"; border.width: 2
+                Text { anchors.centerIn: parent; text: root.account.code || ""; font.family: Theme.brandFamily; font.pixelSize: 27; color: Theme.ink; textFormat: Text.PlainText }
+            }
+            CapButton { visible: root.account.state !== "authorizing"; width: parent.width; height: 54; label: "Connect Fluxer"; tint: Theme.yellow; selected: root.takesFocus; enabled: root.account.available || false; claimsFocus: false; onActivated: root.social.login() }
+            Text { width: parent.width; visible: root.account.state !== "authorizing" && !!root.account.status && root.account.status !== "Sign in to Fluxer"; text: root.account.status || ""; color: Theme.muted; font.pixelSize: 13; wrapMode: Text.WordWrap; textFormat: Text.PlainText }
+        }
+    }
+    Item {
+        visible: root.connected
+        anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
+        Rectangle { width: people.width + 30; height: parent.height; color: "#dce9d9"; border.color: "#b9cebd" }
+        ListView {
+            id: people
+            x: 14; y: 14; width: parent.width * 0.31; height: parent.height - 28
+            clip: true; spacing: 10; model: root.social.rows; currentIndex: root.social.focusIndex
+            onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
+            delegate: CapButton {
+                required property var modelData
+                required property int index
+                width: people.width - 5; height: 65; claimsFocus: false; contentInset: 52
+                label: modelData.name; detail: modelData.detail
+                tint: modelData.type === 3 ? Theme.yellow : index % 3 === 0 ? Theme.blue : index % 3 === 1 ? Theme.green : Theme.pink
+                selected: index === people.currentIndex && !root.social.reading && !root.social.menu.length
+                onActivated: root.social.activate(index)
+                Rectangle { x: 10; y: 13; width: 32; height: 32; radius: 11; color: "#dcfffdf0"; border.color: "#738f7c"
+                    Text { anchors.centerIn: parent; text: modelData.name.substring(0,1).toUpperCase(); color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 22; textFormat: Text.PlainText }
                 }
             }
         }
-        Text {
-            y: 126; width: parent.width
-            text: "No account connected"
-            horizontalAlignment: Text.AlignHCenter
-            font.family: Theme.displayFamily; font.pixelSize: 26
-            color: Theme.ink
+        Text { x: people.x + 6; y: 44; width: people.width - 16; visible: !people.count
+            text: ["Your conversations will appear here.", "Your group chats will appear here.", "Your Fluxer communities will appear here.", "Friends make the journey better. Add someone to say hello."][root.faceIndex]
+            wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; color: Theme.muted; font.pixelSize: 17
+        }
+        Item {
+            anchors { left: people.right; leftMargin: 30; right: parent.right; rightMargin: 18; top: parent.top; bottom: parent.bottom }
+            visible: root.social.conversation
+            Text { id: chatHeading; y: 10; width: parent.width; text: root.social.conversationName; font.family: Theme.displayFamily; font.pixelSize: 23; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }
+            Rectangle { y: 42; width: parent.width; height: 1; color: "#b4c6b8" }
+            ListView {
+                id: log
+                anchors { top: chatHeading.bottom; topMargin: 14; bottom: composer.top; bottomMargin: 9; left: parent.left; right: parent.right }
+                clip: true; spacing: 10; model: root.social.messages; currentIndex: root.social.messageIndex
+                onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
+                onCountChanged: Qt.callLater(function(){log.positionViewAtIndex(log.currentIndex,ListView.Contain)})
+                delegate: Item {
+                    required property var modelData
+                    required property int index
+                    width: log.width; height: bubble.height + 3
+                    Rectangle {
+                        id: bubble
+                        x: modelData.mine ? 26 : 2; width: parent.width - 30
+                        height: content.height + 18; radius: 11
+                        color: modelData.mine ? "#e5efbe" : "#d5eaf1"
+                        border.color: root.social.reading && index === log.currentIndex ? "#c09220" : modelData.mine ? "#a7be81" : "#a1c1c8"
+                        border.width: root.social.reading && index === log.currentIndex ? 2 : 1
+                        Column { id: content; x: 12; y: 8; width: parent.width - 24; spacing: 3
+                            Text { width: parent.width; text: modelData.name; font.family: Theme.displayFamily; font.pixelSize: 13; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
+                            Text { width: parent.width; text: modelData.text || (modelData.media ? "Attachment" : ""); font.pixelSize: 16; color: Theme.ink; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+                            Text { visible: modelData.delivery.length > 0; width: parent.width; text: modelData.delivery; font.pixelSize: 11; color: "#80542a"; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+                        }
+                    }
+                }
+            }
+            Rectangle { id: composer; anchors { left: parent.left; right: parent.right; bottom: parent.bottom; bottomMargin: 12 }
+                height: 49; radius: 10; color: "#fff4cd"; border.color: "#bcab6c"
+                Text { anchors { fill: parent; margins: 12 } text: root.social.draft || "Write a little hello..."; font.pixelSize: 16; color: root.social.draft.length ? Theme.ink : Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
+                MouseArea { anchors.fill: parent; onClicked: root.social.compose() }
+            }
+        }
+        Column { visible: !root.social.conversation; x: people.width + 62; width: parent.width - x - 30; anchors.verticalCenter: parent.verticalCenter; spacing: 16
+            Text { width: parent.width; text: "A place to catch up"; font.family: Theme.displayFamily; font.pixelSize: 29; color: Theme.ink; horizontalAlignment: Text.AlignHCenter }
+            Text { width: parent.width; text: "Pick someone and send a little hello."; font.pixelSize: 17; color: Theme.muted; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
+            Row { anchors.horizontalCenter: parent.horizontalCenter; spacing: 12
+                Repeater { model: [Theme.blue,Theme.pink,Theme.yellow]
+                    Rectangle { required property color modelData; width: 48; height: 38; radius: 12; color: modelData; border.color: Qt.darker(modelData,1.35)
+                        Text { anchors.centerIn: parent; text: ":)"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 20 }
+                    }
+                }
+            }
+        }
+    }
+    Rectangle {
+        visible: root.social.menu.length > 0; anchors.fill: parent; color: "#6630433b"
+        MouseArea { anchors.fill: parent }
+        Rectangle { anchors.centerIn: parent; width: 350; height: menuColumn.height + 30; radius: 16; color: Theme.paper; border.color: Theme.chassis; border.width: 3
+            Column { id: menuColumn; x: 15; y: 15; width: parent.width - 30; spacing: 9
+                Text { width: parent.width; text: root.account.name || "Fluxer"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23; textFormat: Text.PlainText; elide: Text.ElideRight }
+                Text { width: parent.width; text: root.account.remembered ? "Account connected" : "Connected for this session"; color: Theme.muted; font.pixelSize: 12 }
+                Repeater { model: root.social.menu
+                    CapButton { required property string modelData; required property int index; width: menuColumn.width; height: 42; label: modelData; selected: index === root.social.menuIndex; claimsFocus: false; tint: index === root.social.menu.length - 1 ? Theme.pink : Theme.blue; onActivated: root.social.selectMenu(index) }
+                }
+            }
         }
     }
 }

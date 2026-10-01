@@ -8,7 +8,7 @@ L1/R1 stops at the existing primary edges. L2/R2 wraps section faces:
 - Home and Worlds: Pokémon / Multiverse.
 - Companions: Guide / Party / Boxes / Center / Playroom / Shops.
 - Trainer: Profile / Journey / Hall / RA.
-- Social: Friends / Chats.
+- Social: Messages / Groups / Communities / Search (owner refinement; [native Social](SOCIAL.md)).
 
 The Trainer profile, existing Hall controller's three independent face views and
 their providers are reused. No dashboard, additional submenu or save writer was
@@ -16,8 +16,8 @@ introduced. First Trainer entry is Profile; ordinary visits retain its selected
 face. `goToTrainerFace(profile|journey|hall|ra)` is the explicit semantic deep-link
 boundary. Nested Champion/archive/achievement routes keep their own selection
 and focus. Start's routes/quick controls and modal/transaction priority remain.
-Social is an honest unlinked surface: no fabricated people/messages, connection
-button without a provider, game-selector interception or background social polling.
+The original unlinked Social placeholder is superseded by [native Social](SOCIAL.md).
+It reuses the existing Home shortcuts and keeps game selection out of Social.
 
 ## Navigation version 2
 

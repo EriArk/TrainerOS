@@ -147,6 +147,9 @@ accounts. This is a small connectivity experiment, not a load/reliability test.
 
 ## Next acceptance
 
+The first native four-face text client is now implemented in [Social](SOCIAL.md).
+Its verification and remaining acceptance supersede this original next-step note.
+
 Implement the native owner-scoped browser-handoff consumer and compact real
 Friends/Chats in #100/#101. Preserve origin and game process in Home overlays.
 Do not require live voice, media uploads or gameplay relay before text chat.

@@ -208,6 +208,10 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         textTarget_ = TextTarget::TrainerName;
         keyboard_.begin("Trainer name", initial, TrainerController::NameLimit);
     });
+    connect(&social_, &SocialController::changed, this, [this]{if(page_==4)emit changed();});
+    connect(&social_, &SocialController::textRequested, this, [this](QString title, QString text, int limit) {
+        textTarget_ = TextTarget::Social; keyboard_.begin(title,text,limit);
+    });
     connect(&keyboard_, &TextEntryController::accepted, this, [this](const QString& text) {
         const auto target = textTarget_;
         textTarget_ = TextTarget::None;
@@ -225,6 +229,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if(target==TextTarget::BoxName)party_.applyBoxName(text);
         else if (target == TextTarget::AchievementAccount) hall_.account()->applyText(text);
         else if (target == TextTarget::Network) network_.applyText(text);
+        else if (target == TextTarget::Social) social_.applyText(text);
     });
     connect(&center_, &SaveCenterController::shopSearchRequested,this,[this](const QString& text){textTarget_=TextTarget::ShopSearch;keyboard_.begin("Find goods or shops",text,64);});
     refreshContinue();
@@ -265,7 +270,7 @@ bool ShellController::canEditWorld() const {
         && !drawerOpen_ && !libraryTools_.isOpen() && !worlds_.region().value("id").toString().isEmpty();
 }
 bool ShellController::localModalOpen() {
-    return libraryTools_.isOpen() || trainer_.editing() || (page_ == 2 && (centerFace() ? center_.confirming() || center_.writing() || (center_.shopsOpen() && center_.shopModal()) || party_.detailOpen() || party_.moveOpen()
+    return (page_==4 && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing() || (page_ == 2 && (centerFace() ? center_.confirming() || center_.writing() || (center_.shopsOpen() && center_.shopModal()) || party_.detailOpen() || party_.moveOpen()
         : pokedex_.zone() == "picker" || pokedex_.zone() == "art" || pokedex_.saving()))
         || (trainerHistoryFace() && (hall_.editor()->isOpen() || hall_.account()->isOpen()));
 }
@@ -285,7 +290,7 @@ QStringList ShellController::faceNames() const {
     if(page_==0 || page_==1)return {"Pokémon","Multiverse"};
     if(page_==2)return {"Guide","Party","Boxes","Center","Playroom","Shops"};
     if(page_==3)return {"Profile","Journey","Hall","RA"};
-    if(page_==4)return {"Friends","Chats"};
+    if(page_==4)return {"Messages","Groups","Communities","Search"};
     return {};
 }
 int ShellController::faceIndex() const {
@@ -293,7 +298,7 @@ int ShellController::faceIndex() const {
     if(page_==1)return multiverseFace_?1:0;
     if(page_==2)return QStringList{"dex","party","boxes","center","playroom","shops"}.indexOf(pokemonFace_);
     if(page_==3)return trainerProfile_ ? 0 : hall_.faceIndex()+1;
-    if(page_==4)return socialFace_=="chats"?1:0;
+    if(page_==4)return QStringList{"chats","groups","communities","friends"}.indexOf(socialFace_);
     return 0;
 }
 QString ShellController::trainerFace() const {
@@ -413,7 +418,7 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     const int version=state["version"].toInt();
     if(version!=1 && version!=ShellNavigationVersion) {
         // A future layout is not permission to reinterpret its numeric slots.
-        trainerProfile_=true;socialFace_="friends";goToPage(0);return;
+        trainerProfile_=true;socialFace_="chats";social_.setFace(socialFace_);goToPage(0);return;
     }
     const QStringList legacyPages{"home","worlds","pokedex","trainer","hall"};
     const QStringList pages{"home", "worlds", "companions", "trainer", "social"};
@@ -424,7 +429,8 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     if(legacyHall)target="trainer";
     pokemonFace_ = "dex";
     trainerProfile_=true;
-    socialFace_=version==2 && state["socialFace"].toString()=="chats"?"chats":"friends";
+    socialFace_=version==2 && QStringList{"chats","groups","communities","friends"}.contains(state["socialFace"].toString()) ? state["socialFace"].toString() : "chats";
+    social_.setFace(socialFace_);
     goToPage(std::max(0, int(pages.indexOf(target))));
     homeAdventureId_ = state["homeAdventure"].toString(); homeResumeId_ = state["homeResume"].toString();
     homeResumeSource_ = ResumeSource::fromJson(state["homeResumeSource"].toObject());
@@ -589,8 +595,9 @@ void ShellController::goToPage(int page) {
     if(page!=page_){party_.activities()->practice()->leave();party_.activities()->link()->leave();}
     { PerformanceTrace::Scope phase("navigation.tools"); libraryTools_.close(); }
     { PerformanceTrace::Scope phase("navigation.storage"); settings_.storage()->close(); }
-    { PerformanceTrace::Scope phase("navigation.keyboard"); keyboard_.cancel(); }
+    { PerformanceTrace::Scope phase("navigation.keyboard"); if(textTarget_==TextTarget::Social)social_.preserveText(keyboard_.text()); keyboard_.cancel(); }
     textTarget_ = TextTarget::None;
+    social_.closeMenu();
     pokedex_.cancelTransient();
     { PerformanceTrace::Scope phase("navigation.archive"); hall_.editor()->cancel(); }
     { PerformanceTrace::Scope phase("navigation.account"); hall_.account()->close(); }
@@ -795,7 +802,7 @@ void ShellController::confirm() {
     else if (page_ == 3 && trainerProfile_) {
         trainer_.beginEdit();
     } else if (page_ == 4) {
-        return; // Unlinked Social has no fabricated account action.
+        social_.dispatch(Action::Confirm); return;
     } else {
         notice_ = "This section is not available in the prototype yet.";
     }
@@ -807,6 +814,7 @@ void ShellController::closeHomeMenu() {
 void ShellController::activateHomeMenu(int index) {
     if (!homeMenuOpen_ || navigationLocked() || index < 0 || index > 2) return;
     if (index) socialFace_ = index == 1 ? "friends" : "chats";
+    social_.setFace(socialFace_);
     goToPage(index ? 4 : 0);
 }
 void ShellController::dispatch(Action action) {
@@ -850,7 +858,7 @@ void ShellController::dispatch(Action action) {
                 const QStringList faces{"profile","journey","hall","ra"};
                 showTrainerFace(faces[(faceIndex()+(action==Action::NextFace?1:3))%4]);
             }
-            else if (page_ == 4) socialFace_=socialFace_=="friends"?"chats":"friends";
+            else if (page_ == 4) { const QStringList faces{"chats","groups","communities","friends"}; socialFace_=faces[(faceIndex()+(action==Action::NextFace?1:3))%4]; social_.setFace(socialFace_); }
             else {
                 const auto& faces=pokemonExperience().pokemonFaces;
                 showPokemonFace(faces[(faceIndex()+(action==Action::NextFace?1:5))%6]);
@@ -867,6 +875,7 @@ void ShellController::dispatch(Action action) {
         if (keyboard_.isOpen()) {
             const bool naming=textTarget_==TextTarget::BoxName;
             const bool connecting=textTarget_==TextTarget::Network;
+            if(textTarget_==TextTarget::Social && action==Action::Back)social_.preserveText(keyboard_.text());
             keyboard_.dispatch(action);
             if(naming && action==Action::Back) {textTarget_=TextTarget::None;party_.cancelBoxName();}
             if(connecting && action==Action::Back) {textTarget_=TextTarget::None;network_.cancelText();}
@@ -918,7 +927,7 @@ void ShellController::dispatch(Action action) {
             return;
         }
         if (trainerHistoryFace()) { hall_.dispatch(action == Action::LocalAction && !localModalOpen() ? Action::ToggleContinue : action); return; }
-        if (page_ == 4) return;
+        if (page_ == 4) { social_.dispatch(action); return; }
     }
     if (menuOpen_ && !powerMenu_ && notice_.isEmpty() && action == Action::Secondary) {
         if (menuFocus_ >= 7) menuFocus_ = menuServiceFocus_;

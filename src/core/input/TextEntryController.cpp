@@ -50,7 +50,7 @@ QVariantList TextEntryController::keys() const {
 void TextEntryController::begin(const QString& title, const QString& initial, int maximumLength, bool secret) {
     title_ = title;
     text_ = initial; // Do not silently truncate an existing value.
-    maximumLength_ = std::clamp(maximumLength, 1, 256);
+    maximumLength_ = std::clamp(maximumLength, 1, 2000);
     hint_.clear();
     focus_ = 0;
     preferredColumn_ = 0;

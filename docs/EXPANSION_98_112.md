@@ -117,3 +117,13 @@ Owner addition, 2026-10-01, for the later #101/#104/#105 increments:
 
 This addition changes upcoming acceptance only; the #99 spike does not implement
 people search or the capability exchange.
+
+## Social landscape refinement - 2026-10-01
+
+The owner replaced the Friends/Chats-only face pair with cyclic L2/R2 Messages /
+Groups / Communities / Search, retaining L1/R1 primaries and a left-list/right-chat
+landscape composition. Friends/requests live with search. Supported Fluxer group
+and community text access is in scope; guild administration is not implied.
+Follow provider standards/permissions, without invented ordinary-chat restrictions.
+TrainerOS capability recognition applies only to game/activity offers.
+See [native text delivery and preserved remaining acceptance](SOCIAL.md).

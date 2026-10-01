@@ -18,7 +18,9 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
    official browser handoff, friendship/DM, realtime changes, resume and logout.
    Voice grant is proven separately; audio/media and the remaining matrix gates
    are not delivered messenger functionality.
-4. #100 owner-scoped provider and #101 compact Friends/Chats messenger. Wire Home
+4. #100 owner-scoped provider and #101 [native Social](SOCIAL.md): first text
+   increment, followed by the explicit remaining acceptance there. Owner-refined
+   faces are Messages / Groups / Communities / Search. Wire Home
    social shortcuts to these same services as they become available. Include
    people search using supported provider lookup, without bulk user enumeration.
 5. #104 invitations + #109 reusable existing system activities + #105 per-traffic

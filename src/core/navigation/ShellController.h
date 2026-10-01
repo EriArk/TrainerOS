@@ -1,5 +1,6 @@
 #pragma once
 #include "core/input/Action.h"
+#include "features/social/SocialController.h"
 #include "LaunchPreparation.h"
 #include "core/input/TextEntryController.h"
 #include "core/repository/LibraryRepository.h"
@@ -34,6 +35,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(QStringList primaryNames READ primaryNames CONSTANT)
     Q_PROPERTY(QString trainerFace READ trainerFace NOTIFY changed)
     Q_PROPERTY(bool trainerHistoryFace READ trainerHistoryFace NOTIFY changed)
+    Q_PROPERTY(trainer::SocialController* social READ social CONSTANT)
     Q_PROPERTY(QString socialFace READ socialFace NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(bool drawerOpen READ drawerOpen NOTIFY changed)
@@ -79,6 +81,7 @@ public:
                     AchievementProvider&, QObject* parent = nullptr);
     TrainerSetupPresentation* trainerSetup() { return &trainerSetup_; }
     void setOnboardingConnections(bool active) { if(onboardingConnections_==active)return; onboardingConnections_=active; emit changed(); }
+    SocialController* social() { return &social_; }
     TextEntryController* keyboard() { return &keyboard_; }
     bool canReceiveNearby() { return !homeMenuOpen_ && !menuOpen_ && !drawerOpen_ && !serviceOpen() && notice_.isEmpty()
         && !localModalOpen() && !keyboard_.isOpen() && !party_.activities()->practice()->running(); }
@@ -184,15 +187,16 @@ private:
     DiagnosticsController diagnostics_;
     SaveCenterController center_;
     PartyPresentation party_;
+    SocialController social_;
     QString service_;
-    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, LibraryTools, Archive, TrainerFavorite, CenterSearch, ShopSearch, BoxName, AchievementAccount, SetupName, Network };
+    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, LibraryTools, Archive, TrainerFavorite, CenterSearch, ShopSearch, BoxName, AchievementAccount, SetupName, Network, Social };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QString homeAdventureId_, homeResumeId_;
     ResumeSource homeResumeSource_;
     int page_ = 0;
     bool trainerProfile_ = true;
-    QString socialFace_ = "friends";
+    QString socialFace_ = "chats";
     int drawerFocus_ = 0;
     int menuFocus_ = 0;
     int menuServiceFocus_ = 0;

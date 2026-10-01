@@ -262,6 +262,14 @@ int main(int argc, char* argv[]) {
                               personalLibrary && !smoke ? static_cast<HallOfFameRepository&>(*store) : shellArchive,
                               realAchievements ? static_cast<AchievementProvider&>(*realAchievements) : shellAchievements);
         shell.configureServices(&files, store.get());
+        if(personalLibrary && !smoke && store) {
+            QObject::connect(store.get(), &LocalStateStore::opened, &shell, [&](bool ready) {
+                shell.social()->setOwner(ready ? store->ownerId() : QString());
+            });
+            QObject::connect(store.get(), &LocalStateStore::accessNeeded, &shell, [&] {
+                shell.social()->setOwner({});
+            });
+        }
         if (personalLibrary && !smoke) {
             folders.prepareInstallation = [&adapters](AdventureRegistration& record) { adapters.prepareInstallation(record); };
             folders.prepareFileMove = [saveRuntimes](const AdventureRegistration& record,LibraryEdit& edit)->QString {
@@ -962,14 +970,14 @@ int main(int argc, char* argv[]) {
                         capture("keyboard-letterbox"); press(b); press(b);
                         press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
                     case 26:
-                        check(shell.page() == 4 && focusIs("social-empty"), "Unlinked Friends has visible shell focus");
-                        check(shell.socialFace()=="friends" && !shell.chooseAdventureAvailable(), "Social has no game selector");
+                        check(shell.page() == 4 && focusIs("social-empty"), "Unlinked Social has visible shell focus");
+                        check(shell.socialFace()=="chats" && !shell.chooseAdventureAvailable(), "Social has no game selector");
                         press(b);
                         check(shell.page() == 4, "Back must not leave primary page");
                         capture("social-friends-letterbox");
                         SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767);input.poll();
                         SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768);input.poll();
-                        check(shell.socialFace()=="chats", "Physical R2 cycles Social peers");
+                        check(shell.socialFace()=="groups", "Physical R2 cycles Social peers");
                         capture("landscape-letterbox");
                         window->resize(1920, 1080); break;
                     case 27:

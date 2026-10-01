@@ -58,7 +58,7 @@ The last command requests full-screen inside the existing graphical session. It 
 An Ubuntu development/CI example, **not an ArmadaOS installation prescription**:
 
 ```sh
-sudo apt-get install ninja-build qt6-base-dev qt6-declarative-dev qt6-multimedia-dev libqt6sql6-sqlite libsdl2-dev libssl-dev ffmpeg \
+sudo apt-get install ninja-build qt6-base-dev qt6-declarative-dev qt6-multimedia-dev qt6-websockets-dev qtkeychain-qt6-dev libqt6sql6-sqlite libsdl2-dev libssl-dev ffmpeg \
   qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtquick-shapes \
   qml6-module-qtqml-workerscript qml6-module-qtqml-models qml6-module-qtmultimedia
 ```
@@ -214,3 +214,5 @@ The required commit/push/current-CI delivery process is in [DEVELOPMENT_WORKFLOW
 1. Validate the native build on Linux and the actual Flip 2; finish shared controller/focus behavior against real input.
 2. Use the persistent library and process foundation to complete the first real Adventure adapter according to `ROADMAP.md`, once the target environment is known.
 3. Introduce real Adventure/providers and session switching only after their prerequisites pass. RetroAchievements belongs within Hall of Fame.
+
+Native Social additionally links Qt6 WebSockets and Qt6Keychain (no insecure credential fallback). Fedora build containers need `qt6-qtwebsockets-devel` and `qtkeychain-qt6-devel`; use matching runtime packages on devices.
