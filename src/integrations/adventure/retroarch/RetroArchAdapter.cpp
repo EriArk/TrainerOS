@@ -1,4 +1,5 @@
 #include "RetroArchAdapter.h"
+#include "RetroArchAppearance.h"
 #include "RetroArchSave.h"
 #include "RetroArchDisc.h"
 #include "core/repository/RomPlatforms.h"
@@ -186,6 +187,11 @@ AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
             return prepareGenericRetroArchLaunch(cmd,record,installation,cancel);
         };
     }
+    const auto prepare=invocation->prepare;const auto id=adventure.id;const auto config=installation_.configFile;
+    invocation->prepare=[prepare,id,config](ProcessCommand& cmd,const std::atomic_bool& cancel){
+        const auto error=prepare?prepare(cmd,cancel):QString();
+        return error.isEmpty()&&!cancel?retroarch::prepareAppearance(cmd,id,config):error;
+    };
     if (!requestLaunch) return {false, "Game launch is unavailable in this session."};
     return requestLaunch(*invocation, adventure.id);
 }

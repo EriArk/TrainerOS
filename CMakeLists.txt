@@ -8,14 +8,17 @@ set(CMAKE_AUTOMOC ON)
 include(CTest)
 option(TRAINER_BUILD_PRACTICE_PROBE "Build the read-only Emerald battle proof tool" OFF)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network Xml Multimedia WebSockets)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql Network Xml Multimedia WebSockets Concurrent)
 find_package(Qt6Keychain REQUIRED)
 find_package(OpenSSL 3 REQUIRED COMPONENTS Crypto)
 find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
+    src/integrations/adventure/retroarch/RetroArchAppearance.cpp
+    src/features/social/SocialMedia.cpp
     src/integrations/social/OnlineLink.cpp
     src/integrations/social/FluxerSession.cpp
+    src/integrations/social/FluxerReviews.cpp
     src/integrations/social/AltchaProof.cpp
     src/platform/storage/EncryptedCredentials.cpp
     src/features/social/SocialController.cpp
@@ -207,7 +210,7 @@ qt_add_resources(trainer_core rom_platforms PREFIX "/library" BASE data FILES da
 qt_add_resources(trainer_core pokedex_reference PREFIX "/pokedex" BASE data FILES data/pokedex.json)
 qt_add_resources(trainer_core emerald_reference PREFIX "/progress" BASE data FILES data/emerald-reference.json)
 qt_add_resources(trainer_core emerald_shops PREFIX "/progress" BASE data FILES data/emerald-shops.json)
-target_link_libraries(trainer_core PUBLIC Qt6Keychain::Qt6Keychain Qt6::WebSockets Qt6::Core Qt6::Gui Qt6::Sql Qt6::Network Qt6::Xml SDL2::SDL2 OpenSSL::Crypto)
+target_link_libraries(trainer_core PUBLIC Qt6Keychain::Qt6Keychain Qt6::WebSockets Qt6::Core Qt6::Gui Qt6::Sql Qt6::Network Qt6::Xml Qt6::Multimedia Qt6::Concurrent SDL2::SDL2 OpenSSL::Crypto)
 target_compile_definitions(trainer_core PUBLIC SDL_MAIN_HANDLED)
 if(TRAINER_BUILD_PRACTICE_PROBE)
     qt_add_executable(trainer_practice_probe tools/ProbeEmeraldPractice.cpp)

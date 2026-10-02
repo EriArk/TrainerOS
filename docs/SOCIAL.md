@@ -1,5 +1,11 @@
 # Native Social - conversations and discovery
 
+The 2026-10-02 [media, calls and active-game notifications increment](SOCIAL_MEDIA_VOICE.md)
+adds native attachments, the LiveKit call worker and shared Home call controls.
+[#113 Reviews](ADVENTURE_REVIEWS.md) uses the same account provider from Adventure
+Properties. Those documents separate delivered behavior from remaining live and
+distribution gates; earlier acceptance below remains binding.
+
 The [online Link increment](ONLINE_LINK.md) adds active-client checks and compact
 friend-DM invitations. Accepted exact Emerald activities reuse the native Link
 workspace; final bilateral save approval remains separate. The linked evidence

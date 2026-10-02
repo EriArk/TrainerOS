@@ -6,6 +6,7 @@
 #include <QVariantList>
 #include <QHash>
 #include <QTimer>
+#include "SocialMedia.h"
 
 namespace trainer {
 class FluxerSession;
@@ -35,9 +36,12 @@ class SocialController final : public QObject {
     Q_PROPERTY(QString menuDetail READ menuDetail NOTIFY changed)
     Q_PROPERTY(bool surfaceAvailable READ surfaceAvailable WRITE setSurfaceAvailable NOTIFY presentationChanged)
     Q_PROPERTY(bool conversationVisible READ conversationVisible WRITE setConversationVisible NOTIFY presentationChanged)
+    Q_PROPERTY(bool gameActive READ gameActive WRITE setGameActive NOTIFY presentationChanged)
     Q_PROPERTY(QString toastTitle READ toastTitle NOTIFY presentationChanged)
     Q_PROPERTY(QString toastText READ toastText NOTIFY presentationChanged)
     Q_PROPERTY(QVariantMap online READ online NOTIFY changed)
+    Q_PROPERTY(trainer::SocialMedia* media READ media CONSTANT)
+    Q_PROPERTY(bool mediaPreview READ mediaPreview NOTIFY changed)
 public:
     explicit SocialController(QObject* parent = nullptr);
     ~SocialController() override;
@@ -60,7 +64,7 @@ public:
 
     void applyText(QString text);
     void preserveText(QString text);
-    void closeMenu() { if(!menu_.isEmpty()){menu_.clear();emit changed();} }
+    void closeMenu();
     QVariantMap account() const;
     QVariantList rows() const;
     QVariantList messages() const { return snapshot_.value("messages").toList(); }
@@ -75,6 +79,8 @@ public:
     int menuIndex() const {return menuFocus_;}
     QString menuTitle() const {return menuTitle_;}
     QString menuDetail() const {return menuDetail_;}
+    SocialMedia* media(){return &media_;}
+    bool mediaPreview() const{return menuMode_=="media-preview"||menuMode_=="media-view";}
     Q_INVOKABLE void activate(int index);
     Q_INVOKABLE void compose();
     Q_INVOKABLE void together();
@@ -85,6 +91,11 @@ public:
     Q_INVOKABLE void selectMenu(int index);
     bool surfaceAvailable() const { return surfaceAvailable_; }
     bool conversationVisible() const { return conversationVisible_; }
+    bool gameActive() const{return gameActive_;}
+    void setGameActive(bool active){if(gameActive_!=active){gameActive_=active;emit presentationChanged();}}
+    void controlCall(const QString& operation){emit commandRequested(operation,{});}
+    void answerCall(const QString& channel,bool accept){emit commandRequested(accept?"voice-join":"voice-decline",{{"channel",channel}});}
+    void reviewCommand(const QString& operation,const QVariantMap& args){emit commandRequested(operation,args);}
     void setSurfaceAvailable(bool available);
     void setConversationVisible(bool visible);
     QString toastTitle() const { return toastTitle_; }
@@ -101,6 +112,8 @@ signals:
     void textRequested(QString title, QString initial, int limit);
     void commandRequested(QString operation, QVariantMap args);
     void ownerRequested(QString owner, quint64 generation);
+    void backgroundNotification(QString title,QString text);
+    void reviewsChanged(QString identity,QVariantMap state);
 private:
     friend class SocialTests;
     void receive(quint64 generation, QVariantMap snapshot);
@@ -109,6 +122,10 @@ private:
     QVariantMap currentChat() const;
     void confirmAction(QString title, QString operation, QString id = {});
     void send();
+    void mediaMenu();
+    SocialMedia media_{this};
+    QVariantList mediaChoices_;
+    bool mediaSending_=false,mediaUncertain_=false;
     QThread thread_;
     FluxerSession* session_;
     LinkController* link_=nullptr;
@@ -131,6 +148,7 @@ private:
     QTimer draftSave_;
     QTimer toastTimer_;
     bool surfaceAvailable_ = false, conversationVisible_ = false;
+    bool gameActive_=false;
     QString toastTitle_, toastText_, toastChannel_;
     QString draftFile_;
     void saveDrafts();

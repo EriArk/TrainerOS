@@ -55,7 +55,7 @@ GameProgressService::GameProgressService(ProgressSaveResolver resolver, QObject*
     worker_->moveToThread(&thread_);
     connect(&thread_, &QThread::finished, worker_, &QObject::deleteLater); thread_.start();
 }
-GameProgressService::~GameProgressService() { thread_.quit(); thread_.wait(); }
+GameProgressService::~GameProgressService() { thread_.requestInterruption();thread_.quit(); thread_.wait(); }
 void GameProgressService::inspectCapabilities(const AdventureRegistration& record,QObject* receiver,std::function<void(QStringList)> done) {
     const QPointer<QObject> guard(receiver);
     QMetaObject::invokeMethod(worker_,[this,record,guard,done=std::move(done)] {
@@ -90,6 +90,31 @@ void GameProgressService::inspectCapabilities(const AdventureRegistration& recor
 }
 void GameProgressService::invalidate() {
     ++generation_; pending_ = false; record_ = {}; snapshot_ = {}; emit changed();
+}
+void GameProgressService::inspectCompletion(const AdventureRegistration& record,QObject* receiver,std::function<void(AdventureCompletion)> done) {
+    const QPointer<QObject> guard(receiver);
+    QMetaObject::invokeMethod(worker_,[this,record,guard,done=std::move(done)] {
+        auto result=reviewCompletion(inspectGameProgress(record,resolver_));
+        // Non-semantic Adventures can still read reviews. Fingerprint the actual
+        // content using the same SHA-256 convention as adapter identities.
+        if(result.identity.isEmpty()) {
+            const QFileInfo before(record.contentPath);QFile file(record.contentPath);
+            if(before.isFile() && file.open(QIODevice::ReadOnly)) {
+                QCryptographicHash hash(QCryptographicHash::Sha256);
+                bool ok=true;
+                while(!file.atEnd()) {
+                    if(!guard||thread_.isInterruptionRequested()){ok=false;break;}
+                    const auto chunk=file.read(1024*1024);
+                    if(chunk.isEmpty() && file.error()!=QFileDevice::NoError){ok=false;break;}
+                    hash.addData(chunk);
+                }
+                const QFileInfo after(record.contentPath);
+                if(ok && before.size()==after.size() && before.lastModified()==after.lastModified())result.identity=QString::fromLatin1(hash.result().toHex());
+            }
+        }
+        if(result.identity.isEmpty())result.message="The game file is unavailable.";
+        QMetaObject::invokeMethod(this,[guard,done,result]{if(guard)done(result);},Qt::QueuedConnection);
+    },Qt::QueuedConnection);
 }
 void GameProgressService::verifySnapshot(const AdventureRegistration& record,const GameProgress& expected,QObject* receiver,std::function<void(bool)> done) {
     const QPointer<QObject> guard(receiver);

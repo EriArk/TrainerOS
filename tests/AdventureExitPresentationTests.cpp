@@ -5,6 +5,24 @@ using namespace trainer;
 class AdventureExitPresentationTests final : public QObject {
     Q_OBJECT
 private slots:
+    void extendedMenuRetainsProcessAndBackReturnsToRoot() {
+        AdventureExitController exit;AdventureExitPresentation view(exit);
+        exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);
+        view.setExtraActions({QVariantMap{{"id","display"},{"label","Display"}}});
+        QSignalSpy preview(&view,&AdventureExitPresentation::menuCaptureRequested);
+        QSignalSpy requested(&view,&AdventureExitPresentation::menuActionRequested);
+        QVERIFY(view.requestMenu());view.menuCaptureCompleted(preview.last()[0].toULongLong(),{});
+        view.setInputIsolated(true);view.setWindowFocused(true);
+        auto neutral=[&]{view.updateInput(view.inputGeneration(),{true,true});};neutral();view.activateMenu(2);
+        QCOMPARE(requested.last()[0].toString(),QString("display"));QCOMPARE(exit.phase(),AdventureExitController::Phase::Idle);
+        view.setPanel("display","Next launch",{QVariantMap{{"id","ratio"},{"label","Screen"}}});
+        QVERIFY(!view.ready());neutral();view.cancel();QCOMPARE(view.menuActions().size(),3);QVERIFY(view.menuOpen());
+        view.setPanel("notifications","Unread",{QVariantMap{{"id","notice:1"},{"label","Friend"},{"readOnly",true}}});
+        neutral();const auto actions=requested.size();view.activateMenu(0);
+        QCOMPARE(requested.size(),actions);QVERIFY(!view.menuCanSelect());QVERIFY(view.menuOpen());
+        view.cancel();neutral();
+        neutral();view.cancel();QVERIFY(!view.menuOpen());QCOMPARE(exit.phase(),AdventureExitController::Phase::Idle);
+    }
     void menuKeepsSessionAndRequiresExplicitFreshExit() {
         AdventureExitController exit; AdventureExitPresentation view(exit);
         QSignalSpy captures(&exit, &AdventureExitController::captureRequested);

@@ -184,24 +184,58 @@
         "link-battle": {
           "state": "partial",
           "bluetooth": "2026-10-01: Flip/Odin full-team victory at turn 20, money stake and one medicine settled bilaterally; ordinary Party HP/PP unchanged. Native parity and competitive trust remain open.",
-          "evidence": ["source-research", "synthetic", "allowed-delta", "private-copy", "device"],
+          "evidence": [
+            "source-research",
+            "synthetic",
+            "allowed-delta",
+            "private-copy",
+            "device"
+          ],
           "presentation": "Ordered intermediate HP and generic typed effects verified on Flip/Odin; simulator speed, priority and KO response checks pass. Cartridge parity remains open.",
           "details": "../EMERALD_LINK.md"
         },
         "link-sale": {
           "state": "partial",
-          "evidence": ["source-research", "synthetic", "allowed-delta", "private-copy", "device", "normal-game", "reconnect"],
+          "evidence": [
+            "source-research",
+            "synthetic",
+            "allowed-delta",
+            "private-copy",
+            "device",
+            "normal-game",
+            "reconnect"
+          ],
           "details": "../EMERALD_LINK.md"
         },
         "trade-evolution": {
           "state": "partial",
-          "evidence": ["source-research", "synthetic", "allowed-delta", "private-copy", "device", "normal-game"],
+          "evidence": [
+            "source-research",
+            "synthetic",
+            "allowed-delta",
+            "private-copy",
+            "device",
+            "normal-game"
+          ],
           "details": "../EMERALD_LINK.md"
         },
         "pokedex-scope": {
           "state": "integrated",
-          "evidence": ["source-research", "synthetic", "device"],
+          "evidence": [
+            "source-research",
+            "synthetic",
+            "device"
+          ],
           "details": "../EMERALD_LINK.md"
+        },
+        "review-completion": {
+          "state": "partial",
+          "evidence": [
+            "source-research",
+            "automated-tests",
+            "flip-odin-review-publish-read-edit-delete"
+          ],
+          "details": "emerald-en.md"
         }
       },
       "romBytes": 16777216,

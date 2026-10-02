@@ -1,4 +1,4 @@
-#include "LibraryToolsController.h"
+﻿#include "LibraryToolsController.h"
 #include "core/repository/CollectionRepository.h"
 #include <QFileInfo>
 #include <QDir>
@@ -22,8 +22,9 @@ void LibraryToolsController::beginTrash() {
     trash_.clear();for(const auto& r:repository_.registrations())if(r.removed && !r.trashPath.isEmpty())trash_.append(r);
     route_="trash";focus_=0;error_.clear();emit changed();
 }
-void LibraryToolsController::close() {if(!busy_){++browseGeneration_;route_.clear();error_.clear();emit changed();}}
+void LibraryToolsController::close() {if(!busy_){emit reviewRequested("reviews-close",{});++browseGeneration_;route_.clear();error_.clear();emit changed();}}
 QString LibraryToolsController::title() const {
+    if(route_.startsWith("reviews"))return "Reviews · "+game_.adventure.title;
     if(route_=="trash")return "Game trash";
     if(route_=="world")return world_.name;
     if(route_=="move")return "Move to a World";
@@ -35,6 +36,10 @@ QString LibraryToolsController::title() const {
     return game_.adventure.title;
 }
 QString LibraryToolsController::detail() const {
+    if(route_=="reviews-edit")return reviewDraft_.isEmpty()?"A few words about your adventure…":reviewDraft_;
+    if(route_=="reviews-delete")return "Delete your review?";
+    if(route_=="reviews-report")return "Report this review to Fluxer";
+    if(route_=="reviews")return reviews_.value("status").toString().isEmpty()?(completion_.completed?QString("Shared impressions"):completion_.message):reviews_["status"].toString();
     if(route_=="folder")return QDir(root_).relativeFilePath(directory_.path)=="."?QFileInfo(root_).fileName():QDir(root_).relativeFilePath(directory_.path);
     if(route_=="move-file")return game_.adventure.title+"\n"+QFileInfo(root_).fileName()+" / "+QDir(root_).relativeFilePath(destination_);
     if(route_=="remove")return game_.adventure.title+"\nROM будет удалён навсегда. Сохранения и история останутся.";
@@ -54,6 +59,20 @@ QString LibraryToolsController::detail() const {
 }
 QVariantList LibraryToolsController::rows() const {
     const auto row=[](const QString& label,bool enabled=true){return QVariantMap{{"label",label},{"enabled",enabled}};};
+    if(route_=="reviews-edit")return {row("Edit text"),row(reviewSpoiler_?"Spoilers: Yes":"Spoilers: No"),row("Publish review",!reviewDraft_.trimmed().isEmpty()&&!reviews_["busy"].toBool()),row("Discard")};
+    if(route_=="reviews-delete")return {row("Cancel"),row("Delete review")};
+    if(route_=="reviews-report")return {row("Spam"),row("Harassment"),row("Other"),row("Cancel")};
+    if(route_=="reviews") {
+        QVariantList result;
+        for(const auto& v:reviews_["rows"].toList()) {
+            auto r=v.toMap();result.append(row(r["name"].toString()+(r["spoiler"].toBool()?" · Spoilers":"")));
+        }
+        result.append(row(reviews_["mine"].toMap().isEmpty()?"Write a review":"Edit my review",completion_.completed&&reviews_["fresh"].toBool()&&!reviews_["busy"].toBool()));
+        if(!reviews_["mine"].toMap().isEmpty())result.append(row("Delete my review",reviews_["fresh"].toBool()&&!reviews_["busy"].toBool()));
+        result.append(row("Refresh",!reviews_["busy"].toBool()));
+        if(reviews_["more"].toBool())result.append(row("More reviews",!reviews_["busy"].toBool()));
+        return result;
+    }
     if(route_=="game")return {row("Rename"),row("Move",game_.adventure.domain=="pokemon" || (catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty())),row("Удалить"),row("Properties")};
     if(route_=="move-kind")return {row("Platform / folder",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Another World")};
     if(route_=="move-file")return {row("Cancel"),row("Move")};
@@ -61,7 +80,7 @@ QVariantList LibraryToolsController::rows() const {
     if(route_=="remove")return {row("Отмена"),row("Удалить")};
     if(route_=="restore")return {row("Cancel"),row("Restore game")};
     if(route_=="properties"){
-        QVariantList result;for(const auto& capability:capabilities_)result.append(row(capability));
+        QVariantList result{row("Reviews")};for(const auto& capability:capabilities_)result.append(row(capability,false));
         result.append(row("Back"));return result;
     }
     QVariantList result;
@@ -80,7 +99,16 @@ QVariantList LibraryToolsController::rows() const {
 }
 void LibraryToolsController::dispatch(Action action) {
     if(busy_)return;
+    if(route_=="reviews"&&(action==Action::Left||action==Action::Right)){emit scrollReview(action==Action::Right?1:-1);return;}
+    if(route_=="reviews"&&action==Action::LocalAction&&reviewReportAvailable()){
+        reportId_=selectedReview()["id"].toString();route_="reviews-report";focus_=0;emit changed();return;
+    }
     if(action==Action::Back) {
+        if(route_.startsWith("reviews")) {
+            if(reviews_["busy"].toBool()&&route_!="reviews")return;
+            if(route_=="reviews"){emit reviewRequested("reviews-close",{});++browseGeneration_;route_="properties";}else route_="reviews";
+            focus_=0;error_.clear();emit changed();return;
+        }
         if(route_=="move-file"){browse(directory_.path,directory_.page);return;}
         if(route_=="folder" && directory_.path!=root_){browse(QFileInfo(directory_.path).absolutePath());return;}
         if(route_=="folder" || route_=="move-kind" || route_=="move" || route_=="properties" || route_=="remove") {route_="game";focus_=0;error_.clear();emit changed();}
@@ -94,6 +122,8 @@ void LibraryToolsController::dispatch(Action action) {
 void LibraryToolsController::activate(int index) {
     const auto values=rows();if(busy_ || index<0 || index>=values.size())return;
     focus_=index;if(!values[index].toMap().value("enabled").toBool())return;
+    if(route_.startsWith("reviews")){reviewAction(index);return;}
+    if(route_=="properties"&&index==0){openReviews();return;}
     if(route_=="game") {
         if(index==0)emit textRequested("Game name",game_.adventure.title,96);
         else if(index==1){
@@ -138,6 +168,7 @@ void LibraryToolsController::activate(int index) {
 }
 void LibraryToolsController::applyText(const QString& text) {
     if(busy_)return;
+    if(route_=="reviews-edit"){reviewDraft_=text.left(800);emit changed();return;}
     if(route_=="folder") {
         const auto name=text.trimmed();
         if(name.isEmpty() || name.startsWith('.') || name.endsWith('.') || name.contains('/') || name.contains('\\')
@@ -184,5 +215,68 @@ void LibraryToolsController::submit(LibraryEdit edit) {
         }
         emit changed();
     });
+}
+}
+
+namespace trainer {
+void LibraryToolsController::openReviews() {
+    route_="reviews";focus_=0;completion_={};reviews_={{"status","Reading this Adventure…"},{"busy",true}};emit changed();
+    if(!completionQuery){reviews_={{"status","Reviews are unavailable for this Adventure."}};emit changed();return;}
+    const auto generation=++browseGeneration_;
+    completionQuery(game_,this,[this,generation](AdventureCompletion result){
+        if(generation!=browseGeneration_||route_!="reviews")return;
+        completion_=result;reviews_["busy"]=false;
+        if(result.identity.isEmpty()){reviews_["status"]=result.message;emit changed();return;}
+        emit reviewRequested("reviews-open",{{"identity",result.identity}});emit changed();
+    });
+}
+void LibraryToolsController::receiveReviews(const QString& identity,const QVariantMap& state) {
+    if(identity!=completion_.identity||!route_.startsWith("reviews"))return;
+    reviews_=state;
+    if(!state["busy"].toBool()&&(state["status"]=="Review published"||state["status"]=="Review deleted"||state["status"]=="Report sent")){route_="reviews";focus_=0;}
+    focus_=qBound(0,focus_,qMax(0,int(rows().size())-1));emit changed();
+}
+QVariantMap LibraryToolsController::selectedReview() const {
+    if(route_!="reviews")return {};
+    auto row=reviews_["rows"].toList().value(focus_).toMap();
+    if(row.isEmpty())return {};
+    if(row["spoiler"].toBool()&&row["id"]!=reviewReveal_)row["text"]="Contains spoilers. Select to reveal.";
+    return row;
+}
+void LibraryToolsController::reviewAction(int index) {
+    if(reviews_["busy"].toBool())return;
+    QVariantMap args{{"identity",completion_.identity}};
+    if(route_=="reviews-edit") {
+        if(index==0){emit textRequested("Your review",reviewDraft_,800);return;}
+        if(index==1)reviewSpoiler_=!reviewSpoiler_;
+        if(index==3){route_="reviews";focus_=0;}
+        if(index==2&&completionQuery) {
+            busy_=true;emit changed();const auto expected=completion_.identity;
+            completionQuery(game_,this,[this,expected](AdventureCompletion result){
+                busy_=false;
+                if(result.identity!=expected||!result.completed){completion_=result;error_="Completion could not be confirmed. Reopen Reviews.";emit changed();return;}
+                emit reviewRequested("reviews-save",{{"identity",expected},{"text",reviewDraft_},{"spoiler",reviewSpoiler_},{"completed",true},{"policy",result.policy}});
+            });
+        }
+    } else if(route_=="reviews-delete") {
+        if(index==1)emit reviewRequested("reviews-delete",args);else {route_="reviews";focus_=0;}
+    } else if(route_=="reviews-report") {
+        if(index<3){args["id"]=reportId_;args["category"]=QStringList{"spam","harassment","other"}[index];emit reviewRequested("reviews-report",args);}
+        else {route_="reviews";focus_=0;}
+    } else {
+        const auto entries=reviews_["rows"].toList();
+        if(index<entries.size()) {
+            const auto row=entries[index].toMap();
+            if(row["spoiler"].toBool()&&reviewReveal_!=row["id"].toString())reviewReveal_=row["id"].toString();
+        } else {
+            const auto label=rows()[index].toMap()["label"].toString();
+            if(label=="Write a review"||label=="Edit my review") {
+                reviewDraft_=reviews_["mine"].toMap()["text"].toString();reviewSpoiler_=reviews_["mine"].toMap()["spoiler"].toBool();
+                route_="reviews-edit";focus_=0;emit textRequested("Your review",reviewDraft_,800);
+            } else if(label=="Delete my review"){route_="reviews-delete";focus_=0;}
+            else emit reviewRequested(label=="More reviews"?"reviews-more":"reviews-refresh",args);
+        }
+    }
+    emit changed();
 }
 }

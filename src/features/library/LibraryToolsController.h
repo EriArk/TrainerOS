@@ -2,6 +2,7 @@
 #include "core/input/Action.h"
 #include "core/repository/LibraryRepository.h"
 #include "platform/storage/FileCatalog.h"
+#include "core/model/AdventureCompletion.h"
 #include <QObject>
 #include <QVariantList>
 #include <functional>
@@ -19,6 +20,8 @@ class LibraryToolsController final : public QObject {
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(QVariantList rows READ rows NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
+    Q_PROPERTY(QVariantMap selectedReview READ selectedReview NOTIFY changed)
+    Q_PROPERTY(bool reviewReportAvailable READ reviewReportAvailable NOTIFY changed)
 public:
     explicit LibraryToolsController(LibraryRepository& repository, QObject* parent=nullptr):QObject(parent),repository_(repository){}
     bool isOpen() const {return !route_.isEmpty();}
@@ -38,11 +41,23 @@ public:
     void applyText(const QString&);
     void setCatalog(FileCatalog* catalog) {catalog_=catalog;}
     std::function<void(const AdventureRegistration&,QObject*,std::function<void(QStringList)>)> capabilityQuery;
+    std::function<void(const AdventureRegistration&,QObject*,std::function<void(AdventureCompletion)>)> completionQuery;
+    void receiveReviews(const QString& identity,const QVariantMap& state);
+    QVariantMap selectedReview() const;
+    bool reviewReportAvailable() const {const auto row=selectedReview();return !row.isEmpty()&&row["author"]!=reviews_["user"]&&reviews_["fresh"].toBool();}
 signals:
     void changed();
     void saved();
     void textRequested(const QString& title,const QString& initial,int limit);
+    void reviewRequested(QString operation,QVariantMap args);
+    void scrollReview(int direction);
 private:
+    void openReviews();
+    void reviewAction(int index);
+    AdventureCompletion completion_;
+    QVariantMap reviews_;
+    QString reviewDraft_,reviewReveal_,reportId_;
+    bool reviewSpoiler_=false;
     void submit(LibraryEdit);
     void browse(const QString&,int page=0);
     LibraryRepository& repository_;

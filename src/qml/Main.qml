@@ -19,6 +19,7 @@ Window {
     Binding { target: Theme; property: "reducedMotion"; value: shell.settings.reducedMotion }
     Binding { target: shell.social; property: "surfaceAvailable"; value: window.active && !sessionState.blocked && !adventureLaunch.active && shell.unobstructed }
     Binding { target: shell.social; property: "conversationVisible"; value: shell.page === 4 && !shell.serviceOpen }
+    Binding { target: shell.social; property: "gameActive"; value: adventureLaunch.active }
     onClosing: function(close) { close.accepted = false; sessionState.requestExit() }
     Connections {
         target: controllerInput
@@ -223,7 +224,12 @@ Window {
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
                 if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [h("X","Quick controls"),h("←→",shell.focusIndex>=9 ? "Choose" : "Adjust"),h("A",shell.focusIndex>=9 ? "Toggle" : "Select"),h("B","Close")]
                 if (shell.keyboard.open) return [h("X","Case"),h("Y",shell.keyboard.nextLayout),h("A","Type"),h("Select",shell.keyboard.submitLabel),h("B",shell.keyboard.submitLabel === "Send" ? "Keep draft" : "Cancel")]
-                if (shell.libraryTools.open) return [h("A","Select"),h("B","Back")]
+                if (shell.libraryTools.open) {
+                    if(shell.libraryTools.route==="reviews")return shell.libraryTools.reviewReportAvailable
+                        ? [h("A","Reveal"),h("← →","Read"),h("Select","Report"),h("B","Back")]
+                        : [h("A","Select"),h("← →","Read"),h("B","Back")]
+                    return [h("A","Select"),h("B","Back")]
+                }
                 if (shell.drawerOpen) return [h("A","Choose"),h("B","Close")]
                 if (shell.trainer.picker.open) return [h("X","Search"),h("Y","Clear"),h("←→","Jump 8"),h("A","Choose"),h("B","Cancel")]
                 if (shell.hall.account.open) return [h("A","Select"),h("B","Back")]

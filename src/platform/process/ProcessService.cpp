@@ -26,6 +26,7 @@ ProcessService::~ProcessService() {
 bool ProcessService::start(const ProcessCommand& command) {
     if (active_ || !QDir::isAbsolutePath(command.program)) return false;
     active_ = true;
+    runtimeControls_.clear();
     stopRequested_ = false;
     childStarted_ = false; finalizing_ = false; settled_=command.settled;
     validationError_.clear(); inspectOutput_ = {};
@@ -52,6 +53,7 @@ bool ProcessService::start(const ProcessCommand& command) {
 void ProcessService::execute(const ProcessCommand& command) {
     if (!QDir::isAbsolutePath(command.program)) { complete(-1, false, "The Adventure's play setup changed."); return; }
     inspectOutput_ = command.inspectOutput;
+    runtimeControls_=command.runtimeControls;
     process_.setProcessChannelMode(QProcess::MergedChannels);
     process_.setStandardOutputFile(inspectOutput_ ? QString() : QProcess::nullDevice());
     process_.setProgram(command.program); process_.setArguments(command.arguments);
@@ -65,6 +67,16 @@ void ProcessService::drainOutput() {
         validationError_ = inspectOutput_(bytes);
         if (!validationError_.isEmpty()) { process_.kill(); }
     }
+}
+bool ProcessService::runtimeCommand(const QString& action,const QString& text) {
+    if(!active_||stopRequested_||process_.state()!=QProcess::Running||runtimeControls_["kind"]!="retroarch"||process_.bytesToWrite()>4096)return false;
+    QByteArray command;
+    if(action=="shader")command="SHADER_TOGGLE";
+    else if(action=="next-shader")command="SHADER_NEXT";
+    else if(action=="previous-shader")command="SHADER_PREV";
+    else if(action=="notify") {auto message=text.left(160);message.replace('\n',' ');message.replace('\r',' ');command="SHOW_MSG "+message.toUtf8();}
+    else return false;
+    return process_.write(command+'\n')==command.size()+1;
 }
 void ProcessService::stop() {
     if (!active_ || finalizing_) return;

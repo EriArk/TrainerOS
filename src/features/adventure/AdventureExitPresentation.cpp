@@ -28,6 +28,18 @@ AdventureExitPresentation::AdventureExitPresentation(AdventureExitController& ex
 }
 bool AdventureExitPresentation::visible() const { return menuOpen_ || phase_ == Phase::Confirming || phase_ == Phase::Closing; }
 bool AdventureExitPresentation::confirming() const { return phase_ == Phase::Confirming; }
+QVariantList AdventureExitPresentation::menuActions() const {
+    if(!panel_.isEmpty())return panelActions_;
+    QVariantList result{QVariantMap{{"id","continue"},{"label","Continue"}},QVariantMap{{"id","exit"},{"label","Exit game"}}};
+    result.append(extras_);return result;
+}
+void AdventureExitPresentation::setPanel(QString panel,QString caption,QVariantList actions) {
+    const auto selected=menuActions().value(menuFocus_).toMap().value("id");
+    const bool same=panel==panel_;panel_=std::move(panel);caption_=std::move(caption);panelActions_=std::move(actions);
+    if(!same)menuFocus_=0;
+    else for(int i=0;i<panelActions_.size();++i)if(panelActions_[i].toMap().value("id")==selected){menuFocus_=i;break;}
+    menuFocus_=qBound(0,menuFocus_,qMax(0,int(menuActions().size())-1));if(!same)resetInput();emit changed();
+}
 void AdventureExitPresentation::resetInput() {
     ++generation_;
     ready_ = previousConfirm_ = previousBack_ = false;
@@ -35,7 +47,7 @@ void AdventureExitPresentation::resetInput() {
 }
 bool AdventureExitPresentation::requestMenu() {
     if (!exit_.available() || phase_ != Phase::Idle || menuOpen_ || menuPending_) return false;
-    menuPending_ = true; menuFocus_ = 0; menuFrame_ = {};
+    menuPending_ = true; menuFocus_ = 0; menuFrame_ = {};panel_.clear();
     const auto token = ++menuAttempt_;
     resetInput(); menuTimer_.start(); emit changed();
     if (menuPending_ && token == menuAttempt_) emit menuCaptureRequested(token);
@@ -54,6 +66,9 @@ void AdventureExitPresentation::dismissMenu() {
 }
 void AdventureExitPresentation::activateMenu(int index) {
     if (!menuOpen_ || !ready_ || !exit_.available() || phase_ != Phase::Idle) return;
+    const auto id=menuActions().value(index).toMap()["id"].toString();
+    if(id.isEmpty()||menuActions().value(index).toMap().value("readOnly").toBool())return;
+    if(!panel_.isEmpty()||index>1){if(id=="back")setPanel({}, {}, {});else emit menuActionRequested(id);return;}
     if (index == 0) { dismissMenu(); return; }
     if (index != 1) return;
     menuOpen_ = false; menuFrame_ = {}; resetInput(); emit changed();
@@ -83,17 +98,18 @@ void AdventureExitPresentation::updateInput(quint64 generation, const ExitInputS
     previousConfirm_ = input.confirm; previousBack_ = input.back;
     previousHome_ = input.home; previousUp_ = input.up; previousDown_ = input.down;
     // Simultaneous A+B is always the non-destructive choice.
-    if (back || home) cancel();
+    if (home && menuOpen_) dismissMenu();
+    else if (back || home) cancel();
     else if (menuOpen_) {
         // Direction and A together never move onto and activate Exit at once.
-        if (up || down) { menuFocus_ = up ? 0 : 1; emit changed(); }
+        if (up || down) { menuFocus_=qBound(0,menuFocus_+(up?-1:1),qMax(0,int(menuActions().size())-1));emit changed(); }
         else if (confirm && !input.back && !input.home) activateMenu(menuFocus_);
     } else if (confirm && !input.back && !input.home) this->confirm();
 }
 void AdventureExitPresentation::confirm() { if (ready_ && confirming()) exit_.confirm(); }
 void AdventureExitPresentation::cancel() {
     if (!ready_) return;
-    if (menuOpen_) dismissMenu();
+    if (menuOpen_) {if(!panel_.isEmpty())setPanel({}, {}, {});else dismissMenu();}
     else if (confirming()) exit_.cancel();
 }
 }

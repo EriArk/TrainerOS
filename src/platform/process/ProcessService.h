@@ -3,6 +3,7 @@
 #include <QProcess>
 #include <QTimer>
 #include <QThread>
+#include <QVariantMap>
 #include <functional>
 #include <atomic>
 #include <memory>
@@ -23,6 +24,7 @@ struct ProcessCommand {
     // Worker-only observation after the owned child is gone, before return.
     // Also called for failed/cancelled preparation if preparation installed it.
     std::function<void(const ProcessOutcome&)> settled{};
+    QVariantMap runtimeControls;
 };
 class ProcessService final : public QObject {
     Q_OBJECT
@@ -34,6 +36,8 @@ public:
     qint64 processId() const { return process_.processId(); }
     bool start(const ProcessCommand&);
     void stop();
+    QVariantMap runtimeControls() const{return active_?runtimeControls_:QVariantMap{};}
+    bool runtimeCommand(const QString& action,const QString& text={});
 signals:
     void started();
     void finished(int exitCode, bool crashed, const QString& error);
@@ -42,6 +46,7 @@ private:
     void execute(const ProcessCommand&);
     void drainOutput();
     QProcess process_;
+    QVariantMap runtimeControls_;
     QTimer killTimer_;
     QThread thread_;
     QObject* worker_;

@@ -17,12 +17,22 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(this,&SocialController::ownerRequested,session_,&FluxerSession::setOwner);
     connect(this,&SocialController::commandRequested,session_,&FluxerSession::command);
     connect(session_,&FluxerSession::snapshot,this,&SocialController::receive);
+    connect(session_,&FluxerSession::reviewsChanged,this,[this](quint64 generation,QString identity,QVariantMap state){if(generation==generation_)emit reviewsChanged(identity,state);});
+    connect(&media_,&SocialMedia::changed,this,[this]{if(mediaPreview())mediaMenu();});
+    connect(session_,&FluxerSession::attachmentFinished,this,[this](quint64 generation,QString channel,int status){
+        if(generation!=generation_||channel!=menuChannel_||!mediaSending_)return;
+        mediaSending_=false;mediaUncertain_=status==0;
+        if(status>=200&&status<300)closeMenu();
+        else {mediaMenu();menuDetail_=status==0?"Delivery unknown. Close this preview and check the conversation.":"Not sent. You can try again.";emit changed();}
+    });
     toastTimer_.setSingleShot(true);toastTimer_.setInterval(4500);
     connect(&toastTimer_,&QTimer::timeout,this,[this]{toastTitle_.clear();toastText_.clear();emit presentationChanged();});
     connect(session_,&FluxerSession::incomingMessage,this,[this](quint64 generation,QString channel,QString name,QString text){
-        if(generation!=generation_||!surfaceAvailable_||!menu_.isEmpty()
-            ||(conversationVisible_&&!contacts_&&face_!="friends"&&snapshot_["channel"]==channel))return;
+        if(generation!=generation_||(!surfaceAvailable_&&!gameActive_)||(!menu_.isEmpty()&&!gameActive_)
+            ||(!gameActive_&&conversationVisible_&&!contacts_&&face_!="friends"&&snapshot_["channel"]==channel))return;
         toastChannel_=channel;toastTitle_=std::move(name);toastText_=std::move(text);toastTimer_.start();emit presentationChanged();
+        if(snapshot_.value("notificationSound",true).toBool())media_.chime();
+        if(gameActive_)emit backgroundNotification(toastTitle_,toastText_);
     });
     connect(session_,&FluxerSession::sendFailed,this,[this](quint64 generation,QString channel,QString text){
         if(generation!=generation_ || !drafts_.value(channel).isEmpty())return;
@@ -43,6 +53,7 @@ SocialController::~SocialController() {
 }
 void SocialController::setOwner(QString owner) {
     if(owner==owner_)return;
+    media_.clear();mediaSending_=mediaUncertain_=false;
     if(link_)link_->endOnline();
     saveDrafts();draftFile_.clear();
     editDrafts_.clear();pickedPeople_.clear();
@@ -54,6 +65,7 @@ void SocialController::setOwner(QString owner) {
 }
 void SocialController::setFace(QString face) {
     if(face_==face)return;
+    closeMenu();
     selection_.stop();face_=std::move(face);focus_=0;menu_.clear();reading_=false;contacts_=false;
     emit commandRequested("face",{{"face",face_}});
     if(face_=="friends"&&!searchStarted_&&snapshot_["state"]=="connected")runSearch();
@@ -80,7 +92,7 @@ void SocialController::answerOnline(bool accept){emit commandRequested("online-a
 void SocialController::setSurfaceAvailable(bool available) {
     if(surfaceAvailable_==available)return;
     surfaceAvailable_=available;
-    if(!available){toastTimer_.stop();toastTitle_.clear();toastText_.clear();}
+    if(!available){toastTimer_.stop();toastTitle_.clear();toastText_.clear();if(media_.state()=="recording"){closeMenu();}}
     emit presentationChanged();
 }
 void SocialController::setConversationVisible(bool visible) {
@@ -96,7 +108,7 @@ void SocialController::presented(QString channel,QString message) {
 QString SocialController::notificationFace() const {
     if(toastChannel_.isEmpty())return {};
     for(const auto& value:snapshot_["chats"].toList()) {
-        const auto row=value.toMap();if(row["id"]==toastChannel_ && row["unread"].toInt()>0)
+        const auto row=value.toMap();if(row["id"]==toastChannel_ && (row["unread"].toInt()>0||row["ringing"].toBool()))
             return row["guild"].toString().isEmpty()?row["kind"].toString():QString("communities");
     }
     return {};
@@ -109,9 +121,10 @@ QVariantList SocialController::notifications() const {
         row["request"]=true;row["detail"]="Friend request";result.append(row);
     }
     for(const auto& value:snapshot_["chats"].toList()) {
-        auto row=value.toMap();if(row["unread"].toInt()<=0||row["muted"].toBool())continue;
+        auto row=value.toMap();if((row["unread"].toInt()<=0&&!row["ringing"].toBool())||row["muted"].toBool())continue;
         row["request"]=false;
         row["detail"]=row["guild"].toString().isEmpty()?(row["kind"]=="groups"?"Group · New messages":"New messages"):"Community · New messages";
+        if(row["ringing"].toBool())row["detail"]="Incoming call";
         result.append(row);
     }
     return result;
@@ -147,6 +160,7 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     const auto oldMessage=messages().value(messageFocus_).toMap().value("id");
     const bool atEnd=messageFocus_>=messages().size()-1;
     snapshot_=std::move(snapshot);
+    if(snapshot_["state"]=="signed-out")media_.clear();
     if(online()["open"].toBool())menu_.clear();
     else if(menuMode_=="online"&&!menu_.isEmpty()) {
         menuDetail_=online()["status"].toString();menu_.clear();menuCommands_.clear();
@@ -211,7 +225,7 @@ QVariantList SocialController::hints() const {
         if(face_=="groups"&&!conversation())h("X","New group");
         if(face_=="communities"&&!conversation())h("X","New community");
         if(face_=="communities"&&!reading_&&draft().trimmed().isEmpty())h("Y",snapshot_["communityOnly"].toBool()?"All communities":"TrainerOS only");
-        if(reading_&&messages().value(messageFocus_).toMap()["editable"].toBool())h("A","Message");
+        if(reading_&&(messages().value(messageFocus_).toMap()["editable"].toBool()||messages().value(messageFocus_).toMap()["media"].toBool()))h("A","Message");
         if(contacts_&&rows().value(focus_).toMap()["type"].toInt()==3)h("A","Accept request");
         if(conversation()){h(reading_||contacts_?"X":"A","Write");if(reading_&&snapshot_["historyPast"].toBool())h("Y","Latest");else if(togetherAvailable())h("Y","Play together");else if(!draft().trimmed().isEmpty())h("Y","Send");h(reading_?"←":"→",reading_?"Conversations":"Read");if(reading_&&messageFocus_==0&&snapshot_["historyMore"].toBool())h("↑","Earlier");}
         if(contacts_||reading_)h("B",contacts_?"Conversations":"List");
@@ -286,10 +300,19 @@ void SocialController::openMenu() {
     menuTitle_=snapshot_["name"].toString();menuDetail_=snapshot_["remembered"].toBool()?"Account connected":"Connected for this session";
     auto add=[&](QString label,QString command){menu_.append(label);menuCommands_.append(command);};
     const auto message=messages().value(messageFocus_).toMap();
-    if(reading_&&message["editable"].toBool()) {
-        menuSubject_=message["id"].toString();menuTitle_="Your message";menuDetail_=message["text"].toString().left(120);
-        add("Edit message","edit-message");add("Delete message","ask-delete-message");
+    if(reading_&&(message["editable"].toBool()||message["media"].toBool())) {
+        menuSubject_=message["id"].toString();menuTitle_=message["mine"].toBool()?"Your message":message["name"].toString();menuDetail_=message["text"].toString().left(120);
+        mediaChoices_=message["attachments"].toList();
+        for(int i=0;i<mediaChoices_.size();++i) {const auto a=mediaChoices_[i].toMap();add(a["content_type"].toString().startsWith("audio/")?"Listen to recording":"Open picture","attachment:"+QString::number(i));}
+        if(message["editable"].toBool()){if(!message["text"].toString().isEmpty())add("Edit message","edit-message");add("Delete message","ask-delete-message");}
     } else {
+        if(conversation()&&!contacts_&&face_!="friends"){add("Send picture","picture");add("Record voice message","record");}
+        const auto voice=snapshot_["voice"].toMap();
+        if(!voice["channel"].toString().isEmpty()) {
+            add(voice["muted"].toBool()?"Turn microphone on":"Mute microphone","voice-mute");
+            add(voice["deaf"].toBool()?"Call sound: Off":"Call sound: On","voice-output");
+            add("Ring conversation","voice-ring");add("Leave call","voice-leave");
+        } else if(voice["available"].toBool()&&conversation()&&!contacts_&&(face_=="chats"||face_=="groups"))add(currentChat()["call"].toBool()?"Join call":"Start call","voice-join");
         if(face_=="chats")add(contacts_?"Conversations":"Friends & requests","contacts");
         if(contacts_&&!menuSubject_.isEmpty()) {
             const int type=row["type"].toInt();
@@ -316,9 +339,30 @@ void SocialController::openMenu() {
         if(conversation()&&!contacts_&&face_!="friends")add(currentChat()["muted"].toBool()?"Unmute conversation":"Mute conversation","mute");
         add(snapshot_["doNotDisturb"].toBool()?"Do not disturb: On":"Do not disturb: Off","dnd");
         add(snapshot_["privatePreviews"].toBool()?"Private notifications: On":"Private notifications: Off","private");
+        add(snapshot_.value("notificationSound",true).toBool()?"Notification sound: On":"Notification sound: Off","notification-sound");
         add("Refresh","refresh");add("Sign out of Fluxer","logout");
     }
     emit changed();
+}
+void SocialController::closeMenu() {
+    if(mediaSending_)emit commandRequested("cancel-attachment",{{"channel",menuChannel_}});
+    mediaSending_=false;menuMode_.clear();menu_.clear();menuCommands_.clear();media_.clear();emit changed();
+}
+void SocialController::mediaMenu() {
+    if(!mediaPreview())return;
+    menu_.clear();menuCommands_.clear();menuTitle_=media_.voice()?"Voice message":"Picture";
+    menuDetail_=conversationName();
+    auto add=[&](QString text,QString command){menu_.append(text);menuCommands_.append(command);};
+    const auto state=media_.state();
+    if(mediaSending_)menuDetail_="Sending to "+conversationName()+"...";
+    else if(state=="recording"){menuDetail_="Recording · "+QString::number(media_.seconds())+" / 120 s";add("Stop recording","stop-recording");}
+    else if(state=="voice"||state=="picture") {
+        if(state=="voice")add(media_.playing()?"Pause preview":"Play preview · "+QString::number(media_.seconds())+" s","play-recording");
+        if(menuMode_=="media-preview"&&!mediaUncertain_)add("Send to "+conversationName(),"send-media");
+    } else if(state=="error")menuDetail_=media_.error();
+    else menuDetail_=state=="loading"?"Loading...":"Preparing...";
+    add(mediaSending_?"Cancel upload":menuMode_=="media-view"?"Close":"Discard","cancel");
+    menuFocus_=qBound(0,menuFocus_,int(menu_.size())-1);emit changed();
 }
 void SocialController::openPeople(QString mode) {
     selection_.stop();menuMode_=mode;menu_.clear();menuCommands_.clear();menuFocus_=0;pickedPeople_.clear();
@@ -348,7 +392,30 @@ void SocialController::selectMenu(int index) {
     if(index<0||index>=menuCommands_.size()||snapshot_["mutationBusy"].toBool())return;
     const auto command=menuCommands_[index];
     if(command=="none")return;
-    if(command=="cancel"){menu_.clear();emit changed();return;}
+    if(command=="cancel"){closeMenu();return;}
+    if(command.startsWith("voice-")){media_.clear();emit commandRequested(command,{{"channel",menuChannel_}});menu_.clear();emit changed();return;}
+    if(command=="picture") {
+        mediaChoices_=media_.pictures();menu_.clear();menuCommands_.clear();menuFocus_=0;menuTitle_="Choose a picture";menuDetail_=conversationName();
+        for(int i=0;i<mediaChoices_.size();++i){menu_.append(mediaChoices_[i].toMap()["name"].toString());menuCommands_.append("picture:"+QString::number(i));}
+        if(menu_.isEmpty()){menu_={"Close"};menuCommands_={"cancel"};menuDetail_="Add PNG, JPEG or WebP pictures to your Pictures folder.";}emit changed();return;
+    }
+    if(command.startsWith("picture:")||command=="record"||command.startsWith("attachment:")) {
+        if(command=="record"&&!snapshot_["voice"].toMap()["channel"].toString().isEmpty()){
+            menuTitle_="Voice message";menuDetail_="Leave your call before recording a message.";menu_={"Close"};menuCommands_={"cancel"};menuFocus_=0;emit changed();return;
+        }
+        const auto choice=mediaChoices_.value(command.section(':',1).toInt()).toMap();
+        mediaSending_=mediaUncertain_=false;menuMode_=command.startsWith("attachment:")?"media-view":"media-preview";
+        if(command=="record")media_.record();else if(command.startsWith("picture:"))media_.choosePicture(choice["path"].toString());else media_.open(choice);
+        mediaMenu();return;
+    }
+    if(command=="stop-recording"){media_.stopRecording();return;}
+    if(command=="play-recording"){media_.play();return;}
+    if(command=="send-media") {
+        if(mediaSending_||mediaUncertain_||media_.bytes().isEmpty())return;
+        mediaSending_=true;if(media_.playing())media_.play();
+        emit commandRequested("attachment",{{"channel",menuChannel_},{"bytes",media_.bytes()},{"voice",media_.voice()},{"seconds",media_.seconds()},{"waveform",media_.waveform()}});
+        mediaMenu();return;
+    }
     if(command.startsWith("online:")){menu_.clear();emit changed();emit commandRequested("online-invite",{{"id",command.mid(7)}});return;}
     if(menuMode_=="create-group") {
         const bool selected=pickedPeople_.contains(command);
@@ -387,7 +454,7 @@ void SocialController::selectMenu(int index) {
 void SocialController::dispatch(Action action) {
     if(snapshot_["state"]=="restoring")return;
     if(!menu_.isEmpty()) {
-        if(action==Action::Back)menu_.clear();
+        if(action==Action::Back)closeMenu();
         else if(action==Action::Up||action==Action::Down)menuFocus_=qBound(0,menuFocus_+(action==Action::Up?-1:1),int(menu_.size())-1);
         else if(action==Action::Confirm)selectMenu(menuFocus_);
         else if(action==Action::ToggleContinue&&menuMode_=="create-group"&&!pickedPeople_.isEmpty()&&!snapshot_["mutationBusy"].toBool()) {
@@ -419,7 +486,12 @@ void SocialController::dispatch(Action action) {
         if(!reading_)selection_.start();
     } else if(action==Action::Right&&conversation())reading_=true;
     else if(action==Action::Left)reading_=false;
-    else if(action==Action::Confirm){if(reading_){if(messages().value(messageFocus_).toMap()["editable"].toBool())openMenu();}else if(!contacts_&&conversation()&&rows().value(focus_).toMap()["id"]==snapshot_["channel"])compose();else activate(focus_);}
+    else if(action==Action::Confirm){if(reading_){const auto m=messages().value(messageFocus_).toMap();
+        if(m["editable"].toBool()||m["media"].toBool()) {
+            openMenu();
+            if(m["attachments"].toList().size()==1)selectMenu(0);
+        }
+    }else if(!contacts_&&conversation()&&rows().value(focus_).toMap()["id"]==snapshot_["channel"])compose();else activate(focus_);}
     else if(action==Action::Back){reading_=false;if(contacts_){contacts_=false;focus_=0;} }
     else if(action==Action::Secondary){if(face_=="groups"&&!conversation())openPeople("create-group");
         else if(face_=="communities"&&!conversation()){textPurpose_="create-community";emit textRequested("Community name",QString(),100);}else compose();}

@@ -103,16 +103,16 @@ Window {
             anchors.centerIn: parent
             visible: window.presentation.menuOpen
             heading: window.presentation.gameTitle.length ? window.presentation.gameTitle : "Adventure"
-            caption: "In game"
-            actions: [{id:"continue",label:"Continue"},{id:"exit",label:"Exit game"}]
+            caption: window.presentation.menuCaption
+            actions: window.presentation.menuActions
             currentIndex: window.presentation.menuFocus
             ready: window.presentation.ready
             onChosen: index => window.presentation.activateMenu(index)
         }
         Row { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 14; spacing: 26; visible: window.presentation.menuOpen
             Hint { button: "↑↓"; label: "Choose"; tint: Theme.blue }
-            Hint { button: "A"; label: "Select"; tint: Theme.yellow }
-            Hint { button: "B"; label: "Continue"; tint: Theme.blue }
+            Hint { button: "A"; label: "Select"; tint: Theme.yellow; visible: window.presentation.menuCanSelect }
+            Hint { button: "B"; label: window.presentation.panel.length ? "Back" : "Continue"; tint: Theme.blue }
         }
         Row { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 14; spacing: 26; visible: window.presentation.confirming
             Hint { button: "B"; label: "Keep playing"; tint: Theme.blue }

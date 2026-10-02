@@ -31,9 +31,12 @@ void useRetroArchAchievementAccount(ProcessCommand& command, AchievementAccount 
             return "The game's launch settings changed.";
         const auto base = cmd.arguments[baseIndex + 1];
         const auto ordinary = cmd.arguments[appendIndex + 1];
-        if (!configPath(base) || !configPath(ordinary) || QFileInfo(base).isSymLink()
-                || QFileInfo(ordinary).isSymLink() || !QFileInfo(ordinary).isFile())
+        const auto layers=ordinary.split('|');
+        if (!configPath(base) || QFileInfo(base).isSymLink() || layers.isEmpty() || layers.size()>4)
             return "Couldn't prepare the game's account settings.";
+        for(const auto& layer:layers)
+            if(!configPath(layer)||QFileInfo(layer).isSymLink()||!QFileInfo(layer).isFile())
+                return "Couldn't prepare the game's account settings.";
         // Same directory as RetroArch's base config: available inside its Flatpak.
         // QTemporaryFile creates the file exclusively with owner-only permissions.
         auto file = std::make_shared<QTemporaryFile>(QFileInfo(base).dir().filePath(".traineros-ra-XXXXXX.cfg"));

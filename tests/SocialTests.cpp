@@ -1,4 +1,7 @@
 #include <QtTest>
+#include "integrations/social/AdventureReviews.h"
+#include "core/model/AdventureCompletion.h"
+#include <QSettings>
 #include "integrations/social/FluxerSession.h"
 #include "integrations/social/CommunityIdentity.h"
 #include "features/social/SocialController.h"
@@ -20,7 +23,90 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
-    void initTestCase() { QStandardPaths::setTestModeEnabled(true); }
+    void initTestCase() { QStandardPaths::setTestModeEnabled(true);QCoreApplication::setOrganizationName("TrainerOSTests");QCoreApplication::setApplicationName("SocialTests"); }
+    void reviewsKeepExactIdentityAndReadWithoutCompletion() {
+        const QString hash="a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f6226db19085af";
+        QSettings().remove("reviews");FluxerSession session;int searches=0;
+        const QJsonObject message{{"id","1501314428688998300"},{"channel_id",channel},
+            {"author",QJsonObject{{"id",remote},{"username","Reader"}}},
+            {"content",reviews::encode(hash,"A lovely adventure",true,"emerald-en/champion-v1")}};
+        session.setTransport([&](QByteArray method,QString path,QJsonObject body,Completion done,QByteArray){
+            QCOMPARE(method,QByteArray("POST"));QCOMPARE(path,QString("/v1/search/messages"));++searches;
+            const auto messages=body.contains("author_id")?QJsonArray{}:QJsonArray{message};
+            done({200,QJsonDocument(QJsonObject{{"messages",messages},{"total",messages.size()}})});
+        });bind(session);
+        session.command("reviews-open",{{"identity",hash},{"testChannel",channel}});
+        QCOMPARE(searches,2);QCOMPARE(session.reviewRows_.size(),1);QVERIFY(session.reviewFresh_);QVERIFY(session.ownReview_.isEmpty());
+        QVERIFY(reviews::decode(message,QString(64,'b')).isEmpty());
+        auto webhook=message;webhook["webhook_id"]="123";QVERIFY(reviews::decode(webhook,hash).isEmpty());
+        session.command("reviews-save",{{"identity",hash},{"text","No completion"}});QCOMPARE(searches,2);
+    }
+    void completionIsExactSaveMilestoneNotTimeOrCollection() {
+        GameProgress p;p.availability=ProgressAvailability::Available;p.journey=JourneySnapshot{};
+        p.contentRevision="a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f6226db19085af";
+        p.journey->playtimeMinutes=50000;QVERIFY(!reviewCompletion(p).completed);
+        p.journey->milestones={{"champion","Champion",std::nullopt}};QVERIFY(!reviewCompletion(p).completed);
+        p.journey->milestones[0].achieved=true;QVERIFY(reviewCompletion(p).completed);
+        p.availability=ProgressAvailability::Unreadable;QVERIFY(!reviewCompletion(p).completed);
+        p.availability=ProgressAvailability::Available;p.contentRevision=QString(64,'b');QVERIFY(!reviewCompletion(p).completed);
+    }
+    void singleAttachmentOpensDirectlyWithoutAnOptionsStep() {
+        SocialController c;
+        c.receive(0,{{"state","connected"},{"channel",channel},{"messages",QVariantList{
+            QVariantMap{{"id","123"},{"name","Friend"},{"media",true},{"mine",false},
+                {"attachments",QVariantList{QVariantMap{{"url","https://invalid.example/image"},{"content_type","image/png"}}}}}
+        }}});
+        c.dispatch(Action::Right);c.dispatch(Action::Confirm);
+        QVERIFY(c.mediaPreview());QCOMPARE(c.media()->state(),QString("error"));
+        QCOMPARE(c.menu(),QStringList{"Close"});
+        c.dispatch(Action::Back);QVERIFY(c.menu().isEmpty());QVERIFY(c.conversation());
+    }
+    void reviewEditAndDeleteTargetOnlyOwnStoredMessage() {
+        QSettings().remove("reviews");FluxerSession session;QByteArray method;QString path;Completion pending;
+        session.setTransport([&](QByteArray m,QString p,QJsonObject,Completion done,QByteArray){method=m;path=p;pending=std::move(done);});bind(session);
+        session.reviewIdentity_="a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f6226db19085af";session.reviewChannel_=channel;session.reviewFresh_=true;
+        session.ownReview_={{"id","1501314428688998333"},{"author",session.self_}};
+        const QVariantMap args{{"identity",session.reviewIdentity_},{"text","Edited"},{"completed",true},{"policy","emerald-en/champion-v1"},{"id","1501314428688999999"}};
+        session.command("reviews-save",args);QCOMPARE(method,QByteArray("PATCH"));QVERIFY(path.endsWith("/1501314428688998333"));QVERIFY(session.reviewBusy_);
+        pending({400,{}});QVERIFY(!session.reviewFresh_);
+        method.clear();session.command("reviews-delete",args);QVERIFY(method.isEmpty());
+        session.reviewFresh_=true;session.command("reviews-delete",args);QCOMPARE(method,QByteArray("DELETE"));QVERIFY(path.endsWith("/1501314428688998333"));
+        pending({204,{}});QVERIFY(session.ownReview_.isEmpty());
+    }
+    void attachmentUsesNativeVoiceContractAndWaitsForMessageAcknowledgement() {
+        FluxerSession s;Completion pending;QJsonObject sent;int requests=0;
+        s.setTransport([&](QByteArray method,QString path,QJsonObject body,Completion done,QByteArray){
+            QCOMPARE(method,QByteArray("POST"));QVERIFY(path.endsWith("/messages"));sent=body;pending=std::move(done);++requests;
+        });bind(s);QSignalSpy finished(&s,&FluxerSession::attachmentFinished);
+        const QVariantMap upload{{"channel",channel},{"bytes",QByteArray("synthetic encoded fixture")},{"voice",true},{"seconds",4},{"waveform",QByteArray(64,42)}};
+        s.command("attachment",upload);QVERIFY(s.attachmentBusy_);QVERIFY(finished.isEmpty());
+        QCOMPARE(sent["flags"].toInt(),1<<13);QVERIFY(!sent.contains("content"));
+        const auto attachment=sent["attachments"].toArray().first().toObject();
+        QCOMPARE(attachment["duration"].toInt(),4);QCOMPARE(QByteArray::fromBase64(attachment["waveform"].toString().toLatin1()),QByteArray(64,42));
+        s.command("attachment",upload);QCOMPARE(requests,1);
+        pending({200,QJsonDocument(QJsonObject{{"id","1501314428688998290"},{"channel_id",channel},{"content",""}})});
+        QVERIFY(!s.attachmentBusy_);QCOMPARE(finished.size(),1);QCOMPARE(finished.first()[2].toInt(),200);
+        auto invalid=upload;invalid["waveform"]=QByteArray();s.command("attachment",invalid);QCOMPARE(requests,1);
+        s.command("attachment",upload);s.setOwner("other",2);pending({200,{}});QCOMPARE(finished.size(),1);
+    }
+    void mediaDiscardAndOwnerChangeNeverUpload() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.menuMode_="media-preview";c.menu_={"Discard"};c.menuCommands_={"cancel"};
+        c.dispatch(Action::Back);QVERIFY(c.menu().isEmpty());QVERIFY(c.media()->state().isEmpty());
+        for(const auto& row:commands)QVERIFY(row[0]!="attachment");
+        c.mediaSending_=true;c.menuChannel_=channel;c.closeMenu();
+        QCOMPARE(commands.last()[0].toString(),QString("cancel-attachment"));
+        c.setOwner("new owner");QVERIFY(c.media()->picture().isEmpty());
+    }
+    void activeGameNotificationsKeepDestinationWithoutAcknowledging() {
+        SocialController c;QSignalSpy background(&c,&SocialController::backgroundNotification);
+        QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.receive(0,{{"notificationSound",false}});c.setGameActive(true);
+        c.session_->incomingMessage(0,channel,"Friend","Hello");
+        QCOMPARE(background.size(),1);QCOMPARE(c.toastTitle(),QString("Friend"));
+        for(const auto& row:commands)QVERIFY(row[0]!="read");
+        c.session_->incomingMessage(99,channel,"Other owner","Hidden");QCOMPARE(background.size(),1);
+    }
     void missedNotificationsFollowProviderStateAndNeverAcceptRequests() {
         SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
         QVariantMap state{{"state","connected"},{"userId","self"},{"friends",QVariantList{

@@ -6,10 +6,12 @@
 #include <QHash>
 #include <QTimer>
 #include <QSet>
+#include <QProcess>
 #include <functional>
 #include "OnlineLink.h"
 
 class QNetworkAccessManager;
+class QNetworkReply;
 class QWebSocket;
 namespace trainer {
 class EncryptedCredentials;
@@ -34,17 +36,44 @@ signals:
     void sendFailed(quint64 generation, QString channel, QString text);
     void mutationFinished(quint64 generation, QString operation, QString channel, QString id, bool success);
     void incomingMessage(quint64 generation, QString channel, QString name, QString text);
+    void attachmentFinished(quint64 generation, QString channel, int status);
+    void reviewsChanged(quint64 generation, QString identity, QVariantMap state);
     void onlineEstablished(quint64 generation, QString self, QString peer, QString name, QString activity, bool initiator);
     void onlineFrame(quint64 generation, QJsonObject frame);
     void onlineEnded(quint64 generation);
 private:
     friend class SocialTests;
+    void reviewCommand(const QString& operation,const QVariantMap& args);
+    void loadReviews(int page=1);
+    void publishReviews();
+    QString reviewIdentity_,reviewChannel_,reviewStatus_;
+    QVariantList reviewRows_;
+    QVariantMap ownReview_;
+    quint64 reviewRevision_=0;
+    int reviewPage_=1;
+    bool reviewBusy_=false,reviewMore_=false,reviewFresh_=false;
     OnlineLink online_{this};
     QTimer onlineSendTimer_{this};
     QList<QPair<QString,QString>> onlineQueue_;
     bool onlineSending_=false;
     quint64 onlineSendRevision_=0;
     void sendOnline();
+    void sendAttachment(const QVariantMap& args);
+    bool attachmentBusy_ = false, notificationSound_ = true;
+    QNetworkReply* attachmentReply_=nullptr;
+    QProcess voiceProcess_{this};
+    QTimer voiceHeartbeat_{this},voiceDeadline_{this};
+    QString voiceChannel_,voiceConnection_,voiceState_,voiceStatus_;
+    QByteArray voiceBuffer_;
+    bool voiceMuted_=true,voiceDeaf_=false;
+    int voiceParticipants_=0;
+    QHash<QString,QJsonObject> calls_;
+    bool voiceAvailable() const;
+    void voiceCommand(QString operation,const QVariantMap& args);
+    void leaveVoice();
+    void voiceStateUpdate(bool leave=false);
+    void voiceGrant(const QJsonObject& grant);
+    void voiceWrite(const QJsonObject& command);
     void bindOnline();
     void request(QByteArray method, QString path, QJsonObject body, Completion done, bool anonymous = false, QByteArray captcha = {});
     void verifiedRequest(QByteArray method, QString path, QJsonObject body, Completion done, int attempt = 0, QByteArray captcha = {});

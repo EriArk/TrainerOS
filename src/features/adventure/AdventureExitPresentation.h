@@ -1,5 +1,6 @@
 #pragma once
 #include "core/navigation/AdventureExitController.h"
+#include <QVariantList>
 
 namespace trainer {
 // A snapshot from the exclusive overlay input provider, not the game's muted
@@ -28,6 +29,10 @@ class AdventureExitPresentation final : public QObject {
     Q_PROPERTY(int menuFocus READ menuFocus NOTIFY changed)
     Q_PROPERTY(QString gameTitle READ gameTitle NOTIFY changed)
     Q_PROPERTY(bool hasFrame READ hasFrame NOTIFY changed)
+    Q_PROPERTY(QVariantList menuActions READ menuActions NOTIFY changed)
+    Q_PROPERTY(QString panel READ panel NOTIFY changed)
+    Q_PROPERTY(bool menuCanSelect READ menuCanSelect NOTIFY changed)
+    Q_PROPERTY(QString menuCaption READ menuCaption NOTIFY changed)
 public:
     explicit AdventureExitPresentation(AdventureExitController&, QObject* parent = nullptr);
     bool visible() const;
@@ -42,6 +47,12 @@ public:
     bool menuOpen() const { return menuOpen_; }
     int menuFocus() const { return menuFocus_; }
     QString gameTitle() const { return gameTitle_; }
+    QVariantList menuActions() const;
+    QString menuCaption() const{return panel_.isEmpty()?QString("In game"):caption_;}
+    QString panel() const{return panel_;}
+    bool menuCanSelect() const{return !menuActions().value(menuFocus_).toMap().value("readOnly").toBool();}
+    void setExtraActions(QVariantList actions){if(extras_==actions)return;extras_=std::move(actions);menuFocus_=qBound(0,menuFocus_,qMax(0,int(menuActions().size())-1));emit changed();}
+    void setPanel(QString panel,QString caption,QVariantList actions);
     void setGameTitle(const QString& title) { gameTitle_ = title; emit changed(); }
     bool requestMenu();
     void menuCaptureCompleted(quint64 token, const QImage&);
@@ -58,6 +69,7 @@ signals:
     void changed();
     void menuCaptureRequested(quint64 token);
     void menuDismissed();
+    void menuActionRequested(QString action);
 private:
     void resetInput();
     void dismissMenu();
@@ -71,6 +83,8 @@ private:
     bool previousHome_ = false, previousUp_ = false, previousDown_ = false;
     int menuFocus_ = 0;
     QString gameTitle_;
+    QString panel_,caption_;
+    QVariantList extras_,panelActions_;
     QImage menuFrame_;
     QTimer menuTimer_;
     QTimer closeTimer_;

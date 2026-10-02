@@ -88,16 +88,25 @@ FocusScope {
             visible: root.social.conversation
             Text { id: chatHeading; y: 10; width: parent.width; text: root.social.conversationName + (root.account.historyBusy ? " · Loading..." : ""); font.family: Theme.displayFamily; font.pixelSize: 23; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }
             Rectangle { y: 42; width: parent.width; height: 1; color: "#b4c6b8" }
+            Rectangle {
+                id: callStrip; y: 47; width: parent.width; height: visible ? 32 : 0; radius: 9
+                visible: !!root.account.voice && !!root.account.voice.status
+                color: "#d9eac4"; border.color: "#a3bd8c"
+                Text { anchors { fill: parent; margins: 7 } text: "☎  " + (root.account.voice ? root.account.voice.status : "") + (root.account.voice && root.account.voice.participants ? " · " + root.account.voice.participants + " people" : ""); color: Theme.ink; font.pixelSize: 14; elide: Text.ElideRight; textFormat: Text.PlainText }
+            }
             ListView {
                 id: log
-                anchors { top: chatHeading.bottom; topMargin: 14; bottom: composer.top; bottomMargin: 9; left: parent.left; right: parent.right }
+                anchors { top: chatHeading.bottom; topMargin: callStrip.visible ? 53 : 14; bottom: composer.top; bottomMargin: 9; left: parent.left; right: parent.right }
                 clip: true; spacing: 10; model: root.social.messages; currentIndex: root.social.messageIndex
                 function restorePosition() {
+                    forceLayout()
                     if (currentIndex >= count - 1) positionViewAtEnd()
                     else positionViewAtIndex(currentIndex,ListView.Contain)
                 }
                 onCurrentIndexChanged: Qt.callLater(restorePosition)
                 onModelChanged: Qt.callLater(restorePosition)
+                onContentHeightChanged: Qt.callLater(restorePosition)
+                onHeightChanged: Qt.callLater(restorePosition)
                 Timer {
                     interval: 1000; repeat: true
                     running: root.visible && root.connected && root.faceIndex !== 3 && root.social.conversation && (log.atYEnd || log.contentHeight <= log.height) && root.social.surfaceAvailable
@@ -116,7 +125,15 @@ FocusScope {
                         border.width: root.social.reading && index === log.currentIndex ? 2 : modelData.system ? 0 : 1
                         Column { id: content; x: 12; y: modelData.system ? 4 : 8; width: parent.width - 24; spacing: 3
                             Text { visible: !modelData.system; width: parent.width; text: modelData.name + (modelData.edited ? " (edited)" : ""); font.family: Theme.displayFamily; font.pixelSize: 13; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
-                            Text { width: parent.width; text: modelData.text || (modelData.media ? "Attachment" : modelData.system ? "Conversation updated" : ""); font.pixelSize: modelData.system ? 13 : 16; color: modelData.system ? Theme.muted : Theme.ink; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+                            Text { width: parent.width; visible: !!modelData.text || modelData.system; text: modelData.text || (modelData.system ? "Conversation updated" : ""); font.pixelSize: modelData.system ? 13 : 16; color: modelData.system ? Theme.muted : Theme.ink; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+                            Repeater {
+                                model: modelData.attachments || []
+                                Rectangle {
+                                    required property var modelData
+                                    width: content.width; height: 44; radius: 9; color: modelData.content_type && modelData.content_type.startsWith("audio/") ? "#e8dfed" : "#fff0c2"; border.color: "#a8b9a4"
+                                    Text { anchors { fill: parent; margins: 10 } text: modelData.content_type && modelData.content_type.startsWith("audio/") ? "♪  Voice message · " + (modelData.duration || 0) + " s" : "▧  Picture"; font.family: Theme.displayFamily; font.pixelSize: 17; color: Theme.ink; textFormat: Text.PlainText }
+                                }
+                            }
                             Text { visible: modelData.delivery.length > 0; width: parent.width; text: modelData.delivery; font.pixelSize: 11; color: "#80542a"; wrapMode: Text.Wrap; textFormat: Text.PlainText }
                         }
                     }
@@ -216,6 +233,17 @@ FocusScope {
                 id: menuHeading; x: 18; y: 15; width: parent.width - 36; spacing: 6
                 Text { width: parent.width; text: root.social.menuTitle || "Fluxer"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23; textFormat: Text.PlainText; elide: Text.ElideRight }
                 Text { width: parent.width; text: root.social.menuDetail; color: Theme.muted; font.pixelSize: 13; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight; textFormat: Text.PlainText }
+                Image { visible: root.social.mediaPreview && root.social.media.picture.toString().length > 0; width: parent.width; height: visible ? 165 : 0; source: visible ? root.social.media.picture : ""; sourceSize: Qt.size(740,330); fillMode: Image.PreserveAspectFit; asynchronous: true }
+                Rectangle { visible: root.social.mediaPreview && root.social.media.state === "recording"; width: parent.width; height: visible ? 52 : 0; radius: 10; color: "#f1c8c4"
+                    Text { anchors.centerIn: parent; text: "●  " + root.social.media.seconds + " s / 120 s"; font.family: Theme.displayFamily; font.pixelSize: 22; color: "#9d3942" }
+                }
+                Item { visible: root.social.mediaPreview && root.social.media.state === "voice"; width: parent.width; height: visible ? 45 : 0
+                    Row { anchors.centerIn: parent; spacing: 2
+                        Repeater { model: root.social.media.levels
+                            Rectangle { required property int modelData; required property int index; width: 3; height: 5 + modelData / 8; anchors.verticalCenter: parent.verticalCenter; radius: 2; color: index / Math.max(1,root.social.media.levels.length) <= root.social.media.progress ? "#ba8d16" : "#779fa7" }
+                        }
+                    }
+                }
             }
             ListView {
                 id: menuList; x: 15; y: menuHeading.y + menuHeading.height + 12

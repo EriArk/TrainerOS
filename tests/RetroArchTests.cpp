@@ -7,6 +7,10 @@
 #include "core/navigation/AdventureLaunchController.h"
 #include "core/storage/LocalStateStore.h"
 #include <QtTest>
+#include <QSettings>
+#include <QStandardPaths>
+#include "integrations/adventure/retroarch/RetroArchAppearance.h"
+#include "integrations/achievements/RetroArchAchievementSession.h"
 #include <QTemporaryDir>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -27,6 +31,29 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void initTestCase(){QStandardPaths::setTestModeEnabled(true);QCoreApplication::setOrganizationName("TrainerOSTests");QCoreApplication::setApplicationName("RetroArchTests");}
+    void displayOverlayPreservesBaseAndIsPerGame() {
+        QTemporaryDir dir;const auto base=dir.filePath("base.cfg");
+        QFile file(base);QVERIFY(file.open(QIODevice::WriteOnly));const QByteArray original="video_smooth = \"true\"\nvideo_shader_enable = \"false\"\nsavefile_directory = \"original\"\n";file.write(original);file.close();
+        const auto id=QUuid::createUuid().toString();
+        ProcessCommand cmd;cmd.arguments={"--appendconfig",base,"game.gba"};
+        QVERIFY(retroarch::changeAppearance(id,"ratio"));QVERIFY(retroarch::changeAppearance(id,"filter"));
+        QVERIFY(retroarch::prepareAppearance(cmd,id,base).isEmpty());
+        QCOMPARE(cmd.arguments.last(),QString("game.gba"));
+        const auto paths=cmd.arguments[1].split('|');QCOMPARE(paths.size(),2);QCOMPARE(paths.first(),base);
+        QFile overlay(paths.last());QVERIFY(overlay.open(QIODevice::ReadOnly));const auto bytes=overlay.readAll();overlay.close();
+        QVERIFY(bytes.contains("stdin_cmd_enable"));QVERIFY(bytes.contains("aspect_ratio_index"));QVERIFY(bytes.contains("video_smooth = \"false\""));QVERIFY(!bytes.contains("savefile_directory"));
+        QVERIFY(file.open(QIODevice::ReadOnly));QCOMPARE(file.readAll(),original);
+        QCOMPARE(cmd.runtimeControls["game"].toString(),id);
+        auto withAccount=cmd;withAccount.arguments.prepend(base);withAccount.arguments.prepend("--config");
+        useRetroArchAchievementAccount(withAccount,{});const std::atomic_bool running{false};
+        QVERIFY(withAccount.prepare(withAccount,running).isEmpty());
+        QCOMPARE(withAccount.arguments[withAccount.arguments.indexOf("--appendconfig")+1].split('|').size(),3);
+        withAccount.settled({true,0,false,false});QVERIFY(QFileInfo(paths.last()).isFile());
+        QVERIFY(retroarch::changeAppearance(id,"reset-appearance"));cmd.arguments={"game.gba"};
+        QVERIFY(retroarch::prepareAppearance(cmd,id,base).isEmpty());QVERIFY(overlay.open(QIODevice::ReadOnly));
+        const auto defaults=overlay.readAll();QVERIFY(!defaults.contains("video_smooth"));QVERIFY(!defaults.contains("aspect_ratio_index"));
+    }
     void genericOrdinaryLaunchKeepsSaveProvidersSeparate() {
         QTemporaryDir dir;const auto content=dir.filePath("literal ; title.chd"),core=dir.filePath("pcsx_rearmed_libretro.so"),cfg=dir.filePath("retroarch.cfg");
         touch(content);touch(core);
@@ -168,7 +195,7 @@ private slots:
         const auto original=*invocation; std::atomic_bool cancelled{false};
         QVERIFY(invocation->prepare(*invocation,cancelled).isEmpty());
         QCOMPARE(invocation->arguments.last(),content);
-        QFile overlay(invocation->arguments[invocation->arguments.size()-2]); QVERIFY(overlay.open(QIODevice::ReadOnly));
+        QFile overlay(invocation->arguments[invocation->arguments.size()-2].section('|',0,0)); QVERIFY(overlay.open(QIODevice::ReadOnly));
         const auto bytes=overlay.readAll(); QVERIFY(bytes.contains("savestate_auto_load = \"false\""));
         QVERIFY(!bytes.contains("savefile_directory"));
         // An active core-specific override is not silently discarded.
@@ -266,7 +293,10 @@ private slots:
         QVERIFY(!adapter.launch(record.adventure).success); // No second child while checkpointing.
         QTRY_COMPARE(restored.size(), 1); QCOMPARE(lifecycle.state(), "returned"); QCOMPARE(store.navigation(), context);
         QFile output(resultFile); QVERIFY(output.open(QIODevice::ReadOnly));
-        QCOMPARE(QJsonDocument::fromJson(output.readAll()).array(), QJsonArray::fromStringList(
+        auto arguments=QJsonDocument::fromJson(output.readAll()).array();
+        const auto configPaths=arguments[6].toString().split('|');QCOMPARE(configPaths.size(),2);QVERIFY(QFileInfo(configPaths.last()).isFile());
+        arguments[6]=configPaths.first();
+        QCOMPARE(arguments, QJsonArray::fromStringList(
             {"--fullscreen", "--config", config, "--libretro", core, "--appendconfig", dir.filePath("traineros-generic-ordinary-v1.cfg"), content}));
         // Removing the media doesn't block metadata-only browsing. The external
         // worker preflight checks loading; a failure restores the shell.

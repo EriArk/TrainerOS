@@ -1,5 +1,6 @@
 #pragma once
 #include "GameProgress.h"
+#include "AdventureCompletion.h"
 #include "Models.h"
 #include <QObject>
 #include <functional>
@@ -14,6 +15,7 @@ public:
     virtual GameProgress snapshot() const = 0;
     virtual void verifySnapshot(const AdventureRegistration&,const GameProgress&,QObject*,std::function<void(bool)> done) {done(false);}
     virtual void inspectCapabilities(const AdventureRegistration&, QObject*, std::function<void(QStringList)> done) {done({});}
+    virtual void inspectCompletion(const AdventureRegistration&, QObject*, std::function<void(AdventureCompletion)> done) {done({});}
 signals:
     void changed();
 };

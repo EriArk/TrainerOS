@@ -33,6 +33,7 @@ def include(path):
 for name in ("Gen3Progress", "EmeraldParty", "EmeraldShops", "EmeraldPractice", "EmeraldLink"):
     include(root / f"src/integrations/progress/{name}.cpp")
 include(root / "src/integrations/practice/PracticeSession.cpp")
+include(root / "src/core/model/AdventureCompletion.h")
 for relative in ("src/integrations/practice/emerald-engine.cjs",
                  "src/integrations/practice/emerald-worker.cjs",
                  "tools/research/emerald-practice/.gitignore",

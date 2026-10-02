@@ -18,6 +18,7 @@ public:
     void invalidate();
     void verifySnapshot(const AdventureRegistration&,const GameProgress&,QObject*,std::function<void(bool)>) override;
     void inspectCapabilities(const AdventureRegistration&,QObject*,std::function<void(QStringList)>) override;
+    void inspectCompletion(const AdventureRegistration&,QObject*,std::function<void(AdventureCompletion)>) override;
     QString adventureId() const override { return record_.adventure.id; }
     GameProgress snapshot() const override { return snapshot_; }
 private:

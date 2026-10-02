@@ -1,5 +1,16 @@
 # Adventure exit transport
 
+## Fluxer voice support
+
+`install-voice.sh` installs `fluxer-voice.py` and its private LiveKit environment
+for the handheld session user. Run it as that user; only copying the helper into
+`/var/opt/traineros/integrations` uses sudo. Python 3, `pactl`, `parec`, `pacat`
+and `ffmpeg` must already be installed. It does not replace audio configuration
+or emulator files. Calls are optional and their failure must not block play.
+See [media/voice behavior and actual device evidence](../../docs/SOCIAL_MEDIA_VOICE.md).
+
+## Adventure overlay
+
 `adventure-overlay.py` is an opt-in, ordinary-user helper for the verified Flip 2
 InputPlumber/Gamescope X11 environment. It requires Python 3 with `dbus`,
 libX11/libXRes 1.2, ffmpeg with libdav1d and read-only access to the built-in pad.

@@ -44,12 +44,25 @@ graceful-close ownership and single-request safeguards remain.
 
 ## Remaining #112 work
 
-Independent shader / ratio / exact supported widescreen / bezel controls are
-deferred until after communication and multiplayer invitations by the owner's
-2026-10-01 priority change. Their runtime capability, preview, per-game inheritance/reset and
-live versus next-launch gates remain open. Unsupported controls are omitted.
-In-game social/activity actions await their actual providers; no duplicate chat,
-voice or save implementation is introduced here. Full issue acceptance remains
+2026-10-02 increment: supported RetroArch games now expose Screen & graphics
+inside this same compact overlay. Per-game ratio (original/4:3/16:9/fill), pixel
+filtering and shader enable/default/reset are persisted in TrainerOS-owned
+configuration layered over the emulator configuration. They apply on next launch.
+Shader toggle/next preview uses stdin commands on the owned running process.
+Command delivery is not an emulator acknowledgement. Exact widescreen patches,
+bezel selection, named shader catalogue and non-RetroArch controls remain open.
+
+The shared [communication service](SOCIAL_MEDIA_VOICE.md) supplies a live unread
+summary, incoming-call answer/decline and microphone/output/leave controls. It
+does not dismiss or terminate the game. The summary never acknowledges messages;
+outside a game the existing direct Social destinations remain. Emulator-native
+multiplayer invitations still require #107's exact runtime route.
+
+The remaining named shader catalogue, exact supported widescreen patches and
+bezel controls stay behind communication and multiplayer invitations. Their
+runtime capability and live versus next-launch gates remain open. Unsupported
+controls are omitted. In-game activity invitations await their actual runtime
+route; no duplicate chat, voice or save implementation is introduced here. Full issue acceptance remains
 in [the register](EXPANSION_98_112.md) and [roadmap](ROADMAP.md).
 
 ## Verification

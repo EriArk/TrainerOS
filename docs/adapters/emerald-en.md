@@ -371,3 +371,20 @@ full save hashes then matched their pre-test originals and no active journals
 remained. No adapter/profile/portable source changed. Both handhelds shared one
 home internet, so separate-internet proof remains open alongside broader fault,
 trust and exact-pair gates. See [bounded evidence](../ONLINE_LINK.md#protected-public-route-exchange-and-interruption-2026-10-01).
+
+## 2026-10-02 — #113 completion for reviews
+
+The review completion consumer reuses the exact English Emerald Journey champion
+milestone (`FLAG_SYS_GAME_CLEAR`, `0x864`). `AdventureCompletion.h` exposes this
+bounded policy; no playtime, collection or platform inference unlocks posting.
+A readable selected ordinary save, including an imported completed save, qualifies
+the active local player. This is not proof that the Fluxer account personally
+completed the game. There are no save writes. Review identity uses the existing
+exact content SHA-256 convention. Other builds can read their own reviews but
+cannot write until an explicit completion policy is supplied.
+
+The actual Flip controller keyboard published a review; editing its spoiler flag
+updated the same message. Odin loaded and revealed it through its independent
+Fluxer account. Flip then deleted its own review. Automated tests cover exact
+identity, unreadable/missing milestones and refusal without completion. See
+[reviews](../ADVENTURE_REVIEWS.md) for storage, trust and remaining deployment gates.

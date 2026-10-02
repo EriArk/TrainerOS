@@ -1,4 +1,4 @@
-#include "core/PerformanceTrace.h"
+﻿#include "core/PerformanceTrace.h"
 #include "integrations/achievements/TrainerAchievementProvider.h"
 #include "integrations/achievements/RetroArchAchievementSession.h"
 #include "platform/emulation/EmulatorDiscovery.h"
@@ -13,6 +13,7 @@
 #include "integrations/adventure/standalone/StandaloneAdapter.h"
 #include "integrations/adventure/standalone/MelonDsSave.h"
 #include "integrations/progress/GameProgressService.h"
+#include <QSettings>
 #include "integrations/progress/Gen3Progress.h"
 #include <QJsonDocument>
 #include "integrations/achievements/RetroAchievementsProvider.h"
@@ -22,6 +23,7 @@
 #include "integrations/adventure/retroarch/RetroArchConfiguration.h"
 #include "core/navigation/AdventureLaunchController.h"
 #include "features/adventure/AdventureExitPresentation.h"
+#include "integrations/adventure/retroarch/RetroArchAppearance.h"
 #include "platform/input/AdventureOverlayService.h"
 #include "features/home/PlayHistoryController.h"
 #include "features/home/ExitImage.h"
@@ -391,6 +393,65 @@ int main(int argc, char* argv[]) {
         ProcessService adventureProcess;
         AdventureLaunchController adventureLaunch(adventureProcess);
         AdventureExitPresentation exitPresentation(adventureLaunch.exitController());
+        auto gameNotifications=[&]{
+            QVariantList rows;
+            for(const auto& value:shell.social()->notifications()) {
+                const auto row=value.toMap();
+                rows.append(QVariantMap{{"id","notice:"+row["id"].toString()},
+                    {"label",row["name"]},{"detail",row["detail"]},{"readOnly",true}});
+            }
+            const bool empty=rows.isEmpty();rows.append(QVariantMap{{"id","back"},{"label","Back"}});
+            exitPresentation.setPanel("notifications",empty?"You're all caught up!":"Unread conversations & requests",rows);
+        };
+        auto gameMenuActions=[&]{
+            QVariantList actions{QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(shell.social()->notifications().size())}}};
+            if(adventureProcess.runtimeControls()["kind"]=="retroarch")actions.append(QVariantMap{{"id","display"},{"label","Screen & graphics"}});
+            if(!shell.social()->account()["voice"].toMap()["channel"].toString().isEmpty())actions.append(QVariantMap{{"id","call"},{"label","Voice call"}});
+            for(const auto& value:shell.social()->notifications()) {
+                const auto row=value.toMap();if(!row["ringing"].toBool())continue;
+                actions.prepend(QVariantMap{{"id","answer-call:"+row["id"].toString()},{"label","Answer · "+row["name"].toString()}});
+                actions.append(QVariantMap{{"id","decline-call:"+row["id"].toString()},{"label","Decline call"}});break;
+            }
+            exitPresentation.setExtraActions(actions);
+            if(exitPresentation.menuOpen()&&exitPresentation.panel()=="notifications")gameNotifications();
+            if(exitPresentation.menuOpen()&&exitPresentation.panel()=="call") {
+                const auto voice=shell.social()->account()["voice"].toMap();
+                QVariantList rows;
+                if(!voice["channel"].toString().isEmpty())rows={QVariantMap{{"id","voice-mute"},{"label",voice["muted"].toBool()?"Turn microphone on":"Mute microphone"}},
+                    QVariantMap{{"id","voice-output"},{"label",voice["deaf"].toBool()?"Enable call sound":"Silence call sound"}},QVariantMap{{"id","voice-leave"},{"label","Leave call"}}};
+                rows.append(QVariantMap{{"id","back"},{"label","Back"}});exitPresentation.setPanel("call",voice["status"].toString(),rows);
+            }
+        };
+        QObject::connect(shell.social(),&SocialController::changed,&exitPresentation,gameMenuActions);
+        QObject::connect(&adventureLaunch,&AdventureLaunchController::adventureStarted,&exitPresentation,gameMenuActions);
+        QObject::connect(shell.social(),&SocialController::backgroundNotification,&exitPresentation,[&](QString title,QString text){
+            adventureProcess.runtimeCommand("notify",title+" · "+text);
+        });
+        QObject::connect(&exitPresentation,&AdventureExitPresentation::menuActionRequested,&exitPresentation,[&](const QString& action){
+            const auto back=QVariantMap{{"id","back"},{"label","Back"}};
+            const auto runtime=adventureProcess.runtimeControls();
+            if(action.startsWith("answer-call:")||action.startsWith("decline-call:")) {
+                shell.social()->answerCall(action.section(':',1),action.startsWith("answer-call:"));return;
+            }
+            if(action=="notifications") {
+                gameNotifications();return;
+            }
+            if(action=="call"||action.startsWith("voice-")) {
+                if(action!="call")shell.social()->controlCall(action);
+                const auto voice=shell.social()->account()["voice"].toMap();
+                QVariantList rows{QVariantMap{{"id","voice-mute"},{"label",voice["muted"].toBool()?"Turn microphone on":"Mute microphone"}},
+                    QVariantMap{{"id","voice-output"},{"label",voice["deaf"].toBool()?"Enable call sound":"Silence call sound"}},
+                    QVariantMap{{"id","voice-leave"},{"label","Leave call"}},back};
+                exitPresentation.setPanel("call",voice["status"].toString(),rows);return;
+            }
+            if(runtime["kind"]!="retroarch")return;
+            QString caption="Display changes apply next launch";
+            if(action=="shader"||action=="next-shader"||action=="previous-shader")caption=adventureProcess.runtimeCommand(action)?"Shader preview":"Couldn't change the shader";
+            else if(action!="display"&&!retroarch::changeAppearance(runtime["game"].toString(),action))caption="Couldn't save display settings";
+            auto rows=retroarch::appearanceActions(runtime["game"].toString());
+            rows.append(QVariantMap{{"id","shader"},{"label","Toggle shader now"}});rows.append(QVariantMap{{"id","next-shader"},{"label","Next shader now"}});rows.append(back);
+            exitPresentation.setPanel("display",caption,rows);
+        });
         QObject::connect(&adventureLaunch, &AdventureLaunchController::adventureStarted, &exitPresentation,
             [&](const QString& id) {
                 QString title = "Adventure";
@@ -737,6 +798,15 @@ int main(int argc, char* argv[]) {
                     window->requestActivate();
                     input.setEnabled(app.applicationState() == Qt::ApplicationActive);
                     realAchievements->refreshAdventure(*returnedAdventure,true);
+                    if(gameProgress&&adventureLaunch.error().isEmpty())if(const auto record=activeLibrary.registration(*returnedAdventure)) {
+                        const auto owner=store->ownerId();
+                        gameProgress->inspectCompletion(*record,&shell,[&,owner](AdventureCompletion result){
+                            if(!result.completed||adventureLaunch.active()||store->ownerId()!=owner)return;
+                            QSettings settings;const auto key="reviews/invited/"+owner+"/"+result.identity;
+                            if(settings.value(key,false).toBool())return;
+                            settings.setValue(key,true);shell.showAchievements("Adventure complete",{"You can share a review in Game Properties"});
+                        });
+                    }
                 });
                 QObject::connect(playHistory.get(), &PlayHistoryController::writeFailed, &shell, [&](const QString& error) {
                     if (!adventureLaunch.active()) shell.showNotice(error);

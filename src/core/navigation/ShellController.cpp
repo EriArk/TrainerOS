@@ -21,6 +21,11 @@ void ShellController::showAchievements(const QString& title,const QStringList& n
 void ShellController::configureProgress(GameProgressProvider* provider) {
     if (progress_) disconnect(progress_, nullptr, this, nullptr);
     progress_ = provider;
+    libraryTools_.completionQuery=[this](const AdventureRegistration& requested,QObject* receiver,std::function<void(AdventureCompletion)> done){
+        const auto record=repository_.registration(requested.adventure.id);
+        if(!progress_||!record||record->revision!=requested.revision){done({});return;}
+        progress_->inspectCompletion(*record,receiver,std::move(done));
+    };
     libraryTools_.capabilityQuery=[this](const AdventureRegistration& requested,QObject* receiver,std::function<void(QStringList)> done){
         const auto record=repository_.registration(requested.adventure.id);
         if(!record || record->revision!=requested.revision){done({"Adventure changed · Reopen Properties"});return;}
@@ -54,6 +59,8 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this), multiverse_(repo, adapter, this),
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
       libraryManager_(repo, nullptr, this), libraryTools_(repo,this), settings_(this), device_(this), diagnostics_(this), center_(repo,this), party_(!repo.editable(),this) {
+    connect(&libraryTools_,&LibraryToolsController::reviewRequested,&social_,&SocialController::reviewCommand);
+    connect(&social_,&SocialController::reviewsChanged,&libraryTools_,&LibraryToolsController::receiveReviews);
     connect(&network_, &NetworkController::changed,this,&ShellController::changed);
     connect(settings_.clock(), &ClockController::changed, this, &ShellController::changed);
     connect(settings_.clock(), &ClockController::backRequested, this, [this]{ if(service_=="settings")settings_.selectCategory(11,false); });

@@ -4,6 +4,18 @@
 
 ## Current plan — reconciled 2026-10-01
 
+**Owner-expanded large pass, 2026-10-02:** include #113
+[Adventure Reviews](ADVENTURE_REVIEWS.md), #102/#103
+[media and voice](SOCIAL_MEDIA_VOICE.md), notifications and supported in-game
+Home controls in this communication lane. Reviews now have an exact Emerald
+completion policy and actual two-account publish/read/edit/delete evidence.
+The shared review channel's public onboarding and cross-client uniqueness remain
+release gates. Calls have actual two-device audio transport evidence; real input,
+web-client interoperability and separate-internet proof remain separate.
+Keep #107's actual emulator multiplayer route ahead of further cosmetic work:
+the existing Emerald save exchange does not satisfy a running-game invitation.
+All unfinished acceptance below remains in place.
+
 **Owner-approved #98–112 order:** [acceptance register](EXPANSION_98_112.md)
 and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
 
@@ -16,8 +28,8 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
 3. #99 bounded supported Fluxer **user-client** auth/API/native feasibility gate.
    [Native session/text proof](FLUXER_SPIKE.md) now passes on Windows and ARM64:
    official browser handoff, friendship/DM, realtime changes, resume and logout.
-   Voice grant is proven separately; audio/media and the remaining matrix gates
-   are not delivered messenger functionality.
+   Voice grants and the bounded #102/#103 audio/media route now have separate
+   [live evidence](SOCIAL_MEDIA_VOICE.md); their remaining matrix gates stay open.
 4. #100 owner-scoped provider and #101 [native Social](SOCIAL.md): first text
    increment, followed by the explicit remaining acceptance there. Owner-refined
    faces are Messages / Groups / Communities / Search. Home shortcuts share these
@@ -66,10 +78,11 @@ and [#111 navigation migration](NAVIGATION_111.md). The active sequence is:
    latest notified conversation directly through Home / Chats (including groups).
    The [unread/request notification list](SOCIAL.md#notification-list-and-simpler-composer-2026-10-02)
    now opens through Home and navigates directly to its destination; the composer
-   keeps only message entry, with Play together on Y in the footer. Sound,
-   activity history, active-game notification proof and the full reconnect matrix remain open.
-   Then #102 chat images/
-   recorded voice and #103 simple private calls, with independent gates.
+   keeps only message entry, with Play together on Y in the footer. Notification
+   sound/privacy settings, an actual in-game unread notice, #102 picture/recorded
+   voice send/receive and #103 two-device audio transport are now delivered in
+   [the communication increment](SOCIAL_MEDIA_VOICE.md). Activity history, real
+   microphone/headset checks and the full reconnect/interoperability matrix remain open.
 7. #107 one actual exact-game/runtime online multiplayer route. #106 direct/relay
    is implemented only where the chosen consumer needs it; suitable #105 native
    events do not wait for full P2P. #108 privacy/recovery/performance throughout.

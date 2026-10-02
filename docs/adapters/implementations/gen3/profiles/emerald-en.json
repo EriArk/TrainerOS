@@ -224,6 +224,15 @@
         "device"
       ],
       "details": "../EMERALD_LINK.md"
+    },
+    "review-completion": {
+      "state": "partial",
+      "evidence": [
+        "source-research",
+        "automated-tests",
+        "flip-odin-review-publish-read-edit-delete"
+      ],
+      "details": "emerald-en.md"
     }
   },
   "unknown": [

@@ -1,5 +1,14 @@
 # AGENTS.md — TrainerOS
 
+**Owner communication expansion, 2026-10-02:** the large communication pass also
+includes #113 Adventure Reviews, media/voice, notifications and physical Home
+controls during play. Reviews belong inside existing game Properties; exact-game
+completion unlocks writing, reading remains independent. The first adapter policy
+is English Emerald Champion, not playtime or universal platform completion.
+See [reviews](docs/ADVENTURE_REVIEWS.md) and [communication evidence](docs/SOCIAL_MEDIA_VOICE.md).
+Do not conflate saved-Pokemon Link with the requested active emulator multiplayer
+invitation. Preserve #107 and its actual runtime/route proof until delivered.
+
 **Owner communication completion, 2026-10-01:** finish the accepted Fluxer lane
 and make its interface/control familiar and direct before returning to unrelated
 appearance/RA work. A displayed conversation must not require another Open step,
