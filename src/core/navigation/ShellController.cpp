@@ -836,6 +836,7 @@ QVariantList ShellController::homeMenuActions() const {
     QVariantList rows{QVariantMap{{"id","home"},{"label","Home"}},QVariantMap{{"id","friends"},{"label","Friends"}},
         QVariantMap{{"id","chats"},{"label","Chats"}},QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(social_.notifications().size())}}};
     if(!voice["channel"].toString().isEmpty())rows.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",voice["name"]}});
+    rows.append(social_.incomingCallActions());
     return rows;
 }
 QString ShellController::homeMenuCaption() const {
@@ -846,6 +847,11 @@ QString ShellController::homeMenuCaption() const {
 void ShellController::activateHomeMenu(int index) {
     if (!homeMenuOpen_ || navigationLocked() || index < 0 || index >= homeMenuActions().size()) return;
     const auto id=homeMenuActions()[index].toMap()["id"].toString();
+    if(id.startsWith("answer-call:")||id.startsWith("decline-call:")) {
+        const bool accept=id.startsWith("answer-call:");
+        if(social_.answerCall(id.section(':',1),accept)&&accept)closeHomeMenu();
+        emit changed();return;
+    }
     if(homeCallOpen_){if(id=="back"){homeCallOpen_=false;homeMenuFocus_=0;}else social_.controlCall(id);emit changed();return;}
     if(id=="call"){homeCallOpen_=true;homeMenuFocus_=0;emit changed();return;}
     if(index==3){notificationsOpen_=true;notificationFocus_=0;emit changed();return;}
@@ -857,6 +863,11 @@ void ShellController::activateHomeMenu(int index) {
 }
 void ShellController::activateNotification(int index) {
     if(!notificationsOpen()||navigationLocked())return;
+    const auto row=social_.notifications().value(index).toMap();
+    if(row["answerable"].toBool()) {
+        if(social_.answerCall(row["id"].toString(),true))closeHomeMenu();
+        return;
+    }
     const auto face=social_.notificationFaceAt(index);if(face.isEmpty())return;
     socialFace_=face;goToPage(4);social_.openNotificationAt(index);emit changed();
 }
@@ -900,7 +911,12 @@ void ShellController::dispatch(Action action) {
         libraryTools_.beginGame((multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString());return;
     }
     if(action==Action::LocalAction && canEditWorld()) {libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
-    if (action == Action::Home) { homeMenuOpen_ = true; notificationsOpen_=homeCallOpen_=false; homeMenuFocus_ = 0; emit changed(); return; }
+    if (action == Action::Home) {
+        homeMenuOpen_ = true; notificationsOpen_=homeCallOpen_=false; homeMenuFocus_ = 0;
+        const auto actions=homeMenuActions();
+        for(int i=0;i<actions.size();++i)if(actions[i].toMap()["id"].toString().startsWith("answer-call:")){homeMenuFocus_=i;break;}
+        emit changed();return;
+    }
     if (action == Action::PreviousPage || action == Action::NextPage) {
         goToPage(page_ + (action == Action::NextPage ? 1 : -1));
         return;

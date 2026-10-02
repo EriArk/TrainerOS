@@ -241,3 +241,31 @@ rendered QML scenario. Ninja again recovered a truncated local dependency cache
 and rebuilt dependencies; no product test limit was relaxed. The ARM64 suite
 was rerun after the final already-read-call correction (75 passed). No unrelated
 full-suite or live-audio repetition was used for this follow-up.
+
+### Direct incoming-call controls — 2026-10-02
+
+This remains block 3 preparation with owner hands-on checks deferred. Home now
+offers Answer/Decline directly; opening Home during an answerable ring selects
+Answer. An incoming event itself never takes focus or opens Home. Accepting from
+shell Home or an incoming inbox entry closes Home and keeps the previous page.
+The inbox footer distinguishes Answer/Decline from ordinary Open/Dismiss.
+Missed calls still open their conversation without calling back.
+
+Shell Home and in-game Home share the same call-action eligibility and reject
+an expired ring, disconnected answer or implicit replacement of an existing
+call. In-game dynamic actions preserve the selected action by ID; if it vanishes,
+selection returns to Continue instead of a different action at the old index.
+No transport, microphone default, draft or save-operation policy changed.
+
+ARM64 tests pass: Social 78 cases, interactions 36, exit presentation 8. The
+new checks cover direct Home/inbox answering, origin retention, decline, stale
+answers, existing calls, and focus during changing in-game call actions.
+Production was rebuilt with tests disabled, including the changed QML. No new
+Windows build or full-suite run is claimed for this ARM64 controller change.
+Both live devices now match SHA-256
+`1413a8cf24fee471f534980198b8aea89cc6f974b3c9e777d6d5433a574bba0f`:
+Flip PID 1043286, Odin PID 73229 at verification. Database integrity/counts, boot
+choices, InputPlumber, nearby/voice helpers and both Emerald hashes above are
+unchanged; no Link settlement is pending. There were no active games/calls at
+installation. No live call was started for this delivery; the actual incoming
+call visual/controller walkthrough and microphone checks remain deferred.

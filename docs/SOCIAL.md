@@ -664,6 +664,13 @@ audio/headset or interoperability acceptance.
 - The call strip and Home call panel identify the actual call conversation,
   including while another chat is displayed. They share the existing session
   and do not introduce another call page.
+- Incoming calls have direct Answer/Decline actions in Home. Opening Home while
+  a call is ringing selects Answer; receiving a ring never opens a menu by itself.
+  A on an answerable inbox entry answers in place and returns to the underlying
+  page, without first opening its conversation/Options. The footer says Answer
+  and Decline for those actions. An existing call is never replaced implicitly;
+  stale, disconnected and no-longer-ringing answers do nothing. Missed-call
+  entries still open the conversation normally.
 - An observed incoming ring that ends unanswered becomes a missed-call inbox
   entry. Opening it displays the conversation; it never calls back automatically.
   Explicit decline, answering on another client, unavailable-call events and a

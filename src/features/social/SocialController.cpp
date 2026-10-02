@@ -154,6 +154,30 @@ void SocialController::dismissNotifications() {
     const auto list=notifications();
     for(int i=list.size()-1;i>=0;--i)dismissNotificationAt(i);
 }
+bool SocialController::answerCall(const QString& channel,bool accept) {
+    if(snapshot_["state"]!="connected")return false;
+    for(const auto& value:notifications()) {
+        const auto row=value.toMap();
+        if(row["id"]!=channel||!row["ringing"].toBool())continue;
+        if(accept&&!row["answerable"].toBool())return false;
+        if(accept)media_.clear();
+        emit commandRequested(accept?"voice-join":"voice-decline",{{"channel",channel}});
+        return true;
+    }
+    return false;
+}
+QVariantList SocialController::incomingCallActions() const {
+    QVariantList actions;
+    if(snapshot_["state"]!="connected")return actions;
+    for(const auto& value:notifications()) {
+        const auto row=value.toMap();if(!row["ringing"].toBool())continue;
+        const auto channel=row["id"].toString();
+        if(row["answerable"].toBool())actions.append(QVariantMap{{"id","answer-call:"+channel},{"label","Answer call"},{"detail",row["name"]}});
+        actions.append(QVariantMap{{"id","decline-call:"+channel},{"label","Decline call"},{"detail",row["name"]}});
+        break;
+    }
+    return actions;
+}
 QVariantList SocialController::notifications() const {
     QVariantList result;
     if(snapshot_["userId"].toString().isEmpty())return result;
@@ -171,6 +195,9 @@ QVariantList SocialController::notifications() const {
     for(const auto& value:snapshot_["chats"].toList()) {
         auto row=value.toMap();if((row["unread"].toInt()<=0&&!row["ringing"].toBool()&&row["missedCall"].toString().isEmpty())||row["muted"].toBool())continue;
         row["request"]=false;
+        const auto voice=snapshot_["voice"].toMap();
+        row["answerable"]=row["ringing"].toBool()&&snapshot_["state"]=="connected"
+            &&voice["available"].toBool()&&voice["channel"].toString().isEmpty();
         if(!row["ringing"].toBool()&&dismissedNotifications_.contains(row["id"].toString())&&dismissedNotifications_.value(row["id"].toString()).toString()==notificationStamp(row))continue;
         row["detail"]=row["guild"].toString().isEmpty()?(row["kind"]=="groups"?"Group · New messages":"New messages"):"Community · New messages";
         // Fluxer also counts every unread DM as a mention. Only label the

@@ -94,7 +94,8 @@ public:
     bool gameActive() const{return gameActive_;}
     void setGameActive(bool active){if(gameActive_!=active){gameActive_=active;emit presentationChanged();}}
     void controlCall(const QString& operation){emit commandRequested(operation,{});}
-    void answerCall(const QString& channel,bool accept){if(accept)media_.clear();emit commandRequested(accept?"voice-join":"voice-decline",{{"channel",channel}});}
+    bool answerCall(const QString& channel,bool accept);
+    QVariantList incomingCallActions() const;
     void reviewCommand(const QString& operation,const QVariantMap& args){emit commandRequested(operation,args);}
     void setSurfaceAvailable(bool available);
     void setConversationVisible(bool visible);

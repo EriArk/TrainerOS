@@ -5,6 +5,27 @@ using namespace trainer;
 class AdventureExitPresentationTests final : public QObject {
     Q_OBJECT
 private slots:
+    void incomingCallActionsPreserveSelectionAndNeverRedirectConfirm() {
+        AdventureExitController exit;AdventureExitPresentation view(exit);
+        exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);
+        const QVariantMap notifications{{"id","notifications"},{"label","Notifications"}};
+        const QVariantMap answer{{"id","answer-call:friend"},{"label","Answer"}};
+        view.setExtraActions({notifications});
+        QSignalSpy preview(&view,&AdventureExitPresentation::menuCaptureRequested);
+        QSignalSpy requested(&view,&AdventureExitPresentation::menuActionRequested);
+        QVERIFY(view.requestMenu());view.menuCaptureCompleted(preview.last()[0].toULongLong(),{});
+        view.setInputIsolated(true);view.setWindowFocused(true);
+        auto neutral=[&]{view.updateInput(view.inputGeneration(),{true,true});};
+        auto down=[&]{neutral();view.updateInput(view.inputGeneration(),{true,false,false,false,false,false,true});};
+        down();down();QCOMPARE(view.menuFocus(),2);
+        view.setExtraActions({answer,notifications});QCOMPARE(view.menuFocus(),3);
+        neutral();view.activateMenu(view.menuFocus());QCOMPARE(requested.last()[0].toString(),QString("notifications"));
+        neutral();view.updateInput(view.inputGeneration(),{true,false,false,false,false,true,false});QCOMPARE(view.menuFocus(),2);
+        view.setExtraActions({notifications});QCOMPARE(view.menuFocus(),0);
+        QCOMPARE(exit.phase(),AdventureExitController::Phase::Idle);
+        view.setPanel("call","Friend",{QVariantMap{{"id","mute"},{"label","Mute"}}});
+        view.setExtraActions({answer,notifications});QCOMPARE(view.menuFocus(),0);QCOMPARE(view.panel(),QString("call"));
+    }
     void extendedMenuRetainsProcessAndBackReturnsToRoot() {
         AdventureExitController exit;AdventureExitPresentation view(exit);
         exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);

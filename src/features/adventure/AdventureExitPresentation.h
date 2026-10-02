@@ -51,7 +51,7 @@ public:
     QString menuCaption() const{return panel_.isEmpty()?QString("In game"):caption_;}
     QString panel() const{return panel_;}
     bool menuCanSelect() const{return !menuActions().value(menuFocus_).toMap().value("readOnly").toBool();}
-    void setExtraActions(QVariantList actions){if(extras_==actions)return;extras_=std::move(actions);menuFocus_=qBound(0,menuFocus_,qMax(0,int(menuActions().size())-1));emit changed();}
+    void setExtraActions(QVariantList actions);
     void setPanel(QString panel,QString caption,QVariantList actions);
     void setGameTitle(const QString& title) { gameTitle_ = title; emit changed(); }
     bool requestMenu();

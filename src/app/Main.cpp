@@ -409,11 +409,7 @@ int main(int argc, char* argv[]) {
             QVariantList actions{QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(shell.social()->notifications().size())}}};
             if(adventureProcess.runtimeControls()["kind"]=="retroarch")actions.append(QVariantMap{{"id","display"},{"label","Screen & graphics"}});
             if(!shell.social()->account()["voice"].toMap()["channel"].toString().isEmpty())actions.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",shell.social()->account()["voice"].toMap()["name"]}});
-            for(const auto& value:shell.social()->notifications()) {
-                const auto row=value.toMap();if(!row["ringing"].toBool())continue;
-                actions.prepend(QVariantMap{{"id","answer-call:"+row["id"].toString()},{"label","Answer · "+row["name"].toString()}});
-                actions.append(QVariantMap{{"id","decline-call:"+row["id"].toString()},{"label","Decline call"}});break;
-            }
+            actions=shell.social()->incomingCallActions()+actions;
             exitPresentation.setExtraActions(actions);
             if(exitPresentation.menuOpen()&&exitPresentation.panel()=="notifications")gameNotifications();
             if(exitPresentation.menuOpen()&&exitPresentation.panel()=="call") {

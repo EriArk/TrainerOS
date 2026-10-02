@@ -129,6 +129,53 @@ private slots:
         QVERIFY(!s.calls_[channel]["unavailable"].toBool());
         event("CALL_DELETE",{{"channel_id",channel}});QVERIFY(!s.calls_.contains(channel));
     }
+    void incomingCallAnswersFromHomeWithoutChangingPage() {
+        MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;
+        ShellController shell(library,trainers,adapter,platform,dex,dex,hall,achievements);
+        auto* social=shell.social();QSignalSpy commands(social,&SocialController::commandRequested);
+        shell.goToPage(1);const auto origin=shell.navigationState();commands.clear();
+        social->receive(0,{{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},
+            {"chats",QVariantList{QVariantMap{{"id",channel},{"name","Friend"},{"kind","chats"},{"ringing",true}}}}});
+        QVERIFY(!shell.homeMenuOpen());QVERIFY(commands.isEmpty());
+        shell.dispatch(Action::Home);
+        QCOMPARE(shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["id"].toString(),QString("answer-call:")+channel);
+        shell.dispatch(Action::Confirm);QVERIFY(!shell.homeMenuOpen());QCOMPARE(shell.navigationState(),origin);
+        QCOMPARE(commands.size(),1);QCOMPARE(commands.last()[0].toString(),QString("voice-join"));
+        QCOMPARE(commands.last()[1].toMap()["channel"].toString(),QString(channel));
+    }
+    void callNotificationAnswersDirectlyAndDeclineKeepsOrigin() {
+        MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;
+        ShellController shell(library,trainers,adapter,platform,dex,dex,hall,achievements);
+        auto* social=shell.social();QSignalSpy commands(social,&SocialController::commandRequested);
+        shell.goToPage(3);const auto origin=shell.navigationState();
+        social->receive(0,{{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},
+            {"chats",QVariantList{QVariantMap{{"id",channel},{"name","Friend"},{"kind","chats"},{"ringing",true}}}}});
+        shell.dispatch(Action::Home);shell.activateHomeMenu(3);QVERIFY(shell.notificationsOpen());
+        QVERIFY(social->notifications().first().toMap()["answerable"].toBool());
+        shell.activateNotification(0);QVERIFY(!shell.homeMenuOpen());QCOMPARE(shell.navigationState(),origin);
+        QCOMPARE(commands.last()[0].toString(),QString("voice-join"));
+        shell.dispatch(Action::Home);shell.activateHomeMenu(5);
+        QCOMPARE(commands.last()[0].toString(),QString("voice-decline"));QCOMPARE(shell.navigationState(),origin);
+        for(const auto& command:commands)QVERIFY(command[0].toString()!="conversation");
+    }
+    void incomingCallNeverReplacesExistingCallAndRejectsStaleAnswer() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        QVariantMap chat{{"id",channel},{"name","Friend"},{"kind","chats"},{"ringing",true}};
+        QVariantMap state{{"state","connected"},{"userId","self"},{"chats",QVariantList{chat}},
+            {"voice",QVariantMap{{"available",true},{"channel",remote}}}};
+        c.receive(0,state);QVERIFY(!c.answerCall(channel,true));QVERIFY(commands.isEmpty());
+        QCOMPARE(c.incomingCallActions().size(),1);
+        QVERIFY(c.incomingCallActions().first().toMap()["id"].toString().startsWith("decline-call:"));
+        QVERIFY(c.answerCall(channel,false));QCOMPARE(commands.last()[0].toString(),QString("voice-decline"));
+        commands.clear();state["voice"]=QVariantMap{{"available",true}};chat["ringing"]=false;chat["missedCall"]="123";
+        state["chats"]=QVariantList{chat};c.receive(0,state);
+        QVERIFY(!c.answerCall(channel,true));QVERIFY(!c.answerCall(channel,false));QVERIFY(c.incomingCallActions().isEmpty());
+        QVERIFY(commands.isEmpty());
+        chat["ringing"]=true;state["chats"]=QVariantList{chat};state["state"]="reconnecting";c.receive(0,state);
+        QVERIFY(!c.answerCall(channel,true));QVERIFY(c.incomingCallActions().isEmpty());QVERIFY(commands.isEmpty());
+    }
     void homeCallControlsKeepTheOriginAndNeverImplicitlyLeave() {
         MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;

@@ -40,6 +40,18 @@ void AdventureExitPresentation::setPanel(QString panel,QString caption,QVariantL
     else for(int i=0;i<panelActions_.size();++i)if(panelActions_[i].toMap().value("id")==selected){menuFocus_=i;break;}
     menuFocus_=qBound(0,menuFocus_,qMax(0,int(menuActions().size())-1));if(!same)resetInput();emit changed();
 }
+void AdventureExitPresentation::setExtraActions(QVariantList actions) {
+    if(extras_==actions)return;
+    const auto selected=menuActions().value(menuFocus_).toMap()["id"];
+    extras_=std::move(actions);
+    if(panel_.isEmpty()) {
+        // A new ring must not replace the action currently under the controller.
+        menuFocus_=0;
+        const auto rows=menuActions();
+        for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]==selected){menuFocus_=i;break;}
+    }
+    emit changed();
+}
 void AdventureExitPresentation::resetInput() {
     ++generation_;
     ready_ = previousConfirm_ = previousBack_ = false;

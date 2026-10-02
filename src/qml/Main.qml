@@ -220,9 +220,11 @@ Window {
                 const h = hint
                 if (shell.social.online.open) return shell.social.online.incoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
                 if (shell.party.activities.link.invitationOpen) return shell.party.activities.link.invitationIncoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
-                if (shell.homeMenuOpen) return shell.notificationsOpen
-                    ? [h("↑↓","Choose"),h("A","Open"),h("X","Dismiss"),h("B","Back")]
-                    : [h("↑↓","Choose"),h("A","Select"),h("B","Back")]
+                if (shell.homeMenuOpen) {
+                    if (!shell.notificationsOpen) return [h("↑↓","Choose"),h("A","Select"),h("B","Back")]
+                    const selectedNotice = shell.social.notifications[shell.notificationFocus] || {}
+                    return [h("↑↓","Choose"),h("A",selectedNotice.answerable ? "Answer" : "Open"),h("X",selectedNotice.ringing ? "Decline" : "Dismiss"),h("B","Back")]
+                }
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
                 if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [h("X","Quick controls"),h("←→",shell.focusIndex>=9 ? "Choose" : "Adjust"),h("A",shell.focusIndex>=9 ? "Toggle" : "Select"),h("B","Close")]
                 if (shell.keyboard.open) return [h("X","Case"),h("Y",shell.keyboard.nextLayout),h("A","Type"),h("Select",shell.keyboard.submitLabel),h("B",shell.keyboard.submitLabel === "Send" ? "Keep draft" : "Cancel")]

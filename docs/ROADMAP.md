@@ -16,6 +16,8 @@ real-microphone and remaining interoperability gates stay open in
 The owner deferred hands-on checks until returning home; continue this block's
 preparation, retaining its open acceptance. Missed-call notifications and named
 background-call controls are included in that continuation.
+Direct Home/inbox answering removes the previous conversation/Options detour;
+its live incoming-call walkthrough remains part of the deferred owner checks.
 Then 1 (emulator multiplayer), 4 (native online Link), and
 5 (reviews/final communication audit). Do not substitute a smaller UI increment
 for completion, or move to another block around an unresolved gate. All remaining

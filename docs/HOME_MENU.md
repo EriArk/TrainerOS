@@ -78,6 +78,13 @@ Notifications remain passive and dismissing them does not acknowledge messages.
 The Voice call action and its panel identify the current conversation, even if
 the underlying page displays another chat. Missed calls open their conversation
 from Notifications without automatically joining or ringing anyone.
+Incoming calls expose Answer/Decline in the same Home menu. Outside a game,
+opening Home with an answerable ring selects Answer immediately; accepting from
+Home or its inbox retains the underlying page and closes Home. A current call
+must be explicitly left before accepting a different one. In-game Home uses the
+same validated call actions. Dynamic actions retain selection by ID, so a new
+ring cannot move Answer underneath an already selected Notifications action;
+if the selected action disappears, focus returns to Continue.
 See [current paired audio evidence and remaining gates](SOCIAL_MEDIA_VOICE.md#background-call-recovery--2026-10-02).
 
 2026-10-01 delivery:
