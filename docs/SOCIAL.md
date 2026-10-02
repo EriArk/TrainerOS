@@ -155,7 +155,7 @@ No activity/title/ROM/save data is automatically published to Fluxer.
 
 The following list records the earlier text slice, not current delivery status.
 Emoji entry and native community creation/filtering were delivered in the later
-sections; current history/retry work and the remaining device gate are recorded
+sections; current history/retry work and completed paired delivery are recorded
 under **Everyday communication — block 2**. Preserve the acceptance:
 
 - durable account-scoped history/scroll, emoji picker and wider Unicode/RTL proof;
@@ -337,8 +337,8 @@ not a new feature tree and not permission to call partial implementations comple
 
 | Order | User result | Remaining acceptance |
 | --- | --- | --- |
-| 2 — current | Reliable everyday conversations | Friends, DMs, groups, communities, supported search, retained history/scroll, failed-send retry and reconnection; direct writing, emoji entry, drafts, actual provider permissions and both-device controller proof. |
-| 3 | Notifications and calls | Finish the accepted notification/media/voice lane, including capture/playback, permissions, cancellation, recovery and in-game Home communication. |
+| 2 — delivered | Reliable everyday conversations | Friends, DMs, groups, communities, supported search, retained history/scroll, failed-send retry and reconnection; direct writing, emoji entry, drafts, actual provider permissions and both-device controller proof. See the block 2 evidence below. |
+| 3 — next | Notifications and calls | Finish the accepted notification/media/voice lane, including capture/playback, permissions, cancellation, recovery and in-game Home communication. |
 | 1 | Actual emulator multiplayer | #107 exact runtime and route proof with in-game invitations; #106 only if its transport needs it. Preserve #112 appearance-control acceptance. |
 | 4 | Native online Link | #104/#105/#109/#110 transport, privacy, workload, explicit invitation and separate-internet gates; preserve protected save operations. |
 | 5 | Reviews and final communication audit | Finish #113 inside game Properties and review the complete journey without extra navigation layers. |
@@ -567,9 +567,10 @@ Contracts rechecked against the official [message API](https://docs.fluxer.app/h
 
 ### Delivery gate
 
-**Block 2 remains open.** The implementation and Flip delivery below are a
-checkpoint, not a smaller substitute completion. Odin runtime recovery and the
-paired final controller walkthrough remain required. Do not advance to block 3.
+**Block 2 is delivered on Flip and Odin.** The owner's Odin reboot allowed the
+final paired controller walkthrough recorded below. Both devices run the same
+production artifact. Block 3 is next; its notification/media/call and in-game
+Home acceptance is not implied by this delivery.
 
 - Current Windows and ARM64 Social tests both pass: 60 cases on each, including
   the final member/cache cleanup. The ARM production build has testing disabled.
@@ -599,10 +600,44 @@ paired final controller walkthrough remain required. Do not advance to block 3.
   `everyday-retry-success.png`, `everyday-history-anchor.png`,
   `everyday-cold-offline.png`, `everyday-unicode-final.png`,
   `everyday-group-final.png`, `everyday-community-final.png` in `work/research/`.
-- Odin accepted the first updated binary, but its old TrainerOS process remained
+- Before the owner's reboot, Odin accepted the first updated binary, but its old TrainerOS process remained
   a zombie with graphics-related kernel tasks in uninterruptible sleep
   (`gpu-worker`, SMMU fault handler, ring worker, `kwin`). No fresh compositor
   capture was available. The authorized normal reboot was requested; subsequent
-  SSH probes timed out/refused. This is **not** a verified Odin delivery or proof
-  that the freeze is fixed. The final binary remains ready for it after recovery.
+  SSH probes timed out/refused. That attempt was **not** a verified Odin delivery
+  or proof that the freeze is fixed. The successful recovery delivery follows.
   Do not attribute the kernel failure to a specific app change without evidence.
+
+### Odin recovery and final paired walkthrough
+
+- After the owner rebooted Odin, its model and idle runtime state were verified
+  before replacing TrainerOS. It initially ran Steam. The installed session
+  switcher started TrainerOS, then its temporary autologin override was removed
+  to restore the exact previous boot preference. No game was stopped.
+- Odin runs the same production SHA above, with 1 Trainer / 25 Adventures.
+  Its login restored automatically from protected credentials. SQLite integrity,
+  InputPlumber, nearby helpers, voice helper, boot preference and no pending Link
+  settlement were verified after the walkthrough on both devices. Odin Emerald
+  SHA remains `3fca83edc8bb3d69f5627a6ecec820069ca7fac8699676ecade2fd748ea47c7a`;
+  Flip retains the save hash and counts recorded above.
+- Controller-composed DMs and group messages arrived in both directions through
+  the designated public Fluxer test accounts. A opens the displayed conversation's
+  composer directly; Select sends once. Odin's draft survived B, a face change
+  and reopening the composer. An emoji selected from its keyboard arrived on Flip.
+- Odin's member popover shows self and the actual group owner. Highlighting the
+  joined CLUB/general channel previews its history directly. Full-width public
+  discovery displayed 186 results without joining or contacting public groups.
+  DM selection and its retained message survived B, Groups/Messages cycling and
+  leaving/returning to Social with L1/R1. Both handhelds remained responsive.
+- Actual installed captures are private `work/research/everyday-odin-received.png`,
+  `everyday-flip-received.png`, `everyday-odin-draft.png`,
+  `everyday-flip-emoji-received.png`, `everyday-odin-members.png`,
+  `everyday-odin-group-received.png`, `everyday-odin-general.png`,
+  `everyday-odin-search.png` and `everyday-odin-primary-restored.png`.
+- This completes the paired everyday-messaging gate. Controlled offline/retry
+  evidence is from Flip above; rate limits, account isolation and bounded history
+  use deterministic tests rather than deliberately rate-limiting the public
+  service. The live accounts remain small test accounts, not a high-volume soak.
+  The earlier Odin kernel/graphics hang is not diagnosed or claimed fixed by
+  a successful reboot and walkthrough. Its platform recovery investigation stays
+  separate from this functioning messaging delivery.

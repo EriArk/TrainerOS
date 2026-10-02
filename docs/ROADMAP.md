@@ -5,10 +5,11 @@
 ## Current plan — reconciled 2026-10-01
 
 **Latest owner order, 2026-10-02:** complete **2 → 3 → 1 → 4 → 5**, exactly
-one complete advertised block per session. The active block is **2: everyday
-communication** — friends, DMs, groups, communities, search, history, retry after
-send failure and reconnection, with unnecessary actions removed. Then complete
-3 (notifications/calls), 1 (emulator multiplayer), 4 (native online Link), and
+one complete advertised block per session. **2: everyday communication is
+delivered on Flip and Odin** — friends, DMs, groups, communities, search, history,
+retry after send failure and reconnection, with direct controller writing.
+The final paired delivery and recovery evidence is in [SOCIAL](SOCIAL.md#odin-recovery-and-final-paired-walkthrough).
+Next complete **3 (notifications/calls)**, then 1 (emulator multiplayer), 4 (native online Link), and
 5 (reviews/final communication audit). Do not substitute a smaller UI increment
 for completion, or move to another block around an unresolved gate. All remaining
 issue and R1–R18 acceptance below is retained; earlier ordering is historical.
