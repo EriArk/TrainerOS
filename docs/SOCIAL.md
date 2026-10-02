@@ -1,5 +1,12 @@
 # Native Social - conversations and discovery
 
+**Live settings retention, 2026-10-02:** Flip and the public web test client kept
+their muted two-person call while input/output preferences and call volume were
+changed and restored, and while Flip navigated to Trainer. No PCM rerouting or
+headset quality claim follows from this muted check. Odin's paired check was
+interrupted by a kernel-reported GPU fault; recovery remains unverified after the
+requested restart. [Evidence and remaining gates](SOCIAL_MEDIA_VOICE.md#live-settings-retention-and-odin-gpu-interruption--2026-10-02).
+
 **Latest paired runtime evidence, 2026-10-02:** web-to-Flip ringing, direct Home
 answer/session joining, native decline in both directions and missed-call
 notification-to-conversation navigation on both handhelds are now observed.

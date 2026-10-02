@@ -4,6 +4,13 @@
 
 ## Current plan — reconciled 2026-10-01
 
+**Latest block 3 check, 2026-10-02:** muted Flip/web call settings changes and
+navigation retained the same media worker and two participants. Actual audio
+rerouting remains unverified. Odin encountered another Adreno/GPU wait requiring
+recovery; verify the owner's restart before resuming paired checks. Preserve
+Odin's 0% volume and the owner's muted output. No other numbered block is started.
+See [bounded evidence](SOCIAL_MEDIA_VOICE.md#live-settings-retention-and-odin-gpu-interruption--2026-10-02).
+
 **Delivered owner addition, 2026-10-02:** consolidated basic communication settings under
 Start -> Settings -> **Communication**, using the existing two-panel layout:
 communication profile, microphone/output devices, call volume, notifications

@@ -1,5 +1,40 @@
 # Communication media and voice — 2026-10-02
 
+## Live settings retention and Odin GPU interruption — 2026-10-02
+
+On the unchanged `05c251c` delivery, Flip joined a call with the ordinary public
+web client signed into the designated Odin test account. Both clients showed two
+participants with microphones muted. Through the physical-controller input path,
+Communication settings changed input/output from Follow system to the enumerated
+headset input and speaker output, and call volume from 100% to 95%, then restored
+the original selections. The voice worker retained PID `1469626`; leaving Settings
+and Social for Trainer/RA retained the connection and Home call controls.
+This proves session retention and settings acceptance, **not** live PCM rerouting,
+headset hot-plug, speech quality or audible output. Flip's system output remained
+muted; Odin's volume had been verified at 0% before its failure. Both test clients
+explicitly left the call afterward; no microphone was enabled.
+
+Private actual-device captures: `audio-live-device-selection.png`,
+`audio-live-restored.png` and `audio-background-call.png` under `work/research`.
+Flip's installed binary/helper, SQLite integrity, 3 Trainers / 830 Adventures,
+boot settings, nearby helpers and Emerald save hash match the previous delivery.
+No application binary or helper was changed in this check.
+
+The initial native-to-native attempt did not connect Odin: its Home capture showed
+Answer, but the next observed frame showed Home without a joined call. That result
+does not establish the cause. Shortly afterward compositor capture stopped; the
+kernel recorded GMU timeouts, an Adreno translation fault and an offending
+`QSGRenderThread` belonging to TrainerOS at 22:18:04 local time. SIGTERM left PID
+`154522` defunct with thread `154580` blocked in `dma_fence_default_wait`; SIGKILL
+could not recover it. No game was running. A remote reboot was requested, but SSH
+did not return during the subsequent checks; the owner then reported a manual
+restart. This is another occurrence of the unresolved Odin GPU recovery gate,
+not a diagnosed call-menu defect or a completed recovery.
+
+Block 3 remains open. Next: verify Odin's recovery and repeat the paired settings
+check, then the real microphone/headset, reverse web media/audio and
+separate-network acceptance. Preserve quiet-device settings.
+
 ## Communication settings delivery — 2026-10-02
 
 Start -> Settings -> Communication now uses the existing two-pane popup on
