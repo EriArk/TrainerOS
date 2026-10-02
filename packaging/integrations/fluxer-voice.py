@@ -5,6 +5,7 @@ Requires livekit==1.1.19 and PulseAudio-compatible parec/pacat (PipeWire on Arma
 The parent owns Fluxer placement/consent; this child owns only its audio streams.
 """
 import asyncio
+from array import array
 import ctypes
 import json
 import os
@@ -26,6 +27,11 @@ async def main():
     reader = asyncio.StreamReader(limit=65536)
     await asyncio.get_running_loop().connect_read_pipe(lambda: asyncio.StreamReaderProtocol(reader), sys.stdin)
     grant = json.loads(await asyncio.wait_for(reader.readline(), 10))
+    audio = grant.pop('audio', {})
+    input_name = str(audio.get('input', ''))
+    output_name = str(audio.get('output', ''))
+    volume = max(0, min(100, int(audio.get('volume', 100))))
+    output_revision = 0
     room = rtc.Room()
     source = rtc.AudioSource(48000, 1, queue_size_ms=200)
     track = rtc.LocalAudioTrack.create_audio_track('microphone', source)
@@ -48,6 +54,8 @@ async def main():
             await process.wait()
 
     async def input_device():
+        if input_name:
+            return input_name if not input_name.endswith('.monitor') else None
         query = await asyncio.create_subprocess_exec('/usr/bin/pactl', 'get-default-source',
             stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL, preexec_fn=die_with_parent)
         try:
@@ -61,17 +69,27 @@ async def main():
     async def play(remote_track):
         process = None
         recovering = False
+        revision = output_revision
         stream = rtc.AudioStream(remote_track, sample_rate=48000, num_channels=1, capacity=10)
         try:
             async for event in stream:
                 if deaf: continue
                 try:
+                    if process and revision != output_revision:
+                        outputs.discard(process)
+                        await stop_process(process); process = None
                     if process is None:
+                        revision = output_revision
                         process = await asyncio.create_subprocess_exec('/usr/bin/pacat', '--playback', '--raw', '--format=s16le',
                             '--client-name=TrainerOS Voice', '--rate=48000', '--channels=1', '--latency-msec=60', stdin=asyncio.subprocess.PIPE,
+                            *(['--device='+output_name] if output_name else []),
                             stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL, preexec_fn=die_with_parent)
                         outputs.add(process)
-                    process.stdin.write(bytes(event.frame.data))
+                    pcm = bytes(event.frame.data)
+                    if volume != 100:
+                        samples = array('h', pcm)
+                        pcm = array('h', (int(value * volume / 100) for value in samples)).tobytes()
+                    process.stdin.write(pcm)
                     await process.stdin.drain()
                     if recovering: emit('output-restored'); recovering = False
                 except (OSError, ConnectionError):
@@ -165,6 +183,16 @@ async def main():
             if command['op'] == 'mute':
                 await set_muted(bool(command['value']))
             if command['op'] == 'deaf': deaf=bool(command['value'])
+            if command['op'] == 'audio-settings':
+                next_input = str(command.get('input', ''))
+                next_output = str(command.get('output', ''))
+                volume = max(0, min(100, int(command.get('volume', 100))))
+                if next_output != output_name:
+                    output_name = next_output; output_revision += 1
+                if next_input != input_name:
+                    input_name = next_input
+                    if not muted:
+                        track.mute(); await stop_capture(); await set_muted(False)
             if command['op'] == 'ping' and capture and not muted:
                 # Follow a plugged-in headset/default microphone without touching
                 # the call, game audio, or volume. Never record a speaker monitor.

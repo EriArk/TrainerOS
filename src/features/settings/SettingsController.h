@@ -1,6 +1,7 @@
 #pragma once
 #include "LibraryStorageController.h"
 #include "ClockController.h"
+#include "CommunicationSettings.h"
 #include "core/input/Action.h"
 #include "core/repository/PreferencesRepository.h"
 #include <QVariantList>
@@ -12,6 +13,7 @@ class SettingsController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(trainer::LibraryStorageController* storage READ storage CONSTANT)
     Q_PROPERTY(trainer::ClockController* clock READ clock CONSTANT)
+    Q_PROPERTY(trainer::CommunicationSettings* communication READ communication CONSTANT)
     Q_PROPERTY(QString theme READ theme NOTIFY changed)
     Q_PROPERTY(bool worldEditing READ worldEditing NOTIFY changed)
     Q_PROPERTY(bool reducedMotion READ reducedMotion NOTIFY changed)
@@ -28,6 +30,7 @@ class SettingsController final : public QObject {
     Q_PROPERTY(QStringList categories READ categories CONSTANT)
     Q_PROPERTY(QVariantList controls READ controls NOTIFY changed)
 public:
+    CommunicationSettings* communication() { return &communication_; }
     void configureNearby(LinkController*);
     ClockController* clock() { return &clock_; }
     const ClockController* clock() const { return &clock_; }
@@ -44,7 +47,7 @@ public:
     int category() const { return category_; }
     int rowFocus() const { return row_; }
     bool controlsFocused() const { return pane_; }
-    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller", "Library", "Saves", "Connections", "Date & time", "Nearby play"}; }
+    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller", "Library", "Saves", "Connections", "Date & time", "Nearby play", "Communication"}; }
     QVariantList controls() const;
     Q_INVOKABLE void selectCategory(int index, bool enter = true);
     Q_INVOKABLE void activateRow(int index);
@@ -74,6 +77,7 @@ signals:
 private:
     LinkController* nearby_ = nullptr;
     ClockController clock_;
+    CommunicationSettings communication_;
     LibraryStorageController storage_;
     SaveBackupService* savePolicy_ = nullptr;
     PreferencesRepository* repository_ = nullptr;

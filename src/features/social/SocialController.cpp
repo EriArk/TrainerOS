@@ -253,6 +253,8 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     const auto oldMessage=messages().value(messageFocus_).toMap().value("id");
     const bool atEnd=messageFocus_>=messages().size()-1;
     snapshot_=std::move(snapshot);
+    const auto audio=snapshot_["audio"].toMap();
+    media_.setAudioDevices(audio["input"].toString(),audio["output"].toString(),audio.value("volume",100).toInt());
     if(snapshot_["state"]=="signed-out")media_.clear();
     if(online()["open"].toBool())menu_.clear();
     else if(menuMode_=="online"&&!menu_.isEmpty()) {
@@ -473,9 +475,6 @@ void SocialController::openMenu() {
             if(snapshot_["communityOwner"].toBool()&&!snapshot_["communityMarked"].toBool())add("Finish TrainerOS setup","mark-community");
         }
         if(conversation()&&!contacts_&&face_!="friends")add(currentChat()["muted"].toBool()?"Unmute conversation":"Mute conversation","mute");
-        add(snapshot_["doNotDisturb"].toBool()?"Do not disturb: On":"Do not disturb: Off","dnd");
-        add(snapshot_["privatePreviews"].toBool()?"Private notifications: On":"Private notifications: Off","private");
-        add(snapshot_.value("notificationSound",true).toBool()?"Notification sound: On":"Notification sound: Off","notification-sound");
         add("Refresh","refresh");add("Clear local history","clear-history");add("Sign out","logout");
     }
     emit changed();

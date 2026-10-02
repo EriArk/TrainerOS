@@ -10,6 +10,7 @@ Item {
     property int level: -1
     property bool muted: false
     property bool compact: false
+    property real textInset: 13
     readonly property bool slider: kind === "volume" || kind === "brightness"
     signal activated()
     signal levelRequested(int value)
@@ -21,7 +22,7 @@ Item {
     Component.onCompleted: if(selected && visible) forceActiveFocus(Qt.OtherFocusReason)
     Rectangle { anchors.fill: parent; radius: 10; color: root.selected ? "#fff4ce" : "#eaf0e6"; border.color: root.selected ? Theme.focus : "#bdcdbd"; border.width: root.selected ? 3 : 1 }
     Rectangle { anchors.fill: parent; anchors.margins: -3; radius: 13; color: "transparent"; visible: root.selected; border.width: 3; border.color: Theme.focusGlow; opacity: 0.45 }
-    Text { x: 13; y: root.compact ? 4 : root.height<60 ? 6 : 12; width: parent.width-26-(root.slider || root.kind==="theme" ? readout.implicitWidth+12 : 54); elide: Text.ElideRight; text: root.title; textFormat: Text.PlainText; color: root.kind === "unavailable" ? Theme.muted : Theme.ink; font.pixelSize: root.compact ? 13 : root.height<60 ? 16 : 19; font.bold: !root.compact }
+    Text { x: root.textInset; y: root.compact ? 4 : root.height<60 ? 6 : 12; width: parent.width-root.textInset-13-(root.slider || root.kind==="theme" ? readout.implicitWidth+12 : 54); elide: Text.ElideRight; text: root.title; textFormat: Text.PlainText; color: root.kind === "unavailable" ? Theme.muted : Theme.ink; font.pixelSize: root.compact ? 13 : root.height<60 ? 16 : 19; font.bold: !root.compact }
     Text {
         id: readout
         anchors.right: parent.right; anchors.rightMargin: 14; y: root.compact ? 4 : 12

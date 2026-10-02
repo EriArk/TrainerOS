@@ -17,6 +17,7 @@ add_library(trainer_core STATIC
     src/integrations/adventure/retroarch/RetroArchAppearance.cpp
     src/integrations/adventure/retroarch/RetroArchBezels.cpp
     src/features/social/SocialMedia.cpp
+    src/features/settings/CommunicationSettings.cpp
     src/integrations/social/OnlineLink.cpp
     src/integrations/social/FluxerSession.cpp
     src/integrations/social/FluxerReviews.cpp
@@ -282,6 +283,7 @@ qt_add_qml_module(traineros
         src/qml/StorageChoices.qml
         src/qml/SettingControl.qml
         src/qml/SettingsPanel.qml
+        src/qml/CommunicationPane.qml
         src/qml/ClockPane.qml
         src/qml/DevicePanel.qml
         src/qml/DiagnosticsPanel.qml

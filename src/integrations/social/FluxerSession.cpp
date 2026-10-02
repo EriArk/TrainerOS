@@ -35,9 +35,10 @@ bool idValid(const QString& id) {
 }
 QString avatar(const QJsonObject& user) {
     const auto id=user["id"].toString(),hash=user["avatar"].toString();
-    static const QRegularExpression valid("^(a_)?[a-fA-F0-9]{32,64}$");
+    // Fluxer also returns short asset hashes; do not assume Discord's length.
+    static const QRegularExpression valid("^(a_)?[a-fA-F0-9]{1,128}$");
     if(!idValid(id)||!valid.match(hash).hasMatch())return {};
-    return "https://fluxerusercontent.com/avatars/"+id+"/"+hash+".webp?size=64";
+    return "https://fluxerusercontent.com/avatars/"+id+"/"+hash+".png?size=64";
 }
 constexpr int responseLimit = 2 * 1024 * 1024;
 bool newer(const QString& a, const QString& b) {
@@ -115,6 +116,8 @@ void FluxerSession::reset() {
     leaveVoice();calls_.clear();callNotices_.clear();voiceStatus_.clear();
     ++epoch_;
     attachmentBusy_=false;attachmentReply_=nullptr;notificationSound_=true;
+    profile_={};profileStatus_.clear();profileBusy_=false;
+    voiceInput_.clear();voiceOutput_.clear();voiceVolume_=100;
     ++onlineSendRevision_;onlineSendTimer_.stop();onlineQueue_.clear();onlineSending_=false;online_.bind({},{});
     delete proof_; proof_=nullptr;
     readThrough_.clear();quietThrough_.clear();readRevision_.clear();muted_.clear();mentions_.clear();
@@ -229,6 +232,8 @@ void FluxerSession::publish() {
     QString readTail;
     for(auto i=messageOrder_.crbegin();i!=messageOrder_.crend();++i)if(idValid(*i)){readTail=*i;break;}
     emit snapshot(generation_, {{"state",state_},{"status",status_},{"name",name_},{"code",code_},
+        {"profile",profile_.toVariantMap()},{"profileStatus",profileStatus_},{"profileBusy",profileBusy_},
+        {"audio",audioConfiguration().toVariantMap()},
         {"unreadCount",unreadCount},{"doNotDisturb",doNotDisturb_},{"privatePreviews",privatePreviews_},
         {"mutationBusy",mutationBusy_},{"attachmentBusy",attachmentBusy_},{"notificationSound",notificationSound_},
         {"voice",QVariantMap{{"available",voiceAvailable()},{"channel",voiceChannel_},{"name",voiceName},
@@ -433,11 +438,12 @@ void FluxerSession::authenticated() {
         }
         const auto verifiedId=r.body.object()["id"].toString();
         if(!self_.isEmpty()&&self_!=verifiedId){historyCache_.clear();historyLru_.clear();callNotices_.clear();historyFile_.clear();channels_.clear();relationships_.clear();guilds_.clear();messages_.clear();messageOrder_.clear();channel_.clear();}
-        self_=verifiedId;name_=label(r.body.object());bindOnline();
+        self_=verifiedId;updateProfile(r.body.object());bindOnline();
         navigationKey_="social/navigation/"+QString::fromLatin1(QCryptographicHash::hash((owner_+"\n"+self_).toUtf8(),QCryptographicHash::Sha256).toHex())+"/";
         if(!transport_) {QSettings settings;for(const auto& key:{"chats","groups","communities","guild"})preferred_[key]=settings.value(navigationKey_+key).toString();
             doNotDisturb_=settings.value(navigationKey_+"dnd",false).toBool();privatePreviews_=settings.value(navigationKey_+"private",true).toBool();muted_=settings.value(navigationKey_+"muted").toStringList();notificationSound_=settings.value(navigationKey_+"sound",true).toBool();}
         loadHistoryCache();
+        if(!transport_){QSettings settings;voiceInput_=settings.value(navigationKey_+"voiceInput").toString();voiceOutput_=settings.value(navigationKey_+"voiceOutput").toString();voiceVolume_=qBound(0,settings.value(navigationKey_+"voiceVolume",100).toInt(),100);}
         state_="connected";status_="Connected";if(!remembered_)credential(true);refresh();openGateway();publish();
     });
 }
@@ -785,7 +791,32 @@ void FluxerSession::voiceGrant(const QJsonObject& grant) {
     voiceConnection_=grant["connection_id"].toString();voiceGrantIdentity_=identity;voiceBuffer_.clear();
     voiceState_="connecting";voiceStatus_="Connecting audio...";voiceDeadline_.start(20000);
     voiceProcess_.start((qEnvironmentVariable("XDG_DATA_HOME").isEmpty()?QDir::homePath()+"/.local/share":qEnvironmentVariable("XDG_DATA_HOME"))+"/traineros-voice/bin/python",{"/var/opt/traineros/integrations/fluxer-voice.py"});
-    voiceProcess_.write(QJsonDocument(grant).toJson(QJsonDocument::Compact)+'\n');voiceHeartbeat_.start();publish();
+    auto configured=grant;configured["audio"]=audioConfiguration();
+    voiceProcess_.write(QJsonDocument(configured).toJson(QJsonDocument::Compact)+'\n');voiceHeartbeat_.start();publish();
+}
+QJsonObject FluxerSession::audioConfiguration() const {
+    return {{"input",voiceInput_},{"output",voiceOutput_},{"volume",voiceVolume_}};
+}
+void FluxerSession::updateProfile(const QJsonObject& user) {
+    if(user["id"].toString()!=self_)return;
+    // Expose presentation fields only, never the private account response.
+    name_=label(user);
+    profile_={{"name",user["global_name"].toString()},{"bio",user["bio"].toString()},
+        {"avatar",avatar(user)},{"tag",user["username"].toString()+"#"+user["discriminator"].toString()}};
+}
+void FluxerSession::profileCommand(const QVariantMap& args) {
+    if(self_.isEmpty()||profileBusy_)return;
+    const auto field=args["field"].toString(),value=args["value"].toString();
+    if(field!="global_name"&&field!="bio"&&field!="avatar")return;
+    if((field=="global_name"&&value.size()>32)||(field=="bio"&&value.size()>320)
+        ||(field=="avatar"&&!value.isEmpty()&&(!value.startsWith("data:image/jpeg;base64,")||value.size()>13981016)))return;
+    profileBusy_=true;profileStatus_="Saving...";publish();
+    verifiedRequest("PATCH","/v1/users/@me",{{field,value.isEmpty()?QJsonValue(QJsonValue::Null):QJsonValue(value)}},[this](Reply r){
+        profileBusy_=false;
+        if(r.status==200&&r.body.object()["id"].toString()==self_){updateProfile(r.body.object());profileStatus_="Saved";}
+        else {profileStatus_=r.status==429?"Please wait before saving again.":"Couldn't save your profile. Try again.";}
+        publish();
+    });
 }
 void FluxerSession::sendAttachment(const QVariantMap& args) {
     const auto channel=args["channel"].toString();const auto bytes=args["bytes"].toByteArray();
@@ -827,6 +858,15 @@ void FluxerSession::sendAttachment(const QVariantMap& args) {
     });
 }
 void FluxerSession::command(QString operation, QVariantMap args) {
+    if(operation=="profile-update"){profileCommand(args);return;}
+    if(operation=="audio-settings") {
+        if(self_.isEmpty())return;
+        if(args.contains("input"))voiceInput_=args["input"].toString().left(512);
+        if(args.contains("output"))voiceOutput_=args["output"].toString().left(512);
+        if(args.contains("volume"))voiceVolume_=qBound(0,args["volume"].toInt(),100);
+        if(!transport_&&!navigationKey_.isEmpty()){QSettings s;s.setValue(navigationKey_+"voiceInput",voiceInput_);s.setValue(navigationKey_+"voiceOutput",voiceOutput_);s.setValue(navigationKey_+"voiceVolume",voiceVolume_);}
+        auto command=audioConfiguration();command["op"]="audio-settings";voiceWrite(command);publish();return;
+    }
     if(operation.startsWith("reviews-")){reviewCommand(operation,args);return;}
     if(operation=="cancel-attachment"){if(attachmentReply_)attachmentReply_->abort();return;}
     if(operation.startsWith("voice-")){if(!self_.isEmpty())voiceCommand(operation,args);return;}
@@ -1262,6 +1302,7 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
     else if(op==9) {gatewaySession_.clear();sequence_=0;socket_->abort();request("GET","/v1/users/@me",{},[this](Reply r){if(r.status!=200)fail(r,"Session interrupted");});}
     else if(op==0) {
         sequence_=event["s"].toInteger();const auto type=event["t"].toString();
+        if(type=="USER_UPDATE"){updateProfile(d);publish();return;}
         if(type=="VOICE_SERVER_UPDATE"){voiceGrant(d);return;}
         if(type=="VOICE_STATE_UPDATE") {
             if(!voiceConnection_.isEmpty()&&d["connection_id"]==voiceConnection_&&d["user_id"]==self_&&d["channel_id"].isNull()){leaveVoice();voiceStatus_="Call disconnected. Try again.";publish();}return;

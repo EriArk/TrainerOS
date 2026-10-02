@@ -48,9 +48,18 @@ QVariantList SocialMedia::levels() const{QVariantList result;for(auto byte:wavef
 void SocialMedia::ensurePlayer(){
     if(player_)return;
     output_=new QAudioOutput(this);player_=new QMediaPlayer(this);player_->setAudioOutput(output_);
+    setAudioDevices(inputDevice_,outputDevice_,volume_);
     connect(player_,&QMediaPlayer::playbackStateChanged,this,&SocialMedia::changed);
     connect(player_,&QMediaPlayer::positionChanged,this,&SocialMedia::changed);
     connect(player_,&QMediaPlayer::errorOccurred,this,[this]{fail("Couldn't play this recording.");});
+}
+void SocialMedia::setAudioDevices(QString input,QString output,int volume){
+    inputDevice_=std::move(input);outputDevice_=std::move(output);volume_=qBound(0,volume,100);
+    if(output_){
+        auto device=QMediaDevices::defaultAudioOutput();
+        if(!outputDevice_.isEmpty())for(const auto& candidate:QMediaDevices::audioOutputs())if(QString::fromUtf8(candidate.id())==outputDevice_)device=candidate;
+        output_->setDevice(device);output_->setVolume(volume_/100.);
+    }
 }
 void SocialMedia::clear() {
     ++generation_;limit_.stop();
@@ -90,7 +99,11 @@ void SocialMedia::preparePicture(QByteArray bytes) {
     watcher->setFuture(QtConcurrent::run(pictureCopy,std::move(bytes)));
 }
 void SocialMedia::record() {
-    clear();const auto device=QMediaDevices::defaultAudioInput();
+    clear();auto device=QMediaDevices::defaultAudioInput();
+    if(!inputDevice_.isEmpty()){
+        device=QAudioDevice();
+        for(const auto& candidate:QMediaDevices::audioInputs())if(QString::fromUtf8(candidate.id())==inputDevice_)device=candidate;
+    }
     QAudioFormat format;format.setSampleRate(Rate);format.setChannelCount(1);format.setSampleFormat(QAudioFormat::Int16);
     if(device.isNull()||device.id().endsWith(".monitor")||device.description().startsWith("Monitor of",Qt::CaseInsensitive)
         ||!device.isFormatSupported(format)||QStandardPaths::findExecutable("ffmpeg").isEmpty()){

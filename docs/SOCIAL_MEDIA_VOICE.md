@@ -1,5 +1,71 @@
 # Communication media and voice — 2026-10-02
 
+## Communication settings delivery — 2026-10-02
+
+Start -> Settings -> Communication now uses the existing two-pane popup on
+both handhelds. The right pane contains profile, audio, notifications, current
+call and account controls; there is no provider settings application or extra
+profile confirmation page. Name/about use the shared controller keyboard and
+one Save. Picture selection stays in that pane, with bounded Pictures thumbnails
+and Remove picture. Notification controls moved here from conversation Options.
+
+Profile changes use the supported
+[current-user API](https://docs.fluxer.app/http-api/users/current-user/), limited
+to display name, bio and avatar. The server response is authoritative; failed
+saves report failure. No private account response is exposed to QML. Pictures
+are re-encoded as JPEG before upload. The actual service returned an eight-digit
+asset hash, exposing an old overstrict avatar filter; short safe hashes now work.
+Avatar requests use PNG because the installed handheld Qt image plugins rejected
+WebP. Actual Flip capture confirms the uploaded image is visible after restart.
+
+Audio preferences follow the existing Trainer/account namespace. Available
+microphones and outputs are refreshed asynchronously only while this category
+is open; monitor sources are excluded. Follow system remains the default.
+Call volume and explicit routes are passed to the existing voice worker at join
+and through a live command without joining again or unmuting. The microphone
+test displays a local level for at most ten seconds, saves/uploads nothing and
+stops on leaving settings or changing account. Existing recording/playback uses
+these preferences too. Do Not Disturb, sounds and private previews reuse the
+existing notification state. No active call keeps the two call-control rows in
+place, so an ended call cannot shift their selection onto Sign out.
+
+Observed controller checks: Flip name changed and restored through the server;
+synthetic avatar uploaded, displayed and removed; both devices opened the new
+category; volume and notification controls changed; preferences survived the
+delivery restart. Flip discovered its input/output routes and ran the local
+level test. Odin correctly reported no usable microphone. A zero-level capture
+does not prove usable microphone audio. A new call reached Connected on Flip
+and produced Odin incoming actions, but this attempt did not establish a paired
+audio-settings retention result. A delayed test-input sequence reached Home and
+launched Emerald on Odin; it stayed at the title sequence and was stopped before
+deployment. The ordinary save hash was checked afterward.
+
+The owner then requested silence on Odin: its system output was set to **0%**
+and must remain there. Remote ringing checks stopped. Actual headset/voice
+quality, live input/output switching during a paired call, decoded web/native
+audio, reverse web media and separate-network acceptance remain open. Block 3
+is **not complete**.
+
+Validation: ARM64 Social **83**, Interaction **36**, ExitPresentation **9**
+checks passed; production build and Python syntax checks passed. Actual captures
+are in private `work/research/communication-*.png`, including
+`communication-flip-delivered.png`, `communication-picker-fixed.png`,
+`communication-flip-audio-final.png` and `communication-odin-notifications.png`.
+Both delivered binaries have SHA-256
+`2504fe7fe6b043942707ad205da1bc11a63172321872d0c0610125a3a7aab917`;
+the voice helper is
+`e8eba37559689420070c3612542f2102656a498c02597cb6cecd4fa6b2468452`.
+Backup directories are `~/traineros-social/backup-1790967578` (Flip) and
+`backup-1790967581` (Odin). Delivery restarts only TrainerOS, never either device.
+Final checks found one installed process per device (1454862 / 154522), clean
+SQLite integrity, unchanged Trainer/library counts (3/830 and 1/25), preserved
+boot configuration and nearby helpers, and no pending Link transaction. Emerald
+save SHA-256 remains `cf39ceece96e0b8804864a23fedb81bfdf6781ed3b560fff039ec21bf61666cf`
+on Flip and `3fca83edc8bb3d69f5627a6ecec820069ca7fac8699676ecade2fd748ea47c7a`
+on Odin. The test profile image/name were restored; test communication audio
+preferences returned to Follow system/100%, independently of Odin's **0% system
+volume**. Notification defaults were restored after the toggle checks.
+
 ## Web incoming and paired decline checks — 2026-10-02
 
 This continuation supersedes the unobserved web ring and expired decline

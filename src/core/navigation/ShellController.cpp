@@ -63,6 +63,11 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&social_,&SocialController::reviewsChanged,&libraryTools_,&LibraryToolsController::receiveReviews);
     connect(&network_, &NetworkController::changed,this,&ShellController::changed);
     connect(settings_.clock(), &ClockController::changed, this, &ShellController::changed);
+    settings_.communication()->configure(&social_);
+    connect(settings_.communication(),&CommunicationSettings::changed,this,[this]{if(service_=="settings" && settings_.category()==13)emit changed();});
+    connect(settings_.communication(),&CommunicationSettings::backRequested,this,[this]{settings_.selectCategory(13,false);});
+    connect(this,&ShellController::changed,this,[this]{if(service_!="settings" || settings_.category()!=13)settings_.communication()->leave();});
+    connect(settings_.communication(),&CommunicationSettings::textRequested,this,[this](QString title,QString text,int limit){textTarget_=TextTarget::Communication;keyboard_.begin(title,text,limit,false,"Save",true);});
     connect(settings_.clock(), &ClockController::backRequested, this, [this]{ if(service_=="settings")settings_.selectCategory(11,false); });
     connect(this, &ShellController::changed, this, [this]{ if(service_!="settings" || settings_.category()!=11)settings_.clock()->leave(); });
     connect(settings_.storage(), &LibraryStorageController::changed, &settings_, &SettingsController::changed);
@@ -241,6 +246,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::AchievementAccount) hall_.account()->applyText(text);
         else if (target == TextTarget::Network) network_.applyText(text);
         else if (target == TextTarget::Social) social_.applyText(text);
+        else if (target == TextTarget::Communication) settings_.communication()->applyText(text);
     });
     connect(&center_, &SaveCenterController::shopSearchRequested,this,[this](const QString& text){textTarget_=TextTarget::ShopSearch;keyboard_.begin("Find goods or shops",text,64);});
     refreshContinue();

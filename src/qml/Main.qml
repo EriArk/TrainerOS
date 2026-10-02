@@ -252,6 +252,10 @@ Window {
                 }
                 if (shell.service === "settings" && shell.settings.category===11 && shell.settings.controlsFocused) return shell.settings.clock.busy ? [] : [h("←→",shell.settings.clock.mode==="zones" ? "Region" : "Adjust"),h("A",shell.settings.clock.mode==="manual" ? (shell.settings.clock.focusIndex===5 ? "Save" : "Next") : "Select"),h("B",shell.settings.clock.mode==="main" ? "Categories" : "Cancel")]
                 if (shell.service === "settings" && shell.settings.storage.open) return shell.settings.storage.busy ? [] : [h("A","Use storage"),h("B","Library")]
+                if (shell.service === "settings" && shell.settings.category===13 && shell.settings.controlsFocused) {
+                    const flow = shell.settings.communication
+                    return [h("←→","Adjust"),h("A","Select"),h("B",flow.choosingAvatar ? "Cancel" : "Categories")]
+                }
                 if (shell.service === "settings") return [h("←→","Adjust"),h("A",shell.settings.controlsFocused ? "Select" : "Open"),h("B",shell.settings.controlsFocused ? "Categories" : "Back")]
                 if (shell.service === "device") return [h("←→","Adjust"),h("Y","Refresh"),h("A","Select"),h("B","Back")]
                 if (shell.serviceOpen) return [h("A","Select"),h("B","Back")]

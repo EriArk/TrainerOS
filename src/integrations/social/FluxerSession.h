@@ -68,6 +68,14 @@ private:
     QByteArray voiceGrantIdentity_;
     bool voiceReplacing_ = false;
     bool voiceMuted_=true,voiceDeaf_=false;
+    QJsonObject profile_;
+    QString profileStatus_;
+    bool profileBusy_=false;
+    QString voiceInput_,voiceOutput_;
+    int voiceVolume_=100;
+    void updateProfile(const QJsonObject& user);
+    void profileCommand(const QVariantMap& args);
+    QJsonObject audioConfiguration() const;
     int voiceParticipants_=0;
     QHash<QString,QJsonObject> calls_;
     QHash<QString,QJsonObject> callNotices_;

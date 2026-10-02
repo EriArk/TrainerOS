@@ -6,8 +6,10 @@ to Start -> Settings under Communication, using the existing two-panel layout.
 Do not name it Fluxer settings or add another settings hierarchy. Keep the
 communication account/profile distinct from the local Trainer profile, use
 supported provider operations, and retain the single Social attribution.
-This is accepted planned scope within the communication lane, not delivered
-behavior; preserve the current block order and remaining runtime acceptance.
+The basic controls are delivered on both handhelds; evidence and remaining
+audio acceptance are in docs/SOCIAL_MEDIA_VOICE.md. Preserve the current block
+order and remaining runtime acceptance. Owner quiet-device request: leave
+Odin system volume at 0% after remote checks; do not restore its earlier volume.
 
 **Owner invitation wording, 2026-10-02:** in-game multiplayer invitations must
 offer Nearby and Online friend. Do not call the latter "through Fluxer".

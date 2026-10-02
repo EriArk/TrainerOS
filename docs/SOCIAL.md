@@ -8,9 +8,9 @@ complete block 3: real-input/headset, web/native decoded audio, reverse media an
 separate-network acceptance remain open. See the
 [new call evidence](SOCIAL_MEDIA_VOICE.md#web-incoming-and-paired-decline-checks--2026-10-02).
 
-## Planned communication settings
+## Communication settings
 
-Owner addition, 2026-10-02: Start -> Settings gains **Communication**, inside the
+Delivered owner addition, 2026-10-02: Start -> Settings has **Communication**, inside the
 existing two-panel settings surface. Keep the category list on the left and
 editable controls on the right; do not insert a separate provider settings app
 or a chain of intermediate pages. Controller focus and the shared keyboard
@@ -27,10 +27,13 @@ continue to apply.
   permissions and existing confirmation behavior.
 
 Use ordinary user-facing names, never "Fluxer settings". The one small Powered
-by Fluxer attribution stays in Social. These controls are planned, not a claim
-that profile editing or consolidated audio settings are installed. Implement in
-the current communication lane while preserving the accepted block order and
-all outstanding acceptance in ROADMAP.
+by Fluxer attribution stays in Social. Name/about edits use the shared keyboard
+and one Save; avatar selection replaces the right pane temporarily. Audio uses
+discovered devices, account-scoped preferences and the existing voice worker.
+Notification controls moved out of the long conversation Options menu here.
+See [device evidence and limits](SOCIAL_MEDIA_VOICE.md#communication-settings-delivery--2026-10-02).
+Block 3 remains open; these controls do not replace its outstanding audio,
+interoperability and separate-network acceptance in ROADMAP.
 
 ## Previous delivery evidence
 

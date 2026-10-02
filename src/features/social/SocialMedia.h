@@ -42,6 +42,7 @@ public:
     Q_INVOKABLE void play();
     void clear();
     void chime();
+    void setAudioDevices(QString input,QString output,int volume);
     QByteArray bytes() const{return prepared_;}
     QByteArray waveform() const{return waveform_;}
     bool voice() const{return voice_;}
@@ -53,6 +54,8 @@ private:
     void fail(QString message);
     void receivePcm();
     QString state_,error_;
+    QString inputDevice_,outputDevice_;
+    int volume_=100;
     QUrl picture_;
     QByteArray pcm_,prepared_,waveform_;
     int seconds_=0;

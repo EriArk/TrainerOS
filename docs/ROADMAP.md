@@ -4,13 +4,14 @@
 
 ## Current plan — reconciled 2026-10-01
 
-**Owner addition, 2026-10-02:** consolidate basic communication settings under
+**Delivered owner addition, 2026-10-02:** consolidated basic communication settings under
 Start -> Settings -> **Communication**, using the existing two-panel layout:
 communication profile, microphone/output devices, call volume, notifications
 and Do Not Disturb. Keep account/profile changes separate from the local Trainer
 and retain a single Powered by Fluxer attribution in Social. This expands the
 current communication lane without changing **2 -> 3 -> 1 -> 4 -> 5** or dropping
-other work. See [planned controls](SOCIAL.md#planned-communication-settings).
+other work. Both handhelds have the controls; see [controls](SOCIAL.md#communication-settings)
+and [checks and remaining audio gates](SOCIAL_MEDIA_VOICE.md#communication-settings-delivery--2026-10-02).
 
 **Latest runtime continuation, 2026-10-02:** ordinary web-to-Flip incoming
 ring/answer/session joining, explicit native decline in both directions and

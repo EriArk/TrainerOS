@@ -28,6 +28,56 @@ class SocialTests : public QObject {
     }
 private slots:
     void initTestCase() { QStandardPaths::setTestModeEnabled(true);QCoreApplication::setOrganizationName("TrainerOSTests");QCoreApplication::setApplicationName("SocialTests"); }
+    void profileUpdatesUseProviderResponseAndDiscardOldOwnerReply() {
+        FluxerSession s;Completion pending;QJsonObject sent;int requests=0;
+        s.setTransport([&](QByteArray method,QString path,QJsonObject body,Completion done,QByteArray){
+            ++requests;QCOMPARE(method,QByteArray("PATCH"));QCOMPARE(path,QString("/v1/users/@me"));sent=body;pending=done;
+        });bind(s);
+        s.updateProfile({{"id",s.self_},{"username","test"},{"discriminator","0042"},{"global_name","Before"},{"email","private@example.invalid"}});
+        QVERIFY(!s.profile_.contains("email"));
+        s.command("profile-update",{{"field","email"},{"value","no@example.invalid"}});QCOMPARE(requests,0);
+        s.command("profile-update",{{"field","global_name"},{"value","New name"}});
+        QCOMPARE(sent.size(),1);QCOMPARE(s.name_,QString("Before"));QVERIFY(s.profileBusy_);
+        pending({200,QJsonDocument(QJsonObject{{"id",s.self_},{"global_name","New name"},{"username","test"},{"discriminator","0042"}})});
+        QCOMPARE(s.name_,QString("New name"));QVERIFY(!s.profileBusy_);
+        s.command("profile-update",{{"field","bio"},{"value",""}});QVERIFY(sent["bio"].isNull());
+        pending({403,{}});QCOMPARE(s.name_,QString("New name"));QVERIFY(s.profileStatus_.contains("Couldn't"));
+        s.command("profile-update",{{"field","global_name"},{"value","Late"}});auto old=pending;
+        s.setOwner("trainer-b",2);old({200,QJsonDocument(QJsonObject{{"id","1501314428688998181"},{"global_name","Late"}})});
+        QVERIFY(s.profile_.isEmpty());QVERIFY(s.name_.isEmpty());
+    }
+    void callSettingsDoNotRejoinOrUnmuteAndResetAcrossOwners() {
+        FluxerSession s;int requests=0;s.setTransport([&](auto,auto,auto,Completion,QByteArray){++requests;});bind(s);
+        s.voiceChannel_=channel;s.voiceState_="connected";s.voiceMuted_=true;
+        s.command("audio-settings",{{"input","headset"},{"output","speakers"},{"volume",65}});
+        QCOMPARE(s.voiceChannel_,QString(channel));QVERIFY(s.voiceMuted_);QCOMPARE(requests,0);
+        QCOMPARE(s.audioConfiguration()["volume"].toInt(),65);
+        s.command("audio-settings",{{"volume",105}});QCOMPARE(s.voiceVolume_,100);
+        QCOMPARE(s.voiceInput_,QString("headset"));
+        s.setOwner("trainer-b",2);QVERIFY(s.voiceInput_.isEmpty());QVERIFY(s.voiceOutput_.isEmpty());QCOMPARE(s.voiceVolume_,100);
+    }
+    void profileAvatarAcceptsShortProviderHashesButNotPaths() {
+        FluxerSession s;bind(s);
+        s.updateProfile({{"id",s.self_},{"avatar","9038e4f6"}});
+        QCOMPARE(s.profile_["avatar"].toString(),"https://fluxerusercontent.com/avatars/"+s.self_+"/9038e4f6.png?size=64");
+        s.updateProfile({{"id",s.self_},{"avatar","../other"}});
+        QVERIFY(s.profile_["avatar"].toString().isEmpty());
+    }
+    void communicationSettingsKeepSelectionAndUseSharedPreferences() {
+        SocialController social;CommunicationSettings settings;settings.configure(&social);
+        QVariantMap state{{"userId","self"},{"state","connected"},{"audio",QVariantMap{{"volume",60}}},{"profile",QVariantMap{{"name","Friend"}}}};
+        social.receive(0,state);QSignalSpy commands(&social,&SocialController::commandRequested);
+        QSignalSpy text(&settings,&CommunicationSettings::textRequested);
+        settings.activate(0);QCOMPARE(text.last()[1].toString(),QString("Friend"));
+        settings.applyText("Updated");QCOMPARE(commands.last()[0].toString(),QString("profile-update"));
+        settings.activate(5);settings.dispatch(Action::Left);QCOMPARE(commands.last()[1].toMap()["volume"].toInt(),55);
+        state["status"]="Reconnected";social.receive(0,state);QCOMPARE(settings.focusIndex(),5);
+        settings.activate(7);QCOMPARE(commands.last()[0].toString(),QString("dnd"));
+        settings.inputs_={QVariantMap{{"id","headset"},{"name","Headset"}}};settings.activate(3);
+        QCOMPARE(commands.last()[1].toMap()["input"].toString(),QString("headset"));
+        settings.activate(2);state["userId"]="other";social.receive(0,state);const auto count=commands.size();settings.applyText("Old draft");QCOMPARE(commands.size(),count);
+        QCOMPARE(settings.focusIndex(),0);QVERIFY(!settings.testing());
+    }
     void missedCallRequiresObservedRingAndRealEnd() {
         FluxerSession s;s.setTransport([](auto,auto,auto,Completion,QByteArray){});bind(s);
         auto event=[&](QString type,QJsonObject data){s.gatewayEvent({{"op",0},{"t",type},{"d",data}});};

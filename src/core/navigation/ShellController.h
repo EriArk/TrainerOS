@@ -203,7 +203,7 @@ private:
     PartyPresentation party_;
     SocialController social_;
     QString service_;
-    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, LibraryTools, Archive, TrainerFavorite, CenterSearch, ShopSearch, BoxName, AchievementAccount, SetupName, Network, Social };
+    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, LibraryTools, Archive, TrainerFavorite, CenterSearch, ShopSearch, BoxName, AchievementAccount, SetupName, Network, Social, Communication };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QString homeAdventureId_, homeResumeId_;
