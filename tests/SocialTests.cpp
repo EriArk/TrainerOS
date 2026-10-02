@@ -9,6 +9,8 @@
 #include <QFile>
 #include <QStandardPaths>
 #include <QUuid>
+#include <QTemporaryDir>
+#include <QCryptographicHash>
 #include "platform/storage/EncryptedCredentials.h"
 
 namespace trainer {
@@ -24,6 +26,90 @@ class SocialTests : public QObject {
     }
 private slots:
     void initTestCase() { QStandardPaths::setTestModeEnabled(true);QCoreApplication::setOrganizationName("TrainerOSTests");QCoreApplication::setApplicationName("SocialTests"); }
+    void retryReusesNonceAndCannotDoubleSendWhilePending() {
+        FluxerSession s;Completion done;QStringList nonces;
+        s.setTransport([&](auto,auto,QJsonObject body,Completion callback,QByteArray){nonces<<body["nonce"].toString();done=callback;});bind(s);
+        s.command("send",{{"text","Hello"}});const auto nonce=nonces.first();done({429,{},1});
+        QCOMPARE(s.messages_[nonce]["local_delivery"].toString(),QString("Not sent"));
+        s.blockedUntil_=0;s.command("retry-message",{{"channel",channel},{"id",nonce}});
+        s.command("retry-message",{{"channel",channel},{"id",nonce}});QCOMPARE(nonces.size(),2);QCOMPARE(nonces.last(),nonce);
+        done({200,QJsonDocument(QJsonObject{{"id","123"},{"channel_id",channel},{"content","Hello"}})});
+        QCOMPARE(s.messageOrder_,QStringList{"123"});QVERIFY(s.pendingNonces_.isEmpty());
+    }
+    void unknownDeliveryRetriesOnlyWithinProviderNonceWindow() {
+        FluxerSession s;int calls=0;
+        s.setTransport([&](auto,auto,auto,Completion done,QByteArray){++calls;done({0,{}});});bind(s);
+        s.command("send",{{"text","Hello"}});const auto nonce=s.messageOrder_.first();
+        s.command("retry-message",{{"channel",channel},{"id",nonce}});QCOMPARE(calls,2);
+        s.messages_[nonce]["local_sent_at"]=QString::number(QDateTime::currentMSecsSinceEpoch()-300001);
+        s.command("retry-message",{{"channel",channel},{"id",nonce}});QCOMPARE(calls,2);
+    }
+    void serverEchoWinsOverLateHttpFailure() {
+        FluxerSession s;Completion done;
+        s.setTransport([&](auto,auto,auto,Completion callback,QByteArray){done=callback;});bind(s);
+        QSignalSpy failures(&s,&FluxerSession::sendFailed);
+        s.command("send",{{"text","Hello"}});const auto nonce=s.messageOrder_.first();
+        s.mergeMessage({{"id","123"},{"channel_id",channel},{"nonce",nonce},{"content","Hello"}});
+        done({500,{}});QCOMPARE(s.messageOrder_,QStringList{"123"});QVERIFY(failures.isEmpty());
+    }
+    void conversationSwitchKeepsHistoryAndAnchor() {
+        FluxerSession s;QList<Completion> callbacks;
+        s.setTransport([&](auto,auto,auto,Completion done,QByteArray){callbacks<<done;});bind(s);
+        s.channels_[remote]={{"id",remote},{"type",1}};
+        s.mergeMessage({{"id","123"},{"channel_id",channel},{"content","First"}});
+        s.historyAnchor_="123";s.historyPast_=true;s.openConversation(remote);
+        s.openConversation(channel);QCOMPARE(s.messageOrder_,QStringList{"123"});QCOMPARE(s.historyAnchor_,QString("123"));
+        callbacks.last()({0,{}});QCOMPARE(s.messages_["123"]["content"].toString(),QString("First"));
+        s.setOwner("different",2);QVERIFY(s.historyCache_.isEmpty());QVERIFY(s.historyAnchor_.isEmpty());
+    }
+    void inactiveHistoryReceivesEditsAndDeletions() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion,QByteArray){});bind(s);
+        s.channels_[remote]={{"id",remote},{"type",1}};
+        s.mergeMessage({{"id","123"},{"channel_id",channel},{"content","Before"}});s.openConversation(remote);
+        s.gatewayEvent({{"op",0},{"s",1},{"t","MESSAGE_UPDATE"},{"d",QJsonObject{{"id","123"},{"channel_id",channel},{"content","After"}}}});
+        QCOMPARE(s.historyCache_[channel]["rows"].toArray().first().toObject()["content"].toString(),QString("After"));
+        s.gatewayEvent({{"op",0},{"s",2},{"t","MESSAGE_DELETE"},{"d",QJsonObject{{"id","123"},{"channel_id",channel}}}});
+        QVERIFY(s.historyCache_[channel]["rows"].toArray().isEmpty());
+    }
+    void persistentHistoryStripsMediaCapabilitiesAndUncertainSendsNeverReplay() {
+        QTemporaryDir dir;QVERIFY(dir.isValid());FluxerSession s;bind(s);
+        s.historyFile_=dir.path()+"/history.json";
+        s.mergeMessage({{"id","123"},{"channel_id",channel},{"content","Привет שלום 👩‍👩‍👧‍👦"},
+            {"attachments",QJsonArray{QJsonObject{{"url","https://private.invalid/signed-secret"}}}}});
+        s.retainHistory();s.saveHistoryCache();QFile file(s.historyFile_);QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto bytes=file.readAll();QVERIFY(!bytes.contains("signed-secret"));QVERIFY(!bytes.contains("synthetic-test-session"));
+        QVERIFY(bytes.contains(QString("Привет שלום 👩‍👩‍👧‍👦").toUtf8()));
+        file.close();s.clearHistoryCache();QVERIFY(!QFileInfo::exists(file.fileName()));
+    }
+    void deniedHistoryDropsCachedPrivateText() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion done,QByteArray){done({403,{}});});bind(s);
+        s.mergeMessage({{"id","123"},{"channel_id",channel},{"content","Private"}});s.retainHistory();s.loadMessages(channel);
+        QVERIFY(s.messages_.isEmpty());QVERIFY(s.historyCache_.value(channel)["rows"].toArray().isEmpty());
+    }
+    void coldHistoryRequiresTheSameProtectedAccountAndRestoresPosition() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion,QByteArray){});bind(s);
+        s.owner_="cache-test-"+QUuid::createUuid().toString(QUuid::Id128);
+        s.setTransport({});s.loadHistoryCache();
+        s.mergeMessage({{"id","123"},{"channel_id",channel},{"content","Retained text"}});
+        s.historyAnchor_="123";s.historyPast_=true;s.retainHistory();s.saveHistoryCache();
+        const auto owner=s.owner_,self=s.self_,file=s.historyFile_;
+        s.historyFile_.clear();s.historyCache_.clear();s.messages_.clear();s.messageOrder_.clear();s.self_.clear();s.channels_.clear();s.channel_.clear();
+        s.token_="different-session";s.loadHistoryCache();QVERIFY(s.self_.isEmpty());QVERIFY(s.messages_.isEmpty());
+        s.historyFile_.clear();s.token_="synthetic-test-session";s.loadHistoryCache();
+        QCOMPARE(s.self_,self);QCOMPARE(s.historyAnchor_,QString("123"));QCOMPARE(s.messages_["123"]["content"].toString(),QString("Retained text"));
+        s.clearHistoryCache();QVERIFY(!QFileInfo::exists(file));
+        QSettings().remove("social/cached-account/"+QString::fromLatin1(QCryptographicHash::hash(owner.toUtf8(),QCryptographicHash::Sha256).toHex()));
+    }
+    void retryMenuTargetsTheFailedMessageWithoutReopeningComposer() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested),keyboard(&c,&SocialController::textRequested);
+        c.receive(0,{{"state","connected"},{"channel",channel},{"messages",QVariantList{
+            QVariantMap{{"id","failed-nonce"},{"mine",true},{"retryable",true},{"delivery","Not sent"},{"text","Try again"}}}}});
+        c.dispatch(Action::Right);c.dispatch(Action::Confirm);
+        QCOMPARE(c.menu().first(),QString("Retry sending"));c.selectMenu(0);
+        QCOMPARE(commands.last()[0].toString(),QString("retry-message"));
+        QCOMPARE(commands.last()[1].toMap()["channel"].toString(),QString(channel));
+        QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString("failed-nonce"));QVERIFY(keyboard.isEmpty());
+    }
     void reviewsKeepExactIdentityAndReadWithoutCompletion() {
         const QString hash="a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f6226db19085af";
         QSettings().remove("reviews");FluxerSession session;int searches=0;

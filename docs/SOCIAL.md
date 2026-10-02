@@ -151,9 +151,12 @@ pending messages. Late responses from a previous owner/session are ignored.
 A history reply cannot overwrite messages changed by newer Gateway events.
 No activity/title/ROM/save data is automatically published to Fluxer.
 
-## Remaining #100/#101 acceptance
+## Historical #100/#101 acceptance register
 
-This is a working text slice, not completion of both issues. Preserve:
+The following list records the earlier text slice, not current delivery status.
+Emoji entry and native community creation/filtering were delivered in the later
+sections; current history/retry work and the remaining device gate are recorded
+under **Everyday communication — block 2**. Preserve the acceptance:
 
 - durable account-scoped history/scroll, emoji picker and wider Unicode/RTL proof;
   drafts, bounded history pagination and current-account read-state sync are delivered;
@@ -334,11 +337,11 @@ not a new feature tree and not permission to call partial implementations comple
 
 | Order | User result | Remaining acceptance |
 | --- | --- | --- |
-| Current | Write/send and invite directly from the conversation | Direct keyboard send, retained drafts, emoji entry and direct Together are this increment; keep two-handheld proof explicit below. |
-| Next | Reliable everyday conversations and people/groups | Complete #100/#101 history/scroll restoration, failed-send recovery, ordinary friend/group/member flows and a compact notification/account layout; validate actual provider permissions. |
-| Alongside | Clear, recoverable activity invitations | Keep #104/#105/#109/#110 transport/privacy/workload and separate-internet gates; use the existing native activity, never another setup wizard. |
-| Then | Images, recorded messages and private calls | Deliver #102 and #103, including actual device capture/playback, permissions, cancellation and recovery. |
-| Then | One real supported in-game online route | #107 exact runtime proof; #106 only if its transport needs it. |
+| 2 — current | Reliable everyday conversations | Friends, DMs, groups, communities, supported search, retained history/scroll, failed-send retry and reconnection; direct writing, emoji entry, drafts, actual provider permissions and both-device controller proof. |
+| 3 | Notifications and calls | Finish the accepted notification/media/voice lane, including capture/playback, permissions, cancellation, recovery and in-game Home communication. |
+| 1 | Actual emulator multiplayer | #107 exact runtime and route proof with in-game invitations; #106 only if its transport needs it. Preserve #112 appearance-control acceptance. |
+| 4 | Native online Link | #104/#105/#109/#110 transport, privacy, workload, explicit invitation and separate-internet gates; preserve protected save operations. |
+| 5 | Reviews and final communication audit | Finish #113 inside game Properties and review the complete journey without extra navigation layers. |
 | Throughout and at completion | Familiar controller-first communication | One conversation workspace; obvious direct actions; no duplicate selection/apply/send pages; consistent Back, footer hints, retained drafts/focus and account isolation. End with an actual Flip/Odin walkthrough and screenshots. |
 
 All #98-112 and R1-R18 acceptance stays in ROADMAP. Avatar/media presentation,
@@ -512,3 +515,94 @@ their live Accept/Decline surface. The separate-internet route remains unverifie
   without the removed button. Live friend-request creation was not repeated;
   source filtering, direct selection without acceptance and Trainer isolation
   are covered by the social test. This does not claim the full reconnect matrix.
+
+
+## Everyday communication — block 2, 2026-10-02
+
+The owner-defined order is 2 → 3 → 1 → 4 → 5, with one whole block per delivery.
+This block covers friends, DMs, groups, communities, supported discovery, history,
+manual failed-send retry and reconnection. Notifications/calls, runtime multiplayer,
+protected online Link and reviews retain their separate blocks and gates.
+
+### Implementation
+
+- Conversations retain a bounded window and selected message across conversation,
+  secondary-face and primary-page changes. Returning does not blank the chat while
+  REST loads. Earlier history refreshes around the retained message using Fluxer's
+  supported `around` cursor; the explicit Latest action returns to the live tail.
+- The worker saves text history for at most 24 recently visited conversations,
+  100 displayed messages each, 4 MiB total. Entries older than 30 days are discarded
+  on load. Files use atomic replacement and owner-only filesystem permissions.
+  This is a local text cache, not encrypted history or a permanent archive.
+  No attachment bearer URLs, embeds, voice credentials or Link packets are saved.
+- The cache belongs to provider + local Trainer + immutable Fluxer account.
+  Offline cold restoration additionally requires the same token recovered from
+  protected credential storage that last verified the account (only its digest
+  binds the cache). A different login cannot open that cache. Rejected credentials
+  and explicit logout remove the current cache; Clear local history is available
+  in Social Options. Draft storage remains independently account-scoped.
+- Gateway edits/deletions also update inactive cached conversations. Current REST
+  history replaces stale remote text; access denial, channel removal and leaving
+  a group remove corresponding history. Teardown clears any cache repopulated by
+  intermediate voice/Link signals before the next Trainer receives a snapshot.
+- A failed message offers Retry sending directly in its message menu. An in-flight
+  retry cannot be submitted twice. Gateway acknowledgement wins over a late HTTP
+  failure. Switching conversations while sending keeps the outcome attached to
+  the original conversation; nothing is silently resent on reconnect/restart.
+- Fluxer documents nonce deduplication for five minutes. A user-requested retry of
+  unknown delivery reuses the original nonce only within a conservative four-minute
+  window from the initial send. Afterwards Check delivery fetches history; there
+  is no blind resend. Known rejected sends can be retried. Slowmode Retry-After is
+  respected along with normal 429 guidance.
+- Groups expose Members alongside existing create/name/add/remove/leave actions.
+  They remain small popovers over the conversation; ordinary writing still takes
+  one A and one keyboard Send. Avatar images load lazily from the public instance's
+  documented media origin, with an initials fallback. Blocked authors are excluded
+  from the message projection. Conversation previews follow existing privacy choice.
+
+Contracts rechecked against the official [message API](https://docs.fluxer.app/http-api/messages/),
+[channels](https://docs.fluxer.app/http-api/channels/),
+[instance discovery](https://docs.fluxer.app/http-api/instance/) and
+[avatar routes](https://docs.fluxer.app/media-proxy/routes/).
+
+### Delivery gate
+
+**Block 2 remains open.** The implementation and Flip delivery below are a
+checkpoint, not a smaller substitute completion. Odin runtime recovery and the
+paired final controller walkthrough remain required. Do not advance to block 3.
+
+- Current Windows and ARM64 Social tests both pass: 60 cases on each, including
+  the final member/cache cleanup. The ARM production build has testing disabled.
+- Flip runs final production SHA-256
+  `73a6402a3488837e8afe752bedaa807303a984a9b2816c96c8938da972ae877b`.
+  The live executable hash, SQLite integrity, 3 Trainers / 830 Adventures,
+  boot preference, InputPlumber, nearby helpers and absence of pending Link
+  settlement were checked. Emerald save SHA remains
+  `cf39ceece96e0b8804864a23fedb81bfdf6781ed3b560fff039ec21bf61666cf`.
+- Flip controller proof: direct DM entry, one keyboard Send, reading position
+  across DM/group face changes, Members including self/owner, joined community
+  channel preview and Unicode text (Cyrillic, Hebrew, accented Latin, emoji).
+  The multilingual test message used only the two designated test accounts.
+  Full-width public discovery returned 186 actual community results; no public
+  community was joined or contacted for this check.
+  The group owner also removed the designated Odin test member through the
+  controller confirmation and added that same friend back through the picker.
+  The original group identity/history and mutual friendship were preserved.
+- A temporary isolated nft table rejected user HTTPS for 40 seconds, leaving
+  SSH intact, then removed itself. The native message stayed visible with unknown
+  delivery; after recovery its explicit Retry action delivered exactly one new
+  server message using the original nonce. No automatic resend occurred.
+- A second bounded outage plus shell restart demonstrated cold offline history
+  on the actual Flip screen, followed by automatic authentication/reconnection.
+  Both temporary firewall tables were removed; no persistent network policy changed.
+- Installed compositor captures (private): `everyday-retry-failed.png`,
+  `everyday-retry-success.png`, `everyday-history-anchor.png`,
+  `everyday-cold-offline.png`, `everyday-unicode-final.png`,
+  `everyday-group-final.png`, `everyday-community-final.png` in `work/research/`.
+- Odin accepted the first updated binary, but its old TrainerOS process remained
+  a zombie with graphics-related kernel tasks in uninterruptible sleep
+  (`gpu-worker`, SMMU fault handler, ring worker, `kwin`). No fresh compositor
+  capture was available. The authorized normal reboot was requested; subsequent
+  SSH probes timed out/refused. This is **not** a verified Odin delivery or proof
+  that the freeze is fixed. The final binary remains ready for it after recovery.
+  Do not attribute the kernel failure to a specific app change without evidence.

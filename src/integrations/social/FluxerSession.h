@@ -121,6 +121,16 @@ private:
     void refreshChannels();
     void loadMessages(QString channel);
     void loadOlderMessages();
+    void retainHistory();
+    void restoreHistory(const QString& channel);
+    void loadHistoryCache();
+    void saveHistoryCache();
+    void clearHistoryCache();
+    void sendText(QString channel, QString content, QString nonce);
+    QHash<QString,QJsonObject> historyCache_;
+    QStringList historyLru_;
+    QString historyFile_, historyAnchor_;
+    QTimer historySave_{this};
     bool historyBusy_ = false, historyMore_ = false, historyPast_ = false;
     quint64 historyRequest_ = 0;
     void openGateway();

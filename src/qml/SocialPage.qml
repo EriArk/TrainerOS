@@ -75,7 +75,8 @@ FocusScope {
                 selected: index === people.currentIndex && !root.social.reading && !root.social.menu.length
                 onActivated: root.social.activate(index)
                 Rectangle { x: 10; y: 13; width: 32; height: 32; radius: 11; color: "#dcfffdf0"; border.color: "#738f7c"
-                    Text { anchors.centerIn: parent; text: modelData.name.substring(0,1).toUpperCase(); color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 22; textFormat: Text.PlainText }
+                    Image { id: avatarImage; anchors.fill: parent; anchors.margins: 1; source: root.visible ? (modelData.avatar || "") : ""; sourceSize.width: 64; sourceSize.height: 64; asynchronous: true; fillMode: Image.PreserveAspectFit; visible: status === Image.Ready }
+                    Text { visible: avatarImage.status !== Image.Ready; anchors.centerIn: parent; text: modelData.name.substring(0,1).toUpperCase(); color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 22; textFormat: Text.PlainText }
                 }
             }
         }

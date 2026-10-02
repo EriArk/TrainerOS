@@ -1,5 +1,17 @@
 # AGENTS.md — TrainerOS
 
+**Owner completion order, 2026-10-02:** communication work now follows numbered
+blocks **2 → 3 → 1 → 4 → 5**. Each session completes exactly one whole accepted
+block, including its stated behavior, checks, both available handheld deliveries
+and commit/push. Do not call partial implementation complete, split the promised
+block into smaller substitute deliveries, or jump to another block when blocked.
+Block 2 is everyday friends/DMs/groups/communities/search/history/failed-send retry/
+reconnection with direct controller UX. Block 3 is notifications/calls; block 1
+is actual emulator multiplayer; block 4 is native online Link; block 5 is reviews
+and the final communication audit. This supersedes earlier scheduling, never the
+remaining acceptance. Current progress/evidence belongs in docs/SOCIAL.md.
+
+
 **Owner communication expansion, 2026-10-02:** the large communication pass also
 includes #113 Adventure Reviews, media/voice, notifications and physical Home
 controls during play. Reviews belong inside existing game Properties; exact-game
