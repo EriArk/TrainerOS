@@ -129,6 +129,24 @@ private slots:
         s.setTransport([](auto,auto,auto,Completion,QByteArray){});
         s.setOwner("other",2);QVERIFY(s.callNotices_.isEmpty());
     }
+    void callHistoryUsesAuthorAndServerTimesWithoutInventingMissedCalls() {
+        FluxerSession s;bind(s);QSignalSpy snapshots(&s,&FluxerSession::snapshot);
+        QJsonObject message{{"id","42"},{"type",3},{"author",QJsonObject{{"id",remote},{"global_name","Friend"}}},
+            {"timestamp","2026-10-02T10:00:00.000Z"},{"call",QJsonObject{{"ended_timestamp","2026-10-02T10:04:08.000Z"}}}};
+        auto row=[&](){s.messages_["42"]=message;s.messageOrder_={"42"};s.publish();return snapshots.last()[1].toMap()["messages"].toList().first().toMap();};
+        auto shown=row();QVERIFY(shown["callEvent"].toBool());QVERIFY(shown["system"].toBool());
+        QCOMPARE(shown["text"].toString(),QString("Call from Friend"));
+        QVERIFY(shown["callDetail"].toString().contains("2026"));QVERIFY(shown["callDetail"].toString().endsWith("4 min 8 s"));
+        QVERIFY(!shown["missedCall"].toBool());QVERIFY(!shown["editable"].toBool());
+        s.callNotices_[channel]={{"message","42"},{"missed",true}};
+        shown=row();QVERIFY(shown["missedCall"].toBool());QCOMPARE(shown["text"].toString(),QString("Missed call from Friend"));
+        s.callNotices_.clear();message["author"]=QJsonObject{{"id",s.self_}};
+        message["call"]=QJsonObject{{"ended_timestamp",QJsonValue::Null}};
+        shown=row();QCOMPARE(shown["text"].toString(),QString("You started a call"));QVERIFY(shown["callDetail"].toString().endsWith("Ongoing"));
+        message["call"]=QJsonObject{{"ended_timestamp","2026-10-02T09:59:00Z"}};
+        shown=row();QVERIFY(shown["callDetail"].toString().endsWith("Call ended"));QVERIFY(!shown["callDetail"].toString().contains("-60"));
+        message["timestamp"]="invalid";message.remove("call");shown=row();QVERIFY(shown["callDetail"].toString().isEmpty());
+    }
     void backgroundCallNamesItsOwnConversation() {
         FluxerSession s;s.setTransport([](auto,auto,auto,Completion,QByteArray){});bind(s);
         s.channels_[channel]["name"]="Our group";s.voiceChannel_=channel;s.voiceStatus_="Connected";

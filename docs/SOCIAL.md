@@ -1,5 +1,12 @@
 # Native Social - conversations and discovery
 
+**Call history and gallery, 2026-10-02:** conversation call rows now show caller,
+time and valid server duration instead of identical Call ended labels. The checked
+build is installed on both handhelds; the actual Flip history and 17 other screens
+are in the [device gallery](../screenshots/README.md). Block 3 remains open for
+the existing audio/interoperability/network gates; see
+[current evidence](SOCIAL_MEDIA_VOICE.md#readable-call-history-and-handheld-gallery--2026-10-02).
+
 **Recovered paired check, 2026-10-02:** Odin is reachable and running TrainerOS
 again. Selected Home call invitations now survive ring expiry: join an ongoing
 call with one A, or retain a disabled ended-call row instead of silently selecting

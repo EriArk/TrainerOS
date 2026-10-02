@@ -1,5 +1,29 @@
 # Communication media and voice — 2026-10-02
 
+## Readable call history and handheld gallery — 2026-10-02
+
+Call events now name the caller (or say You started a call), with the local date,
+time and server-reported call duration in the conversation itself. Existing known
+missed events keep their missed status and a distinct tint; participant lists do
+not fabricate missed-call status. Missing or reversed timestamps never fabricate
+a duration. This follows the upstream [message call object](https://docs.fluxer.app/http-api/messages/#message-call-object).
+
+ARM64 Social **85**, Interaction **37** and ExitPresentation **9** checks passed.
+Both handhelds received and ran the same production executable, SHA-256
+`5e1cde8d9900dc282097aa795899a738d5695c856d8f5d60acf6abe4a61aca28`.
+Flip's actual conversation capture verifies the new incoming/outgoing rows and
+durations. Odin's conversation, system menu and settings also rendered normally.
+SQLite integrity/counts, ordinary save hashes, boot settings and nearby helpers
+were preserved; the voice helper was unchanged. Odin output remains 0% and Flip
+muted. No microphone or new call was activated for this gallery pass.
+
+The owner-requested [18-screen gallery](../screenshots/README.md) contains original
+captures from both installed handhelds with device/build provenance. This is UI
+evidence, not new audio acceptance. Browser Upload still exposes no usable file
+chooser through the available automation, so reverse media remains unverified.
+Block 3 stays open for real headset/speech quality, remaining web/native audio
+and reverse media interoperability, and separate-network acceptance.
+
 ## Retained call invitation and quiet paired audio — 2026-10-02
 
 Odin recovered after the owner's manual restart. The guarded live-session switch

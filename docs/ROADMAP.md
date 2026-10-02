@@ -4,6 +4,13 @@
 
 ## Current plan — reconciled 2026-10-01
 
+**Block 3 call-history continuation, 2026-10-02:** readable caller/time/duration
+rows are delivered to both handhelds with 85 Social, 37 Interaction and 9 exit
+presentation checks passing. The owner-requested 18-screen device gallery is in
+[screenshots](../screenshots/README.md). This does not close the outstanding real
+headset, web/native interoperability or separate-network gates and does not change
+the block order. [Evidence](SOCIAL_MEDIA_VOICE.md#readable-call-history-and-handheld-gallery--2026-10-02).
+
 **Current block 3 continuation, 2026-10-02:** Odin recovery and paired native
 calls are verified. Home retains the selected invitation across ringing expiry,
 with direct Join for an ongoing call and no accidental Home activation. Synthetic

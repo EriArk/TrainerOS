@@ -125,12 +125,13 @@ FocusScope {
                         id: bubble
                         x: modelData.mine && !modelData.system ? 26 : 2; width: parent.width - 30
                         height: content.height + (modelData.system ? 10 : 18); radius: 11
-                        color: modelData.system ? "transparent" : modelData.mine ? "#e5efbe" : "#d5eaf1"
+                        color: modelData.callEvent ? (modelData.missedCall ? "#f3dfd4" : "#e0ebdf") : modelData.system ? "transparent" : modelData.mine ? "#e5efbe" : "#d5eaf1"
                         border.color: root.social.reading && index === log.currentIndex ? "#c09220" : modelData.mine ? "#a7be81" : "#a1c1c8"
                         border.width: root.social.reading && index === log.currentIndex ? 2 : modelData.system ? 0 : 1
                         Column { id: content; x: 12; y: modelData.system ? 4 : 8; width: parent.width - 24; spacing: 3
                             Text { visible: !modelData.system; width: parent.width; text: modelData.name + (modelData.edited ? " (edited)" : ""); font.family: Theme.displayFamily; font.pixelSize: 13; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
                             Text { width: parent.width; visible: !!modelData.text || modelData.system; text: modelData.text || (modelData.system ? "Conversation updated" : ""); font.pixelSize: modelData.system ? 13 : 16; color: modelData.system ? Theme.muted : Theme.ink; wrapMode: Text.Wrap; textFormat: Text.PlainText }
+                            Text { visible: !!modelData.callDetail; width: parent.width; text: modelData.callDetail || ""; font.pixelSize: 11; color: Theme.muted; wrapMode: Text.Wrap; textFormat: Text.PlainText }
                             Repeater {
                                 model: modelData.attachments || []
                                 Rectangle {

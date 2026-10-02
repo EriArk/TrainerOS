@@ -10,6 +10,9 @@ Pokémon is the first game family where that idea goes deep.
 
 ![TrainerOS Home](docs/images/readme/01-home.webp)
 
+[Actual handheld screenshot gallery](screenshots/README.md) — Home, Worlds,
+Companions, Trainer, Social and Settings, captured on Flip 2 and Odin 2.
+
 ## What this looks like
 
 With a verified Pokémon Emerald save, TrainerOS already knows the actual team in that save.

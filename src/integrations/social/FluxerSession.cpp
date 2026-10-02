@@ -8,6 +8,7 @@
 #include <QWebSocket>
 #include <QJsonArray>
 #include <QDateTime>
+#include <QLocale>
 #include <QRandomGenerator>
 #include <QUuid>
 #include <QCryptographicHash>
@@ -205,10 +206,28 @@ void FluxerSession::publish() {
         const auto guild=channels_.value(channel_)["guild_id"].toString();
         const bool welcome=communityIdentity::matches(m,guild,guilds_.value(guild)["owner_id"].toString(),communityChannels_.value(guild));
         QString text=welcome?QString("A gathering place for TrainerOS players. Welcome!"):m["content"].toString().left(4000);
-        if(m["type"].toInt()==3) {
+        const bool callEvent=m["type"].toInt()==3;
+        QString callDetail;
+        bool missedCall=false;
+        if(callEvent) {
             const auto notice=callNotices_.value(channel_);
-            text=notice["missed"].toBool()&&notice["message"]==id?"Missed call":
-                !m.contains("call")?"Voice call":m["call"].toObject()["ended_timestamp"].toString().isEmpty()?"Voice call":"Call ended";
+            missedCall=notice["missed"].toBool()&&notice["message"]==id;
+            const bool mine=m["author"].toObject()["id"]==self_;
+            text=missedCall?"Missed call from "+label(m["author"].toObject()):
+                mine?QString("You started a call"):"Call from "+label(m["author"].toObject());
+            const auto started=QDateTime::fromString(m["timestamp"].toString(),Qt::ISODateWithMs);
+            const auto ended=QDateTime::fromString(m["call"].toObject()["ended_timestamp"].toString(),Qt::ISODateWithMs);
+            QStringList details;
+            if(started.isValid())details.append(QLocale(QLocale::English).toString(started.toLocalTime(),"dd MMM yyyy · HH:mm"));
+            if(ended.isValid()) {
+                const auto seconds=started.secsTo(ended);
+                if(started.isValid()&&seconds>=0) {
+                    if(seconds<60)details.append(QString::number(seconds)+" s");
+                    else if(seconds<3600)details.append(QString::number(seconds/60)+" min "+QString::number(seconds%60)+" s");
+                    else details.append(QString::number(seconds/3600)+" h "+QString::number(seconds%3600/60)+" min");
+                } else details.append("Call ended");
+            } else if(m["call"].isObject()&&m["call"].toObject()["ended_timestamp"].isNull())details.append("Ongoing");
+            callDetail=details.join(" · ");
         }
         else if(m["type"].toInt()==6)text=label(m["author"].toObject())+" pinned a message";
         else if(m["type"].toInt()==7)text=label(m["author"].toObject())+" joined the community";
@@ -217,6 +236,7 @@ void FluxerSession::publish() {
             {"onlineKind",onlineEnvelope["kind"].toString()},
             {"edited",!m["edited_timestamp"].toString().isEmpty()},{"system",!onlineEnvelope.isEmpty()||(m["type"].toInt()!=0&&m["type"].toInt()!=19)},
             {"mine",m["author"].toObject()["id"]==self_},{"text",text},
+            {"callEvent",callEvent},{"callDetail",callDetail},{"missedCall",missedCall},
             {"retryable",m["local_delivery"]=="Not sent"||(m["local_delivery"].toString().startsWith("Delivery unknown")&&QDateTime::currentMSecsSinceEpoch()-m["local_sent_at"].toString().toLongLong()<240000)},{"uncertain",m["local_delivery"].toString().startsWith("Delivery unknown")},
             {"delivery",m["local_delivery"].toString()}, {"attachments",m["attachments"].toArray().toVariantList()}, {"media",!m["attachments"].toArray().isEmpty()}});
     }
