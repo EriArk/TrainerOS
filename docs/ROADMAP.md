@@ -17,7 +17,10 @@ The owner deferred hands-on checks until returning home; continue this block's
 preparation, retaining its open acceptance. Missed-call notifications and named
 background-call controls are included in that continuation.
 Direct Home/inbox answering removes the previous conversation/Options detour;
-its live incoming-call walkthrough remains part of the deferred owner checks.
+its live incoming-call walkthrough remains open. The owner authorized remote
+checks while away, but the public Fluxer connectivity outage on October 2
+(12:30 UTC incident) blocked the attempted call on all clients. Resume the same
+block after recovery; see the [remote evidence](SOCIAL_MEDIA_VOICE.md#remote-continuation-blocked-by-public-service-outage--2026-10-02).
 Then 1 (emulator multiplayer), 4 (native online Link), and
 5 (reviews/final communication audit). Do not substitute a smaller UI increment
 for completion, or move to another block around an unresolved gate. All remaining

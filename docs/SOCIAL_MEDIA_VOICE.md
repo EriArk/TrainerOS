@@ -269,3 +269,40 @@ choices, InputPlumber, nearby/voice helpers and both Emerald hashes above are
 unchanged; no Link settlement is pending. There were no active games/calls at
 installation. No live call was started for this delivery; the actual incoming
 call visual/controller walkthrough and microphone checks remain deferred.
+
+### Remote continuation blocked by public service outage — 2026-10-02
+
+The owner remains away and explicitly authorized available remote checks. Both
+handhelds respond over SSH and to controller navigation; neither shell is frozen.
+The installed/running binary still matches `1413a8cf24fee471f534980198b8aea89cc6f974b3c9e777d6d5433a574bba0f`
+(Flip PID 1043286, Odin PID 73229). Database integrity/counts, boot choices,
+InputPlumber, integration helpers and both Emerald save hashes above were
+rechecked and preserved. No new binary or helper was installed in this check.
+
+The ordinary Fluxer web client and both native clients fail to reconnect.
+Bounded unauthenticated probes from the PC and handhelds time out against the
+public API; Odin also times out against Gateway and the main site, while GitHub
+and Cloudflare HTTPS respond normally. Local DNS, Cloudflare DNS-over-HTTPS and
+Google DNS-over-HTTPS agree on the API/Gateway address. Flip has no nftables
+tables left from the earlier connection-failure exercise.
+
+During diagnosis, the [official status page](https://fluxerstatus.com/) published
+**Issues with platform connectivity**, **Investigating / Major outage**, started
+at **2026-10-02 12:30:03 UTC** (incident `cmuqxxrlm004e1mpckq7sm4uf`). The web
+client also displays that incident. Its earlier status-page response was stale;
+do not record this as a TrainerOS-only failure or change DNS to work around it.
+Private evidence is `work/research/fluxer-status-20261002.html` and the actual
+`calls-live-flip-social.png` / `calls-live-odin-social.png` handheld captures.
+
+The attempted web-originated call never produced an observed incoming ring on
+Flip. Direct Answer/Decline, missed-call runtime behavior and reverse web media
+acceptance therefore remain unverified, not passed. Browser reload discarded
+the unsuccessful join UI. Neither real microphone was unmuted and no game/save
+operation was started. Both handhelds were returned to their Trainer pages.
+Odin still exposes output monitors without a real microphone input.
+
+Resume this same block after service recovery: verify fresh incoming Home/inbox
+answer/decline and missed calls on both consoles, then the remaining web-to-native
+media/audio checks. Human speech/headset checks await the owner; separate-internet
+proof remains distinct. This outage does not complete block 3 or authorize moving
+to block 1.

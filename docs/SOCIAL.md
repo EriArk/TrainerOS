@@ -695,3 +695,9 @@ Actual paired captures include `calls-invite-passive.png`,
 `work/research/`. The invitation reached Odin on Home and opened consent only
 after selection; declining did not change either save. Audio and interoperability
 evidence, including its limits, is in the linked document.
+
+The October 2 remote continuation verified both installed shells and preserved
+data, but public Fluxer declared a connectivity outage at 12:30 UTC. Both native
+clients and the ordinary web client could not reconnect; no incoming-call runtime
+success is claimed. [Outage evidence and the exact next checks](SOCIAL_MEDIA_VOICE.md#remote-continuation-blocked-by-public-service-outage--2026-10-02)
+retain block 3 as open, including deferred human microphone/headset acceptance.
