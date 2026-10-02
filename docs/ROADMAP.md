@@ -13,6 +13,9 @@ Currently completing **3 (notifications/calls)**: background call retention,
 Home controls, dismissible notifications and passive invitations are installed;
 real-microphone and remaining interoperability gates stay open in
 [media/voice evidence](SOCIAL_MEDIA_VOICE.md#background-call-recovery--2026-10-02).
+The owner deferred hands-on checks until returning home; continue this block's
+preparation, retaining its open acceptance. Missed-call notifications and named
+background-call controls are included in that continuation.
 Then 1 (emulator multiplayer), 4 (native online Link), and
 5 (reviews/final communication audit). Do not substitute a smaller UI increment
 for completion, or move to another block around an unresolved gate. All remaining

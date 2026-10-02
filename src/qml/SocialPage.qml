@@ -93,7 +93,7 @@ FocusScope {
                 id: callStrip; y: 47; width: parent.width; height: visible ? 32 : 0; radius: 9
                 visible: !!root.account.voice && !!root.account.voice.status
                 color: "#d9eac4"; border.color: "#a3bd8c"
-                Text { anchors { fill: parent; margins: 7 } text: "☎  " + (root.account.voice ? root.account.voice.status : "") + (root.account.voice && root.account.voice.participants ? " · " + root.account.voice.participants + " people" : ""); color: Theme.ink; font.pixelSize: 14; elide: Text.ElideRight; textFormat: Text.PlainText }
+                Text { anchors { fill: parent; margins: 7 } text: "☎  " + (root.account.voice ? (root.account.voice.summary || root.account.voice.status) : "") + (root.account.voice && root.account.voice.participants ? " · " + root.account.voice.participants + (root.account.voice.participants === 1 ? " person" : " people") : ""); color: Theme.ink; font.pixelSize: 14; elide: Text.ElideRight; textFormat: Text.PlainText }
             }
             ListView {
                 id: log

@@ -75,6 +75,9 @@ it does not navigate into Social first. Physical Home during a supported game
 uses the existing overlay controls and the same session-owned call. Back/Home
 retain both the call and the originating page or game. Only Leave ends it.
 Notifications remain passive and dismissing them does not acknowledge messages.
+The Voice call action and its panel identify the current conversation, even if
+the underlying page displays another chat. Missed calls open their conversation
+from Notifications without automatically joining or ringing anyone.
 See [current paired audio evidence and remaining gates](SOCIAL_MEDIA_VOICE.md#background-call-recovery--2026-10-02).
 
 2026-10-01 delivery:

@@ -649,6 +649,10 @@ reverse web-client media and separate-internet gates are recorded in
 [media and voice](SOCIAL_MEDIA_VOICE.md#background-call-recovery--2026-10-02).
 Do not advance to block 1 on the strength of this implementation alone.
 
+**Owner continuation:** hands-on checks wait until the owner returns home.
+Continue preparing this block; do not interpret that deferral as passing its
+audio/headset or interoperability acceptance.
+
 - Calls belong to the authenticated session, not the displayed page. Tab changes,
   Home menus and ordinary Adventure launch/return retain the same voice worker.
   A chat Gateway reconnect no longer tears down independent LiveKit audio.
@@ -657,6 +661,16 @@ Do not advance to block 1 on the strength of this implementation alone.
 - Home exposes microphone, call-output and Leave controls wherever the user is.
   Back and repeated Home retain the call and origin. Recording a voice message
   cannot compete with a live call for the microphone.
+- The call strip and Home call panel identify the actual call conversation,
+  including while another chat is displayed. They share the existing session
+  and do not introduce another call page.
+- An observed incoming ring that ends unanswered becomes a missed-call inbox
+  entry. Opening it displays the conversation; it never calls back automatically.
+  Explicit decline, answering on another client, unavailable-call events and a
+  Gateway interruption do not fabricate missed calls. Dismissal remains separate
+  from read acknowledgement. Up to 32 latest per-conversation missed calls use
+  the account-bound, 30-day history cache. Calls entirely missed while offline
+  cannot be inferred from current participant lists and are not reconstructed.
 - Notifications can be dismissed without marking messages read. A new message
   makes that conversation visible again. Dismissals and missed activity
   invitations are isolated by Trainer and Fluxer account.

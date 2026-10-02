@@ -28,6 +28,65 @@ class SocialTests : public QObject {
     }
 private slots:
     void initTestCase() { QStandardPaths::setTestModeEnabled(true);QCoreApplication::setOrganizationName("TrainerOSTests");QCoreApplication::setApplicationName("SocialTests"); }
+    void missedCallRequiresObservedRingAndRealEnd() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion,QByteArray){});bind(s);
+        auto event=[&](QString type,QJsonObject data){s.gatewayEvent({{"op",0},{"t",type},{"d",data}});};
+        QJsonObject call{{"channel_id",channel},{"message_id","123"},{"ringing",QJsonArray{s.self_}},{"voice_states",QJsonArray{}}};
+        event("CALL_CREATE",call);QVERIFY(!s.callNotices_[channel]["missed"].toBool());
+        event("CALL_DELETE",{{"channel_id",channel},{"unavailable",true}});
+        QVERIFY(!s.callNotices_[channel]["missed"].toBool());
+        s.disconnected();QVERIFY(!s.callNotices_[channel]["missed"].toBool());
+        event("CALL_CREATE",call);event("CALL_DELETE",{{"channel_id",channel}});
+        QVERIFY(s.callNotices_[channel]["missed"].toBool());
+        QSignalSpy snapshots(&s,&FluxerSession::snapshot);s.publish();
+        auto state=snapshots.last()[1].toMap();QCOMPARE(state["unreadCount"].toInt(),1);
+        QCOMPARE(state["chats"].toList().first().toMap()["missedCall"].toString(),QString("123"));
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);c.receive(0,state);
+        QCOMPARE(c.notifications().first().toMap()["detail"].toString(),QString("Missed call"));
+        c.openNotificationAt(0);QCOMPARE(commands.last()[0].toString(),QString("conversation"));
+        for(const auto& command:commands)QVERIFY(!command[0].toString().startsWith("voice-"));
+        c.dismissNotificationAt(0);QVERIFY(c.notifications().isEmpty());
+        s.applyReadState({{"channel_id",channel},{"message_id","123"}},true);QVERIFY(s.callNotices_.isEmpty());
+        int requests=0;s.setTransport([&](auto,auto,auto,Completion,QByteArray){++requests;});
+        s.readsReady_=true;s.messages_["123"]={{"id","123"},{"type",3}};
+        s.callNotices_[channel]={{"message","123"},{"missed",true}};
+        s.acknowledge(channel,"123");QVERIFY(s.callNotices_.isEmpty());QCOMPARE(requests,0);
+    }
+    void answeringElsewhereOrDecliningDoesNotCreateMissedCall() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion done,QByteArray){done({204,{}});});bind(s);
+        auto event=[&](QString type,QJsonObject data){s.gatewayEvent({{"op",0},{"t",type},{"d",data}});};
+        QJsonObject call{{"channel_id",channel},{"message_id","123"},{"ringing",QJsonArray{s.self_}}};
+        event("CALL_CREATE",call);
+        event("CALL_UPDATE",{{"channel_id",channel},{"ringing",QJsonArray{}},{"voice_states",QJsonArray{QJsonObject{{"user_id",s.self_},{"connection_id","other-device"}}}}});
+        event("CALL_DELETE",{{"channel_id",channel}});QVERIFY(s.callNotices_.isEmpty());
+        event("CALL_CREATE",call);s.voiceCommand("voice-decline",{{"channel",channel}});
+        event("CALL_DELETE",{{"channel_id",channel}});QVERIFY(s.callNotices_.isEmpty());
+        event("CALL_DELETE",{{"channel_id",remote}});QVERIFY(s.callNotices_.isEmpty());
+    }
+    void missedCallCacheIsBoundedAndAccountIsolated() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion,QByteArray){});bind(s);
+        s.owner_="missed-test-"+QUuid::createUuid().toString(QUuid::Id128);s.setTransport({});s.loadHistoryCache();
+        for(int i=0;i<40;++i){
+            const auto id=QString::number(1000+i);s.calls_[id]={{"message_id",QString::number(2000+i)},{"ringing",QJsonArray{s.self_}}};
+            s.updateCallNotice("CALL_CREATE",id,{});s.updateCallNotice("CALL_DELETE",id,{});
+        }
+        QCOMPARE(s.callNotices_.size(),32);QVERIFY(!s.callNotices_.contains("1000"));
+        const auto owner=s.owner_,file=s.historyFile_;s.saveHistoryCache();
+        s.historyFile_.clear();s.callNotices_.clear();s.self_.clear();s.loadHistoryCache();
+        QCOMPARE(s.callNotices_.size(),32);QVERIFY(s.callNotices_["1039"]["missed"].toBool());
+        s.clearHistoryCache();QVERIFY(!QFileInfo::exists(file));QVERIFY(s.callNotices_.isEmpty());
+        QSettings().remove("social/cached-account/"+QString::fromLatin1(QCryptographicHash::hash(owner.toUtf8(),QCryptographicHash::Sha256).toHex()));
+        s.setTransport([](auto,auto,auto,Completion,QByteArray){});
+        s.setOwner("other",2);QVERIFY(s.callNotices_.isEmpty());
+    }
+    void backgroundCallNamesItsOwnConversation() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion,QByteArray){});bind(s);
+        s.channels_[channel]["name"]="Our group";s.voiceChannel_=channel;s.voiceStatus_="Connected";
+        s.channel_=remote;s.channels_[remote]={{"id",remote},{"name","Different chat"},{"type",1}};
+        QSignalSpy snapshots(&s,&FluxerSession::snapshot);s.publish();const auto voice=snapshots.last()[1].toMap()["voice"].toMap();
+        QCOMPARE(voice["name"].toString(),QString("Our group"));
+        QCOMPARE(voice["summary"].toString(),QString("Our group · Connected"));
+    }
     void invitationNotificationNeverTakesFocusAndExpiredActionCannotAccept() {
         SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
         QVariantMap state{{"state","connected"},{"userId","self"},{"channel",channel},

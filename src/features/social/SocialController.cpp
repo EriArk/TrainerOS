@@ -135,7 +135,8 @@ QString SocialController::notificationFace() const {
     return {};
 }
 QString SocialController::notificationStamp(const QVariantMap& row) const {
-    return row["request"].toBool()?QString("request"):row["last"].toString();
+    if(row["request"].toBool())return "request";
+    return row["last"].toString()+(row["missedCall"].toString().isEmpty()?QString():"/call/"+row["missedCall"].toString());
 }
 void SocialController::dismissNotificationAt(int index) {
     const auto list=notifications();if(index<0||index>=list.size())return;
@@ -168,13 +169,14 @@ QVariantList SocialController::notifications() const {
         if(dismissedNotifications_.value(row["id"].toString()).toString()!=notificationStamp(row))result.append(row);
     }
     for(const auto& value:snapshot_["chats"].toList()) {
-        auto row=value.toMap();if((row["unread"].toInt()<=0&&!row["ringing"].toBool())||row["muted"].toBool())continue;
+        auto row=value.toMap();if((row["unread"].toInt()<=0&&!row["ringing"].toBool()&&row["missedCall"].toString().isEmpty())||row["muted"].toBool())continue;
         row["request"]=false;
         if(!row["ringing"].toBool()&&dismissedNotifications_.contains(row["id"].toString())&&dismissedNotifications_.value(row["id"].toString()).toString()==notificationStamp(row))continue;
         row["detail"]=row["guild"].toString().isEmpty()?(row["kind"]=="groups"?"Group · New messages":"New messages"):"Community · New messages";
         // Fluxer also counts every unread DM as a mention. Only label the
         // community mention separately; ordinary DMs remain new messages.
         if(row["mentions"].toInt()>0&&!row["guild"].toString().isEmpty())row["detail"]="You were mentioned";
+        if(!row["missedCall"].toString().isEmpty())row["detail"]="Missed call";
         if(row["ringing"].toBool())row["detail"]="Incoming call";
         result.append(row);
     }

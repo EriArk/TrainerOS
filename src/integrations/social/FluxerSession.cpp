@@ -112,7 +112,7 @@ void FluxerSession::reset() {
     retainHistory();saveHistoryCache();historySave_.stop();
     historyCache_.clear();historyLru_.clear();historyFile_.clear();historyAnchor_.clear();
     ++reviewRevision_;reviewBusy_=false;reviewIdentity_.clear();reviewRows_.clear();ownReview_.clear();
-    leaveVoice();calls_.clear();voiceStatus_.clear();
+    leaveVoice();calls_.clear();callNotices_.clear();voiceStatus_.clear();
     ++epoch_;
     attachmentBusy_=false;attachmentReply_=nullptr;notificationSound_=true;
     ++onlineSendRevision_;onlineSendTimer_.stop();onlineQueue_.clear();onlineSending_=false;online_.bind({},{});
@@ -158,6 +158,7 @@ QString FluxerSession::label(const QJsonObject& user) const {
 void FluxerSession::publish() {
     retainHistory();
     QVariantList friends, chats, messages, communities;
+    QString voiceName;
     for (auto it = relationships_.cbegin(); it != relationships_.cend(); ++it) {
         const auto user = it.value()["user"].toObject(); const int type = it.value()["type"].toInt();
         friends.append(QVariantMap{{"id",it.key()},{"name",label(user)},{"avatar",avatar(user)}, {"type",type},
@@ -171,6 +172,7 @@ void FluxerSession::publish() {
     for (auto it = channels_.cbegin(); it != channels_.cend(); ++it) {
         const auto c=it.value(); QString name=c["name"].toString();
         if(name.isEmpty()) { QStringList names; for(const auto& v:c["recipients"].toArray()) if(v.toObject()["id"]!=self_) names<<label(v.toObject()); name=names.join(", "); }
+        if(it.key()==voiceChannel_)voiceName=name.isEmpty()?QString("Voice call"):name.left(100);
         const auto recipients=c["recipients"].toArray();
         const auto user=recipients.size()==1?recipients.first().toObject():QJsonObject();
         QString preview;const auto cached=historyCache_.value(it.key())["rows"].toArray();
@@ -178,6 +180,7 @@ void FluxerSession::publish() {
         chats.append(QVariantMap{{"avatar",avatar(user)},{"id",it.key()},{"name",name.isEmpty()?QString("Conversation"):name.left(120)},
             {"call",calls_.contains(it.key())&&!calls_.value(it.key())["unavailable"].toBool()},
             {"ringing",!calls_.value(it.key())["unavailable"].toBool()&&calls_.value(it.key())["ringing"].toArray().contains(self_)&&voiceChannel_!=it.key()},
+            {"missedCall",callNotices_.value(it.key())["missed"].toBool()?callNotices_.value(it.key())["message"].toString():QString()},
             {"owner",c["owner_id"].toString()},{"members",c["recipients"].toArray().toVariantList()},
             {"friend",c["type"].toInt(-1)==1&&c["recipients"].toArray().size()==1&&relationships_.value(c["recipients"].toArray().first().toObject()["id"].toString())["type"].toInt()==1},
             {"muted",muted_.contains(it.key())},
@@ -199,7 +202,11 @@ void FluxerSession::publish() {
         const auto guild=channels_.value(channel_)["guild_id"].toString();
         const bool welcome=communityIdentity::matches(m,guild,guilds_.value(guild)["owner_id"].toString(),communityChannels_.value(guild));
         QString text=welcome?QString("A gathering place for TrainerOS players. Welcome!"):m["content"].toString().left(4000);
-        if(m["type"].toInt()==3)text=m["call"].toObject()["ended_timestamp"].toString().isEmpty()?"Voice call":"Call ended";
+        if(m["type"].toInt()==3) {
+            const auto notice=callNotices_.value(channel_);
+            text=notice["missed"].toBool()&&notice["message"]==id?"Missed call":
+                !m.contains("call")?"Voice call":m["call"].toObject()["ended_timestamp"].toString().isEmpty()?"Voice call":"Call ended";
+        }
         else if(m["type"].toInt()==6)text=label(m["author"].toObject())+" pinned a message";
         else if(m["type"].toInt()==7)text=label(m["author"].toObject())+" joined the community";
         messages.append(QVariantMap{{"id",id},{"name",label(m["author"].toObject())},{"avatar",avatar(m["author"].toObject())},
@@ -217,13 +224,16 @@ void FluxerSession::publish() {
             {"kind","community"},{"traineros",marked},{"detail",marked?"TrainerOS":"Community"}});
     }
     std::sort(communities.begin(),communities.end(),[](const QVariant& a,const QVariant& b){return a.toMap()["name"].toString()<b.toMap()["name"].toString();});
-    int unreadCount=0;for(auto it=unread_.cbegin();it!=unread_.cend();++it)if(it.value()&&channels_.contains(it.key()))++unreadCount;
+    int unreadCount=0;for(auto it=channels_.cbegin();it!=channels_.cend();++it)
+        if(unread_.value(it.key())||callNotices_.value(it.key())["missed"].toBool())++unreadCount;
     QString readTail;
     for(auto i=messageOrder_.crbegin();i!=messageOrder_.crend();++i)if(idValid(*i)){readTail=*i;break;}
     emit snapshot(generation_, {{"state",state_},{"status",status_},{"name",name_},{"code",code_},
         {"unreadCount",unreadCount},{"doNotDisturb",doNotDisturb_},{"privatePreviews",privatePreviews_},
         {"mutationBusy",mutationBusy_},{"attachmentBusy",attachmentBusy_},{"notificationSound",notificationSound_},
-        {"voice",QVariantMap{{"available",voiceAvailable()},{"channel",voiceChannel_},{"state",voiceState_},{"status",voiceStatus_},{"muted",voiceMuted_},{"deaf",voiceDeaf_},{"participants",voiceParticipants_}}},
+        {"voice",QVariantMap{{"available",voiceAvailable()},{"channel",voiceChannel_},{"name",voiceName},
+            {"summary",voiceName.isEmpty()?voiceStatus_:voiceName+" · "+voiceStatus_},
+            {"state",voiceState_},{"status",voiceStatus_},{"muted",voiceMuted_},{"deaf",voiceDeaf_},{"participants",voiceParticipants_}}},
         {"communityOnly",communityOnly_},{"communityChecking",communityChecking_},{"communityStatus",communityStatus_},
         {"communityInvite",communityInvite_},{"communityOwner",guilds_.value(guild_)["owner_id"]==self_},
         {"communityMarked",communityMarked_.contains(guild_)},
@@ -294,10 +304,26 @@ void FluxerSession::applyReadState(const QJsonObject& state, bool gateway) {
     if(state["manual"].toBool())quietThrough_.remove(channel);
     if(state.contains("mention_count"))mentions_[channel]=qMax(0,state["mention_count"].toInt());
     readThrough_[channel]=message;++readRevision_[channel];updateUnread(channel);
+    const auto notice=callNotices_.value(channel);
+    if(notice["missed"].toBool()&&!message.isEmpty()&&!newer(notice["message"].toString(),message)) {
+        callNotices_.remove(channel);
+        if(!historyFile_.isEmpty()&&!historySave_.isActive())historySave_.start();
+    }
 }
 void FluxerSession::acknowledge(QString channel, QString message) {
-    if(!readsReady_||ackBusy_||channel!=channel_||!idValid(message)||!messages_.contains(message)
-        ||!newer(message,readThrough_.value(channel)))return;
+    if(!readsReady_||channel!=channel_||!idValid(message)||!messages_.contains(message))return;
+    if(!newer(message,readThrough_.value(channel))) {
+        // The call message may already have been read before the caller hung up.
+        // Viewing that ended call clears its local notice without repeating ACK.
+        const auto notice=callNotices_.value(channel);
+        if(notice["missed"].toBool()&&!newer(notice["message"].toString(),message)) {
+            callNotices_.remove(channel);
+            if(!historyFile_.isEmpty()&&!historySave_.isActive())historySave_.start();
+            publish();
+        }
+        return;
+    }
+    if(ackBusy_)return;
     ackBusy_=true;const auto revision=readRevision_.value(channel);
     request("POST","/v1/read-states/ack",{{"read_states",QJsonArray{QJsonObject{
         {"channel_id",channel},{"message_id",message},{"mention_count",0},{"manual",false}}}}},
@@ -406,7 +432,7 @@ void FluxerSession::authenticated() {
             return;
         }
         const auto verifiedId=r.body.object()["id"].toString();
-        if(!self_.isEmpty()&&self_!=verifiedId){historyCache_.clear();historyLru_.clear();historyFile_.clear();channels_.clear();relationships_.clear();guilds_.clear();messages_.clear();messageOrder_.clear();channel_.clear();}
+        if(!self_.isEmpty()&&self_!=verifiedId){historyCache_.clear();historyLru_.clear();callNotices_.clear();historyFile_.clear();channels_.clear();relationships_.clear();guilds_.clear();messages_.clear();messageOrder_.clear();channel_.clear();}
         self_=verifiedId;name_=label(r.body.object());bindOnline();
         navigationKey_="social/navigation/"+QString::fromLatin1(QCryptographicHash::hash((owner_+"\n"+self_).toUtf8(),QCryptographicHash::Sha256).toHex())+"/";
         if(!transport_) {QSettings settings;for(const auto& key:{"chats","groups","communities","guild"})preferred_[key]=settings.value(navigationKey_+key).toString();
@@ -453,7 +479,7 @@ void FluxerSession::refreshChannels() {
         QStringList previousPrivate;
         for(auto it=channels_.begin();it!=channels_.end();) {if(it.value()["guild_id"].toString().isEmpty()){previousPrivate.append(it.key());it=channels_.erase(it);}else ++it;}
         for(const auto& v:r.body.array()) {auto o=v.toObject();auto id=o["id"].toString();if(idValid(id)&&channels_.size()<500)channels_[id]=o;}
-        for(const auto& id:previousPrivate)if(!channels_.contains(id)){historyCache_.remove(id);historyLru_.removeAll(id);}
+        for(const auto& id:previousPrivate)if(!channels_.contains(id)){historyCache_.remove(id);historyLru_.removeAll(id);callNotices_.remove(id);}
         if(!channel_.isEmpty()&&!channels_.contains(channel_)) {channel_.clear();messages_.clear();messageOrder_.clear();}
         for(auto it=channels_.cbegin();it!=channels_.cend();++it)updateUnread(it.key());
         channelsLoaded_=true;status_="Connected";ensureConversation();publish();
@@ -487,7 +513,7 @@ void FluxerSession::loadHistoryCache() {
     const auto key=QString::fromLatin1(QCryptographicHash::hash(("https://fluxer.app\n"+owner_+"\n"+account).toUtf8(),QCryptographicHash::Sha256).toHex());
     const auto path=QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/social/"+key+"/history.json";
     if(path==historyFile_)return;
-    historyCache_.clear();historyLru_.clear();historyFile_=path;
+    historyCache_.clear();historyLru_.clear();callNotices_.clear();historyFile_=path;
     QFile input(path);
     if(QFileInfo(path).isSymLink()||input.size()>4*1024*1024||!input.open(QIODevice::ReadOnly))return;
     const auto data=QJsonDocument::fromJson(input.readAll()).object();
@@ -505,6 +531,12 @@ void FluxerSession::loadHistoryCache() {
         preferred_["chats"]=data["selected"].toString();
     }
     const auto cutoff=QDateTime::currentSecsSinceEpoch()-30*86400;
+    for(const auto& value:data["missedCalls"].toArray()) {
+        const auto notice=value.toObject();const auto id=notice["channel"].toString();
+        if(!idValid(id)||!idValid(notice["message"].toString())||notice["time"].toString().toLongLong()<cutoff)continue;
+        callNotices_[id]={{"message",notice["message"]},{"time",notice["time"]},{"missed",true}};
+        if(callNotices_.size()==32)break;
+    }
     for(const auto& entry:data["conversations"].toArray()) {
         auto c=entry.toObject();const auto id=c.take("id").toString();
         if(!idValid(id)||c["visited"].toString().toLongLong()<cutoff||c["rows"].toArray().size()>100)continue;
@@ -528,6 +560,7 @@ void FluxerSession::saveHistoryCache() {
                 if(m.contains(field))clean[field]=m[field];
             const auto author=m["author"].toObject();
             clean["author"]=QJsonObject{{"id",author["id"]},{"username",author["username"]},{"global_name",author["global_name"]}};
+            if(m["type"].toInt()==3&&m.contains("call"))clean["call"]=QJsonObject{{"ended_timestamp",m["call"].toObject()["ended_timestamp"]}};
             if(m["content"].toString().isEmpty()&&!m["attachments"].toArray().isEmpty())clean["content"]="Attachment · reconnect to view";
             if(clean["local_delivery"]=="Sending…")clean["local_delivery"]="Delivery unknown — check before resending";
             rows.append(clean);
@@ -545,7 +578,11 @@ void FluxerSession::saveHistoryCache() {
     }
     for(const auto& f:relationships_)friends.append(f);
     for(const auto& g:guilds_)guilds.append(QJsonObject{{"id",g["id"]},{"name",g["name"]}});
-    QJsonObject data{{"owner",owner_},{"account",self_},{"name",name_},{"selected",channel_},
+    QJsonArray missedCalls;
+    for(auto it=callNotices_.cbegin();it!=callNotices_.cend();++it)if(it.value()["missed"].toBool()) {
+        auto notice=it.value();notice["channel"]=it.key();missedCalls.append(notice);
+    }
+    QJsonObject data{{"owner",owner_},{"account",self_},{"name",name_},{"selected",channel_},{"missedCalls",missedCalls},
         {"binding",QString::fromLatin1(QCryptographicHash::hash(token_.toUtf8(),QCryptographicHash::Sha256).toHex())},
         {"channels",channels},{"friends",friends},{"guilds",guilds},{"conversations",entries}};
     auto bytes=QJsonDocument(data).toJson(QJsonDocument::Compact);
@@ -556,7 +593,7 @@ void FluxerSession::saveHistoryCache() {
     if(file.write(bytes)==bytes.size())file.commit();
 }
 void FluxerSession::clearHistoryCache() {
-    historySave_.stop();historyCache_.clear();historyLru_.clear();
+    historySave_.stop();historyCache_.clear();historyLru_.clear();callNotices_.clear();
     if(!historyFile_.isEmpty())QFile::remove(historyFile_);
     messages_.clear();messageOrder_.clear();historyAnchor_.clear();pendingNonces_.clear();
     historyFile_.clear();
@@ -681,15 +718,38 @@ void FluxerSession::reconcileVoice() {
         });
     });
 }
+void FluxerSession::updateCallNotice(const QString& type,const QString& channel,const QJsonObject& event) {
+    // Record only calls actually observed ringing this account. An unavailable
+    // call or a Gateway outage is not evidence that someone missed a call.
+    const auto before=callNotices_;
+    if(type=="CALL_DELETE") {
+        if(!event["unavailable"].toBool()&&callNotices_.contains(channel))callNotices_[channel]["missed"]=true;
+    } else {
+        const auto call=calls_.value(channel);bool joined=voiceChannel_==channel;
+        for(const auto& state:call["voice_states"].toArray())if(state.toObject()["user_id"]==self_)joined=true;
+        if(joined)callNotices_.remove(channel);
+        else if(call["ringing"].toArray().contains(self_)&&idValid(call["message_id"].toString()))
+            callNotices_[channel]={{"message",call["message_id"]},{"time",QString::number(QDateTime::currentSecsSinceEpoch())},{"missed",false}};
+    }
+    while(callNotices_.size()>32) {
+        auto oldest=callNotices_.begin();
+        for(auto it=callNotices_.begin();it!=callNotices_.end();++it)
+            if(newer(oldest.value()["message"].toString(),it.value()["message"].toString()))oldest=it;
+        callNotices_.erase(oldest);
+    }
+    if(before!=callNotices_&&!historyFile_.isEmpty()&&!historySave_.isActive())historySave_.start();
+}
 void FluxerSession::voiceCommand(QString operation,const QVariantMap& args) {
     if(operation=="voice-decline") {
         const auto id=args["channel"].toString();if(!calls_.contains(id))return;
+        callNotices_.remove(id);
         request("POST","/v1/channels/"+id+"/call/stop-ringing",{},[this](Reply r){if(r.status<200||r.status>=300)voiceStatus_="Couldn't decline the call. Try again.";publish();});return;
     }
     if(operation=="voice-leave"){leaveVoice();voiceStatus_="Call ended";publish();return;}
     if(operation=="voice-join") {
         const auto channel=args["channel"].toString();const auto type=channels_.value(channel)["type"].toInt(-1);
         if(!voiceAvailable()||!voiceChannel_.isEmpty()||!idValid(channel)||(type!=1&&type!=3))return;
+        callNotices_.remove(channel);
         voiceChannel_=channel;voiceState_="connecting";voiceStatus_="Connecting...";voiceMuted_=true;voiceDeaf_=false;
         voiceDeadline_.start(20000);publish();
         if(!calls_.contains(channel))request("POST","/v1/channels/"+channel+"/call/ring",{},[this,channel](Reply reply){
@@ -976,7 +1036,7 @@ bool FluxerSession::mutate(const QString& operation,const QVariantMap& args) {
                 else if(messages_.contains(id))mergeMessage(r.body.object());
             }
         } else if(operation=="leave-group") {
-            historyCache_.remove(channel);historyLru_.removeAll(channel);channels_.remove(channel);unread_.remove(channel);
+            historyCache_.remove(channel);historyLru_.removeAll(channel);callNotices_.remove(channel);channels_.remove(channel);unread_.remove(channel);
             if(channel_==channel){channel_.clear();messages_.clear();messageOrder_.clear();++historyRequest_;historyBusy_=false;}
             ensureConversation();
         } else if(operation=="create-group"||operation=="rename-group") {
@@ -1215,8 +1275,10 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
                 else calls_.remove(id);
             } else {
                 auto call=type=="CALL_CREATE"?QJsonObject{}:calls_.value(id);
-                for(auto it=d.begin();it!=d.end();++it)call[it.key()]=it.value();calls_[id]=call;
+                for(auto it=d.begin();it!=d.end();++it)call[it.key()]=it.value();
+                calls_[id]=call;
             }
+            updateCallNotice(type,id,d);
             if(type!="CALL_DELETE"&&!wasRinging&&d["ringing"].toArray().contains(self_)&&!doNotDisturb_&&!muted_.contains(id))emit incomingMessage(generation_,id,"Incoming call","Open this conversation to join");
             publish();return;
         }
@@ -1289,7 +1351,7 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
             }
             if(type.startsWith("RELATIONSHIP_")&&d["id"]==online_.peerAccount()&&(type=="RELATIONSHIP_REMOVE"||d["type"].toInt()!=1))online_.close("Friend connection ended");
             ++channelRevision_;
-            if(type=="CHANNEL_DELETE") {if(d["id"]==voiceChannel_)leaveVoice();calls_.remove(d["id"].toString());historyCache_.remove(d["id"].toString());historyLru_.removeAll(d["id"].toString());channels_.remove(d["id"].toString());if(d["id"]==channel_){channel_.clear();messages_.clear();messageOrder_.clear();}}
+            if(type=="CHANNEL_DELETE") {if(d["id"]==voiceChannel_)leaveVoice();calls_.remove(d["id"].toString());callNotices_.remove(d["id"].toString());historyCache_.remove(d["id"].toString());historyLru_.removeAll(d["id"].toString());channels_.remove(d["id"].toString());if(d["id"]==channel_){channel_.clear();messages_.clear();messageOrder_.clear();}}
             refresh();
             if(!guild_.isEmpty())command("guild",{{"id",guild_}});
         } else return; // Presence/guild chatter outside this surface must not repaint the shell.

@@ -835,11 +835,13 @@ QVariantList ShellController::homeMenuActions() const {
     }
     QVariantList rows{QVariantMap{{"id","home"},{"label","Home"}},QVariantMap{{"id","friends"},{"label","Friends"}},
         QVariantMap{{"id","chats"},{"label","Chats"}},QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(social_.notifications().size())}}};
-    if(!voice["channel"].toString().isEmpty())rows.append(QVariantMap{{"id","call"},{"label","Voice call"}});
+    if(!voice["channel"].toString().isEmpty())rows.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",voice["name"]}});
     return rows;
 }
 QString ShellController::homeMenuCaption() const {
-    return homeCallOpen_?social_.account()["voice"].toMap()["status"].toString():QString("Your next stop");
+    if(!homeCallOpen_)return "Your next stop";
+    const auto voice=social_.account()["voice"].toMap();
+    return voice["summary"].toString().isEmpty()?voice["status"].toString():voice["summary"].toString();
 }
 void ShellController::activateHomeMenu(int index) {
     if (!homeMenuOpen_ || navigationLocked() || index < 0 || index >= homeMenuActions().size()) return;

@@ -408,7 +408,7 @@ int main(int argc, char* argv[]) {
         auto gameMenuActions=[&]{
             QVariantList actions{QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(shell.social()->notifications().size())}}};
             if(adventureProcess.runtimeControls()["kind"]=="retroarch")actions.append(QVariantMap{{"id","display"},{"label","Screen & graphics"}});
-            if(!shell.social()->account()["voice"].toMap()["channel"].toString().isEmpty())actions.append(QVariantMap{{"id","call"},{"label","Voice call"}});
+            if(!shell.social()->account()["voice"].toMap()["channel"].toString().isEmpty())actions.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",shell.social()->account()["voice"].toMap()["name"]}});
             for(const auto& value:shell.social()->notifications()) {
                 const auto row=value.toMap();if(!row["ringing"].toBool())continue;
                 actions.prepend(QVariantMap{{"id","answer-call:"+row["id"].toString()},{"label","Answer · "+row["name"].toString()}});
@@ -421,7 +421,7 @@ int main(int argc, char* argv[]) {
                 QVariantList rows;
                 if(!voice["channel"].toString().isEmpty())rows={QVariantMap{{"id","voice-mute"},{"label",voice["muted"].toBool()?"Turn microphone on":"Mute microphone"}},
                     QVariantMap{{"id","voice-output"},{"label",voice["deaf"].toBool()?"Enable call sound":"Silence call sound"}},QVariantMap{{"id","voice-leave"},{"label","Leave call"}}};
-                rows.append(QVariantMap{{"id","back"},{"label","Back"}});exitPresentation.setPanel("call",voice["status"].toString(),rows);
+                rows.append(QVariantMap{{"id","back"},{"label","Back"}});exitPresentation.setPanel("call",voice["summary"].toString(),rows);
             }
         };
         QObject::connect(shell.social(),&SocialController::changed,&exitPresentation,gameMenuActions);
@@ -445,7 +445,7 @@ int main(int argc, char* argv[]) {
                 QVariantList rows{QVariantMap{{"id","voice-mute"},{"label",voice["muted"].toBool()?"Turn microphone on":"Mute microphone"}},
                     QVariantMap{{"id","voice-output"},{"label",voice["deaf"].toBool()?"Enable call sound":"Silence call sound"}},
                     QVariantMap{{"id","voice-leave"},{"label","Leave call"}},back};
-                exitPresentation.setPanel("call",voice["status"].toString(),rows);return;
+                exitPresentation.setPanel("call",voice["summary"].toString(),rows);return;
             }
             if(runtime["kind"]!="retroarch")return;
             QString caption="Display changes apply next launch";

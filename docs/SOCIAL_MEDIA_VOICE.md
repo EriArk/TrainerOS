@@ -201,3 +201,43 @@ Recovery follows the official [Gateway event contract](https://docs.fluxer.app/g
 and [call contract](https://docs.fluxer.app/http-api/calls/): READY is followed by
 active CALL_CREATE events; an unavailable CALL_DELETE retains an unavailable call
 until recovery instead of fabricating a fresh ring.
+
+### Prepared continuation; owner checks deferred — 2026-10-02
+
+The owner explicitly deferred hands-on checks until returning home. This is a
+continuation of block 3, not its completion or a switch to emulator multiplayer.
+No new live call, game launch, microphone capture or network-fault exercise was
+started during this continuation.
+
+- Incoming calls observed ringing this account become missed-call notifications
+  only on a real call end. Answering elsewhere or explicitly declining removes
+  the pending notice. Gateway failure and unavailable CALL_DELETE do not mark
+  a call missed. The latter rule follows the official contract linked above.
+- Opening the entry displays its conversation without calling back. Dismissal
+  does not ACK messages. Viewing an already-read call message after the caller
+  hangs up clears the new local missed notice without another provider ACK.
+- Missed-call records are limited to 32 conversations and the account-bound
+  30-day history cache. Logout clears them. Calls that were never observed while
+  online are not reconstructed. Cached ended-call messages retain their ended
+  label without storing call rosters or voice grants.
+- Social, shell Home and in-game Home identify the current call conversation,
+  regardless of which chat/page is underneath. These are existing controls;
+  no new call page or automatic navigation was introduced.
+
+ARM64 Social tests pass all 75 cases, including the four new missed-call/cache/
+background-name cases. ARM64 production builds with tests disabled. Both running
+handheld executables now match SHA-256
+`b2e445bb7df64bbb8a7e26af569696a9a366b073c7b3ae6a8b460989f2aa0f9b`.
+Flip PID at verification was 1030636; Odin was 61640. Each device's existing
+database counts, boot choice, helpers and Emerald save hashes above are retained;
+InputPlumber is active and no Link settlement is pending. Voice helper unchanged.
+Actual installed idle captures are private `calls-prepared-flip.png` and
+`calls-prepared-odin.png`; they establish the restored shell only, not call UI or
+speech acceptance. The pending live checks above remain pending.
+
+The Windows production build and all four affected CTest entries passed:
+Social (75 QtTest cases), controller interactions, exit presentation and its
+rendered QML scenario. Ninja again recovered a truncated local dependency cache
+and rebuilt dependencies; no product test limit was relaxed. The ARM64 suite
+was rerun after the final already-read-call correction (75 passed). No unrelated
+full-suite or live-audio repetition was used for this follow-up.

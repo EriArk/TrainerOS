@@ -70,6 +70,8 @@ private:
     bool voiceMuted_=true,voiceDeaf_=false;
     int voiceParticipants_=0;
     QHash<QString,QJsonObject> calls_;
+    QHash<QString,QJsonObject> callNotices_;
+    void updateCallNotice(const QString& type,const QString& channel,const QJsonObject& event);
     bool voiceAvailable() const;
     void voiceCommand(QString operation,const QVariantMap& args);
     void leaveVoice();
