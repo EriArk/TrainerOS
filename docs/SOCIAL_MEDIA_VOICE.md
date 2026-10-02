@@ -306,3 +306,17 @@ answer/decline and missed calls on both consoles, then the remaining web-to-nati
 media/audio checks. Human speech/headset checks await the owner; separate-internet
 proof remains distinct. This outage does not complete block 3 or authorize moving
 to block 1.
+
+Follow-up at 12:48 UTC: the status page marked the incident resolved at 12:36:06,
+but local access remained intermittent. Flip briefly showed Connected without
+a shell restart (same PID), then API and Gateway HTTPS probes again timed out.
+The web client and Odin returned to Reconnecting. One native Odin call attempt
+transitioned from Connecting to "Couldn't start the call. Try again."; no voice
+worker remained and controller navigation still worked. This establishes the
+failed-start cleanup, not successful ringing or audio. Actual captures are
+`calls-recovery-flip.png`, `calls-recovery-start.png` and
+`calls-recovery-timeout.png`; the current status-page snapshot is
+`fluxer-status-recovery.html`, all private under `work/research/`.
+Both shells retained their running build and were returned to Trainer; no code,
+network settings, saves or microphone routing were changed. Remaining live gates
+above are unchanged.
