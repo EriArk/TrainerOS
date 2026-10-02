@@ -210,11 +210,43 @@ private slots:
         social->receive(0,state);
         QCOMPARE(shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["id"].toString(),decline);
         chat["ringing"]=false;state["chats"]=QVariantList{chat};social->receive(0,state);
-        QCOMPARE(shell.homeMenuFocus(),0);
+        QCOMPARE(shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["id"].toString(),decline);
+        QVERIFY(!shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["enabled"].toBool());
+        shell.dispatch(Action::Confirm);QVERIFY(shell.homeMenuOpen());QVERIFY(commands.isEmpty());
+        // Explicit navigation, rather than a provider update, selects Home.
+        for(int i=0;i<5;++i)shell.dispatch(Action::Up);
         QCOMPARE(shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["id"].toString(),QString("home"));
         // A later ring must not resurrect the old selection or steal focus.
         chat["ringing"]=true;state["chats"]=QVariantList{chat};social->receive(0,state);
         QCOMPARE(shell.homeMenuFocus(),0);QVERIFY(commands.isEmpty());
+    }
+    void expiredRingKeepsJoinUntilCallEndsWithoutRedirectingConfirm() {
+        MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;
+        ShellController shell(library,trainers,adapter,platform,dex,dex,hall,achievements);
+        auto* social=shell.social();QSignalSpy commands(social,&SocialController::commandRequested);
+        shell.goToPage(3);const auto origin=shell.navigationState();
+        QVariantMap chat{{"id",channel},{"name","Friend"},{"kind","chats"},{"ringing",true},{"call",true}};
+        QVariantMap state{{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},{"chats",QVariantList{chat}}};
+        social->receive(0,state);shell.dispatch(Action::Home);commands.clear();
+        chat["ringing"]=false;state["chats"]=QVariantList{chat};social->receive(0,state);
+        QCOMPARE(shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["label"].toString(),QString("Join call"));
+        shell.dispatch(Action::Confirm);
+        QVERIFY(!shell.homeMenuOpen());QCOMPARE(shell.navigationState(),origin);
+        QCOMPARE(commands.size(),1);QCOMPARE(commands.last()[0].toString(),QString("voice-join"));
+        // Only the selected invitation is retained, not every active call.
+        shell.dispatch(Action::Home);QCOMPARE(shell.homeMenuFocus(),0);
+        QCOMPARE(shell.homeMenuActions().size(),4);
+        shell.dispatch(Action::Home);
+        chat["ringing"]=true;state["chats"]=QVariantList{chat};social->receive(0,state);
+        shell.dispatch(Action::Home);commands.clear();
+        chat["ringing"]=false;chat["call"]=false;state["chats"]=QVariantList{chat};social->receive(0,state);
+        const auto ended=shell.homeMenuActions()[shell.homeMenuFocus()].toMap();
+        QVERIFY(!ended["enabled"].toBool());
+        shell.dispatch(Action::Confirm);QVERIFY(shell.homeMenuOpen());QVERIFY(commands.isEmpty());
+        QCOMPARE(shell.navigationState(),origin);
+        shell.dispatch(Action::Back);QVERIFY(!shell.homeMenuOpen());
+        shell.dispatch(Action::Home);QCOMPARE(shell.homeMenuFocus(),0);
     }
     void callNotificationAnswersDirectlyAndDeclineKeepsOrigin() {
         MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;

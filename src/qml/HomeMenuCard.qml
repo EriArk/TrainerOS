@@ -36,7 +36,7 @@ Panel {
                     label: modelData.label; detail: modelData.detail || ""; textSize: modelData.detail ? 18 : 21
                     tint: modelData.id === "exit" ? Theme.pink : index === 0 ? Theme.yellow : Theme.blue
                     selected: card.currentIndex === index; deferredFocus: true
-                    enabled: card.ready
+                    enabled: card.ready && modelData.enabled !== false
                     onActivated: card.chosen(index)
                 }
             }

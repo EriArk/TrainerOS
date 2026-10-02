@@ -1,5 +1,60 @@
 # Communication media and voice — 2026-10-02
 
+## Retained call invitation and quiet paired audio — 2026-10-02
+
+Odin recovered after the owner's manual restart. The guarded live-session switch
+started TrainerOS and restored its original boot preference after acknowledgement.
+No further device reboot was needed. This does not resolve the earlier Adreno
+fault or establish its cause.
+
+A native paired attempt reproduced a separate Home selection problem: ringing
+expired between the captured Answer selection and the next A press, which then
+selected Home. The shell now retains the selected invitation. When the same call
+is still ongoing, Answer becomes Join call with the same action identity; one A
+joins without changing the underlying page. If that call has ended or become
+unavailable, a disabled row remains until navigation/dismissal. An asynchronous
+update can no longer turn that pending A into Home. Unselected ongoing calls are
+not added to Home, and reopening the menu starts normally.
+
+The delivered production build was exercised on Flip with an Odin call: capture
+`ring-fix-incoming.png` shows Answer, `ring-fix-delayed.png` shows retained Join
+after ring expiry, and `ring-fix-answered.png` shows the joined two-person native
+call. These are actual handheld captures in private `work/research`.
+
+Before final delivery, a paired native call retained the same workers while
+changing audio routes through controller-operated Communication settings. An
+original synthetic 440 Hz signal entered Flip through an explicitly selected
+virtual source; no environmental microphone was enabled. Odin received decoded
+PCM in a non-default virtual output. Switching its output A to B moved the tone:
+measured amplitude was about 89.5 before switching, zero on the old output, and
+89.5 on the new output, with the same worker PID 5908. This establishes native
+transport, decoding and live output rerouting without playing through speakers.
+The call also survived leaving Settings/Social for Trainer and opening Home.
+
+Input switching changed the selected capture route without replacing the call
+worker, but the silent-input measurement coincided with zero receiver call
+volume, so it is not an isolated quantitative input-switch proof. An earlier
+volume check jumped between endpoints; a temporary diagnostic rebuild showed
+normal five-point steps. No cause or permanent volume fix is claimed. Diagnostic
+logging was removed and all tracked build inputs were reconciled before the
+final production rebuild. The final Odin build then showed 100% -> 95% on a
+single Left press and restored 100% on Right (`clean-volume-left.png` and
+`clean-volume-restored.png`). Do not confuse call gain with system speaker volume.
+
+Both calls were explicitly ended; virtual audio modules were removed and
+original default routes preserved. Input/output preferences returned to Follow
+system and call gain to 100%. Odin's system output remains 0%; Flip remains
+muted. This is synthetic-signal evidence, not headset hot-plug or speech quality.
+
+ARM64 checks passed: Social **84**, Interaction **37**, ExitPresentation **9**.
+Both running production executables match SHA-256
+`76e7065f5bf780a27c8da482ad6d7d11462652b0c7b9f6ae487d5b014d92fcda`.
+SQLite integrity, Trainer/Adventure counts (Flip 3/830, Odin 1/25), ordinary
+Emerald save hashes, boot preferences and nearby helpers were preserved. The
+voice helper is unchanged. Block 3 remains **open** for real microphone/headset
+quality, remaining web/native audio and reverse media interoperability, and
+separate-network acceptance. No other numbered block was started.
+
 ## Live settings retention and Odin GPU interruption — 2026-10-02
 
 On the unchanged `05c251c` delivery, Flip joined a call with the ordinary public

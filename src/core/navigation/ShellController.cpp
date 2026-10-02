@@ -850,7 +850,15 @@ QVariantList ShellController::homeMenuActions() const {
     QVariantList rows{QVariantMap{{"id","home"},{"label","Home"}},QVariantMap{{"id","friends"},{"label","Friends"}},
         QVariantMap{{"id","chats"},{"label","Chats"}},QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(social_.notifications().size())}}};
     if(!voice["channel"].toString().isEmpty())rows.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",voice["name"]}});
-    rows.append(social_.incomingCallActions());
+    const bool answering=homeMenuSelection_.startsWith("answer-call:");
+    const bool declining=homeMenuSelection_.startsWith("decline-call:");
+    rows.append(social_.incomingCallActions(answering?homeMenuSelection_.section(':',1):QString()));
+    if(homeMenuOpen_&&(answering||declining)) {
+        const bool present=std::any_of(rows.cbegin(),rows.cend(),[this](const QVariant& row){return row.toMap()["id"]==homeMenuSelection_;});
+        // Never redirect a pending A press onto Home when an asynchronous
+        // update removes the selected invitation. Navigation clears this row.
+        if(!present)rows.append(QVariantMap{{"id",homeMenuSelection_},{"label","Call no longer ringing"},{"enabled",false}});
+    }
     return rows;
 }
 QString ShellController::homeMenuCaption() const {
@@ -860,10 +868,12 @@ QString ShellController::homeMenuCaption() const {
 }
 void ShellController::activateHomeMenu(int index) {
     if (!homeMenuOpen_ || navigationLocked() || index < 0 || index >= homeMenuActions().size()) return;
-    const auto id=homeMenuActions()[index].toMap()["id"].toString();
+    const auto selected=homeMenuActions()[index].toMap();
+    if(!selected.value("enabled",true).toBool())return;
+    const auto id=selected["id"].toString();
     if(id.startsWith("answer-call:")||id.startsWith("decline-call:")) {
         const bool accept=id.startsWith("answer-call:");
-        if(social_.answerCall(id.section(':',1),accept)&&accept)closeHomeMenu();
+        if(social_.answerCall(id.section(':',1),accept,true)&&accept)closeHomeMenu();
         emit changed();return;
     }
     if(homeCallOpen_){if(id=="back"){homeCallOpen_=false;homeMenuSelection_="home";}else social_.controlCall(id);emit changed();return;}

@@ -154,8 +154,18 @@ void SocialController::dismissNotifications() {
     const auto list=notifications();
     for(int i=list.size()-1;i>=0;--i)dismissNotificationAt(i);
 }
-bool SocialController::answerCall(const QString& channel,bool accept) {
+bool SocialController::answerCall(const QString& channel,bool accept,bool allowOngoing) {
     if(snapshot_["state"]!="connected")return false;
+    if(accept&&allowOngoing) {
+        const auto voice=snapshot_["voice"].toMap();
+        if(!voice["available"].toBool()||!voice["channel"].toString().isEmpty())return false;
+        for(const auto& value:snapshot_["chats"].toList()) {
+            const auto row=value.toMap();
+            if(row["id"]==channel&&row["call"].toBool()&&!row["muted"].toBool()) {
+                media_.clear();emit commandRequested("voice-join",{{"channel",channel}});return true;
+            }
+        }
+    }
     for(const auto& value:notifications()) {
         const auto row=value.toMap();
         if(row["id"]!=channel||!row["ringing"].toBool())continue;
@@ -166,9 +176,20 @@ bool SocialController::answerCall(const QString& channel,bool accept) {
     }
     return false;
 }
-QVariantList SocialController::incomingCallActions() const {
+QVariantList SocialController::incomingCallActions(const QString& retainedChannel) const {
     QVariantList actions;
     if(snapshot_["state"]!="connected")return actions;
+    // A ring can expire while the caller is still waiting. Retain only the
+    // invitation the user was looking at; do not surface arbitrary active calls.
+    if(!retainedChannel.isEmpty()) {
+        const auto voice=snapshot_["voice"].toMap();
+        for(const auto& value:snapshot_["chats"].toList()) {
+            const auto row=value.toMap();
+            if(row["id"]!=retainedChannel||row["ringing"].toBool()||!row["call"].toBool()||row["muted"].toBool())continue;
+            if(voice["available"].toBool()&&voice["channel"].toString().isEmpty())
+                actions.append(QVariantMap{{"id","answer-call:"+retainedChannel},{"label","Join call"},{"detail",row["name"]}});
+        }
+    }
     for(const auto& value:notifications()) {
         const auto row=value.toMap();if(!row["ringing"].toBool())continue;
         const auto channel=row["id"].toString();

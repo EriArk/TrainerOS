@@ -94,8 +94,8 @@ public:
     bool gameActive() const{return gameActive_;}
     void setGameActive(bool active){if(gameActive_!=active){gameActive_=active;emit presentationChanged();}}
     void controlCall(const QString& operation){emit commandRequested(operation,{});}
-    bool answerCall(const QString& channel,bool accept);
-    QVariantList incomingCallActions() const;
+    bool answerCall(const QString& channel,bool accept,bool allowOngoing=false);
+    QVariantList incomingCallActions(const QString& retainedChannel={}) const;
     void reviewCommand(const QString& operation,const QVariantMap& args){emit commandRequested(operation,args);}
     void setSurfaceAvailable(bool available);
     void setConversationVisible(bool visible);

@@ -1,11 +1,20 @@
 # Native Social - conversations and discovery
 
-**Live settings retention, 2026-10-02:** Flip and the public web test client kept
+**Recovered paired check, 2026-10-02:** Odin is reachable and running TrainerOS
+again. Selected Home call invitations now survive ring expiry: join an ongoing
+call with one A, or retain a disabled ended-call row instead of silently selecting
+Home. This was verified between both native handhelds. Isolated synthetic audio
+also proved native decoding and live output rerouting without speaker sound;
+background navigation retained the call. Both devices received the checked build.
+Block 3 remains open for headset/speech, remaining web interoperability and
+separate-network gates. See [current evidence](SOCIAL_MEDIA_VOICE.md#retained-call-invitation-and-quiet-paired-audio--2026-10-02).
+
+**Earlier settings check, 2026-10-02:** Flip and the public web test client kept
 their muted two-person call while input/output preferences and call volume were
 changed and restored, and while Flip navigated to Trainer. No PCM rerouting or
 headset quality claim follows from this muted check. Odin's paired check was
-interrupted by a kernel-reported GPU fault; recovery remains unverified after the
-requested restart. [Evidence and remaining gates](SOCIAL_MEDIA_VOICE.md#live-settings-retention-and-odin-gpu-interruption--2026-10-02).
+interrupted by a kernel-reported GPU fault. Recovery is now verified above;
+the underlying GPU fault remains unresolved. [Earlier evidence](SOCIAL_MEDIA_VOICE.md#live-settings-retention-and-odin-gpu-interruption--2026-10-02).
 
 **Latest paired runtime evidence, 2026-10-02:** web-to-Flip ringing, direct Home
 answer/session joining, native decline in both directions and missed-call
@@ -47,8 +56,9 @@ interoperability and separate-network acceptance in ROADMAP.
 **Latest block 3 check, 2026-10-02:** public service access recovered enough for
 native calls. Direct Home answer on Flip retained the Trainer page; Odin showed
 the incoming Home actions. An expired call exposed index-based shell selection;
-Home now tracks action IDs and falls back to Home when the selected action
-disappears. A later ring does not steal selection. Both devices received this
+Home then tracked action IDs but fell back to Home when the selected action
+disappeared; the retained-invitation fix above supersedes that fallback. A later
+ring does not steal selection. Both devices received this
 fix and the single small Powered by Fluxer attribution in Social. Ordinary
 actions use Sign in/Sign out and provider-neutral wording. Planned emulator
 invitations use Nearby / Online friend, not "through Fluxer". Block 3 remains

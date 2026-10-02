@@ -4,10 +4,19 @@
 
 ## Current plan — reconciled 2026-10-01
 
-**Latest block 3 check, 2026-10-02:** muted Flip/web call settings changes and
+**Current block 3 continuation, 2026-10-02:** Odin recovery and paired native
+calls are verified. Home retains the selected invitation across ringing expiry,
+with direct Join for an ongoing call and no accidental Home activation. Synthetic
+audio proved native decoding and live output rerouting while retaining the call;
+both devices received the checked production build. Preserve Odin's 0% system
+volume and Flip's mute. Real headset/speech, remaining web audio/reverse media and
+separate-network checks still keep block 3 open. No block switch is implied.
+See [current evidence](SOCIAL_MEDIA_VOICE.md#retained-call-invitation-and-quiet-paired-audio--2026-10-02).
+
+**Earlier block 3 check, 2026-10-02:** muted Flip/web call settings changes and
 navigation retained the same media worker and two participants. Actual audio
-rerouting remains unverified. Odin encountered another Adreno/GPU wait requiring
-recovery; verify the owner's restart before resuming paired checks. Preserve
+rerouting was unverified at that point. Odin encountered another Adreno/GPU wait;
+recovery and paired continuation are now recorded above. Preserve
 Odin's 0% volume and the owner's muted output. No other numbered block is started.
 See [bounded evidence](SOCIAL_MEDIA_VOICE.md#live-settings-retention-and-odin-gpu-interruption--2026-10-02).
 
