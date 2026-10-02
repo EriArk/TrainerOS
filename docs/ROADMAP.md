@@ -4,6 +4,23 @@
 
 ## Current plan — reconciled 2026-10-01
 
+**Owner addition, 2026-10-02:** consolidate basic communication settings under
+Start -> Settings -> **Communication**, using the existing two-panel layout:
+communication profile, microphone/output devices, call volume, notifications
+and Do Not Disturb. Keep account/profile changes separate from the local Trainer
+and retain a single Powered by Fluxer attribution in Social. This expands the
+current communication lane without changing **2 -> 3 -> 1 -> 4 -> 5** or dropping
+other work. See [planned controls](SOCIAL.md#planned-communication-settings).
+
+**Latest runtime continuation, 2026-10-02:** ordinary web-to-Flip incoming
+ring/answer/session joining, explicit native decline in both directions and
+missed-call navigation on both handhelds now have actual controller/capture
+evidence. Both installed binaries, saves and boot settings remain unchanged.
+Block 3 stays open for real-microphone/headset, decoded web/native audio, reverse
+media and separate-network proof. Browser upload automation is currently blocked
+by unavailable/occluded UI access. See
+[paired evidence](SOCIAL_MEDIA_VOICE.md#web-incoming-and-paired-decline-checks--2026-10-02).
+
 **Current continuation, 2026-10-02:** public connectivity recovered sufficiently
 to resume block 3. Native Odin-to-Flip direct Home answering and an incoming
 Home ring on Odin were observed. Shell Home now retains selection by action ID
@@ -43,7 +60,7 @@ The owner deferred hands-on checks until returning home; continue this block's
 preparation, retaining its open acceptance. Missed-call notifications and named
 background-call controls are included in that continuation.
 Direct Home/inbox answering removes the previous conversation/Options detour;
-its live incoming-call walkthrough remains open. The owner authorized remote
+its live incoming-call walkthrough is recorded in the latest evidence above. The owner authorized remote
 checks while away, but the public Fluxer connectivity outage on October 2
 (12:30 UTC incident) blocked the attempted call on all clients. Resume the same
 block after recovery; see the [remote evidence](SOCIAL_MEDIA_VOICE.md#remote-continuation-blocked-by-public-service-outage--2026-10-02).

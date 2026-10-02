@@ -1,5 +1,14 @@
 # AGENTS.md — TrainerOS
 
+**Owner communication settings, 2026-10-02:** add the basic communication
+profile, microphone/output selection, call volume and notification/DND controls
+to Start -> Settings under Communication, using the existing two-panel layout.
+Do not name it Fluxer settings or add another settings hierarchy. Keep the
+communication account/profile distinct from the local Trainer profile, use
+supported provider operations, and retain the single Social attribution.
+This is accepted planned scope within the communication lane, not delivered
+behavior; preserve the current block order and remaining runtime acceptance.
+
 **Owner invitation wording, 2026-10-02:** in-game multiplayer invitations must
 offer Nearby and Online friend. Do not call the latter "through Fluxer".
 Keep one small Powered by Fluxer attribution in Social. This clarifies block 1

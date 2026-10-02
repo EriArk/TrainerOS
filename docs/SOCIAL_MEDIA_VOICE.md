@@ -1,5 +1,46 @@
 # Communication media and voice — 2026-10-02
 
+## Web incoming and paired decline checks — 2026-10-02
+
+This continuation supersedes the unobserved web ring and expired decline
+attempts recorded below. On the unchanged delivered build, an ordinary public
+web-client call reached Flip Home with Answer/Decline. Closing and reopening
+Home selected the fresh Answer action; A answered while retaining the underlying
+Trainer/RA page. Home voice controls then showed Connected and Microphone off
+(`calls-oct2-fast-ring.png`, `calls-oct2-web-answered.png`,
+`calls-oct2-web-connected.png`). The web participant list showed both users.
+The web caller and native receiver explicitly left afterwards.
+
+The web client's [call command](https://github.com/fluxerapp/fluxer/blob/main/fluxer_app/src/features/voice/commands/CallCommands.ts)
+rings after media connection; the earlier attempt did not establish a fresh
+ringing observation. A displayed call message alone is insufficient evidence.
+The successful check proves incoming signaling, direct Home answering and session
+joining, not web/native decoded audio or real-microphone quality.
+
+Both native directions now have explicit decline evidence taken while the ring
+was present: `calls-oct2-declined.png` (Odin) and
+`calls-oct2-flip-declined.png` (Flip). A on Decline removed the incoming actions
+without joining. Separate fresh unanswered calls ended by the caller produced
+Missed call notifications on each handheld. Opening those notifications displayed
+the correct conversation without calling back (`calls-oct2-missed-inbox.png`,
+`calls-oct2-missed-open.png`, `calls-oct2-flip-missed-inbox.png`,
+`calls-oct2-flip-missed-open.png`). These are actual handheld captures under
+private `work/research/`, driven through the existing controller-input helper.
+
+Reverse web attachment acceptance remains open: the internal browser could
+display the upload menu, but its exposed actions could not select the file.
+The native UI bridge was unavailable and Companion observation returned
+WINDOW_OCCLUDED for both browser windows. No upload or reverse-media success
+is claimed. Real input/headset quality, decoded web/native audio and
+separate-network acceptance also remain open; block 3 is not complete.
+
+No production source or binaries changed during this continuation. Final live
+verification still matches the binary/helper/save hashes in the preceding
+delivery evidence, with Flip PID 1410186 and Odin PID 104735. Database counts
+remain 3/830 and 1/25; boot configuration and integration helpers are preserved,
+and neither device has a pending Link transaction. No reboot, game launch or
+save operation was needed; microphones remained muted throughout.
+
 ## Resumed call checks and stable Home selection — 2026-10-02
 
 Both native sessions and the ordinary web client regained connectivity. An

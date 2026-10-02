@@ -1,5 +1,39 @@
 # Native Social - conversations and discovery
 
+**Latest paired runtime evidence, 2026-10-02:** web-to-Flip ringing, direct Home
+answer/session joining, native decline in both directions and missed-call
+notification-to-conversation navigation on both handhelds are now observed.
+The unchanged installed build passed the integrity checks again. This does not
+complete block 3: real-input/headset, web/native decoded audio, reverse media and
+separate-network acceptance remain open. See the
+[new call evidence](SOCIAL_MEDIA_VOICE.md#web-incoming-and-paired-decline-checks--2026-10-02).
+
+## Planned communication settings
+
+Owner addition, 2026-10-02: Start -> Settings gains **Communication**, inside the
+existing two-panel settings surface. Keep the category list on the left and
+editable controls on the right; do not insert a separate provider settings app
+or a chain of intermediate pages. Controller focus and the shared keyboard
+continue to apply.
+
+- Communication profile: supported display-name, avatar and profile fields,
+  scoped to the signed-in communication account, separate from local Trainer data.
+- Audio: available microphone and output devices, call volume, microphone test
+  and mute controls. Reflect actual device availability; preserve a running call
+  when navigating away and apply supported device changes without losing it.
+- Notifications: sounds, private previews and Do Not Disturb, reusing the
+  existing account-scoped behavior rather than creating duplicate preferences.
+- Account connection/sign-out in the same surface, respecting normal provider
+  permissions and existing confirmation behavior.
+
+Use ordinary user-facing names, never "Fluxer settings". The one small Powered
+by Fluxer attribution stays in Social. These controls are planned, not a claim
+that profile editing or consolidated audio settings are installed. Implement in
+the current communication lane while preserving the accepted block order and
+all outstanding acceptance in ROADMAP.
+
+## Previous delivery evidence
+
 **Latest block 3 check, 2026-10-02:** public service access recovered enough for
 native calls. Direct Home answer on Flip retained the Trainer page; Odin showed
 the incoming Home actions. An expired call exposed index-based shell selection;
