@@ -476,7 +476,7 @@ void SocialController::openMenu() {
         add(snapshot_["doNotDisturb"].toBool()?"Do not disturb: On":"Do not disturb: Off","dnd");
         add(snapshot_["privatePreviews"].toBool()?"Private notifications: On":"Private notifications: Off","private");
         add(snapshot_.value("notificationSound",true).toBool()?"Notification sound: On":"Notification sound: Off","notification-sound");
-        add("Refresh","refresh");add("Clear local history","clear-history");add("Sign out of Fluxer","logout");
+        add("Refresh","refresh");add("Clear local history","clear-history");add("Sign out","logout");
     }
     emit changed();
 }

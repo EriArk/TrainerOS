@@ -1,5 +1,10 @@
 # AGENTS.md — TrainerOS
 
+**Owner invitation wording, 2026-10-02:** in-game multiplayer invitations must
+offer Nearby and Online friend. Do not call the latter "through Fluxer".
+Keep one small Powered by Fluxer attribution in Social. This clarifies block 1
+acceptance; the labels alone do not deliver actual emulator multiplayer.
+
 **Owner bezel correction, 2026-10-02:** keep gameplay large at its original
 proportions. Decorations belong in unused margins; do not offer the tested tiny
 GBA-screen-inside-a-Game-Boy presentation. Mega Bezel may supply shader framing;

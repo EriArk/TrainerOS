@@ -144,6 +144,28 @@ private slots:
         QCOMPARE(commands.size(),1);QCOMPARE(commands.last()[0].toString(),QString("voice-join"));
         QCOMPARE(commands.last()[1].toMap()["channel"].toString(),QString(channel));
     }
+    void homeSelectionFollowsActionWhenCallRowsChange() {
+        MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;
+        ShellController shell(library,trainers,adapter,platform,dex,dex,hall,achievements);
+        auto* social=shell.social();QSignalSpy commands(social,&SocialController::commandRequested);
+        QVariantMap chat{{"id",channel},{"name","Friend"},{"kind","chats"},{"ringing",true}};
+        QVariantMap state{{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},{"chats",QVariantList{chat}}};
+        social->receive(0,state);shell.dispatch(Action::Home);shell.dispatch(Action::Down);commands.clear();
+        const QString decline="decline-call:"+QString(channel);
+        QCOMPARE(shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["id"].toString(),decline);
+        // Losing audio availability removes Answer. Keep Decline selected,
+        // rather than using the previous numeric position.
+        state["voice"]=QVariantMap{{"available",false}};
+        social->receive(0,state);
+        QCOMPARE(shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["id"].toString(),decline);
+        chat["ringing"]=false;state["chats"]=QVariantList{chat};social->receive(0,state);
+        QCOMPARE(shell.homeMenuFocus(),0);
+        QCOMPARE(shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["id"].toString(),QString("home"));
+        // A later ring must not resurrect the old selection or steal focus.
+        chat["ringing"]=true;state["chats"]=QVariantList{chat};social->receive(0,state);
+        QCOMPARE(shell.homeMenuFocus(),0);QVERIFY(commands.isEmpty());
+    }
     void callNotificationAnswersDirectlyAndDeclineKeepsOrigin() {
         MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;

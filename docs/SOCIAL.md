@@ -1,5 +1,15 @@
 # Native Social - conversations and discovery
 
+**Latest block 3 check, 2026-10-02:** public service access recovered enough for
+native calls. Direct Home answer on Flip retained the Trainer page; Odin showed
+the incoming Home actions. An expired call exposed index-based shell selection;
+Home now tracks action IDs and falls back to Home when the selected action
+disappears. A later ring does not steal selection. Both devices received this
+fix and the single small Powered by Fluxer attribution in Social. Ordinary
+actions use Sign in/Sign out and provider-neutral wording. Planned emulator
+invitations use Nearby / Online friend, not "through Fluxer". Block 3 remains
+open for the [remaining runtime gates](SOCIAL_MEDIA_VOICE.md#resumed-call-checks-and-stable-home-selection--2026-10-02).
+
 The 2026-10-02 [media, calls and active-game notifications increment](SOCIAL_MEDIA_VOICE.md)
 adds native attachments, the LiveKit call worker and shared Home call controls.
 [#113 Reviews](ADVENTURE_REVIEWS.md) uses the same account provider from Adventure

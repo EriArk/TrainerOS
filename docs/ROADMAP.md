@@ -4,6 +4,17 @@
 
 ## Current plan — reconciled 2026-10-01
 
+**Current continuation, 2026-10-02:** public connectivity recovered sufficiently
+to resume block 3. Native Odin-to-Flip direct Home answering and an incoming
+Home ring on Odin were observed. Shell Home now retains selection by action ID
+when call rows change. Both handhelds received the fix and the single Social
+attribution. Real-input/headset, separate-network and remaining web-client
+interoperability acceptance remain open; see the latest
+[call evidence](SOCIAL_MEDIA_VOICE.md#resumed-call-checks-and-stable-home-selection--2026-10-02).
+The outage work below is historical, not the active task. Block 1 must offer
+Nearby / Online friend for an actual running-game invitation; no placeholder
+entry or save-exchange substitution completes that requirement.
+
 **Owner outage exception, 2026-10-02:** independent planned work may proceed
 while public Fluxer is unavailable. The current offline task is #112 installed
 RetroArch shader/frame selection in the existing Home overlay, with per-game

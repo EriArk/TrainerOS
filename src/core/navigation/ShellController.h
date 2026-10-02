@@ -137,7 +137,7 @@ public:
     QString currentAdventureId() const;
     bool menuOpen() const { return menuOpen_; }
     bool homeMenuOpen() const { return homeMenuOpen_; }
-    int homeMenuFocus() const { return qBound(0,homeMenuFocus_,qMax(0,int(homeMenuActions().size())-1)); }
+    int homeMenuFocus() const;
     QVariantList homeMenuActions() const;
     QString homeMenuCaption() const;
     bool notificationsOpen() const { return homeMenuOpen_ && notificationsOpen_; }
@@ -224,7 +224,7 @@ private:
     bool notificationsOpen_ = false;
     bool homeCallOpen_ = false;
     int notificationFocus_ = 0;
-    int homeMenuFocus_ = 0;
+    QString homeMenuSelection_ = "home";
     bool powerMenu_ = false;
     bool libraryFromWorlds_ = false;
     QString notice_;

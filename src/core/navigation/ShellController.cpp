@@ -216,7 +216,10 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         textTarget_ = TextTarget::TrainerName;
         keyboard_.begin("Trainer name", initial, TrainerController::NameLimit);
     });
-    connect(&social_, &SocialController::changed, this, [this]{if(page_==4||homeMenuOpen_)emit changed();});
+    connect(&social_, &SocialController::changed, this, [this]{
+        if(homeMenuOpen_)homeMenuSelection_=homeMenuActions().value(homeMenuFocus()).toMap()["id"].toString();
+        if(page_==4||homeMenuOpen_)emit changed();
+    });
     connect(&social_, &SocialController::textRequested, this, [this](QString title, QString text, int limit) {
         textTarget_ = TextTarget::Social; keyboard_.begin(title,text,limit,false,social_.textSubmitLabel(),social_.textAllowsEmoji());
     });
@@ -823,6 +826,11 @@ void ShellController::closeHomeMenu() {
     if (!homeMenuOpen_ || navigationLocked()) return;
     homeMenuOpen_ = false; emit changed();
 }
+int ShellController::homeMenuFocus() const {
+    const auto actions=homeMenuActions();
+    for(int i=0;i<actions.size();++i)if(actions[i].toMap()["id"]==homeMenuSelection_)return i;
+    return 0;
+}
 QVariantList ShellController::homeMenuActions() const {
     const auto voice=social_.account()["voice"].toMap();
     if(homeCallOpen_) {
@@ -852,8 +860,8 @@ void ShellController::activateHomeMenu(int index) {
         if(social_.answerCall(id.section(':',1),accept)&&accept)closeHomeMenu();
         emit changed();return;
     }
-    if(homeCallOpen_){if(id=="back"){homeCallOpen_=false;homeMenuFocus_=0;}else social_.controlCall(id);emit changed();return;}
-    if(id=="call"){homeCallOpen_=true;homeMenuFocus_=0;emit changed();return;}
+    if(homeCallOpen_){if(id=="back"){homeCallOpen_=false;homeMenuSelection_="home";}else social_.controlCall(id);emit changed();return;}
+    if(id=="call"){homeCallOpen_=true;homeMenuSelection_="voice-mute";emit changed();return;}
     if(index==3){notificationsOpen_=true;notificationFocus_=0;emit changed();return;}
     if(index==2&&!social_.notificationFace().isEmpty()){openSocialNotification();return;}
     if (index) socialFace_ = "chats";
@@ -897,11 +905,13 @@ void ShellController::dispatch(Action action) {
             else if(action==Action::Up||action==Action::Down){notificationFocus_=std::clamp(notificationFocus_+(action==Action::Up?-1:1),0,std::max(0,int(social_.notifications().size())-1));emit changed();}
             return;
         }
-        if(action==Action::Back&&homeCallOpen_){homeCallOpen_=false;homeMenuFocus_=0;emit changed();}
+        if(action==Action::Back&&homeCallOpen_){homeCallOpen_=false;homeMenuSelection_="home";emit changed();}
         else if (action == Action::Home || action == Action::Back) closeHomeMenu();
         else if (action == Action::Confirm) activateHomeMenu(homeMenuFocus());
         else if (action == Action::Up || action == Action::Down) {
-            homeMenuFocus_ = std::clamp(homeMenuFocus() + (action == Action::Up ? -1 : 1), 0, qMax(0,int(homeMenuActions().size())-1)); emit changed();
+            const auto actions=homeMenuActions();
+            const int index=std::clamp(homeMenuFocus() + (action == Action::Up ? -1 : 1), 0, qMax(0,int(actions.size())-1));
+            homeMenuSelection_=actions.value(index).toMap()["id"].toString();emit changed();
         } else if (action == Action::SystemMenu) {
             closeHomeMenu(); dispatch(action);
         }
@@ -912,9 +922,9 @@ void ShellController::dispatch(Action action) {
     }
     if(action==Action::LocalAction && canEditWorld()) {libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
     if (action == Action::Home) {
-        homeMenuOpen_ = true; notificationsOpen_=homeCallOpen_=false; homeMenuFocus_ = 0;
+        homeMenuOpen_ = true; notificationsOpen_=homeCallOpen_=false; homeMenuSelection_ = "home";
         const auto actions=homeMenuActions();
-        for(int i=0;i<actions.size();++i)if(actions[i].toMap()["id"].toString().startsWith("answer-call:")){homeMenuFocus_=i;break;}
+        for(const auto& action:actions)if(action.toMap()["id"].toString().startsWith("answer-call:")){homeMenuSelection_=action.toMap()["id"].toString();break;}
         emit changed();return;
     }
     if (action == Action::PreviousPage || action == Action::NextPage) {

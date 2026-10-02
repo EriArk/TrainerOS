@@ -15,6 +15,10 @@ FocusScope {
         id: heading
         title: [root.social.contacts ? "Friends" : "Messages", "Groups", "Communities", "Search"][root.faceIndex]
         subtitle: root.connected ? (root.account.name || "") + " · " + (root.faceIndex === 2 && root.account.communityStatus ? root.account.communityStatus : root.account.status || "") : "A little closer, wherever you are."
+        Text {
+            anchors { right: parent.right; rightMargin: Theme.pageMargin; bottom: parent.bottom }
+            text: "Powered by Fluxer"; color: Theme.muted; font.pixelSize: 9
+        }
     }
     Item {
         anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
@@ -46,12 +50,12 @@ FocusScope {
             x: parent.width * 0.36 + 32; width: parent.width * 0.64 - 64
             anchors.verticalCenter: parent.verticalCenter; spacing: 14
             Text { width: parent.width; text: root.account.state === "authorizing" ? "Let's get you connected" : "Your friends, along for the ride"; wrapMode: Text.WordWrap; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 26 }
-            Text { width: parent.width; text: root.account.state === "authorizing" ? (root.account.status || "Connecting...") : "Chat with your Fluxer friends from your handheld."; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 16; textFormat: Text.PlainText }
+            Text { width: parent.width; text: root.account.state === "authorizing" ? (root.account.status || "Connecting...") : "Chat with your friends from your handheld."; wrapMode: Text.WordWrap; color: Theme.muted; font.pixelSize: 16; textFormat: Text.PlainText }
             Rectangle { visible: (root.account.code || "").length > 0; width: parent.width; height: 60; radius: 10; color: "#fff4c6"; border.color: "#c5af66"; border.width: 2
                 Text { anchors.centerIn: parent; text: root.account.code || ""; font.family: Theme.brandFamily; font.pixelSize: 27; color: Theme.ink; textFormat: Text.PlainText }
             }
-            CapButton { visible: root.account.state !== "authorizing"; width: parent.width; height: 54; label: root.account.state === "restoring" ? "Signing in..." : "Connect Fluxer"; tint: Theme.yellow; selected: root.takesFocus; enabled: !!root.account.available && root.account.state !== "restoring"; claimsFocus: false; onActivated: root.social.login() }
-            Text { width: parent.width; visible: root.account.state !== "authorizing" && !!root.account.status && root.account.status !== "Sign in to Fluxer"; text: root.account.status || ""; color: Theme.muted; font.pixelSize: 13; wrapMode: Text.WordWrap; textFormat: Text.PlainText }
+            CapButton { visible: root.account.state !== "authorizing"; width: parent.width; height: 54; label: root.account.state === "restoring" ? "Signing in..." : "Sign in"; tint: Theme.yellow; selected: root.takesFocus; enabled: !!root.account.available && root.account.state !== "restoring"; claimsFocus: false; onActivated: root.social.login() }
+            Text { width: parent.width; visible: root.account.state !== "authorizing" && !!root.account.status && root.account.status !== "Sign in"; text: root.account.status || ""; color: Theme.muted; font.pixelSize: 13; wrapMode: Text.WordWrap; textFormat: Text.PlainText }
         }
     }
     Item {
@@ -81,7 +85,7 @@ FocusScope {
             }
         }
         Text { x: people.x + 6; y: 44; width: people.width - 16; visible: !people.count
-            text: ["Your conversations will appear here.", "Your group chats will appear here.", "Your Fluxer communities will appear here.", "Friends make the journey better. Add someone to say hello."][root.faceIndex]
+            text: ["Your conversations will appear here.", "Your group chats will appear here.", "Your communities will appear here.", "Friends make the journey better. Add someone to say hello."][root.faceIndex]
             wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; color: Theme.muted; font.pixelSize: 17
         }
         Item {
@@ -232,7 +236,7 @@ FocusScope {
             radius: 16; color: Theme.paper; border.color: Theme.chassis; border.width: 3
             Column {
                 id: menuHeading; x: 18; y: 15; width: parent.width - 36; spacing: 6
-                Text { width: parent.width; text: root.social.menuTitle || "Fluxer"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23; textFormat: Text.PlainText; elide: Text.ElideRight }
+                Text { width: parent.width; text: root.social.menuTitle || "Social"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23; textFormat: Text.PlainText; elide: Text.ElideRight }
                 Text { width: parent.width; text: root.social.menuDetail; color: Theme.muted; font.pixelSize: 13; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight; textFormat: Text.PlainText }
                 Image { visible: root.social.mediaPreview && root.social.media.picture.toString().length > 0; width: parent.width; height: visible ? 165 : 0; source: visible ? root.social.media.picture : ""; sourceSize: Qt.size(740,330); fillMode: Image.PreserveAspectFit; asynchronous: true }
                 Rectangle { visible: root.social.mediaPreview && root.social.media.state === "recording"; width: parent.width; height: visible ? 52 : 0; radius: 10; color: "#f1c8c4"

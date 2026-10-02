@@ -1,5 +1,43 @@
 # Communication media and voice — 2026-10-02
 
+## Resumed call checks and stable Home selection — 2026-10-02
+
+Both native sessions and the ordinary web client regained connectivity. An
+Odin-originated call reached Flip; Guide then A answered directly and retained
+the Trainer page. Home voice controls subsequently showed Connected and
+Microphone off (`calls-answer-connected.png`). An earlier ring expired while
+Home was open and its numeric selection moved to Notifications. Shell Home now
+preserves the action ID, falls back to Home when that action disappears, and
+does not resurrect the old selection on a later ring. This matches the existing
+in-game menu policy. Notification copy now says Press Home to answer.
+
+Web-originated calls produced call messages, but a fresh incoming ring was not
+observed on Flip in these attempts. Joining the existing web call from native
+Social reached the web participant list; the native capture was taken while
+Connecting audio. This is not proof of decoded web/native audio or reliable
+web-originated ringing. Browser and native calls were explicitly left; real
+microphones stayed muted. Reverse web attachment/audio acceptance, real input,
+headset quality, separate-network proof and the remaining call matrix stay open.
+No game or save operation was performed during this continuation.
+
+After delivery, a Flip-originated call displayed Answer/Decline in Odin Home
+(`calls-final-odin-ring.png`). The attempted decline occurred after the short
+ring had disappeared: selection had returned to Home, and Down/A opened Friends.
+Do not record that attempt as a passed decline check. The caller then left.
+
+ARM64 checks passed: Social 79 cases, interactions 36, exit presentation 9;
+production was rebuilt with BUILD_TESTING disabled. Both live binaries match
+`658d2a1188a5c70f0bea06134bd779ae16ab688a44b01672aac55519b21cca48`
+(Flip PID 1410186, Odin PID 104735 at verification). Database counts remain
+3 Trainers/830 Adventures and 1/25 respectively. Boot preferences, integration
+helpers and both Emerald save hashes below are unchanged; no Link is pending.
+No device reboot was needed. Social attribution was visually checked on both
+actual handheld captures `calls-resume-delivery-flip.png` and
+`calls-resume-delivery-odin.png`, private under `work/research/`.
+
+Block 3 is still incomplete. Continue its outstanding runtime acceptance rather
+than treating this correction as a substitute completed block.
+
 This increment extends the existing native Fluxer user client. It does not
 replace provider permissions, consent, privacy settings or local Link.
 

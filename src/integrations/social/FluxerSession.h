@@ -158,7 +158,7 @@ private:
     Transport transport_;
     QString guild_;
     QHash<QString,QJsonObject> guilds_;
-    QString owner_, token_, self_, name_, status_ = "Sign in to Fluxer", code_, pollSecret_, gatewaySession_, channel_;
+    QString owner_, token_, self_, name_, status_ = "Sign in", code_, pollSecret_, gatewaySession_, channel_;
     QString state_ = "signed-out";
     quint64 generation_ = 0, epoch_ = 0, messageRevision_ = 0;
     qint64 sequence_ = 0, expires_ = 0, blockedUntil_ = 0;

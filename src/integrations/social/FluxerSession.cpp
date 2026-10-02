@@ -148,7 +148,7 @@ void FluxerSession::reset() {
 void FluxerSession::stop() { reset(); }
 void FluxerSession::setOwner(QString owner, quint64 generation) {
     reset(); owner_ = std::move(owner); generation_ = generation;
-    state_ = "signed-out"; status_ = "Sign in to Fluxer"; publish();
+    state_ = "signed-out"; status_ = "Sign in"; publish();
     if (!owner_.isEmpty() && !transport_) credential();
 }
 QString FluxerSession::label(const QJsonObject& user) const {
@@ -364,7 +364,7 @@ void FluxerSession::credential(bool write, bool remove) {
         auto completed=[this,epoch,write](bool ok,QByteArray value){
             if(epoch!=epoch_)return;
             credentialLoading_=false;remembered_=ok&&(write||!value.isEmpty());
-            if(!write){if(ok&&!value.isEmpty()){token_=QString::fromUtf8(value);authenticated();return;}state_="signed-out";status_="Sign in to Fluxer";}
+            if(!write){if(ok&&!value.isEmpty()){token_=QString::fromUtf8(value);authenticated();return;}state_="signed-out";status_="Sign in";}
             publish();
         };
         if(write)encryptedCredentials_->write(key,token_.toUtf8(),std::move(completed));
@@ -381,9 +381,9 @@ void FluxerSession::credential(bool write, bool remove) {
     connect(job,&QKeychain::Job::finished,this,[this,epoch,write,remove](QKeychain::Job* j){
         if(epoch!=epoch_ || remove) return;
         credentialLoading_=false;
-        if(j->error()!=QKeychain::NoError) { remembered_=false;if(!write){state_="signed-out";status_="Sign in to Fluxer";} publish(); return; }
+        if(j->error()!=QKeychain::NoError) { remembered_=false;if(!write){state_="signed-out";status_="Sign in";} publish(); return; }
         remembered_=true;
-        if(!write) { token_=static_cast<QKeychain::ReadPasswordJob*>(j)->textData(); if(!token_.isEmpty()) authenticated(); else {remembered_=false;state_="signed-out";status_="Sign in to Fluxer";publish();} }
+        if(!write) { token_=static_cast<QKeychain::ReadPasswordJob*>(j)->textData(); if(!token_.isEmpty()) authenticated(); else {remembered_=false;state_="signed-out";status_="Sign in";publish();} }
         else publish();
     });
     job->start();
@@ -396,7 +396,7 @@ void FluxerSession::login() {
     request("GET","/.well-known/fluxer",{},[this](Reply r){
         const auto endpoints=r.body.object()["endpoints"].toObject();
         if(r.status!=200 || endpoints["api_public"]!="https://api.fluxer.app" || endpoints["gateway"]!="wss://gateway.fluxer.app") {
-            state_="signed-out"; fail(r,"Fluxer sign-in is unavailable"); return;
+            state_="signed-out"; fail(r,"Sign-in is unavailable"); return;
         }
         request("POST","/v1/auth/handoff/initiate",{},[this](Reply result){
             const auto b=result.body.object(); code_=b["code"].toString(); pollSecret_=b["poll_secret"].toString();
@@ -861,7 +861,7 @@ void FluxerSession::command(QString operation, QVariantMap args) {
     if(operation=="cancel-login") {
         if(poll_)poll_->stop();
         if(!code_.isEmpty())request("DELETE","/v1/auth/handoff/"+code_,{{"poll_secret",pollSecret_}},[](Reply){},true);
-        ++epoch_;polling_=false;code_.clear();pollSecret_.clear();state_="signed-out";status_="Sign in to Fluxer";publish();return;
+        ++epoch_;polling_=false;code_.clear();pollSecret_.clear();state_="signed-out";status_="Sign in";publish();return;
     }
     if(operation=="logout") {
         // Retain session until revocation succeeds; offline logout must not silently restore it next boot.
@@ -1023,7 +1023,7 @@ bool FluxerSession::mutate(const QString& operation,const QVariantMap& args) {
         if(!ok){
             const auto code=r.body.object()["code"].toString();
             QString problem=r.body.object()["message"].toString().left(180);
-            if(code=="CAPTCHA_REQUIRED"||code=="INVALID_CAPTCHA")problem="Fluxer requires a verification challenge. Complete this action in Fluxer.";
+            if(code=="CAPTCHA_REQUIRED"||code=="INVALID_CAPTCHA")problem="A verification challenge is required. Complete this action in the web client.";
             if(problem.isEmpty())problem="Could not complete this action";
             if(r.status==0&&operation=="create-group"){status_="Connection interrupted. Refresh Groups before trying again.";publish();return;}
             fail(r,problem);return;
@@ -1099,8 +1099,8 @@ void FluxerSession::search(QString mode,QString text,int offset) {
     searchOffset_=qMax(0,offset);searchTotal_=0;searchResults_.clear();searching_=false;searchStatus_.clear();
     if(mode=="people") {
         static const QRegularExpression tag("^[A-Za-z0-9_]{1,32}#[0-9]{4}$");
-        if(!tag.match(searchText_).hasMatch())searchStatus_="Enter their full Fluxer tag: username#1234";
-        else {searchStatus_="Ready to send a friend request";searchResults_.append(QVariantMap{{"id",searchText_},{"name",searchText_},{"description","Add this person on Fluxer"},{"detail","New friend"},{"kind","person"},{"action","Add friend"}});}
+        if(!tag.match(searchText_).hasMatch())searchStatus_="Enter their full tag: username#1234";
+        else {searchStatus_="Ready to send a friend request";searchResults_.append(QVariantMap{{"id",searchText_},{"name",searchText_},{"description","Send a friend request"},{"detail","New friend"},{"kind","person"},{"action","Add friend"}});}
         publish();return;
     }
     QString path;
@@ -1180,7 +1180,7 @@ void FluxerSession::createCommunity(QString name) {
         mutationBusy_=false;const auto g=r.body.object();const auto id=g["id"].toString();
         if(r.status<200||r.status>=300||!idValid(id)) {
             const auto code=g["code"].toString();
-            communityStatus_=code=="GUILD_CREATION_EMAIL_VERIFICATION_REQUIRED"?"Verify your Fluxer email before creating a community."
+            communityStatus_=code=="GUILD_CREATION_EMAIL_VERIFICATION_REQUIRED"?"Verify your email before creating a community."
                 :r.status==0?"Connection lost. Refresh your communities before trying again."
                 :"Community was not created. "+g["message"].toString().left(140);
             fail(r,communityStatus_);return;
@@ -1279,7 +1279,7 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
                 calls_[id]=call;
             }
             updateCallNotice(type,id,d);
-            if(type!="CALL_DELETE"&&!wasRinging&&d["ringing"].toArray().contains(self_)&&!doNotDisturb_&&!muted_.contains(id))emit incomingMessage(generation_,id,"Incoming call","Open this conversation to join");
+            if(type!="CALL_DELETE"&&!wasRinging&&d["ringing"].toArray().contains(self_)&&!doNotDisturb_&&!muted_.contains(id))emit incomingMessage(generation_,id,"Incoming call","Press Home to answer");
             publish();return;
         }
         if(type=="MESSAGE_UPDATE"||type=="MESSAGE_DELETE"||type=="CHANNEL_PINS_UPDATE"||type=="CHANNEL_DELETE"||type=="GUILD_UPDATE"||type=="GUILD_DELETE") {
