@@ -8,6 +8,7 @@
 #include <QJsonObject>
 #include <QSaveFile>
 #include <QStandardPaths>
+#include <QSettings>
 #include <algorithm>
 
 namespace trainer {
@@ -56,7 +57,7 @@ void SocialController::setOwner(QString owner) {
     media_.clear();mediaSending_=mediaUncertain_=false;
     if(link_)link_->endOnline();
     saveDrafts();draftFile_.clear();
-    editDrafts_.clear();pickedPeople_.clear();
+    editDrafts_.clear();pickedPeople_.clear();dismissedNotifications_.clear();activityNotifications_.clear();presentedInvitation_.clear();notificationSettingsKey_.clear();
     toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();
     owner_=std::move(owner);++generation_;snapshot_.clear();drafts_.clear();menu_.clear();toastChannel_.clear();
     selection_.stop();contacts_=false;searchStarted_=false;searchFocus_=-1;
@@ -88,7 +89,23 @@ void SocialController::setOnlineContext(bool available,bool writable) {
     const auto caps=writable&&link_?link_->onlineCapabilities().toVariantList():QVariantList{};
     if(caps!=onlineCapabilities_){onlineCapabilities_=caps;emit commandRequested("online-capabilities",{{"activities",caps}});}
 }
-void SocialController::answerOnline(bool accept){emit commandRequested("online-answer",{{"accept",accept}});}
+QVariantMap SocialController::online() const {
+    auto state=snapshot_.value("online").toMap();
+    if(state["incoming"].toBool())state["open"]=!presentedInvitation_.isEmpty()&&state["session"]==presentedInvitation_;
+    return state;
+}
+void SocialController::answerOnline(bool accept){
+    const auto session=snapshot_["online"].toMap()["session"].toString();
+    if(!session.isEmpty())dismissedNotifications_["activity:"+session]=session;
+    activityNotifications_.removeIf([&](const QVariant& v){return v.toMap()["session"]==session;});
+    saveNotifications();presentedInvitation_.clear();
+    emit commandRequested("online-answer",{{"accept",accept}});emit changed();
+}
+void SocialController::saveNotifications() {
+    if(notificationSettingsKey_.isEmpty())return;
+    QSettings settings;settings.setValue(notificationSettingsKey_,dismissedNotifications_);
+    settings.setValue(notificationSettingsKey_+"-activities",activityNotifications_);
+}
 void SocialController::setSurfaceAvailable(bool available) {
     if(surfaceAvailable_==available)return;
     surfaceAvailable_=available;
@@ -107,23 +124,57 @@ void SocialController::presented(QString channel,QString message) {
 }
 QString SocialController::notificationFace() const {
     if(toastChannel_.isEmpty())return {};
+    for(const auto& value:notifications()) {
+        const auto row=value.toMap();
+        if((row["activity"].toBool()&&row["channel"]==toastChannel_)||(row["request"].toBool()&&"request:"+row["id"].toString()==toastChannel_))return "chats";
+    }
     for(const auto& value:snapshot_["chats"].toList()) {
         const auto row=value.toMap();if(row["id"]==toastChannel_ && (row["unread"].toInt()>0||row["ringing"].toBool()))
             return row["guild"].toString().isEmpty()?row["kind"].toString():QString("communities");
     }
     return {};
 }
+QString SocialController::notificationStamp(const QVariantMap& row) const {
+    return row["request"].toBool()?QString("request"):row["last"].toString();
+}
+void SocialController::dismissNotificationAt(int index) {
+    const auto list=notifications();if(index<0||index>=list.size())return;
+    const auto row=list[index].toMap();if(row["ringing"].toBool())answerCall(row["id"].toString(),false);
+    if(row["activity"].toBool()) {
+        if(row["pending"].toBool())answerOnline(false);
+        activityNotifications_.removeIf([&](const QVariant& v){return v.toMap()["id"]==row["id"];});
+        saveNotifications();emit changed();return;
+    }
+    dismissedNotifications_[row["id"].toString()]=notificationStamp(row);
+    saveNotifications();
+    emit changed();
+}
+void SocialController::dismissNotifications() {
+    const auto list=notifications();
+    for(int i=list.size()-1;i>=0;--i)dismissNotificationAt(i);
+}
 QVariantList SocialController::notifications() const {
     QVariantList result;
     if(snapshot_["userId"].toString().isEmpty())return result;
+    const auto invitation=snapshot_["online"].toMap();
+    for(const auto& value:activityNotifications_) {
+        auto row=value.toMap();const bool pending=invitation["incoming"].toBool()&&invitation["session"]==row["session"];
+        row["pending"]=pending;row["detail"]=pending?QString("Activity invitation"):QString("Missed invitation");
+        result.append(row);
+    }
     for(const auto& value:snapshot_["friends"].toList()) {
         auto row=value.toMap();if(row["type"].toInt()!=3)continue;
-        row["request"]=true;row["detail"]="Friend request";result.append(row);
+        row["request"]=true;row["detail"]="Friend request";
+        if(dismissedNotifications_.value(row["id"].toString()).toString()!=notificationStamp(row))result.append(row);
     }
     for(const auto& value:snapshot_["chats"].toList()) {
         auto row=value.toMap();if((row["unread"].toInt()<=0&&!row["ringing"].toBool())||row["muted"].toBool())continue;
         row["request"]=false;
+        if(!row["ringing"].toBool()&&dismissedNotifications_.contains(row["id"].toString())&&dismissedNotifications_.value(row["id"].toString()).toString()==notificationStamp(row))continue;
         row["detail"]=row["guild"].toString().isEmpty()?(row["kind"]=="groups"?"Group · New messages":"New messages"):"Community · New messages";
+        // Fluxer also counts every unread DM as a mention. Only label the
+        // community mention separately; ordinary DMs remain new messages.
+        if(row["mentions"].toInt()>0&&!row["guild"].toString().isEmpty())row["detail"]="You were mentioned";
         if(row["ringing"].toBool())row["detail"]="Incoming call";
         result.append(row);
     }
@@ -132,11 +183,17 @@ QVariantList SocialController::notifications() const {
 QString SocialController::notificationFaceAt(int index) const {
     const auto list=notifications();if(index<0||index>=list.size())return {};
     const auto row=list[index].toMap();
-    return row["request"].toBool()?QString("chats"):row["guild"].toString().isEmpty()?row["kind"].toString():QString("communities");
+    return row["request"].toBool()||row["activity"].toBool()?QString("chats"):row["guild"].toString().isEmpty()?row["kind"].toString():QString("communities");
 }
 void SocialController::openNotificationAt(int index) {
     const auto list=notifications();const auto face=notificationFaceAt(index);if(face.isEmpty())return;
     const auto row=list[index].toMap();
+    if(row["activity"].toBool()) {
+        if(row["pending"].toBool()){presentedInvitation_=row["session"].toString();emit changed();return;}
+        activityNotifications_.removeIf([&](const QVariant& v){return v.toMap()["id"]==row["id"];});saveNotifications();
+        setFace("chats");selection_.stop();contacts_=reading_=false;
+        emit commandRequested("conversation",{{"id",row["channel"]}});emit changed();return;
+    }
     setFace(face);selection_.stop();reading_=false;contacts_=row["request"].toBool();
     if(contacts_) {
         const auto people=rows();for(int i=0;i<people.size();++i)if(people[i].toMap()["id"]==row["id"]){focus_=i;break;}
@@ -146,6 +203,13 @@ void SocialController::openNotificationAt(int index) {
 }
 void SocialController::openNotification() {
     const auto face=notificationFace();if(face.isEmpty())return;
+    const auto list=notifications();
+    for(int i=0;i<list.size();++i) {
+        const auto row=list[i].toMap();
+        if((row["activity"].toBool()&&row["channel"]==toastChannel_)||(row["request"].toBool()&&"request:"+row["id"].toString()==toastChannel_)) {
+            openNotificationAt(i);toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();return;
+        }
+    }
     const auto channel=toastChannel_;
     setFace(face);contacts_=false;reading_=false;selection_.stop();
     emit commandRequested("conversation",{{"id",channel}});
@@ -174,6 +238,40 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
         :snapshot_["communityInvite"].toString();
     const auto accountId=snapshot_["userId"].toString();
     if(!accountId.isEmpty())bindDrafts(accountId);
+    if(!owner_.isEmpty()&&!accountId.isEmpty()) {
+        const auto key="social/dismissed/"+QString::fromLatin1(QCryptographicHash::hash((owner_+"/"+accountId).toUtf8(),QCryptographicHash::Sha256).toHex());
+        if(key!=notificationSettingsKey_){
+            notificationSettingsKey_=key;dismissedNotifications_=QSettings().value(key).toMap();
+            activityNotifications_=QSettings().value(key+"-activities").toList();
+            while(activityNotifications_.size()>32)activityNotifications_.removeLast();
+        }
+    }
+    const auto invitation=snapshot_["online"].toMap();
+    const auto session=invitation["session"].toString();
+    if(invitation["incoming"].toBool()&&!session.isEmpty()) {
+        const bool known=dismissedNotifications_.contains("activity:"+session)||std::any_of(activityNotifications_.cbegin(),activityNotifications_.cend(),[&](const QVariant& v){return v.toMap()["session"]==session;});
+        if(!known) {
+            presentedInvitation_.clear();
+            activityNotifications_.prepend(QVariantMap{{"id","activity:"+session},{"activity",true},{"session",session},
+                {"channel",invitation["channel"]},{"name",invitation["name"]},{"kind","chats"}});
+            while(activityNotifications_.size()>32)activityNotifications_.removeLast();saveNotifications();
+            if(!snapshot_["doNotDisturb"].toBool()&&(surfaceAvailable_||gameActive_)) {
+                toastChannel_=invitation["channel"].toString();toastTitle_="Activity invitation";
+                toastText_=snapshot_["privatePreviews"].toBool()?QString("Open Home notifications"):invitation["status"].toString();
+                toastTimer_.start();emit presentationChanged();
+                if(snapshot_.value("notificationSound",true).toBool())media_.chime();
+                if(gameActive_)emit backgroundNotification(toastTitle_,toastText_);
+            }
+        }
+    } else presentedInvitation_.clear();
+    if(snapshot_.contains("friends")&&snapshot_.contains("chats")) {
+        QSet<QString> existing;
+        if(!session.isEmpty())existing.insert("activity:"+session);
+        for(const auto& v:snapshot_["friends"].toList())if(v.toMap()["type"].toInt()==3)existing.insert(v.toMap()["id"].toString());
+        for(const auto& v:snapshot_["chats"].toList())existing.insert(v.toMap()["id"].toString());
+        for(auto it=dismissedNotifications_.begin();it!=dismissedNotifications_.end();)
+            if(!existing.contains(it.key()))it=dismissedNotifications_.erase(it);else ++it;
+    }
     const auto list=rows();focus_=qBound(0,focus_,qMax(0,int(list.size())-1));
     for(int i=0;i<list.size();++i)if(list[i].toMap()["id"]==oldId){focus_=i;break;}
     if(oldChannel!=snapshot_["channel"]) {
@@ -189,7 +287,7 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
         if(!anchor.isEmpty())for(int i=0;i<log.size();++i)if(log[i].toMap()["id"]==anchor){messageFocus_=i;break;}
     }
     messageFocus_=qBound(0,messageFocus_,qMax(0,int(log.size())-1));
-    if(snapshot_["state"]=="signed-out") {toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();draftSave_.stop();if(!draftFile_.isEmpty())QFile::remove(draftFile_);draftFile_.clear();drafts_.clear();editDrafts_.clear();menu_.clear();textPurpose_.clear();textChannel_.clear();searchStarted_=false;}
+    if(snapshot_["state"]=="signed-out") {dismissedNotifications_.clear();activityNotifications_.clear();presentedInvitation_.clear();notificationSettingsKey_.clear();toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();draftSave_.stop();if(!draftFile_.isEmpty())QFile::remove(draftFile_);draftFile_.clear();drafts_.clear();editDrafts_.clear();menu_.clear();textPurpose_.clear();textChannel_.clear();searchStarted_=false;}
     if(face_=="friends"&&!searchStarted_&&snapshot_["state"]=="connected")runSearch();
     searchFocus_=qMin(searchFocus_,int(searchResults().size())-1);
     emit changed();
@@ -313,8 +411,10 @@ void SocialController::openMenu() {
         for(int i=0;i<mediaChoices_.size();++i) {const auto a=mediaChoices_[i].toMap();add(a["content_type"].toString().startsWith("audio/")?"Listen to recording":"Open picture","attachment:"+QString::number(i));}
         if(message["editable"].toBool()){if(!message["text"].toString().isEmpty())add("Edit message","edit-message");add("Delete message","ask-delete-message");}
     } else {
-        if(conversation()&&!contacts_&&face_!="friends"){add("Send picture","picture");add("Record voice message","record");}
         const auto voice=snapshot_["voice"].toMap();
+        if(conversation()&&!contacts_&&face_!="friends"){
+            add("Send picture","picture");if(voice["channel"].toString().isEmpty())add("Record voice message","record");
+        }
         if(!voice["channel"].toString().isEmpty()) {
             add(voice["muted"].toBool()?"Turn microphone on":"Mute microphone","voice-mute");
             add(voice["deaf"].toBool()?"Call sound: Off":"Call sound: On","voice-output");

@@ -400,8 +400,10 @@ int main(int argc, char* argv[]) {
                 rows.append(QVariantMap{{"id","notice:"+row["id"].toString()},
                     {"label",row["name"]},{"detail",row["detail"]},{"readOnly",true}});
             }
-            const bool empty=rows.isEmpty();rows.append(QVariantMap{{"id","back"},{"label","Back"}});
-            exitPresentation.setPanel("notifications",empty?"You're all caught up!":"Unread conversations & requests",rows);
+            const bool empty=rows.isEmpty();
+            if(!empty)rows.append(QVariantMap{{"id","dismiss-notifications"},{"label","Dismiss notifications"}});
+            rows.append(QVariantMap{{"id","back"},{"label","Back"}});
+            exitPresentation.setPanel("notifications",empty?"You're all caught up!":"Your updates",rows);
         };
         auto gameMenuActions=[&]{
             QVariantList actions{QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(shell.social()->notifications().size())}}};
@@ -436,6 +438,7 @@ int main(int argc, char* argv[]) {
             if(action=="notifications") {
                 gameNotifications();return;
             }
+            if(action=="dismiss-notifications"){shell.social()->dismissNotifications();gameNotifications();return;}
             if(action=="call"||action.startsWith("voice-")) {
                 if(action!="call")shell.social()->controlCall(action);
                 const auto voice=shell.social()->account()["voice"].toMap();

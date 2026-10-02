@@ -220,7 +220,9 @@ Window {
                 const h = hint
                 if (shell.social.online.open) return shell.social.online.incoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
                 if (shell.party.activities.link.invitationOpen) return shell.party.activities.link.invitationIncoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
-                if (shell.homeMenuOpen) return [h("↑↓","Choose"),h("A","Open"),h("B","Close")]
+                if (shell.homeMenuOpen) return shell.notificationsOpen
+                    ? [h("↑↓","Choose"),h("A","Open"),h("X","Dismiss"),h("B","Back")]
+                    : [h("↑↓","Choose"),h("A","Select"),h("B","Back")]
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
                 if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [h("X","Quick controls"),h("←→",shell.focusIndex>=9 ? "Choose" : "Adjust"),h("A",shell.focusIndex>=9 ? "Toggle" : "Select"),h("B","Close")]
                 if (shell.keyboard.open) return [h("X","Case"),h("Y",shell.keyboard.nextLayout),h("A","Type"),h("Select",shell.keyboard.submitLabel),h("B",shell.keyboard.submitLabel === "Send" ? "Keep draft" : "Cancel")]
@@ -401,8 +403,8 @@ Window {
             HomeMenuCard {
                 visible: !shell.notificationsOpen
                 anchors.centerIn: parent
-                caption: "Your next stop"
-                actions: [{id:"home",label:"Home"},{id:"friends",label:"Friends"},{id:"chats",label:"Chats"},{id:"notifications",label:"Notifications" + (shell.social.notifications.length ? " · " + shell.social.notifications.length : "")}]
+                caption: shell.homeMenuCaption
+                actions: shell.homeMenuActions
                 currentIndex: shell.homeMenuFocus
                 onChosen: index => shell.activateHomeMenu(index)
             }
@@ -412,7 +414,7 @@ Window {
                 height: shell.social.notifications.length ? 120 + Math.min(3,shell.social.notifications.length)*71 : 200
                 patterned: false
                 Text { x: 23; y: 17; text: "Notifications"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 26 }
-                Text { x: 23; y: 52; text: "Messages & friend requests"; color: Theme.muted; font.pixelSize: 15 }
+                Text { x: 23; y: 52; text: "Your updates"; color: Theme.muted; font.pixelSize: 15 }
                 MountedPanel {
                     x: 10; y: 82; width: parent.width-20; height: parent.height-94; color: "#dce9d9"
                     ListView {

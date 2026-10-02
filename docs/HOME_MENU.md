@@ -67,6 +67,16 @@ in [the register](EXPANSION_98_112.md) and [roadmap](ROADMAP.md).
 
 ## Verification
 
+### Background voice controls — 2026-10-02
+
+An active call adds Voice call to the existing shell Home menu on every primary
+page. The same panel holds microphone mute, call-output mute, Leave and Back;
+it does not navigate into Social first. Physical Home during a supported game
+uses the existing overlay controls and the same session-owned call. Back/Home
+retain both the call and the originating page or game. Only Leave ends it.
+Notifications remain passive and dismissing them does not acknowledge messages.
+See [current paired audio evidence and remaining gates](SOCIAL_MEDIA_VOICE.md#background-call-recovery--2026-10-02).
+
 2026-10-01 delivery:
 
 - Windows native build and five affected CTest entries passed: core input,

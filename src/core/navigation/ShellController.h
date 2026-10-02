@@ -52,6 +52,8 @@ class ShellController final : public QObject {
     Q_PROPERTY(bool menuOpen READ menuOpen NOTIFY changed)
     Q_PROPERTY(bool homeMenuOpen READ homeMenuOpen NOTIFY changed)
     Q_PROPERTY(int homeMenuFocus READ homeMenuFocus NOTIFY changed)
+    Q_PROPERTY(QVariantList homeMenuActions READ homeMenuActions NOTIFY changed)
+    Q_PROPERTY(QString homeMenuCaption READ homeMenuCaption NOTIFY changed)
     Q_PROPERTY(bool notificationsOpen READ notificationsOpen NOTIFY changed)
     Q_PROPERTY(int notificationFocus READ notificationFocus NOTIFY changed)
     Q_PROPERTY(QString achievementToast READ achievementToast NOTIFY changed)
@@ -88,7 +90,7 @@ public:
     Q_PROPERTY(bool unobstructed READ canReceiveNearby NOTIFY changed)
     bool canReceiveNearby() { return !homeMenuOpen_ && !menuOpen_ && !drawerOpen_ && !serviceOpen() && notice_.isEmpty()
         && !localModalOpen() && !keyboard_.isOpen() && !party_.activities()->practice()->running(); }
-    bool canReceiveOnline() { return !homeMenuOpen_ && !menuOpen_ && !drawerOpen_ && !serviceOpen() && notice_.isEmpty()
+    bool canReceiveOnline() { return !menuOpen_ && !drawerOpen_ && !serviceOpen() && notice_.isEmpty()
         && (!localModalOpen() || (page_==4 && !social_.menu().isEmpty()))
         && !keyboard_.isOpen() && !party_.activities()->practice()->running(); }
     TrainerController* trainer() { return &trainer_; }
@@ -135,7 +137,9 @@ public:
     QString currentAdventureId() const;
     bool menuOpen() const { return menuOpen_; }
     bool homeMenuOpen() const { return homeMenuOpen_; }
-    int homeMenuFocus() const { return homeMenuFocus_; }
+    int homeMenuFocus() const { return qBound(0,homeMenuFocus_,qMax(0,int(homeMenuActions().size())-1)); }
+    QVariantList homeMenuActions() const;
+    QString homeMenuCaption() const;
     bool notificationsOpen() const { return homeMenuOpen_ && notificationsOpen_; }
     int notificationFocus() const { return qBound(0,notificationFocus_,qMax(0,int(social_.notifications().size())-1)); }
     Q_INVOKABLE void activateNotification(int index);
@@ -218,6 +222,7 @@ private:
     bool menuOpen_ = false;
     bool homeMenuOpen_ = false;
     bool notificationsOpen_ = false;
+    bool homeCallOpen_ = false;
     int notificationFocus_ = 0;
     int homeMenuFocus_ = 0;
     bool powerMenu_ = false;

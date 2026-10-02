@@ -48,7 +48,7 @@ public:
     void setOwner(QString owner);
     void setLink(LinkController* link);
     void setOnlineContext(bool available,bool writable);
-    QVariantMap online() const{return snapshot_.value("online").toMap();}
+    QVariantMap online() const;
     Q_INVOKABLE void answerOnline(bool accept);
     void setFace(QString face);
     void dispatch(Action action);
@@ -94,7 +94,7 @@ public:
     bool gameActive() const{return gameActive_;}
     void setGameActive(bool active){if(gameActive_!=active){gameActive_=active;emit presentationChanged();}}
     void controlCall(const QString& operation){emit commandRequested(operation,{});}
-    void answerCall(const QString& channel,bool accept){emit commandRequested(accept?"voice-join":"voice-decline",{{"channel",channel}});}
+    void answerCall(const QString& channel,bool accept){if(accept)media_.clear();emit commandRequested(accept?"voice-join":"voice-decline",{{"channel",channel}});}
     void reviewCommand(const QString& operation,const QVariantMap& args){emit commandRequested(operation,args);}
     void setSurfaceAvailable(bool available);
     void setConversationVisible(bool visible);
@@ -106,6 +106,8 @@ public:
     QVariantList notifications() const;
     QString notificationFaceAt(int index) const;
     void openNotificationAt(int index);
+    void dismissNotificationAt(int index);
+    void dismissNotifications();
 signals:
     void changed();
     void presentationChanged();
@@ -116,6 +118,12 @@ signals:
     void reviewsChanged(QString identity,QVariantMap state);
 private:
     friend class SocialTests;
+    QVariantMap dismissedNotifications_;
+    QVariantList activityNotifications_;
+    QString presentedInvitation_;
+    QString notificationSettingsKey_;
+    void saveNotifications();
+    QString notificationStamp(const QVariantMap& row) const;
     void receive(quint64 generation, QVariantMap snapshot);
     void openMenu();
     void openPeople(QString mode);

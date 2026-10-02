@@ -338,7 +338,7 @@ not a new feature tree and not permission to call partial implementations comple
 | Order | User result | Remaining acceptance |
 | --- | --- | --- |
 | 2 — delivered | Reliable everyday conversations | Friends, DMs, groups, communities, supported search, retained history/scroll, failed-send retry and reconnection; direct writing, emoji entry, drafts, actual provider permissions and both-device controller proof. See the block 2 evidence below. |
-| 3 — next | Notifications and calls | Finish the accepted notification/media/voice lane, including capture/playback, permissions, cancellation, recovery and in-game Home communication. |
+| 3 — in progress | Notifications and calls | Background-call recovery and Home controls, dismissible notifications and passive activity invitations delivered below. Finish the remaining microphone/interoperability gates in SOCIAL_MEDIA_VOICE before closing this whole block. |
 | 1 | Actual emulator multiplayer | #107 exact runtime and route proof with in-game invitations; #106 only if its transport needs it. Preserve #112 appearance-control acceptance. |
 | 4 | Native online Link | #104/#105/#109/#110 transport, privacy, workload, explicit invitation and separate-internet gates; preserve protected save operations. |
 | 5 | Reviews and final communication audit | Finish #113 inside game Properties and review the complete journey without extra navigation layers. |
@@ -641,3 +641,36 @@ Home acceptance is not implied by this delivery.
   The earlier Odin kernel/graphics hang is not diagnosed or claimed fixed by
   a successful reboot and walkthrough. Its platform recovery investigation stays
   separate from this functioning messaging delivery.
+
+## Block 3: background calls and passive notifications — 2026-10-02
+
+This block is **in progress**, not complete. The remaining real-microphone,
+reverse web-client media and separate-internet gates are recorded in
+[media and voice](SOCIAL_MEDIA_VOICE.md#background-call-recovery--2026-10-02).
+Do not advance to block 1 on the strength of this implementation alone.
+
+- Calls belong to the authenticated session, not the displayed page. Tab changes,
+  Home menus and ordinary Adventure launch/return retain the same voice worker.
+  A chat Gateway reconnect no longer tears down independent LiveKit audio.
+  Fresh chat sessions recheck channel access before reattaching the call without
+  ringing again. Group removal/logout still end the appropriate call.
+- Home exposes microphone, call-output and Leave controls wherever the user is.
+  Back and repeated Home retain the call and origin. Recording a voice message
+  cannot compete with a live call for the microphone.
+- Notifications can be dismissed without marking messages read. A new message
+  makes that conversation visible again. Dismissals and missed activity
+  invitations are isolated by Trainer and Fluxer account.
+- Incoming activity invitations produce a passive notice and an inbox entry;
+  they do not replace the page, editor or game. Opening a pending entry reveals
+  the existing Accept/Decline consent. Expired entries lead to the conversation,
+  never implicitly accept or begin a saved-game operation.
+- Friend requests have a direct notification destination; community mentions
+  use provider read state. Ordinary unread DMs are not mislabeled as mentions.
+  Sound, DND, muted-conversation and private-preview settings remain effective.
+
+Actual paired captures include `calls-invite-passive.png`,
+`calls-invite-inbox.png`, `calls-invite-consent.png`,
+`calls-home-voice-controls.png` and `calls-odin-voice-controls.png` in private
+`work/research/`. The invitation reached Odin on Home and opened consent only
+after selection; declining did not change either save. Audio and interoperability
+evidence, including its limits, is in the linked document.

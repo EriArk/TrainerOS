@@ -9,7 +9,11 @@ one complete advertised block per session. **2: everyday communication is
 delivered on Flip and Odin** — friends, DMs, groups, communities, search, history,
 retry after send failure and reconnection, with direct controller writing.
 The final paired delivery and recovery evidence is in [SOCIAL](SOCIAL.md#odin-recovery-and-final-paired-walkthrough).
-Next complete **3 (notifications/calls)**, then 1 (emulator multiplayer), 4 (native online Link), and
+Currently completing **3 (notifications/calls)**: background call retention,
+Home controls, dismissible notifications and passive invitations are installed;
+real-microphone and remaining interoperability gates stay open in
+[media/voice evidence](SOCIAL_MEDIA_VOICE.md#background-call-recovery--2026-10-02).
+Then 1 (emulator multiplayer), 4 (native online Link), and
 5 (reviews/final communication audit). Do not substitute a smaller UI increment
 for completion, or move to another block around an unresolved gate. All remaining
 issue and R1–R18 acceptance below is retained; earlier ordering is historical.

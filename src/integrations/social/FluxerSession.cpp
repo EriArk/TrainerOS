@@ -56,15 +56,20 @@ FluxerSession::FluxerSession(QObject* parent) : QObject(parent) {
         while(voiceBuffer_.contains('\n')) {
             const auto at=voiceBuffer_.indexOf('\n');const auto event=QJsonDocument::fromJson(voiceBuffer_.left(at)).object();voiceBuffer_.remove(0,at+1);
             const auto type=event["event"].toString();
-            if(type=="connected"){voiceState_="connected";voiceStatus_="Connected · Microphone off";voiceDeadline_.stop();}
+            if(type=="connected"||type=="reconnected"){
+                voiceState_="connected";voiceStatus_=voiceMuted_?"Connected · Microphone off":"Connected · Microphone on";voiceDeadline_.stop();
+                voiceWrite({{"op","mute"},{"value",voiceMuted_}});voiceWrite({{"op","deaf"},{"value",voiceDeaf_}});voiceStateUpdate();
+            }
+            else if(type=="reconnecting"){voiceState_="reconnecting";voiceStatus_="Reconnecting audio...";voiceDeadline_.start(45000);}
             else if(type=="participants")voiceParticipants_=qBound(1,event["count"].toInt(),100);
             else if(type=="input-error"){voiceMuted_=true;voiceWrite({{"op","mute"},{"value",true}});voiceStateUpdate();voiceStatus_="Microphone unavailable";}
             else if(type=="output-error")voiceStatus_="Audio output unavailable";
+            else if(type=="output-restored")voiceStatus_=voiceMuted_?"Connected · Microphone off":"Connected · Microphone on";
             else if(type=="failed"){qWarning()<<"Voice worker failed:"<<event["reason"].toString().left(48);leaveVoice();voiceStatus_="Couldn't connect audio. Try again.";}
             publish();
         }
     });
-    connect(&voiceProcess_,&QProcess::finished,this,[this]{if(!voiceChannel_.isEmpty()){leaveVoice();voiceStatus_="Call ended";publish();}});
+    connect(&voiceProcess_,&QProcess::finished,this,[this]{if(!voiceReplacing_&&!voiceChannel_.isEmpty()){leaveVoice();voiceStatus_="Call ended";publish();}});
     connect(&voiceProcess_,&QProcess::errorOccurred,this,[this](QProcess::ProcessError e){if(e==QProcess::FailedToStart){leaveVoice();voiceStatus_="Voice service unavailable";publish();}});
     onlineSendTimer_.setSingleShot(true);onlineSendTimer_.setInterval(1000);
     connect(&onlineSendTimer_,&QTimer::timeout,this,&FluxerSession::sendOnline);
@@ -112,7 +117,7 @@ void FluxerSession::reset() {
     attachmentBusy_=false;attachmentReply_=nullptr;notificationSound_=true;
     ++onlineSendRevision_;onlineSendTimer_.stop();onlineQueue_.clear();onlineSending_=false;online_.bind({},{});
     delete proof_; proof_=nullptr;
-    readThrough_.clear();quietThrough_.clear();readRevision_.clear();muted_.clear();
+    readThrough_.clear();quietThrough_.clear();readRevision_.clear();muted_.clear();mentions_.clear();
     readsReady_=ackBusy_=doNotDisturb_=false;privatePreviews_=true;
     mutationBusy_=channelsLoading_=false;++channelRevision_;
     ++guildListRevision_;
@@ -171,11 +176,12 @@ void FluxerSession::publish() {
         QString preview;const auto cached=historyCache_.value(it.key())["rows"].toArray();
         if(!privatePreviews_)for(auto i=cached.size();i>0;--i){const auto m=cached[i-1].toObject();if(OnlineLink::decode(m["content"].toString()).isEmpty()){preview=m["content"].toString().left(100);break;}}
         chats.append(QVariantMap{{"avatar",avatar(user)},{"id",it.key()},{"name",name.isEmpty()?QString("Conversation"):name.left(120)},
-            {"call",calls_.contains(it.key())},
-            {"ringing",calls_.value(it.key())["ringing"].toArray().contains(self_)&&voiceChannel_!=it.key()},
+            {"call",calls_.contains(it.key())&&!calls_.value(it.key())["unavailable"].toBool()},
+            {"ringing",!calls_.value(it.key())["unavailable"].toBool()&&calls_.value(it.key())["ringing"].toArray().contains(self_)&&voiceChannel_!=it.key()},
             {"owner",c["owner_id"].toString()},{"members",c["recipients"].toArray().toVariantList()},
             {"friend",c["type"].toInt(-1)==1&&c["recipients"].toArray().size()==1&&relationships_.value(c["recipients"].toArray().first().toObject()["id"].toString())["type"].toInt()==1},
             {"muted",muted_.contains(it.key())},
+            {"mentions",mentions_.value(it.key())},
             {"detail",muted_.contains(it.key())?QString("Muted"):unread_.value(it.key())?QString("New messages"):(preview.isEmpty()?QString("Private conversation"):preview)},
             {"kind",c["guild_id"].toString().isEmpty() ? (c["type"].toInt()==3 ? "groups" : "chats") : "community-channel"},{"guild",c["guild_id"].toString()},{"unread",unread_.value(it.key())},{"last",c["last_message_id"].toString()}});
     }
@@ -286,6 +292,7 @@ void FluxerSession::applyReadState(const QJsonObject& state, bool gateway) {
     const auto message=state[gateway?"message_id":"last_message_id"].toString();
     if(!message.isEmpty()&&!idValid(message))return;
     if(state["manual"].toBool())quietThrough_.remove(channel);
+    if(state.contains("mention_count"))mentions_[channel]=qMax(0,state["mention_count"].toInt());
     readThrough_[channel]=message;++readRevision_[channel];updateUnread(channel);
 }
 void FluxerSession::acknowledge(QString channel, QString message) {
@@ -658,7 +665,21 @@ void FluxerSession::leaveVoice() {
     voiceMuted_=true;voiceDeaf_=false;voiceParticipants_=0;voiceHeartbeat_.stop();voiceDeadline_.stop();
     voiceWrite({{"op","leave"}});if(voiceProcess_.state()!=QProcess::NotRunning)voiceProcess_.closeWriteChannel();
     if(voiceProcess_.state()!=QProcess::NotRunning){voiceProcess_.kill();voiceProcess_.waitForFinished(700);}
-    voiceBuffer_.clear();
+    voiceBuffer_.clear();voiceGrantIdentity_.clear();
+}
+void FluxerSession::reconcileVoice() {
+    // A fresh chat session does not own the lifetime of an already connected
+    // media room. Recheck access, then reattach its placement without ringing.
+    if(voiceChannel_.isEmpty())return;
+    const auto channel=voiceChannel_,connection=voiceConnection_;const auto epoch=epoch_;
+    request("GET","/v1/channels/"+channel,{},[this,channel,connection,epoch](Reply r){
+        if(epoch!=epoch_||channel!=voiceChannel_||connection!=voiceConnection_)return;
+        if(r.status==401||r.status==403||r.status==404){leaveVoice();voiceStatus_="Call no longer available";publish();return;}
+        if(r.status==200&&r.body.object()["id"]==channel){voiceStateUpdate();return;}
+        QTimer::singleShot(qBound(5,r.retrySeconds,60)*1000,this,[this,channel,connection,epoch]{
+            if(epoch==epoch_&&channel==voiceChannel_&&connection==voiceConnection_)reconcileVoice();
+        });
+    });
 }
 void FluxerSession::voiceCommand(QString operation,const QVariantMap& args) {
     if(operation=="voice-decline") {
@@ -670,7 +691,7 @@ void FluxerSession::voiceCommand(QString operation,const QVariantMap& args) {
         const auto channel=args["channel"].toString();const auto type=channels_.value(channel)["type"].toInt(-1);
         if(!voiceAvailable()||!voiceChannel_.isEmpty()||!idValid(channel)||(type!=1&&type!=3))return;
         voiceChannel_=channel;voiceState_="connecting";voiceStatus_="Connecting...";voiceMuted_=true;voiceDeaf_=false;
-        voiceDeadline_.start();publish();
+        voiceDeadline_.start(20000);publish();
         if(!calls_.contains(channel))request("POST","/v1/channels/"+channel+"/call/ring",{},[this,channel](Reply reply){
             if(voiceChannel_!=channel)return;
             if(reply.status>=200&&reply.status<300)voiceStateUpdate();
@@ -679,7 +700,7 @@ void FluxerSession::voiceCommand(QString operation,const QVariantMap& args) {
         else voiceStateUpdate();
         return;
     }
-    if(voiceState_!="connected")return;
+    if(voiceState_!="connected"&&voiceState_!="reconnecting")return;
     if(operation=="voice-mute") {voiceMuted_=!voiceMuted_;voiceWrite({{"op","mute"},{"value",voiceMuted_}});}
     else if(operation=="voice-output") {voiceDeaf_=!voiceDeaf_;voiceWrite({{"op","deaf"},{"value",voiceDeaf_}});}
     else if(operation=="voice-ring") {request("POST","/v1/channels/"+voiceChannel_+"/call/ring",{},[this](Reply r){if(r.status!=204)voiceStatus_="Could not ring this conversation";publish();});return;}
@@ -691,10 +712,18 @@ void FluxerSession::voiceGrant(const QJsonObject& grant) {
     if(voiceChannel_.isEmpty()||grant["channel_id"]!=voiceChannel_||!voiceAvailable())return;
     const QUrl endpoint(grant["endpoint"].toString());
     if((endpoint.scheme()!="wss"&&endpoint.scheme()!="https")||!endpoint.userInfo().isEmpty()||grant["token"].toString().isEmpty()||grant["connection_id"].toString().isEmpty())return;
-    voiceConnection_=grant["connection_id"].toString();
-    // A region change needs a fresh media connection, always muted again.
-    if(voiceProcess_.state()!=QProcess::NotRunning){leaveVoice();voiceStatus_="Call region changed. Join again.";publish();return;}
-    voiceMuted_=true;voiceBuffer_.clear();
+    // Replayed placement grants must not restart healthy audio. A genuinely new
+    // placement replaces only the media worker and keeps the user's mute choice.
+    const auto identity=QCryptographicHash::hash(QJsonDocument(QJsonObject{
+        {"connection",grant["connection_id"]},{"endpoint",grant["endpoint"]},{"key",grant["e2ee_key"]}
+    }).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256);
+    if(voiceProcess_.state()!=QProcess::NotRunning&&identity==voiceGrantIdentity_)return;
+    if(voiceProcess_.state()!=QProcess::NotRunning){
+        voiceReplacing_=true;voiceProcess_.kill();voiceProcess_.waitForFinished(700);voiceReplacing_=false;
+        if(voiceProcess_.state()!=QProcess::NotRunning){leaveVoice();voiceStatus_="Couldn't restore audio. Try again.";publish();return;}
+    }
+    voiceConnection_=grant["connection_id"].toString();voiceGrantIdentity_=identity;voiceBuffer_.clear();
+    voiceState_="connecting";voiceStatus_="Connecting audio...";voiceDeadline_.start(20000);
     voiceProcess_.start((qEnvironmentVariable("XDG_DATA_HOME").isEmpty()?QDir::homePath()+"/.local/share":qEnvironmentVariable("XDG_DATA_HOME"))+"/traineros-voice/bin/python",{"/var/opt/traineros/integrations/fluxer-voice.py"});
     voiceProcess_.write(QJsonDocument(grant).toJson(QJsonDocument::Compact)+'\n');voiceHeartbeat_.start();publish();
 }
@@ -1149,8 +1178,8 @@ void FluxerSession::openGateway() {
     socket_->open(QUrl("wss://gateway.fluxer.app/?v=1&encoding=json"));
 }
 void FluxerSession::disconnected() {
-    if(!voiceChannel_.isEmpty())voiceStatus_="Call interrupted. Join again when connected.";
-    leaveVoice();
+    // Chat Gateway and LiveKit are independent connections. Keep the call and
+    // microphone choice while chat reconnects; the media SDK handles its route.
     ++onlineSendRevision_;onlineQueue_.clear();onlineSending_=false;onlineSendTimer_.stop();
     online_.close("Connection interrupted. Reconnect the activity to recover.");
     if(heartbeat_)heartbeat_->stop();
@@ -1180,7 +1209,14 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
         if(type=="CALL_CREATE"||type=="CALL_UPDATE"||type=="CALL_DELETE") {
             const auto id=d["channel_id"].toString();
             const bool wasRinging=calls_.value(id)["ringing"].toArray().contains(self_);
-            if(type=="CALL_DELETE")calls_.remove(id);else if(channels_.contains(id)){auto call=calls_.value(id);for(auto it=d.begin();it!=d.end();++it)call[it.key()]=it.value();calls_[id]=call;}
+            if(!idValid(id))return;
+            if(type=="CALL_DELETE") {
+                if(d["unavailable"].toBool()){calls_[id]["unavailable"]=true;calls_[id]["ringing"]=QJsonArray{};}
+                else calls_.remove(id);
+            } else {
+                auto call=type=="CALL_CREATE"?QJsonObject{}:calls_.value(id);
+                for(auto it=d.begin();it!=d.end();++it)call[it.key()]=it.value();calls_[id]=call;
+            }
             if(type!="CALL_DELETE"&&!wasRinging&&d["ringing"].toArray().contains(self_)&&!doNotDisturb_&&!muted_.contains(id))emit incomingMessage(generation_,id,"Incoming call","Open this conversation to join");
             publish();return;
         }
@@ -1206,10 +1242,11 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
             if(!historyFile_.isEmpty()&&!historySave_.isActive())historySave_.start();
         }
         if(type=="READY"||type=="RESUMED") {
-            if(type=="READY") {gatewaySession_=d["session_id"].toString();readThrough_.clear();quietThrough_.clear();unread_.clear();readsReady_=true;
+            if(type=="READY") {gatewaySession_=d["session_id"].toString();readThrough_.clear();quietThrough_.clear();unread_.clear();mentions_.clear();calls_.clear();readsReady_=true;
                 for(const auto& v:d["read_states"].toArray())applyReadState(v.toObject(),false);
                 for(auto it=channels_.cbegin();it!=channels_.cend();++it)updateUnread(it.key());}
             reconnectAttempt_=0;status_="Connected";refresh();
+            if(type=="READY")reconcileVoice();
         }
         else if(type=="MESSAGE_ACK")applyReadState(d,true);
         else if(type=="MESSAGE_CREATE"||type=="MESSAGE_UPDATE") {
@@ -1231,13 +1268,25 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
                 if(fresh){++channelRevision_;channels_[channel]["last_message_id"]=id;}
                 updateUnread(channel);
                 const auto author=d["author"].toObject();
+                bool mentioned=d["mention_everyone"].toBool();
+                for(const auto& user:d["mentions"].toArray())if(user.toObject()["id"]==self_)mentioned=true;
+                if(fresh&&mentioned&&author["id"]!=self_)++mentions_[channel];
                 if(fresh&&OnlineLink::decode(d["content"].toString()).isEmpty()&&author["id"]!=self_&&relationships_.value(author["id"].toString())["type"].toInt()!=2
                     &&!muted_.contains(channel)&&!doNotDisturb_)
-                    emit incomingMessage(generation_,channel,privatePreviews_?QString("New message"):label(author),
+                    emit incomingMessage(generation_,channel,privatePreviews_?(mentioned?QString("New mention"):QString("New message")):label(author),
                         privatePreviews_?QString("Open Social to catch up"):d["content"].toString().left(160));
             }
         } else if(type=="MESSAGE_DELETE") {++messageRevision_;const auto id=d["id"].toString();messages_.remove(id);messageOrder_.removeAll(id);}
         else if(type.startsWith("RELATIONSHIP_")||type.startsWith("CHANNEL_")||type.startsWith("GUILD_")) {
+            if(type=="RELATIONSHIP_ADD") {
+                const auto id=d["id"].toString();const bool incoming=d["type"].toInt()==3&&relationships_.value(id)["type"].toInt()!=3;
+                if(idValid(id))relationships_[id]=d;
+                if(incoming&&!doNotDisturb_)emit incomingMessage(generation_,"request:"+id,"Friend request",privatePreviews_?QString("Open Home notifications"):label(d["user"].toObject()));
+            }
+            if(type=="CHANNEL_RECIPIENT_REMOVE"&&d["channel_id"]==voiceChannel_){
+                if(d["user"].toObject()["id"]==self_||d["user_id"]==self_){leaveVoice();voiceStatus_="You left the call";}
+                else reconcileVoice();
+            }
             if(type.startsWith("RELATIONSHIP_")&&d["id"]==online_.peerAccount()&&(type=="RELATIONSHIP_REMOVE"||d["type"].toInt()!=1))online_.close("Friend connection ended");
             ++channelRevision_;
             if(type=="CHANNEL_DELETE") {if(d["id"]==voiceChannel_)leaveVoice();calls_.remove(d["id"].toString());historyCache_.remove(d["id"].toString());historyLru_.removeAll(d["id"].toString());channels_.remove(d["id"].toString());if(d["id"]==channel_){channel_.clear();messages_.clear();messageOrder_.clear();}}

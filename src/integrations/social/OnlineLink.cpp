@@ -92,7 +92,7 @@ QVariantMap OnlineLink::state() const {
     QVariantList actions;
     if(stage_=="available"&&available_)for(const auto& c:capabilities_)if(supports(remoteCapabilities_,c.toObject()))actions.append(c.toObject().toVariantMap());
     return {{"stage",stage_},{"status",status_},{"actions",actions},{"peer",peer_},{"channel",channel_},{"name",peerName_},
-        {"incoming",stage_=="incoming"},{"open",stage_=="incoming"||stage_=="inviting"||stage_=="accepting"}};
+        {"session",session_},{"incoming",stage_=="incoming"},{"open",stage_=="incoming"||stage_=="inviting"||stage_=="accepting"}};
 }
 void OnlineLink::receive(QString channel,QString author,QString name,const QJsonObject& e) {
     if(account_.isEmpty()||author==account_||e["ns"]!="org.traineros.link"||e["v"].toInt()!=1||e["to"]!=account_)return;

@@ -216,7 +216,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         textTarget_ = TextTarget::TrainerName;
         keyboard_.begin("Trainer name", initial, TrainerController::NameLimit);
     });
-    connect(&social_, &SocialController::changed, this, [this]{if(page_==4)emit changed();});
+    connect(&social_, &SocialController::changed, this, [this]{if(page_==4||homeMenuOpen_)emit changed();});
     connect(&social_, &SocialController::textRequested, this, [this](QString title, QString text, int limit) {
         textTarget_ = TextTarget::Social; keyboard_.begin(title,text,limit,false,social_.textSubmitLabel(),social_.textAllowsEmoji());
     });
@@ -823,8 +823,29 @@ void ShellController::closeHomeMenu() {
     if (!homeMenuOpen_ || navigationLocked()) return;
     homeMenuOpen_ = false; emit changed();
 }
+QVariantList ShellController::homeMenuActions() const {
+    const auto voice=social_.account()["voice"].toMap();
+    if(homeCallOpen_) {
+        QVariantList rows;
+        if(!voice["channel"].toString().isEmpty())rows={
+            QVariantMap{{"id","voice-mute"},{"label",voice["muted"].toBool()?"Turn microphone on":"Mute microphone"}},
+            QVariantMap{{"id","voice-output"},{"label",voice["deaf"].toBool()?"Enable call sound":"Silence call sound"}},
+            QVariantMap{{"id","voice-leave"},{"label","Leave call"}}};
+        rows.append(QVariantMap{{"id","back"},{"label","Back"}});return rows;
+    }
+    QVariantList rows{QVariantMap{{"id","home"},{"label","Home"}},QVariantMap{{"id","friends"},{"label","Friends"}},
+        QVariantMap{{"id","chats"},{"label","Chats"}},QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(social_.notifications().size())}}};
+    if(!voice["channel"].toString().isEmpty())rows.append(QVariantMap{{"id","call"},{"label","Voice call"}});
+    return rows;
+}
+QString ShellController::homeMenuCaption() const {
+    return homeCallOpen_?social_.account()["voice"].toMap()["status"].toString():QString("Your next stop");
+}
 void ShellController::activateHomeMenu(int index) {
-    if (!homeMenuOpen_ || navigationLocked() || index < 0 || index > 3) return;
+    if (!homeMenuOpen_ || navigationLocked() || index < 0 || index >= homeMenuActions().size()) return;
+    const auto id=homeMenuActions()[index].toMap()["id"].toString();
+    if(homeCallOpen_){if(id=="back"){homeCallOpen_=false;homeMenuFocus_=0;}else social_.controlCall(id);emit changed();return;}
+    if(id=="call"){homeCallOpen_=true;homeMenuFocus_=0;emit changed();return;}
     if(index==3){notificationsOpen_=true;notificationFocus_=0;emit changed();return;}
     if(index==2&&!social_.notificationFace().isEmpty()){openSocialNotification();return;}
     if (index) socialFace_ = "chats";
@@ -858,14 +879,16 @@ void ShellController::dispatch(Action action) {
             if(action==Action::Home)closeHomeMenu();
             else if(action==Action::Back){notificationsOpen_=false;emit changed();}
             else if(action==Action::Confirm)activateNotification(notificationFocus());
+            else if(action==Action::Secondary)social_.dismissNotificationAt(notificationFocus());
             else if(action==Action::SystemMenu){closeHomeMenu();dispatch(action);}
             else if(action==Action::Up||action==Action::Down){notificationFocus_=std::clamp(notificationFocus_+(action==Action::Up?-1:1),0,std::max(0,int(social_.notifications().size())-1));emit changed();}
             return;
         }
-        if (action == Action::Home || action == Action::Back) closeHomeMenu();
-        else if (action == Action::Confirm) activateHomeMenu(homeMenuFocus_);
+        if(action==Action::Back&&homeCallOpen_){homeCallOpen_=false;homeMenuFocus_=0;emit changed();}
+        else if (action == Action::Home || action == Action::Back) closeHomeMenu();
+        else if (action == Action::Confirm) activateHomeMenu(homeMenuFocus());
         else if (action == Action::Up || action == Action::Down) {
-            homeMenuFocus_ = std::clamp(homeMenuFocus_ + (action == Action::Up ? -1 : 1), 0, 3); emit changed();
+            homeMenuFocus_ = std::clamp(homeMenuFocus() + (action == Action::Up ? -1 : 1), 0, qMax(0,int(homeMenuActions().size())-1)); emit changed();
         } else if (action == Action::SystemMenu) {
             closeHomeMenu(); dispatch(action);
         }
@@ -875,7 +898,7 @@ void ShellController::dispatch(Action action) {
         libraryTools_.beginGame((multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString());return;
     }
     if(action==Action::LocalAction && canEditWorld()) {libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
-    if (action == Action::Home) { homeMenuOpen_ = true; notificationsOpen_=false; homeMenuFocus_ = 0; emit changed(); return; }
+    if (action == Action::Home) { homeMenuOpen_ = true; notificationsOpen_=homeCallOpen_=false; homeMenuFocus_ = 0; emit changed(); return; }
     if (action == Action::PreviousPage || action == Action::NextPage) {
         goToPage(page_ + (action == Action::NextPage ? 1 : -1));
         return;

@@ -65,6 +65,8 @@ private:
     QTimer voiceHeartbeat_{this},voiceDeadline_{this};
     QString voiceChannel_,voiceConnection_,voiceState_,voiceStatus_;
     QByteArray voiceBuffer_;
+    QByteArray voiceGrantIdentity_;
+    bool voiceReplacing_ = false;
     bool voiceMuted_=true,voiceDeaf_=false;
     int voiceParticipants_=0;
     QHash<QString,QJsonObject> calls_;
@@ -73,6 +75,7 @@ private:
     void leaveVoice();
     void voiceStateUpdate(bool leave=false);
     void voiceGrant(const QJsonObject& grant);
+    void reconcileVoice();
     void voiceWrite(const QJsonObject& command);
     void bindOnline();
     void request(QByteArray method, QString path, QJsonObject body, Completion done, bool anonymous = false, QByteArray captcha = {});
@@ -163,5 +166,6 @@ private:
     QStringList messageOrder_;
     QHash<QString,QString> pendingNonces_;
     QHash<QString,int> unread_;
+    QHash<QString,int> mentions_;
 };
 }

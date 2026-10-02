@@ -1,6 +1,8 @@
 #include <QtTest>
 #include "integrations/social/AdventureReviews.h"
 #include "core/model/AdventureCompletion.h"
+#include "core/navigation/ShellController.h"
+#include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include <QSettings>
 #include "integrations/social/FluxerSession.h"
 #include "integrations/social/CommunityIdentity.h"
@@ -26,6 +28,124 @@ class SocialTests : public QObject {
     }
 private slots:
     void initTestCase() { QStandardPaths::setTestModeEnabled(true);QCoreApplication::setOrganizationName("TrainerOSTests");QCoreApplication::setApplicationName("SocialTests"); }
+    void invitationNotificationNeverTakesFocusAndExpiredActionCannotAccept() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        QVariantMap state{{"state","connected"},{"userId","self"},{"channel",channel},
+            {"online",QVariantMap{{"session","invitation-one"},{"channel",channel},{"name","Friend"},{"incoming",true},{"open",true}}}};
+        c.receive(0,state);QVERIFY(!c.online()["open"].toBool());QCOMPARE(c.notifications().size(),1);
+        c.receive(0,state);QCOMPARE(c.notifications().size(),1);QVERIFY(commands.isEmpty());
+        c.openNotificationAt(0);QVERIFY(c.online()["open"].toBool());QVERIFY(commands.isEmpty());
+        c.answerOnline(false);QCOMPARE(commands.last()[0].toString(),QString("online-answer"));
+        QVERIFY(!commands.last()[1].toMap()["accept"].toBool());
+        c.receive(0,state);QVERIFY(c.notifications().isEmpty());
+        state["online"]=QVariantMap{{"session","invitation-two"},{"channel",channel},{"incoming",true},{"open",true}};
+        c.receive(0,state);QVERIFY(!c.online()["open"].toBool());
+        state["online"]=QVariantMap{{"stage","idle"}};c.receive(0,state);
+        QVERIFY(!c.notifications().last().toMap()["pending"].toBool());
+        commands.clear();c.openNotificationAt(c.notifications().size()-1);
+        QCOMPARE(commands.last()[0].toString(),QString("conversation"));
+        QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString(channel));
+        for(const auto& command:commands)QVERIFY(command[0].toString()!="online-answer");
+        c.setOwner("different");QVERIFY(c.notifications().isEmpty());
+    }
+    void repeatedFriendRequestProducesOneQuietDestination() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion,QByteArray){});bind(s);
+        QSignalSpy notices(&s,&FluxerSession::incomingMessage);
+        QJsonObject event{{"op",0},{"t","RELATIONSHIP_ADD"},{"d",QJsonObject{{"id",remote},{"type",3},{"user",QJsonObject{{"id",remote},{"username","Friend"}}}}}};
+        s.gatewayEvent(event);s.gatewayEvent(event);QCOMPARE(notices.size(),1);
+        QCOMPARE(notices.first()[1].toString(),"request:"+QString(remote));
+        SocialController c;c.toastChannel_=notices.first()[1].toString();
+        c.receive(0,{{"state","connected"},{"userId","self"},{"friends",QVariantList{QVariantMap{{"id",remote},{"type",3},{"name","Friend"}}}}});
+        QCOMPARE(c.notificationFace(),QString("chats"));c.openNotification();QVERIFY(c.contacts());
+        s.relationships_.clear();s.doNotDisturb_=true;s.gatewayEvent(event);QCOMPARE(notices.size(),1);
+    }
+    void unavailableCallRetainsProviderEntryUntilRecovery() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion,QByteArray){});bind(s);
+        auto event=[&](QString type,QJsonObject payload){s.gatewayEvent({{"op",0},{"t",type},{"d",payload}});};
+        event("CALL_CREATE",{{"channel_id",channel},{"ringing",QJsonArray{s.self_}}});
+        event("CALL_DELETE",{{"channel_id",channel},{"unavailable",true}});
+        QVERIFY(s.calls_.contains(channel));QVERIFY(s.calls_[channel]["unavailable"].toBool());
+        QVERIFY(s.calls_[channel]["ringing"].toArray().isEmpty());
+        event("CALL_CREATE",{{"channel_id",channel},{"ringing",QJsonArray{}}});
+        QVERIFY(!s.calls_[channel]["unavailable"].toBool());
+        event("CALL_DELETE",{{"channel_id",channel}});QVERIFY(!s.calls_.contains(channel));
+    }
+    void homeCallControlsKeepTheOriginAndNeverImplicitlyLeave() {
+        MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;
+        ShellController shell(library,trainers,adapter,platform,dex,dex,hall,achievements);
+        auto* social=shell.social();QSignalSpy commands(social,&SocialController::commandRequested);
+        social->receive(0,{{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"channel",channel},{"muted",true},{"status","Connected"}}}});
+        shell.goToPage(1);const auto origin=shell.navigationState();shell.dispatch(Action::Home);
+        QCOMPARE(shell.homeMenuActions().last().toMap()["id"].toString(),QString("call"));
+        shell.activateHomeMenu(4);QCOMPARE(shell.homeMenuActions().first().toMap()["id"].toString(),QString("voice-mute"));
+        commands.clear();shell.dispatch(Action::Confirm);QCOMPARE(commands.last()[0].toString(),QString("voice-mute"));
+        shell.dispatch(Action::Back);QVERIFY(shell.homeMenuOpen());shell.dispatch(Action::Home);
+        QVERIFY(!shell.homeMenuOpen());QCOMPARE(shell.navigationState(),origin);
+        for(const auto& command:commands)QVERIFY(command[0].toString()!="voice-leave");
+        shell.dispatch(Action::Home);shell.activateHomeMenu(4);
+        social->receive(0,{{"state","connected"},{"userId","self"},{"voice",QVariantMap{}}});
+        QCOMPARE(shell.homeMenuActions().size(),1);shell.dispatch(Action::Confirm);QVERIFY(shell.homeMenuOpen());
+    }
+    void chatReconnectKeepsBackgroundCallAndMuteChoice() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion,QByteArray){});bind(s);
+        s.voiceChannel_=channel;s.voiceConnection_="placement";s.voiceState_="connected";s.voiceMuted_=false;s.voiceDeaf_=true;
+        s.disconnected();
+        QCOMPARE(s.voiceChannel_,QString(channel));QCOMPARE(s.voiceConnection_,QString("placement"));
+        QCOMPARE(s.voiceState_,QString("connected"));QVERIFY(!s.voiceMuted_);QVERIFY(s.voiceDeaf_);
+        s.command("voice-mute");QVERIFY(s.voiceMuted_);
+        s.setOwner("another",2);QVERIFY(s.voiceChannel_.isEmpty());
+    }
+    void freshGatewayRechecksCallAccessWithoutRinging() {
+        FluxerSession s;Completion result;QString path;
+        s.setTransport([&](auto method,auto p,auto,Completion callback,QByteArray){QCOMPARE(method,QByteArray("GET"));path=p;result=callback;});bind(s);
+        s.voiceChannel_=channel;s.voiceConnection_="placement";s.voiceState_="connected";
+        s.reconcileVoice();QCOMPARE(path,"/v1/channels/"+QString(channel));
+        result({200,QJsonDocument(QJsonObject{{"id",channel},{"type",3}})});QCOMPARE(s.voiceChannel_,QString(channel));
+        s.reconcileVoice();result({403,{}});QVERIFY(s.voiceChannel_.isEmpty());
+    }
+    void staleCallAccessReplyDoesNotCloseAnotherCall() {
+        FluxerSession s;Completion result;s.setTransport([&](auto,auto,auto,Completion callback,QByteArray){result=callback;});bind(s);
+        s.voiceChannel_=channel;s.voiceConnection_="old";s.reconcileVoice();
+        s.voiceConnection_="new";result({403,{}});QCOMPARE(s.voiceChannel_,QString(channel));
+    }
+    void removedGroupMemberLeavesOwnCallButOtherDeviceEventsDoNot() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion,QByteArray){});bind(s);
+        s.voiceChannel_=channel;s.voiceConnection_="ours";
+        s.gatewayEvent({{"op",0},{"t","VOICE_STATE_UPDATE"},{"d",QJsonObject{
+            {"user_id",s.self_},{"connection_id","other-device"},{"channel_id",QJsonValue::Null}}}});
+        QCOMPARE(s.voiceChannel_,QString(channel));
+        s.gatewayEvent({{"op",0},{"t","CHANNEL_RECIPIENT_REMOVE"},{"d",QJsonObject{
+            {"channel_id",channel},{"user",QJsonObject{{"id",s.self_}}}}}});
+        QVERIFY(s.voiceChannel_.isEmpty());
+    }
+    void backgroundNavigationNeverCommandsCallTeardown() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.receive(0,{{"state","connected"},{"voice",QVariantMap{{"channel",channel},{"state","connected"}}}});
+        c.setSurfaceAvailable(false);c.setGameActive(true);c.setFace("groups");c.setFace("chats");c.setGameActive(false);c.setSurfaceAvailable(true);
+        for(const auto& command:commands)QVERIFY(command[0].toString()!="voice-leave");
+    }
+    void dismissNotificationDoesNotReadAndNewMessageReturns() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        QVariantMap chat{{"id",channel},{"name","Friend"},{"kind","chats"},{"unread",1},{"last","123"},{"mentions",1}};
+        QVariantMap state{{"state","connected"},{"userId","self"},{"chats",QVariantList{chat}}};
+        c.receive(0,state);QCOMPARE(c.notifications().first().toMap()["detail"].toString(),QString("New messages"));
+        c.dismissNotificationAt(0);QVERIFY(c.notifications().isEmpty());QVERIFY(commands.isEmpty());
+        c.receive(0,state);QVERIFY(c.notifications().isEmpty());
+        chat["last"]="124";state["chats"]=QVariantList{chat};c.receive(0,state);QCOMPARE(c.notifications().size(),1);
+        chat["guild"]="community";state["chats"]=QVariantList{chat};c.receive(0,state);
+        QCOMPARE(c.notifications().first().toMap()["detail"].toString(),QString("You were mentioned"));
+        c.setOwner("different");QVERIFY(c.notifications().isEmpty());
+    }
+    void mentionAcknowledgementAndDuplicateEventsStayConsistent() {
+        FluxerSession s;s.setTransport([](auto,auto,auto,Completion,QByteArray){});bind(s);s.readsReady_=true;
+        QJsonObject event{{"op",0},{"t","MESSAGE_CREATE"},{"d",QJsonObject{
+            {"id","123"},{"channel_id",channel},{"content","Hello"},{"author",QJsonObject{{"id",remote}}},
+            {"mentions",QJsonArray{QJsonObject{{"id",s.self_}}}}}}};
+        s.gatewayEvent(event);s.gatewayEvent(event);QCOMPARE(s.mentions_[channel],1);
+        s.applyReadState({{"channel_id",channel},{"message_id","123"},{"mention_count",0}},true);
+        QCOMPARE(s.mentions_[channel],0);QCOMPARE(s.unread_[channel],0);
+    }
     void retryReusesNonceAndCannotDoubleSendWhilePending() {
         FluxerSession s;Completion done;QStringList nonces;
         s.setTransport([&](auto,auto,QJsonObject body,Completion callback,QByteArray){nonces<<body["nonce"].toString();done=callback;});bind(s);
