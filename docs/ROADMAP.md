@@ -4,6 +4,15 @@
 
 ## Current plan — reconciled 2026-10-01
 
+**Owner outage exception, 2026-10-02:** independent planned work may proceed
+while public Fluxer is unavailable. The current offline task is #112 installed
+RetroArch shader/frame selection in the existing Home overlay, with per-game
+inheritance/reset and paired delivery. Large-picture Mega Bezel presets are included;
+game-specific Bezel Project artwork matching and system fallback remain pending.
+Block 3 stays open; its remaining call
+checks resume after recovery. This supersedes the temporary scheduling prohibition
+below, not any unfinished communication or R1–R18 acceptance.
+
 **Latest owner order, 2026-10-02:** complete **2 → 3 → 1 → 4 → 5**, exactly
 one complete advertised block per session. **2: everyday communication is
 delivered on Flip and Odin** — friends, DMs, groups, communities, search, history,

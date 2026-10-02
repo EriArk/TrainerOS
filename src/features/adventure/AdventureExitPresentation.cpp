@@ -33,9 +33,10 @@ QVariantList AdventureExitPresentation::menuActions() const {
     QVariantList result{QVariantMap{{"id","continue"},{"label","Continue"}},QVariantMap{{"id","exit"},{"label","Exit game"}}};
     result.append(extras_);return result;
 }
-void AdventureExitPresentation::setPanel(QString panel,QString caption,QVariantList actions) {
+void AdventureExitPresentation::setPanel(QString panel,QString caption,QVariantList actions,QString backAction) {
     const auto selected=menuActions().value(menuFocus_).toMap().value("id");
     const bool same=panel==panel_;panel_=std::move(panel);caption_=std::move(caption);panelActions_=std::move(actions);
+    backAction_=std::move(backAction);
     if(!same)menuFocus_=0;
     else for(int i=0;i<panelActions_.size();++i)if(panelActions_[i].toMap().value("id")==selected){menuFocus_=i;break;}
     menuFocus_=qBound(0,menuFocus_,qMax(0,int(menuActions().size())-1));if(!same)resetInput();emit changed();
@@ -121,7 +122,7 @@ void AdventureExitPresentation::updateInput(quint64 generation, const ExitInputS
 void AdventureExitPresentation::confirm() { if (ready_ && confirming()) exit_.confirm(); }
 void AdventureExitPresentation::cancel() {
     if (!ready_) return;
-    if (menuOpen_) {if(!panel_.isEmpty())setPanel({}, {}, {});else dismissMenu();}
+    if (menuOpen_) {if(!backAction_.isEmpty()&&!panel_.isEmpty())emit menuActionRequested(backAction_);else if(!panel_.isEmpty())setPanel({}, {}, {});else dismissMenu();}
     else if (confirming()) exit_.cancel();
 }
 }

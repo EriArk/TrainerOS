@@ -1,5 +1,20 @@
 # AGENTS.md — TrainerOS
 
+**Owner bezel correction, 2026-10-02:** keep gameplay large at its original
+proportions. Decorations belong in unused margins; do not offer the tested tiny
+GBA-screen-inside-a-Game-Boy presentation. Mega Bezel may supply shader framing;
+The Bezel Project and companion art collections supply game-specific artwork.
+Prefer a matching game decoration, with a system fallback, once pack matching is
+implemented. Do not claim installed generic presets deliver that collection.
+
+**Owner outage exception, 2026-10-02:** while public Fluxer is unavailable,
+continue useful independent planned work. This temporarily overrides the
+no-other-block scheduling restriction below, not communication acceptance:
+keep block 3 open and resume its runtime checks when the service recovers.
+For widescreen, expose supported emulator settings (including ARMSX2's existing
+widescreen-patch toggle) instead of assuming TrainerOS must author game patches.
+Preserve each emulator's own compatibility and per-game configuration.
+
 **Owner completion order, 2026-10-02:** communication work now follows numbered
 blocks **2 → 3 → 1 → 4 → 5**. Each session completes exactly one whole accepted
 block, including its stated behavior, checks, both available handheld deliveries

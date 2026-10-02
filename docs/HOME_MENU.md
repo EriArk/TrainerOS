@@ -49,8 +49,8 @@ inside this same compact overlay. Per-game ratio (original/4:3/16:9/fill), pixel
 filtering and shader enable/default/reset are persisted in TrainerOS-owned
 configuration layered over the emulator configuration. They apply on next launch.
 Shader toggle/next preview uses stdin commands on the owned running process.
-Command delivery is not an emulator acknowledgement. Exact widescreen patches,
-bezel selection, named shader catalogue and non-RetroArch controls remain open.
+Command delivery is not an emulator acknowledgement. Named shader/frame selection
+was added in the outage exception below. Non-RetroArch controls remain open.
 
 The shared [communication service](SOCIAL_MEDIA_VOICE.md) supplies a live unread
 summary, incoming-call answer/decline and microphone/output/leave controls. It
@@ -58,14 +58,93 @@ does not dismiss or terminate the game. The summary never acknowledges messages;
 outside a game the existing direct Social destinations remain. Emulator-native
 multiplayer invitations still require #107's exact runtime route.
 
-The remaining named shader catalogue, exact supported widescreen patches and
-bezel controls stay behind communication and multiplayer invitations. Their
-runtime capability and live versus next-launch gates remain open. Unsupported
+Supported emulator-native widescreen controls and non-RetroArch appearance
+remain open. Use the emulator's own setting/patch support, not a new TrainerOS
+patch collection; ordinary 16:9 scaling is a different operation. Unsupported
 controls are omitted. In-game activity invitations await their actual runtime
 route; no duplicate chat, voice or save implementation is introduced here. Full issue acceptance remains
 in [the register](EXPANSION_98_112.md) and [roadmap](ROADMAP.md).
 
 ## Verification
+
+### Installed shader/frame selection — 2026-10-02 outage exception
+
+The owner authorized independent planned work during the public Fluxer outage.
+Communication block 3 remains open. Screen & graphics now selects installed
+presets by name within the existing Home overlay; A saves and returns to the
+display controls, B returns without changing the choice, Home resumes the same
+game. Settings apply at the next ordinary launch, never an automatic restart.
+Default/Off are independent for shader and frame; Reset removes this game's
+appearance preferences and inherits the emulator configuration again.
+
+The launch worker discovers local device presets plus a small stock selection
+(CRT, LCD grid, scanlines and sharp bilinear when installed), matching the
+configured graphics driver. Mega Bezel and local presets come before stock effects. It does not present the
+entire desktop shader corpus as handheld-compatible. The first Flip check caught
+an incorrect driver mapping: `glcore` requires Slang, whereas legacy `gl` uses
+GLSL. That mapping is corrected and covered by a regression test. Selecting a
+custom local preset does not certify its GPU cost or all its dependencies.
+Flatpak `/app` references remain runtime paths across deployment revisions.
+Missing selections fall back to the base appearance and report that in Home.
+
+Mega Bezel's installed GDV-MINI Light and Reflections variants are offered with
+readable names. A small shell-owned reference preset retains the upstream source
+and sets non-integer scale to 96%, automatic game aspect and no curvature. Its
+fullscreen shader canvas disables a separate overlay to prevent double frames;
+the separate Frame row is omitted while this integrated preset is selected.
+Light is the conservative choice; Reflections is optional, not universally
+performance-certified. Existing miniature handheld device presets are retained
+on disk but omitted from this picker.
+
+Frame selection uses installed static, single-image, non-controller borders.
+Only large clear openings (at least 85% of image height and half its width) enter
+the picker; incompatible/obstructed decorations are skipped.
+At launch the selected image's transparent rectangular opening is checked and
+the game viewport is fitted into it at the display size. A frame therefore owns
+the viewport while enabled; choose Off/default to use the separate Screen ratio.
+Unsupported openings fall back rather than obscure gameplay. Both GL and Vulkan
+use RetroArch's centered custom-viewport offsets; treating them as absolute
+coordinates was caught and corrected on both handhelds. Base configuration,
+save paths and input mappings are not rewritten. Shader presets with their own
+decorative border remain distinct from a separately selected overlay frame.
+
+Sources: [Mega Bezel setup and parameter guidance](https://github.com/HyperspaceMadness/Mega_Bezel),
+[shader presets](https://docs.libretro.com/guides/shaders/),
+[OpenGL Core shader format](https://www.libretro.com/index.php/op-koretroarch-1-7-7-new-opengl-core-driver-supports-slang-universal-shader-spec/),
+[custom viewport behavior](https://github.com/libretro/RetroArch/blob/v1.22.2/gfx/video_driver.c),
+[configuration keys](https://github.com/libretro/RetroArch/blob/v1.22.2/configuration.c).
+Odin's existing ARMSX2 `EnableWideScreenPatches = true` was inspected and retained;
+this increment does not yet expose its toggle in TrainerOS.
+[Dolphin also supplies a native widescreen hack](https://dolphin-emu.org/blog/2024/02/10/dolphin-progress-report-november-and-december-2023-january-2024/).
+
+ARM64 affected tests pass: 20 RetroArch cases and 9 Home/exit presentation cases,
+including per-game isolation, independent Off/reset, removed files, Flatpak
+update paths, frame fitting/rejection, and picker Back/Home lifecycle. The
+production build has tests disabled. Private captures/logs use
+`work/research/appearance-*`; no emulator artwork is added to the repository.
+
+Paired delivery uses production SHA-256
+`64fdb867e5776a95175eeb6b4060648cb2a0444d2b5932fdd158ec790c9767dd`.
+Actual Gamescope captures on Flip (GLCore) and Odin (Vulkan) show Emerald at
+approximately 96% height, original 3:2 geometry, no handheld mockup and no double
+frame. Both retain Mega Bezel Light for this test game. Picker selection,
+next-launch application and defaults/reset were exercised through injected device
+controls. Database integrity, Trainer/library counts, boot configuration and
+nearby/voice helpers were preserved; both Emerald save hashes remain unchanged.
+Reflections is listed from the installed pack but has no paired performance proof.
+
+On the final repeated Odin launch, the injected physical Home event no longer
+opened the overlay (RetroArch showed its pause indicator); the process and SSH
+remained responsive. Earlier picker/exit sequences succeeded. Bounded process
+and journal diagnostics were collected, then the title-screen test emulator was
+terminated and TrainerOS restarted for delivery. After restart, physical Home
+opened the overlay again and explicit Exit returned normally. This is an unresolved Home/input
+recovery observation, not a claim of an overnight stable game/voice session.
+
+Game-specific [The Bezel Project](https://github.com/thebezelproject) artwork is
+not delivered by this installed-shader selection. Import/matching by game and
+system fallback remain pending with the #112 artwork controls; no upstream
+installer is run against the owner's emulator configurations.
 
 ### Background voice controls — 2026-10-02
 

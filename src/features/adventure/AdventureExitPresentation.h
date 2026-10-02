@@ -52,7 +52,7 @@ public:
     QString panel() const{return panel_;}
     bool menuCanSelect() const{return !menuActions().value(menuFocus_).toMap().value("readOnly").toBool();}
     void setExtraActions(QVariantList actions);
-    void setPanel(QString panel,QString caption,QVariantList actions);
+    void setPanel(QString panel,QString caption,QVariantList actions,QString backAction = {});
     void setGameTitle(const QString& title) { gameTitle_ = title; emit changed(); }
     bool requestMenu();
     void menuCaptureCompleted(quint64 token, const QImage&);
@@ -83,7 +83,7 @@ private:
     bool previousHome_ = false, previousUp_ = false, previousDown_ = false;
     int menuFocus_ = 0;
     QString gameTitle_;
-    QString panel_,caption_;
+    QString panel_,caption_,backAction_;
     QVariantList extras_,panelActions_;
     QImage menuFrame_;
     QTimer menuTimer_;

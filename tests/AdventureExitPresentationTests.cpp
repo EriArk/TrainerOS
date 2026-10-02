@@ -5,6 +5,18 @@ using namespace trainer;
 class AdventureExitPresentationTests final : public QObject {
     Q_OBJECT
 private slots:
+    void appearancePickerBackRetainsMenuAndHomeStillReturnsToGame() {
+        AdventureExitController exit;AdventureExitPresentation view(exit);
+        exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);
+        QSignalSpy preview(&view,&AdventureExitPresentation::menuCaptureRequested),actions(&view,&AdventureExitPresentation::menuActionRequested);
+        QVERIFY(view.requestMenu());view.menuCaptureCompleted(preview.last()[0].toULongLong(),{});
+        view.setInputIsolated(true);view.setWindowFocused(true);
+        view.setPanel("display-choice","Choose shader",{QVariantMap{{"id","shader:off"},{"label","Off"}}},"display");
+        view.updateInput(view.inputGeneration(),{true,true});view.cancel();
+        QCOMPARE(actions.last()[0].toString(),QString("display"));QVERIFY(view.menuOpen());QCOMPARE(exit.phase(),AdventureExitController::Phase::Idle);
+        view.updateInput(view.inputGeneration(),{true,true});view.updateInput(view.inputGeneration(),{true,false,false,false,true});
+        QVERIFY(!view.menuOpen());QCOMPARE(exit.phase(),AdventureExitController::Phase::Idle);
+    }
     void incomingCallActionsPreserveSelectionAndNeverRedirectConfirm() {
         AdventureExitController exit;AdventureExitPresentation view(exit);
         exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);

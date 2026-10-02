@@ -16,6 +16,7 @@
 #include <QJsonDocument>
 #include <QFile>
 #include <QDir>
+#include <QImage>
 
 using namespace trainer;
 class RetroArchTests final : public QObject {
@@ -53,6 +54,86 @@ private slots:
         QVERIFY(retroarch::changeAppearance(id,"reset-appearance"));cmd.arguments={"game.gba"};
         QVERIFY(retroarch::prepareAppearance(cmd,id,base).isEmpty());QVERIFY(overlay.open(QIODevice::ReadOnly));
         const auto defaults=overlay.readAll();QVERIFY(!defaults.contains("video_smooth"));QVERIFY(!defaults.contains("aspect_ratio_index"));
+    }
+    void namedAppearanceKeepsFamiliesIndependentAndRecoversMissingPresets() {
+        QTemporaryDir dir;QVERIFY(QDir().mkpath(dir.filePath("shaders")));QVERIFY(QDir().mkpath(dir.filePath("overlays/borders")));
+        const auto base=dir.filePath("base.cfg"),preset=dir.filePath("shaders/Soft_LCD.slangp"),border=dir.filePath("overlays/borders/Plain.cfg");
+        const QByteArray original="video_driver = \"glcore\"\nvideo_shader_enable = \"true\"\n";
+        {QFile f(base);QVERIFY(f.open(QIODevice::WriteOnly));f.write(original);}
+        touch(preset);touch(dir.filePath("shaders/Incompatible.glslp"));
+        {QFile f(border);QVERIFY(f.open(QIODevice::WriteOnly));f.write("overlays = 1\noverlay0_descs = 0\noverlay0_overlay = frame.png\noverlay0_full_screen = true\n");}
+        QImage image(200,100,QImage::Format_ARGB32);image.fill(Qt::black);
+        for(int y=2;y<98;++y)for(int x=40;x<160;++x)image.setPixel(x,y,qRgba(0,0,0,0));
+        QVERIFY(image.save(dir.filePath("overlays/borders/frame.png")));
+        {QFile f(dir.filePath("overlays/borders/Controller.cfg"));QVERIFY(f.open(QIODevice::WriteOnly));f.write("overlays = 1\noverlay0_descs = 8\n");}
+        const auto id=QUuid::createUuid().toString();ProcessCommand cmd;cmd.arguments={"game.gba"};
+        QVERIFY(retroarch::prepareAppearance(cmd,id,base).isEmpty());
+        QCOMPARE(cmd.runtimeControls["shaderChoices"].toList().size(),1);QCOMPARE(cmd.runtimeControls["bezelChoices"].toList().size(),1);
+        const auto shaderChoice=cmd.runtimeControls["shaderChoices"].toList().first().toMap()["id"].toString();
+        const auto bezelChoice=cmd.runtimeControls["bezelChoices"].toList().first().toMap()["id"].toString();
+        QVERIFY(!retroarch::chooseAppearance(id,"shader:untrusted-path",cmd.runtimeControls));
+        QVERIFY(retroarch::chooseAppearance(id,shaderChoice,cmd.runtimeControls));
+        QVERIFY(retroarch::chooseAppearance(id,bezelChoice,cmd.runtimeControls));
+        ProcessCommand selected;selected.arguments={"game.gba"};QVERIFY(retroarch::prepareAppearance(selected,id,base,{},QSize(1000,500)).isEmpty());
+        QCOMPARE(selected.arguments.last(),QString("game.gba"));QCOMPARE(selected.arguments.value(selected.arguments.indexOf("--set-shader")+1),preset);
+        auto overlayBytes=[&](const ProcessCommand& command){QFile f(command.arguments.value(command.arguments.indexOf("--appendconfig")+1));if(!f.open(QIODevice::ReadOnly))return QByteArray();return f.readAll();};
+        QVERIFY(overlayBytes(selected).contains(border.toUtf8()));QVERIFY(overlayBytes(selected).contains("auto_shaders_enable = \"false\""));
+        QVERIFY(overlayBytes(selected).contains("custom_viewport_x = \"0\""));
+        QVERIFY(overlayBytes(selected).contains("custom_viewport_width = \"580\""));
+        image.setPixel(80,40,qRgb(0,0,0));QVERIFY(image.save(dir.filePath("overlays/borders/frame.png")));
+        ProcessCommand obstructed;obstructed.arguments={"game.gba"};QVERIFY(retroarch::prepareAppearance(obstructed,id,base,{},QSize(1000,500)).isEmpty());
+        QVERIFY(!overlayBytes(obstructed).contains("input_overlay_enable"));QVERIFY(!obstructed.runtimeControls["appearanceNotice"].toString().isEmpty());
+        QVERIFY(retroarch::chooseAppearance(id,"bezel:off",cmd.runtimeControls));
+        ProcessCommand off;off.arguments={"game.gba"};QVERIFY(retroarch::prepareAppearance(off,id,base).isEmpty());
+        QVERIFY(off.arguments.contains(preset));QVERIFY(overlayBytes(off).contains("input_overlay_enable = \"false\""));
+        ProcessCommand other;other.arguments={"game.gba"};QVERIFY(retroarch::prepareAppearance(other,QUuid::createUuid().toString(),base).isEmpty());
+        QVERIFY(!other.arguments.contains("--set-shader"));QVERIFY(!overlayBytes(other).contains("input_overlay"));
+        QVERIFY(QFile::remove(preset));ProcessCommand missing;missing.arguments={"game.gba"};
+        QVERIFY(retroarch::prepareAppearance(missing,id,base).isEmpty());QVERIFY(!missing.arguments.contains("--set-shader"));
+        QVERIFY(!missing.runtimeControls["appearanceNotice"].toString().isEmpty());
+        QVERIFY(retroarch::changeAppearance(id,"reset-appearance"));ProcessCommand reset;reset.arguments={"game.gba"};
+        QVERIFY(retroarch::prepareAppearance(reset,id,base).isEmpty());QVERIFY(!overlayBytes(reset).contains("input_overlay"));
+        QFile unchanged(base);QVERIFY(unchanged.open(QIODevice::ReadOnly));QCOMPARE(unchanged.readAll(),original);
+    }
+    void megaBezelKeepsGameLargeAndAvoidsDoubleFrames() {
+        QTemporaryDir dir;
+        const auto shared=dir.filePath("stock/shaders_slang/bezel/Mega_Bezel/Presets/Base_CRT_Presets");
+        QVERIFY(QDir().mkpath(shared));
+        const auto preset=shared+"/MBZ__4__STD-NO-REFLECT__GDV-MINI.slangp";touch(preset);
+        const auto base=dir.filePath("base.cfg");
+        {QFile f(base);QVERIFY(f.open(QIODevice::WriteOnly));f.write(("video_driver = \"glcore\"\nvideo_shader_dir = \""+dir.filePath("stock")+"\"\ninput_overlay_enable = \"true\"\n").toUtf8());}
+        const auto id=QUuid::createUuid().toString();ProcessCommand cmd;cmd.arguments={"game.gba"};
+        QVERIFY(retroarch::prepareAppearance(cmd,id,base).isEmpty());
+        const auto choices=cmd.runtimeControls["shaderChoices"].toList();QCOMPARE(choices.size(),1);
+        QCOMPARE(choices.first().toMap()["label"].toString(),QString("Mega Bezel - Light"));
+        QVERIFY(QDir().mkpath(dir.filePath("shaders/Mega_Bezel/Presets/Base_CRT_Presets")));
+        QVERIFY(QFile::copy(preset,dir.filePath("shaders/Mega_Bezel/Presets/Base_CRT_Presets/MBZ__4__STD-NO-REFLECT__GDV-MINI.slangp")));
+        ProcessCommand duplicate;duplicate.arguments={"game.gba"};
+        QVERIFY(retroarch::prepareAppearance(duplicate,id,base).isEmpty());
+        QCOMPARE(duplicate.runtimeControls["shaderChoices"].toList().size(),1);
+        QVERIFY(retroarch::chooseAppearance(id,choices.first().toMap()["id"].toString(),cmd.runtimeControls));
+        ProcessCommand selected;selected.arguments={"game.gba"};
+        QVERIFY(retroarch::prepareAppearance(selected,id,base).isEmpty());
+        QFile wrapper(selected.arguments.value(selected.arguments.indexOf("--set-shader")+1));QVERIFY(wrapper.open(QIODevice::ReadOnly));
+        const auto source=wrapper.readAll();QVERIFY(source.contains(preset.toUtf8()));QVERIFY(source.contains("HSM_NON_INTEGER_SCALE = \"96\""));
+        QFile overlay(selected.arguments.value(selected.arguments.indexOf("--appendconfig")+1));QVERIFY(overlay.open(QIODevice::ReadOnly));
+        const auto config=overlay.readAll();QVERIFY(config.contains("video_force_aspect = \"false\""));QVERIFY(config.contains("input_overlay_enable = \"false\""));
+        QVERIFY(retroarch::changeAppearance(id,"reset-appearance"));
+    }
+    void flatpakAppearanceUsesRuntimePathsAndSurvivesDeploymentPathChange() {
+        QTemporaryDir dir;const auto deployment=dir.filePath("org.libretro.RetroArch/revision/files");
+        QVERIFY(QDir().mkpath(deployment+"/share/shaders"));const auto preset=deployment+"/share/shaders/scanlines.slangp";touch(preset);
+        const auto base=dir.filePath("base.cfg");{QFile f(base);QVERIFY(f.open(QIODevice::WriteOnly));f.write("video_driver = \"vulkan\"\nvideo_shader_dir = \"/app/share/shaders\"\n");}
+        const auto id=QUuid::createUuid().toString();ProcessCommand cmd;cmd.arguments={"game.gba"};
+        QVERIFY(retroarch::prepareAppearance(cmd,id,base,deployment+"/bin/retroarch").isEmpty());
+        const auto rows=cmd.runtimeControls["shaderChoices"].toList();QCOMPARE(rows.size(),1);
+        QCOMPARE(rows.first().toMap()["path"].toString(),QString("/app/share/shaders/scanlines.slangp"));
+        QVERIFY(retroarch::chooseAppearance(id,rows.first().toMap()["id"].toString(),cmd.runtimeControls));
+        const auto updated=dir.filePath("org.libretro.RetroArch/new-revision/files");QVERIFY(QDir().mkpath(updated+"/share/shaders"));
+        QVERIFY(QFile::copy(preset,updated+"/share/shaders/scanlines.slangp"));
+        ProcessCommand next;next.arguments={"game.gba"};QVERIFY(retroarch::prepareAppearance(next,id,base,updated+"/bin/retroarch").isEmpty());
+        QVERIFY(next.arguments.contains("/app/share/shaders/scanlines.slangp"));QVERIFY(!next.arguments.contains(preset));
+        QVERIFY(retroarch::changeAppearance(id,"reset-appearance"));
     }
     void genericOrdinaryLaunchKeepsSaveProvidersSeparate() {
         QTemporaryDir dir;const auto content=dir.filePath("literal ; title.chd"),core=dir.filePath("pcsx_rearmed_libretro.so"),cfg=dir.filePath("retroarch.cfg");

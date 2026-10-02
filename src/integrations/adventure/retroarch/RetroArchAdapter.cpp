@@ -8,6 +8,8 @@
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QGuiApplication>
+#include <QScreen>
 
 namespace trainer {
 namespace {
@@ -188,9 +190,11 @@ AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
         };
     }
     const auto prepare=invocation->prepare;const auto id=adventure.id;const auto config=installation_.configFile;
-    invocation->prepare=[prepare,id,config](ProcessCommand& cmd,const std::atomic_bool& cancel){
+    const auto screen=qobject_cast<QGuiApplication*>(QCoreApplication::instance())?QGuiApplication::primaryScreen():nullptr;
+    const auto display=screen?screen->size()*screen->devicePixelRatio():QSize();
+    invocation->prepare=[prepare,id,config,runtime=installation_.runtimeFile,display](ProcessCommand& cmd,const std::atomic_bool& cancel){
         const auto error=prepare?prepare(cmd,cancel):QString();
-        return error.isEmpty()&&!cancel?retroarch::prepareAppearance(cmd,id,config):error;
+        return error.isEmpty()&&!cancel?retroarch::prepareAppearance(cmd,id,config,runtime,display):error;
     };
     if (!requestLaunch) return {false, "Game launch is unavailable in this session."};
     return requestLaunch(*invocation, adventure.id);

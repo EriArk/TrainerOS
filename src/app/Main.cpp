@@ -444,8 +444,17 @@ int main(int argc, char* argv[]) {
                 exitPresentation.setPanel("call",voice["summary"].toString(),rows);return;
             }
             if(runtime["kind"]!="retroarch")return;
+            const auto game=runtime["game"].toString();
+            if(action=="choose-shader"||action=="choose-bezel") {
+                const auto family=action=="choose-shader"?QString("shader"):QString("bezel");
+                auto rows=retroarch::appearanceChoices(game,family,runtime);
+                rows.append(QVariantMap{{"id","display"},{"label","Back"}});
+                exitPresentation.setPanel("display-choice",family=="shader"?"Choose shader · next launch":"Choose frame · next launch",rows,"display");return;
+            }
             QString caption="Display changes apply next launch";
+            if(action=="display"&&!runtime["appearanceNotice"].toString().isEmpty())caption=runtime["appearanceNotice"].toString();
             if(action=="shader"||action=="next-shader"||action=="previous-shader")caption=adventureProcess.runtimeCommand(action)?"Shader preview":"Couldn't change the shader";
+            else if(action.startsWith("shader:")||action.startsWith("bezel:")){if(!retroarch::chooseAppearance(game,action,runtime))caption="Couldn't save display settings";}
             else if(action!="display"&&!retroarch::changeAppearance(runtime["game"].toString(),action))caption="Couldn't save display settings";
             auto rows=retroarch::appearanceActions(runtime["game"].toString());
             rows.append(QVariantMap{{"id","shader"},{"label","Toggle shader now"}});rows.append(QVariantMap{{"id","next-shader"},{"label","Next shader now"}});rows.append(back);
