@@ -3,8 +3,10 @@
 #include <QFileInfo>
 #include <QImageReader>
 #include <QJsonDocument>
+#include <QLoggingCategory>
 
 namespace trainer {
+Q_LOGGING_CATEGORY(overlayLog, "trainer.overlay")
 AdventureOverlayService::AdventureOverlayService(ProcessService& game, AdventureLaunchController& launch,
         AdventureExitPresentation& view, const QString& helper, QObject* parent)
     : QObject(parent), game_(game), exit_(launch.exitController()), view_(view), helper_(helper) {
@@ -69,9 +71,18 @@ void AdventureOverlayService::stop() {
 }
 void AdventureOverlayService::lost() {
     heartbeat_.stop(); exit_.setAvailable(false); view_.setInputIsolated(false);
-    if (exit_.phase() == AdventureExitController::Phase::Closing)
-        exit_.gracefulExitFailed(attempt_, "The exit connection was lost. Your game has not been forced to stop.");
-    if (active_ && game_.active()) retry_.start();
+    if (exit_.phase() == AdventureExitController::Phase::Closing) {
+        // The helper watches the OS process, while ProcessService remains
+        // active during adapter settlement. Its EOF must not erase a confirmed
+        // capture in that gap. Allow queued child-exit notifications to settle;
+        // only a still-running child represents a lost close connection.
+        const auto token = attempt_;
+        QTimer::singleShot(200, this, [this, token] {
+            if (token == attempt_ && exit_.phase() == AdventureExitController::Phase::Closing && game_.processId())
+                exit_.gracefulExitFailed(token, "The exit connection was lost. Your game has not been forced to stop.");
+        });
+    }
+    if (active_ && game_.active() && game_.processId()) retry_.start();
 }
 void AdventureOverlayService::send(const QJsonObject& object) {
     if (helperProcess_.state() != QProcess::Running) return;
@@ -95,6 +106,9 @@ void AdventureOverlayService::receive() {
                 message["neutral"].toBool(), message["confirm"].toBool(), message["back"].toBool(),
                 message["home"].toBool(), message["up"].toBool(), message["down"].toBool()});
         } else if (event == "captured" || event == "previewed") {
+            qCInfo(overlayLog).nospace() << event << " ok=" << message["ok"].toBool()
+                << " elapsedMs=" << message["elapsedMs"].toInt(-1)
+                << " reason=" << message["reason"].toString().left(64);
             QImage frame;
             if (message["ok"].toBool() && temporary_) {
                 QImageReader reader(temporary_->filePath("frame.png"), "png");

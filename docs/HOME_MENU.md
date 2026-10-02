@@ -67,6 +67,67 @@ in [the register](EXPANSION_98_112.md) and [roadmap](ROADMAP.md).
 
 ## Verification
 
+### Home latency and exit settlement — 2026-10-02
+
+Home's preview now uses the installed Gamescope control command to write PNG
+directly, instead of SIGUSR2 AVIF encoding followed by an ffmpeg decode. The
+screen-buffer capture preserves the compositor's current game framing/shader.
+Each capture has its own private path; a complete PNG header, bounded dimensions
+and terminal IEND are required before atomic publication. Incomplete/late output
+cannot become the next attempt's frame. A timeout does not enqueue another
+screenshot. Systems without `gamescopectl` retain the existing AVIF path.
+Game-window ownership, neutral-input gates, watchdog, separate preview/exit
+generations and fresh capture before explicit Exit are unchanged.
+
+Sources: [Gamescope screenshot command](https://github.com/ValveSoftware/gamescope/blob/master/src/steamcompmgr.cpp)
+and [screen-buffer type / extension-selected format](https://github.com/ValveSoftware/gamescope/blob/master/protocol/gamescope-control.xml).
+The installed control tool identifies itself as `3.16.31-ogc1+` on Odin.
+
+Measured remotely from injected physical Home to the active overlay window:
+
+| Device | Before | After (including repeated opens / relaunch) |
+| --- | --- | --- |
+| Odin 2 | 2212, 2268 ms | 534, 555, 520, 521 ms |
+| Flip 2 | Not sampled in this pass | 510, 698, 618, 595 ms |
+
+These are bounded focus-transition observations, not long-run percentile or
+physical feel acceptance. B returned to the same emulator process in 103 ms on
+Odin and 123 ms on Flip. Capture-only comparison on Odin was 1504 ms through the
+old path versus approximately 313 ms through direct PNG. The helper now reports
+capture duration/success to the `trainer.overlay` logging category for later
+diagnosis, without recording chat, credentials or game-save contents.
+
+This pass also reproduced and fixed a close-order race: the helper notices the
+game's OS process ending while ProcessService is still settling the adapter's
+save synchronization. Treating helper EOF as a failed close cleared the confirmed
+exit image before history publication. A short queued child-exit check now reports
+lost transport only if the owned child is still running; normal process outcome
+remains the sole authority for successful exit. The regression test failed before
+the fix and now verifies the retained image and confirmation after delayed
+settlement. Losing the helper while the game remains alive still fails safely.
+
+Seven affected CTest entries pass: overlay helper, process, exit, presentation,
+transport, history and storage. Production build has tests disabled. Both devices
+run SHA-256 `4b30544f1bb0387e940a2ee21bbb049e4ad76846fe3323563b2f13ebd9446f86`
+and helper `adventure-overlay.py` SHA-256
+`4d9eca113adc675c8a76856308af485477e7db57da2aa5c5aee80b9950791c5f`.
+Two game launches on the final build per device returned normally with new exit
+images linked to those exact sessions, no remaining emulator and unchanged save
+hashes. Trainer/library counts, boot policy and nearby/voice helpers are retained.
+Actual device screenshots are `work/research/stability-delivered-home-flip.png`
+and `stability-delivered-home-odin.png`; private source/probe/test logs stay outside
+Git. No reboot or forced game termination was needed during this pass.
+
+Odin's prior-boot journal contains an Adreno translation fault at address zero,
+ring 2, plus GMU GPU_SET timeouts at 17:30:31–32 local time. Together with the
+previously observed `dma_fence_default_wait` thread, this confirms a GPU-level
+failure, but does not identify whether the triggering work came from Qt,
+RetroArch or Gamescope. Current environment: kernel 7.2.6, Mesa DRI 26.2.3.
+No new GPU fault appeared in this bounded check. The driver hang remains open;
+do not claim this capture/lifecycle fix cures it or replace global rendering /
+power settings without reproducible evidence. Ordinary recovery still starts
+with the affected process, preserving any active game/save operation.
+
 ### Installed shader/frame selection — 2026-10-02 outage exception
 
 The owner authorized independent planned work during the public Fluxer outage.

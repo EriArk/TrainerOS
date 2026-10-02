@@ -8,14 +8,68 @@ import sys
 import tempfile
 import time
 import unittest
+import base64
 from unittest.mock import patch, Mock
 
 ROOT = Path(__file__).resolve().parents[1] / 'packaging/integrations'
 sys.path.insert(0, str(ROOT))
 from overlay_support import RawPad, X11, identity, supported_emulator_process
+spec = importlib.util.spec_from_file_location('overlay', ROOT / 'adventure-overlay.py')
+overlay = importlib.util.module_from_spec(spec); spec.loader.exec_module(overlay)
+PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg==')
 
 
 class OverlayHelperTests(unittest.TestCase):
+    def test_png_waits_for_complete_output_and_keeps_old_frame_until_ready(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); frame = root / 'frame.png'; frame.write_bytes(b'previous')
+            control = root / 'control'
+            control.write_text('#!' + sys.executable + '\n' +
+                'import sys,time\nfrom pathlib import Path\np=Path(sys.argv[2])\n' +
+                'assert sys.argv[1]=="screenshot" and sys.argv[3]=="4"\n' +
+                'p.write_bytes(' + repr(PNG[:-12]) + ')\ntime.sleep(.08)\n' +
+                'assert (p.parent.parent/"frame.png").read_bytes()==b"previous"\n' +
+                'with p.open("ab") as f:f.write(' + repr(PNG[-12:]) + ')\n')
+            control.chmod(0o700)
+            overlay.capture_png(root, str(control))
+            self.assertEqual(frame.read_bytes(), PNG)
+            self.assertFalse(list(root.glob('png-*')))
+
+    def test_partial_oversized_and_symlink_png_are_not_ready(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target=Path(directory)/'screen.png'
+            self.assertFalse(overlay.complete_png(target))
+            target.write_bytes(PNG[:-12]);self.assertFalse(overlay.complete_png(target))
+            target.write_bytes(PNG);self.assertTrue(overlay.complete_png(target))
+            bad=bytearray(PNG);bad[16:20]=struct.pack('>I',4097);target.write_bytes(bad)
+            with self.assertRaises(RuntimeError):overlay.complete_png(target)
+            target.unlink();target.symlink_to(Path(directory)/'elsewhere')
+            with self.assertRaises(RuntimeError):overlay.complete_png(target)
+
+    def test_timed_out_png_cannot_reuse_old_frame_or_retry_capture(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);frame=root/'frame.png';frame.write_bytes(PNG)
+            paths=[]
+            def command(args,**kwargs):
+                paths.append(args[2]);Path(args[2]).write_bytes(PNG[:-12])
+            with patch.object(overlay.subprocess,'run',side_effect=command), \
+                 patch.object(overlay.time,'monotonic',side_effect=[0,0,2,3,3,5]), \
+                 patch.object(overlay.time,'sleep'):
+                for _ in range(2):
+                    with self.assertRaises(RuntimeError):overlay.capture_png(root,'control')
+            self.assertNotEqual(paths[0],paths[1]);self.assertEqual(frame.read_bytes(),PNG)
+            self.assertFalse(list(root.glob('png-*')))
+        with patch.object(overlay.shutil,'which',return_value='/usr/bin/gamescopectl'), \
+             patch.object(overlay,'capture_png',side_effect=RuntimeError('timeout')), \
+             patch.object(overlay,'capture_avif') as fallback:
+            with self.assertRaises(RuntimeError):overlay.capture(Path('/unused'))
+            fallback.assert_not_called()
+
+    def test_old_compositor_without_control_retains_avif_route(self):
+        with patch.object(overlay.shutil,'which',return_value=None), \
+             patch.object(overlay,'capture_avif') as fallback:
+            overlay.capture(Path('/unused'));fallback.assert_called_once_with(Path('/unused'))
+
     def test_core_thread_name_does_not_hide_the_owned_emulator(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);process=root/'42';process.mkdir()

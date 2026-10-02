@@ -10,8 +10,11 @@ RetroArch shader/frame selection in the existing Home overlay, with per-game
 inheritance/reset and paired delivery. Large-picture Mega Bezel presets are included;
 automatic Bezel Project game matching and system fallback are implemented and
 visually verified on Flip and Odin. Both have the bounded GB/GBC/GBA image set.
-Odin required recovery from an uninterruptible GPU wait; that cause and the
-intermittent Home input delay remain open. See [evidence](HOME_MENU.md#automatic-game-artwork--2026-10-02).
+Home capture latency and the helper/exit settlement race are fixed and verified
+on both devices; Home focus now takes approximately 0.5–0.7 seconds in the bounded
+check. Odin's earlier uninterruptible GPU wait has matching Adreno fault evidence,
+but its trigger and permanent fix remain open. See
+[latency and recovery evidence](HOME_MENU.md#home-latency-and-exit-settlement--2026-10-02).
 Block 3 stays open; its remaining call
 checks resume after recovery. This supersedes the temporary scheduling prohibition
 below, not any unfinished communication or R1–R18 acceptance.

@@ -8,9 +8,12 @@ import os
 from pathlib import Path
 import select
 import signal
+import shutil
 import socket
+import struct
 import subprocess
 import sys
+import tempfile
 import time
 from overlay_support import RawPad, X11, identity, supported_emulator_process
 
@@ -78,7 +81,54 @@ def emit(kind, **values):
     print(json.dumps({'event': kind, **values}, separators=(',', ':')), flush=True)
 
 
+def complete_png(path):
+    """Gamescope creates the file before encoding finishes; existence is not ready."""
+    try:
+        if path.is_symlink(): raise RuntimeError('Invalid capture file')
+        size = path.stat().st_size
+        if size > 32 * 1024 * 1024: raise RuntimeError('Capture too large')
+        if size < 45: return False
+        with path.open('rb') as source:
+            header = source.read(24)
+            source.seek(-12, os.SEEK_END); end = source.read(12)
+        if header[:16] != b'\x89PNG\r\n\x1a\n\0\0\0\rIHDR': return False
+        width, height = struct.unpack('>II', header[16:24])
+        if not 0 < width <= 4096 or not 0 < height <= 4096:
+            raise RuntimeError('Capture dimensions unsupported')
+        return end == b'\0\0\0\0IEND\xaeB`\x82'
+    except FileNotFoundError:
+        return False
+
+
+def capture_png(directory, control):
+    # Each request owns a unique path. A timed-out compositor write cannot be
+    # mistaken for the next preview or overwrite its explicit exit screenshot.
+    environment = os.environ.copy()
+    if environment.get('GAMESCOPE_WAYLAND_DISPLAY'):
+        environment['WAYLAND_DISPLAY'] = environment['GAMESCOPE_WAYLAND_DISPLAY']
+    with tempfile.TemporaryDirectory(prefix='png-', dir=directory) as temporary:
+        target = Path(temporary) / 'screen.png'
+        start = time.monotonic()
+        subprocess.run([control, 'screenshot', str(target), '4'], env=environment,
+                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=.5)
+        while time.monotonic() - start < 1.3:
+            if complete_png(target):
+                target.replace(directory / 'frame.png')
+                return
+            time.sleep(.01)
+        raise RuntimeError('Capture unavailable')
+
+
 def capture(directory):
+    control = shutil.which('gamescopectl')
+    if control:
+        # Avoid AVIF encode + external decode on every Home press. A failed
+        # request stays failed; do not enqueue a second capture after a timeout.
+        return capture_png(directory, control)
+    return capture_avif(directory)
+
+
+def capture_avif(directory):
     candidates = []
     for p in Path('/proc').glob('[0-9]*'):
         try:
@@ -129,7 +179,7 @@ def run(args):
     pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     future = None; state = 'game'; target = 0; token = 0; epoch = '0'; buffer = b''; neutral_since = None
     capture_event = 'previewed'; capture_deadline = 0; clean_since = None
-    capture_job = None
+    capture_job = None; capture_started = 0
     try:
         device.mode(1); emit('ready', protocol=2)
         while guard.poll() is None:
@@ -151,6 +201,7 @@ def run(args):
                         token = int(command['token']); state = 'capturing'
                         capture_event = 'previewed' if op == 'preview' else 'captured'
                         capture_deadline = time.monotonic() + .7; clean_since = None
+                        capture_started = time.monotonic()
                     elif op == 'cancel' and state in ('requested','overlay','capturing'):
                         state = 'release'; neutral_since = None
                     elif op == 'close' and state == 'overlay' and int(command['token']) == token:
@@ -177,11 +228,14 @@ def run(args):
                     capture_job = (capture_event, token)
                     future = pool.submit(capture, directory); state = 'overlay'
                 elif time.monotonic() > capture_deadline:
-                    state = 'overlay'; emit(capture_event, token=token, ok=False)
+                    state = 'overlay'; emit(capture_event, token=token, ok=False,
+                        elapsedMs=round((time.monotonic()-capture_started)*1000), reason='game-focus')
             if future is not None and future.done():
                 error = future.exception()
                 if state == 'overlay' and capture_job == (capture_event, token):
-                    emit(capture_event,token=token,ok=error is None)
+                    emit(capture_event,token=token,ok=error is None,
+                         elapsedMs=round((time.monotonic()-capture_started)*1000),
+                         reason=type(error).__name__ if error else '')
                 future = None
             if state in ('requested','overlay','capturing','closing'):
                 emit('input',epoch=epoch,**sample)
