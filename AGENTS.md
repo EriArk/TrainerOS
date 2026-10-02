@@ -1,5 +1,15 @@
 # AGENTS.md — TrainerOS
 
+**Owner remote-only continuation, 2026-10-03:** defer checks requiring the owner
+to physically press buttons, attach a headset, listen or speak until later.
+Continue useful remote communication work now; keep those checks in a separate
+pending checklist and do not count synthetic audio as speech/headset acceptance.
+Preserve quiet device output while the owner is away.
+
+**Owner recovery notice, 2026-10-03:** tell the owner immediately when a device
+needs rebooting. Prefer bounded diagnosis and process/session restart first;
+do not leave a failed remote reboot or unreachable handheld unreported.
+
 **Owner communication settings, 2026-10-02:** add the basic communication
 profile, microphone/output selection, call volume and notification/DND controls
 to Start -> Settings under Communication, using the existing two-panel layout.

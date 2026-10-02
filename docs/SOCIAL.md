@@ -1,5 +1,12 @@
 # Native Social - conversations and discovery
 
+**Owner remote-only continuation, 2026-10-03:** physical button, listening,
+speaking and headset checks are deferred until the owner is available. They remain
+pending, not failed or implicitly passed. Keep remote work within block 3 and
+report a required device reboot immediately. The current remaining checks are
+separated into remote and owner-assisted rows in
+[the acceptance checklist](SOCIAL_MEDIA_VOICE.md#remaining-checklist--2026-10-03).
+
 **Call history and gallery, 2026-10-02:** conversation call rows now show caller,
 time and valid server duration instead of identical Call ended labels. The checked
 build is installed on both handhelds; the actual Flip history and 17 other screens

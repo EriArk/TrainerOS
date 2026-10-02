@@ -4,6 +4,15 @@
 
 ## Current plan — reconciled 2026-10-01
 
+**Owner remote-only continuation, 2026-10-03:** defer physical controller,
+speech/listening and headset checks. Keep them pending separately from remote
+checks; do not mark block 3 complete. Flip now has live evidence for input-process
+failure/remute/retry. After Odin recovered from its GPU stall, paired synthetic
+measurements verified input A/B switching, receiver call gain and both mute
+directions without rejoining. Speech/headset and remaining interoperability gates
+remain open. See the
+[remaining checklist and evidence](SOCIAL_MEDIA_VOICE.md#remaining-checklist--2026-10-03).
+
 **Block 3 call-history continuation, 2026-10-02:** readable caller/time/duration
 rows are delivered to both handhelds with 85 Social, 37 Interaction and 9 exit
 presentation checks passing. The owner-requested 18-screen device gallery is in

@@ -1,5 +1,88 @@
 # Communication media and voice — 2026-10-02
 
+## Remaining checklist — 2026-10-03
+
+The owner explicitly deferred checks requiring physical input, listening or
+speaking. Do not request them during remote work or mark them passed by synthetic
+signal tests. Block 3 remains open; this is not a switch to another block.
+
+| Check | How to finish | Status |
+| --- | --- | --- |
+| Live microphone route and capture-process recovery | Flip controller settings/Home with isolated virtual inputs; retain the voice worker after input loss and retry | Local failure/remute/retry verified below; physical headset removal is separate |
+| Measured microphone switching and call-volume/mute effects at the receiver | Two working clients and isolated synthetic signal/output | Verified Flip to Odin below after recovery; prior output rerouting proof remains valid |
+| Web-to-native microphone and attachment interoperability | Ordinary web client with controllable test input and file upload | Pending; current browser automation has no usable upload/native chooser |
+| Different internet connections and reconnection | Two independently routed clients, preserving recovery access | Pending; same-LAN tests do not satisfy this |
+| Speech clarity, echo and delay in both directions | Owner with microphone headsets on both consoles | Deferred by owner |
+| Unplug/reconnect an actual headset during a call | Owner; confirm selected/follow-system route and usable audio afterward | Deferred by owner |
+| Physical Home/A/B controls and hearing a call while playing | Owner; receive/answer, mute, navigate, launch/exit a game and leave the call | Deferred by owner; injected-controller/background-worker evidence already exists |
+
+## Remote input recovery and Odin interruption — 2026-10-03
+
+On the unchanged `32dd52f` production build, Flip joined the public voice room
+with its microphone initially muted. The explicit input was a temporary virtual
+source; no real microphone was enabled. Home enabled capture on input A. Stopping
+only that `parec` process remuted the microphone, removed capture and showed
+Microphone unavailable while the same voice worker (PID 1520454) stayed connected.
+One Home confirmation restarted capture on A without rejoining the room.
+Communication settings then switched the live capture process to virtual input B;
+the same worker remained. Turning Microphone on to Off stopped capture while
+retaining the call. This proves local input lifecycle/route control, not reception
+or speech quality: Odin was unavailable and the call had one participant.
+
+Private installed-device captures are `oct3-input-lost.png`,
+`oct3-input-recovered.png`, `oct3-live-input-b-verified.png` and
+`oct3-input-muted-settings.png` under `work/research`.
+
+The call was explicitly ended. Follow system input was restored only after
+muting; virtual sources/sinks were removed and original system defaults retained.
+Flip's system output stayed muted. The unchanged executable/helper, SQLite
+integrity and 3 Trainers / 830 Adventures, Emerald save hash, boot preference and
+nearby helpers passed final verification. No code change or new build was needed.
+
+Before the paired test, Odin was reachable by SSH but could not produce a fresh
+compositor capture. The kernel recorded an Adreno translation/GPU fault at
+00:04:15 on 3 October. TERM, KILL and a session restart left a TrainerOS thread
+in uninterruptible `dma_fence_default_wait`. No game was running. Remote reboot
+was requested; SSH initially remained unavailable. The owner was told that manual
+recovery was needed when they requested immediate reboot notices. Odin then
+returned during this session. Its guarded session switch restored TrainerOS and
+a fresh compositor capture verified rendering; the guard restored the original
+Steam boot preference. This is recovery, not a fix for the GPU fault.
+
+### Paired quiet signal measurements after recovery
+
+Both installed clients joined one public Fluxer call. Flip used only isolated
+virtual input A/B; Odin received into a virtual sink. System audio stayed at
+Flip muted / Odin 0%, and no environmental microphone was enabled. The sender
+played an original 440 Hz synthetic signal at amplitude 1800. Five-second PCM
+captures at Odin's selected sink measured the following peak tone amplitudes:
+
+| Controller action | Received 440 Hz amplitude |
+| --- | ---: |
+| Input A, call volume 100% | 1798.99 |
+| Switch Flip to silent input B | 0 |
+| Switch back to input A | 1802.66 |
+| Odin call volume 50% | 900.87 |
+| Odin call volume 0% | 0 |
+| Restore 100%, mute Flip microphone | 0 |
+| Unmute Flip synthetic microphone | 1801.14 |
+| Odin Hear conversation off | 0 |
+| Odin Hear conversation on | 1801.09 |
+
+The receiver worker stayed PID 15300 across all measurements, without leaving or
+rejoining. This proves actual remote signal routing, call gain and mute effects;
+it does not establish human speech clarity, echo, latency or headset recovery.
+Private evidence is `oct3-pair-input-b.png`, `oct3-volume-half.png`,
+`oct3-volume-zero.png`, `oct3-pair-muted.png` and the devices' temporary
+`quiet-measurements.jsonl` logs. No runtime source change was necessary.
+
+Both calls were explicitly ended, microphone capture stopped, Follow system
+routes restored and all virtual audio modules removed without changing defaults.
+Final verification on both retained the production executable, voice/nearby
+helpers, boot preferences, database integrity/counts (Flip 3/830, Odin 1/25) and
+both ordinary Emerald save hashes. No live voice worker/capture remained; each
+session had one already-defunct `pacat` child, which cannot produce audio.
+
 ## Readable call history and handheld gallery — 2026-10-02
 
 Call events now name the caller (or say You started a call), with the local date,
