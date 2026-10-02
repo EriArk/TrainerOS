@@ -1,5 +1,11 @@
 # Native Social - conversations and discovery
 
+**Web picture interoperability, 2026-10-03:** the ordinary public web client's
+saved-media sender delivered a new picture attachment to Flip; controller Right/A
+opened it in the installed viewer. See [device proof](SOCIAL_MEDIA_VOICE.md#ordinary-web-picture-received-on-flip--2026-10-03).
+Reverse audio, independent-network and deferred human checks remain open. Do not
+repeat the blocked Windows chooser as a substitute for those remaining gates.
+
 **Owner remote-only continuation, 2026-10-03:** physical button, listening,
 speaking and headset checks are deferred until the owner is available. They remain
 pending, not failed or implicitly passed. Keep remote work within block 3 and

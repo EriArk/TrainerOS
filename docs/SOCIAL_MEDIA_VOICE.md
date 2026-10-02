@@ -10,11 +10,36 @@ signal tests. Block 3 remains open; this is not a switch to another block.
 | --- | --- | --- |
 | Live microphone route and capture-process recovery | Flip controller settings/Home with isolated virtual inputs; retain the voice worker after input loss and retry | Local failure/remute/retry verified below; physical headset removal is separate |
 | Measured microphone switching and call-volume/mute effects at the receiver | Two working clients and isolated synthetic signal/output | Verified Flip to Odin below after recovery; prior output rerouting proof remains valid |
-| Web-to-native microphone and attachment interoperability | Ordinary web client with controllable test input and file upload | Pending; current browser automation has no usable upload/native chooser |
+| Web-to-native pictures | Send an image from the ordinary web client and open it on the handheld | Verified via the web client's saved-media sender below |
+| Web-to-native microphone and voice-message interoperability | Ordinary web client with an isolated test microphone | Pending; no controllable isolated input in the current internal browser |
+| Ordinary web local-file chooser | Upload a local test file through the ordinary web UI | Tool-limited: browser Upload has no exposed action and native window capture returns WINDOW_OCCLUDED; independent of the verified saved-media delivery |
 | Different internet connections and reconnection | Two independently routed clients, preserving recovery access | Pending; same-LAN tests do not satisfy this |
 | Speech clarity, echo and delay in both directions | Owner with microphone headsets on both consoles | Deferred by owner |
 | Unplug/reconnect an actual headset during a call | Owner; confirm selected/follow-system route and usable audio afterward | Deferred by owner |
 | Physical Home/A/B controls and hearing a call while playing | Owner; receive/answer, mute, navigate, launch/exit a game and leave the call | Deferred by owner; injected-controller/background-worker evidence already exists |
+
+## Ordinary web picture received on Flip — 2026-10-03
+
+The internal CodexWeb browser remained signed into the designated Odin test
+account. Its normal Add to saved media and Media sender re-uploaded the existing
+TrainerOS test screenshot as a new `picture.jpg` attachment to the Flip test DM.
+This used the ordinary public web client, not a fabricated Gateway event, database
+insertion or direct API substitute. Flip received the attachment live. Right then
+A selected and opened it in the installed image viewer, showing the same screenshot
+and the correct sender. The read badge also returned from 2 to 1.
+
+The original device capture is committed as
+[19-social-received-picture.png](../screenshots/19-social-received-picture.png).
+No production change or rebuild was required. This verifies web-to-native picture
+delivery and decoding, including the supported saved-media upload path. It does
+not verify the Windows local-file chooser or reverse voice messages/microphone.
+The Windows bridge again returned WINDOW_OCCLUDED after one refreshed-window
+retry; do not keep repeating that blocked chooser check without a tool change.
+
+Both installed devices passed final executable/helper, database, save-hash and
+boot-preservation checks on the unchanged `32dd52f` runtime. Flip stayed muted,
+Odin stayed at 0%; no call, recording or actual microphone was started, and no
+device restart was needed. Block 3 remains open for the checklist above.
 
 ## Remote input recovery and Odin interruption — 2026-10-03
 

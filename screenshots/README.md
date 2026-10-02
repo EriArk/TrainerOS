@@ -1,7 +1,7 @@
 # TrainerOS on the handhelds
 
 Actual 1920×1080 Gamescope captures from the installed ARM64 application on
-Retroid Pocket Flip 2 and AYN Odin 2, taken on 2 October 2026. These are original
+Retroid Pocket Flip 2 and AYN Odin 2, taken on 2–3 October 2026. These are original
 PNG screenshots, without compositing, cropping or generated replacement screens.
 The red shell is Flip; the turquoise shell is Odin. Game progress uses test saves
 and Social uses the designated test accounts.
@@ -38,6 +38,7 @@ and Social uses the designated test accounts.
 | Appearance settings | Odin 2 | [![Settings](16-settings.png)](16-settings.png) |
 | Communication settings | Odin 2 | [![Communication settings](17-communication-settings.png)](17-communication-settings.png) |
 | Community discovery | Flip 2 | [![Search](18-social-search.png)](18-social-search.png) |
+| Picture received from the ordinary web client | Flip 2 | [![Received picture](19-social-received-picture.png)](19-social-received-picture.png) |
 
 ## Capture provenance
 
@@ -46,6 +47,9 @@ and 14–18 show the call-history update included in the commit adding this gall
 its executable SHA-256 is
 `5e1cde8d9900dc282097aa795899a738d5695c856d8f5d60acf6abe4a61aca28`.
 Only Social call-history presentation changed between these deliveries.
+Screen 19 was captured on 3 October on the same executable. It shows an actual
+incoming picture sent by the designated web test account and opened with the
+handheld controller. The picture itself is an earlier TrainerOS test screenshot.
 
 Screenshots document current appearance, not completion of every feature.
 See [communication evidence and remaining checks](../docs/SOCIAL_MEDIA_VOICE.md)

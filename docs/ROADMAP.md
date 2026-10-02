@@ -4,6 +4,12 @@
 
 ## Current plan — reconciled 2026-10-01
 
+**Block 3 reverse picture proof, 2026-10-03:** ordinary web saved-media upload
+now reaches Flip and opens from the controller; see [evidence](SOCIAL_MEDIA_VOICE.md#ordinary-web-picture-received-on-flip--2026-10-03)
+and [device screenshot](../screenshots/19-social-received-picture.png). Remaining
+reverse audio, separate-network and owner-deferred checks are still open. The
+blocked local-file chooser is not a missing TrainerOS receive implementation.
+
 **Owner remote-only continuation, 2026-10-03:** defer physical controller,
 speech/listening and headset checks. Keep them pending separately from remote
 checks; do not mark block 3 complete. Flip now has live evidence for input-process
