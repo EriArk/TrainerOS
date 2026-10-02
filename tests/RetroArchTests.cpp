@@ -135,6 +135,60 @@ private slots:
         QVERIFY(next.arguments.contains("/app/share/shaders/scanlines.slangp"));QVERIFY(!next.arguments.contains(preset));
         QVERIFY(retroarch::changeAppearance(id,"reset-appearance"));
     }
+    void automaticArtworkMatchesEditionAndMasksOpaqueSystemFallback() {
+        QTemporaryDir dir;const auto root=dir.filePath("overlays"),cache=dir.filePath("cache");
+        QVERIFY(QDir().mkpath(root+"/GameBezels/GBA"));QVERIFY(QDir().mkpath(root+"/GameBezels/GBC"));
+        auto write=[&](const QString& path,Qt::GlobalColor colour){QImage image(192,108,QImage::Format_ARGB32);image.fill(colour);return image.save(path);};
+        const auto emerald=root+"/GameBezels/GBA/Pokemon - Emerald Version (USA, Europe).png";
+        const auto ruby=root+"/GameBezels/GBA/Pokemon - Ruby Version (USA).png";
+        const auto fallback=root+"/Nintendo-Game-Boy-Advance.png";
+        QVERIFY(write(emerald,Qt::red));QVERIFY(write(ruby,Qt::blue));QVERIFY(write(fallback,Qt::green));
+        retroarch::BezelGame game{"gba","renamed--a9dec84dfe.gba",QString::fromUtf8("Pok\xc3\xa9mon Emerald")};
+        auto result=retroarch::automaticBezel(game,{root},cache,{1920,1080},0);
+        QCOMPARE(result.source,emerald);QCOMPARE(result.match,QString("game"));
+        auto imageFor=[&](const auto& value){return QImage(QFileInfo(value.config).dir().filePath(QFileInfo(value.config).completeBaseName()+".png"));};
+        const auto image=imageFor(result);QCOMPARE(image.size(),QSize(1920,1080));
+        QCOMPARE(image.pixelColor(0,540),QColor(Qt::red));QCOMPARE(image.pixelColor(1919,540),QColor(Qt::red));
+        for(int y=0;y<1080;++y)for(int x=150;x<1770;++x)QVERIFY(qAlpha(image.pixel(x,y))==0);
+        game.contentPath="Pokemon - Ruby Version (USA).gba";
+        QCOMPARE(retroarch::automaticBezel(game,{root},cache,{1920,1080},0).source,ruby); // File wins over catalogue.
+        game={"gba","Pokemon - Emerald (Randomizer).gba",{}};
+        QCOMPARE(retroarch::automaticBezel(game,{root},cache,{1920,1080},0).source,fallback);
+        game={"gba","Pokemon - Emerald Version (Europe) (SGB Enhanced).gba",{}};
+        QCOMPARE(retroarch::automaticBezel(game,{root},cache,{1920,1080},0).source,emerald);
+        game={"gba","Pokemon - Emerald Version (Europe).gba",{}};
+        QCOMPARE(retroarch::automaticBezel(game,{root},cache,{1920,1080},0).source,emerald);
+        {QFile file(emerald);QVERIFY(file.open(QIODevice::WriteOnly));file.write("bad image");}
+        result=retroarch::automaticBezel(game,{root},cache,{1920,1080},0);
+        QCOMPARE(result.source,fallback);QCOMPARE(result.match,QString("system"));
+        QCOMPARE(imageFor(result).pixelColor(0,540),QColor(Qt::green));QCOMPARE(imageFor(result).pixelColor(960,540).alpha(),0);
+        QVERIFY(retroarch::automaticBezel(game,{root},cache,{1920,1080},4).config.isEmpty());
+        game.platform="gbc";QVERIFY(retroarch::automaticBezel(game,{root},cache,{1920,1080},0).config.isEmpty());
+    }
+    void automaticArtworkHonoursOffDefaultsAndShaderCoexistence() {
+        QTemporaryDir dir;const auto base=dir.filePath("base.cfg");touch(base);
+        QVERIFY(QDir().mkpath(dir.filePath("overlays")));
+        QImage image(192,108,QImage::Format_ARGB32);image.fill(Qt::blue);
+        QVERIFY(image.save(dir.filePath("overlays/Nintendo-Game-Boy-Advance.png")));
+        const auto id=QUuid::createUuid().toString();const retroarch::BezelGame game{"gba","unknown.gba",{}};
+        auto launch=[&](){ProcessCommand cmd;cmd.arguments={game.contentPath};retroarch::prepareAppearance(cmd,id,base,{},QSize(1920,1080),game);return cmd;};
+        auto cmd=launch();QCOMPARE(cmd.runtimeControls["automaticBezelMatch"].toString(),QString("system"));
+        {QFile cfg(cmd.arguments.value(cmd.arguments.indexOf("--appendconfig")+1));QVERIFY(cfg.open(QIODevice::ReadOnly));const auto bytes=cfg.readAll();
+         QVERIFY(bytes.contains("custom_viewport_width = \"1620\""));QVERIFY(bytes.contains("custom_viewport_height = \"1080\""));}
+        const auto rows=retroarch::appearanceChoices(id,"bezel",cmd.runtimeControls);QCOMPARE(rows.first().toMap()["id"].toString(),QString("bezel:auto"));
+        QVERIFY(retroarch::chooseAppearance(id,"bezel:off",cmd.runtimeControls));QVERIFY(launch().runtimeControls["automaticBezelSource"].toString().isEmpty());
+        QVERIFY(retroarch::chooseAppearance(id,"bezel:auto",cmd.runtimeControls));QVERIFY(!launch().runtimeControls["automaticBezelSource"].toString().isEmpty());
+        QVERIFY(retroarch::changeAppearance(id,"reset-appearance"));QVERIFY(launch().runtimeControls["automaticBezelSource"].toString().isEmpty());
+        QVERIFY(retroarch::chooseAppearance(id,"bezel:auto",cmd.runtimeControls));
+        const auto mega=dir.filePath("shaders/Mega_Bezel/Presets/Base_CRT_Presets");QVERIFY(QDir().mkpath(mega));
+        touch(mega+"/MBZ__4__STD-NO-REFLECT__GDV-MINI.slangp");
+        {QFile file(base);QVERIFY(file.open(QIODevice::WriteOnly));file.write("video_driver = \"glcore\"\n");}
+        cmd=launch();QVERIFY(retroarch::chooseAppearance(id,cmd.runtimeControls["shaderChoices"].toList().first().toMap()["id"].toString(),cmd.runtimeControls));
+        cmd=launch();QVERIFY(cmd.arguments.contains("--set-shader"));QCOMPARE(cmd.runtimeControls["automaticBezelMatch"].toString(),QString("system"));
+        QFile cfg(cmd.arguments.value(cmd.arguments.indexOf("--appendconfig")+1));QVERIFY(cfg.open(QIODevice::ReadOnly));
+        const auto bytes=cfg.readAll();QVERIFY(bytes.contains("aspect_ratio_index = \"24\""));QCOMPARE(bytes.count("input_overlay_enable"),1);QVERIFY(bytes.contains("input_overlay_enable = \"true\""));
+        QVERIFY(retroarch::changeAppearance(id,"reset-appearance"));
+    }
     void genericOrdinaryLaunchKeepsSaveProvidersSeparate() {
         QTemporaryDir dir;const auto content=dir.filePath("literal ; title.chd"),core=dir.filePath("pcsx_rearmed_libretro.so"),cfg=dir.filePath("retroarch.cfg");
         touch(content);touch(core);

@@ -18,6 +18,9 @@ const QStringList Ratios{"Emulator default","Original","4:3","16:9","Fill screen
 const QStringList Filters{"Emulator default","Crisp pixels","Smooth"};
 const QStringList Shaders{"Emulator default","Off","On"};
 int value(QSettings& settings,const QString& prefix,const QString& name,int count){return qBound(0,settings.value(prefix+name,0).toInt(),count-1);}
+void removeSetting(QByteArray& bytes,const QByteArray& name) {
+    QByteArray clean;for(const auto& line:bytes.split('\n'))if(!line.startsWith(name+" =")&&!line.isEmpty())clean+=line+'\n';bytes=clean;
+}
 QString assetId(const QString& path){return QString::fromLatin1(QCryptographicHash::hash(path.toUtf8(),QCryptographicHash::Sha256).toHex());}
 QString megaName(const QString& path) {
     if(!path.contains("/Mega_Bezel/Presets/Base_CRT_Presets/"))return {};
@@ -130,18 +133,18 @@ QVariantList appearanceActions(const QString& id) {
     QVariantList actions{QVariantMap{{"id","ratio"},{"label","Screen · "+Ratios[value(settings,prefix,"ratio",Ratios.size())]}},
         QVariantMap{{"id","filter"},{"label","Pixels · "+Filters[value(settings,prefix,"filter",Filters.size())]}},
         QVariantMap{{"id","choose-shader"},{"label","Shader · "+(settings.value(prefix+"shaderPath").toString().isEmpty()?Shaders[value(settings,prefix,"shader",Shaders.size())]:assetName(settings.value(prefix+"shaderPath").toString()))}},
-        QVariantMap{{"id","choose-bezel"},{"label","Frame · "+(settings.value(prefix+"bezelPath").toString().isEmpty()?(settings.value(prefix+"bezelOff").toBool()?QString("Off"):QString("Emulator default")):assetName(settings.value(prefix+"bezelPath").toString()))}},
+        QVariantMap{{"id","choose-bezel"},{"label","Frame · "+(settings.value(prefix+"bezelPath").toString().isEmpty()?(settings.value(prefix+"bezelOff").toBool()?QString("Off"):settings.value(prefix+"bezelDefault").toBool()?QString("Emulator default"):QString("Automatic")):assetName(settings.value(prefix+"bezelPath").toString()))}},
         QVariantMap{{"id","reset-appearance"},{"label","Use emulator defaults"}}};
-    // Mega Bezel owns its framing; do not offer a second, ineffective frame control.
-    if(!megaName(settings.value(prefix+"shaderPath").toString()).isEmpty())actions.removeAt(3);
+    // Automatic artwork occupies margins, including beside Mega Bezel.
     return actions;
 }
 QVariantList appearanceChoices(const QString& id,const QString& family,const QVariantMap& runtime) {
     if(id.isEmpty()||(family!="shader"&&family!="bezel"))return {};
     QSettings settings;const auto prefix=key(id);const auto path=settings.value(prefix+family+"Path").toString();
     const bool off=family=="shader"?value(settings,prefix,"shader",Shaders.size())==1:settings.value(prefix+"bezelOff").toBool();
-    QVariantList rows{QVariantMap{{"id",family+":default"},{"label","Emulator default"},{"detail",path.isEmpty()&&!off?"Selected":""}},
+    QVariantList rows{QVariantMap{{"id",family+":default"},{"label","Emulator default"},{"detail",path.isEmpty()&&!off&&(family=="shader"||settings.value(prefix+"bezelDefault").toBool())?"Selected":""}},
         QVariantMap{{"id",family+":off"},{"label","Off"},{"detail",path.isEmpty()&&off?"Selected":""}}};
+    if(family=="bezel")rows.prepend(QVariantMap{{"id","bezel:auto"},{"label","Automatic"},{"detail",path.isEmpty()&&!off&&!settings.value(prefix+"bezelDefault").toBool()?"Selected":"Game artwork, then system"}});
     for(const auto& item:runtime[family+"Choices"].toList()){auto row=item.toMap();if(row["path"]==path)row["detail"]="Selected";row.remove("path");rows.append(row);}
     return rows;
 }
@@ -149,23 +152,23 @@ bool chooseAppearance(const QString& id,const QString& action,const QVariantMap&
     const auto family=action.section(':',0,0),choice=action.section(':',1);
     if(id.isEmpty()||(family!="shader"&&family!="bezel"))return false;
     QString path;
-    if(choice!="default"&&choice!="off") {
+    if(choice!="default"&&choice!="off"&&!(family=="bezel"&&choice=="auto")) {
         for(const auto& item:runtime[family+"Choices"].toList())if(item.toMap()["id"]==action)path=item.toMap()["path"].toString();
         if(!safePath(path))return false;
     }
     QSettings settings;const auto prefix=key(id);settings.setValue(prefix+family+"Path",path);
     if(family=="shader")settings.setValue(prefix+"shader",choice=="off"?1:choice=="default"?0:2);
-    else settings.setValue(prefix+"bezelOff",choice=="off");
+    else {settings.setValue(prefix+"bezelOff",choice=="off");settings.setValue(prefix+"bezelDefault",choice=="default");}
     settings.sync();return settings.status()==QSettings::NoError;
 }
 bool changeAppearance(const QString& id,const QString& action) {
     if(id.isEmpty())return false;QSettings settings;const auto prefix=key(id);
-    if(action=="reset-appearance"){settings.remove(prefix);settings.sync();return settings.status()==QSettings::NoError;}
+    if(action=="reset-appearance"){settings.remove(prefix);settings.setValue(prefix+"bezelDefault",true);settings.sync();return settings.status()==QSettings::NoError;}
     const auto name=action=="shader-setting"?QString("shader"):action;
     const int count=name=="ratio"?Ratios.size():name=="filter"?Filters.size():name=="shader"?Shaders.size():0;
     if(!count)return false;settings.setValue(prefix+name,(value(settings,prefix,name,count)+1)%count);settings.sync();return settings.status()==QSettings::NoError;
 }
-QString prepareAppearance(ProcessCommand& command,const QString& id,const QString& baseConfig,const QString& runtimeFile,QSize displaySize) {
+QString prepareAppearance(ProcessCommand& command,const QString& id,const QString& baseConfig,const QString& runtimeFile,QSize displaySize,const BezelGame& game) {
     QSettings settings;const auto prefix=key(id);
     const int ratio=value(settings,prefix,"ratio",Ratios.size()),filter=value(settings,prefix,"filter",Filters.size()),shader=value(settings,prefix,"shader",Shaders.size());
     QByteArray bytes="# TrainerOS per-game appearance; preserves the base configuration\nstdin_cmd_enable = \"true\"\n";
@@ -189,9 +192,10 @@ QString prepareAppearance(ProcessCommand& command,const QString& id,const QStrin
                 appliedShader=QFileInfo(baseConfig).dir().filePath(".traineros-mega-"+assetId(shaderPath)+".slangp");
                 if(QFileInfo(appliedShader).isSymLink())return "Couldn't save the game's display settings.";
                 QSaveFile preset(appliedShader);
-                const auto content=QByteArray("#reference \"")+shaderPath.toUtf8()+"\"\nHSM_INT_SCALE_MODE = \"0\"\nHSM_NON_INTEGER_SCALE = \"96\"\nHSM_CURVATURE_MODE = \"0\"\nHSM_ASPECT_RATIO_MODE = \"0\"\n";
+                const auto content=QByteArray("#reference \"")+shaderPath.toUtf8()+"\"\nHSM_INT_SCALE_MODE = \"0\"\nHSM_NON_INTEGER_SCALE = \"96\"\nHSM_CURVATURE_MODE = \"0\"\nHSM_ASPECT_RATIO_MODE = \""+QByteArray::number(ratio==2?2:ratio==3?4:ratio==4?6:0)+"\"\n";
                 if(!preset.open(QIODevice::WriteOnly)||preset.write(content)!=content.size()||!preset.commit())return "Couldn't save the game's display settings.";
-                bytes+="aspect_ratio_index = \"21\"\nvideo_force_aspect = \"false\"\nvideo_scale_integer = \"false\"\ninput_overlay_enable = \"false\"\n";
+                removeSetting(bytes,"aspect_ratio_index");removeSetting(bytes,"video_force_aspect");
+                bytes+="aspect_ratio_index = \"24\"\nvideo_force_aspect = \"false\"\nvideo_scale_integer = \"false\"\ninput_overlay_enable = \"false\"\n";
                 megaActive=true;
             }
             bytes+="video_shader_enable = \"true\"\nauto_shaders_enable = \"false\"\n";
@@ -210,6 +214,23 @@ QString prepareAppearance(ProcessCommand& command,const QString& id,const QStrin
         }
         else notice+=(notice.isEmpty()?QString():QString(" "))+"Selected frame unavailable; using emulator default.";
     } else if(!megaActive&&settings.value(prefix+"bezelOff").toBool())bytes+="input_overlay_enable = \"false\"\n";
+    AutomaticBezel automatic;
+    if(bezelPath.isEmpty()&&!settings.value(prefix+"bezelOff").toBool()&&!settings.value(prefix+"bezelDefault").toBool()) {
+        const auto local=QFileInfo(baseConfig).dir().filePath("overlays");
+        const auto shared=hostPath(configuredPath(base,"overlay_directory"),runtimeFile);
+        automatic=automaticBezel(game,{local,shared},QFileInfo(baseConfig).dir().filePath(".traineros-bezels"),displaySize,ratio);
+        if(!automatic.config.isEmpty()) {
+            removeSetting(bytes,"input_overlay_enable");
+            if(!megaActive) {
+                // A stretched inherited viewport must not put gameplay beneath
+                // the side artwork. Fit at full height/width, without cropping.
+                removeSetting(bytes,"aspect_ratio_index");removeSetting(bytes,"video_force_aspect");
+                bytes+="aspect_ratio_index = \"23\"\nvideo_force_aspect = \"true\"\nvideo_scale_integer = \"false\"\nvideo_viewport_bias_x = \"0.5\"\nvideo_viewport_bias_y = \"0.5\"\ncustom_viewport_x = \"0\"\ncustom_viewport_y = \"0\"\n";
+                bytes+="custom_viewport_width = \""+QByteArray::number(automatic.viewport.width())+"\"\ncustom_viewport_height = \""+QByteArray::number(automatic.viewport.height())+"\"\n";
+            }
+            bytes+="input_overlay_enable = \"true\"\ninput_overlay = \""+automatic.config.toUtf8()+"\"\ninput_overlay_hide_when_gamepad_connected = \"false\"\ninput_overlay_opacity = \"1.0\"\ninput_overlay_auto_scale = \"false\"\ninput_overlay_scale_landscape = \"1.0\"\ninput_overlay_aspect_adjust_landscape = \"0.0\"\ninput_overlay_x_offset_landscape = \"0.0\"\ninput_overlay_y_offset_landscape = \"0.0\"\n";
+        }
+    }
     // Share the already-visible base config directory with the RA account layer,
     // including Flatpak launches with a restricted home filesystem.
     const auto dir=QFileInfo(baseConfig).absolutePath();
@@ -221,7 +242,7 @@ QString prepareAppearance(ProcessCommand& command,const QString& id,const QStrin
     if(append>=0&&append+1<command.arguments.size())command.arguments[append+1]+="|"+path;
     else {const auto content=command.arguments.takeLast();command.arguments<<"--appendconfig"<<path<<content;}
     command.runtimeControls={{"kind","retroarch"},{"game",id},{"shader",shader?shader==2:enabled(base,"video_shader_enable")},
-        {"shaderChoices",shaders},{"bezelChoices",bezels},{"appearanceNotice",notice}};
+        {"automaticBezelSource",automatic.source},{"automaticBezelMatch",automatic.match},{"shaderChoices",shaders},{"bezelChoices",megaActive?QVariantList():bezels},{"appearanceNotice",notice}};
     return {};
 }
 }

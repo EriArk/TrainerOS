@@ -90,8 +90,9 @@ Missing selections fall back to the base appearance and report that in Home.
 Mega Bezel's installed GDV-MINI Light and Reflections variants are offered with
 readable names. A small shell-owned reference preset retains the upstream source
 and sets non-integer scale to 96%, automatic game aspect and no curvature. Its
-fullscreen shader canvas disables a separate overlay to prevent double frames;
-the separate Frame row is omitted while this integrated preset is selected.
+fullscreen shader canvas disables manual viewport-owning borders to prevent double
+frames. The later automatic-artwork increment below restores the Frame row for
+margin-only decoration alongside Mega Bezel.
 Light is the conservative choice; Reflections is optional, not universally
 performance-certified. Existing miniature handheld device presets are retained
 on disk but omitted from this picker.
@@ -141,10 +142,78 @@ terminated and TrainerOS restarted for delivery. After restart, physical Home
 opened the overlay again and explicit Exit returned normally. This is an unresolved Home/input
 recovery observation, not a claim of an overnight stable game/voice session.
 
-Game-specific [The Bezel Project](https://github.com/thebezelproject) artwork is
-not delivered by this installed-shader selection. Import/matching by game and
-system fallback remain pending with the #112 artwork controls; no upstream
-installer is run against the owner's emulator configurations.
+### Automatic game artwork — 2026-10-02
+
+Frame now defaults to Automatic: exact ROM filename, then normalized No-Intro
+name, then the canonical catalogue title of an official edition. Matching stays
+inside the platform's `overlays/GameBezels/<system>` directory. Known dump tags
+(region/revision/languages/SGB enhancements) are stripped; unknown subtitles and
+hack tags remain significant. A renamed official Emerald still matches; a hack
+never borrows the official edition's catalogue identity. Existing manual choices
+and Off remain explicit. Emulator default and Reset opt out of automatic art.
+No binding, file picker or additional launch confirmation is required.
+
+A missing/unreadable matching image falls back to the platform PNG, then normal
+emulator appearance. Installed local/configured overlay roots are supported,
+including Flatpak host mapping. The bounded loader runs only during launch,
+not navigation. Derived PNG/config files are atomically cached in the existing
+RetroArch config directory; source size/mtime invalidate the cache. Nothing is
+written to ROMs, saves, upstream presets or the base emulator configuration.
+
+The generated artwork clears the entire maximum game rectangle. Thus even an
+opaque system illustration cannot cover gameplay. Ordinary rendering uses the
+full-size aspect-correct viewport; Mega Bezel keeps its own 96%-height game and
+thin rim, with matching artwork in unused margins. Full-screen shader canvas is
+RetroArch index 24 (21 is square pixels). The generated configuration contains
+only one value for each overridden key; a live check caught that duplicate
+`input_overlay_enable` entries otherwise kept the earlier false value.
+Screen Fill and unsupported/dynamic-aspect platforms do not apply automatic art.
+
+Private provision on both handhelds: 53 source PNGs, 10,234,586 bytes, selected
+for the existing GB/GBC/GBA library plus all three platform fallbacks. This is a
+subset of Bezel Project, not its full collection or an automatic downloader.
+Future matching artwork can be added in the same upstream directory structure.
+The current platform map also recognizes common RetroArch console packs; those
+routes and wider artwork coverage are not live-certified by this GBA check.
+Non-RetroArch emulators and final generic artwork pack management remain open.
+
+Sources: [Bezel Project GBA](https://github.com/thebezelproject/bezelproject-GBA),
+[GB](https://github.com/thebezelproject/bezelproject-GB),
+[GBC](https://github.com/thebezelproject/bezelproject-GBC),
+[RetroArch aspect enum](https://github.com/libretro/RetroArch/blob/v1.22.2/gfx/video_defines.h).
+Exact source revisions, URLs and SHA-256 values travel with the private images in
+`overlays/traineros-bezel-sources.json`; images are not redistributed in Git.
+
+ARM64 checks: 22 RetroArch and 9 Home/exit presentation tests pass, covering exact
+and canonical matching, platform/hack isolation, opaque fallback masking, corrupt
+image fallback, Off/reset, and automatic art coexisting with Mega Bezel. The
+portable game-adapter knowledge check passes unchanged (32 files, 3 exact games).
+
+Both handhelds now run production SHA-256
+`f91ad4f8f2b4851ececb5cd084753efaaefded0d42c40baec2755765daf8792c`.
+Actual Gamescope captures `work/research/bezel-flip-verified.png` and
+`bezel-odin-verified.png` show Emerald with matching side artwork and large 3:2
+gameplay (Flip GLCore, Odin Vulkan). Automatic was selected through the existing
+Home picker on Flip; Odin used the new default without per-game setup. The
+retained Mega Bezel Light preset coexists with both. Input was injected remotely,
+not an owner physical-button acceptance test.
+
+Odin recovery during delivery: its previous TrainerOS process was a zombie with
+one uninterruptible GPU wait thread (`dma_fence_default_wait`). Restart did not
+recover rendering. A reboot was requested with no active emulator. After the
+owner reported startup, SSH returned and the final build was installed. Odin's
+original Steam boot policy was restored after entering the dedicated TrainerOS
+session. This does not diagnose or fix the underlying GPU wait.
+
+The earlier repeated-launch physical Home observation remains open. During this
+pass menu visibility/input was intermittently delayed, and one intermediate
+Flip title-screen test required bounded emulator termination and shell restart.
+Final Home overlays appeared on both consoles. No game progress was written.
+Both final explicit Exit confirmations returned to the shell with no remaining
+RetroArch process. Final verification matched the installed and live binaries,
+retained 3 Trainers / 830 Adventures on Flip and 1 / 25 on Odin, and confirmed
+unchanged Emerald save hashes, boot policy, nearby helpers and voice helper.
+This display increment does not claim to complete #112 or communication block 3.
 
 ### Background voice controls — 2026-10-02
 

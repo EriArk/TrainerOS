@@ -8,7 +8,10 @@
 while public Fluxer is unavailable. The current offline task is #112 installed
 RetroArch shader/frame selection in the existing Home overlay, with per-game
 inheritance/reset and paired delivery. Large-picture Mega Bezel presets are included;
-game-specific Bezel Project artwork matching and system fallback remain pending.
+automatic Bezel Project game matching and system fallback are implemented and
+visually verified on Flip and Odin. Both have the bounded GB/GBC/GBA image set.
+Odin required recovery from an uninterruptible GPU wait; that cause and the
+intermittent Home input delay remain open. See [evidence](HOME_MENU.md#automatic-game-artwork--2026-10-02).
 Block 3 stays open; its remaining call
 checks resume after recovery. This supersedes the temporary scheduling prohibition
 below, not any unfinished communication or R1–R18 acceptance.

@@ -1,5 +1,6 @@
 #include "RetroArchAdapter.h"
 #include "RetroArchAppearance.h"
+#include "core/repository/CollectionRepository.h"
 #include "RetroArchSave.h"
 #include "RetroArchDisc.h"
 #include "core/repository/RomPlatforms.h"
@@ -192,9 +193,12 @@ AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
     const auto prepare=invocation->prepare;const auto id=adventure.id;const auto config=installation_.configFile;
     const auto screen=qobject_cast<QGuiApplication*>(QCoreApplication::instance())?QGuiApplication::primaryScreen():nullptr;
     const auto display=screen?screen->size()*screen->devicePixelRatio():QSize();
-    invocation->prepare=[prepare,id,config,runtime=installation_.runtimeFile,display](ProcessCommand& cmd,const std::atomic_bool& cancel){
+    retroarch::BezelGame bezelGame{adventure.platformId,registration?registration->contentPath:QString(),{}};
+    if(adventure.kind!=AdventureKind::RomHack&&!adventure.catalogueId.isEmpty())
+        for(const auto& entry:collectionCatalogue(true))if(entry.catalogueId==adventure.catalogueId&&entry.platformId==adventure.platformId){bezelGame.catalogueTitle=entry.title;break;}
+    invocation->prepare=[prepare,id,config,runtime=installation_.runtimeFile,display,bezelGame](ProcessCommand& cmd,const std::atomic_bool& cancel){
         const auto error=prepare?prepare(cmd,cancel):QString();
-        return error.isEmpty()&&!cancel?retroarch::prepareAppearance(cmd,id,config,runtime,display):error;
+        return error.isEmpty()&&!cancel?retroarch::prepareAppearance(cmd,id,config,runtime,display,bezelGame):error;
     };
     if (!requestLaunch) return {false, "Game launch is unavailable in this session."};
     return requestLaunch(*invocation, adventure.id);

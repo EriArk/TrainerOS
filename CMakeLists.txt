@@ -15,6 +15,7 @@ find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
     src/integrations/adventure/retroarch/RetroArchAppearance.cpp
+    src/integrations/adventure/retroarch/RetroArchBezels.cpp
     src/features/social/SocialMedia.cpp
     src/integrations/social/OnlineLink.cpp
     src/integrations/social/FluxerSession.cpp
