@@ -55,7 +55,7 @@ void ProcessService::execute(const ProcessCommand& command) {
     inspectOutput_ = command.inspectOutput;
     runtimeControls_=command.runtimeControls;
     process_.setProcessChannelMode(QProcess::MergedChannels);
-    process_.setStandardOutputFile(inspectOutput_ ? QString() : QProcess::nullDevice());
+    process_.setStandardOutputFile(inspectOutput_ || runtimeControls_.contains("netplay") ? QString() : QProcess::nullDevice());
     process_.setProgram(command.program); process_.setArguments(command.arguments);
     process_.setWorkingDirectory(command.workingDirectory);
     process_.start(); // No shell, no interpolated command string, no blocking wait.
@@ -63,6 +63,7 @@ void ProcessService::execute(const ProcessCommand& command) {
 void ProcessService::drainOutput() {
     while (process_.bytesAvailable() > 0) {
         const auto bytes = process_.read(16384);
+        if(runtimeControls_.contains("netplay"))emit runtimeOutput(bytes);
         if (!inspectOutput_ || !validationError_.isEmpty()) continue;
         validationError_ = inspectOutput_(bytes);
         if (!validationError_.isEmpty()) { process_.kill(); }

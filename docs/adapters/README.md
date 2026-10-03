@@ -9,6 +9,7 @@ that another edition of the same game has the same format.
 | [Emerald English](emerald-en.md) | One SHA-256 allowlisted GBA build | Integrated reads/Journey, healing, shops and protected Party/Box moves/occupied swaps, release and held items |
 | [FireRed English](firered-en.md) | Original and Rev 1, separately fingerprinted | Integrated reads/healing; normal-game healing proof on Rev 1 only |
 | Diamond / Colosseum | No verified fingerprints recorded here | Planned; no write capability inferred |
+| [Contra III runtime](../EMULATOR_MULTIPLAYER.md) | Exact US SNES content, matching Snes9x/RetroArch binaries | Researching emulator netplay; no semantic save adapter or persistent writes |
 
 [registry.json](registry.json) indexes exact identities, source records and
 per-capability evidence. It deliberately does not duplicate the factual tables,

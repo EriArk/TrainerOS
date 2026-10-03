@@ -17,6 +17,28 @@ class OnlineLinkTests : public QObject {
     void deliver(){int n=0;while(!packets.isEmpty()&&n++<100){const auto p=packets.takeFirst();p.target->receive("300",p.author,"Friend",p.data);}}
 private slots:
     void init(){packets.clear();}
+    void runtimeIdentityAndConsentAreIndependentFromNativeTrade() {
+        OnlineLink first,second;pair(first,second);
+        QJsonObject runtime{{"id","runtime.snes9x.contra3-us.v1"},{"content","content-a"},
+            {"core","core-a"},{"runtime","runtime-a"},{"settings","options-a"}};
+        auto wrong=runtime;wrong["core"]="core-b";
+        first.setCapabilities({trade,runtime});second.setCapabilities({trade,wrong});
+        first.probe("300","200");deliver();
+        QCOMPARE(first.state()["actions"].toList().size(),1);
+        first.invite(runtime["id"].toString());QVERIFY(packets.isEmpty());
+        first.close();second.close();first.lastProbe_=second.lastProbe_=0;
+        second.setCapabilities({trade,runtime});first.probe("300","200");deliver();
+        QSignalSpy host(&first,&OnlineLink::established),guest(&second,&OnlineLink::established);
+        first.invite(runtime["id"].toString());deliver();
+        QCOMPARE(second.state()["activity"].toMap(),runtime.toVariantMap());
+        QVERIFY(host.isEmpty());QVERIFY(guest.isEmpty());
+        second.answer(true);deliver();
+        QCOMPARE(host.size(),1);QCOMPARE(guest.size(),1);
+        QCOMPARE(guest[0][3].toString(),runtime["id"].toString());
+        QSignalSpy settings(&second,&OnlineLink::frameReceived);
+        first.sendFrame({{"kind","ready"},{"port",55435}});deliver();
+        QCOMPARE(settings.size(),1);
+    }
     void simultaneousChecksAndProtectedSurface() {
         OnlineLink first,second;pair(first,second);
         first.probe("300","200");second.probe("300","100");deliver();

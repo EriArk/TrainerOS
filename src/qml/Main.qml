@@ -447,16 +447,17 @@ Window {
             objectName: "nearby-invitation"
             property var link: shell.party.activities.link
             readonly property bool online: !!shell.social.online.open
-            readonly property bool incoming: online ? !!shell.social.online.incoming : link.invitationIncoming
-            function answer(accept) { if (online) shell.social.answerOnline(accept); else link.answerInvitation(accept) }
+            readonly property bool runtime: runtimeMultiplayer.incoming
+            readonly property bool incoming: runtime || (online ? !!shell.social.online.incoming : link.invitationIncoming)
+            function answer(accept) { if(runtime) runtimeMultiplayer.answer(accept); else if (online) shell.social.answerOnline(accept); else link.answerInvitation(accept) }
             width: parent.width; height: Theme.footerTop; z: 6
-            visible: (online || link.invitationOpen) && !sessionState.blocked && !adventureLaunch.active
+            visible: (runtime || online || link.invitationOpen) && !sessionState.blocked && !adventureLaunch.active
             Rectangle { anchors.fill: parent; color: "#77112323" }
             MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted=true }
             Panel {
                 anchors.centerIn: parent; width: 470; height: 225; surface: "#f6f0d7"
                 Text { x: 27; y: 23; text: nearbyInvitation.online || nearbyInvitation.link.online ? "TOGETHER" : "NEARBY PLAY"; font.family: Theme.brandFamily; font.pixelSize: 16; color: "#4c8175" }
-                Text { x: 27; y: 56; width: parent.width-54; height: 85; text: nearbyInvitation.online ? shell.social.online.status : nearbyInvitation.link.invitationText; textFormat: Text.PlainText; font.family: Theme.displayFamily; font.pixelSize: 26; color: Theme.ink; wrapMode: Text.WordWrap }
+                Text { x: 27; y: 56; width: parent.width-54; height: 85; text: nearbyInvitation.runtime ? runtimeMultiplayer.invitation : nearbyInvitation.online ? shell.social.online.status : nearbyInvitation.link.invitationText; textFormat: Text.PlainText; font.family: Theme.displayFamily; font.pixelSize: 26; color: Theme.ink; wrapMode: Text.WordWrap }
                 CapButton { x: 27; y: 154; width: 200; height: 45; label: "Accept"; centered: true; tint: Theme.green; selected: true; deferredFocus: true; visible: nearbyInvitation.incoming; onActivated: nearbyInvitation.answer(true) }
                 CapButton { x: nearbyInvitation.incoming ? 242 : 135; y: 154; width: 200; height: 45; label: nearbyInvitation.incoming ? "Decline" : "Cancel"; centered: true; tint: Theme.blue; selected: !nearbyInvitation.incoming; deferredFocus: true; onActivated: nearbyInvitation.answer(false) }
             }

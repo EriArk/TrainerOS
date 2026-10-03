@@ -40,6 +40,18 @@ and Social uses the designated test accounts.
 | Community discovery | Flip 2 | [![Search](18-social-search.png)](18-social-search.png) |
 | Picture received from the ordinary web client | Flip 2 | [![Received picture](19-social-received-picture.png)](19-social-received-picture.png) |
 
+## Experimental multiplayer (disabled by default)
+
+These two actual handheld captures document development work, not an accepted
+multiplayer feature. The final installed delivery leaves this experiment disabled.
+Independent two-player controls and the internet route remain unverified; see
+[runtime evidence](../docs/EMULATOR_MULTIPLAYER.md).
+
+| Screen | Device | Preview |
+| --- | --- | --- |
+| In-game invitation route | Flip 2 | [![Experimental invitation](20-experimental-game-invitation.png)](20-experimental-game-invitation.png) |
+| Named invitation consent | Odin 2 | [![Experimental consent](21-experimental-game-consent.png)](21-experimental-game-consent.png) |
+
 ## Capture provenance
 
 Screens 01–07 and 11–13 show the installed `023b3c8` delivery. Screens 08–10

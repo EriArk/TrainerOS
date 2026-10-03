@@ -909,6 +909,16 @@ void FluxerSession::command(QString operation, QVariantMap args) {
     if(operation=="online-close"){online_.answer(false);return;}
     if(operation=="online-frame"){online_.sendFrame(QJsonObject::fromVariantMap(args));return;}
     if(operation=="online-invite"){online_.invite(args["id"].toString());return;}
+    if(operation=="runtime-probe-person") {
+        const auto id=args["id"].toString();if(relationships_.value(id)["type"].toInt()!=1)return;
+        const auto epoch=epoch_;
+        request("POST","/v1/users/@me/channels",{{"recipients",QJsonArray{id}}},[this,id,epoch](Reply r){
+            if(epoch!=epoch_||relationships_.value(id)["type"].toInt()!=1)return;
+            const auto c=r.body.object();
+            if(r.status<200||r.status>=300||c["type"].toInt(-1)!=1||c["recipients"].toArray().size()!=1||c["recipients"].toArray().first().toObject()["id"]!=id)return;
+            channels_[c["id"].toString()]=c;online_.probe(c["id"].toString(),id);
+        });return;
+    }
     if(operation=="online-probe") {
         const auto channel=args["channel"].toString();const auto c=channels_.value(channel);
         if(c["type"].toInt(-1)!=1||c["recipients"].toArray().size()!=1)return;

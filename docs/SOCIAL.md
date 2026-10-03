@@ -1,5 +1,19 @@
 # Native Social - conversations and discovery
 
+**Runtime experiment, 2026-10-03:** block 1 remains incomplete. Both handhelds
+accepted a local invitation and RetroArch assigned players 1/2, but independent
+controller gameplay and online relay acceptance are outstanding. The final
+installed builds disable this experiment by default. See
+[exact evidence and next action](EMULATOR_MULTIPLAYER.md); do not redo passed
+audio checks or count the experimental screens as a completed feature.
+
+**Owner anti-loop correction, 2026-10-03:** proceed with actual emulator
+multiplayer, [block 1](EMULATOR_MULTIPLAYER.md), while keeping the remaining
+block 3 checks deferred and open. Passed checks are repeated only for a relevant
+change, failure or concrete unresolved result. Next messenger expansion is
+replies/quotes, reactions, mentions, person cards and a persistent touch/controller
+composer, without chat-history search or duplicate edit/delete/unread/mute work.
+
 **Web picture interoperability, 2026-10-03:** the ordinary public web client's
 saved-media sender delivered a new picture attachment to Flip; controller Right/A
 opened it in the installed viewer. See [device proof](SOCIAL_MEDIA_VOICE.md#ordinary-web-picture-received-on-flip--2026-10-03).

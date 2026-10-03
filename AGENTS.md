@@ -1,5 +1,20 @@
 # AGENTS.md — TrainerOS
 
+**Owner anti-loop and scheduling correction, 2026-10-03:** continue block 1
+actual emulator multiplayer now; block 3's remaining interoperability, separate
+network and owner physical checks stay explicitly pending. Do not rerun passed
+checks without a changed implementation, a failure or a specific unresolved
+result. A new session must advance an observable missing behavior, not repeat
+the previous evidence collection. This overrides the earlier no-other-block gate.
+
+**Owner next communication increment, 2026-10-03:** after runtime multiplayer,
+add replies/quotes, reactions, mentions and a compact person card; exclude chat
+history search. Keep a persistent touch-friendly composer in the conversation
+with attachments, emoji and Send, plus a dismissible reply preview. Retain full
+controller use, one-step send and the TrainerOS visual language. Reuse existing
+edit/delete/unread/mute behavior. Verify supported Fluxer contracts before adding
+operations; do not grow a duplicate messenger or extra compose/apply screens.
+
 **Owner remote-only continuation, 2026-10-03:** defer checks requiring the owner
 to physically press buttons, attach a headset, listen or speak until later.
 Continue useful remote communication work now; keep those checks in a separate

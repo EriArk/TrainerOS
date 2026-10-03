@@ -128,6 +128,8 @@ add_library(trainer_core STATIC
     src/core/repository/CollectionRepository.cpp
     src/core/repository/CollectionRepository.h
     src/integrations/adventure/retroarch/RetroArchAdapter.cpp
+    src/integrations/adventure/retroarch/RetroArchNetplay.cpp
+    src/features/adventure/RuntimeMultiplayer.cpp
     src/integrations/adventure/retroarch/RetroArchAdapter.h
     src/platform/diagnostics/DiagnosticsService.cpp
     src/platform/diagnostics/DiagnosticsService.h

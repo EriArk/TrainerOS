@@ -94,6 +94,9 @@ public:
     bool gameActive() const{return gameActive_;}
     void setGameActive(bool active){if(gameActive_!=active){gameActive_=active;emit presentationChanged();}}
     void controlCall(const QString& operation){emit commandRequested(operation,{});}
+    void setRuntimeContext(bool available, QVariantList capabilities);
+    QVariantList runtimeFriends() const;
+    void runtimeCommand(const QString& op,const QVariantMap& args={}){emit commandRequested(op,args);}
     bool answerCall(const QString& channel,bool accept,bool allowOngoing=false);
     QVariantList incomingCallActions(const QString& retainedChannel={}) const;
     void reviewCommand(const QString& operation,const QVariantMap& args){emit commandRequested(operation,args);}
@@ -110,6 +113,9 @@ public:
     void dismissNotificationAt(int index);
     void dismissNotifications();
 signals:
+    void runtimeEstablished(QString activity,bool host);
+    void runtimeFrame(QJsonObject frame);
+    void runtimeEnded();
     void changed();
     void presentationChanged();
     void textRequested(QString title, QString initial, int limit);
@@ -139,6 +145,9 @@ private:
     FluxerSession* session_;
     LinkController* link_=nullptr;
     bool onlineAvailable_=false,onlineWritable_=true;
+    bool runtimeAvailable_=false,runtimeOnline_=false;
+    QVariantList runtimeCapabilities_;
+    void publishOnlineContext();
     QVariantList onlineCapabilities_;
     QVariantMap snapshot_;
     QHash<QString,QString> drafts_;

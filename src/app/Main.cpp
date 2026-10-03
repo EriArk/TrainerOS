@@ -1,5 +1,6 @@
 ﻿#include "core/PerformanceTrace.h"
 #include "integrations/achievements/TrainerAchievementProvider.h"
+#include "features/adventure/RuntimeMultiplayer.h"
 #include "integrations/achievements/RetroArchAchievementSession.h"
 #include "platform/emulation/EmulatorDiscovery.h"
 #include "platform/emulation/EmulatorRefresh.h"
@@ -393,6 +394,18 @@ int main(int argc, char* argv[]) {
         ProcessService adventureProcess;
         AdventureLaunchController adventureLaunch(adventureProcess);
         AdventureExitPresentation exitPresentation(adventureLaunch.exitController());
+        RuntimeMultiplayer multiplayer(activeLibrary,retroarch,*shell.social(),adventureProcess,adventureLaunch,exitPresentation);
+        QObject::connect(&multiplayer,&RuntimeMultiplayer::notice,&shell,[&](QString text){
+            if(adventureLaunch.active())adventureProcess.runtimeCommand("notify",text);else shell.showNotice(text);
+        });
+        const bool experimentalMultiplayer=qEnvironmentVariableIntValue("TRAINEROS_EXPERIMENTAL_NETPLAY")==1;
+        auto refreshMultiplayer=[&]{if(!experimentalMultiplayer)return;multiplayer.refresh(retroarchInstallation,shell.trainer()->profile()["name"].toString(),
+            personalLibrary&&!smoke&&!session.blocked()&&!(saveBackups&&saveBackups->busy())&&!shell.party()->activities()->link()->active());};
+        QObject::connect(&folders,&BatoceraLibrary::scanFinished,&multiplayer,refreshMultiplayer);
+        QObject::connect(&session,&SessionState::changed,&multiplayer,refreshMultiplayer);
+        QObject::connect(shell.trainer(),&TrainerController::changed,&multiplayer,refreshMultiplayer);
+        QObject::connect(&shell,&ShellController::changed,&multiplayer,refreshMultiplayer);
+        refreshMultiplayer();
         auto gameNotifications=[&]{
             QVariantList rows;
             for(const auto& value:shell.social()->notifications()) {
@@ -407,6 +420,7 @@ int main(int argc, char* argv[]) {
         };
         auto gameMenuActions=[&]{
             QVariantList actions{QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(shell.social()->notifications().size())}}};
+            if(multiplayer.canInvite())actions.prepend(QVariantMap{{"id","multiplayer"},{"label","Invite friend"}});
             if(adventureProcess.runtimeControls()["kind"]=="retroarch")actions.append(QVariantMap{{"id","display"},{"label","Screen & graphics"}});
             if(!shell.social()->account()["voice"].toMap()["channel"].toString().isEmpty())actions.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",shell.social()->account()["voice"].toMap()["name"]}});
             actions=shell.social()->incomingCallActions()+actions;
@@ -421,6 +435,7 @@ int main(int argc, char* argv[]) {
             }
         };
         QObject::connect(shell.social(),&SocialController::changed,&exitPresentation,gameMenuActions);
+        QObject::connect(&multiplayer,&RuntimeMultiplayer::changed,&exitPresentation,gameMenuActions);
         QObject::connect(&adventureLaunch,&AdventureLaunchController::adventureStarted,&exitPresentation,gameMenuActions);
         QObject::connect(shell.social(),&SocialController::backgroundNotification,&exitPresentation,[&](QString title,QString text){
             adventureProcess.runtimeCommand("notify",title+" · "+text);
@@ -428,6 +443,7 @@ int main(int argc, char* argv[]) {
         QObject::connect(&exitPresentation,&AdventureExitPresentation::menuActionRequested,&exitPresentation,[&](const QString& action){
             const auto back=QVariantMap{{"id","back"},{"label","Back"}};
             const auto runtime=adventureProcess.runtimeControls();
+            if(multiplayer.action(action))return;
             if(action.startsWith("answer-call:")||action.startsWith("decline-call:")) {
                 shell.social()->answerCall(action.section(':',1),action.startsWith("answer-call:"));return;
             }
@@ -664,6 +680,7 @@ int main(int argc, char* argv[]) {
                 if (adventureLaunch.preparing() && action == Action::Back) adventureLaunch.cancel();
                 return;
             }
+            if(!session.blocked()&&multiplayer.dispatch(action))return;
             session.dispatch(action);
         });
         QString pendingMode;
@@ -714,6 +731,7 @@ int main(int argc, char* argv[]) {
         engine.rootContext()->setContextProperty("sessionState", &session);
         engine.rootContext()->setContextProperty("adventureLaunch", &adventureLaunch);
         engine.rootContext()->setContextProperty("adventureExitPresentation", &exitPresentation);
+        engine.rootContext()->setContextProperty("runtimeMultiplayer", &multiplayer);
         engine.rootContext()->setContextProperty("powerStatus", &powerStatus);
         engine.load(QUrl("qrc:/TrainerOS/Main.qml"));
         if (engine.rootObjects().isEmpty()) result = 2;

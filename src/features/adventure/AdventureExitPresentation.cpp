@@ -84,10 +84,15 @@ void AdventureExitPresentation::activateMenu(int index) {
     if(!panel_.isEmpty()||index>1){if(id=="back")setPanel({}, {}, {});else emit menuActionRequested(id);return;}
     if (index == 0) { dismissMenu(); return; }
     if (index != 1) return;
+    exitFromMenu();
+}
+bool AdventureExitPresentation::exitFromMenu() {
+    if(!menuOpen_ || !exit_.available() || phase_ != Phase::Idle)return false;
     menuOpen_ = false; menuFrame_ = {}; resetInput(); emit changed();
     // The separate exit attempt captures a fresh clean frame after this window
     // is hidden. The menu preview is never published as exit history.
-    if (!exit_.requestExit()) emit menuDismissed();
+    if (!exit_.requestExit()) {emit menuDismissed();return false;}
+    return true;
 }
 void AdventureExitPresentation::setInputIsolated(bool value) {
     if (isolated_ == value) return;

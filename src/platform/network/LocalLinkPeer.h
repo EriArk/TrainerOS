@@ -12,7 +12,7 @@ namespace trainer {
 class LocalLinkPeer final:public QObject {
     Q_OBJECT
 public:
-    explicit LocalLinkPeer(QObject* parent=nullptr);
+    explicit LocalLinkPeer(QObject* parent=nullptr, quint16 port=47845, quint16 discoveryPort=47846, QString discoveryKey="trainerosLink");
     ~LocalLinkPeer() override;
     void configure(const QString& id,const QString& name);
     bool open();void close();void disconnectPeer();
@@ -27,10 +27,13 @@ public:
     bool connected() const{return socket_ && socket_->state()==QAbstractSocket::ConnectedState;}
     QString id() const{return id_;}
     QString name() const{return name_;}
+    QString peerAddress() const{return socket_?socket_->peerAddress().toString():QString();}
 signals:
     void changed();void connectedToPeer();void disconnectedFromPeer();
     void received(const QJsonObject&);void error(const QString&);
 private:
+    const quint16 port_,discoveryPort_;
+    const QString discoveryKey_;
     void attach(QTcpSocket*);void announce();void readDiscovery();void receive();
     bool localAddress(const QHostAddress&) const;
     QTcpServer server_;QUdpSocket discovery_;QTimer timer_,connectTimer_;

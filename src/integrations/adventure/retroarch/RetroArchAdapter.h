@@ -9,6 +9,7 @@
 #include <mutex>
 
 namespace trainer {
+namespace retroarch { struct NetplayRequest; }
 // Bound once after authenticated entry; worker snapshots never read UI-owned state.
 struct RetroArchSaveOwner { QString id, directory; bool legacy = false; };
 class RetroArchSaveSession final {
@@ -52,6 +53,7 @@ public:
     QString id() const override { return "retroarch"; }
     AdventureCapabilities capabilities(const Adventure&) const override;
     AdventureResult launch(const Adventure&) override;
+    AdventureResult launchNetplay(const Adventure&, const retroarch::NetplayRequest&);
     AdventureResult resume(const Adventure&, const ResumePoint&) override;
     void prepareInstallation(AdventureRegistration&) const override;
     QString setupIssue(const AdventureRegistration&) const override;
@@ -63,6 +65,7 @@ public:
     // The application supplies checkpoint/window/lifecycle coordination.
     std::function<AdventureResult(const ProcessCommand&, const QString& adventureId)> requestLaunch;
 private:
+    AdventureResult launchConfigured(const Adventure&, std::function<QString(ProcessCommand&, const std::atomic_bool&)>);
     std::optional<ProcessCommand> command(const Adventure&) const;
     LibraryRepository& repository_;
     RetroArchInstallation installation_;

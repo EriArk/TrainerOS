@@ -1,5 +1,6 @@
 #include "RetroArchAdapter.h"
 #include "RetroArchAppearance.h"
+#include "RetroArchNetplay.h"
 #include "core/repository/CollectionRepository.h"
 #include "RetroArchSave.h"
 #include "RetroArchDisc.h"
@@ -159,6 +160,16 @@ AdventureCapabilities RetroArchAdapter::capabilities(const Adventure& adventure)
     return {command(adventure).has_value(), false, false};
 }
 AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
+    return launchConfigured(adventure,{});
+}
+AdventureResult RetroArchAdapter::launchNetplay(const Adventure& adventure,const retroarch::NetplayRequest& request) {
+    const auto record=repository_.registration(adventure.id);
+    if(!record)return {false,"This game is no longer in your library."};
+    return launchConfigured(adventure,[record=*record,installation=installation_,request](ProcessCommand& cmd,const std::atomic_bool& cancel){
+        return retroarch::prepareNetplay(cmd,record,installation,request,cancel);
+    });
+}
+AdventureResult RetroArchAdapter::launchConfigured(const Adventure& adventure,std::function<QString(ProcessCommand&, const std::atomic_bool&)> extra) {
     auto invocation = command(adventure);
     if (!invocation) return {false, "This game's file or emulator is unavailable."};
     const auto registration = repository_.registration(adventure.id);
@@ -196,9 +207,11 @@ AdventureResult RetroArchAdapter::launch(const Adventure& adventure) {
     retroarch::BezelGame bezelGame{adventure.platformId,registration?registration->contentPath:QString(),{}};
     if(adventure.kind!=AdventureKind::RomHack&&!adventure.catalogueId.isEmpty())
         for(const auto& entry:collectionCatalogue(true))if(entry.catalogueId==adventure.catalogueId&&entry.platformId==adventure.platformId){bezelGame.catalogueTitle=entry.title;break;}
-    invocation->prepare=[prepare,id,config,runtime=installation_.runtimeFile,display,bezelGame](ProcessCommand& cmd,const std::atomic_bool& cancel){
+    invocation->prepare=[prepare,id,config,runtime=installation_.runtimeFile,display,bezelGame,extra](ProcessCommand& cmd,const std::atomic_bool& cancel){
         const auto error=prepare?prepare(cmd,cancel):QString();
-        return error.isEmpty()&&!cancel?retroarch::prepareAppearance(cmd,id,config,runtime,display,bezelGame):error;
+        if(!error.isEmpty()||cancel)return error;
+        const auto appearance=retroarch::prepareAppearance(cmd,id,config,runtime,display,bezelGame);
+        return appearance.isEmpty()&&extra?extra(cmd,cancel):appearance;
     };
     if (!requestLaunch) return {false, "Game launch is unavailable in this session."};
     return requestLaunch(*invocation, adventure.id);

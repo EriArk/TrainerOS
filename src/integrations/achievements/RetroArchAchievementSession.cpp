@@ -14,12 +14,14 @@ void useRetroArchAchievementAccount(ProcessCommand& command, AchievementAccount 
     auto prepare = std::move(command.prepare);
     command.prepare = [prepare = std::move(prepare), account = std::move(account)]
             (ProcessCommand& cmd, const std::atomic_bool& cancelled) -> QString {
-        if (cancelled) return "Opening was cancelled.";
+          if (cancelled) return "Opening was cancelled.";
         if (prepare) {
             const auto error = prepare(cmd, cancelled);
             if (!error.isEmpty()) return error;
         }
         if (cancelled) return "Opening was cancelled.";
+        // A synchronized guest must never award host progress to its own account.
+        if(cmd.runtimeControls.contains("netplay"))return {};
         const bool connected = account.valid();
         if (!connected && (!account.username.isEmpty() || !account.token.isEmpty()))
             return "Sign in to RetroAchievements again in Settings.";

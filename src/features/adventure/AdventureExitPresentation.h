@@ -55,6 +55,9 @@ public:
     void setPanel(QString panel,QString caption,QVariantList actions,QString backAction = {});
     void setGameTitle(const QString& title) { gameTitle_ = title; emit changed(); }
     bool requestMenu();
+    // Returning to play releases the lease; accepted restart retains it until exit.
+    void dismissMenu();
+    bool exitFromMenu();
     void menuCaptureCompleted(quint64 token, const QImage&);
     Q_INVOKABLE void activateMenu(int index);
     // A provider must tag asynchronous snapshots with the current generation.
@@ -72,7 +75,6 @@ signals:
     void menuActionRequested(QString action);
 private:
     void resetInput();
-    void dismissMenu();
     AdventureExitController& exit_;
     AdventureExitController::Phase phase_;
     bool isolated_ = false, focused_ = false, ready_ = false;

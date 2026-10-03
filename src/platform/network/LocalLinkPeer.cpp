@@ -5,9 +5,8 @@
 #include <QDateTime>
 #include <QUuid>
 namespace trainer {
-namespace {constexpr quint16 Port=47845,DiscoveryPort=47846;}
 LocalLinkPeer::~LocalLinkPeer(){close();}
-LocalLinkPeer::LocalLinkPeer(QObject* parent):QObject(parent) {
+LocalLinkPeer::LocalLinkPeer(QObject* parent,quint16 port,quint16 discoveryPort,QString discoveryKey):QObject(parent),port_(port),discoveryPort_(discoveryPort),discoveryKey_(std::move(discoveryKey)) {
     connectTimer_.setSingleShot(true);connectTimer_.setInterval(12000);
     connect(&connectTimer_,&QTimer::timeout,this,[this]{
         emit error("Could not reach your friend. Try inviting them again.");disconnectPeer();
@@ -28,8 +27,8 @@ bool LocalLinkPeer::localAddress(const QHostAddress& address) const {
 }
 bool LocalLinkPeer::open() {
     if(timer_.isActive())return true;
-    if(QUuid(id_).isNull() || !server_.listen(QHostAddress::AnyIPv4,Port)
-        || !discovery_.bind(QHostAddress::AnyIPv4,DiscoveryPort,QUdpSocket::ShareAddress|QUdpSocket::ReuseAddressHint)) {
+    if(QUuid(id_).isNull() || !server_.listen(QHostAddress::AnyIPv4,port_)
+        || !discovery_.bind(QHostAddress::AnyIPv4,discoveryPort_,QUdpSocket::ShareAddress|QUdpSocket::ReuseAddressHint)) {
         close();emit error("Local Link could not open. Check the Wi-Fi connection.");return false;
     }
     server_.setMaxPendingConnections(2);timer_.start();announce();return true;
@@ -42,16 +41,16 @@ void LocalLinkPeer::announce() {
     for(auto it=peers_.begin();it!=peers_.end();)if(now-it.value()["seen"].toLongLong()>6000){it=peers_.erase(it);changed=true;}else ++it;
     if(changed)emit this->changed();
     if(!advertising_)return;
-    const auto packet=QJsonDocument(QJsonObject{{"trainerosLink",2},{"id",id_},{"name",name_},{"bluetooth",bluetoothId_}}).toJson(QJsonDocument::Compact);
+    const auto packet=QJsonDocument(QJsonObject{{discoveryKey_,2},{"id",id_},{"name",name_},{"bluetooth",bluetoothId_}}).toJson(QJsonDocument::Compact);
     for(const auto& iface:QNetworkInterface::allInterfaces())if(iface.flags().testFlag(QNetworkInterface::IsUp))for(const auto& address:iface.addressEntries())
-        if(address.ip().protocol()==QAbstractSocket::IPv4Protocol && !address.broadcast().isNull())discovery_.writeDatagram(packet,address.broadcast(),DiscoveryPort);
+        if(address.ip().protocol()==QAbstractSocket::IPv4Protocol && !address.broadcast().isNull())discovery_.writeDatagram(packet,address.broadcast(),discoveryPort_);
 }
 void LocalLinkPeer::readDiscovery() {
     int processed=0;
     while(discovery_.hasPendingDatagrams() && processed++<32) {
         const auto packet=discovery_.receiveDatagram(1025);if(packet.data().size()>1024 || !localAddress(packet.senderAddress()))continue;
         const auto j=QJsonDocument::fromJson(packet.data()).object();const auto id=j["id"].toString();
-        if(j["trainerosLink"].toInt()!=2 || QUuid(id).isNull() || id==id_ || j["name"].toString().size()>48)continue;
+        if(j[discoveryKey_].toInt()!=2 || QUuid(id).isNull() || id==id_ || j["name"].toString().size()>48)continue;
         if(peers_.size()>=16 && !peers_.contains(id))continue;
         auto addresses=peers_.value(id).value("addresses").toStringList();const auto address=packet.senderAddress().toString();
         if(!addresses.contains(address))addresses.append(address);while(addresses.size()>8)addresses.removeFirst();
@@ -74,7 +73,7 @@ void LocalLinkPeer::connectId(const QString& id,const QString& interface) {
             if(entry.ip().protocol()==QAbstractSocket::IPv4Protocol && QHostAddress(ip).isInSubnet(entry.ip(),entry.prefixLength()))address=ip;
         if(address.isEmpty())return;
     }
-    outgoing_=true;auto* socket=new QTcpSocket(this);attach(socket);connectTimer_.start();socket->connectToHost(address,Port);
+    outgoing_=true;auto* socket=new QTcpSocket(this);attach(socket);connectTimer_.start();socket->connectToHost(address,port_);
 }
 void LocalLinkPeer::attach(QTcpSocket* socket) {
     socket_=socket;buffer_.clear();socket->setReadBufferSize(65536);
@@ -88,7 +87,7 @@ void LocalLinkPeer::attach(QTcpSocket* socket) {
     if(socket->state()==QAbstractSocket::ConnectedState)emit connectedToPeer();
 }
 void LocalLinkPeer::connectBridge(quint16 port) {
-    if(socket_ || !port || port==Port)return;
+    if(socket_ || !port || port==port_)return;
     outgoing_=true;auto* socket=new QTcpSocket(this);attach(socket);
     connectTimer_.start();socket->connectToHost(QHostAddress::LocalHost,port);
 }

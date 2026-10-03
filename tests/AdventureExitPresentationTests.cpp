@@ -5,6 +5,24 @@ using namespace trainer;
 class AdventureExitPresentationTests final : public QObject {
     Q_OBJECT
 private slots:
+    void acceptedRestartKeepsLeaseUntilFreshCaptureAndClose() {
+        AdventureExitController exit;AdventureExitPresentation view(exit);
+        QSignalSpy preview(&view,&AdventureExitPresentation::menuCaptureRequested);
+        QSignalSpy capture(&exit,&AdventureExitController::captureRequested);
+        QSignalSpy released(&view,&AdventureExitPresentation::menuDismissed);
+        QSignalSpy close(&exit,&AdventureExitController::gracefulExitRequested);
+        exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);
+        QVERIFY(!view.exitFromMenu());
+        QVERIFY(view.requestMenu());view.menuCaptureCompleted(preview.last()[0].toULongLong(),{});
+        view.setPanel("multiplayer-wait","Waiting",{});
+        QVERIFY(view.exitFromMenu());QVERIFY(!view.visible());
+        QCOMPARE(capture.size(),1);QVERIFY(released.isEmpty());
+        connect(&exit,&AdventureExitController::confirmationRequested,&exit,[&]{exit.confirm();});
+        exit.captureCompleted(capture.last()[0].toULongLong(),{},"No screenshot");
+        QCOMPARE(close.size(),1);QVERIFY(released.isEmpty());
+        QVERIFY(!view.exitFromMenu());
+        exit.endSession(true);QVERIFY(!view.visible());
+    }
     void appearancePickerBackRetainsMenuAndHomeStillReturnsToGame() {
         AdventureExitController exit;AdventureExitPresentation view(exit);
         exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);

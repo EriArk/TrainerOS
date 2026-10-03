@@ -56,6 +56,7 @@ void SocialController::setOwner(QString owner) {
     if(owner==owner_)return;
     media_.clear();mediaSending_=mediaUncertain_=false;
     if(link_)link_->endOnline();
+    runtimeOnline_=false;emit runtimeEnded();
     saveDrafts();draftFile_.clear();
     editDrafts_.clear();pickedPeople_.clear();dismissedNotifications_.clear();activityNotifications_.clear();presentedInvitation_.clear();notificationSettingsKey_.clear();
     toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();
@@ -76,18 +77,37 @@ void SocialController::setLink(LinkController* link) {
     link_=link;
     connect(session_,&FluxerSession::onlineEstablished,this,[this](quint64 generation,QString self,QString peer,QString name,QString activity,bool initiator){
         if(generation!=generation_)return;
+        runtimeOnline_=activity.startsWith("runtime.");
+        if(runtimeOnline_){emit runtimeEstablished(activity,initiator);return;}
         if(!onlineWritable_||!link_||!link_->beginOnline(self,peer,name,activity,initiator))emit commandRequested("online-close",{});
     });
-    connect(session_,&FluxerSession::onlineFrame,this,[this](quint64 generation,QJsonObject frame){if(generation==generation_&&link_)link_->receiveOnline(frame);});
-    connect(session_,&FluxerSession::onlineEnded,this,[this](quint64 generation){if(generation==generation_&&link_)link_->endOnline();});
+    connect(session_,&FluxerSession::onlineFrame,this,[this](quint64 generation,QJsonObject frame){if(generation!=generation_)return;if(runtimeOnline_)emit runtimeFrame(frame);else if(link_)link_->receiveOnline(frame);});
+    connect(session_,&FluxerSession::onlineEnded,this,[this](quint64 generation){if(generation!=generation_)return;if(runtimeOnline_){runtimeOnline_=false;emit runtimeEnded();}else if(link_)link_->endOnline();});
     connect(link,&LinkController::onlineSend,this,[this](QJsonObject frame){emit commandRequested("online-frame",frame.toVariantMap());});
     connect(link,&LinkController::onlineClosed,this,[this]{emit commandRequested("online-close",{});});
 }
 void SocialController::setOnlineContext(bool available,bool writable) {
-    if(onlineAvailable_!=available){onlineAvailable_=available;emit commandRequested("online-available",{{"available",available}});}
+    onlineAvailable_=available;
     onlineWritable_=writable;
-    const auto caps=writable&&link_?link_->onlineCapabilities().toVariantList():QVariantList{};
+    publishOnlineContext();
+}
+void SocialController::setRuntimeContext(bool available,QVariantList capabilities) {
+    if(runtimeAvailable_==available&&runtimeCapabilities_==capabilities)return;
+    runtimeAvailable_=available;runtimeCapabilities_=std::move(capabilities);publishOnlineContext();
+}
+void SocialController::publishOnlineContext() {
+    auto caps=onlineAvailable_&&onlineWritable_&&link_?link_->onlineCapabilities().toVariantList():QVariantList{};
+    if(runtimeAvailable_)caps.append(runtimeCapabilities_);
     if(caps!=onlineCapabilities_){onlineCapabilities_=caps;emit commandRequested("online-capabilities",{{"activities",caps}});}
+    emit commandRequested("online-available",{{"available",onlineAvailable_||runtimeAvailable_}});
+}
+QVariantList SocialController::runtimeFriends() const {
+    QVariantList result;
+    for(const auto& v:snapshot_["friends"].toList()) {
+        const auto friendRow=v.toMap();if(friendRow["type"].toInt()!=1)continue;
+        result.append(friendRow);
+    }
+    return result;
 }
 QVariantMap SocialController::online() const {
     auto state=snapshot_.value("online").toMap();

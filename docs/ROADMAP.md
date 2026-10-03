@@ -4,6 +4,21 @@
 
 ## Current plan — reconciled 2026-10-01
 
+**Block 1 checkpoint, 2026-10-03:** local runtime invitation/host restart and
+RetroArch player 1/2 connection are proven; controller gameplay and online relay
+are not. The experiment is off in ordinary builds. Finish these gates next;
+see [evidence](EMULATOR_MULTIPLAYER.md). This checkpoint does not complete or
+split the promised block, nor advance to the queued messenger expansion.
+
+**Owner correction, 2026-10-03:** proceed with block 1's actual emulator
+multiplayer invitation now. Keep the outstanding block 3 checks open and deferred;
+do not repeat passed audio/media checks without new evidence requiring it.
+After this runtime block, add message replies/quotes, reactions, mentions and
+person cards, plus a persistent touch/controller composer (attachments, emoji,
+Send, dismissible quote). Chat-history search is excluded. Existing edit/delete,
+unread and mute features are retained, not reimplemented. Blocks 4/5 and all
+earlier outstanding acceptance remain in the queue.
+
 **Block 3 reverse picture proof, 2026-10-03:** ordinary web saved-media upload
 now reaches Flip and opens from the controller; see [evidence](SOCIAL_MEDIA_VOICE.md#ordinary-web-picture-received-on-flip--2026-10-03)
 and [device screenshot](../screenshots/19-social-received-picture.png). Remaining
