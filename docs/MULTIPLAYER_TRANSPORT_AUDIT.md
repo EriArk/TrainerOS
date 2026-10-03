@@ -17,6 +17,12 @@ comparison but cannot qualify a product route. Audit supported provisioning APIs
 account boundaries and operated services before spending time on that candidate's
 full gameplay benchmark. Fresh-device setup and reconnect are acceptance gates.
 
+**Provisioning review completed:** [Automatic multiplayer connections](MULTIPLAYER_AUTOMATION.md)
+records supported APIs, wizard/account gaps, server requirements and the bounded
+pilot. Retain native routes first; evaluate project-operated Headscale only for
+a concrete overlay need. Ordinary player-managed Tailscale is not the release
+plan. This closes the general automation survey, not live enrollment or gameplay.
+
 ## Local evidence and gaps
 
 | Finding | Evidence / consequence |

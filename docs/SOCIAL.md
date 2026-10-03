@@ -19,6 +19,13 @@ silent migration of existing groups. Both handhelds were inventoried read-only;
 no calls, service changes or new gameplay acceptance were performed. The native
 runtime baseline and every outstanding block 1/3 gate below remain unchanged.
 
+**Automatic connection audit, 2026-10-03:** [provisioning findings](MULTIPLAYER_AUTOMATION.md)
+retain the native runtime routes and reject user-managed VPN setup as normal UX.
+A managed overlay has a feasible API path but still needs an account/admission
+bridge and isolated client proof. No provider account, party, message or call was
+created in this pass. Continue the multi-member native-party foundation; do not
+repeat the general VPN survey or claim a fresh-device connection is delivered.
+
 **Standalone PSP checkpoint, 2026-10-03:** the existing Home invitation now
 prepares standalone PPSSPP with isolated copied settings and retained ordinary
 SAVEDATA. Flip/Odin LAN consent, restart confirmation, paired launch and native

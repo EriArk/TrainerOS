@@ -24,6 +24,16 @@ comparative gameplay, multi-client play and community voice are **not proven**.
 Independent party voice is recommended through supported community channels,
 while existing group DMs keep their common call; that mapping is not yet installed.
 
+**Automatic setup review, 2026-10-03:** [feasibility decision](MULTIPLAYER_AUTOMATION.md)
+retains native emulator routes and identifies project-operated Headscale as the
+first conditional explicit-address overlay pilot. Player-managed Tailscale is not
+the product plan. Enrollment APIs exist; wizard identity, scoped admission and
+isolated client/runtime behavior still require implementation/proof. No service
+was deployed and no transport gameplay gate passed. The general provider survey
+is finished: next extend parties on the existing native baseline. Comparative
+overlay evidence remains required before adopting an overlay, rather than blocking
+native session improvements on a speculative VPN dependency.
+
 Dependency order within the current multiplayer block (not substitute deliveries
 or a second queue):
 
@@ -33,8 +43,9 @@ or a second queue):
    account setup in the initial wizard. No user-managed VPN or router changes;
    developer-configured Tailscale alone is not a deliverable. Include fresh-device
    setup and ordinary reconnect in the final route acceptance.
-   Source/provider/inventory findings are now recorded; the remaining part is the
-   bounded gameplay comparison, not another general source survey. Choose the
+   Source/provider/inventory and automatic-provisioning findings are recorded;
+   the overlay comparison remains a conditional adoption gate, not another general
+   source survey or a prerequisite to extending the retained native route. Choose the
    supported company/party voice mapping before implementing private audiences.
    Retain working routes; the existing PSP LAN failure is a separate unresolved
    control, not a reason to assume a VPN fixes it.
