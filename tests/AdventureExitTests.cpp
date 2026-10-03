@@ -34,7 +34,7 @@ struct RunningAdventure {
         QFile file(path("pid"));
         return file.open(QIODevice::ReadOnly) ? file.readAll() : QByteArray();
     }
-    bool start(AdventureSavePolicy policy = AdventureSavePolicy::Unknown) {
+    bool start(AdventureSavePolicy policy = AdventureSavePolicy::Unknown, bool temporary = false) {
         const auto probe = QDir(QCoreApplication::applicationDirPath()).filePath(
 #ifdef Q_OS_WIN
             "trainer_process_probe.exe"
@@ -42,7 +42,12 @@ struct RunningAdventure {
             "trainer_process_probe"
 #endif
         );
-        return launch.launch({probe, {"controlled", path("command"), path("pid")}, {}}, context, "fixture", policy);
+        ProcessCommand cmd{probe, {"controlled", path("command"), path("pid")}, {}};
+        if (temporary) cmd.prepare = [](ProcessCommand& prepared, const std::atomic_bool&) {
+            prepared.runtimeControls["temporaryProgress"] = true;
+            return QString();
+        };
+        return launch.launch(cmd, context, "fixture", policy);
     }
     quint64 attempt() const { return captures.last()[0].toULongLong(); }
     ~RunningAdventure() {
@@ -121,6 +126,26 @@ private slots:
         QVERIFY(!game.exit().confirm()); QVERIFY(!game.exit().cancel());
         QVERIFY(game.command("exit")); QTRY_COMPARE(game.completed.size(), 1);
         QVERIFY(game.completed.first()[2].toBool()); // Permission to exit, not proof of autosave.
+    }
+    void temporarySessionExitPreservesCaptureFallbackAndOrdinarySaveQuestion() {
+        RunningAdventure game; QVERIFY(game.start(AdventureSavePolicy::Unknown, true));
+        QTRY_VERIFY(!game.pid().isEmpty()); game.exit().setAvailable(true);
+        QVERIFY(!game.exit().verifiedAutosave()); // Never relabel temporary progress as autosaved.
+        QVERIFY(game.exit().requestExit());
+        game.exit().captureCompleted(game.attempt(), {}, "Capture unavailable");
+        QCOMPARE(game.prompts.size(), 1); QVERIFY(game.closes.isEmpty());
+        QVERIFY(game.exit().cancel()); QVERIFY(game.process.active());
+        QVERIFY(game.exit().requestExit());
+        game.exit().captureCompleted(game.attempt(), frame());
+        QCOMPARE(game.prompts.size(), 1); QCOMPARE(game.closes.size(), 1);
+        QVERIFY(game.command("exit")); QTRY_COMPARE(game.returned.size(), 1);
+        QCOMPARE(game.completed.size(), 1);
+        QVERIFY(QFile::remove(game.path("command"))); QVERIFY(QFile::remove(game.path("pid")));
+        QVERIFY(game.start()); QTRY_VERIFY(!game.pid().isEmpty());
+        game.exit().setAvailable(true); QVERIFY(game.exit().requestExit());
+        game.exit().captureCompleted(game.attempt(), frame());
+        QCOMPARE(game.prompts.size(), 2); QCOMPARE(game.closes.size(), 1);
+        QCOMPARE(game.exit().phase(), Phase::Confirming); QVERIFY(game.exit().cancel());
     }
     void autosaveCaptureFailureRemainsCancellable() {
         RunningAdventure game; QVERIFY(game.start(AdventureSavePolicy::VerifiedAutosave));

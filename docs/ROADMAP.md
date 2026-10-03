@@ -44,6 +44,10 @@ permitted group gameplay on Flip/Odin. Ordinary deployment stays experimental/of
 Distinct networks, parallel live parties, wider NES compatibility and the remaining
 Mega Drive/SNES route gates are still open. This does not advance the queue to
 newer emulator families or close block 1.
+The 4 October [SNES continuation](EMULATOR_MULTIPLAYER.md#snes-paired-gameplay-and-temporary-session-exit---2026-10-04)
+closes Contra's independent online P2 and explicit loss/exit/rejoin gaps, and
+removes the temporary-match save question. Keep Mega Drive's remaining gates
+next; do not repeat completed NES/SNES handshakes or jump to newer platforms.
 
 This is a platform-family progression, not a demand to research every ROM or
 obscure platform. Complete the supported connection mechanism and its full user

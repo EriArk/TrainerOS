@@ -4,7 +4,10 @@ namespace trainer {
 AdventureLaunchController::AdventureLaunchController(ProcessService& process, QObject* parent) : QObject(parent), process_(process) {
     connect(&process_, &ProcessService::started, this, [this] {
         started_ = true;
-        exit_.beginSession(savePolicy_);
+        // Preparation establishes this only after the adapter has isolated progress.
+        // Re-evaluate for every process; an ordinary launch must retain its policy.
+        exit_.beginSession(process_.runtimeControls()["temporaryProgress"].toBool()
+            ? AdventureSavePolicy::NoPersistentProgress : savePolicy_);
         if (!adventureId_.isEmpty()) emit adventureStarted(adventureId_);
         if (state_ == "stopping") { process_.stop(); return; }
         state_ = "running"; emit changed(); emit suspendRequested();

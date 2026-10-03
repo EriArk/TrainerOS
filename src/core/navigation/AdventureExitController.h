@@ -5,7 +5,8 @@
 
 namespace trainer {
 // Resolved by the exact title/integration, never inferred from its platform.
-enum class AdventureSavePolicy { Unknown, ManualConfirm, VerifiedAutosave };
+// NoPersistentProgress is only for an adapter-enforced temporary session.
+enum class AdventureSavePolicy { Unknown, ManualConfirm, VerifiedAutosave, NoPersistentProgress };
 
 // Protocol for a still-running game. The platform must opt in only after it
 // can capture gameplay, isolate overlay input and close that owned game cleanly.

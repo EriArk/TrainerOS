@@ -163,3 +163,15 @@ The ordinary delivery retains the experimental-off gate.
 - [46-nes-join-consent-flip](46-nes-join-consent-flip.png)
 - [47-nes-group-party-odin](47-nes-group-party-odin.png)
 - [48-nes-group-gameplay-odin](48-nes-group-gameplay-odin.png)
+
+
+Screens 49-51 are actual 4 October Gamescope captures from the exact Contra III
+online check on Flip/Odin, executable
+`9f248aad5301a292eced759308126e947f985305bc5ae733b4671c27880fc895`.
+They show independent P2/P1 movement and P2 control after relay loss/exit/rejoin.
+The devices shared one router while payload used an external relay. The experiment
+is disabled again in ordinary delivery. [Full evidence and capture caveat](../docs/EMULATOR_MULTIPLAYER.md#snes-paired-gameplay-and-temporary-session-exit---2026-10-04).
+
+- [49-snes-online-p2-flip](49-snes-online-p2-flip.png)
+- [50-snes-online-p1-odin](50-snes-online-p1-odin.png)
+- [51-snes-online-rejoin-odin](51-snes-online-rejoin-odin.png)

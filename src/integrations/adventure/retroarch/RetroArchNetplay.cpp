@@ -129,6 +129,8 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     cmd.arguments<<content;
     cmd.runtimeControls["netplay"]=identity.toVariantMap();
     cmd.runtimeControls["netplayHost"]=request.host;
+    // This session enforces noload-nosave and private save/state directories.
+    cmd.runtimeControls["temporaryProgress"]=true;
     const auto settled=cmd.settled;
     cmd.settled=[settled,directory](const ProcessOutcome& outcome){if(settled)settled(outcome);directory->remove();};
     return {};

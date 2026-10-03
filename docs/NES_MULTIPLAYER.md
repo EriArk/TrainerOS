@@ -81,8 +81,25 @@ experimental-off release policy. Actual captures are in screenshots 43-48.
   policy are not enabled by this single exact homebrew profile.
 - Parallel live parties, ongoing call retention, and router-free runtime proof
   remain their separate shared acceptance. No new nearby proof is claimed here.
-- The generic save-confirmation question still appears when exiting this
-  no-save game; retain this observed UX gap for the shared lifecycle refinement.
+- The temporary-session save question is fixed by the 4 October shared lifecycle
+  refinement below; ordinary games retain their own save policy.
 - Continue the oldest-family lane (remaining NES gates, then Mega Drive/SNES),
   before resuming the retained newer-emulator investigations. The common social,
   invitation and party architecture is reused; do not rebuild it.
+
+
+## Temporary-session exit refinement - 2026-10-04
+
+The adapter now marks its enforced no-SRAM/private-save netplay session as
+`temporaryProgress` after preparation. The launch controller reads this only
+when that prepared process starts. Explicit Home Exit still captures a fresh
+frame and closes the owned process, but skips a meaningless saved-progress
+question. Capture failure remains cancellable; the next ordinary game retains
+its own manual/unknown/autosave policy. PSP and Dolphin do not set this marker.
+The lifecycle regression passed on Windows and ARM, including failed capture,
+cancellation and a subsequent ordinary launch. Both handhelds passed actual
+Home Exit without the save question in the exact Contra III temporary session;
+an ordinary Contra launch afterwards retained its confirmation. See the
+[SNES runtime checkpoint](EMULATOR_MULTIPLAYER.md#snes-paired-gameplay-and-temporary-session-exit---2026-10-04)
+for delivery and remaining acceptance. This is a shared lifecycle change;
+NES gameplay was not repeated just to recheck the same marker.

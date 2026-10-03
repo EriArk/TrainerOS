@@ -42,7 +42,7 @@ void AdventureExitController::captureCompleted(quint64 attempt, const QImage& fr
         : !error.isEmpty() ? error : "Couldn't capture this moment. Your previous image will be kept.";
     // Explicit Exit already supplies the intent. Unknown/manual titles still
     // need the save question; failed captures retain the cancellable fallback.
-    if (verifiedAutosave() && valid) { userConfirmed_ = true; close(); return; }
+    if ((verifiedAutosave() || policy_ == AdventureSavePolicy::NoPersistentProgress) && valid) { userConfirmed_ = true; close(); return; }
     phase_ = Phase::Confirming;
     emit changed();
     if (phase_ == Phase::Confirming && attempt == attempt_) emit confirmationRequested();

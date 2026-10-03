@@ -1,5 +1,14 @@
 # Native Social - conversations and discovery
 
+**SNES continuation, 2026-10-04:** the existing online invitation route now has
+actual Contra III two-player gameplay with independent controls, public-relay
+loss followed by exit/rejoin to the same running host, and normal Home return.
+Temporary RetroArch matches no longer ask about saving; ordinary launches retain
+their policy. [Evidence and limits](EMULATOR_MULTIPLAYER.md#snes-paired-gameplay-and-temporary-session-exit---2026-10-04)
+record both handhelds, screenshots and the remaining acceptance. This does not
+close block 1, prove distinct networks or enable the experiment in ordinary use.
+
+
 **Oldest-first online continuation, 2026-10-03:** the owner's new order supersedes
 Dolphin/Flycast-first expansion. The existing invitation/party framework now
 supports an exact NES Pong/FCEUmm profile. Flip/Odin passed public-Fluxer consent,

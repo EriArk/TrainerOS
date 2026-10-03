@@ -283,7 +283,7 @@ Three profiles currently use the existing temporary, no-persistent-save route:
 
 | Platform / exact US game | Runtime | Current evidence |
 | --- | --- | --- |
-| SNES / Contra III | RetroArch / Snes9x | Earlier independent LAN P1/P2; online P1; fresh multi-profile online launch retained. Online P2 is still not established for this title. |
+| SNES / Contra III | RetroArch / Snes9x | Independent LAN P1/P2 and, on 4 October, actual public-relay P1/P2 gameplay, loss/exit/rejoin to the running host; see the checkpoint below. |
 | Mega Drive / Streets of Rage 2 | RetroArch / Genesis Plus GX | Named online consent selected the correct game on both handhelds. Flip selected 2 PLAYERS; Odin independently changed P2 from Blaze to Skate, visible on Flip. In Stage 1, Odin's Up/Right input moved Skate from the left group toward the center/right, also visible on Flip. Clean Home exits and another invitation/join succeeded. |
 | Mega Drive / Gunstar Heroes | RetroArch / Genesis Plus GX | Exact raw/archive identities and profile discrimination tested; paired gameplay remains unverified. |
 
@@ -314,7 +314,7 @@ No ROM/core binary is committed.
 | Route | Next acceptance; not delivered support |
 | --- | --- |
 | RetroArch shared-controller games | Finish reliable paired online gameplay, abrupt interruption/reinvitation and a distinct-network run; expand exact profiles without changing the invitation journey. Games with persistent progress need their own host/guest save policy. |
-| Standalone PSP / PPSSPP | [Isolated settings and Home invitation integrated](PSP_MULTIPLAYER.md); actual 1.20.4 Lumines LAN consent, paired launch and native peer discovery verified. Match transition fails; online/gameplay/recovery remain open. Do not force PSP through a RetroArch core or claim a running lobby is a working match. |
+| Standalone PSP / PPSSPP | [Isolated settings and Home invitation integrated](PSP_MULTIPLAYER.md); actual Lumines LAN and external-relay gameplay, plus interrupted rematch recovery are recorded in the later PSP checkpoint. Distinct networks and mid-round recovery remain open. Do not force PSP through a RetroArch core. |
 | DS, Game Boy/GBA link, GameCube/Wii, other runtimes | Investigate each emulator's real connection model and title support. These can be separate emulated machines, not shared controller ports; RetroArch shared-screen evidence does not cover them. Keep unsupported routes unavailable rather than claim universal netplay. |
 
 Sources: [Genesis Plus GX supported features](https://docs.libretro.com/library/genesis_plus_gx/),
@@ -331,3 +331,73 @@ unchanged Emerald saves, boot settings and nearby/voice helpers were verified.
 Experimental wrappers were removed. Flip is muted and Odin remains at zero.
 Both recovered by normal process restart; no device reboot was needed.
 The actual Odin invitation is [screenshot 23](../screenshots/23-experimental-megadrive-invitation.png).
+
+
+## SNES paired gameplay and temporary-session exit - 2026-10-04
+
+The exact Contra III US/Snes9x route now has independent online gameplay on
+Flip/Odin, superseding the earlier one-player-only evidence above. This remains
+an experimental route, not completion of block 1 or universal SNES compatibility.
+Both ran TrainerOS executable SHA-256
+`9f248aad5301a292eced759308126e947f985305bc5ae733b4671c27880fc895`.
+
+Actual installed-interface checks:
+
+- Worlds A launched the existing local game. Home -> Invite friend -> Online
+  friend used public Fluxer consent and the existing 2/2 party/start controls.
+  Each side resolved its own archive/raw copy; neither required file selection.
+- After explicitly selecting **2 PLAYERS A**, Stage 1 began with three lives
+  for each player. Flip controlled blue P1 and Odin orange P2. Both consumed
+  their own bomb (1 -> 0). Odin moved P2 right past stationary P1, then Flip
+  moved P1 left, visible on the opposite handheld. This was active gameplay,
+  not the game's two-character attract sequence.
+- Payload sockets used external relay `34.140.160.20:55435`. Observed join
+  latency was 166 ms at the host / 235 ms at the guest in the checked session;
+  the later rejoin reported 333 ms. Both devices still shared one home router.
+- A scoped 12-second drop of only Odin's relay traffic interrupted the match.
+  nft counters recorded 67 outgoing / 58 incoming dropped packets; the temporary
+  table was removed in `finally`. SSH and Fluxer were not blocked.
+- Odin exited through Home, accepted a new invitation, and joined the same
+  still-running Flip RetroArch process (PID 3075867). Its P2 movement resumed
+  in the retained level. This is explicit exit/rejoin, not seamless recovery.
+- Both temporary sessions exited from Home without an irrelevant saved-progress
+  question. A subsequent ordinary launch on the same Flip shell showed its
+  normal save confirmation and exited after confirmation. No device reboot,
+  forced emulator kill or ordinary save operation was needed.
+
+The adapter publishes `temporaryProgress` only after preparing its enforced
+`noload-nosave`/private-directory session. The launch controller reads the
+prepared command when the process starts and resets policy for the next launch.
+Fresh exit capture and graceful owned-process shutdown remain mandatory. Failed
+capture remains cancellable; temporary progress is never labelled autosaved.
+Standalone PSP/Dolphin do not opt into this policy.
+
+Capture procedure correction: Flip's fresh compositor capture file occasionally
+contained an old game frame while the game was running. Opening and dismissing
+Home refreshed the composed frame. The evidence captures below follow that
+refresh; a new file timestamp alone is not sufficient gameplay evidence. Remote
+inputs used each device's physical evdev source through InputPlumber. Owner
+physical-button/latency acceptance remains deferred.
+
+Screenshots [49](../screenshots/49-snes-online-p2-flip.png),
+[50](../screenshots/50-snes-online-p1-odin.png) and
+[51](../screenshots/51-snes-online-rejoin-odin.png) show actual device output.
+Windows/ARM focused suites passed: RetroArch, NetplayClient, GameParty,
+Process, AdventureExit and AdventureExitPresentation. The new lifecycle case
+covers prepared-command metadata, failed capture/cancel, successful exit and
+restored ordinary-game confirmation. The portable adapter copy is synchronized.
+
+Remaining: distinct-network/NAT proof, parallel live parties/background calls,
+router-free runtime and broader compatibility. NES reverse/group entry evidence
+remains separate; do not repeat it as newly checked here. Mega Drive still needs
+its remaining paired/recovery gates before advancing to older handheld link and
+32/64-bit families. No newer-emulator expansion was started.
+
+
+Final delivery: the ordinary executable above is installed and verified live on
+both handhelds, one shell each. Experimental wrappers are removed, no RetroArch
+process remains, database quick checks pass, and boot/nearby helper hashes match
+the deployment baseline. Flip stays muted and Odin volume stays zero. Existing
+library counts remain 831 / 31. Windows and ARM application builds passed.
+No ordinary-save byte comparison was performed in this pass; no persistent
+progress write is claimed. The experiment remains off in ordinary use.
