@@ -36,7 +36,7 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
         // No shell command, path or emulator option may enter through this field.
         if(request.address.isEmpty()||request.address.size()>253||!QRegularExpression("^[A-Za-z0-9.-]+$").match(request.address).hasMatch())
             return "This multiplayer address is invalid.";
-        if(request.relay && (request.relaySession.size()!=16 || !QRegularExpression("^[A-Za-z0-9+/]{16}$").match(request.relaySession).hasMatch()))
+        if(request.relay && (!request.clientPort || request.relaySession.size()!=16 || !QRegularExpression("^[A-Za-z0-9+/]{16}$").match(request.relaySession).hasMatch()))
             return "This multiplayer room is invalid.";
     }
     const auto base=QFileInfo(i.configFile).absolutePath();
@@ -70,11 +70,9 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
 #endif
     bytes+="netplay_use_mitm_server = \""+QByteArray(request.host&&request.relay?"true":"false")+"\"\n";
     bytes+="netplay_public_announce = \""+QByteArray(request.host&&request.relay?"true":"false")+"\"\n";
-    // Stock RetroArch 1.22.2 always opens its own password keyboard on clients;
-    // netplay_password configures hosting, not automatic client authentication.
-    // Local play is explicitly a trusted-LAN route. Internet rooms retain a
-    // password until the client authentication integration is verified.
-    const auto password=request.relay?request.password.toUtf8():QByteArray();
+    // Hosting keeps the invitation password. The relay guest's loopback bridge
+    // answers the challenge automatically; no password is written to its config.
+    const auto password=request.relay&&request.host?request.password.toUtf8():QByteArray();
     bytes+="netplay_password = \""+password+"\"\nnetplay_spectate_password = \""+password+"\"\n";
     bytes+="core_options_path = \""+path.toUtf8()+"/core.opt\"\nsavefile_directory = \""+path.toUtf8()+"\"\nsavestate_directory = \""+path.toUtf8()+"\"\n";
     if(!write("session.cfg",bytes))return "Couldn't prepare multiplayer settings.";
@@ -82,9 +80,10 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     if(append>=0&&append+1<cmd.arguments.size())cmd.arguments[append+1]+="|"+path+"/session.cfg";
     else {auto content=cmd.arguments.takeLast();cmd.arguments<<"--appendconfig"<<path+"/session.cfg"<<content;}
     auto content=cmd.arguments.takeLast();
-    cmd.arguments<<"--verbose"<<"--no-patch"<<"--sram-mode"<<"noload-nosave"<<"--nick"<<request.nickname<<"--port"<<QString::number(request.port);
+    const auto port=request.relay&&!request.host?request.clientPort:request.port;
+    cmd.arguments<<"--verbose"<<"--no-patch"<<"--sram-mode"<<"noload-nosave"<<"--nick"<<request.nickname<<"--port"<<QString::number(port);
     if(request.host)cmd.arguments<<"--host";
-    else {cmd.arguments<<"--connect"<<request.address;if(request.relay)cmd.arguments<<"--mitm-session"<<request.relaySession;}
+    else cmd.arguments<<"--connect"<<(request.relay?QString("127.0.0.1"):request.address);
     cmd.arguments<<content;
     cmd.runtimeControls["netplay"]=identity.toVariantMap();
     cmd.runtimeControls["netplayHost"]=request.host;

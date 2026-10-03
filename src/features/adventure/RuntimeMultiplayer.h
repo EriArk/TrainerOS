@@ -1,6 +1,7 @@
 #pragma once
 #include "core/input/Action.h"
 #include "integrations/adventure/retroarch/RetroArchNetplay.h"
+#include "integrations/adventure/retroarch/RetroArchNetplayClient.h"
 #include "integrations/social/OnlineLink.h"
 #include "platform/network/LocalLinkPeer.h"
 #include <QFutureWatcher>
@@ -47,6 +48,7 @@ private:
     QString trainer_,identity_,game_,peerId_,peerName_,status_,selection_,onlinePerson_;
     QJsonObject descriptor_;
     retroarch::NetplayRequest request_;
+    retroarch::NetplayClient client_{this};
     RetroArchInstallation installation_;
     bool allowed_=false,online_=false,host_=false,active_=false,restarting_=false,launchPending_=false,query_=false,invited_=false,relaySent_=false;
     qint64 deadline_=0;quint64 scanRevision_=0;

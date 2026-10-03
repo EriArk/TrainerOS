@@ -18,6 +18,9 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(this,&SocialController::ownerRequested,session_,&FluxerSession::setOwner);
     connect(this,&SocialController::commandRequested,session_,&FluxerSession::command);
     connect(session_,&FluxerSession::snapshot,this,&SocialController::receive);
+    connect(session_,&FluxerSession::runtimeProbeFailed,this,[this](quint64 generation,QString peer,QString message){
+        if(generation==generation_)emit runtimeProbeFailed(peer,message);
+    });
     connect(session_,&FluxerSession::reviewsChanged,this,[this](quint64 generation,QString identity,QVariantMap state){if(generation==generation_)emit reviewsChanged(identity,state);});
     connect(&media_,&SocialMedia::changed,this,[this]{if(mediaPreview())mediaMenu();});
     connect(session_,&FluxerSession::attachmentFinished,this,[this](quint64 generation,QString channel,int status){

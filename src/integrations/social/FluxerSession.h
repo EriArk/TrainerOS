@@ -41,6 +41,7 @@ signals:
     void onlineEstablished(quint64 generation, QString self, QString peer, QString name, QString activity, bool initiator);
     void onlineFrame(quint64 generation, QJsonObject frame);
     void onlineEnded(quint64 generation);
+    void runtimeProbeFailed(quint64 generation, QString peer, QString message);
 private:
     friend class SocialTests;
     void reviewCommand(const QString& operation,const QVariantMap& args);
@@ -53,6 +54,7 @@ private:
     int reviewPage_=1;
     bool reviewBusy_=false,reviewMore_=false,reviewFresh_=false;
     OnlineLink online_{this};
+    quint64 runtimeProbeRevision_ = 0;
     QTimer onlineSendTimer_{this};
     QList<QPair<QString,QString>> onlineQueue_;
     bool onlineSending_=false;

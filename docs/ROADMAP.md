@@ -7,7 +7,8 @@
 **Block 1 checkpoint, 2026-10-03:** local runtime invitation/host restart and
 RetroArch player 1/2 connection and independent remote controller gameplay are
 proven. The Linux session uses udev without changing ordinary emulator settings.
-Online authentication/recovery and router-free nearby gameplay remain open;
+Public-relay automatic authentication now reaches player 1/2; independent online
+gameplay, distinct networks/recovery and router-free nearby gameplay remain open;
 physical button checks are owner-deferred. The experiment stays off by default;
 see [evidence](EMULATOR_MULTIPLAYER.md). This checkpoint does not complete or
 split the promised block, nor advance to the queued messenger expansion.

@@ -42,16 +42,18 @@ and Social uses the designated test accounts.
 
 ## Experimental multiplayer (disabled by default)
 
-These two actual handheld captures document development work, not an accepted
+These actual handheld captures document development work, not an accepted
 multiplayer feature. The final installed delivery leaves this experiment disabled.
 A later run proved independent remote controller gameplay; physical checks and
-the internet route remain open. These invitation captures alone do not prove them; see
+independent online gameplay remain open. Public-relay authentication is now proven
+separately. These invitation captures alone do not prove gameplay; see
 [runtime evidence](../docs/EMULATOR_MULTIPLAYER.md).
 
 | Screen | Device | Preview |
 | --- | --- | --- |
 | In-game invitation route | Flip 2 | [![Experimental invitation](20-experimental-game-invitation.png)](20-experimental-game-invitation.png) |
 | Named invitation consent | Odin 2 | [![Experimental consent](21-experimental-game-consent.png)](21-experimental-game-consent.png) |
+| Online friend invitation, updated caption | Odin 2 | [![Online invitation](22-experimental-online-invitation.png)](22-experimental-online-invitation.png) |
 
 ## Capture provenance
 

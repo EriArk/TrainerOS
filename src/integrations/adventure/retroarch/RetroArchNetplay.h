@@ -10,6 +10,7 @@ struct NetplayRequest {
     bool relay = false;
     QString address, relaySession, password, nickname;
     quint16 port = 55435;
+    quint16 clientPort = 0; // Owned loopback authentication bridge, relay guests only.
     QJsonObject expected;
 };
 QJsonObject netplayIdentity(const AdventureRegistration&, const RetroArchInstallation&,

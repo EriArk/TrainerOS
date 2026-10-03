@@ -23,5 +23,10 @@ for row in data["builds"]:
     assert all(v["evidence"] and (base / v["details"]).is_file() for v in row["capabilities"].values())
     assert row["saveBytes"] > 0
 assert seen == allowed, "Compiled exact builds and research index differ"
+runtime_source = (root / "src/integrations/adventure/retroarch/RetroArchNetplay.cpp").read_text()
+for row in data.get("runtimeProfiles", []):
+    assert row["id"] in runtime_source and row["romSha256"] in runtime_source, row["id"]
+    assert row["state"] in states and (base / row["record"]).is_file(), row["id"]
+    assert row["evidence"] and row["remaining"] and not row["persistentSaveWrites"]
 print(f"Adapter knowledge checked: {len(seen)} exact builds")
 subprocess.run([sys.executable, str(root / "tools/export-game-adapters.py"), "--check"], check=True)

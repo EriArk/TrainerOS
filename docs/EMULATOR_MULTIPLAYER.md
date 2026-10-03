@@ -113,7 +113,7 @@ This advances the controller gate only. Internet automatic authentication,
 separate-network operation/recovery and router-free nearby gameplay remain open;
 block 1 and #107 are not complete.
 
-## Final ordinary delivery
+## Previous ordinary delivery
 
 Both Flip and Odin run executable SHA-256
 `dc0d71d4ec5f4dd6f6faf5e6f0a7326ff7ccd656ef82119edd4e7adbff7cfe3f`
@@ -127,3 +127,66 @@ No device reboot was needed. The two experimental invitation captures are in
 Sources: [upstream netplay guide](https://docs.libretro.com/guides/netplay-getting-started/),
 [versioned runtime implementation](https://github.com/libretro/RetroArch/blob/v1.22.2/network/netplay/netplay_frontend.c),
 [versioned command interface](https://github.com/libretro/RetroArch/blob/v1.22.2/command.h).
+
+## Public relay authentication - 2026-10-03
+
+Block 1 remains **in progress**. This checkpoint fixes online invitation delivery
+and automatic joining, not all multiplayer acceptance.
+
+The directory failure above was our HTTPS assumption: the versioned RetroArch
+implementation uses the public HTTP lobby. The HTTP list and Madrid tunnel lookup
+answered, and both handhelds reached the returned European relay. The directory
+contains public room metadata; the one-time password travels in the accepted
+friend session, never in a directory query or application log.
+
+Stock RetroArch 1.22.2 opens its password keyboard for a challenged guest;
+its `netplay_password` setting configures a host, not an automatic client answer.
+The session now owns a bounded loopback bridge: it sends the relay RATS room
+prefix, preserves the protocol header/NICK exchange, answers the host's salted
+SHA-256 PASSWORD challenge, then forwards the game stream. Only the local
+client's copy of the salt is zeroed to suppress the keyboard. The real host still
+checks the invitation secret. No RetroArch fork or global configuration change
+is needed. This is the upstream password protocol, not encrypted game transport.
+The bridge has bounded buffers/connection time and closes with the owned game.
+
+The runtime friend probe also used the group-channel `recipients` request by
+mistake, then silently discarded the reply. It now reuses an existing one-to-one
+DM, or creates one with `recipient_id`. Failure reaches the game menu directly;
+a cancelled request cannot start a late probe. Generation and friend checks remain.
+The consent header now says GAME INVITATION for either runtime transport.
+
+Actual Flip -> Online friend -> Odin consent launched matching Contra III /
+Snes9x / RetroArch processes automatically. Both reported player 1/player 2 and
+166 ms in the first relay run; Odin's TrainerOS connection reached the external
+relay on TCP 55435 while its emulator connected only to the loopback bridge.
+No password keyboard appeared. Both returned through Home -> Exit without reboot.
+
+These devices still shared one home network. This is a public-relay handshake
+and launch proof, **not** the required different-internet gameplay proof. The
+captured game screens in this run included the game's attract/demo sequence;
+they are not evidence of independent online player control. Preserve the earlier
+LAN control evidence, but do not promote it to online gameplay acceptance.
+An attempted exact-socket `ss -K` fault returned a kernel Invalid argument;
+no network-loss recovery is claimed from it. Do not repeat generic input scans
+or the already-passed password handshake as a substitute for these open gates.
+
+ARM compilation and four focused suites passed: RetroArch, the new fragmented
+relay/challenge/stream/disconnect tests, OnlineLink and Social (including DM
+contract and cancelled-response regressions). No microphone check was repeated.
+
+Remaining: deliberate online P1/P2 actions, distinct-internet operation, bounded
+interruption/reinvitation and router-free nearby runtime play. The experiment
+remains disabled in ordinary installed launches until those gates pass.
+
+Protocol source: [RetroArch v1.22.2 netplay implementation](https://github.com/libretro/RetroArch/blob/v1.22.2/network/netplay/netplay_frontend.c),
+including `netplay_handshake_init`, `handshake_password` and `netplay_mitm_query`;
+[command definitions](https://github.com/libretro/RetroArch/blob/v1.22.2/network/netplay/netplay_private.h).
+
+Final delivery: both ordinary shells run SHA-256
+`aa9cdc270d407b39275fba3e1cfaa32ca03600eab5b3054ed11216542b2a772e`.
+Experimental wrappers were removed. One shell per device, no remaining game or
+multiplayer listener, healthy databases, unchanged Emerald saves, boot preferences
+and nearby/voice helpers were verified. Flip is muted; Odin volume is zero.
+The final caption was inspected on Odin and saved as screenshot 22. A later
+invitation was allowed to expire during documentation; the host returned an error
+and retained its original game. That is expiry handling, not relay-loss recovery.

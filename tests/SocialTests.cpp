@@ -28,6 +28,33 @@ class SocialTests : public QObject {
     }
 private slots:
     void initTestCase() { QStandardPaths::setTestModeEnabled(true);QCoreApplication::setOrganizationName("TrainerOSTests");QCoreApplication::setApplicationName("SocialTests"); }
+    void runtimeInvitationUsesDmContractAndReusesConversation() {
+        FluxerSession s;Completion pending;int requests=0;
+        QSignalSpy failed(&s,&FluxerSession::runtimeProbeFailed);
+        s.setTransport([&](QByteArray method,QString path,QJsonObject body,Completion done,QByteArray){
+            ++requests;QCOMPARE(method,QByteArray("POST"));QCOMPARE(path,QString("/v1/users/@me/channels"));
+            QCOMPARE(body,QJsonObject({{"recipient_id",remote}}));pending=done;
+        });bind(s);s.relationships_[remote]={{"type",1}};
+        s.command("runtime-probe-person",{{"id",remote}});QCOMPARE(requests,1);
+        pending({400,{}});QVERIFY(s.online_.state()["status"].toString().contains("Couldn't open"));
+        QCOMPARE(failed.count(),1);QCOMPARE(failed.first()[1].toString(),QString(remote));
+        s.command("runtime-probe-person",{{"id",remote}});
+        pending({200,QJsonDocument(QJsonObject{{"id",channel},{"type",1},{"recipients",QJsonArray{QJsonObject{{"id",remote}}}}})});
+        s.command("runtime-probe-person",{{"id",remote}});QCOMPARE(requests,2);
+        QCOMPARE(s.channels_[channel]["recipients"].toArray().size(),1);
+    }
+    void cancelledRuntimeInvitationIgnoresLateDmReply() {
+        FluxerSession s;Completion pending;
+        s.setTransport([&](auto,auto,auto,Completion done,QByteArray){pending=done;});
+        bind(s);s.channels_.clear();s.relationships_[remote]={{"type",1}};
+        QSignalSpy failed(&s,&FluxerSession::runtimeProbeFailed);
+        s.command("runtime-probe-person",{{"id",remote}});
+        s.command("online-close");pending({400,{}});QCOMPARE(failed.count(),0);
+        s.command("runtime-probe-person",{{"id",remote}});
+        s.command("online-close");
+        pending({200,QJsonDocument(QJsonObject{{"id",channel},{"type",1},{"recipients",QJsonArray{QJsonObject{{"id",remote}}}}})});
+        QVERIFY(!s.channels_.contains(channel));QCOMPARE(s.online_.state()["stage"].toString(),QString("idle"));
+    }
     void profileUpdatesUseProviderResponseAndDiscardOldOwnerReply() {
         FluxerSession s;Completion pending;QJsonObject sent;int requests=0;
         s.setTransport([&](QByteArray method,QString path,QJsonObject body,Completion done,QByteArray){

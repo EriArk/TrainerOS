@@ -115,6 +115,7 @@ public:
 signals:
     void runtimeEstablished(QString activity,bool host);
     void runtimeFrame(QJsonObject frame);
+    void runtimeProbeFailed(QString peer, QString message);
     void runtimeEnded();
     void changed();
     void presentationChanged();

@@ -22,6 +22,9 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     identity_=QSettings().value("runtimeMultiplayer/device").toString();
     if(QUuid(identity_).isNull()){identity_=QUuid::createUuid().toString(QUuid::WithoutBraces);QSettings().setValue("runtimeMultiplayer/device",identity_);}
     consent_.bind(identity_,identity_);
+    connect(&client_,&retroarch::NetplayClient::failed,this,[this](QString message){
+        if(active_)fail(std::move(message));
+    });
     connect(&scan_,&QFutureWatcherBase::finished,this,[this]{
         const auto result=scan_.result();game_=result.first;descriptor_=result.second;update();
         refresh(installation_,trainer_,allowed_);
@@ -51,6 +54,9 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     connect(&consent_,&OnlineLink::frameReceived,this,&RuntimeMultiplayer::frame);
     connect(&social_,&SocialController::runtimeEstablished,this,[this](QString,bool host){begin(host,true);});
     connect(&social_,&SocialController::runtimeFrame,this,&RuntimeMultiplayer::frame);
+    connect(&social_,&SocialController::runtimeProbeFailed,this,[this](QString peer,QString message){
+        if(!active_&&onlinePerson_==peer)fail(std::move(message));
+    });
     connect(&social_,&SocialController::changed,this,[this]{
         const auto state=social_.online();
         if(!onlinePerson_.isEmpty()&&state["stage"]=="available"&&state["peer"]==onlinePerson_&&!invited_) {
@@ -79,6 +85,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     });
     connect(&lifecycle_,&AdventureLaunchController::adventureFinished,this,[this](bool){
         if(restarting_){restarting_=false;QTimer::singleShot(0,this,&RuntimeMultiplayer::launch);return;}
+        client_.stop();
         if(active_){send({{"kind","left"}});active_=false;deadline_=0;timer_.stop();
             if(online_)social_.runtimeCommand("online-close");else {consent_.answer(false);nearby_.disconnectPeer();}}
         update();
@@ -222,11 +229,17 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     request_.password=packet["password"].toString();request_.port=quint16(port);
     request_.address=online_?packet["address"].toString():nearby_.peerAddress();
     request_.relaySession=packet["session"].toString();
+    if(online_) {
+        request_.clientPort=client_.start(request_.address,request_.port,request_.relaySession,request_.password);
+        if(!request_.clientPort){fail("Couldn't prepare the multiplayer connection.");return;}
+    }
     launchPending_=true;launch();
 }
 void RuntimeMultiplayer::pollRelay() {
     if(query_||!active_||!host_||!online_||relaySent_)return;
-    query_=true;QNetworkRequest request(QUrl("https://lobby.libretro.com/list/"));request.setTransferTimeout(7000);
+    // This is the upstream public directory, not an authenticated signalling
+    // service. Passwords travel only through the accepted friend invitation.
+    query_=true;QNetworkRequest request(QUrl("http://lobby.libretro.com/list/"));request.setTransferTimeout(7000);
     auto* reply=network_.get(request);reply->setReadBufferSize(2*1024*1024+1);
     const auto nickname=request_.nickname;auto bytes=std::make_shared<QByteArray>();
     connect(reply,&QIODevice::readyRead,reply,[reply,bytes]{bytes->append(reply->readAll());if(bytes->size()>2*1024*1024)reply->abort();});
@@ -261,6 +274,7 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
     if(output_.size()>16384)output_.clear();
 }
 void RuntimeMultiplayer::fail(QString text) {
+    client_.stop();
     status_=std::move(text);deadline_=0;timer_.stop();onlinePerson_.clear();invited_=false;
     const bool wasActive=active_;active_=false;restarting_=false;launchPending_=false;
     if(online_)social_.runtimeCommand("online-close");else {consent_.answer(false);nearby_.disconnectPeer();}

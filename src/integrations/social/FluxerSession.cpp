@@ -906,16 +906,26 @@ void FluxerSession::command(QString operation, QVariantMap args) {
     if(operation=="online-capabilities"){online_.setCapabilities(QJsonArray::fromVariantList(args["activities"].toList()));return;}
     if(operation=="online-available"){online_.setAvailable(args["available"].toBool());return;}
     if(operation=="online-answer"){online_.answer(args["accept"].toBool());return;}
-    if(operation=="online-close"){online_.answer(false);return;}
+    if(operation=="online-close"){++runtimeProbeRevision_;online_.answer(false);return;}
     if(operation=="online-frame"){online_.sendFrame(QJsonObject::fromVariantMap(args));return;}
     if(operation=="online-invite"){online_.invite(args["id"].toString());return;}
     if(operation=="runtime-probe-person") {
         const auto id=args["id"].toString();if(relationships_.value(id)["type"].toInt()!=1)return;
+        const auto revision=++runtimeProbeRevision_;
+        for(auto it=channels_.cbegin();it!=channels_.cend();++it) {
+            const auto recipients=it.value()["recipients"].toArray();
+            if(it.value()["type"]==1 && recipients.size()==1 && recipients.first().toObject()["id"]==id) {
+                online_.probe(it.key(),id);return;
+            }
+        }
         const auto epoch=epoch_;
-        request("POST","/v1/users/@me/channels",{{"recipients",QJsonArray{id}}},[this,id,epoch](Reply r){
-            if(epoch!=epoch_||relationships_.value(id)["type"].toInt()!=1)return;
+        request("POST","/v1/users/@me/channels",{{"recipient_id",id}},[this,id,epoch,revision](Reply r){
+            if(epoch!=epoch_||revision!=runtimeProbeRevision_||relationships_.value(id)["type"].toInt()!=1)return;
             const auto c=r.body.object();
-            if(r.status<200||r.status>=300||c["type"].toInt(-1)!=1||c["recipients"].toArray().size()!=1||c["recipients"].toArray().first().toObject()["id"]!=id)return;
+            if(r.status<200||r.status>=300||!idValid(c["id"].toString())||c["type"].toInt(-1)!=1||c["recipients"].toArray().size()!=1||c["recipients"].toArray().first().toObject()["id"]!=id){
+                const QString message="Couldn't open your friend's conversation. Try again.";
+                online_.close(message);emit runtimeProbeFailed(generation_,id,message);return;
+            }
             channels_[c["id"].toString()]=c;online_.probe(c["id"].toString(),id);
         });return;
     }
