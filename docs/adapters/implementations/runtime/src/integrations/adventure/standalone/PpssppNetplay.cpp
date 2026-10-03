@@ -25,7 +25,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInsta
     // This first route is verified against the installed ARM64 1.20.4 binary.
     if(runtime!="c99cec693067f8c94ae0d8b5e7299392ed5c0cfae3f8231176ed25ea6c155dfc")return {};
     return {{"id","runtime.ppsspp.lumines-us.v1"},{"label","Lumines - Puzzle Fusion"},
-        {"content",content},{"runtime",runtime},{"settings","ppsspp-adhoc-isolated-config-v1"}};
+        {"content",content},{"runtime",runtime},{"settings","ppsspp-adhoc-isolated-config-clock-v2"}};
 }
 QString configureNetplay(ProcessCommand& cmd,const StandaloneInstallation& i,const NetplayRequest& request,const std::atomic_bool& cancel) {
     if(cancel)return "Opening cancelled.";
@@ -68,12 +68,14 @@ QString configureNetplay(ProcessCommand& cmd,const StandaloneInstallation& i,con
     // Keep PPSSPP's saved console identity, including a per-game override.
     // Some games bind ordinary saves to this MAC; changing it per invitation
     // makes the same memory stick appear to belong to another PSP.
+    // The exact Lumines route needs PPSSPP's real-clock synchronization on both
+    // peers to leave matching together. Keep it session-only; see ppsspp.md.
     const QByteArray bytes="[Network]\nEnableWlan = True\nEnableUPnP = False\n"
         "EnableAdhocServer = "+QByteArray(request.host&&!request.online?"True":"False")+
         "\nproAdhocServer = "+request.address.toUtf8()+"\nAdhocServerRelayMode = "+QByteArray(request.online?"1":"2")+
         "\nPortOffset = 10000\nAllowSavestateWhileConnected = False\nAllowSpeedControlWhileConnected = False\n"
         "[SystemParam]\nNickName = "+nickname.toUtf8()+
-        "\n[General]\nAutoLoadSaveState = 0\nEnableCheats = False\nEnablePlugins = False\n"
+        "\n[General]\nForceLagSync2 = True\nAutoLoadSaveState = 0\nEnableCheats = False\nEnablePlugins = False\n"
         "[Achievements]\nAchievementsEnable = False\n";
     const auto appended=directory->path()+"/network.ini";
     QSaveFile file(appended);

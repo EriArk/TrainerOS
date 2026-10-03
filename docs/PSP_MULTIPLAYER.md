@@ -5,7 +5,66 @@
 SHA-256 `9b21dd44a2b9ceb746ab9ed9cea4b30de69e63880704c0e34177f1c30c38b82b`.
 Its multiplayer mode must be verified inside the game. No game content is bundled.
 
+## Clock synchronization checkpoint — 2026-10-03
+
+The copied-save diagnostic now has verified input: PPSSPP's debugger observed
+the normal injected controller Start press/release on both handhelds. Allow the
+title animation to finish; repeated blind presses can enter 1P mode. Lumines
+also cancels an unanswered challenge after roughly nine seconds. This resolves
+the harness gate below, not owner-operated physical input acceptance.
+
+With unchanged device MACs and default clock settings, a promptly accepted
+challenge still failed: Flip logged ESTABLISHED at `00:50:892`, Odin ACCEPT at
+`00:50:903`, then Odin stopped matching at `00:50:942` and sent BYE. Only Odin
+joined the generated group. These times are within the respective logs.
+
+A controlled relaunch with `[General] ForceLagSync2=True` on both devices
+passed that transition: both joined `HGFOEPD` (`06:17:867` and `06:18:253` in
+the host log), opened skin selection and reached the actual two-player arena.
+A subsequent round accepted separate movement/rotation/drop inputs from each
+device; [Flip](../screenshots/31-lumines-lan-flip.png) and
+[Odin](../screenshots/32-lumines-lan-odin.png) are real Gamescope captures with
+the same placed blocks and independent active players. These are sequential
+captures, not a frame-synchronization or sustained-performance measurement.
+This is evidence for the configuration change, not proof of a specific upstream
+callback bug. No emulator source/binary patch was needed.
+
+The setting is now part of the exact experimental Lumines session configuration;
+the settings fingerprint changes to `ppsspp-adhoc-isolated-config-clock-v2` so
+older and corrected clients do not advertise identical settings. It does not
+change ordinary PPSSPP preferences or broaden the title/runtime allowlist.
+Regression coverage checks the upstream General section and preservation of
+an ordinary per-game False preference after private-session cleanup.
+
+Private diagnostics copied SAVEDATA as well as SYSTEM; original hashes matched
+after both processes exited. Debugger/logging were diagnostic-only. The initial
+`LocalHost IP will be 127.0.0.1` message is not a failure by itself: upstream
+`InitLocalhostIP()` always initializes a loopback address, while actual friend
+records and traffic used each device's LAN address. Do not repeat that false lead.
+
+**Still open:** corrected configuration through the complete TrainerOS invitation
+and Home-return route, sustained independent gameplay, interruption/reconnection,
+and online/distinct-network evidence. Both ordinary deliveries retain the
+experimental/off gate. Block 1 is not complete. Do not repeat the old input or
+discovery investigation; start from the corrected session profile.
+
+Private raw evidence: `~/traineros-social/lumines-transition/trace-v3/probe.log`
+and `clock/probe.log` on each handheld. The diagnostics use upstream PPSSPP
+1.20.4; no ROM or save is added to the repository.
+
+ARM build and the scoped standalone suite passed; adapter export/verification
+passed. Both ordinary shells were updated without reboot to SHA-256
+`e41f211dd92d5736f6d4473f0d4a62a589d9eff5f0c5f657f8e4fc52a95a9e7c`.
+Final checks confirmed the running binaries, unchanged Trainer/library counts,
+boot/helpers, Emerald saves and volume policy (Flip muted, Odin zero).
+
+Sources: [clock setting](https://github.com/hrydgard/ppsspp/blob/v1.20.4/Core/Config.cpp),
+[localhost initialization](https://github.com/hrydgard/ppsspp/blob/v1.20.4/Core/HLE/sceNet.cpp).
+
 ## Implemented route and paired evidence
+
+The following records the earlier delivery; the checkpoint above supersedes its
+input blocker and failing default-clock transition, not the remaining acceptance.
 
 Maintenance and update instructions now have a separate
 [PPSSPP record](emulators/ppsspp.md). The 2026-10-03 continuation removed the

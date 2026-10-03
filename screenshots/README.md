@@ -1,5 +1,18 @@
 # TrainerOS on the handhelds
 
+## Experimental PSP LAN evidence
+
+| Device | Actual two-player Lumines arena |
+| --- | --- |
+| Flip 2 | [![Flip LAN arena](31-lumines-lan-flip.png)](31-lumines-lan-flip.png) |
+| Odin 2 | [![Odin LAN arena](32-lumines-lan-odin.png)](32-lumines-lan-odin.png) |
+
+Screens 31–32 are sequential Gamescope captures from the isolated copied-save
+PPSSPP 1.20.4 diagnostic on 3 October, with `ForceLagSync2=True` on both peers.
+They show an actual LAN round after separate controller inputs, not DEMO.
+They do not prove sustained play, online transport or the complete corrected
+TrainerOS invitation/return flow. See [precise evidence](../docs/PSP_MULTIPLAYER.md).
+
 Actual 1920×1080 Gamescope captures from the installed ARM64 application on
 Retroid Pocket Flip 2 and AYN Odin 2, taken on 2–3 October 2026. These are original
 PNG screenshots, without compositing, cropping or generated replacement screens.

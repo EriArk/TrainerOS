@@ -39,7 +39,8 @@ private slots:
         QVERIFY(QDir().mkpath(system));QVERIFY(QDir().mkpath(dir.filePath("PSP/SAVEDATA")));
         const QByteArray original="[Network]\nEnableWlan = False\n[Graphics]\nRenderingMode = 1\n"
             "[SystemParam]\nMacAddress = 04:11:22:33:44:55\n";
-        const QByteArray originalGame="[SystemParam]\nMacAddress = 04:66:77:88:99:aa\n";
+        const QByteArray originalGame="[SystemParam]\nMacAddress = 04:66:77:88:99:aa\n"
+            "[General]\nForceLagSync2 = False\n";
         write(system+"/ppsspp.ini",original);write(system+"/controls.ini","My controller bindings");
         write(system+"/ULUS10002_ppsspp.ini",originalGame);
         write(dir.filePath("PSP/SAVEDATA/existing.bin"),"Existing progress");
@@ -65,6 +66,8 @@ private slots:
         QVERIFY(settings.contains("AdhocServerRelayMode = 1"));QVERIFY(settings.contains("EnableAdhocServer = False"));
         QVERIFY(settings.contains("AchievementsEnable = False"));QVERIFY(!settings.contains("Alice\n"));
         QVERIFY(!settings.contains("MacAddress")); // appended options must not replace either saved identity
+        // Upstream reads clock synchronization from General, not Network/CPU.
+        QVERIFY(settings.contains("[General]\nForceLagSync2 = True\n"));
         // Simulate PPSSPP saving merged options, including its per-game INI.
         write(root+"/ppsspp/PSP/SYSTEM/ppsspp.ini","Session changes");
         write(root+"/ppsspp/PSP/SYSTEM/ULUS10002_ppsspp.ini","Session changes");

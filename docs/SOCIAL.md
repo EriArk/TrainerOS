@@ -1,5 +1,14 @@
 # Native Social - conversations and discovery
 
+**PSP clock-sync continuation, 2026-10-03:** the repaired diagnostic reproduced
+the default-clock failure, then reached a real Lumines LAN arena and independent
+inputs with upstream clock synchronization enabled on both handhelds. The exact
+session profile now carries that setting and a new settings fingerprint; ordinary
+preferences remain intact. See [evidence and outstanding gates](PSP_MULTIPLAYER.md#clock-synchronization-checkpoint--2026-10-03).
+The previous input blocker below is resolved. Integrated invitation/return with
+the corrected configuration, sustained/recovery and online proof remain open;
+block 1 is not complete and ordinary installations keep the experiment off.
+
 **PSP identity/maintenance continuation, 2026-10-03:** per-invitation MAC
 randomization was removed; ordinary global/per-game identity is retained.
 ARM build/standalone checks and adapter-export checks passed. Separate

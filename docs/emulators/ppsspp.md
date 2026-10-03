@@ -1,7 +1,8 @@
 # PPSSPP maintenance
 
 Updated 2026-10-03. Actual multiplayer acceptance is tracked in
-[PSP multiplayer](../PSP_MULTIPLAYER.md); the match-transition gate remains open.
+[PSP multiplayer](../PSP_MULTIPLAYER.md); isolated LAN gameplay is observed,
+while integrated, sustained and online acceptance remain open.
 
 ## Upstream and observed installation
 
@@ -28,10 +29,14 @@ The exported runtime copy lives in [adapter implementations](../adapters/impleme
 | Online relay mode `1`, `socom.cc`, built-in server off | Experimental native relay route; TCP reachability does not establish a playable online match. |
 | Network savestate/speed control off; General auto-state-load, cheats/plugins off; Achievements disabled | Keep the experimental paired runtime consistent without rewriting the ordinary profile. |
 | SystemParam nickname from Trainer; **no MAC override** | Preserve global and per-game console identities. Earlier per-invitation randomization was removed on 2026-10-03. PPSSPP warns that saves can be tied to a MAC. Never put a shared fixed MAC in the image. |
+| General `ForceLagSync2=True` in the exact Lumines session; settings fingerprint `ppsspp-adhoc-isolated-config-clock-v2` | Default-clock diagnostic failed after matching; the controlled clock-sync run reached a LAN arena and independent inputs on Flip/Odin. Keep ordinary/per-game preferences intact. This is not a universal PSP compatibility workaround. |
 | Flip ordinary graphics backend changed from OpenGL to Vulkan | Observed OpenGL startup crash; private backup retained. Odin already used Vulkan. This is device evidence, not a universal backend policy. |
 
-No timeout, first-connect or clock-sync workaround is enabled by this change.
-Upstream `ForceLagSync2`, if investigated, belongs to `[General]`, not `[CPU]`.
+No socket-timeout or first-connect workaround is enabled. Clock synchronization
+uses upstream `ForceLagSync2` in `[General]`, not `[CPU]`. Rollback removes the
+session override and restores the previous settings fingerprint together; it
+does not rewrite the ordinary INI or saves. Recheck the matching transition on
+both devices when updating PPSSPP before removing or retaining this workaround.
 Do not silently migrate existing saves to another device/MAC or overwrite a
 per-game override to solve an unproven networking hypothesis.
 
