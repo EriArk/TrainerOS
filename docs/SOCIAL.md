@@ -8,6 +8,17 @@ Reuse actual provider permissions and existing Home/Social surfaces. These are
 new acceptance, not delivered capabilities; [transport audit](MULTIPLAYER_TRANSPORT_AUDIT.md)
 does not select a VPN or replace existing evidence below. ROADMAP owns order.
 
+**Audit checkpoint, 2026-10-03 (no runtime change):** the
+[source/provider/device findings](MULTIPLAYER_TRANSPORT_AUDIT.md#completed-source-and-device-audit--2026-10-03)
+confirm pair-only runtime signalling, friend/DM-only admission and private-call-only
+voice in the current client. Reviewed Fluxer presence has no game activities;
+party cards require a supported TrainerOS descriptor. Independent party voice
+needs real separate channel audiences, not a filter on the company's shared DM
+call. Community-backed voice is a recommendation, not delivered behavior or a
+silent migration of existing groups. Both handhelds were inventoried read-only;
+no calls, service changes or new gameplay acceptance were performed. The native
+runtime baseline and every outstanding block 1/3 gate below remain unchanged.
+
 **Standalone PSP checkpoint, 2026-10-03:** the existing Home invitation now
 prepares standalone PPSSPP with isolated copied settings and retained ordinary
 SAVEDATA. Flip/Odin LAN consent, restart confirmation, paired launch and native

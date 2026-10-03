@@ -13,11 +13,25 @@ explicitly authorized free entry. [Transport/session audit](MULTIPLAYER_TRANSPOR
 separates code-backed gaps, source findings and unresolved options. This docs-only
 pass implements none of those behaviors and does not select/install a virtual LAN.
 
+**Audit checkpoint, 2026-10-03:** the
+[source/provider/device audit](MULTIPLAYER_TRANSPORT_AUDIT.md#completed-source-and-device-audit--2026-10-03)
+now identifies the actual one-peer owners, the RetroArch one-guest config, the
+friend/DM-only admission route and Fluxer's channel-based voice audiences.
+Fluxer presence supplies no game activities; TrainerOS needs a bounded activity
+descriptor instead of assumed rich presence. Both devices have Tailscale; Odin's
+existing authenticated setup is preserved. Native routes remain the baseline;
+comparative gameplay, multi-client play and community voice are **not proven**.
+Independent party voice is recommended through supported community channels,
+while existing group DMs keep their common call; that mapping is not yet installed.
+
 Dependency order within the current multiplayer block (not substitute deliveries
 or a second queue):
 
 1. Finish the bounded session/provider/transport audit: multi-client ownership,
    real group/voice contracts, and comparable native versus virtual-LAN evidence.
+   Source/provider/inventory findings are now recorded; the remaining part is the
+   bounded gameplay comparison, not another general source survey. Choose the
+   supported company/party voice mapping before implementing private audiences.
    Retain working routes; the existing PSP LAN failure is a separate unresolved
    control, not a reason to assume a VPN fixes it.
 2. Extend the existing session foundation and direct Home/Social UI for 3-4+
