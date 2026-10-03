@@ -7,6 +7,7 @@
 #include <atomic>
 #include "core/repository/BatoceraLibrary.h"
 #include "platform/device/VolumeKeys.h"
+#include "platform/device/ShellGraphics.h"
 #include "core/input/ControllerInput.h"
 #include "core/input/PointerVisibility.h"
 #include "core/navigation/ShellController.h"
@@ -101,6 +102,7 @@ int main(int argc, char* argv[]) {
     SDL_SetMainReady();
     SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS, "1");
     QGuiApplication app(argc, argv);
+    configureShellGraphics();
     // Qt's generic "Sans Serif" can resolve to a decorative face with tiny
     // numerals. Prefer an installed UI font consistently across all QML text.
     app.setFont(QFontDatabase::systemFont(QFontDatabase::GeneralFont));

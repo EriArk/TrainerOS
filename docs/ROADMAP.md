@@ -1,5 +1,15 @@
 # TrainerOS Roadmap
 
+**Graphics recovery checkpoint, 2026-10-04:** Odin's shell now selects Vulkan,
+with explicit Qt backend overrides preserved. Short controller navigation and
+ordinary Dolphin launch/Home exit/return passed; this is a mitigation, not proof
+that the repeated kernel GPU fault is fixed. Both handhelds received the build.
+Armada check found `20261003.e5f3a2f` available on both; both still boot
+`20260929.5915c28`, with no staged update. See [evidence](ARMADA_PLATFORM.md#odin-shell-vulkan-mitigation---2026-10-04).
+Return to the remaining shared online-party gates below: distinct networks,
+parallel live parties and larger sessions, preserving the shared group call.
+Do not repeat completed NES/MD/SNES handshakes or call block 1 complete.
+
 **Shared group-call checkpoint, 2026-10-04:** the owner's simplified model is one
 call per group across independent games/parties. Existing behavior passed bounded
 Flip/Odin synthetic signal checks through different ordinary game launches and

@@ -1,5 +1,42 @@
 # TrainerOS on ArmadaOS
 
+## Odin shell Vulkan mitigation - 2026-10-04
+
+The previous Odin boot recorded GMU OOB GPU_SET timeouts at 02:12:42 +03:00,
+then an Adreno ring-2 translation fault (READ, IOVA 0, CP) associated with
+`QSGRenderThread`, followed by a preemption timeout. The earlier terminated
+process retained an uninterruptible `dma_fence_default_wait` thread. This is
+kernel/GPU evidence, not proof of a Fluxer deadlock or a particular upstream fix.
+The checked stack is kernel 7.2.6, Mesa 26.2.3 and Qt 6.11.2.
+
+`ShellGraphics.h` chooses Qt Quick Vulkan on the exact `AYN Odin 2` model under
+XCB/Wayland before any Quick window exists. Explicit `QSG_RHI_BACKEND`,
+`QT_QUICK_BACKEND` or `QMLSCENE_DEVICE` selections take precedence, retaining
+maintenance rollback. The choice uses the Qt API, not an exported environment
+variable; launched emulators retain their own backend/configuration. Flip's
+current default is unchanged. The owner prefers Vulkan for compatible routes;
+this bounded change is not a global emulator conversion.
+
+Both handhelds run executable SHA-256
+`d30b8e79be60838777d1321a391058da9c801e32a1393fc54c544aca92f4ef59`.
+ARM and Windows application builds passed. Odin loaded the Freedreno Vulkan
+driver without Gallium; controller navigation across primary pages, ordinary
+Melee/Dolphin launch, physical-Home overlay and confirmed exit/return passed.
+The Dolphin environment contained no inherited QSG backend override. An initial
+unchanging Social capture was a diagnostic mistake: R1 at the final primary
+page does not wrap. L1 and the page trace confirmed responsive navigation.
+Shell restarts completed without a device reboot. Database integrity passed on
+both; experimental multiplayer remains off, Odin volume zero and Flip muted.
+These are short runtime checks, not long-session stability or a resolved driver
+root cause. Preserve the earlier freeze evidence.
+
+The installed Armada updater's read-only `check` found `20261003.e5f3a2f` on both
+devices. Root `bootc status --json` confirmed both booted `20260929.5915c28` on
+the existing testing stream, with `staged: null`. No OS update was installed,
+channel changed or reboot requested in this check.
+
+API basis: [Qt Quick graphics backends](https://doc.qt.io/qt-6/qtquick-visualcanvas-scenegraph-renderer.html).
+
 **2026-10-01 Social session storage:** native Fluxer login can persist without a
 desktop wallet. `EncryptedCredentials` invokes the installed `/usr/bin/systemd-creds`
 as the unprivileged user, using user-scoped host-key encryption and owner-only

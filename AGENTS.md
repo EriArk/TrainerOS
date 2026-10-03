@@ -1,5 +1,11 @@
 # AGENTS.md — TrainerOS
 
+**Owner graphics preference, 2026-10-04:** prefer Vulkan wherever the supported
+device/emulator route works correctly. Keep per-emulator compatibility and user
+overrides; do not export a shell graphics variable into emulator children or
+claim one backend fixes all driver failures. Finish bounded device recovery,
+then return to the oldest-first internet multiplayer queue in ROADMAP.
+
 **Owner group voice clarification, 2026-10-04:** one shared voice call per
 group is sufficient. Friends may play different games and form independent game
 parties while continuing that call. Creating, joining, ending or switching a game

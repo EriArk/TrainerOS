@@ -2,7 +2,8 @@
 
 **2026-10-03 multiplayer target:** [companies and game parties](MULTIPLAYER_EXPERIENCE.md)
 adds persistent groups with independent parallel sessions, reverse join requests,
-explicit company free-entry policy and separate voice audience. Accepted behavior
+explicit company free-entry policy and a shared group voice call independent of
+game parties (owner clarification, 2026-10-04). Accepted behavior
 is pending implementation; [transport options](MULTIPLAYER_TRANSPORT_AUDIT.md)
 are audit hypotheses, not a selected replacement network.
 
