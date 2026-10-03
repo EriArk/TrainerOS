@@ -290,7 +290,7 @@ No ROM/core binary is committed.
 | Route | Next acceptance; not delivered support |
 | --- | --- |
 | RetroArch shared-controller games | Finish reliable paired online gameplay, abrupt interruption/reinvitation and a distinct-network run; expand exact profiles without changing the invitation journey. Games with persistent progress need their own host/guest save policy. |
-| Standalone PSP / PPSSPP | Both handhelds have 1.20.4. Upstream supports native relay from 1.20.1. Integrate its own relay/session settings with the same Home consent, preserve ordinary per-game settings and saves, then prove one actual compatible game. Do not force PSP through a RetroArch core. |
+| Standalone PSP / PPSSPP | [Isolated settings and Home invitation integrated](PSP_MULTIPLAYER.md); actual 1.20.4 Lumines LAN consent, paired launch and native peer discovery verified. Match transition fails; online/gameplay/recovery remain open. Do not force PSP through a RetroArch core or claim a running lobby is a working match. |
 | DS, Game Boy/GBA link, GameCube/Wii, other runtimes | Investigate each emulator's real connection model and title support. These can be separate emulated machines, not shared controller ports; RetroArch shared-screen evidence does not cover them. Keep unsupported routes unavailable rather than claim universal netplay. |
 
 Sources: [Genesis Plus GX supported features](https://docs.libretro.com/library/genesis_plus_gx/),

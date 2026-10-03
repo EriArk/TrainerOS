@@ -11,6 +11,7 @@ that another edition of the same game has the same format.
 | Diamond / Colosseum | No verified fingerprints recorded here | Planned; no write capability inferred |
 | [Contra III runtime](../EMULATOR_MULTIPLAYER.md) | Exact US SNES content, matching Snes9x/RetroArch binaries | Researching netplay: LAN controls and public-relay password handshake verified separately; online gameplay/recovery open; no semantic save adapter or persistent writes |
 | [Mega Drive runtime profiles](../EMULATOR_MULTIPLAYER.md#multiple-games-and-a-second-platform---2026-10-03) | Exact US Streets of Rage 2 and Gunstar Heroes; matching Genesis Plus GX/RetroArch | Streets named online consent and P2 character/movement verified; Gunstar prepared only. Full gameplay/recovery gates open; no persistent save writes |
+| [Standalone PSP](../PSP_MULTIPLAYER.md) | Exact US Lumines; PPSSPP ARM64 1.20.4 fingerprint | LAN consent, paired launch, isolated settings and in-game opponent discovery verified. Match transition fails; online gameplay unverified. Ordinary SAVEDATA retained. |
 
 [registry.json](registry.json) indexes exact identities, source records and
 per-capability evidence. It deliberately does not duplicate the factual tables,
@@ -55,3 +56,8 @@ changes. `python tools/check-adapter-knowledge.py` also checks exported source
 and profile drift. This is a reusable source snapshot, not a new plugin ABI.
 The receiving project must implement its own protected file transaction and
 runtime ownership; pure byte transforms alone do not make file writes safe.
+
+[Runtime configuration modules](implementations/runtime/README.md) have their own
+source/dependency snapshot, exact profiles and a read-only fingerprint example.
+The same export/check commands refresh both copies. This does not turn networking
+configuration into semantic save support or expand the proven-game allowlist.

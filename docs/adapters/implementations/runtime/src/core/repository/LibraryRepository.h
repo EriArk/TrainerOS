@@ -1,0 +1,50 @@
+#pragma once
+#include "core/model/Models.h"
+#include "core/model/ExitMedia.h"
+#include <QObject>
+#include <QVariantMap>
+#include <functional>
+
+namespace trainer {
+class LibraryRepository {
+public:
+    virtual ~LibraryRepository() = default;
+    virtual QList<World> worlds() const = 0;
+    virtual QList<Adventure> adventures() const = 0;
+    // Committed worlds/adventures/registrations snapshot. Providers without a
+    // revision retain value-based invalidation; never cache them indefinitely.
+    virtual std::optional<quint64> libraryRevision() const { return {}; }
+    // Cached snapshot only: external scanning/validation must publish updates
+    // asynchronously. IDs are unique/stable; source revisions track replacement.
+    virtual QList<ResumePoint> resumePoints() const = 0;
+    virtual void refreshResumePoints(const QString& = {}) {}
+    virtual QList<PlaySession> recentSessions() const { return {}; }
+    virtual std::optional<ExitMedia> exitMedia(const QString&) const { return {}; }
+    virtual QVariantMap artwork(const QString&) const { return {}; }
+    virtual std::optional<qint64> recordedSeconds(const QString&) const { return {}; }
+    virtual HomeSnapshot home() const = 0;
+    virtual bool editable() const { return false; }
+    virtual QString storageRootFor(const QString&) const { return {}; }
+    virtual void refreshContentAvailability() {}
+    virtual std::optional<AdventureRegistration> registration(const QString&) const { return {}; }
+    virtual QList<AdventureRegistration> registrations() const {
+        QList<AdventureRegistration> result;
+        for (const auto& a : adventures()) if (const auto r = registration(a.id)) result.append(*r);
+        return result;
+    }
+    virtual void editLibraryAsync(const LibraryEdit&, QObject*, std::function<void(QString)> done) {
+        done("Library editing is unavailable here.");
+    }
+    virtual void saveAdventureAsync(const AdventureRegistration&, QObject*, std::function<void(LibraryWriteResult)> completed) {
+        completed({false, "Library editing isn't available in this sample preview."});
+    }
+};
+
+class MockLibraryRepository final : public LibraryRepository {
+public:
+    QList<World> worlds() const override;
+    QList<Adventure> adventures() const override;
+    QList<ResumePoint> resumePoints() const override;
+    HomeSnapshot home() const override;
+};
+}

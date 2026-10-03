@@ -88,6 +88,7 @@ add_library(trainer_core STATIC
     src/integrations/adventure/AdapterRouter.h
     src/integrations/adventure/standalone/StandaloneAdapter.h
     src/integrations/adventure/standalone/StandaloneAdapter.cpp
+    src/integrations/adventure/standalone/PpssppNetplay.cpp
     src/platform/device/DeviceService.h
     src/platform/device/DeviceService.cpp
     src/platform/device/NetworkService.h

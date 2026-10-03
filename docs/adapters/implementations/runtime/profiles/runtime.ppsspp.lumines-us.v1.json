@@ -1,0 +1,29 @@
+{
+  "id": "runtime.ppsspp.lumines-us.v1",
+  "platform": "psp",
+  "romSha256": "9b21dd44a2b9ceb746ab9ed9cea4b30de69e63880704c0e34177f1c30c38b82b",
+  "state": "partial",
+  "record": "../PSP_MULTIPLAYER.md",
+  "implementationSource": "src/integrations/adventure/standalone/PpssppNetplay.cpp",
+  "evidence": [
+    "upstream-source-research",
+    "arm-scoped-tests",
+    "paired-lan-consent-launch",
+    "actual-config-isolation",
+    "in-game-peer-discovery",
+    "failed-match-transition"
+  ],
+  "remaining": [
+    "paired-gameplay",
+    "online-consent-launch",
+    "independent-controls",
+    "distinct-networks",
+    "interruption-recovery",
+    "router-free"
+  ],
+  "persistentSaveWrites": true,
+  "savePolicy": "Ordinary PPSSPP SAVEDATA only; no TrainerOS semantic save mutation.",
+  "implementation": "implementations/runtime",
+  "profile": "implementations/runtime/profiles/runtime.ppsspp.lumines-us.v1.json",
+  "evidenceBase": "../../../"
+}

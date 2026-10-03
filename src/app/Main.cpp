@@ -394,7 +394,7 @@ int main(int argc, char* argv[]) {
         ProcessService adventureProcess;
         AdventureLaunchController adventureLaunch(adventureProcess);
         AdventureExitPresentation exitPresentation(adventureLaunch.exitController());
-        RuntimeMultiplayer multiplayer(activeLibrary,retroarch,*shell.social(),adventureProcess,adventureLaunch,exitPresentation);
+        RuntimeMultiplayer multiplayer(activeLibrary,retroarch,ppsspp,*shell.social(),adventureProcess,adventureLaunch,exitPresentation);
         QObject::connect(&multiplayer,&RuntimeMultiplayer::notice,&shell,[&](QString text){
             if(adventureLaunch.active())adventureProcess.runtimeCommand("notify",text);else shell.showNotice(text);
         });

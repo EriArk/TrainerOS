@@ -73,3 +73,32 @@ for name, content in files.items():
 if stale:
     raise SystemExit("Adapter copy is stale; run tools/export-game-adapters.py:\n" + "\n".join(stale))
 print(f"Adapter source snapshot {'checked' if args.check else 'exported'}: {len(manifest)} files, {len(registry['builds'])} exact profiles")
+
+# Runtime modules are a separate source snapshot, not semantic save adapters.
+dest = root / "docs/adapters/implementations/runtime"
+files = {}
+for relative in ("src/integrations/adventure/standalone/PpssppNetplay.cpp",
+                 "src/integrations/adventure/retroarch/RetroArchNetplay.cpp",
+                 "src/integrations/adventure/retroarch/RetroArchConfiguration.cpp"):
+    include(root / relative)
+for profile in registry.get("runtimeProfiles", []):
+    exported_profile = dict(profile, evidenceBase="../../../")
+    files[f"profiles/{profile['id']}.json"] = (json.dumps(exported_profile, indent=2) + "\n").encode()
+manifest = {name: hashlib.sha256(data).hexdigest() for name, data in sorted(files.items())}
+files["manifest.json"] = (json.dumps({"hash": "SHA-256 of UTF-8/LF export", "files": manifest}, indent=2) + "\n").encode()
+managed = {p.relative_to(dest).as_posix() for folder in ("src", "profiles")
+           for p in (dest / folder).rglob("*") if p.is_file()}
+if managed - set(files):
+    raise SystemExit(f"Review stale runtime export files explicitly: {sorted(managed - set(files))}")
+stale = []
+for name, content in files.items():
+    target = dest / name
+    if args.check:
+        if not target.is_file() or target.read_text(encoding="utf-8").encode("utf-8") != content:
+            stale.append(name)
+    else:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
+if stale:
+    raise SystemExit("Runtime adapter copy is stale; run tools/export-game-adapters.py:\n" + "\n".join(stale))
+print(f"Runtime source snapshot {'checked' if args.check else 'exported'}: {len(manifest)} files")

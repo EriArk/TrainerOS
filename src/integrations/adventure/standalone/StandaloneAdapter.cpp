@@ -1,4 +1,5 @@
 #include "StandaloneAdapter.h"
+#include "PpssppNetplay.h"
 #include <QFile>
 #include <QFileInfo>
 #include <QDir>
@@ -103,6 +104,7 @@ std::optional<ProcessCommand> StandaloneAdapter::command(const Adventure& advent
         << "-C" << "Dolphin.Interface.ConfirmStop=False" << "-e" << record->contentPath;
     else return {};
     ProcessCommand result{installation_.program, arguments, {}};
+    result.runtimeControls={{"kind",id_},{"game",adventure.id}};
     result.prepare = [path = record->contentPath, program = installation_.program, runtime = installation_.runtimeFile]
         (ProcessCommand&, const std::atomic_bool& cancel) -> QString {
         if (cancel) return "Opening cancelled.";
@@ -122,5 +124,17 @@ AdventureResult StandaloneAdapter::launch(const Adventure& adventure) {
 }
 AdventureResult StandaloneAdapter::resume(const Adventure&, const ResumePoint&) {
     return {false, "Open this Adventure normally and choose your save inside it. Direct resume is not configured."};
+}
+AdventureResult StandaloneAdapter::launchNetplay(const Adventure& adventure,const ppsspp::NetplayRequest& request) {
+    auto invocation=command(adventure);const auto record=library_.registration(adventure.id);
+    if(id_!="ppsspp"||!invocation||!record||!requestLaunch)return {false,"This game's file or emulator is unavailable."};
+    const auto prepare=invocation->prepare;
+    invocation->prepare=[prepare,record=*record,installation=installation_,request](ProcessCommand& cmd,const std::atomic_bool& cancel){
+        const auto error=prepare(cmd,cancel);if(!error.isEmpty())return error;
+        const auto identity=ppsspp::netplayIdentity(record,installation,cancel);
+        if(identity.isEmpty()||identity!=request.expected)return QString("Your PSP game or emulator changed. Invite again.");
+        return ppsspp::configureNetplay(cmd,installation,request,cancel);
+    };
+    return requestLaunch(*invocation,adventure.id);
 }
 }

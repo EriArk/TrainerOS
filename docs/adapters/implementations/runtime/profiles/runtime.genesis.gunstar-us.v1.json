@@ -1,0 +1,22 @@
+{
+  "id": "runtime.genesis.gunstar-us.v1",
+  "platform": "megadrive",
+  "romSha256": "f177810ce614be21c1a9214c0ca4d8f8d357b04a497c02fae185e4b2f97b6b87",
+  "state": "researching",
+  "record": "../EMULATOR_MULTIPLAYER.md",
+  "evidence": [
+    "source-research",
+    "exact-profile-tests"
+  ],
+  "remaining": [
+    "paired-runtime",
+    "independent-controls",
+    "distinct-networks",
+    "interruption-recovery",
+    "router-free-runtime"
+  ],
+  "persistentSaveWrites": false,
+  "implementation": "implementations/runtime",
+  "profile": "implementations/runtime/profiles/runtime.genesis.gunstar-us.v1.json",
+  "evidenceBase": "../../../"
+}

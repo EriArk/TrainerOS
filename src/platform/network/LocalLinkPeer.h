@@ -28,6 +28,7 @@ public:
     QString id() const{return id_;}
     QString name() const{return name_;}
     QString peerAddress() const{return socket_?socket_->peerAddress().toString():QString();}
+    QString connectionLocalAddress() const{return socket_?socket_->localAddress().toString():QString();}
 signals:
     void changed();void connectedToPeer();void disconnectedFromPeer();
     void received(const QJsonObject&);void error(const QString&);

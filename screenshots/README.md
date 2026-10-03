@@ -55,6 +55,7 @@ separately. These invitation captures alone do not prove gameplay; see
 | Named invitation consent | Odin 2 | [![Experimental consent](21-experimental-game-consent.png)](21-experimental-game-consent.png) |
 | Online friend invitation, updated caption | Odin 2 | [![Online invitation](22-experimental-online-invitation.png)](22-experimental-online-invitation.png) |
 | Exact Mega Drive game invitation | Odin 2 | [![Streets of Rage 2 invitation](23-experimental-megadrive-invitation.png)](23-experimental-megadrive-invitation.png) |
+| Standalone PSP local invitation | Odin 2 | [![Lumines invitation](24-experimental-psp-invitation.png)](24-experimental-psp-invitation.png) |
 
 Screen 23 is an actual 3 October capture with the experimental multi-game build
 (`b5ce54dbc73131dc5ba6af7df892a51f631abe767220e81b0ad4349c71abc663`).
@@ -62,6 +63,13 @@ The accepted invitation launched Streets of Rage 2 on both devices; P2 character
 selection and level movement were observed separately. Distinct-network and full
 paired-session acceptance remain open. Normal installed launches disable this
 experiment; this screen is not a claim of general platform support.
+
+Screen 24 is an actual Odin Gamescope capture on 3 October, build
+`9b157a0ec83ad7843e6c79e1a04c04be33e8142faf32bb15a7ccd5f69649455d`,
+with the experimental flag enabled for the check. LAN consent and paired PPSSPP
+launch succeeded; the later native Lumines match transition failed. See
+[PSP evidence](../docs/PSP_MULTIPLAYER.md). The final ordinary installation has
+the flag disabled. This screenshot is consent evidence, not gameplay acceptance.
 
 ## Capture provenance
 

@@ -2,6 +2,7 @@
 #include "core/input/Action.h"
 #include "integrations/adventure/retroarch/RetroArchNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchNetplayClient.h"
+#include "integrations/adventure/standalone/PpssppNetplay.h"
 #include "integrations/social/OnlineLink.h"
 #include "platform/network/LocalLinkPeer.h"
 #include <QFutureWatcher>
@@ -17,7 +18,7 @@ class RuntimeMultiplayer final : public QObject {
     Q_PROPERTY(bool incoming READ incoming NOTIFY changed)
     Q_PROPERTY(QString invitation READ invitation NOTIFY changed)
 public:
-    RuntimeMultiplayer(LibraryRepository&, RetroArchAdapter&, SocialController&,
+    RuntimeMultiplayer(LibraryRepository&, RetroArchAdapter&, StandaloneAdapter&, SocialController&,
                        ProcessService&, AdventureLaunchController&, AdventureExitPresentation&);
     void refresh(const RetroArchInstallation&,QString trainer,bool allowed);
     bool canInvite() const;
@@ -35,6 +36,8 @@ private:
     void begin(QString activity,bool host,bool online);
     void prepareHost();
     void resolveRelay();
+    void resolvePspRelay();
+    bool psp() const { return descriptor_["id"].toString().startsWith("runtime.ppsspp."); }
     void frame(const QJsonObject&);
     void send(QJsonObject);
     void launch();
@@ -42,6 +45,7 @@ private:
     void pollRelay();
     void output(const QByteArray&);
     LibraryRepository& library_;RetroArchAdapter& adapter_;SocialController& social_;
+    StandaloneAdapter& ppsspp_;
     ProcessService& process_;AdventureLaunchController& lifecycle_;AdventureExitPresentation& overlay_;
     LocalLinkPeer nearby_{this,47855,47856,"trainerosRuntime"};
     OnlineLink consent_{this};

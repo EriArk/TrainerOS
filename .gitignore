@@ -66,6 +66,8 @@ Thumbs.db
 __pycache__/
 /core
 runtime/
+!docs/adapters/implementations/runtime/
+!docs/adapters/implementations/runtime/**
 cache/
 
 # Local device/developer overrides

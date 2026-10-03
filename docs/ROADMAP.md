@@ -10,8 +10,12 @@ the first Contra record. Bounded per-game negotiation replaces whole-library
 messages. Streets of Rage 2 has actual online P2 character/movement evidence on
 Flip/Odin; Gunstar Heroes is prepared but not gameplay-verified. Full paired play,
 distinct networks, abrupt-loss recovery and router-free runtime remain open.
-Next extend the same invitation journey to standalone PPSSPP's native relay,
-then assess other emulator connection models separately. This remains block 1,
+Standalone PPSSPP now uses that invitation journey with isolated settings and
+ordinary SAVEDATA. Lumines LAN consent, paired launch and native opponent
+discovery passed, but its lobby-to-match transition failed. Online PSP remains
+unverified. Resolve that exact runtime gate from captured logs before calling
+the PSP route playable; see [PSP evidence](PSP_MULTIPLAYER.md). Then assess other
+emulator connection models separately. This remains block 1,
 not universal multiplayer or permission to skip its remaining acceptance.
 See [platform evidence and continuation](EMULATOR_MULTIPLAYER.md#multiple-games-and-a-second-platform---2026-10-03).
 

@@ -9,6 +9,8 @@
 #include <QNetworkReply>
 #include <QSettings>
 #include <QUuid>
+#include <QFileInfo>
+#include <QTcpSocket>
 
 namespace trainer {
 Q_LOGGING_CATEGORY(multiplayerLog,"trainer.multiplayer")
@@ -16,9 +18,9 @@ namespace {
 QString randomToken(){return QUuid::createUuid().toString(QUuid::Id128);}
 QVariantMap row(QString id,QString label,QString detail={}){return {{"id",id},{"label",label},{"detail",detail}};}
 }
-RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& adapter,SocialController& social,
+RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& adapter,StandaloneAdapter& ppsspp,SocialController& social,
     ProcessService& process,AdventureLaunchController& lifecycle,AdventureExitPresentation& overlay)
-    :library_(lib),adapter_(adapter),social_(social),process_(process),lifecycle_(lifecycle),overlay_(overlay) {
+    :library_(lib),adapter_(adapter),social_(social),ppsspp_(ppsspp),process_(process),lifecycle_(lifecycle),overlay_(overlay) {
     identity_=QSettings().value("runtimeMultiplayer/device").toString();
     if(QUuid(identity_).isNull()){identity_=QUuid::createUuid().toString(QUuid::WithoutBraces);QSettings().setValue("runtimeMultiplayer/device",identity_);}
     consent_.bind(identity_,identity_);
@@ -74,13 +76,22 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     connect(&lifecycle_.exitController(),&AdventureExitController::confirmationRequested,this,[this]{
         // Both players already accepted a new game. This exact profile has no
         // persistent progress; reuse normal capture/owned-window graceful exit.
-        if(restarting_)lifecycle_.exitController().confirm();
+        if(restarting_&&!psp())lifecycle_.exitController().confirm();
+    });
+    connect(&lifecycle_.exitController(),&AdventureExitController::returnToGameRequested,this,[this]{
+        if(restarting_)fail("Invitation cancelled. Your game is still running.");
     });
     connect(&lifecycle_.exitController(),&AdventureExitController::failed,this,[this](QString error){
         if(restarting_)fail(error);
     });
     connect(&lifecycle_,&AdventureLaunchController::adventureStarted,this,[this](QString){
         update();if(!active_)return;
+        if(psp()) {
+            // A running PSP is not proof of an ad hoc match. Players use the
+            // original game's VS create/join controls after accepting here.
+            if(host_)send({{"kind","psp-ready"},{"identity",descriptor_},{"address",request_.address}});
+            relaySent_=true;deadline_=0;timer_.stop();status_="Choose VS mode in the game";return;
+        }
         if(host_&&online_)pollRelay();
     });
     connect(&lifecycle_,&AdventureLaunchController::adventureFinished,this,[this](bool){
@@ -112,17 +123,20 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     trainer_=std::move(trainer);allowed_=allowed;
     installation_=installation;
     const auto records=library_.registrations();
-    quint64 revision=qHash(installation.runtimeFile+installation.cores.value("snes9x")+installation.cores.value("genesis_plus_gx"));
-    for(const auto& r:records)if(r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive")
-        revision=qHashMulti(revision,r.adventure.id,r.contentPath,r.revision,r.integrationConfig["core"].toString());
+    const auto pspInstallation=ppsspp_.installation();
+    const auto stamp=[](const QString& path){const QFileInfo f(path);return qHashMulti(0,path,f.size(),f.lastModified().toMSecsSinceEpoch());};
+    quint64 revision=qHashMulti(0,stamp(installation.runtimeFile),stamp(installation.cores.value("snes9x")),
+        stamp(installation.cores.value("genesis_plus_gx")),stamp(pspInstallation.runtimeFile));
+    for(const auto& r:records)if(r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive"||r.adventure.platformId=="psp")
+        revision=qHashMulti(revision,r.adventure.id,stamp(r.contentPath),r.revision,r.integrationConfig["core"].toString());
     if(!revision)revision=1;
     if(!scan_.isRunning() && (scanRevision_!=revision||!scanRevision_)) {
         scanRevision_=revision;
-        scan_.setFuture(QtConcurrent::run([records,installation]{
+        scan_.setFuture(QtConcurrent::run([records,installation,pspInstallation]{
             std::atomic_bool cancel=false;
             QMap<QString,QJsonObject> games;
-            for(const auto& r:records)if(r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive") {
-                const auto identity=retroarch::netplayIdentity(r,installation,cancel);
+            for(const auto& r:records)if(r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive"||r.adventure.platformId=="psp") {
+                const auto identity=r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel);
                 if(!identity.isEmpty())games.insert(r.adventure.id,identity);
             }
             return games;
@@ -167,7 +181,7 @@ void RuntimeMultiplayer::update() {
 void RuntimeMultiplayer::show(QString panel) {
     QVariantList rows;QString caption;
     if(panel=="multiplayer") {
-        caption="Start a new two-player game";
+        caption=process_.runtimeControls()["kind"]=="ppsspp"?"Play together":"Start a new two-player game";
         rows={row("multiplayer-nearby","Nearby","Same local network"),row("multiplayer-online","Online friend")};
     } else if(panel=="multiplayer-nearby") {
         caption="Choose a nearby Trainer";
@@ -216,7 +230,9 @@ void RuntimeMultiplayer::begin(QString activity,bool host,bool online) {
     active_=true;host_=host;online_=online;relaySent_=false;request_={};request_.host=host;request_.relay=online;request_.expected=descriptor_;
     request_.nickname="TrainerOS-"+randomToken().left(12);output_.clear();
     deadline_=QDateTime::currentSecsSinceEpoch()+60;timer_.start();
-    if(host){request_.password=randomToken();if(online)resolveRelay();else prepareHost();}
+    if(host){request_.password=randomToken();
+        if(psp()) {if(online)resolvePspRelay();else {request_.address=nearby_.connectionLocalAddress();prepareHost();}}
+        else if(online)resolveRelay();else prepareHost();}
     else status_="Waiting for your friend to start…";
     emit changed();
 }
@@ -245,11 +261,28 @@ void RuntimeMultiplayer::resolveRelay() {
         request_.relayEndpoint=endpoint;prepareHost();
     });
 }
+void RuntimeMultiplayer::resolvePspRelay() {
+    status_="Connecting to the online relay…";
+    request_.address="socom.cc"; // PPSSPP's upstream-listed AemuPostoffice relay.
+    auto* socket=new QTcpSocket(this);auto* timeout=new QTimer(socket);timeout->setSingleShot(true);
+    const auto token=request_.nickname;
+    const auto finish=[this,socket,timeout,token](bool connected){
+        timeout->stop();
+        socket->disconnect(this);socket->abort();socket->deleteLater();
+        if(!active_||!host_||request_.nickname!=token)return;
+        if(connected)prepareHost();else fail("Couldn't reach the PSP relay. Your game is still running.");
+    };
+    connect(socket,&QTcpSocket::connected,this,[finish]{finish(true);});
+    connect(socket,&QTcpSocket::errorOccurred,this,[finish](QAbstractSocket::SocketError){finish(false);});
+    connect(timeout,&QTimer::timeout,this,[finish]{finish(false);});timeout->start(7000);
+    socket->connectToHost(request_.address,27312);
+}
 void RuntimeMultiplayer::launch() {
     launchPending_=false;
     const auto record=library_.registration(game_);
     if(!record){fail("The game is no longer in your library.");return;}
-    const auto result=adapter_.launchNetplay(record->adventure,request_);
+    const auto result=psp()?ppsspp_.launchNetplay(record->adventure,
+        {descriptor_,host_,online_,request_.address,trainer_}):adapter_.launchNetplay(record->adventure,request_);
     if(!result.success)fail(result.message);
 }
 void RuntimeMultiplayer::send(QJsonObject packet) {
@@ -258,6 +291,12 @@ void RuntimeMultiplayer::send(QJsonObject packet) {
 void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     if(!active_)return;
     if(packet["kind"]=="left"){status_="Your friend left the game";emit notice(status_);return;}
+    if(psp()) {
+        if(host_||packet["kind"]!="psp-ready"||lifecycle_.active()||launchPending_)return;
+        if(packet["identity"].toObject()!=descriptor_){fail("Your PSP game or emulator doesn't match your friend's.");return;}
+        request_.address=online_?packet["address"].toString():nearby_.peerAddress();
+        launchPending_=true;launch();return;
+    }
     if(host_||packet["kind"]!="ready"||lifecycle_.active()||launchPending_)return;
     if(packet["identity"].toObject()!=descriptor_){fail("Your game or emulator doesn't match your friend's.");return;}
     const auto port=packet["port"].toInt();
@@ -272,7 +311,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     launchPending_=true;launch();
 }
 void RuntimeMultiplayer::pollRelay() {
-    if(query_||!active_||!host_||!online_||relaySent_||request_.relayEndpoint.isEmpty())return;
+    if(psp()||query_||!active_||!host_||!online_||relaySent_||request_.relayEndpoint.isEmpty())return;
     // This is the upstream public directory, not an authenticated signalling
     // service. Passwords travel only through the accepted friend invitation.
     query_=true;QNetworkRequest request(QUrl("http://lobby.libretro.com/list/"));request.setTransferTimeout(7000);
@@ -292,7 +331,7 @@ void RuntimeMultiplayer::pollRelay() {
     });
 }
 void RuntimeMultiplayer::output(const QByteArray& bytes) {
-    if(!active_)return;
+    if(!active_||psp())return;
     output_+=bytes;
     while(output_.contains('\n')) {
         const auto end=output_.indexOf('\n');const auto line=output_.left(end);output_.remove(0,end+1);

@@ -1,5 +1,14 @@
 # Native Social - conversations and discovery
 
+**Standalone PSP checkpoint, 2026-10-03:** the existing Home invitation now
+prepares standalone PPSSPP with isolated copied settings and retained ordinary
+SAVEDATA. Flip/Odin LAN consent, restart confirmation, paired launch and native
+Lumines opponent discovery are verified. The in-game match transition failed;
+online PSP consent/gameplay is unverified. Both ordinary deliveries keep the
+experiment off. Block 1 remains open; next work starts from the captured
+matching/group-transition evidence, not another discovery-only walkthrough.
+See [exact PSP evidence and remaining gates](PSP_MULTIPLAYER.md).
+
 **Multi-platform continuation, 2026-10-03:** actual runtime invitations now
 negotiate the selected game's descriptor only, keeping large libraries within
 Fluxer's message limit. Guests resolve their own exact copy. SNES and Mega Drive
