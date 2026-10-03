@@ -5,8 +5,10 @@
 ## Current plan — reconciled 2026-10-01
 
 **Block 1 checkpoint, 2026-10-03:** local runtime invitation/host restart and
-RetroArch player 1/2 connection are proven; controller gameplay and online relay
-are not. The experiment is off in ordinary builds. Finish these gates next;
+RetroArch player 1/2 connection and independent remote controller gameplay are
+proven. The Linux session uses udev without changing ordinary emulator settings.
+Online authentication/recovery and router-free nearby gameplay remain open;
+physical button checks are owner-deferred. The experiment stays off by default;
 see [evidence](EMULATOR_MULTIPLAYER.md). This checkpoint does not complete or
 split the promised block, nor advance to the queued messenger expansion.
 

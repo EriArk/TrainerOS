@@ -1,8 +1,9 @@
 # Native Social - conversations and discovery
 
 **Runtime experiment, 2026-10-03:** block 1 remains incomplete. Both handhelds
-accepted a local invitation and RetroArch assigned players 1/2, but independent
-controller gameplay and online relay acceptance are outstanding. The final
+accepted a local invitation and independently controlled players 1/2 through
+remote controller input. The session-local udev fix is installed on both; physical
+button checks, online authentication/recovery and router-free play remain open. The final
 installed builds disable this experiment by default. See
 [exact evidence and next action](EMULATOR_MULTIPLAYER.md); do not redo passed
 audio checks or count the experimental screens as a completed feature.

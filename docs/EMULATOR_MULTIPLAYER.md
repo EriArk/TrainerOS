@@ -49,7 +49,7 @@ This does not establish host/guest save policy for other titles.
 - The actual host reported the guest joining as player 2 (16 ms in the captured
   run); Odin reported itself as player 2. TCP 55435 was established between their
   emulator processes. Keyboard input advanced the synchronized game into a level.
-  **This is not proof of independently controlled two-player gameplay.** Remote
+  **At that checkpoint independent controller gameplay was unproven.** Remote
   evdev input did not establish controller operation; a temporary explicit SDL
   mapping did not resolve that check and was removed. Actual physical checks are
   owner-deferred. Separate SDL enumeration saw the expected virtual Xbox pad on
@@ -74,20 +74,53 @@ This does not establish host/guest save policy for other titles.
   exit-presentation and OnlineLink suites passed, including retained-lease restart
   and exact descriptor/consent cases. Automated passing does not close runtime gates.
 
-Next: establish input delivery through the actual runtime controller path and
-prove independent players, then finish online room authentication/recovery and
-the router-free nearby route. Do not repeat the already-proven invitation as a
-substitute. Both ordinary installed shells keep the experiment disabled meanwhile.
+Next: finish online room authentication/recovery and the router-free nearby
+route. Independent remote controller gameplay is now proven below; physical
+button checks remain owner-deferred. Do not repeat the already-proven invitation
+as a substitute. Both ordinary installed shells keep the experiment disabled meanwhile.
 Native saved-Pokemon Link, background calls and all earlier acceptance remain.
+
+## Independent controller gameplay - 2026-10-03
+
+A paired LAN run reached Contra's two-player level using remote evdev controller
+input. Flip controlled blue player 1: Right and its bomb action moved that player
+and reduced only P1's bomb count from one to zero. Odin controlled orange player
+2: Left and its bomb action moved P2 and reduced only P2's bomb count. These are
+actual game actions on the two handhelds, not menu navigation or keyboard proof.
+Owner-operated physical buttons remain a separate deferred check.
+
+Flip inherited SDL2 for joypad input; its RetroArch menus responded, but that
+configuration did not establish gameplay control in the paired check. Selecting
+udev established the observed two-player control. The exact Linux netplay profile
+now selects udev in its temporary session config on both devices, with settings
+identity `snes9x-default-no-sram-v2`. Ordinary emulator config/bindings stay intact.
+This is a bounded verified route, not a universal diagnosis of SDL2.
+
+The newly built candidate was installed on both devices and launched another
+paired session. Both actual session configs selected udev, disabled public lobby
+announcement and reached player 1/player 2. Flip's ordinary configuration was
+byte-identical to its pre-diagnostic copy. Temporary SDL mappings, background
+input settings and logging changes were removed. An intermediate static screen
+was Contra's own pause after repeated Start input; it was not connection proof.
+
+ARM compilation and the focused RetroArch test suite passed. Repeated diagnostic
+shell restarts triggered Flip's existing three-failures/120-second Plasma fallback;
+logs showed our SIGTERM exits. The installed session control restored TrainerOS
+without a reboot, retaining the recovery safeguard. Both games then closed through
+the owned Home exit flow and the development wrappers were removed.
+
+This advances the controller gate only. Internet automatic authentication,
+separate-network operation/recovery and router-free nearby gameplay remain open;
+block 1 and #107 are not complete.
 
 ## Final ordinary delivery
 
 Both Flip and Odin run executable SHA-256
-`cfc06343ce650f7582f081d3f34b8606313ffa7223123fb2efb05acac063d1d8`
+`dc0d71d4ec5f4dd6f6faf5e6f0a7326ff7ccd656ef82119edd4e7adbff7cfe3f`
 with the experiment disabled. Verified one live shell per device, no abandoned
 RetroArch process or runtime multiplayer listener, healthy profile/library
-databases, unchanged boot preferences and nearby helpers. Controller navigation
-returned both shells to Home. Flip output remains muted; Odin remains at zero.
+databases, unchanged boot preferences, Emerald save hashes and nearby helpers.
+Flip output remains muted; Odin remains at zero.
 No device reboot was needed. The two experimental invitation captures are in
 [the screenshot gallery](../screenshots/README.md#experimental-multiplayer-disabled-by-default).
 

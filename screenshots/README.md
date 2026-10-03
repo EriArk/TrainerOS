@@ -44,7 +44,8 @@ and Social uses the designated test accounts.
 
 These two actual handheld captures document development work, not an accepted
 multiplayer feature. The final installed delivery leaves this experiment disabled.
-Independent two-player controls and the internet route remain unverified; see
+A later run proved independent remote controller gameplay; physical checks and
+the internet route remain open. These invitation captures alone do not prove them; see
 [runtime evidence](../docs/EMULATOR_MULTIPLAYER.md).
 
 | Screen | Device | Preview |

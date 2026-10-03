@@ -22,7 +22,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstal
     const auto runtime=fileDigest(i.runtimeFile,256*1024*1024,cancel);
     if(core.isEmpty()||runtime.isEmpty())return {};
     return {{"id","runtime.snes9x.contra3-us.v1"},{"label","Contra III · two players"},
-        {"content",Content},{"core",core},{"runtime",runtime},{"settings","snes9x-default-no-sram-v1"}};
+        {"content",Content},{"core",core},{"runtime",runtime},{"settings","snes9x-default-no-sram-v2"}};
 }
 QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const RetroArchInstallation& i,
                       const NetplayRequest& request,const std::atomic_bool& cancel) {
@@ -60,6 +60,14 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
         "netplay_allow_slaves = \"false\"\nnetplay_max_connections = \"1\"\n"
         "netplay_start_as_spectator = \"false\"\nnetplay_share_digital = \"0\"\n"
         "netplay_mitm_server = \"madrid\"\npause_nonactive = \"false\"\n";
+#ifdef Q_OS_LINUX
+    // The first handheld profile is verified with InputPlumber's virtual pad
+    // through udev on both Flip and Odin. Flip's inherited SDL2 driver handled
+    // the RetroArch menu but did not establish gameplay input in the paired run.
+    // Keep this override session-local: do not rewrite the user's ordinary
+    // driver, bindings or per-game configuration while joining a friend.
+    bytes+="input_joypad_driver = \"udev\"\n";
+#endif
     bytes+="netplay_use_mitm_server = \""+QByteArray(request.host&&request.relay?"true":"false")+"\"\n";
     bytes+="netplay_public_announce = \""+QByteArray(request.host&&request.relay?"true":"false")+"\"\n";
     // Stock RetroArch 1.22.2 always opens its own password keyboard on clients;
