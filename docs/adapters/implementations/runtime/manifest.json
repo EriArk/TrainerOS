@@ -3,7 +3,7 @@
   "files": {
     "profiles/runtime.genesis.gunstar-us.v1.json": "24ac54938b86f0401a218c85f1a3870b2e6eb88faa76ae948533f8652953d3ca",
     "profiles/runtime.genesis.streets2-us.v1.json": "41b6da4b4fcd68a57992d9836fa3590754bd8a2874f5ebba23a7b5b0d40cc0f5",
-    "profiles/runtime.ppsspp.lumines-us.v1.json": "597116b712b71f3d7cd33e2b40448f26ce548ca09cf2691e51ad1b62934cc804",
+    "profiles/runtime.ppsspp.lumines-us.v1.json": "4e7a0566d2386a845d3065f61de94e18a112f1bc7b263d9846f46a154414f68a",
     "profiles/runtime.snes9x.contra3-us.v1.json": "31605f2a18ca6ba1632c28c90f34da3ee1f2558cc3c4062c9319d29bdba3b729",
     "src/core/model/ExitMedia.h": "7617356492878066141fe3a9f64c3a68d3dc37d68099ab2658c974b9adf56935",
     "src/core/model/Models.h": "c0f4ca9cb96d1246577125fd55401b4875b92de178585c3fa5d1684b6b0e278d",
@@ -14,7 +14,7 @@
     "src/integrations/adventure/retroarch/RetroArchConfiguration.h": "ac282b2768ea1e73afea7e7626bdcfc342886b192250957dc0a834890a4254c7",
     "src/integrations/adventure/retroarch/RetroArchNetplay.cpp": "00bbd60aeebf737826ddaf058f4f6fa06aa454e8164be2e4f3dcaf97c4320596",
     "src/integrations/adventure/retroarch/RetroArchNetplay.h": "2fcf157e0569c59807da83e38814c92c7e5c329a53d260d5f432223739288eb6",
-    "src/integrations/adventure/standalone/PpssppNetplay.cpp": "f4e569ca2366cbea886324aafb1858fdf6f9fc6428ca461dbdcd726f914da0f0",
+    "src/integrations/adventure/standalone/PpssppNetplay.cpp": "43593a2a9693693244aa460d133631cb68198a7beecc4b503d398e59a0211dcb",
     "src/integrations/adventure/standalone/PpssppNetplay.h": "bbd4b681e65a31670c4e997b7c2c17bf1fd22fa1fd6da79576ab43a4718471a2",
     "src/integrations/adventure/standalone/StandaloneAdapter.h": "bc979cd628f69f5d8f97061783822e106e31ffbec0a592776b0b725f48cd7dc8",
     "src/platform/process/ProcessService.h": "2c67ce5251d36f8b5c3a25d99946b7e65ace868a75b8dd9f3087371220662e9b"

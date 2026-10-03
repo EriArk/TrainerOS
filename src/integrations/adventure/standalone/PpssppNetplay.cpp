@@ -7,7 +7,6 @@
 #include <QSaveFile>
 #include <QStandardPaths>
 #include <QTemporaryDir>
-#include <QUuid>
 
 namespace trainer::ppsspp {
 QString configFile(const StandaloneInstallation& i) {
@@ -66,13 +65,14 @@ QString configureNetplay(ProcessCommand& cmd,const StandaloneInstallation& i,con
     QString nickname=request.nickname;
     nickname.remove(QRegularExpression("[\\x00-\\x1f\\x7f=\\[\\]]"));nickname=nickname.simplified().left(24);
     if(nickname.isEmpty())nickname="Trainer";
-    const auto random=QUuid::createUuid().toRfc4122().toHex();
-    QString mac="04";for(int n=0;n<5;++n)mac+=':'+QString::fromLatin1(random.mid(n*2,2));
+    // Keep PPSSPP's saved console identity, including a per-game override.
+    // Some games bind ordinary saves to this MAC; changing it per invitation
+    // makes the same memory stick appear to belong to another PSP.
     const QByteArray bytes="[Network]\nEnableWlan = True\nEnableUPnP = False\n"
         "EnableAdhocServer = "+QByteArray(request.host&&!request.online?"True":"False")+
         "\nproAdhocServer = "+request.address.toUtf8()+"\nAdhocServerRelayMode = "+QByteArray(request.online?"1":"2")+
         "\nPortOffset = 10000\nAllowSavestateWhileConnected = False\nAllowSpeedControlWhileConnected = False\n"
-        "[SystemParam]\nNickName = "+nickname.toUtf8()+"\nMacAddress = "+mac.toLatin1()+
+        "[SystemParam]\nNickName = "+nickname.toUtf8()+
         "\n[General]\nAutoLoadSaveState = 0\nEnableCheats = False\nEnablePlugins = False\n"
         "[Achievements]\nAchievementsEnable = False\n";
     const auto appended=directory->path()+"/network.ini";

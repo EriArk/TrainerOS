@@ -1,5 +1,15 @@
 # AGENTS.md — TrainerOS
 
+**Owner emulator/image authority, 2026-10-03:** TrainerOS ships as an installable
+image; emulator configurations and, when needed, emulator source may be changed
+to deliver the accepted experience. Maintain a separate record for every changed
+emulator under [emulator maintenance](docs/emulators/README.md): upstream revision,
+configuration/patch paths, reasons, validation, update/rebase procedure and
+rollback. Keep patches and reproducible configuration in version control; do not
+leave changes only on handhelds. Preserve user saves and preferences through
+updates. This extends implementation freedom, not evidence of compatibility or
+permission to discard personal progress.
+
 **Owner connection setup requirement, 2026-10-03:** multiplayer must connect
 quickly through TrainerOS without user-managed VPN setup. At most an initial
 account registration/sign-in step belongs in the first-run wizard. Never require

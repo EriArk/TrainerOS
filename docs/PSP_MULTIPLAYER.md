@@ -7,6 +7,31 @@ Its multiplayer mode must be verified inside the game. No game content is bundle
 
 ## Implemented route and paired evidence
 
+Maintenance and update instructions now have a separate
+[PPSSPP record](emulators/ppsspp.md). The 2026-10-03 continuation removed the
+per-invitation random MAC override: copied global/per-game console identity is
+retained, because upstream warns that saves may be tied to it. The ARM standalone
+suite verifies both copies, absence of an appended identity override, ordinary
+save preservation and private-root cleanup. Adapter exports/checks passed.
+
+The old paired logs were compared with upstream v1.20.4 matching code. Their
+ACCEPT/ESTABLISHED followed by BYE/group transition still does not identify a
+proven upstream defect. No PPSSPP binary patch or timing workaround was applied.
+An isolated copied-save diagnostic with stable MACs did **not** reach a new match:
+remote injected input did not reliably advance beyond the title/attract screen.
+Its first root also lacked Flatpak write access; that harness error was corrected
+with a command-local filesystem permission, not a persistent sandbox override.
+Both keyboard/controller injections and a longer Start press remained inconclusive.
+Do not repeat that input sequence as a networking test or count DEMO as gameplay.
+Next repair/verify diagnostic input with the real launch environment before
+comparing matching behavior or testing clock-sync changes.
+
+All owned diagnostic processes were stopped; original SYSTEM/SAVEDATA hashes
+matched their baselines. Odin's exit exceeded the first two-second check but
+subsequently completed without a kill or reboot. Both ordinary shells received
+build `c8c773b80dc71fd0fe507158cd7ffe532be52b106f5bb1f2aa8e48312be667f2`;
+the experimental route stays disabled. This correction does **not** close block 1.
+
 The exact profile now uses the existing physical Home invitation flow. After
 explicit acceptance, the host keeps its ordinary save/exit question, and both
 owned standalone PPSSPP processes launch with matched content/runtime identities.

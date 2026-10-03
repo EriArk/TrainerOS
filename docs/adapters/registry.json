@@ -85,7 +85,8 @@
         "paired-lan-consent-launch",
         "actual-config-isolation",
         "in-game-peer-discovery",
-        "failed-match-transition"
+        "failed-match-transition",
+        "arm-console-identity-preservation-test"
       ],
       "remaining": [
         "paired-gameplay",

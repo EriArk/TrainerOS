@@ -15,6 +15,13 @@ voice and the route-specific runtime gates below; no earlier acceptance is remov
 
 ### Multiplayer agreement — 2026-10-03, current next work
 
+Owner implementation clarification: image-owned emulator configuration and
+source patches are allowed, with a separate [maintenance record](emulators/README.md)
+per emulator, versioned changes and update/rollback instructions. PPSSPP identity
+preservation is corrected and delivered on both devices; the inconclusive copied-save
+probe adds no gameplay proof. Its next diagnostic gate is recorded in
+[PSP evidence](PSP_MULTIPLAYER.md). The runtime and group acceptance below remains open.
+
 The owner paused implementation to reconcile connection, invitation and group
 behavior. [Accepted experience](MULTIPLAYER_EXPERIENCE.md) now requires persistent
 companies with multiple parallel game parties, reverse join requests and

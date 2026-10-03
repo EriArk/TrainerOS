@@ -35,6 +35,13 @@ description; package upgrade/rollback and fresh-image acceptance remain open.
 
 ## Observed baseline
 
+Owner clarification, 2026-10-03: the image may maintain emulator configurations
+and source patches. Every affected emulator gets a separate
+[maintenance record](emulators/README.md) with its upstream base, exact changes,
+update/rebase checks and rollback. Preserve user settings, unique console identity
+and saves independently of replaceable image files. This authorizes integration
+changes; it does not close the fresh-image or update/rollback acceptance below.
+
 - Both devices have the native app, dedicated session, exit/network helpers and
   schema 14. Flip has the TrainerOS boot override; Odin intentionally retains
   its original Steam default. Do not turn this difference into an automatic

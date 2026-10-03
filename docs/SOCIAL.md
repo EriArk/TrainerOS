@@ -1,5 +1,14 @@
 # Native Social - conversations and discovery
 
+**PSP identity/maintenance continuation, 2026-10-03:** per-invitation MAC
+randomization was removed; ordinary global/per-game identity is retained.
+ARM build/standalone checks and adapter-export checks passed. Separate
+[emulator maintenance records](emulators/README.md) preserve image changes and
+update procedures. The copied-save diagnostic did not reach a new match because
+its input path was inconclusive; [PSP evidence](PSP_MULTIPLAYER.md) records the
+harness correction and exact next gate. Both ordinary deliveries keep netplay
+experimental/off. Block 1 remains open; no new gameplay acceptance is claimed.
+
 **Runtime party implementation, 2026-10-03:** [game-party checkpoint](GAME_PARTIES.md)
 adds explicit organizer start, reserved/accepted members and reverse join requests
 from a friend's game strip in the existing conversation. Multi-member coordination

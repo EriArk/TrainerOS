@@ -37,9 +37,11 @@ private slots:
         QTemporaryDir dir;
         const auto system=dir.filePath("PSP/SYSTEM");
         QVERIFY(QDir().mkpath(system));QVERIFY(QDir().mkpath(dir.filePath("PSP/SAVEDATA")));
-        const QByteArray original="[Network]\nEnableWlan = False\n[Graphics]\nRenderingMode = 1\n";
+        const QByteArray original="[Network]\nEnableWlan = False\n[Graphics]\nRenderingMode = 1\n"
+            "[SystemParam]\nMacAddress = 04:11:22:33:44:55\n";
+        const QByteArray originalGame="[SystemParam]\nMacAddress = 04:66:77:88:99:aa\n";
         write(system+"/ppsspp.ini",original);write(system+"/controls.ini","My controller bindings");
-        write(system+"/ULUS10002_ppsspp.ini","My per-game settings");
+        write(system+"/ULUS10002_ppsspp.ini",originalGame);
         write(dir.filePath("PSP/SAVEDATA/existing.bin"),"Existing progress");
         StandaloneInstallation installation{probe(),probe(),{"run","org.ppsspp.PPSSPP"},{"psp"},system+"/ppsspp.ini"};
         ProcessCommand command{"/usr/bin/flatpak",{"run","org.ppsspp.PPSSPP","--fullscreen","/roms/PSP title.iso"},{}};
@@ -53,18 +55,22 @@ private slots:
         QVERIFY(command.arguments.contains("--command=env"));
         QFile copied(root+"/ppsspp/PSP/SYSTEM/controls.ini");QVERIFY(copied.open(QIODevice::ReadOnly));
         QCOMPARE(copied.readAll(),"My controller bindings");copied.close();
-        QVERIFY(QFileInfo::exists(root+"/ppsspp/PSP/SYSTEM/ULUS10002_ppsspp.ini"));
+        QFile copiedGlobal(root+"/ppsspp/PSP/SYSTEM/ppsspp.ini");QVERIFY(copiedGlobal.open(QIODevice::ReadOnly));
+        QCOMPARE(copiedGlobal.readAll(),original);copiedGlobal.close();
+        QFile copiedGame(root+"/ppsspp/PSP/SYSTEM/ULUS10002_ppsspp.ini");QVERIFY(copiedGame.open(QIODevice::ReadOnly));
+        QCOMPARE(copiedGame.readAll(),originalGame);copiedGame.close();
         QCOMPARE(QFileInfo(root+"/ppsspp/PSP/SAVEDATA").canonicalFilePath(),QFileInfo(dir.filePath("PSP/SAVEDATA")).canonicalFilePath());
         QFile network(command.arguments.filter("--appendconfig=").first().mid(15));QVERIFY(network.open(QIODevice::ReadOnly));
         const auto settings=network.readAll();network.close();
         QVERIFY(settings.contains("AdhocServerRelayMode = 1"));QVERIFY(settings.contains("EnableAdhocServer = False"));
         QVERIFY(settings.contains("AchievementsEnable = False"));QVERIFY(!settings.contains("Alice\n"));
+        QVERIFY(!settings.contains("MacAddress")); // appended options must not replace either saved identity
         // Simulate PPSSPP saving merged options, including its per-game INI.
         write(root+"/ppsspp/PSP/SYSTEM/ppsspp.ini","Session changes");
         write(root+"/ppsspp/PSP/SYSTEM/ULUS10002_ppsspp.ini","Session changes");
         command.settled({});QVERIFY(!QFileInfo::exists(root));
         QFile originalFile(system+"/ppsspp.ini");QVERIFY(originalFile.open(QIODevice::ReadOnly));QCOMPARE(originalFile.readAll(),original);
-        QFile perGame(system+"/ULUS10002_ppsspp.ini");QVERIFY(perGame.open(QIODevice::ReadOnly));QCOMPARE(perGame.readAll(),"My per-game settings");
+        QFile perGame(system+"/ULUS10002_ppsspp.ini");QVERIFY(perGame.open(QIODevice::ReadOnly));QCOMPARE(perGame.readAll(),originalGame);
         QFile save(dir.filePath("PSP/SAVEDATA/existing.bin"));QVERIFY(save.open(QIODevice::ReadOnly));QCOMPARE(save.readAll(),"Existing progress");
     }
     void pspMultiplayerRejectsBadEndpointAndCancellationBeforeMutation() {
