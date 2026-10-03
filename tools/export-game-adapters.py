@@ -77,16 +77,20 @@ print(f"Adapter source snapshot {'checked' if args.check else 'exported'}: {len(
 # Runtime modules are a separate source snapshot, not semantic save adapters.
 dest = root / "docs/adapters/implementations/runtime"
 files = {}
-for relative in ("src/integrations/adventure/standalone/PpssppNetplay.cpp",
+for relative in ("src/integrations/adventure/standalone/DolphinNetplay.cpp",
+                 "src/integrations/adventure/standalone/PpssppNetplay.cpp",
                  "src/integrations/adventure/retroarch/RetroArchNetplay.cpp",
                  "src/integrations/adventure/retroarch/RetroArchConfiguration.cpp"):
     include(root / relative)
 for profile in registry.get("runtimeProfiles", []):
     exported_profile = dict(profile, evidenceBase="../../../")
     files[f"profiles/{profile['id']}.json"] = (json.dumps(exported_profile, indent=2) + "\n").encode()
+for path in sorted((root / "packaging/emulators/dolphin").iterdir()):
+    if path.is_file():
+        files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
 manifest = {name: hashlib.sha256(data).hexdigest() for name, data in sorted(files.items())}
 files["manifest.json"] = (json.dumps({"hash": "SHA-256 of UTF-8/LF export", "files": manifest}, indent=2) + "\n").encode()
-managed = {p.relative_to(dest).as_posix() for folder in ("src", "profiles")
+managed = {p.relative_to(dest).as_posix() for folder in ("src", "profiles", "packaging")
            for p in (dest / folder).rglob("*") if p.is_file()}
 if managed - set(files):
     raise SystemExit(f"Review stale runtime export files explicitly: {sorted(managed - set(files))}")

@@ -100,6 +100,35 @@
       "savePolicy": "Ordinary PPSSPP SAVEDATA only; no TrainerOS semantic save mutation.",
       "implementation": "implementations/runtime",
       "profile": "implementations/runtime/profiles/runtime.ppsspp.lumines-us.v1.json"
+    },
+    {
+      "id": "runtime.dolphin.melee-us-rev1.v1",
+      "platform": "gc",
+      "romSha256": "53a5d0f7c480045a435c889ad47b6d351faff0fc409a7285f3eecc61706b3d9e",
+      "state": "partial",
+      "record": "../emulators/dolphin.md",
+      "implementationSource": "src/integrations/adventure/standalone/DolphinNetplay.cpp",
+      "evidence": [
+        "pinned-upstream-source",
+        "matching-native-arm64-artifact",
+        "private-content-fingerprint",
+        "home-nearby-consent-launch",
+        "lan-independent-controls-gameplay",
+        "both-device-home-menu",
+        "owned-exit-and-peer-departure",
+        "isolated-controller-and-save-directories",
+        "online-friend-consent",
+        "traversal-startup-shared-router"
+      ],
+      "remaining": [
+        "distinct-networks",
+        "strict-nat-recovery",
+        "four-clients",
+        "physical-input-comfort"
+      ],
+      "persistentSaveWrites": false,
+      "implementation": "implementations/runtime",
+      "profile": "implementations/runtime/profiles/runtime.dolphin.melee-us-rev1.v1.json"
     }
   ],
   "builds": [

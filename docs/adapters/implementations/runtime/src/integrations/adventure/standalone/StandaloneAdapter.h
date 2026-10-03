@@ -5,6 +5,7 @@
 
 namespace trainer {
 namespace ppsspp { struct NetplayRequest; }
+namespace dolphin { struct NetplayRequest; }
 struct StandaloneInstallation {
     QString program, runtimeFile;
     QStringList prefixArguments, platforms;
@@ -21,6 +22,7 @@ public:
     AdventureCapabilities capabilities(const Adventure&) const override;
     AdventureResult launch(const Adventure&) override;
     AdventureResult launchNetplay(const Adventure&, const ppsspp::NetplayRequest&);
+    AdventureResult launchNetplay(const Adventure&, const dolphin::NetplayRequest&);
     const StandaloneInstallation& installation() const { return installation_; }
     AdventureResult resume(const Adventure&, const ResumePoint&) override;
     void prepareInstallation(AdventureRegistration&) const override;

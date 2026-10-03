@@ -3,7 +3,8 @@
 **Runtime-party checkpoint, 2026-10-03:** [implementation and evidence](GAME_PARTIES.md)
 adds a multi-member coordinator, reserved places, explicit organizer start and
 reverse join requests in existing Home/Social. Installed profiles remain
-two-player; synthetic four-seat proof is not four-client gameplay. Current block
+two-player except the new four-port Melee profile; its actual paired proof uses
+two devices. Synthetic four-seat proof is not four-client gameplay. Current block
 1 remains open and experimental. Group-backed companies, parallel-party cards and
 selected-member access with per-party override now have implementation and
 Flip/Odin admission/startup evidence in that checkpoint. Continue separate party
@@ -31,8 +32,11 @@ This pass selected/audited the set; it did not deploy standardized packages.
 hashes and matching RetroArch/PPSSPP/Dolphin package revisions. Offline core
 updates have verified backups and interrupted-update rollback. Preserve the
 remaining standalone migrations, release artifact/source/license packaging and
-all multiplayer acceptance. Dolphin's native host/join/start bridge is still
-unimplemented; prepared 2606a source/build reconnaissance is not a route delivery.
+all multiplayer acceptance. The subsequent [Dolphin native bridge](emulators/dolphin.md)
+is installed on both devices: exact Melee LAN invitation, mapped P1/P2 gameplay
+and Home return are verified. Online friend consent and traversal-assisted startup
+also passed behind the shared router. Distinct networks, strict NAT
+and four physical clients remain open; block 1 is not complete.
 
 Owner implementation clarification: image-owned emulator configuration and
 source patches are allowed, with a separate [maintenance record](emulators/README.md)
@@ -42,8 +46,9 @@ Home invitation route passed short Lumines LAN and external-relay rounds and nor
 return. A 12-second relay loss during rematch startup recovered through a new
 native challenge without emulator/device restart. Both clients shared home
 internet; mid-round recovery and distinct networks remain unproven. Do not repeat
-these passed smoke checks. Next advance the common emulator set and Dolphin
-integration above; retain larger/concurrent-party, voice and runtime gates below.
+these passed smoke checks. Dolphin now has the bounded paired delivery above;
+next in the common-emulator queue is Flycast. Retain Dolphin distinct-network
+and larger/concurrent-party, voice and runtime gates below.
 [PSP evidence](PSP_MULTIPLAYER.md) records exact limits.
 
 The owner paused implementation to reconcile connection, invitation and group

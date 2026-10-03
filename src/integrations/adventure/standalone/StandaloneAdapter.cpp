@@ -1,5 +1,6 @@
 #include "StandaloneAdapter.h"
 #include "PpssppNetplay.h"
+#include "DolphinNetplay.h"
 #include <QFile>
 #include <QFileInfo>
 #include <QDir>
@@ -134,6 +135,18 @@ AdventureResult StandaloneAdapter::launchNetplay(const Adventure& adventure,cons
         const auto identity=ppsspp::netplayIdentity(record,installation,cancel);
         if(identity.isEmpty()||identity!=request.expected)return QString("Your PSP game or emulator changed. Invite again.");
         return ppsspp::configureNetplay(cmd,installation,request,cancel);
+    };
+    return requestLaunch(*invocation,adventure.id);
+}
+AdventureResult StandaloneAdapter::launchNetplay(const Adventure& adventure,const dolphin::NetplayRequest& request) {
+    auto invocation=command(adventure);const auto record=library_.registration(adventure.id);
+    if(id_!="dolphin"||!invocation||!record||!requestLaunch)return {false,"This game's file or emulator is unavailable."};
+    const auto prepare=invocation->prepare;
+    invocation->prepare=[prepare,record=*record,installation=installation_,request](ProcessCommand& cmd,const std::atomic_bool& cancel){
+        const auto error=prepare(cmd,cancel);if(!error.isEmpty())return error;
+        const auto identity=dolphin::netplayIdentity(record,installation,cancel);
+        if(identity.isEmpty()||identity!=request.expected)return QString("Your game or emulator changed. Invite again.");
+        return dolphin::configureNetplay(cmd,installation,record.contentPath,request,cancel);
     };
     return requestLaunch(*invocation,adventure.id);
 }

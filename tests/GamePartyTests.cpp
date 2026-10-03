@@ -34,6 +34,19 @@ class GamePartyTests : public QObject {
         }
     };
 private slots:
+    void nativeRoomClosesAdmissionAtStartWithoutChangingOtherProfiles() {
+        Room r;
+        auto native=game();native["lateJoin"]=false;
+        for(auto it=r.people.begin();it!=r.people.end();++it)it.value()->configure(it.key(),{native},it.key()=="a"?native:QJsonObject{},true);
+        r.a.invite("b");r.b.answer(true);r.a.start();
+        QCOMPARE(r.a.state()["free"].toInt(),0);
+        r.a.invite("c");QVERIFY(r.c.pending().isEmpty());
+        r.c.query("a");QVERIFY(!r.c.offer("a")["joinable"].toBool());
+        QSignalSpy launched(&r.b,&GameParty::startRequested);
+        r.a.ready({{"kind","dolphin-ready"},{"port",2626}});
+        QCOMPARE(launched.size(),1);QCOMPARE(launched.first()[1].toJsonObject()["slot"].toInt(),2);
+        r.a.leave();r.a.invite("c");QVERIFY(!r.c.pending().isEmpty());
+    }
     void independentPartiesShareCompanyWithoutSharingCapacityOrEndpoint() {
         CompanyRoom r;
         QVERIFY(r.a.openCompany("group","request",{}));QVERIFY(r.c.openCompany("group","request",{}));

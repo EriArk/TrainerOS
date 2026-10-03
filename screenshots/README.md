@@ -142,3 +142,10 @@ Screenshots document current appearance, not completion of every feature.
 See [communication evidence and remaining checks](../docs/SOCIAL_MEDIA_VOICE.md)
 and [ROADMAP](../docs/ROADMAP.md). Game artwork and characters retain their
 respective owners' rights; this gallery is not an artwork pack.
+
+Screens 38-42 are actual Flip/Odin Gamescope captures from 3 October's native
+Dolphin bridge delivery: two-player Melee gameplay over LAN, physical Home over
+the game, an Online friend invitation and accepted 2/4 roster. Both consoles run
+the same TrainerOS/bridge hashes recorded in [Dolphin evidence](../docs/emulators/dolphin.md).
+Online traversal startup was checked behind one router; these are not evidence
+of distinct-network connectivity or four physical players. No ROM is included.

@@ -44,7 +44,7 @@ QJsonObject GameParty::state() const {
         for(auto it=members_.cbegin();it!=members_.cend();++it)people.append(QJsonObject{{"peer",it.key()},{"name",it->name},{"slot",it->slot},{"ready",it->accepted}});
     }
     return {{"party",party_},{"joining",!joiningId_.isEmpty()},{"game",active()?game_:joiningGame_},{"host",host()},{"running",running_},{"members",people},
-        {"company",company_},{"access",access_},{"capacity",capacity(game_)},{"free",active()?capacity(game_)-people.size():capacity(current_)}};
+        {"company",company_},{"access",access_},{"capacity",capacity(game_)},{"free",running_&&!game_["lateJoin"].toBool(true)?0:active()?capacity(game_)-people.size():capacity(current_)}};
 }
 QJsonObject GameParty::offer(const QString& peer) const {const auto p=peers_.value(peer);return p.expires>=now()?p.offer:QJsonObject{};}
 QJsonObject GameParty::pending() const {
@@ -97,6 +97,7 @@ bool GameParty::create(){
     party_=token();game_=current_;return true;
 }
 int GameParty::freeSlot() const {
+    if(running_&&!game_["lateJoin"].toBool(true))return 0;
     for(int i=2;i<=capacity(game_);++i){bool occupied=false;for(const auto& m:members_)occupied|=m.slot==i;if(!occupied)return i;}
     return 0;
 }

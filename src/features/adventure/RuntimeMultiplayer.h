@@ -4,6 +4,7 @@
 #include "integrations/adventure/retroarch/RetroArchNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchNetplayClient.h"
 #include "integrations/adventure/standalone/PpssppNetplay.h"
+#include "integrations/adventure/standalone/DolphinNetplay.h"
 #include "platform/network/LocalLinkPeer.h"
 #include <QFutureWatcher>
 #include <QNetworkAccessManager>
@@ -19,7 +20,7 @@ class RuntimeMultiplayer final : public QObject {
     Q_PROPERTY(bool incoming READ incoming NOTIFY changed)
     Q_PROPERTY(QString invitation READ invitation NOTIFY changed)
 public:
-    RuntimeMultiplayer(LibraryRepository&, RetroArchAdapter&, StandaloneAdapter&, SocialController&,
+    RuntimeMultiplayer(LibraryRepository&, RetroArchAdapter&, StandaloneAdapter&, StandaloneAdapter&, SocialController&,
                        ProcessService&, AdventureLaunchController&, AdventureExitPresentation&);
     void refresh(const RetroArchInstallation&,QString trainer,bool allowed);
     QVariantMap party() const {return party_.state().toVariantMap();}
@@ -42,6 +43,7 @@ private:
     void resolveRelay();
     void resolvePspRelay();
     bool psp() const { return descriptor_["id"].toString().startsWith("runtime.ppsspp."); }
+    bool dolphin() const { return descriptor_["id"].toString().startsWith("runtime.dolphin."); }
     void frame(const QJsonObject&);
     void send(QJsonObject);
     void launch();
@@ -49,7 +51,8 @@ private:
     void pollRelay();
     void output(const QByteArray&);
     LibraryRepository& library_;RetroArchAdapter& adapter_;SocialController& social_;
-    StandaloneAdapter& ppsspp_;
+    StandaloneAdapter& ppsspp_;StandaloneAdapter& dolphin_;
+    dolphin::NetplayRequest dolphinRequest_;
     ProcessService& process_;AdventureLaunchController& lifecycle_;AdventureExitPresentation& overlay_;
     LocalLinkPeer nearby_{this,47855,47856,"trainerosRuntime",true};
     GameParty party_{this};

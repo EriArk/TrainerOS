@@ -1,6 +1,7 @@
 #include "integrations/adventure/AdapterRouter.h"
 #include "integrations/adventure/standalone/StandaloneAdapter.h"
 #include "integrations/adventure/standalone/PpssppNetplay.h"
+#include "integrations/adventure/standalone/DolphinNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "core/storage/LocalStateStore.h"
 #include "core/navigation/AdventureLaunchController.h"
@@ -30,6 +31,44 @@ class StandaloneTests final : public QObject {
         QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly)); QCOMPARE(file.write(data), data.size());
     }
 private slots:
+    void dolphinSessionKeepsControllerBridgeAndNeverLinksPersonalSaves() {
+        QTemporaryDir dir;QVERIFY(dir.isValid());
+        write(dir.filePath("Dolphin.ini"),"[Core]\nMemcardAPath = /personal/card.raw\n");
+        write(dir.filePath("GCPadNew.ini"),"[GCPad1]\nDevice = SDL/0/Gamepad\n");
+        StandaloneInstallation i{probe(),probe(),{"/controller.py","--","flatpak","run","org.DolphinEmu.dolphin-emu"},{"gc"},dir.filePath("Dolphin.ini")};
+        dolphin::NetplayRequest r{{},false,false,"192.168.1.5",QString(32,'a'),2626,3,{1,3}};
+        ProcessCommand cmd;std::atomic_bool cancel=false;
+        QVERIFY(dolphin::configureNetplay(cmd,i,"/roms/Game.iso",r,cancel).isEmpty());
+        QCOMPARE(cmd.program,QString("/usr/bin/env"));
+        QVERIFY(cmd.arguments.contains("/controller.py"));QVERIFY(!cmd.arguments.contains("flatpak"));
+        const int overrideIndex=cmd.arguments.indexOf("-C");
+        QVERIFY(cmd.arguments.contains("-b"));
+        QVERIFY(overrideIndex>=0);
+        QCOMPARE(cmd.arguments.value(overrideIndex+1),QString("Dolphin.Interface.ConfirmStop=False"));
+        const auto root=cmd.arguments.last();QVERIFY(QFileInfo(root).isDir());
+        QFile config(root+"/Config/Dolphin.ini");QVERIFY(config.open(QIODevice::ReadOnly));
+        const auto bytes=config.readAll();config.close();
+        QVERIFY(!bytes.contains("/personal"));QVERIFY(bytes.contains("WriteSaveData = False"));
+        QVERIFY(!QFileInfo::exists(root+"/GC"));
+        QFile session(root+"/session.json");QVERIFY(session.open(QIODevice::ReadOnly));
+        const auto json=QJsonDocument::fromJson(session.readAll()).object();session.close();
+        QCOMPARE(json["slot"].toInt(),3);QCOMPARE(json["slots"].toArray(),QJsonArray({1,3}));
+        cmd.settled({});QVERIFY(!QFileInfo::exists(root));
+        QFile original(dir.filePath("Dolphin.ini"));QVERIFY(original.open(QIODevice::ReadOnly));
+        QVERIFY(original.readAll().contains("/personal/card.raw"));
+        i.program="/usr/bin/flatpak";i.prefixArguments={"run","org.DolphinEmu.dolphin-emu"};
+        ProcessCommand native;
+        QVERIFY(dolphin::configureNetplay(native,i,"/roms/Game.iso",r,cancel).isEmpty());
+        QVERIFY(!native.arguments.contains("/usr/bin/flatpak"));
+        QCOMPARE(native.arguments.value(1),dolphin::bridgeFile());
+        native.settled({});
+        r.seats={1,1};ProcessCommand rejected;
+        QVERIFY(!dolphin::configureNetplay(rejected,i,"/roms/Game.iso",r,cancel).isEmpty());
+        QVERIFY(rejected.program.isEmpty());QVERIFY(!rejected.settled);
+        r.seats={1,3};r.online=true;r.address="bad\n[Core]";
+        QVERIFY(dolphin::configureNetplay(rejected,i,"/roms/Game.iso",r,cancel).contains("address"));
+    }
+
     void pspMultiplayerKeepsSettingsPrivateAndOrdinarySavesShared() {
 #ifdef Q_OS_WIN
         QSKIP("Linux memory-stick directory symlinks.");

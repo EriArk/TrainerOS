@@ -1,5 +1,16 @@
 # Native Social - conversations and discovery
 
+**Dolphin continuation, 2026-10-03:** the separate pinned native bridge now runs
+exact Melee US v1.01 on Flip/Odin through existing Home invitations. Nearby
+acceptance, automatic host/join/start, independent P1/P2 controls in a real match,
+Home overlay and owned exit/peer departure passed. The four-port profile closes
+admission at Start. This supersedes older no-Dolphin/two-player-only inventory,
+not four-client, distinct-network or recovery acceptance. Online friend consent
+and traversal-assisted startup also passed on the shared router; that is not a
+distinct-network internet match.
+[Per-emulator maintenance/evidence](emulators/dolphin.md) and the reusable adapter
+copy record the patch, recipe and preservation boundaries. Block 1 stays open.
+
 **Common runtime baseline, 2026-10-03:** Flip and Odin now verify 72 identical
 core artifacts plus matching RetroArch/PPSSPP/Dolphin Flatpak revisions.
 [Delivery and rollback evidence](emulators/retroarch.md) records bounded checks

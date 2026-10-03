@@ -18,7 +18,7 @@ a second execution plan or a claim that all installed runtimes are validated.
 | Emulator | Record | Scope |
 |---|---|---|
 | RetroArch | [Common ARM64 baseline](retroarch.md) | Exact core bundle, two-device alignment, recoverable update/rollback and remaining image/standalone gates |
-| Dolphin | [Bridge checkpoint](dolphin.md) | Existing common Flatpak, pinned source/build preparation; no native NetPlay bridge delivered yet |
+| Dolphin | [Bridge checkpoint](dolphin.md) | Preserved ordinary Flatpak; separate pinned native bridge with paired Melee LAN gameplay/Home return; internet and four-client gates open |
 | PPSSPP | [PPSSPP](ppsspp.md) | Isolated networking, preserved identity, bounded LAN/relay gameplay and remaining recovery/network gates |
 
 Existing work on other emulators remains documented in

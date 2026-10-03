@@ -90,6 +90,7 @@ add_library(trainer_core STATIC
     src/integrations/adventure/standalone/StandaloneAdapter.h
     src/integrations/adventure/standalone/StandaloneAdapter.cpp
     src/integrations/adventure/standalone/PpssppNetplay.cpp
+    src/integrations/adventure/standalone/DolphinNetplay.cpp
     src/platform/device/DeviceService.h
     src/platform/device/DeviceService.cpp
     src/platform/device/NetworkService.h

@@ -13,7 +13,9 @@ cores and extra installed cores are preserved. The
 [manifest](../packaging/emulators/arm64-baseline.json) and
 [maintenance/recovery record](emulators/retroarch.md) identify actual delivery.
 Remaining standalone selections below are still targets; this does not finish
-the whole standard image or add Dolphin multiplayer.
+the whole standard image. The subsequent [Dolphin bridge](emulators/dolphin.md)
+adds bounded two-device Melee NetPlay evidence with a separately maintained
+native artifact; broader routes and internet acceptance remain open.
 
 ## Selection
 

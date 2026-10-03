@@ -18,9 +18,9 @@ namespace {
 QString randomToken(){return QUuid::createUuid().toString(QUuid::Id128);}
 QVariantMap row(QString id,QString label,QString detail={}){return {{"id",id},{"label",label},{"detail",detail}};}
 }
-RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& adapter,StandaloneAdapter& ppsspp,SocialController& social,
+RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& adapter,StandaloneAdapter& ppsspp,StandaloneAdapter& dolphinAdapter,SocialController& social,
     ProcessService& process,AdventureLaunchController& lifecycle,AdventureExitPresentation& overlay)
-    :library_(lib),adapter_(adapter),social_(social),ppsspp_(ppsspp),process_(process),lifecycle_(lifecycle),overlay_(overlay) {
+    :library_(lib),adapter_(adapter),social_(social),ppsspp_(ppsspp),dolphin_(dolphinAdapter),process_(process),lifecycle_(lifecycle),overlay_(overlay) {
     identity_=QSettings().value("runtimeMultiplayer/device").toString();
     if(QUuid(identity_).isNull()){identity_=QUuid::createUuid().toString(QUuid::WithoutBraces);QSettings().setValue("runtimeMultiplayer/device",identity_);}
     connect(&party_,&GameParty::outgoing,this,[this](QString peer,QJsonObject packet){
@@ -81,7 +81,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     connect(&lifecycle_.exitController(),&AdventureExitController::confirmationRequested,this,[this]{
         // Both players already accepted a new game. This exact profile has no
         // persistent progress; reuse normal capture/owned-window graceful exit.
-        if(restarting_&&!psp())lifecycle_.exitController().confirm();
+        if(restarting_&&!psp()&&!dolphin())lifecycle_.exitController().confirm();
     });
     connect(&lifecycle_.exitController(),&AdventureExitController::returnToGameRequested,this,[this]{
         if(restarting_)fail("Invitation cancelled. Your game is still running.");
@@ -97,7 +97,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
             if(host_)send({{"kind","psp-ready"},{"identity",descriptor_},{"address",request_.address}});
             relaySent_=true;deadline_=0;timer_.stop();status_="Choose VS mode in the game";return;
         }
-        if(host_&&online_)pollRelay();
+        if(host_&&online_&&!dolphin())pollRelay();
     });
     connect(&lifecycle_,&AdventureLaunchController::adventureFinished,this,[this](bool){
         if(restarting_){restarting_=false;QTimer::singleShot(0,this,&RuntimeMultiplayer::launch);return;}
@@ -122,19 +122,20 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     installation_=installation;
     const auto records=library_.registrations();
     const auto pspInstallation=ppsspp_.installation();
+    const auto dolphinInstallation=dolphin_.installation();
     const auto stamp=[](const QString& path){const QFileInfo f(path);return qHashMulti(0,path,f.size(),f.lastModified().toMSecsSinceEpoch());};
     quint64 revision=qHashMulti(0,stamp(installation.runtimeFile),stamp(installation.cores.value("snes9x")),
-        stamp(installation.cores.value("genesis_plus_gx")),stamp(pspInstallation.runtimeFile));
-    for(const auto& r:records)if(r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive"||r.adventure.platformId=="psp")
+        stamp(installation.cores.value("genesis_plus_gx")),stamp(pspInstallation.runtimeFile),stamp(dolphin::bridgeFile()),stamp(dolphin::bridgeRoot()+"/manifest.json"));
+    for(const auto& r:records)if(r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc")
         revision=qHashMulti(revision,r.adventure.id,stamp(r.contentPath),r.revision,r.integrationConfig["core"].toString());
     if(!revision)revision=1;
     if(!scan_.isRunning() && (scanRevision_!=revision||!scanRevision_)) {
         scanRevision_=revision;
-        scan_.setFuture(QtConcurrent::run([records,installation,pspInstallation]{
+        scan_.setFuture(QtConcurrent::run([records,installation,pspInstallation,dolphinInstallation]{
             std::atomic_bool cancel=false;
             QMap<QString,QJsonObject> games;
-            for(const auto& r:records)if(r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive"||r.adventure.platformId=="psp") {
-                const auto identity=r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel);
+            for(const auto& r:records)if(r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc") {
+                const auto identity=r.adventure.platformId=="gc"?dolphin::netplayIdentity(r,dolphinInstallation,cancel):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel);
                 if(!identity.isEmpty())games.insert(r.adventure.id,identity);
             }
             return games;
@@ -210,7 +211,7 @@ void RuntimeMultiplayer::show(QString panel) {
         rows={row("multiplayer-access:default","Use my group preference"),row("multiplayer-access:request","Ask me first"),
             row("multiplayer-access:selected","Selected group members"),row("multiplayer-access:closed","Invitations only")};
     } else if(panel=="multiplayer") {
-        caption=process_.runtimeControls()["kind"]=="ppsspp"?"Play together":"Start a new two-player game";
+        caption=(process_.runtimeControls()["kind"]=="ppsspp"||process_.runtimeControls()["kind"]=="dolphin")?"Play together":"Start a new two-player game";
         rows={row("multiplayer-nearby","Nearby","Same local network"),row("multiplayer-online","Online friend")};
     } else if(panel=="multiplayer-nearby") {
         caption="Choose a nearby Trainer";
@@ -264,8 +265,13 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     online_=transportPeer_.startsWith("online:");
     request_={};request_.host=host;request_.relay=online_;request_.expected=selected;
     request_.nickname="TrainerOS-"+randomToken().left(12);output_.clear();
-    deadline_=QDateTime::currentSecsSinceEpoch()+75;timer_.start();
-    if(host) {
+    deadline_=QDateTime::currentSecsSinceEpoch()+(dolphin()?150:75);timer_.start();
+    dolphinRequest_={};dolphinRequest_.expected=selected;dolphinRequest_.host=host;dolphinRequest_.online=online_;
+    if(host&&dolphin()) {
+        dolphinRequest_.token=randomToken();
+        for(const auto& v:party_.state()["members"].toArray())dolphinRequest_.seats.append(v.toObject()["slot"]);
+        prepareHost();
+    } else if(host) {
         request_.password=randomToken();
         if(psp()){if(online_)resolvePspRelay();else {request_.address=nearby_.localAddressFor(transportPeer_.mid(7));prepareHost();}}
         else if(online_)resolveRelay();else prepareHost();
@@ -317,16 +323,24 @@ void RuntimeMultiplayer::launch() {
     launchPending_=false;
     const auto record=library_.registration(game_);
     if(!record){fail("The game is no longer in your library.");return;}
-    const auto result=psp()?ppsspp_.launchNetplay(record->adventure,
-        {descriptor_,host_,online_,request_.address,trainer_}):adapter_.launchNetplay(record->adventure,request_);
+    const auto result=dolphin()?dolphin_.launchNetplay(record->adventure,dolphinRequest_):psp()?ppsspp_.launchNetplay(record->adventure,
+        ppsspp::NetplayRequest{descriptor_,host_,online_,request_.address,trainer_}):adapter_.launchNetplay(record->adventure,request_);
     if(!result.success)fail(result.message);
 }
 void RuntimeMultiplayer::send(QJsonObject packet) {
-    if(partySession_){if(packet["kind"]=="ready"||packet["kind"]=="psp-ready")party_.ready(packet);return;}
+    if(partySession_){if(packet["kind"]=="ready"||packet["kind"]=="psp-ready"||packet["kind"]=="dolphin-ready")party_.ready(packet);return;}
 }
 void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     if(!active_)return;
     if(packet["kind"]=="left"){status_="Your friend left the game";emit notice(status_);return;}
+    if(dolphin()) {
+        if(host_||packet["kind"]!="dolphin-ready"||lifecycle_.active()||launchPending_)return;
+        if(packet["identity"].toObject()!=descriptor_){fail("Your game or emulator doesn't match your friend's.");return;}
+        dolphinRequest_.address=online_?packet["code"].toString():nearby_.addressOf(transportPeer_.mid(7));
+        dolphinRequest_.port=packet["port"].toInt();dolphinRequest_.slot=packet["slot"].toInt();
+        dolphinRequest_.token=packet["token"].toString();dolphinRequest_.seats=packet["seats"].toArray();
+        launchPending_=true;launch();return;
+    }
     if(psp()) {
         if(host_||packet["kind"]!="psp-ready"||lifecycle_.active()||launchPending_)return;
         if(packet["identity"].toObject()!=descriptor_){fail("Your PSP game or emulator doesn't match your friend's.");return;}
@@ -347,7 +361,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     launchPending_=true;launch();
 }
 void RuntimeMultiplayer::pollRelay() {
-    if(psp()||query_||!active_||!host_||!online_||relaySent_||request_.relayEndpoint.isEmpty())return;
+    if(psp()||dolphin()||query_||!active_||!host_||!online_||relaySent_||request_.relayEndpoint.isEmpty())return;
     // This is the upstream public directory, not an authenticated signalling
     // service. Passwords travel only through the accepted friend invitation.
     query_=true;QNetworkRequest request(QUrl("http://lobby.libretro.com/list/"));request.setTransferTimeout(7000);
@@ -371,6 +385,23 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
     output_+=bytes;
     while(output_.contains('\n')) {
         const auto end=output_.indexOf('\n');const auto line=output_.left(end);output_.remove(0,end+1);
+        if(dolphin()) {
+            constexpr auto prefix="[TrainerOSNetplay]";
+            if(!line.startsWith(prefix))continue;
+            const auto event=QJsonDocument::fromJson(line.mid(qstrlen(prefix))).object();
+            if(event["event"]=="ready"&&host_&&!relaySent_) {
+                relaySent_=true;
+                send({{"kind","dolphin-ready"},{"identity",descriptor_},{"token",dolphinRequest_.token},
+                    {"seats",dolphinRequest_.seats},{"port",event["port"]},{"code",event["code"]}});
+                status_="Waiting for your friends...";
+            } else if(event["event"]=="running") {
+                deadline_=0;timer_.stop();status_="Playing together";emit changed();
+            } else if(event["event"]=="error") {
+                fail(event["reason"]=="traversal"?"Couldn't connect through this network. Try inviting again.":"The multiplayer connection ended. You can invite again.");
+                return;
+            }
+            continue; // endpoint/admission fields never enter application logs
+        }
         if(!line.contains("[Netplay]"))continue;
         // No launch arguments/configuration (passwords) or chat frames are logged.
         qCInfo(multiplayerLog).noquote()<<QString::fromUtf8(line.left(512));
