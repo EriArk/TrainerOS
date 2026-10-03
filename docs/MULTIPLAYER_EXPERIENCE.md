@@ -1,6 +1,11 @@
 # Multiplayer experience: companies, game parties and joining
 
 Owner agreement, 2026-10-03. **Accepted target, not delivered behavior.**
+
+The first [runtime-party implementation checkpoint](GAME_PARTIES.md) now covers
+the bounded coordinator and direct invitation/request surfaces. It does not
+complete the acceptance list below, particularly companies/free access or real
+three-to-four-player runtime proof.
 [ROADMAP](ROADMAP.md) owns scheduling; [runtime evidence](EMULATOR_MULTIPLAYER.md)
 owns implementation claims. [Transport audit](MULTIPLAYER_TRANSPORT_AUDIT.md)
 contains hypotheses, unresolved choices and the proposed comparison.

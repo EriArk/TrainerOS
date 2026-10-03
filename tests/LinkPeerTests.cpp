@@ -7,6 +7,20 @@ using namespace trainer;
 class LinkPeerTests:public QObject {
     Q_OBJECT
 private slots:
+    void runtimePartyKeepsThreeGuestSocketsIndependent() {
+        QTcpServer reserve;QVERIFY(reserve.listen(QHostAddress::LocalHost,0));const auto port=reserve.serverPort();reserve.close();
+        LocalLinkPeer host(nullptr,port,0,"party-test",true);host.configure("11111111-1111-4111-8111-111111111111","Host");QVERIFY(host.open());
+        QSignalSpy received(&host,&LocalLinkPeer::partyReceived),left(&host,&LocalLinkPeer::partyDisconnected);
+        QTcpSocket b,c,d;const QList<QTcpSocket*> sockets{&b,&c,&d};
+        const QStringList ids{"22222222-2222-4222-8222-222222222222","33333333-3333-4333-8333-333333333333","44444444-4444-4444-8444-444444444444"};
+        for(int i=0;i<3;++i){auto* s=sockets[i];s->connectToHost(QHostAddress::LocalHost,port);QTRY_VERIFY(s->bytesAvailable()>0);s->readAll();
+            s->write(QJsonDocument(QJsonObject{{"partyHello",ids[i]},{"name",QString::number(i)}}).toJson(QJsonDocument::Compact)+'\n');
+            s->write("{\"kind\":\"query\"}\n");QTRY_COMPARE(received.count(),i+1);QCOMPARE(received.last()[0].toString(),ids[i]);}
+        for(int i=0;i<3;++i){host.sendTo(ids[i],{{"slot",i+2}});QTRY_VERIFY(sockets[i]->bytesAvailable()>0);QCOMPARE(QJsonDocument::fromJson(sockets[i]->readLine()).object()["slot"].toInt(),i+2);}
+        c.disconnectFromHost();QTRY_COMPARE(left.count(),1);QCOMPARE(left.first()[0].toString(),ids[1]);
+        QVERIFY(!host.addressOf(ids[0]).isEmpty());QVERIFY(!host.addressOf(ids[2]).isEmpty());
+        b.write("{\"kind\":\"still-here\"}\n");QTRY_COMPARE(received.count(),4);
+    }
     void onlineReusesConsentWorkspaceAndPreservesRecovery() {
         const QString local="11111111-1111-4111-8111-111111111111",remote="22222222-2222-4222-8222-222222222222";
         LinkController link;QStringList operations;

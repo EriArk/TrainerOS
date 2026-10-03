@@ -1,4 +1,5 @@
 #include <QtTest>
+#include "features/adventure/GameParty.h"
 #include "integrations/social/AdventureReviews.h"
 #include "core/model/AdventureCompletion.h"
 #include "core/navigation/ShellController.h"
@@ -27,7 +28,39 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void gameCoordinationDoesNotDisplaceConversationHistory() {
+        FluxerSession s;bind(s);QStringList paths;QList<Completion> replies;
+        s.setTransport([&](auto,auto path,auto,Completion done,auto){paths.append(path);replies.append(done);});
+        const auto content=GameParty::encode({{"ns","org.traineros.party"},{"v",1}});
+        QJsonArray hidden;for(int i=149;i>=100;--i)hidden.append(QJsonObject{{"id",QString::number(i)},{"channel_id",channel},{"content",content}});
+        s.loadMessages(channel);replies.takeFirst()({200,QJsonDocument(hidden)});
+        QVERIFY(paths.last().endsWith("&before=100"));
+        replies.takeFirst()({200,QJsonDocument(QJsonArray{QJsonObject{{"id","99"},{"channel_id",channel},{"content","Hello friend"}}})});
+        QVERIFY(s.messages_.contains("99"));QVERIFY(!s.historyPast_);
+        for(int i=200;i<350;++i)s.gatewayEvent({{"op",0},{"t","MESSAGE_CREATE"},{"d",QJsonObject{{"id",QString::number(i)},{"channel_id",channel},{"content",content}}}});
+        QVERIFY(s.messages_.contains("99"));QVERIFY(!s.messages_.contains("349"));
+    }
     void initTestCase() { QStandardPaths::setTestModeEnabled(true);QCoreApplication::setOrganizationName("TrainerOSTests");QCoreApplication::setApplicationName("SocialTests"); }
+    void partyPacketsUseFriendDmWithoutChangingSavedLinkOrCalls() {
+        FluxerSession s;bind(s);s.setTransport([](auto,auto,auto,Completion done,auto){done({200,{}});});
+        s.relationships_[remote]={{"type",1}};s.channels_[channel]["recipients"]=QJsonArray{QJsonObject{{"id",remote}}};
+        s.voiceChannel_=channel;s.voiceState_="connected";s.voiceMuted_=true;
+        QSignalSpy received(&s,&FluxerSession::partyPacket),notices(&s,&FluxerSession::incomingMessage),snapshots(&s,&FluxerSession::snapshot);
+        const auto content=GameParty::encode({{"ns","org.traineros.party"},{"v",1},{"kind","query"}});
+        auto event=[&](QString id){s.gatewayEvent({{"op",0},{"t","MESSAGE_CREATE"},{"d",QJsonObject{{"id",id},{"channel_id",channel},{"type",0},
+            {"author",QJsonObject{{"id",remote},{"username","Friend"}}},{"content",content}}}});};
+        event("100");QCOMPARE(received.count(),1);QCOMPARE(notices.count(),0);QVERIFY(snapshots.last()[1].toMap()["messages"].toList().isEmpty());
+        QCOMPARE(s.online_.state()["stage"].toString(),QString("idle"));QCOMPARE(s.voiceChannel_,QString(channel));QVERIFY(s.voiceMuted_);
+        s.channels_[channel]["type"]=3;event("101");QCOMPARE(received.count(),1);
+        s.channels_[channel]["type"]=1;s.relationships_[remote]["type"]=2;event("102");QCOMPARE(received.count(),1);
+    }
+    void partyOfferUsesDirectYWithoutOpeningAnotherMenu() {
+        SocialController c;c.receive(0,{{"state","connected"},{"channel",channel},{"chats",QVariantList{QVariantMap{{"id",channel},{"kind","chats"},{"friend",true},{"members",QVariantList{QVariantMap{{"id",remote}}}}}}}});
+        c.setGameActivity(remote,{{"joinable",true},{"free",1},{"game",QVariantMap{{"label","A game"}}}});
+        QSignalSpy joined(&c,&SocialController::partyJoin);c.dispatch(Action::ToggleContinue);
+        QCOMPARE(joined.count(),1);QCOMPARE(joined.first()[0].toString(),QString(remote));QVERIFY(c.menu().isEmpty());
+        c.setGameActivity(remote,{});c.joinGame();QCOMPARE(joined.count(),1);
+    }
     void runtimeInvitationUsesDmContractAndReusesConversation() {
         FluxerSession s;Completion pending;int requests=0;
         QSignalSpy failed(&s,&FluxerSession::runtimeProbeFailed);

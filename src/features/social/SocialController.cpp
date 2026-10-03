@@ -13,11 +13,16 @@
 
 namespace trainer {
 SocialController::SocialController(QObject* parent):QObject(parent),session_(new FluxerSession) {
+    partyBrowse_.setInterval(30000);
+    connect(&partyBrowse_,&QTimer::timeout,this,[this]{if(conversationVisible_&&runtimeAvailable_&&!runtimePeer().isEmpty())emit partyQuery(runtimePeer());});partyBrowse_.start();
     session_->moveToThread(&thread_);
     connect(&thread_,&QThread::finished,session_,&QObject::deleteLater);
     connect(this,&SocialController::ownerRequested,session_,&FluxerSession::setOwner);
     connect(this,&SocialController::commandRequested,session_,&FluxerSession::command);
     connect(session_,&FluxerSession::snapshot,this,&SocialController::receive);
+    connect(session_,&FluxerSession::partyPacket,this,[this](quint64 g,QString peer,QString name,QJsonObject p){if(g==generation_)emit partyPacket(peer,name,p);});
+    connect(session_,&FluxerSession::partyFailed,this,[this](quint64 g,QString peer){if(g==generation_)emit partyFailed(peer);});
+    connect(session_,&FluxerSession::partyReset,this,[this](quint64 g){if(g==generation_){gameActivities_.clear();emit partyReset();}});
     connect(session_,&FluxerSession::runtimeProbeFailed,this,[this](quint64 generation,QString peer,QString message){
         if(generation==generation_)emit runtimeProbeFailed(peer,message);
     });
@@ -59,7 +64,7 @@ void SocialController::setOwner(QString owner) {
     if(owner==owner_)return;
     media_.clear();mediaSending_=mediaUncertain_=false;
     if(link_)link_->endOnline();
-    runtimeOnline_=false;emit runtimeEnded();
+    runtimeOnline_=false;gameActivities_.clear();emit partyReset();emit runtimeEnded();
     saveDrafts();draftFile_.clear();
     editDrafts_.clear();pickedPeople_.clear();dismissedNotifications_.clear();activityNotifications_.clear();presentedInvitation_.clear();notificationSettingsKey_.clear();
     toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();
@@ -297,6 +302,7 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     const auto oldMessage=messages().value(messageFocus_).toMap().value("id");
     const bool atEnd=messageFocus_>=messages().size()-1;
     snapshot_=std::move(snapshot);
+    if(oldChannel!=snapshot_["channel"]&&!runtimePeer().isEmpty())emit partyQuery(runtimePeer());
     const auto audio=snapshot_["audio"].toMap();
     media_.setAudioDevices(audio["input"].toString(),audio["output"].toString(),audio.value("volume",100).toInt());
     if(snapshot_["state"]=="signed-out")media_.clear();
@@ -404,7 +410,7 @@ QVariantList SocialController::hints() const {
         if(face_=="communities"&&!reading_&&draft().trimmed().isEmpty())h("Y",snapshot_["communityOnly"].toBool()?"All communities":"TrainerOS only");
         if(reading_&&(messages().value(messageFocus_).toMap()["editable"].toBool()||messages().value(messageFocus_).toMap()["media"].toBool()||!messages().value(messageFocus_).toMap()["delivery"].toString().isEmpty()))h("A","Message");
         if(contacts_&&rows().value(focus_).toMap()["type"].toInt()==3)h("A","Accept request");
-        if(conversation()){h(reading_||contacts_?"X":"A","Write");if(reading_&&snapshot_["historyPast"].toBool())h("Y","Latest");else if(togetherAvailable())h("Y","Play together");else if(!draft().trimmed().isEmpty())h("Y","Send");h(reading_?"←":"→",reading_?"Conversations":"Read");if(reading_&&messageFocus_==0&&snapshot_["historyMore"].toBool())h("↑","Earlier");}
+        if(conversation()){h(reading_||contacts_?"X":"A","Write");if(reading_&&snapshot_["historyPast"].toBool())h("Y","Latest");else if(gameActivity()["joinable"].toBool())h("Y","Ask to join");else if(togetherAvailable())h("Y","Play together");else if(!draft().trimmed().isEmpty())h("Y","Send");h(reading_?"←":"→",reading_?"Conversations":"Read");if(reading_&&messageFocus_==0&&snapshot_["historyMore"].toBool())h("↑","Earlier");}
         if(contacts_||reading_)h("B",contacts_?"Conversations":"List");
     }
     h("Select","Options");return result;
@@ -451,6 +457,20 @@ void SocialController::send() {
     drafts_.remove(snapshot_["channel"].toString());emit changed();
     saveDrafts();
 }
+QString SocialController::runtimePeer() const {
+    const auto chat=currentChat();const auto members=chat["members"].toList();
+    return face_=="chats"&&!contacts_&&chat["friend"].toBool()&&members.size()==1?members.first().toMap()["id"].toString():QString();
+}
+void SocialController::setGameParty(QVariantMap state){if(gameParty_==state)return;gameParty_=std::move(state);emit changed();}
+QVariantMap SocialController::gameActivity() const {return gameActivities_.value(runtimePeer());}
+void SocialController::setGameActivity(const QString& peer,const QVariantMap& offer) {
+    if(gameActivities_.value(peer)==offer)return;
+    if(offer.isEmpty())gameActivities_.remove(peer);else gameActivities_[peer]=offer;
+    if(peer==runtimePeer())emit changed();
+}
+void SocialController::joinGame() {
+    const auto peer=runtimePeer();if(!peer.isEmpty()&&gameActivity()["joinable"].toBool())emit partyJoin(peer);
+}
 QVariantMap SocialController::currentChat() const {
     for(const auto& row:snapshot_["chats"].toList())if(row.toMap()["id"]==snapshot_["channel"])return row.toMap();
     return {};
@@ -476,6 +496,9 @@ void SocialController::openMenu() {
     const auto row=rows().value(focus_).toMap();menuSubject_=row["id"].toString();
     menuTitle_=snapshot_["name"].toString();menuDetail_=snapshot_["remembered"].toBool()?"Account connected":"Connected for this session";
     auto add=[&](QString label,QString command){menu_.append(label);menuCommands_.append(command);};
+    if(gameParty_["joining"].toBool())add("Cancel join request","party-leave");
+    else if(!gameParty_["party"].toString().isEmpty())add("Leave game party","party-leave");
+    else if(gameActivity()["joinable"].toBool())add("Ask to join game","party-join");
     const auto message=messages().value(messageFocus_).toMap();
     if(reading_&&(message["editable"].toBool()||message["media"].toBool()||!message["delivery"].toString().isEmpty())) {
         menuSubject_=message["id"].toString();menuTitle_=message["mine"].toBool()?"Your message":message["name"].toString();menuDetail_=message["text"].toString().left(120);
@@ -604,6 +627,8 @@ void SocialController::selectMenu(int index) {
     }
     if(menuMode_=="add-member"){emit commandRequested("add-member",{{"channel",menuChannel_},{"id",command}});menu_.clear();emit changed();return;}
     if(menuMode_=="remove-member"){confirmAction("Remove "+menu_[index]+"?","remove-member",command);return;}
+    if(command=="party-leave"){closeMenu();emit partyLeave();return;}
+    if(command=="party-join"){closeMenu();joinGame();return;}
     if(command=="members") {
         menuTitle_="Group members";menuDetail_=conversationName();menuMode_="members";menu_.clear();menuCommands_.clear();menuFocus_=0;
         menu_.append(snapshot_["name"].toString()+" (You)"+(snapshot_["userId"]==currentChat()["owner"]?" · Owner":""));menuCommands_.append("none");
@@ -681,7 +706,7 @@ void SocialController::dispatch(Action action) {
     else if(action==Action::Secondary){if(face_=="groups"&&!conversation())openPeople("create-group");
         else if(face_=="communities"&&!conversation()){textPurpose_="create-community";emit textRequested("Community name",QString(),100);}else compose();}
     else if(action==Action::ToggleContinue){if(reading_&&snapshot_["historyPast"].toBool())emit commandRequested("latest",{});
-        else if(togetherAvailable())together();else if(face_=="communities"&&!reading_&&draft().trimmed().isEmpty())emit commandRequested("community-filter",{});else send();}
+        else if(gameActivity()["joinable"].toBool())joinGame();else if(togetherAvailable())together();else if(face_=="communities"&&!reading_&&draft().trimmed().isEmpty())emit commandRequested("community-filter",{});else send();}
     else if(action==Action::LocalAction||action==Action::ContextMenu)openMenu();
     if(reading_&&conversation()&&(action==Action::Up||action==Action::Down))emit commandRequested("history-position",{{"channel",snapshot_["channel"]},{"id",messageFocus_>=messages().size()-1?QString():messages().value(messageFocus_).toMap()["id"].toString()}});
     emit changed();

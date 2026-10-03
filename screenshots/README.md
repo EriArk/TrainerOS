@@ -73,6 +73,14 @@ the flag disabled. This screenshot is consent evidence, not gameplay acceptance.
 
 ## Capture provenance
 
+Screens 25-27 are actual Gamescope captures on 3 October: Odin's friend-game
+activity, Flip's reverse join request and Flip's accepted 2/2 roster. Development
+build `9c1afa4748de963798ecc1e4590c6ed8ac2e6a72a40367d0abaf54c6c7f6e484`
+had the multiplayer experiment enabled for this check. The final ordinary
+delivery disables it again. These show real public-Fluxer signalling and Home
+interaction, not completed PSP gameplay or four-player acceptance. See
+[game-party evidence](../docs/GAME_PARTIES.md).
+
 Screens 01–07 and 11–13 show the installed `023b3c8` delivery. Screens 08–10
 and 14–18 show the call-history update included in the commit adding this gallery;
 its executable SHA-256 is

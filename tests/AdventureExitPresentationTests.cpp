@@ -5,6 +5,24 @@ using namespace trainer;
 class AdventureExitPresentationTests final : public QObject {
     Q_OBJECT
 private slots:
+    void partyRosterKeepsFocusOnActionsAndSkipsDisplayRows() {
+        AdventureExitController exit;AdventureExitPresentation view(exit);
+        exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);
+        QSignalSpy preview(&view,&AdventureExitPresentation::menuCaptureRequested);
+        QVERIFY(view.requestMenu());view.menuCaptureCompleted(preview.last()[0].toULongLong(),{});
+        view.setInputIsolated(true);view.setWindowFocused(true);
+        const QVariantMap member{{"id","member:host"},{"label","Trainer"},{"readOnly",true}};
+        const QVariantMap start{{"id","start"},{"label","Start game"}};
+        const QVariantMap leave{{"id","leave"},{"label","End party"}};
+        view.setPanel("party","Party",{member});
+        view.setPanel("party","Party",{start,member,leave});QCOMPARE(view.menuFocus(),0);
+        view.updateInput(view.inputGeneration(),{true,true});
+        view.updateInput(view.inputGeneration(),{true,false,false,false,false,false,true});
+        QCOMPARE(view.menuFocus(),2);
+        view.updateInput(view.inputGeneration(),{true,true});
+        view.updateInput(view.inputGeneration(),{true,false,false,false,false,true,false});
+        QCOMPARE(view.menuFocus(),0);
+    }
     void acceptedRestartKeepsLeaseUntilFreshCaptureAndClose() {
         AdventureExitController exit;AdventureExitPresentation view(exit);
         QSignalSpy preview(&view,&AdventureExitPresentation::menuCaptureRequested);

@@ -99,9 +99,36 @@ FocusScope {
                 color: "#d9eac4"; border.color: "#a3bd8c"
                 Text { anchors { fill: parent; margins: 7 } text: "☎  " + (root.account.voice ? (root.account.voice.summary || root.account.voice.status) : "") + (root.account.voice && root.account.voice.participants ? " · " + root.account.voice.participants + (root.account.voice.participants === 1 ? " person" : " people") : ""); color: Theme.ink; font.pixelSize: 14; elide: Text.ElideRight; textFormat: Text.PlainText }
             }
+            Rectangle {
+                id: gameStrip
+                y: callStrip.visible ? callStrip.y + callStrip.height + 6 : 47
+                width: parent.width; height: visible ? 57 : 0; radius: 10
+                readonly property var party: root.social.gameParty
+                readonly property bool joined: !!party.party || !!party.joining
+                readonly property var offer: root.social.gameActivity
+                visible: joined || (!!offer.game && !!offer.game.label)
+                color: "#fff0bd"; border.color: "#c5a75e"
+                Text {
+                    x: 12; y: 7; width: parent.width - (joinGame.visible ? 174 : 24)
+                    text: (gameStrip.joined ? gameStrip.party.game : gameStrip.offer.game || {}).label || "Game party"
+                    font.family: Theme.displayFamily; font.pixelSize: 18; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText
+                }
+                Text {
+                    x: 12; y: 31; width: parent.width - (joinGame.visible ? 174 : 24)
+                    text: gameStrip.joined ? (gameStrip.party.joining ? "Join request sent" : (gameStrip.party.running ? "Game session" : "Waiting for the organizer") + " \u00b7 " + gameStrip.party.members.length + " / " + gameStrip.party.capacity)
+                        : gameStrip.offer.joinable ? gameStrip.offer.free + (gameStrip.offer.free === 1 ? " place available" : " places available") : "Playing"
+                    font.pixelSize: 13; color: Theme.muted; elide: Text.ElideRight
+                }
+                CapButton {
+                    id: joinGame; visible: !gameStrip.joined && !!gameStrip.offer.joinable
+                    anchors { right: parent.right; rightMargin: 7; verticalCenter: parent.verticalCenter }
+                    width: 145; height: 42; label: "Ask to join"; centered: true; tint: Theme.green; claimsFocus: false
+                    onActivated: root.social.joinGame()
+                }
+            }
             ListView {
                 id: log
-                anchors { top: chatHeading.bottom; topMargin: callStrip.visible ? 53 : 14; bottom: composer.top; bottomMargin: 9; left: parent.left; right: parent.right }
+                anchors { top: gameStrip.visible ? gameStrip.bottom : callStrip.visible ? callStrip.bottom : chatHeading.bottom; topMargin: 10; bottom: composer.top; bottomMargin: 9; left: parent.left; right: parent.right }
                 clip: true; spacing: 10; model: root.social.messages; currentIndex: root.social.messageIndex
                 function restorePosition() {
                     forceLayout()

@@ -1,5 +1,12 @@
 # TrainerOS Roadmap
 
+**Runtime-party checkpoint, 2026-10-03:** [implementation and evidence](GAME_PARTIES.md)
+adds a multi-member coordinator, reserved places, explicit organizer start and
+reverse join requests in existing Home/Social. Installed profiles remain
+two-player; synthetic four-seat proof is not four-client gameplay. Current block
+1 remains open and experimental. Continue company/parallel-party/access work and
+the route-specific runtime gates below; no earlier acceptance is removed.
+
 **2026-09-27 #91:** [Adapter knowledge base](adapters/README.md) is a prerequisite for new exact-game research and is updated throughout every adapter increment. It composes the existing #42/#89 work, without replacing or dropping any R1–R18 acceptance. A portable copy of the actual adapter, exact-game profiles and standalone build travel with its evidence. The delivered Emerald slice covers reorder, box movement, Party/Box transfer and protected release.
 
 ## Current plan — reconciled 2026-10-01

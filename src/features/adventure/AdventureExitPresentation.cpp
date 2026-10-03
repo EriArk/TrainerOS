@@ -39,7 +39,10 @@ void AdventureExitPresentation::setPanel(QString panel,QString caption,QVariantL
     backAction_=std::move(backAction);
     if(!same)menuFocus_=0;
     else for(int i=0;i<panelActions_.size();++i)if(panelActions_[i].toMap().value("id")==selected){menuFocus_=i;break;}
-    menuFocus_=qBound(0,menuFocus_,qMax(0,int(menuActions().size())-1));if(!same)resetInput();emit changed();
+    menuFocus_=qBound(0,menuFocus_,qMax(0,int(menuActions().size())-1));
+    if(menuActions().value(menuFocus_).toMap()["readOnly"].toBool())
+        for(int i=0;i<panelActions_.size();++i)if(!panelActions_[i].toMap()["readOnly"].toBool()){menuFocus_=i;break;}
+    if(!same)resetInput();emit changed();
 }
 void AdventureExitPresentation::setExtraActions(QVariantList actions) {
     if(extras_==actions)return;
@@ -120,7 +123,12 @@ void AdventureExitPresentation::updateInput(quint64 generation, const ExitInputS
     else if (back || home) cancel();
     else if (menuOpen_) {
         // Direction and A together never move onto and activate Exit at once.
-        if (up || down) { menuFocus_=qBound(0,menuFocus_+(up?-1:1),qMax(0,int(menuActions().size())-1));emit changed(); }
+        if (up || down) {
+            const auto rows=menuActions();const int direction=up?-1:1;
+            for(int i=menuFocus_+direction;i>=0&&i<rows.size();i+=direction)
+                if(!rows[i].toMap()["readOnly"].toBool()){menuFocus_=i;break;}
+            emit changed();
+        }
         else if (confirm && !input.back && !input.home) activateMenu(menuFocus_);
     } else if (confirm && !input.back && !input.home) this->confirm();
 }

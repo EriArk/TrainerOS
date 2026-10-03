@@ -12,7 +12,7 @@ namespace trainer {
 class LocalLinkPeer final:public QObject {
     Q_OBJECT
 public:
-    explicit LocalLinkPeer(QObject* parent=nullptr, quint16 port=47845, quint16 discoveryPort=47846, QString discoveryKey="trainerosLink");
+    explicit LocalLinkPeer(QObject* parent=nullptr, quint16 port=47845, quint16 discoveryPort=47846, QString discoveryKey="trainerosLink", bool multiple=false);
     ~LocalLinkPeer() override;
     void configure(const QString& id,const QString& name);
     bool open();void close();void disconnectPeer();
@@ -24,6 +24,9 @@ public:
     bool outgoing() const{return outgoing_;}
     void setVisible(bool visible){advertising_=visible;}
     void send(const QJsonObject&);
+    void sendTo(const QString& peer,const QJsonObject&);
+    QString addressOf(const QString& peer) const;
+    QString localAddressFor(const QString& peer) const;
     bool connected() const{return socket_ && socket_->state()==QAbstractSocket::ConnectedState;}
     QString id() const{return id_;}
     QString name() const{return name_;}
@@ -31,8 +34,16 @@ public:
     QString connectionLocalAddress() const{return socket_?socket_->localAddress().toString():QString();}
 signals:
     void changed();void connectedToPeer();void disconnectedFromPeer();
+    void partyReceived(QString peer,QString name,QJsonObject packet);
+    void partyDisconnected(QString peer);
     void received(const QJsonObject&);void error(const QString&);
 private:
+    struct Connection {QString peer,name,expected;QByteArray buffer;QList<QJsonObject> pending;};
+    bool multiple_=false;
+    QMap<QTcpSocket*,Connection> connections_;
+    void attachMultiple(QTcpSocket*,QString expected={});
+    void dropMultiple(QTcpSocket*);
+    void receiveMultiple(QTcpSocket*);
     const quint16 port_,discoveryPort_;
     const QString discoveryKey_;
     void attach(QTcpSocket*);void announce();void readDiscovery();void receive();

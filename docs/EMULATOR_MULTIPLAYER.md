@@ -1,5 +1,12 @@
 # Emulator multiplayer (#107)
 
+**Latest coordinator checkpoint, 2026-10-03:** [runtime game parties](GAME_PARTIES.md)
+replace pair-only invitation ownership with capacity/reservations, an explicit
+organizer start and reverse join requests. Four seats are tested at the protocol
+level; installed profiles and the paired device exercise remain two-player.
+This does not resolve the PSP match failure or any remaining gameplay/recovery,
+distinct-network, router-free, company/free-entry or voice-audience acceptance.
+
 **2026-10-03 accepted expansion, pending:** [company/game-party experience](MULTIPLAYER_EXPERIENCE.md)
 adds multi-member and parallel parties, reverse join requests and authorized
 one-action entry. Current pair-oriented runtime evidence below does not prove

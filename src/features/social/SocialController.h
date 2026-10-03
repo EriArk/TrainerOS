@@ -29,6 +29,8 @@ class SocialController final : public QObject {
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(int messageIndex READ messageIndex NOTIFY changed)
     Q_PROPERTY(bool reading READ reading NOTIFY changed)
+    Q_PROPERTY(QVariantMap gameParty READ gameParty NOTIFY changed)
+    Q_PROPERTY(QVariantMap gameActivity READ gameActivity NOTIFY changed)
     Q_PROPERTY(bool togetherAvailable READ togetherAvailable NOTIFY changed)
     Q_PROPERTY(QStringList menu READ menu NOTIFY changed)
     Q_PROPERTY(int menuIndex READ menuIndex NOTIFY changed)
@@ -94,6 +96,12 @@ public:
     bool gameActive() const{return gameActive_;}
     void setGameActive(bool active){if(gameActive_!=active){gameActive_=active;emit presentationChanged();}}
     void controlCall(const QString& operation){emit commandRequested(operation,{});}
+    QVariantMap gameParty() const{return gameParty_;}
+    void setGameParty(QVariantMap state);
+    QString runtimePeer() const;
+    QVariantMap gameActivity() const;
+    void setGameActivity(const QString& peer, const QVariantMap& offer);
+    Q_INVOKABLE void joinGame();
     void setRuntimeContext(bool available, QVariantList capabilities);
     QVariantList runtimeFriends() const;
     void runtimeCommand(const QString& op,const QVariantMap& args={}){emit commandRequested(op,args);}
@@ -113,6 +121,12 @@ public:
     void dismissNotificationAt(int index);
     void dismissNotifications();
 signals:
+    void partyPacket(QString peer,QString name,QJsonObject packet);
+    void partyFailed(QString peer);
+    void partyReset();
+    void partyQuery(QString peer);
+    void partyJoin(QString peer);
+    void partyLeave();
     void runtimeEstablished(QString activity,bool host);
     void runtimeFrame(QJsonObject frame);
     void runtimeProbeFailed(QString peer, QString message);
@@ -148,6 +162,9 @@ private:
     bool onlineAvailable_=false,onlineWritable_=true;
     bool runtimeAvailable_=false,runtimeOnline_=false;
     QVariantList runtimeCapabilities_;
+    QHash<QString,QVariantMap> gameActivities_;
+    QVariantMap gameParty_;
+    QTimer partyBrowse_{this};
     void publishOnlineContext();
     QVariantList onlineCapabilities_;
     QVariantMap snapshot_;

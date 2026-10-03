@@ -41,6 +41,9 @@ signals:
     void onlineEstablished(quint64 generation, QString self, QString peer, QString name, QString activity, bool initiator);
     void onlineFrame(quint64 generation, QJsonObject frame);
     void onlineEnded(quint64 generation);
+    void partyPacket(quint64 generation, QString peer, QString name, QJsonObject packet);
+    void partyFailed(quint64 generation, QString peer);
+    void partyReset(quint64 generation);
     void runtimeProbeFailed(quint64 generation, QString peer, QString message);
 private:
     friend class SocialTests;
@@ -60,6 +63,8 @@ private:
     bool onlineSending_=false;
     quint64 onlineSendRevision_=0;
     void sendOnline();
+    void sendParty(QString peer, QString content);
+    QSet<QString> partyOpening_;
     void sendAttachment(const QVariantMap& args);
     bool attachmentBusy_ = false, notificationSound_ = true;
     QNetworkReply* attachmentReply_=nullptr;
@@ -135,7 +140,7 @@ private:
     void refresh();
     void refreshChannels();
     void loadMessages(QString channel);
-    void loadOlderMessages();
+    void loadOlderMessages(int skipHidden=4, bool preserveLatest=false);
     void retainHistory();
     void restoreHistory(const QString& channel);
     void loadHistoryCache();

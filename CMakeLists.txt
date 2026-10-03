@@ -16,6 +16,7 @@ find_package(SDL2 2.0.14 REQUIRED CONFIG)
 add_library(trainer_core STATIC
     src/integrations/adventure/retroarch/RetroArchAppearance.cpp
     src/integrations/adventure/retroarch/RetroArchBezels.cpp
+    src/features/adventure/GameParty.cpp
     src/features/social/SocialMedia.cpp
     src/features/settings/CommunicationSettings.cpp
     src/integrations/social/OnlineLink.cpp
@@ -447,6 +448,9 @@ if(BUILD_TESTING)
     # to that file instead of defining them for every generated QML unit.
     set_source_files_properties(src/app/Main.cpp PROPERTIES COMPILE_DEFINITIONS TRAINEROS_UI_TESTS)
     qt_add_executable(trainer_social_tests tests/SocialTests.cpp)
+    qt_add_executable(trainer_game_party_tests tests/GamePartyTests.cpp)
+    target_link_libraries(trainer_game_party_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME game_party COMMAND trainer_game_party_tests)
     qt_add_executable(trainer_online_link_tests tests/OnlineLinkTests.cpp)
     target_link_libraries(trainer_online_link_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME online_link COMMAND trainer_online_link_tests)

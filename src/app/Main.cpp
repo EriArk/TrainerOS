@@ -420,7 +420,7 @@ int main(int argc, char* argv[]) {
         };
         auto gameMenuActions=[&]{
             QVariantList actions{QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(shell.social()->notifications().size())}}};
-            if(multiplayer.canInvite())actions.prepend(QVariantMap{{"id","multiplayer"},{"label","Invite friend"}});
+            if(multiplayer.canInvite())actions.prepend(QVariantMap{{"id","multiplayer"},{"label",multiplayer.menuLabel()}});
             if(adventureProcess.runtimeControls()["kind"]=="retroarch")actions.append(QVariantMap{{"id","display"},{"label","Screen & graphics"}});
             if(!shell.social()->account()["voice"].toMap()["channel"].toString().isEmpty())actions.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",shell.social()->account()["voice"].toMap()["name"]}});
             actions=shell.social()->incomingCallActions()+actions;
