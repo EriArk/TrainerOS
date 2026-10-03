@@ -85,6 +85,9 @@ and real-game evidence. No single web guide settles every platform.
 1. Adopt the common runtime/core bundle contract; resolve current differences
    with versioned artifacts and save-preserving migration, not ad hoc nightly
    updates. Existing RetroArch/PPSSPP gaps stay open; do not repeat passed matches.
+   First [installed artifact baseline](emulators/retroarch.md): 72 matching cores
+   and three common Flatpak application revisions on both devices, with rollback.
+   Remaining standalone migrations and release packaging are still open.
 2. **Dolphin** end-to-end integration: isolated profile, native host/client/start
    bridge, participant-to-pad assignment, controller-driven invitation, game,
    exit and recovery. First GameCube, then the separately configured Wii route.

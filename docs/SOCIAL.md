@@ -1,5 +1,11 @@
 # Native Social - conversations and discovery
 
+**Common runtime baseline, 2026-10-03:** Flip and Odin now verify 72 identical
+core artifacts plus matching RetroArch/PPSSPP/Dolphin Flatpak revisions.
+[Delivery and rollback evidence](emulators/retroarch.md) records bounded checks
+and preservation of existing extra cores/saves. No new invitation or multiplayer
+route was enabled; block 1 and the remaining standalone migrations stay open.
+
 **Owner emulator-coverage correction, 2026-10-03:** the current online-game block
 includes the other suitable emulator families, not just RetroArch and PPSSPP.
 The [standard set](EMULATOR_STANDARD.md) and [route matrix](EMULATOR_MULTIPLAYER_MATRIX.md)

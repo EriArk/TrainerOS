@@ -26,6 +26,14 @@ cross-network/recovery/multi-client acceptance. Separate party voice stays queue
 after this emulator coverage; it must not replace unfinished online-game work.
 This pass selected/audited the set; it did not deploy standardized packages.
 
+**Common artifact delivery, 2026-10-03:** the first
+[ARM64 baseline](emulators/retroarch.md) is now on Flip/Odin: 72 common core
+hashes and matching RetroArch/PPSSPP/Dolphin package revisions. Offline core
+updates have verified backups and interrupted-update rollback. Preserve the
+remaining standalone migrations, release artifact/source/license packaging and
+all multiplayer acceptance. Dolphin's native host/join/start bridge is still
+unimplemented; prepared 2606a source/build reconnaissance is not a route delivery.
+
 Owner implementation clarification: image-owned emulator configuration and
 source patches are allowed, with a separate [maintenance record](emulators/README.md)
 per emulator, versioned changes and update/rollback instructions. PPSSPP identity

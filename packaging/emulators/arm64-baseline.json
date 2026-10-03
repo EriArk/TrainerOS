@@ -1,0 +1,391 @@
+{
+  "version": 1,
+  "revision": "arm64-20261003.1",
+  "architecture": "linux-aarch64",
+  "cores": [
+    {
+      "name": "81_libretro.so",
+      "bytes": 415880,
+      "sha256": "7a2d2a01381fb476fa4a3f7648d5c31b95e6056c15420b397e93eb4fc052c0e2"
+    },
+    {
+      "name": "a5200_libretro.so",
+      "bytes": 287272,
+      "sha256": "7998a4b8c9592efd29502da9f9739e4cbcc58e3ffd6ca2495ca46fe78f630c11"
+    },
+    {
+      "name": "amiarcadia_libretro.so",
+      "bytes": 848992,
+      "sha256": "fc97cbcdd12d9b46227adb9c753ead020d74f655dc3c5d4aa63debc6d386a4c8"
+    },
+    {
+      "name": "applewin_libretro.so",
+      "bytes": 3820680,
+      "sha256": "321cb5cd20a28c6e4540dfc3263c092cd504e4153a7810a63e0072d019f4af8c"
+    },
+    {
+      "name": "arduous_libretro.so",
+      "bytes": 174216,
+      "sha256": "ee8bde607b151ce064e0130a8dedb4fd9ec49ea9bfe236ff12b8bf18ad396549"
+    },
+    {
+      "name": "armsx2_libretro.so",
+      "bytes": 32757432,
+      "sha256": "cf66f1b18f31fa373401c6417dab563fe747a0d8f0b375f92a786c52abf60679"
+    },
+    {
+      "name": "atari800_libretro.so",
+      "bytes": 963120,
+      "sha256": "076ccae83c6887dc26e49edd98e2de4c07768ce4d22ed2c6c50c2deb3bf0efb3"
+    },
+    {
+      "name": "b2_libretro.so",
+      "bytes": 7844872,
+      "sha256": "8d4c6eaed3f7df78871a25d1491a20141a610ebf064fca398a9c4a3414ed6817"
+    },
+    {
+      "name": "bk_libretro.so",
+      "bytes": 189584,
+      "sha256": "1b836672e223348f80ae2cbbb2042322ee91c72bbde862b6224116b70f977997"
+    },
+    {
+      "name": "bluemsx_libretro.so",
+      "bytes": 1629984,
+      "sha256": "cb6a7d33d93a23e4089f5cf3d44406b6e45dadc2d0ba429fa7157012d2ac301b"
+    },
+    {
+      "name": "cap32_libretro.so",
+      "bytes": 1571456,
+      "sha256": "cc89e9c18c472f679402f7a78679f2084b2d5019bdb22ad9b88519c19587903b"
+    },
+    {
+      "name": "cemu_libretro.so",
+      "bytes": 21059960,
+      "sha256": "a07acf795cd807f759f67a7a869bb24888f790c7d0ec0ad5d3d114badc535074"
+    },
+    {
+      "name": "citra_libretro.so",
+      "bytes": 29271288,
+      "sha256": "d983fe8a3329478e10f2dbbb617ddae9a6652339a038fdf714762785b238dc93"
+    },
+    {
+      "name": "dosbox_pure_libretro.so",
+      "bytes": 2850928,
+      "sha256": "a391d8708269edca8d7d4e84183fbc30a78a27d4fe45645566d7a8dd3e2cfc90"
+    },
+    {
+      "name": "emuscv_libretro.so",
+      "bytes": 4181232,
+      "sha256": "cbb19ce5d7187dfe22cc865d1885ae575802bcd45e244e0dbd4dc4bbe9ba4779"
+    },
+    {
+      "name": "ep128emu_core_libretro.so",
+      "bytes": 3652528,
+      "sha256": "0a589aefa2946ab7b7dc1c518e6947852ab4c7eb9aafc825446af14b36f4ea08"
+    },
+    {
+      "name": "fbneo_libretro.so",
+      "bytes": 79284728,
+      "sha256": "ffb37315a609317e1a00bf32c0e3d66c5a848d052d1260f4ab7f42da0f9fb9c3"
+    },
+    {
+      "name": "fceumm_libretro.so",
+      "bytes": 4451672,
+      "sha256": "1b13b00d4680394dad8000d5175f97be727107e0945bc9b412da91d70c07b267"
+    },
+    {
+      "name": "flycast_libretro.so",
+      "bytes": 38743272,
+      "sha256": "0f18e86be41e800fe84604192824ae37726f1937ab503d37519bd42b15b7bc1e"
+    },
+    {
+      "name": "freechaf_libretro.so",
+      "bytes": 84520,
+      "sha256": "f0f24b56d2fd9d5befce8e5915be0ae1c79fe7d2346ac89e72234779d1349baa"
+    },
+    {
+      "name": "freeintv_libretro.so",
+      "bytes": 626056,
+      "sha256": "f0e6dfb5089bdcef32c0cc2fecfc724be5acb9d6a7a2a7e1522b013b1f7a38f8"
+    },
+    {
+      "name": "fuse_libretro.so",
+      "bytes": 1466176,
+      "sha256": "9561c0b4759e3f9301fbe39eb60828b17d3ea6e9950cf3bd721f0a97481d1246"
+    },
+    {
+      "name": "gambatte_libretro.so",
+      "bytes": 4818136,
+      "sha256": "8db8742add1b9e0b4918145411f54c0050eed61638c1d3f15d011644f9a5eeaf"
+    },
+    {
+      "name": "gearcoleco_libretro.so",
+      "bytes": 467416,
+      "sha256": "0e9656d318019b4085ae0af431611cc906855f26e279781dbd79c5cb05f28d6c"
+    },
+    {
+      "name": "genesis_plus_gx_libretro.so",
+      "bytes": 12585120,
+      "sha256": "de8ad971eee89fa5e4e00dd1c048f0a8cc53cd9558b8c143aa022f5d7623d273"
+    },
+    {
+      "name": "gw_libretro.so",
+      "bytes": 563184,
+      "sha256": "56bc41f0e49565ed84d35e7a92949bffa075b4ab6be0f0dc84118ab4fd16b815"
+    },
+    {
+      "name": "handy_libretro.so",
+      "bytes": 887120,
+      "sha256": "3efb38b73e44b561d89f4877e9ac86a1fe99bcb23a1ad0843204d2dd254d892e"
+    },
+    {
+      "name": "hatari_libretro.so",
+      "bytes": 20347632,
+      "sha256": "317eb58690a748828dd27fd50a0fd80811e2da023bf164b70dbb24c1c3c53c19"
+    },
+    {
+      "name": "lowresnx_libretro.so",
+      "bytes": 133328,
+      "sha256": "6a28c0d9e095dac15f2769b4bbeadbf2047e2aedfc2486e2cf1af28df323b688"
+    },
+    {
+      "name": "mame_libretro.so",
+      "bytes": 392603432,
+      "sha256": "4b37dc1289104b45baa2a3b531ccfaba988a12467084e41298ae0a128742ad2f"
+    },
+    {
+      "name": "mednafen_ngp_libretro.so",
+      "bytes": 375880,
+      "sha256": "b67d6a649117a9d82f015b5b5530e749fe5c5c198005d71061aa3e46e3da1b9d"
+    },
+    {
+      "name": "mednafen_pce_fast_libretro.so",
+      "bytes": 4465448,
+      "sha256": "f7686b2bfab6a9ca34d3d48e6eda5c41ae37c430cf5c73b0f256cefd54990a51"
+    },
+    {
+      "name": "mednafen_pcfx_libretro.so",
+      "bytes": 1876640,
+      "sha256": "9a6ca3bfd16cd480ba4c94602c1103838899a770e83584ea809891d6acca6e1e"
+    },
+    {
+      "name": "mednafen_supergrafx_libretro.so",
+      "bytes": 3669872,
+      "sha256": "574c4b61e83b1a4034a42cfceed62e09ae8f0809c85527ca979fe9c5e18865e3"
+    },
+    {
+      "name": "mednafen_vb_libretro.so",
+      "bytes": 169048,
+      "sha256": "f0aa440c5e76c9f2b7b3f9d18c9e5ff8dac252d5539ab69adf03d32bcbfa10be"
+    },
+    {
+      "name": "mednafen_wswan_libretro.so",
+      "bytes": 1168952,
+      "sha256": "700b6eb5678a3283db9818cf22c68783d0d7f1607142b1d069c366eab81dfbaa"
+    },
+    {
+      "name": "mgba_libretro.so",
+      "bytes": 3280408,
+      "sha256": "abde7a0764f08fa0cc2c7d3d9a29b9d1245a9f3b7df0e7a594b74df642ee53c6"
+    },
+    {
+      "name": "minivmac_libretro.so",
+      "bytes": 594720,
+      "sha256": "09acdbb9f72352ebf54cdee8ae3864acf681753103183ffcabd9845d90cfffec"
+    },
+    {
+      "name": "neocd_libretro.so",
+      "bytes": 1167856,
+      "sha256": "4e113c99a14b1ab96181ded0e5a879a2c87b29a495a8e30315ec6efc96465ad4"
+    },
+    {
+      "name": "np2kai_libretro.so",
+      "bytes": 2656352,
+      "sha256": "5c5123d16da656c9a7a8a9db1caed89ed5832cfd465437e5057d5224fef3e3e1"
+    },
+    {
+      "name": "o2em_libretro.so",
+      "bytes": 337984,
+      "sha256": "155fa5caa73687cadd9c5ba22706b3be3560157165873eca1b52daa0f2bdc588"
+    },
+    {
+      "name": "opera_libretro.so",
+      "bytes": 513224,
+      "sha256": "ef88a7040a6a97c0ac14399c12151c68c69d05f09f301d447a4596c6621e9aaa"
+    },
+    {
+      "name": "parallel_n64_libretro.so",
+      "bytes": 7630016,
+      "sha256": "7301ca3ea5030c23c8bbaec53f90379b15c93cf2aba77fcaf746d206dc5c1560"
+    },
+    {
+      "name": "pcsx_rearmed_libretro.so",
+      "bytes": 1747256,
+      "sha256": "25bfeb6336d7ef573903775fe53733af974c90edd268cf4fb9afa497e188609d"
+    },
+    {
+      "name": "picodrive_libretro.so",
+      "bytes": 1863928,
+      "sha256": "6b0dbe4e21f0e47afbf8a89d59b92e5b48a316dd7c5fae8c74d7351f341de044"
+    },
+    {
+      "name": "pokemini_libretro.so",
+      "bytes": 356344,
+      "sha256": "afaf6d425a283b7dce94ab2e8e5da21f267f1fa808f47348044f4f3dc9f943f2"
+    },
+    {
+      "name": "potator_libretro.so",
+      "bytes": 62568,
+      "sha256": "6ce04f01c2ee993cda6b83131d9434a56bf3817e2590b2e4e2d1118f7d140937"
+    },
+    {
+      "name": "ppsspp_libretro.so",
+      "bytes": 19969048,
+      "sha256": "a508773e5a4942ba32f19dc7cb4a32802f693eb93336438b2f0d2fe01145ba70"
+    },
+    {
+      "name": "prosystem_libretro.so",
+      "bytes": 201208,
+      "sha256": "284a5c1390d47c00967bed8c8b83a14a04234508fff69ffac906d532f7db8a51"
+    },
+    {
+      "name": "puae_libretro.so",
+      "bytes": 21289480,
+      "sha256": "01c3a33921240657c73d66e10fab607fb674e0d4b9ecc9d66a01f8da5d32d8ad"
+    },
+    {
+      "name": "px68k_libretro.so",
+      "bytes": 942864,
+      "sha256": "4faa50da0016e80e5397ca2ca2f8d7bb7b57c80ce004faf6bd4388d82f2837b7"
+    },
+    {
+      "name": "quasi88_libretro.so",
+      "bytes": 2218192,
+      "sha256": "366e9fc72877d40d6878611ab3b7bc8f6aa1d2b1053d42d48c93bf4b02bf53a7"
+    },
+    {
+      "name": "retro8_libretro.so",
+      "bytes": 363896,
+      "sha256": "b1054563ab2e548d62597f32a6bcaf12e4c1ff1a5d331ecd128b30ccacfed84c"
+    },
+    {
+      "name": "same_cdi_libretro.so",
+      "bytes": 11004656,
+      "sha256": "17f8f0b0aa81a4bfc9e09bb399fcfb29d6aa58c7592247d25c079dd9b42a9ef7"
+    },
+    {
+      "name": "sameduck_libretro.so",
+      "bytes": 110112,
+      "sha256": "d0a75d3772d4c1d9d66fbddf95d8fb0a2496205144157c586f10f3998028a8be"
+    },
+    {
+      "name": "scummvm_libretro.so",
+      "bytes": 136131872,
+      "sha256": "7e7dde9c7216b68fc09f5c86d847ed912c06c2dba721166444764eb57fa57b3d"
+    },
+    {
+      "name": "snes9x_libretro.so",
+      "bytes": 2989608,
+      "sha256": "e8d8f5cf93898c7be3ca2590d4d75dc8e9a89b891589c2da1a7917fa27411d21"
+    },
+    {
+      "name": "stella_libretro.so",
+      "bytes": 7250712,
+      "sha256": "bf2cf27781f9e393079c9a53c71d8676d638025086955498641723a8e121228a"
+    },
+    {
+      "name": "theodore_libretro.so",
+      "bytes": 2286040,
+      "sha256": "2ddb36c0f34fbd84782b2799f28e2e94faff70b62ea0887e1c581b978000b3cc"
+    },
+    {
+      "name": "tic80_libretro.so",
+      "bytes": 4341592,
+      "sha256": "465e54f90ecc581115fbd70cbee9adad9967492cb8c9dfb3390985e67bdc10b0"
+    },
+    {
+      "name": "uzem_libretro.so",
+      "bytes": 77056,
+      "sha256": "d75685c9191a2d07422568960ac68e5dc0f3ea5a796c115c4ec1aa43d84ff609"
+    },
+    {
+      "name": "vecx_libretro.so",
+      "bytes": 207688,
+      "sha256": "d9d86dadab9098e2c9847ddee10af553a8b883589c7c41107d4806eb45759ec9"
+    },
+    {
+      "name": "vice_x128_libretro.so",
+      "bytes": 3903744,
+      "sha256": "1676b8b13ce00884ee3861849bc7755d2f3a5b04b7dc400a2839323ce040280f"
+    },
+    {
+      "name": "vice_x64_libretro.so",
+      "bytes": 3560544,
+      "sha256": "e3bb88342920ed43a18d8b01698bdaa1dc92b7e45a56ac65c33917d4eae9621c"
+    },
+    {
+      "name": "vice_xpet_libretro.so",
+      "bytes": 2731168,
+      "sha256": "8bf51453b95e6f1d8e55eae918c433538388ce4254f29e08f9b314086008075e"
+    },
+    {
+      "name": "vice_xplus4_libretro.so",
+      "bytes": 2850288,
+      "sha256": "1ddcaf46c5e51aeaa419b45d873eec3919a844a7729e92a9eb39d6ad86669646"
+    },
+    {
+      "name": "vice_xvic_libretro.so",
+      "bytes": 2867256,
+      "sha256": "e607670898ed84e1fab13d1f36f2e4c0fd3f87e57ce25e5f99f50a07008a9eca"
+    },
+    {
+      "name": "vircon32_libretro.so",
+      "bytes": 2846552,
+      "sha256": "51bad96135f05b3c9c536bacc3f61c2e08b31520924b8164de64fb369180e494"
+    },
+    {
+      "name": "virtualjaguar_libretro.so",
+      "bytes": 2575416,
+      "sha256": "7ef3c2344e130ff69ab7c0f2c717e9aa5be47ad212840db4875d0a8c21dc997b"
+    },
+    {
+      "name": "wasm4_libretro.so",
+      "bytes": 153824,
+      "sha256": "3e2328e279173d7de4f942fc5e455aa9b5d4d668e89242ade0738509dcd80bfb"
+    },
+    {
+      "name": "x1_libretro.so",
+      "bytes": 400608,
+      "sha256": "9918001d66e4d49c178ca6599267a0bb0fea75ad7379160c5ef8e5559a943291"
+    },
+    {
+      "name": "yabasanshiro_libretro.so",
+      "bytes": 1864688,
+      "sha256": "a22ab8993b30edbd029bd593a353f9db1080546ac577e7f8f0c7b98dbfec714c"
+    }
+  ],
+  "scope": "Observed development baseline, not the final image release lock",
+  "runtimePackages": [
+    {
+      "id": "org.libretro.RetroArch",
+      "version": "1.22.2",
+      "ref": "app/org.libretro.RetroArch/aarch64/stable",
+      "commit": "a72a8a0a7cde5c24a0134a32fdc1469fb644c459e9974f644e95170ae5dba8bc",
+      "executableSha256": "8d57b47c88d416c05145187c8c906b7ab0013edb7e45af69d9b6bb841aea4a24"
+    },
+    {
+      "id": "org.DolphinEmu.dolphin-emu",
+      "version": "2606a",
+      "ref": "app/org.DolphinEmu.dolphin-emu/aarch64/stable",
+      "commit": "50741ae7267181560aa88d3a1ba7177321629c171ad2677504409afa6b4462db",
+      "executableSha256": "c982a32b95d538325dd69cf8d4c2f0ae09f19447a91d824afca1d68492bfe7bd"
+    },
+    {
+      "id": "org.ppsspp.PPSSPP",
+      "version": "1.20.4",
+      "ref": "app/org.ppsspp.PPSSPP/aarch64/stable",
+      "commit": "678bf845ac9679ddf5d2be24ed39bc21b269a573b7ba07a1795175aaf4a57040",
+      "executableSha256": "c99cec693067f8c94ae0d8b5e7299392ed5c0cfae3f8231176ed25ea6c155dfc"
+    }
+  ]
+}

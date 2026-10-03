@@ -7,6 +7,14 @@ Flip 2 and Odin 2. Other devices require their own build/input/performance proof
 [ROADMAP](ROADMAP.md) remains the execution queue; the
 [multiplayer matrix](EMULATOR_MULTIPLAYER_MATRIX.md) owns route evidence.
 
+**First installed baseline, 2026-10-03:** both devices now verify the same 72
+core artifacts and RetroArch/PPSSPP/Dolphin package revisions. Odin's previous
+cores and extra installed cores are preserved. The
+[manifest](../packaging/emulators/arm64-baseline.json) and
+[maintenance/recovery record](emulators/retroarch.md) identify actual delivery.
+Remaining standalone selections below are still targets; this does not finish
+the whole standard image or add Dolphin multiplayer.
+
 ## Selection
 
 One primary runtime per platform, common across devices. Device profiles change
@@ -82,11 +90,13 @@ server asset is not proof that its emulator client asset is Linux ARM64.
 - Maintain [one record per changed emulator](emulators/README.md). Record source
   patches and build recipes in Git; local modifications alone are not the image.
 
-## Current differences to resolve
+## Initial inventory before alignment
 
 Live read-only inventory on both handhelds, 2026-10-03. No runtime was installed,
 updated, removed or launched into a game in this pass. Dolphin `--help` exited
 normally in offscreen mode; no host/client commands were advertised.
+The later installed-baseline note above supersedes these core/package differences;
+the remaining standalone gaps are still open.
 
 | Item | Flip 2 | Odin 2 | Consequence |
 | --- | --- | --- | --- |
