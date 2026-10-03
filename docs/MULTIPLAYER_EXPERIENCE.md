@@ -104,8 +104,33 @@ default for native Link and the Wi-Fi Direct deferral. Never silently disconnect
 internet/voice to make a local route. Fluxer carries social coordination; the
 emulator's route carries gameplay. No virtual-LAN product is selected yet.
 
+### Connection setup requirement
+
+Owner clarification, 2026-10-03: connecting must be fast and automatic from the
+player's perspective. At most initial account registration/sign-in belongs in
+the first-run wizard. Normal play is Invite -> Accept -> automatic preparation,
+or deliberate Join under the agreed access policy. Existing game/save consent
+remains; network administration is not an additional player task.
+
+No separate VPN installation/configuration, network IDs, manual addresses, port
+forwarding, provider dashboard visits or manual device approval by players.
+TrainerOS must handle supported provisioning, session access, route setup and
+cleanup, and ordinary reconnection after reboot/network changes. If direct
+connection is unavailable, use a supported automatic relay when the selected
+route provides one; otherwise report the actual failure, not a router tutorial.
+
+An already configured developer network does not prove this requirement.
+Evaluate automation APIs, account model and operational requirements before
+committing to a transport. Verify two freshly configured devices/accounts through
+the normal wizard, invitations and return after reboot; record connection time
+and every required user action. No specific latency target or provider is assumed.
+The necessary provisioning/relay service may be operated for the product, but
+must not become a server that every family has to configure.
+
 ## Acceptance additions (all pending)
 
+- [ ] Fresh-device online setup requires at most the wizard account step;
+  invitations/Join, routing and ordinary reconnection need no VPN administration.
 - [ ] Named invites and reverse requests from actual game activity, including
   decline/cancel/expiry, unavailable games and stale session destinations.
 - [ ] Deliberate one-action Join with company free access; policy inheritance,

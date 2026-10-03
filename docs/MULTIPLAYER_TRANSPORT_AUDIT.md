@@ -8,6 +8,15 @@ device configuration changed or gameplay test performed for this audit pass.
 Code/provider inspection and a read-only inventory of both handhelds were completed
 on 2026-10-03. Comparative gameplay measurements remain pending.
 
+**Owner usability gate, 2026-10-03:** first establish whether a candidate can
+support the [automatic connection contract](MULTIPLAYER_EXPERIENCE.md#connection-setup-requirement).
+At most account setup in the initial wizard is acceptable; no player-managed
+VPN/network/device enrollment or router configuration. Existing Tailscale is a
+lab convenience only. A successful manually prepared tunnel can inform technical
+comparison but cannot qualify a product route. Audit supported provisioning APIs,
+account boundaries and operated services before spending time on that candidate's
+full gameplay benchmark. Fresh-device setup and reconnect are acceptance gates.
+
 ## Local evidence and gaps
 
 | Finding | Evidence / consequence |

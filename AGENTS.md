@@ -1,5 +1,15 @@
 # AGENTS.md — TrainerOS
 
+**Owner connection setup requirement, 2026-10-03:** multiplayer must connect
+quickly through TrainerOS without user-managed VPN setup. At most an initial
+account registration/sign-in step belongs in the first-run wizard. Never require
+network IDs, IPs, router changes, provider dashboards, device approvals or VPN
+administration from ordinary players. Existing developer-configured Tailscale
+access is a research convenience, not product readiness. Establish supported
+automatic provisioning/admission/reconnect before selecting a transport; prove
+the fresh-device journey as well as actual gameplay. See
+[connection acceptance](docs/MULTIPLAYER_EXPERIENCE.md#connection-setup-requirement).
+
 **Owner multiplayer/company agreement, 2026-10-03:** persistent companies may
 contain several independent simultaneous game parties, each with its own game,
 capacity, organizer and access. Add requests to join from a friend's game

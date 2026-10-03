@@ -29,6 +29,10 @@ or a second queue):
 
 1. Finish the bounded session/provider/transport audit: multi-client ownership,
    real group/voice contracts, and comparable native versus virtual-LAN evidence.
+   Owner refinement: first verify feasible automatic provisioning with at most
+   account setup in the initial wizard. No user-managed VPN or router changes;
+   developer-configured Tailscale alone is not a deliverable. Include fresh-device
+   setup and ordinary reconnect in the final route acceptance.
    Source/provider/inventory findings are now recorded; the remaining part is the
    bounded gameplay comparison, not another general source survey. Choose the
    supported company/party voice mapping before implementing private audiences.
