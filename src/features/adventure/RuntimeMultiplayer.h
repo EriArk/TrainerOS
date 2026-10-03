@@ -32,7 +32,7 @@ signals:
 private:
     void update();
     void show(QString panel);
-    void begin(bool host,bool online);
+    void begin(QString activity,bool host,bool online);
     void prepareHost();
     void resolveRelay();
     void frame(const QJsonObject&);
@@ -45,10 +45,11 @@ private:
     ProcessService& process_;AdventureLaunchController& lifecycle_;AdventureExitPresentation& overlay_;
     LocalLinkPeer nearby_{this,47855,47856,"trainerosRuntime"};
     OnlineLink consent_{this};
-    QFutureWatcher<QPair<QString,QJsonObject>> scan_{this};
+    QFutureWatcher<QMap<QString,QJsonObject>> scan_{this};
     QNetworkAccessManager network_{this};QTimer timer_{this};
     QString trainer_,identity_,game_,peerId_,peerName_,status_,selection_,onlinePerson_;
     QJsonObject descriptor_;
+    QMap<QString,QJsonObject> games_;
     retroarch::NetplayRequest request_;
     retroarch::NetplayClient client_{this};
     RetroArchInstallation installation_;

@@ -33,6 +33,21 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void multiplayerProfilesRequireExactContentAndPlatform() {
+        const auto gunstar=retroarch::netplayProfile("megadrive","genesis_plus_gx",
+            "f177810ce614be21c1a9214c0ca4d8f8d357b04a497c02fae185e4b2f97b6b87");
+        QCOMPARE(gunstar["id"].toString(),QString("runtime.genesis.gunstar-us.v1"));
+        QCOMPARE(gunstar,retroarch::netplayProfile("megadrive","genesis_plus_gx",
+            "626061be86f7eb488da0eb0ef011c5a13e8a951cf6bb039340b4774c25a039bd"));
+        QVERIFY(retroarch::netplayProfile("snes","genesis_plus_gx",gunstar["content"].toString()).isEmpty());
+        QVERIFY(retroarch::netplayProfile("megadrive","picodrive",gunstar["content"].toString()).isEmpty());
+        QVERIFY(retroarch::netplayProfile("megadrive","genesis_plus_gx",QString(64,'0')).isEmpty());
+        const auto streets=retroarch::netplayProfile("megadrive","genesis_plus_gx",
+            "4a314edbfee92282850fe95c4c764921916efd9d3c2277fdec2581279b1369b1");
+        QVERIFY(!streets.isEmpty());QVERIFY(streets["id"]!=gunstar["id"]);
+        QVERIFY(!retroarch::netplayProfile("snes","snes9x",
+            "a93ea87fc835c530b5135c5294433d15eef6dbf656144b387e89ac19cf864996").isEmpty());
+    }
     void relayDirectoryRequiresCompleteUnambiguousEndpoint() {
         const QByteArray reply="status=OK\r\ntunnel_addr=europe-west1.relay.retroarch.com\r\ntunnel_port=55435\r\n";
         QCOMPARE(retroarch::netplayRelayEndpoint(reply),QString("europe-west1.relay.retroarch.com|55435"));

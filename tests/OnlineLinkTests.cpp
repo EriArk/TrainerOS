@@ -27,7 +27,7 @@ private slots:
         QCOMPARE(first.state()["actions"].toList().size(),1);
         first.invite(runtime["id"].toString());QVERIFY(packets.isEmpty());
         first.close();second.close();first.lastProbe_=second.lastProbe_=0;
-        second.setCapabilities({trade,runtime});first.probe("300","200");deliver();
+        second.setCapabilities({trade,runtime});first.probe("300","200",runtime);deliver();
         QSignalSpy host(&first,&OnlineLink::established),guest(&second,&OnlineLink::established);
         first.invite(runtime["id"].toString());deliver();
         QCOMPARE(second.state()["activity"].toMap(),runtime.toVariantMap());
@@ -38,6 +38,28 @@ private slots:
         QSignalSpy settings(&second,&OnlineLink::frameReceived);
         first.sendFrame({{"kind","ready"},{"port",55435}});deliver();
         QCOMPARE(settings.size(),1);
+    }
+    void largeRuntimeLibraryNegotiatesOnlyRequestedGame() {
+        OnlineLink first,second;pair(first,second);
+        QJsonArray library{trade};
+        for(int n=0;n<100;++n)library.append(QJsonObject{{"id","runtime.game."+QString::number(n)},
+            {"label","Game "+QString::number(n)},{"content",QString(64,'a')},
+            {"core",QString(64,'b')},{"runtime",QString(64,'c')},{"settings","default-no-sram"}});
+        first.setCapabilities(library);second.setCapabilities(library);
+        const auto wanted=library.last().toObject();
+        first.probe("300","200",wanted);deliver();
+        QCOMPARE(first.state()["actions"].toList(),QVariantList{wanted.toVariantMap()});
+        first.invite(wanted["id"].toString());deliver();
+        QCOMPARE(second.state()["activity"].toMap(),wanted.toVariantMap());
+        second.answer(true);deliver();QCOMPARE(first.state()["stage"].toString(),"connected");
+        first.close();second.close();first.lastProbe_=second.lastProbe_=0;
+        first.probe("300","200");deliver();
+        QCOMPARE(first.state()["actions"].toList(),QVariantList{trade.toVariantMap()});
+        first.close();second.close();first.lastProbe_=second.lastProbe_=0;
+        auto changed=wanted;changed["core"]="different-build";
+        second.setCapabilities({trade,changed});first.probe("300","200",wanted);deliver();
+        QVERIFY(first.state()["actions"].toList().isEmpty());
+        first.invite(wanted["id"].toString());QVERIFY(packets.isEmpty());
     }
     void simultaneousChecksAndProtectedSurface() {
         OnlineLink first,second;pair(first,second);

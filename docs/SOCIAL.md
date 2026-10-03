@@ -1,5 +1,14 @@
 # Native Social - conversations and discovery
 
+**Multi-platform continuation, 2026-10-03:** actual runtime invitations now
+negotiate the selected game's descriptor only, keeping large libraries within
+Fluxer's message limit. Guests resolve their own exact copy. SNES and Mega Drive
+profiles coexist; Streets of Rage 2 consent, online P2 character selection and
+level movement have Flip/Odin evidence. Full paired control/recovery and separate
+networks remain open. Standalone PSP is the next distinct runtime route, not an
+implicit consequence of RetroArch support. Both ordinary deployments still keep
+the experiment disabled. [Exact evidence](EMULATOR_MULTIPLAYER.md#multiple-games-and-a-second-platform---2026-10-03).
+
 **Runtime experiment, 2026-10-03:** block 1 remains incomplete. Both handhelds
 accepted a local invitation and independently controlled players 1/2 through
 remote controller input. The session-local udev fix is installed on both; physical

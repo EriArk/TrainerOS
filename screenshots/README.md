@@ -54,6 +54,14 @@ separately. These invitation captures alone do not prove gameplay; see
 | In-game invitation route | Flip 2 | [![Experimental invitation](20-experimental-game-invitation.png)](20-experimental-game-invitation.png) |
 | Named invitation consent | Odin 2 | [![Experimental consent](21-experimental-game-consent.png)](21-experimental-game-consent.png) |
 | Online friend invitation, updated caption | Odin 2 | [![Online invitation](22-experimental-online-invitation.png)](22-experimental-online-invitation.png) |
+| Exact Mega Drive game invitation | Odin 2 | [![Streets of Rage 2 invitation](23-experimental-megadrive-invitation.png)](23-experimental-megadrive-invitation.png) |
+
+Screen 23 is an actual 3 October capture with the experimental multi-game build
+(`b5ce54dbc73131dc5ba6af7df892a51f631abe767220e81b0ad4349c71abc663`).
+The accepted invitation launched Streets of Rage 2 on both devices; P2 character
+selection and level movement were observed separately. Distinct-network and full
+paired-session acceptance remain open. Normal installed launches disable this
+experiment; this screen is not a claim of general platform support.
 
 ## Capture provenance
 

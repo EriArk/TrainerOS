@@ -57,12 +57,13 @@ void OnlineLink::emitPacket(QString kind,QJsonObject e) {
     if(content.size()>2000){close("This activity exceeds the online message limit.");return;}
     emit outgoing(channel_,content);
 }
-void OnlineLink::probe(QString channel,QString peer) {
+void OnlineLink::probe(QString channel,QString peer,QJsonObject activity) {
     if(account_.isEmpty()||peer==account_||!validUuid(endpoint_)||stage_=="connected"||stage_=="incoming"||stage_=="inviting"||stage_=="accepting")return;
     if(now()-lastProbe_<10)return;
     lastProbe_=now();close();channel_=channel;peer_=peer;request_=uuid();initiator_=true;
     stage_="checking";status_="Checking your friend's TrainerOS...";deadline_=now()+30;
-    emitPacket("probe");emit changed();
+    if(!activity.isEmpty()&&!supports(capabilities_,activity)){close("This game is no longer available.");return;}
+    emitPacket("probe",activity.isEmpty()?QJsonObject{}:QJsonObject{{"activity",activity}});emit changed();
 }
 void OnlineLink::invite(QString id) {
     if(stage_!="available"||!available_||deadline_<now())return;
@@ -106,7 +107,16 @@ void OnlineLink::receive(QString channel,QString author,QString name,const QJson
         seenProbes_.append(author+request);while(seenProbes_.size()>128)seenProbes_.removeFirst();
         lastProbe_=now();close();channel_=channel;peer_=author;peerName_=name.left(100);peerEndpoint_=endpoint;peerBoot_=boot;request_=request;
         initiator_=false;stage_="offered";deadline_=now()+90;
-        emitPacket("capabilities",{{"activities",capabilities_}});emit changed();return;
+        // Runtime libraries can contain hundreds of games. Negotiate the one
+        // local descriptor being invited, never serialize an entire library
+        // into Fluxer's bounded message. Ordinary Link keeps its own activities.
+        QJsonArray offered;
+        if(e.contains("activity")) {
+            const auto wanted=e["activity"].toObject();
+            if(supports(capabilities_,wanted))offered.append(wanted);
+        } else for(const auto& value:capabilities_)
+            if(!value.toObject()["id"].toString().startsWith("runtime."))offered.append(value);
+        emitPacket("capabilities",{{"activities",offered}});emit changed();return;
     }
     if(author!=peer_||channel!=channel_||request!=request_||e["target"]!=boot_)return;
     if(kind=="capabilities"&&stage_=="checking") {

@@ -26,7 +26,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(active_)fail(std::move(message));
     });
     connect(&scan_,&QFutureWatcherBase::finished,this,[this]{
-        const auto result=scan_.result();game_=result.first;descriptor_=result.second;update();
+        games_=scan_.result();update();
         refresh(installation_,trainer_,allowed_);
     });
     connect(&nearby_,&LocalLinkPeer::connectedToPeer,this,[this]{
@@ -36,7 +36,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(packet.contains("hello")) {
             if(!peerId_.isEmpty()||QUuid(packet["hello"].toString()).isNull())return;
             peerId_=packet["hello"].toString();peerName_=packet["name"].toString().left(48);
-            if(nearby_.outgoing())consent_.probe("nearby",peerId_);
+            if(nearby_.outgoing())consent_.probe("nearby",peerId_,descriptor_);
             return;
         }
         if(!peerId_.isEmpty())consent_.receive("nearby",peerId_,peerName_,packet);
@@ -50,9 +50,9 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         }
         update();
     });
-    connect(&consent_,&OnlineLink::established,this,[this](QString,QString,QString,QString,bool host){begin(host,false);});
+    connect(&consent_,&OnlineLink::established,this,[this](QString,QString,QString,QString activity,bool host){begin(activity,host,false);});
     connect(&consent_,&OnlineLink::frameReceived,this,&RuntimeMultiplayer::frame);
-    connect(&social_,&SocialController::runtimeEstablished,this,[this](QString,bool host){begin(host,true);});
+    connect(&social_,&SocialController::runtimeEstablished,this,[this](QString activity,bool host){begin(activity,host,true);});
     connect(&social_,&SocialController::runtimeFrame,this,&RuntimeMultiplayer::frame);
     connect(&social_,&SocialController::runtimeProbeFailed,this,[this](QString peer,QString message){
         if(!active_&&onlinePerson_==peer)fail(std::move(message));
@@ -112,25 +112,26 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     trainer_=std::move(trainer);allowed_=allowed;
     installation_=installation;
     const auto records=library_.registrations();
-    quint64 revision=qHash(installation.runtimeFile+installation.cores.value("snes9x"));
-    for(const auto& r:records)if(r.adventure.platformId=="snes")
+    quint64 revision=qHash(installation.runtimeFile+installation.cores.value("snes9x")+installation.cores.value("genesis_plus_gx"));
+    for(const auto& r:records)if(r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive")
         revision=qHashMulti(revision,r.adventure.id,r.contentPath,r.revision,r.integrationConfig["core"].toString());
     if(!revision)revision=1;
     if(!scan_.isRunning() && (scanRevision_!=revision||!scanRevision_)) {
         scanRevision_=revision;
         scan_.setFuture(QtConcurrent::run([records,installation]{
             std::atomic_bool cancel=false;
-            for(const auto& r:records)if(r.adventure.platformId=="snes") {
+            QMap<QString,QJsonObject> games;
+            for(const auto& r:records)if(r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive") {
                 const auto identity=retroarch::netplayIdentity(r,installation,cancel);
-                if(!identity.isEmpty())return qMakePair(r.adventure.id,identity);
+                if(!identity.isEmpty())games.insert(r.adventure.id,identity);
             }
-            return QPair<QString,QJsonObject>{};
+            return games;
         }));
     }
     update();
 }
 bool RuntimeMultiplayer::canInvite() const {
-    return allowed_&&!game_.isEmpty()&&process_.runtimeControls()["game"]==game_&&!active_
+    return allowed_&&games_.contains(process_.runtimeControls()["game"].toString())&&!active_
         &&!process_.runtimeControls().contains("netplay");
 }
 bool RuntimeMultiplayer::incoming() const {
@@ -139,7 +140,7 @@ bool RuntimeMultiplayer::incoming() const {
 }
 QString RuntimeMultiplayer::invitation() const {
     const auto state=consent_.state()["incoming"].toBool()?consent_.state():social_.online();
-    return state["name"].toString()+" invites you to a new two-player game of Contra III.";
+    return state["name"].toString()+" invites you to play "+state["activity"].toMap()["label"].toString()+".";
 }
 void RuntimeMultiplayer::answer(bool accept) {
     if(!incoming())return;
@@ -150,8 +151,12 @@ bool RuntimeMultiplayer::dispatch(Action a) {
     if(a==Action::Confirm)answer(true);else if(a==Action::Back)answer(false);return true;
 }
 void RuntimeMultiplayer::update() {
-    const bool available=allowed_&&!descriptor_.isEmpty()&&(!lifecycle_.active()||canInvite()||active_);
-    const QJsonArray caps=available?QJsonArray{descriptor_}:QJsonArray{};
+    if(!active_&&onlinePerson_.isEmpty()&&peerId_.isEmpty()) {
+        game_=process_.runtimeControls()["game"].toString();descriptor_=games_.value(game_);
+    }
+    const bool available=allowed_&&!games_.isEmpty()&&(!lifecycle_.active()||canInvite()||active_);
+    QJsonArray caps;
+    if(available)for(const auto& descriptor:games_)if(!caps.contains(descriptor))caps.append(descriptor);
     social_.setRuntimeContext(available,caps.toVariantList());consent_.setAvailable(available);
     if(consent_.state()["stage"]=="idle"||consent_.state()["stage"]=="offered")consent_.setCapabilities(caps);
     nearby_.configure(identity_,trainer_);
@@ -188,16 +193,26 @@ bool RuntimeMultiplayer::action(const QString& id) {
     }
     if(id=="multiplayer"||id=="multiplayer-nearby"||id=="multiplayer-online"){show(id);return true;}
     if(!canInvite())return true;
+    game_=process_.runtimeControls()["game"].toString();descriptor_=games_.value(game_);
     invited_=false;status_.clear();deadline_=QDateTime::currentSecsSinceEpoch()+75;timer_.start();
     if(id.startsWith("multiplayer-local:")) {
         online_=false;onlinePerson_.clear();consent_.close();nearby_.disconnectPeer();nearby_.connectId(id.section(':',1));
     } else if(id.startsWith("multiplayer-friend:")) {
-        online_=true;onlinePerson_=id.section(':',1);social_.runtimeCommand("runtime-probe-person",{{"id",onlinePerson_}});
+        online_=true;onlinePerson_=id.section(':',1);social_.runtimeCommand("runtime-probe-person",{{"id",onlinePerson_},{"activity",descriptor_.toVariantMap()}});
     }
     show("multiplayer-wait");return true;
 }
-void RuntimeMultiplayer::begin(bool host,bool online) {
-    if(!allowed_||descriptor_.isEmpty()||(lifecycle_.active()&&!canInvite())){fail("Close your current game before joining.");return;}
+void RuntimeMultiplayer::begin(QString activity,bool host,bool online) {
+    const auto selected=(online?social_.online():consent_.state())["activity"].toMap();
+    // The accepted descriptor picks a local registration, never a remote path.
+    // Hosts retain the running edition; guests resolve their own matching copy.
+    if(!host) {
+        game_.clear();descriptor_={};
+        for(auto it=games_.cbegin();it!=games_.cend();++it)
+            if(it.value()["id"]==activity&&it.value().toVariantMap()==selected){game_=it.key();descriptor_=it.value();break;}
+    }
+    if(!allowed_||descriptor_.isEmpty()||descriptor_["id"]!=activity||descriptor_.toVariantMap()!=selected||
+       (lifecycle_.active()&&(!host||!canInvite()))){fail("This game is no longer available for the invitation.");return;}
     active_=true;host_=host;online_=online;relaySent_=false;request_={};request_.host=host;request_.relay=online;request_.expected=descriptor_;
     request_.nickname="TrainerOS-"+randomToken().left(12);output_.clear();
     deadline_=QDateTime::currentSecsSinceEpoch()+60;timer_.start();

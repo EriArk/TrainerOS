@@ -15,6 +15,8 @@ struct NetplayRequest {
     QJsonObject expected;
 };
 QString netplayRelayEndpoint(const QByteArray& directoryResponse);
+// Exact supported cartridges only; shared-screen netplay is not a link cable.
+QJsonObject netplayProfile(QString platform,QString core,QString contentDigest);
 QJsonObject netplayIdentity(const AdventureRegistration&, const RetroArchInstallation&,
                            const std::atomic_bool& cancelled);
 QString prepareNetplay(ProcessCommand&, const AdventureRegistration&,

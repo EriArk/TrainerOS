@@ -8,8 +8,62 @@
       "romSha256": "a93ea87fc835c530b5135c5294433d15eef6dbf656144b387e89ac19cf864996",
       "state": "researching",
       "record": "../EMULATOR_MULTIPLAYER.md",
-      "evidence": ["lan-independent-controls", "public-relay-password-handshake", "online-host-action", "relay-failure-cancellation", "clean-departure-reinvitation", "owned-exit"],
-      "remaining": ["online-independent-controls", "distinct-networks", "interruption-recovery", "router-free-runtime"],
+      "evidence": [
+        "lan-independent-controls",
+        "public-relay-password-handshake",
+        "online-host-action",
+        "relay-failure-cancellation",
+        "clean-departure-reinvitation",
+        "owned-exit"
+      ],
+      "remaining": [
+        "online-independent-controls",
+        "distinct-networks",
+        "interruption-recovery",
+        "router-free-runtime"
+      ],
+      "persistentSaveWrites": false
+    },
+    {
+      "id": "runtime.genesis.gunstar-us.v1",
+      "platform": "megadrive",
+      "romSha256": "f177810ce614be21c1a9214c0ca4d8f8d357b04a497c02fae185e4b2f97b6b87",
+      "state": "researching",
+      "record": "../EMULATOR_MULTIPLAYER.md",
+      "evidence": [
+        "source-research",
+        "exact-profile-tests"
+      ],
+      "remaining": [
+        "paired-runtime",
+        "independent-controls",
+        "distinct-networks",
+        "interruption-recovery",
+        "router-free-runtime"
+      ],
+      "persistentSaveWrites": false
+    },
+    {
+      "id": "runtime.genesis.streets2-us.v1",
+      "platform": "megadrive",
+      "romSha256": "4a314edbfee92282850fe95c4c764921916efd9d3c2277fdec2581279b1369b1",
+      "state": "researching",
+      "record": "../EMULATOR_MULTIPLAYER.md",
+      "evidence": [
+        "source-research",
+        "exact-profile-tests",
+        "named-online-consent",
+        "public-relay-paired-launch",
+        "online-p2-character-and-movement",
+        "clean-departure-reinvitation",
+        "owned-exit"
+      ],
+      "remaining": [
+        "independent-controls",
+        "distinct-networks",
+        "interruption-recovery",
+        "router-free-runtime"
+      ],
       "persistentSaveWrites": false
     }
   ],

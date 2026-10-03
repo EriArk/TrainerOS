@@ -16,7 +16,7 @@ public:
     void bind(QString account, QString endpoint);
     void setCapabilities(QJsonArray capabilities);
     void setAvailable(bool available);
-    void probe(QString channel, QString peer);
+    void probe(QString channel, QString peer, QJsonObject activity={});
     void invite(QString activity);
     void answer(bool accept);
     void close(QString reason={});

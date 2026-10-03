@@ -911,22 +911,23 @@ void FluxerSession::command(QString operation, QVariantMap args) {
     if(operation=="online-invite"){online_.invite(args["id"].toString());return;}
     if(operation=="runtime-probe-person") {
         const auto id=args["id"].toString();if(relationships_.value(id)["type"].toInt()!=1)return;
+        const auto activity=QJsonObject::fromVariantMap(args["activity"].toMap());
         const auto revision=++runtimeProbeRevision_;
         for(auto it=channels_.cbegin();it!=channels_.cend();++it) {
             const auto recipients=it.value()["recipients"].toArray();
             if(it.value()["type"]==1 && recipients.size()==1 && recipients.first().toObject()["id"]==id) {
-                online_.probe(it.key(),id);return;
+                online_.probe(it.key(),id,activity);return;
             }
         }
         const auto epoch=epoch_;
-        request("POST","/v1/users/@me/channels",{{"recipient_id",id}},[this,id,epoch,revision](Reply r){
+        request("POST","/v1/users/@me/channels",{{"recipient_id",id}},[this,id,epoch,revision,activity](Reply r){
             if(epoch!=epoch_||revision!=runtimeProbeRevision_||relationships_.value(id)["type"].toInt()!=1)return;
             const auto c=r.body.object();
             if(r.status<200||r.status>=300||!idValid(c["id"].toString())||c["type"].toInt(-1)!=1||c["recipients"].toArray().size()!=1||c["recipients"].toArray().first().toObject()["id"]!=id){
                 const QString message="Couldn't open your friend's conversation. Try again.";
                 online_.close(message);emit runtimeProbeFailed(generation_,id,message);return;
             }
-            channels_[c["id"].toString()]=c;online_.probe(c["id"].toString(),id);
+            channels_[c["id"].toString()]=c;online_.probe(c["id"].toString(),id,activity);
         });return;
     }
     if(operation=="online-probe") {

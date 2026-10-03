@@ -4,6 +4,17 @@
 
 ## Current plan — reconciled 2026-10-01
 
+**Multi-platform block 1 continuation, 2026-10-03:** invitations now select the
+running game's exact local profile, including SNES and Mega Drive, rather than
+the first Contra record. Bounded per-game negotiation replaces whole-library
+messages. Streets of Rage 2 has actual online P2 character/movement evidence on
+Flip/Odin; Gunstar Heroes is prepared but not gameplay-verified. Full paired play,
+distinct networks, abrupt-loss recovery and router-free runtime remain open.
+Next extend the same invitation journey to standalone PPSSPP's native relay,
+then assess other emulator connection models separately. This remains block 1,
+not universal multiplayer or permission to skip its remaining acceptance.
+See [platform evidence and continuation](EMULATOR_MULTIPLAYER.md#multiple-games-and-a-second-platform---2026-10-03).
+
 **Block 1 checkpoint, 2026-10-03:** local runtime invitation/host restart and
 RetroArch player 1/2 connection and independent remote controller gameplay are
 proven. The Linux session uses udev without changing ordinary emulator settings.

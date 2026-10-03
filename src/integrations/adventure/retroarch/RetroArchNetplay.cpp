@@ -8,11 +8,27 @@
 
 namespace trainer::retroarch {
 namespace {
-const QString Content = "a93ea87fc835c530b5135c5294433d15eef6dbf656144b387e89ac19cf864996";
-const QString Archive = "9eab8d9bdae35e13a1459d1ccddbfb3efd7192817a09102b9abccbbc6e5f71ea";
+struct Profile {const char *platform,*core,*id,*title,*rom,*archive;};
+const Profile profiles[] = {
+    {"snes","snes9x","runtime.snes9x.contra3-us.v1","Contra III",
+     "a93ea87fc835c530b5135c5294433d15eef6dbf656144b387e89ac19cf864996",
+     "9eab8d9bdae35e13a1459d1ccddbfb3efd7192817a09102b9abccbbc6e5f71ea"},
+    {"megadrive","genesis_plus_gx","runtime.genesis.gunstar-us.v1","Gunstar Heroes",
+     "f177810ce614be21c1a9214c0ca4d8f8d357b04a497c02fae185e4b2f97b6b87",
+     "626061be86f7eb488da0eb0ef011c5a13e8a951cf6bb039340b4774c25a039bd"},
+    {"megadrive","genesis_plus_gx","runtime.genesis.streets2-us.v1","Streets of Rage 2",
+     "4a314edbfee92282850fe95c4c764921916efd9d3c2277fdec2581279b1369b1",
+     "2a0f30f0aa6bc2d4e500361d972addf1e98537b14bf8e6cb59d3202d797306c4"}
+};
 bool token(const QString& s,int max) {
     return !s.isEmpty() && s.size()<=max && QRegularExpression("^[A-Za-z0-9_-]+$").match(s).hasMatch();
 }
+}
+QJsonObject netplayProfile(QString platform,QString core,QString content) {
+    for(const auto& p:profiles)if(platform==p.platform&&core==p.core&&(content==p.rom||content==p.archive))
+        return {{"id",p.id},{"label",p.title},{"content",p.rom},
+                {"settings",core+"-default-no-sram-v2"}};
+    return {};
 }
 QString netplayRelayEndpoint(const QByteArray& response) {
     if(response.size()>4096)return {};
@@ -30,14 +46,15 @@ QString netplayRelayEndpoint(const QByteArray& response) {
     return host+'|'+QString::number(port); // RetroArch's custom-relay host|port format.
 }
 QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstallation& i,const std::atomic_bool& cancel) {
-    if(r.adventure.platformId!="snes" || r.integrationConfig["core"]!="snes9x")return {};
-    const auto content=fileDigest(r.contentPath,2*1024*1024,cancel);
-    if(content!=Content && content!=Archive)return {};
-    const auto core=fileDigest(i.cores.value("snes9x"),64*1024*1024,cancel);
+    const auto coreId=r.integrationConfig["core"].toString();
+    bool candidate=false;for(const auto& p:profiles)if(r.adventure.platformId==p.platform&&coreId==p.core)candidate=true;
+    if(!candidate)return {};
+    auto identity=netplayProfile(r.adventure.platformId,coreId,fileDigest(r.contentPath,4*1024*1024,cancel));
+    if(identity.isEmpty())return {};
+    const auto core=fileDigest(i.cores.value(coreId),64*1024*1024,cancel);
     const auto runtime=fileDigest(i.runtimeFile,256*1024*1024,cancel);
     if(core.isEmpty()||runtime.isEmpty())return {};
-    return {{"id","runtime.snes9x.contra3-us.v1"},{"label","Contra III · two players"},
-        {"content",Content},{"core",core},{"runtime",runtime},{"settings","snes9x-default-no-sram-v2"}};
+    identity["core"]=core;identity["runtime"]=runtime;return identity;
 }
 QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const RetroArchInstallation& i,
                       const NetplayRequest& request,const std::atomic_bool& cancel) {

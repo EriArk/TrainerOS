@@ -30,9 +30,10 @@ This does not establish host/guest save policy for other titles.
   discovery/session ports 47855/47856. This does not change native Link's Bluetooth
   default and does not claim router-free Bluetooth gameplay.
 - Online routing uses authenticated friend consent for signalling, followed
-  by RetroArch's upstream relay. Automatic joining, a host gameplay action and
-  clean departure/reinvitation are verified below; full two-player online and
-  distinct-network acceptance remains open. No gameplay frames travel through chat.
+  by RetroArch's upstream relay. Automatic joining, host gameplay and guest
+  gameplay actions, and clean departure/reinvitation are verified below. Full
+  paired-session and distinct-network acceptance remain open. No gameplay frames
+  travel through chat.
 - Compare exact content, runtime, core and the options profile before joining;
   recheck local files during launch preparation.
 - The guest explicitly accepts. An unrelated running game is never replaced.
@@ -236,3 +237,73 @@ passed. Both ordinary shells run SHA-256
 with experimental wrappers removed. Verified one shell each, no remaining game
 or runtime listener, healthy databases, unchanged Emerald saves/boot preferences/
 nearby and voice helpers. Flip remains muted; Odin volume is zero. No reboot.
+
+## Multiple games and a second platform - 2026-10-03
+
+The owner explicitly prioritizes working multiplayer across platforms. Block 1
+stays open; this is an implementation/evidence checkpoint, not a completed block.
+The previous single Contra registration is replaced by a map of exact local
+games. Home invites into the **currently running game**. An accepting guest
+resolves its own matching local registration from the accepted descriptor; no
+remote file path or silently substituted Contra launch is used. The invitation
+names that game. Raw and recognized archived copies have the same canonical
+content identity, while core/runtime hashes and session settings must also match.
+
+Runtime capability probes now request only that game's descriptor. A library of
+100 supported games passes the bounded-message negotiation test without sending
+the entire library through Fluxer. Ordinary saved-game Link still negotiates its
+own activities; a different core is not offered as compatible. Both clients need
+the updated targeted-probe implementation for runtime invitations.
+
+Three profiles currently use the existing temporary, no-persistent-save route:
+
+| Platform / exact US game | Runtime | Current evidence |
+| --- | --- | --- |
+| SNES / Contra III | RetroArch / Snes9x | Earlier independent LAN P1/P2; online P1; fresh multi-profile online launch retained. Online P2 is still not established for this title. |
+| Mega Drive / Streets of Rage 2 | RetroArch / Genesis Plus GX | Named online consent selected the correct game on both handhelds. Flip selected 2 PLAYERS; Odin independently changed P2 from Blaze to Skate, visible on Flip. In Stage 1, Odin's Up/Right input moved Skate from the left group toward the center/right, also visible on Flip. Clean Home exits and another invitation/join succeeded. |
+| Mega Drive / Gunstar Heroes | RetroArch / Genesis Plus GX | Exact raw/archive identities and profile discrimination tested; paired gameplay remains unverified. |
+
+The Streets check used remote input into each handheld's physical evdev source,
+through InputPlumber. It is not an owner-operated physical-button test. A bounded
+five-second protocol observation also saw host Start/Down/East masks reaching
+the relay at about 60 input frames/second. Earlier missed menu selections therefore
+do not establish a broken input protocol; a later repeated start still reached
+attract mode, so reliable paired menu/control acceptance remains open. During
+the first level the unattended host ran out of lives while inspecting evidence;
+do not describe that run as sustained deliberate two-player combat or a soak test.
+
+Both devices were on the same home network while using the public relay. Separate
+internet connections, abrupt-loss recovery and router-free nearby gameplay remain
+unproven. Existing Contra LAN evidence and Streets online P2 evidence are separate
+facts, not proof that every title/core/platform works.
+
+The installed Genesis cores initially differed. Odin's original was backed up
+privately before aligning the two to the Flip build, SHA-256
+`de8ad971eee89fa5e4e00dd1c048f0a8cc53cd9558b8c143aa022f5d7623d273`.
+No ordinary emulator configuration was replaced. Two raw test copies from the
+owner's existing archives were added to Odin's Mega Drive folder; normal folder
+discovery registered them (26 -> 28 Adventures). Source archives and saves remain.
+No ROM/core binary is committed.
+
+### Platform continuation inside block 1
+
+| Route | Next acceptance; not delivered support |
+| --- | --- |
+| RetroArch shared-controller games | Finish reliable paired online gameplay, abrupt interruption/reinvitation and a distinct-network run; expand exact profiles without changing the invitation journey. Games with persistent progress need their own host/guest save policy. |
+| Standalone PSP / PPSSPP | Both handhelds have 1.20.4. Upstream supports native relay from 1.20.1. Integrate its own relay/session settings with the same Home consent, preserve ordinary per-game settings and saves, then prove one actual compatible game. Do not force PSP through a RetroArch core. |
+| DS, Game Boy/GBA link, GameCube/Wii, other runtimes | Investigate each emulator's real connection model and title support. These can be separate emulated machines, not shared controller ports; RetroArch shared-screen evidence does not cover them. Keep unsupported routes unavailable rather than claim universal netplay. |
+
+Sources: [Genesis Plus GX supported features](https://docs.libretro.com/library/genesis_plus_gx/),
+[PPSSPP multiplayer quickstart](https://www.ppsspp.org/docs/multiplayer/quickstart/),
+[RetroArch netplay protocol](https://docs.libretro.com/development/retroarch/netplay/).
+
+ARM compilation and four focused suites passed: RetroArch, NetplayClient,
+OnlineLink and Social. The current experiment remains disabled in normal delivery.
+
+Final delivery: both ordinary shells run executable SHA-256
+`b5ce54dbc73131dc5ba6af7df892a51f631abe767220e81b0ad4349c71abc663`.
+One live shell each, no remaining RetroArch/runtime listener, healthy databases,
+unchanged Emerald saves, boot settings and nearby/voice helpers were verified.
+Experimental wrappers were removed. Flip is muted and Odin remains at zero.
+Both recovered by normal process restart; no device reboot was needed.
+The actual Odin invitation is [screenshot 23](../screenshots/23-experimental-megadrive-invitation.png).
