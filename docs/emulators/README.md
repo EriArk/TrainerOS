@@ -1,5 +1,10 @@
 # Emulator maintenance records
 
+The [common emulator set](../EMULATOR_STANDARD.md) selects primaries across all
+TrainerOS device variants. The [multiplayer matrix](../EMULATOR_MULTIPLAYER_MATRIX.md)
+separates supported upstream mechanisms from missing TrainerOS integrations.
+Both are target/audit records, not installed package locks.
+
 Owner decision, 2026-10-03: the Armada-based TrainerOS image may ship maintained
 emulator configurations and source patches. Use that freedom where it improves
 the accepted experience; an upstream limitation is not automatically a permanent
@@ -12,7 +17,7 @@ a second execution plan or a claim that all installed runtimes are validated.
 
 | Emulator | Record | Scope |
 |---|---|---|
-| PPSSPP | [PPSSPP](ppsspp.md) | Current standalone launch, isolated networking configuration, identity preservation and open match failure |
+| PPSSPP | [PPSSPP](ppsspp.md) | Isolated networking, preserved identity, bounded LAN/relay gameplay and remaining recovery/network gates |
 
 Existing work on other emulators remains documented in
 [discovery](../EMULATOR_DISCOVERY.md), [platform routes](../ROM_PLATFORMS.md) and

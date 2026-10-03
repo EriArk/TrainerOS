@@ -1,5 +1,13 @@
 # Multiplayer transport and session audit
 
+**Current coverage, 2026-10-03:** the earlier inventory and pair-only source
+findings below are historical. Game parties and the corrected PPSSPP LAN/relay
+route have since advanced; see [party evidence](GAME_PARTIES.md) and
+[PSP evidence](PSP_MULTIPLAYER.md). The [full emulator matrix](EMULATOR_MULTIPLAYER_MATRIX.md)
+and [common image set](EMULATOR_STANDARD.md) now cover additional runtime families.
+Keep this audit's unresolved overlay/latency questions; do not repeat the repaired
+Lumines transition as though it were still the current blocker.
+
 2026-10-03. **Read-only audit and proposed experiments, not a transport decision.**
 The owner suggested virtual LAN for evaluation and explicitly did not request a
 rewrite. Accepted UX lives in [Multiplayer experience](MULTIPLAYER_EXPERIENCE.md);

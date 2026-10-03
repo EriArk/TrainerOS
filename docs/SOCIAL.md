@@ -1,5 +1,12 @@
 # Native Social - conversations and discovery
 
+**Owner emulator-coverage correction, 2026-10-03:** the current online-game block
+includes the other suitable emulator families, not just RetroArch and PPSSPP.
+The [standard set](EMULATOR_STANDARD.md) and [route matrix](EMULATOR_MULTIPLAYER_MATRIX.md)
+record source-backed capabilities, live installation differences and missing
+integrations. Prioritize standardized builds and Dolphin next; separate party
+voice remains queued. No new gameplay or image deployment is claimed by this audit.
+
 **PSP online continuation, 2026-10-03:** Home's Online friend invitation now has
 actual paired Lumines gameplay through PPSSPP's external relay. A 12-second
 relay-only interruption during rematch startup returned both games to their lobby;

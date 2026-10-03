@@ -1,5 +1,14 @@
 # AGENTS.md — TrainerOS
 
+**Owner common-emulator and multiplayer scope, 2026-10-03:** select a standardized
+runtime/core set across all TrainerOS device variants, with separate device
+performance/input profiles. See [standard set](docs/EMULATOR_STANDARD.md) and
+[multiplayer matrix](docs/EMULATOR_MULTIPLAYER_MATRIX.md). RetroArch/PPSSPP proof
+alone does not complete online play; integrate the other suitable emulator
+families and retain the remaining route-specific acceptance. Do not switch to
+separate party voice as a substitute for unfinished emulator coverage. Existing
+user runtimes/saves require verified migration; selection is not deployment.
+
 **Owner emulator/image authority, 2026-10-03:** TrainerOS ships as an installable
 image; emulator configurations and, when needed, emulator source may be changed
 to deliver the accepted experience. Maintain a separate record for every changed

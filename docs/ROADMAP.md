@@ -15,6 +15,17 @@ voice and the route-specific runtime gates below; no earlier acceptance is remov
 
 ### Multiplayer agreement — 2026-10-03, current next work
 
+**Owner scope correction and common emulator set, 2026-10-03:** online play is
+not finished after RetroArch/PPSSPP. [Common emulator selection](EMULATOR_STANDARD.md)
+covers every existing platform across device variants; [route matrix](EMULATOR_MULTIPLAYER_MATRIX.md)
+separates genuine multiplayer mechanisms from ordinary launch support. Standardize
+runtime/core artifacts first, then integrate Dolphin, Flycast, Azahar, melonDS and
+ARMSX2 routes in that order, retaining unresolved PS1/link-cable and conditional
+heavy-system routes. The matrix records concrete limits and the full remaining
+cross-network/recovery/multi-client acceptance. Separate party voice stays queued
+after this emulator coverage; it must not replace unfinished online-game work.
+This pass selected/audited the set; it did not deploy standardized packages.
+
 Owner implementation clarification: image-owned emulator configuration and
 source patches are allowed, with a separate [maintenance record](emulators/README.md)
 per emulator, versioned changes and update/rollback instructions. PPSSPP identity
@@ -23,8 +34,8 @@ Home invitation route passed short Lumines LAN and external-relay rounds and nor
 return. A 12-second relay loss during rematch startup recovered through a new
 native challenge without emulator/device restart. Both clients shared home
 internet; mid-round recovery and distinct networks remain unproven. Do not repeat
-these passed smoke checks. Next advance separate company/party voice audiences;
-retain larger/concurrent-party and route-specific runtime gates below.
+these passed smoke checks. Next advance the common emulator set and Dolphin
+integration above; retain larger/concurrent-party, voice and runtime gates below.
 [PSP evidence](PSP_MULTIPLAYER.md) records exact limits.
 
 The owner paused implementation to reconcile connection, invitation and group
