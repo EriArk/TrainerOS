@@ -16,6 +16,14 @@ voice and the route-specific runtime gates below; no earlier acceptance is remov
 
 ### Multiplayer agreement — 2026-10-03, current next work
 
+**Owner priority, 2026-10-03:** internet multiplayer is the primary scenario;
+LAN and direct nearby play remain in scope. For each emulator, resolve the
+automatic internet connection path before treating a local match as delivery.
+No player IP entry, router setup or personal VPN administration. Runtime LAN
+checks are intermediate evidence; distinct-network/NAT or relay/recovery proof
+remains mandatory. This changes priority, not the retained acceptance or the
+existing Bluetooth/LAN/Direct safety decisions.
+
 **Owner scope correction and common emulator set, 2026-10-03:** online play is
 not finished after RetroArch/PPSSPP. [Common emulator selection](EMULATOR_STANDARD.md)
 covers every existing platform across device variants; [route matrix](EMULATOR_MULTIPLAYER_MATRIX.md)

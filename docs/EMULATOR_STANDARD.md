@@ -17,6 +17,13 @@ the whole standard image. The subsequent [Dolphin bridge](emulators/dolphin.md)
 adds bounded two-device Melee NetPlay evidence with a separately maintained
 native artifact; broader routes and internet acceptance remain open.
 
+**Flycast package checkpoint, 2026-10-03:** Flip now has the same standalone
+2.7 Flatpak commit and executable hash as Odin, recorded in baseline revision
+`arm64-20261003.2`. Existing core routes/settings/saves were not migrated.
+[Maintenance and WAN findings](emulators/flycast.md) keep installed-package
+alignment separate from the still-missing standalone/network integration.
+Internet reachability is the priority; local gameplay alone will not close it.
+
 ## Selection
 
 One primary runtime per platform, common across devices. Device profiles change

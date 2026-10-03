@@ -1,5 +1,14 @@
 # AGENTS.md — TrainerOS
 
+**Owner internet-first multiplayer priority, 2026-10-03:** internet play is the
+primary everyday scenario; local LAN and direct nearby play remain required.
+Select runtimes and schedule transport work around an automatic Online friend
+Invite/Accept/Join flow without player-entered IPs or router/VPN administration.
+A LAN match is an intermediate runtime check, never completion of the online
+route. Retain distinct-network, NAT/relay, recovery and admission evidence;
+shared-router traversal is not proof of separate-internet connectivity. Preserve
+all accepted nearby/direct work and existing transport preferences.
+
 **Owner common-emulator and multiplayer scope, 2026-10-03:** select a standardized
 runtime/core set across all TrainerOS device variants, with separate device
 performance/input profiles. See [standard set](docs/EMULATOR_STANDARD.md) and

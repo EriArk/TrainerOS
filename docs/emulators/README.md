@@ -20,6 +20,7 @@ a second execution plan or a claim that all installed runtimes are validated.
 | RetroArch | [Common ARM64 baseline](retroarch.md) | Exact core bundle, two-device alignment, recoverable update/rollback and remaining image/standalone gates |
 | Dolphin | [Bridge checkpoint](dolphin.md) | Preserved ordinary Flatpak; separate pinned native bridge with paired Melee LAN gameplay/Home return; internet and four-client gates open |
 | PPSSPP | [PPSSPP](ppsspp.md) | Isolated networking, preserved identity, bounded LAN/relay gameplay and remaining recovery/network gates |
+| Flycast | [Package and WAN checkpoint](flycast.md) | Matching 2.7 packages on both devices; GGPO/ICE transport distinction; standalone and automatic internet integration remain open |
 
 Existing work on other emulators remains documented in
 [discovery](../EMULATOR_DISCOVERY.md), [platform routes](../ROM_PLATFORMS.md) and

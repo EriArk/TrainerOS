@@ -8,13 +8,17 @@ online-game block as complete. Keep voice work queued, not a substitute mileston
 
 ## Current TrainerOS boundary
 
-`RuntimeMultiplayer.cpp` currently dispatches PSP to `PpssppNetplay` and other
-eligible records to `RetroArchNetplay`. Its standalone launch branch likewise has
-only PPSSPP. `EmulatorDiscovery.cpp` discovers ordinary PPSSPP, ARMSX2, melonDS,
-Dolphin and RetroArch launches; ordinary discovery does not create multiplayer
-support. The profile allowlist remains narrower than installed games/platforms.
-All other rows below require actual TrainerOS integration before invitations can
-be offered for them. Retain ordinary one-A launch when networking is unavailable.
+`RuntimeMultiplayer.cpp` dispatches the inspected PSP and GameCube profiles to
+`PpssppNetplay` and `DolphinNetplay`, with other eligible records handled by
+`RetroArchNetplay`. Ordinary discovery covers PPSSPP, ARMSX2, melonDS, Dolphin
+and RetroArch; installed packages do not automatically acquire network adapters.
+Flycast 2.7 is now aligned on both handhelds, but its standalone invitation/launch
+adapter remains absent. Retain ordinary one-A launch through existing routes.
+
+**Owner priority:** internet is the primary everyday scenario. LAN and direct
+nearby play remain required, but local-only checks do not complete a runtime's
+online route. Resolve automatic reachability before calling an emulator delivery
+complete; no player-entered IPs, router configuration or personal VPN setup.
 
 ## Route matrix
 
@@ -23,7 +27,7 @@ be offered for them. Retain ordinary one-A launch when networking is unavailable
 | RetroArch, deterministic cores | Shared emulated machine; native direct/relay transport. Slots depend on core/game/peripheral profile, not a universal pair limit. | Align core builds, implement verified 3-4-player port/multitap profiles, finish paired online controls, loss/rejoin, separate networks and parallel parties. Not a generic Game Boy link cable. [Evidence](EMULATOR_MULTIPLAYER.md). | Integrated experimental route; incomplete acceptance. |
 | PPSSPP | Native PSP ad hoc, LAN coordination or external relay. Current exact Lumines profile is two-player. | Retain passed short LAN/relay gameplay. Finish mid-round loss, separate networks, same-title party isolation and other selected profiles. A public relay room is not TrainerOS admission enforcement. [Evidence](PSP_MULTIPLAYER.md). | Integrated experimental route; incomplete acceptance. |
 | Dolphin | Native NetPlay synchronizes a shared GameCube/Wii; four GameCube pad slots enable a useful multi-player target. Separate BBA/Wii game-network modes exist and must not be conflated with NetPlay. | Same compatible build/content; map participants to pads, automate host/join/start and report status through existing party flow, isolate user directory/saves, test return/loss. Traversal is rendezvous, not a guaranteed payload relay through strict NAT. | Pinned native bridge installed both; exact Melee US v1.01 invitation, assigned P1/P2 gameplay and Home return verified over LAN. Four-port profile, only two physical clients tested. [Evidence](emulators/dolphin.md). |
-| Flycast standalone | GGPO rollback for two players in inspected v2.7; separate native Dreamcast networking/DCnet and arcade link modes. | Isolate config/VMUs, map endpoints/ports/player role, verify compiled GGPO and one game; solve WAN reachability without player router setup. Native online games need their own server/mode profiles. | Odin 2.7 only; no TrainerOS network adapter. |
+| Flycast standalone | GGPO rollback for two players in inspected v2.7; separate native Dreamcast networking/DCnet and arcade link modes. | Isolate config/VMUs, map endpoints/ports/player role, verify compiled GGPO and one game; solve WAN reachability without player router setup. Native online games need their own server/mode profiles. | Same 2.7 package and binary verified on both devices; no TrainerOS standalone/network adapter. Native ICE serves Battle Cable, not GGPO. [WAN finding](emulators/flycast.md). |
 | Azahar standalone | Each player owns an emulated 3DS, connected through a room server for local wireless. Room membership limit is not game capacity. | Common ARM64 client build, scoped room allocation/cleanup, automatic join, exact content/update compatibility and retained per-player saves. Need a reachable managed room for internet, not manual public-room browsing. | Flip candidate file; no paired proof or TrainerOS network adapter. |
 | melonDS | Local wireless LAN sessions and game WFC internet access are separate. Inspected 1.1 GUI exposes LAN host/join; dormant Netplay source does not prove working internet-local-wireless. | Integrate LAN entry/status first; prove a real DS connection with separate saves. WFC requires a supported replacement service/game profile. Do not sell an internet VPN as a fix for timing-sensitive local wireless. | DS launch exists; multiplayer integration absent. |
 | ARMSX2 | PS2 DEV9 Ethernet for titles with game networking; inspected upstream also has a UDP Local Link adapter. No general shared-console input-sync route established. | Identify installed build, check DEV9/Local Link availability and a game with native LAN/online support; automate endpoints and isolate memory cards. Any WAN path must satisfy reachability. | Odin ordinary launch exists; network route unverified. |
@@ -92,9 +96,9 @@ and real-game evidence. No single web guide settles every platform.
    bridge, participant-to-pad assignment, controller-driven invitation, game,
    exit and recovery. First GameCube, then the separately configured Wii route.
    Use a title supporting four local players to extend beyond pair-only profiles.
-3. **Flycast** exact two-player GGPO route, then **Azahar** scoped room/client
-   integration. Complete each functional chain rather than exposing setup pages
-   for several unfinished runtimes. Keep native Dreamcast services separate.
+3. **Flycast** automatic internet reachability for its exact two-player GGPO
+   route, then **Azahar** scoped room/client integration. Complete each functional
+   chain rather than exposing setup pages for several unfinished runtimes. Keep native Dreamcast services separate.
 4. **melonDS** real local wireless and supported WFC path; **ARMSX2** native LAN
    profile. Use a managed overlay only where this concrete route needs it and
    has passed the [automation gates](MULTIPLAYER_AUTOMATION.md).

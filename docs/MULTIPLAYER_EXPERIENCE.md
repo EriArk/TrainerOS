@@ -10,6 +10,15 @@ below, particularly separate party voice or real three-to-four-player runtime pr
 owns implementation claims. [Transport audit](MULTIPLAYER_TRANSPORT_AUDIT.md)
 contains hypotheses, unresolved choices and the proposed comparison.
 
+## Connection priority
+
+Internet play is the primary everyday scenario (owner clarification, 2026-10-03).
+Local LAN and direct nearby play remain first-class supported targets. Preserve
+one familiar invitation flow; resolve transport automatically after the user
+chooses Nearby or Online friend. Do not substitute a same-router match for
+internet acceptance or require player-entered IPs, router settings or VPN
+administration. Runtime choice and implementation order follow this priority.
+
 ## Three independent activities
 
 - **Play together:** the actual game's multiplayer through its emulator.

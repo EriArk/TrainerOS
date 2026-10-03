@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "revision": "arm64-20261003.1",
+  "revision": "arm64-20261003.2",
   "architecture": "linux-aarch64",
   "cores": [
     {
@@ -386,6 +386,13 @@
       "ref": "app/org.ppsspp.PPSSPP/aarch64/stable",
       "commit": "678bf845ac9679ddf5d2be24ed39bc21b269a573b7ba07a1795175aaf4a57040",
       "executableSha256": "c99cec693067f8c94ae0d8b5e7299392ed5c0cfae3f8231176ed25ea6c155dfc"
+    },
+    {
+      "id": "org.flycast.Flycast",
+      "version": "2.7",
+      "ref": "app/org.flycast.Flycast/aarch64/stable",
+      "commit": "1d48669e88c0261c5c07d93bc0d48efbdbcf4be8ec5f6865825f47a7100982ef",
+      "executableSha256": "4b3b69727bf68781ecdba95a3c672da6279009ab87e9045630ba143b5f407c57"
     }
   ]
 }
