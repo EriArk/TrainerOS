@@ -1,5 +1,47 @@
 # Runtime game parties
 
+## Shared group call checkpoint - 2026-10-04
+
+The owner clarified that one ordinary group voice call serves friends playing
+different games or forming independent game parties. Separate per-party voice
+rooms are removed from scope. No extra voice selector or group migration is needed.
+
+Using the existing public-Fluxer test group on Flip/Odin, both joined the same
+call before launching ordinary games. Flip ran Streets of Rage 2 and announced
+its own 1/2 party; Odin ran NES Pong and announced a separate 1/2 party in that
+group. Both voice workers retained their original PIDs through game launch and
+party creation. An isolated original 440 Hz signal sent from Flip was received
+on Odin (peak 1336, measured tone amplitude 1200.85). No physical microphone was
+recorded; physical outputs stayed silent.
+
+Odin explicitly ended its party, then exited NES Pong through the ordinary Home
+save question. Flip's game/party remained active. A fresh signal after that exit
+still reached Odin (peak 1284, amplitude 1203.71) through the same voice worker.
+Flip then exited normally; its Home menu still offered the existing call.
+These are two independent organizers and two ordinary games, not four-client
+gameplay, simultaneous paired netplay sessions or physical speech-quality proof.
+Both devices were on one router. Remaining distinct-network, larger-gameplay,
+router-free and deferred human audio checks remain open.
+
+Actual device captures show [Flip's game and call](../screenshots/57-group-call-game-flip.png),
+[Odin's independent party](../screenshots/58-group-call-party-odin.png), and
+[the retained call after Flip's return](../screenshots/59-group-call-return-flip.png).
+No application code changed in this checkpoint; both use executable SHA-256
+`7a1f591d808909fa6700978fd2889a382c7e0e686f02afc31b0b0bbc142806e9`.
+
+During final Social navigation on Odin, compositor captures stopped updating.
+After shell termination, one thread remained uninterruptible in
+`dma_fence_default_wait` (`traine:traceq0`). Audio had continued before cleanup.
+This is an unresolved graphics recovery failure, not a passed navigation check;
+the symptom alone does not identify its cause. Temporary audio modules/defaults
+were restored and ordinary experimental-off binaries installed before recovery.
+Flip restarted normally; Odin required remote reboot after its game had exited.
+The reboot command was accepted, but SSH had not returned at final verification;
+Odin's post-reboot live process is therefore not verified. Flip's final live SHA,
+experimental-off environment and database integrity passed. Both devices' database
+integrity, boot/helper preservation and audio-route cleanup passed before reboot.
+Odin remained at volume zero; Flip remained muted (20% battery).
+
 2026-10-03 implementation checkpoint within communication block 1, which remains
 open. This replaces the runtime invitation's single-peer coordinator; saved-game
 Link and calls retain their separate providers. The accepted broader experience
@@ -37,8 +79,9 @@ support. Adding a larger real profile requires its controller/network setup and
 real multi-client proof; it is not enabled by this coordinator alone.
 
 One device joins one runtime party. Group-backed companies, parallel party discovery
-and selected-member free entry are implemented below. Separate party voice
-audiences remain pending. A party currently uses one route (nearby or online). Ordinary chat
+and selected-member free entry are implemented below. One shared group call
+serves all parties (owner clarification, 2026-10-04); separate party voice rooms
+are not required. A party currently uses one route (nearby or online). Ordinary chat
 and the existing call stay independent. Public Fluxer clients can see the textual
 coordination envelopes; only TrainerOS filters them. This is not a hidden upstream
 presence feature or a general-purpose company service.
@@ -99,8 +142,8 @@ The corrected Lumines profile now has integrated LAN and external-relay gameplay
 plus recovery through a new native challenge after brief rematch-start packet loss;
 see [current PSP evidence](PSP_MULTIPLAYER.md). Earlier startup-only checkpoints
 below remain historical. Continue the agreed block's real runtime acceptance and
-separate voice audiences: larger/concurrent parties, full RetroArch paired-control/
-recovery, mid-round PSP loss, distinct-network and router-free
+shared group-call continuity: larger/concurrent gameplay, remaining route-specific
+recovery, distinct-network and router-free
 gates, and the deferred human audio/controller checks. Do not repeat already
 passed invitation-only checks as a substitute for those results.
 
@@ -120,8 +163,9 @@ an explicit member checklist. New parties inherit this preference. Home's
 **Who can join** overrides it for this party or restores the group preference;
 it does not rewrite the persistent preference. These are organizer-owned defaults,
 not permission for a group administrator to open somebody else's game. Ending or
-leaving a party does not leave the group or change the call. Independent voice
-rooms still need the separate supported community-channel implementation.
+leaving a party does not leave the group or change the call. Per the owner
+clarification on 2026-10-04, this shared call is the intended group model;
+independent voice rooms are not required.
 
 A company can contain more people than one game supports. Each organizer has a
 separate UUID, roster, admission queue and capacity; multiple organizers advertise
@@ -161,8 +205,8 @@ retained PSP's save question and then launched both standalone PPSSPP instances.
 Both process environments used private netplay configuration roots; both selected
 `socom.cc`, WLAN enabled and UPnP disabled. Both were exited through normal Home
 controls. This proves the company admission/startup chain, not a successful
-Lumines VS match, four physical clients, independent internet paths or independent
-party voice. Existing runtime failures/gates remain open.
+Lumines VS match, four physical clients or independent internet paths.
+Existing runtime failures/gates remain open.
 
 The final presentation check removes the duplicate joined card and corrects the
 Right-button hint. After restarting both applications, the retained selected-member

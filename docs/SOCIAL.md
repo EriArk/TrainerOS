@@ -1,5 +1,13 @@
 # Native Social - conversations and discovery
 
+**Shared group voice, 2026-10-04:** one ordinary group call now defines the accepted
+voice model across separate games/parties; separate party rooms are not required.
+Existing behavior passed bounded Flip/Odin synthetic audio checks during ordinary
+game launches, party creation/end and return. No application change was needed.
+[Evidence and Odin graphics-recovery failure](GAME_PARTIES.md#shared-group-call-checkpoint---2026-10-04)
+remain separate from four-client gameplay, distinct-network and human speech proof.
+Communication blocks 1 and 3 remain open.
+
 **SNES continuation, 2026-10-04:** the existing online invitation route now has
 actual Contra III two-player gameplay with independent controls, public-relay
 loss followed by exit/rejoin to the same running host, and normal Home return.

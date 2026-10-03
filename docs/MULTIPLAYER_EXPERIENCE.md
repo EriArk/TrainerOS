@@ -5,7 +5,9 @@ Owner agreement, 2026-10-03. **Accepted target, not delivered behavior.**
 The first [runtime-party implementation checkpoint](GAME_PARTIES.md) now covers
 the bounded coordinator, direct invitation/request surfaces and group-backed
 companies with selected-member entry. It does not complete the acceptance list
-below, particularly separate party voice or real three-to-four-player runtime proof.
+below, particularly real three-to-four-player runtime proof and the remaining
+background-audio checks. Owner clarification, 2026-10-04: use one shared group
+call across independent game parties; separate party voice rooms are not required.
 [ROADMAP](ROADMAP.md) owns scheduling; [runtime evidence](EMULATOR_MULTIPLAYER.md)
 owns implementation claims. [Transport audit](MULTIPLAYER_TRANSPORT_AUDIT.md)
 contains hypotheses, unresolved choices and the proposed comparison.
@@ -38,7 +40,7 @@ suffix or a presence label alone. Advertise the active Trainer name nearby.
 | --- | --- |
 | Company | Persistent named group, membership and shared conversation across games. The implemented first mapping reuses Fluxer private groups; larger community facilities retain their separate acceptance. |
 | Game party | One running or preparing game session with its own organizer, participants, game/mode, capacity and access policy. Several parties may coexist within a company, including separate sessions of the same game. |
-| Voice conversation | The company conversation or a party conversation. Joining/leaving a game does not silently switch or terminate the current call. Switching voice destination is explicit. |
+| Voice conversation | One shared company/group call. Friends can play different games and join separate parties while talking together. Game transitions never switch or terminate the call or change microphone consent. |
 
 Example: eight company members form a four-player party and a separate two-player
 party, while two people only chat. Company size is independent of game capacity.
@@ -148,8 +150,9 @@ cards. An organizer's per-company preference is inherited by new parties and may
 be overridden per party; it never authorizes other organizers' games. Selected
 members enter through deliberate Join without a second host prompt. Flip/Odin
 company admission and startup are verified; independent two-party coordination
-has automated four-client coverage. Full gameplay and provider-supported separate
-voice audiences remain open. See [exact evidence](GAME_PARTIES.md).
+has automated four-client coverage. Full multi-party gameplay remains open.
+The shared-call device check is recorded in GAME_PARTIES.md; physical speech
+quality remains separately deferred. See [exact evidence](GAME_PARTIES.md).
 
 ## Acceptance additions (whole-block acceptance remains open)
 
@@ -163,8 +166,9 @@ voice audiences remain open. See [exact evidence](GAME_PARTIES.md).
   declining or filling one does not affect the other or the common chat/call.
 - [ ] Real 3-4 participant game, correct independent controls, capacity race,
   organizer startup, late-join restrictions, departure and reinvitation.
-- [ ] Company and party voice audiences supported by the provider, explicit
-  switching, no involuntary call/microphone change during game transitions.
+- [ ] One shared group call survives independent game-party and game transitions
+  without involuntary call/microphone changes. Synthetic two-device continuity is
+  verified; physical speech/headset checks remain deferred.
 - [ ] Controller and touch journey remains direct in existing Social/Home;
   device screenshots demonstrate the landscape composition.
 - [ ] Existing block 1 transport/gameplay/save/recovery and block 3 audio gates

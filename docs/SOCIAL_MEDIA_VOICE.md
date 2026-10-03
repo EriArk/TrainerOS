@@ -1,5 +1,14 @@
 # Communication media and voice — 2026-10-02
 
+## Shared call across game parties - 2026-10-04
+
+Owner scope: one group call, independent of game-party membership. Separate party
+voice rooms are no longer required. Existing Flip/Odin behavior retained the call
+while launching different games, creating separate group parties and ending one
+party/game; synthetic audio was received before and after the exit through the
+same worker. [Exact evidence and graphics recovery](GAME_PARTIES.md#shared-group-call-checkpoint---2026-10-04).
+Physical speech/headset checks and distinct-network acceptance remain open.
+
 ## Remaining checklist — 2026-10-03
 
 The owner explicitly deferred checks requiring physical input, listening or

@@ -1,5 +1,11 @@
 # Multiplayer transport and session audit
 
+**Owner decision, 2026-10-04:** one ordinary group voice call is the accepted
+model, shared across independent game parties. The earlier recommendation below
+for separate party voice channels is superseded. Do not migrate groups, create
+per-party rooms or switch calls when games change. Provider findings remain
+reference evidence; remaining game transport/voice quality gates are retained.
+
 **Current coverage, 2026-10-03:** the earlier inventory and pair-only source
 findings below are historical. Game parties and the corrected PPSSPP LAN/relay
 route have since advanced; see [party evidence](GAME_PARTIES.md) and
@@ -86,8 +92,8 @@ or service deployment is authorized by this audit note.
 
 1. Map persistent companies to existing supported Fluxer group/community objects;
    preserve membership limits and permissions rather than build a duplicate chat.
-2. Determine how independent party voice audiences fit actual provider facilities.
-   A company DM must not be assumed to support arbitrary parallel subcalls.
+2. Preserve one ordinary company/group call across independent games and parties.
+   Separate subcalls are not required (owner clarification, 2026-10-04).
 3. Extend session ownership/participants, admission and organizer authority with
    minimal service changes. Keep company membership, party membership, voice and
    network reachability separate. Define stale-party cleanup and access revocation.
@@ -124,7 +130,7 @@ source are committed. Both devices were reached and their models verified.
 | `src/integrations/social/OnlineLink.h/.cpp` | One peer, DM, invitation and session; a connected session rejects additional probes. | Add a narrowly scoped runtime-party coordinator/envelope, reusing provider delivery. Keep the protected two-person native Link protocol intact rather than globally loosening it. |
 | `src/integrations/social/FluxerSession.cpp` | Runtime probes and received protocol messages require an existing friend and a one-recipient DM. One `online_` instance is shared with native Link. | Group membership and compatible-client admission need an explicit supported path; ordinary group members need not all become mutual friends if provider permissions allow communication. Dispatch runtime-party and saved-Link traffic separately. |
 | `src/integrations/adventure/retroarch/RetroArchNetplay.cpp` | Temporary config sets `netplay_max_connections = "1"`. | Derive guest capacity from the game/mode and configure distinct controller ports/multitap. Changing this number alone does not establish four-player support. |
-| `src/integrations/social/FluxerSession.cpp` | Voice accepts private channel types 1/3, sends `guild_id = null`, and owns one active voice destination. | Add supported community voice when needed for independent party audiences. Preserve one deliberately selected call and microphone; joining a game must not switch it. |
+| `src/integrations/social/FluxerSession.cpp` | Voice accepts private channel types 1/3, sends `guild_id = null`, and owns one active voice destination. | Retain the shared group call and microphone choice across game-party changes; no per-party audience is required. |
 
 Retain the existing per-guest `NetplayClient` bridge: a guest needs one connection
 to its game's host/relay, so that class being singular is not itself a global
@@ -148,8 +154,8 @@ commit or that new operations were exercised against real accounts.
   cannot create independent calls inside that room. See
   [voice routing](https://github.com/fluxerapp/fluxer/blob/cdcaba34ce538ee75c73feaa5aedc0331085add9/fluxer_docs/src/content/docs/voice/index.md)
   and [calls](https://github.com/fluxerapp/fluxer/blob/cdcaba34ce538ee75c73feaa5aedc0331085add9/fluxer_docs/src/content/docs/http-api/calls.mdx).
-- **Company chat can reuse a group DM; parallel private party voice needs more.**
-  Recommended full model: a community-backed company with a common text/voice
+- **Historical recommendation, superseded on 2026-10-04.**
+  The audit originally proposed: a community-backed company with a common text/voice
   space and distinct party voice channels. Joining requires the real channel
   permissions; creating/managing channels requires organizer authority. Reuse
   existing suitable channels or organizer-managed ones, without granting every
@@ -227,9 +233,9 @@ before choosing them for the image; this audit does not authorize paid services.
    each member to the correct party. Provider membership, current compatibility
    and access are checked at admission. One handheld joins one game; browsing
    other party cards never launches or switches voice.
-3. Add the supported company/party voice mapping described above. Do not present
-   a party-private voice option until its real audience exists. Keep existing DM
+3. Retain one shared group call across independent parties. Keep existing DM
    calls and normal contacts working independently of TrainerOS capabilities.
+   Verify game launch/return and party end without changing the call/microphone.
 4. Execute the comparison matrix above with actual gameplay and explicit topology,
    then select routes. Do not turn this audit's source findings into a claim that
    four-player, virtual-LAN, group voice or mixed-network play has passed.

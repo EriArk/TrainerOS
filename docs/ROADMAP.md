@@ -1,5 +1,14 @@
 # TrainerOS Roadmap
 
+**Shared group-call checkpoint, 2026-10-04:** the owner's simplified model is one
+call per group across independent games/parties. Existing behavior passed bounded
+Flip/Odin synthetic signal checks through different ordinary game launches and
+party/game exit; no new voice-room implementation is required. See
+[evidence and Odin graphics recovery](GAME_PARTIES.md#shared-group-call-checkpoint---2026-10-04).
+This does not close block 1/3 or four-client, distinct-network and human audio
+acceptance. Resolve the observed Odin GPU wait before extending its runtime checks;
+then continue older-platform internet multiplayer in the accepted order.
+
 **Runtime-party checkpoint, 2026-10-03:** [implementation and evidence](GAME_PARTIES.md)
 adds a multi-member coordinator, reserved places, explicit organizer start and
 reverse join requests in existing Home/Social. Installed profiles remain
@@ -7,8 +16,10 @@ two-player except the new four-port Melee profile; its actual paired proof uses
 two devices. Synthetic four-seat proof is not four-client gameplay. Current block
 1 remains open and experimental. Group-backed companies, parallel-party cards and
 selected-member access with per-party override now have implementation and
-Flip/Odin admission/startup evidence in that checkpoint. Continue separate party
-voice and the route-specific runtime gates below; no earlier acceptance is removed.
+Flip/Odin admission/startup evidence in that checkpoint. Continue the shared
+group-call and route-specific runtime gates below. Owner clarification, 2026-10-04:
+one group call serves friends across independent game parties; separate party
+voice rooms are removed from scope. All other acceptance is retained.
 
 **2026-09-27 #91:** [Adapter knowledge base](adapters/README.md) is a prerequisite for new exact-game research and is updated throughout every adapter increment. It composes the existing #42/#89 work, without replacing or dropping any R1–R18 acceptance. A portable copy of the actual adapter, exact-game profiles and standalone build travel with its evidence. The delivered Emerald slice covers reorder, box movement, Party/Box transfer and protected release.
 
@@ -105,8 +116,9 @@ Fluxer presence supplies no game activities; TrainerOS needs a bounded activity
 descriptor instead of assumed rich presence. Both devices have Tailscale; Odin's
 existing authenticated setup is preserved. Native routes remain the baseline;
 comparative gameplay, multi-client play and community voice are **not proven**.
-Independent party voice is recommended through supported community channels,
-while existing group DMs keep their common call; that mapping is not yet installed.
+The earlier independent-party voice recommendation is superseded by the owner
+on 2026-10-04: retain one ordinary group call across all game parties. No
+community-channel migration or private per-party call is needed.
 
 **Automatic setup review, 2026-10-03:** [feasibility decision](MULTIPLAYER_AUTOMATION.md)
 retains native emulator routes and identifies project-operated Headscale as the
@@ -129,8 +141,8 @@ or a second queue):
    setup and ordinary reconnect in the final route acceptance.
    Source/provider/inventory and automatic-provisioning findings are recorded;
    the overlay comparison remains a conditional adoption gate, not another general
-   source survey or a prerequisite to extending the retained native route. Choose the
-   supported company/party voice mapping before implementing private audiences.
+   source survey or a prerequisite to extending the retained native route. Reuse
+   the ordinary group call independently of game-party membership.
    Retain working routes; PSP LAN and external relay have short integrated gameplay proof,
    not a reason to assume an overlay is necessary or already proven.
 2. Extend the existing session foundation and direct Home/Social UI for 3-4+
@@ -139,8 +151,8 @@ or a second queue):
    preserve running-game/save confirmation and cancellation behavior.
 3. Connect persistent company membership to independent parallel game parties,
    explicit free-entry inheritance/override and deliberate one-action Join.
-   Keep common chat/call stable; party voice switching is explicit and requires
-   supported provider audiences, not an assumed subcall API.
+   Keep common chat/call stable across different games and party membership;
+   do not introduce separate party voice rooms.
 4. Complete route-specific runtime and recovery acceptance on the selected
    transports, including more than two clients, independent concurrent parties,
    distinct internet networks and a separately proven router-free route. Retain
@@ -155,7 +167,7 @@ owner-deferred and clearly separate. No closure of block 1/#107, no repeat of
 passed invitation-only checks as progress, and no unrelated transport rewrite.
 The queued messenger expansion, block 3's remaining checks, native online Link
 (block 4), reviews/final audit (block 5), and every R1-R18/U/deferred item below
-remain retained. Group/party voice extends that communication acceptance without
+remain retained. Shared group-call continuity extends that acceptance without
 relabeling earlier synthetic checks as real speech proof.
 
 ### Earlier checkpoints (evidence, not an override of the order above)

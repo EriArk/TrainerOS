@@ -1,5 +1,12 @@
 # AGENTS.md — TrainerOS
 
+**Owner group voice clarification, 2026-10-04:** one shared voice call per
+group is sufficient. Friends may play different games and form independent game
+parties while continuing that call. Creating, joining, ending or switching a game
+party must not switch, restart or end the group call or change microphone consent.
+Separate per-party voice rooms are no longer an acceptance requirement. Preserve
+ordinary provider permissions and the remaining background-audio checks.
+
 **Owner multiplayer metadata clarification, 2026-10-04:** Worlds and Multiverse
 show game player-count indicators. Explicit single-player metadata excludes
 runtime invitations/joining; absent or ambiguous metadata is not single-player.

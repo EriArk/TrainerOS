@@ -190,3 +190,13 @@ The missing Mega Drive preview is existing incomplete media, not new artwork.
 - [54-library-online-profile-flip](54-library-online-profile-flip.png)
 - [55-megadrive-online-rejoin-flip](55-megadrive-online-rejoin-flip.png)
 - [56-megadrive-online-rejoin-odin](56-megadrive-online-rejoin-odin.png)
+
+Screens 57-59 are actual Flip/Odin captures from 4 October with the same
+executable as 52-56 and the temporary experimental gate enabled. They show
+ordinary games with a retained shared group call, Odin's independent game party,
+and Flip's call after game return. They do not show four-client gameplay.
+[Evidence, audio measurements and Odin recovery limitation](../docs/GAME_PARTIES.md#shared-group-call-checkpoint---2026-10-04).
+
+- [57-group-call-game-flip](57-group-call-game-flip.png)
+- [58-group-call-party-odin](58-group-call-party-odin.png)
+- [59-group-call-return-flip](59-group-call-return-flip.png)
