@@ -1,5 +1,18 @@
 # TrainerOS on the handhelds
 
+## Experimental PSP online relay evidence
+
+Screens 35-37 are actual Gamescope captures on 3 October from executable
+`e41f211d…`, following Home -> Online friend invitation and paired start.
+Both PPSSPP processes used the external relay; both consoles were still on the
+same home internet connection. Screen 37 shows a new match after a 12-second
+relay interruption during rematch startup. The experiment was disabled again
+after normal exit. See [scope and limits](../docs/PSP_MULTIPLAYER.md#online-relay-and-brief-loss--2026-10-03).
+
+| Flip 2 | Odin 2 | After recovery, Odin 2 |
+| --- | --- | --- |
+| [![Flip](35-lumines-relay-flip.png)](35-lumines-relay-flip.png) | [![Odin](36-lumines-relay-odin.png)](36-lumines-relay-odin.png) | [![Recovered](37-lumines-relay-recovered.png)](37-lumines-relay-recovered.png) |
+
 ## Experimental PSP LAN evidence
 
 Screens 33-34 are actual Gamescope captures after the complete TrainerOS Home

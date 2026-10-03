@@ -5,6 +5,48 @@
 SHA-256 `9b21dd44a2b9ceb746ab9ed9cea4b30de69e63880704c0e34177f1c30c38b82b`.
 Its multiplayer mode must be verified inside the game. No game content is bundled.
 
+## Online relay and brief loss — 2026-10-03
+
+The same installed executable (`e41f211d…`) passed Home -> Invite friend ->
+**Online friend** -> Odin Accept -> organizer Start -> save-aware relaunch.
+Both private PPSSPP configurations selected `socom.cc`, relay mode `1`,
+`ForceLagSync2=True`, ordinary SAVEDATA and the existing distinct device MACs.
+Both actual PPSSPP processes had established connections to `51.91.124.42:27312`
+for coordination and `:27313` for gameplay. This proves use of the external relay,
+although both handhelds still used the same home internet connection.
+
+The first promptly accepted native challenge reached 2P VS. Independent remote
+controller movement/rotation/drop inputs worked on both devices; the short round
+ended normally. No address, router or VPN setup was required in the player flow.
+Actual handheld captures: [Flip](../screenshots/35-lumines-relay-flip.png),
+[Odin](../screenshots/36-lumines-relay-odin.png).
+
+During rematch startup, a temporary Odin nftables table dropped only traffic
+to/from that relay on TCP 27312/27313 for 12 seconds. Counters recorded 22 outgoing
+and 25 incoming dropped packets. Both games returned to the native opponent
+lobby. After rule removal, a fresh native challenge and skin selection reached
+another playable round with independent inputs, without restarting either game
+or device. [Recovered arena](../screenshots/37-lumines-relay-recovered.png).
+This is rematch-start interruption and recovery through a **new match**, not
+seamless continuation of the interrupted round or a mid-round recovery proof.
+The initial probe command failed syntax validation and applied no rules; only
+the corrected, counter-verified probe counts as interruption evidence.
+
+Normal Home -> Exit game -> Leave closed both PPSSPP processes and removed their
+private configuration roots. The temporary firewall table was verified absent.
+Ordinary executables were restored with the experiment off; database integrity,
+counts, boot/helper state and Emerald save hashes passed final checks. Odin stayed
+at zero volume and Flip muted. No device reboot or forced emulator kill was needed.
+Lumines `DATA.BIN` and `PARAM.SFO` changed on both devices during actual play and
+were retained; this is **not** a byte-identical-save claim or a save-format
+validation. Flip's ordinary `ppsspp.ini` also changed across the initial ordinary
+launch; Odin SYSTEM and both controller mappings were unchanged.
+
+The short online gameplay/retry gate is now evidenced for this exact pair.
+Distinct internet networks, mid-round interruption, wider compatibility,
+multi-client/parallel parties and party voice remain open. No endurance run was
+performed. Do not repeat the passed LAN/relay smoke checks without a new reason.
+
 ## Integrated short check — 2026-10-03
 
 The corrected installed build (`e41f211d…`) now passed the actual TrainerOS

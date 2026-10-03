@@ -1,5 +1,14 @@
 # Native Social - conversations and discovery
 
+**PSP online continuation, 2026-10-03:** Home's Online friend invitation now has
+actual paired Lumines gameplay through PPSSPP's external relay. A 12-second
+relay-only interruption during rematch startup returned both games to their lobby;
+a fresh challenge restored play without emulator/device restart. Ordinary Home
+exit and cleanup passed. See [precise evidence](PSP_MULTIPLAYER.md#online-relay-and-brief-loss--2026-10-03).
+This supersedes the online-unverified status in earlier checkpoints below, not
+distinct-network, mid-round recovery, larger-party or voice acceptance. Block 1
+remains open; both ordinary installations retain the experiment/off gate.
+
 **PSP integrated short check, 2026-10-03:** the corrected build passed Home
 Nearby invitation, acceptance, organizer start, save-aware relaunch, an actual
 approximately 40-second Lumines round and normal exit/return on both handhelds.

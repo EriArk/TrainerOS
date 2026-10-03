@@ -19,10 +19,13 @@ Owner implementation clarification: image-owned emulator configuration and
 source patches are allowed, with a separate [maintenance record](emulators/README.md)
 per emulator, versioned changes and update/rollback instructions. PPSSPP identity
 preservation and clock synchronization are delivered on both devices. The corrected
-Home invitation route now passed one short Lumines LAN round and normal return;
-one native challenge retry was required. Do not repeat the passed smoke check.
-Continue interruption/recovery and online route evidence, alongside the retained
-party/voice acceptance below. [PSP evidence](PSP_MULTIPLAYER.md) records exact limits.
+Home invitation route passed short Lumines LAN and external-relay rounds and normal
+return. A 12-second relay loss during rematch startup recovered through a new
+native challenge without emulator/device restart. Both clients shared home
+internet; mid-round recovery and distinct networks remain unproven. Do not repeat
+these passed smoke checks. Next advance separate company/party voice audiences;
+retain larger/concurrent-party and route-specific runtime gates below.
+[PSP evidence](PSP_MULTIPLAYER.md) records exact limits.
 
 The owner paused implementation to reconcile connection, invitation and group
 behavior. [Accepted experience](MULTIPLAYER_EXPERIENCE.md) now requires persistent
@@ -65,7 +68,7 @@ or a second queue):
    the overlay comparison remains a conditional adoption gate, not another general
    source survey or a prerequisite to extending the retained native route. Choose the
    supported company/party voice mapping before implementing private audiences.
-   Retain working routes; PSP LAN now has a short integrated gameplay proof,
+   Retain working routes; PSP LAN and external relay have short integrated gameplay proof,
    not a reason to assume an overlay is necessary or already proven.
 2. Extend the existing session foundation and direct Home/Social UI for 3-4+
    participants, real game capacity/readiness and correct controller slots.
@@ -79,8 +82,9 @@ or a second queue):
    transports, including more than two clients, independent concurrent parties,
    distinct internet networks and a separately proven router-free route. Retain
    safe save ownership, background calls and ordinary launch/return.
-   Lumines short LAN gameplay/return passed; reliability/recovery and online,
-   and all other earlier block 1 gates, remain open.
+   Lumines short LAN/relay gameplay and return passed; rematch-start loss recovered
+   via a new native challenge. Mid-round loss, distinct-network reliability and
+   all other earlier block 1 gates remain open.
 
 Each implementation delivery must update both available handhelds and commit/
 push; two handhelds do not establish four-client gameplay. Physical checks remain
@@ -100,10 +104,10 @@ messages. Streets of Rage 2 has actual online P2 character/movement evidence on
 Flip/Odin; Gunstar Heroes is prepared but not gameplay-verified. Full paired play,
 distinct networks, abrupt-loss recovery and router-free runtime remain open.
 Standalone PPSSPP now uses that invitation journey with isolated settings and
-ordinary SAVEDATA. Lumines LAN consent, paired launch and native opponent
-discovery passed, but its lobby-to-match transition failed. Online PSP remains
-unverified. Resolve that exact runtime gate from captured logs before calling
-the PSP route playable; see [PSP evidence](PSP_MULTIPLAYER.md). Then assess other
+ordinary SAVEDATA. The initial Lumines lobby-to-match failure recorded here was
+subsequently resolved for the exact clock-synchronized profile; LAN/relay rounds
+and bounded rematch-start recovery now passed. See current [PSP evidence](PSP_MULTIPLAYER.md)
+for the remaining distinct-network and mid-round gates. Then assess other
 emulator connection models separately. This remains block 1,
 not universal multiplayer or permission to skip its remaining acceptance.
 See [platform evidence and continuation](EMULATOR_MULTIPLAYER.md#multiple-games-and-a-second-platform---2026-10-03).

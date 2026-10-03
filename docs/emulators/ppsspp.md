@@ -1,9 +1,11 @@
 # PPSSPP maintenance
 
 Updated 2026-10-03. Actual multiplayer acceptance is tracked in
-[PSP multiplayer](../PSP_MULTIPLAYER.md); integrated invitation, a short LAN round
-and normal Home exit/cleanup passed on both devices. Native challenge required
-one retry; sustained reliability, interruption/recovery and online remain open.
+[PSP multiplayer](../PSP_MULTIPLAYER.md); integrated invitations, short LAN and
+external-relay rounds, and normal Home exit/cleanup passed on both devices.
+The LAN challenge required one retry. A 12-second relay loss during rematch startup
+returned both games to the lobby; a fresh challenge restored play without restart.
+Distinct-network, mid-round loss and sustained reliability remain unproven.
 
 ## Upstream and observed installation
 
@@ -27,7 +29,7 @@ The exported runtime copy lives in [adapter implementations](../adapters/impleme
 | Temporary configuration root inside ordinary `PSP/SYSTEM` | Copy global/per-game/controller INIs because PPSSPP saves appended options. Retain ordinary SAVEDATA and optional GAME/TEXTURES through links; remove only the private root on process settlement. |
 | Network `EnableWlan=True`, `EnableUPnP=False`, `PortOffset=10000` | Session settings, not global preference replacement. |
 | LAN relay mode `2`, host's actual LAN address, host-only `EnableAdhocServer` | Loopback allowed coordination but prevented real opponent discovery. |
-| Online relay mode `1`, `socom.cc`, built-in server off | Experimental native relay route; TCP reachability does not establish a playable online match. |
+| Online relay mode `1`, `socom.cc`, built-in server off | Exact Lumines pair reached gameplay through external TCP 27312/27313 and recovered via a new challenge after rematch-start loss. Both clients shared home internet; separate-network acceptance remains open. |
 | Network savestate/speed control off; General auto-state-load, cheats/plugins off; Achievements disabled | Keep the experimental paired runtime consistent without rewriting the ordinary profile. |
 | SystemParam nickname from Trainer; **no MAC override** | Preserve global and per-game console identities. Earlier per-invitation randomization was removed on 2026-10-03. PPSSPP warns that saves can be tied to a MAC. Never put a shared fixed MAC in the image. |
 | General `ForceLagSync2=True` in the exact Lumines session; settings fingerprint `ppsspp-adhoc-isolated-config-clock-v2` | Default-clock diagnostic failed after matching; the controlled clock-sync run reached a LAN arena and independent inputs on Flip/Odin. Keep ordinary/per-game preferences intact. This is not a universal PSP compatibility workaround. |

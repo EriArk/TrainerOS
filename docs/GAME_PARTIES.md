@@ -95,8 +95,12 @@ remains muted. No device reboot was needed.
 
 ## Next unresolved work
 
-Continue the agreed block's real runtime acceptance and separate voice audiences. Preserve the existing Lumines VS group-transition
-failure, full RetroArch paired-control/recovery, distinct-network and router-free
+The corrected Lumines profile now has integrated LAN and external-relay gameplay,
+plus recovery through a new native challenge after brief rematch-start packet loss;
+see [current PSP evidence](PSP_MULTIPLAYER.md). Earlier startup-only checkpoints
+below remain historical. Continue the agreed block's real runtime acceptance and
+separate voice audiences: larger/concurrent parties, full RetroArch paired-control/
+recovery, mid-round PSP loss, distinct-network and router-free
 gates, and the deferred human audio/controller checks. Do not repeat already
 passed invitation-only checks as a substitute for those results.
 
