@@ -1,5 +1,11 @@
 # Emulator multiplayer (#107)
 
+**2026-10-03 accepted expansion, pending:** [company/game-party experience](MULTIPLAYER_EXPERIENCE.md)
+adds multi-member and parallel parties, reverse join requests and authorized
+one-action entry. Current pair-oriented runtime evidence below does not prove
+these features. [Transport audit](MULTIPLAYER_TRANSPORT_AUDIT.md) compares native
+routes with virtual LAN before any replacement decision; preserve all open gates.
+
 Status: **in development, not accepted**. This is distinct from Emerald's
 save-based Link activities. The owner moved this block ahead of the remaining
 block 3 physical/interoperability checks on 2026-10-03.

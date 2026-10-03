@@ -5,6 +5,14 @@
 
 # TrainerOS Domain Model
 
+**2026-10-03 conceptual multiplayer extension (no schema change):** distinguish
+persistent company membership from each game party's participants, game/mode,
+capacity, organizer/access and lifecycle. Voice conversation and transport remain
+separate. Do not reuse the save-derived Pokemon Party identity or imply that a
+chat group owns only one game. [Accepted model](MULTIPLAYER_EXPERIENCE.md);
+provider mapping and persistence/protocol details remain in the
+[audit](MULTIPLAYER_TRANSPORT_AUDIT.md#open-implementation-decisions).
+
 **2026-10-01 navigation v2:** owner-scoped navigation JSON stores semantic
 `home/worlds/companions/trainer/social` plus `trainerFace` and `socialFace`.
 Legacy `hall`/slot 4 maps to the existing nested Journey/Hall/RA state under

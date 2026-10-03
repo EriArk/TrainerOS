@@ -1,5 +1,13 @@
 # Native Social - conversations and discovery
 
+**Owner agreement, 2026-10-03 (planned):** [multiplayer experience](MULTIPLAYER_EXPERIENCE.md)
+adds requests to join a friend's displayed game, explicitly enabled company
+free-entry and several parallel game parties within one persistent company.
+Common chat and explicit company/party voice selection survive game transitions.
+Reuse actual provider permissions and existing Home/Social surfaces. These are
+new acceptance, not delivered capabilities; [transport audit](MULTIPLAYER_TRANSPORT_AUDIT.md)
+does not select a VPN or replace existing evidence below. ROADMAP owns order.
+
 **Standalone PSP checkpoint, 2026-10-03:** the existing Home invitation now
 prepares standalone PPSSPP with isolated copied settings and retained ordinary
 SAVEDATA. Flip/Odin LAN consent, restart confirmation, paired launch and native

@@ -1,5 +1,11 @@
 # TrainerOS Product Specification
 
+**2026-10-03 multiplayer target:** [companies and game parties](MULTIPLAYER_EXPERIENCE.md)
+adds persistent groups with independent parallel sessions, reverse join requests,
+explicit company free-entry policy and separate voice audience. Accepted behavior
+is pending implementation; [transport options](MULTIPLAYER_TRANSPORT_AUDIT.md)
+are audit hypotheses, not a selected replacement network.
+
 **2026-10-01 supersession:** #111 places Profile/Journey/Hall/RA under Trainer
 and uses rightmost Social for Friends/Chats, retaining five primaries and every
 existing provider. [Navigation migration](NAVIGATION_111.md). #112's adaptive

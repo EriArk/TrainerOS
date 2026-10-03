@@ -1,5 +1,17 @@
 # AGENTS.md — TrainerOS
 
+**Owner multiplayer/company agreement, 2026-10-03:** persistent companies may
+contain several independent simultaneous game parties, each with its own game,
+capacity, organizer and access. Add requests to join from a friend's game
+activity and deliberate one-action Join for explicitly authorized company
+members. Automatic preparation does not mean automatic game launch on presence
+or implicit save/voice changes. Preserve one compact invitation and direct Home/
+Social controls. [Accepted experience](docs/MULTIPLAYER_EXPERIENCE.md) defines
+pending acceptance. [Transport audit](docs/MULTIPLAYER_TRANSPORT_AUDIT.md) keeps
+virtual LAN as a comparison candidate, not a mandate to rewrite/install it.
+Resolve the bounded audit before wider transport work; retain existing runtime,
+block 3, native Link and all later roadmap gates.
+
 **Owner anti-loop and scheduling correction, 2026-10-03:** continue block 1
 actual emulator multiplayer now; block 3's remaining interoperability, separate
 network and owner physical checks stay explicitly pending. Do not rerun passed

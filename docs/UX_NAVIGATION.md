@@ -4,6 +4,12 @@
 
 # TrainerOS UX & Navigation
 
+**2026-10-03 multiplayer target:** reuse existing Home/Social for named invites,
+Request to join from current-game activity, and direct Join into a specific game
+party. A company can show several parallel parties without an extra dashboard
+or connection wizard. Calls retain their audience until explicitly switched.
+See [accepted flows and pending checks](MULTIPLAYER_EXPERIENCE.md).
+
 **2026-10-01 #111:** primaries are **Home / Worlds / Companions / Trainer /
 Social**. Trainer cycles **Profile / Journey / Hall / RA**, Social **Messages /
 Groups / Communities / Search**. Conversations open on entry/highlight without

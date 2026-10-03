@@ -4,6 +4,47 @@
 
 ## Current plan — reconciled 2026-10-01
 
+### Multiplayer agreement — 2026-10-03, current next work
+
+The owner paused implementation to reconcile connection, invitation and group
+behavior. [Accepted experience](MULTIPLAYER_EXPERIENCE.md) now requires persistent
+companies with multiple parallel game parties, reverse join requests and
+explicitly authorized free entry. [Transport/session audit](MULTIPLAYER_TRANSPORT_AUDIT.md)
+separates code-backed gaps, source findings and unresolved options. This docs-only
+pass implements none of those behaviors and does not select/install a virtual LAN.
+
+Dependency order within the current multiplayer block (not substitute deliveries
+or a second queue):
+
+1. Finish the bounded session/provider/transport audit: multi-client ownership,
+   real group/voice contracts, and comparable native versus virtual-LAN evidence.
+   Retain working routes; the existing PSP LAN failure is a separate unresolved
+   control, not a reason to assume a VPN fixes it.
+2. Extend the existing session foundation and direct Home/Social UI for 3-4+
+   participants, real game capacity/readiness and correct controller slots.
+   Complete owner invitations and reverse requests from displayed game activity;
+   preserve running-game/save confirmation and cancellation behavior.
+3. Connect persistent company membership to independent parallel game parties,
+   explicit free-entry inheritance/override and deliberate one-action Join.
+   Keep common chat/call stable; party voice switching is explicit and requires
+   supported provider audiences, not an assumed subcall API.
+4. Complete route-specific runtime and recovery acceptance on the selected
+   transports, including more than two clients, independent concurrent parties,
+   distinct internet networks and a separately proven router-free route. Retain
+   safe save ownership, background calls and ordinary launch/return. Existing
+   Lumines match failure and all earlier block 1 gates stay open until resolved.
+
+Each implementation delivery must update both available handhelds and commit/
+push; two handhelds do not establish four-client gameplay. Physical checks remain
+owner-deferred and clearly separate. No closure of block 1/#107, no repeat of
+passed invitation-only checks as progress, and no unrelated transport rewrite.
+The queued messenger expansion, block 3's remaining checks, native online Link
+(block 4), reviews/final audit (block 5), and every R1-R18/U/deferred item below
+remain retained. Group/party voice extends that communication acceptance without
+relabeling earlier synthetic checks as real speech proof.
+
+### Earlier checkpoints (evidence, not an override of the order above)
+
 **Multi-platform block 1 continuation, 2026-10-03:** invitations now select the
 running game's exact local profile, including SNES and Mega Drive, rather than
 the first Contra record. Bounded per-game negotiation replaces whole-library
@@ -958,7 +999,7 @@ stay usable. P IDs retain earlier acceptance/evidence; they are not sequence IDs
 | **N5 · P1/P2 — compact social** | #100 provider/owner isolation and #101 Friends/Chats | #99 supported path; drafts/history/realtime/rate limits/offline/privacy, controller-first UI, no second Home messenger. |
 | **N6 · P8/network — native online Link** | #104 invitations, #109 independent adapter activities, #105 suitable delivery → #110 Emerald exchanges | Existing protected native Link with runtimes closed; different internet connections, durable receipts, fault recovery and normal-save readback. #106 only if needed; voice/netplay/virtual LAN do not block it. |
 | **N7 · P1/audio — social media and voice** | #102 pictures/recorded voice messages and #103 simple private calls | Independent #99/#100 capability gates, explicit microphone consent/audience/audio ownership and ordinary-client interoperability. |
-| **N8 · P9/network — actual runtime multiplayer** | #107 one exact game/runtime; needed #106 direct/authorized relay | Automatic safe compatible host/join, actual remote gameplay, host/guest persistence and return. No every-ROM tuning or native-trade-as-netplay claim. |
+| **N8 · P9/network — actual runtime multiplayer** | #107 exact runtime routes plus accepted [multi-member/parallel parties and reverse/free-entry joining](MULTIPLAYER_EXPERIENCE.md); bounded [transport audit](MULTIPLAYER_TRANSPORT_AUDIT.md) before selecting wider routes | Follow the current multiplayer dependency order above. Actual independent gameplay, capacity/admission, company/provider permissions, host/guest persistence, voice continuity and recovery; native/overlay choice remains evidence-based. No every-ROM tuning or native-trade-as-netplay claim. |
 | **Cross-cutting N1–N8** | #108 independent release/privacy/recovery/resource gates | Measured Flip/Odin results, isolated network tests, migration/rollback, offline regression; retain earlier #70/#71/#75/#76/#93/#94 and Bluetooth/Direct safety. |
 | **R1 · P8 — finish Emerald shops** | #68 currency item/decor exchanges, categories, 20 BP lessons, Heart Scale relearning and shard/Shoal payments delivered; discovered-stock search/location filters and quantity baskets delivered; bounded remaining source coverage | [Existing shop contract](EMERALD_SHOPS.md): discovery/stock/grouping/non-spoilers, verified debit AND reward, capacity/eligibility, confirmation, protection/allowed delta and normal in-game readback. All remaining traders stay tracked; a new currency is not a renamed money field. |
 | **R2 · P0/P8 — bounded adapter audit** | #89 current responsibilities/coupling, composition/portability/versioning decision; conceptual #90 domain boundary | Before wider per-title integration. Short code-backed note, no second save framework, speculative plugin loader or external dependency. Justified implementation gets its own bounded follow-up. Same-build R1 already uses a proven transaction. |
