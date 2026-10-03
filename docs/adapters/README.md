@@ -9,9 +9,10 @@ that another edition of the same game has the same format.
 | [Emerald English](emerald-en.md) | One SHA-256 allowlisted GBA build | Integrated reads/Journey, healing, shops and protected Party/Box moves/occupied swaps, release and held items |
 | [FireRed English](firered-en.md) | Original and Rev 1, separately fingerprinted | Integrated reads/healing; normal-game healing proof on Rev 1 only |
 | Diamond / Colosseum | No verified fingerprints recorded here | Planned; no write capability inferred |
+| [NES Pong runtime](../NES_MULTIPLAYER.md) | Exact author-provided homebrew; matching FCEUmm/RetroArch | Public-relay independent gameplay, invitations, loss/exit/rejoin, reverse join and permitted-group gameplay verified; distinct networks and wider compatibility remain open |
 | [Contra III runtime](../EMULATOR_MULTIPLAYER.md) | Exact US SNES content, matching Snes9x/RetroArch binaries | Researching netplay: LAN controls and public-relay password handshake verified separately; online gameplay/recovery open; no semantic save adapter or persistent writes |
 | [Mega Drive runtime profiles](../EMULATOR_MULTIPLAYER.md#multiple-games-and-a-second-platform---2026-10-03) | Exact US Streets of Rage 2 and Gunstar Heroes; matching Genesis Plus GX/RetroArch | Streets named online consent and P2 character/movement verified; Gunstar prepared only. Full gameplay/recovery gates open; no persistent save writes |
-| [Standalone PSP](../PSP_MULTIPLAYER.md) | Exact US Lumines; PPSSPP ARM64 1.20.4 fingerprint | LAN consent, paired launch, isolated settings and in-game opponent discovery verified. Match transition fails; online gameplay unverified. Ordinary SAVEDATA retained. |
+| [Standalone PSP](../PSP_MULTIPLAYER.md) | Exact US Lumines; PPSSPP ARM64 1.20.4 fingerprint | LAN and external-relay Lumines gameplay verified with isolated settings; bounded relay interruption/rechallenge passed. Distinct networks and mid-round recovery remain open. Ordinary SAVEDATA retained. |
 
 [registry.json](registry.json) indexes exact identities, source records and
 per-capability evidence. It deliberately does not duplicate the factual tables,

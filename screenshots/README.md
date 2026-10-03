@@ -149,3 +149,17 @@ the game, an Online friend invitation and accepted 2/4 roster. Both consoles run
 the same TrainerOS/bridge hashes recorded in [Dolphin evidence](../docs/emulators/dolphin.md).
 Online traversal startup was checked behind one router; these are not evidence
 of distinct-network connectivity or four physical players. No ROM is included.
+
+
+Screens 43-48 are actual Flip/Odin Gamescope captures from the NES continuation:
+Online friend consent, external-relay gameplay, reverse joining from chat and
+permitted group admission/gameplay. See [build, route and remaining limits](../docs/NES_MULTIPLAYER.md).
+Both consoles shared one router; these do not prove distinct-network access.
+The ordinary delivery retains the experimental-off gate.
+
+- [43-nes-online-invitation-odin](43-nes-online-invitation-odin.png)
+- [44-nes-online-gameplay-flip](44-nes-online-gameplay-flip.png)
+- [45-nes-chat-join-odin](45-nes-chat-join-odin.png)
+- [46-nes-join-consent-flip](46-nes-join-consent-flip.png)
+- [47-nes-group-party-odin](47-nes-group-party-odin.png)
+- [48-nes-group-gameplay-odin](48-nes-group-gameplay-odin.png)

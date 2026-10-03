@@ -24,16 +24,32 @@ checks are intermediate evidence; distinct-network/NAT or relay/recovery proof
 remains mandatory. This changes priority, not the retained acceptance or the
 existing Bluetooth/LAN/Direct safety decisions.
 
-**Owner scope correction and common emulator set, 2026-10-03:** online play is
-not finished after RetroArch/PPSSPP. [Common emulator selection](EMULATOR_STANDARD.md)
-covers every existing platform across device variants; [route matrix](EMULATOR_MULTIPLAYER_MATRIX.md)
-separates genuine multiplayer mechanisms from ordinary launch support. Standardize
-runtime/core artifacts first, then integrate Dolphin, Flycast, Azahar, melonDS and
-ARMSX2 routes in that order, retaining unresolved PS1/link-cable and conditional
-heavy-system routes. The matrix records concrete limits and the full remaining
-cross-network/recovery/multi-client acceptance. Separate party voice stays queued
-after this emulator coverage; it must not replace unfinished online-game work.
-This pass selected/audited the set; it did not deploy standardized packages.
+**Owner oldest-first correction, 2026-10-03 (current execution order):** use the
+existing invitation/consent/game-party/launch framework and finish older-system
+internet play before moving to newer emulator families. The previous
+Dolphin -> Flycast -> Azahar-first expansion order is superseded. Preserve the
+installed Dolphin route and Flycast package checkpoint; neither justifies
+skipping unresolved earlier routes.
+
+| Order | Work | Required result before advancing |
+| --- | --- | --- |
+| 1 | NES, then existing Mega Drive/SNES RetroArch routes | Online friend invitation and reverse join request, group access/parallel-party handling, real independent gameplay, Home exit/reinvite and bounded connection-loss recovery. Finish current route instead of adding more startup-only profiles. |
+| 2 | Older handheld/link and 32/64-bit systems | GB/GBC/GBA actual link evaluated separately; PS1/N64 and the other selected older families use their actual supported mechanisms. A concrete unsupported result is explicit, never shared-input substitution or uninvestigated omission. |
+| 3 | Dreamcast and subsequent generations | Flycast, PS2/GameCube, DS/PSP, then 3DS/newer families. Retain completed PSP/Dolphin work and close their remaining gates when reached. |
+| Throughout | Internet first; retain LAN/direct nearby | No player router/IP/VPN setup. Distinct-network evidence remains separate from a same-router public-relay test. Keep ordinary play, saves, calls and existing consent intact. |
+
+Current NES checkpoint: [NES Pong](NES_MULTIPLAYER.md) passed named Online friend
+consent, public-relay two-pad gameplay, loss/exit/rejoin, reverse chat join and
+permitted group gameplay on Flip/Odin. Ordinary deployment stays experimental/off.
+Distinct networks, parallel live parties, wider NES compatibility and the remaining
+Mega Drive/SNES route gates are still open. This does not advance the queue to
+newer emulator families or close block 1.
+
+This is a platform-family progression, not a demand to research every ROM or
+obscure platform. Complete the supported connection mechanism and its full user
+journey with representative games. No other acceptance, voice work or conditional
+platform is dropped. [Matrix](EMULATOR_MULTIPLAYER_MATRIX.md) records route limits;
+[common set](EMULATOR_STANDARD.md) remains the runtime selection contract.
 
 **Common artifact delivery, 2026-10-03:** the first
 [ARM64 baseline](emulators/retroarch.md) is now on Flip/Odin: 72 common core
@@ -55,7 +71,7 @@ return. A 12-second relay loss during rematch startup recovered through a new
 native challenge without emulator/device restart. Both clients shared home
 internet; mid-round recovery and distinct networks remain unproven. Do not repeat
 these passed smoke checks. Dolphin now has the bounded paired delivery above;
-next in the common-emulator queue is Flycast. Retain Dolphin distinct-network
+the owner now returns execution to the older RetroArch families first. Retain Dolphin distinct-network
 and larger/concurrent-party, voice and runtime gates below.
 [PSP evidence](PSP_MULTIPLAYER.md) records exact limits.
 

@@ -10,6 +10,8 @@ namespace trainer::retroarch {
 namespace {
 struct Profile {const char *platform,*core,*id,*title,*rom,*archive;};
 const Profile profiles[] = {
+    {"nes","fceumm","runtime.fceumm.pong-homebrew.v1","NES Pong",
+     "b9116433d8f5d3293adfe871b47af68198e1596d40eccc2c3a99b14e2ca2afe0",""},
     {"snes","snes9x","runtime.snes9x.contra3-us.v1","Contra III",
      "a93ea87fc835c530b5135c5294433d15eef6dbf656144b387e89ac19cf864996",
      "9eab8d9bdae35e13a1459d1ccddbfb3efd7192817a09102b9abccbbc6e5f71ea"},
@@ -25,7 +27,7 @@ bool token(const QString& s,int max) {
 }
 }
 QJsonObject netplayProfile(QString platform,QString core,QString content) {
-    for(const auto& p:profiles)if(platform==p.platform&&core==p.core&&(content==p.rom||content==p.archive))
+    for(const auto& p:profiles)if(platform==p.platform&&core==p.core&&(content==p.rom||(*p.archive&&content==p.archive)))
         return {{"id",p.id},{"label",p.title},{"content",p.rom},
                 {"settings",core+"-default-no-sram-v2"}};
     return {};

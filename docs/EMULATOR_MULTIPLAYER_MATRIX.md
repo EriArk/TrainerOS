@@ -1,7 +1,7 @@
 # Emulator multiplayer coverage
 
-2026-10-03. Source/device audit and implementation handoff. **No new gameplay
-acceptance in this pass.** The [common emulator set](EMULATOR_STANDARD.md) chooses
+2026-10-03. Source/device audit and implementation handoff, updated with the
+[NES online checkpoint](NES_MULTIPLAYER.md). The [common emulator set](EMULATOR_STANDARD.md) chooses
 image defaults; this matrix records the separate network capabilities. The owner
 explicitly requires emulator coverage beyond RetroArch/PPSSPP before treating the
 online-game block as complete. Keep voice work queued, not a substitute milestone.
@@ -86,31 +86,28 @@ and real-game evidence. No single web guide settles every platform.
 
 ## Implementation order within the current multiplayer block
 
-1. Adopt the common runtime/core bundle contract; resolve current differences
-   with versioned artifacts and save-preserving migration, not ad hoc nightly
-   updates. Existing RetroArch/PPSSPP gaps stay open; do not repeat passed matches.
-   First [installed artifact baseline](emulators/retroarch.md): 72 matching cores
-   and three common Flatpak application revisions on both devices, with rollback.
-   Remaining standalone migrations and release packaging are still open.
-2. **Dolphin** end-to-end integration: isolated profile, native host/client/start
-   bridge, participant-to-pad assignment, controller-driven invitation, game,
-   exit and recovery. First GameCube, then the separately configured Wii route.
-   Use a title supporting four local players to extend beyond pair-only profiles.
-3. **Flycast** automatic internet reachability for its exact two-player GGPO
-   route, then **Azahar** scoped room/client integration. Complete each functional
-   chain rather than exposing setup pages for several unfinished runtimes. Keep native Dreamcast services separate.
-4. **melonDS** real local wireless and supported WFC path; **ARMSX2** native LAN
-   profile. Use a managed overlay only where this concrete route needs it and
-   has passed the [automation gates](MULTIPLAYER_AUTOMATION.md).
-5. Resolve the remaining PS1/GB/GBA mechanisms and conditional heavy systems
-   using the matrix. A known unavailable feature may remain unavailable; an
-   uninvestigated route is not the same as an unsupported emulator.
-6. Finish cross-cutting acceptance: separate internet networks, abrupt mid-game
-   loss, host/guest departure, 3-4 actual clients, concurrent same-title parties,
-   background call retention and fresh-device automatic connection. Two handhelds
-   cannot establish four-handheld proof; extra actual clients must be identified.
+Owner correction, 2026-10-03: **oldest families first, internet first**. The earlier
+Dolphin -> Flycast -> Azahar expansion queue is superseded. Existing code and
+package work remain; they do not close older-family acceptance.
 
-The matrix does not require testing every ROM. One representative game per real
-connection mechanism plus explicit compatibility boundaries is the initial target.
-User-operated controls/audio remain deferred. Separate party voice is retained
-after the currently prioritized emulator coverage, not dropped from the plan.
+1. NES, followed by the existing Mega Drive/SNES RetroArch families. Complete
+   Online friend invitations, reverse joining, group access, actual controls,
+   Home return/reinvitation and bounded loss recovery through the existing frame.
+   Keep parallel parties, supported slot capacity and external-relay versus
+   distinct-network evidence explicit. No replacement social/lobby architecture.
+2. Older handheld/link and 32/64-bit families: genuine GB/GBC/GBA linking remains
+   separate from sharing one emulated console. Resolve PS1/N64/other selected
+   old-system routes before using new-emulator expansion as the next milestone.
+3. Dreamcast, PS2/GameCube, DS/PSP, then 3DS and newer systems. Resume the retained
+   Flycast WAN investigation here; preserve and finish already-implemented PSP
+   and Dolphin work. Document real unsupported mechanisms rather than pretending
+   a launch-only adapter provides multiplayer.
+4. Cross-cutting checks belong to each relevant route: different internet
+   networks, interruption/reinvitation, departure, parallel parties, background
+   call retention and fresh-client automatic setup. Test real 3-4-client gameplay
+   when that game's mechanism supports it; two devices cannot prove four clients.
+
+The matrix does not require testing every ROM or installing obscure platforms.
+One representative game per real connection mechanism plus explicit compatibility
+boundaries is the initial target. Local/direct play remains in scope. Owner
+physical checks and separate party voice remain retained, not silently dropped.

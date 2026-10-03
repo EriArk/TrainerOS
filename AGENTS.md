@@ -1,5 +1,19 @@
 # AGENTS.md — TrainerOS
 
+**Owner oldest-first completion order, 2026-10-03:** stop expanding to newer
+emulators while older-system internet routes remain unfinished. The common
+invitation/consent/party/launch framework already exists; complete its real
+Online friend experience per older platform family before advancing. Begin with
+NES and the existing 16-bit RetroArch families, then older handheld/link and
+32/64-bit families, Dreamcast, PS2/GameCube, DS/PSP and 3DS/newer systems.
+Keep genuinely different link-cable/game-server mechanisms explicit rather than
+claiming shared-controller netplay covers them. Finish invitations and reverse
+join requests, group/party access, actual player controls, exit/reinvitation,
+loss handling and internet evidence for the current route. Keep local/direct
+play and prior work; defer Flycast/Azahar expansion instead of rebuilding the
+framework or counting package installation as multiplayer delivery. This
+supersedes the Dolphin/Flycast-first execution order, not any acceptance.
+
 **Owner internet-first multiplayer priority, 2026-10-03:** internet play is the
 primary everyday scenario; local LAN and direct nearby play remain required.
 Select runtimes and schedule transport work around an automatic Online friend

@@ -1,0 +1,30 @@
+{
+  "id": "runtime.fceumm.pong-homebrew.v1",
+  "platform": "nes",
+  "romSha256": "b9116433d8f5d3293adfe871b47af68198e1596d40eccc2c3a99b14e2ca2afe0",
+  "state": "partial",
+  "record": "../NES_MULTIPLAYER.md",
+  "evidence": [
+    "pinned-upstream-source",
+    "two-controller-source",
+    "named-online-consent",
+    "public-relay-paired-gameplay",
+    "independent-controls",
+    "mid-game-loss-home-return",
+    "rejoin-existing-host",
+    "chat-reverse-join",
+    "permitted-group-entry-gameplay",
+    "owned-exit"
+  ],
+  "remaining": [
+    "distinct-networks",
+    "parallel-live-parties",
+    "background-call-retention",
+    "wider-nes-compatibility",
+    "router-free-runtime"
+  ],
+  "persistentSaveWrites": false,
+  "implementation": "implementations/runtime",
+  "profile": "implementations/runtime/profiles/runtime.fceumm.pong-homebrew.v1.json",
+  "evidenceBase": "../../../"
+}

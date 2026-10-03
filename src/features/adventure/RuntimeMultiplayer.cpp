@@ -124,9 +124,9 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     const auto pspInstallation=ppsspp_.installation();
     const auto dolphinInstallation=dolphin_.installation();
     const auto stamp=[](const QString& path){const QFileInfo f(path);return qHashMulti(0,path,f.size(),f.lastModified().toMSecsSinceEpoch());};
-    quint64 revision=qHashMulti(0,stamp(installation.runtimeFile),stamp(installation.cores.value("snes9x")),
+    quint64 revision=qHashMulti(0,stamp(installation.runtimeFile),stamp(installation.cores.value("snes9x")),stamp(installation.cores.value("fceumm")),
         stamp(installation.cores.value("genesis_plus_gx")),stamp(pspInstallation.runtimeFile),stamp(dolphin::bridgeFile()),stamp(dolphin::bridgeRoot()+"/manifest.json"));
-    for(const auto& r:records)if(r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc")
+    for(const auto& r:records)if(r.adventure.platformId=="nes"||r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc")
         revision=qHashMulti(revision,r.adventure.id,stamp(r.contentPath),r.revision,r.integrationConfig["core"].toString());
     if(!revision)revision=1;
     if(!scan_.isRunning() && (scanRevision_!=revision||!scanRevision_)) {
@@ -134,7 +134,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
         scan_.setFuture(QtConcurrent::run([records,installation,pspInstallation,dolphinInstallation]{
             std::atomic_bool cancel=false;
             QMap<QString,QJsonObject> games;
-            for(const auto& r:records)if(r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc") {
+            for(const auto& r:records)if(r.adventure.platformId=="nes"||r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc") {
                 const auto identity=r.adventure.platformId=="gc"?dolphin::netplayIdentity(r,dolphinInstallation,cancel):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel);
                 if(!identity.isEmpty())games.insert(r.adventure.id,identity);
             }

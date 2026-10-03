@@ -1,5 +1,16 @@
 # Native Social - conversations and discovery
 
+**Oldest-first online continuation, 2026-10-03:** the owner's new order supersedes
+Dolphin/Flycast-first expansion. The existing invitation/party framework now
+supports an exact NES Pong/FCEUmm profile. Flip/Odin passed public-Fluxer consent,
+external-relay gameplay with independent controls, 12-second loss followed by
+normal exit/rejoin to the same running host, chat reverse join and permitted
+group admission through actual gameplay. [NES evidence](NES_MULTIPLAYER.md)
+separates shared-router relay proof from untested distinct networks, broader NES
+compatibility and parallel live parties. Both devices have the new binary;
+ordinary installations retain the experimental-off gate. Block 1 stays open.
+
+
 **Dolphin continuation, 2026-10-03:** the separate pinned native bridge now runs
 exact Melee US v1.01 on Flip/Odin through existing Home invitations. Nearby
 acceptance, automatic host/join/start, independent P1/P2 controls in a real match,

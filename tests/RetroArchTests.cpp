@@ -48,6 +48,16 @@ private slots:
         QVERIFY(!retroarch::netplayProfile("snes","snes9x",
             "a93ea87fc835c530b5135c5294433d15eef6dbf656144b387e89ac19cf864996").isEmpty());
     }
+    void nesMultiplayerRequiresSupportedContentAndCore() {
+        const QString digest("b9116433d8f5d3293adfe871b47af68198e1596d40eccc2c3a99b14e2ca2afe0");
+        const auto game=retroarch::netplayProfile("nes","fceumm",digest);
+        QCOMPARE(game["id"].toString(),QString("runtime.fceumm.pong-homebrew.v1"));
+        QCOMPARE(game["content"].toString(),digest);
+        QVERIFY(retroarch::netplayProfile("nes","fceumm",{}).isEmpty());
+        QVERIFY(retroarch::netplayProfile("nes","fceumm",QString(64,'0')).isEmpty());
+        QVERIFY(retroarch::netplayProfile("nes","nestopia",digest).isEmpty());
+        QVERIFY(retroarch::netplayProfile("snes","fceumm",digest).isEmpty());
+    }
     void relayDirectoryRequiresCompleteUnambiguousEndpoint() {
         const QByteArray reply="status=OK\r\ntunnel_addr=europe-west1.relay.retroarch.com\r\ntunnel_port=55435\r\n";
         QCOMPARE(retroarch::netplayRelayEndpoint(reply),QString("europe-west1.relay.retroarch.com|55435"));
