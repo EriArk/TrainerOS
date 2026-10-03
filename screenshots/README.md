@@ -56,6 +56,9 @@ separately. These invitation captures alone do not prove gameplay; see
 | Online friend invitation, updated caption | Odin 2 | [![Online invitation](22-experimental-online-invitation.png)](22-experimental-online-invitation.png) |
 | Exact Mega Drive game invitation | Odin 2 | [![Streets of Rage 2 invitation](23-experimental-megadrive-invitation.png)](23-experimental-megadrive-invitation.png) |
 | Standalone PSP local invitation | Odin 2 | [![Lumines invitation](24-experimental-psp-invitation.png)](24-experimental-psp-invitation.png) |
+| Game party in the existing group conversation | Odin 2 | [![Company party](28-experimental-company-party.png)](28-experimental-company-party.png) |
+| Joined without another organizer prompt | Odin 2 | [![Company joined](29-experimental-company-joined.png)](29-experimental-company-joined.png) |
+| Organizer's selected-member preference | Flip 2 | [![Company access](30-experimental-company-access.png)](30-experimental-company-access.png) |
 
 Screen 23 is an actual 3 October capture with the experimental multi-game build
 (`b5ce54dbc73131dc5ba6af7df892a51f631abe767220e81b0ad4349c71abc663`).
@@ -72,6 +75,15 @@ launch succeeded; the later native Lumines match transition failed. See
 the flag disabled. This screenshot is consent evidence, not gameplay acceptance.
 
 ## Capture provenance
+
+Screens 28-29 are actual 3 October Odin captures from development build
+`c40564e7c263d5bab105b11b873a881b127f929d556e65b1b5e069aa8280ac7a`;
+screen 30 is the earlier controller-configured preference on Flip in the same
+company check. The final installed build additionally preserves older-history
+navigation and distinguishes closed/waiting parties in their captions. These
+captures prove group discovery, retained preference and admission, not a completed
+PSP match or simultaneous physical four-player sessions. The experiment is off
+in the final ordinary installation. See [evidence](../docs/GAME_PARTIES.md).
 
 Screens 25-27 are actual Gamescope captures on 3 October: Odin's friend-game
 activity, Flip's reverse join request and Flip's accepted 2/2 roster. Development

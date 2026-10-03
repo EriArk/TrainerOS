@@ -29,6 +29,10 @@ class SocialController final : public QObject {
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(int messageIndex READ messageIndex NOTIFY changed)
     Q_PROPERTY(bool reading READ reading NOTIFY changed)
+    Q_PROPERTY(QVariantList companyParties READ companyParties NOTIFY changed)
+    Q_PROPERTY(bool partyFocused READ partyFocused NOTIFY changed)
+    Q_PROPERTY(int partyIndex READ partyIndex NOTIFY changed)
+    Q_PROPERTY(bool companyAvailable READ companyAvailable NOTIFY changed)
     Q_PROPERTY(QVariantMap gameParty READ gameParty NOTIFY changed)
     Q_PROPERTY(QVariantMap gameActivity READ gameActivity NOTIFY changed)
     Q_PROPERTY(bool togetherAvailable READ togetherAvailable NOTIFY changed)
@@ -94,11 +98,21 @@ public:
     bool surfaceAvailable() const { return surfaceAvailable_; }
     bool conversationVisible() const { return conversationVisible_; }
     bool gameActive() const{return gameActive_;}
-    void setGameActive(bool active){if(gameActive_!=active){gameActive_=active;emit presentationChanged();}}
+    void setGameActive(bool active){if(gameActive_!=active){gameActive_=active;emit presentationChanged();emit changed();}}
     void controlCall(const QString& operation){emit commandRequested(operation,{});}
     QVariantMap gameParty() const{return gameParty_;}
     void setGameParty(QVariantMap state);
     QString runtimePeer() const;
+    QVariantList runtimeCompanies() const;
+    QVariantList companyParties() const;
+    void setCompanyParties(QVariantList rows);
+    QVariantMap companyAccess(const QString& company) const;
+    bool companyAvailable() const;
+    bool partyFocused() const{return partyFocus_;}
+    int partyIndex() const{return partyIndex_;}
+    Q_INVOKABLE void joinCompanyParty(int index);
+    Q_INVOKABLE void editCompanyAccess();
+    void refreshPartyBrowse();
     QVariantMap gameActivity() const;
     void setGameActivity(const QString& peer, const QVariantMap& offer);
     Q_INVOKABLE void joinGame();
@@ -125,6 +139,8 @@ signals:
     void partyFailed(QString peer);
     void partyReset();
     void partyQuery(QString peer);
+    void companyQuery(QString company);
+    void companyAccessChanged(QString company,QVariantMap access);
     void partyJoin(QString peer);
     void partyLeave();
     void runtimeEstablished(QString activity,bool host);
@@ -164,6 +180,11 @@ private:
     QVariantList runtimeCapabilities_;
     QHash<QString,QVariantMap> gameActivities_;
     QVariantMap gameParty_;
+    QVariantList companyParties_;
+    int partyIndex_=0;
+    bool partyFocus_=false;
+    QString companySettingsKey(const QString&) const;
+    void companyAccessMenu();
     QTimer partyBrowse_{this};
     void publishOnlineContext();
     QVariantList onlineCapabilities_;

@@ -4,7 +4,9 @@
 adds explicit organizer start, reserved/accepted members and reverse join requests
 from a friend's game strip in the existing conversation. Multi-member coordination
 is implemented; installed emulator profiles still admit two players. Persistent
-companies, parallel parties/free access and party voice remain pending. Existing
+companies now reuse existing group DMs with parallel party cards and explicit
+selected-member access; see the company evidence in that checkpoint. Separate
+party voice remains pending. Existing
 block 1/3 runtime gates and the production experiment gate remain in force.
 
 **Owner agreement, 2026-10-03 (planned):** [multiplayer experience](MULTIPLAYER_EXPERIENCE.md)

@@ -16,6 +16,10 @@ public:
     void configure(QString name,QJsonArray games,QJsonObject current,bool available);
     void reset();
     void query(const QString& peer);
+    void browseCompany(const QString& company);
+    bool openCompany(const QString& company,QString policy,QStringList allowed);
+    void setCompanyAccess(const QString& company,QString policy,QStringList allowed);
+    QJsonArray companyOffers() const;
     void invite(const QString& peer);
     void requestJoin(const QString& peer);
     void answer(bool accept);
@@ -49,6 +53,8 @@ private:
     void packet(const QString&,QString kind,QJsonObject={});
     void tick();
     void publish();
+    void advertiseCompany();
+    bool sameMember(const QString&) const;
     bool create();
     void clear();
     int freeSlot() const;
@@ -67,5 +73,9 @@ private:
     qint64 joiningDeadline_=0;
     quint64 revision_=0,remoteRevision_=0;
     QJsonArray roster_;
+    QString company_,access_="request";
+    QStringList allowedMembers_;
+    QMap<QString,qint64> companyQueries_;
+    qint64 advertised_=0;
 };
 }

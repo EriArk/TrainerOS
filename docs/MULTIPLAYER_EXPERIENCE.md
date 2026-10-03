@@ -3,9 +3,9 @@
 Owner agreement, 2026-10-03. **Accepted target, not delivered behavior.**
 
 The first [runtime-party implementation checkpoint](GAME_PARTIES.md) now covers
-the bounded coordinator and direct invitation/request surfaces. It does not
-complete the acceptance list below, particularly companies/free access or real
-three-to-four-player runtime proof.
+the bounded coordinator, direct invitation/request surfaces and group-backed
+companies with selected-member entry. It does not complete the acceptance list
+below, particularly separate party voice or real three-to-four-player runtime proof.
 [ROADMAP](ROADMAP.md) owns scheduling; [runtime evidence](EMULATOR_MULTIPLAYER.md)
 owns implementation claims. [Transport audit](MULTIPLAYER_TRANSPORT_AUDIT.md)
 contains hypotheses, unresolved choices and the proposed comparison.
@@ -27,7 +27,7 @@ suffix or a presence label alone. Advertise the active Trainer name nearby.
 
 | Concept | Lifetime and ownership |
 | --- | --- |
-| Company | Persistent named group, membership and shared conversation across games. Reuse supported Fluxer groups/community facilities; exact mapping is still an audit question. |
+| Company | Persistent named group, membership and shared conversation across games. The implemented first mapping reuses Fluxer private groups; larger community facilities retain their separate acceptance. |
 | Game party | One running or preparing game session with its own organizer, participants, game/mode, capacity and access policy. Several parties may coexist within a company, including separate sessions of the same game. |
 | Voice conversation | The company conversation or a party conversation. Joining/leaving a game does not silently switch or terminate the current call. Switching voice destination is explicit. |
 
@@ -132,7 +132,17 @@ and every required user action. No specific latency target or provider is assume
 The necessary provisioning/relay service may be operated for the product, but
 must not become a server that every family has to configure.
 
-## Acceptance additions (all pending)
+## Implementation checkpoint — 2026-10-03
+
+Existing group DMs now supply persistent company membership and parallel party
+cards. An organizer's per-company preference is inherited by new parties and may
+be overridden per party; it never authorizes other organizers' games. Selected
+members enter through deliberate Join without a second host prompt. Flip/Odin
+company admission and startup are verified; independent two-party coordination
+has automated four-client coverage. Full gameplay and provider-supported separate
+voice audiences remain open. See [exact evidence](GAME_PARTIES.md).
+
+## Acceptance additions (whole-block acceptance remains open)
 
 - [ ] Fresh-device online setup requires at most the wizard account step;
   invitations/Join, routing and ordinary reconnection need no VPN administration.

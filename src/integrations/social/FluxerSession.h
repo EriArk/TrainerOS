@@ -64,6 +64,8 @@ private:
     quint64 onlineSendRevision_=0;
     void sendOnline();
     void sendParty(QString peer, QString content);
+    bool companyMember(const QString& channel,const QString& user) const;
+    QString partyRoute(const QString& channel,const QString& user,const QJsonObject&) const;
     QSet<QString> partyOpening_;
     void sendAttachment(const QVariantMap& args);
     bool attachmentBusy_ = false, notificationSound_ = true;

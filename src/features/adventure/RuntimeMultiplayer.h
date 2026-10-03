@@ -53,7 +53,7 @@ private:
     ProcessService& process_;AdventureLaunchController& lifecycle_;AdventureExitPresentation& overlay_;
     LocalLinkPeer nearby_{this,47855,47856,"trainerosRuntime",true};
     GameParty party_{this};
-    bool partySession_=false;
+    bool partySession_=false,companyOverride_=false;
     QFutureWatcher<QMap<QString,QJsonObject>> scan_{this};
     QNetworkAccessManager network_{this};QTimer timer_{this};
     QString trainer_,identity_,game_,status_,transportPeer_,lastRequest_;

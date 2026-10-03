@@ -103,13 +103,39 @@ void FluxerSession::bindOnline() {
     if(QUuid(endpoint).isNull()){endpoint=QUuid::createUuid().toString(QUuid::WithoutBraces);settings.setValue(key,endpoint);}
     online_.bind(self_,endpoint);
 }
+bool FluxerSession::companyMember(const QString& channel,const QString& user) const {
+    const auto c=channels_.value(channel);
+    if(!idValid(channel)||!idValid(user)||c["type"]!=3||user==self_||relationships_.value(user)["type"]==2)return false;
+    for(const auto& v:c["recipients"].toArray())if(v.toObject()["id"]==user)return true;
+    return false;
+}
+QString FluxerSession::partyRoute(const QString& channel,const QString& user,const QJsonObject& p) const {
+    if(p.isEmpty())return {};
+    const auto c=channels_.value(channel);const auto company=p["company"].toString();
+    const auto kind=p["kind"].toString();
+    const bool announcement=kind=="company-query"||kind=="company-offer";
+    if(announcement) {
+        if(company!=channel||c["type"]!=3||(!user.isEmpty()&&!companyMember(company,user)))return {};
+        // Public group coordination has a strict non-secret schema. Launch
+        // addresses/passwords and admission messages can only use a private DM.
+        static const QSet<QString> fields{"ns","v","trainer","boot","kind","expires","target","party","company","game","joinable","free","capacity","running","access"};
+        for(auto it=p.begin();it!=p.end();++it)if(!fields.contains(it.key()))return {};
+        if(!p["target"].toString().isEmpty())return {};
+        return "company:"+company+(user.isEmpty()?QString():":"+user);
+    }
+    const auto recipients=c["recipients"].toArray();
+    if(c["type"]!=1||recipients.size()!=1||recipients.first().toObject()["id"]!=user)return {};
+    if(!company.isEmpty())return companyMember(company,user)?"company:"+company+":"+user:QString();
+    return relationships_.value(user)["type"]==1?user:QString();
+}
 void FluxerSession::sendOnline() {
     if(onlineSending_||onlineQueue_.isEmpty()||self_.isEmpty())return;
     const auto entry=onlineQueue_.takeFirst();
     const auto party=GameParty::decode(entry.second);
     const auto recipients=channels_.value(entry.first)["recipients"].toArray();
-    const auto peer=recipients.size()==1?recipients.first().toObject()["id"].toString():QString();
-    if(!party.isEmpty()&&(relationships_.value(peer)["type"].toInt()!=1||party["expires"].toInteger()<QDateTime::currentSecsSinceEpoch())) {
+    const auto user=recipients.size()==1?recipients.first().toObject()["id"].toString():QString();
+    const auto peer=partyRoute(entry.first,channels_.value(entry.first)["type"]==3?QString():user,party);
+    if(!party.isEmpty()&&(peer.isEmpty()||party["expires"].toInteger()<QDateTime::currentSecsSinceEpoch())) {
         onlineSendTimer_.start();emit partyFailed(generation_,peer);return;
     }
     onlineSending_=true;const auto revision=onlineSendRevision_;
@@ -122,21 +148,28 @@ void FluxerSession::sendOnline() {
     });
 }
 void FluxerSession::sendParty(QString peer,QString content) {
-    if(self_.isEmpty()||state_!="connected"||relationships_.value(peer)["type"].toInt()!=1||GameParty::decode(content).isEmpty()) {
-        emit partyFailed(generation_,peer);return;
+    const auto packet=GameParty::decode(content);const bool scoped=peer.startsWith("company:");
+    const auto company=scoped?peer.section(':',1,1):QString();
+    const auto user=scoped?peer.section(':',2,2):peer;
+    const auto fail=[this,peer]{emit partyFailed(generation_,peer);};
+    if(self_.isEmpty()||state_!="connected"||packet.isEmpty()||onlineQueue_.size()>=32){fail();return;}
+    if(scoped&&user.isEmpty()) {
+        if(partyRoute(company,{},packet)!=peer){fail();return;}
+        // Coalesce stale heartbeats rather than filling the queue while offline.
+        onlineQueue_.removeIf([&](const auto& e){return e.first==company&&GameParty::decode(e.second)["kind"]==packet["kind"];});
+        onlineQueue_.append({company,content});if(!onlineSending_&&!onlineSendTimer_.isActive())sendOnline();return;
     }
+    if((scoped&&(packet["company"]!=company||!companyMember(company,user)))||(!scoped&&relationships_.value(user)["type"]!=1)){fail();return;}
     for(auto it=channels_.cbegin();it!=channels_.cend();++it) {
-        const auto recipients=it.value()["recipients"].toArray();
-        if(it.value()["type"]!=1||recipients.size()!=1||recipients.first().toObject()["id"]!=peer)continue;
-        if(onlineQueue_.size()>=32){emit partyFailed(generation_,peer);return;}
+        if(partyRoute(it.key(),user,packet)!=peer)continue;
         onlineQueue_.append({it.key(),content});if(!onlineSending_&&!onlineSendTimer_.isActive())sendOnline();return;
     }
-    if(partyOpening_.contains(peer)||partyOpening_.size()>=8){emit partyFailed(generation_,peer);return;}
+    if(partyOpening_.contains(peer)||partyOpening_.size()>=8){fail();return;}
     partyOpening_.insert(peer);const auto epoch=epoch_;
-    request("POST","/v1/users/@me/channels",{{"recipient_id",peer}},[this,peer,content,epoch](Reply r){
+    request("POST","/v1/users/@me/channels",{{"recipient_id",user}},[this,peer,user,content,epoch](Reply r){
         if(epoch!=epoch_)return;partyOpening_.remove(peer);
         const auto c=r.body.object();
-        if(r.status<200||r.status>=300||!idValid(c["id"].toString())||c["type"]!=1||c["recipients"].toArray().size()!=1||c["recipients"].toArray().first().toObject()["id"]!=peer){emit partyFailed(generation_,peer);return;}
+        if(r.status<200||r.status>=300||!idValid(c["id"].toString())||c["type"]!=1||c["recipients"].toArray().size()!=1||c["recipients"].toArray().first().toObject()["id"]!=user){emit partyFailed(generation_,peer);return;}
         channels_[c["id"].toString()]=c;sendParty(peer,content);
     });
 }
@@ -1437,9 +1470,11 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
                 if(c["type"].toInt(-1)==1&&c["recipients"].toArray().size()==1&&c["recipients"].toArray().first().toObject()["id"]==id&&relationships_.value(id)["type"].toInt()==1)
                 {
                     online_.receive(d["channel_id"].toString(),id,label(author),OnlineLink::decode(d["content"].toString()));
-                    const auto packet=GameParty::decode(d["content"].toString());
-                    if(!packet.isEmpty())emit partyPacket(generation_,id,label(author),packet);
+
                 }
+                const auto packet=GameParty::decode(d["content"].toString());
+                const auto route=partyRoute(d["channel_id"].toString(),id,packet);
+                if(id!=self_&&!route.isEmpty())emit partyPacket(generation_,route,label(author),packet);
             }
             ++messageRevision_;
             // Coordination packets must not evict ordinary conversation rows.
@@ -1470,6 +1505,16 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
                 if(idValid(id))relationships_[id]=d;
                 if(incoming&&!doNotDisturb_)emit incomingMessage(generation_,"request:"+id,"Friend request",privatePreviews_?QString("Open Home notifications"):label(d["user"].toObject()));
             }
+            if(type=="CHANNEL_RECIPIENT_REMOVE") {
+                const auto channel=d["channel_id"].toString();const auto user=d["user"].toObject()["id"].toString(d["user_id"].toString());
+                if(user==self_){channels_.remove(channel);emit partyFailed(generation_,"company:"+channel);}
+                else {
+                    auto c=channels_.value(channel);auto recipients=c["recipients"].toArray();
+                    for(qsizetype i=recipients.size();i>0;--i)if(recipients[i-1].toObject()["id"]==user)recipients.removeAt(i-1);
+                    c["recipients"]=recipients;channels_[channel]=c;emit partyFailed(generation_,"company:"+channel+":"+user);
+                }
+            }
+            if(type=="CHANNEL_DELETE"&&channels_.value(d["id"].toString())["type"]==3)emit partyFailed(generation_,"company:"+d["id"].toString());
             if(type=="CHANNEL_RECIPIENT_REMOVE"&&d["channel_id"]==voiceChannel_){
                 if(d["user"].toObject()["id"]==self_||d["user_id"]==self_){leaveVoice();voiceStatus_="You left the call";}
                 else reconcileVoice();

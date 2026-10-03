@@ -14,7 +14,7 @@
 namespace trainer {
 SocialController::SocialController(QObject* parent):QObject(parent),session_(new FluxerSession) {
     partyBrowse_.setInterval(30000);
-    connect(&partyBrowse_,&QTimer::timeout,this,[this]{if(conversationVisible_&&runtimeAvailable_&&!runtimePeer().isEmpty())emit partyQuery(runtimePeer());});partyBrowse_.start();
+    connect(&partyBrowse_,&QTimer::timeout,this,[this]{refreshPartyBrowse();});partyBrowse_.start();
     session_->moveToThread(&thread_);
     connect(&thread_,&QThread::finished,session_,&QObject::deleteLater);
     connect(this,&SocialController::ownerRequested,session_,&FluxerSession::setOwner);
@@ -22,7 +22,7 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(session_,&FluxerSession::snapshot,this,&SocialController::receive);
     connect(session_,&FluxerSession::partyPacket,this,[this](quint64 g,QString peer,QString name,QJsonObject p){if(g==generation_)emit partyPacket(peer,name,p);});
     connect(session_,&FluxerSession::partyFailed,this,[this](quint64 g,QString peer){if(g==generation_)emit partyFailed(peer);});
-    connect(session_,&FluxerSession::partyReset,this,[this](quint64 g){if(g==generation_){gameActivities_.clear();emit partyReset();}});
+    connect(session_,&FluxerSession::partyReset,this,[this](quint64 g){if(g==generation_){gameActivities_.clear();companyParties_.clear();partyFocus_=false;emit partyReset();}});
     connect(session_,&FluxerSession::runtimeProbeFailed,this,[this](quint64 generation,QString peer,QString message){
         if(generation==generation_)emit runtimeProbeFailed(peer,message);
     });
@@ -64,7 +64,7 @@ void SocialController::setOwner(QString owner) {
     if(owner==owner_)return;
     media_.clear();mediaSending_=mediaUncertain_=false;
     if(link_)link_->endOnline();
-    runtimeOnline_=false;gameActivities_.clear();emit partyReset();emit runtimeEnded();
+    runtimeOnline_=false;gameActivities_.clear();companyParties_.clear();partyFocus_=false;emit partyReset();emit runtimeEnded();
     saveDrafts();draftFile_.clear();
     editDrafts_.clear();pickedPeople_.clear();dismissedNotifications_.clear();activityNotifications_.clear();presentedInvitation_.clear();notificationSettingsKey_.clear();
     toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();
@@ -76,7 +76,7 @@ void SocialController::setOwner(QString owner) {
 void SocialController::setFace(QString face) {
     if(face_==face)return;
     closeMenu();
-    selection_.stop();face_=std::move(face);focus_=0;menu_.clear();reading_=false;contacts_=false;
+    partyFocus_=false;partyIndex_=0;selection_.stop();face_=std::move(face);focus_=0;menu_.clear();reading_=false;contacts_=false;
     emit commandRequested("face",{{"face",face_}});
     if(face_=="friends"&&!searchStarted_&&snapshot_["state"]=="connected")runSearch();
     emit changed();
@@ -302,7 +302,7 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     const auto oldMessage=messages().value(messageFocus_).toMap().value("id");
     const bool atEnd=messageFocus_>=messages().size()-1;
     snapshot_=std::move(snapshot);
-    if(oldChannel!=snapshot_["channel"]&&!runtimePeer().isEmpty())emit partyQuery(runtimePeer());
+    if(oldChannel!=snapshot_["channel"]){partyFocus_=false;partyIndex_=0;refreshPartyBrowse();}
     const auto audio=snapshot_["audio"].toMap();
     media_.setAudioDevices(audio["input"].toString(),audio["output"].toString(),audio.value("volume",100).toInt());
     if(snapshot_["state"]=="signed-out")media_.clear();
@@ -410,8 +410,12 @@ QVariantList SocialController::hints() const {
         if(face_=="communities"&&!reading_&&draft().trimmed().isEmpty())h("Y",snapshot_["communityOnly"].toBool()?"All communities":"TrainerOS only");
         if(reading_&&(messages().value(messageFocus_).toMap()["editable"].toBool()||messages().value(messageFocus_).toMap()["media"].toBool()||!messages().value(messageFocus_).toMap()["delivery"].toString().isEmpty()))h("A","Message");
         if(contacts_&&rows().value(focus_).toMap()["type"].toInt()==3)h("A","Accept request");
-        if(conversation()){h(reading_||contacts_?"X":"A","Write");if(reading_&&snapshot_["historyPast"].toBool())h("Y","Latest");else if(gameActivity()["joinable"].toBool())h("Y","Ask to join");else if(togetherAvailable())h("Y","Play together");else if(!draft().trimmed().isEmpty())h("Y","Send");h(reading_?"←":"→",reading_?"Conversations":"Read");if(reading_&&messageFocus_==0&&snapshot_["historyMore"].toBool())h("↑","Earlier");}
+        if(conversation()){h(reading_||contacts_?"X":"A","Write");if(reading_&&snapshot_["historyPast"].toBool())h("Y","Latest");else if(gameActivity()["joinable"].toBool())h("Y","Ask to join");else if(togetherAvailable())h("Y","Play together");else if(!draft().trimmed().isEmpty())h("Y","Send");h(reading_?"←":"→",reading_?"Conversations":companyParties().isEmpty()?"Read":"Game parties");if(reading_&&messageFocus_==0&&snapshot_["historyMore"].toBool())h("↑","Earlier");}
         if(contacts_||reading_)h("B",contacts_?"Conversations":"List");
+    }
+    if(partyFocus_) {
+        result.clear();h("← →","Game parties");if(companyParties().value(partyIndex_).toMap()["joinable"].toBool())h("A","Join game");
+        h("↓","Messages");h("X","Write");h("B","Groups");
     }
     h("Select","Options");return result;
 }
@@ -457,11 +461,81 @@ void SocialController::send() {
     drafts_.remove(snapshot_["channel"].toString());emit changed();
     saveDrafts();
 }
+QVariantList SocialController::runtimeCompanies() const {
+    QVariantList result;if(snapshot_["state"]!="connected")return result;
+    for(const auto& v:snapshot_["chats"].toList())if(v.toMap()["kind"]=="groups")result.append(v);
+    return result;
+}
+bool SocialController::companyAvailable() const {return runtimeAvailable_&&face_=="groups"&&currentChat()["kind"]=="groups";}
+void SocialController::refreshPartyBrowse() {
+    if(!conversationVisible_||!runtimeAvailable_)return;
+    if(companyAvailable())emit companyQuery(snapshot_["channel"].toString());
+    else if(!runtimePeer().isEmpty())emit partyQuery(runtimePeer());
+}
+QVariantList SocialController::companyParties() const {
+    QVariantList result;if(!companyAvailable())return result;
+    for(const auto& v:companyParties_) {
+        auto row=v.toMap();
+        if(row["company"]!=snapshot_["channel"]||(!gameParty_["party"].toString().isEmpty()&&row["party"]==gameParty_["party"]))continue;
+        if(gameActive_)row["joinable"]=false;
+        result.append(row);
+    }
+    return result;
+}
+void SocialController::setCompanyParties(QVariantList rows) {
+    if(companyParties_==rows)return;
+    const auto selected=companyParties().value(partyIndex_).toMap()["peer"];
+    companyParties_=std::move(rows);const auto visible=companyParties();
+    for(int i=0;i<visible.size();++i)if(visible[i].toMap()["peer"]==selected)partyIndex_=i;
+    partyIndex_=qBound(0,partyIndex_,qMax(0,int(visible.size())-1));
+    if(visible.isEmpty())partyFocus_=false;
+    emit changed();
+}
+void SocialController::joinCompanyParty(int index) {
+    const auto row=companyParties().value(index).toMap();
+    if(!row["joinable"].toBool()||gameActive_)return;
+    partyIndex_=index;emit partyJoin(row["peer"].toString());
+}
+QString SocialController::companySettingsKey(const QString& company) const {
+    if(owner_.isEmpty()||snapshot_["userId"].toString().isEmpty()||company.isEmpty())return {};
+    return "social/companyAccess/"+owner_+"/"+snapshot_["userId"].toString()+"/"+company;
+}
+QVariantMap SocialController::companyAccess(const QString& company) const {
+    const auto key=companySettingsKey(company);
+    auto result=key.isEmpty()?QVariantMap{}:QSettings().value(key).toMap();
+    if(!QStringList{"request","selected","closed"}.contains(result["policy"].toString()))result["policy"]="request";
+    // Defaults are per organizer and account, never a group's mere membership.
+    return result;
+}
+void SocialController::editCompanyAccess() {
+    if(!companyAvailable())return;menuChannel_=snapshot_["channel"].toString();menuFocus_=0;companyAccessMenu();
+}
+void SocialController::companyAccessMenu() {
+    QVariantMap chat;for(const auto& v:runtimeCompanies())if(v.toMap()["id"]==menuChannel_)chat=v.toMap();
+    if(chat.isEmpty()){closeMenu();return;}
+    const auto access=companyAccess(menuChannel_);const auto policy=access["policy"].toString();
+    menuMode_="company-access";menuTitle_="Who can join my games";menuDetail_=chat["name"].toString();
+    menu_.clear();menuCommands_.clear();
+    const QList<QPair<QString,QString>> modes{{"request","Ask me first"},{"selected","Selected members can join"},{"closed","Invitations only"}};
+    for(const auto& mode:modes){menu_.append((policy==mode.first?"✓ ":"○ ")+mode.second);menuCommands_.append("company-policy:"+mode.first);}
+    if(policy=="selected")for(const auto& v:chat["members"].toList()) {
+        const auto m=v.toMap();auto name=m["global_name"].toString();if(name.isEmpty())name=m["username"].toString();
+        menu_.append((access["allowed"].toStringList().contains(m["id"].toString())?"✓ ":"○ ")+name);
+        menuCommands_.append("company-member:"+m["id"].toString());
+    }
+    menu_.append("Done");menuCommands_.append("cancel");menuFocus_=qBound(0,menuFocus_,int(menu_.size())-1);emit changed();
+}
 QString SocialController::runtimePeer() const {
     const auto chat=currentChat();const auto members=chat["members"].toList();
     return face_=="chats"&&!contacts_&&chat["friend"].toBool()&&members.size()==1?members.first().toMap()["id"].toString():QString();
 }
-void SocialController::setGameParty(QVariantMap state){if(gameParty_==state)return;gameParty_=std::move(state);emit changed();}
+void SocialController::setGameParty(QVariantMap state){
+    if(gameParty_==state)return;
+    gameParty_=std::move(state);
+    partyIndex_=qBound(0,partyIndex_,qMax(0,int(companyParties().size())-1));
+    if(companyParties().isEmpty())partyFocus_=false;
+    emit changed();
+}
 QVariantMap SocialController::gameActivity() const {return gameActivities_.value(runtimePeer());}
 void SocialController::setGameActivity(const QString& peer,const QVariantMap& offer) {
     if(gameActivities_.value(peer)==offer)return;
@@ -530,6 +604,7 @@ void SocialController::openMenu() {
             add("New group","create-group");
             if(currentChat()["kind"]=="groups") {
                 menuTitle_=conversationName();menuDetail_="Group conversation";
+                if(runtimeAvailable_)add("Who can join my games","company-access");
                 add("Members","members");add("Rename group","rename-group");add("Add friend","add-member");
                 if(currentChat()["owner"]==snapshot_["userId"])add("Remove member","remove-member");
                 add("Leave group","ask-leave-group");
@@ -593,6 +668,16 @@ void SocialController::confirmAction(QString title,QString operation,QString id)
 void SocialController::selectMenu(int index) {
     if(index<0||index>=menuCommands_.size()||snapshot_["mutationBusy"].toBool())return;
     const auto command=menuCommands_[index];
+    if(command=="company-access"){editCompanyAccess();return;}
+    if(command.startsWith("company-policy:")||command.startsWith("company-member:")) {
+        const auto key=companySettingsKey(menuChannel_);if(key.isEmpty())return;
+        auto access=companyAccess(menuChannel_);
+        if(command.startsWith("company-policy:"))access["policy"]=command.section(':',1);
+        else {auto allowed=access["allowed"].toStringList();const auto id=command.section(':',1);
+            if(allowed.contains(id))allowed.removeAll(id);else allowed.append(id);access["allowed"]=allowed;}
+        QSettings().setValue(key,access);menuFocus_=index;companyAccessMenu();
+        emit companyAccessChanged(menuChannel_,access);return;
+    }
     if(command=="none")return;
     if(command=="cancel"){closeMenu();return;}
     if(command.startsWith("voice-")){media_.clear();emit commandRequested(command,{{"channel",menuChannel_}});menu_.clear();emit changed();return;}
@@ -688,6 +773,19 @@ void SocialController::dispatch(Action action) {
         else if(action==Action::ToggleContinue&&snapshot_["searchTotal"].toInt()>24)runSearch(snapshot_["searchOffset"].toInt()+24<snapshot_["searchTotal"].toInt()?snapshot_["searchOffset"].toInt()+24:0);
         else if(action==Action::LocalAction||action==Action::ContextMenu)openMenu();
         emit changed();return;
+    }
+    if(partyFocus_) {
+        if(action==Action::Left) {if(partyIndex_>0)--partyIndex_;else partyFocus_=false;}
+        else if(action==Action::Right)partyIndex_=qMin(partyIndex_+1,int(companyParties().size())-1);
+        else if(action==Action::Confirm)joinCompanyParty(partyIndex_);
+        else if(action==Action::Down){partyFocus_=false;reading_=true;}
+        else if(action==Action::Back){partyFocus_=false;reading_=false;}
+        else if(action==Action::Secondary)compose();
+        else if(action==Action::LocalAction||action==Action::ContextMenu)openMenu();
+        emit changed();return;
+    }
+    if(!companyParties().isEmpty()&&((action==Action::Right&&!reading_)||(action==Action::Up&&reading_&&messageFocus_==0&&!snapshot_["historyMore"].toBool()))) {
+        partyFocus_=true;reading_=false;emit changed();return;
     }
     if(action==Action::Up||action==Action::Down) {
         if(reading_&&action==Action::Up&&messageFocus_==0&&snapshot_["historyMore"].toBool()){emit commandRequested("older",{});return;}

@@ -7,6 +7,8 @@ namespace trainer {
 namespace {
 QString token(){return QUuid::createUuid().toString(QUuid::WithoutBraces);}
 qint64 now(){return QDateTime::currentSecsSinceEpoch();}
+QString companyOf(const QString& peer){return peer.startsWith("online:company:")?peer.section(':',2,2):QString();}
+QString personOf(const QString& peer){return peer.startsWith("online:")?"online:"+peer.section(':',-1):peer;}
 bool uuid(const QString& v){return v.size()==36&&!QUuid(v).isNull();}
 int capacity(const QJsonObject& g){return qBound(2,g["players"].toInt(2),4);}
 }
@@ -25,9 +27,10 @@ void GameParty::configure(QString name,QJsonArray games,QJsonObject current,bool
     name_=name.left(48);games_=std::move(games);current_=std::move(current);available_=available;
     if(!available_&&active())leave();
 }
-void GameParty::clear(){party_.clear();host_.clear();hostBoot_.clear();members_.clear();game_={};endpoint_={};roster_={};running_=false;revision_=remoteRevision_=0;joiningPeer_.clear();joiningId_.clear();joiningGame_={};joiningParty_.clear();joiningDeadline_=0;requests_.clear();for(auto& p:peers_)p.invite=false;}
-void GameParty::reset(){leave();peers_.clear();seen_.clear();boot_=token();}
+void GameParty::clear(){party_.clear();host_.clear();hostBoot_.clear();members_.clear();game_={};endpoint_={};roster_={};running_=false;revision_=remoteRevision_=0;joiningPeer_.clear();joiningId_.clear();joiningGame_={};joiningParty_.clear();joiningDeadline_=0;requests_.clear();company_.clear();access_="request";allowedMembers_.clear();advertised_=0;for(auto& p:peers_)p.invite=false;}
+void GameParty::reset(){leave();peers_.clear();seen_.clear();companyQueries_.clear();boot_=token();}
 void GameParty::packet(const QString& peer,QString kind,QJsonObject p) {
+    if(!companyOf(peer).isEmpty())p["company"]=companyOf(peer);
     p["trainer"]=name_;p["ns"]="org.traineros.party";p["v"]=1;p["boot"]=boot_;p["kind"]=kind;p["expires"]=now()+90;
     if(!p.contains("target"))p["target"]=peers_.value(peer).boot;
     if(!p.contains("party"))p["party"]=party_;
@@ -41,7 +44,7 @@ QJsonObject GameParty::state() const {
         for(auto it=members_.cbegin();it!=members_.cend();++it)people.append(QJsonObject{{"peer",it.key()},{"name",it->name},{"slot",it->slot},{"ready",it->accepted}});
     }
     return {{"party",party_},{"joining",!joiningId_.isEmpty()},{"game",active()?game_:joiningGame_},{"host",host()},{"running",running_},{"members",people},
-        {"capacity",capacity(game_)},{"free",active()?capacity(game_)-people.size():capacity(current_)}};
+        {"company",company_},{"access",access_},{"capacity",capacity(game_)},{"free",active()?capacity(game_)-people.size():capacity(current_)}};
 }
 QJsonObject GameParty::offer(const QString& peer) const {const auto p=peers_.value(peer);return p.expires>=now()?p.offer:QJsonObject{};}
 QJsonObject GameParty::pending() const {
@@ -53,6 +56,41 @@ void GameParty::query(const QString& peer) {
     auto& p=peers_[peer];if(p.queried>now()-20)return;
     p.query=token();p.queried=now();packet(peer,"query",{{"request",p.query}});
 }
+void GameParty::browseCompany(const QString& company) {
+    if(!available_||company.isEmpty()||companyQueries_.value(company)>now()-25)return;
+    companyQueries_[company]=now();
+    packet("online:company:"+company,"company-query",{{"target",""}});
+}
+void GameParty::setCompanyAccess(const QString& company,QString policy,QStringList allowed) {
+    if(!host()||company_!=company)return;
+    access_=policy=="selected"||policy=="closed"?policy:"request";
+    allowedMembers_=allowed;advertiseCompany();emit changed();
+}
+bool GameParty::openCompany(const QString& company,QString policy,QStringList allowed) {
+    if(company.isEmpty()||active()||!create())return false;
+    company_=company;setCompanyAccess(company,std::move(policy),std::move(allowed));return true;
+}
+void GameParty::advertiseCompany() {
+    if(!host()||company_.isEmpty())return;
+    advertised_=now();
+    // This group announcement deliberately contains no endpoint or admission token.
+    packet("online:company:"+company_,"company-offer",{{"target",""},{"game",game_},
+        {"joinable",access_!="closed"&&freeSlot()>0},{"free",freeSlot()?state()["free"]:QJsonValue(0)},
+        {"capacity",capacity(game_)},{"running",running_},{"access",access_}});
+}
+QJsonArray GameParty::companyOffers() const {
+    QJsonArray rows;
+    for(auto it=peers_.cbegin();it!=peers_.cend();++it) {
+        if(companyOf(it.key()).isEmpty()||it->expires<now()||it->offer["party"].toString().isEmpty()||it->offer["game"].toObject().isEmpty())continue;
+        auto row=it->offer;row["peer"]=it.key().mid(7);row["name"]=it->name;
+        row["joinable"]=row["joinable"].toBool()&&supports(row["game"].toObject())&&!active()&&joiningId_.isEmpty();rows.append(row);
+    }
+    return rows;
+}
+bool GameParty::sameMember(const QString& peer) const {
+    for(auto it=members_.cbegin();it!=members_.cend();++it)if(personOf(it.key())==personOf(peer))return true;
+    return false;
+}
 bool GameParty::create(){
     if(active())return host();
     if(!available_||!supports(current_))return false;
@@ -63,7 +101,7 @@ int GameParty::freeSlot() const {
     return 0;
 }
 void GameParty::invite(const QString& peer) {
-    if(!create()||members_.contains(peer)||peer.isEmpty())return;
+    if(!create()||sameMember(peer)||peer.isEmpty())return;
     const auto route=[](const QString& key){return key.contains(':')?key.section(':',0,0):QString();};
     if(!members_.isEmpty()&&route(members_.firstKey())!=route(peer)){emit notice("Invite players using the same connection as this party.");return;}
     const auto p=peers_.value(peer);const int slot=freeSlot();
@@ -85,7 +123,7 @@ void GameParty::requestJoin(const QString& peer) {
 }
 void GameParty::answer(bool accept) {
     if(requests_.isEmpty())return;const auto r=requests_.takeFirst();
-    if(!accept||r.expires<now()||!available_||!supports(r.game)) {
+    if(!accept||r.expires<now()||!available_||!supports(r.game)||(r.joining&&access_=="closed")) {
         packet(r.peer,"decline",{{"party",r.party},{"request",r.id},{"target",r.boot}});emit changed();return;
     }
     if(r.joining) {
@@ -97,7 +135,7 @@ void GameParty::answer(bool accept) {
         if(running_&&!endpoint_.isEmpty())packet(r.peer,"launch",{{"endpoint",endpoint_},{"game",game_},{"slot",members_[r.peer].slot}});
     }else {
         if(active()){packet(r.peer,"decline",{{"party",r.party},{"request",r.id}});emit changed();return;}
-        party_=r.party;game_=r.game;host_=r.peer;hostBoot_=r.boot;joiningDeadline_=now()+90;
+        company_=companyOf(r.peer);party_=r.party;game_=r.game;host_=r.peer;hostBoot_=r.boot;joiningDeadline_=now()+90;
         packet(r.peer,"accept",{{"request",r.id},{"game",game_}});
     }
     emit changed();
@@ -107,7 +145,7 @@ void GameParty::publish() {
     const auto s=state();const auto members=members_;
     for(auto it=members.cbegin();it!=members.cend();++it)if(it->accepted)
         packet(it.key(),"roster",{{"members",s["members"]},{"revision",qint64(revision_)},{"running",running_}});
-    emit changed();
+    advertiseCompany();emit changed();
 }
 void GameParty::start() {
     if(!host()||running_||members_.isEmpty())return;
@@ -121,6 +159,7 @@ void GameParty::ready(QJsonObject endpoint) {
         packet(it.key(),"launch",{{"endpoint",endpoint_},{"game",game_},{"slot",it->slot}});
 }
 void GameParty::leave() {
+    if(host()&&!company_.isEmpty())packet("online:company:"+company_,"company-offer",{{"target",""},{"game",QJsonObject{}},{"joinable",false}});
     const auto members=members_;
     if(host())for(auto it=members.cbegin();it!=members.cend();++it)packet(it.key(),"closed",{{"request",it->request}});
     else if(active())packet(host_,"left");
@@ -154,14 +193,25 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
     if(!available_||p["ns"]!="org.traineros.party"||p["v"]!=1||encode(p).size()>2000)return;
     const auto expiry=p["expires"].toInteger();const auto boot=p["boot"].toString(),kind=p["kind"].toString(),id=p["request"].toString();
     if(expiry<now()||expiry>now()+120||!uuid(boot))return;
+    const auto company=companyOf(peer);
+    if(kind=="company-query") {
+        if(!company.isEmpty()&&company==company_&&advertised_<now()-3)advertiseCompany();
+        return;
+    }
+    if(kind=="company-offer") {
+        if(company.isEmpty()||p["company"]!=company||(!peers_.contains(peer)&&peers_.size()>=64))return;
+        auto& remote=peers_[peer];
+        remote.name=name.left(48);remote.boot=boot;remote.offer=p;remote.expires=expiry;
+        emit changed();return;
+    }
     if(kind=="query") {
         if(!uuid(id)||peers_.size()>=64&&!peers_.contains(peer))return;
         auto& remote=peers_[peer];
         if(!remote.boot.isEmpty()&&remote.boot!=boot&&members_.contains(peer))return;
         remote.name=name.left(48);remote.boot=boot;remote.expires=now()+90;
         const auto g=active()?game_:current_;
-        packet(peer,"offer",{{"request",id},{"game",g},{"joinable",supports(g)&&(!active()||host())&&(!active()||freeSlot()>0)},
-            {"free",active()?state()["free"]:QJsonValue(capacity(g)-1)},{"running",running_}});return;
+        packet(peer,"offer",{{"request",id},{"game",g},{"joinable",supports(g)&&access_!="closed"&&(!active()||host())&&(!active()||freeSlot()>0)},
+            {"free",active()?state()["free"]:QJsonValue(capacity(g)-1)},{"running",running_},{"access",access_},{"automatic",access_=="selected"&&company==company_&&allowedMembers_.contains(personOf(peer).mid(7))}});return;
     }
     if(p["target"]!=boot_)return;
     auto remote=peers_.find(peer);
@@ -171,6 +221,11 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
         const bool inviting=remote->invite;remote->invite=false;
         if(inviting)invite(peer);emit changed();return;
     }
+    // A group announcement is a broadcast: the guest's first private Join
+    // establishes its reply identity after the provider checks group membership.
+    if(kind=="join"&&!company.isEmpty()&&company==company_&&p["company"]==company&&remote==peers_.end()&&peers_.size()<64) {
+        peers_[peer]={name.left(48),boot,{}, {},expiry,0,false};remote=peers_.find(peer);
+    }
     if(remote==peers_.end()||remote->boot!=boot)return;
     if(kind=="invite"||kind=="join") {
         if(!uuid(id)||requests_.size()>=8)return;
@@ -179,17 +234,21 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
         const bool join=kind=="join";
         const auto route=[](const QString& key){return key.contains(':')?key.section(':',0,0):QString();};
         if(join&&!members_.isEmpty()&&route(members_.firstKey())!=route(peer)){packet(peer,"decline",{{"party",party},{"request",id}});return;}
-        if(!supports(g)||(join&&members_.contains(peer))||(!join&&(active()||!joiningId_.isEmpty()||!uuid(party)))||
+        if(!supports(g)||(join&&(sameMember(peer)||access_=="closed"||(!company.isEmpty()&&company!=company_)))||(!join&&(active()||!joiningId_.isEmpty()||!uuid(party)))||
             (join&&((active()&&(!host()||party!=party_||!freeSlot()))||(!active()&&(!party.isEmpty()||current_!=g))))) {
             packet(peer,"decline",{{"party",party},{"request",id}});return;
         }
         for(const auto& r:requests_)if(r.peer==peer)return;
-        requests_.append({peer,name.left(48),boot,id,party,g,join,now()+60});emit changed();return;
+        requests_.append({peer,name.left(48),boot,id,party,g,join,now()+60});
+        if(join&&access_=="selected"&&!company.isEmpty()&&company==company_&&allowedMembers_.contains(personOf(peer).mid(7))) {
+            // Answer this member, not an older pending request from another person.
+            const auto approved=requests_.takeLast();requests_.prepend(approved);answer(true);
+        }else emit changed();return;
     }
     if(kind=="cancel") {requests_.removeIf([&](const Request& r){return r.peer==peer&&r.id==id;});emit changed();return;}
     if(kind=="closed"&&!active()) {requests_.removeIf([&](const Request& r){return r.peer==peer&&r.id==id&&r.party==p["party"];});emit changed();return;}
     if(kind=="admitted"&&peer==joiningPeer_&&id==joiningId_&&joiningDeadline_>=now()&&uuid(p["party"].toString())&&p["game"].toObject()==joiningGame_&&(joiningParty_.isEmpty()||p["party"]==joiningParty_)) {
-        party_=p["party"].toString();host_=peer;hostBoot_=boot;game_=p["game"].toObject();joiningPeer_.clear();joiningId_.clear();joiningDeadline_=now()+90;emit changed();return;
+        company_=company;party_=p["party"].toString();host_=peer;hostBoot_=boot;game_=p["game"].toObject();joiningPeer_.clear();joiningId_.clear();joiningDeadline_=now()+90;emit changed();return;
     }
     if(kind=="decline"&&peer==joiningPeer_&&id==joiningId_){joiningPeer_.clear();joiningId_.clear();joiningDeadline_=0;emit notice("The join request was declined.");emit changed();return;}
     if(p["party"]!=party_||party_.isEmpty())return;
@@ -215,6 +274,7 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
 }
 void GameParty::tick() {
     const auto t=now();bool changed=false;
+    if(host()&&!company_.isEmpty()&&advertised_<t-40)advertiseCompany();
     for(auto it=members_.begin();it!=members_.end();)if(!it->accepted&&it->expires<t){packet(it.key(),"closed",{{"request",it->request}});it=members_.erase(it);changed=true;}else ++it;
     changed|=requests_.removeIf([&](const Request& r){return r.expires<t;})>0;
     for(auto it=seen_.begin();it!=seen_.end();)if(it.value()<t)it=seen_.erase(it);else ++it;

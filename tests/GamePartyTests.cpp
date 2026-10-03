@@ -19,7 +19,55 @@ class GamePartyTests : public QObject {
             }
         }
     };
+    struct CompanyRoom {
+        GameParty a,b,c,d;
+        QMap<QString,GameParty*> people{{"a",&a},{"b",&b},{"c",&c},{"d",&d}};
+        CompanyRoom() {
+            for(auto it=people.begin();it!=people.end();++it) {
+                const auto id=it.key();auto* node=it.value();node->configure(id,{game()},game(),true);
+                QObject::connect(node,&GameParty::outgoing,node,[this,id](QString target,QJsonObject p){
+                    if(target.count(':')==2) {
+                        for(auto it=people.begin();it!=people.end();++it)if(it.key()!=id)it.value()->receive(target+":"+id,id,p);
+                    } else if(people.contains(target.section(':',-1)))people[target.section(':',-1)]->receive(target.section(':',0,2)+":"+id,id,p);
+                });
+            }
+        }
+    };
 private slots:
+    void independentPartiesShareCompanyWithoutSharingCapacityOrEndpoint() {
+        CompanyRoom r;
+        QVERIFY(r.a.openCompany("group","request",{}));QVERIFY(r.c.openCompany("group","request",{}));
+        QCOMPARE(r.b.companyOffers().size(),2);
+        r.b.requestJoin("online:company:group:a");r.d.requestJoin("online:company:group:c");
+        QVERIFY(!r.a.pending().isEmpty());QVERIFY(!r.c.pending().isEmpty());
+        r.a.answer(true);r.c.answer(true);
+        QCOMPARE(r.a.state()["members"].toArray().size(),2);QCOMPARE(r.c.state()["members"].toArray().size(),2);
+        QVERIFY(r.a.state()["party"]!=r.c.state()["party"]);
+        QSignalSpy b(&r.b,&GameParty::startRequested),d(&r.d,&GameParty::startRequested);
+        r.a.start();r.a.ready({{"password","private"},{"address","host-a"}});
+        QCOMPARE(b.count(),1);QCOMPARE(d.count(),0);
+        for(const auto& v:r.d.companyOffers()){QVERIFY(!v.toObject().contains("endpoint"));QVERIFY(!v.toObject().contains("password"));}
+        r.a.leave();QCOMPARE(r.b.companyOffers().size(),1);QVERIFY(r.c.active());
+    }
+    void onlySelectedCompanyMembersSkipOrganizerPrompt() {
+        CompanyRoom r;r.a.openCompany("group","selected",{"b"});
+        r.d.requestJoin("online:company:group:a");QVERIFY(!r.a.pending().isEmpty());QVERIFY(!r.d.active());
+        r.b.requestJoin("online:company:group:a");QVERIFY(r.b.active());
+        QCOMPARE(r.a.pending()["name"].toString(),QString("d")); // did not accept another pending person
+        QCOMPARE(r.a.state()["members"].toArray().size(),2);
+        r.a.setCompanyAccess("group","closed",{});
+        r.c.requestJoin("online:company:group:a");QVERIFY(!r.c.active());
+        r.a.answer(true);QVERIFY(!r.d.active());
+    }
+    void groupAnnouncementsExpireAndOtherCompanyCannotAdmit() {
+        CompanyRoom r;r.a.openCompany("group","selected",{"b"});
+        QJsonObject advert=r.b.offer("online:company:group:a");
+        advert["company"]="other";r.b.receive("online:company:other:a","a",advert);
+        r.b.requestJoin("online:company:other:a");QVERIFY(!r.b.active());QVERIFY(r.a.pending().isEmpty());
+        r.b.leave();r.b.peers_["online:company:group:a"].expires=1;r.b.tick();
+        for(const auto& v:r.b.companyOffers())QVERIFY(v.toObject()["company"]!="group");
+        r.a.reset();QVERIFY(r.a.state()["company"].toString().isEmpty());
+    }
     void backgroundFailureIsQuietButRequestedInviteReportsFailure() {
         GameParty a;a.configure("Trainer",{game()},game(),true);
         QSignalSpy notices(&a,&GameParty::notice),packets(&a,&GameParty::outgoing);

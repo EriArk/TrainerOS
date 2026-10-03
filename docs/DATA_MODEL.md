@@ -5,6 +5,14 @@
 
 # TrainerOS Domain Model
 
+**2026-10-03 company implementation (no database migration):** an existing Fluxer
+private group owns persistent name/membership/chat. Organizer access defaults use
+`social/companyAccess/<Trainer>/<Fluxer account>/<group>` in QSettings with policy
+and selected member IDs. Per-party overrides and all directory/roster/endpoint
+state are transient; restarting never resumes a game or grants admission from a
+cached roster. Provider membership remains the admission authority. See
+[company behavior and evidence](GAME_PARTIES.md#group-backed-companies--2026-10-03).
+
 **2026-10-03 conceptual multiplayer extension (no schema change):** distinguish
 persistent company membership from each game party's participants, game/mode,
 capacity, organizer/access and lifecycle. Voice conversation and transport remain

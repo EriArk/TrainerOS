@@ -76,7 +76,7 @@ FocusScope {
                 width: people.width - 5; height: 65; claimsFocus: false; contentInset: 52
                 label: modelData.name; detail: modelData.detail
                 tint: modelData.type === 3 ? Theme.yellow : index % 3 === 0 ? Theme.blue : index % 3 === 1 ? Theme.green : Theme.pink
-                selected: index === people.currentIndex && !root.social.reading && !root.social.menu.length
+                selected: index === people.currentIndex && !root.social.reading && !root.social.partyFocused && !root.social.menu.length
                 onActivated: root.social.activate(index)
                 Rectangle { x: 10; y: 13; width: 32; height: 32; radius: 11; color: "#dcfffdf0"; border.color: "#738f7c"
                     Image { id: avatarImage; anchors.fill: parent; anchors.margins: 1; source: root.visible ? (modelData.avatar || "") : ""; sourceSize.width: 64; sourceSize.height: 64; asynchronous: true; fillMode: Image.PreserveAspectFit; visible: status === Image.Ready }
@@ -115,7 +115,7 @@ FocusScope {
                 }
                 Text {
                     x: 12; y: 31; width: parent.width - (joinGame.visible ? 174 : 24)
-                    text: gameStrip.joined ? (gameStrip.party.joining ? "Join request sent" : (gameStrip.party.running ? "Game session" : "Waiting for the organizer") + " \u00b7 " + gameStrip.party.members.length + " / " + gameStrip.party.capacity)
+                    text: gameStrip.joined ? (gameStrip.party.joining ? "Join request sent" : (gameStrip.party.running ? "Game session" : gameStrip.party.host ? "Your game party" : "Waiting for the organizer") + " \u00b7 " + gameStrip.party.members.length + " / " + gameStrip.party.capacity)
                         : gameStrip.offer.joinable ? gameStrip.offer.free + (gameStrip.offer.free === 1 ? " place available" : " places available") : "Playing"
                     font.pixelSize: 13; color: Theme.muted; elide: Text.ElideRight
                 }
@@ -127,8 +127,27 @@ FocusScope {
                 }
             }
             ListView {
+                id: companyShelf
+                y: gameStrip.visible ? gameStrip.y + gameStrip.height + 8 : callStrip.visible ? callStrip.y + callStrip.height + 8 : 48
+                width: parent.width; height: visible ? 84 : 0
+                visible: count > 0; clip: true; spacing: 10; orientation: ListView.Horizontal
+                model: root.social.companyParties; currentIndex: root.social.partyIndex
+                onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
+                delegate: CapButton {
+                    required property var modelData
+                    required property int index
+                    width: Math.min(companyShelf.width, 288); height: 78; claimsFocus: false
+                    tint: index % 2 ? Theme.blue : Theme.green
+                    label: (modelData.game || {}).label || "Game party"
+                    detail: modelData.name + " · " + (modelData.capacity - modelData.free) + "/" + modelData.capacity
+                        + (modelData.access === "closed" ? " · Invitations only" : modelData.joinable ? " · Join game" : modelData.free === 0 ? " · Full" : modelData.running ? " · Playing" : " · Gathering players")
+                    selected: root.social.partyFocused && index === companyShelf.currentIndex && !root.social.menu.length
+                    onActivated: root.social.joinCompanyParty(index)
+                }
+            }
+            ListView {
                 id: log
-                anchors { top: gameStrip.visible ? gameStrip.bottom : callStrip.visible ? callStrip.bottom : chatHeading.bottom; topMargin: 10; bottom: composer.top; bottomMargin: 9; left: parent.left; right: parent.right }
+                anchors { top: companyShelf.visible ? companyShelf.bottom : gameStrip.visible ? gameStrip.bottom : callStrip.visible ? callStrip.bottom : chatHeading.bottom; topMargin: 10; bottom: composer.top; bottomMargin: 9; left: parent.left; right: parent.right }
                 clip: true; spacing: 10; model: root.social.messages; currentIndex: root.social.messageIndex
                 function restorePosition() {
                     forceLayout()

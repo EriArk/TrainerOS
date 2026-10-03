@@ -28,6 +28,54 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void companyTransportAdmitsMembersNotStrangersAndNeverBroadcastsEndpoint() {
+        FluxerSession s;bind(s);const QString group="1501314428688998189";
+        const QJsonArray members{QJsonObject{{"id",remote}}};
+        s.channels_[group]={{"id",group},{"type",3},{"recipients",members}};
+        s.channels_[channel]["recipients"]=members;
+        QJsonObject p{{"ns","org.traineros.party"},{"v",1},{"kind","company-offer"},{"company",group},{"target",""}};
+        QCOMPARE(s.partyRoute(group,remote,p),"company:"+group+":"+remote);
+        QVERIFY(s.partyRoute(channel,remote,p).isEmpty());
+        p["endpoint"]=QJsonObject{{"password","secret"}};QVERIFY(s.partyRoute(group,remote,p).isEmpty());p.remove("endpoint");
+        p["kind"]="launch";QVERIFY(s.partyRoute(group,remote,p).isEmpty());
+        QCOMPARE(s.partyRoute(channel,remote,p),"company:"+group+":"+remote); // not friends: membership suffices
+        s.relationships_[remote]={{"type",2}};QVERIFY(s.partyRoute(channel,remote,p).isEmpty());s.relationships_.clear();
+        s.setTransport([](auto,auto,auto,Completion,auto){});
+        s.gatewayEvent({{"op",0},{"t","CHANNEL_RECIPIENT_REMOVE"},{"d",QJsonObject{{"channel_id",group},{"user",QJsonObject{{"id",remote}}}}}});
+        QVERIFY(s.partyRoute(channel,remote,p).isEmpty()); // immediate, before refresh completes
+    }
+    void companyAdmissionUsesPrivateMessagesAndRechecksQueuedMembership() {
+        FluxerSession s;bind(s);const QString group="1501314428688998189";
+        s.channels_[group]={{"id",group},{"type",3},{"recipients",QJsonArray{QJsonObject{{"id",remote}}}}};
+        s.channels_[channel]["recipients"]=QJsonArray{QJsonObject{{"id",remote}}};
+        QStringList paths;QList<Completion> replies;
+        s.setTransport([&](auto,auto path,auto,Completion done,auto){paths.append(path);replies.append(done);});
+        QJsonObject p{{"ns","org.traineros.party"},{"v",1},{"kind","launch"},{"company",group},{"expires",QDateTime::currentSecsSinceEpoch()+60}};
+        s.sendParty("company:"+group+":"+remote,GameParty::encode(p));
+        QCOMPARE(paths,QStringList{"/v1/channels/"+QString(channel)+"/messages"});
+        s.sendParty("company:"+group+":"+remote,GameParty::encode(p));
+        s.channels_.remove(group);replies.takeFirst()({200,{}});s.onlineSendTimer_.stop();s.sendOnline();
+        QCOMPARE(paths.size(),1);QVERIFY(s.onlineQueue_.isEmpty());
+    }
+    void companyPartySelectionIsInlineAndPreferencesAreOwnerScoped() {
+        SocialController c;c.owner_="company-"+QUuid::createUuid().toString();c.face_="groups";c.runtimeAvailable_=true;
+        c.snapshot_={{"state","connected"},{"userId","self"},{"channel",channel},{"chats",QVariantList{QVariantMap{{"id",channel},{"kind","groups"},{"name","Our group"},{"members",QVariantList{QVariantMap{{"id",remote},{"username","Friend"}}}}}}}};
+        c.setCompanyParties({QVariantMap{{"company",channel},{"peer","company:group:a"},{"joinable",true}},QVariantMap{{"company",channel},{"peer","company:group:b"},{"joinable",true}}});
+        QSignalSpy join(&c,&SocialController::partyJoin);c.dispatch(Action::Right);QVERIFY(c.partyFocused());
+        c.dispatch(Action::Right);c.dispatch(Action::Confirm);QCOMPARE(join.count(),1);QCOMPARE(join[0][0].toString(),QString("company:group:b"));QVERIFY(c.menu().isEmpty());
+        c.dispatch(Action::Down);QVERIFY(c.reading());QVERIFY(!c.partyFocused());
+        c.messageFocus_=0;c.snapshot_["historyMore"]=true;QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.dispatch(Action::Up);QCOMPARE(commands.last()[0].toString(),QString("older"));QVERIFY(!c.partyFocused());
+        c.snapshot_["historyMore"]=false;c.dispatch(Action::Up);QVERIFY(c.partyFocused());
+        c.setCompanyParties({QVariantMap{{"company",channel},{"peer","company:group:a"},{"party","joined-party"},{"joinable",true}}});
+        c.setGameParty({{"party","joined-party"}});QVERIFY(c.companyParties().isEmpty());QVERIFY(!c.partyFocused());
+        c.setGameParty({});
+        c.editCompanyAccess();c.selectMenu(1);c.selectMenu(3);
+        QCOMPARE(c.companyAccess(channel)["policy"].toString(),QString("selected"));QVERIFY(c.companyAccess(channel)["allowed"].toStringList().contains(remote));
+        const auto key=c.companySettingsKey(channel);c.owner_+="other";
+        QCOMPARE(c.companyAccess(channel)["policy"].toString(),QString("request"));QVERIFY(c.companyAccess(channel)["allowed"].toStringList().isEmpty());
+        QSettings().remove(key);
+    }
     void gameCoordinationDoesNotDisplaceConversationHistory() {
         FluxerSession s;bind(s);QStringList paths;QList<Completion> replies;
         s.setTransport([&](auto,auto path,auto,Completion done,auto){paths.append(path);replies.append(done);});
