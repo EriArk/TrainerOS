@@ -937,3 +937,19 @@ data, but public Fluxer declared a connectivity outage at 12:30 UTC. Both native
 clients and the ordinary web client could not reconnect; no incoming-call runtime
 success is claimed. [Outage evidence and the exact next checks](SOCIAL_MEDIA_VOICE.md#remote-continuation-blocked-by-public-service-outage--2026-10-02)
 retain block 3 as open, including deferred human microphone/headset acceptance.
+
+## Older-console online continuation - 2026-10-04
+
+The existing Online friend invitation and consent now have paired Streets of
+Rage 2 gameplay plus bounded loss/exit/reinvite evidence on Flip/Odin. Independent
+P2 control resumed in the retained host process. This is the external-relay route
+behind one router, not distinct-network acceptance. No new messaging or invite
+screen was introduced. [Exact build, recovery and remaining gates](EMULATOR_MULTIPLAYER.md#mega-drive-paired-gameplay-and-rejoin---2026-10-04).
+
+Library player metadata now excludes explicitly solo titles from runtime party
+capabilities, including incoming/reverse/group admission. Unknown counts remain
+unknown; a player count does not create an online transport or enlarge its party.
+Worlds and Multiverse show count icons and a separate enabled-runtime online badge.
+The experimental gate remains off in ordinary delivery on both handhelds.
+Communication blocks 1/3 retain their outstanding online/call acceptance; these
+checks do not claim the full multiplayer or messenger lane complete.

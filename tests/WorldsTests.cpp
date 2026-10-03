@@ -82,7 +82,12 @@ private slots:
         QCOMPARE(worlds.detail()["screenshot"],"file:///edition-image.png");
         QCOMPARE(worlds.detail()["year"],"2004");QCOMPARE(worlds.detail()["description"],"Full edition description");
         QCOMPARE(worlds.detail()["synopsis"],"Full edition description");
+        QVERIFY(worlds.detail()["playInfo"].toMap()["solo"].toBool());
+        library.media["players"]="1-4";worlds.refresh();
+        QCOMPARE(worlds.detail()["playInfo"].toMap()["maximum"].toInt(),4);
+        QVERIFY(!worlds.detail()["playInfo"].toMap()["solo"].toBool());
         library.media.clear();worlds.refresh();
+        QCOMPARE(worlds.detail()["playInfo"].toMap()["maximum"].toInt(),0);
         QVERIFY(worlds.detail()["screenshot"].toString().isEmpty());
         QVERIFY(worlds.detail()["developer"].toString().isEmpty());
         QVERIFY(worlds.detail()["synopsis"].toString().isEmpty()); // Never substitute import/setup instructions for a synopsis.

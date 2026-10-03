@@ -401,3 +401,91 @@ the deployment baseline. Flip stays muted and Odin volume stays zero. Existing
 library counts remain 831 / 31. Windows and ARM application builds passed.
 No ordinary-save byte comparison was performed in this pass; no persistent
 progress write is claimed. The experiment remains off in ordinary use.
+
+## Player metadata and invitation eligibility - 2026-10-04
+
+Worlds and Multiverse share compact player badges next to the selected game's
+preview. A single person means an explicit one-player count; several people show
+the catalogue count/range. An independent globe means an enabled, installed
+exact runtime profile is available. It is not a statement that the original
+console had internet or that every game on that platform supports online play.
+The experimental gate still governs online badges and invitations.
+
+The existing ScreenScraper `joueurs` -> Batocera `players` import is reused.
+[ScreenScraper's API](https://www.screenscraper.fr/webapi2.php) documents player
+counts; a separate reliable original-online flag was not established in this
+review. [Batocera's gamelist contract](https://github.com/batocera-linux/batocera-emulationstation/blob/master/GAMELISTS.md)
+also describes player counts. No made-up online XML field or description-text
+heuristic is introduced. Alternate/simultaneous text, when explicitly present,
+remains separate from count. Unknown/ambiguous metadata does not become solo.
+
+Explicit solo counts are removed from the local runtime capability set, covering
+Home invitations, incoming invitations, reverse join and group admission. The
+last launch step rechecks current metadata. Refresh does not rehash ROMs just
+because player metadata changed. Catalogue counts never enlarge a runtime's
+party capacity, and game launch/chat remain unaffected. Existing party controls
+remain available for leaving; refreshed unsupported profiles admit no new seats.
+
+The server disk supplied 10,727 entries with counts, but its current GBA/SNES/MD
+lists are largely missing the commercial-library metadata previously shown in
+older captures. Nine existing Flip entries were supplemented by exact
+platform/filename-stem matches with unanimous source counts. Existing fields were
+preserved and original XML backed up privately. Odin had no additional exact
+matches. This is partial metadata coverage, not a completed collection scrape.
+Two existing Flip entries (Contra III and Streets of Rage 2) additionally received
+the 1-2 count established by exact-profile hashes and the actual two-player title
+menus/gameplay. No unmatched file or other metadata was replaced. Odin's copied
+test ROMs have no matching XML records; no placeholder count was fabricated.
+
+GB/GBC/GBA link remains the next separate mechanism to evaluate after the current
+older-console gates. Two-player metadata does not prove link-cable emulation,
+shared-controller netplay or an internet route. No handheld-link implementation
+is claimed by these badges.
+
+Windows and ARM64 application builds passed. The five affected suites passed on
+both: GameParty, Worlds, Interactions, ScreenScraper and Batocera. They cover
+scrape-to-XML-to-library counts, both UI consumers, unknown values, solo exclusion
+for host/guest/reverse/group paths and metadata changes after an invitation.
+Actual Flip captures show the solo and 1-2 badges; an earlier experimental
+capture shows the separate online badge. Missing preview art on the Mega Drive
+test entry predates this change and is not represented as a completed media scrape.
+
+## Mega Drive paired gameplay and rejoin - 2026-10-04
+
+Both handhelds ran executable
+`7a1f591d808909fa6700978fd2889a382c7e0e686f02afc31b0b0bbc142806e9`
+with the temporary netplay gate enabled for this check. Streets of Rage 2 USA
+used `runtime.genesis.streets2-us.v1`, Genesis Plus GX
+`de8ad971eee89fa5e4e00dd1c048f0a8cc53cd9558b8c143aa022f5d7623d273`, and
+ROM SHA-256 `4a314edbfee92282850fe95c4c764921916efd9d3c2277fdec2581279b1369b1`.
+
+- Home -> Online friend -> named invitation/Accept connected Flip host and Odin
+  guest through external relay `34.140.160.20:55435`. Observed latency was
+  149/150 ms initially and 201 ms at guest rejoin. Both devices shared one router;
+  this does not establish distinct-network/NAT behavior.
+- The original title menu selected 2 PLAYERS. Flip controlled Axel; Odin selected
+  Skate independently, then moved him left/right during Stage 1. The guest could
+  pause/unpause the shared game. Refreshed paired captures matched HUD, positions
+  and remaining time before and after reconnection.
+- A scoped 12-second Odin relay-only interruption dropped 63 outgoing and 52
+  incoming packets. The temporary nft table was removed in `finally`; SSH and
+  Fluxer remained reachable. Odin exited through Home and accepted a fresh
+  invitation into the same retained host process (PID 3134029). Rejoined P2
+  control worked and the match continued from the existing level. One earlier
+  reinvite attempt expired while inspecting screens; it was not a successful
+  reconnect. This proves explicit exit/reinvite, not seamless network recovery.
+- Both temporary games exited normally through Home, without an ordinary-save
+  question. No emulator force kill or console reboot was needed. The frame
+  refresh caveat above also applies to these captures.
+
+Final delivery restored the ordinary executable on both devices, verified its
+live SHA and experimental-off environment, and found no remaining RetroArch
+process. Database quick checks passed; 831/31 library records, boot preferences
+and nearby helper hashes were preserved. Flip remained muted (25% battery at
+the check); Odin remained at zero volume (100%). Ordinary-save bytes were not
+compared in this pass; these matches used the existing isolated temporary route.
+
+The whole multiplayer block remains open for distinct networks, parallel live
+parties/background calls, router-free runtime and broader compatibility. NES
+reverse/group checks remain separate prior evidence. Do not reopen completed
+NES/SNES/MD startup checks instead of addressing the remaining gates.

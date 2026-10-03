@@ -1,5 +1,6 @@
 #include "core/PerformanceTrace.h"
 #include "WorldsController.h"
+#include "core/model/GamePlayers.h"
 #include "core/repository/CollectionRepository.h"
 #include "core/navigation/ResumePresentation.h"
 #include <algorithm>
@@ -202,7 +203,8 @@ QVariantMap WorldsController::detail() const {
     return {{"id", adventure->id}, {"title", adventure->title}, {"kind", kindLabel(adventure->kind)},
         {"system",platformLabel(adventure->platformId).name},{"year",year},{"screenshot",screenshot},
         {"platformShort",platformLabel(adventure->platformId).badge},{"platformShape",platformLabel(adventure->platformId).shape},
-        {"genre",art.value("genre")},{"players",art.value("players")},{"developer",art.value("developer")},{"publisher",art.value("publisher")},{"synopsis",art.value("desc")},
+        {"genre",art.value("genre")},{"players",art.value("players")},{"playInfo",gamePlayers(art).presentation()},
+        {"developer",art.value("developer")},{"publisher",art.value("publisher")},{"synopsis",art.value("desc")},
         {"playable",caps.launch},{"status", adventure->collectionOnly ? "File unavailable" : statusLabel(adventure->status)},
         {"description",art.value("desc").toString().isEmpty()?adventure->description:art.value("desc").toString()},
         {"platform", platformLabel(adventure->platformId).name}, {"limitation", adventure->limitation}, {"variant", adventure->variant},

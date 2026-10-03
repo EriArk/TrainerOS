@@ -41,13 +41,24 @@ skipping unresolved earlier routes.
 Current NES checkpoint: [NES Pong](NES_MULTIPLAYER.md) passed named Online friend
 consent, public-relay two-pad gameplay, loss/exit/rejoin, reverse chat join and
 permitted group gameplay on Flip/Odin. Ordinary deployment stays experimental/off.
-Distinct networks, parallel live parties, wider NES compatibility and the remaining
-Mega Drive/SNES route gates are still open. This does not advance the queue to
-newer emulator families or close block 1.
+Distinct networks, parallel live parties, background calls and wider compatibility
+are still open. This does not advance the queue to newer emulator families or
+close block 1.
 The 4 October [SNES continuation](EMULATOR_MULTIPLAYER.md#snes-paired-gameplay-and-temporary-session-exit---2026-10-04)
 closes Contra's independent online P2 and explicit loss/exit/rejoin gaps, and
-removes the temporary-match save question. Keep Mega Drive's remaining gates
-next; do not repeat completed NES/SNES handshakes or jump to newer platforms.
+removes the temporary-match save question. The subsequent
+[Mega Drive check](EMULATOR_MULTIPLAYER.md#mega-drive-paired-gameplay-and-rejoin---2026-10-04)
+also verifies independent Streets of Rage 2 controls and explicit loss/exit/rejoin
+into the retained host process. Next close the remaining shared online-party
+gates; do not repeat these completed handshakes or jump to newer platforms.
+
+Owner addition, 4 October: player-count badges in both libraries and explicit
+single-player exclusion are part of this multiplayer lane. Scraped player counts
+do not prove internet support; enabled exact runtime profiles supply that badge
+and retain their own capacity. Missing/ambiguous metadata remains unknown.
+Older handheld link must use its actual connection model, not shared controller
+ports. The badges and solo invitation exclusion are delivered; source metadata
+coverage remains partial. Preserve the remaining shared online and later family gates.
 
 This is a platform-family progression, not a demand to research every ROM or
 obscure platform. Complete the supported connection mechanism and its full user

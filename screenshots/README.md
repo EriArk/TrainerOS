@@ -175,3 +175,18 @@ is disabled again in ordinary delivery. [Full evidence and capture caveat](../do
 - [49-snes-online-p2-flip](49-snes-online-p2-flip.png)
 - [50-snes-online-p1-odin](50-snes-online-p1-odin.png)
 - [51-snes-online-rejoin-odin](51-snes-online-rejoin-odin.png)
+
+Screens 52-56 are actual Flip/Odin Gamescope captures from 4 October, executable
+`7a1f591d808909fa6700978fd2889a382c7e0e686f02afc31b0b0bbc142806e9`.
+The library badges distinguish catalogue player count from enabled exact online
+support. Screen 54 was taken with the temporary experimental gate enabled;
+ordinary final delivery has it disabled. Screens 55/56 show the same retained
+Stage 1 after Odin explicitly exited and rejoined following a relay interruption.
+Devices shared one router. See [route and metadata evidence](../docs/EMULATOR_MULTIPLAYER.md#player-metadata-and-invitation-eligibility---2026-10-04).
+The missing Mega Drive preview is existing incomplete media, not new artwork.
+
+- [52-library-player-count-flip](52-library-player-count-flip.png)
+- [53-library-solo-flip](53-library-solo-flip.png)
+- [54-library-online-profile-flip](54-library-online-profile-flip.png)
+- [55-megadrive-online-rejoin-flip](55-megadrive-online-rejoin-flip.png)
+- [56-megadrive-online-rejoin-odin](56-megadrive-online-rejoin-odin.png)

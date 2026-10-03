@@ -5,9 +5,11 @@ Item {
     required property var entry
     property bool active: false
     property bool previewsEnabled: false
+    readonly property var playInfo: entry.playInfo || ({})
+    readonly property bool onlineAvailable: typeof runtimeMultiplayer !== "undefined"
+        && runtimeMultiplayer.onlineGames.indexOf(entry.id || "") >= 0
     readonly property var facts: [
         { label: "YEAR", value: entry.year || "", tint: "#f2df9d" },
-        { label: "PLAYERS", value: entry.players || "", tint: "#c9dfb0" },
         { label: "GENRE", value: entry.genre || "", tint: "#bedce4" },
         { label: "DEVELOPER", value: entry.developer || "", tint: "#ddd0e9" },
         { label: "PUBLISHER", value: entry.publisher || "", tint: "#edcdbb" }
@@ -59,9 +61,20 @@ Item {
             }
         }
     }
+    Flow {
+        id: playBadges
+        x: 0; y: picture.y + picture.height + 7; width: picture.width; spacing: 6
+        PlayBadge {
+            objectName: "game-player-count"
+            visible: !!root.playInfo.maximum
+            label: root.playInfo.label || ""; solo: !!root.playInfo.solo
+        }
+        PlayBadge { visible: !!root.playInfo.mode; label: root.playInfo.mode || "" }
+        PlayBadge { objectName: "game-online-support"; visible: root.onlineAvailable; online: true; label: "Online play" }
+    }
     Text {
         id: status
-        y: Math.max(picture.y + picture.height, factsColumn.y + factsColumn.height) + 10; width: parent.width
+        y: Math.max(playBadges.y + playBadges.height, factsColumn.y + factsColumn.height) + 10; width: parent.width
         text: root.entry.playable ? "" : root.entry.status || ""
         visible: text.length > 0; color: Theme.muted; font.pixelSize: 12
         textFormat: Text.PlainText

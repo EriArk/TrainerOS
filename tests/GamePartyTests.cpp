@@ -1,5 +1,6 @@
 #include <QtTest>
 #include "features/adventure/GameParty.h"
+#include "core/model/GamePlayers.h"
 
 namespace trainer {
 class GamePartyTests : public QObject {
@@ -34,6 +35,42 @@ class GamePartyTests : public QObject {
         }
     };
 private slots:
+    void catalogueCountsNeverInventNetworkSupport() {
+        for(const auto& value:QStringList{"1","1 player","1-1","single-player","Solo"}) {
+            const QVariantMap metadata{{"players",value}};
+            QVERIFY(gamePlayers(metadata).solo());QVERIFY(!permitsMultiplayer(metadata,game()));
+        }
+        for(const auto& value:QStringList{"","unknown","0","1-0","1 offline / 4 online","1+","1-2-4"}) {
+            const QVariantMap metadata{{"players",value}};
+            QCOMPARE(gamePlayers(metadata).maximum,0);
+            QVERIFY(permitsMultiplayer(metadata,game())); // An exact adapter can still establish support.
+            QVERIFY(!permitsMultiplayer(metadata,{}));
+        }
+        const auto four=gamePlayers({{"players","1–4 players"}});
+        QCOMPARE(four.minimum,1);QCOMPARE(four.maximum,4);QCOMPARE(four.label(),QString("1–4 players"));
+        const auto turns=gamePlayers({{"players","2 (alternating)"}});
+        QCOMPARE(turns.maximum,2);QCOMPARE(turns.mode,QString("Taking turns"));
+        QVERIFY(!permitsMultiplayer({{"players","1-8"}},{}));
+        QCOMPARE(gamePlayers({{"players","2-3000"}}).maximum,3000); // Does not become party capacity.
+    }
+    void soloMetadataExcludesInvitesReverseJoinAndCompanyAdmission() {
+        Room r;
+        const auto configure=[&](GameParty& node,const QVariantMap& metadata,bool current) {
+            const auto profile=permitsMultiplayer(metadata,game())?game():QJsonObject{};
+            node.configure("Trainer",profile.isEmpty()?QJsonArray{}:QJsonArray{profile},current?profile:QJsonObject{},true);
+        };
+        configure(r.a,{{"players","1"}},true);
+        r.a.invite("b");QVERIFY(r.b.pending().isEmpty());
+        QVERIFY(!r.a.openCompany("group","request",{}));
+        r.b.query("a");QVERIFY(!r.b.offer("a")["joinable"].toBool());
+        configure(r.a,{{"players","1-4"}},true);
+        configure(r.b,{{"players","1"}},false);
+        r.a.invite("b");QVERIFY(r.b.pending().isEmpty());
+        // A stale pending invitation is also rechecked against refreshed metadata.
+        configure(r.b,{},false);r.a.invite("c");QVERIFY(!r.c.pending().isEmpty());
+        configure(r.c,{{"players","1"}},false);r.c.answer(true);QVERIFY(!r.c.active());
+        configure(r.a,{{"players","1"}},true);r.a.invite("d");QVERIFY(r.d.pending().isEmpty());
+    }
     void nativeRoomClosesAdmissionAtStartWithoutChangingOtherProfiles() {
         Room r;
         auto native=game();native["lateJoin"]=false;

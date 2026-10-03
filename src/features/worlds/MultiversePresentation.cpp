@@ -1,4 +1,5 @@
 #include "MultiversePresentation.h"
+#include "core/model/GamePlayers.h"
 #include <algorithm>
 #include "core/repository/CollectionRepository.h"
 #include <QFileInfo>
@@ -110,7 +111,7 @@ QVariantMap MultiversePresentation::present(const Game& game) const {
         {"platformShort",platformLabel(game.system).badge},{"platformShape",platformLabel(game.system).shape},
         {"description",description},{"preview",preview.isEmpty() && repository_ ? repository_->artwork(game.id).value("cover").toString() : preview},{"time",time},
         {"artwork",artwork},{"logo",artwork.value("marquee",artwork.value("wheel"))},{"screenshot",screenshot},
-        {"year",year},{"genre",artwork.value("genre")},{"players",artwork.value("players")},
+        {"year",year},{"genre",artwork.value("genre")},{"players",artwork.value("players")},{"playInfo",gamePlayers(artwork).presentation()},
         {"developer",artwork.value("developer")},{"publisher",artwork.value("publisher")},{"synopsis",artwork.value("desc")},
         {"action",game.linked?"Start Adventure":"File unavailable"},
         {"status",sample_ ? (game.linked?"Sample linked entry":"Sample missing file") : !game.linked?"File unavailable":playable?"Ready to play":""}};

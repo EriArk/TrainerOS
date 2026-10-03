@@ -1,5 +1,6 @@
 #include "integrations/scraper/ScreenScraper.h"
 #include "core/repository/BatoceraLibrary.h"
+#include "core/model/GamePlayers.h"
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
@@ -23,6 +24,21 @@ class ScreenScraperTests:public QObject {
             QJsonObject{{"type","video"},{"region","us"},{"url","https://untrusted.test/video.mp4"}}}}};}
     static Reply response(const QJsonObject& value){return {200,QJsonDocument(QJsonObject{{"response",value}}).toJson(),0};}
 private slots:
+    void playerCountsSurviveScrapeWriteAndFolderDiscovery() {
+        QTemporaryDir dir;const auto folder=dir.filePath("gba"),rom=folder+"/Fixture.gba";
+        put(rom,"test fixture");const auto file=fingerprint(rom,flag());
+        auto data=game();data["joueurs"]=QJsonObject{{"text","1-4"}};
+        Client client({"dev","secret",{},{}},[&](auto,auto,auto){return response({{"jeux",QJsonArray{data}}});});
+        const auto found=client.search("gba","Fixture",flag());QCOMPARE(found.games.size(),1);
+        QCOMPARE(found.games.first().fields.value("players"),QString("1-4"));
+        QVERIFY(writeGamelist(folder,file,found.games.first(),{},false,flag()).isEmpty());
+        auto scan=scanBatoceraLibrary(dir.path(),{});QCOMPARE(scan.entries.size(),1);
+        QCOMPARE(gamePlayers(scan.entries.first().media).maximum,4);
+        data["joueurs"]="1";
+        const auto solo=client.search("gba","Fixture",flag());QCOMPARE(solo.games.size(),1);
+        QVERIFY(writeGamelist(folder,file,solo.games.first(),{},true,flag()).isEmpty());
+        scan=scanBatoceraLibrary(dir.path(),{});QVERIFY(gamePlayers(scan.entries.first().media).solo());
+    }
     void mediaValidationAndIdempotentStorage() {
         QTemporaryDir dir;QImage image(12,8,QImage::Format_RGB32);image.fill(Qt::blue);QByteArray bytes;QBuffer buffer(&bytes);buffer.open(QIODevice::WriteOnly);QVERIFY(image.save(&buffer,"PNG"));
         const auto path=storeMedia(dir.path(),"42",bytes,false,flag());QVERIFY(!path.isEmpty());QCOMPARE(read(path),bytes);

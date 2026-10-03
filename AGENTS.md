@@ -1,5 +1,13 @@
 # AGENTS.md — TrainerOS
 
+**Owner multiplayer metadata clarification, 2026-10-04:** Worlds and Multiverse
+show game player-count indicators. Explicit single-player metadata excludes
+runtime invitations/joining; absent or ambiguous metadata is not single-player.
+Catalogue player counts never establish online transport or party capacity.
+Show online availability only for an installed enabled runtime profile. Evaluate
+GB/GBC/GBA link cables as separate emulated-machine connections when their turn
+arrives; do not substitute shared RetroArch controller ports.
+
 **Owner oldest-first completion order, 2026-10-03:** stop expanding to newer
 emulators while older-system internet routes remain unfinished. The common
 invitation/consent/party/launch framework already exists; complete its real

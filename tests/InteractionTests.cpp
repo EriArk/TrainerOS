@@ -663,7 +663,7 @@ private slots:
             QVariantMap artwork(const QString&)const override {
                 ++mediaReads;
                 return {{"marquee","file:///logo.png"},{"image","file:///screenshot.png"},
-                    {"releasedate","20010321T000000"},{"desc","Full scraped description"},{"genre","Racing"}};
+                    {"releasedate","20010321T000000"},{"desc","Full scraped description"},{"genre","Racing"},{"players","1-4"}};
             }
             QList<World> worlds()const override{return {{"hoenn","Hoenn",{}}};}
             QList<Adventure> adventures()const override{QList<Adventure> r;for(const auto& x:records)r.append(x.adventure);return r;}
@@ -689,6 +689,7 @@ private slots:
         const auto info=shell.multiverse()->detail();
         QCOMPARE(info["year"],"2001");QCOMPARE(info["description"],"Full scraped description");
         QCOMPARE(info["logo"],"file:///logo.png");QCOMPARE(info["screenshot"],"file:///screenshot.png");
+        QCOMPARE(info["playInfo"].toMap()["maximum"].toInt(),4);
         shell.multiverse()->choices();
         const auto reads=library.mediaReads;
         QSignalSpy modelReset(shell.multiverse(),&MultiversePresentation::gamesChanged);

@@ -92,11 +92,12 @@ bool GameParty::sameMember(const QString& peer) const {
     return false;
 }
 bool GameParty::create(){
-    if(active())return host();
+    if(active())return host()&&available_&&supports(game_);
     if(!available_||!supports(current_))return false;
     party_=token();game_=current_;return true;
 }
 int GameParty::freeSlot() const {
+    if(!supports(game_))return 0;
     if(running_&&!game_["lateJoin"].toBool(true))return 0;
     for(int i=2;i<=capacity(game_);++i){bool occupied=false;for(const auto& m:members_)occupied|=m.slot==i;if(!occupied)return i;}
     return 0;

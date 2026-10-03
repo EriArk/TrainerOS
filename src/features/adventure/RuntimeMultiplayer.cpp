@@ -1,4 +1,5 @@
 #include "RuntimeMultiplayer.h"
+#include "core/model/GamePlayers.h"
 #include "features/social/SocialController.h"
 #include "features/adventure/AdventureExitPresentation.h"
 #include "core/navigation/AdventureLaunchController.h"
@@ -68,7 +69,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(active_)fail(std::move(message));
     });
     connect(&scan_,&QFutureWatcherBase::finished,this,[this]{
-        games_=scan_.result();update();
+        profiles_=scan_.result();
         refresh(installation_,trainer_,allowed_);
     });
     connect(&social_,&SocialController::changed,this,[this]{
@@ -141,6 +142,11 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
             return games;
         }));
     }
+    games_.clear();
+    for(auto it=profiles_.cbegin();it!=profiles_.cend();++it)
+        if(permitsMultiplayer(library_.artwork(it.key()),it.value()))games_.insert(it.key(),it.value());
+    const auto visible=allowed_?games_.keys():QStringList{};
+    if(visible!=onlineGames_){onlineGames_=visible;emit availabilityChanged();}
     update();
 }
 QString RuntimeMultiplayer::menuLabel() const {return !party_.pending().isEmpty()?"Join request":party_.active()?"Game party":"Invite friend";}
@@ -243,7 +249,7 @@ bool RuntimeMultiplayer::action(const QString& id) {
     if(id=="multiplayer-accept"||id=="multiplayer-decline"){answer(id=="multiplayer-accept");show(party_.active()?"multiplayer-party":"multiplayer");return true;}
     if(id=="multiplayer-party"||id=="multiplayer-request"){show(id);return true;}
     if(id=="multiplayer-cancel"){overlay_.setPanel({}, {}, {});return true;}
-    if(id=="multiplayer"||id=="multiplayer-nearby"||id=="multiplayer-online"){show(id);return true;}
+    if(id=="multiplayer"||id=="multiplayer-nearby"||id=="multiplayer-online"){if(canInvite())show(id);return true;}
     if(!canInvite())return true;
     if(id.startsWith("multiplayer-company:")) {
         const auto company=id.section(':',1);const auto access=social_.companyAccess(company);
@@ -259,7 +265,10 @@ bool RuntimeMultiplayer::action(const QString& id) {
 void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     const auto selected=party_.game();QString game;
     for(auto it=games_.cbegin();it!=games_.cend();++it)if(it.value()==selected){game=it.key();break;}
-    if(!allowed_||game.isEmpty()||(!host&&lifecycle_.active())){party_.leave();emit notice("Finish your current game before joining.");return;}
+    if(!allowed_||game.isEmpty()||!permitsMultiplayer(library_.artwork(game),selected)) {
+        party_.leave();emit notice("Multiplayer isn't available for this game.");return;
+    }
+    if(!host&&lifecycle_.active()){party_.leave();emit notice("Finish your current game before joining.");return;}
     game_=game;descriptor_=selected;partySession_=true;active_=true;host_=host;relaySent_=false;
     transportPeer_=host?party_.state()["members"].toArray().at(1).toObject()["peer"].toString():party_.hostPeer();
     online_=transportPeer_.startsWith("online:");
@@ -323,6 +332,7 @@ void RuntimeMultiplayer::launch() {
     launchPending_=false;
     const auto record=library_.registration(game_);
     if(!record){fail("The game is no longer in your library.");return;}
+    if(!permitsMultiplayer(library_.artwork(game_),descriptor_)){fail("Multiplayer isn't available for this game.");return;}
     const auto result=dolphin()?dolphin_.launchNetplay(record->adventure,dolphinRequest_):psp()?ppsspp_.launchNetplay(record->adventure,
         ppsspp::NetplayRequest{descriptor_,host_,online_,request_.address,trainer_}):adapter_.launchNetplay(record->adventure,request_);
     if(!result.success)fail(result.message);
