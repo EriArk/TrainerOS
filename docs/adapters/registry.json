@@ -8,7 +8,7 @@
       "romSha256": "a93ea87fc835c530b5135c5294433d15eef6dbf656144b387e89ac19cf864996",
       "state": "researching",
       "record": "../EMULATOR_MULTIPLAYER.md",
-      "evidence": ["lan-independent-controls", "public-relay-password-handshake", "owned-exit"],
+      "evidence": ["lan-independent-controls", "public-relay-password-handshake", "online-host-action", "relay-failure-cancellation", "clean-departure-reinvitation", "owned-exit"],
       "remaining": ["online-independent-controls", "distinct-networks", "interruption-recovery", "router-free-runtime"],
       "persistentSaveWrites": false
     }

@@ -43,7 +43,8 @@ NetplayClient::NetplayClient(QObject* parent) : QObject(parent) {
     });
     connect(&remote_, &QTcpSocket::readyRead, this, &NetplayClient::pumpRemote);
     connect(&remote_, &QTcpSocket::errorOccurred, this, [this]{
-        if (running_) fail("Couldn't connect to your friend's game.");
+        if (running_) fail(authenticated_ ? "The multiplayer connection ended."
+                                         : "Couldn't connect to your friend's game.");
     });
     connect(&remote_, &QTcpSocket::disconnected, this, [this]{
         if (running_) fail("The multiplayer connection ended.");

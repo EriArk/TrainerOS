@@ -1,4 +1,5 @@
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
+#include "integrations/adventure/retroarch/RetroArchNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchSave.h"
 #include "integrations/adventure/retroarch/RetroArchDisc.h"
 #include "integrations/adventure/retroarch/RetroArchConfiguration.h"
@@ -32,6 +33,18 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void relayDirectoryRequiresCompleteUnambiguousEndpoint() {
+        const QByteArray reply="status=OK\r\ntunnel_addr=europe-west1.relay.retroarch.com\r\ntunnel_port=55435\r\n";
+        QCOMPARE(retroarch::netplayRelayEndpoint(reply),QString("europe-west1.relay.retroarch.com|55435"));
+        for(const auto& bad:QList<QByteArray>{
+            "<html>Temporarily unavailable</html>","status=ERROR\ntunnel_addr=relay.example\ntunnel_port=55435",
+            "status=OK\ntunnel_addr=relay.example",reply+"tunnel_port=1\n",
+            "status=OK\ntunnel_addr=relay.example\ntunnel_port=65536",
+            "status=OK\ntunnel_addr=relay.example\ntunnel_port=0",
+            "status=OK\ntunnel_addr=relay.example\"\nnetplay_password=bad\ntunnel_port=55435",
+            "status=OK\ntunnel_addr=relay.example|1234\ntunnel_port=55435",QByteArray(4097,'x')})
+            QVERIFY2(retroarch::netplayRelayEndpoint(bad).isEmpty(),bad.constData());
+    }
     void initTestCase(){QStandardPaths::setTestModeEnabled(true);QCoreApplication::setOrganizationName("TrainerOSTests");QCoreApplication::setApplicationName("RetroArchTests");}
     void displayOverlayPreservesBaseAndIsPerGame() {
         QTemporaryDir dir;const auto base=dir.filePath("base.cfg");

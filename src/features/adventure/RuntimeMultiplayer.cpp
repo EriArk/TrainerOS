@@ -181,6 +181,7 @@ void RuntimeMultiplayer::show(QString panel) {
 bool RuntimeMultiplayer::action(const QString& id) {
     if(!id.startsWith("multiplayer"))return false;
     if(id=="multiplayer-cancel") {
+        if(active_&&deadline_)fail("Invitation cancelled");
         onlinePerson_.clear();selection_.clear();invited_=false;timer_.stop();deadline_=0;
         if(!active_){if(online_)social_.runtimeCommand("online-close");else {consent_.answer(false);nearby_.disconnectPeer();}}
         overlay_.setPanel({}, {}, {});return true;
@@ -200,14 +201,34 @@ void RuntimeMultiplayer::begin(bool host,bool online) {
     active_=true;host_=host;online_=online;relaySent_=false;request_={};request_.host=host;request_.relay=online;request_.expected=descriptor_;
     request_.nickname="TrainerOS-"+randomToken().left(12);output_.clear();
     deadline_=QDateTime::currentSecsSinceEpoch()+60;timer_.start();
-    if(host){request_.password=randomToken();launchPending_=true;
-        if(lifecycle_.active()){
-            restarting_=true;
-            // Keep Home's owned-window lease through capture and graceful exit.
-            if(!overlay_.exitFromMenu()){restarting_=false;fail("Couldn't restart this game for multiplayer.");}
-        }else launch();}
+    if(host){request_.password=randomToken();if(online)resolveRelay();else prepareHost();}
     else status_="Waiting for your friend to start…";
     emit changed();
+}
+void RuntimeMultiplayer::prepareHost() {
+    launchPending_=true;
+    if(lifecycle_.active()) {
+        restarting_=true;
+        // Keep Home's owned-window lease through capture and graceful exit.
+        if(!overlay_.exitFromMenu()){restarting_=false;fail("Couldn't restart this game for multiplayer.");}
+    }else launch();
+}
+void RuntimeMultiplayer::resolveRelay() {
+    status_="Connecting to the online relay…";
+    QNetworkRequest request(QUrl("http://lobby.libretro.com/tunnel?name=madrid"));
+    request.setTransferTimeout(7000);
+    auto* reply=network_.get(request);reply->setReadBufferSize(4097);
+    const auto nickname=request_.nickname;auto bytes=std::make_shared<QByteArray>();
+    connect(reply,&QIODevice::readyRead,reply,[reply,bytes]{bytes->append(reply->readAll());if(bytes->size()>4096)reply->abort();});
+    connect(reply,&QNetworkReply::finished,this,[this,reply,bytes,nickname]{
+        bytes->append(reply->readAll());reply->deleteLater();
+        if(!active_||!host_||!online_||request_.nickname!=nickname)return;
+        const auto endpoint=retroarch::netplayRelayEndpoint(*bytes);
+        if(reply->error()!=QNetworkReply::NoError||endpoint.isEmpty()) {
+            fail("Couldn't reach the online relay. Try inviting again.");return;
+        }
+        request_.relayEndpoint=endpoint;prepareHost();
+    });
 }
 void RuntimeMultiplayer::launch() {
     launchPending_=false;
@@ -236,7 +257,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     launchPending_=true;launch();
 }
 void RuntimeMultiplayer::pollRelay() {
-    if(query_||!active_||!host_||!online_||relaySent_)return;
+    if(query_||!active_||!host_||!online_||relaySent_||request_.relayEndpoint.isEmpty())return;
     // This is the upstream public directory, not an authenticated signalling
     // service. Passwords travel only through the accepted friend invitation.
     query_=true;QNetworkRequest request(QUrl("http://lobby.libretro.com/list/"));request.setTransferTimeout(7000);
@@ -263,6 +284,15 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
         if(!line.contains("[Netplay]"))continue;
         // No launch arguments/configuration (passwords) or chat frames are logged.
         qCInfo(multiplayerLog).noquote()<<QString::fromUtf8(line.left(512));
+        if(host_&&online_&&(line.contains("Switching to direct mode")||
+                           line.contains("Your room is not connectable"))) {
+            // RetroArch can silently abandon the requested relay after a
+            // directory failure. That is not the route the friend accepted.
+            // Close signalling now instead of leaving the guest waiting for
+            // a relay room which will never appear. Keep owned Home -> Exit.
+            fail("Couldn't reach the online relay. Exit the game and invite again.");
+            return;
+        }
         if(host_&&!online_&&!relaySent_&&line.contains("joined as player 1")){
             relaySent_=true;
             send({{"kind","ready"},{"password",request_.password},{"port",request_.port},{"identity",descriptor_}});

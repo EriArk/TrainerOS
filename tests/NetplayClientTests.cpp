@@ -39,6 +39,7 @@ private slots:
         emulator.write("game-input"); QTRY_COMPARE(host->bytesAvailable(), 10);
         QCOMPARE(host->readAll(), QByteArray("game-input")); QVERIFY(errors.isEmpty());
         host->disconnectFromHost(); QTRY_COMPARE(errors.size(), 1);
+        QCOMPARE(errors.first().first().toString(),QString("The multiplayer connection ended."));
         QTRY_COMPARE(emulator.state(), QAbstractSocket::UnconnectedState);
         QVERIFY(bridge.start("127.0.0.1", relay.serverPort(), {}, "new-invitation"));
         bridge.stop(); QCOMPARE(errors.size(), 1); // intentional cleanup is silent

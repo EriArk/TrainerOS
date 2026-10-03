@@ -14,6 +14,21 @@ bool token(const QString& s,int max) {
     return !s.isEmpty() && s.size()<=max && QRegularExpression("^[A-Za-z0-9_-]+$").match(s).hasMatch();
 }
 }
+QString netplayRelayEndpoint(const QByteArray& response) {
+    if(response.size()>4096)return {};
+    QMap<QByteArray,QByteArray> fields;
+    for(const auto& line:response.split('\n')) {
+        const auto end=line.indexOf('=');if(end<1)continue;
+        const auto key=line.left(end).trimmed();
+        if(fields.contains(key))return {};
+        fields.insert(key,line.mid(end+1).trimmed());
+    }
+    const auto host=QString::fromLatin1(fields.value("tunnel_addr"));
+    bool valid=false;const auto port=fields.value("tunnel_port").toUInt(&valid);
+    if(fields.value("status")!="OK"||!valid||port<1||port>65535||host.size()>253||
+       !QRegularExpression("^[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*$").match(host).hasMatch())return {};
+    return host+'|'+QString::number(port); // RetroArch's custom-relay host|port format.
+}
 QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstallation& i,const std::atomic_bool& cancel) {
     if(r.adventure.platformId!="snes" || r.integrationConfig["core"]!="snes9x")return {};
     const auto content=fileDigest(r.contentPath,2*1024*1024,cancel);
@@ -31,6 +46,12 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     if(identity!=request.expected)return "Your game or emulator changed. Invite your friend again.";
     if(!token(request.password,32)||!token(request.nickname,32)||!request.port)
         return "This multiplayer invitation is invalid.";
+    if(request.host&&request.relay) {
+        const auto parts=request.relayEndpoint.split('|');
+        if(parts.size()!=2||netplayRelayEndpoint("status=OK\ntunnel_addr="+parts[0].toLatin1()+
+            "\ntunnel_port="+parts[1].toLatin1())!=request.relayEndpoint)
+            return "This online relay address is invalid.";
+    }
     if(!request.host) {
         // Only an explicit authenticated/accepted invitation supplies an endpoint.
         // No shell command, path or emulator option may enter through this field.
@@ -59,7 +80,7 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
         "netplay_start_as_server = \"false\"\nnetplay_start_as_client = \"false\"\n"
         "netplay_allow_slaves = \"false\"\nnetplay_max_connections = \"1\"\n"
         "netplay_start_as_spectator = \"false\"\nnetplay_share_digital = \"0\"\n"
-        "netplay_mitm_server = \"madrid\"\npause_nonactive = \"false\"\n";
+        "pause_nonactive = \"false\"\n";
 #ifdef Q_OS_LINUX
     // The first handheld profile is verified with InputPlumber's virtual pad
     // through udev on both Flip and Odin. Flip's inherited SDL2 driver handled
@@ -70,6 +91,8 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
 #endif
     bytes+="netplay_use_mitm_server = \""+QByteArray(request.host&&request.relay?"true":"false")+"\"\n";
     bytes+="netplay_public_announce = \""+QByteArray(request.host&&request.relay?"true":"false")+"\"\n";
+    if(request.host&&request.relay)
+        bytes+="netplay_mitm_server = \"custom\"\nnetplay_custom_mitm_server = \""+request.relayEndpoint.toLatin1()+"\"\n";
     // Hosting keeps the invitation password. The relay guest's loopback bridge
     // answers the challenge automatically; no password is written to its config.
     const auto password=request.relay&&request.host?request.password.toUtf8():QByteArray();

@@ -29,9 +29,10 @@ This does not establish host/guest save policy for other titles.
 - Nearby's first runtime route is the existing local network, on separate runtime
   discovery/session ports 47855/47856. This does not change native Link's Bluetooth
   default and does not claim router-free Bluetooth gameplay.
-- Draft online routing uses authenticated friend consent for signalling, followed
-  by RetroArch's upstream relay. It is not runtime-verified. No gameplay frames
-  travel through chat messages.
+- Online routing uses authenticated friend consent for signalling, followed
+  by RetroArch's upstream relay. Automatic joining, a host gameplay action and
+  clean departure/reinvitation are verified below; full two-player online and
+  distinct-network acceptance remains open. No gameplay frames travel through chat.
 - Compare exact content, runtime, core and the options profile before joining;
   recheck local files during launch preparation.
 - The guest explicitly accepts. An unrelated running game is never replaced.
@@ -190,3 +191,48 @@ and nearby/voice helpers were verified. Flip is muted; Odin volume is zero.
 The final caption was inspected on Odin and saved as screenshot 22. A later
 invitation was allowed to expire during documentation; the host returned an error
 and retained its original game. That is expiry handling, not relay-loss recovery.
+
+## Relay lookup and clean reinvitation - 2026-10-03
+
+Two new runs exposed RetroArch's `Failed to get tunnel information. Switching
+to direct mode` fallback. The first left the accepted guest waiting for a relay
+room that would never exist. RuntimeMultiplayer now terminates that invitation
+immediately, retaining owned Home -> Exit. The second run verified Odin's
+ended-invitation message and return to the existing conversation.
+
+TrainerOS now resolves the current Madrid relay through the upstream HTTP tunnel
+endpoint before closing the host's ordinary game. The returned address/port uses
+RetroArch's supported `custom` relay setting in temporary session config only;
+no relay hostname is pinned into product code. The request has a seven-second
+timeout and bounded validated response. Cancellation/session replacement prevents
+a late response from launching. Lookup failure retains the original game.
+Malformed/error/duplicate/out-of-range responses have a regression test.
+Passwords still travel only in the accepted friend session.
+
+Both installed candidates then joined the public relay (host log 182 ms, guest
+200 ms). Remote injection into the physical evdev source, through InputPlumber,
+advanced the host into Stage 1; Right moved blue P1 and East consumed its bomb
+(1 -> 0). Odin displayed the same one-player game and resulting bomb count.
+Direct injection into the virtual Xbox node had not established these actions;
+do not repeat those taps as equivalent controller evidence.
+
+Host Home -> Exit produced Netplay disconnected on Odin. Guest Home -> Exit
+worked; a fresh invitation/acceptance established another relay pair without
+restarting either shell. This verifies clean departure/reinvitation, not abrupt
+internet-loss recovery. The bridge's post-handshake socket error now says the
+connection ended, rather than falsely saying it never connected; its disconnect
+test asserts this distinction.
+
+**Still unproven:** this pass selected Contra's one-player mode, so independent
+online P2 control remains open. The next gameplay check must select the actual
+two-player title option before starting, using the physical input source. Neither
+an attract/demo sequence nor another handshake substitutes for that check.
+Different-internet connections, abrupt-loss recovery and router-free nearby
+gameplay remain open. Owner physical checks stay deferred; block 1 remains open.
+
+ARM build and four scoped suites (RetroArch, NetplayClient, OnlineLink, Social)
+passed. Both ordinary shells run SHA-256
+`78707678becf0a4a8bf739aa1edaebaeeba3e83d128567fbf1a3949006b355c4`,
+with experimental wrappers removed. Verified one shell each, no remaining game
+or runtime listener, healthy databases, unchanged Emerald saves/boot preferences/
+nearby and voice helpers. Flip remains muted; Odin volume is zero. No reboot.

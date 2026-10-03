@@ -6,7 +6,10 @@ remote controller input. The session-local udev fix is installed on both; physic
 button checks, online gameplay/recovery and router-free play remain open. Public-relay
 automatic password authentication now reaches player 1/2 on both devices; this
 does not establish independent online gameplay or distinct networks. The final
-installed builds disable this experiment by default. See
+installed builds disable this experiment by default. The latest pass adds relay
+lookup before host restart, immediate relay-failure cancellation, a real online
+P1 action and clean host-departure/reinvitation proof. Online P2, different networks
+and abrupt-loss/router-free checks remain open. See
 [exact evidence and next action](EMULATOR_MULTIPLAYER.md); do not redo passed
 audio checks or count the experimental screens as a completed feature.
 

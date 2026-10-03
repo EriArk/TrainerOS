@@ -13,6 +13,11 @@ physical button checks are owner-deferred. The experiment stays off by default;
 see [evidence](EMULATOR_MULTIPLAYER.md). This checkpoint does not complete or
 split the promised block, nor advance to the queued messenger expansion.
 
+The latest block 1 correction resolves the relay before restarting the original
+game and cancels failed relay invitations immediately. Actual online P1 action
+and clean host-departure/reinvitation are now proven. Independent online P2,
+different networks, abrupt interruption and router-free play remain open.
+
 **Owner correction, 2026-10-03:** proceed with block 1's actual emulator
 multiplayer invitation now. Keep the outstanding block 3 checks open and deferred;
 do not repeat passed audio/media checks without new evidence requiring it.

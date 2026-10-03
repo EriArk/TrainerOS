@@ -33,6 +33,8 @@ private:
     void update();
     void show(QString panel);
     void begin(bool host,bool online);
+    void prepareHost();
+    void resolveRelay();
     void frame(const QJsonObject&);
     void send(QJsonObject);
     void launch();
