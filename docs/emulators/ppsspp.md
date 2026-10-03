@@ -1,8 +1,9 @@
 # PPSSPP maintenance
 
 Updated 2026-10-03. Actual multiplayer acceptance is tracked in
-[PSP multiplayer](../PSP_MULTIPLAYER.md); isolated LAN gameplay is observed,
-while integrated, sustained and online acceptance remain open.
+[PSP multiplayer](../PSP_MULTIPLAYER.md); integrated invitation, a short LAN round
+and normal Home exit/cleanup passed on both devices. Native challenge required
+one retry; sustained reliability, interruption/recovery and online remain open.
 
 ## Upstream and observed installation
 

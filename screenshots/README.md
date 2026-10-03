@@ -2,6 +2,16 @@
 
 ## Experimental PSP LAN evidence
 
+Screens 33-34 are actual Gamescope captures after the complete TrainerOS Home
+invitation/start route on 3 October, executable `e41f211d…`. One short round
+accepted independent controller inputs and ended normally; both Home exit routes
+then returned to the shell. The experiment was disabled again after verification.
+See [scope and limits](../docs/PSP_MULTIPLAYER.md#integrated-short-check--2026-10-03).
+
+| Flip 2, invited session | Odin 2, invited session |
+| --- | --- |
+| [![Flip](33-lumines-invited-flip.png)](33-lumines-invited-flip.png) | [![Odin](34-lumines-invited-odin.png)](34-lumines-invited-odin.png) |
+
 | Device | Actual two-player Lumines arena |
 | --- | --- |
 | Flip 2 | [![Flip LAN arena](31-lumines-lan-flip.png)](31-lumines-lan-flip.png) |

@@ -5,6 +5,39 @@
 SHA-256 `9b21dd44a2b9ceb746ab9ed9cea4b30de69e63880704c0e34177f1c30c38b82b`.
 Its multiplayer mode must be verified inside the game. No game content is bundled.
 
+## Integrated short check — 2026-10-03
+
+The corrected installed build (`e41f211d…`) now passed the actual TrainerOS
+route on Flip 2 and Odin 2: physical Home input -> Nearby invitation -> Odin
+Accept -> organizer Start -> running-game save confirmation -> paired PPSSPP
+launch. Buttons were injected remotely through the handheld input paths; this
+does not replace the owner's deferred hands-on controller check.
+Both process environments used private configuration roots, ordinary
+SAVEDATA, their existing distinct MACs and `ForceLagSync2=True`.
+
+Native Lumines 2P VS reached skin selection and one complete short round, ending
+at about 40 seconds with the same result on both devices. Independent movement,
+rotation and drop inputs were sent on both controllers. The first native
+challenge returned to the lobby; a second promptly accepted challenge succeeded.
+Do not claim first-attempt reliability or a sustained-session measurement.
+[Flip](../screenshots/33-lumines-invited-flip.png) and
+[Odin](../screenshots/34-lumines-invited-odin.png) show the real paired arena.
+
+Physical Home -> Exit game -> Leave returned Flip to its original Home and Odin
+to its original Social page. Both PPSSPP processes and private configuration
+roots disappeared normally, without kill/reboot. SAVEDATA hashes matched the
+pre-run baselines on both. Odin SYSTEM was unchanged; Flip's ordinary
+`ppsspp.ini` changed across the run, which included an initial normal launch;
+this run does not claim
+byte-identical ordinary SYSTEM on Flip. Controller configuration was unchanged.
+Both ordinary binaries were restored with the experimental flag off; final checks
+confirmed database integrity/counts, boot/helpers, Emerald saves and quiet audio.
+
+This closes the corrected integrated LAN launch/gameplay/return smoke check.
+Interruption/reconnection, longer reliability, online/distinct-network and the
+remaining multiplayer block acceptance stay open. No endurance run was performed,
+per the owner's request. Do not repeat this passed short check without a change.
+
 ## Clock synchronization checkpoint — 2026-10-03
 
 The copied-save diagnostic now has verified input: PPSSPP's debugger observed
@@ -42,9 +75,10 @@ after both processes exited. Debugger/logging were diagnostic-only. The initial
 `InitLocalhostIP()` always initializes a loopback address, while actual friend
 records and traffic used each device's LAN address. Do not repeat that false lead.
 
-**Still open:** corrected configuration through the complete TrainerOS invitation
-and Home-return route, sustained independent gameplay, interruption/reconnection,
-and online/distinct-network evidence. Both ordinary deliveries retain the
+**Superseded by the integrated short check above:** the corrected invitation,
+short gameplay and Home-return route now passed. Longer reliability,
+interruption/reconnection and online/distinct-network evidence remain open.
+Both ordinary deliveries retain the
 experimental/off gate. Block 1 is not complete. Do not repeat the old input or
 discovery investigation; start from the corrected session profile.
 

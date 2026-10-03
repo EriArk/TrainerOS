@@ -18,9 +18,11 @@ voice and the route-specific runtime gates below; no earlier acceptance is remov
 Owner implementation clarification: image-owned emulator configuration and
 source patches are allowed, with a separate [maintenance record](emulators/README.md)
 per emulator, versioned changes and update/rollback instructions. PPSSPP identity
-preservation is corrected and delivered on both devices; the inconclusive copied-save
-probe adds no gameplay proof. Its next diagnostic gate is recorded in
-[PSP evidence](PSP_MULTIPLAYER.md). The runtime and group acceptance below remains open.
+preservation and clock synchronization are delivered on both devices. The corrected
+Home invitation route now passed one short Lumines LAN round and normal return;
+one native challenge retry was required. Do not repeat the passed smoke check.
+Continue interruption/recovery and online route evidence, alongside the retained
+party/voice acceptance below. [PSP evidence](PSP_MULTIPLAYER.md) records exact limits.
 
 The owner paused implementation to reconcile connection, invitation and group
 behavior. [Accepted experience](MULTIPLAYER_EXPERIENCE.md) now requires persistent
@@ -63,8 +65,8 @@ or a second queue):
    the overlay comparison remains a conditional adoption gate, not another general
    source survey or a prerequisite to extending the retained native route. Choose the
    supported company/party voice mapping before implementing private audiences.
-   Retain working routes; the existing PSP LAN failure is a separate unresolved
-   control, not a reason to assume a VPN fixes it.
+   Retain working routes; PSP LAN now has a short integrated gameplay proof,
+   not a reason to assume an overlay is necessary or already proven.
 2. Extend the existing session foundation and direct Home/Social UI for 3-4+
    participants, real game capacity/readiness and correct controller slots.
    Complete owner invitations and reverse requests from displayed game activity;
@@ -76,8 +78,9 @@ or a second queue):
 4. Complete route-specific runtime and recovery acceptance on the selected
    transports, including more than two clients, independent concurrent parties,
    distinct internet networks and a separately proven router-free route. Retain
-   safe save ownership, background calls and ordinary launch/return. Existing
-   Lumines match failure and all earlier block 1 gates stay open until resolved.
+   safe save ownership, background calls and ordinary launch/return.
+   Lumines short LAN gameplay/return passed; reliability/recovery and online,
+   and all other earlier block 1 gates, remain open.
 
 Each implementation delivery must update both available handhelds and commit/
 push; two handhelds do not establish four-client gameplay. Physical checks remain

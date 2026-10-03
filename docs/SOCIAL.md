@@ -1,5 +1,13 @@
 # Native Social - conversations and discovery
 
+**PSP integrated short check, 2026-10-03:** the corrected build passed Home
+Nearby invitation, acceptance, organizer start, save-aware relaunch, an actual
+approximately 40-second Lumines round and normal exit/return on both handhelds.
+Both controllers supplied independent inputs; no reboot was needed. One native
+challenge retry was required. See [precise evidence](PSP_MULTIPLAYER.md#integrated-short-check--2026-10-03).
+This supersedes the integrated-route gate below, not recovery/online or the rest
+of block 1. Ordinary installations retain the experimental/off gate.
+
 **PSP clock-sync continuation, 2026-10-03:** the repaired diagnostic reproduced
 the default-clock failure, then reached a real Lumines LAN arena and independent
 inputs with upstream clock synchronization enabled on both handhelds. The exact
