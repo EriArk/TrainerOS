@@ -42,6 +42,14 @@ experimental-off environment and database integrity passed. Both devices' databa
 integrity, boot/helper preservation and audio-route cleanup passed before reboot.
 Odin remained at volume zero; Flip remained muted (20% battery).
 
+**Recovery follow-up, 2026-10-04:** after the owner reported another reboot,
+Odin returned over SSH in Steam Gaming Mode. The installed session control
+started TrainerOS, with its original Steam boot preference restored afterward.
+The live executable SHA above, experimental-off environment, database integrity
+and absence of RetroArch passed. Fresh compositor captures showed Home and
+controller navigation to Worlds. Volume remained zero and battery was 100%.
+Recovery is verified; the cause of the earlier GPU wait is still unresolved.
+
 2026-10-03 implementation checkpoint within communication block 1, which remains
 open. This replaces the runtime invitation's single-peer coordinator; saved-game
 Link and calls retain their separate providers. The accepted broader experience
