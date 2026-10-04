@@ -1,10 +1,11 @@
 # TrainerOS Product Specification
 
-**2026-10-04 #114 accepted target:** Worlds opens available game-series
+**2026-10-04 #114 installed navigation:** Worlds opens available game-series
 collections; Pokemon regions live inside its collection. Other series can use
 their own meaningful grouping, with generic Multiverse fallback. This refines
-#90 and earlier global region-first wording; it is not installed behavior or a
-change to the active multiplayer queue. Preserve five primaries, direct A launch,
+#90 and earlier global region-first wording. Home L2/R2 cycles the same collections;
+Y selects independently within each. Remaining #90 deep adapters stay planned.
+The priority navigation delivery is complete; resume MP-02. Preserve five primaries, direct A launch,
 per-collection selection and stable game/save/history identity. See
 [acceptance](EXPANSION_69_90.md#exact-integrations-and-franchise-experiences--7476-82-8990).
 

@@ -6,6 +6,15 @@ that each subtask receives a separate turn. Issues and existing evidence retain
 their full acceptance. A checkbox means the stated outcome is delivered, not
 merely that code exists. Do not close a parent block from partial child evidence.
 
+## Delivered checkpoint: #114 — series collections
+
+Owner priority override, 2026-10-04: collections first, then resume MP-02 below.
+Delivered Worlds collection cards, scoped direct game wheels, Home L2/R2 cycling
+and independent per-Trainer choices on both handhelds. Eight additional series,
+ten original illustrations and a bounded server-ROM selection are installed.
+No ROM relocation or identity reset. Remaining #90 semantic adapters stay open.
+Acceptance/evidence: [Series collections](SERIES_COLLECTIONS.md).
+
 ## Current task: MP-02 — independent handheld link
 
 The owner resumed the interrupted handheld work on 4 October. Complete the
@@ -29,7 +38,7 @@ no classic-system implementation or passed test loop is restarted.
 - [ ] GBA battle/cross-edition and Advance Wars gameplay; four-client activity.
 - [ ] Owner-deferred distinct-network/multi-user and human voice acceptance.
 
-Stay in MP-02; do not restart passed Emerald/Red checks without a concrete change.
+Resume here after the delivered #114 navigation checkpoint; do not restart passed Emerald/Red checks without a concrete change.
 
 ## MP-01 — retained classic RetroArch and shared online-party acceptance
 

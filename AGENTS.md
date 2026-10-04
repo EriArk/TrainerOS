@@ -1,5 +1,14 @@
 # AGENTS.md — TrainerOS
 
+**Owner series priority, 2026-10-04:** implement #114 collection navigation now,
+then return to the interrupted MP-02 independent handheld multiplayer work.
+Add a bounded selection of series from the owner's ROM disk and generated
+collection-card artwork. Home L2/R2 cycles series, with independent Home/Y game
+choices. Unclassified games remain in Multiverse; Batocera platform folders,
+stable Adventures, saves and history stay intact. This scheduling override does
+not close the remaining #90 semantic adapter/pack acceptance or move Pack Studio.
+Installed evidence is now in docs/SERIES_COLLECTIONS.md; resume MP-02 next.
+
 **Owner multiplayer availability correction, 2026-10-04:** implemented multiplayer
 must be available in ordinary installations so the owner and friends can test it.
 Do not hide the entire feature behind a developer environment flag until those

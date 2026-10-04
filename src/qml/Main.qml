@@ -167,7 +167,12 @@ Window {
             objectName: "navigation-chassis"; x: 28; y: Theme.brandHeight + Theme.screenBevel + 5; spacing: 12; z: 2
             Hint {button:"L1 R1";label:"Sections";tint:Theme.blue;labelColor:Theme.ink}
             Hint {button:"L2 R2";label:"";tint:Theme.green;visible:shell.faceNames.length>1;opacity:shell.pairedNavigationAvailable?1:.45}
-            Repeater {model:shell.faceNames
+            Text {
+                visible: shell.faceNames.length > 6
+                text: "‹   " + (shell.faceNames[shell.faceIndex] || "Worlds") + "   ›   " + (shell.faceIndex + 1) + " / " + shell.faceNames.length
+                color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 15; font.bold: true
+            }
+            Repeater {model:shell.faceNames.length > 6 ? [] : shell.faceNames
                 Text {
                     required property int index;required property string modelData
                     text:modelData;color:shell.faceIndex===index?Theme.ink:Theme.muted
@@ -192,8 +197,9 @@ Window {
                 HallOfFamePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.trainerHistoryFace }
                 TrainerPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 3 && shell.trainerFace === "profile" }
                 SocialPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 4 }
-                WorldsPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && !shell.multiverseFace }
-                MultiversePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && shell.multiverseFace }
+                SeriesPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && shell.collectionsRoot }
+                WorldsPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && !shell.collectionsRoot && !shell.multiverseFace }
+                MultiversePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && !shell.collectionsRoot && shell.multiverseFace }
                 PokedexPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 2 && !shell.centerFace }
             }
         }
@@ -259,9 +265,10 @@ Window {
                 if (shell.service === "settings") return [h("←→","Adjust"),h("A",shell.settings.controlsFocused ? "Select" : "Open"),h("B",shell.settings.controlsFocused ? "Categories" : "Back")]
                 if (shell.service === "device") return [h("←→","Adjust"),h("Y","Refresh"),h("A","Select"),h("B","Back")]
                 if (shell.serviceOpen) return [h("A","Select"),h("B","Back")]
+                if (shell.page === 1 && shell.collectionsRoot) return [h("A","Open series"),h("B","Home")]
                 if (shell.page === 1) {
                     const list = shell.multiverseFace ? shell.multiverse.route === "games" : shell.worlds.route === "adventures"
-                    let result = list ? [h("X","Search"),h("Y","Filter"),h("A","Play"),h("B",shell.multiverseFace ? "Systems" : "Regions")] : [h("A","Open"),h("B","Back")]
+                    let result = list ? [h("X","Search"),h("Y","Filter"),h("A","Play"),h("B",shell.multiverseFace ? (shell.multiverse.collection === "multiverse" ? "Systems" : "Collections") : "Regions")] : [h("A","Open"),h("B","Back")]
                     if(shell.canHoldConfirm) result.push(h("Hold A","Options"))
                     if(shell.canEditWorld) result.push(h("Select","Edit World"))
                     return result

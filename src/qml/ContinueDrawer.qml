@@ -316,7 +316,7 @@ Item {
             x: 5; y: 5
             visible: root.shell.resumePoints.length === 0
             width: 500; height: 105
-            label: root.shell.page === 0 && root.shell.multiverseHome ? "No Multiverse choices yet" : "No recent Adventures yet"; detail: ""
+            label: root.shell.page === 0 && root.shell.multiverseHome ? "No Adventures in this collection yet" : "No recent Adventures yet"; detail: ""
             selected: visible && root.expanded && !root.shell.menuOpen && root.shell.notice.length === 0
             onActivated: root.shell.activate(0)
         }

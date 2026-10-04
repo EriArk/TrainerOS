@@ -1,0 +1,72 @@
+[
+  {
+    "id": "pokemon",
+    "prompt": "Create one original landscape game-series collection card illustration for TrainerOS: POKEMON-inspired expedition habitat, lush emerald meadow, winding sunny path, small red-roof field station, sapphire pond, distant pastel mountains and layered puffy clouds. No characters, no recognizable Pokemon species, no logos, no writing or text. Premium playful Nintendo-era adventure spirit, tactile richly colored hand-painted miniature diorama, clean sculpted shapes, bright saturated green/cyan/gold, dramatic depth, warm soft lighting, finely illustrated NOT photoreal. 3:2 landscape framing, strong central scene readable in a small handheld library card, keep bottom 20 percent quieter for code-rendered title, full bleed image without border, UI or lettering. Original environmental artwork, not copied game assets.",
+    "tool": "image_gen",
+    "source": "exec-a2c38896-2dcd-4aeb-b3fd-3fde5276eb69.png",
+    "asset": "pokemon.png"
+  },
+  {
+    "id": "mario",
+    "prompt": "One original landscape game-series collection card illustration for TrainerOS: joyful red-roof mushroom-like village with rounded green hills, floating golden blocks, colourful pipes, sunny blue sky. No characters, no recognizable copyrighted characters, no logos, no text or writing. Premium playful retro-console adventure spirit, tactile richly coloured hand-painted miniature diorama, clean sculpted shapes, saturated bold colours, dramatic depth, warm lighting, highly polished game illustration NOT photoreal. 3:2 landscape composition, readable small handheld card, bottom 20 percent quieter for code-rendered title, full bleed no border or UI. Original environmental artwork, not copied game assets.",
+    "tool": "image_gen",
+    "source": "exec-1eddcc6d-1d73-4e16-9f0e-a00f0247175d.png",
+    "asset": "mario.png"
+  },
+  {
+    "id": "zelda",
+    "prompt": "One original landscape game-series collection card illustration for TrainerOS: enchanted emerald forest, ancient triangular stone sanctuary, winding trail, luminous golden dawn, distant fairytale castle. No characters, no recognizable copyrighted characters, no logos, no text or writing. Premium playful retro-console adventure spirit, tactile richly coloured hand-painted miniature diorama, clean sculpted shapes, saturated bold colours, dramatic depth, warm lighting, highly polished game illustration NOT photoreal. 3:2 landscape composition, readable small handheld card, bottom 20 percent quieter for code-rendered title, full bleed no border or UI. Original environmental artwork, not copied game assets.",
+    "tool": "image_gen",
+    "source": "exec-37d75e63-f06b-4a0d-bf52-aec3ce919ec3.png",
+    "asset": "zelda.png"
+  },
+  {
+    "id": "sonic",
+    "prompt": "One original landscape game-series collection card illustration for TrainerOS: vivid tropical island with checker-pattern ochre cliffs, looping grassy paths, turquoise ocean, palm trees and gold ring-shaped stone arches. No characters, no recognizable copyrighted characters, no logos, no text or writing. Premium playful retro-console adventure spirit, tactile richly coloured hand-painted miniature diorama, clean sculpted shapes, saturated bold colours, dramatic depth, warm lighting, highly polished game illustration NOT photoreal. 3:2 landscape composition, readable small handheld card, bottom 20 percent quieter for code-rendered title, full bleed no border or UI. Original environmental artwork, not copied game assets.",
+    "tool": "image_gen",
+    "source": "exec-d47f3ed1-a253-411c-8733-eb08295464cb.png",
+    "asset": "sonic.png"
+  },
+  {
+    "id": "final-fantasy",
+    "prompt": "One original landscape game-series collection card illustration for TrainerOS: magnificent blue crystal shrine floating above clouds, fantasy airship silhouette and green cliff villages, jewel colours and luminous sky. No characters, no recognizable copyrighted characters, no logos, no text or writing. Premium playful retro-console adventure spirit, tactile richly coloured hand-painted miniature diorama, clean sculpted shapes, saturated bold colours, dramatic depth, warm lighting, highly polished game illustration NOT photoreal. 3:2 landscape composition, readable small handheld card, bottom 20 percent quieter for code-rendered title, full bleed no border or UI. Original environmental artwork, not copied game assets.",
+    "tool": "image_gen",
+    "source": "exec-d8032d4c-4799-4791-9384-d47650a4dbc2.png",
+    "asset": "final-fantasy.png"
+  },
+  {
+    "id": "metroid",
+    "prompt": "One original landscape game-series collection card illustration for TrainerOS: alien planet cavern, glowing cyan crystalline plants, orange volcanic ledges and futuristic research doorway, cinematic sci-fi atmosphere. No characters, no recognizable copyrighted characters, no logos, no text or writing. Premium playful retro-console adventure spirit, tactile richly coloured hand-painted miniature diorama, clean sculpted shapes, saturated bold colours, dramatic depth, warm lighting, highly polished game illustration NOT photoreal. 3:2 landscape composition, readable small handheld card, bottom 20 percent quieter for code-rendered title, full bleed no border or UI. Original environmental artwork, not copied game assets.",
+    "tool": "image_gen",
+    "source": "exec-d103bc30-6863-4b4e-8f58-3778e5e1d37d.png",
+    "asset": "metroid.png"
+  },
+  {
+    "id": "castlevania",
+    "prompt": "One original landscape game-series collection card illustration for TrainerOS: grand gothic castle above dramatic violet mountains, crimson moonlit sky, ornate stone bridge and glowing amber windows. No characters, no recognizable copyrighted characters, no logos, no text or writing. Premium playful retro-console adventure spirit, tactile richly coloured hand-painted miniature diorama, clean sculpted shapes, saturated bold colours, dramatic depth, warm lighting, highly polished game illustration NOT photoreal. 3:2 landscape composition, readable small handheld card, bottom 20 percent quieter for code-rendered title, full bleed no border or UI. Original environmental artwork, not copied game assets.",
+    "tool": "image_gen",
+    "source": "exec-f4bb0258-10e5-4cc7-bd57-fc406a5e5a9a.png",
+    "asset": "castlevania.png"
+  },
+  {
+    "id": "kirby",
+    "prompt": "One original landscape game-series collection card illustration for TrainerOS: dreamy candy-coloured floating islands, star-shaped flowers, rounded little houses, pink clouds and rainbow waterfall. No characters, no recognizable copyrighted characters, no logos, no text or writing. Premium playful retro-console adventure spirit, tactile richly coloured hand-painted miniature diorama, clean sculpted shapes, saturated bold colours, dramatic depth, warm lighting, highly polished game illustration NOT photoreal. 3:2 landscape composition, readable small handheld card, bottom 20 percent quieter for code-rendered title, full bleed no border or UI. Original environmental artwork, not copied game assets.",
+    "tool": "image_gen",
+    "source": "exec-0690cc43-7272-47fd-885c-04a429f61167.png",
+    "asset": "kirby.png"
+  },
+  {
+    "id": "metal-slug",
+    "prompt": "One original landscape game-series collection card illustration for TrainerOS: stylized energetic arcade military adventure landscape, detailed green tank silhouette parked in tropical old fortress, orange sunset, vivid teal foliage and machinery. No characters, no recognizable copyrighted characters, no logos, no text or writing. Premium playful retro-console adventure spirit, tactile richly coloured hand-painted miniature diorama, clean sculpted shapes, saturated bold colours, dramatic depth, warm lighting, highly polished game illustration NOT photoreal. 3:2 landscape composition, readable small handheld card, bottom 20 percent quieter for code-rendered title, full bleed no border or UI. Original environmental artwork, not copied game assets.",
+    "tool": "image_gen",
+    "source": "exec-076ede50-1054-4a12-b763-6120b96464fe.png",
+    "asset": "metal-slug.png"
+  },
+  {
+    "id": "multiverse",
+    "prompt": "Original landscape illustration for a Multiverse game-library collection card: a wondrous colourful cosmic observatory with several floating small planets, tiny glowing portals, lush tropical planet, crystalline moon, fantasy castle planet and futuristic orbital arch. No characters, logos, text or letters. Rich saturated indigo/cyan/orange/pink palette, premium playful retro-console hand-painted miniature diorama, sculpted shapes, dramatic depth, clean readable 3:2 landscape composition, bottom 20 percent quieter for UI title, full bleed without frame. Original environmental artwork.",
+    "tool": "image_gen",
+    "source": "exec-354b621b-e6d7-4a7b-96e6-a6da021e3d9e.png",
+    "asset": "multiverse.png"
+  }
+]

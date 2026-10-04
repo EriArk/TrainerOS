@@ -4,13 +4,14 @@
 
 # TrainerOS UX & Navigation
 
-**2026-10-04 #114 planned Worlds entry:** available series collections first;
+**2026-10-04 #114 installed Worlds entry:** available series collections first;
 Pokemon regions are inside that collection. Other series need no fixed regional
 hierarchy. Multiverse retains generic games. Preserve direct A launch on a game,
 five primary sections and existing shoulder/trigger controls. Local Back restores
 collection/game position; the established primary Worlds re-entry rule returns
 to the collection root with its selection retained. Per-collection Home/Y choices
-remain independent. This is R7/#90 follow-up, not a deployed navigation change.
+remain independent; Home L2/R2 cycles collections. Deployed on Flip and Odin;
+remaining R7/#90 semantic features are separate. See [delivery evidence](SERIES_COLLECTIONS.md).
 See [acceptance](EXPANSION_69_90.md#exact-integrations-and-franchise-experiences--7476-82-8990).
 
 **2026-10-03 multiplayer target:** reuse existing Home/Social for named invites,

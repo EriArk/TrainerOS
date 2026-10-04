@@ -126,7 +126,12 @@ terminology, reusable semantic/presentation components and exact-title overrides
 Adapters remain presentation-agnostic; a pack resolver maps verified capabilities
 to faces/widgets/actions without filename/title conditionals in QML.
 
-**#114 navigation clarification — 2026-10-04 (planned):**
+**#114 navigation clarification — 2026-10-04:**
+
+The navigation/library subset is installed on Flip/Odin; see
+[scope and evidence](SERIES_COLLECTIONS.md). The semantic experience-pack and
+exact-game acceptance below remains open.
+
 [Worlds collections](https://github.com/EriArk/TrainerOS/issues/114) refines #90:
 the global Worlds entry shows available series collections; Pokemon regions
 belong inside the Pokemon collection. Other series use only meaningful grouping,
@@ -146,8 +151,9 @@ require a semantic adapter for ordinary launch, or add a confirmation after game
 selection. A second series must not require global shell title conditionals.
 Validate on handhelds and preserve original/licensed demo assets. Public copy
 must distinguish today's Pokemon integration from future series support.
-This issue explicitly does not reorder the current implementation queue;
-MP-02 remains active. It does not move artwork packs/Pack Studio forward.
+The issue originally left the queue unchanged. The later owner instruction put
+collection navigation before resuming MP-02; that bounded delivery is now done.
+It does not move artwork packs/Pack Studio forward. See SERIES_COLLECTIONS.md.
 
 **Owner clarification, 2026-09-27:** the active franchise changes the actual
 interface composition, not only its colors or artwork. The Pokemon primary and

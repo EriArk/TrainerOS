@@ -1,5 +1,6 @@
 #include "core/PerformanceTrace.h"
 #include "ShellController.h"
+#include "core/model/SeriesCatalog.h"
 #include "features/home/PlayHistoryController.h"
 #include "ResumePresentation.h"
 #include "features/home/BadgeAssets.h"
@@ -124,7 +125,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&worlds_, &WorldsController::setupRequested, this, openGame);
     connect(&multiverse_, &MultiversePresentation::messageRequested, this, &ShellController::showNotice);
     connect(&multiverse_, &MultiversePresentation::homeRequested, this, [this] {
-        multiverseHome_ = true; goToPage(0);
+        homeCollection_=multiverse_.collection(); multiverseHome_ = true; goToPage(0);
     });
     connect(&settings_, &SettingsController::trainerRequested, this, [this](int index) {
         trainerSettingsAction(index);
@@ -211,7 +212,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         notice_ = message;
         emit changed();
     });
-    connect(&worlds_, &WorldsController::homeRequested, this, [this] { multiverseHome_ = false; goToPage(0); });
+    connect(&worlds_, &WorldsController::homeRequested, this, [this] { homeCollection_="pokemon"; multiverseHome_ = false; goToPage(0); });
     connect(&keyboard_, &TextEntryController::changed, this, &ShellController::changed);
     connect(&trainer_, &TrainerController::changed, this, &ShellController::changed);
     connect(&trainer_, &TrainerController::messageRequested, this, [this](const QString& message) {
@@ -277,12 +278,13 @@ QString ShellController::currentAdventureId() const {
 bool ShellController::canHoldConfirm() const {
     if(page_!=1 || !repository_.editable() || homeMenuOpen_ || menuOpen_ || !notice_.isEmpty() || !service_.isEmpty()
         || keyboard_.isOpen() || drawerOpen_ || libraryTools_.isOpen())return false;
+    if(collectionsRoot_)return false;
     if(multiverseFace_ ? multiverse_.route()!="games" : worlds_.route()!="adventures")return false;
     const auto id=(multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString();
     const auto record=repository_.registration(id);return record && !record->removed;
 }
 bool ShellController::canEditWorld() const {
-    return page_==1 && !multiverseFace_ && repository_.editable() && settings_.worldEditing()
+    return page_==1 && !collectionsRoot_ && !multiverseFace_ && repository_.editable() && settings_.worldEditing()
         && service_.isEmpty() && !menuOpen_ && notice_.isEmpty() && !keyboard_.isOpen()
         && !drawerOpen_ && !libraryTools_.isOpen() && !worlds_.region().value("id").toString().isEmpty();
 }
@@ -308,15 +310,19 @@ bool ShellController::pairedNavigationAvailable() {
         && !keyboard_.isOpen() && !localModalOpen() && !drawerOpen_;
 }
 QStringList ShellController::faceNames() const {
-    if(page_==0 || page_==1)return {"Pokémon","Multiverse"};
+    if(page_==0 || page_==1) { QStringList names;for(const auto& row:collections())names.append(row.toMap()["name"].toString());return names; }
     if(page_==2)return {"Guide","Party","Boxes","Center","Playroom","Shops"};
     if(page_==3)return {"Profile","Journey","Hall","RA"};
     if(page_==4)return {"Messages","Groups","Communities","Search"};
     return {};
 }
 int ShellController::faceIndex() const {
-    if(page_==0)return multiverseHome_?1:0;
-    if(page_==1)return multiverseFace_?1:0;
+    if(page_==1 && collectionsRoot_)return collectionFocus_;
+    if(page_==0 || page_==1) {
+        const auto id=page_==0?homeCollection_:worldCollection_;const auto list=collections();
+        for(int i=0;i<list.size();++i)if(list[i].toMap()["id"]==id)return i;
+        return 0;
+    }
     if(page_==2)return QStringList{"dex","party","boxes","center","playroom","shops"}.indexOf(pokemonFace_);
     if(page_==3)return trainerProfile_ ? 0 : hall_.faceIndex()+1;
     if(page_==4)return QStringList{"chats","groups","communities","friends"}.indexOf(socialFace_);
@@ -417,6 +423,7 @@ int ShellController::focusIndex() const {
     if (service_ == "diagnostics") return diagnostics_.focusIndex();
     if (service_ == "center") return center_.focusIndex();
     if (trainer_.editing()) return trainer_.focusIndex();
+    if (page_ == 1 && collectionsRoot_) return collectionFocus_;
     if (page_ == 1) return multiverseFace_ ? multiverse_.focusIndex() : worlds_.focusIndex();
     if (page_ == 2) return centerFace() ? (party_.section() == "saves" || center_.shopsOpen() || center_.clinicOpen() ? center_.focusIndex() : party_.focusIndex()) : pokedex_.focusIndex();
     if (trainerHistoryFace()) return hall_.focusIndex();
@@ -430,6 +437,8 @@ QJsonObject ShellController::navigationState() const {
             {"homeResumeSource", homeResumeSource_.toJson()},
             {"multiverse",multiverse_.navigationState()},{"homeDomain",multiverseHome_?"multiverse":"pokemon"},
             {"worldsFace",multiverseFace_?"multiverse":"pokemon"},
+            {"homeCollection",homeCollection_},{"worldCollection",worldCollection_},
+            {"collectionsRoot",collectionsRoot_},{"collectionFocus",collectionFocus_},
             {"resume", drawerFocus_ < points_.size() ? points_[drawerFocus_].id : QString()},
             {"worlds", worlds_.navigationState()}, {"pokedex", pokedex_.navigationState()}, {"hall", hall_.navigationState()}};
 }
@@ -461,6 +470,16 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     multiverse_.restoreNavigation(state["multiverse"].toObject());
     multiverseHome_=state["homeDomain"].toString()=="multiverse";
     multiverseFace_=state["worldsFace"].toString()=="multiverse";
+    homeCollection_=state["homeCollection"].toString(multiverseHome_?"multiverse":"pokemon");
+    worldCollection_=state["worldCollection"].toString(multiverseFace_?"multiverse":"pokemon");
+    if(multiverseHome_ && !state.contains("homeCollection")) {
+        const auto legacy=repository_.registration(state["multiverse"].toObject()["selected"].toString());
+        if(legacy)homeCollection_=seriesForTitle(legacy->adventure.title);
+    }
+    collectionsRoot_=state["collectionsRoot"].toBool(true);
+    collectionFocus_=std::clamp(state["collectionFocus"].toInt(),0,std::max(0,int(collections().size())-1));
+    if(page_==0 && multiverseHome_)multiverse_.setCollection(homeCollection_);
+    else if(page_==1 && multiverseFace_)multiverse_.setCollection(worldCollection_);
     pokedex_.restoreNavigation(state["pokedex"].toObject());
     // Establish the selected game's provider context before replaying its view.
     // Otherwise the initial current-game reconciliation replaces the restored
@@ -627,7 +646,10 @@ void ShellController::goToPage(int page) {
     { PerformanceTrace::Scope phase("navigation.center"); center_.leaveClinic();center_.leaveShops(); }
     { PerformanceTrace::Scope phase("navigation.manager"); libraryManager_.close(); service_.clear(); }
     page_ = std::clamp(page, 0, 4); // No wrapping until physical-device testing.
+    if(page_==0 && multiverseHome_)multiverse_.setCollection(homeCollection_);
+    if(page_==1 && multiverseFace_)multiverse_.setCollection(worldCollection_);
     if (enteringWorlds) {
+        collectionsRoot_=true;
         { PerformanceTrace::Scope phase("navigation.worlds"); worlds_.showRegions(); }
         { PerformanceTrace::Scope phase("navigation.multiverse"); multiverse_.showSystems(); }
     }
@@ -645,6 +667,27 @@ void ShellController::goToPage(int page) {
     transition.unblock();
     { PerformanceTrace::Scope phase("navigation.publish"); emit changed(); }
 }
+void ShellController::openCollection(int index) {
+    const auto list=collections();if(index<0 || index>=list.size())return;
+    const bool fromRoot=collectionsRoot_;
+    collectionFocus_=index;worldCollection_=list[index].toMap()["id"].toString();
+    multiverseFace_=worldCollection_!="pokemon";collectionsRoot_=false;
+    if(multiverseFace_){multiverse_.setCollection(worldCollection_);if(fromRoot)multiverse_.showSystems();}
+    else if(fromRoot)worlds_.showRegions();
+    emit changed();
+}
+void ShellController::cycleCollection(int delta) {
+    const auto list=collections();if(list.isEmpty())return;
+    const int index=(faceIndex()+delta+list.size())%list.size();
+    if(page_==0) {
+        homeCollection_=list[index].toMap()["id"].toString();multiverseHome_=homeCollection_!="pokemon";
+        if(multiverseHome_)multiverse_.setCollection(homeCollection_);
+        multiverseDrawerFocus_=0;
+    } else if(collectionsRoot_)collectionFocus_=index;
+    else openCollection(index);
+    emit changed();
+}
+
 void ShellController::activate(int index, const QString& area) {
     if(homeMenuOpen_)return;
     if(launchPreparation_.busy() || libraryTools_.busy() || center_.writing())return;
@@ -667,6 +710,7 @@ void ShellController::activate(int index, const QString& area) {
     else if (service_ == "center") { center_.activate(index); return; }
     else if (trainer_.editing()) { trainer_.activate(index); return; }
     else if (page_ == 1) {
+        if(collectionsRoot_){openCollection(index);return;}
         if (multiverseFace_) { multiverse_.activate(index); return; }
         if (area == "worlds-search") worlds_.dispatch(Action::Secondary);
         else if (area == "worlds-filter") worlds_.dispatch(Action::ToggleContinue);
@@ -957,8 +1001,7 @@ void ShellController::dispatch(Action action) {
     }
     if (action == Action::PreviousFace || action == Action::NextFace) {
         if (pairedNavigationAvailable()) {
-            if (page_ == 1) { multiverseFace_ = !multiverseFace_; if(multiverseFace_)repository_.refreshContentAvailability(); }
-            else if(page_==0)multiverseHome_=!multiverseHome_;
+            if (page_ == 1 || page_==0) cycleCollection(action==Action::NextFace?1:-1);
             else if (page_ == 3) {
                 const QStringList faces{"profile","journey","hall","ra"};
                 showTrainerFace(faces[(faceIndex()+(action==Action::NextFace?1:3))%4]);
@@ -973,7 +1016,11 @@ void ShellController::dispatch(Action action) {
         return;
     }
     if (action == Action::ToggleContinue && chooseAdventureAvailable()) {
-        if(!drawerOpen_ && page_==0 && multiverseHome_)repository_.refreshContentAvailability();
+        if(!drawerOpen_ && page_==0 && multiverseHome_) {
+            repository_.refreshContentAvailability();const auto choices=multiverse_.choices();
+            const auto selected=multiverse_.selected().value("id").toString();multiverseDrawerFocus_=0;
+            for(int i=0;i<choices.size();++i)if(choices[i].toMap()["id"].toString()==selected){multiverseDrawerFocus_=i;break;}
+        }
         drawerOpen_ = !drawerOpen_; emit changed(); return;
     }
     if (notice_.isEmpty() && !menuOpen_) {
@@ -1013,6 +1060,18 @@ void ShellController::dispatch(Action action) {
         if (trainer_.editing()) { trainer_.dispatch(action); return; }
 
         if (page_ == 1) {
+            if(collectionsRoot_) {
+                if(action==Action::Back){goToPage(0);return;}
+                if(action==Action::Confirm)openCollection(collectionFocus_);
+                else {
+                    const int delta=action==Action::Left?-1:action==Action::Right?1:action==Action::Up?-3:action==Action::Down?3:0;
+                    collectionFocus_=std::clamp(collectionFocus_+delta,0,std::max(0,int(collections().size())-1));emit changed();
+                }
+                return;
+            }
+            if(action==Action::Back && (multiverseFace_?(multiverse_.collection()!="multiverse" || multiverse_.route()=="systems"):worlds_.route()=="regions")) {
+                collectionsRoot_=true;emit changed();return;
+            }
             if (multiverseFace_) multiverse_.dispatch(action); else worlds_.dispatch(action);
             return;
         }

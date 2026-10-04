@@ -45,6 +45,8 @@ class ShellController final : public QObject {
     Q_PROPERTY(QStringList faceNames READ faceNames NOTIFY changed)
     Q_PROPERTY(int faceIndex READ faceIndex NOTIFY changed)
     Q_PROPERTY(bool centerFace READ centerFace NOTIFY changed)
+    Q_PROPERTY(bool collectionsRoot READ collectionsRoot NOTIFY changed)
+    Q_PROPERTY(QVariantList collections READ collections NOTIFY changed)
     Q_PROPERTY(bool multiverseFace READ multiverseFace NOTIFY changed)
     Q_PROPERTY(bool multiverseHome READ multiverseHome NOTIFY changed)
     Q_PROPERTY(trainer::MultiversePresentation* multiverse READ multiverse CONSTANT)
@@ -96,6 +98,8 @@ public:
     TrainerController* trainer() { return &trainer_; }
     WorldsController* worlds() { return &worlds_; }
     MultiversePresentation* multiverse() { return &multiverse_; }
+    bool collectionsRoot() const { return collectionsRoot_; }
+    QVariantList collections() const { return multiverse_.collections(); }
     bool multiverseFace() const { return multiverseFace_; }
     bool multiverseHome() const { return multiverseHome_; }
     PokedexController* pokedex() { return &pokedex_; }
@@ -167,6 +171,8 @@ signals:
     void homeLaunchPressed();
 private:
     void confirm();
+    void openCollection(int index);
+    void cycleCollection(int delta);
     void trainerSettingsAction(int);
     void refreshContinue();
     bool localModalOpen();
@@ -217,6 +223,9 @@ private:
     bool drawerOpen_ = false;
     QString pokemonFace_ = "dex";
     QString centerRoute_ = "clinic", playroomRoute_ = "playroom";
+    bool collectionsRoot_ = true;
+    int collectionFocus_ = 0;
+    QString homeCollection_ = "pokemon", worldCollection_ = "pokemon";
     bool multiverseFace_ = false, multiverseHome_ = false;
     int multiverseDrawerFocus_ = 0;
     bool menuOpen_ = false;

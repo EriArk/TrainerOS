@@ -10,7 +10,8 @@ The owner explicitly rejects test-only passes substituted for feature delivery.
 
 | Order | Outcome / task | State and dependency |
 | --- | --- | --- |
-| **Now · block 1** | **MP-02: GB/GBC/GBA independent link** | Owner resumed the interrupted handheld work on 4 October. Complete own-save link through existing invitations and normal exit; [actual progress and remaining gates](HANDHELD_MULTIPLAYER.md). |
+| Delivered · owner priority | #114 series collections | Worlds cards, scoped Home/Y choice and Home cycling, bounded ROM selection and generated art installed on both handhelds. Remaining #90 deep adapters stay open. [Scope/evidence](SERIES_COLLECTIONS.md). |
+| **Now · block 1** | **MP-02: GB/GBC/GBA independent link** | Resume after the #114 navigation delivery. Complete own-save link through existing invitations and normal exit; [actual progress and remaining gates](HANDHELD_MULTIPLAYER.md). |
 | Retained · block 1 | MP-01: classic RetroArch and shared online-party acceptance | Implemented profiles remain accessible. Distinct-network and actual multi-user/company acceptance remain open; owner-deferred conditions do not trigger another NES/same-router pass. |
 | 2 · block 1 | MP-03: selected PS1/N64 routes | After MP-02. Implement viable mechanisms with the complete invitation journey; do not substitute shared controllers for emulated-machine link. |
 | 3 · block 1 | MP-04: Dreamcast; MP-05: PS2/GameCube; MP-06: DS/PSP; MP-07: 3DS and eligible newer routes | Oldest first. Reuse installed PSP/Dolphin work; resolve each route's remaining acceptance, not every ROM. Unsupported mechanisms require a sourced conclusion, not a misleading enabled button. |
@@ -31,10 +32,10 @@ establishes four real TrainerOS users or separate-network internet acceptance.
 Missing prerequisites and concrete task checklists are in [Current tasks](CURRENT_TASKS.md).
 Current delivery scope and installed-binary evidence are in the profile record.
 
-**Issue #114 reconciliation, 2026-10-04:** series collections become the planned
+**Issue #114 reconciliation, 2026-10-04:** series collections are the installed
 Worlds entry; Pokemon regions move inside their collection. This refines R7/#90,
 retaining generic Multiverse, independent collection contexts and stable records.
-It explicitly does not reorder this queue: MP-02 remains current. Full navigation,
+The later owner instruction moved the collection UI/library increment first; it is now delivered on Flip/Odin and execution returns to MP-02. Remaining franchise
 migration and capability acceptance is recorded in
 [the franchise register](EXPANSION_69_90.md#exact-integrations-and-franchise-experiences--7476-82-8990).
 

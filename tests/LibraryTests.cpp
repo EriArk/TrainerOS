@@ -137,7 +137,7 @@ private slots:
         MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(store,profiles,adapter,platform,dex,dex,archive,achievements);
         shell.configureServices(nullptr,&store);
-        shell.goToPage(1);shell.worlds()->activate(2);
+        shell.goToPage(1);shell.activate(0);shell.worlds()->activate(2);
         QVERIFY(shell.canHoldConfirm());QVERIFY(!shell.canEditWorld());
         shell.dispatch(Action::ContextMenu);QVERIFY(shell.libraryTools()->isOpen());QVERIFY(!shell.canHoldConfirm());
         shell.dispatch(Action::NextFace);QVERIFY(!shell.multiverseFace());
@@ -157,7 +157,7 @@ private slots:
         shell.settings()->activate(2);QTRY_VERIFY(!shell.settings()->saving());QVERIFY(shell.canEditWorld());
         shell.dispatch(Action::LocalAction);QCOMPARE(shell.libraryTools()->route(),"world");
         shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),2);QVERIFY(!shell.libraryTools()->isOpen());
-        shell.goToPage(1);QCOMPARE(shell.worlds()->route(),"regions");
+        shell.goToPage(1);QVERIFY(shell.collectionsRoot());shell.activate(0);QCOMPARE(shell.worlds()->route(),"regions");
         shell.dispatch(Action::Confirm);shell.dispatch(Action::ContextMenu);QVERIFY(shell.libraryTools()->isOpen());
         shell.dispatch(Action::SystemMenu);shell.dispatch(Action::Confirm);
         QCOMPARE(shell.service(),"settings");QVERIFY(!shell.libraryTools()->isOpen());

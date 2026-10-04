@@ -233,6 +233,8 @@ else()
 endif()
 
 qt_add_executable(traineros src/app/Main.cpp)
+qt_add_resources(traineros series_art PREFIX "/series" BASE assets/series
+    FILES assets/series/pokemon.png assets/series/mario.png assets/series/zelda.png assets/series/sonic.png assets/series/final-fantasy.png assets/series/metroid.png assets/series/castlevania.png assets/series/kirby.png assets/series/metal-slug.png assets/series/multiverse.png)
 qt_add_resources(traineros display_fonts PREFIX "/fonts" BASE assets/fonts
     FILES assets/fonts/Fredoka.ttf assets/fonts/OFL.txt
           assets/fonts/ChakraPetch-Bold.ttf assets/fonts/ChakraPetch-OFL.txt
@@ -300,6 +302,7 @@ qt_add_qml_module(traineros
         src/qml/TrainerPage.qml
         src/qml/SocialPage.qml
         src/qml/TrainerEmblem.qml
+        src/qml/SeriesPage.qml
         src/qml/WorldsPage.qml
         src/qml/WorldCard.qml
         src/qml/WorldThemes.js
@@ -498,6 +501,9 @@ if(BUILD_TESTING)
     target_link_libraries(trainer_store_migration_probe PRIVATE trainer_core)
     qt_add_executable(trainer_library_import tools/ImportMultiverse.cpp)
     target_link_libraries(trainer_library_import PRIVATE trainer_core)
+    qt_add_executable(trainer_series_tests tests/SeriesTests.cpp)
+    target_link_libraries(trainer_series_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME series COMMAND trainer_series_tests)
     qt_add_executable(trainer_library_tests tests/LibraryTests.cpp)
     add_dependencies(trainer_library_tests trainer_library_import)
     target_link_libraries(trainer_library_tests PRIVATE trainer_core Qt6::Test)

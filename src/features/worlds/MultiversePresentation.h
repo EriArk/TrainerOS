@@ -11,6 +11,10 @@ namespace trainer {
 // View model over shared registrations/history; launch stays with the shell adapter.
 class MultiversePresentation final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QString collection READ collection NOTIFY changed)
+    Q_PROPERTY(QString collectionName READ collectionName NOTIFY changed)
+    Q_PROPERTY(QString collectionArt READ collectionArt NOTIFY changed)
+    Q_PROPERTY(QVariantList collections READ collections NOTIFY libraryChanged)
     Q_PROPERTY(QString route READ route NOTIFY changed)
     Q_PROPERTY(QVariantList systems READ systems NOTIFY libraryChanged)
     Q_PROPERTY(QVariantList games READ games NOTIFY gamesChanged)
@@ -25,6 +29,12 @@ public:
     explicit MultiversePresentation(bool sample, QObject* parent = nullptr);
     MultiversePresentation(LibraryRepository&, AdventureAdapter&, QObject* parent = nullptr);
     void refresh();
+    QString collection() const { return collection_; }
+    QString collectionName() const;
+    QString collectionArt() const { return "qrc:/series/"+collection_+".png"; }
+    QVariantList collections() const;
+    void setCollection(const QString&);
+
     void showSystems();
     QJsonObject navigationState() const;
     void restoreNavigation(const QJsonObject&);
@@ -52,11 +62,16 @@ signals:
     void setupRequested(const QString& id);
     void messageRequested(const QString& message);
 private:
-    struct Game { QString id, system, title; bool linked; };
+    QJsonObject localNavigation() const;
+    void restoreLocal(const QJsonObject&);
+    QString collection_ = "multiverse";
+    QJsonObject collectionStates_;
+    struct Game { QString id, system, title; bool linked; QString series; };
     LibraryRepository* repository_ = nullptr;
     AdventureAdapter* adapter_ = nullptr;
     QVariantMap present(const Game&) const;
     QList<Game> filtered() const;
+    bool belongs(const Game&) const;
     bool sample_;
     QString route_ = "systems", system_ = "gb", selected_;
     int systemFocus_ = 0;
@@ -64,7 +79,7 @@ private:
     QHash<QString, int> filters_, positions_;
     QList<Game> entries_;
     mutable QHash<QString,QVariantMap> presentations_;
-    mutable QVariantList systemsCache_;
+    mutable QVariantList systemsCache_, collectionsCache_;
     mutable bool systemsCached_ = false;
 };
 }

@@ -1,4 +1,5 @@
 #include "MultiversePresentation.h"
+#include "core/model/SeriesCatalog.h"
 #include "core/model/GamePlayers.h"
 #include <algorithm>
 #include "core/repository/CollectionRepository.h"
@@ -19,23 +20,61 @@ MultiversePresentation::MultiversePresentation(LibraryRepository& repository, Ad
 void MultiversePresentation::refresh() {
     if (sample_ || !repository_) return;
     const auto focused = route_ == "systems" ? QString() : detail().value("id").toString();
-    presentations_.clear(); systemsCache_.clear(); systemsCached_=false;
+    presentations_.clear(); collectionsCache_.clear(); systemsCache_.clear(); systemsCached_=false;
     entries_.clear();
     for (const auto& a : repository_->adventures()) if (a.domain == "multiverse" && !a.collectionOnly) {
         const auto r = repository_->registration(a.id);
-        entries_.append({a.id,a.platformId,a.title,r && r->contentAvailable});
+        const auto title=r && a.title==QFileInfo(r->contentPath).completeBaseName()?seriesDisplayTitle(a.title):a.title;
+        entries_.append({a.id,a.platformId,title,r && r->contentAvailable,seriesForTitle(a.title)});
     }
     std::sort(entries_.begin(),entries_.end(),[](const auto& a,const auto& b) {
         const int cmp=QString::compare(a.title,b.title,Qt::CaseInsensitive);return cmp ? cmp<0 : a.id<b.id;
     });
-    const auto platforms=systems(); bool found=false;
-    for(int i=0;i<platforms.size();++i) if(platforms[i].toMap()["id"].toString()==system_) {systemFocus_=i;found=true;break;}
-    if(!found) {route_="systems";systemFocus_=0;if(!platforms.isEmpty())system_=platforms.front().toMap()["id"].toString();}
+    const auto platforms=systems(); bool found=collection_!="multiverse";
+    for(int i=0;i<platforms.size() && collection_=="multiverse";++i) if(platforms[i].toMap()["id"].toString()==system_) {systemFocus_=i;found=true;break;}
+    if(!found) {route_=collection_=="multiverse"?"systems":"games";systemFocus_=0;if(!platforms.isEmpty())system_=platforms.front().toMap()["id"].toString();}
     const auto list=filtered();
     for(int i=0;i<list.size();++i) if(list[i].id==focused) positions_[system_]=i;
     emit libraryChanged(); emit gamesChanged(); emit changed();
 }
+
+bool MultiversePresentation::belongs(const Game& game) const { return (game.series.isEmpty()?seriesForTitle(game.title):game.series)==collection_; }
+QString MultiversePresentation::collectionName() const { return seriesDefinition(collection_).name; }
+QVariantList MultiversePresentation::collections() const {
+    if(!collectionsCache_.isEmpty())return collectionsCache_;
+    QHash<QString,int> counts;
+    for(const auto& game:entries_)if(game.linked)++counts[game.series.isEmpty()?seriesForTitle(game.title):game.series];
+    QVariantList result;
+    for(const auto& d:seriesDefinitions()) {
+        if(d.id!="pokemon" && d.id!="multiverse" && !counts.value(d.id))continue;
+        result.append(QVariantMap{{"id",d.id},{"name",d.name},{"colour",d.colour},
+            {"art","qrc:/series/"+d.id+".png"},{"count",counts.value(d.id)}});
+    }
+    collectionsCache_=result;return result;
+}
 QJsonObject MultiversePresentation::navigationState() const {
+    auto state=localNavigation(); auto scopes=collectionStates_; scopes[collection_]=localNavigation();
+    state["collection"]=collection_; state["collections"]=scopes; return state;
+}
+void MultiversePresentation::restoreNavigation(const QJsonObject& state) {
+    collectionStates_=state["collections"].toObject();
+    collection_=seriesDefinition(state["collection"].toString("multiverse")).id;
+    if(collection_=="pokemon")collection_="multiverse";
+    // Carry a legacy explicit Home choice into its new series without changing the Adventure.
+    if(collectionStates_.isEmpty())for(const auto& game:entries_)if(game.id==state["selected"].toString())
+        collectionStates_[seriesForTitle(game.title)]=state;
+    restoreLocal(collectionStates_.contains(collection_)?collectionStates_[collection_].toObject():state);
+    refresh();
+}
+void MultiversePresentation::setCollection(const QString& id) {
+    const auto next=seriesDefinition(id).id;
+    if(next=="pokemon" || next==collection_)return;
+    collectionStates_[collection_]=localNavigation(); collection_=next;
+    restoreLocal(collectionStates_.value(next).toObject());
+    emit libraryChanged(); emit gamesChanged(); emit changed();
+}
+
+QJsonObject MultiversePresentation::localNavigation() const {
     QJsonObject queries,filters,positions;
     for(auto i=queries_.cbegin();i!=queries_.cend();++i)queries[i.key()]=i.value();
     for(auto i=filters_.cbegin();i!=filters_.cend();++i)filters[i.key()]=i.value();
@@ -44,23 +83,25 @@ QJsonObject MultiversePresentation::navigationState() const {
         {"focused",detail().value("id").toString()}};
 }
 void MultiversePresentation::showSystems() {
-    route_ = "systems";
+    route_ = collection_=="multiverse" ? "systems" : "games";
     emit changed();
 }
-void MultiversePresentation::restoreNavigation(const QJsonObject& state) {
+void MultiversePresentation::restoreLocal(const QJsonObject& state) {
     selected_=state["selected"].toString();system_=state["system"].toString();
     route_=state["route"].toString();if(route_=="detail")route_="games";
     if(!QStringList{"systems","games"}.contains(route_))route_="systems";
+    if(collection_!="multiverse")system_="_series";
     queries_.clear();filters_.clear();positions_.clear();
     const auto queries=state["queries"].toObject(),filters=state["filters"].toObject(),positions=state["positions"].toObject();
-    for(const auto& p:multiversePlatforms()) {
+    auto keys=multiversePlatforms(); keys.append({"_series","","",""});
+    for(const auto& p:keys) {
         if(queries.contains(p.id))queries_[p.id]=queries[p.id].toString().left(48);
         if(filters.contains(p.id))filters_[p.id]=std::clamp(filters[p.id].toInt(),0,2);
         if(positions.contains(p.id))positions_[p.id]=std::max(0,positions[p.id].toInt());
     }
-    refresh();
+    systemsCached_=false; systemsCache_.clear();
+    if(collection_!="multiverse")route_="games";
     const auto list=filtered();for(int i=0;i<list.size();++i)if(list[i].id==state["focused"].toString() && (i || positions.contains(system_)))positions_[system_]=i;
-    emit gamesChanged(); emit changed();
 }
 QVariantList MultiversePresentation::systems() const {
     if(systemsCached_)return systemsCache_;
@@ -71,7 +112,7 @@ QVariantList MultiversePresentation::systems() const {
         for(const auto& g:entries_) if(std::none_of(platforms.begin(),platforms.end(),[&](const auto& p){return p.id==g.system;}))
             platforms.append({g.system,g.system,g.system,"console"});
         for(const auto& p:platforms) {
-            const auto count=std::count_if(entries_.begin(),entries_.end(),[&](const auto& g){return g.system==p.id && g.linked;});
+            const auto count=std::count_if(entries_.begin(),entries_.end(),[&](const auto& g){return g.system==p.id && g.linked && belongs(g);});
             if(count)result.append(QVariantMap{{"id",p.id},{"name",p.name},{"shape",p.shape},{"count",int(count)}});
         }
         systemsCache_=result;systemsCached_=true;return result;
@@ -120,7 +161,7 @@ QVariantMap MultiversePresentation::present(const Game& game) const {
 QList<MultiversePresentation::Game> MultiversePresentation::filtered() const {
     QList<Game> result;
     const int filter = filters_.value(system_);
-    for (const auto& game : entries_) if (game.system == system_ && game.title.contains(query(), Qt::CaseInsensitive)
+    for (const auto& game : entries_) if (belongs(game) && (collection_!="multiverse" || game.system == system_) && game.title.contains(query(), Qt::CaseInsensitive)
         && (filter != 1 || game.linked) && (filter != 2 || !game.linked)) result.append(game);
     return result;
 }
@@ -135,15 +176,16 @@ QVariantMap MultiversePresentation::detail() const {
     const auto list = filtered(); return list.isEmpty() ? QVariantMap{} : present(list[std::clamp(positions_.value(system_),0,int(list.size())-1)]);
 }
 QVariantMap MultiversePresentation::selected() const {
-    for (const auto& game : entries_) if (game.id == selected_) return present(game);
-    if(!selected_.isEmpty())return {{"id",selected_},{"title","Selected Adventure is unavailable"},{"linked",false},{"playable",false},{"action","Choose Adventure"}};
+    for (const auto& game : entries_) if (belongs(game) && game.id == selected_) return present(game);
+    if(!selected_.isEmpty() && std::none_of(entries_.begin(),entries_.end(),[&](const auto& g){return g.id==selected_;}))return {{"id",selected_},{"title","Selected Adventure is unavailable"},{"linked",false},{"playable",false},{"action","Choose Adventure"}};
     if(repository_ && !sample_) for(const auto& session:repository_->recentSessions())
-        for(const auto& game:entries_) if(game.id==session.adventureId)return present(game);
+        for(const auto& game:entries_) if(belongs(game) && game.id==session.adventureId)return present(game);
+    if(!sample_)for(const auto& game:entries_)if(belongs(game) && game.linked)return present(game);
     return {};
 }
 QVariantList MultiversePresentation::choices() const {
     QVariantList result;
-    for (const auto& game : entries_) if (game.linked) {
+    for (const auto& game : entries_) if (belongs(game) && game.linked) {
         auto row = present(game);
         row["world"] = row["system"]; row["previewLabel"] = sample_ ? "Development sample" : repository_ && repository_->exitMedia(game.id)?"Last exit":"Adventure";
         row["location"] = ""; row["summary"] = sample_ ? "Select for Home · no launch in preview" : "Choose for Home";
@@ -157,7 +199,7 @@ QVariantList MultiversePresentation::choices() const {
     return result;
 }
 void MultiversePresentation::select(const QString& id) {
-    for (const auto& game : entries_) if (game.id == id && game.linked) { selected_ = id; emit changed(); return; }
+    for (const auto& game : entries_) if (belongs(game) && game.id == id && game.linked) { selected_ = id; emit changed(); return; }
 }
 void MultiversePresentation::applySearch(const QString& text) {
     if (route_ != "games") return;
@@ -189,7 +231,7 @@ void MultiversePresentation::activate(int index) {
 }
 void MultiversePresentation::dispatch(Action action) {
     if (action == Action::Back) {
-        if (route_ == "games") route_ = "systems";
+        if (route_ == "games" && collection_=="multiverse") route_ = "systems";
         emit changed(); return;
     }
     if (action == Action::Confirm) { activate(focusIndex()); return; }

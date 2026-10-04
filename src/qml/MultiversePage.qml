@@ -7,9 +7,9 @@ Item {
     readonly property bool takesFocus: visible && !shell.serviceOpen && !shell.libraryTools.open && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
     PageHeader {
         id: header
-        title: root.model.route === "systems" ? "Multiverse" : root.model.systemName
+        title: root.model.collection !== "multiverse" ? root.model.collectionName : root.model.route === "systems" ? "Multiverse" : root.model.systemName
         compact: root.model.route === "systems"
-        subtitle: root.model.route === "systems" ? "" : root.model.sample ? "Development preview · fictional titles · no launch" : "Your worlds beyond Pokémon"
+        subtitle: root.model.route === "systems" ? "" : root.model.sample ? "Development preview · fictional titles · no launch" : root.model.collection !== "multiverse" ? "Across your library" : "Your worlds beyond Pokémon"
     }
     MountedPanel {
         y: header.height; width: parent.width; height: parent.height - y; color: "#d9deed"

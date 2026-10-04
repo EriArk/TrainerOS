@@ -24,7 +24,7 @@ Item {
     }
     Item {
         anchors.fill: parent; visible: root.regionsOpen
-        PageHeader { id: regionsHeader; title: "Worlds"; compact: true; trailing: root.shell.canEditWorld ? "" : (root.worlds.regionTileIndex + 1) + " / " + root.worlds.regionTiles.length }
+        PageHeader { id: regionsHeader; title: "Pokémon"; compact: true; trailing: root.shell.canEditWorld ? "" : (root.worlds.regionTileIndex + 1) + " / " + root.worlds.regionTiles.length }
         MountedPanel {
             x: 0; y: regionsHeader.height; width: parent.width; height: parent.height - y
             color: "#d4e2d6"

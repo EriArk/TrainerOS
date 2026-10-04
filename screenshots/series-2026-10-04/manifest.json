@@ -1,0 +1,44 @@
+[
+  {
+    "file": "collections-flip.png",
+    "device": "flip",
+    "capture": "actual handheld display, unedited",
+    "sha256": "888b8b7a932cdd85718d99d6e830c8fcc4c706ba2e62e1ae403e1d8f1301360d"
+  },
+  {
+    "file": "collections-lower-flip.png",
+    "device": "flip",
+    "capture": "actual handheld display, unedited",
+    "sha256": "9ff1169daaecc2684ffca1a0bbbada3405d2d0cf58d49616d9e55723710a3b84"
+  },
+  {
+    "file": "multiverse-flip.png",
+    "device": "flip",
+    "capture": "actual handheld display, unedited",
+    "sha256": "821fb6ddf990360399395f94a451a123739d90c4d814fa4e4a8d59d62c1b8e8a"
+  },
+  {
+    "file": "collections-odin.png",
+    "device": "odin",
+    "capture": "actual handheld display, unedited",
+    "sha256": "afd4a7a0a2f16531d1ca5538681d5a85daa27cd68f14c62075c46e4dd8f81c24"
+  },
+  {
+    "file": "home-odin.png",
+    "device": "odin",
+    "capture": "actual handheld display, unedited",
+    "sha256": "2e92378a9a41d1d3493f3a19dea1a94cb0940961f715242227d5075a7c42ae05"
+  },
+  {
+    "file": "home-zelda-odin.png",
+    "device": "odin",
+    "capture": "actual handheld display, unedited",
+    "sha256": "3f747d288994e14ae932651400da3445cf6e8a7826ca14de6afef7c91285bf59"
+  },
+  {
+    "file": "choose-odin.png",
+    "device": "odin",
+    "capture": "actual handheld display, unedited",
+    "sha256": "a7dba7bed5a2172d035c33b1efb5138a6dcbe9661344d042781de740e9229e1f"
+  }
+]

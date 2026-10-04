@@ -404,7 +404,7 @@ private slots:
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;
         MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
-        shell.goToPage(1);shell.dispatch(Action::Confirm);shell.dispatch(Action::Secondary);
+        shell.goToPage(1);shell.activate(0);shell.dispatch(Action::Confirm);shell.dispatch(Action::Secondary);
         QVERIFY(shell.keyboard()->isOpen());
         QSignalSpy updates(&shell,&ShellController::changed);
         shell.goToPage(3);
@@ -585,7 +585,7 @@ private slots:
         MockAdventureAdapter adapter; DevelopmentPlatformService platform;
         MockPokedexRepository dex; MockHallOfFameRepository archive; MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
-        shell.goToPage(1); shell.dispatch(Action::Confirm);
+        shell.goToPage(1); QVERIFY(shell.collectionsRoot()); shell.activate(0); shell.dispatch(Action::Confirm);
         QCOMPARE(shell.worlds()->route(), "adventures");
         const auto world = shell.worlds()->region()["id"];
         shell.dispatch(Action::SystemMenu); shell.dispatch(Action::Back);
@@ -596,7 +596,7 @@ private slots:
         QCOMPARE(shell.worlds()->route(), "regions");
         QCOMPARE(shell.worlds()->region()["id"], world);
         QVERIFY(!shell.multiverseFace());
-        shell.dispatch(Action::NextFace); shell.dispatch(Action::Confirm);
+        shell.dispatch(Action::NextFace); shell.dispatch(Action::Confirm); shell.dispatch(Action::Confirm);
         QCOMPARE(shell.multiverse()->route(), "games");
         const auto checkpoint = shell.navigationState();
         shell.dispatch(Action::PreviousFace); shell.dispatch(Action::NextFace);
@@ -625,7 +625,7 @@ private slots:
         shell.dispatch(Action::NextFace); QVERIFY(shell.multiverseHome()); // Notice traps X.
         shell.dispatch(Action::Back); shell.dispatch(Action::NextFace); QVERIFY(!shell.multiverseHome());
         QCOMPARE(shell.currentAdventureId(), pokemon);
-        shell.goToPage(1); const auto route = shell.worlds()->navigationState();
+        shell.goToPage(1); shell.activate(0); const auto route = shell.worlds()->navigationState();
         shell.dispatch(Action::NextFace); QVERIFY(shell.multiverseFace());
         shell.dispatch(Action::Confirm); QCOMPARE(shell.multiverse()->route(), "games");
         shell.dispatch(Action::Secondary); QVERIFY(shell.keyboard()->isOpen());
@@ -685,7 +685,7 @@ private slots:
         for(int i=0;i<2;++i){auto r=pokemon;r.adventure.id="multi"+QString::number(i);r.adventure.title="General "+QString::number(i);r.adventure.domain="multiverse";r.adventure.worldId.clear();r.adventure.platformId=i?"snes":"gba";r.contentPath=i?dir.filePath("missing.sfc"):path;r.contentAvailable=!i;library.records.append(r);}
         MockTrainerRepository profiles;DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
-        QCOMPARE(shell.multiverse()->systems().size(),1);shell.goToPage(1);shell.dispatch(Action::NextFace);shell.dispatch(Action::Confirm);
+        QCOMPARE(shell.multiverse()->systems().size(),1);shell.goToPage(1);shell.dispatch(Action::NextFace);shell.dispatch(Action::Confirm);shell.dispatch(Action::Confirm);
         const auto info=shell.multiverse()->detail();
         QCOMPARE(info["year"],"2001");QCOMPARE(info["description"],"Full scraped description");
         QCOMPARE(info["logo"],"file:///logo.png");QCOMPARE(info["screenshot"],"file:///screenshot.png");
