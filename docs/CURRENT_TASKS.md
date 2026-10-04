@@ -6,13 +6,15 @@ that each subtask receives a separate turn. Issues and existing evidence retain
 their full acceptance. A checkbox means the stated outcome is delivered, not
 merely that code exists. Do not close a parent block from partial child evidence.
 
-## Current task: MP-01 — remaining shared online-party acceptance
+## Current task: MP-01 — classic RetroArch family and shared online-party acceptance
 
 **State:** existing NES/Mega Drive/SNES exact-game routes are implemented and
 have paired gameplay evidence. Shared multi-user and distinct-network acceptance
 is incomplete; ordinary builds remain experimental-off. No missing NES transport
 implementation was identified in the 4 October continuation. Do not describe
-MP-01 as implementing NES again or infer support for arbitrary NES games.
+MP-01 as implementing NES again. The shared core/platform expansion is now
+implemented; its broader coverage is not universal game-level runtime proof.
+See [profiles and evidence](RETROARCH_MULTIPLAYER_PROFILES.md).
 **Parent:** communication block 1, [#107](https://github.com/EriArk/TrainerOS/issues/107),
 expanded by the owner's company, capacity, reverse-request and oldest-first rules.
 **User outcome:** invite an online friend or request to join their game; play
@@ -29,6 +31,12 @@ No player IP entry, router setup or VPN administration.
   evidence exists; it is not full four-user acceptance.
 - [x] NES Four Score port assignment and independent P3/P4 emulator input.
 - [x] Concurrent runtime room lifetimes and ordinary core-option isolation.
+
+- [x] Replace the test-title-only boundary with reviewed classic core/platform
+  profiles using the existing invitation/relay flow; retain exact profiles,
+  private settings/saves and controller exceptions. Generic capacity is two;
+  established exact NES Four Score remains four. See the profile record for
+  source-backed coverage versus actual device evidence.
 
 ### Remaining acceptance and release work
 
@@ -48,20 +56,23 @@ implementation task when an external condition is all that is missing.
   Invite/Accept/Join, real independent gameplay and clean Home return. Verify
   bounded peer departure/loss/rejoin on that route; fix failures before enabling
   it. A public relay reached from one home network is not this acceptance.
-- [ ] Reconcile the remaining route differences for NES, Mega Drive and SNES:
+- [ ] Reconcile concrete route differences across the reviewed classic profiles:
   effective capacity, compatibility, saves/session settings, installed profile
   availability and cleanup. Reuse passed paired gameplay and isolation evidence;
   only exercise differences or changed behavior. Avoid testing every title.
-- [ ] Enable only the exact supported profiles whose required gates passed;
+- [ ] Enable only supported profiles whose required gates passed;
   keep others honestly unavailable. Update the matrix, maintenance record and
   acceptance evidence, deliver both available handhelds and commit/push.
 
 **Owner deferral, 2026-10-04:** separate-network testing waits until the owner is
 home. Do not request another network switch or repeat same-router tests while
 waiting. Multi-user acceptance and release enablement remain open separately.
-No new NES implementation gap is identified. The proposed next implementation
-outcome is MP-02's actual handheld link; present it at the next continuation
-boundary without claiming MP-01 accepted or silently discarding its gates.
+The owner subsequently clarified that other classic RetroArch systems come
+before handheld link, grouped by their common mechanism. That generic expansion
+is implemented in this delivery. Before MP-02, resolve concrete classic-family
+gaps and the shared release decision; do not schedule a separate transport
+project for every console or repeat passed scenarios. The FBNeo probe established
+connection/launch, not independent simultaneous controls; retain that distinction.
 
 **Completion:** all applicable items above are fulfilled and remaining scope is
 explicitly resolved. An unavailable external condition keeps MP-01 open; it is
@@ -76,6 +87,7 @@ while later accepted emulator families remain unfinished.
 | SNES Contra and Mega Drive Streets of Rage 2 independent P2 and loss/exit/rejoin | [Runtime evidence](EMULATOR_MULTIPLAYER.md); reuse for unchanged paths |
 | Four Score seats, P3/P4 independent input and reversed join order | [NES](NES_MULTIPLAYER.md), `a2b5d12`; four emulator clients, not four real TrainerOS users |
 | Concurrent public-relay rooms, independent lifetimes, private core options and ordinary settings preservation | [RetroArch record](emulators/retroarch.md), `b83d4bc`; temporary fixture clients, not complete company UI acceptance |
+| Generic classic profiles, content/BIOS/track compatibility and renamed-title invitations | [Profiles](RETROARCH_MULTIPLAYER_PROFILES.md); automated coverage plus bounded FBNeo connection/launch, not all-title gameplay |
 | Shared group-call synthetic continuity through gameplay/loss/exit/rejoin | [Game parties](GAME_PARTIES.md); human speech/listening still separate |
 
 ### External acceptance conditions

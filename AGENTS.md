@@ -1,5 +1,15 @@
 # AGENTS.md — TrainerOS
 
+**Owner RetroArch grouping, 2026-10-04:** classic systems using the same
+RetroArch netplay mechanism are one implementation family, not separate
+console-by-console projects or repeated test-only turns. Expand reviewed
+core/platform profiles through the existing invitation/party/relay flow;
+retain real controller, firmware, save and determinism exceptions. Actual
+handheld link remains separate. Different-network acceptance is deferred until
+the owner is home; do not repeatedly request it or substitute same-router tests.
+See docs/RETROARCH_MULTIPLAYER_PROFILES.md and docs/CURRENT_TASKS.md. Source-backed
+coverage, implemented profiles and paired gameplay are different evidence levels.
+
 **Owner whole-increment rule, 2026-10-04:** follow the current queue at the top
 of [ROADMAP](docs/ROADMAP.md) and its [task register](docs/CURRENT_TASKS.md).
 A pass delivers the whole announced user outcome: implementation, direct UI,

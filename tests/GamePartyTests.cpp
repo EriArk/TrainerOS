@@ -35,6 +35,18 @@ class GamePartyTests : public QObject {
         }
     };
 private slots:
+    void localRenamingDoesNotBreakInvitationCompatibility() {
+        Room r(2);
+        auto renamed=game(2);renamed["label"]="My own title";
+        r.b.configure("b",{renamed},{},true);
+        r.a.invite("b");QVERIFY(!r.b.pending().isEmpty());
+        r.b.answer(true);QVERIFY(r.b.active());
+        r.a.start();QSignalSpy started(&r.b,&GameParty::startRequested);
+        r.a.ready({{"kind","ready"},{"port",55435}});QCOMPARE(started.size(),1);
+        r.b.leave();renamed["content"]="different-game";
+        r.b.configure("b",{renamed},{},true);r.a.invite("b");
+        QVERIFY(r.b.pending().isEmpty());
+    }
     void catalogueCountsNeverInventNetworkSupport() {
         for(const auto& value:QStringList{"1","1 player","1-1","single-player","Solo"}) {
             const QVariantMap metadata{{"players",value}};

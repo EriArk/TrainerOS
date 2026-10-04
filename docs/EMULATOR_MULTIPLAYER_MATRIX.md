@@ -6,6 +6,11 @@ image defaults; this matrix records the separate network capabilities. The owner
 explicitly requires emulator coverage beyond RetroArch/PPSSPP before treating the
 online-game block as complete. Keep voice work queued, not a substitute milestone.
 
+2026-10-04 update: [shared RetroArch profiles](RETROARCH_MULTIPLAYER_PROFILES.md)
+now cover reviewed classic core/platform pairs beyond the original title list.
+Generic profiles use two pads; exact NES Four Score keeps four. This expands
+implementation, not the ordinary release gate or all-game runtime evidence.
+
 ## Current TrainerOS boundary
 
 `RuntimeMultiplayer.cpp` dispatches the inspected PSP and GameCube profiles to

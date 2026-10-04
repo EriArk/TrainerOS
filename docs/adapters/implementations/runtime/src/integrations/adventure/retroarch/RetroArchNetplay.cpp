@@ -1,5 +1,10 @@
 #include "RetroArchNetplay.h"
 #include "RetroArchConfiguration.h"
+#include "RetroArchDisc.h"
+#include "core/model/GamePlayers.h"
+#include <QCryptographicHash>
+#include <QDateTime>
+#include <QJsonDocument>
 #include <QDir>
 #include <QFileInfo>
 #include <QRegularExpression>
@@ -8,6 +13,53 @@
 
 namespace trainer::retroarch {
 namespace {
+struct CoreProfile {const char *core,*platforms,*firmware;};
+// This table describes shared-console rollback, not handheld link emulation.
+const CoreProfile cores[] = {
+    {"fceumm","nes|fds","disksys.rom"},
+    {"nestopia","nes|fds","disksys.rom"},
+    {"snes9x","snes",""},
+    {"genesis_plus_gx","sg1000|mastersystem|megadrive|segacd","bios_CD_U.bin|bios_CD_E.bin|bios_CD_J.bin|bios_MD.bin|bios_E.sms|bios_U.sms|bios_J.sms|sk.bin|sk2chip.bin|areplay.bin|ggenie.bin"},
+    {"picodrive","mastersystem|megadrive|segacd|sega32x","bios_CD_U.bin|bios_CD_E.bin|bios_CD_J.bin"},
+    {"mednafen_pce_fast","pcengine|pcenginecd","syscard3.pce|syscard2.pce|syscard1.pce|gexpress.pce"},
+    {"mednafen_supergrafx","supergrafx|pcengine|pcenginecd","syscard3.pce|syscard2.pce|syscard1.pce|gexpress.pce"},
+    {"stella","atari2600",""},
+    {"fbneo","fbneo|neogeo","neogeo.zip|pgm.zip|skns.zip|decocass.zip|isgsm.zip|midssio.zip|nmk004.zip|ym2608.zip|cchip.zip|bubsys.zip|namcoc69.zip|namcoc70.zip|namcoc75.zip|qsound.zip|qsound_hle.zip"},
+    {"mame","mame",""}
+};
+const CoreProfile* coreProfile(const QString& platform,const QString& core) {
+    for(const auto& p:cores)if(core==p.core&&QString::fromLatin1(p.platforms).split('|').contains(platform))return &p;
+    return nullptr;
+}
+QString digest(const QString& path,qint64 limit,const std::atomic_bool& cancel,NetplayDigestCache* cache) {
+    const QFileInfo f(path);
+    const auto key=f.absoluteFilePath()+'|'+QString::number(f.size())+'|'+QString::number(f.lastModified().toMSecsSinceEpoch());
+    if(cancel||!f.isFile()||f.size()<=0||f.size()>limit)return {};
+    if(cache&&cache->contains(key))return cache->value(key);
+    const auto value=fileDigest(path,limit,cancel);
+    if(cache&&!value.isEmpty())cache->insert(key,value);
+    return value;
+}
+QString contentDigest(const QString& path,const std::atomic_bool& cancel,NetplayDigestCache* cache) {
+    const auto extension=QFileInfo(path).suffix().toLower();
+    // These are manifests, not self-contained disc images. Never hash only the
+    // descriptor and accidentally accept peers whose actual tracks differ.
+    if(extension=="m3u"||extension=="ccd"||extension=="toc"||extension=="cmd")return {};
+    if(extension!="cue")return digest(path,2LL*1024*1024*1024,cancel,cache);
+    if(!validateDiscContent(path,cancel).isEmpty())return {};
+    QFile cue(path);if(!cue.open(QIODevice::ReadOnly))return {};
+    const auto bytes=cue.readAll();if(cue.error()!=QFile::NoError)return {};
+    QCryptographicHash hash(QCryptographicHash::Sha256);hash.addData(bytes);
+    const QRegularExpression entry("^FILE\\s+(?:\"([^\"]+)\"|(\\S+))\\s+\\S+\\s*$",QRegularExpression::CaseInsensitiveOption);
+    for(const auto& line:QString::fromUtf8(bytes).split('\n')) {
+        const auto m=entry.match(line.trimmed());if(!m.hasMatch())continue;
+        const auto name=m.captured(1).isEmpty()?m.captured(2):m.captured(1);
+        const auto value=digest(QFileInfo(path).dir().filePath(name),2LL*1024*1024*1024,cancel,cache);
+        if(value.isEmpty())return {};
+        hash.addData(value.toLatin1());
+    }
+    return cancel?QString():QString::fromLatin1(hash.result().toHex());
+}
 struct Profile {const char *platform,*core,*id,*title,*rom,*archive;int players=2;};
 const Profile profiles[] = {
     {"nes","fceumm","runtime.fceumm.pong-homebrew.v1","NES Pong",
@@ -28,6 +80,7 @@ bool token(const QString& s,int max) {
     return !s.isEmpty() && s.size()<=max && QRegularExpression("^[A-Za-z0-9_-]+$").match(s).hasMatch();
 }
 }
+bool netplaySupported(const QString& platform,const QString& core) {return coreProfile(platform,core)!=nullptr;}
 QJsonObject netplayProfile(QString platform,QString core,QString content) {
     for(const auto& p:profiles)if(platform==p.platform&&core==p.core&&(content==p.rom||(*p.archive&&content==p.archive))) {
         QJsonObject result{{"id",p.id},{"label",p.title},{"content",p.rom},
@@ -38,7 +91,9 @@ QJsonObject netplayProfile(QString platform,QString core,QString content) {
         }
         return result;
     }
-    return {};
+    if(!netplaySupported(platform,core)||!QRegularExpression("^[0-9a-f]{64}$").match(content).hasMatch())return {};
+    return {{"id","runtime.retroarch."+platform+'.'+core+".v1"},{"content",content},
+            {"settings",core+"-two-pad-no-sram-v1"},{"players",2}};
 }
 QByteArray netplayControllers(const QJsonObject& identity,bool host,int slot) {
     const int players=identity["players"].toInt(2);
@@ -49,6 +104,8 @@ QByteArray netplayControllers(const QJsonObject& identity,bool host,int slot) {
     if(players==4) {
         if(identity["settings"]!="fceumm-four-score-no-sram-v2")return {};
         result+="input_max_users = \"5\"\n";
+    }
+    if(players==4||identity["id"].toString().startsWith("runtime.retroarch.")) {
         // Each instance uses its first local pad for exactly its assigned port.
         // Clear inherited requests so a guest cannot accidentally take two seats.
         for(int p=1;p<=16;++p)
@@ -57,6 +114,7 @@ QByteArray netplayControllers(const QJsonObject& identity,bool host,int slot) {
     return result;
 }
 QStringList netplayControllerArguments(const QJsonObject& identity) {
+    if(identity["id"].toString().startsWith("runtime.retroarch."))return {"--device","1:1","--device","2:1"};
     if(identity["players"].toInt(2)!=4||identity["settings"]!="fceumm-four-score-no-sram-v2")return {};
     // input_libretro_device_pN is a remap-file key, not an ordinary config key.
     // Use the supported CLI so Four Score is actually enabled, with the
@@ -78,22 +136,47 @@ QString netplayRelayEndpoint(const QByteArray& response) {
        !QRegularExpression("^[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*$").match(host).hasMatch())return {};
     return host+'|'+QString::number(port); // RetroArch's custom-relay host|port format.
 }
-QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstallation& i,const std::atomic_bool& cancel) {
+QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstallation& i,const std::atomic_bool& cancel,NetplayDigestCache* cache) {
     const auto coreId=r.integrationConfig["core"].toString();
-    bool candidate=false;for(const auto& p:profiles)if(r.adventure.platformId==p.platform&&coreId==p.core)candidate=true;
-    if(!candidate)return {};
-    auto identity=netplayProfile(r.adventure.platformId,coreId,fileDigest(r.contentPath,4*1024*1024,cancel));
+    const auto p=coreProfile(r.adventure.platformId,coreId);
+    if(!p)return {};
+    auto identity=netplayProfile(r.adventure.platformId,coreId,contentDigest(r.contentPath,cancel,cache));
     if(identity.isEmpty())return {};
-    const auto core=fileDigest(i.cores.value(coreId),64*1024*1024,cancel);
-    const auto runtime=fileDigest(i.runtimeFile,256*1024*1024,cancel);
+    const auto core=digest(i.cores.value(coreId),512LL*1024*1024,cancel,cache);
+    const auto runtime=digest(i.runtimeFile,512LL*1024*1024,cancel,cache);
     if(core.isEmpty()||runtime.isEmpty())return {};
+    if(identity["id"].toString().startsWith("runtime.retroarch.")) {
+        identity["label"]=r.adventure.title.left(96);
+        QJsonObject firmware;
+        const auto system=configuredPath(readSettings(i.configFile),"system_directory");
+        for(const auto& name:QString::fromLatin1(p->firmware).split('|',Qt::SkipEmptyParts)) {
+            for(const auto& prefix:QStringList{QString(),coreId+'/'}) {
+                const auto candidate=QDir(system).filePath(prefix+name);
+                if(system.isEmpty()||!QFileInfo(candidate).exists())continue;
+                const auto value=digest(candidate,256LL*1024*1024,cancel,cache);
+                if(value.isEmpty())return {};
+                firmware[prefix+name]=value;
+            }
+            // Arcade cores also search alongside the game archive.
+            if(coreId=="fbneo") {
+                const auto candidate=QFileInfo(r.contentPath).dir().filePath(name);
+                if(QFileInfo(candidate).exists()) {
+                    const auto value=digest(candidate,256LL*1024*1024,cancel,cache);
+                    if(value.isEmpty())return {};
+                    firmware["content/"+name]=value;
+                }
+            }
+        }
+        // Keep the existing provider message budget independent of BIOS count.
+        identity["firmware"]=QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(firmware).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+    }
     identity["core"]=core;identity["runtime"]=runtime;return identity;
 }
 QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const RetroArchInstallation& i,
                       const NetplayRequest& request,const std::atomic_bool& cancel) {
     const auto identity=netplayIdentity(r,i,cancel);
     if(identity.isEmpty())return "Multiplayer isn't supported for this game version yet.";
-    if(identity!=request.expected)return "Your game or emulator changed. Invite your friend again.";
+    if(!sameMultiplayerGame(identity,request.expected))return "Your game or emulator changed. Invite your friend again.";
     const auto controllers=netplayControllers(identity,request.host,request.slot);
     if(controllers.isEmpty())return "This multiplayer controller assignment is invalid.";
     if(!token(request.password,32)||!token(request.nickname,32)||!request.port)

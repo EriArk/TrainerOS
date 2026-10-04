@@ -3,6 +3,14 @@
 2026-10-03. This is a development-device delivery, not the finished image updater
 or a claim that all registered systems have passed gameplay/netplay checks.
 
+## Shared profiles — 2026-10-04
+
+[Core/platform expansion](../RETROARCH_MULTIPLAYER_PROFILES.md) reuses the existing
+party/relay adapter for ten reviewed cores. It documents supported folder IDs,
+content/firmware identity, private progress, two-pad capacity, actual FBNeo probe
+limits and both-device delivery. Keep this profile layer outside replaceable
+upstream binaries. Exact known profiles and their prior evidence remain valid.
+
 ## Exact artifacts and ownership
 
 [The baseline manifest](../../packaging/emulators/arm64-baseline.json) records

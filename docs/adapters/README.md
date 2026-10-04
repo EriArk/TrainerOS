@@ -14,6 +14,11 @@ that another edition of the same game has the same format.
 | [Mega Drive runtime profiles](../EMULATOR_MULTIPLAYER.md#multiple-games-and-a-second-platform---2026-10-03) | Exact US Streets of Rage 2 and Gunstar Heroes; matching Genesis Plus GX/RetroArch | Streets named online consent and P2 character/movement verified; Gunstar prepared only. Full gameplay/recovery gates open; no persistent save writes |
 | [Standalone PSP](../PSP_MULTIPLAYER.md) | Exact US Lumines; PPSSPP ARM64 1.20.4 fingerprint | LAN and external-relay Lumines gameplay verified with isolated settings; bounded relay interruption/rechallenge passed. Distinct networks and mid-round recovery remain open. Ordinary SAVEDATA retained. |
 
+[Shared RetroArch runtime profiles](../RETROARCH_MULTIPLAYER_PROFILES.md) now
+complement these exact records. Generic core/platform compatibility does not
+create a semantic save adapter or prove every title. The portable runtime copy
+includes the profile implementation and its disc-validation dependency.
+
 [registry.json](registry.json) indexes exact identities, source records and
 per-capability evidence. It deliberately does not duplicate the factual tables,
 runtime allowlist or service contracts. Human records explain unknowns and failed

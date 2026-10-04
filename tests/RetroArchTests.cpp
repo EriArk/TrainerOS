@@ -4,6 +4,7 @@
 #include "integrations/adventure/retroarch/RetroArchDisc.h"
 #include "integrations/adventure/retroarch/RetroArchConfiguration.h"
 #include "core/repository/RomPlatforms.h"
+#include "core/model/GamePlayers.h"
 #include <QCryptographicHash>
 #include "core/navigation/AdventureLaunchController.h"
 #include "core/storage/LocalStateStore.h"
@@ -34,9 +35,8 @@ class RetroArchTests final : public QObject {
     }
 private slots:
     void netplaySessionsKeepOptionsAndCleanupSeparate() {
-        const auto rom=qEnvironmentVariable("TRAINEROS_TEST_NES_ROM");
-        if(rom.isEmpty())QSKIP("Optional exact author-provided NES fixture is not configured.");
         QTemporaryDir dir;
+        const auto rom=dir.filePath("new-game.nes");touch(rom);
         const auto write=[&](const QString& name,const QByteArray& bytes){
             QFile f(dir.filePath(name));return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size();
         };
@@ -107,8 +107,8 @@ private slots:
         QCOMPARE(gunstar,retroarch::netplayProfile("megadrive","genesis_plus_gx",
             "626061be86f7eb488da0eb0ef011c5a13e8a951cf6bb039340b4774c25a039bd"));
         QVERIFY(retroarch::netplayProfile("snes","genesis_plus_gx",gunstar["content"].toString()).isEmpty());
-        QVERIFY(retroarch::netplayProfile("megadrive","picodrive",gunstar["content"].toString()).isEmpty());
-        QVERIFY(retroarch::netplayProfile("megadrive","genesis_plus_gx",QString(64,'0')).isEmpty());
+        QVERIFY(!retroarch::netplayProfile("megadrive","picodrive",gunstar["content"].toString()).isEmpty());
+        QVERIFY(!retroarch::netplayProfile("megadrive","genesis_plus_gx",QString(64,'0')).isEmpty());
         const auto streets=retroarch::netplayProfile("megadrive","genesis_plus_gx",
             "4a314edbfee92282850fe95c4c764921916efd9d3c2277fdec2581279b1369b1");
         QVERIFY(!streets.isEmpty());QVERIFY(streets["id"]!=gunstar["id"]);
@@ -121,9 +121,52 @@ private slots:
         QCOMPARE(game["id"].toString(),QString("runtime.fceumm.pong-homebrew.v1"));
         QCOMPARE(game["content"].toString(),digest);
         QVERIFY(retroarch::netplayProfile("nes","fceumm",{}).isEmpty());
-        QVERIFY(retroarch::netplayProfile("nes","fceumm",QString(64,'0')).isEmpty());
-        QVERIFY(retroarch::netplayProfile("nes","nestopia",digest).isEmpty());
+        QVERIFY(!retroarch::netplayProfile("nes","fceumm",QString(64,'0')).isEmpty());
+        QVERIFY(!retroarch::netplayProfile("nes","nestopia",digest).isEmpty());
         QVERIFY(retroarch::netplayProfile("snes","fceumm",digest).isEmpty());
+    }
+    void sharedProfilesCoverCatalogueWithoutPretendingHandheldLink() {
+        for(const auto& p:romPlatforms()) {
+            if(!QStringList{"atari2600","fbneo","mame","mastersystem","megadrive","neogeo",
+                "nes","pcengine","pcenginecd","sega32x","segacd","sg1000","snes","supergrafx"}.contains(p.id))continue;
+            QVERIFY2(retroarch::netplaySupported(p.id,p.core),qPrintable(p.id));
+            const auto a=retroarch::netplayProfile(p.id,p.core,QString(64,'a'));
+            const auto b=retroarch::netplayProfile(p.id,p.core,QString(64,'b'));
+            QVERIFY(!a.isEmpty());QVERIFY(!sameMultiplayerGame(a,b));
+            const auto controls=retroarch::netplayControllers(a,false,2);
+            QVERIFY(controls.contains("netplay_request_device_p2 = \"true\""));
+            QVERIFY(controls.contains("netplay_request_device_p1 = \"false\""));
+            QVERIFY(retroarch::netplayControllers(a,false,3).isEmpty());
+        }
+        QVERIFY(!retroarch::netplaySupported("gba","mgba"));
+        QVERIFY(!retroarch::netplaySupported("gamegear","genesis_plus_gx"));
+        QVERIFY(!retroarch::netplaySupported("gb","gambatte"));
+        QVERIFY(!retroarch::netplaySupported("n64","mupen64plus_next"));
+        QVERIFY(!retroarch::netplaySupported("atari7800","prosystem")); // Serialized, not declared deterministic.
+        QVERIFY(retroarch::netplayProfile("nes","fceumm","not-a-digest").isEmpty());
+    }
+    void genericIdentityTracksActualDiscFirmwareAndNotLocalName() {
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        const auto write=[&](QString name,QByteArray bytes){QFile f(dir.filePath(name));QVERIFY(f.open(QIODevice::WriteOnly));QCOMPARE(f.write(bytes),bytes.size());};
+        write("runtime","runtime");write("core","core");write("track.bin","disc content");
+        write("game.cue","FILE \"track.bin\" BINARY\n TRACK 01 MODE1/2352\n");
+        write("syscard3.pce","BIOS A");
+        write("retroarch.cfg","system_directory = \""+dir.path().toUtf8()+"\"\n");
+        RetroArchInstallation i;i.runtimeFile=dir.filePath("runtime");i.configFile=dir.filePath("retroarch.cfg");i.cores["mednafen_pce_fast"]=dir.filePath("core");
+        AdventureRegistration r;r.adventure.platformId="pcenginecd";r.adventure.title="My game";
+        r.contentPath=dir.filePath("game.cue");r.integrationConfig["core"]="mednafen_pce_fast";
+        retroarch::NetplayDigestCache cache;
+        const auto before=retroarch::netplayIdentity(r,i,cancel,&cache);QVERIFY(!before.isEmpty());
+        const auto count=cache.size();QCOMPARE(retroarch::netplayIdentity(r,i,cancel,&cache),before);QCOMPARE(cache.size(),count);
+        r.adventure.title="Renamed locally";
+        QVERIFY(sameMultiplayerGame(before,retroarch::netplayIdentity(r,i,cancel)));
+        write("track.bin","different game bytes");QVERIFY(!sameMultiplayerGame(before,retroarch::netplayIdentity(r,i,cancel)));
+        write("track.bin","disc content");write("syscard3.pce","BIOS B");
+        QVERIFY(!sameMultiplayerGame(before,retroarch::netplayIdentity(r,i,cancel)));
+        write("game.cue","FILE \"../escape.bin\" BINARY\n TRACK 01 MODE1/2352\n");
+        QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+        r.contentPath=dir.filePath("game.m3u");write("game.m3u","game.cue\n");
+        QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
     }
     void relayDirectoryRequiresCompleteUnambiguousEndpoint() {
         const QByteArray reply="status=OK\r\ntunnel_addr=europe-west1.relay.retroarch.com\r\ntunnel_port=55435\r\n";

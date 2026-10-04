@@ -81,9 +81,11 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     connect(&nearby_,&LocalLinkPeer::error,this,[this](QString text){fail(text);});
     connect(&process_,&ProcessService::runtimeOutput,this,&RuntimeMultiplayer::output);
     connect(&lifecycle_.exitController(),&AdventureExitController::confirmationRequested,this,[this]{
-        // Both players already accepted a new game. This exact profile has no
-        // persistent progress; reuse normal capture/owned-window graceful exit.
-        if(restarting_&&!psp()&&!dolphin())lifecycle_.exitController().confirm();
+        // Legacy exact arcade-style profiles have no persistent progress. A
+        // generic title may have a real playthrough: retain its save question
+        // when restarting ordinary play into a temporary multiplayer session.
+        if(restarting_&&!psp()&&!dolphin()&&!descriptor_["id"].toString().startsWith("runtime.retroarch."))
+            lifecycle_.exitController().confirm();
     });
     connect(&lifecycle_.exitController(),&AdventureExitController::returnToGameRequested,this,[this]{
         if(restarting_)fail("Invitation cancelled. Your game is still running.");
@@ -122,22 +124,31 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     if(trainer_!=trainer)party_.reset();
     trainer_=std::move(trainer);allowed_=allowed;
     installation_=installation;
+    if(!allowed_) {
+        games_.clear();
+        if(!onlineGames_.isEmpty()){onlineGames_.clear();emit availabilityChanged();}
+        update();return;
+    }
     const auto records=library_.registrations();
     const auto pspInstallation=ppsspp_.installation();
     const auto dolphinInstallation=dolphin_.installation();
     const auto stamp=[](const QString& path){const QFileInfo f(path);return qHashMulti(0,path,f.size(),f.lastModified().toMSecsSinceEpoch());};
-    quint64 revision=qHashMulti(0,stamp(installation.runtimeFile),stamp(installation.cores.value("snes9x")),stamp(installation.cores.value("fceumm")),
-        stamp(installation.cores.value("genesis_plus_gx")),stamp(pspInstallation.runtimeFile),stamp(dolphin::bridgeFile()),stamp(dolphin::bridgeRoot()+"/manifest.json"));
-    for(const auto& r:records)if(r.adventure.platformId=="nes"||r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc")
+    quint64 revision=qHashMulti(0,stamp(installation.runtimeFile),stamp(installation.configFile),
+        stamp(pspInstallation.runtimeFile),stamp(dolphin::bridgeFile()),stamp(dolphin::bridgeRoot()+"/manifest.json"));
+    for(auto it=installation.cores.cbegin();it!=installation.cores.cend();++it)revision=qHashMulti(revision,it.key(),stamp(it.value()));
+    const auto candidate=[](const AdventureRegistration& r){return r.adventure.platformId=="psp"||r.adventure.platformId=="gc"||
+        retroarch::netplaySupported(r.adventure.platformId,r.integrationConfig["core"].toString());};
+    for(const auto& r:records)if(candidate(r))
         revision=qHashMulti(revision,r.adventure.id,stamp(r.contentPath),r.revision,r.integrationConfig["core"].toString());
     if(!revision)revision=1;
     if(!scan_.isRunning() && (scanRevision_!=revision||!scanRevision_)) {
         scanRevision_=revision;
-        scan_.setFuture(QtConcurrent::run([records,installation,pspInstallation,dolphinInstallation]{
+        scan_.setFuture(QtConcurrent::run([records,installation,pspInstallation,dolphinInstallation,candidate]{
             std::atomic_bool cancel=false;
+            retroarch::NetplayDigestCache digests;
             QMap<QString,QJsonObject> games;
-            for(const auto& r:records)if(r.adventure.platformId=="nes"||r.adventure.platformId=="snes"||r.adventure.platformId=="megadrive"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc") {
-                const auto identity=r.adventure.platformId=="gc"?dolphin::netplayIdentity(r,dolphinInstallation,cancel):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel);
+            for(const auto& r:records)if(candidate(r)) {
+                const auto identity=r.adventure.platformId=="gc"?dolphin::netplayIdentity(r,dolphinInstallation,cancel):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel,&digests);
                 if(!identity.isEmpty())games.insert(r.adventure.id,identity);
             }
             return games;
@@ -265,7 +276,7 @@ bool RuntimeMultiplayer::action(const QString& id) {
 }
 void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     const auto selected=party_.game();QString game;
-    for(auto it=games_.cbegin();it!=games_.cend();++it)if(it.value()==selected){game=it.key();break;}
+    for(auto it=games_.cbegin();it!=games_.cend();++it)if(sameMultiplayerGame(it.value(),selected)){game=it.key();break;}
     if(!allowed_||game.isEmpty()||!permitsMultiplayer(library_.artwork(game),selected)) {
         party_.leave();emit notice("Multiplayer isn't available for this game.");return;
     }

@@ -1,4 +1,4 @@
-# Exact runtime profile source copy
+# Runtime profile source copy
 
 Generated source/dependencies and per-game profiles accompany the research index.
 These are the actual TrainerOS PPSSPP/RetroArch identity and launch-configuration
@@ -7,6 +7,14 @@ modules, not ROMs, emulator binaries or save-format adapters. Refresh/check with
 State and remaining gates in each profile are binding; this copy grants no new
 compatibility claim. See [PSP evidence](../../../PSP_MULTIPLAYER.md) and
 [RetroArch evidence](../../../EMULATOR_MULTIPLAYER.md) for upstream sources.
+
+The [shared RetroArch profiles](../../../RETROARCH_MULTIPLAYER_PROFILES.md) also
+cover reviewed platform/core pairs without a per-ROM allowlist. Call
+`netplayIdentity` with the actual installation and content, then `prepareNetplay`
+with the accepted peer identity. Runtime/core/content and known firmware must
+match; local display names may differ. Disc validation is included in this copy.
+These profiles use private two-pad temporary-progress sessions, not semantic save
+editing or handheld link. Exact legacy profiles retain their specific controls.
 
 Linux, C++20 and Qt 6 Core/Gui/Network (Gui is a model-header dependency):
 

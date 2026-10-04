@@ -80,6 +80,7 @@ files = {}
 for relative in ("src/integrations/adventure/standalone/DolphinNetplay.cpp",
                  "src/integrations/adventure/standalone/PpssppNetplay.cpp",
                  "src/integrations/adventure/retroarch/RetroArchNetplay.cpp",
+                 "src/integrations/adventure/retroarch/RetroArchDisc.cpp",
                  "src/integrations/adventure/retroarch/RetroArchConfiguration.cpp"):
     include(root / relative)
 for profile in registry.get("runtimeProfiles", []):

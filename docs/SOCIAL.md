@@ -6,6 +6,13 @@ acceptance and evidence; dated "next" statements below are historical. Current
 work is block 1 / MP-01. Block 3's owner-deferred listening remains open, followed
 by blocks 4 and 5; completed block 2 and call checks must not be recycled as passes.
 
+**Shared classic profiles, 2026-10-04:** the existing party/invitation/relay path
+now accepts reviewed RetroArch core/platform identities beyond the test-ROM list.
+Local title renames remain compatible. Generic profiles have two pads; exact
+NES Four Score keeps four. Both handhelds received the build; the experimental
+gate and remaining real-user/network acceptance stay open. See
+[implementation and device evidence](RETROARCH_MULTIPLAYER_PROFILES.md).
+
 **Session isolation checkpoint, 2026-10-04:** RetroArch netplay now avoids the
 ordinary per-core option files. Two simultaneous public-relay rooms on Flip/Odin
 kept independent input/session lifetimes; ending one left the other playable.

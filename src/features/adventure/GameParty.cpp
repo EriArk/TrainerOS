@@ -1,4 +1,5 @@
 #include "GameParty.h"
+#include "core/model/GamePlayers.h"
 #include <QDateTime>
 #include <QJsonDocument>
 #include <QUuid>
@@ -22,7 +23,10 @@ QJsonObject GameParty::decode(const QString& s) {
     const auto p=QJsonDocument::fromJson(s.mid(prefix.size(),s.size()-prefix.size()-4).toUtf8()).object();
     return p["ns"]=="org.traineros.party"&&p["v"]==1?p:QJsonObject{};
 }
-bool GameParty::supports(const QJsonObject& game) const{return !game.isEmpty()&&games_.contains(game);}
+bool GameParty::supports(const QJsonObject& game) const {
+    for(const auto& local:games_)if(sameMultiplayerGame(local.toObject(),game))return true;
+    return false;
+}
 void GameParty::configure(QString name,QJsonArray games,QJsonObject current,bool available) {
     name_=name.left(48);games_=std::move(games);current_=std::move(current);available_=available;
     if(!available_&&active())leave();
