@@ -1,5 +1,13 @@
 # TrainerOS on the handhelds
 
+## Current website selection
+
+[4 October 2026: curated full-resolution screenshots](site-2026-10-04/README.md)
+of Home, Worlds, the game wheel, Companions, shops, Journey and system controls.
+Use that separate gallery for the website; the captures below are historical
+development evidence. Their notes about disabling experimental multiplayer
+describe the state at capture time, before ordinary availability in `0b6e08f`.
+
 ## Experimental PSP online relay evidence
 
 Screens 35-37 are actual Gamescope captures on 3 October from executable
