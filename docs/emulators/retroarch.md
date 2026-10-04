@@ -113,3 +113,60 @@ Existing two-player profile identities/configuration remain compatible.
 cover four emulator instances on two handhelds, not four physical participants.
 Do not reinstall/patch the emulator or change ordinary controller mappings for
 this route. Preserve the open auxiliary core-options isolation issue above.
+
+## Session option isolation and concurrent rooms - 2026-10-04
+
+The auxiliary core-option preservation gate is verified for the exact NES route. RetroArch
+1.22.2's [runloop option-path selection](https://github.com/libretro/RetroArch/blob/v1.22.2/runloop.c#L1078-L1164)
+prefers a per-core `.opt` file when `global_core_options` is false; disabling
+`config_save_on_exit` does not suppress the core option writer. Netplay now sets
+`global_core_options = "true"` together with `game_specific_options = "false"`
+and the already-private empty `core_options_path`. This uses core defaults and
+keeps subsequent option writes inside the owned temporary session directory.
+Ordinary launches and the user's global/per-core/per-game settings are unchanged.
+Settings identities advance to `*-default-no-sram-v3` and
+`fceumm-four-score-no-sram-v2`, preventing mixed old/new configuration matches.
+
+Verification used the production `prepareNetplay` implementation compiled into
+an isolated fixture launcher, plus the existing production password bridge and
+stock RetroArch 1.22.2/FCEUmm. Four emulator processes on Flip/Odin formed two
+simultaneous public Madrid relay rooms, both using Super Homebrew War 2025. Each
+room had a different password, host endpoint and owned options directory. Host A
+ran on Flip with guest A on Odin; host B ran on Odin with guest B on Flip.
+
+- Both guests joined their intended P2 at 134/153 ms observed initial ping.
+- Advancing room A into player selection left room B at its title screen.
+- Closing only room A left both B processes connected and responsive. Host B
+  changed its character; guest B independently selected/confirmed its character;
+  the surviving pair entered the arena and accepted guest movement/jump input.
+- Every process wrote its options to its own temporary `core.opt` on exit.
+  SHA-256 comparison of all ordinary `.cfg`/`.opt`/`.rmp` files found no changes:
+  25 files on Flip and 1066 on Odin. New/deleted matching files were included in
+  the comparison. This is settings preservation, not a claim about every cache.
+- Session cleanup removed each owned directory; closing A did not remove B's.
+  All probe emulators, password bridges and private endpoint/environment files
+  were removed/stopped. Ordinary TrainerOS processes remained running during
+  the runtime check. Odin stayed at zero volume, Flip muted; no reboot.
+- Harness null-audio and Wayland fallback warnings are not audio acceptance.
+  UDP `QUIT` did not finish the probe; scoped SIGTERM did, with the expected
+  normal RetroArch option flush. No global kill or setting rewrite was used.
+
+An expanded coordinator regression starts two parties in one company, verifies
+separate launch endpoints, ends one without changing the other's running state,
+then admits the freed participant into the surviving party's third slot without
+restarting its existing guest. The optional exact-ROM adapter regression creates
+two production session configs, checks private empty option files and independent
+cleanup, and rejects the previous settings identity. This fixture is supplied
+privately via `TRAINEROS_TEST_NES_ROM`, never committed.
+
+Windows application build and both targeted tests passed with that fixture;
+ARM application build and RetroArch/netplay-client/game-party tests passed.
+Installed ordinary executable on both devices:
+`000964d6fd459f78dcd6d4a448594fdc0f7f4b616256e6ff528f53449421fa03`.
+Experimental multiplayer remains off in the delivered launchers.
+
+Limits: the concurrent payload proof uses a fixture launcher, not four actual
+TrainerOS/Fluxer accounts. It proves separate rooms/configuration/input/lifetime,
+not the full multi-party Social journey or two simultaneous played rounds.
+Distinct-network/NAT, four-user invitations, whole-block multiplayer and human
+speech acceptance remain open. No new emulator family or compatibility claim.

@@ -170,3 +170,14 @@ whole invitation lifecycle; distinct internet networks; concurrent independent
 parties; new-route loss/rejoin; inherited auxiliary core-option isolation before
 release; broader game compatibility. Existing shared group-call proof is retained
 without another repeat. Block 1 stays open and the oldest-first queue is unchanged.
+
+## Session isolation follow-up - 2026-10-04
+
+The remaining auxiliary core-options isolation issue above is fixed and verified
+on both handhelds: ordinary settings stayed byte-identical through four temporary
+emulator lifetimes. Two simultaneous public-relay rooms also retained independent
+input and cleanup; ending room A left room B playable. This is fixture-launched
+payload evidence, not four actual TrainerOS users in the company UI.
+[Exact checks and remaining acceptance](emulators/retroarch.md#session-option-isolation-and-concurrent-rooms---2026-10-04).
+The Four Score settings identity is now `fceumm-four-score-no-sram-v2`;
+prior evidence remains historical, with this preservation check as its successor.

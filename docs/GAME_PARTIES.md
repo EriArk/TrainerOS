@@ -280,3 +280,15 @@ remain. Database integrity/counts, boot preferences, nearby/voice helpers and
 input services passed preservation checks. The recorded Emerald save hashes
 remain unchanged. Odin volume remains zero and Flip remains muted. Only the shell
 processes were restarted; neither device required a reboot.
+
+## Concurrent-room isolation follow-up - 2026-10-04
+
+The two-party coordinator test now starts both rooms, asserts distinct endpoints,
+ends one without changing the other, and moves the freed participant into slot 3
+of the surviving room without relaunching its existing guest. Separate actual
+RetroArch rooms ran concurrently through the public relay on Flip/Odin, and one
+survived the other's shutdown with responsive gameplay. Those payload clients
+were launched by a production-adapter fixture, not four Social accounts.
+[Runtime/configuration evidence](emulators/retroarch.md#session-option-isolation-and-concurrent-rooms---2026-10-04).
+The full four-user company/UI acceptance stays open; prior shared-call evidence
+is retained without repeating its test.

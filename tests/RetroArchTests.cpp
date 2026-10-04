@@ -33,10 +33,47 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void netplaySessionsKeepOptionsAndCleanupSeparate() {
+        const auto rom=qEnvironmentVariable("TRAINEROS_TEST_NES_ROM");
+        if(rom.isEmpty())QSKIP("Optional exact author-provided NES fixture is not configured.");
+        QTemporaryDir dir;
+        const auto write=[&](const QString& name,const QByteArray& bytes){
+            QFile f(dir.filePath(name));return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size();
+        };
+        const QByteArray original="global_core_options = \"false\"\ngame_specific_options = \"true\"\n";
+        QVERIFY(write("retroarch.cfg",original));QVERIFY(write("core", "core fixture"));QVERIFY(write("runtime", "runtime fixture"));
+        RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");
+        i.cores["fceumm"]=dir.filePath("core");i.runtimeFile=dir.filePath("runtime");
+        AdventureRegistration r;r.adventure.platformId="nes";r.contentPath=rom;r.integrationConfig["core"]="fceumm";
+        std::atomic_bool cancel{false};
+        retroarch::NetplayRequest request;request.host=true;request.slot=1;request.password="private";request.nickname="test";
+        request.expected=retroarch::netplayIdentity(r,i,cancel);QVERIFY(!request.expected.isEmpty());
+        ProcessCommand a,b;a.arguments={rom};b.arguments={"--appendconfig",i.configFile,rom};
+        QVERIFY(retroarch::prepareNetplay(a,r,i,request,cancel).isEmpty());
+        QVERIFY(retroarch::prepareNetplay(b,r,i,request,cancel).isEmpty());
+        const auto config=[](const ProcessCommand& cmd){return cmd.arguments[cmd.arguments.indexOf("--appendconfig")+1].section('|',-1);};
+        const auto ca=config(a),cb=config(b);QVERIFY(ca!=cb);
+        for(const auto& path:{ca,cb}) {
+            const auto settings=retroarch::readSettings(path);
+            QCOMPARE(settings.value("global_core_options"),QString("true"));
+            QCOMPARE(settings.value("game_specific_options"),QString("false"));
+            const auto options=settings.value("core_options_path");
+            QCOMPARE(QFileInfo(options).absolutePath(),QFileInfo(path).absolutePath());
+            QVERIFY(QFileInfo(options).exists());QCOMPARE(QFileInfo(options).size(),0);
+        }
+        a.settled({});QVERIFY(!QFileInfo(ca).exists());QVERIFY(QFileInfo(cb).exists());
+        b.settled({});QVERIFY(!QFileInfo(cb).exists());
+        QFile f(i.configFile);QVERIFY(f.open(QIODevice::ReadOnly));QCOMPARE(f.readAll(),original);
+        auto old=request;old.expected["settings"]="fceumm-four-score-no-sram-v1";
+        ProcessCommand rejected;rejected.arguments={rom};
+        QVERIFY(!retroarch::prepareNetplay(rejected,r,i,old,cancel).isEmpty());
+        QCOMPARE(rejected.arguments,QStringList{rom});
+    }
     void fourPlayerControllersKeepPartySeatsIndependentOfArrival() {
         const auto profile=retroarch::netplayProfile("nes","fceumm",
             "063eec9f883b44a0a11aa63238316d4e676034aab72eae0b9a092ed50f2bceed");
         QCOMPARE(profile["players"].toInt(),4);
+        QCOMPARE(profile["settings"].toString(),QString("fceumm-four-score-no-sram-v2"));
         QCOMPARE(retroarch::netplayControllerArguments(profile),QStringList({
             "--device","1:513","--device","2:513","--device","3:513","--device","4:513","--nodevice","5"}));
         QTemporaryDir dir;
@@ -58,6 +95,7 @@ private slots:
         QVERIFY(retroarch::netplayControllers(profile,true,2).isEmpty());
         const auto pair=retroarch::netplayProfile("nes","fceumm",
             "b9116433d8f5d3293adfe871b47af68198e1596d40eccc2c3a99b14e2ca2afe0");
+        QCOMPARE(pair["settings"].toString(),QString("fceumm-default-no-sram-v3"));
         QCOMPARE(retroarch::netplayControllers(pair,true,0),QByteArray("netplay_max_connections = \"1\"\n"));
         QVERIFY(retroarch::netplayControllers(pair,false,3).isEmpty());
         QVERIFY(retroarch::netplayControllerArguments(pair).isEmpty());

@@ -96,8 +96,18 @@ private slots:
         QSignalSpy b(&r.b,&GameParty::startRequested),d(&r.d,&GameParty::startRequested);
         r.a.start();r.a.ready({{"password","private"},{"address","host-a"}});
         QCOMPARE(b.count(),1);QCOMPARE(d.count(),0);
+        r.c.start();r.c.ready({{"password","other-private"},{"address","host-c"}});
+        QCOMPARE(d.count(),1);QCOMPARE(b.count(),1);
+        QCOMPARE(b.first()[1].toJsonObject()["address"].toString(),QString("host-a"));
+        QCOMPARE(d.first()[1].toJsonObject()["address"].toString(),QString("host-c"));
+        const auto other=r.d.state();
         for(const auto& v:r.d.companyOffers()){QVERIFY(!v.toObject().contains("endpoint"));QVERIFY(!v.toObject().contains("password"));}
         r.a.leave();QCOMPARE(r.b.companyOffers().size(),1);QVERIFY(r.c.active());
+        QCOMPARE(r.d.state(),other);QVERIFY(r.d.running());QCOMPARE(d.count(),1);
+        r.b.requestJoin("online:company:group:c");r.c.answer(true);
+        QCOMPARE(b.count(),2);QCOMPARE(b.last()[1].toJsonObject()["address"].toString(),QString("host-c"));
+        QCOMPARE(b.last()[1].toJsonObject()["slot"].toInt(),3);
+        QCOMPARE(d.count(),1);QVERIFY(r.d.running());
     }
     void onlySelectedCompanyMembersSkipOrganizerPrompt() {
         CompanyRoom r;r.a.openCompany("group","selected",{"b"});

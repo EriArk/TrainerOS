@@ -1,5 +1,14 @@
 # TrainerOS Roadmap
 
+**Session isolation checkpoint, 2026-10-04:** RetroArch netplay now avoids the
+ordinary per-core option files. Two simultaneous public-relay rooms on Flip/Odin
+kept independent input/session lifetimes; ending one left the other playable.
+All 25/1066 ordinary settings files remained byte-identical. Production adapter
+preparation was used by temporary fixture clients; four actual TrainerOS users
+and distinct networks remain unverified. Both devices received the ordinary
+experimental-off build. [Evidence and limits](emulators/retroarch.md#session-option-isolation-and-concurrent-rooms---2026-10-04).
+Do not repeat these checks as a substitute for the remaining real-user gates.
+
 **NES four-player checkpoint, 2026-10-04:** Super Homebrew War now has a four-seat
 FCEUmm profile with explicit Four Score device arguments and per-seat input.
 Four stock emulator clients reached the public relay and arena on Flip/Odin;

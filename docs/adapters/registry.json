@@ -45,6 +45,8 @@
         "reverse-arrival-controller-seats",
         "independent-p3-p4-input",
         "four-character-arena",
+        "private-core-options-byte-preserved",
+        "concurrent-relay-rooms-fixture",
         "paired-handheld-delivery"
       ],
       "remaining": [
@@ -52,7 +54,7 @@
         "distinct-networks",
         "parallel-parties",
         "route-loss-rejoin",
-        "auxiliary-core-options-isolation"
+        "four-user-company-ui"
       ],
       "persistentSaveWrites": false,
       "implementation": "implementations/runtime",

@@ -31,10 +31,10 @@ bool token(const QString& s,int max) {
 QJsonObject netplayProfile(QString platform,QString core,QString content) {
     for(const auto& p:profiles)if(platform==p.platform&&core==p.core&&(content==p.rom||(*p.archive&&content==p.archive))) {
         QJsonObject result{{"id",p.id},{"label",p.title},{"content",p.rom},
-                          {"settings",core+"-default-no-sram-v2"}};
+                          {"settings",core+"-default-no-sram-v3"}};
         if(p.players==4) {
             result["players"]=4;
-            result["settings"]="fceumm-four-score-no-sram-v1";
+            result["settings"]="fceumm-four-score-no-sram-v2";
         }
         return result;
     }
@@ -47,7 +47,7 @@ QByteArray netplayControllers(const QJsonObject& identity,bool host,int slot) {
     if((host&&slot!=1)||(!host&&(slot<2||slot>players)))return {};
     QByteArray result="netplay_max_connections = \""+QByteArray::number(players-1)+"\"\n";
     if(players==4) {
-        if(identity["settings"]!="fceumm-four-score-no-sram-v1")return {};
+        if(identity["settings"]!="fceumm-four-score-no-sram-v2")return {};
         result+="input_max_users = \"5\"\n";
         // Each instance uses its first local pad for exactly its assigned port.
         // Clear inherited requests so a guest cannot accidentally take two seats.
@@ -57,7 +57,7 @@ QByteArray netplayControllers(const QJsonObject& identity,bool host,int slot) {
     return result;
 }
 QStringList netplayControllerArguments(const QJsonObject& identity) {
-    if(identity["players"].toInt(2)!=4||identity["settings"]!="fceumm-four-score-no-sram-v1")return {};
+    if(identity["players"].toInt(2)!=4||identity["settings"]!="fceumm-four-score-no-sram-v2")return {};
     // input_libretro_device_pN is a remap-file key, not an ordinary config key.
     // Use the supported CLI so Four Score is actually enabled, with the
     // mutually exclusive Famicom expansion controller explicitly disconnected.
@@ -123,7 +123,10 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
         return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size()&&f.commit();
     };
     if(!write("core.opt",{}))return "Couldn't prepare multiplayer settings.";
-    QByteArray bytes="config_save_on_exit = \"false\"\n"
+    // RetroArch otherwise prefers config/<core>/<core>.opt over core_options_path
+    // and writes it on exit, even with config_save_on_exit disabled. Select the
+    // global option-file mode, but point it at this session's private empty file.
+    QByteArray bytes="config_save_on_exit = \"false\"\nglobal_core_options = \"true\"\n"
         "auto_overrides_enable = \"false\"\nauto_remaps_enable = \"false\"\n"
         "game_specific_options = \"false\"\nrun_ahead_enabled = \"false\"\nrewind_enable = \"false\"\n"
         "preemptive_frames_enable = \"false\"\ncheevos_enable = \"false\"\n"
