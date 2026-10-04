@@ -8,6 +8,7 @@
 #include <QJsonDocument>
 #include <QLoggingCategory>
 #include <QNetworkReply>
+#include <QRegularExpression>
 #include <QSettings>
 #include <QUuid>
 #include <QFileInfo>
@@ -273,6 +274,7 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     transportPeer_=host?party_.state()["members"].toArray().at(1).toObject()["peer"].toString():party_.hostPeer();
     online_=transportPeer_.startsWith("online:");
     request_={};request_.host=host;request_.relay=online_;request_.expected=selected;
+    request_.slot=host?1:endpoint["slot"].toInt();
     request_.nickname="TrainerOS-"+randomToken().left(12);output_.clear();
     deadline_=QDateTime::currentSecsSinceEpoch()+(dolphin()?150:75);timer_.start();
     dolphinRequest_={};dolphinRequest_.expected=selected;dolphinRequest_.host=host;dolphinRequest_.online=online_;
@@ -429,7 +431,8 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
             send({{"kind","ready"},{"password",request_.password},{"port",request_.port},{"identity",descriptor_}});
             status_="Waiting for your friend…";
         }
-        if(line.contains("joined as player 2")){deadline_=0;timer_.stop();status_="Playing together";emit changed();}
+        const auto joined=QRegularExpression("joined as player ([2-4])").match(QString::fromUtf8(line));
+        if(joined.hasMatch()){deadline_=0;timer_.stop();status_="Playing together";emit changed();}
         if(line.contains("Failed")||line.contains("failed")||line.contains("disconnected")){status_="Multiplayer connection ended";emit notice(status_);}
     }
     if(output_.size()>16384)output_.clear();

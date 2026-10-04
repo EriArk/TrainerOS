@@ -1,0 +1,28 @@
+{
+  "id": "runtime.fceumm.homebrew-war-2025.v1",
+  "platform": "nes",
+  "romSha256": "063eec9f883b44a0a11aa63238316d4e676034aab72eae0b9a092ed50f2bceed",
+  "state": "partial",
+  "record": "../NES_MULTIPLAYER.md",
+  "evidence": [
+    "author-download",
+    "installed-fceumm-four-score-cli",
+    "paired-named-online-consent",
+    "four-emulator-public-relay",
+    "reverse-arrival-controller-seats",
+    "independent-p3-p4-input",
+    "four-character-arena",
+    "paired-handheld-delivery"
+  ],
+  "remaining": [
+    "four-traineros-clients",
+    "distinct-networks",
+    "parallel-parties",
+    "route-loss-rejoin",
+    "auxiliary-core-options-isolation"
+  ],
+  "persistentSaveWrites": false,
+  "implementation": "implementations/runtime",
+  "profile": "implementations/runtime/profiles/runtime.fceumm.homebrew-war-2025.v1.json",
+  "evidenceBase": "../../../"
+}

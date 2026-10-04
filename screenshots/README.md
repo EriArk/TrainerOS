@@ -209,3 +209,18 @@ The next capture shows restored P2 control and the retained score/time.
 
 - [60-online-call-after-exit-odin](60-online-call-after-exit-odin.png)
 - [61-online-call-rejoined-game-odin](61-online-call-rejoined-game-odin.png)
+
+Screens 62-66 are actual Gamescope captures from 4 October with executable
+`2028de8d7c613e9568424c2ca1fdbd214c8ae92f5704bf9778c7f1a8f911b482` and the
+temporary experimental gate. Two real TrainerOS sessions plus two harness
+RetroArch guests share one public-relay match on two handhelds. The shell roster
+correctly shows only the two actual Trainers; the extra test clients are not
+Fluxer/Trainer accounts. 63/64 show independent P4 then P3 character changes;
+65/66 show the arena. This is not a four-physical-client or distinct-network proof.
+[Evidence](../docs/NES_MULTIPLAYER.md#four-player-relay-checkpoint---2026-10-04).
+
+- [62-four-player-roster-flip](62-four-player-roster-flip.png)
+- [63-four-player-p4-odin](63-four-player-p4-odin.png)
+- [64-four-player-p3-odin](64-four-player-p3-odin.png)
+- [65-four-player-arena-odin](65-four-player-arena-odin.png)
+- [66-four-player-arena-flip](66-four-player-arena-flip.png)

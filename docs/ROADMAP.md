@@ -1,5 +1,16 @@
 # TrainerOS Roadmap
 
+**NES four-player checkpoint, 2026-10-04:** Super Homebrew War now has a four-seat
+FCEUmm profile with explicit Four Score device arguments and per-seat input.
+Four stock emulator clients reached the public relay and arena on Flip/Odin;
+two were temporary harness clients, not additional TrainerOS accounts.
+Independent P3/P4 input and reversed connection order passed.
+[Evidence and remaining gates](NES_MULTIPLAYER.md#four-player-relay-checkpoint---2026-10-04).
+Both ordinary installations are updated with the experiment off. This does not
+close distinct-network, four-Trainer lifecycle, parallel-party or block 1 gates.
+Do not repeat the already-passed two-player/call checkpoints as the next task.
+
+
 **Paired online-call checkpoint, 2026-10-04:** the existing NES relay match now
 has shared group-call continuity proof through actual P1/P2 gameplay, a scoped
 12-second gameplay-transport loss, guest Home exit and group-card rejoin into
@@ -71,8 +82,8 @@ skipping unresolved earlier routes.
 Current NES checkpoint: [NES Pong](NES_MULTIPLAYER.md) passed named Online friend
 consent, public-relay two-pad gameplay, loss/exit/rejoin, reverse chat join and
 permitted group gameplay on Flip/Odin. Ordinary deployment stays experimental/off.
-Distinct networks, parallel live parties, background calls and wider compatibility
-are still open. This does not advance the queue to newer emulator families or
+Distinct networks, parallel live parties and wider compatibility are still open.
+Background group-call retention passed in the checkpoint above. This does not advance the queue to newer emulator families or
 close block 1.
 The 4 October [SNES continuation](EMULATOR_MULTIPLAYER.md#snes-paired-gameplay-and-temporary-session-exit---2026-10-04)
 closes Contra's independent online P2 and explicit loss/exit/rejoin gaps, and

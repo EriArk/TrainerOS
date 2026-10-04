@@ -1,5 +1,16 @@
 # Native Social - conversations and discovery
 
+**Four-player runtime checkpoint, 2026-10-04:** Super Homebrew War now has a four-seat
+FCEUmm profile with explicit Four Score device arguments and per-seat input.
+Four stock emulator clients reached the public relay and arena on Flip/Odin;
+two were temporary harness clients, not additional TrainerOS accounts.
+Independent P3/P4 input and reversed connection order passed.
+[Evidence and remaining gates](NES_MULTIPLAYER.md#four-player-relay-checkpoint---2026-10-04).
+Both ordinary installations are updated with the experiment off. This does not
+close distinct-network, four-Trainer lifecycle, parallel-party or block 1 gates.
+Do not repeat the already-passed two-player/call checkpoints as the next task.
+
+
 **Paired relay game and call, 2026-10-04:** Flip/Odin retained their group call
 through actual NES Pong P1/P2 play, a 12-second gameplay-only connection loss,
 guest exit and group-card rejoin. Synthetic audio continued and both voice

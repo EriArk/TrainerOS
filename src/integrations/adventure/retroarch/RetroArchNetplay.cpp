@@ -8,10 +8,12 @@
 
 namespace trainer::retroarch {
 namespace {
-struct Profile {const char *platform,*core,*id,*title,*rom,*archive;};
+struct Profile {const char *platform,*core,*id,*title,*rom,*archive;int players=2;};
 const Profile profiles[] = {
     {"nes","fceumm","runtime.fceumm.pong-homebrew.v1","NES Pong",
      "b9116433d8f5d3293adfe871b47af68198e1596d40eccc2c3a99b14e2ca2afe0",""},
+    {"nes","fceumm","runtime.fceumm.homebrew-war-2025.v1","Super Homebrew War",
+     "063eec9f883b44a0a11aa63238316d4e676034aab72eae0b9a092ed50f2bceed","",4},
     {"snes","snes9x","runtime.snes9x.contra3-us.v1","Contra III",
      "a93ea87fc835c530b5135c5294433d15eef6dbf656144b387e89ac19cf864996",
      "9eab8d9bdae35e13a1459d1ccddbfb3efd7192817a09102b9abccbbc6e5f71ea"},
@@ -27,10 +29,39 @@ bool token(const QString& s,int max) {
 }
 }
 QJsonObject netplayProfile(QString platform,QString core,QString content) {
-    for(const auto& p:profiles)if(platform==p.platform&&core==p.core&&(content==p.rom||(*p.archive&&content==p.archive)))
-        return {{"id",p.id},{"label",p.title},{"content",p.rom},
-                {"settings",core+"-default-no-sram-v2"}};
+    for(const auto& p:profiles)if(platform==p.platform&&core==p.core&&(content==p.rom||(*p.archive&&content==p.archive))) {
+        QJsonObject result{{"id",p.id},{"label",p.title},{"content",p.rom},
+                          {"settings",core+"-default-no-sram-v2"}};
+        if(p.players==4) {
+            result["players"]=4;
+            result["settings"]="fceumm-four-score-no-sram-v1";
+        }
+        return result;
+    }
     return {};
+}
+QByteArray netplayControllers(const QJsonObject& identity,bool host,int slot) {
+    const int players=identity["players"].toInt(2);
+    if(players!=2&&players!=4)return {};
+    if(!slot&&players==2)slot=host?1:2; // Older two-player callers.
+    if((host&&slot!=1)||(!host&&(slot<2||slot>players)))return {};
+    QByteArray result="netplay_max_connections = \""+QByteArray::number(players-1)+"\"\n";
+    if(players==4) {
+        if(identity["settings"]!="fceumm-four-score-no-sram-v1")return {};
+        result+="input_max_users = \"5\"\n";
+        // Each instance uses its first local pad for exactly its assigned port.
+        // Clear inherited requests so a guest cannot accidentally take two seats.
+        for(int p=1;p<=16;++p)
+            result+="netplay_request_device_p"+QByteArray::number(p)+" = \""+(p==slot?QByteArray("true"):QByteArray("false"))+"\"\n";
+    }
+    return result;
+}
+QStringList netplayControllerArguments(const QJsonObject& identity) {
+    if(identity["players"].toInt(2)!=4||identity["settings"]!="fceumm-four-score-no-sram-v1")return {};
+    // input_libretro_device_pN is a remap-file key, not an ordinary config key.
+    // Use the supported CLI so Four Score is actually enabled, with the
+    // mutually exclusive Famicom expansion controller explicitly disconnected.
+    return {"--device","1:513","--device","2:513","--device","3:513","--device","4:513","--nodevice","5"};
 }
 QString netplayRelayEndpoint(const QByteArray& response) {
     if(response.size()>4096)return {};
@@ -63,6 +94,8 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     const auto identity=netplayIdentity(r,i,cancel);
     if(identity.isEmpty())return "Multiplayer isn't supported for this game version yet.";
     if(identity!=request.expected)return "Your game or emulator changed. Invite your friend again.";
+    const auto controllers=netplayControllers(identity,request.host,request.slot);
+    if(controllers.isEmpty())return "This multiplayer controller assignment is invalid.";
     if(!token(request.password,32)||!token(request.nickname,32)||!request.port)
         return "This multiplayer invitation is invalid.";
     if(request.host&&request.relay) {
@@ -97,9 +130,10 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
         "savestate_auto_save = \"false\"\nsavestate_auto_load = \"false\"\nautosave_interval = \"0\"\n"
         "history_list_enable = \"false\"\nnetplay_nat_traversal = \"false\"\n"
         "netplay_start_as_server = \"false\"\nnetplay_start_as_client = \"false\"\n"
-        "netplay_allow_slaves = \"false\"\nnetplay_max_connections = \"1\"\n"
+        "netplay_allow_slaves = \"false\"\n"
         "netplay_start_as_spectator = \"false\"\nnetplay_share_digital = \"0\"\n"
         "pause_nonactive = \"false\"\n";
+    bytes+=controllers;
 #ifdef Q_OS_LINUX
     // The first handheld profile is verified with InputPlumber's virtual pad
     // through udev on both Flip and Odin. Flip's inherited SDL2 driver handled
@@ -123,6 +157,7 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     else {auto content=cmd.arguments.takeLast();cmd.arguments<<"--appendconfig"<<path+"/session.cfg"<<content;}
     auto content=cmd.arguments.takeLast();
     const auto port=request.relay&&!request.host?request.clientPort:request.port;
+    cmd.arguments<<netplayControllerArguments(identity);
     cmd.arguments<<"--verbose"<<"--no-patch"<<"--sram-mode"<<"noload-nosave"<<"--nick"<<request.nickname<<"--port"<<QString::number(port);
     if(request.host)cmd.arguments<<"--host";
     else cmd.arguments<<"--connect"<<(request.relay?QString("127.0.0.1"):request.address);

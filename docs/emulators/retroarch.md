@@ -101,3 +101,15 @@ part of an emulator binary downgrade.
 The common standalone migrations and Dolphin native NetPlay bridge remain next
 work in the existing [matrix](../EMULATOR_MULTIPLAYER_MATRIX.md). This baseline
 does not close multiplayer block 1.
+
+## NES Four Score profile - 2026-10-04
+
+Super Homebrew War 2025 uses the existing FCEUmm core and public relay.
+Session-local `--device 1:513` through `4:513`, plus `--nodevice 5`, enable
+Four Score; the similarly named config/remap keys do not enable it in an
+ordinary append-config. Exact party seats request exactly one controller each.
+Existing two-player profile identities/configuration remain compatible.
+[Runtime proof and its limits](../NES_MULTIPLAYER.md#four-player-relay-checkpoint---2026-10-04)
+cover four emulator instances on two handhelds, not four physical participants.
+Do not reinstall/patch the emulator or change ordinary controller mappings for
+this route. Preserve the open auxiliary core-options isolation issue above.

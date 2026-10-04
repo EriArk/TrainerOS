@@ -33,6 +33,35 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void fourPlayerControllersKeepPartySeatsIndependentOfArrival() {
+        const auto profile=retroarch::netplayProfile("nes","fceumm",
+            "063eec9f883b44a0a11aa63238316d4e676034aab72eae0b9a092ed50f2bceed");
+        QCOMPARE(profile["players"].toInt(),4);
+        QCOMPARE(retroarch::netplayControllerArguments(profile),QStringList({
+            "--device","1:513","--device","2:513","--device","3:513","--device","4:513","--nodevice","5"}));
+        QTemporaryDir dir;
+        for(int slot:{1,4,2,3}) {
+            const auto bytes=retroarch::netplayControllers(profile,slot==1,slot);
+            QVERIFY(!bytes.isEmpty());
+            const auto path=dir.filePath(QString::number(slot)+".cfg");
+            {QFile f(path);QVERIFY(f.open(QIODevice::WriteOnly));QCOMPARE(f.write(bytes),bytes.size());}
+            const auto settings=retroarch::readSettings(path);
+            QCOMPARE(settings.value("netplay_max_connections"),QString("3"));
+            int requests=0;
+            for(int port=1;port<=16;++port) {
+                const bool requested=settings.value("netplay_request_device_p"+QString::number(port))=="true";
+                QCOMPARE(requested,port==slot);requests+=requested;
+            }
+            QCOMPARE(requests,1);
+        }
+        for(int bad:{0,1,5,16,-1})QVERIFY(retroarch::netplayControllers(profile,false,bad).isEmpty());
+        QVERIFY(retroarch::netplayControllers(profile,true,2).isEmpty());
+        const auto pair=retroarch::netplayProfile("nes","fceumm",
+            "b9116433d8f5d3293adfe871b47af68198e1596d40eccc2c3a99b14e2ca2afe0");
+        QCOMPARE(retroarch::netplayControllers(pair,true,0),QByteArray("netplay_max_connections = \"1\"\n"));
+        QVERIFY(retroarch::netplayControllers(pair,false,3).isEmpty());
+        QVERIFY(retroarch::netplayControllerArguments(pair).isEmpty());
+    }
     void multiplayerProfilesRequireExactContentAndPlatform() {
         const auto gunstar=retroarch::netplayProfile("megadrive","genesis_plus_gx",
             "f177810ce614be21c1a9214c0ca4d8f8d357b04a497c02fae185e4b2f97b6b87");
