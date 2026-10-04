@@ -74,6 +74,15 @@ experimental-off release policy. Actual captures are in screenshots 43-48.
 
 ## Remaining acceptance and current next work
 
+**Status clarification, 2026-10-04:** the NES transport and exact tested profiles
+are implemented. Paired invitation/gameplay/rejoin, Four Score controls and the
+subsequent option-isolation/concurrent-runtime evidence below are completed
+checkpoints. The active [MP-01 task](CURRENT_TASKS.md) tracks shared real-user,
+distinct-network and release acceptance, not another NES implementation pass.
+Ordinary builds still keep netplay experimental-off; no arbitrary-title support
+or complete internet release is implied. Old "next" statements below retain
+historical context and do not override that task register.
+
 The 4 October [paired game/call check](GAME_PARTIES.md#shared-call-during-relay-gameplay-and-rejoin---2026-10-04)
 now passes group-call retention during actual relay gameplay and explicit guest
 loss/exit/rejoin. Its synthetic-audio evidence supersedes the open ongoing-call

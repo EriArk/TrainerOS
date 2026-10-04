@@ -6,9 +6,13 @@ that each subtask receives a separate turn. Issues and existing evidence retain
 their full acceptance. A checkbox means the stated outcome is delivered, not
 merely that code exists. Do not close a parent block from partial child evidence.
 
-## Current task: MP-01 — usable online parties on the older RetroArch routes
+## Current task: MP-01 — remaining shared online-party acceptance
 
-**State:** in progress; substantial implementation exists, acceptance incomplete.
+**State:** existing NES/Mega Drive/SNES exact-game routes are implemented and
+have paired gameplay evidence. Shared multi-user and distinct-network acceptance
+is incomplete; ordinary builds remain experimental-off. No missing NES transport
+implementation was identified in the 4 October continuation. Do not describe
+MP-01 as implementing NES again or infer support for arbitrary NES games.
 **Parent:** communication block 1, [#107](https://github.com/EriArk/TrainerOS/issues/107),
 expanded by the owner's company, capacity, reverse-request and oldest-first rules.
 **User outcome:** invite an online friend or request to join their game; play
@@ -16,13 +20,27 @@ with the supported number of people; leave/rejoin without damaging ordinary
 play or interrupting the group's call. A company can run independent parties.
 No player IP entry, router setup or VPN administration.
 
-### Remaining work, completed together with necessary fixes
+### Implemented baseline — retain, do not restart
 
-- [ ] Finish the actual multi-user TrainerOS journey: invitations, accepting and
+- [x] Existing exact NES, Mega Drive and SNES profiles with paired invitation,
+  independent gameplay and explicit loss/exit/rejoin evidence.
+- [x] Shared coordinator for invitations/reverse requests, capacities/seats,
+  company access and independent parties. Automated and bounded two-user UI
+  evidence exists; it is not full four-user acceptance.
+- [x] NES Four Score port assignment and independent P3/P4 emulator input.
+- [x] Concurrent runtime room lifetimes and ordinary core-option isolation.
+
+### Remaining acceptance and release work
+
+The following items are acceptance gaps, not evidence that those mechanisms are
+absent. Fix concrete failures found while completing them; do not invent a new
+implementation task when an external condition is all that is missing.
+
+- [ ] Close the actual multi-user TrainerOS acceptance: invitations, accepting and
   declining, reverse join requests, capacity/readiness, seat assignment and
   authorized group entry. Reuse the existing coordinator/UI; fix demonstrated
   gaps instead of building another lobby or generic session framework.
-- [ ] Complete parallel-party behavior through actual TrainerOS accounts and
+- [ ] Close parallel-party acceptance through actual TrainerOS accounts and
   normal UI: members select the intended party; capacity, permissions, starts,
   exits and rejoining are independent. Company size is not game capacity. One
   shared group call survives game/party changes without new microphone consent.
@@ -37,6 +55,13 @@ No player IP entry, router setup or VPN administration.
 - [ ] Enable only the exact supported profiles whose required gates passed;
   keep others honestly unavailable. Update the matrix, maintenance record and
   acceptance evidence, deliver both available handhelds and commit/push.
+
+**Owner deferral, 2026-10-04:** separate-network testing waits until the owner is
+home. Do not request another network switch or repeat same-router tests while
+waiting. Multi-user acceptance and release enablement remain open separately.
+No new NES implementation gap is identified. The proposed next implementation
+outcome is MP-02's actual handheld link; present it at the next continuation
+boundary without claiming MP-01 accepted or silently discarding its gates.
 
 **Completion:** all applicable items above are fulfilled and remaining scope is
 explicitly resolved. An unavailable external condition keeps MP-01 open; it is
@@ -58,7 +83,7 @@ while later accepted emulator families remain unfinished.
 | Missing condition | What it closes | What it does not justify |
 | --- | --- | --- |
 | Actual compatible TrainerOS clients/accounts for the claimed larger and concurrent sessions | End-to-end admission, UI and lifecycle beyond two players | Calling fixture processes extra users; redoing already passed emulator seats |
-| Two independent internet connections, with target devices reachable for recovery | Actual internet route, admission and recovery | Treating two devices behind one router as separate-network proof |
+| Two independent internet connections, with target devices reachable for recovery; owner deferred until home on 4 October | Actual internet route, admission and recovery | Treating two devices behind one router as separate-network proof, or repeatedly requesting a switch during the deferral |
 | Owner available to listen/speak, with usable microphone input | Remaining block 3 human audio quality/interoperability acceptance | Repeating synthetic audio checks or blocking unrelated permitted implementation |
 
 Verify availability when needed; these are requirements, not claims that today's

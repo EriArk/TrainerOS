@@ -10,7 +10,7 @@ The owner explicitly rejects test-only passes substituted for feature delivery.
 
 | Order | Outcome / task | State and dependency |
 | --- | --- | --- |
-| **Now · block 1** | **MP-01: finish the NES / Mega Drive / SNES online experience** | In progress. Existing invitations, two-player relay gameplay, recovery, four-seat runtime and option isolation are evidence to reuse. Finish the real TrainerOS multi-user/company journey and outstanding internet acceptance; do not restart those implementations or call fixture proof full delivery. |
+| **Now · block 1** | **MP-01: remaining shared online-party acceptance** | NES/Mega Drive/SNES exact-game routes are already implemented and paired gameplay is verified. Outstanding: actual multi-user/company acceptance, distinct internet networks and release enablement. Obtain missing conditions and fix observed gaps; do not reimplement NES or repeat same-router tests as another pass. |
 | 2 · block 1 | MP-02: GB/GBC/GBA actual link; MP-03: selected PS1/N64 routes | After MP-01. Separate emulated-machine link from shared controllers; implement the viable supported mechanisms with their complete invitation journey. |
 | 3 · block 1 | MP-04: Dreamcast; MP-05: PS2/GameCube; MP-06: DS/PSP; MP-07: 3DS and eligible newer routes | Oldest first. Reuse installed PSP/Dolphin work; resolve each route's remaining acceptance, not every ROM. Unsupported mechanisms require a sourced conclusion, not a misleading enabled button. |
 | Retained · block 3 | COM-03: outstanding calls/notifications acceptance | Human speech/listening is owner-deferred. Keep group voice running through multiplayer; resume the missing acceptance when its prerequisite is available, without restarting completed call checks. |
@@ -23,6 +23,11 @@ experimental-off. Neither this plan nor four emulator processes on two consoles
 establishes four real TrainerOS users or separate-network internet acceptance.
 Missing prerequisites and concrete task checklists are in [Current tasks](CURRENT_TASKS.md).
 This planning pass changes no installed behavior.
+
+**Owner deferral, 2026-10-04:** separate-network checks wait until the owner is
+home. NES/MD/SNES implementation is not restarted during that wait. MP-01's
+remaining acceptance stays open; the proposed next implementation outcome is
+MP-02 actual handheld link, to be announced at the continuation boundary.
 
 ## Recent evidence — not separate delivery stages
 
