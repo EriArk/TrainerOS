@@ -35,6 +35,20 @@ class GamePartyTests : public QObject {
         }
     };
 private slots:
+    void threePlayerPartyRejectsFourthAndReusesVacatedSeat() {
+        Room r(3);
+        r.a.invite("b");r.b.answer(true);r.a.invite("c");r.c.answer(true);
+        QCOMPARE(r.a.state()["capacity"].toInt(),3);QCOMPARE(r.a.state()["free"].toInt(),0);
+        r.a.invite("d");QVERIFY(r.d.pending().isEmpty());
+        r.b.leave();QCOMPARE(r.a.state()["free"].toInt(),1);
+        r.a.invite("d");QVERIFY(!r.d.pending().isEmpty());r.d.answer(true);
+        const auto members=r.a.state()["members"].toArray();QCOMPARE(members.size(),3);
+        QSet<int> seats;for(const auto& m:members)seats.insert(m.toObject()["slot"].toInt());
+        QCOMPARE(seats,QSet<int>({1,2,3}));
+        QSignalSpy cStarted(&r.c,&GameParty::startRequested),dStarted(&r.d,&GameParty::startRequested);
+        r.a.start();r.a.ready({{"kind","ready"},{"port",55435}});
+        QCOMPARE(cStarted.size(),1);QCOMPARE(dStarted.size(),1);
+    }
     void localRenamingDoesNotBreakInvitationCompatibility() {
         Room r(2);
         auto renamed=game(2);renamed["label"]="My own title";

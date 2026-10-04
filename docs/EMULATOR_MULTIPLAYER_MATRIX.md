@@ -8,7 +8,9 @@ online-game block as complete. Keep voice work queued, not a substitute mileston
 
 2026-10-04 update: [shared RetroArch profiles](RETROARCH_MULTIPLAYER_PROFILES.md)
 now cover reviewed classic core/platform pairs beyond the original title list.
-Generic profiles use two pads; exact NES Four Score keeps four. This expands
+Generic profiles default to two pads; reviewed Snes9x/PCE-family layouts select
+three/four from metadata, while exact NES Four Score keeps four. Automatic arcade
+capacity stays two until the effective cabinet mode is prepared. This expands
 implementation, not the ordinary release gate or all-game runtime evidence.
 
 ## Current TrainerOS boundary

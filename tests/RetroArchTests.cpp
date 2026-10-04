@@ -34,6 +34,64 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void metadataSelectsOnlyReviewedMultiPadLayouts() {
+        for(const auto& pair:QList<QPair<QString,QString>>{{"snes","snes9x"},{"pcengine","mednafen_pce_fast"},
+                {"pcenginecd","mednafen_pce_fast"},{"supergrafx","mednafen_supergrafx"}}) {
+            for(int count:{3,4}) {
+                const auto capacity=retroarch::netplayCapacity(pair.first,pair.second,{{"players","1-"+QString::number(count)}});
+                QCOMPARE(capacity,count);
+                const auto profile=retroarch::netplayProfile(pair.first,pair.second,QString(64,'a'),capacity);
+                QCOMPARE(profile["players"].toInt(),count);
+                for(int slot=1;slot<=count;++slot) {
+                    const auto config=retroarch::netplayControllers(profile,slot==1,slot);
+                    QVERIFY(config.contains("netplay_max_connections = \""+QByteArray::number(count-1)+"\""));
+                    for(int pad=1;pad<=16;++pad)QVERIFY(config.contains("netplay_request_device_p"+QByteArray::number(pad)+
+                        " = \""+(pad==slot?QByteArray("true"):QByteArray("false"))+"\""));
+                }
+                QVERIFY(retroarch::netplayControllers(profile,false,count+1).isEmpty());
+                QVERIFY(retroarch::netplayControllerArguments(profile).contains(pair.second=="snes9x"?"2:257":"2:1"));
+            }
+            QCOMPARE(retroarch::netplayCapacity(pair.first,pair.second,{}),2);
+            QCOMPARE(retroarch::netplayCapacity(pair.first,pair.second,{{"players","1-8"}}),4);
+            QCOMPARE(retroarch::netplayCapacity(pair.first,pair.second,{{"players","4 alternating"}}),2);
+        }
+        for(const auto& pair:QList<QPair<QString,QString>>{{"megadrive","genesis_plus_gx"},{"nes","fceumm"},
+                {"neogeo","fbneo"},{"atari2600","stella"},{"mame","mame"}}) {
+            QCOMPARE(retroarch::netplayCapacity(pair.first,pair.second,{{"players","4"}}),2);
+            QVERIFY(retroarch::netplayProfile(pair.first,pair.second,QString(64,'a'),4).isEmpty());
+        }
+        QVERIFY(retroarch::netplayProfile("snes","snes9x",QString(64,'a'),5).isEmpty());
+        // Driver ports support four, but a title's cabinet may default to two.
+        QCOMPARE(retroarch::netplayCapacity("fbneo","fbneo",{{"players","1-4"}}),2);
+        const auto arcade=retroarch::netplayProfile("fbneo","fbneo",QString(64,'a'),4);
+        QVERIFY(retroarch::netplayControllerArguments(arcade).contains("4:1"));
+        QVERIFY(retroarch::netplayControllers(arcade,false,4).contains("netplay_request_device_p4 = \"true\""));
+        // Known exact two-player titles retain their real profile even with bad metadata.
+        const auto contra=retroarch::netplayProfile("snes","snes9x","a93ea87fc835c530b5135c5294433d15eef6dbf656144b387e89ac19cf864996",4);
+        QCOMPARE(contra["players"].toInt(2),2);
+    }
+    void multiPadLaunchKeepsCoreOptionsPrivateAndRevalidatesLayout() {
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        for(const auto& file:{"game.pce","runtime","core","retroarch.cfg"})touch(dir.filePath(file));
+        RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");i.runtimeFile=dir.filePath("runtime");
+        i.cores["mednafen_supergrafx"]=dir.filePath("core");
+        AdventureRegistration r;r.adventure.platformId="supergrafx";r.contentPath=dir.filePath("game.pce");r.integrationConfig["core"]="mednafen_supergrafx";
+        retroarch::NetplayRequest request;request.password="private";request.nickname="p3";request.address="127.0.0.1";request.slot=3;
+        request.expected=retroarch::netplayIdentity(r,i,cancel,nullptr,3);
+        QVERIFY(!request.expected.isEmpty());
+        ProcessCommand cmd;cmd.arguments={r.contentPath};
+        QVERIFY(retroarch::prepareNetplay(cmd,r,i,request,cancel).isEmpty());
+        QVERIFY(cmd.arguments.contains("3:1"));QVERIFY(cmd.arguments.contains("noload-nosave"));
+        const auto config=cmd.arguments[cmd.arguments.indexOf("--appendconfig")+1];
+        const auto settings=retroarch::readSettings(config);
+        QFile options(settings.value("core_options_path"));QVERIFY(options.open(QIODevice::ReadOnly));
+        QCOMPARE(options.readAll(),QByteArray("sgx_multitap = \"enabled\"\n"));options.close();
+        QVERIFY(cmd.runtimeControls["temporaryProgress"].toBool());cmd.settled({});QVERIFY(!QFileInfo(config).exists());
+        request.expected["settings"]="snes9x-snes-multitap-no-sram-v1";
+        ProcessCommand rejected;rejected.arguments={r.contentPath};
+        QVERIFY(!retroarch::prepareNetplay(rejected,r,i,request,cancel).isEmpty());QCOMPARE(rejected.arguments,QStringList{r.contentPath});
+        QFile original(i.configFile);QVERIFY(original.open(QIODevice::ReadOnly));QCOMPARE(original.readAll(),QByteArray("original test fixture"));
+    }
     void netplaySessionsKeepOptionsAndCleanupSeparate() {
         QTemporaryDir dir;
         const auto rom=dir.filePath("new-game.nes");touch(rom);

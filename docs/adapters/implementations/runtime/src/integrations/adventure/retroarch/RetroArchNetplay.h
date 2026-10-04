@@ -18,13 +18,15 @@ struct NetplayRequest {
 QString netplayRelayEndpoint(const QByteArray& directoryResponse);
 // Reviewed platform/core pairs; shared-screen netplay is not a link cable.
 bool netplaySupported(const QString& platform, const QString& core);
+// Scraped capacity selects only reviewed controller layouts, never a transport.
+int netplayCapacity(const QString& platform, const QString& core, const QVariantMap& metadata);
 // Worker-local scan cache; launch revalidation deliberately uses no cache.
 using NetplayDigestCache = QHash<QString, QString>;
-QJsonObject netplayProfile(QString platform,QString core,QString contentDigest);
+QJsonObject netplayProfile(QString platform,QString core,QString contentDigest,int players = 2);
 QStringList netplayControllerArguments(const QJsonObject& identity);
 QByteArray netplayControllers(const QJsonObject& identity, bool host, int slot);
 QJsonObject netplayIdentity(const AdventureRegistration&, const RetroArchInstallation&,
-                           const std::atomic_bool& cancelled, NetplayDigestCache* cache = nullptr);
+                           const std::atomic_bool& cancelled, NetplayDigestCache* cache = nullptr,int players = 2);
 QString prepareNetplay(ProcessCommand&, const AdventureRegistration&,
                        const RetroArchInstallation&, const NetplayRequest&,
                        const std::atomic_bool& cancelled);

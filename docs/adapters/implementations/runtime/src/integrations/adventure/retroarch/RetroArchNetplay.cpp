@@ -31,6 +31,23 @@ const CoreProfile* coreProfile(const QString& platform,const QString& core) {
     for(const auto& p:cores)if(core==p.core&&QString::fromLatin1(p.platforms).split('|').contains(platform))return &p;
     return nullptr;
 }
+QString multiPadLayout(const QString& platform,const QString& core) {
+    if(!coreProfile(platform,core))return {};
+    if(core=="snes9x")return "snes-multitap";
+    if(core=="mednafen_pce_fast")return "pce-five-pad";
+    if(core=="mednafen_supergrafx")return "sgx-multitap";
+    if(core=="fbneo"&&platform=="fbneo")return "arcade-four-pad";
+    // Mega Drive needs a game-specific Team Player / 4-Way Play decision;
+    // NES needs Four Score / Famicom expansion selection. Counts cannot choose.
+    return {};
+}
+QString identityLayout(const QJsonObject& identity) {
+    const auto parts=identity["id"].toString().split('.');
+    if(parts.size()!=5||parts[0]!="runtime"||parts[1]!="retroarch"||parts[4]!="v1")return {};
+    const auto layout=multiPadLayout(parts[2],parts[3]);
+    if(layout.isEmpty()||identity["settings"]!=parts[3]+'-'+layout+"-no-sram-v1")return {};
+    return layout;
+}
 QString digest(const QString& path,qint64 limit,const std::atomic_bool& cancel,NetplayDigestCache* cache) {
     const QFileInfo f(path);
     const auto key=f.absoluteFilePath()+'|'+QString::number(f.size())+'|'+QString::number(f.lastModified().toMSecsSinceEpoch());
@@ -81,7 +98,15 @@ bool token(const QString& s,int max) {
 }
 }
 bool netplaySupported(const QString& platform,const QString& core) {return coreProfile(platform,core)!=nullptr;}
-QJsonObject netplayProfile(QString platform,QString core,QString content) {
+int netplayCapacity(const QString& platform,const QString& core,const QVariantMap& metadata) {
+    const auto players=gamePlayers(metadata);
+    // Arcade metadata gives the title maximum, not the current cabinet mode.
+    // Keep automatic admission at two until the game-specific mode is prepared.
+    if(core=="fbneo"||players.mode=="Taking turns"||multiPadLayout(platform,core).isEmpty())return 2;
+    return qBound(2,players.maximum,4);
+}
+QJsonObject netplayProfile(QString platform,QString core,QString content,int players) {
+    if(players<2||players>4)return {};
     for(const auto& p:profiles)if(platform==p.platform&&core==p.core&&(content==p.rom||(*p.archive&&content==p.archive))) {
         QJsonObject result{{"id",p.id},{"label",p.title},{"content",p.rom},
                           {"settings",core+"-default-no-sram-v3"}};
@@ -92,18 +117,23 @@ QJsonObject netplayProfile(QString platform,QString core,QString content) {
         return result;
     }
     if(!netplaySupported(platform,core)||!QRegularExpression("^[0-9a-f]{64}$").match(content).hasMatch())return {};
+    const auto layout=players>2?multiPadLayout(platform,core):QString("two-pad");
+    if(layout.isEmpty())return {};
     return {{"id","runtime.retroarch."+platform+'.'+core+".v1"},{"content",content},
-            {"settings",core+"-two-pad-no-sram-v1"},{"players",2}};
+            {"settings",core+'-'+layout+"-no-sram-v1"},{"players",players}};
 }
 QByteArray netplayControllers(const QJsonObject& identity,bool host,int slot) {
     const int players=identity["players"].toInt(2);
-    if(players!=2&&players!=4)return {};
+    if(players<2||players>4)return {};
     if(!slot&&players==2)slot=host?1:2; // Older two-player callers.
     if((host&&slot!=1)||(!host&&(slot<2||slot>players)))return {};
     QByteArray result="netplay_max_connections = \""+QByteArray::number(players-1)+"\"\n";
-    if(players==4) {
-        if(identity["settings"]!="fceumm-four-score-no-sram-v2")return {};
-        result+="input_max_users = \"5\"\n";
+    if(players>2) {
+        const auto layout=identityLayout(identity);
+        const bool fourScore=players==4&&identity["settings"]=="fceumm-four-score-no-sram-v2";
+        if(!fourScore&&layout.isEmpty())return {};
+        const int ports=fourScore||layout=="snes-multitap"||layout=="pce-five-pad"||layout=="sgx-multitap"?5:4;
+        result+="input_max_users = \""+QByteArray::number(ports)+"\"\n";
     }
     if(players==4||identity["id"].toString().startsWith("runtime.retroarch.")) {
         // Each instance uses its first local pad for exactly its assigned port.
@@ -114,6 +144,14 @@ QByteArray netplayControllers(const QJsonObject& identity,bool host,int slot) {
     return result;
 }
 QStringList netplayControllerArguments(const QJsonObject& identity) {
+    if(identity["players"].toInt(2)>2&&!identityLayout(identity).isEmpty()) {
+        const auto layout=identityLayout(identity);
+        QStringList args;
+        const int ports=layout=="arcade-four-pad"?4:5;
+        for(int port=1;port<=ports;++port)
+            args<<"--device"<<QString::number(port)+':'+(layout=="snes-multitap"&&port==2?"257":"1");
+        return args;
+    }
     if(identity["id"].toString().startsWith("runtime.retroarch."))return {"--device","1:1","--device","2:1"};
     if(identity["players"].toInt(2)!=4||identity["settings"]!="fceumm-four-score-no-sram-v2")return {};
     // input_libretro_device_pN is a remap-file key, not an ordinary config key.
@@ -136,11 +174,11 @@ QString netplayRelayEndpoint(const QByteArray& response) {
        !QRegularExpression("^[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*$").match(host).hasMatch())return {};
     return host+'|'+QString::number(port); // RetroArch's custom-relay host|port format.
 }
-QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstallation& i,const std::atomic_bool& cancel,NetplayDigestCache* cache) {
+QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstallation& i,const std::atomic_bool& cancel,NetplayDigestCache* cache,int players) {
     const auto coreId=r.integrationConfig["core"].toString();
     const auto p=coreProfile(r.adventure.platformId,coreId);
     if(!p)return {};
-    auto identity=netplayProfile(r.adventure.platformId,coreId,contentDigest(r.contentPath,cancel,cache));
+    auto identity=netplayProfile(r.adventure.platformId,coreId,contentDigest(r.contentPath,cancel,cache),players);
     if(identity.isEmpty())return {};
     const auto core=digest(i.cores.value(coreId),512LL*1024*1024,cancel,cache);
     const auto runtime=digest(i.runtimeFile,512LL*1024*1024,cancel,cache);
@@ -174,7 +212,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstal
 }
 QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const RetroArchInstallation& i,
                       const NetplayRequest& request,const std::atomic_bool& cancel) {
-    const auto identity=netplayIdentity(r,i,cancel);
+    const auto identity=netplayIdentity(r,i,cancel,nullptr,request.expected["players"].toInt(2));
     if(identity.isEmpty())return "Multiplayer isn't supported for this game version yet.";
     if(!sameMultiplayerGame(identity,request.expected))return "Your game or emulator changed. Invite your friend again.";
     const auto controllers=netplayControllers(identity,request.host,request.slot);
@@ -205,7 +243,8 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
         QSaveFile f(path+'/'+name);
         return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size()&&f.commit();
     };
-    if(!write("core.opt",{}))return "Couldn't prepare multiplayer settings.";
+    const QByteArray options=identityLayout(identity)=="sgx-multitap"?QByteArray("sgx_multitap = \"enabled\"\n"):QByteArray();
+    if(!write("core.opt",options))return "Couldn't prepare multiplayer settings.";
     // RetroArch otherwise prefers config/<core>/<core>.opt over core_options_path
     // and writes it on exit, even with config_save_on_exit disabled. Select the
     // global option-file mode, but point it at this session's private empty file.

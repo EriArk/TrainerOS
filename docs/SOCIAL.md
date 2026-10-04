@@ -8,7 +8,10 @@ by blocks 4 and 5; completed block 2 and call checks must not be recycled as pas
 
 **Shared classic profiles, 2026-10-04:** the existing party/invitation/relay path
 now accepts reviewed RetroArch core/platform identities beyond the test-ROM list.
-Local title renames remain compatible. Generic profiles have two pads; exact
+Local title renames remain compatible. Generic profiles default to two pads;
+Snes9x/PCE-family profiles now select up to four from metadata using reviewed
+layouts. FBNeo remains automatically two until cabinet-mode preparation exists;
+four assigned relay seats alone did not prove four-player gameplay. Exact
 NES Four Score keeps four. Both handhelds received the build; the experimental
 gate and remaining real-user/network acceptance stay open. See
 [implementation and device evidence](RETROARCH_MULTIPLAYER_PROFILES.md).

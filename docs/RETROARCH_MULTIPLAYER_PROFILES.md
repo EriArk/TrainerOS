@@ -108,3 +108,76 @@ networks, wider peripheral capacities, arcade dependency completeness and any
 concrete core/game failures. A reviewed profile is not a claim that every title
 has been physically played. Portable source and its standalone CMake target are
 kept under `docs/adapters/implementations/runtime`.
+
+## Three/four-player profiles — 2026-10-04
+
+The shared invitation path now selects three/four-seat profiles from game player
+metadata for the following reviewed controller layouts. No extra lobby, binding
+or controller setup page was added. The ordinary experimental gate stays off.
+
+| Core / platform | Session preparation | Automatic capacity |
+| --- | --- | --- |
+| Snes9x / SNES | Normal P1; Multitap device 257 on port 2, with five logical pads | Metadata maximum, capped at four |
+| PCE Fast / PC Engine and CD | Five core pad ports | Metadata maximum, capped at four |
+| SuperGrafx / its supported PCE-family platforms | Five ports, private `sgx_multitap = enabled` | Metadata maximum, capped at four |
+| FBNeo / arcade | Four independent driver ports are implemented | **Still two automatically**: title count does not establish the configured cabinet mode |
+
+Missing counts and alternating-player metadata retain two-seat preparation;
+known single-player metadata still suppresses invitations. Exact reviewed profiles
+take priority over scraped counts. Genesis Team Player versus EA 4-Way Play and
+NES Four Score versus Famicom expansion cannot be inferred from count alone:
+their generic routes stay two; the existing exact NES Four Score remains four.
+Neo Geo, MAME and the other baseline cores are not newly promoted to four seats.
+
+Capacity and controller layout are included in the peer identity. Each participant
+requests only its assigned port; the host owns port 1, and the connection limit
+is capacity minus one. Metadata capacity changes invalidate discovery. Launch
+revalidates the accepted layout/content/runtime rather than silently reverting
+to two pads. Core options remain private and are removed on exit; ordinary
+saves/settings are unchanged. Different metadata capacities currently require
+matching local profiles; there is no silent capacity negotiation.
+
+### Bounded evidence and unresolved differences
+
+- Windows and ARM builds and the `retroarch`, `game_party`, `netplay_client`
+  suites pass. Added coverage exercises three/four-seat mappings, invalid ports,
+  unsupported automatic layouts, private SuperGrafx options, forged layout
+  rejection, and a three-seat party that rejects a fourth member and reuses a
+  vacated seat. This is configuration/coordinator evidence, not new physical
+  SNES/PCE four-player gameplay evidence.
+- A production-preparation fixture launched four FBNeo Battle Circuit clients
+  across Flip/Odin through the public Madrid relay, with guests joining in order
+  P2, P4, P3. Logs confirm each assigned slot. Four emulator processes are not
+  four actual TrainerOS users, and no new Social UI acceptance is claimed.
+- The devices' ordinary known BIOS manifests differ. The normal compatibility
+  check rejects that mismatch; the fixture used identical BIOS only in isolated
+  folders. Installed BIOS were not replaced. Resolving unnecessary whole-set
+  mismatches remains a concrete classic-family gap.
+- Battle Circuit's default cabinet showed only P1/P2 in its in-game input test.
+  Consequently this probe does **not** prove four-player gameplay. Automatic
+  FBNeo capacity remains two until a game-specific cabinet mode can be prepared
+  and checked. Merely assigning four RetroArch ports would overstate support.
+- Both fixture attempts were stopped and private session options/credentials
+  removed. Ordinary config/option/remap hashes stayed unchanged: 25 files on
+  Flip and 1066 on Odin. Vulkan was used; audio was muted. No save/library
+  migration or device reboot. Distinct networks remain owner-deferred.
+
+MP-01 remains open: real-user/company and distinct-network acceptance, effective
+arcade cabinet/BIOS compatibility, and the shared release decision are not closed
+by this delivery. Reuse the established seat/relay evidence instead of repeating
+the same four-process experiment as another stage.
+
+Both handhelds now run ARM executable SHA-256
+`e78249f7cef44881802fa194b825cd35fef06bc7ca023c07090c4b6e22418b7d`,
+verified from each live process after shell-only restart. Both databases passed
+read-only quick-check; no probe games/private session directories remain.
+Odin volume is zero; Flip is muted. The portable runtime snapshot was refreshed
+and its standalone library/example build passed. Ordinary experimental-off
+launchers were preserved; this installation does not enable the unfinished lane.
+
+Sources inspected:
+- https://github.com/libretro/snes9x/blob/master/libretro/libretro.cpp
+- https://github.com/libretro/beetle-pce-fast-libretro/blob/master/libretro.c
+- https://github.com/libretro/beetle-supergrafx-libretro/blob/master/libretro.cpp
+- https://github.com/libretro/Genesis-Plus-GX/blob/master/libretro/libretro.c
+- https://docs.libretro.com/library/fbneo/

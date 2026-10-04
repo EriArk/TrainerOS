@@ -138,17 +138,24 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     for(auto it=installation.cores.cbegin();it!=installation.cores.cend();++it)revision=qHashMulti(revision,it.key(),stamp(it.value()));
     const auto candidate=[](const AdventureRegistration& r){return r.adventure.platformId=="psp"||r.adventure.platformId=="gc"||
         retroarch::netplaySupported(r.adventure.platformId,r.integrationConfig["core"].toString());};
-    for(const auto& r:records)if(candidate(r))
-        revision=qHashMulti(revision,r.adventure.id,stamp(r.contentPath),r.revision,r.integrationConfig["core"].toString());
+    QMap<QString,int> capacities;
+    QMap<QString,QVariantMap> metadata;
+    for(const auto& r:records)if(candidate(r)) {
+        const auto core=r.integrationConfig["core"].toString();
+        const auto info=library_.artwork(r.adventure.id);metadata.insert(r.adventure.id,info);
+        const int capacity=retroarch::netplayCapacity(r.adventure.platformId,core,info);
+        capacities.insert(r.adventure.id,capacity);
+        revision=qHashMulti(revision,r.adventure.id,stamp(r.contentPath),r.revision,core,capacity);
+    }
     if(!revision)revision=1;
     if(!scan_.isRunning() && (scanRevision_!=revision||!scanRevision_)) {
         scanRevision_=revision;
-        scan_.setFuture(QtConcurrent::run([records,installation,pspInstallation,dolphinInstallation,candidate]{
+        scan_.setFuture(QtConcurrent::run([records,installation,pspInstallation,dolphinInstallation,candidate,capacities]{
             std::atomic_bool cancel=false;
             retroarch::NetplayDigestCache digests;
             QMap<QString,QJsonObject> games;
             for(const auto& r:records)if(candidate(r)) {
-                const auto identity=r.adventure.platformId=="gc"?dolphin::netplayIdentity(r,dolphinInstallation,cancel):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel,&digests);
+                const auto identity=r.adventure.platformId=="gc"?dolphin::netplayIdentity(r,dolphinInstallation,cancel):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel,&digests,capacities.value(r.adventure.id,2));
                 if(!identity.isEmpty())games.insert(r.adventure.id,identity);
             }
             return games;
@@ -156,7 +163,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     }
     games_.clear();
     for(auto it=profiles_.cbegin();it!=profiles_.cend();++it)
-        if(permitsMultiplayer(library_.artwork(it.key()),it.value()))games_.insert(it.key(),it.value());
+        if(metadata.contains(it.key())&&permitsMultiplayer(metadata.value(it.key()),it.value()))games_.insert(it.key(),it.value());
     const auto visible=allowed_?games_.keys():QStringList{};
     if(visible!=onlineGames_){onlineGames_=visible;emit availabilityChanged();}
     update();

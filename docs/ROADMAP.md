@@ -31,6 +31,14 @@ classic systems through common RetroArch profiles before MP-02 handheld link.
 That expansion is implemented; resolve concrete classic-family gaps and the
 shared release decision without manufacturing a project per console.
 
+**Capacity increment, 2026-10-04:** metadata-selected Snes9x/PCE-family profiles
+now prepare three/four seats through the existing invitations. Generic arcade
+admission remains two: the four-client FBNeo relay probe found a two-player
+default cabinet, so title metadata alone is insufficient. Next concrete gaps
+are effective arcade cabinet preparation and unnecessary BIOS-set mismatches;
+the owner-deferred networks and actual multi-user acceptance remain separate.
+See [profile evidence](RETROARCH_MULTIPLAYER_PROFILES.md#threefour-player-profiles--2026-10-04).
+
 ## Recent evidence — not separate delivery stages
 
 **Session isolation checkpoint, 2026-10-04:** RetroArch netplay now avoids the

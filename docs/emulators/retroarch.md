@@ -178,3 +178,24 @@ TrainerOS/Fluxer accounts. It proves separate rooms/configuration/input/lifetime
 not the full multi-party Social journey or two simultaneous played rounds.
 Distinct-network/NAT, four-user invitations, whole-block multiplayer and human
 speech acceptance remain open. No new emulator family or compatibility claim.
+
+## Metadata-selected multi-pad layouts — 2026-10-04
+
+Snes9x/PCE-family profiles now prepare three/four-seat sessions from metadata:
+Snes9x uses port-2 Multitap device 257; PCE uses its logical pad ports; SuperGrafx
+enables its multitap in the private session options. Capacity/layout participates
+in identity matching and launch revalidation. The existing coordinator assigns
+one remote port per player and rejects excess members; no second lobby is added.
+
+FBNeo four-port preparation exists, but automatic capacity stays two. A bounded
+four-client Battle Circuit probe joined P2/P4/P3 in that order through the public
+relay, then exposed the game's default two-player cabinet in its input test.
+It is not four-player gameplay acceptance. Ordinary BIOS hashes also differ
+between Flip and Odin; matching firmware was staged only inside isolated probe
+folders. Ordinary configs and BIOS were preserved, probes cleaned up. Resolve
+these specific compatibility/mode gaps before expanding arcade admission.
+
+Source references, configuration tests, actual-device evidence and remaining
+release gates are maintained in [shared profiles](../RETROARCH_MULTIPLAYER_PROFILES.md).
+That record supersedes earlier two-pad-only generic descriptions. Existing
+Four Score, ordinary save isolation and experimental-off defaults remain intact.

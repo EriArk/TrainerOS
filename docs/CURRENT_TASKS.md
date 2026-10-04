@@ -34,9 +34,14 @@ No player IP entry, router setup or VPN administration.
 
 - [x] Replace the test-title-only boundary with reviewed classic core/platform
   profiles using the existing invitation/relay flow; retain exact profiles,
-  private settings/saves and controller exceptions. Generic capacity is two;
-  established exact NES Four Score remains four. See the profile record for
+  private settings/saves and controller exceptions. Generic baseline is two;
+  metadata-selected three/four seats now exist for Snes9x and PCE-family layouts.
+  Established exact NES Four Score remains four. See the profile record for
   source-backed coverage versus actual device evidence.
+- [x] Three/four-seat controller preparation and three-seat admission/rejoin
+  regression coverage. The four-client FBNeo relay probe confirms assigned seats,
+  not independent four-player gameplay. FBNeo automatic admission stays two:
+  Battle Circuit's default cabinet was two-player. No four-user acceptance implied.
 
 ### Remaining acceptance and release work
 
@@ -60,6 +65,10 @@ implementation task when an external condition is all that is missing.
   effective capacity, compatibility, saves/session settings, installed profile
   availability and cleanup. Reuse passed paired gameplay and isolation evidence;
   only exercise differences or changed behavior. Avoid testing every title.
+  Concrete findings: ordinary Flip/Odin FBNeo BIOS manifests differ; broad known
+  BIOS hashing can reject an unused dependency. Arcade title maximum also does
+  not establish cabinet mode. Resolve these without enabling unverified capacity
+  or replacing the owner's ordinary BIOS/configuration wholesale.
 - [ ] Enable only supported profiles whose required gates passed;
   keep others honestly unavailable. Update the matrix, maintenance record and
   acceptance evidence, deliver both available handhelds and commit/push.

@@ -13,8 +13,13 @@ cover reviewed platform/core pairs without a per-ROM allowlist. Call
 `netplayIdentity` with the actual installation and content, then `prepareNetplay`
 with the accepted peer identity. Runtime/core/content and known firmware must
 match; local display names may differ. Disc validation is included in this copy.
-These profiles use private two-pad temporary-progress sessions, not semantic save
-editing or handheld link. Exact legacy profiles retain their specific controls.
+These profiles use private temporary-progress sessions, not semantic save
+editing or handheld link. Call `netplayCapacity(platform, core, metadata)` and
+pass its result as `netplayIdentity`'s final argument to enable reviewed
+Snes9x/PCE-family three/four-pad layouts. The default remains two. Arcade title
+counts cannot establish cabinet mode, so automatic FBNeo stays two despite the
+low-level adapter's four-port support. `prepareNetplay` revalidates the accepted
+capacity/layout. Exact legacy profiles retain their specific controls.
 
 Linux, C++20 and Qt 6 Core/Gui/Network (Gui is a model-header dependency):
 
