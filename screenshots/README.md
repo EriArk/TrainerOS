@@ -200,3 +200,12 @@ and Flip's call after game return. They do not show four-client gameplay.
 - [57-group-call-game-flip](57-group-call-game-flip.png)
 - [58-group-call-party-odin](58-group-call-party-odin.png)
 - [59-group-call-return-flip](59-group-call-return-flip.png)
+
+Screens 60-61 are actual Odin captures from 4 October on `e5dd13d`, with the
+temporary experimental gate enabled. The group call remained active after
+gameplay relay loss and game exit; Join game entered the retained Flip host.
+The next capture shows restored P2 control and the retained score/time.
+[Evidence and synthetic audio limits](../docs/GAME_PARTIES.md#shared-call-during-relay-gameplay-and-rejoin---2026-10-04).
+
+- [60-online-call-after-exit-odin](60-online-call-after-exit-odin.png)
+- [61-online-call-rejoined-game-odin](61-online-call-rejoined-game-odin.png)

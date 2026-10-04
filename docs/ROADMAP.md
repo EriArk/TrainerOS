@@ -1,5 +1,14 @@
 # TrainerOS Roadmap
 
+**Paired online-call checkpoint, 2026-10-04:** the existing NES relay match now
+has shared group-call continuity proof through actual P1/P2 gameplay, a scoped
+12-second gameplay-transport loss, guest Home exit and group-card rejoin into
+the retained host. Synthetic audio continued; voice workers did not restart.
+[Evidence and limits](GAME_PARTIES.md#shared-call-during-relay-gameplay-and-rejoin---2026-10-04).
+Do not rerun this or the earlier ordinary-games call check. Next unresolved gates
+are distinct-network routing and multi-client/concurrent-party gameplay; two
+consoles on one router cannot close those. Human speech checks remain deferred.
+
 **Graphics recovery checkpoint, 2026-10-04:** Odin's shell now selects Vulkan,
 with explicit Qt backend overrides preserved. Short controller navigation and
 ordinary Dolphin launch/Home exit/return passed; this is a mitigation, not proof

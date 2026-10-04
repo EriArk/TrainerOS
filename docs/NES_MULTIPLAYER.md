@@ -74,6 +74,11 @@ experimental-off release policy. Actual captures are in screenshots 43-48.
 
 ## Remaining acceptance and current next work
 
+The 4 October [paired game/call check](GAME_PARTIES.md#shared-call-during-relay-gameplay-and-rejoin---2026-10-04)
+now passes group-call retention during actual relay gameplay and explicit guest
+loss/exit/rejoin. Its synthetic-audio evidence supersedes the open ongoing-call
+item below for this route; human speech, distinct networks and other gates remain.
+
 - Distinct internet networks/NAT conditions: both devices here shared one home
   router while using the external payload relay. Do not label this a two-network
   proof. Seamless reconnection is not delivered; explicit exit/rejoin is proven.

@@ -1,5 +1,13 @@
 # Native Social - conversations and discovery
 
+**Paired relay game and call, 2026-10-04:** Flip/Odin retained their group call
+through actual NES Pong P1/P2 play, a 12-second gameplay-only connection loss,
+guest exit and group-card rejoin. Synthetic audio continued and both voice
+workers retained their PIDs. [Exact evidence](GAME_PARTIES.md#shared-call-during-relay-gameplay-and-rejoin---2026-10-04)
+does not establish distinct-network, four-client or human speech acceptance.
+Ordinary experimental-off launchers/audio defaults were restored on both.
+Blocks 1 and 3 remain open; do not repeat this now-passed continuity check.
+
 **Shared group voice, 2026-10-04:** one ordinary group call now defines the accepted
 voice model across separate games/parties; separate party rooms are not required.
 Existing behavior passed bounded Flip/Odin synthetic audio checks during ordinary

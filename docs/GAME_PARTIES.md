@@ -1,5 +1,50 @@
 # Runtime game parties
 
+## Shared call during relay gameplay and rejoin - 2026-10-04
+
+This closes a different check from the ordinary-games call below: both devices
+participated in the **same real NES Pong netplay match** while retaining their
+existing group call. No application change or new communication flow was needed.
+
+Both ran `e5dd13d`'s executable
+`d30b8e79be60838777d1321a391058da9c801e32a1393fc54c544aca92f4ef59`,
+temporarily enabling the existing experimental netplay gate. Flip created the
+party through Home / Invite friend / Online friend / existing group. Odin joined
+its group card using the previously authorized member policy. Explicit Start
+launched FCEUmm on both through public relay `34.140.160.20:55435`; initial guest
+ping was 157 ms. Flip's P1 and Odin's P2 moved independently, and serving advanced
+the score and timer. Both consoles still shared one router.
+
+The call was established first through the normal Groups UI. Audio used isolated
+null sinks and a synthetic input; no physical microphone was recorded and neither
+speaker was enabled. An original 440 Hz signal reached Odin during startup and
+play (measured amplitude 1205.26). A second 35-second signal spanned a scoped
+12-second interruption of only Odin's gameplay-relay traffic. The temporary nft
+rules dropped 70 outgoing / 26 incoming packets and were removed in `finally`.
+After onset, each complete one-second signal window retained amplitude 1201-1202,
+without an empty second during the interruption. This is bounded synthetic
+continuity evidence, not perceptual speech quality or a zero-packet-loss claim.
+
+Gameplay disconnected. Odin's normal Home Exit returned to the same group,
+where its call remained connected and the host game showed 1/2 with Join game.
+Right/A rejoined without a second organizer approval. The host emulator retained
+PID 3282941; the guest replaced PID 20106 with 30676, joined as P2 at 138 ms and
+responded to Up. The retained score/time were visible. A fresh post-rejoin tone
+reached amplitude 1203.86. Voice workers retained their original PIDs throughout
+(Flip 3272257, Odin 18809); game departure/rejoin did not restart the call.
+
+Actual Odin captures: [call and free place after exit](../screenshots/60-online-call-after-exit-odin.png)
+and [rejoined match](../screenshots/61-online-call-rejoined-game-odin.png).
+Both games then exited through Home. Test voice workers and synthetic audio
+modules were stopped/removed, original audio defaults restored, and ordinary
+experimental-off ELF launchers restored on both. No device reboot was needed.
+
+This passes shared-call continuity for this paired relay route and its explicit
+exit/rejoin recovery. It does not close communication blocks 1/3: distinct
+internet networks, simultaneous paired parties on four clients, larger real
+sessions, router-free runtime and deferred human audio checks remain open.
+Do not repeat this successful scenario as a substitute for those gates.
+
 ## Shared group call checkpoint - 2026-10-04
 
 The owner clarified that one ordinary group voice call serves friends playing
