@@ -4,6 +4,34 @@ TrainerOS uses a complete delivery loop: inspect → implement → review → ve
 
 ## Before changing code
 
+### Whole increments and avoiding loops
+
+Use [ROADMAP](ROADMAP.md#active-execution-queue--2026-10-04) for order and
+[Current tasks](CURRENT_TASKS.md) for the current outcome and remaining acceptance.
+Do not choose a new task from an old checkpoint's "next" sentence.
+
+1. State the task ID, whole user-visible outcome and reasoning level. If the
+   recommended level changes, wait for the owner's continuation before starting.
+2. Read existing evidence once. Identify what is actually missing, distinguishing
+   implementation from unverified behavior and unavailable external conditions.
+3. Complete the announced functionality and its direct controller journey, then
+   run the necessary bounded checks. A test is part of the feature, not the next
+   feature. Do not add speculative code merely to make a verification look larger.
+4. Repeat a passed check only for an affected change, observed failure or named
+   unresolved risk. Record that reason. Avoid general re-audits of settled choices.
+5. Deliver relevant changes to both available handhelds, review actual screenshots
+   for visual changes, update task/evidence records, commit and push. Docs-only
+   planning needs document/link/diff verification, not builds or device deployment.
+6. Report the result against the announced scope. Unmet acceptance stays open;
+   name its exact dependency. Do not relabel a partial checkpoint as a whole block,
+   silently split the promised work, or jump the queue to hide a blocker.
+
+If the remaining work requires additional clients, different internet connections
+or owner listening, say so once and retain it in the task register. Continue only
+independent authorized work in the accepted scope; when none remains, stop rather
+than manufacturing another test-only pass. A standalone audit/planning pass is
+appropriate when the owner explicitly requested it.
+
 Read the repository contract and the relevant product/architecture/roadmap documents. Inspect `git status --short`, the active branch, upstream and recent commits. Understand existing changes before staging or editing them. Fetch remote state before integration/push; do not overwrite someone else's changes to make the tree look clean.
 
 Choose one bounded increment with a visible acceptance result. Follow foundations → modules → verified adapters; do not jump to save parsing, external achievement integration or session replacement to avoid a missing device prerequisite. Record meaningful decisions in the same change.

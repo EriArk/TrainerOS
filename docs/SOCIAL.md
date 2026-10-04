@@ -1,5 +1,11 @@
 # Native Social - conversations and discovery
 
+**Execution entry point, 2026-10-04:** use the current [ROADMAP queue](ROADMAP.md#active-execution-queue--2026-10-04)
+and [task register](CURRENT_TASKS.md). This document retains communication
+acceptance and evidence; dated "next" statements below are historical. Current
+work is block 1 / MP-01. Block 3's owner-deferred listening remains open, followed
+by blocks 4 and 5; completed block 2 and call checks must not be recycled as passes.
+
 **Session isolation checkpoint, 2026-10-04:** RetroArch netplay now avoids the
 ordinary per-core option files. Two simultaneous public-relay rooms on Flip/Odin
 kept independent input/session lifetimes; ending one left the other playable.

@@ -1,5 +1,31 @@
 # TrainerOS Roadmap
 
+## Active execution queue — 2026-10-04
+
+Start here, then read [Current tasks](CURRENT_TASKS.md). This table controls
+execution; the task register decomposes it, and dated checkpoints below retain
+evidence. Old text saying "next" does not override this queue. Task rows are not
+quotas for separate turns: complete the announced outcome, including its checks.
+The owner explicitly rejects test-only passes substituted for feature delivery.
+
+| Order | Outcome / task | State and dependency |
+| --- | --- | --- |
+| **Now · block 1** | **MP-01: finish the NES / Mega Drive / SNES online experience** | In progress. Existing invitations, two-player relay gameplay, recovery, four-seat runtime and option isolation are evidence to reuse. Finish the real TrainerOS multi-user/company journey and outstanding internet acceptance; do not restart those implementations or call fixture proof full delivery. |
+| 2 · block 1 | MP-02: GB/GBC/GBA actual link; MP-03: selected PS1/N64 routes | After MP-01. Separate emulated-machine link from shared controllers; implement the viable supported mechanisms with their complete invitation journey. |
+| 3 · block 1 | MP-04: Dreamcast; MP-05: PS2/GameCube; MP-06: DS/PSP; MP-07: 3DS and eligible newer routes | Oldest first. Reuse installed PSP/Dolphin work; resolve each route's remaining acceptance, not every ROM. Unsupported mechanisms require a sourced conclusion, not a misleading enabled button. |
+| Retained · block 3 | COM-03: outstanding calls/notifications acceptance | Human speech/listening is owner-deferred. Keep group voice running through multiplayer; resume the missing acceptance when its prerequisite is available, without restarting completed call checks. |
+| 4 · block 4 | LINK-04: complete native online activities | After block 1, using existing invitation infrastructure and protected bilateral transactions. Emulator multiplayer and saved-creature Link stay separate. |
+| 5 · block 5 | REVIEW-05: reviews and final communication journey | After preceding communication outcomes; preserve #113 exact-game completion policy and all unfinished messenger acceptance. |
+| Then | Remaining R1–R18, R7a, R18a/R18b and U commitments | Continue the preserved [unified backlog](#unified-execution-order--existing-work-and-new-issues), doing residual work only. ScreenScraper needs owner access; sleep remains deferred; generic artwork/Pack Studio remains at the end. |
+
+**Completion boundary:** block 1 is still open; ordinary device builds remain
+experimental-off. Neither this plan nor four emulator processes on two consoles
+establishes four real TrainerOS users or separate-network internet acceptance.
+Missing prerequisites and concrete task checklists are in [Current tasks](CURRENT_TASKS.md).
+This planning pass changes no installed behavior.
+
+## Recent evidence — not separate delivery stages
+
 **Session isolation checkpoint, 2026-10-04:** RetroArch netplay now avoids the
 ordinary per-core option files. Two simultaneous public-relay rooms on Flip/Odin
 kept independent input/session lifetimes; ending one left the other playable.
@@ -62,9 +88,13 @@ voice rooms are removed from scope. All other acceptance is retained.
 
 **2026-09-27 #91:** [Adapter knowledge base](adapters/README.md) is a prerequisite for new exact-game research and is updated throughout every adapter increment. It composes the existing #42/#89 work, without replacing or dropping any R1–R18 acceptance. A portable copy of the actual adapter, exact-game profiles and standalone build travel with its evidence. The delivered Emerald slice covers reorder, box movement, Party/Box transfer and protected release.
 
-## Current plan — reconciled 2026-10-01
+<a id="current-plan--reconciled-2026-10-01"></a>
 
-### Multiplayer agreement — 2026-10-03, current next work
+## Accepted scope and historical reconciliation
+
+<a id="multiplayer-agreement--2026-10-03-current-next-work"></a>
+
+### Multiplayer agreement — 2026-10-03
 
 **Owner priority, 2026-10-03:** internet multiplayer is the primary scenario;
 LAN and direct nearby play remain in scope. For each emulator, resolve the
@@ -1150,7 +1180,12 @@ run is a delivery gate. The R queue below schedules only remaining work.
 
 ## Unified execution order — existing work and new issues
 
-Single remaining queue, reconciled 2026-10-01; #91–112 add dependencies and
+The active communication queue at the top of this document takes precedence.
+This section preserves the broader backlog and dependencies; completed entries
+are not instructions to reimplement them. Return here for remaining work after
+the active override, without dropping the preservation map or issue registers.
+
+Preserved broader backlog, reconciled 2026-10-01; #91–112 add dependencies and
 suffixed rows without removing or renumbering earlier acceptance. Work top to bottom in coherent
 feature chains: backend, UI, checks, device delivery, commit/push. UI precedes
 its new provider; fixtures never become production progress. Existing features

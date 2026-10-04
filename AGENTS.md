@@ -1,5 +1,21 @@
 # AGENTS.md — TrainerOS
 
+**Owner whole-increment rule, 2026-10-04:** follow the current queue at the top
+of [ROADMAP](docs/ROADMAP.md) and its [task register](docs/CURRENT_TASKS.md).
+A pass delivers the whole announced user outcome: implementation, direct UI,
+integration, necessary bounded checks, both available handheld deliveries and
+commit/push. A test, handshake, screenshot, configuration tweak or audit alone
+is not a substitute for that outcome. Do not silently shrink an accepted block
+into smaller passes or call a checkpoint completion. Previously passed checks
+are reused unless changed code, a failure or a concrete unresolved risk warrants
+repeating them. If only external acceptance remains, record the exact missing
+condition and stop that loop; do not invent more implementation or repeat tests
+to fill a pass. Keep the task open and obey the accepted execution order.
+Explicit planning/audit requests, including this reconciliation, may be docs-only.
+Before work name the task and intended player-visible result; at delivery record
+what changed, evidence, unresolved acceptance and the next task. Preserve every
+earlier commitment and the reasoning-level/change-and-wait rule.
+
 **Owner graphics preference, 2026-10-04:** prefer Vulkan wherever the supported
 device/emulator route works correctly. Keep per-emulator compatibility and user
 overrides; do not export a shell graphics variable into emulator children or
