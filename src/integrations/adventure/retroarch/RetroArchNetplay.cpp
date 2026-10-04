@@ -1,10 +1,12 @@
 #include "RetroArchNetplay.h"
 #include "RetroArchConfiguration.h"
 #include "RetroArchDisc.h"
+#include "FBNeoRomSets.h"
 #include "core/model/GamePlayers.h"
 #include <QCryptographicHash>
 #include <QDateTime>
 #include <QJsonDocument>
+#include <QJsonArray>
 #include <QDir>
 #include <QFileInfo>
 #include <QRegularExpression>
@@ -98,11 +100,12 @@ bool token(const QString& s,int max) {
 }
 }
 bool netplaySupported(const QString& platform,const QString& core) {return coreProfile(platform,core)!=nullptr;}
-int netplayCapacity(const QString& platform,const QString& core,const QVariantMap& metadata) {
+int netplayCapacity(const QString& platform,const QString& core,const QVariantMap& metadata,const QString& contentPath) {
     const auto players=gamePlayers(metadata);
     // Arcade metadata gives the title maximum, not the current cabinet mode.
     // Keep automatic admission at two until the game-specific mode is prepared.
-    if(core=="fbneo"||players.mode=="Taking turns"||multiPadLayout(platform,core).isEmpty())return 2;
+    if((core=="fbneo"&&QFileInfo(contentPath).completeBaseName()!="batcir")||
+       players.mode=="Taking turns"||multiPadLayout(platform,core).isEmpty())return 2;
     return qBound(2,players.maximum,4);
 }
 QJsonObject netplayProfile(QString platform,QString core,QString content,int players) {
@@ -187,7 +190,43 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstal
         identity["label"]=r.adventure.title.left(96);
         QJsonObject firmware;
         const auto system=configuredPath(readSettings(i.configFile),"system_directory");
-        for(const auto& name:QString::fromLatin1(p->firmware).split('|',Qt::SkipEmptyParts)) {
+        auto names=QString::fromLatin1(p->firmware).split('|',Qt::SkipEmptyParts);
+        const auto platform=r.adventure.platformId;
+        // These cartridge modes never load the core's disc firmware.
+        if(platform=="nes"||platform=="pcengine"||platform=="supergrafx"||
+           (coreId=="picodrive"&&platform!="segacd"))names.clear();
+        if(coreId=="fbneo") {
+            const auto set=QFileInfo(r.contentPath).completeBaseName();
+            const auto& sets=fbneoRomSets();
+            if(!sets.contains(set))return {}; // Unknown driver dependencies need review.
+            if(players>2) {
+                if(set!="batcir")return {}; // Reviewed Europe cabinet only, not its clones.
+                identity["cabinet"]="batcir-eu-four-chutes-v1";
+            }
+            // FBNeo searches own set, parent and BIOS archives, not every BIOS
+            // on the device. Include alternate locations in search order: split
+            // sets can obtain different members from more than one archive.
+            QStringList archives{set};archives+=sets.value(set);
+            firmware["policy"]="fbneo-archives-v2";
+            for(const auto& archive:archives) {
+                QJsonArray hashes;
+                QStringList dirs{QFileInfo(r.contentPath).absolutePath()};
+                if(!system.isEmpty())dirs<<QDir(system).filePath("fbneo")<<system;
+                dirs.removeDuplicates();
+                for(const auto& dir:dirs)for(const auto& extension:{"zip","7z"}) {
+                    const auto candidate=QDir(dir).filePath(archive+'.'+extension);
+                    if(!QFileInfo(candidate).isFile())continue;
+                    const auto value=digest(candidate,2LL*1024*1024*1024,cancel,cache);
+                    if(value.isEmpty())return {};
+                    // Identical duplicates or relocating the same dependency
+                    // must not cause a false mismatch; different bytes still do.
+                    if(!hashes.contains(value))hashes.append(value);
+                }
+                firmware[archive]=hashes;
+            }
+            names.clear();
+        }
+        for(const auto& name:names) {
             for(const auto& prefix:QStringList{QString(),coreId+'/'}) {
                 const auto candidate=QDir(system).filePath(prefix+name);
                 if(system.isEmpty()||!QFileInfo(candidate).exists())continue;
@@ -243,7 +282,26 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
         QSaveFile f(path+'/'+name);
         return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size()&&f.commit();
     };
-    const QByteArray options=identityLayout(identity)=="sgx-multitap"?QByteArray("sgx_multitap = \"enabled\"\n"):QByteArray();
+    QByteArray options=identityLayout(identity)=="sgx-multitap"?QByteArray("sgx_multitap = \"enabled\"\n"):QByteArray();
+    if(r.integrationConfig["core"]=="fbneo")options+="fbneo-diagnostic-input = \"None\"\n";
+    if(identity["cabinet"]=="batcir-eu-four-chutes-v1") {
+        // New session-only EEPROM, not an imported save. Battle Circuit Europe
+        // factory fields occupy two mirrored configuration blocks. Chute mode
+        // 6 selects four players / four independent coin inputs. See evidence.
+        QByteArray nvram(128,'\0');
+        for(int n=112;n<128;++n)nvram[n]=char(0xff);
+        for(int base:{24,72}) {
+            nvram[base+2]=5;nvram[base+3]=3;nvram[base+4]=7;
+            nvram[base+8]=3;
+            for(int n:{10,11,12})nvram[base+n]=1;
+            nvram[base+14]=6;
+            // Factory edition/date signature, no game code or user progress.
+            const auto signature=QByteArray::fromHex("9703190842544320");
+            nvram.replace(base+16,signature.size(),signature);
+        }
+        if(!QDir().mkpath(path+"/fbneo")||!write("fbneo/batcir.nv",nvram)||
+           !write("fbneo/batcir.fs",nvram))return "Couldn't prepare this game's multiplayer settings.";
+    }
     if(!write("core.opt",options))return "Couldn't prepare multiplayer settings.";
     // RetroArch otherwise prefers config/<core>/<core>.opt over core_options_path
     // and writes it on exit, even with config_save_on_exit disabled. Select the
@@ -251,6 +309,7 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     QByteArray bytes="config_save_on_exit = \"false\"\nglobal_core_options = \"true\"\n"
         "auto_overrides_enable = \"false\"\nauto_remaps_enable = \"false\"\n"
         "game_specific_options = \"false\"\nrun_ahead_enabled = \"false\"\nrewind_enable = \"false\"\n"
+        "sort_savefiles_enable = \"false\"\nsort_savefiles_by_content_enable = \"false\"\n"
         "preemptive_frames_enable = \"false\"\ncheevos_enable = \"false\"\n"
         "savestate_auto_save = \"false\"\nsavestate_auto_load = \"false\"\nautosave_interval = \"0\"\n"
         "history_list_enable = \"false\"\nnetplay_nat_traversal = \"false\"\n"

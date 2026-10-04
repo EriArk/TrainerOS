@@ -11,6 +11,27 @@ content/firmware identity, private progress, two-pad capacity, actual FBNeo prob
 limits and both-device delivery. Keep this profile layer outside replaceable
 upstream binaries. Exact known profiles and their prior evidence remain valid.
 
+### FBNeo dependency/cabinet maintenance
+
+The latest [profile checkpoint](../RETROARCH_MULTIPLAYER_PROFILES.md#title-dependencies-and-arcade-cabinet-checkpoint--2026-10-04)
+fixes unrelated BIOS mismatches and the European Battle Circuit four-player
+cabinet. It records the pinned DAT, checks, actual four-client game evidence and
+current live binary on both devices. No BIOS was installed or replaced.
+
+On an FBNeo update, review own/parent/BIOS relationships against its upstream
+arcade DAT. Download the reviewed DAT outside Git, then regenerate the factual
+index with `python tools/import-fbneo-dependencies.py <dat> --revision <full-commit>`.
+Refresh/check the portable adapter copy. Keep game bytes, BIOS and private test
+data outside Git. Runtime/core/content identities still must match; the DAT does
+not prove all ROM members complete or all titles network-compatible.
+
+`batcir-eu-four-chutes-v1` generates new session-only EEPROM settings and disables
+private save sorting/diagnostic input. Verify the updated core still loads its
+private `fbneo/batcir.fs` or `.nv`, exposes four players and removes the directory
+on exit. Preserve ordinary EEPROM/settings; do not apply this preset to regional
+clones or unrelated cabinets. The ordinary experimental gate remains off until
+the shared real-user/network release criteria pass.
+
 ## Exact artifacts and ownership
 
 [The baseline manifest](../../packaging/emulators/arm64-baseline.json) records

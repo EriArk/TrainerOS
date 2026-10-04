@@ -34,6 +34,51 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void arcadeDependenciesIgnoreUnrelatedBiosButDetectParentsAndShadowSets() {
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        const auto write=[&](QString name,QByteArray bytes) {QFile f(dir.filePath(name));QVERIFY(f.open(QIODevice::WriteOnly));f.write(bytes);};
+        QDir().mkpath(dir.filePath("bios/fbneo"));QDir().mkpath(dir.filePath("roms"));
+        write("retroarch.cfg",("system_directory = \""+dir.filePath("bios")+"\"\n").toUtf8());
+        write("core","core");write("runtime","runtime");write("roms/batcir.zip","game");
+        RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");i.runtimeFile=dir.filePath("runtime");i.cores["fbneo"]=dir.filePath("core");
+        AdventureRegistration r;r.adventure.platformId="fbneo";r.integrationConfig["core"]="fbneo";r.contentPath=dir.filePath("roms/batcir.zip");
+        const auto before=retroarch::netplayIdentity(r,i,cancel);QVERIFY(!before.isEmpty());
+        write("bios/neogeo.zip","unrelated");write("bios/fbneo/qsound.zip","also unrelated");
+        QVERIFY(sameMultiplayerGame(before,retroarch::netplayIdentity(r,i,cancel)));
+        write("bios/fbneo/batcir.zip","alternate set");
+        QVERIFY(!sameMultiplayerGame(before,retroarch::netplayIdentity(r,i,cancel)));
+        QFile::remove(dir.filePath("bios/fbneo/batcir.zip"));
+        write("roms/batcirj.zip","clone");r.contentPath=dir.filePath("roms/batcirj.zip");
+        const auto clone=retroarch::netplayIdentity(r,i,cancel);QVERIFY(!clone.isEmpty());
+        write("roms/batcir.zip","changed parent");QVERIFY(!sameMultiplayerGame(clone,retroarch::netplayIdentity(r,i,cancel)));
+        write("roms/mslug.zip","neogeo game");r.contentPath=dir.filePath("roms/mslug.zip");
+        const auto neo=retroarch::netplayIdentity(r,i,cancel);QVERIFY(!neo.isEmpty());
+        QVERIFY(QFile::rename(dir.filePath("bios/neogeo.zip"),dir.filePath("bios/fbneo/neogeo.zip")));
+        QVERIFY(sameMultiplayerGame(neo,retroarch::netplayIdentity(r,i,cancel)));
+        write("bios/fbneo/neogeo.zip","different firmware");QVERIFY(!sameMultiplayerGame(neo,retroarch::netplayIdentity(r,i,cancel)));
+        write("roms/not-a-reviewed-driver.zip","unknown");r.contentPath=dir.filePath("roms/not-a-reviewed-driver.zip");
+        QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+    }
+    void battleCircuitCabinetIsPrivateAndCloneIsNotPromoted() {
+        QCOMPARE(retroarch::netplayCapacity("fbneo","fbneo",{{"players","1-4"}},"/games/batcir.zip"),4);
+        QCOMPARE(retroarch::netplayCapacity("fbneo","fbneo",{{"players","1-4"}},"/games/batcirj.zip"),2);
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        for(const auto& name:{"batcir.zip","runtime","core","retroarch.cfg"})touch(dir.filePath(name));
+        RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");i.runtimeFile=dir.filePath("runtime");i.cores["fbneo"]=dir.filePath("core");
+        AdventureRegistration r;r.adventure.platformId="fbneo";r.contentPath=dir.filePath("batcir.zip");r.integrationConfig["core"]="fbneo";
+        retroarch::NetplayRequest n;n.expected=retroarch::netplayIdentity(r,i,cancel,nullptr,4);n.host=true;n.slot=1;n.password="private";n.nickname="host";
+        QVERIFY(!n.expected.isEmpty());QCOMPARE(n.expected["cabinet"].toString(),QString("batcir-eu-four-chutes-v1"));
+        ProcessCommand cmd;cmd.arguments={r.contentPath};QVERIFY(retroarch::prepareNetplay(cmd,r,i,n,cancel).isEmpty());
+        const auto settings=retroarch::readSettings(cmd.arguments[cmd.arguments.indexOf("--appendconfig")+1]);
+        QCOMPARE(settings.value("sort_savefiles_enable"),QString("false"));
+        const auto path=settings.value("savefile_directory");
+        QFile nv(path+"/fbneo/batcir.nv");QVERIFY(nv.open(QIODevice::ReadOnly));const auto bytes=nv.readAll();nv.close();
+        QCOMPARE(bytes.size(),128);QCOMPARE(bytes[0x26],char(6));QCOMPARE(bytes.mid(24,24),bytes.mid(72,24));
+        QFile options(settings.value("core_options_path"));QVERIFY(options.open(QIODevice::ReadOnly));QVERIFY(options.readAll().contains("fbneo-diagnostic-input = \"None\""));options.close();
+        cmd.settled({});QVERIFY(!QFileInfo(path).exists());
+        r.contentPath=dir.filePath("batcirj.zip");touch(r.contentPath);QVERIFY(retroarch::netplayIdentity(r,i,cancel,nullptr,4).isEmpty());
+        QFile original(i.configFile);QVERIFY(original.open(QIODevice::ReadOnly));QCOMPARE(original.readAll(),QByteArray("original test fixture"));
+    }
     void metadataSelectsOnlyReviewedMultiPadLayouts() {
         for(const auto& pair:QList<QPair<QString,QString>>{{"snes","snes9x"},{"pcengine","mednafen_pce_fast"},
                 {"pcenginecd","mednafen_pce_fast"},{"supergrafx","mednafen_supergrafx"}}) {

@@ -19,7 +19,8 @@ QString netplayRelayEndpoint(const QByteArray& directoryResponse);
 // Reviewed platform/core pairs; shared-screen netplay is not a link cable.
 bool netplaySupported(const QString& platform, const QString& core);
 // Scraped capacity selects only reviewed controller layouts, never a transport.
-int netplayCapacity(const QString& platform, const QString& core, const QVariantMap& metadata);
+int netplayCapacity(const QString& platform, const QString& core, const QVariantMap& metadata,
+                    const QString& contentPath = {});
 // Worker-local scan cache; launch revalidation deliberately uses no cache.
 using NetplayDigestCache = QHash<QString, QString>;
 QJsonObject netplayProfile(QString platform,QString core,QString contentDigest,int players = 2);

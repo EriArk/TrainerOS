@@ -143,7 +143,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     for(const auto& r:records)if(candidate(r)) {
         const auto core=r.integrationConfig["core"].toString();
         const auto info=library_.artwork(r.adventure.id);metadata.insert(r.adventure.id,info);
-        const int capacity=retroarch::netplayCapacity(r.adventure.platformId,core,info);
+        const int capacity=retroarch::netplayCapacity(r.adventure.platformId,core,info,r.contentPath);
         capacities.insert(r.adventure.id,capacity);
         revision=qHashMulti(revision,r.adventure.id,stamp(r.contentPath),r.revision,core,capacity);
     }

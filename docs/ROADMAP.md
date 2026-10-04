@@ -32,11 +32,12 @@ That expansion is implemented; resolve concrete classic-family gaps and the
 shared release decision without manufacturing a project per console.
 
 **Capacity increment, 2026-10-04:** metadata-selected Snes9x/PCE-family profiles
-now prepare three/four seats through the existing invitations. Generic arcade
-admission remains two: the four-client FBNeo relay probe found a two-player
-default cabinet, so title metadata alone is insufficient. Next concrete gaps
-are effective arcade cabinet preparation and unnecessary BIOS-set mismatches;
-the owner-deferred networks and actual multi-user acceptance remain separate.
+now prepare three/four seats through the existing invitations. European Battle
+Circuit also prepares a private four-player cabinet; four emulator clients reached
+the same level with four active characters. Other arcade cabinets stay at two.
+FBNeo title/parent/BIOS matching fixes the observed unused-BIOS mismatch without
+replacing ordinary firmware. These concrete defects are resolved; owner-deferred
+networks, actual multi-user/company acceptance and release enablement remain open.
 See [profile evidence](RETROARCH_MULTIPLAYER_PROFILES.md#threefour-player-profiles--2026-10-04).
 
 ## Recent evidence — not separate delivery stages

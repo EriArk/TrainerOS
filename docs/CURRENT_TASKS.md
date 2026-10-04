@@ -39,9 +39,13 @@ No player IP entry, router setup or VPN administration.
   Established exact NES Four Score remains four. See the profile record for
   source-backed coverage versus actual device evidence.
 - [x] Three/four-seat controller preparation and three-seat admission/rejoin
-  regression coverage. The four-client FBNeo relay probe confirms assigned seats,
-  not independent four-player gameplay. FBNeo automatic admission stays two:
-  Battle Circuit's default cabinet was two-player. No four-user acceptance implied.
+  regression coverage. European Battle Circuit now prepares a private four-player
+  cabinet: four relay clients reached the same level with four active characters.
+  Other FBNeo cabinets remain capped at two. No four-user acceptance implied.
+- [x] Replace unrelated whole-FBNeo-BIOS comparison with pinned title/parent/BIOS
+  dependencies, retaining core/content identity and ordinary files. The paired
+  cabinet probe used ordinary device BIOS paths successfully. Source disk inspected;
+  no BIOS copy needed. [Evidence](RETROARCH_MULTIPLAYER_PROFILES.md#title-dependencies-and-arcade-cabinet-checkpoint--2026-10-04).
 
 ### Remaining acceptance and release work
 
@@ -65,10 +69,10 @@ implementation task when an external condition is all that is missing.
   effective capacity, compatibility, saves/session settings, installed profile
   availability and cleanup. Reuse passed paired gameplay and isolation evidence;
   only exercise differences or changed behavior. Avoid testing every title.
-  Concrete findings: ordinary Flip/Odin FBNeo BIOS manifests differ; broad known
-  BIOS hashing can reject an unused dependency. Arcade title maximum also does
-  not establish cabinet mode. Resolve these without enabling unverified capacity
-  or replacing the owner's ordinary BIOS/configuration wholesale.
+  The concrete FBNeo unused-BIOS mismatch and European Battle Circuit cabinet
+  defect are now resolved. Other cabinets/peripherals require their actual mode;
+  do not promote them from counts alone or turn remaining scope into every-ROM
+  tuning. Non-FBNeo optional-firmware matching remains conservative.
 - [ ] Enable only supported profiles whose required gates passed;
   keep others honestly unavailable. Update the matrix, maintenance record and
   acceptance evidence, deliver both available handhelds and commit/push.
@@ -80,8 +84,9 @@ The owner subsequently clarified that other classic RetroArch systems come
 before handheld link, grouped by their common mechanism. That generic expansion
 is implemented in this delivery. Before MP-02, resolve concrete classic-family
 gaps and the shared release decision; do not schedule a separate transport
-project for every console or repeat passed scenarios. The FBNeo probe established
-connection/launch, not independent simultaneous controls; retain that distinction.
+project for every console or repeat passed scenarios. The latest FBNeo probe
+established four active players after independent coin/start input through the
+public relay; it does not replace full TrainerOS multi-user/company acceptance.
 
 **Completion:** all applicable items above are fulfilled and remaining scope is
 explicitly resolved. An unavailable external condition keeps MP-01 open; it is
