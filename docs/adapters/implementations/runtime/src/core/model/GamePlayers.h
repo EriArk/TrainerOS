@@ -7,7 +7,21 @@ namespace trainer {
 // Local naming is presentation; all content/settings/runtime fields still match.
 inline bool sameMultiplayerGame(QJsonObject left,QJsonObject right) {
     if(left.isEmpty()||right.isEmpty())return false;
-    left.remove("label");right.remove("label");return left==right;
+    left.remove("label");right.remove("label");
+    // Cross-edition links require identified retail builds. A hack can retain
+    // its base cartridge's header while changing the wire/save data. Unknown
+    // builds may still link to the identical content, never to another edition
+    // solely because both headers advertise the same family.
+    static const QStringList gen3Retail{
+        "a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f6226db19085af",
+        "3d0c79f1627022e18765766f6cb5ea067f6b5bf7dca115552189ad65a5c3a8ac",
+        "729041b940afe031302d630fdbe57c0c145f3f7b6d9b8eca5e98678d0ca4d059"};
+    if(left.value("transport")=="netpacket"&&right.value("transport")=="netpacket"&&
+       left.value("id")=="runtime.handheld.gba-gen3-en.v1"&&left.value("id")==right.value("id")&&
+       gen3Retail.contains(left.value("content").toString())&&gen3Retail.contains(right.value("content").toString())) {
+        left.remove("content");right.remove("content");
+    }
+    return left==right;
 }
 // Catalogue player counts describe the original game, not emulator transport.
 // Only an unambiguous total of one excludes multiplayer. Unknown text stays unknown.
@@ -38,6 +52,10 @@ inline GamePlayers gamePlayers(const QVariantMap& metadata) {
 }
 inline bool permitsMultiplayer(const QVariantMap& metadata,const QJsonObject& runtimeProfile) {
     // Scraping never creates a transport or enlarges the runtime's party capacity.
+    // Handheld boxes often say one LOCAL player; a reviewed cable profile
+    // supplies the independent-machine capacity instead.
+    if(runtimeProfile.value("transport")=="netpacket"&&
+       runtimeProfile.value("id").toString().startsWith("runtime.handheld."))return true;
     return !runtimeProfile.isEmpty()&&!gamePlayers(metadata).solo();
 }
 }

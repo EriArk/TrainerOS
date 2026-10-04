@@ -14,6 +14,7 @@ struct NetplayRequest {
     quint16 clientPort = 0; // Owned loopback authentication bridge, relay guests only.
     int slot = 0; // Party-assigned controller; never inferred from arrival order.
     QJsonObject expected;
+    QString localContent; // Own cartridge fingerprint for compatible-edition links.
 };
 QString netplayRelayEndpoint(const QByteArray& directoryResponse);
 // Reviewed platform/core pairs; shared-screen netplay is not a link cable.

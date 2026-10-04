@@ -6,7 +6,32 @@ that each subtask receives a separate turn. Issues and existing evidence retain
 their full acceptance. A checkbox means the stated outcome is delivered, not
 merely that code exists. Do not close a parent block from partial child evidence.
 
-## Current task: MP-01 — classic RetroArch family and shared online-party acceptance
+## Current task: MP-02 — independent handheld link
+
+The owner resumed the interrupted handheld work on 4 October. Complete the
+existing invitation/launch/own-save/exit journey for reviewed GB/GBC/GBA routes.
+Implementation, actual cable exchange and readback evidence are recorded in
+[Handheld multiplayer](HANDHELD_MULTIPLAYER.md). Do not substitute shared controls
+for independent machines, or call the whole family complete from a handshake.
+MP-01's distinct-network and real-user gates below remain open and owner-deferred;
+no classic-system implementation or passed test loop is restarted.
+
+### MP-02 delivery checkpoint
+
+- [x] Pinned ARM64 gpSP/DoubleCherryGB installed on both, ordinary cores retained.
+- [x] Own-save staging, guest `.netplay` handling, atomic normal return and recovery.
+- [x] Emerald cable trade on copies; ordinary mGBA readback on both.
+- [x] Installed GBA Home invitation, accepted online party, automatic linked
+  launch, own Continue, peer departure and normal Home exit on both.
+- [x] Red relay pair, existing guest save, changed guest SRAM finalization and
+  ordinary Gambatte readback; reusable adapter and per-emulator update records.
+- [ ] Gen I/II/TCG cable transactions, GB ordinary UI journey and Gen II clock.
+- [ ] GBA battle/cross-edition and Advance Wars gameplay; four-client activity.
+- [ ] Owner-deferred distinct-network/multi-user and human voice acceptance.
+
+Stay in MP-02; do not restart passed Emerald/Red checks without a concrete change.
+
+## MP-01 — retained classic RetroArch and shared online-party acceptance
 
 **State:** existing NES/Mega Drive/SNES exact-game routes are implemented and
 have paired gameplay evidence. Shared multi-user and distinct-network acceptance

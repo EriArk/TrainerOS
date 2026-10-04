@@ -18,6 +18,22 @@ class ProcessTests final : public QObject {
         );
     }
 private slots:
+    void finalizationPrecedesObservationAndReportsSaveFailure() {
+        ProcessService process;QSignalSpy done(&process,&ProcessService::finished);
+        QStringList order;QThread* worker=nullptr;
+        ProcessCommand command{probe(),{}, {}};
+        command.finalize=[&](const ProcessOutcome& outcome){
+            worker=QThread::currentThread();order<<"save";
+            return outcome.started?QString("Save recovery is required"):QString("Did not start");
+        };
+        command.settled=[&](const ProcessOutcome&){order<<"observe";};
+        QVERIFY(process.start(command));QTRY_COMPARE(done.size(),1);
+        QCOMPARE(order,QStringList({"save","observe"}));
+        QVERIFY(worker!=QThread::currentThread());
+        QCOMPARE(done.first()[2].toString(),"Save recovery is required");
+        QVERIFY(process.start({probe(),{}, {}}));QTRY_COMPARE(done.size(),2);
+        QVERIFY(done.last()[2].toString().isEmpty()); // No stale finalizer on next game.
+    }
     void returnObservationRunsOffGuiBeforeFinishedAndNextLaunch() {
         ProcessService process;QSignalSpy done(&process,&ProcessService::finished);
         auto entered=std::make_shared<std::atomic_bool>(false),release=std::make_shared<std::atomic_bool>(false);

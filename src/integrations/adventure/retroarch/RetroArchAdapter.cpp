@@ -65,6 +65,11 @@ RetroArchInstallation RetroArchInstallation::fromJson(const QJsonObject& object)
         const QFileInfo core(path);
         if (core.isFile() && core.isReadable()) result.cores.insert(route.core, path);
     }
+    // Network-only companions; never replace ordinary Gambatte/mGBA routes.
+    for(const auto& name:{QString("gpsp"),QString("DoubleCherryGB")}) {
+        const auto path=QDir(coresDirectory).absoluteFilePath(name+"_libretro.so");
+        if(QFileInfo(path).isFile()&&QFileInfo(path).isReadable())result.cores.insert(name,path);
+    }
     if (QFileInfo(object.value("runtimeFile").toString()).isAbsolute())
         result.runtimeFile = object.value("runtimeFile").toString();
     if (object.value("resumeProtocol").toString() == "mgba-entry-v1") {

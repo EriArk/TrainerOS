@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "revision": "handheld-20261004.1",
+  "architecture": "linux-aarch64",
+  "cores": [
+    {
+      "name": "gpsp_libretro.so",
+      "bytes": 1096232,
+      "sha256": "bf0aee3cbb0bbb6d5dcee715a7b3a4da24631bf925a620ab02b937b43a626b4c"
+    },
+    {
+      "name": "DoubleCherryGB_libretro.so",
+      "bytes": 950432,
+      "sha256": "526e62b1f961086dbcc04ee6f286630753644d202d907bae3628fb9110bfefc4"
+    }
+  ]
+}

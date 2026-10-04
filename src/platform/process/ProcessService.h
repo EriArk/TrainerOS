@@ -25,6 +25,8 @@ struct ProcessCommand {
     // Also called for failed/cancelled preparation if preparation installed it.
     std::function<void(const ProcessOutcome&)> settled{};
     QVariantMap runtimeControls;
+    // Adapter finalization before observations/return, with visible save errors.
+    std::function<QString(const ProcessOutcome&)> finalize{};
 };
 class ProcessService final : public QObject {
     Q_OBJECT
@@ -54,6 +56,7 @@ private:
     std::shared_ptr<std::atomic_bool> cancelled_;
     std::function<QString(const QByteArray&)> inspectOutput_;
     std::function<void(const ProcessOutcome&)> settled_;
+    std::function<QString(const ProcessOutcome&)> finalize_;
     QString validationError_;
     quint64 request_ = 0;
     bool preparing_ = false;

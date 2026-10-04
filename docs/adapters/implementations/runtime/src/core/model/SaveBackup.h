@@ -1,0 +1,68 @@
+#pragma once
+#include "Models.h"
+#include "Merchant.h"
+#include "PartyMove.h"
+#include <QObject>
+#include <functional>
+
+namespace trainer {
+struct SaveTarget {
+    QString adventureId, title, savePath, contentRevision, contextRevision, error;
+    bool supported = false;
+    QString backupOwner; // Empty preserves the legacy shelf; otherwise an exact Trainer ID.
+    QString lineageOwner; // Proven active Trainer, including the original legacy-save owner.
+};
+struct SaveBackup {
+    QString id, revision;
+    QDateTime createdAt;
+    qint64 bytes = 0;
+    bool valid = false, hasSave = false, protection = false;
+    QString reason;
+};
+struct SaveBackupSnapshot {
+    bool supported = false, hasSave = false;
+    QString token, error;
+    QList<SaveBackup> copies;
+    bool canHeal = false, needsHealing = false;
+    int partyCount = 0;
+    QString healingError;
+    MerchantSnapshot shops;
+};
+struct SaveHealing {
+    QByteArray data;
+    QString error;
+    int partyCount = 0;
+};
+using SaveHealer = std::function<SaveHealing(const QByteArray&, const QString& contentHash)>;
+struct SaveBackupResult {
+    bool success = false, restored = false;
+    QString message;
+    SaveBackupSnapshot snapshot = {};
+};
+class SaveBackupService : public QObject {
+    Q_OBJECT
+public:
+    using QObject::QObject;
+    virtual bool busy() const = 0;
+    virtual bool readOnly() const { return false; }
+    virtual void setReadOnly(bool, QObject*, std::function<void(QString)> done) { done("Save policy is unavailable."); }
+    virtual bool supports(const AdventureRegistration&) const = 0;
+    virtual void inspect(const AdventureRegistration&, QObject*, std::function<void(SaveBackupSnapshot)>) = 0;
+    virtual void create(const AdventureRegistration&, const QString& token, QObject*, std::function<void(SaveBackupResult)>) = 0;
+    virtual void restore(const AdventureRegistration&, const SaveBackup&, const QString& token, QObject*, std::function<void(SaveBackupResult)>) = 0;
+    virtual void heal(const AdventureRegistration&, const QString&, QObject*, std::function<void(SaveBackupResult)> done) {
+        done({false,false,"Healing is not available for this Adventure."});
+    }
+    virtual void purchase(const AdventureRegistration&, const QString&, const MerchantPurchase&, QObject*, std::function<void(SaveBackupResult)> done) {
+        done({false,false,"Purchases are unavailable for this Adventure."});
+    }
+    virtual void movePokemon(const AdventureRegistration&,const QString&,const PartyMove&,QObject*,std::function<void(SaveBackupResult)> done) { done({false,false,"Moving is unavailable for this Adventure."}); }
+    virtual void renameBox(const AdventureRegistration&,const QString&,const BoxNameChange&,QObject*,std::function<void(SaveBackupResult)> done) { done({false,false,"Renaming boxes is unavailable for this Adventure."}); }
+    virtual void changeHeldItem(const AdventureRegistration&,const QString&,const HeldItemChange&,QObject*,std::function<void(SaveBackupResult)> done) { done({false,false,"Held items are unavailable for this Adventure."}); }
+    virtual void releasePokemon(const AdventureRegistration&,const QString&,const PokemonRelease&,QObject*,std::function<void(SaveBackupResult)> done) { done({false,false,"Release is unavailable for this Adventure."}); }
+signals:
+    void busyChanged();
+    void operationFailed();
+    void policyChanged();
+};
+}

@@ -1,5 +1,6 @@
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "integrations/adventure/retroarch/RetroArchNetplay.h"
+#include "integrations/adventure/retroarch/RetroArchHandheldLink.h"
 #include "integrations/adventure/retroarch/RetroArchSave.h"
 #include "integrations/adventure/retroarch/RetroArchDisc.h"
 #include "integrations/adventure/retroarch/RetroArchConfiguration.h"
@@ -34,6 +35,81 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void handheldProfilesKeepOwnCartridgeAndPlayerOne() {
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        AdventureRegistration r;r.adventure.platformId="gba";r.integrationConfig["core"]="mgba";
+        r.contentPath=dir.filePath("Emerald.gba");
+        QByteArray rom(512,'\0');rom.replace(0xac,4,"BPEE");
+        QFile f(r.contentPath);QVERIFY(f.open(QIODevice::WriteOnly));f.write(rom);f.close();
+        const auto p=retroarch::handheldLinkProfile(r);
+        QCOMPARE(p["transport"].toString(),QString("netpacket"));
+        QCOMPARE(retroarch::handheldLinkCore(p),QString("gpsp"));
+        QVERIFY(retroarch::handheldLinkOptions(p).contains("mul_poke"));
+        QVERIFY(permitsMultiplayer({{"players","1"}},p));
+        QVERIFY(!permitsMultiplayer({{"players","1"}},{}));
+        auto left=p;left["content"]=QString(64,'a');left["core"]="same";
+        auto right=left;right["content"]=QString(64,'b');
+        QVERIFY(!sameMultiplayerGame(left,right)); // Same header is not cross-hack compatibility.
+        right=left;QVERIFY(sameMultiplayerGame(left,right));
+        left["content"]="a9dec84dfe7f62ab2220bafaef7479da0929d066ece16a6885f6226db19085af";
+        right["content"]="3d0c79f1627022e18765766f6cb5ea067f6b5bf7dca115552189ad65a5c3a8ac";
+        QVERIFY(sameMultiplayerGame(left,right));
+        right["core"]="updated";QVERIFY(!sameMultiplayerGame(left,right));
+        const auto controls=retroarch::netplayControllers(p,false,2);
+        QVERIFY(controls.contains("input_max_users = \"1\""));
+        QVERIFY(!controls.contains("netplay_request_device_p2"));
+        QCOMPARE(retroarch::netplayControllerArguments(p),QStringList({"--device","1:1"}));
+        rom.replace(0xac,4,"NOPE");QVERIFY(f.open(QIODevice::WriteOnly));f.write(rom);f.close();
+        QVERIFY(retroarch::handheldLinkProfile(r).isEmpty());
+        QVERIFY(retroarch::netplayProfile("gba","mgba",QString(64,'a')).isEmpty());
+    }
+    void handheldSaveReturnsOnlyOwnSramAndPreservesRtcAndConflicts() {
+        QTemporaryDir dir;QDir().mkpath(dir.filePath("session"));
+        const auto write=[](QString p,QByteArray b){QFile f(p);QVERIFY(f.open(QIODevice::WriteOnly));QCOMPARE(f.write(b),b.size());};
+        const auto read=[](QString p){QFile f(p);if(!f.open(QIODevice::ReadOnly))return QByteArray();return f.readAll();};
+        const auto target=dir.filePath("Red.srm"),rtc=dir.filePath("Red.rtc");
+        write(target,QByteArray(32768,'a'));write(rtc,"ordinary clock");
+        write(dir.filePath("retroarch.cfg"),("savefile_directory = \""+dir.path()+"\"\nauto_overrides_enable = \"false\"\n").toUtf8());
+        RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");
+        AdventureRegistration r;r.adventure.platformId="gb";r.integrationConfig["core"]="gambatte";r.contentPath=dir.filePath("Red.gb");
+        ProcessCommand cmd;std::atomic_bool cancel=false;
+        QVERIFY(retroarch::prepareHandheldSave(cmd,r,i,dir.filePath("session"),cancel).isEmpty());
+        QCOMPARE(read(dir.filePath("session/Red.srm")),read(target));
+        write(dir.filePath("session/Red.srm"),QByteArray(32768,'b'));
+        write(dir.filePath("session/Red.rtc"),"different clock format");
+        QVERIFY(cmd.finalize({true,0,false,false}).isEmpty());
+        QCOMPARE(read(target),QByteArray(32768,'b'));QCOMPARE(read(rtc),QByteArray("ordinary clock"));
+        QCOMPARE(read(target+".before-link"),QByteArray(32768,'a'));
+        ProcessCommand conflict;QVERIFY(retroarch::prepareHandheldSave(conflict,r,i,dir.filePath("session"),cancel).isEmpty());
+        write(target,QByteArray(32768,'c'));write(dir.filePath("session/Red.srm"),QByteArray(32768,'d'));
+        QVERIFY(!conflict.finalize({true,0,false,false}).isEmpty());
+        QCOMPARE(read(target),QByteArray(32768,'c'));
+        QVERIFY(!QDir(dir.path()).entryList({"Red.srm.link-*.srm"}).isEmpty());
+        ProcessCommand missing;
+        QVERIFY(retroarch::prepareHandheldSave(missing,r,i,dir.filePath("session"),cancel).isEmpty());
+        QVERIFY(QFile::remove(dir.filePath("session/Red.srm")));
+        QVERIFY(QFile::remove(dir.filePath("session/.netplay/Red.srm")));
+        QVERIFY(!missing.finalize({true,0,false,false}).isEmpty());
+        QCOMPARE(read(target),QByteArray(32768,'c'));
+        ProcessCommand crash;
+        QVERIFY(retroarch::prepareHandheldSave(crash,r,i,dir.filePath("session"),cancel).isEmpty());
+        write(dir.filePath("session/Red.srm"),QByteArray(32768,'e'));
+        QVERIFY(!crash.finalize({true,9,true,true}).isEmpty());
+        QCOMPARE(read(target),QByteArray(32768,'c'));
+        ProcessCommand guest;
+        QVERIFY(retroarch::prepareHandheldSave(guest,r,i,dir.filePath("session"),cancel).isEmpty());
+        QCOMPARE(read(dir.filePath("session/.netplay/Red.srm")),read(target));
+        write(dir.filePath("session/.netplay/Red.srm"),QByteArray(32768,'g'));
+        QVERIFY(guest.finalize({true,0,false,false}).isEmpty());
+        QCOMPARE(read(target),QByteArray(32768,'g'));
+        QVERIFY(QFile::remove(target));
+        QVERIFY(QFile::remove(dir.filePath("session/.netplay/Red.srm")));
+        ProcessCommand fresh;
+        QVERIFY(retroarch::prepareHandheldSave(fresh,r,i,dir.filePath("session"),cancel).isEmpty());
+        write(dir.filePath("session/Red.srm"),QByteArray(131073,'f'));
+        QVERIFY(!fresh.finalize({true,0,false,false}).isEmpty());
+        QVERIFY(!QFileInfo::exists(target));
+    }
     void arcadeDependenciesIgnoreUnrelatedBiosButDetectParentsAndShadowSets() {
         QTemporaryDir dir;std::atomic_bool cancel=false;
         const auto write=[&](QString name,QByteArray bytes) {QFile f(dir.filePath(name));QVERIFY(f.open(QIODevice::WriteOnly));f.write(bytes);};
@@ -241,9 +317,9 @@ private slots:
             QVERIFY(controls.contains("netplay_request_device_p1 = \"false\""));
             QVERIFY(retroarch::netplayControllers(a,false,3).isEmpty());
         }
-        QVERIFY(!retroarch::netplaySupported("gba","mgba"));
+        QVERIFY(retroarch::netplaySupported("gba","mgba")); // Candidate only; header/core still required.
         QVERIFY(!retroarch::netplaySupported("gamegear","genesis_plus_gx"));
-        QVERIFY(!retroarch::netplaySupported("gb","gambatte"));
+        QVERIFY(retroarch::netplaySupported("gb","gambatte")); // Candidate only; header/core still required.
         QVERIFY(!retroarch::netplaySupported("n64","mupen64plus_next"));
         QVERIFY(!retroarch::netplaySupported("atari7800","prosystem")); // Serialized, not declared deterministic.
         QVERIFY(retroarch::netplayProfile("nes","fceumm","not-a-digest").isEmpty());

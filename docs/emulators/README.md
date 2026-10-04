@@ -18,6 +18,8 @@ a second execution plan or a claim that all installed runtimes are validated.
 | Emulator | Record | Scope |
 |---|---|---|
 | RetroArch | [Common ARM64 baseline](retroarch.md) | Exact core bundle, two-device alignment, recoverable update/rollback and remaining image/standalone gates |
+| gpSP | [GBA link](gpsp.md) | Additional independent-machine networking core; ordinary mGBA preserved |
+| DoubleCherryGB | [GB/GBC link](doublecherrygb.md) | Independent SRAM/netpacket; separate upstream battle and RTC limitations |
 | Dolphin | [Bridge checkpoint](dolphin.md) | Preserved ordinary Flatpak; separate pinned native bridge with paired Melee LAN gameplay/Home return; internet and four-client gates open |
 | PPSSPP | [PPSSPP](ppsspp.md) | Isolated networking, preserved identity, bounded LAN/relay gameplay and remaining recovery/network gates |
 | Flycast | [Package and WAN checkpoint](flycast.md) | Matching 2.7 packages on both devices; GGPO/ICE transport distinction; standalone and automatic internet integration remain open |

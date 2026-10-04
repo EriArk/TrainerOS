@@ -1,0 +1,32 @@
+{
+  "id": "runtime.handheld",
+  "platform": "gb/gbc/gba",
+  "romSha256": "",
+  "implementationSource": "src/integrations/adventure/retroarch/RetroArchHandheldLink.cpp",
+  "state": "partial",
+  "record": "../HANDHELD_MULTIPLAYER.md",
+  "evidence": [
+    "pinned-source",
+    "arm64-runtime-dependencies",
+    "independent-sram",
+    "emerald-cable-trade",
+    "mgba-trade-readback",
+    "gba-ui-invitation-exit",
+    "red-relay-sram-gambatte-readback",
+    "guest-sram-finalization"
+  ],
+  "remaining": [
+    "gb-gbc-cable-transaction",
+    "gb-ui-invitation-exit",
+    "gen2-rtc",
+    "gba-battle-cross-edition",
+    "advance-wars-runtime",
+    "distinct-networks",
+    "four-clients"
+  ],
+  "persistentSaveWrites": true,
+  "savePolicy": "Isolated own SRAM; atomic normal-exit copyback with preimage backup; conflict or crash retains original and separate recovery. RTC remains untouched.",
+  "implementation": "implementations/runtime",
+  "profile": "implementations/runtime/profiles/runtime.handheld.json",
+  "evidenceBase": "../../../"
+}

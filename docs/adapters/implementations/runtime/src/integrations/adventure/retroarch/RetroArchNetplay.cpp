@@ -1,6 +1,7 @@
 #include "RetroArchNetplay.h"
 #include "RetroArchConfiguration.h"
 #include "RetroArchDisc.h"
+#include "RetroArchHandheldLink.h"
 #include "FBNeoRomSets.h"
 #include "core/model/GamePlayers.h"
 #include <QCryptographicHash>
@@ -99,7 +100,10 @@ bool token(const QString& s,int max) {
     return !s.isEmpty() && s.size()<=max && QRegularExpression("^[A-Za-z0-9_-]+$").match(s).hasMatch();
 }
 }
-bool netplaySupported(const QString& platform,const QString& core) {return coreProfile(platform,core)!=nullptr;}
+bool netplaySupported(const QString& platform,const QString& core) {
+    return coreProfile(platform,core)!=nullptr||(platform=="gba"&&core=="mgba")||
+        ((platform=="gb"||platform=="gbc")&&core=="gambatte");
+}
 int netplayCapacity(const QString& platform,const QString& core,const QVariantMap& metadata,const QString& contentPath) {
     const auto players=gamePlayers(metadata);
     // Arcade metadata gives the title maximum, not the current cabinet mode.
@@ -119,7 +123,7 @@ QJsonObject netplayProfile(QString platform,QString core,QString content,int pla
         }
         return result;
     }
-    if(!netplaySupported(platform,core)||!QRegularExpression("^[0-9a-f]{64}$").match(content).hasMatch())return {};
+    if(!coreProfile(platform,core)||!QRegularExpression("^[0-9a-f]{64}$").match(content).hasMatch())return {};
     const auto layout=players>2?multiPadLayout(platform,core):QString("two-pad");
     if(layout.isEmpty())return {};
     return {{"id","runtime.retroarch."+platform+'.'+core+".v1"},{"content",content},
@@ -131,6 +135,7 @@ QByteArray netplayControllers(const QJsonObject& identity,bool host,int slot) {
     if(!slot&&players==2)slot=host?1:2; // Older two-player callers.
     if((host&&slot!=1)||(!host&&(slot<2||slot>players)))return {};
     QByteArray result="netplay_max_connections = \""+QByteArray::number(players-1)+"\"\n";
+    if(identity["transport"]=="netpacket")return result+"input_max_users = \"1\"\n";
     if(players>2) {
         const auto layout=identityLayout(identity);
         const bool fourScore=players==4&&identity["settings"]=="fceumm-four-score-no-sram-v2";
@@ -147,6 +152,7 @@ QByteArray netplayControllers(const QJsonObject& identity,bool host,int slot) {
     return result;
 }
 QStringList netplayControllerArguments(const QJsonObject& identity) {
+    if(identity["transport"]=="netpacket")return {"--device","1:1"};
     if(identity["players"].toInt(2)>2&&!identityLayout(identity).isEmpty()) {
         const auto layout=identityLayout(identity);
         QStringList args;
@@ -178,7 +184,17 @@ QString netplayRelayEndpoint(const QByteArray& response) {
     return host+'|'+QString::number(port); // RetroArch's custom-relay host|port format.
 }
 QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstallation& i,const std::atomic_bool& cancel,NetplayDigestCache* cache,int players) {
-    const auto coreId=r.integrationConfig["core"].toString();
+    auto coreId=r.integrationConfig["core"].toString();
+    auto handheld=handheldLinkProfile(r);
+    if(!handheld.isEmpty()) {
+        coreId=handheldLinkCore(handheld);
+        const auto content=contentDigest(r.contentPath,cancel,cache);
+        const auto core=digest(i.cores.value(coreId),512LL*1024*1024,cancel,cache);
+        const auto runtime=digest(i.runtimeFile,512LL*1024*1024,cancel,cache);
+        if(content.isEmpty()||core.isEmpty()||runtime.isEmpty())return {};
+        handheld["content"]=content;handheld["core"]=core;handheld["runtime"]=runtime;
+        return handheld;
+    }
     const auto p=coreProfile(r.adventure.platformId,coreId);
     if(!p)return {};
     auto identity=netplayProfile(r.adventure.platformId,coreId,contentDigest(r.contentPath,cancel,cache),players);
@@ -254,6 +270,8 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     const auto identity=netplayIdentity(r,i,cancel,nullptr,request.expected["players"].toInt(2));
     if(identity.isEmpty())return "Multiplayer isn't supported for this game version yet.";
     if(!sameMultiplayerGame(identity,request.expected))return "Your game or emulator changed. Invite your friend again.";
+    const bool handheld=identity["transport"]=="netpacket";
+    if(handheld&&identity["content"]!=request.localContent)return "Your game changed. Invite your friend again.";
     const auto controllers=netplayControllers(identity,request.host,request.slot);
     if(controllers.isEmpty())return "This multiplayer controller assignment is invalid.";
     if(!token(request.password,32)||!token(request.nickname,32)||!request.port)
@@ -283,6 +301,20 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
         return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size()&&f.commit();
     };
     QByteArray options=identityLayout(identity)=="sgx-multitap"?QByteArray("sgx_multitap = \"enabled\"\n"):QByteArray();
+    if(handheld) {
+        options=handheldLinkOptions(identity);
+        const auto error=prepareHandheldSave(cmd,r,i,path,cancel);
+        if(!error.isEmpty())return error;
+        const auto finalize=cmd.finalize;
+        cmd.finalize=[finalize,directory](const ProcessOutcome& outcome){
+            const auto error=finalize?finalize(outcome):QString();
+            if(!error.isEmpty())directory->setAutoRemove(false);
+            return error;
+        };
+        const int core=cmd.arguments.indexOf("--libretro");
+        if(core<0||core+1>=cmd.arguments.size())return "The game's launch route changed.";
+        cmd.arguments[core+1]=i.cores.value(handheldLinkCore(identity));
+    }
     if(r.integrationConfig["core"]=="fbneo")options+="fbneo-diagnostic-input = \"None\"\n";
     if(identity["cabinet"]=="batcir-eu-four-chutes-v1") {
         // New session-only EEPROM, not an imported save. Battle Circuit Europe
@@ -309,7 +341,7 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     QByteArray bytes="config_save_on_exit = \"false\"\nglobal_core_options = \"true\"\n"
         "auto_overrides_enable = \"false\"\nauto_remaps_enable = \"false\"\n"
         "game_specific_options = \"false\"\nrun_ahead_enabled = \"false\"\nrewind_enable = \"false\"\n"
-        "sort_savefiles_enable = \"false\"\nsort_savefiles_by_content_enable = \"false\"\n"
+        "savefiles_in_content_dir = \"false\"\nsort_savefiles_enable = \"false\"\nsort_savefiles_by_content_enable = \"false\"\n"
         "preemptive_frames_enable = \"false\"\ncheevos_enable = \"false\"\n"
         "savestate_auto_save = \"false\"\nsavestate_auto_load = \"false\"\nautosave_interval = \"0\"\n"
         "history_list_enable = \"false\"\nnetplay_nat_traversal = \"false\"\n"
@@ -319,7 +351,7 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
         "pause_nonactive = \"false\"\n";
     bytes+=controllers;
 #ifdef Q_OS_LINUX
-    // The first handheld profile is verified with InputPlumber's virtual pad
+    // The existing classic profiles use InputPlumber's virtual pad
     // through udev on both Flip and Odin. Flip's inherited SDL2 driver handled
     // the RetroArch menu but did not establish gameplay input in the paired run.
     // Keep this override session-local: do not rewrite the user's ordinary
@@ -342,16 +374,16 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     auto content=cmd.arguments.takeLast();
     const auto port=request.relay&&!request.host?request.clientPort:request.port;
     cmd.arguments<<netplayControllerArguments(identity);
-    cmd.arguments<<"--verbose"<<"--no-patch"<<"--sram-mode"<<"noload-nosave"<<"--nick"<<request.nickname<<"--port"<<QString::number(port);
+    cmd.arguments<<"--verbose"<<"--no-patch"<<"--sram-mode"<<(handheld?"load-save":"noload-nosave")<<"--nick"<<request.nickname<<"--port"<<QString::number(port);
     if(request.host)cmd.arguments<<"--host";
     else cmd.arguments<<"--connect"<<(request.relay?QString("127.0.0.1"):request.address);
     cmd.arguments<<content;
     cmd.runtimeControls["netplay"]=identity.toVariantMap();
     cmd.runtimeControls["netplayHost"]=request.host;
-    // This session enforces noload-nosave and private save/state directories.
-    cmd.runtimeControls["temporaryProgress"]=true;
+    // Shared-console sessions discard progress; link sessions return own SRAM.
+    cmd.runtimeControls["temporaryProgress"]=!handheld;
     const auto settled=cmd.settled;
-    cmd.settled=[settled,directory](const ProcessOutcome& outcome){if(settled)settled(outcome);directory->remove();};
+    cmd.settled=[settled,directory](const ProcessOutcome& outcome){if(settled)settled(outcome);if(directory->autoRemove())directory->remove();};
     return {};
 }
 }

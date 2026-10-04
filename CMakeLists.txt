@@ -117,6 +117,7 @@ add_library(trainer_core STATIC
     src/integrations/adventure/retroarch/RetroArchDisc.cpp
     src/integrations/adventure/retroarch/RetroArchSave.h
     src/integrations/adventure/retroarch/RetroArchSave.cpp
+    src/integrations/adventure/retroarch/RetroArchSaveTarget.cpp
     src/core/repository/PlayHistoryRepository.h
     src/core/storage/SqliteHallOfFame.cpp
     src/core/storage/SqliteHallOfFame.h
@@ -132,6 +133,7 @@ add_library(trainer_core STATIC
     src/core/repository/CollectionRepository.h
     src/integrations/adventure/retroarch/RetroArchAdapter.cpp
     src/integrations/adventure/retroarch/RetroArchNetplay.cpp
+    src/integrations/adventure/retroarch/RetroArchHandheldLink.cpp
     src/integrations/adventure/retroarch/RetroArchNetplayClient.cpp
     src/features/adventure/RuntimeMultiplayer.cpp
     src/integrations/adventure/retroarch/RetroArchAdapter.h

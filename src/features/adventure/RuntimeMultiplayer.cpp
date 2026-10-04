@@ -84,7 +84,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         // Legacy exact arcade-style profiles have no persistent progress. A
         // generic title may have a real playthrough: retain its save question
         // when restarting ordinary play into a temporary multiplayer session.
-        if(restarting_&&!psp()&&!dolphin()&&!descriptor_["id"].toString().startsWith("runtime.retroarch."))
+        if(restarting_&&!psp()&&!dolphin()&&descriptor_["transport"]!="netpacket"&&!descriptor_["id"].toString().startsWith("runtime.retroarch."))
             lifecycle_.exitController().confirm();
     });
     connect(&lifecycle_.exitController(),&AdventureExitController::returnToGameRequested,this,[this]{
@@ -284,6 +284,11 @@ bool RuntimeMultiplayer::action(const QString& id) {
 void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     const auto selected=party_.game();QString game;
     for(auto it=games_.cbegin();it!=games_.cend();++it)if(sameMultiplayerGame(it.value(),selected)){game=it.key();break;}
+    // Preserve the running edition when several compatible handheld games exist.
+    const auto current=process_.runtimeControls()["game"].toString();
+    for(auto it=games_.cbegin();it!=games_.cend();++it)
+        if(sameMultiplayerGame(it.value(),selected)&&it.value()["content"]==selected["content"]){game=it.key();break;}
+    if(games_.contains(current)&&sameMultiplayerGame(games_.value(current),selected))game=current;
     if(!allowed_||game.isEmpty()||!permitsMultiplayer(library_.artwork(game),selected)) {
         party_.leave();emit notice("Multiplayer isn't available for this game.");return;
     }
@@ -292,6 +297,7 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     transportPeer_=host?party_.state()["members"].toArray().at(1).toObject()["peer"].toString():party_.hostPeer();
     online_=transportPeer_.startsWith("online:");
     request_={};request_.host=host;request_.relay=online_;request_.expected=selected;
+    request_.localContent=games_.value(game)["content"].toString();
     request_.slot=host?1:endpoint["slot"].toInt();
     request_.nickname="TrainerOS-"+randomToken().left(12);output_.clear();
     deadline_=QDateTime::currentSecsSinceEpoch()+(dolphin()?150:75);timer_.start();

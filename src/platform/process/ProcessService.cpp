@@ -28,7 +28,7 @@ bool ProcessService::start(const ProcessCommand& command) {
     active_ = true;
     runtimeControls_.clear();
     stopRequested_ = false;
-    childStarted_ = false; finalizing_ = false; settled_=command.settled;
+    childStarted_ = false; finalizing_ = false; settled_=command.settled;finalize_=command.finalize;
     validationError_.clear(); inspectOutput_ = {};
     const auto token = ++request_;
     if (command.prepare) {
@@ -42,6 +42,7 @@ bool ProcessService::start(const ProcessCommand& command) {
                 if (token != request_ || !active_) return;
                 preparing_ = false;
                 settled_=prepared.settled;
+                finalize_=prepared.finalize;
                 if (stopRequested_) complete(0, false, {});
                 else if (!error.isEmpty()) complete(-1, false, error);
                 else execute(prepared);
@@ -90,13 +91,15 @@ void ProcessService::stop() {
 void ProcessService::complete(int code, bool crashed, const QString& error) {
     if (!active_ || finalizing_) return;
     killTimer_.stop();
-    if(settled_) {
+    if(settled_||finalize_) {
         finalizing_=true;
         auto settled=std::move(settled_);
+        auto finalize=std::move(finalize_);
         const ProcessOutcome outcome{childStarted_,code,crashed,stopRequested_};
-        QMetaObject::invokeMethod(worker_,[this,settled=std::move(settled),outcome,error]{
-            settled(outcome);
-            QMetaObject::invokeMethod(this,[this,outcome,error]{
+        QMetaObject::invokeMethod(worker_,[this,settled=std::move(settled),finalize=std::move(finalize),outcome,error]{
+            const auto saved=finalize?finalize(outcome):QString();
+            if(settled)settled(outcome);
+            QMetaObject::invokeMethod(this,[this,outcome,error=saved.isEmpty()?error:saved]{
                 finalizing_=false; active_=false;
                 emit finished(outcome.exitCode,outcome.crashed,error);
             },Qt::QueuedConnection);
