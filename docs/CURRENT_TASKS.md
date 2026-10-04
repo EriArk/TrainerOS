@@ -10,7 +10,9 @@ merely that code exists. Do not close a parent block from partial child evidence
 
 **State:** existing NES/Mega Drive/SNES exact-game routes are implemented and
 have paired gameplay evidence. Shared multi-user and distinct-network acceptance
-is incomplete; ordinary builds remain experimental-off. No missing NES transport
+is incomplete; implemented profiles are now available in ordinary builds under
+the owner's 4 October correction. Missing acceptance must not prevent the owner
+from running those checks. No missing NES transport
 implementation was identified in the 4 October continuation. Do not describe
 MP-01 as implementing NES again. The shared core/platform expansion is now
 implemented; its broader coverage is not universal game-level runtime proof.
@@ -73,9 +75,13 @@ implementation task when an external condition is all that is missing.
   defect are now resolved. Other cabinets/peripherals require their actual mode;
   do not promote them from counts alone or turn remaining scope into every-ROM
   tuning. Non-FBNeo optional-firmware matching remains conservative.
-- [ ] Enable only supported profiles whose required gates passed;
-  keep others honestly unavailable. Update the matrix, maintenance record and
-  acceptance evidence, deliver both available handhelds and commit/push.
+- [x] Remove the global developer opt-in so installed supported profiles can be
+  tested through ordinary invitations. Preserve per-game/runtime eligibility,
+  invitation consent, capacity and save/session protection; unavailable runtimes
+  do not become supported simply because the blanket switch is gone.
+- [ ] Resolve remaining acceptance and release claims from actual evidence,
+  without hiding implemented functionality until the owner can test it. Keep
+  the matrix, maintenance record and both-device deliveries current.
 
 **Owner deferral, 2026-10-04:** separate-network testing waits until the owner is
 home. Do not request another network switch or repeat same-router tests while

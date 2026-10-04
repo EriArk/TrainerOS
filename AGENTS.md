@@ -1,5 +1,13 @@
 # AGENTS.md — TrainerOS
 
+**Owner multiplayer availability correction, 2026-10-04:** implemented multiplayer
+must be available in ordinary installations so the owner and friends can test it.
+Do not hide the entire feature behind a developer environment flag until those
+same tests pass. Remove the global opt-in, retain per-game/runtime compatibility,
+capacity, invitation consent and save/session protection. Distinct-network and
+larger-group acceptance remain open; availability is not universal certification.
+This supersedes earlier experimental-off delivery/release instructions.
+
 **Owner RetroArch grouping, 2026-10-04:** classic systems using the same
 RetroArch netplay mechanism are one implementation family, not separate
 console-by-console projects or repeated test-only turns. Expand reviewed

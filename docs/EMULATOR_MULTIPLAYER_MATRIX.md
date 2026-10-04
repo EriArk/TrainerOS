@@ -1,5 +1,9 @@
 # Emulator multiplayer coverage
 
+**Availability, 2026-10-04:** implemented eligible routes are accessible in normal
+TrainerOS sessions; no developer opt-in is required. This does not turn installed
+emulators without adapters into multiplayer routes or close unverified scenarios.
+
 2026-10-03. Source/device audit and implementation handoff, updated with the
 [NES online checkpoint](NES_MULTIPLAYER.md). The [common emulator set](EMULATOR_STANDARD.md) chooses
 image defaults; this matrix records the separate network capabilities. The owner

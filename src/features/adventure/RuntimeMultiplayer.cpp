@@ -236,7 +236,7 @@ void RuntimeMultiplayer::show(QString panel) {
         rows={row("multiplayer-access:default","Use my group preference"),row("multiplayer-access:request","Ask me first"),
             row("multiplayer-access:selected","Selected group members"),row("multiplayer-access:closed","Invitations only")};
     } else if(panel=="multiplayer") {
-        caption=(process_.runtimeControls()["kind"]=="ppsspp"||process_.runtimeControls()["kind"]=="dolphin")?"Play together":"Start a new two-player game";
+        caption=(process_.runtimeControls()["kind"]=="ppsspp"||process_.runtimeControls()["kind"]=="dolphin")?"Play together":"Start a new multiplayer game";
         rows={row("multiplayer-nearby","Nearby","Same local network"),row("multiplayer-online","Online friend")};
     } else if(panel=="multiplayer-nearby") {
         caption="Choose a nearby Trainer";

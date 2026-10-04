@@ -1,5 +1,12 @@
 # Shared RetroArch multiplayer profiles
 
+**Current availability, 2026-10-04:** implemented profiles are enabled in normal
+installations, per the owner's correction. The global developer opt-in was
+removed; exact compatibility, capacity, single-player and save/session guards
+remain. Earlier experimental-off delivery statements below are historical.
+Outstanding distinct-network and real-user checks remain open and can now be
+performed without a special developer launcher.
+
 2026-10-04: implemented the owner's platform/core-based expansion. This reuses
 the existing invitation, party, relay and lifecycle integration; it is not a new
 network adapter per console. Separate-network acceptance is owner-deferred.
@@ -81,7 +88,7 @@ generic game retains the normal save/exit question.
 
 Discovery uses one worker-local digest cache, so runtime/core/BIOS files are not
 rehashed for each title in the same scan. Launch revalidates without that cache.
-Ordinary experimental-off sessions skip multiplayer hashing altogether.
+Profile hashing runs on the existing worker with a per-scan digest cache.
 Renaming a local title does not break compatibility; content/settings identities
 still must match. No new user-facing binding, setup or lobby page was added.
 

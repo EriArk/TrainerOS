@@ -10,7 +10,7 @@ The owner explicitly rejects test-only passes substituted for feature delivery.
 
 | Order | Outcome / task | State and dependency |
 | --- | --- | --- |
-| **Now · block 1** | **MP-01: classic RetroArch family and shared online-party acceptance** | NES/Mega Drive/SNES exact-game routes retain paired gameplay proof. The [shared core/platform expansion](RETROARCH_MULTIPLAYER_PROFILES.md) is implemented; broader reviewed coverage is not all-game runtime proof. Outstanding: actual multi-user/company acceptance, distinct internet networks and release enablement. Obtain missing conditions and fix observed gaps; do not reimplement NES or repeat same-router tests as another pass. |
+| **Now · block 1** | **MP-01: classic RetroArch family and shared online-party acceptance** | NES/Mega Drive/SNES exact-game routes retain paired gameplay proof. The [shared core/platform expansion](RETROARCH_MULTIPLAYER_PROFILES.md) is implemented and accessible in normal installations. Outstanding: actual multi-user/company acceptance and distinct internet networks. Obtain missing conditions and fix observed gaps; do not reimplement NES or repeat same-router tests as another pass. |
 | 2 · block 1 | MP-02: GB/GBC/GBA actual link; MP-03: selected PS1/N64 routes | After MP-01. Separate emulated-machine link from shared controllers; implement the viable supported mechanisms with their complete invitation journey. |
 | 3 · block 1 | MP-04: Dreamcast; MP-05: PS2/GameCube; MP-06: DS/PSP; MP-07: 3DS and eligible newer routes | Oldest first. Reuse installed PSP/Dolphin work; resolve each route's remaining acceptance, not every ROM. Unsupported mechanisms require a sourced conclusion, not a misleading enabled button. |
 | Retained · block 3 | COM-03: outstanding calls/notifications acceptance | Human speech/listening is owner-deferred. Keep group voice running through multiplayer; resume the missing acceptance when its prerequisite is available, without restarting completed call checks. |
@@ -18,8 +18,14 @@ The owner explicitly rejects test-only passes substituted for feature delivery.
 | 5 · block 5 | REVIEW-05: reviews and final communication journey | After preceding communication outcomes; preserve #113 exact-game completion policy and all unfinished messenger acceptance. |
 | Then | Remaining R1–R18, R7a, R18a/R18b and U commitments | Continue the preserved [unified backlog](#unified-execution-order--existing-work-and-new-issues), doing residual work only. ScreenScraper needs owner access; sleep remains deferred; generic artwork/Pack Studio remains at the end. |
 
-**Completion boundary:** block 1 is still open; ordinary device builds remain
-experimental-off. Neither this plan nor four emulator processes on two consoles
+**Owner availability correction, 2026-10-04:** implemented multiplayer is enabled
+in normal installations. The developer opt-in is removed; compatibility and
+save/session guards remain. Deferred owner/friend checks cannot be used to hide
+the very functionality they must test. This supersedes earlier experimental-off
+and release-enablement scheduling statements throughout dated checkpoints.
+
+**Completion boundary:** block 1 is still open. Neither this plan nor four
+emulator processes on two consoles
 establishes four real TrainerOS users or separate-network internet acceptance.
 Missing prerequisites and concrete task checklists are in [Current tasks](CURRENT_TASKS.md).
 Current delivery scope and installed-binary evidence are in the profile record.

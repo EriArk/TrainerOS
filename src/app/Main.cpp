@@ -400,8 +400,9 @@ int main(int argc, char* argv[]) {
         QObject::connect(&multiplayer,&RuntimeMultiplayer::notice,&shell,[&](QString text){
             if(adventureLaunch.active())adventureProcess.runtimeCommand("notify",text);else shell.showNotice(text);
         });
-        const bool experimentalMultiplayer=qEnvironmentVariableIntValue("TRAINEROS_EXPERIMENTAL_NETPLAY")==1;
-        auto refreshMultiplayer=[&]{if(!experimentalMultiplayer)return;multiplayer.refresh(retroarchInstallation,shell.trainer()->profile()["name"].toString(),
+        // Supported profiles must be usable in normal sessions, including owner testing.
+        // Availability still follows exact runtime/content and current-session guards.
+        auto refreshMultiplayer=[&]{multiplayer.refresh(retroarchInstallation,shell.trainer()->profile()["name"].toString(),
             personalLibrary&&!smoke&&!session.blocked()&&!(saveBackups&&saveBackups->busy())&&!shell.party()->activities()->link()->active());};
         QObject::connect(&folders,&BatoceraLibrary::scanFinished,&multiplayer,refreshMultiplayer);
         QObject::connect(&session,&SessionState::changed,&multiplayer,refreshMultiplayer);

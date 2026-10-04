@@ -1,5 +1,11 @@
 # RetroArch common ARM64 baseline
 
+**Owner availability correction, 2026-10-04:** TrainerOS no longer requires a
+developer environment opt-in for implemented netplay profiles. Keep ordinary
+launchers free of such a requirement. Compatibility and save/session protection
+remain; owner-deferred internet/group acceptance is recorded separately. Earlier
+experimental-off instructions in dated checkpoints are superseded.
+
 2026-10-03. This is a development-device delivery, not the finished image updater
 or a claim that all registered systems have passed gameplay/netplay checks.
 

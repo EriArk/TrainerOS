@@ -28,9 +28,36 @@ Status: **in development, not accepted**. This is distinct from Emerald's
 save-based Link activities. The owner moved this block ahead of the remaining
 block 3 physical/interoperability checks on 2026-10-03.
 
-The integration is **off by default**, including the final Flip/Odin delivery.
-Only a development session with `TRAINEROS_EXPERIMENTAL_NETPLAY=1` advertises it.
-Do not enable it in ordinary sessions or close #107 on the evidence below.
+**Owner correction, 2026-10-04:** implemented profiles are enabled in ordinary
+sessions. The global `TRAINEROS_EXPERIMENTAL_NETPLAY` opt-in has been removed so
+the owner and friends can actually exercise the outstanding scenarios. Exact
+content/runtime compatibility, single-player exclusion, capacity, consent and
+save/session guards still apply. Distinct-network and larger-group acceptance
+remain open; availability does not close #107 or certify every game. Earlier
+experimental-off checkpoints below describe historical installations only.
+
+### Ordinary-session availability delivery — 2026-10-04
+
+- Removed the opt-in in application composition; no special launcher or new
+  settings toggle is needed. Existing eligible profiles drive the normal Home
+  invitation action and Social capabilities. Unsupported profiles, single-player games and
+  missing/incompatible runtimes remain excluded by their existing checks.
+- On both live handhelds, without the environment flag, controller input launched
+  an ordinary NES title, opened physical Home's `Invite friend`, then `Online
+  friend`, and displayed existing friends/groups. Flip used NES Pong; Odin used
+  Super Homebrew War. Back and explicit Exit returned normally, including the
+  existing save question. No invitation was sent and no new network-match or
+  larger-group acceptance is claimed by this bounded availability check.
+- Corrected the invitation caption's hard-coded "two-player" wording: profiles
+  can have more seats. Capacity validation itself is unchanged.
+- Windows/ARM builds and the `retroarch`, `netplay_client`, `game_party` suites
+  pass. Both final live executables match SHA-256
+  `e6a1cac1e2b62a43ab85f4ea299cca916b598824f067dbf04c3d39f29bdb78aa`.
+  Read-only database quick-check passed; no test emulator/session directory
+  remains. Odin volume is zero, Flip muted. Shell-only restart; no device reboot.
+
+Keep remaining acceptance separate from availability: the owner may test with
+friends before distinct-network and larger-company outcomes are certified.
 
 ## First exact route
 

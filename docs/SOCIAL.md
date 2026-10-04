@@ -1,5 +1,11 @@
 # Native Social - conversations and discovery
 
+**Owner availability correction, 2026-10-04:** supported emulator invitations
+are enabled in normal installations. Pending larger-group/distinct-network
+checks remain documented, but no global developer opt-in prevents the owner
+from performing them. Runtime/content compatibility, consent and save/session
+guards are unchanged. This supersedes historical experimental-off statements.
+
 **Execution entry point, 2026-10-04:** use the current [ROADMAP queue](ROADMAP.md#active-execution-queue--2026-10-04)
 and [task register](CURRENT_TASKS.md). This document retains communication
 acceptance and evidence; dated "next" statements below are historical. Current
