@@ -1,5 +1,13 @@
 # TrainerOS Product Specification
 
+**2026-10-04 #114 accepted target:** Worlds opens available game-series
+collections; Pokemon regions live inside its collection. Other series can use
+their own meaningful grouping, with generic Multiverse fallback. This refines
+#90 and earlier global region-first wording; it is not installed behavior or a
+change to the active multiplayer queue. Preserve five primaries, direct A launch,
+per-collection selection and stable game/save/history identity. See
+[acceptance](EXPANSION_69_90.md#exact-integrations-and-franchise-experiences--7476-82-8990).
+
 **2026-10-03 multiplayer target:** [companies and game parties](MULTIPLAYER_EXPERIENCE.md)
 adds persistent groups with independent parallel sessions, reverse join requests,
 explicit company free-entry policy and a shared group voice call independent of

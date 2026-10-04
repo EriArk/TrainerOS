@@ -183,6 +183,14 @@ until the remaining support and prerequisites are understood.
 
 ## Preserved project backlog
 
+**Issue review, 2026-10-04:** #114 is the only new issue since #113; it has no
+comments at review time. Record it under R7/#90: Worlds collection entry,
+collection-specific organization and context, capability-driven experience,
+lossless classification and handheld Back/A navigation. Acceptance is retained in
+[the franchise register](EXPANSION_69_90.md#exact-integrations-and-franchise-experiences--7476-82-8990).
+It explicitly does not reorder implementation. MP-02 stays current; no new
+runtime or broad visual rewrite starts from this planning review.
+
 The [R1–R18 queue and preservation map](ROADMAP.md#unified-execution-order--existing-work-and-new-issues)
 remain intact. After communication, perform remaining work in that order, never
 repeat delivered foundations: shop/adapter/navigation residuals; companion/save

@@ -4,6 +4,15 @@
 
 # TrainerOS UX & Navigation
 
+**2026-10-04 #114 planned Worlds entry:** available series collections first;
+Pokemon regions are inside that collection. Other series need no fixed regional
+hierarchy. Multiverse retains generic games. Preserve direct A launch on a game,
+five primary sections and existing shoulder/trigger controls. Local Back restores
+collection/game position; the established primary Worlds re-entry rule returns
+to the collection root with its selection retained. Per-collection Home/Y choices
+remain independent. This is R7/#90 follow-up, not a deployed navigation change.
+See [acceptance](EXPANSION_69_90.md#exact-integrations-and-franchise-experiences--7476-82-8990).
+
 **2026-10-03 multiplayer target:** reuse existing Home/Social for named invites,
 Request to join from current-game activity, and direct Join into a specific game
 party. A company can show several parallel parties without an extra dashboard

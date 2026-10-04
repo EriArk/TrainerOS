@@ -126,6 +126,29 @@ terminology, reusable semantic/presentation components and exact-title overrides
 Adapters remain presentation-agnostic; a pack resolver maps verified capabilities
 to faces/widgets/actions without filename/title conditionals in QML.
 
+**#114 navigation clarification — 2026-10-04 (planned):**
+[Worlds collections](https://github.com/EriArk/TrainerOS/issues/114) refines #90:
+the global Worlds entry shows available series collections; Pokemon regions
+belong inside the Pokemon collection. Other series use only meaningful grouping,
+not a mandatory region/sub-series hierarchy. Multiverse remains the generic
+fallback. A collection is presentation/context, not another copy of its games.
+Keep per-Trainer per-collection Home/Y selection, stable Adventure IDs, ownership,
+save lineage, history and media. Exact adapter capabilities supply functionality;
+a series name is not evidence that its Party/quests/garage are implemented.
+
+Acceptance added to R7: single/multiple useful collections; generic fallback;
+absent semantic capabilities; deterministic controller navigation; Back restores
+the prior collection/game position; one A launches the selected game. On primary
+Worlds re-entry, the existing root-return rule now targets the collection root,
+with its selection retained; local Back is not a reset. Preserve all five primary
+sections and shoulder/trigger grammar. Do not show an enormous empty series list,
+require a semantic adapter for ordinary launch, or add a confirmation after game
+selection. A second series must not require global shell title conditionals.
+Validate on handhelds and preserve original/licensed demo assets. Public copy
+must distinguish today's Pokemon integration from future series support.
+This issue explicitly does not reorder the current implementation queue;
+MP-02 remains active. It does not move artwork packs/Pack Studio forward.
+
 **Owner clarification, 2026-09-27:** the active franchise changes the actual
 interface composition, not only its colors or artwork. The Pokemon primary and
 Dex/Party/Center faces are not mandatory for other games: a matched experience
