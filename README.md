@@ -10,7 +10,7 @@ For an ordinary game, that can be as simple as **pick it → press A → play �
 
 For games TrainerOS understands more deeply, the boundary starts to disappear. Your party, progress, collections and history can live in the system around the game. Friends can see that you are playing, ask to join, and enter a supported multiplayer game without opening an emulator lobby or typing an IP address.
 
-Pokémon is the first game family where TrainerOS goes much further than a launcher. Other supported series have their own collections; unclassified games remain in the **Multiverse**.
+The first supported Adventure connects a creature-collecting RPG to the OS beyond launching it. Other supported series have their own collections; unclassified games remain in the **Multiverse**.
 
 TrainerOS is still in active development, but the current build already runs as a dedicated handheld session on **Retroid Pocket Flip 2** and **AYN Odin 2**.
 
@@ -21,7 +21,7 @@ TrainerOS is still in active development, but the current build already runs as 
 This repository currently provides **source and development deployment tooling**,
 not a ready-to-flash public TrainerOS image. Prepared Flip 2 and Odin 2 installations
 have real device evidence; that does not establish a fresh-install experience on
-every handheld. Existing showcase screenshots are retained while the gallery is updated.
+every handheld. Selected game artwork and names are blurred in the public screenshots; the surrounding interface is unchanged.
 
 - [Build and run from source](docs/DEVELOPMENT.md)
 - [Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md)
@@ -38,7 +38,7 @@ every handheld. Existing showcase screenshots are retained while the gallery is 
 
 ## Pick a game and play
 
-Worlds opens a collection browser. Pokémon retains its regional worlds; other supported series have their own game wheels. Unclassified games remain in the **Multiverse**. On Home, L2/R2 cycles series, each with its own selected Adventure.
+Worlds opens a collection browser. Some collections include regional worlds; other supported series have their own game wheels. Unclassified games remain in the **Multiverse**. On Home, L2/R2 cycles series, each with its own selected Adventure.
 
 <table>
 <tr>
@@ -82,13 +82,13 @@ If you leave a supported match while the host keeps playing, the conversation ca
 
 A group voice call is separate from a particular match, so the same friends can keep talking while somebody changes games, leaves a party or joins another one.
 
-Real paired gameplay has already been exercised on handhelds with classic NES, Mega Drive and SNES games, PSP Lumines and GameCube Melee. Some supported games can prepare three or four player seats as well. Compatibility is still being expanded and verified game by game; TrainerOS does not label every multiplayer ROM as online-capable just because an emulator can launch it.
+Real paired gameplay has already been exercised on handhelds with several classic console games, PSP Lumines and supported multiplayer titles. Some supported games can prepare three or four player seats as well. Compatibility is still being expanded and verified game by game; TrainerOS does not label every multiplayer ROM as online-capable just because an emulator can launch it.
 
-## Pokémon can live outside the game
+## Adventures continue outside the game
 
-Pokémon is where the main TrainerOS idea becomes most obvious.
+The first supported Adventure shows how a playthrough can connect to the OS.
 
-With a supported Emerald save, the Pokémon you see in TrainerOS are the Pokémon that are actually in the game.
+With a supported save, the creatures you see in TrainerOS are the same ones that are in your game.
 
 <table>
 <tr>
@@ -97,13 +97,13 @@ With a supported Emerald save, the Pokémon you see in TrainerOS are the Pokémo
 </tr>
 </table>
 
-The **Field Guide** can show real Seen/Caught progress. **Party** shows the actual six Pokémon. **Boxes** reads the real storage. **Journey** can follow real badges and milestones.
+The **Field Guide** can show real Seen/Caught progress. **Party** shows the actual six party members. **Boxes** reads the real storage. **Journey** can follow real badges and milestones.
 
 The connection also works in the other direction.
 
-From TrainerOS, supported Emerald saves can already be healed, Pokémon can be moved between Party and Boxes, occupied slots can be swapped, held items can be managed, Boxes can be renamed, and protected releases can be performed. Shops and services can spend the game's real currencies and put the purchased result into the real save.
+From TrainerOS, supported saves can already be healed, creatures can be moved between Party and Boxes, occupied slots can be swapped, held items can be managed, Boxes can be renamed, and protected releases can be performed. Shops and services can spend the game's real currencies and put the purchased result into the real save.
 
-Launch Emerald afterwards and the game sees the change.
+Launch the game afterwards and the game sees the change.
 
 <table>
 <tr>
@@ -112,17 +112,17 @@ Launch Emerald afterwards and the game sees the change.
 </tr>
 </table>
 
-The **Playroom** is deliberately less practical. It gives the real current party somewhere to exist on the handheld outside battles — moving around, reacting and simply being present instead of turning every Pokémon screen into another spreadsheet.
+The **Playroom** is deliberately less practical. It gives the real current party somewhere to exist on the handheld outside battles — moving around, reacting and simply being present instead of turning every party screen into another spreadsheet.
 
 <img src="screenshots/site-2026-10-04/10-playroom.png" alt="TrainerOS Playroom">
 
-TrainerOS also has its own **Link** activities. Two nearby TrainerOS handhelds have already completed protected Emerald trades, gifts, Pokémon sales, native trade evolutions and full-team battles using the real saves. That is separate from ordinary emulator multiplayer: persistent Pokémon moving between two Trainers needs its own safeguards and recovery.
+TrainerOS also has its own **Link** activities. Two nearby TrainerOS handhelds have already completed protected trades, gifts, creature sales, native trade evolutions and full-team battles using the real saves. That is separate from ordinary emulator multiplayer: persistent creatures moving between two Trainers needs its own safeguards and recovery.
 
 ## One Trainer across many games
 
 A **Trainer** belongs to the person using the handheld, not to one ROM.
 
-Multiple local Trainers can have their own profiles, optional PINs, history, navigation state and accounts while sharing the same installed game library. The first isolated ordinary-save route is already working for GBA/mGBA, with more runtimes planned to follow.
+Multiple local Trainers can have their own profiles, optional PINs, history, navigation state and accounts while sharing the same installed game library. The first isolated ordinary-save route is already working for one supported emulator runtime, with more runtimes planned to follow.
 
 <img src="screenshots/site-2026-10-04/12-journey.png" alt="TrainerOS Journey">
 
@@ -130,13 +130,13 @@ Multiple local Trainers can have their own profiles, optional PINs, history, nav
 
 The intended end state is that your Trainer can survive the device too: export it, restore it after a reflash, or move it to another supported TrainerOS handheld without treating the whole system as disposable.
 
-## Not every game needs to become Pokémon
+## Each series can have its own experience
 
 The **Multiverse** is a full part of TrainerOS, not a waiting room for games that do not have special integration.
 
 A game can simply have a good cover, video preview, play history, direct launch, Home menu and clean return. That is enough.
 
-Series collections and independent Home choices are already available. Deeper game-specific experiences remain separate work: a Sonic, Final Fantasy, Metal Slug or Need for Speed section should use concepts that fit those games rather than borrowing Party and Pokédex because TrainerOS happens to have them.
+Series collections and independent Home choices are already available. Deeper game-specific experiences remain separate work: a Sonic, Final Fantasy, Metal Slug or Need for Speed section should use concepts that fit those games rather than borrowing Party and Field Guide because TrainerOS happens to have them.
 
 Installed Steam games are intended to join the Multiverse in the same way. Steam itself remains available for the things Steam is good at; TrainerOS only needs to make the installed games feel like part of the same handheld.
 
@@ -183,7 +183,7 @@ For the current implementation status and the long version of what remains, see 
 
 TrainerOS does not ship commercial ROMs, BIOS files, commercial saves or private ripped media.
 
-TrainerOS is an unofficial fan-made project and is not affiliated with Nintendo, The Pokémon Company, Retroid, AYN, ArmadaOS, Valve, Fluxer, ScreenScraper, RetroAchievements, Libretro or the emulator projects it can work with.
+TrainerOS is an unofficial fan-made project and is not affiliated with game publishers, Retroid, AYN, ArmadaOS, Valve, Fluxer, ScreenScraper, RetroAchievements, Libretro or the emulator projects it can work with.
 
 Original TrainerOS code is licensed under **GNU GPL version 3 or later
 (GPL-3.0-or-later)**. See [LICENSE](LICENSE), [scope and redistribution](LICENSING.md)
