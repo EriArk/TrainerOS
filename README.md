@@ -34,7 +34,7 @@ every handheld. Existing showcase screenshots are retained while the gallery is 
 | Semantic game integration | Exact supported game/build adapters, not all games on a platform |
 | Social and multiplayer | Implemented routes with bounded evidence; distinct-network, larger-group and human audio acceptance remain open |
 | Public image and updates | Reproducible distribution and update/rollback acceptance remain planned |
-| Public artwork and licensing | Under review; no project-wide software license selected yet |
+| Code license and public artwork | Original code: GPL-3.0-or-later; third-party terms remain separate and artwork review is ongoing |
 
 ## Pick a game and play
 
@@ -185,4 +185,7 @@ TrainerOS does not ship commercial ROMs, BIOS files, commercial saves or private
 
 TrainerOS is an unofficial fan-made project and is not affiliated with Nintendo, The Pokémon Company, Retroid, AYN, ArmadaOS, Valve, Fluxer, ScreenScraper, RetroAchievements, Libretro or the emulator projects it can work with.
 
-No software license has been selected yet.
+Original TrainerOS code is licensed under **GNU GPL version 3 or later
+(GPL-3.0-or-later)**. See [LICENSE](LICENSE), [scope and redistribution](LICENSING.md)
+and [third-party notices](THIRD_PARTY_NOTICES.md). This software license does not
+grant rights to game artwork, media or trademarks.

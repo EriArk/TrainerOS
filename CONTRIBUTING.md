@@ -11,10 +11,11 @@ experience and integration boundary first. Keep normal game launch direct,
 controller navigation consistent, and existing libraries/saves intact. Avoid
 adding setup screens or nested confirmations to ordinary play.
 
-The license for TrainerOS-owned code has not yet been selected. Public source
-availability is not a general redistribution grant. No blanket relicensing or
-contributor agreement is implied here; preserve all existing third-party notices.
-Please discuss substantial contributions with the maintainer while this is resolved.
+Original TrainerOS code is licensed under **GPL-3.0-or-later**. Contributions to
+that code should be offered under the same terms; retain your copyright and all
+existing third-party notices. This does not require copyright assignment or grant
+permission to import incompatible code or unlicensed graphics. Identify any
+third-party material and its provenance in your PR. See [licensing scope](LICENSING.md).
 
 ## Submit a useful change
 

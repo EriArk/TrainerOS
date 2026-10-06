@@ -1,5 +1,11 @@
 # AGENTS.md — TrainerOS
 
+**Owner license decision, 2026-10-06:** original TrainerOS code is licensed under
+GPL-3.0-or-later. Preserve existing third-party licenses and the explicit asset
+boundaries in LICENSING.md. Reusable adapter copies must retain their license
+text/notice. #115 still owns full binary/image redistribution acceptance; this
+decision does not clear artwork or authorize replacing README screenshots.
+
 **Owner public-readiness pass, 2026-10-06:** GitHub Actions is disabled at
 repository level; do not recreate workflows without an explicit owner request.
 Public documentation/configuration cleanup does not authorize runtime changes,

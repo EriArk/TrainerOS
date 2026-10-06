@@ -1,5 +1,9 @@
 # Portable Gen III adapter source
 
+Original TrainerOS source: **GPL-3.0-or-later**. Keep [LICENSE](LICENSE)
+and [scope/third-party notice](LICENSING.md) with this reusable copy.
+
+
 This directory is the owner's reusable copy of the **actual TrainerOS adapter**,
 including its model headers, factual tables, resource configuration and exact-game
 profiles. Copy the whole directory into another project. It builds independently

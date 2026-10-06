@@ -556,6 +556,8 @@ endif()
 
 include(GNUInstallDirs)
 install(TARGETS traineros RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES LICENSE LICENSING.md THIRD_PARTY_NOTICES.md
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/traineros COMPONENT Licensing)
 install(FILES assets/badges/README.md assets/badges/manifest.json DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/traineros/badges)
 install(FILES data/licenses/PokeAPI.txt DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/traineros/licenses)
 if(UNIX AND NOT APPLE)

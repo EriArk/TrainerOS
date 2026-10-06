@@ -1,5 +1,9 @@
 # Runtime profile source copy
 
+Original TrainerOS source: **GPL-3.0-or-later**. Keep [LICENSE](LICENSE)
+and [scope/third-party notice](LICENSING.md) with this reusable copy.
+
+
 Generated source/dependencies and per-game profiles accompany the research index.
 These are the actual TrainerOS PPSSPP/RetroArch identity and launch-configuration
 modules, not ROMs, emulator binaries or save-format adapters. Refresh/check with

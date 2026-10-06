@@ -17,7 +17,8 @@ public when reviewed. Existing README screenshots remain at the owner's request.
 - Early prototype development instructions archived with a visible historical
   boundary; original Codex bootstrap brief marked historical. Existing acceptance
   and evidence are preserved, not mass-closed as completed.
-- Third-party notice inventory added. No TrainerOS code license selected.
+- Third-party notice inventory added. In the follow-up the owner selected
+  **GPL-3.0-or-later** for original TrainerOS code; see [licensing scope](../LICENSING.md).
 - Private art-acquisition URLs removed from the current documentation and the
   bodies of #58/#61 without changing their acceptance. Old commits, edit history
   and copies may retain them; no history rewriting was performed.
@@ -33,15 +34,24 @@ and device tests are not repeated. A fresh-machine build was not performed here.
 
 | Issue | Outcome | Boundary |
 | --- | --- | --- |
-| [#115](https://github.com/EriArk/TrainerOS/issues/115) | Owner-selected code license and complete distribution notices | No blanket license over third-party code or artwork; review exact packaged dependencies |
+| [#115](https://github.com/EriArk/TrainerOS/issues/115) | GPL-3.0-or-later adopted; complete distribution notices/source remain open | Existing third-party licenses preserved; verify exact release artifacts |
 | [#116](https://github.com/EriArk/TrainerOS/issues/116) | Public asset provenance/defaults and replacement showcase | Keep current README screenshots until a replacement is agreed; no automatic UI redesign/history rewrite |
 | [#117](https://github.com/EriArk/TrainerOS/issues/117) | Reproduce clean contributor setup without private machine state | Dependency reconciliation is not a completed clean build; batch proof with relevant build work |
 | [#62](https://github.com/EriArk/TrainerOS/issues/62) | Remaining active specification and historical-evidence reconciliation | Updated with this pass; older unresolved acceptance is retained |
 
-The code-license discussion is whether distributed derivatives should remain
-open (GPL-3.0-or-later candidate) or permissive reuse, including closed derivatives,
-is desired (MIT candidate). These are proposals for owner discussion, subject to
-component compatibility review; neither is adopted by this document.
+The owner accepted **GPL-3.0-or-later** on 2026-10-06. The root LICENSE contains
+the unmodified license text and LICENSING.md provides the explicit version-3-or-later
+grant and exclusions. README, contribution guidance and reusable source snapshots
+carry the decision. The CMake Licensing component installs the project notices.
+Declared direct-library licenses were reviewed against the source dependencies;
+full binary/image corresponding-source and notice verification remains open in #115.
+The initial cleanup above changed no runtime code; this license follow-up adds
+only licensing documents and a CMake notice-install rule. Verification: native
+CMake configuration succeeded; `cmake --install ... --component Licensing` into
+an isolated build directory installed all three root notice files byte-for-byte.
+Both reusable license copies match the root's upstream hash; the existing adapter
+snapshot check passed. No application rebuild, device deployment or fresh-machine
+reproduction is claimed by this metadata-only change.
 
 Asset review covers fan badge recreations, generated franchise-inspired series
 cards, QML-drawn clinic elements, and screenshots with separately supplied art,
@@ -59,5 +69,6 @@ has been cleared. Private scan outputs stay outside version control.
 
 Resume MP-02 from [current tasks](CURRENT_TASKS.md). Public-readiness issues remain
 explicit follow-ups and do not restart passed multiplayer checks, move Pack Studio
-forward, or replace image/update work under #70/#71. Significant licensing, asset
-replacement and history-cleanup choices require the owner's decision first.
+forward, or replace image/update work under #70/#71. The accepted GPL-3.0-or-later
+decision is recorded; asset replacement and history-cleanup choices still require
+the owner's decision first.

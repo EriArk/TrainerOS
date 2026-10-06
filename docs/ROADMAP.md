@@ -4,7 +4,9 @@
 repository presentation and GitHub automation cleanup. See
 [the audit/follow-ups](PUBLIC_READINESS.md) for #115–117 and the updated #62.
 This bounded pass preserves the execution queue below: resume MP-02, keep
-Pack Studio last, and discuss licensing/art replacement before making those decisions.
+Pack Studio last. The owner subsequently adopted GPL-3.0-or-later for original
+code; #115 retains release redistribution acceptance. Discuss art replacement
+before changing the public visual material.
 
 ## Active execution queue — 2026-10-04
 

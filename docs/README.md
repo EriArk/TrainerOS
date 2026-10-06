@@ -11,7 +11,8 @@ observed on those builds; they are not universal compatibility promises.
 - [Engineering workflow](DEVELOPMENT_WORKFLOW.md) — complete delivery and evidence.
 - [Roadmap](ROADMAP.md) — accepted order; [current tasks](CURRENT_TASKS.md) — remaining acceptance.
 - [Architecture](ARCHITECTURE.md) and [data model](DATA_MODEL.md) — boundaries and identity.
-- [Security reporting](../SECURITY.md) and [third-party inventory](../THIRD_PARTY_NOTICES.md).
+- [Security reporting](../SECURITY.md), [code license and scope](../LICENSING.md)
+  and [third-party inventory](../THIRD_PARTY_NOTICES.md).
 
 ## Understand current features
 
