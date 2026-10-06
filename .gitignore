@@ -95,3 +95,7 @@ device-check-*.json
 /work/research/
 /work/visuals/*.png
 /work/visuals/check-*.cjs
+
+# Local agent configuration and run artifacts (never global Codex history)
+/.codex/
+/.codex-*/

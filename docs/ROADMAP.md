@@ -1,5 +1,11 @@
 # TrainerOS Roadmap
 
+**Public-readiness maintenance, 2026-10-06:** the owner requested documentation,
+repository presentation and GitHub automation cleanup. See
+[the audit/follow-ups](PUBLIC_READINESS.md) for #115–117 and the updated #62.
+This bounded pass preserves the execution queue below: resume MP-02, keep
+Pack Studio last, and discuss licensing/art replacement before making those decisions.
+
 ## Active execution queue — 2026-10-04
 
 Start here, then read [Current tasks](CURRENT_TASKS.md). This table controls

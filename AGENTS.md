@@ -1,5 +1,13 @@
 # AGENTS.md — TrainerOS
 
+**Owner public-readiness pass, 2026-10-06:** GitHub Actions is disabled at
+repository level; do not recreate workflows without an explicit owner request.
+Public documentation/configuration cleanup does not authorize runtime changes,
+license selection, Git-history rewriting or replacing README screenshots.
+Use docs/PUBLIC_READINESS.md for pending decisions; after this bounded pass
+resume MP-02 in the existing queue. Preserve historical acceptance and private data.
+
+
 **Owner series priority, 2026-10-04:** implement #114 collection navigation now,
 then return to the interrupted MP-02 independent handheld multiplayer work.
 Add a bounded selection of series from the owner's ROM disk and generated

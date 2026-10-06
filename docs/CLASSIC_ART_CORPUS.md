@@ -59,7 +59,7 @@ not per-file attribution. Static PNG/JPEG/WebP only; animated inputs are rejecte
 
 ## Verified seed checkpoint — 2026-09-19
 
-Imported the organized archive from the [owner's Drive seed](https://drive.google.com/drive/folders/1T2hF3ieas4mNBKQN6v94mlY8lbwT4KLx).
+Imported the organized archive from the owner's Drive seed (private acquisition reference).
 Private acquisition notes retain the exact archive identity/hash. No imagery or
 private file manifest is committed.
 

@@ -10,15 +10,35 @@ For an ordinary game, that can be as simple as **pick it → press A → play �
 
 For games TrainerOS understands more deeply, the boundary starts to disappear. Your party, progress, collections and history can live in the system around the game. Friends can see that you are playing, ask to join, and enter a supported multiplayer game without opening an emulator lobby or typing an IP address.
 
-Pokémon is the first game family where TrainerOS goes much further than a launcher. Everything else has a home in the **Multiverse**.
+Pokémon is the first game family where TrainerOS goes much further than a launcher. Other supported series have their own collections; unclassified games remain in the **Multiverse**.
 
 TrainerOS is still in active development, but the current build already runs as a dedicated handheld session on **Retroid Pocket Flip 2** and **AYN Odin 2**.
 
 [Full-resolution screenshots from the current handheld build](screenshots/site-2026-10-04/README.md)
 
+## Development status and getting started
+
+This repository currently provides **source and development deployment tooling**,
+not a ready-to-flash public TrainerOS image. Prepared Flip 2 and Odin 2 installations
+have real device evidence; that does not establish a fresh-install experience on
+every handheld. Existing showcase screenshots are retained while the gallery is updated.
+
+- [Build and run from source](docs/DEVELOPMENT.md)
+- [Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md)
+- [Current tasks and remaining acceptance](docs/CURRENT_TASKS.md) · [Roadmap](docs/ROADMAP.md)
+- [Security reporting](SECURITY.md) · [Licensing and third-party materials](THIRD_PARTY_NOTICES.md)
+
+| Area | Current boundary |
+| --- | --- |
+| Library, series and handheld shell | Installed device evidence; compatibility depends on available runtimes/content |
+| Semantic game integration | Exact supported game/build adapters, not all games on a platform |
+| Social and multiplayer | Implemented routes with bounded evidence; distinct-network, larger-group and human audio acceptance remain open |
+| Public image and updates | Reproducible distribution and update/rollback acceptance remain planned |
+| Public artwork and licensing | Under review; no project-wide software license selected yet |
+
 ## Pick a game and play
 
-Pokémon games are organized as **Worlds**. Everything else lives in the **Multiverse**.
+Worlds opens a collection browser. Pokémon retains its regional worlds; other supported series have their own game wheels. Unclassified games remain in the **Multiverse**. On Home, L2/R2 cycles series, each with its own selected Adventure.
 
 <table>
 <tr>
@@ -116,7 +136,7 @@ The **Multiverse** is a full part of TrainerOS, not a waiting room for games tha
 
 A game can simply have a good cover, video preview, play history, direct launch, Home menu and clean return. That is enough.
 
-Larger series can eventually get their own first-class experience when there is something meaningful to build around them: a Sonic, Final Fantasy, Metal Slug or Need for Speed section should use concepts that fit those games rather than borrowing Party and Pokédex because TrainerOS happens to have them.
+Series collections and independent Home choices are already available. Deeper game-specific experiences remain separate work: a Sonic, Final Fantasy, Metal Slug or Need for Speed section should use concepts that fit those games rather than borrowing Party and Pokédex because TrainerOS happens to have them.
 
 Installed Steam games are intended to join the Multiverse in the same way. Steam itself remains available for the things Steam is good at; TrainerOS only needs to make the installed games feel like part of the same handheld.
 

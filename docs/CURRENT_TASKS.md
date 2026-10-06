@@ -1,5 +1,11 @@
 # Current tasks
 
+Public-readiness maintenance, 2026-10-06: the owner requested a bounded repository
+cleanup before continuation. [Delivered scope and open decisions](PUBLIC_READINESS.md)
+track #115 (license), #116 (public assets), #117 (clean contributor build), and the
+updated #62 documentation reconciliation. Runtime code and README screenshots
+remain unchanged; GitHub Actions is disabled. Resume MP-02 below after this pass.
+
 Updated 2026-10-04. Execution order lives in [ROADMAP](ROADMAP.md#active-execution-queue--2026-10-04).
 This register decomposes accepted work; it is not a second roadmap or a promise
 that each subtask receives a separate turn. Issues and existing evidence retain
