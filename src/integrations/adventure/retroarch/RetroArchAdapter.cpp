@@ -1,6 +1,7 @@
 #include "RetroArchAdapter.h"
 #include "RetroArchAppearance.h"
 #include "RetroArchNetplay.h"
+#include "RetroArchHandheldLink.h"
 #include "core/repository/CollectionRepository.h"
 #include "RetroArchSave.h"
 #include "RetroArchDisc.h"
@@ -212,7 +213,9 @@ AdventureResult RetroArchAdapter::launchConfigured(const Adventure& adventure,st
     retroarch::BezelGame bezelGame{adventure.platformId,registration?registration->contentPath:QString(),{}};
     if(adventure.kind!=AdventureKind::RomHack&&!adventure.catalogueId.isEmpty())
         for(const auto& entry:collectionCatalogue(true))if(entry.catalogueId==adventure.catalogueId&&entry.platformId==adventure.platformId){bezelGame.catalogueTitle=entry.title;break;}
-    invocation->prepare=[prepare,id,config,runtime=installation_.runtimeFile,display,bezelGame,extra](ProcessCommand& cmd,const std::atomic_bool& cancel){
+    invocation->prepare=[prepare,registration,installation=installation_,id,config,runtime=installation_.runtimeFile,display,bezelGame,extra](ProcessCommand& cmd,const std::atomic_bool& cancel){
+        const auto recovery=registration?retroarch::recoverHandheldReturn(*registration,installation):QString();
+        if(!recovery.isEmpty())return recovery;
         const auto error=prepare?prepare(cmd,cancel):QString();
         if(!error.isEmpty()||cancel)return error;
         const auto appearance=retroarch::prepareAppearance(cmd,id,config,runtime,display,bezelGame);

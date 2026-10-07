@@ -1,6 +1,9 @@
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "integrations/adventure/retroarch/RetroArchNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchHandheldLink.h"
+#include "integrations/adventure/retroarch/HandheldSavePair.h"
+#include "../packaging/emulators/handheld/TrainerMbc3Rtc.h"
+#include <QtEndian>
 #include "integrations/adventure/retroarch/RetroArchSave.h"
 #include "integrations/adventure/retroarch/RetroArchDisc.h"
 #include "integrations/adventure/retroarch/RetroArchConfiguration.h"
@@ -35,6 +38,60 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void mbc3ClockUsesCartridgeDaysAndSurvivesPauseAndEpochWrap() {
+        TrainerMbc3Rtc clock;const quint64 now=1800000000;
+        clock.base=now-(300*86400+13*3600+27*60+19);
+        QCOMPARE(clock.get(8,now),19);QCOMPARE(clock.get(9,now),27);
+        QCOMPARE(clock.get(10,now),13);QCOMPARE(clock.get(11,now),44);QCOMPARE(clock.get(12,now),1);
+        clock.set(11,45,now);QCOMPARE(clock.get(11,now),45);
+        clock.set(12,0x41,now);QCOMPARE(clock.get(8,now+500),19);
+        clock.set(12,1,now+500);QCOMPARE(clock.get(8,now+502),21);
+        clock.base=now-511*86400-61;clock.flags=0;
+        QCOMPARE(clock.get(9,now),1);QCOMPARE(clock.get(8,now),1);QCOMPARE(clock.get(12,now),0x80);
+        QCOMPARE(clock.base,now-61);
+        clock.base=now+20;QCOMPARE(clock.get(8,now),0);
+    }
+    void handheldClockPairRecoversInterruptedReturnAndRejectsConflicts() {
+        using namespace trainer::retroarch::handheld;
+        QTemporaryDir dir;const auto save=dir.filePath("Gold.srm"),rtc=rtcPath(save);
+        QByteArray oldSave(32768,'a'),newSave(32768,'b'),oldRtc(8,0),newRtc(8,0);
+        qToLittleEndian<quint64>(1700000000,oldRtc.data());qToLittleEndian<quint64>(1700000060,newRtc.data());
+        QVERIFY(writeFile(save,oldSave));QVERIFY(writeFile(rtc,oldRtc));
+        QVERIFY(returnPair(save,oldSave,newSave,oldRtc,newRtc).isEmpty());
+        QCOMPARE(readFile(save),newSave);QCOMPARE(readFile(rtc),newRtc);
+        QCOMPARE(readFile(rtc+".before-link"),oldRtc);
+        // Interruption after the RTC replacement: the next ordinary launch
+        // finishes the intended SRAM write. No emulator may see a mixed pair.
+        QJsonObject j{{"version",1},{"saveExisted",true},{"rtcExisted",true}};
+        for(const auto& v:QList<QPair<QString,QByteArray>>{{"oldSave",oldSave},{"newSave",newSave},{"oldRtc",oldRtc},{"newRtc",newRtc}})
+            j[v.first]=QString::fromLatin1(v.second.toBase64());
+        const auto intent=save+".link-return.json";
+        QVERIFY(writeFile(save,oldSave));QVERIFY(writeFile(intent,QJsonDocument(j).toJson()));
+        QVERIFY(recoverPair(save).isEmpty());QCOMPARE(readFile(save),newSave);QVERIFY(!QFileInfo::exists(intent));
+        QVERIFY(writeFile(save,QByteArray(32768,'c')));QVERIFY(writeFile(intent,QJsonDocument(j).toJson()));
+        QVERIFY(!recoverPair(save).isEmpty());QCOMPARE(readFile(save),QByteArray(32768,'c'));QVERIFY(QFileInfo::exists(intent));
+    }
+    void handheldGenTwoSeedsAndReturnsOwnClockIncludingGuest() {
+        using namespace trainer::retroarch::handheld;
+        QTemporaryDir dir;QDir().mkpath(dir.filePath("session"));std::atomic_bool cancel=false;
+        AdventureRegistration r;r.adventure.platformId="gbc";r.contentPath=dir.filePath("Gold.gbc");r.integrationConfig["core"]="gambatte";
+        QByteArray rom(512,0);rom.replace(0x134,14,"POKEMON_GLDAAUE");rom[0x147]=0x10;QVERIFY(writeFile(r.contentPath,rom));
+        const auto save=dir.filePath("Gold.srm"),rtc=rtcPath(save);QByteArray clock(8,0);qToLittleEndian<quint64>(1700000000,clock.data());
+        QVERIFY(writeFile(save,QByteArray(32768,'a')));QVERIFY(writeFile(rtc,clock));
+        RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");i.cores["DoubleCherryGB"]=dir.filePath("core");
+        QVERIFY(writeFile(i.configFile,("savefile_directory = \""+dir.path()+"\"\nauto_overrides_enable = \"false\"\n").toUtf8()));
+        ProcessCommand cmd;QVERIFY(!retroarch::prepareHandheldSave(cmd,r,i,dir.filePath("session"),cancel).isEmpty());
+        QVERIFY(writeFile(i.cores["DoubleCherryGB"],"traineros-mbc3-rtc-v1"));
+        QVERIFY(retroarch::prepareHandheldSave(cmd,r,i,dir.filePath("session"),cancel).isEmpty());
+        QCOMPARE(readFile(dir.filePath("session/.netplay/Gold.rtc")),clock);
+        qToLittleEndian<quint64>(1700000010,clock.data());
+        QVERIFY(writeFile(dir.filePath("session/.netplay/Gold.rtc"),clock));
+        QVERIFY(writeFile(dir.filePath("session/.netplay/Gold.srm"),QByteArray(32768,'b')));
+        QVERIFY(cmd.finalize({true,0,false,false}).isEmpty());QCOMPARE(readFile(rtc),clock);QCOMPARE(readFile(save),QByteArray(32768,'b'));
+        ProcessCommand conflict;QVERIFY(retroarch::prepareHandheldSave(conflict,r,i,dir.filePath("session"),cancel).isEmpty());
+        QVERIFY(writeFile(dir.filePath("session/Gold.srm"),QByteArray(32768,'c')));QVERIFY(writeFile(rtc,QByteArray(8,'x')));
+        QVERIFY(!conflict.finalize({true,0,false,false}).isEmpty());QCOMPARE(readFile(save),QByteArray(32768,'b'));QCOMPARE(readFile(rtc),QByteArray(8,'x'));
+    }
     void handheldProfilesKeepOwnCartridgeAndPlayerOne() {
         QTemporaryDir dir;std::atomic_bool cancel=false;
         AdventureRegistration r;r.adventure.platformId="gba";r.integrationConfig["core"]="mgba";

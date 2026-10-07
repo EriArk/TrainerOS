@@ -1,5 +1,60 @@
 # Handheld link over the network (MP-02)
 
+## Gen II clock continuity — 2026-10-07
+
+Target: the pinned DoubleCherryGB revision below and Gambatte libretro
+`d9d6cd06382d1ced30de34d56d3609452323dab1`, English Gold/Silver/Crystal
+MBC3 cartridges. No additional semantic save-write capability is inferred.
+Gambatte exports an eight-byte native-endian epoch base through
+`cartridge_libretro.cpp`; DoubleCherryGB exports a four-byte wall clock and
+indexes the RTC memory kind as a machine index. Its system-clock mode also
+uses host weekday instead of the cartridge day counter. Copying RTC files
+between the unpatched cores is unsafe without an explicit core bridge.
+
+The bridge is now implemented in the pinned DoubleCherryGB build, selected only
+for the reviewed English Gen II profile. Each player stages their own eight-byte
+clock beside their own SRAM. Normal exit returns both through a durable intent
+and preimage backups; ordinary TrainerOS launch recovers an interrupted matching
+pair. Conflicting originals or an abnormal exit retain recovery files instead.
+Unpatched replacement cores are rejected for this route. See the separate
+[emulator maintenance record](emulators/doublecherrygb.md) for ABI, patch,
+reproduction, update and rollback details. No extra player setup screen is added.
+
+### Bounded installed evidence
+
+- The self-authored MBC3 test cartridge exercised reads/writes in actual Gambatte
+  and patched DoubleCherryGB on both handhelds, including a 300-day counter.
+- English Gold copies connected through the public Madrid relay with independent
+  input, SRAM and clocks. Both loaded Continue, changed position and saved in-game.
+  A runtime watcher reported actual normal exits; production preparation and
+  finalization returned changed 32 KiB SRAM plus each player's eight-byte RTC.
+  Both preimage backups matched their own inputs, and temporary sessions were
+  removed only after successful finalization. Ordinary configuration fingerprints
+  stayed unchanged.
+- Ordinary Gambatte loaded both returned copies into the saved room. The game's
+  Sunday clock continued from 11:54/11:57 to 12:02/12:04 respectively instead of
+  resetting or becoming the host device's weekday. RTC bytes remained identical
+  through Gambatte shutdown; running the game did alter some SRAM bytes, so
+  this is readback evidence, not a claim of byte-identical RAM after execution.
+- The initial long-running private probe outlived its helper's one-hour timer.
+  Its output was preserved but was **not** counted as normal-return evidence.
+  The completed cycle used a watcher tied to the real emulator outcome.
+- Windows and ARM `retroarch` checks passed (38 Qt test cases); ARM `netplay_client`,
+  `game_party` and `process` also passed. The broader `persistence_process` check
+  had three pre-existing subprocess-start failures; an old/new binary baseline
+  both failed the same seed invocation. That suite is not reported as green.
+
+Both devices remain on one home connection: relay use is not distinct-network
+acceptance. This cycle used a private harness around the production adapter,
+not the full GB Home invitation UI, and did not perform a Gold cable trade.
+Silver/Crystal remain source/profile coverage rather than individual readbacks.
+MP-02 stays open for the concrete remaining items below.
+
+Bundle: `handheld-20261007.1`. Installed TrainerOS ARM64 SHA-256:
+`474a9720e05be7f4ffe76dcaaf8735c8d3e620b028b95c45c7fe0039108f437f`.
+Flip restarted into the new binary; Odin's existing Steam session was retained,
+with the new TrainerOS binary installed for its next launch. No device reboot.
+
 ## Original research checkpoint — 2026-10-04
 
 This is separate-machine link emulation, not shared-controller rollback.
@@ -85,9 +140,9 @@ parties, local player-one controls and physical Home flow are reused.
 ### Save ownership
 
 Each machine stages its own ordinary SRAM, never the host's save. The GBA path
-uses the ordinary owner resolver. Gambatte RTC bytes are never overwritten by
-DoubleCherryGB's incompatible clock representation; Gen II clock continuity
-remains unresolved.
+uses the ordinary owner resolver. The 4 October implementation left Gambatte
+RTC untouched; the 7 October bridge above supersedes that limitation for the
+reviewed Gen II profile. Unrelated clocks remain untouched.
 
 RetroArch can select guest `.netplay` SRAM before DoubleCherryGB registers
 netpacket. Both private paths are now seeded; finalization selects the changed
@@ -130,8 +185,8 @@ Representative actual captures: [evidence](../screenshots/handheld-link-2026-10-
 
 ### Remaining acceptance - MP-02 stays open
 
-- Actual Gen I/II/TCG cable transactions and GB ordinary invitation/exit coverage;
-  Gen II RTC interoperability. Red boot does not establish whole-family support.
+- Actual Gen I/II/TCG cable transactions and GB ordinary invitation/exit coverage.
+  Gold clock continuity above does not establish whole-family support or a trade.
 - Upstream warns that DoubleCherryGB battles can be unstable; general real-time
   GB cable games are not established by trading support.
 - Gen III battles, cross-edition runtime proof, Advance Wars gameplay, and four

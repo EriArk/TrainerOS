@@ -88,9 +88,10 @@ for relative in ("src/integrations/adventure/standalone/DolphinNetplay.cpp",
 for profile in registry.get("runtimeProfiles", []):
     exported_profile = dict(profile, evidenceBase="../../../")
     files[f"profiles/{profile['id']}.json"] = (json.dumps(exported_profile, indent=2) + "\n").encode()
-for path in sorted((root / "packaging/emulators/dolphin").iterdir()):
-    if path.is_file():
-        files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
+for directory in ("dolphin", "handheld"):
+    for path in sorted((root / "packaging/emulators" / directory).iterdir()):
+        if path.is_file():
+            files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")
 manifest = {name: hashlib.sha256(data).hexdigest() for name, data in sorted(files.items())}
 files["manifest.json"] = (json.dumps({"hash": "SHA-256 of UTF-8/LF export", "files": manifest}, indent=2) + "\n").encode()
 managed = {p.relative_to(dest).as_posix() for folder in ("src", "profiles", "packaging")

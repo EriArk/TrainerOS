@@ -53,3 +53,11 @@ Configuration modules can be compiled independently; the header snapshots also
 describe host-facing model/process interfaces. They do not include the complete
 TrainerOS invitation controller, database or process runner. Integration into
 another project must implement those contracts, rather than bypassing them.
+
+Independent handheld link also includes the maintained core recipe/RTC patch in
+`packaging/emulators/handheld`. Call `recoverHandheldReturn` before **ordinary**
+GB/GBC launch, and retain `finalize` errors/private recovery folders on network
+exit. The Gen II SRAM/RTC intent must be recovered before exposing its files to
+an emulator. See [core maintenance](../../../emulators/doublecherrygb.md) and
+[handheld evidence](../../../HANDHELD_MULTIPLAYER.md); a copied adapter does not
+remove the receiving host's process/save ownership responsibilities.

@@ -56,11 +56,21 @@ no classic-system implementation or passed test loop is restarted.
   launch, own Continue, peer departure and normal Home exit on both.
 - [x] Red relay pair, existing guest save, changed guest SRAM finalization and
   ordinary Gambatte readback; reusable adapter and per-emulator update records.
-- [ ] Gen I/II/TCG cable transactions, GB ordinary UI journey and Gen II clock.
+- [x] Gen II own-clock bridge, recoverable SRAM/RTC return and Gold normal-game
+  readback on both handhelds; per-core patch/rollback and reusable adapter export.
+- [ ] Gen I/II/TCG cable transactions and GB ordinary UI journey. Gold clock
+  continuity is not a trade or full family acceptance; do not repeat it as a pass.
 - [ ] GBA battle/cross-edition and Advance Wars gameplay; four-client activity.
 - [ ] Owner-deferred distinct-network/multi-user and human voice acceptance.
 
 Resume here after the delivered #114 navigation checkpoint; do not restart passed Emerald/Red checks without a concrete change.
+
+7 October continuation: the clock/save-return outcome is delivered; next finish
+the GB invitation-to-cable-transaction-to-ordinary-play journey. Keep the three
+baseline `persistence_process` subprocess-start failures recorded in
+[the evidence](HANDHELD_MULTIPLAYER.md) for the contributor-build follow-up (#117);
+the affected adapter/lifecycle suites passed. Do not turn that separate baseline
+into repeated multiplayer checks or mark the broader suite green.
 
 ## MP-01 — retained classic RetroArch and shared online-party acceptance
 

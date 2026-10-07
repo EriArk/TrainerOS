@@ -13,19 +13,22 @@
     "mgba-trade-readback",
     "gba-ui-invitation-exit",
     "red-relay-sram-gambatte-readback",
-    "guest-sram-finalization"
+    "guest-sram-finalization",
+    "mbc3-clock-core-read-write-both-devices",
+    "sram-rtc-interrupted-return-recovery",
+    "gold-relay-own-clock-normal-return-both-devices",
+    "gold-gambatte-clock-continue-readback-both-devices"
   ],
   "remaining": [
     "gb-gbc-cable-transaction",
     "gb-ui-invitation-exit",
-    "gen2-rtc",
     "gba-battle-cross-edition",
     "advance-wars-runtime",
     "distinct-networks",
     "four-clients"
   ],
   "persistentSaveWrites": true,
-  "savePolicy": "Isolated own SRAM; atomic normal-exit copyback with preimage backup; conflict or crash retains original and separate recovery. RTC remains untouched.",
+  "savePolicy": "Isolated own SRAM; protected normal-exit return with preimage backup. Gen II uses the patched Gambatte-compatible eight-byte RTC bridge and a recoverable two-file intent. Conflicts or crash retain original files and recovery copies; unrelated RTC remains untouched.",
   "implementation": "implementations/runtime",
   "profile": "implementations/runtime/profiles/runtime.handheld.json",
   "evidenceBase": "../../../"

@@ -1,5 +1,10 @@
 # TrainerOS Roadmap
 
+**MP-02 continuation, 2026-10-07:** Gen II own-clock and protected SRAM/RTC return
+are installed, with Gold readback on both handhelds. The next missing outcome is
+the GB invitation/cable-transaction/ordinary-play journey; MP-02 remains current.
+See [the task register](CURRENT_TASKS.md) and [bounded evidence](HANDHELD_MULTIPLAYER.md).
+
 **Owner website demo request, 2026-10-07:** a bounded interactive website tour is
 delivered in [web-demo](../web-demo/README.md). It uses fictional data and optional
 scripted examples; it is not native runtime acceptance or a roadmap replacement.

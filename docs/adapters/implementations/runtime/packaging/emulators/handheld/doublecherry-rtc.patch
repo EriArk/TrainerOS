@@ -1,0 +1,129 @@
+diff --git a/libretro/dmy_renderer.cpp b/libretro/dmy_renderer.cpp
+index 73cddc6..d68028e 100644
+--- a/libretro/dmy_renderer.cpp
++++ b/libretro/dmy_renderer.cpp
+@@ -266,6 +266,7 @@ void  generateGradient();
+ dmy_renderer::dmy_renderer(int which)
+ {
+     which_gb = which;
++    trainer_rtc.base = static_cast<std::uint64_t>(time(NULL));
+ 
+     //  if (!rgb565_checked)
+     {
+@@ -1356,6 +1357,7 @@ void dmy_renderer::render_screen(byte* buf, int width, int height, int depth)
+ 
+ byte dmy_renderer::get_time(int type)
+ {
++   if (trainer_mbc3_rtc) return trainer_rtc.get(type, time(NULL));
+    if (use_system_clock)
+    {
+       time_t rtc_now = time(NULL);
+@@ -1399,6 +1401,7 @@ byte dmy_renderer::get_time(int type)
+ 
+ void dmy_renderer::set_time(int type, byte dat)
+ {
++   if (trainer_mbc3_rtc) { trainer_rtc.set(type, dat, time(NULL)); return; }
+    if (use_system_clock)
+    {
+       time_t rtc_now = time(NULL) + rtc_offset_seconds;
+diff --git a/libretro/dmy_renderer.h b/libretro/dmy_renderer.h
+index 29fb9cc..5f178a6 100644
+--- a/libretro/dmy_renderer.h
++++ b/libretro/dmy_renderer.h
+@@ -20,6 +20,8 @@
+ 
+ #include <algorithm>
+ #include <cstdint>
++#include "TrainerMbc3Rtc.h"
++inline bool trainer_mbc3_rtc = false;
+ #include <cmath>
+ #include <array>
+ #include "../gb_core/renderer.h"
+@@ -371,6 +373,7 @@ public:
+ 	}
+ 
+ 
++	TrainerMbc3Rtc trainer_rtc;
+ 	dword fixed_time;
+ private:
+ 	void apply_all_gb_effects_and_render(byte* buf, int width, int height, int depth, int pitch);
+diff --git a/libretro/inline/inline_functions.h b/libretro/inline/inline_functions.h
+index 1be1afe..47e85e4 100644
+--- a/libretro/inline/inline_functions.h
++++ b/libretro/inline/inline_functions.h
+@@ -1508,6 +1508,7 @@ static void check_variables(void)
+     }
+ 
+     if ((val = get_var("dcgb_rtc_use_system_clock"))) {
++        trainer_mbc3_rtc = (atoi(val) == 2);
+         bool newValue = static_cast<bool>(atoi(val));
+         if (use_system_clock != newValue) {
+             use_system_clock = newValue;
+diff --git a/libretro/libretro.cpp b/libretro/libretro.cpp
+index f4d43db..e5462d2 100644
+--- a/libretro/libretro.cpp
++++ b/libretro/libretro.cpp
+@@ -562,16 +562,18 @@ void *retro_get_memory_data(unsigned id)
+             switch (id)
+             {
+                 case RETRO_MEMORY_SAVE_RAM:
+-                    return v_gb[id]->get_rom()->get_sram();
++                    return v_gb[0]->get_rom()->get_sram();
+                 case RETRO_MEMORY_RTC:
+-                    if (v_gb[id]->get_rom()->get_info()->cart_type == 0xFE)
+-                        return &v_gb[id]->get_mbc()->huc3_baseTime; // Direkt der Zeiger auf die 8-Byte Variable
++                    if (trainer_mbc3_rtc && (v_gb[0]->get_rom()->get_info()->cart_type == 0x0f || v_gb[0]->get_rom()->get_info()->cart_type == 0x10))
++                        return &render[0]->trainer_rtc.base;
++                    if (v_gb[0]->get_rom()->get_info()->cart_type == 0xFE)
++                        return &v_gb[0]->get_mbc()->huc3_baseTime; // Direkt der Zeiger auf die 8-Byte Variable
+                     else
+-                        return &(render[id]->fixed_time);
++                        return &(render[0]->fixed_time);
+                 case RETRO_MEMORY_VIDEO_RAM:
+-                    return v_gb[id]->get_cpu()->get_vram();
++                    return v_gb[0]->get_cpu()->get_vram();
+                 case RETRO_MEMORY_SYSTEM_RAM:
+-                    return v_gb[id]->get_cpu()->get_ram();
++                    return v_gb[0]->get_cpu()->get_ram();
+                 default:
+                     return NULL;
+             }
+@@ -613,18 +615,20 @@ size_t retro_get_memory_size(unsigned id)
+         switch (id)
+         {
+         case RETRO_MEMORY_SAVE_RAM:
+-            return v_gb[id]->get_rom()->get_sram_size();
++            return v_gb[0]->get_rom()->get_sram_size();
+         case RETRO_MEMORY_RTC:
+-                if (v_gb[id]->get_rom()->get_info()->cart_type == 0xFE)
+-                    return sizeof(v_gb[id]->get_mbc()->huc3_baseTime); // Gibt exakt 8 (Byte) zurück
++                if (trainer_mbc3_rtc && (v_gb[0]->get_rom()->get_info()->cart_type == 0x0f || v_gb[0]->get_rom()->get_info()->cart_type == 0x10))
++                    return sizeof(render[0]->trainer_rtc.base);
++                if (v_gb[0]->get_rom()->get_info()->cart_type == 0xFE)
++                    return sizeof(v_gb[0]->get_mbc()->huc3_baseTime); // Gibt exakt 8 (Byte) zurück
+                 else
+-                    return sizeof(render[id]->fixed_time);
++                    return sizeof(render[0]->fixed_time);
+         case RETRO_MEMORY_VIDEO_RAM:
+-            if (v_gb[id]->get_rom()->get_info()->gb_type >= 3)
++            if (v_gb[0]->get_rom()->get_info()->gb_type >= 3)
+                 return 0x2000 * 2; // sizeof(cpu::vram);
+             return 0x2000;
+         case RETRO_MEMORY_SYSTEM_RAM:
+-            if (v_gb[id]->get_rom()->get_info()->gb_type >= 3)
++            if (v_gb[0]->get_rom()->get_info()->gb_type >= 3)
+                 return 0x2000 * 4; // sizeof(cpu::ram);
+             return 0x2000;
+         default:
+diff --git a/libretro/libretro_core_options.h b/libretro/libretro_core_options.h
+index 546002d..d50d942 100644
+--- a/libretro/libretro_core_options.h
++++ b/libretro/libretro_core_options.h
+@@ -85,6 +85,7 @@ static struct retro_core_option_v2_definition core_options_us[] = {
+         {
+                 {"0", "Emulated (Cycle-based)"},
+                 {"1", "Real-Time (System Clock)"},
++                {"2", "traineros-mbc3-rtc-v1"},
+                 {NULL, NULL}
+         },
+         "1",
