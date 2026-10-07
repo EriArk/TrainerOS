@@ -10,6 +10,7 @@ observed on those builds; they are not universal compatibility promises.
 - [Development](DEVELOPMENT.md) — dependencies, isolated build/run and checks.
 - [Engineering workflow](DEVELOPMENT_WORKFLOW.md) — complete delivery and evidence.
 - [Roadmap](ROADMAP.md) — accepted order; [current tasks](CURRENT_TASKS.md) — remaining acceptance.
+- [Issues #118–135](EXPANSION_118_135.md) — installer/shared release, live Hotseat and Social/Together reconciliation.
 - [Architecture](ARCHITECTURE.md) and [data model](DATA_MODEL.md) — boundaries and identity.
 - [Security reporting](../SECURITY.md), [code license and scope](../LICENSING.md)
   and [third-party inventory](../THIRD_PARTY_NOTICES.md).
@@ -35,4 +36,5 @@ observed behavior, and acceptance still waiting on hardware or human testing.
 The [bootstrap development guide](archive/DEVELOPMENT_BOOTSTRAP.md) and
 [original Codex bootstrap brief](CODEX_START.md) are historical, not onboarding.
 Older acceptance remains open unless explicitly delivered or superseded; a new
-document does not silently cancel it. Pack Studio remains at the end of the plan.
+document does not silently cancel it. Pack Studio and optional ROM-native assets
+precede image/installer delivery, then updates/repair and final acceptance.

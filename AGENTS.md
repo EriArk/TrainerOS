@@ -1,5 +1,22 @@
 # AGENTS.md — TrainerOS
 
+**Issue/plan reconciliation, 2026-10-08:** the owner requested a fresh issue
+review and rebuilt plan. Follow the active queue in docs/ROADMAP.md and the
+#118–135 register in docs/EXPANSION_118_135.md. Owner priority: complete UX-01
+first, then resume MP-02; preserve its
+uncommitted runtime timer work. #126 adds live Hotseat after the existing runtime
+families. #127–135 supersede older Social faces/controller grammar and the
+transport-first invite target, while retaining provider, runtime, call and save
+boundaries. Validate UX-01 on already implemented routes; missing future runtime,
+Hotseat and native-activity proof stays open rather than blocking the interface.
+#118–125 replace the image-only distribution boundary with a shared canonical
+release serving the Armada image and a supported SteamOS/Bazzite installer.
+Pack Studio/optional ROM assets still precede distribution, then update/repair
+and final acceptance. These are queued requirements, not installed capabilities.
+Preserve README screenshots until the bounded final UX screenshot delivery;
+neither this review nor #135 clears #116 artwork rights. All earlier acceptance
+and owner-deferred checks remain unless explicitly superseded in that register.
+
 **Owner sequence/artwork correction, 2026-10-07:** regenerate the Worlds series
 card illustrations as independent environments without recognizable franchise
 characters, logos or signature objects before returning to MP-02. Preserve

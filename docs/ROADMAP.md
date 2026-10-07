@@ -1,8 +1,17 @@
 # TrainerOS Roadmap
 
+**Issue reconciliation, 2026-10-08:** live GitHub review found 18 additions
+#118–135 beyond the previous #117 register, plus superseding guidance on #70,
+#101 and #112. [Scope/dependencies](EXPANSION_118_135.md) preserve all older
+acceptance. The active queue below incorporates live Hotseat, the integrated
+Social/Together journey, and a SteamOS/Bazzite convergence installer alongside
+the Armada image. These are planned, not installed. **Owner priority, 8 October:
+deliver the integrated interface correction UX-01 first, then resume MP-02.**
+This supersedes earlier MP-02-first instructions without discarding its work.
+
 **MP-02 continuation, 2026-10-07:** Gen II own-clock and protected SRAM/RTC return
 are installed, with Gold readback on both handhelds. The next missing outcome is
-the GB invitation/cable-transaction/ordinary-play journey; MP-02 remains current.
+the GB invitation/cable-transaction/ordinary-play journey; resume it after UX-01.
 See [the task register](CURRENT_TASKS.md) and [bounded evidence](HANDHELD_MULTIPLAYER.md).
 
 **Owner website demo request, 2026-10-07:** a bounded interactive website tour is
@@ -28,7 +37,9 @@ places the installable image after Pack Studio. The owner subsequently adopted
 GPL-3.0-or-later for original code; #115 retains release redistribution acceptance. Discuss further art replacement
 before changing the public visual material.
 
-## Active execution queue — 2026-10-04
+<a id="active-execution-queue--2026-10-04"></a>
+
+## Active execution queue — 2026-10-08
 
 Start here, then read [Current tasks](CURRENT_TASKS.md). This table controls
 execution; the task register decomposes it, and dated checkpoints below retain
@@ -39,14 +50,21 @@ The owner explicitly rejects test-only passes substituted for feature delivery.
 | Order | Outcome / task | State and dependency |
 | --- | --- | --- |
 | Delivered · owner priority | #114 series collections | Worlds cards, scoped Home/Y choice and Home cycling, bounded ROM selection and generated art installed on both handhelds. Remaining #90 deep adapters stay open. [Scope/evidence](SERIES_COLLECTIONS.md). |
-| **Now · block 1** | **MP-02: GB/GBC/GBA independent link** | Resume after the #114 navigation delivery. Complete own-save link through existing invitations and normal exit; [actual progress and remaining gates](HANDHELD_MULTIPLAYER.md). |
+| **Now · owner priority** | **UX-01: Social → Together → party/activity, #127–134** | Unified DM/group inbox, Discover, stable controls, compact Together, people-first invites, one party surface, group details and consistent incoming activities as one whole journey. Validate implemented routes on both devices; preserve providers/transports/save/call safety. #135 checks applicable flows now; future route acceptance stays open. |
+| 2 · block 1 | MP-02: GB/GBC/GBA independent link | Resume directly after UX-01, preserving the timer fix and own-save work. Complete own-save link through corrected invitations and normal exit; [actual progress and remaining gates](HANDHELD_MULTIPLAYER.md). |
 | Retained · block 1 | MP-01: classic RetroArch and shared online-party acceptance | Implemented profiles remain accessible. Distinct-network and actual multi-user/company acceptance remain open; owner-deferred conditions do not trigger another NES/same-router pass. |
-| 2 · block 1 | MP-03: selected PS1/N64 routes | After MP-02. Implement viable mechanisms with the complete invitation journey; do not substitute shared controllers for emulated-machine link. |
-| 3 · block 1 | MP-04: Dreamcast; MP-05: PS2/GameCube; MP-06: DS/PSP; MP-07: 3DS and eligible newer routes | Oldest first. Reuse installed PSP/Dolphin work; resolve each route's remaining acceptance, not every ROM. Unsupported mechanisms require a sourced conclusion, not a misleading enabled button. |
+| 3 · block 1 | MP-03: selected PS1/N64 routes | After MP-02. Implement viable mechanisms with the complete invitation journey; do not substitute shared controllers for emulated-machine link. |
+| 4 · block 1 | MP-04: Dreamcast; MP-05: PS2/GameCube; MP-06: DS/PSP; MP-07: 3DS and eligible newer routes | Oldest first. Reuse installed PSP/Dolphin work; resolve each route's remaining acceptance, not every ROM. Unsupported mechanisms require a sourced conclusion, not a misleading enabled button. |
 | Retained · block 3 | COM-03: outstanding calls/notifications acceptance | Human speech/listening is owner-deferred. Keep group voice running through multiplayer; resume the missing acceptance when its prerequisite is available, without restarting completed call checks. |
-| 4 · block 4 | LINK-04: complete native online activities | After block 1, using existing invitation infrastructure and protected bilateral transactions. Emulator multiplayer and saved-creature Link stay separate. |
-| 5 · block 5 | REVIEW-05: reviews and final communication journey | After preceding communication outcomes; preserve #113 exact-game completion policy and all unfinished messenger acceptance. |
-| Then | Remaining R1–R18, R7a, R18a/R18b and U commitments | Continue the preserved [unified backlog](#unified-execution-order--existing-work-and-new-issues), doing residual work only. ScreenScraper needs owner access; sleep remains deferred; finish R18/R18a/R18b before R15 image, R16 OTA and R17 final acceptance. |
+| 5 · block 1 | HS-01: live Hotseat Relay, #126 | After the existing oldest-first MP-02…MP-07 queue. One real pass-controller title: exclusive input owner, ordered handoff, loss/rejoin, safe persistence and complete existing party/Home journey. No asynchronous turns. |
+| 6 · block 4 | LINK-04: complete native online activities | After block 1, using existing invitation infrastructure and protected bilateral transactions, with #93/#94 prerequisites for trust-sensitive use. Emulator multiplayer and saved-creature Link stay separate. |
+| 7 · block 5 | REVIEW-05: #113, #135 and residual communication | Preserve exact-game review policy; finish replies/quotes, reactions, mentions, person card and composer/media acceptance. Validate whole friend/group/in-game/Link/rejoin journeys and independent calls on both devices. No history search. |
+| 8 | Remaining R1–R14, R7a and U/P commitments | Continue the preserved [unified backlog](#unified-execution-order--existing-work-and-new-issues), doing residual work only. ScreenScraper needs owner access; sleep remains deferred. #112 appearance, RA, adapters, Steam, device/input, export, maintenance and Help remain. |
+| 9 | R18 → R18a/R18b | Complete Pack Studio/art and sprite packs, then optional exact-ROM extraction/cache/integration. Preserve pack-first suppression and user content boundaries. |
+| 10 | REL-01: canonical release state, #119 | Shared image/install/update/repair ownership and integrity definition, reusing existing runtime manifests. Stable product/asset inputs first; do not create a second release database. |
+| 11 | R15 image + INSTALL-01, #118/#120–122/#124 | Both consume REL-01. Prepared Armada image plus supported SteamOS/Bazzite session/runtime install, repeat/interrupted install and safe uninstall. Each path needs its own actual device proof and recovery. |
+| 12 | R16 updates/rollback + MAINT-01, #123 | Shared release/data migration and compatible rollback on image and installed paths; explicit repair of owned drift after host updates. Preserve host sessions and user data. |
+| 13 | R17 final acceptance + #125 | Compare Armada image, SteamOS and Bazzite everyday outcomes and N→N+1 upgrades. Include #115 notices, #116 assets and #117 clean build gates. Missing host hardware or owner acceptance stays explicitly open. |
 
 **Owner availability correction, 2026-10-04:** implemented multiplayer is enabled
 in normal installations. The developer opt-in is removed; compatibility and
@@ -1238,6 +1256,13 @@ run is a delivery gate. The R queue below schedules only remaining work.
 - **System cleanup is separate from ROM cleanup:** remove verified unnecessary software/background work to reclaim space and reduce idle load, using a dependency audit and reversible batches. Do not confuse fewer session entries with fewer installed bytes or processes.
 
 ## Unified execution order — existing work and new issues
+
+The active queue above schedules the communication/UX work first. Stable R IDs
+below preserve their original scope; #118–125 now extend the release tail:
+R18/R18a/R18b → REL-01 (#119) → R15 image and INSTALL-01 (#120–122/#124)
+→ R16 update/rollback and MAINT-01 (#123) → R17 equivalence (#125).
+The image is required but is no longer the only public delivery path. No earlier
+R, U or P acceptance is removed by that extension; do residual work only.
 
 The active communication queue at the top of this document takes precedence.
 This section preserves the broader backlog and dependencies; completed entries

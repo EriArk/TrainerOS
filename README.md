@@ -38,7 +38,7 @@ every handheld. Selected game artwork and names are blurred in the public screen
 | Library, series and handheld shell | Installed device evidence; compatibility depends on available runtimes/content |
 | Semantic game integration | Exact supported game/build adapters, not all games on a platform |
 | Social and multiplayer | Implemented routes with bounded evidence; distinct-network, larger-group and human audio acceptance remain open |
-| Public image and updates | Reproducible distribution and update/rollback acceptance remain planned |
+| Public distribution and updates | Armada image and SteamOS/Bazzite convergence installer share a planned release state; updates, rollback and repair remain planned |
 | Code license and public artwork | Original code: GPL-3.0-or-later; third-party terms remain separate and artwork review is ongoing |
 
 ## Pick a game and play

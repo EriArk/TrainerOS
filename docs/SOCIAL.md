@@ -1,5 +1,15 @@
 # Native Social - conversations and discovery
 
+**Current target/order, 2026-10-08:** the owner moved UX-01 ahead of MP-02.
+[#127–135](EXPANSION_118_135.md#ux-01-one-social--together--party-journey) replace
+older final-layout/button requirements: unified DM/group Messages, Communities,
+Discover, X compose, Y Together, one compact activity/party presentation and
+people-first invitations. Existing provider, history, membership, notification,
+call and consent behavior stays authoritative. Four installed Social faces and
+the screenshots below remain pre-migration evidence. Validate the coherent
+journey on existing runtimes before resuming handheld-link work; later routes
+and deferred human/network checks remain open.
+
 **Owner availability correction, 2026-10-04:** supported emulator invitations
 are enabled in normal installations. Pending larger-group/distinct-network
 checks remain documented, but no global developer opt-in prevents the owner
@@ -9,7 +19,7 @@ guards are unchanged. This supersedes historical experimental-off statements.
 **Execution entry point, 2026-10-04:** use the current [ROADMAP queue](ROADMAP.md#active-execution-queue--2026-10-04)
 and [task register](CURRENT_TASKS.md). This document retains communication
 acceptance and evidence; dated "next" statements below are historical. Current
-work is block 1 / MP-01. Block 3's owner-deferred listening remains open, followed
+work at that checkpoint was block 1 / MP-01. Block 3's owner-deferred listening remains open, followed
 by blocks 4 and 5; completed block 2 and call checks must not be recycled as passes.
 
 **Shared classic profiles, 2026-10-04:** the existing party/invitation/relay path

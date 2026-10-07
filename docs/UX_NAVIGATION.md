@@ -4,6 +4,18 @@
 
 # TrainerOS UX & Navigation
 
+**Planned UX supersession, 2026-10-08:** #127–135 replace the final Social
+presentation described in older checkpoints below; the installed four-face UI
+has not yet migrated. Target faces are Messages (DMs + small groups), Communities
+and Discover, with visible friend/request access. X composes, Y opens Together,
+A selects/confirms, B/Left backs out locally and Select opens context actions;
+L1/R1 primaries, L2/R2 faces, Start and protected-modal precedence remain.
+One compact Together area opens the same party state from Social and Home;
+Invite players chooses people/groups before automatic route selection. Group
+details and consistent incoming activities replace scattered options/popovers.
+Calls, gameplay and save-changing activities keep distinct consent/lifetimes.
+[Scope and acceptance](EXPANSION_118_135.md#ux-01-one-social--together--party-journey).
+
 **2026-10-04 #114 installed Worlds entry:** available series collections first;
 Pokemon regions are inside that collection. Other series need no fixed regional
 hierarchy. Multiverse retains generic games. Preserve direct A launch on a game,

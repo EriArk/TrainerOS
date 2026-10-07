@@ -1,5 +1,13 @@
 # Physical Home menu — #112 / #49
 
+**Planned presentation correction, 2026-10-08:** #131/#132/#134 replace the
+transport-first invitation and duplicated party/request presentation with
+Play together → people/groups, one party surface shared with Social, and one
+incoming-activity grammar. See [UX-01](EXPANSION_118_135.md#ux-01-one-social--together--party-journey),
+now scheduled before MP-02. The existing lifecycle, appearance, Start separation,
+save reminder and protected-focus evidence below stays valid; the new interface
+is not delivered by this documentation change.
+
 The local menu reuses the existing shell, exit controller and owned-process
 transport. It is separate from Start and from the Home primary page.
 

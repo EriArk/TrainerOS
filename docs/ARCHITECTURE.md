@@ -1,5 +1,15 @@
 # TrainerOS Architecture
 
+**Planned boundary update, 2026-10-08:** [#118–135](EXPANSION_118_135.md)
+add a canonical release/ownership definition consumed by image, installer,
+update/rollback, repair and uninstall. SteamOS/Bazzite host-specific session/input
+integration stays behind the platform/device boundary; owned runtimes coexist
+with host/user installations. The Social/Together reconciliation composes current
+providers, GameParty, call and Link services without rewriting transports or
+combining consent authorities. Hotseat control ownership is a separate capability
+over an appropriate existing live runtime transport. No new implementation or
+schema is delivered by this specification update.
+
 **2026-10-01 #104/#105 increment:** [OnlineLink](ONLINE_LINK.md) owns bounded
 provider-message session binding/framing on the existing Fluxer worker. Social
 bridges accepted sessions to the existing LinkController on the UI thread. The

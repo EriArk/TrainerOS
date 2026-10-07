@@ -1,5 +1,13 @@
 # Current tasks
 
+**8 October 2026 live issue review:** #118–135 are new relative to the previous
+#117 record. #70's distribution boundary and comments on #101/#112 were also
+reviewed. [Acceptance register](EXPANSION_118_135.md) maps all 18 additions;
+[ROADMAP](ROADMAP.md#active-execution-queue--2026-10-08) is the updated single
+execution queue. **Owner priority: UX-01 interface reconciliation first, then
+resume MP-02.** Earlier dated resume instructions below retain their evidence
+but no longer select the next task. No issue was closed and no runtime acceptance changed.
+
 Owner-approved website detour, 2026-10-07: the mouse-driven interactive HTML tour
 is prepared in [web-demo](../web-demo/README.md), with an external explanation
 panel, fictional original content and optional animated examples. See
@@ -22,7 +30,7 @@ remain unchanged; GitHub Actions is disabled. The owner subsequently adopted
 GPL-3.0-or-later; #115 retains full release redistribution acceptance. Resume MP-02
 below after this pass.
 
-Updated 2026-10-04. Execution order lives in [ROADMAP](ROADMAP.md#active-execution-queue--2026-10-04).
+Updated 2026-10-08. Execution order lives in [ROADMAP](ROADMAP.md#active-execution-queue--2026-10-08).
 This register decomposes accepted work; it is not a second roadmap or a promise
 that each subtask receives a separate turn. Issues and existing evidence retain
 their full acceptance. A checkbox means the stated outcome is delivered, not
@@ -37,7 +45,32 @@ ten original illustrations and a bounded server-ROM selection are installed.
 No ROM relocation or identity reset. Remaining #90 semantic adapters stay open.
 Acceptance/evidence: [Series collections](SERIES_COLLECTIONS.md).
 
-## Current task: MP-02 — independent handheld link
+## Current task: UX-01 — integrated Social and multiplayer interface
+
+Deliver #127–134 as one player-visible journey using current providers/runtimes:
+
+- [ ] Unified DM/group Messages, Communities and Discover; preserve remembered
+  conversation, drafts/history/unread and migrate old Groups/Search routes.
+- [ ] Predictable A/B/X/Y/Select grammar, explicit Send and visible local focus.
+- [ ] One compact Together area, independent call state and shared party surface
+  from Home/Social with roster/readiness/access/Start/leave/rejoin.
+- [ ] People-first invitations with deduplicated proven identity and automatic
+  route selection; clear group details and contextual options.
+- [ ] Consistent incoming requests/missed notifications with existing consent,
+  expiry, protected-operation and action-focus safety.
+- [ ] Applicable #135 actual invitation/gameplay/Home/rejoin and native-activity
+  walkthroughs on Flip/Odin, necessary regression checks, real screenshots and
+  complete paired delivery/commit/push. Future runtime/Hotseat and owner-deferred
+  gates stay open; no mock-only UI completion or new networking framework.
+
+[Detailed scope](EXPANSION_118_135.md#ux-01-one-social--together--party-journey).
+Preserve the unfinished MP-02 source change. Its underlying timer regression
+may be validated if the changed UI exercises it; no cable-research detour before
+this outcome. Then resume the full MP-02 block below.
+
+<a id="current-task-mp-02--independent-handheld-link"></a>
+
+## Next task: MP-02 — independent handheld link
 
 The owner resumed the interrupted handheld work on 4 October. Complete the
 existing invitation/launch/own-save/exit journey for reviewed GB/GBC/GBA routes.
@@ -63,7 +96,7 @@ no classic-system implementation or passed test loop is restarted.
 - [ ] GBA battle/cross-edition and Advance Wars gameplay; four-client activity.
 - [ ] Owner-deferred distinct-network/multi-user and human voice acceptance.
 
-Resume here after the delivered #114 navigation checkpoint; do not restart passed Emerald/Red checks without a concrete change.
+Resume here after UX-01; do not restart passed Emerald/Red checks without a concrete change.
 
 7 October continuation: the clock/save-return outcome is delivered; next finish
 the GB invitation-to-cable-transaction-to-ordinary-play journey. Keep the three
@@ -71,6 +104,13 @@ baseline `persistence_process` subprocess-start failures recorded in
 [the evidence](HANDHELD_MULTIPLAYER.md) for the contributor-build follow-up (#117);
 the affected adapter/lifecycle suites passed. Do not turn that separate baseline
 into repeated multiplayer checks or mark the broader suite green.
+
+8 October handoff: preserve the existing uncommitted connection-timer/queued-launch
+fix in `RuntimeMultiplayer.cpp`. It prevents networking timeout/polling while
+the player is still saving/exiting the ordinary game. Before continuing, inspect
+the interrupted session and validate wait/cancel/restart behavior against that
+actual change, then complete the GB cable transaction and ordinary readback.
+The issue/plan review is not build, deployment or transaction evidence.
 
 ## MP-01 — retained classic RetroArch and shared online-party acceptance
 
@@ -206,7 +246,8 @@ survey unless a concrete route requires it; virtual LAN remains conditional.
 | MP-04 | Dreamcast supported online/LAN mechanism with automatic connection | MP-03. Reuse Flycast package/maintenance work; installation is not multiplayer. |
 | MP-05 | PS2/GameCube viable multiplayer routes | MP-04. Preserve existing ARMSX2; do not imply every PS2 game supports online play. Reuse Dolphin paired proof; finish its remaining internet/capacity/recovery gates. |
 | MP-06 | DS/PSP viable online/link routes | MP-05. Reuse PPSSPP Lumines LAN/relay proof; retain mid-round loss, admission/isolation and distinct-network gaps. DS needs its own mechanism. |
-| MP-07 | 3DS and eligible newer families, then reconcile block 1 coverage | MP-06. Source-backed support decisions and representative complete routes, not every ROM or obscure platform. Close block 1 only against the entire accepted scope. |
+| MP-07 | 3DS and eligible newer families, then reconcile runtime-family coverage | MP-06. Source-backed support decisions and representative complete routes, not every ROM or obscure platform. Block 1 also retains HS-01 and external gates. |
+| HS-01 | Live Hotseat Relay through the existing party/Home journey, #126 | After MP-07. One logical pad, exclusive ordered control token, disconnect/leave/rejoin and safe persistence. Actual title/device handoffs; no offline turns. [Acceptance](EXPANSION_118_135.md#hs-01-live-hotseat-relay). |
 
 These are task families inside the accepted block, not permission to split a
 promised complete delivery into a succession of handshake-only sessions. At each
@@ -220,11 +261,28 @@ until the remaining support and prerequisites are understood.
 | COM-02 | Delivered everyday messenger baseline; retain residual accepted expansion and fix real regressions without restarting the baseline | [Social](SOCIAL.md), #100/#101 and queued expansion |
 | COM-03 | Open: remaining notifications/calls acceptance, including real speech and background conversation; human checks deferred by owner | [Media/voice](SOCIAL_MEDIA_VOICE.md), #102/#103 |
 | LINK-04 | Queued after block 1: native online battle/trade/sale/gift with consent and protected two-endpoint settlement/recovery | [Emerald Link](EMERALD_LINK.md), #104/#105/#109/#110, #93/#94 trust prerequisites |
-| REVIEW-05 | Queued: complete #113 reviews inside existing Properties and final integrated communication UX audit; include residual accepted messenger functionality | [Reviews](ADVENTURE_REVIEWS.md), [Social](SOCIAL.md) |
+| UX-01 | Current owner priority, before MP-02: whole Social/Together/invitation/party/group/notification reconciliation, #127–134 | [New UX scope](EXPANSION_118_135.md#ux-01-one-social--together--party-journey); preserve providers, independent calls and save consent |
+| REVIEW-05 | After runtime/Hotseat and LINK-04, reusing UX-01 evidence: complete #113 reviews inside Properties, residual accepted messenger expansion and #135 whole-journey acceptance | [Reviews](ADVENTURE_REVIEWS.md), [Social](SOCIAL.md), [new UX scope](EXPANSION_118_135.md#ux-01-one-social--together--party-journey). Replies/quotes, reactions, mentions, person card and persistent composer remain; no history search |
+
+## Distribution outcomes added by #118–125
+
+These are queued after the preserved product/Pack Studio/ROM-asset stages; they
+do not displace MP-02. [Detailed acceptance](EXPANSION_118_135.md#distribution-one-release-two-delivery-paths).
+
+| ID | Complete outcome | Dependency |
+| --- | --- | --- |
+| REL-01 | #119 machine-readable release and ownership state shared by every delivery operation | Stable R1–R14/R18/R18a/R18b inputs and maintained emulator recipes |
+| R15 + INSTALL-01 | #70 prepared image; #120–122 session/runtime/preflight/convergence and #124 safe uninstall under #118 | REL-01; verified Armada, SteamOS and Bazzite host/device capabilities; actual fresh install/use/recovery/uninstall proof |
+| R16 + MAINT-01 | #71 compatible update/rollback on both paths; #123 health/repair after host changes | Image/installer baselines; shared migration/ownership state; recoverable host update and owned-drift checks |
+| R17 | #125 equivalent image/installed outcomes, upgrade proof and all existing final acceptance | Prior delivery paths; #115 redistribution, #116 assets and #117 clean contributor build gates |
+
+SteamOS/Bazzite physical target access is not established by the current two
+Armada handhelds. Record unavailable host acceptance precisely; do not claim
+support from a manifest, package installation or synthetic preflight alone.
 
 ## Preserved project backlog
 
-**Issue review, 2026-10-04:** #114 is the only new issue since #113; it has no
+**Historical issue review, 2026-10-04:** #114 was the only new issue since #113; it had no
 comments at review time. Record it under R7/#90: Worlds collection entry,
 collection-specific organization and context, capability-driven experience,
 lossless classification and handheld Back/A navigation. Acceptance is retained in
@@ -236,9 +294,10 @@ The [R1–R18 queue and preservation map](ROADMAP.md#unified-execution-order--ex
 remain intact. After communication, perform remaining work in that order, never
 repeat delivered foundations: shop/adapter/navigation residuals; companion/save
 features and RA; varied-game adapters; runtime readiness and Steam; device/input,
-atmosphere and portable Trainer; maintenance; first boot/help; image and OTA;
-final acceptance; artwork/sprite packs and Pack Studio; conditional ROM extraction
-and final integration. R7a/R18a/R18b and older U/P acceptance remain included.
+atmosphere and portable Trainer; maintenance; first boot/help; artwork/sprite packs
+and Pack Studio; conditional ROM extraction/integration; shared release state;
+image and installer; updates/rollback and repair; final equivalence/acceptance.
+R7a/R18a/R18b and older U/P acceptance remain included.
 ScreenScraper waits for owner access. Suspend stays deferred. Preserve Playroom
 and current artwork. This register removes no issue or acceptance requirement.
 

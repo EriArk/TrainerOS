@@ -1,5 +1,13 @@
 # Multiplayer experience: companies, game parties and joining
 
+**Target refinement, 2026-10-08:** [#126–135](EXPANSION_118_135.md) add distinct
+live Hotseat and reconcile Social/Home around Together and one party surface.
+Choose people/groups before automatic transport; Nearby/Online normally become
+status rather than a required first choice. Existing capability, admission,
+save, voice and independent-party rules remain. Owner order: UX-01 first using
+working routes, then MP-02 and the preserved oldest-first runtime queue. Hotseat
+and future-route proof are separate later gates; no transport rewrite is implied.
+
 Owner agreement, 2026-10-03. **Accepted target, not delivered behavior.**
 
 The first [runtime-party implementation checkpoint](GAME_PARTIES.md) now covers

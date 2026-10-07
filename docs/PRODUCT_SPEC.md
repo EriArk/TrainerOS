@@ -1,5 +1,17 @@
 # TrainerOS Product Specification
 
+**Accepted target update, 2026-10-08:** [#118–135](EXPANSION_118_135.md)
+supersede conflicting older distribution and Social presentation wording below.
+TrainerOS has one canonical release, delivered as an Armada image or through a
+convergence installer on supported SteamOS/Bazzite hosts, with owned session and
+runtimes, repair and safe uninstall. These paths are planned, not released.
+Social targets a unified DM/group Messages list, Communities and Discover, with
+one Together area and consistent party/incoming-activity controls. Calls remain
+independent; people-first invitations hide automatic transport selection.
+Live Hotseat adds explicit control handoff on one logical pad, not offline turns.
+[The active queue](ROADMAP.md#active-execution-queue--2026-10-08) places UX-01 before MP-02
+and Pack Studio before distribution. Existing installed evidence is unchanged.
+
 **2026-10-04 #114 installed navigation:** Worlds opens available game-series
 collections; Pokemon regions live inside its collection. Other series can use
 their own meaningful grouping, with generic Multiverse fallback. This refines

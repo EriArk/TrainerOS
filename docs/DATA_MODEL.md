@@ -5,6 +5,17 @@
 
 # TrainerOS Domain Model
 
+**Planned model additions, 2026-10-08:** [#118–135](EXPANSION_118_135.md)
+retain separate conversation, game-party, call and save-transaction identities.
+Hotseat distinguishes participant capacity, one simultaneous logical controller,
+ordered input owner and handoff state; ordinary multiplayer/player-count flags
+cannot imply it. Reconnect does not restore token ownership automatically.
+Social route migration must retain account-scoped drafts, read/focus/history and
+the remembered group conversation when Groups joins Messages. Canonical release
+ownership excludes personal game/account data and records compatible data/runtime
+versions for install/update/repair/rollback. These are requirements, not a new
+SQLite schema or protocol silently introduced by planning.
+
 **2026-10-03 company implementation (no database migration):** an existing Fluxer
 private group owns persistent name/membership/chat. Organizer access defaults use
 `social/companyAccess/<Trainer>/<Fluxer account>/<group>` in QSettings with policy
