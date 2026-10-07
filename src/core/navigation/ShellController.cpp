@@ -110,6 +110,10 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     });
     settings_.configureNearby(party_.activities()->link());
     social_.setLink(party_.activities()->link());
+    connect(&social_,&SocialController::conversationsRequested,this,[this]{
+        if(navigationLocked())return;
+        socialFace_="chats";social_.setFace(socialFace_);goToPage(4);emit changed();
+    });
     connect(&social_,&SocialController::communicationSettingsRequested,this,[this]{
         if(navigationLocked())return;
         service_="settings";menuOpen_=drawerOpen_=false;settings_.begin();settings_.selectCategory(13);emit changed();

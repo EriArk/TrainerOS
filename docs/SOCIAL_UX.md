@@ -1,5 +1,13 @@
 # Social / Together interface - UX-01
 
+**Compact Social revision installed, 8 October 2026:** the first UX-01
+composition was rejected for oversized controls and insufficient chat space.
+The replacement compact interface and native Fluxer profiles are now installed
+on Flip/Odin; see [current interface and evidence](SOCIAL_COMPACT.md). Resume
+**MP-02**, preserving its uncommitted timer work. Earlier functional evidence
+below remains valid; the old layout is superseded. Owner physical/visual
+acceptance and the remaining #135 gates stay open.
+
 8 October 2026. Implements the interface outcome in
 [the #127-135 register](EXPANSION_118_135.md#ux-01-one-social--together--party-journey).
 This bounded interface delivery does not close #135 or the runtime blocks.

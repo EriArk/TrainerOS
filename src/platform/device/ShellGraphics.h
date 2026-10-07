@@ -26,6 +26,16 @@ inline void configureShellGraphics()
         return;
     auto name = model.readAll();
     while (name.endsWith('\0')) name.chop(1);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+    if (name.trimmed() == "Retroid Pocket Flip2") {
+        // The installed Flip OpenGL route corrupts previously cached text
+        // after profile/menu glyphs grow the atlas. Curve text bypasses that
+        // distance-field atlas without changing emulator or shell backends.
+        QQuickWindow::setTextRenderType(QQuickWindow::CurveTextRendering);
+        qInfo() << "TrainerOS shell text: curve rendering (Flip 2 glyph cache workaround)";
+        return;
+    }
+#endif
     if (name.trimmed() != "AYN Odin 2")
         return;
     QQuickWindow::setGraphicsApi(QSGRendererInterface::Vulkan);

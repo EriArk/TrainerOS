@@ -1,5 +1,16 @@
 # AGENTS.md — TrainerOS
 
+**Owner Social correction, 2026-10-08:** the first UX-01 visual delivery was
+rejected for oversized controls and too little conversation space. Complete the
+compact Fluxer-style correction and provider-backed profiles before MP-02.
+Use one conversation header and one composer row, small consistent icons,
+contextual ellipsis menus beside people/groups/communities, and a status strip
+only for an actual call/party. Touch and controller remain parallel. Reuse
+Fluxer contracts and existing profile editing; preserve permissions, consent,
+call/save/runtime boundaries and the uncommitted MP-02 timer work. See
+[the revised interface contract](docs/SOCIAL_COMPACT.md). The correction is now
+installed on Flip/Odin; resume MP-02. Physical/owner acceptance remains open.
+
 **Owner parallel touch controls, 2026-10-08:** retain complete controller use
 alongside direct touch operation. Social needs visible Send, attachment,
 voice-message, call and contextual controls in the existing conversation.

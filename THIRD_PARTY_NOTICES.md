@@ -56,3 +56,9 @@ system packages or a built image's source/notice delivery.
 
 The reusable adapter folders contain a copy of the GPL text and a scope notice
 so original source does not lose its license when copied to another project.
+
+Social uses unmodified **Phosphor Icons** regular SVGs under MIT, pinned to
+`2b75f3ad12b420c9504ef05df8d2564a28f8500e`. The complete notice is in
+[assets/icons/phosphor/LICENSE](assets/icons/phosphor/LICENSE) and embedded in
+the application resources. Fluxer uses the same icon family. Its React application
+code is not bundled; the native client uses the provider's documented HTTP API.

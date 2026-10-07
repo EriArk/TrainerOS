@@ -28,6 +28,70 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void overflowTargetsTheChosenGroupAndNotTheOpenConversation() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        const QString other="1501314428688998189";
+        c.snapshot_={{"state","connected"},{"userId","self"},{"channel",channel},{"chats",QVariantList{
+            QVariantMap{{"id",channel},{"kind","chats"},{"name","Open chat"}},
+            QVariantMap{{"id",other},{"kind","groups"},{"name","Other group"},{"owner","self"},{"members",QVariantList{QVariantMap{{"id",remote},{"username","Friend"}}}}}}}};
+        c.contextRow(1);QCOMPARE(c.menuTitle(),QString("Other group"));
+        QSignalSpy runtime(&c,&SocialController::runtimeAction);
+        c.selectMenu(c.menuCommands_.indexOf("runtime:multiplayer-company:"+other));QCOMPARE(runtime.last()[0].toString(),"multiplayer-company:"+other);
+        c.contextRow(1);
+        c.selectMenu(c.menuCommands_.indexOf("rename-group"));QSignalSpy text(&c,&SocialController::textRequested);
+        c.applyText("Renamed");QCOMPARE(commands.last()[1].toMap()["channel"].toString(),other);
+        c.closeMenu();c.contextRow(1);c.selectMenu(c.menuCommands_.indexOf("remove-member"));
+        QCOMPARE(c.menuChannel_,other);c.selectMenu(0);c.selectMenu(1);
+        QCOMPARE(commands.last()[0].toString(),QString("remove-member"));QCOMPARE(commands.last()[1].toMap()["channel"].toString(),other);
+        QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString(remote));
+        c.closeMenu();c.contextRow(1);c.selectMenu(c.menuCommands_.indexOf("members"));c.selectMenu(1);
+        QVERIFY(c.profileVisible());QCOMPARE(commands.last()[0].toString(),QString("profile-read"));QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString(remote));
+        QVERIFY(!c.person().contains("bio"));
+    }
+    void profileReadsRejectStaleRepliesAndRespectPrivacy() {
+        FluxerSession s;QList<Completion> replies;QStringList paths;
+        s.setTransport([&](auto method,auto path,auto,Completion done,auto){QCOMPARE(method,QByteArray("GET"));paths<<path;replies<<done;});bind(s);
+        s.command("profile-read",{{"id",remote},{"request","first"}});
+        s.command("profile-read",{{"id",s.self_},{"request","second"}});
+        QVERIFY(paths.first().endsWith("/profile?with_mutual_friends=true&with_mutual_guilds=true"));
+        replies[0]({200,QJsonDocument(QJsonObject{{"user",QJsonObject{{"id",remote},{"username","Stale"}}}})});
+        QCOMPARE(s.person_["id"].toString(),s.self_);QVERIFY(!s.person_.contains("name"));
+        replies[1]({200,QJsonDocument(QJsonObject{{"user",QJsonObject{{"id",s.self_},{"username","Me"},{"email","private@example.test"}}},{"profile_limited",true},{"user_profile",QJsonObject{{"bio","Hidden"},{"pronouns","Hidden"}}}})});
+        QVERIFY(s.person_["loaded"].toBool());QVERIFY(s.person_["bio"].toString().isEmpty());QVERIFY(!s.person_.contains("email"));
+        s.command("profile-read",{{"id",s.self_},{"request","third"}});QVERIFY(!s.person_.contains("name"));
+        replies[2]({403,{}});QVERIFY(!s.person_["loaded"].toBool());QVERIFY(!s.person_.contains("bio"));
+        s.command("profile-read",{{"id",remote},{"request","fourth"}});s.reset();replies[3]({200,QJsonDocument(QJsonObject{{"user",QJsonObject{{"id",remote}}}})});QVERIFY(s.person_.isEmpty());
+    }
+    void profileCardAndEmojiKeepFreshIdentityAndDraftUntilExplicitSend() {
+        SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.snapshot_={{"state","connected"},{"channel",channel},{"userId","self"}};
+        c.profile(remote);const auto oldRequest=c.profileRequest_;
+        c.snapshot_["person"]=QVariantMap{{"id",remote},{"request",oldRequest},{"bio","Old bio"}};
+        QCOMPARE(c.person()["bio"].toString(),QString("Old bio"));
+        c.closeMenu();c.profile(remote);QVERIFY(!c.person().contains("bio"));
+        c.closeMenu();c.drafts_[channel]="Draft ";commands.clear();c.emoji();c.selectMenu(0);
+        QVERIFY(c.draft().startsWith("Draft "));QVERIFY(c.draft().size()>6);QVERIFY(commands.isEmpty());
+        c.sendDraft();QCOMPARE(commands.count(),1);QCOMPARE(commands[0][0].toString(),QString("send"));
+        QCOMPARE(commands[0][1].toMap()["channel"].toString(),QString(channel));
+        c.closeMenu();c.collectionOptions();QVERIFY(c.menuCommands_.contains("create-group"));QVERIFY(c.menuCommands_.contains("profile:self"));
+        c.closeMenu();c.snapshot_["chats"]=QVariantList{QVariantMap{{"id",channel},{"kind","chats"}}};
+        c.dispatch(Action::ContextMenu);c.selectMenu(c.menuCommands_.indexOf("message-tools"));
+        QVERIFY(c.menuCommands_.contains("picture"));QVERIFY(c.menuCommands_.contains("record"));
+        c.selectMenu(c.menuCommands_.indexOf("emoji-picker"));QVERIFY(c.emojiVisible());
+        c.dispatch(Action::Right);QCOMPARE(c.menuIndex(),1);c.dispatch(Action::Down);QCOMPARE(c.menuIndex(),5);c.dispatch(Action::Up);QCOMPARE(c.menuIndex(),0);
+    }
+    void profileFriendRequestUsesPostAndProviderDenialStaysAnError() {
+        FluxerSession s;QByteArray method;QString path;QJsonObject body;Completion pending;
+        s.setTransport([&](auto m,auto p,auto b,Completion done,auto){method=m;path=p;body=b;pending=done;});bind(s);
+        s.person_={{"id",remote},{"loaded",true}};
+        s.command("add-id",{{"id",remote}});QCOMPARE(method,QByteArray("POST"));
+        QCOMPARE(path,QString("/v1/users/@me/relationships/")+remote);QVERIFY(body.isEmpty());
+        pending({403,{}});QVERIFY(s.status_!="Connected");QVERIFY(!s.relationships_.contains(remote));
+        s.command("block",{{"id",remote}});QCOMPARE(method,QByteArray("PUT"));QCOMPARE(body["type"].toInt(),2);
+        s.command("dm",{{"id",remote}});QCOMPARE(path,QString("/v1/users/@me/channels"));QCOMPARE(body["recipient_id"].toString(),QString(remote));
+        SocialController c;c.face_="communities";c.snapshot_={{"userId","self"}};QSignalSpy route(&c,&SocialController::conversationsRequested);QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.profile(remote);c.selectMenu(c.menuCommands_.indexOf("dm"));QCOMPARE(route.count(),1);QCOMPARE(c.face_,QString("chats"));QCOMPARE(commands.last()[0].toString(),QString("dm"));
+    }
     void touchSendAndCallUseCapturedConversationWithoutSwitchingAnExistingCall() {
         SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
         c.snapshot_={{"state","connected"},{"channel",channel},{"voice",QVariantMap{{"available",true}}},

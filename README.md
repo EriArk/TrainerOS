@@ -66,7 +66,7 @@ The general library can use Batocera-style folders and existing metadata, artwor
 
 **Social is built into TrainerOS.** It is not a link that throws you into another app.
 
-Messages brings direct and group conversations together; Communities and Discover stay alongside it. Touch and controller controls work in parallel: write and send, attach a picture, record a voice message or open a call from the conversation. History, friends and group controls remain inside the shell.
+Messages brings direct and group conversations together; Communities and Discover stay alongside it. A compact composer leaves room for the conversation: write and send, attach a picture, choose emoji or record a voice message. Call from the header; open a person's name for their Fluxer profile. Touch and controller controls work in parallel.
 
 <table>
 <tr>
@@ -77,7 +77,7 @@ Messages brings direct and group conversations together; Communities and Discove
 
 And the chat actually knows about games.
 
-If a friend is playing a compatible game, open **Together** above the conversation, by touch or **Y**, then **Ask to join**. They get Accept / Decline in Home. Once accepted, the same party surface in Home and Social shows the roster and readiness; the organizer presses **Start game**.
+If a friend is playing a compatible game, open **⋯** beside their name and choose **Ask to join game**. **Y** also opens shared activities. They get Accept / Decline in Home. Once accepted, Home and Social show the same party roster and readiness; the organizer presses **Start game**. Group menus keep membership, game access and notification controls together.
 
 TrainerOS handles the rest underneath. No copying IP addresses. No emulator room browser. No asking your friend which core they launched.
 

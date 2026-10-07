@@ -21,7 +21,8 @@ observed on those builds; they are not universal compatibility promises.
   [standard emulators](EMULATOR_STANDARD.md) and [emulator maintenance](emulators/README.md).
 - [Primary navigation](NAVIGATION_111.md), [physical Home menu](HOME_MENU.md),
   [first run](FIRST_RUN.md) and [startup-to-play acceptance](STARTUP_EXPERIENCE_AUDIT.md).
-- [Social](SOCIAL.md), [calls and notifications](SOCIAL_MEDIA_VOICE.md),
+- [Social](SOCIAL.md), [compact interface and profiles](SOCIAL_COMPACT.md),
+  [calls and notifications](SOCIAL_MEDIA_VOICE.md),
   [multiplayer experience](MULTIPLAYER_EXPERIENCE.md),
   [classic RetroArch profiles](RETROARCH_MULTIPLAYER_PROFILES.md) and
   [independent handheld link](HANDHELD_MULTIPLAYER.md).

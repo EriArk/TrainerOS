@@ -301,7 +301,7 @@ bool RuntimeMultiplayer::action(const QString& id,bool fromSocial) {
     if(id=="multiplayer-party"||id=="multiplayer-request"){show(id);return true;}
     if(id=="multiplayer-cancel"){if(socialSurface_){socialSurface_=false;social_.closeMenu();}else overlay_.setPanel({}, {}, {});return true;}
     if(id=="multiplayer"||id=="multiplayer-people"||id=="multiplayer-nearby"||id=="multiplayer-online"){if(canInvite())show(id);return true;}
-    if(!canInvite())return true;
+    if(!canInvite()) {if(fromSocial)emit notice("Start a supported multiplayer game before inviting players.");return true;}
     if(id.startsWith("multiplayer-company:")) {
         const auto company=id.section(':',1);const auto access=social_.companyAccess(company);
         if(party_.openCompany(company,access["policy"].toString(),access["allowed"].toStringList())){online_=true;partySession_=true;show("multiplayer-party");}

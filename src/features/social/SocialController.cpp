@@ -9,6 +9,9 @@
 #include <QSaveFile>
 #include <QStandardPaths>
 #include <QSettings>
+#include <QGuiApplication>
+#include <QClipboard>
+#include <QUuid>
 #include <algorithm>
 
 namespace trainer {
@@ -587,6 +590,86 @@ QVariantMap SocialController::currentChat() const {
     for(const auto& row:snapshot_["chats"].toList())if(row.toMap()["id"]==snapshot_["channel"])return row.toMap();
     return {};
 }
+QVariantMap SocialController::menuChat() const {
+    for(const auto& row:snapshot_["chats"].toList())if(row.toMap()["id"]==menuChannel_)return row.toMap();
+    return {};
+}
+QVariantMap SocialController::person() const {
+    const auto p=snapshot_["person"].toMap();
+    return profileVisible()&&p["id"]==profileTarget_&&p["request"]==profileRequest_?p:QVariantMap{{"status","Loading profile..."}};
+}
+void SocialController::conversationProfile() {
+    const auto chat=currentChat();
+    if(chat["kind"]=="groups"){contextRow();selectMenu(menuCommands_.indexOf("members"));return;}
+    const auto members=chat["members"].toList();
+    if(members.size()==1)profile(members.first().toMap()["id"].toString());
+    else contextRow();
+}
+void SocialController::profile(QString id) {
+    if(id.isEmpty())id=snapshot_["userId"].toString();
+    if(id.isEmpty())return;
+    selection_.stop();profileTarget_=id;profileRequest_=QUuid::createUuid().toString();menuSubject_=id;menuMode_="profile";
+    menuTitle_="Profile";menuDetail_.clear();menuFocus_=0;menu_.clear();menuCommands_.clear();
+    auto add=[&](QString text,QString action){menu_.append(text);menuCommands_.append(action);};
+    if(id==snapshot_["userId"].toString())add("Edit profile","communication-settings");
+    else {
+        add("Message","dm");
+        int type=0;for(const auto& v:snapshot_["friends"].toList())if(v.toMap()["id"]==id)type=v.toMap()["type"].toInt();
+        if(type==3){add("Accept friend request","accept");add("Decline friend request","remove");}
+        if(type==0)add("Add friend","add-id");
+        if(type==1)add("Remove friend","remove");
+        if(type==4)add("Cancel friend request","remove");
+        add(type==2?"Unblock":"Block",type==2?"remove":"block");
+    }
+    add("Copy username","copy-tag");add("Close","cancel");
+    emit commandRequested("profile-read",{{"id",id},{"request",profileRequest_}});emit changed();
+}
+void SocialController::contextRow(int index) {
+    selection_.stop();reading_=false;
+    const auto row=index<0?currentChat():rows().value(index).toMap();
+    if(row.isEmpty()){openMenu();return;}
+    if(index>=0&&contacts_){profile(row["id"].toString());return;}
+    menuChannel_=row["kind"]=="community"?QString():row["id"].toString();
+    menuGuild_=row["kind"]=="community"?row["id"].toString():row["guild"].toString();
+    menuMode_="context";menuTitle_=row["name"].toString();menuDetail_.clear();menuSubject_.clear();
+    menuFocus_=0;menu_.clear();menuCommands_.clear();
+    auto add=[&](QString text,QString action){menu_.append(text);menuCommands_.append(action);};
+    const auto members=row["members"].toList();
+    if(row["kind"]=="chats"&&members.size()==1){
+        const auto peer=members.first().toMap()["id"].toString();
+        add("View profile","profile:"+peer);
+        if(row["friend"].toBool())add("Invite to game","runtime:multiplayer-friend:"+peer);
+        if(gameActivities_.value(peer)["joinable"].toBool())add("Ask to join game","join-peer:"+peer);
+    }
+    if(row["kind"]=="groups") {
+        add("Members","members");
+        add("Play with group","runtime:multiplayer-company:"+menuChannel_);add("Who can join my games","company-access");
+        for(const auto& v:companyParties_) {const auto p=v.toMap();if(p["company"]==menuChannel_&&p["joinable"].toBool()&&!gameActive_&&p["party"]!=gameParty_["party"])
+            add("Join "+p["game"].toMap()["label"].toString(),"context-party:"+p["peer"].toString());}
+        add("Add friend","add-member");add("Rename group","rename-group");
+        if(row["owner"]==snapshot_["userId"])add("Remove member","remove-member");
+    }
+    if(!menuGuild_.isEmpty())add("Invite link","community-invite");
+    if(!menuChannel_.isEmpty())add(row["muted"].toBool()?"Unmute conversation":"Mute conversation","mute");
+    if(!menuChannel_.isEmpty()&&menuChannel_==snapshot_["channel"].toString())add("Message tools...","message-tools");
+    if(row["kind"]=="groups")add("Leave group","ask-leave-group");
+    add(face_=="communities"?"Communities...":"Messages...","collection-options");emit changed();
+}
+void SocialController::collectionOptions() {
+    selection_.stop();menuMode_="collection";menuTitle_=face_=="communities"?"Communities":"Messages";menuDetail_.clear();
+    menuGuild_=snapshot_["guild"].toString();menuChannel_=snapshot_["channel"].toString();menuSubject_.clear();menuFocus_=0;
+    menu_=face_=="communities"?QStringList{"New community",snapshot_["communityOnly"].toBool()?"Show all communities":"Show TrainerOS communities"}:QStringList{"New group",contacts_?"Conversations":"Friends & requests"};
+    menuCommands_=face_=="communities"?QStringList{"create-community","community-filter"}:QStringList{"create-group","contacts"};
+    menu_<<"My profile"<<"Communication settings"<<"Refresh";
+    menuCommands_<<"profile:"+snapshot_["userId"].toString()<<"communication-settings"<<"refresh";
+    emit changed();
+}
+void SocialController::emoji() {
+    if(!conversation()||!menu_.isEmpty())return;
+    selection_.stop();menuChannel_=snapshot_["channel"].toString();menuMode_="emoji";menuTitle_="Emoji";menuDetail_.clear();menuFocus_=0;
+    menu_={QString::fromUtf8("👍"),QString::fromUtf8("❤️"),QString::fromUtf8("😀"),QString::fromUtf8("🎮"),QString::fromUtf8("🎉"),"More emoji..."};
+    menuCommands_={"emoji:👍","emoji:❤️","emoji:😀","emoji:🎮","emoji:🎉","emoji-more"};emit changed();
+}
 bool SocialController::togetherAvailable() const {
     return face_=="chats" && !contacts_ && conversation() && currentChat()["friend"].toBool()
         && rows().value(focus_).toMap()["id"]==snapshot_["channel"];
@@ -664,14 +747,15 @@ void SocialController::nativeActivities() {
     emit commandRequested("online-probe",{{"channel",menuChannel_}});emit changed();
 }
 void SocialController::openMenu() {
+    if(!reading_&&face_!="friends"&&!rows().isEmpty()){contextRow(focus_);return;}
     selection_.stop();menu_.clear();menuCommands_.clear();menuFocus_=0;menuMode_="options";
-    menuChannel_=snapshot_["channel"].toString();
+    menuChannel_=snapshot_["channel"].toString();menuGuild_=snapshot_["guild"].toString();
     const auto row=rows().value(focus_).toMap();menuSubject_=row["id"].toString();
     menuTitle_=snapshot_["name"].toString();menuDetail_=snapshot_["remembered"].toBool()?"Account connected":"Connected for this session";
     auto add=[&](QString label,QString command){menu_.append(label);menuCommands_.append(command);};
 
     const auto message=messages().value(messageFocus_).toMap();
-    if(reading_&&(message["editable"].toBool()||message["media"].toBool()||!message["delivery"].toString().isEmpty())) {
+    if(reading_&&!message.isEmpty()) {
         menuSubject_=message["id"].toString();menuTitle_=message["mine"].toBool()?"Your message":message["name"].toString();menuDetail_=message["text"].toString().left(120);
         if(message["retryable"].toBool())add("Retry sending","retry-message");
         if(message["uncertain"].toBool())add("Check delivery","latest");
@@ -679,6 +763,7 @@ void SocialController::openMenu() {
         mediaChoices_=message["attachments"].toList();
         for(int i=0;i<mediaChoices_.size();++i) {const auto a=mediaChoices_[i].toMap();add(a["content_type"].toString().startsWith("audio/")?"Listen to recording":"Open picture","attachment:"+QString::number(i));}
         if(message["editable"].toBool()){if(!message["text"].toString().isEmpty())add("Edit message","edit-message");add("Delete message","ask-delete-message");}
+        if(!message["author"].toString().isEmpty())add("View profile","profile:"+message["author"].toString());
     } else {
         const auto voice=snapshot_["voice"].toMap();
         if(conversation()&&!contacts_&&face_!="friends"){
@@ -734,10 +819,10 @@ void SocialController::mediaMenu() {
 }
 void SocialController::openPeople(QString mode) {
     selection_.stop();menuMode_=mode;menu_.clear();menuCommands_.clear();menuFocus_=0;pickedPeople_.clear();
-    menuChannel_=snapshot_["channel"].toString();
+    if(mode=="create-group")menuChannel_=snapshot_["channel"].toString();
     menuTitle_=mode=="create-group"?"Bring friends together":mode=="add-member"?"Add a friend":"Remove a member";
-    menuDetail_=mode=="create-group"?"Choose friends for your group":conversationName();
-    const auto members=currentChat()["members"].toList();QStringList memberIds;
+    menuDetail_=mode=="create-group"?"Choose friends for your group":menuChat()["name"].toString();
+    const auto members=menuChat()["members"].toList();QStringList memberIds;
     for(const auto& member:members)memberIds<<member.toMap()["id"].toString();
     const auto candidates=mode=="remove-member"?members:snapshot_["friends"].toList();
     for(const auto& value:candidates) {
@@ -759,6 +844,35 @@ void SocialController::confirmAction(QString title,QString operation,QString id)
 void SocialController::selectMenu(int index) {
     if(index<0||index>=menuCommands_.size()||snapshot_["mutationBusy"].toBool())return;
     const auto command=menuCommands_[index];
+    if(command=="message-tools") {
+        if(menuChannel_!=snapshot_["channel"].toString())return;
+        menuMode_="message-tools";menuTitle_="Message tools";menuFocus_=0;
+        menu_={"Attach picture","Emoji"};menuCommands_={"picture","emoji-picker"};
+        if(snapshot_["voice"].toMap()["channel"].toString().isEmpty()){menu_<<"Record voice message";menuCommands_<<"record";}
+        if(!draft().trimmed().isEmpty()){menu_<<"Send draft";menuCommands_<<"send-draft";}
+        emit changed();return;
+    }
+    if(command=="emoji-picker"){closeMenu();emoji();return;}
+    if(command=="send-draft"){const auto channel=menuChannel_;closeMenu();if(channel==snapshot_["channel"].toString())sendDraft();return;}
+    if(command=="collection-options"){collectionOptions();return;}
+    if(command=="dm"&&profileVisible()) {
+        const auto id=menuSubject_;closeMenu();contacts_=false;
+        emit conversationsRequested();setFace("chats");
+        emit commandRequested("dm",{{"id",id}});emit changed();return;
+    }
+    if(command=="emoji-more"){closeMenu();compose();return;}
+    if(command.startsWith("emoji:")){drafts_[menuChannel_]+=command.mid(6);closeMenu();saveDrafts();return;}
+    if(command.startsWith("profile:")){profile(command.mid(8));return;}
+    if(command=="copy-tag") {
+        const auto tag=person()["tag"].toString();
+        if(!tag.isEmpty()&&QGuiApplication::clipboard()){QGuiApplication::clipboard()->setText(tag);menuDetail_="Username copied";emit changed();}return;
+    }
+    if(command.startsWith("runtime:")){closeMenu();emit runtimeAction(command.mid(8));return;}
+    if(command.startsWith("join-peer:")){const auto peer=command.mid(10);closeMenu();if(gameActivities_.value(peer)["joinable"].toBool())emit partyJoin(peer);return;}
+    if(command.startsWith("context-party:")) {
+        const auto peer=command.mid(14),company=menuChannel_;closeMenu();
+        for(const auto& v:companyParties_) {const auto p=v.toMap();if(p["company"]==company&&p["peer"]==peer&&p["joinable"].toBool()&&!gameActive_){emit partyJoin(peer);break;}}return;
+    }
     if(menuMode_=="runtime") {
         const auto row=runtimeActions_.value(index).toMap();
         if(row["readOnly"].toBool()||!row.value("enabled",true).toBool())return;
@@ -771,7 +885,7 @@ void SocialController::selectMenu(int index) {
     if(command=="native-activities"){closeMenu();nativeActivities();return;}
     if(command.startsWith("company-party:")){const auto peer=command.mid(14);closeMenu();
         for(const auto& v:companyParties())if(v.toMap()["peer"]==peer&&v.toMap()["joinable"].toBool()){emit partyJoin(peer);break;}return;}
-    if(command=="company-access"){editCompanyAccess();return;}
+    if(command=="company-access"){menuFocus_=0;companyAccessMenu();return;}
     if(command.startsWith("company-policy:")||command.startsWith("company-member:")) {
         const auto key=companySettingsKey(menuChannel_);if(key.isEmpty())return;
         auto access=companyAccess(menuChannel_);
@@ -818,9 +932,9 @@ void SocialController::selectMenu(int index) {
     if(command=="party-leave"){closeMenu();emit partyLeave();return;}
     if(command=="party-join"){closeMenu();joinGame();return;}
     if(command=="members") {
-        menuTitle_="Group members";menuDetail_=conversationName();menuMode_="members";menu_.clear();menuCommands_.clear();menuFocus_=0;
-        menu_.append(snapshot_["name"].toString()+" (You)"+(snapshot_["userId"]==currentChat()["owner"]?" · Owner":""));menuCommands_.append("none");
-        for(const auto& value:currentChat()["members"].toList()){const auto m=value.toMap();auto name=m["global_name"].toString();if(name.isEmpty())name=m["username"].toString();menu_.append(name+(m["id"]==currentChat()["owner"]?" · Owner":""));menuCommands_.append("none");}
+        menuTitle_="Group members";menuDetail_=menuChat()["name"].toString();menuMode_="members";menu_.clear();menuCommands_.clear();menuFocus_=0;
+        menu_.append(snapshot_["name"].toString()+" (You)"+(snapshot_["userId"]==menuChat()["owner"]?" · Owner":""));menuCommands_.append("profile:"+snapshot_["userId"].toString());
+        for(const auto& value:menuChat()["members"].toList()){const auto m=value.toMap();auto name=m["global_name"].toString();if(name.isEmpty())name=m["username"].toString();menu_.append(name+(m["id"]==menuChat()["owner"]?" · Owner":""));menuCommands_.append("profile:"+m["id"].toString());}
         menu_.append("Close");menuCommands_.append("cancel");emit changed();return;
     }
     if(command=="contacts"){contacts_=!contacts_;menu_.clear();focus_=0;preview();emit changed();return;}
@@ -830,17 +944,17 @@ void SocialController::selectMenu(int index) {
     if(command=="community-invite") {
         menuMode_=command;menuTitle_="Invite friends";menuDetail_="Creating invitation...";
         menu_={"Close"};menuCommands_={"cancel"};menuFocus_=0;
-        emit commandRequested(command,{{"id",snapshot_["guild"]}});emit changed();return;
+        emit commandRequested(command,{{"id",menuGuild_.isEmpty()?snapshot_["guild"]:QVariant(menuGuild_)}});emit changed();return;
     }
     if(command=="mark-community") {emit commandRequested(command,{{"id",snapshot_["guild"]}});menu_.clear();emit changed();return;}
     if(command=="create-group"||command=="add-member"||command=="remove-member") {
         if(menuMode_!="confirm"){openPeople(command);return;}
     }
     if(command=="ask-delete-message"){confirmAction("Delete this message?","delete-message",menuSubject_);return;}
-    if(command=="ask-leave-group"){confirmAction("Leave "+conversationName()+"?","leave-group");return;}
+    if(command=="ask-leave-group"){confirmAction("Leave "+menuChat()["name"].toString()+"?","leave-group");return;}
     if(command=="edit-message"||command=="rename-group") {
         textPurpose_=command;textChannel_=menuChannel_;textId_=menuSubject_;
-        QString text=conversationName();
+        QString text=menuChat()["name"].toString();
         if(command=="edit-message") {
             text.clear();for(const auto& m:messages())if(m.toMap()["id"]==textId_)text=m.toMap()["text"].toString();
             text=editDrafts_.value(textChannel_+"/"+textId_,text);
@@ -852,7 +966,9 @@ void SocialController::selectMenu(int index) {
 void SocialController::dispatch(Action action) {
     if(snapshot_["state"]=="restoring")return;
     if(!menu_.isEmpty()) {
-        if(action==Action::Back||action==Action::Left){if(menuMode_=="runtime")emit runtimeAction("multiplayer-cancel");else closeMenu();}
+        if(emojiVisible()&&(action==Action::Left||action==Action::Right))menuFocus_=qBound(0,menuFocus_+(action==Action::Left?-1:1),4);
+        else if(emojiVisible()&&(action==Action::Up||action==Action::Down))menuFocus_=action==Action::Down?5:0;
+        else if(action==Action::Back||action==Action::Left){if(menuMode_=="runtime")emit runtimeAction("multiplayer-cancel");else closeMenu();}
         else if(action==Action::Up||action==Action::Down)menuFocus_=qBound(0,menuFocus_+(action==Action::Up?-1:1),int(menu_.size())-1);
         else if(action==Action::Confirm)selectMenu(menuFocus_);
         else if(action==Action::ToggleContinue&&menuMode_=="create-group"&&!pickedPeople_.isEmpty()&&!snapshot_["mutationBusy"].toBool()) {

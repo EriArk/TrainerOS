@@ -1,5 +1,13 @@
 # TrainerOS Roadmap
 
+**Compact Social revision installed, 8 October 2026:** the first UX-01
+composition was rejected for oversized controls and insufficient chat space.
+The replacement compact interface and native Fluxer profiles are now installed
+on Flip/Odin; see [current interface and evidence](SOCIAL_COMPACT.md). Resume
+**MP-02**, preserving its uncommitted timer work. Earlier functional evidence
+below remains valid; the old layout is superseded. Owner physical/visual
+acceptance and the remaining #135 gates stay open.
+
 **UX-01 delivered, 2026-10-08:** the integrated Social/Together interface and
 parallel touch/controller controls are installed on Flip/Odin. Actual two-player
 gameplay, Home exit and rejoin passed through the new surfaces; [evidence and

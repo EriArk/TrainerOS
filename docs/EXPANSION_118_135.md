@@ -1,5 +1,13 @@
 # Issues #118–135: accepted scope and dependencies
 
+**Compact Social revision installed, 8 October 2026:** the first UX-01
+composition was rejected for oversized controls and insufficient chat space.
+The replacement compact interface and native Fluxer profiles are now installed
+on Flip/Odin; see [current interface and evidence](SOCIAL_COMPACT.md). Resume
+**MP-02**, preserving its uncommitted timer work. Earlier functional evidence
+below remains valid; the old layout is superseded. Owner physical/visual
+acceptance and the remaining #135 gates stay open.
+
 Reviewed against live GitHub issues and all issue comments on 8 October 2026.
 The newest issue was #135; #118–135 are 18 additions beyond the previous #117
 register. #70 now explicitly replaces its image-only boundary; comments on

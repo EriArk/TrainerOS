@@ -182,7 +182,7 @@ void FluxerSession::reset() {
     leaveVoice();calls_.clear();callNotices_.clear();voiceStatus_.clear();
     ++epoch_;
     attachmentBusy_=false;attachmentReply_=nullptr;notificationSound_=true;
-    profile_={};profileStatus_.clear();profileBusy_=false;
+    profile_={};profileStatus_.clear();profileBusy_=false;person_={};++personRevision_;
     voiceInput_.clear();voiceOutput_.clear();voiceVolume_=100;
     ++onlineSendRevision_;onlineSendTimer_.stop();onlineQueue_.clear();onlineSending_=false;online_.bind({},{});
     delete proof_; proof_=nullptr;
@@ -300,6 +300,7 @@ void FluxerSession::publish() {
             {"editable",onlineEnvelope.isEmpty()&&!welcome&&idValid(id)&&m["author"].toObject()["id"]==self_&&(m["type"].toInt()==0||m["type"].toInt()==19)&&m["message_snapshots"].toArray().isEmpty()&&m["local_delivery"].toString().isEmpty()},
             {"onlineKind",onlineEnvelope["kind"].toString()},
             {"edited",!m["edited_timestamp"].toString().isEmpty()},{"system",!onlineEnvelope.isEmpty()||(m["type"].toInt()!=0&&m["type"].toInt()!=19)},
+            {"author",m["author"].toObject()["id"].toString()},{"timestamp",m["timestamp"].toString()},
             {"mine",m["author"].toObject()["id"]==self_},{"text",text},
             {"callEvent",callEvent},{"callDetail",callDetail},{"missedCall",missedCall},
             {"retryable",m["local_delivery"]=="Not sent"||(m["local_delivery"].toString().startsWith("Delivery unknown")&&QDateTime::currentMSecsSinceEpoch()-m["local_sent_at"].toString().toLongLong()<240000)},{"uncertain",m["local_delivery"].toString().startsWith("Delivery unknown")},
@@ -317,7 +318,7 @@ void FluxerSession::publish() {
     QString readTail;
     for(auto i=messageOrder_.crbegin();i!=messageOrder_.crend();++i)if(idValid(*i)){readTail=*i;break;}
     emit snapshot(generation_, {{"state",state_},{"status",status_},{"name",name_},{"code",code_},
-        {"profile",profile_.toVariantMap()},{"profileStatus",profileStatus_},{"profileBusy",profileBusy_},
+        {"person",person_},{"profile",profile_.toVariantMap()},{"profileStatus",profileStatus_},{"profileBusy",profileBusy_},
         {"audio",audioConfiguration().toVariantMap()},
         {"unreadCount",unreadCount},{"doNotDisturb",doNotDisturb_},{"privatePreviews",privatePreviews_},
         {"mutationBusy",mutationBusy_},{"attachmentBusy",attachmentBusy_},{"notificationSound",notificationSound_},
@@ -907,6 +908,31 @@ void FluxerSession::profileCommand(const QVariantMap& args) {
         publish();
     });
 }
+void FluxerSession::readProfile(QString id, QString requestId) {
+    if(self_.isEmpty()||!idValid(id))return;
+    const auto revision=++personRevision_,epoch=epoch_;
+    person_={{"id",id},{"request",requestId},{"status","Loading profile..."}};publish();
+    request("GET","/v1/users/"+id+"/profile?with_mutual_friends=true&with_mutual_guilds=true",{},[this,id,requestId,revision,epoch](Reply r){
+        if(epoch!=epoch_||revision!=personRevision_)return;
+        person_={{"id",id},{"request",requestId}};
+        const auto body=r.body.object(),user=body["user"].toObject(),details=body["user_profile"].toObject();
+        if(r.status!=200||user["id"].toString()!=id) {
+            person_["status"]=r.status==403?"This profile is not available to you.":r.status==429?"Please wait before trying again.":"Couldn't load this profile.";
+        } else {
+            const bool limited=body["profile_limited"].toBool();
+            const auto discriminator=user["discriminator"].toString();
+            person_.insert("name",label(user));person_.insert("avatar",avatar(user));
+            person_.insert("tag",user["username"].toString()+(discriminator.isEmpty()||discriminator=="0000"?QString():"#"+discriminator));
+            person_.insert("bio",limited?QString():details["bio"].toString().left(320));
+            person_.insert("pronouns",limited?QString():details["pronouns"].toString().left(40));
+            person_.insert("status",limited?QString("Limited profile"):QString());
+            person_.insert("mutualFriends",body["mutual_friends"].toArray().size());
+            person_.insert("mutualCommunities",body["mutual_guilds"].toArray().size());
+            person_.insert("loaded",true);
+        }
+        publish();
+    });
+}
 void FluxerSession::sendAttachment(const QVariantMap& args) {
     const auto channel=args["channel"].toString();const auto bytes=args["bytes"].toByteArray();
     const bool voice=args["voice"].toBool();const auto wave=args["waveform"].toByteArray();
@@ -947,6 +973,7 @@ void FluxerSession::sendAttachment(const QVariantMap& args) {
     });
 }
 void FluxerSession::command(QString operation, QVariantMap args) {
+    if(operation=="profile-read"){readProfile(args["id"].toString(),args["request"].toString());return;}
     if(operation=="profile-update"){profileCommand(args);return;}
     if(operation=="audio-settings") {
         if(self_.isEmpty())return;
@@ -1094,7 +1121,7 @@ void FluxerSession::command(QString operation, QVariantMap args) {
         });return;
     }
     if(operation=="open"&&idValid(id)&&channels_.contains(id)) {openConversation(id);return;}
-    if(operation=="dm"&&idValid(id)&&relationships_.value(id)["type"]==1) {
+    if(operation=="dm"&&idValid(id)&&(relationships_.value(id)["type"]==1||(person_["loaded"].toBool()&&person_["id"]==id))) {
         for(auto it=channels_.cbegin();it!=channels_.cend();++it)if(it.value()["type"]==1)
             for(const auto& recipient:it.value()["recipients"].toArray())if(recipient.toObject()["id"]==id){openConversation(it.key());return;}
         if(openingDm_)return;
@@ -1125,9 +1152,9 @@ void FluxerSession::command(QString operation, QVariantMap args) {
             if(r.status>=200&&r.status<300){if(revision==searchRevision_){searchStatus_="Friend request sent";for(auto& v:searchResults_){auto row=v.toMap();if(row["kind"]=="person"&&row["id"]==tag)row["action"]="Sent";v=row;}}status_="Friend request sent";refresh();publish();}else {if(revision==searchRevision_)searchStatus_="Could not add this person. Check their full tag";fail(r,"Could not send friend request. Check the name and tag");}
         });return;
     }
-    if(idValid(id)&&relationships_.contains(id)&&(operation=="accept"||operation=="remove"||operation=="block")) {
-        request(operation=="remove"?"DELETE":"PUT","/v1/users/@me/relationships/"+id,
-            operation=="remove"?QJsonObject():QJsonObject{{"type",operation=="block"?2:1}},[this](Reply r){
+    if(idValid(id)&&(relationships_.contains(id)||(person_["loaded"].toBool()&&person_["id"]==id))&&(operation=="add-id"||operation=="accept"||operation=="remove"||operation=="block")) {
+        request(operation=="remove"?"DELETE":operation=="add-id"?"POST":"PUT","/v1/users/@me/relationships/"+id,
+            operation=="remove"||operation=="add-id"?QJsonObject():QJsonObject{{"type",operation=="block"?2:1}},[this](Reply r){
                 if(r.status>=200&&r.status<300)refresh();else fail(r,"Could not update this friendship");
             });
     }

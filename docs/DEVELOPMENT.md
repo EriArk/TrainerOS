@@ -17,7 +17,7 @@ The authoritative list is [CMakeLists.txt](../CMakeLists.txt):
   Concurrent; Qt Test when `BUILD_TESTING=ON`.
 - Qt6Keychain and a working platform keychain for real account credentials.
 - OpenSSL 3 Crypto and SDL2 2.0.14+, including development headers/CMake packages.
-- The QSQLITE driver and Qt Quick, Window, Shapes, QML WorkerScript/Models and
+- The QSQLITE driver and Qt Quick, Controls, Window, Shapes, QML WorkerScript/Models and
   QtMultimedia runtime modules. Use one matching Qt/compiler ABI.
 - ffmpeg for the generated-video preview test; working multimedia backend/plugins
   and a graphical session for checks that decode and present video.
@@ -29,7 +29,7 @@ sudo apt-get update
 sudo apt-get install build-essential cmake ninja-build qt6-base-dev qt6-declarative-dev \
   qt6-multimedia-dev qt6-websockets-dev qtkeychain-qt6-dev libqt6sql6-sqlite \
   libsdl2-dev libssl-dev ffmpeg fonts-dejavu-core \
-  qml6-module-qtquick qml6-module-qtquick-window qml6-module-qtquick-shapes \
+  qml6-module-qtquick qml6-module-qtquick-controls qml6-module-qtquick-window qml6-module-qtquick-shapes \
   qml6-module-qtqml-workerscript qml6-module-qtqml-models qml6-module-qtmultimedia
 ```
 

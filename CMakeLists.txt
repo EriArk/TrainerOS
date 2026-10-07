@@ -240,6 +240,9 @@ qt_add_resources(traineros display_fonts PREFIX "/fonts" BASE assets/fonts
           assets/fonts/ChakraPetch-Bold.ttf assets/fonts/ChakraPetch-OFL.txt
           assets/fonts/Bungee-Regular.ttf assets/fonts/Bungee-OFL.txt)
 target_link_libraries(traineros PRIVATE trainer_core Qt6::Quick Qt6::Multimedia)
+file(GLOB social_icons CONFIGURE_DEPENDS assets/icons/phosphor/*.svg)
+qt_add_resources(traineros social_icons PREFIX "/social-icons" BASE assets/icons/phosphor
+    FILES ${social_icons} assets/icons/phosphor/LICENSE)
 set_source_files_properties(src/qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 file(GLOB trainer_qml_sources CONFIGURE_DEPENDS src/qml/*.qml src/qml/*.js)
 foreach(qml_file IN LISTS trainer_qml_sources)
@@ -301,6 +304,7 @@ qt_add_qml_module(traineros
         src/qml/KeyboardPanel.qml
         src/qml/TrainerPage.qml
         src/qml/SocialPage.qml
+        src/qml/SocialIconButton.qml
         src/qml/TrainerEmblem.qml
         src/qml/SeriesPage.qml
         src/qml/WorldsPage.qml

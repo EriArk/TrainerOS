@@ -51,6 +51,10 @@ class SocialController final : public QObject {
     Q_PROPERTY(QVariantMap online READ online NOTIFY changed)
     Q_PROPERTY(trainer::SocialMedia* media READ media CONSTANT)
     Q_PROPERTY(bool mediaPreview READ mediaPreview NOTIFY changed)
+    Q_PROPERTY(QVariantMap person READ person NOTIFY changed)
+    Q_PROPERTY(bool profileVisible READ profileVisible NOTIFY changed)
+    Q_PROPERTY(bool emojiVisible READ emojiVisible NOTIFY changed)
+    Q_PROPERTY(QVariantMap conversationInfo READ currentChat NOTIFY changed)
 public:
     explicit SocialController(QObject* parent = nullptr);
     ~SocialController() override;
@@ -98,6 +102,14 @@ public:
     Q_INVOKABLE void attachPicture();
     Q_INVOKABLE void recordVoice();
     Q_INVOKABLE void call();
+    Q_INVOKABLE void contextRow(int index = -1);
+    Q_INVOKABLE void collectionOptions();
+    Q_INVOKABLE void emoji();
+    Q_INVOKABLE void profile(QString id = {});
+    Q_INVOKABLE void conversationProfile();
+    QVariantMap person() const;
+    bool profileVisible() const { return menuMode_=="profile"; }
+    bool emojiVisible() const { return menuMode_=="emoji"; }
     Q_INVOKABLE void options() { if(menu_.isEmpty())openMenu(); }
     Q_INVOKABLE void selectMessage(int index);
     Q_INVOKABLE void back() { dispatch(Action::Back); }
@@ -165,6 +177,7 @@ signals:
     void partyLeave();
     void runtimeAction(QString action);
     void communicationSettingsRequested();
+    void conversationsRequested();
     void runtimeEstablished(QString activity,bool host);
     void runtimeFrame(QJsonObject frame);
     void runtimeProbeFailed(QString peer, QString message);
@@ -192,6 +205,8 @@ private:
     QVariantMap runtimeInvitation_;
     void openPeople(QString mode);
     QVariantMap currentChat() const;
+    QVariantMap menuChat() const;
+    QString profileTarget_, profileRequest_, menuGuild_;
     void confirmAction(QString title, QString operation, QString id = {});
     void send();
     void mediaMenu();

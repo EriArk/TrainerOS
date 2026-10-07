@@ -1,5 +1,13 @@
 # Current tasks
 
+**Compact Social revision installed, 8 October 2026:** the first UX-01
+composition was rejected for oversized controls and insufficient chat space.
+The replacement compact interface and native Fluxer profiles are now installed
+on Flip/Odin; see [current interface and evidence](SOCIAL_COMPACT.md). Resume
+**MP-02**, preserving its uncommitted timer work. Earlier functional evidence
+below remains valid; the old layout is superseded. Owner physical/visual
+acceptance and the remaining #135 gates stay open.
+
 **UX-01 delivered, 8 October 2026:** [installed interface, device walkthrough and
 test evidence](SOCIAL_UX.md). Resume MP-02. Touch and controller are parallel
 inputs; #135 and the earlier deferred acceptance remain open.

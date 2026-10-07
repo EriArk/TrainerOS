@@ -78,6 +78,9 @@ private:
     bool voiceReplacing_ = false;
     bool voiceMuted_=true,voiceDeaf_=false;
     QJsonObject profile_;
+    QVariantMap person_;
+    quint64 personRevision_=0;
+    void readProfile(QString id, QString requestId);
     QString profileStatus_;
     bool profileBusy_=false;
     QString voiceInput_,voiceOutput_;
