@@ -8,10 +8,11 @@ L1/R1 stops at the existing primary edges. L2/R2 wraps section faces:
 - Home and Worlds: Pokémon / Multiverse.
 - Companions: Guide / Party / Boxes / Center / Playroom / Shops.
 - Trainer: Profile / Journey / Hall / RA.
-- Social: Messages / Groups / Communities / Search (owner refinement; [native Social](SOCIAL.md)).
+- Social: Messages / Communities / Discover; Messages combines DMs and groups
+  ([8 October delivery](SOCIAL_UX.md)).
 
 Messages opens the last selected or first available conversation automatically.
-Search uses a full-width discovery layout, not the conversation sidebar; existing
+Discover uses a full-width discovery layout, not the conversation sidebar; existing
 friends/requests are inside Messages and the Home Friends shortcut. Per-face
 conversation choices remain account-scoped. Back retains the current conversation.
 

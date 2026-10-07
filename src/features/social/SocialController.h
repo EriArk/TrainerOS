@@ -40,6 +40,9 @@ class SocialController final : public QObject {
     Q_PROPERTY(int menuIndex READ menuIndex NOTIFY changed)
     Q_PROPERTY(QString menuTitle READ menuTitle NOTIFY changed)
     Q_PROPERTY(QString menuDetail READ menuDetail NOTIFY changed)
+    Q_PROPERTY(bool canCreateGroup READ canCreateGroup NOTIFY changed)
+    Q_PROPERTY(bool runtimeSurface READ runtimeSurfaceOpen NOTIFY changed)
+    Q_PROPERTY(QVariantList runtimeActions READ runtimeActions NOTIFY changed)
     Q_PROPERTY(bool surfaceAvailable READ surfaceAvailable WRITE setSurfaceAvailable NOTIFY presentationChanged)
     Q_PROPERTY(bool conversationVisible READ conversationVisible WRITE setConversationVisible NOTIFY presentationChanged)
     Q_PROPERTY(bool gameActive READ gameActive WRITE setGameActive NOTIFY presentationChanged)
@@ -85,11 +88,28 @@ public:
     int menuIndex() const {return menuFocus_;}
     QString menuTitle() const {return menuTitle_;}
     QString menuDetail() const {return menuDetail_;}
+    bool canCreateGroup() const { return menuMode_=="create-group"&&!pickedPeople_.isEmpty()&&!snapshot_["mutationBusy"].toBool(); }
+    Q_INVOKABLE void createSelectedGroup() { if(canCreateGroup())dispatch(Action::ToggleContinue); }
     SocialMedia* media(){return &media_;}
     bool mediaPreview() const{return menuMode_=="media-preview"||menuMode_=="media-view";}
     Q_INVOKABLE void activate(int index);
     Q_INVOKABLE void compose();
+    Q_INVOKABLE void sendDraft();
+    Q_INVOKABLE void attachPicture();
+    Q_INVOKABLE void recordVoice();
+    Q_INVOKABLE void call();
+    Q_INVOKABLE void options() { if(menu_.isEmpty())openMenu(); }
+    Q_INVOKABLE void selectMessage(int index);
+    Q_INVOKABLE void back() { dispatch(Action::Back); }
+    Q_INVOKABLE void retainMessagePosition(int index, bool latest);
     Q_INVOKABLE void together();
+    Q_INVOKABLE void showFriends();
+    Q_INVOKABLE void latest();
+    Q_INVOKABLE void earlierMessages();
+    void setRuntimeSurface(QString title, QString detail, QVariantList actions);
+    bool runtimeSurfaceOpen() const { return menuMode_=="runtime" && !menu_.isEmpty(); }
+    QVariantList runtimeActions() const { return runtimeActions_; }
+    void setRuntimeInvitation(QVariantMap request);
     bool togetherAvailable() const;
     QString textSubmitLabel() const { return textPurpose_ == "message" ? "Send" : "Apply"; }
     bool textAllowsEmoji() const { return textPurpose_ == "message" || textPurpose_ == "edit-message"; }
@@ -143,6 +163,8 @@ signals:
     void companyAccessChanged(QString company,QVariantMap access);
     void partyJoin(QString peer);
     void partyLeave();
+    void runtimeAction(QString action);
+    void communicationSettingsRequested();
     void runtimeEstablished(QString activity,bool host);
     void runtimeFrame(QJsonObject frame);
     void runtimeProbeFailed(QString peer, QString message);
@@ -164,6 +186,10 @@ private:
     QString notificationStamp(const QVariantMap& row) const;
     void receive(quint64 generation, QVariantMap snapshot);
     void openMenu();
+    void nativeActivities();
+    void groupDetails();
+    QVariantList runtimeActions_;
+    QVariantMap runtimeInvitation_;
     void openPeople(QString mode);
     QVariantMap currentChat() const;
     void confirmAction(QString title, QString operation, QString id = {});

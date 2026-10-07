@@ -1,5 +1,12 @@
 # AGENTS.md — TrainerOS
 
+**Owner parallel touch controls, 2026-10-08:** retain complete controller use
+alongside direct touch operation. Social needs visible Send, attachment,
+voice-message, call and contextual controls in the existing conversation.
+Both inputs share drafts, actions, consent and call state; neither is a
+secondary setup path. Do not remove touch affordances to simplify controller
+grammar or expose unsupported attachment capabilities.
+
 **Issue/plan reconciliation, 2026-10-08:** the owner requested a fresh issue
 review and rebuilt plan. Follow the active queue in docs/ROADMAP.md and the
 #118–135 register in docs/EXPANSION_118_135.md. Owner priority: complete UX-01

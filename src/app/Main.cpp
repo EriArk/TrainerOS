@@ -1089,7 +1089,7 @@ int main(int argc, char* argv[]) {
                         capture("social-friends-letterbox");
                         SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767);input.poll();
                         SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768);input.poll();
-                        check(shell.socialFace()=="groups", "Physical R2 cycles Social peers");
+                        check(shell.socialFace()=="communities", "Physical R2 cycles Social peers");
                         capture("landscape-letterbox");
                         window->resize(1920, 1080); break;
                     case 27:

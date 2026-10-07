@@ -1,5 +1,11 @@
 # TrainerOS Design Language
 
+**2026-10-08 Social refinement:** preserve the composition below while using
+Messages / Communities / Discover. DMs and groups share Messages. One compact
+Together cap replaces separate activity shelves; the persistent composer has
+direct touch Send, picture, voice-message, call and context buttons alongside
+controller use. [Installed interface and evidence](SOCIAL_UX.md).
+
 **2026-10-01 composition:** preserve the approved material chassis, tab geometry,
 gold focus and existing feature interiors. #111 uses Home / Worlds / Companions /
 Trainer / Social, with compact Profile/Journey/Hall/RA and Messages/Groups/Communities/Search face

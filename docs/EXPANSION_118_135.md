@@ -4,7 +4,9 @@ Reviewed against live GitHub issues and all issue comments on 8 October 2026.
 The newest issue was #135; #118–135 are 18 additions beyond the previous #117
 register. #70 now explicitly replaces its image-only boundary; comments on
 #101 and #112 defer conflicting presentation requirements to #127–135.
-These are planned outcomes, not capabilities delivered by this documentation pass.
+The original reconciliation planned these outcomes. UX-01 is now installed on
+Flip/Odin; [delivery evidence and remaining #135 gates](SOCIAL_UX.md). The
+distribution and Hotseat outcomes below remain planned.
 
 [ROADMAP](ROADMAP.md#active-execution-queue--2026-10-08) owns execution order.
 [Current tasks](CURRENT_TASKS.md) owns remaining work. Original issue acceptance
@@ -96,17 +98,20 @@ then invitations/notifications; review the full composition before delivery.
 Existing provider messaging expansion (replies/quotes, reactions, mentions,
 compact person card, persistent composer/media/emoji and dismissible reply preview)
 remains in REVIEW-05, using supported contracts; history search remains excluded.
+Owner refinement on 8 October: touch and controller are parallel input methods.
+Keep visible Send, attachment, voice-message, call and contextual buttons in
+the conversation; use the same operations, drafts and consent from either input.
+Current attachment support is pictures; generic file support is not implied.
 Exercise #135 journeys supported by the current implementation during UX-01,
 including actual game/party/Home/return and available native Link entry. Keep
 future Hotseat/routes and deferred real-client/network/voice checks explicitly
 open for their implementing tasks and final REVIEW-05. Do not close #135 early,
 defer existing feature checks or repeat already settled networking.
 
-The installed four Social faces and transport-first picker remain historical
-implementation evidence until migrated. #127–135 supersede their target UX, not
-their provider/capability/save guarantees. #135's curated screenshot update is
-bounded to the completed UX delivery; this planning pass changes no README image
-and does not close #116's artwork redistribution review.
+The four Social faces and transport-first picker are historical evidence,
+superseded by the installed UX-01 interface. Provider/capability/save guarantees
+remain. Its curated README update replaces only the two old Social references;
+it does not close #116's artwork redistribution review.
 
 ## Preserved prerequisites and handoff
 

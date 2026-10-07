@@ -38,9 +38,16 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         }else party_.deliveryFailed("online:"+peer);
     });
     connect(&social_,&SocialController::partyReset,&party_,&GameParty::reset);
+    connect(&social_,&SocialController::presentationChanged,this,&RuntimeMultiplayer::changed);
     connect(&social_,&SocialController::partyQuery,this,[this](QString peer){party_.query("online:"+peer);});
     connect(&social_,&SocialController::partyLeave,this,&RuntimeMultiplayer::leaveParty);
-    connect(&social_,&SocialController::partyJoin,this,[this](QString peer){party_.requestJoin("online:"+peer);});
+    connect(&social_,&SocialController::runtimeAction,this,[this](const QString& id){
+        action(id,true);
+    });
+    connect(&social_,&SocialController::partyJoin,this,[this](QString peer){
+        party_.requestJoin("online:"+peer);
+        if(party_.state()["joining"].toBool()||party_.active()){socialSurface_=true;show("multiplayer-party");}
+    });
     connect(&social_,&SocialController::companyQuery,&party_,&GameParty::browseCompany);
     connect(&social_,&SocialController::companyAccessChanged,this,[this](QString company,QVariantMap access){
         if(!companyOverride_)party_.setCompanyAccess(company,access["policy"].toString(),access["allowed"].toStringList());
@@ -50,9 +57,10 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     connect(&party_,&GameParty::changed,this,[this]{
         if(party_.active())partySession_=true;else companyOverride_=false;
         const auto pending=party_.pending();const auto request=pending["request"].toString();
-        if(!request.isEmpty()&&request!=lastRequest_&&lifecycle_.active())
-            emit social_.backgroundNotification("Game invitation",invitation()+" Open Home to answer.");
+        if(!request.isEmpty()&&request!=lastRequest_&&lifecycle_.active()&&!social_.account()["doNotDisturb"].toBool())
+            emit social_.backgroundNotification("Incoming activity",social_.account()["privatePreviews"].toBool()?QString("Open Home to answer."):invitation()+" Open Home to answer.");
         lastRequest_=request;
+        social_.setRuntimeInvitation(pending.toVariantMap());
         social_.setGameParty(party_.state().toVariantMap());
         auto companies=party_.companyOffers().toVariantList();
         if(lifecycle_.active())for(auto& v:companies){auto r=v.toMap();r["joinable"]=false;v=r;}
@@ -62,7 +70,8 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
             if(!offer.isEmpty())offer["joinable"]=offer["joinable"].toBool()&&!party_.active()&&!party_.state()["joining"].toBool()&&!lifecycle_.active();
             social_.setGameActivity(peer,offer.toVariantMap());
         }
-        if(overlay_.panel()=="multiplayer-party"||overlay_.panel()=="multiplayer-request")show(overlay_.panel());
+        if(socialSurface_&&social_.runtimeSurfaceOpen())show(socialPanel_);
+        else if(overlay_.panel()=="multiplayer-party"||overlay_.panel()=="multiplayer-request")show(overlay_.panel());
         emit changed();
     });
 
@@ -74,17 +83,19 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         refresh(installation_,trainer_,allowed_);
     });
     connect(&social_,&SocialController::changed,this,[this]{
-        if(overlay_.panel()=="multiplayer-online")show("multiplayer-online");
+        if(!socialSurface_&&(overlay_.panel()=="multiplayer-online"||overlay_.panel()=="multiplayer-people"))show(overlay_.panel());
         emit changed();
     });
-    connect(&nearby_,&LocalLinkPeer::changed,this,[this]{if(overlay_.panel()=="multiplayer-nearby")show("multiplayer-nearby");});
+    connect(&nearby_,&LocalLinkPeer::changed,this,[this]{if(overlay_.panel()=="multiplayer-nearby"||overlay_.panel()=="multiplayer-people")show(overlay_.panel());});
     connect(&nearby_,&LocalLinkPeer::error,this,[this](QString text){fail(text);});
     connect(&process_,&ProcessService::runtimeOutput,this,&RuntimeMultiplayer::output);
     connect(&lifecycle_.exitController(),&AdventureExitController::confirmationRequested,this,[this]{
         // Legacy exact arcade-style profiles have no persistent progress. A
         // generic title may have a real playthrough: retain its save question
         // when restarting ordinary play into a temporary multiplayer session.
-        if(restarting_&&!psp()&&!dolphin()&&descriptor_["transport"]!="netpacket"&&!descriptor_["id"].toString().startsWith("runtime.retroarch."))
+        // Read without inserting a null transport into older descriptors: the
+        // accepted identity must remain byte-for-byte equal at guest launch.
+        if(restarting_&&!psp()&&!dolphin()&&descriptor_.value("transport")!="netpacket"&&!descriptor_.value("id").toString().startsWith("runtime.retroarch."))
             lifecycle_.exitController().confirm();
     });
     connect(&lifecycle_.exitController(),&AdventureExitController::returnToGameRequested,this,[this]{
@@ -168,7 +179,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     if(visible!=onlineGames_){onlineGames_=visible;emit availabilityChanged();}
     update();
 }
-QString RuntimeMultiplayer::menuLabel() const {return !party_.pending().isEmpty()?"Join request":party_.active()?"Game party":"Invite friend";}
+QString RuntimeMultiplayer::menuLabel() const {return !party_.pending().isEmpty()?"Incoming activity":party_.active()?"Game party":"Play together";}
 bool RuntimeMultiplayer::canInvite() const {
     if(allowed_&&party_.active())return true;
     return allowed_&&games_.contains(process_.runtimeControls()["game"].toString())&&!active_
@@ -183,7 +194,8 @@ void RuntimeMultiplayer::leaveParty(){
     }
     party_.leave();emit changed();
 }
-bool RuntimeMultiplayer::incoming() const {return !party_.pending().isEmpty()&&!lifecycle_.active();}
+bool RuntimeMultiplayer::incoming() const {return !party_.pending().isEmpty()&&!lifecycle_.active()
+    &&social_.surfaceAvailable()&&!social_.account()["doNotDisturb"].toBool();}
 QString RuntimeMultiplayer::invitation() const {
     const auto pending=party_.pending();
     return pending["name"].toString()+(pending["joining"].toBool()?" wants to join ":" invites you to play ")+pending["game"].toObject()["label"].toString()+".";
@@ -216,10 +228,13 @@ void RuntimeMultiplayer::show(QString panel) {
     QVariantList rows;QString caption;
     if(panel=="multiplayer"&&!party_.pending().isEmpty())panel="multiplayer-request";
     if(panel=="multiplayer"&&party_.active())panel="multiplayer-party";
+    if(panel=="multiplayer")panel="multiplayer-people";
     if(panel=="multiplayer-request") {
-        caption=invitation();rows={row("multiplayer-accept","Accept"),row("multiplayer-decline","Decline")};
+        const auto request=party_.pending()["request"].toString();
+        caption=request.isEmpty()?"This invitation is no longer available.":invitation();
+        if(!request.isEmpty())rows={row("multiplayer-accept:"+request,"Accept"),row("multiplayer-decline:"+request,"Decline")};
     } else if(panel=="multiplayer-party") {
-        const auto state=party_.state();caption=QString::number(state["members"].toArray().size())+" / "+QString::number(state["capacity"].toInt())+" players";
+        const auto state=party_.state();caption=state["game"].toObject()["label"].toString()+" · "+QString::number(state["members"].toArray().size())+" / "+QString::number(state["capacity"].toInt())+" players";
         bool ready=true;
         for(const auto& value:state["members"].toArray()) {
             const auto m=value.toObject();ready&=m["ready"].toBool();
@@ -228,16 +243,24 @@ void RuntimeMultiplayer::show(QString panel) {
         }
         if(!party_.pending().isEmpty())rows.prepend(row("multiplayer-request","Join request",party_.pending()["name"].toString()));
         if(party_.host()&&!party_.running()&&ready&&state["members"].toArray().size()>1)rows.prepend(row("multiplayer-start","Start game"));
-        if(party_.host()&&state["free"].toInt()>0)rows.append(row(online_?"multiplayer-online":"multiplayer-nearby","Invite friend"));
+        if(party_.host()&&state["free"].toInt()>0)rows.append(row("multiplayer-people","Invite players"));
         if(party_.host()&&!state["company"].toString().isEmpty())rows.append(row("multiplayer-access","Who can join",state["access"]=="closed"?"Invitations only":state["access"]=="selected"?"Selected group members":"Ask me first"));
-        rows.append(row("multiplayer-leave",party_.host()?"End party":"Leave party"));
+        if(state["joining"].toBool())caption="Join request sent · "+state["game"].toObject()["label"].toString();
+        if(party_.active()||state["joining"].toBool())rows.append(row("multiplayer-leave",state["joining"].toBool()?"Cancel join request":party_.host()?"End party":"Leave party"));
+        else caption="No active game party";
     } else if(panel=="multiplayer-access") {
         caption="This game party";
-        rows={row("multiplayer-access:default","Use my group preference"),row("multiplayer-access:request","Ask me first"),
+        rows={row("multiplayer-access:default","Use group setting"),row("multiplayer-access:request","Ask me first"),
             row("multiplayer-access:selected","Selected group members"),row("multiplayer-access:closed","Invitations only")};
-    } else if(panel=="multiplayer") {
-        caption=(process_.runtimeControls()["kind"]=="ppsspp"||process_.runtimeControls()["kind"]=="dolphin")?"Play together":"Start a new multiplayer game";
-        rows={row("multiplayer-nearby","Nearby","Same local network"),row("multiplayer-online","Online friend")};
+    } else if(panel=="multiplayer-people") {
+        caption="Choose a person or group";
+        QSet<QString> identities;
+        if(!party_.active())for(const auto& p:social_.runtimeCompanies()) {const auto r=p.toMap();const auto id="multiplayer-company:"+r["id"].toString();if(identities.contains(id))continue;identities.insert(id);rows.append(row(id,r["name"].toString(),"Group"));}
+        if(!party_.active()||online_)for(const auto& p:social_.runtimeFriends()) {const auto r=p.toMap();const auto id="multiplayer-friend:"+r["id"].toString();if(identities.contains(id))continue;identities.insert(id);rows.append(row(id,r["name"].toString(),"Online friend"));}
+        // Discovery UUIDs have no authenticated account binding. Never merge
+        // nearby and online identities just because their display names match.
+        if(!party_.active()||!online_)for(const auto& p:nearby_.peers()) {const auto r=p.toMap();const auto id="multiplayer-local:"+r["id"].toString();if(identities.contains(id))continue;identities.insert(id);rows.append(row(id,r["name"].toString(),"Nearby"));}
+        if(rows.isEmpty())caption="Looking for nearby Trainers. Friends appear when connected.";
     } else if(panel=="multiplayer-nearby") {
         caption="Choose a nearby Trainer";
         for(const auto& p:nearby_.peers()){const auto r=p.toMap();rows.append(row("multiplayer-local:"+r["id"].toString(),r["name"].toString()));}
@@ -251,10 +274,19 @@ void RuntimeMultiplayer::show(QString panel) {
         caption=status_;
         if(caption.isEmpty())caption="Connecting to your friend…";
     }
-    rows.append(row("multiplayer-cancel","Back"));overlay_.setPanel(panel,caption,rows,"multiplayer-cancel");
+    rows.append(row("multiplayer-cancel","Back"));
+    if(socialSurface_){socialPanel_=panel;social_.setRuntimeSurface(panel=="multiplayer-people"?"Invite players":panel=="multiplayer-request"?"Incoming activity":"Game party",caption,rows);}
+    else overlay_.setPanel(panel,caption,rows,"multiplayer-cancel");
 }
-bool RuntimeMultiplayer::action(const QString& id) {
+bool RuntimeMultiplayer::action(const QString& id,bool fromSocial) {
     if(!id.startsWith("multiplayer"))return false;
+    socialSurface_=fromSocial;
+    if(id.startsWith("multiplayer-request:")||id.startsWith("multiplayer-accept:")||id.startsWith("multiplayer-decline:")) {
+        if(id.section(':',1)!=party_.pending()["request"].toString())return true;
+        if(id.startsWith("multiplayer-request:"))show("multiplayer-request");
+        else {answer(id.startsWith("multiplayer-accept:"));show(party_.active()?"multiplayer-party":"multiplayer-request");}
+        return true;
+    }
     if(id=="multiplayer-access"){show(id);return true;}
     if(id.startsWith("multiplayer-access:")) {
         const auto company=party_.state()["company"].toString();auto access=social_.companyAccess(company);
@@ -262,13 +294,13 @@ bool RuntimeMultiplayer::action(const QString& id) {
         if(companyOverride_)access["policy"]=id.section(':',1);
         party_.setCompanyAccess(company,access["policy"].toString(),access["allowed"].toStringList());show("multiplayer-party");return true;
     }
-    if(id=="multiplayer-start"){party_.start();return true;}
-    if(id=="multiplayer-leave"){leaveParty();overlay_.setPanel({}, {}, {});return true;}
-    if(id.startsWith("multiplayer-revoke:")){party_.cancelInvite(id.section(':',1));return true;}
+    if(id=="multiplayer-start"){if(socialSurface_)social_.closeMenu();party_.start();return true;}
+    if(id=="multiplayer-leave"){leaveParty();if(socialSurface_)social_.closeMenu();else overlay_.setPanel({}, {}, {});return true;}
+    if(id.startsWith("multiplayer-revoke:")){party_.cancelInvite(id.mid(QStringLiteral("multiplayer-revoke:").size()));return true;}
     if(id=="multiplayer-accept"||id=="multiplayer-decline"){answer(id=="multiplayer-accept");show(party_.active()?"multiplayer-party":"multiplayer");return true;}
     if(id=="multiplayer-party"||id=="multiplayer-request"){show(id);return true;}
-    if(id=="multiplayer-cancel"){overlay_.setPanel({}, {}, {});return true;}
-    if(id=="multiplayer"||id=="multiplayer-nearby"||id=="multiplayer-online"){if(canInvite())show(id);return true;}
+    if(id=="multiplayer-cancel"){if(socialSurface_){socialSurface_=false;social_.closeMenu();}else overlay_.setPanel({}, {}, {});return true;}
+    if(id=="multiplayer"||id=="multiplayer-people"||id=="multiplayer-nearby"||id=="multiplayer-online"){if(canInvite())show(id);return true;}
     if(!canInvite())return true;
     if(id.startsWith("multiplayer-company:")) {
         const auto company=id.section(':',1);const auto access=social_.companyAccess(company);

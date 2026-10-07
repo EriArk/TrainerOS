@@ -289,7 +289,6 @@ private slots:
         shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),4);QCOMPARE(shell.socialFace(),"chats");
         QVERIFY(!shell.chooseAdventureAvailable());shell.dispatch(Action::ToggleContinue);QVERIFY(!shell.drawerOpen());
         shell.dispatch(Action::Confirm);QVERIFY(shell.notice().isEmpty());QVERIFY(!shell.trainer()->editing());
-        shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"groups");
         shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"communities");
         shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"friends");
         shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"chats");

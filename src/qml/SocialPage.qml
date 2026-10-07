@@ -3,7 +3,7 @@ import QtQuick
 FocusScope {
     id: root
     required property var shell
-    readonly property int faceIndex: ["chats","groups","communities","friends"].indexOf(shell.socialFace)
+    readonly property int faceIndex: ["chats","communities","friends"].indexOf(shell.socialFace)
     readonly property var social: shell.social
     readonly property var account: social.account
     readonly property bool connected: account.state === "connected" || account.state === "connecting"
@@ -13,8 +13,8 @@ FocusScope {
     Component.onCompleted: if (takesFocus) forceActiveFocus()
     PageHeader {
         id: heading
-        title: [root.social.contacts ? "Friends" : "Messages", "Groups", "Communities", "Search"][root.faceIndex]
-        subtitle: root.connected ? (root.account.name || "") + " · " + (root.faceIndex === 2 && root.account.communityStatus ? root.account.communityStatus : root.account.status || "") : "A little closer, wherever you are."
+        title: [root.social.contacts ? "Friends" : "Messages", "Communities", "Discover"][root.faceIndex]
+        subtitle: root.connected ? (root.account.name || "") + " · " + (root.faceIndex === 1 && root.account.communityStatus ? root.account.communityStatus : root.account.status || "") : "A little closer, wherever you are."
         Text {
             anchors { right: parent.right; rightMargin: Theme.pageMargin; bottom: parent.bottom }
             text: "Powered by Fluxer"; color: Theme.muted; font.pixelSize: 9
@@ -59,22 +59,28 @@ FocusScope {
         }
     }
     Item {
-        visible: root.connected && root.faceIndex !== 3
+        visible: root.connected && root.faceIndex !== 2
         anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
         Rectangle { width: people.width + 30; height: parent.height; color: "#dce9d9"; border.color: "#b9cebd" }
-        Text { x: 20; y: 10; visible: root.faceIndex === 2; width: people.width
+        Text { x: 20; y: 10; visible: root.faceIndex === 1; width: people.width
             text: (root.account.communityOnly ? "TrainerOS communities" : "All communities") + (root.account.communityChecking ? " · Checking..." : "")
             font.family: Theme.displayFamily; font.pixelSize: 14; color: Theme.ink; elide: Text.ElideRight }
+        CapButton {
+            x: 14; y: 7; width: parent.width * 0.31 - 5; height: 35
+            visible: root.faceIndex === 0; label: root.social.contacts ? "Messages" : "Friends & requests"
+            tint: Theme.yellow; claimsFocus: false
+            onActivated: root.social.showFriends()
+        }
         ListView {
             id: people
-            x: 14; y: root.faceIndex === 2 ? 36 : 14; width: parent.width * 0.31; height: parent.height - y - 14
+            x: 14; y: 52; width: parent.width * 0.31; height: parent.height - y - 14
             clip: true; spacing: 10; model: root.social.rows; currentIndex: root.social.focusIndex
             onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
             delegate: CapButton {
                 required property var modelData
                 required property int index
                 width: people.width - 5; height: 65; claimsFocus: false; contentInset: 52
-                label: modelData.name; detail: modelData.detail
+                label: modelData.name; detail: (modelData.kind === "groups" ? "Group · " : "") + modelData.detail
                 tint: modelData.type === 3 ? Theme.yellow : index % 3 === 0 ? Theme.blue : index % 3 === 1 ? Theme.green : Theme.pink
                 selected: index === people.currentIndex && !root.social.reading && !root.social.partyFocused && !root.social.menu.length
                 onActivated: root.social.activate(index)
@@ -84,8 +90,8 @@ FocusScope {
                 }
             }
         }
-        Text { x: people.x + 6; y: 44; width: people.width - 16; visible: !people.count
-            text: ["Your conversations will appear here.", "Your group chats will appear here.", "Your communities will appear here.", "Friends make the journey better. Add someone to say hello."][root.faceIndex]
+        Text { x: people.x + 6; y: 108; width: people.width - 16; visible: !people.count
+            text: root.faceIndex === 1 ? "Your communities will appear here." : "Your conversations will appear here."
             wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; color: Theme.muted; font.pixelSize: 17
         }
         Item {
@@ -93,62 +99,39 @@ FocusScope {
             visible: root.social.conversation
             Text { id: chatHeading; y: 10; width: parent.width; text: root.social.conversationName + (root.account.historyBusy ? " · Loading..." : ""); font.family: Theme.displayFamily; font.pixelSize: 23; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText }
             Rectangle { y: 42; width: parent.width; height: 1; color: "#b4c6b8" }
-            Rectangle {
-                id: callStrip; y: 47; width: parent.width; height: visible ? 32 : 0; radius: 9
-                visible: !!root.account.voice && !!root.account.voice.status
-                color: "#d9eac4"; border.color: "#a3bd8c"
-                Text { anchors { fill: parent; margins: 7 } text: "☎  " + (root.account.voice ? (root.account.voice.summary || root.account.voice.status) : "") + (root.account.voice && root.account.voice.participants ? " · " + root.account.voice.participants + (root.account.voice.participants === 1 ? " person" : " people") : ""); color: Theme.ink; font.pixelSize: 14; elide: Text.ElideRight; textFormat: Text.PlainText }
-            }
-            Rectangle {
-                id: gameStrip
-                y: callStrip.visible ? callStrip.y + callStrip.height + 6 : 47
-                width: parent.width; height: visible ? 57 : 0; radius: 10
+            CapButton {
+                id: togetherStrip; objectName: "social-together"
+                y: 48; width: parent.width; height: 63; claimsFocus: false; tint: Theme.yellow
+                label: "Y · Together"
                 readonly property var party: root.social.gameParty
-                readonly property bool joined: !!party.party || !!party.joining
                 readonly property var offer: root.social.gameActivity
-                visible: joined || (!!offer.game && !!offer.game.label)
-                color: "#fff0bd"; border.color: "#c5a75e"
-                Text {
-                    x: 12; y: 7; width: parent.width - (joinGame.visible ? 174 : 24)
-                    text: (gameStrip.joined ? gameStrip.party.game : gameStrip.offer.game || {}).label || "Game party"
-                    font.family: Theme.displayFamily; font.pixelSize: 18; color: Theme.ink; elide: Text.ElideRight; textFormat: Text.PlainText
-                }
-                Text {
-                    x: 12; y: 31; width: parent.width - (joinGame.visible ? 174 : 24)
-                    text: gameStrip.joined ? (gameStrip.party.joining ? "Join request sent" : (gameStrip.party.running ? "Game session" : gameStrip.party.host ? "Your game party" : "Waiting for the organizer") + " \u00b7 " + gameStrip.party.members.length + " / " + gameStrip.party.capacity)
-                        : gameStrip.offer.joinable ? gameStrip.offer.free + (gameStrip.offer.free === 1 ? " place available" : " places available") : "Playing"
-                    font.pixelSize: 13; color: Theme.muted; elide: Text.ElideRight
-                }
-                CapButton {
-                    id: joinGame; visible: !gameStrip.joined && !!gameStrip.offer.joinable
-                    anchors { right: parent.right; rightMargin: 7; verticalCenter: parent.verticalCenter }
-                    width: 145; height: 42; label: "Ask to join"; centered: true; tint: Theme.green; claimsFocus: false
-                    onActivated: root.social.joinGame()
-                }
+                readonly property var voice: root.account.voice || ({})
+                detail: (party.joining ? "Join request sent" : party.party ? ((party.game || {}).label || "Game party") + " · " + (party.running ? "Playing" : "Gathering players")
+                    : root.social.companyParties.length ? root.social.companyParties.length + (root.social.companyParties.length === 1 ? " game party" : " game parties")
+                    : offer.joinable ? ((offer.game || {}).label || "Game") + " · Ask to join" : "Calls, games & activities")
+                    + (voice.channel ? "  ·  Call: " + (voice.name || voice.status || "Connected") : "")
+                onActivated: root.social.together()
             }
-            ListView {
-                id: companyShelf
-                y: gameStrip.visible ? gameStrip.y + gameStrip.height + 8 : callStrip.visible ? callStrip.y + callStrip.height + 8 : 48
-                width: parent.width; height: visible ? 84 : 0
-                visible: count > 0; clip: true; spacing: 10; orientation: ListView.Horizontal
-                model: root.social.companyParties; currentIndex: root.social.partyIndex
-                onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
-                delegate: CapButton {
-                    required property var modelData
-                    required property int index
-                    width: Math.min(companyShelf.width, 288); height: 78; claimsFocus: false
-                    tint: index % 2 ? Theme.blue : Theme.green
-                    label: (modelData.game || {}).label || "Game party"
-                    detail: modelData.name + " · " + (modelData.capacity - modelData.free) + "/" + modelData.capacity
-                        + (modelData.access === "closed" ? " · Invitations only" : modelData.joinable ? " · Join game" : modelData.free === 0 ? " · Full" : modelData.running ? " · Playing" : " · Gathering players")
-                    selected: root.social.partyFocused && index === companyShelf.currentIndex && !root.social.menu.length
-                    onActivated: root.social.joinCompanyParty(index)
-                }
+            CapButton {
+                id: latestButton; anchors { right: parent.right; top: togetherStrip.bottom; topMargin: 6 }
+                width: 148; height: visible ? 30 : 0; visible: !!root.account.historyPast
+                label: "Latest"; tint: Theme.blue; claimsFocus: false
+                onActivated: root.social.latest()
+            }
+            CapButton {
+                id: earlierButton; anchors { left: parent.left; top: togetherStrip.bottom; topMargin: 6 }
+                width: 164; height: visible ? 30 : 0; visible: !!root.account.historyMore
+                enabled: !root.account.historyBusy; label: "Earlier"; tint: Theme.blue; claimsFocus: false
+                onActivated: root.social.earlierMessages()
             }
             ListView {
                 id: log
-                anchors { top: companyShelf.visible ? companyShelf.bottom : gameStrip.visible ? gameStrip.bottom : callStrip.visible ? callStrip.bottom : chatHeading.bottom; topMargin: 10; bottom: composer.top; bottomMargin: 9; left: parent.left; right: parent.right }
+                anchors { top: latestButton.visible ? latestButton.bottom : earlierButton.visible ? earlierButton.bottom : togetherStrip.bottom; topMargin: 10; bottom: composer.top; bottomMargin: 9; left: parent.left; right: parent.right }
                 clip: true; spacing: 10; model: root.social.messages; currentIndex: root.social.messageIndex
+                onMovementEnded: {
+                    const first = indexAt(10, contentY + 10)
+                    if(first >= 0) root.social.retainMessagePosition(first, atYEnd)
+                }
                 function restorePosition() {
                     forceLayout()
                     if (currentIndex >= count - 1) positionViewAtEnd()
@@ -160,13 +143,14 @@ FocusScope {
                 onHeightChanged: Qt.callLater(restorePosition)
                 Timer {
                     interval: 1000; repeat: true
-                    running: root.visible && root.connected && root.faceIndex !== 3 && root.social.conversation && (log.atYEnd || log.contentHeight <= log.height) && root.social.surfaceAvailable
+                    running: root.visible && root.connected && root.faceIndex !== 2 && root.social.conversation && (log.atYEnd || log.contentHeight <= log.height) && root.social.surfaceAvailable
                     onTriggered: if (root.account.readTail) root.social.presented(root.account.channel, root.account.readTail)
                 }
                 delegate: Item {
                     required property var modelData
                     required property int index
                     width: log.width; height: bubble.height + 3
+                    MouseArea { anchors.fill: parent; z: 1; onClicked: root.social.selectMessage(index) }
                     Rectangle {
                         id: bubble
                         x: modelData.mine && !modelData.system ? 26 : 2; width: parent.width - 30
@@ -197,15 +181,31 @@ FocusScope {
                 horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
                 font.family: Theme.displayFamily; font.pixelSize: 22; color: Theme.muted
             }
-            Rectangle { id: composer; anchors { left: parent.left; right: parent.right; bottom: parent.bottom; bottomMargin: 12 }
-                height: 49; radius: 10; color: "#fff4cd"; border.color: "#bcab6c"
-                Text { anchors { fill: parent; margins: 12 } text: root.social.draft || "Write a message..."; font.pixelSize: 16; color: root.social.draft.length ? Theme.ink : Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
-                MouseArea { anchors.fill: parent; onClicked: root.social.compose() }
+            Item { id: composer; anchors { left: parent.left; right: parent.right; bottom: parent.bottom; bottomMargin: 12 }
+                height: 92
+                Row { spacing: 8
+                    CapButton { width: 112; height: 38; label: "+ Picture"; tint: Theme.blue; claimsFocus: false; onActivated: root.social.attachPicture() }
+                    CapButton { width: 106; height: 38; label: "● Voice"; tint: Theme.pink; claimsFocus: false; enabled: !root.account.voice || !root.account.voice.channel; onActivated: root.social.recordVoice() }
+                    CapButton { width: 102; height: 38; label: "☎ Call"; tint: Theme.green; claimsFocus: false; enabled: !!root.account.voice && (root.account.voice.available || !!root.account.voice.channel); onActivated: root.social.call() }
+                }
+                CapButton { anchors.right: parent.right; width: 48; height: 38; label: "···"; centered: true; tint: Theme.paper; claimsFocus: false; Accessible.name: "Conversation options"; onActivated: root.social.options() }
+                CapButton {
+                    y: 46; width: parent.width-85; height: 46; claimsFocus: false; tint: Theme.paper
+                    label: root.social.draft || "X · Write a message..."
+                    onActivated: root.social.compose()
+                }
+                CapButton {
+                    objectName: "social-send"; y: 46; anchors.right: parent.right; width: 76; height: 46
+                    label: "➤ Send"; textSize: 15; contentInset: 7; centered: true; tint: Theme.yellow; claimsFocus: false
+                    enabled: root.account.state === "connected" && root.social.draft.trim().length > 0
+                    onActivated: root.social.sendDraft()
+                }
             }
         }
         Column { visible: !root.social.conversation; x: people.width + 62; width: parent.width - x - 30; anchors.verticalCenter: parent.verticalCenter; spacing: 16
-            Text { width: parent.width; text: ["No conversations yet", "No group chats yet", "A place for your people"][root.faceIndex] || ""; font.family: Theme.displayFamily; font.pixelSize: 29; color: Theme.ink; horizontalAlignment: Text.AlignHCenter }
-            Text { width: parent.width; text: root.faceIndex === 2 ? "Create a community, or join your friends through Search." : root.faceIndex === 1 ? "Bring your friends together in a group." : "Find someone new in Search."; font.pixelSize: 17; color: Theme.muted; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
+            Text { width: parent.width; text: ["No conversations yet", "A place for your people"][root.faceIndex] || ""; font.family: Theme.displayFamily; font.pixelSize: 29; color: Theme.ink; horizontalAlignment: Text.AlignHCenter }
+            Text { width: parent.width; text: root.faceIndex === 1 ? "Create a community, or find one in Discover." : "Find friends in Discover, or create a group through Options."; font.pixelSize: 17; color: Theme.muted; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap }
+            CapButton { anchors.horizontalCenter: parent.horizontalCenter; width: 170; height: 42; label: "Options"; centered: true; tint: Theme.yellow; claimsFocus: false; onActivated: root.social.options() }
             Row { anchors.horizontalCenter: parent.horizontalCenter; spacing: 12
                 Repeater { model: [Theme.blue,Theme.pink,Theme.yellow]
                     Rectangle { required property color modelData; width: 48; height: 38; radius: 12; color: modelData; border.color: Qt.darker(modelData,1.35)
@@ -217,7 +217,7 @@ FocusScope {
     }
     Item {
         id: searchPage
-        visible: root.connected && root.faceIndex === 3
+        visible: root.connected && root.faceIndex === 2
         anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
         Rectangle { anchors.fill: parent; color: "#eaf0e3" }
         Row {
@@ -276,15 +276,33 @@ FocusScope {
     }
     Rectangle {
         visible: root.social.menu.length > 0; anchors.fill: parent; color: "#6630433b"
-        MouseArea { anchors.fill: parent }
+        MouseArea { anchors.fill: parent; onClicked: root.social.back() }
+        HomeMenuCard {
+            visible: root.social.runtimeSurface
+            anchors.centerIn: parent
+            heading: root.social.menuTitle
+            caption: root.social.menuDetail
+            actions: root.social.runtimeActions
+            currentIndex: root.social.menuIndex
+            onChosen: index => root.social.selectMenu(index)
+        }
         Rectangle {
+            visible: !root.social.runtimeSurface
             anchors.centerIn: parent; width: Math.min(410, parent.width - 40)
             height: Math.min(parent.height - 24, menuHeading.height + menuList.contentHeight + 44)
             radius: 16; color: Theme.paper; border.color: Theme.chassis; border.width: 3
+            MouseArea { anchors.fill: parent }
+            CapButton {
+                anchors { right: parent.right; top: parent.top; margins: 10 }
+                z: 2; width: 40; height: 34; label: "×"; centered: true
+                tint: Theme.paper; claimsFocus: false; Accessible.name: "Close"
+                onActivated: root.social.back()
+            }
             Column {
                 id: menuHeading; x: 18; y: 15; width: parent.width - 36; spacing: 6
-                Text { width: parent.width; text: root.social.menuTitle || "Social"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23; textFormat: Text.PlainText; elide: Text.ElideRight }
+                Text { width: parent.width - 38; text: root.social.menuTitle || "Social"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23; textFormat: Text.PlainText; elide: Text.ElideRight }
                 Text { width: parent.width; text: root.social.menuDetail; color: Theme.muted; font.pixelSize: 13; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight; textFormat: Text.PlainText }
+                CapButton { visible: root.social.canCreateGroup; width: parent.width; height: visible ? 40 : 0; label: "Create group"; tint: Theme.yellow; claimsFocus: false; onActivated: root.social.createSelectedGroup() }
                 Image { visible: root.social.mediaPreview && root.social.media.picture.toString().length > 0; width: parent.width; height: visible ? 165 : 0; source: visible ? root.social.media.picture : ""; sourceSize: Qt.size(740,330); fillMode: Image.PreserveAspectFit; asynchronous: true }
                 Rectangle { visible: root.social.mediaPreview && root.social.media.state === "recording"; width: parent.width; height: visible ? 52 : 0; radius: 10; color: "#f1c8c4"
                     Text { anchors.centerIn: parent; text: "●  " + root.social.media.seconds + " s / 120 s"; font.family: Theme.displayFamily; font.pixelSize: 22; color: "#9d3942" }

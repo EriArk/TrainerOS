@@ -37,10 +37,15 @@ void AdventureExitPresentation::setPanel(QString panel,QString caption,QVariantL
     const auto selected=menuActions().value(menuFocus_).toMap().value("id");
     const bool same=panel==panel_;panel_=std::move(panel);caption_=std::move(caption);panelActions_=std::move(actions);
     backAction_=std::move(backAction);
+    bool selectionLost=false;
     if(!same)menuFocus_=0;
-    else for(int i=0;i<panelActions_.size();++i)if(panelActions_[i].toMap().value("id")==selected){menuFocus_=i;break;}
+    else {
+        selectionLost=selected.isValid();
+        for(int i=0;i<panelActions_.size();++i)if(panelActions_[i].toMap().value("id")==selected){menuFocus_=i;selectionLost=false;break;}
+        if(selectionLost){menuFocus_=panelActions_.size();panelActions_.append(QVariantMap{{"id",selected},{"label","No longer available"},{"readOnly",true}});resetInput();}
+    }
     menuFocus_=qBound(0,menuFocus_,qMax(0,int(menuActions().size())-1));
-    if(menuActions().value(menuFocus_).toMap()["readOnly"].toBool())
+    if(!selectionLost&&menuActions().value(menuFocus_).toMap()["readOnly"].toBool())
         for(int i=0;i<panelActions_.size();++i)if(!panelActions_[i].toMap()["readOnly"].toBool()){menuFocus_=i;break;}
     if(!same)resetInput();emit changed();
 }

@@ -110,6 +110,10 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     });
     settings_.configureNearby(party_.activities()->link());
     social_.setLink(party_.activities()->link());
+    connect(&social_,&SocialController::communicationSettingsRequested,this,[this]{
+        if(navigationLocked())return;
+        service_="settings";menuOpen_=drawerOpen_=false;settings_.begin();settings_.selectCategory(13);emit changed();
+    });
     connect(&center_, &SaveCenterController::changed, this, [this] {
         if (center_.confirming()) party_.openSaves();
     });
@@ -313,7 +317,7 @@ QStringList ShellController::faceNames() const {
     if(page_==0 || page_==1) { QStringList names;for(const auto& row:collections())names.append(row.toMap()["name"].toString());return names; }
     if(page_==2)return {"Guide","Party","Boxes","Center","Playroom","Shops"};
     if(page_==3)return {"Profile","Journey","Hall","RA"};
-    if(page_==4)return {"Messages","Groups","Communities","Search"};
+    if(page_==4)return {"Messages","Communities","Discover"};
     return {};
 }
 int ShellController::faceIndex() const {
@@ -325,7 +329,7 @@ int ShellController::faceIndex() const {
     }
     if(page_==2)return QStringList{"dex","party","boxes","center","playroom","shops"}.indexOf(pokemonFace_);
     if(page_==3)return trainerProfile_ ? 0 : hall_.faceIndex()+1;
-    if(page_==4)return QStringList{"chats","groups","communities","friends"}.indexOf(socialFace_);
+    if(page_==4)return QStringList{"chats","communities","friends"}.indexOf(socialFace_);
     return 0;
 }
 QString ShellController::trainerFace() const {
@@ -461,6 +465,7 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     trainerProfile_=true;
     socialFace_=version==2 && QStringList{"chats","groups","communities","friends"}.contains(state["socialFace"].toString()) ? state["socialFace"].toString() : "chats";
     social_.setFace(socialFace_);
+    if(socialFace_=="groups")socialFace_="chats";
     goToPage(std::max(0, int(pages.indexOf(target))));
     homeAdventureId_ = state["homeAdventure"].toString(); homeResumeId_ = state["homeResume"].toString();
     homeResumeSource_ = ResumeSource::fromJson(state["homeResumeSource"].toObject());
@@ -894,6 +899,7 @@ QVariantList ShellController::homeMenuActions() const {
     QVariantList rows{QVariantMap{{"id","home"},{"label","Home"}},QVariantMap{{"id","friends"},{"label","Friends"}},
         QVariantMap{{"id","chats"},{"label","Chats"}},QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(social_.notifications().size())}}};
     if(!voice["channel"].toString().isEmpty())rows.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",voice["name"]}});
+    if(!social_.gameParty()["party"].toString().isEmpty()||social_.gameParty()["joining"].toBool())rows.append(QVariantMap{{"id","game-party"},{"label","Game party"},{"detail",social_.gameParty()["game"].toMap()["label"]}});
     const bool answering=homeMenuSelection_.startsWith("answer-call:");
     const bool declining=homeMenuSelection_.startsWith("decline-call:");
     rows.append(social_.incomingCallActions(answering?homeMenuSelection_.section(':',1):QString()));
@@ -915,6 +921,7 @@ void ShellController::activateHomeMenu(int index) {
     const auto selected=homeMenuActions()[index].toMap();
     if(!selected.value("enabled",true).toBool())return;
     const auto id=selected["id"].toString();
+    if(id=="game-party"){closeHomeMenu();goToPage(4);emit social_.runtimeAction("multiplayer-party");return;}
     if(id.startsWith("answer-call:")||id.startsWith("decline-call:")) {
         const bool accept=id.startsWith("answer-call:");
         if(social_.answerCall(id.section(':',1),accept,true)&&accept)closeHomeMenu();
@@ -1006,7 +1013,7 @@ void ShellController::dispatch(Action action) {
                 const QStringList faces{"profile","journey","hall","ra"};
                 showTrainerFace(faces[(faceIndex()+(action==Action::NextFace?1:3))%4]);
             }
-            else if (page_ == 4) { const QStringList faces{"chats","groups","communities","friends"}; socialFace_=faces[(faceIndex()+(action==Action::NextFace?1:3))%4]; social_.setFace(socialFace_); }
+            else if (page_ == 4) { const QStringList faces{"chats","communities","friends"}; socialFace_=faces[(faceIndex()+(action==Action::NextFace?1:2))%3]; social_.setFace(socialFace_); }
             else {
                 const auto& faces=pokemonExperience().pokemonFaces;
                 showPokemonFace(faces[(faceIndex()+(action==Action::NextFace?1:5))%6]);

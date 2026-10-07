@@ -525,7 +525,7 @@ void FluxerSession::authenticated() {
         if(!self_.isEmpty()&&self_!=verifiedId){historyCache_.clear();historyLru_.clear();callNotices_.clear();historyFile_.clear();channels_.clear();relationships_.clear();guilds_.clear();messages_.clear();messageOrder_.clear();channel_.clear();}
         self_=verifiedId;updateProfile(r.body.object());bindOnline();
         navigationKey_="social/navigation/"+QString::fromLatin1(QCryptographicHash::hash((owner_+"\n"+self_).toUtf8(),QCryptographicHash::Sha256).toHex())+"/";
-        if(!transport_) {QSettings settings;for(const auto& key:{"chats","groups","communities","guild"})preferred_[key]=settings.value(navigationKey_+key).toString();
+        if(!transport_) {QSettings settings;for(const auto& key:{"chats","groups","communities","guild","messages"})preferred_[key]=settings.value(navigationKey_+key).toString();
             doNotDisturb_=settings.value(navigationKey_+"dnd",false).toBool();privatePreviews_=settings.value(navigationKey_+"private",true).toBool();muted_=settings.value(navigationKey_+"muted").toStringList();notificationSound_=settings.value(navigationKey_+"sound",true).toBool();}
         loadHistoryCache();
         if(!transport_){QSettings settings;voiceInput_=settings.value(navigationKey_+"voiceInput").toString();voiceOutput_=settings.value(navigationKey_+"voiceOutput").toString();voiceVolume_=qBound(0,settings.value(navigationKey_+"voiceVolume",100).toInt(),100);}
@@ -968,7 +968,7 @@ void FluxerSession::command(QString operation, QVariantMap args) {
     }
     if(operation=="conversation") {
         const auto id=args["id"].toString();if(!channels_.contains(id))return;
-        face_=channelKind(channels_[id]);guild_=channels_[id]["guild_id"].toString();
+        face_=channelKind(channels_[id])=="groups"?"chats":channelKind(channels_[id]);guild_=channels_[id]["guild_id"].toString();
         if(!guild_.isEmpty())remember("guild",guild_);
         openConversation(id);publish();return;
     }
@@ -1192,7 +1192,7 @@ bool FluxerSession::mutate(const QString& operation,const QVariantMap& args) {
             ensureConversation();
         } else if(operation=="create-group"||operation=="rename-group") {
             const auto updated=r.body.object();const auto updatedId=updated["id"].toString();
-            if(idValid(updatedId)&&updated["type"].toInt()==3){channels_[updatedId]=updated;if(operation=="create-group"&&face_=="groups")openConversation(updatedId);}
+            if(idValid(updatedId)&&updated["type"].toInt()==3){channels_[updatedId]=updated;if(operation=="create-group"&&face_=="chats")openConversation(updatedId);}
         } else {
             const auto revision=channelRevision_;
             request("GET","/v1/channels/"+channel,{},[this,channel,revision](Reply reply){
@@ -1217,21 +1217,29 @@ void FluxerSession::openConversation(const QString& id) {
     if(!channels_.contains(id)||channel_==id)return;
     retainHistory();
     channel_=id;remember(channelKind(channels_[id]),id);
+    if(channels_[id]["guild_id"].toString().isEmpty())remember("messages",id);
     ++historyRequest_;historyBusy_=historyMore_=historyPast_=false;
     messages_.clear();messageOrder_.clear();restoreHistory(id);publish();loadMessages(id);
 }
 void FluxerSession::ensureConversation() {
     if(self_.isEmpty()||face_=="friends"||!channelsLoaded_)return;
+    // Restore the old Groups face only after account preferences and channels
+    // have arrived. Startup usually requests its face before authentication.
+    if(face_=="groups") {
+        face_="chats";
+        if(channels_.contains(preferred_["groups"]))openConversation(preferred_["groups"]);
+    }
     if(face_=="communities"&&guild_.isEmpty()&&!guilds_.isEmpty()) {
         auto candidates=guilds_.keys();std::sort(candidates.begin(),candidates.end());
         if(communityOnly_)candidates.removeIf([this](const QString& id){return !communityMarked_.contains(id);});
         if(!candidates.isEmpty()) {const auto id=candidates.contains(preferred_["guild"])?preferred_["guild"]:candidates.first();
             command("guild",{{"id",id}});return;}
     }
-    auto matches=[&](const QJsonObject& c){return channelKind(c)==face_&&(face_!="communities"||c["guild_id"]==guild_);};
+    auto matches=[&](const QJsonObject& c){return (channelKind(c)==face_||(face_=="chats"&&channelKind(c)=="groups"))&&(face_!="communities"||c["guild_id"]==guild_);};
     if(channels_.contains(channel_)&&matches(channels_[channel_]))return;
     QString choice;
-    if(channels_.contains(preferred_[face_])&&matches(channels_[preferred_[face_]]))choice=preferred_[face_];
+    const auto preferred=face_=="chats"&&!preferred_["messages"].isEmpty()?preferred_["messages"]:preferred_[face_];
+    if(channels_.contains(preferred)&&matches(channels_[preferred]))choice=preferred;
     else for(auto it=channels_.cbegin();it!=channels_.cend();++it)if(matches(it.value())) {
         const auto last=it.value()["last_message_id"].toString();const auto old=channels_.value(choice)["last_message_id"].toString();
         if(choice.isEmpty()||last.size()>old.size()||(last.size()==old.size()&&(last>old||(last==old&&it.key()<choice))))choice=it.key();

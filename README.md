@@ -66,22 +66,22 @@ The general library can use Batocera-style folders and existing metadata, artwor
 
 **Social is built into TrainerOS.** It is not a link that throws you into another app.
 
-Messages, groups, communities and discovery live alongside Home, Worlds, Companions and Trainer. You can read and send messages with the controller, keep conversation history, manage friends and groups, receive image attachments and use voice calls without leaving the shell.
+Messages brings direct and group conversations together; Communities and Discover stay alongside it. Touch and controller controls work in parallel: write and send, attach a picture, record a voice message or open a call from the conversation. History, friends and group controls remain inside the shell.
 
 <table>
 <tr>
-<td width="50%"><img src="screenshots/14-social.png" alt="TrainerOS Social messages"></td>
-<td width="50%"><img src="screenshots/28-experimental-company-party.png" alt="A game party inside a TrainerOS group conversation"></td>
+<td width="50%"><img src="screenshots/social-2026-10-08/messages.png" alt="TrainerOS Messages with touch and controller controls"></td>
+<td width="50%"><img src="screenshots/social-2026-10-08/group-details.png" alt="TrainerOS group membership, game access and notification controls"></td>
 </tr>
 </table>
 
 And the chat actually knows about games.
 
-If a friend is playing a compatible game, their game can appear **above the conversation**. Press **Y · Ask to join**. They get Accept / Decline in Home. Once accepted, the party appears with its available seats and the organizer presses **Start game**.
+If a friend is playing a compatible game, open **Together** above the conversation, by touch or **Y**, then **Ask to join**. They get Accept / Decline in Home. Once accepted, the same party surface in Home and Social shows the roster and readiness; the organizer presses **Start game**.
 
 TrainerOS handles the rest underneath. No copying IP addresses. No emulator room browser. No asking your friend which core they launched.
 
-You can also go the other way: while playing, open Home → **Invite friend** → choose Nearby or Online friend → pick a person or group.
+You can also go the other way: while playing, open Home → **Play together** and pick a person or group. Nearby and Online friend labels explain the available connection.
 
 If you leave a supported match while the host keeps playing, the conversation can show the open place again so you can **Join game** and return to the same running host. Groups can keep their chat and membership while different game parties start and end inside them. Selected members can be allowed to join your games without making you approve the same person every time.
 
@@ -157,7 +157,7 @@ Companions contains **Field Guide ⇄ Party ⇄ Boxes ⇄ Care Center ⇄ Playro
 
 Trainer contains **Profile ⇄ Journey ⇄ Hall ⇄ RetroAchievements**.
 
-Social contains **Messages ⇄ Groups ⇄ Communities ⇄ Search**.
+Social contains **Messages ⇄ Communities ⇄ Discover**. Messages includes both direct and group conversations.
 
 First run already walks through controls, optional Wi-Fi/Bluetooth, date and time, game storage, Trainer creation and an optional PIN. It can continue offline and resume if setup is interrupted.
 

@@ -5,6 +5,18 @@ using namespace trainer;
 class AdventureExitPresentationTests final : public QObject {
     Q_OBJECT
 private slots:
+    void expiredInvitationCannotRedirectConfirmToItsReplacement() {
+        AdventureExitController exit;AdventureExitPresentation view(exit);
+        exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);
+        QSignalSpy preview(&view,&AdventureExitPresentation::menuCaptureRequested),actions(&view,&AdventureExitPresentation::menuActionRequested);
+        QVERIFY(view.requestMenu());view.menuCaptureCompleted(preview.last()[0].toULongLong(),{});
+        view.setInputIsolated(true);view.setWindowFocused(true);
+        view.setPanel("request","Friend",{QVariantMap{{"id","accept:first"},{"label","Accept"}}});
+        view.updateInput(view.inputGeneration(),{true,true});
+        view.setPanel("request","Other",{QVariantMap{{"id","accept:second"},{"label","Accept"}}});
+        view.updateInput(view.inputGeneration(),{true,true});view.activateMenu(view.menuFocus());QVERIFY(actions.isEmpty());
+        QCOMPARE(view.menuActions().value(view.menuFocus()).toMap()["id"].toString(),QString("accept:first"));
+    }
     void partyRosterKeepsFocusOnActionsAndSkipsDisplayRows() {
         AdventureExitController exit;AdventureExitPresentation view(exit);
         exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);

@@ -5,12 +5,13 @@ supersede conflicting older distribution and Social presentation wording below.
 TrainerOS has one canonical release, delivered as an Armada image or through a
 convergence installer on supported SteamOS/Bazzite hosts, with owned session and
 runtimes, repair and safe uninstall. These paths are planned, not released.
-Social targets a unified DM/group Messages list, Communities and Discover, with
+Social now provides a unified DM/group Messages list, Communities and Discover, with
 one Together area and consistent party/incoming-activity controls. Calls remain
 independent; people-first invitations hide automatic transport selection.
 Live Hotseat adds explicit control handoff on one logical pad, not offline turns.
-[The active queue](ROADMAP.md#active-execution-queue--2026-10-08) places UX-01 before MP-02
-and Pack Studio before distribution. Existing installed evidence is unchanged.
+[UX-01 delivery](SOCIAL_UX.md) records parallel touch/controller controls and
+Flip/Odin proof. [The active queue](ROADMAP.md#active-execution-queue--2026-10-08)
+now resumes MP-02 and keeps Pack Studio before distribution.
 
 **2026-10-04 #114 installed navigation:** Worlds opens available game-series
 collections; Pokemon regions live inside its collection. Other series can use

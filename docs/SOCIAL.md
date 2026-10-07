@@ -1,14 +1,13 @@
 # Native Social - conversations and discovery
 
-**Current target/order, 2026-10-08:** the owner moved UX-01 ahead of MP-02.
-[#127–135](EXPANSION_118_135.md#ux-01-one-social--together--party-journey) replace
-older final-layout/button requirements: unified DM/group Messages, Communities,
-Discover, X compose, Y Together, one compact activity/party presentation and
-people-first invitations. Existing provider, history, membership, notification,
-call and consent behavior stays authoritative. Four installed Social faces and
-the screenshots below remain pre-migration evidence. Validate the coherent
-journey on existing runtimes before resuming handheld-link work; later routes
-and deferred human/network checks remain open.
+**Installed UX-01, 2026-10-08:** unified DM/group Messages, Communities and
+Discover now run on Flip/Odin. X composes, Y opens Together, and direct touch
+buttons expose Send, pictures, voice messages, calls and context. Home/Social
+share the party surface and people-first invitations. [Delivery and checks](SOCIAL_UX.md)
+record actual gameplay/leave/rejoin and the remaining #135 gates. Older four-face
+captures below are historical evidence. Provider, history, membership, call and
+save guarantees remain. Resume MP-02; later runtime and deferred human/network
+acceptance stays open.
 
 **Owner availability correction, 2026-10-04:** supported emulator invitations
 are enabled in normal installations. Pending larger-group/distinct-network

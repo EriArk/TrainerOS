@@ -108,6 +108,7 @@ QVariantList CommunicationSettings::rows() const{
     auto mic=row("Microphone on",calling?(voice["muted"].toBool()?"Off":"On"):"No active call",calling?"toggle":"unavailable","Current call");mic["checked"]=!voice["muted"].toBool();mic["operation"]="voice-mute";result.append(mic);
     auto output=row("Hear conversation",calling?(voice["deaf"].toBool()?"Off":"On"):"No active call",calling?"toggle":"unavailable");output["checked"]=!voice["deaf"].toBool();output["operation"]="voice-output";result.append(output);
     auto logout=row("Sign out",user["tag"].toString(),"action","Account");logout["operation"]="logout";result.append(logout);
+    auto history=row("Clear local message history","Messages remain with the service","action","Account");history["operation"]="clear-history";result.append(history);
     return result;
 }
 void CommunicationSettings::cycleDevice(const QString& kind,int direction){

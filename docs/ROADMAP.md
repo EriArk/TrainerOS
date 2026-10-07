@@ -1,5 +1,11 @@
 # TrainerOS Roadmap
 
+**UX-01 delivered, 2026-10-08:** the integrated Social/Together interface and
+parallel touch/controller controls are installed on Flip/Odin. Actual two-player
+gameplay, Home exit and rejoin passed through the new surfaces; [evidence and
+remaining gates](SOCIAL_UX.md). Resume **MP-02**. #135 remains open for later
+routes and its deferred acceptance; the existing timer work stays uncommitted.
+
 **Issue reconciliation, 2026-10-08:** live GitHub review found 18 additions
 #118–135 beyond the previous #117 register, plus superseding guidance on #70,
 #101 and #112. [Scope/dependencies](EXPANSION_118_135.md) preserve all older
@@ -50,8 +56,8 @@ The owner explicitly rejects test-only passes substituted for feature delivery.
 | Order | Outcome / task | State and dependency |
 | --- | --- | --- |
 | Delivered · owner priority | #114 series collections | Worlds cards, scoped Home/Y choice and Home cycling, bounded ROM selection and generated art installed on both handhelds. Remaining #90 deep adapters stay open. [Scope/evidence](SERIES_COLLECTIONS.md). |
-| **Now · owner priority** | **UX-01: Social → Together → party/activity, #127–134** | Unified DM/group inbox, Discover, stable controls, compact Together, people-first invites, one party surface, group details and consistent incoming activities as one whole journey. Validate implemented routes on both devices; preserve providers/transports/save/call safety. #135 checks applicable flows now; future route acceptance stays open. |
-| 2 · block 1 | MP-02: GB/GBC/GBA independent link | Resume directly after UX-01, preserving the timer fix and own-save work. Complete own-save link through corrected invitations and normal exit; [actual progress and remaining gates](HANDHELD_MULTIPLAYER.md). |
+| Delivered · owner priority | UX-01: Social → Together → party/activity, #127–134 | Unified DM/group inbox, Discover, parallel touch/controller controls, Together, people-first invites, shared party and group details installed on both devices. [Evidence](SOCIAL_UX.md); #135 future-route and deferred acceptance remains open. |
+| **Now · block 1** | **MP-02: GB/GBC/GBA independent link** | Resume after UX-01, preserving the timer fix and own-save work. Complete own-save link through corrected invitations and normal exit; [actual progress and remaining gates](HANDHELD_MULTIPLAYER.md). |
 | Retained · block 1 | MP-01: classic RetroArch and shared online-party acceptance | Implemented profiles remain accessible. Distinct-network and actual multi-user/company acceptance remain open; owner-deferred conditions do not trigger another NES/same-router pass. |
 | 3 · block 1 | MP-03: selected PS1/N64 routes | After MP-02. Implement viable mechanisms with the complete invitation journey; do not substitute shared controllers for emulated-machine link. |
 | 4 · block 1 | MP-04: Dreamcast; MP-05: PS2/GameCube; MP-06: DS/PSP; MP-07: 3DS and eligible newer routes | Oldest first. Reuse installed PSP/Dolphin work; resolve each route's remaining acceptance, not every ROM. Unsupported mechanisms require a sourced conclusion, not a misleading enabled button. |

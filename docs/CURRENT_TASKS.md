@@ -1,5 +1,9 @@
 # Current tasks
 
+**UX-01 delivered, 8 October 2026:** [installed interface, device walkthrough and
+test evidence](SOCIAL_UX.md). Resume MP-02. Touch and controller are parallel
+inputs; #135 and the earlier deferred acceptance remain open.
+
 **8 October 2026 live issue review:** #118–135 are new relative to the previous
 #117 record. #70's distribution boundary and comments on #101/#112 were also
 reviewed. [Acceptance register](EXPANSION_118_135.md) maps all 18 additions;
@@ -45,20 +49,20 @@ ten original illustrations and a bounded server-ROM selection are installed.
 No ROM relocation or identity reset. Remaining #90 semantic adapters stay open.
 Acceptance/evidence: [Series collections](SERIES_COLLECTIONS.md).
 
-## Current task: UX-01 — integrated Social and multiplayer interface
+## Delivered: UX-01 — integrated Social and multiplayer interface
 
 Deliver #127–134 as one player-visible journey using current providers/runtimes:
 
-- [ ] Unified DM/group Messages, Communities and Discover; preserve remembered
+- [x] Unified DM/group Messages, Communities and Discover; preserve remembered
   conversation, drafts/history/unread and migrate old Groups/Search routes.
-- [ ] Predictable A/B/X/Y/Select grammar, explicit Send and visible local focus.
-- [ ] One compact Together area, independent call state and shared party surface
+- [x] Predictable A/B/X/Y/Select grammar, explicit Send and parallel touch controls.
+- [x] One compact Together area, independent call state and shared party surface
   from Home/Social with roster/readiness/access/Start/leave/rejoin.
-- [ ] People-first invitations with deduplicated proven identity and automatic
+- [x] People-first invitations with deduplicated proven identity and automatic
   route selection; clear group details and contextual options.
-- [ ] Consistent incoming requests/missed notifications with existing consent,
+- [x] Consistent incoming requests/missed notifications with existing consent,
   expiry, protected-operation and action-focus safety.
-- [ ] Applicable #135 actual invitation/gameplay/Home/rejoin and native-activity
+- [x] Applicable #135 actual invitation/gameplay/Home/rejoin and native-activity
   walkthroughs on Flip/Odin, necessary regression checks, real screenshots and
   complete paired delivery/commit/push. Future runtime/Hotseat and owner-deferred
   gates stay open; no mock-only UI completion or new networking framework.
@@ -70,7 +74,7 @@ this outcome. Then resume the full MP-02 block below.
 
 <a id="current-task-mp-02--independent-handheld-link"></a>
 
-## Next task: MP-02 — independent handheld link
+## Current task: MP-02 — independent handheld link
 
 The owner resumed the interrupted handheld work on 4 October. Complete the
 existing invitation/launch/own-save/exit journey for reviewed GB/GBC/GBA routes.

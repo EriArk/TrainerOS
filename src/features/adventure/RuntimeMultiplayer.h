@@ -33,7 +33,7 @@ public:
     QString invitation() const;
     Q_INVOKABLE void answer(bool accept);
     bool dispatch(Action);
-    bool action(const QString&);
+    bool action(const QString&, bool fromSocial=false);
 signals:
     void changed();
     void availabilityChanged();
@@ -72,5 +72,7 @@ private:
     bool allowed_=false,online_=false,host_=false,active_=false,restarting_=false,launchPending_=false,query_=false,relaySent_=false;
     qint64 deadline_=0;quint64 scanRevision_=0;
     QByteArray output_;
+    bool socialSurface_=false;
+    QString socialPanel_;
 };
 }
