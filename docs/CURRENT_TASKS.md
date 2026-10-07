@@ -1,5 +1,13 @@
 # Current tasks
 
+Owner correction, 2026-10-07: the ten collection-card illustrations were replaced
+with independent environments, installed on both handhelds and visually reviewed
+on Flip. [Evidence](SERIES_COLLECTIONS.md#artwork-and-private-content). Names,
+identities and existing README captures are retained. Resume MP-02.
+The final queue is R18 Pack Studio/art packs -> R18a/R18b optional ROM-native
+assets -> R15 installable image -> R16 OTA/rollback -> R17 final acceptance.
+This supersedes earlier Studio-last ordering without dropping any scope.
+
 Public-readiness maintenance, 2026-10-06: the owner requested a bounded repository
 cleanup before continuation. [Delivered scope and open decisions](PUBLIC_READINESS.md)
 track #115 (license), #116 (public assets), #117 (clean contributor build), and the

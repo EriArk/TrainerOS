@@ -53,12 +53,19 @@ Both reusable license copies match the root's upstream hash; the existing adapte
 snapshot check passed. No application rebuild, device deployment or fresh-machine
 reproduction is claimed by this metadata-only change.
 
-Asset review covers fan badge recreations, generated franchise-inspired series
-cards, QML-drawn clinic elements, and screenshots with separately supplied art,
+Asset review covers fan badge recreations, collection illustrations,
+QML-drawn clinic elements, and screenshots with separately supplied art,
 sprites and logos. A creator's attribution/license, generated provenance or a
 non-affiliation disclaimer does not by itself clear underlying game designs.
 Factual compatibility, stable game IDs and independently written adapters should
 not be removed merely because they refer to supported games.
+
+On 2026-10-07 the owner authorized replacement of collection-card illustrations.
+All ten were regenerated from independent environment descriptions without game
+reference images, characters, logos or signature franchise props; see
+[asset provenance](../assets/series/README.md). This narrows the current card-art
+concern; #116 stays open for remaining materials, release permissions and the
+later showcase replacement. Existing README captures and Git history remain.
 
 The audit found no commercial ROM/BIOS/save files in the tracked path inventory;
 Gitleaks reported no typical secret findings across its history scan. These are
@@ -68,7 +75,8 @@ has been cleared. Private scan outputs stay outside version control.
 ## Order after this pass
 
 Resume MP-02 from [current tasks](CURRENT_TASKS.md). Public-readiness issues remain
-explicit follow-ups and do not restart passed multiplayer checks, move Pack Studio
-forward, or replace image/update work under #70/#71. The accepted GPL-3.0-or-later
-decision is recorded; asset replacement and history-cleanup choices still require
-the owner's decision first.
+explicit follow-ups and do not restart passed multiplayer checks or replace
+image/update work under #70/#71. The 2026-10-07 ordering correction places the
+image after Pack Studio; see ROADMAP. The accepted GPL-3.0-or-later decision and
+bounded card-art replacement are recorded; further asset replacement and
+history-cleanup choices still require the owner's decision first.

@@ -1,5 +1,15 @@
 # AGENTS.md — TrainerOS
 
+**Owner sequence/artwork correction, 2026-10-07:** regenerate the Worlds series
+card illustrations as independent environments without recognizable franchise
+characters, logos or signature objects before returning to MP-02. Preserve
+README screenshots, game identities and UI behavior. This is a bounded asset
+replacement, not clearance of all public artwork (#116 remains open).
+The final delivery order is R18 Pack Studio/art packs -> R18a/R18b optional
+ROM-native assets -> R15 installable image -> R16 OTA/rollback -> R17 final
+acceptance. This supersedes earlier "Pack Studio last" scheduling and keeps all
+existing scope; the installable image must come after Pack Studio.
+
 **Owner license decision, 2026-10-06:** original TrainerOS code is licensed under
 GPL-3.0-or-later. Preserve existing third-party licenses and the explicit asset
 boundaries in LICENSING.md. Reusable adapter copies must retain their license

@@ -1,11 +1,20 @@
 # TrainerOS Roadmap
 
+**Owner correction, 2026-10-07:** the ten series collection-card illustrations
+have been replaced with independent environments; see [delivery evidence](SERIES_COLLECTIONS.md#artwork-and-private-content).
+Resume MP-02 and the accepted queue below. At the end, execute **R18 Pack Studio/art packs ->
+R18a/R18b optional ROM-native assets -> R15 image -> R16 OTA/rollback -> R17 final
+acceptance**. R1-R14, R7a and every retained acceptance remain in place. Stable
+R numbers identify scope, not this revised order. Earlier "Pack Studio last"
+and image-before-Studio wording is superseded; no image dependency is imposed
+on developing or validating the packs in the native application.
+
 **Public-readiness maintenance, 2026-10-06:** the owner requested documentation,
 repository presentation and GitHub automation cleanup. See
 [the audit/follow-ups](PUBLIC_READINESS.md) for #115–117 and the updated #62.
-This bounded pass preserves the execution queue below: resume MP-02, keep
-Pack Studio last. The owner subsequently adopted GPL-3.0-or-later for original
-code; #115 retains release redistribution acceptance. Discuss art replacement
+This historical pass preserved MP-02; the 2026-10-07 correction above now
+places the installable image after Pack Studio. The owner subsequently adopted
+GPL-3.0-or-later for original code; #115 retains release redistribution acceptance. Discuss further art replacement
 before changing the public visual material.
 
 ## Active execution queue — 2026-10-04
@@ -26,7 +35,7 @@ The owner explicitly rejects test-only passes substituted for feature delivery.
 | Retained · block 3 | COM-03: outstanding calls/notifications acceptance | Human speech/listening is owner-deferred. Keep group voice running through multiplayer; resume the missing acceptance when its prerequisite is available, without restarting completed call checks. |
 | 4 · block 4 | LINK-04: complete native online activities | After block 1, using existing invitation infrastructure and protected bilateral transactions. Emulator multiplayer and saved-creature Link stay separate. |
 | 5 · block 5 | REVIEW-05: reviews and final communication journey | After preceding communication outcomes; preserve #113 exact-game completion policy and all unfinished messenger acceptance. |
-| Then | Remaining R1–R18, R7a, R18a/R18b and U commitments | Continue the preserved [unified backlog](#unified-execution-order--existing-work-and-new-issues), doing residual work only. ScreenScraper needs owner access; sleep remains deferred; generic artwork/Pack Studio remains at the end. |
+| Then | Remaining R1–R18, R7a, R18a/R18b and U commitments | Continue the preserved [unified backlog](#unified-execution-order--existing-work-and-new-issues), doing residual work only. ScreenScraper needs owner access; sleep remains deferred; finish R18/R18a/R18b before R15 image, R16 OTA and R17 final acceptance. |
 
 **Owner availability correction, 2026-10-04:** implemented multiplayer is enabled
 in normal installations. The developer opt-in is removed; compatibility and
@@ -1256,12 +1265,12 @@ stay usable. P IDs retain earlier acceptance/evidence; they are not sequence IDs
 | **R12 · P2/P10 — portable Trainer and health** | #73 atomic versioned export/restore; #81 offline allowlisted support bundle | Stable identities plus R8/R11 reports. No shared ROM/BIOS duplication or plaintext service secrets. Collision/missing-source/schema/privacy checks. Preserve #93 signing identity/lineage and detect conflicting restored branches; exclude future #96 derived ROM cache bytes. Prepare before flash; fresh-image restore proof at R15, OTA report fields at R16. |
 | **R13 · P10 — maintenance/cleanup/sleep** | Mobile-only if viable; measured software/background cleanup; #79/U13 dedicated lid/sleep/wake | Preserve Steam, KDE dependencies and last verified Plasma/SSH recovery; reversible batches. Sleep stays disabled until repeated shell/game/transaction/modal/display/input/Home recovery and battery/thermal gates pass. Unknown runtime sleep remains unavailable. |
 | **R14 · P1/P11 — first boot and full Help** | #72 offline/resumable setup around #19; #40 viewer/articles and #80 Help/setup links | Stable core flows and device/runtime facts first. Durable-state completion, no duplicate account logic or terminal requirement. Missing games/network not blockers; upgrades preserved. Image/OTA articles finish with R15/R16; engineering/recovery docs stay current throughout. |
-| **R15 · P10 — reproducible official image** | #70/U11 recorded Armada inputs/layers, release hashes/manifests, default session/input/runtime/recovery | Native package/session work remains the building block. R11–R14 precede physical clean flash/setup/use/recovery and #73 restore. No ROM/BIOS/private art/saves/secrets. No independent low-level OS rewrite. |
+| **R18 · P7 — final artwork and sprite delivery** | #57 install/select/validate/update/remove; #59 shared desktop Studio for user-added illustrations AND animated sprites/portraits across supported games/franchises, with Pokémon as its first profile and present private sets as examples; #58/#60/#61 prerequisites and consolidated Credits | After consumers stabilize; current providers stay intact. Shared validator/measured game-specific entity/asset profiles, animation/action mapping and previews, Pokémon and non-Pokémon round-trip proof, non-destructive originals, authors/source/terms, export/reimport and affected Help checks; image/OTA integration follows in R15/R16. No bundled example graphics. Keep partial coverage honest. #90 franchise packs remain separate. |
+| **R18a · P7/P8 — exact-ROM extraction and cache** | #95 optional exact-build extractor within #92 adapter; #96 host-owned semantic provider and bounded local derived cache | Only after main UI/current artwork work and varied adapters are stable. Check compatible active art/sprite pack before extraction; skip corresponding work while it supplies that family. Without a pack, use ROM-native assets on demand, then neutral fallback. No invented native animations, arbitrary host powers or redistribution through images/backups/packs. |
+| **R18b · P7/P12 — ROM-native integration and release recheck** | #97 actual-game asset audit and incremental per-slot adoption; reconcile Credits, export, image and Help | #95/#96 and R18 prerequisites first; no wholesale replacement of current visuals. Preserve richer user packs and honest native limitations. Carry the integrated asset policy into subsequent #70/#71 image/OTA and #34 visual/performance acceptance; preserve every prior release/recovery obligation. |
+| **R15 · P10 — reproducible official image** | #70/U11 recorded Armada inputs/layers, release hashes/manifests, default session/input/runtime/recovery | Native package/session work remains the building block. R11–R14 and R18/R18a/R18b precede physical clean flash/setup/use/recovery and #73 restore. No ROM/BIOS/private art/saves/secrets. No independent low-level OS rewrite. |
 | **R16 · P10 — OTA/compatible rollback** | #71/U11 staged trusted download/activation, notes/preconditions and known-good recovery | R15 image mechanism first. Matching image/database pair, protection before irreversible migration, never old binary/new schema. Preserve #93 identity/lineage consistency through rollback. Physical update/reboot/use/rollback/update-again; interrupted/corrupt download proof. |
 | **R17 · P12 — startup/final acceptance** | #41 supported boot/session identity; #34/U12 whole-screen/state/performance audit | Final image/OTA routes first. No fake readiness or masked failures. Physical themes/motion/controllers/cold-start/frame/idle/launch-return checks. Per-feature verification is never deferred until here. |
-| **R18 · P7 — final artwork and sprite delivery** | #57 install/select/validate/update/remove; #59 shared desktop Studio for user-added illustrations AND animated sprites/portraits across supported games/franchises, with Pokémon as its first profile and present private sets as examples; #58/#60/#61 prerequisites and consolidated Credits | After consumers stabilize; current providers stay intact. Shared validator/measured game-specific entity/asset profiles, animation/action mapping and previews, Pokémon and non-Pokémon round-trip proof, non-destructive originals, authors/source/terms, export/reimport and affected Help/image/OTA checks. No bundled example graphics. Keep partial coverage honest. #90 franchise packs remain separate. |
-| **R18a · P7/P8 — exact-ROM extraction and cache** | #95 optional exact-build extractor within #92 adapter; #96 host-owned semantic provider and bounded local derived cache | Only after main UI/current artwork work and varied adapters are stable. Check compatible active art/sprite pack before extraction; skip corresponding work while it supplies that family. Without a pack, use ROM-native assets on demand, then neutral fallback. No invented native animations, arbitrary host powers or redistribution through images/backups/packs. |
-| **R18b · P7/P12 — ROM-native integration and release recheck** | #97 actual-game asset audit and incremental per-slot adoption; reconcile Credits, export, image and Help | #95/#96 and R18 prerequisites first; no wholesale replacement of current visuals. Preserve richer user packs and honest native limitations. Recheck affected #70/#71 image/OTA and #34 visual/performance acceptance after integration; preserve every prior release/recovery obligation. |
 
 **Paused access lane — #65:** wait for the owner to report account/developer
 access. Resume native controller scraping/cache/jobs/rescan at the next safe

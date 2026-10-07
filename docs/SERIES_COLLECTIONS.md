@@ -43,6 +43,24 @@ They contain no copied game sprites/logos; titles are rendered by the shell.
 Generation prompts and tool provenance are in `generation.json`. Source games
 and scraped game media are private device data and must not enter the repository.
 
+The original illustrations were replaced on 2026-10-07 with independently
+conceived environments, removing explicit franchise-inspired props. Full prompts
+and scope are in [the asset record](../assets/series/README.md). Collection IDs,
+names, navigation, game media and saves remain unchanged. Historical captures
+below show the earlier artwork; they are not evidence for the replacement.
+
+Replacement delivery: ARM64 compilation succeeded and all ten PNGs were checked
+at 1536 x 1024, with hashes added to the generation record. Binary SHA-256
+`3eb498e8521ba3a95795765521b0a500c0a56e8a7e6668d691fd9b66ef729fed`
+was installed on Flip and Odin. Flip's existing shell process restarted and its
+running executable matched the hash; both grid positions were visually reviewed
+on the actual display. No asset/QML errors appeared in the bounded current-process
+journal check. [Unedited captures](../screenshots/series-2026-10-07/README.md)
+show all ten cards. Odin was in Steam with TrainerOS closed: the installed file
+was verified, its session was preserved, and visual acceptance there is not claimed.
+No input/library/save behavior changed and unrelated multiplayer tests were not
+repeated. Resume MP-02 after this asset replacement.
+
 ## Delivery evidence
 
 Verified 2026-10-04 on Retroid Pocket Flip2 and AYN Odin 2:

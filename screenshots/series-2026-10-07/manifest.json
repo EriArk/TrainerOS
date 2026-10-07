@@ -1,0 +1,14 @@
+[
+  {
+    "file": "collections-flip.png",
+    "device": "Retroid Pocket Flip2",
+    "capture": "actual handheld display, unedited",
+    "sha256": "60bc8370600933e9fb76570ae7c4d29762ce64851baae14f967371e45d474a49"
+  },
+  {
+    "file": "collections-lower-flip.png",
+    "device": "Retroid Pocket Flip2",
+    "capture": "actual handheld display, unedited",
+    "sha256": "a49fe9df9e290c678687dc11fbd1f86b29f236ac172019b035f4dde1f4f02cfd"
+  }
+]
