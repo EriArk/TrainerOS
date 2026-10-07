@@ -1,5 +1,11 @@
 # TrainerOS Roadmap
 
+**Owner website demo request, 2026-10-07:** a bounded interactive website tour is
+delivered in [web-demo](../web-demo/README.md). It uses fictional data and optional
+scripted examples; it is not native runtime acceptance or a roadmap replacement.
+After this requested detour, resume MP-02 and the full queue below. Live-site
+publication is separate from the prepared static bundle.
+
 **Owner correction, 2026-10-07:** the ten series collection-card illustrations
 have been replaced with independent environments; see [delivery evidence](SERIES_COLLECTIONS.md#artwork-and-private-content).
 Resume MP-02 and the accepted queue below. At the end, execute **R18 Pack Studio/art packs ->

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta
+      name="description"
+      content="Попробуйте интерфейс TrainerOS: библиотеку игр, живую команду, общение и приглашения. Интерактивная демонстрация с вымышленными данными."
+    />
+    <title>TrainerOS · Interactive demo</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css" />
+    <script defer src="data.js"></script>
+    <script defer src="app.js"></script>
+  </head>
+  <body>
+    <main class="demo-wrap">
+      <header class="demo-heading">
+        <a class="wordmark" href="#home">TrainerOS</a
+        ><span>ИНТЕРАКТИВНОЕ ДЕМО</span
+        ><button id="reset" class="text-button">Начать заново ↺</button>
+      </header>
+      <section class="explainer" aria-label="Об этом экране">
+        <div class="explain-icon" aria-hidden="true">✦</div>
+        <div class="explain-copy">
+          <span id="eyebrow" class="eyebrow"></span>
+          <h1 id="explain-title"></h1>
+          <p id="explain-text"></p>
+          <p id="scene-status" role="status" aria-live="polite"></p>
+        </div>
+        <div class="explain-actions">
+          <button id="example" class="demo-button">▶ Показать пример</button
+          ><span id="example-name"></span>
+        </div>
+      </section>
+      <div id="viewport">
+        <section id="device" aria-label="Интерактивный интерфейс TrainerOS">
+          <div class="paper"></div>
+          <div class="brand">TRAINER OS</div>
+          <nav id="tabs" aria-label="Основные разделы"></nav>
+          <nav id="faces" aria-label="Подразделы"></nav>
+          <div id="screen"></div>
+          <button id="choose" class="choose"><b>Y</b> Choose Adventure</button>
+          <footer class="chassis-footer">
+            <span class="battery">▰ <b>100%</b></span
+            ><span class="footer-note">Click to explore</span>
+            <div id="footer-actions"></div>
+          </footer>
+          <div id="overlay"></div>
+          <div id="toast" role="status" aria-live="polite"></div>
+        </section>
+      </div>
+      <footer class="demo-footer">
+        <span
+          ><i></i> Все данные вымышлены · примеры работают только внутри
+          демо</span
+        ><span>Нажимайте на вкладки, карточки и кнопки</span>
+      </footer>
+      <noscript
+        >Для интерактивного демо нужен JavaScript. Включите его в
+        браузере.</noscript
+      >
+    </main>
+  </body>
+</html>

@@ -16,6 +16,11 @@ TrainerOS is still in active development, but the current build already runs as 
 
 [Full-resolution screenshots from the current handheld build](screenshots/site-2026-10-04/README.md)
 
+[Interactive website demo](web-demo/README.md) — a mouse-driven interface tour
+with original fictional content and optional animated examples. The static bundle
+can be served independently or embedded in a website; it does not run emulators
+or connect to real accounts.
+
 ## Development status and getting started
 
 This repository currently provides **source and development deployment tooling**,

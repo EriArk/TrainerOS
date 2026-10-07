@@ -1,0 +1,52 @@
+[
+  {
+    "asset": "valley.webp",
+    "source_asset": "assets/series/pokemon.png",
+    "source_sha256": "d9e228a488669941535ba7819ae77b465382a40348a5aa6a916ad60873d58647",
+    "prompt": "Use case: stylized-concept. Create one original environment illustration for a handheld game library collection card. Scene: a lush terraced botanical valley with turquoise irrigation channels, amber glass conservatories on wooden stilts, broad fern leaves, cream wildflowers and distant misty rounded mountains. Entirely invented geography and architecture, no reference to any existing game. Bright emerald, turquoise and apricot palette. Tactile hand-painted miniature diorama with rich colors, rounded sculpted shapes and lovely depth; crisp attractive at thumbnail size. Landscape 3:2, full bleed, keep bottom 20 percent relatively quiet for an externally rendered title. No characters, creatures, symbols, logos, text, writing, interface, red-roof healing centers, capture balls or other franchise-specific objects. Not photorealistic.",
+    "tool": "image_gen",
+    "date": "2026-10-07",
+    "encoding": "960px wide WebP, quality 84",
+    "sha256": "3bfb80f8706608e40e8679b5ff8892e8a5c95be24dce199ba95b99c3584a5dd3"
+  },
+  {
+    "asset": "coast.webp",
+    "source_asset": "assets/series/sonic.png",
+    "source_sha256": "14db8d88c8cd2a50ec845ceb6ee2c7f1cc538c05320cb6893e703e7e4978b297",
+    "prompt": "Use case: stylized-concept. One original environment illustration for a handheld game library collection card. Entirely invented geography and architecture, not based on any existing game, studio or artist. Tactile richly colored hand-painted miniature diorama, rounded sculpted forms, charming coherent environment, strong depth, readable at thumbnail size. Landscape 3:2 full bleed, bottom 20 percent relatively quiet for externally rendered title. No characters, logos, lettering, text, interface, watermark, border or trademarked objects. Not photorealistic. Scene: A wind-swept coastal sailing village, white angular canvas canopies above teal coves, ochre cliffs with natural horizontal strata, bright coral wooden walkways and distant sailing skiffs. Cobalt sea, coral orange and lime foliage. No checkerboard ground, loops, rings, speed tracks or franchise landmarks.",
+    "tool": "image_gen",
+    "date": "2026-10-07",
+    "encoding": "960px wide WebP, quality 84",
+    "sha256": "9e94d2a2729d893c597e77f0b1a93c072daae536f671281710a96530c34c544a"
+  },
+  {
+    "asset": "library.webp",
+    "source_asset": "assets/series/final-fantasy.png",
+    "source_sha256": "0d2d70f190b1784b5fec8d3e16122f3ecd652606efaed35dd324ee65a05a102e",
+    "prompt": "Use case: stylized-concept. One original environment illustration for a handheld game library collection card. Entirely invented geography and architecture, not based on any existing game, studio or artist. Tactile richly colored hand-painted miniature diorama, rounded sculpted forms, charming coherent environment, strong depth, readable at thumbnail size. Landscape 3:2 full bleed, bottom 20 percent relatively quiet for externally rendered title. No characters, logos, lettering, text, interface, watermark, border or trademarked objects. Not photorealistic. Scene: A high-altitude merchant settlement built on broad terraced sandstone mesas, hanging indigo cloth bridges, copper cable lifts and a blue freshwater waterfall cascading into cloud below. Gold, deep ultramarine and apricot sunset. No crystal shrine, airships, swords, emblems or recognizable fantasy-game designs.",
+    "tool": "image_gen",
+    "date": "2026-10-07",
+    "encoding": "960px wide WebP, quality 84",
+    "sha256": "3de5642a91ffe534caf5d685d50f83234c339bd5ffa2dd1be883f3f3592489bd"
+  },
+  {
+    "asset": "garden.webp",
+    "source_asset": "assets/series/kirby.png",
+    "source_sha256": "b7bc2a9a5f0e57e6e09014041a54040ba0343d68696999c0cdb1591b0ed9f8a6",
+    "prompt": "Use case: stylized-concept. One original environment illustration for a handheld game library collection card. Entirely invented geography and architecture, not based on any existing game, studio or artist. Tactile richly colored hand-painted miniature diorama, rounded sculpted forms, charming coherent environment, strong depth, readable at thumbnail size. Landscape 3:2 full bleed, bottom 20 percent relatively quiet for externally rendered title. No characters, logos, lettering, text, interface, watermark, border or trademarked objects. Not photorealistic. Scene: A fantastical hill garden of lavender and apricot flowering trees, luminous paper lanterns, tiny pale ceramic pavilions, ribbon-like streams and smooth rose-colored stepping stones under fluffy clouds. Vivid raspberry, lavender and aqua, inviting and tactile. No stars with faces, creatures, recognizable game planets or rainbow roads.",
+    "tool": "image_gen",
+    "date": "2026-10-07",
+    "encoding": "960px wide WebP, quality 84",
+    "sha256": "eee211ad64e82e8a37af2f8707c18a008aa7903fcc4a9c2c2e2a9201e2c7d574"
+  },
+  {
+    "asset": "orbit.webp",
+    "source_asset": "assets/series/multiverse.png",
+    "source_sha256": "eaf9e570754fa369e4d5cebe845906b1c8aaf918d9c4b49371cdcc8a3e59f9d6",
+    "prompt": "Use case: stylized-concept. One original environment illustration for a handheld game library collection card. Entirely invented geography and architecture, not based on any existing game, studio or artist. Tactile richly colored hand-painted miniature diorama, rounded sculpted forms, charming coherent environment, strong depth, readable at thumbnail size. Landscape 3:2 full bleed, bottom 20 percent relatively quiet for externally rendered title. No characters, logos, lettering, text, interface, watermark, border or trademarked objects. Not photorealistic. Scene: An original celestial travelers' garden: concentric brass walkways linking small floating botanical islands over deep blue clouds, pearly suspended globes and colorful hanging glass lamps around a tall spiral observatory. Vivid indigo, turquoise, coral and gold. No franchise planets, portals with symbols, game characters or recognizable spacecraft.",
+    "tool": "image_gen",
+    "date": "2026-10-07",
+    "encoding": "960px wide WebP, quality 84",
+    "sha256": "71f5ffa6ffaf22d6b92d37f8cfa78fff4d81810d08061cafd5b57d62b62cbdd8"
+  }
+]

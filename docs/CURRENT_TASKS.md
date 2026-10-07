@@ -1,5 +1,11 @@
 # Current tasks
 
+Owner-approved website detour, 2026-10-07: the mouse-driven interactive HTML tour
+is prepared in [web-demo](../web-demo/README.md), with an external explanation
+panel, fictional original content and optional animated examples. See
+[scope/evidence](WEBSITE_DEMO.md). This is a browser artifact; native MP-02 remains
+unfinished and its in-progress source changes are preserved. Resume MP-02 next.
+
 Owner correction, 2026-10-07: the ten collection-card illustrations were replaced
 with independent environments, installed on both handhelds and visually reviewed
 on Flip. [Evidence](SERIES_COLLECTIONS.md#artwork-and-private-content). Names,
