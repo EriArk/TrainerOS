@@ -262,6 +262,20 @@ private slots:
         auto legacy=state;legacy.remove("pokemonFace");legacy.remove("party");legacy["pokedexFace"]="center";
         shell.restoreNavigation(legacy);QCOMPARE(shell.pokemonFace(),"party");
     }
+    void quickGameInformationPickerReturnsToStartWithoutChangingPage() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        shell.goToPage(4);shell.dispatch(Action::SystemMenu);shell.activate(13);
+        QVERIFY(!shell.menuOpen());QVERIFY(shell.scraper()->isOpen());QVERIFY(shell.scraper()->selectingSystems());
+        shell.dispatch(Action::Back);QVERIFY(shell.menuOpen());QCOMPARE(shell.focusIndex(),13);QCOMPARE(shell.page(),4);
+        shell.dispatch(Action::Left);QCOMPARE(shell.focusIndex(),12);
+        shell.dispatch(Action::Right);QCOMPARE(shell.focusIndex(),13);
+        shell.dispatch(Action::Down);QCOMPARE(shell.focusIndex(),0);
+        shell.dispatch(Action::Up);QCOMPARE(shell.focusIndex(),12);
+        shell.dispatch(Action::Right);shell.dispatch(Action::Confirm);QVERIFY(shell.scraper()->isOpen());
+        shell.dispatch(Action::SystemMenu);QVERIFY(shell.menuOpen());QVERIFY(!shell.scraper()->isOpen());QCOMPARE(shell.focusIndex(),13);
+    }
     void legacyHistoryRoutesMigrateWithoutBecomingSocial() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;

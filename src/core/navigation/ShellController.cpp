@@ -64,6 +64,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&downloads_,&DownloadsController::changed,this,&ShellController::changed);
     connect(&scraper_,&ScrapeController::changed,this,[this]{downloads_.publish("screenscraper",scraper_.downloadTasks());});
     connect(&scraper_,&ScrapeController::jobStarted,this,[this]{scraper_.hide();downloads_.begin();});
+    connect(&scraper_,&ScrapeController::systemSelectionClosed,this,[this]{menuOpen_=true;powerMenu_=false;menuFocus_=13;emit changed();});
     connect(&downloads_,&DownloadsController::commandRequested,this,[this](const QString& provider,const QString& task,const QString& command){
         if(provider=="screenscraper"){if(command=="open")downloads_.close();scraper_.downloadCommand(task,command);}
     });
@@ -642,7 +643,7 @@ QStringList ShellController::menuItems() const {
     }
     // Stable action IDs: slot 1 retired when Controller moved into Settings.
     return {"Settings", "", "Switch Trainer", "",
-            "Desktop / Maintenance Mode", "Steam Gaming Mode", "Power", "Volume", "Screen brightness", "Wi-Fi", "Bluetooth", "Airplane", "Downloads"};
+            "Desktop / Maintenance Mode", "Steam Gaming Mode", "Power", "Volume", "Screen brightness", "Wi-Fi", "Bluetooth", "Airplane", "Downloads", "Scraping"};
 }
 void ShellController::openTrainers() {
     trainerChooserFromPower_ = menuOpen_;
@@ -790,6 +791,11 @@ void ShellController::confirm() {
     }
     if (menuOpen_) {
         if(!powerMenu_&&menuFocus_==12){menuOpen_=false;downloads_.begin();return;}
+        if(!powerMenu_&&menuFocus_==13){
+            menuOpen_=false;
+            if(scraper_.busy())downloads_.begin();else scraper_.beginSystems();
+            return;
+        }
         if(scraper_.busy()&&(powerMenu_||menuFocus_<7)){showNotice("Finish or cancel the download queue before changing games, storage or system sessions.");return;}
         if (powerMenu_) {
             if (menuFocus_ == 2) { powerMenu_ = false; menuFocus_ = 6; return; }
@@ -978,7 +984,7 @@ void ShellController::openSocialNotification() {
 }
 void ShellController::dispatch(Action action) {
     if(downloads_.isOpen()){downloads_.dispatch(action);return;}
-    if(scraper_.isOpen()&&action==Action::SystemMenu&&!keyboard_.isOpen()){scraper_.hide();menuOpen_=true;menuFocus_=12;emit changed();return;}
+    if(scraper_.isOpen()&&action==Action::SystemMenu&&!keyboard_.isOpen()){menuFocus_=scraper_.selectingSystems()?13:12;scraper_.hide();menuOpen_=true;emit changed();return;}
     if(social_.online()["open"].toBool()) {
         if(action==Action::Confirm)social_.answerOnline(true);
         else if(action==Action::Back)social_.answerOnline(false);
@@ -1137,7 +1143,7 @@ void ShellController::dispatch(Action action) {
     }
     if (menuOpen_ && !powerMenu_ && notice_.isEmpty() && menuFocus_ >= 7
             && (action == Action::Left || action == Action::Right)) {
-        if(menuFocus_==12)return;
+        if(menuFocus_>=12){menuFocus_=action==Action::Right?13:12;emit changed();return;}
         if (menuFocus_ >= 9) { menuFocus_ = std::clamp(menuFocus_ + (action == Action::Right ? 1 : -1), 9, 11); emit changed(); return; }
         device_.adjustQuick(menuFocus_ - 7, action); emit changed(); return;
     }
@@ -1159,6 +1165,7 @@ void ShellController::dispatch(Action action) {
         if(menuOpen_ && !powerMenu_) {
             if (menuFocus_ >= 9 && menuFocus_<=11 && delta > 0) { menuFocus_ = 7; emit changed(); return; }
             if (menuFocus_ >= 9 && menuFocus_<=11) { emit changed(); return; }
+            if(menuFocus_==13 && delta)menuFocus_=12;
             const QList<int> order{9,7,8,12,0,2,4,5,6};
             *focus=order[std::clamp(int(order.indexOf(*focus))+delta,0,int(order.size())-1)];
         } else *focus = std::clamp(*focus + delta, 0, std::max(0, count - 1));

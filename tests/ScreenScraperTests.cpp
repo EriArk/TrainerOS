@@ -40,6 +40,52 @@ class ScreenScraperTests:public QObject {
             QJsonObject{{"type","video"},{"region","us"},{"url","https://untrusted.test/video.mp4"}}}}};}
     static Reply response(const QJsonObject& value){return {200,QJsonDocument(QJsonObject{{"response",value}}).toJson(),0};}
 private slots:
+    void systemPickerQueuesOnlySelectedAvailableRomPlatforms() {
+        QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");
+        for(const auto& id:QStringList{"gba-one","gba-two","nes-one","unsupported","removed","store"})library.add(id);
+        const QStringList platforms{"gba","gba","nes","c128","gb","snes"};
+        for(int i=0;i<library.records.size();++i){
+            auto& r=library.records[i];r.adventure.platformId=platforms[i];
+            r.contentPath=library.root+'/'+platforms[i]+'/'+r.adventure.id+".bin";put(r.contentPath,"123456789");
+        }
+        library.records[4].removed=true;library.records[5].integrationConfig["oddcrate"]=QJsonObject{};
+        const auto state=dir.filePath("state");QVERIFY(writeCredentials(state+"/secrets/screenscraper.json",{"dev","secret",{}, {}}));
+        ScrapeController flow(library);flow.configure(state);std::atomic_int calls=0;
+        flow.setTransport([&](const QUrl& url,qint64,const Cancellation&){
+            if(url.path().endsWith("ssuserInfos.php"))return response({{"ssuser",QJsonObject{{"maxthreads","1"}}}});
+            ++calls;auto g=game();g.remove("medias");
+            g["systeme"]=QJsonObject{{"id",QUrlQuery(url).queryItemValue("systemeid")}};
+            g["rom"]=QJsonObject{{"romsize","9"},{"rommd5","25f9e794323b453885f5181f1b624d0b"}};
+            return response({{"jeu",g}});
+        },[](qint64,const Cancellation& c){return !c->load();});
+        flow.beginSystems();QVERIFY(flow.selectingSystems());QCOMPARE(flow.systemRows().size(),3);
+        QCOMPARE(flow.selectedGameCount(),0);QVERIFY(!flow.rows()[4].toMap()["enabled"].toBool());
+        flow.activate(4);QVERIFY(!flow.busy());QCOMPARE(calls.load(),0);
+        int gba=-1,nes=-1,unsupported=-1;
+        for(int i=0;i<flow.systemRows().size();++i){const auto r=flow.systemRows()[i].toMap();
+            if(r["id"]=="gba")gba=i+1;if(r["id"]=="nes")nes=i+1;if(r["id"]=="c128")unsupported=i+1;
+        }
+        QVERIFY(gba>0&&nes>0&&unsupported>0);
+        flow.activate(unsupported);QCOMPARE(flow.selectedGameCount(),0);
+        flow.activate(0);QCOMPARE(flow.selectedGameCount(),3);
+        flow.activate(0);QCOMPARE(flow.selectedGameCount(),0);
+        flow.activate(gba);flow.activate(nes);QCOMPARE(flow.selectedGameCount(),3);
+        flow.activate(nes);QCOMPARE(flow.selectedGameCount(),2);
+        flow.dispatch(Action::Right);QCOMPARE(flow.focusIndex(),4);
+        flow.dispatch(Action::Left);QCOMPARE(flow.focusIndex(),nes);
+        flow.canStart=[] {return false;};flow.activate(4);QVERIFY(!flow.busy());QCOMPARE(calls.load(),0);
+        flow.canStart=[] {return true;};flow.activate(4);
+        QTRY_VERIFY_WITH_TIMEOUT(!flow.busy(),3000);QCOMPARE(calls.load(),2);
+        QCOMPARE(flow.downloadTasks().size(),2);
+        QVERIFY(read(library.root+"/gba/gamelist.xml").contains("gba-one.bin"));
+        QVERIFY(read(library.root+"/gba/gamelist.xml").contains("gba-two.bin"));
+        QVERIFY(!QFile::exists(library.root+"/nes/gamelist.xml"));
+        flow.beginSystems();QCOMPARE(flow.selectedGameCount(),0);
+        QSignalSpy closed(&flow,&ScrapeController::systemSelectionClosed);flow.dispatch(Action::Back);
+        QVERIFY(!flow.isOpen());QCOMPARE(closed.size(),1);
+        library.records.clear();flow.beginSystems();QVERIFY(flow.systemRows().isEmpty());
+        QVERIFY(!flow.rows()[0].toMap()["enabled"].toBool());QVERIFY(!flow.rows()[1].toMap()["enabled"].toBool());
+    }
     void sharedDownloadsKeepSelectionAndRouteProviderCommands() {
         DownloadsController downloads;QSignalSpy commands(&downloads,&DownloadsController::commandRequested);
         const auto task=[](const QString& id){return QVariantMap{{"id",id},{"title",id},{"actions",QVariantList{QVariantMap{{"id","pause"},{"label","Pause"}}}}};};

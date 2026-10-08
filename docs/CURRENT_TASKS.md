@@ -1,5 +1,11 @@
 # Current tasks
 
+**Owner quick scraping follow-up, 8 October 2026:** Start → Scraping now selects
+several systems or all populated supported systems before Download, using the
+existing settings and Downloads queue. [Evidence](SCREENSCRAPER.md) separates the
+new delivery from the earlier integration. Wider menu/notification reorganisation
+is deferred. Preserve the MP-02 timer work and return to MP-02 after this task.
+
 **Owner alpha milestone, 8 October 2026:** MP-02 remains the next implementation
 outcome. Finish all accepted multiplayer families, Hotseat, native online Link
 and guest sessions, then REL-01 and the image/installer alpha for testers and

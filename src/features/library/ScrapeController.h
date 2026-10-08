@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QFuture>
 #include <QVariantList>
+#include <QSet>
 
 namespace trainer {
 // Explicit jobs only. Snapshots library records on the GUI thread; hashing,
@@ -20,6 +21,9 @@ class ScrapeController final : public QObject {
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(QVariantList settingsRows READ settingsRows NOTIFY changed)
     Q_PROPERTY(int settingsFocus READ settingsFocus NOTIFY changed)
+    Q_PROPERTY(bool selectingSystems READ selectingSystems NOTIFY changed)
+    Q_PROPERTY(QVariantList systemRows READ systemRows NOTIFY changed)
+    Q_PROPERTY(int selectedGameCount READ selectedGameCount NOTIFY changed)
 public:
     explicit ScrapeController(LibraryRepository&,QObject* parent=nullptr);
     ~ScrapeController() override;
@@ -37,6 +41,10 @@ public:
     int focusIndex() const {return focus_;}
     int settingsFocus() const {return settingsFocus_;}
     void begin(const QString& game={},const QString& world={});
+    void beginSystems();
+    bool selectingSystems() const {return scope_==4 && !active_ && !finished_;}
+    QVariantList systemRows() const;
+    int selectedGameCount() const;
     void close();
     void hide(){open_=false;emit changed();}
     QVariantList downloadTasks() const;
@@ -53,6 +61,7 @@ signals:
     void displayChanged();
     void textRequested(QString title,QString initial,bool secret);
     void jobStarted();
+    void systemSelectionClosed();
 private:
     struct Item {QString id,title,path,platform,root;};
     struct Outcome {
@@ -89,6 +98,9 @@ private:
     Outcome pending_;
     QStringList results_;
     QMap<QString,QString> taskStates_,taskErrors_;
+    QVariantList systems_;
+    QSet<QString> selectedSystems_;
+    int systemListFocus_=0;
     bool skipCurrent_=false;
     int scope_=0,focus_=0,settingsFocus_=0,index_=0,done_=0,failed_=0,skipped_=0;
     bool open_=false,active_=false,working_=false,paused_=false,choosing_=false,finished_=false,wrote_=false;

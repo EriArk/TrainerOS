@@ -53,12 +53,25 @@ Item {
                         }
                     }
                 }
+                Row {
+                    x: 14; y: 152; spacing: 8; width: parent.width-28; visible: !root.shell.powerMenu
+                    Repeater { model: [12,13]
+                        CapButton {
+                            required property int modelData
+                            objectName: "menu-"+modelData; width: (parent.width-8)/2; height: 42; textSize: 14
+                            label: root.shell.menuItems[modelData]; tint: modelData===13?Theme.yellow:Theme.blue
+                            detail: modelData===12?root.shell.downloads.summary:"Choose systems"
+                            selected: root.shell.menuOpen && !root.shell.notice.length && root.shell.focusIndex===modelData
+                            onActivated: root.shell.activate(modelData)
+                        }
+                    }
+                }
                 Repeater {
-                    model: root.shell.powerMenu ? root.shell.menuItems : [12,0,2,4,5,6].map(i => root.shell.menuItems[i])
+                    model: root.shell.powerMenu ? root.shell.menuItems : [0,2,4,5,6].map(i => root.shell.menuItems[i])
                     CapButton {
                         required property int index; required property string modelData
-                        readonly property int actionIndex: root.shell.powerMenu ? index : [12,0,2,4,5,6][index]
-                        objectName: "menu-"+actionIndex; x: 14; y: root.shell.powerMenu ? 32+index*45 : 152+index*29
+                        readonly property int actionIndex: root.shell.powerMenu ? index : [0,2,4,5,6][index]
+                        objectName: "menu-"+actionIndex; x: 14; y: root.shell.powerMenu ? 32+index*45 : 203+index*29
                         width: parent.width-28; height: root.shell.powerMenu?30:26; textSize: 14
                         label: actionIndex===12?modelData+" · "+root.shell.downloads.summary:modelData; warning: root.shell.powerMenu && index<2
                         tint: root.shell.powerMenu && index<2 ? Theme.pink : Theme.green

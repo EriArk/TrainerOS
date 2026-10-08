@@ -21,6 +21,16 @@ No credentials or authenticated media URLs are included here.
 
 ### Player controls
 
+- Start quick controls → **Scraping** opens a system picker immediately. Select
+  any combination of populated ROM systems or Select all, then **Download**.
+  Each row has its platform badge and game count; unavailable ScreenScraper
+  systems are labelled and cannot be selected. Nothing downloads until Download
+  is pressed, and zero selected games disables it. Existing download settings
+  apply. Up/down moves through systems, A toggles, right reaches the fixed action
+  buttons, left returns to the list, and B returns to Start with Scraping focused.
+  Touch uses the same selections. An already active job opens Downloads instead
+  of replacing its queue. This owner-requested addition leaves the wider menu
+  reorganisation for later.
 - Start → Settings → Library → ScreenScraper, or the ScreenScraper category:
   login/password, Save & check connection, sign out, language (English fallback),
   region, game information, 2D/3D/no cover, logos, screenshots, optional backgrounds,
@@ -112,6 +122,40 @@ Selectable library layouts (grid/list and other arrangements) are explicitly
 deferred by the owner; the present controls change pictures and game data only.
 
 ### Verification record
+
+#### Start system picker follow-up — 2026-10-08
+
+- Native ARM build and the affected `screenscraper` / `interactions` suites passed
+  (4.47 s). New coverage exercises multiple system selection, all/clear, empty and
+  unsupported systems, existing launch guards, exclusion of removed/curated content,
+  selected-system-only XML writes, controller action navigation and return to Start.
+- The same binary is installed and observed running on Flip and Odin:
+  `0cbe94769394f2a74ff7b1bd70f924adbd809fe476775c0554d1d602b4561a72`.
+  Actual captures show the paired Downloads/Scraping quick controls and system
+  picker; controller selection, scrolling and Back plus direct pointer selection
+  were exercised. No changed-panel QML errors appeared in session logs.
+- Flip completed a one-game C64 job through the new entry into Downloads. This
+  happened before the owner's subsequent instruction to leave scraping for their
+  own test. No further scrape was started after that instruction; Odin's check
+  only opened the picker, toggled a selection and returned to Start.
+- Odin's pre-update compositor was already unable to capture frames and then
+  stalled in GPU waits during session restart. The remote reboot request did not
+  restore SSH; the owner rebooted it, after which installation and visual checks
+  succeeded. Its prior boot preference was restored after entering TrainerOS for
+  verification. This is recovery evidence, not a new GPU/driver fix. Both devices
+  retain quiet output at 0%.
+- At the owner's request, 13 additional ROMs for seven systems were copied from
+  their server ROM disk to Odin only, without media, gamelists or saves. Source
+  and destination SHA-256 matched; all 160 pre-existing destination files retained
+  size/mtime, and all 13 new records appeared in the library. No scraping or game
+  launch was performed for this addition. Private paths, manifests and ROMs stay
+  outside Git; this is not a redistribution or emulator compatibility claim.
+- Ignored evidence: `work/research/ux01-flip-quick-scrape-*.png`,
+  `work/research/ux01-odin-quick-scrape-*.png`, `quick-scrape-tests.log`,
+  `quick-scrape-rom-transfer.json` and `quick-scrape-odin-indexed.txt` in that same
+  research directory. Existing public screenshots remain unchanged.
+
+#### Original integration and shared Downloads
 
 - Native ARM Qt build passed. The `screenscraper`, `library` and `interactions`
   CTest suites passed together (13.88 s). The scraper suite passed again after

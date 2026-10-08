@@ -180,6 +180,7 @@ QList<ScrapeController::Item> ScrapeController::items() const {
         const auto root=library_.storageRootFor(r.adventure.id);const auto path=QFileInfo(r.contentPath).canonicalFilePath();
         if(root.isEmpty()||path.isEmpty()||!path.startsWith(root+'/'))continue;
         const auto folder=QDir(root).relativeFilePath(path).section('/',0,0);
+        if(scope_==4&&!selectedSystems_.contains(romPlatformId(folder)))continue;
         const auto system=QFileInfo(QDir(root).filePath(folder)).canonicalFilePath();
         if(system.isEmpty()||!path.startsWith(system+'/'))continue;
         result.append({r.adventure.id,r.adventure.title,path,romPlatformId(folder),system});
@@ -190,10 +191,38 @@ void ScrapeController::begin(const QString& game,const QString& world) {
     if(busy())return;
     open_=true;finished_=false;gameId_=game;worldId_=world;scope_=game.isEmpty()?2:0;focus_=0;status_.clear();results_.clear();emit changed();
 }
-QString ScrapeController::title() const {return choosing_?"Choose the matching game":"ScreenScraper";}
+void ScrapeController::beginSystems() {
+    if(busy())return;
+    gameId_.clear();worldId_.clear();scope_=2;
+    QMap<QString,int> counts;
+    for(const auto& item:items())++counts[item.platform];
+    systems_.clear();selectedSystems_.clear();
+    for(const auto& platform:romPlatforms()) {
+        if(!counts.contains(platform.id))continue;
+        const bool supported=scraper::systemId(platform.id)>0;
+        systems_.append(QVariantMap{{"id",platform.id},{"label",platform.name},
+            {"shape",platform.shape},{"count",counts.value(platform.id)},{"enabled",supported}});
+    }
+    std::sort(systems_.begin(),systems_.end(),[](const QVariant& a,const QVariant& b){
+        return QString::localeAwareCompare(a.toMap()["label"].toString(),b.toMap()["label"].toString())<0;
+    });
+    scope_=4;open_=true;finished_=false;focus_=systemListFocus_=0;status_.clear();results_.clear();emit changed();
+}
+QVariantList ScrapeController::systemRows() const {
+    auto result=systems_;
+    for(auto& value:result){auto r=value.toMap();r["checked"]=selectedSystems_.contains(r["id"].toString());value=r;}
+    return result;
+}
+int ScrapeController::selectedGameCount() const {
+    int count=0;
+    for(const auto& value:systems_){const auto r=value.toMap();if(selectedSystems_.contains(r["id"].toString()))count+=r["count"].toInt();}
+    return count;
+}
+QString ScrapeController::title() const {return selectingSystems()?"ScreenScraper":choosing_?"Choose the matching game":"ScreenScraper";}
 QString ScrapeController::detail() const {
     if(active_)return QString("%1 / %2 · %3 failed · %4 skipped\n%5\n%6").arg(done_).arg(queue_.size()).arg(failed_).arg(skipped_).arg(queue_.value(index_).title,paused_?"Paused after the current game":phase_);
     if(finished_)return QString("%1 / %2 processed · %3 failed · %4 skipped\n").arg(done_).arg(queue_.size()).arg(failed_).arg(skipped_)+results_.mid(std::max(0,int(results_.size())-3)).join('\n');
+    if(selectingSystems())return QString("%1 systems selected · %2 games\n%3 · ScreenScraper").arg(selectedSystems_.size()).arg(selectedGameCount()).arg(preferences_.refresh?"Replace selected fields":"Fill empty fields only");
     return QString("%1 games · %2\nDescriptions and artwork from ScreenScraper.fr. ROMs, saves and your game names stay in place.").arg(items().size()).arg(preferences_.refresh?"Replace selected fields":"Fill empty fields only");
 }
 QVariantList ScrapeController::rows() const {
@@ -203,14 +232,28 @@ QVariantList ScrapeController::rows() const {
     }
     if(active_)return {row(paused_?"Resume":"Pause"),row("Stop scraping")};
     if(finished_)return {row("Retry failed games",{},!failures_.isEmpty()),row("Close")};
+    if(selectingSystems()) {
+        int supported=0;for(const auto& value:systems_)if(value.toMap()["enabled"].toBool())++supported;
+        QVariantList result{row(supported>0&&selectedSystems_.size()==supported?"Clear selection":"Select all",{},supported>0)};
+        for(const auto& value:systemRows()){
+            const auto r=value.toMap();result<<row(r["label"].toString(),QString::number(r["count"].toInt())+" games",r["enabled"].toBool());
+        }
+        result<<row("Download information & artwork",{},selectedGameCount()>0)<<row("Cancel");return result;
+    }
     const auto selected=library_.registration(gameId_);
     const auto collection=selected?seriesDefinition(selected->adventure.domain=="pokemon"?QString("pokemon"):seriesForTitle(selected->adventure.title)).name:QString();
     return {row("Scope",!worldId_.isEmpty()?"Current collection":scope_==0?"This game":scope_==1?"Current system":scope_==3?collection+" collection":"Whole library",!gameId_.isEmpty()),
         row("Start scraping",{},!items().isEmpty()),row("Cancel")};
 }
-void ScrapeController::close(){if(busy())return;open_=false;emit changed();}
+void ScrapeController::close(){if(busy())return;const bool systems=selectingSystems();open_=false;emit changed();if(systems)emit systemSelectionClosed();}
 void ScrapeController::dispatch(Action a) {
     if(a==Action::Back){if(active_){cancel_->store(true);if(!working_)finish();else {phase_="Stopping";emit changed();}}else close();return;}
+    if(selectingSystems()&&(a==Action::Left||a==Action::Right)) {
+        const int startIndex=int(systems_.size())+1;
+        if(a==Action::Right){if(focus_<startIndex){systemListFocus_=focus_;focus_=startIndex;}else focus_=startIndex+1;}
+        else if(focus_>startIndex)focus_=startIndex;else if(focus_==startIndex)focus_=systemListFocus_;
+        emit changed();return;
+    }
     if(a==Action::Up)focus_=std::max(0,focus_-1);
     if(a==Action::Down)focus_=std::min(int(rows().size())-1,focus_+1);
     if(a==Action::Confirm)activate(focus_);else emit changed();
@@ -218,6 +261,16 @@ void ScrapeController::dispatch(Action a) {
 void ScrapeController::activate(int i) {
     if(i<0||i>=rows().size()||!rows()[i].toMap()["enabled"].toBool())return;
     focus_=i;
+    if(selectingSystems()) {
+        if(i==0){
+            QSet<QString> all;for(const auto& value:systems_)if(value.toMap()["enabled"].toBool())all.insert(value.toMap()["id"].toString());
+            selectedSystems_=selectedSystems_==all?QSet<QString>{}:all;
+        }else if(i<=systems_.size()){
+            const auto id=systems_[i-1].toMap()["id"].toString();
+            if(selectedSystems_.contains(id))selectedSystems_.remove(id);else selectedSystems_.insert(id);
+        }else if(i==systems_.size()+1)start();else close();
+        emit changed();return;
+    }
     if(choosing_) {
         if(i<pending_.games.size()){choosing_=false;focus_=0;emit jobStarted();apply(pending_.games[i]);return;}
         if(i==pending_.games.size()){textTarget_="search";emit textRequested("Find this game",queue_.value(index_).title,false);return;}
