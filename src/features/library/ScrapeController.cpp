@@ -121,9 +121,10 @@ void ScrapeController::applyText(const QString& text) {
     const auto target=std::exchange(textTarget_,{});
     if(target=="login"){credentials_.username=text.trimmed().left(256);status_="Use Save & check connection to apply this account.";}
     else if(target=="password"){credentials_.password=text.left(256);status_="Use Save & check connection to apply this account.";}
-    else if(target=="search"&&active_&&!working_&&!text.trimmed().isEmpty()) {
-        choosing_=false;phase_="Searching titles";const auto item=queue_.value(index_);auto client=client_;auto cancel=cancel_;auto pending=pending_;
-        run([client,cancel,pending,item,text]() mutable {auto r=client->search(item.platform,text.left(256),cancel);pending.status=r.status;pending.games=r.games;return pending;},[this](Outcome o){found(std::move(o));});
+    else if(target=="search"&&active_&&choices_.contains(searchId_)&&!text.trimmed().isEmpty()) {
+        searches_[searchId_]=text.trimmed().left(256);taskStates_[searchId_]="queued";
+        choosing_=false;choiceId_.clear();searchId_.clear();focus_=0;
+        emit jobStarted();next();
     }
     emit changed();
 }
@@ -219,7 +220,12 @@ int ScrapeController::selectedGameCount() const {
     return count;
 }
 QString ScrapeController::title() const {return selectingSystems()?"ScreenScraper":choosing_?"Choose the matching game":"ScreenScraper";}
+QString ScrapeController::status() const {
+    if(choosing_)return choices_.value(choiceId_).games.isEmpty()?statusMessage(Status::NotFound):"Check the edition before choosing. A similar title is not an exact ROM match.";
+    return status_;
+}
 QString ScrapeController::detail() const {
+    if(choosing_)for(const auto& item:queue_)if(item.id==choiceId_)return item.title+"\nOther downloads continue while you choose.";
     if(active_)return QString("%1 / %2 · %3 failed · %4 skipped\n%5\n%6").arg(done_).arg(queue_.size()).arg(failed_).arg(skipped_).arg(queue_.value(index_).title,paused_?"Paused after the current game":phase_);
     if(finished_)return QString("%1 / %2 processed · %3 failed · %4 skipped\n").arg(done_).arg(queue_.size()).arg(failed_).arg(skipped_)+results_.mid(std::max(0,int(results_.size())-3)).join('\n');
     if(selectingSystems())return QString("%1 systems selected · %2 games\n%3 · ScreenScraper").arg(selectedSystems_.size()).arg(selectedGameCount()).arg(preferences_.refresh?"Replace selected fields":"Fill empty fields only");
@@ -227,7 +233,7 @@ QString ScrapeController::detail() const {
 }
 QVariantList ScrapeController::rows() const {
     if(choosing_) {
-        QVariantList r;for(const auto& g:pending_.games)r<<row(g.fields.value("name"),g.fields.value("publisher")+" · "+g.fields.value("releasedate").left(4));
+        QVariantList r;for(const auto& g:choices_.value(choiceId_).games)r<<row(g.fields.value("name"),g.fields.value("publisher")+" · "+g.fields.value("releasedate").left(4));
         r<<row("Search another title")<<row("Skip this game")<<row("Stop scraping");return r;
     }
     if(active_)return {row(paused_?"Resume":"Pause"),row("Stop scraping")};
@@ -247,6 +253,7 @@ QVariantList ScrapeController::rows() const {
 }
 void ScrapeController::close(){if(busy())return;const bool systems=selectingSystems();open_=false;emit changed();if(systems)emit systemSelectionClosed();}
 void ScrapeController::dispatch(Action a) {
+    if(a==Action::Back&&choosing_){choosing_=false;choiceId_.clear();focus_=0;emit jobStarted();emit changed();return;}
     if(a==Action::Back){if(active_){cancel_->store(true);if(!working_)finish();else {phase_="Stopping";emit changed();}}else close();return;}
     if(selectingSystems()&&(a==Action::Left||a==Action::Right)) {
         const int startIndex=int(systems_.size())+1;
@@ -272,10 +279,16 @@ void ScrapeController::activate(int i) {
         emit changed();return;
     }
     if(choosing_) {
-        if(i<pending_.games.size()){choosing_=false;focus_=0;emit jobStarted();apply(pending_.games[i]);return;}
-        if(i==pending_.games.size()){textTarget_="search";emit textRequested("Find this game",queue_.value(index_).title,false);return;}
-        if(i==pending_.games.size()+1){choosing_=false;emit jobStarted();complete({},true);return;}
-        cancel_->store(true);finish();return;
+        const auto games=choices_.value(choiceId_).games;
+        if(i==games.size()){
+            textTarget_="search";searchId_=choiceId_;
+            for(const auto& item:queue_)if(item.id==choiceId_){emit textRequested("Find this game",item.title,false);break;}
+            return;
+        }
+        if(i<games.size()){matches_[choiceId_]=games[i];taskStates_[choiceId_]="queued";}
+        else if(i==games.size()+1){taskStates_[choiceId_]="skipped";choices_.remove(choiceId_);}
+        else {downloadCommand({},"cancel-all");return;}
+        choosing_=false;choiceId_.clear();focus_=0;emit jobStarted();next();emit changed();return;
     }
     if(active_){if(i==0){paused_=!paused_;if(!paused_&&!working_)next();}else {cancel_->store(true);if(!working_)finish();else phase_="Stopping";}}
     else if(finished_){if(i==0)start(true);else close();}
@@ -288,21 +301,42 @@ void ScrapeController::start(bool retry) {
     if(!preferences_.metadata&&preferences_.mediaTags().isEmpty()){status_="Choose what to download in Settings > ScreenScraper first.";emit changed();return;}
     queue_=retry?failures_:items();failures_.clear();results_.clear();done_=failed_=skipped_=index_=0;wrote_=paused_=choosing_=finished_=false;active_=true;focus_=0;
     taskStates_.clear();taskErrors_.clear();skipCurrent_=false;
+    choices_.clear();matches_.clear();searches_.clear();choiceId_.clear();searchId_.clear();pending_={};
     for(const auto& item:queue_)taskStates_[item.id]="queued";
     emit jobStarted();
     checkAccount(true);
 }
 void ScrapeController::next() {
-    if(!active_||working_||choosing_)return;
+    if(!active_||working_)return;
     if(handleCancellation())return;
-    while(index_<queue_.size()&&taskStates_.value(queue_[index_].id)=="cancelled"){++index_;++done_;++skipped_;}
-    if(index_>=queue_.size()){finish();return;}if(paused_){emit changed();return;}
-    if(taskStates_.value(queue_[index_].id)=="paused") {
-        int next=index_+1;while(next<queue_.size()&&taskStates_.value(queue_[next].id)!="queued")++next;
-        if(next==queue_.size()){phase_="Queue paused";emit changed();return;}
-        queue_.move(next,index_);
+    while(index_<queue_.size()) {
+        int ready=index_;
+        while(ready<queue_.size()) {
+            const auto state=taskStates_.value(queue_[ready].id);
+            if(state=="cancelled"||state=="skipped"||(!paused_&&state=="queued"))break;
+            ++ready;
+        }
+        if(ready==queue_.size()) {
+            phase_=paused_||choices_.isEmpty()?"Queue paused":"Waiting for edition choices";
+            if(wrote_){wrote_=false;emit saved();}
+            emit changed();return;
+        }
+        queue_.move(ready,index_);
+        const auto state=taskStates_.value(queue_[index_].id);
+        if(state!="cancelled"&&state!="skipped")break;
+        ++index_;++done_;++skipped_;
     }
+    if(index_>=queue_.size()){finish();return;}
     const auto item=queue_[index_];
+    if(matches_.contains(item.id)) {
+        pending_=choices_.take(item.id);apply(matches_.take(item.id));return;
+    }
+    if(searches_.contains(item.id)) {
+        phase_="Searching titles";const auto text=searches_.take(item.id);
+        auto pending=choices_.take(item.id);const auto client=client_;const auto cancel=cancel_;
+        run([client,cancel,pending,item,text]() mutable {auto r=client->search(item.platform,text,cancel);pending.status=r.status;pending.games=r.games;return pending;},[this](Outcome o){found(std::move(o));});
+        return;
+    }
     if(!systemId(item.platform)){complete("This system has no ScreenScraper catalogue.",true);return;}
     phase_="Identifying game";status_.clear();
     const auto client=client_;const auto cancel=cancel_;const auto prefs=preferences_;const auto directory=directory_;
@@ -338,7 +372,10 @@ void ScrapeController::found(Outcome o) {
     if(o.status!=Status::Ready&&o.status!=Status::NotFound){complete(statusMessage(o.status));return;}
     pending_=std::move(o);
     if(pending_.games.size()==1&&(pending_.cached||pending_.games.first().exactFile)){apply(pending_.games.first());return;}
-    choosing_=true;focus_=0;phase_="Exact identity not confirmed";status_=pending_.games.isEmpty()?statusMessage(Status::NotFound):"Check the edition before choosing. A similar title is not an exact ROM match.";emit changed();
+    const auto id=queue_[index_].id;choices_[id]=std::move(pending_);pending_={};taskStates_[id]="attention";
+    // Attention is per item. Open its choices only on an explicit player action;
+    // neither the worker nor a background result may take over the interface.
+    emit changed();QTimer::singleShot(0,this,&ScrapeController::next);
 }
 void ScrapeController::apply(const Game& game) {
     phase_=pending_.cached?"Applying cached artwork":"Downloading selected artwork";
@@ -383,12 +420,13 @@ void ScrapeController::complete(const QString& error,bool skipped) {
     taskErrors_[id]=error;
     if(skipped)++skipped_;else if(!error.isEmpty()){++failed_;failures_<<queue_.value(index_);}
     if(!error.isEmpty())results_<<queue_.value(index_).title+": "+error;
-    ++done_;++index_;pending_={};choosing_=false;focus_=0;
+    ++done_;++index_;pending_={};if(!choosing_)focus_=0;
     emit changed();QTimer::singleShot(0,this,[this]{if(active_)next();});
 }
 void ScrapeController::finish() {
     if(cancel_&&cancel_->load())for(int i=index_;i<queue_.size();++i)if(taskStates_.value(queue_[i].id)!="done")taskStates_[queue_[i].id]="cancelled";
     active_=false;choosing_=false;finished_=true;focus_=failures_.isEmpty()?1:0;
+    choices_.clear();matches_.clear();searches_.clear();choiceId_.clear();searchId_.clear();
     if(cancel_&&cancel_->load())status_=statusMessage(Status::Cancelled);
     else if(index_>=queue_.size())status_="Scraping finished. Completed changes are available in your library.";
     if(wrote_){wrote_=false;emit saved();}emit changed();
@@ -405,12 +443,12 @@ bool ScrapeController::handleCancellation(bool committed) {
 }
 QVariantList ScrapeController::downloadTasks() const {
     QVariantList rows;
-    const int firstMovable=index_+((working_||choosing_)?1:0);
+    const int firstMovable=index_+(working_?1:0);
     for(int i=0;i<queue_.size();++i) {
         const auto& item=queue_[i];auto state=taskStates_.value(item.id,"queued");
         const bool current=active_&&i==index_,pending=active_&&i>=index_&&(state=="queued"||state=="paused");
         QString detail=state=="done"?"Completed":state=="failed"?taskErrors_.value(item.id,"Failed"):state=="cancelled"?"Cancelled":state=="skipped"?"Skipped":state=="paused"?"Paused":"Waiting";
-        if(current&&choosing_){state="attention";detail="Choose the matching edition";}
+        if(state=="attention")detail="Choose the matching edition";
         else if(current&&working_){state="running";detail=skipCurrent_?"Cancelling":paused_?phase_+" · pausing after this game":phase_;}
         else if(pending&&paused_){state="paused";detail="Queue paused";}
         QVariantList actions;
@@ -418,7 +456,7 @@ QVariantList ScrapeController::downloadTasks() const {
         if(state=="attention")add("open","Choose match");
         if(pending||state=="attention") {
             if(current&&working_)add(paused_?"resume-all":"pause-all",paused_?"Resume queue":"Pause after game");
-            else add(state=="paused"||paused_?"resume":"pause",state=="paused"||paused_?"Resume":"Pause");
+            else if(state!="attention")add(state=="paused"||paused_?"resume":"pause",state=="paused"||paused_?"Resume":"Pause");
             if(i>firstMovable)add("earlier","Move up");
             if(i>=firstMovable&&i+1<queue_.size())add("later","Move down");
             if(phase_!="Checking connection"||!current)add("cancel","Cancel");
@@ -433,7 +471,7 @@ QVariantList ScrapeController::downloadTasks() const {
     return rows;
 }
 void ScrapeController::downloadCommand(const QString& id,const QString& command) {
-    if(command=="open"&&choosing_){open_=true;emit changed();return;}
+    if(command=="open"&&active_&&taskStates_.value(id)=="attention"&&choices_.contains(id)){choiceId_=id;choosing_=true;focus_=0;open_=true;emit changed();return;}
     if(command=="retry"&&!busy()) {
         if(!failures_.isEmpty())start(true);
         return;
@@ -442,7 +480,7 @@ void ScrapeController::downloadCommand(const QString& id,const QString& command)
     if(command=="pause-all"){paused_=true;emit changed();return;}
     if(command=="resume-all") {
         paused_=false;for(auto it=taskStates_.begin();it!=taskStates_.end();++it)if(it.value()=="paused")it.value()="queued";
-        if(!working_&&!choosing_)next();
+        next();
         emit changed();return;
     }
     if(command=="cancel-all"){skipCurrent_=false;cancel_->store(true);if(!working_)finish();else {phase_="Stopping";emit changed();}return;}
@@ -451,13 +489,19 @@ void ScrapeController::downloadCommand(const QString& id,const QString& command)
     const bool current=position==index_;
     if(command=="cancel") {
         if(current&&working_){if(phase_=="Checking connection")return;skipCurrent_=true;cancel_->store(true);}
-        else {taskStates_[id]="cancelled";if(current){choosing_=false;next();}}
+        else {
+            taskStates_[id]="cancelled";choices_.remove(id);matches_.remove(id);searches_.remove(id);
+            if(choiceId_==id){choosing_=false;choiceId_.clear();focus_=0;}
+            next();
+        }
     } else if(command=="pause") {
-        if(current&&(working_||choosing_))paused_=true;else {taskStates_[id]="paused";if(current)next();}
+        if(taskStates_.value(id)=="attention")return;
+        if(current&&working_)paused_=true;else {taskStates_[id]="paused";if(current)next();}
     } else if(command=="resume") {
-        taskStates_[id]="queued";paused_=false;if(!working_&&!choosing_)next();
+        if(taskStates_.value(id)=="attention")return;
+        taskStates_[id]="queued";paused_=false;next();
     } else if(command=="earlier"||command=="later") {
-        const int first=index_+((working_||choosing_)?1:0),target=position+(command=="earlier"?-1:1);
+        const int first=index_+(working_?1:0),target=position+(command=="earlier"?-1:1);
         if(position>=first&&target>=first&&target<queue_.size())queue_.move(position,target);
     }
     emit changed();

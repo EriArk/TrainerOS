@@ -208,6 +208,7 @@ void LibraryToolsController::browse(const QString& path,int page) {
     });
 }
 void LibraryToolsController::submit(LibraryEdit edit) {
+    if(editGuard){error_=editGuard();if(!error_.isEmpty()){emit changed();return;}}
     busy_=true;error_.clear();emit changed();
     repository_.editLibraryAsync(edit,this,[this,edit](const QString& error){
         busy_=false;error_=error;

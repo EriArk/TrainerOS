@@ -70,6 +70,7 @@
 #include "DiagnosticsSmokeScenario.h"
 #include "CenterSmokeScenario.h"
 #include "ExitSmokeScenario.h"
+#include "DownloadsSmokeScenario.h"
 #endif
 
 using namespace trainer;
@@ -126,6 +127,7 @@ int main(int argc, char* argv[]) {
     parser.addOption({"art-dir", "Use a private development artwork bootstrap directory.", "directory"});
     parser.addOption({"smoke-test", "Verify the QML shell with an isolated SDL virtual controller, then exit."});
 #ifdef TRAINEROS_UI_TESTS
+    parser.addOption({"downloads-smoke-test", "Verify the Downloads layout and SDL navigation with isolated queue fixtures, then exit."});
     parser.addOption({"exit-smoke-test", "Verify the isolated Adventure exit window through SDL input, then exit."});
     parser.addOption({"worlds-smoke-test", "Verify Worlds browsing and mock actions through SDL input, then exit."});
     parser.addOption({"pokedex-smoke-test", "Verify Pokédex filters, search and records through SDL input, then exit."});
@@ -142,8 +144,10 @@ int main(int argc, char* argv[]) {
     bool hallSmoke = false;
     bool diagnosticsSmoke = false;
     bool exitSmoke = false;
+    bool downloadsSmoke = false;
     QString persistencePhase;
 #ifdef TRAINEROS_UI_TESTS
+    downloadsSmoke = parser.isSet("downloads-smoke-test");
     exitSmoke = parser.isSet("exit-smoke-test");
     worldsSmoke = parser.isSet("worlds-smoke-test");
     pokedexSmoke = parser.isSet("pokedex-smoke-test");
@@ -154,7 +158,7 @@ int main(int argc, char* argv[]) {
     if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "library-center", "collection"}.contains(persistencePhase)
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
-    const bool smoke = parser.isSet("smoke-test") || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+    const bool smoke = parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
     auto smokeBattery = std::make_shared<std::atomic_int>(65);
     PowerStatus powerStatus([smoke, smokeBattery] {
         if (!smoke) return systemBatteryStatus();
@@ -315,6 +319,7 @@ int main(int argc, char* argv[]) {
         if(personalLibrary && !smoke) {
             session.firstRun()->configure(stateDirectory,libraryRoot);
             const auto applyLibraryRoot=[&](const QString& root)->QString {
+                if(shell.scraper()->busy())return "Finish or cancel downloads before changing library storage.";
                 if(folders.busy() || folders.writing() || store->pending() || store->opening())return "The library is busy. Wait a moment and try again.";
                 const auto error=saveLibraryRoot(stateDirectory,root);
                 if(!error.isEmpty())return error;
@@ -332,7 +337,7 @@ int main(int argc, char* argv[]) {
             };
             shell.libraryManager()->setInitialFolder(libraryRoot);
         }
-        session.setTrainerSwitchGuard([&]{return !realAchievements || !realAchievements->accountBusy();});
+        session.setTrainerSwitchGuard([&]{return !shell.scraper()->busy() && (!realAchievements || !realAchievements->accountBusy());});
         session.setTrainerRemovalPreparation([&]() -> QString {
             if(!realAchievements)return {};
             return realAchievements->disconnectForRemoval()?QString():"Could not remove the saved sign-in. Try again.";
@@ -885,6 +890,8 @@ int main(int argc, char* argv[]) {
                 } else if (pokedexSmoke) {
                     startPokedexSmoke(window, shell, input, dex, joystick, screenshotDir,
                                       smokeCompleted, qmlWarnings, diagnostics);
+                } else if (downloadsSmoke) {
+                    startDownloadsSmoke(window, shell, input, joystick, screenshotDir, smokeCompleted, qmlWarnings, diagnostics);
                 } else if (worldsSmoke) {
                     startWorldsSmoke(window, shell, input, adapter, joystick, screenshotDir,
                                      smokeCompleted, qmlWarnings, diagnostics);
@@ -971,7 +978,8 @@ int main(int argc, char* argv[]) {
                         check(shell.drawerOpen() && focusIs("resume-1"), "Back restores drawer from system menu");
                         press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
                     case 6:
-                        check(shell.page() == 1 && !shell.drawerOpen() && focusIs("world-0"), "R1 changes page and closes transient layers");
+                        check(shell.page() == 1 && shell.collectionsRoot() && !shell.drawerOpen() && focusIs("series-card-pokemon"), "R1 opens collections and closes transient layers");
+                        press(a);
                         press(SDL_CONTROLLER_BUTTON_DPAD_DOWN); press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT); break;
                     case 7:
                         check(shell.focusIndex() == 4 && focusIs("world-4"), "spatial World focus");
@@ -980,7 +988,8 @@ int main(int argc, char* argv[]) {
                         check(shell.page() == 2 && focusIs("dex-entry-bulbasaur"), "Pokedex list focus");
                         capture("pokedex"); press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER); break;
                     case 9:
-                        check(shell.page() == 1 && focusIs("world-4"), "per-page focus restored");
+                        check(shell.page() == 1 && shell.collectionsRoot() && focusIs("series-card-pokemon"), "collection focus restored");
+                        press(a);check(shell.focusIndex()==4,"World focus restored within the collection");
                         press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
                         press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
                     case 10:

@@ -158,7 +158,7 @@ public:
     Q_INVOKABLE void closeHomeMenu();
     bool powerMenu() const { return powerMenu_; }
     QString notice() const { return notice_; }
-    bool runtimeChangeBlocked() const { return navigationLocked(); }
+    bool runtimeChangeBlocked() const { return scraper_.busy() || navigationLocked(); }
     QVariantMap home() const;
     QVariantList resumePoints() const;
     QStringList menuItems() const;

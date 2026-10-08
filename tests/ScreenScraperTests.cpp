@@ -40,6 +40,85 @@ class ScreenScraperTests:public QObject {
             QJsonObject{{"type","video"},{"region","us"},{"url","https://untrusted.test/video.mp4"}}}}};}
     static Reply response(const QJsonObject& value){return {200,QJsonDocument(QJsonObject{{"response",value}}).toJson(),0};}
 private slots:
+    void editionChoicesDoNotBlockWorkerOrStealAnOpenChoice() {
+        QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");
+        for(const auto& id:QStringList{"first","second","third","fourth"})library.add(id);
+        for(const auto& r:library.records)put(r.contentPath,"123456789");
+        const auto state=dir.filePath("state");QVERIFY(writeCredentials(state+"/secrets/screenscraper.json",{"dev","secret",{}, {}}));
+        std::atomic_bool hold=true;std::atomic_int exactCalls=0,searches=0;
+        ScrapeController flow(library);flow.configure(state);
+        flow.setTransport([&](const QUrl& url,qint64,const Cancellation& cancel){
+            if(url.path().endsWith("ssuserInfos.php"))return response({{"ssuser",QJsonObject{{"maxthreads","1"}}}});
+            auto g=game();g.remove("medias");const auto name=QUrlQuery(url).queryItemValue("romnom");
+            if(url.path().endsWith("jeuRecherche.php")){++searches;g["id"]="99";return response({{"jeux",QJsonArray{g}}});}
+            if(name=="first.gba"||name=="third.gba")return response({{"jeux",QJsonArray{g,g}}});
+            ++exactCalls;
+            while(name=="second.gba"&&hold.load()&&!cancel->load())QThread::msleep(5);
+            g["rom"]=QJsonObject{{"romsize","9"},{"rommd5","25f9e794323b453885f5181f1b624d0b"}};
+            return response({{"jeu",g}});
+        },[](qint64,const Cancellation& c){return !c->load();});
+        const auto taskState=[&](const QString& id){for(const auto& v:flow.downloadTasks())if(v.toMap()["id"]==id)return v.toMap()["state"].toString();return QString();};
+        QSignalSpy saved(&flow,&ScrapeController::saved);
+        connect(&flow,&ScrapeController::jobStarted,&flow,&ScrapeController::hide);
+        flow.begin();flow.activate(1);QTRY_COMPARE_WITH_TIMEOUT(exactCalls.load(),1,3000);
+        QCOMPARE(taskState("first"),"attention");QCOMPARE(taskState("second"),"running");QVERIFY(!flow.isOpen());
+        flow.downloadCommand("first","open");QVERIFY(flow.isOpen());QVERIFY(flow.detail().startsWith("Owner first"));
+        flow.dispatch(Action::Down);QCOMPARE(flow.focusIndex(),1);
+        hold=false;
+        QTRY_COMPARE_WITH_TIMEOUT(taskState("fourth"),QString("done"),3000);
+        QCOMPARE(taskState("third"),"attention");QVERIFY(flow.detail().startsWith("Owner first"));QCOMPARE(flow.focusIndex(),1);
+        QTRY_COMPARE(saved.size(),1); // Completed games are visible even with unresolved editions.
+        flow.dispatch(Action::Back);QVERIFY(!flow.isOpen());QVERIFY(flow.busy());QCOMPARE(taskState("first"),"attention");
+        flow.downloadCommand("first","open");flow.activate(1);
+        QTRY_COMPARE_WITH_TIMEOUT(taskState("first"),QString("done"),3000);
+        QVERIFY(read(library.root+"/gba/gamelist.xml").contains("first.gba"));
+        flow.downloadCommand("third","open");flow.activate(2);flow.applyText("Another edition");
+        QTRY_COMPARE_WITH_TIMEOUT(searches.load(),1,3000);QTRY_COMPARE(taskState("third"),QString("attention"));
+        QVERIFY(!flow.isOpen());flow.downloadCommand("third","open");flow.activate(0);
+        QTRY_VERIFY_WITH_TIMEOUT(!flow.busy(),3000);
+        for(const auto& id:QStringList{"first","second","third","fourth"})QCOMPARE(taskState(id),"done");
+        const auto xml=read(library.root+"/gba/gamelist.xml");
+        for(const auto& id:QStringList{"first","second","third","fourth"})QVERIFY(xml.contains((id+".gba").toUtf8()));
+    }
+    void waitingChoicesRespectPauseSkipAndCancellation() {
+        QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");
+        for(const auto& id:QStringList{"one","two","three"}){library.add(id);put(library.records.last().contentPath,"123456789");}
+        const auto state=dir.filePath("state");QVERIFY(writeCredentials(state+"/secrets/screenscraper.json",{"dev","secret",{}, {}}));
+        ScrapeController flow(library);flow.configure(state);std::atomic_int calls=0;
+        flow.setTransport([&](const QUrl& url,qint64,const Cancellation&){
+            if(url.path().endsWith("ssuserInfos.php"))return response({{"ssuser",QJsonObject{{"maxthreads","1"}}}});
+            ++calls;auto g=game();g.remove("medias");return response({{"jeux",QJsonArray{g,g}}});
+        },[](qint64,const Cancellation& c){return !c->load();});
+        flow.begin();flow.activate(1);QTRY_COMPARE_WITH_TIMEOUT(calls.load(),3,3000);
+        QTRY_VERIFY(flow.detail().contains("Waiting for edition choices"));
+        flow.downloadCommand({},"pause-all");flow.downloadCommand("one","open");flow.activate(0);
+        QVERIFY(flow.busy());QVERIFY(!QFile::exists(library.root+"/gba/gamelist.xml"));
+        flow.downloadCommand("two","open");flow.activate(3); // Skip only this unresolved game.
+        flow.downloadCommand("three","cancel");QVERIFY(flow.busy());
+        flow.downloadCommand({},"resume-all");QTRY_VERIFY_WITH_TIMEOUT(!flow.busy(),3000);
+        const auto xml=read(library.root+"/gba/gamelist.xml");QVERIFY(xml.contains("one.gba"));QVERIFY(!xml.contains("two.gba"));QVERIFY(!xml.contains("three.gba"));
+        flow.begin("two");flow.activate(1);QTRY_VERIFY(flow.detail().contains("Waiting for edition choices"));
+        flow.downloadCommand("two","open");flow.downloadCommand({},"cancel-all");QVERIFY(!flow.busy());
+        QCOMPARE(read(library.root+"/gba/gamelist.xml"),xml);
+    }
+    void sharedDownloadsSortActiveBeforePendingAndCompletedWithStableSelection() {
+        DownloadsController downloads;
+        const auto task=[](QString id,QString state){return QVariantMap{{"id",id},{"state",state}};};
+        downloads.publish("one",{task("done","done"),task("choice","attention"),task("wait","queued"),task("active","running")});
+        QCOMPARE(downloads.tasks()[0].toMap()["id"].toString(),"active");
+        QCOMPARE(downloads.tasks()[3].toMap()["section"].toString(),"Downloaded");
+        downloads.select(1);
+        downloads.publish("two",{task("other","running"),task("finished","done")});
+        QCOMPARE(downloads.tasks()[downloads.focusIndex()].toMap()["id"].toString(),"choice");
+        QCOMPARE(downloads.tasks()[1].toMap()["id"].toString(),"other");
+        QCOMPARE(downloads.tasks()[4].toMap()["state"].toString(),"done");
+        QCOMPARE(downloads.tasks()[5].toMap()["state"].toString(),"done");
+        DownloadsController follow;
+        follow.publish("one",{task("first","running"),task("next","queued")});
+        auto done=task("first","done");done["terminal"]=true;
+        follow.publish("one",{done,task("next","queued")});
+        QCOMPARE(follow.tasks()[follow.focusIndex()].toMap()["id"].toString(),"next");
+    }
     void systemPickerQueuesOnlySelectedAvailableRomPlatforms() {
         QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");
         for(const auto& id:QStringList{"gba-one","gba-two","nes-one","unsupported","removed","store"})library.add(id);
@@ -196,9 +275,11 @@ private slots:
             if(url.path().endsWith("jeuInfos.php"))++lookup;else ++search;
             return response({{"jeux",QJsonArray{game(),game()}}});
         },[](qint64,const Cancellation& c){return !c->load();});
-        flow.begin("disc");flow.activate(1);QTRY_COMPARE_WITH_TIMEOUT(flow.title(),QString("Choose the matching game"),5000);
+        flow.begin("disc");flow.activate(1);QTRY_COMPARE_WITH_TIMEOUT(flow.downloadTasks()[0].toMap()["state"].toString(),QString("attention"),5000);
+        flow.downloadCommand("disc","open");QCOMPARE(flow.title(),QString("Choose the matching game"));
         QCOMPARE(lookup.load(),0);QCOMPARE(search.load(),1);QVERIFY(!QFile::exists(library.root+"/gba/gamelist.xml"));
-        flow.dispatch(Action::Back);QVERIFY(!flow.busy());QVERIFY(!QFile::exists(library.root+"/gba/gamelist.xml"));
+        flow.dispatch(Action::Back);QVERIFY(flow.busy());
+        flow.downloadCommand("disc","cancel");QVERIFY(!flow.busy());QVERIFY(!QFile::exists(library.root+"/gba/gamelist.xml"));
     }
     void batchContinuesAfterFailureAndRetriesOnlyFailedGame() {
         QTemporaryDir dir;ScrapeLibrary library;library.root=dir.filePath("roms");library.add("bad");library.add("good");

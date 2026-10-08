@@ -61,6 +61,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
       libraryManager_(repo, nullptr, this), libraryTools_(repo,this), scraper_(repo,this), settings_(this), device_(this), diagnostics_(this), center_(repo,this), party_(!repo.editable(),this) {
     settings_.setScraper(&scraper_);
+    libraryTools_.editGuard=[this]{return scraper_.busy()?QString("Finish or cancel downloads before changing library files or names."):QString();};
     connect(&downloads_,&DownloadsController::changed,this,&ShellController::changed);
     connect(&scraper_,&ScrapeController::changed,this,[this]{downloads_.publish("screenscraper",scraper_.downloadTasks());});
     connect(&scraper_,&ScrapeController::jobStarted,this,[this]{scraper_.hide();downloads_.begin();});
@@ -72,7 +73,9 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&scraper_,&ScrapeController::changed,&settings_,&SettingsController::changed);
     connect(&scraper_,&ScrapeController::settingsBackRequested,this,[this]{settings_.selectCategory(14,false);});
     connect(&scraper_,&ScrapeController::textRequested,this,[this](QString title,QString initial,bool secret){textTarget_=TextTarget::Scraper;keyboard_.begin(title,initial,256,secret,"Save");});
-    connect(&libraryTools_,&LibraryToolsController::scrapeRequested,&scraper_,&ScrapeController::begin);
+    connect(&libraryTools_,&LibraryToolsController::scrapeRequested,this,[this](const QString& game,const QString& world){
+        if(scraper_.busy())downloads_.begin();else scraper_.begin(game,world);
+    });
     connect(&libraryTools_,&LibraryToolsController::reviewRequested,&social_,&SocialController::reviewCommand);
     connect(&social_,&SocialController::reviewsChanged,&libraryTools_,&LibraryToolsController::receiveReviews);
     connect(&network_, &NetworkController::changed,this,&ShellController::changed);
@@ -168,6 +171,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&device_, &DeviceController::closeRequested, this, [this] { service_ = "settings"; emit changed(); });
     connect(&device_, &DeviceController::messageRequested, this, &ShellController::showNotice);
     connect(&device_, &DeviceController::powerRequested, this, [this](const QString& mode) {
+        if(scraper_.busy()){showNotice("Finish or cancel downloads before leaving this system session.");return;}
         mode_ = mode;
         notice_ = mode == "reboot" ? "Restart your handheld? Your Trainer data will be saved first."
                                    : "Turn off your handheld? Your Trainer data will be saved first.";
@@ -325,7 +329,7 @@ bool ShellController::navigationLocked(bool primaryRecovery) const {
     // A disconnected durable exchange must not strand both peers away from
     // Social. Only primary browsing relaxes this gate; runtime/save operations,
     // owner changes and Adventure selection keep their existing protection.
-    return (link->navigationBlocked() && !(primaryRecovery && link->canBrowseForRecovery())) || scraper_.busy() || launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || party_.moveOpen() || libraryTools_.busy() || center_.writing() || center_.confirming()
+    return (link->navigationBlocked() && !(primaryRecovery && link->canBrowseForRecovery())) || launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || party_.moveOpen() || libraryTools_.busy() || center_.writing() || center_.confirming()
         || (center_.shopsOpen() && center_.shopModal());
 }
 bool ShellController::pairedNavigationAvailable() {
@@ -717,7 +721,6 @@ void ShellController::cycleCollection(int delta) {
 void ShellController::activate(int index, const QString& area) {
     if(downloads_.isOpen())return;
     if(scraper_.isOpen()) {if(keyboard_.isOpen())keyboard_.activate(index);else scraper_.activate(index);return;}
-    if(scraper_.busy()&&!menuOpen_)return;
     if(homeMenuOpen_)return;
     if(launchPreparation_.busy() || libraryTools_.busy() || center_.writing())return;
     if(area=="world-edit" && canEditWorld()){libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
@@ -796,7 +799,7 @@ void ShellController::confirm() {
             if(scraper_.busy())downloads_.begin();else scraper_.beginSystems();
             return;
         }
-        if(scraper_.busy()&&(powerMenu_||menuFocus_<7)){showNotice("Finish or cancel the download queue before changing games, storage or system sessions.");return;}
+        if(scraper_.busy()&&((powerMenu_&&menuFocus_!=2)||(!powerMenu_&&(menuFocus_==2||menuFocus_==4||menuFocus_==5)))){showNotice("Finish or cancel downloads before switching Trainer or leaving this system session.");return;}
         if (powerMenu_) {
             if (menuFocus_ == 2) { powerMenu_ = false; menuFocus_ = 6; return; }
             if (menuFocus_ == 3) {
@@ -994,8 +997,6 @@ void ShellController::dispatch(Action action) {
         party_.activities()->link()->dispatch(action);return;
     }
     if(scraper_.isOpen()){if(keyboard_.isOpen())keyboard_.dispatch(action);else scraper_.dispatch(action);return;}
-    if(scraper_.busy()&&action==Action::SystemMenu){menuOpen_=!menuOpen_;powerMenu_=false;menuFocus_=12;emit changed();return;}
-    if(scraper_.busy()&&!menuOpen_&&notice_.isEmpty())return;
     if(launchPreparation_.busy() || libraryTools_.busy())return;
     if(navigationLocked(action==Action::PreviousPage || action==Action::NextPage) && (action==Action::Home || action==Action::PreviousPage || action==Action::NextPage || action==Action::SystemMenu || action==Action::PreviousFace || action==Action::NextFace))return;
     if (homeMenuOpen_) {

@@ -72,11 +72,13 @@ private slots:
         shell.dispatch(Action::Back);
         QCOMPARE(exit.size(), 0);
         shell.dispatch(Action::NextPage);
+        QVERIFY(shell.collectionsRoot());shell.dispatch(Action::Confirm);
         shell.dispatch(Action::Down);
         shell.dispatch(Action::Right);
         QCOMPARE(shell.focusIndex(), 4);
         shell.dispatch(Action::NextPage);
         shell.dispatch(Action::PreviousPage);
+        QVERIFY(shell.collectionsRoot());shell.dispatch(Action::Confirm);
         QCOMPARE(shell.focusIndex(), 4);
         shell.dispatch(Action::SystemMenu);
         shell.dispatch(Action::NextPage);
@@ -262,6 +264,7 @@ private slots:
         empty.dispatch(Action::Confirm);
         QVERIFY(!empty.drawerOpen());
         empty.goToPage(1);
+        QVERIFY(empty.collectionsRoot());empty.activate(0);
         empty.activate(0);
         QCOMPARE(empty.page(), 0); // Empty library offers an explicit Return Home action.
         repo.points = {{"orphan", "missing-adventure", QDateTime::currentDateTimeUtc(), "", ""}};

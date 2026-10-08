@@ -22,6 +22,15 @@ Item {
         ListView {
             id: list; x: 18; y: 115; width: parent.width-236; height: parent.height-y-38; clip: true; spacing: 5
             model: root.flow.tasks; currentIndex: root.flow.focusIndex; keyNavigationEnabled: false
+            section.property: "section"
+            section.delegate: Item {
+                required property string section
+                width: list.width; height: section.length ? 28 : 0
+                Rectangle { anchors.verticalCenter: parent.verticalCenter; width: parent.width; height: 1; color: "#91ac9e"; visible: section.length>0 }
+                Text { anchors.verticalCenter: parent.verticalCenter; leftPadding: 8; rightPadding: 8; text: section; color: Theme.muted; font.pixelSize: 13; font.bold: true
+                    Rectangle { anchors.fill: parent; color: "#e8edda"; z: -1 }
+                }
+            }
             Rectangle { anchors.right: parent.right; width: 3; height: parent.height; color: "#b8cbbf"; visible: list.contentHeight>list.height; z: 2
                 Rectangle { width: parent.width; height: Math.max(16,list.visibleArea.heightRatio*parent.height); y: list.visibleArea.yPosition*parent.height; color: Theme.muted; radius: 2 }
             }

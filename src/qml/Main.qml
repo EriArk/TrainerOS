@@ -235,7 +235,7 @@ Window {
                 if (shell.downloads.open) return [h("↑↓","Choose"),h("←→","Actions"),h("A","Select"),h("B","Close")]
                 if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [h("X","Quick controls"),h("←→",shell.focusIndex>=9 ? "Choose" : "Adjust"),h("A",shell.focusIndex>=9 && shell.focusIndex<=11 ? "Toggle" : "Select"),h("B","Close")]
                 if (shell.keyboard.open) return [h("X","Case"),h("Y",shell.keyboard.nextLayout),h("A","Type"),h("Select",shell.keyboard.submitLabel),h("B",shell.keyboard.submitLabel === "Send" ? "Keep draft" : "Cancel")]
-                if (shell.scraper.open) return shell.scraper.selectingSystems ? [h("↑↓","Systems"),h("←→","Actions"),h("A","Select"),h("B","Back")] : [h("A","Select"),h("B",shell.scraper.busy?"Stop":"Back")]
+                if (shell.scraper.open) return shell.scraper.selectingSystems ? [h("↑↓","Systems"),h("←→","Actions"),h("A","Select"),h("B","Back")] : [h("A","Select"),h("B",shell.scraper.busy&&!shell.scraper.choosingMatch?"Stop":"Back")]
                 if (shell.libraryTools.open) {
                     if(shell.libraryTools.route==="reviews")return shell.libraryTools.reviewReportAvailable
                         ? [h("A","Reveal"),h("← →","Read"),h("Select","Report"),h("B","Back")]

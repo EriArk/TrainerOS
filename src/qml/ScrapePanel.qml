@@ -58,7 +58,11 @@ Item {
         Column {
             id: content
             x: 22; y: 18; width: parent.width-44; spacing: 10
-            Text { width: parent.width; text: root.flow.title; textFormat: Text.PlainText; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 26; font.bold: true }
+            Item {
+                width: parent.width; height: 36
+                Text { width: parent.width-(root.flow.choosingMatch?112:0); text: root.flow.title; textFormat: Text.PlainText; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 26; font.bold: true; elide: Text.ElideRight }
+                CapButton { anchors.right: parent.right; width: 100; height: 32; label: "Back"; tint: Theme.yellow; visible: root.flow.choosingMatch; onActivated: root.flow.back() }
+            }
             Text { width: parent.width; height: 78; text: root.flow.detail; textFormat: Text.PlainText; color: Theme.muted; font.pixelSize: 16; wrapMode: Text.WordWrap; maximumLineCount: 4; elide: Text.ElideRight }
             ListView {
                 id: list; width: parent.width; height: Math.min(190,contentHeight); clip: true; spacing: 7

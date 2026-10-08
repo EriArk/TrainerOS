@@ -1,5 +1,11 @@
 # Current tasks
 
+**Owner download regression correction, 8 October 2026:** unresolved ScreenScraper
+editions wait independently while other jobs continue. Downloads sorts active
+work first and successful items beneath Downloaded; background scraping no longer
+captures shell touch/controller navigation. [Evidence and device application
+boundary](SCREENSCRAPER.md) records this bounded correction. MP-02 remains next.
+
 **Owner quick scraping follow-up, 8 October 2026:** Start → Scraping now selects
 several systems or all populated supported systems before Download, using the
 existing settings and Downloads queue. [Evidence](SCREENSCRAPER.md) separates the

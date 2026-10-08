@@ -40,6 +40,7 @@ public:
     void activate(int);
     void applyText(const QString&);
     void setCatalog(FileCatalog* catalog) {catalog_=catalog;}
+    std::function<QString()> editGuard;
     std::function<void(const AdventureRegistration&,QObject*,std::function<void(QStringList)>)> capabilityQuery;
     std::function<void(const AdventureRegistration&,QObject*,std::function<void(AdventureCompletion)>)> completionQuery;
     void receiveReviews(const QString& identity,const QVariantMap& state);

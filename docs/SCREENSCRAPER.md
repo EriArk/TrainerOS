@@ -72,10 +72,24 @@ eligible tasks; cancel-all keeps completed games. A missing/ambiguous match offe
 provider command routing; providers retain their scheduling and storage rules.
 Only ScreenScraper is connected today. Order changes apply within the provider's
 pending queue. The current queue/history is session-local; automatic restoration
-after app restart and cross-provider scheduling are not delivered. ScreenScraper
-retains the existing game/library/session mutation gate while its job is active;
-the popup's dismissal does not release that protection. The quick volume/radio
-controls remain accessible.
+after app restart and cross-provider scheduling are not delivered.
+
+Active downloads appear first; successful downloads move below the **Downloaded**
+divider. Waiting, paused, failed and unresolved-edition items stay above that
+divider. Selection follows a completed active item to the next runnable task,
+while deliberate edition/error selection and an open action pane remain stable.
+
+An unresolved edition waits on its own row: other games keep downloading through
+the same sequential, quota-limited worker. **Choose match** explicitly opens that
+game's choices; background results never open a popup or replace those choices.
+Selecting an edition or submitting another title queues work for that game. B
+returns to Downloads without cancelling the batch; Skip affects only that game.
+Completed changes are rescanned even when the batch is waiting for choices.
+
+Closing Downloads leaves touch/controller browsing, Social, Home and ordinary
+Settings usable. Library file/name changes, changing storage, changing Trainer
+and leaving the system session retain specific guards while a job is active.
+Runtime installation refresh is deferred separately; it does not lock browsing.
 
 ### Matching, limits and storage
 
@@ -122,6 +136,42 @@ Selectable library layouts (grid/list and other arrangements) are explicitly
 deferred by the owner; the present controls change pictures and game data only.
 
 ### Verification record
+
+#### Background queue and input correction — 2026-10-08
+
+- Added regression coverage with ambiguous editions before and after exact
+  matches: the worker continues, an open choice retains its game and focus,
+  selected/search results return to the worker, and pause/skip/cancel preserve
+  completed XML. Shared-provider sorting and selection are checked independently.
+- A held fake network request exercises actual ShellController controller and
+  touch-command paths across pages, ordinary Settings and Downloads. Library
+  mutation is rejected while busy and succeeds after cancellation. No live
+  ScreenScraper requests or scraping of the owner's new ROMs are needed by these
+  tests.
+- The 16 selected ARM suites passed, including scraper, interactions, core,
+  Worlds/Pokedex/Hall, storage/ownership, first run/Trainer access/profiles,
+  library, Adventure exit/presentation and both general/Downloads QML smoke.
+  Three older tests initially bypassed the already-delivered collections grid;
+  their setup now enters that grid explicitly and retains the existing focus,
+  wheel and Back assertions. This changes tests, not Worlds behaviour.
+- The isolated Downloads SDL/QML scenario verifies active-first ordering,
+  completed-section navigation, action focus and closing back to page navigation.
+  Rendered 960×540 and 800×450 layouts were inspected. The build without
+  `BUILD_TESTING` also passed; the fixture flag is excluded from that build.
+- Queue/history still lives in the running process. Installing a binary on disk
+  does not migrate an already-running queue; applying it to such a session
+  requires an explicit restart decision. Completed gamelists/media and cache
+  remain on disk.
+- Native binary `9f8d3fd75768bad5bc1aecd89f0ff9d9696fe32fe3396d75f0926340325931ce`
+  is installed on Flip and Odin. Flip's replacement process was verified by its
+  executable hash. Odin's running process was deliberately preserved with its
+  33 pending / 25 finished jobs; live application there awaits the owner's
+  restart decision. The isolated SDL/Downloads scenario passed separately on
+  both physical devices without changing that queue or calling ScreenScraper.
+  Ignored evidence: `work/research/download-fix-*-deploy.log`,
+  `download-fix-last-check.log`, `download-fix-*-downloads-*.png` and the
+  `download-fix-check-*` / `download-fix-final-*` logs. Public screenshots and
+  the unrelated MP-02 timer work remain unchanged.
 
 #### Start system picker follow-up — 2026-10-08
 

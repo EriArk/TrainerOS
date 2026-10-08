@@ -3,6 +3,7 @@
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
+#include <QDir>
 
 using namespace trainer;
 
@@ -23,6 +24,49 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void backgroundScrapingLeavesTouchControllerAndSettingsUsable() {
+        class Library final : public LibraryRepository {
+        public:
+            MockLibraryRepository sample;QString root;AdventureRegistration record;int edits=0;
+            bool editable() const override{return true;}
+            void editLibraryAsync(const LibraryEdit&,QObject*,std::function<void(QString)> done) override{++edits;done({});}
+            QList<World> worlds() const override{return sample.worlds();}
+            QList<Adventure> adventures() const override{return sample.adventures();}
+            QList<ResumePoint> resumePoints() const override{return {};}
+            HomeSnapshot home() const override{return sample.home();}
+            QList<AdventureRegistration> registrations() const override{return {record};}
+            std::optional<AdventureRegistration> registration(const QString& id) const override{return id==record.adventure.id?std::optional(record):std::nullopt;}
+            QString storageRootFor(const QString&) const override{return root;}
+        } library;
+        QTemporaryDir dir;library.root=dir.filePath("roms");QDir().mkpath(library.root+"/gba");
+        library.record.adventure.id="fixture";library.record.adventure.platformId="gba";
+        library.record.contentPath=library.root+"/gba/fixture.gba";
+        {QFile file(library.record.contentPath);QVERIFY(file.open(QIODevice::WriteOnly));file.write("fixture");}
+        MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        const auto state=dir.filePath("state");QVERIFY(scraper::writeCredentials(state+"/secrets/screenscraper.json",{"dev","secret",{}, {}}));
+        auto* flow=shell.scraper();flow->configure(state);std::atomic_bool started=false;
+        flow->setTransport([&](const QUrl&,qint64,const scraper::Cancellation& cancel){
+            started=true;while(!cancel->load())QThread::msleep(5);return scraper::Reply{503,{},0};
+        });
+        flow->begin();flow->activate(1);QTRY_VERIFY(started.load());QVERIFY(shell.downloads()->isOpen());
+        shell.dispatch(Action::Back);QVERIFY(!shell.downloads()->isOpen());
+        shell.goToPage(0);shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),1);
+        shell.goToPage(4);QCOMPARE(shell.page(),4);shell.dispatch(Action::PreviousPage);QCOMPARE(shell.page(),3);
+        shell.dispatch(Action::SystemMenu);shell.activate(0);QCOMPARE(shell.service(),"settings");
+        shell.activate(0);QVERIFY(shell.settings()->controlsFocused());
+        const auto original=shell.settings()->reducedMotion();shell.activate(1);QCOMPARE(shell.settings()->reducedMotion(),!original);
+        shell.dispatch(Action::Confirm);QCOMPARE(shell.settings()->reducedMotion(),original);
+        shell.dispatch(Action::SystemMenu);shell.activate(12);QVERIFY(shell.downloads()->isOpen());
+        shell.dispatch(Action::Back);QVERIFY(flow->busy());
+        QVERIFY(!shell.libraryTools()->editGuard().isEmpty());QVERIFY(shell.runtimeChangeBlocked());
+        shell.libraryTools()->beginGame("fixture");shell.libraryTools()->activate(2);shell.libraryTools()->activate(1);
+        QCOMPARE(library.edits,0);QVERIFY(shell.libraryTools()->error().contains("downloads"));
+        flow->downloadCommand({},"cancel-all");QTRY_VERIFY(!flow->busy());
+        QVERIFY(shell.libraryTools()->editGuard().isEmpty());
+        shell.libraryTools()->activate(1);QCOMPARE(library.edits,1);
+    }
     void downloadsOpenFromStartQuickControlsAndCloseWithoutNavigation() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;

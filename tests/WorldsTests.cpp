@@ -278,12 +278,13 @@ private slots:
         DevelopmentPlatformService platform;MockPokedexRepository dex;
         MockHallOfFameRepository shellArchive;MockAchievementProvider shellAchievements;
         ShellController shell(library,profiles,adapter,platform,dex,dex,shellArchive,shellAchievements);
-        shell.goToPage(1);shell.activate(2);
+        shell.goToPage(1);QVERIFY(shell.collectionsRoot());shell.activate(0);shell.activate(2);
         QCOMPARE(shell.worlds()->route(),"adventures");const int selected=shell.worlds()->adventureIndex();
         shell.dispatch(Action::SystemMenu);
         shell.dispatch(Action::Back);
         QCOMPARE(shell.worlds()->route(),"adventures");QCOMPARE(shell.worlds()->adventureIndex(),selected);
         shell.dispatch(Action::NextPage);shell.dispatch(Action::PreviousPage);
+        QVERIFY(shell.collectionsRoot());shell.dispatch(Action::Confirm);
         QCOMPARE(shell.worlds()->route(),"regions");QCOMPARE(shell.focusIndex(),2);
         shell.dispatch(Action::Confirm);QCOMPARE(shell.worlds()->route(),"adventures");
         QCOMPARE(shell.worlds()->adventureIndex(),selected);

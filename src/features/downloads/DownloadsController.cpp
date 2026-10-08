@@ -2,16 +2,29 @@
 #include <algorithm>
 namespace trainer {
 void DownloadsController::publish(const QString& provider,const QVariantList& rows) {
+    const auto previous=tasks().value(focusIndex()).toMap();
     sources_[provider]=rows;
     const auto list=tasks();
     if(std::none_of(list.begin(),list.end(),[this](const QVariant& v){return v.toMap()["key"]==selected_;}))
         selected_=list.value(0).toMap()["key"].toString();
+    // Follow the active download when it completes, without moving a player's
+    // deliberate selection of an edition/error or an open action pane.
+    if(!pane_&&previous["state"]=="running") {
+        const auto selected=tasks().value(focusIndex()).toMap();
+        if(selected["terminal"].toBool()) {
+            for(const auto& value:list){const auto row=value.toMap();
+                if(row["state"]=="running"||row["state"]=="queued"){selected_=row["key"].toString();break;}
+            }
+        }
+    }
     action_=std::clamp(action_,0,std::max(0,int(actions().size())-1));emit changed();
 }
 QVariantList DownloadsController::tasks() const {
     QVariantList list;
     for(auto source=sources_.begin();source!=sources_.end();++source)
-        for(const auto& v:source.value()){auto row=v.toMap();row["provider"]=source.key();row["key"]=source.key()+":"+row["id"].toString();list<<row;}
+        for(const auto& v:source.value()){auto row=v.toMap();row["provider"]=source.key();row["key"]=source.key()+":"+row["id"].toString();row["section"]=row["state"]=="done"?"Downloaded":"";list<<row;}
+    const auto rank=[](const QVariant& v){const auto state=v.toMap()["state"].toString();return state=="running"?0:state=="done"?2:1;};
+    std::stable_sort(list.begin(),list.end(),[&](const QVariant& a,const QVariant& b){return rank(a)<rank(b);});
     return list;
 }
 int DownloadsController::focusIndex() const {

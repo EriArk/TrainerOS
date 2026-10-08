@@ -459,6 +459,7 @@ if(BUILD_TESTING)
     target_sources(traineros PRIVATE tests/ui/DiagnosticsSmokeScenario.cpp tests/ui/DiagnosticsSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/CenterSmokeScenario.cpp tests/ui/CenterSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/ExitSmokeScenario.cpp tests/ui/ExitSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/DownloadsSmokeScenario.cpp tests/ui/DownloadsSmokeScenario.h)
     add_dependencies(traineros trainer_process_probe)
     target_include_directories(traineros PRIVATE tests/ui)
     # Only the entry point branches on this macro; keep test entry flags scoped
@@ -544,13 +545,14 @@ if(BUILD_TESTING)
     add_dependencies(trainer_persistence_process_tests traineros)
     add_test(NAME persistence_process COMMAND trainer_persistence_process_tests)
     add_test(NAME qml_smoke COMMAND traineros --smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots")
+    add_test(NAME downloads_qml_smoke COMMAND traineros --downloads-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/downloads")
     add_test(NAME worlds_qml_smoke COMMAND traineros --worlds-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/worlds")
     add_test(NAME pokedex_qml_smoke COMMAND traineros --pokedex-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/pokedex")
     add_test(NAME artwork_qml_smoke COMMAND traineros --art-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/artwork")
     add_test(NAME hall_qml_smoke COMMAND traineros --hall-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/hall")
     add_test(NAME diagnostics_qml_smoke COMMAND traineros --diagnostics-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/diagnostics")
     add_test(NAME exit_qml_smoke COMMAND traineros --exit-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/exit")
-    set_tests_properties(exit_qml_smoke pointer_visibility retroarch core interactions worlds pokedex hall storage library process diagnostics persistence_process qml_smoke worlds_qml_smoke pokedex_qml_smoke hall_qml_smoke diagnostics_qml_smoke PROPERTIES
+    set_tests_properties(downloads_qml_smoke exit_qml_smoke pointer_visibility retroarch core interactions worlds pokedex hall storage library process diagnostics persistence_process qml_smoke worlds_qml_smoke pokedex_qml_smoke hall_qml_smoke diagnostics_qml_smoke PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software"
         TIMEOUT 30
     )

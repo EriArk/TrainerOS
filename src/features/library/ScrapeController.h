@@ -14,6 +14,7 @@ class ScrapeController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool open READ isOpen NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
+    Q_PROPERTY(bool choosingMatch READ choosingMatch NOTIFY changed)
     Q_PROPERTY(QString title READ title NOTIFY changed)
     Q_PROPERTY(QString detail READ detail NOTIFY changed)
     Q_PROPERTY(QString status READ status NOTIFY changed)
@@ -33,9 +34,11 @@ public:
     std::function<bool()> canStart;
     bool isOpen() const {return open_;}
     bool busy() const {return active_ || working_;}
+    bool choosingMatch() const {return choosing_;}
+    Q_INVOKABLE void back(){dispatch(Action::Back);}
     QString title() const;
     QString detail() const;
-    QString status() const {return status_;}
+    QString status() const;
     QVariantList rows() const;
     QVariantList settingsRows() const;
     int focusIndex() const {return focus_;}
@@ -96,6 +99,11 @@ private:
     QFuture<void> future_;
     QList<Item> queue_,failures_;
     Outcome pending_;
+    // Edition selection belongs to an item, not to the sequential worker.
+    QMap<QString,Outcome> choices_;
+    QMap<QString,scraper::Game> matches_;
+    QMap<QString,QString> searches_;
+    QString choiceId_,searchId_;
     QStringList results_;
     QMap<QString,QString> taskStates_,taskErrors_;
     QVariantList systems_;
