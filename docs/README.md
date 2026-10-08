@@ -1,5 +1,12 @@
 # Documentation
 
+**Final product:** [Complete product vision (Russian)](PRODUCT_VISION_RU.md)
+describes the end-to-end target, detailed behaviour, safeguards, failure handling,
+acceptance and issue coverage. [Issues #136-160](EXPANSION_136_160.md) reconcile guest
+content, OddCrate, independent updates and TV. Targets and installed evidence are
+explicitly separate; [ROADMAP](ROADMAP.md) retains the active execution order.
+
+
 Start with the [project overview](../README.md) and [native build guide](DEVELOPMENT.md).
 TrainerOS is under active development. Dated device reports describe what was
 observed on those builds; they are not universal compatibility promises.

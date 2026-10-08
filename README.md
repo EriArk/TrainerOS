@@ -21,6 +21,9 @@ with original fictional content and optional animated examples. The static bundl
 can be served independently or embedded in a website; it does not run emulators
 or connect to real accounts.
 
+Full target specification: [Product vision (Russian)](docs/PRODUCT_VISION_RU.md).
+It describes planned behaviour; current implementation and acceptance remain in the linked feature records.
+
 ## Development status and getting started
 
 This repository currently provides **source and development deployment tooling**,

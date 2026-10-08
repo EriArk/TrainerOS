@@ -1,5 +1,18 @@
 # AGENTS.md — TrainerOS
 
+**Owner full-product documentation/reconciliation, 2026-10-08:**
+[PRODUCT_VISION_RU](docs/PRODUCT_VISION_RU.md) consolidates the final product;
+[#136-160](docs/EXPANSION_136_160.md) adds guest content, OddCrate, independent
+image/host (I/H), Software (S) and game (G) updates, and real Auto/Handheld/TV layouts.
+Revised #113 uses 7200 eligible gameplay seconds OR verified exact completion with
+meaningful local play, required stars and compatible legacy reviews; imported
+completion alone is insufficient. Preserve personal-file contractual responsibility
+below and operator review of OddCrate publications. The private ROM Policy Studio
+must never enter any GitHub repository, including prototypes. These are targets,
+not installed capabilities. MP-02 remains next; preserve its timer changes.
+Pack Studio/optional ROM assets still precede distribution, updates and final QA.
+
+
 **Owner guest-content responsibility correction, 2026-10-08:** maintain guest
 prohibitions for known official releases/regions/revisions only; do not build
 a ROM-hack/converted-image catalog or require automatic classification of

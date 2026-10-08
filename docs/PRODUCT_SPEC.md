@@ -1,17 +1,25 @@
 # TrainerOS Product Specification
 
-**Accepted target update, 2026-10-08:** [#118–135](EXPANSION_118_135.md)
-supersede conflicting older distribution and Social presentation wording below.
-TrainerOS has one canonical release, delivered as an Armada image or through a
-convergence installer on supported SteamOS/Bazzite hosts, with owned session and
-runtimes, repair and safe uninstall. These paths are planned, not released.
-Social now provides a unified DM/group Messages list, Communities and Discover, with
-one Together area and consistent party/incoming-activity controls. Calls remain
-independent; people-first invitations hide automatic transport selection.
-Live Hotseat adds explicit control handoff on one logical pad, not offline turns.
-[UX-01 delivery](SOCIAL_UX.md) records parallel touch/controller controls and
-Flip/Odin proof. [The active queue](ROADMAP.md#active-execution-queue--2026-10-08)
-now resumes MP-02 and keeps Pack Studio before distribution.
+**Current consolidated target, 8 October 2026:** read the
+[complete Russian product vision](PRODUCT_VISION_RU.md) and
+[#136-160 acceptance register](EXPANSION_136_160.md). Prepared Armada image and
+supported SteamOS/Bazzite installation share compatible Software S components,
+with independent image I / host H, Software S and OddCrate G updates. True TV
+layouts, temporary guest sessions, curated OddCrate and universal #113 reviews
+are target work, not installed capabilities.
+
+Social uses Messages (DMs + groups), Communities and Discover, compact contextual
+actions/profiles and a persistent composer with parallel touch/controller input.
+Keep the warm palette and conversation space; Together is shared party/activity
+access, not a mandatory large permanent panel. See [current evidence](SOCIAL_COMPACT.md).
+Calls stay independent. The [active queue](ROADMAP.md) resumes MP-02, preserves its
+timer work and keeps Pack Studio/optional assets before distribution.
+
+## Historical specification and retained requirements
+
+The dated decisions below preserve scope and implementation history. Current
+vision and explicit later owner decisions supersede conflicting target wording;
+they do not erase earlier outstanding acceptance.
 
 **2026-10-04 #114 installed navigation:** Worlds opens available game-series
 collections; Pokemon regions live inside its collection. Other series can use

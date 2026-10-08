@@ -1,5 +1,16 @@
 # TrainerOS Design Language
 
+**Current composition target, 8 October 2026:**
+[PRODUCT_VISION_RU](PRODUCT_VISION_RU.md#vision-design) consolidates the later
+compact warm Social correction and #156-159 Auto/Handheld/TV requirements.
+Messages (DMs + groups), Communities and Discover supersede older Social faces.
+Use compact icons/ellipsis/profile actions and one persistent composer, preserving
+conversation space and parallel touch/controller use. Together reuses party state;
+it does not require a large permanent shelf. TV needs real recomposition, visible
+D-pad-only navigation and safe dock transitions, not canvas scaling. Compact
+Social is installed ([evidence](SOCIAL_COMPACT.md)); true TV remains planned.
+
+
 **2026-10-08 Social refinement:** preserve the composition below while using
 Messages / Communities / Discover. DMs and groups share Messages. One compact
 Together cap replaces separate activity shelves; the persistent composer has

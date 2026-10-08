@@ -1,5 +1,25 @@
 # Adventure Reviews — #113
 
+**Superseding target #113, 8 October 2026:** writing opens after **7200 seconds
+of eligible actual gameplay recorded in completed sessions OR verified exact-game
+completion with meaningful local play**. Imported completed saves alone do not
+qualify. Exclude preparing, failed launch, known background/suspend and exit-preview
+time; do not claim universal emulator pause detection. Require 1-5 stars, allow
+optional text up to 800 characters, one effective provider-account/game review,
+edit/delete/spoiler/report and one gentle eligibility prompt outside active play.
+Use existing FluxerReviews + PlayHistory. V2 reads legacy V1 text reviews without
+inventing stars; stable content identity survives rename/move. OddCrate #151 uses
+the same reviews, curated compatible-version mapping and sample-aware ranking.
+See [full target](PRODUCT_VISION_RU.md#vision-reviews).
+
+**Implementation boundary:** the Emerald-only `champion-v1` policy and V1 format
+described below are the existing bounded implementation, not the revised universal
+target. REVIEW-05 retains eligibility/rating/migration work; no code changed in
+this reconciliation. The old import-only allowance must change during that work.
+
+## Historical implemented baseline
+
+
 Reviews live in Hold A → Properties → Reviews. Reading does not require a
 completed save. The compact list/detail panel shares the controller keyboard,
 spoiler reveal, author/date, edit/delete and report actions. It adds no primary

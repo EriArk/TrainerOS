@@ -1,5 +1,14 @@
 # Issues #118–135: accepted scope and dependencies
 
+**Later reconciliation, 8 October 2026:** [#136-160](EXPANSION_136_160.md)
+supersedes monolithic-release wording below with independent related I/S manifests,
+host-owned H and independent OddCrate G. Revised #113 adds universal eligibility
+and ratings; #156-160 add true TV layouts and acceptance. The compact Social
+correction replaces the original oversized Together layout, not shared party
+state or provider/lifecycle boundaries. This register's original #135 snapshot
+is historical; MP-02 remains next. Full target: [product vision](PRODUCT_VISION_RU.md).
+
+
 **Compact Social revision installed, 8 October 2026:** the first UX-01
 composition was rejected for oversized controls and insufficient chat space.
 The replacement compact interface and native Fluxer profiles are now installed
@@ -21,18 +30,22 @@ distribution and Hotseat outcomes below remain planned.
 remains authoritative; the rows below group whole outcomes, not one turn per issue.
 Existing R1–R18, R7a, R18a/R18b, U/P and communication obligations are retained.
 
-## Distribution: one release, two delivery paths
+<a id="distribution-one-release-two-delivery-paths"></a>
+
+## Distribution: shared Software, independent image, two delivery paths
 
 Parent: [#118](https://github.com/EriArk/TrainerOS/issues/118).
 The prepared ArmadaOS image remains required. A convergence installer also brings
-supported SteamOS and Bazzite handhelds to the same TrainerOS-owned release state.
+supported SteamOS and Bazzite devices to the same compatible TrainerOS Software S
+state. Image I and external host H remain independently updated system foundations;
+OddCrate G has its own game-package updates (#153–155).
 This is a dedicated selectable session with managed runtimes, not a frontend that
 inherits arbitrary host emulator versions. The host's Gaming Mode/Desktop and
 unrelated emulator installations remain available.
 
 | Issue | Complete outcome | Dependency and acceptance |
 | --- | --- | --- |
-| [#119](https://github.com/EriArk/TrainerOS/issues/119) · REL-01 | One versioned, machine-readable release/ownership definition | Reuse image, update and emulator manifests. Include application, host/device profile, session/helpers/services, runtimes/cores/patches, configuration migrations, data compatibility and integrity. Distinguish owned, host-provided, user-owned and optional state. Read-only diff; no secrets, ROMs, firmware, saves or private artwork. |
+| [#119](https://github.com/EriArk/TrainerOS/issues/119) · REL-01 | Independent related image I and Software S manifests with shared component ownership | Reuse existing manifests. S includes application, host/device requirements, session/helpers/services, runtimes/cores/patches, adapters/policies, migrations, data compatibility and integrity. I pins a compatible baseline S without downgrading newer compatible software. Distinguish owned, host-provided, user-owned and optional state. Read-only diff; no secrets, ROMs, firmware, saves or private artwork. |
 | [#120](https://github.com/EriArk/TrainerOS/issues/120) · INSTALL-01 | Selectable TrainerOS session on SteamOS and Bazzite | REL-01 and actual host/device profiles. Gamescope/display/input/Home integration, helper lifetime, game launch/return, system hooks and clean transition back. Privileged integration is narrow, recorded, idempotent and reversible; failure leaves host recovery usable. |
 | [#121](https://github.com/EriArk/TrainerOS/issues/121) · INSTALL-01 | Release-owned emulator/core stack | Pinned reproducible runtime and patch records, private session configuration, input/save/update identity. Coexist with user installations; reuse only proven exact matches. A package name is not equivalence. |
 | [#122](https://github.com/EriArk/TrainerOS/issues/122) · INSTALL-01 | Fresh install, repeat install and interrupted-install recovery | REL-01 + session/runtime components. Preflight host, device, storage, graphics/input and existing owned state. Stage/verify/apply/validate in recoverable order; matching state is a no-op. No false success marker or manual per-emulator setup. |
@@ -42,8 +55,9 @@ unrelated emulator installations remain available.
 
 REL-01 follows stable product/asset inputs and precedes both distribution builders.
 R15 is the prepared-image outcome; INSTALL-01 delivers install/use/uninstall on
-both supported host families as one coherent outcome. R16 updates both paths
-through shared ownership/migration rules; MAINT-01 handles host-induced drift.
+both supported host families as one coherent outcome. R16 retains image OTA;
+SW-01 delivers independent Software S updates on both paths, including policy-only
+releases. MAINT-01 handles host-induced drift; native host updates remain host-owned.
 R17 includes the three-path comparison. Pack Studio and optional ROM-native
 integration remain before the image; installer work does not bypass those gates.
 Runtime recipes and host constraints should be maintained in their existing

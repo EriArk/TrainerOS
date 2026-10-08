@@ -1,4 +1,14 @@
 > Schema 14 (2026-09-27) adds owner-scoped immutable `champion_records` with
+
+**Current target reconciliation, 8 October 2026:**
+[Product vision](PRODUCT_VISION_RU.md#vision-architecture) and
+[#136-160](EXPANSION_136_160.md) add shared-backend handheld/TV presentation,
+guest-content leases, curated OddCrate identities/reviews, and independent I/H/S/G
+update ownership. #119 now requires related independent image I and Software S
+manifests with one component-ownership contract. These are target changes, not a
+claim that the runtime schema/services below already implement them. Existing
+Adventure/save/provider boundaries remain; migrations require their own checks.
+
 > exact build/source revision, bounded save identity, historical Hall team and
 > first observation time. It does not alter manual memories or external saves.
 > [Exact Emerald scope and lineage limits](EMERALD_JOURNEY.md).

@@ -1,5 +1,16 @@
 # TrainerOS Roadmap
 
+**Product reconciliation, 8 October 2026:** the [complete product vision in
+Russian](PRODUCT_VISION_RU.md) and [#136-160 register](EXPANSION_136_160.md) add
+temporary guest content, OddCrate, universal reviews, independent I/H/S/G update
+ownership and true handheld/TV layouts. These are target requirements, not new
+installed capabilities. The owner's personal-content correction replaces the
+per-file verified-rights gate with contractual responsibility; signed-policy,
+consent, integrity and session safeguards remain. **MP-02 stays next**, with its
+uncommitted runtime timer work preserved. Older dated checkpoints below retain
+evidence; their superseded targets do not override this revision.
+
+
 **Compact Social revision installed, 8 October 2026:** the first UX-01
 composition was rejected for oversized controls and insufficient chat space.
 The replacement compact interface and native Fluxer profiles are now installed
@@ -72,13 +83,21 @@ The owner explicitly rejects test-only passes substituted for feature delivery.
 | Retained · block 3 | COM-03: outstanding calls/notifications acceptance | Human speech/listening is owner-deferred. Keep group voice running through multiplayer; resume the missing acceptance when its prerequisite is available, without restarting completed call checks. |
 | 5 · block 1 | HS-01: live Hotseat Relay, #126 | After the existing oldest-first MP-02…MP-07 queue. One real pass-controller title: exclusive input owner, ordered handoff, loss/rejoin, safe persistence and complete existing party/Home journey. No asynchronous turns. |
 | 6 · block 4 | LINK-04: complete native online activities | After block 1, using existing invitation infrastructure and protected bilateral transactions, with #93/#94 prerequisites for trust-sensitive use. Emulator multiplayer and saved-creature Link stay separate. |
-| 7 · block 5 | REVIEW-05: #113, #135 and residual communication | Preserve exact-game review policy; finish replies/quotes, reactions, mentions, person card and composer/media acceptance. Validate whole friend/group/in-game/Link/rejoin journeys and independent calls on both devices. No history search. |
-| 8 | Remaining R1–R14, R7a and U/P commitments | Continue the preserved [unified backlog](#unified-execution-order--existing-work-and-new-issues), doing residual work only. ScreenScraper needs owner access; sleep remains deferred. #112 appearance, RA, adapters, Steam, device/input, export, maintenance and Help remain. |
+| 7 · block 5 | REVIEW-05: #113, #135 and residual communication | Implement revised #113: 7200 eligible gameplay seconds OR verified exact completion with meaningful local play, stars/optional text and legacy migration; imported completion alone is insufficient. Finish replies/quotes, reactions, mentions, person card and composer/media acceptance. Validate whole friend/group/in-game/Link/rejoin journeys and independent calls on both devices. No history search. |
+| 8 | Remaining R1–R14, R7a and U/P commitments | Continue the preserved [unified backlog](#unified-execution-order--existing-work-and-new-issues), doing residual work only. ScreenScraper needs owner access; sleep remains deferred. #112 appearance, RA, adapters, Steam, device/input, export, maintenance and Help remain. Add ODD-01 (#144-152) and TV-01 (#156-159), with #113 reviews shared by OddCrate; their mutual priority is not separately decided. |
 | 9 | R18 → R18a/R18b | Complete Pack Studio/art and sprite packs, then optional exact-ROM extraction/cache/integration. Preserve pack-first suppression and user content boundaries. |
-| 10 | REL-01: canonical release state, #119 | Shared image/install/update/repair ownership and integrity definition, reusing existing runtime manifests. Stable product/asset inputs first; do not create a second release database. |
+| 10 | REL-01: canonical release state, #119 | Independent related image I and Software S manifests (#119/#153), shared component ownership/integrity and compatible S artifacts across delivery paths. Design dependent contracts earlier where needed; final distribution follows product/assets. No second ownership database. |
 | 11 | R15 image + INSTALL-01, #118/#120–122/#124 | Both consume REL-01. Prepared Armada image plus supported SteamOS/Bazzite session/runtime install, repeat/interrupted install and safe uninstall. Each path needs its own actual device proof and recovery. |
-| 12 | R16 updates/rollback + MAINT-01, #123 | Shared release/data migration and compatible rollback on image and installed paths; explicit repair of owned drift after host updates. Preserve host sessions and user data. |
-| 13 | R17 final acceptance + #125 | Compare Armada image, SteamOS and Bazzite everyday outcomes and N→N+1 upgrades. Include #115 notices, #116 assets and #117 clean build gates. Missing host hardware or owner acceptance stays explicitly open. |
+| 12 | R16 updates/rollback + MAINT-01, #123 | Separate #71 image OTA, SW-01 #154 Software updates and #155 UI, plus #123 repair after native host updates. Policy-only S releases leave image/host and unchanged binaries intact. Preserve compatible data rollback, host sessions and user data. |
+| 13 | R17 final acceptance + #125 | Compare Armada image, SteamOS and Bazzite everyday outcomes and independent I/S/G upgrades. Include #141 guest sessions, #152 OddCrate, #160 real handheld/TV matrix, #115 notices, #116 assets and #117 clean build gates. Missing host hardware or owner acceptance stays explicitly open. |
+
+**New dependent scope, not a priority override:** GUEST-01 (#136-143) follows
+the runtime/party foundations and must be complete before missing-game invitations
+are claimed. Its priority relative to later native Link is not separately decided.
+The [new register](EXPANSION_136_160.md) retains its policy/lease/Software dependencies,
+ODD-01, TV-01 and SW-01 without interrupting MP-02. Cross-cutting Software contracts
+may be implemented when a dependent feature needs them; Pack Studio and optional
+ROM assets still precede final image/installer distribution.
 
 **Owner availability correction, 2026-10-04:** implemented multiplayer is enabled
 in normal installations. The developer opt-in is removed; compatibility and

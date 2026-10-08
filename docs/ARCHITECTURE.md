@@ -1,5 +1,15 @@
 # TrainerOS Architecture
 
+**Current target reconciliation, 8 October 2026:**
+[Product vision](PRODUCT_VISION_RU.md#vision-architecture) and
+[#136-160](EXPANSION_136_160.md) add shared-backend handheld/TV presentation,
+guest-content leases, curated OddCrate identities/reviews, and independent I/H/S/G
+update ownership. #119 now requires related independent image I and Software S
+manifests with one component-ownership contract. These are target changes, not a
+claim that the runtime schema/services below already implement them. Existing
+Adventure/save/provider boundaries remain; migrations require their own checks.
+
+
 **Planned boundary update, 2026-10-08:** [#118–135](EXPANSION_118_135.md)
 add a canonical release/ownership definition consumed by image, installer,
 update/rollback, repair and uninstall. SteamOS/Bazzite host-specific session/input

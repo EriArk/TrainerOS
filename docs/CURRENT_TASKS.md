@@ -1,5 +1,16 @@
 # Current tasks
 
+**Product reconciliation, 8 October 2026:** the [complete product vision in
+Russian](PRODUCT_VISION_RU.md) and [#136-160 register](EXPANSION_136_160.md) add
+temporary guest content, OddCrate, universal reviews, independent I/H/S/G update
+ownership and true handheld/TV layouts. These are target requirements, not new
+installed capabilities. The owner's personal-content correction replaces the
+per-file verified-rights gate with contractual responsibility; signed-policy,
+consent, integrity and session safeguards remain. **MP-02 stays next**, with its
+uncommitted runtime timer work preserved. Older dated checkpoints below retain
+evidence; their superseded targets do not override this revision.
+
+
 **Compact Social revision installed, 8 October 2026:** the first UX-01
 composition was rejected for oversized controls and insufficient chat space.
 The replacement compact interface and native Fluxer profiles are now installed
