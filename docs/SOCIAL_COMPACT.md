@@ -98,3 +98,19 @@ bounded Social screenshot set:
 This correction does not close
 #135, physical ergonomics/audio, distinct-network/group-size, later runtime,
 Hotseat, artwork or distribution acceptance. MP-02 is next after this delivery.
+
+## Palette follow-up, 8 October 2026
+
+The owner requested the shared colourful handheld character back in Social.
+The compact layout now uses a peach sidebar, lavender conversation header,
+warm cream message surface and the shell's blue/pink/yellow/green icon accents.
+Avatars and golden focus highlights repeat the existing shell palette. Message
+text stays on a plain readable surface. Control sizes, message viewport,
+provider behaviour and controller routes are unchanged.
+
+The ARM/QML build passed. The palette build is installed on both handhelds;
+SHA-256: `4f8cd4d2783e807f4d811edbe5af66530c134777b9e27641b094cef058a7f7b4`.
+Device screenshots above now show this follow-up. Existing functional tests
+are reused for this colour-only change; no new runtime acceptance is claimed.
+The installed chat, profile and overflow were visually reviewed; the runtime
+logs contained no Social QML errors and both outputs remained at 0%.

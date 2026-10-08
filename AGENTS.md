@@ -1,5 +1,10 @@
 # AGENTS.md — TrainerOS
 
+**Owner Social palette correction, 2026-10-08:** compact Social must retain the
+colourful, warm handheld character of the rest of TrainerOS. Use the shared
+pastel accents for icons, avatars, focus and surfaces; preserve readable message
+space, compact geometry and parallel touch/controller actions.
+
 **Owner Social correction, 2026-10-08:** the first UX-01 visual delivery was
 rejected for oversized controls and too little conversation space. Complete the
 compact Fluxer-style correction and provider-backed profiles before MP-02.
