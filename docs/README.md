@@ -28,6 +28,7 @@ observed on those builds; they are not universal compatibility promises.
   [independent handheld link](HANDHELD_MULTIPLAYER.md).
 - [Game-adapter knowledge](adapters/README.md) and [Emerald Link](EMERALD_LINK.md).
 - [Public-readiness audit and follow-ups](PUBLIC_READINESS.md).
+- [User agreement draft (Russian)](USER_AGREEMENT_DRAFT_RU.md) — proposed content responsibilities; not effective service terms.
 
 ## Reading historical records
 

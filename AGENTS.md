@@ -1,5 +1,17 @@
 # AGENTS.md — TrainerOS
 
+**Owner guest-content responsibility correction, 2026-10-08:** maintain guest
+prohibitions for known official releases/regions/revisions only; do not build
+a ROM-hack/converted-image catalog or require automatic classification of
+unknown user files. The requested model uses user contractual responsibility
+for rights to their supplied/transmitted content instead of the earlier
+per-file verified-rights prerequisite in #136/#140. Unknown is not itself a
+prohibition or an operator certification. Preserve signed-policy validity,
+consent, runtime/integrity/session controls and operator review of OddCrate
+publications. [Agreement draft](docs/USER_AGREEMENT_DRAFT_RU.md) records this
+target change; it is not implemented transfer behaviour or effective legal
+terms. Operator/jurisdiction details and legal review remain outstanding.
+
 **Owner Social palette correction, 2026-10-08:** compact Social must retain the
 colourful, warm handheld character of the rest of TrainerOS. Use the shared
 pastel accents for icons, avatars, focus and surfaces; preserve readable message
