@@ -6,6 +6,10 @@ choices delivered on Flip 2 and Odin 2; evidence and remaining boundaries below.
 ROADMAP owns the execution queue: resume MP-02 after this owner-requested detour.
 The older ScreenScraper/video/Pokedex sequence is historical, not the current queue.
 
+Owner-requested public screenshots: [Downloads, settings and two game pages on
+Flip 2](../screenshots/screenscraper-2026-10-08/README.md). This bounded gallery
+preserves earlier README images and excludes account fields and raw media files.
+
 ## Native integration — 2026-10-08
 
 The owner explicitly resumed #65 after the [developer-account reply](https://www.screenscraper.fr/forumsujet.php?frub=12&fsuj=24501).

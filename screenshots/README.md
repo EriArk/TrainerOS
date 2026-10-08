@@ -1,5 +1,11 @@
 # TrainerOS on the handhelds
 
+## ScreenScraper and Downloads — 8 October 2026
+
+[Five fresh Flip 2 screenshots](screenscraper-2026-10-08/README.md): the shared
+Downloads queue, download/display settings, and populated GBA/Nintendo 64 game
+pages. Original full-resolution captures with no visible account credentials.
+
 ## Current website selection
 
 [4 October 2026: curated full-resolution screenshots](site-2026-10-04/README.md)
