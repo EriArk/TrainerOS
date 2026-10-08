@@ -23,6 +23,17 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void downloadsOpenFromStartQuickControlsAndCloseWithoutNavigation() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
+        DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        shell.goToPage(1);shell.dispatch(Action::SystemMenu);shell.dispatch(Action::Secondary);
+        QCOMPARE(shell.focusIndex(),7);shell.dispatch(Action::Down);shell.dispatch(Action::Down);
+        QCOMPARE(shell.focusIndex(),12);shell.dispatch(Action::Confirm);
+        QVERIFY(shell.downloads()->isOpen());QVERIFY(!shell.menuOpen());
+        shell.dispatch(Action::Back);QVERIFY(!shell.downloads()->isOpen());QCOMPARE(shell.page(),1);
+        shell.dispatch(Action::SystemMenu);shell.activate(12);QVERIFY(shell.downloads()->isOpen());
+    }
     void messageKeyboardSendsOnceAndKeepsEmojiWhole() {
         TextEntryController keyboard;QSignalSpy accepted(&keyboard,&TextEntryController::accepted);
         keyboard.begin("Message",{},10,false,"Send",true);

@@ -18,12 +18,29 @@
 
 namespace trainer::scraper {
 namespace {
-const QMap<QString,int> systems{{"gb",9},{"gbc",10},{"gba",12},{"nds",15},{"n3ds",17},
-    {"n64",14},{"gc",13},{"wii",16},{"wiiu",18},{"switch",225},{"pokemini",211},
-    {"nes",3},{"snes",4},{"mastersystem",2},{"megadrive",1},{"gamegear",21},{"sega32x",19},
-    {"segacd",20},{"saturn",22},{"dreamcast",23},{"psx",57},{"ps2",58},{"psp",61},
-    {"pcengine",31},{"pcenginecd",114},{"ngp",25},{"ngpc",82},{"neogeo",142},
-    {"neogeocd",70},{"fbneo",75},{"mame",75},{"naomi",56},{"atomiswave",53}};
+// ScreenScraper systemesListe.php, verified 2026-10-08. No surrogate IDs
+// for C128, Enterprise, System SP or Videopac+: the service has no entries.
+const QMap<QString,int> systems{{"3do",29},{"amiga1200",111},{"amiga500",64},{"amigacd32",130},{"amigacdtv",129},
+    {"amstradcpc",65},{"apple2",86},{"arcadia",94},{"arduboy",263},{"atari2600",26},
+    {"atari5200",40},{"atari7800",41},{"atari800",43},{"atarist",42},{"atomiswave",53},
+    {"bbcmicro",37},{"bk",93},{"c20",73},{"c64",66},{"cdi",133},
+    {"channelf",80},{"colecovision",48},{"cplus4",99},{"dos",135},{"dreamcast",23},
+    {"fbneo",75},{"fds",106},{"gameandwatch",52},{"gamegear",21},{"gb",9},
+    {"gba",12},{"gbc",10},{"gc",13},{"gx4000",87},{"intellivision",115},
+    {"jaguar",27},{"lowresnx",244},{"lynx",28},{"macintosh",146},{"mame",75},
+    {"mastersystem",2},{"megadrive",1},{"megaduck",90},{"msx",113},{"msx2",116},
+    {"msx2+",117},{"msxturbor",118},{"n3ds",17},{"n64",14},{"naomi",56},
+    {"naomi2",230},{"nds",15},{"neogeo",142},{"neogeocd",70},{"nes",3},
+    {"ngp",25},{"ngpc",82},{"odyssey2",104},{"pc88",221},{"pc98",208},
+    {"pcengine",31},{"pcenginecd",114},{"pcfx",72},{"pet",240},{"pico",250},
+    {"pico8",234},{"pokemini",211},{"ps2",58},{"ps3",59},{"psp",61},
+    {"psx",57},{"satellaview",107},{"saturn",22},{"scummvm",123},{"scv",67},
+    {"sega32x",19},{"segacd",20},{"sg1000",109},{"snes",4},{"snes-msu1",210},
+    {"spectravideo",218},{"sufami",108},{"supergrafx",105},{"supervision",207},{"switch",225},
+    {"thomson",141},{"tic80",222},{"uzebox",216},{"vectrex",102},{"vircon32",272},
+    {"virtualboy",11},{"wasm4",262},{"wii",16},{"wiiu",18},{"wonderswan",45},
+    {"wonderswancolor",46},{"x1",220},{"x68000",79},{"xegs",43},{"zx81",77},
+    {"zxspectrum",76}};
 bool cancelled(const Cancellation& flag) { return flag && flag->load(); }
 QString value(const QJsonValue& v) {
     if(v.isObject()) return value(v.toObject().value("text"));
@@ -37,15 +54,16 @@ QString preferred(const QJsonValue& list, const QString& field, const QStringLis
     return {}; // Do not substitute an unrelated language.
 }
 Quota quota(const QJsonObject& user) {
-    return {integer(user["maxthreads"]),integer(user["maxrequestspermin"]),integer(user["maxrequestsperday"]),
+    return {integer(user["maxthreads"]),integer(user.contains("maxrequestspermin")?user["maxrequestspermin"]:user["maxrequestsperdmin"]),integer(user["maxrequestsperday"]),
         integer(user["requeststoday"]),integer(user["maxrequestskoperday"]),integer(user["requestskotoday"])};
 }
-Game parseGame(const QJsonObject& data, const Fingerprint* file) {
+Game parseGame(const QJsonObject& data, const Fingerprint* file, const Preferences& preferences) {
     Game g;g.id=value(data["id"]);g.system=integer(data["systeme"].toObject()["id"]);
-    if(integer(data["id"])<=0 || g.system<=0 || integer(data["notgame"])>0)return {};
-    const QStringList regions{"us","wor","eu","uk","ss"};
+    if(integer(data["id"])<=0 || g.system<=0 || data["notgame"].toBool() || data["notgame"].toString()=="true" || integer(data["notgame"])>0)return {};
+    QStringList regions{preferences.region,"wor","us","eu","jp","uk","ss",""};regions.removeDuplicates();
+    QStringList languages{preferences.language,"en"};languages.removeDuplicates();
     g.fields["name"]=preferred(data["noms"],"region",regions);
-    g.fields["desc"]=preferred(data["synopsis"],"langue",{"en"});
+    g.fields["desc"]=preferred(data["synopsis"],"langue",languages);
     const auto date=preferred(data["dates"],"region",regions);
     QDate parsed=QDate::fromString(date,"yyyy-MM-dd");
     if(!parsed.isValid() && date.size()==4)parsed=QDate(date.toInt(),1,1);
@@ -54,17 +72,17 @@ Game parseGame(const QJsonObject& data, const Fingerprint* file) {
         g.fields[pair.first]=value(data[pair.second]).left(256);
     QStringList genres;
     for(const auto& genre:data["genres"].toArray()) {
-        const auto name=preferred(genre.toObject()["noms"],"langue",{"en"});
+        const auto name=preferred(genre.toObject()["noms"],"langue",languages);
         if(!name.isEmpty() && !genres.contains(name))genres.append(name);
     }
     g.fields["genre"]=genres.join(" / ").left(256);
-    const QMap<QString,QStringList> types{{"image",{"box-2D","box-3D"}}, {"marquee",{"wheel-hd","wheel"}},
-        {"screenshot",{"ss"}},{"fanart",{"fanart"}},{"video",{"video-normalized","video"}}};
+    const QMap<QString,QStringList> types{{"image",{preferences.cover,preferences.cover=="box-3D"?"box-2D":"box-3D"}}, {"marquee",{"wheel-hd","wheel"}},
+        {"screenshot",{"ss"}},{"fanart",{"fanart","background"}},{"video",{"video-normalized","video"}}};
     const auto media=data["medias"].toArray();
     if(media.size()>2048)return {};
     for(auto it=types.cbegin();it!=types.cend();++it) {
         for(const auto& type:it.value()) {
-            for(const auto& region:QStringList{"us","wor","eu","uk","ss",""}) {
+            for(const auto& region:regions) {
                 for(const auto& item:media) {
                     const auto m=item.toObject();const QUrl url(m["url"].toString());
                     if(m["type"].toString()==type && m["region"].toString()==region && allowedUrl(url)) {g.media[it.key()]=url;break;}
@@ -197,7 +215,7 @@ Result Client::request(const QString& op,const QMap<QString,QString>& fields,int
     const auto reply=transport_(url(op,fields),2*1024*1024,cancel);r.retryAfter=reply.retryAfter;
     if(cancelled(cancel)){r.status=Status::Cancelled;return r;}
     if(reply.status!=200) {
-        switch(reply.status) {case 401:case 403:case 426:r.status=Status::Denied;break;case 404:r.status=Status::NotFound;break;
+        switch(reply.status) {case 401:r.status=Status::MembersOnly;break;case 426:r.status=Status::ClientRejected;break;case 403:r.status=Status::Denied;break;case 404:r.status=Status::NotFound;break;
         case 423:case 429:r.status=Status::Busy;break;case 430:case 431:r.status=Status::Quota;break;default:r.status=Status::Offline;}
         if(r.status==Status::Busy)backoffSeconds_=std::max(30,reply.retryAfter);
         if(r.status==Status::Quota){quota_.daily=1;quota_.today=1;}
@@ -216,13 +234,14 @@ Result Client::request(const QString& op,const QMap<QString,QString>& fields,int
     else if(response["jeux"].isArray())games=response["jeux"].toArray();
     else return r;
     if(games.size()>30)return r;
-    for(const auto& entry:games) {auto g=parseGame(entry.toObject(),f);if(!g.id.isEmpty() && g.system==system)r.games.append(g);}
+    for(const auto& entry:games) {auto g=parseGame(entry.toObject(),f,preferences_);if(!g.id.isEmpty() && g.system==system)r.games.append(g);}
     r.status=r.games.isEmpty()?Status::NotFound:Status::Ready;return r;
 }
 Result Client::account(const Cancellation& cancel) { return request("ssuserInfos.php",{},0,nullptr,cancel); }
 Result Client::lookup(const QString& platform,const Fingerprint& f,const Cancellation& cancel) {
     const int system=systemId(platform);if(!system || !f.unchanged())return {};
-    return request("jeuInfos.php",{{"systemeid",QString::number(system)},{"romnom",QFileInfo(f.path).fileName()},
+    const auto extension=QFileInfo(f.path).suffix().toLower();
+    return request("jeuInfos.php",{{"systemeid",QString::number(system)},{"romtype",extension=="iso"?"iso":"rom"},{"romnom",QFileInfo(f.path).fileName()},
         {"romtaille",QString::number(f.size)},{"md5",f.md5},{"sha1",f.sha1},{"crc",f.crc}},system,&f,cancel);
 }
 Result Client::search(const QString& platform,const QString& title,const Cancellation& cancel) {
@@ -237,5 +256,25 @@ Reply Client::media(const QUrl& source,bool video,const Cancellation& cancel) {
     if(result.status==429 || result.status==423)backoffSeconds_=std::max(30,result.retryAfter);
     if(result.status==430 || result.status==431){quota_.daily=1;quota_.today=1;}
     return result;
+}
+QStringList Preferences::mediaTags() const {
+    QStringList tags;
+    if(!cover.isEmpty())tags<<"image";
+    if(logos)tags<<"marquee";
+    if(screenshots)tags<<"screenshot";
+    if(fanart)tags<<"fanart";
+    return tags;
+}
+QJsonObject Preferences::json() const {
+    return {{"language",language},{"region",region},{"cover",cover},{"metadata",metadata},
+        {"logos",logos},{"screenshots",screenshots},{"fanart",fanart},{"refresh",refresh}};
+}
+Preferences Preferences::fromJson(const QJsonObject& o) {
+    Preferences p;
+    if(QStringList{"en","ru","fr","de","es","it","pt","ja"}.contains(o["language"].toString()))p.language=o["language"].toString();
+    if(QStringList{"us","eu","jp","wor"}.contains(o["region"].toString()))p.region=o["region"].toString();
+    if(o.contains("cover")&&QStringList{"","box-2D","box-3D"}.contains(o["cover"].toString()))p.cover=o["cover"].toString();
+    p.metadata=o["metadata"].toBool(true);p.logos=o["logos"].toBool(true);p.screenshots=o["screenshots"].toBool(true);
+    p.fanart=o["fanart"].toBool(false);p.refresh=o["refresh"].toBool(false);return p;
 }
 }

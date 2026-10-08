@@ -59,7 +59,19 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     : QObject(parent), repository_(repo), adapter_(adapter), platform_(platform),
       keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this), multiverse_(repo, adapter, this),
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
-      libraryManager_(repo, nullptr, this), libraryTools_(repo,this), settings_(this), device_(this), diagnostics_(this), center_(repo,this), party_(!repo.editable(),this) {
+      libraryManager_(repo, nullptr, this), libraryTools_(repo,this), scraper_(repo,this), settings_(this), device_(this), diagnostics_(this), center_(repo,this), party_(!repo.editable(),this) {
+    settings_.setScraper(&scraper_);
+    connect(&downloads_,&DownloadsController::changed,this,&ShellController::changed);
+    connect(&scraper_,&ScrapeController::changed,this,[this]{downloads_.publish("screenscraper",scraper_.downloadTasks());});
+    connect(&scraper_,&ScrapeController::jobStarted,this,[this]{scraper_.hide();downloads_.begin();});
+    connect(&downloads_,&DownloadsController::commandRequested,this,[this](const QString& provider,const QString& task,const QString& command){
+        if(provider=="screenscraper"){if(command=="open")downloads_.close();scraper_.downloadCommand(task,command);}
+    });
+    connect(&scraper_,&ScrapeController::changed,this,&ShellController::changed);
+    connect(&scraper_,&ScrapeController::changed,&settings_,&SettingsController::changed);
+    connect(&scraper_,&ScrapeController::settingsBackRequested,this,[this]{settings_.selectCategory(14,false);});
+    connect(&scraper_,&ScrapeController::textRequested,this,[this](QString title,QString initial,bool secret){textTarget_=TextTarget::Scraper;keyboard_.begin(title,initial,256,secret,"Save");});
+    connect(&libraryTools_,&LibraryToolsController::scrapeRequested,&scraper_,&ScrapeController::begin);
     connect(&libraryTools_,&LibraryToolsController::reviewRequested,&social_,&SocialController::reviewCommand);
     connect(&social_,&SocialController::reviewsChanged,&libraryTools_,&LibraryToolsController::receiveReviews);
     connect(&network_, &NetworkController::changed,this,&ShellController::changed);
@@ -255,6 +267,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::AchievementAccount) hall_.account()->applyText(text);
         else if (target == TextTarget::Network) network_.applyText(text);
         else if (target == TextTarget::Social) social_.applyText(text);
+        else if (target == TextTarget::Scraper) scraper_.applyText(text);
         else if (target == TextTarget::Communication) settings_.communication()->applyText(text);
     });
     connect(&center_, &SaveCenterController::shopSearchRequested,this,[this](const QString& text){textTarget_=TextTarget::ShopSearch;keyboard_.begin("Find goods or shops",text,64);});
@@ -268,6 +281,7 @@ void ShellController::configureServices(FileCatalog* files, PreferencesRepositor
 }
 void ShellController::refreshLibrary() {
     worlds_.refresh(); libraryManager_.refresh(); multiverse_.refresh();
+    downloads_.publish("screenscraper",scraper_.downloadTasks());
     const auto records=repository_.registrations();
     settings_.setLegacyTrashAvailable(std::any_of(records.cbegin(),records.cend(),[](const auto& r){return r.removed && !r.trashPath.isEmpty();}));
     if (page_ == 3 && trainerProfile_) trainer_.refreshOverview();
@@ -297,7 +311,7 @@ bool ShellController::canEditWorld() const {
         && !drawerOpen_ && !libraryTools_.isOpen() && !worlds_.region().value("id").toString().isEmpty();
 }
 bool ShellController::localModalOpen() {
-    return (page_==4 && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing() || (page_ == 2 && (centerFace() ? center_.confirming() || center_.writing() || (center_.shopsOpen() && center_.shopModal()) || party_.detailOpen() || party_.moveOpen()
+    return downloads_.isOpen() || scraper_.isOpen() || (page_==4 && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing() || (page_ == 2 && (centerFace() ? center_.confirming() || center_.writing() || (center_.shopsOpen() && center_.shopModal()) || party_.detailOpen() || party_.moveOpen()
         : pokedex_.zone() == "picker" || pokedex_.zone() == "art" || pokedex_.saving()))
         || (trainerHistoryFace() && (hall_.editor()->isOpen() || hall_.account()->isOpen()));
 }
@@ -310,7 +324,7 @@ bool ShellController::navigationLocked(bool primaryRecovery) const {
     // A disconnected durable exchange must not strand both peers away from
     // Social. Only primary browsing relaxes this gate; runtime/save operations,
     // owner changes and Adventure selection keep their existing protection.
-    return (link->navigationBlocked() && !(primaryRecovery && link->canBrowseForRecovery())) || launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || party_.moveOpen() || libraryTools_.busy() || center_.writing() || center_.confirming()
+    return (link->navigationBlocked() && !(primaryRecovery && link->canBrowseForRecovery())) || scraper_.busy() || launchPreparation_.busy() || settings_.clock()->busy() || settings_.storage()->busy() || party_.moveOpen() || libraryTools_.busy() || center_.writing() || center_.confirming()
         || (center_.shopsOpen() && center_.shopModal());
 }
 bool ShellController::pairedNavigationAvailable() {
@@ -421,6 +435,8 @@ int ShellController::focusIndex() const {
     if (!notice_.isEmpty()) return 0;
     if (menuOpen_) return menuFocus_;
     if (keyboard_.isOpen()) return keyboard_.focusIndex();
+    if (downloads_.isOpen()) return downloads_.focusIndex();
+    if (scraper_.isOpen()) return scraper_.focusIndex();
     if (libraryTools_.isOpen()) return libraryTools_.focusIndex();
     if (drawerOpen_) return page_ == 0 && multiverseHome_ ? multiverseDrawerFocus_ : drawerFocus_;
     if (service_ == "library") return libraryManager_.files()->isOpen() ? libraryManager_.files()->focusIndex() : libraryManager_.focusIndex();
@@ -626,7 +642,7 @@ QStringList ShellController::menuItems() const {
     }
     // Stable action IDs: slot 1 retired when Controller moved into Settings.
     return {"Settings", "", "Switch Trainer", "",
-            "Desktop / Maintenance Mode", "Steam Gaming Mode", "Power", "Volume", "Screen brightness", "Wi-Fi", "Bluetooth", "Airplane"};
+            "Desktop / Maintenance Mode", "Steam Gaming Mode", "Power", "Volume", "Screen brightness", "Wi-Fi", "Bluetooth", "Airplane", "Downloads"};
 }
 void ShellController::openTrainers() {
     trainerChooserFromPower_ = menuOpen_;
@@ -698,6 +714,9 @@ void ShellController::cycleCollection(int delta) {
 }
 
 void ShellController::activate(int index, const QString& area) {
+    if(downloads_.isOpen())return;
+    if(scraper_.isOpen()) {if(keyboard_.isOpen())keyboard_.activate(index);else scraper_.activate(index);return;}
+    if(scraper_.busy()&&!menuOpen_)return;
     if(homeMenuOpen_)return;
     if(launchPreparation_.busy() || libraryTools_.busy() || center_.writing())return;
     if(area=="world-edit" && canEditWorld()){libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
@@ -770,6 +789,8 @@ void ShellController::confirm() {
         return;
     }
     if (menuOpen_) {
+        if(!powerMenu_&&menuFocus_==12){menuOpen_=false;downloads_.begin();return;}
+        if(scraper_.busy()&&(powerMenu_||menuFocus_<7)){showNotice("Finish or cancel the download queue before changing games, storage or system sessions.");return;}
         if (powerMenu_) {
             if (menuFocus_ == 2) { powerMenu_ = false; menuFocus_ = 6; return; }
             if (menuFocus_ == 3) {
@@ -956,6 +977,8 @@ void ShellController::openSocialNotification() {
     socialFace_=face;goToPage(4);social_.openNotification();emit changed();
 }
 void ShellController::dispatch(Action action) {
+    if(downloads_.isOpen()){downloads_.dispatch(action);return;}
+    if(scraper_.isOpen()&&action==Action::SystemMenu&&!keyboard_.isOpen()){scraper_.hide();menuOpen_=true;menuFocus_=12;emit changed();return;}
     if(social_.online()["open"].toBool()) {
         if(action==Action::Confirm)social_.answerOnline(true);
         else if(action==Action::Back)social_.answerOnline(false);
@@ -964,6 +987,9 @@ void ShellController::dispatch(Action action) {
     if(party_.activities()->link()->invitationOpen()) {
         party_.activities()->link()->dispatch(action);return;
     }
+    if(scraper_.isOpen()){if(keyboard_.isOpen())keyboard_.dispatch(action);else scraper_.dispatch(action);return;}
+    if(scraper_.busy()&&action==Action::SystemMenu){menuOpen_=!menuOpen_;powerMenu_=false;menuFocus_=12;emit changed();return;}
+    if(scraper_.busy()&&!menuOpen_&&notice_.isEmpty())return;
     if(launchPreparation_.busy() || libraryTools_.busy())return;
     if(navigationLocked(action==Action::PreviousPage || action==Action::NextPage) && (action==Action::Home || action==Action::PreviousPage || action==Action::NextPage || action==Action::SystemMenu || action==Action::PreviousFace || action==Action::NextFace))return;
     if (homeMenuOpen_) {
@@ -1111,6 +1137,7 @@ void ShellController::dispatch(Action action) {
     }
     if (menuOpen_ && !powerMenu_ && notice_.isEmpty() && menuFocus_ >= 7
             && (action == Action::Left || action == Action::Right)) {
+        if(menuFocus_==12)return;
         if (menuFocus_ >= 9) { menuFocus_ = std::clamp(menuFocus_ + (action == Action::Right ? 1 : -1), 9, 11); emit changed(); return; }
         device_.adjustQuick(menuFocus_ - 7, action); emit changed(); return;
     }
@@ -1130,9 +1157,9 @@ void ShellController::dispatch(Action action) {
         if (menuOpen_) delta = action == Action::Up ? -1 : action == Action::Down ? 1 : 0;
         else if (drawerOpen_) delta = action == Action::Left ? -1 : action == Action::Right ? 1 : 0;
         if(menuOpen_ && !powerMenu_) {
-            if (menuFocus_ >= 9 && delta > 0) { menuFocus_ = 7; emit changed(); return; }
-            if (menuFocus_ >= 9) { emit changed(); return; }
-            const QList<int> order{9,7,8,0,2,4,5,6};
+            if (menuFocus_ >= 9 && menuFocus_<=11 && delta > 0) { menuFocus_ = 7; emit changed(); return; }
+            if (menuFocus_ >= 9 && menuFocus_<=11) { emit changed(); return; }
+            const QList<int> order{9,7,8,12,0,2,4,5,6};
             *focus=order[std::clamp(int(order.indexOf(*focus))+delta,0,int(order.size())-1)];
         } else *focus = std::clamp(*focus + delta, 0, std::max(0, count - 1));
     }

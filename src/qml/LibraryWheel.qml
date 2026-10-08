@@ -170,6 +170,13 @@ Item {
         text: root.entries.length ? (root.selectionIndex + 1) + " / " + root.entries.length : ""
         color: Theme.muted; font.pixelSize: 13
     }
+    Image {
+        x: root.split; y: 0; width: parent.width-x; height: parent.height
+        source: root.visible && root.entry.artwork ? root.entry.artwork.displayBackground || "" : ""
+        asynchronous: true; sourceSize.width: 960; sourceSize.height: 600; fillMode: Image.PreserveAspectCrop
+        opacity: 0.13
+    }
+
     GameInformation {
         x: root.split + 20; y: 12; width: parent.width - x - 22; height: parent.height - 26
         visible: root.entries.length > 0

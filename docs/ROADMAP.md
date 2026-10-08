@@ -1,5 +1,14 @@
 # TrainerOS Roadmap
 
+**Owner detour delivered, 8 October 2026 — ScreenScraper #65:** native jobs,
+account/download settings and independent artwork/data display choices are
+installed on Flip/Odin, with a real account/download/rescan walkthrough on both.
+Resume MP-02. This supersedes the earlier access pause; library layouts remain
+deferred. Preserve MP-02's uncommitted timer work. See [implementation and
+verification](SCREENSCRAPER.md); this does not clear redistribution/artwork rights.
+The owner's shared Downloads popup is included, with game/platform images and
+queue controls from Start; ScreenScraper is its first connected source.
+
 **Product reconciliation, 8 October 2026:** the [complete product vision in
 Russian](PRODUCT_VISION_RU.md) and [#136-160 register](EXPANSION_136_160.md) add
 temporary guest content, OddCrate, universal reviews, independent I/H/S/G update
@@ -84,7 +93,7 @@ The owner explicitly rejects test-only passes substituted for feature delivery.
 | 5 · block 1 | HS-01: live Hotseat Relay, #126 | After the existing oldest-first MP-02…MP-07 queue. One real pass-controller title: exclusive input owner, ordered handoff, loss/rejoin, safe persistence and complete existing party/Home journey. No asynchronous turns. |
 | 6 · block 4 | LINK-04: complete native online activities | After block 1, using existing invitation infrastructure and protected bilateral transactions, with #93/#94 prerequisites for trust-sensitive use. Emulator multiplayer and saved-creature Link stay separate. |
 | 7 · block 5 | REVIEW-05: #113, #135 and residual communication | Implement revised #113: 7200 eligible gameplay seconds OR verified exact completion with meaningful local play, stars/optional text and legacy migration; imported completion alone is insufficient. Finish replies/quotes, reactions, mentions, person card and composer/media acceptance. Validate whole friend/group/in-game/Link/rejoin journeys and independent calls on both devices. No history search. |
-| 8 | Remaining R1–R14, R7a and U/P commitments | Continue the preserved [unified backlog](#unified-execution-order--existing-work-and-new-issues), doing residual work only. ScreenScraper needs owner access; sleep remains deferred. #112 appearance, RA, adapters, Steam, device/input, export, maintenance and Help remain. Add ODD-01 (#144-152) and TV-01 (#156-159), with #113 reviews shared by OddCrate; their mutual priority is not separately decided. |
+| 8 | Remaining R1–R14, R7a and U/P commitments | Continue the preserved [unified backlog](#unified-execution-order--existing-work-and-new-issues), doing residual work only. Native ScreenScraper and shared Downloads are delivered; residual #65 acceptance is in [ScreenScraper](SCREENSCRAPER.md). Sleep remains deferred. #112 appearance, RA, adapters, Steam, device/input, export, maintenance and Help remain. Add ODD-01 (#144-152) and TV-01 (#156-159), with #113 reviews shared by OddCrate; their mutual priority is not separately decided. |
 | 9 | R18 → R18a/R18b | Complete Pack Studio/art and sprite packs, then optional exact-ROM extraction/cache/integration. Preserve pack-first suppression and user content boundaries. |
 | 10 | REL-01: canonical release state, #119 | Independent related image I and Software S manifests (#119/#153), shared component ownership/integrity and compatible S artifacts across delivery paths. Design dependent contracts earlier where needed; final distribution follows product/assets. No second ownership database. |
 | 11 | R15 image + INSTALL-01, #118/#120–122/#124 | Both consume REL-01. Prepared Armada image plus supported SteamOS/Bazzite session/runtime install, repeat/interrupted install and safe uninstall. Each path needs its own actual device proof and recovery. |
@@ -1254,7 +1263,7 @@ gates remain explicit. Do not restart the mock or rebuild completed foundations.
 | Shell/storage | Native C++20/Qt Quick/SDL, keyboard, themes/motion, SQLite state and controller navigation. [Persistence](LOCAL_PERSISTENCE.md), [device](ARMADA_DEVICE_BASELINE.md). | #83–88 new navigation and per-change regression; R11/R17 measured input/performance. |
 | Trainers/ownership | Real profiles/chooser/PIN/family recovery, scoped history/Home/RA, first personal GBA/mGBA saves. [Ownership](TRAINER_OWNERSHIP.md), [access](TRAINER_ACCESS.md), [saves](TRAINER_SAVES.md). | #76 other runtime namespaces; #73 portable export/restore. |
 | Library | Region-first English catalogue curation, grey/linkable editions, Batocera scan/XML/media, World editor, long-A rename/move/delete/properties; persistent Multiverse. [Curation](CATALOGUE_CURATION.md), [folders/editing](BATOCERA_LIBRARY.md), [binding](MULTIVERSE_BINDING.md). | Residual U4 source/hack/media reconciliation; #87 immediate wheel launch; #90 franchise grouping. Do not repeat delivered cleanup. |
-| Media | Logo wheels, descriptions/facts/local video and durable exit images. [Video](VIDEO_PREVIEWS.md), [exit](ADVENTURE_EXIT.md). | #65 authenticated jobs/cache/controller/live proof paused for access; generic artwork tools final. |
+| Media | Logo wheels, descriptions/facts/local video and durable exit images. [Video](VIDEO_PREVIEWS.md), [exit](ADVENTURE_EXIT.md). | #65 access approved; native jobs/settings and live verification in the current detour; generic artwork tools final. |
 | Launch/Home | RetroArch and standalone melonDS/Dolphin routes, guarded exit, fixed Home A, scoped Y and independent Pokémon/Multiverse selections/history. [Adapters](STANDALONE_ADAPTERS.md), [Home](HOME_AND_HISTORY.md). | Per-route U5/U10 gaps, additional verified exits and #69 Steam. Installed runtime is not universal compatibility. |
 | Progress/Dex | Existing exact-build GBA badge/count observations; Emerald species Seen/Caught, offline reference/favorites/illustrations/optional sprites. Manual journal/editor removed; rows inert. [Progress](GAME_PROGRESS.md), [save Dex](SAVE_POKEDEX.md), [sprites](POKEDEX_SPRITES.md). | Recorded FireRed source/reader fault must be resolved before renewed claims; #82 deeper second title, remaining form/source coverage and #64 in-game badge comparison. |
 | Party/Center | Exact English Emerald six-member Party/fourteen boxes, split-view details; real healing/protection and normal-game proof. [Party](EMERALD_PARTY.md), [healing](EMERALD_HEALING.md), [backups](SAVE_BACKUPS.md). | Box management/other independently verified writes, additional formats, DS backup gate, #75 policy and two-device #45. |

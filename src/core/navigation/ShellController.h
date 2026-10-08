@@ -14,6 +14,8 @@
 #include "features/halloffame/HallOfFameController.h"
 #include "features/library/LibraryManagementController.h"
 #include "features/library/LibraryToolsController.h"
+#include "features/library/ScrapeController.h"
+#include "features/downloads/DownloadsController.h"
 #include "features/settings/SettingsController.h"
 #include "features/device/DeviceController.h"
 #include "features/device/NetworkController.h"
@@ -29,6 +31,8 @@ namespace trainer {
 class ShellController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(trainer::LibraryToolsController* libraryTools READ libraryTools CONSTANT)
+    Q_PROPERTY(trainer::ScrapeController* scraper READ scraper CONSTANT)
+    Q_PROPERTY(trainer::DownloadsController* downloads READ downloads CONSTANT)
     Q_PROPERTY(bool canHoldConfirm READ canHoldConfirm NOTIFY changed)
     Q_PROPERTY(bool canEditWorld READ canEditWorld NOTIFY changed)
     Q_PROPERTY(int page READ page NOTIFY changed)
@@ -106,6 +110,8 @@ public:
     HallOfFameController* hall() { return &hall_; }
     LibraryManagementController* libraryManager() { return &libraryManager_; }
     LibraryToolsController* libraryTools() {return &libraryTools_;}
+    ScrapeController* scraper() {return &scraper_;}
+    DownloadsController* downloads() {return &downloads_;}
     bool canHoldConfirm() const;
     bool canEditWorld() const;
     SettingsController* settings() { return &settings_; }
@@ -201,6 +207,8 @@ private:
     HallOfFameController hall_;
     LibraryManagementController libraryManager_;
     LibraryToolsController libraryTools_;
+    ScrapeController scraper_;
+    DownloadsController downloads_;
     SettingsController settings_;
     DeviceController device_;
     NetworkController network_;
@@ -209,7 +217,7 @@ private:
     PartyPresentation party_;
     SocialController social_;
     QString service_;
-    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, LibraryTools, Archive, TrainerFavorite, CenterSearch, ShopSearch, BoxName, AchievementAccount, SetupName, Network, Social, Communication };
+    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, LibraryTools, Archive, TrainerFavorite, CenterSearch, ShopSearch, BoxName, AchievementAccount, SetupName, Network, Social, Communication, Scraper };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QString homeAdventureId_, homeResumeId_;

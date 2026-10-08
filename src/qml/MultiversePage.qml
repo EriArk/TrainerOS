@@ -4,7 +4,7 @@ Item {
     id: root
     required property var shell
     readonly property var model: shell.multiverse
-    readonly property bool takesFocus: visible && !shell.serviceOpen && !shell.libraryTools.open && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
+    readonly property bool takesFocus: visible && !shell.serviceOpen && !shell.libraryTools.open && !shell.scraper.open && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
     PageHeader {
         id: header
         title: root.model.collection !== "multiverse" ? root.model.collectionName : root.model.route === "systems" ? "Multiverse" : root.model.systemName

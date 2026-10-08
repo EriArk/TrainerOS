@@ -39,6 +39,8 @@ add_library(trainer_core STATIC
     src/core/storage/SqliteLibraryEdits.cpp
     src/core/storage/LibraryFileMove.cpp
     src/features/library/LibraryToolsController.cpp
+    src/features/library/ScrapeController.cpp
+    src/features/downloads/DownloadsController.cpp
     src/core/repository/BatoceraLibrary.cpp
     src/core/repository/RomPlatforms.cpp
     src/core/repository/BatoceraLibrary.h
@@ -289,6 +291,9 @@ qt_add_qml_module(traineros
         src/qml/StoragePanel.qml
         src/qml/LaunchPanel.qml
         src/qml/LibraryToolsPanel.qml
+        src/qml/ScrapePanel.qml
+        src/qml/ScrapeSettingsPane.qml
+        src/qml/DownloadsPanel.qml
         src/qml/LibraryPanel.qml
         src/qml/TrainerSettingsPanel.qml
         src/qml/TrainerSetupPanel.qml

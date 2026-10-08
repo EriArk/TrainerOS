@@ -276,6 +276,17 @@ QString BatoceraLibrary::storageRootFor(const QString& id) const {
     }
     return {};
 }
+QVariantMap BatoceraLibrary::artwork(const QString& id) const {
+    auto result=media_.value(id);
+    const bool cover=display_["picture"].toString()=="cover";
+    const auto tags=cover?QStringList{"cover","image","screenshot","titleshot","thumbnail"}:QStringList{"screenshot","image","titleshot","thumbnail","cover"};
+    for(const auto& tag:tags)if(!result.value(tag).toString().isEmpty()){result["displayPicture"]=result[tag];break;}
+    if(!display_["logos"].toBool(true)){result.remove("marquee");result.remove("wheel");}
+    result["displayBackground"]=display_["background"].toBool(false)?result.value("fanart"):QVariant();
+    result["displayFacts"]=display_["facts"].toBool(true);
+    result["displayDescription"]=display_["description"].toBool(true);
+    return result;
+}
 void BatoceraLibrary::editLibraryAsync(const LibraryEdit& edit,QObject* context,std::function<void(QString)> done) {
     if(edit.kind!=LibraryEditKind::MoveFile){library_.editLibraryAsync(edit,context,std::move(done));return;}
     if(busy_){done("The library is refreshing. Try the move again in a moment.");return;}

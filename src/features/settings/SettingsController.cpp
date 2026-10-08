@@ -1,4 +1,5 @@
 #include "SettingsController.h"
+#include "features/library/ScrapeController.h"
 #include "features/center/LinkController.h"
 #include <algorithm>
 
@@ -49,6 +50,7 @@ QVariantList SettingsController::controls() const {
             libraryAvailable_ && !libraryScanning_?"action":"unavailable",
             libraryScanning_?"Looking for games and updated artwork":libraryAvailable_?"Find copied games and reload artwork":"Connect your game library first"));
         result.append(row("Game storage",storage_.apply?"action":"unavailable",storage_.root()));
+        result.append(row("ScreenScraper","action","Account, downloads and artwork display"));
         if(legacyTrash_)result.append(row("Previous game trash","action","Restore games removed by an earlier version"));
         return result;
     }
@@ -69,6 +71,7 @@ void SettingsController::selectCategory(int index, bool enter) {
     emit changed();
 }
 void SettingsController::activateRow(int index) {
+    if(category_==14&&scraper_){scraper_->activateSetting(index);return;}
     if(category_==13){communication_.activate(index);return;}
     if(category_==11){clock_.activate(index);return;}
     if(storage_.isOpen()){storage_.activate(index);return;}
@@ -84,7 +87,8 @@ void SettingsController::activateRow(int index) {
     else if(category_==8 && row_==0) activate(2);
     else if(category_==8 && row_==1 && libraryAvailable_ && !libraryScanning_) emit libraryRefreshRequested();
     else if(category_==8 && row_==2) storage_.begin();
-    else if(category_==8 && row_==3 && legacyTrash_) emit trashRequested();
+    else if(category_==8 && row_==3) selectCategory(14);
+    else if(category_==8 && row_==4 && legacyTrash_) emit trashRequested();
     else if(category_==9 && savePolicy_) {
         saving_=true;error_.clear();
         savePolicy_->setReadOnly(!readOnlySaves(),this,[this](const QString& error){saving_=false;error_=error;emit changed();});
@@ -102,6 +106,7 @@ void SettingsController::cycleTheme(int direction) {
     if(repository_) repository_->savePreferences(candidate,this,completed); else completed({});
 }
 void SettingsController::dispatch(Action action) {
+    if(category_==14&&pane_&&scraper_){scraper_->dispatchSettings(action);return;}
     if(category_==13 && pane_){communication_.dispatch(action);return;}
     if(clock_.busy())return;
     if(category_==11 && pane_){clock_.dispatch(action);return;}

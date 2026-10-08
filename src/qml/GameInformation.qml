@@ -8,7 +8,7 @@ Item {
     readonly property var playInfo: entry.playInfo || ({})
     readonly property bool onlineAvailable: typeof runtimeMultiplayer !== "undefined"
         && runtimeMultiplayer.onlineGames.indexOf(entry.id || "") >= 0
-    readonly property var facts: [
+    readonly property var facts: entry.artwork && entry.artwork.displayFacts === false ? [] : [
         { label: "YEAR", value: entry.year || "", tint: "#f2df9d" },
         { label: "GENRE", value: entry.genre || "", tint: "#bedce4" },
         { label: "DEVELOPER", value: entry.developer || "", tint: "#ddd0e9" },
@@ -32,7 +32,7 @@ Item {
         radius: 5; color: "#142e32"; border.color: "#526a66"; border.width: 2
         GamePreview {
             anchors.fill: parent; anchors.margins: 4
-            picture: root.entry.screenshot || ""
+            picture: root.entry.artwork && root.entry.artwork.displayPicture || root.entry.screenshot || ""
             video: root.entry.artwork ? (root.entry.artwork.video || "") : ""
             playbackAllowed: root.previewsEnabled && root.active
         }
@@ -92,7 +92,7 @@ Item {
         Text {
             id: description
             objectName: "multiverse-description"
-            width: parent.width; text: root.entry.synopsis || ""; textFormat: Text.PlainText
+            width: parent.width; text: root.entry.artwork && root.entry.artwork.displayDescription === false ? "" : root.entry.synopsis || ""; textFormat: Text.PlainText
             color: Theme.ink; font.pixelSize: 14; lineHeight: 1.16; wrapMode: Text.WordWrap
         }
         SequentialAnimation {

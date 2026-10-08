@@ -73,10 +73,10 @@ QVariantList LibraryToolsController::rows() const {
         if(reviews_["more"].toBool())result.append(row("More reviews",!reviews_["busy"].toBool()));
         return result;
     }
-    if(route_=="game")return {row("Rename"),row("Move",game_.adventure.domain=="pokemon" || (catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty())),row("Удалить"),row("Properties")};
+    if(route_=="game")return {row("Rename"),row("Move",game_.adventure.domain=="pokemon" || (catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty())),row("Удалить"),row("Properties"),row("Download information & artwork",!repository_.storageRootFor(game_.adventure.id).isEmpty())};
     if(route_=="move-kind")return {row("Platform / folder",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Another World")};
     if(route_=="move-file")return {row("Cancel"),row("Move")};
-    if(route_=="world")return {row("Rename World"),row("Done")};
+    if(route_=="world")return {row("Rename World"),row("Done"),row("Scrape this collection")};
     if(route_=="remove")return {row("Отмена"),row("Удалить")};
     if(route_=="restore")return {row("Cancel"),row("Restore game")};
     if(route_=="properties"){
@@ -122,6 +122,8 @@ void LibraryToolsController::dispatch(Action action) {
 void LibraryToolsController::activate(int index) {
     const auto values=rows();if(busy_ || index<0 || index>=values.size())return;
     focus_=index;if(!values[index].toMap().value("enabled").toBool())return;
+    if(route_=="game"&&index==4){const auto id=game_.adventure.id;close();emit scrapeRequested(id,{});return;}
+    if(route_=="world"&&index==2){const auto id=world_.id;close();emit scrapeRequested({},id);return;}
     if(route_.startsWith("reviews")){reviewAction(index);return;}
     if(route_=="properties"&&index==0){openReviews();return;}
     if(route_=="game") {

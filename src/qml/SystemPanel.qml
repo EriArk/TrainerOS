@@ -54,13 +54,13 @@ Item {
                     }
                 }
                 Repeater {
-                    model: root.shell.powerMenu ? root.shell.menuItems : [0,2,4,5,6].map(i => root.shell.menuItems[i])
+                    model: root.shell.powerMenu ? root.shell.menuItems : [12,0,2,4,5,6].map(i => root.shell.menuItems[i])
                     CapButton {
                         required property int index; required property string modelData
-                        readonly property int actionIndex: root.shell.powerMenu ? index : [0,2,4,5,6][index]
-                        objectName: "menu-"+actionIndex; x: 14; y: root.shell.powerMenu ? 32+index*45 : 152+index*35
-                        width: parent.width-28; height: 30; textSize: 15
-                        label: modelData; warning: root.shell.powerMenu && index<2
+                        readonly property int actionIndex: root.shell.powerMenu ? index : [12,0,2,4,5,6][index]
+                        objectName: "menu-"+actionIndex; x: 14; y: root.shell.powerMenu ? 32+index*45 : 152+index*29
+                        width: parent.width-28; height: root.shell.powerMenu?30:26; textSize: 14
+                        label: actionIndex===12?modelData+" · "+root.shell.downloads.summary:modelData; warning: root.shell.powerMenu && index<2
                         tint: root.shell.powerMenu && index<2 ? Theme.pink : Theme.green
                         selected: root.shell.menuOpen && !root.shell.notice.length && root.shell.focusIndex===actionIndex
                         onActivated: root.shell.activate(actionIndex)

@@ -1,5 +1,21 @@
 # Current tasks
 
+**Delivered owner detour, 8 October 2026 — #65 ScreenScraper:** developer access is
+approved; explicit game/system/collection/library jobs, Settings for login and
+downloads, and independent display choices are installed on Flip/Odin. Both
+completed a real one-game download and rescan. [Evidence and remaining
+checks](SCREENSCRAPER.md). Resume MP-02 with its timer changes preserved.
+Earlier access-pause and next-task statements below are historical.
+
+Owner-added Downloads popup is included: Start quick controls, thumbnails and
+platform badges, queue reorder, pause/resume/cancel and persistent-in-session
+progress after closing the popup. ScreenScraper is its first connected provider;
+future download sources and restart restoration are not claimed as implemented.
+
+Owner clarification, 8 October: current display controls cover game pictures and
+data only. Selectable library layouts (for example grid/list) remain a later
+improvement; they are not part of #65 and do not replace the retained MP-02 queue.
+
 **Product reconciliation, 8 October 2026:** the [complete product vision in
 Russian](PRODUCT_VISION_RU.md) and [#136-160 register](EXPANSION_136_160.md) add
 temporary guest content, OddCrate, universal reviews, independent I/H/S/G update

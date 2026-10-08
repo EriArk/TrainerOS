@@ -8,6 +8,7 @@
 #include "core/model/SaveBackup.h"
 
 namespace trainer {
+class ScrapeController;
 class LinkController;
 class SettingsController final : public QObject {
     Q_OBJECT
@@ -30,6 +31,7 @@ class SettingsController final : public QObject {
     Q_PROPERTY(QStringList categories READ categories CONSTANT)
     Q_PROPERTY(QVariantList controls READ controls NOTIFY changed)
 public:
+    void setScraper(ScrapeController* value) { scraper_=value; }
     CommunicationSettings* communication() { return &communication_; }
     void configureNearby(LinkController*);
     ClockController* clock() { return &clock_; }
@@ -47,7 +49,7 @@ public:
     int category() const { return category_; }
     int rowFocus() const { return row_; }
     bool controlsFocused() const { return pane_; }
-    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller", "Library", "Saves", "Connections", "Date & time", "Nearby play", "Communication"}; }
+    QStringList categories() const { return {"Appearance", "Sound", "Media", "Feedback", "Trainer", "System", "Credits", "Controller", "Library", "Saves", "Connections", "Date & time", "Nearby play", "Communication", "ScreenScraper"}; }
     QVariantList controls() const;
     Q_INVOKABLE void selectCategory(int index, bool enter = true);
     Q_INVOKABLE void activateRow(int index);
@@ -75,6 +77,7 @@ signals:
     void messageRequested(const QString& message);
     void quickAdjustment(int index, trainer::Action action);
 private:
+    ScrapeController* scraper_=nullptr;
     LinkController* nearby_ = nullptr;
     ClockController clock_;
     CommunicationSettings communication_;

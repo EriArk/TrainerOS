@@ -267,6 +267,12 @@ int main(int argc, char* argv[]) {
                               personalLibrary && !smoke ? static_cast<HallOfFameRepository&>(*store) : shellArchive,
                               realAchievements ? static_cast<AchievementProvider&>(*realAchievements) : shellAchievements);
         shell.configureServices(&files, store.get());
+        if(personalLibrary && !smoke) {
+            shell.scraper()->configure(stateDirectory);
+            folders.setDisplayPreferences(shell.scraper()->displayPreferences());
+            QObject::connect(shell.scraper(),&ScrapeController::displayChanged,&shell,[&]{folders.setDisplayPreferences(shell.scraper()->displayPreferences());shell.refreshLibrary();});
+            QObject::connect(shell.scraper(),&ScrapeController::saved,&folders,&BatoceraLibrary::rescan);
+        }
         if(personalLibrary && !smoke && store) {
             QObject::connect(store.get(), &LocalStateStore::opened, &shell, [&](bool ready) {
                 shell.social()->setOwner(ready ? store->ownerId() : QString());
@@ -657,6 +663,12 @@ int main(int argc, char* argv[]) {
             QObject::connect(&emulatorPoll, &QTimer::timeout, emulatorRefresh.get(), [&] { emulatorRefresh->request(folders.root()); });
             emulatorPoll.start();
         }
+        shell.scraper()->canStart = [&] {
+            return personalLibrary && !smoke && !adventureLaunch.active() && !session.blocked()
+                && !folders.busy() && store && !store->pending() && !store->opening()
+                && !shell.libraryManager()->saving() && !shell.libraryTools()->busy()
+                && !shell.settings()->storage()->busy() && !(saveBackups && saveBackups->busy());
+        };
         ControllerInput input(nullptr, preferred);
         bool homeMenuWasOpen = false;
         QObject::connect(&shell, &ShellController::changed, &input, [&] {

@@ -3,7 +3,7 @@ Item {
     id: root
     required property var shell
     readonly property var settings: shell.settings
-    readonly property bool takesFocus: visible && !shell.menuOpen && !shell.notice.length && !shell.keyboard.open && !shell.trainer.picker.open && !shell.libraryTools.open
+    readonly property bool takesFocus: visible && !shell.menuOpen && !shell.notice.length && !shell.keyboard.open && !shell.trainer.picker.open && !shell.libraryTools.open && !shell.scraper.open
     readonly property string localError: settings.category===4 && shell.trainer.editing ? shell.trainer.error
         : (settings.category===0 || settings.category===8 || settings.category===9) && settings.error.length ? settings.error
         : [0,1,5,10].includes(settings.category) ? shell.device.error : ""
@@ -34,6 +34,7 @@ Item {
                 }
             }
             Item { x: 260; width: parent.width-x-16; height: parent.height
+                ScrapeSettingsPane { anchors.fill: parent; flow: root.shell.scraper; visible: root.settings.category===14; takesFocus: root.takesFocus && root.settings.controlsFocused }
                 CommunicationPane { anchors.fill: parent; flow: root.settings.communication; visible: root.settings.category===13; takesFocus: root.takesFocus && root.settings.controlsFocused }
                 ClockPane { anchors.fill: parent; clock: root.settings.clock; visible: root.settings.category===11; takesFocus: root.takesFocus && root.settings.controlsFocused }
                 ConnectionsPane { anchors.fill: parent; shell: root.shell; visible: root.settings.category===10 }
@@ -44,7 +45,7 @@ Item {
                     StorageChoices { x: 0; y: 75; width: parent.width; height: parent.height-y-43; compact: true; flow: root.settings.storage; takesFocus: root.takesFocus && root.settings.controlsFocused }
                     Text { x: 5; y: parent.height-37; width: parent.width-10; height: 33; text: root.settings.storage.busy ? "Preparing your library…" : root.settings.storage.error || root.settings.storage.rows[root.settings.storage.focusIndex]?.path || ""; textFormat: Text.PlainText; color: root.settings.storage.error.length ? "#853b24" : Theme.muted; font.pixelSize: 12; wrapMode: Text.WrapAnywhere; maximumLineCount: 2; elide: Text.ElideMiddle }
                 }
-                Column { x: 0; y: root.settings.category===5 ? 158 : 13; width: parent.width; spacing: root.settings.category===4 || root.settings.category===5 || root.settings.category===8 || root.shell.trainer.editing || root.shell.hall.account.open ? 5 : 12; visible: root.settings.category!==6 && root.settings.category!==10 && root.settings.category!==11 && root.settings.category!==13 && !root.settings.storage.open
+                Column { x: 0; y: root.settings.category===5 ? 158 : 13; width: parent.width; spacing: root.settings.category===4 || root.settings.category===5 || root.settings.category===8 || root.shell.trainer.editing || root.shell.hall.account.open ? 5 : 12; visible: root.settings.category!==6 && root.settings.category!==10 && root.settings.category!==11 && root.settings.category!==13 && root.settings.category!==14 && !root.settings.storage.open
                     Repeater { model: root.shell.hall.account.open ? root.shell.hall.account.rows.map(r => ({title: r.label, detail: r.detail, kind: r.enabled ? "action" : "unavailable"})) : root.shell.trainer.editing ? [
                         {title: "Name", kind: "action", detail: root.shell.trainer.draftName || "Choose your name"},
                         {title: "Emblem", kind: "action", detail: root.shell.trainer.draftEmblem},
@@ -90,7 +91,7 @@ Item {
                 }
                 Text {
                     objectName: "settings-status"
-                    visible: root.settings.category!==10 && root.settings.category!==11 && root.settings.category!==13 && !root.settings.storage.open
+                    visible: root.settings.category!==10 && root.settings.category!==11 && root.settings.category!==13 && root.settings.category!==14 && !root.settings.storage.open
                     x: 5; y: parent.height-58; width: parent.width-10; height: 52
                     text: root.statusText; textFormat: Text.PlainText
                     font.pixelSize: 14; color: root.localError.length ? "#853b24" : Theme.muted

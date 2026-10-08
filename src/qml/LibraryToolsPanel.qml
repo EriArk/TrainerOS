@@ -29,7 +29,7 @@ Item {
                 delegate: CapButton {
                     required property int index; required property var modelData
                     objectName: "library-tool-"+index
-                    width: list.width; height: root.tools.route==="properties" ? 36 : 48; textSize: root.tools.route==="properties" ? 16 : 20; label: modelData.label
+                    width: list.width; height: root.tools.route==="properties" ? 36 : root.tools.route==="game" ? 40 : 48; textSize: root.tools.route==="properties" ? 16 : root.tools.route==="game" ? 18 : 20; label: modelData.label
                     opacity: modelData.enabled ? 1 : 0.42
                     tint: root.tools.route==="remove" && index===1 ? Theme.pink : Theme.blue
                     selected: root.takesFocus && root.tools.focusIndex===index

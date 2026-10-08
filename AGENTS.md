@@ -1,5 +1,19 @@
 # AGENTS.md — TrainerOS
 
+**Owner ScreenScraper priority, 2026-10-08:** developer access was approved and
+the owner requested #65 integration now, ahead of the MP-02 continuation. Use
+the official WebAPI v2 contracts. Include ordinary Settings for account, selected
+downloads and independent display choices; preserve the existing handheld style.
+Keep MP-02's uncommitted runtime timer changes separate. After this bounded
+integration return to MP-02; do not reorder Pack Studio/distribution or clear
+artwork rights. [ScreenScraper](docs/SCREENSCRAPER.md) owns evidence and limits.
+
+**Owner downloads addition, 2026-10-08:** provide a shared Downloads popup from
+Start quick controls, initially connected to ScreenScraper. Include queue order,
+pause/resume and cancellation, with compact game thumbnails/platform icons in
+the existing visual language. Keep the window reusable by later download sources;
+their integration is not implied. Library layouts remain a separate later task.
+
 **Owner full-product documentation/reconciliation, 2026-10-08:**
 [PRODUCT_VISION_RU](docs/PRODUCT_VISION_RU.md) consolidates the final product;
 [#136-160](docs/EXPANSION_136_160.md) adds guest content, OddCrate, independent

@@ -48,6 +48,7 @@ public:
 signals:
     void changed();
     void saved();
+    void scrapeRequested(QString game,QString world);
     void textRequested(const QString& title,const QString& initial,int limit);
     void reviewRequested(QString operation,QVariantMap args);
     void scrollReview(int direction);

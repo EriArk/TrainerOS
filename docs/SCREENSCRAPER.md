@@ -1,12 +1,155 @@
 # Native ScreenScraper — accepted scope and delivery order
 
 Accepted [issue #65](https://github.com/EriArk/TrainerOS/issues/65), 2026-09-24.
-Status: client, matching and atomic writer prepared; live service and controller
-scraping are not delivered. This document records acceptance; ROADMAP owns
-the execution queue. The owner places this before video previews and completed
-game metadata/description presentation, followed by Pokedex/Party/Center work.
+Status, 2026-10-08: developer access approved; native jobs, Settings and display
+choices delivered on Flip 2 and Odin 2; evidence and remaining boundaries below.
+ROADMAP owns the execution queue: resume MP-02 after this owner-requested detour.
+The older ScreenScraper/video/Pokedex sequence is historical, not the current queue.
 
-## Prepared backend — 2026-09-24
+## Native integration — 2026-10-08
+
+The owner explicitly resumed #65 after the [developer-account reply](https://www.screenscraper.fr/forumsujet.php?frub=12&fsuj=24501).
+The [official WebAPI v2 guide](https://www.screenscraper.fr/webapi2.php) was checked
+again for `ssuserInfos`, `jeuInfos`, `jeuRecherche`, system IDs, localized text,
+media types, quota fields and HTTP errors. A real account request and a hash/size
+lookup for an installed GBA title returned HTTP 200 with matching MD5/SHA1/CRC32.
+No credentials or authenticated media URLs are included here.
+
+### Player controls
+
+- Start → Settings → Library → ScreenScraper, or the ScreenScraper category:
+  login/password, Save & check connection, sign out, language (English fallback),
+  region, game information, 2D/3D/no cover, logos, screenshots, optional backgrounds,
+  missing-only/replace mode, and an explicit whole-library job.
+- Display choices are independent of downloads: cover/screenshot priority,
+  logo/text titles, downloaded/themed background, facts and descriptions. They
+  apply to the existing library presentation without re-scraping. Missing primary
+  artwork falls back to other locally available media. Player/online indicators
+  retain their existing runtime and metadata rules when facts are hidden.
+- Hold A / game options → Download information & artwork: this game, its system,
+  its series across platforms, or the library. Series reuse the existing Worlds
+  classification. World management also offers scraping that world collection.
+- A job shows the current title, phase, processed/total, failures and skips.
+  Pause finishes the current game; Stop cancels hashing/network/writes at a safe
+  boundary and keeps already completed games. Ambiguous or filename-only matches
+  require selection, another-title search or Skip. Failed games can be retried.
+- Ordinary folder scans still perform no networking. Completed jobs request the
+  usual Batocera rescan; game launch, saves, history and Adventure IDs are retained.
+
+### Shared Downloads window
+
+Start quick controls include **Downloads**, with the same entry available while
+a scrape job is running. Starting a job opens this shared popup. It shows game
+thumbnails with platform-silhouette fallback, platform badges, task state and an
+indeterminate activity indicator (not fabricated byte percentages). Closing the
+popup leaves the job running; it can be reopened from Start. Up/down selects a
+task, left/right moves to its actions, A activates, B closes; X pauses all, Y
+resumes all and Select cancels all. Touch exposes the same controls.
+
+Pending games can move up/down, pause independently, resume or cancel. The
+currently running game cannot be reordered. Queue pause finishes that game and
+then stops; this is labelled **Pause after game**. Cancelling the active game
+interrupts its request and advances to the next eligible task after the atomic
+write boundary. Completed metadata is retained. Paused tasks do not hold up other
+eligible tasks; cancel-all keeps completed games. A missing/ambiguous match offers
+**Choose match**; remaining failed games can be retried without repeating success.
+
+`DownloadsController` owns the shared presentation, stable task selection and
+provider command routing; providers retain their scheduling and storage rules.
+Only ScreenScraper is connected today. Order changes apply within the provider's
+pending queue. The current queue/history is session-local; automatic restoration
+after app restart and cross-provider scheduling are not delivered. ScreenScraper
+retains the existing game/library/session mutation gate while its job is active;
+the popup's dismissal does not release that protection. The quick volume/radio
+controls remain accessible.
+
+### Matching, limits and storage
+
+101 of the 105 platform entries map to `systemesListe.php` as checked on 8 October.
+C128, Enterprise, Sega System SP and Videopac+ have no separate entries in that
+response: they are reported individually as unavailable, never assigned another
+machine's ID. Generic arcade remains the ScreenScraper MAME catalogue. This is
+service catalogue coverage, not a promise that every game will be found.
+
+Single ROMs, ZIP/7z archives, ISO and compressed disc containers are fingerprinted
+as the actual file supplied, not as an invented uncompressed/RA identity. A
+container match is accepted automatically only if the service returns matching
+size/hash/system. CUE/M3U descriptors use title search with deliberate selection;
+their small text hashes cannot prove the identity of referenced discs. No archive
+extraction or disc rewriting occurs. Multi-disc playlists retain one library entry.
+
+One sequential worker handles hashing, HTTP and XML. Known per-minute/day and
+failed-lookup quotas are observed. 423/429 use cancellable backoff and one bounded
+retry; daily limits and denied/restricted client access stop the queue. Errors
+for individual games do not erase successful results. Account checks are explicit.
+
+Settings live in `screenscraper-settings.json` in the application state directory.
+Developer/user credentials are provisioned privately in
+`secrets/screenscraper.json`, with owner-only file permissions; neither is a source
+constant or checked-in configuration. User changes use the existing masked
+controller keyboard. The developer credential provisioning for public releases
+belongs to the release pipeline; this delivery does not publish those secrets.
+Guest credentials are optional in the protocol, but service availability without a
+user account is not guaranteed (the live guest account check was refused).
+
+`cache/screenscraper/` stores selected identity, localized metadata and relative
+download paths, keyed by file content/path and download preferences. It contains
+no request/media URLs, passwords or ROM contents. Completed cache hits avoid
+duplicate game/media requests. Partial successful downloads survive retry.
+Media is validated and content-addressed under the system's `images/` folder.
+The XML writer preserves names, unrelated games and unknown fields; replacement
+of other selected fields is explicitly configured. Existing local media remains
+authoritative in missing-only mode. Cancelled writes use atomic replacement.
+
+Static artwork is the delivered acquisition profile. Existing local video preview
+controls/playback remain available; video/manual downloading is still the separate
+following media increment. This does not bundle scraped artwork into a release.
+Selectable library layouts (grid/list and other arrangements) are explicitly
+deferred by the owner; the present controls change pictures and game data only.
+
+### Verification record
+
+- Native ARM Qt build passed. The `screenscraper`, `library` and `interactions`
+  CTest suites passed together (13.88 s). The scraper suite passed again after
+  adding cross-platform series scope, left/right preference controls and the
+  explicit MSX-family mapping checks. Tests cover live-job orchestration through
+  injected transport, ambiguous selection, cancellation, pause, partial download
+  reuse, retry-only-failed behavior, cache privacy and XML/ROM preservation.
+- Both installed handhelds completed the real account check and an explicit
+  one-game job for Kirby & The Amazing Mirror (USA), GBA: 1/1 processed, zero
+  failures/skips. The ordinary rescan displayed its cover, logo, screenshot and
+  localized game data. Flip used controller events; Odin also used touch.
+- Flip rendered independent cover-first/text-title/hidden-facts/hidden-description
+  choices without another scrape. Player count remained visible. Test preferences
+  were restored afterward. Downloaded backgrounds are implemented but have no
+  separate live-background visual acceptance in this pass.
+- Before/after hashes matched for 21 ROM/save files on Flip and the one inspected
+  ROM on Odin. Six identity/history table snapshots per device matched, including
+  stable Adventure identities. This is bounded preservation evidence, not an audit
+  of every save on either device.
+- Installed screenshots in ignored `work/research/ux01-*-ss-*.png` record Settings,
+  account checks, job/result, artwork, alternate display, and corrected compact
+  menus. Private account screenshots and downloaded game artwork are not committed
+  or substituted for README screenshots. Both devices remain at 0% system volume.
+- The shared Downloads addition passed `screenscraper` and `interactions` again
+  (4.50 s): provider routing, stable selection after reorder, Start/controller
+  entry, individual cancellation during an active request, queued pause/cancel,
+  reordered execution and closing without cancellation. The installed Flip
+  completed a four-game Kirby batch (GBA/N64/DS); its next paused queue was reordered
+  through controller events, one queued game was cancelled, and the other three
+  completed after closing/reopening the popup through Start and resuming. Odin
+  completed a one-game cache job and reopened its
+  result through Start. Thumbnails/platform badges and the shorter one-game popup
+  were inspected on-device. Current captures are
+  `work/research/ux01-flip-downloads-final-reordered.png` and
+  `work/research/ux01-odin-downloads-final-compact.png` (private, ignored).
+- Final ARM executable installed and separately observed running on both devices:
+  SHA-256 `f4cad089aa87ebdce691a99b58e8160c9070032d41a10586b5a411aaccea89a1`.
+- Physical owner acceptance, large-library service soak, every-title matching,
+  public-release credential provisioning and video/manual acquisition remain
+  separate. The task does not close artwork/distribution issues #115/#116.
+
+## Historical prepared backend — 2026-09-24
 
 `src/integrations/scraper` provides a worker-confined WebAPI v2 client, injectable
 transport/delay, explicit credentials, English metadata/media parsing and a
@@ -66,7 +209,7 @@ developer access is being requested.
 1. Verify WebAPI v2 access, developer credential provisioning, optional user
    authentication, quotas and the complete platform map. Keep credentials out of
    Git, logs and UI-visible URLs; store local user secrets with restrictive
-   permissions. Actual credentials/access have not yet been verified.
+   permissions. Access is now approved and verified; see the dated native-integration record above.
 2. Add an injectable HTTP client and separate service, with bounded responses,
    validated TLS, timeouts, cancellation and per-game errors. Queue work off the
    UI thread, observe service concurrency/request/daily limits, busy/closed and

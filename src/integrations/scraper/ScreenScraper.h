@@ -30,7 +30,7 @@ struct Reply { int status = 0; QByteArray bytes; int retryAfter = 0; };
 using Transport = std::function<Reply(const QUrl&, qint64, const Cancellation&)>;
 using Delay = std::function<bool(qint64, const Cancellation&)>;
 Transport httpsTransport();
-enum class Status { Ready, MissingCredentials, Cancelled, Offline, InvalidResponse, NotFound, Busy, Quota, Denied };
+enum class Status { Ready, MissingCredentials, Cancelled, Offline, InvalidResponse, NotFound, Busy, Quota, Denied, MembersOnly, ClientRejected };
 struct Quota {
     int threads = 0, perMinute = 0, daily = 0, today = 0, failedDaily = 0, failedToday = 0;
     bool exhausted() const;
@@ -48,6 +48,13 @@ struct Result {
     Quota quota;
     int retryAfter = 0;
 };
+struct Preferences {
+    QString language = "en", region = "us", cover = "box-2D";
+    bool metadata = true, logos = true, screenshots = true, fanart = false, refresh = false;
+    QStringList mediaTags() const;
+    QJsonObject json() const;
+    static Preferences fromJson(const QJsonObject&);
+};
 // Synchronous worker API. No network during construction, discovery or rendering.
 // Results of search (and lookup without matching returned ROM hashes) require
 // explicit choice; no silent filename-based binding or catalogue-ID replacement.
@@ -58,10 +65,12 @@ public:
     Result lookup(const QString& platform, const Fingerprint& file, const Cancellation& cancel);
     Result search(const QString& platform, const QString& title, const Cancellation& cancel);
     Reply media(const QUrl& url, bool video, const Cancellation& cancel);
+    void setPreferences(const Preferences& value) { preferences_=value; }
 private:
     QUrl url(const QString& operation, const QMap<QString,QString>& fields) const;
     Result request(const QString& operation, const QMap<QString,QString>& fields, int system, const Fingerprint*, const Cancellation&);
     Credentials credentials_;
+    Preferences preferences_;
     Transport transport_;
     Delay delay_;
     Quota quota_;

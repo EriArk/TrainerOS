@@ -232,8 +232,10 @@ Window {
                     return [h("↑↓","Choose"),h("A",selectedNotice.answerable ? "Answer" : "Open"),h("X",selectedNotice.ringing ? "Decline" : "Dismiss"),h("B","Back")]
                 }
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
-                if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [h("X","Quick controls"),h("←→",shell.focusIndex>=9 ? "Choose" : "Adjust"),h("A",shell.focusIndex>=9 ? "Toggle" : "Select"),h("B","Close")]
+                if (shell.downloads.open) return [h("↑↓","Choose"),h("←→","Actions"),h("A","Select"),h("B","Close")]
+                if (shell.menuOpen) return shell.powerMenu ? [h("A","Select"),h("B","Back")] : [h("X","Quick controls"),h("←→",shell.focusIndex>=9 ? "Choose" : "Adjust"),h("A",shell.focusIndex>=9 && shell.focusIndex<=11 ? "Toggle" : "Select"),h("B","Close")]
                 if (shell.keyboard.open) return [h("X","Case"),h("Y",shell.keyboard.nextLayout),h("A","Type"),h("Select",shell.keyboard.submitLabel),h("B",shell.keyboard.submitLabel === "Send" ? "Keep draft" : "Cancel")]
+                if (shell.scraper.open) return [h("A","Select"),h("B",shell.scraper.busy?"Stop":"Back")]
                 if (shell.libraryTools.open) {
                     if(shell.libraryTools.route==="reviews")return shell.libraryTools.reviewReportAvailable
                         ? [h("A","Reveal"),h("← →","Read"),h("Select","Report"),h("B","Back")]
@@ -375,6 +377,8 @@ Window {
             Timer { id: toastTimer; interval: 4500 }
             Connections { target: shell.center; function onMerchantDiscovered(message) { merchantToast.message=message; toastTimer.restart() } }
         }
+        ScrapePanel { anchors.fill: screen; shell: shellController; z: 3.1; visible: shell.scraper.open && !shell.keyboard.open }
+        DownloadsPanel { anchors.fill: screen; flow: shell.downloads; z: 3.2; visible: shell.downloads.open }
         LibraryToolsPanel { anchors.fill: screen; shell: shellController; z: 3; visible: shell.libraryTools.open }
         Item {
             id: settingsOverlay

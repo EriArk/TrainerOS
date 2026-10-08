@@ -40,7 +40,8 @@ public:
     bool editable() const override { return library_.editable(); }
     std::optional<AdventureRegistration> registration(const QString& id) const override { return library_.registration(id); }
     void saveAdventureAsync(const AdventureRegistration& r, QObject* c, std::function<void(LibraryWriteResult)> done) override { library_.saveAdventureAsync(r,c,std::move(done)); }
-    QVariantMap artwork(const QString& id) const override { return media_.value(id); }
+    QVariantMap artwork(const QString& id) const override;
+    void setDisplayPreferences(const QJsonObject& preferences) {display_=preferences;emit changed();}
     void refreshContentAvailability() override;
     void rescan();
     bool setRoot(const QString& root) { if(busy_)return false; roms_=root;media_.clear();lastScan_.invalidate();return true; }
@@ -67,6 +68,7 @@ private:
     FolderScan scan_;
     int index_ = 0, added_ = 0;
     QHash<QString,QVariantMap> media_;
+    QJsonObject display_;
     QHash<QString,QVariantMap> nextMedia_;
 };
 }
