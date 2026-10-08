@@ -10,7 +10,11 @@ prohibition or an operator certification. Preserve signed-policy validity,
 consent, runtime/integrity/session controls and operator review of OddCrate
 publications. [Agreement draft](docs/USER_AGREEMENT_DRAFT_RU.md) records this
 target change; it is not implemented transfer behaviour or effective legal
-terms. Operator/jurisdiction details and legal review remain outstanding.
+terms. The owner currently operates personally under the AbyssTail brand in
+Israel and plans a company later; do not describe that company as already
+registered. Name/address/contact, service territories and legal review remain
+outstanding. Unauthorized transfer and rights-policy evasion are contractual
+misuse; that wording is not proof of immunity or a new restriction on GPL code.
 
 **Owner Social palette correction, 2026-10-08:** compact Social must retain the
 colourful, warm handheld character of the rest of TrainerOS. Use the shared
