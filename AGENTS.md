@@ -1,5 +1,18 @@
 # AGENTS.md — TrainerOS
 
+**Owner alpha milestone, 2026-10-08:** finish the full accepted multiplayer
+scope, then deliver an installable alpha for testers/enthusiasts through the
+Armada image and supported SteamOS/Bazzite installer. MP-02 remains next;
+preserve its uncommitted timer work. The active queue and alpha boundary in
+[ROADMAP](docs/ROADMAP.md#alpha-milestone--2026-10-08) supersede older requirements
+that all product work, Pack Studio and optional ROM assets precede any distribution.
+Retain those features for the full product after alpha. Include existing runtime
+families, Hotseat, native online Link and guest sessions with their actual
+dependencies; unsupported routes need explicit evidence. Alpha is not final
+acceptance: preserve deferred real-user/network/audio checks as tester targets,
+release content/licence boundaries, save protection and recoverable installation.
+This decision changes scheduling, not installed capabilities or issue status.
+
 **Owner ScreenScraper priority, 2026-10-08:** developer access was approved and
 the owner requested #65 integration now, ahead of the MP-02 continuation. Use
 the official WebAPI v2 contracts. Include ordinary Settings for account, selected

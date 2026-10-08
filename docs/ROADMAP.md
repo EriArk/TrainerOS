@@ -1,5 +1,11 @@
 # TrainerOS Roadmap
 
+**Owner alpha milestone, 8 October 2026:** complete the full accepted multiplayer
+scope, then ship the image/installer alpha for testers and enthusiasts. Remaining
+product expansion and Pack Studio no longer block this first alpha. MP-02 stays
+next. [Alpha scope](#alpha-milestone--2026-10-08) supersedes older distribution
+ordering below without deleting any final-product obligation.
+
 **Owner detour delivered, 8 October 2026 — ScreenScraper #65:** native jobs,
 account/download settings and independent artwork/data display choices are
 installed on Flip/Odin, with a real account/download/rescan walkthrough on both.
@@ -92,21 +98,57 @@ The owner explicitly rejects test-only passes substituted for feature delivery.
 | Retained · block 3 | COM-03: outstanding calls/notifications acceptance | Human speech/listening is owner-deferred. Keep group voice running through multiplayer; resume the missing acceptance when its prerequisite is available, without restarting completed call checks. |
 | 5 · block 1 | HS-01: live Hotseat Relay, #126 | After the existing oldest-first MP-02…MP-07 queue. One real pass-controller title: exclusive input owner, ordered handoff, loss/rejoin, safe persistence and complete existing party/Home journey. No asynchronous turns. |
 | 6 · block 4 | LINK-04: complete native online activities | After block 1, using existing invitation infrastructure and protected bilateral transactions, with #93/#94 prerequisites for trust-sensitive use. Emulator multiplayer and saved-creature Link stay separate. |
-| 7 · block 5 | REVIEW-05: #113, #135 and residual communication | Implement revised #113: 7200 eligible gameplay seconds OR verified exact completion with meaningful local play, stars/optional text and legacy migration; imported completion alone is insufficient. Finish replies/quotes, reactions, mentions, person card and composer/media acceptance. Validate whole friend/group/in-game/Link/rejoin journeys and independent calls on both devices. No history search. |
-| 8 | Remaining R1–R14, R7a and U/P commitments | Continue the preserved [unified backlog](#unified-execution-order--existing-work-and-new-issues), doing residual work only. Native ScreenScraper and shared Downloads are delivered; residual #65 acceptance is in [ScreenScraper](SCREENSCRAPER.md). Sleep remains deferred. #112 appearance, RA, adapters, Steam, device/input, export, maintenance and Help remain. Add ODD-01 (#144-152) and TV-01 (#156-159), with #113 reviews shared by OddCrate; their mutual priority is not separately decided. |
-| 9 | R18 → R18a/R18b | Complete Pack Studio/art and sprite packs, then optional exact-ROM extraction/cache/integration. Preserve pack-first suppression and user content boundaries. |
-| 10 | REL-01: canonical release state, #119 | Independent related image I and Software S manifests (#119/#153), shared component ownership/integrity and compatible S artifacts across delivery paths. Design dependent contracts earlier where needed; final distribution follows product/assets. No second ownership database. |
-| 11 | R15 image + INSTALL-01, #118/#120–122/#124 | Both consume REL-01. Prepared Armada image plus supported SteamOS/Bazzite session/runtime install, repeat/interrupted install and safe uninstall. Each path needs its own actual device proof and recovery. |
-| 12 | R16 updates/rollback + MAINT-01, #123 | Separate #71 image OTA, SW-01 #154 Software updates and #155 UI, plus #123 repair after native host updates. Policy-only S releases leave image/host and unchanged binaries intact. Preserve compatible data rollback, host sessions and user data. |
-| 13 | R17 final acceptance + #125 | Compare Armada image, SteamOS and Bazzite everyday outcomes and independent I/S/G upgrades. Include #141 guest sessions, #152 OddCrate, #160 real handheld/TV matrix, #115 notices, #116 assets and #117 clean build gates. Missing host hardware or owner acceptance stays explicitly open. |
+| 7 · multiplayer extension | GUEST-01: #136–143 guest sessions | Complete missing-game invitation/transfer/isolated play/cleanup through existing parties, with signed policy, consent and Software dependencies. Follow native Link as already queued; no unprotected transfer shortcut. |
+| 8 · alpha | REL-01 → R15 image + INSTALL-01 | Shared Software S ownership and compatible image I baseline, then Armada image and supported SteamOS/Bazzite installer. Include fresh/repeat/interrupted installation, launch/return, recovery and safe uninstall. Pull forward necessary alpha release dependencies. |
+| 9 · alpha | ALPHA-01: tester/enthusiast release | Versioned artifacts, supported-target/feature matrix, installation/recovery instructions, known issues and bug-report template. Verify shipped artifacts on each claimed target; deferred external acceptance stays open. |
+| 10 · after alpha · block 5 | REVIEW-05: #113, #135 and residual communication | Implement revised #113: 7200 eligible gameplay seconds OR verified exact completion with meaningful local play, stars/optional text and legacy migration; imported completion alone is insufficient. Finish replies/quotes, reactions, mentions, person card and composer/media acceptance. Validate whole friend/group/in-game/Link/rejoin journeys and independent calls on both devices. No history search. |
+| 11 · after alpha | Remaining R1–R14, R7a and U/P commitments | Continue the preserved [unified backlog](#unified-execution-order--existing-work-and-new-issues), doing residual work only. Native ScreenScraper and shared Downloads are delivered; residual #65 acceptance is in [ScreenScraper](SCREENSCRAPER.md). Sleep remains deferred. #112 appearance, RA, adapters, Steam, device/input, export, maintenance and Help remain. Add ODD-01 (#144-152) and TV-01 (#156-159), with #113 reviews shared by OddCrate; their mutual priority is not separately decided. |
+| 12 · after alpha | R18 → R18a/R18b | Complete Pack Studio/art and sprite packs, then optional exact-ROM extraction/cache/integration. Preserve pack-first suppression and user content boundaries. |
+| 13 · after alpha | R16 updates/rollback + MAINT-01, #123 | Complete image OTA, independent Software updates/UI and host repair. Alpha needs recoverable versioned installation; pull forward required safe policy/update dependencies without claiming the entire updater complete. Preserve compatible data rollback, host sessions and user data. |
+| 14 · full product | R17 final acceptance + #125 | Refresh artifacts with completed product/assets; compare Armada, SteamOS and Bazzite, independent I/S/G upgrades, guest sessions, OddCrate and real handheld/TV layouts. Retain #115–117 and all deferred acceptance; alpha does not close them. |
 
-**New dependent scope, not a priority override:** GUEST-01 (#136-143) follows
-the runtime/party foundations and must be complete before missing-game invitations
-are claimed. Its priority relative to later native Link is not separately decided.
-The [new register](EXPANSION_136_160.md) retains its policy/lease/Software dependencies,
-ODD-01, TV-01 and SW-01 without interrupting MP-02. Cross-cutting Software contracts
-may be implemented when a dependent feature needs them; Pack Studio and optional
-ROM assets still precede final image/installer distribution.
+<a id="alpha-milestone--2026-10-08"></a>
+
+### First installable alpha for testers and enthusiasts
+
+The new milestone is **all accepted multiplayer implementation → shared release
+definition → image/installer → alpha**: a usable base build with the main
+attractions, before the entire product vision is finished. Existing library,
+launch/save, compact Social/profiles/calls, ScreenScraper and Downloads travel
+with it. MP-02 remains next; this planning pass implements no runtime or installer.
+
+- Multiplayer scope remains MP-01–MP-07's viable reviewed mechanisms, live Hotseat,
+  native online Link and guest sessions. Preserve internet-first invitations,
+  independent-machine/save semantics, join/leave/rejoin/recovery, shared calls and
+  applicable trust, policy and consent dependencies. Deliver actual player
+  journeys; packages, handshakes or enabled buttons alone are insufficient.
+- Reviews and remaining product work follow alpha unless needed for a working
+  multiplayer journey. Pack Studio, optional ROM extraction, OddCrate, expanded
+  adapters, alternate library/TV layouts and remaining R/U/P scope stay in the
+  full-product queue, without being advertised as alpha features.
+- Both delivery paths consume the same compatible Software S definition. Claim
+  only device/host/runtime combinations exercised with shipped artifacts; missing
+  SteamOS/Bazzite hardware leaves those release gates open. First-run, owned
+  runtimes, controller/touch operation, saves, host recovery and safe uninstall
+  must work without the developer's private setup.
+- Before artifact publication, verify clean build/provenance, applicable licences,
+  source/notices and distributable assets (#115–117). Exclude private ROMs,
+  firmware, accounts, saves and media. Deferring Pack Studio is not artwork
+  clearance: use distributable defaults and user-provided content where needed.
+- Publish version, supported-target/route matrix, known limitations, installation
+  and recovery instructions, and bug-report fields (version, device/host, game/
+  runtime, reproduction steps, expected/actual result, sanitized logs). Keep
+  bounded actual-device multiplayer and installation evidence for advertised routes.
+- Owner-deferred distinct-network, larger-group and human audio checks remain
+  explicit tester/owner acceptance targets. Do not rerun passed same-router
+  checks or count deferred conditions as passed. Alpha availability enables these
+  tests; it does not certify universal compatibility or close MP/COM/#135/R17
+  parent acceptance.
+
+R18 → R18a/R18b remains the asset-work order after alpha, before the full-product
+artifact refresh and R17. R16/SW-01/MAINT-01 retain their full scope; implement safe
+install/recovery or guest-policy delivery prerequisites earlier where needed.
+This changes scheduling only; no alpha artifact has been built yet.
 
 **Owner availability correction, 2026-10-04:** implemented multiplayer is enabled
 in normal installations. The developer opt-in is removed; compatibility and

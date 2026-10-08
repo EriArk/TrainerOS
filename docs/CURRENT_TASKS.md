@@ -1,5 +1,15 @@
 # Current tasks
 
+**Owner alpha milestone, 8 October 2026:** MP-02 remains the next implementation
+outcome. Finish all accepted multiplayer families, Hotseat, native online Link
+and guest sessions, then REL-01 and the image/installer alpha for testers and
+enthusiasts. [The active queue and alpha criteria](ROADMAP.md#alpha-milestone--2026-10-08)
+supersede older all-product/Pack-Studio-before-distribution scheduling below.
+Reviews, remaining product work, Pack Studio/ROM assets and full update/final
+acceptance remain after alpha; multiplayer-critical dependencies stay before it.
+Preserve timer work, existing evidence and owner-deferred tests. This planning
+change delivers no runtime, installer or alpha artifact and closes no issue.
+
 **Delivered owner detour, 8 October 2026 — #65 ScreenScraper:** developer access is
 approved; explicit game/system/collection/library jobs, Settings for login and
 downloads, and independent display choices are installed on Flip/Odin. Both

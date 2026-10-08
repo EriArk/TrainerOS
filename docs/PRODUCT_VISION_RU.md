@@ -1038,9 +1038,11 @@ Cache привязан к content hash, extractor/schema version и family. См
 часть; нет смешения редакций и чужих изображений. Extracted assets локальны,
 не попадают автоматически в portable export, GitHub или публичный пакет.
 
-Pack Studio и art/sprite packs выполняются **до** R18a/R18b extraction/cache,
-а всё это — до поставки образа/installer. Написать installer раньше этой зависимости
-в исследовательских целях не означает принять конечную дистрибуцию.
+Pack Studio и art/sprite packs выполняются **до** R18a/R18b extraction/cache.
+По новому решению владельца первая альфа с образом/installer выходит раньше этих
+работ, после всего согласованного мультиплеера. Pack Studio и ROM assets остаются
+частью конечного продукта; их отсутствие в альфе не разрешает распространять
+приватные или неразрешённые ресурсы.
 
 <a id="vision-system"></a>
 ## 24. Система, настройки, питание и помощь
@@ -1321,18 +1323,25 @@ paired gameplay и физическая проверка владельца — 
 Существующие доказательства не перепроверяются без изменённого кода, ошибки или
 конкретного незакрытого риска.
 
-Очередь сохраняет MP-02 → MP-03…MP-07 → live Hotseat → native online Link с trust
-→ reviews/residual communication → оставшиеся R/U/P → Pack Studio → optional ROM
-assets → image/installer → updates/repair → final acceptance. Уточнение новых
-обязательств #136–160 не даёт повода бросить MP-02 ради очередного аудита.
+Первый релизный рубеж — **устанавливаемая альфа для тестеров и энтузиастов**:
+MP-02 → MP-03…MP-07 → live Hotseat → native online Link с trust → guest sessions
+с policy/lease → REL-01 → образ Armada и installer SteamOS/Bazzite → альфа.
+MP-01 и общие multiplayer/call gates сохраняются. В альфу входят существующие
+библиотека, запуск/сохранения, Social и настройки ScreenScraper/Downloads.
+Это базовый билд с главными возможностями, а не завершение всей продуктовой карты.
 
-Guest-content реализуется поверх существующих party/runtime после их основных
-семейств; policy и lease обязательны до доступной гостевой передачи. Новый
-универсальный review policy связывается с REVIEW-05; OddCrate использует его же.
-TV и OddCrate входят в оставшуюся продуктовую работу до финальной distribution
-приёмки. Их взаимный порядок не был отдельно утверждён и не придумывается здесь.
-I/S contracts проектируются в REL-01; полноценная доставка/update proof остаётся
-в соответствующем release-блоке после Pack Studio/assets.
+После альфы: reviews/residual communication, оставшиеся R/U/P, OddCrate и TV,
+Pack Studio → optional ROM assets, полные updates/repair и финальная приёмка
+с обновлёнными артефактами. Их scope не сокращается. Зависимости, без которых
+невозможны безопасная установка или multiplayer/guest journey, выполняются до
+альфы. I/S ownership общий для обоих способов поставки с первого релиза.
+
+[Критерии альфы](ROADMAP.md#alpha-milestone--2026-10-08) требуют реальной установки
+на заявленных целях, рабочего основного сценария, сохранности данных, восстановления,
+разрешённого состава дистрибутива и понятных известных ограничений. Отложенные
+проверки разных сетей, большой группы и человеческого аудио становятся явными
+задачами тестирования, а не выдуманными доказательствами готовности. Альфа не закрывает
+их и не обещает все игры/устройства. Артефакты альфы пока не собраны.
 
 Подробный dependency register — [#136–160](EXPANSION_136_160.md), единственная
 операционная очередь — [ROADMAP](ROADMAP.md). Каждый объявленный increment должен
@@ -1382,7 +1391,7 @@ I/S contracts проектируются в REL-01; полноценная до�
 | Отдельный голосовой канал каждой party обязателен | Один групповой звонок с несколькими независимыми game parties. |
 | Каждая RetroArch-консоль — новая реализация multiplayer | Одно netplay-семейство с проверенными profiles; handheld machine-link отдельно. |
 | Игра требует per-title binding/adapter/второй Play | Обычный запуск по platform/runtime с автоматической подготовкой. |
-| Pack Studio после образа | Pack Studio → optional ROM assets → distribution → updates/repair → acceptance. |
+| Порядок первой поставки | Новый рубеж: весь multiplayer → image/installer → alpha; затем оставшаяся продуктовая работа, Pack Studio → optional ROM assets и полная release/update/acceptance доводка. |
 | Компания AbyssTail уже юридически оператор | Сейчас физлицо под брендом в Израиле; компания позднее, agreement пока draft. |
 
 <a id="vision-issues"></a>

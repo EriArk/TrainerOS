@@ -69,19 +69,22 @@ is installed; future-route and human acceptance remain open.
 | --- | --- |
 | MP-02 → MP-07 | Existing runtime families first; retain independent saves and deferred internet proof. |
 | HS-01 | Live Hotseat follows those families. |
-| GUEST-01 | #136–143 follows runtime/party foundations, before claiming missing-game invitations. Relative priority against later native Link has not been separately decided. |
+| GUEST-01 | #136–143 follows runtime/party foundations, before claiming missing-game invitations. The alpha queue places it after native Link and before REL-01/distribution. |
 | LINK-04 | Native online Link retains #93/#94 and bilateral acceptance. |
-| REVIEW-05 | Revised #113 rating/eligibility/migration plus residual communication/#135. |
-| Remaining R/U/P | ODD-01 (#144–152) and TV-01 (#156–159) join retained product scope. Their mutual order is not owner-ranked; neither overrides MP-02. |
-| R18 → R18a/R18b | Pack Studio/art/sprite packs, then optional ROM assets, before distribution. |
+| REVIEW-05 · after alpha | Revised #113 rating/eligibility/migration plus residual communication/#135. |
+| Remaining R/U/P · after alpha | ODD-01 (#144–152) and TV-01 (#156–159) join retained product scope. Their mutual order is not owner-ranked; neither overrides MP-02. |
+| R18 → R18a/R18b | Pack Studio/art/sprite packs, then optional ROM assets after alpha, before the full-product artifact refresh. |
 | REL-01 | #119/#153 independent I/S manifests and shared ownership; design S policy/update contracts earlier when a dependent feature needs them. |
-| R15 + INSTALL-01 | Image and SteamOS/Bazzite installation use compatible S baseline. |
+| R15 + INSTALL-01 | Image and SteamOS/Bazzite installation use compatible S baseline; alpha follows full multiplayer implementation, ahead of remaining product/assets work. |
 | R16 + MAINT-01 + SW-01 | #71 image OTA, #123 host repair, #154 Software updater, #155 UI. |
 | R17 | #125/#141/#152/#160, remaining #135 and all earlier physical/legal/build gates. |
 
-Cross-cutting components may be implemented when needed by a dependent feature;
-this does not move distribution before Pack Studio or make partial work a delivered
-outcome. R numbers retain scope, not original chronology. No issue is closed here.
+The later [owner alpha milestone](ROADMAP.md#alpha-milestone--2026-10-08) moves
+initial distribution before Pack Studio. This table maps scope, not a competing
+execution order. Implement cross-cutting components when a dependent feature
+requires them; partial work never closes the parent outcome. Full Software
+updates, repair and final acceptance remain after alpha except necessary safe
+delivery/guest-policy prerequisites. No issue is closed here.
 
 ## Evidence limits
 

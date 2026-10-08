@@ -58,10 +58,11 @@ R15 is the prepared-image outcome; INSTALL-01 delivers install/use/uninstall on
 both supported host families as one coherent outcome. R16 retains image OTA;
 SW-01 delivers independent Software S updates on both paths, including policy-only
 releases. MAINT-01 handles host-induced drift; native host updates remain host-owned.
-R17 includes the three-path comparison. Pack Studio and optional ROM-native
-integration remain before the image; installer work does not bypass those gates.
-Runtime recipes and host constraints should be maintained in their existing
-records as relevant work proceeds, without implementing the installer early.
+R17 includes the three-path comparison. The later owner alpha milestone moves
+REL-01 and the image/installer after all accepted multiplayer work, before Pack
+Studio and optional ROM-native integration. Those asset features remain required
+for the full product. [ROADMAP](ROADMAP.md#alpha-milestone--2026-10-08) controls
+this order; host proof, safe installation and distribution rights remain required.
 
 Physical SteamOS and Bazzite targets are required for their acceptance. Flip/Odin
 Armada evidence and synthetic host fixtures cannot substitute. Lack of a target
