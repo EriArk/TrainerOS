@@ -1,7 +1,10 @@
 # TrainerOS UX & Navigation
 
 **Active target, 9 October 2026:** [precise UX-02 map](UX_OPTIONS_MAP_RU.md).
-Five primaries are Home / Collections / Companions / Trainer / Social. Home Y uses
+Five semantic slots are Home / Collections / [experience A] / [experience B] / Social.
+The [#174–178 + adaptive Home contract](EXPANSION_174_178.md) supplies game-specific
+Home content and both contextual slots; Companions/Trainer is Pokémon's presentation.
+Universal profile access and input rules remain host-owned. Home Y uses
 global recents, with no Home L2/R2 collection switching. A is the direct primary
 action, Select/ellipsis is focused-object context, physical Home opens universal
 Options or live-session Game Options, Start is system-only. Safe Minimize/Return

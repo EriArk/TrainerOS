@@ -6,14 +6,22 @@ The planned [UX-02 map](UX_OPTIONS_MAP_RU.md) replaces compact Home with univers
 Options and adds focused-object Select/Game Options. Those new surfaces and live
 minimize are not installed by this documentation pass.
 
-Home / Collections / Companions / Trainer / Social remain five full-screen peers.
+The target remains five semantic slots: Home / Collections / [experience A] /
+[experience B] / Social. [#174–178 and adaptive Home](EXPANSION_174_178.md) make
+Home content and both game slots follow the selected Home Adventure. Labels/faces
+are provided by the experience; global A/Y, Options, Start and profile access remain
+host-owned. This is planned; fixed Companions/Trainer below describes Pokémon and
+the installed baseline, not every game's final navigation.
 L1/R1 stops at the existing primary edges. L2/R2 wraps section faces:
 
 - Home: no L2/R2 collection switching; Y chooses global recent games without launch.
 - Collections: collection switching; Pokémon opens games directly, All games retains
   systems, and manual/dynamic/automatic collections share the same library.
-- Companions: Guide / Party / Boxes / Center / Playroom / Shops.
-- Trainer: Profile / Journey / Hall / RA.
+- Pokémon slot A, Companions: supported Guide / Party / Boxes / Center / Playroom / Shops.
+- Pokémon slot B, Trainer: supported persona/progression views; current baseline
+  Profile / Journey / Hall / RA will separate universal identity from game progress.
+- Generic fallback slots: working Game / History, with actual metadata/settings,
+  observed sessions and compatible RA; no empty Pokémon faces or fabricated milestones.
 - Social: Messages / Communities / Discover; Messages combines DMs and groups
   ([8 October delivery](SOCIAL_UX.md)).
 
@@ -22,8 +30,12 @@ Discover uses a full-width discovery layout, not the conversation sidebar; exist
 friends/requests are inside Messages and the Home Friends shortcut. Per-face
 conversation choices remain account-scoped. Back retains the current conversation.
 
-The Trainer profile, existing Hall controller's three independent face views and
-their providers are reused. No dashboard, additional submenu or save writer was
+In the target UI, the universal profile is reachable through the user identity in Shell Options,
+using the existing profile controller. Switch Trainer stays in Start. Restored
+faces use Trainer/game/module semantic identities, never a cross-package numeric index.
+
+The original implementation reused the Trainer profile, Hall controller's views and
+their providers. No dashboard, additional submenu or save writer was
 introduced. First Trainer entry is Profile; ordinary visits retain its selected
 face. `goToTrainerFace(profile|journey|hall|ra)` is the explicit semantic deep-link
 boundary. Nested Champion/archive/achievement routes keep their own selection

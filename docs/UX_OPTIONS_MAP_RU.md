@@ -1,37 +1,102 @@
 # Карта управления и игровых сессий TrainerOS
 
 **UX-02 · 9 октября 2026 · согласованный продуктовый контракт и план реализации.**
-Основание: [#167](https://github.com/EriArk/TrainerOS/issues/167) и дочерние #168–173,
-поправки #25/#112/#134/#157, поставленные [коллекции](SERIES_COLLECTIONS.md).
+Основание: [#167](https://github.com/EriArk/TrainerOS/issues/167), #168–178,
+поправки #25/#89/#90/#92/#111/#112/#134/#157 и уточнение владельца:
+**Home тоже адаптируется к выбранной игре**. [Коллекции](SERIES_COLLECTIONS.md) уже поставлены.
 Этот документ фиксирует поведение до изменения кода. Options — рабочее название.
 Сначала завершаем карту и документацию; реализация начинается отдельным продолжением
-владельца. После UX-02 возвращаемся к MP-02, сохраняя его незакоммиченные timer-правки.
+владельца. UX-02 теперь включает весь общий каркас, адаптивный Home, игровые разделы,
+профиль, UI и управление. После этого блока возвращаемся к MP-02, сохраняя timer-правки.
 
 Требования issues считаются принятыми. Предложенная ниже композиция панелей и
 внутренние имена интерфейсов — проектное решение для реализации, а не уже
 установленный UI или обещание конкретного API эмулятора. Порядок работ задаёт
-[ROADMAP](ROADMAP.md); полный реестр новых требований — [#161–173](EXPANSION_161_173.md).
+[ROADMAP](ROADMAP.md); реестры требований — [#161–173](EXPANSION_161_173.md) и
+[#174–178 с адаптивным Home](EXPANSION_174_178.md).
 
 ## 1. Основные поверхности
 
 | Поверхность | Для чего | Вход и выход | Контекст |
 | --- | --- | --- | --- |
-| Home | Выбрать недавнюю игру и запустить её | Primary; Y открывает общие Recent games | Выбранный Adventure, не обязательно запущенный |
+| Home | Адаптивная игровая главная: сведения, реальные игровые блоки/действия и запуск | Стабильный primary Home; Y открывает общие Recent games | Experience выбранного Adventure, не обязательно запущенного |
 | Collections | Просмотр всех игр, серий, ручных и автоматических коллекций | Primary; B из списка возвращает в коллекции | Выбранная коллекция и выделенный объект |
-| Companions / Trainer / Social | Существующие предметные функции | Существующие primaries и faces | Их контроллеры и возможности адаптеров/provider |
+| Игровые слоты A/B | Названия, faces, виджеты и прогресс выбранной игры; Pokémon использует Companions/Trainer | Стабильные semantic slot IDs, L1/R1 и поддержанные L2/R2 faces | Тот же selected-game Experience, что у Home |
+| Social | Общение и совместная игра через существующие сервисы | Постоянный правый primary и его faces | Provider/account, независимые call/party |
 | Shell Options | Общение, уведомления и общая текущая активность | Home/Guide поверх любого shell-раздела; Home закрывает всю панель, B сначала вложенный уровень | Общие call/party/notification/live-session данные; исходная страница — только фон/точка возврата |
 | Context actions | Дополнительные действия выделенного объекта | Select или его видимый эквивалент «…»; B/Select закрывает | Зафиксированный объект и Trainer |
 | Game Options | Управление реально идущей игровой сессией | Физический Home в игре; Continue/Home/B возвращает к игре | Неизменяемая идентичность живой сессии |
 | Start | Устройство и система | Start внутри shell; B закрывает | Settings, радио, громкость/яркость, питание, системные режимы, Switch Trainer |
 | Passive toast | Краткое уведомление без переключения управления | Событие; исчезает по таймеру | Исходное событие provider, без подтверждения действия |
 
-Остаются пять primaries: **Home / Collections / Companions / Trainer / Social**.
+Остаются пять semantic slots: **Home / Collections / [Игровой A] / [Игровой B] / Social**.
+Companions/Trainer — названия Pokémon experience, не универсальные названия всех игр.
 Options не становится шестой вкладкой. Pokémon открывает список игр без региональных
 миров. All games включает игры из коллекций; личная коллекция не переносит файлы.
 Home имеет один выбор по всей библиотеке, Y выбирает из общих недавних игр без запуска.
 L2/R2 на Home не меняет коллекцию. В Collections сохраняется переключение коллекций;
-в остальных разделах — существующих faces. Повторный вход в Collections открывает grid,
+в игровых разделах — доступных faces их experience, в Social — его faces.
+Повторный вход в Collections открывает grid,
 а закрытие overlay возвращает точный прежний вложенный маршрут.
+
+### 1.1. Адаптивный Home и единый Experience
+
+Home сохраняет имя, постоянный маршрут, общий стиль и предсказуемое управление.
+Его **игровое содержание** приходит из той же интеграции, что и два игровых слота:
+композиция предметных блоков, терминология, виджеты, доступные действия, изображения
+и подтверждённый прогресс. Это не только смена фона/заголовка. Корпус, safe area,
+читаемость, навигация, фокус и работа touch/controller принадлежат оболочке.
+
+| Интеграция | Home | Игровой A | Игровой B |
+| --- | --- | --- | --- |
+| Поддержанная Pokémon | Сведения выбранного Adventure, доступные данные его прохождения и игровые shortcuts | Companions: реальные Guide/Party/Boxes/Center/Playroom/Shops | Trainer: game persona, Journey/Hall и применимые проекции |
+| RPG fixture | Отличающиеся персонажные/игровые блоки на явно тестовых данных | Hero: тестовые Character/Skills | Chronicle: тестовые records |
+| Racing fixture | Отличающиеся автомобильные/гоночные блоки на явно тестовых данных | Garage: тестовые Cars | Career: тестовые Races |
+| Обычная игра без глубокой интеграции | Арт, название/платформа, запуск/возврат, реальная история; никаких выдуманных milestones | Рабочий fallback Game: сведения, media и доступные игровые настройки/действия | Рабочий fallback History: наблюдённые сессии и RA только при настоящем источнике |
+
+RPG/racing — fixtures для проверки контракта, не поставка Diablo/NFS-адаптеров.
+Game/History — выбранная рабочая политика полезного fallback, названия уточняются
+при визуальном просмотре. Неподдержанные faces не создаются ради заполнения;
+нулевая история имеет честное «ещё не играли», а не ложные нулевые игровые достижения.
+При отсутствии выбранной игры Home предлагает открыть Collections/выбрать доступную
+игру; нейтральные разделы показывают состояние выбора и реальную историю пользователя.
+
+На Home остаются одно выбранное Adventure, глобальные Y / Recent games и прямой A.
+Меняются данные/возможности, а не смысл A/Y и не число стадий запуска. Нет возврата
+к per-series Home, переключению коллекций L2/R2 или подбору адаптера пользователем.
+Просмотр другой карточки Collections не меняет Home experience сам по себе.
+Когда выбранная игра отличается от живой, главный запуск подчиняется существующему
+правилу Return/явный Exit; отдельный статус живой игры не выдаёт её за выбранную.
+
+### 1.2. Владелец данных, профиль и смена контекста
+
+Experience объединяет presentation descriptors, доверенные встроенные presenters,
+узкие exact-build providers и переиспользуемые семейные компоненты. В общем shell
+нет веток по названиям Pokémon/Diablo/NFS. Первый этап не загружает произвольный QML
+или native plugins. Наличие темы/лица игры не даёт полномочий читать/менять save.
+
+Пользователь TrainerOS, PIN, аккаунты, история запусков и RA provider остаются
+общими. Pokémon favorites/badges/Champion относятся к игровому контексту, а не
+постоянной личности пользователя. **Имя/аватар пользователя в Shell Options —
+прямой общий вход в профиль** с существующим контроллером редактирования; полный
+профиль не обязан занимать постоянную панель каждой интеграции. Switch Trainer
+остаётся в Start с прежними live/save guards, аккаунты — в существующих Settings.
+Переход из игры к полному профилю использует явный Minimize и тот же общий маршрут.
+
+При смене выбора resolver получает Trainer + Adventure + exact content/build +
+experience/version. Home и оба слота применяют одну generation контекста; данные
+старой игры снимаются до публикации новых. Loading/error/unsupported различимы.
+Поздние callbacks и actions проверяют generation/owner/target перед применением.
+Сохранённые face/focus привязаны к Trainer/game/module и semantic IDs, а не индексам.
+Legacy Pokémon routes мигрируют только в Pokémon module; несовместимый или удалённый
+module даёт нейтральный fallback без потери saves, media и истории. Активная запись,
+несохранённый editor и модальные подтверждения сохраняют существующие guards.
+
+Три контекста независимы: выбранная Home-игра для Home/слотов; зафиксированная
+карточка/объект для её Select; реально живой процесс для Game Options. Если текст
+issue обобщённо говорит «selected game», он не разрешает заменить target карточки
+или live session текущим выбором Home. Shell Options остаётся универсальным;
+расширения интеграции доступны через Home, игровые слоты, Select и Game Options.
 
 ## 2. Кнопки и приоритет ввода
 
@@ -105,8 +170,9 @@ safe area и меньше одновременно видимых строк. Р
 | Встроенная коллекция / фон grid | New collection, поддержанные filter/sort действия; нет Delete встроенной серии | Collection/system ID либо сам library root |
 | Social: человек или разговор | Profile, Together/Invite, действия группы и provider permissions | Provider account + user/conversation/group ID |
 | Social: сообщение | Существующие допустимые message actions | Conversation + message ID, проверка права снова при выполнении |
-| Party / Boxes / Guide | Только существующие операции над выбранным существом/ячейкой/записью | Adventure, save revision, стабильная идентичность объекта, read/write gates |
-| Trainer / Journey / Hall / RA | Имеющиеся действия профиля/записи, без системного питания | Owner + ID записи; никакой выдуманной операции ради заполнения меню |
+| Игровой слот A; Pokémon Party / Boxes / Guide | Descriptor интеграции: только доступные операции над выбранной сущностью | Adventure, experience/version, save revision, stable target, read/write gates |
+| Игровой слот B; Pokémon Journey / Hall | Реальные действия game-specific записи через интеграцию | Owner/game/module/record; никакой выдуманной операции ради заполнения меню |
+| Общий профиль / наблюдённая история / RA | Host-owned действия профиля/записи/provider | Owner + ID записи/account; просмотр не даёт права менять save |
 
 Различаем фокус заголовка коллекции и фокус игры. Текущий безусловный
 `Select → manageCollection` на странице библиотеки будет заменён этим выбором.
@@ -114,7 +180,8 @@ safe area и меньше одновременно видимых строк. Р
 добавляет заранее replies/reactions, семантический save-adapter или новый sorter.
 
 Предлагаемый `ContextAction`: стабильный action ID, label/detail, target type/ID,
-effective capability, причина временной блокировки и ссылка на существующий handler.
+owner/Adventure/module/version/context generation, effective capability, причина
+временной блокировки и ссылка на существующий handler.
 Контекст фиксируется при открытии, затем проверяется при Confirm и завершении async
 операции. Старый callback не получает новый объект из текущего focusIndex.
 
@@ -202,7 +269,7 @@ Save guards смотрят на живой процесс, даже если she
 
 | Откуда | Уже известно | Что остаётся |
 | --- | --- | --- |
-| Home / карточка игры | Selected game, Trainer | Человек или группа |
+| Home / карточка игры | Home-selected либо конкретная highlighted game, Trainer | Человек или группа |
 | DM / группа | Provider recipient/conversation | Совместимая игра, только если ещё не определена |
 | Game Options | Текущая session/game/runtime, возможная party | Выбрать людей; runtime сам определяет поддержку входа в текущую сессию |
 | Shell Options при свёрнутой игре | Та же live session/party | Люди или действия существующей party |
@@ -245,6 +312,7 @@ lock/display-контексты. Системные уведомления до�
 
 | Ответственность | Проверенная отправная точка | Необходимое изменение |
 | --- | --- | --- |
+| Игровая композиция | `Experience.h` с одним `pokemonExperience`, фиксированные `primaryNames/faceNames`, Pokémon-поля `TrainerPage.qml` | Версионированный descriptor/resolver: adaptive Home + слоты A/B + Select/live extensions; выделенный Pokémon module, generic fallback, общий профиль |
 | Shell navigation и действия | `ShellController`, `Main.qml`, `HomeMenuCard.qml`; компактные Home/Friends/Chats/Notifications и новые Collections | Общая Options presentation, ContextAction resolver, точный modal/focus return |
 | Жизненный цикл | `AdventureLaunchController`, `SessionState`, wiring в `Main.cpp`; active game скрывает shell и блокирует его dispatch | Разделить gameAlive, foreground/input owner и runtime pause; разрешить безопасное browsing без снятия save/owner gates |
 | Игровая панель и выход | `AdventureExitPresentation`, `AdventureExitController`, `AdventureExitWindow.qml`; Continue/Exit плюс реальные extra actions | Большая Game Options и новые actions; сохранить единственный #49 exit controller |
@@ -266,7 +334,8 @@ save/config, не запускает shell-команды и не владеет
 
 | Этап | Целый пользовательский результат | Обязательные зависимости и выход |
 | --- | --- | --- |
-| UX-02A · #168/#169 | Из любого shell-раздела открываются одинаковые Options; Select относится к выбранному объекту | Реальные provider hooks, shared target/action модель, touch и controller, exact Back/focus, новый Collections контракт; компоновка Handheld/TV этих поверхностей |
+| UX-02 · основание · #174–178 + Home | Выбор игры меняет Home и оба игровых раздела; Pokémon работает через собственный module, обычная игра получает полезный fallback; профиль доступен всегда | Сначала descriptor/context/host boundaries, затем перенос существующих flows и profile split. Semantic migration, две fixtures, no stale results, реальный Emerald и generic playback; это часть текущего каркаса до MP-02 |
+| UX-02A · #168/#169 | Из любого shell-раздела открываются одинаковые Options; Select относится к выбранному объекту | Experience/context контракт основания; реальные provider hooks, shared action модель, глобальный профиль, touch/controller, exact Back/focus; Handheld/TV композиция |
 | UX-02B · #170/#171 | Игрок открывает Game Options, сворачивает поддержанную игру, отвечает в Social и возвращается в тот же процесс | A; lifecycle/input ownership, capability-профили, безопасные pause/audio, #49 capture/Exit, обе handheld поставки |
 | UX-02C · #172/#173 + #25/#134 | Invite доступен из всех заявленных мест; сообщения/вызовы/награды имеют общий inbox и безопасные игровые toasts | A/B; exact selected/live binding, фактический compositor route, privacy/DND/dedup, отказ без поломки игры |
 | UX-02D · #167/#135/#157 | Полный сквозной сценарий и согласованная инструкция управления | Результаты A–C; реальные Flip/Odin, профили/TV acceptance; каждый оставшийся внешний gate записан отдельно |
@@ -281,8 +350,10 @@ D — завершение интеграции A–C и остаточной п
 test-only ход. Приёмочные проверки входят в соответствующие функциональные этапы;
 повторяются лишь затронутые общей интеграцией сценарии.
 
-Следующая реализация — UX-02A **после отдельного продолжения владельца**. Затем B–D,
-после доступной реализации UX-02 — возврат к прежней oldest-first MP-02…MP-07 очереди.
+Следующая реализация — **весь UX-02 каркас/UI/управление**, начиная с experience
+основания и адаптивного Home, затем A–D, после отдельного продолжения владельца.
+Это внутренние зависимости одного принятого блока; нельзя закончить только меню
+и отложить адаптивные экраны за multiplayer. Затем — прежняя MP-02…MP-07 очередь.
 Непроверенный внешний TV/аудио/сетевой gate не превращается в бесконечную серию
 одинаковых тестов и не закрывается текстом. Сам parent остаётся открыт по такому gate.
 Новые DS #162–166 уточняют MP-06; #161 готовится перед alpha publication. Они не
@@ -292,6 +363,8 @@ test-only ход. Приёмочные проверки входят в соот
 
 | Проверка | Условие успеха | Доказательство |
 | --- | --- | --- |
+| Adaptive Home + слоты A/B | Pokémon → generic → RPG/racing fixtures → Pokémon меняет реальные виджеты/faces/actions; A/Y, профиль и общие сервисы предсказуемы | Разные descriptors, реальный Emerald/generic launch; fixtures не доказывают игровые интеграции |
+| Смена/отсутствие experience | Нет stale Home/прогресса/действий; корректные partial/disabled/unknown version и legacy fallback | Async generation, per-Trainer/game restore, module update/remove, другая minimized session, сохранность save/media/history |
 | Options со всех пяти primaries и faces | Один global model; точный Back/Home return, без смены скрытой страницы | Controller + pointer, исходные route/ID/focus, screenshots |
 | Select | Home game, library game/header, Social person/message, Companions target, Trainer record | Разные target types; stale owner/content/request отклоняются |
 | Большая панель | 85–95% safe area, компактные действия, читаемые игровые/социальные данные | Handheld и настоящий reflow TV; owner visual acceptance отдельно |

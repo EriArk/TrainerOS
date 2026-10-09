@@ -15,6 +15,17 @@ Adventure/save/provider boundaries remain; migrations require their own checks.
 
 # TrainerOS Domain Model
 
+**Planned experience context, #174–178 and owner adaptive Home:** one descriptor
+generation binds Trainer + selected Adventure + verified content/build + compatible
+experience/version, supplying Home and two contextual slots. Persist semantic
+module/face/action identities, scoped by Trainer/game; invalidate stale callbacks
+and migrate legacy Pokémon routes without save/history rewrites. A collection
+membership never creates another experience or grants capabilities. Focused-card
+actions capture their own target; the live session remains independently bound.
+Universal profile/PIN/accounts and actual history are host data; game personas,
+favorites and evidenced progression are experience projections. [Contract](EXPANSION_174_178.md).
+This does not deliver a schema change or reclassify old records without migration.
+
 **Planned UX-02 state boundary, 9 October 2026:** [precise map](UX_OPTIONS_MAP_RU.md).
 Selected Adventure/navigation state does not identify the live game. A live session
 needs verified owner/game/session/process-start/runtime/profile identity with

@@ -1,5 +1,12 @@
 # Issues #161–173 — acceptance and dependencies
 
+**Later owner extension, 9 October:** [#174–178 and adaptive Home](EXPANSION_174_178.md)
+now belong to UX-02's foundation, before completing Options/Select/live-game work.
+The five semantic slots stay stable; Home game content and the two former fixed
+Companions/Trainer slots adapt through an experience. Universal Shell Options does
+not. Complete the whole framework/UI/control block before MP-02; keep this register's
+runtime, notification, DS and alpha-art acceptance.
+
 Reviewed 9 October 2026 against live GitHub issues and the owner's request to
 map the experience and correct documentation **before implementation**.
 This register adds requirements, not installed capabilities. No issue is closed.

@@ -1,5 +1,19 @@
 # AGENTS.md — TrainerOS
 
+**Owner adaptive-Home/framework priority, 2026-10-09:** Home also adapts through
+the selected Adventure's Experience Package, including real game-facing widgets,
+actions, presentation and verified progress, not just background/title. Keep its
+stable Home route, direct A, global Y recents and no L2/R2 collection cycling.
+Follow docs/EXPANSION_174_178.md and the expanded docs/UX_OPTIONS_MAP_RU.md:
+Home / Collections / [experience slot A] / [experience slot B] / Social.
+Complete the shared framework, adaptive Home/slots, Pokémon extraction, universal
+profile, generic fallback and all accepted UI/control/Options work as UX-02 before
+returning to MP-02 or other queued expansion. This follow-up is documentation only;
+implementation follows next. Preserve timer WIP, exact-build save guards, semantic
+navigation migration, universal Shell Options and live-session identity. Do not
+defer the adaptive framework until after multiplayer or claim fixtures implement
+Diablo/NFS. Trusted in-tree presenters first; external #92 packaging remains later.
+
 **Owner map-first correction, 2026-10-09:** the current pass is planning and
 documentation only; do not start runtime/UI implementation in it. Follow the
 precise screen/action/session map in docs/UX_OPTIONS_MAP_RU.md and the live issue

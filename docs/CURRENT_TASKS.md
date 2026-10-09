@@ -1,5 +1,11 @@
 # Current tasks
 
+**Latest owner scope, 9 October 2026:** document adaptive Home as part of the
+[#174–178 experience architecture](EXPANSION_174_178.md), then complete the entire
+shared framework/UI/control block before MP-02 and other queued expansion.
+This follow-up edits documentation only. Adaptive Home and both game-oriented
+slots are now first-class UX-02 requirements; Options-only delivery is insufficient.
+
 **Current owner request, 9 October 2026 — UX-02 planning only:** think through
 the complete interaction/session map and reconcile documents before implementation.
 [Precise map](UX_OPTIONS_MAP_RU.md) and [#161–173 register](EXPANSION_161_173.md)
@@ -143,12 +149,17 @@ Preserve the unfinished MP-02 source change. Its underlying timer regression
 may be validated if the changed UI exercises it; no cable-research detour before
 this outcome. Then resume the full MP-02 block below.
 
-## Next implementation: UX-02 — Options, Select and live-game multitasking
+## Next implementation: UX-02 — adaptive framework, UI and controls
 
 Current pass supplies the map and documentation only. On the owner's continuation:
 
+- [ ] UX-02 foundation: experience descriptors/resolver and host boundaries;
+  adaptive Home and slots A/B; extract verified Pokémon flows; separate universal
+  identity/profile; useful generic fallback and two nonproduction experience fixtures.
+  Preserve semantic route migration, exact-build capabilities and stale-result guards.
 - [ ] UX-02A: shared Shell Options from every primary and focused-object Select,
-  stable target/focus, parallel touch/controller and real Handheld/TV composition.
+  experience-supplied contextual actions, stable target/focus, global profile entry,
+  parallel touch/controller and real Handheld/TV composition.
 - [ ] UX-02B: Game Options for the actual process, safe minimize → Social → same
   game return; runtime capability gates, input/save/audio/time protection and #49 Exit.
 - [ ] UX-02C: contextual Together entries plus passive shell/game notifications and
@@ -158,7 +169,9 @@ Current pass supplies the map and documentation only. On the owner's continuatio
 
 Each functional outcome includes required integration, bounded checks, both
 available handheld deliveries and commit/push. Full details and failure cases:
-[UX map](UX_OPTIONS_MAP_RU.md), [issue register](EXPANSION_161_173.md).
+[UX map](UX_OPTIONS_MAP_RU.md), [Options register](EXPANSION_161_173.md),
+[experience/Home register](EXPANSION_174_178.md). These are dependencies inside the
+whole accepted block; finish the framework/UI/controls before returning to MP-02.
 Do not replay passed tests to fill an externally blocked acceptance turn.
 
 <a id="current-task-mp-02--independent-handheld-link"></a>

@@ -1,5 +1,32 @@
 # TrainerOS Architecture
 
+## Planned composed game experience — #174–178 and adaptive Home
+
+The [owner's adaptive-Home correction](EXPANSION_174_178.md) extends the same
+Experience Package to Home content and both game-oriented primary slots. Resolve
+one versioned descriptor from Trainer/selected Adventure/exact build and compatible
+installed module. It supplies Home presenters/widgets, slot names/faces, contextual
+actions, bounded live Game Options extensions and narrow semantic providers.
+Keep franchise-level reuse and exact-build read/write/runtime adapters internally
+separate; no new title switches throughout ShellController/Main/profile pages.
+
+The host owns mounting, layout/input/focus, five semantic slots, stable A/Y controls,
+universal profile/accounts/history/RA provider, Social/party/calls/notifications and
+safe launch/save transactions. Shell Options stays universal. The captured library
+card target and actual live-session target may differ from Home selection; resolve
+their providers independently and reject stale owner/context generations.
+
+First compose trusted compiled/bundled presenters and declarative descriptors;
+extract existing Pokémon feature glue without rewriting saves. Generic Game/History
+and Home metadata/observed history provide useful fallback, with honest capability
+states. Dynamic labels do not change route IDs. Per-Trainer/game/module navigation
+migrates by semantic IDs; disabled/missing/incompatible modules never reinterpret
+a Pokémon numeric face as another game's operation. Future #92 executable package
+format remains separate and cannot acquire arbitrary host authority.
+
+This foundation and the whole UX-02 integration precede MP-02. Two different test
+experiences establish composition only; real non-Pokémon save support remains open.
+
 ## Planned UX-02 boundaries — 9 October 2026
 
 The [screen/action/session map](UX_OPTIONS_MAP_RU.md) and

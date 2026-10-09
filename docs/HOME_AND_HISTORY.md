@@ -1,5 +1,26 @@
 # Home selection and observed play history
 
+## Current target — adaptive Home, 9 October 2026
+
+The selected Adventure's Experience Package supplies Home's game-specific content,
+widgets, actions, imagery and verified progress as well as both contextual primary
+slots. See [precise map](UX_OPTIONS_MAP_RU.md) and [#174–178 + owner correction](EXPANSION_174_178.md).
+This is more than a renamed card or alternate background. Host layout/input, the
+stable Home route, direct A and one global Y/Recent games remain predictable.
+No Home L2/R2 collection cycling or independent per-series Home choices return.
+
+Generic Home uses actual metadata/media, launch/return and observed history, with
+compatible verified RA only; it never invents completion or inherits Pokémon UI.
+Changing selection updates Home and both game slots through one validated context
+generation; late callbacks cannot show another game's data. Browsing a library
+card alone does not select it on Home. A different minimized game retains its own
+live status, Game Options and guarded Return/Exit path. Profile identity is global.
+
+The current collection/global-recents delivery is in [Collections](SERIES_COLLECTIONS.md).
+Adaptive presenters and the new framework are planned before resuming MP-02.
+Earlier dated two-context/domain-selection and setup descriptions below are
+historical and superseded; their save/capture/history evidence remains intact.
+
 **Planned UX-02 lifecycle, 9 October 2026:** [map](UX_OPTIONS_MAP_RU.md) separates
 Home's global selected Adventure from the actually running session. Minimize/Return
 keeps one process and history session; proven paused intervals are not eligible

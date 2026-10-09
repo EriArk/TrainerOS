@@ -2,6 +2,14 @@
 
 **Согласованный целевой продукт · редакция 9 октября 2026 года.**
 
+**Уточнение каркаса #174–178 и владельца:** интеграция выбранной игры определяет
+**Home и два игровых primary-раздела**: их игровое содержание, виджеты, действия,
+терминологию и подтверждённый прогресс. Companions/Trainer — вариант для Pokémon.
+Home сохраняет имя, общий A/Y-контракт и единый выбор игры. Общий профиль пользователя,
+Options, Social, система и защищённые операции принадлежат TrainerOS. Сначала
+исправляется весь этот каркас/UI/управление, затем продолжается multiplayer.
+[Полный контракт и границы](EXPANSION_174_178.md); это план, не установленная функция.
+
 **Уточнение владельца от 9 октября:** раздел «Миры» переименован в «Коллекции».
 Pokémon открывает общий список своих игр без промежуточных карточек регионов.
 Добавляются личные ручные и автоматические коллекции по правилам, а также
@@ -21,7 +29,7 @@ TrainerOS превращает совместимую игровую консо�
 реальные ограничения конкретной игры и устройства.
 
 Это описание **конечного поведения**, а не объявление о завершении разработки.
-Здесь собраны решения владельца, действующие требования issues #1–173 и сохранённые
+Здесь собраны решения владельца, действующие требования issues #1–178 и сохранённые
 обязательства R1–R18, R7a, R18a/R18b и U/P;
 номеров #66 и #67 среди issues нет. Приложение в конце сопоставляет каждый issue
 с разделом документа. Закрытый issue сам по себе не доказывает установленную функцию.
@@ -253,13 +261,13 @@ TrainerOS не перехватывает глобальную Home-кнопку
 
 | Primary / поверхность | Содержание | Правило перехода |
 | --- | --- | --- |
-| Home | Выбранное приключение, продолжение, друзья/чаты и текущая активность. | Один выбор по всей библиотеке; Y — общие недавние, без L2/R2 коллекций. |
+| Home | Адаптивная игровая главная: блоки, действия, изображения и реальный прогресс из Experience выбранной игры; общая текущая активность. | Постоянный Home route; один выбор по библиотеке, прямой A, глобальные Y/недавние, без L2/R2 коллекций. |
 | Collections | Серии, личные ручные/динамические и автоматические коллекции; All games и системная библиотека. | Возврат из другого primary открывает grid, сохраняя коллекцию. Pokémon сразу открывает игры без региональных миров. |
-| Companions | Field Guide, Party, Boxes, Care Center, Playroom, Shops и поддержанные game-specific действия. | Возможности следуют выбранному Adventure и адаптеру. |
-| Trainer | Profile / Journey / Hall / RA. | Это равноправные faces, не отдельные primaries. |
+| Игровой слот A | Название/faces/content от Experience: Pokémon Companions, у других интеграций — их реальные функции. | Semantic slot ID постоянный, faces — stable module IDs с capability gates. |
+| Игровой слот B | Название/faces/content от Experience: Pokémon persona/Journey/Hall, у других игр — их подтверждённый прогресс. | Постоянный профиль пользователя независим; его нельзя спрятать за адаптером игры. |
 | Social | Messages / Communities / Discover. | DMs и небольшие группы вместе в Messages; друзья/запросы доступны рядом. |
 | Start | Быстрые системные настройки, Switch Trainer, Settings, System modes, Power. | System-only; не второй Home и не shortcut в Center. |
-| Shell Options | Единая большая поверхность общей активности: inbox, Social, звонок/party и живая игра. | Независима от фонового primary; точный возврат к маршруту/фокусу, без локальных Properties/фильтров. |
+| Shell Options | Единая поверхность: inbox, Social, звонок/party, живая игра и вход в общий профиль через имя/аватар. | Независима от primary/Experience; точный возврат к маршруту/фокусу, без игровых расширений/Properties/фильтров. |
 | Game Options | Большая панель живой игровой сессии с обложкой, Continue, Minimize, Together, настройками и Exit. | Открытие само не паузит и не сворачивает игру; отдельный явный Exit сохраняет #49. |
 | Контекст Select | Компактные допустимые действия выделенного объекта/экрана. | Зафиксировать target/owner при открытии, проверить снова при выполнении; B/Select закрывает. |
 | Properties игры | Управление, сведения, отзывы и поддержанные параметры. | Отделены от обычного A-to-launch. |
@@ -313,6 +321,21 @@ Home не переключает коллекции через L2/R2. Y выби
 при наличии — обложка и число игроков. Однопользовательская metadata запрещает
 приглашение в runtime multiplayer. Отсутствующая metadata не равна single-player.
 Количество игроков на коробке не доказывает online-возможность и вместимость party.
+
+Home и игровые слоты используют один resolved Experience по выбранному Adventure,
+точной редакции и поддержанным возможностям. Изменяются реальные игровые блоки,
+а не только обложка. Общая оболочка управляет безопасной компоновкой, фокусом,
+вводом и одинаковой ролью A/Y; интеграция не подменяет навигацию своим интерфейсом.
+Неподдержанные игровые сведения остаются unknown/unsupported. Обычная игра получает
+Home с реальным артом/metadata/историей и полезные нейтральные Game/History разделы,
+без Pokémon-инструментов и выдуманных milestones. Это рабочие fallback-названия.
+Пустая библиотека имеет понятный путь к выбору/добавлению игры.
+
+Home selection, выделенная карточка Collections и live session — независимые
+контексты. Просмотр карточки не переключает Home; её действия адресуют именно её.
+Game Options и возврат всегда относятся к реальному процессу. При смене игры Home
+и оба слота атомарно переходят на новую context generation, отсеивая поздние данные;
+face/focus восстанавливается по Trainer/game/module semantic IDs.
 
 ### 6.3. Метаданные, Steam и обслуживание
 
@@ -470,6 +493,14 @@ UI заранее показывает цену, назначение, поте�
 <a id="vision-companions"></a>
 ## 9. Companions и семантические адаптеры
 
+Описанные ниже Pokémon-экраны принадлежат встроенному Pokémon Experience Package.
+Они не являются постоянной частью shell или обязательной моделью других игр.
+Experience объединяет Home presentation, оба игровых раздела и bounded действия;
+узкие exact-build semantic/runtime providers остаются отдельными компонентами.
+RPG/racing fixtures проверяют разные экраны без заявления реальных Diablo/NFS save
+интеграций. Для первого этапа используются доверенные in-tree presenters и
+версионированные descriptors; внешний устанавливаемый формат #92 определяется позже.
+
 ### 9.1. Адаптер конкретного содержимого
 
 Глубокий адаптер связывает точную поддержанную редакцию игры с понятными данными:
@@ -588,6 +619,12 @@ Practice использует копию данных в отдельной тр
 ## 13. Trainer, Journey, Hall и RetroAchievements
 
 **Profile** описывает локального Trainer, его оформление и личные настройки.
+Он доступен через общий вход имени/аватара в Options независимо от игры/пакета;
+Switch Trainer остаётся в Start с существующими guards. Название второго игрового
+слота может меняться, но имя пользователя, PIN и аккаунты от этого не меняются.
+Pokémon favorite, badges и Champion принадлежат игровому persona/progression;
+обычная история запусков и verified RA provider принадлежат host. Отображение
+данных внутри Experience не передаёт ему владение аккаунтами/историей.
 Профиль общения редактируется отдельно через Communication/Fluxer-контракты.
 Смена одного имени не переименовывает молча все внешние аккаунты.
 
@@ -1221,7 +1258,9 @@ host session setup и оставляет Steam/Desktop recovery. ROM, saves, Adv
 | --- | --- |
 | Library / Adventure | Stable IDs, обнаружение, metadata, selection, история и принадлежность прохождения. |
 | Runtime/lifecycle | Local validated launch, processes, input, capture/Exit, временные настройки и mode-specific saves. |
-| Game adapters | Exact-build recognition, read/write capabilities, domain data и protected transactions. |
+| Game Experience | Home/два игровых слота, descriptors/presenters, контекстные действия, game-specific progress и композиция узких providers. |
+| Exact-build adapters | Recognition, независимые read/write/runtime capabilities, bounded semantic результаты и candidate mutations; host выполняет защищённый commit. |
+| Host profile/navigation | Постоянная личность/PIN/accounts, observed history/RA service, semantic routes, безопасный mount/input/focus и проверка контекста/разрешений. |
 | Social provider | Аутентификация, messages, relationships, profiles, calls и поддержанные permissions. |
 | Party/activity | Consent, capability exchange, readiness, capacity, session generation и safe admission. |
 | Transport adapters | Реальные data paths конкретных runtime, relay/direct, ограниченные payload и recovery. |
@@ -1376,9 +1415,12 @@ paired gameplay и физическая проверка владельца — 
 ### 30.1. Что сейчас и что потом
 
 Сейчас выполняется **документационная карта UX-02**, без runtime/UI реализации.
-После отдельного продолжения владельца: UX-02A Shell Options/Select → UX-02B Game
-Options/сворачивание → UX-02C контекстные приглашения/уведомления → UX-02D сквозная
-приёмка. Затем **MP-02**, с сохранением незакоммиченных timer изменений.
+Следующая реализация — весь **UX-02 каркас/UI/управление**: Experience/context
+основание → adaptive Home/слоты, перенос Pokémon, общий профиль/generic fallback →
+UX-02A Options/Select → UX-02B Game Options/сворачивание → UX-02C приглашения/
+уведомления → UX-02D сквозная приёмка. Это внутренние зависимости одного блока;
+адаптивные разделы не откладываются за multiplayer. Затем **MP-02**, с сохранением
+незакоммиченных timer изменений.
 Компактный Social и тёплая палитра уже установлены на Flip/Odin; это
 не завершает будущие guest/TV/review/software/installer возможности и физические gates.
 Существующие доказательства не перепроверяются без изменённого кода, ошибки или
@@ -1406,7 +1448,7 @@ Pack Studio → optional ROM assets, полные updates/repair и финаль
 их и не обещает все игры/устройства. Артефакты альфы пока не собраны.
 
 Подробные dependency registers — [#136–160](EXPANSION_136_160.md) и
-[#161–173](EXPANSION_161_173.md), единственная
+[#161–173](EXPANSION_161_173.md), [#174–178 + Home](EXPANSION_174_178.md), единственная
 операционная очередь — [ROADMAP](ROADMAP.md). Каждый объявленный increment должен
 доводить целый пользовательский результат с UI/integration, нужными checks,
 обоими доступными handheld deliveries и commit/push. Explicit docs/audit pass
@@ -1440,6 +1482,9 @@ Pack Studio → optional ROM assets, полные updates/repair и финаль
 
 | Старое/противоречащее описание | Действующее решение |
 | --- | --- |
+| Постоянные Pokémon-вкладки и одинаковый Home для всех игр | Один Experience выбранной игры определяет Home и два игровых слота; общий host/input/profile, полезный generic fallback. |
+| Адаптивность ограничивается названиями/фоном | Реальные виджеты, faces, действия и семантика из пакета, exact-build capability gates; без title-switch в shell. |
+| TrainerOS-профиль равен Pokémon-персонажу и прогрессу | Постоянная личность/accounts/history отдельно от игровых favorites/badges/Champion; единый глобальный вход в профиль. |
 | Worlds, Pokémon-регионы и Home/Y внутри выбранной коллекции | Collections, прямой список Pokémon, ручные/динамические/автоматические коллекции, общие Home recents без L2/R2. |
 | Компактный Home selector и смешанные действия экрана/игры | Универсальный Shell Options, локальный Select, Game Options фактической live session; Start только системный. |
 | Уход в shell означает завершение или новый запуск | Явный Minimize/Return одного процесса, отдельные alive/foreground/pause, сохранение input/save/party/call границ. |
@@ -1465,7 +1510,7 @@ Pack Studio → optional ROM assets, полные updates/repair и финаль
 <a id="vision-issues"></a>
 ## 32. Покрытие issues
 
-Таблица фиксирует источники требований на 9 октября 2026 года; #161–173 проверены
+Таблица фиксирует источники требований на 9 октября 2026 года; #161–178 проверены
 в этой редакции, прежние статусы #1–160 сохранены из предыдущего аудита. Состояние GitHub
 не заменяет acceptance и не отменяет поздние поправки владельца. Старые названия
 сохранены для поиска; актуальное толкование находится в указанном разделе и
@@ -1645,3 +1690,8 @@ Pack Studio → optional ROM assets, полные updates/repair и финаль
 | [#171](https://github.com/EriArk/TrainerOS/issues/171) | Game multitasking: minimize a live game, safely pause when supported, and return | OPEN | [design](#vision-design) |
 | [#172](https://github.com/EriArk/TrainerOS/issues/172) | Play Together context entries: invite from Home game card, library, chat or live game | OPEN | [design](#vision-design) |
 | [#173](https://github.com/EriArk/TrainerOS/issues/173) | Notifications UI: shared passive toasts during gameplay and in shell, with Options inbox | OPEN | [design](#vision-design) |
+| [#174](https://github.com/EriArk/TrainerOS/issues/174) | Experience architecture: adapter-owned game UI, dynamic Companions/Trainer slots and progression | OPEN | [architecture](#vision-architecture) |
+| [#175](https://github.com/EriArk/TrainerOS/issues/175) | Experience navigation: resolve primary labels, faces and Select actions from selected-game adapters | OPEN | [navigation](#vision-navigation) |
+| [#176](https://github.com/EriArk/TrainerOS/issues/176) | Pokémon experience extraction: encapsulate Companions, Center and game progress outside the core shell | OPEN | [architecture](#vision-architecture) |
+| [#177](https://github.com/EriArk/TrainerOS/issues/177) | Generic game experience: meaningful fallback and cross-adapter UX acceptance | OPEN | [navigation](#vision-navigation) |
+| [#178](https://github.com/EriArk/TrainerOS/issues/178) | Player identity vs game progression: decouple universal Trainer profile from adapter-specific history | OPEN | [trainer](#vision-trainer) |

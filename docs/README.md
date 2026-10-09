@@ -1,5 +1,9 @@
 # Documentation
 
+**Latest owner correction:** [#174–178 and adaptive Home](EXPANSION_174_178.md).
+Home and both game-oriented slots follow the selected game's experience. The whole
+framework/UI/control block precedes resuming multiplayer; current changes are docs-only.
+
 **Current planning:** [Precise UX/options/session map (Russian)](UX_OPTIONS_MAP_RU.md)
 and [issues #161–173](EXPANSION_161_173.md). Documentation first; UX-02 implementation
 starts on the owner's next continuation, then returns to MP-02.

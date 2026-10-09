@@ -1,5 +1,14 @@
 # TrainerOS Roadmap
 
+**Owner adaptive-Home and framework priority, 9 October 2026:**
+[#174–178 plus Home](EXPANSION_174_178.md) expands UX-02. The selected game's
+experience supplies Home content and both contextual primary slots; universal
+profile/Options and host safety remain shared. Next implementation completes the
+**whole framework/UI/control block**, then resumes MP-02 and the retained queue.
+The current follow-up updates docs only. The [map](UX_OPTIONS_MAP_RU.md) defines
+foundation → Options/Select → live-game → invite/notification integration; do not
+deliver only the menus and defer adaptive screens beyond multiplayer.
+
 **Owner map-first revision, 9 October 2026:** this pass delivers only the
 [precise UX map](UX_OPTIONS_MAP_RU.md) and synchronized documentation.
 [#161–173](EXPANSION_161_173.md) adds UX-02, native DS multiplayer requirements
@@ -111,8 +120,8 @@ The owner explicitly rejects test-only passes substituted for feature delivery.
 | --- | --- | --- |
 | Delivered · owner priority | #114 and 9 October Collections correction | Collections, manual/dynamic/automatic views, direct Pokémon games and global Home/Y recents without Home L2/R2 cycling; installed evidence distinguishes the retained Odin Steam session. Remaining #90 deep adapters stay open. [Scope/evidence](SERIES_COLLECTIONS.md). |
 | Delivered · owner priority | UX-01: Social → Together → party/activity, #127–134 | Unified DM/group inbox, Discover, parallel touch/controller controls, Together, people-first invites, shared party and group details installed on both devices. [Evidence](SOCIAL_UX.md); #135 future-route and deferred acceptance remains open. |
-| Delivered · docs only | UX-02 map and reconciliation | Precise screens/actions/session states and #161–173 dependencies; no implementation in this pass. [Map](UX_OPTIONS_MAP_RU.md), [register](EXPANSION_161_173.md). |
-| **Next · owner priority** | **UX-02A–D: #167–173** | After the owner's continuation: Shell Options/Select → Game Options/live minimize → contextual Together/passive notifications → integrated acceptance. Complete whole mapped outcomes on existing routes; retain future-runtime and external gates. |
+| Delivered · docs only | UX-02 map and reconciliation | Precise screens/actions/session states, #161–178 and owner adaptive-Home contract; no implementation in this pass. [Map](UX_OPTIONS_MAP_RU.md), [experience register](EXPANSION_174_178.md). |
+| **Next · owner priority** | **UX-02: whole framework/UI/controls, #167–178 + adaptive Home** | Experience/context foundation → adaptive Home/slots, Pokémon extraction, universal profile and generic fallback → shared Options/Select → Game Options/live minimize → contextual Together/passive notifications → integrated acceptance. Complete this block before MP-02; preserve future-runtime/external gates. |
 | Next · block 1 | MP-02: GB/GBC/GBA independent link | Resume after UX-02, preserving the timer fix and own-save work. Complete own-save link through corrected invitations and normal exit; [actual progress and remaining gates](HANDHELD_MULTIPLAYER.md). |
 | Retained · block 1 | MP-01: classic RetroArch and shared online-party acceptance | Implemented profiles remain accessible. Distinct-network and actual multi-user/company acceptance remain open; owner-deferred conditions do not trigger another NES/same-router pass. |
 | 3 · block 1 | MP-03: selected PS1/N64 routes | After MP-02. Implement viable mechanisms with the complete invitation journey; do not substitute shared controllers for emulated-machine link. |

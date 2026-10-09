@@ -1,5 +1,12 @@
 # TrainerOS Design Language
 
+**Adaptive content, 9 October 2026:** [experience/Home contract](EXPANSION_174_178.md).
+Home and two game-oriented slots may change real content, vocabulary, widgets and
+game-specific visual treatment through one experience. Preserve shared warm material
+chassis, readable typography, focus/safe areas and A/Y/Select/Home/Start grammar.
+Adaptive content is not permission for unrelated per-game navigation systems or
+oversized controls. Generic views are useful and neutral, not empty Pokémon screens.
+
 **Planned UX-02 composition, 9 October 2026:** [Options map](UX_OPTIONS_MAP_RU.md).
 Shell/Game Options use 85–95% of safe area for readable activity/game content,
 compact actions and a shared inbox. A large panel does not mean oversized buttons.
