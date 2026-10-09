@@ -1,5 +1,15 @@
 # TrainerOS Roadmap
 
+**Owner reuse correction, 10 October 2026 — all multiplayer families:** integrate
+existing emulator networking and established transports throughout the accepted
+multiplayer scope. This instruction is not limited to MP-02, link cables or
+Pokemon. TrainerOS owns the common invitation/connection/session/save experience;
+new emulator protocols or synchronization engines are not the default plan.
+Check maintained existing alternatives and record a concrete gap before necessary
+bounded source work. The [matrix](EMULATOR_MULTIPLAYER_MATRIX.md) defines this
+selection rule. The oldest-first queue and outstanding acceptance remain intact;
+this correction does not claim new installed capabilities.
+
 **MP-02 Red journey delivered, 10 October 2026:** corrected invitation timing,
 safe cancellation/finalization and progressive verified-game availability are
 running on both handhelds. Red completed its actual trade, protected own-save

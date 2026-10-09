@@ -1,5 +1,29 @@
 # Emulator multiplayer coverage
 
+## Owner selection rule — 10 October 2026
+
+Reuse existing multiplayer solutions across **every emulator family**. This is
+not a GB/GBC-only instruction and Pokemon does not define the universal product.
+For each route, start with the runtime's existing netplay, room, relay or native
+game-network implementation; compare maintained compatible alternatives when the
+selected runtime has a concrete gap. Existing route evidence below is retained.
+
+TrainerOS supplies the shared invitation, consent, automatic connection, launch,
+participant/session lifecycle and protected-save integration. Reuse established
+transport/provisioning mechanisms where needed. Do not start a new emulator
+network protocol or synchronization engine simply because TrainerOS lacks a
+launch adapter. Any necessary upstream patch or port must identify the missing
+capability, alternatives considered, bounded changes and maintenance ownership.
+This rule also applies to the planned DS source port and other later families.
+
+The mechanisms in the matrix are distinct integration targets, not instructions
+to recreate them. Availability in upstream, support in the installed ARM build,
+automatic TrainerOS connection and actual gameplay are separate evidence levels.
+Neither a game count nor a list of installed emulators establishes completion.
+Use representative games to verify each mechanism and document real exceptions;
+do not rebuild networking game by game. Preserve the oldest-first execution order
+and retained cross-edition, save, recovery and owner-deferred acceptance.
+
 **DS target correction, 9 October 2026:** [#162–166](EXPANSION_161_173.md) adds
 native Linux deterministic mirrored melonDS Local Wireless over internet to
 MP-06. Older LAN-only integration plans are superseded; ordinary DS launch and

@@ -1,5 +1,17 @@
 # AGENTS.md — TrainerOS
 
+**Owner multiplayer reuse correction, 2026-10-10:** this applies to ALL emulator
+families, not only handheld link or Pokemon. Reuse existing emulator netplay,
+relay/room services and established networking implementations before considering
+new protocol or synchronization work. TrainerOS integrates invitations, automatic
+connection, launch, session lifecycle and protected saves through the existing
+shared framework. Compare maintained upstream/fork alternatives before filling a
+concrete missing capability; document that gap and keep any necessary patch bounded.
+Do not assume every installed emulator supports every multiplayer mode, or turn
+integration into a per-game reimplementation. Preserve the oldest-first queue,
+internet-first automatic setup and all pending acceptance. See
+docs/EMULATOR_MULTIPLAYER_MATRIX.md for the cross-platform rule.
+
 **Owner adapter identity/assets clarification, 2026-10-09:** each adapter owns a
 manifest of alternative compatibility rules, not a mandatory ScreenScraper link.
 Provider IDs (ScreenScraper or another catalogue), local catalogue identities,
