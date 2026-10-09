@@ -1,5 +1,12 @@
 # Ordinary-save exit — #49 implementation
 
+**Planned UX-02 integration, 9 October 2026:** [Game Options/minimize map](UX_OPTIONS_MAP_RU.md)
+retains this single explicit Exit protocol. Options/Minimize/Return do not create
+a ResumePoint, capture or new session and do not clear live-save guards. Capture
+must hide all interactive panels and passive HUD/toasts and bind the live process,
+including a previously minimized session. Cancel returns safely to that game.
+New minimize/passive-HUD capability is not established by the older exit proof below.
+
 **2026-10-01 supersession:** [physical Home menu](HOME_MENU.md) separates opening
 Home from Exit. Only explicit Exit requests a fresh clean capture and the save
 question. Verified autosave skips the manual question after a successful capture;

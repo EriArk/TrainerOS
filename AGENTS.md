@@ -1,5 +1,19 @@
 # AGENTS.md — TrainerOS
 
+**Owner map-first correction, 2026-10-09:** the current pass is planning and
+documentation only; do not start runtime/UI implementation in it. Follow the
+precise screen/action/session map in docs/UX_OPTIONS_MAP_RU.md and the live issue
+register docs/EXPANSION_161_173.md. After the owner's next continuation deliver
+UX-02A–D (#167–173), then resume MP-02 with its uncommitted timer work preserved.
+Use Collections, global Home/Y recents and no Home L2/R2 collection cycling.
+Separate universal Shell Options, focused-object Select, live-session Game Options
+and system Start; minimize is not Exit, a new launch or a save. DS #162–166 refines
+MP-06 after older families; #161 adds a bounded original creature fallback before
+alpha. The 8 October alpha milestone supersedes the older Pack-Studio-before-image
+order: accepted multiplayer/guest scope and alpha dependencies, then image/installer;
+full Pack Studio and optional ROM assets remain after alpha. Preserve README
+screenshots, #115/#116, all retained acceptance and owner-deferred checks.
+
 **Owner alpha milestone, 2026-10-08:** finish the full accepted multiplayer
 scope, then deliver an installable alpha for testers/enthusiasts through the
 Armada image and supported SteamOS/Bazzite installer. MP-02 remains next;

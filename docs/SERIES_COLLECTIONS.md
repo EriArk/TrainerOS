@@ -32,8 +32,14 @@ below. Earlier installed evidence is historical, not the current navigation cont
   checkpoints and external files. Unreadable/unsupported files are kept and editing
   fails visibly. Explicit prior Home choices migrate without changing game IDs.
 - Historical region data remains available to game-specific progress/history.
-  Broad visual redesign remains deferred for discussion. Existing series art and
+  The subsequent common UI is now planned in [UX-02](UX_OPTIONS_MAP_RU.md), not
+  implemented by this library delivery. Existing series art and
   README screenshots are preserved; MP-02's timer changes remain outside this work.
+
+UX-02 Select will resolve the focused game versus collection/header explicitly;
+the current collection-management shortcut above is the installed baseline.
+The existing library game-management menu is distinct from the new live-session
+Game Options: only the latter controls a running process/minimize/Exit.
 
 Reference: Batocera's [collection settings](https://wiki.batocera.org/game_collection_settings),
 using manual membership and dynamic rules. This does not claim `.cfg`/`.xcc`

@@ -9,8 +9,10 @@ Pokémon открывает общий список своих игр без п�
 через L2/R2. Y открывает недавние игры из всей библиотеки: выбор меняет игру
 на Home, запуск остаётся отдельным действием A. Идентичность игр, сохранения и
 история сохраняются. Эти требования заменяют прежнее описание Home/Y по мирам
-ниже. Общий единообразный UI обсуждается отдельно; текущая реализация и проверки
-описаны в [документе коллекций](SERIES_COLLECTIONS.md).
+ниже. Текущая реализация и проверки описаны в [документе коллекций](SERIES_COLLECTIONS.md).
+Общий UI теперь определён [точной картой UX-02](UX_OPTIONS_MAP_RU.md): Options,
+Select, живая игра, сворачивание и уведомления. Это целевой контракт #167–173;
+в текущем проходе меняется документация, реализация начнётся после продолжения владельца.
 
 TrainerOS превращает совместимую игровую консоль или компьютер в уютное игровое
 пространство: выбрать игру, продолжить своё приключение, увидеть его историю,
@@ -19,8 +21,8 @@ TrainerOS превращает совместимую игровую консо�
 реальные ограничения конкретной игры и устройства.
 
 Это описание **конечного поведения**, а не объявление о завершении разработки.
-Здесь собраны решения владельца, действующие требования issues #1–160 и сохранённые
-обязательства R1–R18, R7a, R18a/R18b и U/P. В проверенном списке GitHub — 158 issues;
+Здесь собраны решения владельца, действующие требования issues #1–173 и сохранённые
+обязательства R1–R18, R7a, R18a/R18b и U/P;
 номеров #66 и #67 среди issues нет. Приложение в конце сопоставляет каждый issue
 с разделом документа. Закрытый issue сам по себе не доказывает установленную функцию.
 
@@ -37,7 +39,7 @@ TrainerOS превращает совместимую игровую консо�
 3. [Установка и первое включение](#vision-onboarding)
 4. [Внешний вид, экраны и управление](#vision-design)
 5. [Карта навигации](#vision-navigation)
-6. [Home, Worlds и личная библиотека](#vision-library)
+6. [Home, Collections и личная библиотека](#vision-library)
 7. [Запуск, эмуляторы и жизненный цикл игры](#vision-runtime)
 8. [Сохранения, защита и перенос данных](#vision-saves)
 9. [Companions и семантические адаптеры](#vision-companions)
@@ -205,7 +207,7 @@ TV получает собственные размеры шрифта, карт
 те же модели данных, маршруты и операции, а не два расходящихся приложения.
 
 Перекомпоновка нужна во всех основных разделах и вспомогательных поверхностях:
-Home, Worlds, OddCrate, Companions, Trainer, Social, Start, Settings, мастер,
+Home, Collections, OddCrate, Companions, Trainer, Social, Start, Settings, мастер,
 экранная клавиатура, профили, QR, уведомления, ошибки, подтверждения, in-game Home.
 Для 16:10/ultrawide выбирается разумная композиция с ограниченной длиной строк;
 растягивать чат или текст на всю ширину необязательно.
@@ -215,14 +217,15 @@ Home, Worlds, OddCrate, Companions, Trainer, Social, Start, Settings, масте
 | Действие | Контроллер | Touch/мышь/пульт |
 | --- | --- | --- |
 | Смена primary | L1/R1 | Видимые доступные вкладки. |
-| Смена вторичного face/коллекции | L2/R2 | Фокусируемые подписи/переключатели, пригодные для D-pad-only. |
+| Смена вторичного face/коллекции вне Home | L2/R2 | Фокусируемые подписи/переключатели, пригодные для D-pad-only. |
 | Выбор/подтверждение | A | Нажатие/Confirm. |
 | Возврат/закрытие | B | Видимое Back/Cancel и системное действие, когда применимо. |
 | Запуск установленной игры | Короткое A | Основное Play/нажатие карточки по принятому маршруту. |
-| Управление игрой | Удержание A | Контекстное меню/Properties. |
-| Выбор игры на Home | Y | Соответствующий выбор без запуска. |
+| Контекст выделенного объекта | Select; Hold A остаётся shortcut для игры | Компактное «…», тот же target и набор допустимых действий. |
+| Выбор игры на Home | Y | Все недавние игры, выбор без запуска. |
 | Система | Start | Системная кнопка/доступное меню. |
-| Home во время игры | Физический Home по поддержанному маршруту | Тот же адаптивный Home. |
+| Универсальные действия оболочки | Физический Home | Shell Options: inbox, Social, звонок/party и возврат к живой игре. |
+| Home во время игры | Физический Home по поддержанному маршруту | Game Options текущего процесса: Continue, Minimize, Together, настройки, отдельный Exit. |
 | Написать в Social | X | Постоянное поле ввода. |
 | Игровое действие в Social | Y | Компактное Together/контекстное действие. |
 | Контекст в Social | Select | «…» рядом с человеком/группой/сообщением. |
@@ -250,32 +253,36 @@ TrainerOS не перехватывает глобальную Home-кнопку
 
 | Primary / поверхность | Содержание | Правило перехода |
 | --- | --- | --- |
-| Home | Выбранное приключение, коллекция, продолжение, друзья/чаты и текущая активность. | Контекст выбора сохраняется отдельно для каждой коллекции. |
-| Worlds | Коллекции/серии → их миры/системы → игры; Multiverse для общей библиотеки. | Возврат из другого primary открывает grid, сохраняя выбранную коллекцию, а не старое колесо игры. |
+| Home | Выбранное приключение, продолжение, друзья/чаты и текущая активность. | Один выбор по всей библиотеке; Y — общие недавние, без L2/R2 коллекций. |
+| Collections | Серии, личные ручные/динамические и автоматические коллекции; All games и системная библиотека. | Возврат из другого primary открывает grid, сохраняя коллекцию. Pokémon сразу открывает игры без региональных миров. |
 | Companions | Field Guide, Party, Boxes, Care Center, Playroom, Shops и поддержанные game-specific действия. | Возможности следуют выбранному Adventure и адаптеру. |
 | Trainer | Profile / Journey / Hall / RA. | Это равноправные faces, не отдельные primaries. |
 | Social | Messages / Communities / Discover. | DMs и небольшие группы вместе в Messages; друзья/запросы доступны рядом. |
 | Start | Быстрые системные настройки, Switch Trainer, Settings, System modes, Power. | System-only; не второй Home и не shortcut в Center. |
-| Адаптивный Home | В оболочке — Home/Friends/Chats; в игре — Continue/социальные действия/Exit и поддержанные игровые настройки. | Открытие не завершает игру и не спрашивает про сохранение. |
+| Shell Options | Единая большая поверхность общей активности: inbox, Social, звонок/party и живая игра. | Независима от фонового primary; точный возврат к маршруту/фокусу, без локальных Properties/фильтров. |
+| Game Options | Большая панель живой игровой сессии с обложкой, Continue, Minimize, Together, настройками и Exit. | Открытие само не паузит и не сворачивает игру; отдельный явный Exit сохраняет #49. |
+| Контекст Select | Компактные допустимые действия выделенного объекта/экрана. | Зафиксировать target/owner при открытии, проверить снова при выполнении; B/Select закрывает. |
 | Properties игры | Управление, сведения, отзывы и поддержанные параметры. | Отделены от обычного A-to-launch. |
 
-OddCrate расположен внутри **Multiverse: My Collection / OddCrate**, без шестого
-primary. Справочные экраны и глубокие действия возвращают в исходный контекст;
-закрытие модали не выполняет правило полноценного повторного входа в Worlds.
+Целевой OddCrate остаётся внутри общей библиотеки Collections: **My Collection /
+OddCrate**, без шестого primary; прежнее название ветки — Multiverse.
+Это планируемая интеграция каталога, а не установленная возможность.
+Справочные экраны и глубокие действия возвращают в исходный контекст;
+закрытие модали не выполняет правило полноценного повторного входа в Collections.
 
 В меню нет пустых обещаний: недоступная операция либо скрыта согласно контексту,
 либо имеет краткую причину и полезный следующий шаг. Важную незавершённую работу
 нельзя выдавать за функцию только потому, что для неё нарисована кнопка.
 
 <a id="vision-library"></a>
-## 6. Home, Worlds и личная библиотека
+## 6. Home, Collections и личная библиотека
 
 ### 6.1. Обнаружение и структура
 
 Основой импорта остаются Batocera-совместимые папки/метаданные. `gba` определяет GBA,
 а не произвольная догадка из названия файла. Каталог систем широк: возраст платформы
 не повод её исключить, если есть подходящий ARM64/Linux route. Пустые поддержанные
-папки могут быть подготовлены заранее; пустые системы не засоряют Worlds.
+папки могут быть подготовлены заранее; пустые системы не засоряют Collections.
 
 Отсутствие runtime не удаляет игру. Пересканирование добавляет/обновляет записи
 без стирания ручных метаданных, неизвестных XML-полей, обложек и истории. Перенос или
@@ -289,14 +296,18 @@ runtime и реальные prerequisites достаточны для базов
 ### 6.2. Коллекции и выбор
 
 Серии дают выразительные карточки и собственную осмысленную группировку. Pokémon
-может группироваться по регионам; другой серии не навязываются регионы и species ID.
+открывает игры напрямую без региональных миров; другой серии не навязываются species ID.
 Текущий набор включает Pokémon, Mario, Zelda, Sonic, Final Fantasy, Metroid,
-Castlevania, Kirby, Metal Slug и Multiverse; это стартовая подборка, не закрытый список.
-Неопознанные игры остаются в Multiverse. Коллекции не перекладывают ROM по диску.
+Castlevania, Kirby, Metal Slug; это стартовая подборка, не закрытый список.
+All games включает все игры, в том числе неопознанные и уже входящие в коллекции.
+Личные ручные коллекции хранят membership, динамические — правила; встроенные
+автоматические подборки используют данные библиотеки. Коллекции не перекладывают ROM.
 
-Home L2/R2 циклически меняет коллекцию. Y выбирает игру только в ней и не запускает
-её; разные коллекции помнят собственный выбор. Короткое A запускает выбранное.
-Worlds и Home опираются на одну устойчивую библиотеку и Adventure-модель.
+Home не переключает коллекции через L2/R2. Y выбирает из всех недавних игр и не
+запускает её; короткое A запускает выбранное. Collections хранит собственный
+контекст просмотра, не ограничивая Home. Оба раздела используют одну устойчивую
+библиотеку и Adventure-модель. Если игра уже жива, A возвращает в тот же процесс;
+запуск другой требует явного завершения текущей, без автоматического Exit.
 
 На карточке видны понятные сведения: название/платформа, продолжение или готовность,
 при наличии — обложка и число игроков. Однопользовательская metadata запрещает
@@ -383,11 +394,20 @@ bezels и реально поддержанный widescreen, включая в�
 
 ### 7.3. Home, Exit и возвращение
 
-Физический Home открывает адаптивное меню над текущей игрой. Continue, B или повторный
-Home возвращают в тот же процесс без вопроса о сохранении. Социальные действия
-не становятся неявным Exit. Только явный Exit запускает протокол завершения.
+Физический Home открывает Game Options живой сессии, независимо от выбранной игры
+на Home. Continue, B или повторный Home возвращают в тот же процесс без вопроса
+о сохранении. Открытие само не паузит/сворачивает игру. Только явный Minimize
+передаёт ввод shell: можно ответить в Social и Return в тот же PID/session.
+Solo приостанавливается только через проверенный runtime API; netplay продолжает
+timing/network без SIGSTOP. При отсутствии безопасной изоляции ввода Minimize
+недоступен с причиной. Живой процесс сохраняет save/owner/update guards и lease.
+Пауза, фоновая работа, звук игры и независимый звонок учитываются раздельно.
+Сворачивание не создаёт ResumePoint, нового запуска или новой истории сессии.
+Полные состояния, ошибки и restore — в [карте](UX_OPTIONS_MAP_RU.md).
+Только явный Exit запускает протокол завершения.
 
-Для Exit сначала выполняется свежий корректный capture, затем применимый вопрос
+Для Exit сначала скрываются все наши Options/HUD/toasts и выполняется свежий
+корректный capture живой игры, затем применимый вопрос
 об обычном сохранении. Доказанное автоматическое сохранение может убрать лишний
 вопрос; универсальная догадка по наличию файла не может. После завершения пользователь
 возвращается в сохранённый маршрут и контекст. Краш получает честный статус; старый
@@ -500,7 +520,7 @@ Seen/Caught берутся из выбранного сохранения, ко�
 
 Для других игр могут быть иные списки/экипировка/персонажи. Общая оболочка не требует
 Pokédex, six-member party или species/form IDs от несвязанных франшиз. Игры без
-семантического адаптера по-прежнему доступны через Worlds и обычный запуск.
+семантического адаптера по-прежнему доступны через Collections и обычный запуск.
 
 <a id="vision-care"></a>
 ## 10. Care Center и игровые операции
@@ -667,9 +687,13 @@ Settings → Communication в существующей двухпанельно�
 профиль, выбор microphone/output, громкость звонка, уведомления и DND. Настройки
 не называются «Fluxer settings» и не создают лишнюю вложенную иерархию.
 
-Уведомления компактны и привязаны к контексту: сообщение, запрос, приглашение,
-разрыв, завершение загрузки. Они не перехватывают ввод игры, не принимают приглашение
-случайным A и не превращают сетевую активность в спам тостов. DND/mute соблюдаются.
+Уведомления используют общую passive-toast очередь в shell и игре и один inbox
+в Shell Options/Game Options (#173). Сообщение, вызов, запрос, приглашение или
+подтверждённая новая RA-награда сохраняют ID/expiry/read state провайдера.
+Они не перехватывают ввод, не паузят/сворачивают игру и не принимают приглашение
+случайным A. DND/mute, скрытие previews, dedup и ограничение burst соблюдаются.
+Без доказанного no-focus overlay событие остаётся в inbox с показом при возврате;
+рабочий HUD другого runtime не доказывает совместимость. Все наши UI скрыты для capture.
 UI sounds/ambient/game/call имеют согласованное затухание/ducking без двойных циклов.
 Демонстрационный аудиосигнал не считается доказательством человеческой речи/гарнитуры.
 
@@ -678,9 +702,12 @@ UI sounds/ambient/game/call имеют согласованное затухан
 
 ### 16.1. Обычный путь игрока
 
-1. Выбрать игру или действие у друга/группы, нажать Invite players.
-2. Выбрать людей/компанию. Где требуется выбор близости, понятные варианты —
-   **Nearby** и **Online friend**, без названий внутренних сетевых технологий.
+1. Открыть Play Together у игры Home/Collections, из DM/группы или Game Options.
+   Известные game/recipient уже заполнены; Game Options всегда использует live game.
+2. Выбрать только недостающий контекст: людей для выбранной игры либо совместимую
+   игру для известного разговора. Одна GameParty/admission-модель выбирает маршрут;
+   где нужен явный выбор близости — **Nearby** / **Online friend**, без технического
+   транспортного меню и повторного выбора уже известной игры/человека.
 3. Получатель видит одно компактное приглашение: кто, какая игра/активность,
    нужные условия и Accept/Decline. Отказ не разрушает дружбу или соединение.
 4. После согласия проверяются личности, актуальная party, точный контент,
@@ -738,7 +765,7 @@ determinism и save-исключения остаются явными. Подк
 | MP-03: PS1/N64 | Реально подходящий механизм конкретного runtime, полный путь участников и исключения для машинного link. |
 | MP-04: Dreamcast | Поддержанные Flycast/иные подтверждённые механизмы без обещания всех серверов/игр. |
 | MP-05: PS2/GameCube | Пригодные runtime-механизмы, включая сохранение существующего Dolphin-направления; ARMSX2 остаётся важным локальным PS2-route Odin. |
-| MP-06: DS/PSP | Раздельные особенности эмулируемой локальной связи/сети и соответствующих melonDS/PPSSPP routes. |
+| MP-06: DS/PSP | #162–166: native Linux melonDS, deterministic mirrored DS Local Wireless через internet; отдельные machines/saves, защищённые минимальные mirror state, реальные 2-player и отдельные 3/4-player budgets. WFC/VPN не замена. Сохранить PPSSPP и его незакрытую приёмку. |
 | MP-07: 3DS и более новые | Подходящие Azahar/другие routes только после старших очередей, с честным unsupported там, где нет пригодного механизма. |
 | HS-01: live Hotseat | Один логический контроллер с согласованной передачей права ввода во время живой общей сессии. |
 
@@ -926,7 +953,7 @@ OddCrate даёт готовые небольшие бесплатные/open-so
 пакет. «Бесплатно скачать» не считается правом оператора пересобрать и распространять.
 Оператор проверяет права на binaries, source obligations, assets и media до публикации.
 
-В Multiverse пользователь переключается между My Collection и OddCrate. Карточки
+В общей библиотеке Collections пользователь переключается между My Collection и OddCrate. Карточки
 одинакового масштаба, с родной тёплой композицией, удобны на handheld и TV.
 Карточка/страница игры показывает автора, описание, screenshots, platform/runtime,
 совместимость, размер, version/build, права/лицензию, installation state, отзывы
@@ -1034,6 +1061,15 @@ eligibility/rating/migration остаётся работой до реально
 characters, logos и signature objects. Уже выполненная ограниченная замена не
 закрывает проверку всех остальных artwork (#116). README screenshots сохраняются
 до отдельно принятой финальной UX-поставки и не заменяются в документационном pass.
+
+Для первой альфы #161 отдельно требует оригинальный cuboid/geometric fallback
+портретов/спрайтов существ. Сначала согласуется представительная выборка, затем
+расширяется покрытие с единообразной заглушкой для остальных. Узнаваемый намёк через
+собственный дизайн не означает разрешение копировать/обводить официальные изображения
+или автоматическое закрытие #116. Существующие user packs имеют прежний приоритет
+по семействам assets; встроенный fallback не подавляет optional ROM extraction.
+IDs, gameplay и README screenshots сохраняются. Это отдельная ограниченная
+предальфовая задача, не требование завершить весь Pack Studio до первой поставки.
 
 ### 23.2. Pack Studio
 
@@ -1271,7 +1307,7 @@ firmware и чужие сервисы. Binary/image redistribution, source oblig
   из обычного save после нового запуска.
 - **Новый Trainer:** создать/защитить профиль → выбрать существующую библиотеку →
   собственный Adventure → переключиться безопасно → чужие saves/аккаунты не раскрыты.
-- **Новая серия:** добавить ROM в правильную папку → увидеть World/Multiverse →
+- **Новая серия:** добавить ROM в правильную папку → увидеть Collections/All games →
   выбрать независимо на Home → переименовать/перенести → сохранить историю/identity.
 - **Глубокая игра:** прочитать точный save → увидеть Party/Boxes/Guide/Journey →
   сделать поддержанную защищённую операцию → прочитать назад → запустить настоящую
@@ -1339,15 +1375,19 @@ paired gameplay и физическая проверка владельца — 
 
 ### 30.1. Что сейчас и что потом
 
-Сейчас следующий runtime outcome — **MP-02**, с сохранением незакоммиченных timer
-изменений. Компактный Social и тёплая палитра уже установлены на Flip/Odin; это
+Сейчас выполняется **документационная карта UX-02**, без runtime/UI реализации.
+После отдельного продолжения владельца: UX-02A Shell Options/Select → UX-02B Game
+Options/сворачивание → UX-02C контекстные приглашения/уведомления → UX-02D сквозная
+приёмка. Затем **MP-02**, с сохранением незакоммиченных timer изменений.
+Компактный Social и тёплая палитра уже установлены на Flip/Odin; это
 не завершает будущие guest/TV/review/software/installer возможности и физические gates.
 Существующие доказательства не перепроверяются без изменённого кода, ошибки или
 конкретного незакрытого риска.
 
 Первый релизный рубеж — **устанавливаемая альфа для тестеров и энтузиастов**:
-MP-02 → MP-03…MP-07 → live Hotseat → native online Link с trust → guest sessions
-с policy/lease → REL-01 → образ Armada и installer SteamOS/Bazzite → альфа.
+UX-02 → MP-02 → MP-03…MP-07 (DS #162–166 внутри MP-06) → live Hotseat → native online
+Link с trust → guest sessions с policy/lease → ART-01 fallback #161 и REL-01 →
+образ Armada и installer SteamOS/Bazzite → альфа.
 MP-01 и общие multiplayer/call gates сохраняются. В альфу входят существующие
 библиотека, запуск/сохранения, Social и настройки ScreenScraper/Downloads.
 Это базовый билд с главными возможностями, а не завершение всей продуктовой карты.
@@ -1365,7 +1405,8 @@ Pack Studio → optional ROM assets, полные updates/repair и финаль
 задачами тестирования, а не выдуманными доказательствами готовности. Альфа не закрывает
 их и не обещает все игры/устройства. Артефакты альфы пока не собраны.
 
-Подробный dependency register — [#136–160](EXPANSION_136_160.md), единственная
+Подробные dependency registers — [#136–160](EXPANSION_136_160.md) и
+[#161–173](EXPANSION_161_173.md), единственная
 операционная очередь — [ROADMAP](ROADMAP.md). Каждый объявленный increment должен
 доводить целый пользовательский результат с UI/integration, нужными checks,
 обоими доступными handheld deliveries и commit/push. Explicit docs/audit pass
@@ -1399,6 +1440,11 @@ Pack Studio → optional ROM assets, полные updates/repair и финаль
 
 | Старое/противоречащее описание | Действующее решение |
 | --- | --- |
+| Worlds, Pokémon-регионы и Home/Y внутри выбранной коллекции | Collections, прямой список Pokémon, ручные/динамические/автоматические коллекции, общие Home recents без L2/R2. |
+| Компактный Home selector и смешанные действия экрана/игры | Универсальный Shell Options, локальный Select, Game Options фактической live session; Start только системный. |
+| Уход в shell означает завершение или новый запуск | Явный Minimize/Return одного процесса, отдельные alive/foreground/pause, сохранение input/save/party/call границ. |
+| LAN melonDS как достаточный DS multiplayer target | #162–166 native deterministic mirrored Local Wireless через internet; source, privacy и real-device proof отдельно. |
+| Пустые creature views до полного Pack Studio | Оригинальный bounded fallback #161 перед alpha, user packs и optional extraction сохраняют свои правила. |
 | Единственный image-only путь или один неделимый OS release | Armada image + supported SteamOS/Bazzite; независимые I/H, S, G. |
 | Запреты обновляются только с Linux OTA | Только обычный Software S updater; policy-only S допустим. |
 | Любая неизвестная лицензия автоматически запрещает guest transfer | Ответственность за пользовательские файлы договорная; unknown не запрет, signed policy/consent/runtime остаются обязательными. |
@@ -1419,7 +1465,8 @@ Pack Studio → optional ROM assets, полные updates/repair и финаль
 <a id="vision-issues"></a>
 ## 32. Покрытие issues
 
-Таблица фиксирует источники требований на 8 октября 2026 года. Состояние GitHub
+Таблица фиксирует источники требований на 9 октября 2026 года; #161–173 проверены
+в этой редакции, прежние статусы #1–160 сохранены из предыдущего аудита. Состояние GitHub
 не заменяет acceptance и не отменяет поздние поправки владельца. Старые названия
 сохранены для поиска; актуальное толкование находится в указанном разделе и
 специализированных документах. Новые issues после этой редакции нужно сверять
@@ -1585,3 +1632,16 @@ Pack Studio → optional ROM assets, полные updates/repair и финаль
 | [#158](https://github.com/EriArk/TrainerOS/issues/158) | TV input UX: reliable D-pad/remote focus, text entry and accessibility at ten feet | OPEN | [design](#vision-design) |
 | [#159](https://github.com/EriArk/TrainerOS/issues/159) | TV display profiles: external screen, docked mode and safe transition without host takeover | OPEN | [design](#vision-design) |
 | [#160](https://github.com/EriArk/TrainerOS/issues/160) | Acceptance: independent image/software updates and true handheld/TV parity across install modes | OPEN | [design](#vision-design) |
+| [#161](https://github.com/EriArk/TrainerOS/issues/161) | Artwork: ship a cuboid creature fallback pack for the first alpha | OPEN | [assets](#vision-assets) |
+| [#162](https://github.com/EriArk/TrainerOS/issues/162) | DS Netplay: deterministic Local Wireless over internet in TrainerOS-owned Linux melonDS | OPEN | [multiplayer](#vision-multiplayer) |
+| [#163](https://github.com/EriArk/TrainerOS/issues/163) | DS Netplay core: port GPL DetMP and deterministic mirrored melonDS to native Linux | OPEN | [multiplayer](#vision-multiplayer) |
+| [#164](https://github.com/EriArk/TrainerOS/issues/164) | DS Netplay security: lawful local BIOS, private saves and bounded mirror synchronization | OPEN | [multiplayer](#vision-multiplayer) |
+| [#165](https://github.com/EriArk/TrainerOS/issues/165) | DS Netplay adapter: connect native Linux melonDS to GameParty and secure peer transport | OPEN | [multiplayer](#vision-multiplayer) |
+| [#166](https://github.com/EriArk/TrainerOS/issues/166) | DS Netplay QA: prove two-handheld wireless gameplay, desync recovery and 3–4-player budgets | OPEN | [multiplayer](#vision-multiplayer) |
+| [#167](https://github.com/EriArk/TrainerOS/issues/167) | UX foundation: universal Options, contextual Select and active-game multitasking | OPEN | [design](#vision-design) |
+| [#168](https://github.com/EriArk/TrainerOS/issues/168) | Shell Options: replace the compact Home menu with a large universal activity surface | OPEN | [design](#vision-design) |
+| [#169](https://github.com/EriArk/TrainerOS/issues/169) | Select UX: context actions for the focused object and current TrainerOS screen | OPEN | [design](#vision-design) |
+| [#170](https://github.com/EriArk/TrainerOS/issues/170) | Game Options: large artwork-led overlay for the actual running game session | OPEN | [design](#vision-design) |
+| [#171](https://github.com/EriArk/TrainerOS/issues/171) | Game multitasking: minimize a live game, safely pause when supported, and return | OPEN | [design](#vision-design) |
+| [#172](https://github.com/EriArk/TrainerOS/issues/172) | Play Together context entries: invite from Home game card, library, chat or live game | OPEN | [design](#vision-design) |
+| [#173](https://github.com/EriArk/TrainerOS/issues/173) | Notifications UI: shared passive toasts during gameplay and in shell, with Options inbox | OPEN | [design](#vision-design) |

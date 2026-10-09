@@ -15,6 +15,15 @@ Adventure/save/provider boundaries remain; migrations require their own checks.
 
 # TrainerOS Domain Model
 
+**Planned UX-02 state boundary, 9 October 2026:** [precise map](UX_OPTIONS_MAP_RU.md).
+Selected Adventure/navigation state does not identify the live game. A live session
+needs verified owner/game/session/process-start/runtime/profile identity with
+independent foreground/input and confirmed pause state. Minimize keeps the same
+session, save guards and guest lease; it does not persist a ResumePoint or imply
+restart recovery. Context actions capture stable target/owner/revision and revalidate
+before mutation; notification views retain provider event IDs. These are design
+constraints, not a delivered schema change or permission to discard existing state.
+
 **Planned model additions, 2026-10-08:** [#118–135](EXPANSION_118_135.md)
 retain separate conversation, game-party, call and save-transaction identities.
 Hotseat distinguishes participant capacity, one simultaneous logical controller,

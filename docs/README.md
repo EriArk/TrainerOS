@@ -1,5 +1,9 @@
 # Documentation
 
+**Current planning:** [Precise UX/options/session map (Russian)](UX_OPTIONS_MAP_RU.md)
+and [issues #161–173](EXPANSION_161_173.md). Documentation first; UX-02 implementation
+starts on the owner's next continuation, then returns to MP-02.
+
 **Final product:** [Complete product vision (Russian)](PRODUCT_VISION_RU.md)
 describes the end-to-end target, detailed behaviour, safeguards, failure handling,
 acceptance and issue coverage. [Issues #136-160](EXPANSION_136_160.md) reconcile guest
@@ -45,5 +49,7 @@ observed behavior, and acceptance still waiting on hardware or human testing.
 The [bootstrap development guide](archive/DEVELOPMENT_BOOTSTRAP.md) and
 [original Codex bootstrap brief](CODEX_START.md) are historical, not onboarding.
 Older acceptance remains open unless explicitly delivered or superseded; a new
-document does not silently cancel it. Pack Studio and optional ROM-native assets
-precede image/installer delivery, then updates/repair and final acceptance.
+document does not silently cancel it. The first alpha follows accepted multiplayer,
+guest sessions and required release dependencies, including #161 fallback artwork,
+then image/installer delivery. Full Pack Studio, optional ROM-native assets and
+remaining updates/repair/final acceptance stay after alpha; see the active roadmap.

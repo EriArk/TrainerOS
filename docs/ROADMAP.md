@@ -1,11 +1,20 @@
 # TrainerOS Roadmap
 
+**Owner map-first revision, 9 October 2026:** this pass delivers only the
+[precise UX map](UX_OPTIONS_MAP_RU.md) and synchronized documentation.
+[#161–173](EXPANSION_161_173.md) adds UX-02, native DS multiplayer requirements
+and alpha creature fallback. After the owner's next continuation: **UX-02A–D,
+then MP-02**, preserving its uncommitted timer work. No new runtime/UI or device
+delivery is claimed. The active queue below supersedes dated "resume MP-02"
+notes. Collections/global Home recents are already delivered; Options/minimize
+remain planned. README screenshots and deferred acceptance remain unchanged.
+
 **Owner library correction, 9 October 2026:** deliver Collections with personal
 manual/dynamic and automatic views; Pokemon opens games without region cards.
 Home no longer cycles collections with L2/R2; Y shows global recent games and
 retains selection without launch. This requested increment precedes resuming
-MP-02, whose uncommitted timer work is preserved. Broad common UI redesign awaits
-discussion. [Current contract](SERIES_COLLECTIONS.md) supersedes older scoped
+MP-02, whose uncommitted timer work is preserved. The subsequent common UI target
+is now mapped in [UX-02](UX_OPTIONS_MAP_RU.md). [Current contract](SERIES_COLLECTIONS.md) supersedes older scoped
 Home/Y and region-card descriptions below. The implementation and both installed
 binaries are delivered; the evidence records Odin's retained Steam-session boundary.
 
@@ -87,8 +96,10 @@ GPL-3.0-or-later for original code; #115 retains release redistribution acceptan
 before changing the public visual material.
 
 <a id="active-execution-queue--2026-10-04"></a>
+<a id="active-execution-queue--2026-10-08"></a>
+<a id="active-execution-queue--2026-10-09"></a>
 
-## Active execution queue — 2026-10-08
+## Active execution queue — 2026-10-09
 
 Start here, then read [Current tasks](CURRENT_TASKS.md). This table controls
 execution; the task register decomposes it, and dated checkpoints below retain
@@ -98,17 +109,20 @@ The owner explicitly rejects test-only passes substituted for feature delivery.
 
 | Order | Outcome / task | State and dependency |
 | --- | --- | --- |
-| Delivered · owner priority | #114 series collections | Worlds cards, scoped Home/Y choice and Home cycling, bounded ROM selection and generated art installed on both handhelds. Remaining #90 deep adapters stay open. [Scope/evidence](SERIES_COLLECTIONS.md). |
+| Delivered · owner priority | #114 and 9 October Collections correction | Collections, manual/dynamic/automatic views, direct Pokémon games and global Home/Y recents without Home L2/R2 cycling; installed evidence distinguishes the retained Odin Steam session. Remaining #90 deep adapters stay open. [Scope/evidence](SERIES_COLLECTIONS.md). |
 | Delivered · owner priority | UX-01: Social → Together → party/activity, #127–134 | Unified DM/group inbox, Discover, parallel touch/controller controls, Together, people-first invites, shared party and group details installed on both devices. [Evidence](SOCIAL_UX.md); #135 future-route and deferred acceptance remains open. |
-| **Now · block 1** | **MP-02: GB/GBC/GBA independent link** | Resume after UX-01, preserving the timer fix and own-save work. Complete own-save link through corrected invitations and normal exit; [actual progress and remaining gates](HANDHELD_MULTIPLAYER.md). |
+| Delivered · docs only | UX-02 map and reconciliation | Precise screens/actions/session states and #161–173 dependencies; no implementation in this pass. [Map](UX_OPTIONS_MAP_RU.md), [register](EXPANSION_161_173.md). |
+| **Next · owner priority** | **UX-02A–D: #167–173** | After the owner's continuation: Shell Options/Select → Game Options/live minimize → contextual Together/passive notifications → integrated acceptance. Complete whole mapped outcomes on existing routes; retain future-runtime and external gates. |
+| Next · block 1 | MP-02: GB/GBC/GBA independent link | Resume after UX-02, preserving the timer fix and own-save work. Complete own-save link through corrected invitations and normal exit; [actual progress and remaining gates](HANDHELD_MULTIPLAYER.md). |
 | Retained · block 1 | MP-01: classic RetroArch and shared online-party acceptance | Implemented profiles remain accessible. Distinct-network and actual multi-user/company acceptance remain open; owner-deferred conditions do not trigger another NES/same-router pass. |
 | 3 · block 1 | MP-03: selected PS1/N64 routes | After MP-02. Implement viable mechanisms with the complete invitation journey; do not substitute shared controllers for emulated-machine link. |
-| 4 · block 1 | MP-04: Dreamcast; MP-05: PS2/GameCube; MP-06: DS/PSP; MP-07: 3DS and eligible newer routes | Oldest first. Reuse installed PSP/Dolphin work; resolve each route's remaining acceptance, not every ROM. Unsupported mechanisms require a sourced conclusion, not a misleading enabled button. |
+| 4 · block 1 | MP-04: Dreamcast; MP-05: PS2/GameCube; MP-06: DS/PSP; MP-07: 3DS and eligible newer routes | Oldest first. Reuse installed PSP/Dolphin work. MP-06 includes #162–166 native Linux deterministic DS Local Wireless, private mirror state and actual internet gameplay; WFC/VPN are not substitutes. Resolve route acceptance, not every ROM. Unsupported mechanisms need sourced conclusions. |
 | Retained · block 3 | COM-03: outstanding calls/notifications acceptance | Human speech/listening is owner-deferred. Keep group voice running through multiplayer; resume the missing acceptance when its prerequisite is available, without restarting completed call checks. |
 | 5 · block 1 | HS-01: live Hotseat Relay, #126 | After the existing oldest-first MP-02…MP-07 queue. One real pass-controller title: exclusive input owner, ordered handoff, loss/rejoin, safe persistence and complete existing party/Home journey. No asynchronous turns. |
 | 6 · block 4 | LINK-04: complete native online activities | After block 1, using existing invitation infrastructure and protected bilateral transactions, with #93/#94 prerequisites for trust-sensitive use. Emulator multiplayer and saved-creature Link stay separate. |
 | 7 · multiplayer extension | GUEST-01: #136–143 guest sessions | Complete missing-game invitation/transfer/isolated play/cleanup through existing parties, with signed policy, consent and Software dependencies. Follow native Link as already queued; no unprotected transfer shortcut. |
-| 8 · alpha | REL-01 → R15 image + INSTALL-01 | Shared Software S ownership and compatible image I baseline, then Armada image and supported SteamOS/Bazzite installer. Include fresh/repeat/interrupted installation, launch/return, recovery and safe uninstall. Pull forward necessary alpha release dependencies. |
+| 8 · alpha dependency | ART-01: #161 original creature fallback | Representative owner-reviewed sample, bounded portrait/sprite coverage and generic fallback; preserve pack priorities/IDs and #116. No full Pack Studio dependency. |
+| 8 · alpha | REL-01 → R15 image + INSTALL-01 | Shared Software S ownership and compatible image I baseline, then Armada image and supported SteamOS/Bazzite installer, including ART-01. Include fresh/repeat/interrupted installation, launch/return, recovery and safe uninstall. Pull forward necessary alpha release dependencies. |
 | 9 · alpha | ALPHA-01: tester/enthusiast release | Versioned artifacts, supported-target/feature matrix, installation/recovery instructions, known issues and bug-report template. Verify shipped artifacts on each claimed target; deferred external acceptance stays open. |
 | 10 · after alpha · block 5 | REVIEW-05: #113, #135 and residual communication | Implement revised #113: 7200 eligible gameplay seconds OR verified exact completion with meaningful local play, stars/optional text and legacy migration; imported completion alone is insufficient. Finish replies/quotes, reactions, mentions, person card and composer/media acceptance. Validate whole friend/group/in-game/Link/rejoin journeys and independent calls on both devices. No history search. |
 | 11 · after alpha | Remaining R1–R14, R7a and U/P commitments | Continue the preserved [unified backlog](#unified-execution-order--existing-work-and-new-issues), doing residual work only. Native ScreenScraper and shared Downloads are delivered; residual #65 acceptance is in [ScreenScraper](SCREENSCRAPER.md). Sleep remains deferred. #112 appearance, RA, adapters, Steam, device/input, export, maintenance and Help remain. Add ODD-01 (#144-152) and TV-01 (#156-159), with #113 reviews shared by OddCrate; their mutual priority is not separately decided. |
@@ -124,7 +138,9 @@ The new milestone is **all accepted multiplayer implementation → shared releas
 definition → image/installer → alpha**: a usable base build with the main
 attractions, before the entire product vision is finished. Existing library,
 launch/save, compact Social/profiles/calls, ScreenScraper and Downloads travel
-with it. MP-02 remains next; this planning pass implements no runtime or installer.
+with it. UX-02 precedes resuming MP-02; this planning pass implements no runtime or installer.
+The #161 original creature fallback is a bounded alpha dependency; full Pack Studio
+and optional ROM-native assets remain after alpha.
 
 - Multiplayer scope remains MP-01–MP-07's viable reviewed mechanisms, live Hotseat,
   native online Link and guest sessions. Preserve internet-first invitations,

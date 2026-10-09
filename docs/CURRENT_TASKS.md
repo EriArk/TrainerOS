@@ -1,11 +1,18 @@
 # Current tasks
 
+**Current owner request, 9 October 2026 — UX-02 planning only:** think through
+the complete interaction/session map and reconcile documents before implementation.
+[Precise map](UX_OPTIONS_MAP_RU.md) and [#161–173 register](EXPANSION_161_173.md)
+define the next work. No UI/runtime build, deployment or issue closure in this pass.
+After the next continuation: UX-02A–D, then MP-02; preserve its uncommitted timer work.
+Older dated "next" notes below are evidence, not the active scheduling decision.
+
 **Owner library correction, 9 October 2026:** Collections replaces Worlds;
 Pokemon opens games directly. Personal manual/dynamic and automatic collections
 share the library, while Home/Y uses global recent games without L2/R2 collection
 cycling. [Contract and delivery](SERIES_COLLECTIONS.md). This requested increment
-precedes resuming MP-02; preserve its timer work. Broad UI redesign remains for
-later discussion. Older scoped Home/Y navigation below is superseded.
+precedes resuming MP-02; preserve its timer work. The common UI is now specified
+by UX-02 above. Older scoped Home/Y navigation below is superseded.
 
 **Owner download regression correction, 8 October 2026:** unresolved ScreenScraper
 editions wait independently while other jobs continue. Downloads sorts active
@@ -98,7 +105,7 @@ remain unchanged; GitHub Actions is disabled. The owner subsequently adopted
 GPL-3.0-or-later; #115 retains full release redistribution acceptance. Resume MP-02
 below after this pass.
 
-Updated 2026-10-08. Execution order lives in [ROADMAP](ROADMAP.md#active-execution-queue--2026-10-08).
+Updated 2026-10-09. Execution order lives in [ROADMAP](ROADMAP.md#active-execution-queue--2026-10-09).
 This register decomposes accepted work; it is not a second roadmap or a promise
 that each subtask receives a separate turn. Issues and existing evidence retain
 their full acceptance. A checkbox means the stated outcome is delivered, not
@@ -106,10 +113,10 @@ merely that code exists. Do not close a parent block from partial child evidence
 
 ## Delivered checkpoint: #114 — series collections
 
-Owner priority override, 2026-10-04: collections first, then resume MP-02 below.
-Delivered Worlds collection cards, scoped direct game wheels, Home L2/R2 cycling
-and independent per-Trainer choices on both handhelds. Eight additional series,
-ten original illustrations and a bounded server-ROM selection are installed.
+The original 4 October series delivery is retained as evidence, superseded for
+navigation by 9 October Collections: personal manual/dynamic and automatic views,
+direct Pokémon games, global Home/Y recents, no Home L2/R2 collection cycling.
+Eight additional series, ten original illustrations and a bounded server-ROM selection remain.
 No ROM relocation or identity reset. Remaining #90 semantic adapters stay open.
 Acceptance/evidence: [Series collections](SERIES_COLLECTIONS.md).
 
@@ -136,9 +143,27 @@ Preserve the unfinished MP-02 source change. Its underlying timer regression
 may be validated if the changed UI exercises it; no cable-research detour before
 this outcome. Then resume the full MP-02 block below.
 
+## Next implementation: UX-02 — Options, Select and live-game multitasking
+
+Current pass supplies the map and documentation only. On the owner's continuation:
+
+- [ ] UX-02A: shared Shell Options from every primary and focused-object Select,
+  stable target/focus, parallel touch/controller and real Handheld/TV composition.
+- [ ] UX-02B: Game Options for the actual process, safe minimize → Social → same
+  game return; runtime capability gates, input/save/audio/time protection and #49 Exit.
+- [ ] UX-02C: contextual Together entries plus passive shell/game notifications and
+  common inbox, preserving provider/party/call ownership and clean capture.
+- [ ] UX-02D: integrated existing-route acceptance and control documentation;
+  retain future-runtime, real TV, human audio and owner-deferred gates explicitly.
+
+Each functional outcome includes required integration, bounded checks, both
+available handheld deliveries and commit/push. Full details and failure cases:
+[UX map](UX_OPTIONS_MAP_RU.md), [issue register](EXPANSION_161_173.md).
+Do not replay passed tests to fill an externally blocked acceptance turn.
+
 <a id="current-task-mp-02--independent-handheld-link"></a>
 
-## Current task: MP-02 — independent handheld link
+## Retained next runtime task: MP-02 — independent handheld link
 
 The owner resumed the interrupted handheld work on 4 October. Complete the
 existing invitation/launch/own-save/exit journey for reviewed GB/GBC/GBA routes.
@@ -313,7 +338,7 @@ survey unless a concrete route requires it; virtual LAN remains conditional.
 | MP-03 | Selected PS1/N64 multiplayer routes integrated into the same invitation experience | MP-02. Mechanism and capacity follow the runtime; unsupported link/game modes remain explicit. |
 | MP-04 | Dreamcast supported online/LAN mechanism with automatic connection | MP-03. Reuse Flycast package/maintenance work; installation is not multiplayer. |
 | MP-05 | PS2/GameCube viable multiplayer routes | MP-04. Preserve existing ARMSX2; do not imply every PS2 game supports online play. Reuse Dolphin paired proof; finish its remaining internet/capacity/recovery gates. |
-| MP-06 | DS/PSP viable online/link routes | MP-05. Reuse PPSSPP Lumines LAN/relay proof; retain mid-round loss, admission/isolation and distinct-network gaps. DS needs its own mechanism. |
+| MP-06 | DS/PSP viable online/link routes | MP-05. #162–166 native Linux deterministic mirrored DS Local Wireless over internet: core/privacy → GameParty adapter → real gameplay/recovery, 2-player before proven 3/4-player budgets. Reuse PPSSPP proof and retain its loss/admission/isolation/distinct-network gates. |
 | MP-07 | 3DS and eligible newer families, then reconcile runtime-family coverage | MP-06. Source-backed support decisions and representative complete routes, not every ROM or obscure platform. Block 1 also retains HS-01 and external gates. |
 | HS-01 | Live Hotseat Relay through the existing party/Home journey, #126 | After MP-07. One logical pad, exclusive ordered control token, disconnect/leave/rejoin and safe persistence. Actual title/device handoffs; no offline turns. [Acceptance](EXPANSION_118_135.md#hs-01-live-hotseat-relay). |
 

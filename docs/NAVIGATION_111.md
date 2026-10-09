@@ -1,11 +1,17 @@
 # Five-section navigation and legacy migration — #111
 
-Implementation date: 2026-10-01. [Acceptance](EXPANSION_98_112.md).
+Original implementation: 2026-10-01; active library contract updated 2026-10-09.
+[Original acceptance](EXPANSION_98_112.md), [Collections delivery](SERIES_COLLECTIONS.md).
+The planned [UX-02 map](UX_OPTIONS_MAP_RU.md) replaces compact Home with universal
+Options and adds focused-object Select/Game Options. Those new surfaces and live
+minimize are not installed by this documentation pass.
 
-Home / Worlds / Companions / Trainer / Social remain five full-screen peers.
+Home / Collections / Companions / Trainer / Social remain five full-screen peers.
 L1/R1 stops at the existing primary edges. L2/R2 wraps section faces:
 
-- Home and Worlds: Pokémon / Multiverse.
+- Home: no L2/R2 collection switching; Y chooses global recent games without launch.
+- Collections: collection switching; Pokémon opens games directly, All games retains
+  systems, and manual/dynamic/automatic collections share the same library.
 - Companions: Guide / Party / Boxes / Center / Playroom / Shops.
 - Trainer: Profile / Journey / Hall / RA.
 - Social: Messages / Communities / Discover; Messages combines DMs and groups
@@ -23,7 +29,8 @@ face. `goToTrainerFace(profile|journey|hall|ra)` is the explicit semantic deep-l
 boundary. Nested Champion/archive/achievement routes keep their own selection
 and focus. Start's routes/quick controls and modal/transaction priority remain.
 The original unlinked Social placeholder is superseded by [native Social](SOCIAL.md).
-It reuses the existing Home shortcuts and keeps game selection out of Social.
+It reuses the existing providers. UX-02 contextual Together preselects a known game
+or conversation; it does not turn Social into a second library.
 
 ## Navigation version 2
 
@@ -31,6 +38,12 @@ It reuses the existing Home shortcuts and keeps game selection out of Social.
 `home/worlds/companions/trainer/social`, `trainerFace`, `socialFace` and the
 existing nested controller states. It is an owner-scoped navigation JSON version,
 not a SQLite schema or save-format migration.
+
+The persisted `worlds` identity is a compatibility detail; the visible primary is
+Collections. Preserve supported checkpoint migrations and stable Adventure IDs.
+UX-02 overlay dismissal restores the exact nested route/focus; ordinary re-entry
+from another primary still opens the Collections grid. Live session identity is
+independent of that navigation state and remains protected while minimized.
 
 Version 1 `pokedex` maps to Companions; `trainer` opens Profile; `hall` maps to
 Trainer's Journey/Hall/RA according to its nested route. Legacy numeric slot 4

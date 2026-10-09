@@ -1,5 +1,13 @@
 # Multiplayer experience: companies, game parties and joining
 
+**Planned UX-02 entries, 9 October 2026:** [precise map](UX_OPTIONS_MAP_RU.md).
+Home/library game, DM/group and live Game Options all invoke one GameParty flow
+with known game/recipient prefilled. Live-game context is never borrowed from Home
+selection. Minimize/Return retains process, network timing, party/save ownership
+and independent group call; unsupported runtime handoff stays unavailable.
+The [new DS requirements](EXPANSION_161_173.md) belong to MP-06; they do not establish
+installed DS netplay or change existing consent, admission and route evidence.
+
 **Target refinement, 2026-10-08:** [#126–135](EXPANSION_118_135.md) add distinct
 live Hotseat and reconcile Social/Home around Together and one party surface.
 Choose people/groups before automatic transport; Nearby/Online normally become

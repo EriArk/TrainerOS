@@ -1,5 +1,12 @@
 # Issues #136–160: guest content, OddCrate, software updates and TV
 
+**Later reconciliation, 9 October 2026:** [#161–173](EXPANSION_161_173.md) and
+[UX-02 map](UX_OPTIONS_MAP_RU.md) add universal Options, context Select and live-game
+multitasking before resuming MP-02. They preserve this register's guest/policy,
+I/H/S/G and full TV boundaries. Options or permitted minimization does not itself
+end a guest session/lease. #161 fallback precedes alpha; full Pack Studio remains
+post-alpha. Older "MP-02 next" statements below are superseded by the active roadmap.
+
 Reviewed against live issue bodies/comments on 8 October 2026, including changed
 #104/#107/#113/#119 and the owner's later content-responsibility correction.
 These are accepted targets, **not installed capabilities**.

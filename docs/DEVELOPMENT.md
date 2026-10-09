@@ -1,5 +1,10 @@
 # Native development
 
+**Current planning boundary:** [UX-02 map](UX_OPTIONS_MAP_RU.md) specifies planned
+Options/Select/live-game changes; [#161–173](EXPANSION_161_173.md) maps dependencies.
+The 9 October map-first pass edits documentation only, preserving MP-02 timer WIP.
+Do not infer these capabilities from the current compact-menu implementation.
+
 TrainerOS is a C++20 / Qt Quick handheld shell on ArmadaOS. Development builds
 also run as an ordinary application; building the source does not install an
 Armada image, configure emulators or replace the desktop session.

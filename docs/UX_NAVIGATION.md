@@ -1,5 +1,14 @@
 # TrainerOS UX & Navigation
 
+**Active target, 9 October 2026:** [precise UX-02 map](UX_OPTIONS_MAP_RU.md).
+Five primaries are Home / Collections / Companions / Trainer / Social. Home Y uses
+global recents, with no Home L2/R2 collection switching. A is the direct primary
+action, Select/ellipsis is focused-object context, physical Home opens universal
+Options or live-session Game Options, Start is system-only. Safe Minimize/Return
+is distinct from Exit; provider, call, save and input boundaries remain intact.
+The new Options/multitasking contract is planned, not installed. Dated navigation
+descriptions below retain evidence but cannot override this map or the active queue.
+
 **Current composition target, 8 October 2026:**
 [PRODUCT_VISION_RU](PRODUCT_VISION_RU.md#vision-design) consolidates the later
 compact warm Social correction and #156-159 Auto/Handheld/TV requirements.

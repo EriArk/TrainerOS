@@ -1,5 +1,13 @@
 # Physical Home menu — #112 / #49
 
+**Planned replacement, 9 October 2026:** [UX-02](UX_OPTIONS_MAP_RU.md) and
+[#167–173 acceptance](EXPANSION_161_173.md) replace the compact selector with large
+universal Shell Options and live-session Game Options. Select owns local context;
+Start stays system-only. Explicit Minimize/Return preserves the live process and
+save guards; only Exit invokes #49. Shared passive toasts never capture input.
+This is documentation only. The dated compact-menu implementation below remains
+the installed baseline and historical evidence, not the new target design.
+
 **Installed presentation correction, 2026-10-08:** Play together opens
 people/groups directly. Home and Social share one party surface; incoming
 activities retain exact request identity and missed Notifications. See

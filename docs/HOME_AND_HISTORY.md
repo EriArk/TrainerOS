@@ -1,5 +1,11 @@
 # Home selection and observed play history
 
+**Planned UX-02 lifecycle, 9 October 2026:** [map](UX_OPTIONS_MAP_RU.md) separates
+Home's global selected Adventure from the actually running session. Minimize/Return
+keeps one process and history session; proven paused intervals are not eligible
+gameplay time. Actual exit/crash ends the session. This target does not deliver
+new timing semantics or #113 review rules in the current docs-only pass.
+
 **2026-09-19 delivered:** production Home/Y now selects recent Adventures for ordinary launch and uses the same durable clean exit image. An old stored state selection retains its Adventure choice but loses its launch target. The image is a quiet Home backdrop and a card background labeled with capture time; a later crash or uncaptured return retains the earlier valid picture. The first [shared #9 selection and Pokedex/Center pair](SHARED_ADVENTURE.md) are delivered on the single-Trainer baseline; #20 multiple owners and further projections remain planned. [Storage, provenance and migration limits](ADVENTURE_EXIT.md#durable-exit-media-and-ordinary-home-selection).
 
 The user's 2026-09-11 clarification separates choosing an Adventure from launching it. Y opens the compact Continue drawer. A on a card selects the Adventure shown on Home and closes the drawer without invoking an adapter. Home displays the selected Adventure's World, title and available data. A large molded circular button, mounted in the right chassis module, starts that Adventure. Its pressed motion does not delay controller input or launch.

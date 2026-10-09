@@ -1,5 +1,12 @@
 # Social / Together interface - UX-01
 
+**Next target, 9 October 2026:** [UX-02](UX_OPTIONS_MAP_RU.md) extends the delivered
+compact Social with universal Options, focused Select, live-game minimize/return,
+context-prefilled Together and shared notifications. Reuse current Fluxer and
+GameParty/call ownership; do not rebuild the messenger or enlarge chat controls.
+This pass is documentation only. The installed UX-01 evidence below remains;
+earlier "resume MP-02" scheduling now follows UX-02 in the active roadmap.
+
 **Compact Social revision installed, 8 October 2026:** the first UX-01
 composition was rejected for oversized controls and insufficient chat space.
 The replacement compact interface and native Fluxer profiles are now installed

@@ -1,5 +1,12 @@
 # TrainerOS Design Language
 
+**Planned UX-02 composition, 9 October 2026:** [Options map](UX_OPTIONS_MAP_RU.md).
+Shell/Game Options use 85–95% of safe area for readable activity/game content,
+compact actions and a shared inbox. A large panel does not mean oversized buttons.
+Retain warm material/colour language and compact Social/composer; local Select
+menus remain small. New surfaces need real Handheld/TV reflow, stable focus and
+parallel touch/controller. This does not complete full TV-01 or replace README art.
+
 **Current composition target, 8 October 2026:**
 [PRODUCT_VISION_RU](PRODUCT_VISION_RU.md#vision-design) consolidates the later
 compact warm Social correction and #156-159 Auto/Handheld/TV requirements.

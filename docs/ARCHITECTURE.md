@@ -1,5 +1,30 @@
 # TrainerOS Architecture
 
+## Planned UX-02 boundaries — 9 October 2026
+
+The [screen/action/session map](UX_OPTIONS_MAP_RU.md) and
+[#161–173 register](EXPANSION_161_173.md) define the next increment, not installed
+components. Reuse the current controllers/providers with these explicit boundaries:
+
+- A shared contextual-action resolver captures target type/ID, owner and capability;
+  controller/touch dispatch the same existing handler and revalidate async targets.
+- Selected Adventure, live process/session and foreground/input owner are separate.
+  Minimize may allow shell browsing without clearing live save/Trainer/update guards.
+  Pause is runtime capability, not a global process signal or a launch/exit alias.
+- Shell Options and Game Options present common call/party/notification services;
+  Game Options owns actual live-session context, not current library selection.
+  The existing #49 controller remains the sole ordinary-save exit path.
+- Interactive overlay input ownership differs from no-focus passive HUD. Helpers
+  require authenticated process identity, neutral handoff, bounded recovery and a
+  clean-capture barrier covering all visible TrainerOS layers.
+- One notification presentation queue/inbox retains provider event identity,
+  privacy and expiry; one GameParty supports all context entry points. Neither
+  introduces a second messenger, transport or save writer.
+
+Native DS work remains MP-06: source/core and mirror-state privacy precede the
+GameParty adapter and device proof. Software S owns the reproducible native runtime.
+Original timer WIP in RuntimeMultiplayer is preserved until its MP-02 continuation.
+
 **Current target reconciliation, 8 October 2026:**
 [Product vision](PRODUCT_VISION_RU.md#vision-architecture) and
 [#136-160](EXPANSION_136_160.md) add shared-backend handheld/TV presentation,
