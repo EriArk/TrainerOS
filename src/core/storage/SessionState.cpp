@@ -233,7 +233,7 @@ void SessionState::dispatch(Action action) {
         return;
     }
     if(creating_ || switching_)return;
-    if (adventureActive_) return;
+    if (adventureActive_ && !adventureMinimized_) return;
     if (!blocked()) { shell_.dispatch(action); return; }
     if (restored_ && (action == Action::PreviousPage || action == Action::NextPage)) {
         closing_ = false; nextTrainer_.clear();

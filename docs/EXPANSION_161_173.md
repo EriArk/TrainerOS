@@ -1,5 +1,10 @@
 # Issues #161–173 — acceptance and dependencies
 
+**Implementation update, 9 October 2026:** the owner subsequently authorized the
+UX-02 implementation. Current behavior, handheld delivery and retained acceptance
+are recorded in [UX_FRAMEWORK](UX_FRAMEWORK.md). Dated planning-only and compact-menu
+statements below describe the prior baseline.
+
 **Later owner extension, 9 October:** [#174–178 and adaptive Home](EXPANSION_174_178.md)
 now belong to UX-02's foundation, before completing Options/Select/live-game work.
 The five semantic slots stay stable; Home game content and the two former fixed

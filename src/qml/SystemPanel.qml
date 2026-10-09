@@ -59,7 +59,7 @@ Item {
                         CapButton {
                             required property int modelData
                             objectName: "menu-"+modelData; width: (parent.width-8)/2; height: 42; textSize: 14
-                            label: root.shell.menuItems[modelData]; tint: modelData===13?Theme.yellow:Theme.blue
+                            label: root.shell.menuItems[modelData] || ""; tint: modelData===13?Theme.yellow:Theme.blue
                             detail: modelData===12?root.shell.downloads.summary:"Choose systems"
                             selected: root.shell.menuOpen && !root.shell.notice.length && root.shell.focusIndex===modelData
                             onActivated: root.shell.activate(modelData)

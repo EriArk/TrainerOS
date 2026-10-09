@@ -34,7 +34,12 @@ public:
     Q_INVOKABLE void answer(bool accept);
     bool dispatch(Action);
     bool action(const QString&, bool fromSocial=false);
+    void beginTogether(QString game={},QString peer={},bool company=false);
+    bool contextAction(const QString&);
+    void resumeLiveInvocation();
+    void cancelInvocation() { liveInvocation_=false;++invocationGeneration_; }
 signals:
+    void liveOptionsRequested();
     void changed();
     void availabilityChanged();
     void notice(QString text);
@@ -74,5 +79,14 @@ private:
     QByteArray output_;
     bool socialSurface_=false;
     QString socialPanel_;
+    QString invocationGame_,invocationPeer_,invocationOwner_;
+    bool invocationCompany_=false;
+    bool liveInvocation_=false;
+    qint64 invocationProcess_=0,invocationExpires_=0;
+    quint64 invocationGeneration_=0;
+    quint64 invocationAccountGeneration_=0;
+    int invocationRevision_=0;
+    QJsonObject invocationDescriptor_;
+    void showInvocation();
 };
 }

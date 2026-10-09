@@ -128,7 +128,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(b); press(b); press(b); break;
         case 18:
             check(!shell.menuOpen() && !shell.powerMenu(), "Back unwinds Power and Start");
-            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(down); press(down); press(down); press(a);
+            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); for(int i=0;i<4;++i)press(down); press(a);
             for (int i=0;i<4;++i) press(down); press(a); break;
         case 19:
             check(shell.service()=="settings" && focus("settings-control-0"), "Trainer settings entry");
@@ -271,7 +271,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(b); press(b); flip(true); break;
         case 54:
             check(shell.party()->section()=="storage" && focus("party-slot-7"), "Center returns to the prior box slot");
-            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(down); press(down); press(down); press(a); break;
+            press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); for(int i=0;i<4;++i)press(down); press(a); break;
         case 55:
             check(shell.service()=="settings" && focus("settings-category-0"), "Settings categories focus");
             {
@@ -301,22 +301,22 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
         case 63:
             check(!shell.serviceOpen(), "Global shoulder leaves settings");
-            press(start); press(SDL_CONTROLLER_BUTTON_Y); press(down); press(down); break;
+            press(start); press(SDL_CONTROLLER_BUTTON_Y); press(down); press(down); press(down); break;
         case 64:
-            check(focus("menu-0") && shell.settings()->theme()=="turquoise", "Start has only two quick controls");
+            check(focus("menu-0") && shell.settings()->theme()=="turquoise", "Quick controls and Downloads lead to Settings without changing the theme");
             capture("start-two-controls"); break;
         case 65:
             check(shell.settings()->theme()=="turquoise", "Reverse theme adjustment"); press(b);
             press(start); for(int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP);
-            press(down); press(down); press(down); press(a); for(int i=0;i<4;++i) press(down); press(a); break;
+            for(int i=0;i<4;++i)press(down); press(a); for(int i=0;i<4;++i) press(down); press(a); break;
         case 66:
             check(focus("settings-control-0") && shell.settings()->category()==4, "Inline Trainer category");
             capture("settings-trainer"); press(a); break;
         case 67:
             check(shell.trainer()->editing() && shell.service()=="settings", "Profile edits inside Settings");
-            capture("settings-profile-edit"); for(int i=0;i<4;++i) press(down); break;
+            capture("settings-profile-edit"); for(int i=0;i<3;++i) press(down); break;
         case 68:
-            check(shell.focusIndex()==4 && focus("settings-control-4"), "Vertical Cancel focus");
+            check(shell.focusIndex()==3 && focus("settings-control-3"), "Vertical Cancel focus");
             capture("settings-profile-cancel"); press(a); break;
         case 69:
             check(!shell.trainer()->editing() && focus("settings-control-0"), "Cancel restores profile row");
@@ -337,7 +337,7 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
         case 75:
             check(shell.service()=="settings" && focus("settings-control-0"), "Controller test returns to its row");
             press(b); for(int i=0;i<3;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(a); press(a);
-            for(int i=0;i<3;++i) press(down); press(a); break;
+            for(int i=0;i<2;++i) press(down); press(a); break;
         case 76: {
             check(shell.trainer()->editing() && !shell.trainer()->error().isEmpty() && focus("settings-control-0"), "Invalid inline profile restores Name");
             auto* status=window->findChild<QQuickItem*>("settings-status");

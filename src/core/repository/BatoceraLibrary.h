@@ -31,6 +31,7 @@ public:
     QList<Adventure> adventures() const override { return library_.adventures(); }
     QList<ResumePoint> resumePoints() const override { return library_.resumePoints(); }
     QList<PlaySession> recentSessions() const override { return library_.recentSessions(); }
+    QList<PlaySession> gameSessions(const QString& id) const override { return library_.gameSessions(id); }
     std::optional<ExitMedia> exitMedia(const QString& id) const override { return library_.exitMedia(id); }
     std::optional<qint64> recordedSeconds(const QString& id) const override { return library_.recordedSeconds(id); }
     HomeSnapshot home() const override { return library_.home(); }

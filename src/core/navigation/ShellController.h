@@ -5,6 +5,8 @@
 #include "core/input/TextEntryController.h"
 #include "core/repository/LibraryRepository.h"
 #include "core/model/GameProgressProvider.h"
+#include "features/experience/ExperienceNavigation.h"
+#include "features/experience/PokemonExperienceController.h"
 #include <QPointer>
 #include "features/trainer/TrainerController.h"
 #include "features/trainer/TrainerSetupPresentation.h"
@@ -36,7 +38,13 @@ class ShellController final : public QObject {
     Q_PROPERTY(bool canHoldConfirm READ canHoldConfirm NOTIFY changed)
     Q_PROPERTY(bool canEditWorld READ canEditWorld NOTIFY changed)
     Q_PROPERTY(int page READ page NOTIFY changed)
-    Q_PROPERTY(QStringList primaryNames READ primaryNames CONSTANT)
+    Q_PROPERTY(QStringList primaryNames READ primaryNames NOTIFY changed)
+    Q_PROPERTY(QString homeView READ homeView NOTIFY changed)
+    Q_PROPERTY(QString experienceView READ experienceView NOTIFY changed)
+    Q_PROPERTY(QVariantList gameHistory READ gameHistory NOTIFY changed)
+    Q_PROPERTY(QVariantMap liveGame READ liveGame NOTIFY changed)
+    Q_PROPERTY(QVariantList notifications READ notifications NOTIFY changed)
+    Q_PROPERTY(QVariantMap passiveNotice READ passiveNotice NOTIFY changed)
     Q_PROPERTY(QString trainerFace READ trainerFace NOTIFY changed)
     Q_PROPERTY(bool trainerHistoryFace READ trainerHistoryFace NOTIFY changed)
     Q_PROPERTY(trainer::SocialController* social READ social CONSTANT)
@@ -107,7 +115,7 @@ public:
     bool collectionsRoot() const { return collectionsRoot_; }
     QVariantList collections() const { return multiverse_.collections(); }
     bool multiverseFace() const { return multiverseFace_; }
-    bool multiverseHome() const { const auto a=homeAdventure();return a && a->domain!="pokemon"; }
+    bool multiverseHome() const { return homeView()=="game-home"; }
     QVariantMap homeGame() const { return multiverse_.game(currentAdventureId()); }
     GameCollections* collectionManager() { return multiverse_.collectionManager(); }
     Q_INVOKABLE void manageCollection(bool create=false);
@@ -138,16 +146,27 @@ public:
     void showNotice(const QString& message) { mode_.clear(); notice_ = message; emit changed(); }
     bool modeConfirmation() const { return !mode_.isEmpty(); }
     int page() const { return page_; }
-    QStringList primaryNames() const { return {"Home", "Collections", "Companions", "Trainer", "Social"}; }
+    QStringList primaryNames() const;
+    QString homeView() const {return experience_.descriptor().homeView;}
+    QString experienceView() const {return page_==2 || page_==3 ? experience_.view(page_-2) : QString();}
+    QVariantList gameHistory() const;
+    QVariantMap liveGame() const { return liveGame_; }
+    QVariantList notifications() const;
+    QVariantMap passiveNotice() const;
+    void setLiveGame(const QVariantMap& game) { if(liveGame_!=game){liveGame_=game;emit changed();} }
+    Q_INVOKABLE void returnToLiveGame(bool options=false) { if(!liveGame_.isEmpty())emit liveGameRequested(options); }
+    Q_INVOKABLE void openContext(const QString& type={}, const QString& id={});
+    Q_INVOKABLE void pressButton(const QString& button);
+    Q_INVOKABLE void activateHomeAction(const QString& id);
     QString trainerFace() const;
-    bool trainerHistoryFace() const { return page_ == 3 && !trainerProfile_; }
+    bool trainerHistoryFace() const { const auto view=experienceView();return view=="achievements" || view=="pokemon-journey" || view=="pokemon-hall"; }
     QString socialFace() const { return socialFace_; }
     int focusIndex() const;
     bool drawerOpen() const { return drawerOpen_; }
     bool chooseAdventureAvailable();
     bool pairedNavigationAvailable();
-    bool centerFace() const { return page_ == 2 && pokemonFace_ != "dex"; }
-    QString pokemonFace() const { return pokemonFace_; }
+    bool centerFace() const { return page_ == 2 && experienceView().startsWith("pokemon-") && pokemon_.face() != "dex"; }
+    QString pokemonFace() const { return pokemon_.face(); }
     QStringList faceNames() const;
     int faceIndex() const;
     QString currentAdventureId() const;
@@ -157,11 +176,14 @@ public:
     QVariantList homeMenuActions() const;
     QString homeMenuCaption() const;
     bool notificationsOpen() const { return homeMenuOpen_ && notificationsOpen_; }
-    int notificationFocus() const { return qBound(0,notificationFocus_,qMax(0,int(social_.notifications().size())-1)); }
+    int notificationFocus() const;
     Q_INVOKABLE void activateNotification(int index);
+    Q_INVOKABLE void openNotificationById(const QString& id);
+    Q_INVOKABLE void dismissNotifications();
     Q_INVOKABLE void activateHomeMenu(int index);
     Q_INVOKABLE void openSocialNotification();
     Q_INVOKABLE void closeHomeMenu();
+    Q_INVOKABLE void openProfile();
     bool powerMenu() const { return powerMenu_; }
     QString notice() const { return notice_; }
     bool runtimeChangeBlocked() const { return scraper_.busy() || navigationLocked(); }
@@ -175,6 +197,8 @@ public:
     Q_INVOKABLE void goToTrainerFace(const QString& face);
     Q_INVOKABLE void activate(int index, const QString& area = {});
 signals:
+    void liveGameRequested(bool options);
+    void togetherRequested(QString game);
     void changed();
     void exitRequested();
     void trainersRequested();
@@ -182,6 +206,13 @@ signals:
     void modeRequested(const QString& mode);
     void homeLaunchPressed();
 private:
+    QVariantMap liveGame_;
+    QVariantList achievementNotifications_;
+    void syncExperience();
+    void showExperienceFace(int slot,const QString& face);
+    ExperienceNavigation experience_;
+    bool syncingExperience_ = false;
+    int experienceFocus_ = 0;
     void confirm();
     void openCollection(int index);
     void cycleCollection(int delta);
@@ -221,6 +252,7 @@ private:
     DiagnosticsController diagnostics_;
     SaveCenterController center_;
     PartyPresentation party_;
+    PokemonExperienceController pokemon_{pokedex_,center_,party_};
     SocialController social_;
     QString service_;
     enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, TrainerFavorite, CenterSearch, ShopSearch, BoxName, AchievementAccount, SetupName, Network, Social, Communication, Scraper };
@@ -235,8 +267,6 @@ private:
     int menuFocus_ = 0;
     int menuServiceFocus_ = 0;
     bool drawerOpen_ = false;
-    QString pokemonFace_ = "dex";
-    QString centerRoute_ = "clinic", playroomRoute_ = "playroom";
     bool collectionsRoot_ = true;
     int collectionFocus_ = 0;
     QString homeCollection_ = "pokemon", worldCollection_ = "pokemon";
@@ -244,9 +274,11 @@ private:
     int multiverseDrawerFocus_ = 0;
     bool menuOpen_ = false;
     bool homeMenuOpen_ = false;
+    bool optionsReturn_ = false;
     bool notificationsOpen_ = false;
     bool homeCallOpen_ = false;
     int notificationFocus_ = 0;
+    QString notificationSelection_;
     QString homeMenuSelection_ = "home";
     bool powerMenu_ = false;
     bool libraryFromWorlds_ = false;

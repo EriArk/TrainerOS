@@ -25,7 +25,7 @@ AdventureLaunchController::AdventureLaunchController(ProcessService& process, QO
 bool AdventureLaunchController::launch(const ProcessCommand& command, const QJsonObject& context, const QString& adventureId,
                                        AdventureSavePolicy savePolicy) {
     if (active() || process_.active()) return false;
-    adventureId_ = adventureId; started_ = false;
+    adventureId_ = adventureId; started_ = false; minimized_ = false;
     savePolicy_ = savePolicy;
     command_ = command; context_ = context; error_.clear(); state_ = "preparing";
     const auto token = ++request_; emit changed(); emit checkpointRequested(token, context_); return true;
@@ -42,7 +42,13 @@ void AdventureLaunchController::cancel() {
     else { state_ = "stopping"; emit changed(); process_.stop(); }
 }
 void AdventureLaunchController::restore(const QString& error) {
+    minimized_ = false;
     error_ = error; state_ = error.isEmpty() ? "returned" : "failed";
     emit changed(); emit restoreRequested(context_);
+}
+bool AdventureLaunchController::setMinimized(bool value) {
+    if(state_!="running" || !process_.active() || !process_.processId())return false;
+    if(minimized_==value)return true;
+    minimized_=value;emit changed();return true;
 }
 }

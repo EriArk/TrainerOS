@@ -77,11 +77,11 @@ private slots:
         view.setInputIsolated(true);view.setWindowFocused(true);
         auto neutral=[&]{view.updateInput(view.inputGeneration(),{true,true});};
         auto down=[&]{neutral();view.updateInput(view.inputGeneration(),{true,false,false,false,false,false,true});};
-        down();down();QCOMPARE(view.menuFocus(),2);
-        view.setExtraActions({answer,notifications});QCOMPARE(view.menuFocus(),3);
+        down();QCOMPARE(view.menuFocus(),1);
+        view.setExtraActions({answer,notifications});QCOMPARE(view.menuFocus(),2);
         neutral();view.activateMenu(view.menuFocus());QCOMPARE(requested.last()[0].toString(),QString("notifications"));
-        neutral();view.updateInput(view.inputGeneration(),{true,false,false,false,false,true,false});QCOMPARE(view.menuFocus(),2);
-        view.setExtraActions({notifications});QCOMPARE(view.menuFocus(),0);
+        neutral();view.updateInput(view.inputGeneration(),{true,false,false,false,false,true,false});QCOMPARE(view.menuFocus(),1);
+        view.setExtraActions({notifications});QCOMPARE(view.menuActions()[view.menuFocus()].toMap()["id"].toString(),"answer-call:friend");QVERIFY(!view.menuCanSelect());
         QCOMPARE(exit.phase(),AdventureExitController::Phase::Idle);
         view.setPanel("call","Friend",{QVariantMap{{"id","mute"},{"label","Mute"}}});
         view.setExtraActions({answer,notifications});QCOMPARE(view.menuFocus(),0);QCOMPARE(view.panel(),QString("call"));
@@ -94,7 +94,7 @@ private slots:
         QSignalSpy requested(&view,&AdventureExitPresentation::menuActionRequested);
         QVERIFY(view.requestMenu());view.menuCaptureCompleted(preview.last()[0].toULongLong(),{});
         view.setInputIsolated(true);view.setWindowFocused(true);
-        auto neutral=[&]{view.updateInput(view.inputGeneration(),{true,true});};neutral();view.activateMenu(2);
+        auto neutral=[&]{view.updateInput(view.inputGeneration(),{true,true});};neutral();view.activateMenu(1);
         QCOMPARE(requested.last()[0].toString(),QString("display"));QCOMPARE(exit.phase(),AdventureExitController::Phase::Idle);
         view.setPanel("display","Next launch",{QVariantMap{{"id","ratio"},{"label","Screen"}}});
         QVERIFY(!view.ready());neutral();view.cancel();QCOMPARE(view.menuActions().size(),3);QVERIFY(view.menuOpen());

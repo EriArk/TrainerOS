@@ -1,5 +1,10 @@
 # Physical Home menu — #112 / #49
 
+**Implementation update, 9 October 2026:** the owner subsequently authorized the
+UX-02 implementation. Current behavior, handheld delivery and retained acceptance
+are recorded in [UX_FRAMEWORK](UX_FRAMEWORK.md). Dated planning-only and compact-menu
+statements below describe the prior baseline.
+
 **Planned replacement, 9 October 2026:** [UX-02](UX_OPTIONS_MAP_RU.md) and
 [#167–173 acceptance](EXPANSION_161_173.md) replace the compact selector with large
 universal Shell Options and live-session Game Options. Select owns local context;

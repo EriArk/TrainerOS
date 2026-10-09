@@ -31,6 +31,7 @@ public:
         std::function<bool(const AdventureRegistration&)> supports, QObject* parent = nullptr);
     ~LocalSaveBackupService() override;
     bool busy() const override { return busy_; }
+    std::function<QString()> operationGuard;
     bool readOnly() const override { return readOnly_; }
     void setReadOnly(bool, QObject*, std::function<void(QString)>) override;
     bool supports(const AdventureRegistration& r) const override { return supports_(r); }

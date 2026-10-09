@@ -21,6 +21,7 @@ class TrainerController final : public QObject {
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(trainer::SpeciesPicker* picker READ picker CONSTANT)
     Q_PROPERTY(QVariantList overview READ overview NOTIFY changed)
+    Q_PROPERTY(QVariantList editRows READ editRows NOTIFY changed)
 public:
     static constexpr int NameLimit = 24;
     explicit TrainerController(TrainerRepository&, QObject* parent = nullptr);
@@ -31,6 +32,7 @@ public:
     void configure(LibraryRepository*, PokedexReferenceProvider*, PokedexProgressRepository*, HallOfFameRepository*);
     void refreshOverview();
     QVariantList overview() const;
+    QVariantList editRows() const;
     SpeciesPicker* picker() { return &picker_; }
     int focusIndex() const { return focus_; }
     QVariantMap profile() const;
@@ -38,7 +40,7 @@ public:
     QString draftEmblem() const { return draft_.emblemId; }
     QString draftFavorite() const { return favoriteLabel(draft_.favoritePokemonId); }
     QString error() const { return error_; }
-    void beginEdit();
+    void beginEdit(bool gamePersona = true);
     void cancel();
     void setDraftName(const QString& name);
     void dispatch(Action, bool vertical = false);
@@ -61,6 +63,7 @@ private:
     std::optional<TrainerProfile> profile_;
     TrainerProfile draft_;
     bool editing_ = false;
+    bool gamePersona_ = true;
     bool saving_ = false;
     int focus_ = 0;
     QString error_;

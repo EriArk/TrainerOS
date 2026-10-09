@@ -31,9 +31,9 @@ QString interruptOpenSessions(QSqlDatabase& db) {
 PlayHistorySnapshot readPlayHistory(QSqlDatabase& db, const QString& owner) {
     PlayHistorySnapshot result;
     QSqlQuery query(db);
-    // Row order remains launch order across system-clock changes. One latest
-    // session per Adventure prevents repeat launches crowding out other games.
-    query.prepare("SELECT s.id,s.adventure_id,s.started_at,s.ended_at,s.elapsed_seconds,s.outcome FROM play_sessions s JOIN adventures a ON a.id=s.adventure_id WHERE s.rowid IN (SELECT MAX(rowid) FROM play_sessions WHERE trainer_id=? GROUP BY adventure_id) ORDER BY s.rowid DESC"); query.addBindValue(owner);
+    // Keep launch order across clock changes. History retains the latest 50
+    // sessions per game; global recents still contain exactly one per game.
+    query.prepare("SELECT id,adventure_id,started_at,ended_at,elapsed_seconds,outcome FROM (SELECT s.*,s.rowid AS launch_order,ROW_NUMBER() OVER (PARTITION BY s.adventure_id ORDER BY s.rowid DESC) AS position FROM play_sessions s JOIN adventures a ON a.id=s.adventure_id WHERE s.trainer_id=?) WHERE position<=50 ORDER BY launch_order DESC"); query.addBindValue(owner);
     if (!query.exec()) {
         result.error = failed(); return result;
     }
@@ -46,7 +46,9 @@ PlayHistorySnapshot readPlayHistory(QSqlDatabase& db, const QString& owner) {
         const auto outcome = query.value(5).toString();
         session.outcome = outcome == "running" ? PlaySessionOutcome::Running : outcome == "returned" ? PlaySessionOutcome::Returned
             : outcome == "failed" ? PlaySessionOutcome::Failed : PlaySessionOutcome::Interrupted;
-        result.recent.append(session);
+        auto& sessions = result.sessions[session.adventureId];
+        if (sessions.isEmpty()) result.recent.append(session);
+        sessions.append(session);
     }
     query.prepare("SELECT adventure_id,SUM(elapsed_seconds) FROM play_sessions WHERE trainer_id=? AND elapsed_seconds IS NOT NULL GROUP BY adventure_id"); query.addBindValue(owner);
     if (!query.exec()) {

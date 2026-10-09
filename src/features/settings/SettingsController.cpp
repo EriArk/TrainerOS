@@ -2,8 +2,10 @@
 #include "features/library/ScrapeController.h"
 #include "features/center/LinkController.h"
 #include <algorithm>
+#include <QSettings>
 
 namespace trainer {
+QString SettingsController::displayProfile() const {return QSettings().value("display/profile","handheld").toString()=="tv"?"tv":"handheld";}
 void SettingsController::configureNearby(LinkController* value) {
     nearby_=value;connect(value,&LinkController::changed,this,&SettingsController::changed);
 }
@@ -37,11 +39,11 @@ QVariantList SettingsController::controls() const {
         return QVariantMap{{"title",title},{"kind",kind},{"detail",detail}};
     };
     switch(category_) {
-    case 0: return {row("Shell color","theme",theme()),row("Reduced motion","toggle",reducedMotion()?"On":"Off"),row("Brightness","brightness","")};
+    case 0: return {row("Shell color","theme",theme()),row("Reduced motion","toggle",reducedMotion()?"On":"Off"),row("Brightness","brightness",""),row("Options layout","action",displayProfile()=="tv"?"TV · larger controls":"Handheld · compact controls")};
     case 1: return {row("Volume","volume",""),row("Interface sounds","unavailable","Sound packs are not available yet"),row("Background music","unavailable","Music playback is not available yet")};
     case 2: return {row("Video previews","toggle",videoPreviews()?"On · silent playback":"Off"),row("Adventure pictures","status","Clean exit pictures on Home and in Choose Adventure"),row("Field Guide illustrations","status","Illustrations and animated companions")};
     case 3: return {row("Charger vibration","unavailable","Patterns have not been verified on this handheld"),row("Device lighting","unavailable","Lighting support has not been verified")};
-    case 4: return {row("Trainer profile","action","Name, emblem and favorite"),row("RetroAchievements","action","Manage your account"), trainersAvailable_ ? row("Trainers","action","Choose a player or create a Trainer") : row("Separate Trainers & PIN","unavailable","Not available yet"),row("Trainer PIN",trainersAvailable_?"action":"unavailable","Set, change or remove your PIN"),row("Family code",trainersAvailable_?"action":"unavailable","A parent can reset forgotten PINs")};
+    case 4: return {row("Your profile","action","Name and emblem"),row("RetroAchievements","action","Manage your account"), trainersAvailable_ ? row("Trainers","action","Choose a player or create a Trainer") : row("Separate Trainers & PIN","unavailable","Not available yet"),row("Trainer PIN",trainersAvailable_?"action":"unavailable","Set, change or remove your PIN"),row("Family code",trainersAvailable_?"action":"unavailable","A parent can reset forgotten PINs")};
     case 5: return {row("Refresh status","action",""),row("Restart","action",""),row("Power off","action","")};
     case 7: return {row("Check controller","action","Test buttons, sticks and triggers"),row("Button layout","status","Right A confirms; bottom B goes back"),row("Page navigation","status","L1 / R1 pages; L2 / R2 secondary pages")};
     case 8: {
@@ -79,6 +81,7 @@ void SettingsController::activateRow(int index) {
     pane_=true; row_=std::clamp(index,0,std::max(0,int(controls().size())-1));
     if(category_==0 && row_<2) activate(row_);
     else if(category_==0 && row_==2) emit quickAdjustment(1,Action::Confirm);
+    else if(category_==0 && row_==3) QSettings().setValue("display/profile",displayProfile()=="tv"?"handheld":"tv");
     else if(category_==1 && row_==0) emit quickAdjustment(0,Action::Confirm);
     else if(category_==2 && row_==0) activate(3);
     else if(category_==4) emit trainerRequested(row_);

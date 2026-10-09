@@ -1,5 +1,15 @@
 # TrainerOS Roadmap
 
+**UX-02 implementation delivered, 9 October 2026:** adaptive Home/game slots,
+universal profile, Options/Select, live Game Options/minimize, contextual Together
+and passive shell notifications/shared inbox are installed and running on Flip/Odin.
+[Implementation, checks and limits](UX_FRAMEWORK.md) records real solo and paired runtime
+handoffs, the gameplay inbox fallback and deferred physical/TV/future-route acceptance.
+Odin now boots directly into TrainerOS; immediate activation and a real reboot
+were verified. Resume MP-02; preserve its separate uncommitted timer work.
+The dated planning-only statements below are superseded; no issue is closed by
+this delivery and README screenshots remain unchanged.
+
 **Owner adaptive-Home and framework priority, 9 October 2026:**
 [#174–178 plus Home](EXPANSION_174_178.md) expands UX-02. The selected game's
 experience supplies Home content and both contextual primary slots; universal
@@ -121,8 +131,8 @@ The owner explicitly rejects test-only passes substituted for feature delivery.
 | Delivered · owner priority | #114 and 9 October Collections correction | Collections, manual/dynamic/automatic views, direct Pokémon games and global Home/Y recents without Home L2/R2 cycling; installed evidence distinguishes the retained Odin Steam session. Remaining #90 deep adapters stay open. [Scope/evidence](SERIES_COLLECTIONS.md). |
 | Delivered · owner priority | UX-01: Social → Together → party/activity, #127–134 | Unified DM/group inbox, Discover, parallel touch/controller controls, Together, people-first invites, shared party and group details installed on both devices. [Evidence](SOCIAL_UX.md); #135 future-route and deferred acceptance remains open. |
 | Delivered · docs only | UX-02 map and reconciliation | Precise screens/actions/session states, #161–178 and owner adaptive-Home contract; no implementation in this pass. [Map](UX_OPTIONS_MAP_RU.md), [experience register](EXPANSION_174_178.md). |
-| **Next · owner priority** | **UX-02: whole framework/UI/controls, #167–178 + adaptive Home** | Experience/context foundation → adaptive Home/slots, Pokémon extraction, universal profile and generic fallback → shared Options/Select → Game Options/live minimize → contextual Together/passive notifications → integrated acceptance. Complete this block before MP-02; preserve future-runtime/external gates. |
-| Next · block 1 | MP-02: GB/GBC/GBA independent link | Resume after UX-02, preserving the timer fix and own-save work. Complete own-save link through corrected invitations and normal exit; [actual progress and remaining gates](HANDHELD_MULTIPLAYER.md). |
+| Implemented · external acceptance retained | UX-02: framework/UI/controls, #167–178 + adaptive Home | Installed on both devices; real solo and paired minimize/return, selected/live separation, shared profile/inbox/Together. [Evidence and remaining gates](UX_FRAMEWORK.md). Parent acceptance stays open for owner/TV/audio/future routes. |
+| **Next · block 1** | **MP-02: GB/GBC/GBA independent link** | Resume after UX-02, preserving the timer fix and own-save work. Complete own-save link through corrected invitations and normal exit; [actual progress and remaining gates](HANDHELD_MULTIPLAYER.md). |
 | Retained · block 1 | MP-01: classic RetroArch and shared online-party acceptance | Implemented profiles remain accessible. Distinct-network and actual multi-user/company acceptance remain open; owner-deferred conditions do not trigger another NES/same-router pass. |
 | 3 · block 1 | MP-03: selected PS1/N64 routes | After MP-02. Implement viable mechanisms with the complete invitation journey; do not substitute shared controllers for emulated-machine link. |
 | 4 · block 1 | MP-04: Dreamcast; MP-05: PS2/GameCube; MP-06: DS/PSP; MP-07: 3DS and eligible newer routes | Oldest first. Reuse installed PSP/Dolphin work. MP-06 includes #162–166 native Linux deterministic DS Local Wireless, private mirror state and actual internet gameplay; WFC/VPN are not substitutes. Resolve route acceptance, not every ROM. Unsupported mechanisms need sourced conclusions. |

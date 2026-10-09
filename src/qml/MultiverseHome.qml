@@ -4,6 +4,7 @@ Item {
     id: root
     required property var shell
     readonly property var choice: shell.homeGame
+    readonly property bool running: !!choice.id && shell.liveGame.id === choice.id
     Rectangle {
         anchors.fill: parent; color: "#202c43"
         clip: true
@@ -33,6 +34,6 @@ Item {
         anchors.right: parent.right; anchors.rightMargin: 16; width: 244; height: parent.height
         Text { y: 28; width: parent.width; horizontalAlignment: Text.AlignHCenter; text: root.choice.id ? "YOUR NEXT ADVENTURE" : "FIND YOUR NEXT STORY"; color: "#d5dded"; font.pixelSize: 12; font.bold: true }
         AdventureButton { objectName: "multiverse-launch"; x: 12; y: 55; width: 220; height: 220; shell: root.shell; selected: root.visible && root.shell.chooseAdventureAvailable && !root.shell.drawerOpen }
-        Text { y: 287; width: parent.width; horizontalAlignment: Text.AlignHCenter; text: root.choice.id ? root.shell.multiverse.sample ? "Development preview" : root.choice.action : "Explore collection"; color: "#f4ecdc"; font.pixelSize: 20; font.bold: true }
+        Text { y: 287; width: parent.width; horizontalAlignment: Text.AlignHCenter; text: root.running ? "Return to game" : root.choice.id ? root.shell.multiverse.sample ? "Development preview" : root.choice.action : "Explore collection"; color: "#f4ecdc"; font.pixelSize: 20; font.bold: true }
     }
 }

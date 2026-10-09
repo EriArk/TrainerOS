@@ -1,5 +1,10 @@
 # Issues #174–178 and adaptive Home — 9 October 2026
 
+**Implementation update, 9 October 2026:** the owner subsequently authorized the
+UX-02 implementation. Current behavior, handheld delivery and retained acceptance
+are recorded in [UX_FRAMEWORK](UX_FRAMEWORK.md). Dated planning-only and compact-menu
+statements below describe the prior baseline.
+
 Live issues were reviewed on 9 October. The owner's subsequent instruction adds
 **adaptive Home** and sets the order: document the complete contract, then repair
 the shared framework/UI/controls, then resume multiplayer and the retained queue.

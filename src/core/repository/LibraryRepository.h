@@ -19,6 +19,11 @@ public:
     virtual QList<ResumePoint> resumePoints() const = 0;
     virtual void refreshResumePoints(const QString& = {}) {}
     virtual QList<PlaySession> recentSessions() const { return {}; }
+    virtual QList<PlaySession> gameSessions(const QString& id) const {
+        QList<PlaySession> result;
+        for (const auto& session : recentSessions()) if (session.adventureId == id) result.append(session);
+        return result;
+    }
     virtual std::optional<ExitMedia> exitMedia(const QString&) const { return {}; }
     virtual QVariantMap artwork(const QString&) const { return {}; }
     virtual std::optional<qint64> recordedSeconds(const QString&) const { return {}; }

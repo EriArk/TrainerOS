@@ -18,6 +18,24 @@ class ProcessTests final : public QObject {
         );
     }
 private slots:
+    void minimizedSessionKeepsProcessAndLatestShellReturnContext() {
+        QTemporaryDir dir;const auto control=dir.filePath("control");
+        ProcessService process;AdventureLaunchController launch(process);
+        connect(&launch,&AdventureLaunchController::checkpointRequested,&launch,[&](quint64 token,const QJsonObject&){launch.checkpointCompleted(token,{});});
+        QSignalSpy starts(&launch,&AdventureLaunchController::adventureStarted),finishes(&launch,&AdventureLaunchController::adventureFinished),returns(&launch,&AdventureLaunchController::restoreRequested);
+        QVERIFY(!launch.setMinimized(true));
+        QVERIFY(launch.launch({probe(),{"controlled",control,dir.filePath("pid")},{}},{{"page","home"}},"live-game"));
+        QTRY_COMPARE(launch.state(),"running");const auto pid=process.processId();
+        QVERIFY(launch.setMinimized(true));QVERIFY(launch.active());QVERIFY(launch.minimized());
+        QCOMPARE(launch.adventureId(),"live-game");
+        launch.updateReturnContext({{"page","social"}});
+        QVERIFY(!launch.launch({probe(),{},{}},{},"another-game"));
+        QVERIFY(launch.setMinimized(false));QCOMPARE(process.processId(),pid);QCOMPARE(starts.size(),1);QVERIFY(finishes.isEmpty());QVERIFY(returns.isEmpty());
+        QVERIFY(launch.setMinimized(true));
+        QFile finish(control);QVERIFY(finish.open(QIODevice::WriteOnly));finish.write("exit");finish.close();
+        QTRY_COMPARE(finishes.size(),1);QCOMPARE(returns.size(),1);QVERIFY(!launch.minimized());
+        QCOMPARE(returns.first()[0].toJsonObject()["page"].toString(),"social");QVERIFY(!process.active());
+    }
     void finalizationPrecedesObservationAndReportsSaveFailure() {
         ProcessService process;QSignalSpy done(&process,&ProcessService::finished);
         QStringList order;QThread* worker=nullptr;

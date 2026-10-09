@@ -62,7 +62,18 @@ private slots:
             QVERIFY(q.exec("INSERT INTO play_sessions VALUES('last','0','2025-01-01T00:00:00.000Z',NULL,NULL,'running','owner')"));
             const auto result=readPlayHistory(db,"owner");QVERIFY(result.error.isEmpty());QCOMPARE(result.recent.size(),121);
             QCOMPARE(result.recent[0].id,"last");QCOMPARE(result.recent[1].adventureId,"120");
+            QCOMPARE(result.sessions.value("0").size(),2);
+            QCOMPARE(result.sessions.value("0").first().id,"last");
+            QVERIFY(!result.sessions.contains("121"));
             QVERIFY(std::none_of(result.recent.begin(),result.recent.end(),[](const auto& s){return s.adventureId=="121";}));
+            for(int i=0;i<55;++i) {
+                q.prepare("INSERT INTO play_sessions VALUES(?,'0','2024-01-01T00:00:00.000Z',NULL,NULL,'running','owner')");
+                q.addBindValue("repeat"+QString::number(i));QVERIFY(q.exec());
+            }
+            const auto bounded=readPlayHistory(db,"owner");QVERIFY(bounded.error.isEmpty());
+            QCOMPARE(bounded.recent.size(),121);QCOMPARE(bounded.sessions.value("0").size(),50);
+            QCOMPARE(bounded.sessions.value("0").first().id,"repeat54");
+            QCOMPARE(bounded.sessions.value("0").last().id,"repeat5");
         }
         QSqlDatabase::removeDatabase(connection);
     }

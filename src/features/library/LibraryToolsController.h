@@ -41,12 +41,14 @@ public:
     void applyText(const QString&);
     void setCatalog(FileCatalog* catalog) {catalog_=catalog;}
     std::function<QString()> editGuard;
+    std::function<bool(const QString&)> multiplayerAvailable;
     std::function<void(const AdventureRegistration&,QObject*,std::function<void(QStringList)>)> capabilityQuery;
     std::function<void(const AdventureRegistration&,QObject*,std::function<void(AdventureCompletion)>)> completionQuery;
     void receiveReviews(const QString& identity,const QVariantMap& state);
     QVariantMap selectedReview() const;
     bool reviewReportAvailable() const {const auto row=selectedReview();return !row.isEmpty()&&row["author"]!=reviews_["user"]&&reviews_["fresh"].toBool();}
 signals:
+    void togetherRequested(QString game);
     void collectionsRequested(QString game);
     void changed();
     void saved();

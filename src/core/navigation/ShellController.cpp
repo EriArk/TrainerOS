@@ -3,21 +3,31 @@
 #include "core/model/SeriesCatalog.h"
 #include "features/home/PlayHistoryController.h"
 #include "ResumePresentation.h"
-#include "features/home/BadgeAssets.h"
 #include <QSet>
 #include <QTimer>
 #include <QSignalBlocker>
+#include <QCryptographicHash>
 #include <algorithm>
-#include <bit>
-#include "core/model/Experience.h"
 #include "core/model/NavigationVersion.h"
 
 namespace trainer {
 void ShellController::showAchievements(const QString& title,const QStringList& names) {
     if(names.isEmpty())return;
+    const auto id="achievement:"+QString::fromLatin1(QCryptographicHash::hash((title+"\n"+names.join('\n')).toUtf8(),QCryptographicHash::Sha256).toHex());
+    bool known=false;for(const auto& row:achievementNotifications_)if(row.toMap()["id"]==id)known=true;
+    if(known)return;
+    if(!known)achievementNotifications_.prepend(QVariantMap{{"id",id},{"name",title},{"detail",names.join(" · ")},{"provider","achievements"}});
+    while(achievementNotifications_.size()>32)achievementNotifications_.removeLast();
     achievementToast_=title+"\n"+(names.size()==1?names.first():QString("%1 achievements unlocked").arg(names.size()));
     const auto generation=++achievementToastGeneration_;emit changed();
     QTimer::singleShot(7000,this,[this,generation]{if(generation==achievementToastGeneration_){achievementToast_.clear();emit changed();}});
+}
+QVariantList ShellController::notifications() const {auto rows=social_.notifications();rows.append(achievementNotifications_);return rows;}
+QVariantMap ShellController::passiveNotice() const {
+    if(social_.account()["doNotDisturb"].toBool())return {};
+    if(!social_.toastTitle().isEmpty())return {{"title",social_.toastTitle()},{"detail",social_.toastText()},{"kind","social"}};
+    if(!achievementToast_.isEmpty())return {{"title",achievementToast_.section('\n',0,0)},{"detail",achievementToast_.section('\n',1)},{"kind","achievement"}};
+    return {};
 }
 void ShellController::configureProgress(GameProgressProvider* provider) {
     if (progress_) disconnect(progress_, nullptr, this, nullptr);
@@ -60,6 +70,8 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this), multiverse_(repo, adapter, this),
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
       libraryManager_(repo, nullptr, this), libraryTools_(repo,this), scraper_(repo,this), settings_(this), device_(this), diagnostics_(this), center_(repo,this), party_(!repo.editable(),this) {
+    connect(this,&ShellController::changed,this,&ShellController::syncExperience);
+    connect(&social_,&SocialController::presentationChanged,this,&ShellController::changed,Qt::QueuedConnection);
     settings_.setScraper(&scraper_);
     connect(&settings_,&SettingsController::collectionsRequested,this,[this]{goToPage(1);});
     connect(collectionManager(),&GameCollections::changed,this,&ShellController::changed);
@@ -70,7 +82,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     });
     connect(collectionManager(),&GameCollections::textRequested,this,[this](const QString& title,const QString& initial,int limit){textTarget_=TextTarget::Collections;keyboard_.begin(title,initial,limit);});
     connect(&libraryTools_,&LibraryToolsController::collectionsRequested,this,[this](const QString& id){libraryTools_.close();collectionManager()->beginMembership(id);});
-    libraryTools_.editGuard=[this]{return scraper_.busy()?QString("Finish or cancel downloads before changing library files or names."):QString();};
+    libraryTools_.editGuard=[this]{return !liveGame_.isEmpty()?QString("Exit the running game before changing library files."):scraper_.busy()?QString("Finish or cancel downloads before changing library files or names."):QString();};
     connect(&downloads_,&DownloadsController::changed,this,&ShellController::changed);
     connect(&scraper_,&ScrapeController::changed,this,[this]{downloads_.publish("screenscraper",scraper_.downloadTasks());});
     connect(&scraper_,&ScrapeController::jobStarted,this,[this]{scraper_.hide();downloads_.begin();});
@@ -86,6 +98,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         if(scraper_.busy())downloads_.begin();else scraper_.begin(game,world);
     });
     connect(&libraryTools_,&LibraryToolsController::reviewRequested,&social_,&SocialController::reviewCommand);
+    connect(&libraryTools_,&LibraryToolsController::togetherRequested,this,&ShellController::togetherRequested);
     connect(&social_,&SocialController::reviewsChanged,&libraryTools_,&LibraryToolsController::receiveReviews);
     connect(&network_, &NetworkController::changed,this,&ShellController::changed);
     connect(settings_.clock(), &ClockController::changed, this, &ShellController::changed);
@@ -123,15 +136,15 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&party_, &PartyPresentation::boxNameRequested,this,[this](const QString& name,int limit){
         textTarget_=TextTarget::BoxName;keyboard_.begin("Box name",name,limit);
     });
-    connect(&party_, &PartyPresentation::healingRequested, this, [this]{centerRoute_="clinic";showPokemonFace("center");});
-    connect(&party_, &PartyPresentation::backupsRequested, this, [this]{centerRoute_="backups";showPokemonFace("center");});
+    connect(&party_, &PartyPresentation::healingRequested, this, [this]{pokemon_.setCenterRoute("clinic");showPokemonFace("center");});
+    connect(&party_, &PartyPresentation::backupsRequested, this, [this]{pokemon_.setCenterRoute("backups");showPokemonFace("center");});
     connect(party_.activities(), &CenterActivities::shopsRequested, this, [this]{showPokemonFace("shops");});
-    connect(party_.activities()->link(),&LinkController::closeRequested,this,[this]{centerRoute_="clinic";showPokemonFace("center");});
+    connect(party_.activities()->link(),&LinkController::closeRequested,this,[this]{pokemon_.setCenterRoute("clinic");showPokemonFace("center");});
     connect(party_.activities()->link(),&LinkController::workspaceRequested,this,[this]{
         // Both Trainers explicitly accepted this activity. Enter its one shared
         // workspace even though the activity now owns the navigation gate.
         page_=2;menuOpen_=drawerOpen_=false;service_.clear();
-        centerRoute_="link";showPokemonFace("center");emit changed();
+        pokemon_.setCenterRoute("link");showPokemonFace("center");emit changed();
     });
     settings_.configureNearby(party_.activities()->link());
     social_.setLink(party_.activities()->link());
@@ -153,7 +166,14 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&launchPreparation_, &LaunchPreparation::changed, this, &ShellController::changed);
     connect(&launchPreparation_, &LaunchPreparation::libraryChanged, this, &ShellController::refreshLibrary);
     connect(&launchPreparation_, &LaunchPreparation::messageRequested, this, &ShellController::showNotice);
-    const auto openGame=[this](const QString& id){launchPreparation_.launch(id);};
+    const auto openGame=[this](const QString& id){
+        if(!liveGame_.isEmpty()) {
+            if(liveGame_["id"]==id)returnToLiveGame();
+            else showNotice("A game is still running. Return to it or exit it from Game Options before starting another.");
+            return;
+        }
+        launchPreparation_.launch(id);
+    };
     connect(&multiverse_, &MultiversePresentation::setupRequested, this, openGame);
     connect(&worlds_, &WorldsController::setupRequested, this, openGame);
     connect(&multiverse_, &MultiversePresentation::messageRequested, this, &ShellController::showNotice);
@@ -215,7 +235,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&libraryManager_, &LibraryManagementController::changed, this, &ShellController::changed);
     connect(&libraryManager_, &LibraryManagementController::saved, this, &ShellController::refreshLibrary);
     connect(&libraryManager_, &LibraryManagementController::messageRequested, this, [this](const QString& text) { notice_ = text; emit changed(); });
-    connect(&libraryManager_, &LibraryManagementController::closeRequested, this, [this] { service_.clear(); if(centerFace())showPokemonFace(pokemonFace_); menuOpen_ = !libraryFromWorlds_; libraryFromWorlds_ = false; emit changed(); });
+    connect(&libraryManager_, &LibraryManagementController::closeRequested, this, [this] { service_.clear(); if(centerFace())showPokemonFace(pokemon_.face()); menuOpen_ = !libraryFromWorlds_; libraryFromWorlds_ = false; emit changed(); });
     connect(&libraryManager_, &LibraryManagementController::textRequested, this, [this](const QString& title, const QString& initial, int limit) {
         textTarget_ = TextTarget::Library; keyboard_.begin(title, initial, limit);
     });
@@ -224,7 +244,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&settings_, &SettingsController::messageRequested, this, [this](const QString& message) {
         if (service_ != "settings" || menuOpen_) { notice_ = message; emit changed(); }
     });
-    connect(&settings_, &SettingsController::closeRequested, this, [this] { service_.clear(); menuOpen_ = false; emit changed(); });
+    connect(&settings_, &SettingsController::closeRequested, this, [this] { service_.clear(); menuOpen_ = false; if(optionsReturn_){optionsReturn_=false;homeMenuOpen_=true;}emit changed(); });
     connect(&hall_, &HallOfFameController::changed, this, &ShellController::changed);
     connect(&hall_, &HallOfFameController::messageRequested, this, [this](const QString& message) {
         notice_ = message; emit changed();
@@ -287,6 +307,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     });
     connect(&center_, &SaveCenterController::shopSearchRequested,this,[this](const QString& text){textTarget_=TextTarget::ShopSearch;keyboard_.begin("Find goods or shops",text,64);});
     refreshContinue();
+    syncExperience();
 }
 void ShellController::configureServices(FileCatalog* files, PreferencesRepository* preferences) {
     libraryTools_.setCatalog(files);
@@ -336,7 +357,7 @@ bool ShellController::localModalOpen() {
         || (trainerHistoryFace() && (hall_.editor()->isOpen() || hall_.account()->isOpen()));
 }
 bool ShellController::chooseAdventureAvailable() {
-    return !homeMenuOpen_ && page_ != 1 && page_ != 4 && !(page_==2 && pokemonFace_=="shops") && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
+    return !homeMenuOpen_ && page_ != 1 && page_ != 4 && !(page_==2 && pokemon_.face()=="shops") && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
         && !keyboard_.isOpen() && !localModalOpen() && !party_.activities()->practice()->running() && !party_.activities()->link()->active();
 }
 bool ShellController::navigationLocked(bool primaryRecovery) const {
@@ -351,10 +372,60 @@ bool ShellController::pairedNavigationAvailable() {
     return !homeMenuOpen_ && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
         && !keyboard_.isOpen() && !localModalOpen() && !drawerOpen_;
 }
+QStringList ShellController::primaryNames() const {
+    const auto& model=experience_.descriptor();
+    return {"Home","Collections",model.first.label,model.second.label,"Social"};
+}
+void ShellController::syncExperience() {
+    if(syncingExperience_)return;
+    syncingExperience_=true;
+    const auto game=homeAdventure();
+    const auto record=game?repository_.registration(game->id):std::nullopt;
+    const auto owner=trainer_.profile()["id"].toString();
+    if(!experience_.owner().isEmpty() && experience_.owner()!=owner){achievementNotifications_.clear();achievementToast_.clear();++achievementToastGeneration_;}
+    const auto descriptor=ExperienceNavigation::resolve(game);
+    const bool changing=experience_.owner()!=owner || experience_.adventure()!=currentAdventureId() || experience_.descriptor()!=descriptor;
+    if(changing)experience_.rememberNavigation({{"pokemon",pokemon_.navigation()},{"hall",hall_.navigationState()},{"focus",experienceFocus_}});
+    const bool changed=experience_.select(owner,currentAdventureId(),descriptor,record?record->revision:0);
+    if(changed) {
+        experienceFocus_=0;
+        center_.leaveClinic();center_.leaveShops();pokedex_.cancelTransient();
+        hall_.editor()->cancel();
+        if(changing) {
+            const auto restored=experience_.navigation();
+            if(descriptor.id=="pokemon")pokemon_.restoreNavigation(restored["pokemon"].toObject());
+            hall_.setCurrentAdventure(currentAdventureId());
+            hall_.restoreNavigation(restored["hall"].toObject());
+            experienceFocus_=qMax(0,restored["focus"].toInt());
+        }
+        if(page_==2 || page_==3)showExperienceFace(page_-2,experience_.face(page_-2));
+    }
+    syncingExperience_=false;
+}
+void ShellController::showExperienceFace(int slot,const QString& face) {
+    if(!experience_.show(slot,face))return;
+    const auto view=experience_.view(slot);
+    if(slot==0 && view.startsWith("pokemon-"))showPokemonFace(face);
+    else if(view=="pokemon-persona") {trainerProfile_=true;trainer_.refreshOverview();}
+    else if(view=="pokemon-journey") {trainerProfile_=false;hall_.showFace(0);}
+    else if(view=="pokemon-hall") {trainerProfile_=false;hall_.showFace(1);}
+    else if(view=="achievements") {trainerProfile_=false;hall_.showFace(2);}
+    emit changed();
+}
+QVariantList ShellController::gameHistory() const {
+    QVariantList rows;
+    for(const auto& session:repository_.gameSessions(currentAdventureId())) {
+        QString status=session.outcome==PlaySessionOutcome::Running?"Playing":session.outcome==PlaySessionOutcome::Failed?"Ended with an error":session.outcome==PlaySessionOutcome::Interrupted?"Interrupted":"Finished";
+        rows.append(QVariantMap{{"id",session.id},{"adventure",session.adventureId},
+            {"time",session.startedAt.toLocalTime().toString("dd MMM yyyy · HH:mm")},
+            {"duration",session.elapsedSeconds?recordedDuration(*session.elapsedSeconds):session.outcome==PlaySessionOutcome::Running?QString("Session in progress"):QString("Duration unavailable")},
+            {"status",status}});
+    }
+    return rows;
+}
 QStringList ShellController::faceNames() const {
     if(page_==1) { QStringList names;for(const auto& row:collections())names.append(row.toMap()["name"].toString());return names; }
-    if(page_==2)return {"Guide","Party","Boxes","Center","Playroom","Shops"};
-    if(page_==3)return {"Profile","Journey","Hall","RA"};
+    if(page_==2 || page_==3)return experience_.labels(page_-2);
     if(page_==4)return {"Messages","Communities","Discover"};
     return {};
 }
@@ -365,43 +436,26 @@ int ShellController::faceIndex() const {
         for(int i=0;i<list.size();++i)if(list[i].toMap()["id"]==id)return i;
         return 0;
     }
-    if(page_==2)return QStringList{"dex","party","boxes","center","playroom","shops"}.indexOf(pokemonFace_);
-    if(page_==3)return trainerProfile_ ? 0 : hall_.faceIndex()+1;
+    if(page_==2 || page_==3)return experience_.index(page_-2);
     if(page_==4)return QStringList{"chats","communities","friends"}.indexOf(socialFace_);
     return 0;
 }
 QString ShellController::trainerFace() const {
-    return trainerProfile_ ? QStringLiteral("profile") : QStringList{"journey","hall","ra"}[hall_.faceIndex()];
+    return experience_.face(1);
 }
 void ShellController::showTrainerFace(const QString& face) {
-    const QStringList faces{"profile","journey","hall","ra"};
-    const int index=faces.indexOf(face);
-    if(index<0)return;
-    trainerProfile_=index==0;
-    if(index>0)hall_.showFace(index-1);
-    if(trainerProfile_)trainer_.refreshOverview();
-    emit changed();
+    showExperienceFace(1,face);
 }
 void ShellController::goToTrainerFace(const QString& face) {
-    if(navigationLocked() || !QStringList{"profile","journey","hall","ra"}.contains(face))return;
+    syncExperience();
+    if(navigationLocked() || !experience_.faceIds(1).contains(face))return;
     goToPage(3);
     showTrainerFace(face);
 }
 void ShellController::showPokemonFace(const QString& face) {
-    if(pokemonFace_=="playroom")playroomRoute_=party_.activities()->route()=="practice"?"practice":"playroom";
-    if(face!=pokemonFace_){party_.activities()->practice()->leave();party_.activities()->link()->leave();}
-    pokemonFace_=face;
-    center_.leaveClinic();center_.leaveShops();
-    if(face=="dex"){emit changed();return;}
-    openCenter();
-    if(face=="party" || face=="boxes")party_.showSection(face=="boxes"?"storage":"party");
-    else if(face=="center"){
-        if(centerRoute_=="backups"){party_.openSaves();center_.refresh();}
-        else if(centerRoute_=="link"){party_.showSection("activities");party_.activities()->showPlace("link");}
-        else {party_.showSection("party");center_.visitClinic();}
-    }
-    else if(face=="shops")center_.visitShops();
-    else if(face=="playroom"){party_.showSection("activities");party_.activities()->showPlace(playroomRoute_);}
+    if(!experience_.show(0,face) || !experience_.view(0).startsWith("pokemon-"))return;
+    refreshParty();
+    pokemon_.show(face,currentAdventureId());
     emit changed();
 }
 void ShellController::openCenter() {
@@ -410,6 +464,7 @@ void ShellController::openCenter() {
 }
 void ShellController::refreshParty() {
     PerformanceTrace::Scope perf("ShellController.refreshParty");
+    syncExperience();
     hall_.setCurrentAdventure(currentAdventureId());
     hall_.setProgress(progress_?progress_->adventureId():QString(),progress_?progress_->snapshot():GameProgress{});
     const auto adventure = homeAdventure();
@@ -468,17 +523,20 @@ int ShellController::focusIndex() const {
     if (service_ == "diagnostics") return diagnostics_.focusIndex();
     if (service_ == "center") return center_.focusIndex();
     if (trainer_.editing()) return trainer_.focusIndex();
+    if(experienceView()=="game-history" || experienceView()=="game-details")return experienceFocus_;
     if (page_ == 1 && collectionsRoot_) return collectionFocus_;
     if (page_ == 1) return multiverseFace_ ? multiverse_.focusIndex() : worlds_.focusIndex();
-    if (page_ == 2) return centerFace() ? (party_.section() == "saves" || center_.shopsOpen() || center_.clinicOpen() ? center_.focusIndex() : party_.focusIndex()) : pokedex_.focusIndex();
+    if(page_==2 && experienceView().startsWith("pokemon-"))return pokemon_.focusIndex();
     if (trainerHistoryFace()) return hall_.focusIndex();
     return drawerOpen_ ? drawerFocus_ : 0;
 }
 QJsonObject ShellController::navigationState() const {
     const QStringList pages{"home", "worlds", "companions", "trainer", "social"};
-    return {{"version", ShellNavigationVersion}, {"experienceVersion",pokemonExperience().version}, {"page", pages[page_]},
+    auto experience=experience_;
+    experience.rememberNavigation({{"pokemon",pokemon_.navigation()},{"hall",hall_.navigationState()},{"focus",experienceFocus_}});
+    return {{"version", ShellNavigationVersion}, {"experienceVersion",1}, {"experienceNavigation",experience.state()}, {"page", pages[page_]},
             {"trainerFace",trainerFace()},{"socialFace",socialFace_},
-            {"homeAdventure", homeAdventureId_}, {"homeResume", homeResumeId_}, {"pokedexFace", pokemonFace_=="dex" ? "pokedex" : "center"}, {"pokemonFace",pokemonFace_}, {"centerRoute",centerRoute_}, {"party",party_.navigationState()},
+            {"homeAdventure", homeAdventureId_}, {"homeResume", homeResumeId_}, {"pokedexFace", pokemon_.face()=="dex" ? "pokedex" : "center"}, {"pokemonFace",pokemon_.face()}, {"centerRoute",pokemon_.centerRoute()}, {"party",party_.navigationState()},
             {"homeResumeSource", homeResumeSource_.toJson()},
             {"multiverse",multiverse_.navigationState()},{"homeDomain",multiverseHome_?"multiverse":"pokemon"},
             {"worldsFace",multiverseFace_?"multiverse":"pokemon"},
@@ -493,8 +551,9 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     const int version=state["version"].toInt();
     if(version!=1 && version!=ShellNavigationVersion) {
         // A future layout is not permission to reinterpret its numeric slots.
-        trainerProfile_=true;socialFace_="chats";social_.setFace(socialFace_);goToPage(0);return;
+        experience_.clear();trainerProfile_=true;socialFace_="chats";social_.setFace(socialFace_);goToPage(0);return;
     }
+    if(!state.contains("experienceNavigation"))experience_.clear();
     const QStringList legacyPages{"home","worlds","pokedex","trainer","hall"};
     const QStringList pages{"home", "worlds", "companions", "trainer", "social"};
     QString target=state["page"].toString();
@@ -502,7 +561,7 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     if(version==1 && target=="pokedex")target="companions";
     const bool legacyHall=version==1 && target=="hall";
     if(legacyHall)target="trainer";
-    pokemonFace_ = "dex";
+    pokemon_.restoreFace("dex");
     trainerProfile_=true;
     socialFace_=version==2 && QStringList{"chats","groups","communities","friends"}.contains(state["socialFace"].toString()) ? state["socialFace"].toString() : "chats";
     social_.setFace(socialFace_);
@@ -543,11 +602,25 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     else if(version==2)showTrainerFace(state["trainerFace"].toString("profile"));
     drawerFocus_ = 0;
     for (int i = 0; i < points_.size(); ++i) if (points_[i].id == state["resume"].toString()) drawerFocus_ = i;
-    pokemonFace_=state["pokemonFace"].toString(state["pokedexFace"].toString()=="center"?"party":"dex");
-    if(!pokemonExperience().pokemonFaces.contains(pokemonFace_))pokemonFace_="dex";
-    centerRoute_=state["centerRoute"].toString()=="backups"?"backups":"clinic";
+    pokemon_.restoreFace(state["pokemonFace"].toString(state["pokedexFace"].toString()=="center"?"party":"dex"));
+    pokemon_.setCenterRoute(state["centerRoute"].toString()=="backups"?"backups":"clinic");
     party_.restoreNavigation(state["party"].toObject());
-    if(page_==2)showPokemonFace(pokemonFace_);
+    syncExperience();
+    if(state.contains("experienceNavigation")) {
+        experience_.restore(state["experienceNavigation"].toObject());
+        const auto navigation=experience_.navigation();
+        if(experience_.descriptor().id=="pokemon")pokemon_.restoreNavigation(navigation["pokemon"].toObject());
+        hall_.restoreNavigation(navigation["hall"].toObject());
+        experienceFocus_=qMax(0,navigation["focus"].toInt());
+    }
+    else if(experience_.descriptor().id=="pokemon") {
+        pokedex_.restoreNavigation(state["pokedex"].toObject());
+        party_.restoreNavigation(state["party"].toObject());
+        hall_.restoreNavigation(state["hall"].toObject());
+        experience_.show(0,pokemon_.face());
+        experience_.show(1,legacyHall?QStringList{"journey","hall","ra"}.value(hall_.faceIndex()):state["trainerFace"].toString("profile"));
+    }
+    if(page_==2 || page_==3)showExperienceFace(page_-2,experience_.face(page_-2));
     emit changed();
 }
 std::optional<Adventure> ShellController::homeAdventure() const {
@@ -576,38 +649,16 @@ QVariantMap ShellController::home() const {
         title = "Selected Adventure is unavailable";
         milestone = "Your choice is kept";
     }
-    std::optional<int> badges, caught;
-    QVariantList badgeSlots;
-    QString progressNote, badgeSet;
+    const auto progress=pokemon_.homeProgress(adventure,snapshot,progress_);
     std::optional<qint64> seconds;
     if (adventure) {
         title = adventure->title;
         for (const auto& w : repository_.worlds()) if (w.id == adventure->worldId) world = w.name;
-        badges = adventure->badges; caught = adventure->caught;
-        if (adventure->id == snapshot.activeAdventureId) {
-            if (!badges) badges = snapshot.badges;
-            if (!caught) caught = snapshot.caught;
-        }
-        if (progress_) {
-            badges.reset(); caught.reset();
-            if (progress_->adventureId() == adventure->id) {
-                const auto observed = progress_->snapshot();
-                progressNote = observed.message;
-                if (observed.availability == ProgressAvailability::Available) {
-                    badgeSet = observed.badgeSet;
-                    caught = observed.caught;
-                    badgeSlots = BadgeAssets::entries(badgeSet, observed.badgeMask);
-                    if (observed.badgeMask) {
-                        badges = std::popcount(static_cast<unsigned>(*observed.badgeMask) & 255u);
-
-                    }
-                }
-            }
-        }
         seconds = repository_.recordedSeconds(adventure->id);
         const auto resumeStatus = homeResumeAvailability(*adventure);
         action = resumeStatus == ResumeAvailability::Exact ? "Resume Adventure" : "Start Adventure";
         actionHint = resumeStatus == ResumeAvailability::Exact ? "Resume" : "Play";
+        if (liveGame_["id"] == adventure->id) { action = "Return to game"; actionHint = "Return"; }
         if (repository_.editable()) {
             milestone = "Your selected Adventure";
             for (const auto& recent : repository_.recentSessions()) if (recent.adventureId == adventure->id) {
@@ -622,8 +673,8 @@ QVariantMap ShellController::home() const {
     return {{"trainer", trainer_.exists() ? trainer_.profile()["name"] : "TRAINER"},
             {"hasTrainer", trainer_.exists()}, {"adventure", title}, {"world", world},
             {"adventureId", adventure ? adventure->id : QString()}, {"action", action}, {"actionHint", actionHint},
-            {"badges", badges ? QString::number(*badges) : "—"}, {"caught", caught ? QString::number(*caught) : "—"},
-            {"badgeSlots", badgeSlots}, {"progressNote", progressNote}, {"badgeSet", badgeSet},
+            {"badges",progress["badges"]},{"caught",progress["caught"]},
+            {"badgeSlots",progress["badgeSlots"]},{"progressNote",progress["progressNote"]},{"badgeSet",progress["badgeSet"]},
             {"exitPreview", media ? "image://exit-media/" + media->sessionId : adventure ? repository_.artwork(adventure->id).value("cover").toString() : QString()},
             {"exitPreviewLabel", media ? "Last exit · " + media->capturedAt.toLocalTime().toString("dd MMM · HH:mm") : QString()},
             {"recordedTime", seconds ? recordedDuration(*seconds) : "—"}, {"milestone", milestone}};
@@ -710,8 +761,8 @@ void ShellController::goToPage(int page) {
     if (page_ == 1) repository_.refreshContentAvailability();
     // Party observes the current Adventure, library and save provider directly.
     // Visiting an unrelated page must not republish the same actors/practice UI.
-    if (page_==2) showPokemonFace(pokemonFace_);
-    if (page_ == 3 && trainerProfile_) trainer_.refreshOverview();
+    syncExperience();
+    if(page_==2 || page_==3)showExperienceFace(page_-2,experience_.face(page_-2));
     drawerOpen_ = false;
     menuOpen_ = false;
     if (powerMenu_) menuFocus_ = 6;
@@ -732,7 +783,30 @@ void ShellController::openCollection(int index) {
 }
 void ShellController::editCollection(int index) {
     if(index<0 || index>=collections().size() || !collectionsRoot_ || !pairedNavigationAvailable())return;
-    collectionFocus_=index;manageCollection(false);
+    collectionFocus_=index;openContext("collection",collections().value(index).toMap()["id"].toString());
+}
+void ShellController::openContext(const QString& type,const QString& target) {
+    if(navigationLocked() || homeMenuOpen_ || menuOpen_ || serviceOpen() || keyboard_.isOpen() || localModalOpen() || !notice_.isEmpty())return;
+    if(type=="collection" || (type.isEmpty() && page_==1 && (collectionsRoot_ || multiverse_.route()!="games"))) {
+        const auto id=target.isEmpty()?(collectionsRoot_?collections().value(collectionFocus_).toMap()["id"].toString():worldCollection_):target;
+        if(page_==1 && collectionManager()->known(id))collectionManager()->begin(id);
+        return;
+    }
+    if(type=="game" || page_==0 || page_==1 || experienceView()=="game-details" || experienceView()=="game-history") {
+        const auto id=target.isEmpty()?(page_==1?multiverse_.detail()["id"].toString():currentAdventureId()):target;
+        libraryTools_.beginGame(id);return;
+    }
+    // Feature controllers own their captured person/message/entity targets.
+    // This is the same dispatcher used by Select, with their existing guards.
+    if(page_==4)social_.dispatch(Action::LocalAction);
+    else if(page_==2)pokemon_.dispatch(Action::LocalAction,currentAdventureId());
+    else if(trainerHistoryFace())hall_.dispatch(Action::ToggleContinue);
+}
+void ShellController::pressButton(const QString& button) {
+    static const QMap<QString,Action> actions{{"A",Action::Confirm},{"B",Action::Back},
+        {"X",Action::Secondary},{"Y",Action::ToggleContinue},{"Select",Action::LocalAction},
+        {"Home",Action::Home},{"Start",Action::SystemMenu}};
+    const auto found=actions.constFind(button);if(found!=actions.cend())dispatch(*found);
 }
 void ShellController::manageCollection(bool create) {
     if(page_!=1 || navigationLocked() || menuOpen_ || serviceOpen() || keyboard_.isOpen() || localModalOpen() || !notice_.isEmpty())return;
@@ -767,11 +841,18 @@ void ShellController::activate(int index, const QString& area) {
     else if (service_ == "library") { libraryManager_.activate(index, area); return; }
     else if (service_ == "trainer-settings") { trainerSettingsAction(index); return; }
     else if (service_ == "trainer-setup") { trainerSetup_.activate(index); return; }
+    else if(service_=="profile") {if(trainer_.editing())trainer_.activate(index);else trainer_.beginEdit(false);return;}
     else if (service_ == "settings") { if(hall_.account()->isOpen()) { hall_.account()->activate(index); return; } if(trainer_.editing()) { trainer_.activate(index); return; } if(settings_.controlsFocused()) {if(settings_.category()==10)network_.activate(index);else settings_.activateRow(index);} else settings_.selectCategory(index,true); return; }
     else if (service_ == "device") { device_.activate(index); return; }
     else if (service_ == "diagnostics") { diagnostics_.activate(index); return; }
     else if (service_ == "center") { center_.activate(index); return; }
     else if (trainer_.editing()) { trainer_.activate(index); return; }
+    else if(experienceView()=="game-history" && area=="experience-history") {
+        experienceFocus_=std::clamp(index,0,std::max(0,int(gameHistory().size())-1));emit changed();return;
+    }
+    else if(experienceView()=="game-details" && area=="experience") {
+        if(currentAdventureId().isEmpty())goToPage(1);else libraryTools_.beginGame(currentAdventureId());return;
+    }
     else if (page_ == 1) {
         if(collectionsRoot_){openCollection(index);return;}
         if (multiverseFace_) { multiverse_.activate(index); return; }
@@ -780,17 +861,9 @@ void ShellController::activate(int index, const QString& area) {
         else worlds_.activate(index);
         return;
     }
-    else if (page_ == 2) {
-        if (centerFace()) {
-            if (area == "party-activities") showPokemonFace("playroom");
-            else if (center_.shopsOpen()) center_.shopActivate(index);
-            else if (center_.clinicOpen()) center_.dispatch(Action::Confirm);
-            else if (party_.section() == "saves") center_.activate(index); else party_.activate(index);
-            return;
-        }
-        if (area.isEmpty()) pokedex_.activate(index);
-        else pokedex_.activateControl(area, index);
-        return;
+    else if(page_==2 && experienceView().startsWith("pokemon-")) {
+        pokemon_.activate(index,area,currentAdventureId());
+        experience_.show(0,pokemon_.face());emit changed();return;
     }
     else if (trainerHistoryFace()) {
         if (area.isEmpty()) hall_.activate(index);
@@ -804,7 +877,7 @@ void ShellController::trainerSettingsAction(int index) {
     if (hall_.account()->isOpen()) { hall_.account()->activate(index); return; }
     if (index < 0 || index > 4) return;
     trainerSettingsFocus_ = index;
-    if (index == 0) { trainer_.beginEdit(); }
+    if (index == 0) { trainer_.beginEdit(false); }
     else if (index == 1) {
         if (hall_.account()->available()) hall_.account()->begin();
         else showNotice("RetroAchievements account management is unavailable right now.");
@@ -876,11 +949,16 @@ void ShellController::confirm() {
             homeAdventureId_ = adventure.id; homeResumeId_ = point.resumePoint ? point.resumePoint->id : QString();
             homeResumeSource_ = point.resumePoint ? point.resumePoint->source : ResumeSource{};
             drawerOpen_ = false;
-            if (centerFace()) showPokemonFace(pokemonFace_); else refreshParty();
+            if (centerFace()) showPokemonFace(pokemon_.face()); else refreshParty();
             return;
         }
         notice_ = "This Adventure is unavailable. Its history has been kept.";
     } else if (page_ == 0) {
+        if(!liveGame_.isEmpty()) {
+            if(liveGame_["id"]==currentAdventureId())returnToLiveGame();
+            else showNotice("A game is still running. Return to it or exit it from Game Options before starting another.");
+            return;
+        }
         const auto adventure = homeAdventure();
         if (!adventure) { multiverseFace_ = true; goToPage(1); return; }
         const auto caps = adapter_.capabilities(*adventure);
@@ -913,7 +991,7 @@ void ShellController::confirm() {
             launchPreparation_.launch(adventure->id);
         } else notice_ = "This Adventure needs play setup.";
     }
-    else if (page_ == 3 && trainerProfile_) {
+    else if (experienceView()=="pokemon-persona") {
         trainer_.beginEdit();
     } else if (page_ == 4) {
         social_.dispatch(Action::Confirm); return;
@@ -924,6 +1002,10 @@ void ShellController::confirm() {
 void ShellController::closeHomeMenu() {
     if (!homeMenuOpen_ || navigationLocked()) return;
     homeMenuOpen_ = false; emit changed();
+}
+void ShellController::openProfile() {
+    if(navigationLocked() || keyboard_.isOpen() || trainer_.saving())return;
+    homeMenuOpen_=false;service_="profile";trainer_.reload();emit changed();
 }
 int ShellController::homeMenuFocus() const {
     const auto actions=homeMenuActions();
@@ -941,22 +1023,28 @@ QVariantList ShellController::homeMenuActions() const {
         rows.append(QVariantMap{{"id","back"},{"label","Back"}});return rows;
     }
     QVariantList rows{QVariantMap{{"id","home"},{"label","Home"}},QVariantMap{{"id","friends"},{"label","Friends"}},
-        QVariantMap{{"id","chats"},{"label","Chats"}},QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(social_.notifications().size())}}};
+        QVariantMap{{"id","chats"},{"label","Chats"}},QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(notifications().size())}}};
+    rows.append(QVariantMap{{"id","profile"},{"label","Your profile"},{"detail",trainer_.profile()["name"]}});
+    rows.append(QVariantMap{{"id","together"},{"label","Play together"}});
+    if(!liveGame_.isEmpty()) {
+        rows.prepend(QVariantMap{{"id","live-options"},{"label","Game Options"},{"detail",liveGame_["title"]}});
+        rows.prepend(QVariantMap{{"id","live-return"},{"label","Return to game"},{"detail","Still running · "+liveGame_["title"].toString()}});
+    }
     if(!voice["channel"].toString().isEmpty())rows.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",voice["name"]}});
     if(!social_.gameParty()["party"].toString().isEmpty()||social_.gameParty()["joining"].toBool())rows.append(QVariantMap{{"id","game-party"},{"label","Game party"},{"detail",social_.gameParty()["game"].toMap()["label"]}});
     const bool answering=homeMenuSelection_.startsWith("answer-call:");
     const bool declining=homeMenuSelection_.startsWith("decline-call:");
     rows.append(social_.incomingCallActions(answering?homeMenuSelection_.section(':',1):QString()));
-    if(homeMenuOpen_&&(answering||declining)) {
+    if(homeMenuOpen_&&!homeMenuSelection_.isEmpty()) {
         const bool present=std::any_of(rows.cbegin(),rows.cend(),[this](const QVariant& row){return row.toMap()["id"]==homeMenuSelection_;});
         // Never redirect a pending A press onto Home when an asynchronous
         // update removes the selected invitation. Navigation clears this row.
-        if(!present)rows.append(QVariantMap{{"id",homeMenuSelection_},{"label","Call no longer ringing"},{"enabled",false}});
+        if(!present)rows.append(QVariantMap{{"id",homeMenuSelection_},{"label",answering||declining?"Call no longer ringing":"Action no longer available"},{"enabled",false}});
     }
     return rows;
 }
 QString ShellController::homeMenuCaption() const {
-    if(!homeCallOpen_)return "Your next stop";
+    if(!homeCallOpen_)return trainer_.profile()["name"].toString();
     const auto voice=social_.account()["voice"].toMap();
     return voice["summary"].toString().isEmpty()?voice["status"].toString():voice["summary"].toString();
 }
@@ -965,6 +1053,9 @@ void ShellController::activateHomeMenu(int index) {
     const auto selected=homeMenuActions()[index].toMap();
     if(!selected.value("enabled",true).toBool())return;
     const auto id=selected["id"].toString();
+    if(id=="together"){emit togetherRequested(liveGame_["id"].toString());return;}
+    if(id=="live-return"||id=="live-options"){returnToLiveGame(id=="live-options");return;}
+    if(id=="profile"){openProfile();return;}
     if(id=="game-party"){closeHomeMenu();goToPage(4);emit social_.runtimeAction("multiplayer-party");return;}
     if(id.startsWith("answer-call:")||id.startsWith("decline-call:")) {
         const bool accept=id.startsWith("answer-call:");
@@ -973,22 +1064,44 @@ void ShellController::activateHomeMenu(int index) {
     }
     if(homeCallOpen_){if(id=="back"){homeCallOpen_=false;homeMenuSelection_="home";}else social_.controlCall(id);emit changed();return;}
     if(id=="call"){homeCallOpen_=true;homeMenuSelection_="voice-mute";emit changed();return;}
-    if(index==3){notificationsOpen_=true;notificationFocus_=0;emit changed();return;}
-    if(index==2&&!social_.notificationFace().isEmpty()){openSocialNotification();return;}
-    if (index) socialFace_ = "chats";
+    if(id=="notifications"){notificationsOpen_=true;notificationFocus_=0;notificationSelection_=notifications().value(0).toMap()["id"].toString();emit changed();return;}
+    if(id=="chats"&&!social_.notificationFace().isEmpty()){openSocialNotification();return;}
+    if (id!="home") socialFace_ = "chats";
     social_.setFace(socialFace_);
-    goToPage(index ? 4 : 0);
-    if(index==1)social_.showContacts();
+    goToPage(id=="home" ? 0 : 4);
+    if(id=="friends")social_.showContacts();
+}
+void ShellController::activateHomeAction(const QString& id) {
+    const auto actions=homeMenuActions();
+    for(int i=0;i<actions.size();++i)if(actions[i].toMap()["id"].toString()==id){activateHomeMenu(i);return;}
+}
+int ShellController::notificationFocus() const {
+    const auto rows=notifications();
+    for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"].toString()==notificationSelection_)return i;
+    return -1;
 }
 void ShellController::activateNotification(int index) {
     if(!notificationsOpen()||navigationLocked())return;
-    const auto row=social_.notifications().value(index).toMap();
+    if(index<0 || index>=notifications().size())return;
+    const auto row=notifications().value(index).toMap();
+    if(row["provider"]=="achievements"){showNotice(row["name"].toString()+"\n"+row["detail"].toString());closeHomeMenu();return;}
     if(row["answerable"].toBool()) {
         if(social_.answerCall(row["id"].toString(),true))closeHomeMenu();
         return;
     }
     const auto face=social_.notificationFaceAt(index);if(face.isEmpty())return;
     socialFace_=face;goToPage(4);social_.openNotificationAt(index);emit changed();
+}
+void ShellController::openNotificationById(const QString& id) {
+    if(!homeMenuOpen_ || navigationLocked() || id.isEmpty())return;
+    const auto rows=notifications();
+    for(int index=0;index<rows.size();++index)if(rows[index].toMap()["id"].toString()==id) {
+        notificationsOpen_=true;notificationFocus_=index;notificationSelection_=id;activateNotification(index);emit changed();return;
+    }
+}
+void ShellController::dismissNotifications() {
+    achievementNotifications_.clear();achievementToast_.clear();++achievementToastGeneration_;
+    social_.dismissNotifications();emit changed();
 }
 void ShellController::openSocialNotification() {
     if(navigationLocked()||(!homeMenuOpen_&&!canReceiveNearby()))return;
@@ -1014,9 +1127,15 @@ void ShellController::dispatch(Action action) {
             if(action==Action::Home)closeHomeMenu();
             else if(action==Action::Back){notificationsOpen_=false;emit changed();}
             else if(action==Action::Confirm)activateNotification(notificationFocus());
-            else if(action==Action::Secondary)social_.dismissNotificationAt(notificationFocus());
-            else if(action==Action::SystemMenu){closeHomeMenu();dispatch(action);}
-            else if(action==Action::Up||action==Action::Down){notificationFocus_=std::clamp(notificationFocus_+(action==Action::Up?-1:1),0,std::max(0,int(social_.notifications().size())-1));emit changed();}
+            else if(action==Action::Secondary) {
+                const auto row=notifications().value(notificationFocus()).toMap();
+                if(row["provider"]=="achievements")achievementNotifications_.removeIf([&](const QVariant& item){return item.toMap()["id"]==row["id"];});
+                else social_.dismissNotificationAt(notificationFocus());
+                emit changed();
+            }
+            else if(action==Action::SystemMenu){homeMenuOpen_=false;optionsReturn_=true;dispatch(action);}
+            else if(action==Action::Left){notificationsOpen_=false;emit changed();}
+            else if(action==Action::Up||action==Action::Down){notificationFocus_=std::clamp(notificationFocus()+(action==Action::Up?-1:1),0,std::max(0,int(notifications().size())-1));notificationSelection_=notifications().value(notificationFocus_).toMap()["id"].toString();emit changed();}
             return;
         }
         if(action==Action::Back&&homeCallOpen_){homeCallOpen_=false;homeMenuSelection_="home";emit changed();}
@@ -1026,14 +1145,16 @@ void ShellController::dispatch(Action action) {
             const auto actions=homeMenuActions();
             const int index=std::clamp(homeMenuFocus() + (action == Action::Up ? -1 : 1), 0, qMax(0,int(actions.size())-1));
             homeMenuSelection_=actions.value(index).toMap()["id"].toString();emit changed();
+        } else if(action==Action::Right && !homeCallOpen_) {
+            const auto rows=homeMenuActions();for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]=="notifications"){activateHomeMenu(i);break;}
         } else if (action == Action::SystemMenu) {
-            closeHomeMenu(); dispatch(action);
+            homeMenuOpen_=false;optionsReturn_=true;dispatch(action);
         }
         return;
     }
-    if(page_==1 && !menuOpen_ && !keyboard_.isOpen() && !localModalOpen() && !serviceOpen() && notice_.isEmpty() && action==Action::LocalAction) {manageCollection(false);return;}
+    if(!menuOpen_ && !keyboard_.isOpen() && !localModalOpen() && !serviceOpen() && notice_.isEmpty() && action==Action::LocalAction) {openContext();return;}
     if(action==Action::ContextMenu && canHoldConfirm()) {
-        libraryTools_.beginGame((multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString());return;
+        openContext("game",(multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString());return;
     }
     if(action==Action::LocalAction && canEditWorld()) {libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
     if (action == Action::Home) {
@@ -1057,15 +1178,11 @@ void ShellController::dispatch(Action action) {
     if (action == Action::PreviousFace || action == Action::NextFace) {
         if (pairedNavigationAvailable()) {
             if (page_ == 1) cycleCollection(action==Action::NextFace?1:-1);
-            else if (page_ == 3) {
-                const QStringList faces{"profile","journey","hall","ra"};
-                showTrainerFace(faces[(faceIndex()+(action==Action::NextFace?1:3))%4]);
+            else if(page_==2 || page_==3) {
+                experience_.cycle(page_-2,action==Action::NextFace?1:-1);
+                showExperienceFace(page_-2,experience_.face(page_-2));
             }
-            else if (page_ == 4) { const QStringList faces{"chats","communities","friends"}; socialFace_=faces[(faceIndex()+(action==Action::NextFace?1:2))%3]; social_.setFace(socialFace_); }
-            else if(page_==2) {
-                const auto& faces=pokemonExperience().pokemonFaces;
-                showPokemonFace(faces[(faceIndex()+(action==Action::NextFace?1:5))%6]);
-            }
+            else if(page_==4) {const QStringList faces{"chats","communities","friends"};socialFace_=faces[(faceIndex()+(action==Action::NextFace?1:2))%3];social_.setFace(socialFace_);}
             emit changed();
         }
         return;
@@ -1101,6 +1218,12 @@ void ShellController::dispatch(Action action) {
         }
         if (service_ == "library") { libraryManager_.dispatch(action); return; }
         if (service_ == "trainer-setup") { trainerSetup_.dispatch(action); return; }
+        if(service_=="profile") {
+            if(trainer_.editing())trainer_.dispatch(action,true);
+            else if(action==Action::Back){service_.clear();homeMenuOpen_=true;homeMenuSelection_="profile";}
+            else if(action==Action::Confirm)trainer_.beginEdit(false);
+            emit changed();return;
+        }
         if (service_ == "trainer-settings") {
             if (hall_.account()->isOpen()) hall_.account()->dispatch(action);
             else if (action == Action::Back) service_ = "settings";
@@ -1114,6 +1237,15 @@ void ShellController::dispatch(Action action) {
         if (service_ == "diagnostics") { diagnostics_.dispatch(action); return; }
         if (service_ == "center") { center_.dispatch(action); return; }
         if (trainer_.editing()) { trainer_.dispatch(action); return; }
+
+        if(experienceView()=="game-details" || experienceView()=="game-history") {
+            if(action==Action::Back){goToPage(0);return;}
+            if(action==Action::LocalAction || (action==Action::Confirm && experienceView()=="game-details")) {
+                if(currentAdventureId().isEmpty())goToPage(1);else libraryTools_.beginGame(currentAdventureId());return;
+            }
+            if(action==Action::Up || action==Action::Down)experienceFocus_=std::clamp(experienceFocus_+(action==Action::Down?1:-1),0,std::max(0,int(gameHistory().size())-1));
+            emit changed();return;
+        }
 
         if (page_ == 1) {
             if(collectionsRoot_) {
@@ -1131,20 +1263,9 @@ void ShellController::dispatch(Action action) {
             if (multiverseFace_) multiverse_.dispatch(action); else worlds_.dispatch(action);
             return;
         }
-        if (page_ == 2) {
-            if (centerFace()) {
-                if (pokemonFace_=="center" && center_.clinicOpen() && action==Action::LocalAction) {centerRoute_="backups";center_.leaveClinic();party_.openSaves();}
-                else if (pokemonFace_=="center" && center_.clinicOpen() && action==Action::Secondary) {centerRoute_="link";center_.leaveClinic();party_.showSection("activities");party_.activities()->showPlace("link");}
-                else if (center_.clinicOpen()) {if(action!=Action::Back)center_.dispatch(action);if(!center_.clinicOpen())center_.visitClinic();}
-                else if (center_.shopsOpen()) {center_.dispatch(action);if(!center_.shopsOpen())center_.visitShops();}
-                else if(pokemonFace_=="center" && centerRoute_=="link")party_.dispatch(action);
-                else if (pokemonFace_=="center" && action==Action::Back && !center_.confirming()){centerRoute_="clinic";showPokemonFace("center");}
-                else if (party_.section() != "saves") party_.dispatch(action);
-                else if (action == Action::Back && !center_.confirming() && !center_.busy()){centerRoute_="clinic";showPokemonFace("center");}
-                else center_.dispatch(action);
-            }
-            else pokedex_.dispatch(action);
-            return;
+        if(page_==2 && experienceView().startsWith("pokemon-")) {
+            pokemon_.dispatch(action,currentAdventureId());
+            experience_.show(0,pokemon_.face());emit changed();return;
         }
         if (trainerHistoryFace()) { hall_.dispatch(action == Action::LocalAction && !localModalOpen() ? Action::ToggleContinue : action); return; }
         if (page_ == 4) { social_.dispatch(action); return; }
@@ -1163,7 +1284,7 @@ void ShellController::dispatch(Action action) {
     if (action == Action::Back) {
         if (!notice_.isEmpty()) { notice_.clear(); mode_.clear(); }
         else if (menuOpen_ && powerMenu_) { powerMenu_ = false; menuFocus_ = 6; }
-        else if (menuOpen_) menuOpen_ = false;
+        else if (menuOpen_) {menuOpen_=false;if(optionsReturn_){optionsReturn_=false;homeMenuOpen_=true;}}
         else if (drawerOpen_) drawerOpen_ = false;
     } else if (action == Action::ToggleContinue) {
         if (page_ == 0 && !menuOpen_ && notice_.isEmpty()) drawerOpen_ = !drawerOpen_;

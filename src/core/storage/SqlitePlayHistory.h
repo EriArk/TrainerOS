@@ -7,6 +7,7 @@ namespace trainer {
 struct PlayHistorySnapshot {
     QString error;
     QList<PlaySession> recent;
+    QHash<QString, QList<PlaySession>> sessions;
     QHash<QString, qint64> totals;
 };
 QString migratePlayHistory(QSqlDatabase&);

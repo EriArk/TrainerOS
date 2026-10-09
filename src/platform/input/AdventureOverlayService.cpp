@@ -9,10 +9,17 @@ namespace trainer {
 Q_LOGGING_CATEGORY(overlayLog, "trainer.overlay")
 AdventureOverlayService::AdventureOverlayService(ProcessService& game, AdventureLaunchController& launch,
         AdventureExitPresentation& view, const QString& helper, QObject* parent)
-    : QObject(parent), game_(game), exit_(launch.exitController()), view_(view), helper_(helper) {
+    : QObject(parent), game_(game), exit_(launch.exitController()), view_(view), launch_(launch), helper_(helper) {
     heartbeat_.setInterval(250);
     retry_.setInterval(1000); retry_.setSingleShot(true);
     stopDeadline_.setInterval(1500); stopDeadline_.setSingleShot(true);
+    handoffDeadline_.setInterval(5000); handoffDeadline_.setSingleShot(true);
+    connect(&handoffDeadline_, &QTimer::timeout, this, [this] {
+        // A silent helper cannot retain the exclusive input lease indefinitely.
+        // Its independent watchdog releases input back to the owned game.
+        helperProcess_.kill();
+        emit handoffFailed("The control handoff timed out. Returning control to the game.");
+    });
     connect(&stopDeadline_, &QTimer::timeout, this, [this] { helperProcess_.kill(); }); // Helper only; watchdog survives.
     connect(&retry_, &QTimer::timeout, this, &AdventureOverlayService::start);
     connect(&heartbeat_, &QTimer::timeout, this, [this] { send({{"command", "ping"}}); });
@@ -63,13 +70,16 @@ void AdventureOverlayService::start() {
         "--shell", QString::number(QCoreApplication::applicationPid()), "--directory", temporary_->path()});
 }
 void AdventureOverlayService::stop() {
-    active_ = false; retry_.stop(); heartbeat_.stop();
+    active_ = false; retry_.stop(); heartbeat_.stop(); handoffDeadline_.stop();
     exit_.setAvailable(false); view_.setInputIsolated(false);
     if (helperProcess_.state() != QProcess::NotRunning) {
         send({{"command", "stop"}}); helperProcess_.closeWriteChannel(); stopDeadline_.start();
     }
 }
 void AdventureOverlayService::lost() {
+    handoffDeadline_.stop();
+    protocol_=0;shellReady_=false;returning_=minimizing_=false;
+    if(launch_.minimized()){emit gameRequested();launch_.setMinimized(false);}
     heartbeat_.stop(); exit_.setAvailable(false); view_.setInputIsolated(false);
     if (exit_.phase() == AdventureExitController::Phase::Closing) {
         // The helper watches the OS process, while ProcessService remains
@@ -97,7 +107,18 @@ void AdventureOverlayService::receive() {
         const auto message = QJsonDocument::fromJson(buffer_.left(index)).object(); buffer_.remove(0, index + 1);
         if (!active_ || !game_.active()) continue;
         const auto event = message["event"].toString();
-        if (event == "ready") exit_.setAvailable(message["protocol"].toInt() == 2);
+        if (event == "ready") {protocol_=message["protocol"].toInt();exit_.setAvailable(protocol_==2 || protocol_==3);}
+        else if(event=="minimized") {
+            if(minimizing_ && launch_.setMinimized(true)){handoffDeadline_.stop();minimizing_=false;shellReady_=false;heldAction_.clear();view_.handOffToShell();emit shellRequested();}
+        } else if(event=="shell-input" && launch_.minimized() && !returning_ && message["epoch"].toString().toULongLong()==view_.inputGeneration())shellInput(message);
+        else if(event=="returned") {
+            if(returning_){handoffDeadline_.stop();returning_=false;launch_.setMinimized(false);}
+        } else if(event=="handoff-failed") {
+            handoffDeadline_.stop();
+            returning_=minimizing_=false;shellReady_=false;
+            if(launch_.minimized())emit shellRequested();
+            emit handoffFailed("Couldn't transfer controls. Release the buttons and try again.");
+        }
         else if (event == "request") { if (!view_.requestMenu()) send({{"command", "cancel"}}); }
         else if (event == "released") view_.setInputIsolated(false);
         else if (event == "failed") lost();
@@ -122,5 +143,33 @@ void AdventureOverlayService::receive() {
             exit_.gracefulExitFailed(message["token"].toVariant().toULongLong(), {});
         }
     }
+}
+void AdventureOverlayService::minimize() {
+    if(!canMinimize() || minimizing_ || !view_.menuOpen() || !view_.ready())return;
+    minimizing_=true;handoffDeadline_.start();
+    send({{"command","minimize"}});
+}
+void AdventureOverlayService::returnToGame(bool options) {
+    if(!launch_.minimized() || returning_ || !canMinimize())return;
+    returning_=true;shellReady_=false;handoffDeadline_.start();
+    emit gameRequested();
+    send({{"command","return"},{"options",options}});
+}
+void AdventureOverlayService::shellInput(const QJsonObject& input) {
+    if(!input["connected"].toBool()){shellReady_=false;heldAction_.clear();return;}
+    if(!shellReady_){if(input["neutral"].toBool())shellReady_=true;return;}
+    const QList<QPair<QString,Action>> bindings{{"home",Action::Home},{"back",Action::Back},
+        {"start",Action::SystemMenu},{"previousPage",Action::PreviousPage},{"nextPage",Action::NextPage},
+        {"previousFace",Action::PreviousFace},{"nextFace",Action::NextFace},
+        {"up",Action::Up},{"down",Action::Down},{"left",Action::Left},{"right",Action::Right},
+        {"select",Action::LocalAction},{"secondary",Action::Secondary},{"recent",Action::ToggleContinue},
+        {"confirm",Action::Confirm}};
+    for(const auto& [key,action]:bindings)if(input[key].toBool()) {
+        const bool direction=action==Action::Up || action==Action::Down || action==Action::Left || action==Action::Right;
+        if(heldAction_!=key){heldAction_=key;repeat_.start();emit shellAction(action);}
+        else if(direction && repeat_.elapsed()>350){repeat_.restart();emit shellAction(action);}
+        return;
+    }
+    heldAction_.clear();
 }
 }

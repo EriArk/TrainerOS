@@ -41,6 +41,7 @@ public:
     void requestTrainerRemoval();
     void dispatch(Action);
     void setAdventureActive(bool active) { adventureActive_ = active; }
+    void setAdventureMinimized(bool minimized) { adventureMinimized_=minimized; }
     void setServiceActive(bool active) { serviceActive_=active; finishExit(); }
     void cancelPendingExit() { if(switching_)return; closing_=false; nextTrainer_.clear(); emit changed(); }
     Q_INVOKABLE void activate(int index);
@@ -60,6 +61,7 @@ private:
     QString error_;
     bool restored_ = false, closing_ = false, writing_ = false, paused_ = false;
     bool adventureActive_ = false;
+    bool adventureMinimized_ = false;
     bool serviceActive_ = false;
     int focus_ = 0;
     bool creating_ = false, switching_ = false;

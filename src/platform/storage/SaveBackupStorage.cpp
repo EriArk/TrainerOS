@@ -544,6 +544,7 @@ void LocalSaveBackupService::linkOperation(const AdventureRegistration& r,const 
     },Qt::QueuedConnection);
 }
 void LocalSaveBackupService::run(std::function<SaveBackupResult()> work,QObject* context,std::function<void(SaveBackupResult)> completed) {
+    if(operationGuard)if(const auto error=operationGuard();!error.isEmpty()){completed({false,false,error});return;}
     if(busy_){completed({false,false,"A save operation is already running."});return;}
     busy_=true;emit busyChanged();
     QMetaObject::invokeMethod(worker_,[this,work,guard=QPointer<QObject>(context),completed]{

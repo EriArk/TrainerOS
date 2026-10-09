@@ -1,5 +1,10 @@
 # Five-section navigation and legacy migration — #111
 
+**Implementation update, 9 October 2026:** the owner subsequently authorized the
+UX-02 implementation. Current behavior, handheld delivery and retained acceptance
+are recorded in [UX_FRAMEWORK](UX_FRAMEWORK.md). Dated planning-only and compact-menu
+statements below describe the prior baseline.
+
 Original implementation: 2026-10-01; active library contract updated 2026-10-09.
 [Original acceptance](EXPANSION_98_112.md), [Collections delivery](SERIES_COLLECTIONS.md).
 The planned [UX-02 map](UX_OPTIONS_MAP_RU.md) replaces compact Home with universal

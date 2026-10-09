@@ -30,8 +30,9 @@ bool AdventureExitPresentation::visible() const { return menuOpen_ || phase_ == 
 bool AdventureExitPresentation::confirming() const { return phase_ == Phase::Confirming; }
 QVariantList AdventureExitPresentation::menuActions() const {
     if(!panel_.isEmpty())return panelActions_;
-    QVariantList result{QVariantMap{{"id","continue"},{"label","Continue"}},QVariantMap{{"id","exit"},{"label","Exit game"}}};
-    result.append(extras_);return result;
+    QVariantList result{QVariantMap{{"id","continue"},{"label","Continue"}}};
+    result.append(extras_);
+    result.append(QVariantMap{{"id","exit"},{"label","Exit game"}});return result;
 }
 void AdventureExitPresentation::setPanel(QString panel,QString caption,QVariantList actions,QString backAction) {
     const auto selected=menuActions().value(menuFocus_).toMap().value("id");
@@ -50,14 +51,20 @@ void AdventureExitPresentation::setPanel(QString panel,QString caption,QVariantL
     if(!same)resetInput();emit changed();
 }
 void AdventureExitPresentation::setExtraActions(QVariantList actions) {
+    const auto selected=menuActions().value(menuFocus_).toMap()["id"].toString();
+    bool lost=false;
+    if(panel_.isEmpty() && !selected.isEmpty() && selected!="continue" && selected!="exit") {
+        lost=true;for(const auto& row:actions)if(row.toMap()["id"]==selected){lost=false;break;}
+        if(lost)actions.append(QVariantMap{{"id",selected},{"label","No longer available"},{"readOnly",true}});
+    }
     if(extras_==actions)return;
-    const auto selected=menuActions().value(menuFocus_).toMap()["id"];
     extras_=std::move(actions);
     if(panel_.isEmpty()) {
         // A new ring must not replace the action currently under the controller.
         menuFocus_=0;
         const auto rows=menuActions();
         for(int i=0;i<rows.size();++i)if(rows[i].toMap()["id"]==selected){menuFocus_=i;break;}
+        if(lost)resetInput();
     }
     emit changed();
 }
@@ -85,14 +92,23 @@ void AdventureExitPresentation::dismissMenu() {
     menuPending_ = menuOpen_ = false; menuFrame_ = {};
     resetInput(); emit changed(); emit menuDismissed();
 }
+void AdventureExitPresentation::handOffToShell() {
+    menuTimer_.stop();++menuAttempt_;
+    menuPending_=menuOpen_=false;menuFrame_={};panel_.clear();
+    resetInput();emit changed(); // Deliberately retain the platform input lease.
+}
 void AdventureExitPresentation::activateMenu(int index) {
     if (!menuOpen_ || !ready_ || !exit_.available() || phase_ != Phase::Idle) return;
     const auto id=menuActions().value(index).toMap()["id"].toString();
     if(id.isEmpty()||menuActions().value(index).toMap().value("readOnly").toBool())return;
-    if(!panel_.isEmpty()||index>1){if(id=="back")setPanel({}, {}, {});else emit menuActionRequested(id);return;}
-    if (index == 0) { dismissMenu(); return; }
-    if (index != 1) return;
-    exitFromMenu();
+    if(!panel_.isEmpty()){if(id=="back")setPanel({}, {}, {});else emit menuActionRequested(id);return;}
+    if(id=="continue")dismissMenu();
+    else if(id=="exit")exitFromMenu();
+    else emit menuActionRequested(id);
+}
+void AdventureExitPresentation::activateAction(const QString& id) {
+    const auto actions=menuActions();
+    for(int i=0;i<actions.size();++i)if(actions[i].toMap()["id"].toString()==id){activateMenu(i);return;}
 }
 bool AdventureExitPresentation::exitFromMenu() {
     if(!menuOpen_ || !exit_.available() || phase_ != Phase::Idle)return false;

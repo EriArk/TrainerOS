@@ -4,6 +4,7 @@ import QtQuick
 QtObject {
     property string themeId: "turquoise"
     property bool reducedMotion: false
+    property bool television: false
     readonly property FontLoader displayTypeface: FontLoader { source: "qrc:/fonts/Fredoka.ttf" }
     readonly property string displayFamily: displayTypeface.name
     readonly property FontLoader brandTypeface: FontLoader { source: "qrc:/fonts/ChakraPetch-Bold.ttf" }

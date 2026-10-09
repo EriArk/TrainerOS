@@ -70,7 +70,7 @@ QVariantList LibraryToolsController::rows() const {
         if(reviews_["more"].toBool())result.append(row("More reviews",!reviews_["busy"].toBool()));
         return result;
     }
-    if(route_=="game")return {row("Rename"),row("Move",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Удалить"),row("Properties"),row("Download information & artwork",!repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Collections")};
+    if(route_=="game")return {row("Rename"),row("Move",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Удалить"),row("Properties"),row("Download information & artwork",!repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Collections"),row("Play together",multiplayerAvailable && multiplayerAvailable(game_.adventure.id))};
     if(route_=="move-kind")return {row("Platform / folder",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Another World")};
     if(route_=="move-file")return {row("Cancel"),row("Move")};
     if(route_=="world")return {row("Rename World"),row("Done"),row("Scrape this collection")};
@@ -96,6 +96,7 @@ QVariantList LibraryToolsController::rows() const {
 }
 void LibraryToolsController::dispatch(Action action) {
     if(busy_)return;
+    if(action==Action::LocalAction && route_=="game"){close();return;}
     if(route_=="reviews"&&(action==Action::Left||action==Action::Right)){emit scrollReview(action==Action::Right?1:-1);return;}
     if(route_=="reviews"&&action==Action::LocalAction&&reviewReportAvailable()){
         reportId_=selectedReview()["id"].toString();route_="reviews-report";focus_=0;emit changed();return;
@@ -119,6 +120,7 @@ void LibraryToolsController::dispatch(Action action) {
 void LibraryToolsController::activate(int index) {
     const auto values=rows();if(busy_ || index<0 || index>=values.size())return;
     focus_=index;if(!values[index].toMap().value("enabled").toBool())return;
+    if(route_=="game"&&index==6){const auto game=game_.adventure.id;close();emit togetherRequested(game);return;}
     if(route_=="game"&&index==5){emit collectionsRequested(game_.adventure.id);return;}
     if(route_=="game"&&index==4){const auto id=game_.adventure.id;close();emit scrapeRequested(id,{});return;}
     if(route_=="world"&&index==2){const auto id=world_.id;close();emit scrapeRequested({},id);return;}

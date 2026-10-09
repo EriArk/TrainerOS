@@ -141,6 +141,9 @@ class OverlayHelperTests(unittest.TestCase):
         keys.add(305); self.assertTrue(pad.sample()['confirm']); self.assertFalse(pad.sample()['back'])
         keys.clear(); keys.add(304); self.assertTrue(pad.sample()['back'])
         keys.clear()
+        for code, action in ((307,'secondary'),(308,'recent'),(314,'select'),(315,'start'),
+                             (310,'previousPage'),(311,'nextPage'),(546,'left'),(547,'right')):
+            keys.add(code); self.assertTrue(pad.sample()[action]); self.assertFalse(pad.sample()['neutral']); keys.clear()
         keys.add(544); self.assertTrue(pad.sample()['up']); self.assertFalse(pad.sample()['down']); keys.clear()
         keys.add(545); self.assertTrue(pad.sample()['down']); keys.clear()
         values[1]=-1200; self.assertTrue(pad.sample()['up'])
@@ -182,6 +185,14 @@ m.guard_loop(socket.socket(fileno=int(sys.argv[2])),lambda:Path(sys.argv[3]).wri
     def test_process_identity_is_not_just_a_pid(self):
         self.assertTrue(identity(os.getpid()).isdigit())
         with self.assertRaises(OSError): identity(999999999)
+
+    def test_watchdog_hides_browsing_shell_only_while_same_game_is_alive(self):
+        for game_alive in (True,False):
+            device=Mock();device.mode.return_value=0
+            pad=Mock();view=Mock()
+            with patch.object(overlay,'identity',return_value='owned' if game_alive else 'reused'):
+                overlay.restore_input(device,pad,view,31,'shell-start',42,'owned')
+            view.hide_prompt.assert_called_once_with(31,'shell-start',all_windows=game_alive)
 
 
 if __name__ == '__main__': unittest.main()

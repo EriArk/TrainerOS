@@ -36,7 +36,8 @@ private slots:
             QVariantMap{{"id",other},{"kind","groups"},{"name","Other group"},{"owner","self"},{"members",QVariantList{QVariantMap{{"id",remote},{"username","Friend"}}}}}}}};
         c.contextRow(1);QCOMPARE(c.menuTitle(),QString("Other group"));
         QSignalSpy runtime(&c,&SocialController::runtimeAction);
-        c.selectMenu(c.menuCommands_.indexOf("runtime:multiplayer-company:"+other));QCOMPARE(runtime.last()[0].toString(),"multiplayer-company:"+other);
+        const auto together=c.menuCommands_.indexOf("runtime:together-company:"+other);QVERIFY(together>=0);
+        c.selectMenu(together);QCOMPARE(runtime.size(),1);QCOMPARE(runtime.last()[0].toString(),"together-company:"+other);
         c.contextRow(1);
         c.selectMenu(c.menuCommands_.indexOf("rename-group"));QSignalSpy text(&c,&SocialController::textRequested);
         c.applyText("Renamed");QCOMPARE(commands.last()[1].toMap()["channel"].toString(),other);
@@ -191,6 +192,8 @@ private slots:
         c.setRuntimeSurface("Party","Game",{QVariantMap{{"id","multiplayer-leave"},{"label","Leave"}}});
         c.dispatch(Action::Confirm);QVERIFY(actions.isEmpty());
         c.dispatch(Action::Up);c.dispatch(Action::Confirm);QCOMPARE(actions.last()[0].toString(),QString("multiplayer-leave"));
+        c.setRuntimeSurface("People","Choose",{QVariantMap{{"id","person"},{"label","Friend"}}});
+        QCOMPARE(c.menuIndex(),0);QCOMPARE(c.menu().size(),1);
     }
     void runtimeMissedInvitationCannotAcceptReplacement() {
         SocialController c;c.snapshot_={{"state","connected"},{"userId","test-self"}};
@@ -455,7 +458,7 @@ private slots:
         QVERIFY(!shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["enabled"].toBool());
         shell.dispatch(Action::Confirm);QVERIFY(shell.homeMenuOpen());QVERIFY(commands.isEmpty());
         // Explicit navigation, rather than a provider update, selects Home.
-        for(int i=0;i<5;++i)shell.dispatch(Action::Up);
+        const auto count=shell.homeMenuActions().size();for(int i=0;i<count;++i)shell.dispatch(Action::Up);
         QCOMPARE(shell.homeMenuActions()[shell.homeMenuFocus()].toMap()["id"].toString(),QString("home"));
         // A later ring must not resurrect the old selection or steal focus.
         chat["ringing"]=true;state["chats"]=QVariantList{chat};social->receive(0,state);
@@ -477,7 +480,7 @@ private slots:
         QCOMPARE(commands.size(),1);QCOMPARE(commands.last()[0].toString(),QString("voice-join"));
         // Only the selected invitation is retained, not every active call.
         shell.dispatch(Action::Home);QCOMPARE(shell.homeMenuFocus(),0);
-        QCOMPARE(shell.homeMenuActions().size(),4);
+        for(const auto& row:shell.homeMenuActions())QVERIFY(!row.toMap()["id"].toString().startsWith("answer-call:"));
         shell.dispatch(Action::Home);
         chat["ringing"]=true;state["chats"]=QVariantList{chat};social->receive(0,state);
         shell.dispatch(Action::Home);commands.clear();
@@ -501,7 +504,7 @@ private slots:
         QVERIFY(social->notifications().first().toMap()["answerable"].toBool());
         shell.activateNotification(0);QVERIFY(!shell.homeMenuOpen());QCOMPARE(shell.navigationState(),origin);
         QCOMPARE(commands.last()[0].toString(),QString("voice-join"));
-        shell.dispatch(Action::Home);shell.activateHomeMenu(5);
+        shell.dispatch(Action::Home);shell.activateHomeAction("decline-call:"+QString(channel));
         QCOMPARE(commands.last()[0].toString(),QString("voice-decline"));QCOMPARE(shell.navigationState(),origin);
         for(const auto& command:commands)QVERIFY(command[0].toString()!="conversation");
     }
@@ -529,12 +532,12 @@ private slots:
         social->receive(0,{{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"channel",channel},{"muted",true},{"status","Connected"}}}});
         shell.goToPage(1);const auto origin=shell.navigationState();shell.dispatch(Action::Home);
         QCOMPARE(shell.homeMenuActions().last().toMap()["id"].toString(),QString("call"));
-        shell.activateHomeMenu(4);QCOMPARE(shell.homeMenuActions().first().toMap()["id"].toString(),QString("voice-mute"));
+        shell.activateHomeAction("call");QCOMPARE(shell.homeMenuActions().first().toMap()["id"].toString(),QString("voice-mute"));
         commands.clear();shell.dispatch(Action::Confirm);QCOMPARE(commands.last()[0].toString(),QString("voice-mute"));
         shell.dispatch(Action::Back);QVERIFY(shell.homeMenuOpen());shell.dispatch(Action::Home);
         QVERIFY(!shell.homeMenuOpen());QCOMPARE(shell.navigationState(),origin);
         for(const auto& command:commands)QVERIFY(command[0].toString()!="voice-leave");
-        shell.dispatch(Action::Home);shell.activateHomeMenu(4);
+        shell.dispatch(Action::Home);shell.activateHomeAction("call");
         social->receive(0,{{"state","connected"},{"userId","self"},{"voice",QVariantMap{}}});
         QCOMPARE(shell.homeMenuActions().size(),1);shell.dispatch(Action::Confirm);QVERIFY(shell.homeMenuOpen());
     }

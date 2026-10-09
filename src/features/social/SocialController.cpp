@@ -237,7 +237,6 @@ QVariantList SocialController::incomingCallActions(const QString& retainedChanne
 }
 QVariantList SocialController::notifications() const {
     QVariantList result;
-    if(snapshot_["userId"].toString().isEmpty())return result;
     const auto invitation=snapshot_["online"].toMap();
     for(const auto& value:activityNotifications_) {
         auto row=value.toMap();const bool pending=row["runtime"].toBool()?runtimeInvitation_["request"]==row["session"]:invitation["incoming"].toBool()&&invitation["session"]==row["session"];
@@ -245,6 +244,7 @@ QVariantList SocialController::notifications() const {
         if(row["runtime"].toBool())row["detail"]=row["detail"].toString()+" · "+row["game"].toString();
         result.append(row);
     }
+    if(snapshot_["userId"].toString().isEmpty())return result;
     for(const auto& value:snapshot_["friends"].toList()) {
         auto row=value.toMap();if(row["type"].toInt()!=3)continue;
         row["request"]=true;row["detail"]="Friend request";
@@ -638,12 +638,12 @@ void SocialController::contextRow(int index) {
     if(row["kind"]=="chats"&&members.size()==1){
         const auto peer=members.first().toMap()["id"].toString();
         add("View profile","profile:"+peer);
-        if(row["friend"].toBool())add("Invite to game","runtime:multiplayer-friend:"+peer);
+        if(row["friend"].toBool())add("Invite to game","runtime:together-friend:"+peer);
         if(gameActivities_.value(peer)["joinable"].toBool())add("Ask to join game","join-peer:"+peer);
     }
     if(row["kind"]=="groups") {
         add("Members","members");
-        add("Play with group","runtime:multiplayer-company:"+menuChannel_);add("Who can join my games","company-access");
+        add("Play with group","runtime:together-company:"+menuChannel_);add("Who can join my games","company-access");
         for(const auto& v:companyParties_) {const auto p=v.toMap();if(p["company"]==menuChannel_&&p["joinable"].toBool()&&!gameActive_&&p["party"]!=gameParty_["party"])
             add("Join "+p["game"].toMap()["label"].toString(),"context-party:"+p["peer"].toString());}
         add("Add friend","add-member");add("Rename group","rename-group");
@@ -686,10 +686,15 @@ void SocialController::setRuntimeInvitation(QVariantMap request) {
     if(runtimeInvitation_==request)return;
     runtimeInvitation_=std::move(request);
     const auto id=runtimeInvitation_["request"].toString();
-    if(!id.isEmpty()&&!snapshot_["userId"].toString().isEmpty()) {
+    if(!id.isEmpty()) {
         const bool known=std::any_of(activityNotifications_.cbegin(),activityNotifications_.cend(),[&](const QVariant& v){return v.toMap()["id"]=="runtime:"+id;});
         if(!known){activityNotifications_.prepend(QVariantMap{{"id","runtime:"+id},{"session",id},{"activity",true},{"runtime",true},{"name",runtimeInvitation_["name"]},{"game",runtimeInvitation_["game"].toMap()["label"]},{"kind","chats"}});
-            while(activityNotifications_.size()>32)activityNotifications_.removeLast();saveNotifications();}
+            while(activityNotifications_.size()>32)activityNotifications_.removeLast();saveNotifications();
+            if(!snapshot_["doNotDisturb"].toBool()) {
+                toastTitle_="Game invitation";toastText_=snapshot_["privatePreviews"].toBool()?QString("Open Home notifications"):runtimeInvitation_["name"].toString()+" · "+runtimeInvitation_["game"].toMap()["label"].toString();
+                toastTimer_.start();emit presentationChanged();
+            }
+        }
     }
     emit changed();
 }
@@ -876,7 +881,9 @@ void SocialController::selectMenu(int index) {
     if(menuMode_=="runtime") {
         const auto row=runtimeActions_.value(index).toMap();
         if(row["readOnly"].toBool()||!row.value("enabled",true).toBool())return;
-        emit runtimeAction(command);return;
+        // A deliberate action starts a new step. Only asynchronous updates of
+        // the open step preserve its old target (including expired placeholders).
+        closeMenu();emit runtimeAction(command);return;
     }
     if(command=="group-details"){groupDetails();return;}
     if(command=="together"){closeMenu();together();return;}

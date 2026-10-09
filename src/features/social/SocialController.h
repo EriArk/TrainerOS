@@ -56,6 +56,7 @@ class SocialController final : public QObject {
     Q_PROPERTY(bool emojiVisible READ emojiVisible NOTIFY changed)
     Q_PROPERTY(QVariantMap conversationInfo READ currentChat NOTIFY changed)
 public:
+    quint64 accountGeneration() const { return generation_; }
     explicit SocialController(QObject* parent = nullptr);
     ~SocialController() override;
     void setOwner(QString owner);

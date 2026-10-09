@@ -172,7 +172,7 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             check(shell.centerFace(), "Trigger opens Center from the scrolled Dex list");
             // Simulate a retained viewport offset while the list is hidden.
             auto* list=window->findChild<QQuickItem*>("dex-list");
-            check(list, "Dex list remains available behind its peer");
+            check(shell.pokedex()->navigationState()["entry"].toString()=="eevee", "Unmounted Guide retains its selected species");
             if(list) list->setProperty("contentY",0);
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERLEFT,32767); input.poll();
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERLEFT,-32768); input.poll(); break;

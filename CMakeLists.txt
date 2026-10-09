@@ -139,6 +139,7 @@ add_library(trainer_core STATIC
     src/integrations/adventure/retroarch/RetroArchHandheldLink.cpp
     src/integrations/adventure/retroarch/RetroArchNetplayClient.cpp
     src/features/adventure/RuntimeMultiplayer.cpp
+    src/features/adventure/RuntimeInvocation.cpp
     src/integrations/adventure/retroarch/RetroArchAdapter.h
     src/platform/diagnostics/DiagnosticsService.cpp
     src/platform/diagnostics/DiagnosticsService.h
@@ -173,6 +174,10 @@ add_library(trainer_core STATIC
     src/core/input/TextEntryController.cpp
     src/core/input/TextEntryController.h
     src/core/navigation/ShellController.cpp
+    src/features/experience/ExperienceNavigation.cpp
+    src/features/experience/ExperienceNavigation.h
+    src/features/experience/PokemonExperienceController.cpp
+    src/features/experience/PokemonExperienceController.h
     src/core/navigation/ShellController.h
     src/core/model/Models.h
     src/core/repository/HallOfFameRepository.h
@@ -278,6 +283,15 @@ qt_add_qml_module(traineros
         src/qml/PlatformBadge.qml
         src/qml/Hint.qml
         src/qml/HomePage.qml
+        src/qml/PokemonExperienceViews.qml
+        src/qml/PokemonExperienceOverlay.qml
+        src/qml/ExperienceHints.js
+        src/qml/ExperienceHost.qml
+        src/qml/GenericExperiencePage.qml
+        src/qml/PlayerProfilePanel.qml
+        src/qml/ShellOptions.qml
+        src/qml/GameOptions.qml
+        src/qml/PassiveNotice.qml
         src/qml/LeagueBadge.qml
         src/qml/BadgeTray.qml
         src/qml/AdventureButton.qml
@@ -482,6 +496,9 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_interaction_tests tests/InteractionTests.cpp)
     target_link_libraries(trainer_interaction_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME interactions COMMAND trainer_interaction_tests)
+    qt_add_executable(trainer_experience_tests tests/ExperienceTests.cpp)
+    target_link_libraries(trainer_experience_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME experience COMMAND trainer_experience_tests)
     qt_add_executable(trainer_worlds_tests tests/WorldsTests.cpp)
     target_link_libraries(trainer_worlds_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME worlds COMMAND trainer_worlds_tests)

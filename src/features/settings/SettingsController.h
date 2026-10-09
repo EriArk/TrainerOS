@@ -16,6 +16,7 @@ class SettingsController final : public QObject {
     Q_PROPERTY(trainer::ClockController* clock READ clock CONSTANT)
     Q_PROPERTY(trainer::CommunicationSettings* communication READ communication CONSTANT)
     Q_PROPERTY(QString theme READ theme NOTIFY changed)
+    Q_PROPERTY(QString displayProfile READ displayProfile NOTIFY changed)
     Q_PROPERTY(bool worldEditing READ worldEditing NOTIFY changed)
     Q_PROPERTY(bool reducedMotion READ reducedMotion NOTIFY changed)
     Q_PROPERTY(bool videoPreviews READ videoPreviews NOTIFY changed)
@@ -56,6 +57,7 @@ public:
     Q_INVOKABLE void cycleTheme(int direction = 1);
     bool creditsOpen() const { return category_==6 && pane_; }
     QString theme() const { return value_.theme; }
+    QString displayProfile() const;
     bool worldEditing() const { return value_.worldEditing; }
     bool reducedMotion() const { return value_.reducedMotion; }
     bool videoPreviews() const { return value_.videoPreviews; }

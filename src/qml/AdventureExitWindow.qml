@@ -98,16 +98,12 @@ Window {
                 }
             }
         }
-        HomeMenuCard {
+        GameOptions {
             objectName: "game-home-menu"
             anchors.centerIn: parent
+            width: parent.width * .92; height: parent.height * .86
             visible: window.presentation.menuOpen
-            heading: window.presentation.gameTitle.length ? window.presentation.gameTitle : "Adventure"
-            caption: window.presentation.menuCaption
-            actions: window.presentation.menuActions
-            currentIndex: window.presentation.menuFocus
-            ready: window.presentation.ready
-            onChosen: index => window.presentation.activateMenu(index)
+            presentation: window.presentation
         }
         Row { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 14; spacing: 26; visible: window.presentation.menuOpen
             Hint { button: "↑↓"; label: "Choose"; tint: Theme.blue }

@@ -1,4 +1,5 @@
 import QtQuick
+import "ExperienceHints.js" as ExperienceHints
 import QtQuick.Window
 import QtQuick.Shapes
 
@@ -17,7 +18,8 @@ Window {
     }
     Binding { target: Theme; property: "themeId"; value: shell.settings.theme }
     Binding { target: Theme; property: "reducedMotion"; value: shell.settings.reducedMotion }
-    Binding { target: shell.social; property: "surfaceAvailable"; value: window.active && !sessionState.blocked && !adventureLaunch.active && shell.unobstructed }
+    Binding { target: Theme; property: "television"; value: shell.settings.displayProfile === "tv" }
+    Binding { target: shell.social; property: "surfaceAvailable"; value: window.active && !sessionState.blocked && (!adventureLaunch.active || adventureLaunch.minimized) && shell.unobstructed }
     Binding { target: shell.social; property: "conversationVisible"; value: shell.page === 4 && !shell.serviceOpen }
     Binding { target: shell.social; property: "gameActive"; value: adventureLaunch.active }
     onClosing: function(close) { close.accepted = false; sessionState.requestExit() }
@@ -38,7 +40,7 @@ Window {
         Item {
         anchors.fill: parent
         visible: !sessionState.blocked
-        enabled: !adventureLaunch.active
+        enabled: !adventureLaunch.active || adventureLaunch.minimized
         ChassisFrame { anchors.fill: parent }
         Item {
             id: brand
@@ -50,6 +52,11 @@ Window {
                 horizontalAlignment: Text.AlignHCenter
                 text: "TRAINER OS"; color: "#edf5e9"; font.pixelSize: 25; font.weight: Font.Bold
                 font.family: Theme.brandFamily; font.letterSpacing: 0.6
+            }
+            Text {
+                x: 12; y: 46; width: parent.width - 24
+                visible: !!shell.liveGame.id; text: "Still running · Home to return"
+                horizontalAlignment: Text.AlignHCenter; color: "#ffe3a4"; font.pixelSize: 10
             }
         }
         Row {
@@ -149,19 +156,11 @@ Window {
             }
         }
         ChassisTopRim { z: 1.5 }
-        Rectangle {
-            objectName: "social-notification"
-            visible: shell.social.surfaceAvailable && shell.social.toastTitle.length > 0
+        PassiveNotice {
+            objectName: "passive-notification"
+            notice: shell.passiveNotice
+            visible: !!notice.title && window.active && !sessionState.blocked && !shell.homeMenuOpen && (!adventureLaunch.active || adventureLaunch.minimized)
             z: 30; x: parent.width - width - 26; y: Theme.brandHeight + 21
-            width: 310; height: 75; radius: 12; color: "#fff0bb"; border.color: "#8e713e"; border.width: 2
-            Rectangle { x: 10; y: 13; width: 43; height: 43; radius: 12; color: Theme.blue; border.color: "#658b91"
-                Text { anchors.centerIn: parent; text: ":)"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23 }
-            }
-            Column { x: 64; y: 12; width: parent.width - 77; spacing: 4
-                Text { width: parent.width; text: shell.social.toastTitle; textFormat: Text.PlainText; elide: Text.ElideRight; font.family: Theme.displayFamily; font.pixelSize: 18; color: Theme.ink }
-                Text { width: parent.width; text: shell.social.toastText; textFormat: Text.PlainText; elide: Text.ElideRight; font.pixelSize: 14; color: Theme.ink }
-            }
-            MouseArea { anchors.fill: parent; onClicked: shell.openSocialNotification() }
         }
         Row {
             objectName: "navigation-chassis"; x: 28; y: Theme.brandHeight + Theme.screenBevel + 5; spacing: 12; z: 2
@@ -192,15 +191,11 @@ Window {
                 anchors.fill: parent; anchors.margins: Theme.panelInset
                 anchors.topMargin: Theme.contentTopInset; clip: true
                 anchors.bottomMargin: Theme.panelInset
-                HomePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 0 && !shell.multiverseHome }
-                MultiverseHome { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 0 && shell.multiverseHome }
-                HallOfFamePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.trainerHistoryFace }
-                TrainerPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 3 && shell.trainerFace === "profile" }
+                ExperienceHost { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && (shell.page === 0 || shell.page === 2 || shell.page === 3) }
                 SocialPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 4 }
                 SeriesPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && shell.collectionsRoot }
                 WorldsPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && !shell.collectionsRoot && !shell.multiverseFace }
                 MultiversePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && !shell.collectionsRoot && shell.multiverseFace }
-                PokedexPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 2 && !shell.centerFace }
             }
         }
         ContinueDrawer {
@@ -228,7 +223,7 @@ Window {
                 if (shell.party.activities.link.invitationOpen) return shell.party.activities.link.invitationIncoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
                 if (shell.homeMenuOpen) {
                     if (!shell.notificationsOpen) return [h("↑↓","Choose"),h("A","Select"),h("B","Back")]
-                    const selectedNotice = shell.social.notifications[shell.notificationFocus] || {}
+                    const selectedNotice = shell.notifications[shell.notificationFocus] || {}
                     return [h("↑↓","Choose"),h("A",selectedNotice.answerable ? "Answer" : "Open"),h("X",selectedNotice.ringing ? "Decline" : "Dismiss"),h("B","Back")]
                 }
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
@@ -273,72 +268,14 @@ Window {
                     const list = shell.multiverseFace ? shell.multiverse.route === "games" : shell.worlds.route === "adventures"
                     let result = list ? [h("X","Search"),h("Y","Filter"),h("A","Play"),h("B",shell.multiverseFace ? (shell.multiverse.collection === "multiverse" ? "Systems" : "Collections") : "Regions")] : [h("A","Open"),h("B","Back")]
                     if(shell.canHoldConfirm) result.push(h("Hold A","Options"))
-                    result.push(h("Select","New / edit collection"))
+                    result.push(h("Select",list ? "Game actions" : "Collection actions"))
                     return result
                 }
-                if (shell.page === 2 && !shell.centerFace) {
-                    const dex = shell.pokedex
-                    if (dex.zone === "art") return [h("←→","Browse"),h("A","Use image"),h("B","Cancel")]
-                    if (dex.zone === "picker") return [h("A","Apply"),h("B","Cancel")]
-                    let result = [h("X","Search"),h("Select","Filters")]
-                    if (dex.zone === "list") result.push(h("←→","Jump 8"))
-                    result.push(h("A",dex.zone === "list" ? (dex.detail.favorite ? "Unfavorite" : "Favorite") : "Select"),h(dex.zone === "rail" ? "B" : "↑",dex.zone === "rail" ? "Entries" : "Filters"))
-                    return result
-                }
-                if (shell.page === 2 && shell.centerFace) {
-                    const party = shell.party
-                    if (shell.center.shopsOpen) {
-                        const route = shell.center.shopRoute
-                        if (shell.center.busy) return []
-                        if (route === "merchants") return [h("←→","Categories"),h("X","Search"),h("Y","Place"),h("Select","Basket · "+shell.center.basketCount),h("A","Open"),h("B","Back")]
-                        if (route === "basket") return shell.center.basketCount ? [h("←→","Quantity"),h("X","Remove"),h("A","Buy basket"),h("B","Back")] : [h("A","Back"),h("B","Back")]
-                        if (route === "locations") return [h("A","Choose"),h("B","Back")]
-                        if (route === "stock") return shell.center.shopSelection.lesson ? [h("A","Choose Pokémon"),h("B","Tutors")] : [h("←→","Quantity"),h("A","Add"),h("Select","Basket · "+shell.center.basketCount),h("B","Shops")]
-                        return [h("A",route === "confirm" ? "Confirm" : "Select"),h("B","Back")]
-                    }
-                    if (shell.center.clinicOpen) return shell.center.busy ? [] : [h("Select","Backups"),h("X","Link"),h("A",shell.center.treatment === "ready" && shell.center.canHeal ? "Heal team" : "OK")]
-                    if (party.section === "saves") return shell.center.confirming ? [h("A","Restore"),h("B","Cancel")] : [h("X",shell.center.route === "adventures" ? "Search" : "Refresh"),h("Select","Backup"),h("A","Open"),h("B","Back")]
-                    if (party.section === "activities" && party.activities.route === "practice") {
-                        const practice = party.activities.practice
-                        if (practice.stage === "starting" || practice.stage === "waiting") return [h("B","Leave practice")]
-                        if (practice.stage === "first" && !practice.ready) return [h("A","Back"),h("B","Back")]
-                        return [h("A",practice.stage === "ready" ? "Begin" : practice.stage === "events" ? "Next" : practice.stage === "finished" ? "Again" : practice.stage === "moves" ? "Move" : "Choose"),h("B",practice.running ? "Leave practice" : "Back")]
-                    }
-                    if (party.section === "activities" && party.activities.route === "link") {
-                        const link = party.activities.link
-                        if (link.stage === "browse") return link.rows.length ? [h("A","Connect"),h("B","Back")] : [h("B","Back")]
-                        if (link.stage === "lobby") return [h("X","Disconnect"),h("A","Invite"),h("B","Back")]
-                        if (link.stage === "events") return []
-                        if (link.stage === "price") return [h("↑↓","Price ±" + link.priceStep),h("←→","Step"),h("A","Offer"),h("B","Cancel")]
-                        if (link.stage === "concede") return [h("A","Concede"),h("B","Keep battling")]
-                        if (link.stage === "moves") return [h("X","Team"),h("Y","Bag"),h("A",link.battlePanel === "target" ? "Use" : "Choose"),h("B",link.battlePanel !== "moves" ? "Attacks" : "Concede")]
-                        if (link.stage === "stake" || link.stage === "choose" && link.mode !== "battle") return [h("X Y","Party / Boxes"),h("A","Choose"),h("B","Back")]
-                        if (link.canSetTerms) return (link.stakeText.indexOf("₽") >= 0 ? [h("↑↓","Amount ±" + link.priceStep),h("←→","Step")] : []).concat([h("Select","Stake"),h("A","Ready"),h("B","Back")])
-                        return [h("A",link.stage === "pair" ? "Connect" : link.stage === "review" ? "Confirm" : link.stage === "moves" ? "Move" : "Choose"),h("B",link.pending ? "Pause" : "Back")]
-                    }
-                    if (party.section === "activities") return party.activities.route === "playroom" && party.activities.hasParty ? [h("↑","Practice"),h("←→","Partner"),h("Select","Play"),h("X","Greet"),h("A","Call")] : [h("A","Select"),h("B","Back")]
-                    if (party.moveStage === "release-confirm") return [h("X","Release"),h("B","Keep Pokemon")]
-                    if (party.moveOpen) return party.moveStage === "writing" || party.moveStage === "checking" ? [] : [h("A",party.moveStage === "name-confirm" ? "Rename" : party.moveStage === "name-error" ? "Edit name" : party.moveStage === "item-confirm" ? "Confirm" : party.moveStage === "confirm" ? "Confirm" : party.moveStage === "result" ? "OK" : "Choose"),h("B",party.moveStage === "places" ? "Cancel" : "Back")]
-                    if (party.detailOpen) return [h("A","Select"),h("B","Close")]
-                    if (party.boxFocused) return (party.canRenameBox ? [h("X","Rename box")] : []).concat([h("←→","Box"),h("↓","Slots"),h("B","Back")])
-                    const actions = [h("Select","Backups"),h("A",party.available && !party.activitiesFocused ? "Actions" : "Open"),h("B","Back")]
-                    if (party.canRenameBox) actions.unshift(h("X","Rename box"))
-                    if (party.section === "storage" && party.available && !party.activitiesFocused && party.focusIndex < 6) actions.unshift(h("↑","Boxes"))
-                    return actions
-                }
-                if (shell.trainerHistoryFace) {
-                    const hall = shell.hall
-                    if (hall.editor.open) return hall.editor.route === "form" ? [h("Y","Save"),h("A","Edit"),h("B","Discard")] : [h("X",hall.editor.route === "team" ? "Level" : "Search"),h("A",hall.editor.route === "team" ? "Name" : "Choose"),h("B","Back")]
-                    let result = []
-                    if (hall.archive && hall.editable) result.push(h("Select","New memory"))
-                    if (!hall.archive) result.push(h("Select","Refresh"))
-                    if (!hall.archive && hall.account.available) result.push(h("X","Account"))
-                    else if (hall.route === "archive-journey") result.push(h("X","Champions"))
-                    else if (hall.archive && hall.editable && hall.rows.length && !hall.overview) result.push(h("X","Edit"))
-                    if (hall.route === "archive-champions" || hall.route === "archive-champion-detail") result.push(h("← →","Records"))
-                    result.push(h("A",hall.overview ? (hall.route === "archive-journey" ? "Champions" : "Journey") : "Open"),h("B","Back")); return result
-                }
-                if (shell.page === 0) return [h("A",shell.multiverseHome ? (shell.multiverse.selected.id ? "Play" : "Explore") : shell.home.actionHint),h("B","Back")]
+                const experienceHints = ExperienceHints.actions(shell,h)
+                if (experienceHints) return experienceHints
+                if (shell.experienceView === "game-details") return [h("A","Game actions"),h("Select","Actions"),h("B","Home")]
+                if (shell.experienceView === "game-history") return [h("↑↓","Sessions"),h("Select","Game actions"),h("B","Home")]
+                if (shell.page === 0) return [h("A",shell.homeGame.id ? (shell.liveGame.id === shell.homeGame.id ? "Return" : shell.home.actionHint) : "Collections"),h("Select","Game actions"),h("B","Back")]
                 if (shell.page === 4) return shell.social.hints
                 return [h("A",shell.trainer.editing ? "Select" : "Edit Trainer"),h("B",shell.trainer.editing ? "Cancel" : "Back")]
             }
@@ -353,31 +290,22 @@ Window {
                     delegate: Hint {
                         required property var modelData
                         button: modelData.button; label: modelData.label
+                        interactive: ["A","B","X","Y","Select"].includes(button)
+                        onClicked: shell.pressButton(button)
                         tint: button === "B" ? Theme.pink : button === "X" || button === "←→" ? Theme.blue : button === "Y" ? Theme.yellow : Theme.green
                     }
                 }
-                Hint { button: "Start"; label: "System"; tint: Theme.yellow; visible: !shell.party.moveOpen && !shell.party.activities.link.invitationOpen && !shell.social.online.open }
+                Hint { button: "Home"; label: "Options"; interactive: true; onClicked: shell.pressButton("Home"); visible: !shell.party.moveOpen && !shell.party.activities.link.invitationOpen && !shell.social.online.open }
+                Hint { button: "Start"; label: "System"; tint: Theme.yellow; interactive: true; onClicked: shell.pressButton("Start"); visible: !shell.party.moveOpen && !shell.party.activities.link.invitationOpen && !shell.social.online.open }
             }
         }
         LibraryPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "library" }
         TrainerSettingsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "trainer-settings" }
+        PlayerProfilePanel { anchors.fill: screen; anchors.margins: Theme.panelInset; anchors.topMargin: Theme.contentTopInset; shell: shellController; visible: shell.service === "profile" }
         TrainerSetupPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "trainer-setup" }
         DevicePanel { anchors.fill: screen; shell: shellController; visible: shell.service === "device" }
         DiagnosticsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "diagnostics" }
-        PartyPanel { anchors.fill: screen; shell: shellController; enabled: !shell.serviceOpen && !shell.drawerOpen; visible: (!shell.serviceOpen || shell.service === "settings") && shell.centerFace && !shell.center.clinicOpen && !shell.center.shopsOpen && shell.party.section !== "saves" && shell.party.section !== "activities" }
-        PokemonShop { anchors.fill: screen; shell: shellController; enabled: !shell.serviceOpen && !shell.drawerOpen; visible: (!shell.serviceOpen || shell.service === "settings") && shell.centerFace && shell.center.shopsOpen }
-        PokemonClinic { anchors.fill: screen; shell: shellController; enabled: !shell.serviceOpen && !shell.drawerOpen; visible: (!shell.serviceOpen || shell.service === "settings") && shell.centerFace && shell.center.clinicOpen }
-        CenterActivitiesPanel { anchors.fill: screen; shell: shellController; enabled: !shell.serviceOpen && !shell.drawerOpen; visible: (!shell.serviceOpen || shell.service === "settings") && shell.centerFace && !shell.center.clinicOpen && !shell.center.shopsOpen && shell.party.section === "activities" }
-        SaveCenterPanel { anchors.fill: screen; shell: shellController; enabled: !shell.serviceOpen && !shell.drawerOpen; visible: (!shell.serviceOpen || shell.service === "settings") && shell.centerFace && !shell.center.clinicOpen && !shell.center.shopsOpen && shell.party.section === "saves" }
-        Rectangle {
-            id: merchantToast; property string message: ""
-            anchors.right: screen.right; anchors.bottom: screen.bottom; anchors.margins: 12
-            width: Math.min(440, screen.width-24); height: 54; radius: 8; color: "#f8e5a9"; border.color: "#b28b42"; z: 1
-            visible: toastTimer.running && shell.centerFace && !shell.menuOpen && !shell.drawerOpen && !shell.serviceOpen
-            Text { anchors.fill: parent; anchors.margins: 10; text: merchantToast.message; font.pixelSize: 16; color: Theme.ink; wrapMode: Text.WordWrap; verticalAlignment: Text.AlignVCenter }
-            Timer { id: toastTimer; interval: 4500 }
-            Connections { target: shell.center; function onMerchantDiscovered(message) { merchantToast.message=message; toastTimer.restart() } }
-        }
+        ExperienceHost { anchors.fill: screen; shell: shellController; overlay: true; visible: shell.page === 2 }
         ScrapePanel { anchors.fill: screen; shell: shellController; z: 3.1; visible: shell.scraper.open && !shell.keyboard.open }
         DownloadsPanel { anchors.fill: screen; flow: shell.downloads; z: 3.2; visible: shell.downloads.open }
         CollectionsPanel { anchors.fill: screen; shell: shellController; z: 3; visible: shell.collectionManager.open }
@@ -419,40 +347,10 @@ Window {
             }
             Rectangle { anchors.fill: parent; color: "#88102324" }
             MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted = true }
-            HomeMenuCard {
-                visible: !shell.notificationsOpen
+            ShellOptions {
                 anchors.centerIn: parent
-                caption: shell.homeMenuCaption
-                actions: shell.homeMenuActions
-                currentIndex: shell.homeMenuFocus
-                onChosen: index => shell.activateHomeMenu(index)
-            }
-            Panel {
-                visible: shell.notificationsOpen
-                anchors.centerIn: parent; width: 550
-                height: shell.social.notifications.length ? 120 + Math.min(3,shell.social.notifications.length)*71 : 200
-                patterned: false
-                Text { x: 23; y: 17; text: "Notifications"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 26 }
-                Text { x: 23; y: 52; text: "Your updates"; color: Theme.muted; font.pixelSize: 15 }
-                MountedPanel {
-                    x: 10; y: 82; width: parent.width-20; height: parent.height-94; color: "#dce9d9"
-                    ListView {
-                        id: notificationList
-                        anchors.fill: parent; anchors.margins: 12; clip: true; spacing: 9
-                        model: shell.social.notifications; currentIndex: Math.min(shell.notificationFocus, count-1)
-                        onCurrentIndexChanged: positionViewAtIndex(currentIndex,ListView.Contain)
-                        delegate: CapButton {
-                            required property var modelData
-                            required property int index
-                            width: notificationList.width; height: 62; claimsFocus: false
-                            label: modelData.name; detail: modelData.detail
-                            tint: modelData.request ? Theme.pink : Theme.blue
-                            selected: index===notificationList.currentIndex
-                            onActivated: shell.activateNotification(index)
-                        }
-                    }
-                    Text { anchors.centerIn: parent; visible: !notificationList.count; text: "You're all caught up!"; font.family: Theme.displayFamily; font.pixelSize: 23; color: Theme.ink }
-                }
+                width: parent.width * 0.92; height: parent.height * 0.90
+                shell: shellController
             }
         }
         Item {
@@ -460,7 +358,7 @@ Window {
             objectName: "nearby-invitation"
             property var link: shell.party.activities.link
             readonly property bool online: !!shell.social.online.open
-            readonly property bool runtime: runtimeMultiplayer.incoming
+            readonly property bool runtime: false // Runtime requests open through their stable inbox IDs.
             readonly property bool incoming: runtime || (online ? !!shell.social.online.incoming : link.invitationIncoming)
             function answer(accept) { if(runtime) runtimeMultiplayer.answer(accept); else if (online) shell.social.answerOnline(accept); else link.answerInvitation(accept) }
             width: parent.width; height: Theme.footerTop; z: 6
@@ -503,15 +401,6 @@ Window {
         }
         StoragePanel { anchors.fill: parent; visible: sessionState.blocked && !sessionState.entryGate && !sessionState.firstRunPage && !sessionState.access.active; stateController: sessionState }
         TrainerAccessPanel { anchors.fill: parent; access: sessionState.access; visible: sessionState.access.active }
-        Rectangle {
-            anchors.right: parent.right; anchors.rightMargin: 28
-            anchors.bottom: parent.bottom; anchors.bottomMargin: 62
-            width: 340; height: message.implicitHeight+28; radius: 12; z: 8
-            color: "#ffefad"; border.color: "#a87927"; border.width: 2
-            visible: shell.achievementToast.length>0 && !adventureLaunch.active && !sessionState.blocked
-            Text { id: message; x: 14; y: 14; width: parent.width-28; text: shell.achievementToast
-                color: "#294440"; font.family: Theme.displayFamily; font.pixelSize: 17; wrapMode: Text.WordWrap }
-        }
         LaunchPanel { anchors.fill: parent; visible: adventureLaunch.preparing; launch: adventureLaunch }
     }
     readonly property var shell: shellController

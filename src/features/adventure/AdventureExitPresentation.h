@@ -57,9 +57,11 @@ public:
     bool requestMenu();
     // Returning to play releases the lease; accepted restart retains it until exit.
     void dismissMenu();
+    void handOffToShell();
     bool exitFromMenu();
     void menuCaptureCompleted(quint64 token, const QImage&);
     Q_INVOKABLE void activateMenu(int index);
+    Q_INVOKABLE void activateAction(const QString& id);
     // A provider must tag asynchronous snapshots with the current generation.
     // Focus/lease loss and each phase change invalidate previous snapshots.
     quint64 inputGeneration() const { return generation_; }

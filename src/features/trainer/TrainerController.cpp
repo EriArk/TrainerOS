@@ -51,8 +51,17 @@ QVariantMap TrainerController::profile() const {
     return {{"id", current.id}, {"name", current.name}, {"emblem", current.emblemId},
             {"favorite", favoriteLabel(current.favoritePokemonId)}};
 }
-void TrainerController::beginEdit() {
+QVariantList TrainerController::editRows() const {
+    QVariantList rows{QVariantMap{{"title","Name"},{"detail",draftName()},{"kind","action"}},
+        QVariantMap{{"title","Emblem"},{"detail",draftEmblem()},{"kind","action"}}};
+    if(gamePersona_)rows.append(QVariantMap{{"title","Favorite"},{"detail",draftFavorite()},{"kind","action"}});
+    rows.append(QVariantMap{{"title",saving_?"Saving…":"Save profile"},{"kind","action"}});
+    rows.append(QVariantMap{{"title","Cancel"},{"kind","action"}});
+    return rows;
+}
+void TrainerController::beginEdit(bool gamePersona) {
     if (editing_ || saving_) return;
+    gamePersona_=gamePersona;
     draft_ = profile_.value_or(TrainerProfile{});
     if (!profile_) {
         draft_.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
@@ -111,10 +120,11 @@ void TrainerController::reload() {
 }
 void TrainerController::activate(int index) {
     if (picker_.isOpen()) { picker_.activate(index); return; }
-    if (editing_ && index == 4) { cancel(); return; }
-    if (!editing_ || saving_ || index < 0 || index > 4) return;
+    const int action=gamePersona_?index:index>=2?index+1:index;
+    if (editing_ && action == 4) { cancel(); return; }
+    if (!editing_ || saving_ || index < 0 || index > (gamePersona_?4:3)) return;
     focus_ = index;
-    switch (index) {
+    switch (action) {
     case 0: emit nameRequested(draft_.name); break;
     case 1: draft_.emblemId = emblems[(emblems.indexOf(draft_.emblemId) + 1) % emblems.size()]; break;
     case 2: picker_.begin(draft_.favoritePokemonId); break;
@@ -129,13 +139,14 @@ void TrainerController::dispatch(Action action, bool vertical) {
     if (action == Action::Back) { cancel(); return; }
     if (action == Action::Confirm) { activate(focus_); return; }
     if (vertical && (action == Action::Up || action == Action::Down)) {
-        focus_ = std::clamp(focus_ + (action == Action::Down ? 1 : -1), 0, 4);
+        focus_ = std::clamp(focus_ + (action == Action::Down ? 1 : -1), 0, gamePersona_?4:3);
         emit changed(); return;
     }
-    if (action == Action::Up) focus_ = focus_ >= 3 ? 2 : std::max(0, focus_ - 1);
-    if (action == Action::Down) focus_ = focus_ < 3 ? focus_ + 1 : focus_;
-    if (action == Action::Right && focus_ == 3) focus_ = 4;
-    if (action == Action::Left && focus_ == 4) focus_ = 3;
+    const int saveIndex=gamePersona_?3:2;
+    if (action == Action::Up) focus_ = focus_ >= saveIndex ? saveIndex-1 : std::max(0, focus_ - 1);
+    if (action == Action::Down) focus_ = focus_ < saveIndex ? focus_ + 1 : focus_;
+    if (action == Action::Right && focus_ == saveIndex) focus_ = saveIndex+1;
+    if (action == Action::Left && focus_ == saveIndex+1) focus_ = saveIndex;
     emit changed();
 }
 }

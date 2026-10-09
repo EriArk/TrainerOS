@@ -1,5 +1,15 @@
 # Current tasks
 
+**UX-02 implementation delivered, 9 October 2026:** adaptive Home/game slots,
+universal profile, Options/Select, live Game Options/minimize, contextual Together
+and passive shell notifications/shared inbox are installed and running on Flip/Odin.
+[Implementation, checks and limits](UX_FRAMEWORK.md) records real solo and paired runtime
+handoffs, the gameplay inbox fallback and deferred physical/TV/future-route acceptance.
+Odin now boots directly into TrainerOS; immediate activation and a real reboot
+were verified. Resume MP-02; preserve its separate uncommitted timer work.
+The dated planning-only statements below are superseded; no issue is closed by
+this delivery and README screenshots remain unchanged.
+
 **Latest owner scope, 9 October 2026:** document adaptive Home as part of the
 [#174–178 experience architecture](EXPANSION_174_178.md), then complete the entire
 shared framework/UI/control block before MP-02 and other queued expansion.
@@ -149,22 +159,24 @@ Preserve the unfinished MP-02 source change. Its underlying timer regression
 may be validated if the changed UI exercises it; no cable-research detour before
 this outcome. Then resume the full MP-02 block below.
 
-## Next implementation: UX-02 — adaptive framework, UI and controls
+## Delivered implementation: UX-02 — adaptive framework, UI and controls
 
-Current pass supplies the map and documentation only. On the owner's continuation:
+Implementation is installed on both handhelds. [Evidence](UX_FRAMEWORK.md) separates
+source, automated checks, actual runtime input and remaining owner/TV/audio acceptance:
 
-- [ ] UX-02 foundation: experience descriptors/resolver and host boundaries;
+- [x] UX-02 foundation: experience descriptors/resolver and host boundaries;
   adaptive Home and slots A/B; extract verified Pokémon flows; separate universal
-  identity/profile; useful generic fallback and two nonproduction experience fixtures.
+  identity/profile; useful generic fallback and two nonproduction descriptor/routing fixtures.
   Preserve semantic route migration, exact-build capabilities and stale-result guards.
-- [ ] UX-02A: shared Shell Options from every primary and focused-object Select,
+- [x] UX-02A: shared Shell Options from every primary and focused-object Select,
   experience-supplied contextual actions, stable target/focus, global profile entry,
-  parallel touch/controller and real Handheld/TV composition.
-- [ ] UX-02B: Game Options for the actual process, safe minimize → Social → same
+  parallel touch/controller and the new panels' Handheld/TV layout preference.
+  Physical TV/remote/CEC and owner visual acceptance remain open.
+- [x] UX-02B: Game Options for the actual process, safe minimize → Social → same
   game return; runtime capability gates, input/save/audio/time protection and #49 Exit.
-- [ ] UX-02C: contextual Together entries plus passive shell/game notifications and
+- [x] UX-02C: contextual Together entries plus passive shell notifications, gameplay inbox fallback and
   common inbox, preserving provider/party/call ownership and clean capture.
-- [ ] UX-02D: integrated existing-route acceptance and control documentation;
+- [x] UX-02D: integrated existing-route acceptance and control documentation;
   retain future-runtime, real TV, human audio and owner-deferred gates explicitly.
 
 Each functional outcome includes required integration, bounded checks, both

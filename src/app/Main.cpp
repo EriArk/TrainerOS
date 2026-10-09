@@ -408,10 +408,20 @@ int main(int argc, char* argv[]) {
         QObject::connect(shell.party()->activities()->link(),&LinkController::changed,&session,updateServiceActivity);
         ProcessService adventureProcess;
         AdventureLaunchController adventureLaunch(adventureProcess);
+        const auto storageApply=shell.settings()->storage()->apply;
+        if(storageApply)shell.settings()->storage()->apply=[&,storageApply](const QString& root){
+            return adventureLaunch.active()?QString("Exit the running game before changing game storage."):storageApply(root);
+        };
         AdventureExitPresentation exitPresentation(adventureLaunch.exitController());
+        std::unique_ptr<AdventureOverlayService> adventureOverlay;
+        QString pendingNotification;
+        if(saveBackups)saveBackups->operationGuard=[&]{return adventureLaunch.active()?QString("Exit the running game before changing saves."):QString();};
         RuntimeMultiplayer multiplayer(activeLibrary,retroarch,ppsspp,dolphin,*shell.social(),adventureProcess,adventureLaunch,exitPresentation);
+        shell.libraryTools()->multiplayerAvailable=[&](const QString& id){return multiplayer.onlineGames().contains(id);};
+        QObject::connect(&shell,&ShellController::togetherRequested,&multiplayer,[&](const QString& game){shell.goToPage(4);multiplayer.beginTogether(game);});
+        QObject::connect(shell.social(),&SocialController::runtimeAction,&multiplayer,[&](const QString& action){multiplayer.contextAction(action);});
         QObject::connect(&multiplayer,&RuntimeMultiplayer::notice,&shell,[&](QString text){
-            if(adventureLaunch.active())adventureProcess.runtimeCommand("notify",text);else shell.showNotice(text);
+            shell.showNotice(text);
         });
         // Supported profiles must be usable in normal sessions, including owner testing.
         // Availability still follows exact runtime/content and current-session guards.
@@ -424,10 +434,10 @@ int main(int argc, char* argv[]) {
         refreshMultiplayer();
         auto gameNotifications=[&]{
             QVariantList rows;
-            for(const auto& value:shell.social()->notifications()) {
+            for(const auto& value:shell.notifications()) {
                 const auto row=value.toMap();
                 rows.append(QVariantMap{{"id","notice:"+row["id"].toString()},
-                    {"label",row["name"]},{"detail",row["detail"]},{"readOnly",true}});
+                    {"label",row["name"]},{"detail",row["detail"]},{"readOnly",!(adventureOverlay && adventureOverlay->canMinimize())}});
             }
             const bool empty=rows.isEmpty();
             if(!empty)rows.append(QVariantMap{{"id","dismiss-notifications"},{"label","Dismiss notifications"}});
@@ -435,7 +445,10 @@ int main(int argc, char* argv[]) {
             exitPresentation.setPanel("notifications",empty?"You're all caught up!":"Your updates",rows);
         };
         auto gameMenuActions=[&]{
-            QVariantList actions{QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(shell.social()->notifications().size())}}};
+            QVariantList actions{QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(shell.notifications().size())}}};
+            actions.prepend(QVariantMap{{"id","minimize"},{"label","Minimize"},
+                {"detail",adventureOverlay && adventureOverlay->canMinimize()?"Browse TrainerOS · game keeps running":"Safe input handoff is unavailable"},
+                {"readOnly",!(adventureOverlay && adventureOverlay->canMinimize())}});
             if(multiplayer.canInvite())actions.prepend(QVariantMap{{"id","multiplayer"},{"label",multiplayer.menuLabel()}});
             if(adventureProcess.runtimeControls()["kind"]=="retroarch")actions.append(QVariantMap{{"id","display"},{"label","Screen & graphics"}});
             if(!shell.social()->account()["voice"].toMap()["channel"].toString().isEmpty())actions.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",shell.social()->account()["voice"].toMap()["name"]}});
@@ -451,12 +464,19 @@ int main(int argc, char* argv[]) {
             }
         };
         QObject::connect(shell.social(),&SocialController::changed,&exitPresentation,gameMenuActions);
+        QObject::connect(&shell,&ShellController::changed,&exitPresentation,gameMenuActions);
         QObject::connect(&multiplayer,&RuntimeMultiplayer::changed,&exitPresentation,gameMenuActions);
         QObject::connect(&adventureLaunch,&AdventureLaunchController::adventureStarted,&exitPresentation,gameMenuActions);
-        QObject::connect(shell.social(),&SocialController::backgroundNotification,&exitPresentation,[&](QString title,QString text){
-            adventureProcess.runtimeCommand("notify",title+" · "+text);
-        });
+        QObject::connect(&exitPresentation,&AdventureExitPresentation::changed,&exitPresentation,[&]{if(exitPresentation.menuOpen()&&exitPresentation.panel().isEmpty())gameMenuActions();});
+        QObject::connect(&exitPresentation,&AdventureExitPresentation::changed,&multiplayer,&RuntimeMultiplayer::resumeLiveInvocation);
+        // The current compositor has no accepted non-focusing passive overlay.
+        // Retain events in the shared inbox. Emulator SHOW_MSG cannot participate
+        // in our clean-capture barrier and must not leak previews into history.
         QObject::connect(&exitPresentation,&AdventureExitPresentation::menuActionRequested,&exitPresentation,[&](const QString& action){
+            if(action=="minimize"){if(adventureOverlay)adventureOverlay->minimize();return;}
+            if(action.startsWith("notice:")) {
+                pendingNotification=action.mid(7);if(adventureOverlay)adventureOverlay->minimize();return;
+            }
             const auto back=QVariantMap{{"id","back"},{"label","Back"}};
             const auto runtime=adventureProcess.runtimeControls();
             if(multiplayer.action(action))return;
@@ -466,7 +486,7 @@ int main(int argc, char* argv[]) {
             if(action=="notifications") {
                 gameNotifications();return;
             }
-            if(action=="dismiss-notifications"){shell.social()->dismissNotifications();gameNotifications();return;}
+            if(action=="dismiss-notifications"){shell.dismissNotifications();gameNotifications();return;}
             if(action=="call"||action.startsWith("voice-")) {
                 if(action!="call")shell.social()->controlCall(action);
                 const auto voice=shell.social()->account()["voice"].toMap();
@@ -499,7 +519,6 @@ int main(int argc, char* argv[]) {
                     if (adventure.id == id) { title = adventure.title; break; }
                 exitPresentation.setGameTitle(title);
             });
-        std::unique_ptr<AdventureOverlayService> adventureOverlay;
 #ifdef Q_OS_LINUX
         if (personalLibrary && !smoke && platform.dedicatedSession()) {
             QFile configuration(QDir(stateDirectory).filePath("integrations/overlay.json"));
@@ -702,7 +721,7 @@ int main(int argc, char* argv[]) {
                 if (adventureLaunch.preparing() && action == Action::Back) adventureLaunch.cancel();
                 return;
             }
-            if(!session.blocked()&&multiplayer.dispatch(action))return;
+            // Invitations remain in Notifications until deliberately opened.
             session.dispatch(action);
         });
         QString pendingMode;
@@ -803,6 +822,10 @@ int main(int argc, char* argv[]) {
                 auto returnFullscreen = std::make_shared<bool>(false);
                 auto returnedAdventure=std::make_shared<QString>();
                 const auto requestAdventure = [&, window, returnFullscreen, returnedAdventure](const ProcessCommand& command, const QString& id) -> AdventureResult {
+                    if(adventureLaunch.minimized()) {
+                        if(id==adventureLaunch.adventureId() && adventureOverlay){adventureOverlay->returnToGame();return {true,{},true};}
+                        return {false,"A game is still running. Return to it or exit it from Game Options before starting another."};
+                    }
                     if (pendingLinkSave(QDir(stateDirectory).filePath("backups")))
                         return {false, "Reconnect with your friend to finish the exchange before playing."};
                     if (shell.party()->activities()->link()->active())
@@ -828,6 +851,10 @@ int main(int argc, char* argv[]) {
                 armsx2.requestLaunch = requestAdventure;
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::changed, &session, [&] {
                     session.setAdventureActive(adventureLaunch.active());
+                    session.setAdventureMinimized(adventureLaunch.minimized());
+                    QVariantMap live;
+                    if(adventureLaunch.minimized())live={{"id",adventureLaunch.adventureId()},{"title",exitPresentation.gameTitle()}};
+                    shell.setLiveGame(live);
                     input.setEnabled(app.applicationState() == Qt::ApplicationActive && (!adventureLaunch.active() || adventureLaunch.preparing()));
                 });
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::checkpointRequested, store.get(),
@@ -837,6 +864,35 @@ int main(int argc, char* argv[]) {
                     });
                 });
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::suspendRequested, window, [window] { window->hide(); });
+                QObject::connect(&shell, &ShellController::changed, &adventureLaunch, [&] {
+                    if(adventureLaunch.minimized())adventureLaunch.updateReturnContext(shell.navigationState());
+                });
+                if(adventureOverlay) {
+                    QObject::connect(&multiplayer,&RuntimeMultiplayer::liveOptionsRequested,adventureOverlay.get(),[&]{
+                        if(shell.runtimeChangeBlocked() || !adventureOverlay->canMinimize()){multiplayer.cancelInvocation();shell.showNotice("Game controls are temporarily unavailable.");return;}
+                        adventureOverlay->returnToGame(true);
+                    });
+                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::handoffFailed,&multiplayer,[&](const QString&){multiplayer.cancelInvocation();});
+                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellRequested,window,[&,window,returnFullscreen]{
+                        if(*returnFullscreen)window->showFullScreen();else window->show();
+                        window->requestActivate();
+                        if(!pendingNotification.isEmpty()) {
+                            const auto id=std::exchange(pendingNotification,{});
+                            shell.dispatch(Action::Home);shell.openNotificationById(id);
+                        }
+                    });
+                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::gameRequested,window,[&,window]{
+                        adventureLaunch.updateReturnContext(shell.navigationState());window->hide();
+                    });
+                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellAction,&session,[&](Action action){
+                        if(adventureLaunch.minimized())session.dispatch(action);
+                    });
+                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::handoffFailed,&shell,[&](QString message){pendingNotification.clear();shell.showNotice(message);});
+                    QObject::connect(&shell,&ShellController::liveGameRequested,adventureOverlay.get(),[&](bool options){
+                        if(shell.runtimeChangeBlocked())return;
+                        adventureOverlay->returnToGame(options);
+                    });
+                }
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::restoreRequested, window,
                                  [&, window, returnFullscreen, returnedAdventure](const QJsonObject& state) {
                     shell.restoreNavigation(state);

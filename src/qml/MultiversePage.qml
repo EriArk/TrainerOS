@@ -11,6 +11,11 @@ Item {
         compact: root.model.route === "systems"
         subtitle: root.model.route === "systems" ? "" : root.model.sample ? "Development preview · fictional titles · no launch" : root.model.collection !== "multiverse" ? "Across your library" : "Your library across systems"
     }
+    SocialIconButton {
+        anchors.right: parent.right; anchors.rightMargin: 16; y: 10
+        icon: "dots-three"; label: root.model.route === "games" ? "Game actions" : "Collection actions"
+        onClicked: root.shell.openContext(root.model.route === "games" ? "game" : "collection",root.model.route === "games" ? root.model.detail.id : root.model.collection)
+    }
     MountedPanel {
         y: header.height; width: parent.width; height: parent.height - y; color: "#d9deed"
         Text {

@@ -1,5 +1,15 @@
 # AGENTS.md — TrainerOS
 
+**UX-02 implementation delivered, 9 October 2026:** adaptive Home/game slots,
+universal profile, Options/Select, live Game Options/minimize, contextual Together
+and passive shell notifications/shared inbox are installed and running on Flip/Odin.
+[Implementation, checks and limits](docs/UX_FRAMEWORK.md) records real solo and paired runtime
+handoffs, the gameplay inbox fallback and deferred physical/TV/future-route acceptance.
+Odin now boots directly into TrainerOS; immediate activation and a real reboot
+were verified. Resume MP-02; preserve its separate uncommitted timer work.
+The dated planning-only statements below are superseded; no issue is closed by
+this delivery and README screenshots remain unchanged.
+
 **Owner adaptive-Home/framework priority, 2026-10-09:** Home also adapts through
 the selected Adventure's Experience Package, including real game-facing widgets,
 actions, presentation and verified progress, not just background/title. Keep its

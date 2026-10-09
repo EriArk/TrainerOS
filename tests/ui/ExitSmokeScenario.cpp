@@ -112,8 +112,8 @@ void startExitSmoke(QQuickWindow* shellWindow, ShellController& shell, Adventure
             check(!view.visible() && state->returned == 0, "Home again returns to game");
             check(view.requestMenu(), "Open for explicit exit"); break;
         case 22:
-            press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
-            check(view.menuFocus() == 1, "D-pad selects Exit");
+            for(int i=0;i<view.menuActions().size();++i)press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+            check(view.menuActions().value(view.menuFocus()).toMap()["id"]=="exit", "D-pad selects separate Exit action");
             press(SDL_CONTROLLER_BUTTON_B);
             check(state->capture > 0, "Only Exit starts capture");
             check(!window->isVisible(), "No overlay before capture completes");
@@ -188,7 +188,8 @@ void startExitSmoke(QQuickWindow* shellWindow, ShellController& shell, Adventure
             exit.setAvailable(true); check(view.requestMenu(), "Autosave Home menu"); break;
         case 9:
             check(view.ready() && view.menuOpen() && state->closes == 1, "Autosave opening Home does not close");
-            press(SDL_CONTROLLER_BUTTON_DPAD_DOWN); press(SDL_CONTROLLER_BUTTON_B);
+            for(int i=0;i<view.menuActions().size() && view.menuActions().value(view.menuFocus()).toMap()["id"]!="exit";++i)press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+            press(SDL_CONTROLLER_BUTTON_B);
             { QImage frame(64,36,QImage::Format_RGB32); frame.fill(Qt::blue); exit.captureCompleted(state->capture, frame); }
             break;
         case 10: {

@@ -41,7 +41,14 @@ class RawPad:
         return {'connected': True, 'neutral': bool(neutral), 'confirm': 305 in keys,
                 'back': 304 in keys, 'home': 316 in keys,
                 'up': 544 in keys or positions[1] < .225,
-                'down': 545 in keys or positions[1] > .775}
+                'down': 545 in keys or positions[1] > .775,
+                'left': 546 in keys or positions[0] < .225,
+                'right': 547 in keys or positions[0] > .775,
+                'start': 315 in keys, 'select': 314 in keys,
+                'secondary': 307 in keys, 'recent': 308 in keys,
+                'previousPage': 310 in keys, 'nextPage': 311 in keys,
+                'previousFace': positions[min(self.triggers)] > .75,
+                'nextFace': positions[max(self.triggers)] > .75}
 
 
 def identity(pid):
@@ -137,7 +144,7 @@ class X11:
             pass
         return False
 
-    def hide_prompt(self, shell_pid, shell_start):
+    def hide_prompt(self, shell_pid, shell_start, all_windows=False):
         try:
             if identity(shell_pid) != shell_start: return
         except OSError:
@@ -149,7 +156,7 @@ class X11:
             finally:
                 if children: self.x.XFree(children)
         for window in windows:
-            if self.pid(window) == shell_pid and self.prop(window, '_NET_WM_NAME') == 'TrainerOS — Return from Adventure'.encode():
+            if self.pid(window) == shell_pid and (all_windows or self.prop(window, '_NET_WM_NAME') == 'TrainerOS — Return from Adventure'.encode()):
                 self.x.XUnmapWindow(self.display, window)
         self.x.XFlush(self.display)
 

@@ -24,6 +24,39 @@ void tap(TextEntryController& keyboard, Action action, int count = 1) {
 class InteractionTests : public QObject {
     Q_OBJECT
 private slots:
+    void genericExperienceProfileAndLiveTargetStayIndependent() {
+        class Library final:public LibraryRepository {
+        public:
+            MockLibraryRepository sample;
+            QList<Adventure> adventures()const override {auto list=sample.adventures();auto game=list.first();game.id="generic";game.domain="multiverse";game.platformId="snes";game.title="Road fixture";list.append(game);return list;}
+            QList<World> worlds()const override{return sample.worlds();}
+            QList<ResumePoint> resumePoints()const override{return sample.resumePoints();}
+            HomeSnapshot home()const override{return sample.home();}
+        } library;
+        MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        const auto pokemon=shell.currentAdventureId();shell.goToPage(2);shell.dispatch(Action::NextFace);shell.dispatch(Action::NextFace);
+        QCOMPARE(shell.pokemonFace(),"boxes");
+        auto state=shell.navigationState();state["homeAdventure"]="generic";state["page"]="home";shell.restoreNavigation(state);
+        QCOMPARE(shell.homeView(),"game-home");QCOMPARE(shell.primaryNames()[2],"Game");QCOMPARE(shell.primaryNames()[3],"History");
+        shell.goToPage(2);QCOMPARE(shell.experienceView(),"game-details");QVERIFY(!shell.centerFace());
+        shell.goToPage(3);QCOMPARE(shell.experienceView(),"game-history");
+        shell.setLiveGame({{"id",pokemon},{"title","Running Pokemon"}});
+        QSignalSpy returns(&shell,&ShellController::liveGameRequested);
+        shell.dispatch(Action::Home);const auto options=shell.homeMenuActions();
+        shell.dispatch(Action::SystemMenu);QVERIFY(shell.menuOpen());QVERIFY(!shell.homeMenuOpen());
+        shell.dispatch(Action::Back);QVERIFY(!shell.menuOpen());QVERIFY(shell.homeMenuOpen());
+        QCOMPARE(shell.page(),3);QCOMPARE(shell.experienceView(),"game-history");
+        int profile=-1,live=-1;for(int i=0;i<options.size();++i){if(options[i].toMap()["id"]=="profile")profile=i;if(options[i].toMap()["id"]=="live-return")live=i;}
+        QVERIFY(profile>=0 && live>=0);shell.activateHomeMenu(live);QCOMPARE(returns.size(),1);QCOMPARE(shell.currentAdventureId(),"generic");
+        shell.activateHomeMenu(profile);QCOMPARE(shell.service(),"profile");shell.dispatch(Action::Confirm);
+        QCOMPARE(shell.trainer()->editRows().size(),4);QVERIFY(shell.trainer()->editing());
+        for(const auto& row:shell.trainer()->editRows())QVERIFY(row.toMap()["title"]!="Favorite");
+        shell.dispatch(Action::Back);shell.dispatch(Action::Back);QVERIFY(shell.homeMenuOpen());shell.dispatch(Action::Back);
+        state=shell.navigationState();state["homeAdventure"]=pokemon;state["page"]="companions";shell.restoreNavigation(state);
+        QCOMPARE(shell.homeView(),"pokemon-home");QCOMPARE(shell.pokemonFace(),"boxes");QCOMPARE(shell.liveGame()["id"].toString(),pokemon);
+    }
     void backgroundScrapingLeavesTouchControllerAndSettingsUsable() {
         class Library final : public LibraryRepository {
         public:
@@ -303,7 +336,7 @@ private slots:
         shell.pokedex()->dispatch(Action::Down);const auto zone=shell.pokedex()->zone();shell.dispatch(Action::Back);QCOMPARE(shell.pokedex()->zone(),zone);
         QVERIFY(shell.menuItems().contains("Switch Trainer"));QVERIFY(!shell.menuItems().contains("Pokémon Center"));
         shell.dispatch(Action::SystemMenu);shell.activate(6);QVERIFY(shell.powerMenu());QVERIFY(!shell.menuItems().contains("Switch Trainer"));
-        auto legacy=state;legacy.remove("pokemonFace");legacy.remove("party");legacy["pokedexFace"]="center";
+        auto legacy=state;legacy.remove("experienceNavigation");legacy.remove("pokemonFace");legacy.remove("party");legacy["pokedexFace"]="center";
         shell.restoreNavigation(legacy);QCOMPARE(shell.pokemonFace(),"party");
     }
     void quickGameInformationPickerReturnsToStartWithoutChangingPage() {
@@ -766,7 +799,7 @@ private slots:
         achievements.enableAccountPreview();
         ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
         QVERIFY(!shell.multiverse()->sample());
-        shell.dispatch(Action::NextFace);QVERIFY(!shell.multiverseHome());QVERIFY(shell.faceNames().isEmpty());
+        shell.dispatch(Action::NextFace);QVERIFY(shell.multiverseHome());QVERIFY(shell.faceNames().isEmpty());
         shell.dispatch(Action::ToggleContinue);QVERIFY(shell.resumePoints().isEmpty());
         shell.dispatch(Action::Confirm);QVERIFY(!shell.drawerOpen());
         shell.dispatch(Action::Confirm);QCOMPARE(shell.page(),1);QVERIFY(shell.collectionsRoot());
@@ -783,8 +816,8 @@ private slots:
         QVERIFY(shell.trainer()->editing()); QCOMPARE(shell.service(), "settings");
         const auto before = shell.trainer()->profile();
         shell.trainer()->setDraftName("Discard this draft");
-        for(int i=0;i<4;++i) shell.dispatch(Action::Down);
-        QCOMPARE(shell.focusIndex(),4); shell.dispatch(Action::Confirm);
+        for(int i=0;i<3;++i) shell.dispatch(Action::Down);
+        QCOMPARE(shell.focusIndex(),3); shell.dispatch(Action::Confirm);
         QVERIFY(!shell.trainer()->editing()); QCOMPARE(shell.trainer()->profile(),before);
         QCOMPARE(shell.settings()->rowFocus(),0);
         shell.dispatch(Action::Back);
@@ -926,12 +959,12 @@ private slots:
         library.missing=chosen; library.latest="emerald-demo"; shell.refreshLibrary();
         QCOMPARE(shell.currentAdventureId(),chosen); QVERIFY(shell.home()["adventureId"].toString().isEmpty());
         shell.restoreNavigation(state); QCOMPARE(shell.currentAdventureId(),chosen);
-        shell.dispatch(Action::NextFace); QVERIFY(shell.centerFace()); QVERIFY(shell.center()->rows().isEmpty());
-        QVERIFY(shell.center()->message().contains("no longer linked")); QVERIFY(launched.isEmpty());
+        shell.dispatch(Action::NextFace); QVERIFY(!shell.centerFace()); QCOMPARE(shell.homeView(),"game-home");
+        QCOMPARE(shell.primaryNames()[2],"Game");QVERIFY(launched.isEmpty());
         const auto pairedState=shell.navigationState();
         shell.goToPage(0); shell.restoreNavigation(pairedState);
-        QVERIFY(shell.centerFace()); QCOMPARE(shell.currentAdventureId(),chosen);
-        QVERIFY(shell.center()->rows().isEmpty()); // Restart state does not invent a fallback shelf.
+        QVERIFY(!shell.centerFace()); QCOMPARE(shell.currentAdventureId(),chosen);
+        QCOMPARE(shell.homeView(),"game-home"); // A missing game cannot expose another game's Pokemon services.
     }
     void caseSymbolsAndSecretEntry() {
         TextEntryController keyboard;
