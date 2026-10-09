@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "core/navigation/ShellController.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include <QtTest>
@@ -38,7 +39,7 @@ struct Fixture {
     MockPokedexRepository dex;
     MockHallOfFameRepository archive;
     MockAchievementProvider achievements;
-    ShellController shell{library, profiles, adapter, platform, dex, dex, archive, achievements};
+    ShellController shell{library, profiles, adapter, platform,builtinExperiences( dex, dex), archive, achievements};
     void select() { shell.dispatch(Action::ToggleContinue); shell.dispatch(Action::Confirm); }
 };
 }

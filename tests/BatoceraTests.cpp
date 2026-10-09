@@ -106,7 +106,7 @@ private slots:
         settings.setLibraryScanState(true,false);settings.dispatch(Action::Confirm);QCOMPARE(refresh.size(),1);
         settings.setLibraryScanState(true,true);settings.dispatch(Action::Confirm);QCOMPARE(refresh.size(),1);
         settings.dispatch(Action::Back);QVERIFY(!settings.controlsFocused());
-        settings.setLegacyTrashAvailable(true);settings.selectCategory(8);settings.activateRow(3);QCOMPARE(trash.size(),1);
+        settings.setLegacyTrashAvailable(true);settings.selectCategory(8);settings.activateRow(4);QCOMPARE(trash.size(),1);
         settings.setLibraryScanState(true,false,"Library is up to date");
         QCOMPARE(settings.libraryStatus(),QString("Library is up to date"));
     }
@@ -128,15 +128,21 @@ private slots:
         put(xml,"<gameList><game><path>./Fixture.gba</path><image>./art.png</image></game></gameList>");
         LocalStateStore store(dir.filePath("state"));store.open();QTRY_VERIFY(store.ready());
         BatoceraLibrary folders(store,roms);QSignalSpy finished(&folders,&BatoceraLibrary::scanFinished);
+        QString observed="first";folders.observeIdentity=[&](const QString&,const QString&){return QVariantMap{{"rom.fixture",observed}};};
         folders.rescan();QTRY_COMPARE(finished.size(),1);
         const auto id=store.adventures().first().id;const auto media=folders.artwork(id);QVERIFY(!media.isEmpty());
+        QCOMPARE(folders.experienceIdentity(id).value("rom.fixture").toString(),QString("first"));
+        observed="replacement";
         put(xml,"<gameList><game>");folders.rescan();QTRY_COMPARE(finished.size(),2);
         QCOMPARE(folders.artwork(id),media);QVERIFY(!finished.last()[1].toStringList().isEmpty());
+        QCOMPARE(folders.experienceIdentity(id).value("rom.fixture").toString(),QString("replacement"));
         QVERIFY(QDir().rename(roms,roms+"-offline"));folders.rescan();QTRY_COMPARE(finished.size(),3);
         QCOMPARE(folders.artwork(id),media);QCOMPARE(store.registrations().size(),1);
         QVERIFY(QDir().rename(roms+"-offline",roms));
         put(xml,"<gameList><game><path>./Fixture.gba</path></game></gameList>");
-        folders.rescan();QTRY_COMPARE(finished.size(),4);QVERIFY(folders.artwork(id).isEmpty());
+        folders.rescan();QTRY_COMPARE(finished.size(),4);
+        QVERIFY(folders.artwork(id).value("image").toString().isEmpty());
+        QVERIFY(folders.artwork(id).value("displayPicture").toString().isEmpty());
         QCOMPARE(store.adventures().first().id,id);
     }
     void refreshDuringScanRunsOneFollowup() {

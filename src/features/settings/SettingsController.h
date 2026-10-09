@@ -5,11 +5,12 @@
 #include "core/input/Action.h"
 #include "core/repository/PreferencesRepository.h"
 #include <QVariantList>
+#include <QPointer>
 #include "core/model/SaveBackup.h"
 
 namespace trainer {
 class ScrapeController;
-class LinkController;
+class NativeActivityProvider;
 class SettingsController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(trainer::LibraryStorageController* storage READ storage CONSTANT)
@@ -34,7 +35,7 @@ class SettingsController final : public QObject {
 public:
     void setScraper(ScrapeController* value) { scraper_=value; }
     CommunicationSettings* communication() { return &communication_; }
-    void configureNearby(LinkController*);
+    void configureNearby(NativeActivityProvider*);
     ClockController* clock() { return &clock_; }
     const ClockController* clock() const { return &clock_; }
     LibraryStorageController* storage() { return &storage_; }
@@ -81,7 +82,7 @@ signals:
     void quickAdjustment(int index, trainer::Action action);
 private:
     ScrapeController* scraper_=nullptr;
-    LinkController* nearby_ = nullptr;
+    QPointer<NativeActivityProvider> nearby_;
     ClockController clock_;
     CommunicationSettings communication_;
     LibraryStorageController storage_;

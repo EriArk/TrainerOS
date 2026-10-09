@@ -1,7 +1,7 @@
 #include "LegacyStoreFixture.h"
 #include "core/repository/OfflinePokedex.h"
 #include "core/storage/LocalStateStore.h"
-#include "features/pokedex/PokedexController.h"
+#include "adapters/pokemon/pokedex/PokedexController.h"
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QSqlQuery>

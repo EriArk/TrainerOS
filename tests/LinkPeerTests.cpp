@@ -1,4 +1,4 @@
-#include "features/center/LinkController.h"
+#include "adapters/pokemon/center/LinkController.h"
 #include <QtTest>
 #include <QTcpSocket>
 #include <QJsonDocument>

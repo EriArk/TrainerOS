@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "core/storage/SessionState.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include "integrations/achievements/AchievementProvider.h"
@@ -91,7 +92,7 @@ private slots:
     void removalControllerDefaultsToKeepAndSessionRejectsUnsafeWork() {
         QTemporaryDir dir;LocalStateStore s(dir.path());
         MockAdventureAdapter adapter;DevelopmentPlatformService platform;MockPokedexRepository dex;MockAchievementProvider ra;
-        ShellController shell(s,s,adapter,platform,dex,s,s,ra);SessionState session(shell,&s);
+        ShellController shell(s,s,adapter,platform,builtinExperiences(dex,s),s,ra);SessionState session(shell,&s);
         session.start();QTRY_VERIFY(!session.blocked());create(s,"one");
         session.setAdventureActive(true);session.requestTrainerRemoval();QVERIFY(!session.access()->active());session.setAdventureActive(false);
         session.requestTrainerRemoval();QCOMPARE(session.access()->choices(),QStringList({"Keep Trainer","Remove Trainer"}));
@@ -192,7 +193,7 @@ private slots:
         {LocalStateStore s(dir.path());s.open();QTRY_VERIFY(s.ready());create(s,"one",pin("1234"));create(s,"two");}
         LocalStateStore store(dir.path());store.enforceAccess();
         MockAdventureAdapter adapter;DevelopmentPlatformService platform;MockPokedexRepository dex;MockAchievementProvider ra;
-        ShellController shell(store,store,adapter,platform,dex,store,store,ra);SessionState session(shell,&store);
+        ShellController shell(store,store,adapter,platform,builtinExperiences(dex,store),store,ra);SessionState session(shell,&store);
         QSignalSpy opened(&store,&LocalStateStore::opened);QSignalSpy exited(&session,&SessionState::exitReady);
         session.start();QTRY_VERIFY(session.entryGate());QVERIFY(opened.isEmpty());QCOMPARE(shell.trainerSetup()->stage(),"chooser");
         for(auto action:{Action::Home,Action::PreviousPage,Action::NextPage,Action::PreviousFace,Action::NextFace,Action::ToggleContinue,Action::Back})session.dispatch(action);

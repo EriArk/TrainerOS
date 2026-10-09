@@ -83,6 +83,10 @@ QString writeGamelist(const QString& directory,const Fingerprint& file,const Gam
     }
     const bool added=target.isNull();
     if(added) {target=doc.createElement("game");games.appendChild(target);}
+    // EmulationStation/Batocera provider identity survives ordinary rescans.
+    // Selection has already been exact-file matched or explicitly confirmed.
+    target.setAttribute("source","screenscraper");
+    target.setAttribute("id",QString::number(id));
     auto fields=game.fields;
     const QSet<QString> allowed{"name","desc","genre","players","releasedate","developer","publisher"};
     for(auto it=fields.begin();it!=fields.end();)it=allowed.contains(it.key())?std::next(it):fields.erase(it);

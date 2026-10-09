@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "core/storage/SessionState.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include <QtTest>
@@ -135,7 +136,7 @@ private slots:
         store.saveAdventureAsync(record,this,[&](auto result){QVERIFY(result.success);done=true;});QTRY_VERIFY(done);
         MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
         MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
-        ShellController shell(store,profiles,adapter,platform,dex,dex,archive,achievements);
+        ShellController shell(store,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
         shell.configureServices(nullptr,&store);
         shell.goToPage(1);shell.activate(0);QCOMPARE(shell.multiverse()->route(),"games");
         QVERIFY(shell.canHoldConfirm());QVERIFY(!shell.canEditWorld());

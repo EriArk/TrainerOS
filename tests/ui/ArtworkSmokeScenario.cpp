@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "ArtworkSmokeScenario.h"
 #include <QTimer>
 #include <QElapsedTimer>
@@ -45,7 +46,7 @@ void startArtworkSmoke(QQuickWindow* window, ShellController& shell, ControllerI
         constexpr auto up = SDL_CONTROLLER_BUTTON_DPAD_UP, down = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
         constexpr auto right = SDL_CONTROLLER_BUTTON_DPAD_RIGHT;
         constexpr auto l1 = SDL_CONTROLLER_BUTTON_LEFTSHOULDER, r1 = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER;
-        auto* dex = shell.pokedex();
+        auto* dex = pokemonModule(shell).pokedex();
         const QList<QPair<QString,QString>> specimens{{"1","1"},{"37","10205"},{"321","321"},{"797","797"},
             {"201","201"},{"869","10498"},{"678","10539"},{"716","10132"},{"1008","10439"},{"1025","1025"}};
         if (state->stage == 0) {
@@ -62,7 +63,7 @@ void startArtworkSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             press(SDL_CONTROLLER_BUTTON_X); check(!shell.drawerOpen(),"Shared Y leaked through artwork panel");
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767); input.poll();
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768); input.poll();
-            check(!shell.centerFace(),"Paired face leaked through artwork panel");
+            check(!(shell.page()==2 && shell.experienceModel()==shell.module("pokemon") && pokemonModule(shell).centerFace()),"Paired face leaked through artwork panel");
             press(SDL_CONTROLLER_BUTTON_START); press(b);
             check(dex->zone()=="art","Start/Back must restore artwork panel");
             press(r1); press(l1); check(dex->zone()=="list","Primary navigation closes draft");
@@ -189,10 +190,10 @@ void startArtworkSmoke(QQuickWindow* window, ShellController& shell, ControllerI
         }
         if (state->stage == 11) {
             capture("sprite-form-960"); press(b);
-            shell.trainer()->picker()->begin("vulpix");
+            pokemonModule(shell).persona()->picker()->begin("vulpix");
             // The picker projection uses the same exact default-form provider.
-            check(shell.trainer()->picker()->entries().size()==1025,"Species picker lost reference");
-            shell.trainer()->picker()->cancel();
+            check(pokemonModule(shell).persona()->picker()->entries().size()==1025,"Species picker lost reference");
+            pokemonModule(shell).persona()->picker()->cancel();
             check(warnings==0,"QML warnings emitted");
             QJsonObject report{{"motionExercised",state->motionExercised},{"motionSamples",state->motionSamples},{"passed",!state->failed},{"coverage",dex->artCoverage()},
                 {"logicalViewport",QJsonArray{960,540}},{"windowPixels",QJsonArray{window->width(),window->height()}},

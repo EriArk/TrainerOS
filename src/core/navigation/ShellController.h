@@ -5,14 +5,12 @@
 #include "core/input/TextEntryController.h"
 #include "core/repository/LibraryRepository.h"
 #include "core/model/GameProgressProvider.h"
-#include "features/experience/ExperienceNavigation.h"
-#include "features/experience/PokemonExperienceController.h"
+#include "core/experience/ExperienceModule.h"
 #include <QPointer>
 #include "features/trainer/TrainerController.h"
 #include "features/trainer/TrainerSetupPresentation.h"
 #include "features/worlds/WorldsController.h"
 #include "features/worlds/MultiversePresentation.h"
-#include "features/pokedex/PokedexController.h"
 #include "features/halloffame/HallOfFameController.h"
 #include "features/library/LibraryManagementController.h"
 #include "features/library/LibraryToolsController.h"
@@ -22,8 +20,6 @@
 #include "features/device/DeviceController.h"
 #include "features/device/NetworkController.h"
 #include "features/diagnostics/DiagnosticsController.h"
-#include "features/center/SaveCenterController.h"
-#include "features/center/PartyPresentation.h"
 #include "integrations/adventure/AdventureAdapter.h"
 #include "platform/PlatformService.h"
 #include <QObject>
@@ -46,17 +42,14 @@ class ShellController final : public QObject {
     Q_PROPERTY(QVariantList notifications READ notifications NOTIFY changed)
     Q_PROPERTY(QVariantMap passiveNotice READ passiveNotice NOTIFY changed)
     Q_PROPERTY(QString trainerFace READ trainerFace NOTIFY changed)
-    Q_PROPERTY(bool trainerHistoryFace READ trainerHistoryFace NOTIFY changed)
     Q_PROPERTY(trainer::SocialController* social READ social CONSTANT)
     Q_PROPERTY(QString socialFace READ socialFace NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
     Q_PROPERTY(bool drawerOpen READ drawerOpen NOTIFY changed)
     Q_PROPERTY(bool chooseAdventureAvailable READ chooseAdventureAvailable NOTIFY changed)
     Q_PROPERTY(bool pairedNavigationAvailable READ pairedNavigationAvailable NOTIFY changed)
-    Q_PROPERTY(QString pokemonFace READ pokemonFace NOTIFY changed)
     Q_PROPERTY(QStringList faceNames READ faceNames NOTIFY changed)
     Q_PROPERTY(int faceIndex READ faceIndex NOTIFY changed)
-    Q_PROPERTY(bool centerFace READ centerFace NOTIFY changed)
     Q_PROPERTY(trainer::GameCollections* collectionManager READ collectionManager CONSTANT)
     Q_PROPERTY(QVariantMap homeGame READ homeGame NOTIFY changed)
     Q_PROPERTY(bool collectionsRoot READ collectionsRoot NOTIFY changed)
@@ -79,15 +72,12 @@ class ShellController final : public QObject {
     Q_PROPERTY(trainer::TextEntryController* keyboard READ keyboard CONSTANT)
     Q_PROPERTY(trainer::TrainerController* trainer READ trainer CONSTANT)
     Q_PROPERTY(trainer::WorldsController* worlds READ worlds CONSTANT)
-    Q_PROPERTY(trainer::PokedexController* pokedex READ pokedex CONSTANT)
     Q_PROPERTY(trainer::HallOfFameController* hall READ hall CONSTANT)
     Q_PROPERTY(trainer::LibraryManagementController* libraryManager READ libraryManager CONSTANT)
     Q_PROPERTY(trainer::SettingsController* settings READ settings CONSTANT)
     Q_PROPERTY(trainer::DeviceController* device READ device CONSTANT)
     Q_PROPERTY(trainer::NetworkController* network READ network CONSTANT)
     Q_PROPERTY(trainer::DiagnosticsController* diagnostics READ diagnostics CONSTANT)
-    Q_PROPERTY(trainer::SaveCenterController* center READ center CONSTANT)
-    Q_PROPERTY(trainer::PartyPresentation* party READ party CONSTANT)
     Q_PROPERTY(QString service READ service NOTIFY changed)
     Q_PROPERTY(bool serviceOpen READ serviceOpen NOTIFY changed)
     Q_PROPERTY(bool sampleLibrary READ sampleLibrary CONSTANT)
@@ -97,18 +87,30 @@ class ShellController final : public QObject {
     Q_PROPERTY(bool powerMenu READ powerMenu NOTIFY changed)
 public:
     ShellController(LibraryRepository&, TrainerRepository&, AdventureAdapter&, PlatformService&,
-                    PokedexReferenceProvider&, PokedexProgressRepository&, HallOfFameRepository&,
+                    ExperienceFactory, HallOfFameRepository&,
                     AchievementProvider&, QObject* parent = nullptr);
+    Q_PROPERTY(QObject* experienceModel READ experienceModel NOTIFY changed)
+    Q_PROPERTY(QUrl experiencePresenter READ experiencePresenter NOTIFY changed)
+    Q_PROPERTY(QVariantMap moduleInvitation READ moduleInvitation NOTIFY changed)
+    Q_PROPERTY(bool moduleControlsBlocked READ moduleControlsBlocked NOTIFY changed)
+    QObject* experienceModel() const { return activeModule_; }
+    QUrl experiencePresenter() const { return activeModule_?activeModule_->presenter():QUrl(); }
+    ExperienceModule* module(const QString& id) const;
+    QVariantList liveExperienceActions(const QString& game,const QString& session);
+    bool invokeLiveExperienceAction(const QString& action,const QString& game,const QString& session);
+    QVariantMap moduleInvitation() const;
+    bool moduleControlsBlocked() const { return modulesBlocked() || moduleInvitation()["open"].toBool(); }
+    void reloadModules() { for(auto& module:modules_)module->reload(); }
     TrainerSetupPresentation* trainerSetup() { return &trainerSetup_; }
     void setOnboardingConnections(bool active) { if(onboardingConnections_==active)return; onboardingConnections_=active; emit changed(); }
     SocialController* social() { return &social_; }
     TextEntryController* keyboard() { return &keyboard_; }
     Q_PROPERTY(bool unobstructed READ canReceiveNearby NOTIFY changed)
     bool canReceiveNearby() { return !homeMenuOpen_ && !menuOpen_ && !drawerOpen_ && !serviceOpen() && notice_.isEmpty()
-        && !localModalOpen() && !keyboard_.isOpen() && !party_.activities()->practice()->running(); }
+        && !localModalOpen() && !keyboard_.isOpen() && !moduleActivityBusy(); }
     bool canReceiveOnline() { return !menuOpen_ && !drawerOpen_ && !serviceOpen() && notice_.isEmpty()
         && (!localModalOpen() || (page_==4 && !social_.menu().isEmpty()))
-        && !keyboard_.isOpen() && !party_.activities()->practice()->running(); }
+        && !keyboard_.isOpen() && !moduleActivityBusy(true); }
     TrainerController* trainer() { return &trainer_; }
     WorldsController* worlds() { return &worlds_; }
     MultiversePresentation* multiverse() { return &multiverse_; }
@@ -120,7 +122,6 @@ public:
     GameCollections* collectionManager() { return multiverse_.collectionManager(); }
     Q_INVOKABLE void manageCollection(bool create=false);
     Q_INVOKABLE void editCollection(int index);
-    PokedexController* pokedex() { return &pokedex_; }
     HallOfFameController* hall() { return &hall_; }
     LibraryManagementController* libraryManager() { return &libraryManager_; }
     LibraryToolsController* libraryTools() {return &libraryTools_;}
@@ -132,8 +133,6 @@ public:
     DeviceController* device() { return &device_; }
     NetworkController* network() { return &network_; }
     DiagnosticsController* diagnostics() { return &diagnostics_; }
-    SaveCenterController* center() { return &center_; }
-    PartyPresentation* party() { return &party_; }
     QString service() const { return service_; }
     bool serviceOpen() const { return !service_.isEmpty(); }
     bool sampleLibrary() const { return !repository_.editable(); }
@@ -159,14 +158,11 @@ public:
     Q_INVOKABLE void pressButton(const QString& button);
     Q_INVOKABLE void activateHomeAction(const QString& id);
     QString trainerFace() const;
-    bool trainerHistoryFace() const { const auto view=experienceView();return view=="achievements" || view=="pokemon-journey" || view=="pokemon-hall"; }
     QString socialFace() const { return socialFace_; }
     int focusIndex() const;
     bool drawerOpen() const { return drawerOpen_; }
     bool chooseAdventureAvailable();
     bool pairedNavigationAvailable();
-    bool centerFace() const { return page_ == 2 && experienceView().startsWith("pokemon-") && pokemon_.face() != "dex"; }
-    QString pokemonFace() const { return pokemon_.face(); }
     QStringList faceNames() const;
     int faceIndex() const;
     QString currentAdventureId() const;
@@ -186,7 +182,8 @@ public:
     Q_INVOKABLE void openProfile();
     bool powerMenu() const { return powerMenu_; }
     QString notice() const { return notice_; }
-    bool runtimeChangeBlocked() const { return scraper_.busy() || navigationLocked(); }
+    bool moduleServiceBusy() const { return moduleWriting() || modulesBlocked(); }
+    bool runtimeChangeBlocked() const { return scraper_.busy() || moduleWriting() || navigationLocked(); }
     QVariantMap home() const;
     QVariantList resumePoints() const;
     QStringList menuItems() const;
@@ -206,24 +203,28 @@ signals:
     void modeRequested(const QString& mode);
     void homeLaunchPressed();
 private:
+    ExperienceModule* activeModule_ = nullptr;
+    QPointer<ExperienceModule> textModule_;
+    quint64 textGeneration_ = 0;
+    bool modulesBlocked(bool recovery=false) const;
+    bool moduleWriting() const;
+    bool moduleActivityBusy(bool recovery=false) const;
     QVariantMap liveGame_;
     QVariantList achievementNotifications_;
     void syncExperience();
+    ExperienceModule* resolveExperience(const std::optional<Adventure>&) const;
     void showExperienceFace(int slot,const QString& face);
     ExperienceNavigation experience_;
     bool syncingExperience_ = false;
-    int experienceFocus_ = 0;
     void confirm();
     void openCollection(int index);
     void cycleCollection(int delta);
     void trainerSettingsAction(int);
     void refreshContinue();
     bool localModalOpen();
-    void openCenter();
-    void showPokemonFace(const QString& face);
     void showTrainerFace(const QString& face);
     bool navigationLocked(bool primaryRecovery = false) const;
-    void refreshParty();
+    void refreshExperience();
     std::optional<Adventure> homeAdventure() const;
     std::optional<ResumePoint> homeResumePoint(const QString& adventureId) const;
     ResumeAvailability homeResumeAvailability(const Adventure&) const;
@@ -240,7 +241,6 @@ private:
     bool trainerChooserFromPower_ = false;
     WorldsController worlds_;
     MultiversePresentation multiverse_;
-    PokedexController pokedex_;
     HallOfFameController hall_;
     LibraryManagementController libraryManager_;
     LibraryToolsController libraryTools_;
@@ -250,18 +250,14 @@ private:
     DeviceController device_;
     NetworkController network_;
     DiagnosticsController diagnostics_;
-    SaveCenterController center_;
-    PartyPresentation party_;
-    PokemonExperienceController pokemon_{pokedex_,center_,party_};
     SocialController social_;
     QString service_;
-    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, TrainerFavorite, CenterSearch, ShopSearch, BoxName, AchievementAccount, SetupName, Network, Social, Communication, Scraper };
+    enum class TextTarget { None, TrainerName, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, Module, AchievementAccount, SetupName, Network, Social, Communication, Scraper };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QString homeAdventureId_, homeResumeId_;
     ResumeSource homeResumeSource_;
     int page_ = 0;
-    bool trainerProfile_ = true;
     QString socialFace_ = "chats";
     int drawerFocus_ = 0;
     int menuFocus_ = 0;
@@ -286,5 +282,8 @@ private:
     QString achievementToast_;
     quint64 achievementToastGeneration_ = 0;
     QString mode_;
+    struct LiveModuleAction { ExperienceModule* module; ExperienceLiveContext context; QString action; };
+    QHash<QString,LiveModuleAction> liveModuleActions_;
+    ExperienceModules modules_; // Destroy modules before the host services they reference.
 };
 }

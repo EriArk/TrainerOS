@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "core/model/SeriesCatalog.h"
 #include "core/navigation/ShellController.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
@@ -74,7 +75,7 @@ private slots:
     void shellRootBackHomeCyclingAndDirectLaunch() {
         SeriesLibrary library;SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;
         MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
-        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
         shell.goToPage(1);QVERIFY(shell.collectionsRoot());shell.activate(1);
         QVERIFY(!shell.collectionsRoot());QCOMPARE(shell.multiverse()->collection(),"mario");
         shell.dispatch(Action::Confirm);QVERIFY(!adapter.launched.isEmpty());
@@ -90,7 +91,7 @@ private slots:
         const auto time=QDateTime::currentDateTimeUtc();
         library.sessions={{"s1","m1",time},{"s2","p1",time.addSecs(-10)},{"s3","m1",time.addSecs(-20)}};
         MockTrainerRepository profiles;DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
-        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
         QCOMPARE(shell.primaryNames()[1],"Collections");
         shell.goToPage(1);shell.activate(0);QVERIFY(shell.multiverseFace());
         QCOMPARE(shell.multiverse()->route(),"games");QCOMPARE(shell.multiverse()->games().size(),1);
@@ -114,7 +115,7 @@ private slots:
         library.moments={old,latest};
         MockTrainerRepository profiles;DevelopmentPlatformService platform;MockPokedexRepository dex;
         MockHallOfFameRepository archive;MockAchievementProvider achievements;
-        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
         shell.dispatch(Action::ToggleContinue);QCOMPARE(shell.resumePoints().size(),1);shell.activate(0);
         QCOMPARE(shell.currentAdventureId(),"m1");QCOMPARE(shell.navigationState()["homeResume"].toString(),"latest");
         QVERIFY(adapter.launched.isEmpty());
@@ -136,7 +137,7 @@ private slots:
     void legacyHomeChoiceMigratesOnceAndBrokenCollectionsAreKept() {
         SeriesLibrary library;SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;
         MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
-        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
         const QJsonObject legacy{{"version",2},{"page","home"},{"homeDomain","multiverse"},{"homeCollection","mario"},
             {"multiverse",QJsonObject{{"collection","zelda"},{"selected","z1"},{"collections",QJsonObject{{"mario",QJsonObject{{"selected","m2"}}}}}}}};
         shell.restoreNavigation(legacy);QCOMPARE(shell.currentAdventureId(),"m2");
@@ -164,7 +165,7 @@ private slots:
     void collectionModalKeepsStartAndKeyboardAccessible() {
         SeriesLibrary library;SeriesAdapter adapter;MockTrainerRepository profiles;DevelopmentPlatformService platform;
         MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
-        ShellController shell(library,profiles,adapter,platform,dex,dex,archive,achievements);
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
         shell.goToPage(1);shell.dispatch(Action::LocalAction);QVERIFY(shell.collectionManager()->isOpen());
         shell.dispatch(Action::SystemMenu);QVERIFY(shell.menuOpen());shell.activate(0);QCOMPARE(shell.service(),"settings");
         QVERIFY(!shell.collectionManager()->isOpen());

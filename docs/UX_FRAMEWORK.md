@@ -1,8 +1,75 @@
 # UX-02 framework and controls
 
-Implemented and installed, 9 October 2026. This record supplements the accepted
-[interaction map](UX_OPTIONS_MAP_RU.md) and [experience register](EXPANSION_174_178.md).
-The evidence below distinguishes installed behavior from retained external acceptance.
+## Adapter encapsulation follow-up - 9 October 2026
+
+The owner correction is implemented in `src/adapters/<id>/`, using the shared
+`src/core/experience/` contract. Pokemon owns its controllers, views, persona,
+actions and opaque navigation. The generic shell mounts registered presenters;
+Social, Settings and archive consumers depend on shared provider interfaces.
+RPG/racing test modules exercise the real host and rendered UI, including input,
+state, replacement, disabling and stale-callback rejection. They are test fixtures,
+not additional supported commercial games or downloadable executable packages.
+
+Every adapter owns a compatibility/asset manifest. Alternatives are OR rules;
+all constraints within an alternative must match. ScreenScraper is optional.
+The Pokemon built-in currently has local catalogue, ScreenScraper GBA ID, validated
+raw GBA header-code and weaker legacy-context routes. Other provider IDs, hashes
+and validated save observations are supported evidence fields, not claims that
+all those observers already exist. Equal competing matches use generic fallback.
+Cached identity is independent of artwork and refreshed during discovery; a
+failed metadata refresh cannot preserve an obsolete ROM identity. Catalogue/header
+matching selects presentation and never grants exact-build save access.
+
+Adapter-owned art/sprite profiles use `<state>/adapters/<id>/packs/<family>/`
+with explicit existing-private-root fallback. No extraction provider is declared
+implemented; ROM/save extraction, Pack Studio and external package trust remain
+in their existing queues. Future adapters must start with the same folder,
+manifest, composition and real-host tests; both AGENTS files record that rule.
+
+Validation: all 31 selected ARM CTest suites passed across the final full run
+(30 passing) and the corrected persistence rerun. Coverage includes manifest
+alternatives/ambiguity, renamed raw ROM recognition without scraping, metadata
+round-trip, stale identity, profile preservation, shared Social without a native
+provider, navigation/action guards and existing save/runtime flows. Four Python
+architecture checks also passed. Tests now wait boundedly for offscreen resize
+and deferred focus rather than capturing transient layout states.
+
+Installed-device checking then exposed a resource import defect masked by the
+build directory's QML module. The application now explicitly imports its compiled
+`qrc:/` module. A new isolated-executable persistence regression copies only the
+binary/process probe into a temporary directory and exercises independent,
+Pokemon and generic presenters without neighboring build files. The affected
+persistence and five rendered UI suites passed after this fix (6/6, 136 seconds).
+The native check also caught stale adapter hints on Home/Social; the host now
+ignores hidden presenters and Pokemon defers Home hints to the shared host.
+The new rendered regression plus persistence and the main UI smoke all passed
+after that final hint fix (3/3, 77 seconds, including the isolated executable).
+
+Final ARM binary SHA-256, installed and verified through the running executable
+on both devices:
+`628dbfef93a45f16d6d9ad822db135ead7a28a1c0dce69eb00d6df6ff6a719b0`.
+Flip PID 2205878 and Odin PID 9962 run this build. The separate MP-02
+`RuntimeMultiplayer.cpp` timer WIP is preserved and excluded from this ARM build.
+
+Native verification used remote controller/pointer events and inspected captures:
+Flip generic NES Pong Home/History, universal profile, Guide Options and Back;
+Odin Emerald Home with existing badge/caught/party data, Center, Party and RA,
+then final Home/Social hints and return. The final journal check found no QML
+resource/type errors. Both outputs remain quiet (Odin 0%). No game was launched,
+scraping started or save/profile changed by this adapter delivery. Previous solo/
+paired runtime handoff evidence below is reused, not claimed as newly rerun.
+Private screenshots remain local; README screenshots are unchanged.
+
+This completes the implementation/device-delivery correction before MP-02.
+Human controller/touch feel, TV/audio/distinct-network and all future-route,
+semantic/pack trust/artwork acceptance remain open as listed below.
+
+## Initial UX-02 delivery - historical baseline
+
+The following behavior/evidence was collected for the initial UI delivery of
+9 October 2026. Its binary hash and screenshots are historical, not proof of the
+subsequent adapter extraction. The accepted [interaction map](UX_OPTIONS_MAP_RU.md)
+and [experience register](EXPANSION_174_178.md) remain in effect.
 
 ## Implemented behavior
 
@@ -128,6 +195,25 @@ remain available. Later UX binary replacement restarted only the shell.
 Odin output remains at 0%.
 
 ## Retained boundaries
+
+### Owner follow-up: Odin GPU hangs (9 October 2026)
+
+Investigate later, including a maintained patch if the cause is identified. During
+the adapter update, the old shell PID 46967 became a zombie while its remaining
+thread 47021 (`traine:traceq0`) stayed in `D` state at
+`dma_fence_default_wait`. No game or protected Link operation was active. The
+supervisor correctly did not claim a new shell; a normal remote reboot did not
+return SSH. After the owner restarted the device, TrainerOS booted automatically
+and the corrected binary could be installed and restarted normally. This records
+a GPU-fence wait, not a proven root cause in Mesa, the kernel or TrainerOS.
+
+Next investigation should preserve bounded kernel/session/GPU diagnostics, record
+the exact kernel/Mesa/compositor revisions and reproduce the shutdown/idle
+sequence. Compare supported rendering/session paths, identify the responsible
+component, then keep any patch with its upstream base, reproduction, device
+verification and rollback. Do not repeatedly force reboot or declare the hang
+fixed by an unrelated UI change. The owner requested this as later work; MP-02
+keeps its accepted position after the adapter delivery.
 
 MP-02 timer WIP in RuntimeMultiplayer.cpp remains outside this increment and the
 ARM delivery. Existing physical headset/audio, separate-network, larger-group,

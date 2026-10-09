@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "core/storage/SessionState.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include "integrations/achievements/TrainerAchievementProvider.h"
@@ -88,7 +89,7 @@ private slots:
     void sessionRefusesUnsafeSwitchAndDrainsNavigation() {
         QTemporaryDir dir;LocalStateStore store(dir.path());
         MockAdventureAdapter adapter;DevelopmentPlatformService platform;MockPokedexRepository dex;MockAchievementProvider ra;
-        ShellController shell(store,store,adapter,platform,dex,store,store,ra);SessionState session(shell,&store);
+        ShellController shell(store,store,adapter,platform,builtinExperiences(dex,store),store,ra);SessionState session(shell,&store);
         session.start();QTRY_VERIFY(!session.blocked());create(store,"one");create(store,"two");
         QSignalSpy restarted(&session,&SessionState::trainerRestartReady);QSignalSpy exited(&session,&SessionState::exitReady);
         session.setAdventureActive(true);session.requestTrainerSwitch("two");QTest::qWait(20);QVERIFY(restarted.isEmpty());
@@ -115,7 +116,7 @@ private slots:
     void failedActivationLeavesPreviousSessionUsableAndCanRetry() {
         QTemporaryDir dir;LocalStateStore store(dir.path());
         MockAdventureAdapter adapter;DevelopmentPlatformService platform;MockPokedexRepository dex;MockAchievementProvider ra;
-        ShellController shell(store,store,adapter,platform,dex,store,store,ra);SessionState session(shell,&store);
+        ShellController shell(store,store,adapter,platform,builtinExperiences(dex,store),store,ra);SessionState session(shell,&store);
         session.start();QTRY_VERIFY(!session.blocked());create(store,"one");create(store,"two");
         QSignalSpy restarted(&session,&SessionState::trainerRestartReady);
         const auto name=QUuid::createUuid().toString();

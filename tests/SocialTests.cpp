@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include <QtTest>
 #include "features/adventure/GameParty.h"
 #include "integrations/social/AdventureReviews.h"
@@ -28,6 +29,36 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void runtimeTransportWorksWithoutAnyGameAdapter() {
+        SocialController controller;QSignalSpy started(&controller,&SocialController::runtimeEstablished);
+        QSignalSpy frames(&controller,&SocialController::runtimeFrame),ended(&controller,&SocialController::runtimeEnded);
+        emit controller.session_->onlineEstablished(controller.generation_,"self","peer","Peer","runtime.fixture",true);
+        QCOMPARE(started.size(),1);
+        emit controller.session_->onlineFrame(controller.generation_,{{"fixture",true}});QCOMPARE(frames.size(),1);
+        emit controller.session_->onlineEnded(controller.generation_);QCOMPARE(ended.size(),1);
+        emit controller.session_->onlineEstablished(controller.generation_+1,"self","peer","Peer","runtime.stale",true);
+        QCOMPARE(started.size(),1);
+    }
+    void nativeActivityProviderCanBeReplacedWithoutDuplicateRouting() {
+        struct Provider final:NativeActivityProvider {
+            int started=0,received=0,ended=0;
+            QJsonArray onlineCapabilities()const override{return {};}
+            bool beginOnline(QString,QString,QString,QString,bool)override{++started;return true;}
+            void receiveOnline(QJsonObject)override{++received;}
+            void showOnline()override{}
+            void endOnline()override{++ended;}
+            bool visibleNearby()const override{return false;}
+            void setVisibleNearby(bool)override{}
+        } first;
+        SocialController controller;controller.onlineWritable_=true;
+        controller.setLink(&first);controller.setLink(&first);
+        emit controller.session_->onlineEstablished(controller.generation_,"self","peer","Peer","fixture.native",true);
+        QCOMPARE(first.started,1);
+        auto second=std::make_unique<Provider>();controller.setLink(second.get());QCOMPARE(first.ended,1);
+        emit controller.session_->onlineFrame(controller.generation_,{});QCOMPARE(first.received,0);QCOMPARE(second->received,1);
+        second.reset();QVERIFY(controller.link_.isNull());
+        emit controller.session_->onlineEnded(controller.generation_);
+    }
     void overflowTargetsTheChosenGroupAndNotTheOpenConversation() {
         SocialController c;QSignalSpy commands(&c,&SocialController::commandRequested);
         const QString other="1501314428688998189";
@@ -426,7 +457,7 @@ private slots:
     void incomingCallAnswersFromHomeWithoutChangingPage() {
         MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;
-        ShellController shell(library,trainers,adapter,platform,dex,dex,hall,achievements);
+        ShellController shell(library,trainers,adapter,platform,builtinExperiences(dex,dex),hall,achievements);
         auto* social=shell.social();QSignalSpy commands(social,&SocialController::commandRequested);
         shell.goToPage(1);const auto origin=shell.navigationState();commands.clear();
         social->receive(0,{{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},
@@ -441,7 +472,7 @@ private slots:
     void homeSelectionFollowsActionWhenCallRowsChange() {
         MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;
-        ShellController shell(library,trainers,adapter,platform,dex,dex,hall,achievements);
+        ShellController shell(library,trainers,adapter,platform,builtinExperiences(dex,dex),hall,achievements);
         auto* social=shell.social();QSignalSpy commands(social,&SocialController::commandRequested);
         QVariantMap chat{{"id",channel},{"name","Friend"},{"kind","chats"},{"ringing",true}};
         QVariantMap state{{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},{"chats",QVariantList{chat}}};
@@ -467,7 +498,7 @@ private slots:
     void expiredRingKeepsJoinUntilCallEndsWithoutRedirectingConfirm() {
         MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;
-        ShellController shell(library,trainers,adapter,platform,dex,dex,hall,achievements);
+        ShellController shell(library,trainers,adapter,platform,builtinExperiences(dex,dex),hall,achievements);
         auto* social=shell.social();QSignalSpy commands(social,&SocialController::commandRequested);
         shell.goToPage(3);const auto origin=shell.navigationState();
         QVariantMap chat{{"id",channel},{"name","Friend"},{"kind","chats"},{"ringing",true},{"call",true}};
@@ -495,7 +526,7 @@ private slots:
     void callNotificationAnswersDirectlyAndDeclineKeepsOrigin() {
         MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;
-        ShellController shell(library,trainers,adapter,platform,dex,dex,hall,achievements);
+        ShellController shell(library,trainers,adapter,platform,builtinExperiences(dex,dex),hall,achievements);
         auto* social=shell.social();QSignalSpy commands(social,&SocialController::commandRequested);
         shell.goToPage(3);const auto origin=shell.navigationState();
         social->receive(0,{{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"available",true}}},
@@ -527,7 +558,7 @@ private slots:
     void homeCallControlsKeepTheOriginAndNeverImplicitlyLeave() {
         MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;
-        ShellController shell(library,trainers,adapter,platform,dex,dex,hall,achievements);
+        ShellController shell(library,trainers,adapter,platform,builtinExperiences(dex,dex),hall,achievements);
         auto* social=shell.social();QSignalSpy commands(social,&SocialController::commandRequested);
         social->receive(0,{{"state","connected"},{"userId","self"},{"voice",QVariantMap{{"channel",channel},{"muted",true},{"status","Connected"}}}});
         shell.goToPage(1);const auto origin=shell.navigationState();shell.dispatch(Action::Home);

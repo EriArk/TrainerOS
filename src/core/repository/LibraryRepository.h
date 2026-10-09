@@ -26,6 +26,8 @@ public:
     }
     virtual std::optional<ExitMedia> exitMedia(const QString&) const { return {}; }
     virtual QVariantMap artwork(const QString&) const { return {}; }
+    // Cached presentation identity, independent of visible artwork preferences.
+    virtual QVariantMap experienceIdentity(const QString&) const { return {}; }
     virtual std::optional<qint64> recordedSeconds(const QString&) const { return {}; }
     virtual HomeSnapshot home() const = 0;
     virtual bool editable() const { return false; }

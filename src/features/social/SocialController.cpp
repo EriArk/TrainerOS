@@ -1,6 +1,6 @@
 #include "SocialController.h"
 #include "integrations/social/FluxerSession.h"
-#include "features/center/LinkController.h"
+#include "core/experience/ExperienceProviders.h"
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFileInfo>
@@ -16,6 +16,14 @@
 
 namespace trainer {
 SocialController::SocialController(QObject* parent):QObject(parent),session_(new FluxerSession) {
+    connect(session_,&FluxerSession::onlineEstablished,this,[this](quint64 generation,QString self,QString peer,QString name,QString activity,bool initiator){
+        if(generation!=generation_)return;
+        runtimeOnline_=activity.startsWith("runtime.");
+        if(runtimeOnline_){emit runtimeEstablished(activity,initiator);return;}
+        if(!onlineWritable_||!link_||!link_->beginOnline(self,peer,name,activity,initiator))emit commandRequested("online-close",{});
+    });
+    connect(session_,&FluxerSession::onlineFrame,this,[this](quint64 generation,QJsonObject frame){if(generation!=generation_)return;if(runtimeOnline_)emit runtimeFrame(frame);else if(link_)link_->receiveOnline(frame);});
+    connect(session_,&FluxerSession::onlineEnded,this,[this](quint64 generation){if(generation!=generation_)return;if(runtimeOnline_){runtimeOnline_=false;emit runtimeEnded();}else if(link_)link_->endOnline();});
     partyBrowse_.setInterval(30000);
     connect(&partyBrowse_,&QTimer::timeout,this,[this]{refreshPartyBrowse();});partyBrowse_.start();
     session_->moveToThread(&thread_);
@@ -86,18 +94,13 @@ void SocialController::setFace(QString face) {
     if(face_=="friends"&&!searchStarted_&&snapshot_["state"]=="connected")runSearch();
     emit changed();
 }
-void SocialController::setLink(LinkController* link) {
+void SocialController::setLink(NativeActivityProvider* link) {
+    if(link_==link)return;
+    if(link_){link_->endOnline();disconnect(link_,nullptr,this,nullptr);}
     link_=link;
-    connect(session_,&FluxerSession::onlineEstablished,this,[this](quint64 generation,QString self,QString peer,QString name,QString activity,bool initiator){
-        if(generation!=generation_)return;
-        runtimeOnline_=activity.startsWith("runtime.");
-        if(runtimeOnline_){emit runtimeEstablished(activity,initiator);return;}
-        if(!onlineWritable_||!link_||!link_->beginOnline(self,peer,name,activity,initiator))emit commandRequested("online-close",{});
-    });
-    connect(session_,&FluxerSession::onlineFrame,this,[this](quint64 generation,QJsonObject frame){if(generation!=generation_)return;if(runtimeOnline_)emit runtimeFrame(frame);else if(link_)link_->receiveOnline(frame);});
-    connect(session_,&FluxerSession::onlineEnded,this,[this](quint64 generation){if(generation!=generation_)return;if(runtimeOnline_){runtimeOnline_=false;emit runtimeEnded();}else if(link_)link_->endOnline();});
-    connect(link,&LinkController::onlineSend,this,[this](QJsonObject frame){emit commandRequested("online-frame",frame.toVariantMap());});
-    connect(link,&LinkController::onlineClosed,this,[this]{emit commandRequested("online-close",{});});
+    if(!link_)return;
+    connect(link,&NativeActivityProvider::onlineSend,this,[this](QJsonObject frame){emit commandRequested("online-frame",frame.toVariantMap());});
+    connect(link,&NativeActivityProvider::onlineClosed,this,[this]{emit commandRequested("online-close",{});});
 }
 void SocialController::setOnlineContext(bool available,bool writable) {
     onlineAvailable_=available;

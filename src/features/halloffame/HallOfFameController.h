@@ -4,7 +4,7 @@
 #include "core/repository/HallOfFameRepository.h"
 #include "integrations/achievements/AchievementProvider.h"
 #include "ArchiveEditor.h"
-#include "features/pokedex/ClassicArt.h"
+#include "core/experience/ExperienceProviders.h"
 #include "AchievementAccountController.h"
 #include <QVariantList>
 #include "core/model/GameProgress.h"
@@ -35,7 +35,7 @@ public:
     bool overview() const { return route_ == "archive-journey" || route_ == "archive-champions" || route_ == "archive-champion-detail"; }
     void showJourney();
     void setCurrentAdventure(const QString&);
-    void configureArtwork(ClassicArt* art) { art_=art; emit changed(); }
+    void configureArtwork(ExperienceArtProvider* art) { art_=art; emit changed(); }
     void enableSampleJourney() { sampleJourney_ = true; }
     QVariantMap championPreview() const;
     QVariantMap journey() const;
@@ -81,7 +81,7 @@ private:
     void normalizeActions();
     void back();
     bool isDetail() const { return !overview() && route_.endsWith("detail"); }
-    ClassicArt* art_ = nullptr;
+    ExperienceArtProvider* art_ = nullptr;
     GameProgress progress_;
     QList<ChampionRecord> championRecords() const;
     QString championId_;

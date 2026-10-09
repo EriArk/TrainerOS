@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "DiagnosticsSmokeScenario.h"
 #include <QQuickItem>
 #include <QCoreApplication>
@@ -182,28 +183,28 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767); input.poll();
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768); input.poll(); break;
         case 36:
-            check(shell.centerFace() && focus("party-slot-0"), "Center starts on sample Party grid"); capture("center-party");
+            check((shell.page()==2 && shell.experienceModel()==shell.module("pokemon") && pokemonModule(shell).centerFace()) && focus("party-slot-0"), "Center starts on sample Party grid"); capture("center-party");
             press(right); press(a); break;
         case 37:
-            check(shell.party()->detailOpen() && shell.party()->detail()["hp"]=="0 / 38" && focus("party-detail-back"), "Known zero HP and detail focus"); capture("center-party-detail");
+            check(pokemonModule(shell).party()->detailOpen() && pokemonModule(shell).party()->detail()["hp"]=="0 / 38" && focus("party-detail-back"), "Known zero HP and detail focus"); capture("center-party-detail");
             press(b); flip(); break;
         case 38:
-            check(shell.party()->section()=="storage" && focus("party-slot-0"), "R2 opens bounded Boxes grid"); capture("center-storage");
+            check(pokemonModule(shell).party()->section()=="storage" && focus("party-slot-0"), "R2 opens bounded Boxes grid"); capture("center-storage");
             press(SDL_CONTROLLER_BUTTON_DPAD_UP); press(right); press(down); break;
         case 39:
-            check(shell.party()->box()==1, "Storage header changes box without shoulders");
+            check(pokemonModule(shell).party()->box()==1, "Storage header changes box without shoulders");
             press(down); press(right); press(a); break;
         case 40:
-            check(shell.party()->detail()["kind"]=="unreadable", "Unreadable is distinct from empty"); capture("center-unreadable");
+            check(pokemonModule(shell).party()->detail()["kind"]=="unreadable", "Unreadable is distinct from empty"); capture("center-unreadable");
             press(b); press(SDL_CONTROLLER_BUTTON_BACK); break;
         case 41:
-            check(shell.party()->section()=="saves" && focus("center-check"), "Select reaches ordinary save service");
+            check(pokemonModule(shell).party()->section()=="saves" && focus("center-check"), "Select reaches ordinary save service");
             {
                 auto* hint=window->findChild<QQuickItem*>("center-action-hint");
                 check(hint && !hint->property("text").toString().contains("Restore selected"), "Empty shelf must not advertise restore");
             }
             capture("center-sample-saves");
-            shell.center()->begin(); shell.center()->applySearch("No matching Adventure 987654321"); *stage=84; break;
+            pokemonModule(shell).center()->begin(); pokemonModule(shell).center()->applySearch("No matching Adventure 987654321"); *stage=84; break;
         case 84: {
             auto* button=window->findChild<QQuickItem*>("center-check");
             check(focus("center-check") && button && button->property("label").toString()=="Search Adventures", "Empty Adventure browser labels its search action without duplicating the footer key");
@@ -213,24 +214,24 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             check(shell.keyboard()->isOpen(), "Advertised X opens Center search"); press(b); break;
         case 86:
             check(focus("center-check"), "Cancelled empty search restores its opener");
-            shell.center()->beginSelected(shell.home()["adventureId"].toString()); press(b); flip(true); *stage=42; break;
+            pokemonModule(shell).center()->beginSelected(shell.home()["adventureId"].toString()); press(b); flip(true); *stage=42; break;
         case 42:
-            check(shell.party()->section()=="storage" && focus("party-slot-7"), "Back restores original box slot");
+            check(pokemonModule(shell).party()->section()=="storage" && focus("party-slot-7"), "Back restores original box slot");
             press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER); press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
         case 43:
-            check(shell.centerFace() && focus("party-slot-7"), "Global pages preserve Center route");
+            check((shell.page()==2 && shell.experienceModel()==shell.module("pokemon") && pokemonModule(shell).centerFace()) && focus("party-slot-7"), "Global pages preserve Center route");
             flip(true); flip(true); break;
         case 44:
-            check(!shell.centerFace(), "Triggers return through Party to Dex");
+            check(!(shell.page()==2 && shell.experienceModel()==shell.module("pokemon") && pokemonModule(shell).centerFace()), "Triggers return through Party to Dex");
             flip(true); flip(true); break;
         case 45:
-            check(shell.pokemonFace()=="playroom", "Playroom is a direct peer");
+            check(pokemonModule(shell).face()=="playroom", "Playroom is a direct peer");
             capture("center-activities"); break;
         case 46:
             check(focus("playroom-actor-0"), "Playroom uses a fixed actor control");
             capture("playroom"); press(right); press(a); break;
         case 47: {
-            check(focus("playroom-actor-1") && shell.party()->activities()->reaction().contains("called"), "Calling preserves the selected actor control");
+            check(focus("playroom-actor-1") && pokemonModule(shell).party()->activities()->reaction().contains("called"), "Calling preserves the selected actor control");
             press(SDL_CONTROLLER_BUTTON_Y);
             auto* actor = window->activeFocusItem();
             if (actor) {
@@ -249,28 +250,28 @@ void startDiagnosticsSmoke(QQuickWindow* window, ShellController& shell, Session
             press(SDL_CONTROLLER_BUTTON_Y);
             capture("playroom-greeting");
             press(SDL_CONTROLLER_BUTTON_BACK);
-            check(shell.party()->activities()->gesture()=="play", "Select plays without opening backups");
+            check(pokemonModule(shell).party()->activities()->gesture()=="play", "Select plays without opening backups");
             check(focus("playroom-actor-1"), "Play retains partner selection");
-            press(b); shell.party()->activities()->showPlace("practice"); break;
+            press(b); pokemonModule(shell).party()->activities()->showPlace("practice"); break;
         }
         case 49:
-            check(shell.party()->activities()->route()=="practice" && focus("practice-unavailable"), "Unverified practice has a focused Back action");
+            check(pokemonModule(shell).party()->activities()->route()=="practice" && focus("practice-unavailable"), "Unverified practice has a focused Back action");
             capture("practice-unavailable"); press(a); break;
         case 50:
-            check(shell.party()->activities()->route()=="playroom" && !shell.party()->activities()->practice()->running(), "Unverified practice returns without a battle");
+            check(pokemonModule(shell).party()->activities()->route()=="playroom" && !pokemonModule(shell).party()->activities()->practice()->running(), "Unverified practice returns without a battle");
             capture("practice-unavailable-return"); press(b); press(b); flip(true); press(SDL_CONTROLLER_BUTTON_Y); break;
         case 51:
-            check(shell.party()->activities()->route()=="link", "Link Counter is a separate route");
-            check(shell.party()->activities()->link()->stage()=="error", "A sample cannot start real Link transfers");
+            check(pokemonModule(shell).party()->activities()->route()=="link", "Link Counter is a separate route");
+            check(pokemonModule(shell).party()->activities()->link()->stage()=="error", "A sample cannot start real Link transfers");
             capture("link-peer"); press(a); break;
         case 52:
-            check(!shell.party()->activities()->link()->isOpen(), "Unavailable Link returns without a fake proposal");
+            check(!pokemonModule(shell).party()->activities()->link()->isOpen(), "Unavailable Link returns without a fake proposal");
             capture("link-unavailable-return"); break;
         case 53:
-            check(!shell.party()->activities()->link()->pending(), "No sample transaction is created");
+            check(!pokemonModule(shell).party()->activities()->link()->pending(), "No sample transaction is created");
             press(b); press(b); flip(true); break;
         case 54:
-            check(shell.party()->section()=="storage" && focus("party-slot-7"), "Center returns to the prior box slot");
+            check(pokemonModule(shell).party()->section()=="storage" && focus("party-slot-7"), "Center returns to the prior box slot");
             press(start); for (int i=0;i<10;++i) press(SDL_CONTROLLER_BUTTON_DPAD_UP); for(int i=0;i<4;++i)press(down); press(a); break;
         case 55:
             check(shell.service()=="settings" && focus("settings-category-0"), "Settings categories focus");

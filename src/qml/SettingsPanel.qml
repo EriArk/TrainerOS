@@ -3,7 +3,7 @@ Item {
     id: root
     required property var shell
     readonly property var settings: shell.settings
-    readonly property bool takesFocus: visible && !shell.menuOpen && !shell.notice.length && !shell.keyboard.open && !shell.trainer.picker.open && !shell.libraryTools.open && !shell.scraper.open
+    readonly property bool takesFocus: visible && !shell.menuOpen && !shell.notice.length && !shell.keyboard.open && !shell.libraryTools.open && !shell.scraper.open
     readonly property string localError: settings.category===4 && shell.trainer.editing ? shell.trainer.error
         : (settings.category===0 || settings.category===8 || settings.category===9) && settings.error.length ? settings.error
         : [0,1,5,10].includes(settings.category) ? shell.device.error : ""
@@ -94,5 +94,4 @@ Item {
             }
         }
     }
-    SpeciesPickerPanel { anchors.fill: parent; picker: root.shell.trainer.picker; visible: root.shell.trainer.picker.open; takesFocus: visible && !root.shell.menuOpen && !root.shell.keyboard.open && !root.shell.notice.length }
 }

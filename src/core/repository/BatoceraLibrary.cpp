@@ -114,6 +114,11 @@ Metadata readGamelist(const QString& directory,QStringList& warnings,bool& reada
     while(!xml.hasError() && xml.readNextStartElement()) {
         if(xml.name()!=u"game") {xml.skipCurrentElement();continue;}
         QVariantMap item;QString path;
+        const auto source=xml.attributes().value("source").toString().toLower();
+        const auto providerId=xml.attributes().value("id").toString();
+        bool numeric=false;const auto id=providerId.toLongLong(&numeric);
+        if(source=="screenscraper" && numeric && id>0)
+            item["experienceIdentity"]=QVariantMap{{"catalog.screenscraper",QString::number(id)}};
         while(xml.readNextStartElement()) {
             const auto tag=xml.name().toString();
             if(tag=="path")path=resolve(directory,xml.readElementText());
@@ -134,7 +139,7 @@ Metadata readGamelist(const QString& directory,QStringList& warnings,bool& reada
 }
 }
 QStringList batoceraPlatforms() { return formats().keys(); }
-FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistration>& existing) {
+FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistration>& existing,const ExperienceIdentityProbe& probe) {
     FolderScan result;QDir root(roms);
     if(!root.exists() || !QFileInfo(roms).isReadable()) {result.complete=false;result.warnings.append("The ROM folder is unavailable.");return result;}
     root=QDir(root.canonicalPath());
@@ -249,6 +254,14 @@ FolderScan scanBatoceraLibrary(const QString& roms,const QList<AdventureRegistra
                 if(entry.record.adventure.worldId=="unclassified-pokemon")entry.record.newWorld=World{"unclassified-pokemon","Other Pokémon",{}};
             }
             entry.media=data;
+            auto identity=data.value("experienceIdentity").toMap();
+            // The directory establishes the platform; never trust an XML path's
+            // display name or a media filename as a game/provider identity.
+            if(probe) {
+                const auto observed=probe(platform,path);
+                for(auto i=observed.cbegin();i!=observed.cend();++i)identity[i.key()]=i.value();
+            }
+            if(!identity.isEmpty())entry.media["experienceIdentity"]=identity;
             for(const auto& tag:QStringList{"image","thumbnail","boxart","titleshot","fanart","mix"})
                 if(!data.value(tag).toString().isEmpty()) {entry.media["cover"]=data.value(tag);break;}
             result.entries.append(entry);
@@ -278,6 +291,7 @@ QString BatoceraLibrary::storageRootFor(const QString& id) const {
 }
 QVariantMap BatoceraLibrary::artwork(const QString& id) const {
     auto result=media_.value(id);
+    result.remove("experienceIdentity");
     const bool cover=display_["picture"].toString()=="cover";
     const auto tags=cover?QStringList{"cover","image","screenshot","titleshot","thumbnail"}:QStringList{"screenshot","image","titleshot","thumbnail","cover"};
     for(const auto& tag:tags)if(!result.value(tag).toString().isEmpty()){result["displayPicture"]=result[tag];break;}
@@ -339,7 +353,7 @@ void BatoceraLibrary::rescan() {
     const auto existing=library_.registrations();
     busy_=true;emit busyChanged();
     auto result=std::make_shared<FolderScan>();
-    thread_=QThread::create([result,root=roms_,existing]{*result=scanBatoceraLibrary(root,existing);});
+    thread_=QThread::create([result,root=roms_,existing,probe=observeIdentity]{*result=scanBatoceraLibrary(root,existing,probe);});
     connect(thread_,&QThread::finished,this,[this,result] {
         thread_->wait();delete thread_;thread_=nullptr;
         scan_=std::move(*result);index_=0;added_=0;
@@ -353,8 +367,14 @@ void BatoceraLibrary::importNext() {
         // Recheck after asynchronous discovery: do not replace edits or bindings.
         const auto current=library_.registration(r.adventure.id);
         if(current) {
-            if(QDir::cleanPath(current->contentPath)==QDir::cleanPath(r.contentPath))
-                nextMedia_.insert(r.adventure.id,entry.preserveMedia?media_.value(r.adventure.id):entry.media);
+            if(QDir::cleanPath(current->contentPath)==QDir::cleanPath(r.contentPath)) {
+                auto media=entry.preserveMedia?media_.value(r.adventure.id):entry.media;
+                // Keep pictures through an unreadable XML refresh, but never
+                // reuse an old ROM observation as this scan's adapter identity.
+                media.remove("experienceIdentity");
+                if(entry.media.contains("experienceIdentity"))media["experienceIdentity"]=entry.media["experienceIdentity"];
+                nextMedia_.insert(r.adventure.id,media);
+            }
             // A newly copied ROM may reuse its old identity and history. Legacy
             // trash is restored explicitly and never overwrites a replacement.
             if(current->removed && current->trashPath.isEmpty() && QFileInfo(current->contentPath).isFile()) {

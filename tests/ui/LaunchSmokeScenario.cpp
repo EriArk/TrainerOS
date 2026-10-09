@@ -47,15 +47,16 @@ void startLaunchSmoke(QQuickWindow* window, ShellController& shell, SessionState
         if (session.blocked() || launch->active()) return;
         if (*stage == 0) {
             if (shell.page() == 0) press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
-            if (shell.worlds()->route() == "regions") press(SDL_CONTROLLER_BUTTON_B);
-            check(shell.worlds()->route() == "adventures", "Restored game wheel before launch");
+            if (shell.collectionsRoot()) press(SDL_CONTROLLER_BUTTON_B);
+            if (shell.multiverse()->route() == "systems") press(SDL_CONTROLLER_BUTTON_B);
+            check(shell.multiverse()->route() == "games", "Restored collection games before launch");
             ++*stage; return;
         }
         if (*stage % 2 == 1 && *stage < 7) { press(SDL_CONTROLLER_BUTTON_B); ++*stage; return; }
         if (*stage <= 6) {
             check(*returns == *attempt + 1, "Exactly one return signal per attempt");
             check(window->isVisible() && shell.navigationState() == *expected, "Window and navigation restored");
-            check(window->activeFocusItem() && window->activeFocusItem()->objectName().startsWith("adventure-"), "Launch focus restored");
+            check(window->activeFocusItem() && window->activeFocusItem()->objectName().startsWith("multiverse-"), "Launch focus restored");
             check(launch->state() == (*attempt == 0 ? "returned" : "failed"), "Expected process result");
             // A shoulder button held across handoff must not switch the returned page.
             input.poll(); check(shell.page() == 1, "Held external input was suppressed");

@@ -1,5 +1,5 @@
-#include "features/pokedex/ClassicArt.h"
-#include "features/pokedex/PokedexController.h"
+#include "adapters/pokemon/pokedex/ClassicArt.h"
+#include "adapters/pokemon/pokedex/PokedexController.h"
 #include "core/repository/OfflinePokedex.h"
 #include <QtTest>
 #include <QTemporaryDir>

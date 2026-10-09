@@ -1,5 +1,19 @@
 # Current tasks
 
+**Adapter encapsulation implemented, 9 October 2026:** Pokemon and generic
+experiences now live in `src/adapters/<id>/` behind the shared host/provider
+contracts. Independent modules run through the actual host and rendered UI;
+compatibility manifests support alternative identity sources and scoped art/sprite
+packs. [Evidence and remaining acceptance](UX_FRAMEWORK.md) separates the final
+handheld delivery from the initial UX build. The module-boundary correction is
+resolved; MP-02 is next, with its timer WIP preserved and excluded from this build.
+
+**Owner deferred follow-up, 9 October 2026:** investigate Odin GPU hangs and
+consider a maintained patch once the responsible component is established.
+[Observed fence wait, recovery and investigation scope](UX_FRAMEWORK.md#owner-follow-up-odin-gpu-hangs-9-october-2026).
+This is later work, not a claim that the driver hang was fixed or a new priority
+ahead of the accepted MP-02 queue.
+
 **UX-02 implementation delivered, 9 October 2026:** adaptive Home/game slots,
 universal profile, Options/Select, live Game Options/minimize, contextual Together
 and passive shell notifications/shared inbox are installed and running on Flip/Odin.

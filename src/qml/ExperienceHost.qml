@@ -1,22 +1,17 @@
 import QtQuick
-
 Item {
     id: root
     required property var shell
     property bool overlay: false
-    readonly property string viewKey: shell.page === 0 ? shell.homeView : shell.experienceView
-    PokemonExperienceViews { id: pokemon; shell: root.shell }
-    readonly property var sharedViews: ({
-        "game-home": genericHome, "game-details": genericPage,
-        "game-history": genericPage, "achievements": achievements
-    })
-    Component { id: genericHome; MultiverseHome { shell: root.shell } }
-    Component { id: genericPage; GenericExperiencePage { shell: root.shell } }
-    Component { id: achievements; HallOfFamePage { shell: root.shell } }
+    function hints(h) { return visible && presenter.item && presenter.item.hints ? presenter.item.hints(h) : null }
     Loader {
+        id: presenter
         anchors.fill: parent
         active: root.visible
-        sourceComponent: root.overlay ? (root.shell.centerFace ? pokemon.overlay : null) : pokemon.views[root.viewKey] || root.sharedViews[root.viewKey] || null
+        onActiveChanged: if(active) mount()
+        function mount() { if(active && root.shell.experiencePresenter.toString()) setSource(root.shell.experiencePresenter,{shell:root.shell,overlay:root.overlay}) }
+        Component.onCompleted: mount()
+        Connections { target: root.shell; function onChanged() { if(presenter.source.toString() !== root.shell.experiencePresenter.toString())presenter.mount() } }
     }
     SocialIconButton {
         anchors.right: parent.right; anchors.rightMargin: 12; y: 10

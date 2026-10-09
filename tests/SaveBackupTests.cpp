@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "platform/storage/SaveBackupStorage.h"
 #include "integrations/adventure/retroarch/RetroArchSave.h"
 #include "integrations/adventure/standalone/MelonDsSave.h"
@@ -333,7 +334,7 @@ private slots:
         LocalSaveBackupService service(f.root,[&](const AdventureRegistration& r){entered.release();release.acquire();return f.resolve(r);},[](const AdventureRegistration&){return true;});
         struct ReleaseOnExit { QSemaphore& semaphore; ~ReleaseOnExit(){semaphore.release();} } unblock{release};
         MockLibraryRepository library;MockTrainerRepository profile;MockAdventureAdapter adapter;DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
-        ShellController shell(library,profile,adapter,platform,dex,dex,archive,achievements);SessionState session(shell,nullptr);
+        ShellController shell(library,profile,adapter,platform,builtinExperiences(dex,dex),archive,achievements);SessionState session(shell,nullptr);
         connect(&service,&SaveBackupService::busyChanged,&session,[&]{session.setServiceActive(service.busy());});
         QSignalSpy exit(&session,&SessionState::exitReady);bool completed=false;
         service.inspect(f.record,this,[&](const SaveBackupSnapshot& snapshot){QVERIFY(snapshot.hasSave);completed=true;});

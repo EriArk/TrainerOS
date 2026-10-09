@@ -1,6 +1,6 @@
-#include "features/pokedex/SpriteArt.h"
-#include "features/pokedex/PokedexController.h"
-#include "features/center/PartyPresentation.h"
+#include "adapters/pokemon/pokedex/SpriteArt.h"
+#include "adapters/pokemon/pokedex/PokedexController.h"
+#include "adapters/pokemon/center/PartyPresentation.h"
 #include "core/repository/OfflinePokedex.h"
 #include <QtTest>
 #include <QTemporaryDir>

@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "PokedexSmokeScenario.h"
 #include <QGuiApplication>
 #include <QQuickItem>
@@ -45,7 +46,7 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
         constexpr auto up = SDL_CONTROLLER_BUTTON_DPAD_UP, down = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
         constexpr auto l1 = SDL_CONTROLLER_BUTTON_LEFTSHOULDER, r1 = SDL_CONTROLLER_BUTTON_RIGHTSHOULDER;
         constexpr auto start = SDL_CONTROLLER_BUTTON_START;
-        auto* dex = shell.pokedex();
+        auto* dex = pokemonModule(shell).pokedex();
         auto* hints = window->findChild<QQuickItem*>("shell-button-hints");
         auto* viewport = window->findChild<QQuickItem*>("viewport");
         check(hints && viewport && hints->isVisible(), "Context hints remain in the shell footer");
@@ -169,16 +170,16 @@ void startPokedexSmoke(QQuickWindow* window, ShellController& shell, ControllerI
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767); input.poll();
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768); input.poll(); break;
         case 50: {
-            check(shell.centerFace(), "Trigger opens Center from the scrolled Dex list");
+            check((shell.page()==2 && shell.experienceModel()==shell.module("pokemon") && pokemonModule(shell).centerFace()), "Trigger opens Center from the scrolled Dex list");
             // Simulate a retained viewport offset while the list is hidden.
             auto* list=window->findChild<QQuickItem*>("dex-list");
-            check(shell.pokedex()->navigationState()["entry"].toString()=="eevee", "Unmounted Guide retains its selected species");
+            check(pokemonModule(shell).pokedex()->navigationState()["entry"].toString()=="eevee", "Unmounted Guide retains its selected species");
             if(list) list->setProperty("contentY",0);
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERLEFT,32767); input.poll();
             SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERLEFT,-32768); input.poll(); break;
         }
         case 51:
-            check(!shell.centerFace() && focusIs("dex-entry-eevee"), "Center return restores and reveals the selected species");
+            check(!(shell.page()==2 && shell.experienceModel()==shell.module("pokemon") && pokemonModule(shell).centerFace()) && focusIs("dex-entry-eevee"), "Center return restores and reveals the selected species");
             capture("center-return-scrolled"); break;
         default:
             check(focusIs("dex-entry-eevee"), "Peer return keeps list focus");

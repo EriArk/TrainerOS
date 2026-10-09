@@ -1,4 +1,5 @@
 #include "LibrarySmokeScenario.h"
+#include "RenderSettlement.h"
 #include <QQuickItem>
 #include <QCoreApplication>
 #include <QTimer>
@@ -13,6 +14,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
     shell.libraryManager()->setInitialFolder(contentFolder);
     auto stage = std::make_shared<int>(0); auto failed = std::make_shared<bool>(false);
     auto identity = std::make_shared<QString>();
+    auto layoutWait = std::make_shared<int>(0);
     auto timer = new QTimer(window); timer->setInterval(220);
     QObject::connect(timer, &QTimer::timeout, window, [=, &shell, &session, &store, &input, &completed, &warnings, &diagnostics] {
         const auto check = [&](bool condition, const QString& message) {
@@ -50,6 +52,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
             return true;
         };
         if (session.blocked() || shell.libraryManager()->saving() || shell.libraryManager()->files()->busy() || shell.settings()->saving() || shell.device()->busy()) return;
+        if(waitForViewport(window,*layoutWait))return;
         auto* manager = shell.libraryManager();
         constexpr auto a = SDL_CONTROLLER_BUTTON_B, b = SDL_CONTROLLER_BUTTON_A;
         constexpr auto up = SDL_CONTROLLER_BUTTON_DPAD_UP, down = SDL_CONTROLLER_BUTTON_DPAD_DOWN;
@@ -59,22 +62,18 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
             switch ((*stage)++) {
             case 0:
                 check(store.adventures().isEmpty(), "Reference cards do not create personal records");
-                press(next); press(right, 2); press(a); break;
-            case 1: {
-                capture("collection-missing");
-                int ruby = -1; const auto rows = shell.worlds()->adventures();
-                for (int i = 0; i < rows.size(); ++i) if (rows[i].toMap()["id"] == "catalogue:ruby-gba") ruby = i;
-                check(ruby >= 0, "Ruby catalogue edition is listed"); press(down, std::max(0, ruby)); press(a); break;
-            }
+                press(next);press(a);break;
+            case 1:
+                check(shell.multiverse()->games().isEmpty() && focusIs("multiverse-empty"), "Empty collection does not expose catalogue-only games");
+                capture("collection-empty");press(a);break;
             case 2:
-                check(focusIs("notice-close") && !shell.serviceOpen(), "Missing ROM gives an actionable error without a setup window");
-                check(store.adventures().isEmpty(), "A missing catalogue card does not create an installation");
-                capture("collection-missing-error");press(b);break;
+                check(store.adventures().isEmpty() && !shell.serviceOpen() && shell.notice().isEmpty(), "Empty collection cannot launch or create a placeholder installation");
+                press(b);break;
             case 3:
-                check(focusIs("adventure-catalogue:ruby-gba") && shell.worlds()->route()=="adventures", "Dismissing the error restores the wheel selection");
+                check(shell.collectionsRoot() && focusIs("series-card-pokemon"), "Back restores the collection selection");
                 press(next);press(previous);break;
             default:
-                check(shell.worlds()->route()=="regions" && !shell.serviceOpen(), "Re-entry restores the World grid");
+                check(shell.collectionsRoot() && !shell.serviceOpen(), "Re-entry restores the collection grid");
                 if(finish())window->close();break;
             }
         } else if (phase == "library-seed") {
@@ -158,7 +157,7 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
         } else if (phase == "library-verify") {
             switch ((*stage)++) {
             case 0:
-                check(store.adventures().size() == 1 && shell.page() == 1 && shell.worlds()->route() == "adventures", "Library / route survived restart");
+                check(store.adventures().size() == 1 && shell.page() == 1 && !shell.collectionsRoot() && shell.multiverse()->route() == "games", "Library / route survived restart");
                 if (!store.adventures().isEmpty()) *identity = store.adventures().first().id;
                 check(shell.settings()->theme() == "orange" && shell.settings()->reducedMotion(), "Settings survived restart");
                 window->resize(1920, 1080); break;
@@ -184,20 +183,22 @@ void startLibrarySmoke(QQuickWindow* window, ShellController& shell, SessionStat
                 capture("custom-world-form"); press(down, 3); press(left); press(a); break;
             case 7:
                 check(store.worlds().size() == 10 && store.adventures().size() == 1 && store.adventures().first().id == *identity, "Custom World persisted without duplicating Adventure");
-                press(next); press(previous); press(b, 2); press(down, 3); break;
+                press(next); press(previous); break;
             case 8:
-                check(focusIs("world-9"), "Custom World is reachable in a bounded region grid"); capture("custom-world-grid");
-                press(a); press(a); window->resize(1024, 768); break;
+                check(shell.collectionsRoot(), "Legacy grouping keeps the shared collection grid reachable");
+                for(int i=0;i<shell.collections().size();++i)if(shell.collections()[i].toMap()["id"]=="multiverse"){shell.activate(i);break;}
+                press(a);capture("all-games-grid");press(a);window->resize(1024,768);break;
             case 9:
-                check(shell.worlds()->region()["name"] == "A" && focusIs("notice-close") && !shell.serviceOpen(), "A missing ROM reports its launch error without a binding screen"); capture("custom-world-letterbox");
+                check(shell.multiverse()->detail()["title"] == "journeyA" && focusIs("notice-close") && !shell.serviceOpen(), "A missing ROM reports its launch error without a binding screen"); capture("custom-world-letterbox");
                 if (finish()) window->close(); break;
             }
         } else {
             switch ((*stage)++) {
-            case 0:
-                check(store.worlds().size() == 10 && shell.worlds()->region()["name"] == "A", "Custom World survived second restart");
-                check(shell.worlds()->detail()["title"] == "journeyA", "Adventure survived second restart");
-                press(previous); press(SDL_CONTROLLER_BUTTON_X); break;
+            case 0: {
+                bool retained=false;for(const auto& world:store.worlds())if(world.name=="A")retained=true;
+                check(store.worlds().size() == 10 && retained, "Legacy custom grouping survives second restart without a separate Pokemon world UI");
+                check(shell.multiverse()->detail()["title"] == "journeyA", "Adventure survived second restart");
+                press(previous); press(SDL_CONTROLLER_BUTTON_X); break; }
             case 1:
                 check(shell.page() == 0 && shell.drawerOpen() && focusIs("resume-empty"), "Empty Continue focus");
                 if (auto* drawer = window->findChild<QQuickItem*>("continue-drawer")) check(drawer->height() == 229, "Reduced motion completes drawer geometry");

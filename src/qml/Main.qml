@@ -1,5 +1,4 @@
 import QtQuick
-import "ExperienceHints.js" as ExperienceHints
 import QtQuick.Window
 import QtQuick.Shapes
 
@@ -191,7 +190,7 @@ Window {
                 anchors.fill: parent; anchors.margins: Theme.panelInset
                 anchors.topMargin: Theme.contentTopInset; clip: true
                 anchors.bottomMargin: Theme.panelInset
-                ExperienceHost { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && (shell.page === 0 || shell.page === 2 || shell.page === 3) }
+                ExperienceHost { id: experienceHost; anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && (shell.page === 0 || shell.page === 2 || shell.page === 3) }
                 SocialPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 4 }
                 SeriesPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && shell.collectionsRoot }
                 WorldsPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && !shell.collectionsRoot && !shell.multiverseFace }
@@ -220,7 +219,7 @@ Window {
             readonly property var actions: {
                 const h = hint
                 if (shell.social.online.open) return shell.social.online.incoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
-                if (shell.party.activities.link.invitationOpen) return shell.party.activities.link.invitationIncoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
+                if (shell.moduleInvitation.open) return shell.moduleInvitation.incoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
                 if (shell.homeMenuOpen) {
                     if (!shell.notificationsOpen) return [h("↑↓","Choose"),h("A","Select"),h("B","Back")]
                     const selectedNotice = shell.notifications[shell.notificationFocus] || {}
@@ -238,7 +237,6 @@ Window {
                     return [h("A","Select"),h("B","Back")]
                 }
                 if (shell.drawerOpen) return [h("A","Choose"),h("B","Close")]
-                if (shell.trainer.picker.open) return [h("X","Search"),h("Y","Clear"),h("←→","Jump 8"),h("A","Choose"),h("B","Cancel")]
                 if (shell.hall.account.open) return [h("A","Select"),h("B","Back")]
                 if (shell.service === "trainer-setup") {
                     let result = [h("A",shell.trainerSetup.keypad ? "Enter" : "Select"),h("B","Back")]
@@ -271,10 +269,8 @@ Window {
                     result.push(h("Select",list ? "Game actions" : "Collection actions"))
                     return result
                 }
-                const experienceHints = ExperienceHints.actions(shell,h)
+                const experienceHints = experienceHost.hints(h)
                 if (experienceHints) return experienceHints
-                if (shell.experienceView === "game-details") return [h("A","Game actions"),h("Select","Actions"),h("B","Home")]
-                if (shell.experienceView === "game-history") return [h("↑↓","Sessions"),h("Select","Game actions"),h("B","Home")]
                 if (shell.page === 0) return [h("A",shell.homeGame.id ? (shell.liveGame.id === shell.homeGame.id ? "Return" : shell.home.actionHint) : "Collections"),h("Select","Game actions"),h("B","Back")]
                 if (shell.page === 4) return shell.social.hints
                 return [h("A",shell.trainer.editing ? "Select" : "Edit Trainer"),h("B",shell.trainer.editing ? "Cancel" : "Back")]
@@ -295,8 +291,8 @@ Window {
                         tint: button === "B" ? Theme.pink : button === "X" || button === "←→" ? Theme.blue : button === "Y" ? Theme.yellow : Theme.green
                     }
                 }
-                Hint { button: "Home"; label: "Options"; interactive: true; onClicked: shell.pressButton("Home"); visible: !shell.party.moveOpen && !shell.party.activities.link.invitationOpen && !shell.social.online.open }
-                Hint { button: "Start"; label: "System"; tint: Theme.yellow; interactive: true; onClicked: shell.pressButton("Start"); visible: !shell.party.moveOpen && !shell.party.activities.link.invitationOpen && !shell.social.online.open }
+                Hint { button: "Home"; label: "Options"; interactive: true; onClicked: shell.pressButton("Home"); visible: !shell.moduleControlsBlocked && !shell.social.online.open }
+                Hint { button: "Start"; label: "System"; tint: Theme.yellow; interactive: true; onClicked: shell.pressButton("Start"); visible: !shell.moduleControlsBlocked && !shell.social.online.open }
             }
         }
         LibraryPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "library" }
@@ -356,19 +352,19 @@ Window {
         Item {
             id: nearbyInvitation
             objectName: "nearby-invitation"
-            property var link: shell.party.activities.link
+            property var link: shell.moduleInvitation.controller || null
             readonly property bool online: !!shell.social.online.open
             readonly property bool runtime: false // Runtime requests open through their stable inbox IDs.
-            readonly property bool incoming: runtime || (online ? !!shell.social.online.incoming : link.invitationIncoming)
-            function answer(accept) { if(runtime) runtimeMultiplayer.answer(accept); else if (online) shell.social.answerOnline(accept); else link.answerInvitation(accept) }
+            readonly property bool incoming: runtime || (online ? !!shell.social.online.incoming : !!shell.moduleInvitation.incoming)
+            function answer(accept) { if(runtime) runtimeMultiplayer.answer(accept); else if (online) shell.social.answerOnline(accept); else if(link) link.answerInvitation(accept) }
             width: parent.width; height: Theme.footerTop; z: 6
-            visible: (runtime || online || link.invitationOpen) && !sessionState.blocked && !adventureLaunch.active
+            visible: (runtime || online || !!shell.moduleInvitation.open) && !sessionState.blocked && !adventureLaunch.active
             Rectangle { anchors.fill: parent; color: "#77112323" }
             MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onWheel: wheel => wheel.accepted=true }
             Panel {
                 anchors.centerIn: parent; width: 470; height: 225; surface: "#f6f0d7"
                 Text { x: 27; y: 23; text: nearbyInvitation.incoming ? "INCOMING ACTIVITY" : "TOGETHER"; font.family: Theme.brandFamily; font.pixelSize: 16; color: "#4c8175" }
-                Text { x: 27; y: 56; width: parent.width-54; height: 85; text: nearbyInvitation.runtime ? runtimeMultiplayer.invitation : nearbyInvitation.online ? shell.social.online.status : nearbyInvitation.link.invitationText; textFormat: Text.PlainText; font.family: Theme.displayFamily; font.pixelSize: 26; color: Theme.ink; wrapMode: Text.WordWrap }
+                Text { x: 27; y: 56; width: parent.width-54; height: 85; text: nearbyInvitation.runtime ? runtimeMultiplayer.invitation : nearbyInvitation.online ? shell.social.online.status : nearbyInvitation.link ? nearbyInvitation.link.invitationText : ""; textFormat: Text.PlainText; font.family: Theme.displayFamily; font.pixelSize: 26; color: Theme.ink; wrapMode: Text.WordWrap }
                 CapButton { x: 27; y: 154; width: 200; height: 45; label: "Accept"; centered: true; tint: Theme.green; selected: true; deferredFocus: true; visible: nearbyInvitation.incoming; onActivated: nearbyInvitation.answer(true) }
                 CapButton { x: nearbyInvitation.incoming ? 242 : 135; y: 154; width: 200; height: 45; label: nearbyInvitation.incoming ? "Decline" : "Cancel"; centered: true; tint: Theme.blue; selected: !nearbyInvitation.incoming; deferredFocus: true; onActivated: nearbyInvitation.answer(false) }
             }

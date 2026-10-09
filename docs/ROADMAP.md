@@ -1,5 +1,14 @@
 # TrainerOS Roadmap
 
+**Adapter boundary implemented, 9 October 2026:** UX-02 now uses separate
+`src/adapters/<id>/` experiences, shared host/provider contracts, alternative
+identity manifests and adapter-owned pack profiles. Real-host fixtures and
+installed UI evidence are in [UX_FRAMEWORK](UX_FRAMEWORK.md). Resume MP-02;
+preserve its uncommitted timer work. Owner/TV/audio/future-route acceptance and
+later package trust, semantic adapter and asset-extraction gates remain open.
+The owner's later Odin GPU-hang investigation is recorded in that evidence file;
+it does not replace the accepted queue.
+
 **UX-02 implementation delivered, 9 October 2026:** adaptive Home/game slots,
 universal profile, Options/Select, live Game Options/minimize, contextual Together
 and passive shell notifications/shared inbox are installed and running on Flip/Odin.
@@ -131,7 +140,7 @@ The owner explicitly rejects test-only passes substituted for feature delivery.
 | Delivered · owner priority | #114 and 9 October Collections correction | Collections, manual/dynamic/automatic views, direct Pokémon games and global Home/Y recents without Home L2/R2 cycling; installed evidence distinguishes the retained Odin Steam session. Remaining #90 deep adapters stay open. [Scope/evidence](SERIES_COLLECTIONS.md). |
 | Delivered · owner priority | UX-01: Social → Together → party/activity, #127–134 | Unified DM/group inbox, Discover, parallel touch/controller controls, Together, people-first invites, shared party and group details installed on both devices. [Evidence](SOCIAL_UX.md); #135 future-route and deferred acceptance remains open. |
 | Delivered · docs only | UX-02 map and reconciliation | Precise screens/actions/session states, #161–178 and owner adaptive-Home contract; no implementation in this pass. [Map](UX_OPTIONS_MAP_RU.md), [experience register](EXPANSION_174_178.md). |
-| Implemented · external acceptance retained | UX-02: framework/UI/controls, #167–178 + adaptive Home | Installed on both devices; real solo and paired minimize/return, selected/live separation, shared profile/inbox/Together. [Evidence and remaining gates](UX_FRAMEWORK.md). Parent acceptance stays open for owner/TV/audio/future routes. |
+| Delivered implementation | UX-02: framework/UI/controls, #167-178 + adaptive Home | Separate adapters, shared host/provider contracts, alternative recognition manifests and real alternate-module tests. Native delivery and retained owner/TV/audio/future-route acceptance: [evidence](UX_FRAMEWORK.md). MP-02 is next. |
 | **Next · block 1** | **MP-02: GB/GBC/GBA independent link** | Resume after UX-02, preserving the timer fix and own-save work. Complete own-save link through corrected invitations and normal exit; [actual progress and remaining gates](HANDHELD_MULTIPLAYER.md). |
 | Retained · block 1 | MP-01: classic RetroArch and shared online-party acceptance | Implemented profiles remain accessible. Distinct-network and actual multi-user/company acceptance remain open; owner-deferred conditions do not trigger another NES/same-router pass. |
 | 3 · block 1 | MP-03: selected PS1/N64 routes | After MP-02. Implement viable mechanisms with the complete invitation journey; do not substitute shared controllers for emulated-machine link. |

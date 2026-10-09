@@ -425,6 +425,7 @@ private slots:
         QVERIFY(writeGamelist(folder,f,g,{{"video",folder+"/media/preview.mp4"}},false,flag()).isEmpty());
         auto bytes=read(xml);QVERIFY(bytes.contains("My name"));QVERIFY(bytes.contains("Existing"));QVERIFY(bytes.contains("<custom>Keep</custom>"));QVERIFY(bytes.contains("<name>Other</name>"));QVERIFY(bytes.contains("./media/preview.mp4"));
         const auto scan=scanBatoceraLibrary(dir.path(),{});QCOMPARE(scan.entries.size(),1);QVERIFY(!scan.entries[0].media.value("video").toString().isEmpty());
+        QCOMPARE(scan.entries[0].media.value("experienceIdentity").toMap().value("catalog.screenscraper").toString(),QString("42"));
         QVERIFY(writeGamelist(folder,f,g,{},true,flag()).isEmpty());QVERIFY(read(xml).contains("New description"));QVERIFY(read(xml).contains("My name"));
         bytes=read(xml);auto cancel=flag();cancel->store(true);QVERIFY(!writeGamelist(folder,f,g,{},true,cancel).isEmpty());QCOMPARE(read(xml),bytes);
         put(rom,"changed");QVERIFY(!writeGamelist(folder,f,g,{},true,flag()).isEmpty());QCOMPARE(read(xml),bytes);

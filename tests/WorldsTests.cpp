@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "core/navigation/ShellController.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include <QtTest>
@@ -277,7 +278,7 @@ private slots:
         MutableLibrary library;MockTrainerRepository profiles;RecordingAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;
         MockHallOfFameRepository shellArchive;MockAchievementProvider shellAchievements;
-        ShellController shell(library,profiles,adapter,platform,dex,dex,shellArchive,shellAchievements);
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),shellArchive,shellAchievements);
         shell.goToPage(1);QVERIFY(shell.collectionsRoot());shell.activate(0);
         QCOMPARE(shell.multiverse()->route(),"games");shell.dispatch(Action::Down);
         const auto selected=shell.multiverse()->detail()["id"];

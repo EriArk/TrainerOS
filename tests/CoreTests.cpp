@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "core/input/ControllerInput.h"
 #include "core/navigation/ShellController.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
@@ -21,8 +22,8 @@ private slots:
         MockLibraryRepository repo;MockTrainerRepository profiles;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;
         MockHallOfFameRepository archive;MockAchievementProvider achievements;
-        ShellController shell(repo,profiles,adapter,platform,dex,dex,archive,achievements);
-        auto* link=shell.party()->activities()->link();
+        ShellController shell(repo,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        auto* link=pokemonModule(shell).party()->activities()->link();
         const QJsonObject journal{{"id","55555555-5555-4555-8555-555555555555"},
             {"peer","22222222-2222-4222-8222-222222222222"},{"stage","committed"},{"kind","trade"}};
         link->configure({},"11111111-1111-4111-8111-111111111111","Trainer",{}, {},journal);
@@ -47,7 +48,7 @@ private slots:
         MockPokedexRepository dex;
         MockHallOfFameRepository shellArchive;
         MockAchievementProvider shellAchievements;
-        ShellController shell(repo, profiles, adapter, platform, dex, dex, shellArchive, shellAchievements);
+        ShellController shell(repo, profiles, adapter, platform,builtinExperiences( dex, dex), shellArchive, shellAchievements);
         QSignalSpy exit(&shell, &ShellController::exitRequested);
         shell.dispatch(Action::PreviousPage);
         QCOMPARE(shell.page(), 0);
@@ -108,8 +109,8 @@ private slots:
         shell.dispatch(Action::Home); shell.dispatch(Action::Down); shell.dispatch(Action::Confirm);
         QCOMPARE(shell.page(), 4); QCOMPARE(shell.socialFace(), "chats"); QVERIFY(shell.social()->contacts()); QVERIFY(!shell.menuOpen());
         shell.goToPage(2); shell.dispatch(Action::NextFace);
-        QVERIFY(shell.centerFace()); QVERIFY(!shell.center()->configured());
-        QCOMPARE(shell.party()->section(), "party"); QVERIFY(shell.notice().isEmpty());
+        QVERIFY((shell.page()==2 && shell.experienceModel()==shell.module("pokemon") && pokemonModule(shell).centerFace())); QVERIFY(!pokemonModule(shell).center()->configured());
+        QCOMPARE(pokemonModule(shell).party()->section(), "party"); QVERIFY(shell.notice().isEmpty());
     }
     void repositoryAndAdapter() {
         MockLibraryRepository repo;
@@ -119,7 +120,7 @@ private slots:
         MockPokedexRepository dex;
         MockHallOfFameRepository shellArchive;
         MockAchievementProvider shellAchievements;
-        ShellController shell(repo, profiles, adapter, platform, dex, dex, shellArchive, shellAchievements);
+        ShellController shell(repo, profiles, adapter, platform,builtinExperiences( dex, dex), shellArchive, shellAchievements);
         QCOMPARE(shell.resumePoints().first().toMap()["id"].toString(), "emerald-1");
         QVERIFY(!adapter.capabilities(repo.adventures().first()).screenshots);
         QVERIFY(!platform.canSwitchSession());
@@ -256,8 +257,9 @@ private slots:
         MockPokedexRepository dex;
         MockHallOfFameRepository emptyArchive;
         MockAchievementProvider emptyAchievements;
-        ShellController empty(repo, profiles, adapter, platform, dex, dex, emptyArchive, emptyAchievements);
-        QCOMPARE(empty.home()["caught"].toString(), QString::fromUtf8("—"));
+        ShellController empty(repo, profiles, adapter, platform, builtinExperiences(dex, dex), emptyArchive, emptyAchievements);
+        QCOMPARE(empty.homeView(),"game-home");
+        QVERIFY(!empty.home().contains("caught")); // Empty generic Home has no game-specific projection.
         empty.dispatch(Action::ToggleContinue);
         empty.dispatch(Action::Right);
         QCOMPARE(empty.focusIndex(), 0);
@@ -272,7 +274,7 @@ private slots:
         repo.points = {{"orphan", "missing-adventure", QDateTime::currentDateTimeUtc(), "", ""}};
         MockHallOfFameRepository missingArchive;
         MockAchievementProvider missingAchievements;
-        ShellController missing(repo, profiles, adapter, platform, dex, dex, missingArchive, missingAchievements);
+        ShellController missing(repo, profiles, adapter, platform, builtinExperiences(dex, dex), missingArchive, missingAchievements);
         QCOMPARE(missing.resumePoints().size(), 1);
         QCOMPARE(missing.resumePoints().first().toMap()["title"].toString(), "Unavailable Adventure");
         missing.dispatch(Action::ToggleContinue);

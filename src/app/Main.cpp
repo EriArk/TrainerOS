@@ -1,4 +1,5 @@
-﻿#include "core/PerformanceTrace.h"
+#include "adapters/pokemon/PokemonExperience.h"
+#include "core/PerformanceTrace.h"
 #include "integrations/achievements/TrainerAchievementProvider.h"
 #include "features/adventure/RuntimeMultiplayer.h"
 #include "integrations/achievements/RetroArchAchievementSession.h"
@@ -29,8 +30,8 @@
 #include "platform/input/AdventureOverlayService.h"
 #include "features/home/PlayHistoryController.h"
 #include "features/home/ExitImage.h"
-#include "features/pokedex/ClassicArt.h"
-#include "features/pokedex/SpriteImages.h"
+#include "adapters/pokemon/pokedex/ClassicArt.h"
+#include "adapters/pokemon/pokedex/SpriteImages.h"
 #include "core/repository/CollectionRepository.h"
 #include "core/repository/OfflinePokedex.h"
 #include "integrations/adventure/retroarch/RetroArchSave.h"
@@ -71,6 +72,7 @@
 #include "CenterSmokeScenario.h"
 #include "ExitSmokeScenario.h"
 #include "DownloadsSmokeScenario.h"
+#include "ExperienceSmokeScenario.h"
 #endif
 
 using namespace trainer;
@@ -127,6 +129,7 @@ int main(int argc, char* argv[]) {
     parser.addOption({"art-dir", "Use a private development artwork bootstrap directory.", "directory"});
     parser.addOption({"smoke-test", "Verify the QML shell with an isolated SDL virtual controller, then exit."});
 #ifdef TRAINEROS_UI_TESTS
+    parser.addOption({"experience-smoke-test", "Verify independent experience modules in the real QML host."});
     parser.addOption({"downloads-smoke-test", "Verify the Downloads layout and SDL navigation with isolated queue fixtures, then exit."});
     parser.addOption({"exit-smoke-test", "Verify the isolated Adventure exit window through SDL input, then exit."});
     parser.addOption({"worlds-smoke-test", "Verify Worlds browsing and mock actions through SDL input, then exit."});
@@ -145,8 +148,10 @@ int main(int argc, char* argv[]) {
     bool diagnosticsSmoke = false;
     bool exitSmoke = false;
     bool downloadsSmoke = false;
+    bool experienceSmoke = false;
     QString persistencePhase;
 #ifdef TRAINEROS_UI_TESTS
+    experienceSmoke = parser.isSet("experience-smoke-test");
     downloadsSmoke = parser.isSet("downloads-smoke-test");
     exitSmoke = parser.isSet("exit-smoke-test");
     worldsSmoke = parser.isSet("worlds-smoke-test");
@@ -158,7 +163,7 @@ int main(int argc, char* argv[]) {
     if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "library-center", "collection"}.contains(persistencePhase)
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
-    const bool smoke = parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+    const bool smoke = experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
     auto smokeBattery = std::make_shared<std::atomic_int>(65);
     PowerStatus powerStatus([smoke, smokeBattery] {
         if (!smoke) return systemBatteryStatus();
@@ -226,6 +231,7 @@ int main(int argc, char* argv[]) {
         const auto libraryRoot = parser.isSet("roms-dir") ? QDir(parser.value("roms-dir")).absolutePath()
             : FirstRunController::libraryRoot(stateDirectory, QDir::home().filePath("Emulation/roms"));
         BatoceraLibrary folders(baseLibrary, libraryRoot);
+        folders.observeIdentity=builtinExperienceIdentity;
         LibraryRepository& activeLibrary = personalLibrary && !smoke ? static_cast<LibraryRepository&>(folders) : baseLibrary;
         std::unique_ptr<TrainerAchievementProvider> realAchievements;
         if (personalLibrary && !smoke) realAchievements = std::make_unique<TrainerAchievementProvider>(activeLibrary);
@@ -263,14 +269,29 @@ int main(int argc, char* argv[]) {
         ProbeAdventureAdapter probeAdapter;
         if (persistencePhase == "library-launch" || persistencePhase.startsWith("library-home")) selectedAdapter = &probeAdapter;
 #endif
+        ExperienceFactory experienceFactory=builtinExperiences(
+                              (personalLibrary && !smoke) || artSmoke ? static_cast<PokedexReferenceProvider&>(offlineDex) : dex,
+                              store ? static_cast<PokedexProgressRepository&>(*store) : dex);
+#ifdef TRAINEROS_UI_TESTS
+        if(experienceSmoke) {
+            const auto builtin=experienceFactory;
+            const auto games=activeLibrary.adventures();
+            experienceFactory=[builtin,games](ExperienceServices services){
+                auto modules=builtin(services);
+                auto rpg=std::make_unique<test::CounterExperience>("rpg");rpg->matchGame=games.at(0).id;
+                auto racing=std::make_unique<test::CounterExperience>("racing");racing->matchGame=games.at(1).id;
+                modules.insert(modules.begin(),std::move(racing));modules.insert(modules.begin(),std::move(rpg));return modules;
+            };
+        }
+#endif
         ShellController shell(activeLibrary,
                               store ? static_cast<TrainerRepository&>(*store) : profiles,
-                              *selectedAdapter, platform,
-                              (personalLibrary && !smoke) || artSmoke ? static_cast<PokedexReferenceProvider&>(offlineDex) : dex,
-                              store ? static_cast<PokedexProgressRepository&>(*store) : dex,
+                              *selectedAdapter, platform,experienceFactory,
                               personalLibrary && !smoke ? static_cast<HallOfFameRepository&>(*store) : shellArchive,
                               realAchievements ? static_cast<AchievementProvider&>(*realAchievements) : shellAchievements);
         shell.configureServices(&files, store.get());
+        shell.settings()->configureNearby(pokemonModule(shell).party()->activities()->link());
+        shell.social()->setLink(pokemonModule(shell).party()->activities()->link());
         if(personalLibrary && !smoke) {
             shell.scraper()->configure(stateDirectory);
             folders.setDisplayPreferences(shell.scraper()->displayPreferences());
@@ -339,7 +360,7 @@ int main(int argc, char* argv[]) {
             };
             shell.libraryManager()->setInitialFolder(libraryRoot);
         }
-        session.setTrainerSwitchGuard([&]{return !shell.scraper()->busy() && (!realAchievements || !realAchievements->accountBusy());});
+        session.setTrainerSwitchGuard([&]{return !shell.scraper()->busy() && !shell.moduleServiceBusy() && (!realAchievements || !realAchievements->accountBusy());});
         session.setTrainerRemovalPreparation([&]() -> QString {
             if(!realAchievements)return {};
             return realAchievements->disconnectForRemoval()?QString():"Could not remove the saved sign-in. Try again.";
@@ -392,21 +413,24 @@ int main(int argc, char* argv[]) {
                 saveBackups->configureBoxNames(renameEmeraldBox);
                 saveBackups->configureShops(readEmeraldShops,buyEmeraldItems);
             }
-            shell.center()->configure(saveBackups.get());
-            shell.party()->configureMovement(saveBackups.get(),&activeLibrary);
+            pokemonModule(shell).center()->configure(saveBackups.get());
+            pokemonModule(shell).party()->configureMovement(saveBackups.get(),&activeLibrary);
             shell.settings()->configureSavePolicy(saveBackups.get());
             QObject::connect(saveBackups.get(),&SaveBackupService::operationFailed,&session,&SessionState::cancelPendingExit);
         }
         const auto updateServiceActivity = [&] {
-            session.setServiceActive(shell.party()->activities()->link()->navigationBlocked() || folders.writing() || shell.settings()->storage()->busy() || deviceService.busy() || shell.network()->busy() || (saveBackups && saveBackups->busy()));
+            session.setServiceActive(shell.moduleServiceBusy() || folders.writing() || shell.settings()->storage()->busy() || deviceService.busy() || shell.network()->busy() || (saveBackups && saveBackups->busy()));
         };
         QObject::connect(&folders, &BatoceraLibrary::writingChanged, &session, updateServiceActivity);
         QObject::connect(&deviceService, &DeviceService::changed, &session, updateServiceActivity);
         QObject::connect(shell.network(), &NetworkController::changed, &session, updateServiceActivity);
         QObject::connect(shell.settings()->storage(), &LibraryStorageController::changed, &session, updateServiceActivity);
         if (saveBackups) QObject::connect(saveBackups.get(), &SaveBackupService::busyChanged, &session, updateServiceActivity);
-        QObject::connect(shell.party()->activities()->link(),&LinkController::changed,&session,updateServiceActivity);
+        QObject::connect(&shell,&ShellController::changed,&session,updateServiceActivity);
         ProcessService adventureProcess;
+        quint64 experienceSession=0;
+        QObject::connect(&adventureProcess,&ProcessService::started,&shell,[&]{++experienceSession;});
+        const auto liveExperienceSession=[&]{return adventureProcess.active()?QString::number(adventureProcess.processId())+":"+QString::number(experienceSession):QString();};
         AdventureLaunchController adventureLaunch(adventureProcess);
         const auto storageApply=shell.settings()->storage()->apply;
         if(storageApply)shell.settings()->storage()->apply=[&,storageApply](const QString& root){
@@ -426,7 +450,7 @@ int main(int argc, char* argv[]) {
         // Supported profiles must be usable in normal sessions, including owner testing.
         // Availability still follows exact runtime/content and current-session guards.
         auto refreshMultiplayer=[&]{multiplayer.refresh(retroarchInstallation,shell.trainer()->profile()["name"].toString(),
-            personalLibrary&&!smoke&&!session.blocked()&&!(saveBackups&&saveBackups->busy())&&!shell.party()->activities()->link()->active());};
+            personalLibrary&&!smoke&&!session.blocked()&&!(saveBackups&&saveBackups->busy())&&!pokemonModule(shell).party()->activities()->link()->active());};
         QObject::connect(&folders,&BatoceraLibrary::scanFinished,&multiplayer,refreshMultiplayer);
         QObject::connect(&session,&SessionState::changed,&multiplayer,refreshMultiplayer);
         QObject::connect(shell.trainer(),&TrainerController::changed,&multiplayer,refreshMultiplayer);
@@ -453,6 +477,7 @@ int main(int argc, char* argv[]) {
             if(adventureProcess.runtimeControls()["kind"]=="retroarch")actions.append(QVariantMap{{"id","display"},{"label","Screen & graphics"}});
             if(!shell.social()->account()["voice"].toMap()["channel"].toString().isEmpty())actions.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",shell.social()->account()["voice"].toMap()["name"]}});
             actions=shell.social()->incomingCallActions()+actions;
+            actions.append(shell.liveExperienceActions(adventureLaunch.adventureId(),liveExperienceSession()));
             exitPresentation.setExtraActions(actions);
             if(exitPresentation.menuOpen()&&exitPresentation.panel()=="notifications")gameNotifications();
             if(exitPresentation.menuOpen()&&exitPresentation.panel()=="call") {
@@ -473,6 +498,7 @@ int main(int argc, char* argv[]) {
         // Retain events in the shared inbox. Emulator SHOW_MSG cannot participate
         // in our clean-capture barrier and must not leak previews into history.
         QObject::connect(&exitPresentation,&AdventureExitPresentation::menuActionRequested,&exitPresentation,[&](const QString& action){
+            if(shell.invokeLiveExperienceAction(action,adventureLaunch.adventureId(),liveExperienceSession()))return;
             if(action=="minimize"){if(adventureOverlay)adventureOverlay->minimize();return;}
             if(action.startsWith("notice:")) {
                 pendingNotification=action.mid(7);if(adventureOverlay)adventureOverlay->minimize();return;
@@ -544,7 +570,7 @@ int main(int argc, char* argv[]) {
                 return resolveRetroArchSave(record, saveRuntimes->load()->retroarch);
             });
             shell.configureProgress(gameProgress.get());
-            auto* practice=shell.party()->activities()->practice();
+            auto* practice=pokemonModule(shell).party()->activities()->practice();
             practice->configureRuntime(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/practice/emerald-v1");
             const PracticeController::Verifier verifyParty=[&,provider=gameProgress.get()](const PracticeSource& source,const GameProgress& expected,QObject* receiver,std::function<void(bool)> done) {
                 const auto record=activeLibrary.registration(source.adventureId);
@@ -563,7 +589,7 @@ int main(int argc, char* argv[]) {
                     deviceId=QUuid::createUuid().toString(QUuid::WithoutBraces);QSaveFile file(identityPath);
                     if(!file.open(QIODevice::WriteOnly) || file.write(deviceId.toUtf8())<0 || !file.commit())deviceId.clear();
                 }
-                auto* link=shell.party()->activities()->link();
+                auto* link=pokemonModule(shell).party()->activities()->link();
                 QObject::connect(link,&LinkController::connectionFailed,&shell,&ShellController::showNotice);
                 const QString linkName=shell.trainer()->profile().value("name").toString();
                 link->configure(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/practice/emerald-v1",
@@ -706,10 +732,10 @@ int main(int argc, char* argv[]) {
         const auto reportBase = parser.isSet("data-dir") ? QDir(parser.value("data-dir")).absolutePath()
             : QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
         ClassicArt classicArt(parser.isSet("art-dir") ? parser.value("art-dir") : smoke || parser.isSet("ephemeral")
-            ? QString() : QDir(reportBase).filePath("artwork/bootstrap"));
-        shell.pokedex()->configureArtwork(&classicArt);
+            ? QString() : pokemonModule(shell).manifest().assetRoot(reportBase,"art",QDir(reportBase).filePath("artwork/bootstrap")));
+        pokemonModule(shell).pokedex()->configureArtwork(&classicArt);
         shell.hall()->configureArtwork(&classicArt);
-        shell.trainer()->picker()->setArtwork(&classicArt);
+        pokemonModule(shell).persona()->picker()->setArtwork(&classicArt);
         DiagnosticsService deviceReports(diagnosticsSmoke ? QDir(parser.value("screenshot-dir")).absoluteFilePath("reports")
                                                          : QDir(reportBase).filePath("diagnostics"));
         shell.diagnostics()->configure(&input, &deviceReports);
@@ -753,11 +779,14 @@ int main(int argc, char* argv[]) {
             });
         }
         SpriteArt sprites(parser.isSet("sprite-dir") ? parser.value("sprite-dir") : smoke || parser.isSet("ephemeral")
-            ? QString() : QDir(reportBase).filePath("artwork/sprites"));
+            ? QString() : pokemonModule(shell).manifest().assetRoot(reportBase,"sprites",QDir(reportBase).filePath("artwork/sprites")));
         QQmlApplicationEngine engine;
+        // Built-in adapters import the shared module from compiled resources.
+        // The installed executable has no build-directory qmldir beside it.
+        engine.addImportPath("qrc:/");
         engine.addImageProvider("sprite-detail", new SpriteImages(sprites));
-        shell.pokedex()->configureSprites(&sprites);
-        shell.party()->configureArtwork(&classicArt, &sprites);
+        pokemonModule(shell).pokedex()->configureSprites(&sprites);
+        pokemonModule(shell).party()->configureArtwork(&classicArt, &sprites);
         engine.addImageProvider("exit-frame", new ExitFrameImages(exitPresentation));
         engine.addImageProvider("exit-media", new SavedExitImages(store.get()));
         int qmlWarnings = 0;
@@ -828,7 +857,7 @@ int main(int argc, char* argv[]) {
                     }
                     if (pendingLinkSave(QDir(stateDirectory).filePath("backups")))
                         return {false, "Reconnect with your friend to finish the exchange before playing."};
-                    if (shell.party()->activities()->link()->active())
+                    if (pokemonModule(shell).party()->activities()->link()->active())
                         return {false, "Leave Together before starting a game."};
                     if (session.blocked() || adventureLaunch.active())
                         return {false, "An Adventure is already opening. Try again after returning."};
@@ -920,7 +949,9 @@ int main(int argc, char* argv[]) {
                 const QString screenshotDir = parser.value("screenshot-dir");
                 if (!screenshotDir.isEmpty() && !QDir().mkpath(screenshotDir)) return 2;
 #ifdef TRAINEROS_UI_TESTS
-                if (exitSmoke) {
+                if(experienceSmoke) {
+                    startExperienceSmoke(window,shell,input,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
+                } else if (exitSmoke) {
                     startExitSmoke(window, shell, adventureLaunch, exitPresentation, input, joystick,
                                    screenshotDir, smokeCompleted, qmlWarnings, diagnostics);
                 } else if(persistencePhase=="library-center") {
@@ -1054,10 +1085,10 @@ int main(int argc, char* argv[]) {
                         check(shell.page() == 3 && focusIs("trainer-open"), "empty Trainer focus");
                         capture("trainer-empty"); press(a); break;
                     case 11:
-                        check(shell.trainer()->editing() && focusIs("trainer-field-0"), "create Trainer starts at Name");
+                        check(pokemonModule(shell).persona()->editing() && focusIs("trainer-field-0"), "create Trainer starts at Name");
                         capture("trainer-create");
                         taps(down, 3); press(a);
-                        check(!shell.trainer()->error().isEmpty() && focusIs("trainer-field-0"), "empty name restores editable field");
+                        check(!pokemonModule(shell).persona()->error().isEmpty() && focusIs("trainer-field-0"), "empty name restores editable field");
                         capture("trainer-validation"); press(a); break;
                     case 12:
                         check(shell.keyboard()->isOpen() && focusIs("key-A"), "keyboard starts at A");
@@ -1080,7 +1111,7 @@ int main(int argc, char* argv[]) {
                                     .arg(font.toString(), info.family(), info.styleName()).arg(info.pixelSize()));
                             }
                         }
-                        check(shell.trainer()->draftName().isEmpty(), "keyboard buffer must not modify the form before Apply");
+                        check(pokemonModule(shell).persona()->draftName().isEmpty(), "keyboard buffer must not modify the form before Apply");
                         capture("keyboard-name"); press(SDL_CONTROLLER_BUTTON_START); break;
                     case 14:
                         check(shell.menuOpen() && focusIs("menu-0"), "Start traps focus above keyboard");
@@ -1098,7 +1129,7 @@ int main(int argc, char* argv[]) {
                         break;
                     case 17:
                         check(!shell.keyboard()->isOpen() && focusIs("trainer-field-0"), "Apply restores Name control");
-                        check(shell.trainer()->draftName() == "ERI 2" && !profiles.load(), "Apply changes draft only");
+                        check(pokemonModule(shell).persona()->draftName() == "ERI 2" && !profiles.load(), "Apply changes draft only");
                         press(down); press(a); // leaf
                         press(down); press(a); // Open favorite picker.
                         press(right); taps(down, 2); press(a); // Treecko in the reference list.
@@ -1106,21 +1137,21 @@ int main(int argc, char* argv[]) {
                         press(down); press(a); // Save
                         break;
                     case 18:
-                        check(shell.trainer()->exists() && focusIs("trainer-open"), "Save creates Trainer and restores opener");
-                        check(shell.trainer()->profile()["name"] == "ERI 2", "saved name");
-                        check(shell.trainer()->profile()["emblem"] == "leaf", "saved emblem");
-                        check(shell.trainer()->profile()["favorite"] == "Treecko", "saved favorite");
-                        *savedId = shell.trainer()->profile()["id"].toString();
+                        check(pokemonModule(shell).persona()->exists() && focusIs("trainer-open"), "Save creates Trainer and restores opener");
+                        check(pokemonModule(shell).persona()->profile()["name"] == "ERI 2", "saved name");
+                        check(pokemonModule(shell).persona()->profile()["emblem"] == "leaf", "saved emblem");
+                        check(pokemonModule(shell).persona()->profile()["favorite"] == "Treecko", "saved favorite");
+                        *savedId = pokemonModule(shell).persona()->profile()["id"].toString();
                         check(!savedId->isEmpty() && shell.home()["trainer"] == "ERI 2", "stable identity and Home projection");
                         capture("trainer-profile"); press(a); break;
                     case 19:
                         press(a); press(a); // Edit Name, append A.
                         check(shell.keyboard()->text() == "ERI 2A", "editing starts from saved name");
                         press(b);
-                        check(shell.trainer()->draftName() == "ERI 2" && focusIs("trainer-field-0"), "B discards only keyboard buffer");
+                        check(pokemonModule(shell).persona()->draftName() == "ERI 2" && focusIs("trainer-field-0"), "B discards only keyboard buffer");
                         press(down); press(a); // Unsaved emblem.
                         press(b);
-                        check(shell.trainer()->profile()["emblem"] == "leaf", "B discards form changes");
+                        check(pokemonModule(shell).persona()->profile()["emblem"] == "leaf", "B discards form changes");
                         press(a); press(a); // Reopen name for numeric tour.
                         break;
                     case 20:
@@ -1137,20 +1168,20 @@ int main(int argc, char* argv[]) {
                         press(left); press(down); press(left); press(a); // Space
                         check(shell.keyboard()->text() == " ", "Space reachable from numeric block");
                         press(b); press(b); // Discard buffer and form.
-                        check(shell.trainer()->profile()["name"] == "ERI 2", "cancel numeric tour preserves profile");
+                        check(pokemonModule(shell).persona()->profile()["name"] == "ERI 2", "cancel numeric tour preserves profile");
                         press(a); press(a); press(a);
                         press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); // Global page switch cancels both drafts.
                         break;
                     case 21:
                         check(shell.page() == 4 && focusIs("social-empty"), "R1 escapes keyboard to Social");
-                        check(!shell.keyboard()->isOpen() && !shell.trainer()->editing(), "page switch closes both drafts");
-                        check(shell.trainer()->profile()["id"] == *savedId && shell.trainer()->profile()["name"] == "ERI 2", "switch preserves saved identity and name");
+                        check(!shell.keyboard()->isOpen() && !pokemonModule(shell).persona()->editing(), "page switch closes both drafts");
+                        check(pokemonModule(shell).persona()->profile()["id"] == *savedId && pokemonModule(shell).persona()->profile()["name"] == "ERI 2", "switch preserves saved identity and name");
                         press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER); break;
                     case 22:
                         check(focusIs("trainer-open"), "L1 restores Trainer opener");
                         // Save another edit and ensure identity survives.
                         press(a); press(down); press(a); taps(down, 2); press(a);
-                        check(shell.trainer()->profile()["id"] == *savedId && shell.trainer()->profile()["emblem"] == "spark", "editing preserves identity");
+                        check(pokemonModule(shell).persona()->profile()["id"] == *savedId && pokemonModule(shell).persona()->profile()["emblem"] == "spark", "editing preserves identity");
                         window->resize(1920, 1080); break;
                     case 23:
                         capture("trainer-profile-1080p"); press(a); press(a); break;

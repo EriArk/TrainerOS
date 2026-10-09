@@ -17,9 +17,10 @@ struct FolderScan {
     QStringList warnings;
     bool complete = true;
 };
-// Read-only filesystem discovery. Does not parse ROMs, execute XML commands,
+// Read-only filesystem discovery. Reads optional bounded adapter identity probes; does not execute XML commands,
 // modify gamelists or use external play counts as Trainer history.
-FolderScan scanBatoceraLibrary(const QString& roms, const QList<AdventureRegistration>& existing);
+using ExperienceIdentityProbe = std::function<QVariantMap(const QString&,const QString&)>;
+FolderScan scanBatoceraLibrary(const QString& roms, const QList<AdventureRegistration>& existing, const ExperienceIdentityProbe& probe = {});
 QStringList batoceraPlatforms();
 
 class BatoceraLibrary final : public QObject, public LibraryRepository {
@@ -42,6 +43,7 @@ public:
     std::optional<AdventureRegistration> registration(const QString& id) const override { return library_.registration(id); }
     void saveAdventureAsync(const AdventureRegistration& r, QObject* c, std::function<void(LibraryWriteResult)> done) override { library_.saveAdventureAsync(r,c,std::move(done)); }
     QVariantMap artwork(const QString& id) const override;
+    QVariantMap experienceIdentity(const QString& id) const override { return media_.value(id).value("experienceIdentity").toMap(); }
     void setDisplayPreferences(const QJsonObject& preferences) {display_=preferences;emit changed();}
     void refreshContentAvailability() override;
     void rescan();
@@ -50,6 +52,7 @@ public:
     QString root() const { return roms_; }
     bool writing() const { return writing_; }
     std::function<void(AdventureRegistration&)> prepareInstallation;
+    ExperienceIdentityProbe observeIdentity;
     std::function<QString(const AdventureRegistration&,LibraryEdit&)> prepareFileMove;
 signals:
     void changed();

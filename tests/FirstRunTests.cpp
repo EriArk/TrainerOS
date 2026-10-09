@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "core/storage/SessionState.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include "integrations/achievements/AchievementProvider.h"
@@ -116,7 +117,7 @@ private slots:
     void sessionGatesNavigationAndCompletesRealProfileCreation() {
         QTemporaryDir dir;LocalStateStore store(dir.path());store.enforceAccess();
         MockAdventureAdapter adapter;DevelopmentPlatformService platform;MockPokedexRepository dex;MockAchievementProvider ra;
-        ShellController shell(store,store,adapter,platform,dex,store,store,ra);SessionState session(shell,&store);
+        ShellController shell(store,store,adapter,platform,builtinExperiences(dex,store),store,ra);SessionState session(shell,&store);
         auto* flow=session.firstRun();flow->configure(dir.path(),dir.path()+"/roms");isolatedStorage(*flow,dir.path()+"/roms");
         session.start();QTRY_VERIFY(session.firstRunPage());
         for(auto action:{Action::Home,Action::NextPage,Action::SystemMenu,Action::ToggleContinue})session.dispatch(action);

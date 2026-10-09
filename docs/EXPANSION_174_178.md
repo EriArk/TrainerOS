@@ -1,5 +1,25 @@
 # Issues #174–178 and adaptive Home — 9 October 2026
 
+**Owner correction, 9 October 2026:** full encapsulation remains in UX-02 before
+MP-02. Every current/future game experience belongs in `src/adapters/<id>/` and
+implements the shared `src/core/experience/` contract. Only explicit build and
+composition registration may be added outside a new adapter; the generic shell
+must not gain game branches or concrete controller/view dependencies. The initial
+delivery extracted presentation only partially; the subsequent adapter follow-up
+implements this boundary with real-host tests and native delivery evidence in
+[UX_FRAMEWORK](UX_FRAMEWORK.md). External acceptance remains open.
+
+**Owner compatibility/assets clarification:** an adapter declares multiple
+alternative ways to attach to a ROM/save. ScreenScraper is one optional source,
+not a prerequisite: other provider IDs, explicit catalogue identities, ROM
+hashes/internal codes and validated save observations may each supply evidence.
+One complete alternative is enough; constraints inside it all apply. Ambiguous
+adapters fall back rather than taking registration order. Art/sprite pack profiles
+and entity mappings belong to their adapter, with optional verified extraction
+from ROM/save where implemented. Preserve active-pack suppression of extraction,
+private assets and exact-build write guards. See the
+[implemented contract and boundaries](../src/adapters/README.md).
+
 **Implementation update, 9 October 2026:** the owner subsequently authorized the
 UX-02 implementation. Current behavior, handheld delivery and retained acceptance
 are recorded in [UX_FRAMEWORK](UX_FRAMEWORK.md). Dated planning-only and compact-menu
@@ -18,7 +38,7 @@ This pass updates documentation only. No new experience, UI or runtime is instal
 | [#174](https://github.com/EriArk/TrainerOS/issues/174) | One encapsulated game Experience Package supplies game-specific UI, actions and progress | Compose franchise presentation and narrow exact-build providers; host retains navigation, authorization, saves, launch, accounts and communication. No game-title switch trees in core shell. |
 | [#175](https://github.com/EriArk/TrainerOS/issues/175) | Resolve labels, faces and contextual actions for two game-oriented primary slots | Selected Home Adventure drives shell experience; preserve five semantic slot identities, per-Trainer/game/module face state, capability gates and late-result invalidation. |
 | [#176](https://github.com/EriArk/TrainerOS/issues/176) | Extract existing Pokémon screens and feature glue into a built-in experience | Preserve actual Emerald flows, exact-build read/write limits, save lineage and existing visuals. Moving presentation does not authorize save mutation. |
-| [#177](https://github.com/EriArk/TrainerOS/issues/177) | Useful generic fallback and cross-experience acceptance | Metadata/ordinary launch/observed history/verified RA, no dead Pokémon screens or invented progress. Two nonproduction RPG/racing fixtures prove routing only, not Diablo/NFS integration. |
+| [#177](https://github.com/EriArk/TrainerOS/issues/177) | Useful generic fallback and cross-experience acceptance | Metadata/ordinary launch/observed history/verified RA, no dead Pokémon screens or invented progress. Two nonproduction RPG/racing fixtures prove real-host routing, actions, state and rendered presenters, not Diablo/NFS integration. |
 | [#178](https://github.com/EriArk/TrainerOS/issues/178) | Separate universal person/account profile from game persona/progression | User name/PIN/ownership/accounts and real play history remain host-owned. Pokémon favorites/badges/Champion are game-specific projections. Stable global profile access survives game/package changes. |
 | Owner follow-up in this conversation | Home adapts to the selected game's experience too | Home retains its name/route and common controls; its actual game content, widgets, actions, presentation and verified progress adapt through the same package. More than replacing a background or title. |
 

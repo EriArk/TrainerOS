@@ -1,14 +1,12 @@
 #pragma once
 #include "core/input/Action.h"
 #include "core/repository/TrainerRepository.h"
-#include "features/pokedex/SpeciesPicker.h"
-#include "TrainerOverview.h"
 #include <QObject>
 #include <QVariantMap>
 #include <QStringList>
 
 namespace trainer {
-class TrainerController final : public QObject {
+class TrainerController : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool exists READ exists NOTIFY changed)
     Q_PROPERTY(bool editing READ editing NOTIFY changed)
@@ -17,10 +15,7 @@ class TrainerController final : public QObject {
     Q_PROPERTY(QVariantMap profile READ profile NOTIFY changed)
     Q_PROPERTY(QString draftName READ draftName NOTIFY changed)
     Q_PROPERTY(QString draftEmblem READ draftEmblem NOTIFY changed)
-    Q_PROPERTY(QString draftFavorite READ draftFavorite NOTIFY changed)
     Q_PROPERTY(QString error READ error NOTIFY changed)
-    Q_PROPERTY(trainer::SpeciesPicker* picker READ picker CONSTANT)
-    Q_PROPERTY(QVariantList overview READ overview NOTIFY changed)
     Q_PROPERTY(QVariantList editRows READ editRows NOTIFY changed)
 public:
     static constexpr int NameLimit = 24;
@@ -29,18 +24,13 @@ public:
     bool editing() const { return editing_; }
     bool saving() const { return saving_; }
     void reload();
-    void configure(LibraryRepository*, PokedexReferenceProvider*, PokedexProgressRepository*, HallOfFameRepository*);
-    void refreshOverview();
-    QVariantList overview() const;
     QVariantList editRows() const;
-    SpeciesPicker* picker() { return &picker_; }
     int focusIndex() const { return focus_; }
     QVariantMap profile() const;
     QString draftName() const { return draft_.name; }
     QString draftEmblem() const { return draft_.emblemId; }
-    QString draftFavorite() const { return favoriteLabel(draft_.favoritePokemonId); }
     QString error() const { return error_; }
-    void beginEdit(bool gamePersona = true);
+    void beginEdit();
     void cancel();
     void setDraftName(const QString& name);
     void dispatch(Action, bool vertical = false);
@@ -51,19 +41,18 @@ signals:
     void messageRequested(const QString& message);
 private:
     void save();
-    QString favoriteLabel(const QString& id) const;
+protected:
+    virtual int extraRows() const { return 0; }
+    virtual QVariantList extraEditRows() const { return {}; }
+    virtual QVariantMap extraProfile(const TrainerProfile&) const { return {}; }
+    virtual void activateExtra(int) {}
+    virtual bool dispatchExtra(Action) { return false; }
+    virtual bool activateOverlay(int) { return false; }
+    virtual void cancelExtra() {}
     TrainerRepository& repository_;
-    SpeciesPicker picker_;
-    LibraryRepository* library_ = nullptr;
-    PokedexReferenceProvider* reference_ = nullptr;
-    PokedexProgressRepository* journal_ = nullptr;
-    HallOfFameRepository* archive_ = nullptr;
-    TrainerOverview overview_;
-    QHash<QString, QString> names_;
     std::optional<TrainerProfile> profile_;
     TrainerProfile draft_;
     bool editing_ = false;
-    bool gamePersona_ = true;
     bool saving_ = false;
     int focus_ = 0;
     QString error_;

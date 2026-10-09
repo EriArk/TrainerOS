@@ -2,6 +2,7 @@
 #include "core/input/Action.h"
 #include <QObject>
 #include <QThread>
+#include <QPointer>
 #include <QVariantMap>
 #include <QVariantList>
 #include <QHash>
@@ -10,7 +11,7 @@
 
 namespace trainer {
 class FluxerSession;
-class LinkController;
+class NativeActivityProvider;
 class SocialController final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool contacts READ contacts NOTIFY changed)
@@ -60,7 +61,7 @@ public:
     explicit SocialController(QObject* parent = nullptr);
     ~SocialController() override;
     void setOwner(QString owner);
-    void setLink(LinkController* link);
+    void setLink(NativeActivityProvider* link);
     void setOnlineContext(bool available,bool writable);
     QVariantMap online() const;
     Q_INVOKABLE void answerOnline(bool accept);
@@ -216,7 +217,7 @@ private:
     bool mediaSending_=false,mediaUncertain_=false;
     QThread thread_;
     FluxerSession* session_;
-    LinkController* link_=nullptr;
+    QPointer<NativeActivityProvider> link_;
     bool onlineAvailable_=false,onlineWritable_=true;
     bool runtimeAvailable_=false,runtimeOnline_=false;
     QVariantList runtimeCapabilities_;

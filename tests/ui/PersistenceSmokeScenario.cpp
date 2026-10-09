@@ -1,4 +1,6 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "PersistenceSmokeScenario.h"
+#include "RenderSettlement.h"
 #include <QCoreApplication>
 #include <QQuickItem>
 #include <QImage>
@@ -12,6 +14,7 @@ void startPersistenceSmoke(QQuickWindow* window, ShellController& shell, Session
         bool& completed, int& warnings, QStringList& diagnostics) {
     auto stage = std::make_shared<int>(0);
     auto failed = std::make_shared<bool>(false);
+    auto layoutWait = std::make_shared<int>(0);
     auto timer = new QTimer(window); timer->setInterval(200);
     QObject::connect(timer, &QTimer::timeout, window, [=, &shell, &session, &input, &completed, &warnings, &diagnostics] {
         const auto check = [&](bool condition, const QString& message) {
@@ -57,34 +60,36 @@ void startPersistenceSmoke(QQuickWindow* window, ShellController& shell, Session
             if (finish()) press(b); // Explicit exit from startup recovery.
             return;
         }
-        if (session.blocked() || shell.trainer()->saving() || shell.pokedex()->saving()) return;
+        if (session.blocked() || pokemonModule(shell).persona()->saving() || pokemonModule(shell).pokedex()->saving()) return;
+        if(waitForViewport(window,*layoutWait))return;
         if (phase == "seed") {
             switch ((*stage)++) {
             case 0:
-                check(!shell.trainer()->exists() && focusIs("home-launch"), "Fresh startup");
+                check(!pokemonModule(shell).persona()->exists() && focusIs("home-launch"), "Fresh startup");
                 press(next, 3); press(a); press(a); press(a); // Trainer name A.
                 press(down, 3); press(right); press(a); // Apply.
-                check(shell.trainer()->draftName() == "A", "Controller text entry");
+                check(pokemonModule(shell).persona()->draftName() == "A", "Controller text entry");
                 press(down, 2); press(a); // Favorite picker.
-                check(shell.trainer()->picker()->entries().size() == 14, "Reference-backed favorite choices");
+                check(pokemonModule(shell).persona()->picker()->entries().size() == 14, "Reference-backed favorite choices");
                 press(down, 6); *stage = 3; break;
             case 3:
                 check(focusIs("species-eevee"), "Favorite list retains actual controller focus");
                 capture("trainer-favorite-picker"); press(a);
-                check(shell.trainer()->draftFavorite() == "Eevee", "Choice updates only the profile draft");
+                check(pokemonModule(shell).persona()->draftFavorite() == "Eevee", "Choice updates only the profile draft");
                 press(down); press(a); press(previous, 2); // Save, leave while pending to Worlds.
                 *stage = 1;
                 break;
             case 1:
-                check(shell.trainer()->profile()["name"].toString() == "A", "Committed Trainer after leaving page");
-                press(right, 2); press(a); press(a); // Hoenn, Emerald detail.
-                check(shell.worlds()->detail()["id"].toString() == "emerald-demo", "World selection");
+                check(pokemonModule(shell).persona()->profile()["name"].toString() == "A", "Committed Trainer after leaving page");
+                press(a); // Pokemon collection, with one shared installed-game browser.
+                for(int i=0;i<shell.multiverse()->games().size() && shell.multiverse()->detail()["id"]!="emerald-demo";++i)press(down);
+                check(shell.multiverse()->detail()["id"].toString() == "emerald-demo", "Collection selection");
                 press(next); press(a); press(a); press(b); // Bulbasaur favorite, back during write.
                 break;
             case 2:
-                check(shell.pokedex()->detail()["favorite"].toBool(), "Committed local favorite");
+                check(pokemonModule(shell).pokedex()->detail()["favorite"].toBool(), "Committed local favorite");
                 press(up); press(a); press(a); press(down, 3); press(right); press(a); // Search A, Apply.
-                check(shell.pokedex()->query() == "A" && focusIs("dex-rail-0"), "Applied search and restored focus");
+                check(pokemonModule(shell).pokedex()->query() == "A" && focusIs("dex-rail-0"), "Applied search and restored focus");
                 capture("saved-search");
                 press(SDL_CONTROLLER_BUTTON_START); press(down, 6); press(a); press(down); press(a);
                 check(shell.modeConfirmation(), "Power routes development exit through confirmation");
@@ -95,22 +100,22 @@ void startPersistenceSmoke(QQuickWindow* window, ShellController& shell, Session
         } else {
             switch ((*stage)++) {
             case 0:
-                check(shell.trainer()->profile()["name"].toString() == "A", "Profile survived process restart");
-                check(shell.trainer()->profile()["favorite"].toString() == "Eevee", "Chosen favorite survived process restart");
-                check(shell.page() == 2 && shell.pokedex()->query() == "A" && focusIs("dex-rail-0"), "Page/search/focus survived restart");
+                check(pokemonModule(shell).persona()->profile()["name"].toString() == "A", "Profile survived process restart");
+                check(pokemonModule(shell).persona()->profile()["favorite"].toString() == "Eevee", "Chosen favorite survived process restart");
+                check(shell.page() == 2 && pokemonModule(shell).pokedex()->query() == "A" && focusIs("dex-rail-0"), "Page/search/focus survived restart");
                 check(!shell.menuOpen() && !shell.keyboard()->isOpen(), "No restored transient layers");
                 press(down); press(a);
-                check(shell.pokedex()->detail()["favorite"].toBool(), "Favorite survived process restart");
-                check(shell.pokedex()->detail()["seen"].toString() == "Not recorded", "No sample progress contamination");
+                check(pokemonModule(shell).pokedex()->detail()["favorite"].toBool(), "Favorite survived process restart");
+                check(pokemonModule(shell).pokedex()->detail()["seen"].toString() == "Not recorded", "No sample progress contamination");
                 capture("restored-favorite"); window->resize(1920, 1080); break;
             case 1:
                 capture("restored-favorite-1080p");
-                press(previous);
-                check(shell.worlds()->route() == "regions" && focusIs("world-2"), "Primary re-entry opens the remembered World grid after restart");
-                press(a,2);
-                check(shell.worlds()->detail()["id"].toString() == "emerald-demo"
-                      && focusIs("world-action-resume"), "Reopening the World retains its Adventure identity");
-                window->resize(1024, 768); break;
+                press(previous);*stage=5;break;
+            case 5:
+                check(shell.collectionsRoot() && focusIs("series-card-pokemon"), "Primary re-entry opens the remembered collection grid after restart");
+                press(a);
+                check(shell.multiverse()->detail()["id"].toString() == "emerald-demo", "Reopening the collection retains its game focus");
+                window->resize(1024, 768);*stage=2;break;
             case 2:
                 capture("restored-world-letterbox");
                 press(next, 2); window->resize(960, 540); break;
@@ -121,13 +126,13 @@ void startPersistenceSmoke(QQuickWindow* window, ShellController& shell, Session
                 press(a); press(down, 3); press(right); press(a); // Search A.
                 break;
             case 4:
-                check(shell.trainer()->picker()->query() == "A", "Controller search returns to picker");
+                check(pokemonModule(shell).persona()->picker()->query() == "A", "Controller search returns to picker");
                 capture("trainer-favorite-search"); press(b);
-                check(shell.trainer()->editing() && !shell.trainer()->picker()->isOpen(), "Back returns to profile draft");
+                check(pokemonModule(shell).persona()->editing() && !pokemonModule(shell).persona()->picker()->isOpen(), "Back returns to profile draft");
                 press(a); press(SDL_CONTROLLER_BUTTON_X); // Clear only draft favorite.
-                check(shell.trainer()->draftFavorite() == "Not chosen", "Y clears draft choice");
+                check(pokemonModule(shell).persona()->draftFavorite() == "Not chosen", "Y clears draft choice");
                 press(previous); press(next); // Global page action discards the draft.
-                check(shell.trainer()->profile()["favorite"].toString() == "Eevee" && !shell.trainer()->editing(), "Page change discards unsubmitted favorite");
+                check(pokemonModule(shell).persona()->profile()["favorite"].toString() == "Eevee" && !pokemonModule(shell).persona()->editing(), "Page change discards unsubmitted favorite");
                 if (finish()) window->close(); // Native window closing also drains browsing state.
                 break;
             }

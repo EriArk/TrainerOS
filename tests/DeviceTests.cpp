@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "platform/device/VolumeKeys.h"
 #include "features/device/DeviceController.h"
 #include "core/navigation/ShellController.h"
@@ -199,7 +200,7 @@ private slots:
     void startPowerAndQuickControls() {
         MockLibraryRepository library; MockTrainerRepository profiles; MockAdventureAdapter adapter;
         DevelopmentPlatformService platform; MockPokedexRepository dex; MockHallOfFameRepository archive; MockAchievementProvider achievements;
-        ShellController shell(library, profiles, adapter, platform, dex, dex, archive, achievements);
+        ShellController shell(library, profiles, adapter, platform,builtinExperiences( dex, dex), archive, achievements);
         DeviceSnapshot value; value.volume = 35; value.brightness = 60;
         DeviceService service({[&] { return value; }, [&](const QString& control, int setting) {
             if (control == "volume") value.volume = setting;
@@ -225,7 +226,7 @@ private slots:
     void powerRequiresConfirmationAndWaitsForWork() {
         MockLibraryRepository library; MockTrainerRepository profiles; MockAdventureAdapter adapter;
         DevelopmentPlatformService platform; MockPokedexRepository dex; MockHallOfFameRepository archive; MockAchievementProvider achievements;
-        ShellController shell(library, profiles, adapter, platform, dex, dex, archive, achievements);
+        ShellController shell(library, profiles, adapter, platform,builtinExperiences( dex, dex), archive, achievements);
         QSemaphore release;
         DeviceService service({[&] { release.tryAcquire(1, 3000); return DeviceSnapshot{}; }, [](const QString&, int) { return QString(); }});
         shell.device()->configure(&service, true);

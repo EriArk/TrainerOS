@@ -8,60 +8,21 @@ namespace {
 const QStringList emblems{"compass", "leaf", "spark"};
 }
 TrainerController::TrainerController(TrainerRepository& repository, QObject* parent)
-    : QObject(parent), repository_(repository), picker_(this), profile_(repository.load()) {
-    connect(&picker_, &SpeciesPicker::changed, this, &TrainerController::changed);
-    connect(&picker_, &SpeciesPicker::selected, this, [this](const QString& id) {
-        if (!editing_ || saving_) return;
-        draft_.favoritePokemonId = id; error_.clear(); emit changed();
-    });
-}
-void TrainerController::configure(LibraryRepository* library, PokedexReferenceProvider* reference,
-        PokedexProgressRepository* journal, HallOfFameRepository* archive) {
-    library_ = library; reference_ = reference; journal_ = journal; archive_ = archive;
-    picker_.setReference(reference);
-}
-void TrainerController::refreshOverview() {
-    if (!library_ || !reference_ || !journal_ || !archive_) return;
-    const auto reference = reference_->load();
-    if (reference.success) {
-        names_.clear();
-        for (const auto& entry : reference.entries) names_.insert(entry.id, entry.name);
-    }
-    overview_ = trainerOverview(*library_, reference, *journal_, *archive_);
-    emit changed();
-}
-QVariantList TrainerController::overview() const {
-    const auto count = [](const std::optional<int>& value) { return value ? QString::number(*value) : QString("—"); };
-    const auto seconds = overview_.recordedSeconds;
-    const QString time = !seconds ? "—" : *seconds < 60 ? "< 1 min"
-        : *seconds < 3600 ? QString::number(*seconds / 60) + " min"
-        : QString("%1 h %2 m").arg(*seconds / 3600).arg((*seconds % 3600) / 60);
-    return {QVariantMap{{"label", "ADVENTURES"}, {"value", QString::number(overview_.adventures)}},
-        QVariantMap{{"label", "WORLDS"}, {"value", QString::number(overview_.worlds)}},
-        QVariantMap{{"label", "FAVORITE MARKS"}, {"value", count(overview_.favorites)}},
-        QVariantMap{{"label", "MEMORIES"}, {"value", count(overview_.memories)}},
-        QVariantMap{{"label", "RECORDED TIME"}, {"value", time}}};
-}
-QString TrainerController::favoriteLabel(const QString& id) const {
-    if (id.isEmpty()) return "Not chosen";
-    return names_.value(id, id.left(1).toUpper() + id.mid(1));
-}
+    : QObject(parent), repository_(repository), profile_(repository.load()) {}
 QVariantMap TrainerController::profile() const {
     const TrainerProfile current = profile_.value_or(TrainerProfile{});
-    return {{"id", current.id}, {"name", current.name}, {"emblem", current.emblemId},
-            {"favorite", favoriteLabel(current.favoritePokemonId)}};
+    auto values=extraProfile(current);values.insert("id",current.id);values.insert("name",current.name);values.insert("emblem",current.emblemId);return values;
 }
 QVariantList TrainerController::editRows() const {
     QVariantList rows{QVariantMap{{"title","Name"},{"detail",draftName()},{"kind","action"}},
         QVariantMap{{"title","Emblem"},{"detail",draftEmblem()},{"kind","action"}}};
-    if(gamePersona_)rows.append(QVariantMap{{"title","Favorite"},{"detail",draftFavorite()},{"kind","action"}});
+    rows.append(extraEditRows());
     rows.append(QVariantMap{{"title",saving_?"Saving…":"Save profile"},{"kind","action"}});
     rows.append(QVariantMap{{"title","Cancel"},{"kind","action"}});
     return rows;
 }
-void TrainerController::beginEdit(bool gamePersona) {
+void TrainerController::beginEdit() {
     if (editing_ || saving_) return;
-    gamePersona_=gamePersona;
     draft_ = profile_.value_or(TrainerProfile{});
     if (!profile_) {
         draft_.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
@@ -73,7 +34,7 @@ void TrainerController::beginEdit(bool gamePersona) {
     emit changed();
 }
 void TrainerController::cancel() {
-    picker_.cancel();
+    cancelExtra();
     if (!editing_) return;
     editing_ = false;
     draft_ = {};
@@ -119,34 +80,30 @@ void TrainerController::reload() {
     emit changed();
 }
 void TrainerController::activate(int index) {
-    if (picker_.isOpen()) { picker_.activate(index); return; }
-    const int action=gamePersona_?index:index>=2?index+1:index;
-    if (editing_ && action == 4) { cancel(); return; }
-    if (!editing_ || saving_ || index < 0 || index > (gamePersona_?4:3)) return;
-    focus_ = index;
-    switch (action) {
-    case 0: emit nameRequested(draft_.name); break;
-    case 1: draft_.emblemId = emblems[(emblems.indexOf(draft_.emblemId) + 1) % emblems.size()]; break;
-    case 2: picker_.begin(draft_.favoritePokemonId); break;
-    case 3: save(); break;
-    case 4: cancel(); return;
-    }
+    if(activateOverlay(index))return;
+    const int saveIndex=2+extraRows();
+    if(editing_ && index==saveIndex+1){cancel();return;}
+    if(!editing_ || saving_ || index<0 || index>saveIndex+1)return;
+    focus_=index;
+    if(index==0)emit nameRequested(draft_.name);
+    else if(index==1)draft_.emblemId=emblems[(emblems.indexOf(draft_.emblemId)+1)%emblems.size()];
+    else if(index<saveIndex)activateExtra(index-2);
+    else if(index==saveIndex)save();
     emit changed();
 }
-void TrainerController::dispatch(Action action, bool vertical) {
-    if (!editing_) return;
-    if (picker_.isOpen()) { picker_.dispatch(action); return; }
-    if (action == Action::Back) { cancel(); return; }
-    if (action == Action::Confirm) { activate(focus_); return; }
-    if (vertical && (action == Action::Up || action == Action::Down)) {
-        focus_ = std::clamp(focus_ + (action == Action::Down ? 1 : -1), 0, gamePersona_?4:3);
-        emit changed(); return;
+void TrainerController::dispatch(Action action,bool vertical) {
+    if(!editing_)return;
+    if(dispatchExtra(action))return;
+    if(action==Action::Back){cancel();return;}
+    if(action==Action::Confirm){activate(focus_);return;}
+    const int saveIndex=2+extraRows();
+    if(vertical && (action==Action::Up || action==Action::Down))focus_=std::clamp(focus_+(action==Action::Down?1:-1),0,saveIndex+1);
+    else {
+        if(action==Action::Up)focus_=focus_>=saveIndex?saveIndex-1:std::max(0,focus_-1);
+        if(action==Action::Down)focus_=focus_<saveIndex?focus_+1:focus_;
+        if(action==Action::Right && focus_==saveIndex)focus_=saveIndex+1;
+        if(action==Action::Left && focus_==saveIndex+1)focus_=saveIndex;
     }
-    const int saveIndex=gamePersona_?3:2;
-    if (action == Action::Up) focus_ = focus_ >= saveIndex ? saveIndex-1 : std::max(0, focus_ - 1);
-    if (action == Action::Down) focus_ = focus_ < saveIndex ? focus_ + 1 : focus_;
-    if (action == Action::Right && focus_ == saveIndex) focus_ = saveIndex+1;
-    if (action == Action::Left && focus_ == saveIndex+1) focus_ = saveIndex;
     emit changed();
 }
 }

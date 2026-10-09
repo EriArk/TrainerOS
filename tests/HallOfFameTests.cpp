@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "core/navigation/ShellController.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include <QtTest>
@@ -183,7 +184,7 @@ private slots:
         MockHallOfFameRepository archive;
         MockAchievementProvider provider;
         provider.enableAccountPreview();
-        ShellController shell(library, profiles, adapter, platform, dex, dex, archive, provider);
+        ShellController shell(library, profiles, adapter, platform,builtinExperiences( dex, dex), archive, provider);
         shell.goToTrainerFace("journey"); shell.dispatch(Action::NextFace);shell.activate(1);
         const auto choice = shell.currentAdventureId();
         QVERIFY(shell.pairedNavigationAvailable());
@@ -211,7 +212,7 @@ private slots:
         shell.dispatch(Action::PreviousPage); shell.dispatch(Action::NextPage);
         QCOMPARE(shell.hall()->route(), "archive-detail");
         const auto saved = shell.navigationState();
-        ShellController restored(library, profiles, adapter, platform, dex, dex, archive, provider);
+        ShellController restored(library, profiles, adapter, platform, builtinExperiences(dex, dex), archive, provider);
         restored.restoreNavigation(saved);
         QCOMPARE(restored.page(), 3);
         QCOMPARE(restored.hall()->route(), "archive-detail");
@@ -228,7 +229,7 @@ private slots:
         MockPokedexRepository dex;
         MockHallOfFameRepository archive;
         MockAchievementProvider provider;
-        ShellController shell(library, profiles, adapter, platform, dex, dex, archive, provider);
+        ShellController shell(library, profiles, adapter, platform,builtinExperiences( dex, dex), archive, provider);
         shell.goToTrainerFace("journey");shell.dispatch(Action::NextFace);
         shell.dispatch(Action::LocalAction);
         auto* editor = shell.hall()->editor();
@@ -360,7 +361,7 @@ private slots:
         MockPokedexRepository dex;
         MutableArchive archive;
         MockAchievementProvider provider;
-        ShellController shell(library, profiles, adapter, platform, dex, dex, archive, provider);
+        ShellController shell(library, profiles, adapter, platform,builtinExperiences( dex, dex), archive, provider);
         const auto home = shell.home();
         shell.goToTrainerFace("journey"); achievements(*shell.hall()); shell.activate(1);
         shell.dispatch(Action::SystemMenu); shell.dispatch(Action::Back);

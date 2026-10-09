@@ -7,6 +7,33 @@
 class PersistenceProcessTests final : public QObject {
     Q_OBJECT
 private slots:
+    void installedExecutableResolvesAdapterResources() {
+#ifdef Q_OS_UNIX
+        QTemporaryDir dir; QVERIFY(dir.isValid());
+        const QDir build(QCoreApplication::applicationDirPath());
+        for (const auto& name : {"traineros", "trainer_process_probe"})
+            QVERIFY(QFile::copy(build.filePath(name), dir.filePath(name)));
+        for (const auto& mode : {QString("experience"), QString("library-home")}) {
+            QProcess process; process.setProcessChannelMode(QProcess::MergedChannels);
+            process.setWorkingDirectory(dir.path());
+            QStringList args;
+            if (mode == "experience") args << "--experience-smoke-test";
+            else args << "--persistence-smoke-test" << mode;
+            args << "--data-dir" << dir.filePath(mode)
+                 << "--screenshot-dir" << dir.filePath(mode + "-screenshots");
+            process.start(dir.filePath("traineros"), args);
+            QVERIFY(process.waitForStarted());
+            if (!process.waitForFinished(25000)) {
+                process.kill(); process.waitForFinished(); QFAIL(qPrintable(process.readAll()));
+            }
+            const auto output = process.readAll();
+            QVERIFY2(process.exitCode() == 0 && process.exitStatus() == QProcess::NormalExit,
+                     output.constData());
+        }
+#else
+        QSKIP("Installed Linux executable resource isolation");
+#endif
+    }
     void controllerBackupRestoreAndProtection() {
         QTemporaryDir dir;QVERIFY(dir.isValid());
         const auto executable=QDir(QCoreApplication::applicationDirPath()).filePath(
@@ -41,7 +68,7 @@ private slots:
             const auto output = p.readAll(); QVERIFY2(p.exitCode() == 0 && p.exitStatus() == QProcess::NormalExit, qPrintable(phase + " exit " + QString::number(p.exitCode()) + ": " + output));
         }
     }
-    void controllerCollectionAttachment() {
+    void emptyCollectionsDoNotExposeCatalogueOnlyGames() {
         QTemporaryDir dir; QVERIFY(dir.isValid()); QVERIFY(QDir().mkpath(dir.filePath("content")));
         { QFile f(dir.filePath("content/test.gba")); QVERIFY(f.open(QIODevice::WriteOnly)); f.write("Content-free collection fixture"); }
         const auto app = QDir(QCoreApplication::applicationDirPath()).filePath(

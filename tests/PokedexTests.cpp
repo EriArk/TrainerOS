@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "core/navigation/ShellController.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include "integrations/progress/Gen3Progress.h"
@@ -263,33 +264,33 @@ private slots:
         MockPokedexRepository dex;
         MockHallOfFameRepository shellArchive;
         MockAchievementProvider shellAchievements;
-        ShellController shell(library, profiles, adapter, platform, dex, dex, shellArchive, shellAchievements);
+        ShellController shell(library, profiles, adapter, platform,builtinExperiences( dex, dex), shellArchive, shellAchievements);
         shell.goToPage(2); shell.dispatch(Action::Up); shell.dispatch(Action::Confirm);
         auto* keyboard = shell.keyboard();
         keyboard->activate(keyIndex(*keyboard, "2")); keyboard->activate(keyIndex(*keyboard, "5"));
         shell.dispatch(Action::SystemMenu); shell.dispatch(Action::Back);
         QCOMPARE(keyboard->text(), "25");
         keyboard->activate(keyIndex(*keyboard, "apply"));
-        QCOMPARE(ids(*shell.pokedex()), QStringList{"pikachu"});
+        QCOMPARE(ids(*pokemonModule(shell).pokedex()), QStringList{"pikachu"});
         QVERIFY(!profiles.load().has_value());
         shell.dispatch(Action::Confirm); keyboard->activate(keyIndex(*keyboard, "A"));
         shell.dispatch(Action::Back);
-        QCOMPARE(shell.pokedex()->query(), "25");
+        QCOMPARE(pokemonModule(shell).pokedex()->query(), "25");
         shell.dispatch(Action::Confirm); keyboard->activate(keyIndex(*keyboard, "B"));
         shell.dispatch(Action::NextPage);
-        QVERIFY(!keyboard->isOpen()); QCOMPARE(shell.pokedex()->query(), "25");
+        QVERIFY(!keyboard->isOpen()); QCOMPARE(pokemonModule(shell).pokedex()->query(), "25");
         shell.dispatch(Action::Confirm); shell.dispatch(Action::Confirm);
         keyboard->activate(keyIndex(*keyboard, "E")); keyboard->activate(keyIndex(*keyboard, "apply"));
-        QCOMPARE(shell.trainer()->draftName(), "E");
-        QCOMPARE(shell.pokedex()->query(), "25");
+        QCOMPARE(pokemonModule(shell).persona()->draftName(), "E");
+        QCOMPARE(pokemonModule(shell).pokedex()->query(), "25");
         shell.dispatch(Action::PreviousPage);
-        shell.pokedex()->activateControl("rail", 2);
+        pokemonModule(shell).pokedex()->activateControl("rail", 2);
         shell.dispatch(Action::Right);
         shell.dispatch(Action::SystemMenu); shell.dispatch(Action::Back);
-        QCOMPARE(shell.pokedex()->zone(), "picker");
+        QCOMPARE(pokemonModule(shell).pokedex()->zone(), "picker");
         shell.dispatch(Action::NextPage); shell.dispatch(Action::PreviousPage);
-        QCOMPARE(shell.pokedex()->zone(), "rail");
-        QCOMPARE(shell.pokedex()->rail()[2].toMap()["value"].toString(), "All types");
+        QCOMPARE(pokemonModule(shell).pokedex()->zone(), "rail");
+        QCOMPARE(pokemonModule(shell).pokedex()->rail()[2].toMap()["value"].toString(), "All types");
     }
 };
 QTEST_GUILESS_MAIN(PokedexTests)

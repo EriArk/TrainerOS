@@ -1,5 +1,5 @@
 #include "integrations/practice/PracticeSession.h"
-#include "features/center/PracticeController.h"
+#include "adapters/pokemon/center/PracticeController.h"
 #include "integrations/progress/EmeraldPractice.h"
 #include <QtTest>
 #include <QStandardPaths>

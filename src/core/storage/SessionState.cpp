@@ -71,7 +71,7 @@ SessionState::SessionState(ShellController& shell, LocalStateStore* store, QObje
             shell_.trainerSetup()->configure(store_->trainers(),store_->ownerId());shell_.trainerSetup()->setFamilyReady(store_->familyProtected());
             shell_.settings()->setTrainersAvailable(true);
             shell_.trainer()->reload();
-            shell_.pokedex()->refresh();
+            shell_.reloadModules();
             shell_.hall()->refreshArchive();
             shell_.refreshLibrary(); shell_.settings()->reload();
             shell_.restoreNavigation(store_->navigation());

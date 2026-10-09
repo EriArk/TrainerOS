@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "features/trainer/TrainerController.h"
 #include "core/repository/OfflinePokedex.h"
 #include "core/storage/LocalStateStore.h"
@@ -59,7 +60,7 @@ private slots:
         QTemporaryDir directory; QVERIFY(directory.isValid()); OfflinePokedex guide;
         {
             LocalStateStore store(directory.path(),nullptr,"user-library-v1"); store.open(); QTRY_VERIFY(store.ready());
-            TrainerController trainer(store); trainer.configure(&store,&guide,&store,&store); trainer.refreshOverview();
+            PokemonPersona trainer(store); trainer.configure(&store,&guide,&store,&store); trainer.refreshOverview();
             QCOMPARE(trainer.overview()[2].toMap()["label"].toString(),"FAVORITE MARKS");
             QCOMPARE(trainer.overview()[2].toMap()["value"].toString(),"0");
             trainer.beginEdit(); trainer.setDraftName("ERI"); trainer.activate(2); trainer.picker()->applySearch("Flabebe"); trainer.dispatch(Action::Confirm);

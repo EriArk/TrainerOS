@@ -1,5 +1,35 @@
 # AGENTS.md — TrainerOS
 
+**Owner adapter identity/assets clarification, 2026-10-09:** each adapter owns a
+manifest of alternative compatibility rules, not a mandatory ScreenScraper link.
+Provider IDs (ScreenScraper or another catalogue), local catalogue identities,
+ROM hashes/internal codes and validated save observations are independent routes;
+one complete alternative may match, with all constraints inside that alternative
+required. No title/filename guesses or ambiguous first-match registration order.
+Catalogue/presentation matching never authorizes semantic save reads or writes.
+Art/sprite pack profiles and entity mappings belong to that adapter, with optional
+adapter-owned ROM/save extraction only where actually implemented and verified.
+Keep user assets separate from replaceable code; a compatible active pack suppresses
+extraction for that family. Preserve private bootstrap compatibility and #90/#92,
+#95–97 and artwork/license acceptance; the manifest does not deliver those gates.
+
+**Owner adapter encapsulation requirement, 2026-10-09:** UX-02 is NOT complete
+until the game-module boundary is implemented; finish it before MP-02. Every new
+game experience must start as an adapter in `src/adapters/<id>/`, with its own
+presentation, actions, navigation state and game-specific orchestration. Keep the
+shared contract in `src/core/experience/` and register trusted built-ins at the
+composition boundary. Do not scatter game-specific branches, controllers or QML
+registrations across ShellController, Main.qml or ExperienceHost. Adding an adapter
+may change its folder and explicit build/composition registration, not the generic
+shell. Reuse common runtime, account, history, communication and protected-save
+services; presentation grants no save capability. Preserve exact-build checks and
+the MP-02 timer WIP. Contract/registration and real alternate-module tests are
+required; renaming folders or descriptor-only fixtures do not prove encapsulation.
+External downloaded packages/trust/installability remain the separate #92 gate.
+The adapter follow-up implements this correction; evidence and remaining external
+acceptance are recorded in docs/UX_FRAMEWORK.md. Future adapters must preserve
+this boundary. MP-02 remains next after delivery.
+
 **UX-02 implementation delivered, 9 October 2026:** adaptive Home/game slots,
 universal profile, Options/Select, live Game Options/minimize, contextual Together
 and passive shell notifications/shared inbox are installed and running on Flip/Odin.

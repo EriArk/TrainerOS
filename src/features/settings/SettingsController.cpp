@@ -1,13 +1,16 @@
 #include "SettingsController.h"
 #include "features/library/ScrapeController.h"
-#include "features/center/LinkController.h"
+#include "core/experience/ExperienceProviders.h"
 #include <algorithm>
 #include <QSettings>
 
 namespace trainer {
 QString SettingsController::displayProfile() const {return QSettings().value("display/profile","handheld").toString()=="tv"?"tv":"handheld";}
-void SettingsController::configureNearby(LinkController* value) {
-    nearby_=value;connect(value,&LinkController::changed,this,&SettingsController::changed);
+void SettingsController::configureNearby(NativeActivityProvider* value) {
+    if(nearby_==value)return;
+    if(nearby_)disconnect(nearby_,nullptr,this,nullptr);
+    nearby_=value;if(value)connect(value,&NativeActivityProvider::changed,this,&SettingsController::changed);
+    emit changed();
 }
 void SettingsController::setLibraryScanState(bool available,bool busy,const QString& result) {
     libraryAvailable_=available;libraryScanning_=busy;

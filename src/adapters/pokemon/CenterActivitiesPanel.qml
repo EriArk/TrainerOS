@@ -1,0 +1,86 @@
+import QtQuick
+import TrainerOS
+
+Item {
+    id: root
+    required property var shell
+    readonly property var activity: shell.experienceModel.party.activities
+    readonly property bool takesFocus: enabled && visible && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
+    enabled: !shell.drawerOpen
+    LinkPanel {anchors.fill: parent; shell: root.shell; controller: root.activity.link; visible: root.activity.route === "link"}
+    PracticePanel {
+        anchors.fill: parent; shell: root.shell; controller: root.activity.practice
+        visible: root.activity.route === "practice"
+    }
+    Item {
+        visible: root.activity.route !== "practice" && root.activity.route !== "link"
+        anchors.fill: parent; anchors.margins: Theme.panelInset
+        anchors.topMargin: Theme.contentTopInset; anchors.bottomMargin: Theme.panelInset; clip: true
+        PageHeader {
+            id: heading; compact: true; title: root.activity.page.title
+            trailing: root.activity.route === "playroom" && root.activity.hasParty
+                ? (root.activity.actors[root.activity.focusIndex].name || "") : "Pokémon Center"
+            subtitle: root.activity.sample ? "Development rehearsal · no game, save or connection changes" : root.shell.experienceModel.party.title || "Choose an Adventure"
+        }
+        MountedPanel {
+            y: heading.height; width: parent.width; height: parent.height - y; color: "#dce6dc"
+            Text { x: 24; y: 15; width: parent.width - 48; text: root.activity.page.message; color: Theme.muted; font.pixelSize: 16; wrapMode: Text.WordWrap }
+            Column {
+                x: 24; y: 52; spacing: 9; visible: root.activity.route === "menu"
+                Repeater {
+                    model: ["Party Playroom", "Practice", "Link Counter", "Shops & Traders"]
+                    CapButton {
+                        required property int index; required property string modelData
+                        objectName: "activity-menu-" + index; width: 384; height: 48; label: modelData
+                        tint: index === 0 ? Theme.green : index === 1 ? Theme.blue : Theme.yellow
+                        selected: root.takesFocus && root.activity.route === "menu" && root.activity.focusIndex === index
+                        onActivated: root.shell.activate(index)
+                    }
+                }
+            }
+            Text {
+                x: 449; y: 68; width: parent.width - 478; visible: root.activity.route === "menu"
+                text: root.activity.focusIndex === 0 ? "Spend a quiet moment with your Party.\n\nA separate space from Party management."
+                    : root.activity.focusIndex === 1 ? "Prepare a read-only practice session.\n\nNo rewards or changes to the saved game."
+                    : root.activity.focusIndex === 3 ? "Visit the shops you have discovered and stock up for your next adventure."
+                    : "Review a partner and proposal.\n\nTransfers require supported games on both devices."
+                color: Theme.ink; font.pixelSize: 20; wrapMode: Text.WordWrap
+            }
+            Text {
+                x: 28; y: 95; width: parent.width - 56; visible: !root.activity.sample && root.activity.route !== "menu" && root.activity.route !== "playroom"
+                text: "Not available for this Adventure yet.\nYou can return to Party or use ordinary save backups."; color: Theme.ink; font.pixelSize: 24; wrapMode: Text.WordWrap
+            }
+            PartyPlayroom {
+                anchors.fill: parent; visible: root.activity.route === "playroom" && root.activity.hasParty
+                activity: root.activity; takesFocus: root.takesFocus && visible
+                playing: visible && root.takesFocus
+            }
+            CapButton {
+                anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 14
+                width: 164; height: 42; label: "Practice"; centered: true; tint: Theme.yellow
+                visible: root.activity.route === "playroom" && root.activity.hasParty
+                onActivated: if (root.takesFocus) root.activity.openPractice()
+            }
+            Column {
+                x: 32; y: 68; width: parent.width - 64; spacing: 20
+                visible: root.activity.sample && root.activity.route === "link"
+                Text { width: parent.width; text: root.activity.stage === "setup" ? "Sample partner device" : root.activity.stage === "review" ? "Your sample record  ↔  Partner's sample record" : "Connection needs attention"; color: Theme.ink; font.pixelSize: 26; font.bold: true; wrapMode: Text.WordWrap }
+                Text { width: parent.width; text: root.activity.stage === "setup" ? "Offline rehearsal · no Bluetooth scan"
+                    : root.activity.stage === "review" ? "Compatibility: unverified\nBoth confirmations and protected saves are required. No transfer is enabled."
+                    : "Neither save was changed. This preview started no transaction."; color: Theme.muted; font.pixelSize: 19; wrapMode: Text.WordWrap }
+            }
+            CapButton {
+                objectName: "activity-primary"; x: root.shell.chooseAdventureAvailable ? Theme.adventureCutoutWidth : 24; anchors.bottom: parent.bottom; anchors.bottomMargin: 12; width: 395; height: 44
+                visible: root.activity.route !== "menu" && root.activity.route !== "practice" && root.activity.route !== "link" && !(root.activity.hasParty && root.activity.route === "playroom")
+                label: root.activity.page.action; tint: Theme.blue; selected: root.takesFocus && visible
+                onActivated: root.shell.activate(root.activity.focusIndex)
+            }
+            Text {
+                x: 28; anchors.bottom: parent.bottom; anchors.bottomMargin: 23
+                visible: root.activity.route === "menu" || root.activity.hasParty && root.activity.route === "playroom"
+                text: ""
+                color: Theme.ink; font.pixelSize: 16
+            }
+        }
+    }
+}

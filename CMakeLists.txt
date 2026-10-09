@@ -47,10 +47,10 @@ add_library(trainer_core STATIC
     src/core/repository/BatoceraLibrary.h
     src/core/storage/TrainerPin.cpp
     src/features/trainer/TrainerAccessController.cpp
-    src/features/pokedex/SpriteArt.h
-    src/features/pokedex/SpriteArt.cpp
-    src/features/pokedex/ClassicArt.h
-    src/features/pokedex/ClassicArt.cpp
+    src/adapters/pokemon/pokedex/SpriteArt.h
+    src/adapters/pokemon/pokedex/SpriteArt.cpp
+    src/adapters/pokemon/pokedex/ClassicArt.h
+    src/adapters/pokemon/pokedex/ClassicArt.cpp
     src/core/model/ExitMedia.h
     src/features/home/ExitImage.h
     src/features/home/ExitImage.cpp
@@ -70,7 +70,7 @@ add_library(trainer_core STATIC
     src/integrations/progress/Gen3Progress.h
     src/integrations/progress/Gen3Progress.cpp
     src/integrations/progress/EmeraldShops.cpp
-    src/features/center/SaveCenterShops.cpp
+    src/adapters/pokemon/center/SaveCenterShops.cpp
     src/integrations/progress/EmeraldParty.h
     src/integrations/progress/EmeraldParty.cpp
     src/integrations/progress/EmeraldPractice.cpp
@@ -111,8 +111,8 @@ add_library(trainer_core STATIC
     src/platform/storage/SaveBackupStorage.h
     src/platform/storage/SaveBackupStorage.cpp
     src/platform/storage/SaveLineage.cpp
-    src/features/center/SaveCenterController.h
-    src/features/center/SaveCenterController.cpp
+    src/adapters/pokemon/center/SaveCenterController.h
+    src/adapters/pokemon/center/SaveCenterController.cpp
     src/core/repository/ResumeLibraryRepository.h
     src/integrations/adventure/retroarch/RetroArchConfiguration.h
     src/integrations/adventure/retroarch/RetroArchConfiguration.cpp
@@ -174,10 +174,20 @@ add_library(trainer_core STATIC
     src/core/input/TextEntryController.cpp
     src/core/input/TextEntryController.h
     src/core/navigation/ShellController.cpp
-    src/features/experience/ExperienceNavigation.cpp
-    src/features/experience/ExperienceNavigation.h
-    src/features/experience/PokemonExperienceController.cpp
-    src/features/experience/PokemonExperienceController.h
+    src/adapters/BuiltinExperiences.cpp
+    src/core/experience/ExperienceProviders.h
+    src/core/experience/ExperienceManifest.h
+    src/core/experience/ExperienceModule.h
+    src/core/experience/ExperienceLiveActions.cpp
+    src/adapters/pokemon/PokemonPersona.cpp
+    src/adapters/pokemon/PokemonPersona.h
+    src/adapters/pokemon/PokemonExperience.cpp
+    src/adapters/pokemon/PokemonExperience.h
+    src/adapters/generic/GenericExperience.h
+    src/core/experience/ExperienceNavigation.cpp
+    src/core/experience/ExperienceNavigation.h
+    src/adapters/pokemon/PokemonExperienceController.cpp
+    src/adapters/pokemon/PokemonExperienceController.h
     src/core/navigation/ShellController.h
     src/core/model/Models.h
     src/core/repository/HallOfFameRepository.h
@@ -197,22 +207,22 @@ add_library(trainer_core STATIC
     src/core/repository/OfflinePokedex.h
     src/core/repository/OfflinePokedex.cpp
     src/core/repository/MockPokedexRepository.cpp
-    src/features/pokedex/PokedexController.h
-    src/features/pokedex/PokedexController.cpp
-    src/features/pokedex/SpeciesPicker.h
-    src/features/pokedex/SpeciesPicker.cpp
-    src/features/trainer/TrainerOverview.h
-    src/features/trainer/TrainerOverview.cpp
+    src/adapters/pokemon/pokedex/PokedexController.h
+    src/adapters/pokemon/pokedex/PokedexController.cpp
+    src/adapters/pokemon/pokedex/SpeciesPicker.h
+    src/adapters/pokemon/pokedex/SpeciesPicker.cpp
+    src/adapters/pokemon/TrainerOverview.h
+    src/adapters/pokemon/TrainerOverview.cpp
     src/features/trainer/TrainerSetupPresentation.cpp
     src/features/trainer/TrainerController.cpp
     src/features/trainer/TrainerController.h
     src/features/worlds/WorldsController.cpp
     src/features/worlds/MultiversePresentation.cpp
-    src/features/center/PartyPresentation.cpp
-    src/features/center/CenterActivities.cpp
-    src/features/center/LinkController.cpp
-    src/features/center/BattlePlayback.cpp
-    src/features/center/PracticeController.cpp
+    src/adapters/pokemon/center/PartyPresentation.cpp
+    src/adapters/pokemon/center/CenterActivities.cpp
+    src/adapters/pokemon/center/LinkController.cpp
+    src/adapters/pokemon/center/BattlePlayback.cpp
+    src/adapters/pokemon/center/PracticeController.cpp
     src/features/worlds/WorldsController.h
     src/integrations/adventure/AdventureAdapter.h
     src/integrations/adventure/mock/MockAdventureAdapter.cpp
@@ -282,10 +292,11 @@ qt_add_qml_module(traineros
         src/qml/CapButton.qml
         src/qml/PlatformBadge.qml
         src/qml/Hint.qml
-        src/qml/HomePage.qml
-        src/qml/PokemonExperienceViews.qml
-        src/qml/PokemonExperienceOverlay.qml
-        src/qml/ExperienceHints.js
+        src/adapters/pokemon/HomePage.qml
+        src/adapters/pokemon/PokemonExperienceViews.qml
+        src/adapters/pokemon/PokemonExperienceOverlay.qml
+        src/adapters/pokemon/ExperienceHints.js
+        src/adapters/generic/GenericExperienceViews.qml
         src/qml/ExperienceHost.qml
         src/qml/GenericExperiencePage.qml
         src/qml/PlayerProfilePanel.qml
@@ -323,7 +334,7 @@ qt_add_qml_module(traineros
         src/qml/DevicePanel.qml
         src/qml/DiagnosticsPanel.qml
         src/qml/KeyboardPanel.qml
-        src/qml/TrainerPage.qml
+        src/adapters/pokemon/TrainerPage.qml
         src/qml/SocialPage.qml
         src/qml/SocialIconButton.qml
         src/qml/TrainerEmblem.qml
@@ -336,25 +347,25 @@ qt_add_qml_module(traineros
         src/qml/MultiversePage.qml
         src/qml/MultiverseHome.qml
         src/qml/SystemGlyph.qml
-        src/qml/PokedexPage.qml
+        src/adapters/pokemon/PokedexPage.qml
         src/qml/SpeciesPickerPanel.qml
         src/qml/ClassicIllustration.qml
         src/qml/ArtworkPanel.qml
         src/qml/SpritePreview.qml
         src/qml/SpriteActor.qml
-        src/qml/SaveCenterPanel.qml
-        src/qml/PartyPanel.qml
-        src/qml/PokemonClinic.qml
-        src/qml/PokemonShop.qml
-        src/qml/CenterActivitiesPanel.qml
-        src/qml/LinkPanel.qml
-        src/qml/LinkPortrait.qml
-        src/qml/PracticePanel.qml
-        src/qml/PracticeFighter.qml
-        src/qml/HomeParty.qml
-        src/qml/PartyPlayroom.qml
-        src/qml/PlayroomMeadow.qml
-        src/qml/PlayroomActor.qml
+        src/adapters/pokemon/SaveCenterPanel.qml
+        src/adapters/pokemon/PartyPanel.qml
+        src/adapters/pokemon/PokemonClinic.qml
+        src/adapters/pokemon/PokemonShop.qml
+        src/adapters/pokemon/CenterActivitiesPanel.qml
+        src/adapters/pokemon/LinkPanel.qml
+        src/adapters/pokemon/LinkPortrait.qml
+        src/adapters/pokemon/PracticePanel.qml
+        src/adapters/pokemon/PracticeFighter.qml
+        src/adapters/pokemon/HomeParty.qml
+        src/adapters/pokemon/PartyPlayroom.qml
+        src/adapters/pokemon/PlayroomMeadow.qml
+        src/adapters/pokemon/PlayroomActor.qml
         src/qml/BatteryGauge.qml
 )
 
@@ -390,6 +401,7 @@ if(BUILD_TESTING)
     add_test(NAME achievements COMMAND trainer_achievement_tests)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         find_package(Python3 REQUIRED COMPONENTS Interpreter)
+        add_test(NAME adapter_boundary COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/AdapterBoundaryTests.py)
         add_test(NAME session_supervisor COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SessionSupervisorTests.py)
         add_test(NAME overlay_helper COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/OverlayHelperTests.py)
         add_test(NAME emulator_support_install COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/EmulatorSupportInstallTests.py)
@@ -569,9 +581,11 @@ if(BUILD_TESTING)
     add_test(NAME pokedex_qml_smoke COMMAND traineros --pokedex-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/pokedex")
     add_test(NAME artwork_qml_smoke COMMAND traineros --art-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/artwork")
     add_test(NAME hall_qml_smoke COMMAND traineros --hall-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/hall")
+    qt_add_resources(traineros experience_fixture PREFIX "/TrainerOS" FILES tests/fixtures/adapters/CounterExperience.qml)
+    add_test(NAME experience_qml_smoke COMMAND traineros --experience-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/experience")
     add_test(NAME diagnostics_qml_smoke COMMAND traineros --diagnostics-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/diagnostics")
     add_test(NAME exit_qml_smoke COMMAND traineros --exit-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/exit")
-    set_tests_properties(downloads_qml_smoke exit_qml_smoke pointer_visibility retroarch core interactions worlds pokedex hall storage library process diagnostics persistence_process qml_smoke worlds_qml_smoke pokedex_qml_smoke hall_qml_smoke diagnostics_qml_smoke PROPERTIES
+    set_tests_properties(series experience_qml_smoke downloads_qml_smoke exit_qml_smoke pointer_visibility retroarch core interactions worlds pokedex hall storage library process diagnostics persistence_process qml_smoke worlds_qml_smoke pokedex_qml_smoke hall_qml_smoke diagnostics_qml_smoke PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software"
         TIMEOUT 30
     )

@@ -1,4 +1,6 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "CenterSmokeScenario.h"
+#include "RenderSettlement.h"
 #include <QCoreApplication>
 #include <QFile>
 #include <QDir>
@@ -11,6 +13,7 @@ void startCenterSmoke(QQuickWindow* window,ShellController& shell,SessionState& 
         ControllerInput& input,SDL_Joystick* joystick,const QString& dataDir,const QString& screenshots,
         bool& completed,int& warnings,QStringList& diagnostics) {
     auto stage=std::make_shared<int>(0);auto failed=std::make_shared<bool>(false);
+    auto focusWait=std::make_shared<int>(0);
     auto timer=new QTimer(window);timer->setInterval(230);
     const auto rom=QDir(dataDir).filePath("content/center.gba"), save=rom+".srm";
     QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&session,&store,&input,&completed,&warnings,&diagnostics]{
@@ -25,7 +28,9 @@ void startCenterSmoke(QQuickWindow* window,ShellController& shell,SessionState& 
             const auto item=window->activeFocusItem();check(item&&item->isVisible(),"Visible actual focus");
             if(item)check(QRectF(0,0,window->width(),window->height()).contains(item->mapRectToScene(item->boundingRect())),"Focused control inside screen");
         };
-        if(session.blocked()||store.pending()||shell.center()->busy())return;
+        if(session.blocked()||store.pending()||pokemonModule(shell).center()->busy())return;
+        if(*stage==2 && pokemonModule(shell).face()=="center" && pokemonModule(shell).center()->clinicOpen()
+            && waitForFocus(window,"clinic-action",*focusWait))return;
         const auto drawer=window->findChild<QQuickItem*>("continue-drawer");
         if(drawer && ((shell.drawerOpen() && drawer->height()<228) || (!shell.drawerOpen() && drawer->height()>53)))return;
         constexpr auto a=SDL_CONTROLLER_BUTTON_B,b=SDL_CONTROLLER_BUTTON_A,x=SDL_CONTROLLER_BUTTON_Y,y=SDL_CONTROLLER_BUTTON_X;
@@ -44,54 +49,54 @@ void startCenterSmoke(QQuickWindow* window,ShellController& shell,SessionState& 
         case 1:
             shell.restoreNavigation({{"version",1},{"page","pokedex"},{"pokemonFace","center"},{"homeAdventure","center-fixture"},{"homeResume","old-moment"}});break;
         case 2:
-            check(shell.pokemonFace()=="center"&&shell.center()->clinicOpen()&&focus("clinic-action"),"Center opens the nurse directly");capture("clinic-ready");press(select);break;
+            check(pokemonModule(shell).face()=="center"&&pokemonModule(shell).center()->clinicOpen()&&focus("clinic-action"),"Center opens the nurse directly");capture("clinic-ready");press(select);break;
         case 3:
-            check(shell.center()->canCreate()&&focus("center-check"),"Empty shelf offers backup");capture("empty");press(select);break;
+            check(pokemonModule(shell).center()->canCreate()&&focus("center-check"),"Empty shelf offers backup");capture("empty");press(select);break;
         case 4:
-            check(shell.center()->rows().size()==1&&focus("center-row-0"),"New backup is selected");check(read()=="FIRST SAVE","Backup preserves source");capture("first-copy");
-            press(a);check(shell.center()->confirming(),"A asks before restore");press(b);check(!shell.center()->confirming()&&read()=="FIRST SAVE","B cancels restore");
+            check(pokemonModule(shell).center()->rows().size()==1&&focus("center-row-0"),"New backup is selected");check(read()=="FIRST SAVE","Backup preserves source");capture("first-copy");
+            press(a);check(pokemonModule(shell).center()->confirming(),"A asks before restore");press(b);check(!pokemonModule(shell).center()->confirming()&&read()=="FIRST SAVE","B cancels restore");
             write(save,"SECOND SAVE");press(x);break;
         case 5:press(a);break;
         case 6:
             check(focus("center-confirm"),"Restore confirmation traps focus");capture("confirm");
             press(y);trigger(SDL_CONTROLLER_AXIS_TRIGGERRIGHT);press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);press(SDL_CONTROLLER_BUTTON_GUIDE);press(start);
-            check(shell.center()->confirming()&&!shell.drawerOpen()&&!shell.menuOpen()&&shell.page()==2,"Navigation cannot retarget a restore");press(a);break;
+            check(pokemonModule(shell).center()->confirming()&&!shell.drawerOpen()&&!shell.menuOpen()&&shell.page()==2,"Navigation cannot retarget a restore");press(a);break;
         case 7:
-            check(read()=="FIRST SAVE"&&shell.center()->rows().size()==2,"Restore protects previous bytes");
+            check(read()=="FIRST SAVE"&&pokemonModule(shell).center()->rows().size()==2,"Restore protects previous bytes");
             check(shell.navigationState()["homeResume"].toString().isEmpty(),"Restore clears old state choice");capture("restored");press(a);press(a);break;
         case 8:
-            check(read()=="SECOND SAVE"&&shell.center()->rows().size()==3,"Protection copy restores exact bytes");press(b);window->resize(1920,1080);break;
+            check(read()=="SECOND SAVE"&&pokemonModule(shell).center()->rows().size()==3,"Protection copy restores exact bytes");press(b);window->resize(1920,1080);break;
         case 9:
-            check(shell.center()->clinicOpen(),"B returns to the same Center face");capture("clinic-1080p");press(a);break;
+            check(pokemonModule(shell).center()->clinicOpen(),"B returns to the same Center face");capture("clinic-1080p");press(a);break;
         case 10:
-            check(shell.center()->treatment()=="done"&&read()=="HEALED SAVE","Healing performs verified treatment");
-            check(shell.center()->rows().size()==4,"Healing has one protection copy");capture("clinic-complete");press(select);break;
+            check(pokemonModule(shell).center()->treatment()=="done"&&read()=="HEALED SAVE","Healing performs verified treatment");
+            check(pokemonModule(shell).center()->rows().size()==4,"Healing has one protection copy");capture("clinic-complete");press(select);break;
         case 11:press(a);press(a);break;
         case 12:
             check(read()=="SECOND SAVE","Healing can be restored exactly");press(b);trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);window->resize(960,540);break;
         case 13:
-            check(shell.pokemonFace()=="boxes","Previous peer is Boxes");capture("boxes-unavailable");trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);break;
+            check(pokemonModule(shell).face()=="boxes","Previous peer is Boxes");capture("boxes-unavailable");trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);break;
         case 14:
-            check(shell.pokemonFace()=="party","Previous peer is Party");capture("party-unavailable");trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);break;
+            check(pokemonModule(shell).face()=="party","Previous peer is Party");capture("party-unavailable");trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);break;
         case 15:
-            check(shell.pokemonFace()=="dex","Previous peer is Dex");capture("peer-dex");press(y);break;
+            check(pokemonModule(shell).face()=="dex","Previous peer is Dex");capture("peer-dex");press(y);break;
         case 16:
             check(shell.drawerOpen()&&focus("resume-0"),"Shared Y chooses without launch");capture("pokedex-choose");press(a);break;
         case 17:
             check(!shell.drawerOpen()&&shell.currentAdventureId()=="center-fixture","Shared selection retained");
             trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);break;
         case 18:
-            check(shell.pokemonFace()=="shops","Previous wraps Dex to Shops");capture("shops-unavailable");trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);break;
+            check(pokemonModule(shell).face()=="shops","Previous wraps Dex to Shops");capture("shops-unavailable");trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);break;
         case 19:
-            check(shell.pokemonFace()=="playroom","Playroom is a peer");capture("playroom-unavailable");trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);break;
+            check(pokemonModule(shell).face()=="playroom","Playroom is a peer");capture("playroom-unavailable");trigger(SDL_CONTROLLER_AXIS_TRIGGERLEFT);break;
         case 20:
-            check(shell.pokemonFace()=="center"&&shell.center()->clinicOpen(),"Full reverse loop returns to nurse");press(start);break;
+            check(pokemonModule(shell).face()=="center"&&pokemonModule(shell).center()->clinicOpen(),"Full reverse loop returns to nurse");press(start);break;
         case 21:
             check(shell.menuOpen()&&shell.menuItems().contains("Switch Trainer")&&!shell.menuItems().contains("Pokémon Center"),"Start is system-only");capture("system-center");press(b);press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);break;
         case 22:
-            check(shell.page()==3&&!shell.center()->clinicOpen(),"L1/R1 leaves idle Center");press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);break;
+            check(shell.page()==3&&!pokemonModule(shell).center()->clinicOpen(),"L1/R1 leaves idle Center");press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);break;
         case 23:
-            check(shell.pokemonFace()=="center"&&read()=="SECOND SAVE","Return preserves face and original save");
+            check(pokemonModule(shell).face()=="center"&&read()=="SECOND SAVE","Return preserves face and original save");
             check(warnings==0,"QML warnings");completed=true;timer->stop();
             if(!screenshots.isEmpty()){QFile report(screenshots+"/verification.txt");if(report.open(QIODevice::WriteOnly))report.write(((*failed?QString("FAILED\n"):QString("PASSED\n"))+diagnostics.join('\n')).toUtf8());}
             if(*failed){qCritical().noquote()<<diagnostics.join('\n');QCoreApplication::exit(1);}else window->close();break;

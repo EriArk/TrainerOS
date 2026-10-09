@@ -1,3 +1,4 @@
+#include "adapters/pokemon/PokemonExperience.h"
 #include "core/storage/SessionState.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include <QtTest>
@@ -20,7 +21,7 @@ struct Fixture {
     ShellController shell;
     SessionState session;
     explicit Fixture(const QString& path) : store(path),
-        shell(library, store, adapter, platform, reference, store, archive, achievements), session(shell, &store) {}
+        shell(library, store, adapter, platform,builtinExperiences( reference, store), archive, achievements), session(shell, &store) {}
 };
 class ExternalConnection {
 public:
@@ -60,7 +61,7 @@ private slots:
             QVERIFY(!f.store.progress("pikachu").favorite); // No fixture favorite leakage.
             QVERIFY(!f.store.progress("bulbasaur").seen.has_value());
             auto* trainer = f.shell.trainer();
-            trainer->beginEdit(); trainer->setDraftName("ERI 2"); trainer->activate(3);
+            trainer->beginEdit(); trainer->setDraftName("ERI 2"); trainer->activate(2);
             QVERIFY(trainer->saving()); QVERIFY(!trainer->exists()); // No optimistic success.
             f.shell.goToPage(4); // Global page navigation remains usable during Save.
             QTRY_VERIFY(!trainer->saving()); QVERIFY(trainer->exists());
@@ -71,8 +72,8 @@ private slots:
             f.store.setFavoriteAsync("pikachu", true, this, [&](const QString& error) { QVERIFY(error.isEmpty()); favoriteDone = true; });
             QTRY_VERIFY(favoriteDone);
             f.shell.worlds()->activate(2); f.shell.worlds()->activate(0);
-            f.shell.pokedex()->applySearch("pika");
-            f.shell.pokedex()->dispatch(Action::Down);
+            pokemonModule(f.shell).pokedex()->applySearch("pika");
+            pokemonModule(f.shell).pokedex()->dispatch(Action::Down);
             f.shell.goToPage(2);
             navigation = f.shell.navigationState();
             f.shell.dispatch(Action::SystemMenu); // Transient menu must not be restored.
@@ -87,7 +88,7 @@ private slots:
             QVERIFY(!f.store.progress("pikachu").caught.has_value());
             QCOMPARE(f.shell.navigationState(), navigation);
             QVERIFY(!f.shell.menuOpen()); QVERIFY(!f.shell.keyboard()->isOpen()); QVERIFY(!f.shell.trainer()->editing());
-            auto* trainer = f.shell.trainer(); trainer->beginEdit(); trainer->setDraftName("ERI 3"); trainer->activate(3);
+            auto* trainer = f.shell.trainer(); trainer->beginEdit(); trainer->setDraftName("ERI 3"); trainer->activate(2);
             QTRY_VERIFY(!trainer->saving());
             QCOMPARE(f.store.load()->id, identity); QCOMPARE(f.store.load()->createdAt, created);
             auto other = *f.store.load(); other.id = "another-trainer";
@@ -107,7 +108,7 @@ private slots:
         // An autocommit write waits for busy_timeout. A profile transaction's
         // read-to-write upgrade is allowed to fail immediately to avoid deadlock.
         f.store.setFavoriteAsync("eevee", true, this, [](const QString& error) { QVERIFY(!error.isEmpty()); });
-        auto* trainer = f.shell.trainer(); trainer->beginEdit(); trainer->setDraftName("Retry me"); trainer->activate(3);
+        auto* trainer = f.shell.trainer(); trainer->beginEdit(); trainer->setDraftName("Retry me"); trainer->activate(2);
         QVERIFY(trainer->saving());
         QSignalSpy exited(&f.session, &SessionState::exitReady);
         f.session.requestExit();
@@ -117,17 +118,17 @@ private slots:
         QVERIFY(query.exec("ROLLBACK"));
         // A concurrent navigation flush may also fail; return to the still-retryable form.
         if (f.session.blocked()) f.session.activate(1);
-        trainer->activate(3); QTRY_VERIFY(!trainer->saving()); QVERIFY(trainer->exists());
+        trainer->activate(2); QTRY_VERIFY(!trainer->saving()); QVERIFY(trainer->exists());
         f.session.requestExit(); QTRY_VERIFY(!exited.isEmpty());
     }
     void failedFavoriteKeepsCommittedValue() {
         QTemporaryDir dir; Fixture f(dir.path()); f.session.start(); QTRY_VERIFY(f.store.ready());
         ExternalConnection external(dir.path()); QSqlQuery query(external.db); QVERIFY(query.exec("BEGIN IMMEDIATE"));
-        f.shell.pokedex()->activate(0);
-        QTRY_VERIFY(!f.shell.pokedex()->saving());
+        pokemonModule(f.shell).pokedex()->activate(0);
+        QTRY_VERIFY(!pokemonModule(f.shell).pokedex()->saving());
         QVERIFY(!f.store.progress("bulbasaur").favorite); QVERIFY(!f.shell.notice().isEmpty());
         QVERIFY(query.exec("ROLLBACK")); f.shell.dispatch(Action::Back);
-        f.shell.pokedex()->activate(0); QTRY_VERIFY(!f.shell.pokedex()->saving());
+        pokemonModule(f.shell).pokedex()->activate(0); QTRY_VERIFY(!pokemonModule(f.shell).pokedex()->saving());
         QVERIFY(f.store.progress("bulbasaur").favorite);
         f.store.setFavoriteAsync("bulbasaur", false, this, [](const QString& error) { QVERIFY(error.isEmpty()); });
         QTRY_COMPARE(f.store.pending(), 0); QVERIFY(!f.store.progress("bulbasaur").favorite);
@@ -167,7 +168,7 @@ private slots:
             {"hall", QJsonObject{{"archive", "missing"}, {"route", "archive-detail"}, {"action", 999}}}};
         f.shell.restoreNavigation(stale);
         QCOMPARE(f.shell.page(), 0); QCOMPARE(f.shell.worlds()->route(), "regions");
-        QCOMPARE(f.shell.pokedex()->zone(), "list"); QCOMPARE(f.shell.pokedex()->detail()["id"].toString(), "bulbasaur");
+        QCOMPARE(pokemonModule(f.shell).pokedex()->zone(), "list"); QCOMPARE(pokemonModule(f.shell).pokedex()->detail()["id"].toString(), "bulbasaur");
         QCOMPARE(f.shell.hall()->route(), "archive-list");
         f.shell.goToPage(3); const auto before = f.shell.navigationState();
         f.shell.dispatch(Action::Confirm); f.shell.dispatch(Action::Confirm);
