@@ -1,5 +1,14 @@
 # TrainerOS Roadmap
 
+**MP-02 generic linked pair, 10 October 2026:** the installed DoubleCherryGB
+two-machine mode now reuses RetroArch rollback/relay through ordinary invitations,
+with each player's own screen and controls. Into the Blue reached actual paired
+gameplay on Flip/Odin. Hardware-based eligibility currently excludes battery/RTC
+cartridges because upstream exports only the first machine's persistent memory.
+[Evidence and boundaries](HANDHELD_MULTIPLAYER.md) keep general own-save link,
+the remaining handheld mechanisms and external acceptance open. MP-02 continues;
+this does not replace its unresolved scope or complete the multiplayer block.
+
 **Owner reuse correction, 10 October 2026 — all multiplayer families:** integrate
 existing emulator networking and established transports throughout the accepted
 multiplayer scope. This instruction is not limited to MP-02, link cables or

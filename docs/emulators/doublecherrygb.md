@@ -1,5 +1,23 @@
 # DoubleCherryGB — independent GB/GBC link
 
+**10 October 2026:** a second TrainerOS route uses upstream's two-machine linked
+pair and ordinary RetroArch rollback for GB/GBC cartridges without battery/RTC
+storage. `dcgb_emulated_gameboys = 2`, `dcgb_gblink_enable = enabled`, and
+`dcgb_single_screen_mp = player N only` / `dcgb_audio_output = Game Boy #N`
+select the assigned player's screen/audio. Both clients emulate both linked
+machines; the existing RetroArch netplay route synchronizes their inputs/state.
+This is genuine linked-machine emulation, not two pads attached to one Game Boy.
+The single-content `retro_get_memory_data` API exports only machine zero's SRAM,
+so this route uses `noload-nosave` and rejects persistent-memory cartridge types.
+No new emulator source patch is required. Same content/core/runtime is mandatory.
+The independent-save/netpacket route described below remains separate. See
+[selection and verification](../HANDHELD_MULTIPLAYER.md).
+
+Selection references: [upstream's two-machine recommendation](https://github.com/TimOelrichs/doublecherryGB-libretro/blob/03f58ca3dfb4b716f7e66a0e0467f9e85ef82abb/README.md#link-cable-trading-over-network),
+[Gambatte network serial](https://github.com/libretro/gambatte-libretro/blob/d9d6cd06382d1ced30de34d56d3609452323dab1/libgambatte/libretro/net_serial.cpp),
+and [Coffee GB source](https://github.com/trekawek/coffee-gb/tree/554ea56b465bb4147e2ed93c06135671c5e8db11).
+Only the DoubleCherryGB integration described here was delivered in this pass.
+
 Pinned upstream: `03f58ca3dfb4b716f7e66a0e0467f9e85ef82abb` from
 https://github.com/TimOelrichs/doublecherryGB-libretro.
 Build recipe and exact installed artifact:

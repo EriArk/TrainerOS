@@ -1,5 +1,84 @@
 # Handheld link over the network (MP-02)
 
+## Generic linked-pair integration — 2026-10-10
+
+The owner's reuse rule applies to every emulator family. MP-02 now also uses
+DoubleCherryGB's existing two-machine cable emulation and RetroArch rollback,
+through the existing party/password/relay route. Each client receives its own
+machine's screen/audio and controls exactly its assigned machine. TrainerOS adds
+configuration and lifecycle integration, not another cable or rollback protocol.
+
+This route selects GB/GBC cartridges by supported hardware without persistent
+battery/RTC memory, a valid header checksum and matching declared ROM size.
+It does not inspect a franchise title. Exact ROM/core/runtime identities still
+match; explicit single-player metadata still excludes invitations. Cartridge
+compatibility is not a claim that every game implements two-player cable play.
+The upstream single-content memory API exports only machine one's SRAM, so
+battery-backed games are not silently admitted to this route. Existing independent
+save/netpacket profiles remain intact, and general independent battery-save
+exchange remains unfinished. Four-player adapters and infrared are not enabled.
+
+Comparison: Gambatte's existing network serial API performs blocking byte
+round-trips and needs a separate network route; it is not a WAN latency solution.
+Coffee GB `554ea56b465bb4147e2ed93c06135671c5e8db11` already has generic rollback
+and a join CLI, but automatic hosting/admission, managed reachability and ARM
+delivery need their own integration. Neither requires inventing serial emulation.
+For this increment the installed DoubleCherryGB/RetroArch pair reuses the already
+integrated relay. See [upstream mode and maintenance](emulators/doublecherrygb.md).
+
+Verification target: the author's free [Into the Blue](https://jonas-fischbach.itch.io/into-the-blue),
+131,072 bytes, SHA-256
+`71c4c7cdaee320385407c7c68211b2b388459e9da2090f2888601802b328ba8b`.
+It uses an MBC1 cartridge without battery memory and has ordinary competitive
+link play. The downloaded ROM stays outside Git and is not a distribution asset.
+Windows `retroarch` and ARM `retroarch`, `netplay_client`, `game_party`,
+`runtime_multiplayer` checks passed. Regression coverage exercises both player
+slots, actual preparation/cleanup, untouched personal SRAM/RTC, all 256 cartridge
+type values, damaged/truncated headers, single-player metadata and content mismatch.
+
+### Installed gameplay evidence
+
+Both handhelds run shell SHA-256
+`528e367f424d87470b724f8677f1135dc4aa6452bea7c05d3017ebf6e49c8fa3`.
+The existing `handheld-20261007.1` core bundle is reused without another core patch.
+Ordinary Gambatte launch → Game Options / Play together / Online friend →
+incoming notification / Accept → host Start game → ordinary save/exit question
+launched the linked pair through the public RetroArch relay. Both still use one
+home internet connection; this is not distinct-network acceptance.
+
+- Actual runtime configurations select two machines, P1 on Flip and P2 on Odin,
+  corresponding separate screens/audio and `noload-nosave`. No IP or emulator
+  menu setup was entered by the players.
+- Flip selected Versus while Odin remained at its own title menu. After Odin
+  selected Versus, the game recognized both cable participants: Odin displayed
+  that player one selects music and starts the game.
+- Both exchanged their difficulty/speed settings and entered the puzzle match.
+  Distinct boards and directional cursor/tile changes were observed on both
+  devices, followed by a return to the linked settings screen. Winner/loser
+  presentation was not captured, so a specific match result is not claimed.
+- The first startup observation captured the old menu before the asynchronous
+  save question appeared; Back cancelled that attempt. A new invitation and
+  delayed capture verified the ordinary question and successful continuation.
+  No emulator or save-confirmation workaround was added for this timing.
+- Both exited through Game Options and have `returned` history entries. Flip's
+  linked session lasted 337 seconds; Odin's lasted 398 seconds including the
+  interval after host departure. Odin's process remained available for its own
+  normal exit after Flip left. Both temporary session directories were removed.
+- Final installed/running hashes matched on each device, neither retained an
+  emulator process, and all 30 Flip / 1,074 Odin original configuration files
+  matched their retained fingerprints. Both device volumes remained zero.
+  The ARM build's four changed source/test files matched this checkout; the
+  independently exported runtime source also built successfully on Windows.
+
+Private reduced captures use `linked-*` under `work/research/`; the actual
+configuration snapshot is `linked-live-config.json`, with final verification in
+`linked-final-verification.json`. The free author-provided
+game is in each handheld's GB/homebrew library, separate from commercial content.
+**MP-02 remains open:** generic independent battery-save integration, other
+handheld mechanisms and all retained acceptance below are not replaced by this
+volatile-cartridge route. The next implementation decision is reusable own-save
+link support, not another sequence of Pokemon-specific network implementations.
+
 ## Red invitation, trade and ordinary return — 2026-10-10
 
 The complete Red journey now passed through the installed TrainerOS interface:
@@ -148,7 +227,9 @@ Pinned source targets (not yet runtime acceptance):
   `dcgb_emulated_gameboys = 1` uses netpacket for independent SRAM/ROMs.
   The author supports Gen I/II and TCG trading; battles can be unstable and
   real-time link games are not generally supported by this mode. Two emulated
-  Game Boys instead uses rollback and is not a substitute for this requirement.
+  Game Boys instead uses rollback; the new generic volatile-cartridge route
+  above uses that existing mechanism. By itself it does not deliver independent
+  persistent saves.
   Its RTC representation differs from Gambatte; never overwrite ordinary RTC.
 - [RetroArch netpacket introduction](https://www.libretro.com/index.php/retroarch-1-17-new-netplay-features/):
   uses ordinary netplay/lobbies, while exchanging emulated adapter packets.

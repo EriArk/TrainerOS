@@ -51,6 +51,13 @@ implementation, not the ordinary release gate or all-game runtime evidence.
 
 ## Current TrainerOS boundary
 
+**10 October MP-02 update:** generic GB/GBC cartridges without battery/RTC storage
+can use DoubleCherryGB's existing linked pair over RetroArch rollback/relay,
+with per-player screen/audio and assigned controls. Into the Blue invitation and
+actual paired gameplay passed on both handhelds. General independent battery-save
+support remains open; the older netpacket routes in the table are retained.
+See [the dated evidence and limitations](HANDHELD_MULTIPLAYER.md).
+
 `RuntimeMultiplayer.cpp` dispatches the inspected PSP and GameCube profiles to
 `PpssppNetplay` and `DolphinNetplay`, with other eligible records handled by
 `RetroArchNetplay`. Ordinary discovery covers PPSSPP, ARMSX2, melonDS, Dolphin

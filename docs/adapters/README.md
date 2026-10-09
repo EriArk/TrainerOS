@@ -20,6 +20,12 @@ complement these exact records. Generic core/platform compatibility does not
 create a semantic save adapter or prove every title. The portable runtime copy
 includes the profile implementation and its disc-validation dependency.
 
+The [10 October linked-pair route](../HANDHELD_MULTIPLAYER.md) also reuses existing
+DoubleCherryGB/RetroArch rollback for GB/GBC cartridges without battery/RTC
+storage. Into the Blue reached real paired gameplay and normal return on both
+handhelds. This hardware-based route adds no semantic save capability and does
+not replace the remaining general independent-save link work.
+
 [registry.json](registry.json) indexes exact identities, source records and
 per-capability evidence. It deliberately does not duplicate the factual tables,
 runtime allowlist or service contracts. Human records explain unknowns and failed

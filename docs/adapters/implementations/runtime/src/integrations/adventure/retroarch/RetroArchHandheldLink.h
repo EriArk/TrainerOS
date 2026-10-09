@@ -4,7 +4,7 @@ namespace trainer::retroarch {
 // Source-backed separate-machine protocols; not an all-cartridge capability.
 QJsonObject handheldLinkProfile(const AdventureRegistration&);
 QString handheldLinkCore(const QJsonObject&);
-QByteArray handheldLinkOptions(const QJsonObject&);
+QByteArray handheldLinkOptions(const QJsonObject&, int playerSlot = 1);
 QString recoverHandheldReturn(const AdventureRegistration&, const RetroArchInstallation&);
 QString prepareHandheldSave(ProcessCommand&, const AdventureRegistration&,
     const RetroArchInstallation&, const QString& sessionDirectory,

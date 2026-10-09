@@ -31,16 +31,39 @@ QJsonObject handheldLinkProfile(const AdventureRegistration& r) {
         if(QList<QByteArray>{"POKEMON_GLDAAUE","POKEMON_SLVAAXE","PM_CRYSTAL","POKEMON GOLD","POKEMON SILVER"}.contains(title))family="gb-gen2-en";
         if(title=="POKECARD"||title=="POKEMON CARD GB")family="gb-tcg";
         mode="cable";
+        if(family.isEmpty()) {
+            // Upstream's ordinary rollback runs two genuinely linked machines.
+            // Its single-content memory API exports only machine one's battery,
+            // so use this path only for cartridges without persistent storage.
+            // Select by cartridge hardware, never by the game's name or series.
+            const auto type=quint8(h[0x147]),size=quint8(h[0x148]);
+            const QList<quint8> volatileCartridges{0x00,0x01,0x02,0x05,0x08,0x11,0x12,0x19,0x1a,0x1c,0x1d};
+            quint8 checksum=0;
+            for(int n=0x134;n<=0x14c;++n)checksum=quint8(checksum-quint8(h[n])-1);
+            if(volatileCartridges.contains(type)&&size<=8&&f.size()==(qint64(32768)<<size)&&
+               checksum==quint8(h[0x14d]))
+                return {{"id","runtime.retroarch."+r.adventure.platformId+".DoubleCherryGB.v1"},
+                    {"label",r.adventure.title.left(96)},{"settings","dcgb-linked-pair-volatile-v1"},
+                    {"players",2},{"transport","rollback"}};
+        }
     }
     if(family.isEmpty())return {};
     return {{"id","runtime.handheld."+family+".v1"},{"label",r.adventure.title.left(96)},
         {"settings",mode+"-own-save-v1"},{"players",players},{"transport","netpacket"}};
 }
 QString handheldLinkCore(const QJsonObject& p) {
+    if(p["transport"]=="rollback"&&p["settings"]=="dcgb-linked-pair-volatile-v1")return "DoubleCherryGB";
     if(p["transport"]!="netpacket")return {};
     return p["id"].toString().startsWith("runtime.handheld.gba-")?"gpsp":"DoubleCherryGB";
 }
-QByteArray handheldLinkOptions(const QJsonObject& p) {
+QByteArray handheldLinkOptions(const QJsonObject& p,int playerSlot) {
+    if(p["transport"]=="rollback") {
+        if(handheldLinkCore(p)!="DoubleCherryGB"||(playerSlot!=1&&playerSlot!=2))return {};
+        return "dcgb_emulated_gameboys = \"2\"\ndcgb_gblink_enable = \"enabled\"\n"
+            "dcgb_single_screen_mp = \"player "+QByteArray::number(playerSlot)+" only\"\n"
+            "dcgb_audio_output = \"Game Boy #"+QByteArray::number(playerSlot)+"\"\n"
+            "dcgb_singleplayer_linked_devive = \"Off\"\ndcgb_pkmbuddyboy_auto_mew = \"0\"\n";
+    }
     if(handheldLinkCore(p)=="gpsp")return "gpsp_serial = \""+p["settings"].toString().section('-',0,0).toLatin1()+
         "\"\ngpsp_rtc = \"system\"\n";
     // A disconnected friend must not be replaced by the core's distribution

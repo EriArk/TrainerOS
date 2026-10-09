@@ -1,5 +1,12 @@
 # Common emulator set
 
+**10 October 2026:** DoubleCherryGB also supplies its existing two-machine
+rollback mode for GB/GBC link games without persistent cartridge memory. The
+existing RetroArch relay/invitation integration is reused; each player sees and
+controls their own machine. Ordinary Gambatte and the independent-save netpacket
+profiles remain intact. This does not claim universal battery-save or all-game
+compatibility; [MP-02 evidence](HANDHELD_MULTIPLAYER.md) owns the boundary.
+
 2026-10-03. Owner-requested selection for every TrainerOS handheld/image variant.
 This is the target distribution set and migration contract, **not an installed
 image manifest or completed multiplayer support**. The current ARM64 targets are

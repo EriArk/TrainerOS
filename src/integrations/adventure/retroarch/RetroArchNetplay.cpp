@@ -136,6 +136,7 @@ QByteArray netplayControllers(const QJsonObject& identity,bool host,int slot) {
     if((host&&slot!=1)||(!host&&(slot<2||slot>players)))return {};
     QByteArray result="netplay_max_connections = \""+QByteArray::number(players-1)+"\"\n";
     if(identity["transport"]=="netpacket")return result+"input_max_users = \"1\"\n";
+    if(identity["settings"]=="dcgb-linked-pair-volatile-v1")result+="input_max_users = \"2\"\n";
     if(players>2) {
         const auto layout=identityLayout(identity);
         const bool fourScore=players==4&&identity["settings"]=="fceumm-four-score-no-sram-v2";
@@ -301,8 +302,14 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
         return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size()&&f.commit();
     };
     QByteArray options=identityLayout(identity)=="sgx-multitap"?QByteArray("sgx_multitap = \"enabled\"\n"):QByteArray();
+    const auto linkCore=handheldLinkCore(identity);
+    if(!linkCore.isEmpty()) {
+        options=handheldLinkOptions(identity,request.slot?request.slot:(request.host?1:2));
+        const int core=cmd.arguments.indexOf("--libretro");
+        if(core<0||core+1>=cmd.arguments.size())return "The game's launch route changed.";
+        cmd.arguments[core+1]=i.cores.value(linkCore);
+    }
     if(handheld) {
-        options=handheldLinkOptions(identity);
         const auto error=prepareHandheldSave(cmd,r,i,path,cancel);
         if(!error.isEmpty())return error;
         const auto finalize=cmd.finalize;
@@ -311,9 +318,6 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
             if(!error.isEmpty())directory->setAutoRemove(false);
             return error;
         };
-        const int core=cmd.arguments.indexOf("--libretro");
-        if(core<0||core+1>=cmd.arguments.size())return "The game's launch route changed.";
-        cmd.arguments[core+1]=i.cores.value(handheldLinkCore(identity));
     }
     if(r.integrationConfig["core"]=="fbneo")options+="fbneo-diagnostic-input = \"None\"\n";
     if(identity["cabinet"]=="batcir-eu-four-chutes-v1") {
@@ -380,7 +384,8 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     cmd.arguments<<content;
     cmd.runtimeControls["netplay"]=identity.toVariantMap();
     cmd.runtimeControls["netplayHost"]=request.host;
-    // Shared-console sessions discard progress; link sessions return own SRAM.
+    // Shared-console/volatile linked pairs keep session-only progress;
+    // independent netpacket sessions return this player's own battery memory.
     cmd.runtimeControls["temporaryProgress"]=!handheld;
     const auto settled=cmd.settled;
     cmd.settled=[settled,directory](const ProcessOutcome& outcome){if(settled)settled(outcome);if(directory->autoRemove())directory->remove();};

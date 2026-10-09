@@ -38,6 +38,66 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void linkedPairUsesExistingRollbackWithOwnScreenAndNoPersonalSaveAccess() {
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        const auto write=[](const QString& path,const QByteArray& bytes) {
+            QFile f(path);QVERIFY(f.open(QIODevice::WriteOnly));QCOMPARE(f.write(bytes),bytes.size());
+        };
+        const auto read=[](const QString& path) {QFile f(path);if(!f.open(QIODevice::ReadOnly))return QByteArray();return f.readAll();};
+        const auto rom=[](quint8 type) {
+            QByteArray b(32768,0);b.replace(0x134,9,"LINK DEMO");b[0x147]=char(type);
+            quint8 checksum=0;for(int n=0x134;n<=0x14c;++n)checksum=quint8(checksum-quint8(b[n])-1);
+            b[0x14d]=char(checksum);return b;
+        };
+        AdventureRegistration r;r.adventure.platformId="gb";r.adventure.title="Independent linked game";
+        r.contentPath=dir.filePath("game.gb");r.integrationConfig["core"]="gambatte";
+        RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");i.runtimeFile=dir.filePath("runtime");
+        i.cores["DoubleCherryGB"]=dir.filePath("link-core");
+        write(i.runtimeFile,"runtime");write(i.cores["DoubleCherryGB"],"link-core");
+        const auto personal=dir.filePath("game.srm"),rtc=dir.filePath("game.rtc");
+        write(personal,"personal save must stay untouched");write(rtc,"personal clock");
+        write(i.configFile,("savefile_directory = \""+dir.path()+"\"\n").toUtf8());
+        write(r.contentPath,rom(0));const auto identity=retroarch::netplayIdentity(r,i,cancel);
+        QVERIFY(!identity.isEmpty());QCOMPARE(identity["transport"].toString(),QString("rollback"));
+        QCOMPARE(identity["players"].toInt(),2);
+        QVERIFY(!permitsMultiplayer({{"players","1"}},identity));
+        QVERIFY(permitsMultiplayer({{"players","1-2"}},identity));
+        for(int slot:{1,2}) {
+            retroarch::NetplayRequest n;n.expected=identity;n.host=slot==1;n.slot=slot;
+            n.password="private";n.nickname="player";n.address="127.0.0.1";
+            ProcessCommand cmd;cmd.arguments={"--libretro","ordinary-core",r.contentPath};
+            QVERIFY(retroarch::prepareNetplay(cmd,r,i,n,cancel).isEmpty());
+            QCOMPARE(cmd.arguments[cmd.arguments.indexOf("--libretro")+1],i.cores["DoubleCherryGB"]);
+            QCOMPARE(cmd.arguments[cmd.arguments.indexOf("--sram-mode")+1],QString("noload-nosave"));
+            QVERIFY(!cmd.finalize);QVERIFY(cmd.runtimeControls["temporaryProgress"].toBool());
+            const auto config=retroarch::readSettings(cmd.arguments[cmd.arguments.indexOf("--appendconfig")+1]);
+            const auto path=config.value("savefile_directory");
+            QVERIFY(!QFileInfo(path+"/game.srm").exists());
+            QCOMPARE(config.value("input_max_users"),QString("2"));
+            QCOMPARE(config.value("netplay_request_device_p"+QString::number(slot)),QString("true"));
+            QCOMPARE(config.value("netplay_request_device_p"+QString::number(3-slot)),QString("false"));
+            const auto options=retroarch::readSettings(config.value("core_options_path"));
+            QCOMPARE(options.value("dcgb_emulated_gameboys"),QString("2"));
+            QCOMPARE(options.value("dcgb_gblink_enable"),QString("enabled"));
+            QCOMPARE(options.value("dcgb_single_screen_mp"),QString("player %1 only").arg(slot));
+            QCOMPARE(options.value("dcgb_audio_output"),QString("Game Boy #%1").arg(slot));
+            write(path+"/game.srm","session copy");cmd.settled({true,0,false,false});
+            QVERIFY(!QFileInfo(path).exists());
+            QCOMPARE(read(personal),QByteArray("personal save must stay untouched"));QCOMPARE(read(rtc),QByteArray("personal clock"));
+        }
+        auto changed=rom(0);changed[0x200]=1;write(r.contentPath,changed);
+        QVERIFY(!sameMultiplayerGame(identity,retroarch::netplayIdentity(r,i,cancel)));
+        // All battery/RTC/special peripheral cartridges remain outside this
+        // route; neither a filename nor multiplayer metadata bypasses ownership.
+        for(int type=0;type<256;++type) {
+            write(r.contentPath,rom(quint8(type)));
+            const bool supported=QList<int>{0x00,0x01,0x02,0x05,0x08,0x11,0x12,0x19,0x1a,0x1c,0x1d}.contains(type);
+            QCOMPARE(!retroarch::handheldLinkProfile(r).isEmpty(),supported);
+        }
+        auto corrupt=rom(0);corrupt[0x14d]^=1;write(r.contentPath,corrupt);
+        QVERIFY(retroarch::handheldLinkProfile(r).isEmpty());
+        write(r.contentPath,rom(0).left(512));QVERIFY(retroarch::handheldLinkProfile(r).isEmpty());
+    }
     void mbc3ClockUsesCartridgeDaysAndSurvivesPauseAndEpochWrap() {
         TrainerMbc3Rtc clock;const quint64 now=1800000000;
         clock.base=now-(300*86400+13*3600+27*60+19);

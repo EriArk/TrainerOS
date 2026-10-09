@@ -24,6 +24,15 @@ MP-02 open for Gen II/TCG transactions, Gen III battle/cross-edition and Advance
 Wars proof, plus the retained external gates. The timer work is now delivered;
 older instructions to preserve it as uncommitted describe the previous state.
 
+**MP-02 universal-runtime continuation, 10 October 2026:** an additional GB/GBC
+route now reuses DoubleCherryGB's existing linked pair and RetroArch rollback/relay.
+Ordinary online invitations led to Into the Blue gameplay with separate screens
+and controls on Flip/Odin. Eligibility is based on non-battery cartridge hardware,
+not franchise names. General independent battery-save integration remains the
+next missing capability; retain the existing per-core mechanisms and all earlier
+transaction/network acceptance. [Evidence](HANDHELD_MULTIPLAYER.md) does not mark
+MP-02 complete. Reuse existing solutions throughout the remaining emulator queue.
+
 **UX-02 implementation delivered, 9 October 2026:** adaptive Home/game slots,
 universal profile, Options/Select, live Game Options/minimize, contextual Together
 and passive shell notifications/shared inbox are installed and running on Flip/Odin.
