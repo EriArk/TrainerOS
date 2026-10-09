@@ -1,6 +1,6 @@
 {
   "purpose": "Engineering evidence index; not runtime capability authority",
-  "updated": "2026-10-07",
+  "updated": "2026-10-10",
   "runtimeProfiles": [
     {
       "id": "runtime.fceumm.pong-homebrew.v1",
@@ -214,11 +214,14 @@
         "mbc3-clock-core-read-write-both-devices",
         "sram-rtc-interrupted-return-recovery",
         "gold-relay-own-clock-normal-return-both-devices",
-        "gold-gambatte-clock-continue-readback-both-devices"
+        "gold-gambatte-clock-continue-readback-both-devices",
+        "red-ui-invitation-cable-trade-exit-both-devices",
+        "red-exact-traded-records-own-trainer-preimage-verification",
+        "red-gambatte-party-readback-both-devices",
+        "save-prompt-time-budget-and-cancelled-launch-regressions"
       ],
       "remaining": [
-        "gb-gbc-cable-transaction",
-        "gb-ui-invitation-exit",
+        "gen2-tcg-cable-transactions",
         "gba-battle-cross-edition",
         "advance-wars-runtime",
         "distinct-networks",

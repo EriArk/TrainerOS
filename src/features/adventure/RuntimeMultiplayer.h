@@ -44,6 +44,7 @@ signals:
     void availabilityChanged();
     void notice(QString text);
 private:
+    friend class RuntimeMultiplayerTests;
     void startParty(bool host,const QJsonObject& endpoint);
     void update();
     void show(QString panel);
@@ -65,7 +66,8 @@ private:
     LocalLinkPeer nearby_{this,47855,47856,"trainerosRuntime",true};
     GameParty party_{this};
     bool partySession_=false,companyOverride_=false;
-    QFutureWatcher<QMap<QString,QJsonObject>> scan_{this};
+    using ScannedGame = QPair<QString,QJsonObject>;
+    QFutureWatcher<ScannedGame> scan_{this};
     QNetworkAccessManager network_{this};QTimer timer_{this};
     QString trainer_,identity_,game_,status_,transportPeer_,lastRequest_;
     QJsonObject descriptor_;
@@ -75,7 +77,7 @@ private:
     retroarch::NetplayClient client_{this};
     RetroArchInstallation installation_;
     bool allowed_=false,online_=false,host_=false,active_=false,restarting_=false,launchPending_=false,query_=false,relaySent_=false;
-    qint64 deadline_=0;quint64 scanRevision_=0;
+    qint64 deadline_=0;quint64 scanRevision_=0,sessionGeneration_=0;
     QByteArray output_;
     bool socialSurface_=false;
     QString socialPanel_;

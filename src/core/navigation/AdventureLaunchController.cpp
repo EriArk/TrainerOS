@@ -15,11 +15,15 @@ AdventureLaunchController::AdventureLaunchController(ProcessService& process, QO
     connect(&process_, &ProcessService::finished, this, [this](int code, bool crashed, const QString& error) {
         if (!active()) return;
         const bool failed = (started_ && process_.stopRequested()) || crashed || code != 0 || !error.isEmpty();
+        // Completion consumers (including multiplayer restart) need the exact
+        // finalization error before deciding whether another game may start.
+        const auto resultError = !error.isEmpty() ? error : failed ? QString("The Adventure ended with an error. You can try again.") : QString();
+        error_ = resultError;
         // A stop/kill is never evidence of a confirmed, graceful game exit.
         exit_.endSession(!failed && state_ != "stopping");
         if (started_ && !adventureId_.isEmpty()) emit adventureFinished(failed);
         started_ = false;
-        restore(!error.isEmpty() ? error : failed ? "The Adventure ended with an error. You can try again." : QString());
+        restore(resultError);
     });
 }
 bool AdventureLaunchController::launch(const ProcessCommand& command, const QJsonObject& context, const QString& adventureId,

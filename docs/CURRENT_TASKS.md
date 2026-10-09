@@ -14,6 +14,16 @@ consider a maintained patch once the responsible component is established.
 This is later work, not a claim that the driver hang was fixed or a new priority
 ahead of the accepted MP-02 queue.
 
+**MP-02 Red journey delivered, 10 October 2026:** the save-prompt timer,
+failed-finalization/cancelled-launch guards and progressive game availability
+are installed on Flip/Odin. The real Red invitation, Cable Club trade, independent
+SRAM return and ordinary Gambatte readback passed on both. Test save overrides
+were removed after verification; original registrations and quiet device state
+are restored. [Evidence and remaining acceptance](HANDHELD_MULTIPLAYER.md) keeps
+MP-02 open for Gen II/TCG transactions, Gen III battle/cross-edition and Advance
+Wars proof, plus the retained external gates. The timer work is now delivered;
+older instructions to preserve it as uncommitted describe the previous state.
+
 **UX-02 implementation delivered, 9 October 2026:** adaptive Home/game slots,
 universal profile, Options/Select, live Game Options/minimize, contextual Together
 and passive shell notifications/shared inbox are installed and running on Flip/Odin.

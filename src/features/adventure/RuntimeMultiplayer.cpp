@@ -78,8 +78,12 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     connect(&client_,&retroarch::NetplayClient::failed,this,[this](QString message){
         if(active_)fail(std::move(message));
     });
+    connect(&scan_,&QFutureWatcherBase::resultReadyAt,this,[this](int index){
+        const auto result=scan_.resultAt(index);
+        profiles_.insert(result.first,result.second);
+        refresh(installation_,trainer_,allowed_);
+    });
     connect(&scan_,&QFutureWatcherBase::finished,this,[this]{
-        profiles_=scan_.result();
         refresh(installation_,trainer_,allowed_);
     });
     connect(&social_,&SocialController::changed,this,[this]{
@@ -114,8 +118,14 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         }
         if(host_&&online_&&!dolphin())pollRelay();
     });
-    connect(&lifecycle_,&AdventureLaunchController::adventureFinished,this,[this](bool){
-        if(restarting_){restarting_=false;QTimer::singleShot(0,this,&RuntimeMultiplayer::launch);return;}
+    connect(&lifecycle_,&AdventureLaunchController::adventureFinished,this,[this](bool failed){
+        if(restarting_){
+            restarting_=false;
+            if(failed){fail(lifecycle_.error());return;}
+            const auto generation=sessionGeneration_;
+            QTimer::singleShot(0,this,[this,generation]{if(active_&&generation==sessionGeneration_)launch();});
+            return;
+        }
         client_.stop();
         if(partySession_){party_.leave();partySession_=false;}
         if(active_){active_=false;deadline_=0;timer_.stop();}
@@ -128,7 +138,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     });
     connect(&timer_,&QTimer::timeout,this,[this]{
         if(deadline_&&QDateTime::currentSecsSinceEpoch()>deadline_){fail("Couldn't connect to your friend. Try inviting again.");return;}
-        if(active_&&host_&&online_&&!query_&&!relaySent_)pollRelay();
+        if(active_&&host_&&online_&&!restarting_&&!launchPending_&&!query_&&!relaySent_)pollRelay();
     });timer_.setInterval(3000);
 }
 void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QString trainer,bool allowed) {
@@ -161,15 +171,23 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     if(!revision)revision=1;
     if(!scan_.isRunning() && (scanRevision_!=revision||!scanRevision_)) {
         scanRevision_=revision;
-        scan_.setFuture(QtConcurrent::run([records,installation,pspInstallation,dolphinInstallation,candidate,capacities]{
+        profiles_.clear();
+        auto ordered=records;
+        const auto playing=process_.runtimeControls()["game"].toString();
+        std::stable_sort(ordered.begin(),ordered.end(),[&](const auto& a,const auto& b){
+            if((a.adventure.id==playing)!=(b.adventure.id==playing))return a.adventure.id==playing;
+            return QFileInfo(a.contentPath).size()<QFileInfo(b.contentPath).size();
+        });
+        // Publish each verified title immediately. A large disc image must not
+        // hide every already-checked cartridge until the entire scan finishes.
+        scan_.setFuture(QtConcurrent::run([ordered,installation,pspInstallation,dolphinInstallation,candidate,capacities](QPromise<ScannedGame>& promise){
             std::atomic_bool cancel=false;
             retroarch::NetplayDigestCache digests;
-            QMap<QString,QJsonObject> games;
-            for(const auto& r:records)if(candidate(r)) {
+            for(const auto& r:ordered)if(candidate(r)) {
+                if(promise.isCanceled())break;
                 const auto identity=r.adventure.platformId=="gc"?dolphin::netplayIdentity(r,dolphinInstallation,cancel):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel,&digests,capacities.value(r.adventure.id,2));
-                if(!identity.isEmpty())games.insert(r.adventure.id,identity);
+                if(!identity.isEmpty())promise.addResult(ScannedGame{r.adventure.id,identity});
             }
-            return games;
         }));
     }
     games_.clear();
@@ -325,6 +343,7 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
         party_.leave();emit notice("Multiplayer isn't available for this game.");return;
     }
     if(!host&&lifecycle_.active()){party_.leave();emit notice("Finish your current game before joining.");return;}
+    ++sessionGeneration_;
     game_=game;descriptor_=selected;partySession_=true;active_=true;host_=host;relaySent_=false;
     transportPeer_=host?party_.state()["members"].toArray().at(1).toObject()["peer"].toString():party_.hostPeer();
     online_=transportPeer_.startsWith("online:");
@@ -349,6 +368,10 @@ void RuntimeMultiplayer::prepareHost() {
     launchPending_=true;
     if(lifecycle_.active()) {
         restarting_=true;
+        // The player may need time to save before confirming the ordinary
+        // game's exit. Its capture/close controller has its own bounded waits;
+        // a network connection has not started yet.
+        deadline_=0;timer_.stop();
         // Keep Home's owned-window lease through capture and graceful exit.
         if(!overlay_.exitFromMenu()){restarting_=false;fail("Couldn't restart this game for multiplayer.");}
     }else launch();
@@ -388,6 +411,8 @@ void RuntimeMultiplayer::resolvePspRelay() {
 }
 void RuntimeMultiplayer::launch() {
     launchPending_=false;
+    if(!active_)return; // A cancelled invitation must not launch a queued game.
+    deadline_=QDateTime::currentSecsSinceEpoch()+(dolphin()?150:75);timer_.start();
     const auto record=library_.registration(game_);
     if(!record){fail("The game is no longer in your library.");return;}
     if(!permitsMultiplayer(library_.artwork(game_),descriptor_)){fail("Multiplayer isn't available for this game.");return;}
@@ -494,6 +519,7 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
     if(output_.size()>16384)output_.clear();
 }
 void RuntimeMultiplayer::fail(QString text) {
+    ++sessionGeneration_;
     client_.stop();
     status_=std::move(text);deadline_=0;timer_.stop();
     const bool wasActive=active_;active_=false;restarting_=false;launchPending_=false;

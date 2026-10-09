@@ -6,7 +6,7 @@ that another edition of the same game has the same format.
 
 | Record | Exact targets | Current boundary |
 |---|---|---|
-| [Handheld network link](../HANDHELD_MULTIPLAYER.md) | Pinned gpSP / DoubleCherryGB; exact game eligibility under research | Partial: Emerald trade/invitation/return, Red independent save return; Gen II clock bridge and Gold return/Gambatte readback on both. Remaining cable transactions and family acceptance stay open |
+| [Handheld network link](../HANDHELD_MULTIPLAYER.md) | Pinned gpSP / DoubleCherryGB; exact game eligibility under research | Partial: Emerald trade/invitation/return; Red invitation, actual trade, independent save return and Gambatte Party readback; Gen II clock bridge and Gold return/readback on both. Gen II/TCG transactions, GBA modes and external acceptance stay open |
 | [Emerald English](emerald-en.md) | One SHA-256 allowlisted GBA build | Integrated reads/Journey, healing, shops and protected Party/Box moves/occupied swaps, release and held items |
 | [FireRed English](firered-en.md) | Original and Rev 1, separately fingerprinted | Integrated reads/healing; normal-game healing proof on Rev 1 only |
 | Diamond / Colosseum | No verified fingerprints recorded here | Planned; no write capability inferred |

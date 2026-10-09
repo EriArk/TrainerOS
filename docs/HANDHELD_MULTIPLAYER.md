@@ -1,5 +1,81 @@
 # Handheld link over the network (MP-02)
 
+## Red invitation, trade and ordinary return — 2026-10-10
+
+The complete Red journey now passed through the installed TrainerOS interface:
+ordinary Gambatte play, Play together / Online friend, accepted invitation,
+the host's save/exit confirmation, automatic independent DoubleCherryGB sessions,
+an actual Cable Club trade, Home / Exit on each device and ordinary Gambatte
+Continue/Party readback. The two handhelds used the public relay from one home
+connection; this does not establish distinct-network acceptance.
+
+Exact target: English US/Europe Pokemon Red, SHA-256
+`5ca7ba01642a3b27b0cc0b5349b52792795b62d3ed977e98a09390659af96b7b`,
+with the pinned DoubleCherryGB bundle documented below. This is runtime/save
+interoperability evidence, not a new TrainerOS semantic save-edit capability.
+Each console used its own isolated test SRAM and Trainer, prepared at the Cable
+Club entrance. Ordinary personal saves were not used for the trade.
+
+### Player-visible fixes included
+
+- The network connection budget pauses while the host is answering the ordinary
+  game's save question; connection timing starts afresh when multiplayer launches.
+  The existing capture/close controller still bounds its own operations.
+- Failed game finalization stops the pending multiplayer launch and preserves its
+  actual error. Cancelling the save prompt retains the original process; a queued
+  launch from an old invitation cannot attach to a replacement invitation.
+- A verified game becomes available for invitations as soon as its own identity
+  check finishes, without waiting for large disc images elsewhere in the library.
+  The active title is scanned first, then smaller content. Existing compatibility
+  and multiplayer eligibility checks remain required.
+
+### Installed and save evidence
+
+- Flip traded Bulbasaur to Odin and received Charmander. Both displayed
+  `Trade completed!`. Flip exited first; Odin retained its game and its own
+  explicit save/exit confirmation after the host left.
+- The previous assistant session stopped at that Odin confirmation. Recovery
+  inspected the still-running process and completed the ordinary exit; it did
+  not replay the trade or replace SRAM manually.
+- Both returned 32 KiB saves have valid Gen I checksums and retain their own
+  Trainer. Each `.before-link` backup equals its own pre-trade input. The retained
+  Pidgey record, OT and nickname match that player's input byte for byte; the
+  received creature's record, OT and nickname match the other player's offered
+  creature byte for byte. The game moves the received creature to the end of the
+  party, so verification follows the records rather than assuming a fixed slot.
+- Both normal-exit finalizers removed their own temporary link directories.
+  Ordinary Home launch selected Gambatte on both devices. Continue loaded each
+  Trainer; Party showed Pidgey/Charmander on Flip and Pidgey/Bulbasaur on Odin.
+  After ordinary exit, checksums, Trainer and party records remained valid.
+  Other SRAM bytes changed during ordinary execution; whole-file identity after
+  playing is not claimed.
+- All 30 Flip and 1,074 Odin configuration files in the pre-test fingerprint
+  manifests remained unchanged. The temporary Red save-directory overrides were
+  removed after readback, restoring each saved original registration. Test saves
+  and evidence remain private, separate from personal progress and Git.
+- Both installed and running ARM64 binaries matched SHA-256
+  `87f165461afaac3af5b02609a8d6df48101bfe3b0a97bcc9c26a5f339afaaf28`.
+  Both TrainerOS sessions are running after cleanup, with no emulator left active.
+  Odin volume remains zero; no reboot or boot-preference change was required.
+
+Windows checks passed for `retroarch`, `netplay_client`, `game_party`,
+`runtime_multiplayer`, `social`, `process`, `adventure_exit` and
+`adventure_exit_presentation`. The ARM build's changed sources were compared
+with this checkout, then those eight checks plus `adventure_overlay_transport`
+passed. Transition regressions use real subprocesses and cover save-prompt
+cancellation, fresh connection timing, finalization failure and replacement
+invitation isolation. A pending-worker test covers early game availability.
+The refreshed portable runtime copy also built independently, including its
+current shared repository contract; the adapter export/knowledge checks passed.
+
+Private originals and compact readback evidence are retained in
+`work/research/mp02-recovered-20261010/` and the `mp02-gambatte-returned-party`
+captures. They are not distribution assets or replacements for README screenshots.
+
+**MP-02 remains open.** This closes the Red invitation/trade/normal-return gap,
+not Gen II/TCG cable transactions, Gen III battle/cross-edition proof, Advance
+Wars gameplay or the owner-deferred network/multi-user/audio gates below.
+
 ## Gen II clock continuity — 2026-10-07
 
 Target: the pinned DoubleCherryGB revision below and Gambatte libretro
@@ -185,8 +261,9 @@ Representative actual captures: [evidence](../screenshots/handheld-link-2026-10-
 
 ### Remaining acceptance - MP-02 stays open
 
-- Actual Gen I/II/TCG cable transactions and GB ordinary invitation/exit coverage.
-  Gold clock continuity above does not establish whole-family support or a trade.
+- Red Gen I trade and ordinary invitation/exit/readback passed on 10 October.
+  Gen II/TCG cable transactions remain; Gold clock continuity above does not
+  establish whole-family support or a trade.
 - Upstream warns that DoubleCherryGB battles can be unstable; general real-time
   GB cable games are not established by trading support.
 - Gen III battles, cross-edition runtime proof, Advance Wars gameplay, and four

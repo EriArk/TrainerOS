@@ -1,5 +1,12 @@
 # TrainerOS Roadmap
 
+**MP-02 Red journey delivered, 10 October 2026:** corrected invitation timing,
+safe cancellation/finalization and progressive verified-game availability are
+running on both handhelds. Red completed its actual trade, protected own-save
+return and normal Gambatte readback through the ordinary interface. The timer
+WIP is delivered. [Evidence](HANDHELD_MULTIPLAYER.md) retains the remaining
+Gen II/TCG, GBA and external acceptance; MP-02 remains the active family.
+
 **Adapter boundary implemented, 9 October 2026:** UX-02 now uses separate
 `src/adapters/<id>/` experiences, shared host/provider contracts, alternative
 identity manifests and adapter-owned pack profiles. Real-host fixtures and
@@ -141,7 +148,7 @@ The owner explicitly rejects test-only passes substituted for feature delivery.
 | Delivered · owner priority | UX-01: Social → Together → party/activity, #127–134 | Unified DM/group inbox, Discover, parallel touch/controller controls, Together, people-first invites, shared party and group details installed on both devices. [Evidence](SOCIAL_UX.md); #135 future-route and deferred acceptance remains open. |
 | Delivered · docs only | UX-02 map and reconciliation | Precise screens/actions/session states, #161–178 and owner adaptive-Home contract; no implementation in this pass. [Map](UX_OPTIONS_MAP_RU.md), [experience register](EXPANSION_174_178.md). |
 | Delivered implementation | UX-02: framework/UI/controls, #167-178 + adaptive Home | Separate adapters, shared host/provider contracts, alternative recognition manifests and real alternate-module tests. Native delivery and retained owner/TV/audio/future-route acceptance: [evidence](UX_FRAMEWORK.md). MP-02 is next. |
-| **Next · block 1** | **MP-02: GB/GBC/GBA independent link** | Resume after UX-02, preserving the timer fix and own-save work. Complete own-save link through corrected invitations and normal exit; [actual progress and remaining gates](HANDHELD_MULTIPLAYER.md). |
+| **Active · block 1** | **MP-02: GB/GBC/GBA independent link** | Red invitation/trade/own-save return/Gambatte readback and the timer fix are delivered on both devices. Continue the remaining Gen II/TCG transactions and GBA modes; [actual progress and retained external gates](HANDHELD_MULTIPLAYER.md). |
 | Retained · block 1 | MP-01: classic RetroArch and shared online-party acceptance | Implemented profiles remain accessible. Distinct-network and actual multi-user/company acceptance remain open; owner-deferred conditions do not trigger another NES/same-router pass. |
 | 3 · block 1 | MP-03: selected PS1/N64 routes | After MP-02. Implement viable mechanisms with the complete invitation journey; do not substitute shared controllers for emulated-machine link. |
 | 4 · block 1 | MP-04: Dreamcast; MP-05: PS2/GameCube; MP-06: DS/PSP; MP-07: 3DS and eligible newer routes | Oldest first. Reuse installed PSP/Dolphin work. MP-06 includes #162–166 native Linux deterministic DS Local Wireless, private mirror state and actual internet gameplay; WFC/VPN are not substitutes. Resolve route acceptance, not every ROM. Unsupported mechanisms need sourced conclusions. |
