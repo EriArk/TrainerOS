@@ -169,7 +169,7 @@ Window {
             Hint {button:"L2 R2";label:"";tint:Theme.green;visible:shell.faceNames.length>1;opacity:shell.pairedNavigationAvailable?1:.45}
             Text {
                 visible: shell.faceNames.length > 6
-                text: "‹   " + (shell.faceNames[shell.faceIndex] || "Worlds") + "   ›   " + (shell.faceIndex + 1) + " / " + shell.faceNames.length
+                text: "‹   " + (shell.faceNames[shell.faceIndex] || "Collections") + "   ›   " + (shell.faceIndex + 1) + " / " + shell.faceNames.length
                 color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 15; font.bold: true
             }
             Repeater {model:shell.faceNames.length > 6 ? [] : shell.faceNames
@@ -267,12 +267,13 @@ Window {
                 if (shell.service === "settings") return [h("←→","Adjust"),h("A",shell.settings.controlsFocused ? "Select" : "Open"),h("B",shell.settings.controlsFocused ? "Categories" : "Back")]
                 if (shell.service === "device") return [h("←→","Adjust"),h("Y","Refresh"),h("A","Select"),h("B","Back")]
                 if (shell.serviceOpen) return [h("A","Select"),h("B","Back")]
-                if (shell.page === 1 && shell.collectionsRoot) return [h("A","Open series"),h("B","Home")]
+                if(shell.collectionManager.open) return [h("A","Choose"),h("B","Back")]
+                if (shell.page === 1 && shell.collectionsRoot) return [h("A","Open collection"),h("Select","New / edit"),h("B","Home")]
                 if (shell.page === 1) {
                     const list = shell.multiverseFace ? shell.multiverse.route === "games" : shell.worlds.route === "adventures"
                     let result = list ? [h("X","Search"),h("Y","Filter"),h("A","Play"),h("B",shell.multiverseFace ? (shell.multiverse.collection === "multiverse" ? "Systems" : "Collections") : "Regions")] : [h("A","Open"),h("B","Back")]
                     if(shell.canHoldConfirm) result.push(h("Hold A","Options"))
-                    if(shell.canEditWorld) result.push(h("Select","Edit World"))
+                    result.push(h("Select","New / edit collection"))
                     return result
                 }
                 if (shell.page === 2 && !shell.centerFace) {
@@ -379,6 +380,7 @@ Window {
         }
         ScrapePanel { anchors.fill: screen; shell: shellController; z: 3.1; visible: shell.scraper.open && !shell.keyboard.open }
         DownloadsPanel { anchors.fill: screen; flow: shell.downloads; z: 3.2; visible: shell.downloads.open }
+        CollectionsPanel { anchors.fill: screen; shell: shellController; z: 3; visible: shell.collectionManager.open }
         LibraryToolsPanel { anchors.fill: screen; shell: shellController; z: 3; visible: shell.libraryTools.open }
         Item {
             id: settingsOverlay

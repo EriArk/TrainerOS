@@ -1,4 +1,5 @@
 #include "LegacyStoreFixture.h"
+#include "core/storage/SqlitePlayHistory.h"
 #include "core/storage/LocalStateStore.h"
 #include "features/home/PlayHistoryController.h"
 #include "features/home/ExitImage.h"
@@ -47,6 +48,24 @@ class PlayHistoryTests final : public QObject {
         QTRY_VERIFY(done); QVERIFY(ok);
     }
 private slots:
+    void globalRecentHistoryKeepsEveryGameAndLaunchOrder() {
+        const QString connection="global-recents-fixture";
+        {
+            auto db=QSqlDatabase::addDatabase("QSQLITE",connection);db.setDatabaseName(":memory:");QVERIFY(db.open());
+            QSqlQuery q(db);QVERIFY(q.exec("CREATE TABLE adventures(id TEXT PRIMARY KEY,domain TEXT)"));
+            QVERIFY(q.exec("CREATE TABLE play_sessions(id TEXT,adventure_id TEXT,started_at TEXT,ended_at TEXT,elapsed_seconds INTEGER,outcome TEXT,trainer_id TEXT)"));
+            for(int i=0;i<122;++i) {
+                q.prepare("INSERT INTO adventures VALUES(?,?)");q.addBindValue(QString::number(i));q.addBindValue(i<120?"pokemon":"multiverse");QVERIFY(q.exec());
+                q.prepare("INSERT INTO play_sessions VALUES(?,?,?,NULL,NULL,'running',?)");q.addBindValue("session"+QString::number(i));q.addBindValue(QString::number(i));
+                q.addBindValue("2026-10-09T12:00:00.000Z");q.addBindValue(i==121?"other":"owner");QVERIFY(q.exec());
+            }
+            QVERIFY(q.exec("INSERT INTO play_sessions VALUES('last','0','2025-01-01T00:00:00.000Z',NULL,NULL,'running','owner')"));
+            const auto result=readPlayHistory(db,"owner");QVERIFY(result.error.isEmpty());QCOMPARE(result.recent.size(),121);
+            QCOMPARE(result.recent[0].id,"last");QCOMPARE(result.recent[1].adventureId,"120");
+            QVERIFY(std::none_of(result.recent.begin(),result.recent.end(),[](const auto& s){return s.adventureId=="121";}));
+        }
+        QSqlDatabase::removeDatabase(connection);
+    }
     void largeDiscPicturesSurviveRestartAndInvalidateAfterContentChange() {
         QTemporaryDir dir; const auto path=dir.filePath("disc.iso");
         QFile file(path); QVERIFY(file.open(QIODevice::ReadWrite));

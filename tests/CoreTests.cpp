@@ -75,11 +75,11 @@ private slots:
         QVERIFY(shell.collectionsRoot());shell.dispatch(Action::Confirm);
         shell.dispatch(Action::Down);
         shell.dispatch(Action::Right);
-        QCOMPARE(shell.focusIndex(), 4);
+        QCOMPARE(shell.focusIndex(), 1);
         shell.dispatch(Action::NextPage);
         shell.dispatch(Action::PreviousPage);
         QVERIFY(shell.collectionsRoot());shell.dispatch(Action::Confirm);
-        QCOMPARE(shell.focusIndex(), 4);
+        QCOMPARE(shell.focusIndex(), 1);
         shell.dispatch(Action::SystemMenu);
         shell.dispatch(Action::NextPage);
         QVERIFY(!shell.menuOpen());
@@ -266,7 +266,9 @@ private slots:
         empty.goToPage(1);
         QVERIFY(empty.collectionsRoot());empty.activate(0);
         empty.activate(0);
-        QCOMPARE(empty.page(), 0); // Empty library offers an explicit Return Home action.
+        QCOMPARE(empty.page(), 1); // Empty collections remain browsable; Back unwinds to Home.
+        empty.dispatch(Action::Back);QVERIFY(empty.collectionsRoot());
+        empty.dispatch(Action::Back);QCOMPARE(empty.page(),0);
         repo.points = {{"orphan", "missing-adventure", QDateTime::currentDateTimeUtc(), "", ""}};
         MockHallOfFameRepository missingArchive;
         MockAchievementProvider missingAchievements;

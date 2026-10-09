@@ -1,4 +1,79 @@
-# Series collections — #114
+# Game collections — #114
+
+## Collections and global recent games — 9 October 2026
+
+This supersedes the original series-scoped Home/Y and Pokemon region-card journey
+below. Earlier installed evidence is historical, not the current navigation contract.
+
+- **Collections** is the library primary. Pokemon opens its games directly across
+  regions/platforms, using the same browser as other collections. **All games**
+  retains platform browsing and includes games also present in series collections.
+- Home has one chosen Adventure across the library, with no L2/R2 collection
+  controls. Y is **Recent games**, one latest actual launch per game across all
+  domains. It chooses the Home game without launching; A retains direct launch.
+  When available, the latest observed resume point keeps its identity and the
+  existing compatibility checks when that game is selected.
+  Repository launch order survives clock changes; no per-domain 100-game cap.
+  Missing selected games remain explicit rather than silently choosing another.
+- Manual collections hold stable Adventure IDs. A game may belong to several;
+  removing membership or a collection never removes/moves a ROM or save.
+- Automatic views: Recently played, Favorites (gamelist favorite metadata), Not
+  played yet, Multiplayer games (catalogue counts, not online eligibility).
+  Personal dynamic collections combine title substring, platform, genre,
+  publisher, developer, minimum players (2/4), played and favorite rules.
+  Missing metadata does not match a metadata-dependent rule. Library refresh and
+  new scraping metadata update the views; creating collections never starts scraping.
+- New collection is available by touch in the grid and with Select. Select edits
+  a selected personal collection; its ellipsis is the equivalent touch action.
+  Game Options -> Collections changes manual membership. Draft edits can be
+  canceled. Settings -> Library -> Collections replaces the retired Edit Worlds toggle.
+- Definitions use an atomic, versioned JSON file under local state `collections/`,
+  keyed by the active Trainer's hashed ID. They are separate from navigation/launch
+  checkpoints and external files. Unreadable/unsupported files are kept and editing
+  fails visibly. Explicit prior Home choices migrate without changing game IDs.
+- Historical region data remains available to game-specific progress/history.
+  Broad visual redesign remains deferred for discussion. Existing series art and
+  README screenshots are preserved; MP-02's timer changes remain outside this work.
+
+Reference: Batocera's [collection settings](https://wiki.batocera.org/game_collection_settings),
+using manual membership and dynamic rules. This does not claim `.cfg`/`.xcc`
+import/export or reuse its retired command-line helper.
+
+### Verification and installation
+
+- Windows native build and five focused suites passed: core, interactions,
+  worlds, series and worlds_qml_smoke. The first rendered run exposed a missing
+  host SVG image plugin; installing matching Qt 6.11.1 UCRT64 QtSvg resolved it,
+  and the unchanged screen test then passed without QML warnings.
+- ARM64 build succeeded. Thirteen affected suites passed across the bounded
+  verification runs: history, core, interactions, worlds, pokedex, hall, storage,
+  ownership, series, library, qml_smoke, downloads_qml_smoke and worlds_qml_smoke.
+  Changed behavior was rechecked after fixes, including the final resume-identity
+  change. New checks cover 121 unique recent games, clock changes, owner isolation,
+  collection persistence/deletion/cancel, metadata rules, legacy Home migration,
+  corrupt-file preservation and modal controller priority.
+- Rendered SDL scenarios passed at 960x540 and 800x450 with no QML warnings.
+  The exact delivered binary passed the isolated collections scenario on both
+  Flip 2 and Odin 2. Fixture screenshots are not owner gameplay acceptance.
+- Delivered binary SHA-256:
+  `ac5427a5dc50aee56e704b9e28eb26d4edaa2c073d862d199310d70a94316c94`.
+  The build includes the previously retained, uncommitted MP-02 timer work in
+  `RuntimeMultiplayer.cpp`; that file is unchanged and excluded from this commit.
+  This is not additional MP-02 acceptance.
+  Flip's live process was restarted and its executable hash verified. Remote
+  controller/pointer checks and actual 1920x1080 captures covered the collection
+  grid, direct Pokemon list, creation/automatic-rule draft, platform rule picker,
+  Start over the editor, Home without trigger cycling, and a recent-games drawer
+  containing Pokemon and other systems together. The temporary draft was canceled.
+- Odin's installed executable has the same hash. Its existing Steam Gaming Mode
+  session was preserved; the new production TrainerOS UI applies on its next
+  launch. The isolated on-device render passed, but a foreground Odin UI walkthrough
+  is not claimed. No game, scraping job, ROM/save path or boot preference was changed.
+- Private test logs/captures remain outside Git under `work/research/collections-*`
+  and `work/research/ux01-flip-collections-*`; README screenshots remain unchanged.
+  Broader UI redesign and owner physical-control acceptance remain separate.
+
+## Historical series delivery
 
 Owner priority, 4 October 2026: deliver this library/navigation increment before
 returning to MP-02. It is not a replacement for the remaining #90 experience-pack

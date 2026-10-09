@@ -45,7 +45,7 @@ QVariantList SettingsController::controls() const {
     case 5: return {row("Refresh status","action",""),row("Restart","action",""),row("Power off","action","")};
     case 7: return {row("Check controller","action","Test buttons, sticks and triggers"),row("Button layout","status","Right A confirms; bottom B goes back"),row("Page navigation","status","L1 / R1 pages; L2 / R2 secondary pages")};
     case 8: {
-        QVariantList result{row("Edit Worlds","toggle",worldEditing()?"On":"Off")};
+        QVariantList result{row("Collections","action","Create and edit your game collections")};
         result.append(row(libraryScanning_?"Refreshing library…":"Refresh library",
             libraryAvailable_ && !libraryScanning_?"action":"unavailable",
             libraryScanning_?"Looking for games and updated artwork":libraryAvailable_?"Find copied games and reload artwork":"Connect your game library first"));
@@ -84,7 +84,7 @@ void SettingsController::activateRow(int index) {
     else if(category_==4) emit trainerRequested(row_);
     else if(category_==5) emit deviceRequested(row_);
     else if(category_==7 && row_==0) emit controllerRequested();
-    else if(category_==8 && row_==0) activate(2);
+    else if(category_==8 && row_==0) emit collectionsRequested();
     else if(category_==8 && row_==1 && libraryAvailable_ && !libraryScanning_) emit libraryRefreshRequested();
     else if(category_==8 && row_==2) storage_.begin();
     else if(category_==8 && row_==3) selectCategory(14);
@@ -132,7 +132,7 @@ void SettingsController::dispatch(Action action) {
         else if(category_==1 && row_==0) emit quickAdjustment(0,action);
         else if(category_==2 && row_==0 && videoPreviews()!=(action==Action::Right)) activate(3);
         else if(category_==9 && readOnlySaves()!=(action==Action::Right)) activateRow(0);
-        else if(category_==8 && row_==0 && worldEditing()!=(action==Action::Right)) activate(2);
+
     }
     emit changed();
 }

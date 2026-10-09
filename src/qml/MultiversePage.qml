@@ -4,12 +4,12 @@ Item {
     id: root
     required property var shell
     readonly property var model: shell.multiverse
-    readonly property bool takesFocus: visible && !shell.serviceOpen && !shell.libraryTools.open && !shell.scraper.open && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
+    readonly property bool takesFocus: visible && !shell.collectionManager.open && !shell.serviceOpen && !shell.libraryTools.open && !shell.scraper.open && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
     PageHeader {
         id: header
-        title: root.model.collection !== "multiverse" ? root.model.collectionName : root.model.route === "systems" ? "Multiverse" : root.model.systemName
+        title: root.model.collection !== "multiverse" ? root.model.collectionName : root.model.route === "systems" ? "All games" : root.model.systemName
         compact: root.model.route === "systems"
-        subtitle: root.model.route === "systems" ? "" : root.model.sample ? "Development preview · fictional titles · no launch" : root.model.collection !== "multiverse" ? "Across your library" : "Your worlds beyond Pokémon"
+        subtitle: root.model.route === "systems" ? "" : root.model.sample ? "Development preview · fictional titles · no launch" : root.model.collection !== "multiverse" ? "Across your library" : "Your library across systems"
     }
     MountedPanel {
         y: header.height; width: parent.width; height: parent.height - y; color: "#d9deed"
@@ -57,10 +57,10 @@ Item {
             previewsEnabled: root.shell.settings.videoPreviews && !root.shell.serviceOpen && !adventureLaunch.active && !sessionState.blocked
             filterText: root.model.filterLabel + (root.model.query ? " · " + root.model.query : "")
             actionVisible: entry.linked === true
-            emptyTitle: root.model.query || root.model.filterLabel !== "All titles" ? "No matching titles" : "No titles connected yet"
-            emptyDetail: root.model.query || root.model.filterLabel !== "All titles" ? "Reset search and filter" : "Back to systems"
+            emptyTitle: root.model.query || root.model.filterLabel !== "All titles" ? "No matching titles" : "This collection is empty"
+            emptyDetail: root.model.query || root.model.filterLabel !== "All titles" ? "Reset search and filter" : "Add games or edit collection rules"
             onActivated: index => root.shell.activate(index)
-            onEmptyActivated: root.shell.activate(0)
+            onEmptyActivated: { if(root.model.collection.startsWith("user:") && !root.model.query && root.model.filterLabel === "All titles") root.shell.manageCollection(false); else root.shell.activate(0) }
         }
     }
 }

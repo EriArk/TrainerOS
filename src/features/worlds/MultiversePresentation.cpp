@@ -2,6 +2,7 @@
 #include "core/model/SeriesCatalog.h"
 #include "core/model/GamePlayers.h"
 #include <algorithm>
+#include <climits>
 #include "core/repository/CollectionRepository.h"
 #include <QFileInfo>
 #include <QJsonArray>
@@ -15,17 +16,22 @@ MultiversePresentation::MultiversePresentation(bool sample, QObject* parent) : Q
 }
 MultiversePresentation::MultiversePresentation(LibraryRepository& repository, AdventureAdapter& adapter, QObject* parent)
     : MultiversePresentation(!repository.editable(), parent) {
-    repository_ = &repository; adapter_ = &adapter; refresh();
+    repository_ = &repository; adapter_ = &adapter;
+    collections_=new GameCollections(repository,this);
+    connect(collections_,&GameCollections::definitionsChanged,this,&MultiversePresentation::refresh);
+    refresh();
 }
 void MultiversePresentation::refresh() {
-    if (sample_ || !repository_) return;
+    if (!repository_) return;
+    if(collections_)collections_->refresh();
     const auto focused = route_ == "systems" ? QString() : detail().value("id").toString();
     presentations_.clear(); collectionsCache_.clear(); systemsCache_.clear(); systemsCached_=false;
     entries_.clear();
-    for (const auto& a : repository_->adventures()) if (a.domain == "multiverse" && !a.collectionOnly) {
+    for (const auto& a : repository_->adventures()) if (!a.collectionOnly) {
         const auto r = repository_->registration(a.id);
+        if(r && r->removed)continue;
         const auto title=r && a.title==QFileInfo(r->contentPath).completeBaseName()?seriesDisplayTitle(a.title):a.title;
-        entries_.append({a.id,a.platformId,title,r && r->contentAvailable,seriesForTitle(a.title)});
+        entries_.append({a.id,a.platformId,title,(r ? r->contentAvailable : sample_),a.domain=="pokemon"?"pokemon":seriesForTitle(a.title)});
     }
     std::sort(entries_.begin(),entries_.end(),[](const auto& a,const auto& b) {
         const int cmp=QString::compare(a.title,b.title,Qt::CaseInsensitive);return cmp ? cmp<0 : a.id<b.id;
@@ -38,8 +44,32 @@ void MultiversePresentation::refresh() {
     emit libraryChanged(); emit gamesChanged(); emit changed();
 }
 
-bool MultiversePresentation::belongs(const Game& game) const { return (game.series.isEmpty()?seriesForTitle(game.title):game.series)==collection_; }
-QString MultiversePresentation::collectionName() const { return seriesDefinition(collection_).name; }
+bool MultiversePresentation::belongs(const Game& game) const {
+    if(collection_=="multiverse")return true;
+    if(collection_.startsWith("auto:") || collection_.startsWith("user:")) {
+        if(!collections_ || !repository_)return false;
+        const auto record=repository_->registration(game.id);
+        if(record)return collections_->contains(collection_,record->adventure);
+        for(const auto& a:repository_->adventures())if(a.id==game.id)return collections_->contains(collection_,a);
+        return false;
+    }
+    return (game.series.isEmpty()?seriesForTitle(game.title):game.series)==collection_;
+}
+QString MultiversePresentation::collectionName() const {
+    if(collection_=="multiverse")return "All games";
+    if(collections_) {
+        for(const auto& d:collections_->definitions())if(d.toObject()["id"]==collection_)return d.toObject()["name"].toString();
+        for(const auto& d:collections_->automatic())if(d.toMap()["id"]==collection_)return d.toMap()["name"].toString();
+    }
+    return seriesDefinition(collection_).name;
+}
+QString MultiversePresentation::collectionArt() const {
+    return "qrc:/series/"+(collection_.contains(':')?QString("multiverse"):collection_)+".png";
+}
+QVariantMap MultiversePresentation::game(const QString& id) const {
+    for(const auto& entry:entries_)if(entry.id==id)return present(entry);
+    return {};
+}
 QVariantList MultiversePresentation::collections() const {
     if(!collectionsCache_.isEmpty())return collectionsCache_;
     QHash<QString,int> counts;
@@ -47,8 +77,21 @@ QVariantList MultiversePresentation::collections() const {
     QVariantList result;
     for(const auto& d:seriesDefinitions()) {
         if(d.id!="pokemon" && d.id!="multiverse" && !counts.value(d.id))continue;
-        result.append(QVariantMap{{"id",d.id},{"name",d.name},{"colour",d.colour},
-            {"art","qrc:/series/"+d.id+".png"},{"count",counts.value(d.id)}});
+        result.append(QVariantMap{{"id",d.id},{"name",d.id=="multiverse"?QString("All games"):d.name},{"colour",d.colour},
+            {"art","qrc:/series/"+d.id+".png"},{"count",d.id=="multiverse"?int(entries_.size()):counts.value(d.id)}});
+    }
+    if(collections_) {
+        auto extra=collections_->automatic();
+        for(const auto& d:collections_->definitions())extra.append(d.toObject().toVariantMap());
+        for(const auto& v:extra) {
+            auto row=v.toMap();int count=0;
+            for(const auto& g:entries_)if(g.linked) {
+                const auto r=repository_->registration(g.id);
+                if(r && collections_->contains(row["id"].toString(),r->adventure))++count;
+            }
+            row["count"]=count;row["colour"]=row["dynamic"].toBool()||row["id"].toString().startsWith("auto:")?"#9bb9df":"#e9b2cd";
+            row["art"]="";result.append(row);
+        }
     }
     collectionsCache_=result;return result;
 }
@@ -58,8 +101,8 @@ QJsonObject MultiversePresentation::navigationState() const {
 }
 void MultiversePresentation::restoreNavigation(const QJsonObject& state) {
     collectionStates_=state["collections"].toObject();
-    collection_=seriesDefinition(state["collection"].toString("multiverse")).id;
-    if(collection_=="pokemon")collection_="multiverse";
+    collection_=state["collection"].toString("multiverse");
+    if(collections_ && !collections_->known(collection_))collection_="multiverse";
     // Carry a legacy explicit Home choice into its new series without changing the Adventure.
     if(collectionStates_.isEmpty())for(const auto& game:entries_)if(game.id==state["selected"].toString())
         collectionStates_[seriesForTitle(game.title)]=state;
@@ -67,8 +110,8 @@ void MultiversePresentation::restoreNavigation(const QJsonObject& state) {
     refresh();
 }
 void MultiversePresentation::setCollection(const QString& id) {
-    const auto next=seriesDefinition(id).id;
-    if(next=="pokemon" || next==collection_)return;
+    const auto next=collections_ && collections_->known(id)?id:seriesDefinition(id).id;
+    if(next==collection_)return;
     collectionStates_[collection_]=localNavigation(); collection_=next;
     restoreLocal(collectionStates_.value(next).toObject());
     emit libraryChanged(); emit gamesChanged(); emit changed();
@@ -106,7 +149,7 @@ void MultiversePresentation::restoreLocal(const QJsonObject& state) {
 QVariantList MultiversePresentation::systems() const {
     if(systemsCached_)return systemsCache_;
     QVariantList result;
-    if (!sample_) {
+    if (repository_ || !sample_) {
         auto platforms=multiversePlatforms();
         // Unknown imported categories remain usable, never silently discarded.
         for(const auto& g:entries_) if(std::none_of(platforms.begin(),platforms.end(),[&](const auto& p){return p.id==g.system;}))
@@ -163,6 +206,11 @@ QList<MultiversePresentation::Game> MultiversePresentation::filtered() const {
     const int filter = filters_.value(system_);
     for (const auto& game : entries_) if (belongs(game) && (collection_!="multiverse" || game.system == system_) && game.title.contains(query(), Qt::CaseInsensitive)
         && (filter != 1 || game.linked) && (filter != 2 || !game.linked)) result.append(game);
+    if(collection_=="auto:recent" && repository_) {
+        QHash<QString,int> order;int index=0;for(const auto& session:repository_->recentSessions())
+            if(!order.contains(session.adventureId))order[session.adventureId]=index++;
+        std::stable_sort(result.begin(),result.end(),[&](const auto& a,const auto& b){return order.value(a.id,INT_MAX)<order.value(b.id,INT_MAX);});
+    }
     return result;
 }
 QVariantList MultiversePresentation::games() const {
@@ -214,7 +262,7 @@ void MultiversePresentation::activate(int index) {
         const auto list = filtered();
         if (list.isEmpty()) {
             if (!query().isEmpty() || filters_.value(system_)) { queries_[system_].clear(); filters_[system_] = 0; emit gamesChanged(); }
-            else route_ = "systems";
+            else route_ = collection_=="multiverse"?"systems":"games";
         } else {
             if (index < 0 || index >= list.size()) return;
             positions_[system_] = index;

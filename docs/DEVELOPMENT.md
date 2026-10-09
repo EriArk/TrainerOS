@@ -80,6 +80,10 @@ The established host toolchain is MSYS2 UCRT64 GCC with matching UCRT64 Qt/SDL.
 Do not mix those libraries with an MSVC Qt installation. Example after installing
 the matching dependencies (adjust the MSYS2 location):
 
+SVG icons require the matching `mingw-w64-ucrt-x86_64-qt6-svg` runtime package,
+including its image-format plugin. Qt Base alone builds the app but cannot render
+those icons; keep QtSvg and the rest of Qt on the same version/toolchain.
+
 ```powershell
 $env:PATH = "C:\msys64\ucrt64\bin;$env:PATH"
 cmake -S . -B build/native -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=C:/msys64/ucrt64 -DCMAKE_CXX_COMPILER=C:/msys64/ucrt64/bin/g++.exe
@@ -89,11 +93,13 @@ cmake --build build/native --parallel 2
 
 ## Current application boundaries
 
-- Primaries: Home / Worlds / Companions / Trainer / Social. L1/R1 switches
-  primaries; L2/R2 switches supported peer faces, including Home series.
-- Worlds starts at collections on primary-page re-entry. Batocera platform
+- Primaries: Home / Collections / Companions / Trainer / Social. L1/R1 switches
+  primaries; L2/R2 switches supported peer faces, with no collection cycling on Home.
+- Collections starts at its grid on primary-page re-entry. Pokemon opens games
+  directly, while manual and dynamic collections share stable game identities.
+  Batocera platform
   folders determine normal launch routes. A launches an installed ready game;
-  holding A opens management. Y selection changes Home context without launching.
+  holding A opens management. Y selects from global recent games without launching.
 - Home during a game opens its compact overlay. Explicit Exit owns capture and
   the applicable save confirmation. Start remains the system menu.
 - Game-specific data and protected writes require exact adapter capabilities;

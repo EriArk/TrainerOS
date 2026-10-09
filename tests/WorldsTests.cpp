@@ -278,17 +278,16 @@ private slots:
         DevelopmentPlatformService platform;MockPokedexRepository dex;
         MockHallOfFameRepository shellArchive;MockAchievementProvider shellAchievements;
         ShellController shell(library,profiles,adapter,platform,dex,dex,shellArchive,shellAchievements);
-        shell.goToPage(1);QVERIFY(shell.collectionsRoot());shell.activate(0);shell.activate(2);
-        QCOMPARE(shell.worlds()->route(),"adventures");const int selected=shell.worlds()->adventureIndex();
-        shell.dispatch(Action::SystemMenu);
-        shell.dispatch(Action::Back);
-        QCOMPARE(shell.worlds()->route(),"adventures");QCOMPARE(shell.worlds()->adventureIndex(),selected);
+        shell.goToPage(1);QVERIFY(shell.collectionsRoot());shell.activate(0);
+        QCOMPARE(shell.multiverse()->route(),"games");shell.dispatch(Action::Down);
+        const auto selected=shell.multiverse()->detail()["id"];
+        shell.dispatch(Action::SystemMenu);shell.dispatch(Action::Back);
+        QCOMPARE(shell.multiverse()->detail()["id"],selected);
         shell.dispatch(Action::NextPage);shell.dispatch(Action::PreviousPage);
         QVERIFY(shell.collectionsRoot());shell.dispatch(Action::Confirm);
-        QCOMPARE(shell.worlds()->route(),"regions");QCOMPARE(shell.focusIndex(),2);
-        shell.dispatch(Action::Confirm);QCOMPARE(shell.worlds()->route(),"adventures");
-        QCOMPARE(shell.worlds()->adventureIndex(),selected);
-        shell.dispatch(Action::Back);QCOMPARE(shell.worlds()->route(),"regions");QCOMPARE(shell.focusIndex(),2);
+        QCOMPARE(shell.multiverse()->route(),"games");QCOMPARE(shell.multiverse()->detail()["id"],selected);
+        shell.dispatch(Action::Back);QVERIFY(shell.collectionsRoot());
+
     }
 };
 QTEST_GUILESS_MAIN(WorldsTests)

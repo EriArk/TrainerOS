@@ -1,5 +1,14 @@
 # TrainerOS Roadmap
 
+**Owner library correction, 9 October 2026:** deliver Collections with personal
+manual/dynamic and automatic views; Pokemon opens games without region cards.
+Home no longer cycles collections with L2/R2; Y shows global recent games and
+retains selection without launch. This requested increment precedes resuming
+MP-02, whose uncommitted timer work is preserved. Broad common UI redesign awaits
+discussion. [Current contract](SERIES_COLLECTIONS.md) supersedes older scoped
+Home/Y and region-card descriptions below. The implementation and both installed
+binaries are delivered; the evidence records Odin's retained Steam-session boundary.
+
 **Owner alpha milestone, 8 October 2026:** complete the full accepted multiplayer
 scope, then ship the image/installer alpha for testers and enthusiasts. Remaining
 product expansion and Pack Studio no longer block this first alpha. MP-02 stays

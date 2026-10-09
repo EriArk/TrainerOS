@@ -46,10 +46,7 @@ QString LibraryToolsController::detail() const {
     if(route_=="restore")return game_.adventure.title;
     if(route_=="trash" && trash_.isEmpty())return "The trash is empty.";
     if(route_=="properties") {
-        QString world;
-        for(const auto& w:repository_.worlds())if(w.id==game_.adventure.worldId)world=w.name;
         QStringList information;
-        if(!world.isEmpty())information.append("World: "+world);
         information.append("Platform: "+platformLabel(game_.adventure.platformId).name);
         information.append("File: "+QFileInfo(game_.contentPath).fileName());
         information.append("Folder: "+QFileInfo(game_.contentPath).absolutePath());
@@ -73,7 +70,7 @@ QVariantList LibraryToolsController::rows() const {
         if(reviews_["more"].toBool())result.append(row("More reviews",!reviews_["busy"].toBool()));
         return result;
     }
-    if(route_=="game")return {row("Rename"),row("Move",game_.adventure.domain=="pokemon" || (catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty())),row("Удалить"),row("Properties"),row("Download information & artwork",!repository_.storageRootFor(game_.adventure.id).isEmpty())};
+    if(route_=="game")return {row("Rename"),row("Move",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Удалить"),row("Properties"),row("Download information & artwork",!repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Collections")};
     if(route_=="move-kind")return {row("Platform / folder",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Another World")};
     if(route_=="move-file")return {row("Cancel"),row("Move")};
     if(route_=="world")return {row("Rename World"),row("Done"),row("Scrape this collection")};
@@ -122,6 +119,7 @@ void LibraryToolsController::dispatch(Action action) {
 void LibraryToolsController::activate(int index) {
     const auto values=rows();if(busy_ || index<0 || index>=values.size())return;
     focus_=index;if(!values[index].toMap().value("enabled").toBool())return;
+    if(route_=="game"&&index==5){emit collectionsRequested(game_.adventure.id);return;}
     if(route_=="game"&&index==4){const auto id=game_.adventure.id;close();emit scrapeRequested(id,{});return;}
     if(route_=="world"&&index==2){const auto id=world_.id;close();emit scrapeRequested({},id);return;}
     if(route_.startsWith("reviews")){reviewAction(index);return;}
@@ -129,8 +127,7 @@ void LibraryToolsController::activate(int index) {
     if(route_=="game") {
         if(index==0)emit textRequested("Game name",game_.adventure.title,96);
         else if(index==1){
-            if(game_.adventure.domain=="pokemon"){route_="move-kind";focus_=0;}
-            else {root_=repository_.storageRootFor(game_.adventure.id);browse(root_);return;}
+            root_=repository_.storageRootFor(game_.adventure.id);browse(root_);return;
         }
         else {
             route_=index==2?"remove":"properties";focus_=0;

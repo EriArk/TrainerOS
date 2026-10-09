@@ -3,11 +3,11 @@ import QtQuick
 Item {
     id: root
     required property var shell
-    readonly property var choice: shell.multiverse.selected
+    readonly property var choice: shell.homeGame
     Rectangle {
         anchors.fill: parent; color: "#202c43"
         clip: true
-        Image { anchors.fill: parent; source: root.choice.preview || root.shell.multiverse.collectionArt; sourceSize.width: 1200; fillMode: Image.PreserveAspectCrop; opacity: root.choice.preview ? 0.35 : 0.65; asynchronous: true }
+        Image { anchors.fill: parent; source: root.choice.preview || "qrc:/series/multiverse.png"; sourceSize.width: 1200; fillMode: Image.PreserveAspectCrop; opacity: root.choice.preview ? 0.35 : 0.65; asynchronous: true }
         Rectangle { anchors.fill: parent; color: "#6012222e" }
         Repeater {
             model: 4
@@ -23,7 +23,7 @@ Item {
     Column {
         x: 30; y: 26; spacing: 17; width: parent.width - 300
         Text { text: "YOUR ADVENTURES"; color: "#b1bbd1"; font.pixelSize: 13; font.letterSpacing: 2; font.bold: true }
-        Text { text: root.shell.multiverse.collectionName; color: "#f4ecdc"; font.pixelSize: 38; font.bold: true; width: parent.width; elide: Text.ElideRight }
+        Text { text: "Continue playing"; color: "#f4ecdc"; font.pixelSize: 38; font.bold: true; width: parent.width; elide: Text.ElideRight }
         Rectangle { width: parent.width; height: 3; color: "#7886a6" }
         Text { width: parent.width; text: root.choice.title || "A new horizon"; color: "#ffe0a0"; font.pixelSize: 27; font.bold: true; elide: Text.ElideRight }
         Text { text: root.choice.system || "Your library across systems"; color: "#d5dded"; font.pixelSize: 19 }

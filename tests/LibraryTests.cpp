@@ -131,34 +131,35 @@ private slots:
     void contextualMenuUsesWheelSelectionAndTrapsInput() {
         QTemporaryDir dir;const auto rom=dir.filePath("fixture.gba");fixtureFile(rom);
         LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());
-        auto record=candidate(rom);bool done=false;
+        auto record=candidate(rom);record.adventure.platformId="gba";bool done=false;
         store.saveAdventureAsync(record,this,[&](auto result){QVERIFY(result.success);done=true;});QTRY_VERIFY(done);
         MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
         MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(store,profiles,adapter,platform,dex,dex,archive,achievements);
         shell.configureServices(nullptr,&store);
-        shell.goToPage(1);shell.activate(0);shell.worlds()->activate(2);
+        shell.goToPage(1);shell.activate(0);QCOMPARE(shell.multiverse()->route(),"games");
         QVERIFY(shell.canHoldConfirm());QVERIFY(!shell.canEditWorld());
         shell.dispatch(Action::ContextMenu);QVERIFY(shell.libraryTools()->isOpen());QVERIFY(!shell.canHoldConfirm());
-        shell.dispatch(Action::NextFace);QVERIFY(!shell.multiverseFace());
+        const auto collection=shell.multiverse()->collection();
+        shell.dispatch(Action::NextFace);QVERIFY(shell.multiverseFace());QCOMPARE(shell.multiverse()->collection(),collection);
         shell.dispatch(Action::Confirm);QVERIFY(shell.keyboard()->isOpen());
         shell.dispatch(Action::Back);QVERIFY(!shell.keyboard()->isOpen());QVERIFY(shell.libraryTools()->isOpen());
         shell.dispatch(Action::Down);shell.dispatch(Action::Down);shell.dispatch(Action::Confirm);
         QCOMPARE(shell.libraryTools()->route(),"remove");
         shell.dispatch(Action::Confirm);QCOMPARE(shell.libraryTools()->route(),"game"); // Default is non-destructive.
         shell.dispatch(Action::Back);QVERIFY(!shell.libraryTools()->isOpen());QVERIFY(shell.canHoldConfirm());
-        QSignalSpy setup(shell.worlds(),&WorldsController::setupRequested);
-        shell.dispatch(Action::Confirm);QCOMPARE(shell.worlds()->route(),"adventures");
-        QCOMPARE(setup.size(),1); // Short A tries to launch, never opens a setup UI.
+        shell.manageCollection(true);QVERIFY(shell.collectionManager()->isOpen());QVERIFY(!shell.canHoldConfirm());
+        shell.dispatch(Action::ContextMenu);QVERIFY(!shell.libraryTools()->isOpen());
+        shell.dispatch(Action::Back);QVERIFY(!shell.collectionManager()->isOpen());
+        shell.dispatch(Action::Confirm);QCOMPARE(shell.multiverse()->route(),"games");
         QTRY_VERIFY(!shell.notice().isEmpty());
         QVERIFY(!shell.libraryTools()->isOpen());QVERIFY(!shell.serviceOpen());
         shell.dispatch(Action::Back);
-        QVERIFY(!shell.libraryTools()->isOpen());QCOMPARE(shell.worlds()->route(),"adventures");
-        shell.settings()->activate(2);QTRY_VERIFY(!shell.settings()->saving());QVERIFY(shell.canEditWorld());
-        shell.dispatch(Action::LocalAction);QCOMPARE(shell.libraryTools()->route(),"world");
+        QVERIFY(!shell.libraryTools()->isOpen());QCOMPARE(shell.multiverse()->route(),"games");
+        QVERIFY(!shell.canEditWorld());
         shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),2);QVERIFY(!shell.libraryTools()->isOpen());
-        shell.goToPage(1);QVERIFY(shell.collectionsRoot());shell.activate(0);QCOMPARE(shell.worlds()->route(),"regions");
-        shell.dispatch(Action::Confirm);shell.dispatch(Action::ContextMenu);QVERIFY(shell.libraryTools()->isOpen());
+        shell.goToPage(1);QVERIFY(shell.collectionsRoot());shell.activate(0);QCOMPARE(shell.multiverse()->route(),"games");
+        shell.dispatch(Action::ContextMenu);QVERIFY(shell.libraryTools()->isOpen());
         shell.dispatch(Action::SystemMenu);shell.dispatch(Action::Confirm);
         QCOMPARE(shell.service(),"settings");QVERIFY(!shell.libraryTools()->isOpen());
     }

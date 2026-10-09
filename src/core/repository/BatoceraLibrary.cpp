@@ -121,7 +121,7 @@ Metadata readGamelist(const QString& directory,QStringList& warnings,bool& reada
                 const auto value=resolve(directory,xml.readElementText());
                 const QFileInfo media(value);
                 if(!value.isEmpty() && media.isFile() && media.isReadable())item[tag]=QUrl::fromLocalFile(media.absoluteFilePath()).toString();
-            } else if(QStringList{"name","desc","genre","players","releasedate","developer","publisher","hidden"}.contains(tag))
+            } else if(QStringList{"name","desc","genre","players","releasedate","developer","publisher","favorite","hidden"}.contains(tag))
                 item[tag]=plain(xml.readElementText(),tag=="desc"?4096:256);
             else xml.skipCurrentElement();
         }

@@ -72,6 +72,7 @@ signals:
     void deviceRequested(int index);
     void controllerRequested();
     void trashRequested();
+    void collectionsRequested();
     void libraryRefreshRequested();
     void trainerRequested(int index);
     void messageRequested(const QString& message);

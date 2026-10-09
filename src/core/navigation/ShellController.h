@@ -49,6 +49,8 @@ class ShellController final : public QObject {
     Q_PROPERTY(QStringList faceNames READ faceNames NOTIFY changed)
     Q_PROPERTY(int faceIndex READ faceIndex NOTIFY changed)
     Q_PROPERTY(bool centerFace READ centerFace NOTIFY changed)
+    Q_PROPERTY(trainer::GameCollections* collectionManager READ collectionManager CONSTANT)
+    Q_PROPERTY(QVariantMap homeGame READ homeGame NOTIFY changed)
     Q_PROPERTY(bool collectionsRoot READ collectionsRoot NOTIFY changed)
     Q_PROPERTY(QVariantList collections READ collections NOTIFY changed)
     Q_PROPERTY(bool multiverseFace READ multiverseFace NOTIFY changed)
@@ -105,7 +107,11 @@ public:
     bool collectionsRoot() const { return collectionsRoot_; }
     QVariantList collections() const { return multiverse_.collections(); }
     bool multiverseFace() const { return multiverseFace_; }
-    bool multiverseHome() const { return multiverseHome_; }
+    bool multiverseHome() const { const auto a=homeAdventure();return a && a->domain!="pokemon"; }
+    QVariantMap homeGame() const { return multiverse_.game(currentAdventureId()); }
+    GameCollections* collectionManager() { return multiverse_.collectionManager(); }
+    Q_INVOKABLE void manageCollection(bool create=false);
+    Q_INVOKABLE void editCollection(int index);
     PokedexController* pokedex() { return &pokedex_; }
     HallOfFameController* hall() { return &hall_; }
     LibraryManagementController* libraryManager() { return &libraryManager_; }
@@ -132,7 +138,7 @@ public:
     void showNotice(const QString& message) { mode_.clear(); notice_ = message; emit changed(); }
     bool modeConfirmation() const { return !mode_.isEmpty(); }
     int page() const { return page_; }
-    QStringList primaryNames() const { return {"Home", "Worlds", "Companions", "Trainer", "Social"}; }
+    QStringList primaryNames() const { return {"Home", "Collections", "Companions", "Trainer", "Social"}; }
     QString trainerFace() const;
     bool trainerHistoryFace() const { return page_ == 3 && !trainerProfile_; }
     QString socialFace() const { return socialFace_; }
@@ -217,7 +223,7 @@ private:
     PartyPresentation party_;
     SocialController social_;
     QString service_;
-    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, LibraryTools, Archive, TrainerFavorite, CenterSearch, ShopSearch, BoxName, AchievementAccount, SetupName, Network, Social, Communication, Scraper };
+    enum class TextTarget { None, TrainerName, PokedexSearch, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, TrainerFavorite, CenterSearch, ShopSearch, BoxName, AchievementAccount, SetupName, Network, Social, Communication, Scraper };
     TextTarget textTarget_ = TextTarget::None;
     QList<ContinueEntry> points_;
     QString homeAdventureId_, homeResumeId_;
@@ -234,7 +240,7 @@ private:
     bool collectionsRoot_ = true;
     int collectionFocus_ = 0;
     QString homeCollection_ = "pokemon", worldCollection_ = "pokemon";
-    bool multiverseFace_ = false, multiverseHome_ = false;
+    bool multiverseFace_ = true, multiverseHome_ = false;
     int multiverseDrawerFocus_ = 0;
     bool menuOpen_ = false;
     bool homeMenuOpen_ = false;

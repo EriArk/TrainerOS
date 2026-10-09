@@ -61,6 +61,15 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
       pokedex_(dexReference, dexProgress, this), hall_(archive, achievements, this),
       libraryManager_(repo, nullptr, this), libraryTools_(repo,this), scraper_(repo,this), settings_(this), device_(this), diagnostics_(this), center_(repo,this), party_(!repo.editable(),this) {
     settings_.setScraper(&scraper_);
+    connect(&settings_,&SettingsController::collectionsRequested,this,[this]{goToPage(1);});
+    connect(collectionManager(),&GameCollections::changed,this,&ShellController::changed);
+    connect(collectionManager(),&GameCollections::definitionsChanged,this,[this]{
+        collectionFocus_=std::clamp(collectionFocus_,0,std::max(0,int(collections().size())-1));
+        if(!collectionManager()->known(worldCollection_)){worldCollection_="multiverse";collectionsRoot_=true;}
+        emit changed();
+    });
+    connect(collectionManager(),&GameCollections::textRequested,this,[this](const QString& title,const QString& initial,int limit){textTarget_=TextTarget::Collections;keyboard_.begin(title,initial,limit);});
+    connect(&libraryTools_,&LibraryToolsController::collectionsRequested,this,[this](const QString& id){libraryTools_.close();collectionManager()->beginMembership(id);});
     libraryTools_.editGuard=[this]{return scraper_.busy()?QString("Finish or cancel downloads before changing library files or names."):QString();};
     connect(&downloads_,&DownloadsController::changed,this,&ShellController::changed);
     connect(&scraper_,&ScrapeController::changed,this,[this]{downloads_.publish("screenscraper",scraper_.downloadTasks());});
@@ -149,7 +158,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&worlds_, &WorldsController::setupRequested, this, openGame);
     connect(&multiverse_, &MultiversePresentation::messageRequested, this, &ShellController::showNotice);
     connect(&multiverse_, &MultiversePresentation::homeRequested, this, [this] {
-        homeCollection_=multiverse_.collection(); multiverseHome_ = true; goToPage(0);
+        homeAdventureId_=multiverse_.selected().value("id").toString();homeResumeId_.clear();homeResumeSource_={};refreshParty();goToPage(0);
     });
     connect(&settings_, &SettingsController::trainerRequested, this, [this](int index) {
         trainerSettingsAction(index);
@@ -264,6 +273,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
         else if (target == TextTarget::MultiverseSearch) multiverse_.applySearch(text);
         else if (target == TextTarget::Library) libraryManager_.applyText(text);
         else if (target == TextTarget::LibraryTools) libraryTools_.applyText(text);
+        else if (target == TextTarget::Collections) collectionManager()->applyText(text);
         else if (target == TextTarget::Archive) hall_.editor()->applyText(text);
         else if (target == TextTarget::TrainerFavorite) trainer_.picker()->applySearch(text);
         else if (target == TextTarget::CenterSearch) center_.applySearch(text);
@@ -300,11 +310,16 @@ void ShellController::refreshLibrary() {
 QString ShellController::currentAdventureId() const {
     // An explicit choice remains authoritative even if its installation vanishes.
     // Never silently replace it with a different game's latest launch/save.
-    return homeAdventureId_.isEmpty() ? repository_.home().activeAdventureId : homeAdventureId_;
+    if(!homeAdventureId_.isEmpty())return homeAdventureId_;
+    for(const auto& session:repository_.recentSessions()) {
+        const auto record=repository_.registration(session.adventureId);
+        if(record && !record->removed)return session.adventureId;
+    }
+    return repository_.home().activeAdventureId;
 }
 bool ShellController::canHoldConfirm() const {
     if(page_!=1 || !repository_.editable() || homeMenuOpen_ || menuOpen_ || !notice_.isEmpty() || !service_.isEmpty()
-        || keyboard_.isOpen() || drawerOpen_ || libraryTools_.isOpen())return false;
+        || keyboard_.isOpen() || drawerOpen_ || libraryTools_.isOpen() || multiverse_.collectionManager()->isOpen())return false;
     if(collectionsRoot_)return false;
     if(multiverseFace_ ? multiverse_.route()!="games" : worlds_.route()!="adventures")return false;
     const auto id=(multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString();
@@ -316,7 +331,7 @@ bool ShellController::canEditWorld() const {
         && !drawerOpen_ && !libraryTools_.isOpen() && !worlds_.region().value("id").toString().isEmpty();
 }
 bool ShellController::localModalOpen() {
-    return downloads_.isOpen() || scraper_.isOpen() || (page_==4 && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing() || (page_ == 2 && (centerFace() ? center_.confirming() || center_.writing() || (center_.shopsOpen() && center_.shopModal()) || party_.detailOpen() || party_.moveOpen()
+    return collectionManager()->isOpen() || downloads_.isOpen() || scraper_.isOpen() || (page_==4 && !social_.menu().isEmpty()) || libraryTools_.isOpen() || trainer_.editing() || (page_ == 2 && (centerFace() ? center_.confirming() || center_.writing() || (center_.shopsOpen() && center_.shopModal()) || party_.detailOpen() || party_.moveOpen()
         : pokedex_.zone() == "picker" || pokedex_.zone() == "art" || pokedex_.saving()))
         || (trainerHistoryFace() && (hall_.editor()->isOpen() || hall_.account()->isOpen()));
 }
@@ -337,7 +352,7 @@ bool ShellController::pairedNavigationAvailable() {
         && !keyboard_.isOpen() && !localModalOpen() && !drawerOpen_;
 }
 QStringList ShellController::faceNames() const {
-    if(page_==0 || page_==1) { QStringList names;for(const auto& row:collections())names.append(row.toMap()["name"].toString());return names; }
+    if(page_==1) { QStringList names;for(const auto& row:collections())names.append(row.toMap()["name"].toString());return names; }
     if(page_==2)return {"Guide","Party","Boxes","Center","Playroom","Shops"};
     if(page_==3)return {"Profile","Journey","Hall","RA"};
     if(page_==4)return {"Messages","Communities","Discover"};
@@ -414,28 +429,29 @@ void ShellController::refreshParty() {
 }
 void ShellController::refreshContinue() {
     points_.clear();
-    auto states = repository_.resumePoints();
-    // Repeated observations replace a card, not its identity. Recency remains
-    // the source's save time, never the time a background scan rediscovered it.
-    std::stable_sort(states.begin(), states.end(), [](const auto& a, const auto& b) { return a.observedAt > b.observedAt; });
-    QSet<QString> ids;
+    auto sessions=repository_.recentSessions();
+    auto states=repository_.resumePoints();
+    std::stable_sort(states.begin(),states.end(),[](const auto& a,const auto& b){return a.observedAt>b.observedAt;});
+    // Repository order is launch order, even after the device clock changes.
     QSet<QString> represented;
-    for (const auto& point : states) {
-        if(const auto record=repository_.registration(point.adventureId);record && record->removed)continue;
-        if (point.id.isEmpty() || ids.contains(point.id)) continue;
-        ids.insert(point.id);
-        points_.append({point.id, point.adventureId, point.savedAt, point, {}});
-        represented.insert(point.adventureId);
-    }
-    for (const auto& session : repository_.recentSessions()) {
-        const auto registration = repository_.registration(session.adventureId);
-        if (registration && (registration->removed || registration->adventure.domain != "pokemon")) continue;
-        if (represented.contains(session.adventureId)) continue;
+    for(const auto& session:sessions) {
+        const auto r=repository_.registration(session.adventureId);
+        if((r && r->removed) || represented.contains(session.adventureId))continue;
         represented.insert(session.adventureId);
-        points_.append({"recent:" + session.adventureId, session.adventureId, session.startedAt, {}, session});
+        std::optional<ResumePoint> resume;
+        for(const auto& point:states)if(point.adventureId==session.adventureId && !point.id.isEmpty()){resume=point;break;}
+        points_.append({"recent:"+session.adventureId,session.adventureId,session.startedAt,resume,session});
     }
-    std::stable_sort(points_.begin(), points_.end(), [](const auto& a, const auto& b) { return a.recordedAt > b.recordedAt; });
+    // Legacy read-only sample moments remain available in the development fixture.
+    if(!repository_.editable()) {
+        std::stable_sort(states.begin(),states.end(),[](const auto& a,const auto& b){return a.savedAt>b.savedAt;});
+        for(const auto& point:states)if(!represented.contains(point.adventureId)) {
+            represented.insert(point.adventureId);points_.append({point.id,point.adventureId,point.savedAt,point,{}});
+        }
+        std::stable_sort(points_.begin(),points_.end(),[](const auto& a,const auto& b){return a.recordedAt>b.recordedAt;});
+    }
 }
+
 int ShellController::focusIndex() const {
     if (!notice_.isEmpty()) return 0;
     if (menuOpen_) return menuFocus_;
@@ -443,7 +459,7 @@ int ShellController::focusIndex() const {
     if (downloads_.isOpen()) return downloads_.focusIndex();
     if (scraper_.isOpen()) return scraper_.focusIndex();
     if (libraryTools_.isOpen()) return libraryTools_.focusIndex();
-    if (drawerOpen_) return page_ == 0 && multiverseHome_ ? multiverseDrawerFocus_ : drawerFocus_;
+    if (drawerOpen_) return drawerFocus_;
     if (service_ == "library") return libraryManager_.files()->isOpen() ? libraryManager_.files()->focusIndex() : libraryManager_.focusIndex();
     if (service_ == "trainer-settings") return hall_.account()->isOpen() ? hall_.account()->focusIndex() : trainerSettingsFocus_;
     if (service_ == "trainer-setup") return trainerSetup_.focusIndex();
@@ -466,7 +482,7 @@ QJsonObject ShellController::navigationState() const {
             {"homeResumeSource", homeResumeSource_.toJson()},
             {"multiverse",multiverse_.navigationState()},{"homeDomain",multiverseHome_?"multiverse":"pokemon"},
             {"worldsFace",multiverseFace_?"multiverse":"pokemon"},
-            {"homeCollection",homeCollection_},{"worldCollection",worldCollection_},
+            {"globalHome",true},{"homeCollection",homeCollection_},{"worldCollection",worldCollection_},
             {"collectionsRoot",collectionsRoot_},{"collectionFocus",collectionFocus_},
             {"resume", drawerFocus_ < points_.size() ? points_[drawerFocus_].id : QString()},
             {"worlds", worlds_.navigationState()}, {"pokedex", pokedex_.navigationState()}, {"hall", hall_.navigationState()}};
@@ -508,8 +524,15 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     }
     collectionsRoot_=state["collectionsRoot"].toBool(true);
     collectionFocus_=std::clamp(state["collectionFocus"].toInt(),0,std::max(0,int(collections().size())-1));
-    if(page_==0 && multiverseHome_)multiverse_.setCollection(homeCollection_);
-    else if(page_==1 && multiverseFace_)multiverse_.setCollection(worldCollection_);
+    // Migrate the old independent non-Pokemon Home choice once; never change game IDs.
+    if(!state["globalHome"].toBool() && multiverseHome_) {
+        const auto legacy=state["multiverse"].toObject();
+        const auto scoped=legacy["collections"].toObject()[homeCollection_].toObject();
+        homeAdventureId_=scoped.value("selected").toString(legacy["selected"].toString());
+        homeResumeId_.clear();homeResumeSource_={};
+    }
+    multiverseFace_=true;
+    if(page_==1)multiverse_.setCollection(worldCollection_);
     pokedex_.restoreNavigation(state["pokedex"].toObject());
     // Establish the selected game's provider context before replaying its view.
     // Otherwise the initial current-game reconciliation replaces the restored
@@ -529,7 +552,7 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
 }
 std::optional<Adventure> ShellController::homeAdventure() const {
     const auto adventures = repository_.adventures();
-    for (const auto& a : adventures) if (a.id == currentAdventureId() && !a.collectionOnly && a.domain == "pokemon") return a;
+    for (const auto& a : adventures) if (a.id == currentAdventureId() && !a.collectionOnly) return a;
     return {};
 }
 std::optional<ResumePoint> ShellController::homeResumePoint(const QString& adventureId) const {
@@ -545,10 +568,10 @@ ResumeAvailability ShellController::homeResumeAvailability(const Adventure& adve
 QVariantMap ShellController::home() const {
     PerformanceTrace::Scope perf("ShellController.home");
     const auto snapshot = repository_.home();
-    QString title = "Choose a journey in Worlds", world = "Your journey";
+    QString title = "Choose a game in Collections", world = "Your journey";
     const auto adventure = homeAdventure();
     const auto media = adventure ? repository_.exitMedia(adventure->id) : std::nullopt;
-    QString action = "Explore Worlds", actionHint = "Worlds", milestone = snapshot.milestone;
+    QString action = "Explore Collections", actionHint = "Collections", milestone = snapshot.milestone;
     if (!adventure && !homeAdventureId_.isEmpty()) {
         title = "Selected Adventure is unavailable";
         milestone = "Your choice is kept";
@@ -607,17 +630,18 @@ QVariantMap ShellController::home() const {
 }
 QVariantList ShellController::resumePoints() const {
     PerformanceTrace::Scope perf("ShellController.resumePoints");
-    if (page_ == 0 && multiverseHome_) return multiverse_.choices();
+
     QVariantList result;
     const auto adventures = repository_.adventures();
     const auto worlds = repository_.worlds();
     for (const auto& point : points_) {
         const auto media = repository_.exitMedia(point.adventureId);
         QString title = "Unavailable Adventure";
-        QString world = "Unknown World";
+        QString world;
         auto status = ResumeAvailability::Incompatible;
         for (const auto& a : adventures) if (a.id == point.adventureId) {
             title = a.title;
+            world = a.platformId.toUpper();
             if (point.resumePoint) status = adapter_.resumeAvailability(a, *point.resumePoint);
             for (const auto& w : worlds) if (w.id == a.worldId) world = w.name;
         }
@@ -663,6 +687,7 @@ void ShellController::goToPage(int page) {
     homeMenuOpen_ = false;
     const bool enteringWorlds = page_ != 1 && std::clamp(page, 0, 4) == 1;
     if(page!=page_){party_.activities()->practice()->leave();party_.activities()->link()->leave();}
+    collectionManager()->close();
     { PerformanceTrace::Scope phase("navigation.tools"); libraryTools_.close(); }
     { PerformanceTrace::Scope phase("navigation.storage"); settings_.storage()->close(); }
     { PerformanceTrace::Scope phase("navigation.keyboard"); if(textTarget_==TextTarget::Social)social_.preserveText(keyboard_.text()); keyboard_.cancel(); }
@@ -676,7 +701,6 @@ void ShellController::goToPage(int page) {
     { PerformanceTrace::Scope phase("navigation.center"); center_.leaveClinic();center_.leaveShops(); }
     { PerformanceTrace::Scope phase("navigation.manager"); libraryManager_.close(); service_.clear(); }
     page_ = std::clamp(page, 0, 4); // No wrapping until physical-device testing.
-    if(page_==0 && multiverseHome_)multiverse_.setCollection(homeCollection_);
     if(page_==1 && multiverseFace_)multiverse_.setCollection(worldCollection_);
     if (enteringWorlds) {
         collectionsRoot_=true;
@@ -701,19 +725,25 @@ void ShellController::openCollection(int index) {
     const auto list=collections();if(index<0 || index>=list.size())return;
     const bool fromRoot=collectionsRoot_;
     collectionFocus_=index;worldCollection_=list[index].toMap()["id"].toString();
-    multiverseFace_=worldCollection_!="pokemon";collectionsRoot_=false;
+    multiverseFace_=true;collectionsRoot_=false;
     if(multiverseFace_){multiverse_.setCollection(worldCollection_);if(fromRoot)multiverse_.showSystems();}
     else if(fromRoot)worlds_.showRegions();
     emit changed();
 }
+void ShellController::editCollection(int index) {
+    if(index<0 || index>=collections().size() || !collectionsRoot_ || !pairedNavigationAvailable())return;
+    collectionFocus_=index;manageCollection(false);
+}
+void ShellController::manageCollection(bool create) {
+    if(page_!=1 || navigationLocked() || menuOpen_ || serviceOpen() || keyboard_.isOpen() || localModalOpen() || !notice_.isEmpty())return;
+    const auto id=collectionsRoot_?collections().value(collectionFocus_).toMap()["id"].toString():worldCollection_;
+    collectionManager()->begin(create?QString():id);
+}
 void ShellController::cycleCollection(int delta) {
     const auto list=collections();if(list.isEmpty())return;
     const int index=(faceIndex()+delta+list.size())%list.size();
-    if(page_==0) {
-        homeCollection_=list[index].toMap()["id"].toString();multiverseHome_=homeCollection_!="pokemon";
-        if(multiverseHome_)multiverse_.setCollection(homeCollection_);
-        multiverseDrawerFocus_=0;
-    } else if(collectionsRoot_)collectionFocus_=index;
+    if(page_!=1)return;
+    if(collectionsRoot_)collectionFocus_=index;
     else openCollection(index);
     emit changed();
 }
@@ -722,6 +752,7 @@ void ShellController::activate(int index, const QString& area) {
     if(downloads_.isOpen())return;
     if(scraper_.isOpen()) {if(keyboard_.isOpen())keyboard_.activate(index);else scraper_.activate(index);return;}
     if(homeMenuOpen_)return;
+    if(collectionManager()->isOpen() && !menuOpen_ && notice_.isEmpty()) {if(keyboard_.isOpen())keyboard_.activate(index);else collectionManager()->activate(index);return;}
     if(launchPreparation_.busy() || libraryTools_.busy() || center_.writing())return;
     if(area=="world-edit" && canEditWorld()){libraryTools_.beginWorld(worlds_.region().value("id").toString(),true);return;}
     if (area == "continue") { dispatch(Action::ToggleContinue); return; }
@@ -730,7 +761,7 @@ void ShellController::activate(int index, const QString& area) {
     else if (keyboard_.isOpen()) { keyboard_.activate(index); return; }
     else if (libraryTools_.isOpen()) {libraryTools_.activate(index);return;}
     else if (drawerOpen_) {
-        auto& focus = page_ == 0 && multiverseHome_ ? multiverseDrawerFocus_ : drawerFocus_;
+        auto& focus = drawerFocus_;
         focus = std::clamp(index, 0, std::max(0, int(resumePoints().size()) - 1));
     }
     else if (service_ == "library") { libraryManager_.activate(index, area); return; }
@@ -827,7 +858,7 @@ void ShellController::confirm() {
             hall_.account()->close();
             trainerSetup_.close();
             keyboard_.cancel(); textTarget_ = TextTarget::None; trainer_.cancel();
-            libraryManager_.close(); libraryTools_.close(); menuOpen_ = false; drawerOpen_ = false;
+            collectionManager()->close(); libraryManager_.close(); libraryTools_.close(); menuOpen_ = false; drawerOpen_ = false;
             if(menuFocus_ != 0){center_.leaveClinic();center_.leaveShops();}
             service_ = menuFocus_ == 0 ? "settings" : "library";
             if (service_ == "settings") settings_.begin();
@@ -839,16 +870,10 @@ void ShellController::confirm() {
         return;
     }
     if (drawerOpen_) {
-        if (page_ == 0 && multiverseHome_) {
-            const auto choices = multiverse_.choices();
-            if (multiverseDrawerFocus_ >= 0 && multiverseDrawerFocus_ < choices.size())
-                multiverse_.select(choices[multiverseDrawerFocus_].toMap()["id"].toString());
-            drawerOpen_ = false; return;
-        }
         if (points_.isEmpty()) { drawerOpen_ = false; return; }
         const auto& point = points_.at(drawerFocus_);
         for (const auto& adventure : repository_.adventures()) if (adventure.id == point.adventureId) {
-            homeAdventureId_ = adventure.id; homeResumeId_ = point.resumePoint ? point.id : QString();
+            homeAdventureId_ = adventure.id; homeResumeId_ = point.resumePoint ? point.resumePoint->id : QString();
             homeResumeSource_ = point.resumePoint ? point.resumePoint->source : ResumeSource{};
             drawerOpen_ = false;
             if (centerFace()) showPokemonFace(pokemonFace_); else refreshParty();
@@ -856,23 +881,8 @@ void ShellController::confirm() {
         }
         notice_ = "This Adventure is unavailable. Its history has been kept.";
     } else if (page_ == 0) {
-        if (multiverseHome_) {
-            if (multiverse_.selected().isEmpty()) { multiverseFace_ = true; goToPage(1); }
-            else if(multiverse_.sample()) notice_ = "Development preview only. No game was launched.";
-            else {
-                const auto record=repository_.registration(multiverse_.selected()["id"].toString());
-                if(!record || record->adventure.domain!="multiverse")notice_="This Adventure is unavailable. Choose another Adventure.";
-                else if(record->contentAvailable && adapter_.capabilities(record->adventure).launch) {
-                    emit homeLaunchPressed();const auto result=adapter_.launch(record->adventure);
-                    if(!result.inProgress)notice_=result.message;
-                } else {
-                    launchPreparation_.launch(record->adventure.id);
-                }
-            }
-            return;
-        }
         const auto adventure = homeAdventure();
-        if (!adventure) { multiverseFace_ = false; goToPage(1); return; }
+        if (!adventure) { multiverseFace_ = true; goToPage(1); return; }
         const auto caps = adapter_.capabilities(*adventure);
         const auto point = homeResumePoint(adventure->id);
         const auto status = homeResumeAvailability(*adventure);
@@ -1021,6 +1031,7 @@ void ShellController::dispatch(Action action) {
         }
         return;
     }
+    if(page_==1 && !menuOpen_ && !keyboard_.isOpen() && !localModalOpen() && !serviceOpen() && notice_.isEmpty() && action==Action::LocalAction) {manageCollection(false);return;}
     if(action==Action::ContextMenu && canHoldConfirm()) {
         libraryTools_.beginGame((multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString());return;
     }
@@ -1045,13 +1056,13 @@ void ShellController::dispatch(Action action) {
     }
     if (action == Action::PreviousFace || action == Action::NextFace) {
         if (pairedNavigationAvailable()) {
-            if (page_ == 1 || page_==0) cycleCollection(action==Action::NextFace?1:-1);
+            if (page_ == 1) cycleCollection(action==Action::NextFace?1:-1);
             else if (page_ == 3) {
                 const QStringList faces{"profile","journey","hall","ra"};
                 showTrainerFace(faces[(faceIndex()+(action==Action::NextFace?1:3))%4]);
             }
             else if (page_ == 4) { const QStringList faces{"chats","communities","friends"}; socialFace_=faces[(faceIndex()+(action==Action::NextFace?1:2))%3]; social_.setFace(socialFace_); }
-            else {
+            else if(page_==2) {
                 const auto& faces=pokemonExperience().pokemonFaces;
                 showPokemonFace(faces[(faceIndex()+(action==Action::NextFace?1:5))%6]);
             }
@@ -1060,10 +1071,10 @@ void ShellController::dispatch(Action action) {
         return;
     }
     if (action == Action::ToggleContinue && chooseAdventureAvailable()) {
-        if(!drawerOpen_ && page_==0 && multiverseHome_) {
-            repository_.refreshContentAvailability();const auto choices=multiverse_.choices();
-            const auto selected=multiverse_.selected().value("id").toString();multiverseDrawerFocus_=0;
-            for(int i=0;i<choices.size();++i)if(choices[i].toMap()["id"].toString()==selected){multiverseDrawerFocus_=i;break;}
+        if(!drawerOpen_) {
+            const auto focused=points_.value(drawerFocus_).adventureId;
+            repository_.refreshContentAvailability();refreshContinue();drawerFocus_=0;
+            for(int i=0;i<points_.size();++i)if(points_[i].adventureId==focused){drawerFocus_=i;break;}
         }
         drawerOpen_ = !drawerOpen_; emit changed(); return;
     }
@@ -1077,12 +1088,13 @@ void ShellController::dispatch(Action action) {
             if(connecting && action==Action::Back) {textTarget_=TextTarget::None;network_.cancelText();}
             return;
         }
+        if(collectionManager()->isOpen()){collectionManager()->dispatch(action);return;}
         if (libraryTools_.isOpen()) {libraryTools_.dispatch(action);return;}
         if (drawerOpen_) {
             if (action == Action::Back) drawerOpen_ = false;
             else if (action == Action::Confirm) confirm();
             else if (action == Action::Left || action == Action::Right) {
-                auto& focus = page_ == 0 && multiverseHome_ ? multiverseDrawerFocus_ : drawerFocus_;
+                auto& focus = drawerFocus_;
                 focus = std::clamp(focus + (action == Action::Right ? 1 : -1), 0, std::max(0, int(resumePoints().size()) - 1));
             }
             emit changed(); return;

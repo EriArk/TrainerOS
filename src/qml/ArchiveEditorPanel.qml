@@ -45,7 +45,7 @@ Item {
     Text {
         x: 29; y: 142; width: parent.width - 58
         visible: root.editor.route === "adventures" && root.editor.rows.length === 0
-        text: root.editor.query.length ? "No matching Adventures." : "Add an Adventure in Worlds first."
+        text: root.editor.query.length ? "No matching Adventures." : "Add an Adventure in Collections first."
         color: Theme.ink; font.pixelSize: 22; wrapMode: Text.WordWrap
     }
     MountedPanel {

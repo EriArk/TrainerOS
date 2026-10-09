@@ -1,5 +1,6 @@
 #pragma once
 #include "core/input/Action.h"
+#include "GameCollections.h"
 #include <QObject>
 #include <QVariantList>
 #include <QHash>
@@ -31,7 +32,9 @@ public:
     void refresh();
     QString collection() const { return collection_; }
     QString collectionName() const;
-    QString collectionArt() const { return "qrc:/series/"+collection_+".png"; }
+    QString collectionArt() const;
+    GameCollections* collectionManager() const { return collections_; }
+    QVariantMap game(const QString& id) const;
     QVariantList collections() const;
     void setCollection(const QString&);
 
@@ -64,6 +67,7 @@ signals:
 private:
     QJsonObject localNavigation() const;
     void restoreLocal(const QJsonObject&);
+    GameCollections* collections_ = nullptr;
     QString collection_ = "multiverse";
     QJsonObject collectionStates_;
     struct Game { QString id, system, title; bool linked; QString series; };

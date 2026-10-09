@@ -38,6 +38,7 @@ add_library(trainer_core STATIC
     src/integrations/scraper/BatoceraScrapeWriter.cpp
     src/core/storage/SqliteLibraryEdits.cpp
     src/core/storage/LibraryFileMove.cpp
+    src/features/worlds/GameCollections.cpp
     src/features/library/LibraryToolsController.cpp
     src/features/library/ScrapeController.cpp
     src/features/downloads/DownloadsController.cpp
@@ -290,6 +291,7 @@ qt_add_qml_module(traineros
         src/qml/ConnectionsPane.qml
         src/qml/StoragePanel.qml
         src/qml/LaunchPanel.qml
+        src/qml/CollectionsPanel.qml
         src/qml/LibraryToolsPanel.qml
         src/qml/ScrapePanel.qml
         src/qml/ScrapeSettingsPane.qml

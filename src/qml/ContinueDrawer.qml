@@ -133,7 +133,7 @@ Item {
         id: toggle
         objectName: "continue-toggle"
         width: root.width; height: Theme.adventureTabHeight
-        Accessible.role: Accessible.Button; Accessible.name: "Y Choose Adventure"
+        Accessible.role: Accessible.Button; Accessible.name: "Y Recent games"
         // An inset follows the outer slope instead of a rectangular cap
         // floating on top of it. Its width follows the unfolding body.
         Shape {
@@ -158,7 +158,7 @@ Item {
             }
         }
         Text { x: 44; y: 12; text: "Y"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 21; font.weight: Font.DemiBold }
-        Text { x: 66; y: 15; text: "Choose Adventure"; color: Theme.ink; font.pixelSize: 17; font.weight: Font.DemiBold }
+        Text { x: 66; y: 15; text: "Recent games"; color: Theme.ink; font.pixelSize: 17; font.weight: Font.DemiBold }
         Item {
             x: 306; y: 18; width: Math.max(0, toggle.width - x - 44); height: 20; clip: true
             // The legend is printed at its final position on the yellow inset.
@@ -166,7 +166,7 @@ Item {
             Text {
                 width: Math.max(0, root.expandedWidth - parent.x - 44)
                 horizontalAlignment: Text.AlignRight
-                text: root.shell.sampleLibrary ? "CHOOSE ADVENTURE · SAMPLE DATA" : "CHOOSE ADVENTURE · PLAY FROM HOME"
+                text: root.shell.sampleLibrary ? "RECENT GAMES · SAMPLE DATA" : "RECENT GAMES · PLAY FROM HOME"
                 color: Theme.ink; font.pixelSize: 12
             }
         }
@@ -316,7 +316,7 @@ Item {
             x: 5; y: 5
             visible: root.shell.resumePoints.length === 0
             width: 500; height: 105
-            label: root.shell.page === 0 && root.shell.multiverseHome ? "No Adventures in this collection yet" : "No recent Adventures yet"; detail: ""
+            label: "No recent games yet"; detail: ""
             selected: visible && root.expanded && !root.shell.menuOpen && root.shell.notice.length === 0
             onActivated: root.shell.activate(0)
         }

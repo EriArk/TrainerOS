@@ -47,6 +47,7 @@ public:
     QVariantMap selectedReview() const;
     bool reviewReportAvailable() const {const auto row=selectedReview();return !row.isEmpty()&&row["author"]!=reviews_["user"]&&reviews_["fresh"].toBool();}
 signals:
+    void collectionsRequested(QString game);
     void changed();
     void saved();
     void scrapeRequested(QString game,QString world);

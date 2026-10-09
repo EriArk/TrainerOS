@@ -280,9 +280,11 @@ int main(int argc, char* argv[]) {
         if(personalLibrary && !smoke && store) {
             QObject::connect(store.get(), &LocalStateStore::opened, &shell, [&](bool ready) {
                 shell.social()->setOwner(ready ? store->ownerId() : QString());
+                shell.collectionManager()->configure(stateDirectory,ready?store->ownerId():QString());
             });
             QObject::connect(store.get(), &LocalStateStore::accessNeeded, &shell, [&] {
                 shell.social()->setOwner({});
+                shell.collectionManager()->configure(stateDirectory,{});
             });
         }
         if (personalLibrary && !smoke) {
@@ -982,14 +984,14 @@ int main(int argc, char* argv[]) {
                         press(a);
                         press(SDL_CONTROLLER_BUTTON_DPAD_DOWN); press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT); break;
                     case 7:
-                        check(shell.focusIndex() == 4 && focusIs("world-4"), "spatial World focus");
+                        check(shell.focusIndex() == 1 && focusIs("multiverse-game-1"), "collection game focus");
                         capture("worlds"); press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
                     case 8:
                         check(shell.page() == 2 && focusIs("dex-entry-bulbasaur"), "Pokedex list focus");
                         capture("pokedex"); press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER); break;
                     case 9:
                         check(shell.page() == 1 && shell.collectionsRoot() && focusIs("series-card-pokemon"), "collection focus restored");
-                        press(a);check(shell.focusIndex()==4,"World focus restored within the collection");
+                        press(a);check(shell.focusIndex()==1,"Game focus restored within the collection");
                         press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
                         press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); break;
                     case 10:

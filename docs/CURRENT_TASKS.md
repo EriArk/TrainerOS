@@ -1,5 +1,12 @@
 # Current tasks
 
+**Owner library correction, 9 October 2026:** Collections replaces Worlds;
+Pokemon opens games directly. Personal manual/dynamic and automatic collections
+share the library, while Home/Y uses global recent games without L2/R2 collection
+cycling. [Contract and delivery](SERIES_COLLECTIONS.md). This requested increment
+precedes resuming MP-02; preserve its timer work. Broad UI redesign remains for
+later discussion. Older scoped Home/Y navigation below is superseded.
+
 **Owner download regression correction, 8 October 2026:** unresolved ScreenScraper
 editions wait independently while other jobs continue. Downloads sorts active
 work first and successful items beneath Downloaded; background scraping no longer
