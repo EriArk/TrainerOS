@@ -30,10 +30,21 @@ QJsonObject handheldLinkProfile(const AdventureRegistration& r) {
             quint8 checksum=0;
             for(int n=0xa0;n<=0xbc;++n)checksum=quint8(checksum-quint8(h[n]));
             checksum=quint8(checksum-0x19);
-            if(quint8(h[0xb2])==0x96&&checksum==quint8(h[0xbd])&&f.size()>=32768&&f.size()<=32*1024*1024)
+            if(quint8(h[0xb2])==0x96&&checksum==quint8(h[0xbd])&&f.size()>=32768&&f.size()<=32*1024*1024) {
+                // gpSP 5819380's RFU entries with working upstream evidence.
+                // Cartridge codes select the connection mechanism; the complete
+                // content digest still gates peers. Do not infer cross-edition
+                // compatibility or enable known failed/latency-sensitive RFU games.
+                const QList<QByteArray> golfRfu{"BMGE","BMGJ","BMGP","BMGS","BMGF","BMGI","BMGD","BMGU"};
+                const QList<QByteArray> battleRfu{"BRBE","BRKE","BR5E","BR6E"};
+                if(golfRfu.contains(code)||battleRfu.contains(code))
+                    return {{"id","runtime.handheld.gba-rfu.v1"},{"label",r.adventure.title.left(96)},
+                        {"settings","rfu-own-save-v1"},{"players",golfRfu.contains(code)?4:2},
+                        {"transport","netpacket"},{"lateJoin",false}};
                 return {{"id","runtime.retroarch.gba.mGBALink.v2"},{"label",r.adventure.title.left(96)},
                     {"settings","mgba-linked-party-v2"},{"players",4},{"transport","rollback"},
                     {"saveBytes",131072},{"lateJoin",false}};
+            }
         }
     } else if((r.adventure.platformId=="gb"||r.adventure.platformId=="gbc")&&
               QStringList{"gb","gbc"}.contains(QFileInfo(r.contentPath).suffix().toLower())) {

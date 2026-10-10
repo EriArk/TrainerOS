@@ -1,5 +1,15 @@
 # Current tasks
 
+**MP-02 GBA Wireless Adapter, 10 October 2026:** bounded Mario Golf/Mega Man
+profiles reuse unchanged gpSP netpacket through the existing invitation flow.
+Mario Golf reached paired RFU shots over the public relay on Flip/Odin; distinct
+own profiles returned and were read by ordinary mGBA with diagnostic input.
+The final installed build also fixes host departure stranding a guest's Exit
+confirmation, with a real Nearby regression. [Evidence and limits](emulators/gpsp.md#wireless-adapter-integration---10-october-2026)
+retain four-client/wider-game/separate-network/physical acceptance, ordinary input
+and the existing requirement to close a guest's current game before joining.
+MP-02 remains open and next; do not advance to MP-03 or close #107.
+
 **MP-02 GBA parties, 10 October 2026:** generic GBA Link now prepares 2-4
 accepted players automatically, with private per-member battery exchanges,
 frozen seats and each player's own screen/controls/protected save return.

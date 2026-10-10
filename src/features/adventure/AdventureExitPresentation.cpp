@@ -88,6 +88,9 @@ void AdventureExitPresentation::menuCaptureCompleted(quint64 token, const QImage
     resetInput(); emit changed();
 }
 void AdventureExitPresentation::dismissMenu() {
+    // A peer leaving may dismiss the multiplayer panel after explicit Exit
+    // already hid it. That exit attempt still owns its capture/input lease.
+    if (!menuOpen_ && !menuPending_) return;
     menuTimer_.stop(); ++menuAttempt_;
     menuPending_ = menuOpen_ = false; menuFrame_ = {};
     resetInput(); emit changed(); emit menuDismissed();

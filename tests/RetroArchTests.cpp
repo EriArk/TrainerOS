@@ -273,6 +273,56 @@ private slots:
         QVERIFY(retroarch::handheldLinkProfile(r).isEmpty());
         QVERIFY(retroarch::netplayProfile("gba","mgba",QString(64,'a')).isEmpty());
     }
+    void wirelessGbaUsesIndependentNetpacketAndOwnOrdinarySave() {
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        const auto write=[](const QString& path,const QByteArray& bytes){QFile f(path);return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size();};
+        const auto read=[](const QString& path){QFile f(path);return f.open(QIODevice::ReadOnly)?f.readAll():QByteArray();};
+        AdventureRegistration r;r.adventure.adapterId="retroarch";r.adventure.platformId="gba";r.adventure.title="User renamed game";
+        r.integrationConfig["core"]="mgba";r.contentPath=dir.filePath("arbitrary.gba");
+        auto rom=[](QByteArray code){QByteArray b(32768,'\0');b.replace(0xac,4,code);b[0xb2]=char(0x96);quint8 sum=0;for(int n=0xa0;n<=0xbc;++n)sum=quint8(sum-quint8(b[n]));b[0xbd]=char(sum-0x19);return b;};
+        for(const auto& code:QList<QByteArray>{"BMGE","BMGJ","BMGP","BMGS","BMGF","BMGI","BMGD","BMGU","BRBE","BRKE","BR5E","BR6E"}) {
+            QVERIFY(write(r.contentPath,rom(code)));
+            const auto profile=retroarch::handheldLinkProfile(r);
+            QCOMPARE(profile["settings"].toString(),QString("rfu-own-save-v1"));
+            QCOMPARE(profile["players"].toInt(),code.startsWith("BMG")?4:2);
+            QCOMPARE(retroarch::handheldLinkCore(profile),QString("gpsp"));
+            QVERIFY(!requiresLinkedSavePreparation(profile));QVERIFY(!profile["lateJoin"].toBool());
+            auto a=profile,b=profile;a["content"]=QString(64,'a');b["content"]=QString(64,'b');
+            QVERIFY(!sameMultiplayerGame(a,b)); // RFU is not cross-ROM authorization.
+        }
+        for(const auto& code:QList<QByteArray>{"BTME","BDGE","B85A","BKRJ","NONE"}) {
+            QVERIFY(write(r.contentPath,rom(code)));
+            QCOMPARE(retroarch::handheldLinkProfile(r)["settings"].toString(),QString("mgba-linked-party-v2"));
+        }
+        auto invalid=rom("BMGE");invalid[0xbd]^=1;QVERIFY(write(r.contentPath,invalid));
+        QVERIFY(retroarch::handheldLinkProfile(r).isEmpty());
+        QVERIFY(write(r.contentPath,rom("BMGE")));
+        RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");i.runtimeFile=dir.filePath("runtime");i.program=probe();i.saveBackups=true;
+        i.cores["mgba"]=dir.filePath("ordinary-core");i.cores["gpsp"]=dir.filePath("network-core");
+        const QByteArray original=("savefile_directory = \""+dir.path()+"\"\nauto_overrides_enable = \"false\"\nsort_savefiles_enable = \"false\"\nsort_savefiles_by_content_enable = \"false\"\nsavefiles_in_content_dir = \"false\"\n").toUtf8();
+        QVERIFY(write(i.configFile,original));QVERIFY(write(i.runtimeFile,"runtime"));
+        QVERIFY(write(i.cores["mgba"],"ordinary core"));QVERIFY(write(i.cores["gpsp"],"network core"));
+        const auto identity=retroarch::netplayIdentity(r,i,cancel);QVERIFY(!identity.isEmpty());
+        const auto target=dir.filePath("arbitrary.srm");
+        for(bool host:{true,false}) {
+            const QByteArray before(8192,host?'h':'g'),after(8192,host?'H':'G');QVERIFY(write(target,before));
+            retroarch::NetplayRequest n;n.expected=identity;n.localContent=identity["content"].toString();
+            n.host=host;n.slot=host?1:2;n.password="private";n.nickname="player";n.address="127.0.0.1";
+            ProcessCommand cmd;cmd.arguments={"--libretro",i.cores["mgba"],r.contentPath};
+            const auto error=retroarch::prepareNetplay(cmd,r,i,n,cancel);QVERIFY2(error.isEmpty(),qPrintable(error));
+            QVERIFY(!cmd.arguments.contains("--subsystem"));QCOMPARE(cmd.arguments.last(),r.contentPath);
+            QCOMPARE(cmd.arguments[cmd.arguments.indexOf("--libretro")+1],i.cores["gpsp"]);
+            const auto settings=retroarch::readSettings(cmd.arguments[cmd.arguments.indexOf("--appendconfig")+1].section('|',-1));
+            QCOMPARE(settings["input_max_users"],QString("1"));
+            QCOMPARE(retroarch::readSettings(settings["core_options_path"])["gpsp_serial"],QString("rfu"));
+            const auto session=settings["savefile_directory"],output=session+(host?"/":"/.netplay/")+"arbitrary.srm";
+            QCOMPARE(read(output),before);QByteArray padded=after;padded.resize(131072);QVERIFY(write(output,padded));
+            QVERIFY(cmd.finalize({true,0,false,false}).isEmpty());QCOMPARE(read(target),after);
+            QCOMPARE(read(target+".before-link"),before);cmd.settled({true,0,false,false});
+            QCOMPARE(read(i.configFile),original);
+        }
+        auto absent=i;absent.cores.remove("gpsp");QVERIFY(retroarch::netplayIdentity(r,absent,cancel).isEmpty());
+    }
     void handheldSaveReturnsOnlyOwnSramAndPreservesRtcAndConflicts() {
         QTemporaryDir dir;QDir().mkpath(dir.filePath("session"));
         const auto write=[](QString p,QByteArray b){QFile f(p);QVERIFY(f.open(QIODevice::WriteOnly));QCOMPARE(f.write(b),b.size());};

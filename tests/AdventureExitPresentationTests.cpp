@@ -5,6 +5,32 @@ using namespace trainer;
 class AdventureExitPresentationTests final : public QObject {
     Q_OBJECT
 private slots:
+    void dismissingAbsentMenuNeverReleasesAnExitAttempt() {
+        // RuntimeMultiplayer::fail dismisses its menu when a peer leaves.
+        // A concurrent explicit Exit owns a separate capture/input lease.
+        for(int stage=0;stage<3;++stage) {
+            AdventureExitController exit;AdventureExitPresentation view(exit);
+            exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);
+            QSignalSpy preview(&view,&AdventureExitPresentation::menuCaptureRequested);
+            QSignalSpy capture(&exit,&AdventureExitController::captureRequested);
+            QSignalSpy released(&view,&AdventureExitPresentation::menuDismissed);
+            QSignalSpy close(&exit,&AdventureExitController::gracefulExitRequested);
+            QVERIFY(view.requestMenu());view.menuCaptureCompleted(preview.last()[0].toULongLong(),{});
+            view.setWindowFocused(true);view.setInputIsolated(true);
+            QVERIFY(view.exitFromMenu());view.setInputIsolated(true);
+            if(stage>0) {
+                exit.captureCompleted(capture.last()[0].toULongLong(),{},"No screenshot");
+                view.updateInput(view.inputGeneration(),{true,true});QVERIFY(view.ready());
+            }
+            if(stage==2)view.confirm();
+            const auto generation=view.inputGeneration();const auto phase=exit.phase();
+            view.dismissMenu();view.dismissMenu();
+            QVERIFY(released.isEmpty());QCOMPARE(view.inputGeneration(),generation);QCOMPARE(exit.phase(),phase);
+            if(stage==0)exit.captureCompleted(capture.last()[0].toULongLong(),{},"No screenshot");
+            if(stage<2){view.updateInput(view.inputGeneration(),{true,true});view.confirm();}
+            QCOMPARE(close.size(),1);QCOMPARE(exit.phase(),AdventureExitController::Phase::Closing);
+        }
+    }
     void expiredInvitationCannotRedirectConfirmToItsReplacement() {
         AdventureExitController exit;AdventureExitPresentation view(exit);
         exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);

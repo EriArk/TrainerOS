@@ -1,5 +1,23 @@
 # Handheld link over the network (MP-02)
 
+## GBA Wireless Adapter profiles - 2026-10-10
+
+Reviewed Mario Golf and Mega Man RFU profiles now reuse gpSP's existing
+netpacket implementation through ordinary TrainerOS invitations. Each player
+runs their own GBA and returns their own protected save; no paired-machine SRAM
+exchange is needed. Cartridge headers choose the mode, while exact content/core/
+runtime matching still gates admission. Generic cable parties remain separate.
+
+Mario Golf Advance Tour USA reached a real Wireless Adapter round on Flip/Odin
+through Online friend and the public relay: discovery, distinct character
+selection and a shot controlled by each player were visible on both devices.
+Own profiles returned and were read by ordinary mGBA using isolated diagnostic
+input. [Exact evidence and limits](emulators/gpsp.md#wireless-adapter-integration---10-october-2026)
+include the save hashes, ordinary-input limitation, guest-already-playing guard,
+and a corrected exit-confirmation lease bug exposed by host departure.
+Four physical RFU clients, broader game/region compatibility, long matches and
+separate-network/physical acceptance remain open. MP-02 is not complete.
+
 ## GBA parties for two to four players - 2026-10-10
 
 The generic GBA route now prepares up to four accepted participants using the
