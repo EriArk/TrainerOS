@@ -1,0 +1,113 @@
+diff --git a/src/gba/audio.c b/src/gba/audio.c
+index 5241e32..11f6e02 100644
+--- a/src/gba/audio.c
++++ b/src/gba/audio.c
+@@ -503,8 +503,6 @@ void GBAAudioSerialize(const struct GBAAudio* audio, struct GBASerializedState*
+ }
+ 
+ void GBAAudioDeserialize(struct GBAAudio* audio, const struct GBASerializedState* state) {
+-	GBAudioPSGDeserialize(&audio->psg, &state->audio.psg, &state->audio.flags);
+-
+ 	uint16_t reg;
+ 	LOAD_16(reg, GBA_REG_SOUND1CNT_X, state->io);
+ 	GBAIOWrite(audio->p, GBA_REG_SOUND1CNT_X, reg & 0x7FFF);
+@@ -515,6 +513,9 @@ void GBAAudioDeserialize(struct GBAAudio* audio, const struct GBASerializedState
+ 	LOAD_16(reg, GBA_REG_SOUND4CNT_HI, state->io);
+ 	GBAIOWrite(audio->p, GBA_REG_SOUND4CNT_HI, reg & 0x7FFF);
+ 
++	/* Register writes advance PSG phase. Restore the exact saved phase after them. */
++	GBAudioPSGDeserialize(&audio->psg, &state->audio.psg, &state->audio.flags);
++
+ 	LOAD_32(audio->chA.internalSample, 0, &state->audio.internalA);
+ 	LOAD_32(audio->chB.internalSample, 0, &state->audio.internalB);
+ 	memcpy(audio->chA.samples, state->samples.chA, sizeof(audio->chA.samples));
+diff --git a/src/gba/sio/lockstep.c b/src/gba/sio/lockstep.c
+index 29f62be..de0a8aa 100644
+--- a/src/gba/sio/lockstep.c
++++ b/src/gba/sio/lockstep.c
+@@ -391,6 +391,7 @@ static bool GBASIOLockstepDriverLoadState(struct GBASIODriver* driver, const voi
+ 	for (i = 0; i < MAX_LOCKSTEP_EVENTS - 1; ++i) {
+ 		player->buffer[i].next = &player->buffer[i + 1];
+ 	}
++	player->buffer[MAX_LOCKSTEP_EVENTS - 1].next = NULL;
+ 	player->freeList = &player->buffer[0];
+ 	player->queue = NULL;
+ 
+@@ -421,6 +422,8 @@ static bool GBASIOLockstepDriverLoadState(struct GBASIODriver* driver, const voi
+ 		}
+ 	}
+ 
++	*lastEvent = NULL; /* Restored queue must not include the free list. */
++
+ 	if (player->playerId == 0) {
+ 		LOAD_32LE(coordinator->cycle, 0, &state->coordinator.cycle);
+ 		LOAD_32LE(coordinator->waiting, 0, &state->coordinator.waiting);
+diff --git a/src/platform/libretro-splitscreen/instances.c b/src/platform/libretro-splitscreen/instances.c
+index f8534ca..976e88b 100644
+--- a/src/platform/libretro-splitscreen/instances.c
++++ b/src/platform/libretro-splitscreen/instances.c
+@@ -153,6 +153,10 @@ static bool _spLoadOne(struct sp_player* p, int index, const void* rom, size_t r
+ 	GBASIOLockstepDriverCreate(&p->driver, &p->lockstepUser);
+ 
+ 	p->core->loadROM(p->core, vfm);
++    /* The host's epoch is serialized with both machines. Wall time must not
++     * be sampled again during rollback on clients with different clocks. */
++    p->core->rtc.override = RTC_FAKE_EPOCH;
++    p->core->rtc.value = (int64_t) time(NULL) * 1000;
+ 	return true;
+ }
+ 
+@@ -856,7 +860,7 @@ size_t sp_serialize_size(struct sp_manager* sp) {
+ 	for (int i = 0; i < sp->nPlayers; ++i) {
+ 		struct VFile* vfm = VFileMemChunk(NULL, 0);
+ 		mCoreSaveStateNamed(sp->players[i].core, vfm, SAVESTATE_SAVEDATA | SAVESTATE_RTC);
+-		total += vfm->size(vfm) + 4096; /* per-player padding for growth */
++		total += vfm->size(vfm) + GBA_SIZE_FLASH1M + 4096; /* per-player padding for growth */
+ 		vfm->close(vfm);
+ 	}
+ 	/* Coordinator bookkeeping is small (a table + event queues); its content
+diff --git a/src/platform/libretro-splitscreen/libretro.c b/src/platform/libretro-splitscreen/libretro.c
+index 18eb2ec..50b1704 100644
+--- a/src/platform/libretro-splitscreen/libretro.c
++++ b/src/platform/libretro-splitscreen/libretro.c
+@@ -583,6 +583,13 @@ void retro_get_system_av_info(struct retro_system_av_info* info) {
+ 	                               : 32768.0;
+ }
+ 
++static void _trainerLog(struct mLogger* logger, int category, enum mLogLevel level, const char* format, va_list args) {
++    (void) logger; (void) category;
++    if (!logCallback || !(level & (mLOG_WARN | mLOG_ERROR | mLOG_FATAL))) return;
++    char message[1024]; vsnprintf(message, sizeof(message), format, args);
++    logCallback(RETRO_LOG_WARN, "%s\n", message);
++}
++
+ void retro_init(void) {
+ 	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_RGB565;
+ 	environCallback(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt);
+@@ -620,8 +627,8 @@ void retro_init(void) {
+ 	_initOptionDefs();
+ 
+ 	static struct mLogger logger; /* lives for the process: fine, global state allowed */
+-	logger.log = 0;
+-	(void) logger;
++	logger.log = _trainerLog;
++	mLogSetDefaultLogger(&logger);
+ }
+ 
+ void retro_deinit(void) {
+@@ -794,9 +801,12 @@ bool retro_load_game_special(unsigned game_type, const struct retro_game_info* i
+ 	 * N copies of the primary ROM (matches the quick path). When we support
+ 	 * per-player ROMs, _doLoad takes an array. */
+ 	pendingPlayers = n;
+-	pendingLoad = true;
+-	menuActive = false; /* subsystem declares its count; no menu */
+-	return true;
++	pendingLoad = false;
++	menuActive = false;
++	/* TrainerOS: expose both SRAM regions and the complete state before the
++	 * frontend loads saves or starts netplay. No emulated frame is advanced. */
++	_spLogLine("traineros-gba-linked-pair-v1");
++	return _doLoad(n, romCopy, romCopySize, havePath ? romPath : NULL);
+ }
+ 
+ void retro_unload_game(void) {

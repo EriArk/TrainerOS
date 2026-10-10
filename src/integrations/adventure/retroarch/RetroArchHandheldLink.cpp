@@ -1,6 +1,7 @@
 #include "RetroArchHandheldLink.h"
 #include "RetroArchSave.h"
 #include "HandheldSavePair.h"
+#include "core/model/GamePlayers.h"
 #include <QtEndian>
 #include "RetroArchConfiguration.h"
 #include <QDir>
@@ -25,6 +26,15 @@ QJsonObject handheldLinkProfile(const AdventureRegistration& r) {
             family="gba-gen3-en";mode="mul_poke";players=4;
         } else if(code=="AWRE"||code=="AWRP") {family="gba-aw1";mode="mul_aw1";players=4;}
         else if(code=="AW2E"||code=="AW2P") {family="gba-aw2";mode="mul_aw2";players=4;}
+        if(family.isEmpty()) {
+            quint8 checksum=0;
+            for(int n=0xa0;n<=0xbc;++n)checksum=quint8(checksum-quint8(h[n]));
+            checksum=quint8(checksum-0x19);
+            if(quint8(h[0xb2])==0x96&&checksum==quint8(h[0xbd])&&f.size()>=32768&&f.size()<=32*1024*1024)
+                return {{"id","runtime.retroarch.gba.mGBALink.v1"},{"label",r.adventure.title.left(96)},
+                    {"settings","mgba-linked-pair-v1"},{"players",2},{"transport","rollback"},
+                    {"saveBytes",131072},{"lateJoin",false}};
+        }
     } else if((r.adventure.platformId=="gb"||r.adventure.platformId=="gbc")&&
               QStringList{"gb","gbc"}.contains(QFileInfo(r.contentPath).suffix().toLower())) {
         auto title=h.mid(0x134,15);title=title.left(title.indexOf('\0')<0?title.size():title.indexOf('\0')).trimmed();
@@ -64,6 +74,7 @@ QJsonObject handheldLinkProfile(const AdventureRegistration& r) {
         {"settings",mode+"-own-save-v1"},{"players",players},{"transport","netpacket"}};
 }
 QString handheldLinkCore(const QJsonObject& p) {
+    if(p["transport"]=="rollback"&&p["settings"]=="mgba-linked-pair-v1")return "mgba_splitscreen";
     if(p["transport"]=="rollback"&&p["settings"]=="sameboy-linked-pair-battery-v1")return "sameboy";
     if(p["transport"]=="rollback"&&p["settings"]=="dcgb-linked-pair-volatile-v1")return "DoubleCherryGB";
     if(p["transport"]!="netpacket")return {};
@@ -78,6 +89,11 @@ bool handheldLinkContentCompatible(const QJsonObject& p,const QString& sha256) {
 }
 QByteArray handheldLinkOptions(const QJsonObject& p,int playerSlot) {
     if(p["transport"]=="rollback") {
+        if(handheldLinkCore(p)=="mgba_splitscreen"&&(playerSlot==1||playerSlot==2))
+            return "splitscreen_players = \"2\"\nsplitscreen_layout = \"focus\"\n"
+                "splitscreen_focus_player = \""+QByteArray::number(playerSlot)+"\"\n"
+                "splitscreen_audio = \"player "+QByteArray::number(playerSlot)+"\"\n"
+                "splitscreen_fs_assist = \"off\"\nsplitscreen_overlays = \"off\"\n";
         if(handheldLinkCore(p)=="sameboy"&&(playerSlot==1||playerSlot==2))
             return "sameboy_link = \"enabled\"\nsameboy_screen_layout = \"player "+QByteArray::number(playerSlot)+" only\"\n"
                 "sameboy_audio_output = \"Game Boy #"+QByteArray::number(playerSlot)+"\"\n"
@@ -126,23 +142,30 @@ QString recoverHandheldReturn(const AdventureRegistration& r,const RetroArchInst
 LinkedSaveSeed linkedSaveSeed(const AdventureRegistration& r,const RetroArchInstallation& i) {
     const auto profile=handheldLinkProfile(r);
     const int size=profile["saveBytes"].toInt();
-    const auto target=gbSaveTarget(r,i);
-    if(profile["settings"]!="sameboy-linked-pair-battery-v1"||size<8192||size>131072||
+    const bool gba=r.adventure.platformId=="gba";
+    const auto save=gba?resolveRetroArchSave(r,i):SaveTarget();
+    if(gba&&(!save.supported||!save.error.isEmpty()))return {{},false,save.error.isEmpty()?"Couldn't locate your game save.":save.error};
+    const auto target=gba?save.savePath:gbSaveTarget(r,i);
+    if(!requiresLinkedSavePreparation(profile)||size<8192||size>131072||
        target.isEmpty()||!safePath(target)||QFileInfo(target).isSymLink())
         return {{},false,"Couldn't locate a compatible game save."};
     const auto error=handheld::recoverPair(target);
     if(!error.isEmpty())return {{},false,error};
     const bool existed=QFileInfo::exists(target);
-    const auto bytes=existed?read(target):QByteArray(size,char(0xff));
+    auto bytes=existed?read(target):QByteArray(size,char(0xff));
+    const int originalSize=existed?bytes.size():0;
+    if(gba&&existed&&QList<int>{512,8192,32768,65536,131072}.contains(bytes.size()))
+        bytes+=QByteArray(size-bytes.size(),char(0xff));
     if(bytes.size()!=size)return {{},existed,"This game's save format needs to be checked."};
-    return {bytes,existed,{}};
+    return {bytes,existed,{},originalSize};
 }
 QString prepareLinkedSave(ProcessCommand& cmd,const AdventureRegistration& r,const RetroArchInstallation& i,
         const QString& directory,const NetplayRequest& request,const std::atomic_bool& cancel) {
     const auto seed=linkedSaveSeed(r,i);
     if(!seed.error.isEmpty())return seed.error;
     const int size=seed.bytes.size(),slot=request.slot;
-    if(seed.bytes!=request.ownSram||seed.existed!=request.ownSramExisted)
+    if(seed.bytes!=request.ownSram||seed.existed!=request.ownSramExisted||
+       (r.adventure.platformId=="gba"&&seed.originalSize!=request.ownSramOriginalSize))
         return "Your save changed. Invite your friend again.";
     if((slot!=1&&slot!=2)||request.host!=(slot==1)||
        (request.host&&request.peerSram.size()!=size)||(!request.host&&!request.peerSram.isEmpty()))
@@ -151,9 +174,12 @@ QString prepareLinkedSave(ProcessCommand& cmd,const AdventureRegistration& r,con
     if(!QDir().mkpath(ownerDirectory))return "Couldn't prepare your game save.";
     const auto error=prepareHandheldSave(cmd,r,i,ownerDirectory,cancel);
     if(!error.isEmpty())return error;
+    const bool gba=r.adventure.platformId=="gba";
+    const auto suffix=gba?QString(".gba"):QString(".gb");
+    const auto saveSuffix=[gba](int player){return gba?(player==1?QString(".sav"):QString(".sav2")):QString(".srm");};
     const auto name=QFileInfo(r.contentPath).completeBaseName()+".srm";
     QFile rom(r.contentPath);
-    if(!rom.open(QIODevice::ReadOnly)||rom.size()>8*1024*1024)return "Couldn't read the linked game.";
+    if(!rom.open(QIODevice::ReadOnly)||rom.size()>(gba?32:8)*1024*1024)return "Couldn't read the linked game.";
     const auto content=rom.readAll();
     if(QString::fromLatin1(QCryptographicHash::hash(content,QCryptographicHash::Sha256).toHex())!=request.expected["content"].toString())
         return "Your game changed. Invite your friend again.";
@@ -163,12 +189,12 @@ QString prepareLinkedSave(ProcessCommand& cmd,const AdventureRegistration& r,con
     for(int player:{1,2}) {
         const auto stem="player-"+QString::number(player);
         const auto bytes=player==slot?seed.bytes:request.host?request.peerSram:QByteArray(size,char(0xff));
-        if(!write(QDir(directory).filePath(stem+".gb"),content)||
-           !write(QDir(directory).filePath(stem+".srm"),bytes)||
-           !write(QDir(directory).filePath(".netplay/"+stem+".srm"),bytes))return "Couldn't prepare the linked game.";
+        if(!write(QDir(directory).filePath(stem+suffix),content)||
+           !write(QDir(directory).filePath(stem+saveSuffix(player)),bytes)||
+           !write(QDir(directory).filePath(".netplay/"+stem+saveSuffix(player)),bytes))return "Couldn't prepare the linked game.";
     }
     const auto stem="player-"+QString::number(slot);
-    const auto staged=QDir(directory).filePath(stem+".srm"),guest=QDir(directory).filePath(".netplay/"+stem+".srm");
+    const auto staged=QDir(directory).filePath(stem+saveSuffix(slot)),guest=QDir(directory).filePath(".netplay/"+stem+saveSuffix(slot));
     const auto previous=cmd.finalize;
     cmd.finalize=[previous,staged,guest,ownerDirectory,name,size,before=seed.bytes](const ProcessOutcome& outcome)->QString {
         if(!outcome.started)return previous?previous(outcome):QString();

@@ -6,7 +6,7 @@ QJsonObject handheldLinkProfile(const AdventureRegistration&);
 QString handheldLinkCore(const QJsonObject&);
 bool handheldLinkContentCompatible(const QJsonObject&, const QString& sha256);
 QByteArray handheldLinkOptions(const QJsonObject&, int playerSlot = 1);
-struct LinkedSaveSeed { QByteArray bytes; bool existed = false; QString error; };
+struct LinkedSaveSeed { QByteArray bytes; bool existed = false; QString error; int originalSize = 0; };
 LinkedSaveSeed linkedSaveSeed(const AdventureRegistration&, const RetroArchInstallation&);
 QString prepareLinkedSave(ProcessCommand&, const AdventureRegistration&, const RetroArchInstallation&,
     const QString& sessionDirectory, const NetplayRequest&, const std::atomic_bool&);

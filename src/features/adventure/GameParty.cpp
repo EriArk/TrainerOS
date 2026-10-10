@@ -275,7 +275,7 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
     } else if(kind=="launch"&&p["game"]==game_&&!p["endpoint"].toObject().isEmpty()) {
         const int slot=p["slot"].toInt();if(slot<2||slot>capacity(game_))return;
         auto endpoint=p["endpoint"].toObject();endpoint["slot"]=slot;
-        const bool linked=game_["settings"]=="sameboy-linked-pair-battery-v1";
+        const bool linked=requiresLinkedSavePreparation(game_);
         if(!running_) {
             if(linked&&endpoint["kind"]!="linked-prepare")return;
             if(!linked&&endpoint["kind"]=="linked-prepare")return;

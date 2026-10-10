@@ -1,5 +1,15 @@
 # Current tasks
 
+**MP-02 generic GBA pairs, 10 October 2026:** mGBA Splitscreen now reuses the
+existing invitation, automatic opaque SRAM preparation and RetroArch network
+session. Kirby reached linked two-player gameplay with independent screens,
+controls and normal own-save return on Flip/Odin. Ordinary solo mGBA and the
+reviewed gpSP protocols remain. [Evidence and exact builds](emulators/mgba-splitscreen.md)
+distinguish relay, final-build Nearby and deferred separate-network/physical
+acceptance. Generic GBA no longer depends on a franchise whitelist. Four-player
+preparation, special mechanisms and retained MP-02 transactions remain open;
+continue MP-02 before advancing to MP-03.
+
 **Adapter encapsulation implemented, 9 October 2026:** Pokemon and generic
 experiences now live in `src/adapters/<id>/` behind the shared host/provider
 contracts. Independent modules run through the actual host and rendered UI;

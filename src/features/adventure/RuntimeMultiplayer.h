@@ -1,6 +1,7 @@
 #pragma once
 #include "core/input/Action.h"
 #include "GameParty.h"
+#include "core/model/GamePlayers.h"
 #include "integrations/adventure/retroarch/RetroArchNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchNetplayClient.h"
 #include "integrations/adventure/retroarch/LinkedSavePreparation.h"
@@ -58,7 +59,7 @@ private:
     void send(QJsonObject);
     void launch();
     void prepareLinked(const QJsonObject& endpoint = {});
-    bool linked() const { return descriptor_["settings"]=="sameboy-linked-pair-battery-v1"; }
+    bool linked() const { return requiresLinkedSavePreparation(descriptor_); }
     void fail(QString);
     void pollRelay();
     void output(const QByteArray&);

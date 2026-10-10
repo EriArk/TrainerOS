@@ -1,5 +1,12 @@
 # Emulator multiplayer coverage
 
+**10 October generic GBA update:** mGBA Splitscreen supplies linked GBA machines
+through the existing RetroArch rollback/relay and automatic SRAM preparation.
+Kirby paired gameplay and protected return are recorded in
+[MP-02](HANDHELD_MULTIPLAYER.md) and [core maintenance](emulators/mgba-splitscreen.md).
+The route admits two players; four-player preparation and special mechanisms
+remain open. Existing gpSP/DoubleCherry/SameBoy routes are preserved.
+
 **10 October battery continuation:** generic supported GB/GBC battery cartridges
 now have an installed [SameBoy linked-pair route](emulators/sameboy.md) using
 native subsystem SRAM and RetroArch rollback/relay. Automatic invitation/save

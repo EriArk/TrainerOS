@@ -21,6 +21,7 @@ a second execution plan or a claim that all installed runtimes are validated.
 | gpSP | [GBA link](gpsp.md) | Additional independent-machine networking core; ordinary mGBA preserved |
 | DoubleCherryGB | [GB/GBC link](doublecherrygb.md) | Independent SRAM/netpacket; separate upstream battle and RTC limitations |
 | SameBoy | [GB/GBC battery pairs](sameboy.md) | Native two-ROM subsystem/SRAM, maintained rollback frontend and automatic own-save preparation |
+| mGBA Splitscreen | [GBA linked pairs](mgba-splitscreen.md) | Existing linked-machine engine, per-viewer screen/audio and protected separate batteries |
 | Dolphin | [Bridge checkpoint](dolphin.md) | Preserved ordinary Flatpak; separate pinned native bridge with paired Melee LAN gameplay/Home return; internet and four-client gates open |
 | PPSSPP | [PPSSPP](ppsspp.md) | Isolated networking, preserved identity, bounded LAN/relay gameplay and remaining recovery/network gates |
 | Flycast | [Package and WAN checkpoint](flycast.md) | Matching 2.7 packages on both devices; GGPO/ICE transport distinction; standalone and automatic internet integration remain open |

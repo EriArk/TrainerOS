@@ -1,5 +1,29 @@
 # Handheld link over the network (MP-02)
 
+## Generic GBA linked pairs - 2026-10-10
+
+The generic GBA route uses [mGBA Splitscreen](emulators/mgba-splitscreen.md),
+its existing two-machine cable engine, separate SRAM regions and local screen/
+audio selection. RetroArch provides rollback, Nearby and public-relay transport;
+TrainerOS supplies the existing invitation/consent/protected-return journey.
+ROM header and exact build identity select this route without a game-name list.
+Two players are admitted; existing gpSP reviewed protocols remain unchanged.
+
+Kirby & The Amazing Mirror reached actual linked gameplay through ordinary
+Online friend invitations on Flip/Odin, with pink/yellow independent controls,
+separate cameras and normal Home -> Exit return. The final core also underwent
+Nearby paired validation. [The maintenance record](emulators/mgba-splitscreen.md)
+separates build-level regressions, diagnostic relay evidence and final-core proof.
+Original save sizes remain 32 KiB on Flip and 128 KiB on Odin; only the assigned
+machine can return to its owner's verified mGBA target. Windows/ARM regressions
+cover all accepted SRAM sizes, save conflicts/crashes, stale on-disk size,
+preparation cancellation and replayed invitations.
+
+No ROM is transferred by SRAM preparation. Guest file transfer, four-player GBA
+preparation, Single-Pak/RFU/accessories, remaining per-game transactions and
+separate-internet/physical/audio acceptance stay open. This delivers an additional
+common runtime route, not every game's compatibility or completion of MP-02.
+
 ## Generic battery linked pairs — 2026-10-10
 
 The generic GB/GBC route now includes supported battery cartridges using

@@ -69,9 +69,15 @@ class RuntimeMultiplayerTests final : public QObject {
         QCOMPARE(f.lifecycle.exitController().phase(),AdventureExitController::Phase::Confirming);
     }
 private slots:
+    void linkedFinalEndpointWaitsForOwnSeedAndCancellationClearsIt_data() {
+        QTest::addColumn<QString>("mode");
+        QTest::newRow("gb")<<QString("sameboy-linked-pair-battery-v1");
+        QTest::newRow("gba")<<QString("mgba-linked-pair-v1");
+    }
     void linkedFinalEndpointWaitsForOwnSeedAndCancellationClearsIt() {
+        QFETCH(QString,mode);
         Fixture f;f.runtime.active_=true;f.runtime.linkedPreparing_=true;f.runtime.launchPending_=true;
-        f.runtime.descriptor_={{"settings","sameboy-linked-pair-battery-v1"},{"content","bound"}};
+        f.runtime.descriptor_={{"settings",mode},{"content","bound"}};
         f.runtime.request_.ownSram="private";
         const QJsonObject ready{{"kind","ready"},{"identity",f.runtime.descriptor_},{"port",55435}};
         int launches=0;f.library.inspect=[&]{++launches;};

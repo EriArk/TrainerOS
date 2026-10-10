@@ -136,7 +136,7 @@ QByteArray netplayControllers(const QJsonObject& identity,bool host,int slot) {
     if((host&&slot!=1)||(!host&&(slot<2||slot>players)))return {};
     QByteArray result="netplay_max_connections = \""+QByteArray::number(players-1)+"\"\n";
     if(identity["transport"]=="netpacket")return result+"input_max_users = \"1\"\n";
-    if(identity["settings"]=="dcgb-linked-pair-volatile-v1"||identity["settings"]=="sameboy-linked-pair-battery-v1")result+="input_max_users = \"2\"\n";
+    if(identity["settings"]=="dcgb-linked-pair-volatile-v1"||requiresLinkedSavePreparation(identity))result+="input_max_users = \"2\"\n";
     if(players>2) {
         const auto layout=identityLayout(identity);
         const bool fourScore=players==4&&identity["settings"]=="fceumm-four-score-no-sram-v2";
@@ -189,12 +189,12 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstal
     auto handheld=handheldLinkProfile(r);
     if(!handheld.isEmpty()) {
         coreId=handheldLinkCore(handheld);
-        if(handheld["settings"]=="sameboy-linked-pair-battery-v1") {
+        if(requiresLinkedSavePreparation(handheld)) {
             QFile bridge(i.cores.value(coreId));
             if(i.linkedSavePython.isEmpty()||i.linkedSaveHelper.isEmpty()||
                !QFileInfo(i.linkedSavePython).isExecutable()||!QFileInfo(i.linkedSaveHelper).isFile()||
                !bridge.open(QIODevice::ReadOnly)||bridge.size()>32*1024*1024||
-               !bridge.readAll().contains("traineros-linked-pair-v1"))return {};
+               !bridge.readAll().contains(coreId=="mgba_splitscreen"?"traineros-gba-linked-pair-v1":"traineros-linked-pair-v1"))return {};
             const auto helper=digest(i.linkedSaveHelper,1024*1024,cancel,cache);
             if(helper.isEmpty())return {};
             handheld["preparation"]=helper;
@@ -282,7 +282,7 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     const auto identity=netplayIdentity(r,i,cancel,nullptr,request.expected["players"].toInt(2));
     if(identity.isEmpty())return "Multiplayer isn't supported for this game version yet.";
     if(!sameMultiplayerGame(identity,request.expected))return "Your game or emulator changed. Invite your friend again.";
-    const bool linked=identity["settings"]=="sameboy-linked-pair-battery-v1";
+    const bool linked=requiresLinkedSavePreparation(identity);
     const bool handheld=identity["transport"]=="netpacket"||linked;
     if(handheld&&identity["content"]!=request.localContent)return "Your game changed. Invite your friend again.";
     const auto controllers=netplayControllers(identity,request.host,request.slot);
@@ -393,7 +393,11 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     cmd.arguments<<"--verbose"<<"--no-patch"<<"--sram-mode"<<(handheld?"load-save":"noload-nosave")<<"--nick"<<request.nickname<<"--port"<<QString::number(port);
     if(request.host)cmd.arguments<<"--host";
     else cmd.arguments<<"--connect"<<(request.relay?QString("127.0.0.1"):request.address);
-    if(linked)cmd.arguments<<"--subsystem"<<"gb_link_2p"<<path+"/player-1.gb"<<path+"/player-2.gb";
+    if(linked) {
+        const bool gba=linkCore=="mgba_splitscreen";
+        const auto suffix=gba?QString(".gba"):QString(".gb");
+        cmd.arguments<<"--subsystem"<<(gba?"gba_link_2p":"gb_link_2p")<<path+"/player-1"+suffix<<path+"/player-2"+suffix;
+    }
     else cmd.arguments<<content;
     cmd.runtimeControls["netplay"]=identity.toVariantMap();
     cmd.runtimeControls["netplayHost"]=request.host;

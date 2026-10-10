@@ -459,7 +459,7 @@ void RuntimeMultiplayer::prepareLinked(const QJsonObject& endpoint) {
         const auto seed=watcher->result();watcher->deleteLater();
         if(!active_||generation!=sessionGeneration_||!linkedPreparing_)return;
         if(!seed.error.isEmpty()){fail(seed.error);return;}
-        request_.ownSram=seed.bytes;request_.ownSramExisted=seed.existed;
+        request_.ownSram=seed.bytes;request_.ownSramExisted=seed.existed;request_.ownSramOriginalSize=seed.originalSize;
         auto config=host_?QJsonObject{}:endpoint["preparation"].toObject();
         config["host"]=host_;config["mode"]=online_?"online":"nearby";
         config["content"]=descriptor_["content"];config["size"]=seed.bytes.size();

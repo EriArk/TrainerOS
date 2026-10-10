@@ -35,8 +35,14 @@ class GamePartyTests : public QObject {
         }
     };
 private slots:
+    void linkedPreparationHasOneBoundFinalLaunchAndCannotBeReplayed_data() {
+        QTest::addColumn<QString>("mode");
+        QTest::newRow("gb")<<QString("sameboy-linked-pair-battery-v1");
+        QTest::newRow("gba")<<QString("mgba-linked-pair-v1");
+    }
     void linkedPreparationHasOneBoundFinalLaunchAndCannotBeReplayed() {
-        Room r(2);auto linked=game(2);linked["settings"]="sameboy-linked-pair-battery-v1";linked["lateJoin"]=false;
+        QFETCH(QString,mode);
+        Room r(2);auto linked=game(2);linked["settings"]=mode;linked["lateJoin"]=false;
         r.a.configure("a",{linked},linked,true);r.b.configure("b",{linked},{},true);
         r.a.invite("b");r.b.answer(true);r.a.start();
         QSignalSpy started(&r.b,&GameParty::startRequested),ready(&r.b,&GameParty::connectionReady);
