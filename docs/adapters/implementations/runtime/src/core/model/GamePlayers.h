@@ -7,7 +7,7 @@ namespace trainer {
 // Reviewed paired-machine routes prepare two opaque batteries before launch.
 inline bool requiresLinkedSavePreparation(const QJsonObject& profile) {
     const auto mode=profile.value("settings").toString();
-    return mode=="sameboy-linked-pair-battery-v1"||mode=="mgba-linked-pair-v1";
+    return mode=="sameboy-linked-pair-battery-v1"||mode=="mgba-linked-party-v2";
 }
 // Local naming is presentation; all content/settings/runtime fields still match.
 inline bool sameMultiplayerGame(QJsonObject left,QJsonObject right) {

@@ -594,6 +594,9 @@ if(BUILD_TESTING)
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software"
         TIMEOUT 30
     )
+    # Linked-save coverage spans 2/3/4 machines and five on-disk battery sizes;
+    # Windows process probes make this aggregate longer than a single scenario.
+    set_tests_properties(retroarch PROPERTIES TIMEOUT 120)
     # This aggregates multiple complete application launches, including the
     # paired Center/controller/restore scenario. Individual child deadlines stay.
     set_tests_properties(persistence_process PROPERTIES TIMEOUT 60)

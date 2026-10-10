@@ -1,8 +1,24 @@
 diff --git a/src/gba/audio.c b/src/gba/audio.c
-index 5241e32..11f6e02 100644
+index 5241e32..b25f939 100644
 --- a/src/gba/audio.c
 +++ b/src/gba/audio.c
-@@ -503,8 +503,6 @@ void GBAAudioSerialize(const struct GBAAudio* audio, struct GBASerializedState*
+@@ -441,6 +441,15 @@ static void _sample(struct mTiming* timing, void* user, uint32_t cyclesLate) {
+ }
+ 
+ void GBAAudioSerialize(const struct GBAAudio* audio, struct GBASerializedState* state) {
++    /* Frequency bits are write-only in hardware and absent from the IO mirror.
++     * Preserve them in the state fields consumed by GBAAudioDeserialize. */
++    uint16_t reg;
++    LOAD_16(reg, GBA_REG_SOUND1CNT_X, state->io);
++    STORE_16(reg | audio->psg.ch1.control.frequency, GBA_REG_SOUND1CNT_X, state->io);
++    LOAD_16(reg, GBA_REG_SOUND2CNT_HI, state->io);
++    STORE_16(reg | audio->psg.ch2.control.frequency, GBA_REG_SOUND2CNT_HI, state->io);
++    LOAD_16(reg, GBA_REG_SOUND3CNT_X, state->io);
++    STORE_16(reg | audio->psg.ch3.rate, GBA_REG_SOUND3CNT_X, state->io);
+ 	GBAudioPSGSerialize(&audio->psg, &state->audio.psg, &state->audio.flags);
+ 
+ 	STORE_32(audio->chA.internalSample, 0, &state->audio.internalA);
+@@ -503,8 +512,6 @@ void GBAAudioSerialize(const struct GBAAudio* audio, struct GBASerializedState*
  }
  
  void GBAAudioDeserialize(struct GBAAudio* audio, const struct GBASerializedState* state) {
@@ -11,7 +27,7 @@ index 5241e32..11f6e02 100644
  	uint16_t reg;
  	LOAD_16(reg, GBA_REG_SOUND1CNT_X, state->io);
  	GBAIOWrite(audio->p, GBA_REG_SOUND1CNT_X, reg & 0x7FFF);
-@@ -515,6 +513,9 @@ void GBAAudioDeserialize(struct GBAAudio* audio, const struct GBASerializedState
+@@ -515,6 +522,9 @@ void GBAAudioDeserialize(struct GBAAudio* audio, const struct GBASerializedState
  	LOAD_16(reg, GBA_REG_SOUND4CNT_HI, state->io);
  	GBAIOWrite(audio->p, GBA_REG_SOUND4CNT_HI, reg & 0x7FFF);
  
@@ -21,6 +37,39 @@ index 5241e32..11f6e02 100644
  	LOAD_32(audio->chA.internalSample, 0, &state->audio.internalA);
  	LOAD_32(audio->chB.internalSample, 0, &state->audio.internalB);
  	memcpy(audio->chA.samples, state->samples.chA, sizeof(audio->chA.samples));
+diff --git a/src/gba/cart/gpio.c b/src/gba/cart/gpio.c
+index f714cf8..05d3175 100644
+--- a/src/gba/cart/gpio.c
++++ b/src/gba/cart/gpio.c
+@@ -575,6 +575,7 @@ void GBAHardwareDeserialize(struct GBACartridgeHardware* hw, const struct GBASer
+ 
+ 	uint32_t when;
+ 	LOAD_32(when, 0, &state->hw.sioNextEvent);
++	hw->p->sio.completeEvent.when = when + mTimingCurrentTime(&hw->p->timing);
+ 	if (hw->devices & HW_GB_PLAYER) {
+ 		GBASIOSetDriver(&hw->p->sio, &hw->p->sio.gbp.d);
+ 	}
+diff --git a/src/gba/io.c b/src/gba/io.c
+index 5de3880..443f8d0 100644
+--- a/src/gba/io.c
++++ b/src/gba/io.c
+@@ -1032,6 +1032,8 @@ uint16_t GBAIORead(struct GBA* gba, uint32_t address) {
+ }
+ 
+ void GBAIOSerialize(struct GBA* gba, struct GBASerializedState* state) {
++	/* SIOMLT_SEND is write-only in multiplayer mode but is the next wire word. */
++	STORE_16(gba->memory.io[GBA_REG(SIOMLT_SEND)], GBA_REG_SIOMLT_SEND, state->io);
+ 	int i;
+ 	for (i = 0; i < GBA_REG_INTERNAL_MAX; i += 2) {
+ 		if (_isRSpecialRegister[i >> 1]) {
+@@ -1087,6 +1089,7 @@ void GBAIODeserialize(struct GBA* gba, const struct GBASerializedState* state) {
+ 		}
+ 	}
+ 	gba->sio.siocnt = gba->memory.io[GBA_REG(SIOCNT)];
++	LOAD_16(gba->memory.io[GBA_REG(SIOMLT_SEND)], GBA_REG_SIOMLT_SEND, state->io);
+ 	GBASIOWriteRCNT(&gba->sio, gba->memory.io[GBA_REG(RCNT)]);
+ 
+ 	LOAD_32(gba->bus, 0, &state->bus);
 diff --git a/src/gba/sio/lockstep.c b/src/gba/sio/lockstep.c
 index 29f62be..de0a8aa 100644
 --- a/src/gba/sio/lockstep.c
@@ -67,7 +116,7 @@ index f8534ca..976e88b 100644
  	}
  	/* Coordinator bookkeeping is small (a table + event queues); its content
 diff --git a/src/platform/libretro-splitscreen/libretro.c b/src/platform/libretro-splitscreen/libretro.c
-index 18eb2ec..50b1704 100644
+index 18eb2ec..64a3df6 100644
 --- a/src/platform/libretro-splitscreen/libretro.c
 +++ b/src/platform/libretro-splitscreen/libretro.c
 @@ -583,6 +583,13 @@ void retro_get_system_av_info(struct retro_system_av_info* info) {
@@ -104,9 +153,9 @@ index 18eb2ec..50b1704 100644
 -	return true;
 +	pendingLoad = false;
 +	menuActive = false;
-+	/* TrainerOS: expose both SRAM regions and the complete state before the
++	/* TrainerOS: expose all SRAM regions and the complete state before the
 +	 * frontend loads saves or starts netplay. No emulated frame is advanced. */
-+	_spLogLine("traineros-gba-linked-pair-v1");
++	_spLogLine("traineros-gba-linked-party-v2");
 +	return _doLoad(n, romCopy, romCopySize, havePath ? romPath : NULL);
  }
  

@@ -31,8 +31,8 @@ QJsonObject handheldLinkProfile(const AdventureRegistration& r) {
             for(int n=0xa0;n<=0xbc;++n)checksum=quint8(checksum-quint8(h[n]));
             checksum=quint8(checksum-0x19);
             if(quint8(h[0xb2])==0x96&&checksum==quint8(h[0xbd])&&f.size()>=32768&&f.size()<=32*1024*1024)
-                return {{"id","runtime.retroarch.gba.mGBALink.v1"},{"label",r.adventure.title.left(96)},
-                    {"settings","mgba-linked-pair-v1"},{"players",2},{"transport","rollback"},
+                return {{"id","runtime.retroarch.gba.mGBALink.v2"},{"label",r.adventure.title.left(96)},
+                    {"settings","mgba-linked-party-v2"},{"players",4},{"transport","rollback"},
                     {"saveBytes",131072},{"lateJoin",false}};
         }
     } else if((r.adventure.platformId=="gb"||r.adventure.platformId=="gbc")&&
@@ -74,7 +74,7 @@ QJsonObject handheldLinkProfile(const AdventureRegistration& r) {
         {"settings",mode+"-own-save-v1"},{"players",players},{"transport","netpacket"}};
 }
 QString handheldLinkCore(const QJsonObject& p) {
-    if(p["transport"]=="rollback"&&p["settings"]=="mgba-linked-pair-v1")return "mgba_splitscreen";
+    if(p["transport"]=="rollback"&&p["settings"]=="mgba-linked-party-v2")return "mgba_splitscreen";
     if(p["transport"]=="rollback"&&p["settings"]=="sameboy-linked-pair-battery-v1")return "sameboy";
     if(p["transport"]=="rollback"&&p["settings"]=="dcgb-linked-pair-volatile-v1")return "DoubleCherryGB";
     if(p["transport"]!="netpacket")return {};
@@ -87,10 +87,10 @@ bool handheldLinkContentCompatible(const QJsonObject& p,const QString& sha256) {
     return p["settings"]!="sameboy-linked-pair-battery-v1"||
         sha256!="f76a1a8f9292bd68c9330dc9f2721d9b516e03b5ecba1f19cf81d540f528d3bb";
 }
-QByteArray handheldLinkOptions(const QJsonObject& p,int playerSlot) {
+QByteArray handheldLinkOptions(const QJsonObject& p,int playerSlot,int players) {
     if(p["transport"]=="rollback") {
-        if(handheldLinkCore(p)=="mgba_splitscreen"&&(playerSlot==1||playerSlot==2))
-            return "splitscreen_players = \"2\"\nsplitscreen_layout = \"focus\"\n"
+        if(handheldLinkCore(p)=="mgba_splitscreen"&&players>=2&&players<=4&&playerSlot>=1&&playerSlot<=players)
+            return "splitscreen_players = \""+QByteArray::number(players)+"\"\nsplitscreen_layout = \"focus\"\n"
                 "splitscreen_focus_player = \""+QByteArray::number(playerSlot)+"\"\n"
                 "splitscreen_audio = \"player "+QByteArray::number(playerSlot)+"\"\n"
                 "splitscreen_fs_assist = \"off\"\nsplitscreen_overlays = \"off\"\n";
@@ -167,16 +167,19 @@ QString prepareLinkedSave(ProcessCommand& cmd,const AdventureRegistration& r,con
     if(seed.bytes!=request.ownSram||seed.existed!=request.ownSramExisted||
        (r.adventure.platformId=="gba"&&seed.originalSize!=request.ownSramOriginalSize))
         return "Your save changed. Invite your friend again.";
-    if((slot!=1&&slot!=2)||request.host!=(slot==1)||
-       (request.host&&request.peerSram.size()!=size)||(!request.host&&!request.peerSram.isEmpty()))
-        return "Couldn't prepare the two players' saves.";
+    const int players=request.linkedPlayers;
+    if(players<2||players>(r.adventure.platformId=="gba"?4:2)||slot<1||slot>players||request.host!=(slot==1)||
+       (request.host&&request.peerSrams.size()!=players-1)||(!request.host&&!request.peerSrams.isEmpty()))
+        return "Couldn't prepare the players' saves.";
+    if(request.host)for(int player=2;player<=players;++player)
+        if(request.peerSrams.value(player).size()!=size)return "Couldn't prepare the players' saves.";
     const auto ownerDirectory=QDir(directory).filePath("owner");
     if(!QDir().mkpath(ownerDirectory))return "Couldn't prepare your game save.";
     const auto error=prepareHandheldSave(cmd,r,i,ownerDirectory,cancel);
     if(!error.isEmpty())return error;
     const bool gba=r.adventure.platformId=="gba";
     const auto suffix=gba?QString(".gba"):QString(".gb");
-    const auto saveSuffix=[gba](int player){return gba?(player==1?QString(".sav"):QString(".sav2")):QString(".srm");};
+    const auto saveSuffix=[gba](int player){return gba?(player==1?QString(".sav"):QString(".sav")+QString::number(player)):QString(".srm");};
     const auto name=QFileInfo(r.contentPath).completeBaseName()+".srm";
     QFile rom(r.contentPath);
     if(!rom.open(QIODevice::ReadOnly)||rom.size()>(gba?32:8)*1024*1024)return "Couldn't read the linked game.";
@@ -186,9 +189,9 @@ QString prepareLinkedSave(ProcessCommand& cmd,const AdventureRegistration& r,con
     if(!QDir().mkpath(QDir(directory).filePath(".netplay")))return "Couldn't prepare the linked game.";
     // The upstream subsystem gives each cartridge its own standard SRAM API.
     // Distinct private ROM basenames prevent frontend save-name collisions.
-    for(int player:{1,2}) {
+    for(int player=1;player<=players;++player) {
         const auto stem="player-"+QString::number(player);
-        const auto bytes=player==slot?seed.bytes:request.host?request.peerSram:QByteArray(size,char(0xff));
+        const auto bytes=player==slot?seed.bytes:request.host?request.peerSrams.value(player):QByteArray(size,char(0xff));
         if(!write(QDir(directory).filePath(stem+suffix),content)||
            !write(QDir(directory).filePath(stem+saveSuffix(player)),bytes)||
            !write(QDir(directory).filePath(".netplay/"+stem+saveSuffix(player)),bytes))return "Couldn't prepare the linked game.";

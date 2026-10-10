@@ -25,6 +25,7 @@ public:
     void answer(bool accept);
     void start();
     void ready(QJsonObject endpoint);
+    void prepareLinked(int slot,QJsonObject endpoint);
     void leave();
     void cancelInvite(const QString& peer);
     void disconnected(const QString& peer);
@@ -71,7 +72,8 @@ private:
     QList<Request> requests_;
     QTimer timer_;
     bool available_=false,running_=false;
-    int preparingSlot_=0;
+    int preparingSlot_=0,preparingPlayers_=0;
+    QSet<int> preparedMembers_;
     qint64 joiningDeadline_=0;
     quint64 revision_=0,remoteRevision_=0;
     QJsonArray roster_;

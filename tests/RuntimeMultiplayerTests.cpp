@@ -72,14 +72,14 @@ private slots:
     void linkedFinalEndpointWaitsForOwnSeedAndCancellationClearsIt_data() {
         QTest::addColumn<QString>("mode");
         QTest::newRow("gb")<<QString("sameboy-linked-pair-battery-v1");
-        QTest::newRow("gba")<<QString("mgba-linked-pair-v1");
+        QTest::newRow("gba")<<QString("mgba-linked-party-v2");
     }
     void linkedFinalEndpointWaitsForOwnSeedAndCancellationClearsIt() {
         QFETCH(QString,mode);
         Fixture f;f.runtime.active_=true;f.runtime.linkedPreparing_=true;f.runtime.launchPending_=true;
         f.runtime.descriptor_={{"settings",mode},{"content","bound"}};
         f.runtime.request_.ownSram="private";
-        const QJsonObject ready{{"kind","ready"},{"identity",f.runtime.descriptor_},{"port",55435}};
+        const QJsonObject ready{{"kind","ready"},{"identity",f.runtime.descriptor_},{"port",55435},{"machines",2}};
         int launches=0;f.library.inspect=[&]{++launches;};
         f.runtime.frame(ready);QCOMPARE(launches,0);QCOMPARE(f.runtime.linkedEndpoint_,ready);
         auto wrong=ready;wrong["identity"]=QJsonObject{{"content","other"}};f.runtime.frame(wrong);
@@ -88,6 +88,44 @@ private slots:
         QVERIFY(f.runtime.linkedEndpoint_.isEmpty());QVERIFY(f.runtime.request_.ownSram.isEmpty());
         emit f.runtime.linkedSave_.completed("late peer bytes");QCOMPARE(launches,0);
         f.runtime.frame(ready);QCOMPARE(launches,0);
+    }
+    void fourLinkedBatteriesWaitForEverySeatAndCancelTogether() {
+        Fixture f;f.runtime.active_=true;f.runtime.host_=true;f.runtime.linkedPreparing_=true;
+        f.runtime.request_.linkedPlayers=4;f.runtime.request_.ownSram=QByteArray(512,'a');
+        int launches=0;f.library.inspect=[&]{++launches;};
+        f.runtime.linkedTransferCompleted(4,QByteArray(512,'d'));
+        f.runtime.linkedTransferCompleted(2,QByteArray(512,'b'));
+        QCOMPARE(launches,0);QVERIFY(f.runtime.linkedPreparing_);
+        QCOMPARE(f.runtime.request_.peerSrams[4],QByteArray(512,'d'));
+        f.runtime.linkedTransferCompleted(3,QByteArray(512,'c'));
+        QCOMPARE(launches,1); // Missing library record stops the real launch safely.
+        QVERIFY(!f.runtime.active_);QVERIFY(f.runtime.request_.peerSrams.isEmpty());
+        f.runtime.linkedTransferCompleted(3,QByteArray(512,'z'));QCOMPARE(launches,1);
+    }
+    void duplicateOrMalformedLinkedSeatCannotCompletePreparation() {
+        for(bool duplicate:{false,true}) {
+            Fixture f;f.runtime.active_=true;f.runtime.host_=true;f.runtime.linkedPreparing_=true;
+            f.runtime.request_.linkedPlayers=4;f.runtime.request_.ownSram=QByteArray(512,'a');
+            int launches=0;f.library.inspect=[&]{++launches;};
+            f.runtime.linkedTransferCompleted(2,QByteArray(512,'b'));
+            f.runtime.linkedTransferCompleted(duplicate?2:3,QByteArray(duplicate?512:511,'c'));
+            QCOMPARE(launches,0);QVERIFY(!f.runtime.active_);QVERIFY(f.runtime.request_.peerSrams.isEmpty());
+        }
+    }
+    void leavingDuringLinkedPreparationCancelsAllOwnedTransfers() {
+        Fixture f;GameParty guest;
+        const QJsonObject game{{"id","test"},{"settings","mgba-linked-party-v2"},{"players",4},{"lateJoin",false}};
+        f.runtime.party_.configure("host",{game},game,true);guest.configure("guest",{game},{},true);
+        connect(&f.runtime.party_,&GameParty::outgoing,&guest,[&](QString,QJsonObject p){guest.receive("host","host",p);});
+        connect(&guest,&GameParty::outgoing,&f.runtime.party_,[&](QString,QJsonObject p){f.runtime.party_.receive("guest","guest",p);});
+        f.runtime.party_.invite("guest");guest.answer(true);
+        f.runtime.active_=f.runtime.host_=f.runtime.linkedPreparing_=f.runtime.partySession_=true;
+        f.runtime.descriptor_=game;f.runtime.linkedPeers_={{1,""},{2,"guest"}};
+        f.runtime.request_.ownSram="own";f.runtime.request_.peerSrams[2]="guest";
+        f.runtime.linkedTransfers_[2]=new retroarch::LinkedSavePreparation(&f.runtime);
+        QVERIFY(f.runtime.linkedRosterMatches());guest.leave();
+        QVERIFY(!f.runtime.active_);QVERIFY(f.runtime.linkedTransfers_.isEmpty());
+        QVERIFY(f.runtime.request_.ownSram.isEmpty());QVERIFY(f.runtime.request_.peerSrams.isEmpty());
     }
     void verifiedGameIsAvailableWhileOtherGamesAreStillScanning() {
         Fixture f;

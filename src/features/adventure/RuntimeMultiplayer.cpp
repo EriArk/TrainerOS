@@ -56,20 +56,14 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     connect(&party_,&GameParty::notice,this,&RuntimeMultiplayer::notice);
     connect(&party_,&GameParty::startRequested,this,&RuntimeMultiplayer::startParty);
     connect(&party_,&GameParty::connectionReady,this,&RuntimeMultiplayer::frame);
-    connect(&linkedSave_,&retroarch::LinkedSavePreparation::ready,this,[this](QJsonObject endpoint){
-        if(active_&&host_&&linkedPreparing_)
-            party_.ready({{"kind","linked-prepare"},{"identity",descriptor_},{"preparation",endpoint}});
-    });
-    connect(&linkedSave_,&retroarch::LinkedSavePreparation::completed,this,[this](QByteArray peer){
-        if(!active_||!linkedPreparing_)return;
-        request_.peerSram=std::move(peer);linkedPreparing_=false;linkedPrepared_=true;launchPending_=false;
-        if(host_)launch();else if(!linkedEndpoint_.isEmpty()){const auto endpoint=linkedEndpoint_;linkedEndpoint_={};frame(endpoint);}
+    connect(&linkedSave_,&retroarch::LinkedSavePreparation::completed,this,[this](QByteArray bytes){
+        linkedTransferCompleted(request_.slot,std::move(bytes));
     });
     connect(&linkedSave_,&retroarch::LinkedSavePreparation::failed,this,[this]{
         if(active_&&linkedPreparing_)fail("Couldn't prepare the linked game. Your save was kept. Try inviting again.");
     });
     connect(&party_,&GameParty::changed,this,[this]{
-        if(active_&&linkedPreparing_&&(!party_.active()||party_.state()["members"].toArray().size()!=2)) {
+        if(active_&&linked()&&!linkedPeers_.isEmpty()&&!process_.runtimeControls().contains("netplay")&&!linkedRosterMatches()) {
             fail("The linked-game invitation ended. Your save was kept.");return;
         }
         if(party_.active())partySession_=true;else companyOverride_=false;
@@ -363,13 +357,28 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     }
     if(!host&&lifecycle_.active()){party_.leave();emit notice("Finish your current game before joining.");return;}
     ++sessionGeneration_;
-    linkedSave_.stop();linkedPreparing_=linkedPrepared_=false;linkedEndpoint_={};
+    stopLinkedTransfers();linkedPeers_.clear();linkedPreparing_=linkedPrepared_=false;linkedEndpoint_={};
     game_=game;descriptor_=selected;partySession_=true;active_=true;host_=host;relaySent_=false;
     transportPeer_=host?party_.state()["members"].toArray().at(1).toObject()["peer"].toString():party_.hostPeer();
     online_=transportPeer_.startsWith("online:");
     request_={};request_.host=host;request_.relay=online_;request_.expected=selected;
     request_.localContent=games_.value(game)["content"].toString();
     request_.slot=host?1:endpoint["slot"].toInt();
+    if(linked()) {
+        const auto roster=party_.state()["members"].toArray();
+        request_.linkedPlayers=roster.size();
+        for(const auto& v:roster) {
+            const auto m=v.toObject();const int slot=m["slot"].toInt();
+            if(slot<1||slot>roster.size()||linkedPeers_.contains(slot)||!m["ready"].toBool()) {
+                fail("The game party changed. Invite your friends again.");return;
+            }
+            linkedPeers_[slot]=m["peer"].toString();
+        }
+        if(request_.linkedPlayers<2||request_.linkedPlayers>descriptor_["players"].toInt(2)||
+           (!host&&endpoint["machines"].toInt()!=request_.linkedPlayers)) {
+            fail("This linked-game invitation is invalid.");return;
+        }
+    }
     request_.nickname="TrainerOS-"+randomToken().left(12);output_.clear();
     deadline_=QDateTime::currentSecsSinceEpoch()+(dolphin()?150:75);timer_.start();
     dolphinRequest_={};dolphinRequest_.expected=selected;dolphinRequest_.host=host;dolphinRequest_.online=online_;
@@ -441,7 +450,7 @@ void RuntimeMultiplayer::launch() {
         ppsspp::NetplayRequest{descriptor_,host_,online_,request_.address,trainer_}):adapter_.launchNetplay(record->adventure,request_);
     if(!result.success)fail(result.message);
     // The launch worker owns its snapshot; do not retain peer progress in UI state.
-    request_.ownSram.clear();request_.peerSram.clear();
+    request_.ownSram.clear();request_.peerSrams.clear();
 }
 void RuntimeMultiplayer::prepareLinked(const QJsonObject& endpoint) {
     if(!active_||linkedPreparing_||linkedPrepared_)return;
@@ -463,9 +472,29 @@ void RuntimeMultiplayer::prepareLinked(const QJsonObject& endpoint) {
         auto config=host_?QJsonObject{}:endpoint["preparation"].toObject();
         config["host"]=host_;config["mode"]=online_?"online":"nearby";
         config["content"]=descriptor_["content"];config["size"]=seed.bytes.size();
-        if(!host_)config["data"]=QString::fromLatin1(seed.bytes.toBase64());
-        if(!online_)config["address"]=host_?nearby_.localAddressFor(transportPeer_.mid(7)):nearby_.addressOf(transportPeer_.mid(7));
-        linkedSave_.start(installation_.linkedSavePython,installation_.linkedSaveHelper,config);
+        if(!host_) {
+            config["data"]=QString::fromLatin1(seed.bytes.toBase64());
+            if(!online_)config["address"]=nearby_.addressOf(transportPeer_.mid(7));
+            linkedSave_.start(installation_.linkedSavePython,installation_.linkedSaveHelper,config);
+            return;
+        }
+        for(int slot=2;slot<=request_.linkedPlayers;++slot) {
+            if(!active_||generation!=sessionGeneration_||!linkedPreparing_)return;
+            auto* transfer=new retroarch::LinkedSavePreparation(this);linkedTransfers_[slot]=transfer;
+            connect(transfer,&retroarch::LinkedSavePreparation::ready,this,[this,generation,slot](QJsonObject value){
+                if(active_&&generation==sessionGeneration_&&linkedPreparing_)
+                    party_.prepareLinked(slot,{{"kind","linked-prepare"},{"identity",descriptor_},{"preparation",value}});
+            });
+            connect(transfer,&retroarch::LinkedSavePreparation::completed,this,[this,generation,slot](QByteArray bytes){
+                if(generation==sessionGeneration_)linkedTransferCompleted(slot,std::move(bytes));
+            });
+            connect(transfer,&retroarch::LinkedSavePreparation::failed,this,[this,generation]{
+                if(active_&&generation==sessionGeneration_&&linkedPreparing_)
+                    fail("Couldn't prepare everyone's linked game. Your save was kept. Try inviting again.");
+            });
+            if(!online_)config["address"]=nearby_.localAddressFor(linkedPeers_.value(slot).mid(7));
+            transfer->start(installation_.linkedSavePython,installation_.linkedSaveHelper,config);
+        }
     });
     watcher->setFuture(QtConcurrent::run([r=*record,i=installation_,expected=descriptor_]{
         const std::atomic_bool cancel=false;
@@ -474,6 +503,33 @@ void RuntimeMultiplayer::prepareLinked(const QJsonObject& endpoint) {
         return retroarch::linkedSaveSeed(r,i);
     }));
 }
+void RuntimeMultiplayer::stopLinkedTransfers() {
+    linkedSave_.stop();
+    const auto transfers=linkedTransfers_;linkedTransfers_.clear();
+    for(auto* transfer:transfers){transfer->disconnect(this);transfer->stop();transfer->deleteLater();}
+}
+bool RuntimeMultiplayer::linkedRosterMatches() const {
+    if(!party_.active())return false;
+    QMap<int,QString> current;
+    for(const auto& v:party_.state()["members"].toArray()) {
+        const auto m=v.toObject();const int slot=m["slot"].toInt();
+        if(current.contains(slot)||!m["ready"].toBool())return false;
+        current[slot]=m["peer"].toString();
+    }
+    return current==linkedPeers_;
+}
+void RuntimeMultiplayer::linkedTransferCompleted(int slot,QByteArray bytes) {
+    if(!active_||!linkedPreparing_)return;
+    if(host_) {
+        if(slot<2||slot>request_.linkedPlayers||request_.peerSrams.contains(slot)||bytes.size()!=request_.ownSram.size()) {
+            fail("Couldn't prepare the linked game. Your save was kept.");return;
+        }
+        request_.peerSrams[slot]=std::move(bytes);
+        if(request_.peerSrams.size()!=request_.linkedPlayers-1)return;
+    } else if(!bytes.isEmpty()) {fail("Couldn't prepare the linked game. Your save was kept.");return;}
+    stopLinkedTransfers();linkedPreparing_=false;linkedPrepared_=true;launchPending_=false;
+    if(host_)launch();else if(!linkedEndpoint_.isEmpty()){const auto endpoint=linkedEndpoint_;linkedEndpoint_={};frame(endpoint);}
+}
 void RuntimeMultiplayer::send(QJsonObject packet) {
     if(partySession_){if(packet["kind"]=="ready"||packet["kind"]=="psp-ready"||packet["kind"]=="dolphin-ready")party_.ready(packet);return;}
 }
@@ -481,7 +537,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     if(!active_)return;
     if(packet["kind"]=="left"){status_="Your friend left the game";emit notice(status_);return;}
     if(linked()&&!host_&&!linkedPrepared_&&packet["kind"]=="ready") {
-        if(linkedPreparing_&&packet["identity"].toObject()==descriptor_)linkedEndpoint_=packet;
+        if(linkedPreparing_&&packet["identity"].toObject()==descriptor_&&packet["machines"].toInt()==request_.linkedPlayers)linkedEndpoint_=packet;
         return;
     }
     if(dolphin()) {
@@ -500,6 +556,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     }
     if(host_||packet["kind"]!="ready"||lifecycle_.active()||launchPending_)return;
     if(packet["identity"].toObject()!=descriptor_){fail("Your game or emulator doesn't match your friend's.");return;}
+    if(linked()&&packet["machines"].toInt()!=request_.linkedPlayers){fail("The linked game changed. Invite your friends again.");return;}
     const auto port=packet["port"].toInt();
     if(port<1||port>65535){fail("This multiplayer address is invalid.");return;}
     request_.password=packet["password"].toString();request_.port=quint16(port);
@@ -579,8 +636,8 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
 void RuntimeMultiplayer::fail(QString text) {
     ++sessionGeneration_;
     client_.stop();
-    linkedSave_.stop();linkedPreparing_=linkedPrepared_=false;linkedEndpoint_={};
-    request_.ownSram.clear();request_.peerSram.clear();
+    stopLinkedTransfers();linkedPeers_.clear();linkedPreparing_=linkedPrepared_=false;linkedEndpoint_={};
+    request_.ownSram.clear();request_.peerSrams.clear();
     status_=std::move(text);deadline_=0;timer_.stop();
     const bool wasActive=active_;active_=false;restarting_=false;launchPending_=false;
     if(partySession_){party_.leave();partySession_=false;}

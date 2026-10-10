@@ -62,13 +62,16 @@ an emulator. See [core maintenance](../../../emulators/doublecherrygb.md) and
 [handheld evidence](../../../HANDHELD_MULTIPLAYER.md); a copied adapter does not
 remove the receiving host's process/save ownership responsibilities.
 
-Generic battery GB/GBC pairs additionally include `LinkedSavePreparation` and its
-versioned Python helper recipe. The receiving host must bind preparation to an
-accepted two-member party, validate exact ROM/core/runtime/helper identity, stop
-the helper on cancellation, then wait for both SRAM preparation and the final
-RetroArch endpoint before launching. `ownSram`, `ownSramExisted` and host-only
-`peerSram` are private launch data, not logs or persisted UI state. Never bypass
+Generic battery GB/GBC pairs and GBA parties include `LinkedSavePreparation`
+and its versioned Python helper recipe. The receiving host must bind preparation
+to an accepted two-member GB/GBC or 2-4-member GBA party, validate exact
+ROM/core/runtime/helper identity, stop helpers on cancellation, and wait for all
+SRAM preparation plus the final RetroArch endpoint before launching. Prepare each
+guest with its own helper and credential; `linkedPlayers` is the frozen machine
+count. `ownSram`, `ownSramExisted` and host-only `peerSrams` keyed by guest slot are
+private launch data, not logs or persisted UI state. Never bypass
 `prepareLinkedSave`'s preimage check or the assigned-slot finalizer. The helper
-uses Qt Core/QProcess; Online preparation requires the pinned external Python
-dependencies. See [SameBoy maintenance](../../../emulators/sameboy.md) for exact
-subsystem IDs, patch/build requirements, privacy and compatibility limits.
+uses Qt Core/QProcess; Online preparation requires pinned Python dependencies.
+See [SameBoy](../../../emulators/sameboy.md) and
+[mGBA Splitscreen](../../../emulators/mgba-splitscreen.md) for subsystem IDs,
+patch/build requirements, privacy and compatibility limits.

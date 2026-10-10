@@ -1,6 +1,6 @@
-# mGBA linked pairs - MP-02
+# mGBA linked parties - MP-02
 
-MP-02 generic two-player route, 10 October 2026. See the installed evidence below;
+MP-02 generic 2-4-player route, 10 October 2026. See the installed evidence below;
 this does not complete all handheld mechanisms or external acceptance.
 
 ## Existing implementation selected
@@ -27,6 +27,10 @@ Maintained changes:
   free nodes to restored events; an eight-frame replay diverged on frame 444.
 - Restore PSG phase after audio register writes during state loading. Reversing
   that order changed eight serialized bytes on frame 37 of the Kirby replay.
+- Preserve write-only PSG frequencies and the multiplayer send register during
+  serialization, and restore the idle SIO event timestamp. The expanded menu/link
+  replay exposed audio divergence at frame 407 and outgoing cable data divergence
+  at frame 1480. These are generic state fixes, without game-specific branches.
 - Reserve enough serialization space for save detection growth.
 - Advance RTC from an emulated epoch included in host state, rather than sampling
   each device's wall clock during rollback.
@@ -60,28 +64,29 @@ c++ -O2 -std=c++17 -I SOURCE/src/platform/libretro \
 Observed ARM result: 2186 transfers per player, baud mask 15, zero data errors,
 missed/duplicate IRQs or timeouts; byte-identical rollback; about 6.6 CPU seconds.
 This is core-level evidence, not installed online gameplay. The same harness
-accepts `--cartridge` for an owner-supplied ROM: 900 frames with Start/A transitions,
+accepts `--cartridge [2|3|4]` for the owner-supplied Kirby regression: 3300 frames
+through Multiplayer, Game Pak selection and play with separate directional input,
 independent batteries and matching state/video replay. The owned Kirby image
 passes; the original audio restore order fails that check at frame 37. This mode
 uses blank test batteries inside the headless process, never personal saves.
 
 ## Integration boundaries
 
-Two players, same exact GBA content/core/runtime/helper, no late joining. The
+Two to four players, same exact GBA content/core/runtime/helper, no late joining. The
 ordinary invitation and consent flow prepares each player's opaque battery.
 GBA header validity determines the generic route; names/series are not an
 allowlist. Catalogue single-player exclusions remain. Each viewer gets their
 own focus screen, audio and controller port. The ROM is copied locally into
 private subsystem filenames; it is never transmitted by this preparation.
 
-The upstream exports P1 `.sav` and P2 `.sav2`; ordinary local progress remains
+The upstream exports P1-P4 `.sav`, `.sav2`, `.sav3`, `.sav4`; local progress remains
 in the verified mGBA `.srm` target. Existing 512/8192/32768/65536/131072-byte saves
 are padded only inside the session, and retain their original size on return.
 Only the assigned player's bytes can return, through existing backup, concurrent
 change, failed-process and recovery checks. Unknown save trailers are rejected.
 
-Four-player admission, different cartridges, Single-Pak download, wireless RFU,
-sensors and special accessories are not delivered by this two-player route.
+Different cartridges, Single-Pak download, wireless RFU, sensors and special
+accessories are not delivered by this same-content route.
 Actual game support still depends on upstream emulation and the game's own
 multiplayer mode. Distinct-internet and physical controller/audio checks remain
 separate acceptance.
@@ -138,3 +143,58 @@ build and generated adapter knowledge checks also passed. These checks cover
 512/8192/32768/65536/131072-byte batteries, both assigned slots, absent saves,
 conflicts, crash/nonzero exits and malformed data; they do not certify every GBA
 game or replace the deferred real-controller/network acceptance.
+
+## Two-to-four-player delivery - 10 October 2026
+
+The generic profile now admits up to four participants. Start freezes the accepted
+roster, compacts cancelled seats and selects the existing 2/3/4-machine subsystem.
+Each accepted guest gets a separate authenticated helper exchange and private
+credential. The host waits for every opaque battery; guests also wait for final
+runtime readiness. Cancellation or roster changes invalidate unfinished work.
+Each client sees/hears/controls its assigned machine and returns only that battery.
+GB/GBC remains two-player. Preparation version 2 prevents old clients from joining
+this changed handshake; exact runtime/core/helper/content checks remain required.
+
+Final app on both handhelds:
+`c9a0d0e7b678a7aefea21173fe5e7f038358e933bf2031d49667c6631daf95c3`.
+Final core bundle `mgba-linked-20261010.5`, 1,734,968 bytes:
+`fbf14e74472aa9f298f9a8a964b6bd00cae37ccc6563f347a92d2a3f1a088977`.
+Earlier `.3` evidence above describes the previous two-player delivery.
+
+The expanded headless test reaches Kirby's actual four-machine match, with
+pink/yellow/red/green player HUDs. All 2/3/4-machine runs pass full byte-identical
+state and video replay for 3300 frames, including distinct directional controls.
+The continuous two-machine CC0 diagnostic passes 1794 transfers per player,
+all four baud rates and zero data errors, missed/duplicate IRQs or timeouts.
+The harness now restores its original timeline after replay: the earlier harness
+accidentally repeated button edges and selected solo mode. Those discarded solo
+runs are not multiplayer evidence. Experimental second-pass link restoration was
+unnecessary and removed; only reproduced serialization omissions remain patched.
+
+Application checks: 9/9 affected ARM suites, then the three final changed suites
+on ARM and Windows (3/3 each). Coverage includes 2/3/4-machine slots, all five
+battery sizes, missing/malformed saves, conflicts/crashes, per-member credentials,
+cancelled-seat compaction, out-of-order preparation, incomplete preparation,
+roster loss, stale completion and final machine-count tampering. Five real helper
+process tests pass, including three simultaneous distinct pinned-TLS exchanges
+and rejection of another member's credential. The Windows aggregate save matrix
+needs a 120-second test budget (observed 38 seconds), without changing runtime
+connection deadlines.
+
+Installed journey: the new application completed ordinary Online friend
+invitation/Accept/Start through the public RetroArch relay, with real linked
+Kirby play and independent pink/yellow controls. That run used `.4` (the audio
+fix); after the send-register/timestamp fixes, final `.5` completed the ordinary
+Nearby journey and actual paired play with independent cameras and controls.
+Both runs used each device's own existing battery and normal Home -> Exit
+confirmation. Final save hashes equal the pre-session images, still 32 KiB on
+Flip and 128 KiB on Odin (no new in-game save in these runs). Preimage backups
+remain; no new recovery file or running RetroArch process remains. Both successful
+sessions cleaned their temporary folders, preserving older recovery folders.
+Installed/running application hashes and final core hashes match on both devices;
+SameBoy and DoubleCherryGB are unchanged. Both audio outputs remain at zero.
+The portable runtime module builds and generated knowledge checks pass.
+Four emulated machines in a headless test and a two-handheld run are separate
+levels of evidence: a real four-client party, distinct internet networks and
+owner physical input/audio acceptance remain open. Remaining MP-02 transactions,
+Single-Pak/RFU/peripherals and guest content are not completed by this increment.

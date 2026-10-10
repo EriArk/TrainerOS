@@ -59,6 +59,11 @@ private:
     void send(QJsonObject);
     void launch();
     void prepareLinked(const QJsonObject& endpoint = {});
+    void stopLinkedTransfers();
+    void linkedTransferCompleted(int slot,QByteArray bytes);
+    bool linkedRosterMatches() const;
+    QMap<int,QString> linkedPeers_;
+    QMap<int,retroarch::LinkedSavePreparation*> linkedTransfers_;
     bool linked() const { return requiresLinkedSavePreparation(descriptor_); }
     void fail(QString);
     void pollRelay();

@@ -38,7 +38,7 @@ private slots:
     void linkedPreparationHasOneBoundFinalLaunchAndCannotBeReplayed_data() {
         QTest::addColumn<QString>("mode");
         QTest::newRow("gb")<<QString("sameboy-linked-pair-battery-v1");
-        QTest::newRow("gba")<<QString("mgba-linked-pair-v1");
+        QTest::newRow("gba")<<QString("mgba-linked-party-v2");
     }
     void linkedPreparationHasOneBoundFinalLaunchAndCannotBeReplayed() {
         QFETCH(QString,mode);
@@ -48,7 +48,7 @@ private slots:
         QSignalSpy started(&r.b,&GameParty::startRequested),ready(&r.b,&GameParty::connectionReady);
         QSignalSpy packets(&r.a,&GameParty::outgoing);
         r.a.ready({{"kind","ready"},{"port",55435}});QCOMPARE(started.size(),0);
-        r.a.ready({{"kind","linked-prepare"},{"identity",linked},{"preparation",QJsonObject{{"code","private"}}}});
+        r.a.prepareLinked(2,{{"kind","linked-prepare"},{"identity",linked},{"preparation",QJsonObject{{"code","private"}}}});
         QCOMPARE(started.size(),1);QCOMPARE(started.first()[1].toJsonObject()["slot"].toInt(),2);
         const auto initial=packets.last()[1].toJsonObject();
         r.b.receive("a","a",initial);QCOMPARE(started.size(),1);
@@ -59,6 +59,29 @@ private slots:
         QCOMPARE(started.size(),1);QCOMPARE(ready.size(),1);
         r.a.ready({{"kind","ready"},{"port",55435}});QCOMPARE(ready.size(),1);
         r.b.reset();r.b.receive("a","a",initial);QCOMPARE(started.size(),1);QVERIFY(!r.b.active());
+    }
+    void linkedCredentialsArePrivateAndCancelledSeatsCompactAtStart() {
+        Room r;auto linked=game();linked["settings"]="mgba-linked-party-v2";linked["lateJoin"]=false;
+        for(auto* node:r.people)node->configure("player",{linked},linked,true);
+        r.a.invite("b");r.b.answer(true);r.a.invite("c");r.c.answer(true);r.a.invite("d");r.d.answer(true);
+        r.b.leave(); // The remaining machines must become P2/P3, not P3/P4.
+        r.a.start();
+        QSignalSpy cStart(&r.c,&GameParty::startRequested),dStart(&r.d,&GameParty::startRequested);
+        QSignalSpy cReady(&r.c,&GameParty::connectionReady),dReady(&r.d,&GameParty::connectionReady);
+        QSignalSpy sent(&r.a,&GameParty::outgoing);
+        auto endpoint=QJsonObject{{"kind","linked-prepare"},{"identity",linked},{"preparation",QJsonObject{{"token","c-private"}}}};
+        r.a.prepareLinked(2,endpoint);
+        QCOMPARE(sent.size(),1);QCOMPARE(sent[0][0].toString(),QString("c"));
+        QCOMPARE(cStart.size(),1);QCOMPARE(dStart.size(),0);
+        QCOMPARE(cStart[0][1].toJsonObject()["machines"].toInt(),3);
+        r.a.ready({{"kind","ready"},{"identity",linked}});QCOMPARE(cReady.size(),0);
+        endpoint["preparation"]=QJsonObject{{"token","d-private"}};r.a.prepareLinked(3,endpoint);
+        QCOMPARE(dStart.size(),1);QCOMPARE(dStart[0][1].toJsonObject()["slot"].toInt(),3);
+        r.a.prepareLinked(3,endpoint);QCOMPARE(dStart.size(),1);
+        r.a.invite("e");QVERIFY(r.e.pending().isEmpty());
+        auto altered=sent.last()[1].toJsonObject();altered["endpoint"]=QJsonObject{{"kind","ready"},{"identity",linked},{"machines",4}};
+        r.d.receive("a","a",altered);QCOMPARE(dReady.size(),0);
+        r.a.ready({{"kind","ready"},{"identity",linked}});QCOMPARE(cReady.size(),1);QCOMPARE(dReady.size(),1);
     }
     void threePlayerPartyRejectsFourthAndReusesVacatedSeat() {
         Room r(3);

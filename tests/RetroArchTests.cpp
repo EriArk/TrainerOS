@@ -39,17 +39,17 @@ class RetroArchTests final : public QObject {
     }
 private slots:
     void batteryPairSeedsAndReturnsOnlyTheOwnedMachine_data() {
-        QTest::addColumn<bool>("gba");QTest::addColumn<int>("saveSize");
-        QTest::newRow("gb-mbc1")<<false<<32768;
-        for(int size:{512,8192,32768,65536,131072})QTest::newRow(qPrintable(QString("gba-%1").arg(size)))<<true<<size;
+        QTest::addColumn<bool>("gba");QTest::addColumn<int>("saveSize");QTest::addColumn<int>("players");
+        QTest::newRow("gb-mbc1")<<false<<32768<<2;
+        for(int players:{2,3,4})for(int size:{512,8192,32768,65536,131072})QTest::newRow(qPrintable(QString("gba-%1-%2").arg(size).arg(players)))<<true<<size<<players;
     }
     void batteryPairSeedsAndReturnsOnlyTheOwnedMachine() {
-        QFETCH(bool,gba);QFETCH(int,saveSize);
+        QFETCH(bool,gba);QFETCH(int,saveSize);QFETCH(int,players);
         const int wireSize=gba?131072:saveSize;
-        const auto profile=gba?QString("mgba-linked-pair-v1"):QString("sameboy-linked-pair-battery-v1");
+        const auto profile=gba?QString("mgba-linked-party-v2"):QString("sameboy-linked-pair-battery-v1");
         const auto core=gba?QString("mgba_splitscreen"):QString("sameboy");
         const auto suffix=gba?QString(".gba"):QString(".gb");
-        const auto saveSuffix=[gba](int slot){return gba?(slot==1?QString(".sav"):QString(".sav2")):QString(".srm");};
+        const auto saveSuffix=[gba](int slot){return gba?(slot==1?QString(".sav"):QString(".sav")+QString::number(slot)):QString(".srm");};
         const QJsonObject linked{{"settings","sameboy-linked-pair-battery-v1"}};
         QVERIFY(!retroarch::handheldLinkContentCompatible(linked,"f76a1a8f9292bd68c9330dc9f2721d9b516e03b5ecba1f19cf81d540f528d3bb"));
         QVERIFY(retroarch::handheldLinkContentCompatible(linked,"02a22677d7a6f86a222446ae0903a0b8aea62ebecd3341098af1a6e1f09cbb7c"));
@@ -69,19 +69,19 @@ private slots:
         i.cores["mgba"]=dir.filePath("ordinary-core");QVERIFY(write(i.cores["mgba"],"ordinary core"));
         QVERIFY(write(i.configFile,("savefile_directory = \""+dir.path()+"\"\nauto_overrides_enable = \"false\"\nsavefiles_in_content_dir = \"false\"\nsort_savefiles_enable = \"false\"\nsort_savefiles_by_content_enable = \"false\"\n").toUtf8()));
         QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
-        QVERIFY(write(i.cores[core],gba?"traineros-gba-linked-pair-v1":"traineros-linked-pair-v1"));
+        QVERIFY(write(i.cores[core],gba?"traineros-gba-linked-party-v2":"traineros-linked-pair-v1"));
         const auto identity=retroarch::netplayIdentity(r,i,cancel);
         QCOMPARE(identity["settings"].toString(),profile);
         QCOMPARE(identity["saveBytes"].toInt(),wireSize);QVERIFY(!identity["lateJoin"].toBool(true));
         const auto target=dir.filePath("game.srm");
-        for(int slot:{1,2})for(int scenario=0;scenario<6;++scenario) {
+        for(int slot=1;slot<=players;++slot)for(int scenario=0;scenario<6;++scenario) {
             const QByteArray own(saveSize,'a'),peer(wireSize,'p'),changed(wireSize,'b');
             QVERIFY(write(target,own));
             if(scenario==5)QVERIFY(QFile::remove(target));
             auto seed=retroarch::linkedSaveSeed(r,i);QVERIFY(seed.error.isEmpty());
             retroarch::NetplayRequest n;n.expected=identity;n.localContent=identity["content"].toString();
             n.host=slot==1;n.slot=slot;n.password="private";n.nickname="player";n.address="127.0.0.1";
-            n.ownSram=seed.bytes;n.ownSramExisted=seed.existed;n.ownSramOriginalSize=seed.originalSize;if(n.host)n.peerSram=peer;
+            n.ownSram=seed.bytes;n.ownSramExisted=seed.existed;n.ownSramOriginalSize=seed.originalSize;n.linkedPlayers=players;if(n.host)for(int player=2;player<=players;++player)n.peerSrams[player]=QByteArray(wireSize,char('p'+player));
             ProcessCommand cmd;cmd.arguments={"--libretro","ordinary",r.contentPath};
             QVERIFY2(retroarch::prepareNetplay(cmd,r,i,n,cancel).isEmpty(),"prepare pair");
             QVERIFY(!cmd.runtimeControls["temporaryProgress"].toBool());
@@ -92,9 +92,15 @@ private slots:
             const auto options=retroarch::readSettings(config["core_options_path"]);
             if(gba) {QCOMPARE(options["splitscreen_focus_player"],QString::number(slot));QCOMPARE(options["splitscreen_audio"],QString("player %1").arg(slot));}
             else QCOMPARE(options["sameboy_screen_layout"],QString("player %1 only").arg(slot));
-            QVERIFY(cmd.arguments.contains(gba?"gba_link_2p":"gb_link_2p"));
+            QVERIFY(cmd.arguments.contains(gba?QString("gba_link_%1p").arg(players):QString("gb_link_2p")));
+            QCOMPARE(config["input_max_users"],QString::number(players));
+            for(int player=1;player<=players;++player) {
+                QCOMPARE(config[QString("netplay_request_device_p%1").arg(player)],QString(player==slot?"true":"false"));
+                const auto staged=read(path+"/player-"+QString::number(player)+saveSuffix(player));
+                QCOMPARE(staged,player==slot?seed.bytes:n.host?n.peerSrams[player]:QByteArray(wireSize,char(0xff)));
+            }
             // Only the assigned SRAM is eligible for return.
-            QVERIFY(write(path+"/player-"+QString::number(3-slot)+saveSuffix(3-slot),QByteArray(wireSize,'x')));
+            QVERIFY(write(path+"/player-"+QString::number(slot==1?2:1)+saveSuffix(slot==1?2:1),QByteArray(wireSize,'x')));
             const auto other=scenario==3?QByteArray(wireSize,'c'):changed;
             QVERIFY(write(main,changed));QVERIFY(write(guest,scenario==4?other.left(500):other));
             if(scenario==2)QVERIFY(write(target,QByteArray(saveSize,'z')));
@@ -106,7 +112,7 @@ private slots:
         }
         QVERIFY(write(target,QByteArray(saveSize,'a')));
         const auto seed=retroarch::linkedSaveSeed(r,i);
-        retroarch::NetplayRequest stale;stale.slot=1;stale.host=true;stale.ownSram=seed.bytes;stale.ownSramExisted=true;stale.peerSram=seed.bytes;
+        retroarch::NetplayRequest stale;stale.slot=1;stale.host=true;stale.ownSram=seed.bytes;stale.ownSramExisted=true;stale.peerSrams[2]=seed.bytes;
         QVERIFY(write(target,QByteArray(wireSize,'c')));QDir().mkpath(dir.filePath("stale"));ProcessCommand cmd;
         QVERIFY(!retroarch::prepareLinkedSave(cmd,r,i,dir.filePath("stale"),stale,cancel).isEmpty());
         auto missing=i;missing.linkedSaveHelper.clear();QVERIFY(retroarch::netplayIdentity(r,missing,cancel).isEmpty());
@@ -114,7 +120,7 @@ private slots:
             // Different on-disk lengths can have identical padded wire bytes.
             QVERIFY(write(target,QByteArray(512,char(0xff))));
             const auto sized=retroarch::linkedSaveSeed(r,i);QVERIFY(sized.error.isEmpty());
-            stale.ownSram=sized.bytes;stale.ownSramOriginalSize=sized.originalSize;stale.peerSram=sized.bytes;
+            stale.ownSram=sized.bytes;stale.ownSramOriginalSize=sized.originalSize;stale.peerSrams[2]=sized.bytes;
             QVERIFY(write(target,QByteArray(8192,char(0xff))));
             QCOMPARE(retroarch::linkedSaveSeed(r,i).bytes,sized.bytes);
             QVERIFY(retroarch::prepareLinkedSave(cmd,r,i,dir.filePath("stale"),stale,cancel).contains("changed"));
@@ -162,7 +168,7 @@ private slots:
             QVERIFY(!QFileInfo(path+"/game.srm").exists());
             QCOMPARE(config.value("input_max_users"),QString("2"));
             QCOMPARE(config.value("netplay_request_device_p"+QString::number(slot)),QString("true"));
-            QCOMPARE(config.value("netplay_request_device_p"+QString::number(3-slot)),QString("false"));
+            QCOMPARE(config.value("netplay_request_device_p"+QString::number(slot==1?2:1)),QString("false"));
             const auto options=retroarch::readSettings(config.value("core_options_path"));
             QCOMPARE(options.value("dcgb_emulated_gameboys"),QString("2"));
             QCOMPARE(options.value("dcgb_gblink_enable"),QString("enabled"));

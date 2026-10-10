@@ -1,5 +1,16 @@
 # Handheld link over the network (MP-02)
 
+## GBA parties for two to four players - 2026-10-10
+
+The generic GBA route now prepares up to four accepted participants using the
+existing mGBA subsystems and RetroArch transport. Per-member credentials, frozen
+contiguous seats, automatic opaque battery preparation and own-slot return reuse
+the shared party/protected-save services. [Implementation and evidence](emulators/mgba-splitscreen.md#two-to-four-player-delivery---10-october-2026)
+record actual four-machine Kirby gameplay and rollback, application/helper tests,
+and both handheld installations. Four real clients, separate networks, physical
+controls/audio and the retained MP-02 transactions/special mechanisms stay open.
+The two-player section below is the earlier delivery record.
+
 ## Generic GBA linked pairs - 2026-10-10
 
 The generic GBA route uses [mGBA Splitscreen](emulators/mgba-splitscreen.md),

@@ -59,6 +59,22 @@ class PreparationTests(unittest.TestCase):
         guest.update(changes)
         return self.start(guest), data
 
+    def test_three_private_exchanges_complete_out_of_order(self):
+        hosts = [self.host() for _ in range(3)]
+        self.assertEqual(len({c["token"] for _, c in hosts}), 3)
+        self.assertEqual(len({c["fingerprint"] for _, c in hosts}), 3)
+        # Another member's token cannot supply this member's battery.
+        wrong, _ = self.guest(hosts[0][1], token=hosts[1][1]["token"])
+        self.assertEqual(self.event(wrong), {"event": "error"})
+        for seat in [2, 0, 1]:
+            host, config = hosts[seat]
+            data = bytes([seat + 1]) * config["size"]
+            guest, _ = self.guest(config, data=base64.b64encode(data).decode())
+            self.assertEqual(base64.b64decode(self.event(host)["data"]), data)
+            self.assertEqual(self.event(guest), {"event": "done", "data": ""})
+            self.assertEqual(host.wait(timeout=5), 0)
+            self.assertEqual(guest.wait(timeout=5), 0)
+
     def test_largest_save_and_retry_after_wrong_certificate(self):
         host, config = self.host()
         wrong, _ = self.guest(config, fingerprint="0" * 64)

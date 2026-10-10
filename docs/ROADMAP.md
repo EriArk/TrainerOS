@@ -1,5 +1,15 @@
 # TrainerOS Roadmap
 
+**MP-02 GBA parties, 10 October 2026:** generic GBA Link now prepares 2-4
+accepted players automatically, with private per-member battery exchanges,
+frozen seats and each player's own screen/controls/protected save return.
+The existing mGBA Splitscreen and RetroArch mechanisms are reused. Four linked
+machines pass actual Kirby match/rollback checks; the app and core are installed
+on Flip/Odin. [Evidence and limits](emulators/mgba-splitscreen.md#two-to-four-player-delivery---10-october-2026)
+keep real four-client, separate-network and physical acceptance open. Continue
+MP-02's remaining mechanisms/transactions before MP-03; this is not universal
+game compatibility or completion of MP-02.
+
 **MP-02 generic GBA pairs, 10 October 2026:** mGBA Splitscreen now reuses the
 existing invitation, automatic opaque SRAM preparation and RetroArch network
 session. Kirby reached linked two-player gameplay with independent screens,
