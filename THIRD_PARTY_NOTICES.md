@@ -12,6 +12,8 @@ remain in force. Distribution/image obligations need a separate review before re
 | Community gym-badge recreations | [Author, CC BY 3.0 and provenance](assets/badges/README.md); underlying designs are not cleared by attribution |
 | Dolphin integration patch | [Source SPDX notice](packaging/emulators/dolphin/TrainerNetplay.inc), GPL-2.0-or-later; [maintenance](docs/emulators/dolphin.md) |
 | Emulator builds and changes | [Per-emulator records](docs/emulators/README.md); each upstream's actual license/source obligations apply |
+| SameBoy linked-pair core | [Pinned source, MIT licence and maintained changes](docs/emulators/sameboy.md); retain upstream notices with source/binaries |
+| Linked-save preparation dependencies | [Pinned Python environment](packaging/emulators/handheld/linked-save-requirements.txt), including Magic Wormhole, Twisted and cryptography; retain each installed distribution's licence/notice and review the full tree under #115 before image redistribution |
 | Qt, SDL, OpenSSL, QtKeychain and other linked dependencies | External build/runtime dependencies; review the exact versions and redistribution conditions when packaging |
 | Practice runtime dependencies | [Runtime installer](tools/install-practice-runtime.py); external components retain their own notices |
 | Generated collection illustrations | [Generation record](assets/series/generation.json); provenance is not trademark/design clearance |

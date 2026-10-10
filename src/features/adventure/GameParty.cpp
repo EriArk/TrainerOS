@@ -31,7 +31,7 @@ void GameParty::configure(QString name,QJsonArray games,QJsonObject current,bool
     name_=name.left(48);games_=std::move(games);current_=std::move(current);available_=available;
     if(!available_&&active())leave();
 }
-void GameParty::clear(){party_.clear();host_.clear();hostBoot_.clear();members_.clear();game_={};endpoint_={};roster_={};running_=false;revision_=remoteRevision_=0;joiningPeer_.clear();joiningId_.clear();joiningGame_={};joiningParty_.clear();joiningDeadline_=0;requests_.clear();company_.clear();access_="request";allowedMembers_.clear();advertised_=0;for(auto& p:peers_)p.invite=false;}
+void GameParty::clear(){party_.clear();host_.clear();hostBoot_.clear();members_.clear();game_={};endpoint_={};roster_={};running_=false;preparingSlot_=0;revision_=remoteRevision_=0;joiningPeer_.clear();joiningId_.clear();joiningGame_={};joiningParty_.clear();joiningDeadline_=0;requests_.clear();company_.clear();access_="request";allowedMembers_.clear();advertised_=0;for(auto& p:peers_)p.invite=false;}
 void GameParty::reset(){leave();peers_.clear();seen_.clear();companyQueries_.clear();boot_=token();}
 void GameParty::packet(const QString& peer,QString kind,QJsonObject p) {
     if(!companyOf(peer).isEmpty())p["company"]=companyOf(peer);
@@ -272,10 +272,18 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
         const auto revision=p["revision"].toInteger();const auto roster=p["members"].toArray();
         if(revision<=qint64(remoteRevision_)||roster.size()>capacity(game_))return;
         remoteRevision_=revision;roster_=roster;joiningDeadline_=0;emit changed();
-    } else if(kind=="launch"&&!running_&&p["game"]==game_&&!p["endpoint"].toObject().isEmpty()) {
+    } else if(kind=="launch"&&p["game"]==game_&&!p["endpoint"].toObject().isEmpty()) {
         const int slot=p["slot"].toInt();if(slot<2||slot>capacity(game_))return;
-        running_=true;joiningDeadline_=0;auto endpoint=p["endpoint"].toObject();endpoint["slot"]=slot;
-        emit startRequested(false,endpoint);emit changed();
+        auto endpoint=p["endpoint"].toObject();endpoint["slot"]=slot;
+        const bool linked=game_["settings"]=="sameboy-linked-pair-battery-v1";
+        if(!running_) {
+            if(linked&&endpoint["kind"]!="linked-prepare")return;
+            if(!linked&&endpoint["kind"]=="linked-prepare")return;
+            running_=true;joiningDeadline_=0;preparingSlot_=linked?slot:0;
+            emit startRequested(false,endpoint);emit changed();
+        } else if(preparingSlot_==slot&&endpoint["kind"]=="ready") {
+            preparingSlot_=0;emit connectionReady(endpoint);
+        }
     }
 }
 void GameParty::tick() {

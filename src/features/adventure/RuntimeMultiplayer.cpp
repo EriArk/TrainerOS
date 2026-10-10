@@ -1,4 +1,5 @@
 #include "RuntimeMultiplayer.h"
+#include "integrations/adventure/retroarch/RetroArchHandheldLink.h"
 #include "core/model/GamePlayers.h"
 #include "features/social/SocialController.h"
 #include "features/adventure/AdventureExitPresentation.h"
@@ -54,7 +55,23 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     });
     connect(&party_,&GameParty::notice,this,&RuntimeMultiplayer::notice);
     connect(&party_,&GameParty::startRequested,this,&RuntimeMultiplayer::startParty);
+    connect(&party_,&GameParty::connectionReady,this,&RuntimeMultiplayer::frame);
+    connect(&linkedSave_,&retroarch::LinkedSavePreparation::ready,this,[this](QJsonObject endpoint){
+        if(active_&&host_&&linkedPreparing_)
+            party_.ready({{"kind","linked-prepare"},{"identity",descriptor_},{"preparation",endpoint}});
+    });
+    connect(&linkedSave_,&retroarch::LinkedSavePreparation::completed,this,[this](QByteArray peer){
+        if(!active_||!linkedPreparing_)return;
+        request_.peerSram=std::move(peer);linkedPreparing_=false;linkedPrepared_=true;launchPending_=false;
+        if(host_)launch();else if(!linkedEndpoint_.isEmpty()){const auto endpoint=linkedEndpoint_;linkedEndpoint_={};frame(endpoint);}
+    });
+    connect(&linkedSave_,&retroarch::LinkedSavePreparation::failed,this,[this]{
+        if(active_&&linkedPreparing_)fail("Couldn't prepare the linked game. Your save was kept. Try inviting again.");
+    });
     connect(&party_,&GameParty::changed,this,[this]{
+        if(active_&&linkedPreparing_&&(!party_.active()||party_.state()["members"].toArray().size()!=2)) {
+            fail("The linked-game invitation ended. Your save was kept.");return;
+        }
         if(party_.active())partySession_=true;else companyOverride_=false;
         const auto pending=party_.pending();const auto request=pending["request"].toString();
         if(!request.isEmpty()&&request!=lastRequest_&&lifecycle_.active()&&!social_.account()["doNotDisturb"].toBool())
@@ -155,7 +172,8 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     const auto dolphinInstallation=dolphin_.installation();
     const auto stamp=[](const QString& path){const QFileInfo f(path);return qHashMulti(0,path,f.size(),f.lastModified().toMSecsSinceEpoch());};
     quint64 revision=qHashMulti(0,stamp(installation.runtimeFile),stamp(installation.configFile),
-        stamp(pspInstallation.runtimeFile),stamp(dolphin::bridgeFile()),stamp(dolphin::bridgeRoot()+"/manifest.json"));
+        stamp(pspInstallation.runtimeFile),stamp(dolphin::bridgeFile()),stamp(dolphin::bridgeRoot()+"/manifest.json"),
+        stamp(installation.linkedSavePython),stamp(installation.linkedSaveHelper));
     for(auto it=installation.cores.cbegin();it!=installation.cores.cend();++it)revision=qHashMulti(revision,it.key(),stamp(it.value()));
     const auto candidate=[](const AdventureRegistration& r){return r.adventure.platformId=="psp"||r.adventure.platformId=="gc"||
         retroarch::netplaySupported(r.adventure.platformId,r.integrationConfig["core"].toString());};
@@ -210,6 +228,7 @@ void RuntimeMultiplayer::leaveParty(){
         if(overlay_.menuOpen())overlay_.exitFromMenu();
         return;
     }
+    if(active_){fail("Invitation cancelled.");return;}
     party_.leave();emit changed();
 }
 bool RuntimeMultiplayer::incoming() const {return !party_.pending().isEmpty()&&!lifecycle_.active()
@@ -344,6 +363,7 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     }
     if(!host&&lifecycle_.active()){party_.leave();emit notice("Finish your current game before joining.");return;}
     ++sessionGeneration_;
+    linkedSave_.stop();linkedPreparing_=linkedPrepared_=false;linkedEndpoint_={};
     game_=game;descriptor_=selected;partySession_=true;active_=true;host_=host;relaySent_=false;
     transportPeer_=host?party_.state()["members"].toArray().at(1).toObject()["peer"].toString():party_.hostPeer();
     online_=transportPeer_.startsWith("online:");
@@ -361,7 +381,7 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
         request_.password=randomToken();
         if(psp()){if(online_)resolvePspRelay();else {request_.address=nearby_.localAddressFor(transportPeer_.mid(7));prepareHost();}}
         else if(online_)resolveRelay();else prepareHost();
-    } else frame(endpoint);
+    } else if(linked())prepareLinked(endpoint);else frame(endpoint);
     emit changed();
 }
 void RuntimeMultiplayer::prepareHost() {
@@ -416,9 +436,43 @@ void RuntimeMultiplayer::launch() {
     const auto record=library_.registration(game_);
     if(!record){fail("The game is no longer in your library.");return;}
     if(!permitsMultiplayer(library_.artwork(game_),descriptor_)){fail("Multiplayer isn't available for this game.");return;}
+    if(linked()&&!linkedPrepared_){if(host_)prepareLinked();return;}
     const auto result=dolphin()?dolphin_.launchNetplay(record->adventure,dolphinRequest_):psp()?ppsspp_.launchNetplay(record->adventure,
         ppsspp::NetplayRequest{descriptor_,host_,online_,request_.address,trainer_}):adapter_.launchNetplay(record->adventure,request_);
     if(!result.success)fail(result.message);
+    // The launch worker owns its snapshot; do not retain peer progress in UI state.
+    request_.ownSram.clear();request_.peerSram.clear();
+}
+void RuntimeMultiplayer::prepareLinked(const QJsonObject& endpoint) {
+    if(!active_||linkedPreparing_||linkedPrepared_)return;
+    if(!host_&&(endpoint["kind"]!="linked-prepare"||endpoint["identity"].toObject()!=descriptor_||
+       endpoint["preparation"].toObject()["mode"]!=(online_?"online":"nearby"))) {
+        fail("This linked-game invitation is invalid.");return;
+    }
+    const auto record=library_.registration(game_);
+    if(!record){fail("The game is no longer in your library.");return;}
+    linkedPreparing_=true;launchPending_=true;status_="Preparing your linked game...";
+    deadline_=QDateTime::currentSecsSinceEpoch()+90;timer_.start();emit changed();
+    auto* watcher=new QFutureWatcher<retroarch::LinkedSaveSeed>(this);
+    const auto generation=sessionGeneration_;
+    connect(watcher,&QFutureWatcherBase::finished,this,[this,watcher,generation,endpoint]{
+        const auto seed=watcher->result();watcher->deleteLater();
+        if(!active_||generation!=sessionGeneration_||!linkedPreparing_)return;
+        if(!seed.error.isEmpty()){fail(seed.error);return;}
+        request_.ownSram=seed.bytes;request_.ownSramExisted=seed.existed;
+        auto config=host_?QJsonObject{}:endpoint["preparation"].toObject();
+        config["host"]=host_;config["mode"]=online_?"online":"nearby";
+        config["content"]=descriptor_["content"];config["size"]=seed.bytes.size();
+        if(!host_)config["data"]=QString::fromLatin1(seed.bytes.toBase64());
+        if(!online_)config["address"]=host_?nearby_.localAddressFor(transportPeer_.mid(7)):nearby_.addressOf(transportPeer_.mid(7));
+        linkedSave_.start(installation_.linkedSavePython,installation_.linkedSaveHelper,config);
+    });
+    watcher->setFuture(QtConcurrent::run([r=*record,i=installation_,expected=descriptor_]{
+        const std::atomic_bool cancel=false;
+        if(!sameMultiplayerGame(retroarch::netplayIdentity(r,i,cancel),expected))
+            return retroarch::LinkedSaveSeed{{},false,"Your game or emulator changed. Invite your friend again."};
+        return retroarch::linkedSaveSeed(r,i);
+    }));
 }
 void RuntimeMultiplayer::send(QJsonObject packet) {
     if(partySession_){if(packet["kind"]=="ready"||packet["kind"]=="psp-ready"||packet["kind"]=="dolphin-ready")party_.ready(packet);return;}
@@ -426,6 +480,10 @@ void RuntimeMultiplayer::send(QJsonObject packet) {
 void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     if(!active_)return;
     if(packet["kind"]=="left"){status_="Your friend left the game";emit notice(status_);return;}
+    if(linked()&&!host_&&!linkedPrepared_&&packet["kind"]=="ready") {
+        if(linkedPreparing_&&packet["identity"].toObject()==descriptor_)linkedEndpoint_=packet;
+        return;
+    }
     if(dolphin()) {
         if(host_||packet["kind"]!="dolphin-ready"||lifecycle_.active()||launchPending_)return;
         if(packet["identity"].toObject()!=descriptor_){fail("Your game or emulator doesn't match your friend's.");return;}
@@ -521,6 +579,8 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
 void RuntimeMultiplayer::fail(QString text) {
     ++sessionGeneration_;
     client_.stop();
+    linkedSave_.stop();linkedPreparing_=linkedPrepared_=false;linkedEndpoint_={};
+    request_.ownSram.clear();request_.peerSram.clear();
     status_=std::move(text);deadline_=0;timer_.stop();
     const bool wasActive=active_;active_=false;restarting_=false;launchPending_=false;
     if(partySession_){party_.leave();partySession_=false;}

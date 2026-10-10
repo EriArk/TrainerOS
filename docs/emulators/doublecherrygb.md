@@ -1,5 +1,9 @@
 # DoubleCherryGB — independent GB/GBC link
 
+**Battery-pair continuation, 10 October 2026:** the additional generic battery
+route uses [SameBoy's native two-ROM SRAM subsystem](sameboy.md). It leaves the
+DoubleCherryGB volatile-pair and independent netpacket mechanisms below intact.
+
 **10 October 2026:** a second TrainerOS route uses upstream's two-machine linked
 pair and ordinary RetroArch rollback for GB/GBC cartridges without battery/RTC
 storage. `dcgb_emulated_gameboys = 2`, `dcgb_gblink_enable = enabled`, and

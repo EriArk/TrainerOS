@@ -42,6 +42,7 @@ struct RetroArchInstallation {
     // Locally reviewed firmware identities; readiness is a startup snapshot.
     QHash<QString, QJsonObject> discFirmware;
     QSet<QString> readyDiscPlatforms;
+    QString linkedSavePython, linkedSaveHelper;
     bool operator==(const RetroArchInstallation&) const = default;
     static RetroArchInstallation load(const QString& filename);
     static RetroArchInstallation fromJson(const QJsonObject&);

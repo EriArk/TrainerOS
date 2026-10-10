@@ -1,5 +1,12 @@
 # Common emulator set
 
+**10 October battery continuation:** [SameBoy](emulators/sameboy.md) adds its native
+two-ROM/SRAM subsystem for generic supported GB/GBC battery link sessions. Ordinary
+Gambatte, DoubleCherryGB volatile/netpacket and gpSP routes are preserved. The
+automatic preparation and completed From Below Pocket match/save readback on both
+handhelds are recorded in [MP-02](HANDHELD_MULTIPLAYER.md); wider compatibility and
+external acceptance remain open.
+
 **10 October 2026:** DoubleCherryGB also supplies its existing two-machine
 rollback mode for GB/GBC link games without persistent cartridge memory. The
 existing RetroArch relay/invitation integration is reused; each player sees and
@@ -42,7 +49,7 @@ migration. Do not silently launch an incompatible fallback when a friend joins.
 | --- | --- | --- |
 | NES / FDS | RetroArch + FCEUmm | Retain current route; lock the same core build across the image family. |
 | SNES / Satellaview / Sufami / MSU-1 | RetroArch + Snes9x | Retain; extensions/content still need mode-specific multiplayer support. |
-| GB / GBC | RetroArch + Gambatte; DoubleCherryGB link companion | Ordinary play remains Gambatte. Independent netpacket/SRAM uses the pinned companion for reviewed games; [evidence and clock/battle limits](HANDHELD_MULTIPLAYER.md). |
+| GB / GBC | RetroArch + Gambatte; DoubleCherryGB and SameBoy link companions | Ordinary play remains Gambatte. DoubleCherryGB supplies netpacket/volatile pairs; SameBoy supplies supported battery pairs with automatic own-save preparation. [Evidence and limits](HANDHELD_MULTIPLAYER.md). |
 | GBA | RetroArch + mGBA; gpSP link companion | Ordinary save integration stays on mGBA. Reviewed cable profiles use gpSP; actual Emerald trade/readback evidence is separate from wider game/capacity acceptance. |
 | Nintendo 64 | RetroArch + ParaLLEl-N64 | Retain current primary for initial standardization. Align builds before paired proof; no blanket deterministic-netplay claim. Another core becomes primary only after a concrete compatibility/performance comparison. |
 | Nintendo DS | melonDS standalone | Common desktop Linux build on both devices; normalize the present AppImage/Flatpak difference. Local wireless and WFC are separate modes. |

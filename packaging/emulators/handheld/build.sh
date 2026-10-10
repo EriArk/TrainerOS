@@ -9,7 +9,8 @@ out=$(cd "$out" && pwd)
 test "$(uname -m)" = aarch64
 for entry in \
  'gpsp https://github.com/libretro/gpsp.git 5819380c2ffb0900219d700a382ee68c464ebb99' \
- 'doublecherry https://github.com/TimOelrichs/doublecherryGB-libretro.git 03f58ca3dfb4b716f7e66a0e0467f9e85ef82abb'; do
+ 'doublecherry https://github.com/TimOelrichs/doublecherryGB-libretro.git 03f58ca3dfb4b716f7e66a0e0467f9e85ef82abb' \
+ 'sameboy https://github.com/libretro/SameBoy.git aa158a889a48b538a0302873704a34577c8eb67d'; do
  set -- $entry
  name=$1; url=$2; revision=$3
  git clone --no-checkout "$url" "$out/$name"
@@ -17,6 +18,10 @@ for entry in \
  test "$(git -C "$out/$name" rev-parse HEAD)" = "$revision"
  if [ "$name" = gpsp ]; then
   make -C "$out/$name" -j2 platform=unix CPU_ARCH=arm64 HAVE_DYNAREC=1
+ elif [ "$name" = sameboy ]; then
+  git -C "$out/$name" apply --check "$patch_dir/sameboy-linked-pair.patch"
+  git -C "$out/$name" apply "$patch_dir/sameboy-linked-pair.patch"
+  make -C "$out/$name/libretro" -j2 platform=unix MKDIR=mkdir
  else
   # Upstream mixes LF and CRLF; exported Windows archives can add another CR.
   # Normalize only the five patched text files before applying the reviewed diff.
@@ -37,4 +42,5 @@ done
 mkdir "$out/cores"
 cp "$out/gpsp/gpsp_libretro.so" "$out/cores/"
 cp "$out/doublecherry/DoubleCherryGB_libretro.so" "$out/cores/"
+cp "$out/sameboy/libretro/sameboy_libretro.so" "$out/cores/"
 sha256sum "$out/cores/"*.so

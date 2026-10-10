@@ -1,5 +1,89 @@
 # Handheld link over the network (MP-02)
 
+## Generic battery linked pairs — 2026-10-10
+
+The generic GB/GBC route now includes supported battery cartridges using
+[SameBoy's existing two-ROM subsystem](emulators/sameboy.md), separate SRAM APIs
+and the established RetroArch rollback/relay. It is selected by cartridge hardware,
+with exact ROM/core/runtime/helper matching. Existing DoubleCherryGB volatile
+pairs and the older independent netpacket routes remain available. TrainerOS does
+not implement a new serial-cable protocol or game-specific network layer.
+
+The player journey remains ordinary play → Game Options / Play together / Online
+friend → Accept → Start game → the ordinary save/exit question. Guest SRAM
+preparation runs automatically after consent; connection codes and file transfers
+are private implementation details. Both clients emulate the pair but show and
+control only their own machine. Only that machine's SRAM can return to the local
+original, with the existing backup/conflict/crash protection. The peer's temporary
+SRAM is not installed as personal progress. Late joining this route is disabled.
+
+### Installed gameplay and return
+
+Validation used the author's publicly committed From Below Pocket release
+candidate, [source/build](https://github.com/mhughson/mbh-firstnes/tree/a567ec4973fafbe40bdcff1585177e9182853483/gb),
+`beta_builds/fbp_2022_09_12_rc_1_0.gbc`: 131,072 bytes, MBC1 battery, 8 KiB SRAM,
+SHA-256 `02a22677d7a6f86a222446ae0903a0b8aea62ebecd3341098af1a6e1f09cbb7c`.
+This private verification copy is not included in Git or the product image;
+public source availability is not distribution/licence clearance for game assets.
+
+- A normal UI invitation on Flip was accepted on Odin. Automatic preparation and
+  the public RetroArch relay launched both machines without player-entered IPs,
+  codes, save files or emulator configuration.
+- Selecting two-player mode on Flip advanced Odin to the linked waiting screen.
+  Starting the match produced separate boards and independently controlled pieces.
+  A complete match ended with **YOU LOSE** on Flip and **YOU WIN!!** on Odin.
+- After leaving the in-game versus mode, different per-machine settings were
+  selected through the game itself: Flip Timed / level 9 / music on; Odin Classic /
+  level 0 / music off. Normal Game Options / Exit returned each assigned SRAM.
+- Flip's original 8 KiB SRAM hash `920504c3a553d8355cc06d91e9c36b3e2531a8267dc5795db5bb6fc1326f807f`
+  was retained exactly in `.before-link`; its returned SRAM hash is
+  `85daebd5560b75a9f6714d2abcb0afa6183e6578b1fd3d6d0aa8f898ac81b0ee`.
+  Odin started without a personal save and received a new 8 KiB save, hash
+  `6c693a72b42b42aa006851117173f527782e42b1ed0a4e7dec7d2fb9a1a096f9`.
+  Ordinary Gambatte launches on **both** devices displayed their own settings
+  again. This is actual emulator save/readback evidence, not a semantic parser.
+- Host departure left the guest process available for its own normal exit.
+  Both linked temporary directories were removed after successful return.
+  Private reduced captures and hash evidence use `frombelow-*` under
+  `work/research/`; no game/saves/screenshots were added to the repository.
+
+Both devices used shell SHA-256
+`16b678387fa89fac7cba56ee1dbcd4502ac106c44fdbe4d7ad9fbe17d1306b42`
+for this journey and the final patched SameBoy artifact documented in its
+maintenance record. A subsequent shell update adds only the exact failed-ROM
+compatibility exception described below; its installed fingerprint is recorded
+at final delivery: `43cb4c311791efe099ae79d1c1f66696ff3f4e7607b9ece49bf7d629fbe6b412`
+matches both installed and running shells. Final verification found no emulator
+processes, both linked temporary directories removed and system volume zero on
+both devices. The devices share one home internet connection, so use of a
+public relay is **not** separate-network acceptance. Owner physical/audio checks
+remain deferred; quiet system output is retained.
+
+### Checks and limits
+
+The maintained SameBoy patch restores frontend serial/input state omitted from
+upstream rollback, polls input once per frame, supports initial serialization and
+selects the assigned screen. The original synthetic two-SRAM/serial program
+passes 200 frames with seven predicted frames before each rollback; the previous
+view-only build failed at frame 2. Real 128 KiB Online/Nearby helper transfers and
+four helper validation/cancellation tests passed. Windows and ARM application
+checks cover RetroArch, parties, preparation, process/exit and save ownership;
+the separately exported runtime library builds with the new helper controller.
+
+Hnefatafl's exact build `f76a1a8f9292bd68c9330dc9f2721d9b516e03b5ecba1f19cf81d540f528d3bb`
+stalled its cable handshake in the pinned local pair too. Diagnostic snapshots
+from both network clients agreed on the game position; that remaining failure
+was not evidence of network divergence. The exact failed combination is excluded
+from invitations. A speculative emulator clock change did not fix it and was
+discarded. This evidence must not be advertised as working Hnefatafl multiplayer.
+
+**MP-02 remains open:** generic battery preparation/own-slot return is now
+implemented and verified on this title, not certified for every mapper/game.
+Generic GBA link, special GB hardware/RTC routes, earlier Gen II/TCG transactions,
+GBA battles/cross-edition/Advance Wars and the retained multi-client/external
+acceptance remain. Reuse existing runtime solutions for all subsequent families;
+the universal product is not defined by any one franchise or cable mechanism.
+
 ## Generic linked-pair integration — 2026-10-10
 
 The owner's reuse rule applies to every emulator family. MP-02 now also uses

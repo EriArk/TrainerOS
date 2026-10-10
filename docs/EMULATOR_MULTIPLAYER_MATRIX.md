@@ -1,5 +1,12 @@
 # Emulator multiplayer coverage
 
+**10 October battery continuation:** generic supported GB/GBC battery cartridges
+now have an installed [SameBoy linked-pair route](emulators/sameboy.md) using
+native subsystem SRAM and RetroArch rollback/relay. Automatic invitation/save
+preparation, a completed From Below Pocket match and ordinary own-save readback
+passed on both handhelds. Existing DoubleCherryGB/gpSP mechanisms remain separate;
+[MP-02](HANDHELD_MULTIPLAYER.md) retains all wider compatibility/external gates.
+
 ## Owner selection rule — 10 October 2026
 
 Reuse existing multiplayer solutions across **every emulator family**. This is

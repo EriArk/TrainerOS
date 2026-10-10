@@ -69,6 +69,20 @@ class RuntimeMultiplayerTests final : public QObject {
         QCOMPARE(f.lifecycle.exitController().phase(),AdventureExitController::Phase::Confirming);
     }
 private slots:
+    void linkedFinalEndpointWaitsForOwnSeedAndCancellationClearsIt() {
+        Fixture f;f.runtime.active_=true;f.runtime.linkedPreparing_=true;f.runtime.launchPending_=true;
+        f.runtime.descriptor_={{"settings","sameboy-linked-pair-battery-v1"},{"content","bound"}};
+        f.runtime.request_.ownSram="private";
+        const QJsonObject ready{{"kind","ready"},{"identity",f.runtime.descriptor_},{"port",55435}};
+        int launches=0;f.library.inspect=[&]{++launches;};
+        f.runtime.frame(ready);QCOMPARE(launches,0);QCOMPARE(f.runtime.linkedEndpoint_,ready);
+        auto wrong=ready;wrong["identity"]=QJsonObject{{"content","other"}};f.runtime.frame(wrong);
+        QCOMPARE(f.runtime.linkedEndpoint_,ready);
+        f.runtime.leaveParty();QVERIFY(!f.runtime.active_);QVERIFY(!f.runtime.linkedPreparing_);
+        QVERIFY(f.runtime.linkedEndpoint_.isEmpty());QVERIFY(f.runtime.request_.ownSram.isEmpty());
+        emit f.runtime.linkedSave_.completed("late peer bytes");QCOMPARE(launches,0);
+        f.runtime.frame(ready);QCOMPARE(launches,0);
+    }
     void verifiedGameIsAvailableWhileOtherGamesAreStillScanning() {
         Fixture f;
         AdventureRegistration first;first.adventure.id="verified";first.adventure.platformId="nes";

@@ -44,6 +44,7 @@ signals:
     void outgoing(QString peer,QJsonObject packet);
     void changed();
     void startRequested(bool host,QJsonObject endpoint);
+    void connectionReady(QJsonObject endpoint);
     void notice(QString text);
 private:
     friend class GamePartyTests;
@@ -70,6 +71,7 @@ private:
     QList<Request> requests_;
     QTimer timer_;
     bool available_=false,running_=false;
+    int preparingSlot_=0;
     qint64 joiningDeadline_=0;
     quint64 revision_=0,remoteRevision_=0;
     QJsonArray roster_;

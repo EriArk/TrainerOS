@@ -38,6 +38,64 @@ class RetroArchTests final : public QObject {
         );
     }
 private slots:
+    void batteryPairSeedsAndReturnsOnlyTheOwnedMachine() {
+        const QJsonObject linked{{"settings","sameboy-linked-pair-battery-v1"}};
+        QVERIFY(!retroarch::handheldLinkContentCompatible(linked,"f76a1a8f9292bd68c9330dc9f2721d9b516e03b5ecba1f19cf81d540f528d3bb"));
+        QVERIFY(retroarch::handheldLinkContentCompatible(linked,"02a22677d7a6f86a222446ae0903a0b8aea62ebecd3341098af1a6e1f09cbb7c"));
+        QVERIFY(retroarch::handheldLinkContentCompatible({},"f76a1a8f9292bd68c9330dc9f2721d9b516e03b5ecba1f19cf81d540f528d3bb"));
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        const auto write=[](const QString& p,const QByteArray& b){QFile f(p);return f.open(QIODevice::WriteOnly)&&f.write(b)==b.size();};
+        const auto read=[](const QString& p){QFile f(p);return f.open(QIODevice::ReadOnly)?f.readAll():QByteArray();};
+        AdventureRegistration r;r.adventure.platformId="gb";r.adventure.title="Independent battery cartridge";
+        r.contentPath=dir.filePath("game.gb");r.integrationConfig["core"]="gambatte";
+        QByteArray rom(32768,0);rom[0x147]=3;rom[0x149]=3;
+        for(int n=0x134;n<=0x14c;++n)rom[0x14d]=char(quint8(rom[0x14d])-quint8(rom[n])-1);
+        QVERIFY(write(r.contentPath,rom));
+        RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");i.runtimeFile=probe();
+        i.cores["sameboy"]=dir.filePath("core");i.linkedSavePython=probe();i.linkedSaveHelper=dir.filePath("helper.py");
+        QVERIFY(write(i.linkedSaveHelper,"test helper"));QVERIFY(write(i.cores["sameboy"],"old core"));
+        QVERIFY(write(i.configFile,("savefile_directory = \""+dir.path()+"\"\nauto_overrides_enable = \"false\"\n").toUtf8()));
+        QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+        QVERIFY(write(i.cores["sameboy"],"traineros-linked-pair-v1"));
+        const auto identity=retroarch::netplayIdentity(r,i,cancel);
+        QCOMPARE(identity["settings"].toString(),QString("sameboy-linked-pair-battery-v1"));
+        QCOMPARE(identity["saveBytes"].toInt(),32768);QVERIFY(!identity["lateJoin"].toBool(true));
+        const auto target=dir.filePath("game.srm");
+        for(int slot:{1,2})for(int scenario=0;scenario<6;++scenario) {
+            const QByteArray own(32768,'a'),peer(32768,'p'),changed(32768,'b');
+            QVERIFY(write(target,own));
+            if(scenario==5)QVERIFY(QFile::remove(target));
+            auto seed=retroarch::linkedSaveSeed(r,i);QVERIFY(seed.error.isEmpty());
+            retroarch::NetplayRequest n;n.expected=identity;n.localContent=identity["content"].toString();
+            n.host=slot==1;n.slot=slot;n.password="private";n.nickname="player";n.address="127.0.0.1";
+            n.ownSram=seed.bytes;n.ownSramExisted=seed.existed;if(n.host)n.peerSram=peer;
+            ProcessCommand cmd;cmd.arguments={"--libretro","ordinary",r.contentPath};
+            QVERIFY2(retroarch::prepareNetplay(cmd,r,i,n,cancel).isEmpty(),"prepare pair");
+            QVERIFY(!cmd.runtimeControls["temporaryProgress"].toBool());
+            QCOMPARE(cmd.arguments[cmd.arguments.indexOf("--sram-mode")+1],QString("load-save"));
+            const auto config=retroarch::readSettings(cmd.arguments[cmd.arguments.indexOf("--appendconfig")+1]);
+            const auto path=config["savefile_directory"],main=path+"/player-"+QString::number(slot)+".srm",guest=path+"/.netplay/player-"+QString::number(slot)+".srm";
+            QCOMPARE(read(main),seed.bytes);
+            QCOMPARE(retroarch::readSettings(config["core_options_path"])["sameboy_screen_layout"],QString("player %1 only").arg(slot));
+            QVERIFY(cmd.arguments.contains("gb_link_2p"));
+            // Only the assigned SRAM is eligible for return.
+            QVERIFY(write(path+"/player-"+QString::number(3-slot)+".srm",QByteArray(32768,'x')));
+            const auto other=scenario==3?QByteArray(32768,'c'):changed;
+            QVERIFY(write(main,changed));QVERIFY(write(guest,scenario==4?other.left(500):other));
+            if(scenario==2)QVERIFY(write(target,QByteArray(32768,'z')));
+            const ProcessOutcome outcome{true,scenario==1?9:0,scenario==1,false};
+            const auto error=cmd.finalize(outcome);
+            if(scenario==0||scenario==5) {QVERIFY2(error.isEmpty(),qPrintable(error));QCOMPARE(read(target),changed);}
+            else {QVERIFY(!error.isEmpty());QCOMPARE(read(target),scenario==2?QByteArray(32768,'z'):own);}
+            cmd.settled(outcome);QCOMPARE(QFileInfo::exists(path),!error.isEmpty());
+        }
+        QVERIFY(write(target,QByteArray(32768,'a')));
+        const auto seed=retroarch::linkedSaveSeed(r,i);
+        retroarch::NetplayRequest stale;stale.slot=1;stale.host=true;stale.ownSram=seed.bytes;stale.ownSramExisted=true;stale.peerSram=seed.bytes;
+        QVERIFY(write(target,QByteArray(32768,'c')));QDir().mkpath(dir.filePath("stale"));ProcessCommand cmd;
+        QVERIFY(!retroarch::prepareLinkedSave(cmd,r,i,dir.filePath("stale"),stale,cancel).isEmpty());
+        auto missing=i;missing.linkedSaveHelper.clear();QVERIFY(retroarch::netplayIdentity(r,missing,cancel).isEmpty());
+    }
     void linkedPairUsesExistingRollbackWithOwnScreenAndNoPersonalSaveAccess() {
         QTemporaryDir dir;std::atomic_bool cancel=false;
         const auto write=[](const QString& path,const QByteArray& bytes) {

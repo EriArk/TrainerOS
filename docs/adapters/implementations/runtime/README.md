@@ -61,3 +61,14 @@ exit. The Gen II SRAM/RTC intent must be recovered before exposing its files to
 an emulator. See [core maintenance](../../../emulators/doublecherrygb.md) and
 [handheld evidence](../../../HANDHELD_MULTIPLAYER.md); a copied adapter does not
 remove the receiving host's process/save ownership responsibilities.
+
+Generic battery GB/GBC pairs additionally include `LinkedSavePreparation` and its
+versioned Python helper recipe. The receiving host must bind preparation to an
+accepted two-member party, validate exact ROM/core/runtime/helper identity, stop
+the helper on cancellation, then wait for both SRAM preparation and the final
+RetroArch endpoint before launching. `ownSram`, `ownSramExisted` and host-only
+`peerSram` are private launch data, not logs or persisted UI state. Never bypass
+`prepareLinkedSave`'s preimage check or the assigned-slot finalizer. The helper
+uses Qt Core/QProcess; Online preparation requires the pinned external Python
+dependencies. See [SameBoy maintenance](../../../emulators/sameboy.md) for exact
+subsystem IDs, patch/build requirements, privacy and compatibility limits.

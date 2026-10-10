@@ -67,7 +67,7 @@ RetroArchInstallation RetroArchInstallation::fromJson(const QJsonObject& object)
         if (core.isFile() && core.isReadable()) result.cores.insert(route.core, path);
     }
     // Network-only companions; never replace ordinary Gambatte/mGBA routes.
-    for(const auto& name:{QString("gpsp"),QString("DoubleCherryGB")}) {
+    for(const auto& name:{QString("gpsp"),QString("DoubleCherryGB"),QString("sameboy")}) {
         const auto path=QDir(coresDirectory).absoluteFilePath(name+"_libretro.so");
         if(QFileInfo(path).isFile()&&QFileInfo(path).isReadable())result.cores.insert(name,path);
     }
@@ -81,6 +81,10 @@ RetroArchInstallation RetroArchInstallation::fromJson(const QJsonObject& object)
         }
     }
     result.saveBackups = object.value("backupProtocol").toString() == "mgba-sram-v1";
+    const QFileInfo python(object["linkedSavePython"].toString()), helper(object["linkedSaveHelper"].toString());
+    if(python.isAbsolute()&&python.isExecutable()&&helper.isAbsolute()&&helper.isFile()&&helper.isReadable()) {
+        result.linkedSavePython=python.absoluteFilePath();result.linkedSaveHelper=helper.absoluteFilePath();
+    }
     const auto firmware = object.value("discFirmware").toObject();
     for (const auto& platform : {QString("segacd"), QString("neogeocd")}) {
         result.discFirmware.insert(platform, firmware.value(platform).toObject());

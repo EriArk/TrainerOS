@@ -1,0 +1,199 @@
+--- a/libretro/libretro.c
++++ b/libretro/libretro.c
+@@ -68,7 +68,9 @@
+ 
+ enum screen_layout {
+     LAYOUT_TOP_DOWN,
+-    LAYOUT_LEFT_RIGHT
++    LAYOUT_LEFT_RIGHT,
++    LAYOUT_PLAYER_1,
++    LAYOUT_PLAYER_2
+ };
+ 
+ enum audio_out {
+@@ -145,8 +147,6 @@
+ {
+     uint16_t joypad_bits = 0;
+ 
+-    input_poll_cb();
+-
+     if (libretro_supports_bitmasks) {
+         joypad_bits = input_state_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
+     }
+@@ -285,6 +285,7 @@
+ }
+ 
+ static bool bit_to_send1 = true, bit_to_send2 = true;
++#define TRAINER_LINK_STATE_SIZE (2 + 2 * (4 * GB_KEY_MAX + 6))
+ 
+ static void serial_start1(GB_gameboy_t *gb, bool bit_received)
+ {
+@@ -689,7 +690,7 @@
+     GB_set_lcd_status_callback(&gameboy[0], lcd_status_change_1);
+     if (emulated_devices == 2) {
+         GB_set_vblank_callback(&gameboy[1], (GB_vblank_callback_t) vblank2);
+-        GB_set_lcd_status_callback(&gameboy[2], lcd_status_change_2);
++        GB_set_lcd_status_callback(&gameboy[1], lcd_status_change_2);
+         if (link_cable_emulation) {
+             set_link_cable_state(true);
+         }
+@@ -931,8 +932,14 @@
+             if (strcmp(var.value, "top-down") == 0) {
+                 screen_layout = LAYOUT_TOP_DOWN;
+             }
+-            else {
++            else if (strcmp(var.value, "left-right") == 0) {
+                 screen_layout = LAYOUT_LEFT_RIGHT;
++            }
++            else if (strcmp(var.value, "player 1 only") == 0) {
++                screen_layout = LAYOUT_PLAYER_1;
++            }
++            else if (strcmp(var.value, "player 2 only") == 0) {
++                screen_layout = LAYOUT_PLAYER_2;
+             }
+ 
+             geometry_updated = true;
+@@ -1305,7 +1312,13 @@
+     struct retro_system_timing timing = { GB_get_usual_frame_rate(&gameboy[0]), AUDIO_FREQUENCY };
+ 
+     if (emulated_devices == 2) {
+-        if (screen_layout == LAYOUT_TOP_DOWN) {
++        if (screen_layout == LAYOUT_PLAYER_1 || screen_layout == LAYOUT_PLAYER_2) {
++            unsigned own = screen_layout == LAYOUT_PLAYER_1 ? 0 : 1;
++            geom.base_width = GB_get_screen_width(&gameboy[own]);
++            geom.base_height = GB_get_screen_height(&gameboy[own]);
++            geom.aspect_ratio = (double)geom.base_width / geom.base_height;
++        }
++        else if (screen_layout == LAYOUT_TOP_DOWN) {
+             geom.base_width = GB_get_screen_width(&gameboy[0]);
+             geom.base_height = GB_get_screen_height(&gameboy[0]) * emulated_devices;
+             geom.aspect_ratio = (double)GB_get_screen_width(&gameboy[0]) / (emulated_devices * GB_get_screen_height(&gameboy[0]));
+@@ -1410,6 +1423,10 @@
+         check_variables();
+     }
+ 
++    /* Resolve one input frame before updating either machine. The frontend's
++       poll callback can receive/resolve remote inputs, so polling between the
++       machines would mix two input snapshots in one emulated frame. */
++    input_poll_cb();
+     if (emulated_devices == 2) {
+         GB_update_keys_status(&gameboy[0], 0);
+         GB_update_keys_status(&gameboy[1], 1);
+@@ -1440,7 +1457,13 @@
+     }
+ 
+     if (emulated_devices == 2) {
+-        if (screen_layout == LAYOUT_TOP_DOWN) {
++        if (screen_layout == LAYOUT_PLAYER_1 || screen_layout == LAYOUT_PLAYER_2) {
++            unsigned own = screen_layout == LAYOUT_PLAYER_1 ? 0 : 1;
++            unsigned offset = own ? GB_get_screen_width(&gameboy[0]) * GB_get_screen_height(&gameboy[0]) : 0;
++            video_cb(frame_buf + offset, GB_get_screen_width(&gameboy[own]),
++                     GB_get_screen_height(&gameboy[own]), GB_get_screen_width(&gameboy[own]) * sizeof(uint32_t));
++        }
++        else if (screen_layout == LAYOUT_TOP_DOWN) {
+             video_cb(frame_buf,
+                      GB_get_screen_width(&gameboy[0]),
+                      GB_get_screen_height(&gameboy[0]) * emulated_devices,
+@@ -1642,7 +1665,7 @@
+ {
+     static size_t maximum_save_size = 0;
+     if (maximum_save_size) {
+-        return maximum_save_size * 2;
++        return maximum_save_size * 2 + (emulated_devices == 2 ? TRAINER_LINK_STATE_SIZE : 0);
+     }
+ 
+     GB_gameboy_t temp;
+@@ -1659,17 +1682,39 @@
+     maximum_save_size = MAX(maximum_save_size, GB_get_save_state_size(&temp));
+     GB_free(&temp);
+ 
+-    return maximum_save_size * 2;
++    return maximum_save_size * 2 + (emulated_devices == 2 ? TRAINER_LINK_STATE_SIZE : 0);
+ }
+ 
+ bool retro_serialize(void *data, size_t size)
+ {
+ 
+-    if (!initialized || !data) {
++    if (!data || (emulated_devices == 1 && !initialized) ||
++        (emulated_devices == 2 && (!GB_is_inited(&gameboy[0]) || !GB_is_inited(&gameboy[1])))) {
+         return false;
+     }
+ 
++    /* The cable callbacks retain two in-flight bits outside GB_gameboy_t.
++       Rollback must restore them together with both machines. */
+     size_t offset = 0;
++    memset(data, 0, size);
++    if (emulated_devices == 2) {
++        if (size < TRAINER_LINK_STATE_SIZE) return false;
++        ((uint8_t *)data)[0] = bit_to_send1;
++        ((uint8_t *)data)[1] = bit_to_send2;
++        offset = 2;
++        /* Core save states omit the frontend key edges and pending CPU cycles.
++           Replaying delayed inputs must restore those too, before polling again. */
++        for (unsigned i = 0; i < 2; i++) {
++            for (unsigned player = 0; player < 4; player++)
++                for (unsigned key = 0; key < GB_KEY_MAX; key++)
++                    ((uint8_t *)data)[offset++] = gameboy[i].keys[player][key];
++            for (unsigned byte = 0; byte < 4; byte++)
++                ((uint8_t *)data)[offset++] = gameboy[i].pending_cycles >> (byte * 8);
++            ((uint8_t *)data)[offset++] = gameboy[i].joypad_is_stable;
++            ((uint8_t *)data)[offset++] = gameboy[i].joyp_accessed;
++        }
++    }
++    size -= offset;
+ 
+     for (int i = 0; i < emulated_devices; i++)  {
+         size_t state_size = GB_get_save_state_size(&gameboy[i]);
+@@ -1687,6 +1732,16 @@
+ 
+ bool retro_unserialize(const void *data, size_t size)
+ {
++    if (!data) return false;
++    const uint8_t *frontend = NULL;
++    if (emulated_devices == 2) {
++        if (size < TRAINER_LINK_STATE_SIZE) return false;
++        frontend = (const uint8_t *)data + 2;
++        bit_to_send1 = ((const uint8_t *)data)[0] != 0;
++        bit_to_send2 = ((const uint8_t *)data)[1] != 0;
++        data = (const uint8_t *)data + TRAINER_LINK_STATE_SIZE;
++        size -= TRAINER_LINK_STATE_SIZE;
++    }
+     for (int i = 0; i < emulated_devices; i++) {
+         size_t state_size = GB_get_save_state_size(&gameboy[i]);
+         if (state_size > size) {
+@@ -1697,6 +1752,16 @@
+             return false;
+         }
+ 
++        if (frontend) {
++            for (unsigned player = 0; player < 4; player++)
++                for (unsigned key = 0; key < GB_KEY_MAX; key++)
++                    gameboy[i].keys[player][key] = *frontend++ != 0;
++            gameboy[i].pending_cycles = 0;
++            for (unsigned byte = 0; byte < 4; byte++)
++                gameboy[i].pending_cycles |= (unsigned)*frontend++ << (byte * 8);
++            gameboy[i].joypad_is_stable = *frontend++ != 0;
++            gameboy[i].joyp_accessed = *frontend++ != 0;
++        }
+         size -= state_size;
+         data = ((uint8_t *)data) + state_size;
+     }
+--- a/libretro/libretro_core_options.h
++++ b/libretro/libretro_core_options.h
+@@ -294,12 +294,14 @@
+       "sameboy_screen_layout",
+       "System - Screen Layout",
+       "Screen Layout",
+-      "When emulating two systems at once, this option defines the respective position of the two screens.",
++      "When emulating two systems at once, select their layout or show only the assigned player (traineros-linked-pair-v1).",
+       NULL,
+       "system",
+       {
+          { "top-down",   "Top-Down"   },
+          { "left-right", "Left-Right" },
++         { "player 1 only", "Player 1 Only" },
++         { "player 2 only", "Player 2 Only" },
+          { NULL, NULL },
+       },
+       "top-down"

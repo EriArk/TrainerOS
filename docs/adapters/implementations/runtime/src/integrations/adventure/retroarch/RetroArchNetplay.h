@@ -15,6 +15,8 @@ struct NetplayRequest {
     int slot = 0; // Party-assigned controller; never inferred from arrival order.
     QJsonObject expected;
     QString localContent; // Own cartridge fingerprint for compatible-edition links.
+    QByteArray ownSram, peerSram; // Opaque batteries; no semantic save capability.
+    bool ownSramExisted = false;
 };
 QString netplayRelayEndpoint(const QByteArray& directoryResponse);
 // Reviewed platform/core pairs; shared-screen netplay is not a link cable.

@@ -35,6 +35,25 @@ class GamePartyTests : public QObject {
         }
     };
 private slots:
+    void linkedPreparationHasOneBoundFinalLaunchAndCannotBeReplayed() {
+        Room r(2);auto linked=game(2);linked["settings"]="sameboy-linked-pair-battery-v1";linked["lateJoin"]=false;
+        r.a.configure("a",{linked},linked,true);r.b.configure("b",{linked},{},true);
+        r.a.invite("b");r.b.answer(true);r.a.start();
+        QSignalSpy started(&r.b,&GameParty::startRequested),ready(&r.b,&GameParty::connectionReady);
+        QSignalSpy packets(&r.a,&GameParty::outgoing);
+        r.a.ready({{"kind","ready"},{"port",55435}});QCOMPARE(started.size(),0);
+        r.a.ready({{"kind","linked-prepare"},{"identity",linked},{"preparation",QJsonObject{{"code","private"}}}});
+        QCOMPARE(started.size(),1);QCOMPARE(started.first()[1].toJsonObject()["slot"].toInt(),2);
+        const auto initial=packets.last()[1].toJsonObject();
+        r.b.receive("a","a",initial);QCOMPARE(started.size(),1);
+        auto forged=initial;forged["endpoint"]=QJsonObject{{"kind","ready"}};
+        forged["boot"]="00000000-0000-4000-8000-000000000001";r.b.receive("a","a",forged);QCOMPARE(ready.size(),0);
+        forged=initial;forged["endpoint"]=QJsonObject{{"kind","ready"}};forged["slot"]=1;r.b.receive("a","a",forged);QCOMPARE(ready.size(),0);
+        r.a.ready({{"kind","ready"},{"identity",linked},{"port",55435}});
+        QCOMPARE(started.size(),1);QCOMPARE(ready.size(),1);
+        r.a.ready({{"kind","ready"},{"port",55435}});QCOMPARE(ready.size(),1);
+        r.b.reset();r.b.receive("a","a",initial);QCOMPARE(started.size(),1);QVERIFY(!r.b.active());
+    }
     void threePlayerPartyRejectsFourthAndReusesVacatedSeat() {
         Room r(3);
         r.a.invite("b");r.b.answer(true);r.a.invite("c");r.c.answer(true);

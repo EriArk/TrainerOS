@@ -137,6 +137,7 @@ add_library(trainer_core STATIC
     src/integrations/adventure/retroarch/RetroArchAdapter.cpp
     src/integrations/adventure/retroarch/RetroArchNetplay.cpp
     src/integrations/adventure/retroarch/RetroArchHandheldLink.cpp
+    src/integrations/adventure/retroarch/LinkedSavePreparation.cpp
     src/integrations/adventure/retroarch/RetroArchNetplayClient.cpp
     src/features/adventure/RuntimeMultiplayer.cpp
     src/features/adventure/RuntimeInvocation.cpp

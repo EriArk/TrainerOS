@@ -8,6 +8,7 @@
 #include <QSaveFile>
 #include <QDateTime>
 #include <QUuid>
+#include <QCryptographicHash>
 
 namespace trainer::retroarch {
 QJsonObject handheldLinkProfile(const AdventureRegistration& r) {
@@ -33,18 +34,29 @@ QJsonObject handheldLinkProfile(const AdventureRegistration& r) {
         mode="cable";
         if(family.isEmpty()) {
             // Upstream's ordinary rollback runs two genuinely linked machines.
-            // Its single-content memory API exports only machine one's battery,
-            // so use this path only for cartridges without persistent storage.
+            // Battery pairs use SameBoy's existing subsystem SRAM API and
+            // authenticated preparation, checked by netplayIdentity.
             // Select by cartridge hardware, never by the game's name or series.
             const auto type=quint8(h[0x147]),size=quint8(h[0x148]);
             const QList<quint8> volatileCartridges{0x00,0x01,0x02,0x05,0x08,0x11,0x12,0x19,0x1a,0x1c,0x1d};
             quint8 checksum=0;
             for(int n=0x134;n<=0x14c;++n)checksum=quint8(checksum-quint8(h[n])-1);
-            if(volatileCartridges.contains(type)&&size<=8&&f.size()==(qint64(32768)<<size)&&
-               checksum==quint8(h[0x14d]))
-                return {{"id","runtime.retroarch."+r.adventure.platformId+".DoubleCherryGB.v1"},
+            const auto ram=quint8(h[0x149]);
+            const bool battery=(type==0x03||type==0x09||type==0x13||type==0x1b||type==0x1e)&&
+                ram>=2&&ram<=5&&((type==0x03||type==0x13)?ram<=3:type==0x09?ram==2:type==0x1e?ram!=4:true);
+            if((volatileCartridges.contains(type)||battery)&&size<=8&&f.size()==(qint64(32768)<<size)&&
+               checksum==quint8(h[0x14d])) {
+                auto result=QJsonObject {{"id","runtime.retroarch."+r.adventure.platformId+".DoubleCherryGB.v1"},
                     {"label",r.adventure.title.left(96)},{"settings","dcgb-linked-pair-volatile-v1"},
                     {"players",2},{"transport","rollback"}};
+                if(battery) {
+                    result["id"]="runtime.retroarch."+r.adventure.platformId+".SameBoy.v1";
+                    result["settings"]="sameboy-linked-pair-battery-v1";
+                    result["saveBytes"]=ram==2?8192:ram==3?32768:ram==4?131072:65536;
+                    result["lateJoin"]=false;
+                }
+                return result;
+            }
         }
     }
     if(family.isEmpty())return {};
@@ -52,12 +64,24 @@ QJsonObject handheldLinkProfile(const AdventureRegistration& r) {
         {"settings",mode+"-own-save-v1"},{"players",players},{"transport","netpacket"}};
 }
 QString handheldLinkCore(const QJsonObject& p) {
+    if(p["transport"]=="rollback"&&p["settings"]=="sameboy-linked-pair-battery-v1")return "sameboy";
     if(p["transport"]=="rollback"&&p["settings"]=="dcgb-linked-pair-volatile-v1")return "DoubleCherryGB";
     if(p["transport"]!="netpacket")return {};
     return p["id"].toString().startsWith("runtime.handheld.gba-")?"gpsp":"DoubleCherryGB";
 }
+bool handheldLinkContentCompatible(const QJsonObject& p,const QString& sha256) {
+    // This exact Hnefatafl build stalls its cable handshake in the pinned
+    // SameBoy pair even locally. Do not advertise a known failed combination.
+    // This is a negative compatibility exception, not a title-based allowlist.
+    return p["settings"]!="sameboy-linked-pair-battery-v1"||
+        sha256!="f76a1a8f9292bd68c9330dc9f2721d9b516e03b5ecba1f19cf81d540f528d3bb";
+}
 QByteArray handheldLinkOptions(const QJsonObject& p,int playerSlot) {
     if(p["transport"]=="rollback") {
+        if(handheldLinkCore(p)=="sameboy"&&(playerSlot==1||playerSlot==2))
+            return "sameboy_link = \"enabled\"\nsameboy_screen_layout = \"player "+QByteArray::number(playerSlot)+" only\"\n"
+                "sameboy_audio_output = \"Game Boy #"+QByteArray::number(playerSlot)+"\"\n"
+                "sameboy_model_1 = \"Auto\"\nsameboy_model_2 = \"Auto\"\n";
         if(handheldLinkCore(p)!="DoubleCherryGB"||(playerSlot!=1&&playerSlot!=2))return {};
         return "dcgb_emulated_gameboys = \"2\"\ndcgb_gblink_enable = \"enabled\"\n"
             "dcgb_single_screen_mp = \"player "+QByteArray::number(playerSlot)+" only\"\n"
@@ -98,6 +122,66 @@ QString recoverHandheldReturn(const AdventureRegistration& r,const RetroArchInst
     if(r.adventure.platformId!="gb"&&r.adventure.platformId!="gbc")return {};
     const auto target=gbSaveTarget(r,i);
     return target.isEmpty()?QString():handheld::recoverPair(target);
+}
+LinkedSaveSeed linkedSaveSeed(const AdventureRegistration& r,const RetroArchInstallation& i) {
+    const auto profile=handheldLinkProfile(r);
+    const int size=profile["saveBytes"].toInt();
+    const auto target=gbSaveTarget(r,i);
+    if(profile["settings"]!="sameboy-linked-pair-battery-v1"||size<8192||size>131072||
+       target.isEmpty()||!safePath(target)||QFileInfo(target).isSymLink())
+        return {{},false,"Couldn't locate a compatible game save."};
+    const auto error=handheld::recoverPair(target);
+    if(!error.isEmpty())return {{},false,error};
+    const bool existed=QFileInfo::exists(target);
+    const auto bytes=existed?read(target):QByteArray(size,char(0xff));
+    if(bytes.size()!=size)return {{},existed,"This game's save format needs to be checked."};
+    return {bytes,existed,{}};
+}
+QString prepareLinkedSave(ProcessCommand& cmd,const AdventureRegistration& r,const RetroArchInstallation& i,
+        const QString& directory,const NetplayRequest& request,const std::atomic_bool& cancel) {
+    const auto seed=linkedSaveSeed(r,i);
+    if(!seed.error.isEmpty())return seed.error;
+    const int size=seed.bytes.size(),slot=request.slot;
+    if(seed.bytes!=request.ownSram||seed.existed!=request.ownSramExisted)
+        return "Your save changed. Invite your friend again.";
+    if((slot!=1&&slot!=2)||request.host!=(slot==1)||
+       (request.host&&request.peerSram.size()!=size)||(!request.host&&!request.peerSram.isEmpty()))
+        return "Couldn't prepare the two players' saves.";
+    const auto ownerDirectory=QDir(directory).filePath("owner");
+    if(!QDir().mkpath(ownerDirectory))return "Couldn't prepare your game save.";
+    const auto error=prepareHandheldSave(cmd,r,i,ownerDirectory,cancel);
+    if(!error.isEmpty())return error;
+    const auto name=QFileInfo(r.contentPath).completeBaseName()+".srm";
+    QFile rom(r.contentPath);
+    if(!rom.open(QIODevice::ReadOnly)||rom.size()>8*1024*1024)return "Couldn't read the linked game.";
+    const auto content=rom.readAll();
+    if(QString::fromLatin1(QCryptographicHash::hash(content,QCryptographicHash::Sha256).toHex())!=request.expected["content"].toString())
+        return "Your game changed. Invite your friend again.";
+    if(!QDir().mkpath(QDir(directory).filePath(".netplay")))return "Couldn't prepare the linked game.";
+    // The upstream subsystem gives each cartridge its own standard SRAM API.
+    // Distinct private ROM basenames prevent frontend save-name collisions.
+    for(int player:{1,2}) {
+        const auto stem="player-"+QString::number(player);
+        const auto bytes=player==slot?seed.bytes:request.host?request.peerSram:QByteArray(size,char(0xff));
+        if(!write(QDir(directory).filePath(stem+".gb"),content)||
+           !write(QDir(directory).filePath(stem+".srm"),bytes)||
+           !write(QDir(directory).filePath(".netplay/"+stem+".srm"),bytes))return "Couldn't prepare the linked game.";
+    }
+    const auto stem="player-"+QString::number(slot);
+    const auto staged=QDir(directory).filePath(stem+".srm"),guest=QDir(directory).filePath(".netplay/"+stem+".srm");
+    const auto previous=cmd.finalize;
+    cmd.finalize=[previous,staged,guest,ownerDirectory,name,size,before=seed.bytes](const ProcessOutcome& outcome)->QString {
+        if(!outcome.started)return previous?previous(outcome):QString();
+        auto own=read(staged);const auto other=read(guest);
+        if(own.size()!=size||other.size()!=size)
+            return "Couldn't read the linked saves. Your original save and session folder were kept.";
+        if(own!=before&&other!=before&&own!=other)
+            return "Two different saves were kept in the session folder. Your original save was kept.";
+        if(other!=before)own=other;
+        if(!write(QDir(ownerDirectory).filePath(name),own))return "Couldn't keep your multiplayer save.";
+        return previous?previous(outcome):QString();
+    };
+    return {};
 }
 QString prepareHandheldSave(ProcessCommand& cmd,const AdventureRegistration& r,
         const RetroArchInstallation& i,const QString& directory,const std::atomic_bool& cancel) {

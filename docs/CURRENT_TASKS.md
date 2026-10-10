@@ -33,6 +33,17 @@ next missing capability; retain the existing per-core mechanisms and all earlier
 transaction/network acceptance. [Evidence](HANDHELD_MULTIPLAYER.md) does not mark
 MP-02 complete. Reuse existing solutions throughout the remaining emulator queue.
 
+**MP-02 battery-pair delivery, 10 October 2026:** supported generic GB/GBC battery
+cartridges now use SameBoy's native linked subsystem and RetroArch rollback/relay,
+with automatic opaque SRAM preparation after invitation consent. From Below
+Pocket completed a two-device match through the ordinary UI, then both assigned
+saves returned and were read back in ordinary Gambatte. Original preimage backup
+and separate player settings were verified. [Evidence and boundaries](HANDHELD_MULTIPLAYER.md)
+supersede the preceding battery-integration gap, not the rest of MP-02. Generic GBA
+and retained transaction, capacity, distinct-network and physical acceptance stay
+open. Known failed Hnefatafl ROM/core compatibility is excluded, not generalized
+into a franchise whitelist. Reuse existing solutions throughout the emulator queue.
+
 **UX-02 implementation delivered, 9 October 2026:** adaptive Home/game slots,
 universal profile, Options/Select, live Game Options/minimize, contextual Together
 and passive shell notifications/shared inbox are installed and running on Flip/Odin.

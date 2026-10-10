@@ -3,6 +3,7 @@
 #include "GameParty.h"
 #include "integrations/adventure/retroarch/RetroArchNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchNetplayClient.h"
+#include "integrations/adventure/retroarch/LinkedSavePreparation.h"
 #include "integrations/adventure/standalone/PpssppNetplay.h"
 #include "integrations/adventure/standalone/DolphinNetplay.h"
 #include "platform/network/LocalLinkPeer.h"
@@ -56,6 +57,8 @@ private:
     void frame(const QJsonObject&);
     void send(QJsonObject);
     void launch();
+    void prepareLinked(const QJsonObject& endpoint = {});
+    bool linked() const { return descriptor_["settings"]=="sameboy-linked-pair-battery-v1"; }
     void fail(QString);
     void pollRelay();
     void output(const QByteArray&);
@@ -75,6 +78,9 @@ private:
     QStringList onlineGames_;
     retroarch::NetplayRequest request_;
     retroarch::NetplayClient client_{this};
+    retroarch::LinkedSavePreparation linkedSave_{this};
+    bool linkedPreparing_=false,linkedPrepared_=false;
+    QJsonObject linkedEndpoint_;
     RetroArchInstallation installation_;
     bool allowed_=false,online_=false,host_=false,active_=false,restarting_=false,launchPending_=false,query_=false,relaySent_=false;
     qint64 deadline_=0;quint64 scanRevision_=0,sessionGeneration_=0;

@@ -81,6 +81,7 @@ for relative in ("src/integrations/adventure/standalone/DolphinNetplay.cpp",
                  "src/integrations/adventure/standalone/PpssppNetplay.cpp",
                  "src/integrations/adventure/retroarch/RetroArchNetplay.cpp",
                  "src/integrations/adventure/retroarch/RetroArchHandheldLink.cpp",
+                 "src/integrations/adventure/retroarch/LinkedSavePreparation.cpp",
                  "src/integrations/adventure/retroarch/RetroArchSaveTarget.cpp",
                  "src/integrations/adventure/retroarch/RetroArchDisc.cpp",
                  "src/integrations/adventure/retroarch/RetroArchConfiguration.cpp"):

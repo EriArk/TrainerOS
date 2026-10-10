@@ -24,10 +24,15 @@
     "save-prompt-time-budget-and-cancelled-launch-regressions",
     "upstream-linked-pair-rollback-reuse",
     "volatile-cartridge-header-and-save-isolation-regressions",
-    "into-the-blue-online-invitation-paired-gameplay-both-devices"
+    "into-the-blue-online-invitation-paired-gameplay-both-devices",
+    "sameboy-native-two-sram-subsystem",
+    "frontend-serial-input-rollback-regression",
+    "automatic-opaque-sram-preparation-online-nearby",
+    "frombelow-paired-match-win-loss",
+    "frombelow-own-slot-return-gambatte-readback-both-devices"
   ],
   "remaining": [
-    "generic-independent-battery-save-link",
+    "wider-battery-mapper-and-special-hardware-compatibility",
     "generic-gba-link",
     "gen2-tcg-cable-transactions",
     "gba-battle-cross-edition",
@@ -36,7 +41,7 @@
     "four-clients"
   ],
   "persistentSaveWrites": true,
-  "savePolicy": "Isolated own SRAM; protected normal-exit return with preimage backup. Gen II uses the patched Gambatte-compatible eight-byte RTC bridge and a recoverable two-file intent. Conflicts or crash retain original files and recovery copies; unrelated RTC remains untouched. The generic two-machine rollback route accepts only non-battery cartridges and never imports or returns personal SRAM/RTC.",
+  "savePolicy": "Isolated own SRAM; protected normal-exit return with preimage backup. Gen II uses the patched Gambatte-compatible eight-byte RTC bridge and a recoverable two-file intent. Conflicts or crash retain original files and recovery copies; unrelated RTC remains untouched. The DoubleCherryGB generic volatile-pair route accepts only non-battery cartridges and never imports or returns personal SRAM/RTC. Generic supported battery cartridges use the patched SameBoy subsystem, authenticated opaque guest SRAM preparation and host state replication; only the assigned local SRAM returns with the same preimage/conflict/crash protection. Existing volatile profiles remain no-save; generic RTC and special cartridges remain excluded.",
   "implementation": "implementations/runtime",
   "profile": "implementations/runtime/profiles/runtime.handheld.json",
   "evidenceBase": "../../../"
