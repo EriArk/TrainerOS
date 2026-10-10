@@ -6,7 +6,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 
-HELPERS = ('overlay_support.py', 'adventure-overlay.py', 'controller-bridge.py', 'grant-input-read.py')
+HELPERS = ('overlay_support.py', 'adventure-overlay.py', 'invitation-overlay.py', 'controller-bridge.py', 'grant-input-read.py')
 LEGACY_BRIDGE = 'e6dc58795a67b789aabe546b5d20952c10a971c071a496b2c56b81f9c587c210'
 
 

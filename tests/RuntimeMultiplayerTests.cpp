@@ -68,7 +68,81 @@ class RuntimeMultiplayerTests final : public QObject {
         f.runtime.prepareHost();
         QCOMPARE(f.lifecycle.exitController().phase(),AdventureExitController::Phase::Confirming);
     }
+    QJsonObject inviteWhilePlaying(Fixture& f,GameParty& host) {
+        const QJsonObject game{{"id","runtime.test"},{"label","Another game"},{"content","exact"},{"players",2}};
+        f.runtime.allowed_=true;f.runtime.games_={{"ordinary",game}};f.runtime.update();
+        host.configure("host",{game},game,true);
+        connect(&host,&GameParty::outgoing,&f.runtime,[&f](QString,QJsonObject packet){f.runtime.party_.receive("host","host",packet);});
+        connect(&f.runtime.party_,&GameParty::outgoing,&host,[&host](QString,QJsonObject packet){host.receive("guest","guest",packet);});
+        host.invite("guest");return game;
+    }
+    void readyMenu(Fixture& f) {
+        f.lifecycle.exitController().setAvailable(true);QVERIFY(f.view.requestMenu());
+        f.view.setInputIsolated(true);f.view.setWindowFocused(true);
+        f.view.updateInput(f.view.inputGeneration(),{true,true});QVERIFY(f.view.ready());
+    }
+    void finishOrdinary(Fixture& f) {
+        QFile stop(f.dir.filePath("control"));QVERIFY(stop.open(QIODevice::WriteOnly));stop.write("exit");stop.close();
+        QTRY_VERIFY(!f.lifecycle.active());
+    }
 private slots:
+    void pendingInvitationSurvivesUnrelatedGameExitAndCanBeCollapsed() {
+        Fixture f;GameParty host;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        inviteWhilePlaying(f,host);const auto request=f.runtime.invitationId();QVERIFY(!request.isEmpty());
+        QVERIFY(f.runtime.invitationBadge());const auto pid=f.process.processId();
+        readyMenu(f);f.runtime.openInvitation(request);
+        QCOMPARE(f.view.panel(),"multiplayer-request");
+        f.runtime.action("multiplayer-later:"+request);
+        QVERIFY(!f.view.visible());QCOMPARE(f.process.processId(),pid);QCOMPARE(f.runtime.invitationId(),request);
+        finishOrdinary(f);QCOMPARE(f.runtime.invitationId(),request);QVERIFY(f.runtime.invitationBadge());
+        f.runtime.openInvitation(request);QVERIFY(f.social.runtimeSurfaceOpen());
+        f.runtime.answer(false);QVERIFY(f.runtime.invitationId().isEmpty());
+    }
+    void acceptingPlayingGuestWaitsForCleanExitBeforeSendingConsent_data() {
+        QTest::addColumn<bool>("failure");QTest::newRow("clean")<<false;QTest::newRow("save-failure")<<true;
+    }
+    void acceptingPlayingGuestWaitsForCleanExitBeforeSendingConsent() {
+        QFETCH(bool,failure);Fixture f;GameParty host;QVERIFY(f.start(failure));QTRY_COMPARE(f.lifecycle.state(),"running");
+        inviteWhilePlaying(f,host);const auto request=f.runtime.invitationId();readyMenu(f);
+        int accepted=0;bool acceptedWhileRunning=false;
+        connect(&f.runtime.party_,&GameParty::outgoing,&host,[&](QString,QJsonObject packet){
+            if(packet["kind"]=="accept"){++accepted;acceptedWhileRunning|=f.process.active()||f.lifecycle.active();}
+        });
+        f.runtime.answer(true);QCOMPARE(accepted,0);QTRY_VERIFY(!f.lifecycle.active());
+        if(!failure)QTRY_COMPARE(accepted,1);else {QCoreApplication::processEvents();QCOMPARE(accepted,0);QCOMPARE(f.runtime.invitationId(),request);}
+        QVERIFY(!acceptedWhileRunning);QVERIFY(f.runtime.exitingInvitation_.isEmpty());
+    }
+    void cancelledInvitationDuringCaptureKeepsTheGameAndCannotAcceptReplacement() {
+        Fixture f;GameParty host;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        inviteWhilePlaying(f,host);const auto request=f.runtime.invitationId();readyMenu(f);
+        disconnect(&f.lifecycle.exitController(),&AdventureExitController::captureRequested,&f.view,nullptr);
+        f.runtime.answer(true);QCOMPARE(f.lifecycle.exitController().phase(),AdventureExitController::Phase::Capturing);
+        host.cancelInvite("guest");QVERIFY(f.runtime.exitingInvitation_.isEmpty());
+        QCOMPARE(f.lifecycle.exitController().phase(),AdventureExitController::Phase::Idle);QVERIFY(f.process.active());
+        host.invite("guest");QVERIFY(request!=f.runtime.invitationId());
+        f.runtime.action("multiplayer-accept:"+request);QVERIFY(f.runtime.exitingInvitation_.isEmpty());
+        QVERIFY(!f.runtime.party_.active());finishOrdinary(f);
+    }
+    void locallySupportedNativeJoinRetainsTheRunningGame() {
+        Fixture f;GameParty host;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        const auto game=inviteWhilePlaying(f,host);const auto pid=f.process.processId();int joined=0;
+        f.runtime.runningJoin.available=[&](QString id,QJsonObject profile){return id=="ordinary"&&profile==game;};
+        f.runtime.runningJoin.join=[&](QString id,QJsonObject profile,QJsonObject endpoint){
+            ++joined;return id=="ordinary"&&profile==game&&endpoint["kind"]=="native-ready";
+        };
+        QSignalSpy closes(&f.lifecycle.exitController(),&AdventureExitController::captureRequested);
+        f.runtime.answer(true);QVERIFY(f.runtime.party_.active());host.start();
+        host.ready({{"kind","native-ready"},{"identity",game}});
+        QCOMPARE(joined,1);QCOMPARE(f.process.processId(),pid);QVERIFY(closes.isEmpty());finishOrdinary(f);
+    }
+    void remoteNativeHintCannotBypassExitOrAuthorizeAnotherRunningGame() {
+        Fixture f;GameParty host;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        auto game=inviteWhilePlaying(f,host);QVERIFY(!f.runtime.canJoinRunning(game));
+        f.runtime.runningJoin.available=[](QString,QJsonObject){return true;};
+        f.runtime.runningJoin.join=[](QString,QJsonObject,QJsonObject){return true;};
+        auto other=game;other["content"]="different";other["joinInPlace"]=true;
+        QVERIFY(!f.runtime.canJoinRunning(other));finishOrdinary(f);
+    }
     void linkedFinalEndpointWaitsForOwnSeedAndCancellationClearsIt_data() {
         QTest::addColumn<QString>("mode");
         QTest::newRow("gb")<<QString("sameboy-linked-pair-battery-v1");

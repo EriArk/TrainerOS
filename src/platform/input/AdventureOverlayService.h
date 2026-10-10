@@ -19,6 +19,7 @@ public:
     bool canMinimize() const { return active_ && protocol_>=3 && exit_.available(); }
     void minimize();
     void returnToGame(bool options = false);
+    void openOptions();
 signals:
     void shellRequested();
     void gameRequested();

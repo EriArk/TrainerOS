@@ -35,6 +35,22 @@ class GamePartyTests : public QObject {
         }
     };
 private slots:
+    void invitedGuestHasBoundedTimeToSaveWithoutExtendingPacketReplay() {
+        Room r;QJsonObject packet;
+        connect(&r.a,&GameParty::outgoing,&r.a,[&](QString,QJsonObject value){if(value["kind"]=="invite")packet=value;});
+        r.a.invite("b");const auto now=QDateTime::currentSecsSinceEpoch();
+        QVERIFY(r.a.members_["b"].expires>=now+295);QVERIFY(r.b.requests_.first().expires>=now+295);
+        QVERIFY(packet["expires"].toInteger()<=now+90);QCOMPARE(packet["waitSeconds"].toInt(),300);
+        r.a.cancelInvite("b");QVERIFY(r.b.pending().isEmpty());
+        // An old host has no waitSeconds extension. A hostile value cannot
+        // reserve an unbounded time, and an expired envelope is never revived.
+        r.a.invite("b");r.b.requests_.clear();r.b.seen_.clear();packet.remove("waitSeconds");
+        r.b.receive("a","a",packet);QVERIFY(r.b.requests_.first().expires<=now+61);
+        r.b.requests_.clear();r.b.seen_.clear();packet["waitSeconds"]=99999;
+        r.b.receive("a","a",packet);QVERIFY(r.b.requests_.first().expires<=now+301);
+        r.b.requests_.clear();r.b.seen_.clear();packet["expires"]=now-1;
+        r.b.receive("a","a",packet);QVERIFY(r.b.pending().isEmpty());
+    }
     void linkedPreparationHasOneBoundFinalLaunchAndCannotBeReplayed_data() {
         QTest::addColumn<QString>("mode");
         QTest::newRow("gb")<<QString("sameboy-linked-pair-battery-v1");

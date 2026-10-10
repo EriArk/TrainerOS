@@ -21,6 +21,8 @@ class RuntimeMultiplayer final : public QObject {
     Q_PROPERTY(QVariantMap party READ party NOTIFY changed)
     Q_PROPERTY(bool incoming READ incoming NOTIFY changed)
     Q_PROPERTY(QString invitation READ invitation NOTIFY changed)
+    Q_PROPERTY(QString invitationId READ invitationId NOTIFY changed)
+    Q_PROPERTY(bool invitationBadge READ invitationBadge NOTIFY changed)
     Q_PROPERTY(QStringList onlineGames READ onlineGames NOTIFY availabilityChanged)
 public:
     RuntimeMultiplayer(LibraryRepository&, RetroArchAdapter&, StandaloneAdapter&, StandaloneAdapter&, SocialController&,
@@ -33,6 +35,9 @@ public:
     QStringList onlineGames() const { return onlineGames_; }
     bool incoming() const;
     QString invitation() const;
+    QString invitationId() const { return party_.pending()["request"].toString(); }
+    bool invitationBadge() const;
+    Q_INVOKABLE void openInvitation(const QString& request);
     Q_INVOKABLE void answer(bool accept);
     bool dispatch(Action);
     bool action(const QString&, bool fromSocial=false);
@@ -40,8 +45,16 @@ public:
     bool contextAction(const QString&);
     void resumeLiveInvocation();
     void cancelInvocation() { liveInvocation_=false;++invocationGeneration_; }
+    // Optional trusted runtime integration. Both checks are LOCAL capabilities;
+    // a peer descriptor or matching title never grants an in-place join.
+    struct RunningJoin {
+        std::function<bool(const QString&,const QJsonObject&)> available;
+        std::function<bool(const QString&,const QJsonObject&,const QJsonObject&)> join;
+    } runningJoin;
 signals:
     void liveOptionsRequested();
+    void invitationOptionsRequested();
+    void invitationSurfaceRequested();
     void changed();
     void availabilityChanged();
     void notice(QString text);
@@ -102,5 +115,12 @@ private:
     int invocationRevision_=0;
     QJsonObject invocationDescriptor_;
     void showInvocation();
+    void resumeInvitation();
+    void cancelInvitationExit();
+    bool canJoinRunning(const QJsonObject&) const;
+    QString openingInvitation_, exitingInvitation_;
+    quint64 invitationAccount_ = 0;
+    qint64 invitationProcess_ = 0;
+    QTimer invitationOpenTimer_{this};
 };
 }

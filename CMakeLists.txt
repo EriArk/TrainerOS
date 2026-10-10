@@ -61,6 +61,8 @@ add_library(trainer_core STATIC
     src/core/storage/SqliteExitMedia.cpp
     src/platform/input/AdventureOverlayService.h
     src/platform/input/AdventureOverlayService.cpp
+    src/platform/input/InvitationOverlayService.h
+    src/platform/input/InvitationOverlayService.cpp
     src/features/adventure/AdventureExitPresentation.h
     src/features/adventure/AdventureExitPresentation.cpp
     src/features/home/BadgeAssets.h
@@ -282,6 +284,7 @@ qt_add_qml_module(traineros
         src/qml/TrainerAccessPanel.qml
         src/qml/Main.qml
         src/qml/AdventureExitWindow.qml
+        src/qml/InvitationBadge.qml
         src/qml/HomeMenuCard.qml
         src/qml/Theme.qml
         src/qml/Panel.qml

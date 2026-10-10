@@ -28,6 +28,7 @@
 #include "features/adventure/AdventureExitPresentation.h"
 #include "integrations/adventure/retroarch/RetroArchAppearance.h"
 #include "platform/input/AdventureOverlayService.h"
+#include "platform/input/InvitationOverlayService.h"
 #include "features/home/PlayHistoryController.h"
 #include "features/home/ExitImage.h"
 #include "adapters/pokemon/pokedex/ClassicArt.h"
@@ -437,10 +438,14 @@ int main(int argc, char* argv[]) {
             return adventureLaunch.active()?QString("Exit the running game before changing game storage."):storageApply(root);
         };
         AdventureExitPresentation exitPresentation(adventureLaunch.exitController());
+        InvitationOverlayService invitationOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
+        QObject::connect(&adventureProcess,&ProcessService::started,&invitationOverlay,[&]{invitationOverlay.setGame(adventureProcess.processId());});
+        QObject::connect(&adventureProcess,&ProcessService::finished,&invitationOverlay,[&]{invitationOverlay.setGame(0);});
         std::unique_ptr<AdventureOverlayService> adventureOverlay;
         QString pendingNotification;
         if(saveBackups)saveBackups->operationGuard=[&]{return adventureLaunch.active()?QString("Exit the running game before changing saves."):QString();};
         RuntimeMultiplayer multiplayer(activeLibrary,retroarch,ppsspp,dolphin,*shell.social(),adventureProcess,adventureLaunch,exitPresentation);
+        QObject::connect(&multiplayer,&RuntimeMultiplayer::invitationSurfaceRequested,&shell,[&]{shell.goToPage(4);});
         shell.libraryTools()->multiplayerAvailable=[&](const QString& id){return multiplayer.onlineGames().contains(id);};
         QObject::connect(&shell,&ShellController::togetherRequested,&multiplayer,[&](const QString& game){shell.goToPage(4);multiplayer.beginTogether(game);});
         QObject::connect(shell.social(),&SocialController::runtimeAction,&multiplayer,[&](const QString& action){multiplayer.contextAction(action);});
@@ -473,7 +478,7 @@ int main(int argc, char* argv[]) {
             actions.prepend(QVariantMap{{"id","minimize"},{"label","Minimize"},
                 {"detail",adventureOverlay && adventureOverlay->canMinimize()?"Browse TrainerOS · game keeps running":"Safe input handoff is unavailable"},
                 {"readOnly",!(adventureOverlay && adventureOverlay->canMinimize())}});
-            if(multiplayer.canInvite())actions.prepend(QVariantMap{{"id","multiplayer"},{"label",multiplayer.menuLabel()}});
+            if(multiplayer.canInvite()||!multiplayer.invitationId().isEmpty())actions.prepend(QVariantMap{{"id","multiplayer"},{"label",multiplayer.menuLabel()}});
             if(adventureProcess.runtimeControls()["kind"]=="retroarch")actions.append(QVariantMap{{"id","display"},{"label","Screen & graphics"}});
             if(!shell.social()->account()["voice"].toMap()["channel"].toString().isEmpty())actions.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",shell.social()->account()["voice"].toMap()["name"]}});
             actions=shell.social()->incomingCallActions()+actions;
@@ -494,9 +499,8 @@ int main(int argc, char* argv[]) {
         QObject::connect(&adventureLaunch,&AdventureLaunchController::adventureStarted,&exitPresentation,gameMenuActions);
         QObject::connect(&exitPresentation,&AdventureExitPresentation::changed,&exitPresentation,[&]{if(exitPresentation.menuOpen()&&exitPresentation.panel().isEmpty())gameMenuActions();});
         QObject::connect(&exitPresentation,&AdventureExitPresentation::changed,&multiplayer,&RuntimeMultiplayer::resumeLiveInvocation);
-        // The current compositor has no accepted non-focusing passive overlay.
-        // Retain events in the shared inbox. Emulator SHOW_MSG cannot participate
-        // in our clean-capture barrier and must not leak previews into history.
+        // Other notifications retain the inbox route. The invitation badge is
+        // hidden during both preview and explicit-exit capture barriers.
         QObject::connect(&exitPresentation,&AdventureExitPresentation::menuActionRequested,&exitPresentation,[&](const QString& action){
             if(shell.invokeLiveExperienceAction(action,adventureLaunch.adventureId(),liveExperienceSession()))return;
             if(action=="minimize"){if(adventureOverlay)adventureOverlay->minimize();return;}
@@ -802,6 +806,7 @@ int main(int argc, char* argv[]) {
         engine.rootContext()->setContextProperty("adventureLaunch", &adventureLaunch);
         engine.rootContext()->setContextProperty("adventureExitPresentation", &exitPresentation);
         engine.rootContext()->setContextProperty("runtimeMultiplayer", &multiplayer);
+        engine.rootContext()->setContextProperty("invitationOverlay", &invitationOverlay);
         engine.rootContext()->setContextProperty("powerStatus", &powerStatus);
         engine.load(QUrl("qrc:/TrainerOS/Main.qml"));
         if (engine.rootObjects().isEmpty()) result = 2;
@@ -897,6 +902,7 @@ int main(int argc, char* argv[]) {
                     if(adventureLaunch.minimized())adventureLaunch.updateReturnContext(shell.navigationState());
                 });
                 if(adventureOverlay) {
+                    QObject::connect(&multiplayer,&RuntimeMultiplayer::invitationOptionsRequested,adventureOverlay.get(),&AdventureOverlayService::openOptions);
                     QObject::connect(&multiplayer,&RuntimeMultiplayer::liveOptionsRequested,adventureOverlay.get(),[&]{
                         if(shell.runtimeChangeBlocked() || !adventureOverlay->canMinimize()){multiplayer.cancelInvocation();shell.showNotice("Game controls are temporarily unavailable.");return;}
                         adventureOverlay->returnToGame(true);

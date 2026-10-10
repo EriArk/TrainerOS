@@ -7,6 +7,30 @@ using namespace trainer;
 class AdventureOverlayServiceTests final : public QObject {
     Q_OBJECT
 private slots:
+    void deliberateInvitationTapOpensOwnedGameOptionsWithoutClosingGame() {
+        QTemporaryDir directory;const auto helper=directory.filePath("helper.py"),control=directory.filePath("control");
+        QFile file(helper);QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(R"PY(import json,sys
+def emit(event,**data):print(json.dumps(dict(event=event,**data)),flush=True)
+emit('ready',protocol=4)
+for line in sys.stdin:
+ c=json.loads(line);op=c['command']
+ if op=='request':emit('request')
+ elif op=='context':emit('input',epoch=c['epoch'],connected=True,neutral=True)
+ elif op=='preview':emit('previewed',token=c['token'],ok=False)
+ elif op=='cancel':emit('released')
+ elif op=='stop':break
+)PY");file.close();
+        ProcessService game;AdventureLaunchController launch(game);AdventureExitPresentation view(launch.exitController());
+        AdventureOverlayService service(game,launch,view,helper);
+        connect(&launch,&AdventureLaunchController::checkpointRequested,&launch,[&](quint64 token,const QJsonObject&){launch.checkpointCompleted(token,{});});
+        QVERIFY(launch.launch({QDir(QCoreApplication::applicationDirPath()).filePath("trainer_process_probe"),{"controlled",control,directory.filePath("pid")},{}},{},"unrelated-game"));
+        QTRY_VERIFY(launch.exitController().available());const auto pid=game.processId();QVERIFY(!view.visible());
+        service.openOptions();QTRY_VERIFY(view.menuOpen());view.setWindowFocused(true);QTRY_VERIFY(view.ready());
+        QCOMPARE(game.processId(),pid);QVERIFY(!launch.minimized());
+        view.dismissMenu();QTRY_VERIFY(!view.visible());QCOMPARE(game.processId(),pid);
+        QFile stop(control);QVERIFY(stop.open(QIODevice::WriteOnly));stop.write("exit");stop.close();QTRY_VERIFY(!game.active());
+    }
     void minimizedHandoffKeepsOwnedProcessAndRequiresFreshNeutralInput() {
         QTemporaryDir directory;const auto helper=directory.filePath("helper.py"),control=directory.filePath("control");
         QFile file(helper);QVERIFY(file.open(QIODevice::WriteOnly));

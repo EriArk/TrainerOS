@@ -185,7 +185,7 @@ def run(args):
     capture_job = None; capture_started = 0
     handoff_deadline = 0; return_options = False
     try:
-        device.mode(1); emit('ready', protocol=3)
+        device.mode(1); emit('ready', protocol=4)
         while guard.poll() is None:
             if identity(args.game) != game_start: break
             if select.select([sys.stdin.buffer],[],[],.02)[0]:
@@ -198,6 +198,11 @@ def run(args):
                     op = command.get('command')
                     if op == 'ping': parent.sendall(b'K')
                     elif op == 'context': epoch = str(command['epoch'])
+                    elif op == 'request' and state == 'game':
+                        # A deliberate invitation tap uses the same owned-window
+                        # Home path. Never switch controls away from another app.
+                        if x11.owns(x11.active(), args.game, game_start):
+                            device.mode(2)
                     elif op == 'minimize' and state == 'overlay' and future is None:
                         if device.mode() == 2 and x11.owns(target, args.game, game_start):
                             state = 'shell'; emit('minimized')

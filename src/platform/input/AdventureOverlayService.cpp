@@ -107,7 +107,7 @@ void AdventureOverlayService::receive() {
         const auto message = QJsonDocument::fromJson(buffer_.left(index)).object(); buffer_.remove(0, index + 1);
         if (!active_ || !game_.active()) continue;
         const auto event = message["event"].toString();
-        if (event == "ready") {protocol_=message["protocol"].toInt();exit_.setAvailable(protocol_==2 || protocol_==3);}
+        if (event == "ready") {protocol_=message["protocol"].toInt();exit_.setAvailable(protocol_>=2 && protocol_<=4);qCInfo(overlayLog)<<"helper ready"<<protocol_;}
         else if(event=="minimized") {
             if(minimizing_ && launch_.setMinimized(true)){handoffDeadline_.stop();minimizing_=false;shellReady_=false;heldAction_.clear();view_.handOffToShell();emit shellRequested();}
         } else if(event=="shell-input" && launch_.minimized() && !returning_ && message["epoch"].toString().toULongLong()==view_.inputGeneration())shellInput(message);
@@ -154,6 +154,12 @@ void AdventureOverlayService::returnToGame(bool options) {
     returning_=true;shellReady_=false;handoffDeadline_.start();
     emit gameRequested();
     send({{"command","return"},{"options",options}});
+}
+void AdventureOverlayService::openOptions() {
+    qCInfo(overlayLog)<<"invitation options"<<active_<<protocol_<<exit_.available()<<view_.visible()<<launch_.minimized();
+    if(launch_.minimized()){returnToGame(true);return;}
+    if(!active_||protocol_<4||!exit_.available()||view_.visible())return;
+    send({{"command","request"}});
 }
 void AdventureOverlayService::shellInput(const QJsonObject& input) {
     if(!input["connected"].toBool()){shellReady_=false;heldAction_.clear();return;}

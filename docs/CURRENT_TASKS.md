@@ -1,5 +1,14 @@
 # Current tasks
 
+**Universal invitation handoff, 10 October 2026:** an incoming multiplayer
+invitation can stay as a corner badge while its recipient keeps playing and
+saves. It survives an independent ordinary-game exit; explicit "Saved — join"
+closes the current game through the protected exit/finalization path before
+accepting. The shared flow reuses existing emulator networking. A trusted local
+native hot-join contract is separate from prepared emulator launches; no native
+provider is added here. [Implementation, delivery and limits](INVITATION_HANDOFF.md)
+records the handheld checks. MP-02/#107 remain open and next; #77 stays queued.
+
 **MP-02 GBA Wireless Adapter, 10 October 2026:** bounded Mario Golf/Mega Man
 profiles reuse unchanged gpSP netpacket through the existing invitation flow.
 Mario Golf reached paired RFU shots over the public relay on Flip/Odin; distinct

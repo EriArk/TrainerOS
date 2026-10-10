@@ -116,8 +116,10 @@ void GameParty::invite(const QString& peer) {
         peers_[peer].invite=true;query(peer);emit changed();return;
     }
     if(!slot){emit notice("This party is full.");return;}
-    const auto request=token();members_[peer]={p.name,p.boot,request,slot,false,now()+60};
-    packet(peer,"invite",{{"game",game_},{"request",request}});publish();
+    const auto request=token();members_[peer]={p.name,p.boot,request,slot,false,now()+300};
+    // Packet replay validity remains 90 seconds. This separate bounded answer
+    // window gives a playing guest time to save; older peers retain 60 seconds.
+    packet(peer,"invite",{{"game",game_},{"request",request},{"waitSeconds",300}});publish();
 }
 void GameParty::requestJoin(const QString& peer) {
     if(active()||!joiningId_.isEmpty())return;
@@ -267,7 +269,7 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
             packet(peer,"decline",{{"party",party},{"request",id}});return;
         }
         for(const auto& r:requests_)if(r.peer==peer)return;
-        requests_.append({peer,name.left(48),boot,id,party,g,join,now()+60});
+        requests_.append({peer,name.left(48),boot,id,party,g,join,now()+(join?60:qBound(60,p["waitSeconds"].toInt(60),300))});
         if(join&&access_=="selected"&&!company.isEmpty()&&company==company_&&allowedMembers_.contains(personOf(peer).mid(7))) {
             // Answer this member, not an older pending request from another person.
             const auto approved=requests_.takeLast();requests_.prepend(approved);answer(true);

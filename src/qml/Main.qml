@@ -15,6 +15,11 @@ Window {
         width: window.width; height: window.height
         x: window.x; y: window.y
     }
+    InvitationBadge {
+        invitation: runtimeMultiplayer
+        bridge: invitationOverlay
+        permitted: !sessionState.blocked && !adventureExitPresentation.visible && !adventureExitPresentation.capturing
+    }
     Binding { target: Theme; property: "themeId"; value: shell.settings.theme }
     Binding { target: Theme; property: "reducedMotion"; value: shell.settings.reducedMotion }
     Binding { target: Theme; property: "television"; value: shell.settings.displayProfile === "tv" }

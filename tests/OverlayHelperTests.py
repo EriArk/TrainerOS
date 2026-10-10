@@ -16,10 +16,50 @@ sys.path.insert(0, str(ROOT))
 from overlay_support import RawPad, X11, identity, supported_emulator_process
 spec = importlib.util.spec_from_file_location('overlay', ROOT / 'adventure-overlay.py')
 overlay = importlib.util.module_from_spec(spec); spec.loader.exec_module(overlay)
+spec = importlib.util.spec_from_file_location('invitation_overlay', ROOT / 'invitation-overlay.py')
+invitation_overlay = importlib.util.module_from_spec(spec); spec.loader.exec_module(invitation_overlay)
 PNG = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg==')
 
 
 class OverlayHelperTests(unittest.TestCase):
+    def test_badge_replays_outside_taps_but_consumes_inside_press_and_release(self):
+        view = Mock(); view.display = 99; view.root = 42
+        pointer = invitation_overlay.Pointer(view)
+        events = []
+        view.x.XPending.side_effect = lambda *_: len(events)
+        def take(_, output):
+            kind, x, y = events.pop(0)
+            output._obj.type = kind
+            output._obj.button.x_root = x; output._obj.button.y_root = y
+            output._obj.button.time = 123
+        view.x.XNextEvent.side_effect = take
+        region = (1760,920,144,144)
+        events.extend([(4,800,600),(5,800,600)])
+        self.assertFalse(pointer.poll(region, True))
+        view.x.XAllowEvents.assert_called_with(99,2,123)  # Original press replayed.
+        events.append((4,1820,1000))
+        self.assertFalse(pointer.poll(region, True))
+        view.x.XAllowEvents.assert_called_with(99,0,123)
+        events.append((5,1820,1000));self.assertTrue(pointer.poll(region, True))
+        events.extend([(4,1820,1000),(5,1820,1000)])
+        self.assertFalse(pointer.poll(region, False))  # Another application's focus.
+        view.x.XAllowEvents.assert_called_with(99,2,123)
+        events.extend([(4,1820,1000),(5,800,600)])
+        self.assertFalse(pointer.poll(region, True))  # Dragging away cancels.
+
+    def test_badge_watchdog_never_stops_reused_pid(self):
+        with patch.object(invitation_overlay.socket,'socket') as pipe, \
+             patch.object(invitation_overlay.select,'select',return_value=([],[],[])), \
+             patch.object(invitation_overlay,'identity',return_value='new-process'), \
+             patch.object(invitation_overlay.os,'kill') as stop:
+            invitation_overlay.watchdog(7,42,'original-process');stop.assert_not_called()
+        with patch.object(invitation_overlay.socket,'socket') as pipe, \
+             patch.object(invitation_overlay.select,'select',return_value=([],[],[])), \
+             patch.object(invitation_overlay,'identity',return_value='original-process'), \
+             patch.object(invitation_overlay.os,'kill') as stop:
+            invitation_overlay.watchdog(7,42,'original-process')
+            stop.assert_called_once_with(42,invitation_overlay.signal.SIGKILL)
+
     def test_png_waits_for_complete_output_and_keeps_old_frame_until_ready(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); frame = root / 'frame.png'; frame.write_bytes(b'previous')

@@ -19,6 +19,7 @@ struct ExitInputSnapshot {
 class AdventureExitPresentation final : public QObject {
     Q_OBJECT
     Q_PROPERTY(bool visible READ visible NOTIFY changed)
+    Q_PROPERTY(bool capturing READ capturing NOTIFY changed)
     Q_PROPERTY(bool confirming READ confirming NOTIFY changed)
     Q_PROPERTY(bool ready READ ready NOTIFY changed)
     Q_PROPERTY(bool captureFailed READ captureFailed NOTIFY changed)
@@ -36,6 +37,7 @@ class AdventureExitPresentation final : public QObject {
 public:
     explicit AdventureExitPresentation(AdventureExitController&, QObject* parent = nullptr);
     bool visible() const;
+    bool capturing() const { return menuPending_ || phase_ == AdventureExitController::Phase::Capturing; }
     bool confirming() const;
     bool ready() const { return ready_; }
     bool captureFailed() const { return !exit_.captureError().isEmpty(); }

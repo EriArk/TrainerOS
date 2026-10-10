@@ -11,6 +11,14 @@ See [media/voice behavior and actual device evidence](../../docs/SOCIAL_MEDIA_VO
 
 ## Adventure overlay
 
+`invitation-overlay.py` supplies the separate passive invitation badge in the
+dedicated Gamescope session. It requires the existing X11/XRes dependencies and
+starts with the shell rather than a game, so invitations survive ordinary exits.
+Its root pointer grab replays outside taps; a heartbeat watchdog releases a
+stalled helper. See [invitation handoff](../../docs/INVITATION_HANDOFF.md) for
+consent, capture protection and validation. Adventure overlay protocol 4 adds a
+guarded request to open Game Options after a deliberate badge tap.
+
 `adventure-overlay.py` is an opt-in, ordinary-user helper for the verified Flip 2
 InputPlumber/Gamescope X11 environment. It requires Python 3 with `dbus`,
 libX11/libXRes 1.2, ffmpeg with libdav1d and read-only access to the built-in pad.
