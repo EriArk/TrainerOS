@@ -6,6 +6,7 @@ that another edition of the same game has the same format.
 
 | Record | Exact targets | Current boundary |
 |---|---|---|
+| [PSP Ad Hoc runtime family](../emulators/ppsspp.md) | Matching raw UMD game ISO and reviewed PPSSPP 1.20.4 binary | Source preparation using native Ad Hoc/relay; ordinary SAVEDATA retained. Wider gameplay, game-room privacy and other formats remain open; no semantic save capability |
 | [Dreamcast native runtime](../emulators/flycast.md) | Matching CHD, pinned Dojo executable and locally supplied boot/flash | Native relay/GGPO invitation and private launch preparation; no installed gameplay or semantic save capability |
 | [N64 native runtime](../emulators/RMG.md) | Matching raw cartridge, pinned RMG bundle and native server | Automatic room/lifecycle source integration and four lobby clients; no installed N64 gameplay or semantic save capability |
 | [PS1 shared-console runtime](../MULTIPLAYER_PREPARATION.md#ps1-runtime-decision--11-october-2026) | Matching PCSX ReARMed/RetroArch, owned BIOS, CUE/CHD content | Source integration and Windows checks; two digital pads, isolated cards; no semantic save capability or paired-device acceptance |

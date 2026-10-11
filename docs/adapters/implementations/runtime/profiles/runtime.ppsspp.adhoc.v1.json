@@ -1,0 +1,31 @@
+{
+  "id": "runtime.ppsspp.adhoc.v1",
+  "platform": "psp",
+  "romSha256": "",
+  "state": "partial",
+  "record": "../emulators/ppsspp.md",
+  "evidence": [
+    "upstream-1.20.4-adhoc-relay-and-disc-format-source",
+    "bounded-raw-umd-disc-probe-regressions",
+    "scoped-native-clock-policy-checks",
+    "protected-launch-cancel-and-changed-invitation-regression",
+    "windows-client-build",
+    "standalone-game-party-runtime-multiplayer-suites"
+  ],
+  "remaining": [
+    "handheld-delivery",
+    "linux-generic-config-and-save-isolation",
+    "wider-game-native-discovery-and-gameplay",
+    "private-game-room-admission-and-parallel-parties",
+    "larger-parties",
+    "loss-and-reinvite",
+    "distinct-networks",
+    "compressed-images-and-infrastructure"
+  ],
+  "persistentSaveWrites": true,
+  "savePolicy": "Ordinary PPSSPP SAVEDATA only; no TrainerOS semantic save mutation.",
+  "implementationSource": "src/integrations/adventure/standalone/PpssppNetplay.cpp",
+  "implementation": "implementations/runtime",
+  "profile": "implementations/runtime/profiles/runtime.ppsspp.adhoc.v1.json",
+  "evidenceBase": "../../../"
+}

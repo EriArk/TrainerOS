@@ -3,6 +3,36 @@
   "updated": "2026-10-11",
   "runtimeProfiles": [
     {
+      "id": "runtime.ppsspp.adhoc.v1",
+      "platform": "psp",
+      "romSha256": "",
+      "state": "partial",
+      "record": "../emulators/ppsspp.md",
+      "evidence": [
+        "upstream-1.20.4-adhoc-relay-and-disc-format-source",
+        "bounded-raw-umd-disc-probe-regressions",
+        "scoped-native-clock-policy-checks",
+        "protected-launch-cancel-and-changed-invitation-regression",
+        "windows-client-build",
+        "standalone-game-party-runtime-multiplayer-suites"
+      ],
+      "remaining": [
+        "handheld-delivery",
+        "linux-generic-config-and-save-isolation",
+        "wider-game-native-discovery-and-gameplay",
+        "private-game-room-admission-and-parallel-parties",
+        "larger-parties",
+        "loss-and-reinvite",
+        "distinct-networks",
+        "compressed-images-and-infrastructure"
+      ],
+      "persistentSaveWrites": true,
+      "savePolicy": "Ordinary PPSSPP SAVEDATA only; no TrainerOS semantic save mutation.",
+      "implementationSource": "src/integrations/adventure/standalone/PpssppNetplay.cpp",
+      "implementation": "implementations/runtime",
+      "profile": "implementations/runtime/profiles/runtime.ppsspp.adhoc.v1.json"
+    },
+    {
       "id": "runtime.flycast-dojo.dc.v1",
       "platform": "dreamcast",
       "romSha256": "",
@@ -258,15 +288,18 @@
         "actual-config-isolation",
         "in-game-peer-discovery",
         "failed-match-transition",
-        "arm-console-identity-preservation-test"
+        "arm-console-identity-preservation-test",
+        "paired-lan-and-public-relay-gameplay-2026-10-03",
+        "independent-controls-and-normal-home-exit",
+        "rematch-start-relay-loss-and-new-challenge-recovery"
       ],
       "remaining": [
-        "paired-gameplay",
-        "online-consent-launch",
-        "independent-controls",
         "distinct-networks",
-        "interruption-recovery",
-        "router-free"
+        "mid-round-interruption",
+        "sustained-reliability",
+        "same-title-private-parties",
+        "group-voice-during-gameplay",
+        "owner-physical-input"
       ],
       "persistentSaveWrites": true,
       "savePolicy": "Ordinary PPSSPP SAVEDATA only; no TrainerOS semantic save mutation.",

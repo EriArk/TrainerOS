@@ -86,6 +86,18 @@ class RuntimeMultiplayerTests final : public QObject {
         QTRY_VERIFY(!f.lifecycle.active());
     }
 private slots:
+    void genericPspKeepsSaveConsentAndRejectsChangedInvitation() {
+        Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        requestRestart(f,{{"id","runtime.ppsspp.adhoc.v1"},{"content","accepted"}});
+        QVERIFY(f.process.active());QVERIFY(f.runtime.restarting_);
+        f.lifecycle.exitController().cancel();
+        QVERIFY(f.process.active());QVERIFY(!f.runtime.active_);
+        finishOrdinary(f);
+        f.runtime.active_=true;f.runtime.host_=false;
+        f.runtime.descriptor_={{"id","runtime.ppsspp.adhoc.v1"},{"content","accepted"}};
+        f.runtime.frame({{"kind","psp-ready"},{"identity",QJsonObject{{"id","runtime.ppsspp.adhoc.v1"},{"content","changed"}}}});
+        QVERIFY(!f.runtime.active_);QVERIFY(!f.process.active());
+    }
     void dreamcastHostSaveCancellationAndStaleMarkers() {
         Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
         requestRestart(f,{{"id","runtime.flycast-dojo.dc.v1"}});

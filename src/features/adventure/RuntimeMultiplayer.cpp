@@ -166,7 +166,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
             // A running PSP is not proof of an ad hoc match. Players use the
             // original game's VS create/join controls after accepting here.
             if(host_)send({{"kind","psp-ready"},{"identity",descriptor_},{"address",request_.address}});
-            relaySent_=true;deadline_=0;timer_.stop();status_="Choose VS mode in the game";return;
+            relaySent_=true;deadline_=0;timer_.stop();status_="Choose Ad Hoc multiplayer in the game";return;
         }
         if(host_&&online_&&!dolphin()&&!rmg()&&!flycast())pollRelay();
     });
@@ -374,6 +374,10 @@ void RuntimeMultiplayer::show(QString panel) {
         }
     } else if(panel=="multiplayer-party") {
         const auto state=party_.state();caption=state["game"].toObject()["label"].toString()+" · "+QString::number(state["members"].toArray().size())+" / "+QString::number(state["capacity"].toInt())+" players";
+        if(state["game"].toObject()["id"].toString().startsWith("runtime.ppsspp.")) {
+            auto info=row("multiplayer-info","Choose Ad Hoc in the game","Game compatibility varies; original online servers are separate.");
+            info["readOnly"]=true;rows.append(info);
+        }
         bool ready=true;
         for(const auto& value:state["members"].toArray()) {
             const auto m=value.toObject();ready&=m["ready"].toBool();

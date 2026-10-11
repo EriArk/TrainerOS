@@ -9,6 +9,13 @@ checks or count a list of emulator candidates as implemented multiplayer.
 
 ## Scope and implementation state
 
+**PS2/Hotseat review and PSP continuation, 11 October:** the bounded
+[runtime review](HOTSEAT_RUNTIME_RESEARCH.md) records gaps instead of calling
+DEV9 or Golf Mode exclusive shared-pad play. New ARM LRPS2 is a candidate, not
+admitted netplay. Independent PSP preparation now extends the existing Ad Hoc
+route to raw UMD game ISOs; see [profile and limits](emulators/ppsspp.md).
+PS2, Hotseat and the complete catalogue remain unfinished.
+
 **Dreamcast local verification, 11 October:** full Windows client build and
 `flycast_netplay`, `game_party`, `runtime_multiplayer` pass (3/3). The patched
 native relay client also compiles/runs in a bounded UDP fixture harness; that
@@ -26,7 +33,7 @@ See [maintenance and remaining delivery](emulators/flycast.md).
 | PS2 | ARMSX2/PCSX2 game networking; shared-console mode is separate | DEV9 networking does not provide remote second-controller gameplay |
 | GameCube/Wii | Extend existing Dolphin native netplay bridge | Generic raw GameCube ISO/GCM admission implemented and locally checked. Exact Melee remains. Wii input route and device delivery remain open |
 | DS | Existing deterministic multiplayer implementations | Desktop integration remains open; LAN wireless alone is not internet support |
-| PSP | Extend existing PPSSPP AdHoc integration | Exact Lumines route exists; wider AdHoc/infrastructure coverage remains open |
+| PSP | Existing PPSSPP Ad Hoc / aemu relay | Generic raw-ISO invitation/launch preparation in source; exact Lumines evidence retained. Wider gameplay, private game-room admission, infrastructure and other formats remain open |
 | 3DS | Existing Azahar room networking | Integration remains open |
 | Wii U | Cemu and supported game-network services | Launcher/platform feasibility, account setup and supported modes remain open |
 | Vita | Vita3K supported AdHoc modes | Launcher/platform feasibility and automatic transport remain open; no general PSN claim |

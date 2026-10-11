@@ -1,5 +1,61 @@
 # PPSSPP maintenance
 
+## Generic Ad Hoc preparation — 11 October 2026
+
+Source preparation extends the existing invitation/relay/launch route beyond the
+exact Lumines disc. It uses **unchanged PPSSPP 1.20.4**, tag commit
+`fa50bb1976065c4f8b1b47af227d367fe9771555`, retaining the reviewed ARM64 runtime
+hash below. This does not prove that every PSP game contains or supports Ad Hoc.
+The party surface asks players to choose Ad Hoc inside the game and distinguishes
+original online servers. Explicit solo catalogue metadata excludes invitations;
+missing metadata is not a single-player classification.
+
+`runtime.ppsspp.adhoc.v1` admits raw ISO UMD games: bounded ISO9660 reads locate
+`PSP_GAME/PARAM.SFO`, require category UG and a disc ID, reject ambiguous entries
+and invalid extents, then match the whole ISO SHA-256 and runtime between friends.
+IDs establish format, not multiplayer support or semantic save access. Local
+titles/filenames are presentation only. CSO/CHD/PBP, UMD video and other formats
+remain outside this preparation; ordinary solo launching is unchanged.
+
+This first generic profile prepares two participants. Catalogue player counts
+do not increase its capacity; larger parties need reviewed native-mode evidence.
+Players use native create/join controls. Automatic game-room selection, private
+game lobbies and exclusion of unrelated public-server users are **not** delivered.
+Parallel private-party admission and games needing additional setup stay open.
+No ROM, save or firmware is transferred.
+
+Exact Lumines retains its existing wire identity and clock override. Generic
+discs use native-default `ForceLagSync2=False` and a distinct settings fingerprint.
+Both reuse private SYSTEM copies, controller bindings, saved MAC, ordinary
+SAVEDATA and cleanup. PPSSPP can write its ordinary saves during play; this is not
+temporary shared-console progress or TrainerOS semantic save editing.
+
+Sources checked:
+[Ad Hoc/relay](https://www.ppsspp.org/docs/multiplayer/how-to-play/),
+[quickstart](https://www.ppsspp.org/docs/multiplayer/quickstart/),
+[ISO structure](https://github.com/hrydgard/ppsspp/blob/fa50bb1976065c4f8b1b47af227d367fe9771555/Core/FileSystems/ISOFileSystem.cpp),
+[SFO structure](https://github.com/hrydgard/ppsspp/blob/fa50bb1976065c4f8b1b47af227d367fe9771555/Core/ELF/ParamSFO.cpp).
+The bounded reader is TrainerOS code, not a copied emulator filesystem.
+
+Local validation: Windows client and scoped targets build successfully;
+`standalone`, `game_party`, `runtime_multiplayer` pass **3/3**, 7.01 seconds.
+The three new raw-disc/clock/lifecycle regressions also have explicit QtTest file
+logs (none skipped), because this Windows CTest run captured no console output.
+Linux memory-stick symlink cases remain platform-skipped on Windows; no new Linux
+save-isolation result is claimed. Adapter exports/registry and local doc links
+validate. Final Windows debug client SHA-256:
+`3955ba7105f732df27e80a1e875ab13bd44ebaacbec3115ac50292a0ff3b9b94`.
+Ninja recovered a truncated dependency cache and performed a full rebuild; only
+the final build above includes the complete source changes.
+
+Handheld installation,
+wider-game discovery/play/controls, four clients, loss/reinvite and distinct
+networks remain deferred. Earlier Lumines evidence is not promoted to new titles.
+No public relay or handheld was contacted. Rollback removes the generic profile
+while retaining Lumines; no emulator migration or persistent settings replacement.
+
+## Earlier installed evidence
+
 Updated 2026-10-03. Actual multiplayer acceptance is tracked in
 [PSP multiplayer](../PSP_MULTIPLAYER.md); integrated invitations, short LAN and
 external-relay rounds, and normal Home exit/cleanup passed on both devices.

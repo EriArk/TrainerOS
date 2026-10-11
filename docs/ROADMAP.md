@@ -27,6 +27,15 @@ No custom synchronization is added. Full Linux/ARM64 runtime build, operator
 relay and actual games remain open. Continue the retained PS2/GameCube/Hotseat
 preparation next; wider DS/PSP, 3DS, Wii U and Vita scope is unchanged.
 
+**11 October PS2/Hotseat review and PSP continuation:** the
+[bounded mechanism review](HOTSEAT_RUNTIME_RESEARCH.md) retains PS2 and live
+exclusive handoff as unfinished work with named native-runtime gaps. Independent
+[PPSSPP Ad Hoc preparation](emulators/ppsspp.md) now accepts matching raw UMD game
+ISOs for pairs, retaining Lumines's exact policy. Wider gameplay, native room
+privacy and device delivery remain open. Next independent preparation is DS,
+followed by the remaining Wii/3DS/Wii U/Vita routes. Do not treat this advance as
+delivery of PS2, Hotseat, the complete catalogue or older external acceptance.
+
 **Universal invitation handoff, 10 October 2026:** an incoming multiplayer
 invitation can stay as a corner badge while its recipient keeps playing and
 saves. It survives an independent ordinary-game exit; explicit "Saved — join"

@@ -134,7 +134,7 @@ AdventureResult StandaloneAdapter::launchNetplay(const Adventure& adventure,cons
     invocation->prepare=[prepare,record=*record,installation=installation_,request](ProcessCommand& cmd,const std::atomic_bool& cancel){
         const auto error=prepare(cmd,cancel);if(!error.isEmpty())return error;
         const auto identity=ppsspp::netplayIdentity(record,installation,cancel);
-        if(identity.isEmpty()||identity!=request.expected)return QString("Your PSP game or emulator changed. Invite again.");
+        if(!sameMultiplayerGame(identity,request.expected))return QString("Your PSP game or emulator changed. Invite again.");
         return ppsspp::configureNetplay(cmd,installation,request,cancel);
     };
     return requestLaunch(*invocation,adventure.id);

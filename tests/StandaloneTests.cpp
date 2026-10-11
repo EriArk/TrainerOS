@@ -18,6 +18,7 @@
 #include <QStandardPaths>
 #include <QScopeGuard>
 #include <QCryptographicHash>
+#include <QtEndian>
 
 using namespace trainer;
 class StandaloneTests final : public QObject {
@@ -112,6 +113,65 @@ private slots:
         QVERIFY(dolphin::configureNetplay(rejected,i,"/roms/Game.iso",r,cancel).contains("address"));
     }
 
+    void pspRawDiscProbeRejectsAmbiguityAndOutOfBounds() {
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        const auto entry=[](quint32 sector,quint32 bytes,const QByteArray& name,bool directory) {
+            QByteArray r((33+name.size()+1)&~1,'\0');r[0]=char(r.size());r[25]=directory?2:0;r[32]=char(name.size());
+            qToLittleEndian(sector,r.data()+2);qToBigEndian(sector,r.data()+6);
+            qToLittleEndian(bytes,r.data()+10);qToBigEndian(bytes,r.data()+14);
+            qToLittleEndian<quint16>(1,r.data()+28);qToBigEndian<quint16>(1,r.data()+30);
+            r.replace(33,name.size(),name);return r;
+        };
+        QByteArray sfo(88,'\0');sfo.replace(0,4,QByteArray::fromHex("00505346"));
+        qToLittleEndian<quint32>(0x101,sfo.data()+4);
+        qToLittleEndian<quint32>(52,sfo.data()+8);qToLittleEndian<quint32>(72,sfo.data()+12);qToLittleEndian<quint32>(2,sfo.data()+16);
+        for(int pos:{20,36})qToLittleEndian<quint16>(0x204,sfo.data()+pos+2);
+        qToLittleEndian<quint32>(3,sfo.data()+24);qToLittleEndian<quint32>(4,sfo.data()+28);
+        qToLittleEndian<quint16>(9,sfo.data()+36);qToLittleEndian<quint32>(10,sfo.data()+40);
+        qToLittleEndian<quint32>(12,sfo.data()+44);qToLittleEndian<quint32>(4,sfo.data()+48);
+        sfo.replace(52,17,QByteArray("CATEGORY\0DISC_ID\0",17));sfo.replace(72,2,"UG");sfo.replace(76,9,"TEST00001");
+        QByteArray disc(24*2048,'\0');const int pvd=16*2048;
+        disc.replace(pvd,7,QByteArray::fromHex("01434430303101"));
+        qToLittleEndian<quint32>(24,disc.data()+pvd+80);qToBigEndian<quint32>(24,disc.data()+pvd+84);
+        qToLittleEndian<quint16>(2048,disc.data()+pvd+128);qToBigEndian<quint16>(2048,disc.data()+pvd+130);
+        const auto root=entry(20,2048,QByteArray(1,'\0'),true);
+        const auto game=entry(21,2048,"PSP_GAME",true);
+        const auto param=entry(22,sfo.size(),"PARAM.SFO;1",false);
+        disc.replace(pvd+156,root.size(),root);disc.replace(20*2048,game.size(),game);
+        disc.replace(21*2048,param.size(),param);disc.replace(22*2048,sfo.size(),sfo);
+        const auto path=dir.filePath("Unrelated filename.iso");write(path,disc);
+        QCOMPARE(ppsspp::discId(path,cancel),QString("TEST00001"));
+        const auto bad=[&](QByteArray changed){write(path,changed);QVERIFY(ppsspp::discId(path,cancel).isEmpty());};
+        auto changed=disc;changed[22*2048+73]='V';bad(changed); // UMD video, not a game
+        changed=disc;changed.replace(20*2048+game.size(),game.size(),game);bad(changed); // duplicate directory
+        changed=disc;qToLittleEndian<quint32>(0xffffffff,changed.data()+21*2048+2);
+        qToBigEndian<quint32>(0xffffffff,changed.data()+21*2048+6);bad(changed);
+        changed=disc;qToLittleEndian<quint32>(21,changed.data()+pvd+80);
+        qToBigEndian<quint32>(21,changed.data()+pvd+84);bad(changed); // entry beyond declared volume
+        changed=disc;qToLittleEndian<quint32>(0xffffffff,changed.data()+22*2048+48);bad(changed);
+        changed=disc;qToLittleEndian<quint16>(0,changed.data()+22*2048+36);bad(changed); // duplicate SFO key
+        changed=disc;changed[22*2048+85]='X';bad(changed); // missing terminator
+        changed=disc;changed[20*2048]=33;bad(changed); // short directory entry
+        bad(disc.left(22*2048));
+        write(dir.filePath("game.cso"),disc);QVERIFY(ppsspp::discId(dir.filePath("game.cso"),cancel).isEmpty());
+        write(path,disc);cancel=true;QVERIFY(ppsspp::discId(path,cancel).isEmpty());cancel=false;
+        AdventureRegistration r;r.adventure.platformId="psp";r.adventure.adapterId="ppsspp";r.contentPath=path;
+        StandaloneInstallation i{probe(),probe(),{},{"psp"},{}};
+        QVERIFY(ppsspp::netplayIdentity(r,i,cancel).isEmpty()); // valid disc does not authorize an unknown runtime
+    }
+    void pspClockPolicyStaysScopedToTheReviewedLuminesBuild() {
+        ppsspp::NetplayRequest r{{{"id","runtime.ppsspp.adhoc.v1"}},true,true,"socom.cc","Alice\n[Network]"};
+        auto bytes=ppsspp::networkSettings(r);
+        QVERIFY(bytes.contains("[General]\nForceLagSync2 = False\n"));
+        QVERIFY(bytes.contains("EnableAdhocServer = False\n"));QVERIFY(bytes.contains("AdhocServerRelayMode = 1\n"));
+        QVERIFY(!bytes.contains("MacAddress"));QVERIFY(!bytes.contains("Alice\n"));
+        r.expected["id"]="runtime.ppsspp.lumines-us.v1";
+        QVERIFY(ppsspp::networkSettings(r).contains("[General]\nForceLagSync2 = True\n"));
+        r.online=false;r.address="192.168.1.2";
+        bytes=ppsspp::networkSettings(r);QVERIFY(bytes.contains("EnableAdhocServer = True\n"));
+        QVERIFY(bytes.contains("AdhocServerRelayMode = 2\n"));
+        r.host=false;QVERIFY(ppsspp::networkSettings(r).contains("EnableAdhocServer = False\n"));
+    }
     void pspMultiplayerKeepsSettingsPrivateAndOrdinarySavesShared() {
 #ifdef Q_OS_WIN
         QSKIP("Linux memory-stick directory symlinks.");
@@ -129,7 +189,7 @@ private slots:
         StandaloneInstallation installation{probe(),probe(),{"run","org.ppsspp.PPSSPP"},{"psp"},system+"/ppsspp.ini"};
         ProcessCommand command{"/usr/bin/flatpak",{"run","org.ppsspp.PPSSPP","--fullscreen","/roms/PSP title.iso"},{}};
         std::atomic_bool cancel=false;
-        ppsspp::NetplayRequest request{{{"id","fixture"}},true,true,"socom.cc","Alice\n[Network]"};
+        ppsspp::NetplayRequest request{{{"id","runtime.ppsspp.lumines-us.v1"}},true,true,"socom.cc","Alice\n[Network]"};
         QVERIFY(ppsspp::configureNetplay(command,installation,request,cancel).isEmpty());
         QCOMPARE(command.arguments.last(),"/roms/PSP title.iso");
         const auto argument=command.arguments.filter("XDG_CONFIG_HOME=").first();

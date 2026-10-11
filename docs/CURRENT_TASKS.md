@@ -1,5 +1,17 @@
 # Current tasks
 
+**PSP source continuation and PS2/Hotseat gaps, 11 October 2026:** generic raw
+UMD ISO invitation/launch preparation now reuses PPSSPP's native Ad Hoc relay,
+with preserved exact Lumines policy and ordinary PSP storage. Windows client
+build and three scoped suites pass; native Linux/device checks are deferred. Wider games,
+private native rooms, device delivery and network acceptance remain open;
+see [maintenance](emulators/ppsspp.md). The [bounded mechanism review](HOTSEAT_RUNTIME_RESEARCH.md)
+does not deliver PS2 or Hotseat: LRPS2 is a candidate; DEV9 and Dolphin Golf Mode
+are not exclusive shared-pad netplay. These retained gaps do not block the
+owner's independent offline preparation. Next is DS route selection/integration,
+then the remaining Wii/3DS/Wii U/Vita routes; PS3/Switch remain excluded. No issue
+or MP block closes, and the comprehensive Hotseat catalogue remains unfinished.
+
 **Dreamcast source preparation, 11 October 2026:** [Flycast Dojo](emulators/flycast.md)
 now has two-player CHD invitation/launch integration using native GGPO/relay and
 private VMU/firmware copies. Local adapter/lifecycle and native relay-client

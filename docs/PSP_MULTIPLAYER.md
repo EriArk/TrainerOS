@@ -1,5 +1,11 @@
 # Standalone PSP multiplayer research
 
+**11 October source continuation:** the [generic raw-ISO preparation](emulators/ppsspp.md#generic-ad-hoc-preparation--11-october-2026)
+extends invitations and launch beyond exact Lumines using the same native Ad Hoc
+and relay. The records below remain exact Lumines evidence; they do not certify
+new games, four-client play or private game-room admission. Device checks are
+deferred while the handhelds are off.
+
 2026-10-03, block 1; **researching, not accepted**. Both handhelds have PPSSPP
 1.20.4. First target: the owner's Lumines - Puzzle Fusion (US) ISO, 209911808 bytes,
 SHA-256 `9b21dd44a2b9ceb746ab9ed9cea4b30de69e63880704c0e34177f1c30c38b82b`.
