@@ -1,5 +1,13 @@
 # Current tasks
 
+**Devices available and OS prerequisite complete, 11 October 2026:** the owner
+powered on both handhelds and requested Armada updates before emulator tests.
+Both now boot `20261010.94f52f8` on the retained testing channel; TrainerOS starts
+automatically with its unchanged installed binary, and system/input services pass
+bounded checks. [Maintenance evidence](ARMADA_UPDATE_20261011.md) retains rollback
+and acceptance limits. Resume DS native workers/ARM64 verification; physical,
+actual wireless gameplay and distinct-network acceptance are still separate.
+
 **DS native core preparation, 11 October 2026:** the bounded
 [melonDS DetMP port](emulators/melonds.md) reuses the existing deterministic
 wireless implementation on pinned desktop upstream, with cancellation and
