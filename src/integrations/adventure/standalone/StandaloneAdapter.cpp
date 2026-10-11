@@ -1,4 +1,5 @@
 #include "StandaloneAdapter.h"
+#include "core/model/GamePlayers.h"
 #include "PpssppNetplay.h"
 #include "DolphinNetplay.h"
 #include <QFile>
@@ -142,10 +143,11 @@ AdventureResult StandaloneAdapter::launchNetplay(const Adventure& adventure,cons
     auto invocation=command(adventure);const auto record=library_.registration(adventure.id);
     if(id_!="dolphin"||!invocation||!record||!requestLaunch)return {false,"This game's file or emulator is unavailable."};
     const auto prepare=invocation->prepare;
-    invocation->prepare=[prepare,record=*record,installation=installation_,request](ProcessCommand& cmd,const std::atomic_bool& cancel){
+    const int players=qBound(2,gamePlayers(library_.artwork(adventure.id)).maximum,4);
+    invocation->prepare=[prepare,record=*record,installation=installation_,request,players](ProcessCommand& cmd,const std::atomic_bool& cancel){
         const auto error=prepare(cmd,cancel);if(!error.isEmpty())return error;
-        const auto identity=dolphin::netplayIdentity(record,installation,cancel);
-        if(identity.isEmpty()||identity!=request.expected)return QString("Your game or emulator changed. Invite again.");
+        const auto identity=dolphin::netplayIdentity(record,installation,cancel,players);
+        if(!sameMultiplayerGame(identity,request.expected))return QString("Your game or emulator changed. Invite again.");
         return dolphin::configureNetplay(cmd,installation,record.contentPath,request,cancel);
     };
     return requestLaunch(*invocation,adventure.id);

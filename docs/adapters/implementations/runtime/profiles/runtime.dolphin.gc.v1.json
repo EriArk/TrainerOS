@@ -1,0 +1,25 @@
+{
+  "id": "runtime.dolphin.gc.v1",
+  "platform": "gc",
+  "romSha256": "",
+  "state": "partial",
+  "record": "../MULTIPLAYER_PREPARATION.md",
+  "implementationSource": "src/integrations/adventure/standalone/DolphinNetplay.cpp",
+  "evidence": [
+    "existing-native-bridge-source",
+    "existing-roster-to-controller-mapping",
+    "windows-client-build",
+    "windows-admission-isolation-and-lifecycle-regressions"
+  ],
+  "remaining": [
+    "handheld-delivery",
+    "wider-gamecube-gameplay",
+    "four-clients",
+    "distinct-networks-and-strict-nat",
+    "compressed-discs-and-other-peripherals"
+  ],
+  "persistentSaveWrites": false,
+  "implementation": "implementations/runtime",
+  "profile": "implementations/runtime/profiles/runtime.dolphin.gc.v1.json",
+  "evidenceBase": "../../../"
+}

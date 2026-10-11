@@ -27,6 +27,7 @@ const CoreProfile cores[] = {
     {"mednafen_pce_fast","pcengine|pcenginecd","syscard3.pce|syscard2.pce|syscard1.pce|gexpress.pce"},
     {"mednafen_supergrafx","supergrafx|pcengine|pcenginecd","syscard3.pce|syscard2.pce|syscard1.pce|gexpress.pce"},
     {"stella","atari2600",""},
+    {"pcsx_rearmed","psx",""},
     {"fbneo","fbneo|neogeo","neogeo.zip|pgm.zip|skns.zip|decocass.zip|isgsm.zip|midssio.zip|nmk004.zip|ym2608.zip|cchip.zip|bubsys.zip|namcoc69.zip|namcoc70.zip|namcoc75.zip|qsound.zip|qsound_hle.zip"},
     {"mame","mame",""}
 };
@@ -80,6 +81,42 @@ QString contentDigest(const QString& path,const std::atomic_bool& cancel,Netplay
     }
     return cancel?QString():QString::fromLatin1(hash.result().toHex());
 }
+QString playStationBios(const RetroArchInstallation& i) {
+    const auto system=configuredPath(readSettings(i.configFile),"system_directory");
+    if(system.isEmpty())return {};
+    // Select one owned BIOS and give the core a private directory containing
+    // only that file. Upstream's fallback directory scan must not pick an
+    // additional, un-fingerprinted BIOS from the ordinary installation.
+    for(const auto& name:{"scph5501.bin","scph5502.bin","scph5500.bin",
+                         "psxonpsp660.bin","scph101.bin","scph7001.bin","scph1001.bin"}) {
+        const auto path=QDir(system).filePath(name);
+        if(QFileInfo(path).isFile()&&QFileInfo(path).size()==512*1024)return path;
+    }
+    return {};
+}
+QString playStationContent(const QString& path,const std::atomic_bool& cancel,NetplayDigestCache* cache) {
+    const QFileInfo file(path);
+    const auto extension=file.suffix().toLower();
+    if((extension!="cue"&&extension!="chd")||!validateDiscContent(path,cancel).isEmpty())return {};
+    const auto stem=file.dir().filePath(file.completeBaseName());
+    // PCSX probes these descriptors before loading the requested disc. Until
+    // their dependencies are supported, do not fingerprint only the main file.
+    for(const auto& suffix:{".toc",".ccd",".mds"})if(QFileInfo::exists(stem+suffix))return {};
+    if(extension=="chd"&&QFileInfo::exists(stem+".cue"))return {};
+    const auto content=contentDigest(path,cancel,cache);
+    if(content.isEmpty())return {};
+    QJsonObject media{{"disc",content}};
+    // SBI/SUB change disc behavior; a small descriptor may also trigger the
+    // core's same-basename BIN/IMG fallback. Match all those bytes as well.
+    for(const auto& suffix:{".sbi",".sub",".bin",".BIN",".img",".IMG"}) {
+        const auto candidate=stem+suffix;
+        if(!QFileInfo::exists(candidate))continue;
+        const auto value=digest(candidate,2LL*1024*1024*1024,cancel,cache);
+        if(value.isEmpty())return {};
+        media[suffix]=value;
+    }
+    return QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(media).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+}
 struct Profile {const char *platform,*core,*id,*title,*rom,*archive;int players=2;};
 const Profile profiles[] = {
     {"nes","fceumm","runtime.fceumm.pong-homebrew.v1","NES Pong",
@@ -126,6 +163,8 @@ QJsonObject netplayProfile(QString platform,QString core,QString content,int pla
     if(!coreProfile(platform,core)||!QRegularExpression("^[0-9a-f]{64}$").match(content).hasMatch())return {};
     const auto layout=players>2?multiPadLayout(platform,core):QString("two-pad");
     if(layout.isEmpty())return {};
+    if(core=="pcsx_rearmed")return {{"id","runtime.retroarch.psx.pcsx_rearmed.v1"},{"content",content},
+        {"settings","pcsx-two-digital-private-bios-no-sram-v1"},{"players",2}};
     return {{"id","runtime.retroarch."+platform+'.'+core+".v1"},{"content",content},
             {"settings",core+'-'+layout+"-no-sram-v1"},{"players",players}};
 }
@@ -216,7 +255,9 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstal
     }
     const auto p=coreProfile(r.adventure.platformId,coreId);
     if(!p)return {};
-    auto identity=netplayProfile(r.adventure.platformId,coreId,contentDigest(r.contentPath,cancel,cache),players);
+    const bool playStation=coreId=="pcsx_rearmed";
+    const auto content=playStation?playStationContent(r.contentPath,cancel,cache):contentDigest(r.contentPath,cancel,cache);
+    auto identity=netplayProfile(r.adventure.platformId,coreId,content,players);
     if(identity.isEmpty())return {};
     const auto core=digest(i.cores.value(coreId),512LL*1024*1024,cancel,cache);
     const auto runtime=digest(i.runtimeFile,512LL*1024*1024,cancel,cache);
@@ -227,6 +268,12 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstal
         const auto system=configuredPath(readSettings(i.configFile),"system_directory");
         auto names=QString::fromLatin1(p->firmware).split('|',Qt::SkipEmptyParts);
         const auto platform=r.adventure.platformId;
+        if(playStation) {
+            const auto bios=playStationBios(i);
+            const auto value=digest(bios,512*1024,cancel,cache);
+            if(value.isEmpty())return {};
+            firmware[QFileInfo(bios).fileName()]=value;
+        }
         // These cartridge modes never load the core's disc firmware.
         if(platform=="nes"||platform=="pcengine"||platform=="supergrafx"||
            (coreId=="picodrive"&&platform!="segacd"))names.clear();
@@ -326,6 +373,20 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
         return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size()&&f.commit();
     };
     QByteArray options=identityLayout(identity)=="sgx-multitap"?QByteArray("sgx_multitap = \"enabled\"\n"):QByteArray();
+    const bool playStation=r.integrationConfig["core"]=="pcsx_rearmed";
+    if(playStation) {
+        const auto bios=playStationBios(i);
+        QJsonObject firmware;
+        const auto target=path+"/bios/"+QFileInfo(bios).fileName();
+        if(bios.isEmpty()||!QDir().mkpath(path+"/bios")||!QFile::copy(bios,target))return "Couldn't prepare your PlayStation BIOS.";
+        firmware[QFileInfo(bios).fileName()]=fileDigest(target,512*1024,cancel);
+        const auto copied=QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(firmware).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+        if(cancel||copied!=identity["firmware"].toString())return "Your PlayStation BIOS changed. Invite your friend again.";
+        options="pcsx_rearmed_bios = \"auto\"\npcsx_rearmed_memcard1 = \"libretro\"\n"
+            "pcsx_rearmed_memcard2 = \"none\"\npcsx_rearmed_multitap = \"disabled\"\n"
+            "pcsx_rearmed_multitap1 = \"disabled\"\npcsx_rearmed_multitap2 = \"disabled\"\n"
+            "pcsx_rearmed_threaded_rendering = \"disabled\"\n";
+    }
     const auto linkCore=handheldLinkCore(identity);
     if(!linkCore.isEmpty()) {
         options=handheldLinkOptions(identity,request.slot?request.slot:(request.host?1:2),request.linkedPlayers);
@@ -378,6 +439,7 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
         "netplay_start_as_spectator = \"false\"\nnetplay_share_digital = \"0\"\n"
         "pause_nonactive = \"false\"\n";
     bytes+=controllers;
+    if(playStation)bytes+="system_directory = \""+path.toUtf8()+"/bios\"\n";
 #ifdef Q_OS_LINUX
     // The existing classic profiles use InputPlumber's virtual pad
     // through udev on both Flip and Odin. Flip's inherited SDL2 driver handled

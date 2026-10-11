@@ -1,5 +1,16 @@
 # Dolphin integration checkpoint
 
+**11 October 2026 offline preparation:** the source admission now also recognizes
+raw GameCube ISO/GCM discs by disc magic and full content hash. The same pinned
+bridge handles two-to-four party-assigned pads; the exact Melee profile is retained.
+Unknown player counts default to two, known counts are bounded by four physical
+ports, and explicit single-player metadata still excludes invitations. Local
+names do not affect matching. [Preparation and remaining acceptance](../MULTIPLAYER_PREPARATION.md#gamecube-extension-research--11-october-2026)
+separate this source change from installed wider-game compatibility. No new
+Dolphin patch is required; Wii, RVZ/other compressed discs and special peripherals
+remain outside this admission. Earlier "no other title" text describes the original
+installed delivery. The former global experimental opt-in was removed on 4 October.
+
 2026-10-03. Both handhelds retain Flathub Dolphin 2606a, commit
 `50741ae7267181560aa88d3a1ba7177321629c171ad2677504409afa6b4462db`,
 using `org.kde.Platform/aarch64/6.10`. The common

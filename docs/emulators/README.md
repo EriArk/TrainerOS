@@ -18,6 +18,7 @@ a second execution plan or a claim that all installed runtimes are validated.
 | Emulator | Record | Scope |
 |---|---|---|
 | RetroArch | [Common ARM64 baseline](retroarch.md) | Exact core bundle, two-device alignment, recoverable update/rollback and remaining image/standalone gates |
+| PCSX ReARMed | [PS1 preparation](pcsx-rearmed.md) | Existing RetroArch network route, private BIOS/cards and two pads; device acceptance pending |
 | gpSP | [GBA link](gpsp.md) | Additional independent-machine networking core; ordinary mGBA preserved |
 | DoubleCherryGB | [GB/GBC link](doublecherrygb.md) | Independent SRAM/netpacket; separate upstream battle and RTC limitations |
 | SameBoy | [GB/GBC battery pairs](sameboy.md) | Native two-ROM subsystem/SRAM, maintained rollback frontend and automatic own-save preparation |

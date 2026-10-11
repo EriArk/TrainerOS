@@ -211,7 +211,8 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     for(const auto& r:records)if(candidate(r)) {
         const auto core=r.integrationConfig["core"].toString();
         const auto info=library_.artwork(r.adventure.id);metadata.insert(r.adventure.id,info);
-        const int capacity=retroarch::netplayCapacity(r.adventure.platformId,core,info,r.contentPath);
+        const int capacity=r.adventure.platformId=="gc"?qBound(2,gamePlayers(info).maximum,4):
+            retroarch::netplayCapacity(r.adventure.platformId,core,info,r.contentPath);
         capacities.insert(r.adventure.id,capacity);
         revision=qHashMulti(revision,r.adventure.id,stamp(r.contentPath),r.revision,core,capacity);
     }
@@ -232,7 +233,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
             retroarch::NetplayDigestCache digests;
             for(const auto& r:ordered)if(candidate(r)) {
                 if(promise.isCanceled())break;
-                const auto identity=r.adventure.platformId=="gc"?dolphin::netplayIdentity(r,dolphinInstallation,cancel):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel,&digests,capacities.value(r.adventure.id,2));
+                const auto identity=r.adventure.platformId=="gc"?dolphin::netplayIdentity(r,dolphinInstallation,cancel,capacities.value(r.adventure.id,2)):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel,&digests,capacities.value(r.adventure.id,2));
                 if(!identity.isEmpty())promise.addResult(ScannedGame{r.adventure.id,identity});
             }
         }));

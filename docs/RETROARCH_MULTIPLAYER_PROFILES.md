@@ -1,5 +1,11 @@
 # Shared RetroArch multiplayer profiles
 
+**PS1 preparation, 11 October 2026:** PCSX ReARMed now has a source implementation
+through the existing relay/party flow, with two digital pads, matched CUE/CHD and
+owned BIOS, and temporary memory cards. [Boundaries and pending checks](MULTIPLAYER_PREPARATION.md#ps1-runtime-decision--11-october-2026).
+Handheld delivery and paired gameplay are pending; this does not enable DuckStation
+netplay, PS1 system-link, Multitap or pass-controller Hotseat.
+
 **Current availability, 2026-10-04:** implemented profiles are enabled in normal
 installations, per the owner's correction. The global developer opt-in was
 removed; exact compatibility, capacity, single-player and save/session guards
@@ -60,10 +66,11 @@ save files are never loaded or written by this temporary-progress route.
 | Mednafen PCE Fast | pcengine, pcenginecd | Two pads |
 | Mednafen SuperGrafx | supergrafx, pcengine, pcenginecd | Two pads |
 | Stella | atari2600 | Two pads |
+| PCSX ReARMed | psx | Two digital pads; 11 October source preparation, handheld acceptance pending |
 | FBNeo | fbneo, neogeo | Two pads |
 | MAME | mame | Two pads |
 
-These are ten core names and fifteen platform IDs including FDS. ProSystem was
+These are eleven core names and sixteen platform IDs including FDS. ProSystem was
 excluded: its inspected core-info advertises serialized, not deterministic,
 states. Other cores remain unsupported by this table until their mechanism is
 established. It does not enable arbitrary multiplayer on single-player games.
@@ -79,6 +86,8 @@ Configured firmware is fingerprinted into a compact manifest hash. FBNeo uses
 its reviewed own/parent/BIOS archive dependencies; NES and PCE cartridges and
 non-CD PicoDrive modes skip unused disc firmware. Other core profiles retain
 conservative known-file matching, which can still reject extra optional firmware.
+PS1 copies one matched owned BIOS into its private session system directory,
+preventing the core's fallback scan from selecting unrelated ordinary files.
 This is not exhaustive ROM-member validation: arbitrary MAME BIOS sets and
 companion CHDs still follow the core's own ROM-set validation.
 The generic route does not promise every arcade set, exotic peripheral, or saved

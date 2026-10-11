@@ -1,5 +1,23 @@
 # Current tasks
 
+**Owner continuation, 11 October 2026:** prepare/implement the remaining emulator
+multiplayer families through Wii U and Vita, including PS1/PS2/GameCube Hotseat.
+PS3/Switch are excluded. While both handhelds are off, use bounded relevant local
+checks and defer deep gameplay/device/separate-network acceptance. Remaining
+MP-02 acceptance does not block independent later-family implementation in this
+pass. [Preparation register](MULTIPLAYER_PREPARATION.md) separates working code,
+upstream candidates and remaining acceptance; no entire multiplayer block closes.
+
+**Offline source delivery, 11 October 2026:** MP-03 adds PS1 shared-console
+netplay through PCSX ReARMed/RetroArch; the existing MP-05 Dolphin bridge now also
+admits generic raw GameCube discs. Existing invitations, independent controller
+ports and private temporary cards are reused. The Windows client builds and
+`retroarch`, `standalone`, `runtime_multiplayer` tests pass (3/3); source exports
+and the adapter registry validate. ARM build/installation/gameplay are deferred.
+Hotseat #126, PS2 and remaining families through Wii U/Vita are still open; next
+independent work is MP-03's N64 runtime selection and retained family integrations.
+See [evidence and limitations](MULTIPLAYER_PREPARATION.md#local-verification--11-october-2026).
+
 **Universal invitation handoff, 10 October 2026:** an incoming multiplayer
 invitation can stay as a corner badge while its recipient keeps playing and
 saves. It survives an independent ordinary-game exit; explicit "Saved — join"

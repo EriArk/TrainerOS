@@ -1,5 +1,18 @@
 # TrainerOS Roadmap
 
+**Owner continuation, 11 October 2026:** implement/prepare multiplayer through
+Wii U plus Vita; leave PS3/Switch out. Handhelds are currently unavailable: run
+bounded source/build/lifecycle checks, retain deep gameplay/device/internet
+acceptance for their return, and continue independent later-family work. Include
+PS1/PS2/GameCube Hotseat. [Preparation register](MULTIPLAYER_PREPARATION.md)
+owns the current scope; older "do not advance until MP-02" statements below are
+superseded for this offline preparation, not evidence that MP-02 is complete.
+
+**11 October source delivery:** PS1 shared-console integration and generic raw
+GameCube admission are implemented, with a built Windows client and 3/3 affected
+test suites passing. [Evidence](MULTIPLAYER_PREPARATION.md#local-verification--11-october-2026)
+retains ARM/device/gameplay gates, Hotseat and the remaining runtime families.
+
 **Universal invitation handoff, 10 October 2026:** an incoming multiplayer
 invitation can stay as a corner badge while its recipient keeps playing and
 saves. It survives an independent ordinary-game exit; explicit "Saved — join"

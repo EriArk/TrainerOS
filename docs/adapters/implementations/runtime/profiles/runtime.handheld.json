@@ -41,7 +41,8 @@
     "gpsp-rfu-header-admission-and-own-save-regressions",
     "mario-golf-rfu-relay-discovery-and-both-player-shots",
     "mario-golf-distinct-profile-return-and-mgba-diagnostic-readback",
-    "peer-departure-during-exit-confirmation-regression-both-devices"
+    "peer-departure-during-exit-confirmation-regression-both-devices",
+    "universal-live-game-invitation-handoff"
   ],
   "remaining": [
     "wider-battery-mapper-and-special-hardware-compatibility",
@@ -51,8 +52,7 @@
     "distinct-networks",
     "four-clients",
     "gba-single-pak-special-peripherals",
-    "wider-rfu-games-regions-and-long-matches",
-    "guest-handoff-from-already-running-game"
+    "wider-rfu-games-regions-and-long-matches"
   ],
   "persistentSaveWrites": true,
   "savePolicy": "Isolated own SRAM; protected normal-exit return with preimage backup. Gen II uses the patched Gambatte-compatible eight-byte RTC bridge and a recoverable two-file intent. Conflicts or crash retain original files and recovery copies; unrelated RTC remains untouched. The DoubleCherryGB generic volatile-pair route accepts only non-battery cartridges and never imports or returns personal SRAM/RTC. Generic supported battery cartridges use the patched SameBoy subsystem, authenticated opaque guest SRAM preparation and host state replication; only the assigned local SRAM returns with the same preimage/conflict/crash protection. Existing volatile profiles remain no-save; generic GB/GBC RTC and special cartridges remain excluded. Generic GBA parties of 2-4 use mGBA Splitscreen with private per-member authenticated preparation, a frozen contiguous roster and protected own-slot return. Recognized raw battery sizes are padded only in private sessions and restored to the original size; unknown trailers are rejected.",

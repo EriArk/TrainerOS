@@ -12,7 +12,7 @@ struct NetplayRequest {
 };
 QString bridgeRoot();
 QString bridgeFile();
-QJsonObject netplayIdentity(const AdventureRegistration&,const StandaloneInstallation&,const std::atomic_bool&);
+QJsonObject netplayIdentity(const AdventureRegistration&,const StandaloneInstallation&,const std::atomic_bool&,int players=2);
 QString configureNetplay(ProcessCommand&,const StandaloneInstallation&,const QString& content,
                          const NetplayRequest&,const std::atomic_bool&);
 }

@@ -1,11 +1,19 @@
 # Emulator multiplayer coverage
 
+**11 October offline continuation:** prepare/implement through Wii U plus Vita;
+PS3/Switch are deferred. [Current preparation register](MULTIPLAYER_PREPARATION.md)
+records source-level PS1 shared-console and generic raw GameCube admission, with
+device delivery still pending. PS1/PS2/GameCube Hotseat is also in scope; ordinary
+shared-console ports, exclusive pass-controller and native game networking remain
+distinct. Pending hardware acceptance does not block independent preparation.
+
 **10 October generic GBA update:** mGBA Splitscreen supplies linked GBA machines
 through the existing RetroArch rollback/relay and automatic SRAM preparation.
 Kirby paired gameplay and protected return are recorded in
 [MP-02](HANDHELD_MULTIPLAYER.md) and [core maintenance](emulators/mgba-splitscreen.md).
-The route admits two players; four-player preparation and special mechanisms
-remain open. Existing gpSP/DoubleCherry/SameBoy routes are preserved.
+The route now admits 2-4 players with automatic per-member preparation; real four
+physical clients, special mechanisms and external acceptance remain open.
+Existing gpSP/DoubleCherry/SameBoy routes are preserved.
 
 **10 October battery continuation:** generic supported GB/GBC battery cartridges
 now have an installed [SameBoy linked-pair route](emulators/sameboy.md) using
@@ -68,8 +76,9 @@ implementation, not the ordinary release gate or all-game runtime evidence.
 **10 October MP-02 update:** generic GB/GBC cartridges without battery/RTC storage
 can use DoubleCherryGB's existing linked pair over RetroArch rollback/relay,
 with per-player screen/audio and assigned controls. Into the Blue invitation and
-actual paired gameplay passed on both handhelds. General independent battery-save
-support remains open; the older netpacket routes in the table are retained.
+actual paired gameplay passed on both handhelds. Supported battery cartridges now
+use the SameBoy route above; wider hardware/save exceptions remain open. The older
+netpacket routes in the table are retained.
 See [the dated evidence and limitations](HANDHELD_MULTIPLAYER.md).
 
 `RuntimeMultiplayer.cpp` dispatches the inspected PSP and GameCube profiles to
@@ -95,8 +104,9 @@ complete; no player-entered IPs, router configuration or personal VPN setup.
 | Azahar standalone | Each player owns an emulated 3DS, connected through a room server for local wireless. Room membership limit is not game capacity. | Common ARM64 client build, scoped room allocation/cleanup, automatic join, exact content/update compatibility and retained per-player saves. Need a reachable managed room for internet, not manual public-room browsing. | Flip candidate file; no paired proof or TrainerOS network adapter. |
 | melonDS | Local Wireless and game WFC are separate. New #162–166 target: native Linux deterministic DS plus peer mirrors over authenticated internet direct/relay. Existing 1.1 LAN GUI/dormant Netplay is not evidence of that target. | Port/review DetMP, local BIOS and private bounded mirror state, existing GameParty/own saves; prove meaningful two-handheld gameplay and recovery, LAN then distinct internet. Measure 3/4-player budgets separately. WFC/VPN are not substitutes. [Dependencies](EXPANSION_161_173.md). | Ordinary DS launch exists; new core/adapter and real multiplayer proof remain planned. |
 | ARMSX2 | PS2 DEV9 Ethernet for titles with game networking; inspected upstream also has a UDP Local Link adapter. No general shared-console input-sync route established. | Identify installed build, check DEV9/Local Link availability and a game with native LAN/online support; automate endpoints and isolate memory cards. Any WAN path must satisfy reachability. | Odin ordinary launch exists; network route unverified. |
-| DuckStation | Standard installed build has no TrainerOS netplay route. A separate third-party netplay fork exists; its features cannot be attributed to stock DuckStation. | Keep ordinary PS1 primary. Evaluate one compatible libretro route or maintained fork only with ARM build, matching, memory-card and paired-control proof; never silently swap a user's runtime/save format. | Unresolved PS1 multiplayer route. |
-| GB/GBC/GBA link | Independent netpacket machines for reviewed cable/RFU protocols; generic paired GB/GBC through DoubleCherryGB/SameBoy and 2-4-machine GBA cable parties through mGBA Splitscreen/RetroArch rollback. Ordinary mGBA/Gambatte remain. | Existing invitations/relay, private own SRAM and protected copyback. See [MP-02](HANDHELD_MULTIPLAYER.md) and per-core maintenance records. | Emerald/Red trades, Gold clock return, From Below/Kirby paired play and Mario Golf RFU shots are recorded separately. Four linked Kirby machines are not four physical clients. Remaining transactions, broader compatibility, guest live-game handoff and external acceptance stay open. |
+| PCSX ReARMed / PS1 | Existing RetroArch shared-console netplay; initial route is two digital pads with private BIOS/cards. | Matching CUE/CHD tracks, sidecars, BIOS and core/runtime. No Multitap/system-link or personal card conversion. | [Source preparation](emulators/pcsx-rearmed.md); local checks and handheld delivery tracked separately. |
+| DuckStation | Current stock source has no netplay. HeatXD's separate fork has rollback and host-code traversal. | Preserve ordinary emulator choices. The fork is archived; latest published 0.4 is a Windows-only binary from 2023, with ARM delivery unverified. | Not selected as the handheld network route; [fresh source comparison](MULTIPLAYER_PREPARATION.md#ps1-runtime-decision--11-october-2026). |
+| GB/GBC/GBA link | Independent netpacket machines for reviewed cable/RFU protocols; generic paired GB/GBC through DoubleCherryGB/SameBoy and 2-4-machine GBA cable parties through mGBA Splitscreen/RetroArch rollback. Ordinary mGBA/Gambatte remain. | Existing invitations/relay, private own SRAM and protected copyback. See [MP-02](HANDHELD_MULTIPLAYER.md) and per-core maintenance records. | Emerald/Red trades, Gold clock return, From Below/Kirby paired play and Mario Golf RFU shots are recorded separately. Four linked Kirby machines are not four physical clients. Universal live-game invitation handoff is delivered in [its record](INVITATION_HANDOFF.md); remaining transactions, broader compatibility and external acceptance stay open. |
 | Cemu | Native game online services, including supported Pretendo configuration, rather than a proven general shared-controller netplay path. | Linux ARM build provenance/performance, per-player online prerequisites and game-specific service admission. Do not copy account/console credentials between players or claim a VPN supplies a game service. | Conditional family; no TrainerOS multiplayer integration. |
 | RPCS3 | RPCN client emulates supported matchmaking APIs; game LAN/custom-service routes are title-specific. | Exact ARM build/game performance, account and service setup, game-specific join flow, process/save ownership; no automatic universal PS3 invite claim. | Odin file present; conditional, not paired gameplay evidence. |
 | Vita3K | Current upstream FAQ documents partial ad hoc support for some games using overlays. This is not general PSN support. | Identify Odin build, prove a title and adapter, then assess the already-defined managed overlay candidate if needed. No player-managed VPN as normal UX. | Conditional family; no TrainerOS launch/network integration established here. |

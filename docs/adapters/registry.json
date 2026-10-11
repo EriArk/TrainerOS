@@ -1,7 +1,54 @@
 {
   "purpose": "Engineering evidence index; not runtime capability authority",
-  "updated": "2026-10-10",
+  "updated": "2026-10-11",
   "runtimeProfiles": [
+    {
+      "id": "runtime.dolphin.gc.v1",
+      "platform": "gc",
+      "romSha256": "",
+      "state": "partial",
+      "record": "../MULTIPLAYER_PREPARATION.md",
+      "implementationSource": "src/integrations/adventure/standalone/DolphinNetplay.cpp",
+      "evidence": [
+        "existing-native-bridge-source",
+        "existing-roster-to-controller-mapping",
+        "windows-client-build",
+        "windows-admission-isolation-and-lifecycle-regressions"
+      ],
+      "remaining": [
+        "handheld-delivery",
+        "wider-gamecube-gameplay",
+        "four-clients",
+        "distinct-networks-and-strict-nat",
+        "compressed-discs-and-other-peripherals"
+      ],
+      "persistentSaveWrites": false,
+      "implementation": "implementations/runtime",
+      "profile": "implementations/runtime/profiles/runtime.dolphin.gc.v1.json"
+    },
+    {
+      "id": "runtime.retroarch.psx.pcsx_rearmed.v1",
+      "platform": "psx",
+      "romSha256": "",
+      "state": "partial",
+      "record": "../MULTIPLAYER_PREPARATION.md",
+      "implementationSource": "src/integrations/adventure/retroarch/RetroArchNetplay.cpp",
+      "evidence": [
+        "upstream-netplay-and-deterministic-state-contract",
+        "existing-relay-and-party-reuse",
+        "windows-client-build",
+        "windows-admission-isolation-and-lifecycle-regressions"
+      ],
+      "remaining": [
+        "handheld-delivery",
+        "paired-gameplay-and-controls",
+        "distinct-networks",
+        "wider-disc-and-peripheral-compatibility"
+      ],
+      "persistentSaveWrites": false,
+      "implementation": "implementations/runtime",
+      "profile": "implementations/runtime/profiles/runtime.retroarch.psx.pcsx_rearmed.v1.json"
+    },
     {
       "id": "runtime.fceumm.pong-homebrew.v1",
       "platform": "nes",
@@ -238,7 +285,8 @@
         "gpsp-rfu-header-admission-and-own-save-regressions",
         "mario-golf-rfu-relay-discovery-and-both-player-shots",
         "mario-golf-distinct-profile-return-and-mgba-diagnostic-readback",
-        "peer-departure-during-exit-confirmation-regression-both-devices"
+        "peer-departure-during-exit-confirmation-regression-both-devices",
+        "universal-live-game-invitation-handoff"
       ],
       "remaining": [
         "wider-battery-mapper-and-special-hardware-compatibility",
@@ -248,8 +296,7 @@
         "distinct-networks",
         "four-clients",
         "gba-single-pak-special-peripherals",
-        "wider-rfu-games-regions-and-long-matches",
-        "guest-handoff-from-already-running-game"
+        "wider-rfu-games-regions-and-long-matches"
       ],
       "persistentSaveWrites": true,
       "savePolicy": "Isolated own SRAM; protected normal-exit return with preimage backup. Gen II uses the patched Gambatte-compatible eight-byte RTC bridge and a recoverable two-file intent. Conflicts or crash retain original files and recovery copies; unrelated RTC remains untouched. The DoubleCherryGB generic volatile-pair route accepts only non-battery cartridges and never imports or returns personal SRAM/RTC. Generic supported battery cartridges use the patched SameBoy subsystem, authenticated opaque guest SRAM preparation and host state replication; only the assigned local SRAM returns with the same preimage/conflict/crash protection. Existing volatile profiles remain no-save; generic GB/GBC RTC and special cartridges remain excluded. Generic GBA parties of 2-4 use mGBA Splitscreen with private per-member authenticated preparation, a frozen contiguous roster and protected own-slot return. Recognized raw battery sizes are padded only in private sessions and restored to the original size; unknown trailers are rejected.",

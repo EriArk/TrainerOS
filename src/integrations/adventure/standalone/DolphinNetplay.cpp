@@ -13,12 +13,15 @@
 namespace trainer::dolphin {
 QString bridgeRoot() {return QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)+"/TrainerOS/emulators/dolphin-netplay";}
 QString bridgeFile() {return bridgeRoot()+"/bin/dolphin-emu";}
-QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInstallation& i,const std::atomic_bool& cancel) {
+QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInstallation& i,const std::atomic_bool& cancel,int players) {
     if(r.adventure.platformId!="gc"||r.adventure.adapterId!="dolphin"||!i.platforms.contains("gc"))return {};
+    if(players<2||players>4)return {};
+    const auto extension=QFileInfo(r.contentPath).suffix().toLower();
+    if(extension!="iso"&&extension!="gcm")return {};
     QFile file(r.contentPath);
-    if(!file.open(QIODevice::ReadOnly)||file.size()!=1459978240)return {};
-    const auto header=file.read(8);
-    if(header!=QByteArray::fromHex("47414c4530310001"))return {}; // GALE01, US revision 1
+    if(!file.open(QIODevice::ReadOnly)||file.size()<0x20||file.size()>1500LL*1024*1024)return {};
+    const auto header=file.read(0x20);
+    if(header.mid(0x1c,4)!=QByteArray::fromHex("c2339f3d"))return {}; // Raw GameCube disc, not Wii or an archive.
     QFile manifest(bridgeRoot()+"/manifest.json");
     if(!manifest.open(QIODevice::ReadOnly)||manifest.size()>8192)return {};
     const auto m=QJsonDocument::fromJson(manifest.readAll()).object();
@@ -26,10 +29,14 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInsta
     const auto runtime=retroarch::fileDigest(bridgeFile(),256*1024*1024,cancel);
     if(runtime.isEmpty()||runtime!=m["sha256"].toString())return {};
     const auto content=retroarch::fileDigest(r.contentPath,1500LL*1024*1024,cancel);
-    if(content!="53a5d0f7c480045a435c889ad47b6d351faff0fc409a7285f3eecc61706b3d9e")return {};
-    return {{"id","runtime.dolphin.melee-us-rev1.v1"},{"label","Super Smash Bros. Melee"},
-        {"content",content},{"runtime",runtime},{"settings","dolphin-native-isolated-v1"},
-        {"players",4},{"lateJoin",false}};
+    if(content.isEmpty())return {};
+    if(content=="53a5d0f7c480045a435c889ad47b6d351faff0fc409a7285f3eecc61706b3d9e")
+        return {{"id","runtime.dolphin.melee-us-rev1.v1"},{"label","Super Smash Bros. Melee"},
+            {"content",content},{"runtime",runtime},{"settings","dolphin-native-isolated-v1"},
+            {"players",4},{"lateJoin",false}};
+    return {{"id","runtime.dolphin.gc.v1"},{"label",r.adventure.title.left(96)},
+        {"content",content},{"runtime",runtime},{"settings","dolphin-gc-pads-isolated-v1"},
+        {"players",players},{"lateJoin",false}};
 }
 QString configureNetplay(ProcessCommand& cmd,const StandaloneInstallation& i,const QString& content,
                          const NetplayRequest& request,const std::atomic_bool& cancel) {
@@ -73,6 +80,7 @@ QString configureNetplay(ProcessCommand& cmd,const StandaloneInstallation& i,con
     // contract, including when the emulator uses an isolated user directory.
     cmd.arguments<<bridgeFile()<<"-b"<<"-C"<<"Dolphin.Interface.ConfirmStop=False"<<"-u"<<root;
     cmd.runtimeControls["netplay"]=request.expected.toVariantMap();cmd.runtimeControls["netplayHost"]=request.host;
+    cmd.runtimeControls["temporaryProgress"]=true;
     const auto settled=cmd.settled;
     cmd.settled=[settled,directory](const ProcessOutcome& outcome){if(settled)settled(outcome);directory->remove();};
     return {};

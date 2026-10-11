@@ -8,12 +8,16 @@
 #include "core/navigation/LaunchPreparation.h"
 #include "core/repository/BatoceraLibrary.h"
 #include "platform/emulation/EmulatorDiscovery.h"
+#include "core/model/GamePlayers.h"
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QDir>
+#include <QStandardPaths>
+#include <QScopeGuard>
+#include <QCryptographicHash>
 
 using namespace trainer;
 class StandaloneTests final : public QObject {
@@ -31,6 +35,45 @@ class StandaloneTests final : public QObject {
         QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly)); QCOMPARE(file.write(data), data.size());
     }
 private slots:
+    void dolphinGenericGameCubeIdentityKeepsNativeBridgeAndDiscChecks() {
+        const bool previousTestMode=QStandardPaths::isTestModeEnabled();
+        QStandardPaths::setTestModeEnabled(true);
+        const auto restoreMode=qScopeGuard([previousTestMode]{QStandardPaths::setTestModeEnabled(previousTestMode);});
+        const auto root=dolphin::bridgeRoot();
+        // Never replace even an existing test installation to make a fixture.
+        QVERIFY(!QFileInfo::exists(root));
+        QVERIFY(QDir().mkpath(root+"/bin"));
+        const auto cleanup=qScopeGuard([root]{
+            QFile::remove(root+"/manifest.json");QFile::remove(root+"/bin/dolphin-emu");
+            QDir().rmdir(root+"/bin");QDir().rmdir(root);
+        });
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        write(dolphin::bridgeFile(),"fixture runtime");
+        const auto hash=QString::fromLatin1(QCryptographicHash::hash("fixture runtime",QCryptographicHash::Sha256).toHex());
+        const auto manifest=[&](const QString& runtime){write(root+"/manifest.json",QJsonDocument(QJsonObject{
+            {"protocol",1},{"source","c77bbaa0f372c3f72281602a8b087206706542cb"},{"sha256",runtime}}).toJson());};
+        manifest(hash);
+        QByteArray disc(1024,'\0');disc.replace(0,6,"GTEST0");disc.replace(0x1c,4,QByteArray::fromHex("c2339f3d"));
+        write(dir.filePath("game.iso"),disc);
+        AdventureRegistration r;r.adventure.platformId="gc";r.adventure.adapterId="dolphin";
+        r.adventure.title="Local title";r.contentPath=dir.filePath("game.iso");
+        StandaloneInstallation i;i.platforms={"gc","wii"};
+        const auto identity=dolphin::netplayIdentity(r,i,cancel,4);
+        QCOMPARE(identity["id"].toString(),QString("runtime.dolphin.gc.v1"));
+        QCOMPARE(identity["players"].toInt(),4);QVERIFY(!identity["lateJoin"].toBool(true));
+        r.adventure.title="Other local name";
+        QVERIFY(sameMultiplayerGame(identity,dolphin::netplayIdentity(r,i,cancel,4)));
+        QCOMPARE(dolphin::netplayIdentity(r,i,cancel)["players"].toInt(),2);
+        QVERIFY(dolphin::netplayIdentity(r,i,cancel,5).isEmpty());
+        disc[512]=1;write(r.contentPath,disc);
+        QVERIFY(!sameMultiplayerGame(identity,dolphin::netplayIdentity(r,i,cancel,4)));
+        manifest(QString(64,'0'));QVERIFY(dolphin::netplayIdentity(r,i,cancel).isEmpty());manifest(hash);
+        disc.replace(0x1c,4,QByteArray(4,'\0'));disc.replace(0x18,4,QByteArray::fromHex("5d1c9ea3"));
+        write(r.contentPath,disc);QVERIFY(dolphin::netplayIdentity(r,i,cancel).isEmpty()); // Wii needs its own input route.
+        r.adventure.platformId="wii";QVERIFY(dolphin::netplayIdentity(r,i,cancel).isEmpty());
+        r.adventure.platformId="gc";r.contentPath=dir.filePath("game.rvz");write(r.contentPath,disc);
+        QVERIFY(dolphin::netplayIdentity(r,i,cancel).isEmpty());
+    }
     void dolphinSessionKeepsControllerBridgeAndNeverLinksPersonalSaves() {
         QTemporaryDir dir;QVERIFY(dir.isValid());
         write(dir.filePath("Dolphin.ini"),"[Core]\nMemcardAPath = /personal/card.raw\n");

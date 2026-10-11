@@ -1,5 +1,15 @@
 # AGENTS.md — TrainerOS
 
+**Owner offline multiplayer continuation, 2026-10-11:** prepare and implement
+the accepted emulator multiplayer scope through Wii U, plus Vita. PS3 and Switch
+are excluded for now. Reuse existing networking; while the handhelds are off,
+keep checks to relevant source, build and lifecycle checks. Defer deep gameplay,
+physical-device and separate-network acceptance until they return; those pending
+checks do not block independent work on later families. Include the requested
+PS1/PS2/GameCube Hotseat scope without conflating pass-controller, simultaneous
+shared-console play and a game's native online mode. The preparation register in
+docs/MULTIPLAYER_PREPARATION.md distinguishes implementation from acceptance.
+
 **Owner multiplayer reuse correction, 2026-10-10:** this applies to ALL emulator
 families, not only handheld link or Pokemon. Reuse existing emulator netplay,
 relay/room services and established networking implementations before considering

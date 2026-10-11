@@ -1,0 +1,24 @@
+{
+  "id": "runtime.retroarch.psx.pcsx_rearmed.v1",
+  "platform": "psx",
+  "romSha256": "",
+  "state": "partial",
+  "record": "../MULTIPLAYER_PREPARATION.md",
+  "implementationSource": "src/integrations/adventure/retroarch/RetroArchNetplay.cpp",
+  "evidence": [
+    "upstream-netplay-and-deterministic-state-contract",
+    "existing-relay-and-party-reuse",
+    "windows-client-build",
+    "windows-admission-isolation-and-lifecycle-regressions"
+  ],
+  "remaining": [
+    "handheld-delivery",
+    "paired-gameplay-and-controls",
+    "distinct-networks",
+    "wider-disc-and-peripheral-compatibility"
+  ],
+  "persistentSaveWrites": false,
+  "implementation": "implementations/runtime",
+  "profile": "implementations/runtime/profiles/runtime.retroarch.psx.pcsx_rearmed.v1.json",
+  "evidenceBase": "../../../"
+}

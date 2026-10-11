@@ -567,7 +567,7 @@ private slots:
     void sharedProfilesCoverCatalogueWithoutPretendingHandheldLink() {
         for(const auto& p:romPlatforms()) {
             if(!QStringList{"atari2600","fbneo","mame","mastersystem","megadrive","neogeo",
-                "nes","pcengine","pcenginecd","sega32x","segacd","sg1000","snes","supergrafx"}.contains(p.id))continue;
+                "nes","pcengine","pcenginecd","psx","sega32x","segacd","sg1000","snes","supergrafx"}.contains(p.id))continue;
             QVERIFY2(retroarch::netplaySupported(p.id,p.core),qPrintable(p.id));
             const auto a=retroarch::netplayProfile(p.id,p.core,QString(64,'a'));
             const auto b=retroarch::netplayProfile(p.id,p.core,QString(64,'b'));
@@ -606,6 +606,60 @@ private slots:
         QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
         r.contentPath=dir.filePath("game.m3u");write("game.m3u","game.cue\n");
         QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+    }
+    void playStationNetplayProtectsCardsAndMatchesDiscDependencies() {
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        const auto write=[&](const QString& name,const QByteArray& bytes) {
+            QFile f(dir.filePath(name));return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size();
+        };
+        const auto read=[](const QString& path) {QFile f(path);return f.open(QIODevice::ReadOnly)?f.readAll():QByteArray();};
+        QVERIFY(QDir().mkpath(dir.filePath("bios")));
+        const QByteArray original="system_directory = \""+dir.filePath("bios").toUtf8()+"\"\n";
+        QVERIFY(write("retroarch.cfg",original));QVERIFY(write("core","core"));QVERIFY(write("runtime","runtime"));
+        QVERIFY(write("track.bin","first track"));QVERIFY(write("game.cue","FILE \"track.bin\" BINARY\n TRACK 01 MODE1/2352\n"));
+        QVERIFY(write("game.srm","personal first card"));QVERIFY(write("pcsx-card2.mcd","personal second card"));
+        RetroArchInstallation i;i.configFile=dir.filePath("retroarch.cfg");i.runtimeFile=dir.filePath("runtime");i.cores["pcsx_rearmed"]=dir.filePath("core");
+        AdventureRegistration r;r.adventure.platformId="psx";r.integrationConfig["core"]="pcsx_rearmed";r.contentPath=dir.filePath("game.cue");
+        QVERIFY(retroarch::netplaySupported("psx","pcsx_rearmed"));
+        QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty()); // Owned BIOS is required.
+        QVERIFY(write("bios/scph5501.bin",QByteArray(512*1024,'a')));
+        const auto identity=retroarch::netplayIdentity(r,i,cancel);QVERIFY(!identity.isEmpty());
+        QVERIFY(retroarch::netplayIdentity(r,i,cancel,nullptr,4).isEmpty()); // No inferred Multitap.
+        QVERIFY(write("bios/unknown.bin",QByteArray(512*1024,'u')));
+        QCOMPARE(retroarch::netplayIdentity(r,i,cancel),identity); // Not visible in private BIOS directory.
+        retroarch::NetplayRequest request;request.expected=identity;request.host=true;request.slot=1;request.password="private";request.nickname="host";
+        ProcessCommand cmd;cmd.arguments={r.contentPath};
+        QVERIFY2(retroarch::prepareNetplay(cmd,r,i,request,cancel).isEmpty(),"PS1 session preparation");
+        const auto settings=retroarch::readSettings(cmd.arguments[cmd.arguments.indexOf("--appendconfig")+1]);
+        const auto session=settings.value("savefile_directory");QVERIFY(session!=dir.path());
+        QCOMPARE(cmd.arguments[cmd.arguments.indexOf("--sram-mode")+1],QString("noload-nosave"));
+        QCOMPARE(read(settings.value("system_directory")+"/scph5501.bin"),QByteArray(512*1024,'a'));
+        QVERIFY(!QFileInfo::exists(settings.value("system_directory")+"/unknown.bin"));
+        QCOMPARE(retroarch::readSettings(settings.value("core_options_path")).value("pcsx_rearmed_memcard2"),QString("none"));
+        QVERIFY(cmd.runtimeControls["temporaryProgress"].toBool());
+        cmd.settled({true,0,false,false});QVERIFY(!QFileInfo::exists(session));
+        QCOMPARE(read(i.configFile),original);QCOMPARE(read(dir.filePath("game.srm")),QByteArray("personal first card"));
+        QCOMPARE(read(dir.filePath("pcsx-card2.mcd")),QByteArray("personal second card"));
+        for(const auto& change:QList<QPair<QString,QByteArray>>{{"track.bin","changed track"},
+            {"game.sbi","SBI data"},{"game.sub","subchannel data"},{"bios/scph5501.bin",QByteArray(512*1024,'b')}}) {
+            const auto previous=read(dir.filePath(change.first));
+            QVERIFY(write(change.first,change.second));
+            QVERIFY(!sameMultiplayerGame(identity,retroarch::netplayIdentity(r,i,cancel)));
+            ProcessCommand stale;stale.arguments={r.contentPath};
+            QVERIFY(!retroarch::prepareNetplay(stale,r,i,request,cancel).isEmpty());
+            QCOMPARE(stale.arguments,QStringList{r.contentPath});
+            if(previous.isEmpty())QVERIFY(QFile::remove(dir.filePath(change.first)));
+            else QVERIFY(write(change.first,previous));
+        }
+        QVERIFY(write("game.ccd","alternate descriptor"));QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+        QVERIFY(QFile::remove(dir.filePath("game.ccd")));
+        r.contentPath=dir.filePath("game.m3u");QVERIFY(write("game.m3u","game.cue\n"));
+        QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
+        r.contentPath=dir.filePath("game.chd");QVERIFY(write("game.chd","MComprHDfixture"));
+        QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty()); // Unhashed companion CUE.
+        QVERIFY(QFile::remove(dir.filePath("game.cue")));
+        QVERIFY(!retroarch::netplayIdentity(r,i,cancel).isEmpty());
+        QVERIFY(write("game.chd","invalid CHD"));QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
     }
     void relayDirectoryRequiresCompleteUnambiguousEndpoint() {
         const QByteArray reply="status=OK\r\ntunnel_addr=europe-west1.relay.retroarch.com\r\ntunnel_port=55435\r\n";
