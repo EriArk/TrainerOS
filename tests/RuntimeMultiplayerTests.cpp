@@ -86,6 +86,23 @@ class RuntimeMultiplayerTests final : public QObject {
         QTRY_VERIFY(!f.lifecycle.active());
     }
 private slots:
+    void dreamcastHostSaveCancellationAndStaleMarkers() {
+        Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        requestRestart(f,{{"id","runtime.flycast-dojo.dc.v1"}});
+        QVERIFY(f.process.active());QVERIFY(f.runtime.restarting_);
+        f.lifecycle.exitController().cancel();QVERIFY(f.process.active());QVERIFY(!f.runtime.active_);
+        f.runtime.output("[TrainerOSFlycast] running\n");QVERIFY(!f.runtime.active_);
+        finishOrdinary(f);
+    }
+    void dreamcastRejectsChangedIdentityAndTracksDisconnect() {
+        Fixture f;f.runtime.active_=true;f.runtime.descriptor_={{"id","runtime.flycast-dojo.dc.v1"},{"content","accepted"}};
+        f.runtime.frame({{"kind","flycast-ready"},{"slot",2},{"identity",QJsonObject{{"id","runtime.flycast-dojo.dc.v1"},{"content","other"}}}});
+        QVERIFY(!f.runtime.active_);
+        f.runtime.active_=true;f.runtime.deadline_=1;
+        f.runtime.output("[TrainerOSFlycast] run");QCOMPARE(f.runtime.deadline_,1);
+        f.runtime.output("ning\n");QCOMPARE(f.runtime.deadline_,0);QCOMPARE(f.runtime.status_,"Playing together");
+        f.runtime.output("[TrainerOSFlycast] error\n");QVERIFY(!f.runtime.active_);
+    }
     void n64HostRetainsSaveQuestionAndCancellationStopsPreparation() {
         Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
         requestRestart(f,{{"id","runtime.rmg.n64.v1"}});

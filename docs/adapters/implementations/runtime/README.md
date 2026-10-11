@@ -12,6 +12,14 @@ State and remaining gates in each profile are binding; this copy grants no new
 compatibility claim. See [PSP evidence](../../../PSP_MULTIPLAYER.md) and
 [RetroArch evidence](../../../EMULATOR_MULTIPLAYER.md) for upstream sources.
 
+`flycast::netplayIdentity` and `flycast::command` prepare a pinned Dojo bundle,
+matching CHD and temporary VMUs/firmware. The receiving host must supply the
+accepted two-member invitation, session nonce, local operator relay configuration
+and owned process/Exit lifecycle. Parse only `flycast::event` markers and keep
+keys out of logs. [Dreamcast record](../../../emulators/flycast.md) retains full
+runtime-build, service, device and gameplay gates. The included recipe and source
+patch are not a deployed emulator or a redistributed firmware/server bundle.
+
 The [shared RetroArch profiles](../../../RETROARCH_MULTIPLAYER_PROFILES.md) also
 cover reviewed platform/core pairs without a per-ROM allowlist. Call
 `netplayIdentity` with the actual installation and content, then `prepareNetplay`

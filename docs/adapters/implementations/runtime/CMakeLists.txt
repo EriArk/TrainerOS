@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Network WebSockets)
 add_library(trainer_runtime_profiles STATIC
+    src/integrations/adventure/standalone/FlycastNetplay.cpp
     src/integrations/adventure/standalone/RmgNetplay.cpp
     src/integrations/adventure/standalone/PpssppNetplay.cpp
     src/integrations/adventure/retroarch/RetroArchNetplay.cpp

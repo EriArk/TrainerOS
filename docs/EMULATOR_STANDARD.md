@@ -31,7 +31,12 @@ the whole standard image. The subsequent [Dolphin bridge](emulators/dolphin.md)
 adds bounded two-device Melee NetPlay evidence with a separately maintained
 native artifact; broader routes and internet acceptance remain open.
 
-**Flycast package checkpoint, 2026-10-03:** Flip now has the same standalone
+**Dreamcast preparation, 2026-10-11:** a separate pinned [Flycast Dojo bundle](emulators/flycast.md)
+provides the source-prepared two-player CHD GGPO/relay route. Ordinary Flycast and
+RetroArch bindings remain. Full ARM build, operator relay and handheld/gameplay
+acceptance are pending; this is not migration of ordinary VMUs.
+
+**Historical Flycast package checkpoint, 2026-10-03:** Flip then received the same standalone
 2.7 Flatpak commit and executable hash as Odin, recorded in baseline revision
 `arm64-20261003.2`. Existing core routes/settings/saves were not migrated.
 [Maintenance and WAN findings](emulators/flycast.md) keep installed-package

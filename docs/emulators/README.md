@@ -26,7 +26,7 @@ a second execution plan or a claim that all installed runtimes are validated.
 | mGBA Splitscreen | [GBA linked pairs](mgba-splitscreen.md) | Existing linked-machine engine, per-viewer screen/audio and protected separate batteries |
 | Dolphin | [Bridge checkpoint](dolphin.md) | Preserved ordinary Flatpak; separate pinned native bridge with paired Melee LAN gameplay/Home return; internet and four-client gates open |
 | PPSSPP | [PPSSPP](ppsspp.md) | Isolated networking, preserved identity, bounded LAN/relay gameplay and remaining recovery/network gates |
-| Flycast | [Package and WAN checkpoint](flycast.md) | Matching 2.7 packages on both devices; GGPO/ICE transport distinction; standalone and automatic internet integration remain open |
+| Flycast / Dojo | [Dreamcast preparation](flycast.md) | Ordinary 2.7 retained; separate Dojo native relay/GGPO launch integration in source; full runtime build, operator service and device/gameplay checks pending |
 
 Existing work on other emulators remains documented in
 [discovery](../EMULATOR_DISCOVERY.md), [platform routes](../ROM_PLATFORMS.md) and

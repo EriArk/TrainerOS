@@ -1,5 +1,13 @@
 # Current tasks
 
+**Dreamcast source preparation, 11 October 2026:** [Flycast Dojo](emulators/flycast.md)
+now has two-player CHD invitation/launch integration using native GGPO/relay and
+private VMU/firmware copies. Local adapter/lifecycle and native relay-client
+harness checks are separate from a full emulator build or game. Linux/ARM64
+Dojo build, operator relay and handheld/gameplay acceptance remain open. Next
+independent preparation is the retained PS2/GameCube/Hotseat block; keep DS/PSP,
+3DS, Wii U and Vita in scope, PS3/Switch excluded. No MP block or issue closes.
+
 **N64 source preparation, 11 October 2026:** [RMG native netplay](emulators/RMG.md)
 now has automatic private rooms, roster-gated start and an isolated runtime launch
 through the existing invitation/save lifecycle. Four lobby clients (including

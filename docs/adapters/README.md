@@ -6,6 +6,7 @@ that another edition of the same game has the same format.
 
 | Record | Exact targets | Current boundary |
 |---|---|---|
+| [Dreamcast native runtime](../emulators/flycast.md) | Matching CHD, pinned Dojo executable and locally supplied boot/flash | Native relay/GGPO invitation and private launch preparation; no installed gameplay or semantic save capability |
 | [N64 native runtime](../emulators/RMG.md) | Matching raw cartridge, pinned RMG bundle and native server | Automatic room/lifecycle source integration and four lobby clients; no installed N64 gameplay or semantic save capability |
 | [PS1 shared-console runtime](../MULTIPLAYER_PREPARATION.md#ps1-runtime-decision--11-october-2026) | Matching PCSX ReARMed/RetroArch, owned BIOS, CUE/CHD content | Source integration and Windows checks; two digital pads, isolated cards; no semantic save capability or paired-device acceptance |
 | [GameCube shared-console runtime](../MULTIPLAYER_PREPARATION.md#gamecube-extension-research--11-october-2026) | Matching installed Dolphin bridge and raw ISO/GCM content | Generic admission and Windows checks; existing native port mapping and isolated cards; wider-device acceptance and Wii/other peripherals remain separate |

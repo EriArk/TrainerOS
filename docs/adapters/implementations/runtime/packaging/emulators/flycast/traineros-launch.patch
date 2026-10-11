@@ -1,0 +1,214 @@
+diff --git a/core/dojo/DojoGui.cpp b/core/dojo/DojoGui.cpp
+index 39f1350..3c5116f 100644
+--- a/core/dojo/DojoGui.cpp
++++ b/core/dojo/DojoGui.cpp
+@@ -667,6 +667,7 @@ void DojoGui::pop_disable()
+ 
+ void DojoGui::gui_display_relay_join(float scaling)
+ {
++	static bool trainerAttempted = false;
+ 	char title_txt[128];
+ 	sprintf(title_txt, "%s Relay Connect", ICON_FA_TOWER_BROADCAST);
+ 	std::string title(title_txt);
+@@ -768,8 +769,9 @@ void DojoGui::gui_display_relay_join(float scaling)
+ 		if (!config::ActAsServer && strlen(rk) == 0)
+ 			push_disable();
+ 
+-		if (ImGui::Button(start_btn_txt))
++		if (ImGui::Button(start_btn_txt) || (!trainerAttempted && !cfgLoadStr("dojo", "TrainerSession", "").empty()))
+ 		{
++			trainerAttempted = true;
+ 			int port = config::DefaultRelayPort.get();
+ 			if (!dojo.commandLineStart)
+ 			{
+@@ -809,49 +811,37 @@ void DojoGui::gui_display_relay_join(float scaling)
+ 			{
+ 				dojo.relay_client.disconnect_toggle = false;
+ 				std::thread t2(&RelayClient::ClientThread, std::ref(dojo.relay_client));
+-				t2.detach();
++				t2.join();
+ 			}
+ 			catch (std::exception &)
+ 			{
+ 			}
+ 
+-			auto start = std::chrono::system_clock::now();
+-			auto end = start + std::chrono::seconds(5);
+-			auto current = std::chrono::system_clock::now();
+-			bool relay_wait = std::chrono::system_clock::now() < end;
+-			while
+-			(
+-				relay_wait &&
+-				((cfgLoadStr("dojo", "RelayKey", "").size() == 0) ||
+-				(!config::ActAsServer && !dojo.relay_client.disconnect_toggle))
+-			)
+-			{
+-				current = std::chrono::system_clock::now();
+-				relay_wait = current < end;
+-			}
+-
+ 			if (cfgLoadStr("dojo", "RelayKey", "").rfind("NOKEY", 0) == 0)
+ 			{
+ 				cfgSetVirtual("dojo", "RelayKey", "");
+-				std::cout << "No Key Found" << std::endl;
++				std::cout << "[TrainerOSFlycast] error" << std::endl;
+ 				ImGui::OpenPopup("No Key Found");
+ 			}
+ 			else if (cfgLoadStr("dojo", "RelayKey", "").rfind("MAXCN", 0) == 0)
+ 			{
+ 				cfgSetVirtual("dojo", "RelayKey", "");
+-				std::cout << "Maximum Connections Hit" << std::endl;
++				std::cout << "[TrainerOSFlycast] error" << std::endl;
+ 				ImGui::OpenPopup("Max Connections Hit");
+ 			}
+-			else if (cfgLoadStr("dojo", "RelayKey", "").size() == 0)
++			else if (cfgLoadStr("dojo", "RelayKey", "").size() == 0 || !dojo.relay_client.start_game)
+ 			{
+ 				dojo.relay_client.disconnect_toggle = true;
+ 				config::NetworkServer.set("");
++				std::cout << "[TrainerOSFlycast] error" << std::endl;
+ 				ImGui::OpenPopup("Timeout");
+ 			}
+ 			else if (config::ActAsServer && cfgLoadStr("dojo", "RelayKey", "").size() > 0 ||
+ 				dojo.relay_client.start_game && cfgLoadStr("dojo", "RelayKey", "").size() > 0)
+ 			{
+ 				ImGui::CloseCurrentPopup();
++				if (config::ActAsServer && !cfgLoadStr("dojo", "TrainerSession", "").empty())
++					std::cout << "[TrainerOSFlycast] relay " << cfgLoadStr("dojo", "RelayKey", "") << std::endl;
+ 				start_ggpo();
+ 			}
+ 		}
+diff --git a/core/dojo/RelayClient.cpp b/core/dojo/RelayClient.cpp
+index 2fbe03c..8b1934a 100644
+--- a/core/dojo/RelayClient.cpp
++++ b/core/dojo/RelayClient.cpp
+@@ -20,6 +20,7 @@ void RelayClient::ConnectRelayServer()
+ 	struct hostent *mm_host;
+ 	target_hostname = config::NetworkServer.get();
+ 	mm_host = gethostbyname(target_hostname.data());
++	if (!mm_host) { disconnect_toggle = true; return; }
+ 
+ 	sockaddr_in mms_addr;
+ 	mms_addr.sin_family = AF_INET;
+@@ -107,14 +108,16 @@ void RelayClient::ClientLoop()
+ {
+ 	isLoopStarted = true;
+ 
+-	while (!disconnect_toggle)
++	const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
++	while (!disconnect_toggle && std::chrono::steady_clock::now() < deadline)
+ 	{
+ 		struct sockaddr_in sender;
+ 		socklen_t senderlen = sizeof(sender);
+ 		char buffer[256];
+ 		memset(buffer, 0, 256);
+ 		int bytes_read = recvfrom(local_socket, buffer, sizeof(buffer), 0, (struct sockaddr *)&sender, &senderlen);
+-		if (bytes_read)
++		if (bytes_read > 0 && sender.sin_addr.s_addr == inet_addr(config::NetworkServer.get().c_str())
++			&& sender.sin_port == htons((u16)config::GGPORemotePort.get()))
+ 		{
+ 			if (memcmp("NOKEY", buffer, 5) == 0)
+ 			{
+@@ -139,17 +142,19 @@ void RelayClient::ClientLoop()
+ 			{
+ 				std::string received = std::string(buffer, 6);
+ 				cfgSetVirtual("dojo", "RelayKey", received);
+-				std::cout << "RECEIVED RELAY KEY " << received << std::endl;
++				// Session key is emitted only through the TrainerOS adapter marker.
+ 				start_game = true;
+ 				disconnect_toggle = true;
+ 			}
+ 		}
++		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+ 	}
++	disconnect_toggle = true;
+ }
+ 
+ void RelayClient::ClientThread()
+ {
+-	Init();
++	if (!Init()) { disconnect_toggle = true; return; }
+ 	ConnectRelayServer();
+ 	ClientLoop();
+ 	CloseSocket(local_socket);
+diff --git a/core/network/ggpo.cpp b/core/network/ggpo.cpp
+index e6d9d32..f08c133 100644
+--- a/core/network/ggpo.cpp
++++ b/core/network/ggpo.cpp
+@@ -219,10 +219,14 @@ static bool on_event(GGPOEvent *info)
+ 		INFO_LOG(NETWORK, "Running");
+ 		gui_display_notification("Running", 2000);
+ 		synchronized = true;
++		if (!cfgLoadStr("dojo", "TrainerSession", "").empty())
++			std::cout << "[TrainerOSFlycast] running" << std::endl;
+ 		break;
+ 	case GGPO_EVENTCODE_DISCONNECTED_FROM_PEER:
+ 		INFO_LOG(NETWORK, "Disconnected from peer %d", info->u.disconnected.player);
+ 		error_msg = "Disconnected from peer";
++		if (!cfgLoadStr("dojo", "TrainerSession", "").empty())
++			std::cout << "[TrainerOSFlycast] error" << std::endl;
+ 		gui_state = GuiState::Disconnected;
+ 		//throw FlycastException("Disconnected from peer");
+ 		break;
+@@ -517,7 +521,9 @@ void startSession(int localPort, int localPlayerNum)
+ 		+ (int)keyboardGame * sizeof(Inputs::u.keys) + (int)mouseGame * sizeof(Inputs::u.relPos);
+ 
+ 	VerificationData verif;
++	const auto trainerSession = cfgLoadStr("dojo", "TrainerSession", "");
+ 	MD5Sum().add(settings.network.md5.game)
++			.add(trainerSession.data(), trainerSession.size())
+ 			.getDigest(verif.gameMD5);
+ 	auto& digest = settings.network.md5.savestate;
+ 	if (std::find_if(std::begin(digest), std::end(digest), [](u8 b) { return b != 0; }) != std::end(digest))
+@@ -581,6 +587,8 @@ void startSession(int localPort, int localPlayerNum)
+ 		throw FlycastException("GGPO cannot add remote player");
+ 	}
+ 	DEBUG_LOG(NETWORK, "GGPO session started");
++	if (!trainerSession.empty() && config::ActAsServer && !config::Relay)
++		std::cout << "[TrainerOSFlycast] ready" << std::endl;
+ #endif
+ }
+ 
+@@ -821,6 +829,8 @@ std::future<bool> startNetwork()
+ 				{
+ 					error_msg = "Peer verification failed.\n\nMake sure you have the same emulator version and savestate as your opponent.\n\nIf in doubt, delete your existing savestate in the Test Game menu. A new one will be downloaded the next time you join a match.";
+ 					gui_state = GuiState::Disconnected;
++					if (!cfgLoadStr("dojo", "TrainerSession", "").empty())
++						throw FlycastException("TrainerOS peer verification failed");
+ 					//throw FlycastException("Peer verification failed");
+ 				}
+ 				else if (result != GGPO_OK)
+diff --git a/core/rend/gui.cpp b/core/rend/gui.cpp
+index 4017718..ba28ec7 100644
+--- a/core/rend/gui.cpp
++++ b/core/rend/gui.cpp
+@@ -773,6 +773,8 @@ void gui_start_game(const std::string& path)
+ 	dojo.game_name = game_name;
+ 	dojo.current_delay = config::GGPODelay.get();
+ 	dojo.commandLineStart = commandLineStart;
++	if (!cfgLoadStr("dojo", "TrainerSession", "").empty())
++		dojo_file.download_skipped = true;
+ 
+ #ifdef __linux__
+ 	if (!settings.network.online && config::CopyMissingSharedMem)
+@@ -4114,7 +4116,10 @@ static void gui_display_loadscreen()
+ 					if (cfgLoadBool("dojo", "HostJoinSelect", false))
+ 						gui_open_host_join_select();
+ 					else
+-						gui_open_ggpo_join();
++					{
++						if (!cfgLoadStr("dojo", "TrainerSession", "").empty()) start_ggpo();
++						else gui_open_ggpo_join();
++					}
+ 				}
+ 			}
+ 			else if (config::DojoEnable || dojo.PlayMatch)
+@@ -4698,6 +4703,8 @@ static void reset_vmus()
+ void gui_error(const std::string& what)
+ {
+ 	error_msg = what;
++	if (!cfgLoadStr("dojo", "TrainerSession", "").empty())
++		std::cout << "[TrainerOSFlycast] error" << std::endl;
+ }
+ 
+ void gui_save()

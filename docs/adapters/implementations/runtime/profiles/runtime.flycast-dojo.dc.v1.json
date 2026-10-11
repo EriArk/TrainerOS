@@ -1,0 +1,30 @@
+{
+  "id": "runtime.flycast-dojo.dc.v1",
+  "platform": "dreamcast",
+  "romSha256": "",
+  "state": "partial",
+  "record": "../emulators/flycast.md",
+  "evidence": [
+    "pinned-dojo-native-relay-and-ggpo-source",
+    "windows-adapter-isolation-and-identity-checks",
+    "native-relay-client-udp-fixture-harness",
+    "patch-apply-preflight",
+    "windows-client-build",
+    "shared-lifecycle-and-game-party-regressions"
+  ],
+  "remaining": [
+    "full-linux-arm64-dojo-build",
+    "operator-relay-deployment-and-review",
+    "handheld-delivery",
+    "native-boot-and-fresh-vmu-determinism",
+    "paired-gameplay-and-controls",
+    "home-input-and-audio",
+    "loss-reinvite-and-distinct-networks",
+    "gdi-cdi-and-other-modes"
+  ],
+  "persistentSaveWrites": false,
+  "implementationSource": "src/integrations/adventure/standalone/FlycastNetplay.cpp",
+  "implementation": "implementations/runtime",
+  "profile": "implementations/runtime/profiles/runtime.flycast-dojo.dc.v1.json",
+  "evidenceBase": "../../../"
+}

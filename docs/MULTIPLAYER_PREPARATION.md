@@ -9,13 +9,20 @@ checks or count a list of emulator candidates as implemented multiplayer.
 
 ## Scope and implementation state
 
+**Dreamcast local verification, 11 October:** full Windows client build and
+`flycast_netplay`, `game_party`, `runtime_multiplayer` pass (3/3). The patched
+native relay client also compiles/runs in a bounded UDP fixture harness; that
+does not compile or execute the full emulator. Source exports/registry, recipe
+syntax and patch preflight pass. No handheld, ROM or public relay was used.
+See [maintenance and remaining delivery](emulators/flycast.md).
+
 | Family | Existing mechanism / next integration | Current boundary |
 | --- | --- | --- |
 | Classic RetroArch | Shared-console netplay and existing relay | Integrated; retained acceptance is in RETROARCH_MULTIPLAYER_PROFILES.md |
 | GB/GBC/GBA | Existing linked cores / gpSP netpacket | Integrated bounded routes; remaining MP-02 modes and acceptance stay open |
 | PS1 | PCSX ReARMed with the existing RetroArch route | Source implementation and local checks: private BIOS/disc identity, two digital controller ports and private cards; no handheld delivery yet |
 | N64 | RMG / Mupen64Plus native server | Automatic room/roster/launch source integration; four-client lobby check, private progress; full runtime build, operator internet service and devices pending ([record](emulators/RMG.md)) |
-| Dreamcast | Flycast / suitable maintained netplay fork | Ordinary runtime installed; automatic internet session integration remains open |
+| Dreamcast | Flycast Dojo native relay / GGPO | CHD two-player invitation/isolated-launch source integration; full Linux/ARM64 runtime, operator relay, device/gameplay acceptance pending ([record](emulators/flycast.md)) |
 | PS2 | ARMSX2/PCSX2 game networking; shared-console mode is separate | DEV9 networking does not provide remote second-controller gameplay |
 | GameCube/Wii | Extend existing Dolphin native netplay bridge | Generic raw GameCube ISO/GCM admission implemented and locally checked. Exact Melee remains. Wii input route and device delivery remain open |
 | DS | Existing deterministic multiplayer implementations | Desktop integration remains open; LAN wireless alone is not internet support |

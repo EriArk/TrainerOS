@@ -64,7 +64,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(active_&&linkedPreparing_)fail("Couldn't prepare the linked game. Your save was kept. Try inviting again.");
     });
     connect(&party_,&GameParty::changed,this,[this]{
-        if(active_&&rmg()&&!party_.active()) {fail("The Nintendo 64 invitation ended.");return;}
+        if(active_&&(rmg()||flycast())&&!party_.active()) {fail("The game invitation ended.");return;}
         if(!exitingInvitation_.isEmpty() && exitingInvitation_!=invitationId())cancelInvitationExit();
         if(!openingInvitation_.isEmpty() && openingInvitation_!=invitationId()) {
             openingInvitation_.clear();invitationOpenTimer_.stop();
@@ -149,7 +149,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         // when restarting ordinary play into a temporary multiplayer session.
         // Read without inserting a null transport into older descriptors: the
         // accepted identity must remain byte-for-byte equal at guest launch.
-        if(restarting_&&!psp()&&!dolphin()&&!rmg()&&descriptor_.value("transport")!="netpacket"&&!descriptor_.value("id").toString().startsWith("runtime.retroarch."))
+        if(restarting_&&!psp()&&!dolphin()&&!rmg()&&!flycast()&&descriptor_.value("transport")!="netpacket"&&!descriptor_.value("id").toString().startsWith("runtime.retroarch."))
             lifecycle_.exitController().confirm();
     });
     connect(&lifecycle_.exitController(),&AdventureExitController::returnToGameRequested,this,[this]{
@@ -168,7 +168,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
             if(host_)send({{"kind","psp-ready"},{"identity",descriptor_},{"address",request_.address}});
             relaySent_=true;deadline_=0;timer_.stop();status_="Choose VS mode in the game";return;
         }
-        if(host_&&online_&&!dolphin()&&!rmg())pollRelay();
+        if(host_&&online_&&!dolphin()&&!rmg()&&!flycast())pollRelay();
     });
     connect(&lifecycle_,&AdventureLaunchController::adventureFinished,this,[this](bool failed){
         if(!exitingInvitation_.isEmpty()) {
@@ -223,9 +223,9 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     const auto stamp=[](const QString& path){const QFileInfo f(path);return qHashMulti(0,path,f.size(),f.lastModified().toMSecsSinceEpoch());};
     quint64 revision=qHashMulti(0,stamp(installation.runtimeFile),stamp(installation.configFile),
         stamp(pspInstallation.runtimeFile),stamp(dolphin::bridgeFile()),stamp(dolphin::bridgeRoot()+"/manifest.json"),
-        stamp(installation.linkedSavePython),stamp(installation.linkedSaveHelper),stamp(rmg::bundleRoot()+"/manifest.json"));
+        stamp(installation.linkedSavePython),stamp(installation.linkedSaveHelper),stamp(rmg::bundleRoot()+"/manifest.json"),stamp(flycast::bundleRoot()+"/manifest.json"));
     for(auto it=installation.cores.cbegin();it!=installation.cores.cend();++it)revision=qHashMulti(revision,it.key(),stamp(it.value()));
-    const auto candidate=[](const AdventureRegistration& r){return r.adventure.platformId=="psp"||r.adventure.platformId=="gc"||r.adventure.platformId=="n64"||
+    const auto candidate=[](const AdventureRegistration& r){return r.adventure.platformId=="psp"||r.adventure.platformId=="gc"||r.adventure.platformId=="n64"||r.adventure.platformId=="dreamcast"||
         retroarch::netplaySupported(r.adventure.platformId,r.integrationConfig["core"].toString());};
     QMap<QString,int> capacities;
     QMap<QString,QVariantMap> metadata;
@@ -254,7 +254,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
             retroarch::NetplayDigestCache digests;
             for(const auto& r:ordered)if(candidate(r)) {
                 if(promise.isCanceled())break;
-                const auto identity=r.adventure.platformId=="n64"?rmg::netplayIdentity(r,cancel,capacities.value(r.adventure.id,2)):r.adventure.platformId=="gc"?dolphin::netplayIdentity(r,dolphinInstallation,cancel,capacities.value(r.adventure.id,2)):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel,&digests,capacities.value(r.adventure.id,2));
+                const auto identity=r.adventure.platformId=="dreamcast"?flycast::netplayIdentity(r,cancel):r.adventure.platformId=="n64"?rmg::netplayIdentity(r,cancel,capacities.value(r.adventure.id,2)):r.adventure.platformId=="gc"?dolphin::netplayIdentity(r,dolphinInstallation,cancel,capacities.value(r.adventure.id,2)):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel,&digests,capacities.value(r.adventure.id,2));
                 if(!identity.isEmpty())promise.addResult(ScannedGame{r.adventure.id,identity});
             }
         }));
@@ -480,7 +480,7 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
         party_.leave();emit notice("The running game can't join this invitation. Open the invitation again after saving.");return;
     }
     ++sessionGeneration_;
-    rmgLobby_.stop();rmgPreparing_=false;rmgRequest_={};
+    rmgLobby_.stop();rmgPreparing_=false;rmgRequest_={};flycastRequest_={};
     stopLinkedTransfers();linkedPeers_.clear();linkedPreparing_=linkedPrepared_=false;linkedEndpoint_={};
     game_=game;descriptor_=selected;partySession_=true;active_=true;host_=host;relaySent_=false;
     transportPeer_=host?party_.state()["members"].toArray().at(1).toObject()["peer"].toString():party_.hostPeer();
@@ -506,7 +506,10 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     request_.nickname="TrainerOS-"+randomToken().left(12);output_.clear();
     deadline_=QDateTime::currentSecsSinceEpoch()+(dolphin()?150:75);timer_.start();
     dolphinRequest_={};dolphinRequest_.expected=selected;dolphinRequest_.host=host;dolphinRequest_.online=online_;
-    if(host&&rmg()) {
+    if(host&&flycast()) {
+        flycastRequest_={selected,true,online_,nearby_.addressOf(transportPeer_.mid(7)),randomToken(),{}};
+        prepareHost();
+    } else if(host&&rmg()) {
         rmgRequest_.host=true;rmgRequest_.identity=selected;rmgRequest_.token=randomToken();
         for(const auto& v:party_.state()["members"].toArray())rmgRequest_.seats.append(v.toObject()["slot"]);
         prepareHost();
@@ -573,6 +576,14 @@ void RuntimeMultiplayer::launch() {
     const auto record=library_.registration(game_);
     if(!record){fail("The game is no longer in your library.");return;}
     if(!permitsMultiplayer(library_.artwork(game_),descriptor_)){fail("Multiplayer isn't available for this game.");return;}
+    if(flycast()) {
+        if(!requestRuntimeLaunch){fail("Dreamcast multiplayer isn't ready on this device.");return;}
+        QStringList inputPrefix;const auto end=installation_.prefixArguments.indexOf("--");
+        if(end>=0)inputPrefix=installation_.prefixArguments.mid(0,end+1);
+        const auto result=requestRuntimeLaunch(flycast::command(*record,flycastRequest_,inputPrefix),game_);
+        if(!result.success)fail(result.message);
+        return;
+    }
     if(rmg()){prepareRmg();return;}
     if(linked()&&!linkedPrepared_){if(host_)prepareLinked();return;}
     const auto result=dolphin()?dolphin_.launchNetplay(record->adventure,dolphinRequest_):psp()?ppsspp_.launchNetplay(record->adventure,
@@ -680,11 +691,17 @@ void RuntimeMultiplayer::linkedTransferCompleted(int slot,QByteArray bytes) {
     if(host_)launch();else if(!linkedEndpoint_.isEmpty()){const auto endpoint=linkedEndpoint_;linkedEndpoint_={};frame(endpoint);}
 }
 void RuntimeMultiplayer::send(QJsonObject packet) {
-    if(partySession_){if(packet["kind"]=="ready"||packet["kind"]=="psp-ready"||packet["kind"]=="dolphin-ready"||packet["kind"]=="rmg-ready")party_.ready(packet);return;}
+    if(partySession_){if(packet["kind"]=="ready"||packet["kind"]=="psp-ready"||packet["kind"]=="dolphin-ready"||packet["kind"]=="rmg-ready"||packet["kind"]=="flycast-ready")party_.ready(packet);return;}
 }
 void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     if(!active_)return;
     if(packet["kind"]=="left"){status_="Your friend left the game";emit notice(status_);return;}
+    if(flycast()) {
+        if(host_||packet["kind"]!="flycast-ready"||lifecycle_.active()||launchPending_)return;
+        if(packet["identity"].toObject()!=descriptor_||packet["slot"].toInt()!=2){fail("Your Dreamcast game or emulator doesn't match.");return;}
+        flycastRequest_={descriptor_,false,online_,nearby_.addressOf(transportPeer_.mid(7)),packet["token"].toString(),packet["key"].toString()};
+        launchPending_=true;launch();return;
+    }
     if(rmg()) {
         if(host_||packet["kind"]!="rmg-ready"||lifecycle_.active()||launchPending_)return;
         if(packet["identity"].toObject()!=descriptor_){fail("Your Nintendo 64 game or emulator doesn't match.");return;}
@@ -725,7 +742,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     launchPending_=true;launch();
 }
 void RuntimeMultiplayer::pollRelay() {
-    if(psp()||dolphin()||rmg()||query_||!active_||!host_||!online_||relaySent_||request_.relayEndpoint.isEmpty())return;
+    if(psp()||dolphin()||rmg()||flycast()||query_||!active_||!host_||!online_||relaySent_||request_.relayEndpoint.isEmpty())return;
     // This is the upstream public directory, not an authenticated signalling
     // service. Passwords travel only through the accepted friend invitation.
     query_=true;QNetworkRequest request(QUrl("http://lobby.libretro.com/list/"));request.setTransferTimeout(7000);
@@ -749,6 +766,18 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
     output_+=bytes;
     while(output_.contains('\n')) {
         const auto end=output_.indexOf('\n');const auto line=output_.left(end);output_.remove(0,end+1);
+        if(flycast()) {
+            const auto event=flycast::event(line);
+            if(event["event"]=="ready"&&host_&&!relaySent_ &&
+               (online_?!event["key"].toString().isEmpty():event["key"].toString().isEmpty())) {
+                relaySent_=true;
+                send({{"kind","flycast-ready"},{"identity",descriptor_},{"token",flycastRequest_.token},{"key",event["key"]}});
+                status_="Waiting for your friend...";
+            } else if(event["event"]=="running") {
+                deadline_=0;timer_.stop();status_="Playing together";emit changed();
+            } else if(event["event"]=="error") {fail("Dreamcast multiplayer ended. You can invite again.");return;}
+            continue;
+        }
         if(rmg()) {
             if(line=="[TrainerOSRmg] running") {deadline_=0;timer_.stop();status_="Playing together";emit changed();}
             else if(line=="[TrainerOSRmg] error") {fail("Nintendo 64 multiplayer ended. You can invite again.");return;}
@@ -796,7 +825,7 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
 }
 void RuntimeMultiplayer::fail(QString text) {
     ++sessionGeneration_;
-    rmgLobby_.stop();rmgPreparing_=false;rmgRequest_={};
+    rmgLobby_.stop();rmgPreparing_=false;rmgRequest_={};flycastRequest_={};
     client_.stop();
     stopLinkedTransfers();linkedPeers_.clear();linkedPreparing_=linkedPrepared_=false;linkedEndpoint_={};
     request_.ownSram.clear();request_.peerSrams.clear();

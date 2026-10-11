@@ -8,6 +8,7 @@
 #include "integrations/adventure/standalone/PpssppNetplay.h"
 #include "integrations/adventure/standalone/DolphinNetplay.h"
 #include "integrations/adventure/standalone/RmgNetplay.h"
+#include "integrations/adventure/standalone/FlycastNetplay.h"
 #include "platform/network/LocalLinkPeer.h"
 #include <QFutureWatcher>
 #include <QNetworkAccessManager>
@@ -71,6 +72,7 @@ private:
     void resolvePspRelay();
     void prepareRmg();
     bool rmg() const { return descriptor_["id"]=="runtime.rmg.n64.v1"; }
+    bool flycast() const { return descriptor_["id"]=="runtime.flycast-dojo.dc.v1"; }
     bool psp() const { return descriptor_["id"].toString().startsWith("runtime.ppsspp."); }
     bool dolphin() const { return descriptor_["id"].toString().startsWith("runtime.dolphin."); }
     void frame(const QJsonObject&);
@@ -89,6 +91,7 @@ private:
     LibraryRepository& library_;RetroArchAdapter& adapter_;SocialController& social_;
     StandaloneAdapter& ppsspp_;StandaloneAdapter& dolphin_;
     dolphin::NetplayRequest dolphinRequest_;
+    flycast::Request flycastRequest_;
     rmg::Lobby rmgLobby_{this};
     rmg::Lobby::Request rmgRequest_;
     bool rmgPreparing_=false;

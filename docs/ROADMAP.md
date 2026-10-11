@@ -19,7 +19,13 @@ retains ARM/device/gameplay gates, Hotseat and the remaining runtime families.
 prepares automatic private rooms, accepted-roster start and isolated launch
 through the common lifecycle. Four lobby clients are bounded protocol evidence,
 not N64 gameplay. Full runtime build/install and operator online service remain
-open; independent Dreamcast preparation is next while devices are deferred.
+open. Dreamcast source preparation followed; its device acceptance is also deferred.
+
+**11 October Dreamcast continuation:** [Flycast Dojo integration](emulators/flycast.md)
+prepares native GGPO/relay invitations and isolated two-player CHD sessions.
+No custom synchronization is added. Full Linux/ARM64 runtime build, operator
+relay and actual games remain open. Continue the retained PS2/GameCube/Hotseat
+preparation next; wider DS/PSP, 3DS, Wii U and Vita scope is unchanged.
 
 **Universal invitation handoff, 10 October 2026:** an incoming multiplayer
 invitation can stay as a corner badge while its recipient keeps playing and
