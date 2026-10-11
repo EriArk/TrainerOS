@@ -1,12 +1,17 @@
 # Documentation
 
-**Latest owner correction:** [#174–178 and adaptive Home](EXPANSION_174_178.md).
-Home and both game-oriented slots follow the selected game's experience. The whole
-framework/UI/control block precedes resuming multiplayer; current changes are docs-only.
+**Current project snapshot:** [PROJECT_STATUS (Russian)](../PROJECT_STATUS.md)
+collects delivered work and its evidence boundaries across the whole project.
+[CHANGELOG (Russian)](../CHANGELOG.md) records dated changes for posts and the site.
 
-**Current planning:** [Precise UX/options/session map (Russian)](UX_OPTIONS_MAP_RU.md)
-and [issues #161–173](EXPANSION_161_173.md). Documentation first; UX-02 implementation
-starts on the owner's next continuation, then returns to MP-02.
+**11 October 2026:** [adaptive Home and adapter-owned experiences](UX_FRAMEWORK.md)
+are installed on Flip/Odin. Multiplayer has continued; the latest
+[PS1/GameCube preparation](MULTIPLAYER_PREPARATION.md) and
+[Hotseat catalogue](HOTSEAT_GAME_CATALOG.md) retain their unfinished device and
+implementation gates. [Current tasks](CURRENT_TASKS.md) and [ROADMAP](ROADMAP.md)
+own the accepted order, including offline preparation through Wii U plus Vita.
+The [UX/options map](UX_OPTIONS_MAP_RU.md) and issue expansion documents preserve
+requirements; older planning-only introductions do not supersede delivery records.
 
 **Final product:** [Complete product vision (Russian)](PRODUCT_VISION_RU.md)
 describes the end-to-end target, detailed behaviour, safeguards, failure handling,

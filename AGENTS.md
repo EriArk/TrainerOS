@@ -1,5 +1,17 @@
 # AGENTS.md — TrainerOS
 
+**Owner publication records, 2026-10-11:** maintain root `PROJECT_STATUS.md` and
+`CHANGELOG.md` for posts and website updates. Update them in the same commit as
+each meaningful implementation, delivery, scope change or status correction.
+PROJECT_STATUS is the cumulative current picture of all project areas; CHANGELOG
+preserves dated, user-facing history from the start of development. Keep the
+publication summaries in Russian with links to feature evidence and relevant
+commits. Distinguish source implementation, installed builds, actual checks,
+remaining acceptance and plans. Never invent release versions, completeness or
+compatibility, turn historical evidence into a fresh device check, or publish
+private operational data. Record superseded behavior explicitly. These summaries
+do not replace ROADMAP/CURRENT_TASKS or change their accepted execution order.
+
 **Owner Hotseat clarification, 2026-10-11:** PS1/PS2/GameCube need BOTH independent
 simultaneous controller ports and live ordered pass-controller play. Also compile
 a comprehensive game/mode catalogue of where controller handoff is required or

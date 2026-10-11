@@ -14,7 +14,7 @@ The first supported Adventure connects a creature-collecting RPG to the OS beyon
 
 TrainerOS is still in active development, but the current build already runs as a dedicated handheld session on **Retroid Pocket Flip 2** and **AYN Odin 2**.
 
-[Full-resolution screenshots from the current handheld build](screenshots/site-2026-10-04/README.md)
+[Full-resolution handheld screenshots — 4 October 2026](screenshots/site-2026-10-04/README.md)
 
 [Interactive website demo](web-demo/README.md) — a mouse-driven interface tour
 with original fictional content and optional animated examples. The static bundle
@@ -32,6 +32,7 @@ have real device evidence; that does not establish a fresh-install experience on
 every handheld. Selected game artwork and names are blurred in the public screenshots; the surrounding interface is unchanged.
 
 - [Build and run from source](docs/DEVELOPMENT.md)
+- [Project status (Russian)](PROJECT_STATUS.md) · [Changelog (Russian)](CHANGELOG.md) — current capabilities, evidence and dated changes for posts and the website.
 - [Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md)
 - [Current tasks and remaining acceptance](docs/CURRENT_TASKS.md) · [Roadmap](docs/ROADMAP.md)
 - [Security reporting](SECURITY.md) · [Licensing and third-party materials](THIRD_PARTY_NOTICES.md)
@@ -46,7 +47,7 @@ every handheld. Selected game artwork and names are blurred in the public screen
 
 ## Pick a game and play
 
-Worlds opens a collection browser. Some collections include regional worlds; other supported series have their own game wheels. Unclassified games remain in the **Multiverse**. On Home, L2/R2 cycles series, each with its own selected Adventure.
+Collections opens the collection browser. Some collections include regional worlds; other supported series have their own game wheels. Unclassified games remain in the **Multiverse**. Home adapts to the selected Adventure; Y opens global Recent games, and selecting an entry changes Home without launching it.
 
 <table>
 <tr>
@@ -57,7 +58,7 @@ Worlds opens a collection browser. Some collections include regional worlds; oth
 
 There is no normal setup screen between the library and the game. If a game is ready, **A launches it**.
 
-TrainerOS keeps emulator paths, cores, command lines and room settings out of the everyday interface. Press Home while playing and you get a small game-aware menu over the running game: continue, invite someone when multiplayer is available, or exit cleanly back to TrainerOS.
+TrainerOS keeps emulator paths, cores, command lines and room settings out of the everyday interface. Press Home while playing to open Game Options: continue, minimize and browse TrainerOS, invite someone when multiplayer is available, or exit cleanly. Returning to a minimized game restores the same running process; a universal pause is not promised.
 
 Your ordinary game save stays the ordinary game save. TrainerOS does not make savestates the center of the experience.
 
@@ -144,7 +145,7 @@ The **Multiverse** is a full part of TrainerOS, not a waiting room for games tha
 
 A game can simply have a good cover, video preview, play history, direct launch, Home menu and clean return. That is enough.
 
-Series collections and independent Home choices are already available. Deeper game-specific experiences remain separate work: a Sonic, Final Fantasy, Metal Slug or Need for Speed section should use concepts that fit those games rather than borrowing Party and Field Guide because TrainerOS happens to have them.
+Series collections and adapter-owned Home/game sections are already available. The installed framework hosts the Pokémon experience and a general fallback; new game families still need their own verified adapters. A Sonic, Final Fantasy, Metal Slug or Need for Speed section should use concepts that fit those games. Test modules do not establish those commercial-game integrations.
 
 Installed Steam games are intended to join the Multiverse in the same way. Steam itself remains available for the things Steam is good at; TrainerOS only needs to make the installed games feel like part of the same handheld.
 
@@ -152,13 +153,13 @@ Installed Steam games are intended to join the Multiverse in the same way. Steam
 
 The main navigation stays small:
 
-**Home ⇄ Worlds ⇄ Companions ⇄ Trainer ⇄ Social**
+**Home ⇄ Collections ⇄ game section A ⇄ game section B ⇄ Social**
 
-L1/R1 moves between those spaces. L2/R2 moves between related views inside them.
+L1/R1 moves between those spaces. The selected Adventure supplies the two game sections and Home content. L2/R2 moves between supported related views; Home has no collection cycling.
 
-Companions contains **Field Guide ⇄ Party ⇄ Boxes ⇄ Care Center ⇄ Playroom ⇄ Shops**.
+For the installed Pokémon experience, Companions contains **Field Guide ⇄ Party ⇄ Boxes ⇄ Care Center ⇄ Playroom ⇄ Shops**.
 
-Trainer contains **Profile ⇄ Journey ⇄ Hall ⇄ RetroAchievements**.
+Its Trainer section retains the game persona, Journey, Hall and RetroAchievements. The universal player profile is available through shared Options, independently of the selected game's progression.
 
 Social contains **Messages ⇄ Communities ⇄ Discover**. Messages includes both direct and group conversations.
 

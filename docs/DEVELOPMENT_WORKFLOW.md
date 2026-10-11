@@ -64,6 +64,26 @@ Documentation-only and reversible low-impact changes should get relevant content
 
 ## Commit reviewed work
 
+### Publication records
+
+Maintain [PROJECT_STATUS.md](../PROJECT_STATUS.md) and
+[CHANGELOG.md](../CHANGELOG.md) in the same commit as every meaningful feature,
+delivery, accepted scope change or correction. The owner uses them for posts and
+website updates. Keep the Russian summaries readable without chat history:
+PROJECT_STATUS describes the cumulative current result and open boundaries;
+CHANGELOG adds dated changes and preserves earlier history.
+
+Link the authoritative feature evidence and relevant commits. Separate source
+implementation, installed artifacts, actual gameplay/physical checks and plans;
+state where delivery or acceptance is still pending. Do not invent a release
+number or relabel a development checkpoint as a public release. A historical
+build/hash/device record is not fresh verification. Keep private accounts,
+addresses, credentials, game files and save contents out of these summaries.
+When old behavior is replaced, update the current status and record the change
+without erasing the earlier changelog. ROADMAP/CURRENT_TASKS still own scheduling.
+
+### Staging and commit
+
 Stage explicit paths, then inspect both the staged content and file inventory. `git diff` without `--cached` does not review newly staged files. Generated reports/builds, machine-specific helpers, downloaded research, credentials, ROMs, saves, BIOS/keys and unauthorized artwork are excluded.
 
 ```sh
