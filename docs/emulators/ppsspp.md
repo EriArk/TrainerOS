@@ -1,5 +1,14 @@
 # PPSSPP maintenance
 
+## Updated-handheld recheck — 11 October 2026
+
+The current ARM64 client is installed on both updated devices. The exact Lumines
+Nearby invitation, host save/leave barrier, native discovery and paired arena
+were rechecked with independent input. The first challenge returned to the lobby;
+the second reached gameplay. Home/Exit cleaned both temporary configuration roots;
+ordinary PSP save hashes remained unchanged. A real generic UMD parser check is
+not wider-title gameplay evidence. [Full evidence and limits](../MULTIPLAYER_DEVICE_RECHECK_20261011.md).
+
 ## Generic Ad Hoc preparation — 11 October 2026
 
 Source preparation extends the existing invitation/relay/launch route beyond the

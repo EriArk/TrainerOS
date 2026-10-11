@@ -1,0 +1,11 @@
+diff --git a/SPIRV/SpvBuilder.h b/SPIRV/SpvBuilder.h
+--- a/SPIRV/SpvBuilder.h
++++ b/SPIRV/SpvBuilder.h
+@@ -60,6 +60,7 @@
+ #include <memory>
+ #include <set>
+ #include <sstream>
+ #include <stack>
++#include <cstdint>
+ #include <unordered_map>
+ #include <map>

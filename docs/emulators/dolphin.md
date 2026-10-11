@@ -148,3 +148,12 @@ compatibility check. Restore the prior bridge tree/manifest for rollback; ordina
 Flatpak files, updater, controller map and saves require no rollback because this
 route never overwrites them. The reusable runtime adapter export includes this
 recipe and patch. No compiled emulator, ROM or private admission data enters Git.
+
+## Updated-handheld recheck — 11 October 2026
+
+The current TrainerOS client and existing exact Melee bridge completed a new
+Nearby invitation, Mario/Ness match with independent controls and guest Exit
+followed by host peer-departure return. Generic Auto Modellista admission was
+checked separately; no paired match of that title is claimed. The ordinary
+Dolphin SRAM runtime file changed during solo launch/exit; pre-existing memory
+cards did not. [Exact integrity scope and remaining acceptance](../MULTIPLAYER_DEVICE_RECHECK_20261011.md).

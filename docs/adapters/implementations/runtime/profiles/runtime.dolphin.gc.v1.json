@@ -9,10 +9,12 @@
     "existing-native-bridge-source",
     "existing-roster-to-controller-mapping",
     "windows-client-build",
-    "windows-admission-isolation-and-lifecycle-regressions"
+    "windows-admission-isolation-and-lifecycle-regressions",
+    "arm64-client-installed-flip-odin",
+    "auto-modellista-real-disc-admission",
+    "existing-melee-profile-paired-gameplay-regression"
   ],
   "remaining": [
-    "handheld-delivery",
     "wider-gamecube-gameplay",
     "four-clients",
     "distinct-networks-and-strict-nat",

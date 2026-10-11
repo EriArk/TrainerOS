@@ -9,11 +9,12 @@
     "upstream-netplay-and-deterministic-state-contract",
     "existing-relay-and-party-reuse",
     "windows-client-build",
-    "windows-admission-isolation-and-lifecycle-regressions"
+    "windows-admission-isolation-and-lifecycle-regressions",
+    "arm64-client-installed-flip-odin",
+    "ctr-nearby-paired-race-independent-controls",
+    "home-exit-and-existing-save-hashes"
   ],
   "remaining": [
-    "handheld-delivery",
-    "paired-gameplay-and-controls",
     "distinct-networks",
     "wider-disc-and-peripheral-compatibility"
   ],

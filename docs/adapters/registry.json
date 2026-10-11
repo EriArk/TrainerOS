@@ -14,10 +14,13 @@
         "scoped-native-clock-policy-checks",
         "protected-launch-cancel-and-changed-invitation-regression",
         "windows-client-build",
-        "standalone-game-party-runtime-multiplayer-suites"
+        "standalone-game-party-runtime-multiplayer-suites",
+        "arm64-client-installed-flip-odin",
+        "linux-standalone-suite",
+        "real-raw-umd-disc-id-probe",
+        "existing-lumines-profile-paired-arena-recheck-second-challenge"
       ],
       "remaining": [
-        "handheld-delivery",
         "linux-generic-config-and-save-isolation",
         "wider-game-native-discovery-and-gameplay",
         "private-game-room-admission-and-parallel-parties",
@@ -44,10 +47,12 @@
         "native-relay-client-udp-fixture-harness",
         "patch-apply-preflight",
         "windows-client-build",
-        "shared-lifecycle-and-game-party-regressions"
+        "shared-lifecycle-and-game-party-regressions",
+        "full-pinned-arm64-dojo-build",
+        "host-library-resolution",
+        "linux-executable-and-isolation-suite"
       ],
       "remaining": [
-        "full-linux-arm64-dojo-build",
         "operator-relay-deployment-and-review",
         "handheld-delivery",
         "native-boot-and-fresh-vmu-determinism",
@@ -76,10 +81,12 @@
         "shared-lifecycle-save-cancel-tests",
         "windows-client-build",
         "linux-arm64-server-cross-build",
-        "launch-bridge-upstream-api-compile-check"
+        "launch-bridge-upstream-api-compile-check",
+        "full-pinned-arm64-rmg-core-and-plugins-build",
+        "explicit-arm64-nearby-and-tls-four-client-lobby-tests"
       ],
       "remaining": [
-        "full-linux-arm64-rmg-build",
+        "host-compatible-runtime-dependency-bundle",
         "operator-online-service",
         "handheld-delivery",
         "paired-gameplay-and-controls",
@@ -103,10 +110,12 @@
         "existing-native-bridge-source",
         "existing-roster-to-controller-mapping",
         "windows-client-build",
-        "windows-admission-isolation-and-lifecycle-regressions"
+        "windows-admission-isolation-and-lifecycle-regressions",
+        "arm64-client-installed-flip-odin",
+        "auto-modellista-real-disc-admission",
+        "existing-melee-profile-paired-gameplay-regression"
       ],
       "remaining": [
-        "handheld-delivery",
         "wider-gamecube-gameplay",
         "four-clients",
         "distinct-networks-and-strict-nat",
@@ -127,11 +136,12 @@
         "upstream-netplay-and-deterministic-state-contract",
         "existing-relay-and-party-reuse",
         "windows-client-build",
-        "windows-admission-isolation-and-lifecycle-regressions"
+        "windows-admission-isolation-and-lifecycle-regressions",
+        "arm64-client-installed-flip-odin",
+        "ctr-nearby-paired-race-independent-controls",
+        "home-exit-and-existing-save-hashes"
       ],
       "remaining": [
-        "handheld-delivery",
-        "paired-gameplay-and-controls",
         "distinct-networks",
         "wider-disc-and-peripheral-compatibility"
       ],

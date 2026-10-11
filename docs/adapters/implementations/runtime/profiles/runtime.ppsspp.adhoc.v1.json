@@ -10,10 +10,13 @@
     "scoped-native-clock-policy-checks",
     "protected-launch-cancel-and-changed-invitation-regression",
     "windows-client-build",
-    "standalone-game-party-runtime-multiplayer-suites"
+    "standalone-game-party-runtime-multiplayer-suites",
+    "arm64-client-installed-flip-odin",
+    "linux-standalone-suite",
+    "real-raw-umd-disc-id-probe",
+    "existing-lumines-profile-paired-arena-recheck-second-challenge"
   ],
   "remaining": [
-    "handheld-delivery",
     "linux-generic-config-and-save-isolation",
     "wider-game-native-discovery-and-gameplay",
     "private-game-room-admission-and-parallel-parties",

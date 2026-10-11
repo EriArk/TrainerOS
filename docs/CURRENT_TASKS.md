@@ -1,5 +1,15 @@
 # Current tasks
 
+**Owner recheck before DS, 11 October 2026:** verify earlier PS1/N64/Dreamcast/
+GameCube/PSP work on the updated handhelds before resuming DS. Current ARM64
+client is installed on both; PS1 CTR and the existing Melee profile reach paired
+gameplay with independent controls. Lumines reaches a paired arena on the second
+native challenge. Full RMG/Dojo native builds pass, while their
+installed runtime/operator-service and gameplay gates remain open. See the
+[bounded device record](MULTIPLAYER_DEVICE_RECHECK_20261011.md) for exact evidence,
+PSP results and remaining acceptance. This scheduling correction supersedes the
+immediate DS continuation below; no issue is closed.
+
 **DS native workers delivered for verification, 11 October 2026:** ARM64
 core/JIT, bounded input queues, per-machine threads and joined teardown are built.
 Two/four local machines pass short Mario Kart DS startup replay checks on both

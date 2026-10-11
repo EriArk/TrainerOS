@@ -27,7 +27,15 @@ private slots:
         QByteArray content(124,'\0');content.replace(0,16,QByteArray::fromHex("4d436f6d707248440000007c00000005"));write(rom,content);
         AdventureRegistration r;r.adventure.id="disc";r.adventure.platformId="dreamcast";
         r.adventure.adapterId="retroarch";r.adventure.title="Disc";r.contentPath=rom;
-        std::atomic_bool cancel=false;const auto identity=flycast::netplayIdentity(r,cancel);
+        std::atomic_bool cancel=false;
+#ifdef Q_OS_UNIX
+        // A Unix bundle must contain an executable. Exercise that gate before
+        // granting the fixture the permissions a real installed binary has.
+        QVERIFY(flycast::netplayIdentity(r,cancel).isEmpty());
+        QFile executable(root+"/bin/flycast");
+        QVERIFY(executable.setPermissions(executable.permissions()|QFileDevice::ExeOwner));
+#endif
+        const auto identity=flycast::netplayIdentity(r,cancel);
         QVERIFY(!identity.isEmpty());QCOMPARE(identity["players"].toInt(),2);QVERIFY(!identity["lateJoin"].toBool());
         flycast::Request request{identity,true,true,{},QString(32,'a'),{}};
         request.expected["label"]="Different local title";

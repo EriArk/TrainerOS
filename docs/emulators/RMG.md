@@ -35,10 +35,10 @@ Use fresh session-local configuration, SRAM, controller packs and states; no
 ordinary progress import/export until separately verified. Preserve normal solo
 launch and existing saves. Prefer Vulkan where the installed profile works.
 
-Pending: complete Linux/ARM64 RMG bridge build/install and operator online service,
+Pending: host-compatible runtime dependency bundle/install and operator online service,
 actual paired controls/gameplay, four real devices, distinct networks/NAT,
 loss/reinvite, Home/input and audio acceptance.
-Devices remain owner-deferred; do not repeat unrelated hardware checks.
+Devices are now available; the bounded recheck below supersedes the earlier build deferral.
 
 ## Implemented preparation
 
@@ -127,3 +127,17 @@ before device promotion. Keep the old bundle for rollback; close active games
 before replacing it. Remove/restore only this bundle to disable/roll back the
 route; ordinary RetroArch files and user progress remain untouched. Preserve
 upstream GPL notices and the repository's #115 redistribution gate.
+
+## ARM64 verification — 11 October 2026
+
+The full pinned RMG bridge, core and Vulkan/OpenGL plugins build and install into
+a private staging directory on updated Flip (Fedora 44 build container). The
+pinned native Go server also passes explicitly enabled four-client Nearby and
+loopback-TLS lobby/start tests. These are protocol tests, not N64 gameplay.
+
+Host promotion still requires `libminizip.so.1`, `libSDL3_net.so.0` and
+`libspeexdsp.so.1` in a compatible isolated runtime bundle or supported image
+packages. The diagnostic configure omitted the recipe's installed RPATH; retain
+that existing recipe flag in a release build. No host OS packages were layered,
+operator server fabricated, or multiplayer profile enabled by this build.
+[Exact build hashes, dependencies and remaining acceptance](../MULTIPLAYER_DEVICE_RECHECK_20261011.md).

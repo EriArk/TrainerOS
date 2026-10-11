@@ -10,10 +10,12 @@
     "native-relay-client-udp-fixture-harness",
     "patch-apply-preflight",
     "windows-client-build",
-    "shared-lifecycle-and-game-party-regressions"
+    "shared-lifecycle-and-game-party-regressions",
+    "full-pinned-arm64-dojo-build",
+    "host-library-resolution",
+    "linux-executable-and-isolation-suite"
   ],
   "remaining": [
-    "full-linux-arm64-dojo-build",
     "operator-relay-deployment-and-review",
     "handheld-delivery",
     "native-boot-and-fresh-vmu-determinism",

@@ -40,6 +40,24 @@ No game/franchise networking or emulation synchronization is reimplemented.
   same port. DNS lookup still follows the OS resolver timeout. Native relay and
   rollback protocols remain unchanged. A failed invitation retains owned Exit.
 
+### ARM64 build verification — 11 October 2026
+
+The full pinned Dojo and native launch patch now build in Fedora 44 ARM64
+(GCC 16/CMake 4) on Flip. Host library resolution reports no missing dependency.
+The recipe now applies [the glslang include fix](../../packaging/emulators/flycast/glslang-gcc.patch)
+and [local-data-only build policy](../../packaging/emulators/flycast/local-data-only.patch),
+sets the CMake policy minimum and disables unrelated CPR tests. The latter patch
+removes upstream build-time shared save/NVRAM and optional training-pack downloads;
+ordinary local firmware and private fresh VMUs remain required. Standalone Asio
+headers are a build dependency. The Linux integration suite passes after correcting
+its fake executable permissions; production executable validation was unchanged.
+
+[Hashes, build evidence and limits](../MULTIPLAYER_DEVICE_RECHECK_20261011.md).
+This is a private staged executable, not an installed advertised bundle. Operator
+relay deployment, paired game/input/lifecycle and internet acceptance remain open.
+Rebase/reverse-check both added patches with the launch patch on upstream updates;
+rollback retains the previous ordinary package and user data.
+
 ### Configuration, progress and operator dependency
 
 The bundle belongs at `$XDG_DATA_HOME/TrainerOS/emulators/flycast-netplay`
@@ -79,7 +97,7 @@ prove strict-NAT connectivity. It does not introduce a player-managed VPN.
 [build.sh](../../packaging/emulators/flycast/build.sh) checks out the exact source
 and submodule pins, applies the patch and builds on the target Linux architecture.
 It requires SDL2/OpenGL/Vulkan development packages, libzip, libcurl, Lua 5.3,
-CMake, a C++17 compiler, Git and Python 3. Example (explicit local firmware only):
+standalone Asio headers, CMake, a C++17 compiler, Git and Python 3. Example (explicit local firmware only):
 
 ```sh
 sh packaging/emulators/flycast/build.sh /new/work /new/bundle \
@@ -106,9 +124,10 @@ Bounded local evidence on 11 October:
   `traineros` build passes; CTest `flycast_netplay`, `game_party` and
   `runtime_multiplayer` pass **3/3** (3.74 seconds). These are client/fixture
   checks, not a complete Dojo build. Adapter exports and 555 local documentation
-  links validate. Both device deliveries are deferred while handhelds are off.
+  links validate. The later ARM64 recheck above supersedes the build deferral;
+  Dojo bundle delivery and gameplay are still pending.
 
-Still open: full Linux/ARM64 Dojo build and dependencies, operator relay
+Still open: production bundle promotion, operator relay
 deployment/terms/source review, both handheld installations, CHD/firmware native
 boot and deterministic fresh VMUs, actual independent pad gameplay, Home/audio,
 loss/reinvite, distinct networks/strict NAT and measured latency. No issue or

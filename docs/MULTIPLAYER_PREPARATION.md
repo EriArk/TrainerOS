@@ -177,12 +177,14 @@ build solely to collect the same evidence again.
 
 ## Deferred acceptance
 
-Both handhelds were unreachable before this continuation. When available, deliver
-the changed client/runtime files and check actual launch, assigned controls,
-gameplay, leave/reinvite and ordinary save preservation. Defer long compatibility
+Both handhelds are now available with updated Armada and the current ARM64 client.
+The [11 October device recheck](MULTIPLAYER_DEVICE_RECHECK_20261011.md) records
+paired PS1 CTR racing, a paired Melee regression and real generic Auto Modellista
+admission. Generic GameCube gameplay, wider PSP gameplay, loss/reinvite and
+internet acceptance remain distinct gates. Defer long compatibility
 matrices, four physical clients and distinct-network/NAT cases to their actual
 prerequisites. Source and fixture evidence cannot close these gates.
-MP-03 N64 now has the [native integration preparation](emulators/RMG.md). Its full
-runtime build/operator service/device gates remain open; Dreamcast is the next
+MP-03 N64 now has the [native integration preparation](emulators/RMG.md). Its
+host-compatible dependency bundle/operator service/device gates remain open; Dreamcast is the next
 independent family in the retained queue. PS2, Wii, 3DS, Wii U, Vita and Hotseat
 remain open; no missing route is hidden behind the local PS1/GameCube result.

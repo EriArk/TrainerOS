@@ -1,0 +1,59 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1784,54 +1784,8 @@
+ 		DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/flycast-dojo"
+ 	)
+ 
+-	add_custom_command(
+-		OUTPUT ${CMAKE_SOURCE_DIR}/data
+-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+-		COMMAND mkdir data
+-		COMMAND wget https://github.com/blueminder/flycast-netplay-nvmem/archive/master.tar.gz
+-		COMMAND tar zxvf master.tar.gz
+-		COMMAND rm master.tar.gz
+-		COMMAND rm -rf default
+-		COMMAND mkdir default
+-		COMMAND mv flycast-netplay-nvmem-master/* default/
+-		COMMAND rm -rf flycast-netplay-nvmem-master
+-		COMMAND rm default/README.md
+-		COMMAND zip default.zip default/*
+-		COMMAND rm -rf data
+-		COMMAND mv default data
+-		COMMAND mv default.zip data/
+-		COMMAND wget https://github.com/blueminder/flycast-dojo-game-values/archive/main.tar.gz
+-		COMMAND tar zxvf main.tar.gz
+-		COMMAND rm main.tar.gz
+-		COMMAND mkdir data/game_values
+-		COMMAND cp flycast-dojo-game-values-main/*.json data/game_values/
+-		COMMAND rm -rf flycast-dojo-game-values-main
+-	)
+-
+-	set(DATA_DIR ${CMAKE_SOURCE_DIR}/data)
+-	target_sources(${PROJECT_NAME} PRIVATE ${DATA_DIR})
+-
+-	install(DIRECTORY ${DATA_DIR}
+-		DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/flycast-dojo"
+-	)
+-
+-	add_custom_command(
+-		OUTPUT ${CMAKE_SOURCE_DIR}/training
+-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+-		COMMAND mkdir -p training
+-		COMMAND wget https://github.com/blueminder/flycast-dojo-training/archive/main.tar.gz
+-		COMMAND tar zxvf main.tar.gz
+-		COMMAND cp flycast-dojo-training-main/*.lua training/
+-		COMMAND rm main.tar.gz
+-		COMMAND rm -rf flycast-dojo-training-main
+-	)
+-
+-	set(TRAINING_DIR ${CMAKE_SOURCE_DIR}/training)
+-	target_sources(${PROJECT_NAME} PRIVATE ${TRAINING_DIR})
+-
+-	install(DIRECTORY ${TRAINING_DIR}
+-		DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/flycast-dojo"
+-	)
++	# TrainerOS uses locally supplied firmware and fresh private VMUs.
++	# Do not fetch mutable shared saves or optional training data during builds.
+ 
+ 	install(FILES shell/linux/${PROJECT_NAME}.png
+ 		DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/pixmaps"
