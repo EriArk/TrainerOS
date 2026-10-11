@@ -70,6 +70,13 @@ keeps the specific gate open; it does not justify repeatedly rebuilding the imag
 
 ## HS-01: live Hotseat Relay
 
+**Owner clarification, 11 October 2026:** PS1/PS2/GameCube require both this
+one-pad handoff and simultaneous independent-controller play. Also deliver a
+comprehensive sourced [game/mode catalogue](HOTSEAT_GAME_CATALOG.md), starting
+with those platforms. First-title proof below is runtime evidence, not completion
+of either the requested platform coverage or the catalogue. Player counts and
+turn-based mechanics alone do not establish a pass-controller requirement.
+
 Source: [#126](https://github.com/EriArk/TrainerOS/issues/126).
 Add one live game, one logical gameplay controller and an ordered explicit control
 token shared by several connected participants. This is a distinct capability

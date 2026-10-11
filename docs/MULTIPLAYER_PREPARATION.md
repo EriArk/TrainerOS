@@ -24,10 +24,12 @@ checks or count a list of emulator candidates as implemented multiplayer.
 | Wii U | Cemu and supported game-network services | Launcher/platform feasibility, account setup and supported modes remain open |
 | Vita | Vita3K supported AdHoc modes | Launcher/platform feasibility and automatic transport remain open; no general PSN claim |
 
-The owner additionally requested Hotseat on PS1, PS2 and GameCube. Existing #126
-means ordered exclusive control of one live pad. Simultaneous independent pads
-of one virtual console are a separate shared-console mode; native game networking
-is another mode again. Keep these distinctions in capabilities and acceptance.
+The owner's follow-up explicitly requests BOTH simultaneous independent pads and
+ordered exclusive control of one live pad on PS1, PS2 and GameCube. Existing #126
+owns the latter. Native game networking is another mode again. Keep these
+distinctions in capabilities and acceptance. A comprehensive
+[game/mode catalogue](HOTSEAT_GAME_CATALOG.md) must identify where handoff is needed
+or optional; it is an unfinished catalogue task, not a handful of example games.
 Do not silently present PS2 DEV9 as couch multiplayer.
 The current [issue #126](https://github.com/EriArk/TrainerOS/issues/126) was reread:
 its accepted baseline is live ordered pass-controller, not asynchronous turns.

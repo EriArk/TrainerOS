@@ -1,5 +1,12 @@
 # Current tasks
 
+**Owner Hotseat clarification, 11 October 2026:** deliver both simultaneous
+independent controllers and ordered one-pad handoff on PS1/PS2/GameCube. Compile
+the comprehensive [game/mode catalogue](HOTSEAT_GAME_CATALOG.md), beginning with
+those systems and covering the accepted platform scope. The catalogue, live
+handoff and remaining runtime implementations are separate unfinished outcomes;
+the source-delivered shared-console profiles do not complete them.
+
 **Owner continuation, 11 October 2026:** prepare/implement the remaining emulator
 multiplayer families through Wii U and Vita, including PS1/PS2/GameCube Hotseat.
 PS3/Switch are excluded. While both handhelds are off, use bounded relevant local

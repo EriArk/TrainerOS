@@ -1,5 +1,14 @@
 # AGENTS.md — TrainerOS
 
+**Owner Hotseat clarification, 2026-10-11:** PS1/PS2/GameCube need BOTH independent
+simultaneous controller ports and live ordered pass-controller play. Also compile
+a comprehensive game/mode catalogue of where controller handoff is required or
+optional, across the accepted platform scope; begin with those three systems.
+Player counts and turn-based gameplay alone are insufficient evidence. Record
+sources, edition coverage and unknowns; a few examples are not a complete list.
+See docs/HOTSEAT_GAME_CATALOG.md. This clarification does not claim that the
+catalogue or live handoff is already implemented, or reopen PS3/Switch work.
+
 **Owner offline multiplayer continuation, 2026-10-11:** prepare and implement
 the accepted emulator multiplayer scope through Wii U, plus Vita. PS3 and Switch
 are excluded for now. Reuse existing networking; while the handhelds are off,

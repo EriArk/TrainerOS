@@ -4,7 +4,9 @@
 Wii U plus Vita; leave PS3/Switch out. Handhelds are currently unavailable: run
 bounded source/build/lifecycle checks, retain deep gameplay/device/internet
 acceptance for their return, and continue independent later-family work. Include
-PS1/PS2/GameCube Hotseat. [Preparation register](MULTIPLAYER_PREPARATION.md)
+PS1/PS2/GameCube in both simultaneous-controller and pass-controller modes, plus
+the comprehensive [handoff game catalogue](HOTSEAT_GAME_CATALOG.md).
+[Preparation register](MULTIPLAYER_PREPARATION.md)
 owns the current scope; older "do not advance until MP-02" statements below are
 superseded for this offline preparation, not evidence that MP-02 is complete.
 
