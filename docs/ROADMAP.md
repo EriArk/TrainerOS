@@ -1,5 +1,13 @@
 # TrainerOS Roadmap
 
+**11 October DS native core preparation:** the
+[maintained desktop DetMP port](emulators/melonds.md) builds as a Windows static
+core with JIT and passes focused synthetic lifecycle checks. This is an incomplete
+MP-06 implementation: mirror workers, #164 safe state parity, secure transport and
+GameParty integration are next. Linux/device/gameplay acceptance stays deferred.
+No DS profile is advertised; the remaining PS2/Hotseat and Wii/3DS/Wii U/Vita scope
+is retained, with PS3/Switch excluded.
+
 **Owner continuation, 11 October 2026:** implement/prepare multiplayer through
 Wii U plus Vita; leave PS3/Switch out. Handhelds are currently unavailable: run
 bounded source/build/lifecycle checks, retain deep gameplay/device/internet

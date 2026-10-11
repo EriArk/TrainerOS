@@ -17,6 +17,7 @@ a second execution plan or a claim that all installed runtimes are validated.
 
 | Emulator | Record | Scope |
 |---|---|---|
+| melonDS | [DS native core preparation](melonds.md) | Pinned desktop DetMP port and bounded lifecycle checks; mirror frontend, safe state, invitations and Linux/device/gameplay delivery remain open |
 | RetroArch | [Common ARM64 baseline](retroarch.md) | Exact core bundle, two-device alignment, recoverable update/rollback and remaining image/standalone gates |
 | PCSX ReARMed | [PS1 preparation](pcsx-rearmed.md) | Existing RetroArch network route, private BIOS/cards and two pads; device acceptance pending |
 | RMG / Mupen64Plus | [N64 preparation](RMG.md) | Existing native server/protocol, automatic private rooms and isolated launch bridge; full runtime build, online service and device/gameplay acceptance pending |

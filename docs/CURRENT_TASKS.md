@@ -1,5 +1,14 @@
 # Current tasks
 
+**DS native core preparation, 11 October 2026:** the bounded
+[melonDS DetMP port](emulators/melonds.md) reuses the existing deterministic
+wireless implementation on pinned desktop upstream, with cancellation and
+queue/reply bounds. Windows static core/JIT build and synthetic lifecycle checks
+pass. MP-06 remains incomplete: next are mirror workers and #164 safe state parity,
+then existing GameParty/secure transport integration. Linux/ARM64, actual games
+and handheld acceptance remain deferred; no DS invitation capability is enabled.
+Retain PS2/Hotseat, Wii/3DS/Wii U/Vita and all earlier acceptance. No issue closes.
+
 **PSP source continuation and PS2/Hotseat gaps, 11 October 2026:** generic raw
 UMD ISO invitation/launch preparation now reuses PPSSPP's native Ad Hoc relay,
 with preserved exact Lumines policy and ordinary PSP storage. Windows client

@@ -30,5 +30,15 @@ for row in data.get("runtimeProfiles", []):
     assert row["evidence"] and row["remaining"]
     assert isinstance(row["persistentSaveWrites"], bool)
     assert not row["persistentSaveWrites"] or row.get("savePolicy")
-print(f"Adapter knowledge checked: {len(seen)} exact builds")
+# A core preparation is not an enabled launch profile. Keep its provenance
+# without adding a fabricated runtime capability ID to production admission.
+research_ids = set()
+for row in data.get("runtimeResearch", []):
+    assert row["id"] not in research_ids
+    research_ids.add(row["id"])
+    assert row["state"] in states and (base / row["record"]).is_file()
+    assert re.fullmatch(r"[0-9a-f]{40}", row["sourceRevision"])
+    assert (root / row["recipe"]).is_file() and row["evidence"] and row["remaining"]
+    assert row["romSha256"] == "" and row["persistentSaveWrites"] is False
+print(f"Adapter knowledge checked: {len(seen)} exact builds, {len(research_ids)} runtime research records")
 subprocess.run([sys.executable, str(root / "tools/export-game-adapters.py"), "--check"], check=True)

@@ -724,5 +724,32 @@
       "implementation": "implementations/gen3",
       "profile": "implementations/gen3/profiles/firered-en-rev1.json"
     }
+  ],
+  "runtimeResearch": [
+    {
+      "id": "research.melonds.detmp",
+      "platform": "nds",
+      "romSha256": "",
+      "state": "partial",
+      "record": "../emulators/melonds.md",
+      "sourceRevision": "906e9ebb27da8c6a715cd7abab4abfe8a8d29427",
+      "recipe": "packaging/emulators/melonds/build.sh",
+      "persistentSaveWrites": false,
+      "evidence": [
+        "pinned-upstream-and-watermelonds-source-comparison",
+        "windows-x86_64-full-static-core-jit-build",
+        "detmp-synthetic-ordering-and-lifecycle-ctest",
+        "pristine-patch-preflight-and-provenance",
+        "factory-translation-unit-syntax"
+      ],
+      "remaining": [
+        "linux-arm64-build",
+        "mirror-worker-lifecycle",
+        "safe-state-parity",
+        "authenticated-transport",
+        "game-party-integration",
+        "gameplay-acceptance"
+      ]
+    }
   ]
 }

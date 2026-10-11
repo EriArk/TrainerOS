@@ -9,6 +9,13 @@ checks or count a list of emulator candidates as implemented multiplayer.
 
 ## Scope and implementation state
 
+**DS native core preparation, 11 October:** WatermelonDS DetMP is ported onto
+pinned desktop melonDS with bounded queues/replies and cancellable waits. The
+full Windows static core with JIT builds; synthetic lifecycle checks pass.
+The [maintenance record](emulators/melonds.md) distinguishes this from the still
+missing mirror frontend, safe state parity, authenticated transport, invitation
+integration and Linux/device/gameplay evidence. No DS runtime profile is enabled.
+
 **PS2/Hotseat review and PSP continuation, 11 October:** the bounded
 [runtime review](HOTSEAT_RUNTIME_RESEARCH.md) records gaps instead of calling
 DEV9 or Golf Mode exclusive shared-pad play. New ARM LRPS2 is a candidate, not
@@ -32,7 +39,7 @@ See [maintenance and remaining delivery](emulators/flycast.md).
 | Dreamcast | Flycast Dojo native relay / GGPO | CHD two-player invitation/isolated-launch source integration; full Linux/ARM64 runtime, operator relay, device/gameplay acceptance pending ([record](emulators/flycast.md)) |
 | PS2 | ARMSX2/PCSX2 game networking; shared-console mode is separate | DEV9 networking does not provide remote second-controller gameplay |
 | GameCube/Wii | Extend existing Dolphin native netplay bridge | Generic raw GameCube ISO/GCM admission implemented and locally checked. Exact Melee remains. Wii input route and device delivery remain open |
-| DS | Existing deterministic multiplayer implementations | Desktop integration remains open; LAN wireless alone is not internet support |
+| DS | WatermelonDS DetMP reused on pinned desktop melonDS | Native core port/static build and synthetic lifecycle checks; mirror frontend, safe state/transport, invitations and Linux/device gameplay remain open ([record](emulators/melonds.md)) |
 | PSP | Existing PPSSPP Ad Hoc / aemu relay | Generic raw-ISO invitation/launch preparation in source; exact Lumines evidence retained. Wider gameplay, private game-room admission, infrastructure and other formats remain open |
 | 3DS | Existing Azahar room networking | Integration remains open |
 | Wii U | Cemu and supported game-network services | Launcher/platform feasibility, account setup and supported modes remain open |
