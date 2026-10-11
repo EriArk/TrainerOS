@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(TrainerOSDetMPChecks LANGUAGES C CXX)
 
-# This builds the real, patched emulator core and a focused DetMP lifecycle
-# executable. It is not a frontend or an Internet-capable runtime bundle.
+# Build the patched core, focused checks and an optional local player frontend.
+# This is not an Internet-capable runtime bundle or GameParty admission profile.
 if(NOT EXISTS "${MELONDS_SOURCE}/src/net/DetMP.cpp")
     message(FATAL_ERROR "MELONDS_SOURCE must point to the pinned, patched tree")
 endif()
@@ -23,9 +23,43 @@ enable_testing()
 add_test(NAME detmp_lifecycle COMMAND traineros_detmp_checks)
 set_tests_properties(detmp_lifecycle PROPERTIES TIMEOUT 20)
 
+add_executable(traineros_ds_input_checks input_trace_checks.cpp)
+target_compile_features(traineros_ds_input_checks PRIVATE cxx_std_17)
+target_include_directories(traineros_ds_input_checks PRIVATE
+    "${MELONDS_SOURCE}/src" "${MELONDS_SOURCE}/src/net")
+add_test(NAME ds_input_trace COMMAND traineros_ds_input_checks)
+
+add_executable(traineros_ds_spi_checks spi_state_checks.cpp ProbePlatform.cpp
+    "${MELONDS_SOURCE}/src/net/DetMP.cpp")
+target_compile_features(traineros_ds_spi_checks PRIVATE cxx_std_17)
+target_include_directories(traineros_ds_spi_checks PRIVATE
+    "${MELONDS_SOURCE}/src" "${MELONDS_SOURCE}/src/net")
+target_link_libraries(traineros_ds_spi_checks PRIVATE core Threads::Threads)
+add_test(NAME ds_spi_reset COMMAND traineros_ds_spi_checks)
+
+add_executable(traineros_ds_gpu_checks gpu_state_checks.cpp ProbePlatform.cpp
+    "${MELONDS_SOURCE}/src/net/DetMP.cpp")
+target_compile_features(traineros_ds_gpu_checks PRIVATE cxx_std_17)
+target_include_directories(traineros_ds_gpu_checks PRIVATE
+    "${MELONDS_SOURCE}/src" "${MELONDS_SOURCE}/src/net")
+target_link_libraries(traineros_ds_gpu_checks PRIVATE core Threads::Threads)
+add_test(NAME ds_gpu_state COMMAND traineros_ds_gpu_checks)
+
 add_executable(traineros_ds_pair_probe native_pair_probe.cpp NativeSession.cpp
     ProbePlatform.cpp "${MELONDS_SOURCE}/src/net/DetMP.cpp")
 target_compile_features(traineros_ds_pair_probe PRIVATE cxx_std_17)
 target_include_directories(traineros_ds_pair_probe PRIVATE
     "${MELONDS_SOURCE}/src" "${MELONDS_SOURCE}/src/net")
 target_link_libraries(traineros_ds_pair_probe PRIVATE core Threads::Threads)
+
+option(TRAINEROS_DS_LOCAL_FRONTEND "Build the local player frontend (no network admission)" ON)
+if(TRAINEROS_DS_LOCAL_FRONTEND)
+    find_package(Qt6 REQUIRED COMPONENTS Widgets)
+    find_package(SDL2 REQUIRED)
+    add_executable(traineros_ds_local LocalFrontend.cpp NativeSession.cpp
+        ProbePlatform.cpp "${MELONDS_SOURCE}/src/net/DetMP.cpp")
+    target_compile_features(traineros_ds_local PRIVATE cxx_std_17)
+    target_include_directories(traineros_ds_local PRIVATE
+        "${MELONDS_SOURCE}/src" "${MELONDS_SOURCE}/src/net")
+    target_link_libraries(traineros_ds_local PRIVATE core Threads::Threads Qt6::Widgets SDL2::SDL2)
+endif()

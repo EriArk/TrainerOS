@@ -51,7 +51,8 @@ wireless protocol, LAN-over-VPN or porting the entire Android renderer fork.
 - `traineros-detmp.patch`: DetMP and factory registration; emulated clock hooks
   in WiFi, frame completion and the desktop Platform callbacks; shared WRAM
   restoration and the reference JIT signal-handler fix. Default Local/LAN/WFC
-  selection is unchanged; no UI or command line selects the new interface yet.
+  selection is unchanged; the core-only checkpoint did not yet supply a player
+  frontend. The later isolated local frontend below uses DetMP directly.
 - Native lifecycle hardening: permanent thread-safe `Abort()`, wait release on
   participant departure, instance/buffer validation, 1024-byte reply-slot limits,
   requested reply masks, deterministic first-answer handling and a 256-frame
@@ -173,19 +174,111 @@ This earlier Windows checkpoint alone did not establish Linux/ARM64 or game
 execution. The later native-worker evidence above supersedes those build/startup
 gaps, while retaining full frontend and meaningful gameplay acceptance.
 
+## Local player frontend — 11 October 2026
+
+The maintained workers now feed a Qt6/SDL2 local player frontend. It presents
+both DS screens, direct touch and explicit DS buttons, controller hotplug and
+2–4 independently controlled consoles. A single controller follows the selected
+console; separate controllers occupy separate consoles. Switching seats, focus
+or controller membership requires neutral buttons before accepting held input.
+The labels here name DS actions; this does not implement the queued #77 automatic
+physical-controller identification and glyph selection.
+
+Rendering copies the latest bounded frame/audio output out of each worker.
+Every console drains its own audio; only the selected console is played. Local
+checkpoints no longer require serialization on every displayed frame; the player
+uses one checkpoint per 60 frames, while the original short probe retains its
+full per-frame trace. Exit aborts wireless waits, joins workers and releases the
+volatile machines. SIGTERM closes through the same path.
+
+This frontend currently uses fresh volatile cartridges and generated firmware.
+It does not open personal saves, write firmware, load incoming states, transfer
+ROMs or enable a DS GameParty profile. The visible temporary-session warning is
+intentional; owned-save preparation/return remains the next implementation gate.
+
+Optional `--diagnostics` emits bounded packet counts without packet contents.
+`--trace-inputs NEW_FILE` records at most 36,008 frames of buttons/touch for local
+replay evidence, with no memory, save or cartridge bytes. The probe's optional
+sixth argument reads that input-only trace with strict size/order/value bounds,
+then compares two runs under different admission timing. This is a developer
+verification format, not a new network/state protocol.
+
+Windows x86_64 and Linux ARM64 frontend/probe builds pass. Focused CTest checks
+cover DetMP lifecycle, malformed/oversized input traces, firmware SPI reset
+and direct/packed GPU command initialization (4/4 on each platform).
+The 120-frame ARM64 `jit-present` replay retained the earlier digest
+`28b2be93a28b29af`, with copied image/audio bounds and stopped-output rejection.
+
+On Flip, Mario Kart DS reached native Normal Local Wireless group discovery,
+2/8 participants and an actual Figure-8 Circuit race. Mario and Luigi responded
+to separate selected-console controls; both displayed the other kart on track.
+A first empty search was caused by remote input during menu transitions, not a
+confirmed packet-delivery defect. This is two virtual DS consoles on one handheld,
+not gameplay across two physical handhelds or Internet acceptance. Odin first ran a bounded 600-frame startup/exit, then reached its own two-console
+Normal Wireless race with separate Mario/Luigi controls. The Flip race remained
+connected through **10:32.618** of the in-game clock. Its 17:03 development process
+peaked at **469.6 MiB**, with about **396 MiB** current memory before exit and a
+frontend lifetime average near **59.7 fps**. This includes idle time on track;
+it is not a human-played complete race, four-console benchmark or Internet test.
+Both player processes exited with `DS_LOCAL_EXIT result=0`; ordinary TrainerOS
+remained running and both device volumes stayed at zero.
+
+Save inventory after these DS sessions matches the preceding recheck: Odin
+28/28 unchanged; Flip retains the same earlier Dolphin `GC/SRAM.raw` change
+(SHA-256 `1df76f996f370a684ecc0829f896daf8aded28523e6f3fbbc2cd0c8dab45d144`),
+with no additional changed/missing/new files. Both TrainerOS databases pass
+read-only `quick_check`. DS personal-save reads/writes remain absent from this
+host, rather than inferred safe from only an inventory.
+
+Final local-frontend ARM64 SHA-256:
+`14b825e6acd9d3fb8a4bc59b0e0934b8b5fbb855661b0419517e62163ddd0070`;
+probe: `5e88d2f1b57dbc71fe0ece16b5431f7be29804480294a86d63df78dcfc63f8dc`.
+Both devices have the same final frontend in an isolated development directory;
+a final 600-frame startup/exit passed on each after the replay fixes. The earlier
+interactive races used the preceding frontend build; the recorded-input replay
+below validates the corrected core through the same game sequence.
+
+the ordinary installed emulator/client and invitation availability are unchanged.
+
+The Odin input-only recording contains 23,566 admitted frames / 648,908 bytes,
+SHA-256 `414b181fc595bd409971f31f01773655db1865210fa2492a3f7e26d17f531d42`.
+It remains private test evidence. The first 23,500-frame two-run replay failed with `REPLAY_MISMATCH seat=0
+frame=0` after 297 seconds. A 120-frame prefix using the same sparse checkpoints
+reproduced the failure on both devices. Startup section hashes isolated `SPFW`:
+`FirmwareMem::Reset` did not initialize the address latch or reset its data
+position, even though both are serialized. The maintained patch now clears both.
+A ROM-free regression dirties those latches through a normal SPI read and checks
+reset state: **fails before the fix, passes after**. Full hashes stay enabled;
+no differing field is excluded. The same 120-frame trace prefix then passed
+(digest `d9b98c438fffcb9d`). Further full replay isolated undefined bytes in wireless default-reply/ACK
+headers and in `GP3D`. The maintained patch zero-initializes packet buffers,
+transient vertex arrays/zero-W high-resolution coordinates and both direct/packed
+GPU FIFO command entries. The latter is a 64-bit union with three unused bytes;
+writing only opcode/parameter left old stack data in serialized FIFO entries.
+A ROM-free poisoned-stack regression fails before command initialization and
+passes afterwards for both command paths. This fixes the stored bytes rather
+than excluding any section from the fingerprint. The complete fixed replay **passes on both devices**: two runs of 23,500
+frames, 47,000 compared frame results and **784 full-state checkpoints** per
+device, with identical final digest `4c320bcaef435dd`. Flip completed in
+300,760 ms and Odin in 285,180 ms; peak memory was 447.4/447.6 MiB. Each reported
+12,946 sent and 26,921 received emulated wireless packets. This covers group
+discovery, joining and race start from the recorded input, retaining all state
+sections. It is replay on each handheld, not a connection between them. Network
+admission remains disabled until the other accepted gates are implemented.
+
+
 ## Remaining work and update procedure
 
 MP-06 and #162–166 remain open. This is an incomplete DS implementation, with a
 maintained native core preparation rather than a player-visible network route.
-Next: connect the native workers to a player frontend, establish owned-save
-startup/state parity under #164, then reuse GameParty admission and the secure
-automatic transport. The cold-boot verification host does not deliver these gates.
+Next: establish owned-save startup/state parity under #164, then connect the
+local player frontend to GameParty admission and the secure automatic transport. The cold-boot verification host does not deliver these gates.
 Local compatible BIOS/firmware must stay local. Any unavoidable save-derived
 state needs bounded parsing, explicit session/recipient/purpose consent,
 authenticated encryption and ephemeral lifetime; raw Android packages are not
 an acceptable shortcut. ROM transfers remain separate guest-content policy.
 
-Further gates: meaningful wireless replay/checkpoint parity, deterministic
+Further gates: broader wireless replay/checkpoint compatibility, deterministic
 JIT/render/input behavior across supported workloads, adaptive host-selected
 delay, sustained two/four-machine resource measurements, full player-runtime
 Linux x86_64/ARM64 builds, protected local-save return, actual wireless
@@ -195,8 +288,9 @@ before those dependencies are checked. Synthetic four-instance packet ordering
 is neither four DS emulators nor four-player gameplay evidence.
 
 For a native build, run `packaging/emulators/melonds/build.sh NEW_WORK_DIRECTORY`
-with Git, Ninja, CMake >=3.16, Python 3 and a C/C++17 toolchain. No runtime bundle
-is produced. For updates, compare upstream/core reference ancestry and all clock,
+with Git, Ninja, CMake >=3.16, Python 3, a C/C++17 toolchain, Qt6 Widgets and
+SDL2 development files. It builds isolated checks and the local frontend, not an
+admitted Internet runtime bundle. For updates, compare upstream/core reference ancestry and all clock,
 WiFi, state/JIT and frontend hooks, rebase or retire each patch hunk, rebuild and
 rerun scoped checks before changing the pin. Retain old source/build manifests.
 Rollback is selecting the previous isolated build or ordinary emulator; there

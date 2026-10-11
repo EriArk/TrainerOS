@@ -104,10 +104,27 @@ index 4341f6d..2f92379 100644
  void MP_End(void* userdata);
  int MP_SendPacket(u8* data, int len, u64 timestamp, void* userdata);
 diff --git a/src/Wifi.cpp b/src/Wifi.cpp
-index 89bdb02..8d290d6 100644
 --- a/src/Wifi.cpp
 +++ b/src/Wifi.cpp
-@@ -1759,6 +1759,7 @@ void Wifi::MSTimer()
+@@ -801,7 +801,7 @@
+ 
+ void Wifi::SendMPDefaultReply()
+ {
+-    u8 reply[12 + 28];
++    u8 reply[12 + 28] {};
+ 
+     *(u16*)&reply[0xA] = 28; // length
+ 
+@@ -895,7 +895,7 @@
+ 
+ void Wifi::SendMPAck(u16 cmdcount, u16 clientfail)
+ {
+-    u8 ack[12 + 32];
++    u8 ack[12 + 32] {};
+ 
+     *(u16*)&ack[0xA] = 32; // length
+ 
+@@ -1759,6 +1759,7 @@
  void Wifi::USTimer(u32 param)
  {
      USTimestamp += kTimerInterval;
@@ -850,3 +867,74 @@ index 0000000..eebd3da
 +}
 +
 +#endif
+diff --git a/src/SPI.cpp b/src/SPI.cpp
+--- a/src/SPI.cpp
++++ b/src/SPI.cpp
+@@ -106,6 +106,8 @@
+ 
+     Hold = 0;
+     CurCmd = 0;
++    DataPos = 0;
++    Addr = 0;
+     Data = 0;
+     StatusReg = 0x00;
+ }
+diff --git a/src/GPU3D.cpp b/src/GPU3D.cpp
+--- a/src/GPU3D.cpp
++++ b/src/GPU3D.cpp
+@@ -821,7 +821,7 @@
+ template<int comp, bool attribs>
+ int ClipAgainstPlane(const GPU3D& gpu, Vertex* vertices, int nverts, int clipstart)
+ {
+-    Vertex temp[10];
++    Vertex temp[10] {};
+     int prev, next;
+     int c = clipstart;
+ 
+@@ -934,7 +934,7 @@
+ 
+ void GPU3D::SubmitPolygon() noexcept
+ {
+-    Vertex clippedvertices[10];
++    Vertex clippedvertices[10] {};
+     Vertex* reusedvertices[2];
+     int clipstart = 0;
+     int lastpolyverts = 0;
+@@ -1101,6 +1101,8 @@
+         {
+             posX = 0;
+             posY = 0;
++            vtx->HiresPosition[0] = 0;
++            vtx->HiresPosition[1] = 0;
+         }
+         else
+         {
+@@ -1531,8 +1533,8 @@
+ 
+ void GPU3D::BoxTest(const u32* params) noexcept
+ {
+-    Vertex cube[8];
+-    Vertex face[10];
++    Vertex cube[8] {};
++    Vertex face[10] {};
+     int res;
+ 
+     AddCycles(254);
+@@ -2526,7 +2528,7 @@
+     {
+         if ((CurCommand & 0xFF) || (NumCommands == 4 && CurCommand == 0))
+         {
+-            CmdFIFOEntry entry;
++            CmdFIFOEntry entry {};
+             entry.Command = CurCommand & 0xFF;
+             entry.Param = val;
+             CmdFIFOWrite(entry);
+@@ -2881,7 +2883,7 @@
+ 
+     if (addr >= 0x04000440 && addr < 0x040005CC)
+     {
+-        CmdFIFOEntry entry;
++        CmdFIFOEntry entry {};
+         entry.Command = (addr & 0x1FC) >> 2;
+         entry.Param = val;
+         CmdFIFOWrite(entry);

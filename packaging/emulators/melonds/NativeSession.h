@@ -20,6 +20,20 @@ struct FrameInput {
 struct FrameResult {
     uint32_t seat = 0, frame = 0;
     uint64_t cycles = 0, stateHash = 0;
+    uint64_t wirelessSent = 0, wirelessReceived = 0;
+    struct Section { std::string name; uint64_t hash; };
+    std::vector<Section> checkpointSections;
+};
+struct PresentationFrame {
+    uint32_t frame = 0;
+    // Software-rendered XRGB8888, top then bottom, each 256 x 192.
+    std::vector<uint32_t> pixels;
+    std::vector<int16_t> audio;
+};
+struct SessionOptions {
+    // Verification defaults preserve the original full per-frame replay trace.
+    uint32_t checkpointInterval = 1;
+    bool presentation = false;
 };
 // Platform callbacks bind to this context, never to an Android/UI singleton.
 struct MachineContext {
@@ -28,6 +42,8 @@ struct MachineContext {
     int seat = 0;
     std::atomic<bool> stopped {false};
     std::atomic<uint64_t> saveNotifications {0};
+    // Worker-local counters, exported with frame results without packet contents.
+    uint64_t wirelessSent = 0, wirelessReceived = 0;
 };
 
 // Local mirror worker lifecycle. Transport/admission and storage are outside
@@ -37,12 +53,14 @@ struct MachineContext {
 // owned machine workers run concurrently. Recreate the session after Stop.
 class NativeSession {
 public:
-    NativeSession(std::vector<melonDS::NDSArgs> args, const std::vector<uint8_t>& rom);
+    NativeSession(std::vector<melonDS::NDSArgs> args, const std::vector<uint8_t>& rom,
+                  SessionOptions options = {});
     ~NativeSession();
     NativeSession(const NativeSession&) = delete;
     NativeSession& operator=(const NativeSession&) = delete;
     bool Submit(const std::vector<FrameInput>& frame);
     bool Take(FrameResult& result, std::chrono::milliseconds timeout);
+    bool TakePresentation(size_t seat, PresentationFrame& result);
     void Stop();
     bool Failed() const { return failed.load() || wireless.IsAborted(); }
     size_t Size() const { return machines.size(); }
@@ -52,6 +70,7 @@ private:
         std::unique_ptr<melonDS::NDS> console;
         std::thread worker;
         std::deque<FrameInput> inputs;
+        std::optional<PresentationFrame> presentation;
     };
     void Run(size_t seat);
     melonDS::DetMP wireless;
@@ -61,5 +80,6 @@ private:
     std::deque<FrameResult> results;
     std::atomic<bool> stopping {false}, failed {false};
     uint32_t nextFrame = 0;
+    SessionOptions options;
 };
 }

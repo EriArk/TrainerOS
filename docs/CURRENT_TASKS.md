@@ -1,5 +1,16 @@
 # Current tasks
 
+**Owner continuous multiplayer work, 11 October 2026:** continue the accepted
+scope through Wii U and Vita, excluding PS3/Switch, while the owner is asleep.
+Keep devices quiet and preserve personal saves. The earlier-family recheck is
+recorded; DS now has a local player frontend and actual two-console Mario Kart DS
+wireless gameplay on Flip/Odin, plus matching 23,500-frame recorded replays.
+This supersedes the frontend-not-started status below,
+not the remaining owned-save, GameParty, Internet or physical acceptance gates.
+The ongoing evidence lives in [melonDS maintenance](emulators/melonds.md);
+PROJECT_STATUS.md and CHANGELOG.md track user-facing results. No DS profile or
+issue is declared complete by this local development increment.
+
 **Owner recheck before DS, 11 October 2026:** verify earlier PS1/N64/Dreamcast/
 GameCube/PSP work on the updated handhelds before resuming DS. Current ARM64
 client is installed on both; PS1 CTR and the existing Melee profile reach paired

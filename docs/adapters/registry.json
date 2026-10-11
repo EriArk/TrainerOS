@@ -753,10 +753,18 @@
         "factory-translation-unit-syntax",
         "linux-arm64-core-jit-and-linked-worker-build",
         "flip-odin-two-four-machine-short-startup-replay",
-        "bounded-worker-input-and-joined-teardown"
+        "bounded-worker-input-and-joined-teardown",
+        "windows-arm64-local-qt-sdl-player-build",
+        "bounded-frame-audio-presentation",
+        "flip-local-two-ds-mario-kart-wireless-race",
+        "odin-local-two-ds-startup-exit",
+        "odin-local-two-ds-mario-kart-wireless-race",
+        "flip-odin-23500-frame-wireless-replay-784-state-checkpoints",
+        "firmware-spi-and-gpu-fifo-initialization-regressions",
+        "bounded-input-trace-replay-parser-checks"
       ],
       "remaining": [
-        "player-frontend",
+        "game-party-player-frontend",
         "owned-save-startup-state-parity",
         "sustained-wireless-workload",
         "authenticated-transport",

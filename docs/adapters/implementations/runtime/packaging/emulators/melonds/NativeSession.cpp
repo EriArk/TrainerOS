@@ -2,10 +2,12 @@
 #include "NativeSession.h"
 #include "xxhash/xxhash.h"
 #include <stdexcept>
+#include <cstring>
 
 namespace traineros::ds {
 NativeSession::NativeSession(std::vector<melonDS::NDSArgs> args,
-                             const std::vector<uint8_t>& rom)
+                             const std::vector<uint8_t>& rom, SessionOptions options)
+    : options(options)
 {
     if (args.size() < 2 || args.size() > 4 || rom.size() < 0x200 || rom.size() > 512 * 1024 * 1024)
         throw std::invalid_argument("Unsupported local machine count or cartridge size");
@@ -62,6 +64,15 @@ bool NativeSession::Take(FrameResult& result, std::chrono::milliseconds timeout)
     return true;
 }
 
+bool NativeSession::TakePresentation(size_t seat, PresentationFrame& result)
+{
+    std::lock_guard<std::mutex> guard(lock);
+    if (stopping || seat >= machines.size() || !machines[seat]->presentation) return false;
+    result = std::move(*machines[seat]->presentation);
+    machines[seat]->presentation.reset();
+    return true;
+}
+
 void NativeSession::Stop()
 {
     stopping.store(true);
@@ -93,15 +104,49 @@ void NativeSession::Run(size_t seat)
             nds.RunFrame();
             if (stopping) break;
             if (machine.context.stopped || wireless.IsAborted()) throw std::runtime_error("Core stopped");
-            // Checkpoints remain local and ephemeral. Only a digest is returned.
-            melonDS::Savestate state;
-            if (!nds.DoSavestate(&state)) throw std::runtime_error("Checkpoint failed");
-            state.Finish();
-            if (state.Error || state.Length() > 64 * 1024 * 1024) throw std::runtime_error("Checkpoint bounds");
-            FrameResult result {uint32_t(seat), input.frame, nds.GetSysTimestamp(),
-                XXH64(state.Buffer(), state.Length(), 0)};
+            FrameResult result {uint32_t(seat), input.frame, nds.GetSysTimestamp(), 0};
+            result.wirelessSent = machine.context.wirelessSent;
+            result.wirelessReceived = machine.context.wirelessReceived;
+            // Checkpoints remain local and ephemeral. Rendering must not require
+            // serializing every console on every frame merely to draw its screen.
+            if (options.checkpointInterval && input.frame % options.checkpointInterval == 0) {
+                melonDS::Savestate state;
+                if (!nds.DoSavestate(&state)) throw std::runtime_error("Checkpoint failed");
+                state.Finish();
+                if (state.Error || state.Length() > 64 * 1024 * 1024) throw std::runtime_error("Checkpoint bounds");
+                result.stateHash = XXH64(state.Buffer(), state.Length(), 0);
+                {
+                    const auto* bytes=static_cast<const uint8_t*>(state.Buffer());
+                    for (uint32_t offset=16;offset<state.Length();) {
+                        if (state.Length()-offset<16) throw std::runtime_error("Checkpoint section header");
+                        uint32_t length=0; std::memcpy(&length,bytes+offset+4,4);
+                        if (length<16 || length>state.Length()-offset || result.checkpointSections.size()>=64)
+                            throw std::runtime_error("Checkpoint section bounds");
+                        result.checkpointSections.push_back({std::string(reinterpret_cast<const char*>(bytes+offset),4),
+                            XXH64(bytes+offset,length,0)});
+                        offset+=length;
+                    }
+                }
+            }
+            std::optional<PresentationFrame> output;
+            if (options.presentation) {
+                void* top = nullptr; void* bottom = nullptr;
+                if (!nds.GPU.GetFramebuffers(&top, &bottom) || !top || !bottom)
+                    throw std::runtime_error("Software frame unavailable");
+                output.emplace(); output->frame = input.frame;
+                output->pixels.resize(256 * 192 * 2);
+                std::memcpy(output->pixels.data(), top, 256 * 192 * sizeof(uint32_t));
+                std::memcpy(output->pixels.data() + 256 * 192, bottom, 256 * 192 * sizeof(uint32_t));
+                // Drain every machine, including mirrors; only the selected
+                // machine's output is played by the frontend. Bound each copy.
+                output->audio.resize(4096 * 2);
+                int samples = nds.SPU.ReadOutput(output->audio.data(), 4096);
+                if (samples < 0 || samples > 4096) throw std::runtime_error("Audio bounds");
+                output->audio.resize(size_t(samples) * 2);
+            }
             std::lock_guard<std::mutex> guard(lock);
             if (results.size() >= 64) throw std::runtime_error("Checkpoint consumer stalled");
+            if (output) machine.presentation = std::move(output);
             results.push_back(result);
             changed.notify_all();
         }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Headless verification host only. Core file access, persistent saves, WFC,
-// camera, microphone and physical output are deliberately unavailable here.
+// Volatile host for headless checks and the local player frontend. Core file
+// access, persistent saves, WFC, camera and microphone are unavailable. The
+// frontend consumes copied frame/audio output through NativeSession.
 #include "NativeSession.h"
 #include <algorithm>
 #include <chrono>
@@ -71,12 +72,12 @@ void MP_Tick(void* data) {
 }
 void MP_Begin(void* data) { MP_Tick(data); auto& c = Context(data); c.wireless->Begin(c.seat); }
 void MP_End(void* data) { MP_Tick(data); auto& c = Context(data); c.wireless->End(c.seat); }
-int MP_SendPacket(u8* p, int n, u64 t, void* data) { MP_Tick(data); auto& c = Context(data); return c.wireless->SendPacket(c.seat,p,n,t); }
-int MP_RecvPacket(u8* p, u64* t, void* data) { MP_Tick(data); auto& c = Context(data); return c.wireless->RecvPacket(c.seat,p,t); }
-int MP_SendCmd(u8* p, int n, u64 t, void* data) { MP_Tick(data); auto& c = Context(data); return c.wireless->SendCmd(c.seat,p,n,t); }
-int MP_SendReply(u8* p, int n, u64 t, u16 aid, void* data) { MP_Tick(data); auto& c = Context(data); return c.wireless->SendReply(c.seat,p,n,t,aid); }
-int MP_SendAck(u8* p, int n, u64 t, void* data) { MP_Tick(data); auto& c = Context(data); return c.wireless->SendAck(c.seat,p,n,t); }
-int MP_RecvHostPacket(u8* p, u64* t, void* data) { MP_Tick(data); auto& c = Context(data); return c.wireless->RecvHostPacket(c.seat,p,t); }
+int MP_SendPacket(u8* p, int n, u64 t, void* data) { MP_Tick(data); auto& c = Context(data); ++c.wirelessSent; return c.wireless->SendPacket(c.seat,p,n,t); }
+int MP_RecvPacket(u8* p, u64* t, void* data) { MP_Tick(data); auto& c = Context(data); int n = c.wireless->RecvPacket(c.seat,p,t); if (n > 0) ++c.wirelessReceived; return n; }
+int MP_SendCmd(u8* p, int n, u64 t, void* data) { MP_Tick(data); auto& c = Context(data); ++c.wirelessSent; return c.wireless->SendCmd(c.seat,p,n,t); }
+int MP_SendReply(u8* p, int n, u64 t, u16 aid, void* data) { MP_Tick(data); auto& c = Context(data); ++c.wirelessSent; return c.wireless->SendReply(c.seat,p,n,t,aid); }
+int MP_SendAck(u8* p, int n, u64 t, void* data) { MP_Tick(data); auto& c = Context(data); ++c.wirelessSent; return c.wireless->SendAck(c.seat,p,n,t); }
+int MP_RecvHostPacket(u8* p, u64* t, void* data) { MP_Tick(data); auto& c = Context(data); int n = c.wireless->RecvHostPacket(c.seat,p,t); if (n > 0) ++c.wirelessReceived; return n; }
 u16 MP_RecvReplies(u8* p, u64 t, u16 mask, void* data) { MP_Tick(data); auto& c = Context(data); return c.wireless->RecvReplies(c.seat,p,t,mask); }
 int Net_SendPacket(u8*, int, void*) { return 0; }
 int Net_RecvPacket(u8*, void*) { return 0; }
