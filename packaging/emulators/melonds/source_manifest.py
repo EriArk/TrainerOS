@@ -34,7 +34,7 @@ def main():
         "patchedFiles": {name: digest(source / name) for name in changed},
         "recipeFiles": {p.name: digest(p) for p in sorted(recipe.iterdir()) if p.is_file()},
         "runtimeReady": False,
-        "remaining": ["protected-personal-save-integration", "offline-nearby-transport",
+        "remaining": ["installed-personal-save-return", "offline-nearby-field-acceptance",
                       "game-party-frontend", "separate-internet", "performance-and-control-acceptance"],
     }
     output.parent.mkdir(parents=True, exist_ok=True)

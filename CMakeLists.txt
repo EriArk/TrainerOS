@@ -91,6 +91,8 @@ add_library(trainer_core STATIC
     src/integrations/achievements/RetroAchievementsProvider.cpp
     src/integrations/adventure/standalone/MelonDsSave.h
     src/integrations/adventure/standalone/MelonDsSave.cpp
+    src/integrations/adventure/standalone/MelonDsSession.cpp
+    src/integrations/adventure/standalone/MelonDsNetplay.cpp
     src/integrations/adventure/AdapterRouter.h
     src/integrations/adventure/standalone/StandaloneAdapter.h
     src/integrations/adventure/standalone/StandaloneAdapter.cpp
@@ -114,6 +116,7 @@ add_library(trainer_core STATIC
     src/core/model/SaveBackup.h
     src/platform/storage/SaveBackupStorage.h
     src/platform/storage/SaveBackupStorage.cpp
+    src/platform/storage/RuntimeSaveStorage.cpp
     src/platform/storage/SaveLineage.cpp
     src/adapters/pokemon/center/SaveCenterController.h
     src/adapters/pokemon/center/SaveCenterController.cpp

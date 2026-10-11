@@ -86,6 +86,34 @@ class RuntimeMultiplayerTests final : public QObject {
         QTRY_VERIFY(!f.lifecycle.active());
     }
 private slots:
+    void dsRestartKeepsSaveConsentAndCancelledEndpointCannotLaunch() {
+        Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        requestRestart(f,{{"id","runtime.melonds.nds.v1"},{"privateProgress",true}});
+        QVERIFY(f.process.active());QVERIFY(f.runtime.restarting_);
+        f.lifecycle.exitController().cancel();QVERIFY(f.process.active());QVERIFY(!f.runtime.active_);
+        f.runtime.frame({{"kind","ds-ready"},{"slot",2},{"identity",f.runtime.descriptor_}});
+        QVERIFY(!f.runtime.launchPending_);QVERIFY(!f.runtime.active_);finishOrdinary(f);
+    }
+    void dsRejectsChangedGameAndConsumesOnlyItsOwnStatusMarkers() {
+        Fixture f;f.runtime.active_=true;f.runtime.descriptor_={{"id","runtime.melonds.nds.v1"},{"content","accepted"}};
+        f.runtime.frame({{"kind","ds-ready"},{"slot",2},{"identity",QJsonObject{{"id","runtime.melonds.nds.v1"},{"content","other"}}}});
+        QVERIFY(!f.runtime.active_);f.runtime.active_=true;f.runtime.deadline_=1;
+        f.runtime.output("DS_NETWORK_READY delay=4\n");QCOMPARE(f.runtime.deadline_,1);
+        f.runtime.output("[TrainerOSDs] run");QCOMPARE(f.runtime.deadline_,1);
+        f.runtime.output("ning\n");QCOMPARE(f.runtime.deadline_,0);QCOMPARE(f.runtime.status_,"Playing together");
+        f.runtime.output("[TrainerOSDs] error\n");QVERIFY(!f.runtime.active_);
+    }
+    void dsPrivateEndpointParserRejectsExtraFieldsAndMalformedCredentials() {
+        const auto encode=[](QJsonObject value){return QByteArray("TRAINEROS_DS_ENDPOINT ")+QJsonDocument(value).toJson(QJsonDocument::Compact).toBase64();};
+        QJsonObject nearby{{"mode","nearby"},{"port",1234},{"fingerprint",QString(64,'a')},{"token",QString(32,'b')}};
+        QCOMPARE(melonds::event(encode(nearby))["endpoint"].toObject(),nearby);
+        nearby["port"]=1234.5;QVERIFY(melonds::event(encode(nearby)).isEmpty());nearby["port"]=1234;
+        nearby["savePath"]="untrusted";QVERIFY(melonds::event(encode(nearby)).isEmpty());
+        QVERIFY(melonds::event("TRAINEROS_DS_ENDPOINT !").isEmpty());
+        QVERIFY(melonds::event(encode({{"mode","online"},{"code","1-invalid"}})).isEmpty());
+        const QJsonObject online{{"mode","online"},{"code","1-one-two-three-four-five-six-seven-eight"}};
+        QCOMPARE(melonds::event(encode(online))["endpoint"].toObject(),online);
+    }
     void genericPspKeepsSaveConsentAndRejectsChangedInvitation() {
         Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
         requestRestart(f,{{"id","runtime.ppsspp.adhoc.v1"},{"content","accepted"}});

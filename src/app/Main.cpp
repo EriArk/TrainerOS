@@ -445,6 +445,13 @@ int main(int argc, char* argv[]) {
         QString pendingNotification;
         if(saveBackups)saveBackups->operationGuard=[&]{return adventureLaunch.active()?QString("Exit the running game before changing saves."):QString();};
         RuntimeMultiplayer multiplayer(activeLibrary,retroarch,ppsspp,dolphin,*shell.social(),adventureProcess,adventureLaunch,exitPresentation);
+        if(personalLibrary&&!smoke) {
+            multiplayer.saveBackupRoot=QDir(stateDirectory).filePath("backups");
+            multiplayer.resolveSaveTarget=[saveRuntimes](const AdventureRegistration& record) {
+                const auto snapshot=saveRuntimes->load();
+                return record.adventure.adapterId=="melonds"?resolveMelonDsSave(record,snapshot->melonds):resolveRetroArchSave(record,snapshot->retroarch);
+            };
+        }
         QObject::connect(&multiplayer,&RuntimeMultiplayer::invitationSurfaceRequested,&shell,[&]{shell.goToPage(4);});
         shell.libraryTools()->multiplayerAvailable=[&](const QString& id){return multiplayer.onlineGames().contains(id);};
         QObject::connect(&shell,&ShellController::togetherRequested,&multiplayer,[&](const QString& game){shell.goToPage(4);multiplayer.beginTogether(game);});

@@ -1,7 +1,9 @@
 #include "adapters/pokemon/PokemonExperience.h"
 #include "platform/storage/SaveBackupStorage.h"
+#include "platform/storage/RuntimeSaveStorage.h"
 #include "integrations/adventure/retroarch/RetroArchSave.h"
 #include "integrations/adventure/standalone/MelonDsSave.h"
+#include "integrations/adventure/standalone/MelonDsSession.h"
 #include "integrations/adventure/mock/MockAdventureAdapter.h"
 #include "core/storage/SessionState.h"
 #include <QtTest>
@@ -33,6 +35,66 @@ struct Fixture {
 class SaveBackupTests final : public QObject {
     Q_OBJECT
 private slots:
+    void dsPreparedReturnChecksOwnerReceiptAndProcessOutcome() {
+        for(int scenario=0;scenario<7;++scenario) {
+            Fixture f;const auto directory=f.dir.filePath("session");QVERIFY(QDir().mkdir(directory));
+            ProcessCommand command;
+            const auto error=melonds::prepareOwnedSession(command,f.record,f.root,f.resolve,directory,1,f.target.contentRevision);
+            QVERIFY2(error.isEmpty(),qPrintable(error));
+            const auto manifest=QJsonDocument::fromJson(read(directory+"/session.json")).object();
+            QCOMPARE(manifest["version"].toInt(),2);QVERIFY(manifest["seats"].toArray()[0].toObject()["peer"].toBool());
+            QCOMPARE(read(directory+"/seat-1.sav"),QByteArray("FIRST SAVE"));QVERIFY(!QFileInfo::exists(directory+"/seat-0.sav"));
+            const QByteArray after(10,'x');write(directory+"/owner-return.sav",after);
+            QJsonObject receipt{{"version",1},{"ownerSeat",scenario==1?0:1},{"content",f.target.contentRevision},
+                {"frame",120},{"bytes",after.size()},{"sha256",scenario==2?sha("wrong"):sha(after)},{"hasSave",true}};
+            if(scenario==6)receipt["frame"]=120.5;
+            write(directory+"/owner-return.json",QJsonDocument(receipt).toJson(QJsonDocument::Compact));
+            if(scenario==5)write(f.path,"OTHER SAVE");
+            const auto result=command.finalize({true,scenario==3?3:0,false,scenario==4});
+            QCOMPARE(result.isEmpty(),scenario==0);
+            QCOMPARE(read(f.path),scenario==0?after:scenario==5?QByteArray("OTHER SAVE"):QByteArray("FIRST SAVE"));
+        }
+    }
+    void opaqueRuntimeReturnProtectsBothCopiesAndLargeCartridges() {
+        Fixture f;const QByteArray before(1024*1024,'a'),after(1024*1024,'b');write(f.path,before);
+        const auto seed=captureRuntimeSave(f.root,f.record,f.resolve);QVERIFY(seed.error.isEmpty());
+        QCOMPARE(seed.bytes,before);QVERIFY(seed.existed);
+        const auto error=returnRuntimeSave(f.root,f.record,seed,after,f.resolve);QVERIFY2(error.isEmpty(),qPrintable(error));
+        QCOMPARE(read(f.path),after);
+        const auto dirs=QDir(f.root+"/runtime-copies").entryList(QDir::Dirs|QDir::NoDotAndDotDot);QCOMPARE(dirs.size(),1);
+        const auto folder=f.root+"/runtime-copies/"+dirs.first();
+        QCOMPARE(read(folder+"/before.sav"),before);QCOMPARE(read(folder+"/returned.sav"),after);
+        QCOMPARE(QJsonDocument::fromJson(read(folder+"/receipt.json")).object()["sourceToken"].toString(),seed.token);
+    }
+    void opaqueRuntimeReturnRejectsChangedOwnerContentContextAndPolicy() {
+        Fixture f;const auto seed=captureRuntimeSave(f.root,f.record,f.resolve);QVERIFY(seed.error.isEmpty());
+        const QByteArray after(seed.bytes.size(),'x');
+        for(const auto field:{0,1,2,3}) {
+            const auto original=f.target;
+            if(field==0)f.target.backupOwner="another-trainer";
+            if(field==1)f.target.contentRevision=sha("another-rom");
+            if(field==2)f.target.contextRevision=sha("another-runtime");
+            if(field==3)write(f.path,after);
+            QVERIFY(!returnRuntimeSave(f.root,f.record,seed,after,f.resolve).isEmpty());
+            QCOMPARE(read(f.path),field==3?after:seed.bytes);f.target=original;write(f.path,seed.bytes);
+        }
+        QVERIFY(setSaveWritesReadOnly(f.root,true).isEmpty());
+        QVERIFY(!returnRuntimeSave(f.root,f.record,seed,after,f.resolve).isEmpty());QCOMPARE(read(f.path),seed.bytes);
+        QVERIFY(setSaveWritesReadOnly(f.root,false).isEmpty());
+        QVERIFY(!returnRuntimeSave(f.root,f.record,seed,after+'x',f.resolve).isEmpty());QCOMPARE(read(f.path),seed.bytes);
+        QLockFile lock(f.root+"/service.lock");QVERIFY(lock.tryLock());
+        QVERIFY(!captureRuntimeSave(f.root,f.record,f.resolve).error.isEmpty());
+        QVERIFY(!returnRuntimeSave(f.root,f.record,seed,after,f.resolve).isEmpty());
+    }
+    void opaqueRuntimeFreshReturnDoesNotOverwriteNewProgress() {
+        Fixture f;QVERIFY(QFile::remove(f.path));
+        const auto seed=captureRuntimeSave(f.root,f.record,f.resolve);QVERIFY(seed.error.isEmpty());QVERIFY(!seed.existed);
+        write(f.path,"NEW PERSONAL PROGRESS");
+        QVERIFY(!returnRuntimeSave(f.root,f.record,seed,QByteArray(512,'x'),f.resolve).isEmpty());
+        QCOMPARE(read(f.path),QByteArray("NEW PERSONAL PROGRESS"));QVERIFY(QFile::remove(f.path));
+        const auto error=returnRuntimeSave(f.root,f.record,seed,QByteArray(512,'x'),f.resolve);
+        QVERIFY2(error.isEmpty(),qPrintable(error));QCOMPARE(read(f.path),QByteArray(512,'x'));
+    }
     void movementUsesProtectionPolicyStaleGuardAndExactUndo() {
         Fixture f;int calls=0;
         PartyMover mover=[&](const QByteArray& input,const QString&,const PartyMove&){++calls;return PartyMoveResult{input+" MOVED",{},"Moved"};};

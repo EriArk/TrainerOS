@@ -375,6 +375,71 @@ route are still being integrated. No runtime profile is enabled by these probes.
 The ordinary TrainerOS binary remains unchanged. Four-player online DS, broader
 cartridge compatibility, real controls and separate-network acceptance remain open.
 
+## Nearby transport and protected return integration — 12 October 2026
+
+The helper now has a separate Nearby branch with no rendezvous/relay connection.
+It uses the existing invitation-pinned TLS model, with an ephemeral certificate
+kept in memory and a fresh admission token. The guest checks the exact certificate
+before sending authentication or application records; the host accepts the token
+before constructing the shared Records channel. Pending unauthenticated peers,
+framing, setup time and output queues are bounded. A rejected connection does not
+consume the legitimate invitation. The implementation uses the public Twisted
+[IHandshakeListener](https://docs.twisted.org/en/stable/api/twisted.internet.interfaces.IHandshakeListener.html)
+and [CertificateOptions](https://docs.twisted.org/en/stable/api/twisted.internet.ssl.CertificateOptions.html)
+contracts; application data remains on the same checked Records protocol.
+
+On Flip/Odin, Nearby transferred 2 MiB bidirectionally with 128 ordered receipts
+(setup 2.547 s, transfer 0.609 s). Small-record receipt median/p95: 31/32 ms.
+Wrong certificate pin and wrong token were rejected independently, then a valid
+peer successfully used the same invitation. Native frontend
+`315d4382e8e0d408da1216e1b48c6af4fdd95adafa9e91b1a95e7d0c658ba725`
+is installed in the isolated directory on both handhelds. It completed Nearby
+owner-state exchange, ten matching checkpoints per peer and agreed frame-194
+return with each owner's distinct 262,144-byte fixture (9.47 s). This is focused
+startup/return evidence, not a repeated long race or an Internet-disabled field test.
+Seven native CTests pass on Windows/ARM64; the channel suite now has five cases.
+
+`MelonDsSession` now bridges the private v2 staging/receipt contract to shared
+`RuntimeSaveStorage`. It captures only the local save through the verified resolver,
+then validates normal process completion, exact content/owner, integral frame/size,
+SHA-256 and the no-save case before a possible return. Forced stop, crash, wrong
+owner, stale original and malformed receipts cannot replace personal progress.
+
+The shared storage path supports opaque cartridge images up to 64 MiB, uses the
+existing service lock/read-only policy and verified target resolver, and rechecks
+content, runtime context, owner, canonical path and original bytes before atomic
+replacement. Both before/returned copies and a hash receipt are retained under
+`backups/runtime-copies/<id>/`, flushed before replacing the original. It records
+`runtime-return` in the existing signed lineage without claiming game completion.
+These raw recovery copies are not yet entries in the ordinary backup-list UI.
+Original session folders must be retained on finalization errors by the launcher.
+Windows save-backup/lineage suites cover large images, fresh saves, ownership and
+context changes, read-only policy, shared locks, preserved copies, signed lineage
+and DS process/receipt refusals. The ordinary launcher is connected in source,
+with a validated bundle/profile, existing GameParty start/endpoint flow, private
+staging, protected finalization and preserved save/exit cancellation. Windows and
+ARM64 ordinary clients build; runtime-multiplayer, save-backup and save-lineage
+suites pass on both. The overlay helper recognizes the packaged `traineros-ds`
+for owned WM_DELETE_WINDOW, with fourteen helper checks passing on Linux.
+The final shell/profile delivery and personal-save migration remain unverified.
+
+Versioned packages were staged on both devices at
+`~/.local/share/TrainerOS/emulators/melonds-netplay-20261012.1`; no current-version
+link was published. The reviewed installer refuses existing output directories
+and writes its admission manifest only after verified frontend/dependency staging.
+Those packages contain frontend
+`a74276b3d1b4ae2c3d1a8c4fb8de4f875ea850668f6358bd0ced2658eb61756e`,
+helper `93092dc60d6df7defbf1838e493d9b72a91516fc7229ed992e80de1a831d3ceb`
+and Python executable `ef59e677fa67d883e7f6d2a5aabbb99f1a14dd77dad74ada90d613202843cb80`.
+The helper lock remains the verified hash above. The later UI-only frontend
+caption change is built on Windows but is not in this staged ARM64 artifact.
+Both ordinary installed clients are still
+`ccfe46697e26df086f39099f537afc5f08f8b00577a116b0f69960006f1c6633`.
+Remaining before enabling the route: finish save-copy disclosure across reverse
+Join/company entry points, validate the packaged launch/return through GameParty,
+install shell/helper together, and verify both handheld journeys. These packages
+are preparation, not an installed DS invitation claim.
+
 ## Remaining work and update procedure
 
 MP-06 and #162–166 remain open. This is an incomplete DS implementation, with a

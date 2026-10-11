@@ -9,6 +9,7 @@
 #include "integrations/adventure/standalone/DolphinNetplay.h"
 #include "integrations/adventure/standalone/RmgNetplay.h"
 #include "integrations/adventure/standalone/FlycastNetplay.h"
+#include "integrations/adventure/standalone/MelonDsNetplay.h"
 #include "platform/network/LocalLinkPeer.h"
 #include <QFutureWatcher>
 #include <QNetworkAccessManager>
@@ -55,6 +56,8 @@ public:
     } runningJoin;
     // Shared application launch barrier for a packaged alternate runtime.
     std::function<AdventureResult(const ProcessCommand&,const QString&)> requestRuntimeLaunch;
+    QString saveBackupRoot;
+    SaveTargetResolver resolveSaveTarget;
 signals:
     void liveOptionsRequested();
     void invitationOptionsRequested();
@@ -73,6 +76,7 @@ private:
     void prepareRmg();
     bool rmg() const { return descriptor_["id"]=="runtime.rmg.n64.v1"; }
     bool flycast() const { return descriptor_["id"]=="runtime.flycast-dojo.dc.v1"; }
+    bool ds() const { return descriptor_["id"]=="runtime.melonds.nds.v1"; }
     bool psp() const { return descriptor_["id"].toString().startsWith("runtime.ppsspp."); }
     bool dolphin() const { return descriptor_["id"].toString().startsWith("runtime.dolphin."); }
     void frame(const QJsonObject&);
@@ -92,6 +96,7 @@ private:
     StandaloneAdapter& ppsspp_;StandaloneAdapter& dolphin_;
     dolphin::NetplayRequest dolphinRequest_;
     flycast::Request flycastRequest_;
+    melonds::Request dsRequest_;
     rmg::Lobby rmgLobby_{this};
     rmg::Lobby::Request rmgRequest_;
     bool rmgPreparing_=false;

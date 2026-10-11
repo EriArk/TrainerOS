@@ -65,7 +65,9 @@ def supported_emulator_process(pid, proc=Path('/proc')):
             args = (proc / str(pid) / 'cmdline').read_bytes().split(b'\0')
             return b'-b' in args and any(args[i:i+2] == [b'-C', b'Dolphin.Interface.ConfirmStop=False']
                                          for i in range(len(args) - 1))
-        return executable in ('retroarch', 'PPSSPPSDL', 'armsx2-qt', 'melonDS')
+        # The packaged DS frontend handles WM_DELETE_WINDOW by agreeing a
+        # complete-frame return with its peer; SIGTERM deliberately cancels.
+        return executable in ('retroarch', 'PPSSPPSDL', 'armsx2-qt', 'melonDS', 'traineros-ds')
     except OSError:
         return False
 

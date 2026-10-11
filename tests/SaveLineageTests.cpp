@@ -1,5 +1,6 @@
 #include "platform/storage/SaveLineage.h"
 #include "platform/storage/SaveBackupStorage.h"
+#include "platform/storage/RuntimeSaveStorage.h"
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QCryptographicHash>
@@ -43,6 +44,17 @@ QJsonObject entry(const SaveLineageProof& p,int i){return QJsonDocument::fromJso
 class SaveLineageTests final:public QObject {
     Q_OBJECT
 private slots:
+    void ownedRuntimeReturnKeepsVerifiedLineage() {
+        Fixture f;const auto seed=captureRuntimeSave(f.root,f.record,f.resolve);
+        QVERIFY(seed.error.isEmpty());const QByteArray after(seed.bytes.size(),'x');
+        const auto error=returnRuntimeSave(f.root,f.record,seed,after,f.resolve);
+        QVERIFY2(error.isEmpty(),qPrintable(error));QCOMPARE(f.status().state,LineageState::Managed);
+        const auto proof=f.proof();QVERIFY(proof.records.size()>=2);
+        const auto last=QJsonDocument::fromJson(proof.records.last()).object();
+        QCOMPARE(last["operation"].toString(),QString("runtime-return"));
+        QVERIFY(last["protection"].toString().startsWith("runtime-copies/"));
+    }
+
     void gameplayAndExternalEditsRemainDistinct() {
         Fixture f;f.target.lineageOwner=f.target.backupOwner;
         ProcessCommand command;QVERIFY(observeSaveSession(command,f.root,f.record,f.resolve).isEmpty());

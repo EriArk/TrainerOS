@@ -12,6 +12,9 @@ import re
 import struct
 import sys
 import time
+import hmac
+import ipaddress
+import secrets
 from collections import OrderedDict, deque
 
 MAX_RECORD = 16384
@@ -25,8 +28,24 @@ def validate(config):
             or type(config.get("relayOnly", False)) is not bool
             or not isinstance(config.get("identity"), str)
             or not re.fullmatch(r"[0-9a-f]{64}", config["identity"])
-            or set(config) - {"host", "identity", "code", "relayOnly"}):
+            or config.get("mode", "online") not in ("online", "nearby")):
         raise ValueError("config")
+    if config.get("mode") == "nearby":
+        allowed = {"host", "identity", "mode", "address"}
+        if not config["host"]:
+            allowed |= {"port", "fingerprint", "token"}
+            if (type(config.get("port")) is not int or not 1 <= config["port"] <= 65535
+                    or not re.fullmatch(r"[0-9a-f]{64}", str(config.get("fingerprint", "")))
+                    or not re.fullmatch(r"[0-9a-f]{32}", str(config.get("token", "")))):
+                raise ValueError("nearby endpoint")
+        if not isinstance(config.get("address"), str):
+            raise ValueError("nearby address type")
+        address = ipaddress.IPv4Address(config["address"])
+        if address.is_unspecified or address.is_multicast or set(config) - allowed:
+            raise ValueError("nearby address")
+        return bytes.fromhex(config["identity"])
+    if set(config) - {"host", "identity", "code", "relayOnly", "mode"}:
+        raise ValueError("config fields")
     if not config["host"]:
         code = config.get("code", "")
         if not isinstance(code, str) or len(code) > 160 or not re.fullmatch(r"[0-9]+(?:-[a-z]+){8}", code):
@@ -111,7 +130,7 @@ def main():
     from twisted.internet import reactor, stdio
     from twisted.internet.defer import ensureDeferred
     from twisted.internet.protocol import Factory, Protocol
-    from twisted.protocols.basic import LineReceiver
+    from twisted.protocols.basic import LineReceiver, Int32StringReceiver
     from wormhole import create
     from wormhole.cli.public_relay import RENDEZVOUS_RELAY, TRANSIT_RELAY
 
@@ -126,6 +145,7 @@ def main():
             self.started = time.monotonic()
             self.output, self.output_bytes = deque(), 0
             self.output_paused = self.drain_scheduled = False
+            self.listener, self.channels = None, set()
 
         def connectionMade(self):
             self.transport.registerProducer(self, True)
@@ -199,14 +219,23 @@ def main():
             self.emit({"event": "closed"} if success else {"event": "error", "category": category})
             self.closing = True
             self.exit_code = 0 if success else 1
+            if self.listener:
+                self.listener.stopListening()
+                self.listener = None
+            for channel in tuple(self.channels):
+                channel.transport.abortConnection()
             # Shutdown is bounded even if mailbox/transit has disappeared.
             reactor.callLater(2, lambda: reactor.running and reactor.stop())
             if self.wormhole:
                 self.wormhole.close().addBoth(lambda _: reactor.running and reactor.stop())
             else:
-                reactor.callLater(0, reactor.stop)
+                # Let StandardIO flush the final bounded status record.
+                reactor.callLater(0.05, lambda: reactor.running and reactor.stop())
 
         async def connect_peer(self, identity):
+            if self.config.get("mode") == "nearby":
+                await self.connect_nearby(identity)
+                return
             self.wormhole = w = create(APP_ID, RENDEZVOUS_RELAY, reactor, dilation=True)
             if self.config["host"]:
                 w.allocate_code(8)
@@ -247,6 +276,112 @@ def main():
                 await dilated.listener_for(SUBPROTOCOL).listen(factory)
             else:
                 await dilated.connector_for(SUBPROTOCOL).connect(factory)
+
+        async def connect_nearby(self, identity):
+            from twisted.internet import ssl
+            from twisted.internet.endpoints import SSL4ClientEndpoint, SSL4ServerEndpoint
+            from twisted.internet.interfaces import IHandshakeListener
+            from zope.interface import implementer
+            from cryptography import x509
+            from cryptography.hazmat.primitives import hashes, serialization
+            from cryptography.hazmat.primitives.asymmetric import ec
+            from cryptography.x509.oid import NameOID
+            from datetime import datetime, timedelta, timezone
+            owner = self
+            host = self.config["host"]
+            token = secrets.token_hex(16) if host else self.config["token"]
+
+            @implementer(IHandshakeListener)
+            class Nearby(Int32StringReceiver):
+                MAX_LENGTH = MAX_RECORD + 5
+                admitted = False
+                tls = False
+
+                def connectionMade(self):
+                    if owner.closing or owner.records is not None or len(owner.channels) >= 4:
+                        self.transport.abortConnection()
+                        return
+                    owner.channels.add(self)
+                    self.deadline = reactor.callLater(5, self.reject)
+
+                def reject(self):
+                    self.transport.abortConnection()
+                    if not host:
+                        owner.stop(False, "nearby-admission")
+
+                def handshakeCompleted(self):
+                    if self not in owner.channels or owner.closing:
+                        self.reject()
+                        return
+                    if not host:
+                        cert = self.transport.getPeerCertificate()
+                        fingerprint = cert.to_cryptography().fingerprint(hashes.SHA256()).hex() if cert else ""
+                        if not hmac.compare_digest(fingerprint, owner.config["fingerprint"]):
+                            self.reject()
+                            return
+                        if not self.tls:
+                            self.sendString(b"T" + bytes.fromhex(token))
+                    self.tls = True
+
+                def stringReceived(self, data):
+                    if owner.closing:
+                        return
+                    try:
+                        if not self.admitted:
+                            expected = b"T" + bytes.fromhex(token) if host else b"R"
+                            if not self.tls or not hmac.compare_digest(data, expected) or owner.records is not None:
+                                self.reject()
+                                return
+                            self.admitted = True
+                            if self.deadline.active():
+                                self.deadline.cancel()
+                            owner.records = Records(identity, self.sendString, owner.emit)
+                            if host:
+                                if owner.listener:
+                                    owner.listener.stopListening()
+                                    owner.listener = None
+                                for other in tuple(owner.channels):
+                                    if other is not self:
+                                        other.transport.abortConnection()
+                                self.sendString(b"R")
+                            owner.records.start()
+                        else:
+                            owner.records.receive(data)
+                    except Exception:
+                        owner.stop(False, "nearby-record")
+
+                def lengthLimitExceeded(self, _):
+                    self.reject()
+
+                def connectionLost(self, _):
+                    owner.channels.discard(self)
+                    deadline = getattr(self, "deadline", None)
+                    if deadline and deadline.active():
+                        deadline.cancel()
+                    if self.admitted or not host:
+                        owner.stop(False, "nearby-closed")
+
+            factory = Factory.forProtocol(Nearby)
+            if host:
+                key = ec.generate_private_key(ec.SECP256R1())
+                name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "TrainerOS DS session")])
+                now = datetime.now(timezone.utc)
+                cert = (x509.CertificateBuilder().subject_name(name).issuer_name(name).public_key(key.public_key())
+                        .serial_number(x509.random_serial_number()).not_valid_before(now-timedelta(minutes=1))
+                        .not_valid_after(now+timedelta(minutes=5)).sign(key, hashes.SHA256()))
+                pem = cert.public_bytes(serialization.Encoding.PEM) + key.private_bytes(
+                    serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8, serialization.NoEncryption())
+                private = ssl.PrivateCertificate.loadPEM(pem)
+                self.listener = await SSL4ServerEndpoint(reactor, 0, private.options(),
+                    interface=self.config["address"]).listen(factory)
+                self.emit({"event": "ready", "endpoint": {"mode": "nearby", "port": self.listener.getHost().port,
+                           "fingerprint": cert.fingerprint(hashes.SHA256()).hex(), "token": token}})
+            else:
+                # Trust is the exact certificate from the accepted invitation;
+                # no application/authentication bytes precede the handshake pin.
+                context = ssl.CertificateOptions(verify=False, requireCertificate=False)
+                await SSL4ClientEndpoint(reactor, self.config["address"], self.config["port"], context,
+                                        timeout=8).connect(factory)
 
         def tick(self):
             if self.closing:

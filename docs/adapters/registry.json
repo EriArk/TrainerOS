@@ -768,15 +768,18 @@
         "authenticated-dilation-channel-direct-and-relay-records",
         "flip-odin-network-wireless-race-60017-frames-2004-checkpoints-per-peer",
         "network-settings-mismatch-and-peer-loss-safe-abort",
-        "automatic-owner-state-exchange-distinct-and-fresh-saved-pairs"
+        "automatic-owner-state-exchange-distinct-and-fresh-saved-pairs",
+        "nearby-pinned-tls-channel-and-negative-admission",
+        "flip-odin-nearby-owned-state-exchange-clean-return",
+        "shared-protected-runtime-return-and-ds-receipt-tests"
       ],
       "remaining": [
         "game-party-invitation-and-player-frontend",
         "protected-personal-save-integration",
-        "offline-nearby-transport",
         "broader-wireless-and-four-player-gameplay",
         "separate-internet-and-relay-performance-acceptance",
-        "physical-controls-and-resource-acceptance"
+        "physical-controls-and-resource-acceptance",
+        "offline-nearby-field-acceptance"
       ]
     }
   ]

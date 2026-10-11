@@ -47,7 +47,7 @@ public:
                 throw std::runtime_error("Input trace must be a new writable file");
             trace.write(QByteArray("TRAINEROS_DS_INPUT_V1 ")+QByteArray::number(seats)+'\n');
         }
-        setWindowTitle("TrainerOS · DS Local Wireless");
+        setWindowTitle("TrainerOS · Nintendo DS");
         setAttribute(Qt::WA_AcceptTouchEvents);
         setFocusPolicy(Qt::StrongFocus);
         resize(1280, 720);
@@ -144,7 +144,7 @@ protected:
         button(p, exitRect(), "Exit", false);
         p.setPen(QColor("#37484d"));
         p.drawText(QRectF(20, 62, width() - 40, 35), Qt::AlignCenter,
-                   error.isEmpty() ? (network ? (network->Ready()?"Online friend · your own DS":"Connecting your DS...")
+                   error.isEmpty() ? (network ? (network->Ready()?"Playing together":"Connecting to your friend...")
                                              : prepared ? "Local session · progress kept on exit"
                                               : "Temporary local session · progress is not saved") : error);
         for (int screen = 0; screen < 2; ++screen) {
@@ -156,7 +156,8 @@ protected:
         for (const auto& c : controls()) button(p, c.rect, c.label, held(c.bit));
         p.setPen(QColor("#37484d"));
         p.drawText(QRectF(20, height()-27, width()-40, 25), Qt::AlignCenter,
-                   QString("DS %1 of %2 · %3 fps · touch the right screen").arg(selected+1).arg(seats).arg(fps,0,'f',1));
+                   diagnostics ? QString("DS %1 of %2 · %3 fps · touch the right screen").arg(selected+1).arg(seats).arg(fps,0,'f',1)
+                               : QString("Touch the right screen to play"));
     }
     void keyPressEvent(QKeyEvent* e) override {
         if (e->isAutoRepeat()) return;
@@ -260,6 +261,7 @@ private:
         if(network) {
             network->Tick(next);
             if(network->Failed()) {
+                std::cout<<"[TrainerOSDs] error"<<std::endl;
                 if(diagnostics)std::cout<<"DS_NETWORK_FAIL "<<network->Failure().toStdString()<<std::endl;
                 result=2;error="The connection stopped or the games differed. Your original save is unchanged.";
                 timer.stop();if(session)session->Stop();update();return;
@@ -276,6 +278,7 @@ private:
             if(!network->Ready()){update();return;}
             if(!networkReported){
                 networkReported=true;
+                std::cout<<"[TrainerOSDs] running"<<std::endl;
                 if(diagnostics)std::cout<<"DS_NETWORK_READY delay="<<network->Delay()<<std::endl;
             }
             if(network->Finishing()&&!finishing) {

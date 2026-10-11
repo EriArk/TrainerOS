@@ -13,6 +13,16 @@ spec.loader.exec_module(channel)
 
 
 class RecordsTests(unittest.TestCase):
+    def test_nearby_is_explicit_pinned_and_has_no_cloud_fields(self):
+        host = {"host": True, "identity": "a"*64, "mode": "nearby", "address": "192.168.1.2"}
+        self.assertEqual(channel.validate(host), bytes.fromhex("a"*64))
+        guest = dict(host, host=False, port=1234, token="b"*32, fingerprint="c"*64)
+        self.assertEqual(channel.validate(guest), bytes.fromhex("a"*64))
+        for changes in ({"address":"0.0.0.0"},{"address":"224.0.0.1"},{"address":1234},
+                        {"port":True},{"token":"wrong"},{"fingerprint":""},{"code":"1-x"},{"relayOnly":False}):
+            with self.assertRaises((ValueError, TypeError)):
+                channel.validate(dict(guest, **changes))
+
     def pair(self):
         self.time = 0
         self.wire = [[], []]

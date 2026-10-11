@@ -129,6 +129,8 @@ class OverlayHelperTests(unittest.TestCase):
             root=Path(directory);process=root/'42';process.mkdir()
             (process/'exe').symlink_to('/tmp/mount/usr/bin/melonDS')
             self.assertTrue(supported_emulator_process(42,root))
+            (process/'exe').unlink();(process/'exe').symlink_to('/private/runtime/bin/traineros-ds')
+            self.assertTrue(supported_emulator_process(42,root))
             (process/'exe').unlink();(process/'exe').symlink_to('/app/bin/dolphin-emu')
             for args, expected in ((b'dolphin-emu\0-b\0-e\0game.iso\0',False),
                 (b'dolphin-emu\0-C\0Dolphin.Interface.ConfirmStop=False\0',False),

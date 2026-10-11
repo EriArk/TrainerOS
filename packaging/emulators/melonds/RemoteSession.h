@@ -37,8 +37,15 @@ public:
                 qsizetype(this->seed->bytes->size()))):QString("fresh");
         } else stateReceived=stateDelivered=true;
         QJsonObject channel{{"host",host},{"identity",config["identity"]}};
-        if(config.contains("relayOnly"))channel["relayOnly"]=config["relayOnly"];
-        if(!host)channel["code"]=config["code"];
+        nearby=config["mode"]=="nearby";
+        if(nearby) {
+            channel["mode"]="nearby";channel["address"]=config["address"];
+            if(!host)for(const auto* field:{"port","fingerprint","token"})channel[field]=config[field];
+        } else {
+            if(config.contains("mode")&&config["mode"]!="online")throw std::runtime_error("Unknown DS connection mode");
+            if(config.contains("relayOnly"))channel["relayOnly"]=config["relayOnly"];
+            if(!host)channel["code"]=config["code"];
+        }
         QObject::connect(&process,&QProcess::started,&process,[this,channel]{command(channel);});
         QObject::connect(&process,&QProcess::readyReadStandardOutput,&process,[this]{read();});
         QObject::connect(&process,&QProcess::readyReadStandardError,&process,[this]{process.readAllStandardError();});
@@ -258,6 +265,14 @@ private:
             const auto value=doc.object();if(parse.error!=QJsonParseError::NoError||!doc.isObject()){fail();return;}
             const auto event=value["event"].toString();
             if(event=="ready"&&host&&!endpointSent) {
+                if(nearby) {
+                    const auto valueEndpoint=value["endpoint"].toObject();
+                    const auto port=valueEndpoint["port"].toInt();
+                    if(valueEndpoint.size()!=4||valueEndpoint["mode"]!="nearby"||port<1||port>65535
+                       ||!StateDigest(valueEndpoint["fingerprint"].toString())
+                       ||!QRegularExpression("^[0-9a-f]{32}$").match(valueEndpoint["token"].toString()).hasMatch()) {fail();return;}
+                    endpointSent=true;endpoint(valueEndpoint);continue;
+                }
                 const auto code=value["code"].toString();
                 if(code.size()>160||!QRegularExpression("^[0-9]+(?:-[a-z]+){8}$").match(code).hasMatch()){fail();return;}
                 endpointSent=true;endpoint({{"mode","online"},{"code",code}});
@@ -283,7 +298,7 @@ private:
     }
     unsigned owner,delay=0,remoteFrame=0,nextFrame=0;
     int pings=0;
-    bool host=false,connected=false,hello=false,running=false,failed=false,closing=false,endpointSent=false;
+    bool host=false,nearby=false,connected=false,hello=false,running=false,failed=false,closing=false,endpointSent=false;
     bool endRequested=false,retained=false,peerRetained=false,retainedAcknowledged=false;
     std::optional<uint32_t> peerEndNext,endFrame;
     std::array<std::optional<uint32_t>,2> verifiedFrame;
