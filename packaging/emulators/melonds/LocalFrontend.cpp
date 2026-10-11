@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Local player frontend for the maintained native workers. No network admission,
-// personal save access, or alternate emulator synchronization protocol lives here.
+// original-save writes, or alternate emulator synchronization protocol lives here.
 #include "NativeSession.h"
 #include "InputTrace.h"
+#include "PreparedSession.h"
 #include <QApplication>
 #include <QCommandLineParser>
+#include <QCloseEvent>
 #include <QElapsedTimer>
 #include <QFile>
 #include <QKeyEvent>
@@ -32,8 +34,10 @@ struct Control { QRectF rect; QString label; int bit; };
 
 class Player final : public QWidget {
 public:
-    Player(std::vector<uint8_t> rom, unsigned seats, unsigned limit, bool jit, bool diagnostics, const QString& tracePath)
-        : seats(seats), limit(limit), diagnostics(diagnostics), completed(seats, 0), images(seats), shown(seats, 0)
+    Player(std::vector<uint8_t> rom, unsigned seats, unsigned limit, bool jit, bool diagnostics,
+           const QString& tracePath, std::optional<PreparedSession> prepared)
+        : seats(seats), limit(limit), diagnostics(diagnostics), completed(seats, 0), images(seats), shown(seats, 0),
+          prepared(std::move(prepared))
     {
         if (!tracePath.isEmpty()) {
             trace.setFileName(tracePath);
@@ -60,7 +64,12 @@ public:
             header.MacAddr = {0x02, 0, 0, 0, 0, uint8_t(i + 1)};
             header.UpdateChecksum();
         }
-        session = std::make_unique<NativeSession>(std::move(args), rom, SessionOptions{60, true});
+        std::optional<CartridgeStartup> startup;
+        if (this->prepared) {
+            selected=unsigned(this->prepared->ownerSeat);
+            startup=std::move(this->prepared->startup);
+        }
+        session = std::make_unique<NativeSession>(std::move(args), rom, SessionOptions{60, true},std::move(startup));
         clock.start();
         connect(&timer, &QTimer::timeout, this, [this] { tick(); });
         timer.setTimerType(Qt::PreciseTimer); timer.start(4);
@@ -73,6 +82,22 @@ public:
     }
     int result = 0;
 protected:
+    void closeEvent(QCloseEvent* event) override {
+        if (prepared && !result && !returnComplete) {
+            event->ignore();
+            if (!finishing) {
+                if (!session->RequestOwnedReturn(next)) {
+                    result=2; error="Could not finish the session. Your original save is unchanged.";
+                    timer.stop(); session->Stop(); update(); return;
+                }
+                finishing=true; returnDeadline=clock.elapsed()+5000;
+                keyboard.clear(); pointers.clear(); gateControllers();
+                error="Finishing your local session...";
+            }
+            return;
+        }
+        QWidget::closeEvent(event);
+    }
     void paintEvent(QPaintEvent*) override {
         QPainter p(this); p.setRenderHint(QPainter::Antialiasing);
         p.fillRect(rect(), QColor("#f5eddb"));
@@ -81,7 +106,8 @@ protected:
         button(p, exitRect(), "Exit", false);
         p.setPen(QColor("#37484d"));
         p.drawText(QRectF(20, 62, width() - 40, 35), Qt::AlignCenter,
-                   error.isEmpty() ? "Temporary local session · progress is not saved" : error);
+                   error.isEmpty() ? (prepared ? "Local session · progress kept on exit"
+                                              : "Temporary local session · progress is not saved") : error);
         for (int screen = 0; screen < 2; ++screen) {
             auto target = screenRect(screen);
             p.fillRect(target.adjusted(-4,-4,4,4), QColor("#6b7f88"));
@@ -174,7 +200,7 @@ private:
         else { controllers[id]=pad; gateControllers(); }
     }
     void tick() {
-        if (interrupted) { close(); return; }
+        if (interrupted) { if (prepared) result=3; close(); return; }
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
             if (event.type==SDL_CONTROLLERDEVICEADDED) addController(event.cdevice.which);
@@ -198,6 +224,19 @@ private:
             result=2; error="The linked session stopped. Exit and start a new session.";
             timer.stop(); session->Stop(); update(); return;
         }
+        if (finishing) {
+            OwnerCartridgeReturn value;
+            try {
+                if (session->TakeOwnedReturn(value)) {
+                    WriteOwnerReturn(*prepared,value);
+                    returnComplete=true; timer.stop(); close(); return;
+                }
+                if (clock.elapsed()>returnDeadline) throw std::runtime_error("Local session exit timed out");
+            } catch (const std::exception&) {
+                result=2; error="Could not retain session progress. Your original save is unchanged.";
+                timer.stop(); session->Stop(); update(); return;
+            }
+        }
         for (unsigned i=0;i<seats;++i) {
             PresentationFrame frame;
             if (!session->TakePresentation(i,frame)) continue;
@@ -209,15 +248,15 @@ private:
             }
         }
         const auto done=*std::min_element(completed.begin(),completed.end());
-        if (limit && done>=limit) { close(); return; }
+        if (limit && done>=limit && !finishing) { close(); return; }
         const double now=clock.nsecsElapsed()/1000000.0;
         fps=now>0 ? (double(totalFrames)/seats)*1000/now : 0;
         if (nextTime<now-250) nextTime=now; // Slow hardware never gets a catch-up burst.
-        if (now>=nextTime && next-done<4 && (!limit || next<limit+8)) {
+        if (now>=nextTime && next-done<4 && (!limit || finishing || next<limit+8)) {
             std::vector<FrameInput> input(seats);
             for (auto& f:input) f.frame=next;
             auto& local=input[selected];
-            const bool focused = isActiveWindow();
+            const bool focused = isActiveWindow() && !finishing;
             for (int bit=0;bit<12;++bit) if (focused && held(bit)) local.keys &= ~(1u<<bit);
             for (const auto& [id,pos]:pointers) if (focused && screenRect(1).contains(pos)) {
                 const auto r=screenRect(1); local.touching=true;
@@ -269,6 +308,9 @@ private:
     uint64_t totalFrames=0;
     QString error;
     QFile trace;
+    std::optional<PreparedSession> prepared;
+    bool finishing=false, returnComplete=false;
+    qint64 returnDeadline=0;
 };
 }
 int main(int argc,char** argv) {
@@ -280,6 +322,7 @@ int main(int argc,char** argv) {
                        {QStringLiteral("interpreter"),"Disable JIT for this local session"},
                        {QStringLiteral("diagnostics"),"Print bounded wireless counters without packet contents"},
                        {QStringLiteral("trace-inputs"),"Record bounded input to a new local file for developer replay","path"},
+                       {QStringLiteral("prepared-session"),"Private local launcher staging directory","path"},
                        {QStringLiteral("fullscreen"),"Use the complete display"}});
     parser.process(app);
     try {
@@ -291,9 +334,13 @@ int main(int argc,char** argv) {
         if (!file.open(QIODevice::ReadOnly) || file.size()<0x200 || file.size()>512*1024*1024)
             throw std::runtime_error("Cannot read local cartridge");
         auto bytes=file.readAll(); if (bytes.size()!=file.size()) throw std::runtime_error("Incomplete cartridge read");
+        std::optional<PreparedSession> prepared;
+        if (parser.isSet("prepared-session"))
+            prepared=ReadPreparedSession(parser.value("prepared-session"),StateHash(bytes),seats);
         std::vector<uint8_t> rom(bytes.begin(),bytes.end()); bytes.clear(); file.close();
         std::signal(SIGTERM,interrupt); std::signal(SIGINT,interrupt);
-        Player player(std::move(rom),seats,frames,!parser.isSet("interpreter"),parser.isSet("diagnostics"),parser.value("trace-inputs"));
+        Player player(std::move(rom),seats,frames,!parser.isSet("interpreter"),parser.isSet("diagnostics"),
+                      parser.value("trace-inputs"),std::move(prepared));
         if (parser.isSet("fullscreen")) player.showFullScreen(); else player.show();
         app.exec();
         std::cout << "DS_LOCAL_EXIT result=" << player.result << '\n';

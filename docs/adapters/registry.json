@@ -761,7 +761,10 @@
         "odin-local-two-ds-mario-kart-wireless-race",
         "flip-odin-23500-frame-wireless-replay-784-state-checkpoints",
         "firmware-spi-and-gpu-fifo-initialization-regressions",
-        "bounded-input-trace-replay-parser-checks"
+        "bounded-input-trace-replay-parser-checks",
+        "exact-size-cartridge-startup-and-immutable-owner-return",
+        "flip-odin-two-four-machine-synthetic-owner-state-checks",
+        "flip-odin-local-frontend-clean-return-and-cancel"
       ],
       "remaining": [
         "game-party-player-frontend",

@@ -45,6 +45,16 @@ target_include_directories(traineros_ds_gpu_checks PRIVATE
 target_link_libraries(traineros_ds_gpu_checks PRIVATE core Threads::Threads)
 add_test(NAME ds_gpu_state COMMAND traineros_ds_gpu_checks)
 
+foreach(kind IN ITEMS cartridge_state_checks owned_state_probe)
+    add_executable(traineros_ds_${kind} ${kind}.cpp NativeSession.cpp ProbePlatform.cpp
+        "${MELONDS_SOURCE}/src/net/DetMP.cpp")
+    target_compile_features(traineros_ds_${kind} PRIVATE cxx_std_17)
+    target_include_directories(traineros_ds_${kind} PRIVATE
+        "${MELONDS_SOURCE}/src" "${MELONDS_SOURCE}/src/net")
+    target_link_libraries(traineros_ds_${kind} PRIVATE core Threads::Threads)
+endforeach()
+add_test(NAME ds_cartridge_state COMMAND traineros_ds_cartridge_state_checks)
+
 add_executable(traineros_ds_pair_probe native_pair_probe.cpp NativeSession.cpp
     ProbePlatform.cpp "${MELONDS_SOURCE}/src/net/DetMP.cpp")
 target_compile_features(traineros_ds_pair_probe PRIVATE cxx_std_17)
@@ -56,6 +66,11 @@ option(TRAINEROS_DS_LOCAL_FRONTEND "Build the local player frontend (no network 
 if(TRAINEROS_DS_LOCAL_FRONTEND)
     find_package(Qt6 REQUIRED COMPONENTS Widgets)
     find_package(SDL2 REQUIRED)
+    add_executable(traineros_ds_prepared_checks prepared_session_checks.cpp)
+    target_compile_features(traineros_ds_prepared_checks PRIVATE cxx_std_17)
+    target_include_directories(traineros_ds_prepared_checks PRIVATE "${MELONDS_SOURCE}/src")
+    target_link_libraries(traineros_ds_prepared_checks PRIVATE Qt6::Core)
+    add_test(NAME ds_prepared_session COMMAND traineros_ds_prepared_checks)
     add_executable(traineros_ds_local LocalFrontend.cpp NativeSession.cpp
         ProbePlatform.cpp "${MELONDS_SOURCE}/src/net/DetMP.cpp")
     target_compile_features(traineros_ds_local PRIVATE cxx_std_17)

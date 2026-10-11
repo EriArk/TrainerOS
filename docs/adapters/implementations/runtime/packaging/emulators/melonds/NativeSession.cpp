@@ -6,11 +6,17 @@
 
 namespace traineros::ds {
 NativeSession::NativeSession(std::vector<melonDS::NDSArgs> args,
-                             const std::vector<uint8_t>& rom, SessionOptions options)
+                             const std::vector<uint8_t>& rom, SessionOptions options,
+                             std::optional<CartridgeStartup> startup)
     : options(options)
 {
     if (args.size() < 2 || args.size() > 4 || rom.size() < 0x200 || rom.size() > 512 * 1024 * 1024)
         throw std::invalid_argument("Unsupported local machine count or cartridge size");
+    if (startup) {
+        if (startup->seats.size() != args.size() || startup->ownerSeat >= args.size())
+            throw std::invalid_argument("Cartridge owners must match the admitted seats");
+        ownerSeat = startup->ownerSeat;
+    }
     for (size_t i = 0; i < args.size(); ++i) {
         auto machine = std::make_unique<Machine>();
         machine->context.wireless = &wireless;
@@ -19,6 +25,9 @@ NativeSession::NativeSession(std::vector<melonDS::NDSArgs> args,
         machine->context.console = machine->console.get();
         auto cart = melonDS::NDSCart::ParseROM(rom.data(), uint32_t(rom.size()), &machine->context);
         if (!cart) throw std::invalid_argument("Cartridge rejected by native core");
+        if (cart->GetSaveMemoryLength() > MaxCartridgeSaveBytes)
+            throw std::invalid_argument("Cartridge save exceeds session bounds");
+        if (startup && startup->seats[i]) InitializeCartridgeState(*cart, *startup->seats[i]);
         machine->console->SetNDSCart(std::move(cart));
         machine->console->Reset();
         machine->console->SetupDirectBoot("session.nds");
@@ -73,6 +82,34 @@ bool NativeSession::TakePresentation(size_t seat, PresentationFrame& result)
     return true;
 }
 
+bool NativeSession::RequestOwnedReturn(uint32_t frame)
+{
+    std::lock_guard<std::mutex> guard(lock);
+    if (stopping || Failed() || !ownerSeat || returnFrame || frame < nextFrame
+            || uint64_t(frame) > uint64_t(nextFrame) + 8) return false;
+    const auto* cart = machines[*ownerSeat]->console->NDSCartSlot.GetCart();
+    if (!cart || !cart->GetSaveMemoryLength()) return false;
+    returnFrame = frame;
+    return true;
+}
+
+bool NativeSession::TakeOwnedReturn(OwnerCartridgeReturn& result)
+{
+    OwnerCartridgeReturn candidate;
+    {
+        std::lock_guard<std::mutex> guard(lock);
+        if (stopping || Failed() || !returnFrame || !ownerReturn) return false;
+        for (const auto& machine : machines)
+            if (!machine->completedFrame || *machine->completedFrame < *returnFrame) return false;
+        candidate = std::move(*ownerReturn);
+    }
+    Stop();
+    // A concurrent worker failure during joined teardown invalidates the copy.
+    if (failed.load()) return false;
+    result = std::move(candidate);
+    return true;
+}
+
 void NativeSession::Stop()
 {
     stopping.store(true);
@@ -83,6 +120,7 @@ void NativeSession::Stop()
     std::lock_guard<std::mutex> guard(lock);
     for (auto& machine : machines) machine->inputs.clear();
     results.clear();
+    ownerReturn.reset(); returnFrame.reset();
     machines.clear(); // Release volatile cartridge/state memory at session end.
 }
 
@@ -109,11 +147,17 @@ void NativeSession::Run(size_t seat)
             result.wirelessReceived = machine.context.wirelessReceived;
             // Checkpoints remain local and ephemeral. Rendering must not require
             // serializing every console on every frame merely to draw its screen.
-            if (options.checkpointInterval && input.frame % options.checkpointInterval == 0) {
+            bool captureOwner = false, returnBoundary = false;
+            {
+                std::lock_guard<std::mutex> guard(lock);
+                returnBoundary = returnFrame && *returnFrame == input.frame;
+                captureOwner = returnBoundary && ownerSeat && *ownerSeat == seat;
+            }
+            if (returnBoundary || (options.checkpointInterval && input.frame % options.checkpointInterval == 0)) {
                 melonDS::Savestate state;
                 if (!nds.DoSavestate(&state)) throw std::runtime_error("Checkpoint failed");
                 state.Finish();
-                if (state.Error || state.Length() > 64 * 1024 * 1024) throw std::runtime_error("Checkpoint bounds");
+                if (state.Error || state.Length() > 128 * 1024 * 1024) throw std::runtime_error("Checkpoint bounds");
                 result.stateHash = XXH64(state.Buffer(), state.Length(), 0);
                 {
                     const auto* bytes=static_cast<const uint8_t*>(state.Buffer());
@@ -128,6 +172,9 @@ void NativeSession::Run(size_t seat)
                     }
                 }
             }
+            std::optional<OwnerCartridgeReturn> cartridge;
+            if (captureOwner)
+                cartridge = OwnerCartridgeReturn{input.frame, CopyCartridgeState(*nds.NDSCartSlot.GetCart())};
             std::optional<PresentationFrame> output;
             if (options.presentation) {
                 void* top = nullptr; void* bottom = nullptr;
@@ -147,6 +194,8 @@ void NativeSession::Run(size_t seat)
             std::lock_guard<std::mutex> guard(lock);
             if (results.size() >= 64) throw std::runtime_error("Checkpoint consumer stalled");
             if (output) machine.presentation = std::move(output);
+            if (cartridge) ownerReturn = std::move(cartridge);
+            machine.completedFrame = input.frame;
             results.push_back(result);
             changed.notify_all();
         }

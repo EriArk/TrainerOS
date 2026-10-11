@@ -15,6 +15,6 @@ git -C "$work/source" apply --check "$recipe/traineros-detmp.patch"
 git -C "$work/source" apply "$recipe/traineros-detmp.patch"
 cmake -S "$recipe" -B "$work/build" -G Ninja -DMELONDS_SOURCE="$work/source" \
     -DCMAKE_BUILD_TYPE=Release -DENABLE_JIT=ON
-cmake --build "$work/build" --target core traineros_detmp_checks traineros_ds_input_checks traineros_ds_spi_checks traineros_ds_gpu_checks traineros_ds_pair_probe traineros_ds_local --parallel "${JOBS:-2}"
+cmake --build "$work/build" --target core traineros_detmp_checks traineros_ds_input_checks traineros_ds_spi_checks traineros_ds_gpu_checks traineros_ds_cartridge_state_checks traineros_ds_owned_state_probe traineros_ds_prepared_checks traineros_ds_pair_probe traineros_ds_local --parallel "${JOBS:-2}"
 ctest --test-dir "$work/build" --output-on-failure
 python3 "$recipe/source_manifest.py" "$work/source" "$work/build/source-manifest.json"

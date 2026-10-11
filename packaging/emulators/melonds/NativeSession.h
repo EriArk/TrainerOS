@@ -3,6 +3,7 @@
 #include "Args.h"
 #include "NDS.h"
 #include "DetMP.h"
+#include "CartridgeState.h"
 #include <atomic>
 #include <condition_variable>
 #include <deque>
@@ -54,13 +55,20 @@ struct MachineContext {
 class NativeSession {
 public:
     NativeSession(std::vector<melonDS::NDSArgs> args, const std::vector<uint8_t>& rom,
-                  SessionOptions options = {});
+                  SessionOptions options = {}, std::optional<CartridgeStartup> startup = std::nullopt);
     ~NativeSession();
     NativeSession(const NativeSession&) = delete;
     NativeSession& operator=(const NativeSession&) = delete;
     bool Submit(const std::vector<FrameInput>& frame);
     bool Take(FrameResult& result, std::chrono::milliseconds timeout);
     bool TakePresentation(size_t seat, PresentationFrame& result);
+    // Request before this frame is admitted. Only the immutable local owner's
+    // cartridge is captured, after a complete frame. Every mirror must reach
+    // that boundary without failure before Take can stop/join and return it.
+    // This is an opaque candidate, not authorization to overwrite a user save;
+    // the coordinator must establish peer parity and use protected-save commit.
+    bool RequestOwnedReturn(uint32_t frame);
+    bool TakeOwnedReturn(OwnerCartridgeReturn& result);
     void Stop();
     bool Failed() const { return failed.load() || wireless.IsAborted(); }
     size_t Size() const { return machines.size(); }
@@ -71,6 +79,7 @@ private:
         std::thread worker;
         std::deque<FrameInput> inputs;
         std::optional<PresentationFrame> presentation;
+        std::optional<uint32_t> completedFrame;
     };
     void Run(size_t seat);
     melonDS::DetMP wireless;
@@ -81,5 +90,8 @@ private:
     std::atomic<bool> stopping {false}, failed {false};
     uint32_t nextFrame = 0;
     SessionOptions options;
+    std::optional<size_t> ownerSeat;
+    std::optional<uint32_t> returnFrame;
+    std::optional<OwnerCartridgeReturn> ownerReturn;
 };
 }
