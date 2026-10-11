@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Local player frontend for the maintained native workers. No network admission,
-// original-save writes, or alternate emulator synchronization protocol lives here.
+// Player frontend for the maintained native workers. GameParty authorizes the
+// session; this process never writes original saves or transfers ROM/firmware.
 #include "NativeSession.h"
 #include "InputTrace.h"
 #include "PreparedSession.h"
+#include "RemoteSession.h"
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QCloseEvent>
@@ -35,9 +36,10 @@ struct Control { QRectF rect; QString label; int bit; };
 class Player final : public QWidget {
 public:
     Player(std::vector<uint8_t> rom, unsigned seats, unsigned limit, bool jit, bool diagnostics,
-           const QString& tracePath, std::optional<PreparedSession> prepared)
+           const QString& tracePath, std::optional<PreparedSession> prepared, const QJsonObject& networkConfig,
+           InputTrace playback)
         : seats(seats), limit(limit), diagnostics(diagnostics), completed(seats, 0), images(seats), shown(seats, 0),
-          prepared(std::move(prepared))
+          prepared(std::move(prepared)),playback(std::move(playback))
     {
         if (!tracePath.isEmpty()) {
             trace.setFileName(tracePath);
@@ -64,12 +66,38 @@ public:
             header.MacAddr = {0x02, 0, 0, 0, 0, uint8_t(i + 1)};
             header.UpdateChecksum();
         }
-        std::optional<CartridgeStartup> startup;
         if (this->prepared) {
             selected=unsigned(this->prepared->ownerSeat);
-            startup=std::move(this->prepared->startup);
+            if(!networkConfig.isEmpty()) {
+                if(seats!=2)throw std::runtime_error("The network player currently admits two devices");
+                QJsonArray states;
+                for(const auto& state:this->prepared->startup.seats)
+                    states.append(state?StateHash(QByteArray(reinterpret_cast<const char*>(state->data()),qsizetype(state->size()))):QString("fresh"));
+                QJsonObject admission{{"protocol",1},{"content",this->prepared->contentHash},
+                    {"runtime",StateHash(ReadStagedFile(QCoreApplication::applicationFilePath(),64*1024*1024))},
+                    {"jit",jit},{"firmware","generated-v1-rtc-20260101"},{"states",states}};
+                std::optional<RemoteSession::OwnerSeed> ownerSeed;
+                if(this->prepared->peerPending) {
+                    MachineContext context;
+                    const auto cart=melonDS::NDSCart::ParseROM(rom.data(),uint32_t(rom.size()),&context);
+                    if(!cart)throw std::runtime_error("Local cartridge rejected");
+                    ownerSeed=RemoteSession::OwnerSeed{cart->GetSaveMemoryLength(),this->prepared->startup.seats[selected]};
+                    admission.remove("states");admission["stateExchange"]="owned-cartridge-v1";
+                    admission["saveBytes"]=qint64(ownerSeed->expectedSize);
+                }
+                network=std::make_unique<RemoteSession>(networkConfig,
+                    StateHash(QJsonDocument(admission).toJson(QJsonDocument::Compact)),selected,
+                    [](QJsonObject endpoint){
+                        // Private child output: the ordinary launcher routes this
+                        // through accepted GameParty admission, never a user log.
+                        std::cout<<"TRAINEROS_DS_ENDPOINT "
+                                 <<QJsonDocument(endpoint).toJson(QJsonDocument::Compact).toBase64().constData()<<std::endl;
+                    },std::move(ownerSeed));
+            }
+            pendingStartup=std::move(this->prepared->startup);
         }
-        session = std::make_unique<NativeSession>(std::move(args), rom, SessionOptions{60, true},std::move(startup));
+        pendingArgs=std::move(args);pendingRom=std::move(rom);
+        if(!this->prepared||!this->prepared->peerPending)createMachines();
         clock.start();
         connect(&timer, &QTimer::timeout, this, [this] { tick(); });
         timer.setTimerType(Qt::PreciseTimer); timer.start(4);
@@ -81,11 +109,20 @@ public:
         SDL_Quit();
     }
     int result = 0;
+    void Abort() {result=3;close();}
 protected:
     void closeEvent(QCloseEvent* event) override {
-        if (prepared && !result && !returnComplete) {
+        if(network&&!network->Ready()&&!result) {
+            result=3;QWidget::closeEvent(event);return;
+        }
+        if (prepared && !result && (!returnComplete || (network&&!network->Finished()))) {
             event->ignore();
             if (!finishing) {
+                if(network) {
+                    network->Finish(next);finishing=true;returnDeadline=clock.elapsed()+15000;
+                    keyboard.clear();pointers.clear();gateControllers();
+                    error="Finishing the session together...";return;
+                }
                 if (!session->RequestOwnedReturn(next)) {
                     result=2; error="Could not finish the session. Your original save is unchanged.";
                     timer.stop(); session->Stop(); update(); return;
@@ -102,11 +139,13 @@ protected:
         QPainter p(this); p.setRenderHint(QPainter::Antialiasing);
         p.fillRect(rect(), QColor("#f5eddb"));
         QFont font = p.font(); font.setPixelSize(qMax(14, height() / 36)); p.setFont(font);
-        for (unsigned i = 0; i < seats; ++i) button(p, tab(i), QString("DS %1").arg(i + 1), selected == i);
+        if(network)button(p,tab(selected),QString("Player %1").arg(selected+1),true);
+        else for (unsigned i = 0; i < seats; ++i) button(p, tab(i), QString("DS %1").arg(i + 1), selected == i);
         button(p, exitRect(), "Exit", false);
         p.setPen(QColor("#37484d"));
         p.drawText(QRectF(20, 62, width() - 40, 35), Qt::AlignCenter,
-                   error.isEmpty() ? (prepared ? "Local session · progress kept on exit"
+                   error.isEmpty() ? (network ? (network->Ready()?"Online friend · your own DS":"Connecting your DS...")
+                                             : prepared ? "Local session · progress kept on exit"
                                               : "Temporary local session · progress is not saved") : error);
         for (int screen = 0; screen < 2; ++screen) {
             auto target = screenRect(screen);
@@ -150,6 +189,11 @@ protected:
         return QWidget::event(e);
     }
 private:
+    void createMachines() {
+        session=std::make_unique<NativeSession>(std::move(pendingArgs),pendingRom,SessionOptions{60,true},std::move(pendingStartup));
+        pendingRom.clear();pendingRom.shrink_to_fit();
+        if(network)network->MachinesReady();
+    }
     QRectF tab(unsigned i) const { return {20.0 + i*110, 15, 100, 42}; }
     QRectF exitRect() const { return {double(width()-120), 15, 100, 42}; }
     QRectF screenRect(int index) const {
@@ -174,6 +218,7 @@ private:
         return false;
     }
     void select(unsigned seat) {
+        if(network)return;
         selected=seat; keyboard.clear(); pointers.clear(); gateControllers();
         if (audio) SDL_ClearQueuedAudio(audio); update();
     }
@@ -212,8 +257,49 @@ private:
                 }
             }
         }
+        if(network) {
+            network->Tick(next);
+            if(network->Failed()) {
+                if(diagnostics)std::cout<<"DS_NETWORK_FAIL "<<network->Failure().toStdString()<<std::endl;
+                result=2;error="The connection stopped or the games differed. Your original save is unchanged.";
+                timer.stop();if(session)session->Stop();update();return;
+            }
+            if(!session&&network->StartupReady()) {
+                try {
+                    pendingStartup->seats[1-selected]=network->TakePeerState();
+                    createMachines();
+                } catch(const std::exception&) {
+                    result=2;error="Could not prepare the DS consoles. Your original save is unchanged.";
+                    timer.stop();network.reset();update();return;
+                }
+            }
+            if(!network->Ready()){update();return;}
+            if(!networkReported){
+                networkReported=true;
+                if(diagnostics)std::cout<<"DS_NETWORK_READY delay="<<network->Delay()<<std::endl;
+            }
+            if(network->Finishing()&&!finishing) {
+                finishing=true;returnDeadline=clock.elapsed()+15000;error="Finishing the session together...";
+                keyboard.clear();pointers.clear();gateControllers();
+            }
+            if(network->EndFrame()&&!returnRequested) {
+                if(!session->RequestOwnedReturn(*network->EndFrame())) {
+                    result=2;close();return;
+                }
+                returnRequested=true;
+            }
+            if(returnComplete) {
+                if(network->Finished()){
+                    if(diagnostics)std::cout<<"DS_NETWORK_EXIT checkpoints="<<network->VerifiedChecks()<<std::endl;
+                    timer.stop();close();return;
+                }
+                if(clock.elapsed()>returnDeadline){result=2;close();return;}
+                update();return;
+            }
+        }
         FrameResult resultFrame;
         while (session->Take(resultFrame,std::chrono::milliseconds(0))) {
+            if(network)network->Checkpoint(resultFrame);
             completed.at(resultFrame.seat)=resultFrame.frame+1;
             ++totalFrames;
             if (diagnostics && resultFrame.frame % 600 == 0)
@@ -227,9 +313,11 @@ private:
         if (finishing) {
             OwnerCartridgeReturn value;
             try {
-                if (session->TakeOwnedReturn(value)) {
+                if ((!network||network->ReturnSafe()) && session->TakeOwnedReturn(value)) {
                     WriteOwnerReturn(*prepared,value);
-                    returnComplete=true; timer.stop(); close(); return;
+                    returnComplete=true;
+                    if(network){network->OwnerRetained();return;}
+                    timer.stop(); close(); return;
                 }
                 if (clock.elapsed()>returnDeadline) throw std::runtime_error("Local session exit timed out");
             } catch (const std::exception&) {
@@ -269,16 +357,22 @@ private:
                 SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,SDL_CONTROLLER_BUTTON_LEFTSHOULDER,SDL_CONTROLLER_BUTTON_Y,SDL_CONTROLLER_BUTTON_X};
             unsigned index=0;
             for (const auto& [id,pad]:controllers) {
-                auto& f=input[controllers.size()==1 ? selected : index];
+                auto& f=input[network||controllers.size()==1 ? selected : index];
                 uint32_t pressed=0;
                 for (int bit=0;bit<12;++bit) if (SDL_GameControllerGetButton(pad,buttons[bit])) pressed |= 1u<<bit;
                 if (!focused) neutralRequired.insert(id);
                 else if (neutralRequired.count(id)) {
                     if (!pressed) neutralRequired.erase(id);
                 } else f.keys &= ~pressed;
-                ++index; if (index>=seats) break;
+                ++index; if (network||index>=seats) break;
             }
+            if(!playback.empty()) {
+                if(next<playback.size())input=playback[next];
+                else {input.assign(seats,FrameInput{});for(auto& frame:input)frame.frame=next;}
+            }
+            if(network&&!network->Inputs(next,input[selected],input)){update();return;}
             if (session->Submit(input)) {
+                if(network)network->Committed(next);
                 if (trace.isOpen()) {
                     const auto line=InputTraceLine(input);
                     if (trace.write(line.data(),qint64(line.size()))!=qint64(line.size()) || !trace.flush()) {
@@ -297,6 +391,10 @@ private:
     std::vector<QImage> images;
     std::vector<uint32_t> shown;
     std::unique_ptr<NativeSession> session;
+    std::vector<melonDS::NDSArgs> pendingArgs;
+    std::vector<uint8_t> pendingRom;
+    std::optional<CartridgeStartup> pendingStartup;
+    std::unique_ptr<RemoteSession> network;
     std::map<SDL_JoystickID,SDL_GameController*> controllers;
     std::set<SDL_JoystickID> neutralRequired;
     std::set<int> keyboard;
@@ -309,8 +407,10 @@ private:
     QString error;
     QFile trace;
     std::optional<PreparedSession> prepared;
-    bool finishing=false, returnComplete=false;
+    bool finishing=false, returnComplete=false, returnRequested=false;
+    bool networkReported=false;
     qint64 returnDeadline=0;
+    InputTrace playback;
 };
 }
 int main(int argc,char** argv) {
@@ -323,24 +423,40 @@ int main(int argc,char** argv) {
                        {QStringLiteral("diagnostics"),"Print bounded wireless counters without packet contents"},
                        {QStringLiteral("trace-inputs"),"Record bounded input to a new local file for developer replay","path"},
                        {QStringLiteral("prepared-session"),"Private local launcher staging directory","path"},
+                       {QStringLiteral("network-session"),"Private accepted-party transport configuration","path"},
+                       {QStringLiteral("replay-inputs"),"Developer-only bounded local input recording","path"},
                        {QStringLiteral("fullscreen"),"Use the complete display"}});
     parser.process(app);
     try {
         bool validSeats=false,validFrames=false;
         const unsigned seats=parser.value("seats").toUInt(&validSeats),frames=parser.value("frames").toUInt(&validFrames);
-        if (parser.positionalArguments().size()!=1 || !validSeats || !validFrames || seats<2 || seats>4 || frames>36000)
-            throw std::runtime_error("Expected a local cartridge, 2-4 seats and 0-36000 frames");
+        if (parser.positionalArguments().size()!=1 || !validSeats || !validFrames || seats<2 || seats>4 || frames>72000)
+            throw std::runtime_error("Expected a local cartridge, 2-4 seats and 0-72000 frames");
         QFile file(parser.positionalArguments().front());
         if (!file.open(QIODevice::ReadOnly) || file.size()<0x200 || file.size()>512*1024*1024)
             throw std::runtime_error("Cannot read local cartridge");
         auto bytes=file.readAll(); if (bytes.size()!=file.size()) throw std::runtime_error("Incomplete cartridge read");
         std::optional<PreparedSession> prepared;
         if (parser.isSet("prepared-session"))
-            prepared=ReadPreparedSession(parser.value("prepared-session"),StateHash(bytes),seats);
+            prepared=ReadPreparedSession(parser.value("prepared-session"),StateHash(bytes),seats,parser.isSet("network-session"));
+        QJsonObject networkConfig;
+        if(parser.isSet("network-session")) {
+            if(!prepared||seats!=2)throw std::runtime_error("Network play requires a prepared two-player session");
+            QJsonParseError error;
+            const auto config=QJsonDocument::fromJson(ReadStagedFile(parser.value("network-session"),4096),&error);
+            networkConfig=config.object();
+            if(error.error!=QJsonParseError::NoError||networkConfig.isEmpty())throw std::runtime_error("Invalid network session");
+        }
         std::vector<uint8_t> rom(bytes.begin(),bytes.end()); bytes.clear(); file.close();
         std::signal(SIGTERM,interrupt); std::signal(SIGINT,interrupt);
+        const auto playback=parser.isSet("replay-inputs")?ReadInputTrace(parser.value("replay-inputs").toStdString(),seats):InputTrace{};
         Player player(std::move(rom),seats,frames,!parser.isSet("interpreter"),parser.isSet("diagnostics"),
-                      parser.value("trace-inputs"),std::move(prepared));
+                      parser.value("trace-inputs"),std::move(prepared),networkConfig,playback);
+        // Failure screens intentionally stop emulation's timer. Process/session
+        // shutdown must remain responsive while such a screen is displayed.
+        QTimer interrupts;
+        QObject::connect(&interrupts,&QTimer::timeout,&player,[&player]{if(interrupted)player.Abort();});
+        interrupts.start(100);
         if (parser.isSet("fullscreen")) player.showFullScreen(); else player.show();
         app.exec();
         std::cout << "DS_LOCAL_EXIT result=" << player.result << '\n';

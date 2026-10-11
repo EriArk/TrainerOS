@@ -20,6 +20,8 @@ target_include_directories(traineros_detmp_checks PRIVATE
     "${MELONDS_SOURCE}/src" "${MELONDS_SOURCE}/src/net")
 target_link_libraries(traineros_detmp_checks PRIVATE Threads::Threads)
 enable_testing()
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_test(NAME ds_secure_channel COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/check-secure-channel.py")
 add_test(NAME detmp_lifecycle COMMAND traineros_detmp_checks)
 set_tests_properties(detmp_lifecycle PROPERTIES TIMEOUT 20)
 

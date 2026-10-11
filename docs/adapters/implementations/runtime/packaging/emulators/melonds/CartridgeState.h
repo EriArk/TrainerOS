@@ -17,6 +17,7 @@ struct CartridgeStartup {
 struct OwnerCartridgeReturn {
     uint32_t frame = 0;
     std::vector<uint8_t> bytes;
+    bool hasSave = true;
 };
 inline void InitializeCartridgeState(melonDS::NDSCart::CartCommon& cartridge,
                                      const std::vector<uint8_t>& bytes) {

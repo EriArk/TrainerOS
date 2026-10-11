@@ -25,7 +25,7 @@ def main():
     changed = [line[6:] for line in patch.read_text().splitlines() if line.startswith("+++ b/")]
     digest = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
     manifest = {
-        "purpose": "Native core and local frontend preparation; not a network/compatibility capability",
+        "purpose": "Native DS network frontend preparation; not an installed GameParty capability",
         "upstream": PIN,
         "referenceCore": "85fdb7596011a3d0e679a6f1f88c312e77ff4cc5",
         "referenceChange": "88a65f9445bc2537ff6f5a78f27694df5a254dcf",
@@ -34,8 +34,8 @@ def main():
         "patchedFiles": {name: digest(source / name) for name in changed},
         "recipeFiles": {p.name: digest(p) for p in sorted(recipe.iterdir()) if p.is_file()},
         "runtimeReady": False,
-        "remaining": ["owned-save-startup-parity", "authenticated-transport",
-                      "game-party-frontend", "paired-device-wireless-gameplay", "performance-and-control-acceptance"],
+        "remaining": ["protected-personal-save-integration", "offline-nearby-transport",
+                      "game-party-frontend", "separate-internet", "performance-and-control-acceptance"],
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

@@ -19,6 +19,7 @@ struct PreparedSession {
     QString directory, contentHash;
     size_t ownerSeat = 0;
     CartridgeStartup startup;
+    bool peerPending = false;
 };
 inline QByteArray ReadStagedFile(const QString& path, qint64 maximum) {
     const QFileInfo info(path);
@@ -37,7 +38,8 @@ inline bool StateDigest(const QString& value) {
 inline QString StateHash(const QByteArray& bytes) {
     return QString::fromLatin1(QCryptographicHash::hash(bytes,QCryptographicHash::Sha256).toHex());
 }
-inline PreparedSession ReadPreparedSession(const QString& directory, const QString& contentHash, unsigned seats) {
+inline PreparedSession ReadPreparedSession(const QString& directory, const QString& contentHash, unsigned seats,
+                                           bool allowPeer = false) {
     const QFileInfo info(directory);
     if (!info.isAbsolute() || !info.isDir() || info.isSymLink()
             || QDir::cleanPath(info.absoluteFilePath())!=info.canonicalFilePath())
@@ -51,8 +53,9 @@ inline PreparedSession ReadPreparedSession(const QString& directory, const QStri
     const auto doc=QJsonDocument::fromJson(bytes,&parse);
     const auto value=doc.object();
     const int owner=value["ownerSeat"].toInt(-1);
+    const bool pending=value["version"]==QJsonValue(2);
     if (parse.error!=QJsonParseError::NoError || !doc.isObject() || value.size()!=4
-            || value["version"]!=QJsonValue(1) || owner<0 || owner>=int(seats)
+            || (value["version"]!=QJsonValue(1) && !(pending&&allowPeer&&seats==2)) || owner<0 || owner>=int(seats)
             || value["ownerSeat"]!=QJsonValue(owner) || !StateDigest(contentHash)
             || value["content"]!=contentHash || !value["seats"].isArray())
         throw std::runtime_error("Prepared session identity mismatch");
@@ -63,6 +66,11 @@ inline PreparedSession ReadPreparedSession(const QString& directory, const QStri
     for (unsigned i=0;i<seats;++i) {
         if (!states[int(i)].isObject()) throw std::runtime_error("Missing cartridge state choice");
         const auto state=states[int(i)].toObject();
+        if(pending&&i!=unsigned(owner)) {
+            if(state.size()!=1||state["peer"]!=QJsonValue(true))
+                throw std::runtime_error("Network mirror requires an explicit accepted peer state");
+            result.peerPending=true;result.startup.seats.push_back(std::nullopt);continue;
+        }
         if (state.size()==1 && state["fresh"]==QJsonValue(true)) {
             result.startup.seats.push_back(std::nullopt); continue;
         }
@@ -85,17 +93,17 @@ inline void WriteNewStagedFile(const QString& path, const QByteArray& bytes) {
         throw std::runtime_error("Could not retain session progress; original save is unchanged");
 }
 inline void WriteOwnerReturn(const PreparedSession& prepared, const OwnerCartridgeReturn& value) {
-    if (value.bytes.empty() || value.bytes.size()>MaxCartridgeSaveBytes)
+    if (value.bytes.empty()==value.hasSave || value.bytes.size()>MaxCartridgeSaveBytes)
         throw std::runtime_error("Invalid owner return size");
     const QFileInfo info(prepared.directory);
     if (!info.isDir() || info.isSymLink() || info.canonicalFilePath()!=prepared.directory)
         throw std::runtime_error("Prepared session directory changed");
     const QDir folder(prepared.directory);
     const QByteArray bytes(reinterpret_cast<const char*>(value.bytes.data()),qsizetype(value.bytes.size()));
-    WriteNewStagedFile(folder.filePath("owner-return.sav"),bytes);
+    if(value.hasSave)WriteNewStagedFile(folder.filePath("owner-return.sav"),bytes);
     const QJsonObject receipt{{"version",1},{"ownerSeat",int(prepared.ownerSeat)},
         {"content",prepared.contentHash},{"frame",qint64(value.frame)},
-        {"bytes",qint64(bytes.size())},{"sha256",StateHash(bytes)}};
+        {"bytes",qint64(bytes.size())},{"sha256",StateHash(bytes)},{"hasSave",value.hasSave}};
     // Receipt last: an interrupted/failed write cannot be mistaken for success.
     WriteNewStagedFile(folder.filePath("owner-return.json"),QJsonDocument(receipt).toJson(QJsonDocument::Compact));
 }

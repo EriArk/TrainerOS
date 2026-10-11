@@ -26,6 +26,17 @@ int main() {
         const auto prepared=ReadPreparedSession(temporary.path(),content,2);
         require(prepared.ownerSeat==1 && !prepared.startup.seats[0]
                 && prepared.startup.seats[1]==std::vector<uint8_t>(seed.begin(),seed.end()),"Startup ownership mismatch");
+        auto pending=manifest;pending["version"]=2;
+        pending["seats"]=QJsonArray{QJsonObject{{"peer",true}},manifest["seats"].toArray()[1]};
+        rejected(pending);
+        writeManifest(pending);
+        const auto network=ReadPreparedSession(temporary.path(),content,2,true);
+        require(network.peerPending && !network.startup.seats[0] && network.startup.seats[1]==prepared.startup.seats[1],
+                "Pending peer became fresh progress or changed owner state");
+        auto missing=pending;missing["seats"]=manifest["seats"];writeManifest(missing);
+        bool missingRejected=false;
+        try {ReadPreparedSession(temporary.path(),content,2,true);}catch(const std::exception&){missingRejected=true;}
+        require(missingRejected,"Network mirror silently fell back to fresh state");
         rejected(manifest,QString(64,'b'));rejected(manifest,content,3);
         auto bad=manifest;bad["ownerSeat"]=0.5;rejected(bad);
         bad=manifest;bad["ownerSeat"]=2;rejected(bad);
@@ -45,6 +56,12 @@ int main() {
         require(overwrite && ReadStagedFile(folder.filePath("owner-return.sav"),8192)==seed,"Repeated return overwrote progress");
         rejected(manifest);
         require(ReadStagedFile(folder.filePath("seat-1.sav"),8192)==seed,"Preparation changed initial progress");
+        QTemporaryDir noSaveDirectory;require(noSaveDirectory.isValid(),"No-save fixture");
+        PreparedSession noSave{QFileInfo(noSaveDirectory.path()).canonicalFilePath(),content,0,{}};
+        WriteOwnerReturn(noSave,{17,{},false});
+        const auto noSaveReceipt=QJsonDocument::fromJson(ReadStagedFile(noSave.directory+"/owner-return.json",4096)).object();
+        require(noSaveReceipt["hasSave"]==QJsonValue(false) && noSaveReceipt["bytes"]==0
+                && !QFileInfo::exists(noSave.directory+"/owner-return.sav"),"No-save cartridge fabricated progress");
         std::cout<<"PASS local staging identity, explicit fresh state, bounded reads, owner receipt, no overwrite\n";
         return 0;
     }catch(const std::exception& e){std::cerr<<"FAIL "<<e.what()<<'\n';return 1;}

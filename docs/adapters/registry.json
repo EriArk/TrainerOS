@@ -764,15 +764,19 @@
         "bounded-input-trace-replay-parser-checks",
         "exact-size-cartridge-startup-and-immutable-owner-return",
         "flip-odin-two-four-machine-synthetic-owner-state-checks",
-        "flip-odin-local-frontend-clean-return-and-cancel"
+        "flip-odin-local-frontend-clean-return-and-cancel",
+        "authenticated-dilation-channel-direct-and-relay-records",
+        "flip-odin-network-wireless-race-60017-frames-2004-checkpoints-per-peer",
+        "network-settings-mismatch-and-peer-loss-safe-abort",
+        "automatic-owner-state-exchange-distinct-and-fresh-saved-pairs"
       ],
       "remaining": [
-        "game-party-player-frontend",
-        "owned-save-startup-state-parity",
-        "sustained-wireless-workload",
-        "authenticated-transport",
-        "game-party-integration",
-        "gameplay-acceptance"
+        "game-party-invitation-and-player-frontend",
+        "protected-personal-save-integration",
+        "offline-nearby-transport",
+        "broader-wireless-and-four-player-gameplay",
+        "separate-internet-and-relay-performance-acceptance",
+        "physical-controls-and-resource-acceptance"
       ]
     }
   ]

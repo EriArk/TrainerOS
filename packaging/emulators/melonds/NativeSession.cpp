@@ -86,9 +86,9 @@ bool NativeSession::RequestOwnedReturn(uint32_t frame)
 {
     std::lock_guard<std::mutex> guard(lock);
     if (stopping || Failed() || !ownerSeat || returnFrame || frame < nextFrame
-            || uint64_t(frame) > uint64_t(nextFrame) + 8) return false;
+            || uint64_t(frame) > uint64_t(nextFrame) + 64) return false;
     const auto* cart = machines[*ownerSeat]->console->NDSCartSlot.GetCart();
-    if (!cart || !cart->GetSaveMemoryLength()) return false;
+    if (!cart) return false;
     returnFrame = frame;
     return true;
 }
@@ -173,8 +173,11 @@ void NativeSession::Run(size_t seat)
                 }
             }
             std::optional<OwnerCartridgeReturn> cartridge;
-            if (captureOwner)
-                cartridge = OwnerCartridgeReturn{input.frame, CopyCartridgeState(*nds.NDSCartSlot.GetCart())};
+            if (captureOwner) {
+                const auto* cart=nds.NDSCartSlot.GetCart();
+                const bool hasSave=cart->GetSaveMemoryLength()!=0;
+                cartridge = OwnerCartridgeReturn{input.frame,hasSave?CopyCartridgeState(*cart):std::vector<uint8_t>{},hasSave};
+            }
             std::optional<PresentationFrame> output;
             if (options.presentation) {
                 void* top = nullptr; void* bottom = nullptr;

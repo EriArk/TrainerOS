@@ -314,12 +314,73 @@ unchanged. The 23,500-frame wireless replay above remains evidence for the prior
 core checkpoint; this addition changes owned startup/return and is covered by
 its focused tests, without claiming that the long gameplay run was repeated.
 
+## Paired network session — 12 October 2026
+
+The isolated native frontend now connects two physical devices through the existing
+Magic Wormhole 0.24.0 dependency's Dilation channel. Each peer runs two deterministic
+DS machines, presents/controls only its own seat, and exchanges delayed inputs.
+The adapter adds bounded records/credits, exact runtime/ROM/settings admission,
+full-state checkpoints, connection deadlines and agreed exit; it does not replace
+upstream DS wireless emulation or transport cryptography. Host-selected delay is
+4–15 frames, based on startup round trips. It is not a guarantee of playable latency.
+
+`secure-channel.py` handles private process IPC, automatic direct/relay transport,
+identity and backpressure; codes and records never enter application logs.
+`install-transport.sh` installs a separate versioned environment, preserving the
+existing GB/GBA helper. Dilation additionally uses noiseprotocol 0.3.1 (MIT).
+The tested frozen dependency list hashes to
+`80aa2af03b9016ddc51f45c96ff4ddd1bed1239c0fde4948fbca76c3ef003b26`.
+The provider relay is a research dependency, without an operator availability claim.
+
+Private prepared-session v2 marks the other seat explicitly as pending. Each player
+sends only their own opaque cartridge copy (or an explicit fresh choice), in
+16 KiB bounded records, through the same authenticated channel. Core-reported size,
+owner and SHA-256 are checked before constructing either emulated DS. No ROM,
+BIOS or original firmware is transmitted. Peer progress stays in memory. Missing
+or invalid state cannot silently become fresh progress. Zero-save cartridges have
+an explicit empty receipt, without a fabricated battery file.
+
+Evidence, kept distinct by artifact:
+
+- Network frontend SHA-256 `4417d33b490f67911ebc85b2ecb4d2e8d57c499390a71061b2f7c17678f6cdbe`
+  completed a paired Mario Kart DS session on Flip/Odin in 1024.73 seconds. Each
+  physical device replayed its own seat's input recording over the real connection;
+  both reached the wireless group and shared race (Mario/Luigi), visually checked
+  on both. The trace ended at 23,566 frames, followed by neutral-input soak.
+  Both exited normally at frame **60,017**, with **2004 matching full-state
+  checkpoints per physical peer**, and only the respective owner's 262,144-byte
+  return plus checked receipt. This is not a human-driven 17-minute race.
+- Earlier bounded live negatives rejected differing JIT settings before frame 0,
+  and stopped the remaining peer on connection loss. Neither returned progress.
+  SIGTERM remains responsive after the emulation timer stops on an error screen.
+- Updated owner-exchange frontend SHA-256
+  `02536d486f0527237239ff66f831c92efbfd647d68c790f0ee647f9bd3fd42e6`
+  is installed in the isolated directory on both devices. Distinct generated SRAM
+  copies reached frame 196, ten full-state checkpoints and clean owner-only return;
+  a fresh/saved pair reached frame 204 with the same checks. Each staged input stayed
+  unchanged. These focused checks cover v2 startup; the long race used the preceding
+  artifact and explicitly fresh v1 startup. No personal-save migration is claimed.
+- Windows and ARM64 native builds pass seven CTests, including four ROM-free
+  secure-channel cases and prepared-state/zero-save cases.
+- Actual helper peers transferred 2 MiB bidirectionally with ordered receipts:
+  automatic setup 4.531 s / bulk 0.625 s, forced relay setup 5.922 s / bulk 4.891 s.
+  Small-record receipt median/p95 were 32/78 ms automatic and 828/938 ms forced
+  relay. The test's requested 60 Hz cadence was credit-throttled on that relay;
+  it does **not** establish 60 fps relay gameplay or acceptable public-relay latency.
+
+Both devices were on the same router. Automatic Internet rendezvous plus a local
+connection is not distinct-network acceptance. Offline Nearby, ordinary GameParty
+admission/consent, protected original-save return and the packaged ordinary-client
+route are still being integrated. No runtime profile is enabled by these probes.
+The ordinary TrainerOS binary remains unchanged. Four-player online DS, broader
+cartridge compatibility, real controls and separate-network acceptance remain open.
+
 ## Remaining work and update procedure
 
 MP-06 and #162–166 remain open. This is an incomplete DS implementation, with a
-maintained native core preparation rather than a player-visible network route.
+maintained native network frontend rather than an ordinary GameParty route.
 Next: connect prepared owner state and protected-save return to ordinary
-GameParty admission/consent and the secure automatic transport. Native synthetic
+GameParty admission/consent; the isolated secure transport is implemented above. Native synthetic
 startup/return proof above does not establish real personal-save migration under #164. The cold-boot verification host does not deliver these gates.
 Local compatible BIOS/firmware must stay local. Any unavoidable save-derived
 state needs bounded parsing, explicit session/recipient/purpose consent,
@@ -338,7 +399,7 @@ is neither four DS emulators nor four-player gameplay evidence.
 For a native build, run `packaging/emulators/melonds/build.sh NEW_WORK_DIRECTORY`
 with Git, Ninja, CMake >=3.16, Python 3, a C/C++17 toolchain, Qt6 Widgets and
 SDL2 development files. It builds isolated checks and the local frontend, not an
-admitted Internet runtime bundle. For updates, compare upstream/core reference ancestry and all clock,
+admitted ordinary-client runtime bundle. For updates, compare upstream/core reference ancestry and all clock,
 WiFi, state/JIT and frontend hooks, rebase or retire each patch hunk, rebuild and
 rerun scoped checks before changing the pin. Retain old source/build manifests.
 Rollback is selecting the previous isolated build or ordinary emulator; there
