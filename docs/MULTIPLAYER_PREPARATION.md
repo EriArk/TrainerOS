@@ -44,6 +44,33 @@ per-player prerequisites, not a generic emulator room. Vita3K's
 automatic provisioning is still required for TrainerOS's ordinary invitation UX.
 Neither family has a new installed launch/network adapter from this pass.
 
+## Hotseat catalogue evidence — 11 October 2026
+
+The [catalogue](HOTSEAT_GAME_CATALOG.md) now contains 66 mode records for 43
+game/platform pairs, backed by 43 publisher manuals or publisher statements.
+48 records confirm a shared input device, 15 document another scheme or a solo
+restriction, and three remain unresolved. The
+[structured data](../data/hotseat-catalog.json) retains source URLs, document
+hashes where downloaded, page/section references, player/controller limits,
+edition boundaries and special input requirements. Its research inventory has
+411 manual/edition records; these are not 411 individually classified games.
+
+This source pass distinguishes optional controller sharing, required handoff,
+simultaneous split-controller input, role-specific controller swapping and
+private-screen/touch requirements. It does not generalize across ports, sequels
+or all modes in a compilation. Unknowns remain unknown. A complete release
+baseline and the remaining manual/game checks are still needed; #126 stays open.
+The data is not used for runtime admission or title-based matching. Every entry
+has `runtime_verified: false`; PS1/GameCube's prepared independent-pad profiles
+do not implement handoff, and PS2 shared-console integration remains pending.
+
+Validation for this data-only increment: JSON structure, unique mode IDs, source
+references and document hashes, bounded count/status invariants, local links and
+Markdown diff checks. No runtime build, handheld installation or gameplay check
+was performed. Continue HS-01's common live handoff mechanism and catalogue
+coverage within the accepted platform order; device acceptance waits for the
+handhelds to become available.
+
 ## PS1 runtime decision — 11 October 2026
 
 Researched targets; these source findings do not establish device acceptance:
