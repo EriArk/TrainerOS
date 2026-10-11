@@ -244,6 +244,8 @@ private slots:
         QVERIFY(original.contains("input_autodetect_enable"));
         const auto ds=dir.filePath("config/melonDS/melonDS.toml");QFile dsFile(ds);QVERIFY(dsFile.open(QIODevice::ReadOnly));
         QVERIFY(dsFile.readAll().contains("A = 1"));dsFile.close();
+        const auto dsInstallation=StandaloneInstallation::fromJson(found.profiles["melonds"],"melonds");
+        QVERIFY(dsInstallation.melonDsSaveBackups);QCOMPARE(dsInstallation.configFile,ds);
         write(ra.configFile,"User settings must stay exactly as written\n");
         write(ds,"User controller preferences\n");
         env.executables["PPSSPPSDL"]=dir.filePath("different-runtime");

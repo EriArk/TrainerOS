@@ -315,11 +315,19 @@ private slots:
             QByteArray(config).replace("RelocSRAM = false", "RelocSRAM = true"),
             QByteArray(config).replace("ConsoleType = 0", "ConsoleType = 1"),
             QByteArray(config).replace("RelocSRAM = false", "RelocSRAM = false\nRelocSRAM = true"),
-            QByteArray(config).replace("RelocSRAM = false", ""),
+            QByteArray("Instance0.SaveFilePath = \"/unsupported\"\n") + config,
+            QByteArray("\"Instance0\" = { SaveFilePath = \"/unsupported\" }\n"),
+            QByteArray("[Instance0.SaveFilePath]\npath = \"/unsupported\"\n"),
             QByteArray(config).replace(dir.filePath("saves").toUtf8(), "relative"),
             config + "[Instance1]\nSaveFilePath = \"/somewhere\"\n",
             config + "[Savestate]\nRelocSRAM = false\n"};
         for (const auto& bytes : invalid) { write(installation.configFile, bytes); QVERIFY(!resolveMelonDsSave(record, installation).supported); }
+        for (const auto& minimal : QList<QByteArray>{"[Emu]\nConsoleType = 0\n", "[Instance0]\nSaveFilePath = \"\"\n", "# Fresh upstream defaults\n"}) {
+            write(installation.configFile, minimal);
+            const auto defaults = resolveMelonDsSave(record, installation);
+            QVERIFY2(defaults.supported, qPrintable(defaults.error));
+            QCOMPARE(defaults.savePath, dir.filePath("roms/original.v2.sav"));
+        }
         write(installation.configFile, config); installation.melonDsSaveBackups = false;
         QVERIFY(!resolveMelonDsSave(record, installation).supported); installation.melonDsSaveBackups = true;
         record.adventure.platformId = "dsi"; QVERIFY(!resolveMelonDsSave(record, installation).supported); record.adventure.platformId = "nds";

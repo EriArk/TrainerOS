@@ -6,6 +6,7 @@
 #include <QJsonDocument>
 #include <QRegularExpression>
 #include <QSet>
+#include <optional>
 
 namespace trainer {
 namespace {
@@ -23,10 +24,10 @@ QString hashFile(const QString& path, qint64 limit) {
 }
 // A deliberately narrow reader for melonDS 1.1's own serialized configuration.
 // Other TOML spellings/layouts must be verified before they can select a save.
-QString saveDirectory(const QByteArray& bytes) {
+std::optional<QString> saveDirectory(const QByteArray& bytes) {
     const QRegularExpression table(R"(^\[([A-Za-z0-9_.]+)\]$)");
     const QRegularExpression value(R"(^([A-Za-z0-9_]+)\s*=\s*(.*)$)");
-    const QRegularExpression path(R"toml(^"([^"\\\r\n]+)"$)toml");
+    const QRegularExpression path(R"toml(^"([^"\\\r\n]*)"$)toml");
     QString section; QHash<QString, QString> settings; QSet<QString> tables;
     for (auto line : QString::fromUtf8(bytes).split('\n')) {
         line = line.trimmed();
@@ -36,8 +37,15 @@ QString saveDirectory(const QByteArray& bytes) {
             const auto match = table.match(line);
             if (!match.hasMatch() || tables.contains(match.captured(1))) return {};
             section = match.captured(1); tables.insert(section);
+            for (const auto& scalar : {QString("Instance0.SaveFilePath"), QString("Savestate.RelocSRAM"), QString("Emu.ConsoleType")})
+                if (section == scalar || section.startsWith(scalar + '.')) return {};
             if (section.startsWith("Instance") && section != "Instance0" && !section.startsWith("Instance0.")) return {};
             continue;
+        }
+        // Do not treat an unsupported dotted/inline root spelling as absent.
+        if (section.isEmpty()) {
+            const auto root = value.match(line);
+            if (!root.hasMatch() || root.captured(1).startsWith("Instance") || root.captured(1) == "Savestate" || root.captured(1) == "Emu") return {};
         }
         if (section != "Instance0" && section != "Savestate" && section != "Emu") continue;
         const auto match = value.match(line);
@@ -46,10 +54,12 @@ QString saveDirectory(const QByteArray& bytes) {
         if (settings.contains(key)) return {};
         settings.insert(key, match.captured(2));
     }
-    if (settings.value("Savestate.RelocSRAM") != "false" || settings.value("Emu.ConsoleType") != "0") return {};
-    const auto match = path.match(settings.value("Instance0.SaveFilePath"));
+    if (settings.value("Savestate.RelocSRAM", "false") != "false" || settings.value("Emu.ConsoleType", "0") != "0") return {};
+    const auto match = path.match(settings.value("Instance0.SaveFilePath", "\"\""));
     const auto directory = match.captured(1);
-    return match.hasMatch() && QDir::isAbsolutePath(directory) && !directory.contains(QChar::Null) ? directory : QString();
+    // melonDS 1.1 defaults: DS, no SRAM relocation, and save beside ROM.
+    if (!match.hasMatch() || (!directory.isEmpty() && !QDir::isAbsolutePath(directory)) || directory.contains(QChar::Null)) return {};
+    return directory;
 }
 }
 bool supportsMelonDsSave(const AdventureRegistration& record, const StandaloneInstallation& installation) {
@@ -79,7 +89,7 @@ SaveTarget resolveMelonDsSave(const AdventureRegistration& record, const Standal
     if (!config.open(QIODevice::ReadOnly) || config.size() > 65536) return target;
     const auto bytes = config.read(65537);
     const auto directory = saveDirectory(bytes);
-    if (config.error() != QFile::NoError || bytes.size() > 65536 || directory.isEmpty()) {
+    if (config.error() != QFile::NoError || bytes.size() > 65536 || !directory.has_value()) {
         target.error = "This save layout needs verification before backups can be used."; return target;
     }
     target.contentRevision = hashFile(record.contentPath, 512LL * 1024 * 1024);
@@ -91,7 +101,7 @@ SaveTarget resolveMelonDsSave(const AdventureRegistration& record, const Standal
         installation.configFile, QString::fromLatin1(QCryptographicHash::hash(bytes, QCryptographicHash::Sha256).toHex()),
         QJsonArray::fromStringList(installation.prefixArguments)};
     target.contextRevision = QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(context).toJson(QJsonDocument::Compact), QCryptographicHash::Sha256).toHex());
-    target.savePath = QDir(directory).filePath(QFileInfo(record.contentPath).completeBaseName() + ".sav");
+    target.savePath = QDir(directory->isEmpty() ? QFileInfo(record.contentPath).absolutePath() : *directory).filePath(QFileInfo(record.contentPath).completeBaseName() + ".sav");
     target.supported = true;
     return target;
 }

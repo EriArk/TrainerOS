@@ -421,32 +421,75 @@ staging, protected finalization and preserved save/exit cancellation. Windows an
 ARM64 ordinary clients build; runtime-multiplayer, save-backup and save-lineage
 suites pass on both. The overlay helper recognizes the packaged `traineros-ds`
 for owned WM_DELETE_WINDOW, with fourteen helper checks passing on Linux.
-The final shell/profile delivery and personal-save migration remain unverified.
+At the initial staging checkpoint, ordinary shell/profile delivery was still
+unverified. Versioned packages `.1` existed on both devices without a selected
+current link, containing frontend
+`a74276b3d1b4ae2c3d1a8c4fb8de4f875ea850668f6358bd0ced2658eb61756e`.
+The installer refuses existing output directories and writes its admission
+manifest after verified staging. The later ordinary delivery below supersedes
+that checkpoint and includes the final caption and consent changes.
 
-Versioned packages were staged on both devices at
-`~/.local/share/TrainerOS/emulators/melonds-netplay-20261012.1`; no current-version
-link was published. The reviewed installer refuses existing output directories
-and writes its admission manifest only after verified frontend/dependency staging.
-Those packages contain frontend
-`a74276b3d1b4ae2c3d1a8c4fb8de4f875ea850668f6358bd0ced2658eb61756e`,
-helper `93092dc60d6df7defbf1838e493d9b72a91516fc7229ed992e80de1a831d3ceb`
-and Python executable `ef59e677fa67d883e7f6d2a5aabbb99f1a14dd77dad74ada90d613202843cb80`.
-The helper lock remains the verified hash above. The later UI-only frontend
-caption change is built on Windows but is not in this staged ARM64 artifact.
-Both ordinary installed clients are still
-`ccfe46697e26df086f39099f537afc5f08f8b00577a116b0f69960006f1c6633`.
-Remaining before enabling the route: finish save-copy disclosure across reverse
-Join/company entry points, validate the packaged launch/return through GameParty,
-install shell/helper together, and verify both handheld journeys. These packages
-are preparation, not an installed DS invitation claim.
+## Ordinary handheld delivery — 12 October 2026
+
+The DS bundle is now selected on Flip/Odin, with frontend
+`7aedee8489ea163d02e00355dc138fe300cadc107b2f6cac87dcf2c36501c6ac`
+with helper `93092dc60d6df7defbf1838e493d9b72a91516fc7229ed992e80de1a831d3ceb`,
+Python `ef59e677fa67d883e7f6d2a5aabbb99f1a14dd77dad74ada90d613202843cb80`
+and lock `80aa2af03b9016ddc51f45c96ff4ddd1bed1239c0fde4948fbca76c3ef003b26`.
+Ordinary shell
+`4a6b7e4d3790fff9221393025486833ba56d6dbfe9dba6a04eb7f1569246dd9e`
+and the packaged-player Home helper are installed and running on both.
+The versioned `.2` package retains `.1` for rollback. Each device's existing
+melonDS profile gained only its verified `configFile` and
+`backupProtocol: melonds-sav-v1`; launcher, ordinary config and existing saves
+were kept. Fresh discovered profiles now expose this same backup route.
+
+The save resolver also accepts the verified melonDS 1.1 defaults: DS mode,
+no SRAM relocation, and a save beside the ROM when the configured directory is
+empty/absent. It refuses ambiguous root/dotted/inline spellings, scalar tables,
+additional instances, relative directories and conflicting declarations.
+Sources: upstream [configuration defaults](https://github.com/melonDS-emu/melonDS/blob/1.1/src/frontend/qt_sdl/Config.cpp)
+and [asset path / SRAM relocation](https://github.com/melonDS-emu/melonDS/blob/1.1/src/frontend/qt_sdl/EmuInstance.cpp).
+This reads the existing layout; it does not migrate or normalize personal files.
+
+Reverse Join and company actions disclose the temporary save-copy exchange
+before consent and pin the displayed game/party/account. A changed offer must
+be reopened. The ordinary Social popup now displays the complete runtime
+explanation; the previous two-line limit hid part of it on Odin. Start uses a
+short complete description that fits the Home menu row.
+
+Actual Nearby flow passed: ordinary Mario Kart DS → Home / Play together →
+invitation accepted on Odin → Start → saved-progress confirmation → both native
+players running. Home recognized the packaged player; minimize, reopen and
+normal Exit worked. Flip used its existing 262144-byte save; Odin started fresh.
+Both history entries returned normally, session directories were removed after
+successful finalization, Flip's bytes stayed unchanged, and Odin received a
+separate 262144-byte save plus protected return copy/receipt. The three earlier
+Flip saves matched their pre-delivery hashes. Both devices remained at volume 0.
+Online friend was then exercised through the installed account invitation,
+acceptance, host save confirmation and native online connection on both devices.
+Both players used their separate existing saves, reached Playing together, and
+returned normally when the guest exited through Home. Both save hashes remained
+unchanged and no session directories/child players remained. The inspected
+private configuration selected `online` on both sides; this did not use the
+Nearby branch. Both devices were still on the same router.
+This is the ordinary invitation/lifecycle/save route, not another long race
+or distinct-Internet acceptance; the earlier gameplay/soak evidence is retained.
+
+The first live attempt exposed a shared launcher preflight error: DS/Flycast
+choose their executable during cancellable preparation, while ProcessService
+previously rejected the empty pre-preparation path. It now accepts a preparation
+callback and still requires an absolute final program before execution. Checks
+cover selection, invalid final paths and cancellation without a placeholder.
+The DS live flow above uses that correction. Dreamcast gameplay is not implied.
 
 ## Remaining work and update procedure
 
-MP-06 and #162–166 remain open. This is an incomplete DS implementation, with a
-maintained native network frontend rather than an ordinary GameParty route.
-Next: connect prepared owner state and protected-save return to ordinary
-GameParty admission/consent; the isolated secure transport is implemented above. Native synthetic
-startup/return proof above does not establish real personal-save migration under #164. The cold-boot verification host does not deliver these gates.
+MP-06 and #162–166 remain open. The ordinary two-player Nearby and Online friend
+routes are installed and verified above on the same router. Wider save/game
+compatibility, four-player DS, final frontend layout and the remaining network,
+resource and physical acceptance still need evidence. No semantic save adapter
+or per-game completion policy is delivered by the opaque return route.
 Local compatible BIOS/firmware must stay local. Any unavoidable save-derived
 state needs bounded parsing, explicit session/recipient/purpose consent,
 authenticated encryption and ephemeral lifetime; raw Android packages are not
@@ -467,5 +510,8 @@ SDL2 development files. It builds isolated checks and the local frontend, not an
 admitted ordinary-client runtime bundle. For updates, compare upstream/core reference ancestry and all clock,
 WiFi, state/JIT and frontend hooks, rebase or retire each patch hunk, rebuild and
 rerun scoped checks before changing the pin. Retain old source/build manifests.
-Rollback is selecting the previous isolated build or ordinary emulator; there
-is no installed config/save migration to undo in this increment.
+Rollback selects the retained ordinary shell/helper and previous runtime package.
+Restore only the added profile metadata from its per-device backup when reverting
+this integration; ordinary emulator configuration was never rewritten. Personal
+save files must not be rolled back with code. The newly created guest save and
+protected copies belong to that device's progress.

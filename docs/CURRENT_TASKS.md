@@ -1,5 +1,18 @@
 # Current tasks
 
+**12 October ordinary DS delivery:** two-player Nearby and Online friend
+invitations now launch the installed native DS runtime on Flip/Odin, with explicit
+save-copy consent, normal Home/minimize/exit and protected own-save return.
+Mixed fresh/existing and two different ordinary save paths passed; the earlier
+60,017-frame paired race/soak remains separate gameplay evidence. Reverse Join
+pins the reviewed game/party/account, and the common prepared-command launcher
+now validates its final executable after preparation. Both devices are quiet.
+[Evidence and exact builds](emulators/melonds.md#ordinary-handheld-delivery--12-october-2026).
+This supersedes the earlier staged/no-profile statements below. Four-player DS,
+broader saves/games, final frontend presentation and distinct-network/physical
+acceptance remain open. Continue the accepted multiplayer scope through Wii U
+and Vita, excluding PS3/Switch; no issue or whole multiplayer block is closed.
+
 **Owner continuous multiplayer work, 11 October 2026:** continue the accepted
 scope through Wii U and Vita, excluding PS3/Switch, while the owner is asleep.
 Keep devices quiet and preserve personal saves. The earlier-family recheck is

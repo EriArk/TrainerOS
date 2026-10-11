@@ -24,7 +24,9 @@ ProcessService::~ProcessService() {
     thread_.quit(); thread_.wait();
 }
 bool ProcessService::start(const ProcessCommand& command) {
-    if (active_ || !QDir::isAbsolutePath(command.program)) return false;
+    // Runtime bundles choose the exact executable during cancellable validation.
+    // The prepared command is checked again by execute before any child starts.
+    if (active_ || (!command.prepare && !QDir::isAbsolutePath(command.program))) return false;
     active_ = true;
     runtimeControls_.clear();
     stopRequested_ = false;

@@ -288,7 +288,7 @@ FocusScope {
             Column {
                 id: menuHeading; x: 14; y: 12; width: parent.width - 28; spacing: 6
                 Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; width: parent.width - 38; text: root.social.menuTitle || "Social"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 17; textFormat: Text.PlainText; elide: Text.ElideRight }
-                Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: text.length > 0; width: parent.width; text: root.social.menuDetail; color: Theme.muted; font.pixelSize: 13; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight; textFormat: Text.PlainText }
+                Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering; visible: text.length > 0; width: parent.width; text: root.social.menuDetail; color: Theme.muted; font.pixelSize: 13; wrapMode: Text.Wrap; maximumLineCount: root.social.fullMenuDetail ? 12 : 2; elide: Text.ElideRight; textFormat: Text.PlainText }
                 Column { visible: root.social.profileVisible; width: parent.width; spacing: 7
                     readonly property var person: root.social.person
                     Row { spacing: 12; width: parent.width

@@ -258,6 +258,34 @@ private slots:
         QCOMPARE(joined.count(),1);QCOMPARE(joined.first()[0].toString(),QString(remote));QVERIFY(c.menu().isEmpty());
         c.setGameActivity(remote,{});c.joinGame();QCOMPARE(joined.count(),1);
     }
+    void privateProgressJoinDisclosesCopiesAndPinsTheDisplayedGame() {
+        SocialController c;c.receive(0,{{"state","connected"},{"channel",channel},{"chats",QVariantList{QVariantMap{{"id",channel},{"kind","chats"},{"friend",true},{"members",QVariantList{QVariantMap{{"id",remote}}}}}}}});
+        const QVariantMap game{{"label","A linked game"},{"content","first"},{"privateProgress",true}};
+        QVariantMap offer{{"joinable",true},{"party","party-one"},{"game",game}};c.setGameActivity(remote,offer);
+        QSignalSpy joined(&c,&SocialController::partyJoin);c.together();
+        QVERIFY(c.menuDetail().contains("Temporary save copies"));QVERIFY(c.fullMenuDetail());
+        const int index=c.menuCommands_.indexOf("party-join");QVERIFY(index>=0);QVERIFY(c.menu()[index].contains("save copies"));
+        c.selectMenu(index);QCOMPARE(joined.count(),1);QVERIFY(c.menu().isEmpty());
+        QCOMPARE(joined.first()[1].toJsonObject()["game"].toObject(),QJsonObject::fromVariantMap(game));
+        c.together();auto changed=game;changed["content"]="second";offer["game"]=changed;c.setGameActivity(remote,offer);
+        c.selectMenu(c.menuCommands_.indexOf("party-join"));QCOMPARE(joined.count(),1);QCOMPARE(c.menuTitle(),QString("Game changed"));
+        c.closeMenu();c.contextRow(-1);QVERIFY(c.menuDetail().contains("Temporary save copies"));QVERIFY(c.fullMenuDetail());
+        offer["party"]="replacement-party";c.setGameActivity(remote,offer);
+        c.selectMenu(c.menuCommands_.indexOf("join-peer:"+QString(remote)));QCOMPARE(joined.count(),1);
+    }
+    void privateCompanyJoinUsesInlineConsentAndLegacyEntryCannotBypassIt() {
+        SocialController c;c.owner_="company-private";c.face_="groups";c.runtimeAvailable_=true;
+        c.snapshot_={{"state","connected"},{"userId","self"},{"channel",channel},{"chats",QVariantList{QVariantMap{{"id",channel},{"kind","groups"},{"name","Our group"}}}}};
+        const QVariantMap game{{"label","Linked game"},{"content","first"},{"privateProgress",true}};
+        c.setCompanyParties({QVariantMap{{"company",channel},{"peer","company:group:a"},{"party","one"},{"joinable",true},{"game",game}}});
+        QSignalSpy joined(&c,&SocialController::partyJoin);c.together();
+        QVERIFY(c.menuDetail().contains("Only your own progress"));
+        c.selectMenu(c.menuCommands_.indexOf("company-party:company:group:a"));QCOMPARE(joined.count(),1);
+        c.joinCompanyParty(0);QCOMPARE(joined.count(),1);QCOMPARE(c.menuTitle(),QString("Join game"));
+        c.selectMenu(c.menuCommands_.indexOf("join-reviewed"));QCOMPARE(joined.count(),2);
+        c.contextRow(-1);QVERIFY(c.menuDetail().contains("Temporary save copies"));QVERIFY(c.fullMenuDetail());
+        ++c.generation_;c.selectMenu(c.menuCommands_.indexOf("context-party:company:group:a"));QCOMPARE(joined.count(),2);
+    }
     void runtimeInvitationUsesDmContractAndReusesConversation() {
         FluxerSession s;Completion pending;int requests=0;
         QSignalSpy failed(&s,&FluxerSession::runtimeProbeFailed);

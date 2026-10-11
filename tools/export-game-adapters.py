@@ -79,6 +79,8 @@ dest = root / "docs/adapters/implementations/runtime"
 files = {}
 for relative in ("src/integrations/adventure/standalone/DolphinNetplay.cpp",
                  "src/integrations/adventure/standalone/MelonDsSession.cpp",
+                 "src/integrations/adventure/standalone/MelonDsSave.cpp",
+                 "src/platform/process/ProcessService.cpp",
                  "src/integrations/adventure/standalone/MelonDsNetplay.cpp",
                  "src/platform/storage/RuntimeSaveStorage.cpp",
                  "src/integrations/adventure/standalone/FlycastNetplay.cpp",

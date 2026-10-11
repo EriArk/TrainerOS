@@ -70,7 +70,7 @@ private slots:
     void cancelledPreparationSettlesOnceWithoutStartingChild() {
         ProcessService process;QSignalSpy done(&process,&ProcessService::finished),started(&process,&ProcessService::started);
         auto entered=std::make_shared<std::atomic_bool>(false);ProcessOutcome outcome;int count=0;
-        ProcessCommand command{probe(),{}, {}};
+        ProcessCommand command;
         command.prepare=[&](ProcessCommand& prepared,const std::atomic_bool& cancel){
             prepared.settled=[&](const ProcessOutcome& result){outcome=result;++count;};
             *entered=true;while(!cancel)QThread::msleep(1);return QString();
@@ -95,6 +95,17 @@ private slots:
         QVERIFY(process.start({probe(), {}, {}})); QTRY_COMPARE(done.size(), 2);
         QCOMPARE(started.size(), 1); QCOMPARE(done.last()[0].toInt(), 0);
         QTest::qWait(50); QCOMPARE(started.size(), 1);
+    }
+    void preparationCanSelectTheValidatedExecutable() {
+        ProcessService process;QSignalSpy started(&process,&ProcessService::started),done(&process,&ProcessService::finished);
+        ProcessCommand command;
+        command.prepare=[this](ProcessCommand& out,const std::atomic_bool&){out.program=probe();return QString();};
+        QVERIFY(process.start(command));QTRY_COMPARE(done.size(),1);QCOMPARE(started.size(),1);
+        QCOMPARE(done.first()[0].toInt(),0);QVERIFY(done.first()[2].toString().isEmpty());
+        command.prepare=[](ProcessCommand& out,const std::atomic_bool&){out.program="relative-program";return QString();};
+        QVERIFY(process.start(command));QTRY_COMPARE(done.size(),2);QCOMPARE(started.size(),1);
+        QVERIFY(!done.last()[2].toString().isEmpty());
+        QVERIFY(!process.start(ProcessCommand{}));
     }
     void preparationFailureNeverStartsAChild() {
         ProcessService process;

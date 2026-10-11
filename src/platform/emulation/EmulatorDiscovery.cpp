@@ -204,7 +204,13 @@ EmulatorDiscovery prepareEmulators(const EmulatorEnvironment& env) {
             }
             profile["configFile"] = config; profile["coresDirectory"] = cores;
             profile["backupProtocol"] = "mgba-sram-v1"; // Existing runtime checks still gate save ownership.
-        } else controllerDefaults(route, configDir, env, result.notices);
+        } else {
+            controllerDefaults(route, configDir, env, result.notices);
+            if (route.id == "melonds" && QFileInfo(configDir + "/melonDS.toml").isFile()) {
+                profile["configFile"] = configDir + "/melonDS.toml";
+                profile["backupProtocol"] = "melonds-sav-v1";
+            }
+        }
         // Persist the selected runtime family once. Installing a different
         // emulator later must not silently move existing games to different saves.
         if (!seed(discoveredPath,QJsonDocument(profile).toJson())) { result.notices << route.id + ": could not retain discovered route"; continue; }

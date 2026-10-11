@@ -46,7 +46,11 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     connect(&social_,&SocialController::runtimeAction,this,[this](const QString& id){
         action(id,true);
     });
-    connect(&social_,&SocialController::partyJoin,this,[this](QString peer){
+    connect(&social_,&SocialController::partyJoin,this,[this](QString peer,QJsonObject expected){
+        const auto offered=party_.offer("online:"+peer);
+        if(expected["game"].toObject().isEmpty()||offered["game"]!=expected["game"]||offered["party"]!=expected["party"]) {
+            emit notice("The game changed. Reopen Together before joining.");return;
+        }
         party_.requestJoin("online:"+peer);
         if(party_.state()["joining"].toBool()||party_.active()){socialSurface_=true;show("multiplayer-party");}
     });
@@ -322,7 +326,7 @@ void RuntimeMultiplayer::cancelInvitationExit() {
 }
 QString RuntimeMultiplayer::invitation() const {
     const auto pending=party_.pending();
-    return pending["name"].toString()+(pending["joining"].toBool()?" wants to join ":" invites you to play ")+pending["game"].toObject()["label"].toString()+"."+(pending["game"].toObject()["privateProgress"].toBool()?" Playing together temporarily shares copies of both players' saves. Each player keeps only their own progress.":QString());
+    return pending["name"].toString()+(pending["joining"].toBool()?" wants to join ":" invites you to play ")+pending["game"].toObject()["label"].toString()+"."+(pending["game"].toObject()["privateProgress"].toBool()?" Save copies are shared with this session's players. Only your own progress returns.":QString());
 }
 void RuntimeMultiplayer::answer(bool accept) {
     if(accept && lifecycle_.active() && !party_.pending()["joining"].toBool() && !canJoinRunning(party_.pending()["game"].toObject())) {
@@ -385,7 +389,7 @@ void RuntimeMultiplayer::show(QString panel) {
             r["readOnly"]=m["ready"].toBool();rows.append(r);
         }
         if(!party_.pending().isEmpty())rows.prepend(row("multiplayer-request","Join request",party_.pending()["name"].toString()));
-        if(party_.host()&&!party_.running()&&ready&&state["members"].toArray().size()>1)rows.prepend(row("multiplayer-start","Start game",party_.game()["privateProgress"].toBool()?"Temporary copies of both saves are shared for this session. Only your own progress returns.":QString()));
+        if(party_.host()&&!party_.running()&&ready&&state["members"].toArray().size()>1)rows.prepend(row("multiplayer-start","Start game",party_.game()["privateProgress"].toBool()?"Save copies shared; only your progress returns.":QString()));
         if(party_.host()&&state["free"].toInt()>0)rows.append(row("multiplayer-people","Invite players"));
         if(party_.host()&&!state["company"].toString().isEmpty())rows.append(row("multiplayer-access","Who can join",state["access"]=="closed"?"Invitations only":state["access"]=="selected"?"Selected group members":"Ask me first"));
         if(state["joining"].toBool())caption="Join request sent · "+state["game"].toObject()["label"].toString();

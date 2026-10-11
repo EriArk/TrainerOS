@@ -41,6 +41,7 @@ class SocialController final : public QObject {
     Q_PROPERTY(int menuIndex READ menuIndex NOTIFY changed)
     Q_PROPERTY(QString menuTitle READ menuTitle NOTIFY changed)
     Q_PROPERTY(QString menuDetail READ menuDetail NOTIFY changed)
+    Q_PROPERTY(bool fullMenuDetail READ fullMenuDetail NOTIFY changed)
     Q_PROPERTY(bool canCreateGroup READ canCreateGroup NOTIFY changed)
     Q_PROPERTY(bool runtimeSurface READ runtimeSurfaceOpen NOTIFY changed)
     Q_PROPERTY(QVariantList runtimeActions READ runtimeActions NOTIFY changed)
@@ -94,6 +95,11 @@ public:
     int menuIndex() const {return menuFocus_;}
     QString menuTitle() const {return menuTitle_;}
     QString menuDetail() const {return menuDetail_;}
+    bool fullMenuDetail() const {
+        if (runtimeSurfaceOpen()) return true;
+        for (const auto& choice : joinChoices_) if (choice["game"].toMap()["privateProgress"].toBool()) return true;
+        return false;
+    }
     bool canCreateGroup() const { return menuMode_=="create-group"&&!pickedPeople_.isEmpty()&&!snapshot_["mutationBusy"].toBool(); }
     Q_INVOKABLE void createSelectedGroup() { if(canCreateGroup())dispatch(Action::ToggleContinue); }
     SocialMedia* media(){return &media_;}
@@ -175,7 +181,7 @@ signals:
     void partyQuery(QString peer);
     void companyQuery(QString company);
     void companyAccessChanged(QString company,QVariantMap access);
-    void partyJoin(QString peer);
+    void partyJoin(QString peer,QJsonObject expectedOffer);
     void partyLeave();
     void runtimeAction(QString action);
     void communicationSettingsRequested();
@@ -224,6 +230,10 @@ private:
     QHash<QString,QVariantMap> gameActivities_;
     QVariantMap gameParty_;
     QVariantList companyParties_;
+    QVariantMap joinOffer(const QString& peer) const;
+    void addJoinChoice(QString label,const QString& command,const QString& peer,const QVariantMap& offer);
+    void directJoin(const QString& peer,const QVariantMap& offer);
+    QHash<QString,QVariantMap> joinChoices_;
     int partyIndex_=0;
     bool partyFocus_=false;
     QString companySettingsKey(const QString&) const;
