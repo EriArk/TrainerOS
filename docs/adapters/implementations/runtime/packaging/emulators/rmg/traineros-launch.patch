@@ -1,0 +1,79 @@
+diff --git a/Source/RMG/UserInterface/MainWindow.cpp b/Source/RMG/UserInterface/MainWindow.cpp
+index 63c7dac..8af2729 100644
+--- a/Source/RMG/UserInterface/MainWindow.cpp
++++ b/Source/RMG/UserInterface/MainWindow.cpp
+@@ -153,6 +153,8 @@ bool MainWindow::Init(QApplication* app, bool showUI, bool launchROM)
+     return true;
+ }
+ 
++#include "TrainerNetplay.inc"
++
+ void MainWindow::OpenROM(QString file, QString disk, bool fullscreen, bool quitAfterEmulation, int stateSlot)
+ {
+     this->ui_LaunchInFullscreen = fullscreen;
+@@ -491,6 +493,11 @@ QString MainWindow::getWindowTitle(void)
+ 
+ void MainWindow::showErrorMessage(QString text, QString details, bool force)
+ {
++    if (qEnvironmentVariableIsSet("TRAINEROS_RMG_SESSION")) {
++        std::fputs("[TrainerOSRmg] error\n", stdout); std::fflush(stdout);
++        QTimer::singleShot(0, this, [this] { this->ui_ForceClose = true; this->close(); });
++        return;
++    }
+     // fallback to helper when forced
+     if (force)
+     {
+@@ -2148,6 +2155,12 @@ void MainWindow::on_Emulation_Started(void)
+ 
+ void MainWindow::on_Emulation_Finished(bool ret, QString error)
+ {
++    if (qEnvironmentVariableIsSet("TRAINEROS_RMG_SESSION")) {
++        if (!ret) { std::fputs("[TrainerOSRmg] error\n", stdout); std::fflush(stdout); }
++        this->ui_ForceClose = true;
++        this->close();
++        return;
++    }
+     if (!ret)
+     {
+         // whatever we do on failure,
+@@ -2724,6 +2737,10 @@ void MainWindow::on_Core_DebugCallback(QList<CoreCallbackMessage> messages)
+ 
+ void MainWindow::on_Core_StateCallback(CoreStateCallbackType type, int value)
+ {
++    if (qEnvironmentVariableIsSet("TRAINEROS_RMG_SESSION") && type == CoreStateCallbackType::EmulationState
++        && value == static_cast<int>(CoreEmulationState::Running)) {
++        std::fputs("[TrainerOSRmg] running\n", stdout); std::fflush(stdout);
++    }
+     switch (type)
+     {
+         default:
+diff --git a/Source/RMG/UserInterface/MainWindow.hpp b/Source/RMG/UserInterface/MainWindow.hpp
+index 3cb1669..b8e40a7 100644
+--- a/Source/RMG/UserInterface/MainWindow.hpp
++++ b/Source/RMG/UserInterface/MainWindow.hpp
+@@ -46,6 +46,7 @@ class MainWindow : public QMainWindow, private Ui::MainWindow
+     MainWindow(void);
+     ~MainWindow(void);
+ 
++    bool OpenTrainerNetplay(QString file, QString sessionPath);
+     bool Init(QApplication* app, bool showUI, bool launchROM);
+     void OpenROM(QString file, QString disk, bool fullscreen, bool quitAfterEmulation, int stateSlot);
+ 
+diff --git a/Source/RMG/main.cpp b/Source/RMG/main.cpp
+index 6092d1c..e8d2702 100644
+--- a/Source/RMG/main.cpp
++++ b/Source/RMG/main.cpp
+@@ -284,7 +284,12 @@ int main(int argc, char **argv)
+             saveStateSlot = -1;
+         }
+ 
+-        window.OpenROM(args.at(0), parser.value(diskOption), parser.isSet(fullscreenOption), parser.isSet(quitAfterEmulationOption), saveStateSlot);
++        const auto trainerSession = qEnvironmentVariable("TRAINEROS_RMG_SESSION");
++        if (!trainerSession.isEmpty()) {
++            if (!window.OpenTrainerNetplay(args.at(0), trainerSession)) return 2;
++        } else {
++            window.OpenROM(args.at(0), parser.value(diskOption), parser.isSet(fullscreenOption), parser.isSet(quitAfterEmulationOption), saveStateSlot);
++        }
+     }
+ 
+     // show window

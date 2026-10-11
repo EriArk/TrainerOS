@@ -6,6 +6,7 @@ that another edition of the same game has the same format.
 
 | Record | Exact targets | Current boundary |
 |---|---|---|
+| [N64 native runtime](../emulators/RMG.md) | Matching raw cartridge, pinned RMG bundle and native server | Automatic room/lifecycle source integration and four lobby clients; no installed N64 gameplay or semantic save capability |
 | [PS1 shared-console runtime](../MULTIPLAYER_PREPARATION.md#ps1-runtime-decision--11-october-2026) | Matching PCSX ReARMed/RetroArch, owned BIOS, CUE/CHD content | Source integration and Windows checks; two digital pads, isolated cards; no semantic save capability or paired-device acceptance |
 | [GameCube shared-console runtime](../MULTIPLAYER_PREPARATION.md#gamecube-extension-research--11-october-2026) | Matching installed Dolphin bridge and raw ISO/GCM content | Generic admission and Windows checks; existing native port mapping and isolated cards; wider-device acceptance and Wii/other peripherals remain separate |
 | [Handheld network link](../HANDHELD_MULTIPLAYER.md) | Pinned gpSP / DoubleCherryGB; exact game eligibility under research | Partial: Emerald trade/invitation/return; Red invitation, actual trade, independent save return and Gambatte Party readback; Gen II clock bridge and Gold return/readback on both. Gen II/TCG transactions, GBA modes and external acceptance stay open |

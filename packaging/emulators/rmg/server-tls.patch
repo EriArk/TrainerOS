@@ -1,0 +1,73 @@
+diff --git a/internal/lobbyServer/lobby.go b/internal/lobbyServer/lobby.go
+index 3353843..5cce125 100644
+--- a/internal/lobbyServer/lobby.go
++++ b/internal/lobbyServer/lobby.go
+@@ -17,8 +17,8 @@ import (
+ 	"sync"
+ 	"time"
+ 
+-	"github.com/go-logr/logr"
+ 	gameserver "github.com/Rosalie241/rmg-netplay-server/internal/gameServer"
++	"github.com/go-logr/logr"
+ 	"github.com/gorilla/websocket"
+ 	retryablehttp "github.com/hashicorp/go-retryablehttp"
+ )
+@@ -74,6 +74,8 @@ type LobbyServer struct {
+ 	VerifyIP         bool
+ 	CloseOnFinish    bool
+ 	quitChannel      chan bool
++	TLSCert          string
++	TLSKey           string
+ 	Timeout          int
+ 	sendMutex        sync.Mutex
+ }
+@@ -834,7 +836,12 @@ func (s *LobbyServer) RunSocketServer(broadcastPort int) error {
+ 		}()
+ 	}
+ 	go func() {
+-		err := http.ListenAndServe(listenAddress, nil)
++		var err error
++		if s.TLSCert != "" && s.TLSKey != "" {
++			err = http.ListenAndServeTLS(listenAddress, s.TLSCert, s.TLSKey, nil)
++		} else {
++			err = http.ListenAndServe(listenAddress, nil)
++		}
+ 		if err != nil {
+ 			s.Logger.Error(err, "error listening on http port")
+ 			s.quitChannel <- true
+diff --git a/main.go b/main.go
+index 7bfb9a5..410f022 100644
+--- a/main.go
++++ b/main.go
+@@ -6,8 +6,8 @@ import (
+ 	"log"
+ 	"os"
+ 
+-	"github.com/go-logr/zapr"
+ 	lobbyserver "github.com/Rosalie241/rmg-netplay-server/internal/lobbyServer"
++	"github.com/go-logr/zapr"
+ 	"go.uber.org/zap"
+ )
+ 
+@@ -36,7 +36,12 @@ func main() {
+ 	verifyIP := flag.Bool("verify-ip", false, "Verify that lobby IP addresses match in-game IP addresses")
+ 	closeOnFinish := flag.Bool("close-on-finish", false, "Close the server when the game finishes, implies -max-games=1")
+ 	timeout := flag.Int("timeout", 0, "Timeout in minutes. Closes the server if no games are running after this time")
++	tlsCert := flag.String("tls-cert", "", "TLS certificate for the operator lobby")
++	tlsKey := flag.String("tls-key", "", "TLS private key for the operator lobby")
+ 	flag.Parse()
++	if (*tlsCert == "") != (*tlsKey == "") {
++		log.Fatal("tls-cert and tls-key must be supplied together")
++	}
+ 
+ 	zapLog, err := newZap(*logPath)
+ 	if err != nil {
+@@ -73,6 +78,8 @@ func main() {
+ 		VerifyIP:         *verifyIP,
+ 		CloseOnFinish:    *closeOnFinish,
+ 		Timeout:          *timeout,
++		TLSCert:          *tlsCert,
++		TLSKey:           *tlsKey,
+ 	}
+ 	go s.LogServerStats()
+ 	if err := s.RunSocketServer(DefaultBasePort); err != nil {

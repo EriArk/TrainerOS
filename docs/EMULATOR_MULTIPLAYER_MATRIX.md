@@ -73,6 +73,12 @@ implementation, not the ordinary release gate or all-game runtime evidence.
 
 ## Current TrainerOS boundary
 
+**11 October N64 preparation:** the [RMG native route](emulators/RMG.md) now has
+automatic private room/roster handling and an isolated launch bridge through the
+existing invitations/lifecycle. Four lobby clients were checked locally,
+including TLS; N64 game execution, full runtime delivery and the operator online
+service remain pending. Ordinary N64 RetroArch launch stays unchanged.
+
 **10 October MP-02 update:** generic GB/GBC cartridges without battery/RTC storage
 can use DoubleCherryGB's existing linked pair over RetroArch rollback/relay,
 with per-player screen/audio and assigned controls. Into the Blue invitation and

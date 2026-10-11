@@ -57,12 +57,12 @@ class RuntimeMultiplayerTests final : public QObject {
             return lifecycle.launch(command,{},"ordinary",AdventureSavePolicy::ManualConfirm);
         }
     };
-    void requestRestart(Fixture& f) {
+    void requestRestart(Fixture& f,QJsonObject profile={{"transport","netpacket"}}) {
         f.lifecycle.exitController().setAvailable(true);
         QVERIFY(f.view.requestMenu());
         f.runtime.active_=true;f.runtime.host_=true;
         f.runtime.game_="missing-after-close";
-        f.runtime.descriptor_={{"transport","netpacket"}};
+        f.runtime.descriptor_=profile;
         f.runtime.deadline_=QDateTime::currentSecsSinceEpoch()+1;
         f.runtime.timer_.start();
         f.runtime.prepareHost();
@@ -86,6 +86,21 @@ class RuntimeMultiplayerTests final : public QObject {
         QTRY_VERIFY(!f.lifecycle.active());
     }
 private slots:
+    void n64HostRetainsSaveQuestionAndCancellationStopsPreparation() {
+        Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        requestRestart(f,{{"id","runtime.rmg.n64.v1"}});
+        QVERIFY(f.process.active());QVERIFY(f.runtime.restarting_);QVERIFY(!f.runtime.rmgPreparing_);
+        f.lifecycle.exitController().cancel();
+        QVERIFY(f.process.active());QVERIFY(!f.runtime.active_);QVERIFY(!f.runtime.rmgPreparing_);
+        int launches=0;f.runtime.requestRuntimeLaunch=[&](const ProcessCommand&,const QString&){++launches;return AdventureResult{false,{}};};
+        emit f.runtime.rmgLobby_.launchReady("127.0.0.1",45001,1);QCOMPARE(launches,0);
+        finishOrdinary(f);
+    }
+    void n64RejectsChangedIdentityBeforeRoomPreparation() {
+        Fixture f;f.runtime.active_=true;f.runtime.descriptor_={{"id","runtime.rmg.n64.v1"},{"content","accepted"}};
+        f.runtime.frame({{"kind","rmg-ready"},{"identity",QJsonObject{{"id","runtime.rmg.n64.v1"},{"content","other"}}}});
+        QVERIFY(!f.runtime.active_);QVERIFY(!f.runtime.rmgPreparing_);
+    }
     void pendingInvitationSurvivesUnrelatedGameExitAndCanBeCollapsed() {
         Fixture f;GameParty host;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
         inviteWhilePlaying(f,host);const auto request=f.runtime.invitationId();QVERIFY(!request.isEmpty());

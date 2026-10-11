@@ -14,7 +14,7 @@ checks or count a list of emulator candidates as implemented multiplayer.
 | Classic RetroArch | Shared-console netplay and existing relay | Integrated; retained acceptance is in RETROARCH_MULTIPLAYER_PROFILES.md |
 | GB/GBC/GBA | Existing linked cores / gpSP netpacket | Integrated bounded routes; remaining MP-02 modes and acceptance stay open |
 | PS1 | PCSX ReARMed with the existing RetroArch route | Source implementation and local checks: private BIOS/disc identity, two digital controller ports and private cards; no handheld delivery yet |
-| N64 | Review maintained native netplay routes | Installed libretro cores advertise serialized states, which alone does not establish deterministic rollback |
+| N64 | RMG / Mupen64Plus native server | Automatic room/roster/launch source integration; four-client lobby check, private progress; full runtime build, operator internet service and devices pending ([record](emulators/RMG.md)) |
 | Dreamcast | Flycast / suitable maintained netplay fork | Ordinary runtime installed; automatic internet session integration remains open |
 | PS2 | ARMSX2/PCSX2 game networking; shared-console mode is separate | DEV9 networking does not provide remote second-controller gameplay |
 | GameCube/Wii | Extend existing Dolphin native netplay bridge | Generic raw GameCube ISO/GCM admission implemented and locally checked. Exact Melee remains. Wii input route and device delivery remain open |
@@ -154,6 +154,7 @@ the changed client/runtime files and check actual launch, assigned controls,
 gameplay, leave/reinvite and ordinary save preservation. Defer long compatibility
 matrices, four physical clients and distinct-network/NAT cases to their actual
 prerequisites. Source and fixture evidence cannot close these gates.
-MP-03 N64 mechanism selection and the remaining accepted family integrations are
-the next independent implementation work. PS2, Wii, 3DS, Wii U, Vita and Hotseat
+MP-03 N64 now has the [native integration preparation](emulators/RMG.md). Its full
+runtime build/operator service/device gates remain open; Dreamcast is the next
+independent family in the retained queue. PS2, Wii, 3DS, Wii U, Vita and Hotseat
 remain open; no missing route is hidden behind the local PS1/GameCube result.

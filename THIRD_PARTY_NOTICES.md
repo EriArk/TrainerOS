@@ -48,7 +48,12 @@ system packages or a built image's source/notice delivery.
   differently licensed legacy OpenSSL 1.x without a new compatibility review.
   [Upstream license](https://github.com/openssl/openssl/blob/openssl-3.0/LICENSE.txt).
 - **Dolphin modifications:** GPL-2.0-or-later already permits the GPLv3 option;
-  existing file notices stay unchanged. These are built with the separate emulator.
+    existing file notices stay unchanged. These are built with the separate emulator.
+- **DoubleCherryGB:** the maintained upstream uses AGPL-3.0 according to its actual
+- **RMG and rmg-netplay-server modifications:** GPL-3.0-only, built as separate
+  emulator/server programs. Preserve [the upstream license](packaging/emulators/rmg/LICENSE.upstream)
+  and existing file notices with the maintained launch/TLS patches; see
+  [the maintenance record](docs/emulators/RMG.md). This does not clear #115.
 - **DoubleCherryGB:** the maintained upstream uses AGPL-3.0 according to its actual
   license file. It remains an external emulator/core with its own obligations;
   TrainerOS's root license does not replace them. See [maintenance](docs/emulators/doublecherrygb.md).

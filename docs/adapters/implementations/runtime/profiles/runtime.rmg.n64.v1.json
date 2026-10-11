@@ -1,0 +1,32 @@
+{
+  "id": "runtime.rmg.n64.v1",
+  "platform": "n64",
+  "romSha256": "",
+  "state": "partial",
+  "record": "../emulators/RMG.md",
+  "evidence": [
+    "pinned-upstream-native-netplay-source",
+    "upstream-linux-aarch64-build-matrix",
+    "four-client-native-lobby-check",
+    "tls-lobby-check",
+    "windows-isolation-and-identity-tests",
+    "shared-lifecycle-save-cancel-tests",
+    "windows-client-build",
+    "linux-arm64-server-cross-build",
+    "launch-bridge-upstream-api-compile-check"
+  ],
+  "remaining": [
+    "full-linux-arm64-rmg-build",
+    "operator-online-service",
+    "handheld-delivery",
+    "paired-gameplay-and-controls",
+    "four-real-devices",
+    "distinct-networks-and-strict-nat",
+    "home-input-and-audio"
+  ],
+  "persistentSaveWrites": false,
+  "implementationSource": "src/integrations/adventure/standalone/RmgNetplay.cpp",
+  "implementation": "implementations/runtime",
+  "profile": "implementations/runtime/profiles/runtime.rmg.n64.v1.json",
+  "evidenceBase": "../../../"
+}

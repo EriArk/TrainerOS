@@ -883,6 +883,7 @@ int main(int argc, char* argv[]) {
                 dolphin.requestLaunch = requestAdventure;
                 ppsspp.requestLaunch = requestAdventure;
                 armsx2.requestLaunch = requestAdventure;
+                multiplayer.requestRuntimeLaunch = requestAdventure;
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::changed, &session, [&] {
                     session.setAdventureActive(adventureLaunch.active());
                     session.setAdventureMinimized(adventureLaunch.minimized());

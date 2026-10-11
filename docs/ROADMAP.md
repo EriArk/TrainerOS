@@ -15,6 +15,12 @@ GameCube admission are implemented, with a built Windows client and 3/3 affected
 test suites passing. [Evidence](MULTIPLAYER_PREPARATION.md#local-verification--11-october-2026)
 retains ARM/device/gameplay gates, Hotseat and the remaining runtime families.
 
+**11 October N64 continuation:** [RMG native integration](emulators/RMG.md)
+prepares automatic private rooms, accepted-roster start and isolated launch
+through the common lifecycle. Four lobby clients are bounded protocol evidence,
+not N64 gameplay. Full runtime build/install and operator online service remain
+open; independent Dreamcast preparation is next while devices are deferred.
+
 **Universal invitation handoff, 10 October 2026:** an incoming multiplayer
 invitation can stay as a corner badge while its recipient keeps playing and
 saves. It survives an independent ordinary-game exit; explicit "Saved — join"

@@ -1,5 +1,13 @@
 # Current tasks
 
+**N64 source preparation, 11 October 2026:** [RMG native netplay](emulators/RMG.md)
+now has automatic private rooms, roster-gated start and an isolated runtime launch
+through the existing invitation/save lifecycle. Four lobby clients (including
+TLS) are protocol evidence only. Full Linux/ARM64 RMG build, operator internet
+service and device/gameplay checks remain open. Dreamcast is the next independent
+family preparation; preserve MP-02 acceptance, Hotseat and the full Wii U/Vita
+scope. No multiplayer block or issue is closed by this source increment.
+
 **Owner Hotseat clarification, 11 October 2026:** deliver both simultaneous
 independent controllers and ordered one-pad handoff on PS1/PS2/GameCube. Compile
 the comprehensive [game/mode catalogue](HOTSEAT_GAME_CATALOG.md), beginning with

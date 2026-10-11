@@ -28,7 +28,13 @@ own/parent/BIOS dependencies; regenerate in the parent repo with
 names do not produce multiplayer identities. `prepareNetplay` revalidates the accepted
 capacity/layout. Exact legacy profiles retain their specific controls.
 
-Linux, C++20 and Qt 6 Core/Gui/Network (Gui is a model-header dependency):
+The N64 module also includes the pinned RMG launch/TLS patches and native lobby
+client. See [its evidence and deployment limits](../../../emulators/RMG.md).
+The bridge and server modifications retain their own GPL-3.0-only license in
+`packaging/emulators/rmg/LICENSE.upstream`; the receiving application's license
+does not replace upstream notices.
+
+Linux, C++20 and Qt 6 Core/Gui/Network/WebSockets (Gui is a model-header dependency):
 
 ```sh
 cmake -S . -B build

@@ -7,6 +7,7 @@
 #include "integrations/adventure/retroarch/LinkedSavePreparation.h"
 #include "integrations/adventure/standalone/PpssppNetplay.h"
 #include "integrations/adventure/standalone/DolphinNetplay.h"
+#include "integrations/adventure/standalone/RmgNetplay.h"
 #include "platform/network/LocalLinkPeer.h"
 #include <QFutureWatcher>
 #include <QNetworkAccessManager>
@@ -51,6 +52,8 @@ public:
         std::function<bool(const QString&,const QJsonObject&)> available;
         std::function<bool(const QString&,const QJsonObject&,const QJsonObject&)> join;
     } runningJoin;
+    // Shared application launch barrier for a packaged alternate runtime.
+    std::function<AdventureResult(const ProcessCommand&,const QString&)> requestRuntimeLaunch;
 signals:
     void liveOptionsRequested();
     void invitationOptionsRequested();
@@ -66,6 +69,8 @@ private:
     void prepareHost();
     void resolveRelay();
     void resolvePspRelay();
+    void prepareRmg();
+    bool rmg() const { return descriptor_["id"]=="runtime.rmg.n64.v1"; }
     bool psp() const { return descriptor_["id"].toString().startsWith("runtime.ppsspp."); }
     bool dolphin() const { return descriptor_["id"].toString().startsWith("runtime.dolphin."); }
     void frame(const QJsonObject&);
@@ -84,6 +89,9 @@ private:
     LibraryRepository& library_;RetroArchAdapter& adapter_;SocialController& social_;
     StandaloneAdapter& ppsspp_;StandaloneAdapter& dolphin_;
     dolphin::NetplayRequest dolphinRequest_;
+    rmg::Lobby rmgLobby_{this};
+    rmg::Lobby::Request rmgRequest_;
+    bool rmgPreparing_=false;
     ProcessService& process_;AdventureLaunchController& lifecycle_;AdventureExitPresentation& overlay_;
     LocalLinkPeer nearby_{this,47855,47856,"trainerosRuntime",true};
     GameParty party_{this};

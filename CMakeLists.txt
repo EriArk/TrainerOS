@@ -96,6 +96,7 @@ add_library(trainer_core STATIC
     src/integrations/adventure/standalone/StandaloneAdapter.cpp
     src/integrations/adventure/standalone/PpssppNetplay.cpp
     src/integrations/adventure/standalone/DolphinNetplay.cpp
+    src/integrations/adventure/standalone/RmgNetplay.cpp
     src/platform/device/DeviceService.h
     src/platform/device/DeviceService.cpp
     src/platform/device/NetworkService.h
@@ -425,6 +426,9 @@ if(BUILD_TESTING)
     target_link_libraries(trainer_standalone_tests PRIVATE trainer_core Qt6::Test)
     add_dependencies(trainer_standalone_tests trainer_process_probe)
     add_test(NAME standalone COMMAND trainer_standalone_tests)
+    qt_add_executable(trainer_rmg_netplay_tests tests/RmgNetplayTests.cpp)
+    target_link_libraries(trainer_rmg_netplay_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME rmg_netplay COMMAND trainer_rmg_netplay_tests)
     target_link_libraries(trainer_device_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME device COMMAND trainer_device_tests)
     target_link_libraries(trainer_power_tests PRIVATE trainer_core Qt6::Test)
