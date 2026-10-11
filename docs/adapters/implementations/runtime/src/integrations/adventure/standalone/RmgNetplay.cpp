@@ -42,10 +42,11 @@ QJsonObject bundle(const std::atomic_bool& cancel) {
     if(!file.open(QIODevice::ReadOnly)||file.size()>65536)return {};
     auto m=QJsonDocument::fromJson(file.readAll()).object();
     if(m["protocol"]!=1||m["source"]!=sourceRevision||m["serverSource"]!=serverRevision)return {};
-    // An operator endpoint is an installation dependency, never a player setup
-    // field. Keep Online unavailable until the runtime and service are supplied.
-    const QUrl online(m["onlineServer"].toString());
-    if(!serverUrl(online)||online.scheme()!="wss")return {};
+    // Nearby owns its local server. An operator endpoint enables Online
+    // separately; its absence must not disable an installed Nearby runtime.
+    const QUrl online(m.value("onlineServer").toString());
+    if(m.contains("onlineServer")&&!m.value("onlineServer").isString())return {};
+    if(!online.isEmpty()&&(!serverUrl(online)||online.scheme()!="wss"))return {};
     const auto files=m["files"].toObject();
     if(files.size()<7||files.size()>512)return {};
     for(const auto& required:{"bin/RMG","bin/rmg-netplay-server","lib/libRMG-Core.so",
@@ -79,9 +80,11 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const std::atomic_boo
     if(magic!="80371240"&&magic!="37804012"&&magic!="40123780")return {};
     const auto m=bundle(cancel);if(m.isEmpty())return {};
     const auto content=digest(r.contentPath,cancel,64*1024*1024);if(content.isEmpty())return {};
+    QJsonArray connections{"nearby"};
+    if(!m["onlineServer"].toString().isEmpty())connections.append("online");
     return {{"id","runtime.rmg.n64.v1"},{"label",r.adventure.title.left(96)},
         {"content",content},{"runtime",m["digest"]},{"settings","rmg-native-v1-private-progress-"+m["renderer"].toString()},
-        {"players",players},{"lateJoin",false}};
+        {"players",players},{"lateJoin",false},{"connections",connections},{"temporaryProgress",true}};
 }
 ProcessCommand command(const AdventureRegistration& r,const QJsonObject& expected,const QString& address,
                        int port,int controller,const QStringList& inputPrefix) {

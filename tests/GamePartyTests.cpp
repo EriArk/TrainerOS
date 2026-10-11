@@ -35,6 +35,36 @@ class GamePartyTests : public QObject {
         }
     };
 private slots:
+    void connectionAvailabilityGatesBothDirectionsAndCompanyAdmission() {
+        GameParty a,b;auto local=game();local["connections"]=QJsonArray{"nearby"};
+        a.configure("a",{local},local,true);b.configure("b",{game()},game(),true);
+        QJsonObject invitation;
+        connect(&a,&GameParty::outgoing,&b,[&](QString target,QJsonObject p){
+            if(p["kind"]=="invite")invitation=p;
+            b.receive(target.section(':',0,0)+":a","a",p);
+        });
+        connect(&b,&GameParty::outgoing,&a,[&](QString target,QJsonObject p){a.receive(target.section(':',0,0)+":b","b",p);});
+        QSignalSpy outgoing(&a,&GameParty::outgoing),started(&a,&GameParty::startRequested);
+        a.invite("online:b");QVERIFY(!a.active());QCOMPARE(outgoing.size(),0);
+        QVERIFY(!a.openCompany("friends","request",{}));
+        b.query("online:a");QVERIFY(!b.offer("online:a")["joinable"].toBool());
+        b.requestJoin("online:a");QVERIFY(!b.state()["joining"].toBool());
+        // The guest must also enforce its local route when an older/forged
+        // remote offer advertises broader availability.
+        b.configure("b",{local},local,true);a.configure("a",{game()},game(),true);
+        a.invite("online:b");QVERIFY(b.pending().isEmpty());a.leave();
+        a.invite("nearby:b");QVERIFY(!b.pending().isEmpty());b.answer(true);
+        QCOMPARE(a.state()["members"].toArray().size(),2);
+        a.start();QCOMPARE(started.size(),1);a.leave();
+        // Availability changed after consent: no late launch through an old
+        // accepted roster. Core/content identity itself remains compatible.
+        a.invite("nearby:b");b.answer(true);
+        auto online=game();online["connections"]=QJsonArray{"online"};
+        a.configure("a",{online},online,true);a.start();QCOMPARE(started.size(),1);
+        QVERIFY(sameMultiplayerGame(local,online));
+        auto malformed=game();malformed["connections"]="nearby";
+        QVERIFY(!multiplayerConnectionAllowed(malformed,"nearby"));
+    }
     void invitedGuestHasBoundedTimeToSaveWithoutExtendingPacketReplay() {
         Room r;QJsonObject packet;
         connect(&r.a,&GameParty::outgoing,&r.a,[&](QString,QJsonObject value){if(value["kind"]=="invite")packet=value;});

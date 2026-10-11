@@ -289,9 +289,17 @@ private slots:
         QVERIFY(!profile.isEmpty());
         scan.addResult({first.adventure.id,profile});
         QTRY_COMPARE(f.runtime.onlineGames(),QStringList{"verified"});
+        QCOMPARE(f.runtime.nearbyGames(),QStringList{"verified"});
+        QCOMPARE(f.runtime.multiplayerGames(),QStringList{"verified"});
         QVERIFY(f.runtime.scan_.isRunning());
+        auto nearby=profile;nearby["connections"]=QJsonArray{"nearby"};
+        scan.addResult({pending.adventure.id,nearby});
+        QTRY_COMPARE(f.runtime.nearbyGames().size(),2);
+        QCOMPARE(f.runtime.onlineGames(),QStringList{"verified"});
+        QCOMPARE(f.runtime.multiplayerGames().size(),2);
         f.runtime.refresh({},"test-trainer",false);
         QVERIFY(f.runtime.onlineGames().isEmpty());
+        QVERIFY(f.runtime.nearbyGames().isEmpty());QVERIFY(f.runtime.multiplayerGames().isEmpty());
         scan.addResult({pending.adventure.id,profile});
         QCoreApplication::processEvents();
         QVERIFY(f.runtime.onlineGames().isEmpty());

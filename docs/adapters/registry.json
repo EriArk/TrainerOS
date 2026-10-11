@@ -136,16 +136,21 @@
         "linux-arm64-server-cross-build",
         "launch-bridge-upstream-api-compile-check",
         "full-pinned-arm64-rmg-core-and-plugins-build",
-        "explicit-arm64-nearby-and-tls-four-client-lobby-tests"
+        "explicit-arm64-nearby-and-tls-four-client-lobby-tests",
+        "armada-isolated-dependency-bundle",
+        "two-handheld-mario-kart64-race-and-independent-input",
+        "ordinary-nearby-invite-home-minimize-exit",
+        "bounded-original-save-hash-preservation",
+        "per-connection-admission-and-library-badges"
       ],
       "remaining": [
-        "host-compatible-runtime-dependency-bundle",
         "operator-online-service",
-        "handheld-delivery",
-        "paired-gameplay-and-controls",
         "four-real-devices",
         "distinct-networks-and-strict-nat",
-        "home-input-and-audio"
+        "wider-games-and-sustained-gameplay",
+        "physical-input-and-audio",
+        "loss-and-reinvitation",
+        "party-list-selection-polish"
       ],
       "persistentSaveWrites": false,
       "implementationSource": "src/integrations/adventure/standalone/RmgNetplay.cpp",

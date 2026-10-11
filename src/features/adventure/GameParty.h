@@ -60,7 +60,7 @@ private:
     bool create();
     void clear();
     int freeSlot() const;
-    bool supports(const QJsonObject&) const;
+    bool supports(const QJsonObject&,const QString& peer={}) const;
     QString name_,boot_,party_,host_,hostBoot_,joiningPeer_,joiningId_;
     QJsonArray games_;
     QJsonObject current_,game_,endpoint_;

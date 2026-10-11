@@ -2,9 +2,9 @@
 # Pinned upstream native netplay; requires the dependencies in docs/emulators/RMG.md.
 set -eu
 recipe=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-: "${1:?Usage: build.sh NEW_WORK_DIRECTORY DESTINATION ONLINE_WSS_URL [vulkan|opengl]}"
+: "${1:?Usage: build.sh NEW_WORK_DIRECTORY DESTINATION ONLINE_WSS_URL_OR_--nearby-only [vulkan|opengl]}"
 : "${2:?Missing destination}"
-: "${3:?Missing operator WebSocket endpoint}"
+: "${3:?Supply an operator WebSocket endpoint or --nearby-only}"
 work=$1
 dest=$2
 test ! -e "$work" || { echo 'Use a new work directory' >&2; exit 1; }
@@ -31,4 +31,7 @@ git -C "$work/server" apply "$recipe/server-tls.patch"
 mkdir -p "$dest/licenses"
 cp "$work/server/LICENSE" "$dest/licenses/rmg-netplay-server.txt"
 cp "$recipe/LICENSE.upstream" "$dest/licenses/RMG.txt"
+if [ "${ARMADA_BUNDLE_DEPS:-0}" = 1 ]; then
+    python3 "$recipe/armada-dependencies.py" "$dest"
+fi
 python3 "$recipe/bundle.py" "$dest" "$3" "${4:-vulkan}"

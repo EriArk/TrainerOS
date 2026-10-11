@@ -551,13 +551,18 @@ void SocialController::addJoinChoice(QString label,const QString& command,const 
         const QString notice="Temporary save copies are shared with the players in this session. Only your own progress returns.";
         if(!menuDetail_.contains(notice))menuDetail_+=(menuDetail_.isEmpty()?QString():"\n")+notice;
     }
+    if(offer["game"].toMap()["temporaryProgress"].toBool()) {
+        label+=" (temporary progress)";
+        const QString notice="This session starts fresh. Progress isn't kept.";
+        if(!menuDetail_.contains(notice))menuDetail_+=(menuDetail_.isEmpty()?QString():"\n")+notice;
+    }
     joinChoices_[command]={{"peer",peer},{"game",offer["game"]},{"party",offer["party"].toString()},
         {"generation",QVariant::fromValue(generation_)},{"owner",owner_},{"account",snapshot_["userId"]}};
     menu_.append(label);menuCommands_.append(command);
 }
 void SocialController::directJoin(const QString& peer,const QVariantMap& offer) {
     if(peer.isEmpty()||!offer["joinable"].toBool()||gameActive_)return;
-    if(offer["game"].toMap()["privateProgress"].toBool()) {
+    if(offer["game"].toMap()["privateProgress"].toBool()||offer["game"].toMap()["temporaryProgress"].toBool()) {
         // Legacy direct/controller entry points must display the same disclosure
         // before emitting consent. Ordinary Together rows already do this inline.
         closeMenu();menuMode_="join";menuTitle_="Join game";menuDetail_=offer["game"].toMap()["label"].toString();menuFocus_=0;

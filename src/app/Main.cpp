@@ -453,7 +453,7 @@ int main(int argc, char* argv[]) {
             };
         }
         QObject::connect(&multiplayer,&RuntimeMultiplayer::invitationSurfaceRequested,&shell,[&]{shell.goToPage(4);});
-        shell.libraryTools()->multiplayerAvailable=[&](const QString& id){return multiplayer.onlineGames().contains(id);};
+        shell.libraryTools()->multiplayerAvailable=[&](const QString& id){return multiplayer.multiplayerGames().contains(id);};
         QObject::connect(&shell,&ShellController::togetherRequested,&multiplayer,[&](const QString& game){shell.goToPage(4);multiplayer.beginTogether(game);});
         QObject::connect(shell.social(),&SocialController::runtimeAction,&multiplayer,[&](const QString& action){multiplayer.contextAction(action);});
         QObject::connect(&multiplayer,&RuntimeMultiplayer::notice,&shell,[&](QString text){

@@ -218,7 +218,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     installation_=installation;
     if(!allowed_) {
         games_.clear();
-        if(!onlineGames_.isEmpty()){onlineGames_.clear();emit availabilityChanged();}
+        if(!multiplayerGames_.isEmpty()){onlineGames_.clear();nearbyGames_.clear();multiplayerGames_.clear();emit availabilityChanged();}
         update();return;
     }
     const auto records=library_.registrations();
@@ -267,7 +267,14 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     for(auto it=profiles_.cbegin();it!=profiles_.cend();++it)
         if(metadata.contains(it.key())&&permitsMultiplayer(metadata.value(it.key()),it.value()))games_.insert(it.key(),it.value());
     const auto visible=allowed_?games_.keys():QStringList{};
-    if(visible!=onlineGames_){onlineGames_=visible;emit availabilityChanged();}
+    QStringList online,nearby;
+    for(const auto& id:visible) {
+        if(multiplayerConnectionAllowed(games_.value(id),"online"))online.append(id);
+        if(multiplayerConnectionAllowed(games_.value(id),"nearby"))nearby.append(id);
+    }
+    if(visible!=multiplayerGames_||online!=onlineGames_||nearby!=nearbyGames_) {
+        multiplayerGames_=visible;onlineGames_=online;nearbyGames_=nearby;emit availabilityChanged();
+    }
     update();
 }
 QString RuntimeMultiplayer::menuLabel() const {return !party_.pending().isEmpty()?"Incoming activity":party_.active()?"Game party":"Play together";}
@@ -326,7 +333,8 @@ void RuntimeMultiplayer::cancelInvitationExit() {
 }
 QString RuntimeMultiplayer::invitation() const {
     const auto pending=party_.pending();
-    return pending["name"].toString()+(pending["joining"].toBool()?" wants to join ":" invites you to play ")+pending["game"].toObject()["label"].toString()+"."+(pending["game"].toObject()["privateProgress"].toBool()?" Save copies are shared with this session's players. Only your own progress returns.":QString());
+    const auto game=pending["game"].toObject();
+    return pending["name"].toString()+(pending["joining"].toBool()?" wants to join ":" invites you to play ")+game["label"].toString()+"."+(game["privateProgress"].toBool()?" Save copies are shared with this session's players. Only your own progress returns.":game["temporaryProgress"].toBool()?" This session starts fresh. Progress isn't kept.":QString());
 }
 void RuntimeMultiplayer::answer(bool accept) {
     if(accept && lifecycle_.active() && !party_.pending()["joining"].toBool() && !canJoinRunning(party_.pending()["game"].toObject())) {
@@ -364,6 +372,9 @@ void RuntimeMultiplayer::update() {
 }
 void RuntimeMultiplayer::show(QString panel) {
     QVariantList rows;QString caption;
+    const auto offered=party_.active()?party_.game():descriptor_;
+    const bool onlineAvailable=multiplayerConnectionAllowed(offered,"online");
+    const bool nearbyAvailable=multiplayerConnectionAllowed(offered,"nearby");
     if(panel=="multiplayer"&&!party_.pending().isEmpty())panel="multiplayer-request";
     if(panel=="multiplayer"&&party_.active())panel="multiplayer-party";
     if(panel=="multiplayer")panel="multiplayer-people";
@@ -378,6 +389,10 @@ void RuntimeMultiplayer::show(QString panel) {
         }
     } else if(panel=="multiplayer-party") {
         const auto state=party_.state();caption=state["game"].toObject()["label"].toString()+" · "+QString::number(state["members"].toArray().size())+" / "+QString::number(state["capacity"].toInt())+" players";
+        if(state["game"].toObject()["temporaryProgress"].toBool()) {
+            auto info=row("multiplayer-info","Temporary progress","This session starts fresh. Progress isn't kept.");
+            info["readOnly"]=true;rows.append(info);
+        }
         if(state["game"].toObject()["id"].toString().startsWith("runtime.ppsspp.")) {
             auto info=row("multiplayer-info","Choose Ad Hoc in the game","Game compatibility varies; original online servers are separate.");
             info["readOnly"]=true;rows.append(info);
@@ -402,21 +417,22 @@ void RuntimeMultiplayer::show(QString panel) {
     } else if(panel=="multiplayer-people") {
         caption="Choose a person or group";
         QSet<QString> identities;
-        if(!party_.active())for(const auto& p:social_.runtimeCompanies()) {const auto r=p.toMap();const auto id="multiplayer-company:"+r["id"].toString();if(identities.contains(id))continue;identities.insert(id);rows.append(row(id,r["name"].toString(),"Group"));}
-        if(!party_.active()||online_)for(const auto& p:social_.runtimeFriends()) {const auto r=p.toMap();const auto id="multiplayer-friend:"+r["id"].toString();if(identities.contains(id))continue;identities.insert(id);rows.append(row(id,r["name"].toString(),"Online friend"));}
+        if(onlineAvailable&&!party_.active())for(const auto& p:social_.runtimeCompanies()) {const auto r=p.toMap();const auto id="multiplayer-company:"+r["id"].toString();if(identities.contains(id))continue;identities.insert(id);rows.append(row(id,r["name"].toString(),"Group"));}
+        if(onlineAvailable&&(!party_.active()||online_))for(const auto& p:social_.runtimeFriends()) {const auto r=p.toMap();const auto id="multiplayer-friend:"+r["id"].toString();if(identities.contains(id))continue;identities.insert(id);rows.append(row(id,r["name"].toString(),"Online friend"));}
         // Discovery UUIDs have no authenticated account binding. Never merge
         // nearby and online identities just because their display names match.
-        if(!party_.active()||!online_)for(const auto& p:nearby_.peers()) {const auto r=p.toMap();const auto id="multiplayer-local:"+r["id"].toString();if(identities.contains(id))continue;identities.insert(id);rows.append(row(id,r["name"].toString(),"Nearby"));}
-        if(rows.isEmpty())caption="Looking for nearby Trainers. Friends appear when connected.";
+        if(nearbyAvailable&&(!party_.active()||!online_))for(const auto& p:nearby_.peers()) {const auto r=p.toMap();const auto id="multiplayer-local:"+r["id"].toString();if(identities.contains(id))continue;identities.insert(id);rows.append(row(id,r["name"].toString(),"Nearby"));}
+        if(!onlineAvailable)caption="Nearby play";
+        if(rows.isEmpty())caption=onlineAvailable?"Looking for nearby Trainers. Friends appear when connected.":"Looking for nearby Trainers. Online play is unavailable.";
     } else if(panel=="multiplayer-nearby") {
         caption="Choose a nearby Trainer";
-        for(const auto& p:nearby_.peers()){const auto r=p.toMap();rows.append(row("multiplayer-local:"+r["id"].toString(),r["name"].toString()));}
+        if(nearbyAvailable)for(const auto& p:nearby_.peers()){const auto r=p.toMap();rows.append(row("multiplayer-local:"+r["id"].toString(),r["name"].toString()));}
         if(rows.isEmpty())caption="Looking for nearby Trainers…";
     } else if(panel=="multiplayer-online") {
         caption="Choose a friend or group";
-        if(!party_.active())for(const auto& p:social_.runtimeCompanies()){const auto r=p.toMap();rows.append(row("multiplayer-company:"+r["id"].toString(),r["name"].toString(),"Play with this group"));}
-        for(const auto& p:social_.runtimeFriends()){const auto r=p.toMap();rows.append(row("multiplayer-friend:"+r["id"].toString(),r["name"].toString()));}
-        if(rows.isEmpty())caption="Add a friend in Social first";
+        if(onlineAvailable&&!party_.active())for(const auto& p:social_.runtimeCompanies()){const auto r=p.toMap();rows.append(row("multiplayer-company:"+r["id"].toString(),r["name"].toString(),"Play with this group"));}
+        if(onlineAvailable)for(const auto& p:social_.runtimeFriends()){const auto r=p.toMap();rows.append(row("multiplayer-friend:"+r["id"].toString(),r["name"].toString()));}
+        if(rows.isEmpty())caption=onlineAvailable?"Add a friend in Social first":"Online play is unavailable.";
     } else {
         caption=status_;
         if(caption.isEmpty())caption="Connecting to your friend…";

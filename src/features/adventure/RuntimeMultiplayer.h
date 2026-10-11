@@ -27,6 +27,7 @@ class RuntimeMultiplayer final : public QObject {
     Q_PROPERTY(QString invitationId READ invitationId NOTIFY changed)
     Q_PROPERTY(bool invitationBadge READ invitationBadge NOTIFY changed)
     Q_PROPERTY(QStringList onlineGames READ onlineGames NOTIFY availabilityChanged)
+    Q_PROPERTY(QStringList nearbyGames READ nearbyGames NOTIFY availabilityChanged)
 public:
     RuntimeMultiplayer(LibraryRepository&, RetroArchAdapter&, StandaloneAdapter&, StandaloneAdapter&, SocialController&,
                        ProcessService&, AdventureLaunchController&, AdventureExitPresentation&);
@@ -36,6 +37,8 @@ public:
     QString menuLabel() const;
     bool canInvite() const;
     QStringList onlineGames() const { return onlineGames_; }
+    QStringList nearbyGames() const { return nearbyGames_; }
+    QStringList multiplayerGames() const { return multiplayerGames_; }
     bool incoming() const;
     QString invitation() const;
     QString invitationId() const { return party_.pending()["request"].toString(); }
@@ -110,7 +113,7 @@ private:
     QString trainer_,identity_,game_,status_,transportPeer_,lastRequest_;
     QJsonObject descriptor_;
     QMap<QString,QJsonObject> profiles_,games_;
-    QStringList onlineGames_;
+    QStringList onlineGames_,nearbyGames_,multiplayerGames_;
     retroarch::NetplayRequest request_;
     retroarch::NetplayClient client_{this};
     retroarch::LinkedSavePreparation linkedSave_{this};

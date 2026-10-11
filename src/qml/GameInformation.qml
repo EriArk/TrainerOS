@@ -8,6 +8,8 @@ Item {
     readonly property var playInfo: entry.playInfo || ({})
     readonly property bool onlineAvailable: typeof runtimeMultiplayer !== "undefined"
         && runtimeMultiplayer.onlineGames.indexOf(entry.id || "") >= 0
+    readonly property bool nearbyAvailable: typeof runtimeMultiplayer !== "undefined"
+        && runtimeMultiplayer.nearbyGames.indexOf(entry.id || "") >= 0
     readonly property var facts: entry.artwork && entry.artwork.displayFacts === false ? [] : [
         { label: "YEAR", value: entry.year || "", tint: "#f2df9d" },
         { label: "GENRE", value: entry.genre || "", tint: "#bedce4" },
@@ -71,6 +73,7 @@ Item {
         }
         PlayBadge { visible: !!root.playInfo.mode; label: root.playInfo.mode || "" }
         PlayBadge { objectName: "game-online-support"; visible: root.onlineAvailable; online: true; label: "Online play" }
+        PlayBadge { objectName: "game-nearby-support"; visible: root.nearbyAvailable && !root.onlineAvailable; label: "Nearby play" }
     }
     Text {
         id: status

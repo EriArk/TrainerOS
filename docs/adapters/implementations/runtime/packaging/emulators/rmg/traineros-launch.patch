@@ -1,5 +1,5 @@
 diff --git a/Source/RMG/UserInterface/MainWindow.cpp b/Source/RMG/UserInterface/MainWindow.cpp
-index 63c7dac..8af2729 100644
+index 63c7dac..b655508 100644
 --- a/Source/RMG/UserInterface/MainWindow.cpp
 +++ b/Source/RMG/UserInterface/MainWindow.cpp
 @@ -153,6 +153,8 @@ bool MainWindow::Init(QApplication* app, bool showUI, bool launchROM)
@@ -11,11 +11,13 @@ index 63c7dac..8af2729 100644
  void MainWindow::OpenROM(QString file, QString disk, bool fullscreen, bool quitAfterEmulation, int stateSlot)
  {
      this->ui_LaunchInFullscreen = fullscreen;
-@@ -491,6 +493,11 @@ QString MainWindow::getWindowTitle(void)
+@@ -491,6 +493,13 @@ QString MainWindow::getWindowTitle(void)
  
  void MainWindow::showErrorMessage(QString text, QString details, bool force)
  {
 +    if (qEnvironmentVariableIsSet("TRAINEROS_RMG_SESSION")) {
++        if (qEnvironmentVariableIsSet("TRAINEROS_RMG_DIAGNOSTICS"))
++            std::fprintf(stderr, "[TrainerOSRmg] %s: %s\n", qPrintable(text), qPrintable(details));
 +        std::fputs("[TrainerOSRmg] error\n", stdout); std::fflush(stdout);
 +        QTimer::singleShot(0, this, [this] { this->ui_ForceClose = true; this->close(); });
 +        return;
@@ -23,12 +25,16 @@ index 63c7dac..8af2729 100644
      // fallback to helper when forced
      if (force)
      {
-@@ -2148,6 +2155,12 @@ void MainWindow::on_Emulation_Started(void)
+@@ -2148,6 +2157,16 @@ void MainWindow::on_Emulation_Started(void)
  
  void MainWindow::on_Emulation_Finished(bool ret, QString error)
  {
 +    if (qEnvironmentVariableIsSet("TRAINEROS_RMG_SESSION")) {
-+        if (!ret) { std::fputs("[TrainerOSRmg] error\n", stdout); std::fflush(stdout); }
++        if (!ret) {
++            if (qEnvironmentVariableIsSet("TRAINEROS_RMG_DIAGNOSTICS"))
++                std::fprintf(stderr, "[TrainerOSRmg] %s\n", qPrintable(error));
++            std::fputs("[TrainerOSRmg] error\n", stdout); std::fflush(stdout);
++        }
 +        this->ui_ForceClose = true;
 +        this->close();
 +        return;
@@ -36,7 +42,17 @@ index 63c7dac..8af2729 100644
      if (!ret)
      {
          // whatever we do on failure,
-@@ -2724,6 +2737,10 @@ void MainWindow::on_Core_DebugCallback(QList<CoreCallbackMessage> messages)
+@@ -2668,6 +2687,9 @@ void MainWindow::on_VidExt_ToggleFS(bool fullscreen)
+ 
+ void MainWindow::on_Core_DebugCallback(QList<CoreCallbackMessage> messages)
+ {
++    if (qEnvironmentVariableIsSet("TRAINEROS_RMG_DIAGNOSTICS"))
++        for (const auto& message : messages)
++            std::fprintf(stderr, "[TrainerOSRmg] %s %s\n", qPrintable(message.Context), qPrintable(message.Message));
+     // pass callback messages to the log window
+     this->logDialog.AddMessages(messages);
+ 
+@@ -2724,6 +2746,10 @@ void MainWindow::on_Core_DebugCallback(QList<CoreCallbackMessage> messages)
  
  void MainWindow::on_Core_StateCallback(CoreStateCallbackType type, int value)
  {

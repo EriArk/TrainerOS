@@ -17,10 +17,10 @@ a second execution plan or a claim that all installed runtimes are validated.
 
 | Emulator | Record | Scope |
 |---|---|---|
-| melonDS | [DS native core and workers](melonds.md) | Pinned DetMP port, Windows/ARM64 builds and two/four-machine short startup replay on Flip/Odin; player frontend, owned-save state, invitations and wireless gameplay remain open |
+| melonDS | [DS delivery](melonds.md) | Installed two-player Nearby/Online invitations, native wireless race/soak and own-save return on Flip/Odin; four-player, broader games/saves, frontend polish and physical/distinct-network acceptance remain open |
 | RetroArch | [Common ARM64 baseline](retroarch.md) | Exact core bundle, two-device alignment, recoverable update/rollback and remaining image/standalone gates |
 | PCSX ReARMed | [PS1 preparation](pcsx-rearmed.md) | Existing RetroArch network route, private BIOS/cards and two pads; device acceptance pending |
-| RMG / Mupen64Plus | [N64 preparation](RMG.md) | Existing native server/protocol, automatic private rooms and isolated launch bridge; full runtime build, online service and device/gameplay acceptance pending |
+| RMG / Mupen64Plus | [N64 Nearby delivery](RMG.md) | Installed isolated bundle, paired Mario Kart 64 race and ordinary Nearby/Home/exit on Flip/Odin; operator Online service, wider groups/games and physical/network acceptance remain open |
 | gpSP | [GBA link](gpsp.md) | Additional independent-machine networking core; ordinary mGBA preserved |
 | DoubleCherryGB | [GB/GBC link](doublecherrygb.md) | Independent SRAM/netpacket; separate upstream battle and RTC limitations |
 | SameBoy | [GB/GBC battery pairs](sameboy.md) | Native two-ROM subsystem/SRAM, maintained rollback frontend and automatic own-save preparation |

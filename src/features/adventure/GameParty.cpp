@@ -23,8 +23,10 @@ QJsonObject GameParty::decode(const QString& s) {
     const auto p=QJsonDocument::fromJson(s.mid(prefix.size(),s.size()-prefix.size()-4).toUtf8()).object();
     return p["ns"]=="org.traineros.party"&&p["v"]==1?p:QJsonObject{};
 }
-bool GameParty::supports(const QJsonObject& game) const {
-    for(const auto& local:games_)if(sameMultiplayerGame(local.toObject(),game))return true;
+bool GameParty::supports(const QJsonObject& game,const QString& peer) const {
+    const auto connection=peer.section(':',0,0);
+    for(const auto& local:games_)if(sameMultiplayerGame(local.toObject(),game)
+        &&(peer.isEmpty()||(multiplayerConnectionAllowed(local.toObject(),connection)&&multiplayerConnectionAllowed(game,connection))))return true;
     return false;
 }
 void GameParty::configure(QString name,QJsonArray games,QJsonObject current,bool available) {
@@ -50,7 +52,12 @@ QJsonObject GameParty::state() const {
     return {{"party",party_},{"joining",!joiningId_.isEmpty()},{"game",active()?game_:joiningGame_},{"host",host()},{"running",running_},{"members",people},
         {"company",company_},{"access",access_},{"capacity",capacity(game_)},{"free",running_&&!game_["lateJoin"].toBool(true)?0:active()?capacity(game_)-people.size():capacity(current_)}};
 }
-QJsonObject GameParty::offer(const QString& peer) const {const auto p=peers_.value(peer);return p.expires>=now()?p.offer:QJsonObject{};}
+QJsonObject GameParty::offer(const QString& peer) const {
+    const auto p=peers_.value(peer);if(p.expires<now())return {};
+    auto result=p.offer;
+    if(!result.isEmpty()&&!supports(result["game"].toObject(),peer))result["joinable"]=false;
+    return result;
+}
 QJsonObject GameParty::pending() const {
     if(requests_.isEmpty())return {};
     const auto& r=requests_.first();return {{"request",r.id},{"name",r.name},{"game",r.game},{"joining",r.joining}};
@@ -71,7 +78,7 @@ void GameParty::setCompanyAccess(const QString& company,QString policy,QStringLi
     allowedMembers_=allowed;advertiseCompany();emit changed();
 }
 bool GameParty::openCompany(const QString& company,QString policy,QStringList allowed) {
-    if(company.isEmpty()||active()||!create())return false;
+    if(company.isEmpty()||active()||!supports(current_,"online:company:"+company)||!create())return false;
     company_=company;setCompanyAccess(company,std::move(policy),std::move(allowed));return true;
 }
 void GameParty::advertiseCompany() {
@@ -87,7 +94,7 @@ QJsonArray GameParty::companyOffers() const {
     for(auto it=peers_.cbegin();it!=peers_.cend();++it) {
         if(companyOf(it.key()).isEmpty()||it->expires<now()||it->offer["party"].toString().isEmpty()||it->offer["game"].toObject().isEmpty())continue;
         auto row=it->offer;row["peer"]=it.key().mid(7);row["name"]=it->name;
-        row["joinable"]=row["joinable"].toBool()&&supports(row["game"].toObject())&&!active()&&joiningId_.isEmpty();rows.append(row);
+        row["joinable"]=row["joinable"].toBool()&&supports(row["game"].toObject(),it.key())&&!active()&&joiningId_.isEmpty();rows.append(row);
     }
     return rows;
 }
@@ -107,7 +114,7 @@ int GameParty::freeSlot() const {
     return 0;
 }
 void GameParty::invite(const QString& peer) {
-    if(!create()||sameMember(peer)||peer.isEmpty())return;
+    if(peer.isEmpty()||!supports(active()?game_:current_,peer)||!create()||sameMember(peer))return;
     const auto route=[](const QString& key){return key.contains(':')?key.section(':',0,0):QString();};
     if(!members_.isEmpty()&&route(members_.firstKey())!=route(peer)){emit notice("Invite players using the same connection as this party.");return;}
     const auto p=peers_.value(peer);const int slot=freeSlot();
@@ -124,14 +131,14 @@ void GameParty::invite(const QString& peer) {
 void GameParty::requestJoin(const QString& peer) {
     if(active()||!joiningId_.isEmpty())return;
     const auto p=peers_.value(peer);const auto g=p.offer["game"].toObject();
-    if(p.expires<now()||!p.offer["joinable"].toBool()||!supports(g)){emit notice("This game isn't available to join.");return;}
+    if(p.expires<now()||!p.offer["joinable"].toBool()||!supports(g,peer)){emit notice("This game isn't available to join.");return;}
     joiningPeer_=peer;joiningId_=token();joiningDeadline_=now()+60;
     joiningGame_=g;joiningParty_=p.offer["party"].toString();
     packet(peer,"join",{{"request",joiningId_},{"party",p.offer["party"]},{"game",g}});emit changed();
 }
 void GameParty::answer(bool accept) {
     if(requests_.isEmpty())return;const auto r=requests_.takeFirst();
-    if(!accept||r.expires<now()||!available_||!supports(r.game)||(r.joining&&access_=="closed")) {
+    if(!accept||r.expires<now()||!available_||!supports(r.game,r.peer)||(r.joining&&access_=="closed")) {
         packet(r.peer,"decline",{{"party",r.party},{"request",r.id},{"target",r.boot}});emit changed();return;
     }
     if(r.joining) {
@@ -157,6 +164,9 @@ void GameParty::publish() {
 }
 void GameParty::start() {
     if(!host()||running_||members_.isEmpty())return;
+    for(auto it=members_.cbegin();it!=members_.cend();++it)if(!supports(game_,it.key())) {
+        emit notice("This connection is no longer available. Invite again.");return;
+    }
     for(const auto& m:members_)if(!m.accepted){emit notice("Waiting for invited players. Cancel their invitation to start without them.");return;}
     // Linked subsystems require contiguous machines. Freeze seats only at Start,
     // after cancellations and before publishing any preparation credential.
@@ -240,7 +250,7 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
         if(!remote.boot.isEmpty()&&remote.boot!=boot&&members_.contains(peer))return;
         remote.name=name.left(48);remote.boot=boot;remote.expires=now()+90;
         const auto g=active()?game_:current_;
-        packet(peer,"offer",{{"request",id},{"game",g},{"joinable",supports(g)&&access_!="closed"&&(!active()||host())&&(!active()||freeSlot()>0)},
+        packet(peer,"offer",{{"request",id},{"game",g},{"joinable",supports(g,peer)&&access_!="closed"&&(!active()||host())&&(!active()||freeSlot()>0)},
             {"free",active()?state()["free"]:QJsonValue(capacity(g)-1)},{"running",running_},{"access",access_},{"automatic",access_=="selected"&&company==company_&&allowedMembers_.contains(personOf(peer).mid(7))}});return;
     }
     if(p["target"]!=boot_)return;
@@ -264,7 +274,7 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
         const bool join=kind=="join";
         const auto route=[](const QString& key){return key.contains(':')?key.section(':',0,0):QString();};
         if(join&&!members_.isEmpty()&&route(members_.firstKey())!=route(peer)){packet(peer,"decline",{{"party",party},{"request",id}});return;}
-        if(!supports(g)||(join&&(sameMember(peer)||access_=="closed"||(!company.isEmpty()&&company!=company_)))||(!join&&(active()||!joiningId_.isEmpty()||!uuid(party)))||
+        if(!supports(g,peer)||(join&&(sameMember(peer)||access_=="closed"||(!company.isEmpty()&&company!=company_)))||(!join&&(active()||!joiningId_.isEmpty()||!uuid(party)))||
             (join&&((active()&&(!host()||party!=party_||!freeSlot()))||(!active()&&(!party.isEmpty()||current_!=g))))) {
             packet(peer,"decline",{{"party",party},{"request",id}});return;
         }

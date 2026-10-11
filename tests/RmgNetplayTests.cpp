@@ -1,5 +1,6 @@
 #include "integrations/adventure/standalone/RmgNetplay.h"
 #include <QtTest>
+#include "core/model/GamePlayers.h"
 #include <QWebSocketServer>
 #include <QSignalSpy>
 #include <QTemporaryDir>
@@ -51,6 +52,16 @@ private slots:
         record.adventure.adapterId="retroarch";record.adventure.title="Cartridge";record.contentPath=rom;
         std::atomic_bool cancel=false;
         const auto id=rmg::netplayIdentity(record,cancel,4);QVERIFY(!id.isEmpty());
+        QVERIFY(multiplayerConnectionAllowed(id,"online"));
+        m.remove("onlineServer");saveManifest();
+        const auto nearby=rmg::netplayIdentity(record,cancel,4);QVERIFY(!nearby.isEmpty());
+        QVERIFY(multiplayerConnectionAllowed(nearby,"nearby"));
+        QVERIFY(!multiplayerConnectionAllowed(nearby,"online"));
+        QVERIFY(sameMultiplayerGame(id,nearby));
+        m["onlineServer"]="";saveManifest();QCOMPARE(rmg::netplayIdentity(record,cancel,4),nearby);
+        m["onlineServer"]="ws://public.example.invalid";saveManifest();QVERIFY(rmg::bundle(cancel).isEmpty());
+        m["onlineServer"]=12;saveManifest();QVERIFY(rmg::bundle(cancel).isEmpty());
+        m["onlineServer"]="wss://rmg.example.invalid:45000";saveManifest();
         const auto solo=temp.filePath("ordinary.sra");write(solo,"KEEP ORDINARY PROGRESS");
         auto renamed=id;renamed["label"]="Friend's custom title";
         auto command=rmg::command(record,renamed,"127.0.0.1",45001,3,{"/device/input-bridge","--"});

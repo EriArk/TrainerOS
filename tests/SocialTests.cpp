@@ -273,6 +273,17 @@ private slots:
         offer["party"]="replacement-party";c.setGameActivity(remote,offer);
         c.selectMenu(c.menuCommands_.indexOf("join-peer:"+QString(remote)));QCOMPARE(joined.count(),1);
     }
+    void temporaryProgressJoinDisclosesFreshSessionWithoutClaimingSaveReturn() {
+        SocialController c;
+        const QVariantMap game{{"label","A shared console"},{"content","first"},{"temporaryProgress",true}};
+        const QVariantMap offer{{"joinable",true},{"party","temporary-party"},{"game",game}};
+        c.setGameActivity(remote,offer);QSignalSpy joined(&c,&SocialController::partyJoin);
+        c.directJoin(remote,offer);
+        QVERIFY(joined.isEmpty());QVERIFY(c.fullMenuDetail());
+        QVERIFY(c.menuDetail().contains("starts fresh"));QVERIFY(c.menuDetail().contains("isn't kept"));
+        QVERIFY(!c.menuDetail().contains("save copies"));
+        c.selectMenu(c.menuCommands_.indexOf("join-reviewed"));QCOMPARE(joined.count(),1);
+    }
     void privateCompanyJoinUsesInlineConsentAndLegacyEntryCannotBypassIt() {
         SocialController c;c.owner_="company-private";c.face_="groups";c.runtimeAvailable_=true;
         c.snapshot_={{"state","connected"},{"userId","self"},{"channel",channel},{"chats",QVariantList{QVariantMap{{"id",channel},{"kind","groups"},{"name","Our group"}}}}};

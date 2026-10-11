@@ -1,7 +1,8 @@
 # Nintendo 64 native netplay — 11 October 2026
 
-Status: **partial source integration**. Registered as researching before code;
-the implementation below is prepared for delivery, not installed N64 gameplay.
+Status: **installed Nearby route; Online service pending**. The 12 October
+record below supersedes earlier build-only statements. This does not close
+N64 or the full multiplayer block.
 
 ## Upstream and decision
 
@@ -35,9 +36,10 @@ Use fresh session-local configuration, SRAM, controller packs and states; no
 ordinary progress import/export until separately verified. Preserve normal solo
 launch and existing saves. Prefer Vulkan where the installed profile works.
 
-Pending: host-compatible runtime dependency bundle/install and operator online service,
-actual paired controls/gameplay, four real devices, distinct networks/NAT,
-loss/reinvite, Home/input and audio acceptance.
+Pending: operator online service, four real devices, distinct networks/NAT,
+loss/reinvite beyond the observed clean peer exit, physical input and audio
+acceptance. Bundle, paired native gameplay and ordinary Nearby/Home delivery
+are recorded in the 12 October section below.
 Devices are now available; the bounded recheck below supersedes the earlier build deferral.
 
 ## Implemented preparation
@@ -80,8 +82,9 @@ server needs Go as specified in its pinned `go.mod`. No Actions were enabled.
 [bundle.py](../../packaging/emulators/rmg/bundle.py) fingerprints binaries,
 plugins and shared input/game configuration. Install the complete reviewed
 bundle under `TrainerOS/emulators/rmg-netplay` in the user's data directory.
-The manifest requires a configured operator `wss` endpoint; absent/incomplete
-installation does not advertise an online route. There is no developer opt-in.
+A configured operator `wss` endpoint enables Online separately from Nearby;
+absent/incomplete runtime installation advertises neither route. There is no
+developer opt-in. Use `--nearby-only` until the operator service is available.
 
 Nearby starts the bundled upstream server on the host (45000 lobby, 45001 native
 TCP/UDP for this one-room process). Internet uses an operator-hosted server;
@@ -141,3 +144,105 @@ packages. The diagnostic configure omitted the recipe's installed RPATH; retain
 that existing recipe flag in a release build. No host OS packages were layered,
 operator server fabricated, or multiplayer profile enabled by this build.
 [Exact build hashes, dependencies and remaining acceptance](../MULTIPLAYER_DEVICE_RECHECK_20261011.md).
+
+
+## Handheld runtime continuation - 12 October 2026
+
+The pinned native RMG runtime now loads on both updated Armada handhelds. The
+[Armada dependency packager](../../packaging/emulators/rmg/armada-dependencies.py)
+copies minizip-ng-compat 4.1.0-1.fc44, SDL3_net 3.2.0-2.fc44 and speexdsp
+1.2.1-10.fc44 into the isolated bundle, preserving license notices and package /
+source-byte provenance. It sets each executable/plugin's relative RUNPATH to the
+bundle's own `lib` directory, including nested plugins. `ldd` finds no missing
+libraries on either host. No packages were layered into the host image.
+
+Use `ARMADA_BUNDLE_DEPS=1` in the matching Fedora build container, with `patchelf`
+and those RPM dependencies installed. The script refuses an already completed or
+fingerprinted destination. Fedora's minizip compatibility subpackage omits its
+license file, so the recipe retains the exact
+[upstream 4.1.0 notice](https://github.com/zlib-ng/minizip-ng/blob/4.1.0/LICENSE)
+and rejects a different version without review. This is a supported-image bundle,
+not a universal Linux binary or closure of redistribution gate #115.
+
+A real two-handheld Mario Kart 64 US check exposed a graphics failure that the
+lobby tests could not: Flip's Turnip Adreno 650 driver lacks the 8-bit SSBO storage
+required by paraLLEl-RDP. Odin started Vulkan emulation and then lost the failed
+host. The bridge's opt-in `TRAINEROS_RMG_DIAGNOSTICS` output now records native
+errors locally; do not publish those private logs without reviewing paths/data.
+Both devices then used the existing OpenGL GLideN64/HLE profile and reached the
+same two-player 50cc Luigi Raceway race. Host and guest independently selected
+Mario / Peach and accelerated their karts through Armada's virtual Xbox inputs.
+This is a short native gameplay check, not physical-button, prolonged-race,
+four-device or internet acceptance. Each run used fresh XDG roots and temporary
+progress; ordinary solo saves were neither imported nor returned by this harness.
+
+Native runtime SHA-256:
+`56a39a458fce380e112bcf12949e5bfcc779caa1c67dbb319f3300c9063d1041`.
+The complete manifest fingerprints 22 files. The installed target is a versioned
+`rmg-netplay-20261012.1` directory, retained independently from normal RetroArch.
+The same OpenGL setting is required on both peers; this device-specific fallback
+does not replace other emulators' supported Vulkan settings.
+
+### Connection availability
+
+`build.sh` / `bundle.py` accept `--nearby-only` instead of inventing an operator
+URL. An absent/empty operator endpoint admits Nearby with the bundled upstream
+server and explicitly disables Online. A supplied endpoint must still be `wss`.
+The common profile `connections` list gates invitations, reverse Join, company
+admission and launch after a changed installation. It is separate from the
+emulation/content identity, so compatible machines can use their common route.
+Library multiplayer filtering remains separate from Online/Nearby badges.
+Profiles without the field retain their existing two-route behavior.
+
+The RMG invitation discloses a fresh session with temporary progress. Home's
+owned-window close recognizes only RMG launched through the maintained native
+session bridge; ordinary desktop RMG retains its own confirmation behavior.
+
+Upstream [removed its hosted servers](https://github.com/Rosalie241/RMG/releases)
+after their protocols diverged. TrainerOS still needs a real operator service
+with trusted TLS lobby and reachable native TCP/UDP ports. A local endpoint, fake
+hostname or successful LAN race does not deliver that internet route.
+
+### Ordinary Nearby delivery
+
+Both installed clients now run SHA-256
+`0f413e80d25305babe38920342f11062e7aa7b899ab4c378ff91e56f61e4ebcf`.
+
+The ordinary library shows **Nearby play**, keeps N64 in the multiplayer
+collection, and offers Nearby without an unavailable Online/group action.
+Flip launched its ordinary Mario Kart 64 entry, invited Odin, and received
+explicit acceptance after the complete temporary-progress notice. The normal
+host save/leave barrier then launched both installed RMG instances automatically.
+Both reached live native emulation; the longer paired race/control proof above
+uses the identical native binary and remains separate from this 72-second
+ordinary-session check (which showed title/attract mode, not another human race).
+
+Odin Home recognized the owned RMG process. Minimize returned to the shell while
+the game kept running; Game Options reopened, and explicit Exit closed the guest
+without a save question for the temporary session. Peer departure closed the host
+as well. Both histories record `returned`, all session directories disappeared,
+and no RMG/server processes remained. Final database checks returned `ok` and
+both devices remained at volume zero. All 363 / 8 pre-existing files in the
+bounded save inventories remained byte-identical, as did both separate DS saves.
+These inventories are not a claim to cover every personal file on either device.
+
+Odin lacked the ordinary N64 cartridge in its local library. The owner's existing
+mounted-source Mario Kart 64 US was copied to a new local N64 file and discovered
+normally; source bytes and earlier files were preserved. ROM SHA-256:
+`d6b8538dd63f0132ecb2856e7d32816ed3c30e3e479aecd23cf83fb6ba17a5da`.
+No ROM or save is included in the public bundle/repository.
+
+The party list can retain an unavailable previous selection when readiness
+changes; Start may require scrolling upward. This existing usability limitation
+was observed, not hidden by the successful controller/touch path. Home, badges
+and the complete guest notice were inspected on the installed handhelds.
+
+ARM64 client/native build and `game_party`, `rmg_netplay`, `runtime_multiplayer`,
+`social` plus 15 overlay-helper checks pass. Four-client lobby cases were explicitly
+enabled with the pinned Go server and temporary trusted TLS certificate; these
+remain protocol tests. The final Windows client/test build also passes; the same
+four focused suites pass there (4/4, 6.11 seconds), with native lobby/TLS cases
+explicitly enabled.
+
+Keep the online operator, larger group, distinct-network, recovery and physical
+acceptance open. No multiplayer issue is closed.

@@ -1,9 +1,20 @@
 #pragma once
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QRegularExpression>
 #include <QVariantMap>
 
 namespace trainer {
+// Connection availability is an installation capability, not game identity.
+// Old profiles support both existing routes. Explicit lists fail closed.
+inline bool multiplayerConnectionAllowed(const QJsonObject& profile,const QString& connection) {
+    if(profile.isEmpty())return false;
+    if(!profile.contains("connections"))return true;
+    const auto list=profile["connections"].toArray();
+    if(list.isEmpty()||list.size()>2)return false;
+    for(const auto& value:list)if(value!="nearby"&&value!="online")return false;
+    return list.contains(connection);
+}
 // Reviewed paired-machine routes prepare two opaque batteries before launch.
 inline bool requiresLinkedSavePreparation(const QJsonObject& profile) {
     const auto mode=profile.value("settings").toString();
@@ -13,6 +24,7 @@ inline bool requiresLinkedSavePreparation(const QJsonObject& profile) {
 inline bool sameMultiplayerGame(QJsonObject left,QJsonObject right) {
     if(left.isEmpty()||right.isEmpty())return false;
     left.remove("label");right.remove("label");
+    left.remove("connections");right.remove("connections");
     // Cross-edition links require identified retail builds. A hack can retain
     // its base cartridge's header while changing the wire/save data. Unknown
     // builds may still link to the identical content, never to another edition

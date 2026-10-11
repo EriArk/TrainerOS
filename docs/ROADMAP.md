@@ -1,5 +1,17 @@
 # TrainerOS Roadmap
 
+**12 October N64 Nearby delivery:** the portable native RMG bundle is installed
+on Flip/Odin. Mario Kart 64 reached a paired race with independent virtual-pad
+input; ordinary Nearby invitation, save/leave barrier, Home, minimize and guest
+Exit also passed, closing both copies. Profiles now distinguish Nearby and Online
+availability, including library badges and reverse Join. N64 sessions disclose
+fresh temporary progress and preserve ordinary saves. Vulkan paraLLEl-RDP lacks
+required SSBO support on Flip; this matched bundle uses upstream OpenGL/HLE.
+The operator internet service, larger groups and physical/distinct-network gates
+remain open. [Evidence](emulators/RMG.md#handheld-runtime-continuation---12-october-2026).
+Continue the remaining accepted routes through Wii U/Vita, excluding PS3/Switch;
+DS's retained gates and both Hotseat modes remain unfinished. No issue is closed.
+
 **12 October ordinary DS delivery:** two-player Nearby and Online friend
 invitations now launch the installed native DS runtime on Flip/Odin, with explicit
 save-copy consent, normal Home/minimize/exit and protected own-save return.

@@ -97,7 +97,7 @@ public:
     QString menuDetail() const {return menuDetail_;}
     bool fullMenuDetail() const {
         if (runtimeSurfaceOpen()) return true;
-        for (const auto& choice : joinChoices_) if (choice["game"].toMap()["privateProgress"].toBool()) return true;
+        for (const auto& choice : joinChoices_) if (choice["game"].toMap()["privateProgress"].toBool()||choice["game"].toMap()["temporaryProgress"].toBool()) return true;
         return false;
     }
     bool canCreateGroup() const { return menuMode_=="create-group"&&!pickedPeople_.isEmpty()&&!snapshot_["mutationBusy"].toBool(); }

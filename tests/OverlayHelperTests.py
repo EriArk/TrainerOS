@@ -110,6 +110,17 @@ class OverlayHelperTests(unittest.TestCase):
              patch.object(overlay,'capture_avif') as fallback:
             overlay.capture(Path('/unused'));fallback.assert_called_once_with(Path('/unused'))
 
+    def test_rmg_close_requires_the_native_session_bridge(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); process = root / '42'; process.mkdir()
+            (process / 'exe').symlink_to('/bundle/bin/RMG')
+            (process / 'environ').write_bytes(b'OTHER=value\0')
+            self.assertFalse(supported_emulator_process(42, root))
+            (process / 'environ').write_bytes(b'TRAINEROS_RMG_SESSION=\0')
+            self.assertFalse(supported_emulator_process(42, root))
+            (process / 'environ').write_bytes(b'TRAINEROS_RMG_SESSION=/private/session.json\0')
+            self.assertTrue(supported_emulator_process(42, root))
+
     def test_core_thread_name_does_not_hide_the_owned_emulator(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);process=root/'42';process.mkdir()
