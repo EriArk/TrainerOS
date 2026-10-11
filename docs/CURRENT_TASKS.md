@@ -1,5 +1,14 @@
 # Current tasks
 
+**DS native workers delivered for verification, 11 October 2026:** ARM64
+core/JIT, bounded input queues, per-machine threads and joined teardown are built.
+Two/four local machines pass short Mario Kart DS startup replay checks on both
+updated handhelds; see [exact evidence](emulators/melonds.md). These are headless
+development probes, not an enabled DS invitation or wireless match. Next are
+the native frontend, owned-save startup/state parity and secure GameParty
+integration. Retain actual wireless, network/physical and sustained-load gates.
+This supersedes the earlier workers/ARM64 deferral below; no issue closes.
+
 **Devices available and OS prerequisite complete, 11 October 2026:** the owner
 powered on both handhelds and requested Armada updates before emulator tests.
 Both now boot `20261010.94f52f8` on the retained testing channel; TrainerOS starts

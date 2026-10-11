@@ -6,7 +6,7 @@ that another edition of the same game has the same format.
 
 | Record | Exact targets | Current boundary |
 |---|---|---|
-| [DS deterministic wireless preparation](../emulators/melonds.md) | Pinned upstream melonDS and WatermelonDS DetMP reference; no game identity yet | Partial native core port, Windows static-core build and synthetic lifecycle checks; no installed runtime, invitation profile or semantic save capability |
+| [DS deterministic wireless preparation](../emulators/melonds.md) | Pinned upstream melonDS and WatermelonDS DetMP reference; no compatibility identity registered | Partial native core/workers, Windows/ARM64 builds and two/four-machine short startup replay on Flip/Odin; no enabled invitation profile or semantic save capability |
 | [PSP Ad Hoc runtime family](../emulators/ppsspp.md) | Matching raw UMD game ISO and reviewed PPSSPP 1.20.4 binary | Source preparation using native Ad Hoc/relay; ordinary SAVEDATA retained. Wider gameplay, game-room privacy and other formats remain open; no semantic save capability |
 | [Dreamcast native runtime](../emulators/flycast.md) | Matching CHD, pinned Dojo executable and locally supplied boot/flash | Native relay/GGPO invitation and private launch preparation; no installed gameplay or semantic save capability |
 | [N64 native runtime](../emulators/RMG.md) | Matching raw cartridge, pinned RMG bundle and native server | Automatic room/lifecycle source integration and four lobby clients; no installed N64 gameplay or semantic save capability |

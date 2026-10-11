@@ -8,12 +8,13 @@ work=$1
 test ! -e "$work" || { echo 'Use a new work directory; existing builds are retained' >&2; exit 1; }
 mkdir -p "$work"
 work=$(CDPATH= cd -- "$work" && pwd)
-git clone --no-checkout https://github.com/melonDS-emu/melonDS.git "$work/source"
-git -C "$work/source" checkout --detach 906e9ebb27da8c6a715cd7abab4abfe8a8d29427
+git init -q "$work/source"
+git -C "$work/source" fetch --depth=1 https://github.com/melonDS-emu/melonDS.git 906e9ebb27da8c6a715cd7abab4abfe8a8d29427
+git -C "$work/source" checkout --detach FETCH_HEAD
 git -C "$work/source" apply --check "$recipe/traineros-detmp.patch"
 git -C "$work/source" apply "$recipe/traineros-detmp.patch"
 cmake -S "$recipe" -B "$work/build" -G Ninja -DMELONDS_SOURCE="$work/source" \
     -DCMAKE_BUILD_TYPE=Release -DENABLE_JIT=ON
-cmake --build "$work/build" --target core traineros_detmp_checks --parallel "${JOBS:-2}"
+cmake --build "$work/build" --target core traineros_detmp_checks traineros_ds_pair_probe --parallel "${JOBS:-2}"
 ctest --test-dir "$work/build" --output-on-failure
 python3 "$recipe/source_manifest.py" "$work/source" "$work/build/source-manifest.json"

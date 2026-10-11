@@ -69,7 +69,7 @@ wireless protocol, LAN-over-VPN or porting the entire Android renderer fork.
 
 Each instance has one emulation worker. All instances must be registered and
 parked before `ResetSession`; it is not a concurrent live state-import API.
-The future coordinator must call `Abort`, then stop/join all workers before
+The coordinator must call `Abort`, then stop/join all workers before
 destroying DetMP or replacing the global MP interface. An aborted object cannot
 be reused for another session. `IsAborted` must be handled by that coordinator;
 the existing desktop menu is not a completed mirror-worker lifecycle.
@@ -86,6 +86,64 @@ used; they are not copied with the Android frontend. Binary/image redistribution
 and artwork acceptance remain #115/#116.
 
 ## Bounded local verification
+
+### Native workers and updated handhelds — 11 October 2026
+
+`NativeSession.{h,cpp}` adds two to four independent native consoles with one
+worker each, all-seat frame admission and separate key/touch input. All machines
+register before the shared clock starts. Input queues are limited to eight frames
+per machine, results to 64 checkpoints; malformed/incomplete/out-of-order input
+is rejected. Failure aborts shared waits. Stop joins workers and releases volatile
+consoles/results; a stopped session cannot accept more work or be reused.
+
+`ProbePlatform.cpp` is a headless verification host: actual DetMP callbacks,
+threads and clocks, but no persistent file/save writes, network transport or
+audio output. `native_pair_probe.cpp` reads an explicitly supplied local ROM,
+uses upstream FreeBIOS/generated firmware and fresh volatile cartridge progress,
+then compares two full input replays with different submission scheduling.
+The fixed verification clock is 2026-01-01 12:00:00. This cold-boot baseline is
+not an owned-save startup policy or a completed player frontend.
+
+Both handhelds first received the owner-requested
+[Armada update](../ARMADA_UPDATE_20261011.md), booted `20261010.94f52f8` and retained
+their ordinary TrainerOS installation. Flip's existing Fedora 44 build container
+built the full ARM64 core/JIT and linked probe with GCC 16.2.1/CMake 4.3.0;
+CTest `detmp_lifecycle` passed (1/1, 0.19 s). The same probe was copied into an
+isolated development directory on Odin; its native lifecycle check also passed.
+The Windows x86_64 linked probe build passed; no Windows gameplay is claimed.
+
+Each final probe run used two replays of **120 startup frames per machine**
+(roughly two emulated seconds), comparing each frame's emulated cycles and
+XXH64 state digest. Final results, all exit 0 with empty stderr:
+
+| Device | Local DS machines | Compared checkpoints | Probe elapsed | Process peak RSS | Replay aggregate |
+|---|---:|---:|---:|---:|---|
+| Flip 2 | 2 | 240 | 4.050 s | 444164 KiB | `28b2be93a28b29af` |
+| Flip 2 | 4 | 480 | 5.650 s | 849276 KiB | `fe39c02110f885ec` |
+| Odin 2 | 2 | 240 | 3.067 s | 443520 KiB | `28b2be93a28b29af` |
+| Odin 2 | 4 | 480 | 3.874 s | 849340 KiB | `fe39c02110f885ec` |
+
+Local test case: Mario Kart DS, ROM SHA-256
+`0ea8a91a0ae3e9db26337c25a6a8568f6737fa36c1e0761988c0fa0ecbf210ed`.
+Each device read its existing accessible owner library; no ROM or personal save
+was copied between handhelds. This is a case-specific startup check, not a game
+compatibility registration. The check also rejects invalid/duplicate input and
+verifies idempotent teardown, empty results and rejected work after Stop.
+
+Final ARM64 probe SHA-256:
+`4a293a1df94bed16abb6a838700c031f198f4bf8e157dc1047da0cb13bc33682`.
+Windows linked probe:
+`a093059889f8631a0842f685709865c571f65068446793ea41c03a7cba142ccd`.
+These are development artifacts, not approved runtime fingerprints.
+
+The table measures short software-rendered startup, construction, per-frame state
+hashing and teardown; ROM reading precedes the timer. It is **not an FPS benchmark**,
+wireless game, four-player acceptance or a network match between handhelds.
+Within-device per-frame replay equality and matching cross-device aggregates are
+bounded evidence, not universal determinism proof. XXH64 is diagnostic, not
+authentication. No DS invitation profile is enabled and #162–166 remain open.
+
+### Earlier Windows core checkpoint — 11 October 2026
 
 11 October 2026, Windows x86_64 / GCC 16.1.0 / CMake 4.3.3:
 
@@ -111,23 +169,26 @@ Local artifacts: `libcore.a` SHA-256
 `15419af91c9297ce809ed250a7dd8d5883c9c31df73d8632c8d1008c2d83b753`.
 These identify check artifacts, not installable or approved runtime fingerprints.
 
-No Linux/ARM64, desktop frontend, actual DS game or handheld acceptance is inferred
-from a Windows static-core build or synthetic packet exchange.
+This earlier Windows checkpoint alone did not establish Linux/ARM64 or game
+execution. The later native-worker evidence above supersedes those build/startup
+gaps, while retaining full frontend and meaningful gameplay acceptance.
 
 ## Remaining work and update procedure
 
 MP-06 and #162–166 remain open. This is an incomplete DS implementation, with a
 maintained native core preparation rather than a player-visible network route.
-Next: implement/join mirror workers, establish deterministic startup/state parity
-under #164, then reuse GameParty admission and the secure automatic transport.
+Next: connect the native workers to a player frontend, establish owned-save
+startup/state parity under #164, then reuse GameParty admission and the secure
+automatic transport. The cold-boot verification host does not deliver these gates.
 Local compatible BIOS/firmware must stay local. Any unavoidable save-derived
 state needs bounded parsing, explicit session/recipient/purpose consent,
 authenticated encryption and ephemeral lifetime; raw Android packages are not
 an acceptable shortcut. ROM transfers remain separate guest-content policy.
 
-Further gates: per-frame replay/checkpoint hashes, deterministic JIT/render/input
-behavior, adaptive host-selected delay, two/four-machine resource measurements,
-full Linux x86_64/ARM64 builds, protected local-save return, actual wireless
+Further gates: meaningful wireless replay/checkpoint parity, deterministic
+JIT/render/input behavior across supported workloads, adaptive host-selected
+delay, sustained two/four-machine resource measurements, full player-runtime
+Linux x86_64/ARM64 builds, protected local-save return, actual wireless
 gameplay/recovery and separate Internet connections. The reference mirror
 renderer has game-dependent GPU capture fixes; no rendering shortcut is adopted
 before those dependencies are checked. Synthetic four-instance packet ordering

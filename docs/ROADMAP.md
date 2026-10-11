@@ -1,5 +1,13 @@
 # TrainerOS Roadmap
 
+**11 October devices returned / DS native workers:** both handhelds now boot the
+owner-requested Armada update. Native ARM64 core/JIT and joined two/four-machine
+workers pass short startup replay checks on Flip/Odin; [evidence](emulators/melonds.md)
+retains the distinction from actual wireless gameplay. This supersedes the
+offline-only condition and worker/ARM64 deferral below. Next: player frontend,
+owned-save startup/state parity, secure GameParty integration; sustained wireless,
+physical and distinct-network acceptance remain open. No DS profile is enabled.
+
 **11 October DS native core preparation:** the
 [maintained desktop DetMP port](emulators/melonds.md) builds as a Windows static
 core with JIT and passes focused synthetic lifecycle checks. This is an incomplete

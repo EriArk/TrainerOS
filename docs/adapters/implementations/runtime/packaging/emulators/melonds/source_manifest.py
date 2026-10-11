@@ -34,8 +34,8 @@ def main():
         "patchedFiles": {name: digest(source / name) for name in changed},
         "recipeFiles": {p.name: digest(p) for p in sorted(recipe.iterdir()) if p.is_file()},
         "runtimeReady": False,
-        "remaining": ["linux-arm64-build", "mirror-worker-lifecycle", "safe-state-parity",
-                      "authenticated-transport", "game-party-integration", "gameplay-acceptance"],
+        "remaining": ["owned-save-startup-parity", "authenticated-transport",
+                      "game-party-frontend", "wireless-gameplay", "performance-and-control-acceptance"],
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

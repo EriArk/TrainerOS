@@ -22,3 +22,10 @@ target_link_libraries(traineros_detmp_checks PRIVATE Threads::Threads)
 enable_testing()
 add_test(NAME detmp_lifecycle COMMAND traineros_detmp_checks)
 set_tests_properties(detmp_lifecycle PROPERTIES TIMEOUT 20)
+
+add_executable(traineros_ds_pair_probe native_pair_probe.cpp NativeSession.cpp
+    ProbePlatform.cpp "${MELONDS_SOURCE}/src/net/DetMP.cpp")
+target_compile_features(traineros_ds_pair_probe PRIVATE cxx_std_17)
+target_include_directories(traineros_ds_pair_probe PRIVATE
+    "${MELONDS_SOURCE}/src" "${MELONDS_SOURCE}/src/net")
+target_link_libraries(traineros_ds_pair_probe PRIVATE core Threads::Threads)

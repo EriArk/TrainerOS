@@ -1,4 +1,11 @@
-# Multiplayer preparation while handhelds are offline
+# Multiplayer preparation and device continuation
+
+**Devices returned, 11 October:** Armada was updated on both handhelds before
+tests. Native DS core/JIT and two/four-machine workers now pass short local
+startup replay checks on Flip/Odin; [evidence](emulators/melonds.md) includes
+resource measurements and limits. This supersedes the offline-only and ARM64
+deferral below. Player frontend, owned-save parity, secure party integration,
+actual wireless gameplay and sustained/physical/network acceptance remain open.
 
 Owner scope, 11 October 2026: continue implementation through Wii U, plus Vita;
 PS3 and Switch are excluded. Reuse existing emulator networking and the common
@@ -39,7 +46,7 @@ See [maintenance and remaining delivery](emulators/flycast.md).
 | Dreamcast | Flycast Dojo native relay / GGPO | CHD two-player invitation/isolated-launch source integration; full Linux/ARM64 runtime, operator relay, device/gameplay acceptance pending ([record](emulators/flycast.md)) |
 | PS2 | ARMSX2/PCSX2 game networking; shared-console mode is separate | DEV9 networking does not provide remote second-controller gameplay |
 | GameCube/Wii | Extend existing Dolphin native netplay bridge | Generic raw GameCube ISO/GCM admission implemented and locally checked. Exact Melee remains. Wii input route and device delivery remain open |
-| DS | WatermelonDS DetMP reused on pinned desktop melonDS | Native core port/static build and synthetic lifecycle checks; mirror frontend, safe state/transport, invitations and Linux/device gameplay remain open ([record](emulators/melonds.md)) |
+| DS | WatermelonDS DetMP reused on pinned desktop melonDS | Native core/workers, Windows/ARM64 builds and two/four-machine short startup replay on Flip/Odin; player frontend, owned-save state/transport, invitations and wireless gameplay remain open ([record](emulators/melonds.md)) |
 | PSP | Existing PPSSPP Ad Hoc / aemu relay | Generic raw-ISO invitation/launch preparation in source; exact Lumines evidence retained. Wider gameplay, private game-room admission, infrastructure and other formats remain open |
 | 3DS | Existing Azahar room networking | Integration remains open |
 | Wii U | Cemu and supported game-network services | Launcher/platform feasibility, account setup and supported modes remain open |

@@ -740,12 +740,15 @@
         "windows-x86_64-full-static-core-jit-build",
         "detmp-synthetic-ordering-and-lifecycle-ctest",
         "pristine-patch-preflight-and-provenance",
-        "factory-translation-unit-syntax"
+        "factory-translation-unit-syntax",
+        "linux-arm64-core-jit-and-linked-worker-build",
+        "flip-odin-two-four-machine-short-startup-replay",
+        "bounded-worker-input-and-joined-teardown"
       ],
       "remaining": [
-        "linux-arm64-build",
-        "mirror-worker-lifecycle",
-        "safe-state-parity",
+        "player-frontend",
+        "owned-save-startup-state-parity",
+        "sustained-wireless-workload",
         "authenticated-transport",
         "game-party-integration",
         "gameplay-acceptance"
