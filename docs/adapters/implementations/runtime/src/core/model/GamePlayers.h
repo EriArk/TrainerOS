@@ -25,6 +25,19 @@ inline bool sameMultiplayerGame(QJsonObject left,QJsonObject right) {
     if(left.isEmpty()||right.isEmpty())return false;
     left.remove("label");right.remove("label");
     left.remove("connections");right.remove("connections");
+    // A runtime may declare a fixed native port ceiling separately from its
+    // catalogue-derived party limit. Local metadata must not split identical
+    // games into incompatible builds. Both peers must declare the same ceiling;
+    // shared-controller modes retain their exact two-person contract.
+    if(left.contains("runtimePlayers")||right.contains("runtimePlayers")) {
+        const int ceiling=left["runtimePlayers"].toInt();
+        if(ceiling<2||ceiling>4||right["runtimePlayers"].toInt()!=ceiling)return false;
+        if(left["playMode"].toString().isEmpty()&&right["playMode"].toString().isEmpty()) {
+            const int a=left["players"].toInt(),b=right["players"].toInt();
+            if(a<2||a>ceiling||b<2||b>ceiling)return false;
+            left.remove("players");right.remove("players");
+        }
+    }
     // Cross-edition links require identified retail builds. A hack can retain
     // its base cartridge's header while changing the wire/save data. Unknown
     // builds may still link to the identical content, never to another edition

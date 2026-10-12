@@ -28,6 +28,11 @@ int main(int argc, char** argv) {
         QFile file(args[2]); if (!file.open(QIODevice::WriteOnly)) return 3;
         file.write(args[3].toUtf8()); return 0;
     }
+    if (args.size() == 5 && args[1] == "header" && args[2] == "-j" && args[3] == "-i") {
+        QFile input(args[4]), output;
+        if (!input.open(QIODevice::ReadOnly) || !output.open(stdout,QIODevice::WriteOnly)) return 3;
+        output.write(input.readAll());return 0;
+    }
     const auto mode = args.value(1);
     if (mode == "stdin-control" && args.size() == 4) {
         QFile identity(args[3]); if (!identity.open(QIODevice::WriteOnly)) return 3;

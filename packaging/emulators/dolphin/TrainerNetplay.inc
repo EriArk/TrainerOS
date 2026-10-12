@@ -14,6 +14,8 @@
 #include "Core/Config/GraphicsSettings.h"
 #include <cstdio>
 #include "Core/HW/GCPad.h"
+#include "Core/HW/Wiimote.h"
+#include "DiscIO/Enums.h"
 #include "InputCommon/InputConfig.h"
 #include "InputCommon/ControllerEmu/ControllerEmu.h"
 #include "InputCommon/ControllerInterface/ControllerInterface.h"
@@ -65,11 +67,15 @@ void MainWindow::InitTrainerNetplay()
   if (hotseat && (seats.size() != 2 || !seats.contains(2)))
     return fail(QStringLiteral("configuration"));
   const auto game = std::make_shared<UICommon::GameFile>(settings[QStringLiteral("game")].toString().toStdString());
-  if (!game->IsValid())
+  const bool wii = settings[QStringLiteral("controllers")] == QStringLiteral("wiimote");
+  if (!game->IsValid() ||
+      game->GetPlatform() != (wii ? DiscIO::Platform::WiiDisc : DiscIO::Platform::GameCubeDisc) ||
+      (wii && hotseat))
     return fail(QStringLiteral("game"));
   // A Steam-session device name may no longer exist in the native shell.
   // Rebind only the isolated copied SDL map, and only with one unambiguous pad.
-  auto* pad = Pad::GetConfig()->GetController(0);
+  auto* input_config = wii ? Wiimote::GetConfig() : Pad::GetConfig();
+  auto* pad = input_config->GetController(0);
   if (!pad->IsDefaultDeviceConnected() && pad->GetDefaultDevice().source == "SDL")
   {
     std::vector<std::string> candidates;
@@ -81,7 +87,7 @@ void MainWindow::InitTrainerNetplay()
     const auto lock = pad->GetStateLock();
     pad->SetDefaultDevice(candidates.front());
     pad->UpdateReferences(g_controller_interface);
-    Pad::GetConfig()->SaveConfig();
+    input_config->SaveConfig();
   }
   if (!pad->IsDefaultDeviceConnected())
     return fail(QStringLiteral("controller"));
@@ -168,7 +174,7 @@ void MainWindow::InitTrainerNetplay()
       }
     });
   }
-  connect(timer, &QTimer::timeout, this, [this, timer, state, host, hotseat, admission, seats, fail] {
+  connect(timer, &QTimer::timeout, this, [this, timer, state, host, hotseat, wii, admission, seats, fail] {
     const auto client = Settings::Instance().GetNetPlayClient();
     const auto server = Settings::Instance().GetNetPlayServer();
     if (!client || !client->IsConnected())
@@ -230,9 +236,13 @@ void MainWindow::InitTrainerNetplay()
     }
     if (present != seats || !client->DoAllPlayersHaveGame())
       return;
-    if (server->GetPadMapping() != mapping)
+    const NetPlay::PadMappingArray empty{};
+    const auto& pads = wii ? empty : mapping;
+    const auto& wiimotes = wii ? mapping : empty;
+    if (server->GetPadMapping() != pads || server->GetWiimoteMapping() != wiimotes)
     {
-      server->SetPadMapping(mapping);
+      server->SetPadMapping(pads);
+      server->SetWiimoteMapping(wiimotes);
       return;  // let the native reliable channel deliver mapping before Start
     }
     state->starting = m_netplay_dialog->StartTrainerGame();

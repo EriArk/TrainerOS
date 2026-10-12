@@ -16,6 +16,10 @@ assert binary.is_file()
 (destination / "bin").mkdir(parents=True)
 shutil.copy2(binary, destination / "bin/dolphin-emu")
 shutil.copytree(source / "Data/Sys", destination / "bin/Sys")
-manifest = dict(protocol=1, source=revision, sha256=hashlib.sha256(binary.read_bytes()).hexdigest())
+tool = build / "Binaries/dolphin-tool"
+shutil.copy2(tool, destination / "bin/dolphin-tool")
+manifest = dict(protocol=1, source=revision, sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
+                hotseat="dolphin-golf-p1-v1", wiimote="dolphin-wiimote-v1",
+                toolSha256=hashlib.sha256(tool.read_bytes()).hexdigest())
 (destination / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
 print(manifest["sha256"])

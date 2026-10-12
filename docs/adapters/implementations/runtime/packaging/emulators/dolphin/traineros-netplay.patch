@@ -449,6 +449,21 @@ index 54cc111..00677e0 100644
    StartGameCallback m_start_game_callback;
 +  std::shared_ptr<const UICommon::GameFile> m_trainer_game;
  };
+diff --git a/Source/Core/DolphinTool/HeaderCommand.cpp b/Source/Core/DolphinTool/HeaderCommand.cpp
+index 71e4772..77a186a 100644
+--- a/Source/Core/DolphinTool/HeaderCommand.cpp
++++ b/Source/Core/DolphinTool/HeaderCommand.cpp
+@@ -88,6 +88,10 @@ int HeaderCommand(const std::vector<std::string>& args)
+     // Game data
+     if (volume)
+     {
++      // TrainerOS uses the native volume parser for compressed-disc admission.
++      json["platform"] = picojson::value(std::string(
++          volume->GetVolumeType() == DiscIO::Platform::WiiDisc ? "wii" :
++          volume->GetVolumeType() == DiscIO::Platform::GameCubeDisc ? "gc" : "other"));
+       json["internal_name"] = picojson::value(volume->GetInternalName());
+ 
+       if (const std::optional<u16> revision = volume->GetRevision())
 diff --git a/Source/Core/VideoCommon/NetPlayGolfUI.cpp b/Source/Core/VideoCommon/NetPlayGolfUI.cpp
 index 87b866b..dcf67f3 100644
 --- a/Source/Core/VideoCommon/NetPlayGolfUI.cpp

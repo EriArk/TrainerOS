@@ -84,7 +84,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const std::atomic_boo
     if(!m["onlineServer"].toString().isEmpty())connections.append("online");
     return {{"id","runtime.rmg.n64.v1"},{"label",r.adventure.title.left(96)},
         {"content",content},{"runtime",m["digest"]},{"settings","rmg-native-v1-private-progress-"+m["renderer"].toString()},
-        {"players",players},{"lateJoin",false},{"connections",connections},{"temporaryProgress",true}};
+        {"players",players},{"runtimePlayers",4},{"lateJoin",false},{"connections",connections},{"temporaryProgress",true}};
 }
 ProcessCommand command(const AdventureRegistration& r,const QJsonObject& expected,const QString& address,
                        int port,int controller,const QStringList& inputPrefix) {

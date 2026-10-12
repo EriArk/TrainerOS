@@ -26,7 +26,7 @@ a second execution plan or a claim that all installed runtimes are validated.
 | DoubleCherryGB | [GB/GBC link](doublecherrygb.md) | Independent SRAM/netpacket; separate upstream battle and RTC limitations |
 | SameBoy | [GB/GBC battery pairs](sameboy.md) | Native two-ROM subsystem/SRAM, maintained rollback frontend and automatic own-save preparation |
 | mGBA Splitscreen | [GBA linked pairs](mgba-splitscreen.md) | Existing linked-machine engine, per-viewer screen/audio and protected separate batteries |
-| Dolphin | [Bridge and Hotseat delivery](dolphin.md) | Preserved Flatpak; separate-pad Melee and exclusive-P1 Mario Golf gameplay; installed ordinary invitations/Home transfers; wider-game, four-client and distinct-network gates open |
+| Dolphin | [GameCube and Wii delivery](dolphin.md) | Installed separate GC pads, two-person exclusive-P1 Golf Hotseat and separate Wii Remotes through ordinary invitations/Home; paired gameplay and distinct preservation evidence, wider/physical/network acceptance open |
 | PPSSPP | [PPSSPP](ppsspp.md) | Isolated networking, preserved identity, bounded LAN/relay gameplay and remaining recovery/network gates |
 | Flycast / Dojo | [Dreamcast delivery](flycast.md) | Ordinary 2.7 retained; separate Dojo bundle installed on Flip/Odin, native Nearby/public-relay fights and ordinary Online/Home/peer Exit; fresh temporary VMUs and retained broader/network/physical gates |
 

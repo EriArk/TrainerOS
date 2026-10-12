@@ -242,17 +242,17 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     const auto dolphinInstallation=dolphin_.installation();
     const auto stamp=[](const QString& path){const QFileInfo f(path);return qHashMulti(0,path,f.size(),f.lastModified().toMSecsSinceEpoch());};
     quint64 revision=qHashMulti(0,stamp(installation.runtimeFile),stamp(installation.configFile),
-        stamp(pspInstallation.runtimeFile),stamp(dolphin::bridgeFile()),stamp(dolphin::bridgeRoot()+"/manifest.json"),
+        stamp(pspInstallation.runtimeFile),stamp(dolphin::bridgeFile()),stamp(dolphin::bridgeRoot()+"/bin/dolphin-tool"),stamp(dolphin::bridgeRoot()+"/manifest.json"),
         stamp(installation.linkedSavePython),stamp(installation.linkedSaveHelper),stamp(rmg::bundleRoot()+"/manifest.json"),stamp(flycast::bundleRoot()+"/manifest.json"),stamp(melonds::bundleRoot()+"/manifest.json"));
     for(auto it=installation.cores.cbegin();it!=installation.cores.cend();++it)revision=qHashMulti(revision,it.key(),stamp(it.value()));
-    const auto candidate=[](const AdventureRegistration& r){return r.adventure.platformId=="nds"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc"||r.adventure.platformId=="n64"||r.adventure.platformId=="dreamcast"||
+    const auto candidate=[](const AdventureRegistration& r){return r.adventure.platformId=="nds"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc"||r.adventure.platformId=="wii"||r.adventure.platformId=="n64"||r.adventure.platformId=="dreamcast"||
         retroarch::netplaySupported(r.adventure.platformId,r.integrationConfig["core"].toString());};
     QMap<QString,int> capacities;
     QMap<QString,QVariantMap> metadata;
     for(const auto& r:records)if(candidate(r)) {
         const auto core=r.integrationConfig["core"].toString();
         const auto info=library_.artwork(r.adventure.id);metadata.insert(r.adventure.id,info);
-        const int capacity=(r.adventure.platformId=="gc"||r.adventure.platformId=="n64")?qBound(2,gamePlayers(info).maximum,4):
+        const int capacity=(r.adventure.platformId=="gc"||r.adventure.platformId=="wii"||r.adventure.platformId=="n64")?qBound(2,gamePlayers(info).maximum,4):
             retroarch::netplayCapacity(r.adventure.platformId,core,info,r.contentPath);
         capacities.insert(r.adventure.id,capacity);
         revision=qHashMulti(revision,r.adventure.id,stamp(r.contentPath),r.revision,core,capacity);
@@ -280,7 +280,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
             retroarch::NetplayDigestCache digests;
             for(const auto& r:ordered)if(candidate(r)) {
                 if(promise.isCanceled())break;
-                const auto identity=r.adventure.platformId=="nds"?melonds::netplayIdentity(r,cancel):r.adventure.platformId=="dreamcast"?flycast::netplayIdentity(r,cancel):r.adventure.platformId=="n64"?rmg::netplayIdentity(r,cancel,capacities.value(r.adventure.id,2)):r.adventure.platformId=="gc"?dolphin::netplayIdentity(r,dolphinInstallation,cancel,capacities.value(r.adventure.id,2)):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel,&digests,capacities.value(r.adventure.id,2));
+                const auto identity=r.adventure.platformId=="nds"?melonds::netplayIdentity(r,cancel):r.adventure.platformId=="dreamcast"?flycast::netplayIdentity(r,cancel):r.adventure.platformId=="n64"?rmg::netplayIdentity(r,cancel,capacities.value(r.adventure.id,2)):(r.adventure.platformId=="gc"||r.adventure.platformId=="wii")?dolphin::netplayIdentity(r,dolphinInstallation,cancel,capacities.value(r.adventure.id,2)):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel,&digests,capacities.value(r.adventure.id,2));
                 if(!identity.isEmpty())promise.addResult(ScannedGame{r.adventure.id,identity});
             }
         }));

@@ -1,5 +1,88 @@
 # Dolphin integration checkpoint
 
+## Wii Remote delivery — 12 October 2026
+
+Wii shared-console NetPlay is installed on Flip/Odin through ordinary Play together,
+Online friend consent, the host's solo save/leave barrier and native Dolphin
+traversal. Each participant uses their copied local Wii Remote 1 configuration;
+native mappings assign separate emulated remotes to party seats. GameCube pads
+are disconnected for this route. GC separate pads and two-person Golf Hotseat
+remain available. Wii does not advertise the shared-P1 Golf mode.
+
+The native disc reader in the pinned `dolphin-tool header -j` now reports its
+parsed platform. Admission verifies that helper and bridge hashes, WiiDisc type,
+full image hash and runtime settings. ISO/RVZ/WBFS/WIA/GCZ extensions are candidates;
+only the actual Wii volume parser admits them. The paired device case is RVZ,
+not certification of every format/game/peripheral. WAD/WiiWare and native game
+online servers are separate. No filename/title compatibility guess is introduced.
+The ordinary input map is copied into a temporary `-u` profile. No personal NAND,
+SD image, per-game settings or save paths are linked. Native save sync/write remain
+off. Invitations and party details disclose fresh, temporary progress.
+
+**Gameplay:** New Super Mario Bros. Wii EU revision 1 (SMNP01) reached two-player
+World 1-1. Flip selected/controlled Mario; Odin joined as Luigi. Opposite inputs
+moved Mario right and Luigi left, and the host paused both copies at the same
+positions/timer. The private diagnostic build only sampled existing input button
+states to distinguish short test pulses/intro transitions from missing input;
+it changed no core/network logic. Earlier idle attempts lost lives in this
+fresh session. They were not personal-save tests or completed levels.
+
+**Ordinary installed journey:** Online friend invitation arrived on Odin with an
+incomplete local catalogue, consent admitted it, and host Start/save/leave launched
+two native copies with `controllers=wiimote`, seats 1/2 and traversal. Guest Home,
+minimize, return to the same child and Home Exit worked; guest Exit closed both.
+This uses one home network. Traversal is rendezvous, not proof of a payload relay
+or success through strict NAT. Four-person play, physical/motion controls, longer
+sessions, broader games and distinct-network acceptance remain open.
+
+A real fresh-library mismatch exposed catalogue player counts in strict identity.
+Dolphin and RMG now declare their verified four-port ceiling separately. Compatible
+ordinary profiles may have different catalogue party limits within that ceiling;
+the host still bounds seats. Exact content/runtime/settings and shared-controller
+mode remain mandatory. Profiles without the explicit matching ceiling stay strict;
+RetroArch's genuinely different two-pad/multitap settings are not normalized.
+Regression tests cover both invitation directions, over-capacity/missing-ceiling
+rejection, changed runtime/content/settings and exact two-person Hotseat.
+
+Final installed hashes:
+
+- TrainerOS: `447727e3c831c69eab7fc07857a756b0215b363913693a64d0cd4d2842a55ff8`.
+- Dolphin: `d493e22390278d923a3c0c470b61e4530130c4c46c97e14bfe0a6c1a0932ea77`.
+- dolphin-tool: `b6866ad94392720740b5a4214e4d23d5da8db8d222784485bc8c50ec6648c0c5`.
+- Source remains `c77bbaa0f372c3f72281602a8b087206706542cb` plus the maintained patch.
+- Owner RVZ: 439,323,844 bytes,
+  `e75612ff0bcdc476691e542d2f9faae32be5929ad7b8f982e0ddc589dbcf8740`.
+- Ordinary journey used app `9fb2f5b70c8a00a7514f7bad15625205c46f1d6c1aece75dc0a0cb748497d211`;
+  final app additionally declares the existing temporary-progress disclosure.
+  Its installed guest consent text was inspected; declining that follow-up was verified.
+
+Windows standalone/RMG/party/runtime passed (8.56 s total); ARM64 same four passed
+(6.38 s). After the disclosure change, affected standalone/runtime passed again:
+Windows 7.36 s, ARM64 4.71 s. Application/native builds, complete native patch
+reverse-check and 123-file runtime export passed. Initial failed fixture and
+catalogue-admission observations are superseded by these corrected checks.
+
+Preservation: both isolated sessions and initial delivery left all 389 historical
+baseline files and ordinary INIs unchanged. Ordinary Flip solo startup created
+this title's initial personal save (wiimj2d.sav, banner.bin and title.tmd) and
+changed six console/NAND metadata files:
+GC/SRAM.raw, Wii/fst.bin, Wii/sys/uid.sys, system-menu play_rec.dat/state.dat and
+Wii/shared2/wc24/nwc24dl.bin. TimePlayed.ini and Qt.ini also changed. Existing
+personal game saves and both controller maps remain unchanged; Odin's 25 baseline
+files and all 13 INIs remain unchanged. These legitimate solo changes are retained,
+not rolled back or attributed to isolated multiplayer. Historical and separate
+post-solo baselines/backups are retained. Both final database quick checks passed; no game children remain. Device output
+stays at zero volume. The final future-work baseline also protects the three
+newly created personal title files.
+
+Rebuild with `packaging/emulators/dolphin/build.sh`; it builds both executables.
+`bundle.py` copies both, Sys and exact hashes plus Wii/Hotseat capability markers.
+Rebase the maintained patch against its pinned source and repeat native mapping,
+identity, save-isolation and Home lifecycle checks after relevant upstream changes.
+Rollback restores the paired previous TrainerOS/native/manifest backup while idle;
+ordinary Flatpak, personal NAND/cards and input settings are independent.
+No whole multiplayer issue or external acceptance is closed by this delivery.
+
 ## Ordinary GameCube Hotseat delivery — 12 October 2026
 
 Flip/Odin now offer separate pads or **Take turns with one controller** in ordinary

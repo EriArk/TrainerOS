@@ -15,4 +15,4 @@ cp "$recipe_dir/TrainerNetplay.inc" "$source_dir/Source/Core/DolphinQt/TrainerNe
 cmake -S "$source_dir" -B "$build_dir" -G Ninja -DCMAKE_BUILD_TYPE=Release \
     -DENABLE_TESTS=OFF -DENABLE_LLVM=OFF -DENCODE_FRAMEDUMPS=OFF \
     -DUSE_DISCORD_PRESENCE=OFF -DENABLE_AUTOUPDATE=OFF -DLINUX_LOCAL_DEV=ON
-cmake --build "$build_dir" --target dolphin-emu -j3
+cmake --build "$build_dir" --target dolphin-emu dolphin-tool -j3

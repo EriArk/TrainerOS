@@ -65,6 +65,7 @@ private slots:
         r.adventure.title="Other local name";
         QVERIFY(sameMultiplayerGame(identity,dolphin::netplayIdentity(r,i,cancel,4)));
         QCOMPARE(dolphin::netplayIdentity(r,i,cancel)["players"].toInt(),2);
+        QVERIFY(sameMultiplayerGame(identity,dolphin::netplayIdentity(r,i,cancel)));
         QVERIFY(multiplayerModeProfile(identity,"pass-p1").isEmpty());
         manifest(hash,"dolphin-golf-p1-v1");
         const auto capable=dolphin::netplayIdentity(r,i,cancel,4);
@@ -82,6 +83,51 @@ private slots:
         r.adventure.platformId="wii";QVERIFY(dolphin::netplayIdentity(r,i,cancel).isEmpty());
         r.adventure.platformId="gc";r.contentPath=dir.filePath("game.rvz");write(r.contentPath,disc);
         QVERIFY(dolphin::netplayIdentity(r,i,cancel).isEmpty());
+    }
+    void dolphinWiiUsesVerifiedNativeVolumeReaderAndSeparateRemotes() {
+        const bool previous=QStandardPaths::isTestModeEnabled();QStandardPaths::setTestModeEnabled(true);
+        const auto restore=qScopeGuard([previous]{QStandardPaths::setTestModeEnabled(previous);});
+        const auto root=dolphin::bridgeRoot();QVERIFY(!QFileInfo::exists(root));QVERIFY(QDir().mkpath(root+"/bin"));
+        const auto cleanup=qScopeGuard([root]{
+            QFile::remove(root+"/manifest.json");QFile::remove(root+"/bin/dolphin-emu");QFile::remove(root+"/bin/dolphin-tool");
+            QDir().rmdir(root+"/bin");QDir().rmdir(root);
+        });
+        write(dolphin::bridgeFile(),"fixture runtime");QVERIFY(QFile::copy(probe(),root+"/bin/dolphin-tool"));
+        QFile reader(probe());QVERIFY(reader.open(QIODevice::ReadOnly));
+        QJsonObject manifest{{"protocol",1},{"source","c77bbaa0f372c3f72281602a8b087206706542cb"},
+            {"sha256",QString::fromLatin1(QCryptographicHash::hash("fixture runtime",QCryptographicHash::Sha256).toHex())},
+            {"toolSha256",QString::fromLatin1(QCryptographicHash::hash(reader.readAll(),QCryptographicHash::Sha256).toHex())},
+            {"wiimote","dolphin-wiimote-v1"},{"hotseat","dolphin-golf-p1-v1"}};
+        const auto saveManifest=[&]{write(root+"/manifest.json",QJsonDocument(manifest).toJson());};saveManifest();
+        QTemporaryDir dir;std::atomic_bool cancel=false;
+        AdventureRegistration r;r.adventure.platformId="wii";r.adventure.adapterId="dolphin";
+        r.adventure.title="Unrelated local name";r.contentPath=dir.filePath("game.rvz");
+        write(r.contentPath,QJsonDocument(QJsonObject{{"platform","wii"},{"revision",0}}).toJson());
+        StandaloneInstallation i;i.platforms={"gc","wii"};
+        const auto identity=dolphin::netplayIdentity(r,i,cancel,4);
+        QCOMPARE(identity["id"].toString(),QString("runtime.dolphin.wii.v1"));QCOMPARE(identity["players"].toInt(),4);
+        QVERIFY(identity["temporaryProgress"].toBool());
+        QVERIFY(multiplayerModeProfile(identity,"pass-p1").isEmpty());
+        write(r.contentPath,QJsonDocument(QJsonObject{{"platform","gc"},{"revision",0}}).toJson());
+        QVERIFY(dolphin::netplayIdentity(r,i,cancel,4).isEmpty());
+        write(r.contentPath,QJsonDocument(QJsonObject{{"platform","wii"},{"revision",1}}).toJson());
+        QVERIFY(!sameMultiplayerGame(identity,dolphin::netplayIdentity(r,i,cancel,4)));
+        manifest["toolSha256"]=QString(64,'0');saveManifest();QVERIFY(dolphin::netplayIdentity(r,i,cancel,4).isEmpty());
+        write(dir.filePath("Dolphin.ini"),"[General]\nNANDRootPath = /personal/wii\n");
+        const QByteArray mapping="[Wiimote1]\nDevice = SDL/0/Gamepad\nExtension = Nunchuk\n";
+        write(dir.filePath("WiimoteNew.ini"),mapping);i.configFile=dir.filePath("Dolphin.ini");
+        dolphin::NetplayRequest request{identity,false,false,"192.168.1.5",QString(32,'a'),2626,2,{1,2}};
+        ProcessCommand cmd;QVERIFY(dolphin::configureNetplay(cmd,i,r.contentPath,request,cancel).isEmpty());
+        const auto sessionRoot=cmd.arguments.last();
+        QFile input(sessionRoot+"/Config/WiimoteNew.ini");QVERIFY(input.open(QIODevice::ReadOnly));QCOMPARE(input.readAll(),mapping);input.close();
+        QFile config(sessionRoot+"/Config/Dolphin.ini");QVERIFY(config.open(QIODevice::ReadOnly));QVERIFY(!config.readAll().contains("/personal"));config.close();
+        QFile session(sessionRoot+"/session.json");QVERIFY(session.open(QIODevice::ReadOnly));
+        QCOMPARE(QJsonDocument::fromJson(session.readAll()).object()["controllers"].toString(),QString("wiimote"));session.close();
+        QVERIFY(!QFileInfo::exists(sessionRoot+"/Wii"));QVERIFY(cmd.runtimeControls["hotseat"].toString().isEmpty());
+        cmd.settled({});QVERIFY(!QFileInfo::exists(sessionRoot));
+        request.expected["playMode"]="pass-p1";request.expected["players"]=2;
+        request.expected["controllerModes"]=QJsonArray{"pass-p1"};
+        QVERIFY(!dolphin::configureNetplay(cmd,i,r.contentPath,request,cancel).isEmpty());
     }
     void dolphinSessionKeepsControllerBridgeAndNeverLinksPersonalSaves() {
         QTemporaryDir dir;QVERIFY(dir.isValid());

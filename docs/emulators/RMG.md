@@ -1,5 +1,14 @@
 # Nintendo 64 native netplay — 11 October 2026
 
+**12 October catalogue compatibility correction:** the installed TrainerOS
+profile explicitly declares the unchanged native four-port ceiling separately
+from its catalogue-derived party limit. Two compatible copies with incomplete
+versus complete player metadata can now admit the same party. Local verified
+ceiling, content, runtime and renderer/settings remain mandatory; host capacity
+still bounds seats. This shares the Dolphin/Wii correction and focused identity,
+party and RMG regression checks. No RMG binary/server change, new Online endpoint
+or new N64 gameplay acceptance is implied.
+
 Status: **installed Nearby route; Online service pending**. The 12 October
 record below supersedes earlier build-only statements. This does not close
 N64 or the full multiplayer block.

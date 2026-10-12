@@ -36,6 +36,26 @@ class GamePartyTests : public QObject {
         }
     };
 private slots:
+    void catalogueLimitsDoNotSplitAnExplicitNativePortFamily() {
+        Room r;auto host=game(4),guest=game(2);host["runtimePlayers"]=4;guest["runtimePlayers"]=4;
+        QVERIFY(sameMultiplayerGame(host,guest));QVERIFY(supportsMultiplayerSession(guest,host));
+        auto changed=host;changed["runtimePlayers"]=2;QVERIFY(!supportsMultiplayerSession(guest,changed));
+        changed=host;changed.remove("runtimePlayers");QVERIFY(!supportsMultiplayerSession(guest,changed));
+        for(int value:{0,1,5}) {changed=host;changed["players"]=value;QVERIFY(!supportsMultiplayerSession(guest,changed));}
+        for(const auto& field:{"content","runtime","settings"}) {
+            changed=host;changed[field]="different";QVERIFY(!supportsMultiplayerSession(guest,changed));
+        }
+        QVERIFY(!sameMultiplayerGame(game(4),game(2))); // No inferred native capacity.
+        r.a.configure("a",{host},host,true);r.b.configure("b",{guest},{},true);
+        r.a.invite("b");QCOMPARE(r.b.pending()["game"].toObject(),host);r.b.answer(true);
+        r.a.start();r.a.ready({{"kind","ready"}});QVERIFY(r.a.running());QVERIFY(r.b.running());
+        QCOMPARE(r.b.state()["capacity"].toInt(),4);r.a.leave();
+        r.a.configure("a",{guest},guest,true);r.b.configure("b",{host},{},true);
+        r.a.invite("b");r.b.answer(true);QCOMPARE(r.a.state()["capacity"].toInt(),2);
+        host["controllerModes"]=QJsonArray{"pass-p1"};guest["controllerModes"]=QJsonArray{"pass-p1"};
+        auto turns=multiplayerModeProfile(host,"pass-p1");QVERIFY(supportsMultiplayerSession(guest,turns));
+        turns["players"]=3;QVERIFY(!supportsMultiplayerSession(guest,turns));
+    }
     void sharedControllerInvitationsRequireTheLocalCapabilityAndExactMode() {
         Room r(2);auto base=game(2);base["controllerModes"]=QJsonArray{"separate","pass-p1"};
         const auto selected=multiplayerModeProfile(base,"pass-p1");QVERIFY(!selected.isEmpty());

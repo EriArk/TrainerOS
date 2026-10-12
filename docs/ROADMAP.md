@@ -1,5 +1,17 @@
 # TrainerOS Roadmap
 
+**12 October Wii delivery:** separate emulated Wii Remotes now use ordinary
+invitations, consent, solo save/leave, native traversal and Home/minimize/Exit on
+Flip/Odin. NSMB Wii reached two-player World 1-1 with opposite independent input
+in a separate native check; the ordinary Online friend journey closed both copies
+on guest Exit. Progress is temporary and disclosed. Fixed native port ceilings
+keep Dolphin/RMG compatible despite incomplete player-count metadata; actual
+runtime/content/settings and Hotseat mode remain strict.
+[Evidence, hashes and preservation limits](emulators/dolphin.md#wii-remote-delivery--12-october-2026).
+Continue 3DS/Wii U/Vita and retained service/admission gates. Four participants,
+motion/physical controls, broader games, distinct networks, PS2 feasibility and
+the full Hotseat catalogue remain open. PS3/Switch stay excluded; no issue closed.
+
 **12 October GameCube Hotseat delivery:** the two-person shared-P1 choice is
 installed with ordinary invitations and Home controls. The maintained Dolphin
 bridge reuses native Golf authority and exposes one exclusive input port.

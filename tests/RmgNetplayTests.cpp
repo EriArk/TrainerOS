@@ -52,6 +52,7 @@ private slots:
         record.adventure.adapterId="retroarch";record.adventure.title="Cartridge";record.contentPath=rom;
         std::atomic_bool cancel=false;
         const auto id=rmg::netplayIdentity(record,cancel,4);QVERIFY(!id.isEmpty());
+        QVERIFY(sameMultiplayerGame(id,rmg::netplayIdentity(record,cancel,2)));
         QVERIFY(multiplayerConnectionAllowed(id,"online"));
         m.remove("onlineServer");saveManifest();
         const auto nearby=rmg::netplayIdentity(record,cancel,4);QVERIFY(!nearby.isEmpty());
