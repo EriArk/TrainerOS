@@ -174,6 +174,12 @@ QByteArray netplayControllers(const QJsonObject& identity,bool host,int slot) {
     if(!slot&&players==2)slot=host?1:2; // Older two-player callers.
     if((host&&slot!=1)||(!host&&(slot<2||slot>players)))return {};
     QByteArray result="netplay_max_connections = \""+QByteArray::number(players-1)+"\"\n";
+    if(usesSharedController(identity)) {
+        result+="input_max_users = \"2\"\n";
+        for(int p=1;p<=16;++p)
+            result+="netplay_request_device_p"+QByteArray::number(p)+" = \""+(p==1?QByteArray("true"):QByteArray("false"))+"\"\n";
+        return result;
+    }
     if(identity["transport"]=="netpacket")return result+"input_max_users = \"1\"\n";
     if(requiresLinkedSavePreparation(identity))result+="input_max_users = \""+QByteArray::number(players)+"\"\n";
     if(identity["settings"]=="dcgb-linked-pair-volatile-v1")result+="input_max_users = \"2\"\n";
@@ -193,6 +199,7 @@ QByteArray netplayControllers(const QJsonObject& identity,bool host,int slot) {
     return result;
 }
 QStringList netplayControllerArguments(const QJsonObject& identity) {
+    if(usesSharedController(identity))return {"--device","1:1","--nodevice","2"};
     if(requiresLinkedSavePreparation(identity)) {
         QStringList args;
         for(int port=1;port<=identity["players"].toInt(2);++port)args<<"--device"<<QString::number(port)+":1";
@@ -329,11 +336,18 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstal
         // Keep the existing provider message budget independent of BIOS count.
         identity["firmware"]=QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(firmware).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
     }
-    identity["core"]=core;identity["runtime"]=runtime;return identity;
+    identity["core"]=core;identity["runtime"]=runtime;
+    // This initial handoff route is the actual paired ARM64 runtime/core, not a
+    // promise that every libretro frontend implements the inspected protocol.
+    if(playStation&&runtime=="8d57b47c88d416c05145187c8c906b7ab0013edb7e45af69d9b6bb841aea4a24"&&
+       core=="25bfeb6336d7ef573903775fe53733af974c90edd268cf4fb9afa497e188609d")
+        identity["controllerModes"]=QJsonArray{"separate","pass-p1"};
+    return identity;
 }
 QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const RetroArchInstallation& i,
                       const NetplayRequest& request,const std::atomic_bool& cancel) {
-    const auto identity=netplayIdentity(r,i,cancel,nullptr,request.expected["players"].toInt(2));
+    const auto identity=multiplayerModeProfile(netplayIdentity(r,i,cancel,nullptr,request.expected["players"].toInt(2)),
+        request.expected["playMode"].toString("separate"));
     if(identity.isEmpty())return "Multiplayer isn't supported for this game version yet.";
     if(!sameMultiplayerGame(identity,request.expected))return "Your game or emulator changed. Invite your friend again.";
     const bool linked=requiresLinkedSavePreparation(identity);
@@ -355,6 +369,7 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
             return "This online relay address is invalid.";
     }
     if(!request.host) {
+        if(usesSharedController(identity)&&!request.clientPort)return "Couldn't prepare controller handoff.";
         // Only an explicit authenticated/accepted invitation supplies an endpoint.
         // No shell command, path or emulator option may enter through this field.
         if(request.address.isEmpty()||request.address.size()>253||!QRegularExpression("^[A-Za-z0-9.-]+$").match(request.address).hasMatch())
@@ -436,8 +451,10 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
         "history_list_enable = \"false\"\nnetplay_nat_traversal = \"false\"\n"
         "netplay_start_as_server = \"false\"\nnetplay_start_as_client = \"false\"\n"
         "netplay_allow_slaves = \"false\"\n"
-        "netplay_start_as_spectator = \"false\"\nnetplay_share_digital = \"0\"\n"
+        "netplay_share_digital = \"0\"\n"
         "pause_nonactive = \"false\"\n";
+    bytes+="netplay_start_as_spectator = \""+QByteArray(usesSharedController(identity)&&!request.host?"true":"false")+"\"\n";
+    if(usesSharedController(identity))bytes+="netplay_share_analog = \"0\"\nquit_press_twice = \"false\"\nstdin_cmd_enable = \"true\"\n";
     bytes+=controllers;
     if(playStation)bytes+="system_directory = \""+path.toUtf8()+"/bios\"\n";
 #ifdef Q_OS_LINUX
@@ -462,11 +479,12 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     if(append>=0&&append+1<cmd.arguments.size())cmd.arguments[append+1]+="|"+path+"/session.cfg";
     else {auto content=cmd.arguments.takeLast();cmd.arguments<<"--appendconfig"<<path+"/session.cfg"<<content;}
     auto content=cmd.arguments.takeLast();
-    const auto port=request.relay&&!request.host?request.clientPort:request.port;
+    const bool bridged=!request.host&&(request.relay||usesSharedController(identity));
+    const auto port=bridged?request.clientPort:request.port;
     cmd.arguments<<netplayControllerArguments(sessionIdentity);
     cmd.arguments<<"--verbose"<<"--no-patch"<<"--sram-mode"<<(handheld?"load-save":"noload-nosave")<<"--nick"<<request.nickname<<"--port"<<QString::number(port);
     if(request.host)cmd.arguments<<"--host";
-    else cmd.arguments<<"--connect"<<(request.relay?QString("127.0.0.1"):request.address);
+    else cmd.arguments<<"--connect"<<(bridged?QString("127.0.0.1"):request.address);
     if(linked) {
         const bool gba=linkCore=="mgba_splitscreen";
         const auto suffix=gba?QString(".gba"):QString(".gb");
@@ -476,6 +494,7 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     else cmd.arguments<<content;
     cmd.runtimeControls["netplay"]=identity.toVariantMap();
     cmd.runtimeControls["netplayHost"]=request.host;
+    if(usesSharedController(identity))cmd.runtimeControls["hotseat"]="retroarch-p1-v1";
     // Shared-console/volatile linked pairs keep session-only progress;
     // independent netpacket sessions return this player's own battery memory.
     cmd.runtimeControls["temporaryProgress"]=!handheld;

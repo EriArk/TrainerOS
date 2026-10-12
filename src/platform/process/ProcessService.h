@@ -34,6 +34,7 @@ public:
     explicit ProcessService(QObject* parent = nullptr);
     ~ProcessService() override;
     bool active() const { return active_; }
+    bool preparing() const { return active_ && preparing_; }
     bool stopRequested() const { return stopRequested_; }
     qint64 processId() const { return process_.processId(); }
     bool start(const ProcessCommand&);

@@ -45,7 +45,7 @@ class RuntimeMultiplayerTests final : public QObject {
             QObject::connect(&lifecycle.exitController(),&AdventureExitController::gracefulExitRequested,&view,
                 [this](quint64){QFile f(dir.filePath("control"));if(f.open(QIODevice::WriteOnly))f.write("exit");});
         }
-        bool start(bool finalizerFails=false,QString game={}) {
+        bool start(bool finalizerFails=false,QString game={},bool hotseat=false) {
 #ifdef Q_OS_WIN
             const auto name="trainer_process_probe.exe";
 #else
@@ -54,6 +54,10 @@ class RuntimeMultiplayerTests final : public QObject {
             ProcessCommand command{QDir(QCoreApplication::applicationDirPath()).filePath(name),
                 {"controlled",dir.filePath("control"),dir.filePath("pid")},{}};
             if(!game.isEmpty())command.runtimeControls={{"game",game}};
+            if(hotseat) {
+                command.arguments[0]="stdin-control";
+                command.runtimeControls={{"game",game},{"kind","retroarch"},{"netplay",true},{"hotseat","retroarch-p1-v1"}};
+            }
             if(finalizerFails)command.finalize=[](const ProcessOutcome&){return QString("Save recovery required");};
             return lifecycle.launch(command,{},"ordinary",AdventureSavePolicy::ManualConfirm);
         }
@@ -87,6 +91,84 @@ class RuntimeMultiplayerTests final : public QObject {
         QTRY_VERIFY(!f.lifecycle.active());
     }
 private slots:
+    void sharedControllerModeIsExplicitAndBoundToTheLiveGame() {
+        Fixture f;QVERIFY(f.start(false,"ps1:test"));QTRY_COMPARE(f.lifecycle.state(),"running");
+        QJsonObject base{{"id","runtime.retroarch.ps1"},{"players",2},{"controllerModes",QJsonArray{"separate","pass-p1"}}};
+        f.runtime.allowed_=true;f.runtime.games_={{"ps1:test",base}};f.runtime.update();
+        readyMenu(f);f.runtime.action("multiplayer");
+        QVERIFY(!usesSharedController(f.runtime.descriptor_));
+        f.runtime.action("multiplayer-mode:ps1:stale:pass-p1");QVERIFY(!usesSharedController(f.runtime.descriptor_));
+        f.runtime.action("multiplayer-mode:ps1:test:pass-p1");QVERIFY(usesSharedController(f.runtime.descriptor_));
+        QCOMPARE(f.view.menuFocus(),0);
+        QCOMPARE(f.view.menuActions().first().toMap()["id"].toString(),QString("multiplayer-mode:ps1:test:separate"));
+        for(const auto& row:f.view.menuActions())QVERIFY(row.toMap()["label"]!="No longer available");
+        f.runtime.update();QVERIFY(usesSharedController(f.runtime.descriptor_));
+        f.runtime.action("multiplayer-mode:ps1:test:unknown");QVERIFY(usesSharedController(f.runtime.descriptor_));
+        f.runtime.action("multiplayer-mode:ps1:test:separate");QCOMPARE(f.runtime.descriptor_,base);
+        finishOrdinary(f);
+    }
+    void sharedControllerAbortKeepsOrdinarySaveConsentAndCancelsOwnedPreparation() {
+        const QJsonObject profile{{"id","runtime.retroarch.ps1"},{"players",2},{"controllerModes",QJsonArray{"pass-p1"}},{"playMode","pass-p1"}};
+        Fixture ordinary;QVERIFY(ordinary.start());QTRY_COMPARE(ordinary.lifecycle.state(),"running");
+        requestRestart(ordinary,profile);ordinary.runtime.fail("Connection ended");
+        QVERIFY(ordinary.process.active());finishOrdinary(ordinary);
+
+        Fixture preparing;ProcessCommand command;
+        command.prepare=[](ProcessCommand&,const std::atomic_bool& cancelled){
+            while(!cancelled)QThread::msleep(5);return QString();
+        };
+        preparing.runtime.active_=true;preparing.runtime.descriptor_=profile;preparing.runtime.game_="ps1";
+        QVERIFY(preparing.lifecycle.launch(command,{},"ps1",AdventureSavePolicy::ManualConfirm));
+        QTRY_VERIFY(preparing.process.preparing());preparing.runtime.fail("Connection ended");
+        QTRY_VERIFY(!preparing.process.active());QVERIFY(!preparing.runtime.active_);
+    }
+    void sharedControllerBindingsRejectStaleClicksAndEndBothOwnedCopies() {
+        Fixture a,b;
+        const QJsonObject base{{"id","runtime.retroarch.ps1"},{"players",2},{"controllerModes",QJsonArray{"separate","pass-p1"}}};
+        const auto profile=multiplayerModeProfile(base,"pass-p1");
+        auto& host=a.runtime;auto& guest=b.runtime;
+        // The child fixture replaces the emulator only; use the actual party,
+        // handoff, owned stdin, menu-action and lifecycle bindings end to end.
+        disconnect(&host.party_,&GameParty::startRequested,&host,&RuntimeMultiplayer::startParty);
+        disconnect(&guest.party_,&GameParty::startRequested,&guest,&RuntimeMultiplayer::startParty);
+        // Both fixtures share a host with each other and possibly an installed
+        // shell. Their provider transport below is in-memory, without discovery.
+        disconnect(&host.nearby_,nullptr,&host,nullptr);
+        disconnect(&guest.nearby_,nullptr,&guest,nullptr);
+        connect(&host.party_,&GameParty::outgoing,&guest,[&](QString,QJsonObject p){guest.party_.receive("host","Host",p);});
+        connect(&guest.party_,&GameParty::outgoing,&host,[&](QString,QJsonObject p){host.party_.receive("guest","Guest",p);});
+        host.party_.configure("Host",{base},profile,true);guest.party_.configure("Guest",{base},{},true);
+        host.party_.invite("guest");guest.party_.answer(true);host.party_.start();host.party_.ready({{"kind","ready"}});
+        QVERIFY2(host.party_.running()&&guest.party_.running(),qPrintable(QString::fromUtf8(QJsonDocument(host.party_.state()).toJson(QJsonDocument::Compact))+" / "+QString::fromUtf8(QJsonDocument(guest.party_.state()).toJson(QJsonDocument::Compact))));
+        for(auto* runtime:{&host,&guest}) {
+            runtime->allowed_=true;runtime->games_={{"ps1",base}};runtime->descriptor_=profile;
+            runtime->active_=true;runtime->partySession_=true;runtime->game_="ps1";
+        }
+        host.host_=true;guest.host_=false;
+        QVERIFY(a.start(false,"ps1",true));QVERIFY(b.start(false,"ps1",true));
+        QTRY_COMPARE(a.lifecycle.state(),"running");QTRY_COMPARE(b.lifecycle.state(),"running");
+        const auto session=host.party_.state()["party"].toString();
+        guest.handoff_.begin(session,2);emit guest.client_.hotseatOwnership(1,0,0,true);
+        QVERIFY2(host.handoff_.canPass(),qPrintable(host.status_+" / "+guest.status_+" / active "+QString::number(host.active_)+" "+QString::number(guest.active_)+" handoff "+QString::number(host.handoff_.active())+" "+QString::number(guest.handoff_.active())));QVERIFY(!guest.handoff_.canPass());
+        const auto first=host.gameMenuActions().first().toMap()["id"].toString();
+        connect(&host,&RuntimeMultiplayer::changed,&a.view,[&]{a.view.setExtraActions(host.gameMenuActions());});
+        a.view.setExtraActions(host.gameMenuActions());readyMenu(a);
+        a.view.updateInput(a.view.inputGeneration(),{true,false,false,false,false,false,true});QCOMPARE(a.view.menuFocus(),1);
+        host.action("multiplayer-pass:old:0");QVERIFY(host.handoff_.canPass());
+        host.action(first);QVERIFY(!host.handoff_.canPass());QCOMPARE(a.view.menuFocus(),0);QVERIFY(!a.view.ready());
+        emit guest.client_.hotseatOwnership(2,1,-1,false);
+        emit guest.client_.hotseatOwnership(3,2,1,false);
+        QVERIFY(guest.handoff_.canPass());QVERIFY(!host.handoff_.canPass());
+        const auto second=guest.gameMenuActions().first().toMap()["id"].toString();
+        guest.action(second);emit guest.client_.hotseatOwnership(4,3,-1,false);emit guest.client_.hotseatOwnership(5,4,0,false);
+        QVERIFY(host.handoff_.canPass());host.action(first);QVERIFY(host.handoff_.canPass());
+        host.fail("Connection lost");QTRY_VERIFY(!a.process.active());QTRY_VERIFY(!b.process.active());
+        QVERIFY(!host.active_);QVERIFY(!guest.active_);QVERIFY(!host.handoff_.active());QVERIFY(!guest.handoff_.active());
+        for(auto* f:{&a,&b}) {
+            QFile journal(f->dir.filePath("control"));QVERIFY(journal.open(QIODevice::ReadOnly));
+            QCOMPARE(journal.readAll(),QByteArray("NETPLAY_GAME_WATCH\nNETPLAY_GAME_WATCH\nQUIT\n"));
+        }
+    }
     void dsRestartKeepsSaveConsentAndCancelledEndpointCannotLaunch() {
         Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
         requestRestart(f,{{"id","runtime.melonds.nds.v1"},{"privateProgress",true}});

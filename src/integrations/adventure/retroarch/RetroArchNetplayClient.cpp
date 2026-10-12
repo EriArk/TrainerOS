@@ -51,17 +51,27 @@ NetplayClient::NetplayClient(QObject* parent) : QObject(parent) {
     });
 }
 quint16 NetplayClient::start(QString address, quint16 port, QString session, QString password) {
+    return begin(std::move(address), port, std::move(session), std::move(password), true, false);
+}
+quint16 NetplayClient::startHotseat(QString address, quint16 port, QString session, QString password, bool online) {
+    if (online && session.isEmpty()) { stop(); return 0; }
+    if (!online && (!session.isEmpty() || !password.isEmpty())) { stop(); return 0; }
+    return begin(std::move(address), port, std::move(session), std::move(password), online, true);
+}
+quint16 NetplayClient::begin(QString address, quint16 port, QString session, QString password, bool authenticate, bool observe) {
     stop();
     if (!port || address.size() > 253 || !QRegularExpression("^[A-Za-z0-9.-]+$").match(address).hasMatch()
-        || !QRegularExpression("^[A-Za-z0-9_-]{1,32}$").match(password).hasMatch()
+        || (authenticate && !QRegularExpression("^[A-Za-z0-9_-]{1,32}$").match(password).hasMatch())
         || (!session.isEmpty() && !QRegularExpression("^[A-Za-z0-9+/]{16}$").match(session).hasMatch())) return 0;
     address_ = std::move(address); port_ = port;
     session_ = QByteArray::fromBase64(session.toLatin1()); password_ = password.toUtf8();
+    requirePassword_ = authenticate; observeHotseat_ = observe;
     if (!listener_.listen(QHostAddress::LocalHost, 0)) { stop(); return 0; }
     running_ = true; timeout_.start(20000);
     return listener_.serverPort();
 }
 void NetplayClient::stop() {
+    ++generation_;
     running_ = false; timeout_.stop(); listener_.close(); remote_.abort();
     if (local_) {
         local_->disconnect(this); local_->abort(); local_->deleteLater(); local_ = nullptr;
@@ -69,6 +79,7 @@ void NetplayClient::stop() {
     password_.fill('\0'); password_.clear(); session_.clear();
     localBuffer_.clear(); remoteBuffer_.clear(); salt_ = 0;
     localHeader_ = remoteHeader_ = authenticated_ = false;
+    requirePassword_ = true; observeHotseat_ = false; observer_.reset();
 }
 void NetplayClient::fail(QString message) {
     if (!running_) return;
@@ -91,6 +102,10 @@ void NetplayClient::pumpLocal() {
         if (!write(remote_, localBuffer_.first(24))) return;
         localBuffer_.remove(0, 24); localHeader_ = true;
     }
+    if (!authenticated_ && !requirePassword_) {
+        if (!remoteHeader_) return;
+        authenticated_ = true; // stock Nearby handshake needs no PASSWORD packet
+    }
     if (!authenticated_) {
         if (!remoteHeader_ || localBuffer_.size() < 40) return;
         if (word(localBuffer_, 0) != 0x20 || word(localBuffer_, 4) != 32) {
@@ -103,7 +118,8 @@ void NetplayClient::pumpLocal() {
         const auto salted = QByteArray::number(salt_, 16).rightJustified(8, '0').toUpper() + password_;
         const auto digest = QCryptographicHash::hash(salted, QCryptographicHash::Sha256).toHex();
         if (!write(remote_, word(0x21) + word(64) + digest)) return;
-        password_.fill('\0'); password_.clear(); authenticated_ = true; timeout_.stop();
+        password_.fill('\0'); password_.clear(); authenticated_ = true;
+        if (!observeHotseat_) timeout_.stop();
     }
     if (!localBuffer_.isEmpty()) {
         const auto bytes = std::exchange(localBuffer_, {}); write(remote_, bytes);
@@ -111,7 +127,12 @@ void NetplayClient::pumpLocal() {
 }
 void NetplayClient::pumpRemote() {
     if (!running_ || !local_) return;
-    remoteBuffer_ += remote_.readAll();
+    const auto generation = generation_;
+    const auto received = remote_.readAll();
+    if (observeHotseat_ && !observer_.feed(received)) {
+        fail("Controller ownership couldn't be confirmed. End this session and invite again."); return;
+    }
+    remoteBuffer_ += received;
     if (remoteBuffer_.size() > BufferLimit) { fail("The multiplayer connection stopped responding."); return; }
     if (!remoteHeader_) {
         if (remoteBuffer_.size() < 24) return;
@@ -120,12 +141,21 @@ void NetplayClient::pumpRemote() {
             fail("Your friend's emulator rejected the multiplayer connection."); return;
         }
         salt_ = word(remoteBuffer_, 12);
-        if (!salt_) { fail("Your friend's game did not request the invitation password."); return; }
+        if (requirePassword_ && !salt_) { fail("Your friend's game did not request the invitation password."); return; }
+        if (!requirePassword_ && salt_) { fail("The nearby game's invitation settings changed."); return; }
         // Only the local client sees zero salt, suppressing its password UI.
         // The remote host receives the real PASSWORD command and verifies it.
         remoteBuffer_.replace(12, 4, QByteArray(4, '\0')); remoteHeader_ = true;
     }
     const auto bytes = std::exchange(remoteBuffer_, {});
-    if (write(*local_, bytes)) pumpLocal();
+    if (!write(*local_, bytes)) return;
+    pumpLocal();
+    if (!running_ || generation != generation_ || !observeHotseat_) return;
+    const auto events = observer_.takeEvents();
+    for (const auto& event : events) {
+        if (event.initial) timeout_.stop();
+        emit hotseatOwnership(event.sequence, event.frame, event.owner, event.initial);
+        if (!running_ || generation != generation_) return; // callback may start a different session
+    }
 }
 }

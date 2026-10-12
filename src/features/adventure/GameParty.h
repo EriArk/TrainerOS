@@ -26,6 +26,9 @@ public:
     void start();
     void ready(QJsonObject endpoint);
     void prepareLinked(int slot,QJsonObject endpoint);
+    // Small runtime control messages use the already authenticated accepted
+    // roster. Native acknowledgement and handoff ordering belong to runtime.
+    bool sendRuntimeControl(int slot,const QJsonObject& control);
     void leave();
     void cancelInvite(const QString& peer);
     void disconnected(const QString& peer);
@@ -46,6 +49,7 @@ signals:
     void changed();
     void startRequested(bool host,QJsonObject endpoint);
     void connectionReady(QJsonObject endpoint);
+    void runtimeControlReceived(int senderSlot,QJsonObject control);
     void notice(QString text);
 private:
     friend class GamePartyTests;

@@ -1,5 +1,15 @@
 # TrainerOS Roadmap
 
+**12 October PS1 Hotseat delivery:** ordinary invitations now select separate pads
+or ordered shared P1 on both handhelds. Home exposes the confirmed owner and Pass;
+native release/acquire acknowledgements prevent overlapping or uncertain turns.
+Hot Shots Golf 2 passed both players' strokes and three transfers through Nearby
+and the public RetroArch relay; guest/host Exit each closed both copies. Baseline
+saves/configuration remain intact. [Evidence and pins](emulators/pcsx-rearmed.md#ordinary-hotseat-delivery--12-october-2026).
+Continue GameCube Hotseat and the remaining accepted routes, retaining PS2's
+feasibility gate, the full catalogue, physical/distinct-network and broader-game
+acceptance. Wii U/Vita remain in scope; PS3/Switch remain excluded. No issue closed.
+
 **12 October PS2 feasibility gate:** the isolated LRPS2 ARM64 core builds and a
 maintained page-protection reset fixes the native state-copy crash. Three actual
 software-renderer restores pass. Paired native P1/P2 admission does not yield a

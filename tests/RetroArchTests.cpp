@@ -607,6 +607,23 @@ private slots:
         r.contentPath=dir.filePath("game.m3u");write("game.m3u","game.cue\n");
         QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty());
     }
+    void sharedControllerUsesOneExclusivePortOnBothMachines() {
+        auto base=retroarch::netplayProfile("psx","pcsx_rearmed",QString(64,'a'),2);
+        QVERIFY(!base.isEmpty());QVERIFY(multiplayerModeProfile(base,"pass-p1").isEmpty());
+        base["controllerModes"]=QJsonArray{"separate","pass-p1"};
+        const auto selected=multiplayerModeProfile(base,"pass-p1");
+        for(bool host:{false,true}) {
+            const auto bytes=retroarch::netplayControllers(selected,host,host?1:2);
+            QVERIFY(bytes.contains("netplay_request_device_p1 = \"true\""));
+            for(int port=2;port<=16;++port)QVERIFY(bytes.contains("netplay_request_device_p"+QByteArray::number(port)+" = \"false\""));
+        }
+        QCOMPARE(retroarch::netplayControllerArguments(selected),QStringList({"--device","1:1","--nodevice","2"}));
+        QVERIFY(retroarch::netplayControllers(selected,false,1).isEmpty());
+        QVERIFY(retroarch::netplayControllers(selected,false,3).isEmpty());
+        const auto separate=retroarch::netplayControllers(base,false,2);
+        QVERIFY(separate.contains("netplay_request_device_p2 = \"true\""));
+        QVERIFY(separate.contains("netplay_request_device_p1 = \"false\""));
+    }
     void playStationNetplayProtectsCardsAndMatchesDiscDependencies() {
         QTemporaryDir dir;std::atomic_bool cancel=false;
         const auto write=[&](const QString& name,const QByteArray& bytes) {
@@ -624,6 +641,7 @@ private slots:
         QVERIFY(retroarch::netplayIdentity(r,i,cancel).isEmpty()); // Owned BIOS is required.
         QVERIFY(write("bios/scph5501.bin",QByteArray(512*1024,'a')));
         const auto identity=retroarch::netplayIdentity(r,i,cancel);QVERIFY(!identity.isEmpty());
+        QVERIFY(!identity.contains("controllerModes")); // Unknown runtime builds cannot opt into native handoff.
         QVERIFY(retroarch::netplayIdentity(r,i,cancel,nullptr,4).isEmpty()); // No inferred Multitap.
         QVERIFY(write("bios/unknown.bin",QByteArray(512*1024,'u')));
         QCOMPARE(retroarch::netplayIdentity(r,i,cancel),identity); // Not visible in private BIOS directory.

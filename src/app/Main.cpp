@@ -485,7 +485,7 @@ int main(int argc, char* argv[]) {
             actions.prepend(QVariantMap{{"id","minimize"},{"label","Minimize"},
                 {"detail",adventureOverlay && adventureOverlay->canMinimize()?"Browse TrainerOS · game keeps running":"Safe input handoff is unavailable"},
                 {"readOnly",!(adventureOverlay && adventureOverlay->canMinimize())}});
-            if(multiplayer.canInvite()||!multiplayer.invitationId().isEmpty())actions.prepend(QVariantMap{{"id","multiplayer"},{"label",multiplayer.menuLabel()}});
+            actions=multiplayer.gameMenuActions()+actions;
             if(adventureProcess.runtimeControls()["kind"]=="retroarch")actions.append(QVariantMap{{"id","display"},{"label","Screen & graphics"}});
             if(!shell.social()->account()["voice"].toMap()["channel"].toString().isEmpty())actions.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",shell.social()->account()["voice"].toMap()["name"]}});
             actions=shell.social()->incomingCallActions()+actions;

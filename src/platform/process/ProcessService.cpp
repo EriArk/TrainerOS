@@ -78,6 +78,8 @@ bool ProcessService::runtimeCommand(const QString& action,const QString& text) {
     if(action=="shader")command="SHADER_TOGGLE";
     else if(action=="next-shader")command="SHADER_NEXT";
     else if(action=="previous-shader")command="SHADER_PREV";
+    else if((action=="hotseat-play"||action=="hotseat-spectate")&&runtimeControls_["hotseat"]=="retroarch-p1-v1")command="NETPLAY_GAME_WATCH";
+    else if(action=="hotseat-end"&&runtimeControls_["hotseat"]=="retroarch-p1-v1")command="QUIT";
     else if(action=="notify") {auto message=text.left(160);message.replace('\n',' ');message.replace('\r',' ');command="SHOW_MSG "+message.toUtf8();}
     else return false;
     return process_.write(command+'\n')==command.size()+1;

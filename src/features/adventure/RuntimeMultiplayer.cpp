@@ -22,9 +22,18 @@ namespace {
 QString randomToken(){return QUuid::createUuid().toString(QUuid::Id128);}
 QVariantMap row(QString id,QString label,QString detail={}){return {{"id",id},{"label",label},{"detail",detail}};}
 }
+RuntimeMultiplayer::~RuntimeMultiplayer() {
+    // QObject's own disconnect runs after value members have been destroyed.
+    // A network member's close signal must not redraw a menu using freed maps.
+    active_=false;
+    for(auto* child:findChildren<QObject*>())QObject::disconnect(child,nullptr,this,nullptr);
+    handoff_.stop();timer_.stop();invitationOpenTimer_.stop();scan_.cancel();
+    nearby_.close();client_.stop();rmgLobby_.stop();stopLinkedTransfers();
+}
 RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& adapter,StandaloneAdapter& ppsspp,StandaloneAdapter& dolphinAdapter,SocialController& social,
     ProcessService& process,AdventureLaunchController& lifecycle,AdventureExitPresentation& overlay)
     :library_(lib),adapter_(adapter),social_(social),ppsspp_(ppsspp),dolphin_(dolphinAdapter),process_(process),lifecycle_(lifecycle),overlay_(overlay) {
+    setupHotseat();
     identity_=QSettings().value("runtimeMultiplayer/device").toString();
     if(QUuid(identity_).isNull()){identity_=QUuid::createUuid().toString(QUuid::WithoutBraces);QSettings().setValue("runtimeMultiplayer/device",identity_);}
     connect(&party_,&GameParty::outgoing,this,[this](QString peer,QJsonObject packet){
@@ -68,6 +77,9 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(active_&&linkedPreparing_)fail("Couldn't prepare the linked game. Your save was kept. Try inviting again.");
     });
     connect(&party_,&GameParty::changed,this,[this]{
+        if(active_&&hotseat()&&(!party_.active()||party_.state()["members"].toArray().size()!=2)) {
+            fail("The other player left. The shared-controller game has ended.");return;
+        }
         if(active_&&(rmg()||flycast()||ds())&&!party_.active()) {fail("The game invitation ended.");return;}
         if(!exitingInvitation_.isEmpty() && exitingInvitation_!=invitationId())cancelInvitationExit();
         if(!openingInvitation_.isEmpty() && openingInvitation_!=invitationId()) {
@@ -167,6 +179,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     });
     connect(&lifecycle_,&AdventureLaunchController::adventureStarted,this,[this](QString){
         update();if(!active_)return;
+        if(hotseat()&&host_)handoff_.begin(party_.state()["party"].toString(),1);
         if(psp()) {
             // A running PSP is not proof of an ad hoc match. Players use the
             // original game's VS create/join controls after accepting here.
@@ -196,11 +209,12 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
             QTimer::singleShot(0,this,[this,generation]{if(active_&&generation==sessionGeneration_)launch();});
             return;
         }
+        handoff_.stop();
+        active_=false;deadline_=0;timer_.stop();
         client_.stop();
         rmgLobby_.stop();rmgPreparing_=false;
         // An ordinary game ending must not discard an unanswered invitation.
         if(partySession_&&party_.active()){party_.leave();partySession_=false;}
-        if(active_){active_=false;deadline_=0;timer_.stop();}
         update();
     });
     connect(&lifecycle_,&AdventureLaunchController::changed,this,[this]{
@@ -341,7 +355,7 @@ void RuntimeMultiplayer::cancelInvitationExit() {
 QString RuntimeMultiplayer::invitation() const {
     const auto pending=party_.pending();
     const auto game=pending["game"].toObject();
-    return pending["name"].toString()+(pending["joining"].toBool()?" wants to join ":" invites you to play ")+game["label"].toString()+"."+(game["privateProgress"].toBool()?" Save copies are shared with this session's players. Only your own progress returns.":game["temporaryProgress"].toBool()?" This session starts fresh. Progress isn't kept.":QString());
+    return pending["name"].toString()+(pending["joining"].toBool()?" wants to join ":" invites you to play ")+game["label"].toString()+"."+(usesSharedController(game)?" Take turns with one controller.":QString())+(game["privateProgress"].toBool()?" Save copies are shared with this session's players. Only your own progress returns.":game["temporaryProgress"].toBool()?" This session starts fresh. Progress isn't kept.":QString());
 }
 void RuntimeMultiplayer::answer(bool accept) {
     if(accept && lifecycle_.active() && !party_.pending()["joining"].toBool() && !canJoinRunning(party_.pending()["game"].toObject())) {
@@ -361,14 +375,16 @@ bool RuntimeMultiplayer::dispatch(Action a) {
 }
 void RuntimeMultiplayer::update() {
     if(!active_&&!party_.active()) {
-        game_=process_.runtimeControls()["game"].toString();descriptor_=games_.value(game_);
+        const auto current=process_.runtimeControls()["game"].toString();
+        if(game_!=current)controllerMode_="separate";
+        game_=current;descriptor_=selectedControllerProfile(games_.value(game_));
     }
     // Receiving an invitation is independent of the current game's netplay
     // support. An unrelated single-player game may keep running while saving.
     const bool available=allowed_&&!games_.isEmpty();
     QJsonArray caps;
     if(available)for(const auto& descriptor:games_)if(!caps.contains(descriptor))caps.append(descriptor);
-    party_.configure(trainer_,caps,games_.value(process_.runtimeControls()["game"].toString()),available);
+    party_.configure(trainer_,caps,selectedControllerProfile(games_.value(process_.runtimeControls()["game"].toString())),available);
     if(social_.conversationVisible()&&!social_.runtimePeer().isEmpty())party_.query("online:"+social_.runtimePeer());
     social_.setRuntimeContext(available,{});
     social_.refreshPartyBrowse();
@@ -396,6 +412,11 @@ void RuntimeMultiplayer::show(QString panel) {
         }
     } else if(panel=="multiplayer-party") {
         const auto state=party_.state();caption=state["game"].toObject()["label"].toString()+" · "+QString::number(state["members"].toArray().size())+" / "+QString::number(state["capacity"].toInt())+" players";
+        if(usesSharedController(state["game"].toObject())) {
+            auto info=row("multiplayer-mode-info","Take turns with one controller","Pass it from Game Options when your turn ends.");
+            info["readOnly"]=true;rows.append(info);
+            for(const auto& action:gameMenuActions())if(action.toMap()["id"]!="multiplayer")rows.append(action);
+        }
         if(state["game"].toObject()["temporaryProgress"].toBool()) {
             auto info=row("multiplayer-info","Temporary progress","This session starts fresh. Progress isn't kept.");
             info["readOnly"]=true;rows.append(info);
@@ -423,6 +444,9 @@ void RuntimeMultiplayer::show(QString panel) {
             row("multiplayer-access:selected","Selected group members"),row("multiplayer-access:closed","Invitations only")};
     } else if(panel=="multiplayer-people") {
         caption="Choose a person or group";
+        if(!party_.active()&&games_.value(game_)["controllerModes"].toArray().contains("pass-p1"))
+            rows.append(row("multiplayer-mode:"+game_+":"+(controllerMode_=="separate"?"pass-p1":"separate"),
+                controllerModeLabel(),"Change how the controllers are used"));
         QSet<QString> identities;
         if(onlineAvailable&&!party_.active())for(const auto& p:social_.runtimeCompanies()) {const auto r=p.toMap();const auto id="multiplayer-company:"+r["id"].toString();if(identities.contains(id))continue;identities.insert(id);rows.append(row(id,r["name"].toString(),"Group"));}
         if(onlineAvailable&&(!party_.active()||online_))for(const auto& p:social_.runtimeFriends()) {const auto r=p.toMap();const auto id="multiplayer-friend:"+r["id"].toString();if(identities.contains(id))continue;identities.insert(id);rows.append(row(id,r["name"].toString(),"Online friend"));}
@@ -451,6 +475,26 @@ void RuntimeMultiplayer::show(QString panel) {
 bool RuntimeMultiplayer::action(const QString& id,bool fromSocial) {
     if(!id.startsWith("multiplayer"))return false;
     socialSurface_=fromSocial;
+    if(id.startsWith("multiplayer-pass:")) {
+        if(active_&&hotseat()&&handoff_.canPass()&&id.section(':',1,1)==party_.state()["party"].toString()&&
+           id.section(':',2,2)==QString::number(handoff_.epoch())&&id.count(':')==2&&
+           process_.runtimeControls()["hotseat"]=="retroarch-p1-v1") {
+            // This action was deliberately consumed. Return focus to Continue
+            // before its epoch-bound button disappears; keep stale clicks inert.
+            if(!fromSocial&&overlay_.menuOpen())overlay_.setPanel({}, {}, {});
+            handoff_.pass();
+        }
+        return true;
+    }
+    if(id.startsWith("multiplayer-mode:")) {
+        const auto mode=id.section(':',-1),game=id.mid(17).section(':',0,-2);
+        if(!active_&&!party_.active()&&canInvite()&&game==game_&&
+           !multiplayerModeProfile(games_.value(game_),mode).isEmpty()) {
+            if(!fromSocial&&overlay_.menuOpen())overlay_.setPanel({}, {}, {});
+            controllerMode_=mode;update();show("multiplayer-people");
+        }
+        return true;
+    }
     if(id.startsWith("multiplayer-later:")) {
         if(id.section(':',1)==invitationId()) {
             if(socialSurface_){socialSurface_=false;social_.closeMenu();}
@@ -492,12 +536,12 @@ bool RuntimeMultiplayer::action(const QString& id,bool fromSocial) {
 }
 void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     const auto selected=party_.game();QString game;
-    for(auto it=games_.cbegin();it!=games_.cend();++it)if(sameMultiplayerGame(it.value(),selected)){game=it.key();break;}
+    for(auto it=games_.cbegin();it!=games_.cend();++it)if(supportsMultiplayerSession(it.value(),selected)){game=it.key();break;}
     // Preserve the running edition when several compatible handheld games exist.
     const auto current=process_.runtimeControls()["game"].toString();
     for(auto it=games_.cbegin();it!=games_.cend();++it)
-        if(sameMultiplayerGame(it.value(),selected)&&it.value()["content"]==selected["content"]){game=it.key();break;}
-    if(games_.contains(current)&&sameMultiplayerGame(games_.value(current),selected))game=current;
+        if(supportsMultiplayerSession(it.value(),selected)&&it.value()["content"]==selected["content"]){game=it.key();break;}
+    if(games_.contains(current)&&supportsMultiplayerSession(games_.value(current),selected))game=current;
     if(!allowed_||game.isEmpty()||!permitsMultiplayer(library_.artwork(game),selected)) {
         party_.leave();emit notice("Multiplayer isn't available for this game.");return;
     }
@@ -511,6 +555,7 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
         party_.leave();emit notice("The running game can't join this invitation. Open the invitation again after saving.");return;
     }
     ++sessionGeneration_;
+    handoff_.stop();
     rmgLobby_.stop();rmgPreparing_=false;rmgRequest_={};flycastRequest_={};dsRequest_={};
     stopLinkedTransfers();linkedPeers_.clear();linkedPreparing_=linkedPrepared_=false;linkedEndpoint_={};
     game_=game;descriptor_=selected;partySession_=true;active_=true;host_=host;relaySent_=false;
@@ -745,7 +790,10 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
         dsRequest_={descriptor_,packet["connection"].toObject(),false,online_,packet["key"].toString(),nearby_.addressOf(transportPeer_.mid(7))};
         launchPending_=true;launch();return;
     }
-    if(packet["kind"]=="left"){status_="Your friend left the game";emit notice(status_);return;}
+    if(packet["kind"]=="left"){
+        if(hotseat())fail("Your friend left the game.");
+        else {status_="Your friend left the game";emit notice(status_);}return;
+    }
     if(flycast()) {
         if(host_||packet["kind"]!="flycast-ready"||lifecycle_.active()||launchPending_)return;
         if(packet["identity"].toObject()!=descriptor_||packet["slot"].toInt()!=2){fail("Your Dreamcast game or emulator doesn't match.");return;}
@@ -785,7 +833,12 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     request_.password=packet["password"].toString();request_.port=quint16(port);
     request_.address=online_?packet["address"].toString():nearby_.addressOf(transportPeer_.mid(7));
     request_.relaySession=packet["session"].toString();
-    if(online_) {
+    if(hotseat()) {
+        handoff_.begin(party_.state()["party"].toString(),request_.slot);
+        request_.clientPort=client_.startHotseat(request_.address,request_.port,
+            online_?request_.relaySession:QString(),online_?request_.password:QString(),online_);
+        if(!request_.clientPort){fail("Couldn't prepare the shared-controller connection.");return;}
+    } else if(online_) {
         request_.clientPort=client_.start(request_.address,request_.port,request_.relaySession,request_.password);
         if(!request_.clientPort){fail("Couldn't prepare the multiplayer connection.");return;}
     }
@@ -880,19 +933,33 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
             status_="Waiting for your friend…";
         }
         const auto joined=QRegularExpression("joined as player ([2-4])").match(QString::fromUtf8(line));
-        if(joined.hasMatch()){deadline_=0;timer_.stop();status_="Playing together";emit changed();}
-        if(line.contains("Failed")||line.contains("failed")||line.contains("disconnected")){status_="Multiplayer connection ended";emit notice(status_);}
+        if(joined.hasMatch()&&!hotseat()){deadline_=0;timer_.stop();status_="Playing together";emit changed();}
+        if(line.contains("Failed")||line.contains("failed")||line.contains("disconnected")){
+            if(hotseat()){fail("The shared-controller connection ended. Invite your friend again.");return;}
+            status_="Multiplayer connection ended";emit notice(status_);
+        }
     }
     if(output_.size()>16384)output_.clear();
 }
 void RuntimeMultiplayer::fail(QString text) {
     ++sessionGeneration_;
+    const bool wasActive=active_,endHotseat=wasActive&&hotseat();
+    const bool cancelPreparation=endHotseat&&!restarting_&&process_.preparing()&&lifecycle_.adventureId()==game_;
+    active_=false;restarting_=false;launchPending_=false;handoff_.stop();
+    // A refused or lost handoff must not leave either temporary copy accepting
+    // input independently. Address only this prepared native child through stdin.
+    // An ordinary game waiting for save consent never carries this capability.
+    if(cancelPreparation)process_.stop();
+    else if(endHotseat&&process_.runtimeControls()["hotseat"]=="retroarch-p1-v1") {
+        if(process_.processId()) {
+            if(!process_.runtimeCommand("hotseat-end"))text+=" Close the game from Game Options.";
+        } else if(process_.active())process_.stop();
+    }
     rmgLobby_.stop();rmgPreparing_=false;rmgRequest_={};flycastRequest_={};dsRequest_={};
     client_.stop();
     stopLinkedTransfers();linkedPeers_.clear();linkedPreparing_=linkedPrepared_=false;linkedEndpoint_={};
     request_.ownSram.clear();request_.peerSrams.clear();
     status_=std::move(text);deadline_=0;timer_.stop();
-    const bool wasActive=active_;active_=false;restarting_=false;launchPending_=false;
     if(partySession_){party_.leave();partySession_=false;}
     if(wasActive&&process_.runtimeControls().contains("netplay")){
         // Keep the owned emulator/session alive for normal Home -> Exit. Killing

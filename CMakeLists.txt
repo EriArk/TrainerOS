@@ -146,7 +146,10 @@ add_library(trainer_core STATIC
     src/integrations/adventure/retroarch/RetroArchHandheldLink.cpp
     src/integrations/adventure/retroarch/LinkedSavePreparation.cpp
     src/integrations/adventure/retroarch/RetroArchNetplayClient.cpp
+    src/integrations/adventure/retroarch/RetroArchHotseatObserver.cpp
     src/features/adventure/RuntimeMultiplayer.cpp
+    src/features/adventure/HotseatHandoff.cpp
+    src/features/adventure/RuntimeHotseat.cpp
     src/features/adventure/RuntimeInvocation.cpp
     src/integrations/adventure/retroarch/RetroArchAdapter.h
     src/platform/diagnostics/DiagnosticsService.cpp
@@ -491,6 +494,9 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_netplay_client_tests tests/NetplayClientTests.cpp)
     target_link_libraries(trainer_netplay_client_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME netplay_client COMMAND trainer_netplay_client_tests)
+    qt_add_executable(trainer_hotseat_handoff_tests tests/HotseatHandoffTests.cpp)
+    target_link_libraries(trainer_hotseat_handoff_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME hotseat_handoff COMMAND trainer_hotseat_handoff_tests)
     target_sources(traineros PRIVATE tests/ui/WorldsSmokeScenario.cpp tests/ui/WorldsSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/PokedexSmokeScenario.cpp tests/ui/PokedexSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/ArtworkSmokeScenario.cpp tests/ui/ArtworkSmokeScenario.h)

@@ -29,6 +29,17 @@ int main(int argc, char** argv) {
         file.write(args[3].toUtf8()); return 0;
     }
     const auto mode = args.value(1);
+    if (mode == "stdin-control" && args.size() == 4) {
+        QFile identity(args[3]); if (!identity.open(QIODevice::WriteOnly)) return 3;
+        identity.write(QByteArray::number(QCoreApplication::applicationPid())); identity.close();
+        QFile input, journal(args[2]);
+        if (!input.open(stdin,QIODevice::ReadOnly)||!journal.open(QIODevice::WriteOnly))return 3;
+        for(;;) {
+            const auto line=input.readLine(256);if(line.isEmpty())return 4;
+            journal.write(line);journal.flush();
+            if(line=="QUIT\n")return 0;
+        }
+    }
     if (mode == "controlled" && args.size() == 4) {
         QFile identity(args[3]); if (!identity.open(QIODevice::WriteOnly)) return 3;
         identity.write(QByteArray::number(QCoreApplication::applicationPid())); identity.close();

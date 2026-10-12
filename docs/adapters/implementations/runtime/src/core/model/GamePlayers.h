@@ -40,6 +40,24 @@ inline bool sameMultiplayerGame(QJsonObject left,QJsonObject right) {
     }
     return left==right;
 }
+// A selected controller mode is part of the strict session identity. Derive
+// variants only from a LOCAL runtime's declared capability; a peer's mode field
+// alone never enables another launch route or weakens exact-build matching.
+inline QJsonObject multiplayerModeProfile(QJsonObject local,const QString& mode) {
+    if(local.isEmpty())return {};
+    if(mode=="separate") {local.remove("playMode");return local;}
+    if(mode!="pass-p1"||local["players"].toInt(2)!=2||
+       !local["controllerModes"].toArray().contains(mode))return {};
+    local["playMode"]=mode;local["lateJoin"]=false;local["temporaryProgress"]=true;
+    return local;
+}
+inline bool supportsMultiplayerSession(const QJsonObject& local,const QJsonObject& offered) {
+    return sameMultiplayerGame(multiplayerModeProfile(local,offered["playMode"].toString("separate")),offered);
+}
+inline bool usesSharedController(const QJsonObject& profile) {
+    return profile["playMode"]=="pass-p1"&&profile["players"].toInt(2)==2&&
+        profile["controllerModes"].toArray().contains("pass-p1");
+}
 // Catalogue player counts describe the original game, not emulator transport.
 // Only an unambiguous total of one excludes multiplayer. Unknown text stays unknown.
 struct GamePlayers {

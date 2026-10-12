@@ -1,4 +1,5 @@
 #include <QtTest>
+#include <QUuid>
 #include "features/adventure/GameParty.h"
 #include "core/model/GamePlayers.h"
 
@@ -35,6 +36,45 @@ class GamePartyTests : public QObject {
         }
     };
 private slots:
+    void sharedControllerInvitationsRequireTheLocalCapabilityAndExactMode() {
+        Room r(2);auto base=game(2);base["controllerModes"]=QJsonArray{"separate","pass-p1"};
+        const auto selected=multiplayerModeProfile(base,"pass-p1");QVERIFY(!selected.isEmpty());
+        QVERIFY(supportsMultiplayerSession(base,selected));QVERIFY(!sameMultiplayerGame(base,selected));
+        QVERIFY(!supportsMultiplayerSession(game(2),selected));
+        auto changed=selected;changed["lateJoin"]=true;QVERIFY(!supportsMultiplayerSession(base,changed));
+        changed=selected;changed["playMode"]="unreviewed";QVERIFY(!supportsMultiplayerSession(base,changed));
+        changed=selected;changed["content"]="another-build";QVERIFY(!supportsMultiplayerSession(base,changed));
+        r.a.configure("a",{base},selected,true);r.b.configure("b",{base},{},true);
+        r.a.invite("b");QCOMPARE(r.b.pending()["game"].toObject(),selected);
+        r.b.answer(true);r.a.start();r.a.ready({{"kind","ready"}});
+        QVERIFY(r.a.running());QVERIFY(r.b.running());QCOMPARE(r.a.game(),selected);QCOMPARE(r.b.game(),selected);
+        r.a.leave();r.b.configure("b",{game(2)},{},true);r.a.invite("b");QVERIFY(r.b.pending().isEmpty());
+    }
+    void runtimeControlUsesOnlyTheRunningAcceptedRosterAndCurrentBoot() {
+        Room r(2);
+        const QJsonObject control{{"channel","hotseat-v1"},{"epoch",1},{"action","release"}};
+        QSignalSpy host(&r.a,&GameParty::runtimeControlReceived),guest(&r.b,&GameParty::runtimeControlReceived);
+        QJsonObject captured;
+        connect(&r.b,&GameParty::outgoing,&r.b,[&](QString,QJsonObject p){if(p["kind"]=="runtime-control")captured=p;});
+        QVERIFY(!r.a.sendRuntimeControl(2,control));
+        r.a.invite("b");r.b.answer(true);
+        QVERIFY(!r.b.sendRuntimeControl(1,control));
+        r.a.start();r.a.ready({{"kind","ready"},{"port",55435}});
+        QVERIFY(r.b.running());
+        QVERIFY(r.a.sendRuntimeControl(2,control));QCOMPARE(guest.size(),1);QCOMPARE(guest[0][0].toInt(),1);
+        QVERIFY(r.b.sendRuntimeControl(1,control));QCOMPARE(host.size(),1);QCOMPARE(host[0][0].toInt(),2);
+        QCOMPARE(host[0][1].toJsonObject(),control);
+        QVERIFY(!r.a.sendRuntimeControl(3,control));QVERIFY(!r.b.sendRuntimeControl(2,control));
+        QVERIFY(!r.b.sendRuntimeControl(1,{{"channel","other"}}));
+        QVERIFY(!r.b.sendRuntimeControl(1,{{"channel","hotseat-v1"},{"body",QString(800,'x')}}));
+        for(const auto& field:{"party","boot","target"}) {
+            auto stale=captured;stale[field]=QUuid::createUuid().toString(QUuid::WithoutBraces);
+            r.a.receive("b","b",stale);
+        }
+        r.a.receive("c","c",captured);QCOMPARE(host.size(),1);
+        r.a.leave();r.a.receive("b","b",captured);QCOMPARE(host.size(),1);
+        QVERIFY(!r.b.sendRuntimeControl(1,control));
+    }
     void connectionAvailabilityGatesBothDirectionsAndCompanyAdmission() {
         GameParty a,b;auto local=game();local["connections"]=QJsonArray{"nearby"};
         a.configure("a",{local},local,true);b.configure("b",{game()},game(),true);

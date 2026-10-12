@@ -1,6 +1,7 @@
 #pragma once
 #include "core/input/Action.h"
 #include "GameParty.h"
+#include "HotseatHandoff.h"
 #include "core/model/GamePlayers.h"
 #include "integrations/adventure/retroarch/RetroArchNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchNetplayClient.h"
@@ -31,10 +32,12 @@ class RuntimeMultiplayer final : public QObject {
 public:
     RuntimeMultiplayer(LibraryRepository&, RetroArchAdapter&, StandaloneAdapter&, StandaloneAdapter&, SocialController&,
                        ProcessService&, AdventureLaunchController&, AdventureExitPresentation&);
+    ~RuntimeMultiplayer() override;
     void refresh(const RetroArchInstallation&,QString trainer,bool allowed);
     QVariantMap party() const {return party_.state().toVariantMap();}
     Q_INVOKABLE void leaveParty();
     QString menuLabel() const;
+    QVariantList gameMenuActions() const;
     bool canInvite() const;
     QStringList onlineGames() const { return onlineGames_; }
     QStringList nearbyGames() const { return nearbyGames_; }
@@ -71,6 +74,11 @@ signals:
 private:
     friend class RuntimeMultiplayerTests;
     void startParty(bool host,const QJsonObject& endpoint);
+    void setupHotseat();
+    QJsonObject selectedControllerProfile(const QJsonObject&) const;
+    QString controllerModeLabel() const;
+    QString hotseatPlayerName(int slot) const;
+    bool hotseat() const { return usesSharedController(descriptor_); }
     void update();
     void show(QString panel);
     void prepareHost();
@@ -106,6 +114,8 @@ private:
     ProcessService& process_;AdventureLaunchController& lifecycle_;AdventureExitPresentation& overlay_;
     LocalLinkPeer nearby_{this,47855,47856,"trainerosRuntime",true};
     GameParty party_{this};
+    HotseatHandoff handoff_{this};
+    QString controllerMode_="separate";
     bool partySession_=false,companyOverride_=false;
     using ScannedGame = QPair<QString,QJsonObject>;
     QFutureWatcher<ScannedGame> scan_{this};

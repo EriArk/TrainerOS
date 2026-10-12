@@ -20,6 +20,7 @@ void RuntimeMultiplayer::beginTogether(QString game,QString peer,bool company) {
         liveInvocation_=true;emit liveOptionsRequested();return;
     }
     if(party_.active()){action("multiplayer-party",true);return;}
+    controllerMode_="separate";
     invocationGame_=std::move(game);invocationPeer_=std::move(peer);invocationCompany_=company;
     socialSurface_=false;
     invocationOwner_=social_.account()["userId"].toString();++invocationGeneration_;
@@ -35,6 +36,10 @@ void RuntimeMultiplayer::resumeLiveInvocation() {
        || invocationGame_!=lifecycle_.adventureId() || invocationOwner_!=social_.account()["userId"].toString()
        || invocationAccountGeneration_!=social_.accountGeneration() || !canInvite())return;
     if(invocationPeer_.isEmpty()){action("multiplayer");return;}
+    // Keep the controller choice visible even when Together began on a person.
+    if(games_.value(invocationGame_)["controllerModes"].toArray().contains("pass-p1")) {
+        action("multiplayer");return;
+    }
     const auto candidates=invocationCompany_?social_.runtimeCompanies():social_.runtimeFriends();
     for(const auto& value:candidates)if(value.toMap()["id"]==invocationPeer_) {
         action((invocationCompany_?"multiplayer-company:":"multiplayer-friend:")+invocationPeer_);return;
@@ -57,9 +62,17 @@ void RuntimeMultiplayer::showInvocation() {
     } else if(invocationDescriptor_.isEmpty())caption="Multiplayer is not available for this game";
     else {
         caption=invocationDescriptor_["label"].toString()+" · choose players";
-        for(const auto& value:social_.runtimeFriends()) {const auto person=value.toMap();rows.append(row("online:"+person["id"].toString(),person["name"].toString(),"Online friend"));}
-        for(const auto& value:social_.runtimeCompanies()) {const auto group=value.toMap();rows.append(row("company:"+group["id"].toString(),group["name"].toString(),"Group"));}
-        for(const auto& value:nearby_.peers()) {const auto person=value.toMap();rows.append(row("nearby:"+person["id"].toString(),person["name"].toString(),"Nearby"));}
+        if(invocationDescriptor_["controllerModes"].toArray().contains("pass-p1"))
+            rows.append(row("mode:"+QString(controllerMode_=="separate"?"pass-p1":"separate"),controllerModeLabel(),"Change how the controllers are used"));
+        if(!invocationPeer_.isEmpty()) {
+            const auto candidates=invocationCompany_?social_.runtimeCompanies():social_.runtimeFriends();
+            for(const auto& value:candidates)if(value.toMap()["id"]==invocationPeer_)
+                rows.append(row(QString(invocationCompany_?"company:":"online:")+invocationPeer_,"Invite "+value.toMap()["name"].toString(),invocationCompany_?"Group":"Online friend"));
+        } else {
+            for(const auto& value:social_.runtimeFriends()) {const auto person=value.toMap();rows.append(row("online:"+person["id"].toString(),person["name"].toString(),"Online friend"));}
+            for(const auto& value:social_.runtimeCompanies()) {const auto group=value.toMap();rows.append(row("company:"+group["id"].toString(),group["name"].toString(),"Group"));}
+            for(const auto& value:nearby_.peers()) {const auto person=value.toMap();rows.append(row("nearby:"+person["id"].toString(),person["name"].toString(),"Nearby"));}
+        }
         if(rows.isEmpty())caption="Connect a friend or nearby Trainer to invite";
     }
     rows.append(row("cancel","Back",{}));
@@ -77,19 +90,25 @@ bool RuntimeMultiplayer::contextAction(const QString& actionId) {
         const auto record=library_.registration(target);
         if(!record || record->removed || !record->contentAvailable || !games_.contains(target))return true;
         invocationGame_=target;invocationRevision_=record->revision;invocationDescriptor_=games_.value(target);
-        if(invocationPeer_.isEmpty()){showInvocation();return true;}
+        controllerMode_="separate";
+        if(invocationPeer_.isEmpty()||invocationDescriptor_["controllerModes"].toArray().contains("pass-p1")){showInvocation();return true;}
         return contextAction("together:"+QString::number(invocationGeneration_)+":"+(invocationCompany_?"company:":"online:")+invocationPeer_);
     }
     const auto record=library_.registration(invocationGame_);
     if(!record || record->revision!=invocationRevision_ || record->removed || !record->contentAvailable || games_.value(invocationGame_)!=invocationDescriptor_ || invocationDescriptor_.isEmpty() || !permitsMultiplayer(library_.artwork(invocationGame_),invocationDescriptor_)) {
         emit notice("This game changed. Reopen Play together.");return true;
     }
+    if(kind=="mode") {
+        if(!multiplayerModeProfile(invocationDescriptor_,target).isEmpty())controllerMode_=target;
+        showInvocation();return true;
+    }
     const auto candidates=kind=="company"?social_.runtimeCompanies():kind=="online"?social_.runtimeFriends():kind=="nearby"?nearby_.peers():QVariantList{};
     bool found=false;for(const auto& value:candidates)if(value.toMap()["id"]==target)found=true;
     if(!found){emit notice("This player is no longer available.");return true;}
     QJsonArray supported;for(const auto& descriptor:games_)supported.append(descriptor);
-    party_.configure(trainer_,supported,invocationDescriptor_,true);
-    game_=invocationGame_;descriptor_=invocationDescriptor_;socialSurface_=true;online_=kind!="nearby";partySession_=true;
+    const auto selected=selectedControllerProfile(invocationDescriptor_);
+    party_.configure(trainer_,supported,selected,true);
+    game_=invocationGame_;descriptor_=selected;socialSurface_=true;online_=kind!="nearby";partySession_=true;
     if(kind=="company") {const auto access=social_.companyAccess(target);party_.openCompany(target,access["policy"].toString(),access["allowed"].toStringList());}
     else party_.invite((online_?"online:":"nearby:")+target);
     ++invocationGeneration_;social_.closeMenu();show("multiplayer-party");return true;

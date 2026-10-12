@@ -1,5 +1,12 @@
 # Emulator multiplayer coverage
 
+**12 October PS1 Hotseat:** two-person exclusive P1 transfer is installed on
+Flip/Odin alongside separate pads, with ordinary invitations and Home controls.
+Hot Shots Golf 2 passed both players' strokes and native handoffs directly and
+through the public RetroArch relay. [Evidence and limits](emulators/pcsx-rearmed.md#ordinary-hotseat-delivery--12-october-2026)
+retain physical, distinct-network and wider-game acceptance. GameCube/PS2 Hotseat
+and the complete catalogue remain open.
+
 **11 October offline continuation:** prepare/implement through Wii U plus Vita;
 PS3/Switch are deferred. [Current preparation register](MULTIPLAYER_PREPARATION.md)
 records source-level PS1 shared-console and generic raw GameCube admission, with

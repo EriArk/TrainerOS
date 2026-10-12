@@ -11,6 +11,10 @@ qint64 now(){return QDateTime::currentSecsSinceEpoch();}
 QString companyOf(const QString& peer){return peer.startsWith("online:company:")?peer.section(':',2,2):QString();}
 QString personOf(const QString& peer){return peer.startsWith("online:")?"online:"+peer.section(':',-1):peer;}
 bool uuid(const QString& v){return v.size()==36&&!QUuid(v).isNull();}
+bool runtimeControl(const QJsonObject& control) {
+    return !control.isEmpty() && control["channel"]=="hotseat-v1" &&
+        QJsonDocument(control).toJson(QJsonDocument::Compact).size()<=768;
+}
 int capacity(const QJsonObject& g){return qBound(2,g["players"].toInt(2),4);}
 }
 GameParty::GameParty(QObject* p):QObject(p),boot_(token()) {
@@ -25,7 +29,7 @@ QJsonObject GameParty::decode(const QString& s) {
 }
 bool GameParty::supports(const QJsonObject& game,const QString& peer) const {
     const auto connection=peer.section(':',0,0);
-    for(const auto& local:games_)if(sameMultiplayerGame(local.toObject(),game)
+    for(const auto& local:games_)if(supportsMultiplayerSession(local.toObject(),game)
         &&(peer.isEmpty()||(multiplayerConnectionAllowed(local.toObject(),connection)&&multiplayerConnectionAllowed(game,connection))))return true;
     return false;
 }
@@ -198,6 +202,18 @@ void GameParty::prepareLinked(int slot,QJsonObject endpoint) {
         packet(it.key(),"launch",{{"endpoint",endpoint},{"game",game_},{"slot",slot}});return;
     }
 }
+bool GameParty::sendRuntimeControl(int slot,const QJsonObject& control) {
+    if(!running_||!active()||!runtimeControl(control))return false;
+    if(host()) {
+        for(auto it=members_.cbegin();it!=members_.cend();++it)
+            if(it->accepted&&it->slot==slot) {
+                packet(it.key(),"runtime-control",{{"control",control}});return true;
+            }
+        return false;
+    }
+    if(slot!=1)return false;
+    packet(host_,"runtime-control",{{"control",control}});return true;
+}
 void GameParty::leave() {
     if(host()&&!company_.isEmpty())packet("online:company:"+company_,"company-offer",{{"target",""},{"game",QJsonObject{}},{"joinable",false}});
     const auto members=members_;
@@ -294,6 +310,9 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
     if(p["party"]!=party_||party_.isEmpty())return;
     if(host()) {
         auto m=members_.find(peer);if(m==members_.end()||m->boot!=boot)return;
+        if(kind=="runtime-control"&&running_&&m->accepted&&runtimeControl(p["control"].toObject())) {
+            emit runtimeControlReceived(m->slot,p["control"].toObject());return;
+        }
         if(kind=="accept"&&id==m->request&&!m->accepted&&m->expires>=now()&&p["game"]==game_) {
             m->accepted=true;m->expires=0;publish();
             if(running_&&!endpoint_.isEmpty())packet(peer,"launch",{{"endpoint",endpoint_},{"game",game_},{"slot",m->slot}});
@@ -301,6 +320,9 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
         return;
     }
     if(peer!=host_||boot!=hostBoot_)return;
+    if(kind=="runtime-control"&&running_&&runtimeControl(p["control"].toObject())) {
+        emit runtimeControlReceived(1,p["control"].toObject());return;
+    }
     if(kind=="closed"){clear();emit notice("The organizer ended the party.");emit changed();return;}
     if(kind=="roster") {
         const auto revision=p["revision"].toInteger();const auto roster=p["members"].toArray();
