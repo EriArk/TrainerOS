@@ -1,5 +1,12 @@
 # Emulator multiplayer coverage
 
+**12 October GameCube Hotseat:** two-person exclusive P1 is installed alongside
+the existing separate-pad route. Native Mario Golf gameplay and ordinary Online
+friend/Home handoff evidence are [recorded separately](emulators/dolphin.md#ordinary-gamecube-hotseat-delivery--12-october-2026).
+The maintained patch reuses Golf Mode, with one exposed SI port and native owner
+confirmation. Wii input, four-person Hotseat, wider-game/physical/distinct-network
+acceptance and the complete catalogue remain open.
+
 **12 October PS1 Hotseat:** two-person exclusive P1 transfer is installed on
 Flip/Odin alongside separate pads, with ordinary invitations and Home controls.
 Hot Shots Golf 2 passed both players' strokes and native handoffs directly and

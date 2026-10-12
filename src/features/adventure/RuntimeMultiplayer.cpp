@@ -179,7 +179,8 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     });
     connect(&lifecycle_,&AdventureLaunchController::adventureStarted,this,[this](QString){
         update();if(!active_)return;
-        if(hotseat()&&host_)handoff_.begin(party_.state()["party"].toString(),1);
+        if(hotseat()&&(host_||dolphin()))handoff_.begin(party_.state()["party"].toString(),host_?1:2,
+            dolphin()?HotseatHandoff::NativeControl::HostAuthority:HotseatHandoff::NativeControl::SplitRoles);
         if(psp()) {
             // A running PSP is not proof of an ad hoc match. Players use the
             // original game's VS create/join controls after accepting here.
@@ -478,7 +479,7 @@ bool RuntimeMultiplayer::action(const QString& id,bool fromSocial) {
     if(id.startsWith("multiplayer-pass:")) {
         if(active_&&hotseat()&&handoff_.canPass()&&id.section(':',1,1)==party_.state()["party"].toString()&&
            id.section(':',2,2)==QString::number(handoff_.epoch())&&id.count(':')==2&&
-           process_.runtimeControls()["hotseat"]=="retroarch-p1-v1") {
+           process_.runtimeControls().contains("hotseat")) {
             // This action was deliberately consumed. Return focus to Continue
             // before its epoch-bound button disappears; keep stale clicks inert.
             if(!fromSocial&&overlay_.menuOpen())overlay_.setPanel({}, {}, {});
@@ -877,7 +878,7 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
                 relaySent_=true;send({{"kind","ds-ready"},{"identity",descriptor_},{"key",dsRequest_.identity},{"connection",endpoint}});
                 status_="Waiting for your friend...";
             } else if(event["event"]=="running") {
-                deadline_=0;timer_.stop();status_="Playing together";emit changed();
+              deadline_=0;timer_.stop();status_="Playing together";emit changed();
             } else if(event["event"]=="error") {fail("DS multiplayer ended. Your original save was kept.");return;}
             continue;
         }
@@ -908,7 +909,11 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
                     {"seats",dolphinRequest_.seats},{"port",event["port"]},{"code",event["code"]}});
                 status_="Waiting for your friends...";
             } else if(event["event"]=="running") {
-                deadline_=0;timer_.stop();status_="Playing together";emit changed();
+                if(!hotseat()){deadline_=0;timer_.stop();status_="Playing together";emit changed();}
+            } else if(event["event"]=="controller"&&hotseat()&&host_) {
+                const auto sequence=event["sequence"].toInteger(-1);const int owner=event["owner"].toInt(-1);
+                if(sequence<1||owner<0||owner>2){fail("The game couldn't confirm controller ownership.");return;}
+                handoff_.authorityObserved(quint64(sequence),owner);
             } else if(event["event"]=="error") {
                 fail(event["reason"]=="traversal"?"Couldn't connect through this network. Try inviting again.":"The multiplayer connection ended. You can invite again.");
                 return;
@@ -950,7 +955,7 @@ void RuntimeMultiplayer::fail(QString text) {
     // input independently. Address only this prepared native child through stdin.
     // An ordinary game waiting for save consent never carries this capability.
     if(cancelPreparation)process_.stop();
-    else if(endHotseat&&process_.runtimeControls()["hotseat"]=="retroarch-p1-v1") {
+    else if(endHotseat&&process_.runtimeControls().contains("hotseat")) {
         if(process_.processId()) {
             if(!process_.runtimeCommand("hotseat-end"))text+=" Close the game from Game Options.";
         } else if(process_.active())process_.stop();

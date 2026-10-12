@@ -45,7 +45,7 @@ class RuntimeMultiplayerTests final : public QObject {
             QObject::connect(&lifecycle.exitController(),&AdventureExitController::gracefulExitRequested,&view,
                 [this](quint64){QFile f(dir.filePath("control"));if(f.open(QIODevice::WriteOnly))f.write("exit");});
         }
-        bool start(bool finalizerFails=false,QString game={},bool hotseat=false) {
+        bool start(bool finalizerFails=false,QString game={},bool hotseat=false,QString kind="retroarch") {
 #ifdef Q_OS_WIN
             const auto name="trainer_process_probe.exe";
 #else
@@ -56,7 +56,8 @@ class RuntimeMultiplayerTests final : public QObject {
             if(!game.isEmpty())command.runtimeControls={{"game",game}};
             if(hotseat) {
                 command.arguments[0]="stdin-control";
-                command.runtimeControls={{"game",game},{"kind","retroarch"},{"netplay",true},{"hotseat","retroarch-p1-v1"}};
+                command.runtimeControls={{"game",game},{"kind",kind},{"netplay",true},{"netplayHost",runtime.host_},
+                    {"hotseat",kind=="dolphin"?"dolphin-golf-p1-v1":"retroarch-p1-v1"}};
             }
             if(finalizerFails)command.finalize=[](const ProcessOutcome&){return QString("Save recovery required");};
             return lifecycle.launch(command,{},"ordinary",AdventureSavePolicy::ManualConfirm);
@@ -122,9 +123,16 @@ private slots:
         QTRY_VERIFY(preparing.process.preparing());preparing.runtime.fail("Connection ended");
         QTRY_VERIFY(!preparing.process.active());QVERIFY(!preparing.runtime.active_);
     }
+    void sharedControllerBindingsRejectStaleClicksAndEndBothOwnedCopies_data() {
+        QTest::addColumn<bool>("nativeAuthority");
+        QTest::newRow("retroarch-split-roles")<<false;
+        QTest::newRow("dolphin-native-authority")<<true;
+    }
     void sharedControllerBindingsRejectStaleClicksAndEndBothOwnedCopies() {
+        QFETCH(bool,nativeAuthority);
         Fixture a,b;
-        const QJsonObject base{{"id","runtime.retroarch.ps1"},{"players",2},{"controllerModes",QJsonArray{"separate","pass-p1"}}};
+        const QJsonObject base{{"id",nativeAuthority?"runtime.dolphin.gc.v1":"runtime.retroarch.ps1"},
+            {"players",nativeAuthority?4:2},{"controllerModes",QJsonArray{"separate","pass-p1"}}};
         const auto profile=multiplayerModeProfile(base,"pass-p1");
         auto& host=a.runtime;auto& guest=b.runtime;
         // The child fixture replaces the emulator only; use the actual party,
@@ -145,10 +153,17 @@ private slots:
             runtime->active_=true;runtime->partySession_=true;runtime->game_="ps1";
         }
         host.host_=true;guest.host_=false;
-        QVERIFY(a.start(false,"ps1",true));QVERIFY(b.start(false,"ps1",true));
+        const auto kind=nativeAuthority?"dolphin":"retroarch";
+        QVERIFY(a.start(false,"ps1",true,kind));QVERIFY(b.start(false,"ps1",true,kind));
         QTRY_COMPARE(a.lifecycle.state(),"running");QTRY_COMPARE(b.lifecycle.state(),"running");
         const auto session=host.party_.state()["party"].toString();
-        guest.handoff_.begin(session,2);emit guest.client_.hotseatOwnership(1,0,0,true);
+        const auto observe=[&](int sequence,int owner) {
+            if(nativeAuthority)host.output("[TrainerOSNetplay]"+QJsonDocument(QJsonObject{
+                {"event","controller"},{"sequence",sequence},{"owner",owner}}).toJson(QJsonDocument::Compact)+'\n');
+            else emit guest.client_.hotseatOwnership(sequence,sequence,owner-1,sequence==1);
+        };
+        if(!nativeAuthority)guest.handoff_.begin(session,2);
+        observe(1,1);
         QVERIFY2(host.handoff_.canPass(),qPrintable(host.status_+" / "+guest.status_+" / active "+QString::number(host.active_)+" "+QString::number(guest.active_)+" handoff "+QString::number(host.handoff_.active())+" "+QString::number(guest.handoff_.active())));QVERIFY(!guest.handoff_.canPass());
         const auto first=host.gameMenuActions().first().toMap()["id"].toString();
         connect(&host,&RuntimeMultiplayer::changed,&a.view,[&]{a.view.setExtraActions(host.gameMenuActions());});
@@ -156,17 +171,23 @@ private slots:
         a.view.updateInput(a.view.inputGeneration(),{true,false,false,false,false,false,true});QCOMPARE(a.view.menuFocus(),1);
         host.action("multiplayer-pass:old:0");QVERIFY(host.handoff_.canPass());
         host.action(first);QVERIFY(!host.handoff_.canPass());QCOMPARE(a.view.menuFocus(),0);QVERIFY(!a.view.ready());
-        emit guest.client_.hotseatOwnership(2,1,-1,false);
-        emit guest.client_.hotseatOwnership(3,2,1,false);
+        observe(2,0);observe(3,2);
         QVERIFY(guest.handoff_.canPass());QVERIFY(!host.handoff_.canPass());
         const auto second=guest.gameMenuActions().first().toMap()["id"].toString();
-        guest.action(second);emit guest.client_.hotseatOwnership(4,3,-1,false);emit guest.client_.hotseatOwnership(5,4,0,false);
+        guest.action(second);observe(4,0);observe(5,1);
         QVERIFY(host.handoff_.canPass());host.action(first);QVERIFY(host.handoff_.canPass());
         host.fail("Connection lost");QTRY_VERIFY(!a.process.active());QTRY_VERIFY(!b.process.active());
         QVERIFY(!host.active_);QVERIFY(!guest.active_);QVERIFY(!host.handoff_.active());QVERIFY(!guest.handoff_.active());
         for(auto* f:{&a,&b}) {
             QFile journal(f->dir.filePath("control"));QVERIFY(journal.open(QIODevice::ReadOnly));
-            QCOMPARE(journal.readAll(),QByteArray("NETPLAY_GAME_WATCH\nNETPLAY_GAME_WATCH\nQUIT\n"));
+            const auto bytes=journal.readAll();
+            if(!nativeAuthority)QCOMPARE(bytes,QByteArray("NETPLAY_GAME_WATCH\nNETPLAY_GAME_WATCH\nQUIT\n"));
+            else {
+                const auto lines=bytes.trimmed().split('\n');QCOMPARE(lines.size(),f==&a?3:1);
+                QCOMPARE(QJsonDocument::fromJson(lines.last()).object(),QJsonObject({{"action","quit"}}));
+                if(f==&a)for(int n=0;n<2;++n)QCOMPARE(QJsonDocument::fromJson(lines[n]).object(),
+                    QJsonObject({{"action","pass"},{"sequence",1+2*n},{"target",2-n}}));
+            }
         }
     }
     void dsRestartKeepsSaveConsentAndCancelledEndpointCannotLaunch() {

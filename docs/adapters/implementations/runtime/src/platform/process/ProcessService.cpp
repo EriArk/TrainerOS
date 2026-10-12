@@ -1,5 +1,7 @@
 #include "ProcessService.h"
 #include <QDir>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 namespace trainer {
 ProcessService::ProcessService(QObject* parent) : QObject(parent), worker_(new QObject) {
@@ -73,7 +75,20 @@ void ProcessService::drainOutput() {
     }
 }
 bool ProcessService::runtimeCommand(const QString& action,const QString& text) {
-    if(!active_||stopRequested_||process_.state()!=QProcess::Running||runtimeControls_["kind"]!="retroarch"||process_.bytesToWrite()>4096)return false;
+    if(!active_||stopRequested_||process_.state()!=QProcess::Running||process_.bytesToWrite()>4096)return false;
+    if(runtimeControls_["kind"]=="dolphin"&&runtimeControls_["hotseat"]=="dolphin-golf-p1-v1") {
+        QJsonObject packet;
+        if(action=="hotseat-end")packet={{"action","quit"}};
+        else if(action=="hotseat-pass"&&runtimeControls_["netplayHost"].toBool()&&text.size()<=128) {
+            const auto input=QJsonDocument::fromJson(text.toUtf8()).object();
+            const auto sequence=input["sequence"].toInteger(-1);const int target=input["target"].toInt();
+            if(sequence<1||(target!=1&&target!=2))return false;
+            packet={{"action","pass"},{"sequence",sequence},{"target",target}};
+        } else return false;
+        const auto command=QJsonDocument(packet).toJson(QJsonDocument::Compact)+'\n';
+        return process_.write(command)==command.size();
+    }
+    if(runtimeControls_["kind"]!="retroarch")return false;
     QByteArray command;
     if(action=="shader")command="SHADER_TOGGLE";
     else if(action=="next-shader")command="SHADER_NEXT";

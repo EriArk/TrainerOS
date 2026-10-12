@@ -51,8 +51,8 @@ private slots:
         QTemporaryDir dir;std::atomic_bool cancel=false;
         write(dolphin::bridgeFile(),"fixture runtime");
         const auto hash=QString::fromLatin1(QCryptographicHash::hash("fixture runtime",QCryptographicHash::Sha256).toHex());
-        const auto manifest=[&](const QString& runtime){write(root+"/manifest.json",QJsonDocument(QJsonObject{
-            {"protocol",1},{"source","c77bbaa0f372c3f72281602a8b087206706542cb"},{"sha256",runtime}}).toJson());};
+        const auto manifest=[&](const QString& runtime,QString hotseat={}){write(root+"/manifest.json",QJsonDocument(QJsonObject{
+            {"protocol",1},{"source","c77bbaa0f372c3f72281602a8b087206706542cb"},{"sha256",runtime},{"hotseat",hotseat}}).toJson());};
         manifest(hash);
         QByteArray disc(1024,'\0');disc.replace(0,6,"GTEST0");disc.replace(0x1c,4,QByteArray::fromHex("c2339f3d"));
         write(dir.filePath("game.iso"),disc);
@@ -65,6 +65,14 @@ private slots:
         r.adventure.title="Other local name";
         QVERIFY(sameMultiplayerGame(identity,dolphin::netplayIdentity(r,i,cancel,4)));
         QCOMPARE(dolphin::netplayIdentity(r,i,cancel)["players"].toInt(),2);
+        QVERIFY(multiplayerModeProfile(identity,"pass-p1").isEmpty());
+        manifest(hash,"dolphin-golf-p1-v1");
+        const auto capable=dolphin::netplayIdentity(r,i,cancel,4);
+        const auto turns=multiplayerModeProfile(capable,"pass-p1");
+        QVERIFY(usesSharedController(turns));QCOMPARE(turns["players"].toInt(),2);
+        QVERIFY(supportsMultiplayerSession(capable,turns));QVERIFY(!supportsMultiplayerSession(identity,turns));
+        QCOMPARE(multiplayerModeProfile(capable,"separate")["players"].toInt(),4);
+        manifest(hash);
         QVERIFY(dolphin::netplayIdentity(r,i,cancel,5).isEmpty());
         disc[512]=1;write(r.contentPath,disc);
         QVERIFY(!sameMultiplayerGame(identity,dolphin::netplayIdentity(r,i,cancel,4)));
@@ -106,6 +114,14 @@ private slots:
         QVERIFY(!native.arguments.contains("/usr/bin/flatpak"));
         QCOMPARE(native.arguments.value(1),dolphin::bridgeFile());
         native.settled({});
+        r.expected=multiplayerModeProfile(QJsonObject{{"players",4},{"controllerModes",QJsonArray{"pass-p1"}}},"pass-p1");
+        QVERIFY(!dolphin::configureNetplay(native,i,"/roms/Game.iso",r,cancel).isEmpty()); // no sparse slot 3 in turns
+        r.slot=2;r.seats={1,2};
+        QVERIFY(dolphin::configureNetplay(native,i,"/roms/Game.iso",r,cancel).isEmpty());
+        QCOMPARE(native.runtimeControls["hotseat"].toString(),QString("dolphin-golf-p1-v1"));
+        QFile turnsSession(native.arguments.last()+"/session.json");QVERIFY(turnsSession.open(QIODevice::ReadOnly));
+        QVERIFY(QJsonDocument::fromJson(turnsSession.readAll()).object()["hotseat"].toBool());turnsSession.close();
+        native.settled({});r.expected={};r.slot=3;
         r.seats={1,1};ProcessCommand rejected;
         QVERIFY(!dolphin::configureNetplay(rejected,i,"/roms/Game.iso",r,cancel).isEmpty());
         QVERIFY(rejected.program.isEmpty());QVERIFY(!rejected.settled);

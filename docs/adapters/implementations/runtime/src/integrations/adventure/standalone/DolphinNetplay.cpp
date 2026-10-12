@@ -1,4 +1,5 @@
 #include "DolphinNetplay.h"
+#include "core/model/GamePlayers.h"
 #include "integrations/adventure/retroarch/RetroArchConfiguration.h"
 #include <QDir>
 #include <QFileInfo>
@@ -30,13 +31,17 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const StandaloneInsta
     if(runtime.isEmpty()||runtime!=m["sha256"].toString())return {};
     const auto content=retroarch::fileDigest(r.contentPath,1500LL*1024*1024,cancel);
     if(content.isEmpty())return {};
+    QJsonObject identity;
     if(content=="53a5d0f7c480045a435c889ad47b6d351faff0fc409a7285f3eecc61706b3d9e")
-        return {{"id","runtime.dolphin.melee-us-rev1.v1"},{"label","Super Smash Bros. Melee"},
+        identity={{"id","runtime.dolphin.melee-us-rev1.v1"},{"label","Super Smash Bros. Melee"},
             {"content",content},{"runtime",runtime},{"settings","dolphin-native-isolated-v1"},
             {"players",4},{"lateJoin",false}};
-    return {{"id","runtime.dolphin.gc.v1"},{"label",r.adventure.title.left(96)},
+    else identity={{"id","runtime.dolphin.gc.v1"},{"label",r.adventure.title.left(96)},
         {"content",content},{"runtime",runtime},{"settings","dolphin-gc-pads-isolated-v1"},
         {"players",players},{"lateJoin",false}};
+    if(m["hotseat"]=="dolphin-golf-p1-v1")
+        identity["controllerModes"]=QJsonArray{"separate","pass-p1"};
+    return identity;
 }
 QString configureNetplay(ProcessCommand& cmd,const StandaloneInstallation& i,const QString& content,
                          const NetplayRequest& request,const std::atomic_bool& cancel) {
@@ -47,6 +52,8 @@ QString configureNetplay(ProcessCommand& cmd,const StandaloneInstallation& i,con
     QSet<int> seats;
     for(const auto& v:request.seats){const int seat=v.toInt();if(seat<1||seat>4||seats.contains(seat))return "This game party is invalid.";seats.insert(seat);}
     if(seats.size()<2||!seats.contains(1)||!seats.contains(request.slot))return "This game party is invalid.";
+    const bool hotseat=usesSharedController(request.expected);
+    if(hotseat&&(seats.size()!=2||!seats.contains(2)))return "This controller mode needs two players.";
     if(!request.host&&(request.online?!QRegularExpression("^[a-zA-Z0-9]{8}$").match(request.address).hasMatch():
         QHostAddress(request.address).protocol()!=QAbstractSocket::IPv4Protocol))return "This multiplayer address is invalid.";
     auto directory=std::make_shared<QTemporaryDir>();
@@ -66,6 +73,7 @@ QString configureNetplay(ProcessCommand& cmd,const StandaloneInstallation& i,con
         "SyncCodes = False\nRecordInputs = False\nStrictSettingsSync = True\nNetworkMode = fixeddelay\nBufferSize = 5\n"
         "Address = "+request.address.toUtf8()+"\nHostCode = "+request.address.toUtf8()+"\nConnectPort = "+QByteArray::number(request.port)+"\n";
     QJsonObject session{{"protocol",1},{"game",content},{"host",request.host},{"token",request.token},{"slot",request.slot},{"slots",request.seats}};
+    if(hotseat)session["hotseat"]=true;
     if(!write(root+"/Config/Dolphin.ini",config)||!write(root+"/Config/GFX.ini","[Settings]\nInternalResolution = 1\nAspectRatio = 0\nShaderCompilationMode = 0\n")||
        !write(root+"/session.json",QJsonDocument(session).toJson(QJsonDocument::Compact)))return "Couldn't prepare multiplayer settings.";
     // Retain the installed controller bridge, replace only its emulator child.
@@ -80,6 +88,7 @@ QString configureNetplay(ProcessCommand& cmd,const StandaloneInstallation& i,con
     // contract, including when the emulator uses an isolated user directory.
     cmd.arguments<<bridgeFile()<<"-b"<<"-C"<<"Dolphin.Interface.ConfirmStop=False"<<"-u"<<root;
     cmd.runtimeControls["netplay"]=request.expected.toVariantMap();cmd.runtimeControls["netplayHost"]=request.host;
+    if(hotseat)cmd.runtimeControls["hotseat"]="dolphin-golf-p1-v1";
     cmd.runtimeControls["temporaryProgress"]=true;
     const auto settled=cmd.settled;
     cmd.settled=[settled,directory](const ProcessOutcome& outcome){if(settled)settled(outcome);directory->remove();};

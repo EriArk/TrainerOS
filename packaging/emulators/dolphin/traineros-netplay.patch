@@ -1,54 +1,254 @@
---- a/Source/Core/DolphinQt/MainWindow.h
-+++ b/Source/Core/DolphinQt/MainWindow.h
-@@ -194,6 +194,7 @@
- #endif  // USE_RETRO_ACHIEVEMENTS
- 
-   void NetPlayInit();
-+  void InitTrainerNetplay();
-   bool NetPlayJoin();
-   bool NetPlayHost(const UICommon::GameFile& game);
-   void NetPlayQuit();
---- a/Source/Core/DolphinQt/MainWindow.cpp
-+++ b/Source/Core/DolphinQt/MainWindow.cpp
-@@ -3,6 +3,9 @@
- 
- #include "DolphinQt/MainWindow.h"
- 
-+#include <QJsonArray>
-+#include <QJsonDocument>
-+#include <QJsonObject>
- #include <QApplication>
- #include <QCloseEvent>
- #include <QDateTime>
-@@ -260,6 +263,7 @@
-   InitCoreCallbacks();
- 
-   NetPlayInit();
-+  QTimer::singleShot(0, this, &MainWindow::InitTrainerNetplay);
- 
- #ifdef USE_RETRO_ACHIEVEMENTS
-   AchievementManager::GetInstance().Init(reinterpret_cast<void*>(winId()));
-@@ -1740,6 +1744,11 @@
- 
-   if (!Settings::Instance().GetNetPlayServer()->is_connected)
-   {
-+    if (qEnvironmentVariableIsSet("TRAINEROS_DOLPHIN_SESSION"))
-+    {
-+      NetPlayQuit();
-+      return false;
-+    }
-     ModalMessageBox::critical(
-         nullptr, tr("Failed to open server"),
-         tr("Failed to listen on port %1. Is another instance of the NetPlay server running?")
-@@ -2168,3 +2177,5 @@
-   AddRiivolutionPatches(boot_params.get(), std::move(w.GetPatches()));
-   StartGame(std::move(boot_params));
+diff --git a/Source/Core/Core/NetPlayClient.cpp b/Source/Core/Core/NetPlayClient.cpp
+index 20edd35..c0dbdfb 100644
+--- a/Source/Core/Core/NetPlayClient.cpp
++++ b/Source/Core/Core/NetPlayClient.cpp
+@@ -1671,6 +1671,15 @@ void NetPlayClient::ThreadFunc()
  }
+ 
+ // called from ---GUI--- thread
++std::vector<Player> NetPlayClient::GetTrainerPlayers()
++{
++  std::lock_guard lkp(m_crit.players);
++  std::vector<Player> players;
++  for (const auto& pair : m_players)
++    players.push_back(pair.second);
++  return players;
++}
 +
-+#include "DolphinQt/TrainerNetplay.inc"
+ std::vector<const Player*> NetPlayClient::GetPlayers()
+ {
+   std::lock_guard lkp(m_crit.players);
+@@ -1887,6 +1896,15 @@ void NetPlayClient::UpdateDevices()
+   u8 pad = 0;
+ 
+   auto& si = Core::System::GetInstance().GetSerialInterface();
++  if (m_trainer_hotseat)
++  {
++    // Keep native party mappings for admission/Golf authority, but expose one
++    // console controller. No live port remapping or input-queue reassignment.
++    for (int port = 0; port < 4; ++port)
++      si.ChangeDevice(port == 0 ? SerialInterface::SIDEVICE_GC_CONTROLLER :
++                                SerialInterface::SIDEVICE_NONE, port);
++    return;
++  }
+   for (auto player_id : m_pad_map)
+   {
+     const SerialInterface::SIDevices si_device = Config::Get(Config::GetInfoForSIDevice(local_pad));
+@@ -2043,6 +2061,25 @@ bool NetPlayClient::GetNetPads(const int pad_nb, const bool batching, GCPadStatu
+     m_wait_on_input_event.Wait();
+   }
+ 
++  if (m_trainer_hotseat)
++  {
++    if (pad_nb != 0 || !m_host_input_authority || !m_net_settings.golf_mode)
++      return false;
++    // Stock Golf Prepare/Switch/Release/Acquire above owns the turn boundary.
++    // Only its authority polls local P1. Native reliable PadHostData still
++    // supplies identical input to every console through the existing queues.
++    if (m_local_player->pid == m_current_golfer && m_pad_buffer[0].Size() == 0)
++    {
++      const GCPadStatus status = Pad::GetStatus(0);
++      m_pad_buffer[0].Push(status);
++      sf::Packet packet;
++      packet << MessageID::PadHostData;
++      AddPadStateToPacket(0, status, packet);
++      SendAsync(std::move(packet));
++    }
++  }
++  else
++  {
+   if (IsFirstInGamePad(pad_nb) && batching)
+   {
+     sf::Packet packet;
+@@ -2076,6 +2113,7 @@ bool NetPlayClient::GetNetPads(const int pad_nb, const bool batching, GCPadStatu
+     if (m_host_input_authority)
+       SendPadHostPoll(pad_nb);
+   }
++  }
+ 
+   if (m_host_input_authority)
+   {
+@@ -2457,6 +2495,8 @@ static int LocalToInGame(int local_pad, const PadMappingArray& pad_map, PlayerId
+ 
+ int NetPlayClient::InGamePadToLocalPad(int ingame_pad) const
+ {
++  if (m_trainer_hotseat)
++    return ingame_pad == 0 && m_local_player->pid == m_current_golfer ? 0 : 4;
+   return InGameToLocal(ingame_pad, m_pad_map, m_local_player->pid);
+ }
+ 
+diff --git a/Source/Core/Core/NetPlayClient.h b/Source/Core/Core/NetPlayClient.h
+index 10fd3bc..f912f11 100644
+--- a/Source/Core/Core/NetPlayClient.h
++++ b/Source/Core/Core/NetPlayClient.h
+@@ -5,6 +5,7 @@
+ 
+ #include <SFML/Network/Packet.hpp>
+ #include <array>
++#include <atomic>
+ #include <chrono>
+ #include <map>
+ #include <memory>
+@@ -72,6 +73,7 @@ public:
+   virtual void OnGameStartAborted() = 0;
+   virtual void OnGolferChanged(bool is_golfer, const std::string& golfer_name) = 0;
+   virtual void OnTtlDetermined(u8 ttl) = 0;
++  virtual void OnTrainerController(PlayerId owner) {}
+ 
+   virtual bool IsRecording() = 0;
+   virtual std::shared_ptr<const UICommon::GameFile>
+@@ -118,6 +120,9 @@ public:
+   ~NetPlayClient() override;
+ 
+   std::vector<const Player*> GetPlayers();
++  std::vector<Player> GetTrainerPlayers();
++  void SetTrainerHotseat(bool enabled) { m_trainer_hotseat = enabled; }
++  bool IsTrainerHotseat() const { return m_trainer_hotseat; }
+   const NetSettings& GetNetSettings() const;
+ 
+   // Called from the GUI thread.
+@@ -222,6 +227,7 @@ protected:
+   unsigned int m_target_buffer_size = 20;
+   bool m_host_input_authority = false;
+   PlayerId m_current_golfer = 1;
++  std::atomic<bool> m_trainer_hotseat{false};
+ 
+   // This bool will stall the client at the start of GetNetPads, used for switching input control
+   // without deadlocking. Use the correspondingly named Event to wake it up.
+diff --git a/Source/Core/Core/NetPlayServer.cpp b/Source/Core/Core/NetPlayServer.cpp
+index 8f6ba17..8c050de 100644
+--- a/Source/Core/Core/NetPlayServer.cpp
++++ b/Source/Core/Core/NetPlayServer.cpp
+@@ -821,6 +821,9 @@ unsigned int NetPlayServer::OnData(sf::Packet& packet, Client& player)
+ 
+   case MessageID::PadData:
+   {
++    // Shared P1 is supplied only by the Golf authority's PadHostData.
++    if (m_trainer_hotseat)
++      break;
+     // if this is pad data from the last game still being received, ignore it
+     if (player.current_game != m_current_game)
+       break;
+@@ -943,6 +946,9 @@ unsigned int NetPlayServer::OnData(sf::Packet& packet, Client& player)
+ 
+   case MessageID::GolfRequest:
+   {
++    // Only the admitted host coordinator may request a turn change.
++    if (m_trainer_hotseat && player.pid != 1)
++      break;
+     PlayerId pid;
+     packet >> pid;
+ 
+@@ -954,6 +960,11 @@ unsigned int NetPlayServer::OnData(sf::Packet& packet, Client& player)
+         m_current_golfer != pid && PlayerHasControllerMapped(pid))
+     {
+       m_pending_golfer = pid;
++      if (m_trainer_hotseat)
++      {
++        m_trainer_previous = m_current_golfer;
++        m_trainer_golf_stage = 1;
++      }
+ 
+       sf::Packet spac;
+       spac << MessageID::GolfPrepare;
+@@ -964,6 +975,14 @@ unsigned int NetPlayServer::OnData(sf::Packet& packet, Client& player)
+ 
+   case MessageID::GolfRelease:
+   {
++    if (m_trainer_hotseat &&
++        (m_trainer_golf_stage != 2 || player.pid != m_trainer_previous))
++      return 1;
++    if (m_trainer_hotseat)
++    {
++      m_trainer_golf_stage = 3;
++      m_dialog->OnTrainerController(0);
++    }
+     if (m_pending_golfer == 0)
+       break;
+ 
+@@ -976,20 +995,35 @@ unsigned int NetPlayServer::OnData(sf::Packet& packet, Client& player)
+ 
+   case MessageID::GolfAcquire:
+   {
++    if (m_trainer_hotseat &&
++        (m_trainer_golf_stage != 3 || player.pid != m_pending_golfer))
++      return 1;
+     if (m_pending_golfer == 0)
+       break;
+ 
+     m_current_golfer = m_pending_golfer;
+     m_pending_golfer = 0;
++    if (m_trainer_hotseat)
++    {
++      m_trainer_golf_stage = 0;
++      m_dialog->OnTrainerController(m_current_golfer);
++    }
+   }
+   break;
+ 
+   case MessageID::GolfPrepare:
+   {
++    if (m_trainer_hotseat &&
++        (m_trainer_golf_stage != 1 || player.pid != m_pending_golfer))
++      return 1;
+     if (m_pending_golfer == 0)
+       break;
+ 
+     m_current_golfer = 0;
++    if (m_trainer_hotseat)
++    {
++      m_trainer_golf_stage = 2;
++    }
+ 
+     sf::Packet spac;
+     spac << MessageID::GolfSwitch;
+@@ -1600,6 +1634,11 @@ bool NetPlayServer::StartGame()
+ 
+   m_current_golfer = 1;
+   m_pending_golfer = 0;
++  if (m_trainer_hotseat)
++  {
++    m_trainer_golf_stage = 0;
++    m_dialog->OnTrainerController(1);
++  }
+ 
+   const u64 initial_rtc = GetInitialNetPlayRTC();
+ 
+diff --git a/Source/Core/Core/NetPlayServer.h b/Source/Core/Core/NetPlayServer.h
+index ebd2669..7d86e29 100644
+--- a/Source/Core/Core/NetPlayServer.h
++++ b/Source/Core/Core/NetPlayServer.h
+@@ -5,6 +5,7 @@
+ 
+ #include <SFML/Network/Packet.hpp>
+ 
++#include <atomic>
+ #include <map>
+ #include <mutex>
+ #include <optional>
+@@ -64,6 +65,7 @@ public:
+ 
+   void AdjustPadBufferSize(unsigned int size);
+   void SetHostInputAuthority(bool enable);
++  void SetTrainerHotseat(bool enabled) { m_trainer_hotseat = enabled; }
+ 
+   void KickPlayer(PlayerId player);
+ 
+@@ -75,6 +77,9 @@ public:
+   bool is_connected = false;
+ 
+ private:
++  std::atomic<bool> m_trainer_hotseat{false};
++  PlayerId m_trainer_previous = 0;
++  int m_trainer_golf_stage = 0;
+   class Client
+   {
+   public:
+diff --git a/Source/Core/DolphinQt/Main.cpp b/Source/Core/DolphinQt/Main.cpp
+index b223819..ebc80ad 100644
 --- a/Source/Core/DolphinQt/Main.cpp
 +++ b/Source/Core/DolphinQt/Main.cpp
-@@ -240,14 +240,16 @@
+@@ -240,14 +240,16 @@ int main(int argc, char* argv[])
          QObject::tr("A save state cannot be loaded without specifying a game to launch."));
      retval = 1;
    }
@@ -67,34 +267,63 @@
    {
      // A game to launch was specified, but it was invalid.
      // An error has already been shown by code above, so exit without showing another error.
---- a/Source/Core/DolphinQt/NetPlay/NetPlayDialog.h
-+++ b/Source/Core/DolphinQt/NetPlay/NetPlayDialog.h
-@@ -45,6 +45,8 @@
+diff --git a/Source/Core/DolphinQt/MainWindow.cpp b/Source/Core/DolphinQt/MainWindow.cpp
+index 688ae6f..988a891 100644
+--- a/Source/Core/DolphinQt/MainWindow.cpp
++++ b/Source/Core/DolphinQt/MainWindow.cpp
+@@ -3,6 +3,9 @@
  
-   void show(std::string nickname, bool use_traversal);
-   void reject() override;
-+  bool StartTrainerGame();
-+  void SetTrainerGame(std::shared_ptr<const UICommon::GameFile> game) { m_trainer_game = std::move(game); }
+ #include "DolphinQt/MainWindow.h"
  
-   // NetPlayUI methods
-   void BootGame(const std::string& filename,
-@@ -101,6 +103,7 @@
++#include <QJsonArray>
++#include <QJsonDocument>
++#include <QJsonObject>
+ #include <QApplication>
+ #include <QCloseEvent>
+ #include <QDateTime>
+@@ -260,6 +263,7 @@ MainWindow::MainWindow(Core::System& system, std::unique_ptr<BootParameters> boo
+   InitCoreCallbacks();
  
- signals:
-   void Stop();
-+  void TrainerError(QString reason);
+   NetPlayInit();
++  QTimer::singleShot(0, this, &MainWindow::InitTrainerNetplay);
  
- private:
-   void CreateChatLayout();
-@@ -181,4 +184,5 @@
-   bool m_host_input_authority = false;
+ #ifdef USE_RETRO_ACHIEVEMENTS
+   AchievementManager::GetInstance().Init(reinterpret_cast<void*>(winId()));
+@@ -1740,6 +1744,11 @@ bool MainWindow::NetPlayHost(const UICommon::GameFile& game)
  
-   StartGameCallback m_start_game_callback;
-+  std::shared_ptr<const UICommon::GameFile> m_trainer_game;
- };
+   if (!Settings::Instance().GetNetPlayServer()->is_connected)
+   {
++    if (qEnvironmentVariableIsSet("TRAINEROS_DOLPHIN_SESSION"))
++    {
++      NetPlayQuit();
++      return false;
++    }
+     ModalMessageBox::critical(
+         nullptr, tr("Failed to open server"),
+         tr("Failed to listen on port %1. Is another instance of the NetPlay server running?")
+@@ -2168,3 +2177,5 @@ void MainWindow::ShowRiivolutionBootWidget(const UICommon::GameFile& game)
+   AddRiivolutionPatches(boot_params.get(), std::move(w.GetPatches()));
+   StartGame(std::move(boot_params));
+ }
++
++#include "DolphinQt/TrainerNetplay.inc"
+diff --git a/Source/Core/DolphinQt/MainWindow.h b/Source/Core/DolphinQt/MainWindow.h
+index 93490ea..1275868 100644
+--- a/Source/Core/DolphinQt/MainWindow.h
++++ b/Source/Core/DolphinQt/MainWindow.h
+@@ -194,6 +194,7 @@ private:
+ #endif  // USE_RETRO_ACHIEVEMENTS
+ 
+   void NetPlayInit();
++  void InitTrainerNetplay();
+   bool NetPlayJoin();
+   bool NetPlayHost(const UICommon::GameFile& game);
+   void NetPlayQuit();
+diff --git a/Source/Core/DolphinQt/NetPlay/NetPlayDialog.cpp b/Source/Core/DolphinQt/NetPlay/NetPlayDialog.cpp
+index 6cadce9..97d70d7 100644
 --- a/Source/Core/DolphinQt/NetPlay/NetPlayDialog.cpp
 +++ b/Source/Core/DolphinQt/NetPlay/NetPlayDialog.cpp
-@@ -460,6 +460,19 @@
+@@ -460,6 +460,19 @@ void NetPlayDialog::OnIndexRefreshFailed(const std::string error)
    DisplayMessage(QString::fromStdString(error), "red");
  }
  
@@ -114,7 +343,7 @@
  void NetPlayDialog::OnStart()
  {
    if (!Settings::Instance().GetNetPlayClient()->DoAllPlayersHaveGame())
-@@ -544,7 +557,8 @@
+@@ -544,7 +557,8 @@ void NetPlayDialog::show(std::string nickname, bool use_traversal)
  
    SetOptionsEnabled(true);
  
@@ -124,7 +353,7 @@
    UpdateGUI();
  }
  
-@@ -793,6 +807,8 @@
+@@ -793,6 +807,8 @@ void NetPlayDialog::Update()
  
  void NetPlayDialog::DisplayMessage(const QString& msg, const std::string& color, int duration)
  {
@@ -133,7 +362,7 @@
    QueueOnObject(m_chat_edit, [this, color, msg] {
      m_chat_edit->append(QStringLiteral("<font color='%1'>%2</font>")
                              .arg(QString::fromStdString(color), msg.toHtmlEscaped()));
-@@ -974,11 +990,21 @@
+@@ -974,11 +990,21 @@ void NetPlayDialog::OnDesync(u32 frame, const std::string& player)
  
  void NetPlayDialog::OnConnectionLost()
  {
@@ -155,7 +384,7 @@
    QueueOnObject(this, [this, message] {
      ModalMessageBox::critical(this, tr("Error"),
                                tr("Failed to connect to server: %1").arg(tr(message.c_str())));
-@@ -987,6 +1013,11 @@
+@@ -987,6 +1013,11 @@ void NetPlayDialog::OnConnectionError(const std::string& message)
  
  void NetPlayDialog::OnTraversalError(Common::TraversalClient::FailureReason error)
  {
@@ -167,7 +396,7 @@
    QueueOnObject(this, [this, error] {
      switch (error)
      {
-@@ -1023,6 +1054,11 @@
+@@ -1023,6 +1054,11 @@ void NetPlayDialog::OnTraversalStateChanged(Common::TraversalClient::State state
  
  void NetPlayDialog::OnGameStartAborted()
  {
@@ -179,7 +408,7 @@
    QueueOnObject(this, [this] { SetOptionsEnabled(true); });
  }
  
-@@ -1062,6 +1098,11 @@
+@@ -1062,6 +1098,11 @@ NetPlayDialog::FindGameFile(const NetPlay::SyncIdentifier& sync_identifier,
      found = &temp;
  
    *found = NetPlay::SyncIdentifierComparison::DifferentGame;
@@ -191,31 +420,46 @@
  
    const std::optional<std::shared_ptr<const UICommon::GameFile>> game_file =
        RunOnObject(this, [this, &sync_identifier, found] {
---- a/Source/Core/Core/NetPlayClient.h
-+++ b/Source/Core/Core/NetPlayClient.h
-@@ -118,6 +118,7 @@
-   ~NetPlayClient() override;
+diff --git a/Source/Core/DolphinQt/NetPlay/NetPlayDialog.h b/Source/Core/DolphinQt/NetPlay/NetPlayDialog.h
+index 54cc111..00677e0 100644
+--- a/Source/Core/DolphinQt/NetPlay/NetPlayDialog.h
++++ b/Source/Core/DolphinQt/NetPlay/NetPlayDialog.h
+@@ -45,6 +45,9 @@ public:
  
-   std::vector<const Player*> GetPlayers();
-+  std::vector<Player> GetTrainerPlayers();
-   const NetSettings& GetNetSettings() const;
+   void show(std::string nickname, bool use_traversal);
+   void reject() override;
++  bool StartTrainerGame();
++  void SetTrainerGame(std::shared_ptr<const UICommon::GameFile> game) { m_trainer_game = std::move(game); }
++  void OnTrainerController(NetPlay::PlayerId owner) override { emit TrainerController(owner); }
  
-   // Called from the GUI thread.
---- a/Source/Core/Core/NetPlayClient.cpp
-+++ b/Source/Core/Core/NetPlayClient.cpp
-@@ -1671,6 +1671,15 @@
- }
+   // NetPlayUI methods
+   void BootGame(const std::string& filename,
+@@ -101,6 +104,8 @@ public:
  
- // called from ---GUI--- thread
-+std::vector<Player> NetPlayClient::GetTrainerPlayers()
-+{
-+  std::lock_guard lkp(m_crit.players);
-+  std::vector<Player> players;
-+  for (const auto& pair : m_players)
-+    players.push_back(pair.second);
-+  return players;
-+}
-+
- std::vector<const Player*> NetPlayClient::GetPlayers()
+ signals:
+   void Stop();
++  void TrainerError(QString reason);
++  void TrainerController(int owner);
+ 
+ private:
+   void CreateChatLayout();
+@@ -181,4 +186,5 @@ private:
+   bool m_host_input_authority = false;
+ 
+   StartGameCallback m_start_game_callback;
++  std::shared_ptr<const UICommon::GameFile> m_trainer_game;
+ };
+diff --git a/Source/Core/VideoCommon/NetPlayGolfUI.cpp b/Source/Core/VideoCommon/NetPlayGolfUI.cpp
+index 87b866b..dcf67f3 100644
+--- a/Source/Core/VideoCommon/NetPlayGolfUI.cpp
++++ b/Source/Core/VideoCommon/NetPlayGolfUI.cpp
+@@ -25,7 +25,7 @@ NetPlayGolfUI::~NetPlayGolfUI() = default;
+ void NetPlayGolfUI::Display()
  {
-   std::lock_guard lkp(m_crit.players);
+   auto client = m_netplay_client.lock();
+-  if (!client)
+-    return;
++  if (!client || client->IsTrainerHotseat())
++    return;  // TrainerOS owns consent/turn controls; admission nicknames stay private.
+ 
+   const float scale = ImGui::GetIO().DisplayFramebufferScale.x;

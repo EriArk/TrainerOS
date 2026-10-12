@@ -1,5 +1,16 @@
 # TrainerOS Roadmap
 
+**12 October GameCube Hotseat delivery:** the two-person shared-P1 choice is
+installed with ordinary invitations and Home controls. The maintained Dolphin
+bridge reuses native Golf authority and exposes one exclusive input port.
+Mario Golf reached both players' strokes and six transfers; the ordinary Online
+friend journey separately passed consent, solo save/leave, traversal, three menu
+handoffs, peer-visible input and bilateral Exit.
+[Evidence and preservation limits](emulators/dolphin.md#ordinary-gamecube-hotseat-delivery--12-october-2026).
+Continue Wii/3DS/Wii U/Vita and retained connection/admission gates; preserve PS2
+feasibility, the full catalogue and physical/distinct-network acceptance.
+PS3/Switch remain excluded. No whole multiplayer issue is closed.
+
 **12 October PS1 Hotseat delivery:** ordinary invitations now select separate pads
 or ordered shared P1 on both handhelds. Home exposes the confirmed owner and Pass;
 native release/acquire acknowledgements prevent overlapping or uncertain turns.

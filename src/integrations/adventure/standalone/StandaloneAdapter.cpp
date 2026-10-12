@@ -146,7 +146,8 @@ AdventureResult StandaloneAdapter::launchNetplay(const Adventure& adventure,cons
     const int players=qBound(2,gamePlayers(library_.artwork(adventure.id)).maximum,4);
     invocation->prepare=[prepare,record=*record,installation=installation_,request,players](ProcessCommand& cmd,const std::atomic_bool& cancel){
         const auto error=prepare(cmd,cancel);if(!error.isEmpty())return error;
-        const auto identity=dolphin::netplayIdentity(record,installation,cancel,players);
+        const auto identity=multiplayerModeProfile(dolphin::netplayIdentity(record,installation,cancel,players),
+            request.expected["playMode"].toString("separate"));
         if(!sameMultiplayerGame(identity,request.expected))return QString("Your game or emulator changed. Invite again.");
         return dolphin::configureNetplay(cmd,installation,record.contentPath,request,cancel);
     };

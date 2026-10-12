@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
         for(;;) {
             const auto line=input.readLine(256);if(line.isEmpty())return 4;
             journal.write(line);journal.flush();
-            if(line=="QUIT\n")return 0;
+            if(line=="QUIT\n"||line=="{\"action\":\"quit\"}\n")return 0;
         }
     }
     if (mode == "controlled" && args.size() == 4) {

@@ -6,7 +6,10 @@
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QSet>
+#include <QMap>
 #include <QTimer>
+#include <QSocketNotifier>
+#include <unistd.h>
 #include "Common/TraversalClient.h"
 #include "Core/Config/GraphicsSettings.h"
 #include <cstdio>
@@ -48,6 +51,7 @@ void MainWindow::InitTrainerNetplay()
   const auto token = settings[QStringLiteral("token")].toString();
   const int slot = settings[QStringLiteral("slot")].toInt();
   const bool host = settings[QStringLiteral("host")].toBool();
+  const bool hotseat = settings[QStringLiteral("hotseat")].toBool();
   QSet<int> seats;
   for (const auto& value : settings[QStringLiteral("slots")].toArray())
     seats.insert(value.toInt());
@@ -58,6 +62,8 @@ void MainWindow::InitTrainerNetplay()
   for (int seat : seats)
     if (seat < 1 || seat > 4)
       return fail(QStringLiteral("configuration"));
+  if (hotseat && (seats.size() != 2 || !seats.contains(2)))
+    return fail(QStringLiteral("configuration"));
   const auto game = std::make_shared<UICommon::GameFile>(settings[QStringLiteral("game")].toString().toStdString());
   if (!game->IsValid())
     return fail(QStringLiteral("game"));
@@ -85,15 +91,84 @@ void MainWindow::InitTrainerNetplay()
       QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals));
   const auto nickname = QString(QStringLiteral("TOS-%1-%2")).arg(admission).arg(slot).toStdString();
   Config::SetBaseOrCurrent(Config::NETPLAY_NICKNAME, nickname);
+  if (hotseat)
+    Config::SetBaseOrCurrent(Config::NETPLAY_NETWORK_MODE, std::string("golf"));
   if (!(host ? NetPlayHost(*game) : NetPlayJoin()))
     return fail(QStringLiteral("connection"));
+  if (hotseat)
+  {
+    Settings::Instance().GetNetPlayClient()->SetTrainerHotseat(true);
+    if (host)
+      Settings::Instance().GetNetPlayServer()->SetTrainerHotseat(true);
+  }
 
   auto* timer = new QTimer(this);
   timer->setInterval(200);
-  struct State { bool ready = false, starting = false, running = false; qint64 deadline; };
+  struct State
+  {
+    bool ready = false, starting = false, running = false;
+    qint64 deadline;
+    QMap<int, NetPlay::PlayerId> players;
+    int owner = 0;
+    quint64 sequence = 0;
+    QByteArray input;
+  };
   auto state = std::make_shared<State>();
   state->deadline = QDateTime::currentMSecsSinceEpoch() + 65000;
-  connect(timer, &QTimer::timeout, this, [this, timer, state, host, admission, seats, fail] {
+  if (hotseat)
+  {
+    connect(m_netplay_dialog, &NetPlayDialog::TrainerController, this,
+            [state, host, fail](int pid) {
+      if (!host)
+        return fail(QStringLiteral("controller"));
+      int owner = 0;
+      if (pid != 0)
+      {
+        owner = state->players.key(static_cast<NetPlay::PlayerId>(pid), 0);
+        if (owner == 0)
+          return fail(QStringLiteral("controller"));
+      }
+      state->owner = owner;
+      if (!state->running && state->sequence == 0)
+        return;  // no turn button before the native game has actually booted
+      TrainerNetplayEvent({{QStringLiteral("event"), QStringLiteral("controller")},
+                          {QStringLiteral("sequence"), qint64(++state->sequence)},
+                          {QStringLiteral("owner"), owner}});
+    }, Qt::QueuedConnection);
+    auto* input = new QSocketNotifier(STDIN_FILENO, QSocketNotifier::Read, this);
+    connect(input, &QSocketNotifier::activated, this, [this, state, input, host, fail] {
+      char bytes[256];
+      const auto size = ::read(STDIN_FILENO, bytes, sizeof(bytes));
+      if (size <= 0)
+      {
+        input->setEnabled(false);
+        return fail(QStringLiteral("controller-channel"));
+      }
+      state->input.append(bytes, size);
+      if (state->input.size() > 512)
+        return fail(QStringLiteral("controller-command"));
+      while (state->input.contains('\n'))
+      {
+        const auto end = state->input.indexOf('\n');
+        const auto command = QJsonDocument::fromJson(state->input.left(end)).object();
+        state->input.remove(0, end + 1);
+        if (command[QStringLiteral("action")] == QStringLiteral("quit"))
+          return fail(QStringLiteral("ended"));
+        if (!host || !state->running || state->owner == 0 ||
+            command[QStringLiteral("action")] != QStringLiteral("pass") ||
+            command[QStringLiteral("sequence")].toInteger(-1) != qint64(state->sequence) ||
+            command[QStringLiteral("target")].toInt() != 3 - state->owner)
+          continue;  // stale commands never change a later turn
+        const auto client = Settings::Instance().GetNetPlayClient();
+        if (!client || !client->IsConnected())
+          return fail(QStringLiteral("controller-channel"));
+        const auto target = state->players.value(3 - state->owner);
+        state->owner = 0;  // one request until native release/acquire confirms it
+        client->RequestGolfControl(target);
+      }
+    });
+  }
+  connect(timer, &QTimer::timeout, this, [this, timer, state, host, hotseat, admission, seats, fail] {
     const auto client = Settings::Instance().GetNetPlayClient();
     const auto server = Settings::Instance().GetNetPlayServer();
     if (!client || !client->IsConnected())
@@ -105,6 +180,10 @@ void MainWindow::InitTrainerNetplay()
     {
       state->running = true;
       TrainerNetplayEvent({{QStringLiteral("event"), QStringLiteral("running")}, {QStringLiteral("players"), int(seats.size())}});
+      if (hotseat && host && state->sequence == 0 && state->owner != 0)
+        TrainerNetplayEvent({{QStringLiteral("event"), QStringLiteral("controller")},
+                            {QStringLiteral("sequence"), qint64(++state->sequence)},
+                            {QStringLiteral("owner"), state->owner}});
     }
     if (!state->running && QDateTime::currentMSecsSinceEpoch() > state->deadline)
     {
@@ -146,6 +225,7 @@ void MainWindow::InitTrainerNetplay()
         return;
       }
       present.insert(seat);
+      state->players[seat] = player.pid;
       mapping[seat - 1] = player.pid;
     }
     if (present != seats || !client->DoAllPlayersHaveGame())

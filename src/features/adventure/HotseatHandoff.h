@@ -11,12 +11,14 @@ namespace trainer {
 class HotseatHandoff final : public QObject {
     Q_OBJECT
 public:
+    enum class NativeControl { SplitRoles, HostAuthority };
     explicit HotseatHandoff(QObject* parent=nullptr);
-    void begin(QString session,int slot);
+    void begin(QString session,int slot,NativeControl control=NativeControl::SplitRoles);
     void stop();
     void pass();
     void receive(int sender,const QJsonObject& control);
     void observed(quint64 sequence,int nativeOwner,bool initial);
+    void authorityObserved(quint64 sequence,int owner);
     bool active() const { return !session_.isEmpty(); }
     bool ready() const { return active() && phase_==Idle; }
     bool canPass() const { return ready() && owner_==slot_; }
@@ -25,6 +27,9 @@ public:
     // true requests playing, false requests spectating. Acceptance of this
     // local command is not native acknowledgement. Never retry an uncertain toggle.
     std::function<bool(bool)> requestNativeRole;
+    // A native host-owned protocol can perform the whole ordered switch itself.
+    // Its confirmed release/acquisition still drive the same party/UI states.
+    std::function<bool(int,quint64)> requestNativeOwner;
 signals:
     void outgoing(int targetSlot,QJsonObject control);
     void changed();
@@ -44,6 +49,7 @@ private:
     quint64 epoch_=0,observedSequence_=0,commandEpoch_=0;
     Phase phase_=Waiting;
     bool commanded_=false;
+    NativeControl control_=NativeControl::SplitRoles;
     QTimer timer_{this};
 };
 }

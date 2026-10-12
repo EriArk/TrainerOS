@@ -46,9 +46,9 @@ inline bool sameMultiplayerGame(QJsonObject left,QJsonObject right) {
 inline QJsonObject multiplayerModeProfile(QJsonObject local,const QString& mode) {
     if(local.isEmpty())return {};
     if(mode=="separate") {local.remove("playMode");return local;}
-    if(mode!="pass-p1"||local["players"].toInt(2)!=2||
+    if(mode!="pass-p1"||local["players"].toInt(2)<2||
        !local["controllerModes"].toArray().contains(mode))return {};
-    local["playMode"]=mode;local["lateJoin"]=false;local["temporaryProgress"]=true;
+    local["playMode"]=mode;local["players"]=2;local["lateJoin"]=false;local["temporaryProgress"]=true;
     return local;
 }
 inline bool supportsMultiplayerSession(const QJsonObject& local,const QJsonObject& offered) {

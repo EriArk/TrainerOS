@@ -21,6 +21,36 @@ class HotseatHandoffTests final : public QObject {
         void ready(){observe(0,true);}
     };
 private slots:
+    void nativeAuthorityUsesOneHostRequestAndWaitsForBothAcknowledgements() {
+        Pair p;QList<QPair<int,quint64>> switches;
+        p.host.begin(p.session,1,HotseatHandoff::NativeControl::HostAuthority);
+        p.guest.begin(p.session,2,HotseatHandoff::NativeControl::HostAuthority);
+        p.host.requestNativeOwner=[&](int owner,quint64 seq){switches.append({owner,seq});return true;};
+        p.host.authorityObserved(1,1);QVERIFY(p.host.canPass());QVERIFY(p.guest.ready());
+        for(int turn=0;turn<3;++turn) {
+            const int owner=turn%2==0?1:2,next=3-owner;const quint64 seq=1+2*turn;
+            auto& holder=owner==1?p.host:p.guest;
+            holder.pass();holder.pass();QCOMPARE(switches.size(),turn+1);
+            QCOMPARE(switches.last(),qMakePair(next,seq));QVERIFY(p.commands.isEmpty());
+            QVERIFY(!p.host.ready());QVERIFY(!p.guest.ready());
+            p.guest.authorityObserved(seq+1,next); // guest cannot assert native authority
+            p.guest.observed(seq+1,next-1,false);QVERIFY(!p.host.ready());
+            p.host.authorityObserved(seq+1,0);QVERIFY(!p.host.ready());QVERIFY(!p.guest.ready());
+            p.host.authorityObserved(seq+2,next);QVERIFY(p.host.ready());QVERIFY(p.guest.ready());
+            QCOMPARE(p.host.owner(),next);QCOMPARE(p.guest.owner(),next);
+            p.host.authorityObserved(seq+2,next);QCOMPARE(switches.size(),turn+1);
+        }
+        p.guest.pass();p.host.pass();
+        p.host.timer_.setInterval(1);p.host.timer_.start();
+        QTRY_VERIFY(!p.host.active());QVERIFY(!p.guest.active());
+    }
+    void nativeAuthorityCannotSkipRelease() {
+        Pair p;p.host.begin(p.session,1,HotseatHandoff::NativeControl::HostAuthority);
+        p.guest.begin(p.session,2,HotseatHandoff::NativeControl::HostAuthority);
+        p.host.requestNativeOwner=[](int,quint64){return true;};
+        p.host.authorityObserved(1,1);p.host.pass();p.host.authorityObserved(2,2);
+        QVERIFY(!p.host.active());QVERIFY(!p.guest.active());
+    }
     void nativeHostAcquisitionCanOvertakeItsProviderPhase_data() {
         QTest::addColumn<bool>("idleFirst");
         QTest::newRow("native-then-acquiring-then-idle")<<false;

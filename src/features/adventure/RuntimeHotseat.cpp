@@ -3,6 +3,7 @@
 #include "core/navigation/AdventureLaunchController.h"
 #include "platform/process/ProcessService.h"
 #include "features/social/SocialController.h"
+#include <QJsonDocument>
 
 namespace trainer {
 QJsonObject RuntimeMultiplayer::selectedControllerProfile(const QJsonObject& base) const {
@@ -22,7 +23,7 @@ QString RuntimeMultiplayer::hotseatPlayerName(int slot) const {
 }
 QVariantList RuntimeMultiplayer::gameMenuActions() const {
     QVariantList rows;
-    if(active_&&hotseat()&&process_.runtimeControls()["hotseat"]=="retroarch-p1-v1") {
+    if(active_&&hotseat()&&process_.runtimeControls().contains("hotseat")) {
         QVariantMap control{{"readOnly",!handoff_.canPass()}};
         if(handoff_.canPass()) {
             control["id"]="multiplayer-pass:"+party_.state()["party"].toString()+":"+QString::number(handoff_.epoch());
@@ -39,6 +40,11 @@ QVariantList RuntimeMultiplayer::gameMenuActions() const {
     return rows;
 }
 void RuntimeMultiplayer::setupHotseat() {
+    handoff_.requestNativeOwner=[this](int owner,quint64 sequence) {
+        const auto packet=QJsonDocument(QJsonObject{{"target",owner},{"sequence",qint64(sequence)}}).toJson(QJsonDocument::Compact);
+        return active_&&hotseat()&&dolphin()&&host_&&party_.running()&&
+            process_.runtimeCommand("hotseat-pass",QString::fromUtf8(packet));
+    };
     handoff_.requestNativeRole=[this](bool playing) {
         return active_&&hotseat()&&party_.running()&&process_.runtimeControls()["hotseat"]=="retroarch-p1-v1"&&
             process_.runtimeCommand(playing?"hotseat-play":"hotseat-spectate");

@@ -4,7 +4,10 @@ This record does **not** deliver Hotseat #126 or PS2 multiplayer.
 The [12 October PS1 delivery](emulators/pcsx-rearmed.md#ordinary-hotseat-delivery--12-october-2026)
 now implements the reviewed RetroArch acknowledgement, party authorization and
 ordinary handoff UI on both handhelds. The original missing-PS1 statements below
-are historical. GameCube, PS2 and the complete game catalogue remain unfinished.
+are historical. [GameCube delivery](emulators/dolphin.md#ordinary-gamecube-hotseat-delivery--12-october-2026)
+now adds the bounded native Golf/P1 extension and ordinary handoff on both
+handhelds. The original missing-GameCube statements below are historical too.
+PS2, the complete catalogue and retained external acceptance remain unfinished.
 The [12 October native PS2 experiment](emulators/lrps2.md) supersedes the earlier
 source-only/no-build status: ARM64 builds and repeated software state restores
 pass after a maintained reset correction, but paired play is limited by memory,

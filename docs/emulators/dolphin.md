@@ -1,5 +1,73 @@
 # Dolphin integration checkpoint
 
+## Ordinary GameCube Hotseat delivery — 12 October 2026
+
+Flip/Odin now offer separate pads or **Take turns with one controller** in ordinary
+Play together. The latter admits two people and exposes only P1. Home shows the
+confirmed owner and **Pass controller to [friend]**; the spectator retains Home
+and touch. Progress is temporary. Existing two-to-four separate-pad profiles remain.
+Wii input and persistent multiplayer save return are not added.
+
+The maintained patch reuses Dolphin Golf Mode Prepare/Switch/Release/Acquire and
+reliable PadHostData. Internal mappings remain for admission; only the current
+native authority polls local pad 0, and only one SI device reaches the game.
+There is no live port remapping or new emulation synchronization protocol.
+Only the accepted host coordinator requests transfer; native acknowledgement
+sender/order checks feed TrainerOS's existing confirmed handoff phases.
+Missing confirmation ends the temporary session, without uncertain toggle retries.
+Private JSON selects this behavior and the bridge activates Golf Mode before
+host/join; the shared base INI is not an observation of the active native mode.
+The native Golf overlay is hidden to keep admission nicknames and independent
+Take Control buttons out of gameplay. The verified local manifest capability
+dolphin-golf-p1-v1 enables the choice; ordinary separate-pad behavior is retained.
+
+**Gameplay:** isolated Mario Golf: Toadstool Tour US reached two-character Stroke
+Play with one controller. Six transfers were confirmed (initial owner event 1,
+release/acquire events through 13). Odin made Mario's first stroke and Flip made
+Peach's; both reached flight with one stroke recorded. Non-owner input did not
+dismiss the observed prompt, while owner input did. Guest quit closed both copies.
+
+**Ordinary installed journey:** Online friend consent disclosed turns/temporary
+progress; the host retained the solo save/leave barrier. Native traversal launched
+both copies. Three Home transfers confirmed guest, host and guest ownership;
+input from each advanced the peer's game UI. Host Home -> Exit closed both.
+This was one home network through Dolphin traversal, not a relay or distinct-network
+proof. Physical controls, sustained/wider-game play, four-person Hotseat and
+strict-NAT acceptance remain open. Earlier separate-pad Melee evidence is retained.
+
+Final SHA-256 on both devices:
+
+- TrainerOS: 4d055f96d7408ec7b8673aa28a5fba2bea6979805d1b9262bbadb306d3f57fce
+- Native Dolphin: 2bddb337a8ca9ea520bba26165ead594c23e9386bd0501a408a3f473ab6fc5c2
+- Source remains c77bbaa0f372c3f72281602a8b087206706542cb; Flathub is unchanged.
+- Gameplay probe: ff7f792c68813fdfaa88d392b73faead9ff6dfcd8bd1c884baa0cb389f189670;
+  the final bridge additionally hides the native Golf overlay.
+- Owner ISO: 1,459,978,240 bytes,
+  08a1f0c1f7336418fa814a19907f2094d81062d5e7636ab096a43c41132410f0.
+
+Windows standalone/handoff/party passed (3.06/0.22/0.73 s); final runtime passed
+32 checks in 2.423 s. ARM64 standalone/handoff/party passed (4.33/0.22/0.14 s),
+then final runtime passed (2.09 s). Both application builds, the native bridge
+build and 123-file runtime export check passed. Coverage includes native ordering,
+guest inability to assert ownership, stale requests, four-pad-to-two-turn admission,
+private configuration and real menu/process bindings. Early failures were fixed.
+
+After the isolated pair all 389 baseline files and Dolphin INIs were unchanged.
+After the ordinary journey 388 files, including personal game cards, remain
+unchanged. Flip's 68-byte console GC/SRAM.raw, TimePlayed.ini and Qt.ini changed
+after its solo launch. SRAM contains console settings/clock/card identifiers, not
+a game progress card. Historical and separate post-solo baselines are retained.
+No personal cards or controller mappings changed. Both databases pass quick_check,
+both native children are gone and volume is zero. Private games/captures stay out of Git.
+
+**Maintenance:** apply the complete patch at the pinned revision and use the
+existing recipe; reverse patch validation passed on the actual checkout. Recheck
+Golf ordering and SI semantics before rebasing, build identical participants and
+repeat bounded native/ordinary transfers before promoting the capability manifest.
+Rollback restores previous TrainerOS plus native Dolphin binary/manifest together;
+ordinary Flathub, cards, INIs and Sys assets remain independent. PS2, the full
+catalogue and external acceptance stay open. No whole multiplayer issue is closed.
+
 **11 October 2026 offline preparation:** the source admission now also recognizes
 raw GameCube ISO/GCM discs by disc magic and full content hash. The same pinned
 bridge handles two-to-four party-assigned pads; the exact Melee profile is retained.
