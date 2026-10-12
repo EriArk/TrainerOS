@@ -450,6 +450,23 @@
 
 **Статус:** новая **классификация**, не реализация/промоушен MAME cabinet-link и не повторная установка FBNeo. Код, конфиги эмуляторов и issues не изменены.
 
+## Группа 11B — Sega NAOMI и NAOMI 2 (12 октября 2026)
+
+**Две платформы:** `naomi`, `naomi2`; оба обычных ARM64-маршрута зарегистрированы на **Flycast**. Разделяем: (1) файтинги/игры с несколькими P1/P2 у *одного автомата* через **GGPO/Dojo** там, где есть совместимый профиль; (2) **родной NAOMI Network** — несколько самостоятельных кабинетов, каждый со своим экраном, управлением и состоянием; (3) мультиэкранную аркаду с несколькими мониторами у одного кабинета. Это **три разных** способа игры. **Universal Remote Play — временный запасной режим**, а не замена сетевого автомата.
+
+| Семейство | Реальные оригинальные варианты | Целевой путь и проверка |
+| --- | --- | --- |
+| **Sega NAOMI** `naomi` | Обычные аркадные P1/P2 файтинги; **Virtual-On Oratorio Tangram**, **SlashOut**, **Spikers Battle**, **Alien Front** имеют разные **кабинетные Network/Link** варианты. В Flycast есть проверенная upstream/community эмуляция NAOMI Network; однако не каждая перечисленная игра стабильно связывается в любой версии. В **Flycast 2.7** отдельно развиты **NAOMI multiscreen** (*Airline Pilot*, *Sega Strike Fighter*, *Derby Owners Club*). | **Один автомат**: проверять Flycast Dojo GGPO только для конкретного совместимого 2P ROM/cabinet (доступность Dojo upstream не доказывает существующий профиль TrainerOS). **Несколько автоматов**: настроить native NAOMI Network изолированно и связать через уже имеющийся транспорт TrainerOS с автоматической ролью host/client, без ручного IP. Отдельно проверять multiscreen как несколько видеовыходов **одного** автомата, не считать это Cabinet Link. |
+| **Sega NAOMI 2** `naomi2` | Native Network в **Initial D Arcade Stage 1–3**, **Club Kart**, **The King of Route 66** и других точных ревизиях; оригинальный link гонок использует самостоятельные кабинеты. Начиная с Flycast 2.0 upstream отдельно заявлены **NAOMI 2 + картридеры Initial D + улучшенный NAOMI networking**. | **Основной маршрут — native Flycast NAOMI cabinet link**, а не Dreamcast/GGPO input synchronization. Проверить именно **две копии Linux ARM64 Flycast 2.7** с `Initial D Arcade Stage 3` или другим проверенным 2-cabinet режимом, точные `naomi2` BIOS/ROM/CHD, сетевую готовность, игровой старт и реальную скорость на Flip/Odin. Руль, педали, аркадная карта и JVS-сигналы требуют конкретных профилей; обычный геймпадный маппер не равен поддержке всех аксессуаров. |
+
+**Что уже есть в TrainerOS:** обычные записи `naomi`/`naomi2` и база Flycast ARM64; отдельно **только Dreamcast Soul Calibur CHD** имеет установленный, проверенный **Flycast Dojo/GGPO** маршрут через общие приглашения. **Ни оригинальный NAOMI/NAOMI 2 cabinet link, ни аркадный GGPO, ни multiscreen в TrainerOS сейчас не прошли реальную приёмку**. Не переписывать Dreamcast GGPO под аркаду и не присваивать статус «готово» из того, что эмулятор умеет NAOMI.
+
+**Подготовка без настройки игроком:** определить нужные BIOS (`naomi.zip` / `naomi2.zip` — не взаимозаменяемые), ROM-set/parent, cartridge/GD-ROM/CHD и точный регион/кабинет; частный EEPROM/NVRAM, Coin/Start/Service, номер кабинета, master/client и совместимые controllers. Не копировать оригинальные игровые карты и чужие сохранения между пользователями. Для сетевых гонок чувствительность к задержке и кадровая частота на двух ARM64-устройствах проверяются отдельно; сообщения об успешной игре на x86_64 ПК **не являются** проверкой ArmadaOS. Сложные исторические внешние сервисы вроде VF.Net — отдельный native-online маршрут, **не обычный кабинетный link**.
+
+**Источники:** `docs/emulators/flycast.md`, `docs/EMULATOR_STANDARD.md`, `data/rom-platforms.json`; [Flycast upstream releases — v2.0 Naomi 2/network, v2.7 multiscreen](https://github.com/flyinghead/flycast/releases), [Flycast Dojo — аркады через GGPO](https://flycast.dojo.ooo/), [Flycast NAOMI Network tested compatibility](https://github-wiki-see.page/m/TheArcadeStriker/flycast-wiki/wiki/Network-Link-up-in-NAOMI-games), [сообщество: проверенная LAN связь Initial D 3 и ограничения](https://forum.arcadecontrols.com/index.php?topic=166191.0), [документированная проблема native-network timing](https://github.com/flyinghead/flycast/issues/669).
+
+**Статус:** только продуктовая классификация. Ни новые сетевые режимы Flycast, ни ROM/BIOS/карты/профили не устанавливались и не испытывались; код и issues не менялись.
+
 ## Следующая мини-группа
 
-Не заполнена: **Sega Naomi / Naomi 2 и Atomiswave / System SP**, оригинальные linked cabinets и сетевые механизмы Flycast. После неё — fantasy consoles / ScummVM маленькими частями.
+Не заполнена: **Atomiswave и Sega System SP** — ещё две отдельные аркадные системы Flycast, с оригинальными cabinet/network режимами. После них — fantasy consoles и ScummVM по небольшим порциям.
