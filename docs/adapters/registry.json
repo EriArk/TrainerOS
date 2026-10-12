@@ -3,6 +3,33 @@
   "updated": "2026-10-12",
   "runtimeProfiles": [
     {
+      "id": "runtime.vita3k.lan.v1",
+      "platform": "psvita",
+      "romSha256": "",
+      "state": "partial",
+      "record": "../emulators/vita3k.md",
+      "sourceRevision": "46602447c7f84d53790b44e1869ab5105178bf16",
+      "persistentSaveWrites": true,
+      "evidence": [
+        "pinned-arm64-runtime-and-ordinary-title-launcher-installed-both",
+        "ordinary-online-invitation-native-discovery-no-entered-address-and-two-player-input",
+        "solo-save-deferred-invitation-home-minimize-same-pid-and-bilateral-exit",
+        "final-production-forced-public-relay-idle-abrupt-loss-bounded-close",
+        "own-guest-save-unchanged-219-baseline-files-unchanged-native-time-bookkeeping-updated"
+      ],
+      "remaining": [
+        "commercial-adhoc-and-native-services",
+        "broader-games-groups-sustained-latency",
+        "operator-relay-fresh-device-and-release-acceptance",
+        "physical-distinct-network-audio-acceptance"
+      ],
+      "savePolicy": "Ordinary own native Vita data and account settings, including explicit pref-path. No peer save transfer, semantic reads/writes or save-copy return. Native game progress stays with its owner.",
+      "implementationSource": "src/integrations/adventure/standalone/VitaNetplay.cpp",
+      "implementation": "implementations/runtime",
+      "profile": "implementations/runtime/profiles/runtime.vita3k.lan.v1.json",
+      "recipe": "packaging/emulators/vita3k/install-runtime.py"
+    },
+    {
       "id": "runtime.azahar.3ds.v1",
       "platform": "n3ds",
       "romSha256": "",

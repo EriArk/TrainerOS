@@ -1,5 +1,18 @@
 # TrainerOS Roadmap
 
+**12 October Vita LAN delivery:** the maintained Vita3K bundle, installed-title
+links and ordinary Online friend invitations are installed on Flip/Odin.
+vitaQuake's native browser found its host without an entered address; two players
+entered one level with independent input. Home/minimize/same-process return,
+deferred invitation across solo save/exit, bilateral guest Exit and idle transport
+loss passed. The test game's broadcast-bind defect was fixed in its maintained
+source patch. Own guest progress stayed unchanged; native play-time bookkeeping
+changed normally. [Evidence and limits](emulators/vita3k.md). This is one reviewed
+homebrew LAN profile, not commercial AdHoc/PSN or universal Vita certification.
+Continue retained N64 operator service, PSP private admission, PS2 feasibility,
+Hotseat catalogue and later native/guest gates; Wii U needs own prerequisites.
+Physical/distinct-network/audio acceptance remains deferred. PS3/Switch excluded.
+
 **12 October Wii U prerequisite audit:** Odin's ARM64 Cemu package matches the
 Armada-selected upstream-derived release. Both handhelds lack the own console
 files/certificates required by native online services; no admission/gameplay or

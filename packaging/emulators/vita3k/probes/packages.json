@@ -1,0 +1,47 @@
+[
+  {
+    "name": "freetype.tar.xz",
+    "url": "https://github.com/vitasdk/packages/releases/download/master/freetype.tar.xz",
+    "sha256": "ad918e4075822109a61b9a19609ec0524d9b0fdc1878e5b74fc5c8cbc443f763"
+  },
+  {
+    "name": "libjpeg-turbo.tar.xz",
+    "url": "https://github.com/vitasdk/packages/releases/download/master/libjpeg-turbo.tar.xz",
+    "sha256": "87511c384b36f944655e298140f24215f3da8b59821deddca0f6a9c5e3438b78"
+  },
+  {
+    "name": "libogg.tar.xz",
+    "url": "https://github.com/vitasdk/packages/releases/download/master/libogg.tar.xz",
+    "sha256": "59299c36b20a3d6628afd3b3a2d35a49216192400343dd04c16fb5b068b64388"
+  },
+  {
+    "name": "libpng.tar.xz",
+    "url": "https://github.com/vitasdk/packages/releases/download/master/libpng.tar.xz",
+    "sha256": "e502fac413e17b75a06f8f2a88f87daec13d83a33e9206713a0612ee245b72b8"
+  },
+  {
+    "name": "libvita2d.tar.xz",
+    "url": "https://github.com/vitasdk/packages/releases/download/master/libvita2d.tar.xz",
+    "sha256": "f2688386ca15e030450223812c65beea4d1ce930a79b8a99d04f99b55ab1a455"
+  },
+  {
+    "name": "libvorbis.tar.xz",
+    "url": "https://github.com/vitasdk/packages/releases/download/master/libvorbis.tar.xz",
+    "sha256": "a6a7a609424d9b2a2bdcbefd56af68b2bc23d76a5e1f2d1c640868544280772a"
+  },
+  {
+    "name": "mpg123.tar.xz",
+    "url": "https://github.com/vitasdk/packages/releases/download/master/mpg123.tar.xz",
+    "sha256": "09e26b25906bfe5d2b9aab390e3c21986c10b553bc101f356af9b272c1f9e5f6"
+  },
+  {
+    "name": "speexdsp.tar.xz",
+    "url": "https://github.com/vitasdk/packages/releases/download/master/speexdsp.tar.xz",
+    "sha256": "f9719e1c247df00808b752ad9d6c9e34dedf028003e4ca678872b915b5cba9b3"
+  },
+  {
+    "name": "zlib.tar.xz",
+    "url": "https://github.com/vitasdk/packages/releases/download/master/zlib.tar.xz",
+    "sha256": "f39cea16c176f93dc744597113f093db0d48adf23dd25a14ee0d2ec47df17fa6"
+  }
+]

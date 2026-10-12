@@ -1,0 +1,29 @@
+{
+  "QUAK00001": {
+    "ebootSha256": "4ffe7203efdf0071c67681e00910065a0dc5db8a2087e822fef8c9b317a97b4e",
+    "nativeSettings": {
+      "backend-renderer": "OpenGL"
+    },
+    "extraContent": [
+      {
+        "path": "ux0/data/Quake",
+        "extensions": [
+          ".pak",
+          ".dat",
+          ".bsp",
+          ".mdl",
+          ".spr",
+          ".lmp",
+          ".lit",
+          ".ent",
+          ".vis",
+          ".rc",
+          ".wad"
+        ],
+        "required": [
+          "id1/pak0.pak"
+        ]
+      }
+    ]
+  }
+}

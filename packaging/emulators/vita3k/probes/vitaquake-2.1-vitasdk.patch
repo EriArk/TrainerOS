@@ -1,0 +1,170 @@
+--- a/source/Makefile
++++ b/source/Makefile
+@@ -3,10 +3,10 @@
+ SOURCES		:=	source
+ DATA		:=	data
+ INCLUDES	:=	include
+-GIT_VERSION := $(shell git describe --abbrev=6 --dirty --always --tags)
++GIT_VERSION := 045f0e3d
+ 
+ LIBS = -lvorbisfile -logg -lvorbis -lspeexdsp -lmpg123 \
+-	-lc -lvita2d -lSceCommonDialog_stub -lSceAudio_stub -lSceKernel_stub \
++	-lc -lvita2d -lSceCommonDialog_stub -lSceAudio_stub -lSceLibKernel_stub \
+ 	-lSceNet_stub -lSceNetCtl_stub -lpng -lz -lSceDisplay_stub -lSceGxm_stub \
+ 	-lSceSysmodule_stub -lSceCtrl_stub -lSceTouch_stub -lm \
+ 	-lSceAppUtil_stub -lScePgf_stub -ljpeg -lSceRtc_stub -lScePower_stub \
+@@ -93,7 +93,7 @@
+ PREFIX  = arm-vita-eabi
+ CC      = $(PREFIX)-gcc
+ CXX      = $(PREFIX)-g++
+-CFLAGS  = -Wl,-q -O3 -g -DHAVE_OGGVORBIS -DHAVE_MPG123 -DHAVE_LIBSPEEXDSP -DUSE_AUDIO_RESAMPLER -DGIT_VERSION=\"$(GIT_VERSION)\" 
++CFLAGS  = -Wl,-q -O3 -g -std=gnu99 -fcommon -Wno-error=implicit-function-declaration -DHAVE_OGGVORBIS -DHAVE_MPG123 -DHAVE_LIBSPEEXDSP -DUSE_AUDIO_RESAMPLER -DGIT_VERSION=\"$(GIT_VERSION)\" 
+ CXXFLAGS  = $(CFLAGS) -fno-exceptions -std=gnu++11
+ ASFLAGS = $(CFLAGS)
+ 
+@@ -114,7 +114,7 @@
+ 	vita-elf-create $< $@
+ 
+ $(TARGET).elf: $(OBJS)
+-	$(CXX) $(CXXFLAGS) $^ $(LIBS) -o $@
++	$(CXX) $(CXXFLAGS) $^ -Wl,--start-group $(LIBS) -lSceAppMgr_stub -Wl,--end-group -o $@
+ 
+ clean:
+ 	@rm -rf $(TARGET).velf $(TARGET).elf $(OBJS) $(TARGET).elf.unstripped.elf ../$(TARGET).vpk ../build/eboot.bin ../build/sce_sys/param.sfo ./param.sfo
+\ No newline at end of file
+--- a/source/sys_psp2.c
++++ b/source/sys_psp2.c
+@@ -21,6 +21,8 @@
+ #include "quakedef.h"
+ #include "errno.h"
+ #include <psp2/types.h>
++#include <psp2/kernel/processmgr.h>
++#include <psp2/kernel/threadmgr.h>
+ #include <psp2/rtc.h>
+ #include <psp2/common_dialog.h>
+ #include <psp2/ime_dialog.h>
+@@ -33,6 +35,7 @@
+ #include <psp2/apputil.h>
+ #include <psp2/ctrl.h>
+ #define u64 uint64_t
++static uint64_t currentRtcTick(void) { SceRtcTick value; sceRtcGetCurrentTick(&value); return value.tick; }
+ 
+ #define BIGSTACK_SIZE 20 * 1024 * 1024
+ byte sys_bigstack[BIGSTACK_SIZE];
+@@ -298,7 +301,7 @@
+ double Sys_FloatTime(void)
+ {
+ 	u64 ticks;
+-	sceRtcGetCurrentTick(&ticks);
++	ticks = currentRtcTick();
+ 	return ticks * 0.000001;
+ }
+ 
+@@ -510,7 +513,7 @@
+ 	VID_ChangeRes(res_val.value);
+ 
+ 	u64 lastTick;
+-	sceRtcGetCurrentTick(&lastTick);
++	lastTick = currentRtcTick();
+ 
+ 	while (1)
+ 	{
+@@ -595,7 +598,7 @@
+ 
+ 		// Get current frame
+ 		u64 tick;
+-		sceRtcGetCurrentTick(&tick);
++		tick = currentRtcTick();
+ 		const unsigned int deltaTick = tick - lastTick;
+ 		const float   deltaSecond = deltaTick * tickRate;
+ 
+--- a/source/snd_psp2.c
++++ b/source/snd_psp2.c
+@@ -24,6 +24,7 @@
+ #include "quakedef.h"
+ 
+ #define u64 uint64_t
++static uint64_t currentRtcTick(void) { SceRtcTick value; sceRtcGetCurrentTick(&value); return value.tick; }
+ #define u8 uint8_t
+ 
+ #define SAMPLE_RATE   48000
+@@ -86,7 +87,7 @@
+ 		return 0;
+ 	}
+ 	
+-	sceRtcGetCurrentTick(&initial_tick);
++	initial_tick = currentRtcTick();
+ 
+ 	snd_initialized = 1;
+ 	return 1;
+@@ -98,7 +99,7 @@
+ 		return 0;
+ 
+ 	u64 tick;
+-	sceRtcGetCurrentTick(&tick);
++	tick = currentRtcTick();
+ 	const unsigned int deltaTick  = tick - initial_tick;
+ 	const float deltaSecond = deltaTick * tickRate;
+ 	u64 samplepos = deltaSecond * SAMPLE_RATE;
+--- a/source/common.c
++++ b/source/common.c
+@@ -21,6 +21,7 @@
+ 
+ #include "quakedef.h"
+ #include <assert.h>
++#include <ctype.h>
+ 
+ CVAR (registered, 0, CVAR_ROM)
+ CVAR (platform, 0, CVAR_ROM)
+--- a/source/quakedef.h
++++ b/source/quakedef.h
+@@ -1,3 +1,4 @@
++#include <stdint.h>
+ /*
+ Copyright (C) 1996-1997 Id Software, Inc.
+ 
+--- a/source/audiodec/cd_psp2.cpp
++++ b/source/audiodec/cd_psp2.cpp
+@@ -25,6 +25,8 @@
+ extern "C"{
+ 	#include "../quakedef.h"
+ }
++#undef min
++#undef max
+ #include "audio_decoder.h"
+ 
+ extern char* mod_path;
+@@ -57,11 +59,11 @@
+ 	
+ 	// Initializing audio port
+ 	int ch = sceAudioOutOpenPort(SCE_AUDIO_OUT_PORT_TYPE_MAIN, NSAMPLES, 48000, SCE_AUDIO_OUT_MODE_STEREO);
+-	sceAudioOutSetConfig(ch, -1, -1, -1);
++	sceAudioOutSetConfig(ch, -1, -1, static_cast<SceAudioOutMode>(-1));
+ 	old_vol = bgmvolume.value;
+ 	int vol = 32767 * bgmvolume.value;
+ 	int vol_stereo[] = {vol, vol};
+-	sceAudioOutSetVolume(ch, SCE_AUDIO_VOLUME_FLAG_L_CH | SCE_AUDIO_VOLUME_FLAG_R_CH, vol_stereo);
++	sceAudioOutSetVolume(ch, static_cast<SceAudioOutChannelFlag>(SCE_AUDIO_VOLUME_FLAG_L_CH | SCE_AUDIO_VOLUME_FLAG_R_CH), vol_stereo);
+ 	
+ 	DecodedMusic* mus;
+ 	for (;;){
+@@ -139,7 +141,7 @@
+ 				old_vol = bgmvolume.value;
+ 				int vol = 32767 * bgmvolume.value;
+ 				int vol_stereo[] = {vol, vol};
+-				sceAudioOutSetVolume(ch, SCE_AUDIO_VOLUME_FLAG_L_CH | SCE_AUDIO_VOLUME_FLAG_R_CH, vol_stereo);
++				sceAudioOutSetVolume(ch, static_cast<SceAudioOutChannelFlag>(SCE_AUDIO_VOLUME_FLAG_L_CH | SCE_AUDIO_VOLUME_FLAG_R_CH), vol_stereo);
+ 				mus->changeVol = false;
+ 			}
+ 			
+--- a/source/net_udp_psp2.c
++++ b/source/net_udp_psp2.c
+@@ -315,7 +315,7 @@
+ 
+ 	memset(&address, 0, sizeof(struct sockaddr_in)); // JPG 1.05 - fix by JDC
+ 	address.sin_family = AF_INET;
+-	address.sin_addr.s_addr = myAddr;
++	address.sin_addr.s_addr = INADDR_ANY; // Receive native LAN discovery broadcasts too.
+ 	address.sin_port = sceNetHtons(port);
+ 	if( bind(newsocket, (void*)&address, sizeof(address)) == -1)
+ 		goto ErrorReturn;

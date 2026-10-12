@@ -190,6 +190,23 @@ private slots:
             }
         }
     }
+    void vitaRestartKeepsConsentAndRejectsStaleReady() {
+        Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        requestRestart(f,{{"id","runtime.vita3k.lan.v1"}});
+        QVERIFY(f.process.active());QVERIFY(f.runtime.restarting_);
+        f.lifecycle.exitController().cancel();QVERIFY(f.process.active());QVERIFY(!f.runtime.active_);
+        f.runtime.frame({{"kind","vita-ready"},{"slot",2},{"identity",f.runtime.descriptor_}});
+        QVERIFY(!f.runtime.launchPending_);QVERIFY(!f.runtime.active_);finishOrdinary(f);
+    }
+    void vitaRejectsChangedGameAndForeignStatus() {
+        Fixture f;f.runtime.active_=true;f.runtime.descriptor_={{"id","runtime.vita3k.lan.v1"},{"content","accepted"}};
+        f.runtime.frame({{"kind","vita-ready"},{"slot",2},{"identity",QJsonObject{{"id","runtime.vita3k.lan.v1"},{"content","other"}}}});
+        QVERIFY(!f.runtime.active_);f.runtime.active_=true;f.runtime.deadline_=1;
+        f.runtime.output("[TrainerOSDs] running\n");QCOMPARE(f.runtime.deadline_,1);
+        const auto line=QByteArray("TRAINEROS_VITA ")+QJsonDocument(QJsonObject{{"event","running"}}).toJson(QJsonDocument::Compact).toBase64()+"\n";
+        f.runtime.output(line.left(5));QCOMPARE(f.runtime.deadline_,1);
+        f.runtime.output(line.mid(5));QCOMPARE(f.runtime.deadline_,0);QCOMPARE(f.runtime.status_,"Playing together");
+    }
     void azaharRestartKeepsConsentAndRejectsStaleReady() {
         Fixture f;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
         requestRestart(f,{{"id","runtime.azahar.3ds.v1"}});

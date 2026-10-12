@@ -18,6 +18,7 @@ const QList<Route> routes{
     {"armsx2", {}, "ARMSX2", {"ARMSX2", "armsx2"}, {"ps2"}},
     {"melonds", "net.kuribo64.melonDS", "melonDS", {"melonDS"}, {"nds"}},
     {"azahar", "org.azahar_emu.Azahar", "azahar", {"azahar"}, {"n3ds"}},
+    {"vita3k", {}, "vita3k", {"vita3k"}, {"psvita"}},
     {"dolphin", "org.DolphinEmu.dolphin-emu", "dolphin-emu", {"dolphin-emu"}, {"gc", "wii"}},
     {"retroarch", "org.libretro.RetroArch", "retroarch", {"retroarch"}, {}}
 };
@@ -47,7 +48,7 @@ QString runtime(const Route& route, const EmulatorEnvironment& env) {
 }
 QString configDirectory(const Route& route, bool flatpak, const EmulatorEnvironment& env) {
     const auto base = flatpak ? QDir(env.home).filePath(".var/app/" + route.app + "/config") : env.configHome;
-    return QDir(base).filePath(route.id == "dolphin" ? "dolphin-emu" : route.id == "azahar" ? "azahar-emu" : route.id == "melonds" ? "melonDS" : route.id);
+    return QDir(base).filePath(route.id == "dolphin" ? "dolphin-emu" : route.id == "azahar" ? "azahar-emu" : route.id == "melonds" ? "melonDS" : route.id == "vita3k" ? "Vita3K" : route.id);
 }
 QByteArray dsDefaults(const EmulatorEnvironment& env) {
     QByteArray bytes = "# TrainerOS initial controller defaults; future user edits are preserved.\n"
@@ -194,12 +195,19 @@ EmulatorDiscovery prepareEmulators(const EmulatorEnvironment& env) {
         const bool flatpak = program.isEmpty() && executable(env.executables.value("flatpak")) && executable(runtime(route, env));
         if (flatpak) { program = env.executables.value("flatpak"); runtimeFile = runtime(route, env); arguments = {"run", route.app}; }
         if (program.isEmpty()) continue;
-        if ((route.id == "melonds" || route.id == "dolphin" || route.id == "azahar") && executable(env.executables.value("python3"))) {
+        if(route.id=="vita3k") {
+            // A .psvita link is an installed-title reference, not a native CLI
+            // image argument. Only discover the maintained launcher here.
+            const auto launcher=QFileInfo(program).canonicalFilePath();
+            const auto manifest=readProfile(QFileInfo(launcher).dir().filePath("../manifest.json"));
+            if(manifest["protocol"]!=1||manifest["source"]!="46602447c7f84d53790b44e1869ab5105178bf16"||manifest["settings"]!="native-lan-two-owned-v1")continue;
+        }
+        if ((route.id == "melonds" || route.id == "dolphin" || route.id == "azahar" || route.id == "vita3k") && executable(env.executables.value("python3"))) {
             const QStringList helpers{QDir(env.home).filePath(".local/libexec/traineros/controller-bridge.py"),
                 "/var/opt/traineros/integrations/controller-bridge.py"};
             for (const auto& helper : helpers) if (QFileInfo(helper).isFile()) {
                 QJsonArray wrapped{helper};
-                if (route.id == "melonds" || route.id == "azahar") wrapped.append("--pointer");
+                if (route.id == "melonds" || route.id == "azahar" || route.id == "vita3k") wrapped.append("--pointer");
                 wrapped.append("--"); wrapped.append(program);
                 for (const auto& value : arguments) wrapped.append(value);
                 arguments = wrapped; program = env.executables.value("python3"); break;

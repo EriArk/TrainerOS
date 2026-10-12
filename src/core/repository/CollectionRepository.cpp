@@ -58,7 +58,7 @@ QList<PlatformLabel> multiversePlatforms() {
         {"segacd","Mega-CD","MCD","disc"},{"sega32x","32X","32X","cartridge"},
         {"saturn","Saturn","SAT","disc"},{"dreamcast","Dreamcast","DC","disc"},
         {"psx","PlayStation","PS","disc"},{"ps2","PlayStation 2","PS2","disc"},
-        {"psp","PSP","PSP","handheld"},{"vita","PS Vita","VITA","handheld"},
+        {"psp","PSP","PSP","handheld"},{"psvita","PS Vita","VITA","handheld"},{"vita","PS Vita","VITA","handheld"},
         {"pcengine","PC Engine","PCE","cartridge"},{"pcenginecd","PC Engine CD","PCE CD","disc"},
         {"supergrafx","SuperGrafx","SGX","cartridge"},
         {"ngp","Neo Geo Pocket","NGP","handheld"},{"ngpc","Neo Geo Pocket Color","NGPC","handheld"},

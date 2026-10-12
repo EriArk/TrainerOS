@@ -31,6 +31,7 @@ const QHash<QString,QStringList>& formats() {
         {"segacd",{"chd","cue","m3u"}}, {"saturn",{"chd","cue","m3u"}},
         {"dreamcast",{"chd","gdi","cdi","m3u"}}, {"psx",{"chd","cue","pbp","m3u","iso"}},
         {"ps2",{"chd","iso","cso","bin"}}, {"psp",{"iso","cso","pbp"}},
+        {"psvita",{"psvita"}},
         {"pcengine",{"pce","zip","7z"}}, {"pcenginecd",{"chd","cue","m3u"}},
         {"ngp",{"ngp","zip","7z"}}, {"ngpc",{"ngc","ngp","zip","7z"}},
         {"neogeo",{"zip","7z"}}, {"neogeocd",{"chd","cue","ccd","m3u"}},

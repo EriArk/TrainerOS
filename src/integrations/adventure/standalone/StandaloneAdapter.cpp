@@ -7,6 +7,8 @@
 #include <QDir>
 #include <QJsonDocument>
 #include <QJsonArray>
+#include <QTemporaryDir>
+#include <memory>
 
 namespace trainer {
 namespace {
@@ -14,6 +16,7 @@ QStringList allowedPlatforms(const QString& id) {
     if (id == "ppsspp") return {"psp"};
     if (id == "armsx2") return {"ps2"};
     if (id == "azahar") return {"n3ds"};
+    if (id == "vita3k") return {"psvita"};
     if (id == "melonds") return {"nds"};
     if (id == "dolphin") return {"gc", "wii"};
     return {};
@@ -22,6 +25,7 @@ QStringList extensions(const QString& platform) {
     if (platform == "psp") return {"iso", "cso", "pbp", "chd"};
     if (platform == "ps2") return {"iso", "chd", "cso", "bin", "gz"};
     if (platform == "n3ds") return {"3dsx", "cci", "cxi"};
+    if (platform == "psvita") return {"psvita"};
     if (platform == "nds") return {"nds"};
     if (platform == "gc") return {"iso", "gcm", "rvz"};
     if (platform == "wii") return {"iso", "rvz", "wbfs", "wad"};
@@ -103,6 +107,7 @@ std::optional<ProcessCommand> StandaloneAdapter::command(const Adventure& advent
     auto arguments = installation_.prefixArguments;
     if (id_ == "melonds") arguments << "-f" << record->contentPath;
     else if (id_ == "azahar") arguments << "-f" << record->contentPath;
+    else if (id_ == "vita3k") arguments << record->contentPath;
     else if (id_ == "ppsspp") arguments << "--fullscreen" << "--pause-menu-exit" << record->contentPath;
     else if (id_ == "armsx2") arguments << "-batch" << "-fullscreen" << "--" << record->contentPath;
     else if (id_ == "dolphin") arguments << "-b" << "-C" << "Dolphin.Display.Fullscreen=True"
@@ -110,12 +115,18 @@ std::optional<ProcessCommand> StandaloneAdapter::command(const Adventure& advent
     else return {};
     ProcessCommand result{installation_.program, arguments, {}};
     result.runtimeControls={{"kind",id_},{"game",adventure.id}};
-    result.prepare = [path = record->contentPath, program = installation_.program, runtime = installation_.runtimeFile]
-        (ProcessCommand&, const std::atomic_bool& cancel) -> QString {
+    result.prepare = [path = record->contentPath, program = installation_.program, runtime = installation_.runtimeFile, vita = id_ == "vita3k"]
+        (ProcessCommand& out, const std::atomic_bool& cancel) -> QString {
         if (cancel) return "Opening cancelled.";
         const QFileInfo content(path);
         if (!content.isFile() || !content.isReadable() || content.size() <= 0) return "The Adventure file is missing or unreadable. Link its current file in Worlds.";
         if (!executable(program) || !executable(runtime)) return "This Adventure's play setup changed. Check it in Desktop Mode.";
+        if(vita) {
+            auto directory=std::make_shared<QTemporaryDir>(QDir::tempPath()+"/traineros-vita-solo-XXXXXX");
+            if(!directory->isValid())return "Couldn't prepare this Vita game.";
+            out.arguments<<"--session-root"<<directory->path();
+            out.finalize=[directory](const ProcessOutcome&){return QString();};
+        }
         return {};
     };
     return result;

@@ -17,6 +17,7 @@ a second execution plan or a claim that all installed runtimes are validated.
 
 | Emulator | Record | Scope |
 |---|---|---|
+| Vita3K | [Native LAN integration](vita3k.md) | Installed ordinary invitation, native discovery, paired input, own-data Home/minimize/Exit and idle-loss handling; one reviewed homebrew profile, commercial AdHoc/PSN open |
 | melonDS | [DS delivery](melonds.md) | Installed two-player Nearby/Online invitations, native wireless race/soak and own-save return on Flip/Odin; four-player, broader games/saves, frontend polish and physical/distinct-network acceptance remain open |
 | RetroArch | [Common ARM64 baseline](retroarch.md) | Exact core bundle, two-device alignment, recoverable update/rollback and remaining image/standalone gates |
 | LRPS2 | [PS2 candidate](lrps2.md) | Isolated ARM64 build and native state-restore investigation; ordinary ARMSX2 retained, no shared-console profile admitted |

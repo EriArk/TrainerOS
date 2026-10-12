@@ -3,6 +3,7 @@
 #include "integrations/adventure/standalone/PpssppNetplay.h"
 #include "integrations/adventure/standalone/DolphinNetplay.h"
 #include "integrations/adventure/standalone/AzaharNetplay.h"
+#include "integrations/adventure/standalone/VitaNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "core/storage/LocalStateStore.h"
 #include "core/navigation/AdventureLaunchController.h"
@@ -85,6 +86,21 @@ private slots:
         auto stale=azahar::command(r,{identity,{},true,false,QString(64,'a'),"127.0.0.1"});
         QVERIFY(!stale.prepare(stale,cancel).isEmpty());
     }
+    void vitaEventsRejectUnboundedOrCrossRuntimeAdmission() {
+        const auto line=[](const QJsonObject& value){return QByteArray("TRAINEROS_VITA ")+QJsonDocument(value).toJson(QJsonDocument::Compact).toBase64();};
+        QCOMPARE(vita::event(line({{"event","running"}}))["event"].toString(),QString("running"));
+        QVERIFY(vita::event("[TrainerOSDs] running").isEmpty());
+        QVERIFY(vita::event(line({{"event","running"},{"unexpected",true}})).isEmpty());
+        const QJsonObject endpoint{{"mode","nearby"},{"port",12345},{"fingerprint",QString(64,'a')},{"token",QString(32,'b')}};
+        QCOMPARE(vita::event(line({{"event","ready"},{"endpoint",endpoint}}))["endpoint"].toObject(),endpoint);
+        auto bad=endpoint;bad["port"]=65536;
+        QVERIFY(vita::event(line({{"event","ready"},{"endpoint",bad}})).isEmpty());
+        bad=endpoint;bad["fingerprint"]="";
+        QVERIFY(vita::event(line({{"event","ready"},{"endpoint",bad}})).isEmpty());
+        QVERIFY(vita::event(QByteArray("TRAINEROS_VITA ")+QByteArray(4096,'A')).isEmpty());
+        QVERIFY(vita::event("TRAINEROS_VITA !!!").isEmpty());
+    }
+
     void azaharEventsRejectUnboundedOrCrossRuntimeAdmission() {
         const auto line=[](const QJsonObject& value){return QByteArray("TRAINEROS_3DS ")+QJsonDocument(value).toJson(QJsonDocument::Compact).toBase64();};
         QCOMPARE(azahar::event(line({{"event","running"}}))["event"].toString(),QString("running"));

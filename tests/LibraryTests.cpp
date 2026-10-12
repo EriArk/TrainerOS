@@ -39,6 +39,14 @@ public:
 class LibraryTests final : public QObject {
     Q_OBJECT
 private slots:
+    void vitaInstalledLinksAreGamesButNativeUserFilesAreNot() {
+        QTemporaryDir dir;QVERIFY(QDir().mkpath(dir.filePath("psvita")));
+        {QFile link(dir.filePath("psvita/Example.psvita"));QVERIFY(link.open(QIODevice::WriteOnly));link.write("QUAK00001\n");}
+        fixtureFile(dir.filePath("psvita/config.yml"));fixtureFile(dir.filePath("psvita/progress.sav"));
+        const auto scan=scanBatoceraLibrary(dir.path(),{});
+        QCOMPARE(scan.entries.size(),1);QCOMPARE(scan.entries[0].record.adventure.platformId,"psvita");
+        QCOMPARE(platformLabel("psvita").name,"PS Vita");
+    }
     void fileMovePreservesIdentityMetadataAndAdjacentSaves() {
         QTemporaryDir dir;const auto root=dir.filePath("roms/gba");QVERIFY(QDir().mkpath(root));
         const auto rom=root+"/fixture.gba",save=root+"/fixture.sav",xml=root+"/gamelist.xml";

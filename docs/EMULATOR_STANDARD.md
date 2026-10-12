@@ -73,12 +73,12 @@ migration. Do not silently launch an incompatible fallback when a friend joins.
 | Wii U | Cemu, conditional device tier | Odin ARM64 package digest matches Armada-selected upstream-derived build aa20e2f86; Flip version remains to align. Native online prerequisites absent on both; no paired gameplay or TrainerOS profile. [Audit](emulators/cemu.md). |
 | Switch | Eden, conditional device tier | Selected candidate because upstream publishes Linux ARM64 and ARM64 room binaries. No local install/launch/network proof; do not promise all Switch games or substitute an Android package. |
 | PS3 | RPCS3, conditional device tier | Preserve Odin's existing file/setup. ARM64 availability is not performance or game-service compatibility proof. |
-| Vita (future catalogue entry) | Vita3K, conditional device tier | Preserve Odin's installation. Add the platform/launch adapter separately; do not fabricate a current registry entry. |
+| Vita (`psvita`) | Vita3K, conditional device tier | Separate pinned ARM64 bundle and `.psvita` installed-title launcher on Flip/Odin. Ordinary invitations, native browser and paired gameplay passed for one exact homebrew LAN profile. Own accounts/data retained; commercial AdHoc/PSN and wider compatibility remain open. [Evidence](emulators/vita3k.md). |
 
 The conditional tier is part of the common policy, not a random emulator bundle
 for each handheld. A device can lack a supported/usable route without losing ROMs,
 metadata or saves. No platform is removed merely because it is old. The initial
-standard covers all **105 existing catalogue IDs** plus explicitly pending Vita.
+standard retains the earlier **105 catalogue IDs** and now adds Vita (`psvita`).
 
 Primary-source basis: [DuckStation ARM support](https://github.com/stenzek/duckstation),
 [Dolphin NetPlay](https://dolphin-emu.org/docs/guides/netplay-guide/),

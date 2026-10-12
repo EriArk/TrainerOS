@@ -71,6 +71,9 @@ def supported_emulator_process(pid, proc=Path('/proc')):
             env = (proc / str(pid) / 'environ').read_bytes().split(b'\0')
             marker = b'TRAINEROS_RMG_SESSION=' if executable == 'RMG' else b'TRAINEROS_FLYCAST_SESSION='
             return any(value.startswith(marker) and len(value) > len(marker) for value in env)
+        if executable == 'Vita3K':
+            env = (proc / str(pid) / 'environ').read_bytes().split(b'\0')
+            return b'TRAINEROS_VITA_MANAGED=1' in env
         if executable == 'azahar':
             env = (proc / str(pid) / 'environ').read_bytes().split(b'\0')
             return b'TRAINEROS_AZAHAR_MANAGED=1' in env or any(

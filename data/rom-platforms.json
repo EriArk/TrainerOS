@@ -1297,6 +1297,15 @@
       "shape": "handheld"
     },
     {
+      "id": "psvita",
+      "folder": "psvita",
+      "name": "PlayStation Vita",
+      "core": "",
+      "extensions": ["psvita"],
+      "aliases": [],
+      "shape": "handheld"
+    },
+    {
       "id": "psx",
       "folder": "psx",
       "name": "PlayStation",
