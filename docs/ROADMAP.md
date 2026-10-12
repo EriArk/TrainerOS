@@ -1,5 +1,11 @@
 # TrainerOS Roadmap
 
+**12 October Wii U prerequisite audit:** Odin's ARM64 Cemu package matches the
+Armada-selected upstream-derived release. Both handhelds lack the own console
+files/certificates required by native online services; no admission/gameplay or
+TrainerOS multiplayer profile is claimed. [Exact missing conditions](emulators/cemu.md)
+remain open while independent Vita work proceeds. Existing Cemu data is unchanged.
+
 **12 October 3DS delivery:** matching Azahar 2126.2 is installed on Flip/Odin.
 Native Minicraft3DS wireless gameplay passed Nearby and a forced public relay;
 ordinary Online friend invitation separately passed solo consent/leave, shared

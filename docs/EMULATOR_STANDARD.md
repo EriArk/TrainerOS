@@ -70,7 +70,7 @@ migration. Do not silently launch an incompatible fallback when a friend joins.
 | FBNeo / Neo Geo | RetroArch + FBNeo | Retain; ROM-set and core revisions must match the selected compatibility profile. |
 | MAME | RetroArch + MAME | Retain for content outside the selected FBNeo set. Do not run every arcade ROM through both or silently substitute ROM-set requirements. |
 | Remaining classic computers/consoles and fantasy systems | RetroArch + existing registered core | Exact mapping below covers all other catalogue IDs. Keep empty folders hidden; core availability and playable speed remain separate. |
-| Wii U | Cemu, conditional device tier | Retain the family, but identify/pin the actual Linux ARM64 fork/build. Upstream release assets inspected were x86_64; installed ARM files do not establish upstream package provenance or acceptable speed. |
+| Wii U | Cemu, conditional device tier | Odin ARM64 package digest matches Armada-selected upstream-derived build aa20e2f86; Flip version remains to align. Native online prerequisites absent on both; no paired gameplay or TrainerOS profile. [Audit](emulators/cemu.md). |
 | Switch | Eden, conditional device tier | Selected candidate because upstream publishes Linux ARM64 and ARM64 room binaries. No local install/launch/network proof; do not promise all Switch games or substitute an Android package. |
 | PS3 | RPCS3, conditional device tier | Preserve Odin's existing file/setup. ARM64 availability is not performance or game-service compatibility proof. |
 | Vita (future catalogue entry) | Vita3K, conditional device tier | Preserve Odin's installation. Add the platform/launch adapter separately; do not fabricate a current registry entry. |

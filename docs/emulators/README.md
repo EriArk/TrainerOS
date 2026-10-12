@@ -27,6 +27,7 @@ a second execution plan or a claim that all installed runtimes are validated.
 | SameBoy | [GB/GBC battery pairs](sameboy.md) | Native two-ROM subsystem/SRAM, maintained rollback frontend and automatic own-save preparation |
 | mGBA Splitscreen | [GBA linked pairs](mgba-splitscreen.md) | Existing linked-machine engine, per-viewer screen/audio and protected separate batteries |
 | Dolphin | [GameCube and Wii delivery](dolphin.md) | Installed separate GC pads, two-person exclusive-P1 Golf Hotseat and separate Wii Remotes through ordinary invitations/Home; paired gameplay and distinct preservation evidence, wider/physical/network acceptance open |
+| Cemu | [Wii U online prerequisites](cemu.md) | Odin ARM64 package provenance checked; both devices lack own online console files/certificates. No enabled TrainerOS network profile or paired service evidence |
 | Azahar | [3DS native wireless](azahar.md) | Installed pinned ARM64 client, Nearby/public-relay Minicraft3DS and ordinary Online/Home/own save/Exit; wider retail/update identity and external acceptance remain open |
 | PPSSPP | [PPSSPP](ppsspp.md) | Isolated networking, preserved identity, bounded LAN/relay gameplay and remaining recovery/network gates |
 | Flycast / Dojo | [Dreamcast delivery](flycast.md) | Ordinary 2.7 retained; separate Dojo bundle installed on Flip/Odin, native Nearby/public-relay fights and ordinary Online/Home/peer Exit; fresh temporary VMUs and retained broader/network/physical gates |
