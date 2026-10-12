@@ -292,9 +292,23 @@ private slots:
         finishOrdinary(f);
     }
     void n64RejectsChangedIdentityBeforeRoomPreparation() {
-        Fixture f;f.runtime.active_=true;f.runtime.descriptor_={{"id","runtime.rmg.n64.v1"},{"content","accepted"}};
-        f.runtime.frame({{"kind","rmg-ready"},{"identity",QJsonObject{{"id","runtime.rmg.n64.v1"},{"content","other"}}}});
-        QVERIFY(!f.runtime.active_);QVERIFY(!f.runtime.rmgPreparing_);
+        for(const auto& kind:{"rmg-ready","rmg-private-ready"}) {
+            Fixture f;f.runtime.active_=true;f.runtime.descriptor_={{"id","runtime.rmg.n64.v1"},{"content","accepted"}};
+            f.runtime.frame({{"kind",kind},{"identity",QJsonObject{{"id","runtime.rmg.n64.v1"},{"content","other"}}}});
+            QVERIFY(!f.runtime.active_);QVERIFY(!f.runtime.rmgPreparing_);
+        }
+    }
+    void n64PrivateNativeReadinessAndLateOutputCannotRestartCancelledGame() {
+        Fixture f;f.runtime.active_=true;f.runtime.deadline_=1;
+        f.runtime.descriptor_={{"id","runtime.rmg.n64.v1"}};f.runtime.rmgRequest_.privateLan=true;
+        const auto event=[](QString kind){return QByteArray("TRAINEROS_NATIVE_LAN ")+
+            QJsonDocument(QJsonObject{{"event",kind}}).toJson(QJsonDocument::Compact).toBase64()+"\n";};
+        const auto started=event("running");
+        f.runtime.output(started.left(12));QCOMPARE(f.runtime.deadline_,1);
+        f.runtime.output(started.mid(12));QCOMPARE(f.runtime.deadline_,0);QCOMPARE(f.runtime.status_,"Playing together");
+        f.runtime.output(event("error"));QVERIFY(!f.runtime.active_);
+        int launches=0;f.runtime.requestRuntimeLaunch=[&](const ProcessCommand&,const QString&){++launches;return AdventureResult{false,{}};};
+        f.runtime.output(started);QVERIFY(!f.runtime.active_);QCOMPARE(launches,0);
     }
     void pendingInvitationSurvivesUnrelatedGameExitAndCanBeCollapsed() {
         Fixture f;GameParty host;QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");

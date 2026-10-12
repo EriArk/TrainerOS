@@ -1,5 +1,12 @@
 # Emulator multiplayer coverage
 
+**12 October N64 private Online delivery:** installed RMG now supports ordinary
+Nearby and Online friend invitations on Flip/Odin. Online uses the unchanged
+native protocol over private admitted channels; paired forced-relay Mario Kart
+64 and ordinary invitation/Home/minimize/Exit passed separately. Wider games,
+four physical devices, distinct networks and production service acceptance remain
+open. [Evidence](emulators/RMG.md#private-online-delivery--12-october-2026).
+
 **12 October 3DS delivery:** matching Azahar 2126.2 is installed on Flip/Odin.
 Native Minicraft3DS wireless gameplay passed Nearby and a forced public relay;
 ordinary Online friend invitation separately passed solo consent/leave, shared

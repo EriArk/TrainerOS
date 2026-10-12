@@ -37,7 +37,7 @@ void GameParty::configure(QString name,QJsonArray games,QJsonObject current,bool
     name_=name.left(48);games_=std::move(games);current_=std::move(current);available_=available;
     if(!available_&&active())leave();
 }
-void GameParty::clear(){party_.clear();host_.clear();hostBoot_.clear();members_.clear();game_={};endpoint_={};roster_={};running_=false;preparingSlot_=preparingPlayers_=0;preparedMembers_.clear();revision_=remoteRevision_=0;joiningPeer_.clear();joiningId_.clear();joiningGame_={};joiningParty_.clear();joiningDeadline_=0;requests_.clear();company_.clear();access_="request";allowedMembers_.clear();advertised_=0;for(auto& p:peers_)p.invite=false;}
+void GameParty::clear(){party_.clear();host_.clear();hostBoot_.clear();members_.clear();game_={};endpoint_={};roster_={};running_=false;preparingSlot_=preparingPlayers_=0;preparedMembers_.clear();endpointMembers_.clear();revision_=remoteRevision_=0;joiningPeer_.clear();joiningId_.clear();joiningGame_={};joiningParty_.clear();joiningDeadline_=0;requests_.clear();company_.clear();access_="request";allowedMembers_.clear();advertised_=0;for(auto& p:peers_)p.invite=false;}
 void GameParty::reset(){leave();peers_.clear();seen_.clear();companyQueries_.clear();boot_=token();}
 void GameParty::packet(const QString& peer,QString kind,QJsonObject p) {
     if(!companyOf(peer).isEmpty())p["company"]=companyOf(peer);
@@ -191,6 +191,15 @@ void GameParty::ready(QJsonObject endpoint) {
     const auto members=members_;
     for(auto it=members.cbegin();it!=members.cend();++it)if(it->accepted)
         packet(it.key(),"launch",{{"endpoint",endpoint_},{"game",game_},{"slot",it->slot}});
+}
+bool GameParty::readyMember(int slot,QJsonObject endpoint) {
+    if(!host()||!running_||game_["lateJoin"]!=false||requiresLinkedSavePreparation(game_)||
+       endpoint.isEmpty()||endpoint["identity"].toObject()!=game_||endpointMembers_.contains(slot))return false;
+    for(auto it=members_.cbegin();it!=members_.cend();++it)if(it->accepted&&it->slot==slot) {
+        endpointMembers_.insert(slot);
+        packet(it.key(),"launch",{{"endpoint",endpoint},{"game",game_},{"slot",slot}});return true;
+    }
+    return false;
 }
 void GameParty::prepareLinked(int slot,QJsonObject endpoint) {
     if(!host()||!running_||!requiresLinkedSavePreparation(game_)||endpoint["kind"]!="linked-prepare"||

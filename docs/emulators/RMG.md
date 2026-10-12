@@ -9,9 +9,95 @@ still bounds seats. This shares the Dolphin/Wii correction and focused identity,
 party and RMG regression checks. No RMG binary/server change, new Online endpoint
 or new N64 gameplay acceptance is implied.
 
-Status: **installed Nearby route; Online service pending**. The 12 October
-record below supersedes earlier build-only statements. This does not close
-N64 or the full multiplayer block.
+Status: **Nearby and private Online friend installed on Flip/Odin**. The private
+Online delivery below supersedes the earlier operator-required statements. The
+native emulator protocol is unchanged. Wider gameplay, four physical devices,
+distinct-network and service/release acceptance remain open; this does not close
+the whole N64 or multiplayer block.
+
+## Private Online delivery — 12 October 2026
+
+Ordinary Online friend invitations now create an isolated native network for
+the accepted party. The unchanged upstream RMG server runs on the host inside
+that network; each accepted guest receives a different encrypted-channel code.
+Players enter no addresses and configure no router/VPN. The existing Nearby
+route and optional operator WSS route are retained.
+
+The shared [native network coordinator](../../packaging/emulators/native-lan/session.py)
+uses the maintained DS secure record transport with a separate RMG application
+identity. An unprivileged user/network namespace contains only the private TAP,
+loopback and native game/server; it has no physical interface or default route.
+Capabilities are dropped before native execution. A host forwards bounded IPv4/
+ARP frames only between the admitted slots, checking each sender's address.
+One authenticated channel per guest supports two through four native ports.
+This transports upstream networking; it does not replace emulator input/state
+synchronization. Internet rendezvous/relay remains an external dependency;
+production operator, dependency/licence and fresh-device acceptance stay open.
+
+The [native lobby worker](../../packaging/emulators/rmg/network-worker.py) waits
+for all declared members and validates native controller assignments before
+starting. A room-ready barrier avoids guest arrival before room creation. Native
+running acknowledgement, idle heartbeats, bounded logs and process ownership
+cover startup failure, cancellation and peer departure. No late join is admitted
+to a running fixed roster. Ordinary personal N64 progress is neither imported
+nor returned; both participants see the existing temporary-progress notice.
+The ordinary host save/leave confirmation remains before session preparation.
+
+### Installed evidence
+
+- Both TrainerOS applications: SHA-256
+  `5e3af82e15b41f02152e40175a810f8a41933197a02ffa9cc7172454435e3bd7`.
+- Private runtime identity:
+  `cc3f00cf728c52c553829ea7a0035b8a2b69b0a1775b8430b4271d5ac0a37885`.
+  Installed native RMG remains
+  `56a39a458fce380e112bcf12949e5bfcc779caa1c67dbb319f3300c9063d1041`;
+  Go server remains
+  `a2cd3f8811daadef68bc05c6da12598b1e01c42ff979d97ef68d4da63934a945`.
+  This pair uses the already reviewed OpenGL GLideN64/HLE renderer.
+- Forced public-relay Mario Kart 64 reached two-player Luigi Raceway, independent
+  Mario/Peach selection and separate acceleration on Flip/Odin. This was a short
+  native runtime check; both devices shared one home internet connection.
+- The maintained installed helpers separately reached native running on both
+  devices. The ordinary library then offered Online play; invitation, guest
+  consent and host solo save/leave automatically launched both copies. That
+  ordinary session ran 290/286 seconds in title/attract mode. Odin Home/minimize
+  kept the same native PID. Explicit guest Exit ended both copies; histories
+  record `returned`, temporary directories and native processes were removed.
+- The final bounded inventories contain 363 Flip / 229 Odin existing personal
+  files, all byte-identical to their pre-delivery baseline. Both SQLite checks
+  returned `ok`; both outputs remain at zero. This is not a full-disk inventory.
+- Windows and ARM64 focused `game_party`, `rmg_netplay`, `runtime_multiplayer`
+  checks pass (3/3); the added runtime event cases also passed after rebuild.
+  Python lobby/packet checks pass (5 + 4). The reproducible
+  [four-member protocol test](../../packaging/emulators/native-lan/check-party.py)
+  started four native lobby clients in reverse arrival order over three private
+  channels and closed all coordinators after one departure in 1.27 seconds.
+  That fixture runs no ROM and is not four-device gameplay evidence.
+
+### Reproduce, update and roll back
+
+Build the pinned native bundle below first. Then run
+`packaging/emulators/rmg/install-private-lan.py --existing ORIGINAL_BUNDLE --directory NEW_ABSOLUTE_VERSION --requirements REVIEWED_CHANNEL_FREEZE`
+on Linux. It preserves the native manifest/rendering, creates an isolated venv,
+uses the reviewed secure-channel dependency freeze plus `websocket-client==1.9.0`,
+requires exact freeze equality, and fingerprints the helpers and interpreter.
+It does not select the runtime, install OS packages or modify personal progress.
+Review the dependency inspection and notices before publishing a bundle; this
+is not binary/image redistribution clearance.
+
+Run `check-native-lobby.py`, `native-lan/check-ethernet.py` and, with the staged
+transport interpreter, `native-lan/check-party.py --runtime BUNDLE`. The latter
+requires Linux user/network namespaces and the existing native server. Keep
+native source revisions, helper source, requirements and manifest together on
+updates; rebuild into a new version and rerun changed-path checks before selection.
+The installed `.1` native bundle and prior app were retained before selecting
+`.2`. Rollback restores that app and runtime symlink while no game is active;
+it does not restore an old personal database or overwrite saves.
+
+Remaining: distinct external networks/NAT, four physical participants, wider
+games/performance, owner physical controls/audio and production service/fresh
+installation acceptance. Already passed Nearby checks are reused. No issue is
+closed by this delivery.
 
 ## Upstream and decision
 

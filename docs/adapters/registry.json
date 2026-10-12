@@ -200,10 +200,14 @@
         "two-handheld-mario-kart64-race-and-independent-input",
         "ordinary-nearby-invite-home-minimize-exit",
         "bounded-original-save-hash-preservation",
-        "per-connection-admission-and-library-badges"
+        "per-connection-admission-and-library-badges",
+        "private-online-native-network-and-per-member-admission",
+        "two-handheld-forced-public-relay-mario-kart64-gameplay",
+        "ordinary-online-invite-consent-home-minimize-bilateral-exit",
+        "four-member-private-channel-native-lobby-and-loss-test"
       ],
       "remaining": [
-        "operator-online-service",
+        "production-rendezvous-relay-and-fresh-device-acceptance",
         "four-real-devices",
         "distinct-networks-and-strict-nat",
         "wider-games-and-sustained-gameplay",

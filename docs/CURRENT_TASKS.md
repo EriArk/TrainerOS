@@ -1,5 +1,14 @@
 # Current tasks
 
+**12 October N64 private Online delivery:** the previously installed Nearby
+route now also has automatic Online friend launch through private admitted
+channels. Both handhelds passed ordinary consent/save-leave/Home/minimize/Exit;
+separate forced-relay Mario Kart 64 gameplay passed. Personal baseline hashes
+are unchanged. [Evidence](emulators/RMG.md#private-online-delivery--12-october-2026).
+Continue PSP private admission and retained native/guest/Hotseat gates; wider
+games, physical/distinct-network and production service acceptance remain open.
+PS3/Switch excluded. This supersedes N64's earlier operator-service blocker.
+
 **12 October Dreamcast delivery:** separate Flycast Dojo bundles now run on
 Flip/Odin. Soul Calibur reached independent-input fights through native Nearby
 and the upstream public Finnish relay. Ordinary Online friend invitation,

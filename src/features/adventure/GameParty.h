@@ -25,6 +25,9 @@ public:
     void answer(bool accept);
     void start();
     void ready(QJsonObject endpoint);
+    // A private runtime credential goes only to its already accepted member.
+    // Routes using this operation cannot admit new members after starting.
+    bool readyMember(int slot,QJsonObject endpoint);
     void prepareLinked(int slot,QJsonObject endpoint);
     // Small runtime control messages use the already authenticated accepted
     // roster. Native acknowledgement and handoff ordering belong to runtime.
@@ -78,6 +81,7 @@ private:
     bool available_=false,running_=false;
     int preparingSlot_=0,preparingPlayers_=0;
     QSet<int> preparedMembers_;
+    QSet<int> endpointMembers_;
     qint64 joiningDeadline_=0;
     quint64 revision_=0,remoteRevision_=0;
     QJsonArray roster_;

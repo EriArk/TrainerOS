@@ -1,5 +1,16 @@
 # TrainerOS Roadmap
 
+**12 October N64 private Online delivery:** Online friend now launches the
+existing native RMG route over private admitted channels on Flip/Odin, with no
+player-entered server or network setup. Forced public-relay Mario Kart 64 gameplay
+and the ordinary invitation/consent/solo leave/Home/minimize/peer Exit journey
+passed separately. Personal baselines are unchanged. Nearby evidence is reused.
+[Evidence and limits](emulators/RMG.md#private-online-delivery--12-october-2026).
+Continue PSP private admission and retained native/guest/Hotseat gates; PS2 and
+Wii U retain their documented feasibility/prerequisite limits. Wider games,
+four physical devices, distinct networks and production service acceptance stay
+open. PS3/Switch excluded; no whole multiplayer issue is closed.
+
 **12 October Vita LAN delivery:** the maintained Vita3K bundle, installed-title
 links and ordinary Online friend invitations are installed on Flip/Odin.
 vitaQuake's native browser found its host without an entered address; two players

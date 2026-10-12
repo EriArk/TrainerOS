@@ -81,6 +81,12 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
             fail("The other player left. The shared-controller game has ended.");return;
         }
         if(active_&&(rmg()||flycast()||ds()||azahar()||vita())&&!party_.active()) {fail("The game invitation ended.");return;}
+        if(active_&&rmg()&&rmgRequest_.privateLan) {
+            QSet<int> expected,actual;
+            for(const auto& seat:rmgRequest_.seats)expected.insert(seat.toInt());
+            for(const auto& member:party_.state()["members"].toArray())actual.insert(member.toObject()["slot"].toInt());
+            if(actual!=expected){fail("The Nintendo 64 party changed. Invite your friends again.");return;}
+        }
         if(!exitingInvitation_.isEmpty() && exitingInvitation_!=invitationId())cancelInvitationExit();
         if(!openingInvitation_.isEmpty() && openingInvitation_!=invitationId()) {
             openingInvitation_.clear();invitationOpenTimer_.stop();
@@ -581,7 +587,7 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
         }
     }
     request_.nickname="TrainerOS-"+randomToken().left(12);output_.clear();
-    deadline_=QDateTime::currentSecsSinceEpoch()+((ds()||azahar()||vita())?180:dolphin()?150:75);timer_.start();
+    deadline_=QDateTime::currentSecsSinceEpoch()+((ds()||azahar()||vita()||(rmg()&&online_))?180:dolphin()?150:75);timer_.start();
     dolphinRequest_={};dolphinRequest_.expected=selected;dolphinRequest_.host=host;dolphinRequest_.online=online_;
     if(host&&vita()) {
         vitaRequest_={selected,{},true,online_,randomToken()+randomToken(),nearby_.localAddressFor(transportPeer_.mid(7))};
@@ -658,7 +664,7 @@ void RuntimeMultiplayer::resolvePspRelay() {
 void RuntimeMultiplayer::launch() {
     launchPending_=false;
     if(!active_)return; // A cancelled invitation must not launch a queued game.
-    deadline_=QDateTime::currentSecsSinceEpoch()+((ds()||azahar()||vita())?180:dolphin()?150:75);timer_.start();
+    deadline_=QDateTime::currentSecsSinceEpoch()+((ds()||azahar()||vita()||(rmg()&&online_))?180:dolphin()?150:75);timer_.start();
     const auto record=library_.registration(game_);
     if(!record){fail("The game is no longer in your library.");return;}
     if(!permitsMultiplayer(library_.artwork(game_),descriptor_)){fail("Multiplayer isn't available for this game.");return;}
@@ -712,6 +718,18 @@ void RuntimeMultiplayer::prepareRmg() {
         if(!active_||!rmg()||generation!=sessionGeneration_)return;
         if(installed.isEmpty()||installed["digest"]!=descriptor_["runtime"]){fail("The Nintendo 64 setup changed. Invite again.");return;}
         rmgRequest_.identity=descriptor_;rmgRequest_.host=host_;
+        if(online_&&((host_&&installed["privateLanVersion"]==1)||rmgRequest_.privateLan)) {
+            if(installed["privateLanVersion"]!=1||!requestRuntimeLaunch){fail("Nintendo 64 Online isn't ready on this device.");return;}
+            const auto record=library_.registration(game_);
+            if(!record){fail("The game is no longer in your library.");return;}
+            rmgRequest_.privateLan=true;
+            QStringList inputPrefix;const auto end=installation_.prefixArguments.indexOf("--");
+            if(end>=0)inputPrefix=installation_.prefixArguments.mid(0,end+1);
+            const auto result=requestRuntimeLaunch(rmg::privateCommand(*record,rmgRequest_,inputPrefix),game_);
+            if(!result.success){fail(result.message);return;}
+            launchPending_=false;status_="Opening Nintendo 64 multiplayer...";
+            return;
+        }
         if(online_)rmgRequest_.server=QUrl(installed["onlineServer"].toString());
         else {
             const auto address=host_?QString("127.0.0.1"):nearby_.addressOf(transportPeer_.mid(7));
@@ -840,10 +858,13 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
         launchPending_=true;launch();return;
     }
     if(rmg()) {
-        if(host_||packet["kind"]!="rmg-ready"||lifecycle_.active()||launchPending_)return;
+        if(host_||(packet["kind"]!="rmg-ready"&&packet["kind"]!="rmg-private-ready")||lifecycle_.active()||launchPending_)return;
         if(packet["identity"].toObject()!=descriptor_){fail("Your Nintendo 64 game or emulator doesn't match.");return;}
         rmgRequest_.token=packet["token"].toString();rmgRequest_.port=packet["port"].toInt();
         rmgRequest_.seats=packet["seats"].toArray();rmgRequest_.slot=packet["slot"].toInt();
+        rmgRequest_.privateLan=packet["kind"]=="rmg-private-ready";
+        rmgRequest_.connection=packet["connection"].toObject();
+        if(rmgRequest_.privateLan&&!online_){fail("This Nintendo 64 invitation changed. Invite again.");return;}
         prepareRmg();return;
     }
     if(linked()&&!host_&&!linkedPrepared_&&packet["kind"]=="ready") {
@@ -957,6 +978,20 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
             continue;
         }
         if(rmg()) {
+            if(rmgRequest_.privateLan) {
+                const auto event=rmg::privateEvent(line);
+                if(event["event"]=="ready"&&host_) {
+                    const int slot=event["slot"].toInt();
+                    if(!party_.readyMember(slot,{{"kind","rmg-private-ready"},{"identity",descriptor_},
+                        {"token",rmgRequest_.token},{"seats",rmgRequest_.seats},{"connection",event["endpoint"]}})) {
+                        fail("The Nintendo 64 party changed. Invite again.");return;
+                    }
+                    status_="Waiting for your friends...";emit changed();
+                }else if(event["event"]=="running") {
+                    deadline_=0;timer_.stop();status_="Playing together";emit changed();
+                }else if(event["event"]=="error") {fail("Nintendo 64 multiplayer ended. You can invite again.");return;}
+                continue;
+            }
             if(line=="[TrainerOSRmg] running") {deadline_=0;timer_.stop();status_="Playing together";emit changed();}
             else if(line=="[TrainerOSRmg] error") {fail("Nintendo 64 multiplayer ended. You can invite again.");return;}
             continue;

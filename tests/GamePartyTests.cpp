@@ -36,6 +36,24 @@ class GamePartyTests : public QObject {
         }
     };
 private slots:
+    void privateRuntimeCredentialsAreDeliveredOnlyToTheirAcceptedMember() {
+        Room r;auto privateGame=game(4);privateGame["lateJoin"]=false;
+        for(auto it=r.people.cbegin();it!=r.people.cend();++it)
+            it.value()->configure(it.key(),{privateGame},it.key()=="a"?privateGame:QJsonObject{},true);
+        r.a.invite("b");r.b.answer(true);r.a.invite("c");r.c.answer(true);r.a.invite("d");r.d.answer(true);
+        QSignalSpy b(&r.b,&GameParty::startRequested),c(&r.c,&GameParty::startRequested),d(&r.d,&GameParty::startRequested);
+        const auto endpoint=[&](QString secret){return QJsonObject{{"kind","private-ready"},{"identity",privateGame},{"credential",secret}};};
+        QVERIFY(!r.a.readyMember(3,endpoint("for-c")));
+        r.a.start();QVERIFY(r.a.readyMember(3,endpoint("for-c")));
+        QCOMPARE(b.size(),0);QCOMPARE(c.size(),1);QCOMPARE(d.size(),0);
+        QCOMPARE(c.first().at(1).toJsonObject()["credential"].toString(),"for-c");
+        QVERIFY(!r.a.readyMember(3,endpoint("duplicate")));QVERIFY(!r.a.readyMember(5,endpoint("unaccepted")));
+        QVERIFY(r.a.readyMember(4,endpoint("for-d")));QVERIFY(r.a.readyMember(2,endpoint("for-b")));
+        QCOMPARE(b.size(),1);QCOMPARE(c.size(),1);QCOMPARE(d.size(),1);
+        QCOMPARE(b.first().at(1).toJsonObject()["credential"].toString(),"for-b");
+        QCOMPARE(d.first().at(1).toJsonObject()["credential"].toString(),"for-d");
+        r.a.leave();QVERIFY(!r.a.readyMember(2,endpoint("closed")));
+    }
     void catalogueLimitsDoNotSplitAnExplicitNativePortFamily() {
         Room r;auto host=game(4),guest=game(2);host["runtimePlayers"]=4;guest["runtimePlayers"]=4;
         QVERIFY(sameMultiplayerGame(host,guest));QVERIFY(supportsMultiplayerSession(guest,host));

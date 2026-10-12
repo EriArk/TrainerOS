@@ -76,11 +76,55 @@ private slots:
         QCOMPARE(data["controller"].toInt(),3);QCOMPARE(data["renderer"].toString(),"vulkan");
         command.settled={};QVERIFY(!QFileInfo::exists(sessionPath));
         QFile ordinary(solo);QVERIFY(ordinary.open(QIODevice::ReadOnly));QCOMPARE(ordinary.readAll(),QByteArray("KEEP ORDINARY PROGRESS"));
+        const auto previous=m;
+        for(const auto& name:{"session.py","island.py","ethernet.py","packets.py","native_log.py",
+                             "native_lobby.py","network-worker.py","secure-channel.py","requirements.lock"}) {
+            const auto path="transport/"+QString::fromLatin1(name);write(root+"/"+path,path.toUtf8());
+            hashes[path]=QString::fromLatin1(QCryptographicHash::hash(path.toUtf8(),QCryptographicHash::Sha256).toHex());
+        }
+        write(root+"/transport/venv/bin/python","reviewed interpreter");
+        m["privateLanVersion"]=1;m["onlineServer"]="";m["files"]=hashes;
+        m["interpreterSha256"]=QString::fromLatin1(QCryptographicHash::hash("reviewed interpreter",QCryptographicHash::Sha256).toHex());
+        saveManifest();const auto privateId=rmg::netplayIdentity(record,cancel,4);
+        QVERIFY(!privateId.isEmpty());QVERIFY(multiplayerConnectionAllowed(privateId,"online"));
+        QVERIFY(privateId["runtime"]!=id["runtime"]);
+        auto party=request(1,true);party.identity=privateId;party.privateLan=true;
+        auto privateHost=rmg::privateCommand(record,party,{"/device/input-bridge","--"});
+        QVERIFY(privateHost.prepare(privateHost,cancel).isEmpty());
+        QVERIFY(privateHost.runtimeControls["temporaryProgress"].toBool());
+        QVERIFY(!privateHost.arguments.join(' ').contains(party.token));
+        const auto privatePath=privateHost.arguments.last();QFile hostFile(privatePath);QVERIFY(hostFile.open(QIODevice::ReadOnly));
+        const auto hostData=QJsonDocument::fromJson(hostFile.readAll()).object();hostFile.close();
+        const auto channels=hostData["channels"].toObject();QCOMPARE(channels.size(),3);
+        QVERIFY(channels["2"].toObject()["identity"]!=channels["3"].toObject()["identity"]);
+        QVERIFY(!channels["2"].toObject().contains("code"));
+        QCOMPARE(hostData["runtime"].toObject()["rom"].toString(),QFileInfo(rom).absoluteFilePath());
+        party.host=false;party.slot=3;party.connection={{"mode","online"},{"code","1-one-two-three-four-five-six-seven-eight"}};
+        auto privateGuest=rmg::privateCommand(record,party);QVERIFY(privateGuest.prepare(privateGuest,cancel).isEmpty());
+        QFile guestFile(privateGuest.arguments.last());QVERIFY(guestFile.open(QIODevice::ReadOnly));
+        const auto guestData=QJsonDocument::fromJson(guestFile.readAll()).object();guestFile.close();
+        QCOMPARE(guestData["channels"].toObject().size(),1);
+        QCOMPARE(guestData["channels"].toObject()["1"].toObject()["identity"],channels["3"].toObject()["identity"]);
+        QCOMPARE(guestData["runtime"].toObject()["renderer"].toString(),"vulkan");
+        party.seats={1,2,2};auto invalidPrivate=rmg::privateCommand(record,party);
+        QVERIFY(!invalidPrivate.prepare(invalidPrivate,cancel).isEmpty());
+        privateGuest.settled={};privateHost.settled={};QVERIFY(!QFileInfo::exists(privatePath));
+        write(root+"/transport/session.py","changed helper");QVERIFY(rmg::bundle(cancel).isEmpty());
+        m=previous;saveManifest();
         auto bad=rmg::command(record,id,"invalid address",45001,3);QVERIFY(!bad.prepare(bad,cancel).isEmpty());
         bytes[20]=1;write(rom,bytes);bad=rmg::command(record,id,"127.0.0.1",45001,3);QVERIFY(!bad.prepare(bad,cancel).isEmpty());
         write(root+"/lib/RMG/Plugin/Input/RMG-Input.so","changed");QVERIFY(rmg::netplayIdentity(record,cancel,4).isEmpty());
         cancel=true;QVERIFY(rmg::bundle(cancel).isEmpty());cancel=false;
         m["onlineServer"]="ws://public.example.invalid";saveManifest();QVERIFY(rmg::bundle(cancel).isEmpty());
+    }
+    void privateEventsAreBoundedAndDoNotAcceptOtherSlots() {
+        const auto line=[](QJsonObject v){return QByteArray("TRAINEROS_NATIVE_LAN ")+QJsonDocument(v).toJson(QJsonDocument::Compact).toBase64();};
+        QJsonObject ready{{"event","ready"},{"slot",3},{"endpoint",QJsonObject{{"mode","online"},{"code","4-one-two-three-four-five-six-seven-eight"}}}};
+        QCOMPARE(rmg::privateEvent(line(ready)),ready);
+        for(const auto& slot:{QJsonValue(1),QJsonValue(5),QJsonValue(2.5)}) {auto changed=ready;changed["slot"]=slot;QVERIFY(rmg::privateEvent(line(changed)).isEmpty());}
+        QVERIFY(rmg::privateEvent("TRAINEROS_NATIVE_LAN not base64").isEmpty());
+        QVERIFY(rmg::privateEvent(QByteArray(4097,'a')).isEmpty());
+        QCOMPARE(rmg::privateEvent(line({{"event","running"}}))["event"].toString(),"running");
     }
     void upstreamAssignedControllerAndCancellation() {
         QWebSocketServer server("fixture",QWebSocketServer::NonSecureMode);QVERIFY(server.listen(QHostAddress::LocalHost,0));

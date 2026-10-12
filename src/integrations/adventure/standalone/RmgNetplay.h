@@ -29,6 +29,8 @@ public:
         QString token;
         QJsonArray seats;
         int slot=1,port=0;
+        bool privateLan=false;
+        QJsonObject connection;
     };
     void start(const Request&);
     void stop();
@@ -50,4 +52,6 @@ private:
     bool active_=false,admitted_=false,begin_=false,running_=false;
     int controller_=0;
 };
+ProcessCommand privateCommand(const AdventureRegistration&,const Lobby::Request&,const QStringList& inputPrefix={});
+QJsonObject privateEvent(const QByteArray&);
 }

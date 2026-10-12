@@ -10,6 +10,7 @@
 #include <QRegularExpression>
 #include <QStandardPaths>
 #include <QTemporaryDir>
+#include <QSet>
 
 namespace trainer::rmg {
 namespace {
@@ -56,6 +57,16 @@ QJsonObject bundle(const std::atomic_bool& cancel) {
         "share/RMG/mupen64plus.ini","share/RMG/gamecontrollerdb.txt","share/RMG/InputProfileDB.json"})
         if(!files.contains(required))return {};
     if(m["renderer"]!="vulkan"&&m["renderer"]!="opengl")return {};
+    if(m.contains("privateLanVersion")) {
+        if(m["privateLanVersion"]!=1||!hex(m["interpreterSha256"].toString(),64)||
+           digest(root+"/transport/venv/bin/python",cancel,64*1024*1024)!=m["interpreterSha256"].toString())return {};
+        for(const auto& name:{"session.py","island.py","ethernet.py","packets.py","native_log.py",
+                             "native_lobby.py","network-worker.py","secure-channel.py","requirements.lock"})
+            if(!files.contains("transport/"+QString::fromLatin1(name)))return {};
+#ifdef Q_OS_UNIX
+        if(!QFileInfo(root+"/transport/venv/bin/python").isExecutable())return {};
+#endif
+    }
     QCryptographicHash aggregate(QCryptographicHash::Sha256);
     const auto canonical=QFileInfo(root).canonicalFilePath()+"/";
     for(auto it=files.constBegin();it!=files.constEnd();++it) {
@@ -70,6 +81,10 @@ QJsonObject bundle(const std::atomic_bool& cancel) {
     // it but cannot interpret its Unix execute bits (extensionless ELF files).
     if(!QFileInfo(root+"/bin/RMG").isExecutable()||!QFileInfo(root+"/bin/rmg-netplay-server").isExecutable())return {};
 #endif
+    if(m.contains("privateLanVersion")) {
+        aggregate.addData(QByteArray("interpreter\0",12));
+        aggregate.addData(m["interpreterSha256"].toString().toLatin1());
+    }
     m["digest"]=QString::fromLatin1(aggregate.result().toHex());return m;
 }
 QJsonObject netplayIdentity(const AdventureRegistration& r,const std::atomic_bool& cancel,int players) {
@@ -81,7 +96,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const std::atomic_boo
     const auto m=bundle(cancel);if(m.isEmpty())return {};
     const auto content=digest(r.contentPath,cancel,64*1024*1024);if(content.isEmpty())return {};
     QJsonArray connections{"nearby"};
-    if(!m["onlineServer"].toString().isEmpty())connections.append("online");
+    if(m["privateLanVersion"]==1||!m["onlineServer"].toString().isEmpty())connections.append("online");
     return {{"id","runtime.rmg.n64.v1"},{"label",r.adventure.title.left(96)},
         {"content",content},{"runtime",m["digest"]},{"settings","rmg-native-v1-private-progress-"+m["renderer"].toString()},
         {"players",players},{"runtimePlayers",4},{"lateJoin",false},{"connections",connections},{"temporaryProgress",true}};
@@ -116,6 +131,79 @@ ProcessCommand command(const AdventureRegistration& r,const QJsonObject& expecte
         out.settled=[dir](const ProcessOutcome&){};return {};
     };
     return cmd;
+}
+ProcessCommand privateCommand(const AdventureRegistration& r,const Lobby::Request& request,const QStringList& inputPrefix) {
+    ProcessCommand cmd;
+    cmd.runtimeControls={{"kind","rmg"},{"game",r.adventure.id},{"netplay",request.identity.toVariantMap()},
+                         {"temporaryProgress",true}};
+    cmd.prepare=[r,request,inputPrefix](ProcessCommand& out,const std::atomic_bool& cancel)->QString {
+        QSet<int> seats;
+        for(const auto& value:request.seats) {
+            const int slot=value.toInt();
+            if(!value.isDouble()||value.toDouble()!=slot||slot<1||slot>4||seats.contains(slot))
+                return "This Nintendo 64 party changed. Invite again.";
+            seats.insert(slot);
+        }
+        if(!request.privateLan||request.host!=(request.slot==1)||!hex(request.token,32)||
+           seats.size()<2||seats.size()>request.identity["players"].toInt()||
+           !seats.contains(1)||!seats.contains(request.slot))return "This Nintendo 64 invitation is invalid.";
+        if(!request.host) {
+            const auto code=request.connection["code"].toString();
+            if(request.connection.size()!=2||request.connection["mode"]!="online"||code.size()>160||
+               !QRegularExpression("^[0-9]+(?:-[a-z]+){8}$").match(code).hasMatch())
+                return "This Nintendo 64 connection expired. Invite again.";
+        }
+        const auto installed=bundle(cancel);
+        if(installed["privateLanVersion"]!=1||installed["digest"]!=request.identity["runtime"]||
+           !sameMultiplayerGame(netplayIdentity(r,cancel,request.identity["players"].toInt()),request.identity))
+            return "Your Nintendo 64 game or emulator changed. Invite again.";
+        auto dir=std::make_shared<QTemporaryDir>(QDir::tempPath()+"/trainer-rmg-online-XXXXXX");
+        if(!dir->isValid())return "Couldn't prepare temporary Nintendo 64 progress.";
+        const auto user=dir->path()+"/user";
+        for(const auto& name:{"config/RMG","data","cache"})
+            if(!QDir().mkpath(user+"/"+name))return "Couldn't prepare temporary Nintendo 64 progress.";
+        QJsonObject channels;
+        const auto addChannel=[&](int peer,int guest) {
+            const auto key=QString::fromLatin1(QCryptographicHash::hash(
+                request.token.toLatin1()+":"+QByteArray::number(guest),QCryptographicHash::Sha256).toHex());
+            QJsonObject channel{{"host",request.host},{"mode","online"},{"identity",key}};
+            if(!request.host)channel["code"]=request.connection["code"];
+            channels[QString::number(peer)]=channel;
+        };
+        if(request.host){for(const int peer:seats)if(peer!=1)addChannel(peer,peer);}
+        else addChannel(1,request.slot);
+        const QJsonObject runtime{{"root",bundleRoot()},{"rom",QFileInfo(r.contentPath).absoluteFilePath()},
+            {"content",request.identity["content"]},{"runtime",request.identity["runtime"]},
+            {"token",request.token},{"renderer",installed["renderer"]},{"user",user}};
+        const QJsonObject config{{"version",1},{"slot",request.slot},{"seats",request.seats},{"channels",channels},
+            {"worker",bundleRoot()+"/transport/network-worker.py"},{"helper",bundleRoot()+"/transport/secure-channel.py"},
+            {"runtime",runtime}};
+        const auto path=dir->path()+"/network.json";
+        if(!write(path,QJsonDocument(config).toJson(QJsonDocument::Compact))||
+           !QFile::setPermissions(path,QFileDevice::ReadOwner|QFileDevice::WriteOwner))
+            return "Couldn't prepare the private Nintendo 64 connection.";
+        out.program="/usr/bin/env";
+        out.arguments={"PYTHONDONTWRITEBYTECODE=1"};
+        out.arguments+=inputPrefix;
+        out.arguments<<bundleRoot()+"/transport/venv/bin/python"<<bundleRoot()+"/transport/session.py"<<path;
+        out.settled=[dir](const ProcessOutcome&){};
+        return {};
+    };
+    return cmd;
+}
+QJsonObject privateEvent(const QByteArray& line) {
+    constexpr auto prefix="TRAINEROS_NATIVE_LAN ";
+    if(!line.startsWith(prefix)||line.size()>4096)return {};
+    const auto decoded=QByteArray::fromBase64Encoding(line.mid(qstrlen(prefix)),QByteArray::AbortOnBase64DecodingErrors);
+    if(!decoded)return {};
+    const auto value=QJsonDocument::fromJson(decoded.decoded).object();
+    if(value.size()==1&&(value["event"]=="running"||value["event"]=="error"))return value;
+    const auto endpoint=value["endpoint"].toObject();const auto code=endpoint["code"].toString();
+    if(value.size()!=3||value["event"]!="ready"||value["slot"].toDouble()!=value["slot"].toInt()||
+       value["slot"].toInt()<2||value["slot"].toInt()>4||
+       endpoint.size()!=2||endpoint["mode"]!="online"||code.size()>160||
+       !QRegularExpression("^[0-9]+(?:-[a-z]+){8}$").match(code).hasMatch())return {};
+    return value;
 }
 Lobby::Lobby(QObject* parent):QObject(parent) {
     deadline_.setSingleShot(true);deadline_.setInterval(60000);
