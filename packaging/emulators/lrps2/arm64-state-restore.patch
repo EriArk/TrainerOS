@@ -1,0 +1,14 @@
+diff --git a/pcsx2/arm64/recR5900_arm64.cpp b/pcsx2/arm64/recR5900_arm64.cpp
+index b12e580..a08bfe7 100644
+--- a/pcsx2/arm64/recR5900_arm64.cpp
++++ b/pcsx2/arm64/recR5900_arm64.cpp
+@@ -4412,6 +4412,9 @@ void eeJitReserve_arm64(void)
+ 
+ void eeJitReset_arm64(void)
+ {
++	// Reset callers may immediately restore RAM from a savestate. The discarded
++	// code's write protection must be cleared before those non-JIT writes.
++	mmap_ResetBlockTracking();
+ 	s_blocks.clear();
+ 	s_page.clear();
+ 	LutClearAll();

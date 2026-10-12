@@ -19,6 +19,7 @@ a second execution plan or a claim that all installed runtimes are validated.
 |---|---|---|
 | melonDS | [DS delivery](melonds.md) | Installed two-player Nearby/Online invitations, native wireless race/soak and own-save return on Flip/Odin; four-player, broader games/saves, frontend polish and physical/distinct-network acceptance remain open |
 | RetroArch | [Common ARM64 baseline](retroarch.md) | Exact core bundle, two-device alignment, recoverable update/rollback and remaining image/standalone gates |
+| LRPS2 | [PS2 candidate](lrps2.md) | Isolated ARM64 build and native state-restore investigation; ordinary ARMSX2 retained, no shared-console profile admitted |
 | PCSX ReARMed | [PS1 integration](pcsx-rearmed.md) | Existing RetroArch network route, private BIOS/cards and paired CTR on Flip/Odin; ordered handoff and retained physical/network acceptance remain open |
 | RMG / Mupen64Plus | [N64 Nearby delivery](RMG.md) | Installed isolated bundle, paired Mario Kart 64 race and ordinary Nearby/Home/exit on Flip/Odin; operator Online service, wider groups/games and physical/network acceptance remain open |
 | gpSP | [GBA link](gpsp.md) | Additional independent-machine networking core; ordinary mGBA preserved |

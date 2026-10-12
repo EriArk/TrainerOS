@@ -1,6 +1,14 @@
 # PS2 and live controller handoff — 11 October 2026
 
-This bounded source review does **not** deliver Hotseat #126 or PS2 multiplayer.
+This record does **not** deliver Hotseat #126 or PS2 multiplayer.
+The [12 October native PS2 experiment](emulators/lrps2.md) supersedes the earlier
+source-only/no-build status: ARM64 builds and repeated software state restores
+pass after a maintained reset correction, but paired play is limited by memory,
+speed and a guest shutdown fault. No usable PS2 profile is admitted. Continue
+ordered handoff on existing PS1/GameCube routes while that gate remains open.
+
+## Original source review — 11 October
+
 The owner asked to reuse emulator networking and defer deep tests while the
 handhelds are off. No emulator synchronization patch or device operation was
 performed. Existing separate-pad PS1/GameCube routes remain available.
@@ -15,7 +23,8 @@ performed. Existing separate-pad PS1/GameCube routes remain available.
   has new AArch64 work and `retro_serialize_size`, `retro_serialize` and
   `retro_unserialize` in `libretro/main.cpp`. Retain it as a real candidate.
   Those functions do not establish deterministic rollback, compatible peers or
-  practical handheld performance. No core was built/installed or game run.
+  practical handheld performance. At this review no core had been built or run;
+  the later actual-core results are linked above.
 - [Libretro's LRPS2 documentation](https://github.com/libretro/docs/blob/master/docs/library/lrps2.md)
   still marks Netplay unsupported and describes x86-only operation. Its
   architecture statement lags the inspected source. Neither that statement nor

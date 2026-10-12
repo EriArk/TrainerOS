@@ -1,5 +1,14 @@
 # TrainerOS Roadmap
 
+**12 October PS2 feasibility gate:** the isolated LRPS2 ARM64 core builds and a
+maintained page-protection reset fixes the native state-copy crash. Three actual
+software-renderer restores pass. Paired native P1/P2 admission does not yield a
+playable session: about 12–14 FPS, multi-gigabyte state buffers and a guest unload
+fault. No PS2 profile is enabled; ordinary saves/configuration remain intact.
+[Evidence and retained gates](emulators/lrps2.md). Continue ordered Hotseat on
+existing PS1/GameCube routes, retaining PS2 and all other accepted scope. This
+supersedes the candidate-not-built status, not its multiplayer acceptance.
+
 **12 October Dreamcast delivery:** separate Flycast Dojo bundles now run on
 Flip/Odin. Soul Calibur reached independent-input fights through native Nearby
 and the upstream public Finnish relay. Ordinary Online friend invitation,
