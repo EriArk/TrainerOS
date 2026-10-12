@@ -9,7 +9,7 @@ test ! -e "$work" && test ! -e "$dest" || { echo 'Use new paths; retain previous
 mkdir -p "$work/source" "$dest/licenses"
 work=$(CDPATH= cd -- "$work" && pwd)
 dest=$(CDPATH= cd -- "$dest" && pwd)
-revision=14e75bd69d0997ea9d51ad9f87d5edfe12f502ef
+revision=5ad55b00aa2331b4c4cc7d990c6c32cab3a88359
 git -C "$work/source" init -q
 git -C "$work/source" remote add origin https://github.com/libretro/ps2.git
 git -C "$work/source" fetch --depth 1 origin "$revision"

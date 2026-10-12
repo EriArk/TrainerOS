@@ -1,6 +1,94 @@
 # LRPS2: PS2 shared-console candidate
 
-## Native continuation - 12 October 2026
+## Universal integration preparation ? 12 October 2026
+
+The PS2 family now has source bindings to the existing TrainerOS party scan,
+Nearby/Online invitations, common prepared-command launcher, RetroArch transport,
+Home/exit controls and temporary-progress policy. Ordinary library registrations
+continue to use ARMSX2. ISO/CHD bytes, the dedicated frontend/core and the selected
+owned 4 MiB BIOS are matched; launch revalidates them. The BIOS is copied into a
+private session tree, including private NVRAM/cards/cache locations. Personal
+cards and ordinary emulator settings are not imported or written.
+
+The same common controller path prepares two independent digital pads or, for a
+separately reviewed handoff bundle, the existing exclusive P1/spectator protocol.
+This is preparation code, **not a playable PS2 delivery or real PS2 Hotseat proof**.
+No production bundle is installed and no PS2 invitation is advertised. There is
+no per-title catalogue requirement or new networking protocol.
+
+`PS2Netplay` discovers `TrainerOS/emulators/ps2-netplay` under the ordinary data
+root. A local installer manifest must pin `protocol: 1`, the settings policy
+`lrps2-two-digital-private-bios-no-cards-v1`, frontend/core source revisions,
+`stallFrames: 8`, selected absolute `biosFile`, and SHA-256 of `retroarch`,
+`pcsx2_libretro.so` and `pcsx2_libretro.info`. Admission requires `status: reviewed`;
+`hotseatReviewed: true` additionally enables handoff. The known failed candidate
+hashes are rejected even if someone changes only the manifest. These fields
+record future runtime review; no current artifact has earned that promotion.
+The current source pin must be deliberately updated when selecting another core.
+
+### Bounded native candidate result
+
+The core was advanced to upstream
+[`5ad55b00aa2331b4c4cc7d990c6c32cab3a88359`](https://github.com/libretro/ps2/commit/5ad55b00aa2331b4c4cc7d990c6c32cab3a88359),
+retaining the ARM64 state-reset patch. Upstream now gates each emulated frame on
+the input of its own `retro_run`. Its actual-core synthetic BIOS latency test
+passed: all 24 input changes appeared in their own frame across 120 pictures,
+and the harness exited normally. This does not establish commercial-game speed.
+Updated core SHA-256:
+`3c6a3783ff3ef751fa2dde565c4c739def6788f3ad79e4ae6c8eb8141dde4e36`.
+
+A separate RetroArch at `69a4f0ea1e8aaf442ae4858f2e7f2b31a1776576` now has a
+[reproducible candidate recipe](../../packaging/emulators/lrps2/build-retroarch.sh).
+The [maintained patch](../../packaging/emulators/lrps2/retroarch-state-history.patch)
+changes the shared stall bound from 60 to 8, so buffer allocation and all stall
+calculations stay consistent: 20 host / 10 guest state slots. It does not change
+the native network protocol. Both clients must use the matching runtime; Internet
+latency tolerance is not established by this experiment.
+
+The native build container's newer libm/ALSA initially introduced a `GLIBC_2.43`
+requirement. Relinking against the installed Flatpak runtime's libm and ALSA
+removed it without replacing any device library. The recipe accepts `TARGET_LIBS`
+for this build-only directory. On this ARM64 build it contained the installed
+runtime's `/usr/lib/aarch64-linux-gnu/libm.so.6` as `libm.so`, and `libasound.so.2`
+as `libasound.so`. All shared dependencies and `--version` then passed on both
+handhelds. Candidate frontend SHA-256:
+`f906dda574a49b778daead337f4f94f8dfd71a339d3190dd9212cdb19cf311a8`.
+The full fresh recipe remains distinct from this native configure/build/relink.
+
+One short paired Vulkan run admitted P1/P2 using the earlier isolated owned
+Tekken disc/BIOS. Host RSS measured 1,191,628 KiB, guest 835,248 KiB: the earlier
+multi-gigabyte history problem is reduced. Captures measured about 9.95 and
+16.36 FPS during startup; no playable paired fight or independent gameplay proof
+was obtained. Host quit with exit code 0; guest again exited 139 during game
+unload. The prior truncated dump has no useful symbolic stack. Speed, state/render
+correctness and guest teardown remain native-runtime blockers; do not repeat
+unchanged pair probes or describe this as working PS2 multiplayer.
+
+Both probes are stopped, the ordinary shells remain running and both devices
+remain at zero volume. The retained personal baselines (363 Flip / 229 Odin)
+are unchanged; databases pass `quick_check`, and ordinary RetroArch config hashes
+match the pre-probe record. Private probe cards are not returned to personal saves.
+
+Current next gate: a maintained runtime correction/alternative that resolves
+these general blockers, followed by a bounded real check and ordinary device
+integration. Private PSP, the complete Hotseat catalogue and fine title exceptions
+remain deferred by the owner. PS2 is still required and unfinished.
+
+### Source validation
+
+The Windows client and the two affected test targets build. The complete
+RetroArch suite passes (58 cases, one Linux-specific skip), and the runtime
+multiplayer suite passes. The new PS2 preparation case was then built and run
+on native ARM64 Linux: it passes candidate rejection, both controller modes,
+unchanged ordinary registration/config/card, copied BIOS identity, temporary-tree
+cleanup and stale BIOS/core rejection. Its synthetic files are not game/runtime
+acceptance. Recipe syntax, reverse applicability of both maintained patches,
+portable source exports, local documentation links and diff checks pass.
+The source binding has not been installed into the handheld clients: without
+an admitted runtime it would provide no usable new player action. Existing
+installed multiplayer remains intact; PS2's ordinary device flow is still open.
+
+## Earlier native continuation - 12 October 2026
 
 This is an isolated candidate, not an enabled TrainerOS PS2 multiplayer profile.
 Ordinary ARMSX2, library bindings, preferences and personal cards are retained.

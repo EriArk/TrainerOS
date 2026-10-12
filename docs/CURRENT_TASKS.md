@@ -7,6 +7,16 @@ the complete Hotseat catalogue and fine per-game work. Preserve completed runtim
 evidence and the Wii U/Vita scope; PS3/Switch excluded. Older PSP-private-next
 instructions below are superseded.
 
+**12 October PS2 universal preparation:** source bindings now reuse the shared
+invitation/launch/input/temporary-save lifecycle, including both controller modes.
+The separate native candidate reduced history memory but still failed the minimum
+speed/guest-unload gate; no playable PS2 bundle is admitted or installed.
+[Exact evidence and next gate](emulators/lrps2.md#universal-integration-preparation--12-october-2026).
+PS2 remains required. Preserve this source preparation and fix/replace the runtime
+before promotion; do not repeat unchanged probes or resume deferred private PSP,
+full catalogue or fine per-title work. Wii U retains its external account/console
+prerequisites; PS3/Switch remain excluded.
+
 **12 October N64 private Online delivery:** the previously installed Nearby
 route now also has automatic Online friend launch through private admitted
 channels. Both handhelds passed ordinary consent/save-leave/Home/minimize/Exit;

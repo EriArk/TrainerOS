@@ -1,5 +1,6 @@
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "integrations/adventure/retroarch/RetroArchNetplay.h"
+#include "integrations/adventure/retroarch/PS2Netplay.h"
 #include "integrations/adventure/retroarch/RetroArchHandheldLink.h"
 #include "integrations/adventure/retroarch/HandheldSavePair.h"
 #include "../packaging/emulators/handheld/TrainerMbc3Rtc.h"
@@ -623,6 +624,61 @@ private slots:
         const auto separate=retroarch::netplayControllers(base,false,2);
         QVERIFY(separate.contains("netplay_request_device_p2 = \"true\""));
         QVERIFY(separate.contains("netplay_request_device_p1 = \"false\""));
+    }
+    void ps2PreparationPreservesOrdinaryRouteAndRejectsStaleFirmware() {
+#ifdef Q_OS_WIN
+        QSKIP("Dedicated Flatpak runtime preparation is checked on Linux; Windows requires an .exe suffix.");
+#endif
+        QTemporaryDir dir;const auto root=dir.filePath("bundle");QVERIFY(QDir().mkpath(root));
+        const std::atomic_bool cancel=false;
+        const auto write=[](const QString& p,const QByteArray& bytes){QFile f(p);return f.open(QIODevice::WriteOnly)&&f.write(bytes)==bytes.size();};
+        const auto read=[](const QString& p){QFile f(p);return f.open(QIODevice::ReadOnly)?f.readAll():QByteArray();};
+        QVERIFY(QFile::copy(probe(),root+"/retroarch"));
+        QVERIFY(QFile::setPermissions(root+"/retroarch",QFile::ReadOwner|QFile::WriteOwner|QFile::ExeOwner));
+        QVERIFY(write(root+"/pcsx2_libretro.so","fixture core, not a playable runtime"));
+        QVERIFY(write(root+"/pcsx2_libretro.info","systemid = \"ps2\"\n"));
+        const auto bios=dir.filePath("owner-bios.bin");QVERIFY(write(bios,QByteArray(4*1024*1024,'B')));
+        RetroArchInstallation ordinary;ordinary.program=probe();ordinary.runtimeFile=probe();ordinary.configFile=dir.filePath("ordinary.cfg");
+        ordinary.cores={{"mgba",probe()}};ordinary.saveBackups=true;
+        const QByteArray original="config_save_on_exit = \"true\"\n";
+        QVERIFY(write(ordinary.configFile,original));QVERIFY(write(dir.filePath("personal-card.ps2"),"keep progress"));
+        AdventureRegistration record;record.adventure.id="ps2-fixture";record.adventure.platformId="ps2";record.adventure.adapterId="armsx2";
+        record.contentPath=dir.filePath("disc.iso");QVERIFY(write(record.contentPath,"disc fixture"));
+        QJsonObject hashes;for(const auto& name:{"retroarch","pcsx2_libretro.so","pcsx2_libretro.info"})hashes[name]=retroarch::fileDigest(root+'/'+name,512LL*1024*1024,cancel);
+        QJsonObject manifest{{"protocol",1},{"status","candidate"},{"settings","lrps2-two-digital-private-bios-no-cards-v1"},
+            {"coreSource","5ad55b00aa2331b4c4cc7d990c6c32cab3a88359"},{"retroarchSource","69a4f0ea1e8aaf442ae4858f2e7f2b31a1776576"},
+            {"stallFrames",8},{"biosFile",bios},{"files",hashes},{"hotseatReviewed",true}};
+        QVERIFY(write(root+"/manifest.json",QJsonDocument(manifest).toJson()));
+        QVERIFY(ps2::netplayIdentity(record,ordinary,cancel,root).isEmpty());
+        manifest["status"]="reviewed";QVERIFY(write(root+"/manifest.json",QJsonDocument(manifest).toJson()));
+        QVERIFY(QFileInfo(root+"/retroarch").isExecutable());
+        QVERIFY(!ps2::installation(ordinary,cancel,root).ps2Bios.isEmpty());
+        const auto identity=ps2::netplayIdentity(record,ordinary,cancel,root);QVERIFY(!identity.isEmpty());
+        QCOMPARE(identity["players"].toInt(),2);QVERIFY(identity["controllerModes"].toArray().contains("pass-p1"));
+        retroarch::NetplayRequest request;request.expected=identity;request.host=true;request.slot=1;request.password="privateToken";request.nickname="Player1";
+        auto command=ps2::command(record,ordinary,request,root);QVERIFY(command.prepare);
+        const auto error=command.prepare(command,cancel);QVERIFY2(error.isEmpty(),qPrintable(error));
+        QVERIFY(command.arguments.contains(root+"/pcsx2_libretro.so"));QVERIFY(command.arguments.contains("noload-nosave"));
+        const int append=command.arguments.indexOf("--appendconfig");QVERIFY(append>=0);
+        const auto config=command.arguments[append+1].split('|').last();const auto session=QFileInfo(config).absolutePath();
+        const auto settings=read(config);QVERIFY(settings.contains("netplay_request_device_p1 = \"true\""));
+        QVERIFY(settings.contains("netplay_request_device_p2 = \"false\""));
+        QCOMPARE(read(session+"/system/pcsx2/bios/bios.bin"),read(bios));
+        QCOMPARE(read(ordinary.configFile),original);QCOMPARE(read(dir.filePath("personal-card.ps2")),QByteArray("keep progress"));
+        QCOMPARE(record.adventure.adapterId,QString("armsx2"));QVERIFY(!record.integrationConfig.contains("core"));
+        QCOMPARE(ordinary.cores.size(),1);QVERIFY(ordinary.saveBackups);
+        command.settled({true,0,false,false});QVERIFY(!QFileInfo::exists(session));
+        request.expected=multiplayerModeProfile(identity,"pass-p1");request.host=false;request.slot=2;request.address="127.0.0.1";request.clientPort=55439;
+        auto turn=ps2::command(record,ordinary,request,root);const auto turnError=turn.prepare(turn,cancel);QVERIFY2(turnError.isEmpty(),qPrintable(turnError));
+        QCOMPARE(turn.runtimeControls["hotseat"].toString(),QString("retroarch-p1-v1"));
+        QVERIFY(turn.arguments.contains("--nodevice"));
+        const auto turnConfig=turn.arguments[turn.arguments.indexOf("--appendconfig")+1].split('|').last();
+        QVERIFY(read(turnConfig).contains("netplay_start_as_spectator = \"true\""));
+        turn.settled({true,0,false,false});
+        QVERIFY(write(bios,QByteArray(4*1024*1024,'C')));
+        auto stale=ps2::command(record,ordinary,request,root);QVERIFY(!stale.prepare(stale,cancel).isEmpty());
+        QVERIFY(write(root+"/pcsx2_libretro.so","changed core"));QVERIFY(ps2::netplayIdentity(record,ordinary,cancel,root).isEmpty());
+        QCOMPARE(read(ordinary.configFile),original);QCOMPARE(read(dir.filePath("personal-card.ps2")),QByteArray("keep progress"));
     }
     void playStationNetplayProtectsCardsAndMatchesDiscDependencies() {
         QTemporaryDir dir;std::atomic_bool cancel=false;

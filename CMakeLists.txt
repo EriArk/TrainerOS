@@ -145,6 +145,7 @@ add_library(trainer_core STATIC
     src/core/repository/CollectionRepository.h
     src/integrations/adventure/retroarch/RetroArchAdapter.cpp
     src/integrations/adventure/retroarch/RetroArchNetplay.cpp
+    src/integrations/adventure/retroarch/PS2Netplay.cpp
     src/integrations/adventure/retroarch/RetroArchHandheldLink.cpp
     src/integrations/adventure/retroarch/LinkedSavePreparation.cpp
     src/integrations/adventure/retroarch/RetroArchNetplayClient.cpp

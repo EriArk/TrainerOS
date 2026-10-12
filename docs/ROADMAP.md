@@ -10,6 +10,16 @@ platform routes through Wii U/Vita and their actual external prerequisites;
 PS3/Switch excluded. Reuse passed gameplay evidence. This is the active order
 and supersedes the older private-PSP-next statements below.
 
+**12 October PS2 universal preparation:** source bindings now reuse the shared
+invitation/launch/input/temporary-save lifecycle, including both controller modes.
+The separate native candidate reduced history memory but still failed the minimum
+speed/guest-unload gate; no playable PS2 bundle is admitted or installed.
+[Exact evidence and next gate](emulators/lrps2.md#universal-integration-preparation--12-october-2026).
+PS2 remains required. Preserve this source preparation and fix/replace the runtime
+before promotion; do not repeat unchanged probes or resume deferred private PSP,
+full catalogue or fine per-title work. Wii U retains its external account/console
+prerequisites; PS3/Switch remain excluded.
+
 **12 October N64 private Online delivery:** Online friend now launches the
 existing native RMG route over private admitted channels on Flip/Odin, with no
 player-entered server or network setup. Forced public-relay Mario Kart 64 gameplay

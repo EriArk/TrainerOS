@@ -43,6 +43,9 @@ struct RetroArchInstallation {
     QHash<QString, QJsonObject> discFirmware;
     QSet<QString> readyDiscPlatforms;
     QString linkedSavePython, linkedSaveHelper;
+    // Dedicated PS2 network bundle only; never changes ordinary ARMSX2 routing.
+    QString ps2Bios;
+    bool ps2Hotseat = false;
     bool operator==(const RetroArchInstallation&) const = default;
     static RetroArchInstallation load(const QString& filename);
     static RetroArchInstallation fromJson(const QJsonObject&);

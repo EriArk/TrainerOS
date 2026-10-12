@@ -89,6 +89,7 @@ for relative in ("src/integrations/adventure/standalone/AzaharNetplay.cpp",
                  "src/integrations/adventure/standalone/RmgNetplay.cpp",
                  "src/integrations/adventure/standalone/PpssppNetplay.cpp",
                  "src/integrations/adventure/retroarch/RetroArchNetplay.cpp",
+                 "src/integrations/adventure/retroarch/PS2Netplay.cpp",
                  "src/integrations/adventure/retroarch/RetroArchNetplayClient.cpp",
                  "src/integrations/adventure/retroarch/RetroArchHotseatObserver.cpp",
                  "src/features/adventure/HotseatHandoff.cpp",
@@ -101,7 +102,7 @@ for relative in ("src/integrations/adventure/standalone/AzaharNetplay.cpp",
 for profile in registry.get("runtimeProfiles", []):
     exported_profile = dict(profile, evidenceBase="../../../")
     files[f"profiles/{profile['id']}.json"] = (json.dumps(exported_profile, indent=2) + "\n").encode()
-for directory in ("dolphin", "handheld", "rmg", "flycast", "melonds", "azahar", "vita3k", "native-lan"):
+for directory in ("dolphin", "handheld", "rmg", "flycast", "melonds", "azahar", "vita3k", "native-lan", "lrps2"):
     for path in sorted((root / "packaging/emulators" / directory).iterdir()):
         if path.is_file():
             files[path.relative_to(root).as_posix()] = path.read_text(encoding="utf-8").encode("utf-8")

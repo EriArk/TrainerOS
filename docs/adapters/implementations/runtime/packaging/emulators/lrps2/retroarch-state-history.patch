@@ -1,0 +1,13 @@
+diff --git a/network/netplay/netplay_private.h b/network/netplay/netplay_private.h
+--- a/network/netplay/netplay_private.h
++++ b/network/netplay/netplay_private.h
+@@ -57,7 +57,8 @@
+  * callbacks are in use, we assign a pseudodevice for it */
+ #define RETRO_DEVICE_NETPLAY_KEYBOARD RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_KEYBOARD, 65535)
+ 
+-#define NETPLAY_MAX_STALL_FRAMES        60
++/* Dedicated matching PS2 runtime: bound large serialized-state history. */
++#define NETPLAY_MAX_STALL_FRAMES        8
+ #define NETPLAY_FRAME_RUN_TIME_WINDOW   120
+ #define NETPLAY_MAX_REQ_STALL_TIME      60
+ #define NETPLAY_MAX_REQ_STALL_FREQUENCY 120

@@ -28,6 +28,7 @@ const CoreProfile cores[] = {
     {"mednafen_supergrafx","supergrafx|pcengine|pcenginecd","syscard3.pce|syscard2.pce|syscard1.pce|gexpress.pce"},
     {"stella","atari2600",""},
     {"pcsx_rearmed","psx",""},
+    {"pcsx2","ps2",""},
     {"fbneo","fbneo|neogeo","neogeo.zip|pgm.zip|skns.zip|decocass.zip|isgsm.zip|midssio.zip|nmk004.zip|ym2608.zip|cchip.zip|bubsys.zip|namcoc69.zip|namcoc70.zip|namcoc75.zip|qsound.zip|qsound_hle.zip"},
     {"mame","mame",""}
 };
@@ -165,6 +166,8 @@ QJsonObject netplayProfile(QString platform,QString core,QString content,int pla
     if(layout.isEmpty())return {};
     if(core=="pcsx_rearmed")return {{"id","runtime.retroarch.psx.pcsx_rearmed.v1"},{"content",content},
         {"settings","pcsx-two-digital-private-bios-no-sram-v1"},{"players",2}};
+    if(core=="pcsx2")return {{"id","runtime.retroarch.ps2.pcsx2.v1"},{"content",content},
+        {"settings","lrps2-two-digital-private-bios-no-cards-v1"},{"players",2}};
     return {{"id","runtime.retroarch."+platform+'.'+core+".v1"},{"content",content},
             {"settings",core+'-'+layout+"-no-sram-v1"},{"players",players}};
 }
@@ -263,7 +266,9 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstal
     const auto p=coreProfile(r.adventure.platformId,coreId);
     if(!p)return {};
     const bool playStation=coreId=="pcsx_rearmed";
-    const auto content=playStation?playStationContent(r.contentPath,cancel,cache):contentDigest(r.contentPath,cancel,cache);
+    const bool ps2=coreId=="pcsx2";
+    if(ps2&&(i.ps2Bios.isEmpty()||!QStringList{"iso","chd"}.contains(QFileInfo(r.contentPath).suffix().toLower())))return {};
+    const auto content=ps2?digest(r.contentPath,16LL*1024*1024*1024,cancel,cache):playStation?playStationContent(r.contentPath,cancel,cache):contentDigest(r.contentPath,cancel,cache);
     auto identity=netplayProfile(r.adventure.platformId,coreId,content,players);
     if(identity.isEmpty())return {};
     const auto core=digest(i.cores.value(coreId),512LL*1024*1024,cancel,cache);
@@ -280,6 +285,12 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstal
             const auto value=digest(bios,512*1024,cancel,cache);
             if(value.isEmpty())return {};
             firmware[QFileInfo(bios).fileName()]=value;
+        }
+        if(ps2) {
+            if(QFileInfo(i.ps2Bios).size()!=4*1024*1024)return {};
+            const auto value=digest(i.ps2Bios,4*1024*1024,cancel,cache);
+            if(value.isEmpty())return {};
+            firmware["bios.bin"]=value;
         }
         // These cartridge modes never load the core's disc firmware.
         if(platform=="nes"||platform=="pcengine"||platform=="supergrafx"||
@@ -342,6 +353,7 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const RetroArchInstal
     if(playStation&&runtime=="8d57b47c88d416c05145187c8c906b7ab0013edb7e45af69d9b6bb841aea4a24"&&
        core=="25bfeb6336d7ef573903775fe53733af974c90edd268cf4fb9afa497e188609d")
         identity["controllerModes"]=QJsonArray{"separate","pass-p1"};
+    if(ps2&&i.ps2Hotseat)identity["controllerModes"]=QJsonArray{"separate","pass-p1"};
     return identity;
 }
 QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const RetroArchInstallation& i,
@@ -389,6 +401,7 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     };
     QByteArray options=identityLayout(identity)=="sgx-multitap"?QByteArray("sgx_multitap = \"enabled\"\n"):QByteArray();
     const bool playStation=r.integrationConfig["core"]=="pcsx_rearmed";
+    const bool ps2=r.integrationConfig["core"]=="pcsx2";
     if(playStation) {
         const auto bios=playStationBios(i);
         QJsonObject firmware;
@@ -401,6 +414,15 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
             "pcsx_rearmed_memcard2 = \"none\"\npcsx_rearmed_multitap = \"disabled\"\n"
             "pcsx_rearmed_multitap1 = \"disabled\"\npcsx_rearmed_multitap2 = \"disabled\"\n"
             "pcsx_rearmed_threaded_rendering = \"disabled\"\n";
+    }
+    if(ps2) {
+        const auto target=path+"/system/pcsx2/bios/bios.bin";
+        if(!QDir().mkpath(QFileInfo(target).absolutePath())||!QFile::copy(i.ps2Bios,target))return "Couldn't prepare your PlayStation 2 BIOS.";
+        const QJsonObject firmware{{"bios.bin",fileDigest(target,4*1024*1024,cancel)}};
+        const auto copied=QString::fromLatin1(QCryptographicHash::hash(QJsonDocument(firmware).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+        if(cancel||copied!=identity["firmware"].toString())return "Your PlayStation 2 BIOS changed. Invite again.";
+        options="pcsx2_bios = \"bios.bin\"\npcsx2_renderer = \"Vulkan\"\n"
+            "pcsx2_fastboot = \"enabled\"\npcsx2_mtvu = \"disabled\"\npcsx2_upscale_multiplier = \"1x (Native)\"\n";
     }
     const auto linkCore=handheldLinkCore(identity);
     if(!linkCore.isEmpty()) {
@@ -457,6 +479,7 @@ QString prepareNetplay(ProcessCommand& cmd,const AdventureRegistration& r,const 
     if(usesSharedController(identity))bytes+="netplay_share_analog = \"0\"\nquit_press_twice = \"false\"\nstdin_cmd_enable = \"true\"\n";
     bytes+=controllers;
     if(playStation)bytes+="system_directory = \""+path.toUtf8()+"/bios\"\n";
+    if(ps2)bytes+="system_directory = \""+path.toUtf8()+"/system\"\nvideo_driver = \"vulkan\"\nvideo_shader_enable = \"false\"\nstdin_cmd_enable = \"true\"\n";
 #ifdef Q_OS_LINUX
     // The existing classic profiles use InputPlumber's virtual pad
     // through udev on both Flip and Odin. Flip's inherited SDL2 driver handled

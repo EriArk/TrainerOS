@@ -1,5 +1,6 @@
 #include "RuntimeMultiplayer.h"
 #include "integrations/adventure/retroarch/RetroArchHandheldLink.h"
+#include "integrations/adventure/retroarch/PS2Netplay.h"
 #include "core/model/GamePlayers.h"
 #include "features/social/SocialController.h"
 #include "features/adventure/AdventureExitPresentation.h"
@@ -249,9 +250,9 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     const auto stamp=[](const QString& path){const QFileInfo f(path);return qHashMulti(0,path,f.size(),f.lastModified().toMSecsSinceEpoch());};
     quint64 revision=qHashMulti(0,stamp(installation.runtimeFile),stamp(installation.configFile),
         stamp(pspInstallation.runtimeFile),stamp(dolphin::bridgeFile()),stamp(dolphin::bridgeRoot()+"/bin/dolphin-tool"),stamp(dolphin::bridgeRoot()+"/manifest.json"),
-        stamp(installation.linkedSavePython),stamp(installation.linkedSaveHelper),stamp(rmg::bundleRoot()+"/manifest.json"),stamp(flycast::bundleRoot()+"/manifest.json"),stamp(melonds::bundleRoot()+"/manifest.json"),stamp(azahar::bundleRoot()+"/manifest.json"),stamp(vita::bundleRoot()+"/manifest.json"));
+        stamp(installation.linkedSavePython),stamp(installation.linkedSaveHelper),stamp(ps2::bundleRoot()+"/manifest.json"),stamp(rmg::bundleRoot()+"/manifest.json"),stamp(flycast::bundleRoot()+"/manifest.json"),stamp(melonds::bundleRoot()+"/manifest.json"),stamp(azahar::bundleRoot()+"/manifest.json"),stamp(vita::bundleRoot()+"/manifest.json"));
     for(auto it=installation.cores.cbegin();it!=installation.cores.cend();++it)revision=qHashMulti(revision,it.key(),stamp(it.value()));
-    const auto candidate=[](const AdventureRegistration& r){return r.adventure.platformId=="psvita"||r.adventure.platformId=="n3ds"||r.adventure.platformId=="nds"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc"||r.adventure.platformId=="wii"||r.adventure.platformId=="n64"||r.adventure.platformId=="dreamcast"||
+    const auto candidate=[](const AdventureRegistration& r){return r.adventure.platformId=="ps2"||r.adventure.platformId=="psvita"||r.adventure.platformId=="n3ds"||r.adventure.platformId=="nds"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc"||r.adventure.platformId=="wii"||r.adventure.platformId=="n64"||r.adventure.platformId=="dreamcast"||
         retroarch::netplaySupported(r.adventure.platformId,r.integrationConfig["core"].toString());};
     QMap<QString,int> capacities;
     QMap<QString,QVariantMap> metadata;
@@ -286,7 +287,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
             retroarch::NetplayDigestCache digests;
             for(const auto& r:ordered)if(candidate(r)) {
                 if(promise.isCanceled())break;
-                const auto identity=r.adventure.platformId=="psvita"?vita::netplayIdentity(r,cancel):r.adventure.platformId=="n3ds"?azahar::netplayIdentity(r,cancel):r.adventure.platformId=="nds"?melonds::netplayIdentity(r,cancel):r.adventure.platformId=="dreamcast"?flycast::netplayIdentity(r,cancel):r.adventure.platformId=="n64"?rmg::netplayIdentity(r,cancel,capacities.value(r.adventure.id,2)):(r.adventure.platformId=="gc"||r.adventure.platformId=="wii")?dolphin::netplayIdentity(r,dolphinInstallation,cancel,capacities.value(r.adventure.id,2)):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel,&digests,capacities.value(r.adventure.id,2));
+                const auto identity=r.adventure.platformId=="ps2"?ps2::netplayIdentity(r,installation,cancel):r.adventure.platformId=="psvita"?vita::netplayIdentity(r,cancel):r.adventure.platformId=="n3ds"?azahar::netplayIdentity(r,cancel):r.adventure.platformId=="nds"?melonds::netplayIdentity(r,cancel):r.adventure.platformId=="dreamcast"?flycast::netplayIdentity(r,cancel):r.adventure.platformId=="n64"?rmg::netplayIdentity(r,cancel,capacities.value(r.adventure.id,2)):(r.adventure.platformId=="gc"||r.adventure.platformId=="wii")?dolphin::netplayIdentity(r,dolphinInstallation,cancel,capacities.value(r.adventure.id,2)):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel,&digests,capacities.value(r.adventure.id,2));
                 if(!identity.isEmpty())promise.addResult(ScannedGame{r.adventure.id,identity});
             }
         }));
@@ -697,6 +698,12 @@ void RuntimeMultiplayer::launch() {
         QStringList inputPrefix;const auto end=installation_.prefixArguments.indexOf("--");
         if(end>=0)inputPrefix=installation_.prefixArguments.mid(0,end+1);
         const auto result=requestRuntimeLaunch(flycast::command(*record,flycastRequest_,inputPrefix),game_);
+        if(!result.success)fail(result.message);
+        return;
+    }
+    if(descriptor_["id"]=="runtime.retroarch.ps2.pcsx2.v1") {
+        if(!requestRuntimeLaunch){fail("PlayStation 2 multiplayer isn't ready on this device.");return;}
+        const auto result=requestRuntimeLaunch(ps2::command(*record,installation_,request_),game_);
         if(!result.success)fail(result.message);
         return;
     }

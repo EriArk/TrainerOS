@@ -24,6 +24,13 @@ are unavailable; installation, physical controls, actual games and distinct
 internet connections remain separate acceptance. Do not repeat completed older
 checks or count a list of emulator candidates as implemented multiplayer.
 
+## Current scope summary - 12 October owner correction
+
+The table below is the current integration summary; dated sections afterwards
+retain their original preparation evidence. Private PSP, the comprehensive
+Hotseat catalogue and fine per-title compatibility work are deferred. Existing
+ordinary PSP is sufficient. PS2 remains required, including both input modes.
+
 ## Scope and implementation state
 
 **DS native core preparation, 11 October:** WatermelonDS DetMP is ported onto
@@ -51,16 +58,16 @@ See [maintenance and remaining delivery](emulators/flycast.md).
 | --- | --- | --- |
 | Classic RetroArch | Shared-console netplay and existing relay | Integrated; retained acceptance is in RETROARCH_MULTIPLAYER_PROFILES.md |
 | GB/GBC/GBA | Existing linked cores / gpSP netpacket | Integrated bounded routes; remaining MP-02 modes and acceptance stay open |
-| PS1 | PCSX ReARMed with the existing RetroArch route | Installed on Flip/Odin; CTR reached a paired race with independent pads and ordinary Nearby/Home flow. Ordered P1 handoff and retained network/physical gates remain open ([record](MULTIPLAYER_DEVICE_RECHECK_20261011.md)) |
+| PS1 | PCSX ReARMed / existing RetroArch transport | Installed separate pads and ordinary exclusive P1 handoff, including relay evidence; physical/distinct-network acceptance remains ([record](emulators/pcsx-rearmed.md)) |
 | N64 | RMG / Mupen64Plus native server | Installed Nearby/private Online invitations/Home/minimize/peer exit and paired native/forced-relay Mario Kart 64 on Flip/Odin; larger groups, wider games, physical/distinct-network and production service acceptance remain open ([record](emulators/RMG.md)) |
 | Dreamcast | Flycast Dojo native relay / GGPO | Installed CHD route; native Soul Calibur Nearby/public-relay fights and ordinary Online invitation/Home/peer exit passed. Fresh temporary VMUs; wider games, distinct networks, physical input/audio and relay release review remain open ([record](emulators/flycast.md)) |
-| PS2 | ARMSX2/PCSX2 game networking; shared-console mode is separate | DEV9 networking does not provide remote second-controller gameplay |
-| GameCube/Wii | Extend existing Dolphin native netplay bridge | Generic raw GameCube ISO/GCM admission implemented; Melee paired gameplay/Home and Auto Modellista identity admission checked on updated devices. Wii input route, ordered handoff and retained acceptance remain open |
+| PS2 | Dedicated LRPS2 / existing RetroArch protocol | Common invitation, launch, temporary BIOS/cards and both input-mode preparation now exist in source. No playable bundle: bounded candidate still slow and guest unload crashes ([record](emulators/lrps2.md)) |
+| GameCube/Wii | Dolphin native NetPlay | Installed separate GameCube pads, ordinary GameCube P1 handoff and Wii two-player route; preserve wider-input and physical/distinct-network limits ([record](emulators/dolphin.md)) |
 | DS | WatermelonDS DetMP reused on pinned desktop melonDS | Installed two-player Nearby/Online flow, native race/soak and protected own-save return on Flip/Odin; four players, broader compatibility, frontend polish and physical/distinct-network acceptance remain open ([record](emulators/melonds.md)) |
-| PSP | Existing PPSSPP Ad Hoc / aemu relay | Generic raw-ISO invitation/launch preparation in source; exact Lumines evidence retained. Wider gameplay, private game-room admission, infrastructure and other formats remain open |
-| 3DS | Existing Azahar room networking | Integration remains open |
-| Wii U | Cemu and supported game-network services | Launcher/platform feasibility, account setup and supported modes remain open |
-| Vita | Vita3K supported AdHoc modes | Launcher/platform feasibility and automatic transport remain open; no general PSN claim |
+| PSP | PPSSPP native Ad Hoc / aemu relay | Ordinary Nearby/Online integration and Lumines evidence retained; sufficient for the current milestone. Private party admission and fine title work deferred ([record](emulators/ppsspp.md)) |
+| 3DS | Azahar native room networking | Installed ordinary Nearby/Online route and Minicraft shared-world evidence; commercial-title effective-update/DLC and physical/distinct-network limits remain ([record](emulators/azahar.md)) |
+| Wii U | Cemu native game online services | ARM64 package provenance established; own console/account/certificate data and a supported paired title are missing. No generic Cemu NetPlay claim ([record](emulators/cemu.md)) |
+| Vita | Vita3K native game LAN | Installed ordinary Nearby/Online integration with vitaQuake gameplay; commercial AdHoc/PSN is not established ([record](emulators/vita3k.md)) |
 
 The owner's follow-up explicitly requests BOTH simultaneous independent pads and
 ordered exclusive control of one live pad on PS1, PS2 and GameCube. Existing #126
