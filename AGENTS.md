@@ -1,5 +1,15 @@
 # AGENTS.md — TrainerOS
 
+**Owner multiplayer scope correction, 2026-10-12:** ordinary PSP Nearby/Online
+is sufficient for the current milestone. Defer private PSP parties and the full
+Hotseat game catalogue until later. PS2 remains required, including separate
+pads and live pass-controller play. Prioritize missing platform-wide connections
+and bindings to the existing invitations, launch, input, Home/exit and protected
+save lifecycle. Defer fine per-game exceptions and compatibility polishing;
+reuse passed results instead of reopening ordinary PSP or other completed
+routes. PS3/Switch remain excluded. This supersedes the earlier private-PSP-next
+queue; deferred items remain recorded, not removed.
+
 **Owner publication records, 2026-10-11:** maintain root `PROJECT_STATUS.md` and
 `CHANGELOG.md` for posts and website updates. Update them in the same commit as
 each meaningful implementation, delivery, scope change or status correction.

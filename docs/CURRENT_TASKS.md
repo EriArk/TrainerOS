@@ -1,5 +1,12 @@
 # Current tasks
 
+**Owner priority, 12 October 2026:** missing universal platform connections and
+shared invitation/launch/input/Home/exit bindings are next; PS2 with both input
+modes remains required. Ordinary PSP is sufficient. Defer private PSP parties,
+the complete Hotseat catalogue and fine per-game work. Preserve completed runtime
+evidence and the Wii U/Vita scope; PS3/Switch excluded. Older PSP-private-next
+instructions below are superseded.
+
 **12 October N64 private Online delivery:** the previously installed Nearby
 route now also has automatic Online friend launch through private admitted
 channels. Both handhelds passed ordinary consent/save-leave/Home/minimize/Exit;

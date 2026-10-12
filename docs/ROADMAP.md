@@ -1,5 +1,15 @@
 # TrainerOS Roadmap
 
+**Owner active priority, 12 October 2026:** complete missing platform-wide
+multiplayer connections and bindings using existing emulator mechanisms and the
+shared invitation/launch/input/Home/exit services. PS2 remains required with both
+separate-controller and pass-controller modes. Ordinary PSP Nearby/Online is
+sufficient now: private PSP parties are deferred, together with the complete
+Hotseat catalogue and fine per-game compatibility work. Retain the remaining
+platform routes through Wii U/Vita and their actual external prerequisites;
+PS3/Switch excluded. Reuse passed gameplay evidence. This is the active order
+and supersedes the older private-PSP-next statements below.
+
 **12 October N64 private Online delivery:** Online friend now launches the
 existing native RMG route over private admitted channels on Flip/Odin, with no
 player-entered server or network setup. Forced public-relay Mario Kart 64 gameplay

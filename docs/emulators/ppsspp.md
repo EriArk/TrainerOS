@@ -1,5 +1,10 @@
 # PPSSPP maintenance
 
+**Owner decision, 12 October 2026:** installed ordinary Nearby/Online multiplayer
+is sufficient for the current milestone. Private-party admission is deferred;
+do not resume its prototype or repeat already passed Lumines checks as current
+work. Keep wider game/format compatibility separate from the platform-wide route.
+
 ## Updated-handheld recheck — 11 October 2026
 
 The current ARM64 client is installed on both updated devices. The exact Lumines
