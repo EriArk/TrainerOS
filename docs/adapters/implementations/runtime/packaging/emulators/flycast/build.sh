@@ -4,8 +4,8 @@
 # a C++17 compiler, Git and Python 3.
 set -eu
 recipe=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-: "${1:?Usage: build.sh NEW_WORK NEW_DEST OWN_BOOT OWN_FLASH OPERATOR_UDP_URL [vulkan|opengl]}"
-: "${5:?Missing operator relay endpoint}"
+: "${1:?Usage: build.sh NEW_WORK NEW_DEST OWN_BOOT OWN_FLASH OPERATOR_UDP_URL_OR_--nearby-only [vulkan|opengl]}"
+: "${5:?Missing operator relay endpoint or --nearby-only}"
 work=$1
 dest=$2
 test ! -e "$work" && test ! -e "$dest" || { echo 'Use new work/destination paths; retain old bundle for rollback' >&2; exit 1; }

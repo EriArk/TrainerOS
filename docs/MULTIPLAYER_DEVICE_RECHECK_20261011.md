@@ -1,5 +1,10 @@
 # Earlier multiplayer routes on updated handhelds — 11 October 2026
 
+**12 October follow-up:** the N64 and Dreamcast build-only statements in this
+11 October record are historical. Later installed native gameplay and ordinary
+invitation/Home/exit evidence is in [RMG](emulators/RMG.md) and
+[Flycast](emulators/flycast.md). Their remaining gates are retained there.
+
 Owner order: verify previously prepared routes before returning to DS. Both
 Flip 2 and Odin 2 boot the [updated Armada system](ARMADA_UPDATE_20261011.md).
 This record separates native builds, installed client checks and actual games.

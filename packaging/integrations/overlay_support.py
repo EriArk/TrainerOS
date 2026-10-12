@@ -65,12 +65,12 @@ def supported_emulator_process(pid, proc=Path('/proc')):
             args = (proc / str(pid) / 'cmdline').read_bytes().split(b'\0')
             return b'-b' in args and any(args[i:i+2] == [b'-C', b'Dolphin.Interface.ConfirmStop=False']
                                          for i in range(len(args) - 1))
-        if executable == 'RMG':
-            # Our native bridge disables its desktop confirmation and exits on
-            # WM_DELETE_WINDOW. Ordinary RMG retains its own desktop behaviour.
+        if executable in ('RMG', 'flycast', 'flycast-dojo'):
+            # Only the owned native sessions have verified window-close behavior.
+            # Ordinary desktop launches keep their existing handling.
             env = (proc / str(pid) / 'environ').read_bytes().split(b'\0')
-            return any(value.startswith(b'TRAINEROS_RMG_SESSION=') and
-                       len(value) > len(b'TRAINEROS_RMG_SESSION=') for value in env)
+            marker = b'TRAINEROS_RMG_SESSION=' if executable == 'RMG' else b'TRAINEROS_FLYCAST_SESSION='
+            return any(value.startswith(marker) and len(value) > len(marker) for value in env)
         # The packaged DS frontend handles WM_DELETE_WINDOW by agreeing a
         # complete-frame return with its peer; SIGTERM deliberately cancels.
         return executable in ('retroarch', 'PPSSPPSDL', 'armsx2-qt', 'melonDS', 'traineros-ds')

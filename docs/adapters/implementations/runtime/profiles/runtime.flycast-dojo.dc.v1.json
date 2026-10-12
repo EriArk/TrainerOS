@@ -13,15 +13,20 @@
     "shared-lifecycle-and-game-party-regressions",
     "full-pinned-arm64-dojo-build",
     "host-library-resolution",
-    "linux-executable-and-isolation-suite"
+    "linux-executable-and-isolation-suite",
+    "two-handheld-isolated-native-delivery",
+    "soul-calibur-nearby-and-public-relay-independent-input",
+    "ordinary-online-invite-save-leave-home-minimize",
+    "repeat-invitation-and-owned-peer-exit",
+    "bounded-original-save-hash-preservation",
+    "nearby-only-profile-and-scan-priority-regressions"
   ],
   "remaining": [
-    "operator-relay-deployment-and-review",
-    "handheld-delivery",
-    "native-boot-and-fresh-vmu-determinism",
-    "paired-gameplay-and-controls",
-    "home-input-and-audio",
-    "loss-reinvite-and-distinct-networks",
+    "public-relay-operations-and-release-dependency-review",
+    "distinct-networks-and-strict-nat",
+    "wider-games-and-sustained-determinism",
+    "physical-input-and-audio",
+    "arbitrary-loss-and-recovery",
     "gdi-cdi-and-other-modes"
   ],
   "persistentSaveWrites": false,

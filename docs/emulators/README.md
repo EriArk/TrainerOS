@@ -19,7 +19,7 @@ a second execution plan or a claim that all installed runtimes are validated.
 |---|---|---|
 | melonDS | [DS delivery](melonds.md) | Installed two-player Nearby/Online invitations, native wireless race/soak and own-save return on Flip/Odin; four-player, broader games/saves, frontend polish and physical/distinct-network acceptance remain open |
 | RetroArch | [Common ARM64 baseline](retroarch.md) | Exact core bundle, two-device alignment, recoverable update/rollback and remaining image/standalone gates |
-| PCSX ReARMed | [PS1 preparation](pcsx-rearmed.md) | Existing RetroArch network route, private BIOS/cards and two pads; device acceptance pending |
+| PCSX ReARMed | [PS1 integration](pcsx-rearmed.md) | Existing RetroArch network route, private BIOS/cards and paired CTR on Flip/Odin; ordered handoff and retained physical/network acceptance remain open |
 | RMG / Mupen64Plus | [N64 Nearby delivery](RMG.md) | Installed isolated bundle, paired Mario Kart 64 race and ordinary Nearby/Home/exit on Flip/Odin; operator Online service, wider groups/games and physical/network acceptance remain open |
 | gpSP | [GBA link](gpsp.md) | Additional independent-machine networking core; ordinary mGBA preserved |
 | DoubleCherryGB | [GB/GBC link](doublecherrygb.md) | Independent SRAM/netpacket; separate upstream battle and RTC limitations |
@@ -27,7 +27,7 @@ a second execution plan or a claim that all installed runtimes are validated.
 | mGBA Splitscreen | [GBA linked pairs](mgba-splitscreen.md) | Existing linked-machine engine, per-viewer screen/audio and protected separate batteries |
 | Dolphin | [Bridge checkpoint](dolphin.md) | Preserved ordinary Flatpak; separate pinned native bridge with paired Melee LAN gameplay/Home return; internet and four-client gates open |
 | PPSSPP | [PPSSPP](ppsspp.md) | Isolated networking, preserved identity, bounded LAN/relay gameplay and remaining recovery/network gates |
-| Flycast / Dojo | [Dreamcast preparation](flycast.md) | Ordinary 2.7 retained; separate Dojo native relay/GGPO launch integration in source; full runtime build, operator service and device/gameplay checks pending |
+| Flycast / Dojo | [Dreamcast delivery](flycast.md) | Ordinary 2.7 retained; separate Dojo bundle installed on Flip/Odin, native Nearby/public-relay fights and ordinary Online/Home/peer Exit; fresh temporary VMUs and retained broader/network/physical gates |
 
 Existing work on other emulators remains documented in
 [discovery](../EMULATOR_DISCOVERY.md), [platform routes](../ROM_PLATFORMS.md) and

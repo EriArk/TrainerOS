@@ -32,7 +32,9 @@ QJsonObject bundle(const std::atomic_bool& cancel) {
     const auto root=bundleRoot();QFile file(root+"/manifest.json");
     if(!file.open(QIODevice::ReadOnly)||file.size()>65536)return {};
     auto m=QJsonDocument::fromJson(file.readAll()).object();
-    if(m["protocol"]!=1||m["source"]!=sourceRevision||!relayUrl(QUrl(m["onlineRelay"].toString()))
+    const auto relay=m.value("onlineRelay");
+    if(m["protocol"]!=1||m["source"]!=sourceRevision
+       ||(!relay.isUndefined()&&(!relay.isString()||(!relay.toString().isEmpty()&&!relayUrl(QUrl(relay.toString())))))
        ||(m["renderer"]!="vulkan"&&m["renderer"]!="opengl"))return {};
     const auto files=m["files"].toObject();
     if(files.size()!=3||!files.contains("bin/flycast")||!files.contains("firmware/dc_boot.bin")||!files.contains("firmware/dc_flash.bin"))return {};
@@ -47,7 +49,7 @@ QJsonObject bundle(const std::atomic_bool& cancel) {
 #ifdef Q_OS_UNIX
     if(!QFileInfo(root+"/bin/flycast").isExecutable())return {};
 #endif
-    h.addData(m["onlineRelay"].toString().toUtf8());
+    h.addData(relay.toString().toUtf8());
     m["digest"]=QString::fromLatin1(h.result().toHex());return m;
 }
 QJsonObject netplayIdentity(const AdventureRegistration& r,const std::atomic_bool& cancel) {
@@ -61,8 +63,9 @@ QJsonObject netplayIdentity(const AdventureRegistration& r,const std::atomic_boo
     const auto m=bundle(cancel);if(m.isEmpty())return {};
     const auto hash=digest(r.contentPath,cancel,2LL*1024*1024*1024);if(hash.isEmpty())return {};
     return {{"id","runtime.flycast-dojo.dc.v1"},{"label",r.adventure.title.left(96)},
-        {"content",hash},{"runtime",m["digest"]},{"settings","dojo-v1-fresh-vmu-analog2-"+m["renderer"].toString()},
-        {"players",2},{"lateJoin",false}};
+        {"content",hash},{"runtime",m["digest"]},{"settings","dojo-v2-fresh-vmu-analog2-delay0-"+m["renderer"].toString()},
+        {"players",2},{"lateJoin",false},{"temporaryProgress",true},
+        {"connections",m.value("onlineRelay").toString().isEmpty()?QJsonArray{"nearby"}:QJsonArray{"nearby","online"}}};
 }
 ProcessCommand command(const AdventureRegistration& r,const Request& request,const QStringList& inputPrefix) {
     ProcessCommand cmd;cmd.runtimeControls={{"kind","flycast"},{"game",r.adventure.id},
@@ -73,7 +76,8 @@ ProcessCommand command(const AdventureRegistration& r,const Request& request,con
             return "This Dreamcast invitation is invalid.";
         if(!sameMultiplayerGame(netplayIdentity(r,cancel),request.expected))return "Your Dreamcast game or emulator changed. Invite again.";
         const auto m=bundle(cancel);if(m.isEmpty())return "The Dreamcast setup changed. Invite again.";
-        const QUrl relay(m["onlineRelay"].toString());
+        const QUrl relay(m.value("onlineRelay").toString());
+        if(request.online&&!relayUrl(relay))return "Online Dreamcast play is not available in this installation.";
         auto dir=std::make_shared<QTemporaryDir>(QDir::tempPath()+"/trainer-flycast-XXXXXX");
         if(!dir->isValid()||!QDir().mkpath(dir->path()+"/data"))return "Couldn't prepare temporary Dreamcast progress.";
         const auto root=dir->path();
@@ -86,7 +90,7 @@ ProcessCommand command(const AdventureRegistration& r,const Request& request,con
         const QString cfg=QString("[config]\nDreamcast.AutoLoadState = no\nDreamcast.AutoSaveState = no\n"
             "Dreamcast.Region = 1\nDreamcast.Language = 1\nDreamcast.Broadcast = 0\nDreamcast.Cable = 3\n"
             "pvr.rend = %1\nFetchBoxart = no\n[window]\nfullscreen = yes\n"
-            "[network]\nGGPO = yes\nGGPOAnalogAxes = 2\nGGPODelay = 2\nEnableUPnP = no\n"
+            "[network]\nGGPO = yes\nGGPOAnalogAxes = 2\nGGPODelay = 0\nEnableUPnP = no\n"
             "GGPOPort = 19713\nGGPORemotePort = %2\nActAsServer = %3\nserver = %4\n"
             "[dojo]\nEnable = no\nRelay = %5\nRelayKey = %6\nDefaultRelayPort = %2\n"
             "EnableMatchCode = no\nHostJoinSelect = no\nIgnoreNetSave = yes\nNetCustomVmu = no\n"
@@ -97,7 +101,7 @@ ProcessCommand command(const AdventureRegistration& r,const Request& request,con
                  request.online?"yes":"no",request.host?QString():request.key,request.token);
         if(!write(root+"/emu.cfg",cfg.toUtf8()))return "Couldn't prepare Dreamcast play.";
         out.program="/usr/bin/env";out.workingDirectory=root;
-        out.arguments={"FLYCAST_ROOT="+root,"XDG_CONFIG_HOME="+root,"XDG_DATA_HOME="+root,
+        out.arguments={"TRAINEROS_FLYCAST_SESSION="+request.token,"FLYCAST_ROOT="+root,"XDG_CONFIG_HOME="+root,"XDG_DATA_HOME="+root,
                        "XDG_CONFIG_DIRS="+root,"XDG_DATA_DIRS="+root};
         out.arguments+=inputPrefix;out.arguments<<bundleRoot()+"/bin/flycast"<<r.contentPath;
         out.settled=[dir](const ProcessOutcome&){};return {};

@@ -1,8 +1,97 @@
-# Flycast: Dreamcast netplay preparation and ordinary package
+# Flycast: Dreamcast multiplayer and ordinary package
+
+## Handheld runtime continuation - 12 October 2026
+
+The separate native bundle is now installed on Flip/Odin. The ordinary Online
+invitation, save/leave barrier and Home/minimize/guest Exit passed. A follow-up
+closes the host's native disconnected window automatically for temporary TrainerOS
+sessions. The final ordinary repeat invitation and guest-exit check passed: the
+host also returned to TrainerOS about three seconds after the guest.
+
+- Native executable SHA-256:
+  `e81da3bbbdc14473c095478b969d4bf47b34bee83a58ea35a070d36e0eff5b77`.
+  Both hosts resolve all ELF dependencies without new host OS packages. The
+  earlier gameplay/first ordinary-flow binary was `2b340b45c9ff3c84a0afc465a22066c55bae6d84a484fc1c7714200ad8f5149c`;
+  the final native change is confined to owned disconnected-window closure.
+- Soul Calibur US (`T1401N`) booted from fresh private VMUs on both machines,
+  entered a two-player fight, and accepted independent virtual Xbox input.
+  This passed through direct Nearby and through the upstream public Finnish
+  relay `fin-1.match.dojo.ooo:8001`. The short relay fight showed roughly
+  200–214 ms in the native ping display; this is not a sustained-latency claim.
+  Both handhelds still shared one home network. Distinct networks/strict NAT,
+  physical controls, headset/audio and wider games remain open.
+- The relay is an upstream public dependency listed in the
+  [Dojo release documentation](https://github.com/blueminder/flycast-dojo/releases),
+  not a newly deployed TrainerOS operator service or availability guarantee.
+  The native room key and per-invitation nonce stay in accepted signalling;
+  no manual relay code/address entry is added for players. Relay operators see
+  traffic metadata; native UDP remains unencrypted as documented below.
+- The maintained SDL launch patch maps local gamepads to port A only for a
+  TrainerOS GGPO session. Odin enumerates physical and virtual pads separately;
+  assigning ports by enumeration otherwise leaves its virtual pad on port B,
+  which GGPO does not consume. This does not implement queued #77 controller
+  identification/glyph switching or modify ordinary desktop mappings.
+- Native fresh boot exposed a GGPO input-queue assertion with the previously
+  configured two-frame delay. The profile now uses upstream's default
+  `GGPODelay=0`, with settings identity `dojo-v2-fresh-vmu-analog2-delay0-*`.
+  Both direct and relay gameplay passed with unchanged GGPO synchronization.
+- Vulkan window creation failed on both hosts with a missing Vulkan surface
+  extension; upstream fell back to OpenGL. The installed matching bundles now
+  explicitly select OpenGL. This is a route-specific fallback, not a claim
+  against other emulators' working Vulkan paths.
+- The owner's existing GDI was copied and converted to CHD v5 with Fedora's
+  `mame-tools 0.289-1.fc44` inside the build container. All original track hashes
+  remained unchanged. The new CHD SHA-256 is
+  `c1139f8efdc52d1e807dab790651a4fa484def30694f1ed639f774b361e9c0ed`.
+  Separate local library copies were added; source GDI/history and ordinary VMUs
+  were retained. ROM, BIOS, VMU and private captures do not enter the repository.
+
+The bundle now also supports explicit `--nearby-only`: absent/empty `onlineRelay`
+admits Nearby only, while malformed supplied endpoints fail validation. Profile
+connection availability and temporary-progress consent reuse the common services.
+The owned Flycast window-close path is gated by `TRAINEROS_FLYCAST_SESSION`.
+ARM client/native builds, focused adapter checks and 16 overlay-helper checks
+pass. Windows `flycast_netplay` passed in 0.92 s. The final shared compatibility
+scan checks pass on ARM (1.58 s) and Windows (3.23 s), with both client builds
+completed. Two regression
+cases cover retiring an obsolete library scan and moving a newly launched,
+unverified game ahead of the pending library. Cancellation finishes the current
+file first; already verified hash results are reused. This is separate from the
+automatic Multiplayer games collection, which uses catalogue player counts: a
+newly imported entry without those counts is reachable through All games /
+Dreamcast and can show Online play there, but is not included in that collection.
+
+### Ordinary interface and data evidence
+
+Both handhelds run client SHA-256
+`7f489ae897cf4437c97b8d97c9980a937990c30b1682126ca354051a34cc3337`
+and the native bundle above. The final Online friend invitation reused the
+existing contact, explicit fresh-progress notice and Accept action. Start game
+first offered the ordinary game's save/leave barrier, then automatically opened
+the two exact native runtimes through the public relay. No room code was typed.
+The final check reached synchronized fresh-VMU game startup, not another fight;
+the independent-input fights above are separate native gameplay evidence.
+
+The earlier ordinary pass exercised Home, minimize, return and guest Exit.
+The repeated final pass exercised Home/Exit and automatic peer closure. History
+records returned sessions of 55 seconds on Flip and 41 seconds on Odin (startup
+is staggered); both private runtime directories disappeared and neither native
+process remained. There was no force-stop or direct process signal in this exit.
+The first bundle had required manual host Exit after the guest left; the final
+owned-disconnected-window patch corrects that behavior.
+
+All 364 Flip and 25 Odin files in the bounded pre-install save inventory retained
+their hashes and none disappeared. SQLite quick checks passed and both devices
+remain at zero output volume. Previous clients, helper and native bundles were
+retained for rollback. Temporary fresh VMUs never replace ordinary progress.
+These checks do not establish arbitrary packet-loss recovery, distinct-home NAT,
+physical controller/audio acceptance or wider Dreamcast game compatibility.
+The public relay's operation/availability and release dependency review remain
+open; no TrainerOS operator service or encrypted native UDP is implied.
 
 ## Dojo integration — 11 October 2026
 
-**Source preparation, not installed/gameplay acceptance.** The ordinary Flycast
+**Historical source preparation; installed evidence is recorded above.** The ordinary Flycast
 2.7 package below is retained. A separate pinned Flycast Dojo bundle now has a
 TrainerOS runtime adapter: two-player shared-console GGPO, native relay for Online
 friend and native direct UDP for Nearby. The existing invitation badge,
@@ -78,7 +167,7 @@ is written back. Ordinary RetroArch/Flycast bindings, VMUs and flash remain owne
 by their existing paths. This is not a save migration or semantic save adapter.
 
 Relevant keys are `network:GGPO`, `ActAsServer`, `server`, `GGPOPort=19713`,
-`GGPORemotePort`, `GGPOAnalogAxes=2`, `GGPODelay=2`, `EnableUPnP=no`; `dojo:Relay`,
+`GGPORemotePort`, `GGPOAnalogAxes=2`, `GGPODelay=0` (since the 12 October native check), `EnableUPnP=no`; `dojo:Relay`,
 `RelayKey`, `DefaultRelayPort`, `TrainerSession`, `EnableMatchCode=no`,
 `HostJoinSelect=no`, `IgnoreNetSave=yes`, `CopyMissingSharedMem=no`; and
 `config:pvr.rend=4` for Vulkan or `0` for OpenGL. Firmware/region/renderer must
@@ -125,12 +214,11 @@ Bounded local evidence on 11 October:
   `runtime_multiplayer` pass **3/3** (3.74 seconds). These are client/fixture
   checks, not a complete Dojo build. Adapter exports and 555 local documentation
   links validate. The later ARM64 recheck above supersedes the build deferral;
-  Dojo bundle delivery and gameplay are still pending.
+  the 12 October record supersedes the delivery and gameplay deferral.
 
-Still open: production bundle promotion, operator relay
-deployment/terms/source review, both handheld installations, CHD/firmware native
-boot and deterministic fresh VMUs, actual independent pad gameplay, Home/audio,
-loss/reinvite, distinct networks/strict NAT and measured latency. No issue or
+The 11 October pending list is superseded by the 12 October record above.
+Retain broader compatibility/determinism, physical/audio, arbitrary loss,
+distinct networks/strict NAT and public-relay release review. No issue or
 multiplayer block closes. Native Dreamcast game servers/DCnet, Battle Cable,
 arcade cabinet links, Hotseat and personal-progress return are separate work.
 

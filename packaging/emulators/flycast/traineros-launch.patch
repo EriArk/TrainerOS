@@ -179,7 +179,7 @@ index e6d9d32..f08c133 100644
  				}
  				else if (result != GGPO_OK)
 diff --git a/core/rend/gui.cpp b/core/rend/gui.cpp
-index 4017718..ba28ec7 100644
+index 4017718..af0acfc 100644
 --- a/core/rend/gui.cpp
 +++ b/core/rend/gui.cpp
 @@ -773,6 +773,8 @@ void gui_start_game(const std::string& path)
@@ -203,7 +203,19 @@ index 4017718..ba28ec7 100644
  				}
  			}
  			else if (config::DojoEnable || dojo.PlayMatch)
-@@ -4698,6 +4703,8 @@ static void reset_vmus()
+@@ -4381,7 +4386,10 @@ void gui_display_ui()
+ 		dojo_gui.gui_display_relay_join(settings.display.uiScale);
+ 		break;
+ 	case GuiState::Disconnected:
+-		dojo_gui.gui_display_disconnected(settings.display.uiScale);
++		if (!cfgLoadStr("dojo", "TrainerSession", "").empty())
++			gui_stop_game("TrainerOS peer connection ended");
++		else
++			dojo_gui.gui_display_disconnected(settings.display.uiScale);
+ 		break;
+ 	case GuiState::EndReplay:
+ 		dojo_gui.gui_display_end_replay(settings.display.uiScale);
+@@ -4698,6 +4706,8 @@ static void reset_vmus()
  void gui_error(const std::string& what)
  {
  	error_msg = what;
@@ -212,3 +224,20 @@ index 4017718..ba28ec7 100644
  }
  
  void gui_save()
+diff --git a/core/sdl/sdl.cpp b/core/sdl/sdl.cpp
+index 5f052f4..dfcc088 100644
+--- a/core/sdl/sdl.cpp
++++ b/core/sdl/sdl.cpp
+@@ -67,7 +67,11 @@ static void sdl_open_joystick(int index)
+ 		return;
+ 	}
+ 	try {
+-		std::shared_ptr<SDLGamepad> gamepad = std::make_shared<SDLGamepad>(index < MAPLE_PORTS ? index : -1, index, pJoystick);
++		// Each TrainerOS GGPO machine contributes one local player from port A.
++		// Device enumeration order (physical + virtual pads) must not choose the seat.
++		const int port = config::GGPOEnable && !cfgLoadStr("dojo", "TrainerSession", "").empty()
++			? 0 : (index < MAPLE_PORTS ? index : -1);
++		std::shared_ptr<SDLGamepad> gamepad = std::make_shared<SDLGamepad>(port, index, pJoystick);
+ 		SDLGamepad::AddSDLGamepad(gamepad);
+ 	} catch (const FlycastException& e) {
+ 	}

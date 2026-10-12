@@ -1,4 +1,5 @@
 #include "integrations/adventure/standalone/FlycastNetplay.h"
+#include "core/model/GamePlayers.h"
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
@@ -43,7 +44,7 @@ private slots:
         const auto session=cmd.workingDirectory;QVERIFY(cmd.runtimeControls["temporaryProgress"].toBool());
         QVERIFY(cmd.arguments.contains("FLYCAST_ROOT="+session));QVERIFY(cmd.arguments.contains("/input-bridge"));
         QVERIFY(cmd.arguments.indexOf("--")<cmd.arguments.indexOf(root+"/bin/flycast"));
-        auto config=read(session+"/emu.cfg");QVERIFY(config.contains("Relay = yes"));QVERIFY(config.contains("pvr.rend = 4"));
+        auto config=read(session+"/emu.cfg");QVERIFY(config.contains("Relay = yes"));QVERIFY(config.contains("pvr.rend = 4"));QVERIFY(config.contains("GGPODelay = 0"));
         QCOMPARE(read(session+"/data/dc_flash.bin"),files["firmware/dc_flash.bin"]);
         write(session+"/data/dc_flash.bin","session change");write(session+"/data/vmu_save_A1.bin","session save");
         QCOMPARE(read(root+"/firmware/dc_flash.bin"),files["firmware/dc_flash.bin"]);
@@ -55,6 +56,19 @@ private slots:
         request.online=false;request.address="192.0.2.3";
         auto nearby=flycast::command(r,request);QVERIFY(nearby.prepare(nearby,cancel).isEmpty());
         QVERIFY(read(nearby.workingDirectory+"/emu.cfg").contains("Relay = no"));nearby.settled={};
+        // Nearby needs no operator relay; malformed supplied values still fail closed.
+        manifest.remove("onlineRelay");save();
+        auto localIdentity=flycast::netplayIdentity(r,cancel);QVERIFY(!localIdentity.isEmpty());
+        QVERIFY(localIdentity["temporaryProgress"].toBool());
+        QVERIFY(multiplayerConnectionAllowed(localIdentity,"nearby"));QVERIFY(!multiplayerConnectionAllowed(localIdentity,"online"));
+        request.expected=localIdentity;auto local=flycast::command(r,request);QVERIFY(local.prepare(local,cancel).isEmpty());local.settled={};
+        request.online=true;auto unavailable=flycast::command(r,request);QVERIFY(!unavailable.prepare(unavailable,cancel).isEmpty());
+        request.online=false;
+        manifest["onlineRelay"]="";save();QCOMPARE(flycast::netplayIdentity(r,cancel),localIdentity);
+        for(const auto invalid:{QJsonValue(42),QJsonValue("https://invalid.example")}) {
+            manifest["onlineRelay"]=invalid;save();QVERIFY(flycast::bundle(cancel).isEmpty());
+        }
+        manifest["onlineRelay"]="udp://relay.example.invalid:8001";save();request.expected=identity;
         request.address="invalid\naddress";auto bad=flycast::command(r,request);QVERIFY(!bad.prepare(bad,cancel).isEmpty());
         request.online=true;request.key="abc\n12";bad=flycast::command(r,request);QVERIFY(!bad.prepare(bad,cancel).isEmpty());
         request.key="Ab12cD";content[40]=1;write(rom,content);bad=flycast::command(r,request);QVERIFY(!bad.prepare(bad,cancel).isEmpty());

@@ -110,7 +110,7 @@ private:
     using ScannedGame = QPair<QString,QJsonObject>;
     QFutureWatcher<ScannedGame> scan_{this};
     QNetworkAccessManager network_{this};QTimer timer_{this};
-    QString trainer_,identity_,game_,status_,transportPeer_,lastRequest_;
+    QString trainer_,identity_,game_,status_,transportPeer_,lastRequest_,scanPriority_;
     QJsonObject descriptor_;
     QMap<QString,QJsonObject> profiles_,games_;
     QStringList onlineGames_,nearbyGames_,multiplayerGames_;

@@ -1,5 +1,17 @@
 # TrainerOS Roadmap
 
+**12 October Dreamcast delivery:** separate Flycast Dojo bundles now run on
+Flip/Odin. Soul Calibur reached independent-input fights through native Nearby
+and the upstream public Finnish relay. Ordinary Online friend invitation,
+fresh-progress consent, save/leave, Home/minimize and repeated launch/guest Exit
+passed; the final bundle automatically closes the peer too. Both temporary
+sessions were cleaned and bounded ordinary-save hashes are unchanged. The
+launched game now takes priority over a pending compatibility scan. Physical,
+sustained/wider-game, distinct-network and public-relay release dependency gates
+remain open. [Evidence](emulators/flycast.md#handheld-runtime-continuation---12-october-2026).
+Next: actual PS2 candidate feasibility and ordered Hotseat; retain DS/Wii/3DS/
+Wii U/Vita and other accepted gates, excluding PS3/Switch. No issue is closed.
+
 **12 October N64 Nearby delivery:** the portable native RMG bundle is installed
 on Flip/Odin. Mario Kart 64 reached a paired race with independent virtual-pad
 input; ordinary Nearby invitation, save/leave barrier, Home, minimize and guest

@@ -119,6 +119,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         launchPending_=false;relaySent_=true;status_="Opening Nintendo 64 multiplayer...";
     });
     connect(&scan_,&QFutureWatcherBase::resultReadyAt,this,[this](int index){
+        if(scan_.isCanceled())return;
         const auto result=scan_.resultAt(index);
         profiles_.insert(result.first,result.second);
         refresh(installation_,trainer_,allowed_);
@@ -241,12 +242,18 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
         capacities.insert(r.adventure.id,capacity);
         revision=qHashMulti(revision,r.adventure.id,stamp(r.contentPath),r.revision,core,capacity);
     }
+    const auto playing=process_.runtimeControls()["game"].toString();
+    if(scan_.isRunning()&&!playing.isEmpty()&&playing!=scanPriority_&&capacities.contains(playing)&&!profiles_.contains(playing)) {
+        scan_.cancel();scanRevision_=0;
+    }
     if(!revision)revision=1;
+    // Library discovery can finish while an older disc scan is still running.
+    // Retire it at the next file boundary instead of hashing the obsolete list.
+    if(scan_.isRunning()&&scanRevision_!=revision)scan_.cancel();
     if(!scan_.isRunning() && (scanRevision_!=revision||!scanRevision_)) {
-        scanRevision_=revision;
+        scanRevision_=revision;scanPriority_=playing;
         profiles_.clear();
         auto ordered=records;
-        const auto playing=process_.runtimeControls()["game"].toString();
         std::stable_sort(ordered.begin(),ordered.end(),[&](const auto& a,const auto& b){
             if((a.adventure.id==playing)!=(b.adventure.id==playing))return a.adventure.id==playing;
             return QFileInfo(a.contentPath).size()<QFileInfo(b.contentPath).size();

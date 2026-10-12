@@ -1,9 +1,10 @@
 # Multiplayer preparation and device continuation
 
 **12 October installed continuation:** DS now has ordinary two-player Nearby
-and Online friend delivery, and N64 has ordinary Nearby delivery on both
-handhelds. Their native gameplay evidence and exact limits are recorded in
-[melonDS](emulators/melonds.md) and [RMG](emulators/RMG.md). N64's public operator
+and Online friend delivery, N64 has ordinary Nearby delivery, and Dreamcast
+has installed native Nearby/public-relay gameplay plus ordinary Online friend
+invitation/Home/exit. Evidence and limits are recorded in [melonDS](emulators/melonds.md),
+[RMG](emulators/RMG.md) and [Flycast](emulators/flycast.md). N64's public operator
 service remains missing; its library badge and admission explicitly say Nearby.
 These records supersede older source/build-only statements below. Keep all other
 accepted routes, both Hotseat modes, Wii U and Vita in scope; PS3/Switch excluded.
@@ -49,11 +50,11 @@ See [maintenance and remaining delivery](emulators/flycast.md).
 | --- | --- | --- |
 | Classic RetroArch | Shared-console netplay and existing relay | Integrated; retained acceptance is in RETROARCH_MULTIPLAYER_PROFILES.md |
 | GB/GBC/GBA | Existing linked cores / gpSP netpacket | Integrated bounded routes; remaining MP-02 modes and acceptance stay open |
-| PS1 | PCSX ReARMed with the existing RetroArch route | Source implementation and local checks: private BIOS/disc identity, two digital controller ports and private cards; no handheld delivery yet |
+| PS1 | PCSX ReARMed with the existing RetroArch route | Installed on Flip/Odin; CTR reached a paired race with independent pads and ordinary Nearby/Home flow. Ordered P1 handoff and retained network/physical gates remain open ([record](MULTIPLAYER_DEVICE_RECHECK_20261011.md)) |
 | N64 | RMG / Mupen64Plus native server | Installed Nearby invitations/Home/exit and paired native Mario Kart 64 on Flip/Odin; operator Online service, larger groups, wider games and physical/network acceptance remain open ([record](emulators/RMG.md)) |
-| Dreamcast | Flycast Dojo native relay / GGPO | CHD two-player invitation/isolated-launch source integration; full Linux/ARM64 runtime, operator relay, device/gameplay acceptance pending ([record](emulators/flycast.md)) |
+| Dreamcast | Flycast Dojo native relay / GGPO | Installed CHD route; native Soul Calibur Nearby/public-relay fights and ordinary Online invitation/Home/peer exit passed. Fresh temporary VMUs; wider games, distinct networks, physical input/audio and relay release review remain open ([record](emulators/flycast.md)) |
 | PS2 | ARMSX2/PCSX2 game networking; shared-console mode is separate | DEV9 networking does not provide remote second-controller gameplay |
-| GameCube/Wii | Extend existing Dolphin native netplay bridge | Generic raw GameCube ISO/GCM admission implemented and locally checked. Exact Melee remains. Wii input route and device delivery remain open |
+| GameCube/Wii | Extend existing Dolphin native netplay bridge | Generic raw GameCube ISO/GCM admission implemented; Melee paired gameplay/Home and Auto Modellista identity admission checked on updated devices. Wii input route, ordered handoff and retained acceptance remain open |
 | DS | WatermelonDS DetMP reused on pinned desktop melonDS | Installed two-player Nearby/Online flow, native race/soak and protected own-save return on Flip/Odin; four players, broader compatibility, frontend polish and physical/distinct-network acceptance remain open ([record](emulators/melonds.md)) |
 | PSP | Existing PPSSPP Ad Hoc / aemu relay | Generic raw-ISO invitation/launch preparation in source; exact Lumines evidence retained. Wider gameplay, private game-room admission, infrastructure and other formats remain open |
 | 3DS | Existing Azahar room networking | Integration remains open |

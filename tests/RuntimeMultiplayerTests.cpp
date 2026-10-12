@@ -45,7 +45,7 @@ class RuntimeMultiplayerTests final : public QObject {
             QObject::connect(&lifecycle.exitController(),&AdventureExitController::gracefulExitRequested,&view,
                 [this](quint64){QFile f(dir.filePath("control"));if(f.open(QIODevice::WriteOnly))f.write("exit");});
         }
-        bool start(bool finalizerFails=false) {
+        bool start(bool finalizerFails=false,QString game={}) {
 #ifdef Q_OS_WIN
             const auto name="trainer_process_probe.exe";
 #else
@@ -53,6 +53,7 @@ class RuntimeMultiplayerTests final : public QObject {
 #endif
             ProcessCommand command{QDir(QCoreApplication::applicationDirPath()).filePath(name),
                 {"controlled",dir.filePath("control"),dir.filePath("pid")},{}};
+            if(!game.isEmpty())command.runtimeControls={{"game",game}};
             if(finalizerFails)command.finalize=[](const ProcessOutcome&){return QString("Save recovery required");};
             return lifecycle.launch(command,{},"ordinary",AdventureSavePolicy::ManualConfirm);
         }
@@ -281,6 +282,7 @@ private slots:
         f.library.records={first,pending};
         // Keep the worker unfinished to exercise result delivery rather than
         // relying on the relative speed of small and large files on this host.
+        f.runtime.refresh({},"test-trainer",true);QTRY_VERIFY(!f.runtime.scan_.isRunning());
         QPromise<RuntimeMultiplayer::ScannedGame> scan;
         scan.start();f.runtime.scan_.setFuture(scan.future());
         f.runtime.refresh({},"test-trainer",true);
@@ -304,6 +306,30 @@ private slots:
         QCoreApplication::processEvents();
         QVERIFY(f.runtime.onlineGames().isEmpty());
         scan.finish();QTRY_VERIFY(!f.runtime.scan_.isRunning());
+    }
+    void launchedUncheckedGameMovesAheadOfPendingLibraryScan() {
+        Fixture f;AdventureRegistration game;game.adventure.id="newly-launched";game.adventure.platformId="nes";
+        game.integrationConfig["core"]="fceumm";f.library.records={game};
+        f.runtime.refresh({},"test-trainer",true);QTRY_VERIFY(!f.runtime.scan_.isRunning());
+        QPromise<RuntimeMultiplayer::ScannedGame> scan;scan.start();f.runtime.scan_.setFuture(scan.future());
+        f.runtime.refresh({},"test-trainer",true);QVERIFY(!scan.isCanceled());
+        QVERIFY(f.start(false,game.adventure.id));QTRY_COMPARE(f.lifecycle.state(),"running");
+        f.runtime.refresh({},"test-trainer",true);QVERIFY(scan.isCanceled());scan.finish();
+        QTRY_COMPARE(f.runtime.scanPriority_,game.adventure.id);QTRY_VERIFY(!f.runtime.scan_.isRunning());
+        finishOrdinary(f);
+    }
+    void changedLibraryRetiresObsoleteDiscScan() {
+        Fixture f;AdventureRegistration first;first.adventure.id="old";first.adventure.platformId="nes";
+        first.integrationConfig["core"]="fceumm";f.library.records={first};
+        f.runtime.refresh({},"test-trainer",true);QTRY_VERIFY(!f.runtime.scan_.isRunning());
+        const auto revision=f.runtime.scanRevision_;
+        QPromise<RuntimeMultiplayer::ScannedGame> scan;scan.start();f.runtime.scan_.setFuture(scan.future());
+        f.runtime.refresh({},"test-trainer",true);QVERIFY(!scan.isCanceled());
+        auto added=first;added.adventure.id="newly-discovered";f.library.records.append(added);
+        f.runtime.refresh({},"test-trainer",true);QVERIFY(scan.isCanceled());
+        QVERIFY(!scan.addResult({"old",retroarch::netplayProfile("nes","fceumm",QString(64,'a'))}));
+        scan.finish();QTRY_VERIFY(f.runtime.scanRevision_!=revision);
+        QTRY_VERIFY(!f.runtime.scan_.isRunning());QVERIFY(f.runtime.multiplayerGames().isEmpty());
     }
     void initTestCase() {
         QVERIFY(settings_.isValid());

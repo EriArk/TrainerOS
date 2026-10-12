@@ -121,6 +121,18 @@ class OverlayHelperTests(unittest.TestCase):
             (process / 'environ').write_bytes(b'TRAINEROS_RMG_SESSION=/private/session.json\0')
             self.assertTrue(supported_emulator_process(42, root))
 
+    def test_flycast_close_requires_an_owned_session_marker(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); process = root / '42'; process.mkdir()
+            for name in ('flycast', 'flycast-dojo'):
+                executable = process / 'exe'; executable.symlink_to('/bundle/bin/' + name)
+                for env, expected in ((b'OTHER=value\0', False),
+                                      (b'TRAINEROS_FLYCAST_SESSION=\0', False),
+                                      (b'TRAINEROS_FLYCAST_SESSION=private\0', True)):
+                    (process / 'environ').write_bytes(env)
+                    self.assertEqual(supported_emulator_process(42, root), expected)
+                executable.unlink()
+
     def test_core_thread_name_does_not_hide_the_owned_emulator(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);process=root/'42';process.mkdir()
