@@ -1,5 +1,10 @@
 # Multiplayer preparation and device continuation
 
+**Latest PS2 scope correction, 12 October:** native game online using ordinary
+ARMSX2 networking, plus ordinary Hotseat where supported. Stop the LRPS2
+shared-console experiment. This supersedes older PS2 both-input-mode and
+candidate-promotion requirements below. Other platforms retain their modes.
+
 **12 October installed continuation:** DS now has ordinary two-player Nearby
 and Online friend delivery, N64 has ordinary Nearby/private Online delivery, and Dreamcast
 has installed native Nearby/public-relay gameplay plus ordinary Online friend
@@ -29,7 +34,7 @@ checks or count a list of emulator candidates as implemented multiplayer.
 The table below is the current integration summary; dated sections afterwards
 retain their original preparation evidence. Private PSP, the comprehensive
 Hotseat catalogue and fine per-title compatibility work are deferred. Existing
-ordinary PSP is sufficient. PS2 remains required, including both input modes.
+ordinary PSP is sufficient. PS2 follows the latest native-online/Hotseat scope above.
 
 ## Scope and implementation state
 
@@ -61,7 +66,7 @@ See [maintenance and remaining delivery](emulators/flycast.md).
 | PS1 | PCSX ReARMed / existing RetroArch transport | Installed separate pads and ordinary exclusive P1 handoff, including relay evidence; physical/distinct-network acceptance remains ([record](emulators/pcsx-rearmed.md)) |
 | N64 | RMG / Mupen64Plus native server | Installed Nearby/private Online invitations/Home/minimize/peer exit and paired native/forced-relay Mario Kart 64 on Flip/Odin; larger groups, wider games, physical/distinct-network and production service acceptance remain open ([record](emulators/RMG.md)) |
 | Dreamcast | Flycast Dojo native relay / GGPO | Installed CHD route; native Soul Calibur Nearby/public-relay fights and ordinary Online invitation/Home/peer exit passed. Fresh temporary VMUs; wider games, distinct networks, physical input/audio and relay release review remain open ([record](emulators/flycast.md)) |
-| PS2 | Dedicated LRPS2 / existing RetroArch protocol | Common invitation, launch, temporary BIOS/cards and both input-mode preparation now exist in source. No playable bundle: bounded candidate still slow and guest unload crashes ([record](emulators/lrps2.md)) |
+| PS2 | Ordinary ARMSX2 native game networking / DEV9; ordinary Hotseat where supported | Installed network capability and TrainerOS native-online bindings remain unverified. LRPS2 shared-console experiment stopped after scope correction ([record](emulators/lrps2.md)) |
 | GameCube/Wii | Dolphin native NetPlay | Installed separate GameCube pads, ordinary GameCube P1 handoff and Wii two-player route; preserve wider-input and physical/distinct-network limits ([record](emulators/dolphin.md)) |
 | DS | WatermelonDS DetMP reused on pinned desktop melonDS | Installed two-player Nearby/Online flow, native race/soak and protected own-save return on Flip/Odin; four players, broader compatibility, frontend polish and physical/distinct-network acceptance remain open ([record](emulators/melonds.md)) |
 | PSP | PPSSPP native Ad Hoc / aemu relay | Ordinary Nearby/Online integration and Lumines evidence retained; sufficient for the current milestone. Private party admission and fine title work deferred ([record](emulators/ppsspp.md)) |

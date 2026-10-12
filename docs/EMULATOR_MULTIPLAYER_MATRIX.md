@@ -1,5 +1,11 @@
 # Emulator multiplayer coverage
 
+**Latest owner PS2 scope, 12 October:** native online through the games' own
+networking and ordinary Hotseat where supported. Inspect installed ARMSX2 DEV9
+and reuse the shared TrainerOS flow; keep native LAN and game-server online
+evidence distinct. The LRPS2 shared-console experiment is stopped, not the next
+runtime to repair/promote. PS2 networking and Hotseat remain unverified.
+
 **12 October N64 private Online delivery:** installed RMG now supports ordinary
 Nearby and Online friend invitations on Flip/Odin. Online uses the unchanged
 native protocol over private admitted channels; paired forced-relay Mario Kart

@@ -1,5 +1,13 @@
 # Current tasks
 
+**Owner PS2 correction, 12 October 2026 (latest):** use native game online through
+ordinary ARMSX2 networking and ordinary Hotseat where supported. The next PS2
+task is the installed DEV9 capability and shared invitation/launch binding;
+LAN and game-server online require distinct evidence. LRPS2 shared-console
+debugging/promotion is stopped. Earlier requirements to repair that candidate or
+deliver universal PS2 remote pad handoff are superseded. No working PS2 network
+session or Hotseat delivery is claimed; other platforms' accepted modes remain.
+
 **Owner priority, 12 October 2026:** missing universal platform connections and
 shared invitation/launch/input/Home/exit bindings are next; PS2 with both input
 modes remains required. Ordinary PSP is sufficient. Defer private PSP parties,

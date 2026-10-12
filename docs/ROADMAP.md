@@ -1,5 +1,15 @@
 # TrainerOS Roadmap
 
+**Owner PS2 correction, 12 October 2026 (latest):** PS2 means the games' native
+online multiplayer through the ordinary emulator's networking, plus ordinary
+Hotseat where supported. Stop the LRPS2/RetroArch shared-console experiment;
+repairing its rollback, speed or teardown is no longer the next PS2 task. Inspect
+the installed ARMSX2 DEV9 path and bind supported native networking to the common
+TrainerOS flow. Native LAN and game-server online are distinct capabilities;
+Hotseat is separate and must not imply universal remote pad handoff. Installed
+networking and gameplay remain unverified. This supersedes the PS2 requirements
+and candidate-promotion instructions below, not other platforms' delivered modes.
+
 **Owner active priority, 12 October 2026:** complete missing platform-wide
 multiplayer connections and bindings using existing emulator mechanisms and the
 shared invitation/launch/input/Home/exit services. PS2 remains required with both

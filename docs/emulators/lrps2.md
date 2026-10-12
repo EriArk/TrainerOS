@@ -1,5 +1,21 @@
 # LRPS2: PS2 shared-console candidate
 
+## Stopped experiment - latest owner correction, 12 October 2026
+
+The owner clarified PS2 scope: native online multiplayer in games that support
+it, plus ordinary Hotseat where available. LRPS2 shared-console synchronization
+is no longer the selected implementation. Do not resume candidate builds,
+paired probes or promotion based on the historical next steps below. Preserve
+the record and inactive source bindings; no production bundle was installed.
+
+The next route to inspect is ordinary ARMSX2 DEV9. Upstream has a
+[DEV9 Local Link adapter](https://github.com/ARMSX2/ARMSX2/blob/9d989ca933a85bb2f1d111fd3b9e5742ac7d2fbe/pcsx2/DEV9/LocalLinkAdapter.cpp);
+its source existence is not evidence that the installed Linux build connects.
+Native LAN forwarding and a game's online service are different routes. Verify
+the installed build and supported configuration before integration; retain
+personal cards and shared consent/Home/exit services. Hotseat needs its own
+supported game/input route and does not require reviving this experiment.
+
 ## Universal integration preparation ? 12 October 2026
 
 The PS2 family now has source bindings to the existing TrainerOS party scan,
