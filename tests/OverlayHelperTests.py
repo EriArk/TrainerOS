@@ -133,6 +133,19 @@ class OverlayHelperTests(unittest.TestCase):
                     self.assertEqual(supported_emulator_process(42, root), expected)
                 executable.unlink()
 
+    def test_azahar_close_requires_managed_launch_or_private_room(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);process=root/'42';process.mkdir()
+            (process/'exe').symlink_to('/bundle/bin/azahar')
+            for env,expected in ((b'OTHER=value\0',False),
+                (b'TRAINEROS_AZAHAR_MANAGED=0\0',False),
+                (b'TRAINEROS_AZAHAR_MANAGED=1extra\0',False),
+                (b'TRAINEROS_AZAHAR_MANAGED=1\0',True),
+                (b'TRAINEROS_AZAHAR_SESSION=\0',False),
+                (b'TRAINEROS_AZAHAR_SESSION=/private/session.json\0',True)):
+                (process/'environ').write_bytes(env)
+                self.assertEqual(supported_emulator_process(42,root),expected)
+
     def test_core_thread_name_does_not_hide_the_owned_emulator(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);process=root/'42';process.mkdir()

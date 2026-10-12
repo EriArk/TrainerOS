@@ -258,13 +258,14 @@ int main(int argc, char* argv[]) {
         };
         const auto melonDsInstallation = standaloneInstallation("melonds");
         StandaloneAdapter melonDs("melonds", activeLibrary, melonDsInstallation);
+        StandaloneAdapter azahar("azahar", activeLibrary, standaloneInstallation("azahar"));
         StandaloneAdapter dolphin("dolphin", activeLibrary, standaloneInstallation("dolphin"));
         StandaloneAdapter ppsspp("ppsspp", activeLibrary, standaloneInstallation("ppsspp"));
         StandaloneAdapter armsx2("armsx2", activeLibrary, standaloneInstallation("armsx2"));
         struct SaveRuntimes { RetroArchInstallation retroarch; StandaloneInstallation melonds; };
         auto saveRuntimes = std::make_shared<std::atomic<std::shared_ptr<const SaveRuntimes>>>(
             std::make_shared<const SaveRuntimes>(SaveRuntimes{retroarchInstallation, melonDsInstallation}));
-        AdapterRouter adapters({&ppsspp, &armsx2, &melonDs, &dolphin, &retroarch});
+        AdapterRouter adapters({&ppsspp, &armsx2, &melonDs, &dolphin, &azahar, &retroarch});
         if (personalLibrary && !smoke) selectedAdapter = &adapters;
 #ifdef TRAINEROS_UI_TESTS
         ProbeAdventureAdapter probeAdapter;
@@ -700,6 +701,7 @@ int main(int argc, char* argv[]) {
                 const auto ds = standalone("melonds");
                 bool changed = retroarch.updateInstallation(next);
                 changed |= melonDs.updateInstallation(ds);
+                changed |= azahar.updateInstallation(standalone("azahar"));
                 changed |= dolphin.updateInstallation(standalone("dolphin"));
                 changed |= ppsspp.updateInstallation(standalone("ppsspp"));
                 changed |= armsx2.updateInstallation(standalone("armsx2"));
@@ -887,6 +889,7 @@ int main(int argc, char* argv[]) {
                     return requestAdventure(launch, id);
                 };
                 melonDs.requestLaunch = requestAdventure;
+                azahar.requestLaunch = requestAdventure;
                 dolphin.requestLaunch = requestAdventure;
                 ppsspp.requestLaunch = requestAdventure;
                 armsx2.requestLaunch = requestAdventure;

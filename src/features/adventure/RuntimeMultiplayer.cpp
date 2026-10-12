@@ -80,7 +80,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(active_&&hotseat()&&(!party_.active()||party_.state()["members"].toArray().size()!=2)) {
             fail("The other player left. The shared-controller game has ended.");return;
         }
-        if(active_&&(rmg()||flycast()||ds())&&!party_.active()) {fail("The game invitation ended.");return;}
+        if(active_&&(rmg()||flycast()||ds()||azahar())&&!party_.active()) {fail("The game invitation ended.");return;}
         if(!exitingInvitation_.isEmpty() && exitingInvitation_!=invitationId())cancelInvitationExit();
         if(!openingInvitation_.isEmpty() && openingInvitation_!=invitationId()) {
             openingInvitation_.clear();invitationOpenTimer_.stop();
@@ -166,7 +166,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         // when restarting ordinary play into a temporary multiplayer session.
         // Read without inserting a null transport into older descriptors: the
         // accepted identity must remain byte-for-byte equal at guest launch.
-        if(restarting_&&!psp()&&!dolphin()&&!rmg()&&!flycast()&&!ds()&&descriptor_.value("transport")!="netpacket"&&!descriptor_.value("id").toString().startsWith("runtime.retroarch."))
+        if(restarting_&&!psp()&&!dolphin()&&!rmg()&&!flycast()&&!ds()&&!azahar()&&descriptor_.value("transport")!="netpacket"&&!descriptor_.value("id").toString().startsWith("runtime.retroarch."))
             lifecycle_.exitController().confirm();
     });
     connect(&lifecycle_.exitController(),&AdventureExitController::returnToGameRequested,this,[this]{
@@ -187,7 +187,7 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
             if(host_)send({{"kind","psp-ready"},{"identity",descriptor_},{"address",request_.address}});
             relaySent_=true;deadline_=0;timer_.stop();status_="Choose Ad Hoc multiplayer in the game";return;
         }
-        if(host_&&online_&&!dolphin()&&!rmg()&&!flycast()&&!ds())pollRelay();
+        if(host_&&online_&&!dolphin()&&!rmg()&&!flycast()&&!ds()&&!azahar())pollRelay();
     });
     connect(&lifecycle_,&AdventureLaunchController::adventureFinished,this,[this](bool failed){
         if(!exitingInvitation_.isEmpty()) {
@@ -243,9 +243,9 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     const auto stamp=[](const QString& path){const QFileInfo f(path);return qHashMulti(0,path,f.size(),f.lastModified().toMSecsSinceEpoch());};
     quint64 revision=qHashMulti(0,stamp(installation.runtimeFile),stamp(installation.configFile),
         stamp(pspInstallation.runtimeFile),stamp(dolphin::bridgeFile()),stamp(dolphin::bridgeRoot()+"/bin/dolphin-tool"),stamp(dolphin::bridgeRoot()+"/manifest.json"),
-        stamp(installation.linkedSavePython),stamp(installation.linkedSaveHelper),stamp(rmg::bundleRoot()+"/manifest.json"),stamp(flycast::bundleRoot()+"/manifest.json"),stamp(melonds::bundleRoot()+"/manifest.json"));
+        stamp(installation.linkedSavePython),stamp(installation.linkedSaveHelper),stamp(rmg::bundleRoot()+"/manifest.json"),stamp(flycast::bundleRoot()+"/manifest.json"),stamp(melonds::bundleRoot()+"/manifest.json"),stamp(azahar::bundleRoot()+"/manifest.json"));
     for(auto it=installation.cores.cbegin();it!=installation.cores.cend();++it)revision=qHashMulti(revision,it.key(),stamp(it.value()));
-    const auto candidate=[](const AdventureRegistration& r){return r.adventure.platformId=="nds"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc"||r.adventure.platformId=="wii"||r.adventure.platformId=="n64"||r.adventure.platformId=="dreamcast"||
+    const auto candidate=[](const AdventureRegistration& r){return r.adventure.platformId=="n3ds"||r.adventure.platformId=="nds"||r.adventure.platformId=="psp"||r.adventure.platformId=="gc"||r.adventure.platformId=="wii"||r.adventure.platformId=="n64"||r.adventure.platformId=="dreamcast"||
         retroarch::netplaySupported(r.adventure.platformId,r.integrationConfig["core"].toString());};
     QMap<QString,int> capacities;
     QMap<QString,QVariantMap> metadata;
@@ -280,7 +280,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
             retroarch::NetplayDigestCache digests;
             for(const auto& r:ordered)if(candidate(r)) {
                 if(promise.isCanceled())break;
-                const auto identity=r.adventure.platformId=="nds"?melonds::netplayIdentity(r,cancel):r.adventure.platformId=="dreamcast"?flycast::netplayIdentity(r,cancel):r.adventure.platformId=="n64"?rmg::netplayIdentity(r,cancel,capacities.value(r.adventure.id,2)):(r.adventure.platformId=="gc"||r.adventure.platformId=="wii")?dolphin::netplayIdentity(r,dolphinInstallation,cancel,capacities.value(r.adventure.id,2)):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel,&digests,capacities.value(r.adventure.id,2));
+                const auto identity=r.adventure.platformId=="n3ds"?azahar::netplayIdentity(r,cancel):r.adventure.platformId=="nds"?melonds::netplayIdentity(r,cancel):r.adventure.platformId=="dreamcast"?flycast::netplayIdentity(r,cancel):r.adventure.platformId=="n64"?rmg::netplayIdentity(r,cancel,capacities.value(r.adventure.id,2)):(r.adventure.platformId=="gc"||r.adventure.platformId=="wii")?dolphin::netplayIdentity(r,dolphinInstallation,cancel,capacities.value(r.adventure.id,2)):r.adventure.platformId=="psp"?ppsspp::netplayIdentity(r,pspInstallation,cancel):retroarch::netplayIdentity(r,installation,cancel,&digests,capacities.value(r.adventure.id,2));
                 if(!identity.isEmpty())promise.addResult(ScannedGame{r.adventure.id,identity});
             }
         }));
@@ -557,7 +557,7 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     }
     ++sessionGeneration_;
     handoff_.stop();
-    rmgLobby_.stop();rmgPreparing_=false;rmgRequest_={};flycastRequest_={};dsRequest_={};
+    rmgLobby_.stop();rmgPreparing_=false;rmgRequest_={};flycastRequest_={};dsRequest_={};azaharRequest_={};
     stopLinkedTransfers();linkedPeers_.clear();linkedPreparing_=linkedPrepared_=false;linkedEndpoint_={};
     game_=game;descriptor_=selected;partySession_=true;active_=true;host_=host;relaySent_=false;
     transportPeer_=host?party_.state()["members"].toArray().at(1).toObject()["peer"].toString():party_.hostPeer();
@@ -581,9 +581,12 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
         }
     }
     request_.nickname="TrainerOS-"+randomToken().left(12);output_.clear();
-    deadline_=QDateTime::currentSecsSinceEpoch()+(ds()?180:dolphin()?150:75);timer_.start();
+    deadline_=QDateTime::currentSecsSinceEpoch()+((ds()||azahar())?180:dolphin()?150:75);timer_.start();
     dolphinRequest_={};dolphinRequest_.expected=selected;dolphinRequest_.host=host;dolphinRequest_.online=online_;
-    if(host&&ds()) {
+    if(host&&azahar()) {
+        azaharRequest_={selected,{},true,online_,randomToken()+randomToken(),nearby_.localAddressFor(transportPeer_.mid(7))};
+        prepareHost();
+    } else if(host&&ds()) {
         dsRequest_={selected,{},true,online_,randomToken()+randomToken(),nearby_.localAddressFor(transportPeer_.mid(7))};
         prepareHost();
     } else if(host&&flycast()) {
@@ -652,10 +655,18 @@ void RuntimeMultiplayer::resolvePspRelay() {
 void RuntimeMultiplayer::launch() {
     launchPending_=false;
     if(!active_)return; // A cancelled invitation must not launch a queued game.
-    deadline_=QDateTime::currentSecsSinceEpoch()+(ds()?180:dolphin()?150:75);timer_.start();
+    deadline_=QDateTime::currentSecsSinceEpoch()+((ds()||azahar())?180:dolphin()?150:75);timer_.start();
     const auto record=library_.registration(game_);
     if(!record){fail("The game is no longer in your library.");return;}
     if(!permitsMultiplayer(library_.artwork(game_),descriptor_)){fail("Multiplayer isn't available for this game.");return;}
+    if(azahar()) {
+        if(!requestRuntimeLaunch){fail("3DS multiplayer isn't ready on this device.");return;}
+        QStringList inputPrefix;const auto end=installation_.prefixArguments.indexOf("--");
+        if(end>=0)inputPrefix=installation_.prefixArguments.mid(0,end+1);
+        const auto result=requestRuntimeLaunch(azahar::command(*record,azaharRequest_,inputPrefix),game_);
+        if(!result.success)fail(result.message);
+        return;
+    }
     if(ds()) {
         if(!requestRuntimeLaunch||saveBackupRoot.isEmpty()||!resolveSaveTarget){fail("DS save protection isn't ready on this device.");return;}
         QStringList inputPrefix;const auto end=installation_.prefixArguments.indexOf("--");
@@ -779,10 +790,18 @@ void RuntimeMultiplayer::linkedTransferCompleted(int slot,QByteArray bytes) {
     if(host_)launch();else if(!linkedEndpoint_.isEmpty()){const auto endpoint=linkedEndpoint_;linkedEndpoint_={};frame(endpoint);}
 }
 void RuntimeMultiplayer::send(QJsonObject packet) {
-    if(partySession_){if(packet["kind"]=="ready"||packet["kind"]=="psp-ready"||packet["kind"]=="dolphin-ready"||packet["kind"]=="rmg-ready"||packet["kind"]=="flycast-ready"||packet["kind"]=="ds-ready")party_.ready(packet);return;}
+    if(partySession_){if(packet["kind"]=="ready"||packet["kind"]=="psp-ready"||packet["kind"]=="dolphin-ready"||packet["kind"]=="rmg-ready"||packet["kind"]=="flycast-ready"||packet["kind"]=="ds-ready"||packet["kind"]=="azahar-ready")party_.ready(packet);return;}
 }
 void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     if(!active_)return;
+    if(azahar()) {
+        if(host_||packet["kind"]!="azahar-ready"||lifecycle_.active()||launchPending_)return;
+        if(packet["identity"].toObject()!=descriptor_||packet["slot"]!=QJsonValue(2)) {
+            fail("Your 3DS game or invitation changed. Invite again.");return;
+        }
+        azaharRequest_={descriptor_,packet["connection"].toObject(),false,online_,packet["key"].toString(),nearby_.addressOf(transportPeer_.mid(7))};
+        launchPending_=true;launch();return;
+    }
     if(ds()) {
         if(host_||packet["kind"]!="ds-ready"||lifecycle_.active()||launchPending_)return;
         if(packet["identity"].toObject()!=descriptor_||packet["slot"]!=QJsonValue(2)) {
@@ -846,7 +865,7 @@ void RuntimeMultiplayer::frame(const QJsonObject& packet) {
     launchPending_=true;launch();
 }
 void RuntimeMultiplayer::pollRelay() {
-    if(psp()||dolphin()||rmg()||flycast()||ds()||query_||!active_||!host_||!online_||relaySent_||request_.relayEndpoint.isEmpty())return;
+    if(psp()||dolphin()||rmg()||flycast()||ds()||azahar()||query_||!active_||!host_||!online_||relaySent_||request_.relayEndpoint.isEmpty())return;
     // This is the upstream public directory, not an authenticated signalling
     // service. Passwords travel only through the accepted friend invitation.
     query_=true;QNetworkRequest request(QUrl("http://lobby.libretro.com/list/"));request.setTransferTimeout(7000);
@@ -870,6 +889,18 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
     output_+=bytes;
     while(output_.contains('\n')) {
         const auto end=output_.indexOf('\n');const auto line=output_.left(end);output_.remove(0,end+1);
+        if(azahar()) {
+            const auto event=azahar::event(line);
+            if(event["event"]=="ready"&&host_&&!relaySent_) {
+                const auto endpoint=event["endpoint"].toObject();
+                if(endpoint["mode"]!=(online_?"online":"nearby")){fail("The 3DS connection changed. Invite again.");return;}
+                relaySent_=true;send({{"kind","azahar-ready"},{"identity",descriptor_},{"key",azaharRequest_.identity},{"connection",endpoint}});
+                status_="Waiting for your friend...";
+            } else if(event["event"]=="running") {
+                deadline_=0;timer_.stop();status_="Playing together";emit changed();
+            } else if(event["event"]=="error") {fail("3DS multiplayer ended. You can invite again.");return;}
+            continue;
+        }
         if(ds()) {
             const auto event=melonds::event(line);
             if(event["event"]=="ready"&&host_&&!relaySent_) {
@@ -960,7 +991,7 @@ void RuntimeMultiplayer::fail(QString text) {
             if(!process_.runtimeCommand("hotseat-end"))text+=" Close the game from Game Options.";
         } else if(process_.active())process_.stop();
     }
-    rmgLobby_.stop();rmgPreparing_=false;rmgRequest_={};flycastRequest_={};dsRequest_={};
+    rmgLobby_.stop();rmgPreparing_=false;rmgRequest_={};flycastRequest_={};dsRequest_={};azaharRequest_={};
     client_.stop();
     stopLinkedTransfers();linkedPeers_.clear();linkedPreparing_=linkedPrepared_=false;linkedEndpoint_={};
     request_.ownSram.clear();request_.peerSrams.clear();

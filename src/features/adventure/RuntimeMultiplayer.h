@@ -11,6 +11,7 @@
 #include "integrations/adventure/standalone/RmgNetplay.h"
 #include "integrations/adventure/standalone/FlycastNetplay.h"
 #include "integrations/adventure/standalone/MelonDsNetplay.h"
+#include "integrations/adventure/standalone/AzaharNetplay.h"
 #include "platform/network/LocalLinkPeer.h"
 #include <QFutureWatcher>
 #include <QNetworkAccessManager>
@@ -87,6 +88,7 @@ private:
     void prepareRmg();
     bool rmg() const { return descriptor_["id"]=="runtime.rmg.n64.v1"; }
     bool flycast() const { return descriptor_["id"]=="runtime.flycast-dojo.dc.v1"; }
+    bool azahar() const { return descriptor_["id"]=="runtime.azahar.3ds.v1"; }
     bool ds() const { return descriptor_["id"]=="runtime.melonds.nds.v1"; }
     bool psp() const { return descriptor_["id"].toString().startsWith("runtime.ppsspp."); }
     bool dolphin() const { return descriptor_["id"].toString().startsWith("runtime.dolphin."); }
@@ -108,6 +110,7 @@ private:
     dolphin::NetplayRequest dolphinRequest_;
     flycast::Request flycastRequest_;
     melonds::Request dsRequest_;
+    azahar::Request azaharRequest_;
     rmg::Lobby rmgLobby_{this};
     rmg::Lobby::Request rmgRequest_;
     bool rmgPreparing_=false;

@@ -1,0 +1,28 @@
+{
+  "id": "runtime.azahar.3ds.v1",
+  "platform": "n3ds",
+  "romSha256": "",
+  "state": "partial",
+  "record": "../emulators/azahar.md",
+  "sourceRevision": "219d743a1e698101fe1ab8bef43e6563126c3c27",
+  "persistentSaveWrites": true,
+  "evidence": [
+    "pinned-2126.2-arm64-vulkan-installed-both-handhelds",
+    "native-minicraft3ds-nearby-and-forced-public-relay-gameplay",
+    "ordinary-online-invitation-solo-consent-home-minimize-same-pid-bilateral-exit",
+    "ordinary-own-host-world-save-and-other-family-baseline-preserved",
+    "usb-error-close-and-bounded-wan-batching-fixed"
+  ],
+  "remaining": [
+    "retail-effective-update-dlc-identity-and-game-compatibility",
+    "larger-groups-and-sustained-gameplay",
+    "operator-service-and-fresh-device-release",
+    "distinct-network-and-physical-audio-acceptance"
+  ],
+  "savePolicy": "Ordinary own Azahar NAND/SDMC only, including explicit custom paths. Private connection/UI settings; no peer save transfer, save-copy return or TrainerOS semantic save mutation.",
+  "implementationSource": "src/integrations/adventure/standalone/AzaharNetplay.cpp",
+  "implementation": "implementations/runtime",
+  "profile": "implementations/runtime/profiles/runtime.azahar.3ds.v1.json",
+  "recipe": "packaging/emulators/azahar/build.sh",
+  "evidenceBase": "../../../"
+}

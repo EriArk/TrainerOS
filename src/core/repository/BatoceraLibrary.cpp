@@ -21,7 +21,7 @@ const QHash<QString,QStringList>& formats() {
     static const auto value=[] {
       QHash<QString,QStringList> result{
         {"gb",{"gb","zip","7z"}}, {"gbc",{"gb","gbc","zip","7z"}}, {"gba",{"gba","zip","7z"}},
-        {"nds",{"nds","srl","zip","7z"}}, {"n3ds",{"3ds","cci","cxi","cia"}},
+        {"nds",{"nds","srl","zip","7z"}}, {"n3ds",{"3ds","cci","cxi","cia","3dsx"}},
         {"n64",{"n64","z64","v64","zip","7z"}}, {"gc",{"iso","gcm","rvz","gcz","ciso"}},
         {"wii",{"iso","rvz","gcz","wbfs","wad","ciso"}}, {"wiiu",{"wua","wud","wux","rpx"}},
         {"switch",{"nsp","xci","nro"}}, {"pokemini",{"min","zip","7z"}},

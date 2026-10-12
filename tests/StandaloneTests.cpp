@@ -2,6 +2,7 @@
 #include "integrations/adventure/standalone/StandaloneAdapter.h"
 #include "integrations/adventure/standalone/PpssppNetplay.h"
 #include "integrations/adventure/standalone/DolphinNetplay.h"
+#include "integrations/adventure/standalone/AzaharNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchAdapter.h"
 #include "core/storage/LocalStateStore.h"
 #include "core/navigation/AdventureLaunchController.h"
@@ -19,6 +20,7 @@
 #include <QScopeGuard>
 #include <QCryptographicHash>
 #include <QtEndian>
+#include <QSettings>
 
 using namespace trainer;
 class StandaloneTests final : public QObject {
@@ -36,6 +38,68 @@ class StandaloneTests final : public QObject {
         QFile file(path); QVERIFY(file.open(QIODevice::WriteOnly)); QCOMPARE(file.write(data), data.size());
     }
 private slots:
+    void azaharPreparationKeepsEachPlayersOwnStorageAndSettings() {
+#ifdef Q_OS_WIN
+        QSKIP("Native Linux bundle paths; covered on the ARM64 build.");
+#endif
+        QTemporaryDir dir;QVERIFY(dir.isValid());
+        const auto oldData=qgetenv("XDG_DATA_HOME"),oldConfig=qgetenv("XDG_CONFIG_HOME");
+        const bool oldMode=QStandardPaths::isTestModeEnabled();QStandardPaths::setTestModeEnabled(false);
+        qputenv("XDG_DATA_HOME",dir.filePath("data").toUtf8());qputenv("XDG_CONFIG_HOME",dir.filePath("config").toUtf8());
+        const auto restore=qScopeGuard([&]{
+            if(oldData.isNull())qunsetenv("XDG_DATA_HOME");else qputenv("XDG_DATA_HOME",oldData);
+            if(oldConfig.isNull())qunsetenv("XDG_CONFIG_HOME");else qputenv("XDG_CONFIG_HOME",oldConfig);
+            QStandardPaths::setTestModeEnabled(oldMode);
+        });
+        const auto root=azahar::bundleRoot();QVERIFY(root.startsWith(dir.path()+'/'));
+        QVERIFY(QDir().mkpath(root+"/bin"));QVERIFY(QDir().mkpath(root+"/transport/venv/bin"));
+        QVERIFY(QFile::copy(probe(),root+"/bin/azahar"));QVERIFY(QFile::copy(probe(),root+"/transport/venv/bin/python"));
+        write(root+"/transport/room-session.py","fixture coordinator");write(root+"/transport/secure-channel.py","fixture channel");
+        write(root+"/transport/requirements.lock","fixture dependencies");
+        const auto hash=[](const QString& path){QFile file(path);if(!file.open(QIODevice::ReadOnly))return QString();return QString::fromLatin1(QCryptographicHash::hash(file.readAll(),QCryptographicHash::Sha256).toHex());};
+        QJsonObject files;for(const auto& name:QStringList{"bin/azahar","transport/room-session.py","transport/secure-channel.py","transport/requirements.lock"})files[name]=hash(root+'/'+name);
+        write(root+"/manifest.json",QJsonDocument(QJsonObject{{"protocol",1},{"source",azahar::sourceRevision},
+            {"settings","native-room-two-private-v1"},{"files",files},{"interpreterSha256",hash(root+"/transport/venv/bin/python")}}).toJson());
+        AdventureRegistration r;r.adventure.id="homebrew";r.adventure.platformId="n3ds";r.adventure.adapterId="azahar";
+        r.contentPath=dir.filePath("game.3dsx");write(r.contentPath,QByteArray("3DSX")+QByteArray(1024,'x'));
+        std::atomic_bool cancel=false;const auto identity=azahar::netplayIdentity(r,cancel);QVERIFY(!identity.isEmpty());
+        QVERIFY(!identity["temporaryProgress"].toBool());
+        const auto own=dir.filePath("custom-progress");QVERIFY(QDir().mkpath(own+"/nand"));QVERIFY(QDir().mkpath(own+"/sdmc"));
+        write(own+"/sdmc/own-save","the owner's unchanged progress");
+        QVERIFY(QDir().mkpath(dir.filePath("config/azahar-emu")));
+        const auto configFile=dir.filePath("config/azahar-emu/qt-config.ini");
+        { QSettings original(configFile,QSettings::IniFormat);original.setValue("Data Storage/use_custom_storage",true);
+          original.setValue("Data Storage/nand_directory",own+"/nand");original.setValue("Data Storage/sdmc_directory",own+"/sdmc");
+          original.setValue("Controls/profile",3);original.setValue("Renderer/graphics_api",2);original.sync(); }
+        const auto configHash=hash(configFile),saveHash=hash(own+"/sdmc/own-save");
+        auto command=azahar::command(r,{identity,{},true,false,QString(64,'a'),"127.0.0.1"});
+        QCOMPARE(command.prepare(command,cancel),QString());
+        QFile network(command.workingDirectory+"/network.json");QVERIFY(network.open(QIODevice::ReadOnly));
+        const auto prepared=QJsonDocument::fromJson(network.readAll()).object();
+        QSettings privateConfig(prepared["user"].toString()+"/config/qt-config.ini",QSettings::IniFormat);
+        QCOMPARE(QDir::cleanPath(privateConfig.value("Data Storage/nand_directory").toString()),QFileInfo(own+"/nand").canonicalFilePath());
+        QCOMPARE(QDir::cleanPath(privateConfig.value("Data Storage/sdmc_directory").toString()),QFileInfo(own+"/sdmc").canonicalFilePath());
+        QCOMPARE(privateConfig.value("Controls/profile").toInt(),3);
+        QCOMPARE(hash(configFile),configHash);QCOMPARE(hash(own+"/sdmc/own-save"),saveHash);
+        write(root+"/transport/room-session.py","changed helper");QVERIFY(azahar::netplayIdentity(r,cancel).isEmpty());
+        auto stale=azahar::command(r,{identity,{},true,false,QString(64,'a'),"127.0.0.1"});
+        QVERIFY(!stale.prepare(stale,cancel).isEmpty());
+    }
+    void azaharEventsRejectUnboundedOrCrossRuntimeAdmission() {
+        const auto line=[](const QJsonObject& value){return QByteArray("TRAINEROS_3DS ")+QJsonDocument(value).toJson(QJsonDocument::Compact).toBase64();};
+        QCOMPARE(azahar::event(line({{"event","running"}}))["event"].toString(),QString("running"));
+        QVERIFY(azahar::event("[TrainerOSDs] running").isEmpty());
+        QVERIFY(azahar::event(line({{"event","running"},{"unexpected",true}})).isEmpty());
+        const QJsonObject endpoint{{"mode","nearby"},{"port",12345},{"fingerprint",QString(64,'a')},{"token",QString(32,'b')}};
+        QCOMPARE(azahar::event(line({{"event","ready"},{"endpoint",endpoint}}))["endpoint"].toObject(),endpoint);
+        auto bad=endpoint;bad["port"]=65536;
+        QVERIFY(azahar::event(line({{"event","ready"},{"endpoint",bad}})).isEmpty());
+        bad=endpoint;bad["fingerprint"]="";
+        QVERIFY(azahar::event(line({{"event","ready"},{"endpoint",bad}})).isEmpty());
+        QVERIFY(azahar::event(QByteArray("TRAINEROS_3DS ")+QByteArray(4096,'A')).isEmpty());
+        QVERIFY(azahar::event("TRAINEROS_3DS !!!").isEmpty());
+    }
+
     void dolphinGenericGameCubeIdentityKeepsNativeBridgeAndDiscChecks() {
         const bool previousTestMode=QStandardPaths::isTestModeEnabled();
         QStandardPaths::setTestModeEnabled(true);
@@ -295,6 +359,10 @@ private slots:
         EmulatorEnvironment env; env.home=dir.path();env.configHome=dir.filePath("config");
         env.stateDirectory=dir.filePath("state");env.libraryRoot=dir.filePath("roms");
         env.executables={{"PPSSPPSDL",probe()},{"retroarch",probe()},{"melonDS",probe()}};
+        QVERIFY(QDir().mkpath(env.home+"/.local/bin"));
+        const auto executableSuffix=QFileInfo(probe()).suffix();
+        QVERIFY(QFile::copy(probe(),env.home+"/.local/bin/azahar"+
+            (executableSuffix.isEmpty()?QString():'.'+executableSuffix)));
         env.controllerButtons={{"A",1},{"B",0},{"X",3},{"Y",2},{"L",4},{"R",5},
             {"Start",7},{"Select",6},{"Up",257},{"Down",260},{"Left",264},{"Right",258}};
         const auto cores=dir.filePath("config/retroarch/cores");QVERIFY(QDir().mkpath(cores));
@@ -308,6 +376,10 @@ private slots:
         QVERIFY(dsFile.readAll().contains("A = 1"));dsFile.close();
         const auto dsInstallation=StandaloneInstallation::fromJson(found.profiles["melonds"],"melonds");
         QVERIFY(dsInstallation.melonDsSaveBackups);QCOMPARE(dsInstallation.configFile,ds);
+        const auto az=dir.filePath("config/azahar-emu/qt-config.ini");QFile azFile(az);QVERIFY(azFile.open(QIODevice::ReadOnly));
+        const auto azInitial=azFile.readAll();azFile.close();QVERIFY(azInitial.contains("engine:sdl,maptype:all"));
+        QVERIFY(azInitial.contains("graphics_api=2"));QVERIFY(found.profiles.contains("azahar"));
+        write(az,"User 3DS controls and preferences\n");
         write(ra.configFile,"User settings must stay exactly as written\n");
         write(ds,"User controller preferences\n");
         env.executables["PPSSPPSDL"]=dir.filePath("different-runtime");
@@ -315,6 +387,7 @@ private slots:
         QCOMPARE(found.profiles["ppsspp"]["program"].toString(),probe()); // no silent save-namespace switch
         QVERIFY(config.open(QIODevice::ReadOnly));QCOMPARE(config.readAll(),"User settings must stay exactly as written\n");
         QVERIFY(dsFile.open(QIODevice::ReadOnly));QCOMPARE(dsFile.readAll(),"User controller preferences\n");
+        QVERIFY(azFile.open(QIODevice::ReadOnly));QCOMPARE(azFile.readAll(),"User 3DS controls and preferences\n");
         auto psp=StandaloneInstallation::fromJson(found.profiles["ppsspp"],"ppsspp");
         MockLibraryRepository library;StandaloneAdapter standalone("ppsspp",library,psp);AdapterRouter router({&standalone});
         AdventureRegistration game;game.adventure.adapterId="unconfigured";game.adventure.platformId="psp";game.contentPath="/roms/psp/Any game.iso";
@@ -445,6 +518,7 @@ private slots:
     }
     void literalLaunchRoundTripAndMissingFileRecovery_data() {
         QTest::addColumn<QString>("adapterId"); QTest::addColumn<QString>("platform"); QTest::addColumn<QString>("extension");
+        QTest::newRow("3DS") << QString("azahar") << QString("n3ds") << QString("3dsx");
         QTest::newRow("DS") << QString("melonds") << QString("nds") << QString("nds");
         QTest::newRow("PSP") << QString("ppsspp") << QString("psp") << QString("cso");
         QTest::newRow("PS2") << QString("armsx2") << QString("ps2") << QString("chd");
@@ -491,6 +565,7 @@ private slots:
         QTRY_COMPARE(restored.size(), 1); QCOMPARE(lifecycle.state(), "returned"); QCOMPARE(store.navigation(), context);
         QFile output(receipt); QVERIFY(output.open(QIODevice::ReadOnly));
         const auto arguments = adapterId == "melonds" ? QJsonArray{"-f", record.contentPath}
+            : adapterId == "azahar" ? QJsonArray{"-f", record.contentPath}
             : adapterId == "ppsspp" ? QJsonArray{"--fullscreen", "--pause-menu-exit", record.contentPath}
             : adapterId == "armsx2" ? QJsonArray{"-batch", "-fullscreen", "--", record.contentPath}
             : QJsonArray{"-b", "-C", "Dolphin.Display.Fullscreen=True", "-C", "Dolphin.Interface.ConfirmStop=False", "-e", record.contentPath};

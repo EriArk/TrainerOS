@@ -1,0 +1,18 @@
+--- a/src/input_common/gcadapter/gc_adapter.h
++++ b/src/input_common/gcadapter/gc_adapter.h
+@@ -138,11 +138,11 @@
+ 
+     std::thread adapter_input_thread;
+     std::thread adapter_scan_thread;
+-    bool adapter_input_thread_running;
+-    bool adapter_scan_thread_running;
+-    bool restart_scan_thread;
++    bool adapter_input_thread_running = false;
++    bool adapter_scan_thread_running = false;
++    bool restart_scan_thread = false;
+ 
+-    libusb_context* libusb_ctx;
++    libusb_context* libusb_ctx = nullptr;
+ 
+     u8 input_endpoint{0};
+     u8 output_endpoint{0};

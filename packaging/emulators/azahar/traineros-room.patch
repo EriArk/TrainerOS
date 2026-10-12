@@ -1,0 +1,47 @@
+--- a/src/citra_qt/citra_qt.cpp
++++ b/src/citra_qt/citra_qt.cpp
+@@ -4021,6 +4021,8 @@
+ }
+ 
+ bool GMainWindow::ConfirmClose() {
++    // TrainerOS already asked the player to save/leave. Preserve the stored setting.
++    if (qEnvironmentVariable("TRAINEROS_AZAHAR_MANAGED") == QStringLiteral("1")) return true;
+     if (!emu_thread || !UISettings::values.confirm_before_closing) {
+         return true;
+     }
+@@ -4499,7 +4501,10 @@
+ #endif
+ }
+ 
++#include "TrainerRoom.inc"
++
+ int LaunchQtFrontend(int argc, char* argv[]) {
++    if (!TrainerRoom::Prepare()) return 2;
+ #ifdef __APPLE__
+     // Ensure that the linker doesn't optimize qt_swizzle.mm out of existence.
+     QtSwizzle::Dummy();
+@@ -4569,4 +4574,5 @@
+ #endif
+ 
+     main_window.show();
++    TrainerRoom::Start(main_window, system);
+ 
+--- a/src/citra_qt/multiplayer/state.cpp
++++ b/src/citra_qt/multiplayer/state.cpp
+@@ -120,7 +120,7 @@
+     if (state == Network::RoomMember::State::Joined ||
+         state == Network::RoomMember::State::Moderator) {
+ 
+-        OnOpenNetworkRoom();
++        if (qEnvironmentVariableIsEmpty("TRAINEROS_AZAHAR_SESSION")) OnOpenNetworkRoom();
+         status_icon->setPixmap(QIcon::fromTheme(QStringLiteral("connected")).pixmap(16));
+         status_text->setText(tr("Connected"));
+         leave_room->setEnabled(true);
+@@ -136,6 +136,7 @@
+ }
+ 
+ void MultiplayerState::OnNetworkError(const Network::RoomMember::Error& error) {
++    if (!qEnvironmentVariableIsEmpty("TRAINEROS_AZAHAR_SESSION")) return;
+     LOG_DEBUG(Frontend, "Network Error: {}", Network::GetErrorStr(error));
+     switch (error) {
+     case Network::RoomMember::Error::LostConnection:

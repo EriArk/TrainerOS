@@ -1,5 +1,16 @@
 # TrainerOS Roadmap
 
+**12 October 3DS delivery:** matching Azahar 2126.2 is installed on Flip/Odin.
+Native Minicraft3DS wireless gameplay passed Nearby and a forced public relay;
+ordinary Online friend invitation separately passed solo consent/leave, shared
+world entry, own host save, Home/minimize/same-process return and bilateral Exit.
+Each participant owns its ordinary NAND/SDMC; no peer save exchange. Fixed native
+USB-error shutdown and distant-relay burst throttling. Two participants/one
+homebrew title do not prove retail/update/DLC parity, wider games or distinct
+networks. [Evidence, fingerprints and limits](emulators/azahar.md).
+Continue Wii U/Vita and retained service/admission/PS2/Hotseat catalogue gates.
+PS3/Switch remain excluded; no whole multiplayer issue is closed.
+
 **12 October Wii delivery:** separate emulated Wii Remotes now use ordinary
 invitations, consent, solo save/leave, native traversal and Home/minimize/Exit on
 Flip/Odin. NSMB Wii reached two-player World 1-1 with opposite independent input

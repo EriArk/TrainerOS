@@ -17,6 +17,7 @@ const QList<Route> routes{
     {"ppsspp", "org.ppsspp.PPSSPP", "PPSSPPSDL", {"PPSSPPSDL", "ppsspp"}, {"psp"}},
     {"armsx2", {}, "ARMSX2", {"ARMSX2", "armsx2"}, {"ps2"}},
     {"melonds", "net.kuribo64.melonDS", "melonDS", {"melonDS"}, {"nds"}},
+    {"azahar", "org.azahar_emu.Azahar", "azahar", {"azahar"}, {"n3ds"}},
     {"dolphin", "org.DolphinEmu.dolphin-emu", "dolphin-emu", {"dolphin-emu"}, {"gc", "wii"}},
     {"retroarch", "org.libretro.RetroArch", "retroarch", {"retroarch"}, {}}
 };
@@ -46,7 +47,7 @@ QString runtime(const Route& route, const EmulatorEnvironment& env) {
 }
 QString configDirectory(const Route& route, bool flatpak, const EmulatorEnvironment& env) {
     const auto base = flatpak ? QDir(env.home).filePath(".var/app/" + route.app + "/config") : env.configHome;
-    return QDir(base).filePath(route.id == "dolphin" ? "dolphin-emu" : route.id == "melonds" ? "melonDS" : route.id);
+    return QDir(base).filePath(route.id == "dolphin" ? "dolphin-emu" : route.id == "azahar" ? "azahar-emu" : route.id == "melonds" ? "melonDS" : route.id);
 }
 QByteArray dsDefaults(const EmulatorEnvironment& env) {
     QByteArray bytes = "# TrainerOS initial controller defaults; future user edits are preserved.\n"
@@ -69,7 +70,25 @@ QByteArray dolphinDefaults(const EmulatorEnvironment& env) {
         "D-Pad/Up = `Pad N`\nD-Pad/Down = `Pad S`\nD-Pad/Left = `Pad W`\nD-Pad/Right = `Pad E`\n";
 }
 void controllerDefaults(const Route& route, const QString& configDir, const EmulatorEnvironment& env, QStringList& notices) {
-    if (route.id == "melonds") {
+    if (route.id == "azahar") {
+        const auto config = QDir(configDir).filePath("qt-config.ini");
+        QByteArray bytes="[UI]\nfirstStart=false\nfirstStart\\default=false\nconfirmClose=false\nconfirmClose\\default=false\n"
+            "[Renderer]\ngraphics_api=2\ngraphics_api\\default=false\nresolution_factor=1\nresolution_factor\\default=false\n"
+            "[Layout]\nlayout_option=3\nlayout_option\\default=false\n"
+            "[Controls]\nprofiles\\size=1\nprofiles\\1\\name=TrainerOS\nprofiles\\1\\input_maptype=2\n";
+        const QMap<QByteArray,int> buttons{{"a",SDL_CONTROLLER_BUTTON_B},{"b",SDL_CONTROLLER_BUTTON_A},
+            {"x",SDL_CONTROLLER_BUTTON_Y},{"y",SDL_CONTROLLER_BUTTON_X},{"l",SDL_CONTROLLER_BUTTON_LEFTSHOULDER},
+            {"r",SDL_CONTROLLER_BUTTON_RIGHTSHOULDER},{"start",SDL_CONTROLLER_BUTTON_START},{"select",SDL_CONTROLLER_BUTTON_BACK},
+            {"up",SDL_CONTROLLER_BUTTON_DPAD_UP},{"down",SDL_CONTROLLER_BUTTON_DPAD_DOWN},
+            {"left",SDL_CONTROLLER_BUTTON_DPAD_LEFT},{"right",SDL_CONTROLLER_BUTTON_DPAD_RIGHT}};
+        for(auto it=buttons.cbegin();it!=buttons.cend();++it)bytes+="profiles\\1\\button_"+it.key()+"=\"api:controller,button:"
+            +QByteArray::number(it.value())+",engine:sdl,maptype:all,port:0\"\nprofiles\\1\\button_"+it.key()+"\\default=false\n";
+        bytes+="profiles\\1\\circle_pad=\"api:controller,axis_x:0,axis_y:1,engine:sdl,maptype:all,port:0\"\nprofiles\\1\\circle_pad\\default=false\n"
+            "profiles\\1\\c_stick=\"api:controller,axis_x:2,axis_y:3,engine:sdl,maptype:all,port:0\"\nprofiles\\1\\c_stick\\default=false\n"
+            "profiles\\1\\button_zl=\"api:controller,axis:4,direction:+,engine:sdl,maptype:all,port:0,threshold:0.5\"\nprofiles\\1\\button_zl\\default=false\n"
+            "profiles\\1\\button_zr=\"api:controller,axis:5,direction:+,engine:sdl,maptype:all,port:0,threshold:0.5\"\nprofiles\\1\\button_zr\\default=false\n";
+        if(!seed(config,bytes))notices<<"azahar: initial controls unavailable";
+    } else if (route.id == "melonds") {
         const auto config = QDir(configDir).filePath("melonDS.toml");
         if (env.controllerButtons.size() == 12 && !seed(config, dsDefaults(env))) notices << "melonds: initial controls unavailable";
         if (!exists(config)) notices << "melonds: controller defaults need a connected SDL controller";
@@ -162,17 +181,25 @@ EmulatorDiscovery prepareEmulators(const EmulatorEnvironment& env) {
         }
         QString program;
         for (const auto& name : route.names) if (executable(env.executables.value(name))) { program = env.executables.value(name); break; }
+        // The graphical Armada session has a deliberately short PATH. A
+        // selected per-user launcher must still be discoverable there, while
+        // explicit profiles and binaries already found on PATH keep priority.
+        if (program.isEmpty()) for (const auto& name : route.names) {
+            const auto local = QStandardPaths::findExecutable(name,
+                {QDir(env.home).filePath(".local/bin")});
+            if (executable(local)) { program = local; break; }
+        }
         QJsonArray arguments;
         QString runtimeFile = program;
         const bool flatpak = program.isEmpty() && executable(env.executables.value("flatpak")) && executable(runtime(route, env));
         if (flatpak) { program = env.executables.value("flatpak"); runtimeFile = runtime(route, env); arguments = {"run", route.app}; }
         if (program.isEmpty()) continue;
-        if ((route.id == "melonds" || route.id == "dolphin") && executable(env.executables.value("python3"))) {
+        if ((route.id == "melonds" || route.id == "dolphin" || route.id == "azahar") && executable(env.executables.value("python3"))) {
             const QStringList helpers{QDir(env.home).filePath(".local/libexec/traineros/controller-bridge.py"),
                 "/var/opt/traineros/integrations/controller-bridge.py"};
             for (const auto& helper : helpers) if (QFileInfo(helper).isFile()) {
                 QJsonArray wrapped{helper};
-                if (route.id == "melonds") wrapped.append("--pointer");
+                if (route.id == "melonds" || route.id == "azahar") wrapped.append("--pointer");
                 wrapped.append("--"); wrapped.append(program);
                 for (const auto& value : arguments) wrapped.append(value);
                 arguments = wrapped; program = env.executables.value("python3"); break;

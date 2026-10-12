@@ -13,6 +13,7 @@ namespace {
 QStringList allowedPlatforms(const QString& id) {
     if (id == "ppsspp") return {"psp"};
     if (id == "armsx2") return {"ps2"};
+    if (id == "azahar") return {"n3ds"};
     if (id == "melonds") return {"nds"};
     if (id == "dolphin") return {"gc", "wii"};
     return {};
@@ -20,6 +21,7 @@ QStringList allowedPlatforms(const QString& id) {
 QStringList extensions(const QString& platform) {
     if (platform == "psp") return {"iso", "cso", "pbp", "chd"};
     if (platform == "ps2") return {"iso", "chd", "cso", "bin", "gz"};
+    if (platform == "n3ds") return {"3dsx", "cci", "cxi"};
     if (platform == "nds") return {"nds"};
     if (platform == "gc") return {"iso", "gcm", "rvz"};
     if (platform == "wii") return {"iso", "rvz", "wbfs", "wad"};
@@ -100,6 +102,7 @@ std::optional<ProcessCommand> StandaloneAdapter::command(const Adventure& advent
         || !supports(record->adventure.platformId, record->contentPath)) return {};
     auto arguments = installation_.prefixArguments;
     if (id_ == "melonds") arguments << "-f" << record->contentPath;
+    else if (id_ == "azahar") arguments << "-f" << record->contentPath;
     else if (id_ == "ppsspp") arguments << "--fullscreen" << "--pause-menu-exit" << record->contentPath;
     else if (id_ == "armsx2") arguments << "-batch" << "-fullscreen" << "--" << record->contentPath;
     else if (id_ == "dolphin") arguments << "-b" << "-C" << "Dolphin.Display.Fullscreen=True"
