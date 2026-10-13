@@ -395,8 +395,13 @@ private slots:
         shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"communities");
         shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"friends");
         shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"lobby");
+        shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"recent");
         shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"chats");
-        shell.dispatch(Action::PreviousFace);QCOMPARE(shell.socialFace(),"lobby");
+        shell.dispatch(Action::PreviousFace);QCOMPARE(shell.socialFace(),"recent");
+        const auto recentNavigation=shell.navigationState();shell.selectFace(0);QCOMPARE(shell.socialFace(),"chats");
+        shell.restoreNavigation(recentNavigation);QCOMPARE(shell.socialFace(),"recent");
+        shell.keyboard()->begin("Message","",100);shell.selectFace(0);QCOMPARE(shell.socialFace(),"recent");shell.keyboard()->cancel();
+        shell.selectFace(-1);shell.selectFace(5);QCOMPARE(shell.socialFace(),"recent");
         shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"chats");
         shell.dispatch(Action::Back);QCOMPARE(shell.socialFace(),"chats");
         const auto checkpoint=shell.navigationState();

@@ -24,6 +24,7 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(&lobby_,&LobbyCoordinator::changed,this,[this]{
         lobbyPublishTimer_.start();
         syncLobbyChat();
+        recentTogether_.observe(lobby_.state(),QDateTime::currentSecsSinceEpoch());
         const auto invite=lobby_.invitation();const auto id=invite["lobby"].toString();
         if(!id.isEmpty()&&id!=presentedLobbyInvite_) {
             toastChannel_="lobby:"+id;toastTitle_=invite["name"].toString();toastText_="Invited you to a lobby";toastTimer_.start();
@@ -106,6 +107,7 @@ void SocialController::setOwner(QString owner) {
     lobby_.leave();publishLobby();lobby_.configure({}, {},false);lobbySearch_.clear();lobbyTopic_.clear();lobbySelection_.clear();lobbyActionFocus_=0;
     publishedLobby_.clear();lobbyPublicationVisible_=false;lobbyGames_.clear();
     lobbyPublicationTopic_="other";
+    recentTogether_.configure({},{});recentSelection_.clear();
     media_.clear();mediaSending_=mediaUncertain_=false;
     if(link_)link_->endOnline();
     runtimeOnline_=false;runtimeInvitation_.clear();gameActivities_.clear();companyParties_.clear();partyFocus_=false;emit partyReset();emit runtimeEnded();
@@ -123,7 +125,7 @@ void SocialController::setFace(QString face) {
     if(face=="groups")face="chats";
     closeMenu();
     partyFocus_=false;partyIndex_=0;selection_.stop();face_=std::move(face);focus_=0;menu_.clear();reading_=false;contacts_=false;
-    if(face_!="lobby")emit commandRequested("face",{{"face",requestedFace}});
+    if(face_!="lobby"&&face_!="recent")emit commandRequested("face",{{"face",requestedFace}});
     if(face_=="friends"&&!searchStarted_&&snapshot_["state"]=="connected")runSearch();
     if(face_=="lobby") {emit commandRequested("lobby-directory-refresh",{});openLobbyChat();}
     emit changed();
@@ -460,6 +462,15 @@ QVariantList SocialController::hints() const {
     QVariantList result;
     auto h=[&](QString key,QString label){result.append(QVariantMap{{"button",key},{"label",label}});};
     if(!menu_.isEmpty()){h("A",menuMode_=="create-group"?"Choose friend":"Choose");if(menuMode_=="create-group"&&!pickedPeople_.isEmpty())h("Y","Create group");h("B","Close");return result;}
+    if(face_=="recent") {
+        if(!recentPeople().isEmpty()) {
+            if(snapshot_["state"]=="connected")h("A","Profile");
+            const auto row=recentPeople().value(recentFocus()).toMap();
+            if(row["canAdd"].toBool())h("X",row["friendLabel"].toString());
+            h("Select","Options");
+        }
+        return result;
+    }
     if(snapshot_["state"]=="restoring")return result;
     if(snapshot_.value("state")=="authorizing"){h("B","Cancel sign-in");return result;}
     if(snapshot_.value("state")=="signed-out"||snapshot_.isEmpty()){if(!owner_.isEmpty())h("A","Sign in");return result;}
@@ -942,6 +953,7 @@ void SocialController::confirmAction(QString title,QString operation,QString id)
 void SocialController::selectMenu(int index) {
     if(index<0||index>=menuCommands_.size()||snapshot_["mutationBusy"].toBool())return;
     const auto command=menuCommands_[index];
+    if(command=="recent-forget") {closeMenu();recentAction("forget");return;}
     if(command.startsWith("lobby:")){closeMenu();lobbyAction(command.mid(6));return;}
     if(joinChoices_.contains(command)) {
         const auto choice=joinChoices_.value(command);const auto peer=choice["peer"].toString();const auto current=joinOffer(peer);
@@ -1096,6 +1108,7 @@ void SocialController::dispatch(Action action) {
         }
         emit changed();return;
     }
+    if(face_=="recent") {dispatchRecent(action);return;}
     if(snapshot_.value("state")=="authorizing") {if(action==Action::Back)emit commandRequested("cancel-login",{});return;}
     if(snapshot_.value("state")=="signed-out"||snapshot_.isEmpty()) {if(action==Action::Confirm)login();return;}
     if(face_=="lobby") {dispatchLobby(action);return;}
@@ -1176,9 +1189,10 @@ void SocialController::activateSearch(int index) {
     searchFocus_=index;emit commandRequested("search-action",{{"id",row["id"]}});emit changed();
 }
 void SocialController::bindDrafts(const QString& accountId) {
-    if(owner_.isEmpty())return;
+    if(owner_.isEmpty()) {recentTogether_.configure({},accountId);return;}
     const auto key=QString::fromLatin1(QCryptographicHash::hash(("https://fluxer.app\n"+owner_+"\n"+accountId).toUtf8(),QCryptographicHash::Sha256).toHex());
     const auto file=QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/social/"+key+"/drafts.json";
+    recentTogether_.configure(QFileInfo(file).absolutePath()+"/recent-together.json",accountId);
     if(file==draftFile_)return;
     saveDrafts();drafts_.clear();draftFile_=file;
     QFile input(file);if(QFileInfo(file).isSymLink()||input.size()>1024*1024||!input.open(QIODevice::ReadOnly))return;

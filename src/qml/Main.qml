@@ -178,9 +178,11 @@ Window {
             Repeater {model:shell.faceNames.length > 6 ? [] : shell.faceNames
                 Text {
                     required property int index;required property string modelData
+                    objectName: "face-tab-" + index
                     text:modelData;color:shell.faceIndex===index?Theme.ink:Theme.muted
                     font.family:Theme.displayFamily;font.pixelSize:15;font.bold:shell.faceIndex===index
                     Rectangle {anchors.left:parent.left;anchors.right:parent.right;anchors.bottom:parent.bottom;anchors.bottomMargin:-3;height:2;color:Theme.focusGlow;visible:shell.faceIndex===index}
+                    MouseArea { anchors.fill: parent; anchors.topMargin: -5; anchors.bottomMargin: -8; enabled: shell.page === 4 && shell.pairedNavigationAvailable; onClicked: shell.selectFace(index) }
                 }
             }
         }

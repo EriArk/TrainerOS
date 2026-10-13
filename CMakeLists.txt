@@ -29,9 +29,11 @@ add_library(trainer_core STATIC
     src/platform/storage/EncryptedCredentials.cpp
     src/features/social/SocialController.cpp
     src/features/social/SocialLobby.cpp
+    src/features/social/SocialRecent.cpp
     src/features/social/LobbySession.cpp
     src/features/social/LobbyCoordinator.cpp
     src/features/social/LobbyRuntime.cpp
+    src/features/social/RecentTogether.cpp
     src/platform/network/NearbyService.cpp
     src/platform/device/ClockService.cpp
     src/features/settings/ClockController.cpp
@@ -360,6 +362,7 @@ qt_add_qml_module(traineros
         src/qml/ConversationPane.qml
         src/qml/SocialPage.qml
         src/qml/LobbyPane.qml
+        src/qml/RecentTogetherPane.qml
         src/qml/SocialIconButton.qml
         src/qml/TrainerEmblem.qml
         src/qml/SeriesPage.qml

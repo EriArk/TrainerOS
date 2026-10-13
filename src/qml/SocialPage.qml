@@ -3,7 +3,7 @@ import QtQuick
 FocusScope {
     id: root
     required property var shell
-    readonly property int faceIndex: ["chats","communities","friends","lobby"].indexOf(shell.socialFace)
+    readonly property int faceIndex: ["chats","communities","friends","lobby","recent"].indexOf(shell.socialFace)
     readonly property var social: shell.social
     readonly property var account: social.account
     readonly property bool connected: account.state === "connected" || account.state === "connecting"
@@ -17,13 +17,18 @@ FocusScope {
         social: root.social; takesFocus: root.takesFocus && visible
         onMenuAnchored: item => root.anchorMenu(item)
     }
+    RecentTogetherPane {
+        anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
+        visible: root.faceIndex === 4
+        social: root.social; takesFocus: root.takesFocus && visible
+    }
     onTakesFocusChanged: if (takesFocus) forceActiveFocus()
     Component.onCompleted: if (takesFocus) forceActiveFocus()
     PageHeader {
         id: heading
         visible: !root.connected || root.faceIndex >= 2
         height: visible ? implicitHeight : 0
-        title: [root.social.contacts ? "Friends" : "Messages", "Communities", "Discover", "Lobby"][root.faceIndex]
+        title: [root.social.contacts ? "Friends" : "Messages", "Communities", "Discover", "Lobby", "Recently together"][root.faceIndex]
         subtitle: root.connected ? (root.account.name || "") + " · " + (root.faceIndex === 1 && root.account.communityStatus ? root.account.communityStatus : root.account.status || "") : "A little closer, wherever you are."
         Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering;
             anchors { right: parent.right; rightMargin: Theme.pageMargin; bottom: parent.bottom }
@@ -32,7 +37,7 @@ FocusScope {
     }
     Item {
         anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
-        visible: !root.connected
+        visible: !root.connected && root.faceIndex !== 4
         Rectangle { anchors.fill: parent; color: "#edf2e4" }
         Rectangle { width: parent.width * 0.36; height: parent.height; color: "#d3e5dd"; border.color: "#b0c6b9" }
         Item {

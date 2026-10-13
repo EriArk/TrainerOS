@@ -10,6 +10,7 @@
 #include "SocialMedia.h"
 #include "LobbyCoordinator.h"
 #include "LobbyRuntime.h"
+#include "RecentTogether.h"
 #include <QJsonArray>
 
 namespace trainer {
@@ -31,6 +32,8 @@ class SocialController final : public QObject {
     Q_PROPERTY(bool lobbyChatVisible READ lobbyChatVisible NOTIFY changed)
     Q_PROPERTY(QString lobbyChatStatus READ lobbyChatStatus NOTIFY changed)
     Q_PROPERTY(QString lobbyPreparationStatus READ lobbyPreparationStatus NOTIFY changed)
+    Q_PROPERTY(QVariantList recentPeople READ recentPeople NOTIFY changed)
+    Q_PROPERTY(int recentFocus READ recentFocus NOTIFY changed)
     Q_PROPERTY(QString conversationName READ conversationName NOTIFY changed)
     Q_PROPERTY(bool conversation READ conversation NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
@@ -91,6 +94,10 @@ public:
     Q_INVOKABLE void editLobbySearch();
     Q_INVOKABLE void openLobby();
     void openLobbyForGame(const QString& key);
+    QVariantList recentPeople() const;
+    int recentFocus() const;
+    Q_INVOKABLE void selectRecent(int index);
+    Q_INVOKABLE void recentAction(QString action);
     void setLobbyGames(QVariantList games);
     LobbyCoordinator* lobbyCoordinator() {return &lobby_;}
     LobbyRuntime* lobbyRuntime() {return &lobbyRuntime_;}
@@ -237,6 +244,9 @@ signals:
     void backgroundNotification(QString title,QString text);
     void reviewsChanged(QString identity,QVariantMap state);
 private:
+    void dispatchRecent(Action action);
+    RecentTogether recentTogether_;
+    QString recentSelection_;
     void dispatchLobby(Action action);
     void publishLobby();
     void syncLobbyChat();

@@ -1158,6 +1158,17 @@ void FluxerSession::command(QString operation, QVariantMap args) {
         }
         sendText(channel_,content,QUuid::createUuid().toString(QUuid::Id128));return;
     }
+    // The local encounter list supplies this identity only after actual shared
+    // lobby membership. POST also accepts an incoming request; never unblock or
+    // replace an existing relationship from this action.
+    if(operation=="recent-add") {
+        const auto type=relationships_.value(id)["type"].toInt();
+        if(!idValid(id)||id==self_||type==1||type==2||type==4)return;
+        request("POST","/v1/users/@me/relationships/"+id,{},[this](Reply reply){
+            if(reply.status>=200&&reply.status<300) {status_="Friend request updated";refresh();publish();}
+            else fail(reply,"Could not add this person. Check connection and friendship permissions.");
+        });return;
+    }
     if(operation=="add") {
         const auto tag=args["text"].toString().trimmed();const auto split=tag.lastIndexOf('#');
         if(split<1||tag.size()-split!=5){status_="Enter username#1234";publish();return;}

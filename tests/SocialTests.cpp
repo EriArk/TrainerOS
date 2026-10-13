@@ -30,6 +30,47 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void recentTogetherPersistsOnlyActualMeetingsAndIsolatesAccounts() {
+        QTemporaryDir dir;const auto path=dir.path()+"/recent.json";
+        RecentTogether history;history.configure(path,"1");
+        QJsonObject room{{"id","room"},{"members",QJsonArray{
+            QJsonObject{{"id","2"},{"name","Guest"},{"connected",true}}}}};
+        QVERIFY(!history.observe(room,100));QVERIFY(history.rows().isEmpty());
+        auto roster=room["members"].toArray();roster.append(QJsonObject{{"id","1"},{"name","Self"},{"connected",true}});
+        roster.append(QJsonObject{{"id","3"},{"name","Offline"},{"connected",false}});room["members"]=roster;
+        QVERIFY(history.observe(room,101));QCOMPARE(history.rows().size(),1);
+        QVERIFY(!history.observe(room,102));QCOMPARE(history.rows().first().toMap()["last"].toLongLong(),101);
+        RecentTogether reopened;reopened.configure(path,"1");QCOMPARE(reopened.rows(),history.rows());
+        reopened.configure(path,"other-account");QVERIFY(reopened.rows().isEmpty());
+        reopened.configure(path,"1");QVERIFY(reopened.observe(room,102));QVERIFY(reopened.forget("2"));
+        RecentTogether forgotten;forgotten.configure(path,"1");QVERIFY(forgotten.rows().isEmpty());
+        QVERIFY(!reopened.observe(room,103)); // A heartbeat must not undo Forget.
+        reopened.observe({},104);QVERIFY(reopened.observe(room,105)); // A new meeting may.
+    }
+    void recentTogetherRecordsAcceptedLobbyAndKeepsOfflineActionsLocal() {
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","2"},{"name","Guest"}});
+        LobbyCoordinator host;host.configure("1","Host",true);QVERIFY(host.create());
+        connect(&host,&LobbyCoordinator::outgoing,&c,[&](QString,QJsonObject p){c.lobby_.receive("1","Host",p);});
+        connect(&c.lobby_,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){host.receive("2","Guest",p);});
+        QVERIFY(host.invite("2"));QVERIFY(c.recentPeople().isEmpty());c.lobby_.answer(true);
+        QCOMPARE(c.recentPeople().size(),1);QCOMPARE(c.recentPeople().first().toMap()["id"].toString(),"1");
+        c.lobby_.leave();QCOMPARE(c.recentPeople().size(),1);c.setFace("recent");
+        QSignalSpy commands(&c,&SocialController::commandRequested);c.dispatch(Action::Secondary);
+        QCOMPARE(commands.last()[0].toString(),"recent-add");QCOMPARE(commands.last()[1].toMap()["id"].toString(),"1");
+        c.snapshot_["state"]="disconnected";commands.clear();c.recentAction("profile");c.recentAction("friend");QVERIFY(commands.isEmpty());
+        c.dispatch(Action::ContextMenu);c.selectMenu(0);QVERIFY(c.recentPeople().isEmpty());QVERIFY(commands.isEmpty());
+    }
+    void recentFriendActionPreservesFriendsRequestsAndBlocks() {
+        FluxerSession s;bind(s);int posts=0;
+        s.setTransport([&](auto method,auto path,auto,Completion done,QByteArray){
+            if(method=="POST") {++posts;QVERIFY(path.endsWith(QString("/relationships/")+remote));done({403,{}});}
+            else done({200,QJsonDocument(QJsonArray{})});
+        });
+        for(int type:{1,2,4}) {s.relationships_[remote]={{"type",type}};s.command("recent-add",{{"id",remote}});}
+        s.command("recent-add",{{"id","../invalid"}});s.command("recent-add",{{"id",s.self_}});QCOMPARE(posts,0);
+        s.relationships_.remove(remote);s.command("recent-add",{{"id",remote}});QCOMPARE(posts,1);
+        s.relationships_[remote]={{"type",3}};s.command("recent-add",{{"id",remote}});QCOMPARE(posts,2);
+    }
     void gameContextKeepsRoomAndRequiresDeliberateGameReplacement() {
         SocialController c;c.receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});
         c.setLobbyGames({QVariantMap{{"key","a"},{"id","a"},{"title","First"},{"platform","nes"},{"mode","netplay"},{"seats",2}},

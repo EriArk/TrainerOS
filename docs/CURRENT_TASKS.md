@@ -1,5 +1,13 @@
 # Current tasks
 
+**13 October Social follow-up:** Recently together is implemented as the fifth
+Social face after Lobby, with L2/R2 and direct touch selection, account-scoped
+local encounter history and explicit profile/friend actions. Automatic temporary
+friendship creation/acceptance/cleanup with durable ownership and Keep-as-friend
+remains the next core increment; existing friends/blocks/requests must survive.
+See [current behavior and target](LOBBY.md#недавно-вместе-и-временная-дружба--уточнение-13-октября-2026).
+Device delivery and live provider acceptance remain pending.
+
 **13 October source/server checkpoint:** the directory bot is running under the
 owner's main Fluxer community; live publish/move/restart/withdraw/republish/close
 passed. Shared lobby coordination, Social catalogue/inbox/Home/DM entry, seats and

@@ -165,6 +165,7 @@ public:
     bool pairedNavigationAvailable();
     QStringList faceNames() const;
     int faceIndex() const;
+    Q_INVOKABLE void selectFace(int index);
     QString currentAdventureId() const;
     bool menuOpen() const { return menuOpen_; }
     bool homeMenuOpen() const { return homeMenuOpen_; }

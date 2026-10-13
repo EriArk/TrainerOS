@@ -5,6 +5,7 @@
 #include <QQuickWindow>
 #include <QQuickItem>
 #include <QKeyEvent>
+#include <QMouseEvent>
 #include <QFile>
 #include <QTimer>
 #include <memory>
@@ -27,7 +28,7 @@ public:
         const auto press=[&input,joystick](SDL_GameControllerButton key){SDL_JoystickSetVirtualButton(joystick,key,1);input.poll();SDL_JoystickSetVirtualButton(joystick,key,0);input.poll();};
         const auto capture=[=](QString name){check(window->grabWindow().save(directory+"/"+name+".png"),"Capture "+name);};
         auto* timer=new QTimer(window);timer->setInterval(220);
-        QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&completed,&warnings,&diagnostics]() {
+        QObject::connect(timer,&QTimer::timeout,window,[=,&shell,&input,&completed,&warnings,&diagnostics]() {
             switch((*step)++) {
             case 0:
                 social->receive(0,{{"state","connected"},{"userId","1"},{"name","Host"},{"lobbyDirectory",QVariantMap{{"rows",QVariantList{}},{"status","No open lobbies yet."}}}});
@@ -75,8 +76,42 @@ public:
                 check(shell.keyboard()->text()=="q","Physical Backspace deletes one grapheme");
                 shell.keyboard()->cancel();window->resize(1280,720);break;
             case 8:capture("lobby-wide");window->resize(720,720);break;
-            case 9:capture("lobby-square");social->lobbyAction("leave");break;
+            case 9:
+                capture("lobby-square");social->lobbyAction("leave");
+                SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,32767);input.poll();
+                SDL_JoystickSetVirtualAxis(joystick,SDL_CONTROLLER_AXIS_TRIGGERRIGHT,-32768);input.poll();break;
+            case 10:
+                check(shell.socialFace()=="recent","Physical R2 opens Recently together after Lobby");
+                check(social->recentPeople().size()==1,"Recent list retains guest after lobby closes");
+                check(window->findChild<QQuickItem*>("social-recent-together")!=nullptr,"Recent QML instantiated");
+                capture("recent-square");window->resize(1280,720);break;
+            case 11:
+                capture("recent-wide");press(ControllerInput::ConfirmButton);
+                check(social->profileVisible()&&social->profileTarget_=="2","Recent A opens the selected profile");
+                social->closeMenu();shell.dispatch(Action::NextFace);check(shell.socialFace()=="chats","Fifth Social tab wraps to Messages");
+                shell.dispatch(Action::PreviousFace);check(shell.socialFace()=="recent","L2 returns to Recent");
+                shell.selectFace(0);break;
+            case 12:
+                {
+                // Repeater delegates live in the visual tree; their QObject
+                // parent need not be the window or the visual parent.
+                const std::function<QQuickItem*(QQuickItem*)> findTab=[&](QQuickItem* item)->QQuickItem* {
+                    if(item->objectName()=="face-tab-4")return item;
+                    for(auto* child:item->childItems())if(auto* found=findTab(child))return found;
+                    return nullptr;
+                };
+                auto* tab=findTab(window->contentItem());check(tab!=nullptr,"Fifth tab has a visible pointer target");
+                if(tab) {
+                    const auto point=tab->mapToScene(QPointF(tab->width()/2,tab->height()/2));
+                    const auto global=window->mapToGlobal(point.toPoint());
+                    QMouseEvent down(QEvent::MouseButtonPress,point,global,Qt::LeftButton,Qt::LeftButton,Qt::NoModifier);
+                    QMouseEvent up(QEvent::MouseButtonRelease,point,global,Qt::LeftButton,Qt::NoButton,Qt::NoModifier);
+                    QCoreApplication::sendEvent(window,&down);QCoreApplication::sendEvent(window,&up);
+                }
+                }
+                break;
             default:
+                check(shell.socialFace()=="recent","Pointer activates the fifth Social tab");
                 check(guest->state().isEmpty(),"Closing host lobby notifies guest");
                 timer->stop();completed=true;
                 QFile report(directory+"/lobby-check.txt");if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());

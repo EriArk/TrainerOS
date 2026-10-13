@@ -344,6 +344,12 @@ bool ShellController::moduleActivityBusy(bool recovery) const {for(const auto& m
 ExperienceModule* ShellController::module(const QString& id) const {for(const auto& module:modules_)if(module->descriptor().id==id)return module.get();return nullptr;}
 QVariantMap ShellController::moduleInvitation() const {for(const auto& module:modules_){auto request=module->invitation();if(request["open"].toBool())return request;}return {};}
 
+void ShellController::selectFace(int index) {
+    const QStringList faces{"chats","communities","friends","lobby","recent"};
+    if(page_!=4||index<0||index>=faces.size()||index==faceIndex()
+       ||!pairedNavigationAvailable()||navigationLocked()||launchPreparation_.busy()||libraryTools_.busy())return;
+    socialFace_=faces[index];social_.setFace(socialFace_);emit changed();
+}
 bool ShellController::pairedNavigationAvailable() {
     return !homeMenuOpen_ && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
         && !keyboard_.isOpen() && !localModalOpen() && !drawerOpen_;
@@ -411,7 +417,7 @@ QVariantList ShellController::gameHistory() const {
 QStringList ShellController::faceNames() const {
     if(page_==1) { QStringList names;for(const auto& row:collections())names.append(row.toMap()["name"].toString());return names; }
     if(page_==2 || page_==3)return experience_.labels(page_-2);
-    if(page_==4)return {"Messages","Communities","Discover","Lobby"};
+    if(page_==4)return {"Messages","Communities","Discover","Lobby","Recently together"};
     return {};
 }
 int ShellController::faceIndex() const {
@@ -422,7 +428,7 @@ int ShellController::faceIndex() const {
         return 0;
     }
     if(page_==2 || page_==3)return experience_.index(page_-2);
-    if(page_==4)return QStringList{"chats","communities","friends","lobby"}.indexOf(socialFace_);
+    if(page_==4)return QStringList{"chats","communities","friends","lobby","recent"}.indexOf(socialFace_);
     return 0;
 }
 QString ShellController::trainerFace() const {
@@ -523,7 +529,7 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     if(version==1 && target=="pokedex")target="companions";
     const bool legacyHall=version==1 && target=="hall";
     if(legacyHall)target="trainer";
-    socialFace_=version==2 && QStringList{"chats","groups","communities","friends","lobby"}.contains(state["socialFace"].toString()) ? state["socialFace"].toString() : "chats";
+    socialFace_=version==2 && QStringList{"chats","groups","communities","friends","lobby","recent"}.contains(state["socialFace"].toString()) ? state["socialFace"].toString() : "chats";
     social_.setFace(socialFace_);
     if(socialFace_=="groups")socialFace_="chats";
     goToPage(std::max(0, int(pages.indexOf(target))));
@@ -1121,7 +1127,7 @@ void ShellController::dispatch(Action action) {
                 experience_.cycle(page_-2,action==Action::NextFace?1:-1);
                 showExperienceFace(page_-2,experience_.face(page_-2));
             }
-            else if(page_==4) {const QStringList faces{"chats","communities","friends","lobby"};socialFace_=faces[(faceIndex()+(action==Action::NextFace?1:faces.size()-1))%faces.size()];social_.setFace(socialFace_);}
+            else if(page_==4) {const QStringList faces{"chats","communities","friends","lobby","recent"};socialFace_=faces[(faceIndex()+(action==Action::NextFace?1:faces.size()-1))%faces.size()];social_.setFace(socialFace_);}
             emit changed();
         }
         return;
