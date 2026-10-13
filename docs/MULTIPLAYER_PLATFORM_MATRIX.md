@@ -499,8 +499,25 @@
 
 **Основания:** `data/rom-platforms.json`, `packaging/emulators/arm64-baseline.json`, `docs/EMULATOR_STANDARD.md`; [PICO-8 официальный manual (player 0–7)](https://www.lexaloffle.com/dl/docs/pico-8_manual.html), [Libretro Retro8](https://docs.libretro.com/library/retro8/), [FAKE-08 libretro serialization](https://github.com/jtothebell/fake-08/blob/master/platform/libretro/libretro.cpp), [TIC-80 спецификация 4 геймпадов](https://tic80.com/learn), [Libretro TIC-80](https://docs.libretro.com/library/tic80/), [TIC-80 Multiplayer with PMEM](https://tic80.com/dev/robloach/multiplayer_with_pmem), [TIC-80 PR #2884](https://github.com/nesbox/TIC-80/pull/2884).
 
+**Уточнение владельца по PICO-8 (13 октября 2026):** владелец **уже делает отдельную собственную онлайн-функцию для PICO-8**. Её конкретный сетевой механизм и связь с TrainerOS в этой беседе не определены; **не смешивать** с Retro8/FAKE-08 RetroArch NetPlay или временным Universal Remote Play и **не заменять её** предположениями о будущем сетевом ядре. После уточнения интерфейса/статуса внести самостоятельный профиль, не объявляя его уже готовым.
+
 **Статус:** только классификация и кандидаты для будущих тестов. **Новых установленных NetPlay-профилей, изменений кода/исходных картриджей и issues нет.**
+
+## Группа 12B — LowRes NX и Vircon32 (13 октября 2026)
+
+**Два ID:** `lowresnx` (.nx, ARM64 core `lowresnx`) и `vircon32` (.v32/.V32, ARM64 core `vircon32`), оба имеются в `packaging/emulators/arm64-baseline.json`. **Universal Remote Play — временная запаска**, а не выполненная полноценная поддержка NetPlay. На данные платформы нельзя переносить пользовательскую отдельную PICO-8 онлайн-функцию.
+
+| Платформа | Возможности оригинальной среды и ядра | Выбранный маршрут |
+| --- | --- | --- |
+| **LowRes NX** (`lowresnx`) | Язык BASIC поддерживает **GAMEPAD 2**, `UP(0/1)`, `BUTTON(0/1)`: **двое игроков на одной воображаемой консоли**. В штатном Libretro-ядре сейчас по документации **NetPlay ✕, States ✕**, а секция устройства описывает только **User 1**. Это **не доказательство**, что второй порт фактически эмулируется и подключается через RetroArch. Оригинальный аппаратный Link/модем для двух отдельных LowRes NX не предусмотрен. | **Сначала проверить второй локальный RetroPad** на тестовом `.nx` с `GAMEPAD 2`; если ядро его не читает, нужна небольшая input-поправка прежде 2P Remote Play. Для полноценного shared-console NetPlay затем исследовать **детерминированные savestates/rollback** существующего ядра или поддерживаемую альтернативную сборку. Пока **Remote Play** с назначенным P2 только после подтверждения доступности P2; для одиночных программ — лишь передача единственного контроллера. |
+| **Vircon32** (`vircon32`) | Четыре независимых виртуальных **Vircon32 Gamepad** (Libretro User 1–4). Libretro ядро поддерживает **savestates + rewind**, но в документации **Netplay ✕**; автор upstream прямо пишет **«возможность NetPlay неясна, не испытана»**. Savestates **не сохраняют видеобуфер**, поэтому в играх, не перерисовывающих картинку каждый кадр, после загрузки может оставаться старый кадр — потенциально проблема rollback. Для OpenGL рендеринга нужно **OpenGL 3.0 или GLES 2.0+**, на ArmadaOS проверять доступный контекст и устойчивый FPS. | **Сначала короткий 2P RetroArch NetPlay proof-of-concept** без изменения обычного соло-запуска: 2 независимых gamepad, совпадающие content/core/backend и контроль состояния/кадра после rollback. Для четырёх игроков требуется отдельная реальная game/port/party-проверка, несмотря на 4 порта. Если сериализация недостаточна, исправлять **общую проблему ядра** (включая видеосостояние), а не сетевой код каждой игры. **Remote Play временно** до подтверждённой сетевой синхронизации. |
+
+**Общее:** не изобретать для фантазийных консолей оригинальный native-online протокол, которого в их API нет; не выдавать Local 2P за работающий Online 2P. Оба варианта должны переиспользовать обычные приглашения/GameParty и скрывать технические настройки RetroArch. Home/Exit, копии состояния, приватные сохранения, реальные два контроллера и разные интернет-сети проверяются по отдельности.
+
+**Доказательства:** `data/rom-platforms.json`, `packaging/emulators/arm64-baseline.json`; [LowRes NX официальный manual — GAMEPAD 1/2](https://lowresnx.inutilis.com/docs/manual.html), [Libretro LowRes NX — NetPlay/States/порт](https://docs.libretro.com/library/lowres_nx/), [Libretro Vircon32 — четыре порта, States/NetPlay](https://docs.libretro.com/library/vircon32/), [автор Vircon32 core — savestate и неопробованный netplay](https://github.com/vircon32/vircon32-libretro).
+
+**Статус:** исследовательская классификация, не выполненная сетевая интеграция. Код эмуляторов, ROM, сохранения и issues не менялись.
 
 ## Следующая мини-группа
 
-Не заполнена: **LowRes NX и Vircon32**. Потом отдельно WASM-4 / Arduboy / Uzebox и ScummVM.
+Не заполнена: **WASM-4 и Arduboy**, затем отдельно **Uzebox** и **ScummVM**.
