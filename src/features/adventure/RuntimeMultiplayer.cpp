@@ -348,7 +348,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     QVariantList lobbyGames;
     if(allowed_)for(const auto& record:records) {
         const auto profile=games_.value(record.adventure.id);
-        const auto content=profile["content"].toString();const int capacity=profile["players"].toInt();
+        const auto content=profile["content"].toString();const int capacity=profile["players"].toInt(2);
         if(content.isEmpty()||capacity<1||capacity>16||!multiplayerConnectionAllowed(profile,"online"))continue;
         const auto id=QString::fromLatin1(QCryptographicHash::hash((profile["id"].toString()+"/"+content).toUtf8(),QCryptographicHash::Sha256).toHex());
         lobbyGames.append(QVariantMap{{"key",record.adventure.id},{"id",id},{"title",profile["label"].toString()},
@@ -1021,7 +1021,11 @@ void RuntimeMultiplayer::pollRelay() {
             if(room["username"]!=request_.nickname||room["mitm_session"].toString().isEmpty())continue;
             send({{"kind","ready"},{"password",request_.password},{"identity",descriptor_},
                 {"address",room["mitm_ip"]},{"port",room["mitm_port"]},{"session",room["mitm_session"]}});
-            relaySent_=true;status_="Waiting for your friend…";break;
+            relaySent_=true;status_="Waiting for your friend…";
+            if(!lobbyTicket_.isEmpty()&&supportsLive(descriptor_)) {
+                deadline_=0;timer_.stop();status_="Playing";
+            }
+            emit changed();break;
         }
     });
 }
@@ -1136,7 +1140,11 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
             status_="Waiting for your friend…";
         }
         const auto joined=QRegularExpression("joined as player ([2-4])").match(QString::fromUtf8(line));
-        if(joined.hasMatch()&&!hotseat()){deadline_=0;timer_.stop();status_="Playing together";emit changed();}
+        if(joined.hasMatch()&&!hotseat()){
+            deadline_=0;timer_.stop();status_="Playing together";
+            if(host_&&!lobbyTicket_.isEmpty()&&supportsLive(descriptor_))emit notice("Player "+joined.captured(1)+" joined");
+            emit changed();
+        }
         if(line.contains("Failed")||line.contains("failed")||line.contains("disconnected")){
             if(hotseat()){fail("The shared-controller connection ended. Invite your friend again.");return;}
             status_="Multiplayer connection ended";emit notice(status_);

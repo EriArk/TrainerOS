@@ -40,6 +40,9 @@ public:
     void prepare(QString operation,QJsonObject context,Completion done) override;
     void launch(QString operation,QString ticket,QJsonObject context,Completion done) override;
     void cancel(QString operation) override;
+    bool supportsLive(const QJsonObject& game) const override;
+    bool admitLive(QString ticket,QString peer,QString operation,int seat) override;
+    void releaseLive(QString peer,QString operation) override;
     QVariantMap party() const {return party_.state().toVariantMap();}
     Q_INVOKABLE void leaveParty();
     QString menuLabel() const;

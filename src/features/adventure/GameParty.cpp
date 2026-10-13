@@ -182,16 +182,19 @@ void GameParty::start() {
     }
     running_=true;publish();emit startRequested(true,{});
 }
-bool GameParty::bindLobby(QString ticket,QJsonObject game,QJsonArray roster,QString self,QString owner) {
+bool GameParty::bindLobby(QString ticket,QJsonObject game,QJsonArray roster,QString self,QString owner,QString admission) {
+    if(!admission.isEmpty()&&(!uuid(admission)||self==owner||game.value("lateJoin")==false))return false;
     if(active()||!available_||!uuid(ticket)||!supports(game,"online:"+owner)||roster.isEmpty()||roster.size()>capacity(game))return false;
     QSet<QString> ids;QSet<int> seats;QJsonObject hostMember;
     for(const auto& value:roster) {
         const auto m=value.toObject();const auto id=m["id"].toString();const int seat=m["seat"].toInt();
-        if(id.isEmpty()||ids.contains(id)||seats.contains(seat)||seat<1||seat>capacity(game)||!m["ready"].toBool()||!m["prepared"].toBool()||!m["connected"].toBool()||m["spectator"].toBool())return false;
+        if(id.isEmpty()||ids.contains(id)||seats.contains(seat)||seat<1||seat>capacity(game)||m["spectator"].toBool())return false;
+        if(admission.isEmpty()&&(!m["ready"].toBool()||!m["prepared"].toBool()||!m["connected"].toBool()))return false;
+        if(!admission.isEmpty()&&id==self&&(m["admission"]!=admission||!m["connected"].toBool()))return false;
         ids.insert(id);seats.insert(seat);if(id==owner)hostMember=m;
     }
     if(!ids.contains(self)||hostMember["seat"]!=1)return false;
-    clear();lobbyBound_=true;party_=ticket;boot_=ticket;game_=game;access_="closed";
+    clear();lobbyBound_=true;party_=ticket;boot_=admission.isEmpty()?ticket:admission;game_=game;access_="closed";
     host_=self==owner?QString():"online:"+owner;hostBoot_=ticket;
     // Keep the runtime's canonical host-first roster, independent of account ID order.
     const auto append=[&](const QJsonObject& m) {
@@ -202,6 +205,17 @@ bool GameParty::bindLobby(QString ticket,QJsonObject game,QJsonArray roster,QStr
     };
     append(hostMember);for(const auto& v:roster)if(v.toObject()["id"]!=owner)append(v.toObject());
     emit changed();tick();return true;
+}
+bool GameParty::admitLobby(QString ticket,QString peer,QString name,QString admission,int seat) {
+    if(!lobbyBound_||!host()||!running_||party_!=ticket||endpoint_.isEmpty()||game_.value("lateJoin")==false
+       ||!uuid(admission)||!peer.startsWith("online:")||members_.contains(peer)||seat<2||seat>capacity(game_))return false;
+    for(const auto& m:members_)if(m.slot==seat)return false;
+    peers_[peer]={name.left(48),admission,{}, {},now()+90,0,false};
+    members_[peer]={name.left(48),admission,admission,seat,true,0};publish();return true;
+}
+void GameParty::releaseLobby(QString peer,QString admission) {
+    if(!lobbyBound_||!host()||!members_.contains(peer)||members_[peer].boot!=admission)return;
+    packet(peer,"closed");members_.remove(peer);lobbyArmed_.remove(peer);publish();
 }
 void GameParty::ready(QJsonObject endpoint) {
     if(!host()||!running_)return;
@@ -320,7 +334,9 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
     if(remote==peers_.end()||remote->boot!=boot)return;
     if(lobbyBound_&&kind=="lobby-armed"&&host()&&p["party"]==party_&&members_.contains(peer)) {
         if(!supportsMultiplayerSession(p["game"].toObject(),game_)) {
-            packet(peer,"closed");leave();emit notice("The installed multiplayer builds do not match.");return;
+            if(running_)releaseLobby(peer,boot);
+            else {packet(peer,"closed");leave();}
+            emit notice("The installed multiplayer builds do not match.");return;
         }
         packet(peer,"lobby-admitted",{{"game",game_}});return;
     }
@@ -330,7 +346,10 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
         game_=selected;packet(peer,"lobby-ready",{{"game",game_}});return;
     }
     if(lobbyBound_&&kind=="lobby-ready"&&host()&&p["party"]==party_&&members_.contains(peer)&&p["game"]==game_) {
-        lobbyArmed_.insert(peer);start();return;
+        lobbyArmed_.insert(peer);
+        if(running_&&!endpoint_.isEmpty())packet(peer,"launch",{{"endpoint",endpoint_},{"game",game_},{"slot",members_[peer].slot}});
+        else start();
+        return;
     }
     if(lobbyBound_&&(kind=="invite"||kind=="join"))return;
     if(kind=="invite"||kind=="join") {

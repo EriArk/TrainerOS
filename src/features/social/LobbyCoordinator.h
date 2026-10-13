@@ -41,10 +41,19 @@ public:
     bool hosting() const;
     bool acknowledgeLaunch(const QString& ticket,bool success);
     bool finishGame(const QString& ticket);
+    bool setLiveJoining(bool enabled);
+    bool requestLive(QString operation);
+    void cancelLive(QString operation);
+    bool admitLive(QString peer,QString operation,int seat);
+    void rejectLive(QString peer,QString operation);
 signals:
     void changed();
     void outgoing(QString peer,QJsonObject packet);
     void launchRequested(QString ticket,QJsonObject party);
+    void liveJoinRequested(QString peer,QString operation,int seat);
+    void liveLaunchRequested(QString operation,QString ticket,QJsonObject party);
+    void liveJoinFailed(QString operation);
+    void liveReleased(QString peer,QString operation);
     void notice(QString message);
 private:
     friend class LobbyTests;
@@ -56,6 +65,7 @@ private:
     void clearRemote();
     bool recordLaunchResult(const QString& peer,const QString& ticket,bool success);
     QString resultTicket_;
+    QString liveOperation_;
     QSet<QString> launchResults_;
     static bool validState(const QJsonObject& state,const QString& host);
     LobbySession session_{this};

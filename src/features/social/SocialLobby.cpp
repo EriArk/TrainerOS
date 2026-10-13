@@ -115,7 +115,10 @@ QVariantList SocialController::lobbyActions() const {
             add("call",voice["channel"].toString().isEmpty()?"Join lobby call":"Call & streams");
         }
         if(!game["id"].toString().isEmpty()) {
-            if(mine["spectator"].toBool()&&!lobby_.hosting())add("request-play","I want to play");
+            if(mine["spectator"].toBool()&&!lobby_.hosting()) {
+                if(lobbyRuntime_.liveAvailable())add("join-live","Join game now");
+                else add("request-play",lobbyRuntime_.busy()?"Preparing…":"I want to play",!lobbyRuntime_.busy());
+            }
             add("spectate",mine["spectator"].toBool()?"Join as player":"Be a spectator",gathering);
             add("seat","Controller: "+(mine["seat"].toInt()?"P"+QString::number(mine["seat"].toInt()):QString("Choose")),gathering);
             if(!mine["spectator"].toBool()) {
@@ -213,7 +216,7 @@ void SocialController::lobbyAction(QString action) {
         }
         return;
     }
-    bool allowed=lobby_.hosting()&&(action=="requests"||action=="publish-topic"||action=="chat-choose"||action=="remove");for(const auto& v:lobbyActions())if(v.toMap()["id"]==action&&v.toMap()["enabled"].toBool())allowed=true;
+    bool allowed=lobby_.hosting()&&(action=="requests"||action=="publish-topic"||action=="chat-choose"||action=="remove"||(action=="live-joining"&&lobbyRuntime_.liveSupported()));for(const auto& v:lobbyActions())if(v.toMap()["id"]==action&&v.toMap()["enabled"].toBool())allowed=true;
     if(!allowed)return;
     if(action=="create") {lobby_.create();lobbySelection_.clear();}
     else if(action=="community")emit commandRequested("lobby-directory-join",{});
@@ -221,6 +224,8 @@ void SocialController::lobbyAction(QString action) {
     else if(action=="later") {lobbyDetailFocused_=false;emit lobbyDeferred();}
     else if(action=="leave") {lobby_.leave();lobbySelection_.clear();}
     else if(action=="prepare")lobbyRuntime_.prepare();
+    else if(action=="join-live")lobbyRuntime_.joinLive();
+    else if(action=="live-joining")lobbyRuntime_.setLiveJoining(!lobby_.state()["liveJoining"].toBool());
     else if(action=="join") {const auto row=lobbyRows().value(lobbyFocus()).toMap();lobby_.join(row["owner"].toString(),row["lobby"].toString());lobbySelection_.clear();}
     else if(action=="ready") {
         bool ready=false;for(const auto& m:lobby_.state()["members"].toArray())if(m.toObject()["id"]==snapshot_["userId"].toString())ready=m.toObject()["ready"].toBool();
@@ -235,6 +240,8 @@ void SocialController::lobbyAction(QString action) {
         else if(action=="seat") {menuTitle_="Choose your controller";for(int i=1;i<=lobby_.state()["game"].toObject()["seats"].toInt();++i)add("P"+QString::number(i),"seat:"+QString::number(i));}
         else if(action=="options") {
             menuTitle_="Lobby options";add("Access: "+lobby_.state()["access"].toString()+" · change","access");
+            if(lobbyRuntime_.liveSupported()&&lobby_.state()["phase"]!="launching")
+                add(lobby_.state()["liveJoining"].toBool()?"Joining during play: On · disable":"Allow joining during play","live-joining");
             if(lobby_.state()["members"].toArray().size()>1)add("Remove a member","remove");
             add("Category: "+lobbyPublicationTopic_,"publish-topic");
             if(!lobby_.requests().isEmpty())add("Join requests","requests");

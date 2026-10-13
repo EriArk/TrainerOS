@@ -28,7 +28,9 @@ public:
     void start();
     // Local admission from an authenticated, all-Ready Lobby launch. No invite
     // or peer packet may call this; the runtime validates the exact game first.
-    bool bindLobby(QString ticket,QJsonObject game,QJsonArray members,QString self,QString owner);
+    bool bindLobby(QString ticket,QJsonObject game,QJsonArray members,QString self,QString owner,QString admission={});
+    bool admitLobby(QString ticket,QString peer,QString name,QString admission,int seat);
+    void releaseLobby(QString peer,QString admission);
     void ready(QJsonObject endpoint);
     // A private runtime credential goes only to its already accepted member.
     // Routes using this operation cannot admit new members after starting.

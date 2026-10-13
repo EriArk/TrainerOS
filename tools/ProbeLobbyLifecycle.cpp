@@ -1,6 +1,9 @@
 // Explicit, non-installed Linux integration probe. Uses the ordinary account,
 // coordinator, provider and recovery journal; never exports account credentials.
 #include "features/social/SocialController.h"
+#include "features/adventure/RuntimeMultiplayer.h"
+#include "features/adventure/AdventureExitPresentation.h"
+#include "core/navigation/AdventureLaunchController.h"
 #include <QGuiApplication>
 #include <QCommandLineParser>
 #include <QJsonDocument>
@@ -11,12 +14,48 @@
 #include <QVideoFrame>
 #include <unistd.h>
 
+class ProbeGame final : public trainer::LibraryRepository {
+public:
+    trainer::AdventureRegistration record;
+    QList<trainer::World> worlds() const override {return {};}
+    QList<trainer::Adventure> adventures() const override {return record.contentPath.isEmpty()?QList<trainer::Adventure>{}:QList<trainer::Adventure>{record.adventure};}
+    QList<trainer::ResumePoint> resumePoints() const override {return {};}
+    trainer::HomeSnapshot home() const override {return {};}
+    std::optional<trainer::AdventureRegistration> registration(const QString& id) const override {return id==record.adventure.id?std::optional(record):std::nullopt;}
+};
+
 int main(int argc,char** argv) {
     QGuiApplication app(argc,argv);app.setApplicationName("TrainerOS");app.setOrganizationName("TrainerOS");
     QCommandLineParser parser;parser.addHelpOption();parser.addOption({"owner","Existing local test Trainer ID (shell must be stopped).","id"});
-    parser.addOption({"frame-output","Save one received frame as private diagnostic evidence.","path"});parser.process(app);
+    parser.addOption({"frame-output","Save one received frame as private diagnostic evidence.","path"});
+    parser.addOption({"rom","Owner-supplied NES test game, using isolated NetPlay progress.","path"});
+    parser.addOption({"runtime-config","Local RetroArch installation JSON.","path"});parser.process(app);
     if(parser.value("owner").isEmpty())return 2;
     trainer::SocialController social;QByteArray last,input;
+    ProbeGame library;
+    const auto installation=trainer::RetroArchInstallation::load(parser.value("runtime-config"));
+    trainer::RetroArchAdapter adapter(library,installation);
+    trainer::StandaloneAdapter psp("ppsspp",library,{}),dolphin("dolphin",library,{});
+    trainer::ProcessService process;trainer::AdventureLaunchController lifecycle(process);
+    trainer::AdventureExitPresentation overlay(lifecycle.exitController());
+    trainer::RuntimeMultiplayer runtime(library,adapter,psp,dolphin,social,process,lifecycle,overlay);
+    QObject::connect(&lifecycle,&trainer::AdventureLaunchController::checkpointRequested,&app,[&](quint64 token,const QJsonObject&){lifecycle.checkpointCompleted(token,{});});
+    adapter.requestLaunch=[&](const trainer::ProcessCommand& command,const QString& id){return trainer::AdventureResult{lifecycle.launch(command,{},id,trainer::AdventureSavePolicy::ManualConfirm),lifecycle.error()};};
+    if(!parser.value("rom").isEmpty()) {
+        library.record.adventure.id="l06-pong";library.record.adventure.title="NES Pong";
+        library.record.adventure.platformId="nes";library.record.adventure.adapterId="retroarch";
+        library.record.contentPath=parser.value("rom");library.record.integrationConfig["core"]="fceumm";
+        runtime.refresh(installation,"Live join probe",true);
+    }
+    QStringList netplayEvents;QByteArray runtimeOutput;
+    QObject::connect(&process,&trainer::ProcessService::runtimeOutput,&app,[&](QByteArray bytes){
+        runtimeOutput+=bytes;
+        while(runtimeOutput.contains('\n')) {
+            const auto end=runtimeOutput.indexOf('\n');const auto line=runtimeOutput.left(end);runtimeOutput.remove(0,end+1);
+            if(line.contains("joined as player")||line.contains("disconnected"))netplayEvents.append(QString::fromUtf8(line).left(220));
+        }
+        if(runtimeOutput.size()>16384)runtimeOutput.clear();
+    });
     QVideoSink video;int frames=0;QVariantMap frameInfo;
     social.stream()->setVideoSink(&video);
     QObject::connect(&video,&QVideoSink::videoFrameChanged,&app,[&](QVideoFrame frame){
@@ -34,6 +73,9 @@ int main(int argc,char** argv) {
             {"room",room},{"invitation",social.lobbyCoordinator()->invitation()},
             {"voice",QJsonObject::fromVariantMap(account["voice"].toMap())},{"audio",QJsonObject::fromVariantMap(account["audio"].toMap())},
             {"frames",QJsonObject::fromVariantMap(frameInfo)},
+            {"process",process.processId()},{"gameState",lifecycle.state()},{"gameError",lifecycle.error()},
+            {"availableGames",QJsonArray::fromStringList(runtime.onlineGames())},{"liveAvailable",social.lobbyRuntime()->liveAvailable()},
+            {"preparation",social.lobbyPreparationStatus()},{"gameEvents",QJsonArray::fromStringList(netplayEvents)},
             {"contacts",QJsonObject::fromVariantMap(account["temporaryContacts"].toMap())},
             {"recent",QJsonArray::fromVariantList(social.recentPeople())},{"chatStatus",social.lobbyChatStatus()},
             {"notice",social.toastText()},{"status",account["status"].toString()}}).toJson(QJsonDocument::Compact);
@@ -56,6 +98,11 @@ int main(int argc,char** argv) {
             else if(op=="remove")room->remove(command["peer"].toString());
             else if(op=="reconnect")room->reconnect();
             else if(op=="lobby")social.openLobby();
+            else if(op=="select-game")social.lobbyAction("game:l06-pong");
+            else if(op=="allow-live")social.lobbyRuntime()->setLiveJoining(command["enabled"].toBool());
+            else if(op=="prepare-game")social.lobbyRuntime()->prepare();
+            else if(op=="ready-game")room->ready(true);
+            else if(op=="join-game")social.lobbyRuntime()->joinLive();
             else if(op=="game-process")social.setGameProcess(command["pid"].toInteger());
             else if(op=="stream")social.streamAction(command["action"].toString());
             else if(op=="voice") {

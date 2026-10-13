@@ -89,6 +89,7 @@ Item {
                 model: root.social.lobbyActions
                 CapButton {
                     required property var modelData; required property int index
+                    objectName: "lobby-action-" + modelData.id
                     width: (actions.width - 6) / 2; height: 30; textSize: 12; claimsFocus: false
                     label: modelData.label; enabled: modelData.enabled; tint: modelData.id === "leave" ? Theme.pink : Theme.yellow
                     selected: root.takesFocus && root.social.lobbyDetailFocused && root.social.lobbyActionFocus === index

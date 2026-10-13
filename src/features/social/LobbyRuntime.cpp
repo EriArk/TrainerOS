@@ -6,6 +6,26 @@ namespace trainer {
 LobbyRuntime::LobbyRuntime(LobbyCoordinator& lobby,QObject* parent):QObject(parent),lobby_(lobby) {
     connect(&lobby_,&LobbyCoordinator::changed,this,&LobbyRuntime::reconcile);
     connect(&lobby_,&LobbyCoordinator::launchRequested,this,&LobbyRuntime::launch);
+    connect(&lobby_,&LobbyCoordinator::liveJoinRequested,this,[this](QString peer,QString operation,int seat){
+        const auto s=lobby_.state();
+        if(playing_&&activeService_&&ticket_==s["ticket"]&&liveSupported()&&s["liveJoining"].toBool()
+           &&activeService_->admitLive(ticket_,peer,operation,seat)) {
+            if(lobby_.admitLive(peer,operation,seat))return;
+            activeService_->releaseLive(peer,operation);
+        }
+        lobby_.rejectLive(peer,operation);
+    });
+    connect(&lobby_,&LobbyCoordinator::liveReleased,this,[this](QString peer,QString operation){
+        if(activeService_)activeService_->releaseLive(peer,operation);
+    });
+    connect(&lobby_,&LobbyCoordinator::liveLaunchRequested,this,[this](QString operation,QString ticket,QJsonObject party){
+        if(!live_||operation_!=operation||!prepared_)return;
+        busy_=false;preparedContext_=context();launch(ticket,party);
+    });
+    connect(&lobby_,&LobbyCoordinator::liveJoinFailed,this,[this](QString operation){
+        if(operation_!=operation)return;
+        cancel();status_="Joining is unavailable or the controller was taken. You can keep watching.";emit changed();
+    });
     deadline_.setSingleShot(true);deadline_.setInterval(180000);
     connect(&deadline_,&QTimer::timeout,this,[this]{
         const auto ticket=ticket_;cancel();
@@ -37,11 +57,44 @@ void LobbyRuntime::registerService(QString mode,LobbyRuntimeService* service) {
 QJsonObject LobbyRuntime::context() const {
     const auto s=lobby_.state();QJsonArray members;
     for(const auto& v:s["members"].toArray()) {
-        const auto m=v.toObject();members.append(QJsonObject{{"id",m["id"]},{"seat",m["seat"]},
+        const auto m=v.toObject();
+        if(live_&&m["id"]!=self_&&m["id"]!=s["owner"])continue;
+        members.append(QJsonObject{{"id",m["id"]},{"seat",m["seat"]},
             {"spectator",m["spectator"]},{"connected",m["connected"]}});
     }
-    return {{"lobby",s["id"]},{"owner",s["owner"]},{"generation",s["generation"]},
+    QJsonObject result{{"lobby",s["id"]},{"owner",s["owner"]},{"generation",s["generation"]},
         {"game",s["game"]},{"members",members},{"self",self_}};
+    if(live_)result["liveAdmission"]=operation_;
+    return result;
+}
+bool LobbyRuntime::liveSupported() const {
+    const auto game=lobby_.state()["game"].toObject();const auto service=services_.value(game["mode"].toString());
+    return service&&service->supportsLive(game["runtime"].toObject());
+}
+bool LobbyRuntime::setLiveJoining(bool enabled) {
+    return (!enabled||liveSupported())&&lobby_.setLiveJoining(enabled);
+}
+bool LobbyRuntime::liveAvailable() const {
+    const auto s=lobby_.state();if(playing_||busy_||!online_||lobby_.hosting()||s["phase"]!="playing"||!s["liveJoining"].toBool()
+        ||s["recovering"].toBool()||!s["connection"].toString().isEmpty()||!liveSupported())return false;
+    int players=0;bool spectator=false;
+    for(const auto& v:s["members"].toArray()) {const auto m=v.toObject();if(m["seat"].toInt())++players;
+        if(m["id"]==self_)spectator=m["spectator"].toBool()&&m["connected"].toBool();}
+    return spectator&&players<s["game"].toObject()["seats"].toInt();
+}
+bool LobbyRuntime::joinLive() {
+    if(!liveAvailable())return false;
+    cancel();live_=true;operation_=QUuid::createUuid().toString(QUuid::WithoutBraces);
+    preparedContext_=context();activeService_=services_.value(preparedContext_["game"].toObject()["mode"].toString());
+    const auto operation=operation_;busy_=true;status_="Preparing to join…";deadline_.start();emit changed();
+    const QPointer<LobbyRuntime> guard(this);
+    activeService_->prepare(operation,preparedContext_,[guard,operation](bool ok,QString error){
+        if(!guard||guard->operation_!=operation||!guard->live_||guard->context()!=guard->preparedContext_)return;
+        guard->busy_=ok;guard->prepared_=ok;
+        guard->status_="Waiting for a controller…";emit guard->changed();
+        if(ok&&guard->lobby_.requestLive(operation))return;
+        guard->cancel();guard->status_=error.isEmpty()?QString("Joining is no longer available. You can keep watching."):error.left(180);emit guard->changed();
+    });return true;
 }
 bool LobbyRuntime::available() const {
     const auto s=lobby_.state();if(playing_||!online_||s["recovering"].toBool()||!s["connection"].toString().isEmpty()||s["phase"]!="gathering"||!services_.value(s["game"].toObject()["mode"].toString()))return false;
@@ -53,11 +106,16 @@ bool LobbyRuntime::available() const {
 void LobbyRuntime::cancel() {
     deadline_.stop();
     const auto operation=operation_;const auto service=activeService_;
-    operation_.clear();ticket_.clear();preparedContext_={};activeService_.clear();busy_=prepared_=playing_=false;status_.clear();
+    const bool abandoned=live_&&!playing_;
+    operation_.clear();ticket_.clear();preparedContext_={};activeService_.clear();busy_=prepared_=playing_=live_=false;status_.clear();
     if(service&&!operation.isEmpty())service->cancel(operation);
+    if(abandoned)lobby_.cancelLive(operation);
 }
 void LobbyRuntime::reconcile() {
     const auto s=lobby_.state();
+    if(live_&&ticket_.isEmpty()&&!s["liveJoining"].toBool()) {
+        cancel();status_="The host paused new joins. You can keep watching.";emit changed();return;
+    }
     if(!ticket_.isEmpty()&&s["phase"]=="playing"&&s["ticket"]==ticket_)playing_=true;
     // Membership and the game process have separate lifetimes. Only the ordinary
     // Home/save return ends an acknowledged game, even if its room disappears.
@@ -90,7 +148,7 @@ void LobbyRuntime::launch(QString ticket,QJsonObject party) {
     ticket_=ticket;busy_=true;status_="Opening game…";deadline_.start();emit changed();
     const auto operation=operation_;const QPointer<LobbyRuntime> guard(this);
     activeService_->launch(operation,ticket,party,[guard,operation,ticket](bool ok,QString error){
-        if(!guard||guard->operation_!=operation||!guard->busy_||guard->ticket_!=ticket||guard->context()!=guard->preparedContext_)return;
+        if(!guard||guard->operation_!=operation||!guard->busy_||guard->ticket_!=ticket||(!guard->live_&&guard->context()!=guard->preparedContext_))return;
         guard->busy_=false;guard->status_=ok?QString("Waiting for players…"):error.left(180);
         guard->lobby_.acknowledgeLaunch(ticket,ok);
         if(!ok) {guard->cancel();guard->status_=error.isEmpty()?QString("Couldn't open the game. Prepare again."):error.left(180);}

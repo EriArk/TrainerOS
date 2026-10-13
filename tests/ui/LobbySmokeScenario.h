@@ -14,6 +14,14 @@
 #include <memory>
 
 namespace trainer {
+class LobbySmokeRuntime final : public LobbyRuntimeService {
+public:
+    using LobbyRuntimeService::LobbyRuntimeService;
+    void prepare(QString,QJsonObject,Completion done) override {done(false,"UI fixture only");}
+    void launch(QString,QString,QJsonObject,Completion done) override {done(false,"UI fixture only");}
+    void cancel(QString) override {}
+    bool supportsLive(const QJsonObject&) const override {return true;}
+};
 // Isolated provider state; exercises the actual QML and input, never an account.
 class LobbySmokeScenario {
 public:
@@ -28,6 +36,7 @@ public:
         auto* streamWriter=new QLocalSocket(window);
         QObject::connect(social,&SocialController::commandRequested,window,[keeps](QString op,QVariantMap args){if(op=="recent-add"&&args["id"]=="2")++*keeps;});
         auto* guest=new LobbyCoordinator(window);guest->configure("2","Guest",true);
+        social->lobbyRuntime()->registerService("netplay",new LobbySmokeRuntime(window));
         QObject::connect(social->lobbyCoordinator(),&LobbyCoordinator::outgoing,guest,[=](QString peer,QJsonObject p){if(peer=="2")guest->receive("1","Host",p);});
         QObject::connect(guest,&LobbyCoordinator::outgoing,social,[=](QString,QJsonObject p){social->lobbyCoordinator()->receive("2","Guest",p);});
         const auto check=[&diagnostics,failed](bool ok,QString message){diagnostics.append((ok?"PASS ":"FAIL ")+message);if(!ok)*failed=true;};
@@ -84,12 +93,22 @@ public:
                 social->lobbyAction("game:fixture");social->lobbyAction("seat:1");guest->seat(2);break;
             case 4:
                 check(social->lobbyState()["game"].toMap()["title"]=="Shared game","Game choice retains lobby");
+                check(click("lobby-action-options"),"Touch opens lobby options");*step=40;break;
+            case 40:
+                capture("lobby-live-options");
+                check(click("social-menu-action-1"),"Live join has a direct touch option");
+                check(social->lobbyState()["liveJoining"].toBool(),"Touch enables joining during play");
+                social->lobbyAction("options");social->menuFocus_=1;
+                press(ControllerInput::ConfirmButton);
+                check(!social->lobbyState()["liveJoining"].toBool(),"Controller disables joining during play");
+                social->lobbyAction("live-joining");social->closeMenu();break;
+            case 41:
                 {auto* notice=window->findChild<QQuickItem*>("lobby-progress-notice");check(notice&&notice->isVisible(),"Shared-save disclosure is visible before preparation");}
                 capture("lobby-seats");
                 shell.dispatch(Action::Secondary);
                 check(shell.keyboard()->isOpen()&&social->textPurpose_=="message","Lobby X opens the shared message composer");
                 shell.keyboard()->cancel();
-                shell.keyboard()->begin("Message","",100,false,"Send",true);break;
+                shell.keyboard()->begin("Message","",100,false,"Send",true);*step=5;break;
             case 5:
                 check(shell.keyboard()->keys().first().toMap()["label"]=="Q","QWERTY first key");capture("keyboard-qwerty");
                 shell.dispatch(Action::NextFace);break;

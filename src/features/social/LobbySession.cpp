@@ -27,7 +27,7 @@ void LobbySession::invalidateLaunch() {
 bool LobbySession::create(QString owner,QString name,QString access) {
     if(phase_!="closed"||owner.isEmpty()||owner.size()>128||name.trimmed().isEmpty()||name.size()>100
        ||(access!="private"&&access!="public"&&access!="approval"))return false;
-    id_=QUuid::createUuid().toString(QUuid::WithoutBraces);owner_=owner;access_=access;
+    id_=QUuid::createUuid().toString(QUuid::WithoutBraces);owner_=owner;access_=access;liveJoining_=false;
     members_.clear();invites_.clear();game_={};ticket_.clear();conversation_.clear();revision_=0;++generation_;
     members_.insert(owner,{name.trimmed()});phase_="choosing";publish();return true;
 }
@@ -38,6 +38,7 @@ bool LobbySession::setAccess(const QString& actor,QString access) {
 }
 bool LobbySession::restore(const QJsonObject& s) {
     if(phase_!="closed")return false;
+    liveJoining_=false;
     id_=s["id"].toString();owner_=s["owner"].toString();access_=s["access"].toString();
     conversation_=s["conversation"].toString();ticket_.clear();invites_.clear();members_.clear();
     const auto g=s["game"].toObject();
@@ -93,10 +94,10 @@ bool LobbySession::selectGame(const QString& actor,const Game& game) {
     if(!host(actor)||!editable()||game.id.isEmpty()||game.id.size()>128||game.title.trimmed().isEmpty()
        ||game.title.size()>160||game.platform.isEmpty()||game.platform.size()>32||game.mode.isEmpty()
        ||game.mode.size()>64||game.seats<1||game.seats>16)return false;
-    game_=game;++generation_;ticket_.clear();phase_="gathering";
+    game_=game;++generation_;ticket_.clear();phase_="gathering";liveJoining_=false;
     // Seat assignment is per game. The existing runtime families use the
     // organizer's console as P1; other players may change their free port.
-    for(auto& m:members_) {m.seat=0;m.prepared=false;m.ready=false;}
+    for(auto& m:members_) {m.seat=0;m.prepared=false;m.ready=false;m.admission.clear();}
     int seat=1;
     if(!members_[owner_].spectator)members_[owner_].seat=seat++;
     for(auto it=members_.begin();it!=members_.end();++it)
@@ -155,17 +156,37 @@ bool LobbySession::acknowledgeLaunch(const QString& ticket,bool success) {
 bool LobbySession::finishGame(const QString& ticket) {
     if(phase_!="playing"||ticket.isEmpty()||ticket!=ticket_)return false;
     phase_="gathering";ticket_.clear();++generation_;
-    for(auto& m:members_) {m.prepared=false;m.ready=false;}
+    for(auto& m:members_) {m.prepared=false;m.ready=false;m.admission.clear();}
+    publish();return true;
+}
+bool LobbySession::setLiveJoining(const QString& actor,bool enabled) {
+    if(!host(actor)||game_.id.isEmpty()||phase_=="launching")return false;
+    if(liveJoining_==enabled)return true;
+    liveJoining_=enabled;publish();return true;
+}
+int LobbySession::liveSeat(const QString& peer) const {
+    if(!liveJoining_||phase_!="playing"||!host(owner_)||peer==owner_||!members_.contains(peer))return 0;
+    const auto m=members_.value(peer);
+    return m.connected&&m.spectator&&m.admission.isEmpty()?freeSeat():0;
+}
+bool LobbySession::admitLive(const QString& peer,const QString& token,int seat) {
+    if(QUuid(token).isNull()||!seat||liveSeat(peer)!=seat)return false;
+    auto& m=members_[peer];m.seat=seat;m.spectator=false;m.prepared=m.ready=true;m.admission=token;
+    publish();return true;
+}
+bool LobbySession::releaseLive(const QString& peer,const QString& ticket,const QString& token) {
+    if(phase_!="playing"||ticket_!=ticket||token.isEmpty()||!members_.contains(peer)||members_[peer].admission!=token)return false;
+    auto& m=members_[peer];m.seat=0;m.spectator=true;m.prepared=m.ready=false;m.admission.clear();
     publish();return true;
 }
 QJsonObject LobbySession::state() const {
     QJsonArray members;
     for(auto it=members_.cbegin();it!=members_.cend();++it) {
         const auto& m=it.value();members.append(QJsonObject{{"id",it.key()},{"name",m.name},{"seat",m.seat},
-            {"prepared",m.prepared},{"ready",m.ready},{"connected",m.connected},{"spectator",m.spectator}});
+            {"prepared",m.prepared},{"ready",m.ready},{"connected",m.connected},{"spectator",m.spectator},{"admission",m.admission}});
     }
     return {{"id",id_},{"owner",owner_},{"access",access_},{"phase",phase_},{"revision",qint64(revision_)},
-        {"generation",qint64(generation_)},{"members",members},{"ticket",ticket_},{"conversation",conversation_},
+        {"generation",qint64(generation_)},{"members",members},{"ticket",ticket_},{"conversation",conversation_},{"liveJoining",liveJoining_},
         {"game",QJsonObject{{"id",game_.id},{"title",game_.title},{"platform",game_.platform},{"mode",game_.mode},{"seats",game_.seats},{"runtime",game_.runtime}}}};
 }
 }

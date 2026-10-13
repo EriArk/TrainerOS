@@ -36,6 +36,41 @@ class GamePartyTests : public QObject {
         }
     };
 private slots:
+    void firstLiveGuestAndRejoinNeverRestartTheSoloHost() {
+        GameParty host,guest;const auto profile=game(2);host.configure("Host",{profile},profile,true);guest.configure("Guest",{profile},{},true);
+        connect(&host,&GameParty::outgoing,&guest,[&](QString,QJsonObject p){guest.receive("online:1","Host",p);});
+        connect(&guest,&GameParty::outgoing,&host,[&](QString,QJsonObject p){host.receive("online:2","Guest",p);});
+        const auto ticket=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        const QJsonObject owner{{"id","1"},{"seat",1},{"connected",true},{"prepared",true},{"ready",true}};
+        QSignalSpy starts(&host,&GameParty::startRequested),joins(&guest,&GameParty::startRequested);
+        QVERIFY(host.bindLobby(ticket,profile,{owner},"1","1"));QCOMPARE(starts.size(),1);
+        host.ready({{"kind","ready"},{"identity",profile}});
+        QString old;
+        for(int i=0;i<2;++i) {
+            const auto admission=QUuid::createUuid().toString(QUuid::WithoutBraces);
+            QVERIFY(!host.admitLobby("stale","online:2","Guest",admission,2));
+            QVERIFY(host.admitLobby(ticket,"online:2","Guest",admission,2));
+            QVERIFY(!host.admitLobby(ticket,"online:3","Other",admission,2));
+            host.releaseLobby("online:2",old);QCOMPARE(host.state()["members"].toArray().size(),2);
+            const QJsonObject player{{"id","2"},{"seat",2},{"connected",true},{"admission",admission}};
+            QVERIFY(guest.bindLobby(ticket,profile,{owner,player},"2","1",admission));
+            QCOMPARE(joins.size(),i+1);QCOMPARE(joins.last()[1].toJsonObject()["slot"].toInt(),2);
+            host.tick();guest.tick();QCOMPARE(starts.size(),1);QCOMPARE(joins.size(),i+1);
+            guest.leave();host.releaseLobby("online:2",admission);old=admission;
+            QVERIFY(host.running());QCOMPARE(host.state()["members"].toArray().size(),1);
+        }
+    }
+    void incompatibleLiveGuestCannotEndHostGame() {
+        GameParty host;const auto profile=game();host.configure("Host",{profile},profile,true);
+        const auto ticket=QUuid::createUuid().toString(QUuid::WithoutBraces),admission=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        QSignalSpy starts(&host,&GameParty::startRequested);
+        QVERIFY(host.bindLobby(ticket,profile,{QJsonObject{{"id","1"},{"seat",1},{"connected",true},{"prepared",true},{"ready",true}}},"1","1"));
+        host.ready({{"kind","ready"}});QVERIFY(host.admitLobby(ticket,"online:2","Guest",admission,2));
+        auto wrong=profile;wrong["runtime"]="wrong";
+        host.receive("online:2","Guest",{{"ns","org.traineros.party"},{"v",1},{"kind","lobby-armed"},{"target",ticket},{"party",ticket},
+            {"boot",admission},{"expires",QDateTime::currentSecsSinceEpoch()+60},{"game",wrong}});
+        QVERIFY(host.running());QCOMPARE(starts.size(),1);QCOMPARE(host.state()["members"].toArray().size(),1);
+    }
     void lobbyAdmissionIsBilateralAndKeepsTheChosenSeats() {
         GameParty host,guest;const auto profile=game();
         host.configure("Host",{profile},profile,true);guest.configure("Guest",{profile},{},true);

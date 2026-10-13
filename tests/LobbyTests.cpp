@@ -13,6 +13,10 @@ class TestLobbyRuntime final : public LobbyRuntimeService {
 public:
     Completion preparation,opening;
     int prepares=0,launches=0,cancels=0;
+    bool live=false;int admissions=0,releases=0;
+    bool supportsLive(const QJsonObject&) const override {return live;}
+    bool admitLive(QString,QString,QString,int) override {++admissions;return live;}
+    void releaseLive(QString,QString) override {++releases;}
     void prepare(QString,QJsonObject,Completion done) override {++prepares;preparation=done;}
     void launch(QString,QString,QJsonObject,Completion done) override {++launches;opening=done;}
     void cancel(QString) override {++cancels;}
@@ -24,6 +28,73 @@ class LobbyTests final : public QObject {
         QVERIFY(l.claimSeat(peer,seat,l.generation()));QVERIFY(l.prepared(peer,l.generation(),true));
     }
 private slots:
+    void lostLiveAdmissionRetriesOnceAndOtherSpectatorsDoNotCancelOpening() {
+        LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
+        bool drop=false;
+        connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString peer,QJsonObject p){
+            if(peer!="2")return;
+            if(drop&&p["kind"]=="state"&&p["data"].toObject()["members"].toArray().last().toObject()["admission"].toString().size()) {drop=false;return;}
+            guest.receive("1","Host",p);
+        });
+        connect(&guest,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){host.receive("2","Guest",p);});
+        TestLobbyRuntime hs,gs;hs.live=gs.live=true;LobbyRuntime hr(host),gr(guest);
+        hr.configure("1",true);gr.configure("2",true);hr.registerService("netplay",&hs);gr.registerService("netplay",&gs);
+        QVERIFY(host.create("public"));QVERIFY(host.selectGame(game()));QVERIFY(hr.setLiveJoining(true));
+        QVERIFY(hr.prepare());hs.preparation(true,{});host.ready(true);hs.opening(true,{});
+        QVERIFY(guest.join("1",host.state()["id"].toString()));QVERIFY(gr.joinLive());drop=true;gs.preparation(true,{});
+        QCOMPARE(gs.launches,0);QVERIFY(gr.busy());QVERIFY(!gr.joinLive());
+        guest.tick();QCOMPARE(hs.admissions,1);QCOMPARE(gs.launches,1);
+        QVERIFY(host.session_.join("3","Spectator",QDateTime::currentSecsSinceEpoch()));
+        gs.opening(true,{});QVERIFY(!gr.busy());QCOMPARE(hs.launches,1);
+        QVERIFY(gr.finished(host.state()["ticket"].toString()));QVERIFY(gr.liveAvailable());
+    }
+    void liveJoinKeepsHostLaunchAndReturnsGuestToSpectator() {
+        LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
+        connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString,QJsonObject p){guest.receive("1","Host",p);});
+        connect(&guest,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){host.receive("2","Guest",p);});
+        TestLobbyRuntime hs,gs;hs.live=gs.live=true;
+        LobbyRuntime hr(host),gr(guest);hr.configure("1",true);gr.configure("2",true);
+        hr.registerService("netplay",&hs);gr.registerService("netplay",&gs);
+        QVERIFY(host.create("public"));QVERIFY(host.selectGame(game()));QVERIFY(hr.setLiveJoining(true));
+        QVERIFY(hr.prepare());hs.preparation(true,{});QVERIFY(host.ready(true));hs.opening(true,{});
+        const auto ticket=host.state()["ticket"].toString();QCOMPARE(host.state()["phase"].toString(),"playing");
+        QVERIFY(guest.join("1",host.state()["id"].toString()));QVERIFY(gr.liveAvailable());
+        QVERIFY(gr.joinLive());QCOMPARE(gs.launches,0);gs.preparation(true,{});
+        QCOMPARE(hs.admissions,1);QCOMPARE(gs.launches,1);gs.opening(true,{});
+        QCOMPARE(hs.launches,1);QCOMPARE(hs.cancels,0);QCOMPARE(host.state()["ticket"].toString(),ticket);
+        guest.send("1","game-finished",{{"ticket",ticket}}); // An obsolete report cannot end the host's game.
+        QCOMPARE(host.state()["phase"].toString(),"playing");
+        QVERIFY(!gr.liveAvailable());QVERIFY(gr.finished(ticket));
+        QCOMPARE(host.state()["phase"].toString(),"playing");QCOMPARE(hs.releases,1);QVERIFY(gr.liveAvailable());
+        QVERIFY(gr.joinLive());gs.preparation(true,{});gs.opening(true,{});
+        QCOMPARE(gs.launches,2);QCOMPARE(hs.launches,1);QVERIFY(gr.finished(ticket));
+        QVERIFY(hr.setLiveJoining(false));QVERIFY(!gr.liveAvailable());
+    }
+    void liveSeatAuthorizationAndStaleRelease() {
+        LobbySession l;QVERIFY(l.create("h","Host","public"));QVERIFY(l.selectGame("h",game()));
+        prepare(l,"h",1);QVERIFY(l.ready("h",l.generation(),true));const auto ticket=l.state()["ticket"].toString();
+        QVERIFY(l.acknowledgeLaunch(ticket,true));QVERIFY(l.join("g","Guest",100));QVERIFY(l.join("v","Viewer",100));
+        QCOMPARE(l.liveSeat("g"),0);QVERIFY(!l.setLiveJoining("g",true));QVERIFY(l.setLiveJoining("h",true));
+        const auto token=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        QCOMPARE(l.liveSeat("g"),2);QVERIFY(!l.admitLive("g",token,1));QVERIFY(l.admitLive("g",token,2));
+        QCOMPARE(l.liveSeat("v"),0);QVERIFY(!l.releaseLive("g","old",token));QVERIFY(!l.releaseLive("g",ticket,"old"));
+        QVERIFY(l.setLiveJoining("h",false));QVERIFY(l.releaseLive("g",ticket,token));QCOMPARE(l.liveSeat("v"),0);
+        QCOMPARE(l.state()["phase"].toString(),"playing");QCOMPARE(l.state()["ticket"].toString(),ticket);
+        LobbySession restored;QVERIFY(restored.restore(l.state()));QVERIFY(!restored.state()["liveJoining"].toBool());
+    }
+    void revokedLiveConsentDuringGuestPreparationDoesNotLaunch() {
+        LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
+        connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString,QJsonObject p){guest.receive("1","Host",p);});
+        connect(&guest,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){host.receive("2","Guest",p);});
+        TestLobbyRuntime hs,gs;hs.live=gs.live=true;LobbyRuntime hr(host),gr(guest);
+        hr.configure("1",true);gr.configure("2",true);hr.registerService("netplay",&hs);gr.registerService("netplay",&gs);
+        QVERIFY(host.create("public"));QVERIFY(host.selectGame(game()));QVERIFY(hr.setLiveJoining(true));
+        QVERIFY(hr.prepare());hs.preparation(true,{});host.ready(true);hs.opening(true,{});
+        QVERIFY(guest.join("1",host.state()["id"].toString()));QVERIFY(gr.joinLive());
+        QVERIFY(hr.setLiveJoining(false));gs.preparation(true,{});
+        QCOMPARE(gs.launches,0);QCOMPARE(hs.admissions,0);QCOMPARE(hs.launches,1);
+        QVERIFY(!gr.busy());QCOMPARE(host.state()["phase"].toString(),"playing");
+    }
     void spectatorArrivalLossAndDeparturePreserveRunningGame() {
         LobbySession l;QVERIFY(l.create("h","Host","public"));QVERIFY(l.selectGame("h",game("solo",1)));
         prepare(l,"h",1);QVERIFY(l.ready("h",l.generation(),true));

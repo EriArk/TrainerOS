@@ -36,6 +36,10 @@ public:
     // Only the runtime coordinator acknowledges/finishes the pending launch.
     bool acknowledgeLaunch(const QString& ticket,bool success);
     bool finishGame(const QString& ticket);
+    bool setLiveJoining(const QString& actor,bool enabled);
+    int liveSeat(const QString& peer) const;
+    bool admitLive(const QString& peer,const QString& token,int seat);
+    bool releaseLive(const QString& peer,const QString& ticket,const QString& token);
     QJsonObject state() const;
     QString id() const {return id_;}
     QStringList invitedPeers() const {return invites_.keys();}
@@ -44,7 +48,7 @@ signals:
     void changed();
     void launchRequested(QString ticket,QJsonObject party);
 private:
-    struct Member {QString name;int seat=0;bool prepared=false,ready=false,connected=true,spectator=false;};
+    struct Member {QString name;int seat=0;bool prepared=false,ready=false,connected=true,spectator=false;QString admission;};
     bool host(const QString& actor) const;
     bool editable() const;
     int freeSeat() const;
@@ -57,5 +61,6 @@ private:
     QMap<QString,Member> members_;
     QMap<QString,qint64> invites_;
     quint64 revision_=0,generation_=0;
+    bool liveJoining_=false;
 };
 }

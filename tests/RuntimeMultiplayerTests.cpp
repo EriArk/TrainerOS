@@ -47,7 +47,7 @@ class RuntimeMultiplayerTests final : public QObject {
             QObject::connect(&lifecycle.exitController(),&AdventureExitController::gracefulExitRequested,&view,
                 [this](quint64){QFile f(dir.filePath("control"));if(f.open(QIODevice::WriteOnly))f.write("exit");});
         }
-        bool start(bool finalizerFails=false,QString game={},bool hotseat=false,QString kind="retroarch") {
+        bool start(bool finalizerFails=false,QString game={},bool hotseat=false,QString kind="retroarch",QJsonObject netplay={}) {
 #ifdef Q_OS_WIN
             const auto name="trainer_process_probe.exe";
 #else
@@ -56,6 +56,7 @@ class RuntimeMultiplayerTests final : public QObject {
             ProcessCommand command{QDir(QCoreApplication::applicationDirPath()).filePath(name),
                 {"controlled",dir.filePath("control"),dir.filePath("pid")},{}};
             if(!game.isEmpty())command.runtimeControls={{"game",game}};
+            if(!netplay.isEmpty())command.runtimeControls["netplay"]=netplay.toVariantMap();
             if(hotseat) {
                 command.arguments[0]="stdin-control";
                 command.runtimeControls={{"game",game},{"kind",kind},{"netplay",true},{"netplayHost",runtime.host_},
@@ -94,6 +95,43 @@ class RuntimeMultiplayerTests final : public QObject {
         QTRY_VERIFY(!f.lifecycle.active());
     }
 private slots:
+    void liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity() {
+        Fixture a,b;
+        // Historical two-pad profiles omit players; the established default is 2.
+        const QJsonObject profile{{"id","runtime.fceumm.pong-homebrew.v1"},{"label","NES Pong"},{"content","exact"},
+            {"runtime","8d57b47c88d416c05145187c8c906b7ab0013edb7e45af69d9b6bb841aea4a24"},
+            {"core","1b13b00d4680394dad8000d5175f97be727107e0945bc9b412da91d70c07b267"}};
+        const auto digest=QString::fromLatin1(QCryptographicHash::hash((profile["id"].toString()+"/exact").toUtf8(),QCryptographicHash::Sha256).toHex());
+        for(auto* f:{&a,&b}) {
+            const auto id=f==&a?QString("1"):QString("2");
+            disconnect(&f->social,&SocialController::commandRequested,f->social.session_,nullptr);disconnect(f->social.session_,nullptr,&f->social,nullptr);
+            f->social.snapshot_={{"state","connected"},{"userId",id},{"name",id}};
+            f->social.lobbyCoordinator()->configure(id,id,true);f->social.lobbyRuntime()->configure(id,true);
+            f->social.lobbyRuntime()->registerService(profile["id"].toString(),&f->runtime);
+            f->runtime.allowed_=true;f->runtime.games_={{"local",profile}};
+            AdventureRegistration record;record.adventure.id="local";f->library.records={record};
+            disconnect(&f->runtime.party_,&GameParty::startRequested,&f->runtime,&RuntimeMultiplayer::startParty);
+            connect(&f->runtime.party_,&GameParty::startRequested,&f->runtime,[f](bool host,QJsonObject){
+                const auto selected=f->runtime.party_.game();f->runtime.active_=true;f->runtime.host_=host;f->runtime.descriptor_=selected;f->runtime.game_="local";
+                QVERIFY(f->start(false,"local",false,"retroarch",selected));
+                if(host)f->runtime.party_.ready({{"kind","ready"},{"identity",selected}});
+            });
+        }
+        auto* h=a.social.lobbyCoordinator();auto* g=b.social.lobbyCoordinator();
+        connect(h,&LobbyCoordinator::outgoing,g,[&](QString,QJsonObject p){g->receive("1","Host",p);});
+        connect(g,&LobbyCoordinator::outgoing,h,[&](QString,QJsonObject p){h->receive("2","Guest",p);});
+        connect(&a.runtime.party_,&GameParty::outgoing,&b.runtime,[&](QString,QJsonObject p){b.runtime.party_.receive("online:1","Host",p);});
+        connect(&b.runtime.party_,&GameParty::outgoing,&a.runtime,[&](QString,QJsonObject p){a.runtime.party_.receive("online:2","Guest",p);});
+        QVERIFY(h->create("public"));QVERIFY(h->selectGame({digest,"Game","nes",profile["id"].toString(),2,profile}));
+        QVERIFY(a.social.lobbyRuntime()->setLiveJoining(true));QVERIFY(a.social.lobbyRuntime()->prepare());QVERIFY(h->ready(true));
+        QTRY_COMPARE(h->state()["phase"].toString(),"playing");const auto pid=a.process.processId();const auto ticket=h->state()["ticket"].toString();
+        QVERIFY(g->join("1",h->state()["id"].toString()));QVERIFY(b.social.lobbyRuntime()->joinLive());
+        QTRY_COMPARE(b.lifecycle.state(),"running");QCOMPARE(a.process.processId(),pid);QCOMPARE(a.runtime.descriptor_,profile);
+        finishOrdinary(b);QTRY_VERIFY(b.social.lobbyRuntime()->liveAvailable());QCOMPARE(h->state()["ticket"].toString(),ticket);
+        QVERIFY(QFile::remove(b.dir.filePath("control")));QVERIFY(b.social.lobbyRuntime()->joinLive());
+        QTRY_COMPARE(b.lifecycle.state(),"running");QCOMPARE(a.process.processId(),pid);
+        finishOrdinary(b);finishOrdinary(a);
+    }
     void contentOverlaySharesTheLeaseAndNeverReplaysHeldGameButtons() {
         Fixture f;AdventureOverlayService overlay(f.process,f.lifecycle,f.view,{});
         QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");const auto pid=f.process.processId();

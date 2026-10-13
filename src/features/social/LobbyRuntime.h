@@ -13,6 +13,9 @@ public:
     virtual void prepare(QString operation,QJsonObject context,Completion done)=0;
     virtual void launch(QString operation,QString ticket,QJsonObject context,Completion done)=0;
     virtual void cancel(QString operation)=0;
+    virtual bool supportsLive(const QJsonObject&) const {return false;}
+    virtual bool admitLive(QString,QString,QString,int) {return false;}
+    virtual void releaseLive(QString,QString) {}
 };
 class LobbyRuntime final : public QObject {
     Q_OBJECT
@@ -26,6 +29,10 @@ public:
     QString status() const {return status_;}
     bool prepare();
     bool finished(QString ticket);
+    bool liveSupported() const;
+    bool liveAvailable() const;
+    bool setLiveJoining(bool enabled);
+    bool joinLive();
 signals:
     void changed();
 private:
@@ -39,6 +46,6 @@ private:
     QString self_,operation_,ticket_,status_;
     QJsonObject preparedContext_;
     QTimer deadline_{this};
-    bool online_=false,busy_=false,prepared_=false,playing_=false;
+    bool online_=false,busy_=false,prepared_=false,playing_=false,live_=false;
 };
 }
