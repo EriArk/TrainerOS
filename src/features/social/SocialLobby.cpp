@@ -24,7 +24,7 @@ void SocialController::syncLobbyChat() {
         lobbyChatRoom_=room;lobbyChatKey_.clear();lobbyChatChannel_.clear();lobbyChatStatus_.clear();
         lobbyChatBusy_=false;lobbyChatFocused_=false;
     }
-    if(room.isEmpty()||s["phase"]=="joining"||snapshot_["state"]!="connected"||lobbyChatBusy_)return;
+    if(room.isEmpty()||s["phase"]=="joining"||s["recovering"].toBool()||snapshot_["state"]!="connected"||lobbyChatBusy_)return;
     QStringList peers;for(const auto& m:s["members"].toArray())if(m.toObject()["id"]!=snapshot_["userId"].toString())peers.append(m.toObject()["id"].toString());
     peers.sort();const auto channel=s["conversation"].toString();
     if(channel.isEmpty()&&(!lobby_.hosting()||peers.isEmpty()))return;
@@ -115,6 +115,7 @@ QVariantList SocialController::lobbyActions() const {
             else add("prepare",lobbyRuntime_.busy()?"Preparing…":"Prepare game",lobbyRuntime_.available()&&!lobbyRuntime_.busy());
         }
         add("leave",lobby_.hosting()?"Close lobby":"Leave lobby");
+        if(!lobby_.hosting()&&!s["connection"].toString().isEmpty())add("reconnect","Retry connection");
     }
     return actions;
 }
@@ -125,7 +126,10 @@ void SocialController::selectLobby(int index) {
 void SocialController::setLobbyGames(QVariantList games) {if(lobbyGames_==games)return;lobbyGames_=std::move(games);emit changed();}
 void SocialController::editLobbySearch() {textPurpose_="lobby-search";emit textRequested("Find a lobby",lobbySearch_,100);}
 void SocialController::lobbyAction(QString action) {
+    if(action=="leave") {lobby_.leave();lobbySelection_.clear();return;}
     if(snapshot_["state"]!="connected")return;
+    if(action=="reconnect") {lobby_.reconnect();return;}
+    if(action.startsWith("remove:")) {lobby_.remove(action.mid(7));return;}
     if(action=="browse") {lobbyDetailFocused_=false;lobbyChatFocused_=false;emit changed();return;}
     if(action=="chat-retry") {lobbyChatKey_.clear();syncLobbyChat();return;}
     if(action=="chat-people") {
@@ -155,7 +159,7 @@ void SocialController::lobbyAction(QString action) {
     }
     if(action.startsWith("publish-topic:")&&lobby_.hosting()) {
         const auto topic=action.mid(14);
-        if(lobbyDirectory::topics.contains(topic)&&topic!="choosing") {lobbyPublicationTopic_=topic;lobbyPublishTimer_.start();emit changed();}
+        if(lobbyDirectory::topics.contains(topic)&&topic!="choosing") {lobbyPublicationTopic_=topic;lobby_.setPublicationTopic(topic);lobbyPublishTimer_.start();emit changed();}
         return;
     }
     if(action.startsWith("invite:")) {
@@ -174,7 +178,7 @@ void SocialController::lobbyAction(QString action) {
         }
         return;
     }
-    bool allowed=lobby_.hosting()&&(action=="requests"||action=="publish-topic"||action=="chat-choose");for(const auto& v:lobbyActions())if(v.toMap()["id"]==action&&v.toMap()["enabled"].toBool())allowed=true;
+    bool allowed=lobby_.hosting()&&(action=="requests"||action=="publish-topic"||action=="chat-choose"||action=="remove");for(const auto& v:lobbyActions())if(v.toMap()["id"]==action&&v.toMap()["enabled"].toBool())allowed=true;
     if(!allowed)return;
     if(action=="create") {lobby_.create();lobbySelection_.clear();}
     else if(action=="community")emit commandRequested("lobby-directory-join",{});
@@ -191,10 +195,12 @@ void SocialController::lobbyAction(QString action) {
         const auto add=[&](QString label,QString command){menu_.append(label);menuCommands_.append("lobby:"+command);};
         if(action=="invite") {menuTitle_="Invite to lobby";for(const auto& v:runtimeFriends()){const auto f=v.toMap();add(f["name"].toString(),"invite:"+f["id"].toString());}}
         else if(action=="requests") {menuTitle_="Join requests";for(const auto& v:lobby_.requests()){const auto p=v.toObject();add(p["name"].toString(),"approve:"+p["id"].toString());}}
+        else if(action=="remove") {menuTitle_="Remove from lobby";for(const auto& v:lobby_.state()["members"].toArray()) {const auto p=v.toObject();if(p["id"]!=snapshot_["userId"].toString())add(p["name"].toString(),"remove:"+p["id"].toString());}}
         else if(action=="game") {menuTitle_="Choose a game";for(const auto& v:lobbyGames_){const auto g=v.toMap();add(g["title"].toString()+" · "+g["platform"].toString(),"game:"+g["key"].toString());}}
         else if(action=="seat") {menuTitle_="Choose your controller";for(int i=1;i<=lobby_.state()["game"].toObject()["seats"].toInt();++i)add("P"+QString::number(i),"seat:"+QString::number(i));}
         else if(action=="options") {
             menuTitle_="Lobby options";add("Access: "+lobby_.state()["access"].toString()+" · change","access");
+            if(lobby_.state()["members"].toArray().size()>1)add("Remove a member","remove");
             add("Category: "+lobbyPublicationTopic_,"publish-topic");
             if(!lobby_.requests().isEmpty())add("Join requests","requests");
             if(lobby_.state()["conversation"].toString().isEmpty())add("Use an existing group conversation","chat-choose");
@@ -264,19 +270,19 @@ void SocialController::publishLobby() {
     if(snapshot_["state"]!="connected")return;
     const auto s=lobby_.state();const bool publish=lobby_.hosting()&&s["access"]!="private";
     if(!publishedLobby_.isEmpty()&&publishedLobby_!=s["id"].toString()) {
-        emit commandRequested("lobby-directory-publish",{{"v",1},{"op","close"},{"lobby",publishedLobby_},{"revision",qint64(++lobbyPublicationRevision_)}});
+            emit commandRequested("lobby-directory-publish",{{"v",1},{"op","close"},{"lobby",publishedLobby_},{"revision",lobby_.nextPublicationRevision()}});
         publishedLobby_.clear();lobbyPublicationVisible_=false;
     }
     if(!publish&&!publishedLobby_.isEmpty()&&lobbyPublicationVisible_) {
-        emit commandRequested("lobby-directory-publish",{{"v",1},{"op","withdraw"},{"lobby",publishedLobby_},{"revision",qint64(++lobbyPublicationRevision_)}});
+        emit commandRequested("lobby-directory-publish",{{"v",1},{"op","withdraw"},{"lobby",publishedLobby_},{"revision",lobby_.nextPublicationRevision()}});
         lobbyPublicationVisible_=false;
     }
     if(!publish)return;
-    if(publishedLobby_.isEmpty()) {publishedLobby_=s["id"].toString();lobbyPublicationRevision_=0;}
+    if(publishedLobby_.isEmpty())publishedLobby_=s["id"].toString();
     lobbyPublicationVisible_=true;
     auto game=s["game"].toObject();game.remove("runtime");const auto phase=s["phase"].toString();int used=0;
     for(const auto& m:s["members"].toArray())if(m.toObject()["seat"].toInt()>0)++used;
-    emit commandRequested("lobby-directory-publish",{{"v",1},{"op","upsert"},{"lobby",publishedLobby_},{"revision",qint64(++lobbyPublicationRevision_)},
+    emit commandRequested("lobby-directory-publish",{{"v",1},{"op","upsert"},{"lobby",publishedLobby_},{"revision",lobby_.nextPublicationRevision()},
         {"status",phase=="playing"?"playing":game["id"].toString().isEmpty()?"choosing":"gathering"},{"access",s["access"].toString()},
         {"topic",game["id"].toString().isEmpty()?"choosing":lobbyPublicationTopic_},{"seats",game["seats"].toInt()},
         {"available",qMax(0,game["seats"].toInt()-used)},{"game",game.toVariantMap()}});

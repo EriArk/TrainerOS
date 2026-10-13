@@ -2,8 +2,15 @@
 #include "LobbyDirectory.h"
 #include <QDateTime>
 #include <QJsonArray>
+#include <QDebug>
 
 namespace trainer {
+void FluxerSession::refreshContactHolds() {
+    auto held=contactGamePeers_;
+    if(online_.state()["stage"]!="idle"&&!online_.peerAccount().isEmpty())held.insert(online_.peerAccount());
+    if(!voiceChannel_.isEmpty())for(const auto& v:channels_.value(voiceChannel_)["recipients"].toArray())held.insert(v.toObject()["id"].toString());
+    temporaryContacts_.setHeld(std::move(held));
+}
 void FluxerSession::sendLobby(QString peer,QJsonObject packet) {
     bool valid=!peer.isEmpty()&&peer.size()<=20&&peer!=self_;
     for(const auto c:peer)if(c<'0'||c>'9')valid=false;
@@ -44,7 +51,7 @@ void FluxerSession::sendNextLobbyFrame() {
             lobbySending_=false;const auto channel=reply.body.object();const auto recipients=channel["recipients"].toArray();
             if(reply.status>=200&&reply.status<300&&channel["type"]==1&&recipients.size()==1
                &&recipients.first().toObject()["id"]==peer&&!channel["id"].toString().isEmpty())channels_[channel["id"].toString()]=channel;
-            else {lobbyDeliveries_.removeIf([&](const auto& row){return row.peer==peer;});emit lobbyFailed(generation_,peer);}
+            else {qWarning()<<"Lobby DM admission failed, HTTP"<<reply.status;lobbyDeliveries_.removeIf([&](const auto& row){return row.peer==peer;});emit lobbyFailed(generation_,peer);}
             lobbySendTimer_.start();
         });return;
     }
@@ -54,7 +61,7 @@ void FluxerSession::sendNextLobbyFrame() {
             lobbySending_=false;
             if(reply.status>=200&&reply.status<300&&!lobbyDeliveries_.isEmpty()) {
                 auto& row=lobbyDeliveries_.first();if(++row.position>=row.frames.size())lobbyDeliveries_.removeFirst();
-            } else {lobbyDeliveries_.removeIf([&](const auto& row){return row.peer==peer;});emit lobbyFailed(generation_,peer);}
+            } else {qWarning()<<"Lobby packet delivery failed, HTTP"<<reply.status;lobbyDeliveries_.removeIf([&](const auto& row){return row.peer==peer;});emit lobbyFailed(generation_,peer);}
             lobbySendTimer_.start();
         });
 }

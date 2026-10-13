@@ -36,6 +36,18 @@ bool LobbySession::setAccess(const QString& actor,QString access) {
     if(access_==access)return true;
     access_=access;publish();return true;
 }
+bool LobbySession::restore(const QJsonObject& s) {
+    if(phase_!="closed")return false;
+    id_=s["id"].toString();owner_=s["owner"].toString();access_=s["access"].toString();
+    conversation_=s["conversation"].toString();ticket_.clear();invites_.clear();members_.clear();
+    const auto g=s["game"].toObject();
+    game_={g["id"].toString(),g["title"].toString(),g["platform"].toString(),g["mode"].toString(),g["seats"].toInt(),g["runtime"].toObject()};
+    revision_=quint64(s["revision"].toInteger());generation_=quint64(s["generation"].toInteger())+1;
+    for(const auto& value:s["members"].toArray()) {
+        const auto m=value.toObject();members_.insert(m["id"].toString(),{m["name"].toString(),m["seat"].toInt(),false,false,false,m["spectator"].toBool()});
+    }
+    phase_=game_.id.isEmpty()?"choosing":"gathering";publish();return true;
+}
 bool LobbySession::setConversation(const QString& actor,QString channel) {
     if(!host(actor)||channel.isEmpty()||channel.size()>20)return false;
     for(const auto c:channel)if(c<'0'||c>'9')return false;

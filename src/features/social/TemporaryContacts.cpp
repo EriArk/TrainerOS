@@ -56,6 +56,7 @@ bool TemporaryContacts::put(const QString& peer,QJsonObject record) {
     records_=next;emit changed();return true;
 }
 void TemporaryContacts::context(QJsonObject lobby,bool online) {
+    recovering_=lobby["recovering"].toBool();
     online_=online;members_.clear();room_.clear();host_.clear();
     if(!id(self_)||QUuid(lobby.value("id").toString()).isNull()||lobby.value("phase")=="joining")return;
     for(const auto& v:lobby.value("members").toArray())if(id(v.toObject()["id"].toString()))members_.insert(v.toObject()["id"].toString());
@@ -107,7 +108,7 @@ bool TemporaryContacts::manual(const QString& peer) {
 void TemporaryContacts::release(const QString& peer) {
     auto r=records_.value(peer).toObject();
     if(r.value("phase")=="keep"||r.value("phase")=="kept") {send(peer,r.value("host").toBool()?"kept":"keep");return;}
-    if(busy_==peer||held_.contains(peer)) {r["releaseRequested"]=true;put(peer,r);return;}
+    if(recovering_||busy_==peer||held_.contains(peer)) {r["releaseRequested"]=true;put(peer,r);return;}
     r["phase"]="released";r.remove("releaseRequested");if(put(peer,r))send(peer,"remove-ok");
 }
 void TemporaryContacts::receive(QString peer,const QJsonObject& packet) {
@@ -211,7 +212,7 @@ void TemporaryContacts::mutate(const QString& peer,QString phase,QByteArray meth
     });
 }
 void TemporaryContacts::tick(qint64 now) {
-    now_=now;if(!online_||!storageError_.isEmpty()||file_.isEmpty()||!request_)return;
+    now_=now;if(!online_||recovering_||!storageError_.isEmpty()||file_.isEmpty()||!request_)return;
     if(!busy_.isEmpty()) {
         if(now_<deadline_)return;
         const auto peer=busy_;busy_.clear();++flight_;auto r=records_.value(peer).toObject();const auto phase=r.value("phase").toString();

@@ -267,7 +267,6 @@ private:
     QTimer lobbyPublishTimer_{this},lobbyHeartbeat_{this};
     QVariantList lobbyGames_;
     QString lobbySearch_,lobbyTopic_,publishedLobby_,presentedLobbyInvite_,lobbySelection_,lobbyPublicationTopic_="other";
-    quint64 lobbyPublicationRevision_=0;
     int lobbyActionFocus_=0;
     bool lobbyFreeOnly_=false,lobbyDetailFocused_=false;
     bool lobbyPublicationVisible_=false;

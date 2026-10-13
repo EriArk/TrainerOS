@@ -11,6 +11,13 @@ class LobbyCoordinator final : public QObject {
 public:
     explicit LobbyCoordinator(QObject* parent=nullptr);
     void configure(QString self,QString name,bool online);
+    void setStorage(QString file);
+    bool recoveryUncertain() const {return restoring_||!storageError_.isEmpty();}
+    void reconnect();
+    bool remove(const QString& peer);
+    qint64 nextPublicationRevision();
+    QString publicationTopic() const {return publicationTopic_;}
+    void setPublicationTopic(QString topic) {publicationTopic_=std::move(topic);save();}
     bool create(QString access="private");
     bool invite(const QString& peer);
     bool join(const QString& host,const QString& lobby,bool request=false);
@@ -38,7 +45,10 @@ signals:
     void launchRequested(QString ticket,QJsonObject party);
     void notice(QString message);
 private:
-    void send(const QString& peer,QString kind,QJsonObject data={});
+    friend class LobbyTests;
+    void sendInvitation(const QString& peer);
+    void send(const QString& peer,QString kind,QJsonObject data={},QString reply={},QString lobby={});
+    void save();
     void broadcast();
     void tick();
     void clearRemote();
@@ -50,6 +60,10 @@ private:
     QTimer heartbeat_{this};
     QString self_,name_,host_,joining_,launchTicket_,finishedTicket_;
     QString boot_;
+    QString file_,probe_,connection_,storageError_;
+    bool restoring_=false,loading_=false;
+    qint64 publicationRevision_=0;
+    QString publicationTopic_="other";
     quint64 serial_=0;
     QMap<QString,QString> peerBoots_;
     QMap<QString,quint64> peerSerials_;
@@ -59,6 +73,8 @@ private:
     QJsonObject remote_,invitation_;
     QMap<QString,QString> requests_;
     QMap<QString,qint64> seen_;
+    QMap<QString,QJsonObject> pendingInvites_;
+    QMap<QString,qint64> receivedInvites_;
     qint64 joinedAt_=0,hostSeen_=0;
     quint64 preparedGeneration_=0,readyGeneration_=0;
 };

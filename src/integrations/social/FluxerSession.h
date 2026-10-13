@@ -55,6 +55,9 @@ private:
     TemporaryContacts temporaryContacts_{this};
     QTimer contactTimer_{this};
     QJsonObject contactLobby_;
+    bool contactContextKnown_=false;
+    QSet<QString> contactGamePeers_;
+    void refreshContactHolds();
     void lobbyChatCommand(const QVariantMap& args);
     void addLobbyChatMembers(QString lobby,QString channel,QStringList peers);
     QHash<QString,QString> lobbyChatChannels_;

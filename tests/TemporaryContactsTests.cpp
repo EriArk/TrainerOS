@@ -62,6 +62,13 @@ class TemporaryContactsTests final : public QObject {
         QString phase(bool owner) const {return (owner?host.records_["2"]:guest.records_["1"]).toObject()["phase"].toString();}
     };
 private slots:
+    void recoveryDefersCleanupUntilMembershipIsResolved() {
+        Pair p;p.run();QCOMPARE(p.phase(true),"friend");
+        auto pending=p.room;pending["recovering"]=true;p.guest.context(pending,true);
+        p.host.context({},true);p.run(40);QCOMPARE(p.deletes,0);
+        QVERIFY(p.guest.records_["1"].toObject()["releaseRequested"].toBool());
+        p.guest.context({},true);p.run(40);QCOMPARE(p.deletes,1);
+    }
     void automaticRoundTripAndCleanupRequireBothMembers() {
         Pair p;p.run();QCOMPARE(p.posts,1);QCOMPARE(p.accepts,1);QCOMPARE(p.deletes,0);
         QCOMPARE(p.phase(true),"friend");QCOMPARE(p.phase(false),"friend");

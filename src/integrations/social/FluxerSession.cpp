@@ -65,6 +65,8 @@ FluxerSession::FluxerSession(QObject* parent) : QObject(parent) {
     });
     contactTimer_.setInterval(1000);
     connect(&contactTimer_,&QTimer::timeout,this,[this]{
+        if(!contactContextKnown_)return;
+        refreshContactHolds();
         temporaryContacts_.context(contactLobby_,state_=="connected");temporaryContacts_.tick(QDateTime::currentSecsSinceEpoch());
     });
     lobbySendTimer_.setSingleShot(true);lobbySendTimer_.setInterval(300);
@@ -98,9 +100,7 @@ FluxerSession::FluxerSession(QObject* parent) : QObject(parent) {
     onlineSendTimer_.setSingleShot(true);onlineSendTimer_.setInterval(1000);
     connect(&onlineSendTimer_,&QTimer::timeout,this,&FluxerSession::sendOnline);
     connect(&online_,&OnlineLink::changed,this,[this]{
-        const auto stage=online_.state()["stage"].toString();
-        const auto peer=online_.peerAccount();
-        temporaryContacts_.setHeld(stage!="idle"&&!peer.isEmpty()?QSet<QString>{peer}:QSet<QString>{});
+        refreshContactHolds();
         if(online_.state()["stage"]=="idle") {
             // Keep an explicit final close, but never send queued exchange data
             // after cancellation/block/expiry. In-flight delivery is uncertain.
@@ -195,7 +195,7 @@ void FluxerSession::sendParty(QString peer,QString content) {
 }
 FluxerSession::~FluxerSession() { reset(); }
 void FluxerSession::reset() {
-    contactTimer_.stop();contactLobby_={};temporaryContacts_.configure({},{});
+    contactTimer_.stop();contactLobby_={};contactContextKnown_=false;contactGamePeers_.clear();temporaryContacts_.configure({},{});
     lobbySendTimer_.stop();lobbySending_=false;lobbyDeliveries_.clear();lobbyWire_.clear();
     ++lobbyDirectoryRevision_;lobbyChatChannels_.clear();lobbyChatBusy_.clear();lobbyChatUncertain_.clear();
     lobbyDirectoryRows_.clear();lobbyDirectoryPending_.clear();
@@ -1042,8 +1042,18 @@ void FluxerSession::command(QString operation, QVariantMap args) {
     if(operation=="lobby-send"){sendLobby(args["peer"].toString(),QJsonObject::fromVariantMap(args["packet"].toMap()));return;}
     if(operation=="lobby-contact-context") {
         if(args["account"]!=self_||self_.isEmpty())return;
+        contactContextKnown_=true;
         contactLobby_=QJsonObject::fromVariantMap(args["lobby"].toMap());
         temporaryContacts_.context(contactLobby_,state_=="connected");return;
+    }
+    if(operation=="lobby-contact-game") {
+        if(args["account"]!=self_||self_.isEmpty())return;
+        contactGamePeers_.clear();
+        for(const auto& v:args["peers"].toList()) {const auto peer=v.toString();bool valid=!peer.isEmpty()&&peer.size()<=20;
+            for(const auto c:peer)if(c<'0'||c>'9')valid=false;
+            if(valid&&peer!=self_)contactGamePeers_.insert(peer);
+        }
+        refreshContactHolds();return;
     }
     if(operation=="contact-keep") {
         const auto peer=args["id"].toString();

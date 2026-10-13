@@ -39,6 +39,6 @@ private:
     QString self_,operation_,ticket_,status_;
     QJsonObject preparedContext_;
     QTimer deadline_{this};
-    bool online_=false,busy_=false,prepared_=false;
+    bool online_=false,busy_=false,prepared_=false,playing_=false;
 };
 }

@@ -34,6 +34,7 @@ add_library(trainer_core STATIC
     src/features/social/SocialRecent.cpp
     src/features/social/LobbySession.cpp
     src/features/social/LobbyCoordinator.cpp
+    src/features/social/LobbyRecovery.cpp
     src/features/social/LobbyRuntime.cpp
     src/features/social/RecentTogether.cpp
     src/features/social/TemporaryContacts.cpp
@@ -539,6 +540,10 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_game_party_tests tests/GamePartyTests.cpp)
     qt_add_executable(trainer_lobby_tests tests/LobbyTests.cpp)
     qt_add_executable(trainer_contacts_tests tests/TemporaryContactsTests.cpp)
+    if(UNIX AND NOT APPLE)
+        qt_add_executable(trainer_lobby_probe tools/ProbeLobbyLifecycle.cpp)
+        target_link_libraries(trainer_lobby_probe PRIVATE trainer_core)
+    endif()
     target_link_libraries(trainer_contacts_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME temporary_contacts COMMAND trainer_contacts_tests)
     target_link_libraries(trainer_lobby_tests PRIVATE trainer_core Qt6::Test)

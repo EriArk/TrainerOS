@@ -58,7 +58,7 @@ Item {
         Text { id: title; x: 16; y: 12; width: parent.width - 32; height: 31; text: root.selected.title || "Lobby"
             color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23; textFormat: Text.PlainText; elide: Text.ElideRight }
         Text { id: subtitle; x: 16; y: 47; width: parent.width - 32; height: 20; elide: Text.ElideRight
-            text: root.own ? (root.room.phase === "joining" ? "Waiting for the host…" : root.social.lobbyPreparationStatus || root.game.title || "Choose your next game together") : root.selected.detail || "Invite friends, then choose a game together."
+            text: root.own ? (root.room.phase === "joining" ? "Waiting for the host…" : root.room.connection || root.social.lobbyPreparationStatus || root.game.title || "Choose your next game together") : root.selected.detail || "Invite friends, then choose a game together."
             font.pixelSize: 13; color: Theme.muted; textFormat: Text.PlainText }
         ListView {
             id: people; x: 16; y: 75; width: parent.width - 32

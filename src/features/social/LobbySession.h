@@ -17,6 +17,8 @@ public:
     };
     explicit LobbySession(QObject* parent=nullptr);
     bool create(QString owner,QString name,QString access="private");
+    // A validated account-local checkpoint restores membership, never a launch.
+    bool restore(const QJsonObject& state);
     bool setAccess(const QString& actor,QString access);
     bool setConversation(const QString& actor,QString channel);
     bool invite(const QString& actor,QString peer,qint64 expiresAt);

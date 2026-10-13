@@ -50,6 +50,6 @@ private:
     Request request_;
     quint64 epoch_=0,flight_=0;
     qint64 now_=0,deadline_=0,nextCreate_=0;
-    bool online_=false;
+    bool online_=false,recovering_=false;
 };
 }

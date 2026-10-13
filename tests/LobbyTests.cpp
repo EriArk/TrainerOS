@@ -1,5 +1,7 @@
 #include <QtTest>
 #include <QJsonArray>
+#include <QTemporaryDir>
+#include <QFile>
 #include "features/social/LobbySession.h"
 #include "features/social/LobbyCoordinator.h"
 #include "features/social/LobbyRuntime.h"
@@ -22,6 +24,100 @@ class LobbyTests final : public QObject {
         QVERIFY(l.claimSeat(peer,seat,l.generation()));QVERIFY(l.prepared(peer,l.generation(),true));
     }
 private slots:
+    void lostInviteAndReceiptRetryWithoutExtendingConsentOrReopeningDeclinedOffer() {
+        LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
+        int invitations=0;bool dropReceipt=true;
+        connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString,QJsonObject p){
+            if(p["kind"]=="invite"&&++invitations==1)return;guest.receive("1","Host",p);
+        });
+        connect(&guest,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){if(!dropReceipt)host.receive("2","Guest",p);});
+        QVERIFY(host.create());QVERIFY(host.invite("2"));QVERIFY(guest.invitation().isEmpty());
+        host.tick();QVERIFY(!guest.invitation().isEmpty());const auto expiry=guest.invitation()["expires"];
+        host.tick();QCOMPARE(guest.invitation()["expires"],expiry);guest.answer(false);
+        dropReceipt=false;host.tick();QVERIFY(guest.invitation().isEmpty());const auto sent=invitations;
+        host.tick();QCOMPARE(invitations,sent);QVERIFY(host.pendingInvites_.isEmpty());
+        QVERIFY(host.invite("2"));QVERIFY(!guest.invitation().isEmpty()); // Explicit new offer.
+    }
+    void directoryRevisionAndCategorySurviveRestartAndExplicitLeave() {
+        QTemporaryDir dir;const auto file=dir.filePath("room.json");qint64 last=0;
+        {LobbyCoordinator host;host.configure("1","Host",true);host.setStorage(file);QVERIFY(host.create("public"));
+            host.setPublicationTopic("racing");for(int i=0;i<5;++i)last=host.nextPublicationRevision();}
+        {LobbyCoordinator host;host.configure("1","Host",true);host.setStorage(file);QCOMPARE(host.publicationTopic(),"racing");
+            QVERIFY(host.nextPublicationRevision()>last);host.leave();last=host.nextPublicationRevision();}
+        LobbyCoordinator host;host.configure("1","Host",true);host.setStorage(file);QVERIFY(host.state().isEmpty());
+        QVERIFY(host.nextPublicationRevision()>last);
+    }
+    void restartRestoresPrivateMembershipButNeverOldReadyOrLaunch() {
+        QTemporaryDir dir;QString room,ticket;QJsonObject stale;
+        auto host=std::make_unique<LobbyCoordinator>();auto guest=std::make_unique<LobbyCoordinator>();
+        const auto wire=[&]{
+            connect(host.get(),&LobbyCoordinator::outgoing,guest.get(),[&](QString,QJsonObject p){if(p["kind"]=="state")stale=p;guest->receive("1","Host",p);});
+            connect(guest.get(),&LobbyCoordinator::outgoing,host.get(),[&](QString,QJsonObject p){host->receive("2","Guest",p);});
+        };
+        host->configure("1","Host",true);guest->configure("2","Guest",true);
+        host->setStorage(dir.filePath("host.json"));guest->setStorage(dir.filePath("guest.json"));wire();
+        QVERIFY(host->create());QVERIFY(host->setConversation("123"));QVERIFY(host->selectGame(game()));
+        QVERIFY(host->invite("2"));guest->answer(true);room=host->state()["id"].toString();
+        const auto generation=quint64(host->state()["generation"].toInteger());
+        QVERIFY(host->prepared(generation,true));QVERIFY(guest->prepared(generation,true));
+        QVERIFY(host->ready(true));QVERIFY(guest->ready(true));ticket=host->state()["ticket"].toString();QVERIFY(!ticket.isEmpty());
+        host.reset();guest.reset();host=std::make_unique<LobbyCoordinator>();guest=std::make_unique<LobbyCoordinator>();
+        host->configure("1","Host",true);guest->configure("2","Guest",true);
+        QSignalSpy hostLaunch(host.get(),&LobbyCoordinator::launchRequested),guestLaunch(guest.get(),&LobbyCoordinator::launchRequested);
+        host->setStorage(dir.filePath("host.json"));guest->setStorage(dir.filePath("guest.json"));
+        QVERIFY(guest->state()["recovering"].toBool());QVERIFY(!guest->ready(true));
+        const auto replay=stale;wire();guest->reconnect();
+        QCOMPARE(host->state()["id"].toString(),room);QCOMPARE(guest->state()["id"].toString(),room);
+        QCOMPARE(guest->state()["conversation"].toString(),"123");QVERIFY(!guest->state()["recovering"].toBool());
+        QVERIFY(host->state()["ticket"].toString().isEmpty());QCOMPARE(hostLaunch.size(),0);QCOMPARE(guestLaunch.size(),0);
+        QVERIFY(host->state()["generation"].toInteger()>qint64(generation));
+        guest->receive("1","Host",replay);QVERIFY(guest->state()["ticket"].toString().isEmpty());
+        QVERIFY(!host->acknowledgeLaunch(ticket,true));QVERIFY(!guest->acknowledgeLaunch(ticket,true));
+        for(const auto& v:guest->state()["members"].toArray()) {QVERIFY(!v.toObject()["ready"].toBool());QVERIFY(!v.toObject()["prepared"].toBool());}
+        guest->leave();guest.reset();guest=std::make_unique<LobbyCoordinator>();guest->configure("2","Guest",true);guest->setStorage(dir.filePath("guest.json"));QCOMPARE(guest->state(),QJsonObject{});
+    }
+    void runningGuestAcceptsRestartedHostOnlyAfterItsOwnProbe() {
+        QTemporaryDir dir;auto host=std::make_unique<LobbyCoordinator>();LobbyCoordinator guest;
+        host->configure("1","Host",true);host->setStorage(dir.filePath("host.json"));guest.configure("2","Guest",true);
+        auto wireHost=[&]{connect(host.get(),&LobbyCoordinator::outgoing,&guest,[&](QString,QJsonObject p){guest.receive("1","Host",p);});};
+        connect(&guest,&LobbyCoordinator::outgoing,&guest,[&](QString,QJsonObject p){host->receive("2","Guest",p);});wireHost();
+        QVERIFY(host->create("public"));QVERIFY(guest.join("1",host->state()["id"].toString()));
+        auto before=guest.state();host.reset();host=std::make_unique<LobbyCoordinator>();host->configure("1","Host",true);
+        wireHost();host->setStorage(dir.filePath("host.json"));QCOMPARE(guest.state(),before);
+        guest.reconnect();QVERIFY(guest.state()["generation"].toInteger()>before["generation"].toInteger());
+        QCOMPARE(guest.state()["members"].toArray().size(),2);
+    }
+    void removedAndClosedRoomsCannotReadmitARecoveredSnapshot() {
+        for(bool close:{false,true}) {
+            QTemporaryDir dir;LobbyCoordinator host;auto guest=std::make_unique<LobbyCoordinator>();
+            host.configure("1","Host",true);guest->configure("2","Guest",true);guest->setStorage(dir.filePath("guest.json"));
+            connect(&host,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){if(guest)guest->receive("1","Host",p);});
+            connect(guest.get(),&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){host.receive("2","Guest",p);});
+            QVERIFY(host.create("public"));QVERIFY(guest->join("1",host.state()["id"].toString()));guest.reset();
+            if(close)host.leave();else QVERIFY(host.remove("2"));
+            guest=std::make_unique<LobbyCoordinator>();guest->configure("2","Guest",true);
+            connect(guest.get(),&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){host.receive("2","Guest",p);});
+            guest->setStorage(dir.filePath("guest.json"));QCOMPARE(guest->state(),QJsonObject{});
+        }
+    }
+    void corruptOrOtherAccountCheckpointsDoNotCreateMembership() {
+        QTemporaryDir dir;const auto file=dir.filePath("room.json");
+        {LobbyCoordinator host;host.configure("1","Host",true);host.setStorage(file);QVERIFY(host.create());}
+        LobbyCoordinator other;other.configure("2","Guest",true);other.setStorage(file);QVERIFY(other.state().isEmpty());
+        QFile input(file);QVERIFY(input.open(QIODevice::ReadOnly));const auto original=input.readAll();input.close();
+        other.leave();QVERIFY(input.open(QIODevice::ReadOnly));QCOMPARE(input.readAll(),original);input.close();
+        QVERIFY(input.open(QIODevice::WriteOnly));input.write("{broken");input.close();
+        LobbyCoordinator corrupt;corrupt.configure("1","Host",true);corrupt.setStorage(file);QVERIFY(corrupt.state().isEmpty());
+    }
+    void acknowledgedGameSurvivesRoomClosureUntilSafeRuntimeReturn() {
+        LobbyCoordinator host;TestLobbyRuntime service;LobbyRuntime runtime(host);
+        host.configure("1","Host",true);runtime.configure("1",true);runtime.registerService("netplay",&service);
+        QVERIFY(host.create());QVERIFY(host.selectGame(game()));QVERIFY(runtime.prepare());service.preparation(true,{});
+        QVERIFY(host.ready(true));const auto ticket=host.state()["ticket"].toString();service.opening(true,{});
+        QCOMPARE(host.state()["phase"].toString(),"playing");host.leave();QCOMPARE(service.cancels,0);
+        runtime.configure("1",false);QCOMPARE(service.cancels,0);QVERIFY(!runtime.available());
+        QVERIFY(runtime.finished(ticket));QCOMPARE(service.cancels,1);
+    }
     void closingLobbyWithdrawsTheDeferredInvitationAndIgnoresItsReplay() {
         LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
         QJsonObject original;

@@ -23,8 +23,9 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(&lobbyHeartbeat_,&QTimer::timeout,this,[this]{publishLobby();if(face_=="lobby")emit commandRequested("lobby-directory-refresh",{});});
     connect(&lobby_,&LobbyCoordinator::changed,this,[this]{
         lobbyPublishTimer_.start();
-        if(!lobby_.state().isEmpty()||!lobbyChatRoom_.isEmpty())
-            emit commandRequested("lobby-contact-context",{{"account",snapshot_["userId"]},{"lobby",lobby_.state().toVariantMap()}});
+        auto contactState=lobby_.state();if(lobby_.recoveryUncertain())contactState["recovering"]=true;
+        if(!owner_.isEmpty()||!lobby_.state().isEmpty()||!lobbyChatRoom_.isEmpty())
+            emit commandRequested("lobby-contact-context",{{"account",snapshot_["userId"]},{"lobby",contactState.toVariantMap()}});
         syncLobbyChat();
         recentTogether_.observe(lobby_.state(),QDateTime::currentSecsSinceEpoch());
         const auto invite=lobby_.invitation();const auto id=invite["lobby"].toString();
@@ -106,7 +107,7 @@ SocialController::~SocialController() {
 }
 void SocialController::setOwner(QString owner) {
     if(owner==owner_)return;
-    lobby_.leave();publishLobby();lobby_.configure({}, {},false);lobbySearch_.clear();lobbyTopic_.clear();lobbySelection_.clear();lobbyActionFocus_=0;
+    lobby_.leave();publishLobby();lobby_.setStorage({});lobby_.configure({}, {},false);lobbySearch_.clear();lobbyTopic_.clear();lobbySelection_.clear();lobbyActionFocus_=0;
     publishedLobby_.clear();lobbyPublicationVisible_=false;lobbyGames_.clear();
     lobbyPublicationTopic_="other";
     recentTogether_.configure({},{});recentSelection_.clear();
@@ -683,6 +684,13 @@ QString SocialController::runtimePeer() const {
 void SocialController::setGameParty(QVariantMap state){
     if(gameParty_==state)return;
     gameParty_=std::move(state);
+    QVariantList peers;
+    if(gameParty_["running"].toBool())for(const auto& v:gameParty_["members"].toList()) {
+        const auto m=v.toMap();if(!m["ready"].toBool())continue;
+        auto peer=m["peer"].toString();if(peer.isEmpty()&&!gameParty_["host"].toBool())peer=gameParty_["hostPeer"].toString();
+        if(peer.startsWith("online:"))peers.append(peer.mid(7));
+    }
+    emit commandRequested("lobby-contact-game",{{"account",snapshot_["userId"]},{"peers",peers}});
     partyIndex_=qBound(0,partyIndex_,qMax(0,int(companyParties().size())-1));
     if(companyParties().isEmpty())partyFocus_=false;
     emit changed();
@@ -1211,6 +1219,8 @@ void SocialController::bindDrafts(const QString& accountId) {
     const auto key=QString::fromLatin1(QCryptographicHash::hash(("https://fluxer.app\n"+owner_+"\n"+accountId).toUtf8(),QCryptographicHash::Sha256).toHex());
     const auto file=QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/social/"+key+"/drafts.json";
     recentTogether_.configure(QFileInfo(file).absolutePath()+"/recent-together.json",accountId);
+    lobby_.setStorage(QFileInfo(file).absolutePath()+"/lobby.json");
+    lobbyPublicationTopic_=lobby_.publicationTopic();
     if(file==draftFile_)return;
     saveDrafts();drafts_.clear();draftFile_=file;
     QFile input(file);if(QFileInfo(file).isSymLink()||input.size()>1024*1024||!input.open(QIODevice::ReadOnly))return;
