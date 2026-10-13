@@ -1,5 +1,7 @@
 # Multiplayer preparation and device continuation
 
+**Owner scope update, 13 October 2026 — supersedes all older PS3/Switch exclusions below:** PS3, Nintendo Switch, Original Xbox and Xbox 360 are all **included in the multiplayer planning and network-adapter preparation scope**, without waiting for emulators to become universally fast or compatible. Read [working coverage](MULTIPLAYER_WORKING_MATRIX.md) and [platform mechanisms](MULTIPLAYER_PLATFORM_MATRIX.md). Existing older wording saying PS3/Switch are excluded/deferred is historical, not current authorization. Actual playable online remains gated by available runtime, game and network acceptance. Original Xbox / Xbox 360 are planned registry additions, **not shipped library platforms**. The owner has not yet selected execution priorities; do not create issues or code changes from this note alone.
+
 **Latest PS2 scope correction, 12 October:** native game online using ordinary
 ARMSX2 networking, plus ordinary Hotseat where supported. Stop the LRPS2
 shared-console experiment. This supersedes older PS2 both-input-mode and
