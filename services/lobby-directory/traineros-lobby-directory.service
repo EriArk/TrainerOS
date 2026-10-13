@@ -1,0 +1,18 @@
+[Unit]
+Description=TrainerOS Fluxer lobby directory
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/share/traineros-lobby/venv/bin/python %h/.local/share/traineros-lobby/bot.py --config %h/.config/traineros-lobby --state %h/.local/share/traineros-lobby/directory.db
+Restart=on-failure
+RestartSec=15
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=%h/.local/share/traineros-lobby
+
+[Install]
+WantedBy=default.target

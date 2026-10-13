@@ -117,10 +117,10 @@ private slots:
         keyboard.begin("Message",{},10,false,"Send",true);
         QCOMPARE(keyboard.keys()[keyIndex(keyboard,"apply")].toMap()["label"].toString(),"Send");
         tap(keyboard,Action::ToggleContinue,2);QCOMPARE(keyboard.nextLayout(),"Emoji");
-        keyboard.dispatch(Action::ToggleContinue);keyboard.activate(keyIndex(keyboard,"Q"));
+        keyboard.dispatch(Action::ToggleContinue);keyboard.activate(16);
         QCOMPARE(keyboard.text(),QString::fromUtf8("❤️"));QCOMPARE(keyboard.count(),1);
         keyboard.activate(keyIndex(keyboard,"delete"));QVERIFY(keyboard.text().isEmpty());
-        keyboard.activate(keyIndex(keyboard,"A"));keyboard.dispatch(Action::LocalAction);
+        keyboard.activate(0);keyboard.dispatch(Action::LocalAction);
         QCOMPARE(accepted.size(),1);QCOMPARE(accepted.first()[0].toString(),QString::fromUtf8("😀"));
         keyboard.dispatch(Action::LocalAction);QCOMPARE(accepted.size(),1);
         keyboard.begin("Name","draft",24);QCOMPARE(keyboard.submitLabel(),"Apply");
@@ -394,8 +394,9 @@ private slots:
         shell.dispatch(Action::Confirm);QVERIFY(shell.notice().isEmpty());QVERIFY(!pokemonModule(shell).persona()->editing());
         shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"communities");
         shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"friends");
+        shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"lobby");
         shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"chats");
-        shell.dispatch(Action::PreviousFace);QCOMPARE(shell.socialFace(),"friends");
+        shell.dispatch(Action::PreviousFace);QCOMPARE(shell.socialFace(),"lobby");
         shell.dispatch(Action::NextFace);QCOMPARE(shell.socialFace(),"chats");
         shell.dispatch(Action::Back);QCOMPARE(shell.socialFace(),"chats");
         const auto checkpoint=shell.navigationState();
@@ -975,7 +976,7 @@ private slots:
         keyboard.begin("Password", "", 128, true);
         tap(keyboard, Action::Confirm);
         tap(keyboard, Action::Secondary); tap(keyboard, Action::Confirm);
-        QCOMPARE(keyboard.text(), "aA");
+        QCOMPARE(keyboard.text(), "qQ");
         QCOMPARE(keyboard.displayText(), QString(2, QChar(0x2022)));
         // All printable ASCII punctuation is available, including quote/backslash.
         QString entered;
@@ -993,7 +994,7 @@ private slots:
             if (!QChar(code).isLetterOrNumber()) expected += QChar(code);
         QCOMPARE(entered, expected);
         keyboard.activate(keyIndex(keyboard, "9"));
-        QCOMPARE(keyboard.text(), "aA" + expected + "9");
+        QCOMPARE(keyboard.text(), "qQ" + expected + "9");
         QCOMPARE(keyboard.displayText(), QString(keyboard.count(), QChar(0x2022)));
         const QString result = keyboard.text();
         keyboard.activate(keyIndex(keyboard, "apply"));
@@ -1005,7 +1006,7 @@ private slots:
         QVERIFY(keyboard.text().isEmpty()); QVERIFY(keyboard.displayText().isEmpty());
         keyboard.begin("Name", "", 24);
         tap(keyboard, Action::Confirm);
-        QCOMPARE(keyboard.displayText(), "A"); // Other forms retain the existing default.
+        QCOMPARE(keyboard.displayText(), "Q"); // Other forms retain the existing default.
         QVERIFY(keyboard.metaObject()->indexOfProperty("text") < 0);
     }
     void symbolsKeepEveryVisibleKeyReachable() {
@@ -1033,7 +1034,7 @@ private slots:
         keyboard.begin("Search", "", 128);
         keyboard.activate(keyIndex(keyboard, "Z"));
         tap(keyboard, Action::ToggleContinue, 2);
-        QCOMPARE(focusedKey(keyboard), "A");
+        QCOMPARE(focusedKey(keyboard), "Q");
         const QString before = keyboard.text();
         keyboard.activate(keyIndex(keyboard, "Z")); // Hidden slots cannot insert characters.
         QCOMPARE(keyboard.text(), before);
@@ -1088,53 +1089,67 @@ private slots:
                 if (i + 1 < count) keyboard.dispatch(Action::Right);
             }
         };
-        row(10); // A-J
+        row(10); // QWERTYUIOP
         tap(keyboard, Action::Down); tap(keyboard, Action::Left, 9);
-        row(10); // K-T
-        tap(keyboard, Action::Down); tap(keyboard, Action::Left, 7);
-        QCOMPARE(focusedKey(keyboard), "U");
-        row(6); // U-Z
-        QCOMPARE(keyboard.text(), "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-        tap(keyboard, Action::Right, 3); tap(keyboard, Action::Up, 2);
+        row(9); // ASDFGHJKL
+        tap(keyboard, Action::Down); tap(keyboard, Action::Left, 9);
+        QCOMPARE(focusedKey(keyboard), "Z");
+        row(7);
+        QCOMPARE(keyboard.text(), "QWERTYUIOPASDFGHJKLZXCVBNM");
+        tap(keyboard, Action::Right); tap(keyboard, Action::Up, 2);
         QCOMPARE(focusedKey(keyboard), "1");
-        row(3); // 123
+        row(3);
         tap(keyboard, Action::Down);
         for (int i = 0; i < 3; ++i) {
             tap(keyboard, Action::Confirm);
             if (i < 2) tap(keyboard, Action::Left);
         }
         tap(keyboard, Action::Down); row(3); tap(keyboard, Action::Down); tap(keyboard, Action::Confirm);
-        QCOMPARE(keyboard.text(), "ABCDEFGHIJKLMNOPQRSTUVWXYZ1236547890");
+        QCOMPARE(keyboard.text(), "QWERTYUIOPASDFGHJKLZXCVBNM1236547890");
     }
     void spatialEdgesAndWideKeys() {
         TextEntryController keyboard;
         keyboard.begin("Name", "", 24);
         tap(keyboard, Action::Up); tap(keyboard, Action::Left);
-        QCOMPARE(focusedKey(keyboard), "A");
-        tap(keyboard, Action::Right, 5); tap(keyboard, Action::Down, 3);
+        QCOMPARE(focusedKey(keyboard), "Q");
+        tap(keyboard, Action::Right, 2); tap(keyboard, Action::Down, 3);
         QCOMPARE(focusedKey(keyboard), "space");
         tap(keyboard, Action::Up, 3);
-        QCOMPARE(focusedKey(keyboard), "F"); // Preserve F's column through Space.
-        tap(keyboard, Action::Right, 3); tap(keyboard, Action::Down, 3);
+        QCOMPARE(focusedKey(keyboard), "E");
+        tap(keyboard, Action::Right, 7); tap(keyboard, Action::Down, 3);
         QCOMPARE(focusedKey(keyboard), "apply");
         tap(keyboard, Action::Up, 3);
-        QCOMPARE(focusedKey(keyboard), "I"); // Through Clear and Apply.
-        tap(keyboard, Action::Right, 2);
-        QCOMPARE(focusedKey(keyboard), "1"); // Across the physical gap.
-        tap(keyboard, Action::Left);
-        QCOMPARE(focusedKey(keyboard), "J");
-        tap(keyboard, Action::Right, 3);
-        QCOMPARE(focusedKey(keyboard), "3");
-        tap(keyboard, Action::Right);
-        QCOMPARE(focusedKey(keyboard), "3");
-        tap(keyboard, Action::Down, 3);
-        QCOMPARE(focusedKey(keyboard), "0");
-        tap(keyboard, Action::Down);
-        QCOMPARE(focusedKey(keyboard), "0");
-        tap(keyboard, Action::Up, 3);
-        QCOMPARE(focusedKey(keyboard), "3"); // 0 remembers the third numeric column.
-        tap(keyboard, Action::Down, 3); tap(keyboard, Action::Left); tap(keyboard, Action::Up);
-        QCOMPARE(focusedKey(keyboard), "clear"); // Enter Apply horizontally at its middle column.
+        QCOMPARE(focusedKey(keyboard), "P");
+        tap(keyboard, Action::Right); QCOMPARE(focusedKey(keyboard), "1");
+        tap(keyboard, Action::Left); QCOMPARE(focusedKey(keyboard), "P");
+        tap(keyboard, Action::Right, 3); QCOMPARE(focusedKey(keyboard), "3");
+        tap(keyboard, Action::Right); QCOMPARE(focusedKey(keyboard), "3");
+        tap(keyboard, Action::Down, 3); QCOMPARE(focusedKey(keyboard), "0");
+        tap(keyboard, Action::Down); QCOMPARE(focusedKey(keyboard), "0");
+        tap(keyboard, Action::Up, 3); QCOMPARE(focusedKey(keyboard), "3");
+    }
+    void keyboardLanguageIsIndependentAndScopedToTrainer() {
+        QTemporaryDir directory; QVERIFY(directory.isValid());
+        TextEntryController keyboard;
+        keyboard.configure(directory.path(),"first");
+        keyboard.begin("Message","draft",100,false,"Send",true);
+        tap(keyboard,Action::Secondary);tap(keyboard,Action::NextFace);
+        QCOMPARE(keyboard.language(),"ru");QCOMPARE(keyboard.text(),"draft");
+        QString letters;
+        for(const auto& v:keyboard.keys()) {
+            const auto key=v.toMap();
+            if(!key["numeric"].toBool()&&key["id"].toString().size()==1)letters+=key["label"].toString();
+        }
+        QCOMPARE(letters,QString::fromUtf8("йцукенгшщзхъфывапролджэячсмитьбюё"));
+        keyboard.activate(keyIndex(keyboard,QString::fromUtf8("Ё")));
+        QCOMPARE(keyboard.text(),QString::fromUtf8("draftё"));
+        tap(keyboard,Action::ToggleContinue);const auto next=keyboard.nextLayout();
+        tap(keyboard,Action::PreviousFace);QCOMPARE(keyboard.nextLayout(),next);
+        tap(keyboard,Action::NextFace);keyboard.cancel();
+        keyboard.configure(directory.path(),"second");QCOMPARE(keyboard.language(),"en");
+        keyboard.configure(directory.path(),"first");QCOMPARE(keyboard.language(),"ru");
+        TextEntryController reopened;reopened.configure(directory.path(),"first");QCOMPARE(reopened.language(),"ru");
+        reopened.configure(directory.path(),{});QCOMPARE(reopened.language(),"en");
     }
     void bufferApplyCancelAndLimit() {
         TextEntryController keyboard;

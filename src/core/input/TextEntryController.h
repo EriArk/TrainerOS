@@ -4,9 +4,10 @@
 #include <QVariantList>
 
 namespace trainer {
-// Shared controller text-entry session. No knowledge of Trainer, search or storage.
+// Shared text-entry session; only a scoped language preference is persisted.
 class TextEntryController final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QString language READ language NOTIFY layoutChanged)
     Q_PROPERTY(bool open READ isOpen NOTIFY changed)
     Q_PROPERTY(QString title READ title NOTIFY changed)
     Q_PROPERTY(QString displayText READ displayText NOTIFY changed)
@@ -20,6 +21,11 @@ class TextEntryController final : public QObject {
     Q_PROPERTY(QVariantList keys READ keys NOTIFY layoutChanged)
 public:
     explicit TextEntryController(QObject* parent = nullptr);
+    void configure(const QString& directory, const QString& owner);
+    QString language() const { return language_; }
+    Q_INVOKABLE void cycleLanguage();
+    void insertText(const QString& text);
+    void backspace();
     bool isOpen() const { return open_; }
     QString title() const { return title_; }
     QString text() const { return text_; }
@@ -48,11 +54,15 @@ private:
         QString id;
         QString label;
         int row;
-        int column;
-        int span;
+        qreal column;
+        qreal span;
         KeyKind kind;
+        bool numeric = false;
+        int slot = -1;
     };
+    void rebuild();
     void move(Action);
+    QString language_ = "en", preferences_, preferenceKey_;
     QString label(const Key&) const;
     QList<Key> keys_;
     bool open_ = false;
@@ -65,6 +75,6 @@ private:
     QString hint_;
     int maximumLength_ = 24;
     int focus_ = 0;
-    int preferredColumn_ = 0;
+    qreal preferredColumn_ = 0;
 };
 }

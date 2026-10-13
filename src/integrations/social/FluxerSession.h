@@ -9,6 +9,7 @@
 #include <QProcess>
 #include <functional>
 #include "OnlineLink.h"
+#include "LobbyWire.h"
 
 class QNetworkAccessManager;
 class QNetworkReply;
@@ -44,9 +45,26 @@ signals:
     void partyPacket(quint64 generation, QString peer, QString name, QJsonObject packet);
     void partyFailed(quint64 generation, QString peer);
     void partyReset(quint64 generation);
+    void lobbyPacket(quint64 generation,QString peer,QString name,QJsonObject packet);
+    void lobbyFailed(quint64 generation,QString peer);
     void runtimeProbeFailed(quint64 generation, QString peer, QString message);
 private:
     friend class SocialTests;
+    void lobbyDirectoryCommand(const QString& operation,const QVariantMap& args);
+    void loadLobbyDirectory(int channel,QString before);
+    QVariantMap lobbyDirectoryState() const;
+    QHash<QString,QJsonObject> lobbyDirectoryRows_,lobbyDirectoryPending_;
+    QString lobbyDirectoryStatus_,lobbyBotChannel_;
+    bool lobbyDirectoryBusy_=false,lobbyDirectoryNeedsJoin_=false;
+    quint64 lobbyDirectoryRevision_=0;
+    int lobbyDirectoryPages_=0;
+    void sendLobby(QString peer,QJsonObject packet);
+    void sendNextLobbyFrame();
+    struct LobbyDelivery {QString peer;QStringList frames;int position=0;};
+    QList<LobbyDelivery> lobbyDeliveries_;
+    QTimer lobbySendTimer_{this};
+    bool lobbySending_=false;
+    LobbyWire lobbyWire_;
     void reviewCommand(const QString& operation,const QVariantMap& args);
     void loadReviews(int page=1);
     void publishReviews();

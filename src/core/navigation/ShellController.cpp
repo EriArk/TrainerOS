@@ -124,6 +124,9 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&network_, &NetworkController::changed,this,&ShellController::changed);
     connect(settings_.clock(), &ClockController::changed, this, &ShellController::changed);
     settings_.communication()->configure(&social_);
+    connect(&social_,&SocialController::lobbyRequested,this,[this]{
+        closeHomeMenu();socialFace_="lobby";goToPage(4);emit changed();
+    });
     connect(settings_.communication(),&CommunicationSettings::changed,this,[this]{if(service_=="settings" && settings_.category()==13)emit changed();});
     connect(settings_.communication(),&CommunicationSettings::backRequested,this,[this]{settings_.selectCategory(13,false);});
     connect(this,&ShellController::changed,this,[this]{if(service_!="settings" || settings_.category()!=13)settings_.communication()->leave();});
@@ -407,7 +410,7 @@ QVariantList ShellController::gameHistory() const {
 QStringList ShellController::faceNames() const {
     if(page_==1) { QStringList names;for(const auto& row:collections())names.append(row.toMap()["name"].toString());return names; }
     if(page_==2 || page_==3)return experience_.labels(page_-2);
-    if(page_==4)return {"Messages","Communities","Discover"};
+    if(page_==4)return {"Messages","Communities","Discover","Lobby"};
     return {};
 }
 int ShellController::faceIndex() const {
@@ -418,7 +421,7 @@ int ShellController::faceIndex() const {
         return 0;
     }
     if(page_==2 || page_==3)return experience_.index(page_-2);
-    if(page_==4)return QStringList{"chats","communities","friends"}.indexOf(socialFace_);
+    if(page_==4)return QStringList{"chats","communities","friends","lobby"}.indexOf(socialFace_);
     return 0;
 }
 QString ShellController::trainerFace() const {
@@ -519,7 +522,7 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     if(version==1 && target=="pokedex")target="companions";
     const bool legacyHall=version==1 && target=="hall";
     if(legacyHall)target="trainer";
-    socialFace_=version==2 && QStringList{"chats","groups","communities","friends"}.contains(state["socialFace"].toString()) ? state["socialFace"].toString() : "chats";
+    socialFace_=version==2 && QStringList{"chats","groups","communities","friends","lobby"}.contains(state["socialFace"].toString()) ? state["socialFace"].toString() : "chats";
     social_.setFace(socialFace_);
     if(socialFace_=="groups")socialFace_="chats";
     goToPage(std::max(0, int(pages.indexOf(target))));
@@ -959,6 +962,7 @@ QVariantList ShellController::homeMenuActions() const {
         QVariantMap{{"id","chats"},{"label","Chats"}},QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(notifications().size())}}};
     rows.append(QVariantMap{{"id","profile"},{"label","Your profile"},{"detail",trainer_.profile()["name"]}});
     rows.append(QVariantMap{{"id","together"},{"label","Play together"}});
+    rows.append(QVariantMap{{"id","lobby"},{"label",social_.lobbyState().isEmpty()?"Lobbies":"My lobby"}});
     if(!liveGame_.isEmpty()) {
         rows.prepend(QVariantMap{{"id","live-options"},{"label","Game Options"},{"detail",liveGame_["title"]}});
         rows.prepend(QVariantMap{{"id","live-return"},{"label","Return to game"},{"detail","Still running · "+liveGame_["title"].toString()}});
@@ -987,6 +991,7 @@ void ShellController::activateHomeMenu(int index) {
     if(!selected.value("enabled",true).toBool())return;
     const auto id=selected["id"].toString();
     if(id=="together"){emit togetherRequested(liveGame_["id"].toString());return;}
+    if(id=="lobby"){social_.openLobby();return;}
     if(id=="live-return"||id=="live-options"){returnToLiveGame(id=="live-options");return;}
     if(id=="profile"){openProfile();return;}
     if(id=="game-party"){closeHomeMenu();goToPage(4);emit social_.runtimeAction("multiplayer-party");return;}
@@ -1042,6 +1047,8 @@ void ShellController::openSocialNotification() {
     socialFace_=face;goToPage(4);social_.openNotification();emit changed();
 }
 void ShellController::dispatch(Action action) {
+    if(keyboard_.isOpen()&&!menuOpen_&&!homeMenuOpen_&&notice_.isEmpty()&&!downloads_.isOpen()&&!social_.online()["open"].toBool()
+       &&(action==Action::PreviousFace||action==Action::NextFace)){keyboard_.dispatch(action);return;}
     if(downloads_.isOpen()){downloads_.dispatch(action);return;}
     if(scraper_.isOpen()&&action==Action::SystemMenu&&!keyboard_.isOpen()){menuFocus_=scraper_.selectingSystems()?13:12;scraper_.hide();menuOpen_=true;emit changed();return;}
     if(social_.online()["open"].toBool()) {
@@ -1113,7 +1120,7 @@ void ShellController::dispatch(Action action) {
                 experience_.cycle(page_-2,action==Action::NextFace?1:-1);
                 showExperienceFace(page_-2,experience_.face(page_-2));
             }
-            else if(page_==4) {const QStringList faces{"chats","communities","friends"};socialFace_=faces[(faceIndex()+(action==Action::NextFace?1:2))%3];social_.setFace(socialFace_);}
+            else if(page_==4) {const QStringList faces{"chats","communities","friends","lobby"};socialFace_=faces[(faceIndex()+(action==Action::NextFace?1:faces.size()-1))%faces.size()];social_.setFace(socialFace_);}
             emit changed();
         }
         return;

@@ -1,24 +1,55 @@
 #include "TextEntryController.h"
 #include <QTextBoundaryFinder>
+#include <QSettings>
+#include <QDir>
+#include <QCryptographicHash>
 #include <algorithm>
 #include <limits>
 
 namespace trainer {
-TextEntryController::TextEntryController(QObject* parent) : QObject(parent) {
-    for (int i = 0; i < 26; ++i) {
-        const QString letter(QChar('A' + i));
-        keys_.append({letter, letter, i / 10, i % 10, 1, KeyKind::Character});
+TextEntryController::TextEntryController(QObject* parent) : QObject(parent) { rebuild(); }
+void TextEntryController::configure(const QString& directory, const QString& owner) {
+    cancel();
+    preferences_ = directory.isEmpty() ? QString() : QDir(directory).filePath("keyboard.ini");
+    preferenceKey_ = owner.isEmpty() ? QString() : QString::fromLatin1(QCryptographicHash::hash(owner.toUtf8(),QCryptographicHash::Sha256).toHex()) + "/language";
+    language_ = "en";
+    if(!preferences_.isEmpty()&&!preferenceKey_.isEmpty()) {
+        QSettings settings(preferences_,QSettings::IniFormat);
+        if(settings.value(preferenceKey_).toString()=="ru")language_="ru";
     }
-    keys_.append({"delete", "Delete", 2, 6, 2, KeyKind::Delete});
-    keys_.append({"clear", "Clear", 2, 8, 2, KeyKind::Clear});
-    keys_.append({"space", "Space", 3, 0, 6, KeyKind::Space});
-    keys_.append({"apply", "Apply", 3, 6, 4, KeyKind::Apply});
-    // Column 10 is a physical gap between the letter and number modules.
-    for (int i = 0; i < 9; ++i) {
-        const auto number = QString::number(i + 1);
-        keys_.append({number, number, i / 3, 11 + i % 3, 1, KeyKind::Character});
+    rebuild(); emit layoutChanged(); emit changed();
+}
+void TextEntryController::rebuild() {
+    keys_.clear();
+    const QStringList rows = language_=="ru"
+        ? QStringList{QString::fromUtf8("ЙЦУКЕНГШЩЗХЪ"),QString::fromUtf8("ФЫВАПРОЛДЖЭ"),QString::fromUtf8("ЯЧСМИТЬБЮ")}
+        : QStringList{"QWERTYUIOP","ASDFGHJKL","ZXCVBNM"};
+    int slot=0;
+    for(int row=0;row<rows.size();++row) {
+        const qreal offset=(12-rows[row].size())/2.0;
+        for(int col=0;col<rows[row].size();++col) {
+            const QString letter(rows[row][col]);
+            keys_.append({letter,letter,row,offset+col,1,KeyKind::Character,false,slot++});
+        }
     }
-    keys_.append({"0", "0", 3, 11, 3, KeyKind::Character});
+    if(language_=="ru")keys_.append({QString::fromUtf8("Ё"),QString::fromUtf8("Ё"),3,0,1,KeyKind::Character,false,slot++});
+    keys_.append({"space","Space",3,1,4,KeyKind::Space});
+    keys_.append({"delete","Delete",3,5,2,KeyKind::Delete});
+    keys_.append({"clear","Clear",3,7,2,KeyKind::Clear});
+    keys_.append({"apply","Apply",3,9,3,KeyKind::Apply});
+    for(int i=0;i<9;++i) {
+        const auto number=QString::number(i+1);
+        keys_.append({number,number,i/3,qreal(13+i%3),1,KeyKind::Character,true});
+    }
+    keys_.append({"0","0",3,13,3,KeyKind::Character,true});
+    focus_=0;preferredColumn_=keys_.first().column+0.5;
+}
+void TextEntryController::cycleLanguage() {
+    language_=language_=="en"?"ru":"en";
+    if(!preferences_.isEmpty()&&!preferenceKey_.isEmpty()) {
+        QSettings settings(preferences_,QSettings::IniFormat);settings.setValue(preferenceKey_,language_);
+    }
+    rebuild();hint_.clear();emit layoutChanged();emit changed();
 }
 int TextEntryController::characterCount(const QString& text) {
     QTextBoundaryFinder finder(QTextBoundaryFinder::Grapheme, text);
@@ -27,9 +58,24 @@ int TextEntryController::characterCount(const QString& text) {
     return count;
 }
 int TextEntryController::count() const { return characterCount(text_); }
+void TextEntryController::insertText(const QString& text) {
+    if(!open_)return;
+    QString clean;
+    for(const auto c:text)if(c.isPrint()||c.isHighSurrogate()||c.isLowSurrogate()||c.category()==QChar::Other_Format)clean+=c;
+    if(characterCount(text_+clean)>maximumLength_)hint_=QString("Maximum %1 characters reached.").arg(maximumLength_);
+    else {text_+=clean;hint_.clear();}
+    emit changed();
+}
+void TextEntryController::backspace() {
+    if(!open_)return;
+    QTextBoundaryFinder finder(QTextBoundaryFinder::Grapheme,text_);finder.toEnd();
+    const auto boundary=finder.toPreviousBoundary();if(boundary>=0)text_.truncate(boundary);
+    hint_.clear();emit changed();
+}
 QString TextEntryController::label(const Key& key) const {
     if (key.kind == KeyKind::Apply) return submitLabel_;
-    if (key.kind != KeyKind::Character || key.column >= 11) return key.label;
+    if (key.kind != KeyKind::Character || key.numeric) return key.label;
+    if(symbolPage_&&key.slot>=26)return {};
     if (symbolPage_ == 3) {
         static const QStringList emoji{
             QString::fromUtf8("😀"),QString::fromUtf8("😁"),QString::fromUtf8("😂"),QString::fromUtf8("😊"),QString::fromUtf8("😍"),QString::fromUtf8("😎"),
@@ -37,16 +83,16 @@ QString TextEntryController::label(const Key& key) const {
             QString::fromUtf8("👋"),QString::fromUtf8("👏"),QString::fromUtf8("🙌"),QString::fromUtf8("🤝"),QString::fromUtf8("❤️"),QString::fromUtf8("💛"),
             QString::fromUtf8("💚"),QString::fromUtf8("💙"),QString::fromUtf8("🎉"),QString::fromUtf8("✨"),QString::fromUtf8("🔥"),QString::fromUtf8("🎮"),
             QString::fromUtf8("🏆"),QString::fromUtf8("💬")};
-        return emoji.value(key.row * 10 + key.column);
+        return emoji.value(key.slot);
     }
     if (!symbolPage_) return lowercase_ ? key.label.toLower() : key.label;
     QString symbols;
     for (int value = 33; value <= 126; ++value) if (!QChar(value).isLetterOrNumber()) symbols.append(QChar(value));
-    const int index = (symbolPage_ - 1) * 26 + key.row * 10 + key.column;
+    const int index = (symbolPage_ - 1) * 26 + key.slot;
     return index < symbols.size() ? QString(symbols[index]) : QString();
 }
 QString TextEntryController::layoutHint() const {
-    return QString("X · %1    Y · %2").arg(lowercase_ ? "UPPERCASE" : "lowercase",
+    return QString("L2/R2 · EN / RU    X · %1    Y · %2").arg(lowercase_ ? "UPPERCASE" : "lowercase",
         nextLayout());
 }
 QString TextEntryController::nextLayout() const {
@@ -57,7 +103,7 @@ QVariantList TextEntryController::keys() const {
     QVariantList result;
     for (const auto& key : keys_) {
         result.append(QVariantMap{{"id", key.id}, {"label", label(key)}, {"visible", !label(key).isEmpty()}, {"row", key.row},
-            {"column", key.column}, {"span", key.span}, {"numeric", key.column >= 11}});
+            {"column", key.column}, {"span", key.span}, {"numeric", key.numeric}});
     }
     return result;
 }
@@ -68,7 +114,7 @@ void TextEntryController::begin(const QString& title, const QString& initial, in
     maximumLength_ = std::clamp(maximumLength, 1, 2000);
     hint_.clear();
     focus_ = 0;
-    preferredColumn_ = 0;
+    preferredColumn_ = keys_.first().column + 0.5;
     open_ = true;
     secret_ = secret; lowercase_ = secret; symbolPage_ = 0;
     submitLabel_ = submitLabel; emoji_ = emoji && !secret;
@@ -86,25 +132,25 @@ void TextEntryController::move(Action action) {
     const auto& current = keys_.at(focus_);
     int target = focus_;
     if (action == Action::Left || action == Action::Right) {
-        int distance = std::numeric_limits<int>::max();
+        qreal distance = std::numeric_limits<qreal>::max();
         for (int i = 0; i < keys_.size(); ++i) {
             const auto& candidate = keys_.at(i);
             if (label(candidate).isEmpty()) continue;
             if (candidate.row != current.row) continue;
-            const int delta = (candidate.column - current.column) * (action == Action::Right ? 1 : -1);
+            const qreal delta = (candidate.column - current.column) * (action == Action::Right ? 1 : -1);
             if (delta > 0 && delta < distance) { distance = delta; target = i; }
         }
         if (target != focus_) preferredColumn_ = keys_[target].column + keys_[target].span / 2;
     } else if (action == Action::Up || action == Action::Down) {
         const int row = current.row + (action == Action::Down ? 1 : -1);
-        int distance = std::numeric_limits<int>::max();
+        qreal distance = std::numeric_limits<qreal>::max();
         for (int i = 0; i < keys_.size(); ++i) {
             const auto& candidate = keys_.at(i);
             if (label(candidate).isEmpty()) continue;
             if (candidate.row != row) continue;
-            const int nearest = std::clamp(preferredColumn_, candidate.column,
-                                           candidate.column + candidate.span - 1);
-            const int delta = std::abs(nearest - preferredColumn_);
+            const qreal nearest = std::clamp(preferredColumn_, candidate.column,
+                                           candidate.column + candidate.span);
+            const qreal delta = std::abs(nearest - preferredColumn_);
             if (delta < distance) { distance = delta; target = i; }
         }
         // Retain the intended column when passing through Space, Apply, Clear or 0.
@@ -146,17 +192,18 @@ void TextEntryController::activate(int index) {
 void TextEntryController::dispatch(Action action) {
     if (!open_) return;
     if (action == Action::Back) cancel();
+    else if (action == Action::PreviousFace || action == Action::NextFace) cycleLanguage();
     else if (action == Action::LocalAction) {
         for (int i=0;i<keys_.size();++i) if(keys_[i].kind==KeyKind::Apply) {activate(i);break;}
     }
     else if (action == Action::Confirm) activate(focus_);
     else if (action == Action::Secondary || action == Action::ToggleContinue) {
-        if (action == Action::Secondary) { lowercase_ = !lowercase_; symbolPage_ = 0; }
+        if (action == Action::Secondary) { lowercase_ = !lowercase_; }
         else symbolPage_ = (symbolPage_ + 1) % (emoji_ ? 4 : 3);
         if (label(keys_[focus_]).isEmpty()) { focus_ = 0; preferredColumn_ = 0; }
         hint_.clear(); emit layoutChanged(); emit changed();
     }
     else if (action <= Action::Right) { move(action); emit changed(); }
-    // The shell owns Start and L1/R1; X/Y only affect this open keyboard.
+    // The shell owns Start and L1/R1; L2/R2, X and Y affect only this keyboard.
 }
 }

@@ -3,7 +3,7 @@ import QtQuick
 FocusScope {
     id: root
     required property var shell
-    readonly property int faceIndex: ["chats","communities","friends"].indexOf(shell.socialFace)
+    readonly property int faceIndex: ["chats","communities","friends","lobby"].indexOf(shell.socialFace)
     readonly property var social: shell.social
     readonly property var account: social.account
     readonly property bool connected: account.state === "connected" || account.state === "connecting"
@@ -11,13 +11,18 @@ FocusScope {
     property point menuAnchor: Qt.point(width - 310, 44)
     function anchorMenu(item) { menuAnchor = item.mapToItem(root, 0, item.height) }
     objectName: "social-empty"
+    LobbyPane {
+        anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
+        visible: root.connected && root.faceIndex === 3
+        social: root.social; takesFocus: root.takesFocus && visible
+    }
     onTakesFocusChanged: if (takesFocus) forceActiveFocus()
     Component.onCompleted: if (takesFocus) forceActiveFocus()
     PageHeader {
         id: heading
-        visible: !root.connected || root.faceIndex === 2
+        visible: !root.connected || root.faceIndex >= 2
         height: visible ? implicitHeight : 0
-        title: [root.social.contacts ? "Friends" : "Messages", "Communities", "Discover"][root.faceIndex]
+        title: [root.social.contacts ? "Friends" : "Messages", "Communities", "Discover", "Lobby"][root.faceIndex]
         subtitle: root.connected ? (root.account.name || "") + " · " + (root.faceIndex === 1 && root.account.communityStatus ? root.account.communityStatus : root.account.status || "") : "A little closer, wherever you are."
         Text { renderType: typeof Text.CurveRendering === "number" ? Text.CurveRendering : Text.QtRendering;
             anchors { right: parent.right; rightMargin: Theme.pageMargin; bottom: parent.bottom }
@@ -64,7 +69,7 @@ FocusScope {
     }
     Item {
         id: conversationPage
-        visible: root.connected && root.faceIndex !== 2
+        visible: root.connected && root.faceIndex < 2
         anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
         Rectangle { anchors.fill: parent; color: "#fffbf0" }
         Rectangle { width: people.width + 20; height: parent.height; color: "#f4e4de" }
@@ -159,7 +164,7 @@ FocusScope {
                 onHeightChanged: Qt.callLater(restorePosition)
                 Timer {
                     interval: 1000; repeat: true
-                    running: root.visible && root.connected && root.faceIndex !== 2 && root.social.conversation && (log.atYEnd || log.contentHeight <= log.height) && root.social.surfaceAvailable
+                    running: root.visible && root.connected && root.faceIndex < 2 && root.social.conversation && (log.atYEnd || log.contentHeight <= log.height) && root.social.surfaceAvailable
                     onTriggered: if (root.account.readTail) root.social.presented(root.account.channel, root.account.readTail)
                 }
                 header: Item { width: log.width; height: root.account.historyMore ? 25 : 0

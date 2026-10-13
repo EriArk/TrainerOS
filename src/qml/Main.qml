@@ -24,7 +24,7 @@ Window {
     Binding { target: Theme; property: "reducedMotion"; value: shell.settings.reducedMotion }
     Binding { target: Theme; property: "television"; value: shell.settings.displayProfile === "tv" }
     Binding { target: shell.social; property: "surfaceAvailable"; value: window.active && !sessionState.blocked && (!adventureLaunch.active || adventureLaunch.minimized) && shell.unobstructed }
-    Binding { target: shell.social; property: "conversationVisible"; value: shell.page === 4 && !shell.serviceOpen }
+    Binding { target: shell.social; property: "conversationVisible"; value: shell.page === 4 && !shell.serviceOpen && (shell.socialFace === "chats" || shell.socialFace === "communities") }
     Binding { target: shell.social; property: "gameActive"; value: adventureLaunch.active }
     onClosing: function(close) { close.accepted = false; sessionState.requestExit() }
     Connections {

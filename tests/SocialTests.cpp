@@ -1,5 +1,6 @@
 #include "adapters/pokemon/PokemonExperience.h"
 #include <QtTest>
+#include "integrations/social/LobbyDirectory.h"
 #include "features/adventure/GameParty.h"
 #include "integrations/social/AdventureReviews.h"
 #include "core/model/AdventureCompletion.h"
@@ -29,6 +30,74 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void lobbyCatalogueRefreshKeepsTheSelectedIdentity() {
+        SocialController c;const auto expiry=QDateTime::currentSecsSinceEpoch()+100;
+        const QVariantMap first{{"lobby","first"},{"expires",expiry},{"name","One"}},second{{"lobby","second"},{"expires",expiry},{"name","Two"}};
+        QVariantMap snapshot{{"state","connected"},{"userId","1"},{"name","Host"},{"lobbyDirectory",QVariantMap{{"rows",QVariantList{first,second}}}}};
+        c.receive(0,snapshot);c.selectLobby(2);
+        snapshot["lobbyDirectory"]=QVariantMap{{"rows",QVariantList{second,first}}};c.receive(0,snapshot);
+        QCOMPARE(c.lobbyRows()[c.lobbyFocus()].toMap()["lobby"].toString(),"second");
+        snapshot["lobbyDirectory"]=QVariantMap{{"rows",QVariantList{first}}};c.receive(0,snapshot);
+        QCOMPARE(c.lobbyFocus(),0);QCOMPARE(c.lobbyActions().first().toMap()["id"].toString(),"create");
+    }
+    void lobbyInvitationUsesSharedInboxAndDoesNotLaunchOnOpen() {
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","2"},{"name","Guest"}});
+        LobbyCoordinator host;host.configure("1","Host",true);QVERIFY(host.create());
+        connect(&host,&LobbyCoordinator::outgoing,&c,[&](QString,QJsonObject p){c.lobby_.receive("1","Host",p);});
+        connect(&c.lobby_,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){host.receive("2","Guest",p);});
+        QSignalSpy launch(&c.lobby_,&LobbyCoordinator::launchRequested);
+        QVERIFY(host.invite("2"));QCOMPARE(c.notifications().size(),1);QCOMPARE(c.notificationFaceAt(0),"lobby");
+        c.openNotificationAt(0);QCOMPARE(c.face_,"lobby");QVERIFY(c.lobby_.state().isEmpty());QCOMPARE(launch.size(),0);
+        c.lobbyAction("accept");QCOMPARE(c.lobbyState()["members"].toList().size(),2);QVERIFY(c.notifications().isEmpty());
+        c.selectLobby(0);c.lobbyAction("leave");QVERIFY(c.lobbyState().isEmpty());QCOMPARE(launch.size(),0);
+    }
+    void lobbyVisibilityCanWithdrawAndRepublishSameIdentity() {
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});c.setFace("lobby");
+        QSignalSpy commands(&c,&SocialController::commandRequested);
+        c.lobbyAction("create");const auto id=c.lobbyState()["id"].toString();QVERIFY(!id.isEmpty());
+        c.publishLobby();
+        auto publications=[&]{QVariantList rows;for(const auto& command:commands)if(command[0]=="lobby-directory-publish")rows.append(command[1]);return rows;};
+        QVERIFY(publications().isEmpty());c.lobbyAction("access");c.publishLobby();QCOMPARE(publications().last().toMap()["op"].toString(),"upsert");
+        c.lobbyAction("access");c.lobbyAction("access");c.publishLobby();QCOMPARE(publications().last().toMap()["op"].toString(),"withdraw");
+        c.lobbyAction("access");c.publishLobby();QCOMPARE(publications().last().toMap()["lobby"].toString(),id);
+        QCOMPARE(publications().last().toMap()["op"].toString(),"upsert");
+        c.lobbyAction("leave");c.publishLobby();QCOMPARE(publications().last().toMap()["op"].toString(),"close");
+    }
+    void lobbyDirectoryAggregatesChannelsAndRequiresBotAuthorship() {
+        FluxerSession s;int requests=0;
+        const auto lobby=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        const QJsonObject entry{{"v",1},{"lobby",lobby},{"owner",remote},{"name","Friend"},{"revision",1},
+            {"expires",QDateTime::currentSecsSinceEpoch()+180},{"status","choosing"},{"access","public"},{"seats",0},{"available",0}};
+        s.setTransport([&](QByteArray method,QString path,QJsonObject,Completion done,QByteArray) {
+            if(!path.contains("/messages?limit=100")) {done({200,QJsonDocument(QJsonObject{})});return;}
+            QCOMPARE(method,QByteArray("GET"));++requests;
+            const auto author=requests==1?lobbyDirectory::bot:QString(remote);
+            done({200,QJsonDocument(QJsonArray{QJsonObject{{"id",QString::number(requests)},
+                {"author",QJsonObject{{"id",author}}},{"content",lobbyDirectory::encode(entry)}}})});
+        });
+        bind(s);s.command("lobby-directory-refresh");
+        QCOMPARE(requests,5);const auto state=s.lobbyDirectoryState();
+        QVERIFY(!state["busy"].toBool());QCOMPARE(state["rows"].toList().size(),1);
+        QCOMPARE(state["rows"].toList().first().toMap()["lobby"].toString(),lobby);
+    }
+    void lobbyDirectoryDoesNotSilentlyJoinCommunity() {
+        FluxerSession s;int posts=0;
+        s.setTransport([&](QByteArray method,QString path,QJsonObject,Completion done,QByteArray) {
+            if(method=="POST")++posts;
+            done({path.contains("/messages?")?403:200,QJsonDocument(QJsonObject{})});
+        });
+        bind(s);s.command("lobby-directory-refresh");
+        QVERIFY(s.lobbyDirectoryState()["needsJoin"].toBool());QCOMPARE(posts,0);
+    }
+    void lobbyDirectoryLateReplyCannotCrossTrainerChange() {
+        FluxerSession s;Completion pending;
+        s.setTransport([&](QByteArray,QString path,QJsonObject,Completion done,QByteArray) {
+            if(path.contains("/messages?"))pending=done;else done({200,QJsonDocument(QJsonObject{})});
+        });
+        bind(s);s.command("lobby-directory-refresh");QVERIFY(bool(pending));
+        s.setOwner("trainer-b",2);pending({200,QJsonDocument(QJsonArray{})});
+        QVERIFY(!s.lobbyDirectoryState()["busy"].toBool());QVERIFY(s.lobbyDirectoryState()["rows"].toList().isEmpty());
+    }
     void runtimeTransportWorksWithoutAnyGameAdapter() {
         SocialController controller;QSignalSpy started(&controller,&SocialController::runtimeEstablished);
         QSignalSpy frames(&controller,&SocialController::runtimeFrame),ended(&controller,&SocialController::runtimeEnded);

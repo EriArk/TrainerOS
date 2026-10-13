@@ -35,6 +35,7 @@ public:
     const ControllerSample& sample() const { return sample_; }
     void setEnabled(bool enabled);
     void setHoldConfirmEnabled(bool enabled);
+    void setTextEntryEnabled(bool enabled) { textEntryEnabled_=enabled; }
     void requireNeutral();
     void poll();
     bool eventFilter(QObject*, QEvent*) override;
@@ -42,6 +43,9 @@ signals:
     // Presentation-only cue, emitted before Confirm changes the focused page.
     void confirmPressed();
     void action(trainer::Action action);
+    void textEntered(QString text);
+    void textBackspace();
+    void textSubmitted();
     void connectionChanged();
     void sampled();
     void observedAction(trainer::Action action, bool fromController);
@@ -52,6 +56,7 @@ private:
     qint64 confirmStarted_ = 0;
     bool initialized_ = false;
     bool enabled_ = true;
+    bool textEntryEnabled_ = false;
     bool awaitingNeutral_ = true;
     SDL_GameController* controller_ = nullptr;
     SDL_JoystickID preferredDevice_ = -1;

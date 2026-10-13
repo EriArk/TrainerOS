@@ -169,6 +169,13 @@ void ControllerInput::poll() {
 bool ControllerInput::eventFilter(QObject*, QEvent* event) {
     if (event->type() != QEvent::KeyPress) return false;
     const auto* key = static_cast<QKeyEvent*>(event);
+    if(textEntryEnabled_&&enabled_) {
+        if(key->key()==Qt::Key_Backspace){emit textBackspace();return true;}
+        if(key->key()==Qt::Key_Return||key->key()==Qt::Key_Enter){if(!key->isAutoRepeat())emit textSubmitted();return true;}
+        if(!(key->modifiers()&(Qt::ControlModifier|Qt::AltModifier|Qt::MetaModifier))&&!key->text().isEmpty()&&key->text().front().isPrint()) {
+            emit textEntered(key->text());return true;
+        }
+    }
     std::optional<Action> semantic;
     switch (key->key()) {
     case Qt::Key_Up: semantic = Action::Up; break;

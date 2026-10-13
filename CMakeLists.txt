@@ -21,10 +21,15 @@ add_library(trainer_core STATIC
     src/features/settings/CommunicationSettings.cpp
     src/integrations/social/OnlineLink.cpp
     src/integrations/social/FluxerSession.cpp
+    src/integrations/social/FluxerLobby.cpp
+    src/integrations/social/LobbyWire.cpp
     src/integrations/social/FluxerReviews.cpp
     src/integrations/social/AltchaProof.cpp
     src/platform/storage/EncryptedCredentials.cpp
     src/features/social/SocialController.cpp
+    src/features/social/SocialLobby.cpp
+    src/features/social/LobbySession.cpp
+    src/features/social/LobbyCoordinator.cpp
     src/platform/network/NearbyService.cpp
     src/platform/device/ClockService.cpp
     src/features/settings/ClockController.cpp
@@ -351,6 +356,7 @@ qt_add_qml_module(traineros
         src/qml/KeyboardPanel.qml
         src/adapters/pokemon/TrainerPage.qml
         src/qml/SocialPage.qml
+        src/qml/LobbyPane.qml
         src/qml/SocialIconButton.qml
         src/qml/TrainerEmblem.qml
         src/qml/SeriesPage.qml
@@ -519,6 +525,9 @@ if(BUILD_TESTING)
     set_source_files_properties(src/app/Main.cpp PROPERTIES COMPILE_DEFINITIONS TRAINEROS_UI_TESTS)
     qt_add_executable(trainer_social_tests tests/SocialTests.cpp)
     qt_add_executable(trainer_game_party_tests tests/GamePartyTests.cpp)
+    qt_add_executable(trainer_lobby_tests tests/LobbyTests.cpp)
+    target_link_libraries(trainer_lobby_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME lobby COMMAND trainer_lobby_tests)
     target_link_libraries(trainer_game_party_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME game_party COMMAND trainer_game_party_tests)
     qt_add_executable(trainer_runtime_multiplayer_tests tests/RuntimeMultiplayerTests.cpp)

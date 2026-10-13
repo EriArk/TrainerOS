@@ -1,6 +1,7 @@
 #include "FluxerSession.h"
 #include "features/adventure/GameParty.h"
 #include "AltchaProof.h"
+#include "LobbyDirectory.h"
 #include "CommunityIdentity.h"
 #include "platform/storage/EncryptedCredentials.h"
 #include <QNetworkAccessManager>
@@ -43,6 +44,8 @@ QString avatar(const QJsonObject& user) {
     return "https://fluxerusercontent.com/avatars/"+id+"/"+hash+".png?size=64";
 }
 QJsonObject transportEnvelope(const QString& text) {
+    const auto frame=LobbyWire::frame(text);if(!frame.isEmpty())return frame;
+    const auto lobby=lobbyDirectory::decode(text);if(!lobby.isEmpty())return lobby;
     const auto native=OnlineLink::decode(text);
     return native.isEmpty()?GameParty::decode(text):native;
 }
@@ -52,6 +55,8 @@ bool newer(const QString& a, const QString& b) {
 }
 }
 FluxerSession::FluxerSession(QObject* parent) : QObject(parent) {
+    lobbySendTimer_.setSingleShot(true);lobbySendTimer_.setInterval(300);
+    connect(&lobbySendTimer_,&QTimer::timeout,this,&FluxerSession::sendNextLobbyFrame);
     voiceHeartbeat_.setInterval(3000);voiceDeadline_.setSingleShot(true);voiceDeadline_.setInterval(20000);
     historySave_.setSingleShot(true);historySave_.setInterval(1200);
     connect(&historySave_,&QTimer::timeout,this,&FluxerSession::saveHistoryCache);
@@ -175,6 +180,9 @@ void FluxerSession::sendParty(QString peer,QString content) {
 }
 FluxerSession::~FluxerSession() { reset(); }
 void FluxerSession::reset() {
+    lobbySendTimer_.stop();lobbySending_=false;lobbyDeliveries_.clear();lobbyWire_.clear();
+    ++lobbyDirectoryRevision_;lobbyDirectoryRows_.clear();lobbyDirectoryPending_.clear();
+    lobbyDirectoryStatus_.clear();lobbyBotChannel_.clear();lobbyDirectoryBusy_=lobbyDirectoryNeedsJoin_=false;
     partyOpening_.clear();emit partyReset(generation_);
     retainHistory();saveHistoryCache();historySave_.stop();
     historyCache_.clear();historyLru_.clear();historyFile_.clear();historyAnchor_.clear();
@@ -318,6 +326,7 @@ void FluxerSession::publish() {
     QString readTail;
     for(auto i=messageOrder_.crbegin();i!=messageOrder_.crend();++i)if(idValid(*i)){readTail=*i;break;}
     emit snapshot(generation_, {{"state",state_},{"status",status_},{"name",name_},{"code",code_},
+        {"lobbyDirectory",lobbyDirectoryState()},
         {"person",person_},{"profile",profile_.toVariantMap()},{"profileStatus",profileStatus_},{"profileBusy",profileBusy_},
         {"audio",audioConfiguration().toVariantMap()},
         {"unreadCount",unreadCount},{"doNotDisturb",doNotDisturb_},{"privatePreviews",privatePreviews_},
@@ -1006,6 +1015,8 @@ void FluxerSession::command(QString operation, QVariantMap args) {
     if(operation=="online-frame"){online_.sendFrame(QJsonObject::fromVariantMap(args));return;}
     if(operation=="online-invite"){online_.invite(args["id"].toString());return;}
     if(operation=="party-send"){sendParty(args["peer"].toString(),args["content"].toString());return;}
+    if(operation.startsWith("lobby-directory-")){lobbyDirectoryCommand(operation,args);return;}
+    if(operation=="lobby-send"){sendLobby(args["peer"].toString(),QJsonObject::fromVariantMap(args["packet"].toMap()));return;}
     if(operation=="runtime-probe-person") {
         const auto id=args["id"].toString();if(relationships_.value(id)["type"].toInt()!=1)return;
         const auto activity=QJsonObject::fromVariantMap(args["activity"].toMap());
@@ -1502,6 +1513,11 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
             if(type=="MESSAGE_CREATE"&&d["webhook_id"].toString().isEmpty()&&d["type"].toInt(-1)==0) {
                 const auto author=d["author"].toObject();const auto id=author["id"].toString();
                 const auto c=channels_.value(d["channel_id"].toString());
+                if(id!=self_&&relationships_.value(id)["type"].toInt()!=2&&c["type"].toInt(-1)==1
+                   &&c["recipients"].toArray().size()==1&&c["recipients"].toArray().first().toObject()["id"]==id) {
+                    const auto lobby=lobbyWire_.receive(id,LobbyWire::frame(d["content"].toString()),QDateTime::currentSecsSinceEpoch());
+                    if(!lobby.isEmpty())emit lobbyPacket(generation_,id,label(author),lobby);
+                }
                 if(c["type"].toInt(-1)==1&&c["recipients"].toArray().size()==1&&c["recipients"].toArray().first().toObject()["id"]==id&&relationships_.value(id)["type"].toInt()==1)
                 {
                     online_.receive(d["channel_id"].toString(),id,label(author),OnlineLink::decode(d["content"].toString()));

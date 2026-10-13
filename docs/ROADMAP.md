@@ -1,5 +1,14 @@
 # TrainerOS Roadmap
 
+**13 October source/server checkpoint:** the directory bot is running under the
+owner's main Fluxer community; live publish/move/restart/withdraw/republish/close
+passed. Shared lobby coordination, Social catalogue/inbox/Home/DM entry, seats and
+QWERTY/Russian keyboard are implemented and checked on PC. Runtime preparation
+and launch are still a contract, not a newly bound emulator route. Full unified
+communication/context binding and handheld delivery remain open. The owner will
+turn both handhelds on in the evening; do not poll SSH or repeat gameplay before
+then. [Evidence and next acceptance](LOBBY.md#реализация-и-проверка--13-октября-2026).
+
 **Owner lobby/core priority, 13 October 2026 (latest):** deliver the shared
 lobby foundation and keyboard before resuming platform multiplayer integration.
 Use a dedicated Social Lobby tab (L2/R2 and touch), game-free creation, stable

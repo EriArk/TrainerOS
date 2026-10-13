@@ -77,6 +77,7 @@ cache/
 local.cmake
 local.conf
 config.local.*
+/fluxer.md
 
 # User content / emulator data must never be committed
 /games/

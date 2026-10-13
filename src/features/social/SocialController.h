@@ -8,6 +8,8 @@
 #include <QHash>
 #include <QTimer>
 #include "SocialMedia.h"
+#include "LobbyCoordinator.h"
+#include <QJsonArray>
 
 namespace trainer {
 class FluxerSession;
@@ -57,9 +59,35 @@ class SocialController final : public QObject {
     Q_PROPERTY(bool profileVisible READ profileVisible NOTIFY changed)
     Q_PROPERTY(bool emojiVisible READ emojiVisible NOTIFY changed)
     Q_PROPERTY(QVariantMap conversationInfo READ currentChat NOTIFY changed)
+    Q_PROPERTY(QVariantMap lobbyState READ lobbyState NOTIFY changed)
+    Q_PROPERTY(QVariantMap lobbyDirectory READ lobbyDirectory NOTIFY changed)
+    Q_PROPERTY(QVariantList lobbyRows READ lobbyRows NOTIFY changed)
+    Q_PROPERTY(QVariantList lobbyActions READ lobbyActions NOTIFY changed)
+    Q_PROPERTY(int lobbyFocus READ lobbyFocus NOTIFY changed)
+    Q_PROPERTY(int lobbyActionFocus READ lobbyActionFocus NOTIFY changed)
+    Q_PROPERTY(bool lobbyDetailFocused READ lobbyDetailFocused NOTIFY changed)
+    Q_PROPERTY(QString lobbySearch READ lobbySearch NOTIFY changed)
+    Q_PROPERTY(QString lobbyTopic READ lobbyTopic NOTIFY changed)
+    Q_PROPERTY(bool lobbyFreeOnly READ lobbyFreeOnly NOTIFY changed)
 public:
     quint64 accountGeneration() const { return generation_; }
     explicit SocialController(QObject* parent = nullptr);
+    QVariantMap lobbyState() const {return lobby_.state().toVariantMap();}
+    QVariantMap lobbyDirectory() const {return snapshot_["lobbyDirectory"].toMap();}
+    QVariantList lobbyRows() const;
+    QVariantList lobbyActions() const;
+    int lobbyFocus() const;
+    int lobbyActionFocus() const {return lobbyActionFocus_;}
+    bool lobbyDetailFocused() const {return lobbyDetailFocused_;}
+    QString lobbySearch() const {return lobbySearch_;}
+    QString lobbyTopic() const {return lobbyTopic_;}
+    bool lobbyFreeOnly() const {return lobbyFreeOnly_;}
+    Q_INVOKABLE void selectLobby(int index);
+    Q_INVOKABLE void lobbyAction(QString action);
+    Q_INVOKABLE void editLobbySearch();
+    Q_INVOKABLE void openLobby();
+    void setLobbyGames(QVariantList games);
+    LobbyCoordinator* lobbyCoordinator() {return &lobby_;}
     ~SocialController() override;
     void setOwner(QString owner);
     void setLink(NativeActivityProvider* link);
@@ -186,6 +214,7 @@ signals:
     void runtimeAction(QString action);
     void communicationSettingsRequested();
     void conversationsRequested();
+    void lobbyRequested();
     void runtimeEstablished(QString activity,bool host);
     void runtimeFrame(QJsonObject frame);
     void runtimeProbeFailed(QString peer, QString message);
@@ -198,7 +227,18 @@ signals:
     void backgroundNotification(QString title,QString text);
     void reviewsChanged(QString identity,QVariantMap state);
 private:
+    void dispatchLobby(Action action);
+    void publishLobby();
+    LobbyCoordinator lobby_{this};
+    QTimer lobbyPublishTimer_{this},lobbyHeartbeat_{this};
+    QVariantList lobbyGames_;
+    QString lobbySearch_,lobbyTopic_,publishedLobby_,presentedLobbyInvite_,lobbySelection_,lobbyPublicationTopic_="other";
+    quint64 lobbyPublicationRevision_=0;
+    int lobbyActionFocus_=0;
+    bool lobbyFreeOnly_=false,lobbyDetailFocused_=false;
+    bool lobbyPublicationVisible_=false;
     friend class SocialTests;
+    friend class LobbySmokeScenario;
     QVariantMap dismissedNotifications_;
     QVariantList activityNotifications_;
     QString presentedInvitation_;

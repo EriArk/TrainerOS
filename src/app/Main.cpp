@@ -74,6 +74,7 @@
 #include "ExitSmokeScenario.h"
 #include "DownloadsSmokeScenario.h"
 #include "ExperienceSmokeScenario.h"
+#include "LobbySmokeScenario.h"
 #endif
 
 using namespace trainer;
@@ -130,6 +131,7 @@ int main(int argc, char* argv[]) {
     parser.addOption({"art-dir", "Use a private development artwork bootstrap directory.", "directory"});
     parser.addOption({"smoke-test", "Verify the QML shell with an isolated SDL virtual controller, then exit."});
 #ifdef TRAINEROS_UI_TESTS
+    parser.addOption({"lobby-smoke-test", "Verify lobby and keyboard QML with isolated provider fixtures."});
     parser.addOption({"experience-smoke-test", "Verify independent experience modules in the real QML host."});
     parser.addOption({"downloads-smoke-test", "Verify the Downloads layout and SDL navigation with isolated queue fixtures, then exit."});
     parser.addOption({"exit-smoke-test", "Verify the isolated Adventure exit window through SDL input, then exit."});
@@ -150,8 +152,10 @@ int main(int argc, char* argv[]) {
     bool exitSmoke = false;
     bool downloadsSmoke = false;
     bool experienceSmoke = false;
+    bool lobbySmoke = false;
     QString persistencePhase;
 #ifdef TRAINEROS_UI_TESTS
+    lobbySmoke = parser.isSet("lobby-smoke-test");
     experienceSmoke = parser.isSet("experience-smoke-test");
     downloadsSmoke = parser.isSet("downloads-smoke-test");
     exitSmoke = parser.isSet("exit-smoke-test");
@@ -164,7 +168,7 @@ int main(int argc, char* argv[]) {
     if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "library-center", "collection"}.contains(persistencePhase)
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
-    const bool smoke = experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+    const bool smoke = lobbySmoke || experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
     auto smokeBattery = std::make_shared<std::atomic_int>(65);
     PowerStatus powerStatus([smoke, smokeBattery] {
         if (!smoke) return systemBatteryStatus();
@@ -304,10 +308,12 @@ int main(int argc, char* argv[]) {
         if(personalLibrary && !smoke && store) {
             QObject::connect(store.get(), &LocalStateStore::opened, &shell, [&](bool ready) {
                 shell.social()->setOwner(ready ? store->ownerId() : QString());
+                shell.keyboard()->configure(stateDirectory,ready ? store->ownerId() : QString());
                 shell.collectionManager()->configure(stateDirectory,ready?store->ownerId():QString());
             });
             QObject::connect(store.get(), &LocalStateStore::accessNeeded, &shell, [&] {
                 shell.social()->setOwner({});
+                shell.keyboard()->configure(stateDirectory,{});
                 shell.collectionManager()->configure(stateDirectory,{});
             });
         }
@@ -737,6 +743,12 @@ int main(int argc, char* argv[]) {
                 && !shell.settings()->storage()->busy() && !(saveBackups && saveBackups->busy());
         };
         ControllerInput input(nullptr, preferred);
+        const auto updateTextInput=[&]{input.setTextEntryEnabled(shell.keyboard()->isOpen()&&!shell.menuOpen()&&shell.notice().isEmpty()&&!shell.homeMenuOpen());};
+        QObject::connect(&shell,&ShellController::changed,&input,updateTextInput);
+        QObject::connect(shell.keyboard(),&TextEntryController::changed,&input,updateTextInput);
+        QObject::connect(&input,&ControllerInput::textEntered,shell.keyboard(),&TextEntryController::insertText);
+        QObject::connect(&input,&ControllerInput::textBackspace,shell.keyboard(),&TextEntryController::backspace);
+        QObject::connect(&input,&ControllerInput::textSubmitted,&shell,[&]{shell.keyboard()->dispatch(Action::LocalAction);});
         bool homeMenuWasOpen = false;
         QObject::connect(&shell, &ShellController::changed, &input, [&] {
             if (homeMenuWasOpen == shell.homeMenuOpen()) return;
@@ -969,7 +981,9 @@ int main(int argc, char* argv[]) {
                 const QString screenshotDir = parser.value("screenshot-dir");
                 if (!screenshotDir.isEmpty() && !QDir().mkpath(screenshotDir)) return 2;
 #ifdef TRAINEROS_UI_TESTS
-                if(experienceSmoke) {
+                if(lobbySmoke) {
+                    LobbySmokeScenario::start(window,shell,input,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
+                } else if(experienceSmoke) {
                     startExperienceSmoke(window,shell,input,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
                 } else if (exitSmoke) {
                     startExitSmoke(window, shell, adventureLaunch, exitPresentation, input, joystick,
@@ -1111,14 +1125,14 @@ int main(int argc, char* argv[]) {
                         check(!pokemonModule(shell).persona()->error().isEmpty() && focusIs("trainer-field-0"), "empty name restores editable field");
                         capture("trainer-validation"); press(a); break;
                     case 12:
-                        check(shell.keyboard()->isOpen() && focusIs("key-A"), "keyboard starts at A");
+                        check(shell.keyboard()->isOpen() && focusIs("key-Q"), "keyboard starts at Q");
                         capture("keyboard-empty");
                         // Enter ERI 2 using physical-style button events only.
-                        taps(right, 4); press(a); // E
-                        press(down); taps(right, 3); press(a); // R
-                        press(up); press(right); press(a); // I
-                        taps(down, 3); press(left); press(a); // Space
-                        taps(right, 2); taps(up, 3); press(a); // 2
+                        taps(right, 2); press(a); // E
+                        press(right); press(a); // R
+                        taps(right, 4); press(a); // I
+                        taps(down, 3); taps(left, 2); press(a); // Space
+                        taps(right, 4); taps(up, 3); press(a); // 2
                         break;
                     case 13:
                         check(shell.keyboard()->text() == "ERI 2" && focusIs("key-2"), "mixed controller text entry");
@@ -1165,8 +1179,8 @@ int main(int argc, char* argv[]) {
                         check(!savedId->isEmpty() && shell.home()["trainer"] == "ERI 2", "stable identity and Home projection");
                         capture("trainer-profile"); press(a); break;
                     case 19:
-                        press(a); press(a); // Edit Name, append A.
-                        check(shell.keyboard()->text() == "ERI 2A", "editing starts from saved name");
+                        press(a); press(a); // Edit Name, append Q.
+                        check(shell.keyboard()->text() == "ERI 2Q", "editing starts from saved name");
                         press(b);
                         check(pokemonModule(shell).persona()->draftName() == "ERI 2" && focusIs("trainer-field-0"), "B discards only keyboard buffer");
                         press(down); press(a); // Unsaved emblem.
@@ -1181,11 +1195,11 @@ int main(int argc, char* argv[]) {
                         press(down); press(a); press(right); press(a); press(right); press(a);
                         press(down); press(a);
                         check(shell.keyboard()->text() == "ERI 21236547890" && focusIs("key-0"), "all numeric keys reachable");
-                        press(left); press(up); press(left); press(a); // Delete
+                        taps(left, 3); press(a); // Delete
                         check(shell.keyboard()->text() == "ERI 2123654789", "Delete removes last character");
                         press(right); press(a); // Clear
                         check(shell.keyboard()->text().isEmpty(), "Clear empties buffer");
-                        press(left); press(down); press(left); press(a); // Space
+                        taps(left, 2); press(a); // Space
                         check(shell.keyboard()->text() == " ", "Space reachable from numeric block");
                         press(b); press(b); // Discard buffer and form.
                         check(pokemonModule(shell).persona()->profile()["name"] == "ERI 2", "cancel numeric tour preserves profile");
@@ -1266,10 +1280,10 @@ int main(int argc, char* argv[]) {
                         shell.keyboard()->begin("Password preview", "", 64, true);
                         press(a); press(SDL_CONTROLLER_BUTTON_Y); press(a);
                         press(SDL_CONTROLLER_BUTTON_X); press(a);
-                        check(shell.keyboard()->text() == "aA!", "Controller case and symbol entry");
+                        check(shell.keyboard()->text() == "qQ!", "Controller case and symbol entry");
                         break;
                     case 37:
-                        check(focusIs("key-A"), "Changing key layout preserves visible focus");
+                        check(focusIs("key-Q"), "Changing key layout preserves visible focus");
                         if (auto* field = window->findChild<QObject*>("keyboard-text"))
                             check(field->property("text").toString() == QString(3, QChar(0x2022)) + QChar(0x2502), "Rendered password contains only bullets and cursor");
                         else check(false, "Password display exists");
@@ -1278,7 +1292,7 @@ int main(int argc, char* argv[]) {
                     case 38:
                         capture("keyboard-symbols-second-page");
                         taps(right, 6); press(a);
-                        check(shell.keyboard()->text() == "aA!1", "Numeric block remains reachable past hidden symbol slots");
+                        check(shell.keyboard()->text() == "qQ!1", "Numeric block remains reachable past hidden symbol slots");
                         press(b);
                         check(!shell.keyboard()->isOpen() && shell.keyboard()->text().isEmpty(), "Back discards secret input");
                         break;

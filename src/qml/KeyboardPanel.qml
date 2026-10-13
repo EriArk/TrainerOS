@@ -47,6 +47,12 @@ Item {
             text: root.keyboard.count + " / " + root.keyboard.maximumLength
             color: "#e5eee1"; font.pixelSize: 13
         }
+        CapButton {
+            x: 440; y: 6; width: 206; height: 25
+            label: "L2   " + (root.keyboard.language === "ru" ? "РУС · EN" : "EN · РУС") + "   R2"
+            textSize: 12; centered: true; tint: Theme.blue
+            onActivated: root.keyboard.cycleLanguage()
+        }
         Panel {
             x: 12; y: 36; width: parent.width - 24; height: 62
             Text {
@@ -66,9 +72,9 @@ Item {
                 required property var modelData
                 objectName: "key-" + modelData.id
                 visible: modelData.visible
-                x: modelData.numeric ? 677 + (modelData.column - 11) * 79 : 24 + modelData.column * 61
+                x: modelData.numeric ? 677 + (modelData.column - 13) * 79 : 24 + modelData.column * 51
                 y: 117 + modelData.row * 49
-                width: modelData.span * (modelData.numeric ? 79 : 61) - 10
+                width: modelData.span * (modelData.numeric ? 79 : 51) - 6
                 height: 38
                 label: modelData.label; textSize: 18; centered: true
                 tint: modelData.numeric ? Theme.blue
@@ -82,7 +88,7 @@ Item {
         }
         Text {
             x: 25; y: 307; width: 865
-            text: root.keyboard.hint
+            text: root.keyboard.hint || root.keyboard.layoutHint
             color: root.keyboard.hint.length ? "#ffe08c" : "#d4e4d8"
             font.pixelSize: 11; elide: Text.ElideRight
         }

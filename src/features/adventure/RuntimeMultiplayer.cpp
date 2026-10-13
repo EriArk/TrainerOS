@@ -6,6 +6,7 @@
 #include "features/adventure/AdventureExitPresentation.h"
 #include "core/navigation/AdventureLaunchController.h"
 #include <QtConcurrent>
+#include <QCryptographicHash>
 #include <QDateTime>
 #include <QJsonDocument>
 #include <QLoggingCategory>
@@ -295,6 +296,16 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     games_.clear();
     for(auto it=profiles_.cbegin();it!=profiles_.cend();++it)
         if(metadata.contains(it.key())&&permitsMultiplayer(metadata.value(it.key()),it.value()))games_.insert(it.key(),it.value());
+    QVariantList lobbyGames;
+    if(allowed_)for(const auto& record:records) {
+        const auto profile=games_.value(record.adventure.id);
+        const auto content=profile["content"].toString();const int capacity=profile["players"].toInt();
+        if(content.isEmpty()||capacity<1||capacity>16||!multiplayerConnectionAllowed(profile,"online"))continue;
+        const auto id=QString::fromLatin1(QCryptographicHash::hash((profile["id"].toString()+"/"+content).toUtf8(),QCryptographicHash::Sha256).toHex());
+        lobbyGames.append(QVariantMap{{"key",record.adventure.id},{"id",id},{"title",profile["label"].toString()},
+            {"platform",record.adventure.platformId},{"mode",profile["id"].toString()},{"seats",capacity}});
+    }
+    social_.setLobbyGames(lobbyGames);
     const auto visible=allowed_?games_.keys():QStringList{};
     QStringList online,nearby;
     for(const auto& id:visible) {
