@@ -1,12 +1,32 @@
 # Current tasks
 
+**Активный план — 13 октября 2026, после повторной сверки issues:**
+[полный цикл, карта входов, очередь и критерии окончания](LOBBY_EXECUTION_PLAN_RU.md).
+Сейчас L01 + L02: единые входы из игры/Home/библиотеки/DM/групп/комьюнити и
+подключение уже работающих runtime к лобби. Затем L03: кругляши игроков,
+мини-чат и управление оверлеем; реальные индикаторы речи зависят от L05.
+L04 — восстановление/очистка; L05 — трансляции и общий голос; L06 — настоящий
+live join; L07 — Remote Play; L08 — сквозная приёмка.
+Ожидание устройств не блокирует эту реализацию. Отдельная вкладка, журнал друзей
+или набор тестов не считаются полным циклом. Старые записи очереди ниже — история;
+при конфликте действует этот план и последние решения владельца.
+
+**Следующее конкретное действие:** закончить и проверить начатую привязку
+`RuntimeLobby.cpp` / `GameParty::bindLobby`, включая регистрацию сборки,
+порядок готовности двух клиентов, solo/места, ошибки и безопасный возврат.
+Одновременно свести оставшиеся старые Together/Invite/Join к тому же лобби.
+Далее связать приглашения лобби с существующим пассивным значком и сделать HUD
+игроков. Не публиковать начатый runtime WIP как готовую возможность.
+Статус: план сверён; реализация L01/L02 начата локально, не проверена.
+
 **13 October Social follow-up:** Recently together is implemented as the fifth
 Social face after Lobby, with L2/R2 and direct touch selection, account-scoped
 local encounter history and explicit profile/friend actions. Automatic temporary
 friendship creation/acceptance/cleanup and Keep-as-friend are now implemented
 with an account-local ownership journal, bilateral release and late-reply guards.
 Existing friends/blocks/requests are preserved. Paired live acceptance and
-handheld delivery are next when the devices return, before emulator bindings.
+handheld delivery remain pending. The owner now explicitly authorized existing
+runtime bindings and the full entry/overlay cycle before those devices return.
 See [current behavior and target](LOBBY.md#недавно-вместе-и-временная-дружба--уточнение-13-октября-2026).
 Device delivery and live provider acceptance remain pending.
 
@@ -15,7 +35,8 @@ owner's main Fluxer community; live publish/move/restart/withdraw/republish/clos
 passed. Shared lobby coordination, Social catalogue/inbox/Home/DM entry, seats and
 QWERTY/Russian keyboard are implemented and checked on PC. Runtime preparation
 and launch now have a trusted local service interface with per-player launch
-acknowledgements; concrete emulator services remain unbound. The shared conversation
+acknowledgements; concrete emulator services remain unbound in the published
+checkpoint. Local RuntimeLobby/GameParty binding work is unbuilt, untested WIP. The shared conversation
 pane is embedded in Lobby, with library/live-Home context entry. Handheld and
 paired provider acceptance remain open. The owner will
 turn both handhelds on in the evening; do not poll SSH or repeat gameplay before

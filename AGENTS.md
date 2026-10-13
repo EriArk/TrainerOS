@@ -1,5 +1,16 @@
 # AGENTS.md — TrainerOS
 
+**Owner complete-cycle and planning correction, 13 October 2026 (latest):**
+Maintain an actionable roadmap and entry/return map after issue discussions, not
+only a chronological delivery log. Follow docs/LOBBY_EXECUTION_PLAN_RU.md and the
+active CURRENT_TASKS entry. Implement the complete game/Home/library/DM/group/
+community invitation cycle, bind already working multiplayer, and add in-game
+avatar circles/mini-chat. Device acceptance remains separate and does not block
+independent implementation. Keep actual speech identity, streaming, live join,
+Remote Play and lifecycle recovery explicitly tracked; do not substitute a tab
+or unit-test checkpoint for the whole journey. This supersedes the earlier
+wait-for-handhelds-before-runtime-binding queue.
+
 **Owner lobby/core priority, 13 October 2026 (latest):** deliver the shared
 lobby foundation and keyboard before resuming platform multiplayer integration.
 Use a dedicated Social Lobby tab (L2/R2 and touch), game-free creation, stable
