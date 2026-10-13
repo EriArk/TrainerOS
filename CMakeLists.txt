@@ -18,9 +18,11 @@ add_library(trainer_core STATIC
     src/integrations/adventure/retroarch/RetroArchBezels.cpp
     src/features/adventure/GameParty.cpp
     src/features/social/SocialMedia.cpp
+    src/features/social/SocialStream.cpp
     src/features/settings/CommunicationSettings.cpp
     src/integrations/social/OnlineLink.cpp
     src/integrations/social/FluxerSession.cpp
+    src/integrations/social/FluxerStreams.cpp
     src/integrations/social/FluxerLobby.cpp
     src/integrations/social/FluxerLobbyChat.cpp
     src/integrations/social/LobbyWire.cpp
@@ -29,6 +31,7 @@ add_library(trainer_core STATIC
     src/platform/storage/EncryptedCredentials.cpp
     src/features/social/SocialController.cpp
     src/features/social/SocialPlayers.cpp
+    src/features/social/SocialStreams.cpp
     src/features/social/PlayerOverlayController.cpp
     src/features/social/SocialLobby.cpp
     src/features/social/SocialRecent.cpp
@@ -295,10 +298,12 @@ foreach(qml_file IN LISTS trainer_qml_sources)
     get_filename_component(qml_name "${qml_file}" NAME)
     set_source_files_properties("${qml_file}" PROPERTIES QT_RESOURCE_ALIAS "${qml_name}")
 endforeach()
+target_include_directories(traineros PRIVATE src/platform/media)
 qt_add_qml_module(traineros
     URI TrainerOS
     VERSION 1.0
     RESOURCE_PREFIX /
+    SOURCES src/platform/media/GameStreamView.h src/platform/media/GameStreamView.cpp
     QML_FILES
         src/qml/AdventureArtwork.qml
         src/qml/LibraryWheel.qml
@@ -659,6 +664,18 @@ if(BUILD_TESTING)
 endif()
 
 include(GNUInstallDirs)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(PIPEWIRE QUIET IMPORTED_TARGET libpipewire-0.3)
+        if(PIPEWIRE_FOUND)
+            enable_language(C)
+            add_executable(traineros-game-capture src/platform/media/GameCapture.c)
+            target_link_libraries(traineros-game-capture PRIVATE PkgConfig::PIPEWIRE)
+            install(TARGETS traineros-game-capture RUNTIME DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/traineros)
+        endif()
+    endif()
+endif()
 install(TARGETS traineros RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES LICENSE LICENSING.md THIRD_PARTY_NOTICES.md
         DESTINATION ${CMAKE_INSTALL_DATADIR}/doc/traineros COMPONENT Licensing)

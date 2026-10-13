@@ -453,6 +453,8 @@ int main(int argc, char* argv[]) {
         InvitationOverlayService invitationOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
         QObject::connect(&adventureProcess,&ProcessService::started,&invitationOverlay,[&]{invitationOverlay.setGame(adventureProcess.processId());});
         QObject::connect(&adventureProcess,&ProcessService::finished,&invitationOverlay,[&]{invitationOverlay.setGame(0);});
+        QObject::connect(&adventureProcess,&ProcessService::started,shell.social(),[&]{shell.social()->setGameProcess(adventureProcess.processId());});
+        QObject::connect(&adventureProcess,&ProcessService::finished,shell.social(),[&]{shell.social()->setGameProcess(0);});
         std::unique_ptr<AdventureOverlayService> adventureOverlay;
         PlayerOverlayController playerOverlay(*shell.social(),*shell.keyboard(),exitPresentation);
         QObject::connect(&adventureProcess,&ProcessService::started,&playerOverlay,[&]{

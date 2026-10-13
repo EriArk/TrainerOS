@@ -34,9 +34,10 @@ inline QJsonObject listing(const QJsonObject& message,qint64 now) {
     const int seats=value["seats"].toInt(-1),available=value["available"].toInt(-1);
     if(seats<0||seats>16||available<0||available>seats)return {};
     if(status=="choosing"&&(seats||available))return {};
+    const int streams=value["streams"].toInt(0);if(streams<0||streams>32)return {};
     QJsonObject result{{"lobby",id},{"owner",owner},{"name",value["name"].toString().left(100)},
         {"revision",value["revision"]},{"expires",value["expires"]},{"access",value["access"]},
-        {"status",status},{"seats",seats},{"available",available}};
+        {"status",status},{"seats",seats},{"available",available},{"streams",streams}};
     if(status!="choosing") {
         const auto game=value["game"].toObject();QJsonObject clean;
         for(const auto& key:QStringList{"id","title","platform","mode"}) {

@@ -39,7 +39,7 @@ traineros-lobby-directory.service`. Для работы после выхода 
 и версия `v: 1`. Операции `upsert` / `withdraw` / `close`, `lobby` UUID, возрастающий `revision`.
 
 Объявление содержит `status` (choosing/gathering/playing), `access`
-(public/approval), `seats`, `available`, `topic` и публичный `game`
+(public/approval), `seats`, `available`, `streams` (целое 0–32, по умолчанию 0), `topic` и публичный `game`
 (id/title/platform/mode). Для choosing игровой объект отсутствует, места равны нулю.
 Приватные лобби не публикуются. `withdraw` скрывает запись и допускает новую
 публикацию того же UUID с большей ревизией; `close` оставляет постоянное закрытие. Владелец имеет не более одной действующей записи.
@@ -74,3 +74,7 @@ SQLite сохраняет ревизии, закрытие и отображен
 [Applications](https://docs.fluxer.app/http-api/applications/),
 [OAuth2](https://docs.fluxer.app/http-api/oauth2/),
 [Messages](https://docs.fluxer.app/http-api/messages/).
+
+13 октября: служба обновлена для счётчика живых потоков; восемь unit-проверок проходят.
+Счётчик позволяет клиенту оставлять полное лобби в каталоге для зрителей.
+Media URL, токены и адреса потоков в объявление не входят. [L05](../../docs/LOBBY_MEDIA.md).

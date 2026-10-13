@@ -8,6 +8,7 @@
 #include <QHash>
 #include <QTimer>
 #include "SocialMedia.h"
+#include "SocialStream.h"
 #include "LobbyCoordinator.h"
 #include "LobbyRuntime.h"
 #include "RecentTogether.h"
@@ -61,6 +62,7 @@ class SocialController final : public QObject {
     Q_PROPERTY(QString toastText READ toastText NOTIFY presentationChanged)
     Q_PROPERTY(QVariantMap online READ online NOTIFY changed)
     Q_PROPERTY(trainer::SocialMedia* media READ media CONSTANT)
+    Q_PROPERTY(trainer::SocialStream* stream READ stream CONSTANT)
     Q_PROPERTY(bool mediaPreview READ mediaPreview NOTIFY changed)
     Q_PROPERTY(QVariantMap person READ person NOTIFY changed)
     Q_PROPERTY(bool profileVisible READ profileVisible NOTIFY changed)
@@ -77,6 +79,10 @@ class SocialController final : public QObject {
     Q_PROPERTY(QString lobbyTopic READ lobbyTopic NOTIFY changed)
     Q_PROPERTY(bool lobbyFreeOnly READ lobbyFreeOnly NOTIFY changed)
 public:
+    SocialStream* stream() {return &stream_;}
+    void setGameProcess(qint64 pid);
+    Q_INVOKABLE void streamAction(QString action);
+    Q_INVOKABLE void streamsMenu();
     quint64 accountGeneration() const { return generation_; }
     explicit SocialController(QObject* parent = nullptr);
     QVariantMap lobbyState() const {return lobby_.state().toVariantMap();}
@@ -294,6 +300,8 @@ private:
     void send();
     void mediaMenu();
     SocialMedia media_{this};
+    SocialStream stream_{this};
+    qint64 streamGamePid_=0;
     QVariantList mediaChoices_;
     bool mediaSending_=false,mediaUncertain_=false;
     QThread thread_;

@@ -28,6 +28,13 @@ Window {
     Binding { target: shell.social; property: "surfaceAvailable"; value: !sessionState.blocked && ((window.active && (!adventureLaunch.active || adventureLaunch.minimized) && shell.unobstructed) || (playerOverlay.chatOpen && playerOverlay.conversationReady && adventureExitPresentation.ready)) }
     Binding { target: shell.social; property: "conversationVisible"; value: playerOverlay.chatOpen && playerOverlay.conversationReady || (shell.page === 4 && !shell.serviceOpen && (shell.socialFace === "chats" || shell.socialFace === "communities" || shell.social.lobbyChatVisible)) }
     Binding { target: shell.social; property: "gameActive"; value: adventureLaunch.active }
+    Connections {
+        target: adventureLaunch
+        function onChanged() {
+            if (adventureLaunch.active && !adventureLaunch.minimized && shell.social.stream.active)
+                shell.social.streamAction("stop-watch")
+        }
+    }
     onClosing: function(close) { close.accepted = false; sessionState.requestExit() }
     Connections {
         target: controllerInput

@@ -91,11 +91,14 @@ class Directory:
             access = command['access']
             if access not in ('public', 'approval'):
                 return 'invalid'
+            streams = command.get('streams', 0)
+            if type(streams) is not int or not 0 <= streams <= 32:
+                return 'invalid'
             # Explicit allowlist: never reflect ROM paths, IPs, keys, libraries or
             # arbitrary embedded fields into a public community message.
             payload = {'v': 1, 'lobby': lobby, 'owner': author, 'name': text(name, 100),
                        'revision': revision, 'status': status, 'access': access,
-                       'seats': seats, 'available': available, 'expires': now + TTL}
+                       'seats': seats, 'available': available, 'streams': streams, 'expires': now + TTL}
             if status != 'choosing':
                 game = command['game']
                 payload['game'] = {key: text(game[key], limit) for key, limit in

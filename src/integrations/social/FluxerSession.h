@@ -119,6 +119,17 @@ private:
     void profileCommand(const QVariantMap& args);
     QJsonObject audioConfiguration() const;
     int voiceParticipants_=0;
+    QSet<QString> voicePeople_,voiceSpeakers_;
+    QVariantList voiceStreams_;
+    QString voiceWatching_,streamStatus_;
+    bool voiceSharing_=false,voiceSharePending_=false;
+    bool streamAvailable() const;
+    void mediaEvent(const QJsonObject& event);
+    bool mediaCommand(const QString& operation,const QVariantMap& args);
+    void clearStreams();
+    void mediaPrivacy();
+    QSet<QString> mediaBlocked_;
+    void voicePresence(const QJsonObject& event);
     QHash<QString,QJsonObject> calls_;
     QHash<QString,QJsonObject> callNotices_;
     void updateCallNotice(const QString& type,const QString& channel,const QJsonObject& event);

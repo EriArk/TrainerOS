@@ -27,6 +27,8 @@ public:
     bool selectGame(const LobbySession::Game& game);
     bool seat(int seat);
     bool spectate(bool value);
+    bool requestPlay();
+    bool answerPlay(const QString& peer,const QString& answer);
     bool prepared(quint64 generation,bool value);
     bool ready(bool value);
     bool setAccess(QString access);
@@ -72,6 +74,8 @@ private:
     bool joiningRequest_=false;
     QJsonObject remote_,invitation_;
     QMap<QString,QString> requests_;
+    QMap<QString,QString> playRequests_;
+    quint64 playRequestGeneration_=0;
     QMap<QString,qint64> seen_;
     QMap<QString,QJsonObject> pendingInvites_;
     QMap<QString,qint64> receivedInvites_;

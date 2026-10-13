@@ -15,6 +15,7 @@ QVariantList SocialController::activePlayers() const {
     QVariantList result;
     if(!gameActive_||!gameParty_["running"].toBool()||gameParty_["party"].toString().isEmpty())return result;
     const auto self=snapshot_["userId"].toString();
+    const auto voice=snapshot_["voice"].toMap();const auto speakers=voice["speakers"].toStringList();
     for(const auto& value:gameParty_["members"].toList()) {
         const auto member=value.toMap();if(!member["ready"].toBool())continue;
         auto peer=member["peer"].toString();
@@ -30,6 +31,7 @@ QVariantList SocialController::activePlayers() const {
         // account from a display name or from an unrelated lobby roster.
         result.append(QVariantMap{{"id",id},{"name",member["name"]},{"seat",member["slot"]},
             {"avatar",blocked?QString():avatar},{"self",!id.isEmpty()&&id==self},
+            {"speaking",!blocked&&!id.isEmpty()&&voice["state"]=="connected"&&speakers.contains(id)},
             {"canMessage",!id.isEmpty()&&id!=self&&!blocked&&snapshot_["state"]=="connected"},
             {"unread",blocked?0:chat["unread"].toInt()}});
     }

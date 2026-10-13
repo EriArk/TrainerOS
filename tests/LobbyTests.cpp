@@ -24,6 +24,20 @@ class LobbyTests final : public QObject {
         QVERIFY(l.claimSeat(peer,seat,l.generation()));QVERIFY(l.prepared(peer,l.generation(),true));
     }
 private slots:
+    void spectatorArrivalLossAndDeparturePreserveRunningGame() {
+        LobbySession l;QVERIFY(l.create("h","Host","public"));QVERIFY(l.selectGame("h",game("solo",1)));
+        prepare(l,"h",1);QVERIFY(l.ready("h",l.generation(),true));
+        const auto ticket=l.state()["ticket"].toString();QVERIFY(l.acknowledgeLaunch(ticket,true));
+        const auto generation=l.generation();
+        QVERIFY(l.join("viewer","Viewer",100));
+        const auto members=l.state()["members"].toArray();
+        const auto viewer=std::find_if(members.begin(),members.end(),[](const QJsonValue& v){return v.toObject()["id"]=="viewer";});
+        QVERIFY(viewer!=members.end());QVERIFY(viewer->toObject()["spectator"].toBool());QCOMPARE(viewer->toObject()["seat"].toInt(),0);
+        QVERIFY(!l.claimSeat("viewer",1,generation));QVERIFY(!l.ready("viewer",generation,true));
+        QVERIFY(l.connected("viewer",false));QVERIFY(l.connected("viewer",true));QVERIFY(l.leave("viewer"));
+        QCOMPARE(l.generation(),generation);QCOMPARE(l.state()["ticket"].toString(),ticket);QCOMPARE(l.state()["phase"].toString(),"playing");
+        QVERIFY(l.state()["members"].toArray().first().toObject()["ready"].toBool());
+    }
     void lostInviteAndReceiptRetryWithoutExtendingConsentOrReopeningDeclinedOffer() {
         LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
         int invitations=0;bool dropReceipt=true;

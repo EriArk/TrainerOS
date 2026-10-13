@@ -62,7 +62,8 @@ Item {
             x: root.bubbleLeft + index*(root.diameter+root.gap); y: root.bubbleTop
             width: root.diameter; height: width; radius: width/2
             color: [Theme.blue,Theme.pink,Theme.green,Theme.yellow][index%4]
-            border.width: 2*root.unit; border.color: Theme.paper
+            border.width: (person.speaking && !collapsed ? 4 : 2)*root.unit
+            border.color: person.speaking && !collapsed ? "#58b875" : Theme.paper
             Text { anchors.centerIn: parent; visible: bubble.collapsed || avatar.status!==Image.Ready; text: bubble.collapsed ? "+"+(root.people.length-3) : (bubble.person.name || "?").substring(0,1).toUpperCase(); color: Theme.ink; font.pixelSize: 20*root.unit; textFormat: Text.PlainText }
             Image { id: avatar; objectName: "player-avatar-" + bubble.person.seat; anchors.fill: parent; anchors.margins: 3*root.unit; source: bubble.collapsed ? "" : bubble.person.avatar || ""; asynchronous: true; sourceSize: Qt.size(96,96); fillMode: Image.PreserveAspectCrop; visible: false }
             Rectangle { id: mask; anchors.fill: avatar; radius: width/2; visible: false; layer.enabled: true; color: "white" }
@@ -79,7 +80,7 @@ Item {
                 onCanceled: root.cancelDrag()
             }
             Accessible.role: Accessible.Button
-            Accessible.name: collapsed ? "All players" : "P"+person.seat+" · "+person.name
+            Accessible.name: collapsed ? "All players" : "P"+person.seat+" · "+person.name+(person.speaking ? " · Speaking" : "")
             Accessible.onPressAction: person.canMessage && !collapsed ? root.controller.openPlayer(person.id) : root.controller.requestPlayers()
         }
     }

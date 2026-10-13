@@ -12,6 +12,8 @@ import os
 import signal
 import sys
 from livekit import rtc
+from voice_presence import presence
+from fluxer_streams import ScreenStreams
 
 
 def die_with_parent():
@@ -43,6 +45,8 @@ async def main():
     muted = True
     deaf = False
     closing = asyncio.Event()
+    active_speakers = set()
+    playback = {}
 
     async def stop_process(process):
         if process.returncode is None:
@@ -52,6 +56,8 @@ async def main():
         except asyncio.TimeoutError:
             process.kill()
             await process.wait()
+
+    screens = ScreenStreams(room, emit, stop_process, die_with_parent)
 
     async def input_device():
         if input_name:
@@ -111,21 +117,48 @@ async def main():
     def subscribed(remote_track, publication, participant):
         if remote_track.kind == rtc.TrackKind.KIND_AUDIO:
             task = asyncio.create_task(play(remote_track)); streams.add(task)
+            playback[publication.sid] = task
             task.add_done_callback(streams.discard)
+        elif publication.source == rtc.TrackSource.SOURCE_SCREENSHARE:
+            screens.video(remote_track, participant)
+
+    @room.on('track_unsubscribed')
+    def unsubscribed(remote_track, publication, participant):
+        task = playback.pop(publication.sid, None)
+        if task: task.cancel()
+
+    room.on('track_published', screens.catalogue)
+    room.on('track_unpublished', screens.catalogue)
+    room.on('participant_disconnected', screens.catalogue)
+    room.on('track_muted', screens.catalogue)
+    room.on('track_unmuted', screens.catalogue)
 
     def participants(*args):
-        identities = [room.local_participant.identity] + list(room.remote_participants)
-        # Fluxer permits the same account on several devices. Count people, not
-        # connections, using the documented user_<id>_<connection> identity.
-        people = {identity.split('_')[1] if identity.startswith('user_') and len(identity.split('_')) >= 3 else identity
-                  for identity in identities if identity}
-        emit('participants', count=max(1, len(people)))
+        state = presence([room.local_participant] + list(room.remote_participants.values()),
+                         active_speakers, rtc.TrackSource.SOURCE_MICROPHONE,
+                         room.local_participant.identity, muted)
+        emit('participants', count=max(1, len(state['people'])), **state)
+
+    @room.on('active_speakers_changed')
+    def speaking(speakers):
+        active_speakers.clear()
+        active_speakers.update(p.identity for p in speakers)
+        participants()
+
+    def reconnecting(*args):
+        active_speakers.clear()
+        emit('reconnecting')
+        participants()
 
     room.on('participant_connected', participants)
     room.on('participant_disconnected', participants)
     room.on('disconnected', lambda *args: closing.set())
-    room.on('reconnecting', lambda *args: emit('reconnecting'))
-    room.on('reconnected', lambda *args: emit('reconnected'))
+    room.on('track_muted', participants)
+    room.on('track_unmuted', participants)
+    room.on('reconnecting', reconnecting)
+    def reconnected(*args):
+        emit('reconnected'); participants(); screens.catalogue()
+    room.on('reconnected', reconnected)
 
     async def stop_capture():
         nonlocal capture, capture_task, capture_device
@@ -165,8 +198,9 @@ async def main():
             track.unmute()
             capture_task = asyncio.create_task(pump())
         emit('muted', value=muted)
+        participants()
 
-    options = rtc.RoomOptions(auto_subscribe=True, connect_timeout=15)
+    options = rtc.RoomOptions(auto_subscribe=False, connect_timeout=15)
     if grant.get('e2ee_key'):
         options.encryption = rtc.E2EEOptions(key_provider_options=rtc.KeyProviderOptions(shared_key=grant['e2ee_key'].encode()))
     try:
@@ -174,12 +208,18 @@ async def main():
         grant.clear()
         publication = await room.local_participant.publish_track(track, rtc.TrackPublishOptions(source=rtc.TrackSource.SOURCE_MICROPHONE))
         track.mute()
-        emit('connected'); participants()
+        emit('connected'); participants(); screens.catalogue()
         while not closing.is_set():
             line = await asyncio.wait_for(reader.readline(), 12)
             if not line: break
             command = json.loads(line)
             if command['op'] == 'leave': break
+            if command['op'] == 'share':
+                await screens.share(int(command.get('pid', 0)))
+            if command['op'] == 'watch':
+                screens.watch(str(command.get('identity', '')), str(command.get('socket', '')))
+            if command['op'] == 'blocked':
+                screens.blocked = set(command.get('accounts', [])); screens.catalogue()
             if command['op'] == 'mute':
                 await set_muted(bool(command['value']))
             if command['op'] == 'deaf': deaf=bool(command['value'])
@@ -201,6 +241,7 @@ async def main():
                     await stop_capture()
                     await set_muted(False)
     finally:
+        await screens.close()
         await stop_capture()
         for task in list(streams): task.cancel()
         await asyncio.gather(*streams, return_exceptions=True)

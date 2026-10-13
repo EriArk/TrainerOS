@@ -15,3 +15,16 @@ python3 -m venv "$voice_dir"
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 sudo install -d -m 0755 /var/opt/traineros/integrations
 sudo install -m 0755 "$script_dir/fluxer-voice.py" /var/opt/traineros/integrations/fluxer-voice.py
+sudo install -m 0644 "$script_dir/voice_presence.py" /var/opt/traineros/integrations/voice_presence.py
+sudo install -m 0644 "$script_dir/fluxer_streams.py" "$script_dir/game_capture.py" "$script_dir/overlay_support.py" /var/opt/traineros/integrations/
+# Optional compiled Gamescope consumer. Voice remains usable on other desktops.
+capture_binary="${1:-}"
+if test -z "$capture_binary"; then
+    for candidate in "$script_dir/../../build/native/traineros-game-capture" /usr/local/libexec/traineros/traineros-game-capture /usr/libexec/traineros/traineros-game-capture; do
+        if test -x "$candidate"; then capture_binary="$candidate"; break; fi
+    done
+fi
+if test -n "$capture_binary"; then
+    test -f "$capture_binary" && test -x "$capture_binary"
+    sudo install -m 0755 "$capture_binary" /var/opt/traineros/integrations/traineros-game-capture
+fi

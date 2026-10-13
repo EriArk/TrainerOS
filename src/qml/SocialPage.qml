@@ -1,4 +1,5 @@
 import QtQuick
+import TrainerOS 1.0
 
 FocusScope {
     id: root
@@ -11,6 +12,28 @@ FocusScope {
     property point menuAnchor: Qt.point(width - 310, 44)
     function anchorMenu(item) { menuAnchor = item.mapToItem(root, 0, item.height) }
     objectName: "social-empty"
+    onVisibleChanged: if (!visible && social.stream.active) social.streamAction("stop-watch")
+    Component.onDestruction: if (social && social.stream.active) social.streamAction("stop-watch")
+    Rectangle {
+        anchors.fill: parent; z: 8; visible: root.social.stream.active
+        color: "#182521"
+        MouseArea { anchors.fill: parent }
+        GameStreamView {
+            id: streamVideo; objectName: "game-stream-view"; anchors.fill: parent; anchors.bottomMargin: 48
+            Component.onCompleted: root.social.stream.setVideoSink(videoSink)
+            Component.onDestruction: root.social.stream.setVideoSink(null)
+        }
+        Text {
+            anchors.centerIn: streamVideo; visible: !root.social.stream.hasFrame
+            text: "Connecting to stream…"; color: Theme.paper; font.pixelSize: 20
+        }
+        Row {
+            anchors { left: parent.left; bottom: parent.bottom; margins: 6 }
+            spacing: 8
+            CapButton { width: 160; height: 36; textSize: 13; claimsFocus: false; label: "B · Stop watching"; tint: Theme.pink; onActivated: root.social.streamAction("stop-watch") }
+            CapButton { width: 150; height: 36; textSize: 13; claimsFocus: false; label: "A · Streams"; tint: Theme.blue; onActivated: root.social.streamsMenu() }
+        }
+    }
     LobbyPane {
         anchors { top: heading.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
         visible: root.connected && root.faceIndex === 3
@@ -191,7 +214,7 @@ FocusScope {
         }
     }
     Rectangle {
-        visible: root.social.menu.length > 0; anchors.fill: parent; color: "#6630433b"
+        visible: root.social.menu.length > 0; anchors.fill: parent; color: "#6630433b"; z: 9
         MouseArea { anchors.fill: parent; onClicked: root.social.back() }
         Rectangle {
             width: Math.min(root.social.profileVisible || root.social.mediaPreview ? 350 : 310, parent.width - 24)

@@ -49,6 +49,16 @@ class Tests(unittest.TestCase):
         self.directory.db.close()
         self.tmp.cleanup()
 
+    def test_live_stream_count_is_bounded_and_projected_without_media_credentials(self):
+        command = dict(self.command, streams=2, endpoint='private', token='private')
+        self.assertEqual(self.directory.accept('123', 'Host', command, 100), 'accepted')
+        self.directory.reconcile(self.api, 100)
+        listing = decode(next(iter(self.api.messages.values())))
+        self.assertEqual(listing['streams'], 2)
+        self.assertNotIn('endpoint', listing); self.assertNotIn('token', listing)
+        for count in (-1, 33, True, '1'):
+            self.assertEqual(self.directory.accept('123', 'Host', dict(command, revision=2, streams=count), 101), 'invalid')
+
     def accept(self, author='1', **changes):
         return self.directory.accept(author, 'Host', self.command | changes, 100)
 

@@ -65,6 +65,8 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(this,&SocialController::ownerRequested,session_,&FluxerSession::setOwner);
     connect(this,&SocialController::commandRequested,session_,&FluxerSession::command);
     connect(session_,&FluxerSession::snapshot,this,&SocialController::receive);
+    connect(&stream_,&SocialStream::ended,this,[this]{emit commandRequested("voice-watch-stop",{});});
+    connect(&stream_,&SocialStream::changed,this,&SocialController::changed);
     connect(session_,&FluxerSession::partyPacket,this,[this](quint64 g,QString peer,QString name,QJsonObject p){if(g==generation_)emit partyPacket(peer,name,p);});
     connect(session_,&FluxerSession::partyFailed,this,[this](quint64 g,QString peer){if(g==generation_)emit partyFailed(peer);});
     connect(session_,&FluxerSession::partyReset,this,[this](quint64 g){if(g==generation_){gameActivities_.clear();companyParties_.clear();partyFocus_=false;emit partyReset();}});
@@ -107,6 +109,7 @@ SocialController::~SocialController() {
 }
 void SocialController::setOwner(QString owner) {
     if(owner==owner_)return;
+    streamAction("stop-watch");
     lobby_.leave();publishLobby();lobby_.setStorage({});lobby_.configure({}, {},false);lobbySearch_.clear();lobbyTopic_.clear();lobbySelection_.clear();lobbyActionFocus_=0;
     publishedLobby_.clear();lobbyPublicationVisible_=false;lobbyGames_.clear();
     lobbyPublicationTopic_="other";
@@ -375,6 +378,15 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     const auto oldMessage=messages().value(messageFocus_).toMap().value("id");
     const bool atEnd=messageFocus_>=messages().size()-1;
     if(snapshot_["userId"]!=snapshot["userId"])directConversationLease_.clear();
+    const auto oldVoice=snapshot_["voice"].toMap(),newVoice=snapshot["voice"].toMap();
+    const auto streamStatus=newVoice["streamStatus"].toString();
+    if(streamStatus!=oldVoice["streamStatus"].toString()&&(streamStatus.contains("unavailable")||streamStatus.startsWith("Couldn't"))) {
+        toastTitle_="Game stream";toastText_=streamStatus;toastTimer_.start();emit presentationChanged();
+    }
+    if(lobby_.hosting()&&(oldVoice["streams"]!=newVoice["streams"]||oldVoice["sharing"]!=newVoice["sharing"]
+        ||oldVoice["channel"]!=newVoice["channel"]))lobbyPublishTimer_.start();
+    if(stream_.active()&&((!oldVoice["watching"].toString().isEmpty()&&newVoice["watching"].toString().isEmpty())
+        ||newVoice["channel"]!=oldVoice["channel"]||newVoice["state"].toString().isEmpty()))stream_.close();
     snapshot_=std::move(snapshot);
     if(contactsChanged||conversationAdmitted)lobbyChatKey_.clear();
     lobbyRuntime_.configure(snapshot_["userId"].toString(),snapshot_["state"]=="connected");
@@ -474,6 +486,7 @@ QVariantList SocialController::hints() const {
     QVariantList result;
     auto h=[&](QString key,QString label){result.append(QVariantMap{{"button",key},{"label",label}});};
     if(!menu_.isEmpty()){h("A",menuMode_=="create-group"?"Choose friend":"Choose");if(menuMode_=="create-group"&&!pickedPeople_.isEmpty())h("Y","Create group");h("B","Close");return result;}
+    if(stream_.active()){h("A","Streams");h("B","Stop watching");return result;}
     if(face_=="recent") {
         if(!recentPeople().isEmpty()) {
             if(snapshot_["state"]=="connected")h("A","Profile");
@@ -849,6 +862,7 @@ void SocialController::together() {
     }
     const auto voice=snapshot_["voice"].toMap();
     if(!voice["channel"].toString().isEmpty()) {
+        add("Game streams","game-streams");
         add(voice["muted"].toBool()?"Turn microphone on":"Mute microphone","voice-mute");
         add(voice["deaf"].toBool()?"Enable call sound":"Silence call sound","voice-output");
         if(voice["channel"]==menuChannel_)add("Ring conversation","voice-ring");
@@ -980,6 +994,8 @@ void SocialController::confirmAction(QString title,QString operation,QString id)
 void SocialController::selectMenu(int index) {
     if(index<0||index>=menuCommands_.size()||snapshot_["mutationBusy"].toBool())return;
     const auto command=menuCommands_[index];
+    if(command=="game-streams"){streamsMenu();return;}
+    if(command.startsWith("stream:")){closeMenu();streamAction(command.mid(7));return;}
     if(command=="recent-forget") {closeMenu();recentAction("forget");return;}
     if(command.startsWith("lobby:")){closeMenu();lobbyAction(command.mid(6));return;}
     if(joinChoices_.contains(command)) {
@@ -1123,6 +1139,11 @@ void SocialController::selectMenu(int index) {
 }
 void SocialController::dispatch(Action action) {
     if(snapshot_["state"]=="restoring")return;
+    if(stream_.active()&&menu_.isEmpty()) {
+        if(action==Action::Back)streamAction("stop-watch");
+        else if(action==Action::Confirm||action==Action::Secondary)streamsMenu();
+        return;
+    }
     if(!menu_.isEmpty()) {
         if(emojiVisible()&&(action==Action::Left||action==Action::Right))menuFocus_=qBound(0,menuFocus_+(action==Action::Left?-1:1),4);
         else if(emojiVisible()&&(action==Action::Up||action==Action::Down))menuFocus_=action==Action::Down?5:0;

@@ -63,22 +63,27 @@ bool LobbySession::invite(const QString& actor,QString peer,qint64 expiresAt) {
 bool LobbySession::join(QString peer,QString name,qint64 now) {
     if(!host(owner_)||peer.isEmpty()||peer.size()>128||name.trimmed().isEmpty()||name.size()>100||now<=0)return false;
     if(members_.contains(peer))return connected(peer,true);
-    if(!editable())return false;
+    if(!editable()&&phase_!="playing")return false;
     const bool invited=invites_.contains(peer)&&invites_.value(peer)>now;
     if(members_.size()>=32||(access_!="public"&&!invited))return false;
-    invites_.remove(peer);members_.insert(peer,{name.trimmed(),freeSeat()});resetReady();publish();return true;
+    const bool spectator=phase_=="playing"||(!game_.id.isEmpty()&&!freeSeat());
+    invites_.remove(peer);members_.insert(peer,{name.trimmed(),spectator?0:freeSeat(),false,false,true,spectator});
+    if(!spectator)resetReady();publish();return true;
 }
 bool LobbySession::approve(const QString& actor,const QString& peer,QString name) {
-    if(!host(actor)||!editable()||peer.isEmpty()||peer.size()>128||name.trimmed().isEmpty()||name.size()>100||members_.size()>=32)return false;
+    if(!host(actor)||(!editable()&&phase_!="playing")||peer.isEmpty()||peer.size()>128||name.trimmed().isEmpty()||name.size()>100||members_.size()>=32)return false;
     if(members_.contains(peer))return false;
-    invites_.remove(peer);members_.insert(peer,{name.trimmed(),freeSeat()});resetReady();publish();return true;
+    const bool spectator=phase_=="playing"||(!game_.id.isEmpty()&&!freeSeat());
+    invites_.remove(peer);members_.insert(peer,{name.trimmed(),spectator?0:freeSeat(),false,false,true,spectator});
+    if(!spectator)resetReady();publish();return true;
 }
 bool LobbySession::leave(const QString& peer) {
     if(phase_=="closed"||!members_.contains(peer))return false;
     if(peer==owner_) {
         phase_="closed";ticket_.clear();members_.clear();invites_.clear();publish();return true;
     }
-    members_.remove(peer);invalidateLaunch();publish();return true;
+    const bool spectator=members_.value(peer).spectator;
+    members_.remove(peer);if(!spectator)invalidateLaunch();publish();return true;
 }
 bool LobbySession::remove(const QString& actor,const QString& peer) {
     return host(actor)&&peer!=owner_&&leave(peer);
@@ -138,7 +143,7 @@ void LobbySession::tryLaunch() {
 bool LobbySession::connected(const QString& peer,bool value) {
     if(phase_=="closed"||!members_.contains(peer))return false;
     auto& m=members_[peer];if(m.connected==value)return true;
-    m.connected=value;m.prepared=false;invalidateLaunch();publish();return true;
+    m.connected=value;m.prepared=false;if(!m.spectator)invalidateLaunch();publish();return true;
 }
 bool LobbySession::acknowledgeLaunch(const QString& ticket,bool success) {
     if(phase_!="launching"||ticket.isEmpty()||ticket!=ticket_)return false;

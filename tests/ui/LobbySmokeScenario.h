@@ -8,6 +8,9 @@
 #include <QMouseEvent>
 #include <QFile>
 #include <QTimer>
+#include <QLocalSocket>
+#include <QPainter>
+#include <QtEndian>
 #include <memory>
 
 namespace trainer {
@@ -22,6 +25,7 @@ public:
         auto failed=std::make_shared<bool>(false);
         auto step=std::make_shared<int>(0);
         auto keeps=std::make_shared<int>(0);
+        auto* streamWriter=new QLocalSocket(window);
         QObject::connect(social,&SocialController::commandRequested,window,[keeps](QString op,QVariantMap args){if(op=="recent-add"&&args["id"]=="2")++*keeps;});
         auto* guest=new LobbyCoordinator(window);guest->configure("2","Guest",true);
         QObject::connect(social->lobbyCoordinator(),&LobbyCoordinator::outgoing,guest,[=](QString peer,QJsonObject p){if(peer=="2")guest->receive("1","Host",p);});
@@ -29,6 +33,14 @@ public:
         const auto check=[&diagnostics,failed](bool ok,QString message){diagnostics.append((ok?"PASS ":"FAIL ")+message);if(!ok)*failed=true;};
         const auto press=[&input,joystick](SDL_GameControllerButton key){SDL_JoystickSetVirtualButton(joystick,key,1);input.poll();SDL_JoystickSetVirtualButton(joystick,key,0);input.poll();};
         const auto capture=[=](QString name){check(window->grabWindow().save(directory+"/"+name+".png"),"Capture "+name);};
+        const auto rendered=[=]{
+            const auto* view=window->findChild<QQuickItem*>("game-stream-view");
+            if(!view){check(false,"Stream view exists");return;}
+            const auto h=qMin(view->height(),view->width()*360.0/640.0);
+            const auto point=view->mapToScene(QPointF(view->width()/2,view->height()/2-h*.3));
+            const auto image=window->grabWindow();const auto color=image.pixelColor((point*(double(image.width())/window->width())).toPoint());
+            check(qAbs(color.red()-50)<8&&qAbs(color.green()-85)<8&&qAbs(color.blue()-132)<8,"Video pixels are rendered, not only received");
+        };
         const auto click=[window](QString name) {
             const std::function<QQuickItem*(QQuickItem*)> find=[&](QQuickItem* item)->QQuickItem* {
                 if(item->objectName()==name)return item;
@@ -122,9 +134,44 @@ public:
             case 13:
                 check(shell.socialFace()=="recent","Pointer activates the fifth Social tab");
                 check(click("recent-friend-action"),"Keep has a visible pointer target");break;
-            default:
+            case 14: {
                 check(*keeps==2,"Pointer keeps the selected temporary friend");
                 check(guest->state().isEmpty(),"Closing host lobby notifies guest");
+                shell.selectFace(3);social->closeMenu();
+                auto snapshot=social->snapshot_;
+                snapshot["voice"]=QVariantMap{{"state","connected"},{"channel","300"},{"name","Our people"},{"muted",true},
+                    {"streams",QVariantList{QVariantMap{{"identity","user_2_test"},{"account","2"},{"name","Guest"}}}}};
+                social->receive(0,snapshot);
+                social->streamAction("watch:user_2_test");
+                streamWriter->connectToServer(social->stream_.server_.fullServerName());
+                check(streamWriter->waitForConnected(1000),"Viewer accepts its private frame channel");
+                QImage picture(640,360,QImage::Format_RGB32);picture.fill(QColor("#325584"));
+                QPainter painter(&picture);painter.fillRect(0,240,640,120,QColor("#71ad86"));
+                painter.setPen(QColor("#fff7d7"));QFont font;font.setPixelSize(30);painter.setFont(font);
+                painter.drawText(picture.rect(),Qt::AlignCenter,"Shared game · stream check");painter.end();
+                QByteArray frame(16,'\0');auto* data=reinterpret_cast<uchar*>(frame.data());
+                qToLittleEndian<quint32>(0x31565254,data);qToLittleEndian<quint32>(640,data+4);
+                qToLittleEndian<quint32>(360,data+8);qToLittleEndian<quint32>(640*360*4,data+12);
+                frame.append(reinterpret_cast<const char*>(picture.constBits()),640*360*4);streamWriter->write(frame);streamWriter->flush();break;
+            }
+            case 15:
+                check(social->stream()->hasFrame(),"Decoded frame reaches the visible viewer");rendered();capture("stream-wide");
+                // Replace the texture as real video does; one static frame cannot
+                // catch ownership/lifetime bugs in a scene-graph renderer.
+                {QImage next(640,360,QImage::Format_RGB32);next.fill(QColor("#325584"));
+                 QByteArray packet(16,'\0');auto* data=reinterpret_cast<uchar*>(packet.data());
+                 qToLittleEndian<quint32>(0x31565254,data);qToLittleEndian<quint32>(640,data+4);
+                 qToLittleEndian<quint32>(360,data+8);qToLittleEndian<quint32>(640*360*4,data+12);
+                 packet.append(reinterpret_cast<const char*>(next.constBits()),640*360*4);streamWriter->write(packet);streamWriter->flush();}
+                press(ControllerInput::ConfirmButton);break;
+            case 16:
+                check(social->menuMode_=="streams","Viewer A opens stream choices");check(social->stream()->active(),"Opening stream choices preserves the viewer");capture("stream-menu");
+                social->closeMenu();window->resize(720,720);break;
+            case 17:check(social->stream()->active(),"Resize preserves the viewer");rendered();capture("stream-square");press(ControllerInput::BackButton);break;
+            case 18:
+                check(!social->stream()->active(),"Viewer B stops watching");
+                check(social->snapshot_["voice"].toMap()["channel"]=="300","Stop watching preserves voice call");break;
+            default:
                 timer->stop();completed=true;
                 QFile report(directory+"/lobby-check.txt");if(report.open(QIODevice::WriteOnly))report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());
                 QCoreApplication::exit(*failed||warnings?4:0);

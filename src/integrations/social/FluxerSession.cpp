@@ -86,8 +86,9 @@ FluxerSession::FluxerSession(QObject* parent) : QObject(parent) {
                 voiceState_="connected";voiceStatus_=voiceMuted_?"Connected · Microphone off":"Connected · Microphone on";voiceDeadline_.stop();
                 voiceWrite({{"op","mute"},{"value",voiceMuted_}});voiceWrite({{"op","deaf"},{"value",voiceDeaf_}});voiceStateUpdate();
             }
-            else if(type=="reconnecting"){voiceState_="reconnecting";voiceStatus_="Reconnecting audio...";voiceDeadline_.start(45000);}
-            else if(type=="participants")voiceParticipants_=qBound(1,event["count"].toInt(),100);
+            else if(type=="reconnecting"){voiceState_="reconnecting";voiceSpeakers_.clear();voiceStatus_="Reconnecting audio...";voiceDeadline_.start(45000);}
+            else if(type=="participants")voicePresence(event);
+            else if(type=="streams"||type=="sharing"||type=="watching"||type=="stream-error")mediaEvent(event);
             else if(type=="input-error"){voiceMuted_=true;voiceWrite({{"op","mute"},{"value",true}});voiceStateUpdate();voiceStatus_="Microphone unavailable";}
             else if(type=="output-error")voiceStatus_="Audio output unavailable";
             else if(type=="output-restored")voiceStatus_=voiceMuted_?"Connected · Microphone off":"Connected · Microphone on";
@@ -250,6 +251,7 @@ QString FluxerSession::label(const QJsonObject& user) const {
     return (name.isEmpty() ? user["username"].toString() : name).left(100);
 }
 void FluxerSession::publish() {
+    mediaPrivacy();
     retainHistory();
     QVariantList friends, chats, messages, communities;
     QString voiceName;
@@ -351,7 +353,10 @@ void FluxerSession::publish() {
         {"mutationBusy",mutationBusy_},{"attachmentBusy",attachmentBusy_},{"notificationSound",notificationSound_},
         {"voice",QVariantMap{{"available",voiceAvailable()},{"channel",voiceChannel_},{"name",voiceName},
             {"summary",voiceName.isEmpty()?voiceStatus_:voiceName+" · "+voiceStatus_},
-            {"state",voiceState_},{"status",voiceStatus_},{"muted",voiceMuted_},{"deaf",voiceDeaf_},{"participants",voiceParticipants_}}},
+            {"state",voiceState_},{"status",voiceStatus_},{"muted",voiceMuted_},{"deaf",voiceDeaf_},{"participants",voiceParticipants_},
+            {"speakers",QStringList(voiceSpeakers_.begin(),voiceSpeakers_.end())},
+            {"streams",voiceStreams_},{"sharing",voiceSharing_},{"sharePending",voiceSharePending_},
+            {"watching",voiceWatching_},{"streamStatus",streamStatus_},{"captureAvailable",streamAvailable()}}},
         {"communityOnly",communityOnly_},{"communityChecking",communityChecking_},{"communityStatus",communityStatus_},
         {"communityInvite",communityInvite_},{"communityOwner",guilds_.value(guild_)["owner_id"]==self_},
         {"communityMarked",communityMarked_.contains(guild_)},
@@ -817,10 +822,28 @@ void FluxerSession::voiceWrite(const QJsonObject& command) {
     if(voiceProcess_.state()==QProcess::Running&&voiceProcess_.bytesToWrite()<65536)
         voiceProcess_.write(QJsonDocument(command).toJson(QJsonDocument::Compact)+'\n');
 }
+void FluxerSession::voicePresence(const QJsonObject& event) {
+    voicePeople_.clear();voiceSpeakers_.clear();
+    if(voiceChannel_.isEmpty()||voiceState_!="connected")return;
+    voiceParticipants_=qBound(1,event["count"].toInt(),100);
+    const auto people=event["people"].toArray(),speakers=event["speakers"].toArray();
+    if(people.size()>100||speakers.size()>100)return;
+    for(const auto& value:people)if(idValid(value.toString()))voicePeople_.insert(value.toString());
+    for(const auto& value:speakers) {
+        // The worker applies mute per connection. The same account may speak
+        // from another device while this handheld's microphone remains off.
+        const auto id=value.toString();if(voicePeople_.contains(id))voiceSpeakers_.insert(id);
+    }
+}
 void FluxerSession::voiceStateUpdate(bool leave) {
     if(voiceChannel_.isEmpty())return;
     QJsonObject update{{"guild_id",QJsonValue::Null},{"channel_id",leave?QJsonValue(QJsonValue::Null):QJsonValue(voiceChannel_)},
-        {"self_mute",voiceMuted_},{"self_deaf",voiceDeaf_},{"self_video",false},{"self_stream",false}};
+        {"self_mute",voiceMuted_},{"self_deaf",voiceDeaf_},{"self_video",false},{"self_stream",!leave&&voiceSharing_}};
+    QJsonArray viewers;
+    if(!leave&&!voiceWatching_.isEmpty()) {
+        const auto connection=voiceWatching_.section('_',2);if(!connection.isEmpty())viewers.append("dm:"+voiceChannel_+":"+connection);
+    }
+    update["viewer_stream_keys"]=viewers.isEmpty()?QJsonValue(QJsonValue::Null):QJsonValue(viewers);
     if(!voiceConnection_.isEmpty())update["connection_id"]=voiceConnection_;
     gatewaySend(4,update);
 }
@@ -828,6 +851,8 @@ void FluxerSession::leaveVoice() {
     if(!voiceChannel_.isEmpty())qInfo()<<"Voice left from state"<<voiceState_;
     voiceStateUpdate(true);voiceChannel_.clear();voiceConnection_.clear();voiceState_.clear();
     voiceMuted_=true;voiceDeaf_=false;voiceParticipants_=0;voiceHeartbeat_.stop();voiceDeadline_.stop();
+    voicePeople_.clear();voiceSpeakers_.clear();
+    clearStreams();
     voiceWrite({{"op","leave"}});if(voiceProcess_.state()!=QProcess::NotRunning)voiceProcess_.closeWriteChannel();
     if(voiceProcess_.state()!=QProcess::NotRunning){voiceProcess_.kill();voiceProcess_.waitForFinished(700);}
     voiceBuffer_.clear();voiceGrantIdentity_.clear();
@@ -868,6 +893,7 @@ void FluxerSession::updateCallNotice(const QString& type,const QString& channel,
     if(before!=callNotices_&&!historyFile_.isEmpty()&&!historySave_.isActive())historySave_.start();
 }
 void FluxerSession::voiceCommand(QString operation,const QVariantMap& args) {
+    if(mediaCommand(operation,args)){publish();return;}
     if(operation=="voice-decline") {
         const auto id=args["channel"].toString();if(!calls_.contains(id))return;
         callNotices_.remove(id);
@@ -889,7 +915,7 @@ void FluxerSession::voiceCommand(QString operation,const QVariantMap& args) {
         return;
     }
     if(voiceState_!="connected"&&voiceState_!="reconnecting")return;
-    if(operation=="voice-mute") {voiceMuted_=!voiceMuted_;voiceWrite({{"op","mute"},{"value",voiceMuted_}});}
+    if(operation=="voice-mute") {voiceMuted_=!voiceMuted_;if(voiceMuted_)voiceSpeakers_.remove(self_);voiceWrite({{"op","mute"},{"value",voiceMuted_}});}
     else if(operation=="voice-output") {voiceDeaf_=!voiceDeaf_;voiceWrite({{"op","deaf"},{"value",voiceDeaf_}});}
     else if(operation=="voice-ring") {request("POST","/v1/channels/"+voiceChannel_+"/call/ring",{},[this](Reply r){if(r.status!=204)voiceStatus_="Could not ring this conversation";publish();});return;}
     else return;
@@ -911,6 +937,8 @@ void FluxerSession::voiceGrant(const QJsonObject& grant) {
         if(voiceProcess_.state()!=QProcess::NotRunning){leaveVoice();voiceStatus_="Couldn't restore audio. Try again.";publish();return;}
     }
     voiceConnection_=grant["connection_id"].toString();voiceGrantIdentity_=identity;voiceBuffer_.clear();
+    clearStreams();
+    voicePeople_.clear();voiceSpeakers_.clear();
     voiceState_="connecting";voiceStatus_="Connecting audio...";voiceDeadline_.start(20000);
     voiceProcess_.start((qEnvironmentVariable("XDG_DATA_HOME").isEmpty()?QDir::homePath()+"/.local/share":qEnvironmentVariable("XDG_DATA_HOME"))+"/traineros-voice/bin/python",{"/var/opt/traineros/integrations/fluxer-voice.py"});
     auto configured=grant;configured["audio"]=audioConfiguration();

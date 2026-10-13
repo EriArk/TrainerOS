@@ -17,7 +17,14 @@ LobbyCoordinator::LobbyCoordinator(QObject* parent):QObject(parent) {
     boot_=QUuid::createUuid().toString(QUuid::WithoutBraces);
     heartbeat_.setInterval(15000);connect(&heartbeat_,&QTimer::timeout,this,&LobbyCoordinator::tick);heartbeat_.start();
     connect(this,&LobbyCoordinator::changed,this,&LobbyCoordinator::save);
-    connect(&session_,&LobbySession::changed,this,[this]{broadcast();emit changed();});
+    connect(&session_,&LobbySession::changed,this,[this]{
+        if(playRequestGeneration_!=session_.generation()||session_.state()["phase"]=="closed") {
+            playRequests_.clear();playRequestGeneration_=session_.generation();
+        }
+        QSet<QString> members;for(const auto& m:session_.state()["members"].toArray())members.insert(m.toObject()["id"].toString());
+        for(auto it=playRequests_.begin();it!=playRequests_.end();)if(!members.contains(it.key()))it=playRequests_.erase(it);else ++it;
+        broadcast();emit changed();
+    });
     connect(&session_,&LobbySession::launchRequested,this,&LobbyCoordinator::launchRequested);
 }
 bool LobbyCoordinator::hosting() const {return session_.state()["phase"]!="closed"&&session_.state()["owner"]==self_;}
@@ -28,7 +35,9 @@ QJsonObject LobbyCoordinator::state() const {
     auto s=remote_;s["recovering"]=restoring_;s["connection"]=storageError_.isEmpty()?connection_:storageError_;return s;
 }
 QJsonArray LobbyCoordinator::requests() const {
-    QJsonArray list;for(auto it=requests_.cbegin();it!=requests_.cend();++it)list.append(QJsonObject{{"id",it.key()},{"name",it.value()}});return list;
+    QJsonArray list;for(auto it=requests_.cbegin();it!=requests_.cend();++it)list.append(QJsonObject{{"id",it.key()},{"name",it.value()}});
+    for(auto it=playRequests_.cbegin();it!=playRequests_.cend();++it)list.append(QJsonObject{{"id",it.key()},{"name",it.value()},{"play",true}});
+    return list;
 }
 void LobbyCoordinator::clearRemote() {
     peerBoots_.remove(host_);peerSerials_.remove(host_);
@@ -112,6 +121,18 @@ bool LobbyCoordinator::spectate(bool value) {
     if(hosting())return session_.spectate(self_,value,session_.generation());
     if(!online_||remote_.isEmpty()||restoring_||!connection_.isEmpty())return false;
     preparedGeneration_=readyGeneration_=0;send(host_,"spectate",{{"value",value}});return true;
+}
+bool LobbyCoordinator::requestPlay() {
+    if(hosting()||!online_||restoring_||!connection_.isEmpty())return false;
+    for(const auto& v:remote_["members"].toArray())if(v.toObject()["id"]==self_&&v.toObject()["spectator"].toBool()) {
+        send(host_,"play-request");emit notice("Asked the host to play. You can keep watching.");return true;
+    }
+    return false;
+}
+bool LobbyCoordinator::answerPlay(const QString& peer,const QString& answer) {
+    if(!hosting()||!playRequests_.contains(peer)||!QStringList{"accept","later","decline"}.contains(answer))return false;
+    playRequests_.remove(peer);
+    send(peer,"play-response",{{"answer",answer}});emit changed();return true;
 }
 bool LobbyCoordinator::prepared(quint64 generation,bool value) {
     if(hosting())return session_.prepared(self_,generation,value);
@@ -217,7 +238,7 @@ void LobbyCoordinator::receive(QString peer,QString name,const QJsonObject& p) {
                 pendingInvites_.remove(peer);seen_[peer]=now();save();send(peer,"state",session_.state(),probe);
             }
             else if((session_.state()["access"]=="approval"||data["request"].toBool())&&requests_.size()<32
-                    &&(session_.state()["phase"]=="choosing"||session_.state()["phase"]=="gathering")) {
+                    &&(session_.state()["phase"]=="choosing"||session_.state()["phase"]=="gathering"||session_.state()["phase"]=="playing")) {
                 if(!previous.isEmpty()&&previous!=boot)retiredBoots_[peer+"/"+previous]=now()+180;
                 peerBoots_[peer]=boot;peerSerials_[peer]=serial;requests_[peer]=name.left(100);seen_[peer]=now();emit changed();
             }
@@ -229,7 +250,13 @@ void LobbyCoordinator::receive(QString peer,QString name,const QJsonObject& p) {
         if(peerBoots_.value(peer)!=boot)return;
         peerSerials_[peer]=serial;
         seen_[peer]=now();
-        if(kind=="leave") {session_.leave(peer);seen_.remove(peer);return;}
+        if(kind=="leave") {playRequests_.remove(peer);session_.leave(peer);seen_.remove(peer);return;}
+        if(kind=="play-request"&&p["generation"]==session_.state()["generation"]) {
+            for(const auto& v:session_.state()["members"].toArray())if(v.toObject()["id"]==peer&&v.toObject()["spectator"].toBool()) {
+                playRequests_[peer]=name.left(100);emit changed();
+            }
+            return;
+        }
         if(kind=="ping") {session_.connected(peer,true);send(peer,"state",session_.state(),probe);return;}
         if(kind=="launch-result"&&data["success"].isBool()) {recordLaunchResult(peer,data["ticket"].toString(),data["success"].toBool());return;}
         if(kind=="game-finished") {
@@ -252,6 +279,13 @@ void LobbyCoordinator::receive(QString peer,QString name,const QJsonObject& p) {
     const bool confirmed=!probe_.isEmpty()&&p["reply"]==probe_;
     const bool newBoot=peerBoots_.contains(peer)&&peerBoots_[peer]!=boot;
     if((newBoot||restoring_)&&!confirmed)return;
+    if(kind=="play-response"&&p["generation"]==remote_["generation"]) {
+        peerSerials_[peer]=serial;const auto answer=data["answer"].toString();
+        if(answer=="accept")emit notice("The host agreed. Choose your controller after this game; the current game continues.");
+        else if(answer=="later")emit notice("The host asked to play later. You can keep watching.");
+        else if(answer=="decline")emit notice("The host declined. You can keep watching.");
+        return;
+    }
     if(kind=="problem") {peerSerials_[peer]=serial;emit notice(data["message"].toString().left(160));return;}
     if(kind=="closed"||kind=="rejected"||kind=="removed") {clearRemote();emit notice(kind=="closed"?"The lobby was closed.":kind=="removed"?"You are no longer in this lobby.":"The lobby couldn't accept your request.");emit changed();return;}
     if(kind!="state"||data["id"]!=id||!validState(data,peer))return;

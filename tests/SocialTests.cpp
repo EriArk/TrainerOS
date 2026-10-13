@@ -18,6 +18,8 @@
 #include <QUuid>
 #include <QTemporaryDir>
 #include <QCryptographicHash>
+#include <QtEndian>
+#include <QVideoFrame>
 #include "platform/storage/EncryptedCredentials.h"
 
 namespace trainer {
@@ -32,6 +34,51 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+
+    void streamFramesAreBoundedAndExitClearsTheVideoSink() {
+        SocialStream stream;QVideoSink sink;stream.setVideoSink(&sink);
+        QSignalSpy frames(&sink,&QVideoSink::videoFrameChanged),ended(&stream,&SocialStream::ended);
+        const auto endpoint=stream.open();QVERIFY(!endpoint.isEmpty());
+        QLocalSocket writer;writer.connectToServer(endpoint);QVERIFY(writer.waitForConnected());
+        QByteArray frame(20,'\0');auto* p=reinterpret_cast<uchar*>(frame.data());
+        qToLittleEndian<quint32>(0x31565254,p);qToLittleEndian<quint32>(1,p+4);qToLittleEndian<quint32>(1,p+8);qToLittleEndian<quint32>(4,p+12);
+        frame[16]=char(221);frame[17]=char(34);frame[18]=char(17);
+        writer.write(frame.left(7));writer.flush();QTest::qWait(10);QVERIFY(!stream.hasFrame());
+        writer.write(frame.mid(7));writer.flush();QTRY_VERIFY(stream.hasFrame());QVERIFY(sink.videoFrame().isValid());
+        qToLittleEndian<quint32>(0xffffffff,p+4);writer.write(frame);writer.flush();
+        QTRY_COMPARE(ended.size(),1);QVERIFY(!stream.active());QVERIFY(!sink.videoFrame().isValid());
+    }
+
+    void screenMetadataAndWatchLifecycleNeverReplaceTheVoiceCall() {
+        FluxerSession s;bind(s);s.voiceChannel_=channel;s.voiceState_="connected";
+        const QString identity=QString("user_")+remote+"_connection";
+        s.mediaEvent({{"event","streams"},{"streams",QJsonArray{QJsonObject{{"identity",identity}},QJsonObject{{"identity","unknown"}}}}});
+        QCOMPARE(s.voiceStreams_.size(),1);
+        QVERIFY(s.mediaCommand("voice-watch",{{"identity",identity},{"socket","private-frame-socket"}}));
+        QCOMPARE(s.voiceWatching_,identity);QCOMPARE(s.voiceChannel_,QString(channel));QVERIFY(s.voiceMuted_);
+        QVERIFY(s.mediaCommand("voice-watch-stop",{}));QVERIFY(s.voiceWatching_.isEmpty());QCOMPARE(s.voiceState_,QString("connected"));
+        s.mediaEvent({{"event","sharing"},{"active",true}});QVERIFY(s.voiceSharing_);
+        s.leaveVoice();QVERIFY(!s.voiceSharing_);QVERIFY(s.voiceStreams_.isEmpty());
+    }
+
+    void voiceSpeakersRequireCurrentMediaRosterAndProjectOntoActualPlayers() {
+        FluxerSession s;bind(s);s.voiceChannel_=channel;s.voiceState_="connected";
+        s.voicePresence({{"count",2},{"people",QJsonArray{QString(remote),s.self_}},
+            {"speakers",QJsonArray{QString(remote),s.self_,"not-an-account","1234567890123456789"}}});
+        QCOMPARE(s.voiceSpeakers_,(QSet<QString>{remote,s.self_}));
+        s.voiceState_="reconnecting";s.voicePresence({{"people",QJsonArray{QString(remote)}},{"speakers",QJsonArray{QString(remote)}}});
+        QVERIFY(s.voiceSpeakers_.isEmpty());
+        SocialController c;disconnect(c.session_,nullptr,&c,nullptr);disconnect(&c,nullptr,c.session_,nullptr);
+        c.snapshot_={{"state","connected"},{"userId","1"},{"voice",QVariantMap{{"state","connected"},{"speakers",QStringList{"2"}}}}};
+        c.gameParty_={{"party","session"},{"running",true},{"host",true},{"members",QVariantList{
+            QVariantMap{{"name","Same name"},{"peer","online:2"},{"slot",2},{"ready",true}},
+            QVariantMap{{"name","Same name"},{"peer","nearby-device"},{"slot",3},{"ready",true}}}}};
+        c.setGameActive(true);QVERIFY(c.activePlayers()[0].toMap()["speaking"].toBool());QVERIFY(!c.activePlayers()[1].toMap()["speaking"].toBool());
+        c.snapshot_["friends"]=QVariantList{QVariantMap{{"id","2"},{"type",2}}};QVERIFY(!c.activePlayers()[0].toMap()["speaking"].toBool());
+        c.snapshot_["friends"]=QVariantList{};c.snapshot_["voice"]=QVariantMap{{"state","reconnecting"},{"speakers",QStringList{"2"}}};
+        QVERIFY(!c.activePlayers()[0].toMap()["speaking"].toBool());
+        s.leaveVoice();QVERIFY(s.voicePeople_.isEmpty());QVERIFY(s.voiceSpeakers_.isEmpty());
+    }
 
     void playerProjectionUsesRunningSeatsAndProviderUnreadOnly() {
         SocialController c;disconnect(c.session_,nullptr,&c,nullptr);disconnect(&c,nullptr,c.session_,nullptr);
@@ -316,9 +363,12 @@ private slots:
         c.lobbyAction("create");const auto id=c.lobbyState()["id"].toString();QVERIFY(!id.isEmpty());
         c.publishLobby();
         auto publications=[&]{QVariantList rows;for(const auto& command:commands)if(command[0]=="lobby-directory-publish")rows.append(command[1]);return rows;};
-        QVERIFY(publications().isEmpty());c.lobbyAction("access");c.publishLobby();QCOMPARE(publications().last().toMap()["op"].toString(),"upsert");
-        c.lobbyAction("access");c.lobbyAction("access");c.publishLobby();QCOMPARE(publications().last().toMap()["op"].toString(),"withdraw");
-        c.lobbyAction("access");c.publishLobby();QCOMPARE(publications().last().toMap()["lobby"].toString(),id);
+        QVERIFY(publications().isEmpty());c.lobbyAction("access");c.publishLobby();
+        QVERIFY(publications().isEmpty());QCOMPARE(c.lobbyState()["access"].toString(),"private");
+        QVERIFY(c.menuDetail().contains("shared conversation"));c.selectMenu(0);c.publishLobby();
+        QVERIFY(!publications().isEmpty());QCOMPARE(publications().last().toMap()["op"].toString(),"upsert");
+        c.lobbyAction("access");c.selectMenu(0);c.lobbyAction("access");c.publishLobby();QCOMPARE(publications().last().toMap()["op"].toString(),"withdraw");
+        c.lobbyAction("access");c.selectMenu(0);c.publishLobby();QCOMPARE(publications().last().toMap()["lobby"].toString(),id);
         QCOMPARE(publications().last().toMap()["op"].toString(),"upsert");
         c.lobbyAction("leave");c.publishLobby();QCOMPARE(publications().last().toMap()["op"].toString(),"close");
     }
