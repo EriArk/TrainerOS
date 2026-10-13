@@ -16,7 +16,11 @@ LobbyRuntime::LobbyRuntime(LobbyCoordinator& lobby,QObject* parent):QObject(pare
 }
 void LobbyRuntime::configure(QString self,bool online) {
     if(self_==self&&online_==online)return;
-    cancel();self_=self;online_=online;emit changed();
+    // Provider presence is not the emulator connection. Once all launches are
+    // acknowledged, a messenger reconnect must not tear down that connection.
+    const auto s=lobby_.state();
+    if(self_!=self||ticket_.isEmpty()||s["phase"]!="playing"||s["ticket"]!=ticket_)cancel();
+    self_=self;online_=online;emit changed();
 }
 void LobbyRuntime::registerService(QString mode,LobbyRuntimeService* service) {
     if(services_.value(mode)==service)return;
@@ -54,7 +58,15 @@ void LobbyRuntime::cancel() {
 }
 void LobbyRuntime::reconcile() {
     const auto s=lobby_.state();
-    if(!operation_.isEmpty()&&(context()!=preparedContext_||!activeService_||(!ticket_.isEmpty()&&s["ticket"]!=ticket_))) {
+    auto current=context(),prepared=preparedContext_;
+    if(!ticket_.isEmpty()&&s["phase"]=="playing"&&s["ticket"]==ticket_) {
+        const auto withoutPresence=[](QJsonObject& c) {
+            QJsonArray members;for(const auto& v:c["members"].toArray()) {auto m=v.toObject();m.remove("connected");members.append(m);}
+            c["members"]=members;
+        };
+        withoutPresence(current);withoutPresence(prepared);
+    }
+    if(!operation_.isEmpty()&&(current!=prepared||!activeService_||(!ticket_.isEmpty()&&s["ticket"]!=ticket_))) {
         cancel();
         if(lobby_.state()["phase"]=="gathering")lobby_.prepared(quint64(lobby_.state()["generation"].toInteger()),false);
     }

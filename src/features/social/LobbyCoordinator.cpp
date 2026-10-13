@@ -30,7 +30,7 @@ QJsonArray LobbyCoordinator::requests() const {
 }
 void LobbyCoordinator::clearRemote() {
     peerBoots_.remove(host_);peerSerials_.remove(host_);
-    remote_={};host_.clear();joining_.clear();launchTicket_.clear();preparedGeneration_=readyGeneration_=0;joinedAt_=hostSeen_=0;
+    remote_={};host_.clear();joining_.clear();launchTicket_.clear();finishedTicket_.clear();preparedGeneration_=readyGeneration_=0;joinedAt_=hostSeen_=0;
 }
 void LobbyCoordinator::configure(QString self,QString name,bool online) {
     name=name.left(100);online=online&&identifier(self);
@@ -43,6 +43,7 @@ void LobbyCoordinator::configure(QString self,QString name,bool online) {
     if(hosting()&&changed)session_.connected(self_,online_);
     if(!online_) {preparedGeneration_=readyGeneration_=0;}
     emit this->changed();
+    if(changed&&online_)tick();
 }
 bool LobbyCoordinator::create(QString access) {
     if(!online_||hosting()||!host_.isEmpty())return false;
@@ -63,12 +64,13 @@ void LobbyCoordinator::broadcast() {
     }
 }
 bool LobbyCoordinator::invite(const QString& peer) {
-    if(!hosting()||!identifier(peer)||!session_.invite(self_,peer,now()+90))return false;
-    send(peer,"invite",{{"name",name_},{"game",session_.state()["game"]}});return true;
+    if(!hosting()||!identifier(peer)||!session_.invite(self_,peer,now()+300))return false;
+    auto game=session_.state()["game"].toObject();game.remove("runtime");
+    send(peer,"invite",{{"name",name_},{"game",game},{"answerUntil",now()+300}});return true;
 }
-bool LobbyCoordinator::join(const QString& host,const QString& lobby) {
+bool LobbyCoordinator::join(const QString& host,const QString& lobby,bool request) {
     if(!online_||hosting()||!host_.isEmpty()||!identifier(host)||host==self_||QUuid(lobby).isNull())return false;
-    host_=host;joining_=lobby;joinedAt_=hostSeen_=now();send(host_,"join",{{"name",name_}});emit changed();return true;
+    host_=host;joining_=lobby;joiningRequest_=request;joinedAt_=hostSeen_=now();send(host_,"join",{{"name",name_},{"request",request}});emit changed();return true;
 }
 void LobbyCoordinator::answer(bool accept) {
     const auto offer=invitation_;invitation_={};emit changed();
@@ -82,6 +84,8 @@ void LobbyCoordinator::leave() {
     if(hosting()) {
         const auto snapshot=session_.state();
         for(const auto& value:snapshot["members"].toArray())if(value.toObject()["id"]!=self_)send(value.toObject()["id"].toString(),"closed");
+        for(const auto& peer:session_.invitedPeers())send(peer,"closed");
+        for(const auto& peer:requests_.keys())send(peer,"closed");
         session_.leave(self_);
     } else if(!host_.isEmpty())send(host_,"leave");
     clearRemote();requests_.clear();seen_.clear();emit changed();
@@ -127,7 +131,10 @@ bool LobbyCoordinator::acknowledgeLaunch(const QString& ticket,bool success) {
 }
 bool LobbyCoordinator::finishGame(const QString& ticket) {
     if(hosting())return session_.finishGame(ticket);
-    if(!online_||ticket.isEmpty()||ticket!=launchTicket_||remote_["ticket"]!=ticket||remote_["phase"]!="playing")return false;
+    if(ticket.isEmpty()||ticket!=launchTicket_||remote_["ticket"]!=ticket||remote_["phase"]!="playing")return false;
+    // Preserve the actual child completion through a provider reconnect. The
+    // ticket prevents this retry from ending a later game in the same room.
+    finishedTicket_=ticket;
     send(host_,"game-finished",{{"ticket",ticket}});return true;
 }
 bool LobbyCoordinator::validState(const QJsonObject& s,const QString& host) {
@@ -154,9 +161,15 @@ void LobbyCoordinator::receive(QString peer,QString name,const QJsonObject& p) {
     if(peerBoots_.value(peer)==boot&&serial<=peerSerials_.value(peer))return;
     if(kind=="invite") {
         if(!hosting()&&host_.isEmpty()&&invitation_.isEmpty()) {
-            invitation_={{"host",peer},{"name",name.left(100)},{"lobby",id},{"expires",p["expires"]},{"game",data["game"]}};emit changed();
+            const auto answerUntil=data["answerUntil"].toInteger(p["expires"].toInteger());
+            if(answerUntil<=now()||answerUntil>now()+300)return;
+            peerBoots_[peer]=boot;peerSerials_[peer]=serial;
+            invitation_={{"host",peer},{"boot",boot},{"name",name.left(100)},{"lobby",id},{"expires",answerUntil},{"game",data["game"]}};emit changed();
         }
         return;
+    }
+    if(kind=="closed"&&invitation_["host"]==peer&&invitation_["lobby"]==id&&invitation_["boot"]==boot) {
+        peerSerials_[peer]=serial;invitation_={};emit changed();return;
     }
     if(hosting()) {
         if(id!=session_.id())return;
@@ -172,7 +185,8 @@ void LobbyCoordinator::receive(QString peer,QString name,const QJsonObject& p) {
                 }
                 seen_[peer]=now();send(peer,"state",session_.state());
             }
-            else if(session_.state()["access"]=="approval"&&requests_.size()<32) {
+            else if((session_.state()["access"]=="approval"||data["request"].toBool())&&requests_.size()<32
+                    &&(session_.state()["phase"]=="choosing"||session_.state()["phase"]=="gathering")) {
                 if(!previous.isEmpty()&&previous!=boot)retiredBoots_[peer+"/"+previous]=now()+180;
                 peerBoots_[peer]=boot;peerSerials_[peer]=serial;requests_[peer]=name.left(100);seen_[peer]=now();emit changed();
             }
@@ -215,6 +229,7 @@ void LobbyCoordinator::receive(QString peer,QString name,const QJsonObject& p) {
     if(mine.isEmpty()) {clearRemote();emit notice("You left the lobby.");emit changed();return;}
     if(data["generation"]!=remote_["generation"])preparedGeneration_=readyGeneration_=0;
     remote_=data;joining_.clear();joinedAt_=0;
+    if(data["ticket"]!=finishedTicket_||data["phase"]!="playing")finishedTicket_.clear();
     const auto generation=quint64(data["generation"].toInteger());const auto ticket=data["ticket"].toString();
     if(data["phase"]=="launching"&&mine["seat"].toInt()>0&&preparedGeneration_==generation&&readyGeneration_==generation
        &&!ticket.isEmpty()&&ticket!=launchTicket_) {launchTicket_=ticket;emit launchRequested(ticket,data);}
@@ -238,7 +253,8 @@ void LobbyCoordinator::tick() {
     } else if(!host_.isEmpty()) {
         if(joinedAt_&&now()-joinedAt_>90) {clearRemote();emit notice("The join request expired.");emit changed();return;}
         if(hostSeen_&&now()-hostSeen_>45)deliveryFailed(host_);
-        send(host_,joining_.isEmpty()?"ping":"join");
+        send(host_,joining_.isEmpty()?"ping":"join",{{"request",joiningRequest_}});
+        if(!finishedTicket_.isEmpty())send(host_,"game-finished",{{"ticket",finishedTicket_}});
     }
 }
 }

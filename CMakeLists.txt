@@ -164,6 +164,7 @@ add_library(trainer_core STATIC
     src/features/adventure/HotseatHandoff.cpp
     src/features/adventure/RuntimeHotseat.cpp
     src/features/adventure/RuntimeInvocation.cpp
+    src/features/adventure/RuntimeLobby.cpp
     src/integrations/adventure/retroarch/RetroArchAdapter.h
     src/platform/diagnostics/DiagnosticsService.cpp
     src/platform/diagnostics/DiagnosticsService.h

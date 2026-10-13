@@ -37,6 +37,9 @@ QVariantList RuntimeMultiplayer::gameMenuActions() const {
         rows.append(control);
     }
     if(canInvite()||!invitationId().isEmpty())rows.append(QVariantMap{{"id","multiplayer"},{"label",menuLabel()}});
+    if(canInvite()&&!party_.active()&&social_.account()["state"]=="connected"
+       &&multiplayerConnectionAllowed(descriptor_,"nearby"))
+        rows.append(QVariantMap{{"id","multiplayer-nearby"},{"label","Nearby"}});
     return rows;
 }
 void RuntimeMultiplayer::setupHotseat() {

@@ -13,6 +13,7 @@ public:
     struct Game {
         QString id, title, platform, mode;
         int seats=0; // Supplied by a supported runtime profile, not catalogue counts.
+        QJsonObject runtime; // Private compatibility descriptor, after membership consent.
     };
     explicit LobbySession(QObject* parent=nullptr);
     bool create(QString owner,QString name,QString access="private");
@@ -35,6 +36,7 @@ public:
     bool finishGame(const QString& ticket);
     QJsonObject state() const;
     QString id() const {return id_;}
+    QStringList invitedPeers() const {return invites_.keys();}
     quint64 generation() const {return generation_;}
 signals:
     void changed();
@@ -43,6 +45,7 @@ private:
     struct Member {QString name;int seat=0;bool prepared=false,ready=false,connected=true,spectator=false;};
     bool host(const QString& actor) const;
     bool editable() const;
+    int freeSeat() const;
     void resetReady();
     void invalidateLaunch();
     void publish();

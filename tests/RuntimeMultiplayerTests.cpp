@@ -1,6 +1,8 @@
 #include "features/adventure/RuntimeMultiplayer.h"
 #include "features/adventure/AdventureExitPresentation.h"
 #include "features/social/SocialController.h"
+#include "integrations/social/FluxerSession.h"
+#include "platform/input/AdventureOverlayService.h"
 #include "core/navigation/AdventureLaunchController.h"
 #include <QtTest>
 #include <QTemporaryDir>
@@ -21,8 +23,8 @@ class RuntimeMultiplayerTests final : public QObject {
         QList<Adventure> adventures() const override { return {}; }
         QList<ResumePoint> resumePoints() const override { return {}; }
         HomeSnapshot home() const override { return {}; }
-        std::optional<AdventureRegistration> registration(const QString&) const override {
-            if(inspect)inspect();return {};
+        std::optional<AdventureRegistration> registration(const QString& id) const override {
+            if(inspect)inspect();for(const auto& r:records)if(r.adventure.id==id)return r;return {};
         }
     };
     struct Fixture {
@@ -92,6 +94,117 @@ class RuntimeMultiplayerTests final : public QObject {
         QTRY_VERIFY(!f.lifecycle.active());
     }
 private slots:
+    void shellEntryWaitsForFreshInputAndCancellationKeepsTheOwnedGame() {
+        Fixture f;AdventureOverlayService overlay(f.process,f.lifecycle,f.view,{});
+        QVERIFY(!overlay.requestShell());QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");
+        // Model an admitted helper; native helper/input acceptance is separate.
+        overlay.active_=true;overlay.protocol_=4;f.lifecycle.exitController().setAvailable(true);
+        const auto pid=f.process.processId();QVERIFY(overlay.requestShell());
+        QVERIFY(overlay.openingShell_);QVERIFY(!overlay.minimizing_);
+        QVERIFY(f.view.requestMenu());f.view.dismissMenu();QVERIFY(!overlay.openingShell_);
+        f.view.updateInput(f.view.inputGeneration(),{true,true});QVERIFY(!overlay.minimizing_);
+        QVERIFY(overlay.requestShell());QVERIFY(f.view.requestMenu());
+        f.view.setInputIsolated(true);f.view.setWindowFocused(true);QVERIFY(!overlay.minimizing_);
+        f.view.updateInput(f.view.inputGeneration(),{true,true});QVERIFY(overlay.minimizing_);QVERIFY(!overlay.openingShell_);
+        QVERIFY(overlay.requestShell());QCOMPARE(f.process.processId(),pid);QVERIFY(!f.lifecycle.minimized());
+        overlay.lost();QVERIFY(!overlay.minimizing_);QCOMPARE(f.process.processId(),pid);
+        finishOrdinary(f);
+    }
+    void deferredLobbyInvitationSurvivesAnIndependentGameExit() {
+        Fixture f;disconnect(&f.social,&SocialController::commandRequested,f.social.session_,nullptr);
+        disconnect(f.social.session_,nullptr,&f.social,nullptr);
+        f.runtime.allowed_=true;f.social.snapshot_={{"state","connected"},{"userId","2"},{"name","Guest"}};
+        f.social.lobbyCoordinator()->configure("2","Guest",true);
+        LobbyCoordinator host;host.configure("1","Host",true);QVERIFY(host.create());
+        connect(&host,&LobbyCoordinator::outgoing,&f.social,[&](QString,QJsonObject p){f.social.lobbyCoordinator()->receive("1","Host",p);});
+        QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");QVERIFY(host.invite("2"));
+        const auto invitation=f.runtime.invitationId();QVERIFY(f.runtime.invitationBadge());
+        finishOrdinary(f);QCOMPARE(f.runtime.invitationId(),invitation);QVERIFY(f.runtime.invitationBadge());
+        host.leave();QVERIFY(f.runtime.invitationId().isEmpty());QVERIFY(!f.runtime.invitationBadge());
+        f.runtime.openInvitation(invitation);QVERIFY(f.social.face()!="lobby");
+    }
+    void lobbyReadyRunsBothOwnedChildrenAndReturnsToTheSameRoom() {
+        Fixture a,b;
+        const QJsonObject profile{{"id","runtime.test"},{"content","exact"},{"players",2},{"label","Game"}};
+        const auto digest=QString::fromLatin1(QCryptographicHash::hash(QByteArray("runtime.test/exact"),QCryptographicHash::Sha256).toHex());
+        for(auto* f:{&a,&b}) {
+            const auto id=f==&a?QString("1"):QString("2");
+            // The test wires authenticated metadata locally; the signed-out
+            // provider worker must not also attempt to deliver those packets.
+            disconnect(&f->social,&SocialController::commandRequested,f->social.session_,nullptr);
+            disconnect(f->social.session_,nullptr,&f->social,nullptr);
+            f->social.snapshot_={{"state","connected"},{"userId",id},{"name",id}};
+            f->social.lobbyCoordinator()->configure(id,id,true);f->social.lobbyRuntime()->configure(id,true);
+            f->social.lobbyRuntime()->registerService("runtime.test",&f->runtime);
+            f->runtime.allowed_=true;f->runtime.games_={{"local",profile}};
+            AdventureRegistration record;record.adventure.id="local";f->library.records={record};
+            disconnect(&f->runtime.party_,&GameParty::startRequested,&f->runtime,&RuntimeMultiplayer::startParty);
+            // Substitute only the emulator; preparation, consent, party wire,
+            // launch acknowledgements and the owned child lifecycle are real.
+            connect(&f->runtime.party_,&GameParty::startRequested,&f->runtime,[f](bool host,QJsonObject){
+                const auto selected=f->runtime.party_.game();
+                f->runtime.active_=true;f->runtime.host_=host;f->runtime.descriptor_=selected;f->runtime.game_="local";
+                QVERIFY(f->start(false,"local"));
+                if(host)f->runtime.party_.ready({{"kind","ready"},{"identity",selected}});
+            });
+        }
+        auto* h=a.social.lobbyCoordinator();auto* g=b.social.lobbyCoordinator();
+        QSignalSpy startsA(&a.lifecycle,&AdventureLaunchController::adventureStarted),startsB(&b.lifecycle,&AdventureLaunchController::adventureStarted);
+        connect(h,&LobbyCoordinator::outgoing,g,[&](QString,QJsonObject p){g->receive("1","Host",p);});
+        connect(g,&LobbyCoordinator::outgoing,h,[&](QString,QJsonObject p){h->receive("2","Guest",p);});
+        connect(&a.runtime.party_,&GameParty::outgoing,&b.runtime,[&](QString,QJsonObject p){b.runtime.party_.receive("online:1","Host",p);});
+        connect(&b.runtime.party_,&GameParty::outgoing,&a.runtime,[&](QString,QJsonObject p){a.runtime.party_.receive("online:2","Guest",p);});
+        QVERIFY(h->create());QVERIFY(h->invite("2"));g->answer(true);const auto room=h->state()["id"].toString();
+        QVERIFY(h->selectGame({digest,"Game","test","runtime.test",2,profile}));QVERIFY(h->seat(1));QVERIFY(g->seat(2));
+        QVERIFY(a.social.lobbyRuntime()->prepare());QVERIFY(b.social.lobbyRuntime()->prepare());
+        QVERIFY(h->ready(true));QVERIFY(!a.process.active());QVERIFY(!b.process.active());QVERIFY(g->ready(true));
+        QTRY_VERIFY2_WITH_TIMEOUT(h->state()["phase"]=="playing",qPrintable(a.social.lobbyRuntime()->status()+" / "+b.social.lobbyRuntime()->status()+" / "+a.lifecycle.state()+" / "+b.lifecycle.state()),5000);
+        QCOMPARE(g->state()["phase"].toString(),QString("playing"));
+        QVERIFY(a.process.active());QVERIFY(b.process.active());QVERIFY(a.runtime.party_.pending().isEmpty());QVERIFY(b.runtime.party_.pending().isEmpty());
+        finishOrdinary(a);finishOrdinary(b);QTRY_COMPARE(h->state()["phase"].toString(),QString("gathering"));
+        QCOMPARE(h->state()["id"].toString(),room);QCOMPARE(g->state()["id"].toString(),room);QCOMPARE(h->state()["members"].toArray().size(),2);
+        QVERIFY(!h->ready(true));QVERIFY(!g->ready(true));
+        auto next=profile;next["content"]="another-game";
+        for(auto* f:{&a,&b}) {QVERIFY(QFile::remove(f->dir.filePath("control")));f->runtime.games_["local"]=next;}
+        const auto nextId=QString::fromLatin1(QCryptographicHash::hash(QByteArray("runtime.test/another-game"),QCryptographicHash::Sha256).toHex());
+        QVERIFY(h->selectGame({nextId,"Another game","test","runtime.test",2,next}));
+        QVERIFY(a.social.lobbyRuntime()->prepare());QVERIFY(b.social.lobbyRuntime()->prepare());
+        QVERIFY(g->ready(true));QVERIFY(h->ready(true));QTRY_COMPARE(h->state()["phase"].toString(),QString("playing"));
+        QCOMPARE(startsA.size(),2);QCOMPARE(startsB.size(),2);QCOMPARE(g->state()["id"].toString(),room);
+        finishOrdinary(a);finishOrdinary(b);
+        QTRY_COMPARE(h->state()["phase"].toString(),QString("gathering"));
+    }
+    void lobbyPreparationKeepsAnUnrelatedGameUntilExplicitSavedConsent_data() {
+        QTest::addColumn<bool>("saveFails");
+        QTest::newRow("saved")<<false;QTest::newRow("save-recovery-required")<<true;
+    }
+    void lobbyPreparationKeepsAnUnrelatedGameUntilExplicitSavedConsent() {
+        QFETCH(bool,saveFails);
+        Fixture f;f.social.snapshot_={{"state","connected"},{"userId","1"},{"name","Host"}};
+        f.runtime.allowed_=true;const QJsonObject profile{{"id","runtime.test"},{"content","exact"},{"players",2},{"label","Game"}};
+        f.runtime.games_={{"local",profile}};AdventureRegistration record;record.adventure.id="local";f.library.records={record};
+        const auto digest=QString::fromLatin1(QCryptographicHash::hash(QByteArray("runtime.test/exact"),QCryptographicHash::Sha256).toHex());
+        const QJsonObject context{{"self","1"},{"owner","1"},{"game",QJsonObject{{"id",digest},{"mode","runtime.test"}}},
+            {"members",QJsonArray{QJsonObject{{"id","1"},{"seat",1},{"connected",true}}}}};
+        QVERIFY(f.start(saveFails,"ordinary"));QTRY_COMPARE(f.lifecycle.state(),"running");readyMenu(f);
+        int callbacks=0;bool prepared=false;
+        f.runtime.prepare("operation",context,[&](bool ok,QString){++callbacks;prepared=ok;});
+        QCOMPARE(f.view.panel(),QString("lobby-prepare"));QCOMPARE(callbacks,0);QVERIFY(f.process.active());
+        f.view.updateInput(f.view.inputGeneration(),{true,true});QVERIFY(f.view.ready());
+        f.runtime.action("multiplayer-lobby-saved:stale");QVERIFY(f.process.active());QCOMPARE(callbacks,0);
+        f.runtime.action("multiplayer-lobby-saved:operation");QTRY_VERIFY(!f.lifecycle.active());QTRY_COMPARE(callbacks,1);QCOMPARE(prepared,!saveFails);
+    }
+    void lobbyCancelNeverClosesTheCurrentGameOrAcceptsLatePreparation() {
+        Fixture f;f.social.snapshot_={{"state","connected"},{"userId","1"}};f.runtime.allowed_=true;
+        const QJsonObject profile{{"id","runtime.test"},{"content","exact"},{"players",2}};f.runtime.games_={{"local",profile}};
+        AdventureRegistration record;record.adventure.id="local";f.library.records={record};
+        const auto digest=QString::fromLatin1(QCryptographicHash::hash(QByteArray("runtime.test/exact"),QCryptographicHash::Sha256).toHex());
+        const QJsonObject context{{"self","1"},{"owner","1"},{"game",QJsonObject{{"id",digest},{"mode","runtime.test"}}},
+            {"members",QJsonArray{QJsonObject{{"id","1"},{"seat",1},{"connected",true}}}}};
+        QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");readyMenu(f);int calls=0;
+        f.runtime.prepare("old",context,[&](bool,QString){++calls;});f.runtime.cancel("old");
+        f.runtime.action("multiplayer-lobby-saved:old");QVERIFY(f.process.active());QCOMPARE(calls,0);finishOrdinary(f);QCOMPARE(calls,0);
+    }
     void sharedControllerModeIsExplicitAndBoundToTheLiveGame() {
         Fixture f;QVERIFY(f.start(false,"ps1:test"));QTRY_COMPARE(f.lifecycle.state(),"running");
         QJsonObject base{{"id","runtime.retroarch.ps1"},{"players",2},{"controllerModes",QJsonArray{"separate","pass-p1"}}};

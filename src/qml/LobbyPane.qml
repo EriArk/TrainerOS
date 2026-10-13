@@ -62,7 +62,7 @@ Item {
             font.pixelSize: 13; color: Theme.muted; textFormat: Text.PlainText }
         ListView {
             id: people; x: 16; y: 75; width: parent.width - 32
-            height: Math.max(0, actions.y - y - 5); model: root.members; clip: true; spacing: 5
+            height: Math.max(0, (progressNotice.visible ? progressNotice.y : actions.y) - y - 5); model: root.members; clip: true; spacing: 5
             delegate: Rectangle {
                 required property var modelData; required property int index
                 width: people.width; height: 26; radius: 7; color: index % 2 ? "#f5e4ee" : "#e0edf4"
@@ -72,6 +72,16 @@ Item {
                     text: !modelData.connected ? "Reconnecting" : modelData.ready ? "Ready" : modelData.spectator ? "Watching" : modelData.seat ? "P" + modelData.seat : "Choose a seat"
                     font.pixelSize: 11; color: modelData.ready ? "#386b39" : Theme.muted; textFormat: Text.PlainText }
             }
+        }
+        Text {
+            id: progressNotice; objectName: "lobby-progress-notice"
+            readonly property var profile: root.game.runtime || ({})
+            visible: root.own && (!!profile.privateProgress || !!profile.temporaryProgress)
+            x: 16; width: parent.width - 32; height: implicitHeight
+            anchors.bottom: actions.top; anchors.bottomMargin: 8
+            text: profile.temporaryProgress ? "This session starts fresh. Progress isn't kept."
+                : "Save copies are shared with players. Only your own progress returns."
+            font.pixelSize: 11; color: Theme.muted; wrapMode: Text.WordWrap; textFormat: Text.PlainText
         }
         Grid {
             id: actions; x: 16; width: parent.width - 32; anchors.bottom: parent.bottom; anchors.bottomMargin: 12; spacing: 6; columns: 2

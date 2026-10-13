@@ -36,6 +36,50 @@ class GamePartyTests : public QObject {
         }
     };
 private slots:
+    void lobbyAdmissionIsBilateralAndKeepsTheChosenSeats() {
+        GameParty host,guest;const auto profile=game();
+        host.configure("Host",{profile},profile,true);guest.configure("Guest",{profile},{},true);
+        const auto ticket=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        const QJsonArray roster{QJsonObject{{"id","2"},{"name","Guest"},{"seat",3},{"connected",true},{"prepared",true},{"ready",true}},
+            QJsonObject{{"id","1"},{"name","Host"},{"seat",1},{"connected",true},{"prepared",true},{"ready",true}}};
+        QList<QJsonObject> delayed;bool delay=true;
+        connect(&host,&GameParty::outgoing,&guest,[&](QString peer,QJsonObject p){QCOMPARE(peer,QString("online:2"));guest.receive("online:1","Host",p);});
+        connect(&guest,&GameParty::outgoing,&host,[&](QString peer,QJsonObject p){QCOMPARE(peer,QString("online:1"));if(delay)delayed.append(p);else host.receive("online:2","Guest",p);});
+        QSignalSpy starts(&host,&GameParty::startRequested),joins(&guest,&GameParty::startRequested);
+        QVERIFY(host.bindLobby(ticket,profile,roster,"1","1"));host.start();QCOMPARE(starts.size(),0);
+        QVERIFY(guest.bindLobby(ticket,profile,roster,"2","1"));QCOMPARE(starts.size(),0);
+        delay=false;for(const auto& p:delayed)host.receive("online:2","Guest",p);
+        QCOMPARE(starts.size(),1);QVERIFY(host.pending().isEmpty());QVERIFY(guest.pending().isEmpty());
+        host.ready({{"kind","ready"},{"identity",profile}});QCOMPARE(joins.size(),1);
+        QCOMPARE(joins.first()[1].toJsonObject()["slot"].toInt(),3);
+        for(const auto& p:delayed)host.receive("online:2","Guest",p);host.tick();guest.tick();QCOMPARE(starts.size(),1);QCOMPARE(joins.size(),1);
+        host.leave();QVERIFY(!guest.active());
+        auto unready=roster;auto m=unready[0].toObject();m["ready"]=false;unready[0]=m;
+        QVERIFY(!host.bindLobby(ticket,profile,unready,"1","1"));
+    }
+    void lobbyAdmissionRejectsDifferentRuntimeAndRecoversLostFirstHello() {
+        GameParty host,guest;auto profile=game();auto different=profile;different["runtime"]="different-build";
+        host.configure("Host",{profile},profile,true);guest.configure("Guest",{different},different,true);
+        const auto ticket=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        const QJsonArray roster{QJsonObject{{"id","1"},{"seat",1},{"connected",true},{"prepared",true},{"ready",true}},QJsonObject{{"id","2"},{"seat",2},{"connected",true},{"prepared",true},{"ready",true}}};
+        connect(&host,&GameParty::outgoing,&guest,[&](QString,QJsonObject p){guest.receive("online:1","Host",p);});
+        connect(&guest,&GameParty::outgoing,&host,[&](QString,QJsonObject p){host.receive("online:2","Guest",p);});
+        QSignalSpy starts(&host,&GameParty::startRequested);
+        QVERIFY(guest.bindLobby(ticket,different,roster,"2","1")); // First hello precedes host admission.
+        QVERIFY(host.bindLobby(ticket,profile,roster,"1","1"));guest.tick();
+        QCOMPARE(starts.size(),0);QVERIFY(!host.active());QVERIFY(!guest.active());
+        guest.configure("Guest",{profile},profile,true);
+        const auto next=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        QVERIFY(guest.bindLobby(next,profile,roster,"2","1"));QVERIFY(host.bindLobby(next,profile,roster,"1","1"));guest.tick();
+        QCOMPARE(starts.size(),1);
+    }
+    void soloLobbyStartsOnceWithoutAnArtificialSecondPlayer() {
+        GameParty host;const auto profile=game();host.configure("Host",{profile},profile,true);
+        QSignalSpy starts(&host,&GameParty::startRequested);
+        QVERIFY(host.bindLobby(QUuid::createUuid().toString(QUuid::WithoutBraces),profile,
+            {QJsonObject{{"id","1"},{"seat",1},{"connected",true},{"prepared",true},{"ready",true}}},"1","1"));
+        QCOMPARE(starts.size(),1);host.tick();host.start();QCOMPARE(starts.size(),1);
+    }
     void privateRuntimeCredentialsAreDeliveredOnlyToTheirAcceptedMember() {
         Room r;auto privateGame=game(4);privateGame["lateJoin"]=false;
         for(auto it=r.people.cbegin();it!=r.people.cend();++it)

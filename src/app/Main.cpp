@@ -450,6 +450,15 @@ int main(int argc, char* argv[]) {
         QObject::connect(&adventureProcess,&ProcessService::started,&invitationOverlay,[&]{invitationOverlay.setGame(adventureProcess.processId());});
         QObject::connect(&adventureProcess,&ProcessService::finished,&invitationOverlay,[&]{invitationOverlay.setGame(0);});
         std::unique_ptr<AdventureOverlayService> adventureOverlay;
+        QObject::connect(shell.social(),&SocialController::lobbyRequested,&shell,[&]{
+            if(adventureLaunch.active()&&!adventureLaunch.minimized()) {
+                if(!adventureOverlay||!adventureOverlay->requestShell())shell.showNotice("Open Home to enter the lobby safely.");
+            }
+        });
+        QObject::connect(shell.social(),&SocialController::lobbyDeferred,&shell,[&]{
+            if(adventureLaunch.active()&&adventureOverlay)adventureOverlay->returnToGame();
+            else shell.goToPage(0);
+        });
         QString pendingNotification;
         if(saveBackups)saveBackups->operationGuard=[&]{return adventureLaunch.active()?QString("Exit the running game before changing saves."):QString();};
         RuntimeMultiplayer multiplayer(activeLibrary,retroarch,ppsspp,dolphin,*shell.social(),adventureProcess,adventureLaunch,exitPresentation);

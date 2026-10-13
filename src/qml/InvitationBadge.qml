@@ -29,7 +29,7 @@ Window {
         width: 68 * badgeWindow.unit; height: 68 * badgeWindow.unit
         x: badgeWindow.width - width - 16 * badgeWindow.unit
         y: badgeWindow.height - height - 16 * badgeWindow.unit
-        radius: 20 * badgeWindow.unit
+        radius: width / 2
         color: Theme.yellow
         border.color: Theme.paper; border.width: 3 * badgeWindow.unit
         Item {

@@ -11,6 +11,15 @@ namespace trainer {
 void RuntimeMultiplayer::beginTogether(QString game,QString peer,bool company) {
     cancelInvocation();
     if(!allowed_) {emit notice("Connect and finish the current operation before inviting players.");return;}
+    if(social_.account()["state"]=="connected") {
+        if(game.isEmpty())social_.openLobbyForPeople(company?QString():peer,company?peer:QString());
+        else {
+            if(lifecycle_.active()&&game!=lifecycle_.adventureId()) {emit notice("Another game is running. Use its Game Options or close it first.");return;}
+            social_.openLobbyForGame(game);
+            if(!peer.isEmpty())social_.openLobbyForPeople(company?QString():peer,company?peer:QString());
+        }
+        return;
+    }
     if(lifecycle_.active()) {
         if(!game.isEmpty() && game!=lifecycle_.adventureId()) {emit notice("Another game is running. Exit it from Game Options before starting this invitation.");return;}
         if(!canInvite() || !lifecycle_.minimized()) {emit notice("Play together is unavailable in the current game state.");return;}

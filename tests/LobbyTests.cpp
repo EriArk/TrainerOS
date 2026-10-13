@@ -22,6 +22,26 @@ class LobbyTests final : public QObject {
         QVERIFY(l.claimSeat(peer,seat,l.generation()));QVERIFY(l.prepared(peer,l.generation(),true));
     }
 private slots:
+    void closingLobbyWithdrawsTheDeferredInvitationAndIgnoresItsReplay() {
+        LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
+        QJsonObject original;
+        connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString,QJsonObject p){if(p["kind"]=="invite")original=p;guest.receive("1","Host",p);});
+        QVERIFY(host.create());QVERIFY(host.invite("2"));QVERIFY(!guest.invitation().isEmpty());
+        host.leave();QVERIFY(guest.invitation().isEmpty());
+        guest.receive("1","Host",original);QVERIFY(guest.invitation().isEmpty());
+    }
+    void privateActivityRequestStillNeedsOwnerApproval() {
+        LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
+        connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString,QJsonObject p){guest.receive("1","Host",p);});
+        connect(&guest,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){host.receive("2","Guest",p);});
+        QVERIFY(host.create());QVERIFY(host.selectGame(game()));
+        QVERIFY(guest.join("1",host.state()["id"].toString(),true));
+        QCOMPARE(host.state()["members"].toArray().size(),1);QCOMPARE(host.requests().size(),1);
+        QCOMPARE(guest.state()["phase"].toString(),QString("joining"));QVERIFY(host.approve("2"));
+        QCOMPARE(guest.state()["members"].toArray().size(),2);
+        QCOMPARE(guest.state()["members"].toArray()[1].toObject()["seat"].toInt(),2);
+        QVERIFY(!guest.ready(true));
+    }
     void runtimeServicesRequireLocalPreparationBothLaunchResultsAndKeepConversation() {
         LobbyCoordinator host,guest;TestLobbyRuntime hs,gs;LobbyRuntime hr(host),gr(guest);
         host.configure("1","Host",true);guest.configure("2","Guest",true);hr.configure("1",true);gr.configure("2",true);
@@ -36,7 +56,12 @@ private slots:
         const auto ticket=host.state()["ticket"].toString();hs.opening(true,{});
         QCOMPARE(host.state()["phase"].toString(),"launching");gs.opening(true,{});
         QCOMPARE(host.state()["phase"].toString(),"playing");hs.opening(true,{});QCOMPARE(hs.launches,1);
-        QVERIFY(gr.finished(ticket));QCOMPARE(host.state()["phase"].toString(),"gathering");
+        host.deliveryFailed("2");QCOMPARE(hs.cancels,0);QCOMPARE(gs.cancels,0);
+        gr.configure("2",false);guest.configure("2","Guest",false);
+        QCOMPARE(gs.cancels,0);QVERIFY(gr.finished(ticket));QCOMPARE(gs.cancels,1);
+        QCOMPARE(host.state()["phase"].toString(),"playing");
+        gr.configure("2",true);guest.configure("2","Guest",true);
+        QCOMPARE(host.state()["phase"].toString(),"gathering");
         QCOMPARE(guest.state()["conversation"].toString(),"123");QVERIFY(!host.ready(true));QCOMPARE(host.state()["members"].toArray().size(),2);
     }
     void stalePreparationAndFailedLaunchNeverBecomeReadyOrPlaying() {
@@ -186,7 +211,7 @@ private slots:
         const auto old=l.generation();QVERIFY(l.selectGame("h",game("next")));
         QVERIFY(!l.prepared("a",old,true));QVERIFY(!l.ready("a",old,true));
         for(const auto& value:l.state()["members"].toArray()) {
-            const auto m=value.toObject();QCOMPARE(m["seat"].toInt(),0);QVERIFY(!m["ready"].toBool());QVERIFY(!m["prepared"].toBool());
+            const auto m=value.toObject();QCOMPARE(m["seat"].toInt(),m["id"]=="h"?1:m["id"]=="a"?2:0);QVERIFY(!m["ready"].toBool());QVERIFY(!m["prepared"].toBool());
         }
     }
     void lossCancelsPendingLaunchAndRejoinNeedsNewPreparation() {

@@ -94,6 +94,7 @@ public:
     Q_INVOKABLE void editLobbySearch();
     Q_INVOKABLE void openLobby();
     void openLobbyForGame(const QString& key);
+    void openLobbyForPeople(QString peer={},QString conversation={});
     QVariantList recentPeople() const;
     int recentFocus() const;
     Q_INVOKABLE void selectRecent(int index);
@@ -112,6 +113,7 @@ public:
     QVariantMap online() const;
     Q_INVOKABLE void answerOnline(bool accept);
     void setFace(QString face);
+    QString face() const {return face_;}
     void dispatch(Action action);
     void showContacts();
     bool contacts() const { return contacts_; }
@@ -232,6 +234,7 @@ signals:
     void communicationSettingsRequested();
     void conversationsRequested();
     void lobbyRequested();
+    void lobbyDeferred();
     void runtimeEstablished(QString activity,bool host);
     void runtimeFrame(QJsonObject frame);
     void runtimeProbeFailed(QString peer, QString message);
@@ -263,6 +266,7 @@ private:
     bool lobbyFreeOnly_=false,lobbyDetailFocused_=false;
     bool lobbyPublicationVisible_=false;
     friend class SocialTests;
+    friend class RuntimeMultiplayerTests;
     friend class LobbySmokeScenario;
     QVariantMap dismissedNotifications_;
     QVariantList activityNotifications_;

@@ -18,6 +18,7 @@ public:
     ~AdventureOverlayService() override;
     bool canMinimize() const { return active_ && protocol_>=3 && exit_.available(); }
     void minimize();
+    bool requestShell();
     void returnToGame(bool options = false);
     void openOptions();
 signals:
@@ -26,6 +27,7 @@ signals:
     void shellAction(trainer::Action action);
     void handoffFailed(QString message);
 private:
+    friend class RuntimeMultiplayerTests;
     void start();
     void stop();
     void send(const QJsonObject&);
@@ -45,7 +47,7 @@ private:
     quint64 sentEpoch_ = 0;
     quint64 attempt_ = 0;
     int protocol_ = 0;
-    bool shellReady_ = false, returning_ = false, minimizing_ = false;
+    bool shellReady_ = false, returning_ = false, minimizing_ = false, openingShell_ = false;
     QString heldAction_;
     QElapsedTimer repeat_;
 };

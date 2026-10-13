@@ -2,6 +2,7 @@
 #include "core/input/Action.h"
 #include "GameParty.h"
 #include "HotseatHandoff.h"
+#include "features/social/LobbyRuntime.h"
 #include "core/model/GamePlayers.h"
 #include "integrations/adventure/retroarch/RetroArchNetplay.h"
 #include "integrations/adventure/retroarch/RetroArchNetplayClient.h"
@@ -22,7 +23,7 @@ class SocialController;
 class AdventureLaunchController;
 class AdventureExitPresentation;
 // One runtime session, composed with existing consent, process and Home services.
-class RuntimeMultiplayer final : public QObject {
+class RuntimeMultiplayer final : public LobbyRuntimeService {
     Q_OBJECT
     Q_PROPERTY(QVariantMap party READ party NOTIFY changed)
     Q_PROPERTY(bool incoming READ incoming NOTIFY changed)
@@ -36,6 +37,9 @@ public:
                        ProcessService&, AdventureLaunchController&, AdventureExitPresentation&);
     ~RuntimeMultiplayer() override;
     void refresh(const RetroArchInstallation&,QString trainer,bool allowed);
+    void prepare(QString operation,QJsonObject context,Completion done) override;
+    void launch(QString operation,QString ticket,QJsonObject context,Completion done) override;
+    void cancel(QString operation) override;
     QVariantMap party() const {return party_.state().toVariantMap();}
     Q_INVOKABLE void leaveParty();
     QString menuLabel() const;
@@ -46,7 +50,7 @@ public:
     QStringList multiplayerGames() const { return multiplayerGames_; }
     bool incoming() const;
     QString invitation() const;
-    QString invitationId() const { return party_.pending()["request"].toString(); }
+    QString invitationId() const;
     bool invitationBadge() const;
     Q_INVOKABLE void openInvitation(const QString& request);
     Q_INVOKABLE void answer(bool accept);
@@ -157,5 +161,15 @@ private:
     quint64 invitationAccount_ = 0;
     qint64 invitationProcess_ = 0;
     QTimer invitationOpenTimer_{this};
+    QString lobbyOperation_,lobbyTicket_,lobbyGame_;
+    QJsonObject lobbyContext_,lobbyDescriptor_;
+    Completion lobbyCompletion_;
+    Completion lobbyPreparation_;
+    bool lobbyExiting_=false;
+    qint64 lobbyProcess_=0;
+    quint64 lobbyAccount_=0;
+    int lobbyRevision_=0;
+    QString lobbyPath_;
+    void showLobbyExit();
 };
 }

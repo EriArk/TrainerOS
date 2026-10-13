@@ -52,12 +52,32 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
     });
     connect(&social_,&SocialController::partyReset,&party_,&GameParty::reset);
     connect(&social_,&SocialController::presentationChanged,this,&RuntimeMultiplayer::changed);
+    connect(social_.lobbyCoordinator(),&LobbyCoordinator::changed,this,[this]{
+        const auto room=social_.lobbyCoordinator()->state();QJsonObject offer;
+        if(social_.lobbyCoordinator()->hosting()) {
+            const auto game=room["game"].toObject();const bool editable=room["phase"]=="choosing"||room["phase"]=="gathering";
+            int occupied=0;for(const auto& m:room["members"].toArray())if(m.toObject()["seat"].toInt()>0)++occupied;
+            offer={{"lobby",room["id"]},{"party",room["id"]},{"company",room["conversation"]},
+                {"game",QJsonObject{{"label",game["title"].toString().isEmpty()?QString("Choosing a game"):game["title"].toString()}}},
+                {"joinable",editable},{"free",qMax(0,game["seats"].toInt()-occupied)},{"capacity",game["seats"]},{"access",room["access"]},{"running",room["phase"]=="playing"}};
+        }
+        party_.setLobbyOffer(offer);emit changed();
+    });
     connect(&social_,&SocialController::partyQuery,this,[this](QString peer){party_.query("online:"+peer);});
     connect(&social_,&SocialController::partyLeave,this,&RuntimeMultiplayer::leaveParty);
     connect(&social_,&SocialController::runtimeAction,this,[this](const QString& id){
         action(id,true);
     });
     connect(&social_,&SocialController::partyJoin,this,[this](QString peer,QJsonObject expected){
+        if(!expected["lobby"].toString().isEmpty()) {
+            const auto offer=party_.offer("online:"+peer);
+            if(offer["lobby"]!=expected["lobby"]||!offer["joinable"].toBool()) {emit notice("The lobby changed. Open Together again.");return;}
+            if(!social_.lobbyState().isEmpty()) {
+                social_.openLobby();emit notice("Leave your current lobby before joining another one.");return;
+            }
+            if(social_.lobbyCoordinator()->join(peer.section(':',-1),expected["lobby"].toString(),true))social_.openLobby();
+            return;
+        }
         const auto offered=party_.offer("online:"+peer);
         if(expected["game"].toObject().isEmpty()||offered["game"]!=expected["game"]||offered["party"]!=expected["party"]) {
             emit notice("The game changed. Reopen Together before joining.");return;
@@ -79,6 +99,9 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(active_&&linkedPreparing_)fail("Couldn't prepare the linked game. Your save was kept. Try inviting again.");
     });
     connect(&party_,&GameParty::changed,this,[this]{
+        if(lobbyCompletion_&&!party_.active()) {
+            auto done=std::exchange(lobbyCompletion_,{});done(false,"The game connection changed. Prepare again in the same lobby.");
+        }
         if(active_&&hotseat()&&(!party_.active()||party_.state()["members"].toArray().size()!=2)) {
             fail("The other player left. The shared-controller game has ended.");return;
         }
@@ -104,11 +127,11 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         social_.setRuntimeInvitation(pending.toVariantMap());
         social_.setGameParty(party_.state().toVariantMap());
         auto companies=party_.companyOffers().toVariantList();
-        if(lifecycle_.active())for(auto& v:companies){auto r=v.toMap();r["joinable"]=false;v=r;}
+        if(lifecycle_.active())for(auto& v:companies){auto r=v.toMap();if(r["lobby"].toString().isEmpty())r["joinable"]=false;v=r;}
         social_.setCompanyParties(companies);
         for(const auto& v:social_.runtimeFriends()) {
             const auto peer=v.toMap()["id"].toString();auto offer=party_.offer("online:"+peer);
-            if(!offer.isEmpty())offer["joinable"]=offer["joinable"].toBool()&&!party_.active()&&!party_.state()["joining"].toBool()&&!lifecycle_.active();
+            if(!offer.isEmpty())offer["joinable"]=offer["joinable"].toBool()&&(offer["lobby"].toString().isEmpty()?(!party_.active()&&!party_.state()["joining"].toBool()&&!lifecycle_.active()):social_.lobbyState().isEmpty());
             social_.setGameActivity(peer,offer.toVariantMap());
         }
         if(socialSurface_&&social_.runtimeSurfaceOpen())show(socialPanel_);
@@ -152,14 +175,24 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         emit changed();
     });
     connect(&nearby_,&LocalLinkPeer::changed,this,[this]{if(overlay_.panel()=="multiplayer-nearby"||overlay_.panel()=="multiplayer-people")show(overlay_.panel());});
-    connect(&nearby_,&LocalLinkPeer::error,this,[this](QString text){fail(text);});
+    connect(&nearby_,&LocalLinkPeer::error,this,[this](QString text){
+        // Discovery has its own lifecycle. A LAN listener failure must not
+        // cancel an independently established Online friend game.
+        if(active_&&!online_)fail(text);else emit notice(text);
+    });
     connect(&process_,&ProcessService::runtimeOutput,this,&RuntimeMultiplayer::output);
     invitationOpenTimer_.setSingleShot(true);invitationOpenTimer_.setInterval(5000);
     connect(&invitationOpenTimer_,&QTimer::timeout,this,[this]{
         openingInvitation_.clear();emit notice("Couldn't open the invitation. Open Game Options and try again.");emit changed();
     });
     connect(&overlay_,&AdventureExitPresentation::changed,this,&RuntimeMultiplayer::resumeInvitation);
+    connect(&overlay_,&AdventureExitPresentation::changed,this,&RuntimeMultiplayer::showLobbyExit);
     connect(&lifecycle_.exitController(),&AdventureExitController::confirmationRequested,this,[this]{
+        if(lobbyExiting_) {
+            if(lobbyPreparation_&&lobbyProcess_==process_.processId()&&lobbyAccount_==social_.accountGeneration())lifecycle_.exitController().confirm();
+            else lifecycle_.exitController().cancel();
+            return;
+        }
         // The invitation's explicit "Saved - join" action supplies exit consent.
         // The capture and owned graceful-close/finalization barriers still run.
         if(!exitingInvitation_.isEmpty()) {
@@ -178,15 +211,18 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
             lifecycle_.exitController().confirm();
     });
     connect(&lifecycle_.exitController(),&AdventureExitController::returnToGameRequested,this,[this]{
+        if(lobbyPreparation_) {lobbyExiting_=false;auto done=std::exchange(lobbyPreparation_,{});done(false,"Keep playing. Prepare again after saving.");}
         exitingInvitation_.clear();emit changed();
         if(restarting_)fail("Invitation cancelled. Your game is still running.");
     });
     connect(&lifecycle_.exitController(),&AdventureExitController::failed,this,[this](QString error){
+        if(lobbyPreparation_) {lobbyExiting_=false;auto done=std::exchange(lobbyPreparation_,{});done(false,error);}
         if(!exitingInvitation_.isEmpty()){exitingInvitation_.clear();emit notice(error);emit changed();}
         if(restarting_)fail(error);
     });
     connect(&lifecycle_,&AdventureLaunchController::adventureStarted,this,[this](QString){
         update();if(!active_)return;
+        if(lobbyCompletion_) {auto done=std::exchange(lobbyCompletion_,{});done(true,{});}
         if(hotseat()&&(host_||dolphin()))handoff_.begin(party_.state()["party"].toString(),host_?1:2,
             dolphin()?HotseatHandoff::NativeControl::HostAuthority:HotseatHandoff::NativeControl::SplitRoles);
         if(psp()) {
@@ -198,6 +234,15 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(host_&&online_&&!dolphin()&&!rmg()&&!flycast()&&!ds()&&!azahar()&&!vita())pollRelay();
     });
     connect(&lifecycle_,&AdventureLaunchController::adventureFinished,this,[this](bool failed){
+        if(lobbyPreparation_) {
+            lobbyExiting_=false;const auto operation=lobbyOperation_;const auto context=lobbyContext_;const auto account=lobbyAccount_;
+            auto done=std::exchange(lobbyPreparation_,{});
+            QTimer::singleShot(0,this,[this,failed,operation,context,account,done]{
+                if(operation!=lobbyOperation_||account!=social_.accountGeneration())return;
+                if(failed)done(false,lifecycle_.error());else prepare(operation,context,done);
+            });
+            return;
+        }
         if(!exitingInvitation_.isEmpty()) {
             const auto request=std::exchange(exitingInvitation_,{});
             const auto account=invitationAccount_;
@@ -225,6 +270,10 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         // An ordinary game ending must not discard an unanswered invitation.
         if(partySession_&&party_.active()){party_.leave();partySession_=false;}
         update();
+        if(!lobbyTicket_.isEmpty()) {
+            const auto ticket=lobbyTicket_;
+            QTimer::singleShot(0,this,[this,ticket]{social_.lobbyRuntime()->finished(ticket);});
+        }
     });
     connect(&lifecycle_,&AdventureLaunchController::changed,this,[this]{
         // Preparation can fail before a child process emits adventureFinished.
@@ -303,7 +352,8 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
         if(content.isEmpty()||capacity<1||capacity>16||!multiplayerConnectionAllowed(profile,"online"))continue;
         const auto id=QString::fromLatin1(QCryptographicHash::hash((profile["id"].toString()+"/"+content).toUtf8(),QCryptographicHash::Sha256).toHex());
         lobbyGames.append(QVariantMap{{"key",record.adventure.id},{"id",id},{"title",profile["label"].toString()},
-            {"platform",record.adventure.platformId},{"mode",profile["id"].toString()},{"seats",capacity}});
+            {"platform",record.adventure.platformId},{"mode",profile["id"].toString()},{"seats",qMin(4,capacity)},{"runtime",profile.toVariantMap()}});
+        social_.lobbyRuntime()->registerService(profile["id"].toString(),this);
     }
     social_.setLobbyGames(lobbyGames);
     const auto visible=allowed_?games_.keys():QStringList{};
@@ -317,7 +367,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
     }
     update();
 }
-QString RuntimeMultiplayer::menuLabel() const {return !party_.pending().isEmpty()?"Incoming activity":party_.active()?"Game party":"Play together";}
+QString RuntimeMultiplayer::menuLabel() const {return !invitationId().isEmpty()?"Incoming activity":!social_.lobbyState().isEmpty()?"My lobby":party_.active()?"Game party":"Play together";}
 bool RuntimeMultiplayer::canInvite() const {
     if(allowed_&&party_.active())return true;
     return allowed_&&games_.contains(process_.runtimeControls()["game"].toString())&&!active_
@@ -338,8 +388,13 @@ bool RuntimeMultiplayer::incoming() const {return !party_.pending().isEmpty()&&!
 bool RuntimeMultiplayer::invitationBadge() const {
     return allowed_&&!invitationId().isEmpty()&&exitingInvitation_.isEmpty()
         &&openingInvitation_.isEmpty()&&!social_.account()["doNotDisturb"].toBool()
-        &&!(socialSurface_&&social_.runtimeSurfaceOpen())&&!overlay_.visible()
+        &&!(socialSurface_&&social_.runtimeSurfaceOpen())&&!(social_.surfaceAvailable()&&social_.face()=="lobby")&&!overlay_.visible()
         &&lifecycle_.exitController().phase()==AdventureExitController::Phase::Idle;
+}
+QString RuntimeMultiplayer::invitationId() const {
+    const auto invite=social_.lobbyCoordinator()->invitation();
+    if(!invite.isEmpty())return "lobby:"+invite["host"].toString()+":"+invite["lobby"].toString();
+    return party_.pending()["request"].toString();
 }
 bool RuntimeMultiplayer::canJoinRunning(const QJsonObject& invitation) const {
     const auto current=lifecycle_.adventureId();
@@ -349,6 +404,11 @@ bool RuntimeMultiplayer::canJoinRunning(const QJsonObject& invitation) const {
 }
 void RuntimeMultiplayer::openInvitation(const QString& request) {
     if(!allowed_||request.isEmpty()||request!=invitationId()||!exitingInvitation_.isEmpty())return;
+    if(request.startsWith("lobby:")) {
+        social_.openLobby();
+        for(int i=0;i<social_.lobbyRows().size();++i)if(social_.lobbyRows()[i].toMap()["kind"]=="invitation") {social_.selectLobby(i);break;}
+        return;
+    }
     if(!lifecycle_.active()){emit invitationSurfaceRequested();socialSurface_=true;show("multiplayer-request");return;}
     if(overlay_.menuOpen()&&!lifecycle_.minimized()){socialSurface_=false;show("multiplayer-request");return;}
     if(lifecycle_.state()!="running"||!lifecycle_.exitController().available()) {
@@ -403,9 +463,10 @@ void RuntimeMultiplayer::update() {
     const bool available=allowed_&&!games_.isEmpty();
     QJsonArray caps;
     if(available)for(const auto& descriptor:games_)if(!caps.contains(descriptor))caps.append(descriptor);
-    party_.configure(trainer_,caps,selectedControllerProfile(games_.value(process_.runtimeControls()["game"].toString())),available);
+    const bool rooms=allowed_&&social_.account()["state"]=="connected";
+    party_.configure(trainer_,caps,selectedControllerProfile(games_.value(process_.runtimeControls()["game"].toString())),available||rooms);
     if(social_.conversationVisible()&&!social_.runtimePeer().isEmpty())party_.query("online:"+social_.runtimePeer());
-    social_.setRuntimeContext(available,{});
+    social_.setRuntimeContext(available||rooms,{});
     social_.refreshPartyBrowse();
     nearby_.configure(identity_,trainer_);
     if(available){nearby_.open();nearby_.setVisible(true);}else if(!active_){nearby_.close();}
@@ -493,6 +554,21 @@ void RuntimeMultiplayer::show(QString panel) {
 }
 bool RuntimeMultiplayer::action(const QString& id,bool fromSocial) {
     if(!id.startsWith("multiplayer"))return false;
+    if(id.startsWith("multiplayer-lobby-")) {
+        if(id.section(':',1)!=lobbyOperation_||!lobbyPreparation_)return true;
+        if(id.startsWith("multiplayer-lobby-later:")) {auto done=std::exchange(lobbyPreparation_,{});done(false,"Keep playing. Prepare again after saving.");overlay_.dismissMenu();return true;}
+        if(id.startsWith("multiplayer-lobby-saved:")&&overlay_.ready()&&lobbyProcess_==process_.processId()&&lobbyAccount_==social_.accountGeneration()) {
+            lobbyExiting_=true;if(!overlay_.exitFromMenu()) {lobbyExiting_=false;auto done=std::exchange(lobbyPreparation_,{});done(false,"Your game couldn't close safely. Try again.");}
+        }
+        return true;
+    }
+    if(id=="multiplayer"&&social_.account()["state"]=="connected") {
+        if(!invitationId().isEmpty())openInvitation(invitationId());
+        else if(!social_.lobbyState().isEmpty())social_.openLobby();
+        else beginTogether(lifecycle_.adventureId());
+        return true;
+    }
+    if(id=="multiplayer-party"&&!lobbyTicket_.isEmpty()) {social_.openLobby();return true;}
     socialSurface_=fromSocial;
     if(id.startsWith("multiplayer-pass:")) {
         if(active_&&hotseat()&&handoff_.canPass()&&id.section(':',1,1)==party_.state()["party"].toString()&&
@@ -561,6 +637,12 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     for(auto it=games_.cbegin();it!=games_.cend();++it)
         if(supportsMultiplayerSession(it.value(),selected)&&it.value()["content"]==selected["content"]){game=it.key();break;}
     if(games_.contains(current)&&supportsMultiplayerSession(games_.value(current),selected))game=current;
+    if(!lobbyTicket_.isEmpty()) {
+        const auto record=library_.registration(lobbyGame_);
+        game=record&&!record->removed&&record->contentAvailable&&record->revision==lobbyRevision_
+            &&record->contentPath==lobbyPath_&&games_.value(lobbyGame_)==lobbyDescriptor_
+            &&supportsMultiplayerSession(lobbyDescriptor_,selected)?lobbyGame_:QString();
+    }
     if(!allowed_||game.isEmpty()||!permitsMultiplayer(library_.artwork(game),selected)) {
         party_.leave();emit notice("Multiplayer isn't available for this game.");return;
     }
@@ -578,8 +660,9 @@ void RuntimeMultiplayer::startParty(bool host,const QJsonObject& endpoint) {
     rmgLobby_.stop();rmgPreparing_=false;rmgRequest_={};flycastRequest_={};dsRequest_={};azaharRequest_={};vitaRequest_={};
     stopLinkedTransfers();linkedPeers_.clear();linkedPreparing_=linkedPrepared_=false;linkedEndpoint_={};
     game_=game;descriptor_=selected;partySession_=true;active_=true;host_=host;relaySent_=false;
-    transportPeer_=host?party_.state()["members"].toArray().at(1).toObject()["peer"].toString():party_.hostPeer();
-    online_=transportPeer_.startsWith("online:");
+    const auto roster=party_.state()["members"].toArray();
+    transportPeer_=host?(roster.size()>1?roster.at(1).toObject()["peer"].toString():QString()):party_.hostPeer();
+    online_=!lobbyTicket_.isEmpty()||transportPeer_.startsWith("online:");
     request_={};request_.host=host;request_.relay=online_;request_.expected=selected;
     request_.localContent=games_.value(game)["content"].toString();
     request_.slot=host?1:endpoint["slot"].toInt();
@@ -1062,6 +1145,7 @@ void RuntimeMultiplayer::output(const QByteArray& bytes) {
     if(output_.size()>16384)output_.clear();
 }
 void RuntimeMultiplayer::fail(QString text) {
+    auto lobbyDone=std::exchange(lobbyCompletion_,{});
     ++sessionGeneration_;
     const bool wasActive=active_,endHotseat=wasActive&&hotseat();
     const bool cancelPreparation=endHotseat&&!restarting_&&process_.preparing()&&lifecycle_.adventureId()==game_;
@@ -1088,5 +1172,6 @@ void RuntimeMultiplayer::fail(QString text) {
     }
     if(overlay_.menuOpen())show("multiplayer-wait");else emit notice(status_);
     emit changed();
+    if(lobbyDone)lobbyDone(false,status_);
 }
 }

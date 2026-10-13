@@ -37,7 +37,7 @@ void GameParty::configure(QString name,QJsonArray games,QJsonObject current,bool
     name_=name.left(48);games_=std::move(games);current_=std::move(current);available_=available;
     if(!available_&&active())leave();
 }
-void GameParty::clear(){party_.clear();host_.clear();hostBoot_.clear();members_.clear();game_={};endpoint_={};roster_={};running_=false;preparingSlot_=preparingPlayers_=0;preparedMembers_.clear();endpointMembers_.clear();revision_=remoteRevision_=0;joiningPeer_.clear();joiningId_.clear();joiningGame_={};joiningParty_.clear();joiningDeadline_=0;requests_.clear();company_.clear();access_="request";allowedMembers_.clear();advertised_=0;for(auto& p:peers_)p.invite=false;}
+void GameParty::clear(){lobbyBound_=false;lobbyArmed_.clear();party_.clear();host_.clear();hostBoot_.clear();members_.clear();game_={};endpoint_={};roster_={};running_=false;preparingSlot_=preparingPlayers_=0;preparedMembers_.clear();endpointMembers_.clear();revision_=remoteRevision_=0;joiningPeer_.clear();joiningId_.clear();joiningGame_={};joiningParty_.clear();joiningDeadline_=0;requests_.clear();company_.clear();access_="request";allowedMembers_.clear();advertised_=0;for(auto& p:peers_)p.invite=false;}
 void GameParty::reset(){leave();peers_.clear();seen_.clear();companyQueries_.clear();boot_=token();}
 void GameParty::packet(const QString& peer,QString kind,QJsonObject p) {
     if(!companyOf(peer).isEmpty())p["company"]=companyOf(peer);
@@ -59,7 +59,7 @@ QJsonObject GameParty::state() const {
 QJsonObject GameParty::offer(const QString& peer) const {
     const auto p=peers_.value(peer);if(p.expires<now())return {};
     auto result=p.offer;
-    if(!result.isEmpty()&&!supports(result["game"].toObject(),peer))result["joinable"]=false;
+    if(!result.isEmpty()&&result["lobby"].toString().isEmpty()&&!supports(result["game"].toObject(),peer))result["joinable"]=false;
     return result;
 }
 QJsonObject GameParty::pending() const {
@@ -98,7 +98,7 @@ QJsonArray GameParty::companyOffers() const {
     for(auto it=peers_.cbegin();it!=peers_.cend();++it) {
         if(companyOf(it.key()).isEmpty()||it->expires<now()||it->offer["party"].toString().isEmpty()||it->offer["game"].toObject().isEmpty())continue;
         auto row=it->offer;row["peer"]=it.key().mid(7);row["name"]=it->name;
-        row["joinable"]=row["joinable"].toBool()&&supports(row["game"].toObject(),it.key())&&!active()&&joiningId_.isEmpty();rows.append(row);
+        row["joinable"]=row["joinable"].toBool()&&(!row["lobby"].toString().isEmpty()||supports(row["game"].toObject(),it.key()))&&!active()&&joiningId_.isEmpty();rows.append(row);
     }
     return rows;
 }
@@ -167,7 +167,8 @@ void GameParty::publish() {
     advertiseCompany();emit changed();
 }
 void GameParty::start() {
-    if(!host()||running_||members_.isEmpty())return;
+    if(!host()||running_||(!lobbyBound_&&members_.isEmpty()))return;
+    if(lobbyBound_&&lobbyArmed_.size()!=members_.size())return;
     for(auto it=members_.cbegin();it!=members_.cend();++it)if(!supports(game_,it.key())) {
         emit notice("This connection is no longer available. Invite again.");return;
     }
@@ -180,6 +181,27 @@ void GameParty::start() {
         int slot=2;for(const auto& peer:seats)members_[peer].slot=slot++;
     }
     running_=true;publish();emit startRequested(true,{});
+}
+bool GameParty::bindLobby(QString ticket,QJsonObject game,QJsonArray roster,QString self,QString owner) {
+    if(active()||!available_||!uuid(ticket)||!supports(game,"online:"+owner)||roster.isEmpty()||roster.size()>capacity(game))return false;
+    QSet<QString> ids;QSet<int> seats;QJsonObject hostMember;
+    for(const auto& value:roster) {
+        const auto m=value.toObject();const auto id=m["id"].toString();const int seat=m["seat"].toInt();
+        if(id.isEmpty()||ids.contains(id)||seats.contains(seat)||seat<1||seat>capacity(game)||!m["ready"].toBool()||!m["prepared"].toBool()||!m["connected"].toBool()||m["spectator"].toBool())return false;
+        ids.insert(id);seats.insert(seat);if(id==owner)hostMember=m;
+    }
+    if(!ids.contains(self)||hostMember["seat"]!=1)return false;
+    clear();lobbyBound_=true;party_=ticket;boot_=ticket;game_=game;access_="closed";
+    host_=self==owner?QString():"online:"+owner;hostBoot_=ticket;
+    // Keep the runtime's canonical host-first roster, independent of account ID order.
+    const auto append=[&](const QJsonObject& m) {
+        const auto id=m["id"].toString(),peer=id==owner?QString():"online:"+id;
+        roster_.append(QJsonObject{{"peer",peer},{"name",m["name"]},{"slot",m["seat"]},{"ready",true}});
+        if(id!=self)peers_["online:"+id]={m["name"].toString(),ticket,{}, {},now()+90,0,false};
+        if(self==owner&&id!=self)members_[peer]={m["name"].toString(),ticket,ticket,m["seat"].toInt(),true,0};
+    };
+    append(hostMember);for(const auto& v:roster)if(v.toObject()["id"]!=owner)append(v.toObject());
+    emit changed();tick();return true;
 }
 void GameParty::ready(QJsonObject endpoint) {
     if(!host()||!running_)return;
@@ -260,6 +282,9 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
     if(expiry<now()||expiry>now()+120||!uuid(boot))return;
     const auto company=companyOf(peer);
     if(kind=="company-query") {
+        if(!company.isEmpty()&&lobbyOffer_["company"]==company) {
+            auto offer=lobbyOffer_;offer["target"]="";packet("online:company:"+company,"company-offer",offer);return;
+        }
         if(!company.isEmpty()&&company==company_&&advertised_<now()-3)advertiseCompany();
         return;
     }
@@ -274,6 +299,7 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
         auto& remote=peers_[peer];
         if(!remote.boot.isEmpty()&&remote.boot!=boot&&members_.contains(peer))return;
         remote.name=name.left(48);remote.boot=boot;remote.expires=now()+90;
+        if(!lobbyOffer_.isEmpty()) {auto offer=lobbyOffer_;offer.remove("company");offer["request"]=id;packet(peer,"offer",offer);return;}
         const auto g=active()?game_:current_;
         packet(peer,"offer",{{"request",id},{"game",g},{"joinable",supports(g,peer)&&access_!="closed"&&(!active()||host())&&(!active()||freeSlot()>0)},
             {"free",active()?state()["free"]:QJsonValue(capacity(g)-1)},{"running",running_},{"access",access_},{"automatic",access_=="selected"&&company==company_&&allowedMembers_.contains(personOf(peer).mid(7))}});return;
@@ -292,6 +318,21 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
         peers_[peer]={name.left(48),boot,{}, {},expiry,0,false};remote=peers_.find(peer);
     }
     if(remote==peers_.end()||remote->boot!=boot)return;
+    if(lobbyBound_&&kind=="lobby-armed"&&host()&&p["party"]==party_&&members_.contains(peer)) {
+        if(!supportsMultiplayerSession(p["game"].toObject(),game_)) {
+            packet(peer,"closed");leave();emit notice("The installed multiplayer builds do not match.");return;
+        }
+        packet(peer,"lobby-admitted",{{"game",game_}});return;
+    }
+    if(lobbyBound_&&kind=="lobby-admitted"&&!host()&&peer==host_&&p["party"]==party_&&!running_) {
+        const auto selected=p["game"].toObject();
+        if(!supports(selected,peer)) {leave();emit notice("The installed multiplayer builds do not match.");return;}
+        game_=selected;packet(peer,"lobby-ready",{{"game",game_}});return;
+    }
+    if(lobbyBound_&&kind=="lobby-ready"&&host()&&p["party"]==party_&&members_.contains(peer)&&p["game"]==game_) {
+        lobbyArmed_.insert(peer);start();return;
+    }
+    if(lobbyBound_&&(kind=="invite"||kind=="join"))return;
     if(kind=="invite"||kind=="join") {
         if(!uuid(id)||requests_.size()>=8)return;
         const auto seen=peer+boot+id;if(seen_.contains(seen)||seen_.size()>=256)return;seen_[seen]=expiry;
@@ -355,6 +396,7 @@ void GameParty::receive(QString peer,QString name,const QJsonObject& p) {
 }
 void GameParty::tick() {
     const auto t=now();bool changed=false;
+    if(lobbyBound_&&!running_) {if(host())start();else packet(host_,"lobby-armed",{{"game",game_}});}
     if(host()&&!company_.isEmpty()&&advertised_<t-40)advertiseCompany();
     for(auto it=members_.begin();it!=members_.end();)if(!it->accepted&&it->expires<t){packet(it.key(),"closed",{{"request",it->request}});it=members_.erase(it);changed=true;}else ++it;
     changed|=requests_.removeIf([&](const Request& r){return r.expires<t;})>0;

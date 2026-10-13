@@ -30,6 +30,42 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void peopleFirstLobbyPreservesFriendAndGroupContext() {
+        const QVariantList members{QVariantMap{{"id","1"}},QVariantMap{{"id","2"}},QVariantMap{{"id","3"}}};
+        const QVariantMap group{{"id","50"},{"kind","groups"},{"members",members}};
+        SocialController c;c.snapshot_={{"state","connected"},{"userId","1"},{"name","Host"},
+            {"chats",QVariantList{group}}};
+        c.lobby_.configure("1","Host",true);QSignalSpy packets(&c.lobby_,&LobbyCoordinator::outgoing);
+        c.openLobbyForPeople("2");QVERIFY(c.lobby_.state()["game"].toObject()["id"].toString().isEmpty());
+        QCOMPARE(c.face(),QString("lobby"));QCOMPARE(packets.last()[0].toString(),QString("2"));
+        const auto room=c.lobby_.state()["id"].toString();packets.clear();c.openLobbyForPeople({},"50");
+        QCOMPARE(c.lobby_.state()["id"].toString(),room);QCOMPARE(c.lobby_.state()["conversation"].toString(),QString("50"));
+        QSet<QString> invited;for(const auto& p:packets)if(p[1].toJsonObject()["kind"]=="invite")invited.insert(p[0].toString());
+        QCOMPARE(invited,(QSet<QString>{"2","3"}));
+        c.lobby_.leave();c.openLobbyForPeople({},"missing");QVERIFY(c.lobby_.state().isEmpty());
+    }
+    void lobbyInvitationBackDefersAndPublicProjectionExcludesRuntime() {
+        SocialController c;c.snapshot_={{"state","connected"},{"userId","2"},{"name","Guest"}};c.lobby_.configure("2","Guest",true);
+        LobbyCoordinator host;host.configure("1","Host",true);QVERIFY(host.create());
+        QVERIFY(host.selectGame({"game","Game","test","runtime.test",2,{{"content","private-digest"}}}));
+        connect(&host,&LobbyCoordinator::outgoing,&c,[&](QString,QJsonObject p){if(p["kind"]=="invite")QVERIFY(!p["data"].toObject()["game"].toObject().contains("runtime"));c.lobby_.receive("1","Host",p);});
+        QVERIFY(host.invite("2"));const auto offer=c.lobby_.invitation();QVERIFY(offer["expires"].toInteger()>QDateTime::currentSecsSinceEpoch()+250);
+        c.openLobby();c.selectLobby(1);QSignalSpy deferred(&c,&SocialController::lobbyDeferred);c.dispatchLobby(Action::Back);
+        QCOMPARE(deferred.size(),1);QCOMPARE(c.lobby_.invitation(),offer);QVERIFY(c.lobby_.state().isEmpty());
+        SocialController own;own.snapshot_={{"state","connected"},{"userId","1"},{"name","Host"}};own.lobby_.configure("1","Host",true);own.lobby_.create("public");
+        own.lobby_.selectGame({"game","Game","test","runtime.test",2,{{"content","private-digest"}}});
+        QSignalSpy commands(&own,&SocialController::commandRequested);own.publishLobby();
+        for(const auto& cmd:commands)if(cmd[0]=="lobby-directory-publish")QVERIFY(!cmd[1].toMap()["game"].toMap().contains("runtime"));
+    }
+    void lobbyJoinFromActivityKeepsRunningGameAndRejectsChangedRoom() {
+        SocialController c;c.snapshot_={{"state","connected"},{"userId","2"}};c.gameActive_=true;
+        const auto room=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        const QVariantMap offer{{"lobby",room},{"party",room},{"joinable",true},{"game",QVariantMap{{"label","Choosing a game"}}}};
+        c.gameActivities_["1"]=offer;QSignalSpy joins(&c,&SocialController::partyJoin);
+        c.directJoin("1",offer);QCOMPARE(joins.size(),1);QCOMPARE(joins.last()[1].toJsonObject()["lobby"].toString(),room);
+        c.addJoinChoice("Join lobby","join-reviewed","1",offer);c.gameActivities_["1"]["lobby"]="changed";c.selectMenu(0);
+        QCOMPARE(joins.size(),1);
+    }
     void pendingContactDoesNotBlockAnotherMembersGroupAdmission() {
         FluxerSession s;bind(s);s.relationships_[remote]={{"type",1}};s.relationships_["4"]={{"type",1}};
         const QJsonObject group{{"id",channel},{"type",3},{"recipients",QJsonArray{QJsonObject{{"id",remote}}}}};int adds=0;

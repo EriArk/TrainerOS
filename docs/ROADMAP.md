@@ -2,8 +2,8 @@
 
 **Активный план — 13 октября 2026, после повторной сверки issues:**
 [полный цикл, карта входов, очередь и критерии окончания](LOBBY_EXECUTION_PLAN_RU.md).
-Сейчас L01 + L02: единые входы из игры/Home/библиотеки/DM/групп/комьюнити и
-подключение уже работающих runtime к лобби. Затем L03: кругляши игроков,
+L01 + L02 связаны в исходниках: входы из игры/Home/библиотеки/DM/групп/комьюнити
+и существующие runtime через лобби; приёмка устройств впереди. Далее L03: кругляши игроков,
 мини-чат и управление оверлеем; реальные индикаторы речи зависят от L05.
 L04 — восстановление/очистка; L05 — трансляции и общий голос; L06 — настоящий
 live join; L07 — Remote Play; L08 — сквозная приёмка.
@@ -27,8 +27,8 @@ owner's main Fluxer community; live publish/move/restart/withdraw/republish/clos
 passed. Shared lobby coordination, Social catalogue/inbox/Home/DM entry, seats and
 QWERTY/Russian keyboard are implemented and checked on PC. Runtime preparation
 and launch now have a trusted local service interface with per-player launch
-acknowledgements; concrete emulator services remain unbound in the published
-checkpoint. Local RuntimeLobby/GameParty binding work is unbuilt, untested WIP. The shared conversation
+acknowledgements. The later L01/L02 source increment binds RuntimeMultiplayer
+through the existing GameParty services; handheld acceptance remains pending. The shared conversation
 pane is embedded in Lobby, with library/live-Home context entry. Handheld and
 paired provider acceptance remain open. The owner will
 turn both handhelds on in the evening; do not poll SSH or repeat gameplay before

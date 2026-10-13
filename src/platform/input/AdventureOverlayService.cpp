@@ -41,12 +41,19 @@ AdventureOverlayService::AdventureOverlayService(ProcessService& game, Adventure
         view_.setInputIsolated(true);
         send({{"command", "preview"}, {"token", QString::number(token)}});
     });
-    connect(&view_, &AdventureExitPresentation::menuDismissed, this, [this] { send({{"command", "cancel"}}); });
+    connect(&view_, &AdventureExitPresentation::menuDismissed, this, [this] {
+        if(openingShell_) {openingShell_=false;handoffDeadline_.stop();}
+        send({{"command", "cancel"}});
+    });
     connect(&exit_, &AdventureExitController::returnToGameRequested, this, [this] { send({{"command", "cancel"}}); });
     connect(&exit_, &AdventureExitController::gracefulExitRequested, this, [this](quint64 token) {
         send({{"command", "close"}, {"token", QString::number(token)}});
     });
     connect(&view_, &AdventureExitPresentation::changed, this, [this] {
+        if(openingShell_) {
+            if(exit_.phase()!=AdventureExitController::Phase::Idle) {openingShell_=false;handoffDeadline_.stop();}
+            else if(view_.menuOpen()&&view_.ready()) {openingShell_=false;minimize();}
+        }
         if (sentEpoch_ == view_.inputGeneration()) return;
         sentEpoch_ = view_.inputGeneration();
         send({{"command", "context"}, {"epoch", QString::number(sentEpoch_)}});
@@ -70,6 +77,7 @@ void AdventureOverlayService::start() {
         "--shell", QString::number(QCoreApplication::applicationPid()), "--directory", temporary_->path()});
 }
 void AdventureOverlayService::stop() {
+    openingShell_=false;
     active_ = false; retry_.stop(); heartbeat_.stop(); handoffDeadline_.stop();
     exit_.setAvailable(false); view_.setInputIsolated(false);
     if (helperProcess_.state() != QProcess::NotRunning) {
@@ -77,6 +85,7 @@ void AdventureOverlayService::stop() {
     }
 }
 void AdventureOverlayService::lost() {
+    openingShell_=false;
     handoffDeadline_.stop();
     protocol_=0;shellReady_=false;returning_=minimizing_=false;
     if(launch_.minimized()){emit gameRequested();launch_.setMinimized(false);}
@@ -115,7 +124,7 @@ void AdventureOverlayService::receive() {
             if(returning_){handoffDeadline_.stop();returning_=false;launch_.setMinimized(false);}
         } else if(event=="handoff-failed") {
             handoffDeadline_.stop();
-            returning_=minimizing_=false;shellReady_=false;
+            returning_=minimizing_=openingShell_=false;shellReady_=false;
             if(launch_.minimized())emit shellRequested();
             emit handoffFailed("Couldn't transfer controls. Release the buttons and try again.");
         }
@@ -148,6 +157,13 @@ void AdventureOverlayService::minimize() {
     if(!canMinimize() || minimizing_ || !view_.menuOpen() || !view_.ready())return;
     minimizing_=true;handoffDeadline_.start();
     send({{"command","minimize"}});
+}
+bool AdventureOverlayService::requestShell() {
+    if(!canMinimize()||returning_||exit_.phase()!=AdventureExitController::Phase::Idle)return false;
+    if(launch_.minimized()||minimizing_||openingShell_)return true;
+    if(view_.menuOpen()&&view_.ready()) {minimize();return true;}
+    if(protocol_<4)return false;
+    openingShell_=true;handoffDeadline_.start();openOptions();return true;
 }
 void AdventureOverlayService::returnToGame(bool options) {
     if(!launch_.minimized() || returning_ || !canMinimize())return;

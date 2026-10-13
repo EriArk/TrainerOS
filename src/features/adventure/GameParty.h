@@ -14,6 +14,8 @@ class GameParty final : public QObject {
 public:
     explicit GameParty(QObject* parent=nullptr);
     void configure(QString name,QJsonArray games,QJsonObject current,bool available);
+    // Read-only activity projection. Membership/admission stays in LobbyCoordinator.
+    void setLobbyOffer(QJsonObject offer) {lobbyOffer_=std::move(offer);}
     void reset();
     void query(const QString& peer);
     void browseCompany(const QString& company);
@@ -24,6 +26,9 @@ public:
     void requestJoin(const QString& peer);
     void answer(bool accept);
     void start();
+    // Local admission from an authenticated, all-Ready Lobby launch. No invite
+    // or peer packet may call this; the runtime validates the exact game first.
+    bool bindLobby(QString ticket,QJsonObject game,QJsonArray members,QString self,QString owner);
     void ready(QJsonObject endpoint);
     // A private runtime credential goes only to its already accepted member.
     // Routes using this operation cannot admit new members after starting.
@@ -71,6 +76,7 @@ private:
     QString name_,boot_,party_,host_,hostBoot_,joiningPeer_,joiningId_;
     QJsonArray games_;
     QJsonObject current_,game_,endpoint_;
+    QJsonObject lobbyOffer_;
     QJsonObject joiningGame_;
     QString joiningParty_;
     QMap<QString,qint64> seen_;
@@ -79,6 +85,8 @@ private:
     QList<Request> requests_;
     QTimer timer_;
     bool available_=false,running_=false;
+    bool lobbyBound_=false;
+    QSet<QString> lobbyArmed_;
     int preparingSlot_=0,preparingPlayers_=0;
     QSet<int> preparedMembers_;
     QSet<int> endpointMembers_;

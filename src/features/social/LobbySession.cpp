@@ -8,6 +8,13 @@ bool LobbySession::host(const QString& actor) const {
     return phase_!="closed"&&actor==owner_&&members_.contains(actor)&&members_.value(actor).connected;
 }
 bool LobbySession::editable() const {return phase_=="choosing"||phase_=="gathering";}
+int LobbySession::freeSeat() const {
+    for(int seat=1;seat<=game_.seats;++seat) {
+        bool used=false;for(const auto& m:members_)if(m.seat==seat) {used=true;break;}
+        if(!used)return seat;
+    }
+    return 0;
+}
 void LobbySession::publish() {++revision_;emit changed();}
 void LobbySession::resetReady() {for(auto& m:members_)m.ready=false;}
 void LobbySession::invalidateLaunch() {
@@ -47,12 +54,12 @@ bool LobbySession::join(QString peer,QString name,qint64 now) {
     if(!editable())return false;
     const bool invited=invites_.contains(peer)&&invites_.value(peer)>now;
     if(members_.size()>=32||(access_!="public"&&!invited))return false;
-    invites_.remove(peer);members_.insert(peer,{name.trimmed()});resetReady();publish();return true;
+    invites_.remove(peer);members_.insert(peer,{name.trimmed(),freeSeat()});resetReady();publish();return true;
 }
 bool LobbySession::approve(const QString& actor,const QString& peer,QString name) {
     if(!host(actor)||!editable()||peer.isEmpty()||peer.size()>128||name.trimmed().isEmpty()||name.size()>100||members_.size()>=32)return false;
     if(members_.contains(peer))return false;
-    invites_.remove(peer);members_.insert(peer,{name.trimmed()});resetReady();publish();return true;
+    invites_.remove(peer);members_.insert(peer,{name.trimmed(),freeSeat()});resetReady();publish();return true;
 }
 bool LobbySession::leave(const QString& peer) {
     if(phase_=="closed"||!members_.contains(peer))return false;
@@ -70,7 +77,13 @@ bool LobbySession::selectGame(const QString& actor,const Game& game) {
        ||game.title.size()>160||game.platform.isEmpty()||game.platform.size()>32||game.mode.isEmpty()
        ||game.mode.size()>64||game.seats<1||game.seats>16)return false;
     game_=game;++generation_;ticket_.clear();phase_="gathering";
+    // Seat assignment is per game. The existing runtime families use the
+    // organizer's console as P1; other players may change their free port.
     for(auto& m:members_) {m.seat=0;m.prepared=false;m.ready=false;}
+    int seat=1;
+    if(!members_[owner_].spectator)members_[owner_].seat=seat++;
+    for(auto it=members_.begin();it!=members_.end();++it)
+        if(it.key()!=owner_&&!it->spectator&&seat<=game_.seats)it->seat=seat++;
     publish();return true;
 }
 bool LobbySession::claimSeat(const QString& peer,int seat,quint64 generation) {
@@ -136,6 +149,6 @@ QJsonObject LobbySession::state() const {
     }
     return {{"id",id_},{"owner",owner_},{"access",access_},{"phase",phase_},{"revision",qint64(revision_)},
         {"generation",qint64(generation_)},{"members",members},{"ticket",ticket_},{"conversation",conversation_},
-        {"game",QJsonObject{{"id",game_.id},{"title",game_.title},{"platform",game_.platform},{"mode",game_.mode},{"seats",game_.seats}}}};
+        {"game",QJsonObject{{"id",game_.id},{"title",game_.title},{"platform",game_.platform},{"mode",game_.mode},{"seats",game_.seats},{"runtime",game_.runtime}}}};
 }
 }

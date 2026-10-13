@@ -2,8 +2,8 @@
 
 **Активный план — 13 октября 2026, после повторной сверки issues:**
 [полный цикл, карта входов, очередь и критерии окончания](LOBBY_EXECUTION_PLAN_RU.md).
-Сейчас L01 + L02: единые входы из игры/Home/библиотеки/DM/групп/комьюнити и
-подключение уже работающих runtime к лобби. Затем L03: кругляши игроков,
+L01 + L02 связаны в исходниках: входы из игры/Home/библиотеки/DM/групп/комьюнити
+и существующие runtime через лобби; приёмка устройств впереди. Далее L03: кругляши игроков,
 мини-чат и управление оверлеем; реальные индикаторы речи зависят от L05.
 L04 — восстановление/очистка; L05 — трансляции и общий голос; L06 — настоящий
 live join; L07 — Remote Play; L08 — сквозная приёмка.
@@ -11,13 +11,13 @@ live join; L07 — Remote Play; L08 — сквозная приёмка.
 или набор тестов не считаются полным циклом. Старые записи очереди ниже — история;
 при конфликте действует этот план и последние решения владельца.
 
-**Следующее конкретное действие:** закончить и проверить начатую привязку
-`RuntimeLobby.cpp` / `GameParty::bindLobby`, включая регистрацию сборки,
-порядок готовности двух клиентов, solo/места, ошибки и безопасный возврат.
-Одновременно свести оставшиеся старые Together/Invite/Join к тому же лобби.
-Далее связать приглашения лобби с существующим пассивным значком и сделать HUD
-игроков. Не публиковать начатый runtime WIP как готовую возможность.
-Статус: план сверён; реализация L01/L02 начата локально, не проверена.
+**Следующее конкретное действие:** L03 — аватары реальных игроков, мини-чат,
+перемещение и возврат фокуса через общий механизм оверлея. Связка L01/L02
+реализована в исходниках: Prepare/Ready → прежние игровые службы → та же комната;
+прямые Online-входы, запросы Join и пассивное приглашение объединены.
+[Доказательства и ограничения](LOBBY.md#связка-лобби-и-игровых-служб--13-октября-2026).
+Установка на Flip/Odin, парный Fluxer и физический ввод остаются отдельной
+приёмкой. Не повторять прежний gameplay вместо проверки новой связки.
 
 **13 October Social follow-up:** Recently together is implemented as the fifth
 Social face after Lobby, with L2/R2 and direct touch selection, account-scoped
@@ -35,8 +35,8 @@ owner's main Fluxer community; live publish/move/restart/withdraw/republish/clos
 passed. Shared lobby coordination, Social catalogue/inbox/Home/DM entry, seats and
 QWERTY/Russian keyboard are implemented and checked on PC. Runtime preparation
 and launch now have a trusted local service interface with per-player launch
-acknowledgements; concrete emulator services remain unbound in the published
-checkpoint. Local RuntimeLobby/GameParty binding work is unbuilt, untested WIP. The shared conversation
+acknowledgements. The later L01/L02 source increment binds RuntimeMultiplayer
+through the existing GameParty services; handheld acceptance remains pending. The shared conversation
 pane is embedded in Lobby, with library/live-Home context entry. Handheld and
 paired provider acceptance remain open. The owner will
 turn both handhelds on in the evening; do not poll SSH or repeat gameplay before

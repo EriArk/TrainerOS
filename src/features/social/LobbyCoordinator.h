@@ -13,7 +13,7 @@ public:
     void configure(QString self,QString name,bool online);
     bool create(QString access="private");
     bool invite(const QString& peer);
-    bool join(const QString& host,const QString& lobby);
+    bool join(const QString& host,const QString& lobby,bool request=false);
     void answer(bool accept);
     bool approve(const QString& peer);
     void leave();
@@ -48,13 +48,14 @@ private:
     static bool validState(const QJsonObject& state,const QString& host);
     LobbySession session_{this};
     QTimer heartbeat_{this};
-    QString self_,name_,host_,joining_,launchTicket_;
+    QString self_,name_,host_,joining_,launchTicket_,finishedTicket_;
     QString boot_;
     quint64 serial_=0;
     QMap<QString,QString> peerBoots_;
     QMap<QString,quint64> peerSerials_;
     QMap<QString,qint64> retiredBoots_;
     bool online_=false;
+    bool joiningRequest_=false;
     QJsonObject remote_,invitation_;
     QMap<QString,QString> requests_;
     QMap<QString,qint64> seen_;

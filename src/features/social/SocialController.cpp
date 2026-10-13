@@ -594,7 +594,7 @@ QVariantList SocialController::companyParties() const {
     for(const auto& v:companyParties_) {
         auto row=v.toMap();
         if(row["company"]!=snapshot_["channel"]||(!gameParty_["party"].toString().isEmpty()&&row["party"]==gameParty_["party"]))continue;
-        if(gameActive_)row["joinable"]=false;
+        if(gameActive_&&row["lobby"].toString().isEmpty())row["joinable"]=false;
         result.append(row);
     }
     return result;
@@ -610,7 +610,7 @@ void SocialController::setCompanyParties(QVariantList rows) {
 }
 void SocialController::joinCompanyParty(int index) {
     const auto row=companyParties().value(index).toMap();
-    if(!row["joinable"].toBool()||gameActive_)return;
+    if(!row["joinable"].toBool()||(gameActive_&&row["lobby"].toString().isEmpty()))return;
     partyIndex_=index;directJoin(row["peer"].toString(),row);
 }
 QVariantMap SocialController::joinOffer(const QString& peer) const {
@@ -629,11 +629,14 @@ void SocialController::addJoinChoice(QString label,const QString& command,const 
         const QString notice="This session starts fresh. Progress isn't kept.";
         if(!menuDetail_.contains(notice))menuDetail_+=(menuDetail_.isEmpty()?QString():"\n")+notice;
     }
-    joinChoices_[command]={{"peer",peer},{"game",offer["game"]},{"party",offer["party"].toString()},
+    joinChoices_[command]={{"peer",peer},{"game",offer["game"]},{"party",offer["party"].toString()},{"lobby",offer["lobby"].toString()},
         {"generation",QVariant::fromValue(generation_)},{"owner",owner_},{"account",snapshot_["userId"]}};
     menu_.append(label);menuCommands_.append(command);
 }
 void SocialController::directJoin(const QString& peer,const QVariantMap& offer) {
+    if(!peer.isEmpty()&&offer["joinable"].toBool()&&!offer["lobby"].toString().isEmpty()) {
+        emit partyJoin(peer,{{"lobby",offer["lobby"].toString()}});return;
+    }
     if(peer.isEmpty()||!offer["joinable"].toBool()||gameActive_)return;
     if(offer["game"].toMap()["privateProgress"].toBool()||offer["game"].toMap()["temporaryProgress"].toBool()) {
         // Legacy direct/controller entry points must display the same disclosure
@@ -724,6 +727,7 @@ void SocialController::profile(QString id) {
         if(type==3){add("Accept friend request","accept");add("Decline friend request","remove");}
         if(type==0)add("Add friend","add-id");
         if(type==1)add("Remove friend","remove");
+        if(type!=2)add("Play together","runtime:together-friend:"+id);
         if(type==1&&snapshot_["temporaryContacts"].toMap()["peers"].toMap()[id].toMap()["canKeep"].toBool())add("Keep as friend","contact-keep");
         if(type==4)add("Cancel friend request","remove");
         add(type==2?"Unblock":"Block",type==2?"remove":"block");
@@ -746,18 +750,21 @@ void SocialController::contextRow(int index) {
     if(row["kind"]=="chats"&&members.size()==1){
         const auto peer=members.first().toMap()["id"].toString();
         add("View profile","profile:"+peer);
-        if(row["friend"].toBool())add("Invite to game","runtime:together-friend:"+peer);
+        if(row["friend"].toBool())add("Play together","runtime:together-friend:"+peer);
         if(gameActivities_.value(peer)["joinable"].toBool())addJoinChoice("Ask to join game","join-peer:"+peer,peer,gameActivities_.value(peer));
     }
     if(row["kind"]=="groups") {
         add("Members","members");
         add("Play with group","runtime:together-company:"+menuChannel_);add("Who can join my games","company-access");
-        for(const auto& v:companyParties_) {const auto p=v.toMap();if(p["company"]==menuChannel_&&p["joinable"].toBool()&&!gameActive_&&p["party"]!=gameParty_["party"])
+        for(const auto& v:companyParties_) {const auto p=v.toMap();if(p["company"]==menuChannel_&&p["joinable"].toBool()&&(!gameActive_||!p["lobby"].toString().isEmpty())&&p["party"]!=gameParty_["party"])
             addJoinChoice("Join "+p["game"].toMap()["label"].toString(),"context-party:"+p["peer"].toString(),p["peer"].toString(),p);}
         add("Add friend","add-member");add("Rename group","rename-group");
         if(row["owner"]==snapshot_["userId"])add("Remove member","remove-member");
     }
-    if(!menuGuild_.isEmpty())add("Invite link","community-invite");
+    if(!menuGuild_.isEmpty()) {
+        add("Create lobby","community-lobby");add("Browse lobbies","browse-lobbies");
+        add("Invite link","community-invite");
+    }
     if(!menuChannel_.isEmpty())add(row["muted"].toBool()?"Unmute conversation":"Mute conversation","mute");
     if(!menuChannel_.isEmpty()&&menuChannel_==snapshot_["channel"].toString())add("Message tools...","message-tools");
     if(row["kind"]=="groups")add("Leave group","ask-leave-group");
@@ -969,12 +976,13 @@ void SocialController::selectMenu(int index) {
     if(joinChoices_.contains(command)) {
         const auto choice=joinChoices_.value(command);const auto peer=choice["peer"].toString();const auto current=joinOffer(peer);
         const bool valid=choice["generation"].toULongLong()==generation_&&choice["owner"]==owner_&&choice["account"]==snapshot_["userId"]
-            &&current["joinable"].toBool()&&!gameActive_&&current["game"]==choice["game"]&&current["party"].toString()==choice["party"].toString();
+            &&current["joinable"].toBool()&&(!gameActive_||!choice["lobby"].toString().isEmpty())&&current["game"]==choice["game"]&&current["party"].toString()==choice["party"].toString()
+            &&current["lobby"].toString()==choice["lobby"].toString();
         closeMenu();
         if(!valid) {
             menuTitle_="Game changed";menuDetail_="Reopen Together before joining.";menu_={"Close"};menuCommands_={"cancel"};menuFocus_=0;emit changed();return;
         }
-        emit partyJoin(peer,{{"game",QJsonObject::fromVariantMap(choice["game"].toMap())},{"party",choice["party"].toString()}});return;
+        emit partyJoin(peer,{{"game",QJsonObject::fromVariantMap(choice["game"].toMap())},{"party",choice["party"].toString()},{"lobby",choice["lobby"].toString()}});return;
     }
     if(command=="message-tools") {
         if(menuChannel_!=snapshot_["channel"].toString())return;
@@ -1003,7 +1011,7 @@ void SocialController::selectMenu(int index) {
     if(command.startsWith("join-peer:")){const auto peer=command.mid(10);closeMenu();if(gameActivities_.value(peer)["joinable"].toBool())directJoin(peer,joinOffer(peer));return;}
     if(command.startsWith("context-party:")) {
         const auto peer=command.mid(14),company=menuChannel_;closeMenu();
-        for(const auto& v:companyParties_) {const auto p=v.toMap();if(p["company"]==company&&p["peer"]==peer&&p["joinable"].toBool()&&!gameActive_){directJoin(peer,joinOffer(peer));break;}}return;
+        for(const auto& v:companyParties_) {const auto p=v.toMap();if(p["company"]==company&&p["peer"]==peer&&p["joinable"].toBool()&&(!gameActive_||!p["lobby"].toString().isEmpty())){directJoin(peer,joinOffer(peer));break;}}return;
     }
     if(menuMode_=="runtime") {
         const auto row=runtimeActions_.value(index).toMap();
@@ -1017,12 +1025,10 @@ void SocialController::selectMenu(int index) {
     if(command=="open-lobby") {
         const auto peer=runtimePeer();
         const auto chat=currentChat();
-        if(lobby_.state().isEmpty()&&lobby_.create()) {
-            if(chat["kind"]=="groups")lobby_.setConversation(chat["id"].toString());
-            if(!peer.isEmpty())lobby_.invite(peer);
-        }
-        openLobby();return;
+        openLobbyForPeople(peer,chat["kind"]=="groups"?chat["id"].toString():QString());return;
     }
+    if(command=="community-lobby") {openLobbyForPeople();return;}
+    if(command=="browse-lobbies") {openLobby();lobbyAction("browse");return;}
     if(command=="communication-settings"){closeMenu();emit communicationSettingsRequested();return;}
     if(command=="show-party"){closeMenu();emit runtimeAction("multiplayer-party");return;}
     if(command=="native-activities"){closeMenu();nativeActivities();return;}

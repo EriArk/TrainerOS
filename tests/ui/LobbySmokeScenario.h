@@ -68,10 +68,12 @@ public:
                     check(social->lobbyChatVisible(),"Lobby embeds existing conversation");
                 }
                 capture("lobby-choosing");
-                social->lobbyGames_={QVariantMap{{"key","fixture"},{"id","fixture"},{"title","Shared game"},{"platform","Test"},{"mode","netplay"},{"seats",4}}};
+                social->lobbyGames_={QVariantMap{{"key","fixture"},{"id","fixture"},{"title","Shared game"},{"platform","Test"},{"mode","netplay"},{"seats",4},{"runtime",QVariantMap{{"privateProgress",true}}}}};
                 social->lobbyAction("game:fixture");social->lobbyAction("seat:1");guest->seat(2);break;
             case 4:
-                check(social->lobbyState()["game"].toMap()["title"]=="Shared game","Game choice retains lobby");capture("lobby-seats");
+                check(social->lobbyState()["game"].toMap()["title"]=="Shared game","Game choice retains lobby");
+                {auto* notice=window->findChild<QQuickItem*>("lobby-progress-notice");check(notice&&notice->isVisible(),"Shared-save disclosure is visible before preparation");}
+                capture("lobby-seats");
                 shell.dispatch(Action::Secondary);
                 check(shell.keyboard()->isOpen()&&social->textPurpose_=="message","Lobby X opens the shared message composer");
                 shell.keyboard()->cancel();

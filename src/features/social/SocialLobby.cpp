@@ -34,12 +34,33 @@ void SocialController::syncLobbyChat() {
 void SocialController::openLobby() {
     closeMenu();setFace("lobby");lobbySelection_.clear();lobbyActionFocus_=0;lobbyDetailFocused_=true;lobbyChatFocused_=false;openLobbyChat();emit lobbyRequested();emit changed();
 }
+void SocialController::openLobbyForPeople(QString peer,QString conversation) {
+    if(snapshot_["state"]!="connected") {openLobby();return;}
+    QVariantMap chat;
+    if(!conversation.isEmpty())for(const auto& v:snapshot_["chats"].toList())if(v.toMap()["id"]==conversation) {chat=v.toMap();break;}
+    if(!conversation.isEmpty()&&chat.isEmpty())return;
+    if(lobby_.state().isEmpty()&&!lobby_.create())return;
+    if(lobby_.hosting()) {
+        if(chat["kind"]=="groups") {
+            if(lobby_.state()["conversation"].toString().isEmpty())lobby_.setConversation(conversation);
+            for(const auto& v:chat["members"].toList()) {
+                const auto id=v.toMap()["id"].toString();if(id!=snapshot_["userId"])lobby_.invite(id);
+            }
+        }
+        if(!peer.isEmpty())lobby_.invite(peer);
+    }
+    openLobby();
+}
 void SocialController::openLobbyForGame(const QString& key) {
     if(snapshot_["state"]!="connected") {openLobby();return;}
     QVariantMap selected;for(const auto& v:lobbyGames_)if(v.toMap()["key"]==key) {selected=v.toMap();break;}
+    if(selected.isEmpty()) {
+        toastTitle_="Play together";toastText_="This game's multiplayer runtime is not available yet.";
+        toastTimer_.start();emit presentationChanged();return;
+    }
     if(lobby_.state().isEmpty())lobby_.create();
     openLobby();
-    if(selected.isEmpty()||!lobby_.hosting())return;
+    if(!lobby_.hosting())return;
     const auto current=lobby_.state()["game"].toObject();
     if(current["id"].toString().isEmpty()) {lobbyAction("game:"+key);return;}
     if(current["id"]==selected["id"].toString())return;
@@ -77,7 +98,7 @@ QVariantList SocialController::lobbyActions() const {
     const auto row=lobbyRows().value(lobbyFocus()).toMap();const auto kind=row["kind"].toString();
     if(kind=="create")add("create","Create lobby");
     else if(kind=="community")add("community","Join community");
-    else if(kind=="invitation") {add("accept","Accept invitation");add("decline","Decline");}
+    else if(kind=="invitation") {add("accept","Join lobby");add("later","Keep for later");add("decline","Decline");}
     else if(kind=="public")add("join",row["access"]=="approval"?"Request to join":"Join lobby",lobby_.state().isEmpty());
     else if(kind=="own") {
         const auto s=lobby_.state();const auto game=s["game"].toObject();const auto members=s["members"].toArray();
@@ -148,7 +169,7 @@ void SocialController::lobbyAction(QString action) {
     if(action.startsWith("game:")) {
         for(const auto& v:lobbyGames_) {
             const auto g=v.toMap();if(g["key"]!=action.mid(5))continue;
-            lobby_.selectGame({g["id"].toString(),g["title"].toString(),g["platform"].toString(),g["mode"].toString(),g["seats"].toInt()});break;
+            lobby_.selectGame({g["id"].toString(),g["title"].toString(),g["platform"].toString(),g["mode"].toString(),g["seats"].toInt(),QJsonObject::fromVariantMap(g["runtime"].toMap())});break;
         }
         return;
     }
@@ -157,6 +178,7 @@ void SocialController::lobbyAction(QString action) {
     if(action=="create") {lobby_.create();lobbySelection_.clear();}
     else if(action=="community")emit commandRequested("lobby-directory-join",{});
     else if(action=="accept"||action=="decline") {lobby_.answer(action=="accept");lobbySelection_.clear();}
+    else if(action=="later") {lobbyDetailFocused_=false;emit lobbyDeferred();}
     else if(action=="leave") {lobby_.leave();lobbySelection_.clear();}
     else if(action=="prepare")lobbyRuntime_.prepare();
     else if(action=="join") {const auto row=lobbyRows().value(lobbyFocus()).toMap();lobby_.join(row["owner"].toString(),row["lobby"].toString());lobbySelection_.clear();}
@@ -213,7 +235,10 @@ void SocialController::dispatchLobby(Action action) {
     }
     else if(action==Action::Secondary)editLobbySearch();
     else if(action==Action::ToggleContinue)lobbyAction("refresh");
-    else if(action==Action::Back)lobbyDetailFocused_=false;
+    else if(action==Action::Back) {
+        if(lobbyDetailFocused_&&lobbyRows().value(lobbyFocus()).toMap()["kind"]=="invitation")lobbyAction("later");
+        else lobbyDetailFocused_=false;
+    }
     else if(action==Action::Left) {
         if(lobbyDetailFocused_&&lobbyActionFocus_%2) --lobbyActionFocus_;
         else lobbyDetailFocused_=false;
@@ -248,7 +273,7 @@ void SocialController::publishLobby() {
     if(!publish)return;
     if(publishedLobby_.isEmpty()) {publishedLobby_=s["id"].toString();lobbyPublicationRevision_=0;}
     lobbyPublicationVisible_=true;
-    const auto game=s["game"].toObject();const auto phase=s["phase"].toString();int used=0;
+    auto game=s["game"].toObject();game.remove("runtime");const auto phase=s["phase"].toString();int used=0;
     for(const auto& m:s["members"].toArray())if(m.toObject()["seat"].toInt()>0)++used;
     emit commandRequested("lobby-directory-publish",{{"v",1},{"op","upsert"},{"lobby",publishedLobby_},{"revision",qint64(++lobbyPublicationRevision_)},
         {"status",phase=="playing"?"playing":game["id"].toString().isEmpty()?"choosing":"gathering"},{"access",s["access"].toString()},
