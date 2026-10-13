@@ -5,29 +5,55 @@ from pathlib import Path
 from overlay_support import X11, identity
 
 
-def audio_pid(properties, instances):
+def namespace_pid(anchor, local_pid, proc=Path('/proc')):
+    """Resolve one process inside the exact live Flatpak PID namespace."""
+    try:
+        start = (proc / str(anchor) / 'stat').read_text().rsplit(')', 1)[1].split()[19]
+        namespace = (proc / str(anchor) / 'ns/pid').readlink()
+        matches = []
+        for entry in proc.glob('[0-9]*'):
+            try:
+                if (entry / 'ns/pid').readlink() != namespace:
+                    continue
+                ids = next(line.split()[1:] for line in (entry / 'status').read_text().splitlines()
+                           if line.startswith('NSpid:'))
+                if len(ids) > 1 and ids[-1] == str(local_pid) and descendant(int(entry.name), anchor, start, proc):
+                    matches.append(int(entry.name))
+            except (OSError, ValueError, IndexError, StopIteration):
+                continue
+        if (proc / str(anchor) / 'stat').read_text().rsplit(')', 1)[1].split()[19] != start:
+            return 0
+        return matches[0] if len(matches) == 1 else 0
+    except (OSError, ValueError, IndexError):
+        return 0
+
+
+def audio_pid(properties, instances, resolve=namespace_pid):
     instance = str(properties.get('pipewire.access.portal.instance_id', ''))
     if instance:
         # Pulse's application.process.id is inside the Flatpak PID namespace.
         # Match the exact live instance, never merely the application name.
         pid, app = instances.get(instance, (0, ''))
-        return pid if app and app == properties.get('pipewire.access.portal.app_id') else 0
+        local_pid = str(properties.get('application.process.id', ''))
+        return resolve(pid, int(local_pid)) if (pid > 1 and app
+            and app == properties.get('pipewire.access.portal.app_id')
+            and local_pid.isdigit() and int(local_pid) > 0) else 0
     if properties.get('pipewire.client.access') == 'flatpak':
         return 0
     pid = str(properties.get('application.process.id', ''))
     return int(pid) if pid.isdigit() else 0
 
 
-def descendant(pid, root, start):
+def descendant(pid, root, start, proc=Path('/proc')):
     try:
-        if identity(root) != start:
+        if (proc / str(root) / 'stat').read_text().rsplit(')', 1)[1].split()[19] != start:
             return False
         for _ in range(32):
             if pid == root:
                 return True
             if pid <= 1:
                 return False
-            pid = int(Path('/proc', str(pid), 'stat').read_text().rsplit(')', 1)[1].split()[1])
+            pid = int((proc / str(pid) / 'stat').read_text().rsplit(')', 1)[1].split()[1])
     except (OSError, ValueError, IndexError):
         pass
     return False

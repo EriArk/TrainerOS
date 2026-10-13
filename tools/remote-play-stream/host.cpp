@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Isolated GameStream interoperability probe. No game launch, OS input or UI API.
+// Isolated GameStream interoperability probe. Optional locally leased P2 only.
 // Negotiation follows Wolf rtsp/commands.hpp; framing uses Moonlight RtspParser.
 // Control V2 nonce layout follows moonlight-common-c ControlStream.c.
 #include "common.hpp"
+#include "remote_pad.hpp"
 #include <atomic>
 #include <array>
 #include <cstdio>
 #include <cstring>
+#include <cstdlib>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -34,7 +36,25 @@ struct Host {
     std::atomic<unsigned> dropped{0}, encodedIdrs{0}, encodedSps{0};
     std::mutex mediaLock;
     GstElement* video=nullptr;
-    explicit Host(const Config& c):cfg(c){}
+    int audioFd=-1;
+    int padFd=-1;
+    explicit Host(const Config& c):cfg(c) {
+        if(cfg.game) {
+            const char* value=std::getenv("TRAINEROS_GAME_AUDIO_FD");
+            if(!value)throw std::runtime_error("Game mode requires the owned-game audio producer");
+            const auto end=value+std::strlen(value);
+            auto parsed=std::from_chars(value,end,audioFd);
+            struct stat st{};
+            if(parsed.ec!=std::errc{}||parsed.ptr!=end||audioFd<3||fstat(audioFd,&st)||!S_ISFIFO(st.st_mode))
+                throw std::runtime_error("Expected inherited game audio pipe");
+            if(const char* lease=std::getenv("TRAINEROS_GAME_PAD_FD")) {
+                auto last=lease+std::strlen(lease);
+                auto number=std::from_chars(lease,last,padFd);
+                if(number.ec!=std::errc{}||number.ptr!=last||padFd<3||padFd==audioFd)
+                    throw std::runtime_error("Invalid inherited game input lease");
+            }
+        }
+    }
     int socketAt(int type,int port) {
         int fd=socket(AF_INET,type,0); if(fd<0) throw std::runtime_error("socket failed");
         int yes=1;setsockopt(fd,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(yes));
@@ -117,11 +137,14 @@ struct Host {
         std::fprintf(stderr,"rtsp %s %d\n",command.c_str(),status);
     }
     void control() {
+        std::unique_ptr<RemotePad> remote;
+        if(padFd>=0)remote=std::make_unique<RemotePad>(padFd);
         ENetAddress addr{};enet_address_set_host(&addr,cfg.address.c_str());enet_address_set_port(&addr,ControlPort);
         auto host=enet_host_create(AF_INET,&addr,1,0,0,0);
         if(!host)throw std::runtime_error("ENet host failed");
         uint32_t highest=0;uint64_t seen=0;bool haveSequence=false;
         while(!stop) {
+            if(remote)remote->tick(monotonicNs());
             ENetEvent ev{};if(enet_host_service(host,&ev,100)<=0)continue;
             if(ev.type==ENET_EVENT_TYPE_CONNECT) {
                 auto& peer=*reinterpret_cast<sockaddr_in*>(&ev.peer->address.address);
@@ -155,8 +178,14 @@ struct Host {
                             gst_element_send_event(enc,gst_video_event_new_upstream_force_key_unit(GST_CLOCK_TIME_NONE,TRUE,0));gst_object_unref(enc);++idrs;}
                     } else if(type==0x0206 && plain.size()>=4+sizeof(NV_MULTI_CONTROLLER_PACKET)) {
                         NV_MULTI_CONTROLLER_PACKET pad{};memcpy(&pad,plain.data()+4,sizeof(pad));
-                        if(le32toh(pad.header.magic)!=MULTI_CONTROLLER_MAGIC_GEN5 ||le16toh(pad.controllerNumber)!=0)continuePacket();
-                        else {++inputs;std::lock_guard lock(mediaLock);
+                        if(le32toh(pad.header.magic)!=MULTI_CONTROLLER_MAGIC_GEN5 ||le16toh(pad.controllerNumber)!=0
+                            ||le16toh(pad.activeGamepadMask)!=1)continuePacket();
+                        else if(remote) {
+                            PadState state{le16toh(pad.buttonFlags),pad.leftTrigger,pad.rightTrigger,
+                                int16_t(le16toh(pad.leftStickX)),int16_t(le16toh(pad.leftStickY)),
+                                int16_t(le16toh(pad.rightStickX)),int16_t(le16toh(pad.rightStickY))};
+                            if(remote->update(state,seq,monotonicNs()))++inputs;else ++rejected;
+                        } else {++inputs;std::lock_guard lock(mediaLock);
                             if(video){auto pattern=gst_bin_get_by_name(GST_BIN(video),"pattern");
                                 if(pattern){g_object_set(pattern,"foreground-color",(le16toh(pad.buttonFlags)&A_FLAG)?0xff00ff00u:0xffff0000u,nullptr);gst_object_unref(pattern);}}
                         }
@@ -168,14 +197,25 @@ struct Host {
         enet_host_destroy(host);
     }
     void continuePacket(){++rejected;}
-    bool readFrameBytes(void* destination,size_t length) {
+    bool readFrameBytes(void* destination,size_t length,int fd=STDIN_FILENO) {
         auto data=static_cast<char*>(destination);
         while(length&&!stop) {
-            pollfd p{STDIN_FILENO,POLLIN,0};if(poll(&p,1,100)<=0)continue;
-            auto n=read(STDIN_FILENO,data,length);if(n<=0){stop=true;return false;}
+            pollfd p{fd,POLLIN,0};if(poll(&p,1,100)<=0)continue;
+            auto n=read(fd,data,length);if(n<=0){stop=true;return false;}
             data+=n;length-=n;
         }
         return length==0;
+    }
+    void captureAudio(GstElement* pipeline) {
+        auto source=gst_bin_get_by_name(GST_BIN(pipeline),"gameaudio");
+        std::array<unsigned char,960> pcm{}; // 5 ms, 48 kHz stereo S16LE
+        while(!stop && readFrameBytes(pcm.data(),pcm.size(),audioFd)) {
+            auto buffer=gst_buffer_new_allocate(nullptr,pcm.size(),nullptr);
+            gst_buffer_fill(buffer,0,pcm.data(),pcm.size());
+            GST_BUFFER_DURATION(buffer)=5*GST_MSECOND;
+            if(gst_app_src_push_buffer(GST_APP_SRC(source),buffer)!=GST_FLOW_OK){stop=true;break;}
+        }
+        gst_object_unref(source);
     }
     void capture(GstElement* pipeline) {
         auto source=gst_bin_get_by_name(GST_BIN(pipeline),"capture");
@@ -233,6 +273,10 @@ struct Host {
             const auto begin=desc.find(" ! video/x-raw");
             desc="appsrc name=capture is-live=true format=time do-timestamp=true block=false max-buffers=1 leaky-type=downstream ! videoconvert ! videoscale"+desc.substr(begin);
         }
+        if(audio && cfg.game) {
+            const auto begin=desc.find(" ! opusenc");
+            desc="appsrc name=gameaudio is-live=true format=time do-timestamp=true block=false max-buffers=4 leaky-type=downstream caps=\"audio/x-raw,format=S16LE,rate=48000,channels=2,layout=interleaved\""+desc.substr(begin);
+        }
         GError* error=nullptr;auto pipeline=gst_parse_launch(desc.c_str(),&error);
         if(error){std::fprintf(stderr,"pipeline %s\n",error->message);g_error_free(error);stop=true;if(pipeline)gst_object_unref(pipeline);close(fd);return;}
         if(audio){auto pay=gst_bin_get_by_name(GST_BIN(pipeline),"pay");g_object_set(pay,"aes-key",cfg.keyHex.c_str(),"aes-iv","1",nullptr);gst_object_unref(pay);}
@@ -260,6 +304,7 @@ struct Host {
         gst_element_set_state(pipeline,GST_STATE_PLAYING);auto bus=gst_element_get_bus(pipeline);
         std::thread captureWorker;
         if(!audio&&cfg.game)captureWorker=std::thread([&]{capture(pipeline);});
+        if(audio&&cfg.game)captureWorker=std::thread([&]{captureAudio(pipeline);});
         while(!stop){auto msg=gst_bus_timed_pop_filtered(bus,100*GST_MSECOND,GstMessageType(GST_MESSAGE_ERROR|GST_MESSAGE_EOS));
             if(msg){if(GST_MESSAGE_TYPE(msg)==GST_MESSAGE_ERROR){gchar* debug=nullptr;gst_message_parse_error(msg,&error,&debug);
                 std::fprintf(stderr,"media error %s (%s)\n",error->message,debug?debug:"");g_error_free(error);g_free(debug);}gst_message_unref(msg);stop=true;}}

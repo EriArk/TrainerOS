@@ -22,6 +22,7 @@ struct Config {
     uint32_t connect = 0;
     int seconds = 25;
     bool display = false;
+    bool sound = false;
     bool game = false;
     unsigned dropEvery = 0;
     unsigned dropFrame = 0;
@@ -38,7 +39,7 @@ struct Config {
         if(length<1||length!=st.st_size||length>4096)throw std::runtime_error("Invalid configuration size");
         std::istringstream input(std::string(bytes,length));
         std::map<std::string, std::string> fields;
-        const std::set<std::string> allowed{"address","peer","key","ping","connect","seconds","display","mode","drop_every","drop_frame"};
+        const std::set<std::string> allowed{"address","peer","key","ping","connect","seconds","display","sound","mode","drop_every","drop_frame"};
         for (std::string line; std::getline(input, line);) {
             auto pos = line.find('=');
             if (pos == std::string::npos || !allowed.count(line.substr(0,pos)) || !fields.emplace(line.substr(0,pos),line.substr(pos+1)).second)
@@ -65,8 +66,10 @@ struct Config {
         if (fields.count("seconds")) {auto value=number("seconds");if(value>120)throw std::runtime_error("Invalid lifetime");seconds=value;}
         if (seconds<5 || seconds>120 || connect==0) throw std::runtime_error("Invalid lifetime");
         if(fields.count("display")&&fields["display"]!="0"&&fields["display"]!="1")throw std::runtime_error("Invalid display");
+        if(fields.count("sound")&&fields["sound"]!="0"&&fields["sound"]!="1")throw std::runtime_error("Invalid sound");
         if(fields.count("mode")&&fields["mode"]!="synthetic"&&fields["mode"]!="game")throw std::runtime_error("Invalid source mode");
         display=fields["display"]=="1";
+        sound=fields["sound"]=="1";
         game=fields["mode"]=="game";
         if(fields.count("drop_every"))dropEvery=number("drop_every");
         if(dropEvery && (dropEvery<10||dropEvery>600))throw std::runtime_error("Invalid drop interval");

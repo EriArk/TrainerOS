@@ -29,6 +29,26 @@ public:
 class DiagnosticsTests final : public QObject {
     Q_OBJECT
 private slots:
+    void remoteGamePortCannotControlShellEvenWhenPreferred() {
+        SDL_SetMainReady();
+        QVERIFY(SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER)==0);
+        SDL_VirtualJoystickDesc descriptor{};
+        descriptor.version=SDL_VIRTUAL_JOYSTICK_DESC_VERSION;
+        descriptor.type=SDL_JOYSTICK_TYPE_GAMECONTROLLER;
+        descriptor.naxes=SDL_CONTROLLER_AXIS_MAX;descriptor.nbuttons=SDL_CONTROLLER_BUTTON_MAX;
+        descriptor.vendor_id=0x045e;descriptor.product_id=0x02ea;
+        descriptor.name="TrainerOS Remote P2";
+        const int index=SDL_JoystickAttachVirtualEx(&descriptor);
+        QVERIFY2(index>=0,SDL_GetError());QVERIFY(SDL_IsGameController(index));
+        {
+            ControllerInput input(nullptr,SDL_JoystickGetDeviceInstanceID(index));
+            QSignalSpy actions(&input,&ControllerInput::action);
+            input.poll();QVERIFY(!input.connected());QVERIFY(actions.isEmpty());
+            input.requireNeutral();input.setEnabled(false);input.setEnabled(true);input.poll();
+            QVERIFY(!input.connected());QVERIFY(actions.isEmpty());
+        }
+        SDL_JoystickDetachVirtual(index);SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
+    }
     void controllerSignalsRemainDistinctFromKeyboardAndForeground() {
         VirtualPad pad; QVERIFY(pad.joystick);
         ControllerInput input(nullptr, SDL_JoystickInstanceID(pad.joystick));

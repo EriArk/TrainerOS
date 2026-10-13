@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Moonlight client core with GStreamer codec callbacks; isolated diagnostic UI.
 #include "common.hpp"
+#include "guest_pad.hpp"
 #include <atomic>
 #include <algorithm>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
 #include <mutex>
+#include <memory>
 #include <thread>
 #include <vector>
 #include <gst/app/gstappsrc.h>
@@ -27,6 +29,7 @@ struct Guest {
     std::vector<double> roundtrips,decodeTimes;
     std::map<uint64_t,uint64_t> decodeStarts;
     explicit Guest(const Config& c):cfg(c){}
+    ~Guest(){cleanup();active=nullptr;}
     bool pipeline(const std::string& desc,GstElement*& target,GstElement*& source) {
         GError* error=nullptr;target=gst_parse_launch(desc.c_str(),&error);
         if(error){std::fprintf(stderr,"pipeline %s\n",error->message);g_error_free(error);return false;}
@@ -112,7 +115,10 @@ struct Guest {
     }
     static int audioInit(int,const POPUS_MULTISTREAM_CONFIGURATION opus,void*,int) {
         auto& g=*active;if(opus->channelCount!=2)return -1;
-        if(!g.pipeline("appsrc name=in is-live=true block=false format=time do-timestamp=true max-buffers=8 leaky-type=downstream caps=\"audio/x-opus,rate=48000,channels=2,channel-mapping-family=0\" ! opusdec ! audioconvert ! audio/x-raw,format=S16LE ! appsink name=measure sync=false max-buffers=8 drop=true",g.audio,g.audioSource))return -1;
+        std::string desc="appsrc name=in is-live=true block=false format=time do-timestamp=true max-buffers=8 leaky-type=downstream caps=\"audio/x-opus,rate=48000,channels=2,channel-mapping-family=0\" ! opusdec ! audioconvert ! audio/x-raw,format=S16LE ! tee name=pcm ";
+        desc+="pcm. ! queue max-size-buffers=8 max-size-time=0 max-size-bytes=0 leaky=downstream ! appsink name=measure sync=false max-buffers=8 drop=true ";
+        if(g.cfg.sound)desc+="pcm. ! queue max-size-buffers=4 max-size-time=0 max-size-bytes=0 leaky=downstream ! pulsesink client-name=TrainerOS-Remote-Play buffer-time=20000 latency-time=5000 sync=false ";
+        if(!g.pipeline(desc,g.audio,g.audioSource))return -1;
         auto sink=gst_bin_get_by_name(GST_BIN(g.audio),"measure");GstAppSinkCallbacks cb{};
         cb.new_sample=[](GstAppSink* sink,void* ptr){auto& g=*static_cast<Guest*>(ptr);auto s=gst_app_sink_pull_sample(sink);if(!s)return GST_FLOW_EOS;
             ++g.audioDecoded;GstMapInfo map{};auto b=gst_sample_get_buffer(s);
@@ -157,17 +163,30 @@ int main(int argc,char** argv) {
         listener.connectionTerminated=[](int why){std::fprintf(stderr,"terminated %d\n",why);Guest::active->ended=true;};
         const int result=LiStartConnection(&info,&stream,&listener,&video,&audio,nullptr,0,nullptr,0);
         if(result){std::fprintf(stderr,"connection failed %d\n",result);g.cleanup();return 1;}
+        struct ConnectionGuard {
+            bool active=true;
+            ~ConnectionGuard(){if(active)LiStopConnection();}
+        } connection;
+        std::unique_ptr<GuestPad> pad;
+        if(cfg.game)pad=std::make_unique<GuestPad>();
         auto end=monotonicNs()+uint64_t(cfg.seconds)*1000000000;uint64_t next=monotonicNs()+1000000000;
         while(!g.ended && monotonicNs()<end) {
             g.errors(g.video);g.errors(g.audio);
             const auto now=monotonicNs();
+            if(pad&&now>next) {
+                bool exit=false;auto state=pad->sample(exit);
+                if(exit){g.ended=true;break;}
+                LiSendMultiControllerEvent(0,1,state.buttons,state.leftTrigger,state.rightTrigger,
+                    state.lx,state.ly,state.rx,state.ry);
+                next=now+16000000;
+            }
             if(!cfg.game&&now>next&&g.currentColor>=0&&g.pendingColor<0) {
                 const int target=1-g.currentColor.load();g.sentAt=now;g.pendingColor=target;
                 LiSendMultiControllerEvent(0,1,target?A_FLAG:0,0,0,0,0,0,0);next=now+400000000;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
-        LiSendMultiControllerEvent(0,1,0,0,0,0,0,0,0);LiStopConnection();g.cleanup();
+        LiSendMultiControllerEvent(0,1,0,0,0,0,0,0,0);LiStopConnection();connection.active=false;g.cleanup();
         std::sort(g.roundtrips.begin(),g.roundtrips.end());
         const auto n=g.roundtrips.size();
         const double p50=n?g.roundtrips[(n-1)/2]:0,p95=n?g.roundtrips[std::min(n-1,size_t(n*.95))]:0;
@@ -177,6 +196,6 @@ int main(int argc,char** argv) {
         std::fprintf(stderr,"decode_samples=%zu decode_p50_ms=%.3f decode_p95_ms=%.3f\n",d,d?g.decodeTimes[(d-1)/2]:0,d?g.decodeTimes[std::min(d-1,size_t(d*.95))]:0);
         std::printf("{\"frames\":%u,\"decoded\":%u,\"audio_packets\":%u,\"audio_decoded\":%u,\"audio_peak\":%u,\"input_to_decoded_samples\":%zu,\"input_to_decoded_p50_ms\":%.3f,\"input_to_decoded_p95_ms\":%.3f,\"display_requested\":%s}\n",
             g.frames.load(),g.decoded.load(),g.audioPackets.load(),g.audioDecoded.load(),g.audioPeak.load(),n,p50,p95,cfg.display?"true":"false");
-        return g.decoded>60&&g.audioDecoded>100&&g.audioPeak>100&&(cfg.game||n>=5)?0:1;
+        return g.decoded>60&&g.audioDecoded>100&&(cfg.game||(g.audioPeak>100&&n>=5))?0:1;
     }catch(const std::exception& e){std::fprintf(stderr,"%s\n",e.what());return 1;}
 }

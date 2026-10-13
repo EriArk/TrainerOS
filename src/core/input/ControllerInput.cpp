@@ -5,6 +5,14 @@
 #include <algorithm>
 
 namespace trainer {
+namespace {
+bool isRemoteGamePad(int index) {
+    const char* name=SDL_JoystickNameForIndex(index);
+    return name && QByteArray(name).startsWith("TrainerOS Remote P")
+        && SDL_JoystickGetDeviceVendor(index)==0x045e
+        && SDL_JoystickGetDeviceProduct(index)==0x02ea;
+}
+}
 ControllerInput::ControllerInput(QObject* parent, SDL_JoystickID preferredDevice)
     : QObject(parent), preferredDevice_(preferredDevice) {
     SDL_SetMainReady(); // Qt owns the application entry point, including on Windows.
@@ -78,9 +86,11 @@ void ControllerInput::poll() {
     }
     sample_.unmappedDevices.clear();
     for (int i = 0; i < SDL_NumJoysticks(); ++i)
-        if (!SDL_IsGameController(i)) sample_.unmappedDevices.append(QString::fromUtf8(SDL_JoystickNameForIndex(i)));
+        if (!isRemoteGamePad(i) && !SDL_IsGameController(i)) sample_.unmappedDevices.append(QString::fromUtf8(SDL_JoystickNameForIndex(i)));
     if (!controller_) {
         for (int i = 0; i < SDL_NumJoysticks(); ++i) {
+            // Remote ports belong to the emulator, never to shell navigation.
+            if (isRemoteGamePad(i)) continue;
             if (preferredDevice_ != -1 && SDL_JoystickGetDeviceInstanceID(i) != preferredDevice_) continue;
             if (!SDL_IsGameController(i)) continue;
             controller_ = SDL_GameControllerOpen(i);

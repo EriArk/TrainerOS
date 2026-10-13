@@ -24,6 +24,8 @@ int main() {
     test(valid+"seconds=4\n",0600,false);
     test(valid+"seconds=121\n",0600,false);
     test(valid+"display=true\n",0600,false);
+    test(valid+"sound=1\n",0600,true);
+    test(valid+"sound=yes\n",0600,false);
     test(valid+"mode=desktop\n",0600,false);
     test(valid+"drop_every=1\n",0600,false);
     test(valid+"drop_frame=180\n",0600,true);

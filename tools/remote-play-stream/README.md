@@ -3,8 +3,9 @@
 Developer tooling for [L07](../../docs/REMOTE_PLAY_TRANSPORT.md), not an installed
 TrainerOS feature. Linux ARM64, GStreamer 1.28.8 and the handheld V4L2 codecs were
 used for the recorded checks. No full Moonlight/Sunshine/Wolf application, HTTP
-server, pairing UI, application runner, virtual controller or desktop control is
+server, pairing UI, application runner or desktop control is
 included. There is deliberately no root build dependency or `install()` target.
+The game probe can create one explicitly permitted Inputtino virtual controller.
 
 ## Build
 
@@ -15,11 +16,13 @@ ctest --test-dir build-stream --output-on-failure
 ```
 
 Requires C/C++17, CMake 3.24+, Python 3, OpenSSL, fmt, Boost **headers**, and the
-GStreamer core/base/app/video development packages. Runtime plugins include
-V4L2 H.264, h264parse, Opus, videoconvert and, for display, glimagesink.
+GStreamer core/base/app/video, SDL2 and libevdev development packages. Runtime
+plugins include V4L2 H.264, h264parse, Opus, videoconvert, audiomixer,
+rawaudioparse, PulseAudio and, for display, glimagesink. The host also needs
+`parec`, `pactl`, Python GI and existing permission to create a uinput device.
 FetchContent pins the dependencies; the Moonlight revision pins its own ENet and
 nanors submodules. Offline builds can set `FETCHCONTENT_SOURCE_DIR_ML`, `_WOLF`
-and `_WOLF_RS` to already verified checkouts at those exact revisions.
+`_WOLF_RS` and `_INPUTTINO` to already verified checkouts at those exact revisions.
 
 The client and host are separate processes. Only the client links
 moonlight-common-c; the host uses its RTSP parser/ENet and Wolf's packetizers,
@@ -44,6 +47,7 @@ ping=<fresh 16-character token>
 connect=<fresh nonzero uint32>
 seconds=25
 display=0
+sound=0
 mode=synthetic
 drop_every=0
 ```
@@ -52,7 +56,9 @@ Run `stream_host /private/session.conf`, then `stream_guest /private/session.con
 Host duration should exceed guest duration by at least five seconds. Allowed
 lifetime is 5–120 seconds. Ports 49010–49013 are bound only for the experiment;
 only the configured peer is accepted. The guest's `display=1` needs its graphical
-session environment. Audio is decoded to measured PCM, **never played aloud**.
+session environment. Audio is decoded to measured PCM; `sound=1` additionally
+plays it through the guest's ordinary PulseAudio output. Default `sound=0`
+preserves quiet diagnostics; this option never changes system volume.
 
 In synthetic mode the guest periodically sends controller A through Moonlight.
 The host changes a test image's colour; it does not inject operating-system input.
@@ -67,15 +73,39 @@ new IDR and continued video/input after the loss, not just a successful event.
 For game video, set `mode=game` on both sides and use, in the host's graphical session:
 
 ```sh
-set -o pipefail
-python3 tools/remote-play-stream/capture-game.py CURRENT_GAME_PID | build-stream/stream_host /private/session.conf
+python3 tools/remote-play-stream/run-game.py CURRENT_GAME_PID build-stream/stream_host /private/session.conf
 ```
 
 This reuses the installed TrainerOS `GameCapture` ownership/identity checks and
 application-specific Gamescope helper. No root capture fallback exists. Closing
 the owned game or changing capture identity stops the producer. The existing
-helper remains limited to about 30 fps. This mode still sends **synthetic audio**;
-game audio, virtual pads and complete invitation/session admission are pending.
+helper remains limited to about 30 fps. Audio is selected from the same game's
+exact process/Flatpak instance and captured with Pulse's per-stream monitor,
+then mixed by GStreamer. No desktop mix/microphone fallback exists. An idle or
+silent game sends silence. Child capture processes stop when the host exits;
+the already running game is never launched or terminated by this wrapper.
+
+For the explicitly authorized controller probe, append `--allow-p2`. The local
+supervisor supplies an inherited Unix socket, granting input only while the
+owned game is foreground. Inputtino creates `TrainerOS Remote P2`; Moonlight
+forwards the guest's first SDL-mapped physical controller. Guide exits locally.
+Stale local grants or network input release controls after 350 ms plus the host
+poll interval; a neutral state is required before input resumes. Keyboard,
+mouse and Guide input are never injected. TrainerOS excludes these virtual
+devices from shell navigation, even as a preferred controller.
+
+The virtual device name does **not** assign an emulator port. Reserve/bind it
+in the private test emulator configuration while retaining the owner's P1.
+Automatic per-runtime binding and lobby/session-generation authorization remain
+required before production. No permission comes from spectator status or a
+network packet. `stream_guest_fixture` is a BUILD_TESTING-only client with a
+process-local SDL controller; only the authenticated network can carry its input
+to the host. It is not physical-controller acceptance.
+
+Inputtino is pinned at `fd136cfe492b4375b4507718bcca1f044588fc6f`, built as a
+static library without a Wolf runner. Preserve its
+[MIT notice](https://github.com/games-on-whales/inputtino/blob/fd136cfe492b4375b4507718bcca1f044588fc6f/LICENSE)
+with any distributed binary, along with all other dependency notices.
 
 ## Adaptations to pinned upstream code
 
@@ -102,8 +132,10 @@ internet route is implemented. Do not expose the probe as an internet service.
 ## Evidence and remaining work
 
 See [the dated device results](../../docs/REMOTE_PLAY_TRANSPORT.md#парный-стенд--14-октября-2026).
-Actual capture/display, FEC and negative-key checks are separate from physical
-controller, game sound, complete recovery, WAN and product acceptance.
+Actual capture/display, FEC, negative-key and virtual-kernel-input checks are
+separate from physical controller, audible game sound, emulator-port gameplay,
+complete recovery, WAN and product acceptance. See the later game input/audio
+entry in that document for the interrupted Flip check.
 
 The original Flip kernel driver emits a bottom band and lacks requested-IDR
 support. The [maintained Iris fixes](../../packaging/kernel/iris/README.md) passed
