@@ -30,6 +30,68 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void pendingContactDoesNotBlockAnotherMembersGroupAdmission() {
+        FluxerSession s;bind(s);s.relationships_[remote]={{"type",1}};s.relationships_["4"]={{"type",1}};
+        const QJsonObject group{{"id",channel},{"type",3},{"recipients",QJsonArray{QJsonObject{{"id",remote}}}}};int adds=0;
+        s.setTransport([&](auto method,auto path,auto,Completion done,QByteArray){
+            if(method=="GET")done({200,QJsonDocument(group)});
+            else {QCOMPARE(method,QByteArray("PUT"));QVERIFY(path.endsWith("/recipients/4"));++adds;done({204,{}});}
+        });
+        QSignalSpy results(&s,&FluxerSession::lobbyChatFinished);
+        s.command("lobby-chat",{{"lobby",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"channel",channel},{"host",true},{"peers",QStringList{remote,"3","4"}}});
+        QCOMPARE(adds,1);QCOMPARE(results.last()[2].toString(),channel);
+    }
+    void lobbyChatStartsWithReadyFriendsWhileAnotherMemberConnects() {
+        FluxerSession s;bind(s);s.relationships_[remote]={{"type",1}};
+        s.setTransport([&](auto method,auto path,auto body,Completion done,QByteArray){
+            QCOMPARE(method,QByteArray("POST"));QCOMPARE(path,QString("/v1/users/@me/channels"));
+            QCOMPARE(body["recipients"].toArray(),QJsonArray{remote});
+            done({200,QJsonDocument(QJsonObject{{"id",channel},{"type",3}})});
+        });
+        QSignalSpy results(&s,&FluxerSession::lobbyChatFinished);
+        s.command("lobby-chat",{{"lobby",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"host",true},{"peers",QStringList{remote,"3"}}});
+        QCOMPARE(results.size(),1);QCOMPARE(results.first()[2].toString(),channel);QVERIFY(results.first()[3].toString().isEmpty());
+    }
+    void lateGroupAdmissionRetriesTheGuestConversationAutomatically() {
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","2"}});
+        LobbyCoordinator host;host.configure("1","Host",true);host.create("public");host.setConversation(channel);
+        connect(&host,&LobbyCoordinator::outgoing,&c,[&](QString,QJsonObject p){c.lobby_.receive("1","Host",p);});
+        connect(&c.lobby_,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){host.receive("2","Guest",p);});
+        c.lobby_.join("1",host.state()["id"].toString());c.lobbyChatBusy_=false;
+        QSignalSpy commands(&c,&SocialController::commandRequested);auto snapshot=c.snapshot_;
+        snapshot["chats"]=QVariantList{QVariantMap{{"id",channel},{"kind","groups"},{"name","Lobby"}}};c.receive(0,snapshot);
+        bool retried=false;for(const auto& command:commands)if(command[0]=="lobby-chat"&&command[1].toMap()["channel"]==channel)retried=true;
+        QVERIFY(retried);
+    }
+    void recentTemporaryFriendUsesKeepActionAndHidesOnlyItsAutomaticRequest() {
+        SocialController c;
+        const QJsonObject lobby{{"id","local-fixture"},{"members",QJsonArray{QJsonObject{{"id","1"},{"connected",true}},QJsonObject{{"id","2"},{"name","Guest"},{"connected",true}}}}};
+        QVariantMap s{{"state","connected"},{"userId","1"},{"friends",QVariantList{QVariantMap{{"id","2"},{"type",1}}}},
+            {"temporaryContacts",QVariantMap{{"peers",QVariantMap{{"2",QVariantMap{{"temporary",true},{"canKeep",true},{"status","Temporary lobby friend"}}}}}}}};
+        c.receive(0,s);c.recentTogether_.observe(lobby,100);c.setFace("recent");
+        QCOMPARE(c.recentPeople().first().toMap()["friendLabel"].toString(),"Keep as friend");
+        QSignalSpy commands(&c,&SocialController::commandRequested);c.dispatch(Action::Secondary);
+        QCOMPARE(commands.last()[0].toString(),"recent-add");
+        c.profile("2");QVERIFY(c.menuCommands_.contains("contact-keep"));c.closeMenu();
+        s["friends"]=QVariantList{QVariantMap{{"id","2"},{"type",3}},QVariantMap{{"id","3"},{"type",3}}};c.receive(0,s);
+        QCOMPARE(c.notifications().size(),1);QCOMPARE(c.notifications().first().toMap()["id"].toString(),"3");
+    }
+    void keepingTemporaryFriendPersistsWithoutAnotherFriendRequestOrVoiceChange() {
+        QTemporaryDir dir;const auto room=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        QFile file(dir.path()+"/contacts.json");QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(QJsonDocument(QJsonObject{{"v",1},{"self","1501314428688998181"},{"contacts",QJsonObject{{remote,QJsonObject{
+            {"room",room},{"lease",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"host",true},{"phase","friend"},{"type",1},{"since","2026-10-13T10:00:00.000Z"}}}}}}).toJson());file.close();
+        FluxerSession s;bind(s);int friendships=0;
+        s.setTransport([&](auto,auto path,auto,Completion done,QByteArray){if(path.contains("/relationships"))++friendships;done({200,QJsonDocument(QJsonObject{{"id","999"}})});});
+        s.channels_[channel]={{"id",channel},{"type",1},{"recipients",QJsonArray{QJsonObject{{"id",remote}}}}};
+        s.relationships_[remote]={{"id",remote},{"type",1}};s.voiceChannel_="ongoing-call";s.voiceMuted_=true;
+        s.temporaryContacts_.configure(file.fileName(),s.self_);s.temporaryContacts_.context({},true);
+        s.command("recent-add",{{"id",remote}});QCOMPARE(friendships,0);
+        QVERIFY(!s.temporaryContacts_.state()["peers"].toMap().contains(remote));
+        QCOMPARE(s.voiceChannel_,"ongoing-call");QVERIFY(s.voiceMuted_);
+        QVERIFY(file.open(QIODevice::ReadOnly));const auto journal=QJsonDocument::fromJson(file.readAll()).object();
+        QCOMPARE(journal["contacts"].toObject()[remote].toObject()["phase"].toString(),"kept");
+    }
     void recentTogetherPersistsOnlyActualMeetingsAndIsolatesAccounts() {
         QTemporaryDir dir;const auto path=dir.path()+"/recent.json";
         RecentTogether history;history.configure(path,"1");
@@ -89,7 +151,7 @@ private slots:
             if(method=="POST") {QCOMPARE(path,QString("/v1/users/@me/channels"));++creates;done({200,QJsonDocument(group)});}
             else if(method=="GET")done({200,QJsonDocument(group)});
             else {QCOMPARE(method,QByteArray("PUT"));QVERIFY(path.endsWith("/recipients/3"));++adds;done({204,{}});}
-        });bind(s);s.voiceChannel_="existing-call";s.voiceMuted_=false;
+        });bind(s);s.relationships_[remote]={{"type",1}};s.relationships_["3"]={{"type",1}};s.voiceChannel_="existing-call";s.voiceMuted_=false;
         QSignalSpy result(&s,&FluxerSession::lobbyChatFinished);
         QVariantMap args{{"lobby",room},{"host",true},{"peers",QStringList{remote}}};
         s.command("lobby-chat",args);QCOMPARE(creates,1);QCOMPARE(result.last()[2].toString(),QString(channel));
@@ -98,7 +160,7 @@ private slots:
     }
     void uncertainLobbyConversationDoesNotDuplicateAndGuestAccessIsChecked() {
         FluxerSession s;int posts=0;int status=0;
-        s.setTransport([&](auto method,auto,auto,Completion done,QByteArray){if(method=="POST")++posts;done({status,{}});});bind(s);
+        s.setTransport([&](auto method,auto,auto,Completion done,QByteArray){if(method=="POST")++posts;done({status,{}});});bind(s);s.relationships_[remote]={{"type",1}};s.relationships_["3"]={{"type",1}};
         QSignalSpy result(&s,&FluxerSession::lobbyChatFinished);
         const auto room=QUuid::createUuid().toString(QUuid::WithoutBraces);
         QVariantMap args{{"lobby",room},{"host",true},{"peers",QStringList{remote}}};
@@ -107,7 +169,7 @@ private slots:
         s.command("lobby-chat",args);QVERIFY(result.last()[2].toString().isEmpty());QVERIFY(!s.channels_.contains("555"));
     }
     void lateLobbyConversationCannotCrossOwnerOrReplaceNewRoom() {
-        FluxerSession s;Completion late;s.setTransport([&](auto,auto,auto,Completion done,QByteArray){late=done;});bind(s);
+        FluxerSession s;Completion late;s.setTransport([&](auto,auto,auto,Completion done,QByteArray){late=done;});bind(s);s.relationships_[remote]={{"type",1}};s.relationships_["3"]={{"type",1}};
         QSignalSpy result(&s,&FluxerSession::lobbyChatFinished);
         s.command("lobby-chat",{{"lobby",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"host",true},{"peers",QStringList{remote}}});
         s.setOwner("other",2);late({200,QJsonDocument(QJsonObject{{"id",channel},{"type",3}})});

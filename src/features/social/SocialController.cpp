@@ -23,6 +23,8 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(&lobbyHeartbeat_,&QTimer::timeout,this,[this]{publishLobby();if(face_=="lobby")emit commandRequested("lobby-directory-refresh",{});});
     connect(&lobby_,&LobbyCoordinator::changed,this,[this]{
         lobbyPublishTimer_.start();
+        if(!lobby_.state().isEmpty()||!lobbyChatRoom_.isEmpty())
+            emit commandRequested("lobby-contact-context",{{"account",snapshot_["userId"]},{"lobby",lobby_.state().toVariantMap()}});
         syncLobbyChat();
         recentTogether_.observe(lobby_.state(),QDateTime::currentSecsSinceEpoch());
         const auto invite=lobby_.invitation();const auto id=invite["lobby"].toString();
@@ -291,6 +293,7 @@ QVariantList SocialController::notifications() const {
     if(snapshot_["userId"].toString().isEmpty())return result;
     for(const auto& value:snapshot_["friends"].toList()) {
         auto row=value.toMap();if(row["type"].toInt()!=3)continue;
+        if(snapshot_["temporaryContacts"].toMap()["peers"].toMap()[row["id"].toString()].toMap()["temporary"].toBool())continue;
         row["request"]=true;row["detail"]="Friend request";
         if(dismissedNotifications_.value(row["id"].toString()).toString()!=notificationStamp(row))result.append(row);
     }
@@ -360,14 +363,21 @@ void SocialController::openNotification() {
 }
 void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     if(generation!=generation_)return;
+    const auto relations=[](const QVariant& list){QStringList keys;for(const auto& v:list.toList()){const auto r=v.toMap();keys.append(r["id"].toString()+":"+r["type"].toString());}keys.sort();return keys;};
+    const bool contactsChanged=relations(snapshot_["friends"])!=relations(snapshot["friends"]);
+    const auto roomChannel=lobby_.state()["conversation"].toString();
+    const auto hasRoomChannel=[&](const QVariant& chats){if(roomChannel.isEmpty())return false;for(const auto& v:chats.toList())if(v.toMap()["id"]==roomChannel)return true;return false;};
+    const bool conversationAdmitted=!hasRoomChannel(snapshot_["chats"])&&hasRoomChannel(snapshot["chats"]);
     const auto oldId=rows().value(focus_).toMap().value("id");
     const auto oldChannel=snapshot_.value("channel");
     const bool wasEarlier=snapshot_["historyPast"].toBool();
     const auto oldMessage=messages().value(messageFocus_).toMap().value("id");
     const bool atEnd=messageFocus_>=messages().size()-1;
     snapshot_=std::move(snapshot);
+    if(contactsChanged||conversationAdmitted)lobbyChatKey_.clear();
     lobbyRuntime_.configure(snapshot_["userId"].toString(),snapshot_["state"]=="connected");
     lobby_.configure(snapshot_["userId"].toString(),snapshot_["name"].toString(),snapshot_["state"]=="connected");
+    if(contactsChanged||conversationAdmitted)syncLobbyChat();
     if(oldChannel!=snapshot_["channel"]){partyFocus_=false;partyIndex_=0;refreshPartyBrowse();}
     const auto audio=snapshot_["audio"].toMap();
     media_.setAudioDevices(audio["input"].toString(),audio["output"].toString(),audio.value("volume",100).toInt());
@@ -714,6 +724,7 @@ void SocialController::profile(QString id) {
         if(type==3){add("Accept friend request","accept");add("Decline friend request","remove");}
         if(type==0)add("Add friend","add-id");
         if(type==1)add("Remove friend","remove");
+        if(type==1&&snapshot_["temporaryContacts"].toMap()["peers"].toMap()[id].toMap()["canKeep"].toBool())add("Keep as friend","contact-keep");
         if(type==4)add("Cancel friend request","remove");
         add(type==2?"Unblock":"Block",type==2?"remove":"block");
     }

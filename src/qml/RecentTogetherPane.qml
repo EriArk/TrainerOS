@@ -40,7 +40,8 @@ Item {
         Text { width: parent.width; text: people.count ? root.selected.name || "Player" : "Meet here again"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 26; wrapMode: Text.Wrap; maximumLineCount: 2; elide: Text.ElideRight; textFormat: Text.PlainText }
         Text { width: parent.width; text: people.count ? "People from your shared lobbies, saved on this device." : "People you join in a lobby will appear here. You can add them as friends later."; color: Theme.muted; font.pixelSize: 14; wrapMode: Text.Wrap }
         CapButton { visible: people.count > 0; width: parent.width; height: 40; label: "View profile"; tint: Theme.blue; claimsFocus: false; enabled: root.online; onActivated: root.social.recentAction("profile") }
-        CapButton { visible: people.count > 0; width: parent.width; height: 40; label: root.selected.friendLabel || "Add friend"; tint: Theme.yellow; claimsFocus: false; enabled: !!root.selected.canAdd; onActivated: root.social.recentAction("friend") }
+        CapButton { objectName: "recent-friend-action"; visible: people.count > 0; width: parent.width; height: 40; label: root.selected.friendLabel || "Add friend"; tint: Theme.yellow; claimsFocus: false; enabled: !!root.selected.canAdd; onActivated: root.social.recentAction("friend") }
+        Text { visible: !!root.selected.contactStatus; width: parent.width; text: root.selected.contactStatus || ""; color: Theme.muted; font.pixelSize: 12; wrapMode: Text.Wrap; textFormat: Text.PlainText }
         CapButton { visible: people.count > 0; width: parent.width; height: 34; label: "Remove from this list"; tint: Theme.paper; claimsFocus: false; onActivated: root.social.recentAction("forget") }
         Text { visible: !root.online && people.count > 0; width: parent.width; text: "Connect to view profiles or add friends."; color: Theme.muted; font.pixelSize: 12; wrapMode: Text.Wrap }
     }

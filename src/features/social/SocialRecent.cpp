@@ -8,6 +8,14 @@ QVariantList SocialController::recentPeople() const {
         for(const auto& v:snapshot_["friends"].toList())if(v.toMap()["id"]==row["id"])type=v.toMap()["type"].toInt();
         row["type"]=type;row["friendLabel"]=type==1?"Friends":type==2?"Blocked":type==3?"Accept request":type==4?"Request sent":"Add friend";
         row["canAdd"]=snapshot_["state"]=="connected"&&type!=1&&type!=2&&type!=4;value=row;
+        const auto contact=snapshot_["temporaryContacts"].toMap()["peers"].toMap()[row["id"].toString()].toMap();
+        const auto error=snapshot_["temporaryContacts"].toMap()["error"].toString();
+        row["contactStatus"]=error.isEmpty()?contact["status"]:error;
+        if(contact["temporary"].toBool()&&type!=2) {
+            row["friendLabel"]=contact["canKeep"].toBool()?"Keep as friend":contact["pendingKeep"].toBool()?"Keeping friendship…":"Please wait…";
+            row["canAdd"]=error.isEmpty()&&snapshot_["state"]=="connected"&&type==1&&contact["canKeep"].toBool();
+        }
+        value=row;
     }
     return rows;
 }

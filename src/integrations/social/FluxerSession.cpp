@@ -55,6 +55,18 @@ bool newer(const QString& a, const QString& b) {
 }
 }
 FluxerSession::FluxerSession(QObject* parent) : QObject(parent) {
+    temporaryContacts_.setRequest([this](QByteArray method,QString path,QJsonObject body,TemporaryContacts::Completion done){
+        request(method,path,body,[done](Reply r){done({r.status,r.body,r.retrySeconds});});
+    });
+    connect(&temporaryContacts_,&TemporaryContacts::outgoing,this,&FluxerSession::sendLobby);
+    connect(&temporaryContacts_,&TemporaryContacts::changed,this,&FluxerSession::publish);
+    connect(&temporaryContacts_,&TemporaryContacts::observed,this,[this](QString peer,QJsonObject r){
+        if(r.isEmpty())relationships_.remove(peer);else relationships_[peer]=r;publish();
+    });
+    contactTimer_.setInterval(1000);
+    connect(&contactTimer_,&QTimer::timeout,this,[this]{
+        temporaryContacts_.context(contactLobby_,state_=="connected");temporaryContacts_.tick(QDateTime::currentSecsSinceEpoch());
+    });
     lobbySendTimer_.setSingleShot(true);lobbySendTimer_.setInterval(300);
     connect(&lobbySendTimer_,&QTimer::timeout,this,&FluxerSession::sendNextLobbyFrame);
     voiceHeartbeat_.setInterval(3000);voiceDeadline_.setSingleShot(true);voiceDeadline_.setInterval(20000);
@@ -86,6 +98,9 @@ FluxerSession::FluxerSession(QObject* parent) : QObject(parent) {
     onlineSendTimer_.setSingleShot(true);onlineSendTimer_.setInterval(1000);
     connect(&onlineSendTimer_,&QTimer::timeout,this,&FluxerSession::sendOnline);
     connect(&online_,&OnlineLink::changed,this,[this]{
+        const auto stage=online_.state()["stage"].toString();
+        const auto peer=online_.peerAccount();
+        temporaryContacts_.setHeld(stage!="idle"&&!peer.isEmpty()?QSet<QString>{peer}:QSet<QString>{});
         if(online_.state()["stage"]=="idle") {
             // Keep an explicit final close, but never send queued exchange data
             // after cancellation/block/expiry. In-flight delivery is uncertain.
@@ -180,6 +195,7 @@ void FluxerSession::sendParty(QString peer,QString content) {
 }
 FluxerSession::~FluxerSession() { reset(); }
 void FluxerSession::reset() {
+    contactTimer_.stop();contactLobby_={};temporaryContacts_.configure({},{});
     lobbySendTimer_.stop();lobbySending_=false;lobbyDeliveries_.clear();lobbyWire_.clear();
     ++lobbyDirectoryRevision_;lobbyChatChannels_.clear();lobbyChatBusy_.clear();lobbyChatUncertain_.clear();
     lobbyDirectoryRows_.clear();lobbyDirectoryPending_.clear();
@@ -328,6 +344,7 @@ void FluxerSession::publish() {
     for(auto i=messageOrder_.crbegin();i!=messageOrder_.crend();++i)if(idValid(*i)){readTail=*i;break;}
     emit snapshot(generation_, {{"state",state_},{"status",status_},{"name",name_},{"code",code_},
         {"lobbyDirectory",lobbyDirectoryState()},
+        {"temporaryContacts",temporaryContacts_.state()},
         {"person",person_},{"profile",profile_.toVariantMap()},{"profileStatus",profileStatus_},{"profileBusy",profileBusy_},
         {"audio",audioConfiguration().toVariantMap()},
         {"unreadCount",unreadCount},{"doNotDisturb",doNotDisturb_},{"privatePreviews",privatePreviews_},
@@ -535,6 +552,11 @@ void FluxerSession::authenticated() {
         const auto verifiedId=r.body.object()["id"].toString();
         if(!self_.isEmpty()&&self_!=verifiedId){historyCache_.clear();historyLru_.clear();callNotices_.clear();historyFile_.clear();channels_.clear();relationships_.clear();guilds_.clear();messages_.clear();messageOrder_.clear();channel_.clear();}
         self_=verifiedId;updateProfile(r.body.object());bindOnline();
+        if(!transport_) {
+            const auto key=QString::fromLatin1(QCryptographicHash::hash(("https://fluxer.app\n"+owner_+"\n"+self_).toUtf8(),QCryptographicHash::Sha256).toHex());
+            temporaryContacts_.configure(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)+"/social/"+key+"/temporary-contacts.json",self_);
+        }
+        contactTimer_.start();
         navigationKey_="social/navigation/"+QString::fromLatin1(QCryptographicHash::hash((owner_+"\n"+self_).toUtf8(),QCryptographicHash::Sha256).toHex())+"/";
         if(!transport_) {QSettings settings;for(const auto& key:{"chats","groups","communities","guild","messages"})preferred_[key]=settings.value(navigationKey_+key).toString();
             doNotDisturb_=settings.value(navigationKey_+"dnd",false).toBool();privatePreviews_=settings.value(navigationKey_+"private",true).toBool();muted_=settings.value(navigationKey_+"muted").toStringList();notificationSound_=settings.value(navigationKey_+"sound",true).toBool();}
@@ -1018,6 +1040,16 @@ void FluxerSession::command(QString operation, QVariantMap args) {
     if(operation=="party-send"){sendParty(args["peer"].toString(),args["content"].toString());return;}
     if(operation.startsWith("lobby-directory-")){lobbyDirectoryCommand(operation,args);return;}
     if(operation=="lobby-send"){sendLobby(args["peer"].toString(),QJsonObject::fromVariantMap(args["packet"].toMap()));return;}
+    if(operation=="lobby-contact-context") {
+        if(args["account"]!=self_||self_.isEmpty())return;
+        contactLobby_=QJsonObject::fromVariantMap(args["lobby"].toMap());
+        temporaryContacts_.context(contactLobby_,state_=="connected");return;
+    }
+    if(operation=="contact-keep") {
+        const auto peer=args["id"].toString();
+        if(!temporaryContacts_.state()["peers"].toMap()[peer].toMap()["canKeep"].toBool()||!temporaryContacts_.keep(peer))status_="This contact is still connecting or ending. Try again when it is ready.";
+        publish();return;
+    }
     if(operation=="lobby-chat"){lobbyChatCommand(args);return;}
     if(operation=="lobby-chat-cancel"){lobbyChatBusy_.remove(args["lobby"].toString());return;}
     if(operation=="runtime-probe-person") {
@@ -1162,8 +1194,13 @@ void FluxerSession::command(QString operation, QVariantMap args) {
     // lobby membership. POST also accepts an incoming request; never unblock or
     // replace an existing relationship from this action.
     if(operation=="recent-add") {
+        const auto contact=temporaryContacts_.state()["peers"].toMap()[id].toMap();
+        if(contact["temporary"].toBool()) {
+            command("contact-keep",{{"id",id}});return;
+        }
         const auto type=relationships_.value(id)["type"].toInt();
         if(!idValid(id)||id==self_||type==1||type==2||type==4)return;
+        if(!temporaryContacts_.manual(id))return;
         request("POST","/v1/users/@me/relationships/"+id,{},[this](Reply reply){
             if(reply.status>=200&&reply.status<300) {status_="Friend request updated";refresh();publish();}
             else fail(reply,"Could not add this person. Check connection and friendship permissions.");
@@ -1178,6 +1215,7 @@ void FluxerSession::command(QString operation, QVariantMap args) {
         });return;
     }
     if(idValid(id)&&(relationships_.contains(id)||(person_["loaded"].toBool()&&person_["id"]==id))&&(operation=="add-id"||operation=="accept"||operation=="remove"||operation=="block")) {
+        if(!temporaryContacts_.manual(id)) {status_="Temporary contact is ending. Try again shortly.";publish();return;}
         request(operation=="remove"?"DELETE":operation=="add-id"?"POST":"PUT","/v1/users/@me/relationships/"+id,
             operation=="remove"||operation=="add-id"?QJsonObject():QJsonObject{{"type",operation=="block"?2:1}},[this](Reply r){
                 if(r.status>=200&&r.status<300)refresh();else fail(r,"Could not update this friendship");
@@ -1530,7 +1568,8 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
                 if(id!=self_&&relationships_.value(id)["type"].toInt()!=2&&c["type"].toInt(-1)==1
                    &&c["recipients"].toArray().size()==1&&c["recipients"].toArray().first().toObject()["id"]==id) {
                     const auto lobby=lobbyWire_.receive(id,LobbyWire::frame(d["content"].toString()),QDateTime::currentSecsSinceEpoch());
-                    if(!lobby.isEmpty())emit lobbyPacket(generation_,id,label(author),lobby);
+                    if(lobby["kind"]=="contact")temporaryContacts_.receive(id,lobby);
+                    else if(!lobby.isEmpty())emit lobbyPacket(generation_,id,label(author),lobby);
                 }
                 if(c["type"].toInt(-1)==1&&c["recipients"].toArray().size()==1&&c["recipients"].toArray().first().toObject()["id"]==id&&relationships_.value(id)["type"].toInt()==1)
                 {
@@ -1568,7 +1607,7 @@ void FluxerSession::gatewayEvent(const QJsonObject& event) {
             if(type=="RELATIONSHIP_ADD") {
                 const auto id=d["id"].toString();const bool incoming=d["type"].toInt()==3&&relationships_.value(id)["type"].toInt()!=3;
                 if(idValid(id))relationships_[id]=d;
-                if(incoming&&!doNotDisturb_)emit incomingMessage(generation_,"request:"+id,"Friend request",privatePreviews_?QString("Open Home notifications"):label(d["user"].toObject()));
+                if(incoming&&!doNotDisturb_&&!temporaryContacts_.state()["peers"].toMap()[id].toMap()["temporary"].toBool())emit incomingMessage(generation_,"request:"+id,"Friend request",privatePreviews_?QString("Open Home notifications"):label(d["user"].toObject()));
             }
             if(type=="CHANNEL_RECIPIENT_REMOVE") {
                 const auto channel=d["channel_id"].toString();const auto user=d["user"].toObject()["id"].toString(d["user_id"].toString());

@@ -10,6 +10,7 @@
 #include <functional>
 #include "OnlineLink.h"
 #include "LobbyWire.h"
+#include "features/social/TemporaryContacts.h"
 
 class QNetworkAccessManager;
 class QNetworkReply;
@@ -51,6 +52,9 @@ signals:
     void runtimeProbeFailed(quint64 generation, QString peer, QString message);
 private:
     friend class SocialTests;
+    TemporaryContacts temporaryContacts_{this};
+    QTimer contactTimer_{this};
+    QJsonObject contactLobby_;
     void lobbyChatCommand(const QVariantMap& args);
     void addLobbyChatMembers(QString lobby,QString channel,QStringList peers);
     QHash<QString,QString> lobbyChatChannels_;

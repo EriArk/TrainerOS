@@ -31,17 +31,22 @@ void FluxerSession::lobbyChatCommand(const QVariantMap& args) {
     };
     if(channel.isEmpty()) {
         if(!host||peers.isEmpty()) {failed("Invite someone to start the conversation.");return;}
+        QJsonArray recipients;for(const auto& peer:peers)if(relationships_.value(peer)["type"]==1)recipients.append(peer);
+        if(recipients.isEmpty()) {
+            const auto contacts=temporaryContacts_.state();
+            const auto error=contacts["error"].toString();
+            failed(error.isEmpty()?"Connecting lobby contacts. Check Recently together if a friendship needs attention.":error);return;
+        }
         if(lobbyChatUncertain_.contains(lobby)) {
             failed("The conversation may have been created. Choose it from Messages before trying again.");return;
         }
-        QJsonArray recipients;for(const auto& peer:peers)recipients.append(peer);
         verifiedRequest("POST","/v1/users/@me/channels",{{"recipients",recipients}},[this,lobby,failed](Reply reply) {
             if(!lobbyChatBusy_.contains(lobby))return;
             const auto c=reply.body.object();const auto id=c["id"].toString();
             if(reply.status<200||reply.status>=300||!chatId(id)||c["type"]!=3) {
                 const bool uncertain=reply.status==0||reply.status>=500||(reply.status>=200&&reply.status<300);
                 if(uncertain)lobbyChatUncertain_.insert(lobby);
-                failed(uncertain?"The conversation may have been created. Choose it from Messages before trying again.":"Couldn't create the conversation. Add lobby members as Fluxer friends, check group permissions, then retry.");return;
+                failed(uncertain?"The conversation may have been created. Choose it from Messages before trying again.":"Couldn't create the conversation. Check group permissions, then retry.");return;
             }
             channels_[id]=c;++channelRevision_;lobbyChatChannels_[lobby]=id;lobbyChatBusy_.remove(lobby);
             publish();emit lobbyChatFinished(generation_,lobby,id,{});
@@ -67,14 +72,18 @@ void FluxerSession::addLobbyChatMembers(QString lobby,QString channel,QStringLis
     if(peers.isEmpty()) {
         lobbyChatBusy_.remove(lobby);publish();emit lobbyChatFinished(generation_,lobby,channel,{});return;
     }
-    const auto peer=peers.takeFirst();
+    int ready=-1;for(int i=0;i<peers.size();++i)if(relationships_.value(peers[i])["type"]==1){ready=i;break;}
+    if(ready<0) {
+        lobbyChatBusy_.remove(lobby);emit lobbyChatFinished(generation_,lobby,channel,"Connecting a new lobby contact. Check Recently together if it needs attention.");return;
+    }
+    const auto peer=peers.takeAt(ready);
     if(recipients.size()>=49||relationships_.value(peer)["type"].toInt()==2) {
         lobbyChatBusy_.remove(lobby);emit lobbyChatFinished(generation_,lobby,channel,"Couldn't add a lobby member to the conversation.");return;
     }
     verifiedRequest("PUT","/v1/channels/"+channel+"/recipients/"+peer,{},[this,lobby,channel,peer,peers](Reply reply) {
         if(!lobbyChatBusy_.contains(lobby))return;
         if(reply.status<200||reply.status>=300) {
-            lobbyChatBusy_.remove(lobby);publish();emit lobbyChatFinished(generation_,lobby,channel,"Couldn't add a lobby member. Add them as a Fluxer friend, check group permissions, then retry.");return;
+            lobbyChatBusy_.remove(lobby);publish();emit lobbyChatFinished(generation_,lobby,channel,"Couldn't add a lobby member. Check group permissions, then retry.");return;
         }
         auto c=channels_.value(channel);auto recipients=c["recipients"].toArray();
         bool exists=false;for(const auto& r:recipients)if(r.toObject()["id"]==peer)exists=true;

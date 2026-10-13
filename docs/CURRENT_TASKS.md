@@ -3,8 +3,10 @@
 **13 October Social follow-up:** Recently together is implemented as the fifth
 Social face after Lobby, with L2/R2 and direct touch selection, account-scoped
 local encounter history and explicit profile/friend actions. Automatic temporary
-friendship creation/acceptance/cleanup with durable ownership and Keep-as-friend
-remains the next core increment; existing friends/blocks/requests must survive.
+friendship creation/acceptance/cleanup and Keep-as-friend are now implemented
+with an account-local ownership journal, bilateral release and late-reply guards.
+Existing friends/blocks/requests are preserved. Paired live acceptance and
+handheld delivery are next when the devices return, before emulator bindings.
 See [current behavior and target](LOBBY.md#недавно-вместе-и-временная-дружба--уточнение-13-октября-2026).
 Device delivery and live provider acceptance remain pending.
 

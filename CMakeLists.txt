@@ -34,6 +34,7 @@ add_library(trainer_core STATIC
     src/features/social/LobbyCoordinator.cpp
     src/features/social/LobbyRuntime.cpp
     src/features/social/RecentTogether.cpp
+    src/features/social/TemporaryContacts.cpp
     src/platform/network/NearbyService.cpp
     src/platform/device/ClockService.cpp
     src/features/settings/ClockController.cpp
@@ -532,6 +533,9 @@ if(BUILD_TESTING)
     qt_add_executable(trainer_social_tests tests/SocialTests.cpp)
     qt_add_executable(trainer_game_party_tests tests/GamePartyTests.cpp)
     qt_add_executable(trainer_lobby_tests tests/LobbyTests.cpp)
+    qt_add_executable(trainer_contacts_tests tests/TemporaryContactsTests.cpp)
+    target_link_libraries(trainer_contacts_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME temporary_contacts COMMAND trainer_contacts_tests)
     target_link_libraries(trainer_lobby_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME lobby COMMAND trainer_lobby_tests)
     target_link_libraries(trainer_game_party_tests PRIVATE trainer_core Qt6::Test)
