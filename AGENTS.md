@@ -1,5 +1,15 @@
 # AGENTS.md — TrainerOS
 
+**Owner lobby/core priority, 13 October 2026 (latest):** deliver the shared
+lobby foundation and keyboard before resuming platform multiplayer integration.
+Use a dedicated Social Lobby tab (L2/R2 and touch), game-free creation, stable
+membership across games, per-game seats/readiness and all-Ready automatic launch.
+Fluxer community categories/channels group genres/topics; each lobby is an
+announcement, not its own category/channel set. The owner authorized initial bot
+hosting on their server. Preserve existing transports and prior checks. Read
+[the accepted contract](docs/LOBBY.md); implementation, deployment and gameplay proof
+remain separate. This supersedes older multiplayer-first scheduling below.
+
 **Owner multiplayer scope correction, 2026-10-12:** ordinary PSP Nearby/Online
 is sufficient for the current milestone. Defer private PSP parties and the full
 Hotseat game catalogue until later. PS2 remains required, including separate

@@ -1,12 +1,24 @@
 # Emulator multiplayer coverage
 
+**Owner lobby/core priority, 13 October 2026 (latest):** deliver the shared
+lobby foundation and keyboard before resuming platform multiplayer integration.
+Use a dedicated Social Lobby tab (L2/R2 and touch), game-free creation, stable
+membership across games, per-game seats/readiness and all-Ready automatic launch.
+Fluxer community categories/channels group genres/topics; each lobby is an
+announcement, not its own category/channel set. The owner authorized initial bot
+hosting on their server. Preserve existing transports and prior checks. Read
+[the accepted contract](LOBBY.md); implementation, deployment and gameplay proof
+remain separate. This supersedes older multiplayer-first scheduling below.
+
 **Owner scope update, 13 October 2026 — supersedes all older PS3/Switch exclusions below:** PS3, Nintendo Switch, Original Xbox and Xbox 360 are all **included in the multiplayer planning and network-adapter preparation scope**, without waiting for emulators to become universally fast or compatible. Read [working coverage](MULTIPLAYER_WORKING_MATRIX.md) and [platform mechanisms](MULTIPLAYER_PLATFORM_MATRIX.md). Existing older wording saying PS3/Switch are excluded/deferred is historical, not current authorization. Actual playable online remains gated by available runtime, game and network acceptance. Original Xbox / Xbox 360 are planned registry additions, **not shipped library platforms**. The owner has not yet selected execution priorities; do not create issues or code changes from this note alone.
 
-**Latest owner PS2 scope, 12 October:** native online through the games' own
-networking and ordinary Hotseat where supported. Inspect installed ARMSX2 DEV9
-and reuse the shared TrainerOS flow; keep native LAN and game-server online
-evidence distinct. The LRPS2 shared-console experiment is stopped, not the next
-runtime to repair/promote. PS2 networking and Hotseat remain unverified.
+**Latest owner PS2 decision, 12 October:** native game online first; inspect
+installed ARMSX2 DEV9 and reuse the shared TrainerOS flow. Native LAN and
+game-server online need distinct evidence. Separately compare ready-made couch
+solutions: one virtual console with separate pads from the players' handhelds.
+This is what the owner meant by "Hotseat", not P1 handoff; use "Play on one
+console" going forward. No couch architecture is selected, LRPS2 stays stopped,
+and neither PS2 route is verified.
 
 **12 October N64 private Online delivery:** installed RMG now supports ordinary
 Nearby and Online friend invitations on Flip/Odin. Online uses the unchanged

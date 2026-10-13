@@ -1,14 +1,28 @@
 # TrainerOS Roadmap
 
-**Owner PS2 correction, 12 October 2026 (latest):** PS2 means the games' native
-online multiplayer through the ordinary emulator's networking, plus ordinary
-Hotseat where supported. Stop the LRPS2/RetroArch shared-console experiment;
-repairing its rollback, speed or teardown is no longer the next PS2 task. Inspect
-the installed ARMSX2 DEV9 path and bind supported native networking to the common
-TrainerOS flow. Native LAN and game-server online are distinct capabilities;
-Hotseat is separate and must not imply universal remote pad handoff. Installed
-networking and gameplay remain unverified. This supersedes the PS2 requirements
-and candidate-promotion instructions below, not other platforms' delivered modes.
+**Owner lobby/core priority, 13 October 2026 (latest):** deliver the shared
+lobby foundation and keyboard before resuming platform multiplayer integration.
+Use a dedicated Social Lobby tab (L2/R2 and touch), game-free creation, stable
+membership across games, per-game seats/readiness and all-Ready automatic launch.
+Fluxer community categories/channels group genres/topics; each lobby is an
+announcement, not its own category/channel set. The owner authorized initial bot
+hosting on their server. Preserve existing transports and prior checks. Read
+[the accepted contract](LOBBY.md); implementation, deployment and gameplay proof
+remain separate. This supersedes older multiplayer-first scheduling below.
+
+**Owner PS2 decision, 12 October 2026 (latest):** implement the games' native
+online through ordinary ARMSX2 networking first. Inspect the installed DEV9 path
+and integrate supported networking with the common TrainerOS invitation/launch
+flow; native LAN and game-server online require distinct evidence. Installed
+PS2 networking and gameplay remain unverified.
+
+The owner used "Hotseat" to mean couch multiplayer: one shared virtual console,
+each player on a separate pad from their own handheld, not passing P1 control.
+Call this "Play on one console" / "Игра на одной консоли" going forward. For PS2,
+compare ready-made shared-console solutions separately; no runtime or streaming
+architecture is selected. The LRPS2 experiment stays stopped and its repair or
+promotion is not a prerequisite for native online. This supersedes older PS2
+both-mode/pass-controller instructions below; preserve existing delivery evidence.
 
 **Owner active priority, 12 October 2026:** complete missing platform-wide
 multiplayer connections and bindings using existing emulator mechanisms and the

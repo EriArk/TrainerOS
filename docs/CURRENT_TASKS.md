@@ -1,12 +1,26 @@
 # Current tasks
 
-**Owner PS2 correction, 12 October 2026 (latest):** use native game online through
-ordinary ARMSX2 networking and ordinary Hotseat where supported. The next PS2
-task is the installed DEV9 capability and shared invitation/launch binding;
-LAN and game-server online require distinct evidence. LRPS2 shared-console
-debugging/promotion is stopped. Earlier requirements to repair that candidate or
-deliver universal PS2 remote pad handoff are superseded. No working PS2 network
-session or Hotseat delivery is claimed; other platforms' accepted modes remain.
+**Owner lobby/core priority, 13 October 2026 (latest):** deliver the shared
+lobby foundation and keyboard before resuming platform multiplayer integration.
+Use a dedicated Social Lobby tab (L2/R2 and touch), game-free creation, stable
+membership across games, per-game seats/readiness and all-Ready automatic launch.
+Fluxer community categories/channels group genres/topics; each lobby is an
+announcement, not its own category/channel set. The owner authorized initial bot
+hosting on their server. Preserve existing transports and prior checks. Read
+[the accepted contract](LOBBY.md); implementation, deployment and gameplay proof
+remain separate. This supersedes older multiplayer-first scheduling below.
+
+**Owner PS2 decision, 12 October 2026 (latest):** implement native game online
+through ordinary ARMSX2 networking first: installed DEV9 capability, shared
+invitation/launch bindings and bounded actual online evidence. Native LAN alone
+does not prove game-server online. PS2 delivery remains unverified.
+
+"Hotseat" was the owner's term for couch multiplayer with separate pads on one
+virtual console, each player using their own handheld; use "Play on one console"
+going forward. Compare ready-made PS2 solutions separately, with no architecture
+selected. P1 handoff is not the requested mode. LRPS2 debugging/promotion remains
+stopped; older PS2 both-mode requirements below are superseded. Keep prior checks
+as historical evidence, without replaying them or counting handoff as couch play.
 
 **Owner priority, 12 October 2026:** missing universal platform connections and
 shared invitation/launch/input/Home/exit bindings are next; PS2 with both input

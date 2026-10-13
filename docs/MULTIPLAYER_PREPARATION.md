@@ -1,11 +1,23 @@
 # Multiplayer preparation and device continuation
 
+**Owner lobby/core priority, 13 October 2026 (latest):** deliver the shared
+lobby foundation and keyboard before resuming platform multiplayer integration.
+Use a dedicated Social Lobby tab (L2/R2 and touch), game-free creation, stable
+membership across games, per-game seats/readiness and all-Ready automatic launch.
+Fluxer community categories/channels group genres/topics; each lobby is an
+announcement, not its own category/channel set. The owner authorized initial bot
+hosting on their server. Preserve existing transports and prior checks. Read
+[the accepted contract](LOBBY.md); implementation, deployment and gameplay proof
+remain separate. This supersedes older multiplayer-first scheduling below.
+
 **Owner scope update, 13 October 2026 — supersedes all older PS3/Switch exclusions below:** PS3, Nintendo Switch, Original Xbox and Xbox 360 are all **included in the multiplayer planning and network-adapter preparation scope**, without waiting for emulators to become universally fast or compatible. Read [working coverage](MULTIPLAYER_WORKING_MATRIX.md) and [platform mechanisms](MULTIPLAYER_PLATFORM_MATRIX.md). Existing older wording saying PS3/Switch are excluded/deferred is historical, not current authorization. Actual playable online remains gated by available runtime, game and network acceptance. Original Xbox / Xbox 360 are planned registry additions, **not shipped library platforms**. The owner has not yet selected execution priorities; do not create issues or code changes from this note alone.
 
-**Latest PS2 scope correction, 12 October:** native game online using ordinary
-ARMSX2 networking, plus ordinary Hotseat where supported. Stop the LRPS2
-shared-console experiment. This supersedes older PS2 both-input-mode and
-candidate-promotion requirements below. Other platforms retain their modes.
+**Latest PS2 decision, 12 October:** native game online using ordinary ARMSX2
+networking first. Separately compare ready-made couch multiplayer solutions:
+one virtual console with separate pads from each player's handheld. This is what
+the owner meant by "Hotseat"; use "Play on one console" instead. P1 handoff is
+not the requested mode. No shared-console architecture is selected; LRPS2 stays
+stopped. This supersedes older PS2 both-mode/candidate-promotion requirements.
 
 **12 October installed continuation:** DS now has ordinary two-player Nearby
 and Online friend delivery, N64 has ordinary Nearby/private Online delivery, and Dreamcast
@@ -68,7 +80,7 @@ See [maintenance and remaining delivery](emulators/flycast.md).
 | PS1 | PCSX ReARMed / existing RetroArch transport | Installed separate pads and ordinary exclusive P1 handoff, including relay evidence; physical/distinct-network acceptance remains ([record](emulators/pcsx-rearmed.md)) |
 | N64 | RMG / Mupen64Plus native server | Installed Nearby/private Online invitations/Home/minimize/peer exit and paired native/forced-relay Mario Kart 64 on Flip/Odin; larger groups, wider games, physical/distinct-network and production service acceptance remain open ([record](emulators/RMG.md)) |
 | Dreamcast | Flycast Dojo native relay / GGPO | Installed CHD route; native Soul Calibur Nearby/public-relay fights and ordinary Online invitation/Home/peer exit passed. Fresh temporary VMUs; wider games, distinct networks, physical input/audio and relay release review remain open ([record](emulators/flycast.md)) |
-| PS2 | Ordinary ARMSX2 native game networking / DEV9; ordinary Hotseat where supported | Installed network capability and TrainerOS native-online bindings remain unverified. LRPS2 shared-console experiment stopped after scope correction ([record](emulators/lrps2.md)) |
+| PS2 | Native game online / ARMSX2 DEV9 first; separately compare ready-made couch multiplayer solutions | Installed networking and TrainerOS native-online bindings remain unverified. Couch means separate pads on one virtual console; no solution selected. LRPS2 experiment stopped ([record](emulators/lrps2.md)) |
 | GameCube/Wii | Dolphin native NetPlay | Installed separate GameCube pads, ordinary GameCube P1 handoff and Wii two-player route; preserve wider-input and physical/distinct-network limits ([record](emulators/dolphin.md)) |
 | DS | WatermelonDS DetMP reused on pinned desktop melonDS | Installed two-player Nearby/Online flow, native race/soak and protected own-save return on Flip/Odin; four players, broader compatibility, frontend polish and physical/distinct-network acceptance remain open ([record](emulators/melonds.md)) |
 | PSP | PPSSPP native Ad Hoc / aemu relay | Ordinary Nearby/Online integration and Lumines evidence retained; sufficient for the current milestone. Private party admission and fine title work deferred ([record](emulators/ppsspp.md)) |
