@@ -3,6 +3,7 @@
 #include <QPointer>
 #include <QProcess>
 #include <QRect>
+#include <QVariantList>
 #include <QTimer>
 #include <QWindow>
 #include <QJsonObject>
@@ -19,10 +20,12 @@ public:
     bool ready() const { return ready_; }
     Q_INVOKABLE void attach(QObject* window);
     Q_INVOKABLE void setRegion(QRect region);
+    Q_INVOKABLE void setRegions(QVariantList regions);
     void setGame(qint64 pid);
 signals:
     void changed();
     void activated();
+    void pointer(QString target,QString phase,QPointF position);
 private:
     void send(const QJsonObject&);
     void start();
@@ -31,7 +34,7 @@ private:
     bool gamescope_=false,ready_=false;
     QString helper_;
     QPointer<QWindow> window_;
-    QRect region_;
+    QVariantList regions_;
     qint64 game_=0;
     QProcess process_;
     QByteArray buffer_;

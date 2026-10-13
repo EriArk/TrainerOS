@@ -94,6 +94,25 @@ class RuntimeMultiplayerTests final : public QObject {
         QTRY_VERIFY(!f.lifecycle.active());
     }
 private slots:
+    void contentOverlaySharesTheLeaseAndNeverReplaysHeldGameButtons() {
+        Fixture f;AdventureOverlayService overlay(f.process,f.lifecycle,f.view,{});
+        QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");const auto pid=f.process.processId();
+        overlay.active_=true;overlay.protocol_=4;f.lifecycle.exitController().setAvailable(true);
+        QVERIFY(f.view.requestMenu());f.view.setInputIsolated(true);f.view.setWindowFocused(true);
+        f.view.setPanel("test-content",{},{});f.view.setContentInput(true);
+        QSignalSpy content(&overlay,&AdventureOverlayService::contentAction),shell(&overlay,&AdventureOverlayService::shellAction);
+        const auto sample=[&](QJsonObject packet,quint64 epoch=0){packet["event"]="input";packet["epoch"]=QString::number(epoch?epoch:f.view.inputGeneration());
+            overlay.buffer_=QJsonDocument(packet).toJson(QJsonDocument::Compact)+'\n';overlay.receive();};
+        sample({{"connected",true},{"confirm",true}});QVERIFY(content.isEmpty());
+        sample({{"connected",true},{"neutral",true}});sample({{"connected",true},{"confirm",true}});QCOMPARE(content.size(),1);
+        QCOMPARE(qvariant_cast<Action>(content.last()[0]),Action::Confirm);sample({{"connected",true},{"confirm",true}});QCOMPARE(content.size(),1);
+        const auto old=f.view.inputGeneration();f.view.setWindowFocused(false);sample({{"connected",true},{"back",true}},old);QCOMPARE(content.size(),1);
+        f.view.setWindowFocused(true);sample({{"connected",true},{"back",true}});QCOMPARE(content.size(),1);
+        sample({{"connected",true},{"neutral",true}});sample({{"connected",true},{"left",true}});QCOMPARE(content.size(),2);
+        QCOMPARE(qvariant_cast<Action>(content.last()[0]),Action::Left);QVERIFY(shell.isEmpty());
+        overlay.lost();QVERIFY(!f.view.visible());QVERIFY(!f.view.contentInput());QCOMPARE(f.process.processId(),pid);
+        finishOrdinary(f);
+    }
     void shellEntryWaitsForFreshInputAndCancellationKeepsTheOwnedGame() {
         Fixture f;AdventureOverlayService overlay(f.process,f.lifecycle,f.view,{});
         QVERIFY(!overlay.requestShell());QVERIFY(f.start());QTRY_COMPARE(f.lifecycle.state(),"running");

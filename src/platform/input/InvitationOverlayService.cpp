@@ -3,6 +3,8 @@
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
+#include <QSet>
 #include <QRegion>
 #include <QLoggingCategory>
 
@@ -30,6 +32,12 @@ InvitationOverlayService::InvitationOverlayService(bool gamescope,QString helper
             const auto end=buffer_.indexOf('\n');const auto event=QJsonDocument::fromJson(buffer_.left(end)).object();buffer_.remove(0,end+1);
             if(event["event"]=="ready"){qCInfo(invitationOverlayLog)<<"badge helper ready"<<attempts_;startup_.stop();healthy_.start();ready_=true;emit changed();sync();}
             else if(event["event"]=="activated"&&ready_&&window_&&window_->isVisible())emit activated();
+            else if(event["event"]=="pointer"&&ready_&&window_&&window_->isVisible()) {
+                const auto target=event["target"].toString();bool known=false;
+                for(const auto& v:regions_)if(v.toMap()["id"]==target)known=true;
+                if(known) {const auto dpr=window_->devicePixelRatio();emit pointer(target,event["phase"].toString(),
+                    QPointF(event["x"].toDouble()/dpr-window_->x(),event["y"].toDouble()/dpr-window_->y()));}
+            }
             else if(event["event"]=="failed"){qCWarning(invitationOverlayLog)<<"badge helper unavailable"<<event["reason"].toString().left(200);process_.kill();lost();return;}
         }
     });
@@ -57,8 +65,18 @@ void InvitationOverlayService::start() {
         "--shell",QString::number(QCoreApplication::applicationPid())});
 }
 void InvitationOverlayService::setRegion(QRect region) {
-    region_=region;
-    if(window_)window_->setMask(QRegion(region));
+    setRegions({QVariantMap{{"id","invitation"},{"rect",region}}});
+}
+void InvitationOverlayService::setRegions(QVariantList regions) {
+    QVariantList accepted;QRegion mask;QSet<QString> ids;
+    for(const auto& v:regions) {
+        const auto row=v.toMap();const auto id=row["id"].toString();const auto rect=row["rect"].toRect();
+        if(id.isEmpty()||ids.contains(id)||!rect.isValid()||accepted.size()>=16)continue;
+        accepted.append(row);ids.insert(id);mask+=rect;
+    }
+    if(accepted==regions_)return;
+    regions_=accepted;
+    if(window_)window_->setMask(mask);
     sync();
 }
 void InvitationOverlayService::setGame(qint64 pid){game_=pid;sync();}
@@ -73,9 +91,13 @@ void InvitationOverlayService::sync() {
     if(window_)window_->setOpacity(window_->isVisible()&&ready_?1:0);
     if(!ready_||!window_)return;
     const auto dpr=window_->devicePixelRatio();
-    send({{"command","surface"},{"visible",window_->isVisible()},{"game",QString::number(game_)},
-        {"x",qRound(region_.x()*dpr)},{"y",qRound(region_.y()*dpr)},
-        {"width",qRound(region_.width()*dpr)},{"height",qRound(region_.height()*dpr)}});
+    QJsonArray regions;
+    for(const auto& v:regions_) {
+        const auto row=v.toMap();const auto rect=row["rect"].toRect();
+        regions.append(QJsonObject{{"id",row["id"].toString()},{"x",qRound((window_->x()+rect.x())*dpr)},
+            {"y",qRound((window_->y()+rect.y())*dpr)},{"width",qRound(rect.width()*dpr)},{"height",qRound(rect.height()*dpr)}});
+    }
+    send({{"command","surface"},{"visible",window_->isVisible()},{"game",QString::number(game_)},{"regions",regions}});
 }
 void InvitationOverlayService::lost(){
     startup_.stop();heartbeat_.stop();healthy_.stop();ready_=false;sync();emit changed();

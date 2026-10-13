@@ -46,6 +46,8 @@ public:
     QString frameKey() const { return menuOpen_ ? "menu-" + QString::number(menuAttempt_) : QString::number(exit_.attempt()); }
     QImage frame() const { return menuOpen_ ? menuFrame_ : exit_.capturedFrame(); }
     bool hasFrame() const { return !frame().isNull(); }
+    bool contentInput() const {return contentInput_;}
+    void setContentInput(bool value);
     bool menuOpen() const { return menuOpen_; }
     int menuFocus() const { return menuFocus_; }
     QString gameTitle() const { return gameTitle_; }
@@ -85,6 +87,7 @@ private:
     bool previousConfirm_ = false, previousBack_ = false, slowClose_ = false;
     quint64 generation_ = 0;
     quint64 menuAttempt_ = 0;
+    bool contentInput_=false;
     bool menuOpen_ = false, menuPending_ = false;
     bool previousHome_ = false, previousUp_ = false, previousDown_ = false;
     int menuFocus_ = 0;

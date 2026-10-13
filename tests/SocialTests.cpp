@@ -10,6 +10,8 @@
 #include "integrations/social/FluxerSession.h"
 #include "integrations/social/CommunityIdentity.h"
 #include "features/social/SocialController.h"
+#include "features/social/PlayerOverlayController.h"
+#include "features/adventure/AdventureExitPresentation.h"
 #include <QJsonArray>
 #include <QFile>
 #include <QStandardPaths>
@@ -30,6 +32,69 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+
+    void playerProjectionUsesRunningSeatsAndProviderUnreadOnly() {
+        SocialController c;disconnect(c.session_,nullptr,&c,nullptr);disconnect(&c,nullptr,c.session_,nullptr);
+        c.snapshot_={{"state","connected"},{"userId","1"},{"profile",QVariantMap{{"avatar","self-avatar"}}},
+            {"chats",QVariantList{QVariantMap{{"id","50"},{"kind","groups"},{"unread",99},{"members",QVariantList{QVariantMap{{"id","2"}}}}},
+                QVariantMap{{"id","51"},{"kind","chats"},{"unread",3},{"avatar","friend-avatar"},{"members",QVariantList{QVariantMap{{"id","2"}}}}}}}};
+        c.gameParty_={{"party","session"},{"running",true},{"host",true},{"members",QVariantList{
+            QVariantMap{{"name","Friend"},{"peer","online:2"},{"slot",2},{"ready",true}},
+            QVariantMap{{"name","Me"},{"slot",1},{"ready",true}},
+            QVariantMap{{"name","Pending"},{"peer","online:3"},{"slot",3},{"ready",false}},
+            QVariantMap{{"name","Friend"},{"peer","nearby-device"},{"slot",4},{"ready",true}}}}};
+        QVERIFY(c.activePlayers().isEmpty());c.setGameActive(true);auto rows=c.activePlayers();QCOMPARE(rows.size(),3);
+        QCOMPARE(rows[0].toMap()["id"].toString(),QString("1"));QCOMPARE(rows[0].toMap()["avatar"].toString(),QString("self-avatar"));
+        QCOMPARE(rows[1].toMap()["unread"].toInt(),3);QCOMPARE(rows[1].toMap()["avatar"].toString(),QString("friend-avatar"));
+        QVERIFY(rows[2].toMap()["id"].toString().isEmpty());QVERIFY(!rows[2].toMap()["canMessage"].toBool());
+        QSignalSpy commands(&c,&SocialController::commandRequested);QVERIFY(!c.openDirectConversation("3"));QVERIFY(c.openDirectConversation("2"));
+        QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString("2"));
+        c.lobby_.configure("1","Me",true);c.lobby_.create();c.face_="lobby";c.lobbyChatChannel_="70";
+        commands.clear();c.openLobbyChat();QVERIFY(commands.isEmpty());
+        c.releaseDirectConversation("3");c.openLobbyChat();QVERIFY(commands.isEmpty());
+        c.releaseDirectConversation("2");QCOMPARE(commands.last()[0].toString(),QString("open"));QCOMPARE(commands.last()[1].toMap()["id"].toString(),QString("70"));
+        c.snapshot_["friends"]=QVariantList{QVariantMap{{"id","2"},{"type",2}}};QVERIFY(!c.openDirectConversation("2"));QCOMPARE(c.activePlayers()[1].toMap()["unread"].toInt(),0);
+        c.snapshot_["friends"]=QVariantList{};c.gameParty_["host"]=false;c.gameParty_["hostPeer"]="online:8";
+        QCOMPARE(c.activePlayers()[0].toMap()["id"].toString(),QString("8"));
+        c.gameParty_["running"]=false;QVERIFY(c.activePlayers().isEmpty());
+    }
+    void miniChatWaitsForCorrectRecipientAndPreservesDraftOnReturn() {
+        SocialController c;disconnect(c.session_,nullptr,&c,nullptr);disconnect(&c,nullptr,c.session_,nullptr);
+        c.snapshot_={{"state","connected"},{"userId","1"},{"channel","old"},
+            {"chats",QVariantList{QVariantMap{{"id","51"},{"kind","chats"},{"members",QVariantList{QVariantMap{{"id","2"}}}}}}}};
+        c.gameParty_={{"party","session"},{"running",true},{"host",true},{"members",QVariantList{QVariantMap{{"name","Friend"},{"peer","online:2"},{"slot",2},{"ready",true}}}}};c.setGameActive(true);
+        AdventureExitController exit;exit.beginSession(AdventureSavePolicy::ManualConfirm);exit.setAvailable(true);
+        AdventureExitPresentation view(exit);TextEntryController keyboard;PlayerOverlayController hud(c,keyboard,view);hud.setGame(42);
+        connect(&view,&AdventureExitPresentation::menuCaptureRequested,&view,[&](quint64 token){view.menuCaptureCompleted(token,{});});
+        connect(&c,&SocialController::textRequested,&keyboard,[&](QString title,QString initial,int limit){keyboard.begin(title,initial,limit);});
+        connect(&keyboard,&TextEntryController::accepted,&c,&SocialController::applyText);
+        QSignalSpy requests(&hud,&PlayerOverlayController::optionsRequested),dismissed(&view,&AdventureExitPresentation::menuDismissed),commands(&c,&SocialController::commandRequested);
+        const auto neutral=[&]{view.updateInput(view.inputGeneration(),{true,true});};
+        hud.openPlayer("2");QCOMPARE(requests.size(),1);QVERIFY(!hud.chatOpen());QVERIFY(view.requestMenu());
+        view.setInputIsolated(true);view.setWindowFocused(true);neutral();QVERIFY(hud.chatOpen());QVERIFY(!view.ready());neutral();
+        QVERIFY(!hud.conversationReady());hud.compose();QVERIFY(!keyboard.isOpen());
+        c.snapshot_["channel"]="51";emit c.changed();QVERIFY(hud.conversationReady());
+        hud.dispatch(Action::Confirm);QVERIFY(keyboard.isOpen());keyboard.insertText("Keep this draft");hud.dispatch(Action::Back);
+        QVERIFY(!keyboard.isOpen());QCOMPARE(c.draft(),QString("Keep this draft"));QVERIFY(hud.chatOpen());
+        hud.dispatch(Action::Back);QVERIFY(!hud.chatOpen());QCOMPARE(dismissed.size(),1);QCOMPARE(exit.phase(),AdventureExitController::Phase::Idle);
+        hud.openPlayer("2");QVERIFY(view.requestMenu());neutral();neutral();QVERIFY(hud.conversationReady());
+        hud.send();QVERIFY(!hud.chatOpen());QCOMPARE(dismissed.size(),2);QVERIFY(c.draft().isEmpty());
+        QVERIFY(std::any_of(commands.begin(),commands.end(),[](const auto& row){return row[0]=="send"&&row[1].toMap()["channel"]=="51";}));
+        hud.openPlayer("2");QVERIFY(view.requestMenu());neutral();neutral();hud.compose();keyboard.insertText("Unsent");
+        hud.setGame(43);QVERIFY(!hud.chatOpen());QVERIFY(!keyboard.isOpen());QCOMPARE(c.draft(),QString("Unsent"));
+        hud.openPlayer("2");QVERIFY(view.requestMenu());neutral();neutral();QVERIFY(hud.chatOpen());
+        hud.compose();keyboard.insertText("Account-private text");++c.generation_;c.snapshot_["userId"]="other-account";c.drafts_.clear();emit c.changed();
+        QVERIFY(!hud.chatOpen());QVERIFY(c.drafts_.isEmpty());QCOMPARE(exit.phase(),AdventureExitController::Phase::Idle);
+    }
+    void playerPositionsAreClampedAndIsolatedByTrainer() {
+        SocialController c;disconnect(c.session_,nullptr,&c,nullptr);disconnect(&c,nullptr,c.session_,nullptr);
+        AdventureExitController exit;AdventureExitPresentation view(exit);TextEntryController keyboard;
+        PlayerOverlayController hud(c,keyboard,view);c.owner_=QUuid::createUuid().toString();emit c.changed();
+        hud.setPosition({-3,8});QCOMPARE(hud.position(),QPointF(0,1));hud.setPosition({0.25,0.75});
+        PlayerOverlayController restored(c,keyboard,view);emit c.changed();QCOMPARE(restored.position(),QPointF(0.25,0.75));
+        c.owner_=QUuid::createUuid().toString();emit c.changed();QCOMPARE(restored.position(),QPointF());
+        restored.setPosition({qQNaN(),0.5});QCOMPARE(restored.position(),QPointF());
+    }
     void peopleFirstLobbyPreservesFriendAndGroupContext() {
         const QVariantList members{QVariantMap{{"id","1"}},QVariantMap{{"id","2"}},QVariantMap{{"id","3"}}};
         const QVariantMap group{{"id","50"},{"kind","groups"},{"members",members}};

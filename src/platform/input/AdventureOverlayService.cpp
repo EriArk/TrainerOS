@@ -55,6 +55,7 @@ AdventureOverlayService::AdventureOverlayService(ProcessService& game, Adventure
             else if(view_.menuOpen()&&view_.ready()) {openingShell_=false;minimize();}
         }
         if (sentEpoch_ == view_.inputGeneration()) return;
+        shellReady_=false;heldAction_.clear();
         sentEpoch_ = view_.inputGeneration();
         send({{"command", "context"}, {"epoch", QString::number(sentEpoch_)}});
     });
@@ -109,7 +110,7 @@ void AdventureOverlayService::send(const QJsonObject& object) {
     helperProcess_.write(QJsonDocument(object).toJson(QJsonDocument::Compact) + '\n');
 }
 void AdventureOverlayService::receive() {
-    buffer_ += helperProcess_.readAllStandardOutput();
+    if(helperProcess_.isOpen())buffer_ += helperProcess_.readAllStandardOutput();
     if (buffer_.size() > 65536) { helperProcess_.kill(); lost(); buffer_.clear(); return; }
     while (buffer_.contains('\n')) {
         const auto index = buffer_.indexOf('\n');
@@ -135,6 +136,7 @@ void AdventureOverlayService::receive() {
             view_.updateInput(message["epoch"].toString().toULongLong(), {message["connected"].toBool(),
                 message["neutral"].toBool(), message["confirm"].toBool(), message["back"].toBool(),
                 message["home"].toBool(), message["up"].toBool(), message["down"].toBool()});
+            if(view_.contentInput()&&view_.ready()&&message["epoch"].toString().toULongLong()==view_.inputGeneration())shellInput(message);
         } else if (event == "captured" || event == "previewed") {
             qCInfo(overlayLog).nospace() << event << " ok=" << message["ok"].toBool()
                 << " elapsedMs=" << message["elapsedMs"].toInt(-1)
@@ -180,6 +182,7 @@ void AdventureOverlayService::openOptions() {
 void AdventureOverlayService::shellInput(const QJsonObject& input) {
     if(!input["connected"].toBool()){shellReady_=false;heldAction_.clear();return;}
     if(!shellReady_){if(input["neutral"].toBool())shellReady_=true;return;}
+    const auto deliver=[this](Action action){if(view_.contentInput())emit contentAction(action);else emit shellAction(action);};
     const QList<QPair<QString,Action>> bindings{{"home",Action::Home},{"back",Action::Back},
         {"start",Action::SystemMenu},{"previousPage",Action::PreviousPage},{"nextPage",Action::NextPage},
         {"previousFace",Action::PreviousFace},{"nextFace",Action::NextFace},
@@ -188,8 +191,8 @@ void AdventureOverlayService::shellInput(const QJsonObject& input) {
         {"confirm",Action::Confirm}};
     for(const auto& [key,action]:bindings)if(input[key].toBool()) {
         const bool direction=action==Action::Up || action==Action::Down || action==Action::Left || action==Action::Right;
-        if(heldAction_!=key){heldAction_=key;repeat_.start();emit shellAction(action);}
-        else if(direction && repeat_.elapsed()>350){repeat_.restart();emit shellAction(action);}
+        if(heldAction_!=key){heldAction_=key;repeat_.start();deliver(action);}
+        else if(direction && repeat_.elapsed()>350){repeat_.restart();deliver(action);}
         return;
     }
     heldAction_.clear();

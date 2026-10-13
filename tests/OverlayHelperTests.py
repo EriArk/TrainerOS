@@ -33,19 +33,43 @@ class OverlayHelperTests(unittest.TestCase):
             output._obj.button.x_root = x; output._obj.button.y_root = y
             output._obj.button.time = 123
         view.x.XNextEvent.side_effect = take
-        region = (1760,920,144,144)
+        region = {"invitation": (1760,920,144,144)}
         events.extend([(4,800,600),(5,800,600)])
         self.assertFalse(pointer.poll(region, True))
         view.x.XAllowEvents.assert_called_with(99,2,123)  # Original press replayed.
         events.append((4,1820,1000))
-        self.assertFalse(pointer.poll(region, True))
+        self.assertEqual(pointer.poll(region, True), [("invitation","press",1820,1000)])
         view.x.XAllowEvents.assert_called_with(99,0,123)
-        events.append((5,1820,1000));self.assertTrue(pointer.poll(region, True))
+        events.append((5,1820,1000));self.assertEqual(pointer.poll(region, True), [("invitation","release",1820,1000)])
         events.extend([(4,1820,1000),(5,1820,1000)])
         self.assertFalse(pointer.poll(region, False))  # Another application's focus.
         view.x.XAllowEvents.assert_called_with(99,2,123)
         events.extend([(4,1820,1000),(5,800,600)])
-        self.assertFalse(pointer.poll(region, True))  # Dragging away cancels.
+        # The UI decides whether this is a drag or a cancelled invitation tap.
+        self.assertEqual(pointer.poll(region, True), [("invitation","press",1820,1000),("invitation","release",800,600)])
+
+    def test_sparse_player_regions_keep_drag_target_and_replay_gaps(self):
+        view = Mock(); view.display = 99; view.root = 42
+        pointer = invitation_overlay.Pointer(view); events = []
+        view.x.XPending.side_effect = lambda *_: len(events)
+        def take(_, output):
+            kind, x, y = events.pop(0)
+            output._obj.type = kind
+            output._obj.button.x_root = x; output._obj.button.y_root = y
+            output._obj.button.time = 123
+        view.x.XNextEvent.side_effect = take
+        regions = {'p1': (10,10,48,48), 'p2': (70,10,48,48), 'invite': (700,400,68,68)}
+        events.extend([(4,62,30),(5,62,30)])
+        self.assertEqual(pointer.poll(regions, True), [])
+        view.x.XAllowEvents.assert_called_with(99,2,123)
+        events.extend([(4,80,30),(6,500,300),(5,500,300)])
+        self.assertEqual(pointer.poll(regions, True), [('p2','press',80,30),('p2','move',500,300),('p2','release',500,300)])
+        view.x.XAllowEvents.assert_called_with(99,0,123)
+        events.append((4,80,30));pointer.poll(regions, True)
+        events.append((5,80,30));self.assertEqual(pointer.poll({}, True), [])
+        events.append((4,80,30));pointer.poll(regions, True)
+        events.append((5,80,30));self.assertEqual(pointer.poll(regions, False), [])
+        events.append((4,720,420));self.assertEqual(pointer.poll(regions, True), [('invite','press',720,420)])
 
     def test_badge_watchdog_never_stops_reused_pid(self):
         with patch.object(invitation_overlay.socket,'socket') as pipe, \

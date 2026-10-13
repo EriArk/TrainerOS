@@ -116,7 +116,7 @@ void SocialController::setOwner(QString owner) {
     saveDrafts();draftFile_.clear();
     editDrafts_.clear();pickedPeople_.clear();dismissedNotifications_.clear();activityNotifications_.clear();presentedInvitation_.clear();notificationSettingsKey_.clear();
     toastTimer_.stop();toastTitle_.clear();toastText_.clear();emit presentationChanged();
-    owner_=std::move(owner);++generation_;snapshot_.clear();drafts_.clear();menu_.clear();toastChannel_.clear();
+    owner_=std::move(owner);++generation_;snapshot_.clear();drafts_.clear();menu_.clear();toastChannel_.clear();directConversationLease_.clear();
     selection_.stop();contacts_=false;searchStarted_=false;searchFocus_=-1;
     textPurpose_.clear();textChannel_.clear();query_.clear();focus_=messageFocus_=0;reading_=false;
     emit ownerRequested(owner_,generation_);emit changed();
@@ -373,6 +373,7 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     const bool wasEarlier=snapshot_["historyPast"].toBool();
     const auto oldMessage=messages().value(messageFocus_).toMap().value("id");
     const bool atEnd=messageFocus_>=messages().size()-1;
+    if(snapshot_["userId"]!=snapshot["userId"])directConversationLease_.clear();
     snapshot_=std::move(snapshot);
     if(contactsChanged||conversationAdmitted)lobbyChatKey_.clear();
     lobbyRuntime_.configure(snapshot_["userId"].toString(),snapshot_["state"]=="connected");
@@ -576,7 +577,7 @@ void SocialController::send() {
     if(!conversation()||draft().trimmed().isEmpty())return;
     emit commandRequested("send",{{"channel",snapshot_["channel"]},{"text",draft()}});
     drafts_.remove(snapshot_["channel"].toString());emit changed();
-    saveDrafts();
+    saveDrafts();emit messageQueued(snapshot_["channel"].toString());
 }
 QVariantList SocialController::runtimeCompanies() const {
     QVariantList result;if(snapshot_["state"]!="connected")return result;

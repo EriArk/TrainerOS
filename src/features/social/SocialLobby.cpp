@@ -12,6 +12,7 @@ void SocialController::focusLobbyChat() {
     lobbyChatFocused_=true;reading_=true;emit changed();
 }
 void SocialController::openLobbyChat() {
+    if(!directConversationLease_.isEmpty())return;
     if(face_!="lobby"||lobbyRows().value(lobbyFocus()).toMap()["kind"]!="own"||lobbyChatChannel_.isEmpty())return;
     selection_.stop();
     if(snapshot_["channel"]!=lobbyChatChannel_)emit commandRequested("open",{{"id",lobbyChatChannel_}});

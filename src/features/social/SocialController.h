@@ -129,6 +129,11 @@ public:
     void preserveText(QString text);
     void closeMenu();
     QVariantMap account() const;
+    QVariantList activePlayers() const;
+    QVariantMap directConversation(const QString& peer) const;
+    bool openDirectConversation(const QString& peer);
+    void releaseDirectConversation(const QString& peer);
+    QString trainerIdentity() const {return owner_;}
     QVariantList rows() const;
     QVariantList messages() const { return snapshot_.value("messages").toList(); }
     QVariantList hints() const;
@@ -222,6 +227,7 @@ public:
     void dismissNotificationAt(int index);
     void dismissNotifications();
 signals:
+    void messageQueued(QString channel);
     void partyPacket(QString peer,QString name,QJsonObject packet);
     void partyFailed(QString peer);
     void partyReset();
@@ -268,6 +274,7 @@ private:
     friend class SocialTests;
     friend class RuntimeMultiplayerTests;
     friend class LobbySmokeScenario;
+    friend class PlayerOverlaySmokeScenario;
     QVariantMap dismissedNotifications_;
     QVariantList activityNotifications_;
     QString presentedInvitation_;
@@ -313,6 +320,7 @@ private:
     QVariantMap snapshot_;
     QHash<QString,QString> drafts_;
     QString owner_, face_ = "chats", textPurpose_, textChannel_;
+    QString directConversationLease_;
     QStringList menu_, menuCommands_;
     QString menuSubject_, query_;
     QString menuTitle_, menuDetail_, menuMode_, menuChannel_, textId_;

@@ -18,13 +18,15 @@ Window {
     InvitationBadge {
         invitation: runtimeMultiplayer
         bridge: invitationOverlay
+        players: playerOverlay
+        playing: adventureLaunch.active && !adventureLaunch.minimized
         permitted: !sessionState.blocked && !adventureExitPresentation.visible && !adventureExitPresentation.capturing
     }
     Binding { target: Theme; property: "themeId"; value: shell.settings.theme }
     Binding { target: Theme; property: "reducedMotion"; value: shell.settings.reducedMotion }
     Binding { target: Theme; property: "television"; value: shell.settings.displayProfile === "tv" }
-    Binding { target: shell.social; property: "surfaceAvailable"; value: window.active && !sessionState.blocked && (!adventureLaunch.active || adventureLaunch.minimized) && shell.unobstructed }
-    Binding { target: shell.social; property: "conversationVisible"; value: shell.page === 4 && !shell.serviceOpen && (shell.socialFace === "chats" || shell.socialFace === "communities" || shell.social.lobbyChatVisible) }
+    Binding { target: shell.social; property: "surfaceAvailable"; value: !sessionState.blocked && ((window.active && (!adventureLaunch.active || adventureLaunch.minimized) && shell.unobstructed) || (playerOverlay.chatOpen && playerOverlay.conversationReady && adventureExitPresentation.ready)) }
+    Binding { target: shell.social; property: "conversationVisible"; value: playerOverlay.chatOpen && playerOverlay.conversationReady || (shell.page === 4 && !shell.serviceOpen && (shell.socialFace === "chats" || shell.socialFace === "communities" || shell.social.lobbyChatVisible)) }
     Binding { target: shell.social; property: "gameActive"; value: adventureLaunch.active }
     onClosing: function(close) { close.accepted = false; sessionState.requestExit() }
     Connections {

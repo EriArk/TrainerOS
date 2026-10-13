@@ -59,7 +59,7 @@ class Pointer:
         if enabled:
             # Sync pointer only. The physical controller and keyboard stay with
             # the game. ReplayPointer below reprocesses the ORIGINAL outside tap.
-            x.XGrabButton(d, 1, 1 << 15, self.view.root, False, (1 << 2) | (1 << 3), 0, 1, 0, 0)
+            x.XGrabButton(d, 1, 1 << 15, self.view.root, False, (1 << 2) | (1 << 3) | (1 << 6), 0, 1, 0, 0)
         else:
             x.XUngrabButton(d, 1, 1 << 15, self.view.root)
         x.XSync(d, False)
@@ -67,19 +67,26 @@ class Pointer:
             raise RuntimeError('Badge input unavailable')
         self.grabbed = enabled
 
-    def poll(self, region, eligible):
-        activated = False
+    def poll(self, regions, eligible):
+        events = []
         x, d = self.view.x, self.view.display
+        if not eligible:
+            self.pressed = False
         while x.XPending(d):
             event = self.Event(); x.XNextEvent(d, c.byref(event))
+            px, py = event.button.x_root, event.button.y_root
             if event.type == 4:
-                self.pressed = eligible and inside(region, event.button.x_root, event.button.y_root)
-                x.XAllowEvents(d, 0 if self.pressed else 2, event.button.time)  # AsyncPointer / ReplayPointer
+                self.pressed = next((key for key, rect in regions.items() if eligible and inside(rect, px, py)), False)
+                x.XAllowEvents(d, 0 if self.pressed else 2, event.button.time)
                 x.XFlush(d)
-            elif event.type == 5:
-                activated |= self.pressed and eligible and inside(region, event.button.x_root, event.button.y_root)
-                self.pressed = False
-        return activated
+                if self.pressed: events.append((self.pressed, 'press', px, py))
+            elif event.type in (5, 6) and self.pressed:
+                if eligible and self.pressed in regions:
+                    events.append((self.pressed, 'release' if event.type == 5 else 'move', px, py))
+                else:
+                    self.pressed = False
+                if event.type == 5: self.pressed = False
+        return events
 
 
 def watchdog(fd, parent, start):
@@ -113,7 +120,7 @@ def run(args):
         '--parent',str(os.getpid()),'--start',identity(os.getpid())],pass_fds=(child.fileno(),),
         stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,start_new_session=True)
     child.close()
-    pointer = Pointer(v); region = (0,0,0,0); visible = False; game = 0; game_start = ''
+    pointer = Pointer(v); regions = {}; visible = False; game = 0; game_start = ''
     buffer = b''
     try:
         emit('ready')
@@ -134,9 +141,15 @@ def run(args):
                         opacity = c.c_ulong(0xffffffff if visible else 0)
                         x.XChangeProperty(d,args.window,v.atom('_NET_WM_WINDOW_OPACITY'),v.atom('CARDINAL'),32,0,c.byref(opacity),1)
                         x.XFlush(d)
-                        region = tuple(int(command.get(k,0)) for k in ('x','y','width','height'))
-                        if any(abs(n)>16384 for n in region):
-                            raise RuntimeError('Invalid region')
+                        rows = command.get('regions', [])
+                        if not isinstance(rows, list) or len(rows) > 16: raise RuntimeError('Invalid regions')
+                        regions = {}
+                        for row in rows:
+                            rect = tuple(int(row.get(k,0)) for k in ('x','y','width','height'))
+                            key = row.get('id')
+                            if not isinstance(key,str) or not key or key in regions or any(abs(n)>32768 for n in rect):
+                                raise RuntimeError('Invalid region')
+                            regions[key] = rect
                         next_game = int(command.get('game',0))
                         if game != next_game:
                             game = next_game
@@ -146,8 +159,8 @@ def run(args):
             eligible = visible and (v.owns(focused,args.shell,start) or
                 bool(game and game_start and v.owns(focused,game,game_start)))
             pointer.grab(eligible)
-            if pointer.poll(region, eligible):
-                emit('activated')
+            for target, phase, px, py in pointer.poll(regions, eligible):
+                emit('pointer', target=target, phase=phase, x=px, y=py)
     finally:
         pointer.grab(False)
         parent.close()

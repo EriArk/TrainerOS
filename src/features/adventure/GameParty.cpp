@@ -53,7 +53,7 @@ QJsonObject GameParty::state() const {
         people={QJsonObject{{"name",name_},{"slot",1},{"ready",true}}};
         for(auto it=members_.cbegin();it!=members_.cend();++it)people.append(QJsonObject{{"peer",it.key()},{"name",it->name},{"slot",it->slot},{"ready",it->accepted}});
     }
-    return {{"party",party_},{"joining",!joiningId_.isEmpty()},{"game",active()?game_:joiningGame_},{"host",host()},{"running",running_},{"members",people},
+    return {{"party",party_},{"joining",!joiningId_.isEmpty()},{"game",active()?game_:joiningGame_},{"host",host()},{"hostPeer",host_},{"running",running_},{"members",people},
         {"company",company_},{"access",access_},{"capacity",capacity(game_)},{"free",running_&&!game_["lateJoin"].toBool(true)?0:active()?capacity(game_)-people.size():capacity(current_)}};
 }
 QJsonObject GameParty::offer(const QString& peer) const {

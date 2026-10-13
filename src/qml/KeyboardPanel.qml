@@ -4,8 +4,10 @@ import QtQuick.Shapes
 Item {
     id: root
     required property var shell
+    signal backRequested()
+    onBackRequested: shell.pressButton("B")
     readonly property var keyboard: shell.keyboard
-    readonly property bool takesFocus: keyboard.open && !shell.menuOpen && shell.notice.length === 0
+    property bool takesFocus: keyboard.open && !shell.menuOpen && shell.notice.length === 0
     visible: keyboard.open
     Rectangle {
         anchors.fill: parent
@@ -38,11 +40,11 @@ Item {
             }
         }
         Text {
-            x: 22; y: 12; text: root.keyboard.title.toUpperCase()
+            x: 22; y: 12; width: 400; elide: Text.ElideRight; text: root.keyboard.title.toUpperCase()
             color: "#e5eee1"; font.pixelSize: 13; font.bold: true; font.letterSpacing: 1
         }
         Text {
-            anchors { right: parent.right; rightMargin: 48 }
+            anchors { right: parent.right; rightMargin: 115 }
             y: 12
             text: root.keyboard.count + " / " + root.keyboard.maximumLength
             color: "#e5eee1"; font.pixelSize: 13
@@ -52,6 +54,12 @@ Item {
             label: "L2   " + (root.keyboard.language === "ru" ? "РУС · EN" : "EN · РУС") + "   R2"
             textSize: 12; centered: true; tint: Theme.blue
             onActivated: root.keyboard.cycleLanguage()
+        }
+        CapButton {
+            objectName: "keyboard-back"
+            anchors.right: parent.right; anchors.rightMargin: 16; y: 6; width: 82; height: 25
+            label: "Back"; textSize: 12; centered: true; tint: Theme.pink
+            onActivated: root.backRequested()
         }
         Panel {
             x: 12; y: 36; width: parent.width - 24; height: 62
@@ -83,7 +91,8 @@ Item {
                     : modelData.id === "space" ? Theme.green : "#f0edda"
                 focusColor: "#fff3b4"
                 selected: root.takesFocus && root.keyboard.focusIndex === index
-                onActivated: root.shell.activate(index)
+                enabled: root.takesFocus
+                onActivated: root.keyboard.activate(index)
             }
         }
         Text {

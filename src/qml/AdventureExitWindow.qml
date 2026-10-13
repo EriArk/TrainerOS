@@ -102,10 +102,18 @@ Window {
             objectName: "game-home-menu"
             anchors.centerIn: parent
             width: parent.width * .92; height: parent.height * .86
-            visible: window.presentation.menuOpen
+            visible: window.presentation.menuOpen && !playerOverlay.chatOpen
             presentation: window.presentation
         }
-        Row { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 14; spacing: 26; visible: window.presentation.menuOpen
+        PlayerChatPane {
+            anchors.right: parent.right; anchors.rightMargin: 28
+            anchors.verticalCenter: parent.verticalCenter
+            width: Math.min(430, parent.width - 56); height: Math.min(340, parent.height - 64)
+            visible: playerOverlay.chatOpen && !shellController.keyboard.open
+            controller: playerOverlay; social: shellController.social; presentation: window.presentation
+        }
+        KeyboardPanel { anchors.fill: parent; shell: shellController; takesFocus: window.presentation.ready; onBackRequested: playerOverlay.back(); visible: playerOverlay.chatOpen && shellController.keyboard.open; enabled: window.presentation.ready }
+        Row { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 14; spacing: 26; visible: window.presentation.menuOpen && !playerOverlay.chatOpen
             Hint { button: "↑↓"; label: "Choose"; tint: Theme.blue }
             Hint { button: "A"; label: "Select"; tint: Theme.yellow; visible: window.presentation.menuCanSelect }
             Hint { button: "B"; label: window.presentation.panel.length ? "Back" : "Continue"; tint: Theme.blue }

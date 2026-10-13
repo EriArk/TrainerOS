@@ -50,6 +50,9 @@ void AdventureExitPresentation::setPanel(QString panel,QString caption,QVariantL
         for(int i=0;i<panelActions_.size();++i)if(!panelActions_[i].toMap()["readOnly"].toBool()){menuFocus_=i;break;}
     if(!same)resetInput();emit changed();
 }
+void AdventureExitPresentation::setContentInput(bool value) {
+    if(contentInput_==value)return;contentInput_=value;resetInput();emit changed();
+}
 void AdventureExitPresentation::setExtraActions(QVariantList actions) {
     const auto selected=menuActions().value(menuFocus_).toMap()["id"].toString();
     bool lost=false;
@@ -92,7 +95,7 @@ void AdventureExitPresentation::dismissMenu() {
     // already hid it. That exit attempt still owns its capture/input lease.
     if (!menuOpen_ && !menuPending_) return;
     menuTimer_.stop(); ++menuAttempt_;
-    menuPending_ = menuOpen_ = false; menuFrame_ = {};
+    menuPending_ = menuOpen_ = false; menuFrame_ = {};contentInput_=false;
     resetInput(); emit changed(); emit menuDismissed();
 }
 void AdventureExitPresentation::handOffToShell() {
@@ -136,6 +139,7 @@ void AdventureExitPresentation::updateInput(quint64 generation, const ExitInputS
         if (input.allReleased && !input.confirm && !input.back && !input.home && !input.up && !input.down) { ready_ = true; emit changed(); }
         return;
     }
+    if(contentInput_)return; // The same focused lease now serves an explicit content surface.
     const bool back = input.back && !previousBack_;
     const bool confirm = input.confirm && !previousConfirm_;
     const bool home = input.home && !previousHome_;

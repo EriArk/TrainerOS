@@ -24,6 +24,7 @@ public:
 signals:
     void shellRequested();
     void gameRequested();
+    void contentAction(trainer::Action action);
     void shellAction(trainer::Action action);
     void handoffFailed(QString message);
 private:

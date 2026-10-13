@@ -28,6 +28,8 @@ add_library(trainer_core STATIC
     src/integrations/social/AltchaProof.cpp
     src/platform/storage/EncryptedCredentials.cpp
     src/features/social/SocialController.cpp
+    src/features/social/SocialPlayers.cpp
+    src/features/social/PlayerOverlayController.cpp
     src/features/social/SocialLobby.cpp
     src/features/social/SocialRecent.cpp
     src/features/social/LobbySession.cpp
@@ -361,6 +363,8 @@ qt_add_qml_module(traineros
         src/qml/DiagnosticsPanel.qml
         src/qml/KeyboardPanel.qml
         src/adapters/pokemon/TrainerPage.qml
+        src/qml/PlayerChatPane.qml
+        src/qml/PlayerBubbles.qml
         src/qml/ConversationPane.qml
         src/qml/SocialPage.qml
         src/qml/LobbyPane.qml

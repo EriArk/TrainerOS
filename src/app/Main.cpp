@@ -29,6 +29,7 @@
 #include "integrations/adventure/retroarch/RetroArchAppearance.h"
 #include "platform/input/AdventureOverlayService.h"
 #include "platform/input/InvitationOverlayService.h"
+#include "features/social/PlayerOverlayController.h"
 #include "features/home/PlayHistoryController.h"
 #include "features/home/ExitImage.h"
 #include "adapters/pokemon/pokedex/ClassicArt.h"
@@ -75,6 +76,7 @@
 #include "DownloadsSmokeScenario.h"
 #include "ExperienceSmokeScenario.h"
 #include "LobbySmokeScenario.h"
+#include "PlayerOverlaySmokeScenario.h"
 #endif
 
 using namespace trainer;
@@ -131,6 +133,7 @@ int main(int argc, char* argv[]) {
     parser.addOption({"art-dir", "Use a private development artwork bootstrap directory.", "directory"});
     parser.addOption({"smoke-test", "Verify the QML shell with an isolated SDL virtual controller, then exit."});
 #ifdef TRAINEROS_UI_TESTS
+    parser.addOption({"player-overlay-smoke-test", "Verify player bubbles and mini chat with isolated provider and input fixtures."});
     parser.addOption({"lobby-smoke-test", "Verify lobby and keyboard QML with isolated provider fixtures."});
     parser.addOption({"experience-smoke-test", "Verify independent experience modules in the real QML host."});
     parser.addOption({"downloads-smoke-test", "Verify the Downloads layout and SDL navigation with isolated queue fixtures, then exit."});
@@ -152,9 +155,10 @@ int main(int argc, char* argv[]) {
     bool exitSmoke = false;
     bool downloadsSmoke = false;
     bool experienceSmoke = false;
-    bool lobbySmoke = false;
+    bool lobbySmoke = false, playerOverlaySmoke = false;
     QString persistencePhase;
 #ifdef TRAINEROS_UI_TESTS
+    playerOverlaySmoke = parser.isSet("player-overlay-smoke-test");
     lobbySmoke = parser.isSet("lobby-smoke-test");
     experienceSmoke = parser.isSet("experience-smoke-test");
     downloadsSmoke = parser.isSet("downloads-smoke-test");
@@ -168,7 +172,7 @@ int main(int argc, char* argv[]) {
     if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "library-center", "collection"}.contains(persistencePhase)
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
-    const bool smoke = lobbySmoke || experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+    const bool smoke = playerOverlaySmoke || lobbySmoke || experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
     auto smokeBattery = std::make_shared<std::atomic_int>(65);
     PowerStatus powerStatus([smoke, smokeBattery] {
         if (!smoke) return systemBatteryStatus();
@@ -450,6 +454,14 @@ int main(int argc, char* argv[]) {
         QObject::connect(&adventureProcess,&ProcessService::started,&invitationOverlay,[&]{invitationOverlay.setGame(adventureProcess.processId());});
         QObject::connect(&adventureProcess,&ProcessService::finished,&invitationOverlay,[&]{invitationOverlay.setGame(0);});
         std::unique_ptr<AdventureOverlayService> adventureOverlay;
+        PlayerOverlayController playerOverlay(*shell.social(),*shell.keyboard(),exitPresentation);
+        QObject::connect(&adventureProcess,&ProcessService::started,&playerOverlay,[&]{
+            // A party gathering while a solo game is still open is not yet
+            // that game's roster. Bind the HUD only at the party's launch.
+            playerOverlay.setGame(shell.social()->gameParty()["running"].toBool()?adventureProcess.processId():0);
+        });
+        QObject::connect(&adventureProcess,&ProcessService::finished,&playerOverlay,[&]{playerOverlay.setGame(0);});
+        QObject::connect(&playerOverlay,&PlayerOverlayController::optionsRequested,&shell,[&]{if(adventureOverlay)adventureOverlay->openOptions();});
         QObject::connect(shell.social(),&SocialController::lobbyRequested,&shell,[&]{
             if(adventureLaunch.active()&&!adventureLaunch.minimized()) {
                 if(!adventureOverlay||!adventureOverlay->requestShell())shell.showNotice("Open Home to enter the lobby safely.");
@@ -499,6 +511,7 @@ int main(int argc, char* argv[]) {
         };
         auto gameMenuActions=[&]{
             QVariantList actions{QVariantMap{{"id","notifications"},{"label","Notifications · "+QString::number(shell.notifications().size())}}};
+            if(!playerOverlay.players().isEmpty())actions.append(QVariantMap{{"id","players"},{"label","Players"}});
             actions.prepend(QVariantMap{{"id","minimize"},{"label","Minimize"},
                 {"detail",adventureOverlay && adventureOverlay->canMinimize()?"Browse TrainerOS · game keeps running":"Safe input handoff is unavailable"},
                 {"readOnly",!(adventureOverlay && adventureOverlay->canMinimize())}});
@@ -521,11 +534,13 @@ int main(int argc, char* argv[]) {
         QObject::connect(&shell,&ShellController::changed,&exitPresentation,gameMenuActions);
         QObject::connect(&multiplayer,&RuntimeMultiplayer::changed,&exitPresentation,gameMenuActions);
         QObject::connect(&adventureLaunch,&AdventureLaunchController::adventureStarted,&exitPresentation,gameMenuActions);
+        QObject::connect(&adventureProcess,&ProcessService::started,&exitPresentation,gameMenuActions);
         QObject::connect(&exitPresentation,&AdventureExitPresentation::changed,&exitPresentation,[&]{if(exitPresentation.menuOpen()&&exitPresentation.panel().isEmpty())gameMenuActions();});
         QObject::connect(&exitPresentation,&AdventureExitPresentation::changed,&multiplayer,&RuntimeMultiplayer::resumeLiveInvocation);
         // Other notifications retain the inbox route. The invitation badge is
         // hidden during both preview and explicit-exit capture barriers.
         QObject::connect(&exitPresentation,&AdventureExitPresentation::menuActionRequested,&exitPresentation,[&](const QString& action){
+            if(playerOverlay.menuAction(action))return;
             if(shell.invokeLiveExperienceAction(action,adventureLaunch.adventureId(),liveExperienceSession()))return;
             if(action=="minimize"){if(adventureOverlay)adventureOverlay->minimize();return;}
             if(action.startsWith("notice:")) {
@@ -752,9 +767,10 @@ int main(int argc, char* argv[]) {
                 && !shell.settings()->storage()->busy() && !(saveBackups && saveBackups->busy());
         };
         ControllerInput input(nullptr, preferred);
-        const auto updateTextInput=[&]{input.setTextEntryEnabled(shell.keyboard()->isOpen()&&!shell.menuOpen()&&shell.notice().isEmpty()&&!shell.homeMenuOpen());};
+        const auto updateTextInput=[&]{input.setTextEntryEnabled(shell.keyboard()->isOpen()&&(playerOverlay.chatOpen()?exitPresentation.ready():!shell.menuOpen()&&shell.notice().isEmpty()&&!shell.homeMenuOpen()));};
         QObject::connect(&shell,&ShellController::changed,&input,updateTextInput);
         QObject::connect(shell.keyboard(),&TextEntryController::changed,&input,updateTextInput);
+        QObject::connect(&exitPresentation,&AdventureExitPresentation::changed,&input,updateTextInput);
         QObject::connect(&input,&ControllerInput::textEntered,shell.keyboard(),&TextEntryController::insertText);
         QObject::connect(&input,&ControllerInput::textBackspace,shell.keyboard(),&TextEntryController::backspace);
         QObject::connect(&input,&ControllerInput::textSubmitted,&shell,[&]{shell.keyboard()->dispatch(Action::LocalAction);});
@@ -776,6 +792,7 @@ int main(int argc, char* argv[]) {
                                                          : QDir(reportBase).filePath("diagnostics"));
         shell.diagnostics()->configure(&input, &deviceReports);
         QObject::connect(&input, &ControllerInput::action, &session, [&](Action action) {
+            if(playerOverlay.chatOpen()){playerOverlay.dispatch(action);return;}
             // An exit prompt must never navigate the hidden shell. The platform
             // input provider feeds its own isolated snapshots to the presenter.
             if (adventureLaunch.exitController().phase() != AdventureExitController::Phase::Idle) return;
@@ -839,6 +856,7 @@ int main(int argc, char* argv[]) {
         engine.rootContext()->setContextProperty("adventureExitPresentation", &exitPresentation);
         engine.rootContext()->setContextProperty("runtimeMultiplayer", &multiplayer);
         engine.rootContext()->setContextProperty("invitationOverlay", &invitationOverlay);
+        engine.rootContext()->setContextProperty("playerOverlay", &playerOverlay);
         engine.rootContext()->setContextProperty("powerStatus", &powerStatus);
         engine.load(QUrl("qrc:/TrainerOS/Main.qml"));
         if (engine.rootObjects().isEmpty()) result = 2;
@@ -954,6 +972,7 @@ int main(int argc, char* argv[]) {
                     QObject::connect(adventureOverlay.get(),&AdventureOverlayService::gameRequested,window,[&,window]{
                         adventureLaunch.updateReturnContext(shell.navigationState());window->hide();
                     });
+                    QObject::connect(adventureOverlay.get(),&AdventureOverlayService::contentAction,&playerOverlay,&PlayerOverlayController::dispatch);
                     QObject::connect(adventureOverlay.get(),&AdventureOverlayService::shellAction,&session,[&](Action action){
                         if(adventureLaunch.minimized())session.dispatch(action);
                     });
@@ -990,7 +1009,9 @@ int main(int argc, char* argv[]) {
                 const QString screenshotDir = parser.value("screenshot-dir");
                 if (!screenshotDir.isEmpty() && !QDir().mkpath(screenshotDir)) return 2;
 #ifdef TRAINEROS_UI_TESTS
-                if(lobbySmoke) {
+                if(playerOverlaySmoke) {
+                    PlayerOverlaySmokeScenario::start(window,shell,exitPresentation,adventureLaunch.exitController(),playerOverlay,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
+                } else if(lobbySmoke) {
                     LobbySmokeScenario::start(window,shell,input,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
                 } else if(experienceSmoke) {
                     startExperienceSmoke(window,shell,input,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
