@@ -1,0 +1,82 @@
+# TrainerOS — рабочая таблица мультиплеера
+
+**Дата:** 13 октября 2026. [Подробная классификация](MULTIPLAYER_PLATFORM_MATRIX.md) — источник нюансов, а не новая очередь работ. **Приоритеты ещё не назначены:** владелец определит, что делать сначала, затем отдельно обсудим мультиплеерный UX.
+
+**Охват:** 106 ID текущего реестра + 2 согласованных будущих ID (`xbox`, `xbox360`) = **108 запланированных систем**. **PS3 и Switch теперь включены**, прежнее решение их отложить отменено. Включение в плане не означает работоспособность онлайн-матча; Xbox-строки пока не внесены в `data/rom-platforms.json` и не должны отображаться как готовые платформы в интерфейсе.
+
+## Как читать состояния
+
+- **Проверено в игре** — хотя бы один ограниченный реальный игровой прогон на Flip/Odin, без обещания всей библиотеки, двух независимых ISP или полностью физических контроллеров. Если игры перечислены рядом — фактический объём см. в подробной матрице.
+- **Профиль есть** — выбран/интегрирован общий сетевой механизм, но для всех перечисленных в строке платформ ещё нет самостоятельной игровой проверки.
+- **Готовый upstream** — механизм есть во внешнем эмуляторе/проекте; его ARM64 runtime, интеграция и пользовательский сетевой маршрут ещё требуют доказательств.
+- **Исследование / не подключено** — оригинальные протоколы или готовые варианты не подтверждены в данной версии TrainerOS. **Включено** для PS3/Xbox/Xbox360/Switch означает принятие *в план*, а не сетевую доставку.
+
+**Условные сокращения:** RP = *Universal Remote Play*, отдельная **будущая временная запаска**; RA = RetroArch; **Native** = реальная сеть оригинальной игры/периферии (LAN, кабель, modem, online), а не синхронизация одной консоли. Включение RP в стратегию не делает его уже готовой функцией.
+
+## Платформы и следующий шаг
+
+| № | Платформы / внутренние ID | Основной путь | Что сейчас | Следующая проверка (не приоритет) |
+| --- | --- | --- | --- | --- |
+| 01 · 01 | `atari2600`, `colecovision` | RetroArch shared NetPlay | Кандидат ядра | Проверить реальную 2P игру/ввод |
+| 02 · 01 | `channelf`, `odyssey2`, `videopacplus`, `intellivision`, `arcadia`, `atari5200`, `vectrex`, `atari7800`, `scv` | Remote Play → позже своя синхронизация | Исследование | Найти P2 и корректные устройства |
+| 03 · 02 | `zx81`, `amstradcpc`, `thomson`, `pc88` | Штатный Libretro NetPlay | Кандидат ядра | 2P и клавиатурный ввод |
+| 04 · 02 | `apple2`, `pet`, `c20`, `c64`, `c128`, `cplus4`, `atari800`, `xegs`, `zxspectrum`, `bbcmicro`, `spectravideo`, `msx`, `msx2`, `msx2+`, `msxturbor`, `enterprise`, `bk`, `x1` | Маппер; временный RP; native-online по игре | Исследование | Готовые протоколы/альтернативные ядра; профили управления |
+| 05 · 03 | `nes`, `fds` | FCEUmm shared NetPlay; Four Score | NES — проверено; FDS — профиль | FDS диски/BIOS; 4 реальные устройства |
+| 06 · 03 | `sg1000`, `mastersystem` | Genesis Plus GX shared NetPlay | Профиль есть | Проверить 2P и специальный ввод |
+| 07 · 03 | `gx4000` | Caprice32 shared NetPlay | Кандидат ядра | Режим CPC 6128+ / 2P |
+| 08 · 04 | `amiga500`, `amiga1200`, `amigacdtv`, `amigacd32` | FS-UAE NetPlay; native serial | Готовый upstream | ARM64, две мыши/serial, прогресс |
+| 09 · 04 | `atarist` | hatariB NetPlay; MIDI-link Hatari | Готовый upstream | ARM64/две машины MIDI Maze |
+| 10 · 04 | `dos` | DOSBox Pure IPX/modem/serial; native-online | Есть эмулятор, сеть не испытана | Auto-install + одна IPX/serial игра |
+| 11 · 04 | `macintosh` | Basilisk II EtherTalk / UDP | Готовый upstream | ARM64 и Bolo/AppleTalk |
+| 12 · 04 | `pc98`, `x68000` | NP2Kai NetPlay / X68000 пока RP | Разная готовность | PC-98 2P; X68000 кандидат синхронизации |
+| 13 · 05 | `megadrive`, `snes` | RetroArch shared NetPlay | Проверено в игре | Расширение игр и 3–5P |
+| 14 · 05 | `pcengine`, `pcenginecd`, `supergrafx` | Beetle PCE/SGX shared + Multitap | Профиль есть | CD/BIOS, 4 настоящих участника |
+| 15 · 05 | `segacd`, `sega32x` | Genesis Plus GX / PicoDrive NetPlay | Профиль есть | Отдельное CD/32X gameplay |
+| 16 · 05 | `neogeo`, `neogeocd` | FBNeo NetPlay / NeoCD альтернатива | Neo Geo — профиль; CD — поиск | Проверить NeoCD способ |
+| 17 · 05 | `satellaview`, `sufami`, `snes-msu1`, `pico` | Snes9x по игре; Pico спецввод | Особый профиль | Карты/аудиофайлы/периферия |
+| 18 · 06 | `gb`, `gbc` | SameBoy / DoubleCherryGB Link | Проверено в игре | RTC/IR/4GB и Mobile GB сервис |
+| 19 · 06 | `gamegear`, `lynx` | Gearsystem/Gearlynx native Link | Готовый upstream | ARM64 и отдельные экраны |
+| 20 · 06 | `ngp`, `ngpc` | NGP Link (RACE/WebRTC) | Готовый исследовательский проект | Перенос/ARM64 и свои сохранения |
+| 21 · 06 | `wonderswan`, `wonderswancolor`, `virtualboy`, `pokemini` | Serial Link / IR / homebrew | Исследование | Реальная игра, протокол, runtime |
+| 22 · 06 | `gameandwatch`, `supervision`, `megaduck` | Remote Play и редкие 2P режимы | Не подтверждён общий Link | Доказать конкретный P2/игру |
+| 23 · 07 | `psx`, `n64` | PCSX ReARMed NetPlay+Hotseat / RMG | Проверено в игре | Multitap/PS1 Serial; N64 4P |
+| 24 · 07 | `3do`, `pcfx` | Opera / Beetle PC-FX NetPlay | Кандидат ядра | Первый реальный 2P матч |
+| 25 · 07 | `jaguar`, `saturn` | Virtual Jaguar native Link; Saturn Beetle/Taisen/NetLink | Готовые кандидаты | ARM64 ядра/скорость/модем |
+| 26 · 07 | `cdi` | Remote Play / поочерёдный P1 | Нет доказанной 2P интеграции | Проверить конкретный 2P/курсор |
+| 27 · 08 | `dreamcast` | Flycast Dojo; отдельно DCNet/серверы | GGPO проверено в игре | Native Dreamcast online/модем |
+| 28 · 08 | `ps2` | ARMSX2 DEV9 LAN/сервер; Hotseat | Не подключено | DEV9 в текущем ARM64 и игра |
+| 29 · 08 | `gc`, `wii` | Dolphin shared NetPlay; GC Hotseat; родные сети | Проверено в играх | GC BBA/GBA Link; Wii WFC |
+| 30 · 09 | `gba` | mGBA Splitscreen / gpSP RFU | Проверено в играх | Single-Pak; реальный 4P |
+| 31 · 09 | `nds` | melonDS DetMP Local Wireless | Проверено в игре | Download Play; WFC; 4P |
+| 32 · 09 | `psp` | PPSSPP Ad Hoc | Проверено в игре | Infrastructure и другие игры |
+| 33 · 09 | `n3ds` | Azahar Local Wireless | Проверено homebrew | Download Play / Pretendo |
+| 34 · 09 | `psvita` | Vita3K native-IP LAN | Проверено homebrew | Vita Ad Hoc / сетевые серверы |
+| 35 · 10 | `wiiu` | Cemu native Pretendo; split GamePad | Нет сетевой приёмки; credentials отсутствуют | Асимметричные экраны; собственные Wii U данные |
+| 36 · 11 | `fbneo`, `mame` | RetroArch cabinet NetPlay; native cabinet LAN | FBNeo проверено 4 слота; MAME профиль | Coin/Start и настоящие MAME Link |
+| 37 · 11 | `naomi`, `naomi2` | Flycast native cabinet link | Готовый upstream | Initial D/два кабинета |
+| 38 · 11 | `atomiswave`, `systemsp` | Flycast Dojo по игре; native arcade | Исследование | Atomiswave файтинг; System SP I/O |
+| 39 · 12 | `pico8` | Отдельный онлайн-проект владельца | Отдельная разработка | Не смешивать с RA/RP без согласования |
+| 40 · 12 | `tic80`, `wasm4` | RetroArch NetPlay; WASM-4 WebRTC | Готовый upstream | Проверить P2/P4 и savestates |
+| 41 · 12 | `lowresnx`, `vircon32` | RetroArch shared / доработка ядра | Исследование | P2 LowRes; rollback Vircon32 |
+| 42 · 12 | `arduboy`, `uzebox` | FX-C I²C Link; Uzem 2P/UzeNet | Исследование | Сборка Ardens; UzeNet сервер |
+| 43 · 12 | `scummvm` | Moonbase/Backyard native-online | Готовый upstream | Проверить сетевой ARM64 движок |
+| 44 · 13 | `ps3` | RPCS3 RPCN; native game LAN | Включено; матча в TrainerOS нет | Автологин/комната/игра; отдельная скорость |
+| 45 · 13 | `xbox` | xemu native System Link; Insignia | Включено; ещё не в реестре | xemu ARM64, private LAN, уникальная EEPROM |
+| 46 · 13 | `xbox360` | Xenia Canary Netplay fork | Включено; ARM64 сетевой runtime не доказан | Подготовить адаптер/комнаты; сравнить Linux/ARM |
+| 47 · 13 | `switch` | Eden LDN/room server | Включено; матча в TrainerOS нет | Private LDN, автозапуск, version matching |
+
+## Сквозные направления — приоритет определит владелец
+
+| Работа | Текущее состояние | К чему относится |
+| --- | --- | --- |
+| **Universal Remote Play** | Требование согласовано; не считать реализованным | Временная поддержка всех платформ, где нет целевого способа; P1/P2/Hotseat отдельно |
+| **Маппер геймпад → клавиатура/мышь** | Требование согласовано | Старые компьютеры, DOS, ScummVM, специальные периферийные профили игр |
+| **Установка и запуск одним A** | Общая подготовка библиотеки существует; универсальный установщик всех старых игр ещё нет | DOS, Amiga, Atari ST, Macintosh, PC-98, прочие компьютерные игры |
+| **Оригинальные онлайн-миры и сервисы** | Кандидаты и ссылки собраны; интеграции по конкретным играм отсутствуют | Habitat, UzeNet, Saturn, XBAND, Insignia, RPCN, Pretendo, Wii/DS WFC, ScummVM и другие |
+| **Нативный Link/LAN через общую защищённую сеть** | Уже используется для отдельных RMG, Azahar, Vita3K и др.; не универсально | Сети компьютеров, кабинетов, оригинальные модемы, Xbox System Link, Switch LDN и другие |
+| **Больше 4 участников и специальные устройства** | GameParty сейчас 2–4; некоторые игры/железо рассчитаны на 5–16+ | Multitap, ComLynx, Saturn, BBA-кабинеты, асимметричный Wii U GamePad |
+| **Сетевой UX** | **Пока не проектировать/менять:** обсудим после приоритетов | Режимы игры, приглашения, статус совместимости, выбор online/native/remote, сохранения/возврат |
+
+**Принцип работы:** подготовку сетевого адаптера, маршрутизации, профиля и игрового UX **можно начинать независимо от полной производительности эмулятора**. Проверки запуска, ARM64-сборки, конкретной игры и подключения двух устройств остаются отдельными воротами перед публикацией режима. Не писать новый протокол, когда у эмулятора уже есть настоящий, и не дублировать существующий GB/GBA/DS/PS1/N64/Dolphin/Flycast/PPSSPP стек.
+
+**Проверка покрытия документа:** 106 существующих ID + 2 новых ID; каждое имя присутствует **ровно в одной строке** этой рабочей таблицы. Никаких запущенных кодовых работ, issues или назначенных приоритетов данная таблица не инициирует.
