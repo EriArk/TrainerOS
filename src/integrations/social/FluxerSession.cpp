@@ -181,7 +181,8 @@ void FluxerSession::sendParty(QString peer,QString content) {
 FluxerSession::~FluxerSession() { reset(); }
 void FluxerSession::reset() {
     lobbySendTimer_.stop();lobbySending_=false;lobbyDeliveries_.clear();lobbyWire_.clear();
-    ++lobbyDirectoryRevision_;lobbyDirectoryRows_.clear();lobbyDirectoryPending_.clear();
+    ++lobbyDirectoryRevision_;lobbyChatChannels_.clear();lobbyChatBusy_.clear();lobbyChatUncertain_.clear();
+    lobbyDirectoryRows_.clear();lobbyDirectoryPending_.clear();
     lobbyDirectoryStatus_.clear();lobbyBotChannel_.clear();lobbyDirectoryBusy_=lobbyDirectoryNeedsJoin_=false;
     partyOpening_.clear();emit partyReset(generation_);
     retainHistory();saveHistoryCache();historySave_.stop();
@@ -1017,6 +1018,8 @@ void FluxerSession::command(QString operation, QVariantMap args) {
     if(operation=="party-send"){sendParty(args["peer"].toString(),args["content"].toString());return;}
     if(operation.startsWith("lobby-directory-")){lobbyDirectoryCommand(operation,args);return;}
     if(operation=="lobby-send"){sendLobby(args["peer"].toString(),QJsonObject::fromVariantMap(args["packet"].toMap()));return;}
+    if(operation=="lobby-chat"){lobbyChatCommand(args);return;}
+    if(operation=="lobby-chat-cancel"){lobbyChatBusy_.remove(args["lobby"].toString());return;}
     if(operation=="runtime-probe-person") {
         const auto id=args["id"].toString();if(relationships_.value(id)["type"].toInt()!=1)return;
         const auto activity=QJsonObject::fromVariantMap(args["activity"].toMap());

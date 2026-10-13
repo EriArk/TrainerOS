@@ -22,6 +22,7 @@ add_library(trainer_core STATIC
     src/integrations/social/OnlineLink.cpp
     src/integrations/social/FluxerSession.cpp
     src/integrations/social/FluxerLobby.cpp
+    src/integrations/social/FluxerLobbyChat.cpp
     src/integrations/social/LobbyWire.cpp
     src/integrations/social/FluxerReviews.cpp
     src/integrations/social/AltchaProof.cpp
@@ -30,6 +31,7 @@ add_library(trainer_core STATIC
     src/features/social/SocialLobby.cpp
     src/features/social/LobbySession.cpp
     src/features/social/LobbyCoordinator.cpp
+    src/features/social/LobbyRuntime.cpp
     src/platform/network/NearbyService.cpp
     src/platform/device/ClockService.cpp
     src/features/settings/ClockController.cpp
@@ -355,6 +357,7 @@ qt_add_qml_module(traineros
         src/qml/DiagnosticsPanel.qml
         src/qml/KeyboardPanel.qml
         src/adapters/pokemon/TrainerPage.qml
+        src/qml/ConversationPane.qml
         src/qml/SocialPage.qml
         src/qml/LobbyPane.qml
         src/qml/SocialIconButton.qml

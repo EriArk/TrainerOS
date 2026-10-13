@@ -47,9 +47,14 @@ signals:
     void partyReset(quint64 generation);
     void lobbyPacket(quint64 generation,QString peer,QString name,QJsonObject packet);
     void lobbyFailed(quint64 generation,QString peer);
+    void lobbyChatFinished(quint64 generation,QString lobby,QString channel,QString error);
     void runtimeProbeFailed(quint64 generation, QString peer, QString message);
 private:
     friend class SocialTests;
+    void lobbyChatCommand(const QVariantMap& args);
+    void addLobbyChatMembers(QString lobby,QString channel,QStringList peers);
+    QHash<QString,QString> lobbyChatChannels_;
+    QSet<QString> lobbyChatBusy_,lobbyChatUncertain_;
     void lobbyDirectoryCommand(const QString& operation,const QVariantMap& args);
     void loadLobbyDirectory(int channel,QString before);
     QVariantMap lobbyDirectoryState() const;

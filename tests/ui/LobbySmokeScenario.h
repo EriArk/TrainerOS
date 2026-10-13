@@ -40,11 +40,25 @@ public:
                 check(social->lobbyState()["phase"]=="choosing","Controller creates game-free lobby");
                 check(social->lobbyCoordinator()->invite("2"),"Host invites guest");guest->answer(true);break;
             case 3:
-                check(social->lobbyState()["members"].toList().size()==2,"Accepted guest appears in lobby");capture("lobby-choosing");
+                check(social->lobbyState()["members"].toList().size()==2,"Accepted guest appears in lobby");
+                {
+                    auto snapshot=social->snapshot_;snapshot["channel"]="300";
+                    snapshot["voice"]=QVariantMap{{"available",true}};
+                    snapshot["chats"]=QVariantList{QVariantMap{{"id","300"},{"name","Our people"},{"kind","groups"}}};
+                    snapshot["messages"]=QVariantList{
+                        QVariantMap{{"id","301"},{"author","2"},{"name","Guest"},{"text","What shall we play?"}},
+                        QVariantMap{{"id","302"},{"author","1"},{"name","Host"},{"text","Let's pick a game together."},{"mine",true}}};
+                    social->receive(0,snapshot);social->lobbyChatChannel_="300";social->lobbyChatStatus_.clear();social->selectLobby(0);
+                    check(social->lobbyChatVisible(),"Lobby embeds existing conversation");
+                }
+                capture("lobby-choosing");
                 social->lobbyGames_={QVariantMap{{"key","fixture"},{"id","fixture"},{"title","Shared game"},{"platform","Test"},{"mode","netplay"},{"seats",4}}};
                 social->lobbyAction("game:fixture");social->lobbyAction("seat:1");guest->seat(2);break;
             case 4:
                 check(social->lobbyState()["game"].toMap()["title"]=="Shared game","Game choice retains lobby");capture("lobby-seats");
+                shell.dispatch(Action::Secondary);
+                check(shell.keyboard()->isOpen()&&social->textPurpose_=="message","Lobby X opens the shared message composer");
+                shell.keyboard()->cancel();
                 shell.keyboard()->begin("Message","",100,false,"Send",true);break;
             case 5:
                 check(shell.keyboard()->keys().first().toMap()["label"]=="Q","QWERTY first key");capture("keyboard-qwerty");

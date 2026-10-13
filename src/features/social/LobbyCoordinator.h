@@ -1,6 +1,7 @@
 #pragma once
 #include "LobbySession.h"
 #include <QTimer>
+#include <QSet>
 
 namespace trainer {
 // Provider-authenticated metadata coordination, independent of any emulator.
@@ -22,6 +23,7 @@ public:
     bool prepared(quint64 generation,bool value);
     bool ready(bool value);
     bool setAccess(QString access);
+    bool setConversation(QString channel);
     void receive(QString peer,QString name,const QJsonObject& packet);
     void deliveryFailed(const QString& peer);
     QJsonObject state() const;
@@ -40,6 +42,9 @@ private:
     void broadcast();
     void tick();
     void clearRemote();
+    bool recordLaunchResult(const QString& peer,const QString& ticket,bool success);
+    QString resultTicket_;
+    QSet<QString> launchResults_;
     static bool validState(const QJsonObject& state,const QString& host);
     LobbySession session_{this};
     QTimer heartbeat_{this};

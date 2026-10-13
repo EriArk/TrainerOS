@@ -120,6 +120,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     });
     connect(&libraryTools_,&LibraryToolsController::reviewRequested,&social_,&SocialController::reviewCommand);
     connect(&libraryTools_,&LibraryToolsController::togetherRequested,this,&ShellController::togetherRequested);
+    connect(&libraryTools_,&LibraryToolsController::lobbyRequested,&social_,&SocialController::openLobbyForGame);
     connect(&social_,&SocialController::reviewsChanged,&libraryTools_,&LibraryToolsController::receiveReviews);
     connect(&network_, &NetworkController::changed,this,&ShellController::changed);
     connect(settings_.clock(), &ClockController::changed, this, &ShellController::changed);
@@ -991,7 +992,7 @@ void ShellController::activateHomeMenu(int index) {
     if(!selected.value("enabled",true).toBool())return;
     const auto id=selected["id"].toString();
     if(id=="together"){emit togetherRequested(liveGame_["id"].toString());return;}
-    if(id=="lobby"){social_.openLobby();return;}
+    if(id=="lobby"){if(liveGame_.isEmpty())social_.openLobby();else social_.openLobbyForGame(liveGame_["id"].toString());return;}
     if(id=="live-return"||id=="live-options"){returnToLiveGame(id=="live-options");return;}
     if(id=="profile"){openProfile();return;}
     if(id=="game-party"){closeHomeMenu();goToPage(4);emit social_.runtimeAction("multiplayer-party");return;}

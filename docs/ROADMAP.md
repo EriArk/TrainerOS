@@ -4,8 +4,10 @@
 owner's main Fluxer community; live publish/move/restart/withdraw/republish/close
 passed. Shared lobby coordination, Social catalogue/inbox/Home/DM entry, seats and
 QWERTY/Russian keyboard are implemented and checked on PC. Runtime preparation
-and launch are still a contract, not a newly bound emulator route. Full unified
-communication/context binding and handheld delivery remain open. The owner will
+and launch now have a trusted local service interface with per-player launch
+acknowledgements; concrete emulator services remain unbound. The shared conversation
+pane is embedded in Lobby, with library/live-Home context entry. Handheld and
+paired provider acceptance remain open. The owner will
 turn both handhelds on in the evening; do not poll SSH or repeat gameplay before
 then. [Evidence and next acceptance](LOBBY.md#реализация-и-проверка--13-октября-2026).
 

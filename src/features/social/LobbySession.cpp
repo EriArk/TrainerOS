@@ -21,13 +21,21 @@ bool LobbySession::create(QString owner,QString name,QString access) {
     if(phase_!="closed"||owner.isEmpty()||owner.size()>128||name.trimmed().isEmpty()||name.size()>100
        ||(access!="private"&&access!="public"&&access!="approval"))return false;
     id_=QUuid::createUuid().toString(QUuid::WithoutBraces);owner_=owner;access_=access;
-    members_.clear();invites_.clear();game_={};ticket_.clear();revision_=0;++generation_;
+    members_.clear();invites_.clear();game_={};ticket_.clear();conversation_.clear();revision_=0;++generation_;
     members_.insert(owner,{name.trimmed()});phase_="choosing";publish();return true;
 }
 bool LobbySession::setAccess(const QString& actor,QString access) {
     if(!host(actor)||(access!="private"&&access!="public"&&access!="approval"))return false;
     if(access_==access)return true;
     access_=access;publish();return true;
+}
+bool LobbySession::setConversation(const QString& actor,QString channel) {
+    if(!host(actor)||channel.isEmpty()||channel.size()>20)return false;
+    for(const auto c:channel)if(c<'0'||c>'9')return false;
+    if(conversation_==channel)return true;
+    // A conversation belongs to the room, never to a game generation.
+    if(!conversation_.isEmpty())return false;
+    conversation_=channel;publish();return true;
 }
 bool LobbySession::invite(const QString& actor,QString peer,qint64 expiresAt) {
     if(!host(actor)||peer.isEmpty()||peer.size()>128||members_.contains(peer)||expiresAt<=0||invites_.size()>=64)return false;
@@ -99,7 +107,8 @@ void LobbySession::tryLaunch() {
     }
     if(!players)return;
     ticket_=QUuid::createUuid().toString(QUuid::WithoutBraces);phase_="launching";
-    publish();emit launchRequested(ticket_,state());
+    const auto ticket=ticket_;publish();
+    if(phase_=="launching"&&ticket_==ticket)emit launchRequested(ticket,state());
 }
 bool LobbySession::connected(const QString& peer,bool value) {
     if(phase_=="closed"||!members_.contains(peer))return false;
@@ -126,7 +135,7 @@ QJsonObject LobbySession::state() const {
             {"prepared",m.prepared},{"ready",m.ready},{"connected",m.connected},{"spectator",m.spectator}});
     }
     return {{"id",id_},{"owner",owner_},{"access",access_},{"phase",phase_},{"revision",qint64(revision_)},
-        {"generation",qint64(generation_)},{"members",members},{"ticket",ticket_},
+        {"generation",qint64(generation_)},{"members",members},{"ticket",ticket_},{"conversation",conversation_},
         {"game",QJsonObject{{"id",game_.id},{"title",game_.title},{"platform",game_.platform},{"mode",game_.mode},{"seats",game_.seats}}}};
 }
 }

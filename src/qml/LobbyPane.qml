@@ -4,15 +4,17 @@ Item {
     id: root
     required property var social
     required property bool takesFocus
+    signal menuAnchored(var item)
     readonly property var selected: social.lobbyRows[social.lobbyFocus] || ({})
     readonly property bool own: selected.kind === "own"
+    readonly property bool inside: own && social.lobbyDetailFocused
     readonly property var room: own ? social.lobbyState : selected
     readonly property var game: room.game || ({})
     readonly property var members: own ? (room.members || []) : []
     objectName: "social-lobby"
     Rectangle { anchors.fill: parent; color: "#fffbf0" }
     Row {
-        id: toolbar; x: 16; y: 8; spacing: 8; width: parent.width - 32
+        id: toolbar; visible: !root.inside; x: 16; y: 8; spacing: 8; width: parent.width - 32
         CapButton { width: parent.width - 384; height: 33; textSize: 12; claimsFocus: false; tint: Theme.blue
             label: root.social.lobbySearch.length ? root.social.lobbySearch : "X · Find a lobby"
             onActivated: root.social.lobbyAction("search") }
@@ -26,7 +28,7 @@ Item {
             enabled: !root.social.lobbyDirectory.busy; onActivated: root.social.lobbyAction("refresh") }
     }
     Item {
-        id: catalogue; x: 16; y: 55; width: parent.width * 0.43 - 24; height: parent.height - 83
+        id: catalogue; visible: !root.inside; x: 16; y: 55; width: parent.width * 0.43 - 24; height: parent.height - 83
         CapButton {
             id: mine; width: parent.width; height: 55; textSize: 16; claimsFocus: false; tint: Theme.green
             label: (root.social.lobbyRows[0] || {}).title || "Create lobby"
@@ -49,12 +51,14 @@ Item {
         }
     }
     Rectangle {
-        id: detail; x: parent.width * 0.43 + 8; y: 55; width: parent.width - x - 16; height: parent.height - 83
+        id: detail; x: root.inside ? 16 : parent.width * 0.43 + 8; y: root.inside ? 8 : 55
+        width: root.inside ? parent.width * 0.33 - 24 : parent.width - x - 16
+        height: parent.height - y - 28
         radius: 13; color: "#edf3de"; border.color: "#b8c6a6"
         Text { id: title; x: 16; y: 12; width: parent.width - 32; height: 31; text: root.selected.title || "Lobby"
             color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 23; textFormat: Text.PlainText; elide: Text.ElideRight }
         Text { id: subtitle; x: 16; y: 47; width: parent.width - 32; height: 20; elide: Text.ElideRight
-            text: root.own ? (root.room.phase === "joining" ? "Waiting for the host…" : root.game.title || "Choose your next game together") : root.selected.detail || "Invite friends, then choose a game together."
+            text: root.own ? (root.room.phase === "joining" ? "Waiting for the host…" : root.social.lobbyPreparationStatus || root.game.title || "Choose your next game together") : root.selected.detail || "Invite friends, then choose a game together."
             font.pixelSize: 13; color: Theme.muted; textFormat: Text.PlainText }
         ListView {
             id: people; x: 16; y: 75; width: parent.width - 32
@@ -83,7 +87,31 @@ Item {
             }
         }
     }
-    Text { x: 16; anchors.bottom: parent.bottom; anchors.bottomMargin: 5; width: parent.width - 32; height: 18
-        text: root.social.lobbyDirectory.status || "A · Open     B · Back     Select · Filters"
+    Item {
+        visible: root.inside
+        x: parent.width * 0.33 + 8; y: 8; width: parent.width - x - 16; height: parent.height - 36
+        ConversationPane {
+            anchors.fill: parent; visible: root.social.lobbyChatVisible
+            social: root.social; active: root.inside && root.social.lobbyChatVisible
+            onMenuAnchored: item => root.menuAnchored(item)
+            onFocusRequested: root.social.focusLobbyChat()
+        }
+        Column {
+            visible: !root.social.lobbyChatVisible; anchors.centerIn: parent; width: parent.width - 36; spacing: 15
+            Text { width: parent.width; text: root.social.lobbyChatStatus || (root.members.length > 1 ? "The host is opening your conversation." : "Invite someone to chat and choose your next game together.")
+                color: Theme.muted; font.pixelSize: 17; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; textFormat: Text.PlainText }
+            CapButton { anchors.horizontalCenter: parent.horizontalCenter; width: 160; height: 33; claimsFocus: false; textSize: 12
+                visible: root.social.lobbyChatStatus.length > 0; label: "Retry conversation"; onActivated: root.social.lobbyAction("chat-retry") }
+            CapButton { anchors.horizontalCenter: parent.horizontalCenter; width: 160; height: 33; claimsFocus: false; textSize: 12
+                visible: root.members.length > 1; label: "People & friendship"; onActivated: root.social.lobbyAction("chat-people") }
+            CapButton { anchors.horizontalCenter: parent.horizontalCenter; width: 160; height: 33; claimsFocus: false; textSize: 12
+                visible: !!(root.social.account.voice || {}).channel; label: "Call controls"; onActivated: root.social.call() }
+        }
+    }
+    CapButton { visible: root.inside; x: 16; anchors.bottom: parent.bottom; anchors.bottomMargin: 3; width: 110; height: 21
+        claimsFocus: false; textSize: 10; label: "B · Catalogue"; onActivated: root.social.lobbyAction("browse") }
+    Text { anchors.bottom: parent.bottom; anchors.bottomMargin: 5; height: 18
+        x: root.inside ? 138 : 16; width: parent.width - x - 16
+        text: root.inside ? root.social.lobbyChatStatus || "→ · Chat     X · Write     Y · Call     Conversation stays in Messages" : root.social.lobbyDirectory.status || "A · Open     B · Back     Select · Filters"
         font.pixelSize: 11; color: Theme.muted; elide: Text.ElideRight; textFormat: Text.PlainText }
 }

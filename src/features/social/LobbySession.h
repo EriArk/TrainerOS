@@ -17,6 +17,7 @@ public:
     explicit LobbySession(QObject* parent=nullptr);
     bool create(QString owner,QString name,QString access="private");
     bool setAccess(const QString& actor,QString access);
+    bool setConversation(const QString& actor,QString channel);
     bool invite(const QString& actor,QString peer,qint64 expiresAt);
     bool join(QString peer,QString name,qint64 now);
     bool approve(const QString& actor,const QString& peer,QString name);
@@ -46,7 +47,7 @@ private:
     void invalidateLaunch();
     void publish();
     void tryLaunch();
-    QString id_,owner_,access_,phase_="closed",ticket_;
+    QString id_,owner_,access_,phase_="closed",ticket_,conversation_;
     Game game_;
     QMap<QString,Member> members_;
     QMap<QString,qint64> invites_;

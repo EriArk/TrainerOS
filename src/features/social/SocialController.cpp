@@ -16,12 +16,14 @@
 
 namespace trainer {
 SocialController::SocialController(QObject* parent):QObject(parent),session_(new FluxerSession) {
+    connect(&lobbyRuntime_,&LobbyRuntime::changed,this,&SocialController::changed);
     lobbyPublishTimer_.setSingleShot(true);lobbyPublishTimer_.setInterval(1000);
     lobbyHeartbeat_.setInterval(60000);lobbyHeartbeat_.start();
     connect(&lobbyPublishTimer_,&QTimer::timeout,this,&SocialController::publishLobby);
     connect(&lobbyHeartbeat_,&QTimer::timeout,this,[this]{publishLobby();if(face_=="lobby")emit commandRequested("lobby-directory-refresh",{});});
     connect(&lobby_,&LobbyCoordinator::changed,this,[this]{
         lobbyPublishTimer_.start();
+        syncLobbyChat();
         const auto invite=lobby_.invitation();const auto id=invite["lobby"].toString();
         if(!id.isEmpty()&&id!=presentedLobbyInvite_) {
             toastChannel_="lobby:"+id;toastTitle_=invite["name"].toString();toastText_="Invited you to a lobby";toastTimer_.start();
@@ -34,6 +36,16 @@ SocialController::SocialController(QObject* parent):QObject(parent),session_(new
     connect(&lobby_,&LobbyCoordinator::notice,this,[this](QString message){toastTitle_="Lobby";toastText_=message;toastTimer_.start();emit presentationChanged();});
     connect(session_,&FluxerSession::lobbyPacket,this,[this](quint64 generation,QString peer,QString name,QJsonObject packet){if(generation==generation_)lobby_.receive(peer,name,packet);});
     connect(session_,&FluxerSession::lobbyFailed,this,[this](quint64 generation,QString peer){if(generation==generation_)lobby_.deliveryFailed(peer);});
+    connect(session_,&FluxerSession::lobbyChatFinished,this,[this](quint64 generation,QString room,QString channel,QString error){
+        if(generation!=generation_||room!=lobby_.state()["id"].toString())return;
+        lobbyChatBusy_=false;lobbyChatStatus_=error;
+        if(!channel.isEmpty()) {
+            lobbyChatChannel_=channel;
+            if(lobby_.hosting())lobby_.setConversation(channel);
+            openLobbyChat();
+        }
+        syncLobbyChat();emit changed();
+    });
     connect(session_,&FluxerSession::onlineEstablished,this,[this](quint64 generation,QString self,QString peer,QString name,QString activity,bool initiator){
         if(generation!=generation_)return;
         runtimeOnline_=activity.startsWith("runtime.");
@@ -113,7 +125,7 @@ void SocialController::setFace(QString face) {
     partyFocus_=false;partyIndex_=0;selection_.stop();face_=std::move(face);focus_=0;menu_.clear();reading_=false;contacts_=false;
     if(face_!="lobby")emit commandRequested("face",{{"face",requestedFace}});
     if(face_=="friends"&&!searchStarted_&&snapshot_["state"]=="connected")runSearch();
-    if(face_=="lobby")emit commandRequested("lobby-directory-refresh",{});
+    if(face_=="lobby") {emit commandRequested("lobby-directory-refresh",{});openLobbyChat();}
     emit changed();
 }
 void SocialController::setLink(NativeActivityProvider* link) {
@@ -352,6 +364,7 @@ void SocialController::receive(quint64 generation,QVariantMap snapshot) {
     const auto oldMessage=messages().value(messageFocus_).toMap().value("id");
     const bool atEnd=messageFocus_>=messages().size()-1;
     snapshot_=std::move(snapshot);
+    lobbyRuntime_.configure(snapshot_["userId"].toString(),snapshot_["state"]=="connected");
     lobby_.configure(snapshot_["userId"].toString(),snapshot_["name"].toString(),snapshot_["state"]=="connected");
     if(oldChannel!=snapshot_["channel"]){partyFocus_=false;partyIndex_=0;refreshPartyBrowse();}
     const auto audio=snapshot_["audio"].toMap();
@@ -451,7 +464,9 @@ QVariantList SocialController::hints() const {
     if(snapshot_.value("state")=="authorizing"){h("B","Cancel sign-in");return result;}
     if(snapshot_.value("state")=="signed-out"||snapshot_.isEmpty()){if(!owner_.isEmpty())h("A","Sign in");return result;}
     if(face_=="lobby") {
-        h("A",lobbyDetailFocused_?"Choose":"Open");h("B","Back");h("X","Search");h("Y","Refresh");h("Select","Filters");return result;
+        h("A",lobbyChatFocused_?"Message":lobbyDetailFocused_?"Choose":"Open");h("B","Back");
+        h("X",lobbyChatVisible()?"Write":"Search");h("Y",lobbyChatVisible()?"Call":"Refresh");
+        h("Select",lobbyDetailFocused_&&lobbyRows().value(lobbyFocus()).toMap()["kind"]=="own"?"Options":"Filters");return result;
     }
     if(face_=="friends") {
         h("X","Search");
@@ -978,7 +993,11 @@ void SocialController::selectMenu(int index) {
     if(command=="together"){closeMenu();together();return;}
     if(command=="open-lobby") {
         const auto peer=runtimePeer();
-        if(lobby_.state().isEmpty()&&lobby_.create()&&!peer.isEmpty())lobby_.invite(peer);
+        const auto chat=currentChat();
+        if(lobby_.state().isEmpty()&&lobby_.create()) {
+            if(chat["kind"]=="groups")lobby_.setConversation(chat["id"].toString());
+            if(!peer.isEmpty())lobby_.invite(peer);
+        }
         openLobby();return;
     }
     if(command=="communication-settings"){closeMenu();emit communicationSettingsRequested();return;}

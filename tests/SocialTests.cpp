@@ -30,6 +30,61 @@ class SocialTests : public QObject {
         s.channel_=channel;s.channels_[channel]={{"id",channel},{"type",1}};
     }
 private slots:
+    void gameContextKeepsRoomAndRequiresDeliberateGameReplacement() {
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});
+        c.setLobbyGames({QVariantMap{{"key","a"},{"id","a"},{"title","First"},{"platform","nes"},{"mode","netplay"},{"seats",2}},
+            QVariantMap{{"key","b"},{"id","b"},{"title","Second"},{"platform","nes"},{"mode","netplay"},{"seats",2}}});
+        c.openLobbyForGame("a");const auto room=c.lobby_.state()["id"].toString();
+        QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),"a");
+        c.openLobbyForGame("b");QCOMPARE(c.lobby_.state()["id"].toString(),room);QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),"a");
+        QVERIFY(c.menuCommands_.contains("lobby:game:b"));c.selectMenu(1);
+        QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),"b");
+        c.openLobbyForGame("missing");QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),"b");
+    }
+    void lobbyConversationCreatesOnceAndAddsMembersWithoutTouchingVoice() {
+        FluxerSession s;int creates=0,adds=0;const auto room=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        QJsonObject group{{"id",channel},{"type",3},{"recipients",QJsonArray{QJsonObject{{"id",remote}}}}};
+        s.setTransport([&](auto method,auto path,auto,Completion done,QByteArray){
+            if(method=="POST") {QCOMPARE(path,QString("/v1/users/@me/channels"));++creates;done({200,QJsonDocument(group)});}
+            else if(method=="GET")done({200,QJsonDocument(group)});
+            else {QCOMPARE(method,QByteArray("PUT"));QVERIFY(path.endsWith("/recipients/3"));++adds;done({204,{}});}
+        });bind(s);s.voiceChannel_="existing-call";s.voiceMuted_=false;
+        QSignalSpy result(&s,&FluxerSession::lobbyChatFinished);
+        QVariantMap args{{"lobby",room},{"host",true},{"peers",QStringList{remote}}};
+        s.command("lobby-chat",args);QCOMPARE(creates,1);QCOMPARE(result.last()[2].toString(),QString(channel));
+        args["peers"]=QStringList{remote,"3"};s.command("lobby-chat",args);QCOMPARE(creates,1);QCOMPARE(adds,1);
+        QCOMPARE(s.voiceChannel_,"existing-call");QVERIFY(!s.voiceMuted_);
+    }
+    void uncertainLobbyConversationDoesNotDuplicateAndGuestAccessIsChecked() {
+        FluxerSession s;int posts=0;int status=0;
+        s.setTransport([&](auto method,auto,auto,Completion done,QByteArray){if(method=="POST")++posts;done({status,{}});});bind(s);
+        QSignalSpy result(&s,&FluxerSession::lobbyChatFinished);
+        const auto room=QUuid::createUuid().toString(QUuid::WithoutBraces);
+        QVariantMap args{{"lobby",room},{"host",true},{"peers",QStringList{remote}}};
+        s.command("lobby-chat",args);s.command("lobby-chat",args);QCOMPARE(posts,1);QVERIFY(!result.last()[3].toString().isEmpty());
+        status=403;args["host"]=false;args["channel"]="555";args["peers"]=QStringList{};
+        s.command("lobby-chat",args);QVERIFY(result.last()[2].toString().isEmpty());QVERIFY(!s.channels_.contains("555"));
+    }
+    void lateLobbyConversationCannotCrossOwnerOrReplaceNewRoom() {
+        FluxerSession s;Completion late;s.setTransport([&](auto,auto,auto,Completion done,QByteArray){late=done;});bind(s);
+        QSignalSpy result(&s,&FluxerSession::lobbyChatFinished);
+        s.command("lobby-chat",{{"lobby",QUuid::createUuid().toString(QUuid::WithoutBraces)},{"host",true},{"peers",QStringList{remote}}});
+        s.setOwner("other",2);late({200,QJsonDocument(QJsonObject{{"id",channel},{"type",3}})});
+        QVERIFY(result.isEmpty());QVERIFY(s.lobbyChatChannels_.isEmpty());QVERIFY(s.lobbyChatBusy_.isEmpty());
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});c.lobby_.create();
+        const auto old=c.lobby_.state()["id"].toString();c.lobby_.leave();c.lobby_.create();
+        emit c.session_->lobbyChatFinished(0,old,channel,{});QCoreApplication::processEvents();QVERIFY(c.lobbyChatChannel_.isEmpty());
+    }
+    void lobbyChatReusesDraftAndExplicitVoiceActions() {
+        SocialController c;QVariantMap snapshot{{"state","connected"},{"userId","1"},{"name","Host"},{"channel",channel},
+            {"chats",QVariantList{QVariantMap{{"id",channel},{"kind","groups"},{"name","Our people"}}}},{"voice",QVariantMap{{"available",true}}}};
+        c.receive(0,snapshot);c.compose();c.preserveText("same draft");c.lobby_.create();c.lobby_.setConversation(channel);
+        c.lobbyChatChannel_=channel;c.openLobby();QVERIFY(c.lobbyChatVisible());QCOMPARE(c.draft(),"same draft");
+        QSignalSpy commands(&c,&SocialController::commandRequested);c.focusLobbyChat();c.dispatch(Action::ToggleContinue);
+        QCOMPARE(commands.last().first().toString(),"voice-join");commands.clear();
+        c.lobbyAction("leave");for(const auto& command:commands)QVERIFY(!command.first().toString().startsWith("voice-"));
+        QVERIFY(!c.lobbyChatVisible());QCOMPARE(c.draft(),"same draft");
+    }
     void lobbyCatalogueRefreshKeepsTheSelectedIdentity() {
         SocialController c;const auto expiry=QDateTime::currentSecsSinceEpoch()+100;
         const QVariantMap first{{"lobby","first"},{"expires",expiry},{"name","One"}},second{{"lobby","second"},{"expires",expiry},{"name","Two"}};

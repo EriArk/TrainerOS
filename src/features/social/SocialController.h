@@ -9,6 +9,7 @@
 #include <QTimer>
 #include "SocialMedia.h"
 #include "LobbyCoordinator.h"
+#include "LobbyRuntime.h"
 #include <QJsonArray>
 
 namespace trainer {
@@ -27,6 +28,9 @@ class SocialController final : public QObject {
     Q_PROPERTY(QVariantList notifications READ notifications NOTIFY changed)
     Q_PROPERTY(QVariantList hints READ hints NOTIFY changed)
     Q_PROPERTY(QString draft READ draft NOTIFY changed)
+    Q_PROPERTY(bool lobbyChatVisible READ lobbyChatVisible NOTIFY changed)
+    Q_PROPERTY(QString lobbyChatStatus READ lobbyChatStatus NOTIFY changed)
+    Q_PROPERTY(QString lobbyPreparationStatus READ lobbyPreparationStatus NOTIFY changed)
     Q_PROPERTY(QString conversationName READ conversationName NOTIFY changed)
     Q_PROPERTY(bool conversation READ conversation NOTIFY changed)
     Q_PROPERTY(int focusIndex READ focusIndex NOTIFY changed)
@@ -86,8 +90,14 @@ public:
     Q_INVOKABLE void lobbyAction(QString action);
     Q_INVOKABLE void editLobbySearch();
     Q_INVOKABLE void openLobby();
+    void openLobbyForGame(const QString& key);
     void setLobbyGames(QVariantList games);
     LobbyCoordinator* lobbyCoordinator() {return &lobby_;}
+    LobbyRuntime* lobbyRuntime() {return &lobbyRuntime_;}
+    QString lobbyPreparationStatus() const {return lobbyRuntime_.status();}
+    bool lobbyChatVisible() const;
+    QString lobbyChatStatus() const {return lobbyChatStatus_;}
+    Q_INVOKABLE void focusLobbyChat();
     ~SocialController() override;
     void setOwner(QString owner);
     void setLink(NativeActivityProvider* link);
@@ -229,7 +239,12 @@ signals:
 private:
     void dispatchLobby(Action action);
     void publishLobby();
+    void syncLobbyChat();
+    void openLobbyChat();
+    QString lobbyChatKey_,lobbyChatRoom_,lobbyChatChannel_,lobbyChatStatus_;
+    bool lobbyChatBusy_=false,lobbyChatFocused_=false;
     LobbyCoordinator lobby_{this};
+    LobbyRuntime lobbyRuntime_{lobby_,this};
     QTimer lobbyPublishTimer_{this},lobbyHeartbeat_{this};
     QVariantList lobbyGames_;
     QString lobbySearch_,lobbyTopic_,publishedLobby_,presentedLobbyInvite_,lobbySelection_,lobbyPublicationTopic_="other";

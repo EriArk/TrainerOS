@@ -49,6 +49,7 @@ public:
     bool reviewReportAvailable() const {const auto row=selectedReview();return !row.isEmpty()&&row["author"]!=reviews_["user"]&&reviews_["fresh"].toBool();}
 signals:
     void togetherRequested(QString game);
+    void lobbyRequested(QString game);
     void collectionsRequested(QString game);
     void changed();
     void saved();

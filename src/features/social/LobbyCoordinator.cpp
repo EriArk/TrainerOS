@@ -88,6 +88,7 @@ void LobbyCoordinator::leave() {
 }
 bool LobbyCoordinator::selectGame(const LobbySession::Game& game) {return hosting()&&session_.selectGame(self_,game);}
 bool LobbyCoordinator::setAccess(QString access) {return hosting()&&session_.setAccess(self_,access);}
+bool LobbyCoordinator::setConversation(QString channel) {return hosting()&&session_.setConversation(self_,channel);}
 bool LobbyCoordinator::seat(int seat) {
     if(hosting())return session_.claimSeat(self_,seat,session_.generation());
     if(!online_||remote_.isEmpty())return false;
@@ -109,9 +110,28 @@ bool LobbyCoordinator::ready(bool value) {
     if(!online_||remote_.isEmpty()||!preparedGeneration_||preparedGeneration_!=generation)return false;
     readyGeneration_=value?generation:0;send(host_,"ready",{{"value",value}});return true;
 }
-bool LobbyCoordinator::acknowledgeLaunch(const QString& ticket,bool success) {return hosting()&&session_.acknowledgeLaunch(ticket,success);}
-bool LobbyCoordinator::finishGame(const QString& ticket) {return hosting()&&session_.finishGame(ticket);}
+bool LobbyCoordinator::recordLaunchResult(const QString& peer,const QString& ticket,bool success) {
+    const auto s=session_.state();if(s["phase"]!="launching"||ticket.isEmpty()||s["ticket"]!=ticket)return false;
+    bool player=false;for(const auto& m:s["members"].toArray())if(m.toObject()["id"]==peer&&m.toObject()["seat"].toInt()>0&&!m.toObject()["spectator"].toBool())player=true;
+    if(!player)return false;
+    if(!success)return session_.acknowledgeLaunch(ticket,false);
+    if(resultTicket_!=ticket) {resultTicket_=ticket;launchResults_.clear();}
+    launchResults_.insert(peer);
+    for(const auto& m:s["members"].toArray())if(!m.toObject()["spectator"].toBool()&&!launchResults_.contains(m.toObject()["id"].toString()))return true;
+    return session_.acknowledgeLaunch(ticket,true);
+}
+bool LobbyCoordinator::acknowledgeLaunch(const QString& ticket,bool success) {
+    if(hosting())return recordLaunchResult(self_,ticket,success);
+    if(!online_||ticket.isEmpty()||ticket!=launchTicket_||remote_["ticket"]!=ticket||remote_["phase"]!="launching")return false;
+    send(host_,"launch-result",{{"ticket",ticket},{"success",success}});return true;
+}
+bool LobbyCoordinator::finishGame(const QString& ticket) {
+    if(hosting())return session_.finishGame(ticket);
+    if(!online_||ticket.isEmpty()||ticket!=launchTicket_||remote_["ticket"]!=ticket||remote_["phase"]!="playing")return false;
+    send(host_,"game-finished",{{"ticket",ticket}});return true;
+}
 bool LobbyCoordinator::validState(const QJsonObject& s,const QString& host) {
+    if(!s["conversation"].toString().isEmpty()&&!identifier(s["conversation"].toString()))return false;
     if(s["owner"]!=host||s["revision"].toInteger()<1||s["generation"].toInteger()<1)return false;
     if(!QStringList{"choosing","gathering","launching","playing"}.contains(s["phase"].toString()))return false;
     const auto members=s["members"].toArray();if(members.isEmpty()||members.size()>32)return false;
@@ -166,6 +186,14 @@ void LobbyCoordinator::receive(QString peer,QString name,const QJsonObject& p) {
         seen_[peer]=now();
         if(kind=="leave") {session_.leave(peer);seen_.remove(peer);return;}
         if(kind=="ping") {session_.connected(peer,true);send(peer,"state",session_.state());return;}
+        if(kind=="launch-result"&&data["success"].isBool()) {recordLaunchResult(peer,data["ticket"].toString(),data["success"].toBool());return;}
+        if(kind=="game-finished") {
+            // A seated player may end their part of the current game, not a
+            // spectator or a delayed report from an earlier launch.
+            for(const auto& m:session_.state()["members"].toArray())if(m.toObject()["id"]==peer&&m.toObject()["seat"].toInt()>0)
+                session_.finishGame(data["ticket"].toString());
+            return;
+        }
         const auto generation=quint64(p["generation"].toInteger());
         if(kind=="seat") {
             if(!session_.claimSeat(peer,data["seat"].toInt(-1),generation))send(peer,"problem",{{"message","That controller is already taken or unavailable."}});
