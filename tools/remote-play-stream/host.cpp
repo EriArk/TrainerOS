@@ -201,9 +201,14 @@ struct Host {
     static GstFlowReturn sendSample(GstAppSink* sink,void* pointer) {
         auto& ctx=*static_cast<SendContext*>(pointer);auto sample=gst_app_sink_pull_sample(sink);if(!sample)return GST_FLOW_EOS;
         auto sendBuffer=[&](GstBuffer* buffer) {GstMapInfo map{};if(gst_buffer_map(buffer,&map,GST_MAP_READ)) {
-            if(ctx.video&&ctx.host->cfg.dropEvery&&map.size>=32) {
+            if(ctx.video&&(ctx.host->cfg.dropEvery||ctx.host->cfg.dropFrame)&&map.size>=32) {
                 moonlight::NV_VIDEO_PACKET packet{};memcpy(&packet,map.data+16,sizeof(packet));
-                if(le32toh(packet.frameIndex)%ctx.host->cfg.dropEvery==0&&((le32toh(packet.fecInfo)>>12)&0x3ff)==0) {
+                const auto frame=le32toh(packet.frameIndex);
+                // Drop the whole frame, including parity: FEC cannot conceal this loss.
+                const bool full=ctx.host->cfg.dropFrame && frame==ctx.host->cfg.dropFrame;
+                const bool single=ctx.host->cfg.dropEvery && frame%ctx.host->cfg.dropEvery==0
+                    && ((le32toh(packet.fecInfo)>>12)&0x3ff)==0;
+                if(full||single) {
                     ++ctx.host->dropped;gst_buffer_unmap(buffer,&map);return;
                 }
             }

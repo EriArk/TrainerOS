@@ -59,6 +59,10 @@ The host changes a test image's colour; it does not inject operating-system inpu
 The reported interval ends at the guest's decoded RGB sample, not at screen scanout.
 `drop_every=30` drops the first data packet of each thirtieth video frame to exercise
 the existing FEC; it does not simulate an internet connection or burst loss.
+`drop_frame=180` removes **every** packet of frame 180, including parity, so FEC
+cannot conceal the missing frame. It can be combined with `drop_every`.
+The guest logs received IDR frame numbers and the last accepted frame; require a
+new IDR and continued video/input after the loss, not just a successful event.
 
 For game video, set `mode=game` on both sides and use, in the host's graphical session:
 
@@ -101,10 +105,13 @@ See [the dated device results](../../docs/REMOTE_PLAY_TRANSPORT.md#парный-
 Actual capture/display, FEC and negative-key checks are separate from physical
 controller, game sound, complete recovery, WAN and product acceptance.
 
-The Flip hardware path still emits an unwanted bottom band and does not expose
-the force-keyframe control in the installed driver. A flag labelled keyframe is
-not proof of H.264 IDR; the host records actual SPS/IDR NAL counts. Do not hide these
-limitations by cropping the guest's output or repeatedly restarting an encoder.
+The original Flip kernel driver emits a bottom band and lacks requested-IDR
+support. The [maintained Iris fixes](../../packaging/kernel/iris/README.md) passed
+geometry and real requested-IDR checks on Flip/Odin and paired whole-frame loss
+recovery. They were loaded temporarily; they are not in the installed image.
+Odin module unload then hung and required recovery, recorded in
+[the device evidence](../../docs/ARMADA_IRIS_ENCODER.md). Do not repeat hot module
+replacement there. The host counts actual SPS/IDR NALs, not just keyframe flags.
 
 TrainerOS files: GPL-3.0-or-later. The fetched projects retain their licenses and
 per-file notices (Moonlight GPL-3.0, Wolf root MIT, separate plugin/dependency

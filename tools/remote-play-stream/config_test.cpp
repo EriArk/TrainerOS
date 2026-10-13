@@ -26,6 +26,10 @@ int main() {
     test(valid+"display=true\n",0600,false);
     test(valid+"mode=desktop\n",0600,false);
     test(valid+"drop_every=1\n",0600,false);
+    test(valid+"drop_frame=180\n",0600,true);
+    test(valid+"drop_frame=59\n",0600,false);
+    test(valid+"drop_frame=601\n",0600,false);
+    test(valid+"drop_frame=180tail\n",0600,false);
     test(valid+std::string(4096,'a'),0600,false);
     for(const auto value:{"0","4294967296","-1","1bad"}) {
         auto text=valid;text.replace(text.find("connect=1"),9,std::string("connect=")+value);

@@ -22,6 +22,7 @@ struct Guest {
     std::atomic<unsigned> frames{0},decoded{0},audioPackets{0},audioDecoded{0},audioPeak{0};
     std::atomic<int> currentColor{-1},pendingColor{-1};
     std::atomic<uint64_t> sentAt{0};
+    std::atomic<unsigned> lastVideoFrame{0},receivedIdrs{0};
     std::mutex measurementsLock;
     std::vector<double> roundtrips,decodeTimes;
     std::map<uint64_t,uint64_t> decodeStarts;
@@ -88,6 +89,11 @@ struct Guest {
     }
     static int submitVideo(PDECODE_UNIT du) {
         auto& g=*active;if(g.ended||!g.videoSource)return DR_OK;
+        g.lastVideoFrame=du->frameNumber;
+        if(du->frameType==FRAME_TYPE_IDR) {
+            ++g.receivedIdrs;
+            std::fprintf(stderr,"received_idr_frame=%d\n",du->frameNumber);
+        }
         if(du->fullLength<=0||du->fullLength>16*1024*1024)return DR_NEED_IDR;
         auto buffer=gst_buffer_new_allocate(nullptr,du->fullLength,nullptr);size_t pos=0;
         for(auto entry=du->bufferList;entry;entry=entry->next) {
@@ -167,6 +173,7 @@ int main(int argc,char** argv) {
         const double p50=n?g.roundtrips[(n-1)/2]:0,p95=n?g.roundtrips[std::min(n-1,size_t(n*.95))]:0;
         std::sort(g.decodeTimes.begin(),g.decodeTimes.end());
         const auto d=g.decodeTimes.size();
+        std::fprintf(stderr,"received_idrs=%u last_video_frame=%u\n",g.receivedIdrs.load(),g.lastVideoFrame.load());
         std::fprintf(stderr,"decode_samples=%zu decode_p50_ms=%.3f decode_p95_ms=%.3f\n",d,d?g.decodeTimes[(d-1)/2]:0,d?g.decodeTimes[std::min(d-1,size_t(d*.95))]:0);
         std::printf("{\"frames\":%u,\"decoded\":%u,\"audio_packets\":%u,\"audio_decoded\":%u,\"audio_peak\":%u,\"input_to_decoded_samples\":%zu,\"input_to_decoded_p50_ms\":%.3f,\"input_to_decoded_p95_ms\":%.3f,\"display_requested\":%s}\n",
             g.frames.load(),g.decoded.load(),g.audioPackets.load(),g.audioDecoded.load(),g.audioPeak.load(),n,p50,p95,cfg.display?"true":"false");

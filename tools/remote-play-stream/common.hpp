@@ -24,6 +24,7 @@ struct Config {
     bool display = false;
     bool game = false;
     unsigned dropEvery = 0;
+    unsigned dropFrame = 0;
     explicit Config(const char* path) {
         const int fd=open(path,O_RDONLY|O_CLOEXEC|O_NOFOLLOW|O_NONBLOCK);
         if(fd<0)throw std::runtime_error("Cannot open private configuration");
@@ -37,7 +38,7 @@ struct Config {
         if(length<1||length!=st.st_size||length>4096)throw std::runtime_error("Invalid configuration size");
         std::istringstream input(std::string(bytes,length));
         std::map<std::string, std::string> fields;
-        const std::set<std::string> allowed{"address","peer","key","ping","connect","seconds","display","mode","drop_every"};
+        const std::set<std::string> allowed{"address","peer","key","ping","connect","seconds","display","mode","drop_every","drop_frame"};
         for (std::string line; std::getline(input, line);) {
             auto pos = line.find('=');
             if (pos == std::string::npos || !allowed.count(line.substr(0,pos)) || !fields.emplace(line.substr(0,pos),line.substr(pos+1)).second)
@@ -69,6 +70,8 @@ struct Config {
         game=fields["mode"]=="game";
         if(fields.count("drop_every"))dropEvery=number("drop_every");
         if(dropEvery && (dropEvery<10||dropEvery>600))throw std::runtime_error("Invalid drop interval");
+        if(fields.count("drop_frame"))dropFrame=number("drop_frame");
+        if(dropFrame && (dropFrame<60||dropFrame>600))throw std::runtime_error("Invalid dropped frame");
     }
 };
 constexpr int RtspPort=49010, VideoPort=49011, AudioPort=49012, ControlPort=49013;

@@ -1,0 +1,29 @@
+Subject: [PATCH] media: qcom: iris: use visible encoder input size on gen1
+
+The V4L2 source format includes storage alignment (720 becomes 736 rows).
+HFI input frame size needs the visible dimensions retained by iris_venc,
+as in the gen2 encoder. Keep decoder configuration unchanged.
+
+On SM8250, a 1280x720 NV12 test compressed each 45-row band to 44 rows
+and appended 16 green rows. This correction restores all 15 boundaries.
+Base: Linux v7.2.6 + upstream 6f62dcefd249 + Armada fd0ed0f.
+License: GPL-2.0-only, matching the modified kernel source.
+
+diff --git a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+index 7674b47a..46785a65 100644
+--- a/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
++++ b/drivers/media/platform/qcom/iris/iris_hfi_gen1_command.c
+@@ -793,6 +796,13 @@ static int iris_hfi_gen1_set_resolution(struct iris_inst *inst, u32 plane)
+ 		fs.buffer_type = HFI_BUFFER_INPUT;
+ 		fs.width = inst->fmt_src->fmt.pix_mp.width;
+ 		fs.height = inst->fmt_src->fmt.pix_mp.height;
++		if (inst->domain == ENCODER) {
++			/* Storage dimensions include NV12 alignment padding. Firmware
++			 * needs the visible input dimensions, as on the gen2 path.
++			 */
++			fs.width = inst->enc_raw_width;
++			fs.height = inst->enc_raw_height;
++		}
+ 
+ 		ret = hfi_gen1_set_property(inst, ptype, &fs, sizeof(fs));
+ 		if (ret)

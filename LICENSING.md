@@ -31,6 +31,8 @@ The default software grant does not relicense separately supplied materials:
 - PokeAPI-derived reference data retains `data/licenses/PokeAPI.txt`.
 - Badge recreations retain the author/license/provenance in `assets/badges/`.
 - The Dolphin patch/bridge and its reusable copy retain GPL-2.0-or-later.
+- The separately built Linux Iris kernel patches retain GPL-2.0-only; see
+  [their source and license record](packaging/kernel/iris/README.md).
 - External libraries, engines, emulator sources/binaries and dependencies keep
   their upstream licenses, whether installed separately or included in an image.
 - Artwork, sprites, screenshots, audio, game media, game names, character designs
