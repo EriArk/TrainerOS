@@ -59,6 +59,12 @@ relicensed by sharing an image or being launched by TrainerOS.
 
 ## License text provenance
 
+The isolated Remote Play socket transport links pinned libdatachannel/libjuice
+(MPL-2.0), usrsctp (its BSD notices) and plog (MIT). Exact revisions and preserved
+notices are in [its build record](tools/remote-play-stream/transport/README.md).
+The development helper does not add those components to the ordinary shell or
+clear the release/image redistribution gate.
+
 The optional Gamescope capture companion retains upstream BSD-2-Clause and the
 reused punktfunk patch's MIT notice in `tools/gamescope-capture/`. Its pinned
 sources, bounded patch and build/install recipe are recorded there. It is not

@@ -7,6 +7,11 @@ server, pairing UI, application runner or desktop control is
 included. There is deliberately no root build dependency or `install()` target.
 The game probe can create one explicitly permitted Inputtino virtual controller.
 
+The separate [automatic socket transport gate](transport/README.md) now checks
+ICE/DTLS, encrypted fresh session material and Moonlight interoperability without
+manual IP/key delivery. It remains a diagnostic integration candidate; live
+lobby signaling, TURN provisioning and the full product launch are still open.
+
 On the reviewed Armada baseline, safe capture teardown also requires the
 [Gamescope buffer lifetime repair](../gamescope-capture/README.md). The shared
 capture helper returns PipeWire buffers before writing to a bounded nonblocking

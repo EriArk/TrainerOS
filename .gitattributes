@@ -7,3 +7,6 @@ packaging/kernel/iris/0001-upstream-request-keyframe.patch whitespace=-blank-at-
 # Preserve the reused patch's trailing context and the upstream license text.
 tools/gamescope-capture/0001-pipewire-buffer-association.patch whitespace=-blank-at-eol,-space-before-tab,-blank-at-eof
 tools/gamescope-capture/LICENSE.gamescope text eol=lf whitespace=-blank-at-eof
+# Preserve downloaded dependency notices, including the MPL text's upstream space.
+tools/remote-play-stream/transport/licenses/* -text
+tools/remote-play-stream/transport/licenses/lib*.LICENSE whitespace=-blank-at-eol
