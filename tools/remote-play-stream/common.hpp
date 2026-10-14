@@ -64,7 +64,7 @@ struct Config {
         };
         connect=number("connect");
         if (fields.count("seconds")) {auto value=number("seconds");if(value>120)throw std::runtime_error("Invalid lifetime");seconds=value;}
-        if (seconds<5 || seconds>120 || connect==0) throw std::runtime_error("Invalid lifetime");
+        if ((seconds<5&&!(seconds==0&&fields["mode"]=="game")) || seconds>120 || connect==0) throw std::runtime_error("Invalid lifetime");
         if(fields.count("display")&&fields["display"]!="0"&&fields["display"]!="1")throw std::runtime_error("Invalid display");
         if(fields.count("sound")&&fields["sound"]!="0"&&fields["sound"]!="1")throw std::runtime_error("Invalid sound");
         if(fields.count("mode")&&fields["mode"]!="synthetic"&&fields["mode"]!="game")throw std::runtime_error("Invalid source mode");

@@ -57,7 +57,7 @@ target_link_libraries(stream_guest PRIVATE moonlight-common-c PkgConfig::GST Pkg
 foreach(target stream_host stream_guest)
   target_link_options(${target} PRIVATE -Wl,--as-needed)
 endforeach()
-# Deliberately no install() and no dependency from the TrainerOS application.
+# Separate manifest bundle via package.py; no media-library link in the shell.
 include(CTest)
 if(BUILD_TESTING)
   add_executable(stream_port_fixture port_fixture.cpp)

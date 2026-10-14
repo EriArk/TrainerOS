@@ -2,6 +2,8 @@
 // coordinator, provider and recovery journal; never exports account credentials.
 #include "features/social/SocialController.h"
 #include "features/adventure/RuntimeMultiplayer.h"
+#include "features/adventure/RemotePlayRuntime.h"
+#include "core/input/ControllerInput.h"
 #include "features/adventure/AdventureExitPresentation.h"
 #include "core/navigation/AdventureLaunchController.h"
 #include <QGuiApplication>
@@ -29,6 +31,7 @@ int main(int argc,char** argv) {
     QCommandLineParser parser;parser.addHelpOption();parser.addOption({"owner","Existing local test Trainer ID (shell must be stopped).","id"});
     parser.addOption({"frame-output","Save one received frame as private diagnostic evidence.","path"});
     parser.addOption({"rom","Owner-supplied NES test game, using isolated NetPlay progress.","path"});
+    parser.addOption({"remote-play","Use the installed Remote Play service and no guest ROM."});
     parser.addOption({"runtime-config","Local RetroArch installation JSON.","path"});parser.process(app);
     if(parser.value("owner").isEmpty())return 2;
     trainer::SocialController social;QByteArray last,input;
@@ -39,6 +42,18 @@ int main(int argc,char** argv) {
     trainer::ProcessService process;trainer::AdventureLaunchController lifecycle(process);
     trainer::AdventureExitPresentation overlay(lifecycle.exitController());
     trainer::RuntimeMultiplayer runtime(library,adapter,psp,dolphin,social,process,lifecycle,overlay);
+    trainer::ControllerInput controller;
+    trainer::RemotePlayRuntime remote(library,adapter,social,process,lifecycle,runtime.gamePreparation());
+    QString remoteError;
+    if(parser.isSet("remote-play")) {
+        if(!remote.configure("/var/opt/traineros/integrations/remote-play"))return 4;
+        remote.allowed=[]{return true;};remote.ownerDevice=[&]{return controller.kernelDeviceName();};
+        remote.hostSupported=[&](const QJsonObject& profile){return runtime.supportsLive(profile);};
+        remote.requestGuestLaunch=[&](const trainer::ProcessCommand& command,const QString& id){return trainer::AdventureResult{lifecycle.launch(command,{},id),lifecycle.error()};};
+        runtime.additionalLobbyGames=[&](const QMap<QString,QJsonObject>& profiles){return remote.choices(profiles);};
+        social.lobbyRuntime()->registerService("remoteplay.v1",&remote);
+        QObject::connect(&remote,&trainer::RemotePlayRuntime::notice,&app,[&](QString text){remoteError=text;});
+    }
     QObject::connect(&lifecycle,&trainer::AdventureLaunchController::checkpointRequested,&app,[&](quint64 token,const QJsonObject&){lifecycle.checkpointCompleted(token,{});});
     adapter.requestLaunch=[&](const trainer::ProcessCommand& command,const QString& id){return trainer::AdventureResult{lifecycle.launch(command,{},id,trainer::AdventureSavePolicy::ManualConfirm),lifecycle.error()};};
     if(!parser.value("rom").isEmpty()) {
@@ -76,6 +91,7 @@ int main(int argc,char** argv) {
             {"process",process.processId()},{"gameState",lifecycle.state()},{"gameError",lifecycle.error()},
             {"availableGames",QJsonArray::fromStringList(runtime.onlineGames())},{"liveAvailable",social.lobbyRuntime()->liveAvailable()},
             {"preparation",social.lobbyPreparationStatus()},{"gameEvents",QJsonArray::fromStringList(netplayEvents)},
+            {"remoteError",remoteError},
             {"contacts",QJsonObject::fromVariantMap(account["temporaryContacts"].toMap())},
             {"recent",QJsonArray::fromVariantList(social.recentPeople())},{"chatStatus",social.lobbyChatStatus()},
             {"notice",social.toastText()},{"status",account["status"].toString()}}).toJson(QJsonDocument::Compact);
@@ -98,7 +114,8 @@ int main(int argc,char** argv) {
             else if(op=="remove")room->remove(command["peer"].toString());
             else if(op=="reconnect")room->reconnect();
             else if(op=="lobby")social.openLobby();
-            else if(op=="select-game")social.lobbyAction("game:l06-pong");
+            else if(op=="select-game")social.lobbyAction(parser.isSet("remote-play")?"game:l06-pong:remoteplay":"game:l06-pong");
+            else if(op=="close-remote")process.runtimeCommand("remoteplay-close");
             else if(op=="allow-live")social.lobbyRuntime()->setLiveJoining(command["enabled"].toBool());
             else if(op=="prepare-game")social.lobbyRuntime()->prepare();
             else if(op=="ready-game")room->ready(true);

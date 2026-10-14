@@ -1,6 +1,7 @@
 #include "adapters/pokemon/PokemonExperience.h"
 #include "core/PerformanceTrace.h"
 #include "integrations/achievements/TrainerAchievementProvider.h"
+#include "features/adventure/RemotePlayRuntime.h"
 #include "features/adventure/RuntimeMultiplayer.h"
 #include "integrations/achievements/RetroArchAchievementSession.h"
 #include "platform/emulation/EmulatorDiscovery.h"
@@ -476,6 +477,14 @@ int main(int argc, char* argv[]) {
         QString pendingNotification;
         if(saveBackups)saveBackups->operationGuard=[&]{return adventureLaunch.active()?QString("Exit the running game before changing saves."):QString();};
         RuntimeMultiplayer multiplayer(activeLibrary,retroarch,ppsspp,dolphin,*shell.social(),adventureProcess,adventureLaunch,exitPresentation);
+        RemotePlayRuntime remotePlay(activeLibrary,retroarch,*shell.social(),adventureProcess,adventureLaunch,multiplayer.gamePreparation());
+        remotePlay.allowed=[&]{return personalLibrary&&!smoke&&!session.blocked()&&!(saveBackups&&saveBackups->busy())&&!pokemonModule(shell).party()->activities()->link()->active();};
+        remotePlay.hostSupported=[&](const QJsonObject& profile){return multiplayer.supportsLive(profile);};
+        if(personalLibrary&&!smoke&&remotePlay.configure("/var/opt/traineros/integrations/remote-play")) {
+            shell.social()->lobbyRuntime()->registerService("remoteplay.v1",&remotePlay);
+            multiplayer.additionalLobbyGames=[&](const QMap<QString,QJsonObject>& profiles){return remotePlay.choices(profiles);};
+        }
+        QObject::connect(&remotePlay,&RemotePlayRuntime::notice,&shell,&ShellController::showNotice);
         if(personalLibrary&&!smoke) {
             multiplayer.saveBackupRoot=QDir(stateDirectory).filePath("backups");
             multiplayer.resolveSaveTarget=[saveRuntimes](const AdventureRegistration& record) {
@@ -588,6 +597,7 @@ int main(int argc, char* argv[]) {
                 QString title = "Adventure";
                 for (const auto& adventure : activeLibrary.adventures())
                     if (adventure.id == id) { title = adventure.title; break; }
+                if(adventureProcess.runtimeControls()["kind"]=="remoteplay")title=adventureProcess.runtimeControls()["title"].toString()+" · Remote Play";
                 exitPresentation.setGameTitle(title);
             });
 #ifdef Q_OS_LINUX
@@ -769,6 +779,7 @@ int main(int argc, char* argv[]) {
                 && !shell.settings()->storage()->busy() && !(saveBackups && saveBackups->busy());
         };
         ControllerInput input(nullptr, preferred);
+        remotePlay.ownerDevice=[&]{return input.kernelDeviceName();};
         const auto updateTextInput=[&]{input.setTextEntryEnabled(shell.keyboard()->isOpen()&&(playerOverlay.chatOpen()?exitPresentation.ready():!shell.menuOpen()&&shell.notice().isEmpty()&&!shell.homeMenuOpen()));};
         QObject::connect(&shell,&ShellController::changed,&input,updateTextInput);
         QObject::connect(shell.keyboard(),&TextEntryController::changed,&input,updateTextInput);
@@ -938,6 +949,7 @@ int main(int argc, char* argv[]) {
                 ppsspp.requestLaunch = requestAdventure;
                 armsx2.requestLaunch = requestAdventure;
                 multiplayer.requestRuntimeLaunch = requestAdventure;
+                remotePlay.requestGuestLaunch = requestAdventure;
                 QObject::connect(&adventureLaunch, &AdventureLaunchController::changed, &session, [&] {
                     session.setAdventureActive(adventureLaunch.active());
                     session.setAdventureMinimized(adventureLaunch.minimized());

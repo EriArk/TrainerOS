@@ -36,6 +36,7 @@ public:
     // Only the runtime coordinator acknowledges/finishes the pending launch.
     bool acknowledgeLaunch(const QString& ticket,bool success);
     bool finishGame(const QString& ticket);
+    bool finishPlayer(const QString& peer,const QString& ticket);
     bool setLiveJoining(const QString& actor,bool enabled);
     int liveSeat(const QString& peer) const;
     bool admitLive(const QString& peer,const QString& token,int seat);

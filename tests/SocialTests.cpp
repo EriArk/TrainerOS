@@ -292,6 +292,16 @@ private slots:
         QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),"b");
         c.openLobbyForGame("missing");QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),"b");
     }
+    void gameContextOffersNativeAndRemoteModesWithoutChangingTheRoom() {
+        SocialController c;c.receive(0,{{"state","connected"},{"userId","1"},{"name","Host"}});
+        c.setLobbyGames({QVariantMap{{"key","a"},{"id","native"},{"title","Game"},{"platform","nes"},{"mode","netplay"},{"seats",2}},
+            QVariantMap{{"key","a:remoteplay"},{"adventure","a"},{"id","remote"},{"title","Game"},{"platform","nes"},{"mode","remoteplay.v1"},{"modeLabel","Remote Play"},{"seats",2}}});
+        c.openLobbyForGame("a");const auto room=c.lobby_.state()["id"].toString();
+        QVERIFY(c.lobby_.state()["game"].toObject()["id"].toString().isEmpty());QCOMPARE(c.menuTitle_,"How to play");
+        QCOMPARE(c.menuCommands_,QStringList({"lobby:game:a","lobby:game:a:remoteplay"}));c.selectMenu(1);
+        QCOMPARE(c.lobby_.state()["game"].toObject()["mode"].toString(),"remoteplay.v1");
+        c.openLobbyForGame("a");QCOMPARE(c.lobby_.state()["id"].toString(),room);QCOMPARE(c.lobby_.state()["game"].toObject()["id"].toString(),"remote");
+    }
     void lobbyConversationCreatesOnceAndAddsMembersWithoutTouchingVoice() {
         FluxerSession s;int creates=0,adds=0;const auto room=QUuid::createUuid().toString(QUuid::WithoutBraces);
         QJsonObject group{{"id",channel},{"type",3},{"recipients",QJsonArray{QJsonObject{{"id",remote}}}}};

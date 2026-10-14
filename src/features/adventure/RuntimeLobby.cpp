@@ -66,19 +66,12 @@ void RuntimeMultiplayer::prepare(QString operation,QJsonObject context,Completio
     lobbyOperation_=operation;lobbyContext_=context;lobbyGame_=local;lobbyDescriptor_=profile;
     lobbyRevision_=record->revision;lobbyPath_=record->contentPath;
     if(lifecycle_.active()) {
-        if(lifecycle_.state()!="running"||!lifecycle_.exitController().available()) {done(false,"Game controls are temporarily unavailable. Save first and try again.");return;}
-        lobbyPreparation_=std::move(done);lobbyProcess_=process_.processId();lobbyAccount_=social_.accountGeneration();
-        if(overlay_.menuOpen()&&!lifecycle_.minimized())showLobbyExit();else emit invitationOptionsRequested();
-        return;
+        preparation_.prepare(operation,[this,operation,context,done](bool ok,QString error){
+            if(operation!=lobbyOperation_)return;
+            if(ok)prepare(operation,context,done);else done(false,error);
+        });return;
     }
     done(true,{});
-}
-void RuntimeMultiplayer::showLobbyExit() {
-    if(!lobbyPreparation_||lobbyExiting_||!overlay_.menuOpen()||!overlay_.ready()||lifecycle_.minimized())return;
-    if(overlay_.panel()=="lobby-prepare")return;
-    overlay_.setPanel("lobby-prepare","Save in your current game before preparing the lobby. Closing the game keeps the lobby open.",
-        {QVariantMap{{"id","multiplayer-lobby-saved:"+lobbyOperation_},{"label","Saved — prepare game"}},
-         QVariantMap{{"id","multiplayer-lobby-later:"+lobbyOperation_},{"label","Keep playing"}}},"multiplayer-lobby-later:"+lobbyOperation_);
 }
 void RuntimeMultiplayer::launch(QString operation,QString ticket,QJsonObject context,Completion done) {
     const auto record=library_.registration(lobbyGame_);
@@ -97,9 +90,8 @@ void RuntimeMultiplayer::launch(QString operation,QString ticket,QJsonObject con
 }
 void RuntimeMultiplayer::cancel(QString operation) {
     if(operation!=lobbyOperation_)return;
-    const bool wasExiting=lobbyExiting_;lobbyExiting_=false;lobbyPreparation_={};
+    preparation_.cancel(operation);
     lobbyOperation_.clear();lobbyContext_={};lobbyGame_.clear();lobbyDescriptor_={};lobbyCompletion_={};lobbyTicket_.clear();
-    if(wasExiting)lifecycle_.exitController().cancel();
     if(overlay_.panel()=="lobby-prepare")overlay_.dismissMenu();
     // A live owned process is closed only through the established Home/save flow.
     if(active_)fail("The lobby game changed. Use Home to close the current game safely.");

@@ -22,6 +22,8 @@ int main() {
     test(valid+"seconds=999999999999999999\n",0600,false);
     test(valid+"seconds=10suffix\n",0600,false);
     test(valid+"seconds=4\n",0600,false);
+    test(valid+"seconds=0\n",0600,false);
+    test(valid+"seconds=0\nmode=game\n",0600,true);
     test(valid+"seconds=121\n",0600,false);
     test(valid+"display=true\n",0600,false);
     test(valid+"sound=1\n",0600,true);

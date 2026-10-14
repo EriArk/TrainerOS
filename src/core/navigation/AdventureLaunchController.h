@@ -19,6 +19,9 @@ public:
     bool preparing() const { return state_ == "preparing" || state_ == "starting"; }
     bool minimized() const { return state_ == "running" && minimized_; }
     QString adventureId() const { return adventureId_; }
+    // A locally admitted remote client can share the lifecycle without claiming
+    // a local library entry, local progress or achievement-eligible playtime.
+    bool recordsLocalHistory() const {return command_.runtimeControls.value("recordHistory",true).toBool();}
     // Called only after the platform has confirmed exclusive input ownership.
     bool setMinimized(bool minimized);
     void updateReturnContext(const QJsonObject& context) { if(minimized()) context_=context; }

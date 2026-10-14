@@ -1,16 +1,24 @@
-# Isolated Remote Play interoperability probe
+# Minimal Remote Play runtime and interoperability checks
 
-Developer tooling for [L07](../../docs/REMOTE_PLAY_TRANSPORT.md), not an installed
-TrainerOS feature. Linux ARM64, GStreamer 1.28.8 and the handheld V4L2 codecs were
+The managed [lobby route](../../docs/REMOTE_PLAY_LOBBY.md) and bounded diagnostic
+mode share these components. Linux ARM64, GStreamer 1.28.8 and the handheld V4L2 codecs were
 used for the recorded checks. No full Moonlight/Sunshine/Wolf application, HTTP
 server, pairing UI, application runner or desktop control is
 included. There is deliberately no root build dependency or `install()` target.
-The game probe can create one explicitly permitted Inputtino virtual controller.
+The host creates one explicitly permitted Inputtino virtual controller.
 
 The separate [automatic socket transport gate](transport/README.md) now checks
 ICE/DTLS, encrypted fresh session material and Moonlight interoperability without
-manual IP/key delivery. It remains a diagnostic integration candidate; live
-lobby signaling, TURN provisioning and the full product launch are still open.
+manual IP/key delivery. Private lobby signaling and the launch/return coordinator
+are connected; TURN provisioning, WAN acceptance, rejoining and more guests remain open.
+
+`package.py` assembles the separate reviewed bundle, its manifest and third-party
+notices. The ordinary shell accepts it only after file verification. Managed game
+sessions use `mode=game, seconds=0`; their parent and lobby own their lifetime.
+Diagnostic lifetimes remain 5–120 seconds. No synthetic input is sent in game mode.
+The managed guest owns an SDL window, obeys Home/close, waits for the host's media
+readiness and requires neutral input after focus returns. See the linked route
+document for actual device evidence and the retained Iris/WAN limitations.
 
 On the reviewed Armada baseline, safe capture teardown also requires the
 [Gamescope buffer lifetime repair](../gamescope-capture/README.md). The shared

@@ -41,6 +41,9 @@ public:
     bool hosting() const;
     bool acknowledgeLaunch(const QString& ticket,bool success);
     bool finishGame(const QString& ticket);
+    // Private runtime signaling only; never included in snapshots/checkpoints.
+    // Provider authenticates peer; the runtime additionally binds connection ID.
+    bool sendRuntimeSignal(const QString& peer,const QString& ticket,const QString& connection,const QJsonObject& payload);
     bool setLiveJoining(bool enabled);
     bool requestLive(QString operation);
     void cancelLive(QString operation);
@@ -54,6 +57,7 @@ signals:
     void liveLaunchRequested(QString operation,QString ticket,QJsonObject party);
     void liveJoinFailed(QString operation);
     void liveReleased(QString peer,QString operation);
+    void runtimeSignal(QString peer,QString ticket,QString connection,QJsonObject payload);
     void notice(QString message);
 private:
     friend class LobbyTests;
@@ -68,6 +72,8 @@ private:
     QString liveOperation_;
     QSet<QString> launchResults_;
     static bool validState(const QJsonObject& state,const QString& host);
+    bool runtimePeer(const QString& peer,const QString& ticket) const;
+    void receiveRuntimeSignal(const QString& peer,const QJsonObject& packet);
     LobbySession session_{this};
     QTimer heartbeat_{this};
     QString self_,name_,host_,joining_,launchTicket_,finishedTicket_;

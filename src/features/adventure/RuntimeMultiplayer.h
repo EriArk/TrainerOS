@@ -2,6 +2,7 @@
 #include "core/input/Action.h"
 #include "GameParty.h"
 #include "HotseatHandoff.h"
+#include "LobbyGamePreparation.h"
 #include "features/social/LobbyRuntime.h"
 #include "core/model/GamePlayers.h"
 #include "integrations/adventure/retroarch/RetroArchNetplay.h"
@@ -36,6 +37,8 @@ public:
     RuntimeMultiplayer(LibraryRepository&, RetroArchAdapter&, StandaloneAdapter&, StandaloneAdapter&, SocialController&,
                        ProcessService&, AdventureLaunchController&, AdventureExitPresentation&);
     ~RuntimeMultiplayer() override;
+    LobbyGamePreparation& gamePreparation() {return preparation_;}
+    std::function<QVariantList(const QMap<QString,QJsonObject>&)> additionalLobbyGames;
     void refresh(const RetroArchInstallation&,QString trainer,bool allowed);
     void prepare(QString operation,QJsonObject context,Completion done) override;
     void launch(QString operation,QString ticket,QJsonObject context,Completion done) override;
@@ -125,6 +128,7 @@ private:
     rmg::Lobby::Request rmgRequest_;
     bool rmgPreparing_=false;
     ProcessService& process_;AdventureLaunchController& lifecycle_;AdventureExitPresentation& overlay_;
+    LobbyGamePreparation preparation_;
     LocalLinkPeer nearby_{this,47855,47856,"trainerosRuntime",true};
     GameParty party_{this};
     HotseatHandoff handoff_{this};
@@ -167,12 +171,7 @@ private:
     QString lobbyOperation_,lobbyTicket_,lobbyGame_;
     QJsonObject lobbyContext_,lobbyDescriptor_;
     Completion lobbyCompletion_;
-    Completion lobbyPreparation_;
-    bool lobbyExiting_=false;
-    qint64 lobbyProcess_=0;
-    quint64 lobbyAccount_=0;
     int lobbyRevision_=0;
     QString lobbyPath_;
-    void showLobbyExit();
 };
 }

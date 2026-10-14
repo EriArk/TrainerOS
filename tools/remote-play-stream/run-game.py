@@ -24,6 +24,7 @@ def main():
     lobby = LobbyLease(int(lobby_fd)) if lobby_fd is not None else None
     sys.path.insert(0, '/var/opt/traineros/integrations')
     from game_capture import GameCapture
+    from overlay_support import identity
     game=None
     here = Path(__file__).resolve().parent
     children = []
@@ -32,7 +33,14 @@ def main():
         raise KeyboardInterrupt
     signal.signal(signal.SIGTERM, stop)
     try:
-        game=GameCapture(int(sys.argv[1]))
+        pid=int(sys.argv[1]);start=identity(pid);deadline=time.monotonic()+15
+        while game is None:
+            if identity(pid)!=start:raise RuntimeError('Owned game ended before capture')
+            if lobby is not None:lobby.current()
+            try:game=GameCapture(pid)
+            except RuntimeError as error:
+                if str(error)!='Game capture unavailable' or time.monotonic()>=deadline:raise
+                time.sleep(.05)
         for name in ('capture-game.py', 'capture-game-audio.py'):
             child = subprocess.Popen([sys.executable, str(here / name), sys.argv[1]],
                                      stdin=subprocess.DEVNULL, stdout=subprocess.PIPE)

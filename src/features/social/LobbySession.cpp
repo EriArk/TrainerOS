@@ -159,6 +159,15 @@ bool LobbySession::finishGame(const QString& ticket) {
     for(auto& m:members_) {m.prepared=false;m.ready=false;m.admission.clear();}
     publish();return true;
 }
+bool LobbySession::finishPlayer(const QString& peer,const QString& ticket) {
+    if(phase_!="playing"||ticket.isEmpty()||ticket!=ticket_||!members_.contains(peer))return false;
+    auto& member=members_[peer];
+    if(member.seat<1||member.spectator||!member.admission.isEmpty())return false;
+    if(game_.mode!="remoteplay.v1"||peer==owner_)return finishGame(ticket);
+    // A remote guest owns their controller, never the host's emulator lifetime.
+    member.seat=0;member.spectator=true;member.ready=member.prepared=false;
+    publish();return true;
+}
 bool LobbySession::setLiveJoining(const QString& actor,bool enabled) {
     if(!host(actor)||game_.id.isEmpty()||phase_=="launching")return false;
     if(liveJoining_==enabled)return true;

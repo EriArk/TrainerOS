@@ -3,6 +3,7 @@
 #include <QJsonArray>
 #include <QSet>
 #include <QUuid>
+#include <QJsonDocument>
 
 namespace trainer {
 namespace {
@@ -28,6 +29,31 @@ LobbyCoordinator::LobbyCoordinator(QObject* parent):QObject(parent) {
     connect(&session_,&LobbySession::launchRequested,this,&LobbyCoordinator::launchRequested);
 }
 bool LobbyCoordinator::hosting() const {return session_.state()["phase"]!="closed"&&session_.state()["owner"]==self_;}
+bool LobbyCoordinator::runtimePeer(const QString& peer,const QString& ticket) const {
+    const auto s=state();
+    if(!online_||recoveryUncertain()||s["recovering"].toBool()||!s["connection"].toString().isEmpty()
+       ||ticket.isEmpty()||s["ticket"]!=ticket||(s["phase"]!="launching"&&s["phase"]!="playing")
+       ||peer==self_||(s["owner"]!=self_&&s["owner"]!=peer))return false;
+    bool mine=false,theirs=false;
+    for(const auto& v:s["members"].toArray()) {
+        const auto m=v.toObject();const bool player=m["connected"].toBool()&&!m["spectator"].toBool()&&m["seat"].toInt()>0;
+        if(m["id"]==self_)mine=player;
+        if(m["id"]==peer)theirs=player;
+    }
+    return mine&&theirs;
+}
+bool LobbyCoordinator::sendRuntimeSignal(const QString& peer,const QString& ticket,const QString& connection,const QJsonObject& payload) {
+    if(!runtimePeer(peer,ticket)||QUuid(connection).isNull()||payload.isEmpty()
+       ||QJsonDocument(payload).toJson(QJsonDocument::Compact).size()>20000)return false;
+    send(peer,"runtime-signal",{{"ticket",ticket},{"connection",connection},{"payload",payload}});return true;
+}
+void LobbyCoordinator::receiveRuntimeSignal(const QString& peer,const QJsonObject& packet) {
+    const auto data=packet["data"].toObject();const auto payload=data["payload"].toObject();
+    const auto ticket=data["ticket"].toString(),connection=data["connection"].toString();
+    if(data.size()!=3||packet["generation"]!=state()["generation"]||!runtimePeer(peer,ticket)
+       ||QUuid(connection).isNull()||payload.isEmpty()||QJsonDocument(payload).toJson(QJsonDocument::Compact).size()>20000)return;
+    emit runtimeSignal(peer,ticket,connection,payload);
+}
 QJsonObject LobbyCoordinator::state() const {
     if(hosting()) {auto s=session_.state();s["connection"]=online_?storageError_:QString("Reconnecting to communication…");return s;}
     if(remote_.isEmpty()&&!host_.isEmpty())return {{"id",joining_},{"owner",host_},{"phase","joining"}};
@@ -275,6 +301,7 @@ void LobbyCoordinator::receive(QString peer,QString name,const QJsonObject& p) {
         if(peerBoots_.value(peer)!=boot)return;
         peerSerials_[peer]=serial;
         seen_[peer]=now();
+        if(kind=="runtime-signal") {receiveRuntimeSignal(peer,p);return;}
         if(kind=="leave") {playRequests_.remove(peer);session_.leave(peer);seen_.remove(peer);return;}
         if(kind=="play-request"&&p["generation"]==session_.state()["generation"]) {
             for(const auto& v:session_.state()["members"].toArray())if(v.toObject()["id"]==peer&&v.toObject()["spectator"].toBool()) {
@@ -302,7 +329,7 @@ void LobbyCoordinator::receive(QString peer,QString name,const QJsonObject& p) {
             // A seated player may end their part of the current game, not a
             // spectator or a delayed report from an earlier launch.
             for(const auto& m:session_.state()["members"].toArray())if(m.toObject()["id"]==peer&&m.toObject()["seat"].toInt()>0&&m.toObject()["admission"].toString().isEmpty())
-                session_.finishGame(data["ticket"].toString());
+                session_.finishPlayer(peer,data["ticket"].toString());
             return;
         }
         const auto generation=quint64(p["generation"].toInteger());
@@ -318,6 +345,10 @@ void LobbyCoordinator::receive(QString peer,QString name,const QJsonObject& p) {
     const bool confirmed=!probe_.isEmpty()&&p["reply"]==probe_;
     const bool newBoot=peerBoots_.contains(peer)&&peerBoots_[peer]!=boot;
     if((newBoot||restoring_)&&!confirmed)return;
+    if(kind=="runtime-signal") {
+        if(peerBoots_.value(peer)!=boot)return;
+        peerSerials_[peer]=serial;receiveRuntimeSignal(peer,p);return;
+    }
     if(kind=="live-rejected"&&data["operation"]==liveOperation_) {
         peerSerials_[peer]=serial;const auto operation=liveOperation_;liveOperation_.clear();emit liveJoinFailed(operation);return;
     }

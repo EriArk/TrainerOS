@@ -5,6 +5,7 @@
 #include "features/social/LobbySession.h"
 #include "features/social/LobbyCoordinator.h"
 #include "features/social/LobbyRuntime.h"
+#include "features/social/LobbyConnection.h"
 #include "integrations/adventure/retroarch/RetroArchRemotePlay.h"
 #ifdef Q_OS_LINUX
 #include <sys/socket.h>
@@ -33,6 +34,50 @@ class LobbyTests final : public QObject {
         QVERIFY(l.claimSeat(peer,seat,l.generation()));QVERIFY(l.prepared(peer,l.generation(),true));
     }
 private slots:
+    void runtimeSignalingBindsPeerTicketGenerationAndKeepsSecretsOutOfState() {
+        LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
+        QJsonObject captured;
+        connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString peer,QJsonObject p){if(peer=="2")guest.receive("1","Host",p);});
+        connect(&guest,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){if(p["kind"]=="runtime-signal")captured=p;host.receive("2","Guest",p);});
+        QVERIFY(host.create("public"));auto selected=game();selected.mode="remoteplay.v1";QVERIFY(host.selectGame(selected));
+        QVERIFY(guest.join("1",host.state()["id"].toString()));
+        const auto generation=host.state()["generation"].toInteger();
+        QVERIFY(host.prepared(generation,true));QVERIFY(guest.prepared(generation,true));QVERIFY(host.ready(true));QVERIFY(guest.ready(true));
+        const auto ticket=host.state()["ticket"].toString(),connection=QUuid::createUuid().toString();
+        QSignalSpy received(&host,&LobbyCoordinator::runtimeSignal);
+        QVERIFY(!guest.sendRuntimeSignal("1","old",connection,{{"description","private-offer"}}));
+        QVERIFY(!guest.sendRuntimeSignal("3",ticket,connection,{{"description","private-offer"}}));
+        QVERIFY(guest.sendRuntimeSignal("1",ticket,connection,{{"description","private-offer"}}));QCOMPARE(received.size(),1);
+        QVERIFY(!QJsonDocument(host.state()).toJson().contains("private-offer"));
+        host.receive("2","Guest",captured);QCOMPARE(received.size(),1);
+        auto wrong=captured;wrong["serial"]=qint64(captured["serial"].toInteger()+1);wrong["generation"]=qint64(generation+1);
+        host.receive("2","Guest",wrong);QCOMPARE(received.size(),1);
+        ++guest.serial_; // The injected packet consumed this sender's next serial.
+        QVERIFY(host.acknowledgeLaunch(ticket,true));QVERIFY(guest.acknowledgeLaunch(ticket,true));
+        QVERIFY(guest.finishGame(ticket));QCOMPARE(host.state()["phase"].toString(),"playing");QCOMPARE(host.state()["ticket"].toString(),ticket);
+        QVERIFY(!guest.sendRuntimeSignal("1",ticket,connection,{{"description","late"}}));
+        guest.send("1","game-finished",{{"ticket",ticket}});QCOMPARE(host.state()["phase"].toString(),"playing");
+        QVERIFY(host.finishGame(ticket));QCOMPARE(host.state()["phase"].toString(),"gathering");
+    }
+    void realLobbyConnectionOwnsHelperAndRevokesOnGuestRemoval() {
+        const auto helper=qEnvironmentVariable("TRAINEROS_STREAM_TRANSPORT");if(helper.isEmpty())QSKIP("Real Linux transport supplied by the ARM integration check");
+        LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
+        connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString peer,QJsonObject p){if(peer=="2")guest.receive("1","Host",p);});
+        connect(&guest,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){host.receive("2","Guest",p);});
+        LobbyConnection hc(host),gc(guest);QSignalSpy hr(&hc,&LobbyConnection::connected),gr(&gc,&LobbyConnection::connected),ended(&hc,&LobbyConnection::ended),media(&gc,&LobbyConnection::mediaReady);
+        connect(&host,&LobbyCoordinator::launchRequested,&hc,[&](QString ticket,QJsonObject){QVERIFY(hc.start("1",ticket,helper));});
+        connect(&guest,&LobbyCoordinator::launchRequested,&gc,[&](QString ticket,QJsonObject){QVERIFY(gc.start("2",ticket,helper));});
+        QVERIFY(host.create("public"));auto selected=game();selected.mode="remoteplay.v1";QVERIFY(host.selectGame(selected));
+        QVERIFY(guest.join("1",host.state()["id"].toString()));const auto gen=host.state()["generation"].toInteger();
+        QVERIFY(host.prepared(gen,true));QVERIFY(guest.prepared(gen,true));QVERIFY(host.ready(true));QVERIFY(guest.ready(true));
+        QTRY_COMPARE_WITH_TIMEOUT(hr.size(),1,15000);QTRY_COMPARE_WITH_TIMEOUT(gr.size(),1,15000);QCOMPARE(hc.id(),gc.id());
+        const auto hostFile=hr[0][0].toString(),guestFile=gr[0][0].toString();QFile file(hostFile);QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto config=file.readAll();QVERIFY(config.contains("mode=game\n"));QVERIFY(config.contains("seconds=0\n"));file.close();
+        const auto ticket=host.state()["ticket"].toString();QVERIFY(host.acknowledgeLaunch(ticket,true));QVERIFY(guest.acknowledgeLaunch(ticket,true));
+        QVERIFY(hc.announceMedia());QCOMPARE(media.size(),1);
+        QVERIFY(host.remove("2"));QCOMPARE(ended.size(),1);QVERIFY(!hc.active());QTRY_VERIFY(!gc.active());
+        QVERIFY(!QFile::exists(hostFile));QVERIFY(!QFile::exists(guestFile));QCOMPARE(host.state()["phase"].toString(),"playing");
+    }
     void remoteInputRequiresPlayingRemoteModeAndAssignedGuest() {
         LobbyCoordinator host;host.configure("1","Host",true);QVERIFY(host.create("public"));
         auto selected=game();selected.mode="remoteplay.v1";QVERIFY(host.selectGame(selected));

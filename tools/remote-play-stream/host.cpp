@@ -34,6 +34,8 @@ struct Host {
     std::atomic<bool> stop{false}, play{false}, authenticated{false};
     std::atomic<unsigned> inputs{0}, rejected{0}, idrs{0}, videoPackets{0}, audioPackets{0};
     std::atomic<unsigned> dropped{0}, encodedIdrs{0}, encodedSps{0};
+    std::atomic<int> listeners{0};
+    void listening() {if(++listeners==4&&cfg.game){std::puts("{\"event\":\"ready\"}");std::fflush(stdout);}}
     std::mutex mediaLock;
     GstElement* video=nullptr;
     int audioFd=-1;
@@ -69,6 +71,7 @@ struct Host {
     }
     void rtsp() {
         int server=socketAt(SOCK_STREAM,RtspPort);listen(server,4);
+        listening();
         while(!stop) {
             pollfd p{server,POLLIN,0};if(poll(&p,1,100)<=0)continue;
             sockaddr_in peer{};socklen_t length=sizeof(peer);
@@ -142,6 +145,7 @@ struct Host {
         ENetAddress addr{};enet_address_set_host(&addr,cfg.address.c_str());enet_address_set_port(&addr,ControlPort);
         auto host=enet_host_create(AF_INET,&addr,1,0,0,0);
         if(!host)throw std::runtime_error("ENet host failed");
+        listening();
         uint32_t highest=0;uint64_t seen=0;bool haveSequence=false;
         while(!stop) {
             if(remote)remote->tick(monotonicNs());
@@ -260,6 +264,7 @@ struct Host {
     }
     void media(bool audio) {
         int fd=socketAt(SOCK_DGRAM,audio?AudioPort:VideoPort);sockaddr_in destination{};bool ready=false;
+        listening();
         while(!stop&&!ready) {pollfd p{fd,POLLIN,0};if(poll(&p,1,100)<=0)continue;
             char ping[128];socklen_t size=sizeof(destination);auto got=recvfrom(fd,ping,sizeof(ping),0,reinterpret_cast<sockaddr*>(&destination),&size);
             ready=got>=16 && expected(destination) && memcmp(ping,cfg.ping.data(),16)==0;
@@ -323,7 +328,7 @@ int main(int argc,char** argv) {
         auto guarded=[&](auto fn){try{fn();}catch(const std::exception& e){std::fprintf(stderr,"host error: %s\n",e.what());host.stop=true;}};
         std::thread rtsp([&]{guarded([&]{host.rtsp();});}),control([&]{guarded([&]{host.control();});});
         std::thread video([&]{guarded([&]{host.media(false);});}),audio([&]{guarded([&]{host.media(true);});});
-        for(int n=0;n<cfg.seconds*10&&!host.stop;++n)std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        for(uint64_t n=0;(!cfg.seconds||n<uint64_t(cfg.seconds)*10)&&!host.stop;++n)std::this_thread::sleep_for(std::chrono::milliseconds(100));
         host.stop=true;rtsp.join();control.join();video.join();audio.join();enet_deinitialize();
         std::fprintf(stderr,"deliberately_dropped_video_packets=%u encoded_idrs=%u encoded_sps=%u\n",host.dropped.load(),host.encodedIdrs.load(),host.encodedSps.load());
         std::printf("{\"video_packets\":%u,\"audio_packets\":%u,\"inputs\":%u,\"rejected\":%u,\"idr_requests\":%u}\n",

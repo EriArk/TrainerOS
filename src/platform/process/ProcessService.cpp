@@ -76,6 +76,10 @@ void ProcessService::drainOutput() {
 }
 bool ProcessService::runtimeCommand(const QString& action,const QString& text) {
     if(!active_||stopRequested_||process_.state()!=QProcess::Running||process_.bytesToWrite()>4096)return false;
+    if(runtimeControls_["kind"]=="remoteplay"&&text.isEmpty()) {
+        const QByteArray packet=action=="remoteplay-start"?"{\"start\":true}\n":action=="remoteplay-close"?"{\"close\":true}\n":QByteArray();
+        return !packet.isEmpty()&&process_.write(packet)==packet.size();
+    }
     if(runtimeControls_["kind"]=="dolphin"&&runtimeControls_["hotseat"]=="dolphin-golf-p1-v1") {
         QJsonObject packet;
         if(action=="hotseat-end")packet={{"action","quit"}};

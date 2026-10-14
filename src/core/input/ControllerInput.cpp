@@ -23,6 +23,13 @@ ControllerInput::~ControllerInput() {
     if (controller_) SDL_GameControllerClose(controller_);
     if (initialized_) SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
 }
+QString ControllerInput::kernelDeviceName() const {
+    if(!controller_||!SDL_GameControllerGetAttached(controller_))return {};
+    const auto id=SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(controller_));
+    for(int i=0;i<SDL_NumJoysticks();++i)if(SDL_JoystickGetDeviceInstanceID(i)==id&&!isRemoteGamePad(i))
+        return QString::fromStdString(kernelGamePadName(i));
+    return {};
+}
 void ControllerInput::setHoldConfirmEnabled(bool enabled) {
     if(holdConfirmEnabled_==enabled)return;
     holdConfirmEnabled_=enabled;confirmPending_=false;

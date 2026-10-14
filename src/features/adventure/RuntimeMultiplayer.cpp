@@ -34,7 +34,7 @@ RuntimeMultiplayer::~RuntimeMultiplayer() {
 }
 RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& adapter,StandaloneAdapter& ppsspp,StandaloneAdapter& dolphinAdapter,SocialController& social,
     ProcessService& process,AdventureLaunchController& lifecycle,AdventureExitPresentation& overlay)
-    :library_(lib),adapter_(adapter),social_(social),ppsspp_(ppsspp),dolphin_(dolphinAdapter),process_(process),lifecycle_(lifecycle),overlay_(overlay) {
+    :library_(lib),adapter_(adapter),social_(social),ppsspp_(ppsspp),dolphin_(dolphinAdapter),process_(process),lifecycle_(lifecycle),overlay_(overlay),preparation_(process,lifecycle,overlay,[&social]{return social.accountGeneration();},this) {
     setupHotseat();
     identity_=QSettings().value("runtimeMultiplayer/device").toString();
     if(QUuid(identity_).isNull()){identity_=QUuid::createUuid().toString(QUuid::WithoutBraces);QSettings().setValue("runtimeMultiplayer/device",identity_);}
@@ -186,13 +186,8 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         openingInvitation_.clear();emit notice("Couldn't open the invitation. Open Game Options and try again.");emit changed();
     });
     connect(&overlay_,&AdventureExitPresentation::changed,this,&RuntimeMultiplayer::resumeInvitation);
-    connect(&overlay_,&AdventureExitPresentation::changed,this,&RuntimeMultiplayer::showLobbyExit);
+    connect(&preparation_,&LobbyGamePreparation::optionsRequested,this,&RuntimeMultiplayer::invitationOptionsRequested);
     connect(&lifecycle_.exitController(),&AdventureExitController::confirmationRequested,this,[this]{
-        if(lobbyExiting_) {
-            if(lobbyPreparation_&&lobbyProcess_==process_.processId()&&lobbyAccount_==social_.accountGeneration())lifecycle_.exitController().confirm();
-            else lifecycle_.exitController().cancel();
-            return;
-        }
         // The invitation's explicit "Saved - join" action supplies exit consent.
         // The capture and owned graceful-close/finalization barriers still run.
         if(!exitingInvitation_.isEmpty()) {
@@ -211,12 +206,10 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
             lifecycle_.exitController().confirm();
     });
     connect(&lifecycle_.exitController(),&AdventureExitController::returnToGameRequested,this,[this]{
-        if(lobbyPreparation_) {lobbyExiting_=false;auto done=std::exchange(lobbyPreparation_,{});done(false,"Keep playing. Prepare again after saving.");}
         exitingInvitation_.clear();emit changed();
         if(restarting_)fail("Invitation cancelled. Your game is still running.");
     });
     connect(&lifecycle_.exitController(),&AdventureExitController::failed,this,[this](QString error){
-        if(lobbyPreparation_) {lobbyExiting_=false;auto done=std::exchange(lobbyPreparation_,{});done(false,error);}
         if(!exitingInvitation_.isEmpty()){exitingInvitation_.clear();emit notice(error);emit changed();}
         if(restarting_)fail(error);
     });
@@ -234,15 +227,6 @@ RuntimeMultiplayer::RuntimeMultiplayer(LibraryRepository& lib,RetroArchAdapter& 
         if(host_&&online_&&!dolphin()&&!rmg()&&!flycast()&&!ds()&&!azahar()&&!vita())pollRelay();
     });
     connect(&lifecycle_,&AdventureLaunchController::adventureFinished,this,[this](bool failed){
-        if(lobbyPreparation_) {
-            lobbyExiting_=false;const auto operation=lobbyOperation_;const auto context=lobbyContext_;const auto account=lobbyAccount_;
-            auto done=std::exchange(lobbyPreparation_,{});
-            QTimer::singleShot(0,this,[this,failed,operation,context,account,done]{
-                if(operation!=lobbyOperation_||account!=social_.accountGeneration())return;
-                if(failed)done(false,lifecycle_.error());else prepare(operation,context,done);
-            });
-            return;
-        }
         if(!exitingInvitation_.isEmpty()) {
             const auto request=std::exchange(exitingInvitation_,{});
             const auto account=invitationAccount_;
@@ -355,6 +339,7 @@ void RuntimeMultiplayer::refresh(const RetroArchInstallation& installation,QStri
             {"platform",record.adventure.platformId},{"mode",profile["id"].toString()},{"seats",qMin(4,capacity)},{"runtime",profile.toVariantMap()}});
         social_.lobbyRuntime()->registerService(profile["id"].toString(),this);
     }
+    if(additionalLobbyGames)lobbyGames+=additionalLobbyGames(games_);
     social_.setLobbyGames(lobbyGames);
     const auto visible=allowed_?games_.keys():QStringList{};
     QStringList online,nearby;
@@ -554,14 +539,7 @@ void RuntimeMultiplayer::show(QString panel) {
 }
 bool RuntimeMultiplayer::action(const QString& id,bool fromSocial) {
     if(!id.startsWith("multiplayer"))return false;
-    if(id.startsWith("multiplayer-lobby-")) {
-        if(id.section(':',1)!=lobbyOperation_||!lobbyPreparation_)return true;
-        if(id.startsWith("multiplayer-lobby-later:")) {auto done=std::exchange(lobbyPreparation_,{});done(false,"Keep playing. Prepare again after saving.");overlay_.dismissMenu();return true;}
-        if(id.startsWith("multiplayer-lobby-saved:")&&overlay_.ready()&&lobbyProcess_==process_.processId()&&lobbyAccount_==social_.accountGeneration()) {
-            lobbyExiting_=true;if(!overlay_.exitFromMenu()) {lobbyExiting_=false;auto done=std::exchange(lobbyPreparation_,{});done(false,"Your game couldn't close safely. Try again.");}
-        }
-        return true;
-    }
+    if(preparation_.action(id))return true;
     if(id=="multiplayer"&&social_.account()["state"]=="connected") {
         if(!invitationId().isEmpty())openInvitation(invitationId());
         else if(!social_.lobbyState().isEmpty())social_.openLobby();

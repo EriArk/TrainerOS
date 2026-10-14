@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Moonlight client core with GStreamer codec callbacks; isolated diagnostic UI.
+// Minimal managed Moonlight client and bounded diagnostic mode.
 #include "common.hpp"
 #include "guest_pad.hpp"
 #include <atomic>
@@ -11,9 +11,12 @@
 #include <memory>
 #include <thread>
 #include <vector>
+#include <csignal>
 #include <gst/app/gstappsrc.h>
 #include <gst/app/gstappsink.h>
 #include <gst/video/video.h>
+#include <gst/video/videooverlay.h>
+#include <SDL_syswm.h>
 extern "C" {
 #include "Limelight.h"
 }
@@ -29,11 +32,15 @@ struct Guest {
     std::vector<double> roundtrips,decodeTimes;
     std::map<uint64_t,uint64_t> decodeStarts;
     explicit Guest(const Config& c):cfg(c){}
+    uintptr_t window=0;
     ~Guest(){cleanup();active=nullptr;}
     bool pipeline(const std::string& desc,GstElement*& target,GstElement*& source) {
         GError* error=nullptr;target=gst_parse_launch(desc.c_str(),&error);
         if(error){std::fprintf(stderr,"pipeline %s\n",error->message);g_error_free(error);return false;}
         source=gst_bin_get_by_name(GST_BIN(target),"in");
+        if(window)if(auto renderer=gst_bin_get_by_name(GST_BIN(target),"renderer")) {
+            gst_video_overlay_set_window_handle(GST_VIDEO_OVERLAY(renderer),window);gst_object_unref(renderer);
+        }
         return gst_element_set_state(target,GST_STATE_PLAYING)!=GST_STATE_CHANGE_FAILURE;
     }
     void errors(GstElement* pipeline) {
@@ -62,6 +69,7 @@ struct Guest {
     static GstFlowReturn onFrame(GstAppSink* sink,void* data) {
         auto& g=*static_cast<Guest*>(data);auto sample=gst_app_sink_pull_sample(sink);if(!sample)return GST_FLOW_EOS;
         ++g.decoded;auto buffer=gst_sample_get_buffer(sample);GstVideoInfo info{};GstVideoFrame frame{};
+        if(g.cfg.game){gst_sample_unref(sample);return GST_FLOW_OK;}
         if(g.decoded==1){auto caps=gst_caps_to_string(gst_sample_get_caps(sample));std::fprintf(stderr,"decoded_caps %s\n",caps);g_free(caps);}
         if(gst_video_info_from_caps(&info,gst_sample_get_caps(sample))&&gst_video_frame_map(&frame,&info,buffer,GST_MAP_READ)) {
             auto* p=static_cast<unsigned char*>(GST_VIDEO_FRAME_PLANE_DATA(&frame,0));
@@ -107,7 +115,7 @@ struct Guest {
         auto clock=gst_element_get_clock(g.video);
         if(!clock){gst_buffer_unref(buffer);return DR_NEED_IDR;}
         GST_BUFFER_PTS(buffer)=gst_clock_get_time(clock)-gst_element_get_base_time(g.video);gst_object_unref(clock);
-        {std::lock_guard lock(g.measurementsLock);
+        if(!g.cfg.game){std::lock_guard lock(g.measurementsLock);
             if(g.decodeStarts.size()>512)g.decodeStarts.erase(g.decodeStarts.begin());
             g.decodeStarts[GST_BUFFER_PTS(buffer)]=monotonicNs();}
         ++g.frames;
@@ -140,11 +148,44 @@ struct Guest {
     }
 };
 Guest* Guest::active=nullptr;
+volatile std::sig_atomic_t interrupted=0;
 void logMessage(const char* format,...) {va_list ap;va_start(ap,format);vfprintf(stderr,format,ap);va_end(ap);}
 int main(int argc,char** argv) {
     if(argc!=2)return 2;
+    signal(SIGTERM,[](int){interrupted=1;});signal(SIGINT,[](int){interrupted=1;});
     try {
+        std::unique_ptr<SDL_Window,decltype(&SDL_DestroyWindow)> window(nullptr,SDL_DestroyWindow);
         Config cfg(argv[1]);gst_init(nullptr,nullptr);Guest g(cfg);Guest::active=&g;
+        const bool managed=cfg.game&&cfg.seconds==0&&std::getenv("TRAINEROS_REMOTE_PLAY_MANAGED");
+        std::string commands;bool admitted=!managed,neutralRequired=true;
+        if(managed) {
+            SDL_SetHint(SDL_HINT_NO_SIGNAL_HANDLERS,"1");
+            if(SDL_InitSubSystem(SDL_INIT_VIDEO))throw std::runtime_error("Remote Play display unavailable");
+            window.reset(SDL_CreateWindow("Remote Play",SDL_WINDOWPOS_UNDEFINED,SDL_WINDOWPOS_UNDEFINED,1280,720,SDL_WINDOW_FULLSCREEN_DESKTOP|SDL_WINDOW_SHOWN));
+            if(!window)throw std::runtime_error("Remote Play window unavailable");
+            SDL_SysWMinfo wm{};SDL_VERSION(&wm.version);
+            if(!SDL_GetWindowWMInfo(window.get(),&wm)||wm.subsystem!=SDL_SYSWM_X11)throw std::runtime_error("Remote Play window integration unavailable");
+            g.window=wm.info.x11.window;
+            fcntl(STDIN_FILENO,F_SETFL,fcntl(STDIN_FILENO,F_GETFL)|O_NONBLOCK);
+        }
+        const auto poll=[&]{
+            if(!managed)return;
+            SDL_Event event;while(SDL_PollEvent(&event))if(event.type==SDL_QUIT)interrupted=1;
+            char bytes[512];auto n=read(STDIN_FILENO,bytes,sizeof(bytes));
+            if(n==0){interrupted=1;return;}
+            if(n>0)commands.append(bytes,n);
+            if(commands.size()>1024)throw std::runtime_error("Invalid local command");
+            for(size_t at;(at=commands.find('\n'))!=std::string::npos;) {
+                const auto line=commands.substr(0,at);commands.erase(0,at+1);
+                if(line=="{\"start\":true}"&&!admitted)admitted=true;
+                else if(line=="{\"close\":true}")interrupted=1;
+                else throw std::runtime_error("Invalid local command");
+            }
+        };
+        const auto deadline=monotonicNs()+30000000000ULL;
+        while(!admitted&&!interrupted&&monotonicNs()<deadline){poll();std::this_thread::sleep_for(std::chrono::milliseconds(10));}
+        if(interrupted)return 0;
+        if(!admitted)throw std::runtime_error("The host did not open the game");
         SERVER_INFORMATION info{};LiInitializeServerInformation(&info);
         std::string url="rtsp://"+cfg.address+":"+std::to_string(RtspPort);
         info.address=cfg.address.c_str();info.serverInfoAppVersion="7.1.431.-1";info.serverInfoGfeVersion="3.23.0.74";
@@ -170,12 +211,15 @@ int main(int argc,char** argv) {
         std::unique_ptr<GuestPad> pad;
         if(cfg.game)pad=std::make_unique<GuestPad>();
         auto end=monotonicNs()+uint64_t(cfg.seconds)*1000000000;uint64_t next=monotonicNs()+1000000000;
-        while(!g.ended && monotonicNs()<end) {
+        while(!g.ended && !interrupted && (!cfg.seconds||monotonicNs()<end)) {
+            poll();
             g.errors(g.video);g.errors(g.audio);
             const auto now=monotonicNs();
             if(pad&&now>next) {
                 bool exit=false;auto state=pad->sample(exit);
-                if(exit){g.ended=true;break;}
+                if(exit&&!managed){g.ended=true;break;}
+                if(managed&&!(SDL_GetWindowFlags(window.get())&SDL_WINDOW_INPUT_FOCUS)){state={};neutralRequired=true;}
+                else if(managed&&neutralRequired){if(state.neutral())neutralRequired=false;state={};}
                 LiSendMultiControllerEvent(0,1,state.buttons,state.leftTrigger,state.rightTrigger,
                     state.lx,state.ly,state.rx,state.ry);
                 next=now+16000000;
@@ -196,6 +240,6 @@ int main(int argc,char** argv) {
         std::fprintf(stderr,"decode_samples=%zu decode_p50_ms=%.3f decode_p95_ms=%.3f\n",d,d?g.decodeTimes[(d-1)/2]:0,d?g.decodeTimes[std::min(d-1,size_t(d*.95))]:0);
         std::printf("{\"frames\":%u,\"decoded\":%u,\"audio_packets\":%u,\"audio_decoded\":%u,\"audio_peak\":%u,\"input_to_decoded_samples\":%zu,\"input_to_decoded_p50_ms\":%.3f,\"input_to_decoded_p95_ms\":%.3f,\"display_requested\":%s}\n",
             g.frames.load(),g.decoded.load(),g.audioPackets.load(),g.audioDecoded.load(),g.audioPeak.load(),n,p50,p95,cfg.display?"true":"false");
-        return g.decoded>60&&g.audioDecoded>100&&(cfg.game||(g.audioPeak>100&&n>=5))?0:1;
+        return managed?(g.decoded||interrupted?0:1):g.decoded>60&&g.audioDecoded>100&&(cfg.game||(g.audioPeak>100&&n>=5))?0:1;
     }catch(const std::exception& e){std::fprintf(stderr,"%s\n",e.what());return 1;}
 }

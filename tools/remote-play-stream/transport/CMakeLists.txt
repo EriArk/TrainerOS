@@ -16,7 +16,7 @@ FetchContent_Declare(datachannel
 FetchContent_MakeAvailable(datachannel)
 add_executable(stream_transport bridge.cpp)
 target_link_libraries(stream_transport PRIVATE Qt6::Core Qt6::Network datachannel OpenSSL::Crypto)
-# Isolated admission/latency gate; not an installed product transport yet.
+# Separately packaged helper; the shell owns admission and private IPC.
 include(CTest)
 if(BUILD_TESTING)
   find_package(Python3 REQUIRED COMPONENTS Interpreter)

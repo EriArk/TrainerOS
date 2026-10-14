@@ -8,6 +8,7 @@
 #include <QJsonObject>
 #include <QNetworkDatagram>
 #include <QFile>
+#include <QDir>
 #include <QPointer>
 #include <QRegularExpression>
 #include <QSocketNotifier>
@@ -91,8 +92,11 @@ private:
         if(!host)pc->setLocalDescription(rtc::Description::Type::Answer);
     }
     void configure(const QJsonObject& value) {
-        if(value.size()!=4||!value["host"].isBool()||!hex(value["identity"].toString(),64)
-           ||!value["ice"].isArray()||value["seconds"].toInt()<5||value["seconds"].toInt()>120)throw std::runtime_error("config");
+        game=value.size()==5&&value["mode"]=="game";
+        const int lifetime=value["seconds"].toInt(-1);
+        if((value.size()!=4&&!game)||!value["host"].isBool()||!hex(value["identity"].toString(),64)
+           ||!value["ice"].isArray()||!value["seconds"].isDouble()||value["seconds"].toDouble()!=lifetime
+           ||!((lifetime>=5&&lifetime<=120)||(game&&lifetime==0)))throw std::runtime_error("config");
         host=value["host"].toBool();identity=value["identity"].toString();seconds=value["seconds"].toInt();
         rtc::Configuration config;config.maxMessageSize=MaxRecord;config.mtu=1200;config.disableAutoNegotiation=true;
         const auto servers=value["ice"].toArray();if(servers.size()>4)throw std::runtime_error("ice bounds");
@@ -174,7 +178,7 @@ private:
         }
         startSockets();
         if(!host)control({{"ready",true}});
-        ready=true;deadline.start(seconds*1000);
+        ready=true;if(seconds)deadline.start(seconds*1000);else deadline.stop();
         event({{"event","ready"},{"config",directory.path()+"/session.conf"}});
     }
     void startSockets() {
@@ -198,7 +202,8 @@ private:
         if(!host&&!tcpServer.listen(QHostAddress("127.0.0.2"),FirstPort))throw std::runtime_error("rtsp bind");
         if(!directory.isValid())throw std::runtime_error("private directory");
         QFile file(directory.path()+"/session.conf");
-        const QByteArray config="address="+QByteArray(host?"127.0.0.1":"127.0.0.2")+"\npeer=127.0.0.2\nkey="+key+"\nping="+ping+"\nconnect="+QByteArray::number(token)+"\nseconds="+QByteArray::number(seconds)+"\nmode=synthetic\ndisplay=0\nsound=0\n";
+        const QByteArray config="address="+QByteArray(host?"127.0.0.1":"127.0.0.2")+"\npeer=127.0.0.2\nkey="+key+"\nping="+ping+"\nconnect="+QByteArray::number(token)+"\nseconds="+QByteArray::number(seconds)
+            +(game?"\nmode=game\ndisplay=1\nsound=1\n":"\nmode=synthetic\ndisplay=0\nsound=0\n");
         if(!file.open(QIODevice::WriteOnly|QIODevice::NewOnly)||!file.setPermissions(QFile::ReadOwner|QFile::WriteOwner)
            ||file.write(config)!=config.size()||!file.flush())throw std::runtime_error("private material");
         key.fill(0);key.clear();
@@ -241,14 +246,14 @@ private:
         QTimer::singleShot(5000,socket,[this,socket]{if(tcp==socket)fail();});
     }
     QSocketNotifier input,output;QTimer deadline,shutdownTimer;QByteArray in,out;
-    QTemporaryDir directory{QStringLiteral("/tmp/traineros-stream-XXXXXX")};
+    QTemporaryDir directory{QDir::tempPath()+"/traineros-stream-XXXXXX"};
     std::shared_ptr<rtc::PeerConnection> pc;
     std::array<std::shared_ptr<rtc::DataChannel>,3> channels;
     std::atomic<bool> stopping{false};std::atomic<qsizetype> pending{0};
     std::array<bool,3> opened{};std::array<QUdpSocket,3> udp;std::array<quint16,3> peerPorts{};
     QTcpServer tcpServer;QPointer<QTcpSocket> tcp;QByteArray tcpBytes,key,ping;uint32_t token=0;
     bool host=false,remoteDescription=false,greeted=false,verified=false,ready=false,requestSent=false,materialSent=false,closing=false;
-    QString identity;int seconds=0;quint64 sent=0,received=0,dropped=0;
+    QString identity;int seconds=0;bool game=false;quint64 sent=0,received=0,dropped=0;
 };
 }
 int main(int argc,char** argv) {

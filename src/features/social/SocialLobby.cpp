@@ -63,6 +63,16 @@ void SocialController::openLobbyForGame(const QString& key) {
     openLobby();
     if(!lobby_.hosting())return;
     const auto current=lobby_.state()["game"].toObject();
+    QVariantList modes;for(const auto& v:lobbyGames_) {
+        const auto g=v.toMap();if(g.value("adventure",g["key"]).toString()==key)modes.append(g);
+    }
+    if(modes.size()>1) {
+        for(const auto& v:modes)if(v.toMap()["id"].toString()==current["id"].toString())return;
+        if(lobby_.state()["phase"]!="gathering"&&lobby_.state()["phase"]!="choosing")return;
+        menuMode_="lobby";menuTitle_="How to play";menuDetail_=selected["title"].toString();menuFocus_=0;menu_.clear();menuCommands_.clear();
+        for(const auto& v:modes){const auto g=v.toMap();menu_.append(g.value("modeLabel","Emulator multiplayer").toString());menuCommands_.append("lobby:game:"+g["key"].toString());}
+        emit changed();return;
+    }
     if(current["id"].toString().isEmpty()) {lobbyAction("game:"+key);return;}
     if(current["id"]==selected["id"].toString())return;
     if(lobby_.state()["phase"]!="gathering"&&lobby_.state()["phase"]!="choosing")return;
@@ -236,7 +246,7 @@ void SocialController::lobbyAction(QString action) {
         if(action=="invite") {menuTitle_="Invite to lobby";for(const auto& v:runtimeFriends()){const auto f=v.toMap();add(f["name"].toString(),"invite:"+f["id"].toString());}}
         else if(action=="requests") {menuTitle_="Join requests";for(const auto& v:lobby_.requests()){const auto p=v.toObject();add(p["name"].toString()+(p["play"].toBool()?" · Wants to play":""),(p["play"].toBool()?"play-request:":"approve:")+p["id"].toString());}}
         else if(action=="remove") {menuTitle_="Remove from lobby";for(const auto& v:lobby_.state()["members"].toArray()) {const auto p=v.toObject();if(p["id"]!=snapshot_["userId"].toString())add(p["name"].toString(),"remove:"+p["id"].toString());}}
-        else if(action=="game") {menuTitle_="Choose a game";for(const auto& v:lobbyGames_){const auto g=v.toMap();add(g["title"].toString()+" · "+g["platform"].toString(),"game:"+g["key"].toString());}}
+        else if(action=="game") {menuTitle_="Choose a game";for(const auto& v:lobbyGames_){const auto g=v.toMap();add(g["title"].toString()+" · "+g["platform"].toString()+" · "+g.value("modeLabel","Emulator multiplayer").toString(),"game:"+g["key"].toString());}}
         else if(action=="seat") {menuTitle_="Choose your controller";for(int i=1;i<=lobby_.state()["game"].toObject()["seats"].toInt();++i)add("P"+QString::number(i),"seat:"+QString::number(i));}
         else if(action=="options") {
             menuTitle_="Lobby options";add("Access: "+lobby_.state()["access"].toString()+" · change","access");

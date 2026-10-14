@@ -33,6 +33,7 @@ public:
     bool connected() const { return controller_ != nullptr; }
     bool initialized() const { return initialized_; }
     const ControllerSample& sample() const { return sample_; }
+    QString kernelDeviceName() const;
     void setEnabled(bool enabled);
     void setHoldConfirmEnabled(bool enabled);
     void setTextEntryEnabled(bool enabled) { textEntryEnabled_=enabled; }

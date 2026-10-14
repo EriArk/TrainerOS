@@ -9,7 +9,8 @@ inline bool remoteGamePadIdentity(const std::string& name,unsigned vendor,unsign
     return vendor==0x045e&&product==0x02ea
         &&(name.rfind("TrainerOS Remote P",0)==0||kernelName.rfind("TrainerOS Remote P",0)==0);
 }
-inline bool isRemoteGamePad(int index) {
+inline std::string kernelGamePadName(int index) {
+    (void)index;
     std::string kernelName;
 #if defined(__linux__) && SDL_VERSION_ATLEAST(2,24,0)
     // SDL normalizes known Xbox names. Its OS path still identifies the uinput
@@ -25,7 +26,10 @@ inline bool isRemoteGamePad(int index) {
         }
     }
 #endif
+    return kernelName;
+}
+inline bool isRemoteGamePad(int index) {
     const char* name=SDL_JoystickNameForIndex(index);
-    return remoteGamePadIdentity(name?name:"",SDL_JoystickGetDeviceVendor(index),SDL_JoystickGetDeviceProduct(index),kernelName);
+    return remoteGamePadIdentity(name?name:"",SDL_JoystickGetDeviceVendor(index),SDL_JoystickGetDeviceProduct(index),kernelGamePadName(index));
 }
 }

@@ -4,8 +4,9 @@
 namespace trainer {
 PlayHistoryController::PlayHistoryController(AdventureLaunchController& launch, PlayHistoryRepository& repository, QObject* parent)
     : QObject(parent), repository_(repository) {
-    connect(&launch, &AdventureLaunchController::adventureStarted, this, [this](const QString& id) {
+    connect(&launch, &AdventureLaunchController::adventureStarted, this, [this,&launch](const QString& id) {
         error_.clear();
+        if(!launch.recordsLocalHistory()){active_.reset();source_.reset();capture_.reset();return;}
         active_ = PlaySession{QUuid::createUuid().toString(QUuid::WithoutBraces), id, QDateTime::currentDateTimeUtc(), {}, {}, PlaySessionOutcome::Running};
         source_ = mediaSource_ ? mediaSource_(id) : std::nullopt;
         capture_.reset(); captureRequestedAt_ = {};

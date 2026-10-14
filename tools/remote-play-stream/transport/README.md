@@ -1,10 +1,19 @@
-# Automatic socket transport gate
+# Automatic socket transport
 
-Isolated L07 integration candidate, **not a product Remote Play service**. Carries
+Separate helper used by the [L07 lobby service](../../../docs/REMOTE_PLAY_LOBBY.md). Carries
 the existing Moonlight RTSP/video/audio/control packets through libdatachannel
 ICE + DTLS + SCTP, without another media codec, Fluxer media server, VPN daemon,
 application runner or desktop input. The parent must authenticate signaling and
 bind it to the accepted lobby/ticket/connection before using this component.
+`LobbyConnection` supplies that binding through private provider-authenticated
+messages and owns the helper's private temporary directory. The helper alone
+never authorizes a controller or owns a game process.
+
+The managed five-field configuration adds `mode: "game"` and permits `seconds: 0`:
+the local parent and accepted lobby then own the lifetime. The original four-field
+diagnostic configuration remains bounded to 5–120 seconds. Parent EOF, membership
+loss or explicit close removes the connection and its private session material.
+TURN provisioning and separate-network acceptance remain open.
 
 The existing DS/Vita reliable record transport is retained for those families.
 Its ordered delivery is not adopted for latency-sensitive Remote Play datagrams.
@@ -47,8 +56,8 @@ Do not expose/persist them in QML, a public lobby listing or diagnostic logs.
 
 1. Supply `{host: bool, identity: 64-lowercase-hex, seconds: 5..120, ice: []}`.
    `identity` must represent the same accepted room, generation, launch ticket,
-   owner, guest, seat and fresh connection on both sides. The current diagnostic
-   harness supplies this binding; live lobby integration is still required.
+   owner, guest, seat and fresh connection on both sides. `LobbyConnection`
+   supplies this binding in the managed route; the diagnostic harness tests it separately.
    `ice` accepts at most four operator-provided STUN/TURN URLs. This is not a
    player setting or permission to accept relay credentials from another player.
 2. On `event: description`, deliver `identity` and `description` to the **already
@@ -63,7 +72,8 @@ Do not expose/persist them in QML, a public lobby listing or diagnostic logs.
    send that local path to another device. The diagnostic config selects the
    synthetic source, muted/headless output and a bounded lifetime. Its existence
    is not a game input grant; the reviewed lobby descriptor is separately needed
-   by `run-game.py`. No game is launched by this helper.
+   by `run-game.py`. The managed configuration selects game capture/display/sound
+   and a parent-owned lifetime. No game is launched by this helper.
 5. `{close: true}` closes the peer and local transport. Disconnection fails closed;
    reconnect requires a fresh instance, identity and key. Existing games are not
    terminated. Production supervision must also handle forced process death and

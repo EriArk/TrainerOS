@@ -48,6 +48,24 @@ class PlayHistoryTests final : public QObject {
         QTRY_VERIFY(done); QVERIFY(ok);
     }
 private slots:
+    void remoteClientWithoutLocalAdventureDoesNotWriteLocalProgress() {
+        QTemporaryDir dir;LocalStateStore store(dir.path());store.open();QTRY_VERIFY(store.ready());profile(store);
+        ProcessService process;AdventureLaunchController launch(process);PlayHistoryController history(launch,store);
+        QSignalSpy failed(&history,&PlayHistoryController::writeFailed),started(&launch,&AdventureLaunchController::adventureStarted);
+        connect(&launch,&AdventureLaunchController::checkpointRequested,this,[&](quint64 token,const QJsonObject&){launch.checkpointCompleted(token,{});});
+        const auto probe=QDir(QCoreApplication::applicationDirPath()).filePath(
+#ifdef Q_OS_WIN
+            "trainer_process_probe.exe"
+#else
+            "trainer_process_probe"
+#endif
+        );
+        ProcessCommand command{probe,{"controlled",dir.filePath("command"),dir.filePath("pid")},{}};
+        command.runtimeControls={{"recordHistory",false},{"temporaryProgress",true}};
+        QVERIFY(launch.launch(command,{},"remote-client-with-no-ROM"));QTRY_COMPARE(started.size(),1);
+        QFile stop(dir.filePath("command"));QVERIFY(stop.open(QIODevice::WriteOnly));stop.write("exit");stop.close();
+        QTRY_VERIFY(!launch.active());QTRY_COMPARE(store.pending(),0);QCOMPARE(failed.size(),0);QVERIFY(store.recentSessions().isEmpty());
+    }
     void globalRecentHistoryKeepsEveryGameAndLaunchOrder() {
         const QString connection="global-recents-fixture";
         {

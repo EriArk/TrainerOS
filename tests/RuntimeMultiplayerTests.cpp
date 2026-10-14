@@ -1,4 +1,5 @@
 #include "features/adventure/RuntimeMultiplayer.h"
+#include "features/adventure/RemotePlayRuntime.h"
 #include "features/adventure/AdventureExitPresentation.h"
 #include "features/social/SocialController.h"
 #include "integrations/social/FluxerSession.h"
@@ -95,6 +96,25 @@ class RuntimeMultiplayerTests final : public QObject {
         QTRY_VERIFY(!f.lifecycle.active());
     }
 private slots:
+    void remoteGuestUsesSharedSaveBarrierWithoutRequiringLocalContent_data() {
+        QTest::addColumn<bool>("saveFails");QTest::newRow("settled")<<false;QTest::newRow("save-error")<<true;
+    }
+    void remoteGuestUsesSharedSaveBarrierWithoutRequiringLocalContent() {
+        QFETCH(bool,saveFails);Fixture f;f.social.snapshot_={{"state","connected"},{"userId","2"}};
+        RemotePlayRuntime remote(f.library,f.retro,f.social,f.process,f.lifecycle,f.runtime.gamePreparation());
+        remote.root_=f.dir.path();remote.allowed=[] {return true;};
+        const QJsonObject profile{{"id","host-runtime"},{"content","host-only"}};
+        const auto id=QString::fromLatin1(QCryptographicHash::hash("remoteplay.v1/"+QJsonDocument(profile).toJson(QJsonDocument::Compact),QCryptographicHash::Sha256).toHex());
+        const QJsonObject context{{"self","2"},{"owner","1"},{"game",QJsonObject{{"id",id},{"mode","remoteplay.v1"},{"seats",2},{"runtime",profile}}},
+            {"members",QJsonArray{QJsonObject{{"id","1"},{"seat",1},{"connected",true}},QJsonObject{{"id","2"},{"seat",2},{"connected",true}}}}};
+        QVERIFY(f.start(saveFails));QTRY_COMPARE(f.lifecycle.state(),"running");readyMenu(f);
+        int callbacks=0;bool prepared=false;
+        remote.prepare("remote",context,[&](bool ok,QString){++callbacks;prepared=ok;});
+        QCOMPARE(callbacks,0);QVERIFY(f.process.active());QCOMPARE(f.view.panel(),"lobby-prepare");
+        f.view.updateInput(f.view.inputGeneration(),{true,true});f.runtime.action("multiplayer-lobby-saved:remote");
+        QTRY_COMPARE(callbacks,1);QCOMPARE(prepared,!saveFails);QVERIFY(f.library.records.isEmpty());
+        remote.cancel("remote");
+    }
     void liveLobbyAdmissionPreservesTheOwnedHostProcessAndExactIdentity() {
         Fixture a,b;
         // Historical two-pad profiles omit players; the established default is 2.

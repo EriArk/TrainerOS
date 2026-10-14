@@ -168,6 +168,16 @@ class OverlayHelperTests(unittest.TestCase):
                 (process/'environ').write_bytes(env)
                 self.assertEqual(supported_emulator_process(42,root),expected)
 
+    def test_remote_play_close_requires_managed_guest(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);process=root/'42';process.mkdir()
+            (process/'exe').symlink_to('/bundle/stream_guest')
+            for env,expected in ((b'OTHER=value\0',False),
+                (b'TRAINEROS_REMOTE_PLAY_MANAGED=0\0',False),
+                (b'TRAINEROS_REMOTE_PLAY_MANAGED=1\0',True)):
+                (process/'environ').write_bytes(env)
+                self.assertEqual(supported_emulator_process(42,root),expected)
+
     def test_azahar_close_requires_managed_launch_or_private_room(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);process=root/'42';process.mkdir()
