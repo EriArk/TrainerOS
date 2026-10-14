@@ -81,6 +81,9 @@ On Flip the diagnostic session returned to the original using normal
 **On Odin, unload after codec use hung in `__synchronize_irq` from
 `iris_vpu_power_off`/`iris_core_deinit`.** The ordinary reboot request was accepted
 but SSH did not return during the check; physical recovery was requested.
+Later on 14 October the owner's reboot restored both devices; the original
+module hash and active TrainerOS sessions were verified. This does not resolve
+the unload defect or establish a safe hot-replacement path.
 Do not repeat hot replacement on Odin or describe it as an accepted update path.
 The system module remains unchanged; the next boot uses the original. A production
 change requires a recoverable full image and verified shutdown/reboot behavior.

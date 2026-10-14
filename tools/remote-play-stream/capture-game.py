@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Lab-only video producer using TrainerOS's existing owned-game selector.
 
-Run in the graphical session: capture-game.py GAME_PID | stream_host CONFIG.
+Started by run-game.py in the graphical session for the selected game only.
 Only framed video is written to stdout. No desktop/root-window fallback.
 """
 import subprocess
+import signal
 import sys
 
 sys.path.insert(0, '/var/opt/traineros/integrations')
@@ -15,6 +16,9 @@ def main():
     if len(sys.argv) != 2:
         raise SystemExit('Expected current game PID')
     selection = GameCapture(int(sys.argv[1]))
+    def stop(*_):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, stop)
     child = None
     try:
         child = subprocess.Popen(
@@ -29,6 +33,8 @@ def main():
             except subprocess.TimeoutExpired:
                 pass
         return child.returncode
+    except KeyboardInterrupt:
+        return 130
     finally:
         if child is not None and child.poll() is None:
             child.terminate()

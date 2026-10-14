@@ -132,10 +132,12 @@ internet route is implemented. Do not expose the probe as an internet service.
 ## Evidence and remaining work
 
 See [the dated device results](../../docs/REMOTE_PLAY_TRANSPORT.md#парный-стенд--14-октября-2026).
-Actual capture/display, FEC, negative-key and virtual-kernel-input checks are
-separate from physical controller, audible game sound, emulator-port gameplay,
-complete recovery, WAN and product acceptance. See the later game input/audio
-entry in that document for the interrupted Flip check.
+Paired emulator P2 movement, genuine game PCM, foreground permission withdrawal
+and guest exit preserving the host game are now checked after device recovery.
+SIGTERM of the video producer stops and waits for its capture child. Neither
+these checks nor earlier FEC/negative-key evidence establish physical-controller,
+audible/headset, WAN or product acceptance. See the later recovered-device entry
+in that document; stable emulator ports and lobby admission remain pending.
 
 The original Flip kernel driver emits a bottom band and lacks requested-IDR
 support. The [maintained Iris fixes](../../packaging/kernel/iris/README.md) passed
