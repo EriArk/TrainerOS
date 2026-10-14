@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
+#include <QUuid>
 #include <utility>
 #ifdef Q_OS_LINUX
 #include <unistd.h>
@@ -23,10 +24,7 @@ RemotePlayRuntime::RemotePlayRuntime(LibraryRepository& library,RetroArchAdapter
     connect(&connection_,&LobbyConnection::connected,this,&RemotePlayRuntime::connected);
     connect(&connection_,&LobbyConnection::ended,this,&RemotePlayRuntime::failed);
     connect(&connection_,&LobbyConnection::mediaReady,this,[this]{
-        if(!host_&&ownedPid_&&process_.processId()==ownedPid_&&!announced_) {
-            announced_=true;deadline_.stop();
-            if(!process_.runtimeCommand("remoteplay-start"))failed("Couldn't start Remote Play.");
-        }
+        mediaReady_=true;startGuestMedia();
     });
     connect(social_.lobbyCoordinator(),&LobbyCoordinator::changed,this,&RemotePlayRuntime::reconcile);
     connect(&lifecycle_,&AdventureLaunchController::changed,this,[this]{
@@ -36,7 +34,7 @@ RemotePlayRuntime::RemotePlayRuntime(LibraryRepository& library,RetroArchAdapter
         if(!opening_||id!=game_)return;
         opening_=false;ownedPid_=process_.processId();started_=true;
         const auto operation=operation_;
-        QTimer::singleShot(0,this,[this,operation]{if(operation==operation_){complete(true);reconcile();}});
+        QTimer::singleShot(0,this,[this,operation]{if(operation==operation_){complete(true);startGuestMedia();reconcile();}});
     });
     connect(&lifecycle_,&AdventureLaunchController::adventureFinished,this,[this](bool){
         if(!started_)return;
@@ -106,11 +104,36 @@ bool RemotePlayRuntime::hostUnchanged() const {
         &&games_.value(game_)==profile_&&hostSupported&&hostSupported(profile_)
         &&ownerDevice&&ownerDevice()==device_;
 }
+bool RemotePlayRuntime::supportsLive(const QJsonObject& profile) const {
+    return !root_.isEmpty()&&!profile.isEmpty()&&allowed&&allowed();
+}
+bool RemotePlayRuntime::admitLive(QString ticket,QString peer,QString operation,int seat) {
+    if(!host_||!started_||opening_||failing_||ticket!=ticket_||seat!=2||peer.isEmpty()||QUuid(operation).isNull()
+       ||!remotePeer_.isEmpty()||connection_.active()||media_.state()!=QProcess::NotRunning
+       ||!supportsLive(profile_)||account_!=social_.accountGeneration()||!hostUnchanged()
+       ||lifecycle_.state()!="running"||process_.processId()!=ownedPid_||!ownedPid_
+       ||process_.runtimeControls()["remotePlay"].toMap()["port"]!=2)return false;
+    remotePeer_=peer;admission_=operation;deadline_.start();return true;
+}
+void RemotePlayRuntime::releaseLive(QString peer,QString operation) {
+    if(!host_||remotePeer_!=peer||admission_!=operation)return;
+    remotePeer_.clear();admission_.clear();disconnectMedia();connection_.stop();
+}
 void RemotePlayRuntime::prepare(QString operation,QJsonObject context,Completion done) {
     const auto game=context["game"].toObject();const auto profile=game["runtime"].toObject();
+    const bool live=context.contains("liveAdmission");bool players=validPlayers(context);
+    if(live) {
+        bool owner=false,guest=false;int count=0;
+        for(const auto& value:context["members"].toArray()) {
+            const auto m=value.toObject();++count;
+            if(m["id"]==context["owner"])owner=m["connected"].toBool()&&!m["spectator"].toBool()&&m["seat"]==1;
+            else if(m["id"]==context["self"])guest=m["connected"].toBool()&&m["spectator"].toBool()&&m["seat"]==0;
+        }
+        players=count==2&&owner&&guest&&context["liveAdmission"]==operation&&!QUuid(operation).isNull();
+    }
     if(root_.isEmpty()||!allowed||!allowed()||started_||connection_.active()||!operation_.isEmpty()
-       ||context["self"]!=social_.account()["userId"].toString()||context.contains("liveAdmission")
-       ||game["mode"]!="remoteplay.v1"||game["seats"]!=2||game["id"]!=identity(profile)||!validPlayers(context)) {
+       ||context["self"]!=social_.account()["userId"].toString()
+       ||game["mode"]!="remoteplay.v1"||game["seats"]!=2||game["id"]!=identity(profile)||!players) {
         done(false,"Remote Play needs the host on P1 and one connected guest on P2.");return;
     }
     host_=context["self"]==context["owner"];game_.clear();profile_=profile;context_=context;account_=social_.accountGeneration();
@@ -128,15 +151,25 @@ void RemotePlayRuntime::prepare(QString operation,QJsonObject context,Completion
     });
 }
 void RemotePlayRuntime::launch(QString operation,QString ticket,QJsonObject context,Completion done) {
+    const bool live=context_.contains("liveAdmission");bool admitted=!live;
+    for(const auto& value:context["members"].toArray()) {
+        const auto m=value.toObject();if(live&&m["id"]==context_["self"]&&m["admission"]==operation)admitted=true;
+    }
     if(operation!=operation_||lifecycle_.active()||!allowed||!allowed()||!hostUnchanged()||account_!=social_.accountGeneration()
        ||context["id"]!=context_["lobby"]||context["generation"]!=context_["generation"]||context["game"]!=context_["game"]
-       ||context["ticket"]!=ticket||context["phase"]!="launching"||!validPlayers(context)) {done(false,"The game context changed. Prepare again.");return;}
+       ||context["ticket"]!=ticket||context["phase"]!=(live?"playing":"launching")||!admitted||!validPlayers(context)) {done(false,"The game context changed. Prepare again.");return;}
+    remotePeer_.clear();admission_=live?operation:QString();
+    for(const auto& value:context["members"].toArray()) {
+        const auto m=value.toObject();if(!m["spectator"].toBool()&&m["id"]!=context_["self"])remotePeer_=m["id"].toString();
+    }
     ticket_=ticket;completion_=std::move(done);deadline_.start();
     if(!connection_.start(context_["self"].toString(),ticket,root_+"/stream_transport",ice_))failed("Couldn't prepare the Remote Play connection.");
 }
 void RemotePlayRuntime::connected(QString config) {
     if(operation_.isEmpty()||account_!=social_.accountGeneration()||!hostUnchanged()){failed("The game context changed. Prepare again.");return;}
-    config_=config;connectionId_=connection_.id();opening_=true;
+    config_=config;connectionId_=connection_.id();stopping_=false;
+    if(host_&&started_) {reconcile();return;}
+    opening_=true;
     AdventureResult result{false,"Remote Play launch is unavailable."};
     if(host_) {
         const auto record=library_.registration(game_);
@@ -151,8 +184,24 @@ void RemotePlayRuntime::connected(QString config) {
 }
 void RemotePlayRuntime::complete(bool ok,QString error) {auto done=std::exchange(completion_,{});if(done)done(ok,error);}
 void RemotePlayRuntime::reconcile() {
+    if(host_&&started_&&!remotePeer_.isEmpty()&&!admission_.isEmpty()&&!connection_.active()&&!failing_) {
+        const auto state=social_.lobbyCoordinator()->state();
+        for(const auto& value:state["members"].toArray()) {
+            const auto m=value.toObject();
+            if(state["ticket"]==ticket_&&state["phase"]=="playing"&&m["id"]==remotePeer_&&m["admission"]==admission_) {
+                if(!connection_.start(context_["self"].toString(),ticket_,root_+"/stream_transport",ice_))failed("Couldn't reconnect Remote Play. Your game is kept.");
+                break;
+            }
+        }
+    }
     if(host_&&started_&&media_.state()==QProcess::NotRunning&&!config_.isEmpty()&&connection_.active()
-       &&social_.lobbyCoordinator()->state()["phase"]=="playing"&&lifecycle_.state()=="running")capture();
+       &&!stopping_&&social_.lobbyCoordinator()->state()["phase"]=="playing"&&lifecycle_.state()=="running")capture();
+}
+void RemotePlayRuntime::startGuestMedia() {
+    if(!host_&&mediaReady_&&ownedPid_&&process_.processId()==ownedPid_&&!announced_) {
+        announced_=true;deadline_.stop();
+        if(!process_.runtimeCommand("remoteplay-start"))failed("Couldn't start Remote Play.");
+    }
 }
 void RemotePlayRuntime::capture() {
 #ifdef Q_OS_LINUX
@@ -189,12 +238,16 @@ void RemotePlayRuntime::disconnectMedia() {
 #ifdef Q_OS_LINUX
     media_.setChildProcessModifier({});
 #endif
-    config_.clear();connectionId_.clear();output_.clear();announced_=false;
+    config_.clear();connectionId_.clear();output_.clear();announced_=mediaReady_=false;
 }
 void RemotePlayRuntime::failed(QString error) {
-    if(stopping_&&operation_.isEmpty())return;
+    if(failing_||(stopping_&&operation_.isEmpty()))return;
+    failing_=true;
+    const auto peer=std::exchange(remotePeer_,{}),admission=std::exchange(admission_,{});
     disconnectMedia();connection_.stop();complete(false,error);
+    if(host_&&started_&&!peer.isEmpty())social_.lobbyCoordinator()->releaseRemotePlayer(peer,ticket_,admission);
     if(!host_&&ownedPid_&&process_.processId()==ownedPid_)process_.runtimeCommand("remoteplay-close");
+    failing_=false;
     if(!error.isEmpty())emit notice(error);
 }
 void RemotePlayRuntime::cancel(QString operation) {
@@ -202,6 +255,7 @@ void RemotePlayRuntime::cancel(QString operation) {
     preparation_.cancel(operation);operation_.clear();completion_={};
     if(!host_&&opening_&&lifecycle_.adventureId()==game_&&lifecycle_.active())lifecycle_.cancel();
     opening_=false;
+    remotePeer_.clear();admission_.clear();
     disconnectMedia();connection_.stop();
     if(!host_&&ownedPid_&&process_.processId()==ownedPid_)process_.runtimeCommand("remoteplay-close");
     // The host continues its owned game and ordinary protected save lifecycle.

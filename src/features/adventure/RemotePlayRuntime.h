@@ -21,6 +21,9 @@ public:
     void prepare(QString,QJsonObject,Completion) override;
     void launch(QString,QString,QJsonObject,Completion) override;
     void cancel(QString) override;
+    bool supportsLive(const QJsonObject&) const override;
+    bool admitLive(QString,QString,QString,int) override;
+    void releaseLive(QString,QString) override;
 signals:
     void notice(QString);
 private:
@@ -30,6 +33,7 @@ private:
     void connected(QString);
     void reconcile();
     void capture();
+    void startGuestMedia();
     void mediaOutput();
     void disconnectMedia();
     void failed(QString);
@@ -38,9 +42,11 @@ private:
     ProcessService& process_;AdventureLaunchController& lifecycle_;LobbyGamePreparation& preparation_;
     LobbyConnection connection_;QProcess media_{this};QTimer deadline_{this};
     QString root_,operation_,ticket_,game_,device_,config_,connectionId_;QJsonArray ice_;
+    QString remotePeer_,admission_;
     QJsonObject context_,profile_;QMap<QString,QJsonObject> games_;
     int revision_=0;QString contentPath_;quint64 account_=0;
     qint64 ownedPid_=0;Completion completion_;QByteArray output_;
     bool host_=false,opening_=false,started_=false,stopping_=false,announced_=false;
+    bool mediaReady_=false,failing_=false;
 };
 }

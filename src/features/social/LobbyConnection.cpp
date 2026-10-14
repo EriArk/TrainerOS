@@ -48,16 +48,20 @@ bool LobbyConnection::matches() const {
 bool LobbyConnection::start(QString self,QString ticket,QString helper,QJsonArray ice) {
     if(active()||process_.state()!=QProcess::NotRunning||!QFileInfo(helper).isExecutable())return false;
     const auto s=lobby_.state();const auto game=s["game"].toObject();
-    if(s["phase"]!="launching"||s["ticket"]!=ticket||ticket.isEmpty()||game["mode"]!="remoteplay.v1"||game["seats"]!=2)return false;
-    int players=0;QString owner,guest;
+    const bool live=s["phase"]=="playing";
+    if((s["phase"]!="launching"&&!live)||s["ticket"]!=ticket||ticket.isEmpty()||game["mode"]!="remoteplay.v1"||game["seats"]!=2)return false;
+    int players=0;QString owner,guest,admission;
     for(const auto& v:s["members"].toArray()) {
         const auto m=v.toObject();if(m["spectator"].toBool())continue;++players;
         if(!m["connected"].toBool())return false;
         if(m["seat"]==1&&m["id"]==s["owner"])owner=m["id"].toString();
-        else if(m["seat"]==2&&m["id"]!=s["owner"])guest=m["id"].toString();else return false;
+        else if(m["seat"]==2&&m["id"]!=s["owner"]) {
+            if(live&&QUuid(m["admission"].toString()).isNull())return false;
+            guest=m["id"].toString();admission=m["admission"].toString();
+        }else return false;
     }
     if(players!=2||owner.isEmpty()||guest.isEmpty()||(self!=owner&&self!=guest))return false;
-    self_=self;host_=self==owner;peer_=host_?guest:owner;ticket_=ticket;helper_=helper;ice_=ice;context_=binding(s);stopping_=false;
+    self_=self;host_=self==owner;peer_=host_?guest:owner;ticket_=ticket;helper_=helper;ice_=ice;context_=binding(s);stopping_=false;admission_=admission;
     if(!matches()){stop();return false;}
     deadline_.start();
     // Guest initiates after its launch callback exists; this also avoids losing
@@ -66,7 +70,9 @@ bool LobbyConnection::start(QString self,QString ticket,QString helper,QJsonArra
         connection_=QUuid::createUuid().toString(QUuid::WithoutBraces);
         const auto connection=connection_;
         QTimer::singleShot(0,this,[this,connection]{
-            if(active()&&connection_==connection&&!lobby_.sendRuntimeSignal(peer_,ticket_,connection_,{{"kind","connect"}}))
+            QJsonObject request{{"kind","connect"}};
+            if(!admission_.isEmpty())request["admission"]=admission_;
+            if(active()&&connection_==connection&&!lobby_.sendRuntimeSignal(peer_,ticket_,connection_,request))
                 fail("Couldn't reach the other player.");
         });
     }
@@ -83,7 +89,8 @@ void LobbyConnection::launch() {
 void LobbyConnection::receive(QString peer,QString ticket,QString connection,const QJsonObject& payload) {
     if(!matches()||peer!=peer_||ticket!=ticket_)return;
     const auto kind=payload["kind"].toString();
-    if(kind=="connect"&&host_&&payload.size()==1) {
+    if(kind=="connect"&&host_&&((payload.size()==1&&admission_.isEmpty())
+       ||(payload.size()==2&&payload["admission"]==admission_))) {
         if(!connection_.isEmpty())return;
         connection_=connection;
         launch();if(!active())return;
@@ -151,7 +158,7 @@ void LobbyConnection::stop() {
     }
     // Only the exact private file returned by our child, never a path from a peer.
     if(!config_.isEmpty())QFile::remove(config_);
-    config_.clear();connection_.clear();identity_.clear();context_={};buffer_.clear();
+    config_.clear();connection_.clear();identity_.clear();admission_.clear();context_={};buffer_.clear();
     pendingDescription_={};initialized_=false;directory_.reset();
     pendingCandidates_={};candidatesSent_=candidatesReceived_=0;
     ready_=descriptionSent_=descriptionReceived_=false;

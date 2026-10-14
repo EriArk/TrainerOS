@@ -33,7 +33,7 @@ private:
     bool matches() const;
     void fail(QString reason);
     LobbyCoordinator& lobby_;QProcess process_{this};QTimer deadline_{this};
-    QString self_,peer_,ticket_,connection_,identity_,helper_,config_;
+    QString self_,peer_,ticket_,connection_,identity_,helper_,config_,admission_;
     QJsonObject context_,pendingDescription_;QJsonArray ice_,pendingCandidates_;QByteArray buffer_;
     int candidatesSent_=0,candidatesReceived_=0;
     std::unique_ptr<QTemporaryDir> directory_;

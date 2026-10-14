@@ -49,6 +49,7 @@ public:
     void cancelLive(QString operation);
     bool admitLive(QString peer,QString operation,int seat);
     void rejectLive(QString peer,QString operation);
+    bool releaseRemotePlayer(QString peer,QString ticket,QString admission);
 signals:
     void changed();
     void outgoing(QString peer,QJsonObject packet);

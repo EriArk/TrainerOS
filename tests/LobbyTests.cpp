@@ -60,11 +60,12 @@ private slots:
         QVERIFY(host.finishGame(ticket));QCOMPARE(host.state()["phase"].toString(),"gathering");
     }
     void realLobbyConnectionOwnsHelperAndRevokesOnGuestRemoval_data() {
-        QTest::addColumn<bool>("badCandidates");
-        QTest::newRow("guest-removed")<<false;QTest::newRow("invalid-address-batch")<<true;
+        QTest::addColumn<bool>("badCandidates");QTest::addColumn<bool>("rejoin");
+        QTest::newRow("guest-removed")<<false<<false;QTest::newRow("invalid-address-batch")<<true<<false;
+        QTest::newRow("guest-rejoined")<<false<<true;
     }
     void realLobbyConnectionOwnsHelperAndRevokesOnGuestRemoval() {
-        QFETCH(bool,badCandidates);
+        QFETCH(bool,badCandidates);QFETCH(bool,rejoin);
         const auto helper=qEnvironmentVariable("TRAINEROS_STREAM_TRANSPORT");if(helper.isEmpty())QSKIP("Real Linux transport supplied by the ARM integration check");
         LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
         connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString peer,QJsonObject p){if(peer=="2")guest.receive("1","Host",p);});
@@ -84,6 +85,25 @@ private slots:
         const auto config=file.readAll();QVERIFY(config.contains("mode=game\n"));QVERIFY(config.contains("seconds=0\n"));file.close();
         const auto ticket=host.state()["ticket"].toString();QVERIFY(host.acknowledgeLaunch(ticket,true));QVERIFY(guest.acknowledgeLaunch(ticket,true));
         QVERIFY(hc.announceMedia());QCOMPARE(media.size(),1);
+        if(rejoin) {
+            const auto oldConnection=hc.id();
+            QVERIFY(!host.releaseRemotePlayer("1",ticket,{})); // P1 never belongs to the stream.
+            QVERIFY(!host.releaseRemotePlayer("2","old",{}));
+            QVERIFY(!guest.releaseRemotePlayer("2",ticket,{}));
+            QVERIFY(!gc.start("2",ticket,helper));
+            QVERIFY(host.releaseRemotePlayer("2",ticket,{}));
+            QTRY_VERIFY(!hc.active()&&!gc.active());QVERIFY(!QFile::exists(hostFile));QVERIFY(!QFile::exists(guestFile));
+            QVERIFY(host.setLiveJoining(true));const auto admission=QUuid::createUuid().toString();
+            QVERIFY(guest.requestLive(admission));QVERIFY(host.admitLive("2",admission,2));
+            QVERIFY(hc.start("1",ticket,helper));
+            QVERIFY(guest.sendRuntimeSignal("1",ticket,oldConnection,{{"kind","connect"},{"admission",""}}));
+            QVERIFY(hc.id().isEmpty());QVERIFY(gc.start("2",ticket,helper));
+            QTRY_COMPARE_WITH_TIMEOUT(hr.size(),2,15000);QTRY_COMPARE_WITH_TIMEOUT(gr.size(),2,15000);
+            QVERIFY(hc.id()!=oldConnection);QCOMPARE(hc.id(),gc.id());
+            QVERIFY(!host.releaseRemotePlayer("2",ticket,{}));QVERIFY(!host.releaseRemotePlayer("2",ticket,QUuid::createUuid().toString()));
+            QVERIFY(hc.active());QCOMPARE(host.state()["ticket"].toString(),ticket);
+            QVERIFY(hc.announceMedia());QCOMPARE(media.size(),2);ended.clear();
+        }
         if(badCandidates) {
             QJsonArray bad;for(int i=0;i<33;++i)bad.append(QJsonObject{});
             QVERIFY(guest.sendRuntimeSignal("1",ticket,hc.id(),{{"kind","candidates"},{"identity","wrong"},{"candidates",bad}}));
