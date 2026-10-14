@@ -382,7 +382,7 @@ private slots:
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
-        QCOMPARE(shell.primaryNames(),QStringList({"Home","Collections","Companions","Trainer","Social"}));
+        QCOMPARE(shell.primaryNames(),QStringList({"Home","Collections","Companions","Trainer","Social","Apps"}));
         shell.goToPage(3);QCOMPARE(shell.trainerFace(),"profile");
         shell.dispatch(Action::Confirm);QVERIFY(pokemonModule(shell).persona()->editing());
         shell.dispatch(Action::NextFace);QCOMPARE(shell.trainerFace(),"profile");

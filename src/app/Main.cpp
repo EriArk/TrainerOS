@@ -47,6 +47,8 @@
 #include "platform/ArmadaPlatformService.h"
 #include <QCryptographicHash>
 #include <QQuickImageProvider>
+#include <QIcon>
+#include <QPainter>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -75,12 +77,54 @@
 #include "CenterSmokeScenario.h"
 #include "ExitSmokeScenario.h"
 #include "DownloadsSmokeScenario.h"
+#include "AppsSmokeScenario.h"
 #include "ExperienceSmokeScenario.h"
 #include "LobbySmokeScenario.h"
 #include "PlayerOverlaySmokeScenario.h"
 #endif
 
 using namespace trainer;
+
+class DesktopAppImages final : public QQuickImageProvider {
+public:
+    DesktopAppImages():QQuickImageProvider(Image){
+        // Gamescope is not a desktop session and may provide no platform icon
+        // paths (offscreen/minimal Qt supplies only :/icons). Populate XDG paths
+        // while retaining platform/user overrides and Qt's theme inheritance.
+        auto paths=QIcon::themeSearchPaths();
+        auto data=QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
+        data<<QDir::homePath()+"/.local/share/flatpak/exports/share"<<"/var/lib/flatpak/exports/share";
+        QStringList fallback=QIcon::fallbackSearchPaths();
+        for(const auto& base:data){
+            if(QDir(base+"/icons").exists())paths<<base+"/icons";
+            if(QDir(base+"/pixmaps").exists())fallback<<base+"/pixmaps";
+        }
+        if(QDir(QDir::homePath()+"/.icons").exists())paths.prepend(QDir::homePath()+"/.icons");
+        paths.removeDuplicates();fallback.removeDuplicates();
+        QIcon::setThemeSearchPaths(paths);QIcon::setFallbackSearchPaths(fallback);
+        if (QIcon::fallbackThemeName().isEmpty() || QIcon::fallbackThemeName()==QStringLiteral("hicolor")) {
+            // Reuse an installed full application theme when no desktop supplies
+            // one. Papirus also covers common Steam/Wine launcher icon names.
+            for(const auto& theme:{QStringLiteral("Papirus"),QStringLiteral("breeze")}) {
+                const bool installed=std::any_of(paths.cbegin(),paths.cend(),[&](const QString& path){return QFileInfo::exists(path+'/'+theme+"/index.theme");});
+                if(installed){QIcon::setFallbackThemeName(theme);break;}
+            }
+        }
+    }
+    QImage requestImage(const QString& id,QSize* size,const QSize& requested) override {
+        const auto name=QUrl::fromPercentEncoding(id.toUtf8());
+        const QSize target=requested.isValid()?requested.boundedTo(QSize(256,256)):QSize(64,64);
+        const QIcon icon=QFileInfo(name).isAbsolute()?QIcon(name):QIcon::fromTheme(name);
+        auto result=icon.pixmap(target).toImage();
+        if(result.isNull()) {
+            result=QImage(target,QImage::Format_ARGB32_Premultiplied);result.fill(Qt::transparent);
+            QPainter p(&result);p.setRenderHint(QPainter::Antialiasing);p.setPen(Qt::NoPen);p.setBrush(QColor("#8cbaa5"));
+            p.drawRoundedRect(result.rect().adjusted(2,2,-2,-2),10,10);p.setPen(QColor("#284337"));
+            p.drawText(result.rect(),Qt::AlignCenter,QStringLiteral("▦"));
+        }
+        if(size)*size=result.size();return result;
+    }
+};
 
 class SavedExitImages final : public QQuickImageProvider {
 public:
@@ -137,6 +181,7 @@ int main(int argc, char* argv[]) {
     parser.addOption({"player-overlay-smoke-test", "Verify player bubbles and mini chat with isolated provider and input fixtures."});
     parser.addOption({"lobby-smoke-test", "Verify lobby and keyboard QML with isolated provider fixtures."});
     parser.addOption({"experience-smoke-test", "Verify independent experience modules in the real QML host."});
+    parser.addOption({"apps-smoke-test", "Verify the Apps workspace with isolated providers and SDL input."});
     parser.addOption({"downloads-smoke-test", "Verify the Downloads layout and SDL navigation with isolated queue fixtures, then exit."});
     parser.addOption({"exit-smoke-test", "Verify the isolated Adventure exit window through SDL input, then exit."});
     parser.addOption({"worlds-smoke-test", "Verify Worlds browsing and mock actions through SDL input, then exit."});
@@ -154,7 +199,7 @@ int main(int argc, char* argv[]) {
     bool hallSmoke = false;
     bool diagnosticsSmoke = false;
     bool exitSmoke = false;
-    bool downloadsSmoke = false;
+    bool downloadsSmoke = false, appsSmoke = false;
     bool experienceSmoke = false;
     bool lobbySmoke = false, playerOverlaySmoke = false;
     QString persistencePhase;
@@ -163,6 +208,7 @@ int main(int argc, char* argv[]) {
     lobbySmoke = parser.isSet("lobby-smoke-test");
     experienceSmoke = parser.isSet("experience-smoke-test");
     downloadsSmoke = parser.isSet("downloads-smoke-test");
+    appsSmoke = parser.isSet("apps-smoke-test");
     exitSmoke = parser.isSet("exit-smoke-test");
     worldsSmoke = parser.isSet("worlds-smoke-test");
     pokedexSmoke = parser.isSet("pokedex-smoke-test");
@@ -173,7 +219,7 @@ int main(int argc, char* argv[]) {
     if (parser.isSet("persistence-smoke-test") && (!QStringList{"seed", "verify", "error", "library-seed", "library-verify", "library-final", "library-launch", "library-home", "library-home-reopen", "library-center", "collection"}.contains(persistencePhase)
             || parser.value("data-dir").isEmpty() || parser.isSet("ephemeral"))) return 2;
 #endif
-    const bool smoke = playerOverlaySmoke || lobbySmoke || experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
+    const bool smoke = appsSmoke || playerOverlaySmoke || lobbySmoke || experienceSmoke || parser.isSet("smoke-test") || downloadsSmoke || artSmoke || exitSmoke || worldsSmoke || pokedexSmoke || hallSmoke || diagnosticsSmoke || !persistencePhase.isEmpty();
     auto smokeBattery = std::make_shared<std::atomic_int>(65);
     PowerStatus powerStatus([smoke, smokeBattery] {
         if (!smoke) return systemBatteryStatus();
@@ -315,11 +361,13 @@ int main(int argc, char* argv[]) {
                 shell.social()->setOwner(ready ? store->ownerId() : QString());
                 shell.keyboard()->configure(stateDirectory,ready ? store->ownerId() : QString());
                 shell.collectionManager()->configure(stateDirectory,ready?store->ownerId():QString());
+                shell.apps()->configure(stateDirectory,ready?store->ownerId():QString());
             });
             QObject::connect(store.get(), &LocalStateStore::accessNeeded, &shell, [&] {
                 shell.social()->setOwner({});
                 shell.keyboard()->configure(stateDirectory,{});
                 shell.collectionManager()->configure(stateDirectory,{});
+                shell.apps()->configure(stateDirectory,{});
             });
         }
         if (personalLibrary && !smoke) {
@@ -451,6 +499,8 @@ int main(int argc, char* argv[]) {
             return adventureLaunch.active()?QString("Exit the running game before changing game storage."):storageApply(root);
         };
         AdventureExitPresentation exitPresentation(adventureLaunch.exitController());
+        InvitationOverlayService appsOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
+        QObject::connect(shell.apps(),&AppsController::changed,&appsOverlay,[&]{appsOverlay.setGame(shell.apps()->processId());});
         InvitationOverlayService invitationOverlay(platform.dedicatedSession(),"/var/opt/traineros/integrations/invitation-overlay.py");
         QObject::connect(&adventureProcess,&ProcessService::started,&invitationOverlay,[&]{invitationOverlay.setGame(adventureProcess.processId());});
         QObject::connect(&adventureProcess,&ProcessService::finished,&invitationOverlay,[&]{invitationOverlay.setGame(0);});
@@ -868,14 +918,30 @@ int main(int argc, char* argv[]) {
         engine.rootContext()->setContextProperty("adventureLaunch", &adventureLaunch);
         engine.rootContext()->setContextProperty("adventureExitPresentation", &exitPresentation);
         engine.rootContext()->setContextProperty("runtimeMultiplayer", &multiplayer);
+        engine.addImageProvider("desktop-app",new DesktopAppImages);
+        engine.rootContext()->setContextProperty("appsOverlay", &appsOverlay);
         engine.rootContext()->setContextProperty("invitationOverlay", &invitationOverlay);
         engine.rootContext()->setContextProperty("playerOverlay", &playerOverlay);
         engine.rootContext()->setContextProperty("powerStatus", &powerStatus);
         engine.load(QUrl("qrc:/TrainerOS/Main.qml"));
-        if (engine.rootObjects().isEmpty()) result = 2;
+        if (engine.rootObjects().isEmpty()) {qCritical().noquote()<<"Shell UI did not load:"<<diagnostics.join('\n');result = 2;}
         else {
             auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
-            if (!window) return 2;
+            if (!window) {qCritical()<<"Shell root is not a window:"<<engine.rootObjects().first()->metaObject()->className();return 2;}
+            shell.apps()->launchGuard=[&]{
+                if(adventureLaunch.active())return QString("Return to your game and close it before opening an application.");
+                if(session.blocked()||shell.runtimeChangeBlocked())return QString("Finish the current operation before opening an application.");
+                return QString();
+            };
+            QObject::connect(shell.apps(),&AppsController::foregroundRequested,window,[window]{window->hide();});
+            QObject::connect(shell.apps(),&AppsController::shellRequested,window,[&,window]{
+                if(adventureLaunch.active())return;
+                shell.goToPage(5);if(parser.isSet("windowed"))window->show();else window->showFullScreen();window->requestActivate();
+            });
+            if(personalLibrary&&!smoke&&platform.dedicatedSession()) {
+                const QString helper="/var/opt/traineros/integrations/apps-service.py";
+                if(QFileInfo::exists(helper))shell.apps()->start("/usr/bin/python3",helper);
+            }
             auto* pointerVisibility = new PointerVisibility(*window, platform.dedicatedSession());
             if (auto* exitWindow = window->findChild<QQuickWindow*>("adventure-exit-window"))
                 new PointerVisibility(*exitWindow, platform.dedicatedSession());
@@ -1029,6 +1095,8 @@ int main(int argc, char* argv[]) {
                     LobbySmokeScenario::start(window,shell,input,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
                 } else if(experienceSmoke) {
                     startExperienceSmoke(window,shell,input,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
+                } else if(appsSmoke) {
+                    startAppsSmoke(window,shell,input,joystick,screenshotDir,smokeCompleted,qmlWarnings,diagnostics);
                 } else if (exitSmoke) {
                     startExitSmoke(window, shell, adventureLaunch, exitPresentation, input, joystick,
                                    screenshotDir, smokeCompleted, qmlWarnings, diagnostics);

@@ -16,6 +16,7 @@
 #include "features/library/LibraryToolsController.h"
 #include "features/library/ScrapeController.h"
 #include "features/downloads/DownloadsController.h"
+#include "features/apps/AppsController.h"
 #include "features/settings/SettingsController.h"
 #include "features/device/DeviceController.h"
 #include "features/device/NetworkController.h"
@@ -33,6 +34,7 @@ class ShellController final : public QObject {
     Q_PROPERTY(trainer::DownloadsController* downloads READ downloads CONSTANT)
     Q_PROPERTY(bool canHoldConfirm READ canHoldConfirm NOTIFY changed)
     Q_PROPERTY(bool canEditWorld READ canEditWorld NOTIFY changed)
+    Q_PROPERTY(trainer::AppsController* apps READ apps CONSTANT)
     Q_PROPERTY(int page READ page NOTIFY changed)
     Q_PROPERTY(QStringList primaryNames READ primaryNames NOTIFY changed)
     Q_PROPERTY(QString homeView READ homeView NOTIFY changed)
@@ -126,6 +128,7 @@ public:
     LibraryManagementController* libraryManager() { return &libraryManager_; }
     LibraryToolsController* libraryTools() {return &libraryTools_;}
     ScrapeController* scraper() {return &scraper_;}
+    AppsController* apps(){return &apps_;}
     DownloadsController* downloads() {return &downloads_;}
     bool canHoldConfirm() const;
     bool canEditWorld() const;
@@ -246,6 +249,7 @@ private:
     LibraryManagementController libraryManager_;
     LibraryToolsController libraryTools_;
     ScrapeController scraper_;
+    AppsController apps_;
     DownloadsController downloads_;
     SettingsController settings_;
     DeviceController device_;

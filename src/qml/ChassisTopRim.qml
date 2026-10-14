@@ -8,10 +8,10 @@ Item {
     // Overlap the first key's outer shadow where this lip merges into the title.
     x: Theme.brandWidth - 3; y: 0
     width: Theme.viewportWidth - x; height: Theme.topRimHeight
-    readonly property real rightContact: Theme.screenBounds.x + Theme.screenBounds.width - x
+    readonly property real rightContact: Theme.viewportWidth - 12 - x
     Rectangle {
         x: Theme.brandWidth - root.x; y: root.height
-        width: Theme.screenBounds.x + Theme.screenBounds.width - Theme.brandWidth
+        width: Theme.viewportWidth - 12 - Theme.brandWidth
         height: 8
         gradient: Gradient {
             GradientStop { position: 0; color: "#b8101e1d" }

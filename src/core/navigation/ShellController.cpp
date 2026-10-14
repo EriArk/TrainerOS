@@ -184,6 +184,8 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&settings_, &SettingsController::trainerRequested, this, [this](int index) {
         trainerSettingsAction(index);
     });
+    connect(&apps_, &AppsController::changed, this, &ShellController::changed);
+    connect(&apps_, &AppsController::homeRequested, this, [this]{goToPage(0);});
     connect(&trainerSetup_, &TrainerSetupPresentation::changed, this, &ShellController::changed);
     connect(&trainerSetup_, &TrainerSetupPresentation::closeRequested, this, [this] {
         if (trainerChooserFromPower_) {
@@ -332,7 +334,7 @@ bool ShellController::localModalOpen() {
         || ((page_==2 || page_==3) && activeModule_ && activeModule_->modalOpen());
 }
 bool ShellController::chooseAdventureAvailable() {
-    return !homeMenuOpen_ && page_ != 1 && page_ != 4 && (!(page_==2 || page_==3) || !activeModule_ || activeModule_->recentsAllowed()) && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
+    return !homeMenuOpen_ && page_ != 1 && page_ != 4 && page_ != 5 && (!(page_==2 || page_==3) || !activeModule_ || activeModule_->recentsAllowed()) && !serviceOpen() && !menuOpen_ && notice_.isEmpty()
         && !keyboard_.isOpen() && !localModalOpen() && !moduleActivityBusy();
 }
 bool ShellController::navigationLocked(bool primaryRecovery) const {
@@ -356,7 +358,7 @@ bool ShellController::pairedNavigationAvailable() {
 }
 QStringList ShellController::primaryNames() const {
     const auto& model=experience_.descriptor();
-    return {"Home","Collections",model.first.label,model.second.label,"Social"};
+    return {"Home","Collections",model.first.label,model.second.label,"Social","Apps"};
 }
 ExperienceModule* ShellController::resolveExperience(const std::optional<Adventure>& game) const {
     ExperienceModule *fallback=nullptr,*selected=nullptr;int best=0;bool ambiguous=false;
@@ -497,7 +499,7 @@ int ShellController::focusIndex() const {
     return drawerOpen_ ? drawerFocus_ : 0;
 }
 QJsonObject ShellController::navigationState() const {
-    const QStringList pages{"home", "worlds", "companions", "trainer", "social"};
+    const QStringList pages{"home", "worlds", "companions", "trainer", "social", "apps"};
     auto experience=experience_;
     if(activeModule_)experience.rememberNavigation({{"module",activeModule_->navigation()},{"hall",hall_.navigationState()}});
     QJsonObject state{{"version", ShellNavigationVersion}, {"experienceVersion",1}, {"experienceNavigation",experience.state()}, {"page", pages[page_]},
@@ -523,7 +525,7 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
     }
     if(!state.contains("experienceNavigation"))experience_.clear();
     const QStringList legacyPages{"home","worlds","pokedex","trainer","hall"};
-    const QStringList pages{"home", "worlds", "companions", "trainer", "social"};
+    const QStringList pages{"home", "worlds", "companions", "trainer", "social", "apps"};
     QString target=state["page"].toString();
     if(version==1 && state["page"].isDouble())target=legacyPages.value(state["page"].toInt(),"home");
     if(version==1 && target=="pokedex")target="companions";
@@ -693,7 +695,7 @@ void ShellController::goToPage(int page) {
     // hidden Home/drawer bindings do not rebuild the library repeatedly.
     QSignalBlocker transition(this);
     homeMenuOpen_ = false;
-    const bool enteringWorlds = page_ != 1 && std::clamp(page, 0, 4) == 1;
+    const bool enteringWorlds = page_ != 1 && std::clamp(page, 0, int(primaryNames().size())-1) == 1;
     for(auto& module:modules_)module->leave(page!=page_);
     collectionManager()->close();
     { PerformanceTrace::Scope phase("navigation.tools"); libraryTools_.close(); }
@@ -701,13 +703,15 @@ void ShellController::goToPage(int page) {
     { PerformanceTrace::Scope phase("navigation.keyboard"); if(textTarget_==TextTarget::Social)social_.preserveText(keyboard_.text()); keyboard_.cancel(); }
     if(textModule_){textModule_->cancelText();textModule_=nullptr;}
     textTarget_ = TextTarget::None;
+    apps_.leave();
     social_.closeMenu();
     { PerformanceTrace::Scope phase("navigation.archive"); hall_.editor()->cancel(); }
     { PerformanceTrace::Scope phase("navigation.account"); hall_.account()->close(); }
     { PerformanceTrace::Scope phase("navigation.trainer"); trainer_.cancel(); }
     { PerformanceTrace::Scope phase("navigation.setup"); trainerSetup_.close(); }
     { PerformanceTrace::Scope phase("navigation.manager"); libraryManager_.close(); service_.clear(); }
-    page_ = std::clamp(page, 0, 4); // No wrapping until physical-device testing.
+    page_ = std::clamp(page, 0, int(primaryNames().size())-1); // No wrapping until physical-device testing.
+    if(page_==5)apps_.refresh();
     if(page_==1 && multiverseFace_)multiverse_.setCollection(worldCollection_);
     if (enteringWorlds) {
         collectionsRoot_=true;
@@ -754,7 +758,8 @@ void ShellController::openContext(const QString& type,const QString& target) {
     }
     // Feature controllers own their captured person/message/entity targets.
     // This is the same dispatcher used by Select, with their existing guards.
-    if(page_==4)social_.dispatch(Action::LocalAction);
+    if(page_==5)apps_.dispatch(Action::LocalAction);
+    else if(page_==4)social_.dispatch(Action::LocalAction);
     else if((page_==2 || page_==3) && activeModule_)activeModule_->dispatch(Action::LocalAction);
 }
 void ShellController::pressButton(const QString& button) {
@@ -1199,6 +1204,7 @@ void ShellController::dispatch(Action action) {
             return;
         }
         if((page_==2 || page_==3) && activeModule_ && activeModule_->dispatch(action))return;
+        if (page_ == 5) { apps_.dispatch(action); return; }
         if (page_ == 4) { social_.dispatch(action); return; }
     }
     if (menuOpen_ && !powerMenu_ && notice_.isEmpty() && action == Action::Secondary) {

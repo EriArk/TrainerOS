@@ -60,6 +60,7 @@ add_library(trainer_core STATIC
     src/features/worlds/GameCollections.cpp
     src/features/library/LibraryToolsController.cpp
     src/features/library/ScrapeController.cpp
+    src/features/apps/AppsController.cpp
     src/features/downloads/DownloadsController.cpp
     src/core/repository/BatoceraLibrary.cpp
     src/core/repository/RomPlatforms.cpp
@@ -317,6 +318,9 @@ qt_add_qml_module(traineros
         src/qml/GamePreview.qml
         src/qml/GameVideoPreview.qml
         src/qml/TrainerAccessPanel.qml
+        src/qml/AppsPage.qml
+        src/qml/AppsDock.qml
+        src/qml/AppControlsWindow.qml
         src/qml/Main.qml
         src/qml/AdventureExitWindow.qml
         src/qml/InvitationBadge.qml
@@ -449,6 +453,7 @@ if(BUILD_TESTING)
         add_test(NAME session_supervisor COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SessionSupervisorTests.py)
         add_test(NAME lobby_input_lease COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/LobbyInputLeaseTests.py)
         add_test(NAME overlay_helper COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/OverlayHelperTests.py)
+        add_test(NAME apps_service COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_apps_service.py)
         add_test(NAME emulator_support_install COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/EmulatorSupportInstallTests.py)
         add_test(NAME emulator_core_bundle COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/EmulatorCoreBundleTests.py)
         add_test(NAME network_helper COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/NetworkHelperTests.py)
@@ -541,7 +546,10 @@ if(BUILD_TESTING)
     target_sources(traineros PRIVATE tests/ui/DiagnosticsSmokeScenario.cpp tests/ui/DiagnosticsSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/CenterSmokeScenario.cpp tests/ui/CenterSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/ExitSmokeScenario.cpp tests/ui/ExitSmokeScenario.h)
+    target_sources(traineros PRIVATE tests/ui/AppsSmokeScenario.cpp tests/ui/AppsSmokeScenario.h)
     target_sources(traineros PRIVATE tests/ui/DownloadsSmokeScenario.cpp tests/ui/DownloadsSmokeScenario.h)
+    add_test(NAME apps_qml_smoke COMMAND traineros --apps-smoke-test --screenshot-dir "${CMAKE_CURRENT_BINARY_DIR}/screenshots/apps")
+    set_tests_properties(apps_qml_smoke PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software" TIMEOUT 30)
     add_dependencies(traineros trainer_process_probe)
     target_include_directories(traineros PRIVATE tests/ui)
     # Only the entry point branches on this macro; keep test entry flags scoped
@@ -572,6 +580,9 @@ if(BUILD_TESTING)
     add_test(NAME online_link COMMAND trainer_online_link_tests)
     target_link_libraries(trainer_social_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME social COMMAND trainer_social_tests)
+    qt_add_executable(trainer_apps_tests tests/AppsTests.cpp)
+    target_link_libraries(trainer_apps_tests PRIVATE trainer_core Qt6::Test)
+    add_test(NAME apps COMMAND trainer_apps_tests)
     qt_add_executable(trainer_core_tests tests/CoreTests.cpp)
     target_link_libraries(trainer_core_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME core COMMAND trainer_core_tests)

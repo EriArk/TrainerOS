@@ -87,7 +87,10 @@ private slots:
         QCOMPARE(shell.page(), 2);
         shell.goToPage(4);
         shell.dispatch(Action::NextPage);
-        QCOMPARE(shell.page(), 4);
+        QCOMPARE(shell.page(), 5);
+        QCOMPARE(shell.navigationState()["page"].toString(), "apps");
+        shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),5);
+        shell.dispatch(Action::PreviousPage);QCOMPARE(shell.page(),4);
         shell.dispatch(Action::Home);
         QCOMPARE(shell.page(), 4); QVERIFY(shell.homeMenuOpen());
         const auto origin = shell.navigationState();

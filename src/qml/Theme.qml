@@ -5,6 +5,10 @@ QtObject {
     property string themeId: "turquoise"
     property bool reducedMotion: false
     property bool television: false
+    property bool appsExpanded: false
+    readonly property real appsDockWidth: 80
+    property real appsFrameWidth: appsExpanded ? appsDockWidth : 0
+    Behavior on appsFrameWidth { NumberAnimation { duration: Theme.motion(220); easing.type: Easing.OutCubic } }
     readonly property FontLoader displayTypeface: FontLoader { source: "qrc:/fonts/Fredoka.ttf" }
     readonly property string displayFamily: displayTypeface.name
     readonly property FontLoader brandTypeface: FontLoader { source: "qrc:/fonts/ChakraPetch-Bold.ttf" }
@@ -35,7 +39,7 @@ QtObject {
     readonly property color green: "#b4d8a0"
     readonly property color focus: "#ffe37a"
     readonly property color focusGlow: "#ffbd24"
-    readonly property var tabColors: ["#f4cc62", "#b4d8a0", "#98cadd", "#eba9ad", "#c6b4df"]
+    readonly property var tabColors: ["#f4cc62", "#b4d8a0", "#98cadd", "#eba9ad", "#c6b4df", "#d9bfa0"]
     // Logical design space, separate from the physical display's pixel count.
     readonly property int viewportWidth: 960
     readonly property int viewportHeight: 540
@@ -50,8 +54,8 @@ QtObject {
     readonly property int brandBevel: 18
     readonly property int tabSpacing: 4
     readonly property int screenBevel: 11
-    readonly property int topRimHeight: viewportWidth - screenBounds.x - screenBounds.width
-    readonly property real tabWidth: (screenBounds.x + screenBounds.width - brandWidth - 4 * tabSpacing) / 5
+    readonly property int topRimHeight: 12
+    readonly property real tabWidth: (viewportWidth - 12 - brandWidth - 5 * tabSpacing) / 6
     readonly property int panelInset: 12
     readonly property int contentTopInset: brandHeight + screenBevel + 27 - screenTop
     readonly property int footerHeight: 37
@@ -61,5 +65,5 @@ QtObject {
     // Only the lower-left corner is occupied. Right-hand content reaches the lip.
     readonly property int adventureCutoutWidth: adventureTabWidth - screenBevel - screenBounds.x - panelInset + 16
     readonly property int adventureCutoutHeight: screenBounds.y + screenBounds.height - panelInset - (footerTop - adventureTabHeight) + 8
-    readonly property rect screenBounds: Qt.rect(12, screenTop, viewportWidth - 24, footerTop - 5 - screenTop)
+    readonly property rect screenBounds: Qt.rect(12, screenTop, viewportWidth - 24 - appsFrameWidth, footerTop - 5 - screenTop)
 }

@@ -10,6 +10,7 @@ Window {
     visible: true
     title: "TrainerOS — native prototype"
     color: Theme.chassisDark
+    AppControlsWindow { flow: shell.apps; bridge: appsOverlay }
     AdventureExitWindow {
         presentation: adventureExitPresentation
         width: window.width; height: window.height
@@ -25,6 +26,7 @@ Window {
     Binding { target: Theme; property: "themeId"; value: shell.settings.theme }
     Binding { target: Theme; property: "reducedMotion"; value: shell.settings.reducedMotion }
     Binding { target: Theme; property: "television"; value: shell.settings.displayProfile === "tv" }
+    Binding { target: Theme; property: "appsExpanded"; value: shell.page === 5 && !sessionState.blocked && !shell.serviceOpen }
     Binding { target: shell.social; property: "surfaceAvailable"; value: !sessionState.blocked && ((window.active && (!adventureLaunch.active || adventureLaunch.minimized) && shell.unobstructed) || (playerOverlay.chatOpen && playerOverlay.conversationReady && adventureExitPresentation.ready)) }
     Binding { target: shell.social; property: "conversationVisible"; value: playerOverlay.chatOpen && playerOverlay.conversationReady || (shell.page === 4 && !shell.serviceOpen && (shell.socialFace === "chats" || shell.socialFace === "communities" || shell.social.lobbyChatVisible)) }
     Binding { target: shell.social; property: "gameActive"; value: adventureLaunch.active }
@@ -55,6 +57,13 @@ Window {
         visible: !sessionState.blocked
         enabled: !adventureLaunch.active || adventureLaunch.minimized
         ChassisFrame { anchors.fill: parent }
+        AppsDock {
+            flow: shell.apps
+            x: Theme.screenBounds.x + Theme.screenBounds.width + 8; y: 134
+            width: Theme.viewportWidth - x - 9; height: 276
+            visible: Theme.appsFrameWidth > 1; opacity: Theme.appsFrameWidth / Theme.appsDockWidth
+            enabled: Theme.appsExpanded && !shell.drawerOpen && !shell.apps.menu.length
+        }
         Item {
             id: brand
             objectName: "brand-extension"
@@ -89,7 +98,7 @@ Window {
                     function outline(offset, spread) {
                         // The last key's shadow stops at its joint with the
                         // sidewall, keeping the chassis edge highlight intact.
-                        const l = -spread, w = width + (index === 4 ? 0 : spread), h = height + offset;
+                        const l = -spread, w = width + (index === shell.primaryNames.length - 1 ? 0 : spread), h = height + offset;
                         // Home keeps the same softened left diagonal as its peers.
                         const left = " H " + (l + 14) + " Q " + (l + 10) + " " + h + " " + (l + 7) + " " + (h - 3)
                             + " L " + (l + 3) + " " + (h - 7) + " Q " + l + " " + (h - 10) + " " + l + " " + (h - 14);
@@ -142,9 +151,9 @@ Window {
                     Rectangle {
                         // Deep seams between adjacent keys, and a small contact
                         // seam inside the final key, clear of the chassis slope.
-                        x: parent.width - (index === 4 ? 1 : 0); y: 0
-                        width: index === 4 ? 1 : Theme.tabSpacing
-                        height: index === 4 ? parent.height - Theme.tabBevel : Theme.tabBaseline
+                        x: parent.width - (index === shell.primaryNames.length - 1 ? 1 : 0); y: 0
+                        width: index === shell.primaryNames.length - 1 ? 1 : Theme.tabSpacing
+                        height: index === shell.primaryNames.length - 1 ? parent.height - Theme.tabBevel : Theme.tabBaseline
                         gradient: Gradient {
                             GradientStop { position: 0; color: "#a0101e1d" }
                             GradientStop { position: 0.6; color: "#90101e1d" }
@@ -155,7 +164,8 @@ Window {
                     Rectangle { x: 2; y: 3; width: 1; height: parent.height - 17; color: "#55ffffff" }
                     Text {
                         anchors.centerIn: parent; anchors.verticalCenterOffset: Theme.topRimHeight / 2
-                        text: modelData; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: shell.page === index ? 21 : 19; font.weight: Font.DemiBold
+                        width: parent.width - 10; horizontalAlignment: Text.AlignHCenter; elide: Text.ElideRight
+                        text: modelData; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: shell.page === index ? 18 : 17; font.weight: Font.DemiBold
                     }
                     Rectangle { x: 18; y: parent.height - 8; width: parent.width - 36; height: 3; radius: 1.5; color: "#7a4a24"; visible: shell.page === index }
                     Rectangle {
@@ -207,6 +217,7 @@ Window {
                 anchors.topMargin: Theme.contentTopInset; clip: true
                 anchors.bottomMargin: Theme.panelInset
                 ExperienceHost { id: experienceHost; anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && (shell.page === 0 || shell.page === 2 || shell.page === 3) }
+                AppsPage { anchors.fill: parent; flow: shell.apps; active: shell.page === 5; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 5 }
                 SocialPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 4 }
                 SeriesPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && shell.collectionsRoot }
                 WorldsPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && !shell.collectionsRoot && !shell.multiverseFace }
@@ -288,6 +299,7 @@ Window {
                 const experienceHints = experienceHost.hints(h)
                 if (experienceHints) return experienceHints
                 if (shell.page === 0) return [h("A",shell.homeGame.id ? (shell.liveGame.id === shell.homeGame.id ? "Return" : shell.home.actionHint) : "Collections"),h("Select","Game actions"),h("B","Back")]
+                if (shell.page === 5) return shell.apps.menu.length ? [h("↑↓","Choose"),h("A","Select"),h("B","Back")] : [h("A","Open"),h("Select","Options"),h("X","Hidden"),h("Y","Favorites / running"),h("B","Home")]
                 if (shell.page === 4) return shell.social.hints
                 return [h("A",shell.trainer.editing ? "Select" : "Edit Trainer"),h("B",shell.trainer.editing ? "Cancel" : "Back")]
             }

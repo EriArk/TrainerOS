@@ -26,8 +26,24 @@ Rectangle {
     // chassis rail shows through beneath it. Side/title/footer bevels stay joined.
     function aperture(inset) {
         const s = Theme.screenBounds;
-        const outerRight = s.x + s.width;
+        const outerRight = Theme.viewportWidth - 12;
         const left = s.x + inset, right = outerRight - inset;
+        const dockRight = right - Theme.appsFrameWidth;
+        // The sidewall widens only between two sloping shoulders. Offset their
+        // edges with each bevel layer so the inset remains continuous at joins.
+        const shoulderInset = inset * (Math.sqrt(Theme.appsFrameWidth * Theme.appsFrameWidth + 34 * 34) - 34) / Math.max(1, Theme.appsFrameWidth);
+        // Round both the wall attachments and the projecting dock corners.
+        // Tangent points follow the shoulder, including during expansion.
+        const shoulderLength = Math.hypot(Theme.appsFrameWidth, 34);
+        const expansion = Math.min(1, Theme.appsFrameWidth / Theme.appsDockWidth);
+        const wallRounding = Math.max(1, 12 - inset) * expansion;
+        const dockRounding = (12 + inset) * expansion;
+        const wallX = wallRounding * Theme.appsFrameWidth / shoulderLength;
+        const wallY = wallRounding * 34 / shoulderLength;
+        const dockX = dockRounding * Theme.appsFrameWidth / shoulderLength;
+        const dockY = dockRounding * 34 / shoulderLength;
+        const upperWall = 98 - shoulderInset, upperDock = 132 - shoulderInset;
+        const lowerDock = 410 + shoulderInset, lowerWall = 444 + shoulderInset;
         const top = -12, bottom = s.y + s.height - inset;
         const radius = Math.max(1, 15 - inset);
         const brandBottom = Theme.brandHeight + inset;
@@ -39,6 +55,14 @@ Rectangle {
         const diagonalLeft = Theme.brandWidth - Theme.brandBevel + diagonalOffset;
         return "M " + brandRight + " " + top
             + " H " + right
+            + " V " + (upperWall - wallRounding)
+            + " Q " + right + " " + upperWall + " " + (right - wallX) + " " + (upperWall + wallY)
+            + " L " + (dockRight + dockX) + " " + (upperDock - dockY)
+            + " Q " + dockRight + " " + upperDock + " " + dockRight + " " + (upperDock + dockRounding)
+            + " V " + (lowerDock - dockRounding)
+            + " Q " + dockRight + " " + lowerDock + " " + (dockRight + dockX) + " " + (lowerDock + dockY)
+            + " L " + (right - wallX) + " " + (lowerWall - wallY)
+            + " Q " + right + " " + lowerWall + " " + right + " " + (lowerWall + wallRounding)
             + " V " + (bottom - radius) + " Q " + right + " " + bottom + " " + (right - radius) + " " + bottom
             + " H " + left
             + " V " + (brandBottom + radius) + " Q " + left + " " + brandBottom + " " + (left + radius) + " " + brandBottom
