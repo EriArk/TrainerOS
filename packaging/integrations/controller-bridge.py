@@ -5,6 +5,7 @@ Never kills the emulator. Close requests and pointer events apply only while
 an X11 window belonging to this invocation is the active window.
 """
 import ctypes as c, os, subprocess, sys, time
+from pathlib import Path
 
 args=sys.argv[1:];pointer=False
 if args and args[0]=='--pointer':pointer=True;args.pop(0)
@@ -19,6 +20,19 @@ try:
  s.SDL_InitSubSystem.argtypes=[c.c_uint]
  if s.SDL_InitSubSystem(0x2000)!=0:raise RuntimeError('Controller subsystem unavailable')
  s.SDL_GameControllerOpen.argtypes=[c.c_int];s.SDL_GameControllerOpen.restype=c.c_void_p
+ s.SDL_JoystickNameForIndex.argtypes=[c.c_int];s.SDL_JoystickNameForIndex.restype=c.c_char_p
+ s.SDL_JoystickGetDeviceVendor.argtypes=[c.c_int];s.SDL_JoystickGetDeviceVendor.restype=c.c_ushort
+ s.SDL_JoystickGetDeviceProduct.argtypes=[c.c_int];s.SDL_JoystickGetDeviceProduct.restype=c.c_ushort
+ device_path=getattr(s,'SDL_JoystickPathForIndex',None)
+ if device_path:device_path.argtypes=[c.c_int];device_path.restype=c.c_char_p
+ def remote_pad(index):
+  name=s.SDL_JoystickNameForIndex(index) or b''
+  kernel_name=b'';path=os.fsdecode((device_path(index) if device_path else None) or b'')
+  node=os.path.basename(path);digits=node[5:] if node.startswith('event') else node[2:] if node.startswith('js') else ''
+  if os.path.dirname(path)=='/dev/input' and digits.isascii() and digits.isdigit():
+   try:kernel_name=(Path('/sys/class/input')/node/'device/name').read_bytes().strip()
+   except OSError:pass
+  return s.SDL_JoystickGetDeviceVendor(index)==0x045e and s.SDL_JoystickGetDeviceProduct(index)==0x02ea and (name.startswith(b'TrainerOS Remote P') or kernel_name.startswith(b'TrainerOS Remote P'))
  s.SDL_GameControllerGetAttached.argtypes=[c.c_void_p];s.SDL_GameControllerClose.argtypes=[c.c_void_p]
  s.SDL_GameControllerGetButton.argtypes=[c.c_void_p,c.c_int];s.SDL_GameControllerGetButton.restype=c.c_ubyte
  s.SDL_GameControllerGetAxis.argtypes=[c.c_void_p,c.c_int];s.SDL_GameControllerGetAxis.restype=c.c_int16
@@ -100,7 +114,10 @@ try:
   if not controller and time.monotonic()-lastDiscovery>1:
    lastDiscovery=time.monotonic()
    for i in range(s.SDL_NumJoysticks()):
-    if s.SDL_IsGameController(i):controller=s.SDL_GameControllerOpen(i);break
+    if remote_pad(i):continue # Remote game ports never own exit chords or a DS pointer.
+    if s.SDL_IsGameController(i):
+     controller=s.SDL_GameControllerOpen(i)
+     if controller:break
   active=prop(root,'_NET_ACTIVE_WINDOW');owned=active and owns(client_pid(active))
   chord=bool(controller and s.SDL_GameControllerGetButton(controller,4) and s.SDL_GameControllerGetButton(controller,6))
   if owned and chord and not previousChord and os.environ.get('TRAINEROS_SESSION') != '1':close(active)

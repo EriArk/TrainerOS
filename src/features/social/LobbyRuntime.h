@@ -1,5 +1,6 @@
 #pragma once
 #include "LobbyCoordinator.h"
+#include "LobbyInput.h"
 #include <QPointer>
 #include <functional>
 
@@ -33,6 +34,7 @@ public:
     bool liveAvailable() const;
     bool setLiveJoining(bool enabled);
     bool joinLive();
+    LobbyInput* input() {return &input_;}
 signals:
     void changed();
 private:
@@ -41,6 +43,7 @@ private:
     void cancel();
     void launch(QString ticket,QJsonObject party);
     LobbyCoordinator& lobby_;
+    LobbyInput input_;
     QMap<QString,QPointer<LobbyRuntimeService>> services_;
     QPointer<LobbyRuntimeService> activeService_;
     QString self_,operation_,ticket_,status_;

@@ -9,7 +9,7 @@
 #include <mutex>
 
 namespace trainer {
-namespace retroarch { struct NetplayRequest; }
+namespace retroarch { struct NetplayRequest; struct RemotePlayRequest; }
 // Bound once after authenticated entry; worker snapshots never read UI-owned state.
 struct RetroArchSaveOwner { QString id, directory; bool legacy = false; };
 class RetroArchSaveSession final {
@@ -58,6 +58,7 @@ public:
     AdventureCapabilities capabilities(const Adventure&) const override;
     AdventureResult launch(const Adventure&) override;
     AdventureResult launchNetplay(const Adventure&, const retroarch::NetplayRequest&);
+    AdventureResult launchRemotePlay(const Adventure&, const retroarch::RemotePlayRequest&);
     AdventureResult resume(const Adventure&, const ResumePoint&) override;
     void prepareInstallation(AdventureRegistration&) const override;
     QString setupIssue(const AdventureRegistration&) const override;

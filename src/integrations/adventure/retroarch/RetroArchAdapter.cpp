@@ -1,6 +1,7 @@
 #include "RetroArchAdapter.h"
 #include "RetroArchAppearance.h"
 #include "RetroArchNetplay.h"
+#include "RetroArchRemotePlay.h"
 #include "RetroArchHandheldLink.h"
 #include "core/repository/CollectionRepository.h"
 #include "RetroArchSave.h"
@@ -177,6 +178,11 @@ AdventureResult RetroArchAdapter::launchNetplay(const Adventure& adventure,const
     if(!record)return {false,"This game is no longer in your library."};
     return launchConfigured(adventure,[record=*record,installation=installation_,request](ProcessCommand& cmd,const std::atomic_bool& cancel){
         return retroarch::prepareNetplay(cmd,record,installation,request,cancel);
+    });
+}
+AdventureResult RetroArchAdapter::launchRemotePlay(const Adventure& adventure,const retroarch::RemotePlayRequest& request) {
+    return launchConfigured(adventure,[installation=installation_,request](ProcessCommand& cmd,const std::atomic_bool& cancel){
+        return retroarch::prepareRemotePlay(cmd,installation,request,cancel);
     });
 }
 AdventureResult RetroArchAdapter::launchConfigured(const Adventure& adventure,std::function<QString(ProcessCommand&, const std::atomic_bool&)> extra) {

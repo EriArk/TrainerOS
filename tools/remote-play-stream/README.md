@@ -7,6 +7,14 @@ server, pairing UI, application runner or desktop control is
 included. There is deliberately no root build dependency or `install()` target.
 The game probe can create one explicitly permitted Inputtino virtual controller.
 
+On the reviewed Armada baseline, safe capture teardown also requires the
+[Gamescope buffer lifetime repair](../gamescope-capture/README.md). The shared
+capture helper returns PipeWire buffers before writing to a bounded nonblocking
+output queue, and handles closed readers/SIGTERM. The companion repair and helper
+are installed on both development handhelds; they are not a full Remote Play
+installation or automatic image delivery. Real Linux pad exclusion uses SDL
+2.24+ device paths to recover names normalized by SDL.
+
 ## Build
 
 ```sh
@@ -85,19 +93,33 @@ then mixed by GStreamer. No desktop mix/microphone fallback exists. An idle or
 silent game sends silence. Child capture processes stop when the host exits;
 the already running game is never launched or terminated by this wrapper.
 
-For the explicitly authorized controller probe, append `--allow-p2`. The local
-supervisor supplies an inherited Unix socket, granting input only while the
+The former diagnostic `--allow-p2` switch is removed. The trusted host's
+`LobbyRuntime::input()` supplies a one-use inherited descriptor through
+`TRAINEROS_LOBBY_INPUT_FD`, after authenticating the transport connection and
+preparing its emulator port. `LobbyInput` checks the playing remote-mode room,
+ticket, generation, member/role/seat and live-admission identity. It permanently
+closes that grant on removal, context change, account loss or room closure.
+Native netplay and spectators never qualify. An old connection's release cannot
+revoke a newer grant; only one guest is supported by the current transport.
+The local supervisor combines that permission with foreground ownership of the
 owned game is foreground. Inputtino creates `TrainerOS Remote P2`; Moonlight
 forwards the guest's first SDL-mapped physical controller. Guide exits locally.
 Stale local grants or network input release controls after 350 ms plus the host
 poll interval; a neutral state is required before input resumes. Keyboard,
 mouse and Guide input are never injected. TrainerOS excludes these virtual
-devices from shell navigation, even as a preferred controller.
+devices from shell navigation, even as a preferred controller. SDL normalizes the
+Xbox name; the shared `RemoteGamePad.h` also checks the original kernel name
+through SDL's device path. The input bridge and guest use this boundary too.
 
-The virtual device name does **not** assign an emulator port. Reserve/bind it
-in the private test emulator configuration while retaining the owner's P1.
-Automatic per-runtime binding and lobby/session-generation authorization remain
-required before production. No permission comes from spectator status or a
+The virtual device name does **not** assign an emulator port. The adapter's
+`launchRemotePlay` prepares strict native RetroArch P1/P2 reservations in a
+temporary append configuration, preserving save paths and ordinary settings.
+It accepts only the reviewed exact udev binary and a host-local controller
+identity. The full device-assignment table stays enabled because RetroArch 1.22.2
+checks spare slots before matching reservations; unused core ports are disabled.
+Hotkeys remain on P1. Other emulator recipes, production session orchestration
+and authenticated automatic internet admission remain required.
+No permission comes from spectator status or a
 network packet. `stream_guest_fixture` is a BUILD_TESTING-only client with a
 process-local SDL controller; only the authenticated network can carry its input
 to the host. It is not physical-controller acceptance.
@@ -126,8 +148,9 @@ match and fails on an upstream change. Original downloaded checkouts are unchang
 Control uses Moonlight's modern 12-byte GCM nonce, validates envelope/payload
 lengths and rejects sequence replay. The host starts media only after successful
 authenticated control. This is a **lab boundary**, not production admission:
-RTSP and video are unencrypted, no room/generation/seat binding or automatic
-internet route is implemented. Do not expose the probe as an internet service.
+RTSP and video are unencrypted and automatic authenticated internet admission
+is not implemented. The local room/grant service is not network credential
+distribution or production pairing. Do not expose the probe as an internet service.
 
 ## Evidence and remaining work
 
@@ -137,7 +160,9 @@ and guest exit preserving the host game are now checked after device recovery.
 SIGTERM of the video producer stops and waits for its capture child. Neither
 these checks nor earlier FEC/negative-key evidence establish physical-controller,
 audible/headset, WAN or product acceptance. See the later recovered-device entry
-in that document; stable emulator ports and lobby admission remain pending.
+in that document and the later lobby/port entry. The root project's shared input
+identity header is the only source dependency outside this tool directory;
+for an exported source tree, set `TRAINEROS_INPUT_INCLUDE` to its reviewed copy.
 
 The original Flip kernel driver emits a bottom band and lacks requested-IDR
 support. The [maintained Iris fixes](../../packaging/kernel/iris/README.md) passed

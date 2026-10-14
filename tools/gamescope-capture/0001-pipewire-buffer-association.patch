@@ -1,0 +1,66 @@
+From: Enrico Buehler <enrico.buehler@unom.io>
+Subject: [PATCH] pipewire: clear the buffer association on removal and failed add
+
+Derived from punktfunk patch 0007 at 0f64551c5608fc5f23c065259ec8a3081c8cbcb2.
+Retain the upstream destroy_buffer type assertion: do not suppress evidence of
+remaining memory corruption. Only the association and null-consumer fix is reused.
+Gamescope source remains BSD-2-Clause; upstream notices are retained.
+
+diff --git a/src/pipewire.cpp b/src/pipewire.cpp
+index 76b3ea8..faecf04 100644
+--- a/src/pipewire.cpp
++++ b/src/pipewire.cpp
+@@ -179,6 +184,13 @@ static void request_buffer(struct pipewire_state *state)
+ 	}
+ 
+ 	struct pipewire_buffer *buffer = (struct pipewire_buffer *) pw_buffer->user_data;
++	if (buffer == nullptr) {
++		// add_buffer bailed for this slot, so it carries no state. Hand it back
++		// rather than dereferencing nothing.
++		pwr_log.errorf("dequeued a buffer with no state; requeuing");
++		pw_stream_queue_buffer(state->stream, pw_buffer);
++		return;
++	}
+ 	buffer->copying = true;
+ 
+ 	// Past this exchange, the PipeWire thread shares the buffer with the
+@@ -464,6 +476,10 @@ static void stream_handle_add_buffer(void *user_data, struct pw_buffer *pw_buffe
+ 
+ 	struct pipewire_buffer *buffer = new pipewire_buffer();
+ 	buffer->buffer = pw_buffer;
++	// Associate the two halves NOW, not after the last `goto error` below: every error
++	// path deletes this buffer, and a slot left holding a stale pointer is one the next
++	// remove_buffer dereferences.
++	pw_buffer->user_data = buffer;
+ 	buffer->video_info = state->video_info;
+ 	buffer->gamescope_info = state->gamescope_info;
+ 
+@@ -583,17 +599,26 @@ static void stream_handle_add_buffer(void *user_data, struct pw_buffer *pw_buffe
+ 		goto error;
+ 	}
+ 
+-	pw_buffer->user_data = buffer;
+-
+ 	return;
+ 
+ error:
++	pw_buffer->user_data = nullptr;
+ 	delete buffer;
+ }
+ 
+ static void stream_handle_remove_buffer(void *data, struct pw_buffer *pw_buffer)
+ {
+ 	struct pipewire_buffer *buffer = (struct pipewire_buffer *) pw_buffer->user_data;
++	if (buffer == nullptr) {
++		return;
++	}
++
++	// The LAST point at which both halves of the association are still known. Clearing
++	// buffer->buffer below makes the pw_buffer unreachable from the pipewire_buffer, and
++	// a buffer that is still `copying` is deleted later, on the steamcompmgr thread —
++	// with no way to reach back here. Sever the link now or the slot is left pointing at
++	// memory that is about to be freed.
++	pw_buffer->user_data = nullptr;
+ 
+ 	buffer->buffer = nullptr;
+ 

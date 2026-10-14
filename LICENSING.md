@@ -59,6 +59,12 @@ relicensed by sharing an image or being launched by TrainerOS.
 
 ## License text provenance
 
+The optional Gamescope capture companion retains upstream BSD-2-Clause and the
+reused punktfunk patch's MIT notice in `tools/gamescope-capture/`. Its pinned
+sources, bounded patch and build/install recipe are recorded there. It is not
+relicensed as original TrainerOS code; the two development-device installations
+do not certify the future image's full redistribution gate (#115).
+
 `LICENSE` is the unmodified SPDX license-list copy of
 [GPL-3.0-or-later](https://raw.githubusercontent.com/spdx/license-list-data/main/text/GPL-3.0-or-later.txt),
 retrieved on 2026-10-06. Its SHA-256 is

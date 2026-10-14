@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 #pragma once
 #include "pad_state.hpp"
+#include "RemoteGamePad.h"
 #include <SDL.h>
 #include <algorithm>
 #include <stdexcept>
@@ -18,8 +19,7 @@ public:
         SDL_PumpEvents();SDL_GameControllerUpdate();
         if(device_&&!SDL_GameControllerGetAttached(device_)){SDL_GameControllerClose(device_);device_=nullptr;}
         if(!device_)for(int i=0;i<SDL_NumJoysticks();++i) {
-            const char* name=SDL_JoystickNameForIndex(i);
-            if(name&&std::string(name).find("TrainerOS Remote P")==0)continue;
+            if(trainer::isRemoteGamePad(i))continue;
             if(SDL_IsGameController(i)&&(device_=SDL_GameControllerOpen(i)))break;
         }
         PadState state{};

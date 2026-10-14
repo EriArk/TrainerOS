@@ -4,3 +4,6 @@
 *.patch text eol=lf whitespace=-blank-at-eol,-space-before-tab
 # Keep the upstream git-format-patch export byte-for-byte, including its final blank line.
 packaging/kernel/iris/0001-upstream-request-keyframe.patch whitespace=-blank-at-eol,-space-before-tab,-blank-at-eof
+# Preserve the reused patch's trailing context and the upstream license text.
+tools/gamescope-capture/0001-pipewire-buffer-association.patch whitespace=-blank-at-eol,-space-before-tab,-blank-at-eof
+tools/gamescope-capture/LICENSE.gamescope text eol=lf whitespace=-blank-at-eof

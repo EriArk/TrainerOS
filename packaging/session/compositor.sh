@@ -15,4 +15,12 @@ fi
 if [ -n "${ARMADA_PANEL_TYPE:-}" ]; then
     args+=(--force-panel-type "$ARMADA_PANEL_TYPE")
 fi
-exec /usr/bin/gamescope "${args[@]}" -- /usr/bin/python3 /var/opt/traineros/session/client.py
+gamescope=/usr/bin/gamescope
+# A root-installed capture fix is valid only for the reviewed system baseline.
+# An OS update or changed artifact returns to the system compositor automatically.
+capture_fix=/var/opt/traineros/system/gamescope
+if [ -x "$capture_fix/gamescope" ] && [ -r "$capture_fix/SHA256SUMS" ] &&
+   sha256sum --status -c "$capture_fix/SHA256SUMS"; then
+    gamescope="$capture_fix/gamescope"
+fi
+exec "$gamescope" "${args[@]}" -- /usr/bin/python3 /var/opt/traineros/session/client.py

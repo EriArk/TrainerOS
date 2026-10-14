@@ -1,18 +1,11 @@
 #include "ControllerInput.h"
+#include "RemoteGamePad.h"
 #include <QKeyEvent>
 #include <QDebug>
 #include <cmath>
 #include <algorithm>
 
 namespace trainer {
-namespace {
-bool isRemoteGamePad(int index) {
-    const char* name=SDL_JoystickNameForIndex(index);
-    return name && QByteArray(name).startsWith("TrainerOS Remote P")
-        && SDL_JoystickGetDeviceVendor(index)==0x045e
-        && SDL_JoystickGetDeviceProduct(index)==0x02ea;
-}
-}
 ControllerInput::ControllerInput(QObject* parent, SDL_JoystickID preferredDevice)
     : QObject(parent), preferredDevice_(preferredDevice) {
     SDL_SetMainReady(); // Qt owns the application entry point, including on Windows.

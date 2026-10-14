@@ -1,4 +1,5 @@
 #include "features/diagnostics/DiagnosticsController.h"
+#include "core/input/RemoteGamePad.h"
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
@@ -29,6 +30,13 @@ public:
 class DiagnosticsTests final : public QObject {
     Q_OBJECT
 private slots:
+    void normalizedXboxNameKeepsRemoteIdentityWithoutExcludingPhysicalXbox() {
+        QVERIFY(remoteGamePadIdentity("Xbox One S Controller",0x045e,0x02ea,"TrainerOS Remote P2"));
+        QVERIFY(!remoteGamePadIdentity("Xbox One S Controller",0x045e,0x02ea,"Xbox One S Controller"));
+        QVERIFY(!remoteGamePadIdentity("Xbox One S Controller",0x045e,0x02ea,""));
+        QVERIFY(!remoteGamePadIdentity("Xbox One S Controller",0x045e,0x0b12,"TrainerOS Remote P2"));
+        QVERIFY(remoteGamePadIdentity("TrainerOS Remote P2",0x045e,0x02ea,""));
+    }
     void remoteGamePortCannotControlShellEvenWhenPreferred() {
         SDL_SetMainReady();
         QVERIFY(SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER)==0);

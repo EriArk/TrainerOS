@@ -18,6 +18,10 @@ struct FixturePad {
         const int y=phase>=2&&phase<12?(phase%3==0?-24000:phase%3==1?24000:0):0;
         SDL_JoystickSetVirtualAxis(pad.joystick,SDL_CONTROLLER_AXIS_LEFTY,y);
         SDL_JoystickSetVirtualButton(pad.joystick,SDL_CONTROLLER_BUTTON_A,phase==5?1:0);
+        // A remote game chord must never become the host's Home/Exit shortcut.
+        const bool chord=elapsed>=13000&&elapsed<13500;
+        SDL_JoystickSetVirtualButton(pad.joystick,SDL_CONTROLLER_BUTTON_BACK,chord);
+        SDL_JoystickSetVirtualButton(pad.joystick,SDL_CONTROLLER_BUTTON_START,chord);
     }
 };
 int main(int argc,char** argv) {

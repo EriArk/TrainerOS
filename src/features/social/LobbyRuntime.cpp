@@ -3,7 +3,7 @@
 #include <QUuid>
 
 namespace trainer {
-LobbyRuntime::LobbyRuntime(LobbyCoordinator& lobby,QObject* parent):QObject(parent),lobby_(lobby) {
+LobbyRuntime::LobbyRuntime(LobbyCoordinator& lobby,QObject* parent):QObject(parent),lobby_(lobby),input_(lobby,this) {
     connect(&lobby_,&LobbyCoordinator::changed,this,&LobbyRuntime::reconcile);
     connect(&lobby_,&LobbyCoordinator::launchRequested,this,&LobbyRuntime::launch);
     connect(&lobby_,&LobbyCoordinator::liveJoinRequested,this,[this](QString peer,QString operation,int seat){

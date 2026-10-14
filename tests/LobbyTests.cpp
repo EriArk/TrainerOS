@@ -5,6 +5,11 @@
 #include "features/social/LobbySession.h"
 #include "features/social/LobbyCoordinator.h"
 #include "features/social/LobbyRuntime.h"
+#include "integrations/adventure/retroarch/RetroArchRemotePlay.h"
+#ifdef Q_OS_LINUX
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
 #include "integrations/social/LobbyDirectory.h"
 #include "integrations/social/LobbyWire.h"
 
@@ -28,6 +33,80 @@ class LobbyTests final : public QObject {
         QVERIFY(l.claimSeat(peer,seat,l.generation()));QVERIFY(l.prepared(peer,l.generation(),true));
     }
 private slots:
+    void remoteInputRequiresPlayingRemoteModeAndAssignedGuest() {
+        LobbyCoordinator host;host.configure("1","Host",true);QVERIFY(host.create("public"));
+        auto selected=game();selected.mode="remoteplay.v1";QVERIFY(host.selectGame(selected));
+        QVERIFY(host.session_.join("2","Guest",100));
+        LobbyInput input(host);const auto connection=QUuid::createUuid().toString();
+        QVERIFY(!input.authorize("2",connection,"missing",2));
+        for(const auto& id:{QString("1"),QString("2")})QVERIFY(host.session_.prepared(id,host.session_.generation(),true));
+        QVERIFY(host.session_.ready("1",host.session_.generation(),true));QVERIFY(host.session_.ready("2",host.session_.generation(),true));
+        const auto ticket=host.state()["ticket"].toString();
+        QVERIFY(!input.authorize("2",connection,ticket,2)); // No launch acknowledgement yet.
+        QVERIFY(host.session_.acknowledgeLaunch(ticket,true));
+        QVERIFY(host.session_.join("3","Viewer",100));
+        QVERIFY(!input.authorize("3",connection,ticket,2));
+        QVERIFY(!input.authorize("1",connection,ticket,1));
+        QVERIFY(!input.authorize("2",connection,ticket,3));
+        QVERIFY(!input.authorize("2",connection,"stale",2));
+        QVERIFY(input.authorize("2",connection,ticket,2));
+        QVERIFY(!input.authorize("2",QUuid::createUuid().toString(),ticket,2));
+        input.release("stale-connection");QVERIFY(input.active());
+        QVERIFY(host.session_.leave("3"));QVERIFY(input.active()); // Viewers do not own the input grant.
+        QVERIFY(host.session_.connected("2",false));QVERIFY(!input.active());
+        QVERIFY(host.session_.connected("2",true));QVERIFY(!input.active()); // No implicit regrant.
+        QVERIFY(input.authorize("2",QUuid::createUuid().toString(),ticket,2));
+        QVERIFY(host.remove("2"));QVERIFY(!input.active());
+        QCOMPARE(host.state()["phase"].toString(),"playing");
+    }
+    void remoteInputRevokesOnGameEndAndAccountSwitch() {
+        LobbyCoordinator host;host.configure("1","Host",true);QVERIFY(host.create("public"));
+        auto selected=game();selected.mode="remoteplay.v1";QVERIFY(host.selectGame(selected));
+        QVERIFY(host.session_.join("2","Guest",100));
+        for(const auto& id:{QString("1"),QString("2")})QVERIFY(host.session_.prepared(id,host.session_.generation(),true));
+        host.session_.ready("1",host.session_.generation(),true);host.session_.ready("2",host.session_.generation(),true);
+        const auto ticket=host.state()["ticket"].toString();host.session_.acknowledgeLaunch(ticket,true);
+        LobbyInput input(host);const auto connection=QUuid::createUuid().toString();
+        QVERIFY(input.authorize("2",connection,ticket,2));
+#ifdef Q_OS_LINUX
+        const auto fd=input.takeDescriptor(connection);QVERIFY(fd>=3);QCOMPARE(input.takeDescriptor(connection),-1);
+        char packet[10];QCOMPARE(recv(fd,packet,sizeof(packet),0),ssize_t(9));QCOMPARE(packet[0],'1');
+#endif
+        QVERIFY(host.session_.finishGame(ticket));QVERIFY(!input.active());
+#ifdef Q_OS_LINUX
+        QCOMPARE(recv(fd,packet,sizeof(packet),0),ssize_t(0));close(fd);
+#endif
+        QVERIFY(!input.authorize("2",connection,ticket,2));
+        for(const auto& id:{QString("1"),QString("2")})QVERIFY(host.session_.prepared(id,host.session_.generation(),true));
+        host.session_.ready("1",host.session_.generation(),true);host.session_.ready("2",host.session_.generation(),true);
+        const auto next=host.state()["ticket"].toString();host.session_.acknowledgeLaunch(next,true);
+        QVERIFY(input.authorize("2",QUuid::createUuid().toString(),next,2));
+        host.configure("other","Other",true);QVERIFY(!input.active());
+    }
+    void nativeNetplayNeverGrantsRemotePad() {
+        LobbyCoordinator host;host.configure("1","Host",true);QVERIFY(host.create("public"));QVERIFY(host.selectGame(game()));
+        QVERIFY(host.session_.join("2","Guest",100));
+        for(const auto& id:{QString("1"),QString("2")})QVERIFY(host.session_.prepared(id,host.session_.generation(),true));
+        host.session_.ready("1",host.session_.generation(),true);host.session_.ready("2",host.session_.generation(),true);
+        const auto ticket=host.state()["ticket"].toString();host.session_.acknowledgeLaunch(ticket,true);
+        LobbyInput input(host);QVERIFY(!input.authorize("2",QUuid::createUuid().toString(),ticket,2));
+    }
+    void remotePortRecipeRejectsAmbiguousIdentitiesAndPreservesSavePaths() {
+        using namespace retroarch;
+        for(const auto& name:{QString(),QString("TrainerOS Remote P2"),QString("045e:02ea Xbox"),QString("Pad\ninput=bad"),QString("Pad\""),QString("Pad\\other")})
+            QVERIFY(remotePlayPortSettings({name}).isEmpty());
+        const auto recipe=remotePlayPortSettings({"Xbox 360 Controller"});QVERIFY(!recipe.isEmpty());
+        QVERIFY(recipe.contains("input_player2_device_reservation_type = \"2\""));
+        QVERIFY(recipe.contains("input_player2_reserved_device = \"TrainerOS Remote P2\""));
+        QVERIFY(recipe.contains("input_hotkey_follows_player1 = \"true\""));
+        QVERIFY(recipe.contains("input_max_users = \"16\""));
+        QVERIFY(recipe.contains("input_libretro_device_p3 = \"0\""));
+        QVERIFY(!recipe.contains("savefile_directory"));QVERIFY(!recipe.contains("savestate_directory"));
+        ProcessCommand cmd;cmd.arguments={"--config","unchanged","game"};RetroArchInstallation install;
+        std::atomic_bool cancel=false;const auto before=cmd.arguments;
+        QVERIFY(!prepareRemotePlay(cmd,install,{"Xbox 360 Controller"},cancel).isEmpty());QCOMPARE(cmd.arguments,before);
+        QVERIFY(!cmd.runtimeControls.contains("remotePlay"));
+    }
     void lostLiveAdmissionRetriesOnceAndOtherSpectatorsDoNotCancelOpening() {
         LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
         bool drop=false;

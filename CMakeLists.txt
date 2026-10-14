@@ -15,6 +15,7 @@ find_package(SDL2 2.0.14 REQUIRED CONFIG)
 
 add_library(trainer_core STATIC
     src/integrations/adventure/retroarch/RetroArchAppearance.cpp
+    src/integrations/adventure/retroarch/RetroArchRemotePlay.cpp
     src/integrations/adventure/retroarch/RetroArchBezels.cpp
     src/features/adventure/GameParty.cpp
     src/features/social/SocialMedia.cpp
@@ -39,6 +40,7 @@ add_library(trainer_core STATIC
     src/features/social/LobbyCoordinator.cpp
     src/features/social/LobbyRecovery.cpp
     src/features/social/LobbyRuntime.cpp
+    src/features/social/LobbyInput.cpp
     src/features/social/RecentTogether.cpp
     src/features/social/TemporaryContacts.cpp
     src/platform/network/NearbyService.cpp
@@ -442,6 +444,7 @@ if(BUILD_TESTING)
         find_package(Python3 REQUIRED COMPONENTS Interpreter)
         add_test(NAME adapter_boundary COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/AdapterBoundaryTests.py)
         add_test(NAME session_supervisor COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SessionSupervisorTests.py)
+        add_test(NAME lobby_input_lease COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/LobbyInputLeaseTests.py)
         add_test(NAME overlay_helper COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/OverlayHelperTests.py)
         add_test(NAME emulator_support_install COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/EmulatorSupportInstallTests.py)
         add_test(NAME emulator_core_bundle COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/EmulatorCoreBundleTests.py)
@@ -548,6 +551,8 @@ if(BUILD_TESTING)
     if(UNIX AND NOT APPLE)
         qt_add_executable(trainer_lobby_probe tools/ProbeLobbyLifecycle.cpp)
         target_link_libraries(trainer_lobby_probe PRIVATE trainer_core)
+        qt_add_executable(trainer_lobby_input_probe tools/ProbeLobbyInput.cpp)
+        target_link_libraries(trainer_lobby_input_probe PRIVATE trainer_core)
     endif()
     target_link_libraries(trainer_contacts_tests PRIVATE trainer_core Qt6::Test)
     add_test(NAME temporary_contacts COMMAND trainer_contacts_tests)
