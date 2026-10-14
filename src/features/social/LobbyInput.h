@@ -13,7 +13,7 @@ public:
     ~LobbyInput() override;
     bool authorize(QString peer,QString connection,QString ticket,int reservedPort);
     void release(const QString& connection);
-    bool active() const {return !connection_.isEmpty();}
+    bool active() const {return !grants_.isEmpty();}
     // Transfer once to the owned capture supervisor, never expose a socket path.
     int takeDescriptor(const QString& connection);
 signals:
@@ -21,13 +21,16 @@ signals:
 private:
     void reconcile();
     void heartbeat();
-    void revoke();
-    bool matches() const;
+    void revoke(const QString&);
+    struct Grant {
+        QString peer,ticket,lobby,admission;
+        QJsonObject game;
+        qint64 generation=0;
+        int port=0,writer=-1,reader=-1;
+    };
+    bool matches(const Grant&) const;
     LobbyCoordinator& lobby_;
     QTimer timer_{this};
-    QString peer_,connection_,ticket_,lobbyId_,admission_;
-    QJsonObject game_;
-    qint64 generation_=0;
-    int port_=0,writer_=-1,reader_=-1;
+    QMap<QString,Grant> grants_;
 };
 }

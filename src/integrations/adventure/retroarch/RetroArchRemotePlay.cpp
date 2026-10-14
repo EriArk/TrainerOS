@@ -10,7 +10,8 @@ QByteArray remotePlayPortSettings(const RemotePlayRequest& request) {
     const auto name=request.ownerDevice;
     // RetroArch also accepts VID:PID rules; those would match both the virtual
     // Xbox pad and a real Xbox pad. Use an exact name, no alternative syntax.
-    if(name.isEmpty()||name.size()>128||name.startsWith("TrainerOS Remote P")
+    if(request.players<2||request.players>4||(request.snesMultitap&&request.players<3)
+       ||name.isEmpty()||name.size()>128||name.startsWith("TrainerOS Remote P")
        ||name.contains(QRegularExpression("[\\x00-\\x1f\\x7f\"\\\\]"))
        ||QRegularExpression("^[0-9a-fA-F]{4}:[0-9a-fA-F]{4}").match(name).hasMatch())return {};
     QByteArray bytes="config_save_on_exit = \"false\"\n"
@@ -31,16 +32,19 @@ QByteArray remotePlayPortSettings(const RemotePlayRequest& request) {
            "input_player1_analog_dpad_mode = \"0\"\n"
            "input_player2_analog_dpad_mode = \"1\"\n"
            "input_libretro_device_p1 = \"1\"\n"
-           "input_libretro_device_p2 = \"1\"\n"
+           "input_libretro_device_p2 = \""+QByteArray(request.snesMultitap?"257":"1")+"\"\n"
            "input_hotkey_follows_player1 = \"true\"\n"
            "all_users_control_menu = \"false\"\n"
            "input_menu_toggle_gamepad_combo = \"0\"\n"
            "input_quit_gamepad_combo = \"0\"\n";
     for(int port=3;port<=16;++port) {
         const auto prefix="input_player"+QByteArray::number(port);
-        bytes+=prefix+"_device_reservation_type = \"0\"\n"+prefix+"_reserved_device = \"\"\n"
+        const bool enabled=port<=request.players;
+        bytes+=prefix+"_device_reservation_type = \""+(enabled?"2":"0")+"\"\n"+prefix+"_reserved_device = \""
+            +(enabled?QByteArray("TrainerOS Remote P")+QByteArray::number(port):QByteArray())+"\"\n"
             +prefix+"_joypad_index = \""+QByteArray::number(port-1)+"\"\n"
-            +"input_libretro_device_p"+QByteArray::number(port)+" = \"0\"\n";
+            +prefix+"_analog_dpad_mode = \"1\"\n"
+            +"input_libretro_device_p"+QByteArray::number(port)+" = \""+(enabled?"1":"0")+"\"\n";
     }
     return bytes;
 }
@@ -65,7 +69,7 @@ QString prepareRemotePlay(ProcessCommand& cmd,const RetroArchInstallation& insta
         if(append+1>=cmd.arguments.size())return "Incomplete game configuration.";
         cmd.arguments[append+1]+="|"+config;
     } else {auto content=cmd.arguments.takeLast();cmd.arguments<<"--appendconfig"<<config<<content;}
-    cmd.runtimeControls["remotePlay"]=QVariantMap{{"input","retroarch-udev-p2-v1"},{"port",2},{"device","TrainerOS Remote P2"}};
+    cmd.runtimeControls["remotePlay"]=QVariantMap{{"input","retroarch-udev-ports-v2"},{"ports",request.players}};
     const auto settled=cmd.settled;
     cmd.settled=[settled,directory](const ProcessOutcome& outcome){if(settled)settled(outcome);directory->remove();};
     return {};

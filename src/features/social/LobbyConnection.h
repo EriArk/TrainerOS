@@ -7,14 +7,14 @@
 #include <memory>
 
 namespace trainer {
-// One accepted owner/P2 connection. Owns signaling and a private transport child,
+// One accepted owner/guest connection. Owns signaling and a private transport child,
 // never the game process, save files or permission to inject a controller.
 class LobbyConnection final:public QObject {
     Q_OBJECT
 public:
     explicit LobbyConnection(LobbyCoordinator&,QObject* parent=nullptr);
     ~LobbyConnection() override;
-    bool start(QString self,QString ticket,QString helper,QJsonArray ice={});
+    bool start(QString self,QString ticket,QString helper,QJsonArray ice={},QString guest={});
     void stop();
     QString id() const {return connection_;}
     QString peer() const {return peer_;}
@@ -33,7 +33,7 @@ private:
     bool matches() const;
     void fail(QString reason);
     LobbyCoordinator& lobby_;QProcess process_{this};QTimer deadline_{this};
-    QString self_,peer_,ticket_,connection_,identity_,helper_,config_,admission_;
+    QString self_,peer_,ticket_,connection_,identity_,helper_,config_,admission_,guest_;
     QJsonObject context_,pendingDescription_;QJsonArray ice_,pendingCandidates_;QByteArray buffer_;
     int candidatesSent_=0,candidatesReceived_=0;
     std::unique_ptr<QTemporaryDir> directory_;

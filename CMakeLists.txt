@@ -174,6 +174,7 @@ add_library(trainer_core STATIC
     src/features/adventure/RuntimeHotseat.cpp
     src/features/adventure/RuntimeInvocation.cpp
     src/features/adventure/RemotePlayRuntime.cpp
+    src/features/adventure/RemotePlayHost.cpp
     src/features/adventure/LobbyGamePreparation.cpp
     src/features/adventure/RuntimeLobby.cpp
     src/integrations/adventure/retroarch/RetroArchAdapter.h
@@ -448,6 +449,7 @@ if(BUILD_TESTING)
         add_test(NAME adapter_boundary COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/AdapterBoundaryTests.py)
         add_test(NAME session_supervisor COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/SessionSupervisorTests.py)
         add_test(NAME lobby_input_lease COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/LobbyInputLeaseTests.py)
+        add_test(NAME remote_play_group COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/RemotePlayGroupTests.py)
         add_test(NAME overlay_helper COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/OverlayHelperTests.py)
         add_test(NAME emulator_support_install COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/EmulatorSupportInstallTests.py)
         add_test(NAME emulator_core_bundle COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/EmulatorCoreBundleTests.py)

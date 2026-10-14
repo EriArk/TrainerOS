@@ -21,15 +21,15 @@ class RemotePad {
         pad_->set_stick(inputtino::Joypad::RS,state.rx,state.ry);
     }
 public:
-    explicit RemotePad(int fd):leaseFd_(fd) {
+    explicit RemotePad(int fd,int port=2):leaseFd_(fd) {
         int domain=0,type=0;socklen_t size=sizeof(int);
         ucred peer{};socklen_t credSize=sizeof(peer);
-        if(fd<3||getsockopt(fd,SOL_SOCKET,SO_DOMAIN,&domain,&size)||domain!=AF_UNIX
+        if(port<2||port>4||fd<3||getsockopt(fd,SOL_SOCKET,SO_DOMAIN,&domain,&size)||domain!=AF_UNIX
             ||getsockopt(fd,SOL_SOCKET,SO_TYPE,&type,&size)||type!=SOCK_SEQPACKET
             ||getsockopt(fd,SOL_SOCKET,SO_PEERCRED,&peer,&credSize)||peer.uid!=getuid())
             throw std::runtime_error("Expected inherited local input lease");
         auto created=inputtino::XboxOneJoypad::create({
-            "TrainerOS Remote P2",0x045e,0x02ea,0x0408,"traineros/remote/p2",""});
+            "TrainerOS Remote P"+std::to_string(port),0x045e,0x02ea,0x0408,"traineros/remote/p"+std::to_string(port),""});
         if(!created)throw std::runtime_error(created.getErrorMessage());
         pad_=std::make_unique<inputtino::XboxOneJoypad>(std::move(*created));
         apply({});

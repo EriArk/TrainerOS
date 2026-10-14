@@ -16,9 +16,9 @@ bool candidates(const QJsonArray& batch,int previous) {
     }
     return true;
 }
-QJsonObject binding(const QJsonObject& s) {
+QJsonObject binding(const QJsonObject& s,const QString& guest) {
     QJsonArray players;
-    for(const auto& v:s["members"].toArray()) {const auto m=v.toObject();if(!m["spectator"].toBool())players.append(QJsonObject{
+    for(const auto& v:s["members"].toArray()) {const auto m=v.toObject();if(!m["spectator"].toBool()&&(m["id"]==s["owner"]||m["id"]==guest))players.append(QJsonObject{
         {"id",m["id"]},{"seat",m["seat"]},{"connected",m["connected"]},{"admission",m["admission"]}});}
     return {{"lobby",s["id"]},{"generation",s["generation"]},{"owner",s["owner"]},{"game",s["game"]},{"ticket",s["ticket"]},{"players",players}};
 }
@@ -43,25 +43,35 @@ LobbyConnection::LobbyConnection(LobbyCoordinator& lobby,QObject* parent):QObjec
 LobbyConnection::~LobbyConnection() {stop();}
 bool LobbyConnection::matches() const {
     const auto s=lobby_.state();return active()&&!lobby_.recoveryUncertain()&&!s["recovering"].toBool()
-        &&s["connection"].toString().isEmpty()&&(s["phase"]=="launching"||s["phase"]=="playing")&&binding(s)==context_;
+        &&s["connection"].toString().isEmpty()&&(s["phase"]=="launching"||s["phase"]=="playing")&&binding(s,guest_)==context_;
 }
-bool LobbyConnection::start(QString self,QString ticket,QString helper,QJsonArray ice) {
+bool LobbyConnection::start(QString self,QString ticket,QString helper,QJsonArray ice,QString selectedGuest) {
     if(active()||process_.state()!=QProcess::NotRunning||!QFileInfo(helper).isExecutable())return false;
     const auto s=lobby_.state();const auto game=s["game"].toObject();
     const bool live=s["phase"]=="playing";
-    if((s["phase"]!="launching"&&!live)||s["ticket"]!=ticket||ticket.isEmpty()||game["mode"]!="remoteplay.v1"||game["seats"]!=2)return false;
+    const int capacity=game["seats"].toInt();
+    if((s["phase"]!="launching"&&!live)||s["ticket"]!=ticket||ticket.isEmpty()||game["mode"]!="remoteplay.v1"||capacity<2||capacity>4)return false;
+    if(self!=s["owner"])selectedGuest=self;
+    if(selectedGuest.isEmpty())for(const auto& v:s["members"].toArray()) {
+        const auto m=v.toObject();if(!m["spectator"].toBool()&&m["id"]!=s["owner"]) {
+            if(!selectedGuest.isEmpty())return false;
+            selectedGuest=m["id"].toString();
+        }
+    }
     int players=0;QString owner,guest,admission;
     for(const auto& v:s["members"].toArray()) {
-        const auto m=v.toObject();if(m["spectator"].toBool())continue;++players;
+        const auto m=v.toObject();if(m["id"]!=s["owner"]&&m["id"]!=selectedGuest)continue;
+        if(m["spectator"].toBool())return false;
+        ++players;
         if(!m["connected"].toBool())return false;
         if(m["seat"]==1&&m["id"]==s["owner"])owner=m["id"].toString();
-        else if(m["seat"]==2&&m["id"]!=s["owner"]) {
+        else if(m["seat"].toInt()>=2&&m["seat"].toInt()<=capacity&&m["id"]==selectedGuest) {
             if(live&&QUuid(m["admission"].toString()).isNull())return false;
             guest=m["id"].toString();admission=m["admission"].toString();
         }else return false;
     }
     if(players!=2||owner.isEmpty()||guest.isEmpty()||(self!=owner&&self!=guest))return false;
-    self_=self;host_=self==owner;peer_=host_?guest:owner;ticket_=ticket;helper_=helper;ice_=ice;context_=binding(s);stopping_=false;admission_=admission;
+    self_=self;host_=self==owner;peer_=host_?guest:owner;guest_=guest;ticket_=ticket;helper_=helper;ice_=ice;context_=binding(s,guest);stopping_=false;admission_=admission;
     if(!matches()){stop();return false;}
     deadline_.start();
     // Guest initiates after its launch callback exists; this also avoids losing

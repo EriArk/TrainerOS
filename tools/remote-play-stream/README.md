@@ -5,12 +5,17 @@ mode share these components. Linux ARM64, GStreamer 1.28.8 and the handheld V4L2
 used for the recorded checks. No full Moonlight/Sunshine/Wolf application, HTTP
 server, pairing UI, application runner or desktop control is
 included. There is deliberately no root build dependency or `install()` target.
-The host creates one explicitly permitted Inputtino virtual controller.
+The installed route creates one explicitly permitted Inputtino virtual controller.
+The [shared-host candidate](../../docs/REMOTE_PLAY_GROUPS.md) adds independently
+leased P2/P3/P4 while sharing one capture and H.264/Opus encoder. It is not a
+delivered multi-guest feature: stock Flip Iris lacks the later IDR needed for
+new subscribers. Complete the recorded driver/delivery gates before installing it.
 
 The separate [automatic socket transport gate](transport/README.md) now checks
 ICE/DTLS, encrypted fresh session material and Moonlight interoperability without
 manual IP/key delivery. Private lobby signaling and the launch/return coordinator
-are connected; TURN provisioning, WAN acceptance, rejoining and more guests remain open.
+are connected; rejoining the two-player route is delivered. More guests and WAN
+acceptance remain open. Owner-hosted TURN is outside the current beta scope.
 
 `package.py` assembles the separate reviewed bundle, its manifest and third-party
 notices. The ordinary shell accepts it only after file verification. Managed game

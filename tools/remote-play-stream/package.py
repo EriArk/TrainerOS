@@ -34,7 +34,7 @@ def main():
     files = {name: media / name for name in ('stream_host', 'stream_guest')}
     files['stream_transport'] = transport / 'stream_transport'
     files['libmoonlight-common-c.so'] = media / '_deps/ml-build/libmoonlight-common-c.so'
-    for name in ('run-game.py', 'capture-game.py', 'capture-game-audio.py', 'lobby_lease.py'):
+    for name in ('run-game.py', 'run-group.py', 'capture-game.py', 'capture-game-audio.py', 'lobby_lease.py'):
         files[name] = source / name
     def part(values, directory, name):
         return Path(values.get('FETCHCONTENT_SOURCE_DIR_' + name.upper()) or directory / ('_deps/' + name + '-src'))

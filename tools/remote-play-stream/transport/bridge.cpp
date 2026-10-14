@@ -187,7 +187,7 @@ private:
         if(bytes.size()<2){fail();return;}
         const int index=static_cast<unsigned char>(bytes[0]);if(index<1||index>3){fail();return;}
         auto& socket=udp[index-1];
-        if(host)socket.writeDatagram(bytes.mid(1),QHostAddress("127.0.0.1"),FirstPort+index);
+        if(host)socket.writeDatagram(bytes.mid(1),mediaAddress,FirstPort+index);
         else if(peerPorts[index-1])socket.writeDatagram(bytes.mid(1),QHostAddress::LocalHost,peerPorts[index-1]);
         ++received;
     }
@@ -212,16 +212,26 @@ private:
         event({{"event","ready"},{"config",directory.path()+"/session.conf"}});
     }
     void startSockets() {
+        // A reserved loopback pair isolates each local guest/session. The port
+        // protocol stays unchanged; no public listener or peer-chosen address.
+        bool reserved=false;
+        for(int attempt=0;attempt<16&&!reserved;++attempt) {
+            auto bytes=random(4);uint32_t value=0;std::memcpy(&value,bytes.data(),4);
+            value=0x7f000002u|(value&0x00fffffcu);
+            mediaAddress=QHostAddress(value);proxyAddress=QHostAddress(value+1);
+            reserved=tcpServer.listen(proxyAddress,FirstPort);
+        }
+        if(!reserved)throw std::runtime_error("local session reservation");
         for(int i=0;i<3;++i) {
             auto& socket=udp[i];
-            if(!socket.bind(QHostAddress("127.0.0.2"),host?0:FirstPort+i+1,QUdpSocket::DontShareAddress))throw std::runtime_error("udp bind");
+            if(!socket.bind(proxyAddress,host?0:FirstPort+i+1,QUdpSocket::DontShareAddress))throw std::runtime_error("udp bind");
             connect(&socket,&QUdpSocket::readyRead,this,[this,i]{
                 auto& socket=udp[i];int budget=64;
                 while(socket.hasPendingDatagrams()&&budget--) {
                     if(socket.pendingDatagramSize()>MaxDatagram){socket.receiveDatagram();continue;}
                     QByteArray data(socket.pendingDatagramSize(),0);QHostAddress address;quint16 port=0;
                     socket.readDatagram(data.data(),data.size(),&address,&port);
-                    if(address!=QHostAddress::LocalHost||data.isEmpty()||(host&&port!=FirstPort+i+1))continue;
+                    if(address!=(host?mediaAddress:QHostAddress(QHostAddress::LocalHost))||data.isEmpty()||(host&&port!=FirstPort+i+1))continue;
                     if(!host){if(peerPorts[i]&&peerPorts[i]!=port)continue;peerPorts[i]=port;}
                     if(!ready)continue;
                     data.prepend(char(i+1));if(send(0,data))++sent;
@@ -229,10 +239,9 @@ private:
                 if(socket.hasPendingDatagrams())QTimer::singleShot(0,&socket,[&socket]{emit socket.readyRead();});
             });
         }
-        if(!host&&!tcpServer.listen(QHostAddress("127.0.0.2"),FirstPort))throw std::runtime_error("rtsp bind");
         if(!directory.isValid())throw std::runtime_error("private directory");
         QFile file(directory.path()+"/session.conf");
-        const QByteArray config="address="+QByteArray(host?"127.0.0.1":"127.0.0.2")+"\npeer=127.0.0.2\nkey="+key+"\nping="+ping+"\nconnect="+QByteArray::number(token)+"\nseconds="+QByteArray::number(seconds)
+        const QByteArray config="address="+(host?mediaAddress:proxyAddress).toString().toLatin1()+"\npeer="+proxyAddress.toString().toLatin1()+"\nkey="+key+"\nping="+ping+"\nconnect="+QByteArray::number(token)+"\nseconds="+QByteArray::number(seconds)
             +(game?"\nmode=game\ndisplay=1\nsound=1\n":"\nmode=synthetic\ndisplay=0\nsound=0\n");
         if(!file.open(QIODevice::WriteOnly|QIODevice::NewOnly)||!file.setPermissions(QFile::ReadOwner|QFile::WriteOwner)
            ||file.write(config)!=config.size()||!file.flush())throw std::runtime_error("private material");
@@ -240,7 +249,7 @@ private:
     }
     void acceptRtsp() {
         auto socket=tcpServer.nextPendingConnection();
-        if(!ready||tcp||socket->peerAddress()!=QHostAddress::LocalHost){socket->abort();socket->deleteLater();return;}
+        if(host||!ready||tcp||socket->peerAddress()!=QHostAddress::LocalHost){socket->abort();socket->deleteLater();return;}
         tcp=socket;tcpBytes.clear();requestSent=false;socket->setReadBufferSize(MaxRecord+1);
         connect(socket,&QTcpSocket::readyRead,this,[this,socket]{
             tcpBytes+=socket->readAll();if(tcpBytes.size()>MaxRecord){fail();return;}
@@ -271,8 +280,8 @@ private:
             auto response=tcpBytes;tcpBytes.clear();tcp=nullptr;socket->deleteLater();send(2,response);
         });
         connect(socket,&QTcpSocket::errorOccurred,this,[this](auto error){if(error!=QAbstractSocket::RemoteHostClosedError)fail();});
-        if(!socket->bind(QHostAddress("127.0.0.2"),0))throw std::runtime_error("rtsp local bind");
-        socket->connectToHost(QHostAddress::LocalHost,FirstPort);
+        if(!socket->bind(proxyAddress,0))throw std::runtime_error("rtsp local bind");
+        socket->connectToHost(mediaAddress,FirstPort);
         QTimer::singleShot(5000,socket,[this,socket]{if(tcp==socket)fail();});
     }
     QSocketNotifier input,output;QTimer deadline,shutdownTimer,candidateTimer;QByteArray in,out;
@@ -282,6 +291,7 @@ private:
     std::array<std::shared_ptr<rtc::DataChannel>,3> channels;
     std::atomic<bool> stopping{false};std::atomic<qsizetype> pending{0};
     std::array<bool,3> opened{};std::array<QUdpSocket,3> udp;std::array<quint16,3> peerPorts{};
+    QHostAddress mediaAddress,proxyAddress;
     QTcpServer tcpServer;QPointer<QTcpSocket> tcp;QByteArray tcpBytes,key,ping;uint32_t token=0;
     bool host=false,remoteDescription=false,greeted=false,verified=false,ready=false,requestSent=false,materialSent=false,closing=false;
     QString identity;int seconds=0;bool game=false;quint64 sent=0,received=0,dropped=0;
