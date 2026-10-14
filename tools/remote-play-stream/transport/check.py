@@ -17,7 +17,7 @@ BINARY = str(Path(sys.argv.pop(1)).resolve())
 
 
 class Pair:
-    def __init__(self, different_identity=False, bad_fingerprint=False):
+    def __init__(self, different_identity=False, bad_fingerprint=False, ice=None):
         self.events = queue.Queue()
         self.ready, self.paths, self.output = {}, [], []
         self.processes = [subprocess.Popen([BINARY], stdin=subprocess.PIPE,
@@ -27,7 +27,7 @@ class Pair:
         self.bad_fingerprint = bad_fingerprint
         for i, p in enumerate(self.processes):
             threading.Thread(target=self.read, args=(i, p), daemon=True).start()
-            self.send(i, {'host': i == 0, 'identity': self.identity[i], 'seconds': 30, 'ice': []})
+            self.send(i, {'host': i == 0, 'identity': self.identity[i], 'seconds': 30, 'ice': ice or []})
 
     def send(self, i, value):
         self.processes[i].stdin.write(json.dumps(value)+'\n')
@@ -59,6 +59,8 @@ class Pair:
             elif value['event'] == 'ready':
                 self.ready[i] = Path(value['config'])
                 self.paths.append(self.ready[i])
+            elif value['event'] == 'candidates':
+                self.send(1-i, {'identity': self.identity[1-i], 'candidates': value['candidates']})
         return len(self.ready) == 2
 
     def close(self):
@@ -91,6 +93,17 @@ class TransportTests(unittest.TestCase):
             self.pair.close()
             for path in self.pair.paths:
                 self.assertFalse(path.exists(), 'private material survived transport exit')
+
+    def test_unresponsive_stun_does_not_remove_direct_local_candidates(self):
+        # An actual bound but silent UDP endpoint, independent of public DNS or
+        # internet availability. Local play must survive address-discovery loss.
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as blackhole:
+            blackhole.bind(('127.0.0.1', 0))
+            self.pair = Pair(ice=[f'stun:127.0.0.1:{blackhole.getsockname()[1]}'])
+            self.assertTrue(self.pair.connect(timeout=25))
+            batches = [c['candidate'] for v in self.pair.output if v['event'] == 'candidates' for c in v['candidates']]
+            self.assertTrue(any(' typ host' in s for s in batches))
+            self.assertTrue(all(' typ relay' not in s for s in batches))
 
     def test_existing_udp_and_rtsp_with_private_fresh_material(self):
         self.pair = Pair()
@@ -156,6 +169,15 @@ class TransportTests(unittest.TestCase):
             result = subprocess.run([BINARY], input=value, text=True, capture_output=True, timeout=5)
             self.assertNotEqual(result.returncode, 0)
             self.assertNotIn('ready', result.stdout)
+
+    def test_candidate_batches_require_current_identity_and_bounded_records(self):
+        config = {'host': True, 'identity': 'ab'*32, 'seconds': 30, 'ice': []}
+        for packet in ({'identity': 'cd'*32, 'candidates': [{'candidate': 'candidate:1 1 UDP 1 127.0.0.1 9 typ host', 'mid': '0'}]},
+                       {'identity': 'ab'*32, 'candidates': [{}]*33},
+                       {'identity': 'ab'*32, 'candidates': [{'candidate': 'x'*513, 'mid': '0'}]}):
+            result = subprocess.run([BINARY], input=json.dumps(config)+'\n'+json.dumps(packet)+'\n', text=True, capture_output=True, timeout=5)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertNotIn('"event":"ready"', result.stdout)
 
     def test_parent_eof_closes_session(self):
         self.pair = Pair();self.assertTrue(self.pair.connect())

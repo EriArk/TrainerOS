@@ -59,11 +59,20 @@ private slots:
         guest.send("1","game-finished",{{"ticket",ticket}});QCOMPARE(host.state()["phase"].toString(),"playing");
         QVERIFY(host.finishGame(ticket));QCOMPARE(host.state()["phase"].toString(),"gathering");
     }
+    void realLobbyConnectionOwnsHelperAndRevokesOnGuestRemoval_data() {
+        QTest::addColumn<bool>("badCandidates");
+        QTest::newRow("guest-removed")<<false;QTest::newRow("invalid-address-batch")<<true;
+    }
     void realLobbyConnectionOwnsHelperAndRevokesOnGuestRemoval() {
+        QFETCH(bool,badCandidates);
         const auto helper=qEnvironmentVariable("TRAINEROS_STREAM_TRANSPORT");if(helper.isEmpty())QSKIP("Real Linux transport supplied by the ARM integration check");
         LobbyCoordinator host,guest;host.configure("1","Host",true);guest.configure("2","Guest",true);
         connect(&host,&LobbyCoordinator::outgoing,&guest,[&](QString peer,QJsonObject p){if(peer=="2")guest.receive("1","Host",p);});
-        connect(&guest,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){host.receive("2","Guest",p);});
+        QString connectionIdentity;
+        connect(&guest,&LobbyCoordinator::outgoing,&host,[&](QString,QJsonObject p){
+            const auto payload=p["data"].toObject()["payload"].toObject();if(payload["kind"]=="description")connectionIdentity=payload["identity"].toString();
+            host.receive("2","Guest",p);
+        });
         LobbyConnection hc(host),gc(guest);QSignalSpy hr(&hc,&LobbyConnection::connected),gr(&gc,&LobbyConnection::connected),ended(&hc,&LobbyConnection::ended),media(&gc,&LobbyConnection::mediaReady);
         connect(&host,&LobbyCoordinator::launchRequested,&hc,[&](QString ticket,QJsonObject){QVERIFY(hc.start("1",ticket,helper));});
         connect(&guest,&LobbyCoordinator::launchRequested,&gc,[&](QString ticket,QJsonObject){QVERIFY(gc.start("2",ticket,helper));});
@@ -75,7 +84,14 @@ private slots:
         const auto config=file.readAll();QVERIFY(config.contains("mode=game\n"));QVERIFY(config.contains("seconds=0\n"));file.close();
         const auto ticket=host.state()["ticket"].toString();QVERIFY(host.acknowledgeLaunch(ticket,true));QVERIFY(guest.acknowledgeLaunch(ticket,true));
         QVERIFY(hc.announceMedia());QCOMPARE(media.size(),1);
-        QVERIFY(host.remove("2"));QCOMPARE(ended.size(),1);QVERIFY(!hc.active());QTRY_VERIFY(!gc.active());
+        if(badCandidates) {
+            QJsonArray bad;for(int i=0;i<33;++i)bad.append(QJsonObject{});
+            QVERIFY(guest.sendRuntimeSignal("1",ticket,hc.id(),{{"kind","candidates"},{"identity","wrong"},{"candidates",bad}}));
+            QVERIFY(hc.active());QCOMPARE(ended.size(),0);
+            QVERIFY(!connectionIdentity.isEmpty());
+            QVERIFY(guest.sendRuntimeSignal("1",ticket,hc.id(),{{"kind","candidates"},{"identity",connectionIdentity},{"candidates",bad}}));
+        } else QVERIFY(host.remove("2"));
+        QCOMPARE(ended.size(),1);QVERIFY(!hc.active());QTRY_VERIFY(!gc.active());
         QVERIFY(!QFile::exists(hostFile));QVERIFY(!QFile::exists(guestFile));QCOMPARE(host.state()["phase"].toString(),"playing");
     }
     void remoteInputRequiresPlayingRemoteModeAndAssignedGuest() {

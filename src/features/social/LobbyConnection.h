@@ -34,7 +34,8 @@ private:
     void fail(QString reason);
     LobbyCoordinator& lobby_;QProcess process_{this};QTimer deadline_{this};
     QString self_,peer_,ticket_,connection_,identity_,helper_,config_;
-    QJsonObject context_,pendingDescription_;QJsonArray ice_;QByteArray buffer_;
+    QJsonObject context_,pendingDescription_;QJsonArray ice_,pendingCandidates_;QByteArray buffer_;
+    int candidatesSent_=0,candidatesReceived_=0;
     std::unique_ptr<QTemporaryDir> directory_;
     bool initialized_=false;
     bool host_=false,ready_=false,descriptionSent_=false,descriptionReceived_=false,stopping_=false;

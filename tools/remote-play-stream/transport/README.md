@@ -13,7 +13,9 @@ The managed five-field configuration adds `mode: "game"` and permits `seconds: 0
 the local parent and accepted lobby then own the lifetime. The original four-field
 diagnostic configuration remains bounded to 5–120 seconds. Parent EOF, membership
 loss or explicit close removes the connection and its private session material.
-TURN provisioning and separate-network acceptance remain open.
+The ordinary route supplies public STUN for address discovery and keeps media
+P2P. Owner-hosted TURN/VPS is outside the early-beta requirement; difficult NAT
+combinations are a documented limitation. Separate-network acceptance stays open.
 
 The existing DS/Vita reliable record transport is retained for those families.
 Its ordered delivery is not adopted for latency-sensitive Remote Play datagrams.
@@ -64,6 +66,15 @@ Do not expose/persist them in QML, a public lobby listing or diagnostic logs.
    authenticated** intended peer's parent. It supplies them to the other helper.
    SDP contains short-lived ICE credentials and a certificate fingerprint. Only
    one remote description is accepted; a second cannot replace this connection.
+   The helper emits this SDP immediately, then `event: candidates` with the same
+   identity and a `candidates` array of `{candidate, mid}` records. Forward each
+   batch as `{identity, candidates}` over the same authenticated signaling path.
+   Trickle ICE allows local/direct checks while STUN is unavailable or still
+   gathering an external address. Batches are coalesced for 100 ms, bounded to
+   32 records per side/session, 512 characters per candidate and 32 per mid.
+   Early remote candidates are buffered until the one remote SDP is installed.
+   Both participants need the matching shell/helper; update the bundle and shell
+   together. Candidate batches never replace the game, peer or launch ticket.
 3. DTLS verifies that fingerprint. Both sides then verify the session identity
    and opposite roles inside the encrypted channel. Only the host creates the
    fresh Moonlight key/ping/connect material; the guest receives it encrypted.

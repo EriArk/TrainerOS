@@ -67,6 +67,11 @@ bool RemotePlayRuntime::configure(const QString& directory) {
         if(!info.isFile()||info.isSymLink()||info.size()>64*1024*1024||!content.open(QIODevice::ReadOnly))return false;
         if(QString::fromLatin1(QCryptographicHash::hash(content.readAll(),QCryptographicHash::Sha256).toHex())!=files[name].toString())return false;
     }
+    // Public address discovery only. Media/input use the selected direct ICE
+    // path; there is no TURN account, relay allocation or owner-server traffic.
+    // Same default as the upstream WebRTC Trickle ICE sample. Local candidates
+    // remain available when public STUN is unreachable.
+    ice_={"stun:stun.l.google.com:19302"};
     root_=base.canonicalFilePath();return true;
 #else
     Q_UNUSED(directory);return false;

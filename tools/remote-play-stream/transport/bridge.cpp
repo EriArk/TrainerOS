@@ -43,6 +43,11 @@ public:
         deadline.setSingleShot(true);deadline.start(30000);
         connect(&deadline,&QTimer::timeout,this,[this]{fail();});
         connect(&tcpServer,&QTcpServer::newConnection,this,[this]{acceptRtsp();});
+        candidateTimer.setSingleShot(true);candidateTimer.setInterval(100);
+        connect(&candidateTimer,&QTimer::timeout,this,[this]{
+            if(!localDescription){candidateTimer.start();return;}
+            if(!localCandidates.isEmpty()){auto batch=localCandidates;localCandidates={};event({{"event","candidates"},{"identity",identity},{"candidates",batch}});}
+        });
         shutdownTimer.start(50);connect(&shutdownTimer,&QTimer::timeout,this,[this]{if(interrupted)QCoreApplication::quit();});
     }
     ~Bridge() override {
@@ -85,10 +90,24 @@ private:
     void command(const QJsonObject& value) {
         if(!pc){configure(value);return;}
         if(value==QJsonObject{{"close",true}}){close();return;}
+        if(value.size()==2&&value["identity"]==identity&&value["candidates"].isArray()) {
+            const auto batch=value["candidates"].toArray();
+            if(batch.isEmpty()||batch.size()+remoteCandidateCount>32)throw std::runtime_error("candidate bounds");
+            for(const auto& entry:batch) {
+                const auto c=entry.toObject();const auto text=c["candidate"].toString(),mid=c["mid"].toString();
+                if(c.size()!=2||text.isEmpty()||text.size()>512||text.contains('\n')||text.contains('\r')||mid.size()>32||mid.isEmpty())throw std::runtime_error("candidate");
+                ++remoteCandidateCount;
+                if(remoteDescription)pc->addRemoteCandidate(rtc::Candidate(text.toStdString(),mid.toStdString()));
+                else remoteCandidates.append(c);
+            }
+            return;
+        }
         if(value.size()!=2||value["identity"]!=identity||!value["description"].isString()||remoteDescription)throw std::runtime_error("description");
         const auto text=value["description"].toString();if(text.size()>16384||text.isEmpty())throw std::runtime_error("description bounds");
         remoteDescription=true;
         pc->setRemoteDescription(rtc::Description(text.toStdString(),host?"answer":"offer"));
+        for(const auto& entry:remoteCandidates){const auto c=entry.toObject();pc->addRemoteCandidate(rtc::Candidate(c["candidate"].toString().toStdString(),c["mid"].toString().toStdString()));}
+        remoteCandidates={};
         if(!host)pc->setLocalDescription(rtc::Description::Type::Answer);
     }
     void configure(const QJsonObject& value) {
@@ -102,11 +121,22 @@ private:
         const auto servers=value["ice"].toArray();if(servers.size()>4)throw std::runtime_error("ice bounds");
         for(const auto& entry:servers){const auto url=entry.toString();if(url.size()>2048||(!url.startsWith("stun:")&&!url.startsWith("turn:")))throw std::runtime_error("ice server");config.iceServers.emplace_back(url.toStdString());}
         pc=std::make_shared<rtc::PeerConnection>(config);
-        pc->onGatheringStateChange([this](auto state){if(state==rtc::PeerConnection::GatheringState::Complete)post([this]{
-            auto description=pc->localDescription();if(!description){fail();return;}
-            const auto sdp=QString::fromStdString(std::string(*description));
+        // Trickle ICE starts connectivity checks without waiting for a silent
+        // public STUN server. Later reflexive candidates use the same bound
+        // connection, never a replacement SDP or a second game launch.
+        pc->onLocalDescription([this](auto description){post([this,description]{
+            if(localDescription){fail();return;}
+            const auto sdp=QString::fromStdString(std::string(description));
             if(sdp.size()>16384){fail();return;}
+            localDescription=true;
             event({{"event","description"},{"identity",identity},{"description",sdp}});
+        });});
+        pc->onLocalCandidate([this](auto candidate){post([this,candidate]{
+            if(++localCandidateCount>32){fail();return;}
+            const auto text=QString::fromStdString(std::string(candidate)),mid=QString::fromStdString(candidate.mid());
+            if(text.isEmpty()||text.size()>512||mid.isEmpty()||mid.size()>32){fail();return;}
+            localCandidates.append(QJsonObject{{"candidate",text},{"mid",mid}});
+            if(!candidateTimer.isActive())candidateTimer.start();
         });});
         pc->onStateChange([this](auto state){if(state==rtc::PeerConnection::State::Failed||state==rtc::PeerConnection::State::Closed||state==rtc::PeerConnection::State::Disconnected)post([this]{if(closing)QCoreApplication::quit();else fail();});});
         for(int i=0;i<3;++i) {
@@ -245,7 +275,8 @@ private:
         socket->connectToHost(QHostAddress::LocalHost,FirstPort);
         QTimer::singleShot(5000,socket,[this,socket]{if(tcp==socket)fail();});
     }
-    QSocketNotifier input,output;QTimer deadline,shutdownTimer;QByteArray in,out;
+    QSocketNotifier input,output;QTimer deadline,shutdownTimer,candidateTimer;QByteArray in,out;
+    QJsonArray localCandidates,remoteCandidates;int localCandidateCount=0,remoteCandidateCount=0;bool localDescription=false;
     QTemporaryDir directory{QDir::tempPath()+"/traineros-stream-XXXXXX"};
     std::shared_ptr<rtc::PeerConnection> pc;
     std::array<std::shared_ptr<rtc::DataChannel>,3> channels;

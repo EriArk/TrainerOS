@@ -1,5 +1,20 @@
 # AGENTS.md — TrainerOS
 
+**Owner Remote Play hosting correction, 14 October 2026 (latest):** spectator
+streaming uses Fluxer; interactive Remote Play uses a direct P2P connection
+between handhelds. Fluxer supplies invitations/signaling, public STUN only
+discovers addresses. Do not make an owner-hosted TURN/media relay, VPS or paid
+relay a prerequisite; the owner accepts hosting the lightweight directory bot,
+not heavy media traffic. Keep the limitation explicit: some networks cannot
+connect directly without a relay. Never claim same-network or STUN discovery
+proves different-network gameplay. TURN deployment is no longer the next task;
+deliver direct connectivity, then Remote Play rejoin and retained acceptance.
+The owner subsequently made public early beta the immediate release target:
+double/triple-router and other difficult NAT cases are deferred, documented
+limitations, not beta blockers. Do not invent heavy infrastructure to close
+them. Preserve safe saves/session exit, installation/recovery and the remaining
+accepted platform scope; this is not evidence that a public beta is released.
+
 **Owner complete-cycle and planning correction, 13 October 2026 (latest):**
 Maintain an actionable roadmap and entry/return map after issue discussions, not
 only a chronological delivery log. Follow docs/LOBBY_EXECUTION_PLAN_RU.md and the

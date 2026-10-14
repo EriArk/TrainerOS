@@ -9,6 +9,13 @@
 
 namespace trainer {
 namespace {
+bool candidates(const QJsonArray& batch,int previous) {
+    if(batch.isEmpty()||batch.size()+previous>32)return false;
+    for(const auto& entry:batch){const auto c=entry.toObject();const auto text=c["candidate"].toString(),mid=c["mid"].toString();
+        if(c.size()!=2||text.isEmpty()||text.size()>512||text.contains('\n')||text.contains('\r')||mid.isEmpty()||mid.size()>32)return false;
+    }
+    return true;
+}
 QJsonObject binding(const QJsonObject& s) {
     QJsonArray players;
     for(const auto& v:s["members"].toArray()) {const auto m=v.toObject();if(!m["spectator"].toBool())players.append(QJsonObject{
@@ -26,11 +33,12 @@ LobbyConnection::LobbyConnection(LobbyCoordinator& lobby,QObject* parent):QObjec
         write({{"host",host_},{"identity",identity_},{"seconds",0},{"ice",ice_},{"mode","game"}});
         initialized_=true;
         if(!pendingDescription_.isEmpty()){auto packet=pendingDescription_;pendingDescription_={};write(packet);}
+        if(!pendingCandidates_.isEmpty()){auto batch=pendingCandidates_;pendingCandidates_={};write({{"identity",identity_},{"candidates",batch}});}
     });
     connect(&process_,&QProcess::errorOccurred,this,[this](auto error){if(error==QProcess::FailedToStart&&!stopping_)fail("Remote Play transport is unavailable.");});
-    connect(&process_,&QProcess::finished,this,[this](int,QProcess::ExitStatus){if(!stopping_&&active())fail("The Remote Play connection ended.");});
+    connect(&process_,&QProcess::finished,this,[this](int,QProcess::ExitStatus){if(!stopping_&&active())fail(ready_?"The Remote Play connection ended. Your game is kept.":"Couldn't connect directly on these networks. Try another network.");});
     deadline_.setSingleShot(true);deadline_.setInterval(90000);
-    connect(&deadline_,&QTimer::timeout,this,[this]{fail("Couldn't connect to the other player. Prepare again.");});
+    connect(&deadline_,&QTimer::timeout,this,[this]{fail("Couldn't connect directly on these networks. Try another network.");});
 }
 LobbyConnection::~LobbyConnection() {stop();}
 bool LobbyConnection::matches() const {
@@ -85,6 +93,12 @@ void LobbyConnection::receive(QString peer,QString ticket,QString connection,con
     if(connection!=connection_)return;
     if(kind=="media-ready"&&payload.size()==1&&!host_&&ready_){emit mediaReady();return;}
     if(kind=="accepted"&&!host_&&payload.size()==1&&identity_.isEmpty()){launch();return;}
+    if(kind=="candidates"&&payload.size()==3&&payload["identity"]==identity_&&!identity_.isEmpty()) {
+        const auto batch=payload["candidates"].toArray();if(!candidates(batch,candidatesReceived_)){fail("Invalid Remote Play addresses.");return;}
+        candidatesReceived_+=batch.size();const QJsonObject packet{{"identity",identity_},{"candidates",batch}};
+        if(initialized_)write(packet);else for(const auto& entry:batch)pendingCandidates_.append(entry);
+        return;
+    }
     if(kind=="description"&&payload.size()==3&&payload["identity"]==identity_&&!identity_.isEmpty()) {
         const auto description=payload["description"].toString();
         if(descriptionReceived_||description.isEmpty()||description.size()>16384)return;
@@ -111,6 +125,11 @@ void LobbyConnection::read() {
            &&event["description"].toString().size()<=16384&&!event["description"].toString().isEmpty()) {
             descriptionSent_=true;auto packet=event;packet.remove("event");packet["kind"]="description";
             if(!lobby_.sendRuntimeSignal(peer_,ticket_,connection_,packet)){fail("Couldn't reach the other player.");return;}
+        } else if(event["event"]=="candidates"&&event.size()==3&&event["identity"]==identity_&&descriptionSent_) {
+            const auto batch=event["candidates"].toArray();
+            if(!candidates(batch,candidatesSent_)){fail("Invalid Remote Play addresses.");return;}
+            candidatesSent_+=batch.size();auto packet=event;packet.remove("event");packet["kind"]="candidates";
+            if(!lobby_.sendRuntimeSignal(peer_,ticket_,connection_,packet)){fail("Couldn't reach the other player.");return;}
         } else if(event["event"]=="ready"&&event.size()==2&&!ready_&&descriptionSent_&&descriptionReceived_) {
             const auto path=event["config"].toString();const QFileInfo file(path);
             // Only the launched local helper can supply a config path. Still
@@ -134,6 +153,7 @@ void LobbyConnection::stop() {
     if(!config_.isEmpty())QFile::remove(config_);
     config_.clear();connection_.clear();identity_.clear();context_={};buffer_.clear();
     pendingDescription_={};initialized_=false;directory_.reset();
+    pendingCandidates_={};candidatesSent_=candidatesReceived_=0;
     ready_=descriptionSent_=descriptionReceived_=false;
 }
 }
