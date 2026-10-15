@@ -18,7 +18,11 @@
   composition factory and their sources/resources in CMake. Do not add game names,
   concrete module includes, widget registrations or controller branches to the
   generic shell, `Main.qml`, or `ExperienceHost.qml`.
-- Home and both game slots must use the same selected owner/game/module context.
+- Home and the optional named GameHub Adapter surface must use the same selected
+  owner/game/module context. Descriptor v2 exposes `adapter.screens` with stable
+  IDs, labels, icons and views; `show(screenId)` never receives a primary slot.
+  Overview, RetroAchievements and Lobby belong to the host, not the adapter.
+  Screens inside Adapter use its left menu, not the host L2/R2 peer cycle.
   A collection is not an adapter identity. Titles never grant capabilities.
 - Keep UI presentation distinct from exact-build semantic readers/writers and
   emulator launch/netplay adapters. Reuse their existing services and authorization;

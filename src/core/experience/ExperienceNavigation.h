@@ -4,30 +4,26 @@
 #include <QVariantMap>
 
 namespace trainer {
-// Trusted presentation registry. A view key is resolved by compiled host QML;
-// descriptors never contain paths, executable QML, commands or save permissions.
-struct ExperienceFace {
-    QString id, label, view;
-    bool operator==(const ExperienceFace&) const = default;
+// Trusted view keys resolve through a compiled presenter; never save authority.
+struct ExperienceScreen {
+    QString id, label, view, icon;
+    bool operator==(const ExperienceScreen&) const = default;
 };
-struct ExperienceSlot {
-    QString label;
-    QList<ExperienceFace> faces;
-    bool operator==(const ExperienceSlot&) const = default;
+struct ExperienceSurface {
+    QString label, icon;
+    QList<ExperienceScreen> screens;
+    bool operator==(const ExperienceSurface&) const = default;
 };
 struct ExperienceDescriptor {
     QString id;
-    int version = 1;
+    int version = 2;
     QString homeView;
-    ExperienceSlot first, second;
+    ExperienceSurface adapter;
     bool operator==(const ExperienceDescriptor&) const = default;
 };
 const ExperienceDescriptor& genericExperienceDescriptor();
-
 class ExperienceNavigation {
 public:
-    // Explicit library family selects presentation only. Exact-build providers
-    // retain independent read/write capability checks behind every operation.
     bool select(const QString& owner, const QString& adventure,
                 const ExperienceDescriptor&, int registrationRevision = 0);
     const ExperienceDescriptor& descriptor() const { return descriptor_; }
@@ -35,21 +31,21 @@ public:
     QString owner() const { return owner_; }
     quint64 generation() const { return generation_; }
     bool current(const QString& owner, const QString& adventure, quint64 generation) const;
-    QStringList labels(int slot) const;
-    QStringList faceIds(int slot) const;
-    QString face(int slot) const;
-    QString view(int slot) const;
-    int index(int slot) const;
+    bool hasAdapter() const { return !descriptor_.adapter.screens.isEmpty(); }
+    QStringList screenIds() const;
+    QString screen() const;
+    QString view() const;
+    int index() const;
+    bool show(const QString& screen);
     QJsonObject navigation() const;
     void rememberNavigation(const QJsonObject&);
-    bool show(int slot, const QString& face);
-    bool cycle(int slot, int delta);
     QJsonObject state() const;
     void restore(const QJsonObject&);
+    // Read-only migration of retired v1 slots, never live routing.
+    QString legacyScreen(int oldSlot) const;
     void clear();
     static bool valid(const ExperienceDescriptor&);
 private:
-    const ExperienceSlot& slot(int slot) const;
     QString key() const;
     ExperienceDescriptor descriptor_ = genericExperienceDescriptor();
     QString owner_, adventure_;

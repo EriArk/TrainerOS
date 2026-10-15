@@ -1012,12 +1012,13 @@ void SocialController::selectMenu(int index) {
     if(command=="message-tools") {
         if(menuChannel_!=snapshot_["channel"].toString())return;
         menuMode_="message-tools";menuTitle_="Message tools";menuFocus_=0;
-        menu_={"Attach picture","Emoji"};menuCommands_={"picture","emoji-picker"};
+        menu_={"Write message","Attach picture","Emoji"};menuCommands_={"compose-message","picture","emoji-picker"};
         if(snapshot_["voice"].toMap()["channel"].toString().isEmpty()){menu_<<"Record voice message";menuCommands_<<"record";}
         if(!draft().trimmed().isEmpty()){menu_<<"Send draft";menuCommands_<<"send-draft";}
         emit changed();return;
     }
     if(command=="emoji-picker"){closeMenu();emoji();return;}
+    if(command=="compose-message"){const auto channel=menuChannel_;closeMenu();if(channel==snapshot_["channel"].toString())compose();return;}
     if(command=="send-draft"){const auto channel=menuChannel_;closeMenu();if(channel==snapshot_["channel"].toString())sendDraft();return;}
     if(command=="collection-options"){collectionOptions();return;}
     if(command=="dm"&&profileVisible()) {

@@ -148,7 +148,7 @@ void AppsController::menuAction(int index) {
     menuId_.clear();normalize();emit changed();
 }
 void AppsController::showHidden(){hidden_=!hidden_;focus_=0;railFocused_=false;menuId_.clear();emit changed();}
-void AppsController::leave(){menuId_.clear();hidden_=false;normalize();emit changed();}
+void AppsController::leave(){menuId_.clear();hidden_=false;railFocused_=false;normalize();emit changed();}
 void AppsController::showControls(){if(!current_.isEmpty())emit commandRequested({{"command","controls"}});}
 void AppsController::control(int index) {
     if(current_.isEmpty())return;

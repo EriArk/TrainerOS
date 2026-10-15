@@ -23,19 +23,12 @@ void startAppsSmoke(QQuickWindow* window,ShellController& shell,ControllerInput&
             flow->configure(temporary->path(),"apps-smoke");QJsonArray rows;
             for(int i=0;i<28;++i)rows.append(QJsonObject{{"id",QString("app-%1.desktop").arg(i,2,10,QChar('0'))},{"name",QString("Application %1").arg(i,2,10,QChar('0'))}});
             flow->accept({{"event","catalogue"},{"rows",rows}});flow->accept({{"event","ready"}});
-            shell.goToPage(4);press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);break;
+            shell.goToSection("social");press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);break;
         }
         case 1:
-            check(shell.page()==5,"R1 did not reach Apps");check(shell.primaryNames().last()=="Apps","Apps is not a primary");
+            check(shell.page()==4,"R1 did not reach Apps");check(shell.primaryNames().last()=="Apps","Apps is not a primary");
             check(window->findChild<QObject*>("apps-grid") && window->findChild<QObject*>("apps-grid")->property("count").toInt()==28,"Application catalog was not rendered");
             check(shell.navigationState()["page"].toString()=="apps","Apps checkpoint identity");
-            {
-                auto* screen=window->findChild<QObject*>("primary-screen");
-                auto* dock=window->findChild<QObject*>("apps-chassis-dock");
-                check(screen && dock && screen->property("width").toReal()<900
-                    && dock->property("x").toReal()>=screen->property("x").toReal()+screen->property("width").toReal(),
-                    "Dock must occupy the expanded chassis beyond the recessed screen");
-            }
             press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);check(flow->focusIndex()==1,"Apps controller focus");
             press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);check(flow->focusIndex()==6,"Five-column navigation must preserve the focused column");
             press(SDL_CONTROLLER_BUTTON_DPAD_UP);check(flow->focusIndex()==1,"Up must return to the same column");
@@ -46,14 +39,14 @@ void startAppsSmoke(QQuickWindow* window,ShellController& shell,ControllerInput&
             press(SDL_CONTROLLER_BUTTON_BACK);press(SDL_CONTROLLER_BUTTON_DPAD_DOWN);press(SDL_CONTROLLER_BUTTON_B);break;
         case 3:
             check(flow->rows().size()==27,"Hide did not remove catalog entry");check(flow->rail().isEmpty(),"Hidden favorite stayed in rail");
-            press(SDL_CONTROLLER_BUTTON_Y);break;
+            flow->options(0);flow->menuAction(2);break;
         case 4:
-            check(flow->hiddenView(),"X did not open hidden apps");check(flow->rows().size()==1,"Hidden app missing");capture("apps-hidden");
+            check(flow->hiddenView(),"Hidden apps context action failed");check(flow->rows().size()==1,"Hidden app missing");capture("apps-hidden");
             flow->options(0);flow->menuAction(1);flow->showHidden();
             flow->accept({{"event","state"},{"running",QJsonArray{"app-00.desktop"}},{"current",""}});
-            press(SDL_CONTROLLER_BUTTON_X);break;
+            press(SDL_CONTROLLER_BUTTON_Y);break;
         case 5:
-            check(flow->railFocused(),"Y cannot reach running/favorite apps");
+            check(flow->railFocused(),"X cannot reach running/favorite apps");
             if (const auto preview=qEnvironmentVariable("TRAINEROS_APPS_PREVIEW_CATALOGUE");!preview.isEmpty()) {
                 QFile file(preview);check(file.open(QIODevice::ReadOnly),"Cannot read real preview catalogue");
                 const auto catalogue=QJsonDocument::fromJson(file.readAll()).object();
@@ -69,11 +62,11 @@ void startAppsSmoke(QQuickWindow* window,ShellController& shell,ControllerInput&
                 for(int i=0;i<4;++i){flow->options(i);flow->menuAction(0);}
                 flow->select(0,true);
             }
-            capture("apps-workspace");
-            press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);check(shell.page()==4,"L1 did not leave Apps");press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
-            window->resize(800,450);break;
+            check(shell.quickAppsOpen(),"Global Quick Apps did not open");capture("apps-workspace");
+            press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);check(shell.page()==3,"L1 did not leave Apps");press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER);
+            window->resize(800,450);shell.toggleQuickApps();break;
         case 6:
-            capture("apps-800");flow->select(27);break;
+            capture("apps-800");shell.toggleQuickApps();flow->select(27);break;
         case 7:
             capture("apps-scrolled-800");check(flow->focusIndex()==27,"Pointer focus and scrolling");
             flow->accept({{"event","foreground"},{"id","app-00.desktop"}});flow->accept({{"event","controls"}});break;

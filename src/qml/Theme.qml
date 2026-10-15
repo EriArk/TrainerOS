@@ -41,8 +41,8 @@ QtObject {
     readonly property color focusGlow: "#ffbd24"
     readonly property var tabColors: ["#f4cc62", "#b4d8a0", "#98cadd", "#eba9ad", "#c6b4df", "#d9bfa0"]
     // Logical design space, separate from the physical display's pixel count.
-    readonly property int viewportWidth: 960
-    readonly property int viewportHeight: 540
+    property int viewportWidth: 960
+    property int viewportHeight: 540
     readonly property int pageMargin: 28
     // One chassis geometry for primary pages and frame-mounted services.
     readonly property int brandHeight: 63
@@ -55,8 +55,9 @@ QtObject {
     readonly property int tabSpacing: 4
     readonly property int screenBevel: 11
     readonly property int topRimHeight: 12
-    readonly property real tabWidth: (viewportWidth - 12 - brandWidth - 5 * tabSpacing) / 6
+    readonly property real tabWidth: (viewportWidth - 12 - brandWidth - 4 * tabSpacing) / 5
     readonly property int panelInset: 12
+    readonly property real appsDockTop: footerTop - Math.min(360, footerTop - contentTopInset - 38) * (appsFrameWidth / appsDockWidth)
     readonly property int contentTopInset: brandHeight + screenBevel + 27 - screenTop
     readonly property int footerHeight: 37
     readonly property int footerTop: viewportHeight - footerHeight

@@ -9,7 +9,13 @@ void LibraryToolsController::beginGame(const QString& id) {
     if(busy_ || !repository_.editable())return;
     const auto record=repository_.registration(id);
     if(!record || record->removed)return;
-    game_=*record;route_="game";focus_=0;error_.clear();emit changed();
+    browserActions_=false;game_=*record;route_="game";focus_=0;error_.clear();emit changed();
+}
+void LibraryToolsController::beginBrowsing(const QString& id) {
+    if(busy_)return;
+    beginGame(id);
+    if(route_!="game"){route_="browse";focus_=0;error_.clear();}
+    browserActions_=true;emit changed();
 }
 void LibraryToolsController::beginWorld(const QString& id,bool enabled) {
     if(busy_ || !enabled || !repository_.editable())return;
@@ -24,6 +30,7 @@ void LibraryToolsController::beginTrash() {
 }
 void LibraryToolsController::close() {if(!busy_){emit reviewRequested("reviews-close",{});++browseGeneration_;route_.clear();error_.clear();emit changed();}}
 QString LibraryToolsController::title() const {
+    if(route_=="browse")return "Games";
     if(route_.startsWith("reviews"))return "Reviews · "+game_.adventure.title;
     if(route_=="trash")return "Game trash";
     if(route_=="world")return world_.name;
@@ -70,7 +77,8 @@ QVariantList LibraryToolsController::rows() const {
         if(reviews_["more"].toBool())result.append(row("More reviews",!reviews_["busy"].toBool()));
         return result;
     }
-    if(route_=="game")return {row("Rename"),row("Move",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Удалить"),row("Properties"),row("Download information & artwork",!repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Collections"),row("Play together",multiplayerAvailable && multiplayerAvailable(game_.adventure.id)),row("Lobby",multiplayerAvailable && multiplayerAvailable(game_.adventure.id))};
+    if(route_=="browse")return {row("Search library"),row("Change filter"),row("Back")};
+    if(route_=="game"){QVariantList result{row("Rename"),row("Move",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Удалить"),row("Properties"),row("Download information & artwork",!repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Collections"),row("Play together",multiplayerAvailable && multiplayerAvailable(game_.adventure.id)),row("Lobby",multiplayerAvailable && multiplayerAvailable(game_.adventure.id))};if(browserActions_){result.append(row("Search library"));result.append(row("Change filter"));}return result;}
     if(route_=="move-kind")return {row("Platform / folder",catalog_ && !repository_.storageRootFor(game_.adventure.id).isEmpty()),row("Another World")};
     if(route_=="move-file")return {row("Cancel"),row("Move")};
     if(route_=="world")return {row("Rename World"),row("Done"),row("Scrape this collection")};
@@ -120,6 +128,10 @@ void LibraryToolsController::dispatch(Action action) {
 void LibraryToolsController::activate(int index) {
     const auto values=rows();if(busy_ || index<0 || index>=values.size())return;
     focus_=index;if(!values[index].toMap().value("enabled").toBool())return;
+    if(route_=="browse" || (route_=="game" && browserActions_ && index>=8)) {
+        const auto command=(route_=="browse"?index:index-8);
+        close();if(command<2)emit browserActionRequested(command==0?"search":"filter");return;
+    }
     if(route_=="game"&&index==7){const auto game=game_.adventure.id;close();emit lobbyRequested(game);return;}
     if(route_=="game"&&index==6){const auto game=game_.adventure.id;close();emit togetherRequested(game);return;}
     if(route_=="game"&&index==5){emit collectionsRequested(game_.adventure.id);return;}

@@ -1,15 +1,23 @@
 # Game experience adapters
 
 Each game family has one directory here. `pokemon/` owns its presentation and
-controller orchestration, including the game persona; `generic/` supplies ordinary
-game details, observed sessions and verified achievements. `BuiltinExperiences.cpp`
+controller orchestration, including the game persona; `generic/` supplies the
+fallback Home presenter. Overview, recorded sessions, RetroAchievements and Lobby
+are universal GameHub surfaces owned by the host. `BuiltinExperiences.cpp`
 is the explicit application composition list.
 
 The contract is [ExperienceModule](../core/experience/ExperienceModule.h).
 It supplies a versioned descriptor, a compiled-resource presenter, Home projection,
 local input/actions, focus/modal guards and opaque navigation state. The host owns
-the five navigation slots, universal identity/profile, history, accounts, Start,
+the five primary sections, universal identity/profile, history, accounts, Start,
 Options, actual runtime/session ownership and authorized service boundaries.
+
+Descriptor v2 has a Home view and one optional `adapter` surface. That surface
+declares its label/icon and stable `{id,label,view,icon}` screens. The shell mounts
+it as one named GameHub peer, with a left screen menu. `show(screenId)` selects a
+screen; L2/R2 only changes GameHub peers. A Home-only module is valid and must not
+add empty adapter pages. Navigation is scoped to owner, game and module, with v1
+slot-state migration retained; new adapters must not use numeric slot identities.
 
 A new adapter adds its directory, a factory registration and CMake sources/resources.
 It must not modify ShellController, Main.qml or ExperienceHost. Application-level
@@ -40,7 +48,7 @@ The host considers all enabled compatible modules. Two matching nonlegacy
 adapters cause generic fallback instead of choosing registration order. Explicit
 stored legacy domain is a weaker migration fallback; it preserves existing
 libraries (including their historical filename classification) but never proves
-ROM/build/save compatibility. The same resolver serves Home, slots, Properties
+ROM/build/save compatibility. The same resolver serves Home, GameHub Adapter, Properties
 and live Game Options. Catalogue matching cannot grant save capabilities.
 
 [ExperienceProviders](../core/experience/ExperienceProviders.h) keeps shared

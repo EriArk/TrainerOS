@@ -4,7 +4,7 @@ Item {
     id: root
     required property var shell
     readonly property var game: shell.homeGame
-    readonly property bool history: shell.experienceView === "game-history"
+    property bool history: shell.experienceView === "game-history"
     PageHeader {
         id: heading; width: parent.width
         title: root.history ? "Play history" : (root.game.title || "Your games")

@@ -1,5 +1,14 @@
 > Schema 14 (2026-09-27) adds owner-scoped immutable `champion_records` with
 
+## Navigation migration — 16 October 2026
+
+Shell checkpoints now use schema 3 with semantic primary IDs and nested Hub/Apps/
+Overview routes. Experience persistence v2 stores the chosen named screen and
+opaque module state under owner + game + module/version; the old two-slot v1
+state is migrated. A copied top-level route must never transfer a screen to a
+different game/module. Legacy Social Lobby points to GameHub Lobby. Runtime/save
+identity and database schema are unchanged. [Evidence](CORE16_FRAMEWORK_EVIDENCE.md).
+
 **Current target reconciliation, 8 October 2026:**
 [Product vision](PRODUCT_VISION_RU.md#vision-architecture) and
 [#136-160](EXPANSION_136_160.md) add shared-backend handheld/TV presentation,

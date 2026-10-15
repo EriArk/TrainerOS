@@ -7,11 +7,11 @@ Item {
     readonly property var party: shell.experienceModel.party
     readonly property var selected: party.detail
     readonly property bool storage: party.section === "storage"
-    readonly property bool takesFocus: shell.page === 2 && (shell.experienceModel.face === "party" || shell.experienceModel.face === "boxes") && !shell.serviceOpen && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
+    readonly property bool takesFocus: shell.adapterActive && !shell.adapterMenuOpen && (shell.experienceModel.face === "party" || shell.experienceModel.face === "boxes") && !shell.serviceOpen && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && !shell.notice.length
     enabled: !shell.drawerOpen
     Item {
-        anchors.fill: parent; anchors.margins: Theme.panelInset
-        anchors.topMargin: Theme.contentTopInset; anchors.bottomMargin: Theme.panelInset
+        anchors.fill: parent; anchors.margins: 0
+        anchors.topMargin: 0; anchors.bottomMargin: 0
         PageHeader {
             id: heading; compact: true
             title: root.storage ? "Boxes" : "Party"
@@ -112,7 +112,7 @@ Item {
                     }
                 }
                 Row {
-                    y: 190; width: parent.width; spacing: 5; visible: summary.known
+                    y: Math.min(190, summary.height - 113); width: parent.width; spacing: 5; visible: summary.known
                     Repeater {
                         model: ["HP", "Attack", "Defense", "Sp. Atk", "Sp. Def", "Speed"]
                         Rectangle {
@@ -125,7 +125,7 @@ Item {
                     }
                 }
                 Grid {
-                    y: 240; width: parent.width; columns: 2; spacing: 6; visible: summary.known
+                    y: Math.min(240, summary.height - 66); width: parent.width; columns: 2; spacing: 6; visible: summary.known
                     Repeater {
                         model: 4
                         Rectangle {
@@ -144,7 +144,7 @@ Item {
         }
     }
     Rectangle {
-        anchors.fill: parent; anchors.topMargin: Theme.contentTopInset; color: "#660e2524"; visible: root.party.detailOpen
+        anchors.fill: parent; anchors.topMargin: 0; color: "#660e2524"; visible: root.party.detailOpen
         MouseArea { anchors.fill: parent }
         MountedPanel {
             anchors.centerIn: parent; width: 330; height: 232 + (root.party.canMove ? 52 : 0) + (root.party.canRelease ? 48 : 0) + (root.party.canHoldItems ? 48 : 0); color: "#e3e9dc"
@@ -159,7 +159,7 @@ Item {
     }
     Rectangle {
         objectName: "party-move-dialog"
-        anchors.fill: parent; anchors.topMargin: Theme.contentTopInset; visible: root.party.moveOpen && root.party.moveStage !== "name-edit"; color: "#a0122927"
+        anchors.fill: parent; anchors.topMargin: 0; visible: root.party.moveOpen && root.party.moveStage !== "name-edit"; color: "#a0122927"
         MouseArea {anchors.fill:parent}
         MountedPanel {
             anchors.centerIn: parent; width: Math.min(parent.width-48,root.party.moveRows.length ? 690 : root.party.movePair.length ? 570 : 480); height: Math.min(parent.height-22,root.party.moveRows.length ? 365 : root.party.movePair.length ? 320 : root.party.moveStage === "release-confirm" || root.party.moveStage === "item-confirm" ? 300 : 230); color: "#e8eddf"

@@ -33,6 +33,7 @@ public:
     QVariantList rows() const;
     int focusIndex() const {return focus_;}
     void beginGame(const QString& id);
+    void beginBrowsing(const QString& id);
     void beginWorld(const QString& id, bool enabled);
     void beginTrash();
     void close();
@@ -48,6 +49,7 @@ public:
     QVariantMap selectedReview() const;
     bool reviewReportAvailable() const {const auto row=selectedReview();return !row.isEmpty()&&row["author"]!=reviews_["user"]&&reviews_["fresh"].toBool();}
 signals:
+    void browserActionRequested(QString action);
     void togetherRequested(QString game);
     void lobbyRequested(QString game);
     void collectionsRequested(QString game);
@@ -74,6 +76,7 @@ private:
     QList<AdventureRegistration> trash_;
     int focus_=0;
     bool busy_=false;
+    bool browserActions_=false;
     FileCatalog* catalog_=nullptr;
     DirectoryPage directory_;
     QString root_,destination_;

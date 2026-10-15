@@ -35,9 +35,9 @@ PokemonExperience::PokemonExperience(ExperienceServices services,PokedexReferenc
     :services_(services),persona_(services.profiles),dex_(reference,progress,this),center_(services.library,this),party_(!services.library.editable(),this) {
     persona_.configure(&services.library,&reference,&progress,&services.archive);
     connect(&services.achievements,&HallOfFameController::changed,this,[this]{
-        if(slot_!=1 || view_=="profile")return;
+        if(!historyFace())return;
         const auto face=QStringList{"journey","hall","ra"}.value(services_.achievements.faceIndex());
-        if(face!=view_)emit faceRequested(1,face,false,context_.generation);
+        if(face!=view_)emit screenRequested(face,false,context_.generation);
     });
     connect(&persona_,&TrainerController::changed,this,[this]{
         // Refresh the complete stored record, including opaque legacy persona
@@ -61,11 +61,11 @@ PokemonExperience::PokemonExperience(ExperienceServices services,PokedexReferenc
     connect(&center_,&SaveCenterController::searchRequested,this,[this](QString initial){textApply_=[this](QString s){center_.applySearch(s);};emit textRequested("Find an Adventure",initial,64,context_.generation);});
     connect(&center_,&SaveCenterController::shopSearchRequested,this,[this](QString initial){textApply_=[this](QString s){center_.applyShopSearch(s);};emit textRequested("Find goods or shops",initial,64,context_.generation);});
     connect(&party_,&PartyPresentation::boxNameRequested,this,[this](QString initial,int limit){boxName_=true;textApply_=[this](QString s){boxName_=false;party_.applyBoxName(s);};emit textRequested("Box name",initial,limit,context_.generation);});
-    connect(&party_,&PartyPresentation::healingRequested,this,[this]{controller_.setCenterRoute("clinic");emit faceRequested(0,"center",false,context_.generation);});
-    connect(&party_,&PartyPresentation::backupsRequested,this,[this]{controller_.setCenterRoute("backups");emit faceRequested(0,"center",false,context_.generation);});
-    connect(party_.activities(),&CenterActivities::shopsRequested,this,[this]{emit faceRequested(0,"shops",false,context_.generation);});
-    connect(party_.activities()->link(),&LinkController::closeRequested,this,[this]{controller_.setCenterRoute("clinic");emit faceRequested(0,"center",false,context_.generation);});
-    connect(party_.activities()->link(),&LinkController::workspaceRequested,this,[this]{controller_.setCenterRoute("link");emit faceRequested(0,"center",true,context_.generation);});
+    connect(&party_,&PartyPresentation::healingRequested,this,[this]{controller_.setCenterRoute("clinic");emit screenRequested("center",false,context_.generation);});
+    connect(&party_,&PartyPresentation::backupsRequested,this,[this]{controller_.setCenterRoute("backups");emit screenRequested("center",false,context_.generation);});
+    connect(party_.activities(),&CenterActivities::shopsRequested,this,[this]{emit screenRequested("shops",false,context_.generation);});
+    connect(party_.activities()->link(),&LinkController::closeRequested,this,[this]{controller_.setCenterRoute("clinic");emit screenRequested("center",false,context_.generation);});
+    connect(party_.activities()->link(),&LinkController::workspaceRequested,this,[this]{controller_.setCenterRoute("link");emit screenRequested("center",true,context_.generation);});
     connect(persona_.picker(),&SpeciesPicker::searchRequested,this,[this](QString initial){textApply_=[this](QString s){persona_.picker()->applySearch(s);};emit textRequested("Find your favorite · name / number",initial,48,context_.generation);});
 }
 void PokemonExperience::refresh(const ExperienceContext& context) {
@@ -89,35 +89,35 @@ void PokemonExperience::refresh(const ExperienceContext& context) {
     if(changed)emit party_.changed();
 }
 QVariantMap PokemonExperience::homeProgress() const {return controller_.homeProgress(context_.game,context_.home,context_.progress);}
-void PokemonExperience::show(int slot,const QString& face) {
-    slot_=slot;view_=face;
-    if(slot==0)controller_.show(face,context_.adventure);
-    else if(face=="profile"){persona_.reload();persona_.refreshOverview();}
-    else services_.achievements.showFace(face=="journey"?0:face=="hall"?1:2);
+void PokemonExperience::show(const QString& face) {
+    active_=true;view_=face;
+    if(face=="profile"){persona_.reload();persona_.refreshOverview();}
+    else if(historyFace())services_.achievements.showFace(face=="journey"?0:1);
+    else controller_.show(face,context_.adventure);
     emit changed();
 }
 void PokemonExperience::leave(bool primaryChange) {
     if(primaryChange){party_.activities()->practice()->leave();party_.activities()->link()->leave();}
-    dex_.cancelTransient();center_.leaveClinic();center_.leaveShops();persona_.cancel();slot_=-1;
+    dex_.cancelTransient();center_.leaveClinic();center_.leaveShops();persona_.cancel();active_=false;
     emit changed();
 }
 bool PokemonExperience::dispatch(Action action) {
     if(persona_.editing()){persona_.dispatch(action);return true;}
-    if(slot_==0){controller_.dispatch(action,context_.adventure);emit changed();return true;}
+    if(active_ && !historyFace() && view_!="profile"){controller_.dispatch(action,context_.adventure);emit changed();return true;}
     if(historyFace()){services_.achievements.dispatch(action==Action::LocalAction && !modalOpen()?Action::ToggleContinue:action);return true;}
-    if(slot_==1 && action==Action::Confirm){persona_.beginEdit();return true;}
+    if(active_ && view_=="profile" && action==Action::Confirm){persona_.beginEdit();return true;}
     return false;
 }
 bool PokemonExperience::activate(int index,const QString& area) {
     if(persona_.editing()){persona_.activate(index);return true;}
-    if(slot_==0){controller_.activate(index,area,context_.adventure);emit faceRequested(0,controller_.face(),false,context_.generation);return true;}
+    if(active_ && !historyFace() && view_!="profile"){controller_.activate(index,area,context_.adventure);emit screenRequested(controller_.face(),false,context_.generation);return true;}
     if(historyFace()){if(area.isEmpty())services_.achievements.activate(index);else services_.achievements.activateControl(area,index);return true;}
     return dispatch(Action::Confirm);
 }
-int PokemonExperience::focusIndex() const {return persona_.editing()?persona_.focusIndex():slot_==0?controller_.focusIndex():historyFace()?services_.achievements.focusIndex():0;}
+int PokemonExperience::focusIndex() const {return persona_.editing()?persona_.focusIndex():active_ && !historyFace() && view_!="profile"?controller_.focusIndex():historyFace()?services_.achievements.focusIndex():0;}
 bool PokemonExperience::modalOpen() const {
     if(persona_.editing())return true;
-    if(slot_==0)return centerFace()?center_.confirming() || center_.writing() || (center_.shopsOpen() && center_.shopModal()) || party_.detailOpen() || party_.moveOpen():dex_.zone()=="picker" || dex_.zone()=="art" || dex_.saving();
+    if(active_ && !historyFace() && view_!="profile")return centerFace()?center_.confirming() || center_.writing() || (center_.shopsOpen() && center_.shopModal()) || party_.detailOpen() || party_.moveOpen():dex_.zone()=="picker" || dex_.zone()=="art" || dex_.saving();
     return historyFace() && (services_.achievements.editor()->isOpen() || services_.achievements.account()->isOpen());
 }
 bool PokemonExperience::navigationBlocked(bool recovery) const {

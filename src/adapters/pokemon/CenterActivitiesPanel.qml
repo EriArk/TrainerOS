@@ -14,8 +14,8 @@ Item {
     }
     Item {
         visible: root.activity.route !== "practice" && root.activity.route !== "link"
-        anchors.fill: parent; anchors.margins: Theme.panelInset
-        anchors.topMargin: Theme.contentTopInset; anchors.bottomMargin: Theme.panelInset; clip: true
+        anchors.fill: parent; anchors.margins: 0
+        anchors.topMargin: 0; anchors.bottomMargin: 0; clip: true
         PageHeader {
             id: heading; compact: true; title: root.activity.page.title
             trailing: root.activity.route === "playroom" && root.activity.hasParty

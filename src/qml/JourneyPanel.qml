@@ -12,7 +12,7 @@ Item {
     PageHeader {
         id: heading; compact: true
         title: root.champions ? "Champion records" : "Journey Record"
-        subtitle: root.current.adventure
+        subtitle: root.current.adventure || ""
         trailing: root.shell.sampleLibrary ? "Development sample" : "Hall of Fame"
     }
     Item {
@@ -21,7 +21,7 @@ Item {
             x: 24; y: 8; width: parent.width - 48; spacing: 10; visible: !root.champions
             BadgeTray {
                 width: parent.width; height: Math.min(165, body.height * .30)
-                slots: root.current.badgeSlots; count: root.current.badges; badgePrefix: "journey-badge-"
+                slots: root.current.badgeSlots || []; count: root.current.badges || "—"; badgePrefix: "journey-badge-"
                 color: "#e6dfbd"; border.color: "#aa9562"
             }
             Row {

@@ -16,7 +16,7 @@ function actions(shell, h) {
                     result.push(h("A",dex.zone === "list" ? (dex.detail.favorite ? "Unfavorite" : "Favorite") : "Select"),h(dex.zone === "rail" ? "B" : "↑",dex.zone === "rail" ? "Entries" : "Filters"))
                     return result
                 }
-                if (shell.page === 2 && shell.experienceModel.centerFace) {
+                if (shell.adapterActive && shell.experienceModel.centerFace) {
                     const party = shell.experienceModel.party
                     if (shell.experienceModel.center.shopsOpen) {
                         const route = shell.experienceModel.center.shopRoute

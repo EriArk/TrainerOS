@@ -23,7 +23,7 @@ Item {
         }
     }
     Item {
-        anchors.fill: parent; anchors.margins: Theme.panelInset; anchors.topMargin: Theme.contentTopInset
+        anchors.fill: parent; anchors.margins: 0; anchors.topMargin: 0
         PageHeader { id: heading; title: "Care Center"; subtitle: root.clinic.title; compact: true }
         Item {
             id: room; objectName: "pokemon-clinic-room"

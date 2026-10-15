@@ -9,9 +9,9 @@ Item {
     enabled: !shell.drawerOpen
     // The main chassis owns the recessed surface for pages and services alike.
     Item {
-        anchors.fill: parent; anchors.margins: Theme.panelInset
-        anchors.topMargin: Theme.contentTopInset; clip: true
-        anchors.bottomMargin: Theme.panelInset
+        anchors.fill: parent; anchors.margins: 0
+        anchors.topMargin: 0; clip: true
+        anchors.bottomMargin: 0
         PageHeader { id: centerHeader; compact: true; title: root.center.title; trailing: "Care Center"; subtitle: root.center.message; multilineStatus: true }
         MountedPanel {
             x: 0; y: centerHeader.height; width: parent.width; height: 320 - y; color: "#d8e5d8"

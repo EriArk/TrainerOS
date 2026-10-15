@@ -185,10 +185,10 @@ private slots:
         MockAchievementProvider provider;
         provider.enableAccountPreview();
         ShellController shell(library, profiles, adapter, platform,builtinExperiences( dex, dex), archive, provider);
-        shell.goToTrainerFace("journey"); shell.dispatch(Action::NextFace);shell.activate(1);
+        shell.goToTrainerFace("hall");shell.activate(1);
         const auto choice = shell.currentAdventureId();
         QVERIFY(shell.pairedNavigationAvailable());
-        shell.dispatch(Action::NextFace);
+        shell.openGameHubFace("ra");
         QCOMPARE(shell.hall()->route(), "sets");
         shell.activate(0); shell.activate(1);
         shell.dispatch(Action::ToggleContinue);
@@ -199,10 +199,10 @@ private slots:
         QCOMPARE(shell.currentAdventureId(), choice);
         shell.dispatch(Action::SystemMenu); shell.dispatch(Action::NextFace);
         QCOMPARE(shell.hall()->route(), "achievement-detail");
-        shell.dispatch(Action::Back); shell.dispatch(Action::Secondary);
+        shell.dispatch(Action::Back);shell.hall()->dispatch(Action::Secondary);
         QVERIFY(shell.hall()->account()->isOpen());
         shell.dispatch(Action::NextFace); QVERIFY(!shell.hall()->isArchive());
-        shell.dispatch(Action::Back); shell.dispatch(Action::PreviousFace);
+        shell.dispatch(Action::Back);shell.goToTrainerFace("hall");
         QCOMPARE(shell.hall()->route(), "archive-detail");
         QCOMPARE(shell.hall()->rowIndex(), 1);
         shell.dispatch(Action::LocalAction);
@@ -214,9 +214,9 @@ private slots:
         const auto saved = shell.navigationState();
         ShellController restored(library, profiles, adapter, platform, builtinExperiences(dex, dex), archive, provider);
         restored.restoreNavigation(saved);
-        QCOMPARE(restored.page(), 3);
+        QCOMPARE(restored.page(), 2);
         QCOMPARE(restored.hall()->route(), "archive-detail");
-        restored.dispatch(Action::NextFace);
+        restored.openGameHubFace("ra");
         QCOMPARE(restored.hall()->route(), "achievement-detail");
         QCOMPARE(restored.hall()->rowIndex(), 1);
         QCOMPARE(restored.currentAdventureId(), choice);
@@ -230,19 +230,19 @@ private slots:
         MockHallOfFameRepository archive;
         MockAchievementProvider provider;
         ShellController shell(library, profiles, adapter, platform,builtinExperiences( dex, dex), archive, provider);
-        shell.goToTrainerFace("journey");shell.dispatch(Action::NextFace);
+        shell.goToTrainerFace("hall");
         shell.dispatch(Action::LocalAction);
         auto* editor = shell.hall()->editor();
         editor->activate(0); editor->activate(0); editor->submit();
         QVERIFY(editor->saving());
         shell.dispatch(Action::PreviousPage); shell.dispatch(Action::NextPage);
-        shell.dispatch(Action::NextFace);
+        shell.openGameHubFace("ra");
         shell.activate(0); shell.activate(1);
         const auto achievement = shell.hall()->detail()["title"];
         QTRY_VERIFY(!editor->saving());
         QCOMPARE(shell.hall()->route(), "achievement-detail");
         QCOMPARE(shell.hall()->detail()["title"], achievement);
-        shell.dispatch(Action::PreviousFace);
+        shell.goToTrainerFace("hall");
         QCOMPARE(shell.hall()->route(), "archive-detail");
         QCOMPARE(shell.hall()->rows().size(), 5);
     }
@@ -363,7 +363,7 @@ private slots:
         MockAchievementProvider provider;
         ShellController shell(library, profiles, adapter, platform,builtinExperiences( dex, dex), archive, provider);
         const auto home = shell.home();
-        shell.goToTrainerFace("journey"); achievements(*shell.hall()); shell.activate(1);
+        shell.openGameHubFace("ra");shell.hall()->activate(0);shell.activate(1);
         shell.dispatch(Action::SystemMenu); shell.dispatch(Action::Back);
         QCOMPARE(shell.hall()->route(), "achievement-detail");
         shell.dispatch(Action::PreviousPage); shell.dispatch(Action::NextPage);
@@ -374,7 +374,7 @@ private slots:
         QCOMPARE(shell.home(), home);
         QCOMPARE(archive.loadArchive().entries.size(), 4);
         shell.dispatch(Action::Back); shell.dispatch(Action::Back); shell.dispatch(Action::Back);
-        QCOMPARE(shell.page(), 3); QCOMPARE(shell.hall()->route(), "sets");
+        QCOMPARE(shell.page(), 2); QCOMPARE(shell.hall()->route(), "sets");
     }
 };
 QTEST_GUILESS_MAIN(HallOfFameTests)

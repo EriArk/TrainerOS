@@ -28,12 +28,12 @@ public:
     PartyPresentation* party() {return &party_;}
     PokemonPersona* persona() {return &persona_;}
     QString face() const {return controller_.face();}
-    bool centerFace() const {return slot_==0 && face()!="dex";}
-    bool historyFace() const {return slot_==1 && view_!="profile";}
+    bool centerFace() const {return active_ && QStringList{"party","boxes","center","playroom","shops"}.contains(view_);}
+    bool historyFace() const {return active_ && (view_=="journey" || view_=="hall");}
     void refresh(const ExperienceContext&) override;
     QVariantMap homeProgress() const override;
     QStringList capabilityNotes() const override {return center_.readOnly()?QStringList{"Save changes: Read-only"}:QStringList{};}
-    void show(int,const QString&) override;
+    void show(const QString&) override;
     void leave(bool) override;
     bool dispatch(Action) override;
     bool activate(int,const QString&) override;
@@ -42,7 +42,7 @@ public:
     bool navigationBlocked(bool) const override;
     bool activityBusy(bool recovery=false) const override {const auto* link=party_.activities()->link();return party_.activities()->practice()->running() || (link->active() && !(recovery && link->canBrowseForRecovery()));}
     bool writing() const override {return center_.writing() || persona_.saving();}
-    bool recentsAllowed() const override {return !(slot_==0 && face()=="shops");}
+    bool recentsAllowed() const override {return !center_.shopModal();}
     bool intercept(Action) override;
     QVariantMap invitation() const override;
     QJsonObject navigation() const override {return controller_.navigation();}
@@ -58,7 +58,7 @@ private:
     SaveCenterController center_;
     PartyPresentation party_;
     PokemonExperienceController controller_{dex_,center_,party_};
-    int slot_=-1;
+    bool active_=false;
     QString view_;
     bool boxName_=false,progressConfigured_=false;
 };

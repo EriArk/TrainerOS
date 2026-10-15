@@ -6,7 +6,7 @@ Item {
     required property var shell
     readonly property var dex: shell.experienceModel.pokedex
     enabled: !shell.drawerOpen
-    readonly property bool takesFocus: visible && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
+    readonly property bool takesFocus: visible && !shell.adapterMenuOpen && !shell.quickAppsOpen && !shell.drawerOpen && !shell.menuOpen && !shell.keyboard.open && shell.notice.length === 0
     readonly property bool artOpen: dex.zone === "art"
     readonly property bool pickerOpen: dex.zone === "picker"
 
@@ -35,7 +35,7 @@ Item {
             Rectangle { anchors.right: parent.right; y: -parent.y; width: 6; height: parent.y; color: "#c4dcd5" }
         }
         Rectangle {
-            x: 0; y: dexHeader.height + 62; width: 330; height: root.height - y; color: "#dbe8dd"
+            x: 0; y: dexHeader.height + 62; width: root.width * .36; height: root.height - y; color: "#dbe8dd"
             ListView {
                 id: entries
                 objectName: "dex-list"
@@ -92,7 +92,7 @@ Item {
         Rectangle {
             id: preview
             objectName: "dex-list-preview"
-            x: 330; y: dexHeader.height + 62; width: parent.width - x; height: root.height - y
+            x: root.width * .36; y: dexHeader.height + 62; width: parent.width - x; height: root.height - y
             color: "#e6edde"
             readonly property bool hasEntry: root.dex.entryCount > 0
             readonly property var types: root.dex.detail.types ? root.dex.detail.types.split(" / ") : []
@@ -124,7 +124,7 @@ Item {
                     model: preview.types
                     delegate: Rectangle {
                         required property string modelData
-                        width: 106; height: 22; radius: 6; color: preview.typeTint(modelData)
+                        width: Math.min(106,(preview.width * .49 - 30) / Math.max(1,preview.types.length)); height: 22; radius: 6; color: preview.typeTint(modelData)
                         border.color: Qt.darker(color, 1.2)
                         Text { anchors.centerIn: parent; text: parent.modelData; color: Theme.ink; font.pixelSize: 12; font.bold: true }
                     }
@@ -132,14 +132,14 @@ Item {
             }
             ClassicIllustration {
                 objectName: "dex-detail-art"
-                x: 10; y: 94; width: 246; height: parent.height - y - 35
+                x: 10; y: 94; width: parent.width * .46 - 10; height: parent.height - y - 35
                 art: root.dex.detail.art || ({}); showLabel: true; visible: preview.hasEntry
             }
             Text { x: 19; anchors.bottom: parent.bottom; anchors.bottomMargin: 12
                 text: root.dex.detail.height + "  ·  " + root.dex.detail.weight; color: Theme.muted; font.pixelSize: 14; visible: preview.hasEntry }
             Item {
                 id: stats; objectName: "dex-stat-board"
-                x: 273; y: 52; width: parent.width - x - 18; height: 126; visible: preview.hasEntry
+                x: parent.width * .49; y: 52; width: parent.width - x - 18; height: 126; visible: preview.hasEntry
                 Text { text: "BASE STATS"; color: Theme.muted; font.pixelSize: 10; font.letterSpacing: 1.5 }
                 Grid {
                     y: 22; width: parent.width; columns: 3; spacing: 8
@@ -152,7 +152,7 @@ Item {
                             width: (stats.width - 16) / 3; height: 47; radius: 9
                             color: tints[index]; border.color: Qt.darker(color, 1.2)
                             Rectangle { anchors.fill: parent; anchors.margins: 2; radius: 7; color: "transparent"; border.color: "#60ffffff" }
-                            Text { x: 10; y: 5; text: modelData.label; color: Qt.darker(parent.color, 2.6); font.pixelSize: 11; font.bold: true }
+                            Text { x: 5; y: 5; width: parent.width-10; elide: Text.ElideRight; text: modelData.label; color: Qt.darker(parent.color, 2.6); font.pixelSize: 11; font.bold: true }
                             Text { anchors.right: parent.right; anchors.rightMargin: 10; y: 16; text: modelData.value; color: Qt.darker(parent.color, 3.2); font.family: Theme.displayFamily; font.pixelSize: 25; font.bold: true }
                         }
                     }

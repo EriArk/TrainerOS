@@ -54,7 +54,7 @@ public:
     virtual QStringList capabilityNotes() const { return {}; }
     virtual QVariantList liveActions(const ExperienceLiveContext&) const { return {}; }
     virtual void invokeLiveAction(const QString&,const ExperienceLiveContext&) {}
-    virtual void show(int, const QString&) {}
+    virtual void show(const QString&) {}
     virtual void leave(bool) {}
     virtual bool dispatch(Action) { return false; }
     virtual bool activate(int, const QString&) { return false; }
@@ -77,7 +77,7 @@ public:
 signals:
     void changed();
     void notice(QString message);
-    void faceRequested(int slot, QString face, bool acceptedActivity, quint64 generation);
+    void screenRequested(QString screen, bool acceptedActivity, quint64 generation);
     void hostActionRequested(QString action, quint64 generation);
     void textRequested(QString title, QString initial, int limit, quint64 generation);
     void textCancelled();

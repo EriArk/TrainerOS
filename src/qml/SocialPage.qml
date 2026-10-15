@@ -4,7 +4,7 @@ import TrainerOS 1.0
 FocusScope {
     id: root
     required property var shell
-    readonly property int faceIndex: ["chats","communities","friends","lobby","recent"].indexOf(shell.socialFace)
+    readonly property int faceIndex: ["chats","communities","friends","lobby","recent"].indexOf(shell.socialSurface)
     readonly property var social: shell.social
     readonly property var account: social.account
     readonly property bool connected: account.state === "connected" || account.state === "connecting"

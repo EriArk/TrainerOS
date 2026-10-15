@@ -8,7 +8,7 @@ Window {
     width: 960; height: 540
     minimumWidth: 800; minimumHeight: 450
     visible: true
-    title: "TrainerOS — native prototype"
+    title: "TrainerOS"
     color: Theme.chassisDark
     AppControlsWindow { flow: shell.apps; bridge: appsOverlay }
     AdventureExitWindow {
@@ -26,9 +26,12 @@ Window {
     Binding { target: Theme; property: "themeId"; value: shell.settings.theme }
     Binding { target: Theme; property: "reducedMotion"; value: shell.settings.reducedMotion }
     Binding { target: Theme; property: "television"; value: shell.settings.displayProfile === "tv" }
-    Binding { target: Theme; property: "appsExpanded"; value: shell.page === 5 && !sessionState.blocked && !shell.serviceOpen }
+    Binding { target: Theme; property: "viewportWidth"; value: window.width }
+    Binding { target: Theme; property: "viewportHeight"; value: window.height }
+    Binding { target: Theme; property: "appsExpanded"; value: shell.quickAppsOpen && !sessionState.blocked && (!adventureLaunch.active || adventureLaunch.minimized) }
     Binding { target: shell.social; property: "surfaceAvailable"; value: !sessionState.blocked && ((window.active && (!adventureLaunch.active || adventureLaunch.minimized) && shell.unobstructed) || (playerOverlay.chatOpen && playerOverlay.conversationReady && adventureExitPresentation.ready)) }
-    Binding { target: shell.social; property: "conversationVisible"; value: playerOverlay.chatOpen && playerOverlay.conversationReady || (shell.page === 4 && !shell.serviceOpen && (shell.socialFace === "chats" || shell.socialFace === "communities" || shell.social.lobbyChatVisible)) }
+    Binding { target: shell.social; property: "conversationVisible"; value: playerOverlay.chatOpen && playerOverlay.conversationReady || ((shell.primaryId === "social" || (shell.primaryId === "gamehub" && shell.hubFace === "lobby")) && !shell.serviceOpen
+            && (shell.socialSurface === "chats" || shell.socialSurface === "communities" || shell.social.lobbyChatVisible)) }
     Binding { target: shell.social; property: "gameActive"; value: adventureLaunch.active }
     Connections {
         target: adventureLaunch
@@ -50,7 +53,7 @@ Window {
         objectName: "viewport"
         anchors.centerIn: parent
         width: Theme.viewportWidth; height: Theme.viewportHeight
-        scale: Math.min(window.width / width, window.height / height)
+        // Native logical bounds; individual components reflow instead of stretching a fixed canvas.
         clip: true
         Item {
         anchors.fill: parent
@@ -59,8 +62,8 @@ Window {
         ChassisFrame { anchors.fill: parent }
         AppsDock {
             flow: shell.apps
-            x: Theme.screenBounds.x + Theme.screenBounds.width + 8; y: 134
-            width: Theme.viewportWidth - x - 9; height: 276
+            x: Theme.viewportWidth - Theme.appsDockWidth - 4; y: Theme.appsDockTop + 8
+            width: Theme.appsDockWidth - 6; height: Math.max(0, Theme.footerTop - y - 4)
             visible: Theme.appsFrameWidth > 1; opacity: Theme.appsFrameWidth / Theme.appsDockWidth
             enabled: Theme.appsExpanded && !shell.drawerOpen && !shell.apps.menu.length
         }
@@ -169,7 +172,7 @@ Window {
                     }
                     Rectangle { x: 18; y: parent.height - 8; width: parent.width - 36; height: 3; radius: 1.5; color: "#7a4a24"; visible: shell.page === index }
                     Rectangle {
-                        visible: index === 4 && (shell.social.account.unreadCount || 0) > 0
+                        visible: modelData === "Social" && (shell.social.account.unreadCount || 0) > 0
                         anchors.right: parent.right; anchors.rightMargin: 6; y: Theme.topRimHeight + 3
                         width: 23; height: 17; radius: 7; color: Theme.yellow; border.color: "#8e642e"
                         Text { anchors.centerIn: parent; text: Math.min(99, shell.social.account.unreadCount || 0); color: Theme.ink; font.bold: true; font.pixelSize: 11 }
@@ -201,7 +204,7 @@ Window {
                     text:modelData;color:shell.faceIndex===index?Theme.ink:Theme.muted
                     font.family:Theme.displayFamily;font.pixelSize:15;font.bold:shell.faceIndex===index
                     Rectangle {anchors.left:parent.left;anchors.right:parent.right;anchors.bottom:parent.bottom;anchors.bottomMargin:-3;height:2;color:Theme.focusGlow;visible:shell.faceIndex===index}
-                    MouseArea { anchors.fill: parent; anchors.topMargin: -5; anchors.bottomMargin: -8; enabled: shell.page === 4 && shell.pairedNavigationAvailable; onClicked: shell.selectFace(index) }
+                    MouseArea { anchors.fill: parent; anchors.topMargin: -5; anchors.bottomMargin: -8; enabled: shell.pairedNavigationAvailable; onClicked: shell.selectFace(index) }
                 }
             }
         }
@@ -212,17 +215,31 @@ Window {
             width: Theme.screenBounds.width; height: Theme.screenBounds.height
             Item {
                 objectName: "page-viewport"
-                enabled: !shell.drawerOpen && !shell.serviceOpen
+                enabled: !shell.drawerOpen && !shell.quickAppsOpen && !shell.serviceOpen
                 anchors.fill: parent; anchors.margins: Theme.panelInset
                 anchors.topMargin: Theme.contentTopInset; clip: true
                 anchors.bottomMargin: Theme.panelInset
-                ExperienceHost { id: experienceHost; anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && (shell.page === 0 || shell.page === 2 || shell.page === 3) }
-                AppsPage { anchors.fill: parent; flow: shell.apps; active: shell.page === 5; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 5 }
-                SocialPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 4 }
+                ExperienceHost { id: experienceHost; anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.primaryId === "home" }
+                GameHubPage { id: gameHubPage; anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.primaryId === "gamehub" }
+                AppsPage { anchors.fill: parent; flow: shell.apps; active: shell.primaryId === "apps" && shell.appsFace === "apps"; visible: (!shell.serviceOpen || shell.service === "settings") && active }
+                WorkspacePlaceholder {
+                    anchors.fill: parent
+                    visible: (!shell.serviceOpen || shell.service === "settings") && shell.primaryId === "apps" && shell.appsFace !== "apps"
+                    title: shell.appsFace === "crates" ? "Crates" : shell.appsFace === "browser" ? "Browser" : "Files"
+                    message: title + " is not available in this build."
+                }
+                SocialPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.primaryId === "social" }
                 SeriesPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && shell.collectionsRoot }
                 WorldsPage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && !shell.collectionsRoot && !shell.multiverseFace }
                 MultiversePage { anchors.fill: parent; shell: shellController; visible: (!shell.serviceOpen || shell.service === "settings") && shell.page === 1 && !shell.collectionsRoot && shell.multiverseFace }
             }
+        }
+        CapButton {
+            objectName: "quick-apps-handle"
+            x: Theme.viewportWidth - 78; y: Theme.footerTop - 27; width: 62; height: 27
+            label: "X"; centered: true; textSize: 14; tint: Theme.rim
+            visible: !shell.quickAppsOpen && !shell.serviceOpen
+            claimsFocus: false; onActivated: shell.toggleQuickApps()
         }
         ContinueDrawer {
             id: drawer
@@ -243,14 +260,14 @@ Window {
                 Accessible.role: Accessible.AlertMessage; Accessible.name: text
             }
             function hint(button, label) { return {button:button, label:label} }
-            readonly property var actions: {
+            readonly property var localActions: {
                 const h = hint
                 if (shell.social.online.open) return shell.social.online.incoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
                 if (shell.moduleInvitation.open) return shell.moduleInvitation.incoming ? [h("A","Accept"),h("B","Decline")] : [h("B","Cancel")]
                 if (shell.homeMenuOpen) {
                     if (!shell.notificationsOpen) return [h("↑↓","Choose"),h("A","Select"),h("B","Back")]
                     const selectedNotice = shell.notifications[shell.notificationFocus] || {}
-                    return [h("↑↓","Choose"),h("A",selectedNotice.answerable ? "Answer" : "Open"),h("X",selectedNotice.ringing ? "Decline" : "Dismiss"),h("B","Back")]
+                    return [h("↑↓","Choose"),h("A","Open"),h("X",selectedNotice.ringing ? "Decline" : "Dismiss"),h("B","Back")]
                 }
                 if (shell.notice.length) return [h("A", shell.modeConfirmation ? "Continue" : "OK"), h("B","Cancel")]
                 if (shell.downloads.open) return [h("↑↓","Choose"),h("←→","Actions"),h("A","Select"),h("B","Close")]
@@ -299,9 +316,17 @@ Window {
                 const experienceHints = experienceHost.hints(h)
                 if (experienceHints) return experienceHints
                 if (shell.page === 0) return [h("A",shell.homeGame.id ? (shell.liveGame.id === shell.homeGame.id ? "Return" : shell.home.actionHint) : "Collections"),h("Select","Game actions"),h("B","Back")]
-                if (shell.page === 5) return shell.apps.menu.length ? [h("↑↓","Choose"),h("A","Select"),h("B","Back")] : [h("A","Open"),h("Select","Options"),h("X","Hidden"),h("Y","Favorites / running"),h("B","Home")]
-                if (shell.page === 4) return shell.social.hints
+                if (shell.primaryId === "apps") return shell.apps.menu.length ? [h("↑↓","Choose"),h("A","Select"),h("B","Back")] : [h("A","Open"),h("Select","Options"),h("X","Quick Apps"),h("Y","Recent games"),h("B","Home")]
+                if (shell.primaryId === "gamehub") return gameHubPage.hints(h)
+                if (shell.primaryId === "social") return shell.social.hints
                 return [h("A",shell.trainer.editing ? "Select" : "Edit Trainer"),h("B",shell.trainer.editing ? "Cancel" : "Back")]
+            }
+            readonly property var actions: {
+                if(shell.quickAppsOpen) return [hint("↑↓","Apps"),hint("A","Open"),hint("Select","Options"),hint("X","Close"),hint("Y","Recent games")]
+                if(shell.keyboard.open || shell.menuOpen || shell.homeMenuOpen || shell.notice.length || !shell.chooseAdventureAvailable) return localActions
+                let result = localActions.filter(function(item) { return item.button !== "X" && item.button !== "Y" })
+                result.push(hint("X","Quick Apps")); result.push(hint("Y","Recent games"))
+                return result
             }
             Row {
                 objectName: "shell-button-hints"
@@ -329,7 +354,6 @@ Window {
         TrainerSetupPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "trainer-setup" }
         DevicePanel { anchors.fill: screen; shell: shellController; visible: shell.service === "device" }
         DiagnosticsPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "diagnostics" }
-        ExperienceHost { anchors.fill: screen; shell: shellController; overlay: true; visible: shell.page === 2 }
         ScrapePanel { anchors.fill: screen; shell: shellController; z: 3.1; visible: shell.scraper.open && !shell.keyboard.open }
         DownloadsPanel { anchors.fill: screen; flow: shell.downloads; z: 3.2; visible: shell.downloads.open }
         CollectionsPanel { anchors.fill: screen; shell: shellController; z: 3; visible: shell.collectionManager.open }
@@ -351,6 +375,11 @@ Window {
                 x: 32; y: 52; width: parent.width-64; height: parent.height-66
                 SettingsPanel { anchors.fill: parent; shell: shellController }
             }
+        }
+        AppsMenu {
+            x: screen.x; y: screen.y; width: screen.width; height: screen.height
+            flow: shell.apps; z: 2
+            visible: shell.apps.menu.length > 0 && !shell.serviceOpen && !shell.menuOpen
         }
         KeyboardPanel {
             anchors { left: screen.left; right: screen.right; top: screen.top; bottom: footer.top }

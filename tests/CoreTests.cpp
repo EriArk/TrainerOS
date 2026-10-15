@@ -85,14 +85,14 @@ private slots:
         shell.dispatch(Action::NextPage);
         QVERIFY(!shell.menuOpen());
         QCOMPARE(shell.page(), 2);
-        shell.goToPage(4);
+        shell.goToPage(3);
         shell.dispatch(Action::NextPage);
-        QCOMPARE(shell.page(), 5);
+        QCOMPARE(shell.page(), 4);
         QCOMPARE(shell.navigationState()["page"].toString(), "apps");
-        shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),5);
-        shell.dispatch(Action::PreviousPage);QCOMPARE(shell.page(),4);
+        shell.dispatch(Action::NextPage);QCOMPARE(shell.page(),4);
+        shell.dispatch(Action::PreviousPage);QCOMPARE(shell.page(),3);
         shell.dispatch(Action::Home);
-        QCOMPARE(shell.page(), 4); QVERIFY(shell.homeMenuOpen());
+        QCOMPARE(shell.page(), 3); QVERIFY(shell.homeMenuOpen());
         const auto origin = shell.navigationState();
         shell.dispatch(Action::NextPage); QCOMPARE(shell.navigationState(), origin);
         shell.dispatch(Action::Home); QVERIFY(!shell.homeMenuOpen());
@@ -110,8 +110,8 @@ private slots:
         QCOMPARE(shell.page(), 1); QVERIFY(shell.menuOpen()); QVERIFY(shell.homeMenuOpen());
         shell.dispatch(Action::Back); QVERIFY(!shell.homeMenuOpen()); QVERIFY(shell.menuOpen());
         shell.dispatch(Action::Home); shell.dispatch(Action::Down); shell.dispatch(Action::Confirm);
-        QCOMPARE(shell.page(), 4); QCOMPARE(shell.socialFace(), "chats"); QVERIFY(shell.social()->contacts()); QVERIFY(!shell.menuOpen());
-        shell.goToPage(2); shell.dispatch(Action::NextFace);
+        QCOMPARE(shell.page(), 3); QCOMPARE(shell.socialFace(), "chats"); QVERIFY(shell.social()->contacts()); QVERIFY(!shell.menuOpen());
+        shell.openGameHubFace("adapter");shell.selectAdapterScreen("party");
         QVERIFY((shell.page()==2 && shell.experienceModel()==shell.module("pokemon") && pokemonModule(shell).centerFace())); QVERIFY(!pokemonModule(shell).center()->configured());
         QCOMPARE(pokemonModule(shell).party()->section(), "party"); QVERIFY(shell.notice().isEmpty());
     }

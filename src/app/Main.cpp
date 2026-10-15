@@ -542,9 +542,9 @@ int main(int argc, char* argv[]) {
                 return record.adventure.adapterId=="melonds"?resolveMelonDsSave(record,snapshot->melonds):resolveRetroArchSave(record,snapshot->retroarch);
             };
         }
-        QObject::connect(&multiplayer,&RuntimeMultiplayer::invitationSurfaceRequested,&shell,[&]{shell.goToPage(4);});
+        QObject::connect(&multiplayer,&RuntimeMultiplayer::invitationSurfaceRequested,&shell,[&]{shell.openGameHubFace("lobby");});
         shell.libraryTools()->multiplayerAvailable=[&](const QString& id){return multiplayer.multiplayerGames().contains(id);};
-        QObject::connect(&shell,&ShellController::togetherRequested,&multiplayer,[&](const QString& game){shell.goToPage(4);multiplayer.beginTogether(game);});
+        QObject::connect(&shell,&ShellController::togetherRequested,&multiplayer,[&](const QString& game){shell.openGameHubFace("lobby");multiplayer.beginTogether(game);});
         QObject::connect(shell.social(),&SocialController::runtimeAction,&multiplayer,[&](const QString& action){multiplayer.contextAction(action);});
         QObject::connect(&multiplayer,&RuntimeMultiplayer::notice,&shell,[&](QString text){
             shell.showNotice(text);
@@ -936,7 +936,7 @@ int main(int argc, char* argv[]) {
             QObject::connect(shell.apps(),&AppsController::foregroundRequested,window,[window]{window->hide();});
             QObject::connect(shell.apps(),&AppsController::shellRequested,window,[&,window]{
                 if(adventureLaunch.active())return;
-                shell.goToPage(5);if(parser.isSet("windowed"))window->show();else window->showFullScreen();window->requestActivate();
+                shell.goToSection("apps");if(parser.isSet("windowed"))window->show();else window->showFullScreen();window->requestActivate();
             });
             if(personalLibrary&&!smoke&&platform.dedicatedSession()) {
                 const QString helper="/var/opt/traineros/integrations/apps-service.py";

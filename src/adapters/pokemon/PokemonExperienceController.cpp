@@ -9,12 +9,12 @@
 
 namespace trainer {
 const ExperienceDescriptor& pokemonExperienceDescriptor() {
-    static const ExperienceDescriptor value{"pokemon",1,"pokemon-home",
-        {"Companions",{{"dex","Guide","pokemon-guide"},{"party","Party","pokemon-party"},
-            {"boxes","Boxes","pokemon-boxes"},{"center","Center","pokemon-center"},
-            {"playroom","Playroom","pokemon-playroom"},{"shops","Shops","pokemon-shops"}}},
-        {"Trainer",{{"profile","Profile","pokemon-persona"},{"journey","Journey","pokemon-journey"},
-            {"hall","Hall","pokemon-hall"},{"ra","RA","achievements"}}}};
+    static const ExperienceDescriptor value{"pokemon",2,"pokemon-home",
+        {"Pokémon","companion",{{"dex","Field Guide","pokemon-guide","guide"},
+            {"party","Party","pokemon-party","party"},{"boxes","Boxes","pokemon-boxes","boxes"},
+            {"center","Care Center","pokemon-center","care"},{"playroom","Playroom","pokemon-playroom","play"},
+            {"shops","Shops","pokemon-shops","shop"},{"profile","Trainer Card","pokemon-persona","profile"},
+            {"journey","Journey","pokemon-journey","journey"},{"hall","Hall of Fame","pokemon-hall","trophy"}}}};
     return value;
 }
 
@@ -44,7 +44,7 @@ void PokemonExperienceController::setCenterRoute(const QString& route) {
 }
 void PokemonExperienceController::restoreFace(const QString& face) {
     face_="dex";
-    for(const auto& candidate:pokemonExperienceDescriptor().first.faces)if(candidate.id==face){face_=face;break;}
+    for(const auto& candidate:pokemonExperienceDescriptor().adapter.screens)if(candidate.id==face){face_=face;break;}
 }
 void PokemonExperienceController::show(const QString& face,const QString& adventure) {
     if(face_=="playroom")playroomRoute_=party_.activities()->route()=="practice"?"practice":"playroom";

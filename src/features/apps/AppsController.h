@@ -46,6 +46,7 @@ public:
     bool controlsOpen() const{return controls_;}
     int controlIndex() const{return controlFocus_;}
     Q_INVOKABLE void refresh();
+    void focusRail() { railFocused_=true;normalize();emit changed(); }
     Q_INVOKABLE void select(int index,bool rail=false);
     Q_INVOKABLE void open(int index,bool rail=false);
     Q_INVOKABLE void options(int index,bool rail=false);

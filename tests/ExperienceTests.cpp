@@ -51,13 +51,13 @@ private slots:
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
         MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
         ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
-        shell.goToPage(3);shell.dispatch(Action::Confirm);
+        shell.goToTrainerFace("profile");shell.dispatch(Action::Confirm);
         auto* persona=pokemonModule(shell).persona();persona->setDraftName("Trainer");persona->activate(2);
         persona->picker()->applySearch("Treecko");persona->dispatch(Action::Confirm);persona->activate(3);
         QCOMPARE(profiles.load()->favoritePokemonId,"treecko");
         shell.goToPage(0);shell.openProfile();shell.dispatch(Action::Confirm);shell.trainer()->setDraftName("New name");shell.trainer()->activate(2);
         QCOMPARE(profiles.load()->name,"New name");QCOMPARE(profiles.load()->favoritePokemonId,"treecko");
-        shell.goToPage(3);QCOMPARE(persona->profile()["name"].toString(),"New name");
+        shell.goToTrainerFace("profile");QCOMPARE(persona->profile()["name"].toString(),"New name");
     }
     void ambiguousAdaptersNeverDependOnRegistrationOrder() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
@@ -79,62 +79,107 @@ private slots:
     void selectionRestoresOnlyMatchingOwnerGameAndModule() {
         ExperienceNavigation navigation;
         navigation.select("alice","emerald",pokemonExperienceDescriptor(),5);
-        QVERIFY(navigation.show(0,"boxes"));
-        QVERIFY(navigation.show(1,"hall"));
+        QVERIFY(navigation.show("boxes"));
+        navigation.rememberNavigation({{"nested","retained"}});
         const auto generation=navigation.generation();
         navigation.select("alice","racer",genericExperienceDescriptor(),2);
-        QCOMPARE(navigation.face(0),"details");
-        QVERIFY(!navigation.show(0,"boxes"));
+        QVERIFY(!navigation.hasAdapter());QVERIFY(navigation.screen().isEmpty());
+        QVERIFY(!navigation.show("boxes"));
         QVERIFY(!navigation.current("alice","emerald",generation));
         navigation.select("alice","emerald",pokemonExperienceDescriptor(),5);
-        QCOMPARE(navigation.face(0),"boxes");
-        QCOMPARE(navigation.face(1),"hall");
+        QCOMPARE(navigation.screen(),"boxes");
+        QCOMPARE(navigation.navigation()["nested"].toString(),"retained");
         const auto saved=navigation.state();
         ExperienceNavigation reopened;
-        reopened.select("alice","emerald",pokemonExperienceDescriptor(),5);
-        reopened.restore(saved);
-        QCOMPARE(reopened.face(0),"boxes");
-        reopened.select("bob","emerald",pokemonExperienceDescriptor(),5);
-        reopened.restore(saved);
-        QCOMPARE(reopened.face(0),"dex");
-        QCOMPARE(reopened.face(1),"profile");
+        reopened.select("alice","emerald",pokemonExperienceDescriptor(),5);reopened.restore(saved);
+        QCOMPARE(reopened.screen(),"boxes");
+        reopened.select("bob","emerald",pokemonExperienceDescriptor(),5);reopened.restore(saved);
+        QCOMPARE(reopened.screen(),"dex");QVERIFY(reopened.navigation().isEmpty());
     }
     void materiallyDifferentFixturesDriveContentWithoutTitleRules() {
-        const ExperienceDescriptor rpg{"fixture-rpg",1,"fixture-character-home",
-            {"Hero",{{"character","Character","fixture-character"},{"skills","Skills","fixture-skills"}}},
-            {"Chronicle",{{"records","Records","fixture-records"}}}};
-        const ExperienceDescriptor racing{"fixture-racing",1,"fixture-car-home",
-            {"Garage",{{"cars","Cars","fixture-cars"}}},
-            {"Career",{{"races","Races","fixture-races"}}}};
+        const ExperienceDescriptor rpg{"fixture-rpg",2,"fixture-character-home",
+            {"Hero","hero",{{"character","Character","fixture-character","person"},{"skills","Skills","fixture-skills","skills"}}}};
+        const ExperienceDescriptor racing{"fixture-racing",2,"fixture-car-home",
+            {"Garage","car",{{"cars","Cars","fixture-cars","car"},{"races","Races","fixture-races","flag"}}}};
         ExperienceNavigation navigation;
-        navigation.select("alice","one",rpg);
-        QVERIFY(navigation.cycle(0,1));
-        QCOMPARE(navigation.view(0),"fixture-skills");
+        navigation.select("alice","one",rpg);QVERIFY(navigation.show("skills"));
+        QCOMPARE(navigation.view(),"fixture-skills");
         navigation.select("alice","two",racing);
         QCOMPARE(navigation.descriptor().homeView,"fixture-car-home");
-        QCOMPARE(navigation.labels(0),QStringList{"Cars"});
-        QCOMPARE(navigation.view(1),"fixture-races");
-        navigation.select("alice","one",rpg);
-        QCOMPARE(navigation.face(0),"skills");
+        QCOMPARE(navigation.screenIds(),QStringList({"cars","races"}));
+        QVERIFY(navigation.show("races"));QCOMPARE(navigation.view(),"fixture-races");
+        navigation.select("alice","one",rpg);QCOMPARE(navigation.screen(),"skills");
     }
-    void removedPartialAndFuturePackagesFallBackWithoutReinterpretingFaces() {
+    void removedPartialAndFuturePackagesFallBackWithoutReinterpretingScreens() {
         ExperienceNavigation navigation;
         auto package=pokemonExperienceDescriptor();
-        navigation.select("alice","game",package);
-        navigation.show(0,"boxes");
-        auto prior=navigation.generation();
-        package.first.faces={{"dex","Guide","pokemon-guide"}};
-        QVERIFY(navigation.select("alice","game",package));
-        QVERIFY(navigation.generation()>prior);
-        QCOMPARE(navigation.face(0),"dex");
-        package.version=99;
-        navigation.select("alice","game",package);
-        QCOMPARE(navigation.descriptor().id,"generic");
-        QCOMPARE(navigation.face(0),"details");
+        navigation.select("alice","game",package);navigation.show("boxes");
+        const auto prior=navigation.generation();
+        package.adapter.screens={{"dex","Guide","pokemon-guide","guide"}};
+        QVERIFY(navigation.select("alice","game",package));QVERIFY(navigation.generation()>prior);
+        QCOMPARE(navigation.screen(),"dex");
+        package.adapter.screens.append(package.adapter.screens.first());
+        QVERIFY(!ExperienceNavigation::valid(package));
+        package.version=99;navigation.select("alice","game",package);
+        QCOMPARE(navigation.descriptor().id,"generic");QVERIFY(!navigation.hasAdapter());
         QCOMPARE(navigation.adventure(),"game");
-        auto saved=navigation.state();saved["version"]=99;
-        navigation.show(1,"ra");navigation.restore(saved);
-        QCOMPARE(navigation.face(1),"sessions");
+        auto saved=navigation.state();saved["version"]=99;navigation.restore(saved);
+        QVERIFY(navigation.screen().isEmpty());QVERIFY(navigation.view().isEmpty());
+    }
+    void oldSlotStateMigratesWithoutCrossOwnerOrOpaqueStateLoss() {
+        ExperienceNavigation navigation;
+        navigation.select("alice","emerald",pokemonExperienceDescriptor());
+        const QJsonObject entry{{"0","boxes"},{"1","hall"},{"navigation",QJsonObject{{"module",QJsonObject{{"focus",7}}}}}};
+        navigation.restore({{"version",1},{"owner","alice"},{"entries",QJsonObject{{R"(["emerald","pokemon",1])",entry}}}});
+        QCOMPARE(navigation.screen(),"boxes");QCOMPARE(navigation.legacyScreen(1),"hall");
+        QCOMPARE(navigation.navigation()["module"].toObject()["focus"].toInt(),7);
+        QVERIFY(navigation.show(navigation.legacyScreen(1)));QCOMPARE(navigation.screen(),"hall");
+        QCOMPARE(navigation.state()["version"].toInt(),2);
+    }
+    void fiveRootsAndGameFreeHubDoNotDependOnAnAdapter() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ExperienceFactory factory=[](ExperienceServices services){ExperienceModules result;result.push_back(std::make_unique<GenericExperience>(services));return result;};
+        ShellController shell(library,profiles,adapter,platform,factory,archive,achievements);
+        QCOMPARE(shell.primaryNames(),QStringList({"Home","Games","GameHub","Social","Apps"}));
+        shell.openGameHubFace("lobby");
+        QCOMPARE(shell.primaryId(),"gamehub");QCOMPARE(shell.hubFace(),"lobby");
+        QCOMPARE(shell.faceNames(),QStringList({"Overview","RetroAchievements","Lobby"}));
+        shell.dispatch(Action::NextFace);QCOMPARE(shell.hubFace(),"overview");
+        shell.goToSection("apps");QCOMPARE(shell.faceNames(),QStringList({"Apps","Crates","Browser","Files"}));
+        shell.selectFace(3);QCOMPARE(shell.appsFace(),"files");
+        shell.goToSection("social");QCOMPARE(shell.faceNames(),QStringList({"Messages","Communities","Discover"}));
+    }
+    void legacyRoutesMigrateToTheCorrectOwner() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        shell.restoreNavigation({{"version",2},{"page","trainer"},{"trainerFace","ra"}});
+        QCOMPARE(shell.primaryId(),"gamehub");QCOMPARE(shell.hubFace(),"ra");
+        shell.restoreNavigation({{"version",2},{"page","companions"},{"pokemonFace","boxes"}});
+        QCOMPARE(shell.primaryId(),"gamehub");QCOMPARE(shell.hubFace(),"adapter");QCOMPARE(shell.adapterScreen(),"boxes");
+        shell.restoreNavigation({{"version",2},{"page","social"},{"socialFace","lobby"}});
+        QCOMPARE(shell.primaryId(),"gamehub");QCOMPARE(shell.hubFace(),"lobby");
+        shell.restoreNavigation({{"version",2},{"page",5}});
+        QCOMPARE(shell.primaryId(),"apps");
+        shell.restoreNavigation({{"version",1},{"page",4},{"hall",QJsonObject{{"route","achievement-sets"}}}});
+        QCOMPARE(shell.primaryId(),"gamehub");
+        shell.restoreNavigation({{"version",99},{"page","apps"}});
+        QCOMPARE(shell.primaryId(),"home");
+    }
+    void globalDrawersRespectKeyboardAndKeepTheirReturnRoute() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        for(const auto& root:{"games","gamehub","social","apps"}) {
+            shell.goToSection(root);shell.dispatch(Action::ToggleContinue);QVERIFY(shell.drawerOpen());
+            shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),root);QVERIFY(!shell.drawerOpen());
+            shell.dispatch(Action::Secondary);QVERIFY(shell.quickAppsOpen());
+            shell.dispatch(Action::Back);QVERIFY(!shell.quickAppsOpen());QCOMPARE(shell.primaryId(),root);
+        }
+        shell.keyboard()->begin("Text","draft",32);
+        shell.dispatch(Action::Secondary);QVERIFY(!shell.quickAppsOpen());QVERIFY(shell.keyboard()->isOpen());
+        shell.dispatch(Action::ToggleContinue);QVERIFY(!shell.drawerOpen());QVERIFY(shell.keyboard()->isOpen());
     }
     void namesAndCollectionGroupingCannotGrantAnExperience() {
         MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
@@ -169,12 +214,15 @@ private slots:
         QCOMPARE(shell.homeView(),"rpg-home");QVERIFY(!shell.module("pokemon"));
         auto* rpg=static_cast<test::CounterExperience*>(shell.module("rpg"));
         shell.activate(4,"experience-home:counter");QCOMPARE(rpg->count,4);QVERIFY(shell.notice().isEmpty());rpg->count=0;
-        shell.goToPage(2);shell.dispatch(Action::Confirm);QCOMPARE(rpg->count,1);
+        shell.openGameHubFace("adapter");shell.selectAdapterScreen("counter");
+        shell.dispatch(Action::Confirm);QCOMPARE(rpg->count,1);
         shell.activate(7);QCOMPARE(shell.home()["fixtureValue"].toInt(),7);
-        shell.dispatch(Action::NextFace);QCOMPARE(rpg->lastFace,"second");
+        shell.selectAdapterScreen("second");QCOMPARE(rpg->lastFace,"second");
+        shell.dispatch(Action::NextFace);QCOMPARE(shell.hubFace(),"lobby");QCOMPARE(rpg->lastFace,"second");
+        shell.openGameHubFace("adapter");
         const auto oldToken=rpg->token();
         auto state=shell.navigationState();state["homeAdventure"]="racing";shell.restoreNavigation(state);
-        QCOMPARE(shell.homeView(),"racing-home");QCOMPARE(shell.primaryNames()[2],"racing tools");
+        QCOMPARE(shell.homeView(),"racing-home");QCOMPARE(shell.primaryNames()[2],"GameHub");
         QCOMPARE(shell.home()["fixtureGame"].toString(),"racing");QCOMPARE(shell.focusIndex(),0);
         rpg->requestFace();QCOMPARE(shell.experienceView(),"racing-counter");
         const auto live=shell.liveExperienceActions("rpg","123:1");QCOMPARE(live.size(),1);
@@ -183,11 +231,12 @@ private slots:
         QVERIFY(shell.invokeLiveExperienceAction(liveId,"rpg","123:2"));QCOMPARE(rpg->liveCalls,1);
         state=shell.navigationState();state["homeAdventure"]="rpg";shell.restoreNavigation(state);
         QCOMPARE(shell.focusIndex(),7);QCOMPARE(rpg->lastFace,"second");
-        emit rpg->faceRequested(0,"counter",false,oldToken);QCOMPARE(rpg->lastFace,"second");
+        emit rpg->screenRequested("counter",false,oldToken);QCOMPARE(rpg->lastFace,"second");
         rpg->requestText();QVERIFY(shell.keyboard()->isOpen());
         rpg->setEnabled(false);QCOMPARE(shell.homeView(),"game-home");QVERIFY(!shell.keyboard()->isOpen());
         rpg->applyText("late");QVERIFY(rpg->lastText.isEmpty());
-        rpg->setEnabled(true);QCOMPARE(shell.homeView(),"rpg-home");QCOMPARE(shell.focusIndex(),7);
+        rpg->setEnabled(true);QCOMPARE(shell.homeView(),"rpg-home");QCOMPARE(shell.hubFace(),"overview");
+        shell.openGameHubFace("adapter");shell.selectAdapterScreen("second");QCOMPARE(shell.focusIndex(),7);
         rpg->version=99;emit rpg->changed();QCOMPARE(shell.homeView(),"game-home");
         QCOMPARE(shell.currentAdventureId(),"rpg");
         shell.openProfile();shell.dispatch(Action::Confirm);QCOMPARE(shell.trainer()->editRows().size(),4);

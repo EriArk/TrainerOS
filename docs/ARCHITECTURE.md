@@ -1,5 +1,16 @@
 # TrainerOS Architecture
 
+## Current shell framework — 16 October 2026
+
+The source now uses five semantic roots: Home, Games, GameHub, Social and Apps.
+GameHub owns Overview/RetroAchievements/Lobby plus an optional named Adapter peer.
+Experience descriptor v2 has a Home view and one `adapter.screens` list;
+`show(screenId)` replaces two mandatory primary slots. Screens use the adapter
+menu while L2/R2 belongs to host peers. Generic modules need no empty Adapter.
+See [implementation and limits](CORE16_FRAMEWORK_EVIDENCE.md) and
+[current product contract](UX_CONTRACT_20261016_RU.md). Earlier two-slot design
+below is historical and no longer defines the composition API.
+
 ## Planned composed game experience — #174–178 and adaptive Home
 
 The [owner's adaptive-Home correction](EXPANSION_174_178.md) extends the same

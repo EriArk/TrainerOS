@@ -319,6 +319,7 @@ qt_add_qml_module(traineros
         src/qml/GameVideoPreview.qml
         src/qml/TrainerAccessPanel.qml
         src/qml/AppsPage.qml
+    src/qml/AppsMenu.qml
         src/qml/AppsDock.qml
         src/qml/AppControlsWindow.qml
         src/qml/Main.qml
@@ -342,6 +343,10 @@ qt_add_qml_module(traineros
         src/adapters/generic/GenericExperienceViews.qml
         src/qml/ExperienceHost.qml
         src/qml/GenericExperiencePage.qml
+        src/qml/GameHubPage.qml
+        src/qml/GameHubOverview.qml
+        src/qml/MenuGlyph.qml
+        src/qml/WorkspacePlaceholder.qml
         src/qml/PlayerProfilePanel.qml
         src/qml/ShellOptions.qml
         src/qml/GameOptions.qml

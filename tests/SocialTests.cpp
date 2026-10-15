@@ -950,7 +950,7 @@ private slots:
         shell.dispatch(Action::Back);QVERIFY(!shell.homeMenuOpen());
         shell.dispatch(Action::Home);QCOMPARE(shell.homeMenuFocus(),0);
     }
-    void callNotificationAnswersDirectlyAndDeclineKeepsOrigin() {
+    void callNotificationRequiresExplicitAnswerAndDeclineKeepsOrigin() {
         MockLibraryRepository library;MockTrainerRepository trainers;MockAdventureAdapter adapter;
         DevelopmentPlatformService platform;MockPokedexRepository dex;MockHallOfFameRepository hall;MockAchievementProvider achievements;
         ShellController shell(library,trainers,adapter,platform,builtinExperiences(dex,dex),hall,achievements);
@@ -960,7 +960,9 @@ private slots:
             {"chats",QVariantList{QVariantMap{{"id",channel},{"name","Friend"},{"kind","chats"},{"ringing",true}}}}});
         shell.dispatch(Action::Home);shell.activateHomeMenu(3);QVERIFY(shell.notificationsOpen());
         QVERIFY(social->notifications().first().toMap()["answerable"].toBool());
-        shell.activateNotification(0);QVERIFY(!shell.homeMenuOpen());QCOMPARE(shell.navigationState(),origin);
+        commands.clear();shell.activateNotification(0);QVERIFY(shell.homeMenuOpen());QVERIFY(!shell.notificationsOpen());
+        QCOMPARE(shell.navigationState(),origin);QVERIFY(commands.isEmpty());
+        shell.activateHomeAction("answer-call:"+QString(channel));QVERIFY(!shell.homeMenuOpen());
         QCOMPARE(commands.last()[0].toString(),QString("voice-join"));
         shell.dispatch(Action::Home);shell.activateHomeAction("decline-call:"+QString(channel));
         QCOMPARE(commands.last()[0].toString(),QString("voice-decline"));QCOMPARE(shell.navigationState(),origin);

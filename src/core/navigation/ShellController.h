@@ -36,6 +36,17 @@ class ShellController final : public QObject {
     Q_PROPERTY(bool canEditWorld READ canEditWorld NOTIFY changed)
     Q_PROPERTY(trainer::AppsController* apps READ apps CONSTANT)
     Q_PROPERTY(int page READ page NOTIFY changed)
+    Q_PROPERTY(QString primaryId READ primaryId NOTIFY changed)
+    Q_PROPERTY(QString hubFace READ hubFace NOTIFY changed)
+    Q_PROPERTY(QString overviewFace READ overviewFace NOTIFY changed)
+    Q_PROPERTY(QString appsFace READ appsFace NOTIFY changed)
+    Q_PROPERTY(QString socialSurface READ socialSurface NOTIFY changed)
+    Q_PROPERTY(bool adapterActive READ adapterActive NOTIFY changed)
+    Q_PROPERTY(QVariantList adapterMenu READ adapterMenu NOTIFY changed)
+    Q_PROPERTY(QString adapterScreen READ adapterScreen NOTIFY changed)
+    Q_PROPERTY(bool adapterMenuOpen READ adapterMenuOpen NOTIFY changed)
+    Q_PROPERTY(int adapterMenuFocus READ adapterMenuFocus NOTIFY changed)
+    Q_PROPERTY(bool quickAppsOpen READ quickAppsOpen NOTIFY changed)
     Q_PROPERTY(QStringList primaryNames READ primaryNames NOTIFY changed)
     Q_PROPERTY(QString homeView READ homeView NOTIFY changed)
     Q_PROPERTY(QString experienceView READ experienceView NOTIFY changed)
@@ -88,6 +99,8 @@ class ShellController final : public QObject {
     Q_PROPERTY(trainer::TrainerSetupPresentation* trainerSetup READ trainerSetup CONSTANT)
     Q_PROPERTY(bool powerMenu READ powerMenu NOTIFY changed)
 public:
+    enum Page { HomePage, GamesPage, GameHubPage, SocialPage, AppsPage };
+    Q_ENUM(Page)
     ShellController(LibraryRepository&, TrainerRepository&, AdventureAdapter&, PlatformService&,
                     ExperienceFactory, HallOfFameRepository&,
                     AchievementProvider&, QObject* parent = nullptr);
@@ -111,7 +124,7 @@ public:
     bool canReceiveNearby() { return !homeMenuOpen_ && !menuOpen_ && !drawerOpen_ && !serviceOpen() && notice_.isEmpty()
         && !localModalOpen() && !keyboard_.isOpen() && !moduleActivityBusy(); }
     bool canReceiveOnline() { return !menuOpen_ && !drawerOpen_ && !serviceOpen() && notice_.isEmpty()
-        && (!localModalOpen() || (page_==4 && !social_.menu().isEmpty()))
+        && (!localModalOpen() || (socialActive() && !social_.menu().isEmpty()))
         && !keyboard_.isOpen() && !moduleActivityBusy(true); }
     TrainerController* trainer() { return &trainer_; }
     WorldsController* worlds() { return &worlds_; }
@@ -124,6 +137,7 @@ public:
     GameCollections* collectionManager() { return multiverse_.collectionManager(); }
     Q_INVOKABLE void manageCollection(bool create=false);
     Q_INVOKABLE void editCollection(int index);
+    Q_INVOKABLE void libraryAction(const QString& action);
     HallOfFameController* hall() { return &hall_; }
     LibraryManagementController* libraryManager() { return &libraryManager_; }
     LibraryToolsController* libraryTools() {return &libraryTools_;}
@@ -148,14 +162,32 @@ public:
     void showNotice(const QString& message) { mode_.clear(); notice_ = message; emit changed(); }
     bool modeConfirmation() const { return !mode_.isEmpty(); }
     int page() const { return page_; }
+    QString primaryId() const;
+    QString hubFace() const { return hubFace_; }
+    QString overviewFace() const { return overviewFace_; }
+    QString appsFace() const { return appsFace_; }
+    QString socialSurface() const { return page_==GameHubPage && hubFace_=="lobby"?QString("lobby"):socialFace_; }
+    bool socialActive() const { return page_==SocialPage || (page_==GameHubPage && hubFace_=="lobby"); }
+    bool adapterActive() const { return page_==GameHubPage && hubFace_=="adapter" && experience_.hasAdapter(); }
+    QVariantList adapterMenu() const;
+    QString adapterScreen() const { return experience_.screen(); }
+    bool adapterMenuOpen() const { return adapterMenuOpen_; }
+    int adapterMenuFocus() const { return adapterMenuFocus_; }
+    bool quickAppsOpen() const { return quickAppsOpen_; }
+    Q_INVOKABLE void goToSection(const QString& id);
+    Q_INVOKABLE void openGameHubFace(const QString& face);
+    Q_INVOKABLE void selectAdapterScreen(const QString& screen);
+    Q_INVOKABLE void showAdapterMenu();
+    Q_INVOKABLE void showOverview(const QString& face);
+    Q_INVOKABLE void toggleQuickApps();
     QStringList primaryNames() const;
     QString homeView() const {return experience_.descriptor().homeView;}
-    QString experienceView() const {return page_==2 || page_==3 ? experience_.view(page_-2) : QString();}
+    QString experienceView() const {return adapterActive()?experience_.view():hubFace_=="ra"?QString("achievements"):overviewFace_=="timeline"?QString("game-history"):QString("game-details");}
     QVariantList gameHistory() const;
     QVariantMap liveGame() const { return liveGame_; }
     QVariantList notifications() const;
     QVariantMap passiveNotice() const;
-    void setLiveGame(const QVariantMap& game) { if(liveGame_!=game){liveGame_=game;emit changed();} }
+    void setLiveGame(const QVariantMap& game);
     Q_INVOKABLE void returnToLiveGame(bool options=false) { if(!liveGame_.isEmpty())emit liveGameRequested(options); }
     Q_INVOKABLE void openContext(const QString& type={}, const QString& id={});
     Q_INVOKABLE void pressButton(const QString& button);
@@ -217,7 +249,10 @@ private:
     QVariantList achievementNotifications_;
     void syncExperience();
     ExperienceModule* resolveExperience(const std::optional<Adventure>&) const;
-    void showExperienceFace(int slot,const QString& face);
+    void showExperienceScreen(const QString& screen);
+    void setHubFace(const QString& face);
+    QStringList hubFaceIds() const;
+    bool dispatchGameHub(Action);
     ExperienceNavigation experience_;
     bool syncingExperience_ = false;
     void confirm();
@@ -263,6 +298,9 @@ private:
     QString homeAdventureId_, homeResumeId_;
     ResumeSource homeResumeSource_;
     int page_ = 0;
+    QString hubFace_ = "overview", overviewFace_ = "summary", appsFace_ = "apps";
+    bool adapterMenuOpen_ = true, quickAppsOpen_ = false;
+    int adapterMenuFocus_ = 0, overviewFocus_ = 0;
     QString socialFace_ = "chats";
     int drawerFocus_ = 0;
     int menuFocus_ = 0;
