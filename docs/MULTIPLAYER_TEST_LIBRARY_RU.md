@@ -1,0 +1,95 @@
+# Общая библиотека для проверок — 15 октября 2026
+
+По просьбе владельца подготовлена одинаковая основная подборка для Flip и Odin:
+**77 игр, 27 платформ**, преимущественно с многопользовательскими режимами.
+Обычно на платформу приходится 2–4 игры; GBA содержит пять для разных способов
+соединения. C64, 3DS и Vita представлены одной общей игрой из доступной коллекции,
+PC Engine — двумя. Пустые каталоги других платформ не считаются установленными
+играми. Новые эмуляторы и внешние ROM-пакеты ради числа платформ не добавляются.
+
+Используются существующие файлы владельца с портативок и его хранилища.
+Для каждой общей игры выбран один конкретный образ; копии и связанные треки
+сверяются по SHA256. Игры устанавливаются локально, без зависимости от сетевого
+монтирования во время запуска. Для Vita совпадение файла запуска само по себе
+не заменяет установленное приложение: дополнительные Gravity Rush и Tearaway
+сохраняются на Odin, но не выдаются за общие игры двух устройств.
+
+На Flip среди Pokémon остаются только официальные издания выбранного набора.
+ROM-хаки, переводы и лишние игры выводятся из активной библиотеки в локальный
+архив вне сканируемых папок. История, идентификаторы оставленных игр и личные
+сохранения сохраняются; база и изменённые списки игр резервируются. Архив —
+сохранённые пользовательские файлы, а не удалённый контент.
+
+**Подборка не является новой проверкой совместимости.** Прежние результаты
+остаются в [матрице мультиплеера](MULTIPLAYER_WORKING_MATRIX.md). Наличие игры
+с локальным режимом, Link, Ad Hoc или штатным онлайн не означает готовность
+соответствующего транспорта TrainerOS. В частности, Twisted Metal: Black Online
+включена как материал для будущих PS2-проверок: официальная служба закрыта,
+работа альтернативного сервера этим переносом не проверяется
+([информация PlayStation](https://www.playstation.com/en-au/legal/gameservers/)).
+Однопользовательские игры на малопредставленных платформах остаются образцами
+для проверки запуска, управления и выхода.
+
+## Состояние поставки
+
+**Установлено и проверено на обеих портативках:** все 77 общих игр зарегистрированы
+на каждой, 27 платформ. Активный каталог Flip содержит 77 игр, Odin — 79 с двумя
+сохранёнными Vita-исключениями. Манифесты совпадают по SHA256 для всех 126 записей
+файлов, включая треки и необходимые сопутствующие данные. Неофициальных Pokémon
+в активном каталоге Flip не осталось. Обе оболочки работают на прежней Apps-сборке
+`539137f62a461c72ec97f62bbd63927b0d91957610da009b7404ed3f08ec5b81`.
+
+Обе передачи завершены с проверкой SHA256. После этого файлы перенесены из
+промежуточных папок в библиотеки, обновлены списки игр и перезапущены только
+оболочки. На Flip в архив выведены 603 ROM-файла и связанных файла, на Odin — 36.
+Базы прошли `quick_check`; число записей истории и ранее сохранённых результатов
+не изменилось: 290 игровых сессий на Flip и 130 на Odin. Новые игры не запускались.
+Число игроков перенесено из существующих метаданных для 49 игр; неизвестные
+значения не заменяются придуманной вместимостью.
+
+Три существующие записи каталога дополнительно перенесены с Flip на Odin по
+совпадающим SHA256: New Super Mario Bros. U, Pokémon Battle Revolution и Pokémon
+Rumble U. Автосканер пропускал имя первого WUA с пометкой `DLC`, а две Pokémon-
+записи не получали прежние каталожные идентификаторы. Перенесены сведения об
+изданиях и настройка запуска; личная история и сохранения другого устройства
+не импортировались. Это не исправление общего автосканера.
+Временные службы передачи и SSH-переадресации закрыты; временные токены удалены.
+
+Архив находится рядом с папкой `roms`, в
+`traineros-library-20261015/archive`; там же сохранены база до изменения,
+списки перемещений, исходные `gamelist.xml` и отчёт проверки. Сохранения не
+копировались между владельцами. Для возвращения игры используется её исходный
+путь и сохранённая запись; не следует заменять всю базу старой копией после
+появления новой истории.
+
+## Состав
+
+| Платформа | Игры |
+| --- | --- |
+| nes | NES Pong; Super Homebrew War 2025 |
+| gb | Pokémon Red; Pokémon Blue; Hnefatafl |
+| gbc | Pokémon Gold; Pokémon Crystal; From Below Pocket RC |
+| gba | Pokémon Emerald; Pokémon FireRed; Kirby & The Amazing Mirror (USA); Legend of Zelda, The - A Link to the Past & Four Swords (USA); Mario Golf - Advance Tour (USA) |
+| snes | Contra III - The Alien Wars (USA); Super Bomberman 2 (USA); Super Mario Kart |
+| megadrive | Gunstar Heroes (USA); Streets of Rage 2 (USA); Sonic The Hedgehog 2 |
+| n64 | Mario Kart 64 (US); Star Fox 64; F-Zero X; Super Smash Bros. |
+| nds | Mario Kart DS; New Super Mario Bros.; Pokémon Platinum; Dragon Quest IX - Sentinels of the Starry Skies |
+| gc | Super Smash Bros. Melee; Auto Modellista (USA); Mario Golf - Toadstool Tour (USA) |
+| wii | New Super Mario Bros - Wii (EU); Mario Kart Wii; Pokémon Battle Revolution |
+| wiiu | SUPER MARIO 3D WORLD; New SUPER MARIO BROS. U; Pokémon Rumble U |
+| psp | Lumines - Puzzle Fusion (US); Burnout Legends; Tekken: Dark Resurrection |
+| psx | CTR - Crash Team Racing; Hot Shots Golf 2 (USA); Bomberman: Party Edition |
+| sega32x | Chaotix; NBA Jam Tournament Edition; Virtua Fighter |
+| ngpc | SNK vs. Capcom - The Match of the Millennium; Fatal Fury F-Contact - Pocket Fighting Series; Puzzle Link 2 (US - EU) |
+| neogeo | Metal Slug 3; Garou: Mark of the Wolves; Magical Drop III |
+| fbneo | Battle Circuit; Street Fighter II' : Champion Edition; Bubble Bobble |
+| atomiswave | Demolish Fist; Dolphin Blue; Guilty Gear Isuka |
+| dreamcast | Soul Calibur (US); Power Stone 2; ChuChu Rocket! |
+| neogeocd | Metal Slug 2; Samurai Shodown 2; Magical Drop 2 |
+| naomi | The House of the Dead 2; Confidential Mission; The Maze of the Kings |
+| c64 | fix_it_felix_64 |
+| pcengine | Santatlantean; Reflectron |
+| n3ds | Minicraft3DS |
+| psvita | vitaQuake |
+| ps2 | TimeSplitters 2; Tekken Tag Tournament; Twisted Metal: Black Online |
+| segacd | NBA Jam; Final Fight CD; Eternal Champions: Challenge from the Dark Side |
