@@ -60,6 +60,7 @@ add_library(trainer_core STATIC
     src/features/worlds/GameCollections.cpp
     src/features/library/LibraryToolsController.cpp
     src/features/library/ScrapeController.cpp
+    src/features/home/HomeDashboardController.cpp
     src/features/apps/AppsController.cpp
     src/features/downloads/DownloadsController.cpp
     src/core/repository/BatoceraLibrary.cpp
@@ -343,7 +344,8 @@ qt_add_qml_module(traineros
         src/adapters/generic/GenericExperienceViews.qml
         src/qml/ExperienceHost.qml
         src/qml/GenericExperiencePage.qml
-        src/qml/GameHubPage.qml
+        src/qml/HomeDashboard.qml
+    src/qml/GameHubPage.qml
         src/qml/GameHubOverview.qml
         src/qml/MenuGlyph.qml
         src/qml/WorkspacePlaceholder.qml

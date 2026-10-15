@@ -162,6 +162,12 @@ void ControllerInput::poll() {
     }
     const auto current = direction(x, y, buttons);
     const auto now = clock_.elapsed();
+    const auto scroll=sample_.axes[SDL_CONTROLLER_AXIS_RIGHTY]/32768.0f;
+    if(std::abs(scroll)<StickRelease)nextScroll_=0;
+    else if(std::abs(scroll)>=StickEngage && now>=nextScroll_) {
+        deliver(scroll>0?Action::ScrollDown:Action::ScrollUp,true);
+        nextScroll_=now+100; // Bounded cadence, independent of D-pad focus/repeat.
+    }
     if (current != heldDirection_) {
         heldDirection_ = current;
         if (current) deliver(*current, true);

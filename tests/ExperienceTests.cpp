@@ -7,11 +7,54 @@
 #include <QtTest>
 #include <QTemporaryDir>
 #include <QFile>
+#include "fixtures/HomeSocialFixture.h"
 
 using namespace trainer;
 class ExperienceTests : public QObject {
     Q_OBJECT
 private slots:
+    void dashboardFocusDoesNotRetargetOnUnreadUpdates() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        QSignalSpy launches(&shell,&ShellController::homeLaunchPressed);
+        QSignalSpy commands(shell.social(),&SocialController::commandRequested);
+        QVariantMap chat{{"id","one"},{"name","First"},{"kind","chats"},{"unread",1}};
+        QVariantMap snapshot{{"state","connected"},{"userId","self"},{"chats",QVariantList{chat}}};
+        HomeSocialFixture::publish(*shell.social(),snapshot);QCOMPARE(shell.dashboard()->chats().size(),1);
+        shell.dispatch(Action::Left);QCOMPARE(shell.dashboard()->focus(),"chat:one");
+        shell.dispatch(Action::Confirm);QCOMPARE(shell.primaryId(),"social");QVERIFY(launches.isEmpty());
+        QCOMPARE(commands.last()[0].toString(),"conversation");QCOMPARE(commands.last()[1].toMap()["id"],"one");
+        shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.dashboard()->focus(),"chat:one");
+        chat["id"]="two";snapshot["chats"]=QVariantList{chat};HomeSocialFixture::publish(*shell.social(),snapshot);commands.clear();
+        shell.dispatch(Action::Confirm);QCOMPARE(shell.primaryId(),"home");QVERIFY(commands.isEmpty());QVERIFY(launches.isEmpty());
+        shell.dispatch(Action::Left);QCOMPARE(shell.dashboard()->focus(),"chat:two");
+        shell.dispatch(Action::ToggleContinue);shell.dispatch(Action::Back);QCOMPARE(shell.dashboard()->focus(),"chat:two");
+    }
+    void dashboardAchievementsUseVerifiedAccountSnapshotsNotToasts() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        const auto rows=shell.dashboard()->achievements();QVERIFY(rows.size()>=4);
+        QSet<QString> sets;for(const auto& row:rows)sets.insert(row.toMap()["set"].toString());QCOMPARE(sets.size(),2);
+        shell.showAchievements("Unrelated toast",{"Not a trophy"});QCOMPARE(shell.dashboard()->achievements(),rows);
+        const auto key=rows.first().toMap()["key"].toString();shell.activateDashboard(key);
+        QCOMPARE(shell.hubFace(),"ra");QCOMPARE(shell.hall()->route(),"achievement-detail");
+        QCOMPARE(shell.hall()->detail()["title"].toString(),rows.first().toMap()["name"].toString());
+        shell.dispatch(Action::Back);QCOMPARE(shell.primaryId(),"home");QCOMPARE(shell.dashboard()->focus(),key);
+        achievements.setAccount({});QVERIFY(shell.dashboard()->achievements().isEmpty());
+        shell.dispatch(Action::Confirm);QCOMPARE(shell.primaryId(),"home");
+    }
+    void dashboardScrollHasAnExclusiveShellInputOwner() {
+        MockLibraryRepository library;MockTrainerRepository profiles;MockAdventureAdapter adapter;DevelopmentPlatformService platform;
+        MockPokedexRepository dex;MockHallOfFameRepository archive;MockAchievementProvider achievements;
+        ShellController shell(library,profiles,adapter,platform,builtinExperiences(dex,dex),archive,achievements);
+        QSignalSpy scroll(shell.dashboard(),&HomeDashboardController::scrollRequested);
+        shell.dispatch(Action::ScrollDown);QCOMPARE(scroll.size(),1);QCOMPARE(shell.dashboard()->focus(),"play");
+        shell.keyboard()->begin("Text","draft",20);shell.dispatch(Action::ScrollDown);QCOMPARE(scroll.size(),1);shell.keyboard()->cancel();
+        shell.dispatch(Action::ToggleContinue);shell.dispatch(Action::ScrollUp);QCOMPARE(scroll.size(),1);shell.dispatch(Action::Back);
+        shell.goToSection("social");shell.dispatch(Action::ScrollUp);QCOMPARE(scroll.size(),1);
+    }
     void manifestAlternativesConstraintsAndAssets() {
         Adventure game;game.id="unknown";game.domain="multiverse";game.platformId="gba";
         ExperienceManifest manifest{"fixture",1,{

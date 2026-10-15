@@ -467,6 +467,24 @@ QVariantMap SocialController::account() const {
     auto result=snapshot_;result.remove("friends");result.remove("chats");result.remove("messages");
     result["available"]=!owner_.isEmpty();return result;
 }
+QVariantList SocialController::quickConversations() const {
+    auto source=snapshot_.value("chats").toList();
+    std::stable_sort(source.begin(),source.end(),[](const auto& a,const auto& b){return a.toMap()["unread"].toInt()>b.toMap()["unread"].toInt();});
+    QVariantList result;int channels=0;
+    for(const auto& value:source) {
+        const auto row=value.toMap();if(row["id"].toString().isEmpty() || row["muted"].toBool())continue;
+        if(!row["guild"].toString().isEmpty() && ++channels>2)continue;
+        result.append(row);if(result.size()==6)break;
+    }return result;
+}
+bool SocialController::openQuickConversation(const QString& id) {
+    for(const auto& value:snapshot_.value("chats").toList()) {
+        const auto row=value.toMap();if(row["id"]!=id)continue;
+        setFace(row["guild"].toString().isEmpty()?"chats":"communities");
+        contacts_=reading_=false;selection_.stop();
+        emit commandRequested("conversation",{{"id",id}});emit changed();return true;
+    }return false;
+}
 QVariantList SocialController::rows() const {
     if(contacts_)return snapshot_.value("friends").toList();
     QVariantList result;

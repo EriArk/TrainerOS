@@ -63,8 +63,9 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     : QObject(parent), repository_(repo), adapter_(adapter), platform_(platform),
       keyboard_(this), trainer_(profiles, this), worlds_(repo, adapter, this), multiverse_(repo, adapter, this),
       hall_(archive, achievements, this),
-      libraryManager_(repo, nullptr, this), libraryTools_(repo,this), scraper_(repo,this), settings_(this), device_(this), diagnostics_(this) {
+      libraryManager_(repo, nullptr, this), libraryTools_(repo,this), scraper_(repo,this), settings_(this), device_(this), diagnostics_(this), dashboard_(repo,achievements,social_,this) {
 
+    connect(&dashboard_,&HomeDashboardController::changed,this,&ShellController::changed);
     modules_=factory({repo,trainer_,hall_,archive,profiles});
     Q_ASSERT(!modules_.empty());
     for(auto& owned:modules_) {
@@ -170,7 +171,7 @@ ShellController::ShellController(LibraryRepository& repo, TrainerRepository& pro
     connect(&launchPreparation_, &LaunchPreparation::messageRequested, this, &ShellController::showNotice);
     const auto openGame=[this](const QString& id){
         if(!liveGame_.isEmpty()) {
-            if(liveGame_["id"]==id)returnToLiveGame();
+            if(liveGame_.value("id")==id)returnToLiveGame();
             else showNotice("A game is still running. Return to it or exit it from Game Options before starting another.");
             return;
         }
@@ -308,7 +309,7 @@ void ShellController::refreshLibrary() {
     emit changed();
 }
 QString ShellController::currentAdventureId() const {
-    if(!liveGame_["id"].toString().isEmpty())return liveGame_["id"].toString();
+    if(!liveGame_.value("id").toString().isEmpty())return liveGame_.value("id").toString();
     // An explicit choice remains authoritative even if its installation vanishes.
     // Never silently replace it with a different game's latest launch/save.
     if(!homeAdventureId_.isEmpty())return homeAdventureId_;
@@ -423,6 +424,25 @@ void ShellController::toggleQuickApps() {
     else apps_.leave();
     emit changed();
 }
+void ShellController::activateDashboard(const QString& key) {
+    if(page_!=HomePage || !pairedNavigationAvailable() || navigationLocked())return;
+    const auto target=dashboard_.target(key);if(target.isEmpty())return;
+    dashboard_.select(key);
+    if(target["type"]=="play"){confirm();emit changed();return;}
+    if(target["type"]=="chat") {
+        socialFace_=target["guild"].toString().isEmpty()?"chats":"communities";
+        goToPage(SocialPage);social_.openQuickConversation(target["id"].toString());dashboardReturn_=true;
+    } else if(target["type"]=="event") {
+        homeMenuOpen_=true;openNotificationById(target["id"].toString());
+        if(page_!=HomePage)dashboardReturn_=true;
+    } else if(target["type"]=="achievement") {
+        openGameHubFace("ra");auto state=hall_.navigationState();
+        state["route"]="achievement-detail";state["set"]=target["set"].toString();state["zone"]="actions";
+        auto ids=state["achievements"].toObject();ids[target["set"].toString()]=target["id"].toString();state["achievements"]=ids;
+        hall_.restoreNavigation(state);dashboardReturn_=true;
+    }
+    emit changed();
+}
 void ShellController::setLiveGame(const QVariantMap& game) {
     if(liveGame_==game)return;
     const auto previous=currentAdventureId();
@@ -479,7 +499,7 @@ void ShellController::syncExperience() {
     const auto game=homeAdventure();
     const auto record=game?repository_.registration(game->id):std::nullopt;
     const auto owner=trainer_.profile()["id"].toString();
-    if(!experience_.owner().isEmpty() && experience_.owner()!=owner){achievementNotifications_.clear();achievementToast_.clear();++achievementToastGeneration_;}
+    if(!experience_.owner().isEmpty() && experience_.owner()!=owner){dashboard_.reset();achievementNotifications_.clear();achievementToast_.clear();++achievementToastGeneration_;}
     ExperienceModule* next=resolveExperience(game);
     Q_ASSERT(next);
     const auto descriptor=next->descriptor();
@@ -544,7 +564,7 @@ int ShellController::faceIndex() const {
 }
 QString ShellController::trainerFace() const {return hubFace_=="ra"?QString("ra"):experience_.screen();}
 void ShellController::showTrainerFace(const QString& face) {
-    if(face=="ra")setHubFace("ra");else {setHubFace("adapter");showExperienceScreen(face);adapterMenuOpen_=false;}
+    if(face=="ra")setHubFace("ra");else {setHubFace("adapter");selectAdapterScreen(face);}
 }
 void ShellController::goToTrainerFace(const QString& face) {
     syncExperience();
@@ -679,7 +699,7 @@ void ShellController::restoreNavigation(const QJsonObject& state) {
         homeAdventureId_=scoped.value("selected").toString(legacy["selected"].toString());
         homeResumeId_.clear();homeResumeSource_={};
     }
-    if(!liveGame_["id"].toString().isEmpty())homeAdventureId_=liveGame_["id"].toString();
+    if(!liveGame_.value("id").toString().isEmpty())homeAdventureId_=liveGame_.value("id").toString();
     multiverseFace_=true;
     if(page_==GamesPage)multiverse_.setCollection(worldCollection_);
     refreshExperience();
@@ -755,7 +775,7 @@ QVariantMap ShellController::home() const {
         const auto resumeStatus = homeResumeAvailability(*adventure);
         action = resumeStatus == ResumeAvailability::Exact ? "Resume Adventure" : "Start Adventure";
         actionHint = resumeStatus == ResumeAvailability::Exact ? "Resume" : "Play";
-        if (liveGame_["id"] == adventure->id) { action = "Return to game"; actionHint = "Return"; }
+        if (liveGame_.value("id") == adventure->id) { action = "Return to game"; actionHint = "Return"; }
         if (repository_.editable()) {
             milestone = "Your selected Adventure";
             for (const auto& recent : repository_.recentSessions()) if (recent.adventureId == adventure->id) {
@@ -832,7 +852,7 @@ void ShellController::goToPage(int page) {
     // only the completed shell transition, not every intermediate close, so
     // hidden Home/drawer bindings do not rebuild the library repeatedly.
     QSignalBlocker transition(this);
-    homeMenuOpen_ = false;
+    homeMenuOpen_ = false;dashboardReturn_=false;
     const bool enteringWorlds = page_ != 1 && std::clamp(page, 0, int(primaryNames().size())-1) == 1;
     for(auto& module:modules_)module->leave(page!=page_);
     collectionManager()->close();
@@ -887,6 +907,7 @@ void ShellController::editCollection(int index) {
 }
 void ShellController::openContext(const QString& type,const QString& target) {
     if(navigationLocked() || homeMenuOpen_ || menuOpen_ || serviceOpen() || keyboard_.isOpen() || localModalOpen() || !notice_.isEmpty())return;
+    if(type.isEmpty() && page_==HomePage && dashboard_.focus()!="play")return;
     if(type=="collection" || (type.isEmpty() && page_==1 && (collectionsRoot_ || multiverse_.route()!="games"))) {
         const auto id=target.isEmpty()?(collectionsRoot_?collections().value(collectionFocus_).toMap()["id"].toString():worldCollection_):target;
         if(page_==1 && collectionManager()->known(id))collectionManager()->begin(id);
@@ -1049,6 +1070,9 @@ void ShellController::confirm() {
     if (drawerOpen_) {
         if (points_.isEmpty()) { drawerOpen_ = false; return; }
         const auto& point = points_.at(drawerFocus_);
+        if(!liveGame_.value("id").toString().isEmpty() && liveGame_.value("id")!=point.adventureId) {
+            notice_="Your running game stays selected. Return to it or exit from Game Options first.";return;
+        }
         for (const auto& adventure : repository_.adventures()) if (adventure.id == point.adventureId) {
             homeAdventureId_ = adventure.id; homeResumeId_ = point.resumePoint ? point.resumePoint->id : QString();
             homeResumeSource_ = point.resumePoint ? point.resumePoint->source : ResumeSource{};
@@ -1058,8 +1082,9 @@ void ShellController::confirm() {
         }
         notice_ = "This Adventure is unavailable. Its history has been kept.";
     } else if (page_ == 0) {
+        if(dashboard_.focus()!="play"){activateDashboard(dashboard_.focus());return;}
         if(!liveGame_.isEmpty()) {
-            if(liveGame_["id"]==currentAdventureId())returnToLiveGame();
+            if(liveGame_.value("id")==currentAdventureId())returnToLiveGame();
             else showNotice("A game is still running. Return to it or exit it from Game Options before starting another.");
             return;
         }
@@ -1132,8 +1157,8 @@ QVariantList ShellController::homeMenuActions() const {
     rows.append(QVariantMap{{"id","together"},{"label","Play together"}});
     rows.append(QVariantMap{{"id","lobby"},{"label",social_.lobbyState().isEmpty()?"Lobbies":"My lobby"}});
     if(!liveGame_.isEmpty()) {
-        rows.prepend(QVariantMap{{"id","live-options"},{"label","Game Options"},{"detail",liveGame_["title"]}});
-        rows.prepend(QVariantMap{{"id","live-return"},{"label","Return to game"},{"detail","Still running · "+liveGame_["title"].toString()}});
+        rows.prepend(QVariantMap{{"id","live-options"},{"label","Game Options"},{"detail",liveGame_.value("title")}});
+        rows.prepend(QVariantMap{{"id","live-return"},{"label","Return to game"},{"detail","Still running · "+liveGame_.value("title").toString()}});
     }
     if(!voice["channel"].toString().isEmpty())rows.append(QVariantMap{{"id","call"},{"label","Voice call"},{"detail",voice["name"]}});
     if(!social_.gameParty()["party"].toString().isEmpty()||social_.gameParty()["joining"].toBool())rows.append(QVariantMap{{"id","game-party"},{"label","Game party"},{"detail",social_.gameParty()["game"].toMap()["label"]}});
@@ -1158,8 +1183,8 @@ void ShellController::activateHomeMenu(int index) {
     const auto selected=homeMenuActions()[index].toMap();
     if(!selected.value("enabled",true).toBool())return;
     const auto id=selected["id"].toString();
-    if(id=="together"){emit togetherRequested(liveGame_["id"].toString());return;}
-    if(id=="lobby"){if(liveGame_.isEmpty())social_.openLobby();else social_.openLobbyForGame(liveGame_["id"].toString());return;}
+    if(id=="together"){emit togetherRequested(liveGame_.value("id").toString());return;}
+    if(id=="lobby"){if(liveGame_.isEmpty())social_.openLobby();else social_.openLobbyForGame(liveGame_.value("id").toString());return;}
     if(id=="live-return"||id=="live-options"){returnToLiveGame(id=="live-options");return;}
     if(id=="profile"){openProfile();return;}
     if(id=="game-party"){closeHomeMenu();goToPage(SocialPage);emit social_.runtimeAction("multiplayer-party");return;}
@@ -1217,6 +1242,12 @@ void ShellController::openSocialNotification() {
     social_.openNotification();emit changed();
 }
 void ShellController::dispatch(Action action) {
+    if(action==Action::ScrollUp || action==Action::ScrollDown) {
+        if(page_==HomePage && pairedNavigationAvailable() && !navigationLocked()
+           && !social_.online()["open"].toBool() && !moduleInvitation()["open"].toBool())
+            emit dashboard_.scrollRequested(action==Action::ScrollDown?1:-1);
+        return;
+    }
     if(keyboard_.isOpen()&&!menuOpen_&&!homeMenuOpen_&&notice_.isEmpty()&&!downloads_.isOpen()&&!social_.online()["open"].toBool()
        &&(action==Action::PreviousFace||action==Action::NextFace)){keyboard_.dispatch(action);return;}
     if(downloads_.isOpen()){downloads_.dispatch(action);return;}
@@ -1276,6 +1307,8 @@ void ShellController::dispatch(Action action) {
         quickAppsOpen_=false;apps_.leave();
     }
     if(!menuOpen_ && !keyboard_.isOpen() && !localModalOpen() && !serviceOpen() && notice_.isEmpty() && action==Action::LocalAction) {openContext();return;}
+    if(action==Action::Back && dashboardReturn_ && !keyboard_.isOpen() && !localModalOpen()
+       && !menuOpen_ && !serviceOpen() && !drawerOpen_ && notice_.isEmpty()) {goToPage(HomePage);return;}
     if(action==Action::ContextMenu && canHoldConfirm()) {
         openContext("game",(multiverseFace_?multiverse_.detail():worlds_.detail()).value("id").toString());return;
     }
@@ -1355,6 +1388,9 @@ void ShellController::dispatch(Action action) {
         if (service_ == "diagnostics") { diagnostics_.dispatch(action); return; }
         if (trainer_.editing()) { trainer_.dispatch(action); return; }
 
+        if(page_==HomePage && (action==Action::Up || action==Action::Down || action==Action::Left || action==Action::Right || action==Action::Back)) {
+            dashboard_.move(action);return;
+        }
         if (page_ == 1) {
             if(collectionsRoot_) {
                 if(action==Action::Back){goToPage(0);return;}

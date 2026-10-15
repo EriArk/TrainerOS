@@ -67,6 +67,7 @@ private:
     std::array<bool, 2> triggers_{};
     std::optional<Action> heldDirection_;
     qint64 nextRepeat_ = 0;
+    qint64 nextScroll_ = 0;
     ControllerSample sample_;
 };
 }

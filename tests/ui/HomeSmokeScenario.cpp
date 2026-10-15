@@ -1,4 +1,5 @@
 #include "HomeSmokeScenario.h"
+#include "../fixtures/HomeSocialFixture.h"
 #include "features/home/PlayHistoryController.h"
 #include <QCoreApplication>
 #include <QQuickItem>
@@ -157,11 +158,16 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(*starts == 1 && *returns == 1 && focusIs("home-launch"), "Main button alone launches and restores Home");
             check(store.recentSessions().first().adventureId == "home-0" && store.recentSessions().size() == 5, "History replaces the latest card without duplicates");
             check(history->error().isEmpty(), "History writes succeeded");
-            for (auto button : {SDL_CONTROLLER_BUTTON_DPAD_LEFT, SDL_CONTROLLER_BUTTON_DPAD_DOWN, SDL_CONTROLLER_BUTTON_DPAD_RIGHT, SDL_CONTROLLER_BUTTON_DPAD_UP, SDL_CONTROLLER_BUTTON_DPAD_LEFT}) press(button);
-            check(focusIs("home-launch") && !shell.drawerOpen(), "D-pad cannot redirect Home's fixed A action");
+            HomeSocialFixture::publish(*shell.social(),{{"state","connected"},{"userId","home-fixture"},{"chats",QVariantList{QVariantMap{{"id","home-chat"},{"name","Test friend"},{"kind","chats"},{"unread",1}}}}});
+            press(SDL_CONTROLLER_BUTTON_DPAD_LEFT);
+            check(shell.dashboard()->focus()=="chat:home-chat","D-pad reaches the Home conversation without launch");
+            press(SDL_CONTROLLER_BUTTON_B);check(shell.primaryId()=="social" && *starts==1,"A opens selected conversation, not game");
+            press(SDL_CONTROLLER_BUTTON_A);check(shell.primaryId()=="home" && shell.dashboard()->focus()=="chat:home-chat","Back preserves exact Home target");
+            press(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+            check(shell.dashboard()->focus()=="play","Right returns to Play");
             press(SDL_CONTROLLER_BUTTON_B); break;
         case 8:
-            check(*starts == 2 && *returns == 2 && !shell.drawerOpen(), "A launches immediately after arbitrary D-pad input");
+            check(*starts == 2 && *returns == 2 && !shell.drawerOpen(), "A launches only after returning focus to Play");
             press(SDL_CONTROLLER_BUTTON_X); check(shell.drawerOpen(), "Y opens the selector independently"); press(SDL_CONTROLLER_BUTTON_A);
             check(focusIs("home-launch"), "Cancel restores the fixed page action");
             press(SDL_CONTROLLER_BUTTON_START);
@@ -171,7 +177,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(!shell.notice().isEmpty() && *starts == 2, "A in the system menu cannot launch Home's Adventure");
             press(SDL_CONTROLLER_BUTTON_A); press(SDL_CONTROLLER_BUTTON_A);
             press(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER); press(SDL_CONTROLLER_BUTTON_LEFTSHOULDER);
-            check(focusIs("home-launch") && shell.home()["adventureId"] == "home-0", "Shoulders retain the selected Home Adventure");
+            check(shell.primaryId()=="home" && shell.home()["adventureId"] == "home-0", "Shoulders retain the selected Home Adventure");
             progress->selected = "another-adventure"; progress->publish();
             if (auto* party = itemNamed("home-party")) check(!party->isVisible(), "Another Adventure's Party must disappear from Home");
             check(shell.home()["badges"] == "—" && shell.home()["caught"] == "—", "An unrelated Adventure cannot populate Home");
@@ -180,6 +186,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(shell.home()["badges"] == "—" && shell.home()["badgeSlots"].toList().isEmpty(), "Unsupported progress stays unknown");
             break;
         case 9:
+            check(focusIs("home-launch"), "Home focus is restored after the page transition settles");
             check(shell.home()["exitPreview"] == "image://exit-media/seed-0", "Canonical clean exit image survives newer uncaptured sessions and restart");
             {
                 bool found = false;
@@ -248,6 +255,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             progress->value.badgeMask = 255; progress->publish();
             shell.goToTrainerFace("journey"); break;
         case 16:
+            check(!shell.adapterMenuOpen(), "A direct Journey route enters its content, not the adapter menu");
             check(focusIs("journey-primary") && shell.home()["badgeSlots"].toList().size() == 8, "Journey keeps a fixed action beside verified badge data");
             capture("journey-badges-960");
             progress->value.badgeMask = 0; progress->publish(); break;
@@ -259,6 +267,11 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             capture("journey-unknown-960"); shell.goToPage(0); break;
         default:
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
+            if (!screenshotDir.isEmpty()) {
+                QFile report(screenshotDir + "/home-check.txt");
+                if (report.open(QIODevice::WriteOnly))
+                    report.write((diagnostics.join('\n')+QString("\nqmlWarnings=%1\n").arg(warnings)).toUtf8());
+            }
             if (*failed) { qCritical().noquote() << diagnostics.join('\n'); QCoreApplication::exit(1); }
             else window->close();
         }

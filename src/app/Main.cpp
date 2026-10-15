@@ -1020,7 +1020,7 @@ int main(int argc, char* argv[]) {
                     session.setAdventureActive(adventureLaunch.active());
                     session.setAdventureMinimized(adventureLaunch.minimized());
                     QVariantMap live;
-                    if(adventureLaunch.minimized())live={{"id",adventureLaunch.adventureId()},{"title",exitPresentation.gameTitle()}};
+                    if(adventureLaunch.active() && !adventureLaunch.preparing())live={{"id",adventureLaunch.adventureId()},{"title",exitPresentation.gameTitle()}};
                     shell.setLiveGame(live);
                     input.setEnabled(app.applicationState() == Qt::ApplicationActive && (!adventureLaunch.active() || adventureLaunch.preparing()));
                 });

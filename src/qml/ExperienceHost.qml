@@ -3,6 +3,7 @@ Item {
     id: root
     required property var shell
     property bool overlay: false
+    property bool showcase: false
     function hints(h) { return visible && presenter.item && presenter.item.hints ? presenter.item.hints(h) : null }
     Loader {
         id: presenter
@@ -15,7 +16,7 @@ Item {
     }
     SocialIconButton {
         anchors.right: parent.right; anchors.rightMargin: 12; y: 10
-        visible: !root.overlay && root.shell.page === 0
+        visible: !root.showcase && !root.overlay && root.shell.page === 0
         icon: "dots-three"; label: "Game actions"
         onClicked: root.shell.openContext("game",root.shell.currentAdventureId)
     }

@@ -4,6 +4,12 @@ namespace trainer {
 AdventureLaunchController::AdventureLaunchController(ProcessService& process, QObject* parent) : QObject(parent), process_(process) {
     connect(&process_, &ProcessService::started, this, [this] {
         started_ = true;
+        // Only a confirmed local process start changes the selected Home game.
+        // Preserve the prelaunch route/focus while retiring its old Home choice.
+        if(recordsLocalHistory() && !adventureId_.isEmpty()) {
+            context_["homeAdventure"]=adventureId_;
+            context_["homeResume"]=QString();context_["homeResumeSource"]=QJsonObject{};
+        }
         // Preparation establishes this only after the adapter has isolated progress.
         // Re-evaluate for every process; an ordinary launch must retain its policy.
         exit_.beginSession(process_.runtimeControls()["temporaryProgress"].toBool()

@@ -188,6 +188,12 @@ private slots:
             QCOMPARE(events.size(), 2); button(SDL_CONTROLLER_BUTTON_B, false);
             disconnect(layerGate);
             events.clear();
+            SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_RIGHTY, 9000);input.poll();QVERIFY(events.isEmpty());
+            SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_RIGHTY, 26000);input.poll();
+            QCOMPARE(events.size(),1);QCOMPARE(qvariant_cast<Action>(events.first().first()),Action::ScrollDown);
+            input.setEnabled(false);events.clear();QTest::qWait(120);input.poll();QVERIFY(events.isEmpty());
+            input.setEnabled(true);input.poll();QVERIFY(events.isEmpty());
+            SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_RIGHTY, 0);input.poll();
             SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_LEFTX, 9000); input.poll();
             QCOMPARE(events.size(), 0);
             SDL_JoystickSetVirtualAxis(joystick, SDL_CONTROLLER_AXIS_LEFTX, 26000); input.poll();

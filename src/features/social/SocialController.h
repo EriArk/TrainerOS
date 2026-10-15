@@ -141,6 +141,8 @@ public:
     void releaseDirectConversation(const QString& peer);
     QString trainerIdentity() const {return owner_;}
     QVariantList rows() const;
+    QVariantList quickConversations() const;
+    bool openQuickConversation(const QString& id);
     QVariantList messages() const { return snapshot_.value("messages").toList(); }
     QVariantList hints() const;
     QString draft() const { return drafts_.value(snapshot_.value("channel").toString()); }
@@ -277,6 +279,7 @@ private:
     bool lobbyFreeOnly_=false,lobbyDetailFocused_=false;
     bool lobbyPublicationVisible_=false;
     friend class SocialTests;
+    friend class HomeSocialFixture;
     friend class RuntimeMultiplayerTests;
     friend class LobbySmokeScenario;
     friend class PlayerOverlaySmokeScenario;

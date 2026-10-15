@@ -1,39 +1,15 @@
 import QtQuick
-
 Item {
     id: root
     required property var shell
     readonly property var choice: shell.homeGame
-    readonly property bool running: !!choice.id && shell.liveGame.id === choice.id
-    Rectangle {
-        anchors.fill: parent; color: "#202c43"
-        clip: true
-        Image { anchors.fill: parent; source: root.choice.preview || "qrc:/series/multiverse.png"; sourceSize.width: 1200; fillMode: Image.PreserveAspectCrop; opacity: root.choice.preview ? 0.35 : 0.65; asynchronous: true }
-        Rectangle { anchors.fill: parent; color: "#6012222e" }
-        Repeater {
-            model: 4
-            Rectangle {
-                required property int index
-                x: -135 - index * 38; y: 50 - index * 38
-                width: 390 + index * 76; height: width; radius: width / 2
-                color: "transparent"; border.color: "#3b4962"; border.width: 2
-            }
-        }
-        Rectangle { x: 0; y: 0; width: parent.width; height: 4; color: "#101a2b" }
-    }
+    clip: true
+    Image { anchors.fill: parent; source: root.choice.preview || "qrc:/series/multiverse.png"; asynchronous: true; fillMode: Image.PreserveAspectCrop; opacity: .22 }
     Column {
-        x: 30; y: 26; spacing: 17; width: parent.width - 300
-        Text { text: "YOUR ADVENTURES"; color: "#b1bbd1"; font.pixelSize: 13; font.letterSpacing: 2; font.bold: true }
-        Text { text: "Continue playing"; color: "#f4ecdc"; font.pixelSize: 38; font.bold: true; width: parent.width; elide: Text.ElideRight }
-        Rectangle { width: parent.width; height: 3; color: "#7886a6" }
-        Text { width: parent.width; text: root.choice.title || "A new horizon"; color: "#ffe0a0"; font.pixelSize: 27; font.bold: true; elide: Text.ElideRight }
-        Text { text: root.choice.system || "Your library across systems"; color: "#d5dded"; font.pixelSize: 19 }
-        Text { width: parent.width; text: root.shell.multiverse.sample ? "Development preview\nFictional titles · no recorded play history" : root.choice.id ? root.choice.time || "Ready for a new story" : "Choose your next Adventure."; color: "#c2cce0"; font.pixelSize: 17; lineHeight: 1.4; wrapMode: Text.WordWrap }
-    }
-    Item {
-        anchors.right: parent.right; anchors.rightMargin: 16; width: 244; height: parent.height
-        Text { y: 28; width: parent.width; horizontalAlignment: Text.AlignHCenter; text: root.choice.id ? "YOUR NEXT ADVENTURE" : "FIND YOUR NEXT STORY"; color: "#d5dded"; font.pixelSize: 12; font.bold: true }
-        AdventureButton { objectName: "multiverse-launch"; x: 12; y: 55; width: 220; height: 220; shell: root.shell; selected: root.visible && root.shell.chooseAdventureAvailable && !root.shell.drawerOpen }
-        Text { y: 287; width: parent.width; horizontalAlignment: Text.AlignHCenter; text: root.running ? "Return to game" : root.choice.id ? root.shell.multiverse.sample ? "Development preview" : root.choice.action : "Explore collection"; color: "#f4ecdc"; font.pixelSize: 20; font.bold: true }
+        x: 16; y: 18; width: parent.width-32; spacing: 13
+        Text { width: parent.width; text: root.choice.title || "Your next adventure"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 30; wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight }
+        Text { width: parent.width; text: root.choice.system || "Choose a game from your library"; color: Theme.muted; font.pixelSize: 17; wrapMode: Text.WordWrap }
+        Text { width: parent.width; text: root.choice.time || "No recorded play time"; color: Theme.ink; font.pixelSize: 16; wrapMode: Text.WordWrap }
+        Text { width: parent.width; text: root.choice.description || ""; color: Theme.muted; font.pixelSize: 14; wrapMode: Text.WordWrap; maximumLineCount: 5; elide: Text.ElideRight }
     }
 }

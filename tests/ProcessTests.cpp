@@ -169,6 +169,21 @@ private slots:
         QVERIFY(launch.launch({probe(), {}, {}}, {})); const auto cancelled = checkpoint.last()[0].toULongLong();
         launch.cancel(); launch.checkpointCompleted(cancelled, {}); QTest::qWait(150); QVERIFY(started.isEmpty()); QCOMPARE(launch.state(), "returned");
     }
+    void confirmedLocalLaunchUpdatesOnlyHomeInTheReturnCheckpoint() {
+        ProcessService process;AdventureLaunchController launch(process);
+        connect(&launch,&AdventureLaunchController::checkpointRequested,&launch,[&](quint64 token,const QJsonObject&){launch.checkpointCompleted(token,{});});
+        QSignalSpy returned(&launch,&AdventureLaunchController::restoreRequested);
+        const QJsonObject old{{"version",3},{"page","games"},{"homeAdventure","old"},{"collectionFocus",3},{"homeResume","old-save"}};
+        QVERIFY(launch.launch({probe(),{},{}},old,"new"));QTRY_COMPARE(returned.size(),1);
+        const auto current=returned.takeFirst().first().toJsonObject();
+        QCOMPARE(current["page"],old["page"]);QCOMPARE(current["collectionFocus"],old["collectionFocus"]);
+        QCOMPARE(current["homeAdventure"].toString(),"new");QVERIFY(current["homeResume"].toString().isEmpty());
+        QVERIFY(launch.launch({probe()+".missing",{},{}},old,"failed"));QTRY_COMPARE(returned.size(),1);
+        QCOMPARE(returned.takeFirst().first().toJsonObject(),old);
+        ProcessCommand guest{probe(),{}, {}};guest.runtimeControls["recordHistory"]=false;
+        QVERIFY(launch.launch(guest,old,"guest-room"));QTRY_COMPARE(returned.size(),1);
+        QCOMPARE(returned.first().first().toJsonObject(),old);
+    }
     void actualCrashAndStopRestoreExactlyOnce() {
         ProcessService process; AdventureLaunchController launch(process);
         connect(&launch, &AdventureLaunchController::checkpointRequested, &launch, [&](quint64 token, const QJsonObject&) { launch.checkpointCompleted(token, {}); });

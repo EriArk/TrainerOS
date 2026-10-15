@@ -1,4 +1,5 @@
 #pragma once
+#include "features/home/HomeDashboardController.h"
 #include "core/input/Action.h"
 #include "features/social/SocialController.h"
 #include "LaunchPreparation.h"
@@ -29,6 +30,7 @@
 namespace trainer {
 class ShellController final : public QObject {
     Q_OBJECT
+    Q_PROPERTY(trainer::HomeDashboardController* dashboard READ dashboard CONSTANT)
     Q_PROPERTY(trainer::LibraryToolsController* libraryTools READ libraryTools CONSTANT)
     Q_PROPERTY(trainer::ScrapeController* scraper READ scraper CONSTANT)
     Q_PROPERTY(trainer::DownloadsController* downloads READ downloads CONSTANT)
@@ -187,6 +189,8 @@ public:
     QVariantMap liveGame() const { return liveGame_; }
     QVariantList notifications() const;
     QVariantMap passiveNotice() const;
+    HomeDashboardController* dashboard(){return &dashboard_;}
+    Q_INVOKABLE void activateDashboard(const QString& key);
     void setLiveGame(const QVariantMap& game);
     Q_INVOKABLE void returnToLiveGame(bool options=false) { if(!liveGame_.isEmpty())emit liveGameRequested(options); }
     Q_INVOKABLE void openContext(const QString& type={}, const QString& id={});
@@ -291,6 +295,8 @@ private:
     NetworkController network_;
     DiagnosticsController diagnostics_;
     SocialController social_;
+    HomeDashboardController dashboard_;
+    bool dashboardReturn_=false;
     QString service_;
     enum class TextTarget { None, TrainerName, WorldsSearch, MultiverseSearch, Library, LibraryTools, Collections, Archive, Module, AchievementAccount, SetupName, Network, Social, Communication, Scraper };
     TextTarget textTarget_ = TextTarget::None;
