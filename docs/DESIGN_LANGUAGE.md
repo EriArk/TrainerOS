@@ -1,5 +1,21 @@
 # TrainerOS Design Language
 
+## Owner consistency rule — 16 October 2026
+
+Every feature must preserve TrainerOS's shared visual identity and interaction
+logic. Reuse chassis/material buttons/pastel accents/gold focus and compact
+readable proportions; do not introduce an unrelated one-off page aesthetic.
+[Current responsive and control contract](UX_CONTRACT_20261016_RU.md) supersedes
+fixed 960×540 composition and old per-page X/Y bindings. Light/Dark are complete
+variants of the same visual language, not a new theme ecosystem. Handheld/TV
+viewing distance is separate from output resolution. Actual visual/device review
+remains distinct from code/build or structural UI checks.
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 **Adaptive content, 9 October 2026:** [experience/Home contract](EXPANSION_174_178.md).
 Home and two game-oriented slots may change real content, vocabulary, widgets and
 game-specific visual treatment through one experience. Preserve shared warm material

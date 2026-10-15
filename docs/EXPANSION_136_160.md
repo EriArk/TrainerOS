@@ -1,5 +1,20 @@
 # Issues #136–160: guest content, OddCrate, software updates and TV
 
+## Обновлённые #144–159 — 16 октября 2026
+
+[Текущий контракт](UX_CONTRACT_20261016_RU.md) и [реестр](ISSUE_RECONCILIATION_20261016.md)
+заменяют прежние детали OddCrate: имя Crates, Apps face, ручной каталог/delta при
+открытии, GitHub Releases, explicit installs/updates и install-based Crates reviews.
+OS/software обновляются отдельно; background availability check не означает
+автозагрузку, Crates не опрашивается в фоне. TV viewing-distance и responsive
+native geometry различаются. Guest-content, права, save/trust и другие не
+заменённые обязательства сохраняются. Первая beta — Armada installer.
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 **Later reconciliation, 9 October 2026:** [#161–173](EXPANSION_161_173.md) and
 [UX-02 map](UX_OPTIONS_MAP_RU.md) add universal Options, context Select and live-game
 multitasking before resuming MP-02. They preserve this register's guest/policy,

@@ -1,5 +1,17 @@
 # Social / Together interface - UX-01
 
+## Current Social routing — 16 October 2026
+
+[Social v3 contract](UX_CONTRACT_20261016_RU.md) and #217–223 supersede earlier
+face/binding descriptions below: Messages / Communities / Discover, global X/Y,
+Lobby in GameHub, one call and preserved drafts/identities. Old screen evidence
+remains historical. Do not recreate #129's superseded Together menu.
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 **Next target, 9 October 2026:** [UX-02](UX_OPTIONS_MAP_RU.md) extends the delivered
 compact Social with universal Options, focused Select, live-game minimize/return,
 context-prefilled Together and shared notifications. Reuse current Fluxer and

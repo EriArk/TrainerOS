@@ -1,5 +1,18 @@
 # Issues #174–178 and adaptive Home — 9 October 2026
 
+## Supersession — 16 октября 2026
+
+#206/#207/#224 заменяют **два adapter primary** одной optional GameHub Adapter face.
+Сохраняются encapsulation, Home showcase, verified capabilities, universal profile
+и exact-save guards. Pokémon меню, presenter/API migration и настоящий alternate
+adapter test описаны в [действующем контракте](UX_CONTRACT_20261016_RU.md).
+Старые first/second descriptors/примеры ниже — материал миграции, не новый API.
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 **Owner correction, 9 October 2026:** full encapsulation remains in UX-02 before
 MP-02. Every current/future game experience belongs in `src/adapters/<id>/` and
 implements the shared `src/core/experience/` contract. Only explicit build and

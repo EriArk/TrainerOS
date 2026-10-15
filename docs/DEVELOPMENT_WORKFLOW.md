@@ -1,5 +1,24 @@
 # Engineering workflow
 
+## Правила владельца — 16 октября 2026
+
+Перед **каждым** блоком перечитать его актуальный раздел
+[ROADMAP](ROADMAP.md#current-execution-queue) и живые связанные issues, не только
+память/пересказ. Последние новые и изменённые требования имеют приоритет над
+старыми планами; [контракт](UX_CONTRACT_20261016_RU.md) и реестр фиксируют сверку.
+Если остаётся сомнение или существенная развилка UX/архитектуры — спросить владельца
+до зависимой реализации; параллельно допустима независимая согласованная работа.
+Не заменять отсутствие ответа предположением. Держать общий визуальный стиль
+и логику TrainerOS, reuse компонентов/служб и точные маршруты возврата.
+
+Владелец выбрал CORE → Home/Games/GameHub → Social/Lobby → Apps/системный блок.
+Проверять исходники/installed/device/owner acceptance отдельно, сохранять WIP,
+не повторять settled tests без причины. Docs-only pass требует document/link/diff
+checks, не device deployments. Последующее разрешение владельца продолжать
+несколькими блоками не отменяет reread, общий стиль и вопросы при развилках.
+
+## Сохраняемые инженерные правила
+
 TrainerOS uses a complete delivery loop: inspect → implement → review → verify → commit → push → verify the remote commit. The user has authorized this routine for project work. A local commit alone is not a delivered increment. Since the user's 2026-09-13 instruction, GitHub Actions is not a delivery gate; verification runs on the Windows host, Linux build server and Flip as appropriate.
 
 ## Before changing code

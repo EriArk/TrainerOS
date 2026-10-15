@@ -1,5 +1,50 @@
 # AGENTS.md — TrainerOS
 
+## Current owner contract — 16 October 2026
+
+**Latest implementation scope:** after reconciliation the owner authorized a
+substantial continuation while away, focused on the **main framework**, then the
+framework of further sections if progress permits. Follow CORE -> Home/Games/
+GameHub -> Social/Lobby -> Apps/system. Do not expand this pass into finishing
+every multiplayer type or deep per-feature polish. Wire existing capabilities;
+keep future behavior honest and deeper acceptance separate. Ask on material
+forks and continue independent agreed work while awaiting an answer.
+
+The owner approved documentation reconciliation first. New and modified issues
+are the requirements authority; read their latest bodies and relevant comments,
+not just a cached title or an old acceptance list. Later explicit owner decisions
+supersede older conflicting text, including dated instructions below. Do not
+interpret an issue edit as evidence of implementation or device acceptance.
+
+Before EVERY implementation block, reread its current section in
+[ROADMAP](docs/ROADMAP.md#current-execution-queue), the relevant live issues and
+[the current UX contract](docs/UX_CONTRACT_20261016_RU.md). Check current code,
+branch and evidence before choosing work. If requirements are ambiguous or a
+meaningful product/architecture fork remains, ask the owner before committing to
+that choice; continue only independent work while waiting. Do not silently invent
+a compromise or choose a different product direction.
+
+Preserve the common TrainerOS visual identity AND interaction logic: the existing
+chassis, warm colours, material buttons, readable gold focus, compact proportions,
+shared controller/touch actions and predictable return paths. Reuse shared
+components; Light/Dark and responsive layouts must retain that identity. Discuss
+a material departure rather than introducing a one-off design. Verify actual UI
+appearance as well as behavior; do not call a structural test visual acceptance.
+
+Current primaries are Home / Games / GameHub / Social / Apps. GameHub owns
+Overview / RetroAchievements / optional Adapter / Lobby; adapters no longer own
+two primary slots. Social owns Messages / Communities / Discover. Apps owns
+Apps / Crates / Browser / Files. Global X/Y, the bottom-right upward-opening
+dock, Start QuickActions/Extensions and six-section Settings follow the current
+contract. Older Social Lobby, independent avatar circles, six-primary Apps and
+oldest-first-only multiplayer scheduling below are historical, not current targets.
+The issue register is [ISSUE_RECONCILIATION_20261016](docs/ISSUE_RECONCILIATION_20261016.md).
+ROADMAP alone owns execution order; feature plans are subordinate. Preserve Apps
+AP01 and the separate shared-host Remote Play candidate, all save guards and
+pending acceptance. First beta remains an installer over Armada; do not silently
+make every new full-product requirement a beta blocker. No code/device changes
+are authorized by this documentation pass. No GitHub Actions activation is implied.
+
 **Owner Remote Play hosting correction, 14 October 2026 (latest):** spectator
 streaming uses Fluxer; interactive Remote Play uses a direct P2P connection
 between handhelds. Fluxer supplies invitations/signaling, public STUN only

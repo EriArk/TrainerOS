@@ -1,5 +1,23 @@
 # Native ScreenScraper — accepted scope and delivery order
 
+## Последние требования #65 — 16 октября 2026
+
+[Контракт](UX_CONTRACT_20261016_RU.md), #65/#29/#233/#234, SYSTEM-16:
+Start → Device запускает одной кнопкой missing-only всей eligible ROM-библиотеки;
+никакого обязательного выбора платформ и duplicate jobs. Полные настройки
+Account/API/quota, language/region, metadata/art/video/matching/existing-data/display
+остаются Settings → Games & Library. Aggressive default/Cautious option,
+ранжирование/ambiguity в общих Downloads Needs attention; пользовательские
+данные и exact ROM/save identity сохраняются. Download videos ON default,
+local media, отдельные play/sound display settings (preview sound default off).
+Наличие parse/video API в старом коде не доказывает загрузку видео в очереди.
+Это новый target, а не повторная приёмка интеграции ниже.
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 Accepted [issue #65](https://github.com/EriArk/TrainerOS/issues/65), 2026-09-24.
 Status, 2026-10-08: developer access approved; native jobs, Settings and display
 choices delivered on Flip 2 and Odin 2; evidence and remaining boundaries below.

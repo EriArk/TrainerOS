@@ -1,5 +1,22 @@
 # Native Social - conversations and discovery
 
+## Social v3 — действующие требования 16 октября 2026
+
+[Контракт](UX_CONTRACT_20261016_RU.md), #128/#217–223: Messages (1:1, все друзья/
+запросы), Communities (группы и комьюнити), Discover (поиск/приглашения/Recently
+Together). Lobby переезжает в GameHub. Groups и Recent больше не peer-вкладки.
+Сохранить реальные Fluxer providers/permissions/drafts, один call, rich media и
+общие Downloads. Friend-only game activity требует ограничения доставки, а не
+скрытия строки UI. Quiet notifications без дублей/утечки в capture. Global X/Y
+заменяют старые локальные bindings; #129 Together menu закрыт как superseded.
+[План](ROADMAP.md#current-execution-queue): SOCIAL-16 перед LOBBY-16.
+Ниже реализация и исторический контракт, не доказательство v3.
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 **Installed UX-01, 2026-10-08:** unified DM/group Messages, Communities and
 Discover now run on Flip/Odin. X composes, Y opens Together, and direct touch
 buttons expose Send, pictures, voice messages, calls and context. Home/Social

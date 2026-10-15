@@ -1,5 +1,20 @@
 # Ordinary-save exit — #49 implementation
 
+## Сохраняемые и новые lifecycle правила — 16 октября 2026
+
+[Контракт](UX_CONTRACT_20261016_RU.md), #49/#171/#191/#195: только явный Exit
+запускает protected capture/save/exit; Home не сохраняет и не завершает процесс.
+Solo Minimize и QuickChat получают реальную безопасную pause lease где поддержано;
+multiplayer остаётся live. Не подменять паузу savestate/relaunch. Временный кадр
+Minimize не является кадром подтверждённого Exit. Возврат сохраняет exact session,
+предзапусковой маршрут и последнюю игранную игру. Исторические checks ниже не
+являются новой проверкой этих дополнений.
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 **Planned UX-02 integration, 9 October 2026:** [Game Options/minimize map](UX_OPTIONS_MAP_RU.md)
 retains this single explicit Exit protocol. Options/Minimize/Return do not create
 a ResumePoint, capture or new session and do not clear live-save guards. Capture

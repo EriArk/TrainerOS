@@ -1,5 +1,20 @@
 # UX-02 framework and controls
 
+## Целевой переход после UX-02 — 16 октября 2026
+
+Поставленная UX-02 ниже — историческое доказательство, не реализация #188–234.
+[Новый контракт](UX_CONTRACT_20261016_RU.md) заменяет обязательные first/second
+primary слоты на optional GameHub Adapter face. Нужно перенести API/registration/
+resolver/presenter/overlay/persistence и настоящий Pokémon, сохранив общий
+Home showcase, session hooks и exact-build save guards. RA/Overview/Lobby принадлежат
+host. Настоящий alternate-adapter test остаётся обязательным.
+Следующий блок CORE-16, затем Home/Games по [ROADMAP](ROADMAP.md#current-execution-queue).
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 ## Adapter encapsulation follow-up - 9 October 2026
 
 The owner correction is implemented in `src/adapters/<id>/`, using the shared

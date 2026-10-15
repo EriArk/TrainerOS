@@ -1,5 +1,20 @@
 # Odin 2 and network controls
 
+## Актуальная системная организация — 16 октября 2026
+
+[Контракт](UX_CONTRACT_20261016_RU.md), #77/#233/#234: аппаратные параметры и
+capabilities принадлежат Device, быстрые переключатели Start → Device, profile/
+privacy — Accounts & Communication. Автоматически определять физический controller,
+семантику и реальные glyphs Nintendo/Xbox/PlayStation/Steam; обновлять при смене,
+сохранять manual override/unknown fallback и полное касание. CORE-16 не объявляет
+все новые hardware providers готовыми. Системные действия reuse existing helpers,
+не команды из QML. Прежние device tests ниже сохраняют свою дату.
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 Owner addition, 2026-09-27. The requirements below retain their acceptance;
 the dated delivery section distinguishes installed behavior from remaining work.
 [ROADMAP](ROADMAP.md#unified-execution-order--existing-work-and-new-issues)

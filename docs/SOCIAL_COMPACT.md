@@ -1,5 +1,18 @@
 # Compact Social and Fluxer profiles
 
+## Social v3 supersession — 16 октября 2026
+
+Тёплая компактная композиция, доступное касание и reuse providers сохраняются.
+Маршруты/контролы ниже заменены [новым контрактом](UX_CONTRACT_20261016_RU.md):
+Messages / Communities / Discover; global X/Y; один call; Lobby в GameHub;
+private activity на delivery layer. #217–223 владеют новой приёмкой, #135 —
+полным Lobby cycle. Не восстанавливать старый Together popup или Groups peer.
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 8 October 2026. Owner-approved correction to the first UX-01 delivery. The
 previous layout was rejected: oversized buttons and the permanent Together
 panel left too little space for conversation. Historical functional evidence in

@@ -1,5 +1,20 @@
 # Home selection and observed play history
 
+## Home/GameHub v2 — требования 16 октября 2026
+
+[Контракт](UX_CONTRACT_20261016_RU.md), #188–191/#197–207: Home имеет три зоны
+(showcase/один Play, activity+avatars, verified recent RA). Y Recent/Favorites
+выбирает без запуска; фактически успешный launch обновляет историю, live game
+фиксирует контекст. Exit возвращает предзапусковой маршрут. Overview/Timeline/
+Screens — универсальные поверхности GameHub, RA отдельная peer-face. Кадры Exit,
+Minimize и verified live achievement имеют разные provenance; сравнение по
+возврату не доказывает момент unlock. Старые результаты ниже сохраняются.
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 ## Current target — adaptive Home, 9 October 2026
 
 The selected Adventure's Experience Package supplies Home's game-specific content,

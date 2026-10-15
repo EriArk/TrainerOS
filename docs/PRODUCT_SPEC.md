@@ -1,5 +1,19 @@
 # TrainerOS Product Specification
 
+## Current specification authority — 16 October 2026
+
+The owner's latest issue edits and [current contract](UX_CONTRACT_20261016_RU.md)
+supersede conflicting bootstrap specifications below. TrainerOS is universal;
+Pokémon is a bounded Experience adapter. Five primaries: Home / Games / GameHub /
+Social / Apps. First public beta is an installer over Armada, not a mandatory
+image. Follow [the current queue](ROADMAP.md#current-execution-queue); retain
+exact-save protection and historical evidence without claiming target UI shipped.
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 **Current consolidated target, 8 October 2026:** read the
 [complete Russian product vision](PRODUCT_VISION_RU.md) and
 [#136-160 acceptance register](EXPANSION_136_160.md). Prepared Armada image and

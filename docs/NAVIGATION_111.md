@@ -1,5 +1,18 @@
 # Five-section navigation and legacy migration — #111
 
+## Последняя редакция #111 — 16 октября 2026
+
+Действуют **Home / Games / GameHub / Social / Apps**, а не два игровых primary.
+[Полная карта и legacy migrations](UX_CONTRACT_20261016_RU.md), #206/#207/#224/#232.
+GameHub: Overview/RA/optional Adapter/Lobby; Social: Messages/Communities/Discover;
+Apps: Apps/Crates/Browser/Files. Нижние даты — происхождение прежнего интерфейса.
+CORE-16 в [ROADMAP](ROADMAP.md#current-execution-queue) владеет переносом.
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 **Implementation update, 9 October 2026:** the owner subsequently authorized the
 UX-02 implementation. Current behavior, handheld delivery and retained acceptance
 are recorded in [UX_FRAMEWORK](UX_FRAMEWORK.md). Dated planning-only and compact-menu

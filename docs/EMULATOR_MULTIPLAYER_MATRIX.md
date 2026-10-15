@@ -1,5 +1,21 @@
 # Emulator multiplayer coverage
 
+## Порядок и UX — уточнение 16 октября 2026
+
+#187 теперь задаёт волну популярных NES/SNES/MD/PS1/PS2/GC/Wii и готовых NetPlay
+cores вместо обязательного strict oldest-first. [Контракт](UX_CONTRACT_20261016_RU.md)
+и [ROADMAP](ROADMAP.md#current-execution-queue): сначала общая оболочка и Lobby,
+при его переделке подключаются уже работающие режимы; недостающие механизмы MP-16.
+Охват до Wii U + Vita сохраняется, PS3/Switch исключены, private PSP и полный
+handoff catalogue отложены. Couch/separate pads, pass-controller, native online
+и separate-machine link различаются. Не считать два тяжёлых PS2 процесса на
+одной портативке допустимой заменой couch; использовать существующие механизмы.
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 **Owner lobby/core priority, 13 October 2026 (latest):** deliver the shared
 lobby foundation and keyboard before resuming platform multiplayer integration.
 Use a dedicated Social Lobby tab (L2/R2 and touch), game-free creation, stable

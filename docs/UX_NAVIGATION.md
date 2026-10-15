@@ -1,5 +1,20 @@
 # TrainerOS UX & Navigation
 
+## Current navigation authority — 16 October 2026
+
+Use [the canonical route and input map](UX_CONTRACT_20261016_RU.md).
+Home / Games / GameHub / Social / Apps replace the older primaries below.
+Semantic route migration preserves game/account/session/draft/focus; do not
+replace integer labels without migrating persistence and deep links. Global
+X Quick Apps / Y Recent+Favorites apply in shell, subordinate to keyboard and
+protected modals; actual game/external app keeps its input. Start is the widget
+dashboard; Settings is reached from Shell Options. Old bindings below are historical.
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 **Active target, 9 October 2026:** [precise UX-02 map](UX_OPTIONS_MAP_RU.md).
 Five semantic slots are Home / Collections / [experience A] / [experience B] / Social.
 The [#174–178 + adaptive Home contract](EXPANSION_174_178.md) supplies game-specific

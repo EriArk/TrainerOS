@@ -1,5 +1,20 @@
 # Physical Home menu — #112 / #49
 
+## Options / Start / Settings — актуальная цель 16 октября 2026
+
+[Контракт](UX_CONTRACT_20261016_RU.md), #168/#170/#171/#195/#233/#234.
+Большой Shell Options содержит Settings/Power/Launcher вверху справа, но
+Game Options этих иконок не содержит. Просмотр notification не принимает call/invite.
+Game Options: точная живая игра, Continue/Minimize/QuickChat/Together/Exit.
+Start — отдельный QuickActions/Extensions dashboard; live graphics там, не в
+Game Options. Native game Start остаётся игре. Из Game Options → Start кнопка
+Home возвращает прямо в игру, Start/B — в Game Options. Ниже прежние реализации.
+
+## Историческая редакция и доказательства
+
+Ниже сохранён прежний текст с его датами. Конфликтующие цели и указания
+очерёдности заменены текущим разделом выше; доказательства не переносятся на новый UI.
+
 **Implementation update, 9 October 2026:** the owner subsequently authorized the
 UX-02 implementation. Current behavior, handheld delivery and retained acceptance
 are recorded in [UX_FRAMEWORK](UX_FRAMEWORK.md). Dated planning-only and compact-menu
