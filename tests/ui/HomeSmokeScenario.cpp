@@ -505,6 +505,21 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             shell.dispatch(Action::Back);check(!shell.keyboard()->isOpen() && shell.settings()->communication()->profileEditing(),"Keyboard Back returns to profile editing");
             shell.dispatch(Action::Back);check(!shell.settings()->communication()->profileEditing() && shell.service()=="account-profile","Editor Back returns to profile");
             shell.dispatch(Action::Back);check(shell.service().isEmpty() && shell.primaryId()=="gamehub","Profile Back restores the underlying route");break;
+        case 62: {
+            window->resize(960,540);shell.goToPage(0);
+            auto state=shell.social()->account();auto profile=state["profile"].toMap();profile["name"]="Ren";state["profile"]=profile;HomeSocialFixture::publish(*shell.social(),state);break;
+        }
+        case 63: {
+            auto* name=itemNamed("header-account-name");check(name && name->property("lineCount").toInt()==1,"Short profile name stays on one line");capture("header-short-name-960");
+            auto state=shell.social()->account();auto profile=state["profile"].toMap();profile["name"]="VLADISLAV TVTIKAUSHI";state["profile"]=profile;HomeSocialFixture::publish(*shell.social(),state);break;
+        }
+        case 64: {
+            auto* name=itemNamed("header-account-name");check(name && name->property("lineCount").toInt()==2,"Two-word profile name occupies two lines");capture("header-two-word-name-960");
+            auto state=shell.social()->account();auto profile=state["profile"].toMap();profile["name"]="ExtraordinarilyLongUnbrokenPlayerName";state["profile"]=profile;HomeSocialFixture::publish(*shell.social(),state);break;
+        }
+        case 65: {
+            auto* name=itemNamed("header-account-name");check(name && name->property("contentWidth").toReal()<=name->width()+1,"Long profile name stays within its chassis area");capture("header-long-name-960");break;
+        }
         default:
             check(warnings == 0, "QML warnings"); completed = true; timer->stop();
             if (!screenshotDir.isEmpty()) {

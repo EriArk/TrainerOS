@@ -70,15 +70,24 @@ Window {
             width: Theme.brandWidth; height: Theme.brandHeight
             z: 1
             AccountAvatar {
-                x: 14; y: 10; width: 40
+                id: headerAvatar
+                x: 14; y: 14; width: 36
                 name: shell.social.account.name || "Player"
                 source: (shell.social.account.profile || {}).avatar || ""
                 presence: shell.social.account.state === "connected" ? shell.social.account.presence || "" : ""
             }
             Text {
-                x: 64; y: 18; width: parent.width-x-16; height: 28
-                text: shell.social.account.userId ? (shell.social.account.profile || {}).name || shell.social.account.name || "Your profile" : "Sign in"
-                color: Theme.paper; font.family: Theme.displayFamily; font.pixelSize: 20
+                id: headerName; objectName: "header-account-name"
+                readonly property string fullName: (shell.social.account.userId ? (shell.social.account.profile || {}).name || shell.social.account.name || "Your profile" : "Sign in").trim()
+                readonly property var words: fullName.split(/\s+/)
+                readonly property bool twoLines: words.length === 2
+                x: headerAvatar.x + headerAvatar.width + 14
+                y: headerAvatar.y + (headerAvatar.height-height)/2
+                width: parent.width-x-16; height: twoLines ? 40 : 36
+                text: twoLines ? words.join("\n") : fullName
+                color: Theme.paper; font.family: Theme.displayFamily; font.pixelSize: 26
+                minimumPixelSize: 16; fontSizeMode: Text.Fit
+                maximumLineCount: twoLines ? 2 : 1
                 elide: Text.ElideRight; textFormat: Text.PlainText; verticalAlignment: Text.AlignVCenter
             }
             MouseArea {
@@ -89,9 +98,9 @@ Window {
                 Accessible.onPressAction: shell.openAccountProfile()
             }
             Text {
-                x: 12; y: 46; width: parent.width - 24
+                x: 16; y: 51; width: parent.width - 32
                 visible: !!shell.liveGame.id; text: "Still running · Home to return"
-                horizontalAlignment: Text.AlignHCenter; color: "#ffe3a4"; font.pixelSize: 10
+                horizontalAlignment: Text.AlignHCenter; color: "#ffe3a4"; font.pixelSize: 9
             }
         }
         Row {
