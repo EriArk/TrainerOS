@@ -7,6 +7,8 @@ Item {
     property real expandedHeight: 229
     property real expandedWidth: Theme.screenBounds.width
     property real contentTop: 58
+    property bool showExpandedHeader: true
+    readonly property bool headerVisible: showExpandedHeader || height <= Theme.adventureTabHeight + 0.1
     readonly property real closedWidth: Theme.adventureTabWidth
     property string button: "Y"
     property string label: "Recent games"
@@ -65,8 +67,8 @@ Item {
             strokeColor: "transparent"
             fillGradient: LinearGradient {
                 x1: 0; y1: 1; x2: 0; y2: 34
-                GradientStop { position: 0; color: root.button === "Y" ? Qt.lighter(Theme.yellow,1.15) : Qt.lighter(Theme.chassisTop,1.22) }
-                GradientStop { position: 1; color: root.button === "Y" ? Theme.yellow : Theme.chassis }
+                GradientStop { position: 0; color: !root.headerVisible ? "transparent" : root.button === "Y" ? Qt.lighter(Theme.yellow,1.15) : Qt.lighter(Theme.chassisTop,1.22) }
+                GradientStop { position: 1; color: !root.headerVisible ? "transparent" : root.button === "Y" ? Theme.yellow : Theme.chassis }
             }
             PathSvg { path: root.shoulder() + " L " + root.width + " 34 H 0 Z" }
         }
@@ -79,6 +81,7 @@ Item {
     Item {
         id: toggle
         objectName: root.toggleName
+        visible: root.headerVisible
         width: root.width; height: Theme.adventureTabHeight
         Accessible.role: Accessible.Button; Accessible.name: root.button+" "+root.label
         Accessible.onPressAction: root.toggled()

@@ -375,9 +375,10 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             shell.dispatch(Action::Secondary);break;
         case 42: {
             auto* apps=itemNamed("quick-apps-drawer");auto* games=itemNamed("continue-drawer");
-            if(apps && qAbs(apps->height()-106)>0.1){--*stage;return;}
+            if(apps && qAbs(apps->height()-76)>0.1){--*stage;return;}
             check(apps && games && apps->width()==games->property("expandedWidth").toReal(),"Quick Apps shares the Recent games expanded width");
-            check(apps && apps->height()==106 && apps->height()<games->property("expandedHeight").toReal(),"Quick Apps keeps a shorter one-row body");
+            check(apps && apps->height()==76 && apps->height()<games->property("expandedHeight").toReal(),"Quick Apps keeps a shorter one-row body");
+            check(itemNamed("quick-apps-handle") && !itemNamed("quick-apps-handle")->isVisible(),"Expanded X hides its header");
             capture("quick-apps-empty-960");
             QJsonArray rows,running;
             for(int i=0;i<12;++i) {const auto id=QString("fixture-%1.desktop").arg(i,2,10,QChar('0'));rows.append(QJsonObject{{"id",id},{"name",QString("Application %1").arg(i+1)},{"icon","application-x-executable"}});running.append(id);}
@@ -402,10 +403,11 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             check(apps && games && apps->width()==games->width() && apps->width()==174,"Closed X/Y handles share the shorter width");
             check(apps && games && games->x()>apps->x() && games->x()+games->width()<400 && apps->height()==36 && games->height()==36,"Compact handles sit side by side at the left bezel");
             check(apps && games && qAbs(apps->mapRectToScene(apps->boundingRect()).right()-games->mapRectToScene(games->boundingRect()).left()-32*apps->mapRectToScene(apps->boundingRect()).width()/apps->width())<2 && apps->z()>games->z(),"Quick Apps is in front of the yellow right handle");
+            check(itemNamed("quick-apps-handle") && itemNamed("quick-apps-handle")->isVisible(),"Folded X keeps its handle");
             capture("paired-handles-960");window->resize(1920,1080);shell.dispatch(Action::Secondary);break;
         }
         case 48:
-            if(auto* d=itemNamed("quick-apps-drawer");d && qAbs(d->height()-106)>0.1){--*stage;return;}
+            if(auto* d=itemNamed("quick-apps-drawer");d && qAbs(d->height()-76)>0.1){--*stage;return;}
             capture("quick-apps-full-1080p");shell.closeDrawers();break;
         case 49:
             if(auto* d=itemNamed("quick-apps-drawer");d && (qAbs(d->height()-36)>0.1 || qAbs(d->width()-174)>0.1)){--*stage;return;}
@@ -419,9 +421,10 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         }
         case 51: {
             auto* apps=itemNamed("quick-apps-drawer");
-            if(apps && qAbs(apps->height()-106)>0.1){--*stage;return;}
+            if(apps && qAbs(apps->height()-76)>0.1){--*stage;return;}
             auto* icon=itemNamed("quick-app-slot-0");
             check(apps && icon && apps->mapRectToScene(apps->boundingRect()).contains(icon->mapRectToScene(icon->boundingRect())),"A single app stays inside the shared drawer");
+            check(apps && icon && qAbs(apps->mapRectToScene(apps->boundingRect()).center().x()-icon->mapRectToScene(icon->boundingRect()).center().x())<1,"A single app is centered in the drawer");
             capture("quick-apps-single-1080p");shell.closeDrawers();break;
         }
         default:
