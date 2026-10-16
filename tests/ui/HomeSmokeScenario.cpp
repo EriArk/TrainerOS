@@ -72,6 +72,7 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
         if (session.blocked() || launch->active() || store.pending()) return;
         switch ((*stage)++) {
         case 0:
+            capture("home-first-use");
             if (reopen) { *stage = 9; break; }
             store.saveAsync({"home-owner", "Fixture", "compass", {}, QDateTime::currentDateTimeUtc()}, window,
                 [failed](ProfileWriteResult result) { if (!result.success) *failed = true; });
@@ -224,6 +225,13 @@ void startHomeSmoke(QQuickWindow* window, ShellController& shell, SessionState& 
             capture("home-badges-kanto-960");
             progress->value.badgeSet = "hoenn-rse"; progress->publish(); break;
         case 11:
+            if (auto* backdrop = itemNamed("home-exit-picture")) {
+                const auto area = backdrop->mapRectToScene(backdrop->boundingRect());
+                check(backdrop->opacity() > 0 && backdrop->opacity() < 1, "Game screenshot stays translucent");
+                check(area.width() > window->width()*.4 && area.height() > window->height()*.6, "Screenshot covers the whole Home game card");
+            } else check(false, "Whole-card game backdrop exists");
+            if (auto* launchButton = itemNamed("home-launch"))
+                check(qAbs(launchButton->width()-launchButton->height()) < 1, "Sculpted A keeps a circular footprint");
             capture("home-badges-hoenn-960");
             progress->value.badgeMask = 0; progress->publish(); break;
         case 12:

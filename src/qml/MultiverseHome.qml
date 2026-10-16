@@ -3,13 +3,13 @@ Item {
     id: root
     required property var shell
     readonly property var choice: shell.homeGame
+    readonly property real unit: Math.max(1, Math.min(1.65, width/410, height/250))
     clip: true
-    Image { anchors.fill: parent; source: root.choice.preview || "qrc:/series/multiverse.png"; asynchronous: true; fillMode: Image.PreserveAspectCrop; opacity: .22 }
     Column {
-        x: 16; y: 18; width: parent.width-32; spacing: 13
-        Text { width: parent.width; text: root.choice.title || "Your next adventure"; color: Theme.ink; font.family: Theme.displayFamily; font.pixelSize: 30; wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight }
-        Text { width: parent.width; text: root.choice.system || "Choose a game from your library"; color: Theme.muted; font.pixelSize: 17; wrapMode: Text.WordWrap }
-        Text { width: parent.width; text: root.choice.time || "No recorded play time"; color: Theme.ink; font.pixelSize: 16; wrapMode: Text.WordWrap }
-        Text { width: parent.width; text: root.choice.description || ""; color: Theme.muted; font.pixelSize: 14; wrapMode: Text.WordWrap; maximumLineCount: 5; elide: Text.ElideRight }
+        x: 5*root.unit; y: 8*root.unit; width: parent.width-10*root.unit; spacing: 12*root.unit
+        Text { width: parent.width; text: root.choice.system || "WELCOME HOME"; color: "#d4e6c5"; font.pixelSize: 12*root.unit; font.letterSpacing: 1; elide: Text.ElideRight }
+        Text { width: parent.width; text: root.choice.title || "A world of adventures"; color: "#fff4ce"; font.family: Theme.displayFamily; font.pixelSize: 29*root.unit; wrapMode: Text.WordWrap; maximumLineCount: 3; elide: Text.ElideRight }
+        Text { width: parent.width; text: root.choice.id ? root.choice.time || "" : "Your games, your friends, your stories.\nChoose a game and make yourself at home."; color: "#e1ebd4"; font.pixelSize: 14*root.unit; wrapMode: Text.WordWrap }
+        Text { width: parent.width; visible: !!root.choice.id && text.length > 0; text: root.choice.description || ""; color: "#d2e1cc"; font.pixelSize: 13*root.unit; wrapMode: Text.WordWrap; maximumLineCount: 4; elide: Text.ElideRight }
     }
 }

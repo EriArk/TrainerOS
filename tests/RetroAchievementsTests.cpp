@@ -169,6 +169,28 @@ private slots:
         cache["entries"] = QJsonArray{QJsonObject{{"id", "101"}, {"title", "Original"}, {"description", "Original"}, {"earned", false}, {"hardcore", true}}};
         QVERIFY(!readAchievementCache(cache, result->snapshot.context));
     }
+    void optionalBadgeIdentitySurvivesCacheWithoutChangingUnlocks() {
+        for (const QString name : {QString("012345"), QString("../secret"), QString("https://other.invalid/icon"), QString()}) {
+            auto value = fetchAchievements(account, registration("/unused.gba"), "Kanto", QString(32, 'a'), [&](const auto& q) {
+                auto reply = response(q);
+                if (q.value("r") == "patch") {
+                    auto patch = reply.body["PatchData"].toObject(); auto entries = patch["Achievements"].toArray();
+                    auto first = entries[0].toObject(); first["BadgeName"] = name; entries[0] = first;
+                    patch["Achievements"] = entries; reply.body["PatchData"] = patch;
+                }
+                return reply;
+            });
+            QVERIFY(value);
+            const auto expected = name == "012345" ? name : QString();
+            QCOMPARE(value->snapshot.definitions.first().badgeName, expected);
+            auto cache = achievementCache(*value); auto loaded = readAchievementCache(cache, value->snapshot.context);
+            QVERIFY(loaded); QCOMPARE(loaded->snapshot.definitions.first().badgeName, expected);
+            QCOMPARE(loaded->snapshot.unlocks.first().unlocked, std::optional(true));
+            auto entries = cache["entries"].toArray(); auto first = entries[0].toObject(); first.remove("badge"); entries[0] = first; cache["entries"] = entries;
+            loaded = readAchievementCache(cache, value->snapshot.context);
+            QVERIFY(loaded); QVERIFY(loaded->snapshot.definitions.first().badgeName.isEmpty());
+        }
+    }
     void partialOrInvalidRepliesDoNotInventLockedTotals() {
         auto fetch = [&](const AchievementTransport& transport) { return fetchAchievements(account, registration("/unused.gba"), "Kanto", QString(32, 'a'), transport); };
         const auto partial = fetch([](const auto& q) {

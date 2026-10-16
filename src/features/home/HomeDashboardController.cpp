@@ -42,6 +42,7 @@ QVariantList HomeDashboardController::achievements() const {
             const auto key="ra:"+QString::fromLatin1(QCryptographicHash::hash(identity,QCryptographicHash::Sha256).toHex());
             rows.append(QVariantMap{{"key",key},{"type","achievement"},{"id",definition->id},{"set",set.id},
                 {"name",definition->title},{"game",set.title},{"description",definition->description},
+                {"icon",definition->badgeName.isEmpty() ? QString() : "https://media.retroachievements.org/Badge/" + definition->badgeName + ".png"},
                 {"date",unlock.earnedAt},{"offline",snapshot.state==AchievementState::Offline},
                 {"mode",unlock.mode==AchievementMode::Hardcore?"Hardcore":unlock.mode==AchievementMode::Standard?"Standard":"Mode unavailable"}});
         }

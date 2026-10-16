@@ -24,6 +24,7 @@ struct AchievementDefinition {
     QString id;
     QString title;
     QString description;
+    QString badgeName; // Optional provider artwork identity; never an unlock signal.
 };
 struct AchievementUnlock {
     QString achievementId;

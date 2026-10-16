@@ -2,6 +2,24 @@
 
 ## Current owner contract — 16 October 2026
 
+**Latest screen-by-screen correction:** the owner rejected the Home PC captures.
+Work on ONE screen at a time: correct Home, install on available handhelds,
+inspect the running result and let the owner review before advancing to Games.
+The older permission to batch later screens is superseded. Adapter separation is
+explicitly deferred. Preserve the existing visual language and gameplay guards;
+technical smoke success is not visual acceptance. Update Armada before device
+tests after checking active processes and protected operations.
+
+**Home visual reference correction:** retain a colourful illustrated scene even
+on first launch with no contacts or earned achievements. Do not substitute empty
+white dashboard panels, rectangular trophy tiles or a standard rectangular A.
+Keep the sculpted circular A, trophy/medallion presentation and deliberately
+illustrated empty states without fabricated player data. The game screenshot is
+a translucent backdrop across the WHOLE game card, not a separate preview pane;
+metadata and adapter presentation sit above it. Layout changes must preserve
+these agreed details. The owner supplied IMG_1045 as the visual-language reference,
+not permission to restore old navigation or the old oversized A.
+
 **Latest implementation scope:** after reconciliation the owner authorized a
 substantial continuation while away, focused on the **main framework**, then the
 framework of further sections if progress permits. Follow CORE -> Home/Games/
