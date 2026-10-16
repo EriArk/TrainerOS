@@ -4,7 +4,7 @@ import QtQuick.Effects
 ChassisDrawer {
     id: root
     required property var shell
-    label: "Recent / Favorites"
+    label: "Recent / ★"
     expanded: shell.drawerOpen
     expandedHeight: 162
     onToggled: shell.activate(1,"continue")

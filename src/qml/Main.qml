@@ -71,7 +71,7 @@ Window {
             z: 1
             AccountAvatar {
                 id: headerAvatar
-                x: 14; y: 14; width: 36
+                x: 10; y: (parent.height-height)/2; width: 44
                 name: shell.social.account.name || "Player"
                 source: (shell.social.account.profile || {}).avatar || ""
                 presence: shell.social.account.state === "connected" ? shell.social.account.presence || "" : ""
@@ -98,9 +98,10 @@ Window {
                 Accessible.onPressAction: shell.openAccountProfile()
             }
             Text {
-                x: 16; y: 51; width: parent.width - 32
+                x: headerName.x; y: 51; width: parent.width-x-16
                 visible: !!shell.liveGame.id; text: "Still running · Home to return"
                 horizontalAlignment: Text.AlignHCenter; color: "#ffe3a4"; font.pixelSize: 9
+                fontSizeMode: Text.HorizontalFit; minimumPixelSize: 7
             }
         }
         Row {
@@ -396,14 +397,15 @@ Window {
                     delegate: Hint {
                         required property var modelData
                         objectName: "footer-hint-" + modelData.button
+                        subtle: true
                         button: modelData.button; label: modelData.label
                         interactive: ["A","B","X","Y","Select","R3","L3"].includes(button)
                         onClicked: shell.pressButton(button)
                         tint: button === "B" ? Theme.pink : button === "X" || button === "←→" ? Theme.blue : button === "Y" ? Theme.yellow : Theme.green
                     }
                 }
-                Hint { button: "Home"; label: "Options"; interactive: true; onClicked: shell.pressButton("Home"); visible: !shell.moduleControlsBlocked && !shell.social.online.open }
-                Hint { button: "Start"; label: "System"; tint: Theme.yellow; interactive: true; onClicked: shell.pressButton("Start"); visible: !shell.moduleControlsBlocked && !shell.social.online.open }
+                Hint { button: "Home"; label: "Options"; subtle: true; interactive: true; onClicked: shell.pressButton("Home"); visible: !shell.moduleControlsBlocked && !shell.social.online.open }
+                Hint { button: "Start"; label: "System"; subtle: true; tint: Theme.yellow; interactive: true; onClicked: shell.pressButton("Start"); visible: !shell.moduleControlsBlocked && !shell.social.online.open }
             }
         }
         LibraryPanel { anchors.fill: screen; shell: shellController; visible: shell.service === "library" }
